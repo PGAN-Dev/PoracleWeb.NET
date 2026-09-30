@@ -540,6 +540,150 @@ public class PoracleHumanProxyV2Tests
         Assert.Equal($"{ApiAddress}/api/profiles/user1/update", Assert.Single(handler.Requests).Url);
     }
 
+    // ---- what the controllers actually send ------------------------------------------------------
+    //
+    // Every test above posts {"name":"probe-two"}, a body no caller builds. The four callers of
+    // AddProfileAsync send area, latitude and longitude as well, and every caller sends active_hours as the
+    // JSON string it is stored as. Against a server carrying PoracleNG #217 that made every profile create,
+    // duplicate and import a 422, and every rename too -- all green here, all failing on a running build.
+    // These post the real shapes and check the result against the schema the server publishes.
+
+    private const string ControllerCreateBody = """
+        {"name":"probe-two","area":"[\"aberdeen\"]","latitude":41.65,"longitude":-83.53,
+         "active_hours":"[{\"day\":1,\"hours\":\"8\",\"mins\":0},{\"day\":7,\"hours\":22,\"mins\":\"30\"}]"}
+        """;
+
+    [Fact]
+    public async Task CreatingAProfileSendsOnlyWhatV2AddProfileBodyDeclares()
+    {
+        var handler = ScriptedHandler.Ok("""{"profile_no":2,"profile":{"profile_no":2,"name":"probe-two"}}""");
+        var sut = CreateSut(handler, version: "5.3.0", capabilities: Carrying(create: true));
+
+        Assert.Equal(2, await sut.AddProfileAsync("user1", Body(ControllerCreateBody)));
+
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/profiles", request.Url);
+        using var body = JsonDocument.Parse(request.Body!);
+        AssertConformsTo(body.RootElement, "V2AddProfileBody");
+        Assert.Equal("probe-two", body.RootElement.GetProperty("name").GetString());
+
+        // PoracleNG stores hours and mins as strings as often as numbers; v2 declares integers.
+        var entries = body.RootElement.GetProperty("active_hours").EnumerateArray().ToList();
+        Assert.Equal(2, entries.Count);
+        Assert.Equal(8, entries[0].GetProperty("hours").GetInt32());
+        Assert.Equal(30, entries[1].GetProperty("mins").GetInt32());
+    }
+
+    [Theory]
+    [InlineData("null")]
+    [InlineData("\"{}\"")]
+    [InlineData("\"\"")]
+    public async Task CreatingAProfileWithNoScheduleOmitsIt(string activeHours)
+    {
+        // "{}" is what PoracleNG writes for a profile with no schedule. It is not an entry list.
+        var handler = ScriptedHandler.Ok("""{"profile_no":2}""");
+        var sut = CreateSut(handler, version: "5.3.0", capabilities: Carrying(create: true));
+
+        await sut.AddProfileAsync("user1", Body($$"""{"name":"probe-two","area":"[]","latitude":0,"longitude":0,"active_hours":{{activeHours}}}"""));
+
+        using var body = JsonDocument.Parse(Assert.Single(handler.Requests).Body!);
+        Assert.False(body.RootElement.TryGetProperty("active_hours", out _));
+        AssertConformsTo(body.RootElement, "V2AddProfileBody");
+    }
+
+    [Theory]
+    [InlineData("[{\\\"day\\\":8,\\\"hours\\\":8,\\\"mins\\\":0}]")]
+    [InlineData("[{\\\"day\\\":1,\\\"hours\\\":8}]")]
+    [InlineData("[{\\\"day\\\":1,\\\"hours\\\":8,\\\"mins\\\":0,\\\"colour\\\":\\\"red\\\"}]")]
+    [InlineData("not json")]
+    public async Task CreatingAProfileWithAScheduleV2CannotTakeStaysOnV1(string activeHours)
+    {
+        // Never reshape what PoracleNG will accept. v1 has taken these for years; v2 would 422 them.
+        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
+        var sut = CreateSut(handler, version: "5.3.0", capabilities: Carrying(create: true));
+
+        Assert.Null(await sut.AddProfileAsync("user1", Body($$"""{"name":"probe-two","active_hours":"{{activeHours}}"}""")));
+        Assert.Equal($"{ApiAddress}/api/profiles/user1/add", Assert.Single(handler.Requests).Url);
+    }
+
+    [Fact]
+    public async Task RenamingSendsTheStoredScheduleAsAnArray()
+    {
+        // ProfileController.Update always sends active_hours, falling back to the stored string, so a
+        // plain rename carries it too.
+        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
+        var sut = CreateSut(handler, version: "5.3.0", capabilities: Carrying(rename: true));
+
+        Assert.True(await sut.UpdateProfileAsync(
+            "user1", Body("""{"profile_no":2,"name":"renamed","active_hours":"[{\"day\":1,\"hours\":8,\"mins\":0}]"}""")));
+
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal(HttpMethod.Patch, request.Method);
+        using var body = JsonDocument.Parse(request.Body!);
+        AssertConformsTo(body.RootElement, "V2UpdateProfileBody");
+        Assert.Equal(1, body.RootElement.GetProperty("active_hours")[0].GetProperty("day").GetInt32());
+    }
+
+    [Fact]
+    public async Task RenamingAProfileWithNoScheduleStillPatches()
+    {
+        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
+        var sut = CreateSut(handler, version: "5.3.0", capabilities: Carrying(rename: true));
+
+        Assert.True(await sut.UpdateProfileAsync("user1", Body("""{"profile_no":2,"name":"renamed","active_hours":"{}"}""")));
+
+        using var body = JsonDocument.Parse(Assert.Single(handler.Requests).Body!);
+        Assert.Equal("renamed", body.RootElement.GetProperty("name").GetString());
+        Assert.False(body.RootElement.TryGetProperty("active_hours", out _));
+        AssertConformsTo(body.RootElement, "V2UpdateProfileBody");
+    }
+
+    [Fact]
+    public async Task RenamingWithAScheduleV2CannotTakeStaysOnV1()
+    {
+        // False sends ProfileController to its direct rename, so the name still lands.
+        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
+        var sut = CreateSut(handler, version: "5.3.0", capabilities: Carrying(rename: true));
+
+        Assert.False(await sut.UpdateProfileAsync(
+            "user1", Body("""{"profile_no":2,"name":"renamed","active_hours":"[{\"day\":0,\"hours\":8,\"mins\":0}]"}""")));
+        Assert.Equal($"{ApiAddress}/api/profiles/user1/update", Assert.Single(handler.Requests).Url);
+    }
+
+    /// <summary>
+    /// Every property of <paramref name="body"/> is one the named schema declares, recursing into
+    /// <c>active_hours</c> entries -- the schemas set <c>additionalProperties:false</c>, so anything else
+    /// is a 422. Read from the fixture captured off a running build rather than restated here.
+    /// </summary>
+    private static void AssertConformsTo(JsonElement body, string schema)
+    {
+        using var doc = JsonDocument.Parse(File.ReadAllText(OpenApiFixture("next")));
+        var schemas = doc.RootElement.GetProperty("components").GetProperty("schemas");
+        var declared = schemas.GetProperty(schema).GetProperty("properties").EnumerateObject().Select(p => p.Name).ToHashSet();
+        var entry = schemas.GetProperty("V2ActiveHourEntry").GetProperty("properties").EnumerateObject().Select(p => p.Name).ToHashSet();
+
+        foreach (var property in body.EnumerateObject())
+        {
+            Assert.Contains(property.Name, declared);
+        }
+
+        if (body.TryGetProperty("active_hours", out var hours))
+        {
+            Assert.Equal(JsonValueKind.Array, hours.ValueKind);
+            foreach (var item in hours.EnumerateArray())
+            {
+                foreach (var property in item.EnumerateObject())
+                {
+                    Assert.Contains(property.Name, entry);
+                    Assert.Equal(JsonValueKind.Number, property.Value.ValueKind);
+                }
+            }
+        }
+    }
+
+    private static string OpenApiFixture(string name, [System.Runtime.CompilerServices.CallerFilePath] string? here = null) =>
+        Path.Combine(Path.GetDirectoryName(here)!, "..", "Fixtures", $"poracleng-openapi-{name}.json");
+
     private static JsonElement Body(string json) => JsonDocument.Parse(json).RootElement.Clone();
 
     private static PoracleHumanProxy CreateSut(

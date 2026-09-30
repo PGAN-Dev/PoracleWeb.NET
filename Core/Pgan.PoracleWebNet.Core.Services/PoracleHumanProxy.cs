@@ -364,8 +364,9 @@ public partial class PoracleHumanProxy(
         // schema says that. Without the check this would read a number out of a body that has none and
         // quietly answer null, which is the same as today but a round trip slower. See #836.
         if ((await this._v2Schema.GetAsync()).ProfileCreateReturnsNumber
+            && V2ProfileBody(body) is { } v2Body
             && await this.TryV2Async(
-                HttpMethod.Post, "profiles-add", $"/api/v2/humans/{Encode(userId)}/profiles", body.GetRawText())
+                HttpMethod.Post, "profiles-add", $"/api/v2/humans/{Encode(userId)}/profiles", v2Body)
                 is { } reply)
         {
             await EnsureAcceptedAsync(reply.Response);
@@ -388,11 +389,12 @@ public partial class PoracleHumanProxy(
         if ((await this._v2Schema.GetAsync()).ProfileRename
             && body.TryGetProperty("profile_no", out var profileNo)
             && profileNo.ValueKind == JsonValueKind.Number
+            && V2ProfileBody(body) is { } v2Body
             && await this.TryV2Async(
                 HttpMethod.Patch,
                 "profiles-update",
                 $"/api/v2/humans/{Encode(userId)}/profiles/{profileNo.GetInt32()}",
-                V2ProfilePatchBody(body))
+                v2Body)
                 is { } reply)
         {
             await EnsureAcceptedAsync(reply.Response);
@@ -407,38 +409,173 @@ public partial class PoracleHumanProxy(
     }
 
     /// <summary>
-    /// The body for a v2 profile PATCH: no <c>profile_no</c>, and nothing set to null.
+    /// The body for a v2 profile create or PATCH, or null when the profile cannot be said in v2's terms
+    /// and the caller should use v1.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <c>profile_no</c> addresses the row in the path, and <c>V2UpdateProfileBody</c> sets
-    /// <c>additionalProperties: false</c>, so leaving it in the body is a refusal rather than a harmless
-    /// extra.
+    /// <c>V2AddProfileBody</c> and <c>V2UpdateProfileBody</c> both declare <c>name</c> and
+    /// <c>active_hours</c> and nothing else, under <c>additionalProperties: false</c>. The callers build
+    /// one body for both surfaces, carrying <c>area</c>, <c>latitude</c> and <c>longitude</c> (which v1's
+    /// create ignores, so every caller writes them to the row afterwards) and <c>profile_no</c> (which v2
+    /// takes from the path). Forwarding it made every create and every rename a 422 on a server carrying
+    /// PoracleNG #217, so only the two declared fields are sent.
     /// </para>
     /// <para>
-    /// Nulls go because the two surfaces mean different things by them. v1 reads a null as "leave this
-    /// alone"; v2 says the same thing by omission, and declares <c>active_hours</c> as an array rather
-    /// than a nullable one. A live build of the branch does accept the null -- verified -- but that is
-    /// tolerance the schema does not promise, and <see cref="TryV2Async"/> falls back on a missing route,
-    /// not on a 422. Sending what the schema describes costs nothing. An empty array is not a null and
-    /// still clears the schedule.
+    /// <c>active_hours</c> is stored as a JSON string and v2 wants the array itself; see
+    /// <see cref="TryV2ActiveHours"/>. A null, like "no schedule", is said by omission. An empty array is
+    /// not a null and still clears the schedule.
     /// </para>
     /// </remarks>
-    private static string V2ProfilePatchBody(JsonElement body)
+    private static string? V2ProfileBody(JsonElement body)
     {
-        var fields = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+        var fields = new Dictionary<string, object>(StringComparer.Ordinal);
 
         foreach (var property in body.EnumerateObject())
         {
-            if (property.NameEquals("profile_no") || property.Value.ValueKind == JsonValueKind.Null)
+            if (property.NameEquals("name") && property.Value.ValueKind == JsonValueKind.String)
             {
-                continue;
+                fields["name"] = property.Value.GetString()!;
             }
+            else if (property.NameEquals("active_hours"))
+            {
+                if (!TryV2ActiveHours(property.Value, out var entries))
+                {
+                    return null;
+                }
 
-            fields[property.Name] = property.Value;
+                if (entries is not null)
+                {
+                    fields["active_hours"] = entries;
+                }
+            }
         }
 
         return JsonSerializer.Serialize(fields);
+    }
+
+    /// <summary>The bounds <c>V2ActiveHourEntry</c> declares for each of its fields.</summary>
+    private static readonly Dictionary<string, (int Min, int Max)> V2ActiveHourFields = new(StringComparer.Ordinal)
+    {
+        ["day"] = (1, 7),
+        ["hours"] = (0, 23),
+        ["mins"] = (0, 59),
+        ["end_hours"] = (0, 23),
+        ["end_mins"] = (0, 59),
+        ["step"] = (0, int.MaxValue),
+    };
+
+    /// <summary>
+    /// A stored <c>active_hours</c> value as the entry list v2 declares. <paramref name="entries"/> is null
+    /// for "no schedule" -- a null, an empty string, or the <c>{}</c> PoracleNG writes for a profile that
+    /// never had one. False means v2 cannot take this schedule and the caller should use v1.
+    /// </summary>
+    /// <remarks>
+    /// PoracleNG stores <c>hours</c> and <c>mins</c> as strings as often as numbers, and v2 declares
+    /// integers, so numeric strings are converted. Anything else v2 would refuse -- a field it does not
+    /// declare, a value outside its bounds, a missing required field -- answers false rather than being
+    /// dropped or clamped: v1 has accepted these schedules for years, and reshaping one to fit would
+    /// change what the user set.
+    /// </remarks>
+    private static bool TryV2ActiveHours(JsonElement value, out List<Dictionary<string, int>>? entries)
+    {
+        entries = null;
+        JsonElement list;
+
+        switch (value.ValueKind)
+        {
+            case JsonValueKind.Null:
+                return true;
+
+            case JsonValueKind.Array:
+                list = value;
+                break;
+
+            case JsonValueKind.String:
+                var text = value.GetString();
+                if (string.IsNullOrWhiteSpace(text))
+                {
+                    return true;
+                }
+
+                try
+                {
+                    using var document = JsonDocument.Parse(text);
+                    list = document.RootElement.Clone();
+                }
+                catch (JsonException)
+                {
+                    return false;
+                }
+
+                if (list.ValueKind == JsonValueKind.Object && !list.EnumerateObject().Any())
+                {
+                    return true;
+                }
+
+                if (list.ValueKind != JsonValueKind.Array)
+                {
+                    return false;
+                }
+
+                break;
+
+            default:
+                return false;
+        }
+
+        var result = new List<Dictionary<string, int>>();
+
+        foreach (var item in list.EnumerateArray())
+        {
+            if (item.ValueKind != JsonValueKind.Object)
+            {
+                return false;
+            }
+
+            var entry = new Dictionary<string, int>(StringComparer.Ordinal);
+
+            foreach (var field in item.EnumerateObject())
+            {
+                if (!V2ActiveHourFields.TryGetValue(field.Name, out var bounds)
+                    || !TryInteger(field.Value, out var number)
+                    || number < bounds.Min
+                    || number > bounds.Max)
+                {
+                    return false;
+                }
+
+                entry[field.Name] = number;
+            }
+
+            // step > 0 makes the entry a range, and the schema requires its end.
+            var isRange = entry.TryGetValue("step", out var step) && step > 0;
+            if (!entry.ContainsKey("day") || !entry.ContainsKey("hours") || !entry.ContainsKey("mins")
+                || (isRange && (!entry.ContainsKey("end_hours") || !entry.ContainsKey("end_mins"))))
+            {
+                return false;
+            }
+
+            result.Add(entry);
+        }
+
+        entries = result;
+        return true;
+    }
+
+    private static bool TryInteger(JsonElement value, out int number)
+    {
+        number = 0;
+
+        // IDE0072 off: every other kind is deliberately "not an integer", and the wildcard says so.
+#pragma warning disable IDE0072
+        return value.ValueKind switch
+        {
+            JsonValueKind.Number => value.TryGetInt32(out number),
+            JsonValueKind.String => int.TryParse(value.GetString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out number),
+            _ => false,
+        };
+#pragma warning restore IDE0072
     }
 
     /// <summary>

@@ -53,6 +53,32 @@ public class TrackedUidRemapperTests
     }
 
     [Fact]
+    public async Task RemapsAPokemonEditIntoAMonsterQuickPick()
+    {
+        // The one type whose two names differ: MonsterService passes PoracleNG's "pokemon", quick-pick
+        // state stores "monster". Every Pokemon pick kept its stale uid and "remove" left the edited
+        // alarm behind -- reproduced on 5.2.1 against the v2.18.0 image.
+        var state = State("high-iv", "monster", 36590);
+        this._repo.Setup(r => r.GetByUserAsync("u1")).ReturnsAsync([state]);
+
+        await this._sut.RemapAsync("u1", "pokemon", 36590, 36591);
+
+        Assert.Equal([36591], state.TrackedUids);
+        this._repo.Verify(r => r.CreateOrUpdateAsync(state), Times.Once);
+    }
+
+    [Fact]
+    public async Task APokemonEditStillLeavesOtherTypesAlone()
+    {
+        var raid = State("raid-legendary", "raid", 5);
+        this._repo.Setup(r => r.GetByUserAsync("u1")).ReturnsAsync([raid]);
+
+        await this._sut.RemapAsync("u1", "pokemon", 5, 6);
+
+        Assert.Equal([5], raid.TrackedUids);
+    }
+
+    [Fact]
     public async Task IgnoresAppliedStateForAnotherAlarmType()
     {
         // uids are only unique within a type, so a raid uid 5 must not rewrite a lure's uid 5.
