@@ -119,13 +119,13 @@ public class PokestopEventService(IPoracleIncidentProxy proxy, IFeatureGate feat
         return await this._proxy.BulkDeleteByUidsAsync(userId, items.Select(x => x.Uid));
     }
 
-    public async Task<int> UpdateDistanceByUserAsync(string userId, int profileNo, int distance)
+    public async Task<DistanceUpdateResult> UpdateDistanceByUserAsync(string userId, int profileNo, int distance)
     {
         var items = await this._proxy.GetByUserAsync(userId);
         return await this.RewriteDistanceAsync(userId, items, distance);
     }
 
-    public async Task<int> UpdateDistanceByUidsAsync(List<int> uids, string userId, int distance)
+    public async Task<DistanceUpdateResult> UpdateDistanceByUidsAsync(List<int> uids, string userId, int distance)
     {
         var selected = new HashSet<int>(uids);
         var items = await this._proxy.GetByUserAsync(userId);
@@ -147,20 +147,34 @@ public class PokestopEventService(IPoracleIncidentProxy proxy, IFeatureGate feat
     /// two rows in the set can collapse into each other at the new radius — the #580/#598 failure has
     /// nothing to bite on here.
     /// </remarks>
-    private async Task<int> RewriteDistanceAsync(string userId, IReadOnlyList<PokestopEvent> items, int distance)
+    private async Task<DistanceUpdateResult> RewriteDistanceAsync(string userId, IReadOnlyList<PokestopEvent> items, int distance)
     {
-        if (items.Count == 0)
+        // A radius cannot apply to a rule limited to areas, and a rule measured from a place needs one.
+        // PoracleNG refuses both, so one such rule in the batch failed all of them; skip and report it.
+        var conflicts = items
+            .Select(item => (item, conflict: DistanceRewrite.ConflictOf(
+                item.OverrideAreas is { Count: > 0 },
+                !string.IsNullOrWhiteSpace(item.OverrideLocationLabel),
+                distance)))
+            .ToList();
+        var writable = conflicts.Where(c => c.conflict == DistanceRewrite.ScopeConflict.None).Select(c => c.item).ToList();
+        var skipped = new DistanceUpdateResult(
+            0,
+            [.. conflicts.Where(c => c.conflict == DistanceRewrite.ScopeConflict.AreaScoped).Select(c => c.item.Uid)],
+            [.. conflicts.Where(c => c.conflict == DistanceRewrite.ScopeConflict.PlaceScoped).Select(c => c.item.Uid)]);
+
+        if (writable.Count == 0)
         {
-            return 0;
+            return skipped;
         }
 
-        foreach (var item in items)
+        foreach (var item in writable)
         {
             item.Distance = distance;
         }
 
-        await this._proxy.CreateAsync(userId, items);
-        return items.Count;
+        await this._proxy.CreateAsync(userId, writable);
+        return skipped with { Updated = writable.Count };
     }
 
     private const string TrackingTypeName = "incident";

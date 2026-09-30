@@ -102,11 +102,8 @@ public class FortChangeController(IFortChangeService fortChangeService) : BaseAp
     [HttpPut("distance/bulk")]
     public async Task<IActionResult> UpdateBulkDistance([FromBody] BulkDistanceRequest request)
     {
-        var count = await this._fortChangeService.UpdateDistanceByUidsAsync(request.Uids, this.UserId, request.Distance);
-        return this.Ok(new
-        {
-            updated = count
-        });
+        var result = await this._fortChangeService.UpdateDistanceByUidsAsync(request.Uids, this.UserId, request.Distance);
+        return this.DistanceUpdated(result);
     }
 
     [HttpPut("distance")]
@@ -118,10 +115,7 @@ public class FortChangeController(IFortChangeService fortChangeService) : BaseAp
             return invalid;
         }
 
-        var count = await this._fortChangeService.UpdateDistanceByUserAsync(this.UserId, this.ProfileNo, distance);
-        return this.Ok(new
-        {
-            updated = count
-        });
+        var result = await this._fortChangeService.UpdateDistanceByUserAsync(this.UserId, this.ProfileNo, distance);
+        return this.DistanceUpdated(result);
     }
 }

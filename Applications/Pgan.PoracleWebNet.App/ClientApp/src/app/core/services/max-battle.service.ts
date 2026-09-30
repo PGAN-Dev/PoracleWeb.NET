@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { ConfigService } from './config.service';
+import { DistanceUpdateResult } from '../../shared/utils/distance-update';
 import { MaxBattle, MaxBattleCreate, MaxBattleUpdate } from '../models';
 
 @Injectable({ providedIn: 'root' })
@@ -30,12 +31,12 @@ export class MaxBattleService {
     return this.http.put<void>(`${this.config.apiHost}/api/maxbattles/${uid}`, maxBattle);
   }
 
-  updateAllDistance(distance: number): Observable<void> {
-    return this.http.put<void>(`${this.config.apiHost}/api/maxbattles/distance`, distance);
+  updateAllDistance(distance: number): Observable<DistanceUpdateResult> {
+    return this.http.put<DistanceUpdateResult>(`${this.config.apiHost}/api/maxbattles/distance`, distance);
   }
 
-  updateBulkDistance(uids: number[], distance: number): Observable<void> {
-    return this.http.put<void>(`${this.config.apiHost}/api/maxbattles/distance/bulk`, {
+  updateBulkDistance(uids: number[], distance: number): Observable<DistanceUpdateResult> {
+    return this.http.put<DistanceUpdateResult>(`${this.config.apiHost}/api/maxbattles/distance/bulk`, {
       uids,
       distance,
     });

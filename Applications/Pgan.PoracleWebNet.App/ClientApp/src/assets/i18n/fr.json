@@ -1932,6 +1932,8 @@
     "LAST_PAGE": "Dernière page"
   },
   "WHERE": {
+    "DISTANCE_SKIPPED_AREAS": "{{count}} limitée(s) à des zones ignorée(s) : un rayon ne s'y applique pas.",
+    "DISTANCE_SKIPPED_PLACE": "{{count}} mesurée(s) depuis un lieu enregistré ignorée(s) : il leur faut un rayon.",
     "SET_PIN": "Définir votre position",
     "PIN_MISSING_WARNING": "Vous n'avez pas encore défini de position : cette alerte n'aurait rien pour mesurer.",
     "PLACES_EMPTY_TITLE": "Aucun lieu pour l'instant",

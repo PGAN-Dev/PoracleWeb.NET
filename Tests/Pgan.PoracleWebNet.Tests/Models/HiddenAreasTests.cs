@@ -70,6 +70,22 @@ public class HiddenAreasTests
         Assert.Equal("[\"alpha\",\"zulu\"]", json);
     }
 
+    /// <summary>
+    /// Serialize used to Take(500) before anything validated the result, so a 501-name PUT stored 500
+    /// and answered 200: one area quietly left on the menu. Serialize keeps every name now, and the
+    /// length check is what refuses the list.
+    /// </summary>
+    [Fact]
+    public void SerializeNeverDropsANameToFitTheCap()
+    {
+        var names = Enumerable.Range(0, HiddenAreas.MaxEntries + 1).Select(i => $"area{i}");
+
+        var json = HiddenAreas.Serialize(names);
+
+        Assert.False(HiddenAreas.TryValidate(json, out _));
+        Assert.Equal(HiddenAreas.MaxEntries + 1, System.Text.Json.JsonDocument.Parse(json).RootElement.GetArrayLength());
+    }
+
     [Fact]
     public void SerializeAndParseRoundTrip()
     {

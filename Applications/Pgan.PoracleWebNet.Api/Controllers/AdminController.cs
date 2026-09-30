@@ -611,6 +611,10 @@ public partial class AdminController(
         }
 
         var delegates = await this._webhookDelegateService.AddDelegateAsync(request.WebhookId, request.UserId);
+
+        // The role cache would otherwise hold the old answer for up to a minute, so a new delegate saw no
+        // nav item and a revoked one kept impersonating. Drop both sides of the grant.
+        this._roleResolver.Invalidate(request.UserId, request.WebhookId);
         return this.Ok(delegates);
     }
 
@@ -623,6 +627,10 @@ public partial class AdminController(
         }
 
         var delegates = await this._webhookDelegateService.RemoveDelegateAsync(request.WebhookId, request.UserId);
+
+        // Revocation has to land now: an impersonation session is re-authorised against this cache on
+        // every request, so a stale entry is a minute of access the admin just took away.
+        this._roleResolver.Invalidate(request.UserId, request.WebhookId);
         return this.Ok(delegates);
     }
 
@@ -700,6 +708,10 @@ public partial class AdminController(
         {
             return this.NotFound();
         }
+
+        // The purge removed grants in both directions, and a delegate PoracleJS names by the webhook's NAME
+        // is in no table that could say who else just lost access -- so every cached answer goes.
+        this._roleResolver.InvalidateAll();
 
         LogUserDeleted(this._logger, this.UserId, id);
         return this.NoContent();

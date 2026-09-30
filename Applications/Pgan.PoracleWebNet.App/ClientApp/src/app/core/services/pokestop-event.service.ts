@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { ConfigService } from './config.service';
+import { DistanceUpdateResult } from '../../shared/utils/distance-update';
 import { PokestopEvent, PokestopEventCreate, PokestopEventUpdate } from '../models';
 
 /**
@@ -36,12 +37,12 @@ export class PokestopEventService {
     return this.http.put<void>(`${this.config.apiHost}/api/pokestop-events/${uid}`, event);
   }
 
-  updateAllDistance(distance: number): Observable<void> {
-    return this.http.put<void>(`${this.config.apiHost}/api/pokestop-events/distance`, distance);
+  updateAllDistance(distance: number): Observable<DistanceUpdateResult> {
+    return this.http.put<DistanceUpdateResult>(`${this.config.apiHost}/api/pokestop-events/distance`, distance);
   }
 
-  updateBulkDistance(uids: number[], distance: number): Observable<void> {
-    return this.http.put<void>(`${this.config.apiHost}/api/pokestop-events/distance/bulk`, {
+  updateBulkDistance(uids: number[], distance: number): Observable<DistanceUpdateResult> {
+    return this.http.put<DistanceUpdateResult>(`${this.config.apiHost}/api/pokestop-events/distance/bulk`, {
       uids,
       distance,
     });

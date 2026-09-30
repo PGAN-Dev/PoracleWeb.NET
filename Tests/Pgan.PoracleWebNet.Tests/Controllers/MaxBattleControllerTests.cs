@@ -89,14 +89,14 @@ public class MaxBattleControllerTests : ControllerTestBase
     [Fact]
     public async Task UpdateAllDistanceReturnsOk()
     {
-        this._service.Setup(s => s.UpdateDistanceByUserAsync("123456789", 1, 100)).ReturnsAsync(2);
+        this._service.Setup(s => s.UpdateDistanceByUserAsync("123456789", 1, 100)).ReturnsAsync(DistanceUpdateResult.None with { Updated = 2 });
         Assert.IsType<OkObjectResult>(await this._sut.UpdateAllDistance(100));
     }
 
     [Fact]
     public async Task UpdateBulkDistanceReturnsOk()
     {
-        this._service.Setup(s => s.UpdateDistanceByUidsAsync(It.IsAny<List<int>>(), "123456789", 50)).ReturnsAsync(2);
+        this._service.Setup(s => s.UpdateDistanceByUidsAsync(It.IsAny<List<int>>(), "123456789", 50)).ReturnsAsync(DistanceUpdateResult.None with { Updated = 2 });
         Assert.IsType<OkObjectResult>(await this._sut.UpdateBulkDistance(new BulkDistanceRequest { Uids = [1, 2], Distance = 50 }));
     }
 }

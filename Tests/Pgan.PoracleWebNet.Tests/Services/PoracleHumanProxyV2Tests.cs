@@ -624,18 +624,44 @@ public class PoracleHumanProxyV2Tests
         Assert.Equal(1, body.RootElement.GetProperty("active_hours")[0].GetProperty("day").GetInt32());
     }
 
-    [Fact]
-    public async Task RenamingAProfileWithNoScheduleStillPatches()
+    /// <summary>
+    /// Changed deliberately. This used to assert that "{}" was omitted from the PATCH, which encoded the
+    /// defect rather than guarding against one: v2 reads an omitted field as "leave it unchanged", so a
+    /// caller sending "" to clear a schedule kept the old one. On an update every spelling of "no schedule"
+    /// is sent as the empty list. A profile that never had a schedule is cleared to the nothing it already
+    /// had, which is harmless.
+    /// </summary>
+    [Theory]
+    [InlineData("\"{}\"")]
+    [InlineData("\"\"")]
+    [InlineData("\"[]\"")]
+    [InlineData("[]")]
+    public async Task AnUpdateSayingNoScheduleClearsIt(string activeHours)
     {
         var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
         var sut = CreateSut(handler, version: "5.3.0", capabilities: Carrying(rename: true));
 
-        Assert.True(await sut.UpdateProfileAsync("user1", Body("""{"profile_no":2,"name":"renamed","active_hours":"{}"}""")));
+        Assert.True(await sut.UpdateProfileAsync(
+            "user1", Body($$"""{"profile_no":2,"name":"renamed","active_hours":{{activeHours}}}""")));
 
         using var body = JsonDocument.Parse(Assert.Single(handler.Requests).Body!);
         Assert.Equal("renamed", body.RootElement.GetProperty("name").GetString());
-        Assert.False(body.RootElement.TryGetProperty("active_hours", out _));
+        Assert.Equal(JsonValueKind.Array, body.RootElement.GetProperty("active_hours").ValueKind);
+        Assert.Equal(0, body.RootElement.GetProperty("active_hours").GetArrayLength());
         AssertConformsTo(body.RootElement, "V2UpdateProfileBody");
+    }
+
+    [Fact]
+    public async Task AnUpdateWithANullScheduleStillLeavesItAlone()
+    {
+        // The half that must not move: null is "not part of this edit", and v2 says that by omission.
+        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
+        var sut = CreateSut(handler, version: "5.3.0", capabilities: Carrying(rename: true));
+
+        await sut.UpdateProfileAsync("user1", Body("""{"profile_no":2,"name":"renamed","active_hours":null}"""));
+
+        using var body = JsonDocument.Parse(Assert.Single(handler.Requests).Body!);
+        Assert.False(body.RootElement.TryGetProperty("active_hours", out _));
     }
 
     [Fact]

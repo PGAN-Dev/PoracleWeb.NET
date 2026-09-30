@@ -138,7 +138,7 @@ public class NestServiceTests
         this._proxy.Setup(p => p.CreateAsync("nest", "u", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([], 0, 3, 0));
 
-        Assert.Equal(3, await this._sut.UpdateDistanceByUserAsync("u", 1, 100));
+        Assert.Equal(3, (await this._sut.UpdateDistanceByUserAsync("u", 1, 100)).Updated);
     }
 
     [Fact]

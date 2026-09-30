@@ -288,6 +288,26 @@ public partial class SettingsController(
             });
         }
 
+        // Every column is bounded, and an overflow surfaced as an unhandled DbUpdateException and a 500.
+        if (ColumnOverflow(key, request) is { } overflow)
+        {
+            return this.BadRequest(new
+            {
+                error = overflow
+            });
+        }
+
+        // A row with exactly one correct writer, PUT /api/admin/areas: that endpoint asks Poracle to reload
+        // the geofence feed, and a write here was stored and then applied whenever Poracle next reloaded on
+        // its own. The admin page's "Other" section rendered it as a raw text box inviting exactly that.
+        if (string.Equals(key, HiddenAreas.SettingKey, StringComparison.OrdinalIgnoreCase))
+        {
+            return this.BadRequest(new
+            {
+                error = $"{key} is managed from Admin > Areas and cannot be set here."
+            });
+        }
+
         // Both of these are projections of Poracle's config, not rows this page owns. Nothing stopped
         // them being written, and because a real row wins over the synthesized value, one accidental save
         // would have pinned the language default forever and silently stopped tracking Poracle. See #780.
@@ -306,18 +326,6 @@ public partial class SettingsController(
             return this.BadRequest(new
             {
                 error = iconReposError
-            });
-        }
-
-        // Same reasoning as icon_repos: a structured value whose shape decides whether a page renders.
-        // An unreadable hidden_areas row takes the admin area list with it, and the value is consumed
-        // by the geofence feed that Poracle loads.
-        if (string.Equals(key, HiddenAreas.SettingKey, StringComparison.OrdinalIgnoreCase)
-            && !HiddenAreas.TryValidate(request.Value, out var hiddenAreasError))
-        {
-            return this.BadRequest(new
-            {
-                error = hiddenAreasError
             });
         }
 
@@ -359,6 +367,44 @@ public partial class SettingsController(
 
         var result = await this._siteSettingService.CreateOrUpdateAsync(setting);
         return this.Ok(result);
+    }
+
+    /// <summary>
+    /// The <c>site_settings</c> column sizes, from <c>SiteSettingConfiguration</c> and the initial
+    /// migration: <c>key</c> varchar(100), <c>category</c> varchar(50), <c>value_type</c> varchar(20),
+    /// <c>value</c> TEXT.
+    /// </summary>
+    internal const int MaxKeyLength = 100;
+    internal const int MaxCategoryLength = 50;
+    internal const int MaxValueTypeLength = 20;
+
+    /// <summary>
+    /// TEXT holds 65,535 <em>bytes</em>, and the table is utf8mb4, so the value is measured in UTF-8
+    /// rather than in characters: 22,000 CJK characters is 66,000 bytes.
+    /// </summary>
+    internal const int MaxValueBytes = 65_535;
+
+    /// <summary>The message for the first field that would not fit its column, or null when all fit.</summary>
+    private static string? ColumnOverflow(string key, SiteSettingRequest request)
+    {
+        if (key.Length > MaxKeyLength)
+        {
+            return $"A setting key must be {MaxKeyLength} characters or fewer.";
+        }
+
+        if (request.Category?.Length > MaxCategoryLength)
+        {
+            return $"A setting category must be {MaxCategoryLength} characters or fewer.";
+        }
+
+        if (request.ValueType?.Length > MaxValueTypeLength)
+        {
+            return $"A setting value type must be {MaxValueTypeLength} characters or fewer.";
+        }
+
+        return request.Value is { } value && System.Text.Encoding.UTF8.GetByteCount(value) > MaxValueBytes
+            ? $"A setting value must be {MaxValueBytes} bytes or fewer."
+            : null;
     }
 
     /// <summary>

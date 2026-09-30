@@ -1932,6 +1932,8 @@
     "LAST_PAGE": "Laatste pagina"
   },
   "WHERE": {
+    "DISTANCE_SKIPPED_AREAS": "{{count}} beperkt tot gebieden overgeslagen: een straal geldt daar niet voor.",
+    "DISTANCE_SKIPPED_PLACE": "{{count}} gemeten vanaf een opgeslagen plek overgeslagen: die hebben een straal nodig.",
     "SET_PIN": "Locatie instellen",
     "PIN_MISSING_WARNING": "Je hebt nog geen locatie ingesteld, dus deze melding heeft niets om vanaf te meten.",
     "PLACES_EMPTY_TITLE": "Nog geen plaatsen",

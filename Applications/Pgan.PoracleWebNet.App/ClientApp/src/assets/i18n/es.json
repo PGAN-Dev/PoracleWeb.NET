@@ -1932,6 +1932,8 @@
     "LAST_PAGE": "Última página"
   },
   "WHERE": {
+    "DISTANCE_SKIPPED_AREAS": "Se omitieron {{count}} limitadas a zonas: un radio no se aplica a ellas.",
+    "DISTANCE_SKIPPED_PLACE": "Se omitieron {{count}} medidas desde un lugar guardado: necesitan un radio.",
     "SET_PIN": "Definir tu ubicación",
     "PIN_MISSING_WARNING": "Aún no has definido tu ubicación, así que esta alerta no tendría desde dónde medir.",
     "PLACES_EMPTY_TITLE": "Todavía no hay lugares",

@@ -117,11 +117,8 @@ public class MonsterController(IMonsterService monsterService) : BaseApiControll
     [HttpPut("distance/bulk")]
     public async Task<IActionResult> UpdateBulkDistance([FromBody] BulkDistanceRequest request)
     {
-        var count = await this._monsterService.UpdateDistanceByUidsAsync(request.Uids, this.UserId, request.Distance);
-        return this.Ok(new
-        {
-            updated = count
-        });
+        var result = await this._monsterService.UpdateDistanceByUidsAsync(request.Uids, this.UserId, request.Distance);
+        return this.DistanceUpdated(result);
     }
 
     [HttpPut("distance")]
@@ -133,10 +130,7 @@ public class MonsterController(IMonsterService monsterService) : BaseApiControll
             return invalid;
         }
 
-        var count = await this._monsterService.UpdateDistanceByUserAsync(this.UserId, this.ProfileNo, distance);
-        return this.Ok(new
-        {
-            updated = count
-        });
+        var result = await this._monsterService.UpdateDistanceByUserAsync(this.UserId, this.ProfileNo, distance);
+        return this.DistanceUpdated(result);
     }
 }

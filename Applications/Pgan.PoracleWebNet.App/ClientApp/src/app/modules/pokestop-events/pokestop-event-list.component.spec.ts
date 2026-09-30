@@ -318,6 +318,39 @@ describe('PokestopEventListComponent', () => {
       expect(pokestopEventService.getAll).toHaveBeenCalledTimes(1);
     });
 
+    it('says which alarms kept their scope when the server skipped some', async () => {
+      // One of the two is limited to an area, so the server wrote the other and named this one.
+      setup([
+        { ...base, uid: 1 },
+        { ...base, overrideAreas: ['aberdeen'], uid: 2, displayType: KECLEON },
+      ]);
+      dialogReturns(2000);
+      pokestopEventService.updateBulkDistance.mockReturnValue(of({ skippedAreaScoped: [2], skippedPlaceScoped: [], updated: 1 }));
+      component.selectAll();
+
+      await component.bulkUpdateDistance();
+
+      expect(snackBar.open).toHaveBeenCalledWith(
+        'POKESTOP_EVENTS.SNACK_BULK_DISTANCE. WHERE.DISTANCE_SKIPPED_AREAS',
+        'COMMON.OK',
+        expect.objectContaining({ duration: 6000 }),
+      );
+    });
+
+    it('update-all reports skipped alarms too', () => {
+      setup([base]);
+      dialogReturns(0);
+      pokestopEventService.updateAllDistance.mockReturnValue(of({ skippedAreaScoped: [], skippedPlaceScoped: [4], updated: 2 }));
+
+      component.updateAllDistance();
+
+      expect(snackBar.open).toHaveBeenCalledWith(
+        'POKESTOP_EVENTS.SNACK_ALL_DISTANCE. WHERE.DISTANCE_SKIPPED_PLACE',
+        'COMMON.OK',
+        expect.objectContaining({ duration: 6000 }),
+      );
+    });
+
     it('does nothing when the radius dialog is cancelled', async () => {
       setup([base]);
       dialogReturns(undefined);

@@ -1932,6 +1932,8 @@
     "LAST_PAGE": "Sista sidan"
   },
   "WHERE": {
+    "DISTANCE_SKIPPED_AREAS": "Hoppade över {{count}} som är begränsade till områden: en radie gäller inte för dem.",
+    "DISTANCE_SKIPPED_PLACE": "Hoppade över {{count}} som mäts från en sparad plats: de behöver en radie.",
     "SET_PIN": "Ange din position",
     "PIN_MISSING_WARNING": "Du har inte angett någon position än, så aviseringen har inget att mäta från.",
     "PLACES_EMPTY_TITLE": "Inga platser än",

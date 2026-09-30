@@ -79,7 +79,7 @@ public class LureControllerTests : ControllerTestBase
     [Fact]
     public async Task UpdateAllDistanceOk()
     {
-        this._service.Setup(s => s.UpdateDistanceByUserAsync("123456789", 1, 300)).ReturnsAsync(3);
+        this._service.Setup(s => s.UpdateDistanceByUserAsync("123456789", 1, 300)).ReturnsAsync(DistanceUpdateResult.None with { Updated = 3 });
         Assert.IsType<OkObjectResult>(await this._sut.UpdateAllDistance(300));
     }
 }

@@ -3,6 +3,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { Observable, catchError, of } from 'rxjs';
 
 import { ConfigService } from './config.service';
+import { DistanceUpdateResult } from '../../shared/utils/distance-update';
 import { Quest, QuestCreate, QuestUpdate } from '../models';
 
 interface QuestCapabilityResponse {
@@ -56,12 +57,12 @@ export class QuestService {
     return this.http.put<void>(`${this.config.apiHost}/api/quests/${uid}`, quest);
   }
 
-  updateAllDistance(distance: number): Observable<void> {
-    return this.http.put<void>(`${this.config.apiHost}/api/quests/distance`, distance);
+  updateAllDistance(distance: number): Observable<DistanceUpdateResult> {
+    return this.http.put<DistanceUpdateResult>(`${this.config.apiHost}/api/quests/distance`, distance);
   }
 
-  updateBulkDistance(uids: number[], distance: number): Observable<void> {
-    return this.http.put<void>(`${this.config.apiHost}/api/quests/distance/bulk`, {
+  updateBulkDistance(uids: number[], distance: number): Observable<DistanceUpdateResult> {
+    return this.http.put<DistanceUpdateResult>(`${this.config.apiHost}/api/quests/distance/bulk`, {
       uids,
       distance,
     });
