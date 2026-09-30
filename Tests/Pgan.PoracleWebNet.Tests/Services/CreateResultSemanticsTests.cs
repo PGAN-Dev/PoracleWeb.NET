@@ -4,6 +4,7 @@ using Moq;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Core.Services;
+using Pgan.PoracleWebNet.Tests.TestDoubles;
 
 namespace Pgan.PoracleWebNet.Tests.Services;
 
@@ -331,7 +332,7 @@ public class CreateResultSemanticsTests
     public async Task EditingALureOntoAnotherAlarmsLureIdIsRefusedBeforeAnythingIsDeleted()
     {
         var sut = new LureService(this._proxy.Object, this._gate.Object,
-            NullLogger<LureService>.Instance, this._remapper.Object);
+            NullLogger<LureService>.Instance, this._remapper.Object, NaturalKeyStub.Enforced);
         // The user holds two lures; the edit would move uid 10 onto uid 11's lure_id.
         this._proxy.Setup(p => p.GetByUserAsync("lure", "u1")).ReturnsAsync(Rows(
             new { uid = 10, id = "u1", lure_id = 501, distance = 500 },
@@ -348,7 +349,7 @@ public class CreateResultSemanticsTests
     public async Task EditingALureWithoutChangingItsLureIdStillWorks()
     {
         var sut = new LureService(this._proxy.Object, this._gate.Object,
-            NullLogger<LureService>.Instance, this._remapper.Object);
+            NullLogger<LureService>.Instance, this._remapper.Object, NaturalKeyStub.Enforced);
         this._proxy.Setup(p => p.GetByUserAsync("lure", "u1")).ReturnsAsync(Rows(
             new { uid = 10, id = "u1", lure_id = 501, distance = 500 }));
         this._proxy.Setup(p => p.CreateAsync("lure", "u1", It.IsAny<JsonElement>()))
@@ -363,7 +364,7 @@ public class CreateResultSemanticsTests
     public async Task EditingAnInvasionOntoAnotherAlarmsGenderAndGruntIsRefused()
     {
         var sut = new InvasionService(this._proxy.Object, this._gate.Object,
-            NullLogger<InvasionService>.Instance, this._remapper.Object);
+            NullLogger<InvasionService>.Instance, this._remapper.Object, NaturalKeyStub.Enforced);
         this._proxy.Setup(p => p.GetByUserAsync("invasion", "u1")).ReturnsAsync(Rows(
             new { uid = 20, id = "u1", gender = 1, grunt_type = "fire", distance = 500 },
             new { uid = 21, id = "u1", gender = 2, grunt_type = "fire", distance = 500 }));

@@ -4,6 +4,7 @@ using Moq;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Core.Services;
+using Pgan.PoracleWebNet.Tests.TestDoubles;
 
 namespace Pgan.PoracleWebNet.Tests.Services;
 
@@ -22,7 +23,7 @@ public class LureServiceTests
     public LureServiceTests()
     {
         this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
-        this._sut = new LureService(this._proxy.Object, this._featureGate.Object, NullLogger<LureService>.Instance, this._uidRemapper.Object);
+        this._sut = new LureService(this._proxy.Object, this._featureGate.Object, NullLogger<LureService>.Instance, this._uidRemapper.Object, NaturalKeyStub.Enforced);
         // The natural-key replace strategy reads the original row and frees the key first.
         this._proxy.Setup(p => p.GetByUserAsync("lure", It.IsAny<string>()))
             .ReturnsAsync(JsonSerializer.SerializeToElement(Array.Empty<object>()));
