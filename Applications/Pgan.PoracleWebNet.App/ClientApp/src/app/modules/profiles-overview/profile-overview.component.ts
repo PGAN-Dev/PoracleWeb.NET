@@ -37,6 +37,7 @@ import {
 } from '../../shared/components/active-hours-editor-dialog/active-hours-editor-dialog.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { LocationWarningComponent } from '../../shared/components/location-warning/location-warning.component';
+import { hasLevelFilter } from '../../shared/utils/pokemon-level';
 import { getGruntDisplayName } from '../invasions/invasion.constants';
 import { ProfileAddDialogComponent } from '../profiles/profile-add-dialog.component';
 import { ProfileEditDialogComponent } from '../profiles/profile-edit-dialog.component';
@@ -586,6 +587,11 @@ export class ProfileOverviewComponent implements OnInit {
 
   getTypeCount(typeKey: string): number {
     return this.stats()?.typeCounts[typeKey] ?? 0;
+  }
+
+  /** Whether a Pokemon card shows its level pill. Shares the rule the Pokemon page uses. */
+  hasLevelFilter(minLevel: null | number | undefined, maxLevel: null | number | undefined): boolean {
+    return hasLevelFilter(minLevel, maxLevel);
   }
 
   importProfile(event: Event): void {

@@ -212,15 +212,25 @@ builder.Services.AddAuthentication(options =>
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 })
-.AddJwtBearer(options => options.TokenValidationParameters = new TokenValidationParameters
+.AddJwtBearer(options =>
 {
-    ValidateIssuer = true,
-    ValidateAudience = true,
-    ValidateLifetime = true,
-    ValidateIssuerSigningKey = true,
-    ValidIssuer = jwtSettings.Issuer,
-    ValidAudience = jwtSettings.Audience,
-    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Secret))
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = jwtSettings.Issuer,
+        ValidAudience = jwtSettings.Audience,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Secret))
+    };
+
+    // An impersonation token is re-authorised on every request: a signature proves who minted it, not
+    // that the impersonator still holds the authority they had then. See ImpersonationAuthority.
+    options.Events = new JwtBearerEvents
+    {
+        OnTokenValidated = Pgan.PoracleWebNet.Api.Services.ImpersonationAuthority.OnTokenValidatedAsync,
+    };
 });
 
 builder.Services.AddAuthorization();
@@ -521,6 +531,18 @@ if (!app.Environment.IsDevelopment())
     // means the shell is revalidated only when somebody types /index.html by hand.
     app.MapFallbackToFile("index.html", staticFileOptions);
 }
+
+// An API path nothing routes is a 404, whatever the method. The SPA fallback above used to claim these
+// too, so a typo'd or retired route answered 200 with index.html and a client expecting JSON reported a
+// parse error instead of "no such endpoint". The literal `api` segment outranks the SPA's bare catch-all,
+// and this accepts every method where that one accepts GET and HEAD only, so a POST is a 404 here rather
+// than a 405 there. The price is that a wrong method on a real action (GET on the POST-only
+// /api/geofence-feed/refresh) is also a 404 rather than a 405; the body names the method so that reads
+// as what it is. Registered outside the Production branch so both environments agree.
+app.MapFallback("api/{**path}", (HttpContext context) => Results.NotFound(new
+{
+    error = $"No API endpoint answers {context.Request.Method} {context.Request.Path}.",
+}));
 
 app.Run();
 

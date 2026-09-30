@@ -535,7 +535,7 @@
     "REWARD_ITEM": "Item",
     "REWARD_MEGA_ENERGY": "Mega Energie",
     "REWARD_CANDY": "Snoep",
-    "REWARD_TYPE_PREFIX": "Questtype:",
+    "REWARD_TYPE_PREFIX": "Questtype: {{type}}",
     "REWARD_POKEMON_ENCOUNTER": "Pokemon Ontmoeting",
     "CONFIRM_DELETE_TITLE": "Quest Alarm Verwijderen",
     "CONFIRM_DELETE_MSG": "Weet je zeker dat je dit quest alarm wilt verwijderen?",
@@ -1934,6 +1934,8 @@
     "LAST_PAGE": "Laatste pagina"
   },
   "WHERE": {
+    "DISTANCE_SKIPPED_AREAS": "{{count}} beperkt tot gebieden overgeslagen: een straal geldt daar niet voor.",
+    "DISTANCE_SKIPPED_PLACE": "{{count}} gemeten vanaf een opgeslagen plek overgeslagen: die hebben een straal nodig.",
     "SET_PIN": "Locatie instellen",
     "PIN_MISSING_WARNING": "Je hebt nog geen locatie ingesteld, dus deze melding heeft niets om vanaf te meten.",
     "PLACES_EMPTY_TITLE": "Nog geen plaatsen",

@@ -26,6 +26,12 @@ public interface IUserRoleResolver
 {
     /// <summary>Resolves the user's current roles.</summary>
     Task<UserRoles> ResolveAsync(string userId);
+
+    /// <summary>Drops the cached answer for each of these users, so the next resolve reads live.</summary>
+    void Invalidate(params string[] userIds);
+
+    /// <summary>Drops every cached answer.</summary>
+    void InvalidateAll();
 }
 
 /// <summary>
@@ -65,7 +71,7 @@ public sealed partial class UserRoleResolver(
 
     public async Task<UserRoles> ResolveAsync(string userId)
     {
-        var cacheKey = $"roles:{userId}";
+        var cacheKey = this.CacheKey(userId);
         if (this._cache.TryGetValue<UserRoles>(cacheKey, out var cached))
         {
             return cached;
@@ -81,6 +87,47 @@ public sealed partial class UserRoleResolver(
         }
 
         return resolved;
+    }
+
+    /// <remarks>
+    /// Granting or revoking a delegate took up to the full minute to land, because the admin dialog wrote
+    /// the table and left the cached answer where it was. Both sides of the grant are dropped: the
+    /// delegate, whose <c>ManagedWebhooks</c> changed, and the webhook, in case anything is keyed by it.
+    /// </remarks>
+    public void Invalidate(params string[] userIds)
+    {
+        ArgumentNullException.ThrowIfNull(userIds);
+        foreach (var userId in userIds.Where(id => !string.IsNullOrEmpty(id)))
+        {
+            this._cache.Remove(this.CacheKey(userId));
+        }
+    }
+
+    /// <remarks>
+    /// For deleting a human, where the set of affected users is not knowable: a webhook's delegates can be
+    /// named in PoracleJS's own config, by the webhook's name, and appear in no table here. Rather than
+    /// enumerate the cache, the generation every key carries is moved on, so every existing entry misses
+    /// and ages out on its own TTL. The generation lives in the shared cache, not on this instance, because
+    /// the resolver is scoped and the next request has its own.
+    /// </remarks>
+    public void InvalidateAll() => Interlocked.Increment(ref this.Generation().Value);
+
+    private string CacheKey(string userId) =>
+        $"roles:{Volatile.Read(ref this.Generation().Value).ToString(System.Globalization.CultureInfo.InvariantCulture)}:{userId}";
+
+    private RolesGeneration Generation() =>
+        this._cache.GetOrCreate(GenerationKey, entry =>
+        {
+            entry.Priority = CacheItemPriority.NeverRemove;
+            return new RolesGeneration();
+        })!;
+
+    private const string GenerationKey = "roles:generation";
+
+    /// <summary>A mutable holder, so the counter can be moved on atomically in place.</summary>
+    private sealed class RolesGeneration
+    {
+        public long Value;
     }
 
     private async Task<UserRoles> ResolveUncachedAsync(string userId)

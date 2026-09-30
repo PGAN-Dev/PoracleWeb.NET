@@ -535,7 +535,7 @@
     "REWARD_ITEM": "Przedmiot",
     "REWARD_MEGA_ENERGY": "Mega energia",
     "REWARD_CANDY": "Cukierki",
-    "REWARD_TYPE_PREFIX": "Typ zadania:",
+    "REWARD_TYPE_PREFIX": "Typ zadania: {{type}}",
     "REWARD_POKEMON_ENCOUNTER": "Spotkanie Pokemon",
     "CONFIRM_DELETE_TITLE": "Usuń alarm zadania",
     "CONFIRM_DELETE_MSG": "Czy na pewno chcesz usunąć ten alarm zadania?",
@@ -1934,6 +1934,8 @@
     "LAST_PAGE": "Ostatnia strona"
   },
   "WHERE": {
+    "DISTANCE_SKIPPED_AREAS": "Pominięto {{count}} ograniczone do obszarów: promień ich nie dotyczy.",
+    "DISTANCE_SKIPPED_PLACE": "Pominięto {{count}} mierzone od zapisanego miejsca: potrzebują promienia.",
     "SET_PIN": "Ustaw lokalizację",
     "PIN_MISSING_WARNING": "Nie ustawiono jeszcze lokalizacji, więc ten alert nie miałby punktu odniesienia.",
     "PLACES_EMPTY_TITLE": "Brak miejsc",

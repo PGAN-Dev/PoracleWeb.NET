@@ -118,11 +118,8 @@ public class QuestController(IQuestService questService, IQuestPokecoinCapabilit
     [HttpPut("distance/bulk")]
     public async Task<IActionResult> UpdateBulkDistance([FromBody] BulkDistanceRequest request)
     {
-        var count = await this._questService.UpdateDistanceByUidsAsync(request.Uids, this.UserId, request.Distance);
-        return this.Ok(new
-        {
-            updated = count
-        });
+        var result = await this._questService.UpdateDistanceByUidsAsync(request.Uids, this.UserId, request.Distance);
+        return this.DistanceUpdated(result);
     }
 
     [HttpPut("distance")]
@@ -134,10 +131,7 @@ public class QuestController(IQuestService questService, IQuestPokecoinCapabilit
             return invalid;
         }
 
-        var count = await this._questService.UpdateDistanceByUserAsync(this.UserId, this.ProfileNo, distance);
-        return this.Ok(new
-        {
-            updated = count
-        });
+        var result = await this._questService.UpdateDistanceByUserAsync(this.UserId, this.ProfileNo, distance);
+        return this.DistanceUpdated(result);
     }
 }

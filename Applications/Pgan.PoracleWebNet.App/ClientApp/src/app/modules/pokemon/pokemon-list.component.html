@@ -183,7 +183,7 @@
             @if (monster.minCp > 0 || monster.maxCp < 9000) {
               <span class="filter-pill cp-pill">CP {{ monster.minCp }}-{{ monster.maxCp }}</span>
             }
-            @if (monster.minLevel > 0 || monster.maxLevel < 35) {
+            @if (hasLevelFilter(monster)) {
               <span class="filter-pill level-pill">L{{ monster.minLevel }}-{{ monster.maxLevel }}</span>
             }
             @if (monster.pvpRankingLeague > 0) {

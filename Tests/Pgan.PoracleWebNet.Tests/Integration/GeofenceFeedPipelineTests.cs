@@ -47,9 +47,9 @@ public sealed class GeofenceFeedPipelineTests : IDisposable
     /// mean the SPA catch-all is not registered and "the controller answered" proves nothing.
     /// </summary>
     [Theory]
-    [InlineData("/api/geofence-feed/not-a-real-action")]
-    [InlineData("/api/no-such-controller")]
     [InlineData("/some/spa/route")]
+    [InlineData("/areas")]
+    [InlineData("/apiary")]
     public async Task TheSpaCatchAllIsLiveAndOwnsEveryUnroutedPath(string path)
     {
         using var client = this._factory.CreateClient();
@@ -61,20 +61,39 @@ public sealed class GeofenceFeedPipelineTests : IDisposable
     }
 
     /// <summary>
-    /// The second half of the control, and the more interesting one. The SPA fallback endpoint accepts
-    /// only GET and HEAD, so a POST to a path no controller claims is rejected on method and comes back
-    /// 405 -- not 404, and not index.html. That is exactly the sentinel pgan-web#345 reads as "this build
-    /// has no refresh endpoint", so it is what a PoracleWeb without this fix answers on the refresh path.
+    /// An API path nothing answers is a 404, not the SPA shell. It used to be a 200 carrying index.html,
+    /// so a client with a typo'd route got HTML where it expected JSON and reported a parse error
+    /// instead of "no such endpoint".
     /// </summary>
     [Theory]
     [InlineData("/api/geofence-feed/not-a-real-action")]
     [InlineData("/api/no-such-controller")]
-    [InlineData("/some/spa/route")]
-    public async Task PostingToAnUnroutedPathIs405FromTheSpaFallback(string path)
+    [InlineData("/api")]
+    [InlineData("/API/No-Such-Controller")]
+    public async Task AnUnroutedApiPathIsANotFoundRatherThanTheShell(string path)
     {
         using var client = this._factory.CreateClient();
 
-        using var response = await client.PostAsync(path, content: null);
+        using var get = await client.GetAsync(path);
+        using var post = await client.PostAsync(path, content: null);
+
+        Assert.Equal(HttpStatusCode.NotFound, get.StatusCode);
+        Assert.DoesNotContain(SpaMarker, await get.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+        Assert.Equal(HttpStatusCode.NotFound, post.StatusCode);
+    }
+
+    /// <summary>
+    /// The second half of the control. The SPA fallback endpoint accepts only GET and HEAD, so a POST to
+    /// a non-API path no controller claims is rejected on method and comes back 405. Under /api the
+    /// fallback is not a candidate at all, so there it is a 404 (above) -- which is never what the
+    /// refresh path answers on a build that has the action, the sentinel pgan-web#345 relies on.
+    /// </summary>
+    [Fact]
+    public async Task PostingToAnUnroutedSpaPathIs405FromTheSpaFallback()
+    {
+        using var client = this._factory.CreateClient();
+
+        using var response = await client.PostAsync("/some/spa/route", content: null);
 
         Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
         Assert.DoesNotContain(SpaMarker, await response.Content.ReadAsStringAsync(), StringComparison.Ordinal);
@@ -326,19 +345,22 @@ public sealed class GeofenceFeedPipelineTests : IDisposable
     }
 
     /// <summary>
-    /// A GET to the refresh path is NOT a 405 -- the SPA catch-all matches every method, so it wins once
-    /// the POST-only endpoint is rejected on method. Pinned so nobody diagnoses a misconfigured caller by
-    /// GETting the path and concluding the endpoint is missing from the build.
+    /// A GET to the refresh path is a JSON 404 naming the method, not the shell. It used to fall through
+    /// to index.html, so pasting the path into a browser showed the Angular app. It is not a 405, because
+    /// the /api catch-all accepts every method; the message saying "GET" is what tells a caller the
+    /// route exists for something else.
     /// </summary>
     [Fact]
-    public async Task GettingTheRefreshPathFallsThroughToTheSpaRatherThanReturning405()
+    public async Task GettingTheRefreshPathIsANotFoundNamingTheMethodRatherThanTheShell()
     {
         using var client = this._factory.CreateClient();
 
         using var response = await client.GetAsync("/api/geofence-feed/refresh");
+        var body = await response.Content.ReadAsStringAsync();
 
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains(SpaMarker, await response.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.DoesNotContain(SpaMarker, body, StringComparison.Ordinal);
+        Assert.Contains("GET /api/geofence-feed/refresh", body, StringComparison.Ordinal);
     }
 
     /// <summary>The security-header middleware runs for this route like any other.</summary>

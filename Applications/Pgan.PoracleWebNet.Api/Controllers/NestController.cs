@@ -102,11 +102,8 @@ public class NestController(INestService nestService) : BaseApiController
     [HttpPut("distance/bulk")]
     public async Task<IActionResult> UpdateBulkDistance([FromBody] BulkDistanceRequest request)
     {
-        var count = await this._nestService.UpdateDistanceByUidsAsync(request.Uids, this.UserId, request.Distance);
-        return this.Ok(new
-        {
-            updated = count
-        });
+        var result = await this._nestService.UpdateDistanceByUidsAsync(request.Uids, this.UserId, request.Distance);
+        return this.DistanceUpdated(result);
     }
 
     [HttpPut("distance")]
@@ -118,10 +115,7 @@ public class NestController(INestService nestService) : BaseApiController
             return invalid;
         }
 
-        var count = await this._nestService.UpdateDistanceByUserAsync(this.UserId, this.ProfileNo, distance);
-        return this.Ok(new
-        {
-            updated = count
-        });
+        var result = await this._nestService.UpdateDistanceByUserAsync(this.UserId, this.ProfileNo, distance);
+        return this.DistanceUpdated(result);
     }
 }

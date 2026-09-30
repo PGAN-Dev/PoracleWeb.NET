@@ -240,23 +240,11 @@
     <h2>{{ 'DASHBOARD.QUICK_ACTIONS' | translate }}</h2>
   </div>
   <div class="quick-actions">
-    <button mat-flat-button (click)="navigate('/pokemon')" class="action-btn action-pokemon">
-      <mat-icon>catching_pokemon</mat-icon> {{ 'DASHBOARD.ADD_POKEMON' | translate }}
-    </button>
-    <button mat-flat-button (click)="navigate('/raids')" class="action-btn action-raids">
-      <mat-icon>shield</mat-icon> {{ 'DASHBOARD.ADD_RAID' | translate }}
-    </button>
-    <button mat-flat-button (click)="navigate('/quests')" class="action-btn action-quests">
-      <mat-icon>explore</mat-icon> {{ 'DASHBOARD.ADD_QUEST' | translate }}
-    </button>
-    @if (areasEnabled()) {
-      <button mat-flat-button (click)="navigate('/areas')" class="action-btn action-areas">
-        <mat-icon>map</mat-icon> {{ 'DASHBOARD.MANAGE_AREAS' | translate }}
+    @for (action of quickActions(); track action.route) {
+      <button mat-flat-button (click)="navigate(action.route)" class="action-btn" [class]="action.cssClass">
+        <mat-icon>{{ action.icon }}</mat-icon> {{ action.label | translate }}
       </button>
     }
-    <button mat-flat-button (click)="navigate('/cleaning')" class="action-btn action-cleaning">
-      <mat-icon>cleaning_services</mat-icon> {{ 'DASHBOARD.CLEANING_ACTION' | translate }}
-    </button>
   </div>
 
   <!-- Alarm Counts Section -->

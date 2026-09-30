@@ -162,7 +162,7 @@ public class GymServiceTests
         this._proxy.Setup(p => p.CreateAsync("gym", "u", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([], 0, 5, 0));
 
-        Assert.Equal(5, await this._sut.UpdateDistanceByUserAsync("u", 1, 250));
+        Assert.Equal(5, (await this._sut.UpdateDistanceByUserAsync("u", 1, 250)).Updated);
     }
 
     [Fact]

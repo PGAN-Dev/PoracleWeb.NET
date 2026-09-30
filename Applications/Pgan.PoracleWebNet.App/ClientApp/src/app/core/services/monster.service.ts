@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { ConfigService } from './config.service';
+import { DistanceUpdateResult } from '../../shared/utils/distance-update';
 import { Monster, MonsterCreate, MonsterUpdate } from '../models';
 
 @Injectable({ providedIn: 'root' })
@@ -30,14 +31,14 @@ export class MonsterService {
     return this.http.put<void>(`${this.config.apiHost}/api/monsters/${uid}`, monster);
   }
 
-  updateAllDistance(distance: number): Observable<void> {
+  updateAllDistance(distance: number): Observable<DistanceUpdateResult> {
     // A bare number, as every sibling sends and as [FromBody] int binds. Wrapped in an object it
     // could not deserialize, so this 400'd every time. See #640.
-    return this.http.put<void>(`${this.config.apiHost}/api/monsters/distance`, distance);
+    return this.http.put<DistanceUpdateResult>(`${this.config.apiHost}/api/monsters/distance`, distance);
   }
 
-  updateBulkDistance(uids: number[], distance: number): Observable<void> {
-    return this.http.put<void>(`${this.config.apiHost}/api/monsters/distance/bulk`, {
+  updateBulkDistance(uids: number[], distance: number): Observable<DistanceUpdateResult> {
+    return this.http.put<DistanceUpdateResult>(`${this.config.apiHost}/api/monsters/distance/bulk`, {
       uids,
       distance,
     });

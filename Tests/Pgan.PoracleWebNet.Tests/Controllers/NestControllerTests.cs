@@ -79,7 +79,7 @@ public class NestControllerTests : ControllerTestBase
     [Fact]
     public async Task UpdateAllDistanceOk()
     {
-        this._service.Setup(s => s.UpdateDistanceByUserAsync("123456789", 1, 150)).ReturnsAsync(4);
+        this._service.Setup(s => s.UpdateDistanceByUserAsync("123456789", 1, 150)).ReturnsAsync(DistanceUpdateResult.None with { Updated = 4 });
         Assert.IsType<OkObjectResult>(await this._sut.UpdateAllDistance(150));
     }
 }

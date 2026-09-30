@@ -23,8 +23,8 @@ namespace Pgan.PoracleWebNet.Core.Models;
 /// What it deliberately does NOT do is unsubscribe anyone. Matching never consults
 /// <c>userSelectable</c> — <c>resolveOverride</c> hands a rule's areas to <c>areaOverlap</c>, which
 /// compares names against the fences a spawn fell in — so a profile already carrying a hidden name
-/// keeps receiving alerts from it. Hiding removes an area from the pickers, not from anyone's profile.
-/// The admin page says so out loud; see #885.
+/// keeps receiving alerts from it until that user next saves their areas. Then <c>setAreas</c> strips
+/// it with every other non-selectable name, without telling them. The admin page says so; see #885.
 /// </para>
 /// </remarks>
 public static class HiddenAreas
@@ -93,14 +93,18 @@ public static class HiddenAreas
     }
 
     /// <summary>Serializes a list for storage: normalized, de-duplicated, ordered so diffs stay readable.</summary>
+    /// <remarks>
+    /// Never trims the list to <see cref="MaxEntries"/>. It used to, before anything validated the
+    /// result, so a 501-name write stored 500 and reported success with one area still on the menu.
+    /// The caller runs <see cref="TryValidate"/> on this output and refuses a list over the cap.
+    /// </remarks>
     public static string Serialize(IEnumerable<string> names)
     {
         var ordered = names
             .Where(n => !string.IsNullOrWhiteSpace(n))
             .Select(Normalize)
             .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(n => n, StringComparer.Ordinal)
-            .Take(MaxEntries);
+            .OrderBy(n => n, StringComparer.Ordinal);
 
         return JsonSerializer.Serialize(ordered);
     }

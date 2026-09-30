@@ -296,7 +296,7 @@
                             @if ((alarm.min_cp ?? 0) > 0 || (alarm.max_cp ?? 9000) < 9000) {
                               <span class="filter-pill cp-pill">CP {{ alarm.min_cp }}-{{ alarm.max_cp }}</span>
                             }
-                            @if ((alarm.min_level ?? 0) > 0 || (alarm.max_level ?? 35) < 35) {
+                            @if (hasLevelFilter(alarm.min_level, alarm.max_level)) {
                               <span class="filter-pill level-pill">L{{ alarm.min_level }}-{{ alarm.max_level }}</span>
                             }
                             @if ((alarm.pvp_ranking_league ?? 0) > 0) {

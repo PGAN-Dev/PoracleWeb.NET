@@ -80,7 +80,7 @@ public class QuestControllerTests : ControllerTestBase
     [Fact]
     public async Task UpdateAllDistanceOk()
     {
-        this._service.Setup(s => s.UpdateDistanceByUserAsync("123456789", 1, 50)).ReturnsAsync(1);
+        this._service.Setup(s => s.UpdateDistanceByUserAsync("123456789", 1, 50)).ReturnsAsync(DistanceUpdateResult.None with { Updated = 1 });
         Assert.IsType<OkObjectResult>(await this._sut.UpdateAllDistance(50));
     }
 }

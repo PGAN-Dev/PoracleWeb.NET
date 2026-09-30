@@ -17,6 +17,7 @@ import { AreaDefinition, GeofenceData, Location } from '../../core/models';
 import { AreaService } from '../../core/services/area.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { LocationService } from '../../core/services/location.service';
+import { SettingsService } from '../../core/services/settings.service';
 import { AreaMapComponent } from '../../shared/components/area-map/area-map.component';
 import { LocationDialogComponent } from '../../shared/components/location-dialog/location-dialog.component';
 import { PlacesSectionComponent } from '../../shared/components/places-section/places-section.component';
@@ -78,11 +79,12 @@ export class AreaListComponent implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly i18n = inject(I18nService);
   private readonly locationService = inject(LocationService);
-
   private readonly rawGeofenceData = signal<GeofenceData[]>([]);
 
   // Saved state (what's in the DB)
   private savedSelection: string[] = [];
+
+  private readonly settingsService = inject(SettingsService);
   private readonly snackBar = inject(MatSnackBar);
   /** Label for areas Koji reports with no group. Doubles as the key the group filter matches on. */
   private readonly ungroupedLabel = this.i18n.instant('AREAS.GROUP_UNGROUPED');
@@ -104,6 +106,11 @@ export class AreaListComponent implements OnInit {
       .map(([name, counts]) => ({ name, selectedCount: counts.selected, totalCount: counts.total }))
       .sort((a, b) => a.name.localeCompare(b.name));
   });
+
+  /** Street addresses for the pin. Off with `disable_nominatim`, and with location itself. */
+  readonly geocodingEnabled = computed(
+    () => !this.settingsService.isDisabled('disable_location') && !this.settingsService.isDisabled('disable_nominatim'),
+  );
 
   readonly geofenceData = computed(() => {
     const available = this.availableAreas();
@@ -147,6 +154,13 @@ export class AreaListComponent implements OnInit {
 
   readonly location = signal<Location | null>(null);
   readonly locationAddress = signal<string>('');
+
+  /**
+   * The pin card and the Places section. `disable_location` 403s every route behind both, so with it on
+   * they are simply absent: the card used to say "No pin set" to a user who has one, and offer a Set
+   * button whose save would be refused. The areas half of the page is a separate feature.
+   */
+  readonly locationEnabled = computed(() => !this.settingsService.isDisabled('disable_location'));
 
   readonly locationMapUrl = signal<string>('');
 
@@ -264,12 +278,7 @@ export class AreaListComponent implements OnInit {
         this.locationAddress.set('');
         this.locationMapUrl.set('');
         if (hasPin(result)) {
-          this.locationService
-            .reverseGeocode(result.latitude, result.longitude)
-            .pipe(takeUntilDestroyed(this.destroyRef))
-            .subscribe(geo => {
-              if (geo?.display_name) this.locationAddress.set(geo.display_name);
-            });
+          this.lookUpAddress(result);
           this.locationService
             .getStaticMapUrl(result.latitude, result.longitude)
             .pipe(takeUntilDestroyed(this.destroyRef))
@@ -390,6 +399,23 @@ export class AreaListComponent implements OnInit {
         },
       });
 
+    if (!this.locationEnabled()) {
+      // The pin is not this page's to show, so there is nothing to wait for.
+      check();
+    } else {
+      this.loadLocation(check);
+    }
+
+    this.areaService
+      .getGeofencePolygons()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        error: () => {},
+        next: data => this.rawGeofenceData.set(data),
+      });
+  }
+
+  private loadLocation(check: () => void): void {
     this.locationService
       .getLocation()
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -400,12 +426,7 @@ export class AreaListComponent implements OnInit {
           this.location.set(pinOrNull(loc));
           check();
           if (hasPin(loc)) {
-            this.locationService
-              .reverseGeocode(loc.latitude, loc.longitude)
-              .pipe(takeUntilDestroyed(this.destroyRef))
-              .subscribe(result => {
-                if (result?.display_name) this.locationAddress.set(result.display_name);
-              });
+            this.lookUpAddress(loc);
             this.locationService
               .getStaticMapUrl(loc.latitude, loc.longitude)
               .pipe(takeUntilDestroyed(this.destroyRef))
@@ -415,13 +436,16 @@ export class AreaListComponent implements OnInit {
           }
         },
       });
+  }
 
-    this.areaService
-      .getGeofencePolygons()
+  /** The address line under the pin. Skipped with geocoding off; the card falls back to coordinates. */
+  private lookUpAddress(loc: Location): void {
+    if (!this.geocodingEnabled()) return;
+    this.locationService
+      .reverseGeocode(loc.latitude, loc.longitude)
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        error: () => {},
-        next: data => this.rawGeofenceData.set(data),
+      .subscribe(result => {
+        if (result?.display_name) this.locationAddress.set(result.display_name);
       });
   }
 

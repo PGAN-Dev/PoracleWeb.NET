@@ -30,6 +30,7 @@ import { WhereSheetComponent, WhereSheetData } from '../../shared/components/whe
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { ChipColors, readableChip } from '../../shared/utils/contrast';
+import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -120,8 +121,9 @@ export class QuestListComponent implements OnInit {
       // The server refuses a radius that would take over an alarm the user did not select, and names
       // the one in the way. Unguarded, that rejection cleared nothing, reloaded nothing and showed
       // nothing -- indistinguishable from a successful no-op. See #641.
+      let result: DistanceUpdateResult | undefined;
       try {
-        await firstValueFrom(this.questService.updateBulkDistance(uids, distance));
+        result = await firstValueFrom(this.questService.updateBulkDistance(uids, distance));
       } catch (err) {
         const message = (err as { error?: { error?: string } })?.error?.error;
         this.snackBar.open(message ?? this.i18n.instant('QUESTS.SNACK_FAILED_DISTANCE'), this.i18n.instant('TOAST.OK'), {
@@ -132,9 +134,17 @@ export class QuestListComponent implements OnInit {
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadQuests();
-      this.snackBar.open(this.i18n.instant('QUESTS.SNACK_BULK_DISTANCE', { count: uids.length }), this.i18n.instant('TOAST.OK'), {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        distanceUpdateMessage(
+          result,
+          this.i18n.instant('QUESTS.SNACK_BULK_DISTANCE', { count: result?.updated ?? uids.length }),
+          this.i18n,
+        ),
+        this.i18n.instant('TOAST.OK'),
+        {
+          duration: skippedAny(result) ? 6000 : 3000,
+        },
+      );
     }
   }
 
@@ -292,6 +302,8 @@ export class QuestListComponent implements OnInit {
         return this.i18n.instant('QUESTS.REWARD_POKEMON');
       case 2:
         return this.i18n.instant('QUESTS.REWARD_ITEM');
+      case 3:
+        return this.i18n.instant('QUESTS.STARDUST');
       case 12:
         return this.i18n.instant('QUESTS.REWARD_MEGA_ENERGY');
       case 4:
@@ -396,8 +408,12 @@ export class QuestListComponent implements OnInit {
           error: () => {
             this.snackBar.open(this.i18n.instant('QUESTS.SNACK_FAILED_DISTANCE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           },
-          next: () => {
-            this.snackBar.open(this.i18n.instant('QUESTS.SNACK_ALL_DISTANCE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+          next: result => {
+            this.snackBar.open(
+              distanceUpdateMessage(result, this.i18n.instant('QUESTS.SNACK_ALL_DISTANCE'), this.i18n),
+              this.i18n.instant('TOAST.OK'),
+              { duration: skippedAny(result) ? 6000 : 3000 },
+            );
             this.loadQuests();
           },
         });

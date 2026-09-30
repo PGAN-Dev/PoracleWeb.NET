@@ -1,8 +1,10 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { Observable, tap } from 'rxjs';
+import { Observable, tap, throwError } from 'rxjs';
 
 import { ConfigService } from './config.service';
+import { LocationFeatureDisabledError } from './location.service';
+import { SettingsService } from './settings.service';
 import { pinOrNull } from '../../shared/utils/location.utils';
 import { SavedPlace, SavedPlaces } from '../models';
 
@@ -17,6 +19,7 @@ export class PlacesService {
   private readonly config = inject(ConfigService);
   private readonly http = inject(HttpClient);
   private readonly places = signal<null | SavedPlaces>(null);
+  private readonly settings = inject(SettingsService);
 
   /**
    * Whether this Poracle server can move a place without deleting it first. Needs PoracleNG 5.2.0;
@@ -36,7 +39,13 @@ export class PlacesService {
     return this.http.post<SavedPlaces>(`${this.config.apiHost}/api/location/places`, place).pipe(tap(updated => this.places.set(updated)));
   }
 
+  /**
+   * Places live on LocationController, so `disable_location` 403s this read. Failing here instead keeps
+   * the 403 away from the error interceptor, whose toast used to open every add-alarm dialog (the scope
+   * picker loads places) on an instance with location switched off.
+   */
   load(): Observable<SavedPlaces> {
+    if (this.settings.isDisabled('disable_location')) return throwError(() => new LocationFeatureDisabledError('disable_location'));
     return this.http.get<SavedPlaces>(`${this.config.apiHost}/api/location/places`).pipe(tap(places => this.places.set(places)));
   }
 

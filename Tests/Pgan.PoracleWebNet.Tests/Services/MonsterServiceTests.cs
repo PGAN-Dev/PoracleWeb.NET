@@ -258,7 +258,7 @@ public class MonsterServiceTests
         this._proxy.Setup(p => p.CreateAsync("pokemon", "user1", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([], 0, 3, 0));
 
-        var result = await this._sut.UpdateDistanceByUserAsync("user1", 1, 500);
+        var result = (await this._sut.UpdateDistanceByUserAsync("user1", 1, 500)).Updated;
 
         Assert.Equal(3, result);
     }
@@ -336,7 +336,7 @@ public class MonsterServiceTests
         this._proxy.Setup(p => p.CreateAsync("pokemon", "user1", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([], 0, 2, 0));
 
-        var result = await this._sut.UpdateDistanceByUidsAsync([1, 3], "user1", 500);
+        var result = (await this._sut.UpdateDistanceByUidsAsync([1, 3], "user1", 500)).Updated;
 
         Assert.Equal(2, result);
     }

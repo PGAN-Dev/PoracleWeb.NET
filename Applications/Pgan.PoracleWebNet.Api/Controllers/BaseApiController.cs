@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
@@ -36,12 +37,25 @@ public abstract class BaseApiController : ControllerBase
     /// Returns <c>null</c> when the value is acceptable. See #417.
     /// </summary>
     protected IActionResult? RejectInvalidDistance(int distance) =>
-        distance < 0
+        distance is < 0 or > AlarmDistance.MaxMetres
             ? this.BadRequest(new
             {
-                error = "Distance must be zero or greater."
+                error = $"Distance must be between 0 and {AlarmDistance.MaxMetres} metres."
             })
             : null;
+
+    /// <summary>
+    /// The answer to a bulk "Update Distance". <c>updated</c> keeps its meaning for existing callers;
+    /// the two skip lists name the selected alarms a radius could not apply to, so the SPA can say why
+    /// they did not change. See <see cref="DistanceUpdateResult"/>.
+    /// </summary>
+    protected IActionResult DistanceUpdated(DistanceUpdateResult result) =>
+        this.Ok(new
+        {
+            updated = result.Updated,
+            skippedAreaScoped = result.SkippedAreaScoped,
+            skippedPlaceScoped = result.SkippedPlaceScoped,
+        });
 
     /// <summary>
     /// True when applying an update leaves the stored alarm exactly as it was.

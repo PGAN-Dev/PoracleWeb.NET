@@ -535,7 +535,7 @@
     "REWARD_ITEM": "Item",
     "REWARD_MEGA_ENERGY": "Mega Energy",
     "REWARD_CANDY": "Candy",
-    "REWARD_TYPE_PREFIX": "Quest Type:",
+    "REWARD_TYPE_PREFIX": "Quest Type: {{type}}",
     "REWARD_POKEMON_ENCOUNTER": "Pokemon Encounter",
     "CONFIRM_DELETE_TITLE": "Delete Quest Alarm",
     "CONFIRM_DELETE_MSG": "Are you sure you want to delete this quest alarm?",
@@ -1934,6 +1934,8 @@
     "LAST_PAGE": "Last page"
   },
   "WHERE": {
+    "DISTANCE_SKIPPED_AREAS": "Skipped {{count}} limited to areas: a radius doesn't apply to them.",
+    "DISTANCE_SKIPPED_PLACE": "Skipped {{count}} measured from a saved place: they need a radius.",
     "SET_PIN": "Set your pin",
     "PIN_MISSING_WARNING": "You have not set a pin yet, so this alert would have nothing to measure from.",
     "PLACES_EMPTY_TITLE": "No places yet",

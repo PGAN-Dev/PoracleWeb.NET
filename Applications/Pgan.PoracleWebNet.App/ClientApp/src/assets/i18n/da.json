@@ -535,7 +535,7 @@
     "REWARD_ITEM": "Genstand",
     "REWARD_MEGA_ENERGY": "Mega-energi",
     "REWARD_CANDY": "Slik",
-    "REWARD_TYPE_PREFIX": "Quest-type:",
+    "REWARD_TYPE_PREFIX": "Quest-type: {{type}}",
     "REWARD_POKEMON_ENCOUNTER": "Pokemon-møde",
     "CONFIRM_DELETE_TITLE": "Slet quest-alarm",
     "CONFIRM_DELETE_MSG": "Er du sikker på, at du vil slette denne quest-alarm?",
@@ -1934,6 +1934,8 @@
     "LAST_PAGE": "Sidste side"
   },
   "WHERE": {
+    "DISTANCE_SKIPPED_AREAS": "Sprang {{count}} over, der er begrænset til områder: en radius gælder ikke for dem.",
+    "DISTANCE_SKIPPED_PLACE": "Sprang {{count}} over, der måles fra et gemt sted: de skal have en radius.",
     "SET_PIN": "Angiv din position",
     "PIN_MISSING_WARNING": "Du har ikke angivet en position endnu, så beskeden har intet at måle fra.",
     "PLACES_EMPTY_TITLE": "Ingen steder endnu",

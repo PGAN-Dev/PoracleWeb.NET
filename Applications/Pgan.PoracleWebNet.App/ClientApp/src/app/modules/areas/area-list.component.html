@@ -12,7 +12,7 @@
 } @else {
   <div class="areas-page">
     <!-- Explainer: Two methods side by side -->
-    <div class="method-cards">
+    <div class="method-cards" [class.single]="!locationEnabled()">
       <div class="method-card method-areas" [class.method-active]="selectedAreas().length > 0">
         <div class="method-header">
           <mat-icon class="method-icon">map</mat-icon>
@@ -36,51 +36,55 @@
         </p>
       </div>
 
-      <div class="method-card method-location" [class.method-active]="!!location()">
-        <div class="method-header">
-          <mat-icon class="method-icon">my_location</mat-icon>
-          <div>
-            <h3>{{ 'AREAS.METHOD_LOCATION' | translate }}</h3>
-            <span class="method-status">
-              @if (location(); as loc) {
-                @if (locationAddress()) {
-                  {{ locationAddress() | slice: 0 : 50 }}
+      @if (locationEnabled()) {
+        <div class="method-card method-location" [class.method-active]="!!location()">
+          <div class="method-header">
+            <mat-icon class="method-icon">my_location</mat-icon>
+            <div>
+              <h3>{{ 'AREAS.METHOD_LOCATION' | translate }}</h3>
+              <span class="method-status">
+                @if (location(); as loc) {
+                  @if (locationAddress()) {
+                    {{ locationAddress() | slice: 0 : 50 }}
+                  } @else {
+                    {{ loc.latitude.toFixed(4) }}, {{ loc.longitude.toFixed(4) }}
+                  }
                 } @else {
-                  {{ loc.latitude.toFixed(4) }}, {{ loc.longitude.toFixed(4) }}
+                  {{ 'AREAS.METHOD_LOCATION_NOT_SET' | translate }}
                 }
-              } @else {
-                {{ 'AREAS.METHOD_LOCATION_NOT_SET' | translate }}
+              </span>
+            </div>
+            <div class="method-actions">
+              @if (location()) {
+                <button mat-button color="warn" (click)="clearLocation()">
+                  <mat-icon>location_off</mat-icon> {{ 'AREAS.CLEAR_LOCATION' | translate }}
+                </button>
               }
-            </span>
-          </div>
-          <div class="method-actions">
-            @if (location()) {
-              <button mat-button color="warn" (click)="clearLocation()">
-                <mat-icon>location_off</mat-icon> {{ 'AREAS.CLEAR_LOCATION' | translate }}
+              <button mat-stroked-button (click)="openLocationDialog()">
+                <mat-icon>edit_location</mat-icon>
+                {{ location() ? ('AREAS.CHANGE_LOCATION' | translate) : ('AREAS.SET_LOCATION' | translate) }}
               </button>
-            }
-            <button mat-stroked-button (click)="openLocationDialog()">
-              <mat-icon>edit_location</mat-icon>
-              {{ location() ? ('AREAS.CHANGE_LOCATION' | translate) : ('AREAS.SET_LOCATION' | translate) }}
-            </button>
+            </div>
           </div>
+          <p class="method-description">
+            {{ 'AREAS.METHOD_LOCATION_DESC' | translate }}
+          </p>
+          <p class="method-example">
+            <mat-icon>lightbulb</mat-icon>
+            {{ 'AREAS.METHOD_LOCATION_TIP' | translate }}
+          </p>
         </div>
-        <p class="method-description">
-          {{ 'AREAS.METHOD_LOCATION_DESC' | translate }}
-        </p>
-        <p class="method-example">
-          <mat-icon>lightbulb</mat-icon>
-          {{ 'AREAS.METHOD_LOCATION_TIP' | translate }}
-        </p>
+      }
+    </div>
+
+    @if (locationEnabled()) {
+      <div class="method-note">
+        <mat-icon>info</mat-icon>
+        <span>{{ 'AREAS.METHOD_NOTE' | translate }}</span>
       </div>
-    </div>
 
-    <div class="method-note">
-      <mat-icon>info</mat-icon>
-      <span>{{ 'AREAS.METHOD_NOTE' | translate }}</span>
-    </div>
-
-    <app-places-section />
+      <app-places-section />
+    }
 
     <!-- Area Selection Section -->
     <h2 class="section-title">

@@ -535,7 +535,7 @@
     "REWARD_ITEM": "Item",
     "REWARD_MEGA_ENERGY": "Mega Energia",
     "REWARD_CANDY": "Doce",
-    "REWARD_TYPE_PREFIX": "Tipo de Quest:",
+    "REWARD_TYPE_PREFIX": "Tipo de Quest: {{type}}",
     "REWARD_POKEMON_ENCOUNTER": "Encontro com Pokemon",
     "CONFIRM_DELETE_TITLE": "Excluir Alarme de Quest",
     "CONFIRM_DELETE_MSG": "Tem certeza que deseja excluir este alarme de quest?",
@@ -1934,6 +1934,8 @@
     "LAST_PAGE": "Última página"
   },
   "WHERE": {
+    "DISTANCE_SKIPPED_AREAS": "{{count}} limitados a áreas foram ignorados: um raio não se aplica a eles.",
+    "DISTANCE_SKIPPED_PLACE": "{{count}} medidos a partir de um local salvo foram ignorados: precisam de um raio.",
     "SET_PIN": "Definir sua localização",
     "PIN_MISSING_WARNING": "Você ainda não definiu sua localização, então este alerta não teria de onde medir.",
     "PLACES_EMPTY_TITLE": "Nenhum local ainda",

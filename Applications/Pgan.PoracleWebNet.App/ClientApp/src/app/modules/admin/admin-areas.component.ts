@@ -50,22 +50,13 @@ interface AreaRow extends AdminArea {
   templateUrl: './admin-areas.component.html',
 })
 export class AdminAreasComponent implements OnInit {
-  readonly areas = signal<AreaRow[]>([]);
-  readonly loading = signal(true);
-  readonly loadFailed = signal(false);
-  readonly orphaned = signal<string[]>([]);
-  readonly saving = signal(false);
-  readonly search = signal('');
-
   private readonly destroyRef = inject(DestroyRef);
+  /** The hidden set as staged in the UI, which is what a save sends. */
+  private readonly hidden = signal<Set<string>>(new Set());
   private readonly i18n = inject(I18nService);
   private readonly service = inject(AdminAreaService);
   private readonly snackBar = inject(MatSnackBar);
-
-  /** The hidden set as staged in the UI, which is what a save sends. */
-  private readonly hidden = signal<Set<string>>(new Set());
-
-  readonly hiddenCount = computed(() => this.hidden().size);
+  readonly areas = signal<AreaRow[]>([]);
 
   readonly dirty = computed(() => {
     const staged = this.hidden();
@@ -75,29 +66,22 @@ export class AdminAreasComponent implements OnInit {
     return stored.length !== staged.size || stored.some(n => !staged.has(n));
   });
 
+  readonly hiddenCount = computed(() => this.hidden().size);
+  readonly loadFailed = signal(false);
+  readonly loading = signal(true);
+
+  readonly orphaned = signal<string[]>([]);
+
+  readonly saving = signal(false);
+
+  readonly search = signal('');
+
   readonly visible = computed(() => {
     const q = this.search().trim().toLowerCase();
     const rows = this.areas();
     if (!q) return rows;
     return rows.filter(a => a.name.toLowerCase().includes(q) || (a.group ?? '').toLowerCase().includes(q));
   });
-
-  ngOnInit(): void {
-    this.reload();
-  }
-
-  isHidden(area: AreaRow): boolean {
-    return this.hidden().has(area.name);
-  }
-
-  toggle(area: AreaRow, hide: boolean): void {
-    this.hidden.update(current => {
-      const next = new Set(current);
-      if (hide) next.add(area.name);
-      else next.delete(area.name);
-      return next;
-    });
-  }
 
   discard(): void {
     this.hidden.set(
@@ -107,6 +91,14 @@ export class AdminAreasComponent implements OnInit {
           .map(a => a.name),
       ),
     );
+  }
+
+  isHidden(area: AreaRow): boolean {
+    return this.hidden().has(area.name);
+  }
+
+  ngOnInit(): void {
+    this.reload();
   }
 
   save(): void {
@@ -131,6 +123,15 @@ export class AdminAreasComponent implements OnInit {
           this.snackBar.open(this.i18n.instant(key), this.i18n.instant('COMMON.OK'), { duration: result.reloaded ? 3000 : 8000 });
         },
       });
+  }
+
+  toggle(area: AreaRow, hide: boolean): void {
+    this.hidden.update(current => {
+      const next = new Set(current);
+      if (hide) next.add(area.name);
+      else next.delete(area.name);
+      return next;
+    });
   }
 
   private reload(): void {

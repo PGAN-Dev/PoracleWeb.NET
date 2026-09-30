@@ -511,6 +511,78 @@ public class SettingsControllerTests : ControllerTestBase
         this._siteService.Verify(s => s.CreateOrUpdateAsync(It.IsAny<SiteSetting>()), Times.Once);
     }
 
+    /// <summary>
+    /// hidden_areas has one correct writer, PUT /api/admin/areas, because that is what asks Poracle to
+    /// reload the feed. Written here it was stored and applied on Poracle's own schedule, and the admin
+    /// page's "Other" section rendered it as a raw text box inviting exactly that. See #886.
+    /// </summary>
+    [Theory]
+    [InlineData("hidden_areas")]
+    [InlineData("HIDDEN_AREAS")]
+    public async Task UpsertRefusesHiddenAreasWhichHasItsOwnEndpoint(string key)
+    {
+        SetupUser(this._sut, isAdmin: true);
+
+        var result = await this._sut.Upsert(key, new SettingsController.SiteSettingRequest { Value = "[\"staging\"]" });
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        this._siteService.Verify(s => s.CreateOrUpdateAsync(It.IsAny<SiteSetting>()), Times.Never);
+    }
+
+    /// <summary>
+    /// site_settings.key is varchar(100) and value is TEXT (65,535 bytes). Both overflowed into an
+    /// unhandled DbUpdateException and a 500.
+    /// </summary>
+    [Fact]
+    public async Task UpsertRefusesAKeyLongerThanItsColumn()
+    {
+        SetupUser(this._sut, isAdmin: true);
+
+        var result = await this._sut.Upsert(new string('k', 101), new SettingsController.SiteSettingRequest { Value = "x" });
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        this._siteService.Verify(s => s.CreateOrUpdateAsync(It.IsAny<SiteSetting>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData(70_000, "a")]
+    [InlineData(22_000, "日")]
+    public async Task UpsertRefusesAValueLongerThanItsColumn(int repeat, string unit)
+    {
+        // The limit is bytes, not characters: 22,000 three-byte characters is 66,000 bytes.
+        SetupUser(this._sut, isAdmin: true);
+        var value = string.Concat(Enumerable.Repeat(unit, repeat));
+
+        var result = await this._sut.Upsert("custom_title", new SettingsController.SiteSettingRequest { Value = value });
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        this._siteService.Verify(s => s.CreateOrUpdateAsync(It.IsAny<SiteSetting>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpsertRefusesACategoryOrTypeLongerThanItsColumn()
+    {
+        SetupUser(this._sut, isAdmin: true);
+
+        Assert.IsType<BadRequestObjectResult>(await this._sut.Upsert(
+            "custom_title", new SettingsController.SiteSettingRequest { Value = "x", Category = new string('c', 51) }));
+        Assert.IsType<BadRequestObjectResult>(await this._sut.Upsert(
+            "custom_title", new SettingsController.SiteSettingRequest { Value = "x", ValueType = new string('t', 21) }));
+    }
+
+    [Fact]
+    public async Task UpsertStillWritesAKeyAndValueExactlyAtTheirLimits()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        var key = new string('k', 100);
+        this._siteService.Setup(s => s.GetByKeyAsync(key)).ReturnsAsync((SiteSetting?)null);
+        this._siteService.Setup(s => s.CreateOrUpdateAsync(It.IsAny<SiteSetting>())).ReturnsAsync((SiteSetting s) => s);
+
+        var result = await this._sut.Upsert(key, new SettingsController.SiteSettingRequest { Value = new string('v', 65_535) });
+
+        Assert.IsType<OkObjectResult>(result);
+    }
+
     [Fact]
     public void GetDiscordConfigReturnsOkForAdmin()
     {
