@@ -25,8 +25,11 @@ export interface ConfirmDialogResult {
 }
 
 @Component({
+  // An alertdialog needs a name as well as a description; without aria-labelledby a screen reader
+  // announced "alert dialog" and went straight to the body (axe aria-dialog-name, serious).
   host: {
     'aria-describedby': 'confirm-dialog-message',
+    'aria-labelledby': 'confirm-dialog-title',
     role: 'alertdialog',
   },
   imports: [
