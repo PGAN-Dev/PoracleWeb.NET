@@ -157,7 +157,7 @@ Pgan.PoracleWebNet.slnx
 - **Creation**: `CreateAsync` stores the geofence in `user_geofences` and adds its `kojiName` to the **current** profile's area list via `IUserAreaDualWriter.AddAreaToActiveProfileAsync` — one atomic `SaveChangesAsync` commits both `humans.area` and the current `profiles.area` row. The geofence appears as active on the creating profile and inactive on all others.
 - **Deletion**: `DeleteAsync` removes the geofence's `kojiName` from **all** profiles via `IUserAreaDualWriter.RemoveAreaFromAllProfilesAsync` (one atomic `SaveChangesAsync` spanning `humans.area` and every `profiles.area` row), then deletes the `user_geofences` row and reloads Poracle geofences. `AdminDeleteAsync` does the same. Going through the proxy is not viable because PoracleNG's `setAreas` intersects with `userSelectable=true` fences only and would drop the write.
 - **PoracleWeb is the single geofence source for PoracleJS.** The `GET /api/geofence-feed` endpoint (`[AllowAnonymous]`, intended for internal network access) serves a unified feed that merges admin geofences from Koji with user-drawn geofences from the PoracleWeb database. No custom code is needed in PoracleJS or Koji -- standard upstream versions work.
-- **`POST /api/geofence-feed/refresh` drops the cached Koji half** (rate limited to 20/min per IP; `GET` on that path answers a JSON 404 that names the method -- every unrouted `/api` path does, whatever the method, rather than falling through to the SPA shell as it used to), so the next feed read re-fetches. The Koji collection is cached 5 minutes; a provisioning run that writes a fence into Koji and then asks PoracleNG to reload cannot wait an unknown fraction of that, because a reload against the cached list re-reads the old one and still answers `{"status":"ok"}` -- success reported, area unsubscribable. Authenticated with `X-Poracle-Secret` against `Poracle:ApiSecret`, the only secret an internal caller already holds, and it **fails closed**: with no secret configured every request is refused, since an empty configured secret matching an empty header would make this the one anonymous write on the site. See #844.
+- **`POST /api/geofence-feed/refresh` drops the cached Koji half** (rate limited to 20/min per IP; `GET` on that path answers 405 with `Allow: POST`. Every unrouted `/api` path answers a JSON 404 whatever the method, rather than falling through to the SPA shell as it used to, but a path a real route matches keeps its 405 or 415: the `api/{**path}` catch-all accepts every method and content type, so it would otherwise win exactly when routing rejected the real action, and `ApiFallback` re-asks routing's question, constraints included, before answering 404), so the next feed read re-fetches. The Koji collection is cached 5 minutes; a provisioning run that writes a fence into Koji and then asks PoracleNG to reload cannot wait an unknown fraction of that, because a reload against the cached list re-reads the old one and still answers `{"status":"ok"}` -- success reported, area unsubscribable. Authenticated with `X-Poracle-Secret` against `Poracle:ApiSecret`, the only secret an internal caller already holds, and it **fails closed**: with no secret configured every request is refused, since an empty configured secret matching an empty header would make this the one anonymous write on the site. See #844.
 - PoracleJS `geofence.path` config is a single URL pointing to PoracleWeb (not an array, not dual Koji+PoracleWeb sources). PoracleJS does not connect to Koji directly for geofences.
 - Admin geofences are fetched from Koji via the `/geofence/poracle/{projectName}` endpoint, with group names resolved from the Koji parent chain. They are served with `displayInMatches: true` and `group` populated. Results are cached for 5 minutes (`IMemoryCache` with `TimeSpan.FromMinutes(5)` TTL). The cache is invalidated when a geofence is approved/promoted to Koji.
 - User geofences are served with `displayInMatches: false` and `userSelectable: false` -- names are hidden from all DMs and are not selectable on the Poracle bot's area list.
@@ -445,7 +445,9 @@ it stays out of "Other". The same two halves as a projection, for a different re
 
 Every `PUT /api/settings/{key}` is also bounded by the `site_settings` columns -- `key` 100 characters,
 `category` 50, `value_type` 20, and `value` 65,535 **bytes** of UTF-8 (TEXT) -- and answers 400 over any
-of them instead of the 500 a `DbUpdateException` produced.
+of them instead of the 500 a `DbUpdateException` produced. `PUT /api/admin/areas` writes the same column and
+`HiddenAreas.TryValidate` applies the same byte bound (`HiddenAreas.MaxValueBytes`, which
+`SettingsController` shares): the 500-name and 200-character caps alone allow ~99 KB.
 
 ### Basemaps: A Tile Provider Refusing You Still Answers 200
 
@@ -701,6 +703,20 @@ Fort changes used to carry a second, hand-written dedup check on `(fort_type, in
 change_types)`. It refused three Adds PoracleNG stores as separate rules (beside an area-scoped twin, two
 updatable differences, change types in another order) and is gone; the shared guard is the only one.
 
+**Lure, invasion and Pokestop events are guarded by what the database enforces.** Up to schema 5
+(5.1.0) `lures` carries `UNIQUE lure_tracking(id, profile_no, lure_id)` and `invasion` carries
+`UNIQUE invasion_tracking(id, profile_no, gender, grunt_type)` (case-insensitive), so any second rule on
+that key is a 500 and the natural-key refusal is right. Migration 8 (5.2.x) drops both, and from then on an
+area-scoped twin, different areas, a place label or two updatable differences are separate rules
+(`insert:1`, verified on 5.2.1 and 5.3.0, and through `/api/v2/.../tracking/incident` for events).
+`INaturalKeyCapabilityService` answers which world a write is in from `information_schema` (a unique key
+besides PRIMARY on the table), falling back to the applied migration, and to "enforced" when neither can
+be read. Where the key is gone, lure and invasion use the shared merge guard on create and edit and the
+shared v1 upsert-and-reconcile path rather than `NaturalKeyTrackingUpdate`, whose delete-first replace exists
+only to free the key; Pokestop events mirror the invasion diff (`display_type`, areas and label identify;
+`distance`, `template`, `clean` update). Keying the refusal on the version alone would miss an adopted
+database whose key has another name and survived the migration.
+
 See #462, #463, #502, #531, #553, #561.
 
 ### `/api/v2` Writes: All Ten Types, Edits And Deletes, And Every Type Rotates Its uid
@@ -778,12 +794,13 @@ where the wins are:
 
 | Type | What the v1 path does that v2 makes unnecessary |
 |---|---|
-| lure, invasion | `NaturalKeyTrackingUpdate` deletes the row to free the natural key (`lure_id`; `grunt_type` and `gender`), re-creates it, and restores the original if that fails — PoracleNG's v1 create has no upsert path for either |
+| lure, invasion | where the unique key still exists (5.1.0), `NaturalKeyTrackingUpdate` deletes the row to free it (`lure_id`; `grunt_type` and `gender`), re-creates it, and restores the original if that fails; without the key they take the same reconcile path as the other seven |
 | maxbattle | delete-then-create, with a window where the alarm exists nowhere |
 | the other seven | `TrackingUpdateReconciler.ReconcileAsync` cleans up the duplicate a v1 create leaves behind |
 
-The pre-write guards stay. `EnsureNoMergeIntoAnotherAlarmAsync`, lure's sibling `lure_id` check,
-invasion's grunt-type-and-gender check and max battle's identical-alarm check all run before the v2 attempt: v2's POST still merges, and the 409 covers
+The pre-write guards stay. `EnsureNoMergeIntoAnotherAlarmAsync`, lure's sibling `lure_id` check and
+invasion's grunt-type-and-gender check (both only where the unique key exists; otherwise the shared guard)
+and max battle's identical-alarm check all run before the v2 attempt: v2's POST still merges, and the 409 covers
 only an exact duplicate.
 
 **One field table per type in `TrackingV2Translator`, never a shared one.** `V2PokemonRule` declares 28
@@ -920,7 +937,9 @@ JWT token generation is centralized in `IJwtService` / `JwtService` (singleton).
 
 **A re-issue never moves `exp`, not even by a second.** `GenerateTokenWithReplacedProfile` backs four paths -- profile switch, `/api/auth/me` resync, overview duplicate and overview import -- and writes the original expiry instant back. It used to round the remaining lifetime up to whole minutes and count it from now, with a one-minute floor, so each re-issue pushed the expiry later and one a minute renewed a session forever; inside JwtBearer's five-minute clock skew the floor revived an expired token outright. That is how a revoked delegate kept an impersonation token alive. The only path that extends an ordinary session is OIDC refresh (`POST /api/auth/oidc/refresh`), which is intended: it spends a provider refresh token and re-validates the user live every time.
 
-**An impersonation token is re-authorised on every request.** `ImpersonationAuthority`, hooked into JwtBearer's `OnTokenValidated`, asks `IUserRoleResolver` whether `impersonatedBy` is still an admin or still delegated the impersonated webhook, and fails authentication if not. The SPA answers that 401 by restoring the impersonator's own token. **An unresolved answer keeps the session** (fails open), for the #656 reason: one PoracleNG or `poracle_web` blip must not end every impersonation on the site. Revocation lands on the first request after the sources answer, since an unresolved answer is never cached.
+**An impersonation token is re-authorised on every request.** `ImpersonationAuthority`, hooked into JwtBearer's `OnTokenValidated`, asks `IUserRoleResolver` whether `impersonatedBy` is still an admin or still delegated the impersonated webhook, and fails authentication if not. The SPA answers that 401 by restoring the impersonator's own token. **An unresolved answer keeps the session** (fails open), for the #656 reason: one PoracleNG or `poracle_web` blip must not end every impersonation on the site. Because the resolver never caches an unresolved answer, an outage made every impersonated request re-ask every source and wait out its timeouts: measured with PoracleNG's address black-holed, ~200 s per request against 0.01 s for an ordinary session (a refused connection costs nothing). `ImpersonationRoleProbe`, a singleton used by this check alone, bounds it: a resolve gets two seconds, runs in its own DI scope so one that overruns cannot race the request's `DbContext`, is shared by concurrent requests, and once an answer comes back unresolved or late the impersonator is not re-asked for fifteen seconds, a pause that ends the moment a late resolve answers. Revocation therefore lands within fifteen seconds of the sources recovering, usually on the next request. The resolver's own cache is untouched, so its other consumers still never see a cached degraded answer.
+
+**A Pokestop event sent to `/api/invasions` is refused where the events page exists.** Those rows live in the invasion table but the invasion list hides them, so the create answered 201 with a Location that 404s, or 200 with uid 0 beside an event rule the invasion guard (which reads the filtered list) could not see. The controller refuses with a pointer to Pokestop Events; service paths (quick picks, import, duplicate) still write them, since the rows are real and listed there.
 
 ## Branching
 

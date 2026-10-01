@@ -112,6 +112,7 @@ public partial class PoracleServerProfileService(
         // The schema read is independent of whether PoracleNG answers, and is worth having either way:
         // a stopped process still leaves a migrated database behind.
         var schemaVersion = await this._schemaReader.GetAppliedMigrationAsync(cancellationToken);
+        var uniqueKeyed = await this._schemaReader.GetUniqueKeyedTablesAsync(cancellationToken);
 
         try
         {
@@ -127,6 +128,7 @@ public partial class PoracleServerProfileService(
                 Version = version,
                 Capabilities = capabilities,
                 SchemaVersion = schemaVersion,
+                UniqueKeyedTrackingTables = uniqueKeyed,
                 Reachable = true,
                 CheckedAt = now,
             };
@@ -138,6 +140,7 @@ public partial class PoracleServerProfileService(
             return new PoracleServerProfile
             {
                 SchemaVersion = schemaVersion,
+                UniqueKeyedTrackingTables = uniqueKeyed,
                 Reachable = false,
                 CheckedAt = now,
             };

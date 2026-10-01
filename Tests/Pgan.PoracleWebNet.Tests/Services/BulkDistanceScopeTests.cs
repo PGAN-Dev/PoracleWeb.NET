@@ -149,7 +149,7 @@ public class BulkDistanceScopeTests
             .Callback<string, IEnumerable<PokestopEvent>>((_, rules) => sent = [.. rules])
             .ReturnsAsync(new PokestopEventWriteResult([], [], []));
 
-        var result = await new PokestopEventService(proxy.Object, this._featureGate.Object)
+        var result = await new PokestopEventService(proxy.Object, this._featureGate.Object, NaturalKeyStub.Enforced)
             .UpdateDistanceByUidsAsync([1, 2], "u1", 750);
 
         Assert.Equal(1, Assert.Single(sent!).Uid);
@@ -198,8 +198,8 @@ public class BulkDistanceScopeTests
         "egg" => new EggService(this._proxy, this._featureGate.Object, NullLogger<EggService>.Instance, this._remapper.Object),
         "quest" => new QuestService(
             this._proxy, this._featureGate.Object, PokecoinCapabilityStub.Supported, NullLogger<QuestService>.Instance, this._remapper.Object),
-        "invasion" => new InvasionService(this._proxy, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._remapper.Object),
-        "lure" => new LureService(this._proxy, this._featureGate.Object, NullLogger<LureService>.Instance, this._remapper.Object),
+        "invasion" => new InvasionService(this._proxy, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._remapper.Object, NaturalKeyStub.Enforced),
+        "lure" => new LureService(this._proxy, this._featureGate.Object, NullLogger<LureService>.Instance, this._remapper.Object, NaturalKeyStub.Enforced),
         "nest" => new NestService(this._proxy, this._featureGate.Object, NullLogger<NestService>.Instance, this._remapper.Object),
         "gym" => new GymService(this._proxy, this._featureGate.Object, NullLogger<GymService>.Instance, this._remapper.Object),
         "fort" => new FortChangeService(this._proxy, this._featureGate.Object, NullLogger<FortChangeService>.Instance, this._remapper.Object),

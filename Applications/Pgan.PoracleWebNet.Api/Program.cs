@@ -536,13 +536,10 @@ if (!app.Environment.IsDevelopment())
 // too, so a typo'd or retired route answered 200 with index.html and a client expecting JSON reported a
 // parse error instead of "no such endpoint". The literal `api` segment outranks the SPA's bare catch-all,
 // and this accepts every method where that one accepts GET and HEAD only, so a POST is a 404 here rather
-// than a 405 there. The price is that a wrong method on a real action (GET on the POST-only
-// /api/geofence-feed/refresh) is also a 404 rather than a 405; the body names the method so that reads
-// as what it is. Registered outside the Production branch so both environments agree.
-app.MapFallback("api/{**path}", (HttpContext context) => Results.NotFound(new
-{
-    error = $"No API endpoint answers {context.Request.Method} {context.Request.Path}.",
-}));
+// than a 405 there. Accepting every method and content type is also what lets it win over the 405 and
+// 415 routing would give a real action sent the wrong one, so ApiFallback checks for that and answers
+// those itself. Registered outside the Production branch so both environments agree.
+app.MapFallback("api/{**path}", ApiFallback.Handle);
 
 app.Run();
 

@@ -92,6 +92,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IQuestPokecoinCapabilityService, QuestPokecoinCapabilityService>();
         services.AddScoped<IMuteCapabilityService, MuteCapabilityService>();
         services.AddScoped<IPlaceUpdateCapabilityService, PlaceUpdateCapabilityService>();
+        services.AddScoped<INaturalKeyCapabilityService, NaturalKeyCapabilityService>();
         services.AddScoped<IInvasionGruntNameService, InvasionGruntNameService>();
         services.AddScoped<ICostumeCapabilityService, CostumeCapabilityService>();
         services.AddScoped<IUpstreamFeatureFlagService, UpstreamFeatureFlagService>();
@@ -230,6 +231,9 @@ public static class ServiceCollectionExtensions
         // Re-asks, on every request an impersonation token makes, whether whoever started it still may.
         // Wired into JwtBearer's OnTokenValidated in Program.cs.
         services.AddScoped<Services.IImpersonationAuthority, Services.ImpersonationAuthority>();
+
+        // Bounds that check while PoracleNG or poracle_web is down; holds per-impersonator state, so one per process.
+        services.AddSingleton<Services.ImpersonationRoleProbe>();
 
         // Register settings
         services.Configure<JwtSettings>(configuration.GetSection("Jwt"));

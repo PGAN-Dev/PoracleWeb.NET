@@ -5,6 +5,7 @@ using Moq;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Core.Services;
+using Pgan.PoracleWebNet.Tests.TestDoubles;
 
 namespace Pgan.PoracleWebNet.Tests.Services;
 
@@ -25,7 +26,7 @@ public class InvasionServiceTests
         this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
         // Default: a server that serves the Pokestop Events page, so event rows belong to it.
         this._featureGate.Setup(g => g.IsEnabledAsync(It.IsAny<string>())).ReturnsAsync(true);
-        this._sut = new InvasionService(this._proxy.Object, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._uidRemapper.Object);
+        this._sut = new InvasionService(this._proxy.Object, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._uidRemapper.Object, NaturalKeyStub.Enforced);
         // The natural-key replace strategy reads the original row and frees the key first.
         this._proxy.Setup(p => p.GetByUserAsync("invasion", It.IsAny<string>()))
             .ReturnsAsync(JsonSerializer.SerializeToElement(Array.Empty<object>()));
