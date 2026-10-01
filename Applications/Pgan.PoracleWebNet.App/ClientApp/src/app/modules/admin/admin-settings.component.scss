@@ -345,7 +345,7 @@
     border-radius: 6px;
     background: var(--mat-app-surface-variant, rgba(0, 0, 0, 0.04));
     border: 1px solid var(--divider, rgba(0, 0, 0, 0.08));
-    color: var(--text-primary, rgba(0, 0, 0, 0.87));
+    color: var(--mat-sys-on-surface, rgba(0, 0, 0, 0.87));
     max-width: 280px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -533,7 +533,7 @@
 .actionbar-count {
   font-size: 13px;
   font-weight: 600;
-  color: var(--text-primary, rgba(0, 0, 0, 0.87));
+  color: var(--mat-sys-on-surface, rgba(0, 0, 0, 0.87));
 }
 .actionbar-spacer {
   flex: 1;

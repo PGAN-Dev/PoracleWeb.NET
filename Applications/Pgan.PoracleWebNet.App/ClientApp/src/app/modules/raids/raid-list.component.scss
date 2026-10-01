@@ -132,6 +132,10 @@
   font-size: 16px;
   width: 16px;
   height: 16px;
+  // #ffc107 was 1.6:1 on the light card; this amber reads 4.68:1. Dark keeps the bright one (10:1).
+  color: #8a6804;
+}
+:host-context(.dark-theme) .star-icon {
   color: #ffc107;
 }
 .any-level-label {
