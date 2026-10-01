@@ -57,6 +57,22 @@ public sealed class PoracleServerProfile
         get; init;
     }
 
+    /// <summary>
+    /// The tracking tables that carry a unique key besides their primary key, lowercased, or null when
+    /// they could not be read.
+    /// </summary>
+    /// <remarks>
+    /// On PoracleNG 5.1.0 that is <c>lures</c> and <c>invasion</c> (plus <c>weather</c>, which no alarm
+    /// writes); migration 8 drops the first two. Read from <c>information_schema</c> because the keys, not
+    /// the migration number, are what decide whether a same-key Add is a 500. See
+    /// <c>NaturalKeyCapabilityService</c>.
+    /// </remarks>
+    [JsonIgnore]
+    public IReadOnlyList<string>? UniqueKeyedTrackingTables
+    {
+        get; init;
+    }
+
     /// <summary>True when PoracleNG answered at all.</summary>
     public bool Reachable
     {

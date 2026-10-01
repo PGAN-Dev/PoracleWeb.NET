@@ -35,6 +35,12 @@ public static class HiddenAreas
     /// <summary>Generous enough for a large instance, bounded so one bad write cannot be unbounded.</summary>
     public const int MaxEntries = 500;
 
+    /// <summary>
+    /// The <c>site_settings.value</c> column: TEXT, 65,535 bytes of UTF-8. The same bound
+    /// <c>SettingsController</c> applies to every other setting.
+    /// </summary>
+    public const int MaxValueBytes = 65_535;
+
     /// <summary>Poracle matches area names case-sensitively and stores them lowercased, so we do too.</summary>
     public static string Normalize(string name) => name.Trim().ToLowerInvariant();
 
@@ -125,6 +131,15 @@ public static class HiddenAreas
         if (string.IsNullOrWhiteSpace(value))
         {
             return true;
+        }
+
+        // The count and per-name caps below do not bound the stored size on their own: 500 names of 195
+        // characters is about 99 KB, and the write failed as a 500 with the old list still in place.
+        var bytes = System.Text.Encoding.UTF8.GetByteCount(value);
+        if (bytes > MaxValueBytes)
+        {
+            error = $"The hidden areas list is {bytes} bytes once stored, and a setting holds at most {MaxValueBytes} bytes. Hide fewer areas.";
+            return false;
         }
 
         JsonElement root;

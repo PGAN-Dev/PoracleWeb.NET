@@ -5,13 +5,14 @@ using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
-public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, ILogger<InvasionService> logger, ITrackedUidRemapper uidRemapper) : IInvasionService
+public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, ILogger<InvasionService> logger, ITrackedUidRemapper uidRemapper, INaturalKeyCapabilityService naturalKeys) : IInvasionService
 {
     private const string TrackingType = "invasion";
     private readonly IPoracleTrackingProxy _proxy = proxy;
     private readonly IFeatureGate _featureGate = featureGate;
     private readonly ILogger<InvasionService> _logger = logger;
     private readonly ITrackedUidRemapper _uidRemapper = uidRemapper;
+    private readonly INaturalKeyCapabilityService _naturalKeys = naturalKeys;
 
     /// <summary>
     /// Whether pokestop-event rows belong to the Pokestop Events page rather than this list.
@@ -62,6 +63,10 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
             : items;
     }
 
+    /// <inheritdoc />
+    public async Task<bool> BelongsToPokestopEventsAsync(string? gruntType) =>
+        PokestopEventTypes.IsEventName(gruntType) && await this.EventsLiveElsewhereAsync();
+
     public async Task<IEnumerable<Invasion>> GetByUserAsync(string userId, int profileNo) =>
         await this.ReadOwnRowsAsync(userId);
 
@@ -77,19 +82,33 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
         model.Id = userId;
         RequireGruntType(model);
 
-        // PoracleNG's natural key on (id, profile_no, gender, grunt_type) is case-insensitive at the
-        // database, so creating "Water" alongside an existing "water" hit a duplicate-key error and came
-        // back as a 500. The update path already refuses this; the create path did not. See #500.
-        var siblings = await this.GetByUserAsync(userId, model.ProfileNo);
-        if (siblings.Any(x => x.Gender == model.Gender
-            && string.Equals(x.GruntType, model.GruntType, StringComparison.OrdinalIgnoreCase)))
-        {
-            throw new TrackingConflictException(
-                TrackingType,
-                "You already have an invasion alarm for that grunt type and gender. Edit or remove that one instead.");
-        }
-
         var body = SerializeToElement(model);
+
+        if (await this._naturalKeys.IsEnforcedAsync(TrackingType))
+        {
+            // Up to PoracleNG 5.1.0 the table carries a unique key on (id, profile_no, gender, grunt_type),
+            // case-insensitive at the database, so creating "Water" alongside an existing "water" -- or the
+            // same pair with any other difference -- hit a duplicate-key error and came back as a 500.
+            // See #500.
+            var siblings = await this.GetByUserAsync(userId, model.ProfileNo);
+            if (siblings.Any(x => x.Gender == model.Gender
+                && string.Equals(x.GruntType, model.GruntType, StringComparison.OrdinalIgnoreCase)))
+            {
+                throw new TrackingConflictException(
+                    TrackingType,
+                    "You already have an invasion alarm for that grunt type and gender. Edit or remove that one instead.");
+            }
+        }
+        else
+        {
+            // Migration 8 (5.2.x) dropped that key. PoracleNG now stores a second rule for one grunt type
+            // and gender beside an area-scoped twin, a place-measured one, one two updatable fields away,
+            // or one spelled in another case, so the only Add refused is the one it would resolve into an
+            // existing rule: the guard the other seven types use. It reads the raw rows rather than this
+            // page's list, because PoracleNG diffs against pokestop-event rows in the same table too.
+            await TrackingUpdateReconciler.EnsureNoMergeIntoAnotherAlarmAsync(
+                this._proxy, TrackingType, userId, 0, body);
+        }
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
 
         if (result.NewUids.Count > 0)
@@ -105,14 +124,15 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Invasions);
         RequireGruntType(model);
         var oldUid = model.Uid;
+        var keyEnforced = await this._naturalKeys.IsEnforcedAsync(TrackingType);
 
-        // PoracleNG guards this type with a natural unique key and its create has no upsert path, so
-        // changing a field outside that key collides (Error 1062) and returns 500. Replace the row instead.
-        // Refuse a collision BEFORE the delete. PoracleNG dedups invasions on
-        // (id, profile_no, gender, grunt_type), so editing one onto a pair another alarm already
-        // holds made the replace merge into that alarm - this one deleted, the other one silently
-        // overwritten. Changing the gender dropdown is enough to trigger it. See #462.
-        if (oldUid > 0)
+        // Where the table still carries the natural unique key (5.1.0), PoracleNG's create has no upsert
+        // path, so changing a field outside that key collides (Error 1062) and returns 500; the row is
+        // replaced instead, below. Refuse a collision BEFORE the delete: editing one onto a
+        // (gender, grunt_type) pair another alarm already holds made the replace merge into that alarm -
+        // this one deleted, the other one silently overwritten. Changing the gender dropdown is enough
+        // to trigger it. See #462.
+        if (keyEnforced && oldUid > 0)
         {
             var siblings = await this.GetByUserAsync(userId, model.ProfileNo);
             if (siblings.Any(x => x.Uid != oldUid
@@ -131,17 +151,38 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
         body = await TrackingFieldPreserver.PreserveStoredFieldsAsync(
             this._proxy, TrackingType, userId, oldUid, body);
 
+        if (!keyEnforced)
+        {
+            // Without the key an invasion is an ordinary type: refuse only the edit PoracleNG would merge
+            // into a different rule, as the other seven do. Refusing on the pair alone would leave a rule
+            // with an area-scoped twin uneditable, the #553 shape.
+            await TrackingUpdateReconciler.EnsureNoMergeIntoAnotherAlarmAsync(
+                this._proxy, TrackingType, userId, oldUid, body);
+        }
+
         // /api/v2's PUT is addressed by uid and replaces the row rather than inserting beside it, so the
         // natural key is never in contention and the delete-create-restore below is not needed -- the
         // same reason lure moved. #841 taught the proxy to send invasion there, behind two gates this
         // type alone has (the server declares grunt_type, and its own grunt masterdata lists the name),
         // but this call was never made, so every invasion edit still took the v1 path. When either gate
         // says no -- metal, kecleon, gold-stop, showcase, a stored gender 3, a 5.2.1 or 5.1.0 server --
-        // the proxy answers null and the natural-key replace below runs exactly as before.
+        // the proxy answers null and the v1 path below runs: the shared upsert where the key is gone,
+        // the natural-key replace where it is not.
         if (await TrackingV2Replacement.TryApplyAsync(
                 this._proxy, TrackingType, userId, oldUid, body, this._uidRemapper) is { } v2Uid)
         {
             model.Uid = v2Uid;
+            return model;
+        }
+
+        if (!keyEnforced)
+        {
+            // Nothing to free, so no delete-first and no window in which the alarm exists nowhere: the
+            // create carrying the uid is resolved by PoracleNG's diff like any other type's, and the
+            // reconciler drops the superseded row when one was inserted.
+            var result = await this._proxy.CreateAsync(TrackingType, userId, body);
+            model.Uid = await TrackingUpdateReconciler.ReconcileAsync(
+                this._proxy, TrackingType, userId, oldUid, result, this._logger, body, this._uidRemapper);
             return model;
         }
 

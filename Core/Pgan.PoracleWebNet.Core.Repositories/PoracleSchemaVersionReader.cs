@@ -37,6 +37,34 @@ public partial class PoracleSchemaVersionReader(PoracleContext context, ILogger<
         }
     }
 
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<string>?> GetUniqueKeyedTablesAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // MariaDB/MySQL only: SQLite has no information_schema, so the repository tests land in the
+            // catch and see null, which is the "unknown" answer the callers already handle.
+            var tables = await this._context.Database
+                .SqlQueryRaw<string>(
+                    "SELECT DISTINCT LOWER(TABLE_NAME) AS Value FROM information_schema.STATISTICS "
+                    + "WHERE TABLE_SCHEMA = DATABASE() AND NON_UNIQUE = 0 AND INDEX_NAME <> 'PRIMARY'")
+                .ToListAsync(cancellationToken);
+
+            return tables;
+        }
+        catch (Exception ex)
+        {
+            LogUniqueKeysUnreadable(this._logger, ex);
+            return null;
+        }
+    }
+
+    [LoggerMessage(
+        EventId = 6103,
+        Level = LogLevel.Debug,
+        Message = "Could not read PoracleNG's unique keys; the natural-key guards fall back to the applied migration.")]
+    private static partial void LogUniqueKeysUnreadable(ILogger logger, Exception exception);
+
     [LoggerMessage(
         EventId = 6101,
         Level = LogLevel.Debug,

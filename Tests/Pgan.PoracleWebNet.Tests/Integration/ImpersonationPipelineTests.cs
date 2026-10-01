@@ -88,6 +88,71 @@ public sealed class ImpersonationPipelineTests : IDisposable
         this._resolver.Verify(r => r.ResolveAsync(It.IsAny<string>()), Times.Never);
     }
 
+    /// <summary>
+    /// While the sources are down the resolver answers "unresolved" and caches nothing, so every
+    /// impersonated request re-asked them and waited out their timeouts: with PoracleNG black-holed on the
+    /// test bed that was minutes per request, against milliseconds for an ordinary session. Stood in for
+    /// here by a resolve that takes six seconds to come back unresolved.
+    /// </summary>
+    [Fact]
+    public async Task AnImpersonatedRequestDuringAnOutageIsNotHeldForTheSourcesTimeouts()
+    {
+        var calls = 0;
+        this._resolver.Setup(r => r.ResolveAsync(Delegate)).Returns(async () =>
+        {
+            Interlocked.Increment(ref calls);
+            await Task.Delay(TimeSpan.FromSeconds(6));
+            return new UserRoles(false, null, Resolved: false);
+        });
+        var token = ImpersonationToken();
+
+        // Boot the host first, and time an ordinary request, so only the check's own cost is compared.
+        var ordinaryToken = new JwtService(Options.Create(Jwt)).GenerateToken(
+            new UserInfo { Id = Delegate, Username = Delegate, Type = "discord:user", ProfileNo = 1, Enabled = true });
+        await this.GetAsync(ordinaryToken);
+        var ordinary = System.Diagnostics.Stopwatch.StartNew();
+        await this.GetAsync(ordinaryToken);
+        ordinary.Stop();
+
+        var first = System.Diagnostics.Stopwatch.StartNew();
+        Assert.Equal(HttpStatusCode.OK, await this.GetAsync(token));
+        first.Stop();
+        var second = System.Diagnostics.Stopwatch.StartNew();
+        Assert.Equal(HttpStatusCode.OK, await this.GetAsync(token));
+        second.Stop();
+
+        // The two-second budget, plus slack; the outage itself is six.
+        Assert.True(first.Elapsed - ordinary.Elapsed < TimeSpan.FromSeconds(3.5), $"first request took {first.Elapsed}, an ordinary one {ordinary.Elapsed}");
+        Assert.True(second.Elapsed - ordinary.Elapsed < TimeSpan.FromSeconds(1), $"second request took {second.Elapsed}, an ordinary one {ordinary.Elapsed}");
+        Assert.Equal(1, Volatile.Read(ref calls));
+    }
+
+    /// <summary>
+    /// The legitimate half: the pause ends the moment the sources answer, so a grant revoked during an
+    /// outage still ends the session on the next request after it.
+    /// </summary>
+    [Fact]
+    public async Task ARevocationLandsAsSoonAsTheSourcesAnswerAgain()
+    {
+        var outage = new TaskCompletionSource<UserRoles>(TaskCreationOptions.RunContinuationsAsynchronously);
+        this._resolver.Setup(r => r.ResolveAsync(Delegate)).Returns(() => outage.Task);
+        var token = ImpersonationToken();
+
+        // Boot the host, then: without the budget this request waits on the outage indefinitely.
+        await this.GetAsync(new JwtService(Options.Create(Jwt)).GenerateToken(
+            new UserInfo { Id = Delegate, Username = Delegate, Type = "discord:user", ProfileNo = 1, Enabled = true }));
+        var first = this.GetAsync(token);
+        Assert.Same(first, await Task.WhenAny(first, Task.Delay(TimeSpan.FromSeconds(15))));
+        Assert.Equal(HttpStatusCode.OK, await first);
+
+        // The sources come back, and the answer is that the grant is gone.
+        this._resolver.Setup(r => r.ResolveAsync(Delegate)).ReturnsAsync(new UserRoles(false, null));
+        outage.SetResult(new UserRoles(false, null));
+        await Task.Delay(100);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, await this.GetAsync(token));
+    }
+
     private sealed class Factory(Mock<IUserRoleResolver> resolver) : WebApplicationFactory<Program>
     {
         private const string DeadDb = "Server=127.0.0.1;Port=1;Database=none;User=none;Password=none";
