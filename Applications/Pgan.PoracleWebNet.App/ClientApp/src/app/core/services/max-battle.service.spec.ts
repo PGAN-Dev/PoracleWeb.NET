@@ -101,15 +101,6 @@ describe('MaxBattleService', () => {
     req.flush(null);
   });
 
-  it('should update all distances with PUT', () => {
-    service.updateAllDistance(3000).subscribe();
-
-    const req = httpMock.expectOne(`${API}/api/maxbattles/distance`);
-    expect(req.request.method).toBe('PUT');
-    expect(req.request.body).toBe(3000);
-    req.flush(null);
-  });
-
   it('should update bulk distances with PUT', () => {
     service.updateBulkDistance([1, 2], 500).subscribe();
 

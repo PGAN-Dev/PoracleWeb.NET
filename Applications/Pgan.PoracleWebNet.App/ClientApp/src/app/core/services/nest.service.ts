@@ -31,10 +31,6 @@ export class NestService {
     return this.http.put<void>(`${this.config.apiHost}/api/nests/${uid}`, nest);
   }
 
-  updateAllDistance(distance: number): Observable<DistanceUpdateResult> {
-    return this.http.put<DistanceUpdateResult>(`${this.config.apiHost}/api/nests/distance`, distance);
-  }
-
   updateBulkDistance(uids: number[], distance: number): Observable<DistanceUpdateResult> {
     return this.http.put<DistanceUpdateResult>(`${this.config.apiHost}/api/nests/distance/bulk`, {
       uids,

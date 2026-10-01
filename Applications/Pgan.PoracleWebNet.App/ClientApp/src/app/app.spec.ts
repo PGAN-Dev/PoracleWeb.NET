@@ -265,3 +265,53 @@ describe('App bootstrap language defaults (#770)', () => {
     expect(alertLanguage.load).toHaveBeenCalled();
   });
 });
+
+describe('App stop impersonating', () => {
+  const setup = (restored: boolean) => {
+    const getCounts = jest.fn(() => of({}));
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideNoopAnimations(),
+        provideRouter([]),
+        provideTranslateService(),
+        {
+          provide: SettingsService,
+          useValue: { isDisabled: () => false, loadOnce: () => of([]), siteSettings: signal({}) },
+        },
+        {
+          provide: AuthService,
+          useValue: {
+            hasManagedWebhooks: () => false,
+            isAdmin: () => false,
+            stopImpersonating: jest.fn(() => Promise.resolve(restored)),
+          },
+        },
+        { provide: DashboardService, useValue: { getCounts } },
+        { provide: I18nService, useValue: { init: jest.fn() } },
+      ],
+    });
+    const app = TestBed.runInInjectionContext(() => new App());
+    return { app, getCounts };
+  };
+
+  it('sends nothing when there was no admin session to return to', async () => {
+    // Stop signs out in that case, and the counts request went out regardless with no token: three 401s
+    // and a "session expired" toast over the login page.
+    const { app, getCounts } = setup(false);
+
+    await app.stopImpersonating();
+
+    expect(getCounts).not.toHaveBeenCalled();
+  });
+
+  it('reloads the admin counts once they are back', async () => {
+    const { app, getCounts } = setup(true);
+
+    await app.stopImpersonating();
+
+    expect(getCounts).toHaveBeenCalledTimes(1);
+  });
+});

@@ -31,10 +31,6 @@ export class EggService {
     return this.http.put<void>(`${this.config.apiHost}/api/eggs/${uid}`, egg);
   }
 
-  updateAllDistance(distance: number): Observable<DistanceUpdateResult> {
-    return this.http.put<DistanceUpdateResult>(`${this.config.apiHost}/api/eggs/distance`, distance);
-  }
-
   updateBulkDistance(uids: number[], distance: number): Observable<DistanceUpdateResult> {
     return this.http.put<DistanceUpdateResult>(`${this.config.apiHost}/api/eggs/distance/bulk`, {
       uids,

@@ -450,9 +450,12 @@ export class App implements OnInit {
     this.applyAccentTheme();
   }
 
-  stopImpersonating(): void {
-    this.auth.stopImpersonating();
-    this.loadCounts();
+  async stopImpersonating(): Promise<void> {
+    // Only once the admin is back. With no admin token to return to, Stop signs out, and loading counts
+    // regardless sent them with no token: three 401s and a "session expired" toast on the login page.
+    if (await this.auth.stopImpersonating()) {
+      this.loadCounts();
+    }
   }
 
   toggleAlerts(): void {

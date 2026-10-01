@@ -15,6 +15,7 @@ import { AreaDefinition, GeoJsonImportResult, GeofenceData, GeofenceRegion, User
 import { AreaService } from '../../core/services/area.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { LocationService } from '../../core/services/location.service';
+import { SettingsService } from '../../core/services/settings.service';
 import { UserGeofenceService } from '../../core/services/user-geofence.service';
 import { AreaMapComponent } from '../../shared/components/area-map/area-map.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
@@ -64,11 +65,19 @@ export class GeofenceListComponent implements OnInit {
   private readonly i18n = inject(I18nService);
   private readonly locationService = inject(LocationService);
   private readonly rawGeofenceData = signal<GeofenceData[]>([]);
+  private readonly settingsService = inject(SettingsService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly userGeofenceService = inject(UserGeofenceService);
 
   readonly activeAreas = signal<string[]>([]);
   readonly activeAreaSet = computed(() => new Set(this.activeAreas()));
+
+  /**
+   * Whether the profile's area list can be changed. The per-profile switch on each card writes exactly
+   * that, so under `disable_areas` it could only end in a 403 and a toast; it is not offered, and the
+   * list it reads is not fetched.
+   */
+  readonly areasEnabled = computed(() => !this.settingsService.isDisabled('disable_areas'));
   readonly availableAreas = signal<AreaDefinition[]>([]);
   readonly customGeofences = signal<UserGeofence[]>([]);
 
@@ -408,6 +417,7 @@ export class GeofenceListComponent implements OnInit {
   }
 
   private loadActiveAreas(): void {
+    if (!this.areasEnabled()) return;
     this.areaService
       .getSelected()
       .pipe(takeUntilDestroyed(this.destroyRef))

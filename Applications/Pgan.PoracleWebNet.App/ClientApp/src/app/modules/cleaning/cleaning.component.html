@@ -6,7 +6,7 @@
   <div class="header-actions">
     <button
       mat-stroked-button
-      [disabled]="loading() || toggling()"
+      [disabled]="loading() || toggling() || !hasApplicable()"
       (click)="toggleAll(!allEnabled())"
       [matTooltip]="(allEnabled() ? 'CLEANING.DISABLE_TOOLTIP' : 'CLEANING.ENABLE_TOOLTIP') | translate">
       <mat-icon>{{ allEnabled() ? 'toggle_off' : 'toggle_on' }}</mat-icon>

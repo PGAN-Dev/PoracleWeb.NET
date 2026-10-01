@@ -120,3 +120,41 @@ describe('CleaningComponent', () => {
     expect(toggles[2].disabled).toBe(true);
   });
 });
+
+describe('CleaningComponent with nothing to clean', () => {
+  const setup = (counts: Partial<DashboardCounts>) => {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        provideNoopAnimations(),
+        provideTranslateService(),
+        { provide: MatSnackBar, useValue: { open: jest.fn() } },
+        {
+          provide: CleaningService,
+          useValue: { getStatus: () => of(ALL_OFF), toggleAll: jest.fn(() => of({ skipped: [], updated: 0 })), toggleClean: jest.fn() },
+        },
+        { provide: DashboardService, useValue: { getCounts: () => of({ ...NO_ALARMS, ...counts }) } },
+        { provide: SettingsService, useValue: { isDisabled: () => false, siteSettings: signal({}) } },
+      ],
+    });
+    const fixture = TestBed.createComponent(CleaningComponent);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    return { banner: el.querySelector('.recommendation-banner'), button: el.querySelector<HTMLButtonElement>('.header-actions button')! };
+  };
+
+  it('does not offer Enable All to a user with no alarms', () => {
+    // Clicking it reported "Cleaning enabled for all types (0 alarms updated)" and nothing changed.
+    const { banner, button } = setup({});
+
+    expect(button.disabled).toBe(true);
+    expect(banner).toBeNull();
+  });
+
+  it('still offers Enable All, with the recommendation, once a type has alarms', () => {
+    const { banner, button } = setup({ quests: 1 });
+
+    expect(button.disabled).toBe(false);
+    expect(banner).not.toBeNull();
+  });
+});

@@ -38,13 +38,21 @@ mat-dialog-content {
   font-size: 16px;
   width: 16px;
   height: 16px;
-  color: #ffd600;
+  // #ffd600 was 1.34:1 on the light dialog surface and #e040fb 3.18:1; a 16-18px glyph needs 4.5:1
+  // (max-battle-add-dialog-contrast.spec.ts). The bright originals stay for dark, where they read.
+  color: #866a00;
 }
 .gmax-star {
   font-size: 18px;
   width: 18px;
   height: 18px;
-  color: #e040fb;
+  color: #9c27b0;
+}
+:host-context(.dark-theme) .star-icon {
+  color: #ffd600;
+}
+:host-context(.dark-theme) .gmax-star {
+  color: #ea80fc;
 }
 .select-all-btn {
   margin-top: 4px;

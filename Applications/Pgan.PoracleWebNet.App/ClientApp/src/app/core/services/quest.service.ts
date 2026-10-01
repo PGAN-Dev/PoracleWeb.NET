@@ -57,10 +57,6 @@ export class QuestService {
     return this.http.put<void>(`${this.config.apiHost}/api/quests/${uid}`, quest);
   }
 
-  updateAllDistance(distance: number): Observable<DistanceUpdateResult> {
-    return this.http.put<DistanceUpdateResult>(`${this.config.apiHost}/api/quests/distance`, distance);
-  }
-
   updateBulkDistance(uids: number[], distance: number): Observable<DistanceUpdateResult> {
     return this.http.put<DistanceUpdateResult>(`${this.config.apiHost}/api/quests/distance/bulk`, {
       uids,
