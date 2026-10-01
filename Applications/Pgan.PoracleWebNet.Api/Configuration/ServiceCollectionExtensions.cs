@@ -232,6 +232,9 @@ public static class ServiceCollectionExtensions
         // Wired into JwtBearer's OnTokenValidated in Program.cs.
         services.AddScoped<Services.IImpersonationAuthority, Services.ImpersonationAuthority>();
 
+        // Bounds that check while PoracleNG or poracle_web is down; holds per-impersonator state, so one per process.
+        services.AddSingleton<Services.ImpersonationRoleProbe>();
+
         // Register settings
         services.Configure<JwtSettings>(configuration.GetSection("Jwt"));
         services.Configure<DiscordSettings>(configuration.GetSection("Discord"));

@@ -36,16 +36,22 @@ public interface IImpersonationAuthority
 /// <b>An unresolved answer keeps the session.</b> The resolver reports a source it could not read as
 /// <c>Resolved: false</c>, and refusing then would end every impersonation session on the site whenever
 /// PoracleNG or the <c>poracle_web</c> database blinked -- the shape of #656, which is why degraded answers
-/// are never treated as "no". Revocation lands on the first request after the sources are readable again,
-/// and an unresolved answer is never cached, so that is the next request that finds them up.
+/// are never treated as "no". Revocation lands once the sources are readable again: the resolver never
+/// caches an unresolved answer, and <see cref="ImpersonationRoleProbe"/> stops re-asking during an outage
+/// for at most fifteen seconds, ending that pause the moment a resolve answers.
 /// </para>
 /// </remarks>
 public sealed partial class ImpersonationAuthority(
     IUserRoleResolver roleResolver,
-    ILogger<ImpersonationAuthority> logger) : IImpersonationAuthority
+    ILogger<ImpersonationAuthority> logger,
+    ImpersonationRoleProbe? probe = null) : IImpersonationAuthority
 {
     private readonly IUserRoleResolver _roleResolver = roleResolver;
     private readonly ILogger<ImpersonationAuthority> _logger = logger;
+
+    // Bounds the ask during an outage (see ImpersonationRoleProbe). Registered in the container; a test that
+    // constructs this directly asks the resolver it was given.
+    private readonly ImpersonationRoleProbe? _probe = probe;
 
     public async Task<bool> StillHoldsAsync(ClaimsPrincipal principal)
     {
@@ -63,7 +69,9 @@ public sealed partial class ImpersonationAuthority(
             return false;
         }
 
-        var roles = await this._roleResolver.ResolveAsync(impersonatedBy);
+        var roles = this._probe is { } probe
+            ? await probe.ResolveAsync(impersonatedBy)
+            : await this._roleResolver.ResolveAsync(impersonatedBy);
         if (!roles.Resolved)
         {
             LogUnresolved(this._logger, impersonatedBy, target);
