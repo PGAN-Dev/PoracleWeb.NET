@@ -5,6 +5,10 @@
 }
 
 .title-icon {
+  // #ff9800 read 2.2:1 on the light dialog; dark keeps it (6.66:1).
+  color: #a36100;
+}
+:host-context(.dark-theme) .title-icon {
   color: #ff9800;
 }
 

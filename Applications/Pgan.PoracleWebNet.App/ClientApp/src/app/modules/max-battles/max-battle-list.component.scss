@@ -121,18 +121,23 @@
   font-size: 16px;
   width: 16px;
   height: 16px;
+  // #ffc107 was 1.6:1 on the light card; this amber reads 4.68:1. Dark keeps the bright one (10:1).
+  color: #8a6804;
+}
+:host-context(.dark-theme) .star-icon {
   color: #ffc107;
 }
 .gmax-icon {
   font-size: 18px;
   width: 18px;
   height: 18px;
-  color: #e040fb;
+  // #e040fb read 3.2:1 on the light card; dark keeps it (4.89:1).
+  color: #af32c4;
   margin-right: 4px;
 }
 .level-label-text {
   font-size: 12px;
-  color: #e040fb;
+  color: #af32c4;
   font-weight: 500;
 }
 .any-level-label {
@@ -299,4 +304,8 @@
 .card-selected {
   outline: 2px solid #d500f9;
   outline-offset: -2px;
+}
+:host-context(.dark-theme) .gmax-icon,
+:host-context(.dark-theme) .level-label-text {
+  color: #e040fb;
 }
