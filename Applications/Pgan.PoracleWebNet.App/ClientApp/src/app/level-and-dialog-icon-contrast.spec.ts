@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { contrastRatio } from './shared/utils/contrast';
@@ -63,6 +63,12 @@ describe('level stars and admin dialog icons', () => {
     expect(contrastRatio(darkColourOf(source, selector), DARK_CARD)).toBeGreaterThanOrEqual(4.5);
   });
 
+  it('the Gigantamax tag carries its white label in both themes', () => {
+    const rule = maxBattle.slice(maxBattle.indexOf('.gmax-tag {'), maxBattle.indexOf('}', maxBattle.indexOf('.gmax-tag {')));
+    const background = /background:\s*(#[0-9a-fA-F]{6})/.exec(rule)?.[1] ?? '';
+    expect(contrastRatio(background, '#ffffff')).toBeGreaterThanOrEqual(4.5);
+  });
+
   it('the approval dialog title icon reads in both themes', () => {
     expect(contrastRatio(colourOf(approval, '.title-icon'), LIGHT_DIALOG)).toBeGreaterThanOrEqual(4.5);
     expect(contrastRatio(darkColourOf(approval, '.title-icon'), DARK_DIALOG)).toBeGreaterThanOrEqual(4.5);
@@ -78,5 +84,21 @@ describe('level stars and admin dialog icons', () => {
   it('the GeoJSON warning text reads on its amber box, which is light in both themes', () => {
     expect(contrastRatio(colourOf(geojson, '.warning-banner'), AMBER_BOX)).toBeGreaterThanOrEqual(4.5);
     expect(contrastRatio(colourOf(geojson, '.warning-count'), AMBER_BOX)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  // --text-primary is not defined anywhere, so every use fell back to its black default and printed
+  // near-black text on the dark dialog (1.25:1 on the GeoJSON import drop zone). Material's own
+  // --mat-sys-on-surface follows the theme.
+  it('no stylesheet leans on the undefined --text-primary token', () => {
+    const offenders: string[] = [];
+    const walk = (dir: string): void => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const path = join(dir, entry.name);
+        if (entry.isDirectory()) walk(path);
+        else if (entry.name.endsWith('.scss') && readFileSync(path, 'utf8').includes('var(--text-primary')) offenders.push(path);
+      }
+    };
+    walk(__dirname);
+    expect(offenders).toEqual([]);
   });
 });

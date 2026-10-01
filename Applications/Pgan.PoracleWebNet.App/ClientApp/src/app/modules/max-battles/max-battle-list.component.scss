@@ -82,7 +82,8 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  background: #d500f9;
+  // White on #d500f9 was 4.04:1; the same magenta, deepened, carries it at 4.69:1 in both themes.
+  background: #c400e5;
   color: #fff;
   flex-shrink: 0;
   line-height: 16px;

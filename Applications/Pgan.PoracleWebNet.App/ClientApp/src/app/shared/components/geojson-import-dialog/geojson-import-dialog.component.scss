@@ -44,7 +44,7 @@ mat-dialog-content {
   margin: 0;
   font-size: 15px;
   font-weight: 500;
-  color: var(--text-primary, rgba(0, 0, 0, 0.87));
+  color: var(--mat-sys-on-surface, rgba(0, 0, 0, 0.87));
 }
 
 .drop-zone-subtitle {
