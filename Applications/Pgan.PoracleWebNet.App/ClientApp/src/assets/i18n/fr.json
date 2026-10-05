@@ -355,6 +355,8 @@
     "CLEAN_MODE": "Mode nettoyage",
     "CLEAN_TAG": "nettoyage",
     "CLEAN_HINT_POKEMON": "Supprime automatiquement la notification de Discord quand le Pokemon disparaît",
+    "SHINY_FOR_ME": "Chromatique pour moi",
+    "SHINY_FOR_ME_HINT": "N'alerter que lorsque ce spawn est chromatique spécifiquement pour toi (nécessite l'option chromatique)",
     "CLEAN_HINT_RAID": "Supprime automatiquement la notification de Discord quand le raid se termine",
     "CLEAN_HINT_QUEST": "Supprime automatiquement la notification de Discord quand les quêtes sont réinitialisées à minuit",
     "CLEAN_HINT_INVASION": "Supprime automatiquement la notification de Discord quand l'invasion se termine",

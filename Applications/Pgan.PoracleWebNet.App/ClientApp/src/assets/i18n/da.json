@@ -355,6 +355,8 @@
     "CLEAN_MODE": "Oprydningstilstand",
     "CLEAN_TAG": "oprydning",
     "CLEAN_HINT_POKEMON": "Sletter automatisk notifikationen fra Discord, når Pokemon forsvinder",
+    "SHINY_FOR_ME": "Shiny for mig",
+    "SHINY_FOR_ME_HINT": "Giv kun besked, når denne spawn er shiny specifikt for dig (kræver Shiny-tilføjelsen)",
     "CLEAN_HINT_RAID": "Sletter automatisk notifikationen fra Discord, når raidet slutter",
     "CLEAN_HINT_QUEST": "Sletter automatisk notifikationen fra Discord, når quests nulstilles ved midnat",
     "CLEAN_HINT_INVASION": "Sletter automatisk notifikationen fra Discord, når invasionen slutter",

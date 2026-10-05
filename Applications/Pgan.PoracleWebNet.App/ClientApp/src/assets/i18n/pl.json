@@ -355,6 +355,8 @@
     "CLEAN_MODE": "Tryb czyszczenia",
     "CLEAN_TAG": "czyść",
     "CLEAN_HINT_POKEMON": "Automatycznie usuwa powiadomienie z Discord po despawnie Pokemon",
+    "SHINY_FOR_ME": "Shiny dla mnie",
+    "SHINY_FOR_ME_HINT": "Powiadamiaj tylko, gdy ten spawn jest shiny specjalnie dla ciebie (wymaga dodatku shiny)",
     "CLEAN_HINT_RAID": "Automatycznie usuwa powiadomienie z Discord po zakończeniu rajdu",
     "CLEAN_HINT_QUEST": "Automatycznie usuwa powiadomienie z Discord po resecie zadań o północy",
     "CLEAN_HINT_INVASION": "Automatycznie usuwa powiadomienie z Discord po zakończeniu inwazji",

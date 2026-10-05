@@ -355,6 +355,8 @@
     "CLEAN_MODE": "Städningsläge",
     "CLEAN_TAG": "städning",
     "CLEAN_HINT_POKEMON": "Raderar automatiskt notisen från Discord när Pokemon försvinner",
+    "SHINY_FOR_ME": "Shiny för mig",
+    "SHINY_FOR_ME_HINT": "Avisera bara när denna spawn är shiny specifikt för dig (kräver shiny-tillägget)",
     "CLEAN_HINT_RAID": "Raderar automatiskt notisen från Discord när raiden är slut",
     "CLEAN_HINT_QUEST": "Raderar automatiskt notisen från Discord när quests nollställs vid midnatt",
     "CLEAN_HINT_INVASION": "Raderar automatiskt notisen från Discord när invasionen är slut",

@@ -322,6 +322,9 @@
 
         <mat-slide-toggle [formControl]="notifForm.controls.clean"> {{ 'ALARM.CLEAN_MODE' | translate }} </mat-slide-toggle>
         <p class="clean-hint">{{ 'ALARM.CLEAN_HINT_POKEMON' | translate }}</p>
+
+        <mat-slide-toggle [formControl]="notifForm.controls.shinyForMe"> {{ 'ALARM.SHINY_FOR_ME' | translate }} </mat-slide-toggle>
+        <p class="clean-hint">{{ 'ALARM.SHINY_FOR_ME_HINT' | translate }}</p>
       </div>
     </mat-tab>
   </mat-tab-group>

@@ -41,6 +41,8 @@ export interface Monster {
   pvpRankingLeague: number;
   pvpRankingMinCp: number;
   pvpRankingWorst: number;
+  /** PGAN Shiny add-on gate: the encounter must also be shiny for this human. */
+  shinyForMe: boolean;
   size: number;
   sta: number;
   template: string | null;

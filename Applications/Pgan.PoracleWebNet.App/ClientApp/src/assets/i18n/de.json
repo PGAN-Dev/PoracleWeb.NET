@@ -354,6 +354,8 @@
     "PING_HINT": "Discord-Rolle, die in der Benachrichtigung erwähnt wird",
     "CLEAN_MODE": "Aufräummodus",
     "CLEAN_HINT_POKEMON": "Löscht die Benachrichtigung automatisch aus Discord, wenn das Pokemon despawnt",
+    "SHINY_FOR_ME": "Schillernd für mich",
+    "SHINY_FOR_ME_HINT": "Nur benachrichtigen, wenn dieser Spawn speziell für dich schillernd ist (erfordert das Shiny-Add-on)",
     "CLEAN_HINT_RAID": "Löscht die Benachrichtigung automatisch aus Discord, wenn der Raid endet",
     "CLEAN_HINT_QUEST": "Löscht die Benachrichtigung automatisch aus Discord, wenn Quests um Mitternacht zurückgesetzt werden",
     "CLEAN_HINT_INVASION": "Löscht die Benachrichtigung automatisch aus Discord, wenn die Invasion endet",

@@ -355,6 +355,8 @@
     "CLEAN_MODE": "Modo de limpeza",
     "CLEAN_TAG": "limpeza",
     "CLEAN_HINT_POKEMON": "Elimina automaticamente a notificação do Discord após o Pokemon desaparecer",
+    "SHINY_FOR_ME": "Shiny para mim",
+    "SHINY_FOR_ME_HINT": "Avisar apenas quando este spawn for shiny especificamente para ti (requer o complemento shiny)",
     "CLEAN_HINT_RAID": "Elimina automaticamente a notificação do Discord após o raid terminar",
     "CLEAN_HINT_QUEST": "Elimina automaticamente a notificação do Discord quando as missões reiniciam à meia-noite",
     "CLEAN_HINT_INVASION": "Elimina automaticamente a notificação do Discord após a invasão terminar",

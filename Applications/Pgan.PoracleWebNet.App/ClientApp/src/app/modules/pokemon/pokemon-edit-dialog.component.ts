@@ -101,6 +101,9 @@ export class PokemonEditDialogComponent implements OnInit {
     pvpRankingLeague: [this.data.pvpRankingLeague],
     pvpRankingMinCp: [this.data.pvpRankingMinCp],
     pvpRankingWorst: [this.data.pvpRankingWorst],
+    // PGAN Shiny add-on gate. See the hint next to the toggle for the full behavior; gated on top of
+    // every other filter, not a replacement for them.
+    shinyForMe: [this.data.shinyForMe],
     size: [this.data.size],
     sta: [this.data.sta],
     template: [this.data.template ?? ''],
@@ -200,6 +203,7 @@ export class PokemonEditDialogComponent implements OnInit {
       pvpRankingLeague: values.pvpRankingLeague ?? 0,
       pvpRankingMinCp: values.pvpRankingLeague ? (values.pvpRankingMinCp ?? 0) : 0,
       pvpRankingWorst: values.pvpRankingLeague ? (values.pvpRankingWorst ?? 100) : 4096,
+      shinyForMe: values.shinyForMe ?? false,
       size: values.size ?? -1,
       sta: values.sta ?? 0,
       template: values.template || '',

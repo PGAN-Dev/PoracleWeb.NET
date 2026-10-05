@@ -203,4 +203,10 @@ public class MonsterUpdate
     {
         get; set;
     }
+
+    /// <summary>PGAN Shiny add-on gate. See the domain model.</summary>
+    public bool? ShinyForMe
+    {
+        get; set;
+    }
 }

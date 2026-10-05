@@ -112,6 +112,9 @@ export class PokemonAddDialogComponent implements OnInit {
     // Empty means the profile pin, which is what "set a distance" has always meant. A label points the
     // radius at a saved place instead.
     placeLabel: [''],
+    // PGAN Shiny add-on gate. See the hint next to the toggle for the full behavior; gated on top of
+    // every other filter, not a replacement for them.
+    shinyForMe: [false],
     template: [''],
   });
 
@@ -242,6 +245,7 @@ export class PokemonAddDialogComponent implements OnInit {
           pvpRankingLeague: pvp.pvpRankingLeague ?? 0,
           pvpRankingMinCp: pvp.pvpRankingLeague ? (pvp.pvpRankingMinCp ?? 0) : 0,
           pvpRankingWorst: pvp.pvpRankingLeague ? (pvp.pvpRankingWorst ?? 100) : 4096,
+          shinyForMe: notif.shinyForMe ?? false,
           size: filters.size ?? -1,
           sta: filters.sta ?? 0,
           template: notif.template || null,

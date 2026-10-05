@@ -354,6 +354,8 @@
     "PING_HINT": "Discord rol die vermeld wordt in de melding",
     "CLEAN_MODE": "Opschoonmodus",
     "CLEAN_HINT_POKEMON": "Verwijdert de melding automatisch uit Discord nadat de Pokemon verdwijnt",
+    "SHINY_FOR_ME": "Shiny voor mij",
+    "SHINY_FOR_ME_HINT": "Alleen melden wanneer deze spawn speciaal voor jou shiny is (vereist de Shiny-add-on)",
     "CLEAN_HINT_RAID": "Verwijdert de melding automatisch uit Discord nadat de raid eindigt",
     "CLEAN_HINT_QUEST": "Verwijdert de melding automatisch uit Discord wanneer quests om middernacht resetten",
     "CLEAN_HINT_INVASION": "Verwijdert de melding automatisch uit Discord nadat de invasie eindigt",

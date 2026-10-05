@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Pgan.PoracleWebNet.Core.Models;
 
 public class Monster
@@ -165,6 +167,25 @@ public class Monster
     /// therefore removes it from every write body. A PoracleNG too old to send it leaves this null.
     /// </remarks>
     public string? Description
+    {
+        get; set;
+    }
+
+    /// <summary>
+    /// PGAN Shiny add-on gate: in addition to every other filter on this rule, the encounter must be
+    /// shiny for this human (the pokemon webhook's <c>shiny_for</c> field).
+    /// </summary>
+    /// <remarks>
+    /// Unreleased on PoracleNG as of the version <see cref="Services.TrackingV2Translator"/> targets (5.2.1),
+    /// so it is NOT in that translator's "pokemon" field table. <see cref="JsonIgnoreCondition.WhenWritingDefault"/>
+    /// here is load-bearing, not cosmetic: every other row still omits it from the v1-shaped JSON entirely,
+    /// so v2 translation keeps working for ordinary rules. A row that sets it true surfaces an unrecognized
+    /// property to the translator, which correctly falls back to v1 for that row - see TryTranslate's doc
+    /// comment. Remove the attribute once a live server's v2 schema actually declares this field, and add
+    /// it to that TypeSpec at the same time.
+    /// </remarks>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool ShinyForMe
     {
         get; set;
     }

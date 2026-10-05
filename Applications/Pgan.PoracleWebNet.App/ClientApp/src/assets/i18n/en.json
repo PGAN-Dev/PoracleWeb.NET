@@ -355,6 +355,8 @@
     "CLEAN_MODE": "Clean mode",
     "CLEAN_TAG": "clean",
     "CLEAN_HINT_POKEMON": "Automatically deletes the notification from Discord after the Pokemon despawns",
+    "SHINY_FOR_ME": "Shiny for me",
+    "SHINY_FOR_ME_HINT": "Only alert when this spawn is shiny specifically for you (requires the Shiny add-on)",
     "CLEAN_HINT_RAID": "Automatically deletes the notification from Discord after the raid ends",
     "CLEAN_HINT_QUEST": "Automatically deletes the notification from Discord when quests reset at midnight",
     "CLEAN_HINT_INVASION": "Automatically deletes the notification from Discord after the invasion ends",

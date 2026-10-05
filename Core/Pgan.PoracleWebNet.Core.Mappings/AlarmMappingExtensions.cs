@@ -41,6 +41,7 @@ public static class AlarmMappingExtensions
         Template = src.Template,
         OverrideLocationLabel = src.OverrideLocationLabel,
         OverrideAreas = src.OverrideAreas,
+        ShinyForMe = src.ShinyForMe,
     };
 
     public static void ApplyUpdate(this MonsterUpdate src, Monster dest)
@@ -77,6 +78,7 @@ public static class AlarmMappingExtensions
         if (src.Template != null) dest.Template = src.Template;
         if (src.OverrideLocationLabel != null) dest.OverrideLocationLabel = src.OverrideLocationLabel;
         if (src.OverrideAreas != null) dest.OverrideAreas = src.OverrideAreas;
+        if (src.ShinyForMe != null) dest.ShinyForMe = src.ShinyForMe.Value;
     }
 
     // ── Raid ─────────────────────────────────────────────────
