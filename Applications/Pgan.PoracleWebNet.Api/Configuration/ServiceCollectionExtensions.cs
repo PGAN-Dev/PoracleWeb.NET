@@ -218,7 +218,10 @@ public static class ServiceCollectionExtensions
 
         // Register the generic OIDC HTTP client (code exchange / refresh / userinfo) and the
         // server-side refresh-session service (opaque-token rotation + encrypted RT storage).
-        services.AddHttpClient<Services.Oidc.IOidcClient, Services.Oidc.OidcClient>();
+        // An identity provider behind Cloudflare 403s a request with no User-Agent, which fails
+        // every code exchange and refresh before it reaches the provider.
+        services.AddHttpClient<Services.Oidc.IOidcClient, Services.Oidc.OidcClient>(client =>
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("PoracleWeb.NET"));
         services.AddScoped<Services.Oidc.IOidcSessionService, Services.Oidc.OidcSessionService>();
 
         // Register JWT service (shared token generation across controllers)
