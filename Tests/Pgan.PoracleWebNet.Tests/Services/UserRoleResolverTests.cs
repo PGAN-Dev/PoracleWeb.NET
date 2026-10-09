@@ -24,13 +24,13 @@ public class UserRoleResolverTests
 
     private const string TeamHarmonyRares = "https://discordapp.com/api/webhooks/863186716952100874/token";
 
-    private UserRoleResolver CreateSut(string adminIds = "") => new(
+    private UserRoleResolver CreateSut(string adminIds = "", IMemoryCache? cache = null) => new(
         this._poracleApiProxy.Object,
         this._poracleHumanProxy.Object,
         this._webhookDelegateService.Object,
         this._humanService.Object,
         Options.Create(new PoracleSettings { AdminIds = adminIds }),
-        new MemoryCache(new MemoryCacheOptions()),
+        cache ?? new MemoryCache(new MemoryCacheOptions()),
         NullLogger<UserRoleResolver>.Instance);
 
     [Fact]
@@ -212,6 +212,68 @@ public class UserRoleResolverTests
 
         Assert.Equal(["teamharmonyrares"], roles.ManagedWebhooks);
         Assert.False(roles.Resolved);
+    }
+
+    /// <summary>
+    /// Granting or revoking a delegate took up to a minute to land, because the admin dialog wrote the
+    /// table and left the cached answer in place. Invalidation must also reach a DIFFERENT resolver
+    /// instance: it is scoped, so the admin's request and the delegate's next request each get their own,
+    /// and only the memory cache is shared.
+    /// </summary>
+    [Fact]
+    public async Task InvalidatingAUserMakesTheNextResolveReadTheTableAgain()
+    {
+        var cache = new MemoryCache(new MemoryCacheOptions());
+        this.ArrangeLocalDelegate([]);
+        var delegatesRequest = this.CreateSut(cache: cache);
+        Assert.Null((await delegatesRequest.ResolveAsync("u1")).ManagedWebhooks);
+
+        this.ArrangeLocalDelegate([TeamHarmonyRares]);
+        this.CreateSut(cache: cache).Invalidate("u1");
+
+        Assert.Equal([TeamHarmonyRares], (await this.CreateSut(cache: cache).ResolveAsync("u1")).ManagedWebhooks);
+    }
+
+    [Fact]
+    public async Task InvalidatingEveryoneReachesAUserNobodyNamed()
+    {
+        // Deleting a webhook changes the answer for every delegate who held it, including the ones whose
+        // grant came from PoracleJS by name and so appear in no table this site can enumerate.
+        var cache = new MemoryCache(new MemoryCacheOptions());
+        this.ArrangeLocalDelegate([TeamHarmonyRares]);
+        Assert.NotNull((await this.CreateSut(cache: cache).ResolveAsync("u1")).ManagedWebhooks);
+
+        this.ArrangeLocalDelegate([]);
+        this.CreateSut(cache: cache).InvalidateAll();
+
+        Assert.Null((await this.CreateSut(cache: cache).ResolveAsync("u1")).ManagedWebhooks);
+    }
+
+    [Fact]
+    public async Task InvalidatingOneUserLeavesAnotherCached()
+    {
+        // The legitimate-case half: invalidation is targeted, not a flush, so a grant does not put two
+        // PoracleNG calls in front of everyone's next request.
+        var cache = new MemoryCache(new MemoryCacheOptions());
+        this.ArrangeLocalDelegate([]);
+        await this.CreateSut(cache: cache).ResolveAsync("u1");
+        await this.CreateSut(cache: cache).ResolveAsync("u2");
+
+        this.CreateSut(cache: cache).Invalidate("u1");
+        await this.CreateSut(cache: cache).ResolveAsync("u2");
+
+        this._poracleHumanProxy.Verify(p => p.GetAdminRolesAsync("u2"), Times.Once);
+    }
+
+    private void ArrangeLocalDelegate(string[] webhookIds)
+    {
+        this._poracleApiProxy.Setup(p => p.GetConfigAsync()).ReturnsAsync((PoracleConfig?)null!);
+        this._poracleHumanProxy.Setup(p => p.GetAdminRolesAsync(It.IsAny<string>())).ReturnsAsync("{}");
+        this._webhookDelegateService.Setup(s => s.GetManagedWebhookIdsAsync(It.IsAny<string>())).ReturnsAsync(webhookIds);
+        this._humanService.Setup(h => h.GetWebhooksAsync()).ReturnsAsync(
+        [
+            new Human { Id = TeamHarmonyRares, Name = "teamharmonyrares", Type = "webhook" },
+        ]);
     }
 
     private void ArrangeDelegate(string[] grants)

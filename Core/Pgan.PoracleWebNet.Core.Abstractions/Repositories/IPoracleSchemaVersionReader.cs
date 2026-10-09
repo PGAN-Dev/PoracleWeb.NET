@@ -16,4 +16,11 @@ public interface IPoracleSchemaVersionReader
     /// database. Never throws: an unknown schema is a valid answer that simply unlocks nothing.
     /// </summary>
     Task<long?> GetAppliedMigrationAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The tables in PoracleNG's database that carry a unique key other than their primary key, lowercased,
+    /// or null when that cannot be read. Never throws, for the same reason as
+    /// <see cref="GetAppliedMigrationAsync"/>.
+    /// </summary>
+    Task<IReadOnlyList<string>?> GetUniqueKeyedTablesAsync(CancellationToken cancellationToken = default);
 }

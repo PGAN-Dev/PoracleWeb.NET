@@ -26,6 +26,7 @@ import { WhereSheetComponent, WhereSheetData } from '../../shared/components/whe
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { isAutoDelete } from '../../shared/utils/clean-flags';
+import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
 import { pokestopEventInfo } from '../../shared/utils/pokestop-events';
 
 @Component({
@@ -103,8 +104,9 @@ export class PokestopEventListComponent implements OnInit {
     const uids = [...this.selectedIds()];
     // A rejection that cleared nothing and reloaded nothing is indistinguishable from a successful
     // no-op, so say what the server said. See #641.
+    let result: DistanceUpdateResult | undefined;
     try {
-      await firstValueFrom(this.pokestopEventService.updateBulkDistance(uids, distance));
+      result = await firstValueFrom(this.pokestopEventService.updateBulkDistance(uids, distance));
     } catch (err) {
       const message = (err as { error?: { error?: string } })?.error?.error;
       this.snackBar.open(message ?? this.i18n.instant('POKESTOP_EVENTS.SNACK_FAILED_DISTANCE'), this.i18n.instant('TOAST.OK'), {
@@ -115,9 +117,17 @@ export class PokestopEventListComponent implements OnInit {
     this.selectedIds.set(new Set());
     this.selectMode.set(false);
     this.loadItems();
-    this.snackBar.open(this.i18n.instant('POKESTOP_EVENTS.SNACK_BULK_DISTANCE', { count: uids.length }), this.i18n.instant('COMMON.OK'), {
-      duration: 3000,
-    });
+    this.snackBar.open(
+      distanceUpdateMessage(
+        result,
+        this.i18n.instant('POKESTOP_EVENTS.SNACK_BULK_DISTANCE', { count: result?.updated ?? uids.length }),
+        this.i18n,
+      ),
+      this.i18n.instant('COMMON.OK'),
+      {
+        duration: skippedAny(result) ? 6000 : 3000,
+      },
+    );
   }
 
   deleteAll(): void {
@@ -278,24 +288,6 @@ export class PokestopEventListComponent implements OnInit {
   toggleSelectMode(): void {
     this.selectMode.update(v => !v);
     if (!this.selectMode()) this.selectedIds.set(new Set());
-  }
-
-  updateAllDistance(): void {
-    const ref = this.dialog.open(DistanceDialogComponent, { width: '440px' });
-    ref.afterClosed().subscribe(distance => {
-      if (distance === null || distance === undefined) return;
-
-      this.pokestopEventService.updateAllDistance(distance).subscribe({
-        error: () =>
-          this.snackBar.open(this.i18n.instant('POKESTOP_EVENTS.SNACK_FAILED_DISTANCE'), this.i18n.instant('COMMON.OK'), {
-            duration: 3000,
-          }),
-        next: () => {
-          this.snackBar.open(this.i18n.instant('POKESTOP_EVENTS.SNACK_ALL_DISTANCE'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
-          this.loadItems();
-        },
-      });
-    });
   }
 
   private loadProfileAreas(): void {

@@ -72,7 +72,14 @@ public sealed class JwtService(IOptions<JwtSettings> jwtSettings) : IJwtService
         // token became a day-long one on the first profile switch, and a user who switched profile once
         // a day never expired at all. Revocation is supposed to propagate within roughly one access
         // token's lifetime; renewing on re-issue quietly removed that bound. See #624.
-        var remaining = RemainingMinutes(existingPrincipal);
+        //
+        // And it must keep the expiry to the second. The remaining lifetime used to be rounded UP to whole
+        // minutes and counted again from now, with a one-minute floor, so every re-issue moved the expiry
+        // later: by up to a minute each time, or by a full minute for a token already inside JwtBearer's
+        // five-minute clock skew. Re-issuing once a minute therefore renewed a session forever -- and an
+        // impersonation session, whose authority is exactly what revocation has to end, could do that
+        // with nothing more than a profile switch.
+        var expiresAt = OriginalExpiry(existingPrincipal);
         if (isAdmin is { } resolved)
         {
             // Copied verbatim, isAdmin outlived the rights it described: nothing revalidates the claim,
@@ -81,27 +88,25 @@ public sealed class JwtService(IOptions<JwtSettings> jwtSettings) : IJwtService
             claims.Add(new Claim("isAdmin", resolved.ToString().ToLowerInvariant()));
         }
 
-        return remaining is { } minutes
-            ? this.WriteToken(claims, minutes)
+        return expiresAt is { } expiry
+            ? this.WriteToken(claims, expiry)
             : this.WriteToken(claims);
     }
 
     /// <summary>
-    /// Whole minutes left on the principal's own <c>exp</c>, or null when it carries none.
+    /// The principal's own <c>exp</c>, or null when it carries none.
     /// </summary>
-    private static int? RemainingMinutes(ClaimsPrincipal principal)
+    /// <remarks>
+    /// Returned as the instant itself rather than as a lifetime, so the re-issued token expires when the
+    /// original did and never a second later. A token already past its <c>exp</c> but still accepted
+    /// under the clock skew is re-issued already expired, which is what it is.
+    /// </remarks>
+    private static DateTime? OriginalExpiry(ClaimsPrincipal principal)
     {
         var exp = principal.FindFirst("exp")?.Value ?? principal.FindFirst(JwtRegisteredClaimNames.Exp)?.Value;
-        if (!long.TryParse(exp, NumberStyles.Integer, CultureInfo.InvariantCulture, out var seconds))
-        {
-            return null;
-        }
-
-        var remaining = DateTimeOffset.FromUnixTimeSeconds(seconds) - DateTimeOffset.UtcNow;
-
-        // The request authenticated, so the token was live when it arrived; a floor of one minute keeps
-        // a token that expires mid-request from being re-issued already dead.
-        return Math.Max(1, (int)Math.Ceiling(remaining.TotalMinutes));
+        return long.TryParse(exp, NumberStyles.Integer, CultureInfo.InvariantCulture, out var seconds)
+            ? DateTimeOffset.FromUnixTimeSeconds(seconds).UtcDateTime
+            : null;
     }
 
     private static List<Claim> BuildClaims(UserInfo user)
@@ -131,7 +136,10 @@ public sealed class JwtService(IOptions<JwtSettings> jwtSettings) : IJwtService
 
     private string WriteToken(List<Claim> claims) => this.WriteToken(claims, this._settings.ExpirationMinutes);
 
-    private string WriteToken(List<Claim> claims, int lifetimeMinutes)
+    private string WriteToken(List<Claim> claims, int lifetimeMinutes) =>
+        this.WriteToken(claims, DateTime.UtcNow.AddMinutes(lifetimeMinutes));
+
+    private string WriteToken(List<Claim> claims, DateTime expiresUtc)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(this._settings.Secret));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -140,7 +148,7 @@ public sealed class JwtService(IOptions<JwtSettings> jwtSettings) : IJwtService
             issuer: this._settings.Issuer,
             audience: this._settings.Audience,
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(lifetimeMinutes),
+            expires: expiresUtc,
             signingCredentials: credentials);
 
         return new JwtSecurityTokenHandler().WriteToken(token);

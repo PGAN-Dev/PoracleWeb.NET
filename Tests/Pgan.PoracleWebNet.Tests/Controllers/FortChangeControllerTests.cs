@@ -88,7 +88,7 @@ public class FortChangeControllerTests : ControllerTestBase
     [Fact]
     public async Task UpdateAllDistanceOk()
     {
-        this._service.Setup(s => s.UpdateDistanceByUserAsync("123456789", 1, 5000)).ReturnsAsync(3);
+        this._service.Setup(s => s.UpdateDistanceByUserAsync("123456789", 1, 5000)).ReturnsAsync(DistanceUpdateResult.None with { Updated = 3 });
         Assert.IsType<OkObjectResult>(await this._sut.UpdateAllDistance(5000));
     }
 }

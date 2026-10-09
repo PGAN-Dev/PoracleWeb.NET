@@ -1,10 +1,10 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, effect, inject, signal } from '@angular/core';
-import { Observable, ReplaySubject, catchError, forkJoin, map, of } from 'rxjs';
+import { Observable, ReplaySubject, catchError, forkJoin, map, of, switchMap } from 'rxjs';
 
 import { ConfigService } from './config.service';
 import { I18nService } from './i18n.service';
-import { POKEMON_TYPE_NAMES_BY_ID } from '../../shared/utils/pokemon-types';
+import { POKEMON_TYPE_LABEL_KEYS, POKEMON_TYPE_NAMES_BY_ID } from '../../shared/utils/pokemon-types';
 
 export interface PokemonEntry {
   id: number;
@@ -39,6 +39,31 @@ interface MonsterEntry {
  */
 const UNTRANSLATED_KEY = /^(poke|poke_type|form)_\d+$/;
 
+/**
+ * Indexes the grunt masterdata by `grunt_type` and gender, keeping only the entries that identify
+ * exactly one grunt. See `MasterDataService.applyGrunts`.
+ */
+function indexGrunts(grunts: null | Record<string, GruntEntry>): Map<string, string> {
+  const names = new Map<string, string>();
+  if (!grunts) return names;
+
+  const seen = new Map<string, number>();
+  Object.values(grunts).forEach(entry => {
+    const gruntType = entry?.grunt_type;
+    const shortName = entry?.short_name;
+    if (!gruntType || !shortName) return;
+
+    const key = `${gruntType}:${entry.gender ?? 0}`;
+    seen.set(key, (seen.get(key) ?? 0) + 1);
+    names.set(key, shortName);
+  });
+
+  seen.forEach((count, key) => {
+    if (count > 1) names.delete(key);
+  });
+  return names;
+}
+
 @Injectable({ providedIn: 'root' })
 export class MasterDataService {
   private readonly config = inject(ConfigService);
@@ -49,6 +74,8 @@ export class MasterDataService {
    * `Pokemon #1` until something unrelated redrew them. See the late-arrival spec.
    */
   private readonly costumeMap = signal(new Map<number, string>());
+  /** English grunt names, indexed like `gruntMap`, fetched once. See `withEnglishGrunts`. */
+  private englishGruntNames: Map<string, string> | null = null;
   private readonly evoBaseMap = new Map<number, number>();
 
   private readonly formsMap = signal(new Map<number, { id: number; name: string }[]>());
@@ -57,6 +84,8 @@ export class MasterDataService {
    * grunt are here -- see `applyGrunts`.
    */
   private readonly gruntMap = signal(new Map<string, string>());
+  /** Keys of `gruntMap` whose name is identical to the English one. See `isGruntNameUntranslated`. */
+  private readonly gruntUntranslated = signal(new Set<string>());
   private readonly http = inject(HttpClient);
   private readonly i18n = inject(I18nService);
   private readonly itemMap = signal(new Map<number, string>());
@@ -190,7 +219,29 @@ export class MasterDataService {
    * the translation for the current display language, falling back to the English name itself.
    */
   getTypeLabel(englishName: string): string {
-    return this.typeLabels().get(englishName) ?? englishName;
+    const upstream = this.typeLabels().get(englishName);
+    // PoracleNG has no type names for nl, da, sv, pt or pt-BR and answers those in English. The locale
+    // bundles carry the words, so an answer that is only the English name gives way to the bundle's.
+    // A server translation that differs from English still wins: it is the game's own wording.
+    if (upstream && (this.i18n.currentLang() === 'en' || upstream.toLowerCase() !== englishName.toLowerCase())) {
+      return upstream;
+    }
+    const key = POKEMON_TYPE_LABEL_KEYS[englishName];
+    if (key) {
+      const local = this.i18n.instant(key);
+      if (local && local !== key) return local;
+    }
+    return upstream ?? englishName;
+  }
+
+  /**
+   * Whether the upstream name for this grunt is only the English one, served for a language PoracleNG
+   * has no grunt translations for. The caller then prefers its own translated label where it has one.
+   * False when the English names could not be read: without them there is nothing to compare against.
+   */
+  isGruntNameUntranslated(gruntType: null | string, gender: number | undefined): boolean {
+    if (!gruntType) return false;
+    return this.gruntUntranslated().has(`${gruntType}:${gender ?? 0}`);
   }
 
   isLoaded(): boolean {
@@ -224,28 +275,21 @@ export class MasterDataService {
    * "Unlicht - Rüpel (Weiblich)"), and unlike `type` it is translated for every grunt rather than
    * only the eighteen elemental ones.
    */
-  private applyGrunts(grunts: null | Record<string, GruntEntry>): void {
-    const names = new Map<string, string>();
+  private applyGrunts(grunts: null | Record<string, GruntEntry>, english: Map<string, string> | null): void {
+    const names = indexGrunts(grunts);
 
-    if (grunts) {
-      const seen = new Map<string, number>();
-
-      Object.values(grunts).forEach(entry => {
-        const gruntType = entry?.grunt_type;
-        const shortName = entry?.short_name;
-        if (!gruntType || !shortName) return;
-
-        const key = `${gruntType}:${entry.gender ?? 0}`;
-        seen.set(key, (seen.get(key) ?? 0) + 1);
-        names.set(key, shortName);
-      });
-
-      seen.forEach((count, key) => {
-        if (count > 1) names.delete(key);
+    // A name identical to the English one, in a language other than English, is PoracleNG falling back
+    // because it has no translation (5.3.0 does this for da, nl, pl, pt, pt-BR and sv). Recorded rather
+    // than dropped: for a grunt the locale bundle cannot name, English still beats "Unknown grunt".
+    const untranslated = new Set<string>();
+    if (english) {
+      names.forEach((name, key) => {
+        if (english.get(key) === name) untranslated.add(key);
       });
     }
 
     this.gruntMap.set(names);
+    this.gruntUntranslated.set(untranslated);
   }
 
   private applyMonsters(monsters: null | Record<string, MonsterEntry>, names: Map<number, string>): void {
@@ -367,9 +411,10 @@ export class MasterDataService {
       // Translated, so refetched on a language change like monsters. A PoracleNG too old to carry the
       // names answers its older shape and this produces nothing, which leaves every label exactly where
       // it is today -- the hand-maintained strings. See #840.
-      grunts: this.http
-        .get<Record<string, GruntEntry>>(`${this.config.apiHost}/api/masterdata/grunts`, { params: { locale } })
-        .pipe(catchError(() => of(null))),
+      grunts: this.http.get<Record<string, GruntEntry>>(`${this.config.apiHost}/api/masterdata/grunts`, { params: { locale } }).pipe(
+        catchError(() => of(null)),
+        switchMap(localized => this.withEnglishGrunts(locale, localized)),
+      ),
       items: this.http.get<Record<string, string>>(`${this.config.apiHost}/api/masterdata/items`),
       monsters: this.http
         .get<Record<string, MonsterEntry>>(`${this.config.apiHost}/api/masterdata/monsters`, { params: { locale } })
@@ -417,7 +462,7 @@ export class MasterDataService {
 
         // Translated species names overwrite the English ones, so this runs before publishing.
         this.applyMonsters(monsters, pokemonNames);
-        this.applyGrunts(grunts);
+        this.applyGrunts(grunts.localized, grunts.english);
 
         this.itemMap.set(itemNames);
         this.costumeMap.set(costumeNames);
@@ -428,5 +473,30 @@ export class MasterDataService {
         this.ready$.next(true);
       },
     });
+  }
+
+  /**
+   * Pairs the localized grunt names with the English ones, so `applyGrunts` can tell a translation from
+   * an English fallback. The English names are asked for only when there is something to compare: not in
+   * English itself, and not when the server named nothing (every PoracleNG before #217, which therefore
+   * sees exactly the one request it always did). They do not change with the language, so they are
+   * fetched once. A failure compares against nothing, which leaves the server's names in charge.
+   */
+  private withEnglishGrunts(
+    locale: string,
+    localized: null | Record<string, GruntEntry>,
+  ): Observable<{ english: Map<string, string> | null; localized: null | Record<string, GruntEntry> }> {
+    if (locale === 'en' || !Object.values(localized ?? {}).some(entry => entry?.short_name)) {
+      return of({ english: null, localized });
+    }
+    if (this.englishGruntNames) return of({ english: this.englishGruntNames, localized });
+
+    return this.http.get<Record<string, GruntEntry>>(`${this.config.apiHost}/api/masterdata/grunts`, { params: { locale: 'en' } }).pipe(
+      map(english => {
+        this.englishGruntNames = indexGrunts(english);
+        return { english: this.englishGruntNames, localized };
+      }),
+      catchError(() => of({ english: null, localized })),
+    );
   }
 }

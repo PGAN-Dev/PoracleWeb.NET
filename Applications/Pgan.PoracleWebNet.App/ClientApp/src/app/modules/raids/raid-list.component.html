@@ -6,7 +6,12 @@
     </p>
   </div>
   <div class="header-actions">
-    <button mat-fab (click)="openAddDialog()" [style.background-color]="'#f44336'" [style.color]="'white'">
+    <button
+      mat-fab
+      (click)="openAddDialog()"
+      [attr.aria-label]="'RAIDS.ADD_DIALOG_TITLE' | translate"
+      [style.background-color]="'#f44336'"
+      [style.color]="'white'">
       <mat-icon>add</mat-icon>
     </button>
   </div>
@@ -20,7 +25,8 @@
       mat-icon-button
       (click)="toggleSelectMode()"
       [class.select-mode-active]="selectMode()"
-      [matTooltip]="(selectMode() ? 'ALARM.EXIT_SELECT_MODE' : 'ALARM.SELECT_MULTIPLE') | translate">
+      [matTooltip]="(selectMode() ? 'ALARM.EXIT_SELECT_MODE' : 'ALARM.SELECT_MULTIPLE') | translate"
+      [attr.aria-label]="(selectMode() ? 'ALARM.EXIT_SELECT_MODE' : 'ALARM.SELECT_MULTIPLE') | translate">
       <mat-icon>{{ selectMode() ? 'close' : 'checklist' }}</mat-icon>
     </button>
   </div>
@@ -114,7 +120,12 @@
                 <div class="stat">
                   <span class="stat-label">{{ 'RAIDS.TEAM_LABEL' | translate }}</span>
                   <span class="stat-value"
-                    ><img [src]="getGymIcon(raid.team)" class="team-icon-inline" /> {{ getTeamName(raid.team) }}</span
+                    ><img
+                      [src]="getGymIcon(raid.team)"
+                      class="team-icon-inline"
+                      alt=""
+                      (error)="$any($event.target).style.display = 'none'" />
+                    {{ getTeamName(raid.team) }}</span
                   >
                 </div>
                 @if (raid.costume !== 9000) {
@@ -146,6 +157,9 @@
                 (click)="sendTestAlert('raid', raid)"
                 [disabled]="testAlertService.isSending('raid', raid.uid) || testAlertService.isCoolingDown('raid', raid.uid)"
                 [matTooltip]="(testAlertService.isCoolingDown('raid', raid.uid) ? 'ALARM.TEST_COOLDOWN' : 'ALARM.TEST_SEND') | translate"
+                [attr.aria-label]="
+                  (testAlertService.isCoolingDown('raid', raid.uid) ? 'ALARM.TEST_COOLDOWN' : 'ALARM.TEST_SEND') | translate
+                "
                 class="test-alert-btn">
                 @if (testAlertService.isSending('raid', raid.uid)) {
                   <mat-icon class="spin">sync</mat-icon>
@@ -154,11 +168,20 @@
                 }
               </button>
 
-              <button mat-icon-button (click)="editRaid(raid)" [matTooltip]="'COMMON.EDIT' | translate">
+              <button
+                mat-icon-button
+                (click)="editRaid(raid)"
+                [matTooltip]="'COMMON.EDIT' | translate"
+                [attr.aria-label]="'COMMON.EDIT' | translate">
                 <mat-icon>edit</mat-icon>
               </button>
 
-              <button mat-icon-button (click)="deleteRaid(raid)" [matTooltip]="'COMMON.DELETE' | translate" color="warn">
+              <button
+                mat-icon-button
+                (click)="deleteRaid(raid)"
+                [matTooltip]="'COMMON.DELETE' | translate"
+                [attr.aria-label]="'COMMON.DELETE' | translate"
+                color="warn">
                 <mat-icon>delete</mat-icon>
               </button>
             </mat-card-actions>
@@ -184,7 +207,7 @@
             </svg>
             <h2 class="empty-title">{{ 'RAIDS.EMPTY_RAIDS_TITLE' | translate }}</h2>
             <p class="empty-subtitle">{{ 'RAIDS.EMPTY_RAIDS_SUBTITLE' | translate }}</p>
-            <button mat-flat-button style="background-color: #f44336; color: white" (click)="openAddDialog()">
+            <button mat-flat-button style="background-color: #d73b30; color: white" (click)="openAddDialog()">
               <mat-icon>add</mat-icon> {{ 'RAIDS.ADD_RAID' | translate }}
             </button>
           </div>
@@ -241,7 +264,14 @@
               <div class="stat-grid">
                 <div class="stat">
                   <span class="stat-label">{{ 'RAIDS.TEAM_LABEL' | translate }}</span>
-                  <span class="stat-value"><img [src]="getGymIcon(egg.team)" class="team-icon-inline" /> {{ getTeamName(egg.team) }}</span>
+                  <span class="stat-value"
+                    ><img
+                      [src]="getGymIcon(egg.team)"
+                      class="team-icon-inline"
+                      alt=""
+                      (error)="$any($event.target).style.display = 'none'" />
+                    {{ getTeamName(egg.team) }}</span
+                  >
                 </div>
               </div>
               <app-alarm-info
@@ -265,6 +295,7 @@
                 (click)="sendTestAlert('egg', egg)"
                 [disabled]="testAlertService.isSending('egg', egg.uid) || testAlertService.isCoolingDown('egg', egg.uid)"
                 [matTooltip]="(testAlertService.isCoolingDown('egg', egg.uid) ? 'ALARM.TEST_COOLDOWN' : 'ALARM.TEST_SEND') | translate"
+                [attr.aria-label]="(testAlertService.isCoolingDown('egg', egg.uid) ? 'ALARM.TEST_COOLDOWN' : 'ALARM.TEST_SEND') | translate"
                 class="test-alert-btn">
                 @if (testAlertService.isSending('egg', egg.uid)) {
                   <mat-icon class="spin">sync</mat-icon>
@@ -273,11 +304,20 @@
                 }
               </button>
 
-              <button mat-icon-button (click)="editEgg(egg)" [matTooltip]="'COMMON.EDIT' | translate">
+              <button
+                mat-icon-button
+                (click)="editEgg(egg)"
+                [matTooltip]="'COMMON.EDIT' | translate"
+                [attr.aria-label]="'COMMON.EDIT' | translate">
                 <mat-icon>edit</mat-icon>
               </button>
 
-              <button mat-icon-button (click)="deleteEgg(egg)" [matTooltip]="'COMMON.DELETE' | translate" color="warn">
+              <button
+                mat-icon-button
+                (click)="deleteEgg(egg)"
+                [matTooltip]="'COMMON.DELETE' | translate"
+                [attr.aria-label]="'COMMON.DELETE' | translate"
+                color="warn">
                 <mat-icon>delete</mat-icon>
               </button>
             </mat-card-actions>
@@ -302,7 +342,7 @@
             </svg>
             <h2 class="empty-title">{{ 'RAIDS.EMPTY_EGGS_TITLE' | translate }}</h2>
             <p class="empty-subtitle">{{ 'RAIDS.EMPTY_EGGS_SUBTITLE' | translate }}</p>
-            <button mat-flat-button style="background-color: #f44336; color: white" (click)="openAddDialog()">
+            <button mat-flat-button style="background-color: #d73b30; color: white" (click)="openAddDialog()">
               <mat-icon>add</mat-icon> {{ 'RAIDS.ADD_EGG' | translate }}
             </button>
           </div>

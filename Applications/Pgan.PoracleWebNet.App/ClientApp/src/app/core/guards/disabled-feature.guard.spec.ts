@@ -15,7 +15,12 @@ describe('disabledFeatureGuard', () => {
   const mockRoute = {} as ActivatedRouteSnapshot;
   const mockState = {} as RouterStateSnapshot;
 
+  // These all describe a signed-in visitor. A signed-out one never reaches loadOnce -- see
+  // signed-out-requests.spec.ts.
+  afterEach(() => localStorage.removeItem('poracle_token'));
+
   beforeEach(() => {
+    localStorage.setItem('poracle_token', 'jwt');
     settings = { isDisabled: jest.fn(), loadOnce: jest.fn().mockReturnValue(of([])) };
     router = { createUrlTree: jest.fn().mockReturnValue('dashboard-url-tree' as unknown as UrlTree) };
     toast = { error: jest.fn() };

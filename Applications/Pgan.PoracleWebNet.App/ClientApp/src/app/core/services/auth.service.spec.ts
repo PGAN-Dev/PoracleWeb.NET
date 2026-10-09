@@ -139,11 +139,12 @@ describe('AuthService', () => {
   });
 
   describe('logout', () => {
-    it('should clear tokens, reset user, and navigate to the signed-out login page', () => {
+    it('should clear tokens, reset user, and navigate to the signed-out login page', async () => {
       localStorage.setItem('poracle_token', 'some-token');
       localStorage.setItem('poracle_admin_token', 'admin-token');
 
       service.logout();
+      await Promise.resolve();
 
       expect(localStorage.getItem('poracle_token')).toBeNull();
       expect(localStorage.getItem('poracle_admin_token')).toBeNull();
@@ -151,6 +152,41 @@ describe('AuthService', () => {
       expect(service.isImpersonating()).toBe(false);
       // ?loggedout=1 shows the signed-out panel and suppresses the OIDC auto-redirect.
       expect(router.navigate).toHaveBeenCalledWith(['/login'], { queryParams: { loggedout: 1 } });
+    });
+
+    /**
+     * The app shell has one router outlet in its signed-in layout and another in its signed-out one.
+     * Clearing the user swapped layouts while the router was still on the page being left, so the new
+     * outlet built that page again -- the dashboard reloaded all its data and quiet periods with no token,
+     * and four 401s each put up "Your session has expired". The user now goes once the page has.
+     */
+    it('keeps the signed-in shell until the navigation away has finished, but drops the tokens at once', async () => {
+      localStorage.setItem('poracle_token', 'some-token');
+      service['currentUser'].set(mockUser);
+      let finish!: (value: boolean) => void;
+      (router.navigate as jest.Mock).mockReturnValue(new Promise<boolean>(resolve => (finish = resolve)));
+
+      service.logout();
+
+      expect(localStorage.getItem('poracle_token')).toBeNull();
+      expect(service.isLoggedIn()).toBe(true);
+
+      finish(true);
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(service.isLoggedIn()).toBe(false);
+    });
+
+    it('still signs out when the navigation is refused', async () => {
+      service['currentUser'].set(mockUser);
+      (router.navigate as jest.Mock).mockReturnValue(Promise.resolve(false));
+
+      service.logout();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(service.isLoggedIn()).toBe(false);
     });
 
     it('should perform single logout (no in-app navigation) when sso=true', () => {
@@ -396,6 +432,68 @@ describe('AuthService', () => {
       expect(service.isImpersonating()).toBe(false);
       httpMock.expectOne(`${API}/api/auth/me`).flush({ ...mockUser, id: 'admin-1', username: 'admin' });
       expect(service.user()?.username).toBe('admin');
+    });
+  });
+
+  describe('leaving a session without a burst of 401s', () => {
+    it('does not let a stale /me 401 sign out the account the session was just returned to', async () => {
+      // The /me sent with a revoked impersonation token can come back after the restored token's own
+      // /me has loaded the delegate. Forgetting the user then swapped the shell to its signed-out layout
+      // while a perfectly good token sat in storage.
+      localStorage.setItem('poracle_token', 'webhook-token');
+      const stale = service.loadCurrentUser();
+      const staleReq = httpMock.expectOne(`${API}/api/auth/me`);
+
+      localStorage.setItem('poracle_token', 'own-token');
+      const fresh = service.loadCurrentUser();
+      httpMock.expectOne(`${API}/api/auth/me`).flush({ ...mockUser, username: 'Delegate' });
+      await fresh;
+
+      staleReq.flush(null, { status: 401, statusText: 'Unauthorized' });
+      await stale;
+
+      expect(service.user()?.username).toBe('Delegate');
+      expect(await service.waitForUser()).toEqual(expect.objectContaining({ username: 'Delegate' }));
+    });
+
+    it('reports that Stop impersonating had nothing to return to, and sends nothing', async () => {
+      // Without the admin token the button logs out. The shell then called loadCounts() regardless, with
+      // no token: three 401s and a "session expired" toast on the way to the login page.
+      service['currentUser'].set(mockUser);
+      (router.navigate as jest.Mock).mockReturnValue(Promise.resolve(true));
+
+      const restored = await service.stopImpersonating();
+
+      expect(restored).toBe(false);
+      expect(router.navigate).toHaveBeenCalledWith(['/login'], { queryParams: { loggedout: 1 } });
+      httpMock.expectNone(() => true);
+    });
+
+    it('reports that Stop impersonating did return to the admin', async () => {
+      localStorage.setItem('poracle_admin_token', 'admin-jwt');
+      localStorage.setItem('poracle_token', 'impersonated-jwt');
+
+      const promise = service.stopImpersonating();
+      httpMock.expectOne(`${API}/api/auth/me`).flush(mockAdminUser);
+
+      expect(await promise).toBe(true);
+      expect(service.user()?.username).toBe('AdminUser');
+      expect(router.navigate).toHaveBeenCalledWith(['/admin']);
+    });
+
+    it('keeps the signed-in shell while "Sign out everywhere" leaves for the provider', () => {
+      // Clearing the user swapped layouts before the browser had left the page, and the rebuilt page
+      // fired its loads with no token. The page is being unloaded; there is nothing to redraw.
+      localStorage.setItem('poracle_token', 'some-token');
+      localStorage.setItem('poracle_admin_token', 'admin-token');
+      service['currentUser'].set(mockUser);
+
+      service.logout({ sso: true });
+
+      expect(localStorage.getItem('poracle_token')).toBeNull();
+      expect(localStorage.getItem('poracle_admin_token')).toBeNull();
+      expect(service.isLoggedIn()).toBe(true);
+      expect(router.navigate).not.toHaveBeenCalled();
     });
   });
 });

@@ -35,6 +35,7 @@ import { LevelLabelPipe } from '../../shared/pipes/level-label.pipe';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { NO_COSTUME } from '../../shared/utils/costumes';
+import { combineDistanceResults, distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -141,9 +142,11 @@ export class RaidListComponent implements OnInit {
       // The server refuses a radius that would take over an alarm the user did not select, and names
       // the one in the way. Unguarded, that rejection cleared nothing, reloaded nothing and showed
       // nothing -- indistinguishable from a successful no-op. See #641.
+      let raids: DistanceUpdateResult | undefined;
+      let eggs: DistanceUpdateResult | undefined;
       try {
-        if (selectedRaidUids.length > 0) await firstValueFrom(this.raidService.updateBulkDistance(selectedRaidUids, distance));
-        if (selectedEggUids.length > 0) await firstValueFrom(this.eggService.updateBulkDistance(selectedEggUids, distance));
+        if (selectedRaidUids.length > 0) raids = await firstValueFrom(this.raidService.updateBulkDistance(selectedRaidUids, distance));
+        if (selectedEggUids.length > 0) eggs = await firstValueFrom(this.eggService.updateBulkDistance(selectedEggUids, distance));
       } catch (err) {
         const message = (err as { error?: { error?: string } })?.error?.error;
         this.snackBar.open(message ?? this.i18n.instant('RAIDS.SNACK_FAILED_DISTANCE'), this.i18n.instant('TOAST.OK'), {
@@ -151,12 +154,17 @@ export class RaidListComponent implements OnInit {
         });
         return;
       }
+      const result = combineDistanceResults(raids, eggs);
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadData();
-      this.snackBar.open(this.i18n.instant('RAIDS.SNACK_BULK_DISTANCE', { count: keys.length }), this.i18n.instant('TOAST.OK'), {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        distanceUpdateMessage(result, this.i18n.instant('RAIDS.SNACK_BULK_DISTANCE', { count: result?.updated ?? keys.length }), this.i18n),
+        this.i18n.instant('TOAST.OK'),
+        {
+          duration: skippedAny(result) ? 6000 : 3000,
+        },
+      );
     }
   }
 
@@ -472,23 +480,6 @@ export class RaidListComponent implements OnInit {
     if (!this.selectMode()) {
       this.selectedIds.set(new Set());
     }
-  }
-
-  updateAllDistance(): void {
-    const ref = this.dialog.open(DistanceDialogComponent, { width: '440px' });
-    ref.afterClosed().subscribe(distance => {
-      if (distance !== null && distance !== undefined) {
-        forkJoin([this.raidService.updateAllDistance(distance), this.eggService.updateAllDistance(distance)]).subscribe({
-          error: () => {
-            this.snackBar.open(this.i18n.instant('RAIDS.SNACK_FAILED_DISTANCE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
-          },
-          next: () => {
-            this.snackBar.open(this.i18n.instant('RAIDS.SNACK_ALL_DISTANCE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
-            this.loadData();
-          },
-        });
-      }
-    });
   }
 
   private loadProfileAreas(): void {

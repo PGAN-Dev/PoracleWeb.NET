@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { ConfigService } from './config.service';
+import { DistanceUpdateResult } from '../../shared/utils/distance-update';
 import { Raid, RaidCreate, RaidUpdate } from '../models';
 
 @Injectable({ providedIn: 'root' })
@@ -30,12 +31,8 @@ export class RaidService {
     return this.http.put<void>(`${this.config.apiHost}/api/raids/${uid}`, raid);
   }
 
-  updateAllDistance(distance: number): Observable<void> {
-    return this.http.put<void>(`${this.config.apiHost}/api/raids/distance`, distance);
-  }
-
-  updateBulkDistance(uids: number[], distance: number): Observable<void> {
-    return this.http.put<void>(`${this.config.apiHost}/api/raids/distance/bulk`, {
+  updateBulkDistance(uids: number[], distance: number): Observable<DistanceUpdateResult> {
+    return this.http.put<DistanceUpdateResult>(`${this.config.apiHost}/api/raids/distance/bulk`, {
       uids,
       distance,
     });

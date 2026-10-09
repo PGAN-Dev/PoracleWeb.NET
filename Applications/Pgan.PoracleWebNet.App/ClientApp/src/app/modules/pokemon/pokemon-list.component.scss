@@ -146,9 +146,11 @@
   background: color-mix(in srgb, var(--gen-color, #4caf50) 10%, transparent);
   border-color: var(--gen-color, #4caf50);
 }
+// The selected chip fills with its generation's colour; `--gen-fill`/`--gen-ink` are that colour
+// adjusted to carry its label at 4.5:1 (see readableChip), which plain white on #4caf50 does not.
 .gen-chip.gen-active {
-  background: var(--gen-color, #4caf50);
-  color: #fff;
+  background: var(--gen-fill, #2e7d32);
+  color: var(--gen-ink, #fff);
   border-color: var(--gen-color, #4caf50);
 }
 .filter-spacer {

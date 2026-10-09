@@ -102,11 +102,8 @@ public class RaidController(IRaidService raidService) : BaseApiController
     [HttpPut("distance/bulk")]
     public async Task<IActionResult> UpdateBulkDistance([FromBody] BulkDistanceRequest request)
     {
-        var count = await this._raidService.UpdateDistanceByUidsAsync(request.Uids, this.UserId, request.Distance);
-        return this.Ok(new
-        {
-            updated = count
-        });
+        var result = await this._raidService.UpdateDistanceByUidsAsync(request.Uids, this.UserId, request.Distance);
+        return this.DistanceUpdated(result);
     }
 
     [HttpPut("distance")]
@@ -118,10 +115,7 @@ public class RaidController(IRaidService raidService) : BaseApiController
             return invalid;
         }
 
-        var count = await this._raidService.UpdateDistanceByUserAsync(this.UserId, this.ProfileNo, distance);
-        return this.Ok(new
-        {
-            updated = count
-        });
+        var result = await this._raidService.UpdateDistanceByUserAsync(this.UserId, this.ProfileNo, distance);
+        return this.DistanceUpdated(result);
     }
 }

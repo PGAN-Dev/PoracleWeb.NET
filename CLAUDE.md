@@ -112,6 +112,14 @@ Pgan.PoracleWebNet.slnx
   - `PUT /{uid}` -- Update a single alarm (uses `*Update.ApplyUpdate(existing)` extension method for null-skip merge, then sends to PoracleNG as a create-with-uid which performs an upsert)
   - `PUT /distance` -- Update ALL alarms' distance for the current user/profile (fetch-mutate-POST pattern)
   - `PUT /distance/bulk` -- Update distance for specific UIDs (fetch-mutate-POST pattern)
+- Both distance endpoints **skip the alarms a radius cannot apply to** and answer
+  `{ updated, skippedAreaScoped: [uid], skippedPlaceScoped: [uid] }`: an alarm limited to areas cannot take
+  a radius above zero, and one measured from a saved place cannot take zero. PoracleNG refuses both, so
+  writing them failed the whole selection (and on max battles, which delete before re-creating, after the
+  delete). `DistanceRewrite.Build` does the split; the SPA's `distanceUpdateMessage` reports it.
+- Every radius is bounded at `AlarmDistance.MaxMetres` (20,037,509 m, half the Earth's circumference) on
+  every `*Create`/`*Update` DTO, `BulkDistanceRequest` and `RejectInvalidDistance`. That is the physically
+  impossible, not a product limit: production holds a rule at 10,000,000 m. `pokemon_id` stays uncapped.
 - **CleaningService** uses a fetch-mutate-POST workaround: fetches all alarms of a type, sets the `clean` flag on each, and POSTs them back. PoracleNG has no dedicated bulk-clean endpoint yet.
 
 ### Settings Architecture
@@ -149,7 +157,7 @@ Pgan.PoracleWebNet.slnx
 - **Creation**: `CreateAsync` stores the geofence in `user_geofences` and adds its `kojiName` to the **current** profile's area list via `IUserAreaDualWriter.AddAreaToActiveProfileAsync` — one atomic `SaveChangesAsync` commits both `humans.area` and the current `profiles.area` row. The geofence appears as active on the creating profile and inactive on all others.
 - **Deletion**: `DeleteAsync` removes the geofence's `kojiName` from **all** profiles via `IUserAreaDualWriter.RemoveAreaFromAllProfilesAsync` (one atomic `SaveChangesAsync` spanning `humans.area` and every `profiles.area` row), then deletes the `user_geofences` row and reloads Poracle geofences. `AdminDeleteAsync` does the same. Going through the proxy is not viable because PoracleNG's `setAreas` intersects with `userSelectable=true` fences only and would drop the write.
 - **PoracleWeb is the single geofence source for PoracleJS.** The `GET /api/geofence-feed` endpoint (`[AllowAnonymous]`, intended for internal network access) serves a unified feed that merges admin geofences from Koji with user-drawn geofences from the PoracleWeb database. No custom code is needed in PoracleJS or Koji -- standard upstream versions work.
-- **`POST /api/geofence-feed/refresh` drops the cached Koji half** (rate limited to 20/min per IP; `GET` on that path is not a route and falls through to the SPA, so pasting it in a browser shows the Angular app rather than an error), so the next feed read re-fetches. The Koji collection is cached 5 minutes; a provisioning run that writes a fence into Koji and then asks PoracleNG to reload cannot wait an unknown fraction of that, because a reload against the cached list re-reads the old one and still answers `{"status":"ok"}` -- success reported, area unsubscribable. Authenticated with `X-Poracle-Secret` against `Poracle:ApiSecret`, the only secret an internal caller already holds, and it **fails closed**: with no secret configured every request is refused, since an empty configured secret matching an empty header would make this the one anonymous write on the site. See #844.
+- **`POST /api/geofence-feed/refresh` drops the cached Koji half** (rate limited to 20/min per IP; `GET` on that path answers 405 with `Allow: POST`. Every unrouted `/api` path answers a JSON 404 whatever the method, rather than falling through to the SPA shell as it used to, but a path a real route matches keeps its 405 or 415: the `api/{**path}` catch-all accepts every method and content type, so it would otherwise win exactly when routing rejected the real action, and `ApiFallback` re-asks routing's question, constraints included, before answering 404), so the next feed read re-fetches. The Koji collection is cached 5 minutes; a provisioning run that writes a fence into Koji and then asks PoracleNG to reload cannot wait an unknown fraction of that, because a reload against the cached list re-reads the old one and still answers `{"status":"ok"}` -- success reported, area unsubscribable. Authenticated with `X-Poracle-Secret` against `Poracle:ApiSecret`, the only secret an internal caller already holds, and it **fails closed**: with no secret configured every request is refused, since an empty configured secret matching an empty header would make this the one anonymous write on the site. See #844.
 - PoracleJS `geofence.path` config is a single URL pointing to PoracleWeb (not an array, not dual Koji+PoracleWeb sources). PoracleJS does not connect to Koji directly for geofences.
 - Admin geofences are fetched from Koji via the `/geofence/poracle/{projectName}` endpoint, with group names resolved from the Koji parent chain. They are served with `displayInMatches: true` and `group` populated. Results are cached for 5 minutes (`IMemoryCache` with `TimeSpan.FromMinutes(5)` TTL). The cache is invalidated when a geofence is approved/promoted to Koji.
 - User geofences are served with `displayInMatches: false` and `userSelectable: false` -- names are hidden from all DMs and are not selectable on the Poracle bot's area list.
@@ -204,7 +212,13 @@ Two upstream behaviours that PoracleWeb has to work around. Both verified direct
 
 **PoracleNG assigns the lowest free profile number, not `max + 1`.** With profiles 0, 1, 3 a new profile is created at **2**. On every released version its `/add` endpoint returns only `{"status":"ok"}` -- no number -- so the assigned number cannot be predicted and must be discovered. (A server carrying PoracleNG PR #217 returns it, and `AddProfileAsync` reports it when the server's own `/openapi.json` declares `profile_no` on the create response. The dance below is the fallback, gated on the response shape rather than the route, because the route exists on 5.2.1 too and answers `{"status":"ok"}`. See #836.) `ProfileController.Create`/`Duplicate` and `ProfileOverviewController.DuplicateProfile`/`ImportProfile` snapshot the profile list, create, re-read, and diff (`ProfileNumbering.ResolveCreated`). Diffing rather than matching on name, because profile names are not unique. Predicting `max + 1` produced empty create responses and copied duplicate alarms to a `profile_no` with no profile row -- orphans that later attached themselves to whatever profile was eventually created at that number. See #407.
 
-**PoracleNG's profile update silently ignores `name`.** `POST /api/profiles/{id}/update` answers `{"status":"ok"}` and writes nothing for a rename, while honouring `active_hours` on the same request. Rename therefore goes through `IProfileRepository.RenameAsync`, a direct DB write scoped to `profiles.name` only -- unless the server declares `name` on `V2UpdateProfileBody`, in which case `UpdateProfileAsync` PATCHes `/api/v2/humans/{id}/profiles/{n}` and reports that it applied, and the direct write is skipped (#837). **That gate is load-bearing, not an optimisation**: the PATCH exists on 5.2.1, where the body declares `active_hours` alone under `additionalProperties: false`, so sending a name there is a 422 rather than an ignored field. Verified that PoracleNG serves the new name on its very next read, so nothing needs invalidating. This is the same class of workaround as `HACK: trusted-set-areas`. See #406.
+**PoracleNG's profile update silently ignores `name`.** `POST /api/profiles/{id}/update` answers `{"status":"ok"}` and writes nothing for a rename, while honouring `active_hours` on the same request. Rename therefore goes through `IProfileRepository.RenameAsync`, a direct DB write scoped to `profiles.name` only -- unless the server declares `name` on `V2UpdateProfileBody`, in which case `UpdateProfileAsync` PATCHes `/api/v2/humans/{id}/profiles/{n}` and reports that it applied, and the direct write is skipped (#837). **That gate is load-bearing, not an optimisation**: the PATCH exists on 5.2.1, where the body declares `active_hours` alone under `additionalProperties: false`, so sending a name there is a 422 rather than an ignored field. Verified that PoracleNG serves the new name on its very next read, so nothing needs invalidating. This is the same class of workaround as `HACK: trusted-set-areas`. See #406. On that PATCH path the name reaches PoracleNG and nothing trims it after, so `ProfileController.Update` trims it first and sends the stored name when the incoming one is blank -- a blank name is "not renaming", on both paths.
+
+**`ProfileNameRules.Validate` is the one name rule**, used by create, rename, both duplicates and import: required, at most 255 characters, and no control characters, line or paragraph separators, or Unicode bidi controls (U+202E made "evil" display as "live"). It deliberately does not refuse every format character, because emoji sequences are joined with U+200D. Rename judges only a name that changes, so a legacy name cannot make an unrelated edit fail.
+
+**On the v2 PATCH, "no schedule" is sent as `[]`, not omitted.** v2 reads an omitted `active_hours` as "leave unchanged", so omitting an explicit `""` or `{}` kept the old schedule. A JSON null still means "not part of this edit" and is omitted. On create the two are equivalent and omission is kept.
+
+**The v2 profile bodies are translated, never forwarded.** `V2AddProfileBody` and `V2UpdateProfileBody` declare `name` and `active_hours` and nothing else, under `additionalProperties: false`, and `active_hours` is the entry array rather than the JSON string we store. The callers build one body for both surfaces (with `area`, `latitude`, `longitude` and `profile_no` in it), so `PoracleHumanProxy.V2ProfileBody` keeps the two declared fields, parses the schedule, and answers null (use v1) for a schedule v2 would refuse. Forwarding the body shipped once and made every profile create, duplicate, import and rename a 422 on PoracleNG `develop`; the unit tests passed because they posted `{"name":...}`, a body no caller builds. The tests now post the controllers' real shapes and check them against the schema fixture.
 
 **Alarm writes never send `profile_no`.** PoracleNG takes a submitted `profile_no` at face value for the pokemon type -- `profile_no: 9` creates a row on a profile that does not exist -- while scoping every read to `current_profile_no`. Since the JWT claim can be stale (see "JWT profile resync"), stamping it onto writes stranded alarms that were invisible and undeletable. `PoracleJsonHelper.SerializeToElement` strips it, so PoracleNG files each alarm under the live active profile. See #411.
 
@@ -222,7 +236,15 @@ question asked on three surfaces: the `/my-webhooks` list, `POST /api/admin/impe
 2. `poracle_web.webhook_delegates` (what the admin dialog writes),
 3. admins from `Poracle:AdminIds` or Poracle's config, who short-circuit before any network call.
 
-Cached one minute per user; a degraded answer is never cached.
+Cached one minute per user; a degraded answer is never cached. Writes do not wait out the minute:
+granting or revoking a delegate drops the cached answer for both the delegate and the webhook
+(`Invalidate`), and deleting a human drops every cached answer (`InvalidateAll`), because a delegate
+PoracleJS names by the webhook's *name* sits in no table that could say who else just lost access. The
+cache keys carry a generation number held in the shared `IMemoryCache`, since the resolver is scoped.
+
+This is also what re-authorises impersonation sessions on every request (see "JWT Generation"), so a
+stale entry here is a minute of access an admin has just taken away. Any new writer of a grant must
+invalidate too.
 
 **All three surfaces must resolve live, and the same union.** This has now broken four separate ways,
 each time because one surface disagreed with another:
@@ -273,11 +295,16 @@ Deleting a human purges grants in both directions (`RemoveAllForIdAsync` matches
 User-facing documentation: `docs/features/webhooks.md`.
 
 ### Rate Limiting
-- Auth endpoints use **per-IP** partitioned rate limiting (not global).
-- `auth` policy: 30 requests per 60s per IP (login, callback, token exchange).
-- `auth-read` policy: 120 requests per 60s per IP (current user, profile switch).
-- `test-alert` policy: 5 requests per 60s per IP (test alert sends).
-- Configured in `Program.cs` using `RateLimitPartition.GetFixedWindowLimiter` keyed by `RemoteIpAddress`.
+- Every policy is partitioned (never global), by one of two keys in `Program.cs`:
+  - `IpPartitionKey` -- the client IP. Used by the anonymous endpoints, where there is no one else to key on.
+  - `UserOrIpPartitionKey` -- the `userId` claim when the request carries a token, the IP otherwise. Used by
+    everything authenticated, so people behind one shared NAT or corporate proxy do not share a bucket.
+- `auth` policy: 30 requests per 60s **per IP** (login, callback, token exchange).
+- `auth-read` policy: 120 requests per 60s **per user**, or per IP without a token (current user, profile switch, public settings).
+- `test-alert` policy: 5 requests per 60s **per user**, or per IP without a token (test alert sends).
+- `mutes`, `geojson-import` and `scanner-search` are per user the same way; `geofence-feed-refresh` is per IP.
+- `UseRateLimiter` runs **after** `UseAuthentication`, deliberately: registered before it, the per-user key
+  could not see the claim and every "per-user" policy silently fell back to the IP (#581).
 - **Important**: Never use global (non-partitioned) `AddFixedWindowLimiter` for auth -- multiple users sharing one bucket causes cascading login failures.
 
 ### Feature Gating (`disable_*` Site Settings)
@@ -304,6 +331,8 @@ Non-alarm features follow the same rules, minus the tracking-type dictionary: ad
 Deliberately **not** gated: `/api/auth/me` under `disable_profiles`, so the JWT profile resync keeps working and PoracleNG's active-hours scheduler can still move a user between profiles.
 
 `disable_nominatim` **is** implemented (#420): it gates the two geocode actions on `LocationController`, so switching it off genuinely stops the outbound Nominatim/OpenStreetMap calls, and the location dialog hides its address search rather than firing a request that would 403 and bounce the user to the dashboard. It is gated per-action rather than per-controller because the controller itself is already gated by `disable_location`.
+
+**The SPA must not send a request a `disable_*` switch will refuse**, even one whose caller swallows the error: the error interceptor toasts the 403 before any `catchError` runs. `LocationService` and `PlacesService` check `disable_location` (and `disable_nominatim` for the two geocode calls) themselves and answer empty, or fail without a request where the caller expects an error, so the dashboard, Areas & Places and the scope picker in every add dialog stay quiet. The Areas page hides its pin card and Places section under `disable_location`, and the dashboard's quick actions, tips and the user menu carry the same `disable_*` keys as the sidebar. See #915.
 
 `disable_geomap` and `disable_geomap_select` were removed from the admin UI and from `SettingsMigrationService` in the same change. They are legacy PoracleJS keys describing a map picker PoracleWeb does not have, so there was nothing to wire them to and inventing a meaning would have been worse than deleting them. Any rows left in `site_settings` are harmless -- nothing reads them. `disable_userlist` was never a toggle in this UI (the migration carries `admin_disable_userlist` as a legacy key only).
 
@@ -374,9 +403,9 @@ must not, so a future alarm type cannot quietly miss it.
 - **Parallel data fetch**: `TestAlertService` uses `Task.WhenAll` to fetch the alarm (via `IPoracleTrackingProxy`) and the human record (via `IPoracleHumanProxy`) concurrently.
 - **Mock webhook payloads**: The service builds a realistic mock webhook payload per alarm type using the alarm's filter fields (e.g., pokemon_id, raid_level, quest_reward). The user's location from the human record is used as the mock event coordinates.
 - **PoracleNG test endpoint**: The built payload is sent to PoracleNG's `POST /api/test` endpoint, which formats and delivers the notification to the user via their configured webhook.
-- **Rate limiting**: `test-alert` policy at 5 requests per 60s per IP, using the same per-IP partitioned pattern as `auth` and `auth-read`.
+- **Rate limiting**: `test-alert` policy at 5 requests per 60s, partitioned per user (per IP only when there is no token), like `auth-read`. See "Rate Limiting".
 - **Controller validation**: The `type` path parameter is validated against a hardcoded set of valid alarm types before calling the service.
-- **Frontend**: `TestAlertService` (Angular, `core/services/test-alert.service.ts`) tracks per-UID cooldowns (15s) client-side and deduplicates in-flight requests. Displays success/error/cooldown feedback via snackbar. Test button appears in `mat-card-actions` on all 8 alarm card types.
+- **Frontend**: `TestAlertService` (Angular, `core/services/test-alert.service.ts`) tracks per-UID cooldowns (15s) client-side and deduplicates in-flight requests. Displays success/error/cooldown feedback via snackbar. Test button appears in `mat-card-actions` on all 8 alarm card types. `/api/test-alert` is in the error interceptor's silent list, so the service's own message is the only one shown and it has to cover every status (429, 404, 501's server reason, the feature-disabled 403, anything else as `TEST_ALERT.FAILED`).
 
 ### Gym Picker
 - `GymPickerComponent` is a shared autocomplete component (`shared/components/gym-picker/`) for selecting a gym by name. Used in gym, raid, and egg add/edit dialogs to populate `gym_id`.
@@ -408,6 +437,17 @@ display language, and nothing to do with `allowed_languages`, which is this site
 the display menu. No row is served when Poracle restricts nothing, and absent, `null` and an empty list
 all mean exactly that: a 5.2.1 with nothing configured and a 5.1.0 that cannot say both accept any code,
 so both get the full menu.
+
+`hidden_areas` is a real row, but one another page owns: Admin → Areas (`PUT /api/admin/areas`) writes it
+and then asks Poracle to reload the geofence feed, which is what makes a change take effect. The generic
+`PUT /api/settings/hidden_areas` therefore refuses it, and the SPA lists it in `MANAGED_ELSEWHERE_KEYS` so
+it stays out of "Other". The same two halves as a projection, for a different reason.
+
+Every `PUT /api/settings/{key}` is also bounded by the `site_settings` columns -- `key` 100 characters,
+`category` 50, `value_type` 20, and `value` 65,535 **bytes** of UTF-8 (TEXT) -- and answers 400 over any
+of them instead of the 500 a `DbUpdateException` produced. `PUT /api/admin/areas` writes the same column and
+`HiddenAreas.TryValidate` applies the same byte bound (`HiddenAreas.MaxValueBytes`, which
+`SettingsController` shares): the 500-name and 200-character caps alone allow ~99 KB.
 
 ### Basemaps: A Tile Provider Refusing You Still Answers 200
 
@@ -478,7 +518,7 @@ the same basemap looks the same on both sites and a catalogue edit cannot drift 
 - **Staggered animations**: Grid items fade in with 30ms stagger delay.
 - **Accent themes**: Toolbar gradient, sidenav active link, and UI accent colors are customizable via user menu. Colors are applied as CSS custom properties on `document.body.style` to work across Angular's view encapsulation.
 - **Dark/light mode**: CSS variables bridge Material tokens to component styles. Theme stored in `localStorage('poracle-theme')`.
-- **Onboarding wizard**: Shows on dashboard for new users until explicitly dismissed. Detects existing location/areas/alarms and marks steps as complete. Route-based actions (Choose Areas, Add Alarm) hide the overlay temporarily without setting the localStorage completion flag.
+- **Onboarding wizard**: Shows on dashboard for new users until explicitly dismissed. Detects existing location/areas/alarms and marks steps as complete. Route-based actions (Choose Areas, Add Alarm) hide the overlay temporarily without setting the localStorage completion flag. Steps are keyed by id and built from the `disable_*` settings: under `disable_location` / `disable_areas` the step is absent and its endpoint is not read, completion counts only the steps shown, and the alarm step links to the first enabled alarm type.
 - **Active hours pills**: Amber schedule chips on profile cards showing compressed day-range + time summaries (e.g., "Mon-Fri 8:00 AM"). Uses `ActiveHoursChipComponent` with `compressDayRange` and `formatTime12h` utilities.
 - **Location warning**: Inline red warning banner (`LocationWarningComponent`) displayed on profile cards when active hours are configured but the profile's coordinates are 0,0 (which defaults to UTC in PoracleNG's scheduler).
 - **Admin geofence submissions**: Three view modes — **card** (map thumbnails, grouped by region), **list** (compact table grouped by region), **table** (flat sortable table with all columns). Region groups use `mat-expansion-panel` with count badges. Sortable columns in table view (name, status, owner, region, points, created, submitted). Discord avatars displayed next to owner and reviewer names. Reviewer names resolved from `reviewedByName` (batch-loaded from humans table).
@@ -643,13 +683,41 @@ totalDiffs == 1 && nonUpdatableDiffs == 0  -> UPDATE of that existing row, re-ke
 otherwise                                  -> new insert
 ```
 
-`diff:"update"` fields are `clean`, `distance`, `template`, plus `slot_changes` and `battle_changes` on gyms. `diff:"match"` and untagged fields identify the alarm.
+`diff:"update"` fields are `clean`, `distance`, `template`, plus `slot_changes` and `battle_changes` on gyms. `diff:"match"` and untagged fields identify the alarm. That list is not the whole story for Pokemon: two rules differing only in `min_iv` merge on 5.2.1 (`{"updates":1}`, one row left), verified by posting both straight to PoracleNG. Read the struct tags for the type in hand rather than trusting this list.
 
 The consequence that keeps biting: **an Add or an Edit that differs from a *different* alarm by exactly one updatable field takes that alarm over.** The user gets 201/200, and one alarm exists where there were two. `TrackingUpdateReconciler.EnsureNoMergeIntoAnotherAlarmAsync` mirrors the rule and refuses before the write — on create and update alike. Two or more updatable differences genuinely coexist and must stay editable; refusing those made alarms permanently uneditable (#553).
 
 When comparing, **a field PoracleWeb does not supply cannot be compared** — PoracleNG fills it with its own default (`template` becomes the configured name, `"1"` when unset), so a null here says nothing about what will be stored. Counting it as a difference is what made the create-path check miss every collision (#561). Some values are also rewritten on the way in: raids and max battles force `level` to 9000 unless `pokemon_id` is 9000, so compare the value that will be **stored**, not the one sent (#521, #531).
 
-See #462, #463, #531, #553, #561.
+**"No override" has four spellings and they are one value.** Every dialog sends the unused half of a
+scope as an explicit empty (`overrideAreas: []`, `overrideLocationLabel: ""`), because null means "keep
+what is stored" on the write path; PoracleNG stores NULL and reads it back as `override_areas: null`,
+`override_location_label: ""`. Its diff treats them as equal (an Add of `[]` at a new radius over a stored
+`null` answers `{"updates":1}` on 5.1.0 and 5.2.1), so the guard must too. Comparing `[]` against `null` as
+an identity difference is how every Add from the UI slipped past it and overwrote an existing alarm with
+a 201. Area names are compared lowercased (PoracleNG lowercases them on the way in) but in order (two
+orders are stored as two rules). Unit tests for this guard must post the body the SPA builds, bound
+through the `*Create` DTO, against rows in the shape PoracleNG returns — `OverrideScopeMergeGuardTests`.
+
+Fort changes used to carry a second, hand-written dedup check on `(fort_type, include_empty,
+change_types)`. It refused three Adds PoracleNG stores as separate rules (beside an area-scoped twin, two
+updatable differences, change types in another order) and is gone; the shared guard is the only one.
+
+**Lure, invasion and Pokestop events are guarded by what the database enforces.** Up to schema 5
+(5.1.0) `lures` carries `UNIQUE lure_tracking(id, profile_no, lure_id)` and `invasion` carries
+`UNIQUE invasion_tracking(id, profile_no, gender, grunt_type)` (case-insensitive), so any second rule on
+that key is a 500 and the natural-key refusal is right. Migration 8 (5.2.x) drops both, and from then on an
+area-scoped twin, different areas, a place label or two updatable differences are separate rules
+(`insert:1`, verified on 5.2.1 and 5.3.0, and through `/api/v2/.../tracking/incident` for events).
+`INaturalKeyCapabilityService` answers which world a write is in from `information_schema` (a unique key
+besides PRIMARY on the table), falling back to the applied migration, and to "enforced" when neither can
+be read. Where the key is gone, lure and invasion use the shared merge guard on create and edit and the
+shared v1 upsert-and-reconcile path rather than `NaturalKeyTrackingUpdate`, whose delete-first replace exists
+only to free the key; Pokestop events mirror the invasion diff (`display_type`, areas and label identify;
+`distance`, `template`, `clean` update). Keying the refusal on the version alone would miss an adopted
+database whose key has another name and survived the migration.
+
+See #462, #463, #502, #531, #553, #561.
 
 ### `/api/v2` Writes: All Ten Types, Edits And Deletes, And Every Type Rotates Its uid
 
@@ -677,10 +745,11 @@ than a **verb**, so two shapes never coexist.
 handler is keyed on `(human, uid)` and ignores the profile; v2's `v2FindOwnedRow` reads
 `SelectByIDProfile` and 404s for a uid that is not on the active profile, while its bulk form skips such a
 uid silently and still answers 200. Every caller derives its uid list from a profile-scoped read, so
-nothing depends on the loose behaviour by design — but the ten alarm services pass a uid straight through
-with no re-read, and PoracleNG's active-hours scheduler can move a user between the list rendering and the
-click. So a rule-not-found 404 goes to v1 rather than being swallowed as "already deleted", and a bulk
-delete v2 only partly took sends the whole set to v1, which is idempotent. v2 also takes the bulk uid list
+nothing depends on the loose behaviour by design. A rule-not-found 404 goes to v1 rather than being
+swallowed as "already deleted", and a bulk delete v2 only partly took sends the whole set to v1, which is
+idempotent. The single-alarm case never reaches that fallback from the UI, though: each controller's
+`Delete` looks the uid up on the active profile first and answers 404, so a click on a rule the scheduler
+has just moved out of view is refused rather than half-done (verified on 5.1.0, 5.2.1 and 5.3.0). v2 also takes the bulk uid list
 in the query string, so a list past 2000 rendered characters stays on v1.
 
 **Invasion writes through v2 as well (#841), behind a second gate the other nine do not have.**
@@ -697,6 +766,14 @@ So `TrackingV2Translator.Handles` is **no longer the single place that decides**
 type has a field table, and `PoracleTrackingProxy.InvasionUnsendableReasonAsync` answers the two
 invasion-only questions after it.
 
+**#841 built the proxy half and never wired the service.** `InvasionService.UpdateAsync` went straight to
+`NaturalKeyTrackingUpdate.ReplaceAsync`, so the gate above was unit-tested and unreachable, and every
+invasion edit on every server took the v1 delete-and-re-create. It now calls
+`TrackingV2Replacement.TryApplyAsync` like the other nine, after its own grunt-type-and-gender sibling
+check and before the natural-key path, which stays as the fallback for everything the gate refuses. The
+lesson generalises: a capability added to the proxy is not in use until a service calls it, and
+`AlarmServiceV2UpdatePathTests.MovedTypes` is the list that says which ones do.
+
 Two things the schema does not say, both established by POSTing to a running build. It **contradicts
 itself on gender** — `V2InvasionRule.gender` says "ONLY valid together with `type_id`" while `grunt_type`
 says it "may be combined with gender", and the latter is correct. And it **normalises a spaced name on
@@ -707,19 +784,23 @@ enum is `any|male|female`) so a stored gender 3 goes to v1.
 **The v2 PUT is delete-then-insert, so every type rotates its uid on edit.** Pokemon was the one exception
 and no longer is. Quick-pick applied state is the thing that actually breaks without the remap (#403), so
 every service hands `ITrackedUidRemapper` to `TrackingV2Replacement.TryApplyAsync`, the shared v2 branch
-each `UpdateAsync` takes before its own v1 path.
+each `UpdateAsync` takes before its own v1 path. Callers pass PoracleNG's type name and applied state
+stores the quick pick's, and those differ for exactly one type: `pokemon` against `monster`. The remapper
+translates it. Before it did, no Pokemon pick was ever remapped, and removing one after an edit left the
+alarm behind (present in v2.18.0, found by driving the API against 5.2.1).
 
 **Taking the v2 branch skips the whole v1 repair path, as a unit.** That is the point of moving, and it is
 where the wins are:
 
 | Type | What the v1 path does that v2 makes unnecessary |
 |---|---|
-| lure | `NaturalKeyTrackingUpdate` deletes the row to free `lure_tracking(id, profile_no, lure_id)`, re-creates it, and restores the original if that fails — PoracleNG's v1 create has no upsert path for it |
+| lure, invasion | where the unique key still exists (5.1.0), `NaturalKeyTrackingUpdate` deletes the row to free it (`lure_id`; `grunt_type` and `gender`), re-creates it, and restores the original if that fails; without the key they take the same reconcile path as the other seven |
 | maxbattle | delete-then-create, with a window where the alarm exists nowhere |
 | the other seven | `TrackingUpdateReconciler.ReconcileAsync` cleans up the duplicate a v1 create leaves behind |
 
-The pre-write guards stay. `EnsureNoMergeIntoAnotherAlarmAsync`, lure's sibling `lure_id` check and max
-battle's identical-alarm check all run before the v2 attempt: v2's POST still merges, and the 409 covers
+The pre-write guards stay. `EnsureNoMergeIntoAnotherAlarmAsync`, lure's sibling `lure_id` check and
+invasion's grunt-type-and-gender check (both only where the unique key exists; otherwise the shared guard)
+and max battle's identical-alarm check all run before the v2 attempt: v2's POST still merges, and the 409 covers
 only an exact duplicate.
 
 **One field table per type in `TrackingV2Translator`, never a shared one.** `V2PokemonRule` declares 28
@@ -830,7 +911,8 @@ Three rules follow:
   game's 2020 ceiling -- under a comment claiming it matched the add dialog's 55. 4,088 production rows.
 - **Do not tighten the `[Range]` to match the default.** `PvpRankingBest` still admits 0 because 15,383
   rules hold one and have to stay editable; refusing the value would fail an edit on a rule the user did
-  not break. Editing one now writes the correct value back.
+  not break. Editing one does **not** repair it: the preserver re-reads the stored 0 and sends it back,
+  verified on 5.1.0, 5.2.1 and 5.3.0. Unmerged PoracleNG PR #230 would have the v2 read report such rows as the wildcard.
 
 ### PoracleNG API Availability
 The PoracleNG REST API (`Poracle:ApiAddress`) must be running and reachable for all alarm, human, profile, and area operations. If the API is down: alarm CRUD, human lookups, profile reads/writes, location updates, area updates, and profile switches all fail with no DB fallback. Only admin bulk operations (`GetAllAsync`, `DeleteUserAsync`) and non-active profile cleanup in `UserGeofenceService` use direct DB. Monitor PoracleNG uptime as a hard dependency.
@@ -852,6 +934,12 @@ PoracleNG can change `current_profile_no` outside of PoracleWeb — the active-h
 
 ### JWT Generation (IJwtService)
 JWT token generation is centralized in `IJwtService` / `JwtService` (singleton). Three methods: `GenerateToken(UserInfo)` for fresh tokens, `GenerateImpersonationToken(UserInfo, impersonatedBy)` for admin impersonation, and `GenerateTokenWithReplacedProfile(ClaimsPrincipal, profileNo)` for profile switches. The latter filters out registered JWT claims (`exp`, `nbf`, `iat`, `iss`, `aud`) before copying to prevent stale claim duplication. All controllers (`AuthController`, `ProfileController`, `ProfileOverviewController`, `AdminController`) use this service — no inline JWT generation.
+
+**A re-issue never moves `exp`, not even by a second.** `GenerateTokenWithReplacedProfile` backs four paths -- profile switch, `/api/auth/me` resync, overview duplicate and overview import -- and writes the original expiry instant back. It used to round the remaining lifetime up to whole minutes and count it from now, with a one-minute floor, so each re-issue pushed the expiry later and one a minute renewed a session forever; inside JwtBearer's five-minute clock skew the floor revived an expired token outright. That is how a revoked delegate kept an impersonation token alive. The only path that extends an ordinary session is OIDC refresh (`POST /api/auth/oidc/refresh`), which is intended: it spends a provider refresh token and re-validates the user live every time.
+
+**An impersonation token is re-authorised on every request.** `ImpersonationAuthority`, hooked into JwtBearer's `OnTokenValidated`, asks `IUserRoleResolver` whether `impersonatedBy` is still an admin or still delegated the impersonated webhook, and fails authentication if not. The SPA answers that 401 by restoring the impersonator's own token. **The error interceptor judges each 401 by the bearer that request carried**, not by what is in storage when it lands: a page load sends about nine requests, so a revoked session comes back as a burst, and judging them against storage let the second 401 find the stash already spent and sign out the person just returned to their own account (#922). A 401 for a token that is no longer current, or for a request sent with none, is dropped silently. The refresh interceptor retries below the error interceptor, so it records the bearer a retry used (`TokenStoreService.noteRetriedWith`). Ending a session drops the tokens at once and clears the user only after the login navigation settles (`endSession`), the same order `logout()` uses, because clearing the user first swaps the shell's layout and rebuilds the page without a token. **An unresolved answer keeps the session** (fails open), for the #656 reason: one PoracleNG or `poracle_web` blip must not end every impersonation on the site. Because the resolver never caches an unresolved answer, an outage made every impersonated request re-ask every source and wait out its timeouts: measured with PoracleNG's address black-holed, ~200 s per request against 0.01 s for an ordinary session (a refused connection costs nothing). `ImpersonationRoleProbe`, a singleton used by this check alone, bounds it: a resolve gets two seconds, runs in its own DI scope so one that overruns cannot race the request's `DbContext`, is shared by concurrent requests, and once an answer comes back unresolved or late the impersonator is not re-asked for fifteen seconds, a pause that ends the moment a late resolve answers. Revocation therefore lands within fifteen seconds of the sources recovering, usually on the next request. The resolver's own cache is untouched, so its other consumers still never see a cached degraded answer.
+
+**A Pokestop event sent to `/api/invasions` is refused where the events page exists.** Those rows live in the invasion table but the invasion list hides them, so the create answered 201 with a Location that 404s, or 200 with uid 0 beside an event rule the invasion guard (which reads the filtered list) could not see. The controller refuses with a pointer to Pokestop Events; service paths (quick picks, import, duplicate) still write them, since the rows are real and listed there.
 
 ## Branching
 

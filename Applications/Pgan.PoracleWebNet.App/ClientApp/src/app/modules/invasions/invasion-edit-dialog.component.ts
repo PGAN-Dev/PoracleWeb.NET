@@ -80,6 +80,7 @@ export class InvasionEditDialogComponent {
       this.data.gender,
       key => this.i18n.instant(key),
       this.masterData.getGruntName(this.data.gruntType, this.data.gender),
+      this.masterData.isGruntNameUntranslated(this.data.gruntType, this.data.gender),
     );
   }
 

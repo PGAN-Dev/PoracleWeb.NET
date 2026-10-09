@@ -16,7 +16,7 @@
       (input)="onInputChange($any($event.target).value)"
       [placeholder]="placeholder()" />
     @if (searchText()) {
-      <button mat-icon-button matSuffix (click)="onClearInput()">
+      <button mat-icon-button matSuffix (click)="onClearInput()" [attr.aria-label]="'COMMON.CLEAR_SEARCH' | translate">
         <mat-icon>close</mat-icon>
       </button>
     }

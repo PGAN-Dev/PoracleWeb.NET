@@ -47,7 +47,12 @@
           </div>
           <div class="place-card-footer">
             @if (places.canEdit()) {
-              <button mat-icon-button [disabled]="busy()" [matTooltip]="'WHERE.PLACE_MOVE_TITLE' | translate" (click)="movePlace(place)">
+              <button
+                mat-icon-button
+                [disabled]="busy()"
+                [matTooltip]="'WHERE.PLACE_MOVE_TITLE' | translate"
+                [attr.aria-label]="'WHERE.PLACE_MOVE_TITLE' | translate"
+                (click)="movePlace(place)">
                 <mat-icon>edit_location_alt</mat-icon>
               </button>
             }
@@ -55,6 +60,7 @@
               mat-icon-button
               [disabled]="busy()"
               [matTooltip]="'WHERE.PLACE_DELETE_TITLE' | translate"
+              [attr.aria-label]="'WHERE.PLACE_DELETE_TITLE' | translate"
               (click)="confirmRemove(place)">
               <mat-icon>delete</mat-icon>
             </button>

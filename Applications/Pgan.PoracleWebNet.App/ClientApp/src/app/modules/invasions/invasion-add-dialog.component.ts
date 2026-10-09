@@ -179,6 +179,7 @@ export class InvasionAddDialogComponent implements OnInit {
       grunt.gender,
       key => this.i18n.instant(key),
       this.masterData.getGruntName(grunt.gruntType, grunt.gender),
+      this.masterData.isGruntNameUntranslated(grunt.gruntType, grunt.gender),
     );
   }
 

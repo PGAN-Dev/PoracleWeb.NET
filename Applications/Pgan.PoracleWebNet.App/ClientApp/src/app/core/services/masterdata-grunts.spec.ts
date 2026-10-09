@@ -141,3 +141,90 @@ describe('MasterDataService — grunt names', () => {
     expect(service.getGruntName('', 0)).toBeNull();
   });
 });
+
+/**
+ * PoracleNG 5.3.0 answers `?locale=sv` (and da, nl, pl, pt, pt-BR) with the English short names,
+ * because it carries no grunt translations for those languages. Taken at face value that overrode the
+ * curated labels in this UI's own locale files and mixed "Bug ♂" into an otherwise Swedish list.
+ * The service now also reads the English names and flags any localized name identical to one.
+ */
+describe('MasterDataService — grunt names the server did not translate', () => {
+  let httpMock: HttpTestingController;
+  let service: MasterDataService;
+
+  function setup(locale: string): void {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: ConfigService, useValue: { apiHost: API } },
+        { provide: I18nService, useValue: { currentLang: () => locale, instant: (key: string) => key } },
+      ],
+    });
+    service = TestBed.inject(MasterDataService);
+    httpMock = TestBed.inject(HttpTestingController);
+  }
+
+  function flushCommon(): void {
+    httpMock.expectOne(`${API}/api/masterdata/pokemon`).flush({});
+    httpMock.expectOne(`${API}/api/masterdata/items`).flush({});
+    httpMock.expectOne(`${API}/api/masterdata/moves`).flush({});
+    httpMock.expectOne(`${API}/api/masterdata/costumes`).flush({});
+    httpMock.expectOne(req => req.url === `${API}/api/masterdata/monsters`).flush({});
+  }
+
+  function grunts(locale: string) {
+    return httpMock.expectOne(req => req.url === `${API}/api/masterdata/grunts` && req.params.get('locale') === locale);
+  }
+
+  afterEach(() => httpMock.verify());
+
+  it('flags a Swedish answer that is only the English name', () => {
+    setup('sv');
+    service.loadData().subscribe();
+    grunts('sv').flush(GRUNTS);
+    grunts('en').flush(GRUNTS);
+    flushCommon();
+
+    expect(service.getGruntName('dark', 1)).toBe('Dark ♂');
+    expect(service.isGruntNameUntranslated('dark', 1)).toBe(true);
+    // Still served for a grunt the local bundle has no label for; the caller decides.
+    expect(service.getGruntName('npc_3', 0)).toBe('DieCurryWurst');
+  });
+
+  it('does not flag a German answer that is actually translated', () => {
+    setup('de');
+    service.loadData().subscribe();
+    grunts('de').flush({
+      '10': { short_name: 'Unlicht ♀', gender: 2, grunt_type: 'dark' },
+      '11': { short_name: 'Unlicht ♂', gender: 1, grunt_type: 'dark' },
+    });
+    grunts('en').flush(GRUNTS);
+    flushCommon();
+
+    expect(service.getGruntName('dark', 1)).toBe('Unlicht ♂');
+    expect(service.isGruntNameUntranslated('dark', 1)).toBe(false);
+  });
+
+  it('never flags anything in English, and asks for the names only once', () => {
+    setup('en');
+    service.loadData().subscribe();
+    grunts('en').flush(GRUNTS);
+    flushCommon();
+
+    expect(service.isGruntNameUntranslated('dark', 1)).toBe(false);
+  });
+
+  it('flags nothing when the English names cannot be read', () => {
+    // Without the comparison there is nothing to tell them apart by, so the server's name stands.
+    setup('sv');
+    service.loadData().subscribe();
+    grunts('sv').flush(GRUNTS);
+    grunts('en').error(new ProgressEvent('error'), { status: 500, statusText: 'Server Error' });
+    flushCommon();
+
+    expect(service.getGruntName('dark', 1)).toBe('Dark ♂');
+    expect(service.isGruntNameUntranslated('dark', 1)).toBe(false);
+  });
+});

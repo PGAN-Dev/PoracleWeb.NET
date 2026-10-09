@@ -23,8 +23,8 @@ namespace Pgan.PoracleWebNet.Core.Models;
 /// What it deliberately does NOT do is unsubscribe anyone. Matching never consults
 /// <c>userSelectable</c> — <c>resolveOverride</c> hands a rule's areas to <c>areaOverlap</c>, which
 /// compares names against the fences a spawn fell in — so a profile already carrying a hidden name
-/// keeps receiving alerts from it. Hiding removes an area from the pickers, not from anyone's profile.
-/// The admin page says so out loud; see #885.
+/// keeps receiving alerts from it until that user next saves their areas. Then <c>setAreas</c> strips
+/// it with every other non-selectable name, without telling them. The admin page says so; see #885.
 /// </para>
 /// </remarks>
 public static class HiddenAreas
@@ -34,6 +34,12 @@ public static class HiddenAreas
 
     /// <summary>Generous enough for a large instance, bounded so one bad write cannot be unbounded.</summary>
     public const int MaxEntries = 500;
+
+    /// <summary>
+    /// The <c>site_settings.value</c> column: TEXT, 65,535 bytes of UTF-8. The same bound
+    /// <c>SettingsController</c> applies to every other setting.
+    /// </summary>
+    public const int MaxValueBytes = 65_535;
 
     /// <summary>Poracle matches area names case-sensitively and stores them lowercased, so we do too.</summary>
     public static string Normalize(string name) => name.Trim().ToLowerInvariant();
@@ -93,14 +99,18 @@ public static class HiddenAreas
     }
 
     /// <summary>Serializes a list for storage: normalized, de-duplicated, ordered so diffs stay readable.</summary>
+    /// <remarks>
+    /// Never trims the list to <see cref="MaxEntries"/>. It used to, before anything validated the
+    /// result, so a 501-name write stored 500 and reported success with one area still on the menu.
+    /// The caller runs <see cref="TryValidate"/> on this output and refuses a list over the cap.
+    /// </remarks>
     public static string Serialize(IEnumerable<string> names)
     {
         var ordered = names
             .Where(n => !string.IsNullOrWhiteSpace(n))
             .Select(Normalize)
             .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(n => n, StringComparer.Ordinal)
-            .Take(MaxEntries);
+            .OrderBy(n => n, StringComparer.Ordinal);
 
         return JsonSerializer.Serialize(ordered);
     }
@@ -121,6 +131,15 @@ public static class HiddenAreas
         if (string.IsNullOrWhiteSpace(value))
         {
             return true;
+        }
+
+        // The count and per-name caps below do not bound the stored size on their own: 500 names of 195
+        // characters is about 99 KB, and the write failed as a 500 with the old list still in place.
+        var bytes = System.Text.Encoding.UTF8.GetByteCount(value);
+        if (bytes > MaxValueBytes)
+        {
+            error = $"The hidden areas list is {bytes} bytes once stored, and a setting holds at most {MaxValueBytes} bytes. Hide fewer areas.";
+            return false;
         }
 
         JsonElement root;

@@ -3,6 +3,7 @@ import { DestroyRef, Injectable, inject, signal } from '@angular/core';
 import { catchError, of } from 'rxjs';
 
 import { ConfigService } from './config.service';
+import { TokenStoreService } from './token-store.service';
 
 interface PokemonAvailabilityResponse {
   available: number[];
@@ -16,8 +17,9 @@ export class PokemonAvailabilityService {
   private readonly config = inject(ConfigService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly http = inject(HttpClient);
-
   private loaded = false;
+
+  private readonly tokenStore = inject(TokenStoreService);
   readonly availableIds = signal<Set<number>>(new Set());
   readonly enabled = signal(false);
   readonly loading = signal(false);
@@ -36,7 +38,11 @@ export class PokemonAvailabilityService {
 
     this.fetch();
 
-    const intervalId = setInterval(() => this.fetch(), REFRESH_INTERVAL_MS);
+    // A root service outlives the session, and so did this timer: it kept asking after Logout, for an
+    // answer that could only be a 401.
+    const intervalId = setInterval(() => {
+      if (this.tokenStore.getAccessToken()) this.fetch();
+    }, REFRESH_INTERVAL_MS);
     this.destroyRef.onDestroy(() => clearInterval(intervalId));
   }
 

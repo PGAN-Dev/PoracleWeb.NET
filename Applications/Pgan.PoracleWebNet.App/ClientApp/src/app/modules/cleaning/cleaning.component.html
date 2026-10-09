@@ -6,7 +6,7 @@
   <div class="header-actions">
     <button
       mat-stroked-button
-      [disabled]="loading() || toggling()"
+      [disabled]="loading() || toggling() || !hasApplicable()"
       (click)="toggleAll(!allEnabled())"
       [matTooltip]="(allEnabled() ? 'CLEANING.DISABLE_TOOLTIP' : 'CLEANING.ENABLE_TOOLTIP') | translate">
       <mat-icon>{{ allEnabled() ? 'toggle_off' : 'toggle_on' }}</mat-icon>
@@ -15,7 +15,7 @@
   </div>
 </div>
 
-@if (!allEnabled() && !loading()) {
+@if (hasApplicable() && !allEnabled() && !loading()) {
   <div class="recommendation-banner">
     <mat-icon>lightbulb</mat-icon>
     <div>
@@ -44,7 +44,10 @@
             }
           </div>
         </div>
-        <mat-slide-toggle [checked]="item.enabled()" [disabled]="toggling()" (change)="toggleClean(item, $event.checked)">
+        <mat-slide-toggle
+          [checked]="item.enabled()"
+          [disabled]="toggling() || !item.hasAlarms()"
+          (change)="toggleClean(item, $event.checked)">
         </mat-slide-toggle>
       </div>
     }

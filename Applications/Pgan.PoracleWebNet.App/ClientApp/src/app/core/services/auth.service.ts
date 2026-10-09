@@ -121,12 +121,20 @@ export class AuthService {
   }
 
   loadCurrentUser(): Promise<UserInfo | null> {
+    const sentWith = localStorage.getItem(TOKEN_KEY);
     return new Promise(resolve => {
       this.http.get<UserInfo>(`${this.config.apiHost}/api/auth/me`).subscribe({
         error: err => {
+          // A 401 for a token that is no longer the session's says nothing about the session there is now.
+          // A revoked impersonation's /me can land after the restored token's own /me has loaded the
+          // account, and forgetting the user then drew the signed-out shell around a valid token.
+          if (localStorage.getItem(TOKEN_KEY) !== sentWith) {
+            resolve(null);
+            return;
+          }
           if (err.status === 401) {
             // Only the user object. The interceptor owns what happens to the tokens on a 401 -- either
-            // clearAll(), which already empties this via sessionCleared$, or the impersonation fallback
+            // ending the session, which empties this via sessionCleared$, or the impersonation fallback
             // that installs the admin's own token. Removing poracle_token here as well deleted the token
             // that fallback had just restored, one line after it was written. See #706, #616.
             this.currentUser.set(null);
@@ -180,14 +188,22 @@ export class AuthService {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(ADMIN_TOKEN_KEY);
     this._isImpersonating.set(false);
-    this.currentUser.set(null);
 
     if (options?.sso) {
+      // The user stays: the browser is leaving for the provider, and forgetting the user first swapped the
+      // shell's layout on the page being left, which rebuilt it and sent its loads with no token. The
+      // tokens are already gone, so nothing can authenticate in the meantime.
       window.location.href = `${this.config.apiHost}/api/auth/oidc/logout`;
       return;
     }
 
-    this.router.navigate(['/login'], { queryParams: { loggedout: 1 } });
+    // The user goes after the page does, not before. The shell has a router outlet in its signed-in
+    // layout and another in its signed-out one, so clearing the user first swapped layouts while the
+    // router was still on the page being left -- and the new outlet built that page again. From the
+    // dashboard that meant every load it makes, plus the quiet-period list, sent without a token: a
+    // burst of 401s and a "session expired" toast for each. The tokens are already gone above, so
+    // nothing in between can make an authenticated request.
+    void Promise.resolve(this.router.navigate(['/login'], { queryParams: { loggedout: 1 } })).finally(() => this.currentUser.set(null));
   }
 
   /** Store a new JWT token (e.g. after profile switch). */
@@ -195,23 +211,25 @@ export class AuthService {
     localStorage.setItem(TOKEN_KEY, token);
   }
 
-  /** Restore the admin's original token. */
-  async stopImpersonating(): Promise<void> {
+  /**
+   * Restore the admin's original token. Resolves whether there was one to restore; when there was not,
+   * the session has been signed out and the caller must not send anything on its behalf.
+   */
+  async stopImpersonating(): Promise<boolean> {
     const adminToken = localStorage.getItem(ADMIN_TOKEN_KEY);
     if (!adminToken) {
       // Nothing to go back to -- the admin token was discarded with the rest of the session. Silently
       // returning left a visible button that did nothing at all. See #627.
       this.logout();
-      return;
+      return false;
     }
 
-    {
-      localStorage.setItem(TOKEN_KEY, adminToken);
-      localStorage.removeItem(ADMIN_TOKEN_KEY);
-      this._isImpersonating.set(false);
-      await this.loadCurrentUser();
-      this.router.navigate(['/admin']);
-    }
+    localStorage.setItem(TOKEN_KEY, adminToken);
+    localStorage.removeItem(ADMIN_TOKEN_KEY);
+    this._isImpersonating.set(false);
+    await this.loadCurrentUser();
+    this.router.navigate(['/admin']);
+    return true;
   }
 
   toggleAlerts(): Observable<{ enabled: boolean }> {

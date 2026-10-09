@@ -16,7 +16,7 @@ public class RaidCreate
         get; set;
     }
 
-    [Range(0, int.MaxValue)]
+    [Range(0, AlarmDistance.MaxMetres)]
     public int Distance
     {
         get; set;

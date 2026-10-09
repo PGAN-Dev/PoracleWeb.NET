@@ -118,6 +118,14 @@ interface SettingGroup {
  */
 export const PROJECTED_KEYS = ['poracle_locale', 'poracle_alert_languages'];
 
+/**
+ * Real rows that another admin page owns. `hidden_areas` is written by Admin > Areas, the only writer that
+ * asks Poracle to reload the geofence feed; left undeclared it fell into the "Other" catch-all as a raw
+ * text box over its JSON, inviting the one write that does not take effect. The API refuses a write to
+ * it from the generic settings endpoint as well. See #886.
+ */
+export const MANAGED_ELSEWHERE_KEYS = ['hidden_areas'];
+
 const RETIRED_KEYS = [
   // Legacy Poracle keys describing a map picker this app does not have. Removed from the settings UI and
   // from SettingsMigrationService when they were retired, but rows persist in existing databases and were
@@ -478,6 +486,7 @@ export class AdminSettingsComponent implements OnInit {
     // Their rows stay in the database, unread. See #560.
     ...RETIRED_KEYS,
     ...PROJECTED_KEYS,
+    ...MANAGED_ELSEWHERE_KEYS,
   ]);
 
   /** The pack root the Pokemon base implies, which is what `isRepoActive` compares against. */

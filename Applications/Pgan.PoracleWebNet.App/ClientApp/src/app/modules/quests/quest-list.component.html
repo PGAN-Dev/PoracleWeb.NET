@@ -15,7 +15,7 @@
         </button>
       </mat-menu>
     }
-    <button mat-fab class="fab-quest" (click)="openAddDialog()">
+    <button mat-fab class="fab-quest" (click)="openAddDialog()" [attr.aria-label]="'QUESTS.ADD_QUEST' | translate">
       <mat-icon>add</mat-icon>
     </button>
   </div>
@@ -29,7 +29,8 @@
       mat-icon-button
       (click)="toggleSelectMode()"
       [class.select-mode-active]="selectMode()"
-      [matTooltip]="(selectMode() ? 'ALARM.EXIT_SELECT_MODE' : 'ALARM.SELECT_MULTIPLE') | translate">
+      [matTooltip]="(selectMode() ? 'ALARM.EXIT_SELECT_MODE' : 'ALARM.SELECT_MULTIPLE') | translate"
+      [attr.aria-label]="(selectMode() ? 'ALARM.EXIT_SELECT_MODE' : 'ALARM.SELECT_MULTIPLE') | translate">
       <mat-icon>{{ selectMode() ? 'close' : 'checklist' }}</mat-icon>
     </button>
   </div>
@@ -91,7 +92,8 @@
           }
           <div class="item-info">
             <h3>{{ getQuestTitle(quest) }}</h3>
-            <span class="reward-badge" [style.background]="getRewardColor(quest.rewardType)">
+            @let rewardChip = getRewardChip(quest.rewardType);
+            <span class="reward-badge" [style.background]="rewardChip.background" [style.color]="rewardChip.color">
               {{ getRewardTypeLabel(quest.rewardType) }}
             </span>
           </div>
@@ -122,6 +124,7 @@
             (click)="sendTestAlert(quest)"
             [disabled]="testAlertService.isSending('quest', quest.uid) || testAlertService.isCoolingDown('quest', quest.uid)"
             [matTooltip]="(testAlertService.isCoolingDown('quest', quest.uid) ? 'ALARM.TEST_COOLDOWN' : 'ALARM.TEST_SEND') | translate"
+            [attr.aria-label]="(testAlertService.isCoolingDown('quest', quest.uid) ? 'ALARM.TEST_COOLDOWN' : 'ALARM.TEST_SEND') | translate"
             class="test-alert-btn">
             @if (testAlertService.isSending('quest', quest.uid)) {
               <mat-icon class="spin">sync</mat-icon>
@@ -130,11 +133,20 @@
             }
           </button>
 
-          <button mat-icon-button (click)="editQuest(quest)" [matTooltip]="'COMMON.EDIT' | translate">
+          <button
+            mat-icon-button
+            (click)="editQuest(quest)"
+            [matTooltip]="'COMMON.EDIT' | translate"
+            [attr.aria-label]="'COMMON.EDIT' | translate">
             <mat-icon>edit</mat-icon>
           </button>
 
-          <button mat-icon-button (click)="deleteQuest(quest)" [matTooltip]="'COMMON.DELETE' | translate" color="warn">
+          <button
+            mat-icon-button
+            (click)="deleteQuest(quest)"
+            [matTooltip]="'COMMON.DELETE' | translate"
+            [attr.aria-label]="'COMMON.DELETE' | translate"
+            color="warn">
             <mat-icon>delete</mat-icon>
           </button>
         </mat-card-actions>

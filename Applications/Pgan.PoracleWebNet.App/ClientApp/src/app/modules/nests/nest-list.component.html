@@ -4,7 +4,9 @@
     <p class="page-description">{{ 'NESTS.PAGE_DESC' | translate }}</p>
   </div>
   <div class="header-actions">
-    <button mat-fab (click)="openAddDialog()" style="background: #8bc34a; color: #fff"><mat-icon>add</mat-icon></button>
+    <button mat-fab (click)="openAddDialog()" [attr.aria-label]="'NESTS.ADD_NEST' | translate" style="background: #8bc34a; color: #fff">
+      <mat-icon>add</mat-icon>
+    </button>
   </div>
 </div>
 @if (!loading() && nests().length > 0) {
@@ -15,7 +17,8 @@
       mat-icon-button
       (click)="toggleSelectMode()"
       [class.select-mode-active]="selectMode()"
-      matTooltip="{{ selectMode() ? ('ALARM.EXIT_SELECT_MODE' | translate) : ('ALARM.SELECT_MULTIPLE' | translate) }}">
+      matTooltip="{{ selectMode() ? ('ALARM.EXIT_SELECT_MODE' | translate) : ('ALARM.SELECT_MULTIPLE' | translate) }}"
+      [attr.aria-label]="selectMode() ? ('ALARM.EXIT_SELECT_MODE' | translate) : ('ALARM.SELECT_MULTIPLE' | translate)">
       <mat-icon>{{ selectMode() ? 'close' : 'checklist' }}</mat-icon>
     </button>
   </div>
@@ -102,6 +105,9 @@
             [matTooltip]="
               testAlertService.isCoolingDown('nest', nest.uid) ? ('ALARM.TEST_COOLDOWN' | translate) : ('ALARM.TEST_SEND' | translate)
             "
+            [attr.aria-label]="
+              testAlertService.isCoolingDown('nest', nest.uid) ? ('ALARM.TEST_COOLDOWN' | translate) : ('ALARM.TEST_SEND' | translate)
+            "
             class="test-alert-btn">
             @if (testAlertService.isSending('nest', nest.uid)) {
               <mat-icon class="spin">sync</mat-icon>
@@ -110,9 +116,20 @@
             }
           </button>
 
-          <button mat-icon-button (click)="editNest(nest)" [matTooltip]="'COMMON.EDIT' | translate"><mat-icon>edit</mat-icon></button>
+          <button
+            mat-icon-button
+            (click)="editNest(nest)"
+            [matTooltip]="'COMMON.EDIT' | translate"
+            [attr.aria-label]="'COMMON.EDIT' | translate">
+            <mat-icon>edit</mat-icon>
+          </button>
 
-          <button mat-icon-button (click)="deleteNest(nest)" [matTooltip]="'COMMON.DELETE' | translate" color="warn">
+          <button
+            mat-icon-button
+            (click)="deleteNest(nest)"
+            [matTooltip]="'COMMON.DELETE' | translate"
+            [attr.aria-label]="'COMMON.DELETE' | translate"
+            color="warn">
             <mat-icon>delete</mat-icon>
           </button>
         </mat-card-actions>
@@ -146,7 +163,7 @@
         </svg>
         <h2 class="empty-title">{{ 'NESTS.EMPTY_TITLE' | translate }}</h2>
         <p class="empty-subtitle">{{ 'NESTS.EMPTY_SUBTITLE' | translate }}</p>
-        <button mat-flat-button (click)="openAddDialog()" style="background: #8bc34a; color: #fff">
+        <button mat-flat-button (click)="openAddDialog()" style="background: #8bc34a; color: #212121">
           <mat-icon>add</mat-icon> {{ 'NESTS.ADD_NEST' | translate }}
         </button>
       </div>

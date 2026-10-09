@@ -27,6 +27,8 @@ import { WhereChipComponent } from '../../shared/components/where-chip/where-chi
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
+import { readableTextOn } from '../../shared/utils/contrast';
+import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -109,8 +111,9 @@ export class LureListComponent implements OnInit {
       // The server refuses a radius that would take over an alarm the user did not select, and names
       // the one in the way. Unguarded, that rejection cleared nothing, reloaded nothing and showed
       // nothing -- indistinguishable from a successful no-op. See #641.
+      let result: DistanceUpdateResult | undefined;
       try {
-        await firstValueFrom(this.lureService.updateBulkDistance(uids, distance));
+        result = await firstValueFrom(this.lureService.updateBulkDistance(uids, distance));
       } catch (err) {
         const message = (err as { error?: { error?: string } })?.error?.error;
         this.snackBar.open(message ?? this.i18n.instant('LURES.SNACK_FAILED_DISTANCE'), this.i18n.instant('TOAST.OK'), {
@@ -121,9 +124,17 @@ export class LureListComponent implements OnInit {
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadLures();
-      this.snackBar.open(this.i18n.instant('POKEMON.SNACK_BULK_DISTANCE', { count: uids.length }), this.i18n.instant('COMMON.OK'), {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        distanceUpdateMessage(
+          result,
+          this.i18n.instant('POKEMON.SNACK_BULK_DISTANCE', { count: result?.updated ?? uids.length }),
+          this.i18n,
+        ),
+        this.i18n.instant('COMMON.OK'),
+        {
+          duration: skippedAny(result) ? 6000 : 3000,
+        },
+      );
     }
   }
 
@@ -238,6 +249,11 @@ export class LureListComponent implements OnInit {
     return this.icons.getItemUrl(lureId);
   }
 
+  /** The lure colour as text on the light card; see readableTextOn. The dark theme uses the colour itself. */
+  getLureInk(id: number): string {
+    return readableTextOn(this.getLureColor(id));
+  }
+
   getLureName(id: number): string {
     switch (id) {
       case 501:
@@ -313,22 +329,6 @@ export class LureListComponent implements OnInit {
   toggleSelectMode(): void {
     this.selectMode.update(v => !v);
     if (!this.selectMode()) this.selectedIds.set(new Set());
-  }
-
-  updateAllDistance(): void {
-    const ref = this.dialog.open(DistanceDialogComponent, { width: '440px' });
-    ref.afterClosed().subscribe(distance => {
-      if (distance !== null && distance !== undefined) {
-        this.lureService.updateAllDistance(distance).subscribe({
-          error: () =>
-            this.snackBar.open(this.i18n.instant('POKEMON.SNACK_FAILED_DISTANCE'), this.i18n.instant('COMMON.OK'), { duration: 3000 }),
-          next: () => {
-            this.snackBar.open(this.i18n.instant('POKEMON.SNACK_ALL_DISTANCE'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
-            this.loadLures();
-          },
-        });
-      }
-    });
   }
 
   private loadProfileAreas(): void {

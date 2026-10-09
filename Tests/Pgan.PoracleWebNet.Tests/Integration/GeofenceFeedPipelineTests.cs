@@ -47,9 +47,9 @@ public sealed class GeofenceFeedPipelineTests : IDisposable
     /// mean the SPA catch-all is not registered and "the controller answered" proves nothing.
     /// </summary>
     [Theory]
-    [InlineData("/api/geofence-feed/not-a-real-action")]
-    [InlineData("/api/no-such-controller")]
     [InlineData("/some/spa/route")]
+    [InlineData("/areas")]
+    [InlineData("/apiary")]
     public async Task TheSpaCatchAllIsLiveAndOwnsEveryUnroutedPath(string path)
     {
         using var client = this._factory.CreateClient();
@@ -61,20 +61,39 @@ public sealed class GeofenceFeedPipelineTests : IDisposable
     }
 
     /// <summary>
-    /// The second half of the control, and the more interesting one. The SPA fallback endpoint accepts
-    /// only GET and HEAD, so a POST to a path no controller claims is rejected on method and comes back
-    /// 405 -- not 404, and not index.html. That is exactly the sentinel pgan-web#345 reads as "this build
-    /// has no refresh endpoint", so it is what a PoracleWeb without this fix answers on the refresh path.
+    /// An API path nothing answers is a 404, not the SPA shell. It used to be a 200 carrying index.html,
+    /// so a client with a typo'd route got HTML where it expected JSON and reported a parse error
+    /// instead of "no such endpoint".
     /// </summary>
     [Theory]
     [InlineData("/api/geofence-feed/not-a-real-action")]
     [InlineData("/api/no-such-controller")]
-    [InlineData("/some/spa/route")]
-    public async Task PostingToAnUnroutedPathIs405FromTheSpaFallback(string path)
+    [InlineData("/api")]
+    [InlineData("/API/No-Such-Controller")]
+    public async Task AnUnroutedApiPathIsANotFoundRatherThanTheShell(string path)
     {
         using var client = this._factory.CreateClient();
 
-        using var response = await client.PostAsync(path, content: null);
+        using var get = await client.GetAsync(path);
+        using var post = await client.PostAsync(path, content: null);
+
+        Assert.Equal(HttpStatusCode.NotFound, get.StatusCode);
+        Assert.DoesNotContain(SpaMarker, await get.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+        Assert.Equal(HttpStatusCode.NotFound, post.StatusCode);
+    }
+
+    /// <summary>
+    /// The second half of the control. The SPA fallback endpoint accepts only GET and HEAD, so a POST to
+    /// a non-API path no controller claims is rejected on method and comes back 405. Under /api the
+    /// fallback is not a candidate at all, so there it is a 404 (above) -- which is never what the
+    /// refresh path answers on a build that has the action, the sentinel pgan-web#345 relies on.
+    /// </summary>
+    [Fact]
+    public async Task PostingToAnUnroutedSpaPathIs405FromTheSpaFallback()
+    {
+        using var client = this._factory.CreateClient();
+
+        using var response = await client.PostAsync("/some/spa/route", content: null);
 
         Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
         Assert.DoesNotContain(SpaMarker, await response.Content.ReadAsStringAsync(), StringComparison.Ordinal);
@@ -326,20 +345,124 @@ public sealed class GeofenceFeedPipelineTests : IDisposable
     }
 
     /// <summary>
-    /// A GET to the refresh path is NOT a 405 -- the SPA catch-all matches every method, so it wins once
-    /// the POST-only endpoint is rejected on method. Pinned so nobody diagnoses a misconfigured caller by
-    /// GETting the path and concluding the endpoint is missing from the build.
+    /// A GET to the refresh path is a 405 that says POST is what the route takes, not the shell and not
+    /// a 404. It used to fall through to index.html, so pasting the path into a browser showed the
+    /// Angular app; then the /api catch-all answered it with "No API endpoint answers", which was false.
     /// </summary>
     [Fact]
-    public async Task GettingTheRefreshPathFallsThroughToTheSpaRatherThanReturning405()
+    public async Task GettingTheRefreshPathIsMethodNotAllowedRatherThanTheShellOrANotFound()
     {
         using var client = this._factory.CreateClient();
 
         using var response = await client.GetAsync("/api/geofence-feed/refresh");
+        var body = await response.Content.ReadAsStringAsync();
 
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains(SpaMarker, await response.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+        Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
+        Assert.Contains("POST", response.Content.Headers.Allow);
+        Assert.DoesNotContain(SpaMarker, body, StringComparison.Ordinal);
+        Assert.DoesNotContain("No API endpoint answers", body, StringComparison.Ordinal);
     }
+
+    /// <summary>
+    /// A real action sent the wrong content type is a 415, as it was before the /api catch-all: the
+    /// GeoJSON import binds an <c>IFormFile</c>, so [ApiController] makes it consume multipart only.
+    /// Posted as JSON it answered 404 "No API endpoint answers POST ...", sending a caller looking for a
+    /// route that exists.
+    /// </summary>
+    [Fact]
+    public async Task AWrongContentTypeOnARealActionIsUnsupportedMediaTypeRatherThanANotFound()
+    {
+        using var client = this._factory.CreateClient();
+
+        using var response = await client.PostAsync(
+            "/api/geofences/import/geojson",
+            new StringContent("""{"type":"FeatureCollection","features":[]}""", System.Text.Encoding.UTF8, "application/json"));
+
+        Assert.Equal(HttpStatusCode.UnsupportedMediaType, response.StatusCode);
+        Assert.DoesNotContain("No API endpoint answers", await response.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+    }
+
+    /// <summary>The legitimate case beside it: the right content type reaches the action (and its auth).</summary>
+    [Fact]
+    public async Task TheRightContentTypeStillReachesTheImportAction()
+    {
+        using var client = this._factory.CreateClient();
+        using var form = new MultipartFormDataContent { { new StringContent("{}"), "file", "fences.geojson" } };
+
+        using var response = await client.PostAsync("/api/geofences/import/geojson", form);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    /// <summary>
+    /// A parameter that fails its constraint is not a route, so it keeps the JSON 404: <c>/api/raids/abc</c>
+    /// matches no action, because <c>{uid:int}</c> refuses "abc".
+    /// </summary>
+    [Fact]
+    public async Task APathWhoseParameterFailsItsConstraintIsStillTheJsonNotFound()
+    {
+        using var client = this._factory.CreateClient();
+
+        using var response = await client.GetAsync("/api/raids/abc");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Contains("No API endpoint answers GET /api/raids/abc", await response.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The sweep. Every routed /api template, sent a method none of its actions takes, is a 405 -- never
+    /// the catch-all's "No API endpoint answers". Parameters are filled with values their constraints
+    /// accept, so the only thing wrong with each request is its method.
+    /// </summary>
+    [Fact]
+    public async Task EveryRealApiRouteSentTheWrongMethodIsMethodNotAllowed()
+    {
+        using var client = this._factory.CreateClient();
+        var sources = this._factory.Services.GetRequiredService<Microsoft.AspNetCore.Routing.EndpointDataSource>();
+
+        var routes = sources.Endpoints
+            .OfType<Microsoft.AspNetCore.Routing.RouteEndpoint>()
+            .Where(e => e.Order != int.MaxValue
+                && e.RoutePattern.RawText is { } raw
+                && raw.StartsWith("api/", StringComparison.OrdinalIgnoreCase))
+            .GroupBy(e => e.RoutePattern.RawText!, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        Assert.True(routes.Count > 50, $"expected the controllers' routes, found {routes.Count}");
+
+        string[] verbs = ["GET", "POST", "PUT", "DELETE", "PATCH"];
+        var wrong = new List<string>();
+        foreach (var route in routes)
+        {
+            var allowed = route
+                .SelectMany(e => e.Metadata.GetMetadata<Microsoft.AspNetCore.Routing.IHttpMethodMetadata>()?.HttpMethods ?? verbs)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var method = verbs.FirstOrDefault(v => !allowed.Contains(v));
+            if (method is null)
+            {
+                continue;
+            }
+
+            var path = "/" + string.Join('/', route.First().RoutePattern.PathSegments.Select(SampleSegment));
+            using var response = await client.SendAsync(new HttpRequestMessage(new HttpMethod(method), path));
+            var body = await response.Content.ReadAsStringAsync();
+            if (body.Contains("No API endpoint answers", StringComparison.Ordinal))
+            {
+                wrong.Add($"{method} {path} -> {(int)response.StatusCode}");
+            }
+        }
+
+        Assert.Empty(wrong);
+    }
+
+    private static string SampleSegment(Microsoft.AspNetCore.Routing.Patterns.RoutePatternPathSegment segment) =>
+        string.Concat(segment.Parts.Select(part => part switch
+        {
+            Microsoft.AspNetCore.Routing.Patterns.RoutePatternLiteralPart literal => literal.Content,
+            Microsoft.AspNetCore.Routing.Patterns.RoutePatternSeparatorPart separator => separator.Content,
+            Microsoft.AspNetCore.Routing.Patterns.RoutePatternParameterPart parameter =>
+                parameter.ParameterPolicies.Any(p => p.Content is "int" or "long") ? "1" : "sample",
+            _ => "sample",
+        }));
 
     /// <summary>The security-header middleware runs for this route like any other.</summary>
     [Fact]

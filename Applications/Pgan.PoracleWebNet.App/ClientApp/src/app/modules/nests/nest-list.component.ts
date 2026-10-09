@@ -30,6 +30,7 @@ import { WhereSheetComponent, WhereSheetData } from '../../shared/components/whe
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { isAutoDelete as cleanIsAutoDelete } from '../../shared/utils/clean-flags';
+import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -114,8 +115,9 @@ export class NestListComponent implements OnInit {
       // The server refuses a radius that would take over an alarm the user did not select, and names
       // the one in the way. Unguarded, that rejection cleared nothing, reloaded nothing and showed
       // nothing -- indistinguishable from a successful no-op. See #641.
+      let result: DistanceUpdateResult | undefined;
       try {
-        await firstValueFrom(this.nestService.updateBulkDistance(uids, distance));
+        result = await firstValueFrom(this.nestService.updateBulkDistance(uids, distance));
       } catch (err) {
         const message = (err as { error?: { error?: string } })?.error?.error;
         this.snackBar.open(message ?? this.i18n.instant('NESTS.SNACK_FAILED_DISTANCE'), this.i18n.instant('TOAST.OK'), {
@@ -126,9 +128,17 @@ export class NestListComponent implements OnInit {
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadNests();
-      this.snackBar.open(this.i18n.instant('POKEMON.SNACK_BULK_DISTANCE', { count: uids.length }), this.i18n.instant('COMMON.OK'), {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        distanceUpdateMessage(
+          result,
+          this.i18n.instant('POKEMON.SNACK_BULK_DISTANCE', { count: result?.updated ?? uids.length }),
+          this.i18n,
+        ),
+        this.i18n.instant('COMMON.OK'),
+        {
+          duration: skippedAny(result) ? 6000 : 3000,
+        },
+      );
     }
   }
 
@@ -284,22 +294,6 @@ export class NestListComponent implements OnInit {
   toggleSelectMode(): void {
     this.selectMode.update(v => !v);
     if (!this.selectMode()) this.selectedIds.set(new Set());
-  }
-
-  updateAllDistance(): void {
-    const ref = this.dialog.open(DistanceDialogComponent, { width: '440px' });
-    ref.afterClosed().subscribe(distance => {
-      if (distance !== null && distance !== undefined) {
-        this.nestService.updateAllDistance(distance).subscribe({
-          error: () =>
-            this.snackBar.open(this.i18n.instant('POKEMON.SNACK_FAILED_DISTANCE'), this.i18n.instant('COMMON.OK'), { duration: 3000 }),
-          next: () => {
-            this.snackBar.open(this.i18n.instant('POKEMON.SNACK_ALL_DISTANCE'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
-            this.loadNests();
-          },
-        });
-      }
-    });
   }
 
   private loadProfileAreas(): void {

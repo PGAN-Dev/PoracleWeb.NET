@@ -501,4 +501,98 @@ public class ProfileControllerTests : ControllerTestBase
             && x.Latitude == source.Latitude
             && x.Longitude == source.Longitude)), Times.Once);
     }
+
+    // --- Control and bidi characters in names -------------------------------------------------------
+    // U+202E made "evil" display as "live"; NUL, TAB and line feeds were stored verbatim. Production held
+    // none (0 of 457 names), so these are refused on every entry point. Only the INCOMING name is judged.
+
+    [Fact]
+    public async Task CreateRefusesANameCarryingABidiOverride()
+    {
+        var result = await this._sut.Create(new Profile { Name = "evil\u202Elive" });
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        this._humanProxy.Verify(p => p.AddProfileAsync(It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateStillAcceptsAnEmojiAndAccentedName()
+    {
+        this.SetupCreateAssigns(1, "🐉 Pokémon");
+
+        Assert.IsType<CreatedAtActionResult>(await this._sut.Create(new Profile { Name = "🐉 Pokémon" }));
+    }
+
+    [Theory]
+    [InlineData("tab\tbed")]
+    [InlineData("nul\u0000")]
+    [InlineData("evil\u202Elive")]
+    public async Task UpdateRefusesARenameCarryingAControlCharacter(string name)
+    {
+        var existing = new Profile { Id = "123456789", ProfileNo = 1, Name = "Old" };
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(existing);
+
+        Assert.IsType<BadRequestObjectResult>(await this._sut.Update(1, new Profile { Name = name }));
+        this._humanProxy.Verify(p => p.UpdateProfileAsync(It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+        this._profileRepository.Verify(
+            r => r.RenameAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task AnEditThatKeepsAnExistingNameIsNotJudgedByTheNewRule()
+    {
+        // A name stored before this rule existed must not make every later edit of the profile fail -- the
+        // active-hours editor resubmits the name it was given.
+        var existing = new Profile { Id = "123456789", ProfileNo = 1, Name = "legacy\tname" };
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(existing);
+
+        var result = await this._sut.Update(1, new Profile { Name = "legacy\tname", ActiveHours = "[]" });
+
+        Assert.IsType<OkObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task DuplicateRefusesANameCarryingAControlCharacter()
+    {
+        var result = await this._sut.Duplicate(new DuplicateProfileRequest { FromProfileNo = 1, Name = "copy\nof main" });
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        this._humanProxy.Verify(p => p.AddProfileAsync(It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+    }
+
+    // --- Rename on a server whose PATCH takes the name (PoracleNG #217) --------------------------------
+    // There the direct, trimmed write is skipped, so whatever reaches UpdateProfileAsync is what is stored.
+
+    private JsonElement CaptureUpdateBodyOnAV2Server(Profile existing, Profile request)
+    {
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", existing.ProfileNo)).ReturnsAsync(existing);
+        JsonElement captured = default;
+        this._humanProxy.Setup(p => p.UpdateProfileAsync(It.IsAny<string>(), It.IsAny<JsonElement>()))
+            .Callback<string, JsonElement>((_, body) => captured = body.Clone())
+            .ReturnsAsync(true);
+
+        this._sut.Update(existing.ProfileNo, request).GetAwaiter().GetResult();
+        return captured;
+    }
+
+    [Fact]
+    public void ARenameReachesAV2ServerTrimmed()
+    {
+        var body = this.CaptureUpdateBodyOnAV2Server(
+            new Profile { Id = "123456789", ProfileNo = 4, Name = "Delta" },
+            new Profile { Name = "   Delta spaced   " });
+
+        Assert.Equal("Delta spaced", body.GetProperty("name").GetString());
+    }
+
+    [Fact]
+    public void ABlankNameIsNotARenameOnAV2Server()
+    {
+        // The v1 path has always read a blank name as "leave it alone"; on v2 it stored a blank name.
+        var body = this.CaptureUpdateBodyOnAV2Server(
+            new Profile { Id = "123456789", ProfileNo = 4, Name = "Delta" },
+            new Profile { Name = "   " });
+
+        Assert.Equal("Delta", body.GetProperty("name").GetString());
+    }
 }

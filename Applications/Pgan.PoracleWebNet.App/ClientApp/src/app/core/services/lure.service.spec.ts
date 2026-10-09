@@ -77,12 +77,4 @@ describe('LureService', () => {
     service.deleteAll().subscribe();
     httpMock.expectOne(`${API}/api/lures`).flush(null);
   });
-
-  it('should update all distances', () => {
-    service.updateAllDistance(500).subscribe();
-    const req = httpMock.expectOne(`${API}/api/lures/distance`);
-    expect(req.request.method).toBe('PUT');
-    expect(req.request.body).toBe(500);
-    req.flush(null);
-  });
 });

@@ -29,11 +29,20 @@ export const oidcRefreshInterceptor: HttpInterceptorFn = (req, next) => {
   }
 
   const withBearer = (token: string) => req.clone({ setHeaders: { Authorization: `Bearer ${token}` } });
+  // The error interceptor sits above this one and sees only the original request, so it is told which
+  // bearer the retry carried; otherwise a refused retry would look like a leftover from an older session.
+  const sendWith = (token: string) =>
+    next(withBearer(token)).pipe(
+      catchError(err => {
+        store.noteRetriedWith(err, token);
+        return throwError(() => err);
+      }),
+    );
 
   // Proactive refresh — token is within the expiry skew window.
   if (store.isExpiringSoon()) {
     return store.refresh().pipe(
-      switchMap(token => next(withBearer(token))),
+      switchMap(token => sendWith(token)),
       // If the proactive refresh fails, still let the request go; a 401 will surface and the
       // failed refresh has already emitted forceLogout$.
       catchError(() => next(req)),
@@ -45,7 +54,7 @@ export const oidcRefreshInterceptor: HttpInterceptorFn = (req, next) => {
     catchError(err => {
       if (err.status === 401 && store.hasRefreshToken()) {
         return store.refresh().pipe(
-          switchMap(token => next(withBearer(token))),
+          switchMap(token => sendWith(token)),
           catchError(refreshErr => throwError(() => refreshErr)),
         );
       }

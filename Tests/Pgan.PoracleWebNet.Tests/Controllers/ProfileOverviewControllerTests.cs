@@ -210,6 +210,46 @@ public class ProfileOverviewControllerTests : ControllerTestBase
         Assert.Equal(DisableFeatureKeys.Invasions, ex.DisableKey);
     }
 
+    /// <summary>The overview page's two name prompts are the other half of the set ProfileController covers.</summary>
+    [Theory]
+    [InlineData("evil\u202Elive")]
+    [InlineData("line\nfeed")]
+    public async Task DuplicateProfileRefusesANameCarryingAControlCharacter(string name)
+    {
+        var result = await this._sut.DuplicateProfile(1, new ProfileOverviewDuplicateRequest(name));
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        this._humanProxy.Verify(h => h.AddProfileAsync(It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData("evil\u202Elive")]
+    [InlineData("nul\u0000")]
+    public async Task ImportProfileRefusesANameCarryingAControlCharacter(string name)
+    {
+        var alarms = CreateJsonObject(new { pokemon = new[] { new { pokemon_id = 1 } } });
+
+        var result = await this._sut.ImportProfile(new ProfileOverviewImportRequest(name, 1, alarms));
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        this._humanProxy.Verify(h => h.AddProfileAsync(It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ImportProfileStillAcceptsAnEmojiName()
+    {
+        this._profileService.SetupSequence(s => s.GetByUserAsync("123456789"))
+            .ReturnsAsync([new Profile { ProfileNo = 1, Name = "Main" }])
+            .ReturnsAsync([new Profile { ProfileNo = 1, Name = "Main" }, new Profile { ProfileNo = 2, Name = "👨\u200D👩\u200D👧 family" }]);
+        this._humanProxy.Setup(h => h.AddProfileAsync("123456789", It.IsAny<JsonElement>())).ReturnsAsync((int?)null);
+        var alarms = CreateJsonObject(new { pokemon = new[] { new { pokemon_id = 1 } } });
+        this._service.Setup(s => s.ImportAlarmsAsync("123456789", 2, It.IsAny<JsonElement>())).ReturnsAsync(1);
+
+        var result = await this._sut.ImportProfile(new ProfileOverviewImportRequest("👨\u200D👩\u200D👧 family", 1, alarms));
+
+        Assert.IsType<OkObjectResult>(result);
+    }
+
     private static JsonElement CreateJsonObject(object obj)
     {
         var json = JsonSerializer.Serialize(obj);
