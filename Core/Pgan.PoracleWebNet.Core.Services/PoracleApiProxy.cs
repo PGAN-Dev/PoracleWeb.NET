@@ -21,13 +21,13 @@ public class PoracleApiProxy(HttpClient httpClient, IConfiguration configuration
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
 
-    public async Task<PoracleConfig?> GetConfigAsync()
+    public async Task<PoracleConfig?> GetConfigAsync(CancellationToken cancellationToken = default)
     {
         var request = this.CreateRequest(HttpMethod.Get, $"{this._apiAddress}/api/config/poracleWeb");
-        var response = await this._httpClient.SendAsync(request);
+        var response = await this._httpClient.SendAsync(request, cancellationToken);
         response.EnsureSuccessStatusCode();
 
-        var json = await response.Content.ReadAsStringAsync();
+        var json = await response.Content.ReadAsStringAsync(cancellationToken);
         using var doc = JsonDocument.Parse(json);
         var root = doc.RootElement;
 
@@ -527,7 +527,9 @@ public class PoracleApiProxy(HttpClient httpClient, IConfiguration configuration
             // GetConfigAsync() uses EnsureSuccessStatusCode() and throws on anything but 2xx, so it has
             // to share this try as well -- a PoracleNG old enough to miss the geocode routes is exactly
             // the kind of build this app must keep working against, not one more way to surface an error.
-            var config = await this.GetConfigAsync();
+            // It also has to share the timeout: without passing cts.Token through, a slow /api/config/
+            // poracleWeb could hold this up past the 10 seconds the rest of this method is bounded to.
+            var config = await this.GetConfigAsync(cts.Token);
             if (string.IsNullOrEmpty(config?.ProviderUrl))
             {
                 return null;

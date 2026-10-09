@@ -4,7 +4,7 @@ namespace Pgan.PoracleWebNet.Core.Abstractions.Services;
 
 public interface IPoracleApiProxy
 {
-    Task<PoracleConfig?> GetConfigAsync();
+    Task<PoracleConfig?> GetConfigAsync(CancellationToken cancellationToken = default);
     Task<bool?> GetQuestSummaryEnabledAsync();
 
     /// <summary>
