@@ -215,6 +215,8 @@
     "CLEAN_TAG": "städning",
     "CLEAN_TAG_TOOLTIP": "Raderas automatiskt efter utgång",
     "NO_IV_FILTER": "Inget IV-filter",
+    "INCLUDE_UNSCANNED": "Ta med Pokemon som ingen har skannat än",
+    "INCLUDE_UNSCANNED_HINT": "Vilda Pokemon har inget IV förrän någon möter dem. När det är på matchar även alla IV.",
     "PVP_GL": "GL",
     "PVP_UL": "UL",
     "PVP_LC": "LC",

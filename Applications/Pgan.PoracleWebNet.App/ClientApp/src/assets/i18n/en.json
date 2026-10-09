@@ -215,6 +215,8 @@
     "CLEAN_TAG": "clean",
     "CLEAN_TAG_TOOLTIP": "Auto-deletes after expiry",
     "NO_IV_FILTER": "No IV Filter",
+    "INCLUDE_UNSCANNED": "Include Pokemon nobody has scanned yet",
+    "INCLUDE_UNSCANNED_HINT": "Wild spawns have no IV until someone encounters them. Turning this on also matches any IV.",
     "PVP_GL": "GL",
     "PVP_UL": "UL",
     "PVP_LC": "LC",

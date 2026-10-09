@@ -215,6 +215,8 @@
     "CLEAN_TAG": "czyść",
     "CLEAN_TAG_TOOLTIP": "Automatycznie usuwane po wygaśnięciu",
     "NO_IV_FILTER": "Brak filtra IV",
+    "INCLUDE_UNSCANNED": "Uwzględnij Pokemony, których nikt jeszcze nie zeskanował",
+    "INCLUDE_UNSCANNED_HINT": "Dzikie Pokemony nie mają IV, dopóki ktoś ich nie spotka. Po włączeniu pasuje też dowolne IV.",
     "PVP_GL": "GL",
     "PVP_UL": "UL",
     "PVP_LC": "LC",

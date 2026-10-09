@@ -215,6 +215,8 @@
     "CLEAN_TAG": "oprydning",
     "CLEAN_TAG_TOOLTIP": "Slettes automatisk efter udløb",
     "NO_IV_FILTER": "Intet IV-filter",
+    "INCLUDE_UNSCANNED": "Medtag Pokemon, som ingen har scannet endnu",
+    "INCLUDE_UNSCANNED_HINT": "Vilde Pokemon har ingen IV, før nogen møder dem. Når det er slået til, passer enhver IV også.",
     "PVP_GL": "GL",
     "PVP_UL": "UL",
     "PVP_LC": "LC",

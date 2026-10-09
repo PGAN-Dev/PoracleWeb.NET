@@ -43,6 +43,10 @@
             }
           </mat-form-field>
         </div>
+        <mat-slide-toggle [formControl]="filtersForm.controls.includeUnscanned">
+          {{ 'POKEMON.INCLUDE_UNSCANNED' | translate }}
+        </mat-slide-toggle>
+        <p class="clean-hint">{{ 'POKEMON.INCLUDE_UNSCANNED_HINT' | translate }}</p>
 
         <h4>{{ 'POKEMON.FILTER_CP_LEVEL' | translate }}</h4>
         <div class="form-row">

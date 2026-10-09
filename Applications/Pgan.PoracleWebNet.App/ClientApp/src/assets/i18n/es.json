@@ -215,6 +215,8 @@
     "CLEAN_TAG": "limpieza",
     "CLEAN_TAG_TOOLTIP": "Se elimina automáticamente tras expirar",
     "NO_IV_FILTER": "Sin filtro IV",
+    "INCLUDE_UNSCANNED": "Incluir Pokemon que nadie ha escaneado aún",
+    "INCLUDE_UNSCANNED_HINT": "Los Pokemon salvajes no tienen IV hasta que alguien se encuentra con ellos. Al activarlo, también coincide cualquier IV.",
     "PVP_GL": "GL",
     "PVP_UL": "UL",
     "PVP_LC": "LC",
