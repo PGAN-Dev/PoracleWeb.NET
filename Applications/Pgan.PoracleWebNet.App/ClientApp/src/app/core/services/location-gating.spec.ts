@@ -44,8 +44,8 @@ describe('LocationService and PlacesService feature gating', () => {
   describe('with nothing disabled', () => {
     it('still reverse geocodes', () => {
       let address: string | undefined;
-      location.reverseGeocode(1, 2).subscribe(r => (address = r?.display_name));
-      httpMock.expectOne(`${API}/api/location/reverse?lat=1&lon=2`).flush({ display_name: 'Somewhere' });
+      location.reverseGeocode(1, 2).subscribe(r => (address = r?.displayName));
+      httpMock.expectOne(`${API}/api/location/reverse?lat=1&lon=2`).flush({ displayName: 'Somewhere' });
       expect(address).toBe('Somewhere');
     });
 

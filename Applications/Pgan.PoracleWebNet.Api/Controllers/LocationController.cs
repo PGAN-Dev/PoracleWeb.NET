@@ -14,7 +14,6 @@ public class LocationController(
     IProfileService profileService,
     IPoracleHumanProxy humanProxy,
     IPoracleApiProxy poracleApiProxy,
-    IHttpClientFactory httpClientFactory,
     IPlaceUpdateCapabilityService placeUpdateCapability,
     IScannerService? scannerService = null) : BaseApiController
 {
@@ -22,7 +21,6 @@ public class LocationController(
     private readonly IProfileService _profileService = profileService;
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
-    private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
     private readonly IPlaceUpdateCapabilityService _placeUpdateCapability = placeUpdateCapability;
     private readonly IScannerService? _scannerService = scannerService;
 
@@ -77,57 +75,35 @@ public class LocationController(
         });
     }
 
+    /// <summary>
+    /// Forward geocode, via PoracleNG's own <c>/api/geocode/forward</c> rather than calling a provider
+    /// URL directly: PoracleNG already normalises Nominatim, Photon and Google into one shape, so this
+    /// app never parses a provider's payload. See #845.
+    /// </summary>
     [RequireFeatureEnabled(DisableFeatureKeys.Geocoding)]
     [HttpGet("geocode")]
-    public async Task<IActionResult> Geocode([FromQuery] string q)
+    public async Task<IActionResult> Geocode([FromQuery] string q, [FromQuery] string? language = null)
     {
         if (string.IsNullOrWhiteSpace(q))
         {
             return this.BadRequest("Query parameter 'q' is required");
         }
 
-        try
-        {
-            var config = await this._poracleApiProxy.GetConfigAsync();
-            if (config == null || string.IsNullOrEmpty(config.ProviderUrl))
-            {
-                return this.BadRequest("Geocoding not available - no provider configured");
-            }
-
-            var client = this._httpClientFactory.CreateClient();
-            client.Timeout = TimeSpan.FromSeconds(10);
-            var url = $"{config.ProviderUrl.TrimEnd('/')}/search?addressdetails=1&q={Uri.EscapeDataString(q)}&format=json&limit=5";
-            var response = await client.GetStringAsync(url);
-            return this.Content(response, "application/json");
-        }
-        catch (Exception)
-        {
-            return this.StatusCode(503, "Geocoding service unavailable");
-        }
+        var result = await this._poracleApiProxy.GetGeocodeForwardAsync(q, language);
+        return result == null
+            ? this.StatusCode(503, "Geocoding service unavailable")
+            : this.Content(result, "application/json");
     }
 
+    /// <summary>See <see cref="Geocode"/>: PoracleNG's <c>/api/geocode/reverse</c>, not a provider URL.</summary>
     [RequireFeatureEnabled(DisableFeatureKeys.Geocoding)]
     [HttpGet("reverse")]
-    public async Task<IActionResult> ReverseGeocode([FromQuery] double lat, [FromQuery] double lon)
+    public async Task<IActionResult> ReverseGeocode([FromQuery] double lat, [FromQuery] double lon, [FromQuery] string? language = null)
     {
-        try
-        {
-            var config = await this._poracleApiProxy.GetConfigAsync();
-            if (config == null || string.IsNullOrEmpty(config.ProviderUrl))
-            {
-                return this.BadRequest("Geocoding not available - no provider configured");
-            }
-
-            var client = this._httpClientFactory.CreateClient();
-            client.Timeout = TimeSpan.FromSeconds(10);
-            var url = $"{config.ProviderUrl.TrimEnd('/')}/reverse?lat={lat}&lon={lon}&format=json&addressdetails=1";
-            var response = await client.GetStringAsync(url);
-            return this.Content(response, "application/json");
-        }
-        catch (Exception)
-        {
-            return this.StatusCode(503, "Geocoding service unavailable");
-        }
+        var result = await this._poracleApiProxy.GetGeocodeReverseAsync(lat, lon, language);
+        return result == null
+            ? this.StatusCode(503, "Geocoding service unavailable")
+            : this.Content(result, "application/json");
     }
 
     [HttpGet("staticmap")]

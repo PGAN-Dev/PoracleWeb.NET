@@ -1726,7 +1726,7 @@
     "DISABLE_LOCATION_LABEL": "Locatie",
     "DISABLE_LOCATION_DESC": "Laat gebruikers een thuislocatie instellen.",
     "DISABLE_NOMINATIM_LABEL": "Geocodering",
-    "DISABLE_NOMINATIM_DESC": "Sta Nominatim-adreszoekopdrachten toe voor locatieselectie.",
+    "DISABLE_NOMINATIM_DESC": "Sta adreszoekopdrachten en omgekeerde opzoekingen toe voor locatieselectie.",
     "DISABLE_USER_GEOFENCES_LABEL": "Eigen geofences",
     "DISABLE_USER_GEOFENCES_DESC": "Laat gebruikers eigen geofences tekenen, importeren en indienen. Bestaande geofences blijven werken.",
     "ENABLE_TEMPLATES_LABEL": "Templates",

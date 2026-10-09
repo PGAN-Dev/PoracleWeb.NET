@@ -1718,7 +1718,7 @@
     "DISABLE_LOCATION_LABEL": "Ubicación",
     "DISABLE_LOCATION_DESC": "Permite a los usuarios establecer una ubicación de inicio.",
     "DISABLE_NOMINATIM_LABEL": "Geocodificación",
-    "DISABLE_NOMINATIM_DESC": "Permite la búsqueda de direcciones de Nominatim para elegir ubicación.",
+    "DISABLE_NOMINATIM_DESC": "Permite la búsqueda de direcciones y la búsqueda inversa para elegir ubicación.",
     "DISABLE_USER_GEOFENCES_LABEL": "Geocercas personalizadas",
     "DISABLE_USER_GEOFENCES_DESC": "Permite a los usuarios dibujar, importar y enviar sus propias geocercas. Las geocercas existentes siguen funcionando.",
     "ENABLE_TEMPLATES_LABEL": "Plantillas",

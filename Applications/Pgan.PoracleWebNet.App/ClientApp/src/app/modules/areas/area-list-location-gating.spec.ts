@@ -25,7 +25,7 @@ describe('AreaListComponent location gating', () => {
     const location = {
       getLocation: jest.fn(() => of({ latitude: 37.5, longitude: -77.4 })),
       getStaticMapUrl: jest.fn(() => of(null)),
-      reverseGeocode: jest.fn(() => of({ display_name: '1 Main St' })),
+      reverseGeocode: jest.fn(() => of({ displayName: '1 Main St' })),
     };
     const places = {
       named: computed(() => []),

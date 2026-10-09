@@ -445,7 +445,7 @@ export class AreaListComponent implements OnInit {
       .reverseGeocode(loc.latitude, loc.longitude)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(result => {
-        if (result?.display_name) this.locationAddress.set(result.display_name);
+        if (result?.displayName) this.locationAddress.set(result.displayName);
       });
   }
 
