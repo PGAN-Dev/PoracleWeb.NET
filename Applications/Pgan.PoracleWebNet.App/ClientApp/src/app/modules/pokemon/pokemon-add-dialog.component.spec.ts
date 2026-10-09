@@ -122,6 +122,31 @@ describe('PokemonAddDialogComponent', () => {
     expect((monsterService.create.mock.calls[0][0] as MonsterCreate).costume).toBe(0);
   });
 
+  describe('include Pokemon nobody has scanned yet', () => {
+    const sentMinIv = (): number => (monsterService.create.mock.calls[0][0] as MonsterCreate).minIv;
+
+    it('is off by default and the rule keeps its Min IV', () => {
+      component.ngOnInit();
+      component.selectedPokemonIds.set([MEOWTH]);
+      component.filtersForm.controls.minIv.setValue(90);
+      component.save();
+
+      expect(component.filtersForm.controls.includeUnscanned.value).toBe(false);
+      expect(sentMinIv()).toBe(90);
+    });
+
+    it('saves min IV -1 and disables the Min IV box while it is on', () => {
+      component.ngOnInit();
+      component.selectedPokemonIds.set([MEOWTH]);
+      component.filtersForm.controls.minIv.setValue(90);
+      component.filtersForm.controls.includeUnscanned.setValue(true);
+
+      expect(component.filtersForm.controls.minIv.disabled).toBe(true);
+      component.save();
+      expect(sentMinIv()).toBe(-1);
+    });
+  });
+
   it('names the hint after the current selection', () => {
     expect(component.costumeHint()).toBe('POKEMON.COSTUME_HINT_ANY');
     component.filtersForm.controls.costume.setValue(0);

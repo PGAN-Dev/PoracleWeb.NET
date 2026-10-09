@@ -215,6 +215,8 @@
     "CLEAN_TAG": "pulizia",
     "CLEAN_TAG_TOOLTIP": "Eliminazione automatica dopo la scadenza",
     "NO_IV_FILTER": "Nessun Filtro IV",
+    "INCLUDE_UNSCANNED": "Includi i Pokemon che nessuno ha ancora scansionato",
+    "INCLUDE_UNSCANNED_HINT": "I Pokemon selvatici non hanno IV finché qualcuno non li incontra. Se attivo, va bene anche qualsiasi IV.",
     "PVP_GL": "GL",
     "PVP_UL": "UL",
     "PVP_LC": "LC",

@@ -214,6 +214,8 @@
     "CLEAN_TAG": "aufräumen",
     "CLEAN_TAG_TOOLTIP": "Wird nach Ablauf automatisch gelöscht",
     "NO_IV_FILTER": "Kein IV-Filter",
+    "INCLUDE_UNSCANNED": "Pokemon einschließen, die noch niemand gescannt hat",
+    "INCLUDE_UNSCANNED_HINT": "Wilde Pokemon haben keine IV, bis jemand ihnen begegnet. Eingeschaltet passt außerdem jede IV.",
     "PVP_GL": "GL",
     "PVP_UL": "UL",
     "PVP_LC": "LC",

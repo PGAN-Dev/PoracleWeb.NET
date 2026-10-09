@@ -14,6 +14,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { TranslatePipe } from '@ngx-translate/core';
 
+import { syncUnscanned } from './include-unscanned';
 import { Monster, MonsterUpdate } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
@@ -78,6 +79,9 @@ export class PokemonEditDialogComponent implements OnInit {
     def: [this.data.def],
     form: [this.data.form],
     gender: [this.data.gender],
+    // min_iv -1 is Poracle's "include Pokemon nobody has encountered" (and so any IV); it shows as the
+    // switch below rather than as -1 in the box. See syncUnscanned().
+    includeUnscanned: [this.data.minIv === -1],
     maxAtk: [this.data.maxAtk],
     maxCp: [this.data.maxCp],
     maxDef: [this.data.maxDef],
@@ -87,7 +91,7 @@ export class PokemonEditDialogComponent implements OnInit {
     maxSta: [this.data.maxSta],
     maxWeight: [this.data.maxWeight],
     minCp: [this.data.minCp],
-    minIv: [this.data.minIv],
+    minIv: [this.data.minIv === -1 ? 0 : this.data.minIv],
     minLevel: [this.data.minLevel],
     minTime: [this.data.minTime ?? 0],
     minWeight: [this.data.minWeight],
@@ -153,6 +157,7 @@ export class PokemonEditDialogComponent implements OnInit {
 
   ngOnInit(): void {
     this.poracleConfig.load().subscribe();
+    syncUnscanned(this.form.controls);
   }
 
   onImageError(event: Event): void {
@@ -190,7 +195,7 @@ export class PokemonEditDialogComponent implements OnInit {
       maxSta: values.maxSta ?? 15,
       maxWeight: values.maxWeight ?? 9000000,
       minCp: values.minCp ?? 0,
-      minIv: values.minIv ?? 0,
+      minIv: values.includeUnscanned ? -1 : (values.minIv ?? 0),
       minLevel: values.minLevel ?? 0,
       minTime: values.minTime ?? 0,
       minWeight: values.minWeight ?? 0,

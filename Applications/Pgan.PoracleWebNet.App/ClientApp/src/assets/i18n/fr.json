@@ -215,6 +215,8 @@
     "CLEAN_TAG": "nettoyage",
     "CLEAN_TAG_TOOLTIP": "Suppression automatique après expiration",
     "NO_IV_FILTER": "Pas de filtre IV",
+    "INCLUDE_UNSCANNED": "Inclure les Pokemon que personne n'a encore scannés",
+    "INCLUDE_UNSCANNED_HINT": "Les Pokemon sauvages n'ont pas d'IV tant que personne ne les a rencontrés. Activé, n'importe quel IV correspond aussi.",
     "PVP_GL": "GL",
     "PVP_UL": "UL",
     "PVP_LC": "LC",

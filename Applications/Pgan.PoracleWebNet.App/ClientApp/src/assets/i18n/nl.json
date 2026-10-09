@@ -214,6 +214,8 @@
     "CLEAN_TAG": "opschonen",
     "CLEAN_TAG_TOOLTIP": "Wordt automatisch verwijderd na afloop",
     "NO_IV_FILTER": "Geen IV Filter",
+    "INCLUDE_UNSCANNED": "Pokemon meenemen die nog niemand heeft gescand",
+    "INCLUDE_UNSCANNED_HINT": "Wilde Pokemon hebben geen IV tot iemand ze tegenkomt. Als dit aan staat, telt ook elke IV.",
     "PVP_GL": "GL",
     "PVP_UL": "UL",
     "PVP_LC": "LC",
