@@ -966,6 +966,55 @@ Webhook IDs in Poracle are URLs (e.g., `http://host:port/path`). When constructi
 ### JWT Profile Desync
 PoracleNG can change `current_profile_no` outside of PoracleWeb — the active-hours scheduler switches profiles on a cron, and bot commands like `!profile` update the DB directly. When this happens the JWT's `profileNo` claim goes stale, causing all alarm reads and writes to target the wrong profile. The `/api/auth/me` endpoint detects the mismatch by comparing the JWT claim against the live `current_profile_no` from `IHumanService` and returns a refreshed token (via the `Token` property on `UserInfo`) when they diverge. Frontend callers (`AuthService.loadCurrentUser`) must always check for and store the returned token.
 
+### A Disabled Account's First 401 Is The One That Reaches Nobody
+
+`AuthController.Me()` answers 401 for an admin-disabled account (`human.AdminDisable == 1`, not
+impersonating -- see "Quiet Periods" for the unrelated per-area mute concept, and #706 for why
+impersonation is exempt). That 401 lands mid-login: the Discord/OIDC/Telegram callback already minted a
+token before `/api/auth/me` is ever called, so this is the first request to notice. `/api/auth/me` is in
+`errorInterceptor`'s `SILENT_URL_PATTERNS` and `isAuthCallbackRoute()` is still true at that point in the
+flow, so neither a toast nor the session-ending path fires -- the token survives, and
+`AuthService.handleTokenFromCallback` would otherwise press on to `/dashboard` regardless of whether
+`loadCurrentUser()` actually got a user back. The dashboard's own requests then 401 on that same dead
+token, *outside* the callback route this time, and that is what the member actually sees: a generic
+"session expired" toast, with no account anywhere explaining why. Every surface that does explain it
+(the disabled banner, the Help FAQ, both from #910) sits behind the sign-in this 401 is refusing. See
+#911.
+
+The fix is a distinct machine-readable `code: "account_disabled"` on that one 401 body (not the deleted-
+account 401 a row away, which stays prose-only and unhandled by any of this), carrying `supportUrl`
+alongside it. `support_url` is otherwise read by signed-in callers only
+(`SettingsController.UserVisibleKeys`) -- the one caller who needs it here is not signed in by the time
+it matters, so the value travels inside the 401 body rather than through the normal settings fetch.
+`AuthService` stores it in a private signal (`_disabledAccountInfo`) the instant `loadCurrentUser()` sees
+the code, and `handleTokenFromCallback` reads it right after awaiting that call: if set, it clears the
+session outright (the token is useless regardless) and sends the browser to `/login#error=account_disabled
+&support_url=...` instead of `/dashboard`. This reuses the exact mechanism `LoginComponent` already has
+for every other pre-token-issuance auth failure (`missing_required_role`, `not_in_guild`, etc.), just fed
+by a failure that happens after a token exists rather than before one is issued.
+
+**That redirect is a real `window.location.href` assignment, not `router.navigate({ fragment })` --
+verified live in a real browser, not just jsdom.** Every existing `/login#error=...` is built by the
+backend (`AuthController`'s `Redirect($"{frontendUrl}/login#error=...")`); this is the one place a
+redirect like it is built client-side, and the first thing tried was the in-app Router's `fragment`
+option. The Router's own fragment serialization re-escapes a literal `%`, so an already-percent-encoded
+`support_url` (`...%3A%2F%2F...`, one `URLSearchParams.toString()` pass) came back out of
+`router.navigate` double-encoded (`...%253A%252F%252F...`), and the link `LoginComponent` rendered
+pointed at a broken, still-percent-encoded string instead of the real URL. Every unit test for this
+passed regardless, because they mock `Router.navigate` and only assert what string it was called with --
+none of them exercise the Router's actual URL-building. Caught by driving the real `CallbackComponent` →
+`AuthService` → `Router` → `LoginComponent` chain in a live `ng serve` instance with Playwright,
+intercepting `/api/auth/me` rather than mocking any application code. The one-encode/one-decode contract
+(`URLSearchParams.toString()` written, `new URLSearchParams(location.hash)` read) now lives in its own
+pure function, `disabledAccountFragment`, exported solely so it can be pinned by a fast unit test without
+going near `window.location` or the Router at all.
+
+`account_disabled` is deliberately not one of `LoginComponent`'s `errorKeys` map entries: that map renders
+a one-line translated string, and this needs the same richer markup the dashboard banner already has
+(`BANNER.DISABLED_ACCOUNT`'s bold "why", plus a conditional `BANNER.DISABLED_SUPPORT` link) -- both
+already translated in all eleven locales as part of #910, reused verbatim rather than duplicated under a
+new key.
+
 ### JWT Generation (IJwtService)
 JWT token generation is centralized in `IJwtService` / `JwtService` (singleton). Three methods: `GenerateToken(UserInfo)` for fresh tokens, `GenerateImpersonationToken(UserInfo, impersonatedBy)` for admin impersonation, and `GenerateTokenWithReplacedProfile(ClaimsPrincipal, profileNo)` for profile switches. The latter filters out registered JWT claims (`exp`, `nbf`, `iat`, `iss`, `aud`) before copying to prevent stale claim duplication. All controllers (`AuthController`, `ProfileController`, `ProfileOverviewController`, `AdminController`) use this service — no inline JWT generation.
 

@@ -12,8 +12,32 @@ import { UserInfo, LoginResponse, TelegramConfig, AuthProviders } from '../model
 const TOKEN_KEY = 'poracle_token';
 const ADMIN_TOKEN_KEY = 'poracle_admin_token';
 
+/**
+ * The `#error=account_disabled&support_url=...` fragment LoginComponent reads back with
+ * `new URLSearchParams(location.hash)` -- one `encodeURIComponent`-equivalent pass via
+ * `URLSearchParams.toString()`, so it decodes with exactly one pass on the other end. Exported as its
+ * own function, rather than inlined, so that one-encode contract can be pinned in a unit test without
+ * going anywhere near `window.location` (jsdom no-ops that assignment) or the Router (this deliberately
+ * bypasses it -- see the call site).
+ */
+export function disabledAccountFragment(supportUrl: string | null): string {
+  const fragment = new URLSearchParams({ error: 'account_disabled' });
+  if (supportUrl) {
+    fragment.set('support_url', supportUrl);
+  }
+  return fragment.toString();
+}
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
+  /**
+   * Set from the most recent `/api/auth/me` 401 that carried `code: "account_disabled"`. Read once, by
+   * {@link handleTokenFromCallback} right after it awaits {@link loadCurrentUser}, to tell "this login
+   * found a disabled account" apart from any other reason the user object came back null. `support_url`
+   * travels here rather than through the normal settings fetch because that read is signed-in only
+   * (`SettingsController.UserVisibleKeys`), and the one person who needs it here is not. See #911.
+   */
+  private readonly _disabledAccountInfo = signal<{ supportUrl: string | null } | null>(null);
   private readonly _isImpersonating = signal(!!localStorage.getItem(ADMIN_TOKEN_KEY));
   private readonly _profileResynced = signal(false);
   private readonly alertLanguage = inject(AlertLanguageService);
@@ -94,6 +118,26 @@ export class AuthService {
     // Stores the JWT plus, for refresh-backed OIDC logins, the opaque refresh token + expiry.
     this.tokenStore.storeTokens(token, refreshToken ?? null);
     await this.loadCurrentUser();
+
+    // A disabled account's /me 401 is silent (SILENT_URL_PATTERNS) and fires while isAuthCallbackRoute()
+    // is still true, so neither toasts nor ends the session -- the token survived, and the dashboard this
+    // app was about to navigate to would have sent its own requests with it, 401ing in turn, now outside
+    // the callback route, with the generic "session expired" toast and no word of why. The disabled
+    // explanation only ever existed behind sign-in, so this is the one path to show it to the person who
+    // needs it. See #911.
+    const disabled = this._disabledAccountInfo();
+    if (disabled) {
+      this.clearSession();
+      // A real navigation, not router.navigate({ fragment }) -- confirmed live that the Router's own
+      // fragment serialization re-escapes a literal '%' (so an already-percent-encoded support_url came
+      // out double-encoded, e.g. 'https%253A%252F%252F...', and the link LoginComponent renders was
+      // broken). Every other /login#error=... redirect in this app is already a real navigation, built
+      // by the backend the same way (AuthController's Redirect($"{frontendUrl}/login#error=...")); this
+      // is the one case built client-side.
+      window.location.href = `/login#${disabledAccountFragment(disabled.supportUrl)}`;
+      return;
+    }
+
     // Load site settings now that we have a valid token — the initial loadOnce()
     // in App.ngOnInit() fires before the token is stored, so settings (including
     // custom_title) fail silently and never reload.
@@ -138,6 +182,7 @@ export class AuthService {
             // that installs the admin's own token. Removing poracle_token here as well deleted the token
             // that fallback had just restored, one line after it was written. See #706, #616.
             this.currentUser.set(null);
+            this._disabledAccountInfo.set(err.error?.code === 'account_disabled' ? { supportUrl: err.error?.supportUrl ?? null } : null);
           }
           this.userLoaded$.next(null);
           resolve(null);

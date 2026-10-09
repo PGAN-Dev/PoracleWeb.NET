@@ -226,6 +226,19 @@
   flex-shrink: 0;
 }
 
+// The disabled-account explanation is a full sentence plus an optional link, not a one-line status —
+// wraps onto its own line under the icon instead of fighting .error-message's single centered row.
+.disabled-message {
+  flex-direction: column;
+  text-align: left;
+
+  .support-link {
+    color: inherit;
+    font-weight: 500;
+    text-decoration: underline;
+  }
+}
+
 .skeleton-btn {
   height: 48px;
   border-radius: 8px;
