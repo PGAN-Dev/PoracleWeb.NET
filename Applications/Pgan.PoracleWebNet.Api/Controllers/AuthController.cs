@@ -832,7 +832,20 @@ public partial class AuthController(
         // drops an impersonating admin back to their own token on any 401 rather than ending the session.
         if (human.AdminDisable == 1 && !this.IsImpersonating)
         {
-            return this.Unauthorized(new { error = "This account has been blocked by an administrator." });
+            // A distinct code, not just the prose, so the SPA can tell this 401 apart from an expired
+            // token or a deleted account and show the disabled-account explanation on the login page
+            // instead of the generic "session expired" toast -- the one place this reaches a member who
+            // has never seen it, since every other surface it is rendered on sits behind the sign-in
+            // this 401 is refusing. The support link travels with it for the same reason: support_url is
+            // read only by signed-in callers (see SettingsController.UserVisibleKeys), and this caller is
+            // not one. See #911.
+            var supportUrl = await this._siteSettingService.GetValueAsync("support_url");
+            return this.Unauthorized(new
+            {
+                error = "This account has been blocked by an administrator.",
+                code = "account_disabled",
+                supportUrl = string.IsNullOrWhiteSpace(supportUrl) ? null : supportUrl,
+            });
         }
 
         var adminDisable = human.AdminDisable == 1;

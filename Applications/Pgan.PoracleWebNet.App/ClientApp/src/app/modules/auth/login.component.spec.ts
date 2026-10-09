@@ -332,6 +332,35 @@ describe('LoginComponent', () => {
       fixture.detectChanges();
       expect(component['error']()).toBe('AUTH.ERR_TELEGRAM_DISABLED');
     });
+
+    /**
+     * AuthService.handleTokenFromCallback sends a disabled account here instead of the dashboard, with
+     * the reason and the support link in the fragment -- the one place that explanation reaches someone
+     * who has never been able to sign in to see it elsewhere. See #911.
+     */
+    it('shows the disabled-account block with its support link, not the generic one-line error', () => {
+      window.location.hash = '#error=account_disabled&support_url=https%3A%2F%2Fexample.com%2Fsupport';
+      setup();
+      fixture.detectChanges();
+
+      expect(component['accountDisabled']()).toBe(true);
+      expect(component['error']()).toBeNull();
+      const block = fixture.nativeElement.querySelector('.disabled-message');
+      expect(block).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('.error-message:not(.disabled-message)')).toBeNull();
+      const link = block.querySelector('.support-link');
+      expect(link.getAttribute('href')).toBe('https://example.com/support');
+    });
+
+    it('shows the disabled-account block with no link when the operator has not set one', () => {
+      window.location.hash = '#error=account_disabled';
+      setup();
+      fixture.detectChanges();
+
+      const block = fixture.nativeElement.querySelector('.disabled-message');
+      expect(block).toBeTruthy();
+      expect(block.querySelector('.support-link')).toBeNull();
+    });
   });
 
   describe('signup URL', () => {

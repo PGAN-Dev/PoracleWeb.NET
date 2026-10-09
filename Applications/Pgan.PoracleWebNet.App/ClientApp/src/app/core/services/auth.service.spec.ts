@@ -136,6 +136,60 @@ describe('AuthService', () => {
       expect(router.navigate).toHaveBeenCalledWith(['/dashboard']);
       expect(service.user()).toEqual(mockUser);
     });
+
+    /**
+     * A disabled account's /me 401 is silent and fires on the callback route, so without this it would
+     * fall through to the dashboard with a dead token -- whose own requests then 401 outside the callback
+     * route, ending the session with a generic "session expired" toast and no word of why. See #911.
+     */
+    it('clears the session and sends a disabled account to the login page with its reason, not the dashboard', async () => {
+      const promise = service.handleTokenFromCallback('new-token');
+
+      const req = httpMock.expectOne(`${API}/api/auth/me`);
+      req.flush(
+        {
+          code: 'account_disabled',
+          error: 'This account has been blocked by an administrator.',
+          supportUrl: 'https://example.com/support',
+        },
+        { status: 401, statusText: 'Unauthorized' },
+      );
+      await promise;
+
+      expect(localStorage.getItem('poracle_token')).toBeNull();
+      expect(router.navigate).toHaveBeenCalledWith(['/login'], {
+        fragment: 'error=account_disabled&support_url=https%3A%2F%2Fexample.com%2Fsupport',
+      });
+      httpMock.expectNone(`${API}/api/settings`);
+    });
+
+    it('omits support_url from the redirect when the operator has not set one', async () => {
+      const promise = service.handleTokenFromCallback('new-token');
+
+      httpMock
+        .expectOne(`${API}/api/auth/me`)
+        .flush({ code: 'account_disabled', error: 'blocked', supportUrl: null }, { status: 401, statusText: 'Unauthorized' });
+      await promise;
+
+      expect(router.navigate).toHaveBeenCalledWith(['/login'], { fragment: 'error=account_disabled' });
+    });
+
+    it('still goes to the dashboard for a 401 with no disabled-account code', async () => {
+      const promise = service.handleTokenFromCallback('new-token');
+
+      httpMock
+        .expectOne(`${API}/api/auth/me`)
+        .flush({ error: 'This account no longer exists.' }, { status: 401, statusText: 'Unauthorized' });
+      await promise;
+
+      const settingsReq = httpMock.expectOne(`${API}/api/settings`);
+      settingsReq.flush([]);
+      httpMock.expectOne(`${API}/api/settings/upstream-disabled`).flush([]);
+      httpMock.expectOne(`${API}/api/settings/costume-capability`).flush({ raid: true, pokemon: true });
+      httpMock.expectOne(`${API}/api/location/language`).flush({ language: 'de' });
+
+      expect(router.navigate).toHaveBeenCalledWith(['/dashboard']);
+    });
   });
 
   describe('logout', () => {

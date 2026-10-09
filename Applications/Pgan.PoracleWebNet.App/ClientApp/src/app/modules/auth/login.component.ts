@@ -40,8 +40,14 @@ export class LoginComponent implements OnInit {
   private telegramBotUsername = '';
   private telegramWidgetLoaded = false;
 
+  /** Replaces the generic one-line error message with the richer disabled-account block. */
+  protected readonly accountDisabled = signal(false);
+
   /** Whether the providers config has finished loading (success or failure). */
   protected readonly configLoaded = signal(false);
+
+  /** Set alongside `accountDisabled()`; the link the disabled-account message offers, if one is set. */
+  protected readonly disabledSupportUrl = signal<string | null>(null);
 
   /** Whether Discord is configured in the server's .env / appsettings. */
   protected readonly discordConfigured = signal(false);
@@ -176,7 +182,15 @@ export class LoginComponent implements OnInit {
       });
 
     // Show error from URL fragment (e.g. /login#error=missing_required_role)
-    if (errorCode) {
+    if (errorCode === 'account_disabled') {
+      // Not one of errorKeys below: it renders its own richer block (BANNER.DISABLED_ACCOUNT, already
+      // translated everywhere as part of #910) rather than a one-line message, since this is the one
+      // place that explanation reaches someone who has never been able to sign in to see it. See #911.
+      this.accountDisabled.set(true);
+      this.disabledSupportUrl.set(fragmentParams.get('support_url'));
+      localStorage.removeItem('poracle_token');
+      localStorage.removeItem('poracle_admin_token');
+    } else if (errorCode) {
       const errorKeys: Record<string, string> = {
         oidc_disabled: 'AUTH.ERR_OIDC_DISABLED',
         oidc_no_identity: 'AUTH.ERR_OIDC_NO_IDENTITY',
