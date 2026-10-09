@@ -344,6 +344,27 @@ internal static class JsonElementExtensions
         el.TryGetProperty(name, out var prop) && prop.TryGetDouble(out var val) ? val : 0.0;
 
     /// <summary>
+    /// Reads a flag PoracleNG may send as a real JSON boolean or as a v1-style 0/1 integer. Verified live:
+    /// <c>GET /api/v2/humans/{id}</c> sends the integer and <c>GET /api/v2/humans</c> (the list) sends the
+    /// boolean for the same fields on the same server -- an undocumented divergence, not a version split.
+    /// </summary>
+    public static int GetBoolAsIntProp(this JsonElement el, string name)
+    {
+        if (!el.TryGetProperty(name, out var prop))
+        {
+            return 0;
+        }
+
+        return prop.ValueKind switch
+        {
+            JsonValueKind.True => 1,
+            JsonValueKind.False => 0,
+            JsonValueKind.Number when prop.TryGetInt32(out var val) => val,
+            _ => 0,
+        };
+    }
+
+    /// <summary>
     /// Reads a timestamp PoracleNG may send as null, as an empty string, or not at all.
     /// </summary>
     public static DateTime? GetDateTimePropOrNull(this JsonElement el, string name) =>

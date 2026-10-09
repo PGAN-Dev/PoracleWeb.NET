@@ -101,12 +101,26 @@ public class PoracleV2SchemaServiceTests
             """;
         const string both = """
             {"paths":{"/v2/humans":{"get":{},"post":{}},"/v2/humans/{id}":{"get":{},"delete":{}}},
-             "components":{"schemas":{}}}
+             "components":{"schemas":{"V2HumanSummary":{"properties":{"last_checked":{"type":"string"}}}}}}
             """;
 
         Assert.False(PoracleV2SchemaService.Parse(listOnly).AdminHumanRoutes);
         Assert.False(PoracleV2SchemaService.Parse(deleteOnly).AdminHumanRoutes);
         Assert.True(PoracleV2SchemaService.Parse(both).AdminHumanRoutes);
+    }
+
+    [Fact]
+    public void AdminHumanRoutesNeedsTheThreeHashFieldsNotJustTheRoutes()
+    {
+        // The routes existed from PR #217 on; #230 added last_checked/disabled_date/notes, which the
+        // admin grid actually reads. A server with the routes but the pre-#230 summary shape must not
+        // report this as available -- it is not meaningfully different from having no route at all.
+        const string preHash230 = """
+            {"paths":{"/v2/humans":{"get":{}},"/v2/humans/{id}":{"get":{},"delete":{}}},
+             "components":{"schemas":{"V2HumanSummary":{"properties":{"id":{"type":"string"}}}}}}
+            """;
+
+        Assert.False(PoracleV2SchemaService.Parse(preHash230).AdminHumanRoutes);
     }
 
     [Fact]

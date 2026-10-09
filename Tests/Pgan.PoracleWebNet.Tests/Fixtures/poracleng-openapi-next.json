@@ -6,7 +6,7 @@
  "paths": {
   "/v2/humans": {
    "get": {
-    "description": "Lists humans on this instance, ascending by id. `?type=` narrows to one registration type; `?id=a,b,c` fetches a specific set in one request (unknown ids are omitted, not an error). Combining them intersects. Returns a summary per human \u2014 use GET /v2/humans/{id} for the full resource.",
+    "description": "Lists humans on this instance, ascending by id. `?type=` narrows to one registration type; `?id=a,b,c` fetches a specific set in one request (unknown ids are omitted, not an error). Combining them intersects. Returns a summary per human — use GET /v2/humans/{id} for the full resource.",
     "operationId": "v2-list-humans",
     "parameters": [
      {
@@ -20,12 +20,12 @@
       }
      },
      {
-      "description": "Comma-separated ids to fetch, e.g. id=123,456 \u2014 the same form as the bulk tracking delete's uid=. Unknown ids are omitted rather than erroring. Omit to list everything.",
+      "description": "Comma-separated ids to fetch, e.g. id=123,456 — the same form as the bulk tracking delete's uid=. Unknown ids are omitted rather than erroring. Omit to list everything.",
       "explode": false,
       "in": "query",
       "name": "id",
       "schema": {
-       "description": "Comma-separated ids to fetch, e.g. id=123,456 \u2014 the same form as the bulk tracking delete's uid=. Unknown ids are omitted rather than erroring. Omit to list everything.",
+       "description": "Comma-separated ids to fetch, e.g. id=123,456 — the same form as the bulk tracking delete's uid=. Unknown ids are omitted rather than erroring. Omit to list everything.",
        "type": "string"
       }
      }
@@ -273,7 +273,7 @@
       ]
      },
      "trusted": {
-      "description": "Set true to select fences that are not userSelectable \u2014 for a server-side client that has already authorised the change (e.g. the user drew the fence). Honoured because the caller holds the API secret. Unknown fence names are still rejected.",
+      "description": "Set true to select fences that are not userSelectable — for a server-side client that has already authorised the change (e.g. the user drew the fence). Honoured because the caller holds the API secret. Unknown fence names are still rejected.",
       "type": "boolean"
      }
     },
@@ -314,7 +314,7 @@
       ]
      },
      "distance": {
-      "description": "Radius in metres around the anchor location. Omit (or 0) to match by the profile's geofence areas instead of a radius \u2014 0 means area-based, NOT zero metres (stored as 0). Returned as null when at its wildcard.",
+      "description": "Radius in metres around the anchor location. Omit (or 0) to match by the profile's geofence areas instead of a radius — 0 means area-based, NOT zero metres (stored as 0). Returned as null when at its wildcard.",
       "format": "int64",
       "maximum": 40000000,
       "minimum": 0,
@@ -347,13 +347,13 @@
       ]
      },
      "grunt_id": {
-      "description": "Game-master grunt id; resolves to that grunt's name and implies its own gender. One-of mode field. Mutually exclusive with the others; gender not allowed. Read-back reports the rule as grunt_type, because that is what is stored \u2014 see grunt_type.",
+      "description": "Game-master grunt id; resolves to that grunt's name and implies its own gender. One-of mode field. Mutually exclusive with the others; gender not allowed. Read-back reports the rule as grunt_type, because that is what is stored — see grunt_type.",
       "format": "int64",
       "minimum": 0,
       "type": "integer"
      },
      "grunt_type": {
-      "description": "The stored targeting value, and the ONE targeting field every read emits. Accepts any grunt name the bot accepts: a pokemon type (\"water\"), a named grunt (\"giovanni\", \"blanche\", \"mixed\", \"npc_0\"), or a catch-all (\"everything\", \"boss\"). type_id and grunt_id are input conveniences that resolve to one of these. Pokestop-event names are not valid here \u2014 use /incident. Enumerate valid names from GET /api/masterdata/grunts. One-of mode field; may be combined with gender.",
+      "description": "The stored targeting value, and the ONE targeting field every read emits. Accepts any grunt name the bot accepts: a pokemon type (\"water\"), a named grunt (\"giovanni\", \"blanche\", \"mixed\", \"npc_0\"), or a catch-all (\"everything\", \"boss\"). type_id and grunt_id are input conveniences that resolve to one of these. Pokestop-event names are not valid here — use /incident. Enumerate valid names from GET /api/masterdata/grunts. One-of mode field; may be combined with gender.",
       "type": "string"
      },
      "override_areas": {
@@ -388,7 +388,7 @@
       ]
      },
      "type_id": {
-      "description": "Pokemon type id (1-18); grunt_type resolves to that type's lowercased name. At most one mode field may be set \u2014 this OR grunt_id OR grunt_type OR everything OR boss. Omitting all of them matches EVERY invasion (stored \"everything\") \u2014 blank is the wildcard, as elsewhere in v2. In responses, the active mode field is always present; the other mode fields are omitted/null.",
+      "description": "Pokemon type id (1-18); grunt_type resolves to that type's lowercased name. At most one mode field may be set — this OR grunt_id OR grunt_type OR everything OR boss. Omitting all of them matches EVERY invasion (stored \"everything\") — blank is the wildcard, as elsewhere in v2. In responses, the active mode field is always present; the other mode fields are omitted/null.",
       "format": "int64",
       "maximum": 18,
       "minimum": 1,
@@ -401,35 +401,35 @@
     "additionalProperties": false,
     "properties": {
      "day": {
-      "description": "ISO day of week (1=Monday \u2026 7=Sunday)",
+      "description": "ISO day of week (1=Monday … 7=Sunday)",
       "format": "int64",
       "maximum": 7,
       "minimum": 1,
       "type": "integer"
      },
      "end_hours": {
-      "description": "End hour (0\u201323); required when step>0",
+      "description": "End hour (0–23); required when step>0",
       "format": "int64",
       "maximum": 23,
       "minimum": 0,
       "type": "integer"
      },
      "end_mins": {
-      "description": "End minute (0\u201359); required when step>0",
+      "description": "End minute (0–59); required when step>0",
       "format": "int64",
       "maximum": 59,
       "minimum": 0,
       "type": "integer"
      },
      "hours": {
-      "description": "Start hour (0\u201323)",
+      "description": "Start hour (0–23)",
       "format": "int64",
       "maximum": 23,
       "minimum": 0,
       "type": "integer"
      },
      "mins": {
-      "description": "Start minute (0\u201359)",
+      "description": "Start minute (0–59)",
       "format": "int64",
       "maximum": 59,
       "minimum": 0,
@@ -493,13 +493,72 @@
       "description": "The created profile. Omitted only when the post-insert read-back failed; profile_no is still authoritative."
      },
      "profile_no": {
-      "description": "The profile_no assigned to the new profile \u2014 the LOWEST FREE number, which the caller cannot predict",
+      "description": "The profile_no assigned to the new profile — the LOWEST FREE number, which the caller cannot predict",
       "format": "int64",
       "type": "integer"
      }
     },
     "required": [
      "profile_no"
+    ],
+    "type": "object"
+   },
+   "V2HumanSummary": {
+    "additionalProperties": false,
+    "properties": {
+     "admin_disable": {
+      "description": "Whether an admin has disabled this account; such a user must re-register",
+      "type": "boolean"
+     },
+     "current_profile_no": {
+      "description": "The profile currently active for this human",
+      "format": "int64",
+      "type": "integer"
+     },
+     "disabled_date": {
+      "description": "When the destination was disabled. Null while enabled; pairs with admin_disable so a disabled account shows when.",
+      "type": "string"
+     },
+     "enabled": {
+      "description": "Whether the user has alerts switched on (the !start/!stop flag)",
+      "type": "boolean"
+     },
+     "id": {
+      "description": "Human id (Discord/Telegram id, or webhook name)",
+      "type": "string"
+     },
+     "language": {
+      "description": "Alert language code, empty when the user has not chosen one",
+      "type": "string"
+     },
+     "last_checked": {
+      "description": "When reconciliation last verified this destination. Null if never checked — admins sort on this to find dormant accounts.",
+      "type": "string"
+     },
+     "name": {
+      "description": "Display name",
+      "type": "string"
+     },
+     "notes": {
+      "description": "Free-form operator notes.",
+      "type": "string"
+     },
+     "type": {
+      "description": "Registration type, e.g. discord:user, discord:channel, webhook, telegram:user",
+      "type": "string"
+     }
+    },
+    "required": [
+     "id",
+     "type",
+     "name",
+     "enabled",
+     "admin_disable",
+     "language",
+     "current_profile_no",
+     "last_checked",
+     "disabled_date",
+     "notes"
     ],
     "type": "object"
    }

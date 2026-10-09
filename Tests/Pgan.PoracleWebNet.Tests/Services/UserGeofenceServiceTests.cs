@@ -15,7 +15,6 @@ public class UserGeofenceServiceTests
     private readonly Mock<IKojiService> _kojiService = new();
     private readonly Mock<IPoracleApiProxy> _poracleApiProxy = new();
     private readonly Mock<IPoracleHumanProxy> _humanProxy = new();
-    private readonly Mock<IHumanRepository> _humanRepo = new();
     private readonly Mock<IHumanService> _humanService = new();
     private readonly Mock<IUserAreaDualWriter> _areaWriter = new();
     private readonly Mock<IDiscordNotificationService> _discordNotificationService = new();
@@ -34,7 +33,6 @@ public class UserGeofenceServiceTests
             this._kojiService.Object,
             this._poracleApiProxy.Object,
             this._humanProxy.Object,
-            this._humanRepo.Object,
             this._humanService.Object,
             this._areaWriter.Object,
             this._discordNotificationService.Object,
@@ -492,8 +490,25 @@ public class UserGeofenceServiceTests
 
         var result = await this._sut.ApproveSubmissionAsync("admin1", 1, "Downtown Official");
 
+        // PromotedName keeps the admin's casing for display; the name sent to Koji is lowercased because
+        // it is also what Poracle matches area subscriptions against -- see the consistency test below.
         Assert.Equal("Downtown Official", result.PromotedName);
-        this._kojiService.Verify(k => k.SaveGeofenceAsync("Downtown Official", "Downtown", "City", 5, It.IsAny<double[][]>(), true), Times.Once);
+        this._kojiService.Verify(k => k.SaveGeofenceAsync("downtown official", "Downtown", "City", 5, It.IsAny<double[][]>(), true), Times.Once);
+    }
+
+    [Fact]
+    public async Task ApproveSubmissionAsyncSendsTheSameCasingToKojiAndTheOwnerSubscription()
+    {
+        // The bug this guards: Koji's __name is also Poracle's matching key, and humans.area/profiles.area
+        // must hold the identical string -- Poracle matches case-sensitively. A promoted name reaching Koji
+        // verbatim while RenameAreaInAllProfilesAsync lowercased its own copy left the two diverged, so the
+        // owner's subscription silently stopped matching anything Poracle served for that area.
+        this.SeedPendingGeofence();
+
+        await this._sut.ApproveSubmissionAsync("admin1", 1, "New Downtown");
+
+        this._kojiService.Verify(k => k.SaveGeofenceAsync("new downtown", "Downtown", "City", 5, It.IsAny<double[][]>(), true), Times.Once);
+        this._areaWriter.Verify(w => w.RenameAreaInAllProfilesAsync("u1", "downtown", "new downtown"), Times.Once);
     }
 
     // This used to assert that approve calls SetAreasAsync with a swapped list. That WAS the bug:
@@ -528,7 +543,7 @@ public class UserGeofenceServiceTests
 
         await this._sut.ApproveSubmissionAsync("admin1", 1, "New Downtown");
 
-        this._areaWriter.Verify(w => w.RenameAreaInAllProfilesAsync("u1", "downtown", "New Downtown"), Times.Once);
+        this._areaWriter.Verify(w => w.RenameAreaInAllProfilesAsync("u1", "downtown", "new downtown"), Times.Once);
     }
 
     [Fact]
@@ -793,7 +808,7 @@ public class UserGeofenceServiceTests
             new() { Id = "user2", Name = "Bob" }
         };
         this._repository.Setup(r => r.GetAllAsync()).ReturnsAsync(geofences);
-        this._humanRepo.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()))
+        this._humanService.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()))
             .ReturnsAsync(humans.AsEnumerable());
 
         var result = await this._sut.GetAllWithDetailsAsync();
@@ -816,7 +831,7 @@ public class UserGeofenceServiceTests
             new() { Id = "known_user", Name = "Alice" }
         };
         this._repository.Setup(r => r.GetAllAsync()).ReturnsAsync(geofences);
-        this._humanRepo.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()))
+        this._humanService.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()))
             .ReturnsAsync(humans.AsEnumerable());
 
         var result = await this._sut.GetAllWithDetailsAsync();
@@ -837,7 +852,7 @@ public class UserGeofenceServiceTests
             new() { Id = "user1", Name = null }
         };
         this._repository.Setup(r => r.GetAllAsync()).ReturnsAsync(geofences);
-        this._humanRepo.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()))
+        this._humanService.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()))
             .ReturnsAsync(humans.AsEnumerable());
 
         var result = await this._sut.GetAllWithDetailsAsync();
@@ -855,7 +870,7 @@ public class UserGeofenceServiceTests
             new() { Id = 1, KojiName = "area1", HumanId = "u1", PolygonJson = polygonJson }
         };
         this._repository.Setup(r => r.GetAllAsync()).ReturnsAsync(geofences);
-        this._humanRepo.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()))
+        this._humanService.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()))
             .ReturnsAsync(new List<Human> { new() { Id = "u1", Name = "User" } }.AsEnumerable());
 
         var result = await this._sut.GetAllWithDetailsAsync();
@@ -875,7 +890,7 @@ public class UserGeofenceServiceTests
             new() { Id = 1, KojiName = "area1", HumanId = "u1", PolygonJson = null }
         };
         this._repository.Setup(r => r.GetAllAsync()).ReturnsAsync(geofences);
-        this._humanRepo.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()))
+        this._humanService.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()))
             .ReturnsAsync(new List<Human> { new() { Id = "u1", Name = "User" } }.AsEnumerable());
 
         var result = await this._sut.GetAllWithDetailsAsync();
@@ -892,7 +907,7 @@ public class UserGeofenceServiceTests
             new() { Id = 1, KojiName = "area1", HumanId = "u1", PolygonJson = "" }
         };
         this._repository.Setup(r => r.GetAllAsync()).ReturnsAsync(geofences);
-        this._humanRepo.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()))
+        this._humanService.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()))
             .ReturnsAsync(new List<Human> { new() { Id = "u1", Name = "User" } }.AsEnumerable());
 
         var result = await this._sut.GetAllWithDetailsAsync();
@@ -905,7 +920,7 @@ public class UserGeofenceServiceTests
     public async Task GetAllWithDetailsAsyncReturnsEmptyListWithoutErrors()
     {
         this._repository.Setup(r => r.GetAllAsync()).ReturnsAsync([]);
-        this._humanRepo.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()))
+        this._humanService.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()))
             .ReturnsAsync([]);
 
         var result = await this._sut.GetAllWithDetailsAsync();
@@ -914,7 +929,7 @@ public class UserGeofenceServiceTests
 
         // No rows, no lookup. The enrichment is shared with approve and reject now (#618) and returns
         // early on an empty list rather than asking the humans table about nobody.
-        this._humanRepo.Verify(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()), Times.Never);
+        this._humanService.Verify(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()), Times.Never);
     }
 
     [Fact]
@@ -927,7 +942,7 @@ public class UserGeofenceServiceTests
             new() { Id = 3, KojiName = "area3", HumanId = "u2" }
         };
         this._repository.Setup(r => r.GetAllAsync()).ReturnsAsync(geofences);
-        this._humanRepo.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()))
+        this._humanService.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()))
             .ReturnsAsync(new List<Human>
             {
                 new() { Id = "u1", Name = "Alice" },
@@ -937,7 +952,7 @@ public class UserGeofenceServiceTests
         var result = await this._sut.GetAllWithDetailsAsync();
 
         // Verify GetByIdsAsync was called with only distinct IDs (2, not 3)
-        this._humanRepo.Verify(r => r.GetByIdsAsync(It.Is<IEnumerable<string>>(
+        this._humanService.Verify(r => r.GetByIdsAsync(It.Is<IEnumerable<string>>(
             ids => ids.Count() == 2)), Times.Once);
         // Both geofences from u1 should have the same owner name
         Assert.Equal("Alice", result[0].OwnerName);
@@ -958,7 +973,7 @@ public class UserGeofenceServiceTests
             new() { Id = "admin1", Name = "AdminUser" }
         };
         this._repository.Setup(r => r.GetAllAsync()).ReturnsAsync(geofences);
-        this._humanRepo.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()))
+        this._humanService.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()))
             .ReturnsAsync(humans.AsEnumerable());
 
         var result = await this._sut.GetAllWithDetailsAsync();
@@ -978,7 +993,7 @@ public class UserGeofenceServiceTests
             new() { Id = "user1", Name = "Alice" }
         };
         this._repository.Setup(r => r.GetAllAsync()).ReturnsAsync(geofences);
-        this._humanRepo.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()))
+        this._humanService.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()))
             .ReturnsAsync(humans.AsEnumerable());
 
         var result = await this._sut.GetAllWithDetailsAsync();
@@ -998,7 +1013,7 @@ public class UserGeofenceServiceTests
             new() { Id = "user1", Name = "Alice" }
         };
         this._repository.Setup(r => r.GetAllAsync()).ReturnsAsync(geofences);
-        this._humanRepo.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()))
+        this._humanService.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()))
             .ReturnsAsync(humans.AsEnumerable());
 
         var result = await this._sut.GetAllWithDetailsAsync();
@@ -1019,7 +1034,7 @@ public class UserGeofenceServiceTests
             new() { Id = "admin1", Name = null }
         };
         this._repository.Setup(r => r.GetAllAsync()).ReturnsAsync(geofences);
-        this._humanRepo.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()))
+        this._humanService.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()))
             .ReturnsAsync(humans.AsEnumerable());
 
         var result = await this._sut.GetAllWithDetailsAsync();
@@ -1043,13 +1058,13 @@ public class UserGeofenceServiceTests
             new() { Id = "admin1", Name = "AdminUser" }
         };
         this._repository.Setup(r => r.GetAllAsync()).ReturnsAsync(geofences);
-        this._humanRepo.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()))
+        this._humanService.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()))
             .ReturnsAsync(humans.AsEnumerable());
 
         var result = await this._sut.GetAllWithDetailsAsync();
 
         // Verify single batch call with 3 distinct IDs (user1, user2, admin1)
-        this._humanRepo.Verify(r => r.GetByIdsAsync(It.Is<IEnumerable<string>>(
+        this._humanService.Verify(r => r.GetByIdsAsync(It.Is<IEnumerable<string>>(
             ids => ids.Count() == 3)), Times.Once);
         Assert.Equal("AdminUser", result[0].ReviewedByName);
         Assert.Equal("AdminUser", result[1].ReviewedByName);
@@ -1069,13 +1084,13 @@ public class UserGeofenceServiceTests
             new() { Id = "admin1", Name = "SelfReviewer" }
         };
         this._repository.Setup(r => r.GetAllAsync()).ReturnsAsync(geofences);
-        this._humanRepo.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()))
+        this._humanService.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()))
             .ReturnsAsync(humans.AsEnumerable());
 
         var result = await this._sut.GetAllWithDetailsAsync();
 
         // Verify single batch call with 1 distinct ID (admin1 is both owner and reviewer)
-        this._humanRepo.Verify(r => r.GetByIdsAsync(It.Is<IEnumerable<string>>(
+        this._humanService.Verify(r => r.GetByIdsAsync(It.Is<IEnumerable<string>>(
             ids => ids.Count() == 1)), Times.Once);
         Assert.Equal("SelfReviewer", result[0].OwnerName);
         Assert.Equal("SelfReviewer", result[0].ReviewedByName);

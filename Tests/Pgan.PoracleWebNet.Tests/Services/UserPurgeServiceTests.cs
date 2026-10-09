@@ -26,7 +26,7 @@ public class UserPurgeServiceTests
     public UserPurgeServiceTests()
     {
         this._humans.Setup(r => r.ExistsAsync("u1")).ReturnsAsync(true);
-        this._humans.Setup(r => r.DeleteUserAsync("u1")).ReturnsAsync(true);
+        this._humanService.Setup(s => s.DeleteUserAsync("u1")).ReturnsAsync(true);
         this._geofences.Setup(r => r.GetByHumanIdAsync("u1")).ReturnsAsync([]);
         this._quickPicks.Setup(r => r.GetByOwnerAsync("u1")).ReturnsAsync([]);
 
@@ -58,7 +58,7 @@ public class UserPurgeServiceTests
         this._delegates.Verify(r => r.RemoveAllForIdAsync("u1"), Times.Once);
         this._appliedStates.Verify(r => r.DeleteByUserAsync("u1"), Times.Once);
         this._quickPicks.Verify(r => r.DeleteByIdAndOwnerAsync("p1", "u1"), Times.Once);
-        this._humans.Verify(r => r.DeleteUserAsync("u1"), Times.Once);
+        this._humanService.Verify(s => s.DeleteUserAsync("u1"), Times.Once);
     }
 
     /// <summary>
@@ -98,7 +98,7 @@ public class UserPurgeServiceTests
         Assert.True(await this._sut.PurgeAsync("u1"));
 
         this._delegates.Verify(r => r.RemoveAllForIdAsync("u1"), Times.Once);
-        this._humans.Verify(r => r.DeleteUserAsync("u1"), Times.Once);
+        this._humanService.Verify(s => s.DeleteUserAsync("u1"), Times.Once);
     }
 
     /// <summary>The humans row goes last, so a part-way failure leaves an account still visible.</summary>
@@ -110,7 +110,7 @@ public class UserPurgeServiceTests
             .Callback(() => order.Add("alarms")).ReturnsAsync(0);
         this._delegates.Setup(r => r.RemoveAllForIdAsync("u1"))
             .Callback(() => order.Add("delegates")).ReturnsAsync(0);
-        this._humans.Setup(r => r.DeleteUserAsync("u1"))
+        this._humanService.Setup(s => s.DeleteUserAsync("u1"))
             .Callback(() => order.Add("human")).ReturnsAsync(true);
 
         await this._sut.PurgeAsync("u1");
