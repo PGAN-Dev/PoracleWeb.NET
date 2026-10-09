@@ -490,8 +490,25 @@ public class UserGeofenceServiceTests
 
         var result = await this._sut.ApproveSubmissionAsync("admin1", 1, "Downtown Official");
 
+        // PromotedName keeps the admin's casing for display; the name sent to Koji is lowercased because
+        // it is also what Poracle matches area subscriptions against -- see the consistency test below.
         Assert.Equal("Downtown Official", result.PromotedName);
-        this._kojiService.Verify(k => k.SaveGeofenceAsync("Downtown Official", "Downtown", "City", 5, It.IsAny<double[][]>(), true), Times.Once);
+        this._kojiService.Verify(k => k.SaveGeofenceAsync("downtown official", "Downtown", "City", 5, It.IsAny<double[][]>(), true), Times.Once);
+    }
+
+    [Fact]
+    public async Task ApproveSubmissionAsyncSendsTheSameCasingToKojiAndTheOwnerSubscription()
+    {
+        // The bug this guards: Koji's __name is also Poracle's matching key, and humans.area/profiles.area
+        // must hold the identical string -- Poracle matches case-sensitively. A promoted name reaching Koji
+        // verbatim while RenameAreaInAllProfilesAsync lowercased its own copy left the two diverged, so the
+        // owner's subscription silently stopped matching anything Poracle served for that area.
+        this.SeedPendingGeofence();
+
+        await this._sut.ApproveSubmissionAsync("admin1", 1, "New Downtown");
+
+        this._kojiService.Verify(k => k.SaveGeofenceAsync("new downtown", "Downtown", "City", 5, It.IsAny<double[][]>(), true), Times.Once);
+        this._areaWriter.Verify(w => w.RenameAreaInAllProfilesAsync("u1", "downtown", "new downtown"), Times.Once);
     }
 
     // This used to assert that approve calls SetAreasAsync with a swapped list. That WAS the bug:
@@ -526,7 +543,7 @@ public class UserGeofenceServiceTests
 
         await this._sut.ApproveSubmissionAsync("admin1", 1, "New Downtown");
 
-        this._areaWriter.Verify(w => w.RenameAreaInAllProfilesAsync("u1", "downtown", "New Downtown"), Times.Once);
+        this._areaWriter.Verify(w => w.RenameAreaInAllProfilesAsync("u1", "downtown", "new downtown"), Times.Once);
     }
 
     [Fact]

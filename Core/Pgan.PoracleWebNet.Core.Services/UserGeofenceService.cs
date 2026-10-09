@@ -706,8 +706,15 @@ public partial class UserGeofenceService(
             geofence.GroupName = groupName.Trim();
         }
 
-        // Save to Koji as a public geofence (userSelectable + displayInMatches = true)
-        var targetName = promotedName ?? geofence.KojiName;
+        // Save to Koji as a public geofence (userSelectable + displayInMatches = true). This name is also
+        // what Poracle matches area subscriptions against, so -- like every other geofence name in this
+        // file -- it must be lowercase; Poracle's matching is case-sensitive. An admin-typed promoted name
+        // with any uppercase letter used to reach Koji verbatim while RenameAreaInAllProfilesAsync (below)
+        // lowercased the same name for the owner's subscription: the two diverged, Koji served the mixed
+        // case and the owner's humans.area/profiles.area held the lowercase, and that user's alerts for
+        // the area they just had approved silently stopped firing. geofence.PromotedName keeps the
+        // original casing for display, same as every other PromotedName read in this file.
+        var targetName = (promotedName ?? geofence.KojiName).ToLowerInvariant();
         await this._kojiService.SaveGeofenceAsync(
             targetName, geofence.DisplayName, geofence.GroupName, geofence.ParentId, polygon, isPublic: true);
 
@@ -719,12 +726,12 @@ public partial class UserGeofenceService(
         // promoted one because PoracleNG has not reloaded its fence list yet (that happens below). The
         // result was a silent wipe of the owner's entire custom-geofence subscription set — not just this
         // fence — while approve still returned 200. See #408.
-        if (promotedName != null && !string.Equals(promotedName, geofence.KojiName, StringComparison.Ordinal))
+        if (!string.Equals(targetName, geofence.KojiName, StringComparison.Ordinal))
         {
             try
             {
                 await this._areaWriter.RenameAreaInAllProfilesAsync(
-                    geofence.HumanId, geofence.KojiName, promotedName);
+                    geofence.HumanId, geofence.KojiName, targetName);
             }
             catch (Exception ex)
             {
