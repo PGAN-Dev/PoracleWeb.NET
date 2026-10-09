@@ -988,10 +988,26 @@ alongside it. `support_url` is otherwise read by signed-in callers only
 it matters, so the value travels inside the 401 body rather than through the normal settings fetch.
 `AuthService` stores it in a private signal (`_disabledAccountInfo`) the instant `loadCurrentUser()` sees
 the code, and `handleTokenFromCallback` reads it right after awaiting that call: if set, it clears the
-session outright (the token is useless regardless) and navigates to `/login#error=account_disabled
+session outright (the token is useless regardless) and sends the browser to `/login#error=account_disabled
 &support_url=...` instead of `/dashboard`. This reuses the exact mechanism `LoginComponent` already has
 for every other pre-token-issuance auth failure (`missing_required_role`, `not_in_guild`, etc.), just fed
 by a failure that happens after a token exists rather than before one is issued.
+
+**That redirect is a real `window.location.href` assignment, not `router.navigate({ fragment })` --
+verified live in a real browser, not just jsdom.** Every existing `/login#error=...` is built by the
+backend (`AuthController`'s `Redirect($"{frontendUrl}/login#error=...")`); this is the one place a
+redirect like it is built client-side, and the first thing tried was the in-app Router's `fragment`
+option. The Router's own fragment serialization re-escapes a literal `%`, so an already-percent-encoded
+`support_url` (`...%3A%2F%2F...`, one `URLSearchParams.toString()` pass) came back out of
+`router.navigate` double-encoded (`...%253A%252F%252F...`), and the link `LoginComponent` rendered
+pointed at a broken, still-percent-encoded string instead of the real URL. Every unit test for this
+passed regardless, because they mock `Router.navigate` and only assert what string it was called with --
+none of them exercise the Router's actual URL-building. Caught by driving the real `CallbackComponent` →
+`AuthService` → `Router` → `LoginComponent` chain in a live `ng serve` instance with Playwright,
+intercepting `/api/auth/me` rather than mocking any application code. The one-encode/one-decode contract
+(`URLSearchParams.toString()` written, `new URLSearchParams(location.hash)` read) now lives in its own
+pure function, `disabledAccountFragment`, exported solely so it can be pinned by a fast unit test without
+going near `window.location` or the Router at all.
 
 `account_disabled` is deliberately not one of `LoginComponent`'s `errorKeys` map entries: that map renders
 a one-line translated string, and this needs the same richer markup the dashboard banner already has

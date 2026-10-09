@@ -12,6 +12,22 @@ import { UserInfo, LoginResponse, TelegramConfig, AuthProviders } from '../model
 const TOKEN_KEY = 'poracle_token';
 const ADMIN_TOKEN_KEY = 'poracle_admin_token';
 
+/**
+ * The `#error=account_disabled&support_url=...` fragment LoginComponent reads back with
+ * `new URLSearchParams(location.hash)` -- one `encodeURIComponent`-equivalent pass via
+ * `URLSearchParams.toString()`, so it decodes with exactly one pass on the other end. Exported as its
+ * own function, rather than inlined, so that one-encode contract can be pinned in a unit test without
+ * going anywhere near `window.location` (jsdom no-ops that assignment) or the Router (this deliberately
+ * bypasses it -- see the call site).
+ */
+export function disabledAccountFragment(supportUrl: string | null): string {
+  const fragment = new URLSearchParams({ error: 'account_disabled' });
+  if (supportUrl) {
+    fragment.set('support_url', supportUrl);
+  }
+  return fragment.toString();
+}
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   /**
@@ -112,9 +128,13 @@ export class AuthService {
     const disabled = this._disabledAccountInfo();
     if (disabled) {
       this.clearSession();
-      const fragment = new URLSearchParams({ error: 'account_disabled' });
-      if (disabled.supportUrl) fragment.set('support_url', disabled.supportUrl);
-      this.router.navigate(['/login'], { fragment: fragment.toString() });
+      // A real navigation, not router.navigate({ fragment }) -- confirmed live that the Router's own
+      // fragment serialization re-escapes a literal '%' (so an already-percent-encoded support_url came
+      // out double-encoded, e.g. 'https%253A%252F%252F...', and the link LoginComponent renders was
+      // broken). Every other /login#error=... redirect in this app is already a real navigation, built
+      // by the backend the same way (AuthController's Redirect($"{frontendUrl}/login#error=...")); this
+      // is the one case built client-side.
+      window.location.href = `/login#${disabledAccountFragment(disabled.supportUrl)}`;
       return;
     }
 

@@ -4,10 +4,28 @@ import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 
-import { AuthService } from './auth.service';
+import { AuthService, disabledAccountFragment } from './auth.service';
 import { ConfigService } from './config.service';
 import { TokenStoreService } from './token-store.service';
 import { UserInfo } from '../models';
+
+/**
+ * Pinning the exact one-encode contract without touching window.location (jsdom no-ops that
+ * assignment) or the Router (handleTokenFromCallback deliberately bypasses it -- see its own tests).
+ * Caught live, in a real browser, that router.navigate({ fragment }) re-escapes a literal '%', so an
+ * already-percent-encoded support_url came out double-encoded and the rendered link was broken.
+ */
+describe('disabledAccountFragment', () => {
+  it('encodes a support URL exactly once', () => {
+    expect(disabledAccountFragment('https://example.com/support')).toBe(
+      'error=account_disabled&support_url=https%3A%2F%2Fexample.com%2Fsupport',
+    );
+  });
+
+  it('omits support_url entirely when there is none', () => {
+    expect(disabledAccountFragment(null)).toBe('error=account_disabled');
+  });
+});
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -141,8 +159,14 @@ describe('AuthService', () => {
      * A disabled account's /me 401 is silent and fires on the callback route, so without this it would
      * fall through to the dashboard with a dead token -- whose own requests then 401 outside the callback
      * route, ending the session with a generic "session expired" toast and no word of why. See #911.
+     *
+     * This is a real `window.location.href` navigation, not `router.navigate({ fragment })` -- confirmed
+     * live in a browser that the Router's own fragment serialization re-escapes a literal '%', so an
+     * already-percent-encoded support_url came out double-encoded and the rendered link was broken.
+     * jsdom no-ops the navigation itself (same as the SSO logout path below), so the distinguishing,
+     * observable behaviour here is that the in-app router is NOT used and the session is cleared first.
      */
-    it('clears the session and sends a disabled account to the login page with its reason, not the dashboard', async () => {
+    it('clears the session and sends a disabled account to the login page, not the dashboard, without the in-app router', async () => {
       const promise = service.handleTokenFromCallback('new-token');
 
       const req = httpMock.expectOne(`${API}/api/auth/me`);
@@ -157,9 +181,7 @@ describe('AuthService', () => {
       await promise;
 
       expect(localStorage.getItem('poracle_token')).toBeNull();
-      expect(router.navigate).toHaveBeenCalledWith(['/login'], {
-        fragment: 'error=account_disabled&support_url=https%3A%2F%2Fexample.com%2Fsupport',
-      });
+      expect(router.navigate).not.toHaveBeenCalled();
       httpMock.expectNone(`${API}/api/settings`);
     });
 
@@ -171,7 +193,8 @@ describe('AuthService', () => {
         .flush({ code: 'account_disabled', error: 'blocked', supportUrl: null }, { status: 401, statusText: 'Unauthorized' });
       await promise;
 
-      expect(router.navigate).toHaveBeenCalledWith(['/login'], { fragment: 'error=account_disabled' });
+      expect(localStorage.getItem('poracle_token')).toBeNull();
+      expect(router.navigate).not.toHaveBeenCalled();
     });
 
     it('still goes to the dashboard for a 401 with no disabled-account code', async () => {
