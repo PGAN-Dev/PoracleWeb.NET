@@ -1732,7 +1732,7 @@
     "DISABLE_LOCATION_LABEL": "Placering",
     "DISABLE_LOCATION_DESC": "Lad brugere angive en hjemmeplacering.",
     "DISABLE_NOMINATIM_LABEL": "Geokodning",
-    "DISABLE_NOMINATIM_DESC": "Tillad Nominatim-adressesøgning ved valg af placering.",
+    "DISABLE_NOMINATIM_DESC": "Tillad adressesøgning og omvendt opslag ved valg af placering.",
     "DISABLE_USER_GEOFENCES_LABEL": "Brugerdefinerede geofences",
     "DISABLE_USER_GEOFENCES_DESC": "Lad brugere tegne, importere og indsende deres egne geofences. Eksisterende geofences fungerer fortsat.",
     "ENABLE_TEMPLATES_LABEL": "Skabeloner",

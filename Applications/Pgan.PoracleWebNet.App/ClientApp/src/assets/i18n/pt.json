@@ -1745,7 +1745,7 @@
     "DISABLE_LOCATION_LABEL": "Localização",
     "DISABLE_LOCATION_DESC": "Permitir que os utilizadores definam uma localização de casa.",
     "DISABLE_NOMINATIM_LABEL": "Geocodificação",
-    "DISABLE_NOMINATIM_DESC": "Permitir a pesquisa de endereços Nominatim para escolha de localização.",
+    "DISABLE_NOMINATIM_DESC": "Permitir a pesquisa de endereços e a pesquisa inversa para escolha de localização.",
     "DISABLE_USER_GEOFENCES_LABEL": "Geofences personalizadas",
     "DISABLE_USER_GEOFENCES_DESC": "Permitir que os utilizadores desenhem, importem e submetam as suas próprias geofences. As geofences existentes continuam a funcionar.",
     "ENABLE_TEMPLATES_LABEL": "Modelos",

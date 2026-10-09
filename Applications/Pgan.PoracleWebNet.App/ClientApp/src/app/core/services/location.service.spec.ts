@@ -39,12 +39,12 @@ describe('LocationService', () => {
     it('should fetch geocoding results for valid query', () => {
       service.geocode('Main Street').subscribe(results => {
         expect(results).toHaveLength(1);
-        expect(results[0].display_name).toBe('Main Street, City');
+        expect(results[0].displayName).toBe('Main Street, City');
       });
 
       const req = httpMock.expectOne(`${API}/api/location/geocode?q=Main%20Street`);
       expect(req.request.method).toBe('GET');
-      req.flush([{ display_name: 'Main Street, City', lat: '40.7', lon: '-74.0' }]);
+      req.flush([{ displayName: 'Main Street, City', latitude: 40.7, longitude: -74.0 }]);
     });
 
     it('should return empty array on error', () => {
@@ -118,11 +118,11 @@ describe('LocationService', () => {
   describe('reverseGeocode', () => {
     it('should fetch reverse geocoding result', () => {
       service.reverseGeocode(40.7, -74.0).subscribe(result => {
-        expect(result?.display_name).toBe('123 Main St');
+        expect(result?.displayName).toBe('123 Main St');
       });
 
       httpMock.expectOne(`${API}/api/location/reverse?lat=40.7&lon=-74`).flush({
-        display_name: '123 Main St',
+        displayName: '123 Main St',
       });
     });
 

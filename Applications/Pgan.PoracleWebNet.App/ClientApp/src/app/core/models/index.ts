@@ -423,27 +423,48 @@ export interface Location {
 
 // ─── Geocoding ────────────────────────────────────────────────────────────────
 
-export interface GeocodingAddress {
+/**
+ * A forward-geocode candidate, in the shape PoracleNG's own `/api/geocode/forward` answers -- flat,
+ * and the same regardless of whether the operator has it pointed at Nominatim, Photon or Google. See
+ * #845: this app no longer calls a geocoder provider directly or parses its payload.
+ */
+export interface GeocodingResult {
   city?: string;
   country?: string;
-  house_number?: string;
-  postcode?: string;
-  road?: string;
+  displayName: string;
+  latitude: number;
+  longitude: number;
+  name?: string;
   state?: string;
+  streetName?: string;
+  streetNumber?: string;
+  zipcode?: string;
+}
+
+/**
+ * A reverse-geocode answer, in the shape PoracleNG's `/api/geocode/reverse` returns -- richer than a
+ * forward result (it is the same `Address` struct Poracle's own DTS templates read), and every field
+ * empty-string rather than absent when nothing was found at that coordinate.
+ */
+export interface ReverseGeocodingResult {
+  addr: string;
+  city?: string;
+  country?: string;
+  countryCode?: string;
+  county?: string;
+  displayName: string;
+  flag?: string;
+  formattedAddress: string;
+  latitude: number;
+  longitude: number;
+  neighbourhood?: string;
+  state?: string;
+  streetName?: string;
+  streetNumber?: string;
+  suburb?: string;
   town?: string;
   village?: string;
-}
-
-export interface GeocodingResult {
-  address?: GeocodingAddress;
-  display_name: string;
-  lat: string;
-  lon: string;
-}
-
-export interface ReverseGeocodingResult {
-  address?: GeocodingAddress;
-  display_name: string;
+  zipcode?: string;
 }
 
 // ─── Geofence ─────────────────────────────────────────────────────────────────

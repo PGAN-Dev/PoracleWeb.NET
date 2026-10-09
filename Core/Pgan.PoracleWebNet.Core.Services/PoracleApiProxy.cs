@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -448,6 +450,96 @@ public class PoracleApiProxy(HttpClient httpClient, IConfiguration configuration
         }
 
         return await response.Content.ReadAsStringAsync();
+    }
+
+    /// <inheritdoc />
+    public async Task<string?> GetGeocodeForwardAsync(string query, string? language = null)
+    {
+        var (body, routeAbsent) = await this.GetGeocodeAsync(
+            $"{this._apiAddress}/api/geocode/forward?q={Uri.EscapeDataString(query)}{LanguageParam(language)}");
+        return body ?? (routeAbsent ? await this.GetLegacyGeocodeAsync(providerUrl =>
+            $"{providerUrl}/search?addressdetails=1&q={Uri.EscapeDataString(query)}&format=json&limit=5") : null);
+    }
+
+    /// <inheritdoc />
+    public async Task<string?> GetGeocodeReverseAsync(double lat, double lon, string? language = null)
+    {
+        var (body, routeAbsent) = await this.GetGeocodeAsync(
+            $"{this._apiAddress}/api/geocode/reverse?lat={lat.ToString(CultureInfo.InvariantCulture)}" +
+            $"&lon={lon.ToString(CultureInfo.InvariantCulture)}{LanguageParam(language)}");
+        return body ?? (routeAbsent ? await this.GetLegacyGeocodeAsync(providerUrl =>
+            $"{providerUrl}/reverse?lat={lat.ToString(CultureInfo.InvariantCulture)}" +
+            $"&lon={lon.ToString(CultureInfo.InvariantCulture)}&format=json&addressdetails=1") : null);
+    }
+
+    private static string LanguageParam(string? language) =>
+        string.IsNullOrWhiteSpace(language) ? string.Empty : $"&language={Uri.EscapeDataString(language)}";
+
+    /// <summary>
+    /// The address line on the dashboard and the Areas page, and every result in the location picker, is
+    /// decoration -- a geocoder being unreachable or slow must leave the coordinates showing, not surface
+    /// an error. A 10-second timeout, independent of the shared client's default, keeps a stalled geocoder
+    /// from holding up the picker the way it used to with a direct provider call.
+    /// </summary>
+    /// <returns>
+    /// The body on success; otherwise <c>null</c> and whether the 404 was gin's plaintext "route does not
+    /// exist" rather than PoracleNG's own "nothing at this coordinate" -- <c>reverse</c> answers the
+    /// latter as JSON (and always does under <c>[geocoding] forward_only</c>), which must not trigger the
+    /// legacy fallback the former does. See <see cref="PoracleProblemDetails.IsProblemJson"/>.
+    /// </returns>
+    private async Task<(string? Body, bool RouteAbsent)> GetGeocodeAsync(string url)
+    {
+        var request = this.CreateRequest(HttpMethod.Get, url);
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        try
+        {
+            var response = await this._httpClient.SendAsync(request, cts.Token);
+            var payload = await response.Content.ReadAsStringAsync(cts.Token);
+            if (response.IsSuccessStatusCode)
+            {
+                return (payload, false);
+            }
+
+            var routeAbsent = response.StatusCode == HttpStatusCode.NotFound && !PoracleProblemDetails.IsProblemJson(payload);
+            return (null, routeAbsent);
+        }
+        catch (Exception)
+        {
+            // Unreachable PoracleNG, a timeout, a malformed response -- all the same "no address this
+            // time" answer to the caller, which is decoration and must not surface an error.
+            return (null, false);
+        }
+    }
+
+    /// <summary>
+    /// PoracleNG older than jfberry/PoracleNG#224 (merged into its <c>develop</c> 2026-09-16; not yet in
+    /// any tagged release as of this writing, confirmed against a live 5.2.1) has neither geocode route
+    /// and answers gin's plaintext 404 for both. Falls back to calling its configured provider directly
+    /// and speaking to it as Nominatim, exactly as this app did before the routes existed, so an existing
+    /// install does not lose geocoding outright -- see #845. This carries no <c>X-Poracle-Secret</c>: the
+    /// target is a third-party geocoder, not PoracleNG, and the secret must not reach it.
+    /// </summary>
+    private async Task<string?> GetLegacyGeocodeAsync(Func<string, string> buildUrl)
+    {
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        try
+        {
+            // GetConfigAsync() uses EnsureSuccessStatusCode() and throws on anything but 2xx, so it has
+            // to share this try as well -- a PoracleNG old enough to miss the geocode routes is exactly
+            // the kind of build this app must keep working against, not one more way to surface an error.
+            var config = await this.GetConfigAsync();
+            if (string.IsNullOrEmpty(config?.ProviderUrl))
+            {
+                return null;
+            }
+
+            var response = await this._httpClient.GetAsync(buildUrl(config.ProviderUrl.TrimEnd('/')), cts.Token);
+            return response.IsSuccessStatusCode ? await response.Content.ReadAsStringAsync(cts.Token) : null;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
     }
 
     private HttpRequestMessage CreateRequest(HttpMethod method, string url)

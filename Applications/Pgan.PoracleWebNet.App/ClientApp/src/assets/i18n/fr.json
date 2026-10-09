@@ -1724,7 +1724,7 @@
     "DISABLE_LOCATION_LABEL": "Localisation",
     "DISABLE_LOCATION_DESC": "Autoriser les utilisateurs à définir une position d'accueil.",
     "DISABLE_NOMINATIM_LABEL": "Géocodage",
-    "DISABLE_NOMINATIM_DESC": "Autoriser la recherche d'adresse Nominatim pour le choix de la position.",
+    "DISABLE_NOMINATIM_DESC": "Autoriser la recherche d'adresse et la recherche inversée pour le choix de la position.",
     "DISABLE_USER_GEOFENCES_LABEL": "Geofences personnalisées",
     "DISABLE_USER_GEOFENCES_DESC": "Autoriser les utilisateurs à dessiner, importer et soumettre leurs propres geofences. Les geofences existantes continuent de fonctionner.",
     "ENABLE_TEMPLATES_LABEL": "Modèles",

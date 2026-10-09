@@ -1716,7 +1716,7 @@
     "DISABLE_LOCATION_LABEL": "Posizione",
     "DISABLE_LOCATION_DESC": "Consenti agli utenti di impostare una posizione di casa.",
     "DISABLE_NOMINATIM_LABEL": "Geocodifica",
-    "DISABLE_NOMINATIM_DESC": "Consenti la ricerca di indirizzi Nominatim per la scelta della posizione.",
+    "DISABLE_NOMINATIM_DESC": "Consenti la ricerca di indirizzi e la ricerca inversa per la scelta della posizione.",
     "DISABLE_USER_GEOFENCES_LABEL": "Geofence personalizzate",
     "DISABLE_USER_GEOFENCES_DESC": "Consenti agli utenti di disegnare, importare e inviare le proprie geofence. Le geofence esistenti continuano a funzionare.",
     "ENABLE_TEMPLATES_LABEL": "Modelli",

@@ -45,7 +45,7 @@ describe('DashboardComponent feature gating', () => {
       getLocation: jest.fn(() => of(opts.location ?? { latitude: 0, longitude: 0 })),
       getStaticMapUrl: jest.fn(() => of(null)),
       getWeather: jest.fn(() => of(null)),
-      reverseGeocode: jest.fn(() => of({ display_name: '1 Main St' })),
+      reverseGeocode: jest.fn(() => of({ displayName: '1 Main St' })),
     };
 
     TestBed.resetTestingModule();

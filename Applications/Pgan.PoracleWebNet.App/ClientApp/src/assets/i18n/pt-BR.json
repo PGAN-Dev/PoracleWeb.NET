@@ -1723,7 +1723,7 @@
     "DISABLE_LOCATION_LABEL": "Localização",
     "DISABLE_LOCATION_DESC": "Permite que os usuários definam um local de casa.",
     "DISABLE_NOMINATIM_LABEL": "Geocodificação",
-    "DISABLE_NOMINATIM_DESC": "Permite a pesquisa de endereços Nominatim para escolha de localização.",
+    "DISABLE_NOMINATIM_DESC": "Permite a pesquisa de endereços e a busca reversa para escolha de localização.",
     "DISABLE_USER_GEOFENCES_LABEL": "Geofences personalizadas",
     "DISABLE_USER_GEOFENCES_DESC": "Permite que os usuários desenhem, importem e enviem suas próprias geofences. As geofences existentes continuam funcionando.",
     "ENABLE_TEMPLATES_LABEL": "Modelos",

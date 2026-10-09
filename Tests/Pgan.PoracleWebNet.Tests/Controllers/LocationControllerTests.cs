@@ -12,7 +12,6 @@ public class LocationControllerTests : ControllerTestBase
     private readonly Mock<IProfileService> _profileService = new();
     private readonly Mock<IPoracleHumanProxy> _humanProxy = new();
     private readonly Mock<IPoracleApiProxy> _proxy = new();
-    private readonly Mock<IHttpClientFactory> _httpClientFactory = new();
     private readonly Mock<IPlaceUpdateCapabilityService> _placeUpdateCapability = new();
     private readonly LocationController _sut;
 
@@ -23,7 +22,6 @@ public class LocationControllerTests : ControllerTestBase
             this._profileService.Object,
             this._humanProxy.Object,
             this._proxy.Object,
-            this._httpClientFactory.Object,
             this._placeUpdateCapability.Object);
         SetupUser(this._sut);
     }
@@ -239,19 +237,63 @@ public class LocationControllerTests : ControllerTestBase
     }
 
     [Fact]
-    public async Task GeocodeReturnsBadRequestWhenNoProviderConfigured()
+    public async Task GeocodeReturnsServiceUnavailableWhenPoracleAnswersNull()
     {
-        this._proxy.Setup(p => p.GetConfigAsync()).ReturnsAsync(new PoracleConfig { ProviderUrl = "" });
+        this._proxy.Setup(p => p.GetGeocodeForwardAsync("London", null)).ReturnsAsync((string?)null);
+
         var result = await this._sut.Geocode("London");
-        Assert.IsType<BadRequestObjectResult>(result);
+
+        var objectResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(503, objectResult.StatusCode);
     }
 
     [Fact]
-    public async Task GeocodeReturnsBadRequestWhenConfigNull()
+    public async Task GeocodeReturnsPoracleResultVerbatim()
     {
-        this._proxy.Setup(p => p.GetConfigAsync()).ReturnsAsync((PoracleConfig?)null);
-        var result = await this._sut.Geocode("London");
-        Assert.IsType<BadRequestObjectResult>(result);
+        const string body = /*lang=json,strict*/ """[{"latitude":41.65,"longitude":-83.53,"displayName":"Toledo"}]""";
+        this._proxy.Setup(p => p.GetGeocodeForwardAsync("Toledo", null)).ReturnsAsync(body);
+
+        var result = await this._sut.Geocode("Toledo");
+
+        var content = Assert.IsType<ContentResult>(result);
+        Assert.Equal(body, content.Content);
+        Assert.Equal("application/json", content.ContentType);
+    }
+
+    [Fact]
+    public async Task GeocodePassesLanguageThrough()
+    {
+        this._proxy.Setup(p => p.GetGeocodeForwardAsync("Toledo", "de")).ReturnsAsync("[]");
+
+        await this._sut.Geocode("Toledo", "de");
+
+        this._proxy.Verify(p => p.GetGeocodeForwardAsync("Toledo", "de"), Times.Once);
+    }
+
+    // --- ReverseGeocode ---
+
+    [Fact]
+    public async Task ReverseGeocodeReturnsServiceUnavailableWhenPoracleAnswersNull()
+    {
+        this._proxy.Setup(p => p.GetGeocodeReverseAsync(41.65, -83.53, null)).ReturnsAsync((string?)null);
+
+        var result = await this._sut.ReverseGeocode(41.65, -83.53);
+
+        var objectResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(503, objectResult.StatusCode);
+    }
+
+    [Fact]
+    public async Task ReverseGeocodeReturnsPoracleResultVerbatim()
+    {
+        const string body = /*lang=json,strict*/ """{"displayName":"Toledo, Ohio","latitude":41.65,"longitude":-83.53}""";
+        this._proxy.Setup(p => p.GetGeocodeReverseAsync(41.65, -83.53, null)).ReturnsAsync(body);
+
+        var result = await this._sut.ReverseGeocode(41.65, -83.53);
+
+        var content = Assert.IsType<ContentResult>(result);
+        Assert.Equal(body, content.Content);
+        Assert.Equal("application/json", content.ContentType);
     }
 
     // --- GetStaticMap ---

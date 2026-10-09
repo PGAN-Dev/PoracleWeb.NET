@@ -1723,7 +1723,7 @@
     "DISABLE_LOCATION_LABEL": "Standort",
     "DISABLE_LOCATION_DESC": "Benutzern erlauben, einen Heimatstandort festzulegen.",
     "DISABLE_NOMINATIM_LABEL": "Geokodierung",
-    "DISABLE_NOMINATIM_DESC": "Nominatim-Adresssuche für die Standortauswahl erlauben.",
+    "DISABLE_NOMINATIM_DESC": "Adresssuche und Rückwärtssuche für die Standortauswahl erlauben.",
     "DISABLE_USER_GEOFENCES_LABEL": "Eigene Geofences",
     "DISABLE_USER_GEOFENCES_DESC": "Benutzern erlauben, eigene Geofences zu zeichnen, zu importieren und einzureichen. Bestehende Geofences bleiben aktiv.",
     "ENABLE_TEMPLATES_LABEL": "Vorlagen",

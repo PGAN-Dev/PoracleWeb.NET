@@ -20,7 +20,7 @@ describe('LocationDialogComponent address search', () => {
   let component: LocationDialogComponent;
   let geocode: jest.Mock;
 
-  const result: GeocodingResult = { display_name: '1 Main St, Richmond, VA', lat: '37.54', lon: '-77.43' } as GeocodingResult;
+  const result: GeocodingResult = { displayName: '1 Main St, Richmond, VA', latitude: 37.54, longitude: -77.43 };
 
   beforeEach(() => {
     jest.useFakeTimers();

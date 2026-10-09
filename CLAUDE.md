@@ -138,6 +138,40 @@ Pgan.PoracleWebNet.slnx
 - `PoracleConfig` is parsed from Poracle's JSON configuration.
 - Handles mixed types: `defaultTemplateName` can be a number or string in Poracle's config. Use `JsonElement` or careful deserialization.
 
+### PoracleNG Geocode Proxy
+
+Address search and reverse lookup (`LocationController.Geocode`/`ReverseGeocode`) go through
+`IPoracleApiProxy.GetGeocodeForwardAsync`/`GetGeocodeReverseAsync`, which call PoracleNG's own
+`/api/geocode/forward` and `/api/geocode/reverse` -- **not** a geocoder provider URL. PoracleNG already
+normalises Nominatim, Photon and Google into one shape (`displayName`, `city`, `state`, `country`,
+`streetName`, `streetNumber`, `zipcode`, numeric `latitude`/`longitude` on forward; the richer `Address`
+struct -- `formattedAddress`, `neighbourhood`, `county`, `suburb`, `town`, `village`, `addr`, `flag` --
+on reverse), so this app never parses a provider's payload and gains every provider PoracleNG supports
+for free. See #845: an earlier draft of that issue proposed a `geocoder_provider` site setting and
+per-provider parsing here, which was rejected as duplicating work Poracle already does and creating a
+second place to configure the geocoder that can disagree with the first.
+
+**A PoracleNG too old for either route (both merged into its `develop` as jfberry/PoracleNG#224,
+2026-09-16; no tagged release carries them as of this writing) falls back to calling its configured
+provider directly and speaking to it as Nominatim** -- exactly what this app did before the routes
+existed -- so an existing install does not lose geocoding outright. The fallback fires only on gin's
+plaintext `404 page not found` (`PoracleProblemDetails.IsProblemJson` says so, the same check the v2
+tracking proxies use to tell a missing route from a real answer); a *problem+json* 404 from `reverse`
+means "nothing at this coordinate" -- including every call when `[geocoding] forward_only` is set, which
+disables reverse deliberately -- and must not trigger it, or the fallback would silently reintroduce
+reverse geocoding against a provider the operator turned off. The fallback request carries no
+`X-Poracle-Secret`: its target is a third-party geocoder, not PoracleNG.
+
+The SPA's `GeocodingResult`/`ReverseGeocodingResult` (`core/models/index.ts`) are flat and read PoracleNG's
+field names directly (`displayName`, not `display_name`; numeric `latitude`/`longitude`, not string
+`lat`/`lon`) -- there is no `address.*` nesting left over from Nominatim's shape. `location-dialog`'s
+`getAddressPrimary`/`getAddressSecondary`/`getPlaceIcon` build their own grouping from the flat fields;
+`getPlaceIcon` infers an icon from which fields are present, since PoracleNG's forward result carries
+no OSM class/type the way Nominatim's did.
+
+`disable_nominatim` still gates both actions and keeps its name regardless of which provider or surface
+answers behind it (see "Feature Gating" above).
+
 ### Areas and Profile-Scoped Storage
 - Area subscriptions are **profile-scoped**. Each profile has its own set of selected areas.
 - **Two storage locations** are kept in sync by PoracleNG:
@@ -330,7 +364,7 @@ Non-alarm features follow the same rules, minus the tracking-type dictionary: ad
 
 Deliberately **not** gated: `/api/auth/me` under `disable_profiles`, so the JWT profile resync keeps working and PoracleNG's active-hours scheduler can still move a user between profiles.
 
-`disable_nominatim` **is** implemented (#420): it gates the two geocode actions on `LocationController`, so switching it off genuinely stops the outbound Nominatim/OpenStreetMap calls, and the location dialog hides its address search rather than firing a request that would 403 and bounce the user to the dashboard. It is gated per-action rather than per-controller because the controller itself is already gated by `disable_location`.
+`disable_nominatim` **is** implemented (#420): it gates the two geocode actions on `LocationController`, so switching it off genuinely stops address search and reverse lookup, and the location dialog hides its address search rather than firing a request that would 403 and bounce the user to the dashboard. It is gated per-action rather than per-controller because the controller itself is already gated by `disable_location`. The key predates #845 (see "PoracleNG Geocode Proxy" below), which moved the calls themselves off Nominatim specifically onto whatever PoracleNG is configured for -- the toggle keeps its original name because renaming a site setting breaks every instance that has it set.
 
 **The SPA must not send a request a `disable_*` switch will refuse**, even one whose caller swallows the error: the error interceptor toasts the 403 before any `catchError` runs. `LocationService` and `PlacesService` check `disable_location` (and `disable_nominatim` for the two geocode calls) themselves and answer empty, or fail without a request where the caller expects an error, so the dashboard, Areas & Places and the scope picker in every add dialog stay quiet. The Areas page hides its pin card and Places section under `disable_location`, and the dashboard's quick actions, tips and the user menu carry the same `disable_*` keys as the sidebar. See #915.
 
