@@ -97,7 +97,14 @@
 
     <div class="help-footer">
       <mat-icon>chat_bubble_outline</mat-icon>
-      <span>{{ 'HELP.FOOTER' | translate }}</span>
+      <span
+        >{{ 'HELP.FOOTER' | translate }}
+        @if (supportUrl(); as url) {
+          <a class="support-link" [href]="url" target="_blank" rel="noopener">{{ 'HELP.FOOTER_CONTACT' | translate }}</a>
+        } @else {
+          {{ 'HELP.FOOTER_NO_LINK' | translate }}
+        }
+      </span>
     </div>
 
     @if (i18n.currentLang() !== 'en') {

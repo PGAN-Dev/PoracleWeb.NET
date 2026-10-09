@@ -1,3 +1,6 @@
+import * as fs from 'fs';
+import * as path from 'path';
+
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { signal, WritableSignal } from '@angular/core';
@@ -263,6 +266,24 @@ describe('App bootstrap language defaults (#770)', () => {
     const { alertLanguage } = setup({ authenticated: true, settings: {} });
 
     expect(alertLanguage.load).toHaveBeenCalled();
+  });
+});
+
+/**
+ * The disabled-account banner linked two channels on one community's Discord server, hardcoded, so every
+ * instance of this software sent its disabled members there. The destination is the operator's
+ * `support_url` now. The whole shell is too heavy to render here, so this reads the template.
+ */
+describe('App disabled-account banner', () => {
+  const template = fs.readFileSync(path.join(__dirname, 'app.html'), 'utf8');
+
+  it('hardcodes no support destination', () => {
+    expect(template).not.toMatch(/discord\.com\/channels/);
+  });
+
+  it("links the operator's support_url instead", () => {
+    expect(template).toContain('supportUrl()');
+    expect(template).toContain("'BANNER.DISABLED_SUPPORT' | translate");
   });
 });
 

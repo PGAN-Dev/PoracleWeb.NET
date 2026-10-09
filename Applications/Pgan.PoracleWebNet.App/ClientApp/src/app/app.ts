@@ -292,6 +292,9 @@ export class App implements OnInit {
 
   protected readonly supportNavItems = computed(() => this.navItems.filter(item => item.group === 'support'));
 
+  /** The operator's support link, if any, for the disabled-account banner. */
+  protected readonly supportUrl = this.settingsService.supportUrl;
+
   protected readonly toolbarDarkInk = computed(() => !!this.ACCENT_COLORS[this.accentTheme()]?.darkInk);
 
   protected readonly toolbarGradient = computed(() => {
