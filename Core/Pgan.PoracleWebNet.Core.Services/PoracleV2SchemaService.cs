@@ -98,8 +98,13 @@ public partial class PoracleV2SchemaService(
                 TrustedSetAreas = HasProperty(schemas, "V2SetAreasBody", "trusted"),
                 ProfileRename = HasProperty(schemas, "V2UpdateProfileBody", "name"),
                 ProfileCreateReturnsNumber = CreateReturnsNumber(paths, schemas),
+                // The routes existed from PR #217 on, answering V2HumanSummary with seven fields; #230
+                // added last_checked/disabled_date/notes, which is what the admin grid actually needs.
+                // A server with the routes but not the three fields is not meaningfully different from
+                // one with no route at all, so this checks both rather than just the routes existing.
                 AdminHumanRoutes = HasOperation(paths, "/v2/humans", "get")
-                    && HasOperation(paths, "/v2/humans/{id}", "delete"),
+                    && HasOperation(paths, "/v2/humans/{id}", "delete")
+                    && HasProperty(schemas, "V2HumanSummary", "last_checked"),
                 InvasionGruntType = HasProperty(schemas, "V2InvasionRule", "grunt_type"),
             };
         }

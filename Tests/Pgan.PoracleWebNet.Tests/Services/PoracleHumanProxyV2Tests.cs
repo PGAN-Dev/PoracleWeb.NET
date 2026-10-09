@@ -540,6 +540,106 @@ public class PoracleHumanProxyV2Tests
         Assert.Equal($"{ApiAddress}/api/profiles/user1/update", Assert.Single(handler.Requests).Url);
     }
 
+    // ---- admin human list & delete (#839) -----------------------------------------------------
+    //
+    // Gated purely on IPoracleV2SchemaService.AdminHumanRoutes, not on ServerCarriesV2Async/TryV2Async:
+    // the schema check already encodes "the route exists AND the list item has the three #230 fields",
+    // which is the exact bar HumanService needs before it can stop falling back to IHumanRepository.
+
+    private static PoracleV2Capabilities AdminRoutes(bool carries) => new() { Read = true, AdminHumanRoutes = carries };
+
+    [Fact]
+    public async Task ListHumansReturnsNullWithoutTheCapabilitySoTheCallerFallsBackToTheRepository()
+    {
+        var handler = ScriptedHandler.Ok("""{"humans":[]}""");
+        var sut = CreateSut(handler, version: "5.2.1", capabilities: AdminRoutes(carries: false));
+
+        Assert.Null(await sut.ListHumansAsync());
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task ListHumansReadsTheWrapperAndTheBooleanFieldsTheListEndpointActuallySends()
+    {
+        // enabled/admin_disable come back as real JSON booleans here, where GET /api/v2/humans/{id}
+        // sends the v1-style 0/1 for the same fields on the same server -- verified live against develop.
+        var handler = ScriptedHandler.Ok("""
+            {"humans":[{"id":"user1","type":"discord:user","name":"Ash","enabled":true,
+              "admin_disable":false,"language":"en","current_profile_no":2,
+              "last_checked":"2026-10-01T00:00:00Z","disabled_date":null,"notes":"vip"}]}
+            """);
+        var sut = CreateSut(handler, version: "5.2.1", capabilities: AdminRoutes(carries: true));
+
+        var humans = await sut.ListHumansAsync();
+
+        Assert.Equal($"{ApiAddress}/api/v2/humans", Assert.Single(handler.Requests).Url);
+        var human = Assert.Single(humans!);
+        Assert.Equal("user1", human.Id);
+        Assert.Equal(1, human.Enabled);
+        Assert.Equal(0, human.AdminDisable);
+        Assert.Equal(2, human.CurrentProfileNo);
+        Assert.Equal("vip", human.Notes);
+        Assert.Null(human.DisabledDate);
+    }
+
+    [Fact]
+    public async Task ListHumansFiltersByTypeAndEncodesTheCommaSeparatedIds()
+    {
+        var handler = ScriptedHandler.Ok("""{"humans":[]}""");
+        var sut = CreateSut(handler, version: "5.2.1", capabilities: AdminRoutes(carries: true));
+
+        await sut.ListHumansAsync(type: "webhook", ids: ["user1", "https://discordapp.com/api/webhooks/1/tok"]);
+
+        var expected = $"{ApiAddress}/api/v2/humans?type=webhook&id=user1,https%3A%2F%2Fdiscordapp.com%2Fapi%2Fwebhooks%2F1%2Ftok";
+        Assert.Equal(expected, Assert.Single(handler.Requests).Url);
+    }
+
+    [Fact]
+    public async Task DeleteHumanReturnsNullWithoutTheCapabilitySoTheCallerFallsBackToTheRepository()
+    {
+        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
+        var sut = CreateSut(handler, version: "5.2.1", capabilities: AdminRoutes(carries: false));
+
+        Assert.Null(await sut.DeleteHumanAsync("user1"));
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task DeleteHumanReturnsTrueOnSuccess()
+    {
+        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
+        var sut = CreateSut(handler, version: "5.2.1", capabilities: AdminRoutes(carries: true));
+
+        Assert.True(await sut.DeleteHumanAsync("user1"));
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal(HttpMethod.Delete, request.Method);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1", request.Url);
+    }
+
+    [Fact]
+    public async Task DeleteHumanReturnsFalseRatherThanThrowingWhenTheAccountIsAlreadyGone()
+    {
+        // false, not an exception: the account being gone is the caller's success case, not a refusal.
+        var handler = ScriptedHandler.Problem(
+            HttpStatusCode.NotFound, """{"title":"Not Found","status":404,"detail":"human not found"}""");
+        var sut = CreateSut(handler, version: "5.2.1", capabilities: AdminRoutes(carries: true));
+
+        Assert.False(await sut.DeleteHumanAsync("nobody"));
+    }
+
+    [Fact]
+    public async Task DeleteHumanThrowsOnAGenuineRefusal()
+    {
+        var handler = ScriptedHandler.Problem(
+            HttpStatusCode.UnprocessableEntity, """{"title":"Unprocessable Entity","status":422,"detail":"cannot delete"}""");
+        var sut = CreateSut(handler, version: "5.2.1", capabilities: AdminRoutes(carries: true));
+
+        var refused = await Assert.ThrowsAsync<PoracleRequestRefusedException>(
+            () => sut.DeleteHumanAsync("user1"));
+
+        Assert.Contains("cannot delete", refused.Message, StringComparison.Ordinal);
+    }
+
     // ---- what the controllers actually send ------------------------------------------------------
     //
     // Every test above posts {"name":"probe-two"}, a body no caller builds. The four callers of

@@ -1,5 +1,6 @@
 using Pgan.PoracleWebNet.Core.Models;
 using System.Globalization;
+using System.Linq;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -780,6 +781,85 @@ public partial class PoracleHumanProxy(
         }
 
         await EnsureAcceptedAsync(reply.Response);
+    }
+
+    public async Task<IReadOnlyList<Human>?> ListHumansAsync(string? type = null, IReadOnlyCollection<string>? ids = null)
+    {
+        var capabilities = await this._v2Schema.GetAsync();
+        if (!capabilities.AdminHumanRoutes)
+        {
+            return null;
+        }
+
+        var query = new List<string>();
+        if (!string.IsNullOrEmpty(type))
+        {
+            query.Add($"type={Encode(type)}");
+        }
+
+        if (ids is { Count: > 0 })
+        {
+            query.Add($"id={string.Join(',', ids.Select(Encode))}");
+        }
+
+        var path = query.Count > 0 ? $"/api/v2/humans?{string.Join('&', query)}" : "/api/v2/humans";
+
+        var (response, payload) = await this.SendReadAsync(HttpMethod.Get, path);
+        await EnsureAcceptedAsync(response);
+
+        using var doc = JsonDocument.Parse(payload);
+
+        if (!doc.RootElement.TryGetProperty("humans", out var humans) || humans.ValueKind != JsonValueKind.Array)
+        {
+            return [];
+        }
+
+        var result = new List<Human>(humans.GetArrayLength());
+        foreach (var item in humans.EnumerateArray())
+        {
+            result.Add(ParseHumanSummary(item));
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Parses one <c>V2HumanSummary</c> item from the list endpoint. Reads <c>enabled</c>/
+    /// <c>admin_disable</c> as booleans rather than through <see cref="JsonElementExtensions.GetIntProp"/>
+    /// -- see <see cref="JsonElementExtensions.GetBoolAsIntProp"/> for why the two humans routes disagree
+    /// on the wire shape of the same fields.
+    /// </summary>
+    private static Human ParseHumanSummary(JsonElement json) => new()
+    {
+        Id = json.GetStringProp("id"),
+        Name = json.GetStringPropOrNull("name"),
+        Type = json.GetStringPropOrNull("type"),
+        Enabled = json.GetBoolAsIntProp("enabled"),
+        Language = json.GetStringPropOrNull("language"),
+        AdminDisable = json.GetBoolAsIntProp("admin_disable"),
+        LastChecked = json.GetDateTimePropOrNull("last_checked") ?? default,
+        DisabledDate = json.GetDateTimePropOrNull("disabled_date"),
+        CurrentProfileNo = json.GetIntProp("current_profile_no"),
+        Notes = json.GetStringPropOrNull("notes"),
+    };
+
+    public async Task<bool?> DeleteHumanAsync(string userId)
+    {
+        var capabilities = await this._v2Schema.GetAsync();
+        if (!capabilities.AdminHumanRoutes)
+        {
+            return null;
+        }
+
+        var (response, _) = await this.SendReadAsync(HttpMethod.Delete, $"/api/v2/humans/{Encode(userId)}");
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            return false;
+        }
+
+        await EnsureAcceptedAsync(response);
+        return true;
     }
 
     /// <summary>

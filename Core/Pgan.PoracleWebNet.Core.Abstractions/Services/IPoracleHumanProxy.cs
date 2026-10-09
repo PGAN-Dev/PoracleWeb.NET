@@ -171,4 +171,28 @@ public interface IPoracleHumanProxy
     /// </summary>
     /// <exception cref="PlaceInUseException">Alarms still point at this place.</exception>
     public Task DeletePlaceAsync(string userId, string label);
+
+    /// <summary>
+    /// Admin-bulk human list, optionally filtered by <paramref name="type"/> (e.g. <c>"webhook"</c>) or
+    /// restricted to a batch of <paramref name="ids"/>. Maps to <c>GET /api/v2/humans</c>.
+    /// </summary>
+    /// <remarks>
+    /// Returns <c>null</c> when this PoracleNG has no v2 humans list route at all, <em>or</em> when it
+    /// has the route but its list item predates jfberry/PoracleNG#230 and is missing
+    /// <c>last_checked</c>/<c>disabled_date</c>/<c>notes</c> -- the admin grid needs all three, and a
+    /// server answering fewer of them is not meaningfully different from one with no route. Either way
+    /// the caller falls back to <c>IHumanRepository</c>. See #839.
+    /// </remarks>
+    public Task<IReadOnlyList<Human>?> ListHumansAsync(string? type = null, IReadOnlyCollection<string>? ids = null);
+
+    /// <summary>
+    /// Deletes a human and cascades every table PoracleNG owns for it (tracking rules, profiles, summary
+    /// schedules) in one call. Maps to <c>DELETE /api/v2/humans/{id}</c>.
+    /// </summary>
+    /// <returns>
+    /// <c>true</c> if deleted; <c>false</c> if this PoracleNG answered and the human did not exist
+    /// (nothing to fall back to -- the account is genuinely gone); <c>null</c> if this PoracleNG has no
+    /// v2 delete route, so the caller should fall back to <c>IHumanRepository</c>.
+    /// </returns>
+    public Task<bool?> DeleteHumanAsync(string userId);
 }

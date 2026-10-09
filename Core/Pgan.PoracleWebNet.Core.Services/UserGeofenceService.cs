@@ -14,7 +14,6 @@ public partial class UserGeofenceService(
     IKojiService kojiService,
     IPoracleApiProxy poracleApiProxy,
     IPoracleHumanProxy humanProxy,
-    IHumanRepository humanRepository,
     IHumanService humanService,
     IUserAreaDualWriter areaWriter,
     IDiscordNotificationService discordNotificationService,
@@ -28,7 +27,6 @@ public partial class UserGeofenceService(
     private readonly IKojiService _kojiService = kojiService;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
-    private readonly IHumanRepository _humanRepository = humanRepository;
     private readonly IHumanService _humanService = humanService;
     private readonly IUserAreaDualWriter _areaWriter = areaWriter;
     private readonly IDiscordNotificationService _discordNotificationService = discordNotificationService;
@@ -382,7 +380,7 @@ public partial class UserGeofenceService(
 
         // Merge all IDs for a single batch lookup
         var allIds = humanIds.Union(reviewerIds).Distinct().ToList();
-        var humans = await this._humanRepository.GetByIdsAsync(allIds);
+        var humans = await this._humanService.GetByIdsAsync(allIds);
         var humanLookup = humans.ToDictionary(h => h.Id, h => h);
 
         foreach (var g in geofences)
