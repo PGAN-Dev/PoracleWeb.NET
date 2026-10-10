@@ -24,6 +24,7 @@ import { WhereChipComponent } from '../../shared/components/where-chip/where-chi
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
+import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -103,8 +104,9 @@ export class FortChangeListComponent implements OnInit {
       // The server refuses a radius that would take over an alarm the user did not select, and names
       // the one in the way. Unguarded, that rejection cleared nothing, reloaded nothing and showed
       // nothing -- indistinguishable from a successful no-op. See #641.
+      let result: DistanceUpdateResult | undefined;
       try {
-        await firstValueFrom(this.fortChangeService.updateBulkDistance(uids, distance));
+        result = await firstValueFrom(this.fortChangeService.updateBulkDistance(uids, distance));
       } catch (err) {
         const message = (err as { error?: { error?: string } })?.error?.error;
         this.snackBar.open(message ?? this.i18n.instant('FORT_CHANGES.SNACK_FAILED_DISTANCE'), this.i18n.instant('TOAST.OK'), {
@@ -115,9 +117,17 @@ export class FortChangeListComponent implements OnInit {
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadItems();
-      this.snackBar.open(this.i18n.instant('FORT_CHANGES.SNACK_BULK_DISTANCE', { count: uids.length }), this.i18n.instant('COMMON.OK'), {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        distanceUpdateMessage(
+          result,
+          this.i18n.instant('FORT_CHANGES.SNACK_BULK_DISTANCE', { count: result?.updated ?? uids.length }),
+          this.i18n,
+        ),
+        this.i18n.instant('COMMON.OK'),
+        {
+          duration: skippedAny(result) ? 6000 : 3000,
+        },
+      );
     }
   }
 
@@ -284,22 +294,6 @@ export class FortChangeListComponent implements OnInit {
   toggleSelectMode(): void {
     this.selectMode.update(v => !v);
     if (!this.selectMode()) this.selectedIds.set(new Set());
-  }
-
-  updateAllDistance(): void {
-    const ref = this.dialog.open(DistanceDialogComponent, { width: '440px' });
-    ref.afterClosed().subscribe(distance => {
-      if (distance !== null && distance !== undefined) {
-        this.fortChangeService.updateAllDistance(distance).subscribe({
-          error: () =>
-            this.snackBar.open(this.i18n.instant('FORT_CHANGES.SNACK_FAILED_DISTANCE'), this.i18n.instant('COMMON.OK'), { duration: 3000 }),
-          next: () => {
-            this.snackBar.open(this.i18n.instant('FORT_CHANGES.SNACK_ALL_DISTANCE'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
-            this.loadItems();
-          },
-        });
-      }
-    });
   }
 
   private loadProfileAreas(): void {

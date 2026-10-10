@@ -4,7 +4,9 @@
     <p class="page-description">{{ 'GYMS.PAGE_DESC' | translate }}</p>
   </div>
   <div class="header-actions">
-    <button mat-fab (click)="openAddDialog()" style="background: #00bcd4; color: #fff"><mat-icon>add</mat-icon></button>
+    <button mat-fab (click)="openAddDialog()" [attr.aria-label]="'GYMS.ADD_GYM' | translate" style="background: #00bcd4; color: #fff">
+      <mat-icon>add</mat-icon>
+    </button>
   </div>
 </div>
 @if (!loading() && gyms().length > 0) {
@@ -15,7 +17,8 @@
       mat-icon-button
       (click)="toggleSelectMode()"
       [class.select-mode-active]="selectMode()"
-      matTooltip="{{ selectMode() ? ('ALARM.EXIT_SELECT_MODE' | translate) : ('ALARM.SELECT_MULTIPLE' | translate) }}">
+      matTooltip="{{ selectMode() ? ('ALARM.EXIT_SELECT_MODE' | translate) : ('ALARM.SELECT_MULTIPLE' | translate) }}"
+      [attr.aria-label]="selectMode() ? ('ALARM.EXIT_SELECT_MODE' | translate) : ('ALARM.SELECT_MULTIPLE' | translate)">
       <mat-icon>{{ selectMode() ? 'close' : 'checklist' }}</mat-icon>
     </button>
   </div>
@@ -101,6 +104,9 @@
             [matTooltip]="
               testAlertService.isCoolingDown('gym', gym.uid) ? ('ALARM.TEST_COOLDOWN' | translate) : ('ALARM.TEST_SEND' | translate)
             "
+            [attr.aria-label]="
+              testAlertService.isCoolingDown('gym', gym.uid) ? ('ALARM.TEST_COOLDOWN' | translate) : ('ALARM.TEST_SEND' | translate)
+            "
             class="test-alert-btn">
             @if (testAlertService.isSending('gym', gym.uid)) {
               <mat-icon class="spin">sync</mat-icon>
@@ -109,9 +115,20 @@
             }
           </button>
 
-          <button mat-icon-button (click)="editGym(gym)" [matTooltip]="'COMMON.EDIT' | translate"><mat-icon>edit</mat-icon></button>
+          <button
+            mat-icon-button
+            (click)="editGym(gym)"
+            [matTooltip]="'COMMON.EDIT' | translate"
+            [attr.aria-label]="'COMMON.EDIT' | translate">
+            <mat-icon>edit</mat-icon>
+          </button>
 
-          <button mat-icon-button (click)="deleteGym(gym)" [matTooltip]="'COMMON.DELETE' | translate" color="warn">
+          <button
+            mat-icon-button
+            (click)="deleteGym(gym)"
+            [matTooltip]="'COMMON.DELETE' | translate"
+            [attr.aria-label]="'COMMON.DELETE' | translate"
+            color="warn">
             <mat-icon>delete</mat-icon>
           </button>
         </mat-card-actions>
@@ -130,7 +147,7 @@
         </svg>
         <h2 class="empty-title">{{ 'GYMS.EMPTY_TITLE' | translate }}</h2>
         <p class="empty-subtitle">{{ 'GYMS.EMPTY_SUBTITLE' | translate }}</p>
-        <button mat-flat-button (click)="openAddDialog()" style="background: #00bcd4; color: #fff">
+        <button mat-flat-button (click)="openAddDialog()" style="background: #00bcd4; color: #212121">
           <mat-icon>add</mat-icon> {{ 'GYMS.ADD_GYM' | translate }}
         </button>
       </div>

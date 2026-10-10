@@ -154,6 +154,16 @@ public class QuickPickController(
             return this.BadRequest(new { error = "distance cannot be negative." });
         }
 
+        // The same bound every alarm DTO carries. Past it the refusal came from the alarm's own
+        // validation and read as a fault in the pick, when the radius was what the user had just typed.
+        if (request?.Distance is > AlarmDistance.MaxMetres)
+        {
+            return this.BadRequest(new
+            {
+                error = $"distance must be {AlarmDistance.MaxMetres} metres or less (half the Earth's circumference)."
+            });
+        }
+
         return null;
     }
 

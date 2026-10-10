@@ -195,9 +195,9 @@ public partial class MasterDataController(
 
     [AllowAnonymous]
     [HttpGet("grunts")]
-    public async Task<IActionResult> GetGrunts()
+    public async Task<IActionResult> GetGrunts([FromQuery] string? locale)
     {
-        var grunts = await this._poracleApiProxy.GetGruntsAsync();
+        var grunts = await this._poracleApiProxy.GetGruntsAsync(NormalizeLocale(locale));
         if (grunts == null)
         {
             return this.NotFound(new

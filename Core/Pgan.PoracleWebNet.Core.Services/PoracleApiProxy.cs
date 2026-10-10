@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -19,13 +21,13 @@ public class PoracleApiProxy(HttpClient httpClient, IConfiguration configuration
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
 
-    public async Task<PoracleConfig?> GetConfigAsync()
+    public async Task<PoracleConfig?> GetConfigAsync(CancellationToken cancellationToken = default)
     {
         var request = this.CreateRequest(HttpMethod.Get, $"{this._apiAddress}/api/config/poracleWeb");
-        var response = await this._httpClient.SendAsync(request);
+        var response = await this._httpClient.SendAsync(request, cancellationToken);
         response.EnsureSuccessStatusCode();
 
-        var json = await response.Content.ReadAsStringAsync();
+        var json = await response.Content.ReadAsStringAsync(cancellationToken);
         using var doc = JsonDocument.Parse(json);
         var root = doc.RootElement;
 
@@ -246,6 +248,10 @@ public class PoracleApiProxy(HttpClient httpClient, IConfiguration configuration
     public Task<bool?> GetShowcaseDisabledAsync() =>
         this.ReadConfigValueBoolAsync("general", "disable_showcase");
 
+    /// <inheritdoc />
+    public Task<bool?> GetAreaSecurityEnabledAsync() =>
+        this.ReadConfigValueBoolAsync("area_security", "enabled");
+
     /// <summary>
     /// Reads a single boolean out of <c>GET /api/config/values</c>, whose body is shaped
     /// <c>{ "values": { "&lt;section&gt;": { "&lt;key&gt;": true } } }</c>. Returns <c>null</c> when the
@@ -285,9 +291,13 @@ public class PoracleApiProxy(HttpClient httpClient, IConfiguration configuration
     /// exists in neither supported backend, so this call could only ever 404 and throw.
     /// </summary>
     /// <returns>The raw JSON, or <c>null</c> when upstream is unreachable or does not serve it.</returns>
-    public async Task<string?> GetGruntsAsync()
+    public async Task<string?> GetGruntsAsync(string? locale = null)
     {
-        var request = this.CreateRequest(HttpMethod.Get, $"{this._apiAddress}/api/masterdata/grunts");
+        // A PoracleNG too old for translated grunt names ignores the parameter and answers its English
+        // shape, which is the same answer it gives with no parameter at all -- so this is safe to send
+        // unconditionally and needs no capability check of its own. See #840.
+        var query = string.IsNullOrEmpty(locale) ? string.Empty : $"?locale={Uri.EscapeDataString(locale)}";
+        var request = this.CreateRequest(HttpMethod.Get, $"{this._apiAddress}/api/masterdata/grunts{query}");
         var response = await this._httpClient.SendAsync(request);
 
         if (!response.IsSuccessStatusCode)
@@ -444,6 +454,98 @@ public class PoracleApiProxy(HttpClient httpClient, IConfiguration configuration
         }
 
         return await response.Content.ReadAsStringAsync();
+    }
+
+    /// <inheritdoc />
+    public async Task<string?> GetGeocodeForwardAsync(string query, string? language = null)
+    {
+        var (body, routeAbsent) = await this.GetGeocodeAsync(
+            $"{this._apiAddress}/api/geocode/forward?q={Uri.EscapeDataString(query)}{LanguageParam(language)}");
+        return body ?? (routeAbsent ? await this.GetLegacyGeocodeAsync(providerUrl =>
+            $"{providerUrl}/search?addressdetails=1&q={Uri.EscapeDataString(query)}&format=json&limit=5") : null);
+    }
+
+    /// <inheritdoc />
+    public async Task<string?> GetGeocodeReverseAsync(double lat, double lon, string? language = null)
+    {
+        var (body, routeAbsent) = await this.GetGeocodeAsync(
+            $"{this._apiAddress}/api/geocode/reverse?lat={lat.ToString(CultureInfo.InvariantCulture)}" +
+            $"&lon={lon.ToString(CultureInfo.InvariantCulture)}{LanguageParam(language)}");
+        return body ?? (routeAbsent ? await this.GetLegacyGeocodeAsync(providerUrl =>
+            $"{providerUrl}/reverse?lat={lat.ToString(CultureInfo.InvariantCulture)}" +
+            $"&lon={lon.ToString(CultureInfo.InvariantCulture)}&format=json&addressdetails=1") : null);
+    }
+
+    private static string LanguageParam(string? language) =>
+        string.IsNullOrWhiteSpace(language) ? string.Empty : $"&language={Uri.EscapeDataString(language)}";
+
+    /// <summary>
+    /// The address line on the dashboard and the Areas page, and every result in the location picker, is
+    /// decoration -- a geocoder being unreachable or slow must leave the coordinates showing, not surface
+    /// an error. A 10-second timeout, independent of the shared client's default, keeps a stalled geocoder
+    /// from holding up the picker the way it used to with a direct provider call.
+    /// </summary>
+    /// <returns>
+    /// The body on success; otherwise <c>null</c> and whether the 404 was gin's plaintext "route does not
+    /// exist" rather than PoracleNG's own "nothing at this coordinate" -- <c>reverse</c> answers the
+    /// latter as JSON (and always does under <c>[geocoding] forward_only</c>), which must not trigger the
+    /// legacy fallback the former does. See <see cref="PoracleProblemDetails.IsProblemJson"/>.
+    /// </returns>
+    private async Task<(string? Body, bool RouteAbsent)> GetGeocodeAsync(string url)
+    {
+        var request = this.CreateRequest(HttpMethod.Get, url);
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        try
+        {
+            var response = await this._httpClient.SendAsync(request, cts.Token);
+            var payload = await response.Content.ReadAsStringAsync(cts.Token);
+            if (response.IsSuccessStatusCode)
+            {
+                return (payload, false);
+            }
+
+            var routeAbsent = response.StatusCode == HttpStatusCode.NotFound && !PoracleProblemDetails.IsProblemJson(payload);
+            return (null, routeAbsent);
+        }
+        catch (Exception)
+        {
+            // Unreachable PoracleNG, a timeout, a malformed response -- all the same "no address this
+            // time" answer to the caller, which is decoration and must not surface an error.
+            return (null, false);
+        }
+    }
+
+    /// <summary>
+    /// PoracleNG older than jfberry/PoracleNG#224 (merged into its <c>develop</c> 2026-09-16; not yet in
+    /// any tagged release as of this writing, confirmed against a live 5.2.1) has neither geocode route
+    /// and answers gin's plaintext 404 for both. Falls back to calling its configured provider directly
+    /// and speaking to it as Nominatim, exactly as this app did before the routes existed, so an existing
+    /// install does not lose geocoding outright -- see #845. This carries no <c>X-Poracle-Secret</c>: the
+    /// target is a third-party geocoder, not PoracleNG, and the secret must not reach it.
+    /// </summary>
+    private async Task<string?> GetLegacyGeocodeAsync(Func<string, string> buildUrl)
+    {
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        try
+        {
+            // GetConfigAsync() uses EnsureSuccessStatusCode() and throws on anything but 2xx, so it has
+            // to share this try as well -- a PoracleNG old enough to miss the geocode routes is exactly
+            // the kind of build this app must keep working against, not one more way to surface an error.
+            // It also has to share the timeout: without passing cts.Token through, a slow /api/config/
+            // poracleWeb could hold this up past the 10 seconds the rest of this method is bounded to.
+            var config = await this.GetConfigAsync(cts.Token);
+            if (string.IsNullOrEmpty(config?.ProviderUrl))
+            {
+                return null;
+            }
+
+            var response = await this._httpClient.GetAsync(buildUrl(config.ProviderUrl.TrimEnd('/')), cts.Token);
+            return response.IsSuccessStatusCode ? await response.Content.ReadAsStringAsync(cts.Token) : null;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
     }
 
     private HttpRequestMessage CreateRequest(HttpMethod method, string url)

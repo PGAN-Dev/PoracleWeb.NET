@@ -4,6 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
 
+import { authInterceptor } from './auth.interceptor';
 import { errorInterceptor } from './error.interceptor';
 import { ToastService } from '../services/toast.service';
 
@@ -21,7 +22,7 @@ describe('errorInterceptor', () => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
-        provideHttpClient(withInterceptors([errorInterceptor])),
+        provideHttpClient(withInterceptors([authInterceptor, errorInterceptor])),
         provideHttpClientTesting(),
         { provide: ToastService, useValue: toast },
         { provide: Router, useValue: router },
@@ -197,7 +198,18 @@ describe('errorInterceptor', () => {
       expect(toast.error).not.toHaveBeenCalled();
     });
 
-    it('should NOT show toast for /api/auth/me errors but should still redirect on 401', () => {
+    it('should NOT show the generic toast for /api/auth/me errors', () => {
+      http.get('/api/auth/me').subscribe({ error: () => {} });
+
+      httpMock.expectOne('/api/auth/me').flush(null, { status: 500, statusText: 'Error' });
+
+      expect(toast.error).not.toHaveBeenCalled();
+    });
+
+    it('still explains a session that ends on a silent endpoint, and redirects', () => {
+      // Silence is for the endpoint's own failures. The end of the session is the user's business
+      // whichever request found it out, and which one of a page load's burst lands first is up to the
+      // network -- so it is said once, here, rather than only when a non-silent request happened to win.
       localStorage.setItem('poracle_token', 'token');
       http.get('/api/auth/me').subscribe({ error: () => {} });
 
@@ -206,7 +218,8 @@ describe('errorInterceptor', () => {
         statusText: 'Unauthorized',
       });
 
-      expect(toast.error).not.toHaveBeenCalled();
+      expect(toast.error).toHaveBeenCalledTimes(1);
+      expect(toast.error).toHaveBeenCalledWith('HTTP_ERROR.UNAUTHORIZED');
       expect(localStorage.getItem('poracle_token')).toBeNull();
       expect(router.navigate).toHaveBeenCalledWith(['/login'], { queryParams: {} });
     });

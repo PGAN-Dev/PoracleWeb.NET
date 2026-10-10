@@ -56,9 +56,13 @@ interface NavItem {
   templateUrl: './app.html',
 })
 export class App implements OnInit {
-  private readonly ACCENT_COLORS: Record<string, { primary: string; start: string; end: string; light: string }> = {
+  /**
+   * `darkInk` marks a gradient too light to carry the toolbar's white text: Instinct's yellow managed
+   * 2:1 against it. That toolbar takes dark text instead (6:1 or better), which keeps the yellow.
+   */
+  private readonly ACCENT_COLORS: Record<string, { darkInk?: boolean; end: string; light: string; primary: string; start: string }> = {
     raids: { end: '#b71c1c', light: 'rgba(244, 67, 54, 0.1)', primary: '#f44336', start: '#c62828' },
-    instinct: { end: '#f57f17', light: 'rgba(255, 193, 7, 0.1)', primary: '#ffc107', start: '#f9a825' },
+    instinct: { darkInk: true, end: '#f57f17', light: 'rgba(255, 193, 7, 0.1)', primary: '#ffc107', start: '#f9a825' },
     mystic: { end: '#0d47a1', light: 'rgba(33, 150, 243, 0.1)', primary: '#2196f3', start: '#1565c0' },
     pokemon: { end: '#1b5e20', light: 'rgba(76, 175, 80, 0.1)', primary: '#4caf50', start: '#2e7d32' },
     valor: { end: '#b71c1c', light: 'rgba(244, 67, 54, 0.1)', primary: '#f44336', start: '#d32f2f' },
@@ -211,6 +215,7 @@ export class App implements OnInit {
     { group: 'support', icon: 'help', iconColor: '#673ab7', label: 'NAV.HELP', route: '/help' },
     { adminOnly: true, group: 'admin', icon: 'people', iconColor: '#455a64', label: 'NAV.USERS', route: '/admin/users' },
     { adminOnly: true, group: 'admin', icon: 'webhook', iconColor: '#00897b', label: 'NAV.WEBHOOKS', route: '/admin/webhooks' },
+    { adminOnly: true, group: 'admin', icon: 'layers', iconColor: '#ef6c00', label: 'NAV.ADMIN_AREAS', route: '/admin/areas' },
     { adminOnly: true, group: 'admin', icon: 'settings', iconColor: '#546e7a', label: 'NAV.SETTINGS', route: '/admin/settings' },
     {
       adminOnly: true,
@@ -286,6 +291,11 @@ export class App implements OnInit {
   protected readonly ssoLogoutAvailable = signal(false);
 
   protected readonly supportNavItems = computed(() => this.navItems.filter(item => item.group === 'support'));
+
+  /** The operator's support link, if any, for the disabled-account banner. */
+  protected readonly supportUrl = this.settingsService.supportUrl;
+
+  protected readonly toolbarDarkInk = computed(() => !!this.ACCENT_COLORS[this.accentTheme()]?.darkInk);
 
   protected readonly toolbarGradient = computed(() => {
     const accent = this.accentTheme();
@@ -443,9 +453,12 @@ export class App implements OnInit {
     this.applyAccentTheme();
   }
 
-  stopImpersonating(): void {
-    this.auth.stopImpersonating();
-    this.loadCounts();
+  async stopImpersonating(): Promise<void> {
+    // Only once the admin is back. With no admin token to return to, Stop signs out, and loading counts
+    // regardless sent them with no token: three 401s and a "session expired" toast on the login page.
+    if (await this.auth.stopImpersonating()) {
+      this.loadCounts();
+    }
   }
 
   toggleAlerts(): void {

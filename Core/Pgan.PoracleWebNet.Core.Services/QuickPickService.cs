@@ -718,6 +718,14 @@ public partial class QuickPickService(
         if (!Validator.TryValidateObject(
                 validationTarget, new ValidationContext(validationTarget), results, validateAllProperties: true))
         {
+            // The radius is the apply dialog's, not the pick's, so blaming "a filter value" sent the user
+            // to edit a pick that was fine.
+            if (results.Any(r => r.MemberNames.Contains("Distance", StringComparer.Ordinal)))
+            {
+                throw new AlarmValidationException(
+                    $"The distance must be between 0 and {AlarmDistance.MaxMetres} metres (half the Earth's circumference).");
+            }
+
             throw new AlarmValidationException(
                 "This quick pick holds a filter value the alarm does not accept: "
                 + (results[0].ErrorMessage ?? "value out of range"));
@@ -759,18 +767,30 @@ public partial class QuickPickService(
 
     private static Monster BuildMonster(Dictionary<string, object?> filters, int pokemonId, int profileNo, QuickPickApplyRequest request)
     {
-        // Start with sensible defaults (matching the add dialog defaults)
+        // The no-filter value for each bound, matching MonsterCreate. Two of these had drifted from it
+        // while the comment still claimed they matched, and both reached real alarms because no quick
+        // pick overrides them:
+        //
+        //   MaxLevel was 40, the game's cap until 2020, against MonsterCreate's 55. None of the 30
+        //   definitions sets maxLevel, so every quick pick capped its alarms at level 40 -- 4,088 rules
+        //   in production. "Level 30+ Pokemon, track all high-level wild spawns" asked for 30 to 40.
+        //
+        //   PvpRankingWorst was 100 against MonsterCreate's 4096. Inert where it landed, because these
+        //   default to no league and the rank window is only read when one is set -- but it is not the
+        //   column's no-bound value, and an alarm later edited to add a league inherited a top-100
+        //   filter nobody chose. 2,811 rules carry it with no league. The five definitions that do set
+        //   a league set pvpRankingWorst beside it, so none of them is touched by the correction.
         var monster = new Monster
         {
             MaxIv = 100,
             MaxCp = 9000,
-            MaxLevel = 40,
+            MaxLevel = 55,
             MaxWeight = 9000000,
             MaxAtk = 15,
             MaxDef = 15,
             MaxSta = 15,
             PvpRankingBest = 1,
-            PvpRankingWorst = 100,
+            PvpRankingWorst = 4096,
         };
 
         // Overlay the quick pick filters on top of the defaults.
@@ -900,7 +920,6 @@ public partial class QuickPickService(
     {
         var json = JsonSerializer.Serialize(definition.Filters, JsonOptions);
         var egg = JsonSerializer.Deserialize<Egg>(json, JsonOptions) ?? new Egg();
-        EnsureValidAlarm(egg);
 
         egg.ProfileNo = profileNo;
 
@@ -931,6 +950,10 @@ public partial class QuickPickService(
             egg.Template = request.Template;
         }
 
+        // After the request's radius, scope, clean and template are on it, as the other types do: validated
+        // before them, a radius no alarm accepts went through unrefused.
+        EnsureValidAlarm(egg);
+
         var created = await this._eggService.CreateAsync(userId, egg);
         return [created.Uid];
     }
@@ -942,7 +965,6 @@ public partial class QuickPickService(
     {
         var json = JsonSerializer.Serialize(definition.Filters, JsonOptions);
         var quest = JsonSerializer.Deserialize<Quest>(json, JsonOptions) ?? new Quest();
-        EnsureValidAlarm(quest);
 
         quest.ProfileNo = profileNo;
 
@@ -972,6 +994,10 @@ public partial class QuickPickService(
         {
             quest.Template = request.Template;
         }
+
+        // After the request's radius, scope, clean and template are on it, as the other types do: validated
+        // before them, a radius no alarm accepts went through unrefused.
+        EnsureValidAlarm(quest);
 
         var created = await this._questService.CreateAsync(userId, quest);
         return [created.Uid];
@@ -1062,7 +1088,6 @@ public partial class QuickPickService(
     {
         var json = JsonSerializer.Serialize(definition.Filters, JsonOptions);
         var lure = JsonSerializer.Deserialize<Lure>(json, JsonOptions) ?? new Lure();
-        EnsureValidAlarm(lure);
 
         lure.ProfileNo = profileNo;
 
@@ -1093,6 +1118,10 @@ public partial class QuickPickService(
             lure.Template = request.Template;
         }
 
+        // After the request's radius, scope, clean and template are on it, as the other types do: validated
+        // before them, a radius no alarm accepts went through unrefused.
+        EnsureValidAlarm(lure);
+
         var created = await this._lureService.CreateAsync(userId, lure);
         return [created.Uid];
     }
@@ -1104,7 +1133,6 @@ public partial class QuickPickService(
     {
         var json = JsonSerializer.Serialize(definition.Filters, JsonOptions);
         var nest = JsonSerializer.Deserialize<Nest>(json, JsonOptions) ?? new Nest();
-        EnsureValidAlarm(nest);
 
         nest.ProfileNo = profileNo;
 
@@ -1135,6 +1163,10 @@ public partial class QuickPickService(
             nest.Template = request.Template;
         }
 
+        // After the request's radius, scope, clean and template are on it, as the other types do: validated
+        // before them, a radius no alarm accepts went through unrefused.
+        EnsureValidAlarm(nest);
+
         var created = await this._nestService.CreateAsync(userId, nest);
         return [created.Uid];
     }
@@ -1146,7 +1178,6 @@ public partial class QuickPickService(
     {
         var json = JsonSerializer.Serialize(definition.Filters, JsonOptions);
         var gym = JsonSerializer.Deserialize<Gym>(json, JsonOptions) ?? new Gym();
-        EnsureValidAlarm(gym);
 
         gym.ProfileNo = profileNo;
 
@@ -1176,6 +1207,10 @@ public partial class QuickPickService(
         {
             gym.Template = request.Template;
         }
+
+        // After the request's radius, scope, clean and template are on it, as the other types do: validated
+        // before them, a radius no alarm accepts went through unrefused.
+        EnsureValidAlarm(gym);
 
         var created = await this._gymService.CreateAsync(userId, gym);
         return [created.Uid];

@@ -219,10 +219,17 @@ to both `humans.area` and `profiles.area` — **for admin areas**.
 
 User-drawn geofences are the exception. PoracleWeb serves them with `userSelectable=false` to keep them
 off the bot's area picker, and PoracleNG's `HandleSetAreas` silently strips any name whose fence is not
-user-selectable. So every user-geofence area mutation goes through `IUserAreaDualWriter`, which writes
-both tables directly in a single `SaveChangesAsync`, and `AreaController.UpdateAreas` calls
-`PreserveOwnedAreasInHumanAsync` after `SetAreasAsync` to re-add what was stripped. Every such site is
-tagged `HACK: trusted-set-areas` — `grep -rn "HACK: trusted-set-areas" --include="*.cs"` lists them.
+user-selectable. On a PoracleNG new enough to carry jfberry/PoracleNG#230's `trusted` fix and confirmed
+to have `area_security` switched off (see `IAreaSecurityPolicyService` — no self-reported signal tells a
+pre-#230 server from a post-#230 one otherwise), three of the six mutations — adding or removing one area
+from the active profile, and the bulk-add used to restore an owner's own geofences — go through v2's
+trusted `setAreas` instead, which PoracleNG itself commits atomically to both tables. Everywhere else,
+every user-geofence area mutation still goes through `IUserAreaDualWriter`, which writes both tables
+directly in a single `SaveChangesAsync`, and `AreaController.UpdateAreas` calls
+`PreserveOwnedAreasInHumanAsync` after `SetAreasAsync` to re-add what was stripped. Every such direct-DB
+site is tagged `HACK: trusted-set-areas` — `grep -rn "HACK: trusted-set-areas" --include="*.cs"` lists
+them, migrated or not; see [#838](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/838) for what moved
+and what is still blocked.
 
 Geofence polygons come from the Poracle API (via the unified feed), not the database.
 

@@ -42,8 +42,34 @@ public class PoracleHumanProxyTests
     {
         var client = new HttpClient(handler);
         return new PoracleHumanProxy(
-            client, config ?? CreateConfig(), ServerProfile(version),
+            client, config ?? CreateConfig(), ServerProfile(version), V2Schema(), AreaSecurityPolicy(),
             new MemoryCache(new MemoryCacheOptions()), Mock.Of<ILogger<PoracleHumanProxy>>());
+    }
+
+    /// <summary>
+    /// A schema probe answering what every released PoracleNG answers: none of PR #217's capabilities.
+    /// That is what keeps these suites exercising the paths they were written for — a probe reporting
+    /// the new surface would silently move them onto it. The tests about that surface pass their own.
+    /// </summary>
+    internal static IPoracleV2SchemaService V2Schema(PoracleV2Capabilities? capabilities = null)
+    {
+        var schema = new Mock<IPoracleV2SchemaService>();
+        schema.Setup(s => s.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(capabilities ?? PoracleV2Capabilities.None);
+
+        return schema.Object;
+    }
+
+    /// <summary>
+    /// An area-security policy answering the given confirmed-disabled state. Defaults to false, matching
+    /// the real service's fail-closed stance -- a test exercising a trusted-area method must opt in
+    /// explicitly rather than inherit a safe-by-accident default.
+    /// </summary>
+    internal static IAreaSecurityPolicyService AreaSecurityPolicy(bool confirmedDisabled = false)
+    {
+        var policy = new Mock<IAreaSecurityPolicyService>();
+        policy.Setup(p => p.IsConfirmedDisabledAsync()).ReturnsAsync(confirmedDisabled);
+        return policy.Object;
     }
 
     /// <summary>A server profile reporting the given version, or an unreachable one when null.</summary>

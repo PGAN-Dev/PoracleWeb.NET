@@ -132,11 +132,16 @@ PoracleNG 5.2.0 added a second tracking surface at `/api/v2` and left v1 frozen.
 tracking types send an edit through it**: `PUT /api/v2/humans/{id}/tracking/{type}/{uid}`. Reads,
 creates and both distance endpoints stay on v1 for every type.
 
-Invasion is the type with a v2 surface PoracleWeb.NET deliberately stays off. A v2 read of a rule
-targeting a named grunt carries no targeting field at all, and PoracleWeb.NET holds only the grunt
-name — which live data fills with values that cannot be reversed into an id (`blanche`, `npc 0`,
-`player team leader`). Pokéstop Events are the exception in the other direction: v2 is their only
-surface, so they have their own proxy rather than a fallback.
+Invasion writes through v2 as well, since #841, but behind a second gate the other types do not have.
+`grunt_type` — its one targeting field, and the only one PoracleWeb.NET ever holds — exists solely on a
+server carrying PoracleNG PR #217, and even there a rule goes to v1 unless that server's own grunt
+masterdata lists the name. That second condition is not a formality: 32 of 201 invasion rules in
+production carry a name v2 refuses (`kecleon`, `gold-stop` and `showcase`, which are Pokéstop events, and
+`metal`, which the game data calls `steel`), and all 32 are editable today because v1's read returns them
+where v2's does not.
+
+Pokéstop Events are the exception in the other direction: v2 is their only surface, so they have their
+own proxy rather than a fallback.
 
 **Reads stay on v1 on purpose.** v2 answers `null` for every field at its wildcard where v1 answers the
 sentinel, so rebuilding a model from a v2 read would need a per-field default table matching
@@ -247,10 +252,11 @@ asked for it. Nothing throws it yet — the capability services hide their contr
 
 | Operation | Reason |
 |---|---|
-| Admin and lookup human reads, plus user deletion (`GetAllAsync`, `GetWebhooksAsync`, `GetByIdsAsync`, `ExistsAsync`, `DeleteUserAsync`) | PoracleNG has no admin-list or admin-delete endpoint |
+| `ExistsAsync` (fallback for the other four, always) | `UserPurgeService` reads the database deliberately — the proxy answers null for any non-success, so an unreachable Poracle would be reported to the admin as "already gone" |
+| Admin and lookup human reads, plus user deletion (`GetAllAsync`, `GetWebhooksAsync`, `GetByIdsAsync`, `DeleteUserAsync`) **as a fallback only** | Prefer PoracleNG's v2 `/v2/humans` list/delete routes ([#839](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/839)) when the server's schema confirms both the routes and the three admin-grid fields jfberry/PoracleNG#230 added; `IHumanRepository` is the fallback for a server too old for either |
 | Profile **rename** (`ProfileRepository.RenameAsync`) | PoracleNG's profile update answers `{"status":"ok"}` and writes nothing for `name`, while honouring `active_hours` on the same request |
 | Profile geography after a create, duplicate or import (`ProfileRepository.UpdateAsync`) | `addProfile` ignores `area`, `latitude` and `longitude`, so a new profile inherited whatever the **active** one had — the right alarms over the wrong map |
-| User-geofence area writes (`IUserAreaDualWriter`, `humans.area` + `profiles.area`) | `setAreas` intersects the submitted list against `userSelectable=true` fences for non-admins, so a user's own geofence is silently stripped |
+| User-geofence area writes (`IUserAreaDualWriter`, `humans.area` + `profiles.area`) **as a fallback for three of six methods** | `setAreas` intersects the submitted list against `userSelectable=true` fences for non-admins, so a user's own geofence is silently stripped. Three active-profile methods prefer v2's trusted `setAreas` instead when the server carries jfberry/PoracleNG#230 and `area_security` is confirmed off ([#838](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/838)); the other three have no safe v2 form yet |
 | Per-alarm `override_areas` (`IUserAreaDualWriter.SetAlarmOverrideAreasAsync`) | The tracking write validates the same names against `GetAvailableAreas` and answers 400 "area not permitted", failing the whole request. Matching never consults `userSelectable`, so the name is written into the column directly |
 | `schema_migrations` read (`PoracleSchemaVersionReader`) | The applied migration number is what says whether a column exists; nothing in the `/health` capability map describes alarm columns |
 | Deprecated `pweb_settings` KV table (`PwebSettingRepository`, plus one `ALTER TABLE ... MODIFY COLUMN value LONGTEXT NULL` at startup) | Legacy rows PoracleNG never knew about, kept alive only so `SettingsMigrationService` can copy them into `poracle_web` |
@@ -259,8 +265,8 @@ asked for it. Nothing throws it yet — the capability services hide their contr
 
 The user-geofence area writes and the per-alarm `override_areas` write are tagged `HACK: trusted-set-areas` in code — `grep -rn "HACK: trusted-set-areas" --include="*.cs"` lists every reversion point. See [Backend → Areas](backend.md#areas) for the mechanism; this table and the one in [Database](database.md#poraclecontext) describe the same set.
 
-!!! note "Single-user human/profile operations are fully proxied"
-    `HumanService` reads and creates via `IPoracleHumanProxy` with **no DB fallback**. Location, areas, profile switch, profile CRUD, profile copy and the notification language all go through the proxy. What stays on direct DB is the set neither API version exposes an endpoint for: the admin user list, the webhook list, the batch read that resolves geofence owners' names, the user deletion itself, and the existence check the purge runs first — that one reads the database deliberately, because the proxy answers null for any non-success, so an unreachable Poracle would be reported to the admin as "already gone".
+!!! note "Single-user human/profile operations are fully proxied; admin bulk operations now prefer the proxy too"
+    `HumanService` reads and creates a single human via `IPoracleHumanProxy` with **no DB fallback**. Location, areas, profile switch, profile CRUD, profile copy and the notification language all go through the proxy. The admin-bulk set — the full user list, the webhook list, the batch read that resolves geofence owners' names, and user deletion — prefers the proxy's v2 routes since [#839](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/839), falling back to `IHumanRepository` on a server too old to carry them. The one operation that stays on direct DB unconditionally is the existence check the purge runs first — that one reads the database deliberately, because the proxy answers null for any non-success, so an unreachable Poracle would be reported to the admin as "already gone".
 
 ## Which human operations use /api/v2
 

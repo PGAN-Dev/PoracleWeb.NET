@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable, catchError, forkJoin, map, of, tap } from 'rxjs';
 
 import { ConfigService } from './config.service';
@@ -38,6 +38,12 @@ export class SettingsService {
 
   /** Cached site settings as key→value map, loaded once at app init */
   readonly siteSettings = signal<Record<string, string>>({});
+
+  /**
+   * Where members are sent for help, from the `support_url` site setting. Null when the operator has
+   * not set one, and the member-facing copy then names no destination rather than a hardcoded one.
+   */
+  readonly supportUrl = computed(() => this.siteSettings()['support_url']?.trim() || null);
 
   /**
    * The `disable_*` keys the upstream Poracle deployment forces off in its own config, regardless of

@@ -20,6 +20,7 @@ public class AuthControllerMeTests : ControllerTestBase
     private readonly Mock<IProfileService> _profileService = new();
     private readonly Mock<IJwtService> _jwtService = new();
     private readonly Mock<Pgan.PoracleWebNet.Api.Services.IUserRoleResolver> _roleResolver = new();
+    private readonly Mock<ISiteSettingService> _siteSettingService = new();
     private readonly AuthController _sut;
 
     public AuthControllerMeTests()
@@ -34,7 +35,7 @@ public class AuthControllerMeTests : ControllerTestBase
             this._humanService.Object, this._profileService.Object,
             new Mock<IPoracleApiProxy>().Object,
             new Mock<IPoracleHumanProxy>().Object,
-            new Mock<ISiteSettingService>().Object,
+            this._siteSettingService.Object,
             new Mock<IWebhookDelegateService>().Object,
             this._jwtService.Object,
             this._roleResolver.Object,
@@ -167,6 +168,47 @@ public class AuthControllerMeTests : ControllerTestBase
 
         Assert.IsType<UnauthorizedObjectResult>(result);
     }
+
+    /// <summary>
+    /// The SPA tells this 401 apart from an expired token or a deleted account by this code, and shows
+    /// the disabled-account explanation on the login page instead of the generic session-expired toast
+    /// -- the one surface that reaches a member who has never signed in to see the dashboard banner. See
+    /// #911.
+    /// </summary>
+    [Fact]
+    public async Task MeTagsABlockedAccountWithADistinctCode()
+    {
+        SetupUser(this._sut, profileNo: 1);
+        this._humanService.Setup(s => s.GetByIdAsync("123456789"))
+            .ReturnsAsync(new Human { CurrentProfileNo = 1, Enabled = 1, AdminDisable = 1 });
+        this._siteSettingService.Setup(s => s.GetValueAsync("support_url")).ReturnsAsync("https://example.com/support");
+
+        var result = Assert.IsType<UnauthorizedObjectResult>(await this._sut.Me());
+
+        Assert.Equal("account_disabled", GetProp(result.Value, "code"));
+        Assert.Equal("https://example.com/support", GetProp(result.Value, "supportUrl"));
+    }
+
+    /// <summary>
+    /// support_url is read by signed-in callers only (SettingsController.UserVisibleKeys) -- this one is
+    /// not, so the value has to travel inside the 401 body rather than the SPA fetching it the usual way.
+    /// Unset reads as null here, not as a missing property the SPA has to guard against separately.
+    /// </summary>
+    [Fact]
+    public async Task MeOmitsSupportUrlWhenNoneIsConfigured()
+    {
+        SetupUser(this._sut, profileNo: 1);
+        this._humanService.Setup(s => s.GetByIdAsync("123456789"))
+            .ReturnsAsync(new Human { CurrentProfileNo = 1, Enabled = 1, AdminDisable = 1 });
+        this._siteSettingService.Setup(s => s.GetValueAsync("support_url")).ReturnsAsync((string?)null);
+
+        var result = Assert.IsType<UnauthorizedObjectResult>(await this._sut.Me());
+
+        Assert.Equal("account_disabled", GetProp(result.Value, "code"));
+        Assert.Null(GetProp(result.Value, "supportUrl"));
+    }
+
+    private static object? GetProp(object? value, string name) => value?.GetType().GetProperty(name)?.GetValue(value);
 
     /// <summary>
     /// That 401 ends the CALLER's session, and while inspecting an account the caller is the admin -- so

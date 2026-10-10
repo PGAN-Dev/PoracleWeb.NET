@@ -5,6 +5,7 @@ import { firstValueFrom } from 'rxjs';
 
 import { SettingsService } from '../services/settings.service';
 import { ToastService } from '../services/toast.service';
+import { TokenStoreService } from '../services/token-store.service';
 
 /**
  * Blocks navigation to a route when the matching `disable_*` site setting is true and
@@ -18,6 +19,11 @@ export function disabledFeatureGuard(disableKey: string): CanActivateFn {
     const router = inject(Router);
     const toast = inject(ToastService);
     const translate = inject(TranslateService);
+
+    // Signed out, the authenticated settings can only answer 401. authGuard sits beside this on every
+    // route and sends the visitor to /login; loading settings here first put two failed requests on
+    // the wire after every Logout that landed on a guarded URL.
+    if (!inject(TokenStoreService).getAccessToken()) return true;
 
     // loadOnce is idempotent; if the cache is warm it emits and completes immediately.
     // We await it because authGuard runs first but doesn't itself wait on settings.

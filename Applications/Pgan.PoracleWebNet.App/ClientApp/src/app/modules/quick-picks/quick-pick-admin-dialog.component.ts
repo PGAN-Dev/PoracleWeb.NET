@@ -130,7 +130,7 @@ export class QuickPickAdminDialogComponent implements OnInit {
     minLevel: [0],
     minWeight: [0],
     pokemonId: [0],
-    pvpRankingBest: [0],
+    pvpRankingBest: [1],
     pvpRankingLeague: [0],
     pvpRankingMinCp: [0],
     pvpRankingWorst: [4096],

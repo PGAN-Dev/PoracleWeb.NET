@@ -19,14 +19,14 @@
     </mat-button-toggle-group>
 
     <mat-button-toggle-group [value]="viewMode()" (change)="viewMode.set($event.value)" class="view-toggle">
-      <mat-button-toggle value="card" [matTooltip]="'ADMIN.VIEW_CARD' | translate">
-        <mat-icon>grid_view</mat-icon>
+      <mat-button-toggle value="card" [matTooltip]="'ADMIN.VIEW_CARD' | translate" [aria-label]="'ADMIN.VIEW_CARD' | translate">
+        <mat-icon aria-hidden="true">grid_view</mat-icon>
       </mat-button-toggle>
-      <mat-button-toggle value="list" [matTooltip]="'ADMIN.VIEW_LIST' | translate">
-        <mat-icon>view_list</mat-icon>
+      <mat-button-toggle value="list" [matTooltip]="'ADMIN.VIEW_LIST' | translate" [aria-label]="'ADMIN.VIEW_LIST' | translate">
+        <mat-icon aria-hidden="true">view_list</mat-icon>
       </mat-button-toggle>
-      <mat-button-toggle value="table" [matTooltip]="'ADMIN.VIEW_TABLE' | translate">
-        <mat-icon>table_chart</mat-icon>
+      <mat-button-toggle value="table" [matTooltip]="'ADMIN.VIEW_TABLE' | translate" [aria-label]="'ADMIN.VIEW_TABLE' | translate">
+        <mat-icon aria-hidden="true">table_chart</mat-icon>
       </mat-button-toggle>
     </mat-button-toggle-group>
   </div>
@@ -148,7 +148,11 @@
                   </td>
                   <td class="col-actions">
                     <div class="list-actions">
-                      <button mat-icon-button (click)="openDetailDialog(geofence)" [matTooltip]="'ADMIN.VIEW_DETAILS' | translate">
+                      <button
+                        mat-icon-button
+                        (click)="openDetailDialog(geofence)"
+                        [matTooltip]="'ADMIN.VIEW_DETAILS' | translate"
+                        [attr.aria-label]="'ADMIN.VIEW_DETAILS' | translate">
                         <mat-icon>visibility</mat-icon>
                       </button>
                       @if (canReview(geofence)) {
@@ -156,11 +160,17 @@
                           mat-icon-button
                           color="primary"
                           (click)="openReviewDialog(geofence)"
-                          [matTooltip]="'ADMIN.REVIEW' | translate">
+                          [matTooltip]="'ADMIN.REVIEW' | translate"
+                          [attr.aria-label]="'ADMIN.REVIEW' | translate">
                           <mat-icon>rate_review</mat-icon>
                         </button>
                       }
-                      <button mat-icon-button color="warn" (click)="adminDelete(geofence)" [matTooltip]="'COMMON.DELETE' | translate">
+                      <button
+                        mat-icon-button
+                        color="warn"
+                        (click)="adminDelete(geofence)"
+                        [matTooltip]="'COMMON.DELETE' | translate"
+                        [attr.aria-label]="'COMMON.DELETE' | translate">
                         <mat-icon>delete</mat-icon>
                       </button>
                     </div>
@@ -282,7 +292,8 @@
                         <button
                           mat-icon-button
                           (click)="openDetailDialog(geofence)"
-                          [matTooltip]="'ADMIN.VIEW_GEOFENCE_DETAILS' | translate">
+                          [matTooltip]="'ADMIN.VIEW_GEOFENCE_DETAILS' | translate"
+                          [attr.aria-label]="'ADMIN.VIEW_GEOFENCE_DETAILS' | translate">
                           <mat-icon>visibility</mat-icon>
                         </button>
                         @if (canReview(geofence)) {
@@ -299,7 +310,8 @@
                           mat-icon-button
                           color="warn"
                           (click)="adminDelete(geofence)"
-                          [matTooltip]="'ADMIN.DELETE_GEOFENCE' | translate">
+                          [matTooltip]="'ADMIN.DELETE_GEOFENCE' | translate"
+                          [attr.aria-label]="'ADMIN.DELETE_GEOFENCE' | translate">
                           <mat-icon>delete</mat-icon>
                         </button>
                       </div>
@@ -360,7 +372,11 @@
                         <td class="col-created">{{ geofence.createdAt | date: 'mediumDate' }}</td>
                         <td class="col-actions">
                           <div class="list-actions">
-                            <button mat-icon-button (click)="openDetailDialog(geofence)" [matTooltip]="'ADMIN.VIEW_DETAILS' | translate">
+                            <button
+                              mat-icon-button
+                              (click)="openDetailDialog(geofence)"
+                              [matTooltip]="'ADMIN.VIEW_DETAILS' | translate"
+                              [attr.aria-label]="'ADMIN.VIEW_DETAILS' | translate">
                               <mat-icon>visibility</mat-icon>
                             </button>
                             @if (canReview(geofence)) {
@@ -368,11 +384,17 @@
                                 mat-icon-button
                                 color="primary"
                                 (click)="openReviewDialog(geofence)"
-                                [matTooltip]="'ADMIN.REVIEW' | translate">
+                                [matTooltip]="'ADMIN.REVIEW' | translate"
+                                [attr.aria-label]="'ADMIN.REVIEW' | translate">
                                 <mat-icon>rate_review</mat-icon>
                               </button>
                             }
-                            <button mat-icon-button color="warn" (click)="adminDelete(geofence)" [matTooltip]="'COMMON.DELETE' | translate">
+                            <button
+                              mat-icon-button
+                              color="warn"
+                              (click)="adminDelete(geofence)"
+                              [matTooltip]="'COMMON.DELETE' | translate"
+                              [attr.aria-label]="'COMMON.DELETE' | translate">
                               <mat-icon>delete</mat-icon>
                             </button>
                           </div>

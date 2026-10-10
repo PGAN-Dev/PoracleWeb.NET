@@ -99,6 +99,7 @@
               </div>
               <div class="setting-control">
                 <mat-slide-toggle
+                  [aria-label]="'ADMIN_SETTINGS.AUTH_SLO_LABEL' | translate"
                   [checked]="oidcSloEnabled()"
                   (change)="onBoolChange('enable_oidc_slo', $event.checked)"
                   color="primary"></mat-slide-toggle>
@@ -236,6 +237,7 @@
                   <div class="setting-control">
                     @if (meta.type === 'boolean') {
                       <mat-slide-toggle
+                        [aria-label]="meta.labelKey | translate"
                         [checked]="featureEnabled(meta)"
                         [disabled]="forcedByPoracle(meta)"
                         [matTooltip]="forcedByPoracle(meta) ? ('ADMIN_SETTINGS.FORCED_BY_PORACLE_TOOLTIP' | translate) : ''"
@@ -243,7 +245,10 @@
                         color="primary"></mat-slide-toggle>
                     } @else if (meta.type === 'select') {
                       <mat-form-field appearance="outline" class="setting-field">
-                        <mat-select [ngModel]="getSettingValue(meta.key) ?? ''" (ngModelChange)="onTextChange(meta.key, $event)">
+                        <mat-select
+                          [aria-label]="meta.labelKey | translate"
+                          [ngModel]="getSettingValue(meta.key) ?? ''"
+                          (ngModelChange)="onTextChange(meta.key, $event)">
                           @for (option of meta.options ?? []; track option.value) {
                             <mat-option [value]="option.value">{{ optionLabel(option) }}</mat-option>
                           }
@@ -254,6 +259,7 @@
                         <input
                           matInput
                           type="text"
+                          [attr.aria-label]="meta.labelKey | translate"
                           [ngModel]="getSettingValue(meta.key) ?? ''"
                           (ngModelChange)="onTextChange(meta.key, $event)" />
                       </mat-form-field>
@@ -266,6 +272,7 @@
                             height="32"
                             (error)="onPreviewError($event)"
                             (load)="onPreviewLoad($event)" />
+                          <mat-icon class="favicon-fallback">image_not_supported</mat-icon>
                         </div>
                       }
                     }
@@ -576,7 +583,11 @@
               </div>
               <div class="setting-control">
                 <mat-form-field appearance="outline" class="setting-field">
-                  <input matInput [ngModel]="s.value ?? ''" (ngModelChange)="onTextChange(itemKey(s), $event)" />
+                  <input
+                    matInput
+                    [attr.aria-label]="itemKey(s)"
+                    [ngModel]="s.value ?? ''"
+                    (ngModelChange)="onTextChange(itemKey(s), $event)" />
                 </mat-form-field>
               </div>
             </div>

@@ -35,6 +35,7 @@ import { WhereChipComponent } from '../../shared/components/where-chip/where-chi
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { isAutoDelete as cleanIsAutoDelete } from '../../shared/utils/clean-flags';
+import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -118,8 +119,9 @@ export class InvasionListComponent implements OnInit {
       // The server refuses a radius that would take over an alarm the user did not select, and names
       // the one in the way. Unguarded, that rejection cleared nothing, reloaded nothing and showed
       // nothing -- indistinguishable from a successful no-op. See #641.
+      let result: DistanceUpdateResult | undefined;
       try {
-        await firstValueFrom(this.invasionService.updateBulkDistance(uids, distance));
+        result = await firstValueFrom(this.invasionService.updateBulkDistance(uids, distance));
       } catch (err) {
         const message = (err as { error?: { error?: string } })?.error?.error;
         this.snackBar.open(message ?? this.i18n.instant('INVASIONS.SNACK_FAILED_DISTANCE'), this.i18n.instant('TOAST.OK'), {
@@ -130,9 +132,17 @@ export class InvasionListComponent implements OnInit {
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadInvasions();
-      this.snackBar.open(this.i18n.instant('INVASIONS.SNACK_BULK_DISTANCE', { count: uids.length }), this.i18n.instant('TOAST.OK'), {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        distanceUpdateMessage(
+          result,
+          this.i18n.instant('INVASIONS.SNACK_BULK_DISTANCE', { count: result?.updated ?? uids.length }),
+          this.i18n,
+        ),
+        this.i18n.instant('TOAST.OK'),
+        {
+          duration: skippedAny(result) ? 6000 : 3000,
+        },
+      );
     }
   }
 
@@ -166,7 +176,13 @@ export class InvasionListComponent implements OnInit {
         data: {
           confirmText: this.i18n.instant('COMMON.DELETE'),
           message: this.i18n.instant('INVASIONS.CONFIRM_DELETE_MSG', {
-            name: getGruntDisplayName(invasion.gruntType, invasion.gender, key => this.i18n.instant(key)),
+            name: getGruntDisplayName(
+              invasion.gruntType,
+              invasion.gender,
+              key => this.i18n.instant(key),
+              this.masterData.getGruntName(invasion.gruntType, invasion.gender),
+              this.masterData.isGruntNameUntranslated(invasion.gruntType, invasion.gender),
+            ),
           }),
           title: this.i18n.instant('INVASIONS.CONFIRM_DELETE_TITLE'),
           warn: true,
@@ -232,7 +248,13 @@ export class InvasionListComponent implements OnInit {
   }
 
   getDisplayName(gruntType: string | null, gender?: number): string {
-    return getGruntDisplayName(gruntType, gender, key => this.i18n.instant(key));
+    return getGruntDisplayName(
+      gruntType,
+      gender,
+      key => this.i18n.instant(key),
+      this.masterData.getGruntName(gruntType, gender),
+      this.masterData.isGruntNameUntranslated(gruntType, gender),
+    );
   }
 
   getEventColor(gruntType: string | null): string {
@@ -312,22 +334,6 @@ export class InvasionListComponent implements OnInit {
   toggleSelectMode(): void {
     this.selectMode.update(v => !v);
     if (!this.selectMode()) this.selectedIds.set(new Set());
-  }
-
-  updateAllDistance(): void {
-    const ref = this.dialog.open(DistanceDialogComponent, { width: '440px' });
-    ref.afterClosed().subscribe(distance => {
-      if (distance !== null && distance !== undefined) {
-        this.invasionService.updateAllDistance(distance).subscribe({
-          error: () =>
-            this.snackBar.open(this.i18n.instant('INVASIONS.SNACK_FAILED_DISTANCE'), this.i18n.instant('TOAST.OK'), { duration: 3000 }),
-          next: () => {
-            this.snackBar.open(this.i18n.instant('INVASIONS.SNACK_ALL_DISTANCE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
-            this.loadInvasions();
-          },
-        });
-      }
-    });
   }
 
   private loadProfileAreas(): void {

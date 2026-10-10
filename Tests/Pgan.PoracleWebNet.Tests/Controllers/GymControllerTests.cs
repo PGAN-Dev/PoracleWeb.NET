@@ -79,7 +79,7 @@ public class GymControllerTests : ControllerTestBase
     [Fact]
     public async Task UpdateAllDistanceOk()
     {
-        this._service.Setup(s => s.UpdateDistanceByUserAsync("123456789", 1, 250)).ReturnsAsync(5);
+        this._service.Setup(s => s.UpdateDistanceByUserAsync("123456789", 1, 250)).ReturnsAsync(DistanceUpdateResult.None with { Updated = 5 });
         Assert.IsType<OkObjectResult>(await this._sut.UpdateAllDistance(250));
     }
 }

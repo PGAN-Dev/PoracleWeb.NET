@@ -12,7 +12,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { TranslatePipe } from '@ngx-translate/core';
 import * as L from 'leaflet';
 import { Subject } from 'rxjs';
-import { debounceTime, switchMap, takeUntil, filter, distinctUntilChanged } from 'rxjs/operators';
+import { debounceTime, switchMap, takeUntil, filter } from 'rxjs/operators';
 
 import { Location, GeocodingResult } from '../../../core/models';
 import { BasemapService } from '../../../core/services/basemap.service';
@@ -102,53 +102,50 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
     });
   }
 
-  getAddressPrimary(result: GeocodingResult): string {
-    const addr = result.address;
-    if (!addr) return result.display_name?.split(',')[0] || 'Unknown';
-
-    // Build primary: street address or place name
-    const parts: string[] = [];
-    if (addr.house_number && addr.road) {
-      parts.push(`${addr.house_number} ${addr.road}`);
-    } else if (addr.road) {
-      parts.push(addr.road);
-    } else if ((result as any).name) {
-      parts.push((result as any).name);
-    }
-
-    const city = addr.city || addr.town || addr.village || '';
-    if (city && !parts.includes(city)) parts.push(city);
-
-    return parts.join(', ') || result.display_name?.split(',')[0] || 'Unknown';
+  /**
+   * What the search input shows for its model. Picking an option writes the option's value -- the
+   * GeocodingResult object -- into the model, which rendered "[object Object]" without this.
+   */
+  displayResult(value: GeocodingResult | string | null): string {
+    if (typeof value === 'string') return value;
+    return value?.displayName ?? '';
   }
 
-  getAddressSecondary(result: GeocodingResult): string {
-    const addr = result.address;
-    if (!addr) {
-      const parts = result.display_name?.split(',') || [];
-      return parts.slice(1).join(',').trim();
+  /** Street address, or the place's own name when it has no street (a city, a named POI). */
+  getAddressPrimary(result: GeocodingResult): string {
+    const parts: string[] = [];
+    if (result.streetNumber && result.streetName) {
+      parts.push(`${result.streetNumber} ${result.streetName}`);
+    } else if (result.streetName) {
+      parts.push(result.streetName);
+    } else if (result.name) {
+      parts.push(result.name);
     }
 
-    const parts: string[] = [];
-    const state = addr.state || '';
-    const postcode = addr.postcode || '';
-    const country = addr.country || '';
+    const city = result.city || '';
+    if (city && !parts.includes(city)) parts.push(city);
 
-    if (state) parts.push(state);
-    if (postcode) parts.push(postcode);
-    if (country && country !== 'United States') parts.push(country);
+    return parts.join(', ') || result.displayName?.split(',')[0] || 'Unknown';
+  }
+
+  /** State, postcode and country -- the detail `getAddressPrimary` leaves out. */
+  getAddressSecondary(result: GeocodingResult): string {
+    const parts: string[] = [];
+    if (result.state) parts.push(result.state);
+    if (result.zipcode) parts.push(result.zipcode);
+    if (result.country && result.country !== 'United States') parts.push(result.country);
 
     return parts.join(', ');
   }
 
+  /**
+   * PoracleNG's forward result carries no OSM class/type the way Nominatim's did, so this infers a
+   * reasonable icon from what the result itself has rather than reading fields that no longer exist.
+   */
   getPlaceIcon(result: GeocodingResult): string {
-    const type = (result as any).type || '';
-    const cls = (result as any).class || '';
-    if (cls === 'place' || type === 'city' || type === 'town' || type === 'village') return 'location_city';
-    if (cls === 'highway' || type === 'residential' || type === 'road') return 'add_road';
-    if (cls === 'building' || type === 'house') return 'home';
-    if (cls === 'amenity') return 'store';
-    if (cls === 'leisure' || type === 'park') return 'park';
+    if (result.streetNumber) return 'home';
+    if (result.streetName) return 'add_road';
+    if (result.city) return 'location_city';
     return 'place';
   }
 
@@ -175,9 +172,11 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.search$
       .pipe(
+        // No distinctUntilChanged: after a pick, typing the same text again is a new search, and the
+        // debounce already collapses keystrokes.
         debounceTime(500),
-        distinctUntilChanged(),
-        filter(q => q.trim().length >= 3),
+        // Belt and braces with onSearchChange: a non-string here threw on trim() and killed the stream.
+        filter(q => typeof q === 'string' && q.trim().length >= 3),
         switchMap(q => {
           this.searching.set(true);
           return this.locationService.geocode(q);
@@ -197,8 +196,13 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
     }
   }
 
-  onSearchChange(value: string): void {
-    this.search$.next(value);
+  /**
+   * Picking an option emits the chosen GeocodingResult through `ngModelChange`, not text the user typed.
+   * It reached `trim()` and errored the search stream, so no search after the first pick returned
+   * anything. Only typed text is a query.
+   */
+  onSearchChange(value: GeocodingResult | string | null): void {
+    if (typeof value === 'string') this.search$.next(value);
   }
 
   save(): void {
@@ -226,10 +230,10 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
   }
 
   selectResult(result: GeocodingResult): void {
-    this.latitude = parseFloat(result.lat);
-    this.longitude = parseFloat(result.lon);
-    this.searchQuery = result.display_name;
-    this.resolvedAddress.set(result.display_name);
+    this.latitude = result.latitude;
+    this.longitude = result.longitude;
+    this.searchQuery = result.displayName;
+    this.resolvedAddress.set(result.displayName);
     this.searchResults.set([]);
     this.skipNextReverse = true;
     this.updateMap();
@@ -264,6 +268,12 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
     );
   }
 
+  /** Leaflet makes a marker a focusable role="button"; `title` gives it a name (axe: aria-command-name). */
+  private createMarker(lat: number, lng: number): L.Marker {
+    const label = this.i18n.instant('AREA_MAP.YOUR_LOCATION');
+    return L.marker([lat, lng], { alt: label, icon: this.locationIcon, title: label }).addTo(this.map!);
+  }
+
   private initMap(): void {
     const el = this.mapContainerRef()?.nativeElement;
     if (!el) return;
@@ -279,7 +289,7 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
     this.basemap.attach(this.map, { picker: true });
 
     if (lat !== 0 || lng !== 0) {
-      this.marker = L.marker([lat, lng], { icon: this.locationIcon }).addTo(this.map);
+      this.marker = this.createMarker(lat, lng);
     }
 
     this.map.on('click', (e: L.LeafletMouseEvent) => {
@@ -301,8 +311,8 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
     if (!this.isValid() || (this.latitude === 0 && this.longitude === 0)) return;
 
     this.locationService.reverseGeocode(this.latitude, this.longitude).subscribe(result => {
-      if (result?.display_name) {
-        this.resolvedAddress.set(result.display_name);
+      if (result?.displayName) {
+        this.resolvedAddress.set(result.displayName);
       } else {
         this.resolvedAddress.set('');
       }
@@ -324,7 +334,7 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
     if (this.marker) {
       this.marker.setLatLng([lat, lng]);
     } else {
-      this.marker = L.marker([lat, lng], { icon: this.locationIcon }).addTo(this.map);
+      this.marker = this.createMarker(lat, lng);
     }
   }
 }

@@ -123,7 +123,7 @@ public class MonsterControllerTests : ControllerTestBase
     [Fact]
     public async Task UpdateAllDistanceReturnsOkWithCount()
     {
-        this._service.Setup(s => s.UpdateDistanceByUserAsync("123456789", 1, 500)).ReturnsAsync(3);
+        this._service.Setup(s => s.UpdateDistanceByUserAsync("123456789", 1, 500)).ReturnsAsync(DistanceUpdateResult.None with { Updated = 3 });
 
         var result = await this._sut.UpdateAllDistance(500);
 

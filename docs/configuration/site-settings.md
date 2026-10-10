@@ -316,6 +316,7 @@ Runtime toggles for the generic external SSO / OIDC sign-in flow. See [External 
 | Key | Label | Type | Description |
 |---|---|---|---|
 | `signup_url` | Signup URL | url | External registration page. When set, someone who reaches the login page without a Poracle account gets a sign-up button pointing here. Served on the public login page before anyone signs in, so treat it as public. Leave empty to hide the button. |
+| `support_url` | Support URL | url | Where your members go for help: a support channel, a ticket channel or a help page. Linked from the disabled-account banner ("Still disabled? Contact support") and the Help page footer. Leave empty and neither shows a link; the footer then tells members to contact the team that runs the site. Served to every signed-in user. |
 
 ---
 
@@ -334,6 +335,24 @@ and #589.
 `disable_geomap` and `disable_geomap_select` are legacy PoracleJS keys describing a map picker this app
 does not have. `provider_url` still exists in the Poracle bot's own config, which is where the geocoder
 URL is actually read from — the site setting was a duplicate that fed nothing.
+
+---
+
+## Hidden Areas
+
+| Key | Type | Description |
+|---|---|---|
+| `hidden_areas` | json | Area names taken off the menu, as a JSON array of lowercase strings. |
+
+Managed from **Admin → Areas** rather than edited by hand. A name listed here is served with
+`userSelectable: false` in the geofence feed, which removes it from Areas & Places, from the per-alarm
+scope picker and from the bot's area list at once.
+
+It does not unsubscribe anyone already using the area. See
+[Hiding an area from your users](../features/custom-geofences/koji-and-regions.md#hiding-an-area-from-your-users).
+
+A value this site cannot parse hides nothing, rather than hiding everything: the setting is read inside
+the geofence feed, and failing the other way would take alerting down quietly.
 
 ---
 

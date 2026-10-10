@@ -10,6 +10,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { HELP_SECTIONS, HelpSection } from './help-sections';
 import { I18nService } from '../../core/services/i18n.service';
 import { PoracleConfigService } from '../../core/services/poracle-config.service';
+import { SettingsService } from '../../core/services/settings.service';
 import { ImageViewerDialogComponent } from '../../shared/components/image-viewer-dialog/image-viewer-dialog.component';
 
 @Component({
@@ -48,6 +49,9 @@ export class HelpComponent {
   });
 
   protected readonly panels = viewChildren(MatExpansionPanel);
+
+  /** Where the footer sends someone who still needs help; null when the operator has set none. */
+  protected readonly supportUrl = inject(SettingsService).supportUrl;
 
   constructor() {
     // Section bodies are injected as raw HTML from the translation bundles, so the screenshots

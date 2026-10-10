@@ -47,6 +47,11 @@
   gap: 12px;
 }
 
+// With location switched off only the areas card is left, and it should not sit in half a row.
+.method-cards.single {
+  grid-template-columns: 1fr;
+}
+
 .method-card {
   padding: 16px;
   border: 1px solid var(--card-border, rgba(0, 0, 0, 0.12));
@@ -260,9 +265,10 @@
   }
 }
 
+// Orange keeps its hue and takes dark text: white on #ff9800 was 2.2:1.
 .mode-active {
   background: #ff9800;
-  color: #fff;
+  color: #212121;
 
   &:hover {
     background: #f57c00;

@@ -1,0 +1,300 @@
+{
+ "info": {
+  "title": "PoracleNG API",
+  "version": "5.2.1"
+ },
+ "paths": {
+  "/v2/humans": {
+   "post": {
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/V2HumanResourceBody"
+        }
+       }
+      },
+      "description": "OK"
+     },
+     "default": {
+      "content": {
+       "application/problem+json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorModel"
+        }
+       }
+      },
+      "description": "Error"
+     }
+    }
+   }
+  },
+  "/v2/humans/{id}": {
+   "get": {
+    "description": "Returns the full human resource. blocked_alerts is a read-only derived field. 404 if the human does not exist.",
+    "operationId": "v2-get-human",
+    "parameters": [
+     {
+      "description": "Human id (the owning user)",
+      "in": "path",
+      "name": "id",
+      "required": true,
+      "schema": {
+       "description": "Human id (the owning user)",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/V2HumanResourceBody"
+        }
+       }
+      },
+      "description": "OK"
+     },
+     "default": {
+      "content": {
+       "application/problem+json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorModel"
+        }
+       }
+      },
+      "description": "Error"
+     }
+    },
+    "security": [
+     {
+      "poracleSecret": []
+     }
+    ],
+    "summary": "Fetch one human",
+    "tags": [
+     "v2-humans"
+    ]
+   }
+  },
+  "/v2/humans/{id}/profiles": {
+   "get": {
+    "description": "Returns every profile for the human (profile_no, name, area, location, active_hours). active_hours is a typed JSON array of schedule entries ([] when no schedule is set). 404 if the human does not exist.",
+    "operationId": "v2-list-human-profiles",
+    "parameters": [
+     {
+      "description": "Human id (the owning user)",
+      "in": "path",
+      "name": "id",
+      "required": true,
+      "schema": {
+       "description": "Human id (the owning user)",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/V2ProfilesOutputBody"
+        }
+       }
+      },
+      "description": "OK"
+     },
+     "default": {
+      "content": {
+       "application/problem+json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorModel"
+        }
+       }
+      },
+      "description": "Error"
+     }
+    },
+    "security": [
+     {
+      "poracleSecret": []
+     }
+    ],
+    "summary": "List a human's profiles",
+    "tags": [
+     "v2-profiles"
+    ]
+   },
+   "post": {
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/StatusOKOutputBody"
+        }
+       }
+      },
+      "description": "OK"
+     },
+     "default": {
+      "content": {
+       "application/problem+json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorModel"
+        }
+       }
+      },
+      "description": "Error"
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "V2SetAreasBody": {
+    "additionalProperties": false,
+    "properties": {
+     "areas": {
+      "description": "Requested area names; intersected with the human's allowed areas (invalid/duplicate entries dropped)",
+      "items": {
+       "type": "string"
+      },
+      "type": [
+       "array",
+       "null"
+      ]
+     }
+    },
+    "required": [
+     "areas"
+    ],
+    "type": "object"
+   },
+   "V2UpdateProfileBody": {
+    "additionalProperties": false,
+    "properties": {
+     "active_hours": {
+      "description": "New active-hours schedule ([] clears it). Validated against the strict schema.",
+      "items": {
+       "$ref": "#/components/schemas/V2ActiveHourEntry"
+      },
+      "type": [
+       "array",
+       "null"
+      ]
+     }
+    },
+    "required": [
+     "active_hours"
+    ],
+    "type": "object"
+   },
+   "V2InvasionRule": {
+    "additionalProperties": false,
+    "properties": {
+     "boss": {
+      "description": "Catch-all for boss encounters: set true to match only boss invasions (stored grunt_type \"boss\"). One-of mode field. Mutually exclusive with the others; gender not allowed.",
+      "type": "boolean"
+     },
+     "clean": {
+      "description": "Auto-delete the alert on expiry (clean bitmask bit 1). Omit to disable (default false). Returned as null when false.",
+      "type": [
+       "boolean",
+       "null"
+      ]
+     },
+     "distance": {
+      "description": "Radius in metres around the anchor location. Omit (or 0) to match by the profile's geofence areas instead of a radius \u2014 0 means area-based, NOT zero metres (stored as 0). Returned as null when at its wildcard.",
+      "format": "int64",
+      "type": [
+       "integer",
+       "null"
+      ]
+     },
+     "edit": {
+      "description": "Keep the message updated in place (clean bitmask bit 2). Omit to disable (default false). Returned as null when false.",
+      "type": [
+       "boolean",
+       "null"
+      ]
+     },
+     "everything": {
+      "description": "Catch-all wildcard: set true to match EVERY invasion (stored grunt_type \"everything\"). This is the 'any invasion' selector \u2014 there is no omit-to-wildcard on invasion (exactly one mode field must be set). Mutually exclusive with the others; gender not allowed.",
+      "type": "boolean"
+     },
+     "gender": {
+      "description": "Grunt gender filter: any|male|female. Omit to match any gender (defaults to 'any', stored as 0). ONLY valid together with type_id. Returned as null when 'any' (or when not in type_id mode).",
+      "enum": [
+       "any",
+       "male",
+       "female"
+      ],
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "grunt_id": {
+      "description": "Game-master grunt id; resolves to its type name and implies its own gender. One-of mode field. Mutually exclusive with type_id/everything/boss; gender not allowed. (On read-back a grunt_id rule is reported as type_id+gender, faithful to what is stored.)",
+      "format": "int64",
+      "type": "integer"
+     },
+     "override_areas": {
+      "description": "Restrict this rule to these geofence areas (mutually exclusive with distance > 0 and override_location_label). Omit for none. Returned as null when unset.",
+      "items": {
+       "type": "string"
+      },
+      "type": [
+       "array",
+       "null"
+      ]
+     },
+     "override_location_label": {
+      "description": "Saved-location label to use instead of the profile location (requires distance > 0; mutually exclusive with override_areas). Omit for none. Returned as null when unset.",
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "summary": {
+      "description": "Route into the summary digest (clean bitmask bit 4). Omit to disable (default false). Returned as null when false.",
+      "type": [
+       "boolean",
+       "null"
+      ]
+     },
+     "template": {
+      "description": "DTS template name. Omit (or empty) to use the server's configured default template (stored as \"\"). Returned as null when at its wildcard.",
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "type_id": {
+      "description": "Pokemon type id (1-18); grunt_type resolves to that type's lowercased name. EXACTLY ONE mode field required \u2014 set this OR grunt_id OR everything OR boss (not omitted-to-wildcard; use everything for the catch-all). Mutually exclusive with grunt_id/everything/boss. In responses, the active mode field is always present; the other mode fields are omitted/null.",
+      "format": "int64",
+      "type": "integer"
+     }
+    },
+    "type": "object"
+   },
+   "StatusOKOutputBody": {
+    "additionalProperties": false,
+    "properties": {
+     "status": {
+      "description": "Always \"ok\" on success",
+      "type": "string"
+     }
+    },
+    "required": [
+     "status"
+    ],
+    "type": "object"
+   }
+  }
+ }
+}

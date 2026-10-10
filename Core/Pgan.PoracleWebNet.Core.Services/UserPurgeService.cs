@@ -44,7 +44,7 @@ public partial class UserPurgeService(
         await this.TryAsync("webhook delegates", () => this._webhookDelegateRepository.RemoveAllForIdAsync(userId));
         await this.TryAsync("quick picks", () => this.PurgeQuickPicksAsync(userId));
 
-        return await this._humanRepository.DeleteUserAsync(userId);
+        return await this._humanService.DeleteUserAsync(userId);
     }
 
     /// <summary>

@@ -16,6 +16,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { TranslatePipe } from '@ngx-translate/core';
 import { catchError, forkJoin, of } from 'rxjs';
 
+import { syncUnscanned } from './include-unscanned';
 import { MonsterCreate } from '../../core/models';
 import { AlertDefaultsService } from '../../core/services/alert-defaults.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -88,6 +89,9 @@ export class PokemonAddDialogComponent implements OnInit {
     form: [0],
     forms: [[] as number[]],
     gender: [0],
+    // Poracle stores "include Pokemon nobody has encountered" as min_iv -1, which also means any IV.
+    // The Min IV box can't take -1, so this switch is the only way to ask for it. See syncUnscanned().
+    includeUnscanned: [false],
     maxAtk: [15, [Validators.min(0), Validators.max(15)]],
     maxCp: [9000, [Validators.min(0), Validators.max(9000)]],
     maxDef: [15, [Validators.min(0), Validators.max(15)]],
@@ -188,6 +192,8 @@ export class PokemonAddDialogComponent implements OnInit {
     this.pvpForm.controls.pvpRankingCap.valueChanges.subscribe(() => {
       this.capTouched.set(true);
     });
+
+    syncUnscanned(this.filtersForm.controls);
   }
 
   onPokemonSelected(ids: number[]): void {
@@ -231,12 +237,12 @@ export class PokemonAddDialogComponent implements OnInit {
           maxSta: filters.maxSta ?? 15,
           maxWeight: filters.maxWeight ?? 9000000,
           minCp: filters.minCp ?? 0,
-          minIv: filters.minIv ?? 0,
+          minIv: filters.includeUnscanned ? -1 : (filters.minIv ?? 0),
           minLevel: filters.minLevel ?? 0,
           minTime: filters.minTime ?? 0,
           minWeight: filters.minWeight ?? 0,
           pokemonId,
-          pvpRankingBest: pvp.pvpRankingLeague ? (pvp.pvpRankingBest ?? 1) : 0,
+          pvpRankingBest: pvp.pvpRankingLeague ? (pvp.pvpRankingBest ?? 1) : 1,
           pvpRankingCap: pvp.pvpRankingLeague ? (pvp.pvpRankingCap ?? 0) : 0,
           pvpRankingEvolution: pvp.pvpRankingLeague ? (pvp.pvpRankingEvolution ?? 0) : 0,
           pvpRankingLeague: pvp.pvpRankingLeague ?? 0,

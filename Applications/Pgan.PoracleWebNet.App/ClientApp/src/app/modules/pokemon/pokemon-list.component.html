@@ -6,7 +6,12 @@
     </p>
   </div>
   <div class="header-actions">
-    <button mat-fab (click)="openAddDialog()" [style.background-color]="'#4caf50'" [style.color]="'white'">
+    <button
+      mat-fab
+      (click)="openAddDialog()"
+      [attr.aria-label]="'POKEMON.ADD_POKEMON' | translate"
+      [style.background-color]="'#4caf50'"
+      [style.color]="'white'">
       <mat-icon>add</mat-icon>
     </button>
   </div>
@@ -18,7 +23,7 @@
       <mat-icon matPrefix>search</mat-icon>
       <input matInput [placeholder]="'POKEMON.SEARCH_PLACEHOLDER' | translate" [formControl]="searchControl" />
       @if (searchControl.value) {
-        <button matSuffix mat-icon-button (click)="searchControl.reset()">
+        <button matSuffix mat-icon-button (click)="searchControl.reset()" [attr.aria-label]="'COMMON.CLEAR_SEARCH' | translate">
           <mat-icon>close</mat-icon>
         </button>
       }
@@ -44,7 +49,8 @@
         mat-icon-button
         (click)="toggleSelectMode()"
         [class.select-mode-active]="selectMode()"
-        [matTooltip]="selectMode() ? ('ALARM.EXIT_SELECT_MODE' | translate) : ('ALARM.SELECT_MULTIPLE' | translate)">
+        [matTooltip]="selectMode() ? ('ALARM.EXIT_SELECT_MODE' | translate) : ('ALARM.SELECT_MULTIPLE' | translate)"
+        [attr.aria-label]="selectMode() ? ('ALARM.EXIT_SELECT_MODE' | translate) : ('ALARM.SELECT_MULTIPLE' | translate)">
         <mat-icon>{{ selectMode() ? 'close' : 'checklist' }}</mat-icon>
       </button>
     </div>
@@ -59,6 +65,8 @@
         class="gen-chip"
         [class.gen-active]="activeGen() === gen"
         [style.--gen-color]="gen.color"
+        [style.--gen-fill]="gen.chip.background"
+        [style.--gen-ink]="gen.chip.color"
         [style.border-color]="activeGen() === gen ? gen.color : ''"
         (click)="activeGen.set(activeGen() === gen ? null : gen)">
         G{{ gen.label }}
@@ -175,7 +183,7 @@
             @if (monster.minCp > 0 || monster.maxCp < 9000) {
               <span class="filter-pill cp-pill">CP {{ monster.minCp }}-{{ monster.maxCp }}</span>
             }
-            @if (monster.minLevel > 0 || monster.maxLevel < 35) {
+            @if (hasLevelFilter(monster)) {
               <span class="filter-pill level-pill">L{{ monster.minLevel }}-{{ monster.maxLevel }}</span>
             }
             @if (monster.pvpRankingLeague > 0) {
@@ -244,6 +252,9 @@
             [matTooltip]="
               testAlertService.isCoolingDown('pokemon', monster.uid) ? ('ALARM.TEST_COOLDOWN' | translate) : ('ALARM.TEST_SEND' | translate)
             "
+            [attr.aria-label]="
+              testAlertService.isCoolingDown('pokemon', monster.uid) ? ('ALARM.TEST_COOLDOWN' | translate) : ('ALARM.TEST_SEND' | translate)
+            "
             class="test-alert-btn">
             @if (testAlertService.isSending('pokemon', monster.uid)) {
               <mat-icon class="spin">sync</mat-icon>
@@ -252,11 +263,20 @@
             }
           </button>
 
-          <button mat-icon-button (click)="editMonster(monster)" [matTooltip]="'COMMON.EDIT' | translate">
+          <button
+            mat-icon-button
+            (click)="editMonster(monster)"
+            [matTooltip]="'COMMON.EDIT' | translate"
+            [attr.aria-label]="'COMMON.EDIT' | translate">
             <mat-icon>edit</mat-icon>
           </button>
 
-          <button mat-icon-button (click)="deleteMonster(monster)" [matTooltip]="'COMMON.DELETE' | translate" color="warn">
+          <button
+            mat-icon-button
+            (click)="deleteMonster(monster)"
+            [matTooltip]="'COMMON.DELETE' | translate"
+            [attr.aria-label]="'COMMON.DELETE' | translate"
+            color="warn">
             <mat-icon>delete</mat-icon>
           </button>
         </mat-card-actions>
@@ -274,7 +294,7 @@
         </svg>
         <h2 class="empty-title">{{ 'POKEMON.EMPTY_TITLE' | translate }}</h2>
         <p class="empty-subtitle">{{ 'POKEMON.EMPTY_SUBTITLE' | translate }}</p>
-        <button mat-flat-button style="background-color: #4caf50; color: white" (click)="openAddDialog()">
+        <button mat-flat-button style="background-color: #38823b; color: white" (click)="openAddDialog()">
           <mat-icon>add</mat-icon> {{ 'POKEMON.ADD_POKEMON' | translate }}
         </button>
       </div>

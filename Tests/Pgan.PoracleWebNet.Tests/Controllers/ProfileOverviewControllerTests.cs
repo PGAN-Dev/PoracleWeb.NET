@@ -24,6 +24,13 @@ public class ProfileOverviewControllerTests : ControllerTestBase
     {
         this._jwtService.Setup(j => j.GenerateTokenWithReplacedProfile(It.IsAny<System.Security.Claims.ClaimsPrincipal>(), It.IsAny<int>(), It.IsAny<bool?>()))
             .Returns("test-jwt-token");
+        // These two report what the server actually did as of #836 and #837. Every pre-existing test here
+        // was written against a PoracleNG that reports neither, so that is what they keep answering --
+        // preserving the path each was written to exercise rather than silently moving them onto the new
+        // one. Tests about the new behaviour set their own return.
+        this._humanProxy.SetReturnsDefault<Task<int?>>(Task.FromResult<int?>(null));
+        this._humanProxy.SetReturnsDefault<Task<bool>>(Task.FromResult(false));
+
         this._sut = new ProfileOverviewController(
             this._service.Object,
             this._profileService.Object,
@@ -87,7 +94,7 @@ public class ProfileOverviewControllerTests : ControllerTestBase
             .ReturnsAsync([source, new Profile { ProfileNo = 2, Name = "created" }]);
         this._humanProxy
             .Setup(h => h.AddProfileAsync("123456789", It.IsAny<JsonElement>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync((int?)null);
         this._service
             .Setup(s => s.DuplicateProfileAsync("123456789", 1, 2))
             .ReturnsAsync(5);
@@ -109,7 +116,7 @@ public class ProfileOverviewControllerTests : ControllerTestBase
             .ReturnsAsync([new Profile { ProfileNo = 1, Name = "Main" }, new Profile { ProfileNo = 2, Name = "created" }]);
         this._humanProxy
             .Setup(h => h.AddProfileAsync("123456789", It.IsAny<JsonElement>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync((int?)null);
         var alarms = CreateJsonObject(new
         {
             pokemon = new[] { new { pokemon_id = 1 } }
@@ -140,7 +147,7 @@ public class ProfileOverviewControllerTests : ControllerTestBase
             .ReturnsAsync(existing);
         this._humanProxy
             .Setup(h => h.AddProfileAsync("123456789", It.IsAny<JsonElement>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync((int?)null);
         var alarms = CreateJsonObject(new
         {
             pokemon = new[] { new { pokemon_id = 1 } }
@@ -170,7 +177,7 @@ public class ProfileOverviewControllerTests : ControllerTestBase
         this._profileService.SetupSequence(s => s.GetByUserAsync("123456789"))
             .ReturnsAsync([source])
             .ReturnsAsync([source, new Profile { ProfileNo = 2, Name = "created" }]);
-        this._humanProxy.Setup(h => h.AddProfileAsync("123456789", It.IsAny<JsonElement>())).Returns(Task.CompletedTask);
+        this._humanProxy.Setup(h => h.AddProfileAsync("123456789", It.IsAny<JsonElement>())).ReturnsAsync((int?)null);
         this._humanProxy.Setup(h => h.DeleteProfileAsync("123456789", It.IsAny<int>())).Returns(Task.CompletedTask);
         this._service
             .Setup(s => s.DuplicateProfileAsync("123456789", 1, 2))
@@ -188,7 +195,7 @@ public class ProfileOverviewControllerTests : ControllerTestBase
         this._profileService.SetupSequence(s => s.GetByUserAsync("123456789"))
             .ReturnsAsync([new Profile { ProfileNo = 1, Name = "Main" }])
             .ReturnsAsync([new Profile { ProfileNo = 1, Name = "Main" }, new Profile { ProfileNo = 2, Name = "created" }]);
-        this._humanProxy.Setup(h => h.AddProfileAsync("123456789", It.IsAny<JsonElement>())).Returns(Task.CompletedTask);
+        this._humanProxy.Setup(h => h.AddProfileAsync("123456789", It.IsAny<JsonElement>())).ReturnsAsync((int?)null);
         var alarms = CreateJsonObject(new
         {
             invasion = new[] { new { grunt_type = "fire" } }
@@ -201,6 +208,46 @@ public class ProfileOverviewControllerTests : ControllerTestBase
             () => this._sut.ImportProfile(new ProfileOverviewImportRequest("Imported", 1, alarms)));
 
         Assert.Equal(DisableFeatureKeys.Invasions, ex.DisableKey);
+    }
+
+    /// <summary>The overview page's two name prompts are the other half of the set ProfileController covers.</summary>
+    [Theory]
+    [InlineData("evil\u202Elive")]
+    [InlineData("line\nfeed")]
+    public async Task DuplicateProfileRefusesANameCarryingAControlCharacter(string name)
+    {
+        var result = await this._sut.DuplicateProfile(1, new ProfileOverviewDuplicateRequest(name));
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        this._humanProxy.Verify(h => h.AddProfileAsync(It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData("evil\u202Elive")]
+    [InlineData("nul\u0000")]
+    public async Task ImportProfileRefusesANameCarryingAControlCharacter(string name)
+    {
+        var alarms = CreateJsonObject(new { pokemon = new[] { new { pokemon_id = 1 } } });
+
+        var result = await this._sut.ImportProfile(new ProfileOverviewImportRequest(name, 1, alarms));
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        this._humanProxy.Verify(h => h.AddProfileAsync(It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ImportProfileStillAcceptsAnEmojiName()
+    {
+        this._profileService.SetupSequence(s => s.GetByUserAsync("123456789"))
+            .ReturnsAsync([new Profile { ProfileNo = 1, Name = "Main" }])
+            .ReturnsAsync([new Profile { ProfileNo = 1, Name = "Main" }, new Profile { ProfileNo = 2, Name = "👨\u200D👩\u200D👧 family" }]);
+        this._humanProxy.Setup(h => h.AddProfileAsync("123456789", It.IsAny<JsonElement>())).ReturnsAsync((int?)null);
+        var alarms = CreateJsonObject(new { pokemon = new[] { new { pokemon_id = 1 } } });
+        this._service.Setup(s => s.ImportAlarmsAsync("123456789", 2, It.IsAny<JsonElement>())).ReturnsAsync(1);
+
+        var result = await this._sut.ImportProfile(new ProfileOverviewImportRequest("👨\u200D👩\u200D👧 family", 1, alarms));
+
+        Assert.IsType<OkObjectResult>(result);
     }
 
     private static JsonElement CreateJsonObject(object obj)

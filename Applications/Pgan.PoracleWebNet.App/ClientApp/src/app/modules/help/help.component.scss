@@ -507,6 +507,12 @@ body.dark-theme .translation-cta {
     height: 20px;
     color: var(--text-secondary, rgba(0, 0, 0, 0.54));
   }
+
+  a {
+    color: inherit;
+    font-weight: 500;
+    text-decoration: underline;
+  }
 }
 
 // ─── Responsive ─────────────────────────────────────────────

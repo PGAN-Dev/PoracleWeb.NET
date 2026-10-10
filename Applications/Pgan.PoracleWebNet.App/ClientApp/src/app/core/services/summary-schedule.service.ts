@@ -3,6 +3,7 @@ import { DestroyRef, Injectable, inject, signal } from '@angular/core';
 import { Observable, catchError, map, of } from 'rxjs';
 
 import { ConfigService } from './config.service';
+import { TokenStoreService } from './token-store.service';
 import { ActiveHourEntry, parseActiveHours, serializeActiveHours } from '../models/active-hours.models';
 
 export interface SummarySchedule {
@@ -26,8 +27,9 @@ export class SummaryScheduleService {
   private readonly config = inject(ConfigService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly http = inject(HttpClient);
-
   private loaded = false;
+
+  private readonly tokenStore = inject(TokenStoreService);
   readonly enabled = signal(false); // false => hide panel + annotate hint
 
   private get base(): string {
@@ -55,7 +57,11 @@ export class SummaryScheduleService {
 
     this.fetchCapability();
 
-    const intervalId = setInterval(() => this.fetchCapability(), REFRESH_INTERVAL_MS);
+    // A root service outlives the session, and so did this timer: it kept asking after Logout, for an
+    // answer that could only be a 401.
+    const intervalId = setInterval(() => {
+      if (this.tokenStore.getAccessToken()) this.fetchCapability();
+    }, REFRESH_INTERVAL_MS);
     this.destroyRef.onDestroy(() => clearInterval(intervalId));
   }
 

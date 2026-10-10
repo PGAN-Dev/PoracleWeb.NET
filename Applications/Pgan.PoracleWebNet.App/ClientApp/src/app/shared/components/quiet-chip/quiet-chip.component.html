@@ -1,6 +1,6 @@
 @if (mutes.capable()) {
   @if (appearance() === 'icon' && !isQuiet()) {
-    <button mat-icon-button [matTooltip]="tooltip()" (click)="open($event)">
+    <button mat-icon-button [matTooltip]="tooltip()" [attr.aria-label]="tooltip()" (click)="open($event)">
       <mat-icon>notifications_paused</mat-icon>
     </button>
   } @else {

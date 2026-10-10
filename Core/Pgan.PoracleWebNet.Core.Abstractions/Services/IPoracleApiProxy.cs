@@ -4,7 +4,7 @@ namespace Pgan.PoracleWebNet.Core.Abstractions.Services;
 
 public interface IPoracleApiProxy
 {
-    Task<PoracleConfig?> GetConfigAsync();
+    Task<PoracleConfig?> GetConfigAsync(CancellationToken cancellationToken = default);
     Task<bool?> GetQuestSummaryEnabledAsync();
 
     /// <summary>
@@ -26,8 +26,18 @@ public interface IPoracleApiProxy
     /// to call. Verified: 5.1.0 has neither, 5.2.1 has both.
     /// </remarks>
     Task<bool?> GetShowcaseDisabledAsync();
+
+    /// <summary>
+    /// Reads <c>area_security.enabled</c> from PoracleNG's config-values endpoint. Used only to decide
+    /// whether it is safe to rely on <c>trusted</c> on <c>setAreas</c> for the community-restriction
+    /// question jfberry/PoracleNG#228/#230 cover — see #838. Returns <c>null</c> when the value cannot
+    /// be determined (older Poracle, PoracleJS, endpoint shape changed); callers must treat that as
+    /// "cannot confirm disabled", not as "disabled".
+    /// </summary>
+    Task<bool?> GetAreaSecurityEnabledAsync();
+
     Task<string?> GetTemplatesAsync();
-    Task<string?> GetGruntsAsync();
+    Task<string?> GetGruntsAsync(string? locale = null);
 
     /// <summary>
     /// Localized monster master data: names, types and form names in <paramref name="locale"/>.
@@ -46,4 +56,23 @@ public interface IPoracleApiProxy
     Task ReloadGeofencesAsync();
     Task SendTestAlertAsync(TestAlertRequest request);
     Task<string?> GetGeofencesGeoJsonAsync();
+
+    /// <summary>
+    /// Forward geocode through PoracleNG's own <c>/api/geocode/forward</c>, which resolves via whichever
+    /// provider the operator configured (Nominatim, Photon or Google) and answers in one shape regardless
+    /// -- so this app never parses a provider's payload itself. Returns the raw JSON array PoracleNG
+    /// answers with (empty when nothing matched), or <c>null</c> when PoracleNG answers non-success and
+    /// no provider is reachable at all: 503 when none is configured, the request timed out, or a
+    /// PoracleNG too old for the route (gin's plaintext 404) falls back to calling its configured
+    /// provider directly -- as this app did before the route existed -- and that also fails. See #845.
+    /// </summary>
+    Task<string?> GetGeocodeForwardAsync(string query, string? language = null);
+
+    /// <summary>
+    /// Reverse geocode through PoracleNG's own <c>/api/geocode/reverse</c>. Returns the raw JSON object,
+    /// or <c>null</c> on the same conditions as <see cref="GetGeocodeForwardAsync"/> -- including a
+    /// problem+json 404 (a real "nothing at this coordinate", which does not fall back, unlike the
+    /// plaintext one a missing route answers with).
+    /// </summary>
+    Task<string?> GetGeocodeReverseAsync(double lat, double lon, string? language = null);
 }

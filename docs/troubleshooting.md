@@ -167,6 +167,53 @@ Also note: Use API **v9** (not v10) — v10 is not supported on the `discordapp.
 
 ---
 
+## An area is missing from Areas & Places
+
+**Problem**: An area exists in Koji and alerts still fire from it, but nobody can find it on
+**Areas & Places** — admins included.
+
+**Solution**: Something is serving it as `userSelectable: false`, and
+`GET /api/areas/available` drops those for every caller. Two things can do that:
+
+1. **The hidden list on this site.** Check **Admin → Areas**; the switch beside the area says whether
+   you hid it. That page is the only one that shows hidden areas, which is why it exists — the normal
+   Areas page cannot show you what it is hiding.
+2. **Koji itself.** An area set non-public in Koji arrives with the flag already cleared. **Admin →
+   Areas** lists those as *Private in Koji* with the switch disabled, because clearing a flag this site
+   did not set would not bring it back. Fix it in Koji.
+
+Until v2.19.0 this site read Koji's export but forced both visibility flags to `true`, so an area set
+private in Koji kept appearing here. If you are on an older build, that is why.
+
+A change in either place takes up to five minutes (the Koji fetch is cached) plus a Poracle geofence
+reload. Saving on **Admin → Areas** asks Poracle to reload immediately; if it could not, the page says
+so rather than claiming success.
+
+---
+
+## An area I hid is still sending alerts
+
+**Problem**: You hid an area, but people who had already selected it keep receiving its notifications.
+
+**Solution**: Working as intended, and it is worth understanding rather than working around.
+
+Hiding controls the **pickers**, not matching. Poracle never consults `userSelectable` when deciding
+which fences a spawn fell in, so a profile still carrying the name keeps matching it. Nobody loses an
+alert at the moment you flip the switch.
+
+It then goes away on its own, silently, the next time that person writes:
+
+* saving on **Areas & Places** — Poracle's `setAreas` drops any name that is no longer selectable and
+  answers `200` with the survivors, so ticking any unrelated area takes the hidden one with it;
+* editing an alarm scoped to it — the scope picker only lists areas still on offer, so the rule saves
+  without it.
+
+Neither path tells the user. If you are hiding a staging or test fence that is usually what you wanted.
+If you are hiding something people legitimately use, tell them first — and if you need them off it
+immediately rather than eventually, ask them to untick it.
+
+---
+
 ## Geofence names not matching in Poracle
 
 **Problem**: Custom geofences don't trigger alerts even though they're in the user's area list.

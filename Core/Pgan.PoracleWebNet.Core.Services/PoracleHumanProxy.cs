@@ -1,5 +1,7 @@
 using Pgan.PoracleWebNet.Core.Models;
+using Pgan.PoracleWebNet.Core.Models.Helpers;
 using System.Globalization;
+using System.Linq;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -14,6 +16,8 @@ public partial class PoracleHumanProxy(
     HttpClient httpClient,
     IConfiguration configuration,
     IPoracleServerProfileService serverProfile,
+    IPoracleV2SchemaService v2Schema,
+    IAreaSecurityPolicyService areaSecurityPolicy,
     IMemoryCache cache,
     ILogger<PoracleHumanProxy> logger) : IPoracleHumanProxy
 {
@@ -33,6 +37,8 @@ public partial class PoracleHumanProxy(
     private readonly string _apiAddress = configuration["Poracle:ApiAddress"] ?? string.Empty;
     private readonly string _apiSecret = configuration["Poracle:ApiSecret"] ?? string.Empty;
     private readonly IPoracleServerProfileService _serverProfile = serverProfile;
+    private readonly IPoracleV2SchemaService _v2Schema = v2Schema;
+    private readonly IAreaSecurityPolicyService _areaSecurityPolicy = areaSecurityPolicy;
     private readonly IMemoryCache _cache = cache;
     private readonly ILogger<PoracleHumanProxy> _logger = logger;
 
@@ -328,6 +334,140 @@ public partial class PoracleHumanProxy(
         // GET /api/humans/{id} returns the available area list, not the user's selection.
         await this.GetHumanAsync(userId);
 
+    /// <summary>
+    /// Whether <c>setAreas</c>'s <c>trusted</c> flag is safe to rely on for the community-restriction
+    /// case right now -- the schema has to declare the property AND area_security has to be confirmed
+    /// off, because neither <c>/openapi.json</c> nor <c>/health</c> can tell a pre-jfberry/PoracleNG#230
+    /// server from a post-#230 one (verified live: byte-identical either side of the fix). See #838.
+    /// </summary>
+    private async Task<bool> CanUseTrustedSetAreasAsync()
+    {
+        var capabilities = await this._v2Schema.GetAsync();
+        return capabilities.TrustedSetAreas && await this._areaSecurityPolicy.IsConfirmedDisabledAsync();
+    }
+
+    /// <summary>The active profile's current area list (<c>humans.area</c>), or null if unreadable.</summary>
+    private async Task<List<string>?> GetCurrentAreaListAsync(string userId)
+    {
+        var human = await this.GetHumanAsync(userId);
+        var areaJson = human?.GetStringPropOrNull("area");
+        return areaJson is null ? null : AreaListJson.Parse(areaJson);
+    }
+
+    /// <summary>
+    /// Posts a full area-list replacement with <c>trusted: true</c>. <c>setAreas</c> replaces the whole
+    /// list -- there is no incremental add/remove on the wire -- so every caller here reads the current
+    /// list first and posts the complete result.
+    /// </summary>
+    private async Task PostTrustedAreasAsync(string userId, List<string> areas)
+    {
+        var body = JsonSerializer.Serialize(new { areas, trusted = true });
+        var (response, payload) =
+            await this.SendReadAsync(HttpMethod.Post, $"/api/v2/humans/{Encode(userId)}/areas", body);
+        await EnsureAcceptedAsync(response);
+
+        using var doc = JsonDocument.Parse(payload);
+        if (doc.RootElement.TryGetProperty("rejected", out var rejectedEl)
+            && rejectedEl.ValueKind == JsonValueKind.Array
+            && rejectedEl.GetArrayLength() > 0)
+        {
+            var rejected = rejectedEl.EnumerateArray().Select(e => e.GetString() ?? string.Empty);
+
+            // Should not happen for a name this app just created or already had selected -- trusted
+            // only lifts userSelectable, not "exists at all". Logged rather than surfaced: every caller
+            // here already treats its own write as best-effort (see the HACK: trusted-set-areas sites
+            // this replaces), and the geofence row these names came from is the source of truth either way.
+            LogTrustedAreasRejected(this._logger, userId, string.Join(", ", rejected));
+        }
+    }
+
+    /// <summary>
+    /// Adds one area to the human's active profile via <c>setAreas</c>'s <c>trusted</c> flag, which
+    /// bypasses the <c>userSelectable</c> filter a user-drawn geofence always fails for a non-admin
+    /// caller. See #838.
+    /// </summary>
+    /// <returns>
+    /// <c>null</c> when <see cref="CanUseTrustedSetAreasAsync"/> says no or the current list could not
+    /// be read -- the caller must fall back to <c>IUserAreaDualWriter</c>; <c>false</c> when the area
+    /// was already present; <c>true</c> once written.
+    /// </returns>
+    public async Task<bool?> AddAreaToActiveProfileTrustedAsync(string userId, string areaName) =>
+        await this.AddAreasToActiveProfileTrustedAsync(userId, [areaName]);
+
+    /// <summary>Bulk form of <see cref="AddAreaToActiveProfileTrustedAsync"/>.</summary>
+    public async Task<bool?> AddAreasToActiveProfileTrustedAsync(string userId, IReadOnlyCollection<string> areaNames)
+    {
+        if (!await this.CanUseTrustedSetAreasAsync())
+        {
+            return null;
+        }
+
+        var normalized = areaNames
+            .Where(a => !string.IsNullOrWhiteSpace(a))
+            .Select(a => a.ToLowerInvariant())
+            .Distinct()
+            .ToList();
+
+        if (normalized.Count == 0)
+        {
+            return false;
+        }
+
+        var current = await this.GetCurrentAreaListAsync(userId);
+        if (current is null)
+        {
+            return null;
+        }
+
+        var currentSet = new HashSet<string>(current, StringComparer.OrdinalIgnoreCase);
+        var changed = false;
+        foreach (var name in normalized)
+        {
+            if (currentSet.Add(name))
+            {
+                current.Add(name);
+                changed = true;
+            }
+        }
+
+        if (!changed)
+        {
+            return false;
+        }
+
+        await this.PostTrustedAreasAsync(userId, current);
+        return true;
+    }
+
+    /// <summary>Removes one area from the human's active profile via the same trusted call.</summary>
+    public async Task<bool?> RemoveAreaFromActiveProfileTrustedAsync(string userId, string areaName)
+    {
+        if (!await this.CanUseTrustedSetAreasAsync())
+        {
+            return null;
+        }
+
+        var current = await this.GetCurrentAreaListAsync(userId);
+        if (current is null)
+        {
+            return null;
+        }
+
+        var removed = current.RemoveAll(a => string.Equals(a, areaName, StringComparison.OrdinalIgnoreCase)) > 0;
+        if (!removed)
+        {
+            return false;
+        }
+
+        await this.PostTrustedAreasAsync(userId, current);
+        return true;
+    }
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "setAreas(trusted) rejected areas for {UserId} that this app expected to be accepted: {Rejected}")]
+    private static partial void LogTrustedAreasRejected(ILogger logger, string userId, string rejected);
+
     public async Task SwitchProfileAsync(string userId, int profileNo)
     {
         var v2Body = JsonSerializer.Serialize(new
@@ -354,16 +494,264 @@ public partial class PoracleHumanProxy(
         return doc.RootElement.Clone();
     }
 
-    public async Task AddProfileAsync(string userId, JsonElement body)
+    /// <inheritdoc />
+    public async Task<int?> AddProfileAsync(string userId, JsonElement body)
     {
+        // The v2 route exists on 5.2.1 too, and there it answers {"status":"ok"} with no number. So the
+        // route being present is not the question -- whether its 200 carries profile_no is, and only the
+        // schema says that. Without the check this would read a number out of a body that has none and
+        // quietly answer null, which is the same as today but a round trip slower. See #836.
+        if ((await this._v2Schema.GetAsync()).ProfileCreateReturnsNumber
+            && V2ProfileBody(body, isUpdate: false) is { } v2Body
+            && await this.TryV2Async(
+                HttpMethod.Post, "profiles-add", $"/api/v2/humans/{Encode(userId)}/profiles", v2Body)
+                is { } reply)
+        {
+            await EnsureAcceptedAsync(reply.Response);
+
+            return ProfileNoFrom(reply.Payload);
+        }
+
         var response = await this.SendAsync(HttpMethod.Post, $"/api/profiles/{Encode(userId)}/add", body.GetRawText());
         await EnsureAcceptedAsync(response);
+
+        return null;
     }
 
-    public async Task UpdateProfileAsync(string userId, JsonElement body)
+    /// <inheritdoc />
+    public async Task<bool> UpdateProfileAsync(string userId, JsonElement body)
     {
+        // Gated, and the gate is load-bearing rather than an optimisation. PATCH exists on 5.2.1, where
+        // V2UpdateProfileBody declares active_hours alone under additionalProperties:false -- so sending
+        // a name to it there is a 422, not an ignored field. See #837.
+        if ((await this._v2Schema.GetAsync()).ProfileRename
+            && body.TryGetProperty("profile_no", out var profileNo)
+            && profileNo.ValueKind == JsonValueKind.Number
+            && V2ProfileBody(body, isUpdate: true) is { } v2Body
+            && await this.TryV2Async(
+                HttpMethod.Patch,
+                "profiles-update",
+                $"/api/v2/humans/{Encode(userId)}/profiles/{profileNo.GetInt32()}",
+                v2Body)
+                is { } reply)
+        {
+            await EnsureAcceptedAsync(reply.Response);
+
+            return true;
+        }
+
         var response = await this.SendAsync(HttpMethod.Post, $"/api/profiles/{Encode(userId)}/update", body.GetRawText());
         await EnsureAcceptedAsync(response);
+
+        return false;
+    }
+
+    /// <summary>
+    /// The body for a v2 profile create or PATCH, or null when the profile cannot be said in v2's terms
+    /// and the caller should use v1.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>V2AddProfileBody</c> and <c>V2UpdateProfileBody</c> both declare <c>name</c> and
+    /// <c>active_hours</c> and nothing else, under <c>additionalProperties: false</c>. The callers build
+    /// one body for both surfaces, carrying <c>area</c>, <c>latitude</c> and <c>longitude</c> (which v1's
+    /// create ignores, so every caller writes them to the row afterwards) and <c>profile_no</c> (which v2
+    /// takes from the path). Forwarding it made every create and every rename a 422 on a server carrying
+    /// PoracleNG #217, so only the two declared fields are sent.
+    /// </para>
+    /// <para>
+    /// <c>active_hours</c> is stored as a JSON string and v2 wants the array itself; see
+    /// <see cref="TryV2ActiveHours"/>. A JSON null means "not part of this request" and is said by
+    /// omission on both surfaces.
+    /// </para>
+    /// <para>
+    /// An explicit "no schedule" -- an empty string, or the <c>{}</c> PoracleNG writes for a profile that
+    /// never had one -- is where create and update part. On a create, omission and <c>[]</c> both leave the
+    /// new profile unscheduled, and omission is sent. On an update, v2 reads omission as "leave it
+    /// unchanged", so a caller sending <c>""</c> to clear a schedule kept the old one; there it is sent as
+    /// <c>[]</c>. That also clears an already-empty schedule whenever a rename resends the stored
+    /// <c>{}</c>, which changes nothing.
+    /// </para>
+    /// </remarks>
+    private static string? V2ProfileBody(JsonElement body, bool isUpdate)
+    {
+        var fields = new Dictionary<string, object>(StringComparer.Ordinal);
+
+        foreach (var property in body.EnumerateObject())
+        {
+            if (property.NameEquals("name") && property.Value.ValueKind == JsonValueKind.String)
+            {
+                fields["name"] = property.Value.GetString()!;
+            }
+            else if (property.NameEquals("active_hours"))
+            {
+                if (!TryV2ActiveHours(property.Value, out var entries))
+                {
+                    return null;
+                }
+
+                if (entries is not null)
+                {
+                    fields["active_hours"] = entries;
+                }
+                else if (isUpdate && property.Value.ValueKind != JsonValueKind.Null)
+                {
+                    fields["active_hours"] = new List<Dictionary<string, int>>();
+                }
+            }
+        }
+
+        return JsonSerializer.Serialize(fields);
+    }
+
+    /// <summary>The bounds <c>V2ActiveHourEntry</c> declares for each of its fields.</summary>
+    private static readonly Dictionary<string, (int Min, int Max)> V2ActiveHourFields = new(StringComparer.Ordinal)
+    {
+        ["day"] = (1, 7),
+        ["hours"] = (0, 23),
+        ["mins"] = (0, 59),
+        ["end_hours"] = (0, 23),
+        ["end_mins"] = (0, 59),
+        ["step"] = (0, int.MaxValue),
+    };
+
+    /// <summary>
+    /// A stored <c>active_hours</c> value as the entry list v2 declares. <paramref name="entries"/> is null
+    /// for "no schedule" -- a null, an empty string, or the <c>{}</c> PoracleNG writes for a profile that
+    /// never had one. False means v2 cannot take this schedule and the caller should use v1.
+    /// </summary>
+    /// <remarks>
+    /// PoracleNG stores <c>hours</c> and <c>mins</c> as strings as often as numbers, and v2 declares
+    /// integers, so numeric strings are converted. Anything else v2 would refuse -- a field it does not
+    /// declare, a value outside its bounds, a missing required field -- answers false rather than being
+    /// dropped or clamped: v1 has accepted these schedules for years, and reshaping one to fit would
+    /// change what the user set.
+    /// </remarks>
+    private static bool TryV2ActiveHours(JsonElement value, out List<Dictionary<string, int>>? entries)
+    {
+        entries = null;
+        JsonElement list;
+
+        switch (value.ValueKind)
+        {
+            case JsonValueKind.Null:
+                return true;
+
+            case JsonValueKind.Array:
+                list = value;
+                break;
+
+            case JsonValueKind.String:
+                var text = value.GetString();
+                if (string.IsNullOrWhiteSpace(text))
+                {
+                    return true;
+                }
+
+                try
+                {
+                    using var document = JsonDocument.Parse(text);
+                    list = document.RootElement.Clone();
+                }
+                catch (JsonException)
+                {
+                    return false;
+                }
+
+                if (list.ValueKind == JsonValueKind.Object && !list.EnumerateObject().Any())
+                {
+                    return true;
+                }
+
+                if (list.ValueKind != JsonValueKind.Array)
+                {
+                    return false;
+                }
+
+                break;
+
+            default:
+                return false;
+        }
+
+        var result = new List<Dictionary<string, int>>();
+
+        foreach (var item in list.EnumerateArray())
+        {
+            if (item.ValueKind != JsonValueKind.Object)
+            {
+                return false;
+            }
+
+            var entry = new Dictionary<string, int>(StringComparer.Ordinal);
+
+            foreach (var field in item.EnumerateObject())
+            {
+                if (!V2ActiveHourFields.TryGetValue(field.Name, out var bounds)
+                    || !TryInteger(field.Value, out var number)
+                    || number < bounds.Min
+                    || number > bounds.Max)
+                {
+                    return false;
+                }
+
+                entry[field.Name] = number;
+            }
+
+            // step > 0 makes the entry a range, and the schema requires its end.
+            var isRange = entry.TryGetValue("step", out var step) && step > 0;
+            if (!entry.ContainsKey("day") || !entry.ContainsKey("hours") || !entry.ContainsKey("mins")
+                || (isRange && (!entry.ContainsKey("end_hours") || !entry.ContainsKey("end_mins"))))
+            {
+                return false;
+            }
+
+            result.Add(entry);
+        }
+
+        entries = result;
+        return true;
+    }
+
+    private static bool TryInteger(JsonElement value, out int number)
+    {
+        number = 0;
+
+        // IDE0072 off: every other kind is deliberately "not an integer", and the wildcard says so.
+#pragma warning disable IDE0072
+        return value.ValueKind switch
+        {
+            JsonValueKind.Number => value.TryGetInt32(out number),
+            JsonValueKind.String => int.TryParse(value.GetString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out number),
+            _ => false,
+        };
+#pragma warning restore IDE0072
+    }
+
+    /// <summary>
+    /// The profile number out of a v2 create response, or null when it does not carry one.
+    /// </summary>
+    /// <remarks>
+    /// Null is not a failure. It means this server answered the older shape, and the caller falls back to
+    /// diffing the profile list — which is what every released PoracleNG needs anyway.
+    /// </remarks>
+    private static int? ProfileNoFrom(string payload)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(payload);
+
+            return document.RootElement.ValueKind == JsonValueKind.Object
+                && document.RootElement.TryGetProperty("profile_no", out var value)
+                && value.ValueKind == JsonValueKind.Number
+                && value.TryGetInt32(out var number)
+                    ? number
+                    : null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
     }
 
     public async Task DeleteProfileAsync(string userId, int profileNo)
@@ -530,6 +918,85 @@ public partial class PoracleHumanProxy(
         }
 
         await EnsureAcceptedAsync(reply.Response);
+    }
+
+    public async Task<IReadOnlyList<Human>?> ListHumansAsync(string? type = null, IReadOnlyCollection<string>? ids = null)
+    {
+        var capabilities = await this._v2Schema.GetAsync();
+        if (!capabilities.AdminHumanRoutes)
+        {
+            return null;
+        }
+
+        var query = new List<string>();
+        if (!string.IsNullOrEmpty(type))
+        {
+            query.Add($"type={Encode(type)}");
+        }
+
+        if (ids is { Count: > 0 })
+        {
+            query.Add($"id={string.Join(',', ids.Select(Encode))}");
+        }
+
+        var path = query.Count > 0 ? $"/api/v2/humans?{string.Join('&', query)}" : "/api/v2/humans";
+
+        var (response, payload) = await this.SendReadAsync(HttpMethod.Get, path);
+        await EnsureAcceptedAsync(response);
+
+        using var doc = JsonDocument.Parse(payload);
+
+        if (!doc.RootElement.TryGetProperty("humans", out var humans) || humans.ValueKind != JsonValueKind.Array)
+        {
+            return [];
+        }
+
+        var result = new List<Human>(humans.GetArrayLength());
+        foreach (var item in humans.EnumerateArray())
+        {
+            result.Add(ParseHumanSummary(item));
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Parses one <c>V2HumanSummary</c> item from the list endpoint. Reads <c>enabled</c>/
+    /// <c>admin_disable</c> as booleans rather than through <see cref="JsonElementExtensions.GetIntProp"/>
+    /// -- see <see cref="JsonElementExtensions.GetBoolAsIntProp"/> for why the two humans routes disagree
+    /// on the wire shape of the same fields.
+    /// </summary>
+    private static Human ParseHumanSummary(JsonElement json) => new()
+    {
+        Id = json.GetStringProp("id"),
+        Name = json.GetStringPropOrNull("name"),
+        Type = json.GetStringPropOrNull("type"),
+        Enabled = json.GetBoolAsIntProp("enabled"),
+        Language = json.GetStringPropOrNull("language"),
+        AdminDisable = json.GetBoolAsIntProp("admin_disable"),
+        LastChecked = json.GetDateTimePropOrNull("last_checked") ?? default,
+        DisabledDate = json.GetDateTimePropOrNull("disabled_date"),
+        CurrentProfileNo = json.GetIntProp("current_profile_no"),
+        Notes = json.GetStringPropOrNull("notes"),
+    };
+
+    public async Task<bool?> DeleteHumanAsync(string userId)
+    {
+        var capabilities = await this._v2Schema.GetAsync();
+        if (!capabilities.AdminHumanRoutes)
+        {
+            return null;
+        }
+
+        var (response, _) = await this.SendReadAsync(HttpMethod.Delete, $"/api/v2/humans/{Encode(userId)}");
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            return false;
+        }
+
+        await EnsureAcceptedAsync(response);
+        return true;
     }
 
     /// <summary>

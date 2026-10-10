@@ -21,14 +21,9 @@
   <div class="disabled-banner admin-disabled">
     <mat-icon>block</mat-icon>
     <span [innerHTML]="'BANNER.DISABLED_ACCOUNT' | translate"></span>
-    <span
-      >{{ 'BANNER.DISABLED_SUPPORT' | translate }}
-      <a href="https://discord.com/channels/237964415822069760/280486070628384778" target="_blank">#support</a> /
-      <a href="https://discord.com/channels/237964415822069760/722557616982720593" target="_blank">{{
-        'BANNER.DISABLED_TICKET' | translate
-      }}</a
-      >.</span
-    >
+    @if (supportUrl(); as url) {
+      <a class="support-link" [href]="url" target="_blank" rel="noopener">{{ 'BANNER.DISABLED_SUPPORT' | translate }}</a>
+    }
   </div>
 } @else if (auth.user()?.enabled === false) {
   <div class="disabled-banner">
@@ -41,7 +36,7 @@
   </div>
 }
 @if (auth.isLoggedIn()) {
-  <mat-toolbar class="app-toolbar" [style.background]="toolbarGradient()">
+  <mat-toolbar class="app-toolbar" [class.toolbar-dark-ink]="toolbarDarkInk()" [style.background]="toolbarGradient()">
     <button mat-icon-button (click)="toggleSidenav()" [attr.aria-label]="'TOOLBAR.TOGGLE_NAV' | translate">
       <mat-icon>menu</mat-icon>
     </button>
@@ -107,14 +102,19 @@
         </button>
       }
       <mat-divider></mat-divider>
-      <button mat-menu-item routerLink="/profiles">
-        <mat-icon>swap_horiz</mat-icon>
-        <span>{{ 'MENU.SWITCH_PROFILE' | translate }}</span>
-      </button>
-      <button mat-menu-item routerLink="/areas">
-        <mat-icon>map</mat-icon>
-        <span>{{ 'NAV.AREAS' | translate }}</span>
-      </button>
+      <!-- Same keys as the sidebar items: these led to a route guard and a toast when switched off. -->
+      @if (!isFeatureDisabled('disable_profiles')) {
+        <button mat-menu-item routerLink="/profiles">
+          <mat-icon>swap_horiz</mat-icon>
+          <span>{{ 'MENU.SWITCH_PROFILE' | translate }}</span>
+        </button>
+      }
+      @if (!isFeatureDisabled('disable_areas')) {
+        <button mat-menu-item routerLink="/areas">
+          <mat-icon>map</mat-icon>
+          <span>{{ 'NAV.AREAS' | translate }}</span>
+        </button>
+      }
       <button mat-menu-item routerLink="/cleaning">
         <mat-icon>cleaning_services</mat-icon>
         <span>{{ 'MENU.CLEANING' | translate }}</span>
@@ -341,7 +341,8 @@
             <button
               mat-icon-button
               (click)="toggleSidenavCollapse()"
-              [matTooltip]="sidenavCollapsed() ? ('TOOLBAR.EXPAND_SIDEBAR' | translate) : ('TOOLBAR.COLLAPSE_SIDEBAR' | translate)">
+              [matTooltip]="sidenavCollapsed() ? ('TOOLBAR.EXPAND_SIDEBAR' | translate) : ('TOOLBAR.COLLAPSE_SIDEBAR' | translate)"
+              [attr.aria-label]="sidenavCollapsed() ? ('TOOLBAR.EXPAND_SIDEBAR' | translate) : ('TOOLBAR.COLLAPSE_SIDEBAR' | translate)">
               <mat-icon>{{ sidenavCollapsed() ? 'chevron_right' : 'chevron_left' }}</mat-icon>
             </button>
           </div>

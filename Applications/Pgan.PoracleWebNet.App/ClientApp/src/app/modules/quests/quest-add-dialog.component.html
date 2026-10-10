@@ -36,7 +36,7 @@
                 <mat-option [value]="0">{{ 'QUESTS.ANY_ITEM' | translate }}</mat-option>
                 @for (item of questItems(); track item.id) {
                   <mat-option [value]="item.id">
-                    <img [src]="iconService.getItemUrl(item.id)" class="option-icon" (error)="onOptionIconError($event)" />
+                    <img [src]="iconService.getItemUrl(item.id)" class="option-icon" alt="" (error)="onOptionIconError($event)" />
                     {{ item.name }}
                   </mat-option>
                 }

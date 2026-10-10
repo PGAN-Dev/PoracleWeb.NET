@@ -98,7 +98,15 @@
             </div>
           }
 
-          @if (error()) {
+          @if (accountDisabled()) {
+            <div class="error-message disabled-message">
+              <mat-icon>block</mat-icon>
+              <span [innerHTML]="'BANNER.DISABLED_ACCOUNT' | translate"></span>
+              @if (disabledSupportUrl(); as url) {
+                <a class="support-link" [href]="url" target="_blank" rel="noopener">{{ 'BANNER.DISABLED_SUPPORT' | translate }}</a>
+              }
+            </div>
+          } @else if (error()) {
             <div class="error-message">
               <mat-icon>error_outline</mat-icon>
               <span>{{ error() | translate }}</span>

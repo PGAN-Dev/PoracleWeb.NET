@@ -39,6 +39,15 @@ interface DashboardCard {
   subtitle: string;
 }
 
+/** A quick-action button. `disableKey` is the same key the matching sidebar item carries. */
+interface QuickAction {
+  cssClass: string;
+  disableKey: string | null;
+  icon: string;
+  label: string;
+  route: string;
+}
+
 interface Tip {
   action: string;
   icon: string;
@@ -70,6 +79,14 @@ interface Tip {
   templateUrl: './dashboard.component.html',
 })
 export class DashboardComponent implements OnInit {
+  private static readonly QUICK_ACTIONS: readonly QuickAction[] = [
+    { cssClass: 'action-pokemon', disableKey: 'disable_mons', icon: 'catching_pokemon', label: 'DASHBOARD.ADD_POKEMON', route: '/pokemon' },
+    { cssClass: 'action-raids', disableKey: 'disable_raids', icon: 'shield', label: 'DASHBOARD.ADD_RAID', route: '/raids' },
+    { cssClass: 'action-quests', disableKey: 'disable_quests', icon: 'explore', label: 'DASHBOARD.ADD_QUEST', route: '/quests' },
+    { cssClass: 'action-areas', disableKey: 'disable_areas', icon: 'map', label: 'DASHBOARD.MANAGE_AREAS', route: '/areas' },
+    { cssClass: 'action-cleaning', disableKey: null, icon: 'cleaning_services', label: 'DASHBOARD.CLEANING_ACTION', route: '/cleaning' },
+  ];
+
   private static readonly TYPE_COLORS: Record<string, string> = {
     Bug: '#8BC34A',
     Dark: '#424242',
@@ -220,13 +237,16 @@ export class DashboardComponent implements OnInit {
 
   readonly dismissedTips = signal<string[]>(JSON.parse(sessionStorage.getItem('dismissed-tips') || '[]'));
 
+  readonly locationEnabled = computed(() => !this.settingsService.isDisabled('disable_location'));
+
+  /** Street addresses for the pin. `disable_nominatim` 403s the lookup, and so does `disable_location`. */
+  readonly geocodingEnabled = computed(() => this.locationEnabled() && !this.settingsService.isDisabled('disable_nominatim'));
+
   readonly geofencePolygons = signal<GeofenceData[]>([]);
 
   readonly location = signal<Location | null>(null);
 
   readonly locationAddress = signal<string>('');
-
-  readonly locationEnabled = computed(() => !this.settingsService.isDisabled('disable_location'));
 
   readonly locationMapUrl = signal<string>('');
   protected readonly mutes = inject(MuteService);
@@ -242,6 +262,16 @@ export class DashboardComponent implements OnInit {
   });
 
   readonly profilesEnabled = computed(() => !this.settingsService.isDisabled('disable_profiles'));
+
+  /**
+   * Gated on the same keys as the sidebar. These predate the switches, so an instance without Pokemon
+   * alarms still offered "Add Pokemon", which led to a route guard and a toast. Cleaning has no key of
+   * its own -- its page skips whatever types are off -- so it stays.
+   */
+  readonly quickActions = computed(() =>
+    DashboardComponent.QUICK_ACTIONS.filter(action => !action.disableKey || !this.settingsService.isDisabled(action.disableKey)),
+  );
+
   /**
    * "3 quiet, next back in 47m". A count on its own says nothing about when it ends, and the soonest
    * expiry is the one the user is waiting on.
@@ -268,10 +298,20 @@ export class DashboardComponent implements OnInit {
     return loc.latitude !== 0 || loc.longitude !== 0;
   });
 
+  /**
+   * Cards for the alarm types this instance actually offers. A disabled type is gone from here as it
+   * is from the sidebar, the route and the API — a card linking to a page that answers 403 would be
+   * worse than no card. Rules already stored on a disabled type stay dormant and come back intact if
+   * it is switched on again. See #792.
+   */
+  readonly visibleCards = computed(() => this.cards.filter(card => !this.settingsService.isDisabled(card.disableKey)));
+
   readonly tips = computed(() => {
     const tips: Tip[] = [];
 
-    if (!this.userLocation()) {
+    // Each tip leads somewhere, so each follows the switch for where it leads. A tip for a disabled
+    // feature was a link to a route guard.
+    if (this.locationEnabled() && !this.userLocation()) {
       tips.push({
         id: 'no-location',
         action: this.i18n.instant('DASHBOARD.TIP_NO_LOCATION_ACTION'),
@@ -282,7 +322,7 @@ export class DashboardComponent implements OnInit {
       });
     }
 
-    if (this.selectedAreas().length === 0) {
+    if (this.areasEnabled() && this.selectedAreas().length === 0) {
       tips.push({
         id: 'no-areas',
         action: this.i18n.instant('DASHBOARD.TIP_NO_AREAS_ACTION'),
@@ -294,13 +334,15 @@ export class DashboardComponent implements OnInit {
     }
 
     const c = this.counts();
-    if (c && Object.values(c).every(v => v === 0)) {
+    // The tip exists to get a first alarm made, so it points at the first type this instance offers.
+    const firstType = this.visibleCards()[0];
+    if (c && firstType && Object.values(c).every(v => v === 0)) {
       tips.push({
         id: 'no-alarms',
         action: this.i18n.instant('DASHBOARD.TIP_NO_ALARMS_ACTION'),
         icon: 'add_alert',
         message: this.i18n.instant('DASHBOARD.TIP_NO_ALARMS'),
-        route: '/pokemon',
+        route: firstType.route,
         type: 'info',
       });
     }
@@ -326,14 +368,6 @@ export class DashboardComponent implements OnInit {
   });
 
   readonly username = computed(() => this.authService.user()?.username ?? 'Trainer');
-
-  /**
-   * Cards for the alarm types this instance actually offers. A disabled type is gone from here as it
-   * is from the sidebar, the route and the API — a card linking to a page that answers 403 would be
-   * worse than no card. Rules already stored on a disabled type stay dormant and come back intact if
-   * it is switched on again. See #792.
-   */
-  readonly visibleCards = computed(() => this.cards.filter(card => !this.settingsService.isDisabled(card.disableKey)));
 
   readonly weather = signal<WeatherData | null>(null);
 
@@ -415,12 +449,7 @@ export class DashboardComponent implements OnInit {
               this.locationAddress.set('');
               this.locationMapUrl.set('');
               if (result.latitude !== 0 || result.longitude !== 0) {
-                this.locationService
-                  .reverseGeocode(result.latitude, result.longitude)
-                  .pipe(takeUntilDestroyed(this.destroyRef))
-                  .subscribe(r => {
-                    if (r?.display_name) this.locationAddress.set(r.display_name);
-                  });
+                this.lookUpAddress(result);
                 this.locationService
                   .getStaticMapUrl(result.latitude, result.longitude)
                   .pipe(takeUntilDestroyed(this.destroyRef))
@@ -533,12 +562,7 @@ export class DashboardComponent implements OnInit {
         switchMap(loc => {
           this.location.set(loc);
           if (loc && (loc.latitude !== 0 || loc.longitude !== 0)) {
-            this.locationService
-              .reverseGeocode(loc.latitude, loc.longitude)
-              .pipe(takeUntilDestroyed(this.destroyRef))
-              .subscribe(result => {
-                if (result?.display_name) this.locationAddress.set(result.display_name);
-              });
+            this.lookUpAddress(loc);
             this.locationService
               .getStaticMapUrl(loc.latitude, loc.longitude)
               .pipe(takeUntilDestroyed(this.destroyRef))
@@ -564,6 +588,20 @@ export class DashboardComponent implements OnInit {
       .subscribe(w => {
         this.weather.set(w);
         this.weatherLoading.set(false);
+      });
+  }
+
+  /**
+   * The address line under the pin. With geocoding off the request 403s, and the interceptor toasted it
+   * on every dashboard load; the card already falls back to coordinates without it.
+   */
+  private lookUpAddress(loc: Location): void {
+    if (!this.geocodingEnabled()) return;
+    this.locationService
+      .reverseGeocode(loc.latitude, loc.longitude)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(result => {
+        if (result?.displayName) this.locationAddress.set(result.displayName);
       });
   }
 }

@@ -16,6 +16,7 @@ namespace Pgan.PoracleWebNet.Api.Controllers;
 public partial class GeofenceFeedController(
     IUserGeofenceRepository repository,
     IKojiService kojiService,
+    ISiteSettingService siteSettingService,
     IConfiguration configuration,
     ILogger<GeofenceFeedController> logger) : ControllerBase
 {
@@ -23,6 +24,7 @@ public partial class GeofenceFeedController(
 
     private readonly IUserGeofenceRepository _repository = repository;
     private readonly IKojiService _kojiService = kojiService;
+    private readonly ISiteSettingService _siteSettingService = siteSettingService;
     private readonly string _apiSecret = configuration["Poracle:ApiSecret"] ?? string.Empty;
     private readonly ILogger<GeofenceFeedController> _logger = logger;
 
@@ -80,6 +82,28 @@ public partial class GeofenceFeedController(
     }
 
     /// <summary>
+    /// The raw <c>hidden_areas</c> value, or null when it cannot be read.
+    /// </summary>
+    /// <remarks>
+    /// Swallows the failure on purpose. This endpoint is the single geofence source for Poracle, and
+    /// PoracleJS caches its last good response; a database hiccup here must not take the feed down or
+    /// empty it. An unreadable value means nothing is hidden, which is the direction that keeps
+    /// alerting working.
+    /// </remarks>
+    private async Task<string?> GetHiddenAreasRawAsync()
+    {
+        try
+        {
+            return (await this._siteSettingService.GetByKeyAsync(HiddenAreas.SettingKey))?.Value;
+        }
+        catch (Exception ex)
+        {
+            LogReadHiddenAreasFailed(this._logger, ex);
+            return null;
+        }
+    }
+
+    /// <summary>
     /// Returns all geofences in Poracle-compatible format: admin geofences from Koji (with groups resolved)
     /// plus user geofences from the local DB. This is the single geofence source for PoracleJS.
     /// </summary>
@@ -91,6 +115,11 @@ public partial class GeofenceFeedController(
         var kojiRead = true;
         var userRead = true;
 
+        // Areas an operator has taken off the menu. Read before the Koji call so a settings failure
+        // cannot be mistaken for a Koji failure, and so the feed still serves everything if the row is
+        // unreadable -- see HiddenAreas.Parse for why that direction is the safe one.
+        var hidden = HiddenAreas.Parse(await this.GetHiddenAreasRawAsync());
+
         // Admin geofences from Koji (cached, with groups resolved from parent chain)
         try
         {
@@ -101,7 +130,13 @@ public partial class GeofenceFeedController(
                 name = g.Name,
                 group = g.Group,
                 path = g.Path,
-                userSelectable = g.UserSelectable,
+                // Hiding is exactly this flag. Poracle's setAreas intersects a non-admin's submission
+                // against userSelectable=true fences, the bot's area picker filters on it, and this
+                // site's own /api/areas/available drops what is not selectable -- so clearing it here
+                // reaches every picker at once. displayInMatches is deliberately left alone: someone
+                // already subscribed keeps matching this fence (matching never reads userSelectable),
+                // and blanking the name out of their alert would make that worse, not better. See #885.
+                userSelectable = g.UserSelectable && !hidden.Contains(g.Name),
                 displayInMatches = g.DisplayInMatches,
                 description = g.Description,
                 color = g.Color,
@@ -202,4 +237,7 @@ public partial class GeofenceFeedController(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Skipped malformed polygon for geofence '{KojiName}' (id {Id}) when building the feed")]
     private static partial void LogSkippedMalformedPolygon(ILogger logger, string? kojiName, int id);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to read hidden areas — serving every area as selectable")]
+    private static partial void LogReadHiddenAreasFailed(ILogger logger, Exception ex);
 }

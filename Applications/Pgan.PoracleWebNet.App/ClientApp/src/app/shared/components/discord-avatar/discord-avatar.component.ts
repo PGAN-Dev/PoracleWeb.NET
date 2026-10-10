@@ -23,6 +23,8 @@ export class DiscordAvatarComponent implements OnInit, OnDestroy {
   private httpClient = inject(HttpClient);
 
   private observer: IntersectionObserver | null = null;
+  /** Text alternative for the image: the person's name. Empty marks it decorative. */
+  @Input() alt = '';
   @Input() defaultUrl = 'https://cdn.discordapp.com/embed/avatars/0.png';
   resolvedUrl = '';
   @Input() userId = '';

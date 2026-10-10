@@ -39,7 +39,12 @@ mat-dialog-content {
   height: 20px;
   vertical-align: middle;
   margin-right: 4px;
-  color: #f44336;
+  // #f44336 is 3.7:1 on the light dialog surface, short of the 4.5:1 an 18px glyph needs.
+  color: #c62828;
+}
+
+:host-context(.dark-theme) .grunt-leader-icon {
+  color: #ef9a9a;
 }
 .grunt-grid {
   display: grid;
@@ -91,6 +96,13 @@ mat-slide-toggle {
 @media (max-width: 599px) {
   mat-dialog-content {
     min-width: 0;
+  }
+  // On a phone the dialog is full screen and its content already scrolls. A second, 300px scroll box
+  // inside it ended mid-row halfway down the screen with empty space below; let the list take the
+  // height it needs and scroll with the rest of the dialog.
+  .grunt-grid {
+    max-height: none;
+    overflow-y: visible;
   }
 }
 

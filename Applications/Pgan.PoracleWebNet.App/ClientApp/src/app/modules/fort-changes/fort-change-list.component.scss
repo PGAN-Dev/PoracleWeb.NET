@@ -36,7 +36,7 @@
   gap: 16px;
 }
 .loading-text {
-  color: rgba(0, 0, 0, 0.54);
+  color: var(--text-secondary, rgba(0, 0, 0, 0.6));
   font-size: 14px;
 }
 .alarm-grid {
@@ -118,7 +118,7 @@
   font-size: 18px;
 }
 .fort-subtitle {
-  color: rgba(0, 0, 0, 0.54);
+  color: var(--text-secondary, rgba(0, 0, 0, 0.6));
   font-size: 13px;
 }
 .stat-grid {

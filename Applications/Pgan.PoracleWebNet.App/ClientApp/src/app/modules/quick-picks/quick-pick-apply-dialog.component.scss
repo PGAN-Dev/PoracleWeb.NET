@@ -13,11 +13,26 @@
   color: var(--text-secondary, rgba(0, 0, 0, 0.54));
 }
 
+// The title icon was an inline #4caf50, 2.65:1 on the light dialog surface where a 24px glyph needs 3:1,
+// and the exclusion summary was #ff9800 text at 2.2:1. Both keep their hue, a shade deeper in light and a
+// shade lighter in dark (quick-pick-apply-dialog-contrast.spec.ts).
+.title-icon {
+  color: #2e7d32;
+}
+
+:host-context(.dark-theme) .title-icon {
+  color: #81c784;
+}
+
 .exclusion-summary {
   margin: 8px 0 0;
   font-size: 13px;
   font-weight: 500;
-  color: #ff9800;
+  color: #b45309;
+}
+
+:host-context(.dark-theme) .exclusion-summary {
+  color: #ffb74d;
 }
 
 .individual-warning {
@@ -34,10 +49,14 @@
   color: var(--mat-sys-on-surface);
 
   mat-icon {
-    color: #ff9800;
+    color: #b45309;
     flex-shrink: 0;
     margin-top: 1px;
   }
+}
+
+:host-context(.dark-theme) .individual-warning mat-icon {
+  color: #ffb74d;
 }
 
 .alarm-tabs {
@@ -72,8 +91,12 @@ h4 {
   color: var(--text-secondary, rgba(0, 0, 0, 0.54));
 
   mat-icon {
-    color: #4caf50;
+    color: #2e7d32;
     flex-shrink: 0;
+  }
+
+  :host-context(.dark-theme) & mat-icon {
+    color: #81c784;
   }
 
   p {

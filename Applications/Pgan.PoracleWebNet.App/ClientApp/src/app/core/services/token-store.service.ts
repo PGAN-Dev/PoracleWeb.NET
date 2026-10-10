@@ -33,6 +33,9 @@ export class TokenStoreService {
 
   private refreshInFlight$: Observable<string> | null = null;
 
+  /** The bearer a retried request actually carried, keyed by the error it came back with. */
+  private readonly retriedWith = new WeakMap<object, string | null>();
+
   /** Emits when a refresh definitively fails — AuthService subscribes and logs the user out. */
   readonly forceLogout$ = new Subject<void>();
 
@@ -62,6 +65,27 @@ export class TokenStoreService {
     this.sessionCleared$.next();
   }
 
+  /**
+   * Ends the session in two steps: every token now, so nothing further can authenticate, and the user
+   * (`sessionCleared$`) only once `leave` has settled.
+   */
+  /* Forgetting the user swaps the app shell to its signed-out layout, and that layout has its own router
+   * outlet. Doing it while the router was still on the signed-in page made that outlet build the page
+   * again, with no token: a second wave of 401s and a "session expired" toast for each. logout() was
+   * reordered for the same reason in #916; this is the 401 path's copy of that fix. */
+  endSession(leave: () => Promise<unknown>): void {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(ADMIN_TOKEN_KEY);
+    this.clear();
+    let left: Promise<unknown>;
+    try {
+      left = Promise.resolve(leave());
+    } catch {
+      left = Promise.resolve();
+    }
+    void left.catch(() => undefined).finally(() => this.sessionCleared$.next());
+  }
+
   getAccessToken(): string | null {
     return localStorage.getItem(TOKEN_KEY);
   }
@@ -79,6 +103,17 @@ export class TokenStoreService {
     const stored = Number(localStorage.getItem(EXPIRES_KEY));
     const expiresAt = stored || this.decodeExpiry(this.getAccessToken() ?? '');
     return !!expiresAt && expiresAt - Date.now() < EXPIRY_SKEW_MS;
+  }
+
+  /**
+   * Records the bearer a retry was sent with, so a 401 on it is judged against that token rather than
+   * the one on the original request. The refresh interceptor retries below the error interceptor, which
+   * only ever sees the original.
+   */
+  noteRetriedWith(error: unknown, token: string | null): void {
+    if (error && typeof error === 'object') {
+      this.retriedWith.set(error, token);
+    }
   }
 
   /**
@@ -112,6 +147,11 @@ export class TokenStoreService {
     );
 
     return this.refreshInFlight$;
+  }
+
+  /** The bearer a failed retry carried, when there was one; `undefined` when the error is not a retry's. */
+  retriedTokenFor(error: unknown): string | null | undefined {
+    return error && typeof error === 'object' && this.retriedWith.has(error) ? this.retriedWith.get(error) : undefined;
   }
 
   /** Best-effort server-side revoke of the current session family (logout). Fire-and-forget. */

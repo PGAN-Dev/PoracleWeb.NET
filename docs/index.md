@@ -34,6 +34,7 @@ A web application for managing Pokemon GO notification alarms through the [Porac
 - **Areas & Places** — Interactive Leaflet map for choosing geofence areas, dropping your pin, and naming the places your alerts measure from
 - **Custom Geofences** — Draw custom polygon geofences on a map, served to the Poracle bot via a built-in unified feed endpoint. Submit for admin review to promote to public areas.
 - **Geofence Admin Review** — Approve or reject user-submitted geofences with Discord forum integration
+- **Hide areas from users** — Take a staging or test area off Areas & Places, the per-alarm scope picker and the bot's area list without deleting it, from Admin → Areas
 - **Profile Switching** — Multiple alarm profiles per user
 - **Profile Active Hours** — Schedule automatic profile switching by day and time
 - **Discord Notification Preview** — Live preview of DTS templates with Handlebars evaluation

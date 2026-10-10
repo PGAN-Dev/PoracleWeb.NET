@@ -1,3 +1,6 @@
+import * as fs from 'fs';
+import * as path from 'path';
+
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { signal, WritableSignal } from '@angular/core';
@@ -263,5 +266,73 @@ describe('App bootstrap language defaults (#770)', () => {
     const { alertLanguage } = setup({ authenticated: true, settings: {} });
 
     expect(alertLanguage.load).toHaveBeenCalled();
+  });
+});
+
+/**
+ * The disabled-account banner linked two channels on one community's Discord server, hardcoded, so every
+ * instance of this software sent its disabled members there. The destination is the operator's
+ * `support_url` now. The whole shell is too heavy to render here, so this reads the template.
+ */
+describe('App disabled-account banner', () => {
+  const template = fs.readFileSync(path.join(__dirname, 'app.html'), 'utf8');
+
+  it('hardcodes no support destination', () => {
+    expect(template).not.toMatch(/discord\.com\/channels/);
+  });
+
+  it("links the operator's support_url instead", () => {
+    expect(template).toContain('supportUrl()');
+    expect(template).toContain("'BANNER.DISABLED_SUPPORT' | translate");
+  });
+});
+
+describe('App stop impersonating', () => {
+  const setup = (restored: boolean) => {
+    const getCounts = jest.fn(() => of({}));
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideNoopAnimations(),
+        provideRouter([]),
+        provideTranslateService(),
+        {
+          provide: SettingsService,
+          useValue: { isDisabled: () => false, loadOnce: () => of([]), siteSettings: signal({}) },
+        },
+        {
+          provide: AuthService,
+          useValue: {
+            hasManagedWebhooks: () => false,
+            isAdmin: () => false,
+            stopImpersonating: jest.fn(() => Promise.resolve(restored)),
+          },
+        },
+        { provide: DashboardService, useValue: { getCounts } },
+        { provide: I18nService, useValue: { init: jest.fn() } },
+      ],
+    });
+    const app = TestBed.runInInjectionContext(() => new App());
+    return { app, getCounts };
+  };
+
+  it('sends nothing when there was no admin session to return to', async () => {
+    // Stop signs out in that case, and the counts request went out regardless with no token: three 401s
+    // and a "session expired" toast over the login page.
+    const { app, getCounts } = setup(false);
+
+    await app.stopImpersonating();
+
+    expect(getCounts).not.toHaveBeenCalled();
+  });
+
+  it('reloads the admin counts once they are back', async () => {
+    const { app, getCounts } = setup(true);
+
+    await app.stopImpersonating();
+
+    expect(getCounts).toHaveBeenCalledTimes(1);
   });
 });

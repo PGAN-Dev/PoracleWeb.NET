@@ -433,7 +433,48 @@ public partial class SettingsMigrationService(
         }
 
         await this.BackfillQuickPickSeedMarkerAsync();
+        await this.RepointDeadIconPackAsync();
     }
+
+    /// <summary>
+    /// Rewrites any icon setting that points into whitewillem/PogoAssets to the pack the SPA would use
+    /// for that category with nothing set.
+    /// </summary>
+    /// <remarks>
+    /// The repository no longer exists, so every icon under it renders as nothing. #877 repointed the
+    /// fallback for unset categories and left stored rows alone, which is right for a pack an operator
+    /// chose and wrong for one that cannot answer: an upgraded instance holding those rows kept a site
+    /// with no icons. Only the six keys the SPA reads, and only values inside the dead repository, are
+    /// touched; a live or self-hosted pack is left exactly as it is. Runs on every start and writes
+    /// nothing once the rows are repaired, and runs after <see cref="MigrateAsync"/>, which can copy a
+    /// legacy row in from pweb_settings.
+    /// </remarks>
+    private async Task RepointDeadIconPackAsync()
+    {
+        foreach (var (key, folder) in IconPackDefaults.FolderByKey)
+        {
+            var existing = await this._siteSettingService.GetByKeyAsync(key);
+            if (existing is null || !IconPackDefaults.PointsIntoDeadRepository(existing.Value))
+            {
+                continue;
+            }
+
+            var repointed = $"{IconPackDefaults.DefaultBase}/{folder}";
+            await this._siteSettingService.CreateOrUpdateAsync(new SiteSetting
+            {
+                Key = existing.Key,
+                Value = repointed,
+                Category = existing.Category,
+                ValueType = existing.ValueType,
+            });
+
+            LogIconSettingRepointed(this._logger, key, existing.Value!, repointed);
+        }
+    }
+
+    [LoggerMessage(Level = LogLevel.Warning,
+        Message = "Icon setting '{Key}' pointed at a repository that no longer exists ({Old}); repointed to {New}")]
+    private static partial void LogIconSettingRepointed(ILogger logger, string key, string old, string @new);
 
     /// <summary>
     /// Records that the built-in quick picks exist, for installations seeded before the marker did.

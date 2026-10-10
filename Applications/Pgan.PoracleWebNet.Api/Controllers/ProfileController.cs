@@ -29,9 +29,6 @@ public class ProfileController(
     private readonly IUserRoleResolver _roleResolver = roleResolver;
     private readonly IUserGeofenceRepository _userGeofenceRepository = userGeofenceRepository;
 
-    /// <summary>Matches the profiles.name column, so an over-long name is refused rather than 500ing.</summary>
-    private const int MaxProfileNameLength = 255;
-
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
@@ -99,21 +96,14 @@ public class ProfileController(
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] Profile profile)
     {
-        if (string.IsNullOrWhiteSpace(profile.Name))
+        // Required, no longer than the varchar(255) column (#467), and free of control and text-direction
+        // characters -- the same rule duplicate, overview-duplicate and import apply.
+        var nameError = ProfileNameRules.Validate(profile.Name);
+        if (nameError is not null || profile.Name is null)
         {
             return this.BadRequest(new
             {
-                error = "Profile name is required."
-            });
-        }
-
-        // profiles.name is varchar(255); anything longer reached the database and came back as an
-        // opaque 500. See #467.
-        if (profile.Name.Trim().Length > MaxProfileNameLength)
-        {
-            return this.BadRequest(new
-            {
-                error = $"Profile name must be {MaxProfileNameLength} characters or fewer."
+                error = nameError ?? "Profile name is required."
             });
         }
 
@@ -164,10 +154,10 @@ public class ProfileController(
             longitude = profile.Longitude,
             active_hours = profile.ActiveHours
         });
-        await this._humanProxy.AddProfileAsync(this.UserId, body);
+        var assignedNo = await this._humanProxy.AddProfileAsync(this.UserId, body);
 
         var after = (await this._profileService.GetByUserAsync(this.UserId)).ToList();
-        var createdNo = ProfileNumbering.ResolveCreated(before, after, profile.Name);
+        var createdNo = assignedNo ?? ProfileNumbering.ResolveCreated(before, after, profile.Name);
         if (createdNo is null)
         {
             return this.StatusCode(StatusCodes.Status502BadGateway, new
@@ -211,12 +201,20 @@ public class ProfileController(
             return this.NotFound();
         }
 
-        if (profile.Name is not null && profile.Name.Trim().Length > MaxProfileNameLength)
+        // Blank means "not renaming", as it always has on the direct-write path below. Only a name that
+        // actually changes is judged: one stored before a rule existed must not fail every later edit of
+        // the profile, and the active-hours editor resubmits the name it was given.
+        var newName = string.IsNullOrWhiteSpace(profile.Name) ? null : profile.Name.Trim();
+        if (newName is not null && !string.Equals(newName, existing.Name, StringComparison.Ordinal))
         {
-            return this.BadRequest(new
+            var nameError = ProfileNameRules.Validate(newName);
+            if (nameError is not null)
             {
-                error = $"Profile name must be {MaxProfileNameLength} characters or fewer."
-            });
+                return this.BadRequest(new
+                {
+                    error = nameError
+                });
+            }
         }
 
         var (isValid, validationError) = ActiveHoursValidator.Validate(profile.ActiveHours);
@@ -225,20 +223,27 @@ public class ProfileController(
             return this.BadRequest(validationError);
         }
 
+        // Trimmed, and the stored name when none was given. On a server whose PATCH takes the name the
+        // direct write below is skipped, so this is what gets stored: untrimmed it kept the padding, and a
+        // blank one blanked the name.
         var body = JsonSerializer.SerializeToElement(new
         {
             profile_no = profileNo,
-            name = profile.Name ?? existing.Name,
+            name = newName ?? existing.Name,
             active_hours = profile.ActiveHours ?? existing.ActiveHours
         });
-        await this._humanProxy.UpdateProfileAsync(this.UserId, body);
+        var nameApplied = await this._humanProxy.UpdateProfileAsync(this.UserId, body);
 
-        // PoracleNG's update handler answers ok and silently drops the name, while honouring active_hours
-        // on the very same request -- so rename has to be written directly. The response used to be
-        // re-read and returned as a 200 carrying the OLD name, and the SPA built a success toast from it.
-        // See #406.
-        var newName = profile.Name?.Trim();
-        if (!string.IsNullOrEmpty(newName) && !string.Equals(newName, existing.Name, StringComparison.Ordinal))
+        // A released PoracleNG's update handler answers ok and silently drops the name, while honouring
+        // active_hours on the very same request -- so rename has to be written directly. The response used
+        // to be re-read and returned as a 200 carrying the OLD name, and the SPA built a success toast from
+        // it. See #406.
+        //
+        // PoracleNG PR #217 gives V2UpdateProfileBody a name, and the proxy says so by answering true: on
+        // such a server the rename has already happened and this direct write is skipped. See #837.
+        if (!nameApplied
+            && !string.IsNullOrEmpty(newName)
+            && !string.Equals(newName, existing.Name, StringComparison.Ordinal))
         {
             var renamed = await this._profileRepository.RenameAsync(this.UserId, profileNo, newName);
             if (!renamed)
@@ -316,10 +321,10 @@ public class ProfileController(
             longitude = sourceProfile.Longitude,
             active_hours = sourceProfile.ActiveHours
         });
-        await this._humanProxy.AddProfileAsync(this.UserId, body);
+        var assignedNo = await this._humanProxy.AddProfileAsync(this.UserId, body);
 
         var after = (await this._profileService.GetByUserAsync(this.UserId)).ToList();
-        var resolved = ProfileNumbering.ResolveCreated(before, after, request.Name.Trim());
+        var resolved = assignedNo ?? ProfileNumbering.ResolveCreated(before, after, request.Name.Trim());
         if (resolved is null)
         {
             return this.StatusCode(StatusCodes.Status502BadGateway, new

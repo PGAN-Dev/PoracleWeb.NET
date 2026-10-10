@@ -22,10 +22,41 @@
 
     Appendix A's asks were later filed as jfberry/PoracleNG#208 through #216 and fixed in
     [PR #217](https://github.com/jfberry/PoracleNG/pull/217), merged 2026-08-31 -- onto `develop`, so no
-    released build carries any of it. That includes the keystone, an opt-in `trusted` flag on `setAreas`,
-    which is why `IUserAreaDualWriter` and the admin `HumanRepository` methods are all still here. Where
-    each ask now stands is tracked in
-    [the enhancement requests](poracleng-enhancement-requests.md).
+    released build carries any of it. Where each ask now stands is tracked in
+    [the enhancement requests](poracleng-enhancement-requests.md), which is the document kept current.
+
+    Two of that batch were built against a running `develop` on 2026-09-16 and **do not close the rows
+    this review says they would**, which is worth knowing before planning from the scorecard below:
+
+    - The keystone `trusted` flag on `setAreas` lifts the community area restriction as well as
+      `userSelectable`, so it cannot be used on the one call that carries user-supplied area names
+      ([#228](https://github.com/jfberry/PoracleNG/issues/228)). There is also no profile target for the
+      all-profiles writes, and the per-rule `override_areas` write is still refused outright. Row 1 stays
+      open, and so do rows 5 and 6.
+    - The admin list route's projection omits the three columns the admin grid renders
+      ([#229](https://github.com/jfberry/PoracleNG/issues/229)), so row 2 stays open and
+      `HumanRepository` -- and `PoracleContext` -- stay with it.
+
+    **Both of those are now out of date too, as of [PR #230](https://github.com/jfberry/PoracleNG/pull/230)
+    (merged 2026-10-06, not yet released).** #230 fixed `trusted`'s scoping properly -- it lifts
+    `userSelectable` only, confirmed by `jfberry` -- closing #228, and closed #229 by adding the three
+    columns. Row 1 is partially closed (three of six `IUserAreaDualWriter` methods adopted the trusted
+    path; the other three stay blocked on a profile target and on a trusted per-rule *create*, which v2
+    tracking updates have but creates do not) and row 2 is closed, both in PoracleWeb.NET
+    [#838](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/838)/[#937](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/937)
+    and [#839](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/839)/[#936](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/936)
+    respectively. As with everything else on this page: this note is itself a point-in-time correction, not
+    a live status -- [the enhancement requests doc](poracleng-enhancement-requests.md) is still the one
+    kept current.
+
+    The reads-first recommendation is not merely reordered but abandoned. Restoring the v1 shape from a v2
+    read needs the stored wildcard for 137 nullable fields across eleven schemas, and the server publishes
+    none of them: no property carries a machine-readable `default`. Since `TrackingFieldPreserver` re-reads
+    a row before a PUT, a wrong wildcard is written back rather than merely displayed. Migrate a **type** --
+    read, write and delete together -- rather than a **verb**.
+
+    Invasion, listed here as staying on v1, no longer does: it writes through v2 where the server carries
+    `grunt_type` and its masterdata lists the name.
 
     What actually shipped is documented in
     [The v2 write path](architecture/poracleng-proxy.md#the-v2-write-path) and

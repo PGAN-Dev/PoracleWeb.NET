@@ -70,6 +70,27 @@ describe('PokemonEditDialogComponent', () => {
     return monsterService.update.mock.calls[0][1] as MonsterUpdate;
   }
 
+  it('shows a min IV -1 alarm as the include-unscanned switch and keeps it', () => {
+    setup({ minIv: -1 });
+    component.ngOnInit();
+
+    expect(component.form.controls.includeUnscanned.value).toBe(true);
+    expect(component.form.controls.minIv.value).toBe(0);
+    expect(component.form.controls.minIv.disabled).toBe(true);
+    component.save();
+    expect(sent().minIv).toBe(-1);
+  });
+
+  it('turning the switch off saves the Min IV box again', () => {
+    setup({ minIv: -1 });
+    component.ngOnInit();
+    component.form.controls.includeUnscanned.setValue(false);
+    component.form.controls.minIv.setValue(80);
+    component.save();
+
+    expect(sent().minIv).toBe(80);
+  });
+
   it('seeds the time filter from the alarm', () => {
     setup({ minTime: 300 });
 

@@ -79,11 +79,4 @@ describe('GymService', () => {
     service.deleteAll().subscribe();
     httpMock.expectOne(`${API}/api/gyms`).flush(null);
   });
-
-  it('should update all distances', () => {
-    service.updateAllDistance(1500).subscribe();
-    const req = httpMock.expectOne(`${API}/api/gyms/distance`);
-    expect(req.request.body).toBe(1500);
-    req.flush(null);
-  });
 });

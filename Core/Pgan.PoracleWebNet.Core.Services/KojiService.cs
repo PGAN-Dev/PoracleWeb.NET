@@ -533,6 +533,16 @@ public partial class KojiService(HttpClient httpClient, IConfiguration configura
             var description = item.TryGetProperty("description", out var descEl) ? descEl.GetString() ?? string.Empty : string.Empty;
             var color = item.TryGetProperty("color", out var colorEl) ? colorEl.GetString() ?? "#3399ff" : "#3399ff";
 
+            // Koji's poracle export carries both flags; read them rather than assuming public.
+            // They were hardcoded true, so a fence an operator had already made private in Koji was
+            // served to every user as selectable -- the same leak #544 closed for user-drawn geofences,
+            // one source along. Absent means true, because that is Koji's own default for a public
+            // project and the overwhelming majority of fences carry no explicit value. See #885.
+            var kojiSelectable = !item.TryGetProperty("userSelectable", out var selEl)
+                || selEl.ValueKind != JsonValueKind.False;
+            var kojiDisplayInMatches = !item.TryGetProperty("displayInMatches", out var dimEl)
+                || dimEl.ValueKind != JsonValueKind.False;
+
             var bbox = GeometryHelpers.BoundingBox.FromPolygon(path);
             adminGeofences.Add(new AdminGeofence
             {
@@ -540,8 +550,8 @@ public partial class KojiService(HttpClient httpClient, IConfiguration configura
                 Name = name,
                 Group = group,
                 Path = path,
-                UserSelectable = true,
-                DisplayInMatches = true,
+                UserSelectable = kojiSelectable,
+                DisplayInMatches = kojiDisplayInMatches,
                 Description = description,
                 Color = color,
                 MinLat = bbox.MinLat,

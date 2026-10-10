@@ -7,9 +7,10 @@ using Pgan.PoracleWebNet.Core.Models;
 namespace Pgan.PoracleWebNet.Core.Services;
 
 /// <summary>
-/// Proxy-first service for human operations. Admin bulk operations (GetAll, GetWebhooks, DeleteUser)
-/// remain direct DB via IHumanRepository because PoracleNG has no admin-list or admin-delete endpoint
-/// on either API version. See: docs/poracleng-enhancement-requests.md
+/// Proxy-first service for human operations. Admin bulk operations (GetAll, GetWebhooks, GetByIds,
+/// DeleteUser) prefer PoracleNG's v2 humans list/delete and fall back to IHumanRepository on a server
+/// too old for it (jfberry/PoracleNG#230, develop only as of this writing). ExistsAsync stays direct DB
+/// always -- see UserPurgeService for why. See #839.
 /// </summary>
 public class HumanService(
     IHumanRepository repository,
@@ -25,11 +26,22 @@ public class HumanService(
     private static readonly string[] AlarmTypes =
         ["pokemon", "raid", "egg", "quest", "invasion", "lure", "nest", "gym", "fort", "maxbattle"];
 
-    // TODO: Migrate once PoracleNG adds a "get all humans" endpoint.
-    // See: docs/poracleng-enhancement-requests.md
-    public async Task<IEnumerable<Human>> GetAllAsync() => await this._repository.GetAllAsync();
+    public async Task<IEnumerable<Human>> GetAllAsync() =>
+        await this._humanProxy.ListHumansAsync() ?? await this._repository.GetAllAsync();
 
-    public async Task<IEnumerable<Human>> GetWebhooksAsync() => await this._repository.GetWebhooksAsync();
+    public async Task<IEnumerable<Human>> GetWebhooksAsync() =>
+        await this._humanProxy.ListHumansAsync(type: "webhook") ?? await this._repository.GetWebhooksAsync();
+
+    public async Task<IEnumerable<Human>> GetByIdsAsync(IEnumerable<string> ids)
+    {
+        var idList = ids as IReadOnlyCollection<string> ?? ids.ToList();
+        if (idList.Count == 0)
+        {
+            return [];
+        }
+
+        return await this._humanProxy.ListHumansAsync(ids: idList) ?? await this._repository.GetByIdsAsync(idList);
+    }
 
     public async Task<Human?> GetByIdAsync(string id)
     {
@@ -75,9 +87,8 @@ public class HumanService(
         return totalDeleted;
     }
 
-    // TODO: Migrate once PoracleNG adds a user deletion endpoint.
-    // See: docs/poracleng-enhancement-requests.md
-    public async Task<bool> DeleteUserAsync(string userId) => await this._repository.DeleteUserAsync(userId);
+    public async Task<bool> DeleteUserAsync(string userId) =>
+        await this._humanProxy.DeleteHumanAsync(userId) ?? await this._repository.DeleteUserAsync(userId);
 
     private static Human DeserializeHuman(JsonElement json) => new()
     {

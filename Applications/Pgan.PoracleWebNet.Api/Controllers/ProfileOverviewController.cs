@@ -62,16 +62,16 @@ public partial class ProfileOverviewController(
 
         var body = JsonSerializer.SerializeToElement(new
         {
-            name = request.Name,
+            name = request.Name.Trim(),
             area = source.Area ?? "[]",
             latitude = source.Latitude,
             longitude = source.Longitude,
             active_hours = source.ActiveHours
         });
-        await this._humanProxy.AddProfileAsync(this.UserId, body);
+        var assignedNo = await this._humanProxy.AddProfileAsync(this.UserId, body);
 
         var after = (await this._profileService.GetByUserAsync(this.UserId)).ToList();
-        var resolved = ProfileNumbering.ResolveCreated(before, after, request.Name);
+        var resolved = assignedNo ?? ProfileNumbering.ResolveCreated(before, after, request.Name.Trim());
         if (resolved is null)
         {
             return this.StatusCode(StatusCodes.Status502BadGateway, new
@@ -144,16 +144,17 @@ public partial class ProfileOverviewController(
 
         var existing = (await this._profileService.GetByUserAsync(this.UserId)).ToList();
         var existingNames = existing.Select(p => p.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var profileName = request.ProfileName;
+        var requestedName = request.ProfileName.Trim();
+        var profileName = requestedName;
         if (existingNames.Contains(profileName))
         {
             var suffix = 2;
-            while (existingNames.Contains($"{request.ProfileName} ({suffix})"))
+            while (existingNames.Contains($"{requestedName} ({suffix})"))
             {
                 suffix++;
             }
 
-            profileName = $"{request.ProfileName} ({suffix})";
+            profileName = $"{requestedName} ({suffix})";
         }
 
         var body = JsonSerializer.SerializeToElement(new
@@ -163,10 +164,10 @@ public partial class ProfileOverviewController(
             latitude = 0.0,
             longitude = 0.0
         });
-        await this._humanProxy.AddProfileAsync(this.UserId, body);
+        var assignedNo = await this._humanProxy.AddProfileAsync(this.UserId, body);
 
         var after = (await this._profileService.GetByUserAsync(this.UserId)).ToList();
-        var resolved = ProfileNumbering.ResolveCreated(existing, after, profileName);
+        var resolved = assignedNo ?? ProfileNumbering.ResolveCreated(existing, after, profileName);
         if (resolved is null)
         {
             return this.StatusCode(StatusCodes.Status502BadGateway, new

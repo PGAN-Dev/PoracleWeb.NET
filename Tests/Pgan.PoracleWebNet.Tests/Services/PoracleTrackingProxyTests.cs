@@ -46,8 +46,33 @@ public class PoracleTrackingProxyTests
             client,
             config ?? CreateConfig(),
             serverProfile ?? UnknownServerProfile(),
+            V2Schema(),
+            GruntNames(),
             new MemoryCache(new MemoryCacheOptions()),
             Mock.Of<ILogger<PoracleTrackingProxy>>());
+    }
+
+    /// <summary>
+    /// A schema probe and a grunt list answering what a released PoracleNG answers: no grunt_type on the
+    /// v2 invasion rule, and therefore no reason to consult the names at all. That keeps every existing
+    /// test on the path it was written for.
+    /// </summary>
+    internal static IPoracleV2SchemaService V2Schema(PoracleV2Capabilities? capabilities = null)
+    {
+        var schema = new Mock<IPoracleV2SchemaService>();
+        schema.Setup(s => s.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(capabilities ?? PoracleV2Capabilities.None);
+
+        return schema.Object;
+    }
+
+    internal static IInvasionGruntNameService GruntNames(params string[] names)
+    {
+        var service = new Mock<IInvasionGruntNameService>();
+        service.Setup(s => s.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlySet<string>)new HashSet<string>(names, StringComparer.OrdinalIgnoreCase));
+
+        return service.Object;
     }
 
     private static IPoracleServerProfileService UnknownServerProfile()

@@ -92,8 +92,11 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IQuestPokecoinCapabilityService, QuestPokecoinCapabilityService>();
         services.AddScoped<IMuteCapabilityService, MuteCapabilityService>();
         services.AddScoped<IPlaceUpdateCapabilityService, PlaceUpdateCapabilityService>();
+        services.AddScoped<INaturalKeyCapabilityService, NaturalKeyCapabilityService>();
+        services.AddScoped<IInvasionGruntNameService, InvasionGruntNameService>();
         services.AddScoped<ICostumeCapabilityService, CostumeCapabilityService>();
         services.AddScoped<IUpstreamFeatureFlagService, UpstreamFeatureFlagService>();
+        services.AddScoped<IAreaSecurityPolicyService, AreaSecurityPolicyService>();
         services.AddScoped<IFeatureGate, FeatureGate>();
         services.AddScoped<IWebhookDelegateService, WebhookDelegateService>();
         services.AddScoped<ISettingsMigrationService, SettingsMigrationService>();
@@ -147,6 +150,13 @@ public static class ServiceCollectionExtensions
             // A diagnostic must not hold a request open: an unreachable server should answer
             // "unknown" quickly rather than stall the admin page behind a default 100s timeout.
             client.Timeout = TimeSpan.FromSeconds(5);
+        });
+
+        services.AddHttpClient<IPoracleV2SchemaService, PoracleV2SchemaService>(client =>
+        {
+            // Same reasoning as the profile probe above, with more headroom: /openapi.json is most of a
+            // megabyte on 5.2.1 where /health is a line.
+            client.Timeout = TimeSpan.FromSeconds(15);
         });
 
         // Register HttpClient for PoracleNG tracking proxy (alarm CRUD — replaces direct DB writes)
@@ -209,7 +219,10 @@ public static class ServiceCollectionExtensions
 
         // Register the generic OIDC HTTP client (code exchange / refresh / userinfo) and the
         // server-side refresh-session service (opaque-token rotation + encrypted RT storage).
-        services.AddHttpClient<Services.Oidc.IOidcClient, Services.Oidc.OidcClient>();
+        // An identity provider behind Cloudflare 403s a request with no User-Agent, which fails
+        // every code exchange and refresh before it reaches the provider.
+        services.AddHttpClient<Services.Oidc.IOidcClient, Services.Oidc.OidcClient>(client =>
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("PoracleWeb.NET"));
         services.AddScoped<Services.Oidc.IOidcSessionService, Services.Oidc.OidcSessionService>();
 
         // Register JWT service (shared token generation across controllers)
@@ -218,6 +231,13 @@ public static class ServiceCollectionExtensions
         // Admin status and delegated webhooks, resolved live rather than trusted from a claim minted
         // at login. See #624 and #626.
         services.AddScoped<Services.IUserRoleResolver, Services.UserRoleResolver>();
+
+        // Re-asks, on every request an impersonation token makes, whether whoever started it still may.
+        // Wired into JwtBearer's OnTokenValidated in Program.cs.
+        services.AddScoped<Services.IImpersonationAuthority, Services.ImpersonationAuthority>();
+
+        // Bounds that check while PoracleNG or poracle_web is down; holds per-impersonator state, so one per process.
+        services.AddSingleton<Services.ImpersonationRoleProbe>();
 
         // Register settings
         services.Configure<JwtSettings>(configuration.GetSection("Jwt"));

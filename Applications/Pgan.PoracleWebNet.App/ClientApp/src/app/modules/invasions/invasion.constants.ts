@@ -115,11 +115,13 @@ export const GRUNT_DISPLAY_KEYS: Record<string, string> = {
   water: 'INVASIONS.GRUNT_TYPES.WATER',
 };
 
+const UNKNOWN_GRUNT_KEY = 'INVASIONS.UNKNOWN_GRUNT';
+
 export function getGruntDisplayKey(gruntType: string | null): string {
   if (!gruntType) return GRUNT_DISPLAY_KEYS['everything'];
   const eventInfo = EVENT_TYPE_INFO[gruntType];
   if (eventInfo) return eventInfo.displayKey;
-  return GRUNT_DISPLAY_KEYS[gruntType] ?? 'INVASIONS.UNKNOWN_GRUNT';
+  return GRUNT_DISPLAY_KEYS[gruntType] ?? UNKNOWN_GRUNT_KEY;
 }
 
 // Composes the full localized grunt label, appending a translated gender suffix
@@ -127,8 +129,26 @@ export function getGruntDisplayKey(gruntType: string | null): string {
 // a translate lambda (usually `key => this.i18n.instant(key)`) so this helper stays
 // free of Angular DI. Gender is NOT appended for typed grunts (bug/fire/…) — those
 // keep the separate gender dropdown.
-export function getGruntDisplayName(gruntType: string | null, gender: number | undefined, translate: (key: string) => string): string {
-  const base = translate(getGruntDisplayKey(gruntType));
+export function getGruntDisplayName(
+  gruntType: string | null,
+  gender: number | undefined,
+  translate: (key: string) => string,
+  upstreamName?: null | string,
+  upstreamIsEnglishFallback = false,
+): string {
+  const key = getGruntDisplayKey(gruntType);
+
+  // The server's own name wins where it has one. It is translated for every grunt rather than the
+  // twenty-six this table covers, and it already carries the ♂/♀ marker, so the suffix below must not
+  // also be appended. Null means this Poracle does not name the grunt unambiguously -- an older build,
+  // an unreachable one, or a pair like `dark` at "any gender" that matches no single entry. See #840.
+  //
+  // Except where the server only had the English name for this language (PoracleNG 5.3.0 in da, nl,
+  // pl, pt, pt-BR and sv) and this table has a curated translation: "Insekt" beats "Bug ♂" in a Swedish
+  // list. Where the table has nothing, the English name still beats "Unknown grunt".
+  if (upstreamName && !(upstreamIsEnglishFallback && key !== UNKNOWN_GRUNT_KEY)) return upstreamName;
+
+  const base = translate(key);
   if (gruntType && GENDER_FIXED_GRUNT_TYPES.has(gruntType)) {
     if (gender === 1) return `${base} ${translate('INVASIONS.GENDER_SUFFIX_MALE')}`;
     if (gender === 2) return `${base} ${translate('INVASIONS.GENDER_SUFFIX_FEMALE')}`;

@@ -74,14 +74,6 @@ describe('FortChangeService', () => {
     req.flush(null);
   });
 
-  it('should update all distances', () => {
-    service.updateAllDistance(5000).subscribe();
-    const req = httpMock.expectOne(`${API}/api/fort-changes/distance`);
-    expect(req.request.method).toBe('PUT');
-    expect(req.request.body).toBe(5000);
-    req.flush(null);
-  });
-
   it('should update bulk distances', () => {
     service.updateBulkDistance([1, 2], 3000).subscribe();
     const req = httpMock.expectOne(`${API}/api/fort-changes/distance/bulk`);

@@ -35,6 +35,8 @@
             <input matInput type="number" [formControl]="form.controls.maxIv" min="0" max="100" />
           </mat-form-field>
         </div>
+        <mat-slide-toggle [formControl]="form.controls.includeUnscanned"> {{ 'POKEMON.INCLUDE_UNSCANNED' | translate }} </mat-slide-toggle>
+        <p class="clean-hint">{{ 'POKEMON.INCLUDE_UNSCANNED_HINT' | translate }}</p>
 
         <div class="form-row">
           <mat-form-field appearance="outline">

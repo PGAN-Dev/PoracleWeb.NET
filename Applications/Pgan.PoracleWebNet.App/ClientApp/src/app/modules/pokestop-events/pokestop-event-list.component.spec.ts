@@ -28,7 +28,6 @@ describe('PokestopEventListComponent', () => {
     deleteAll: jest.Mock;
     getAll: jest.Mock;
     update: jest.Mock;
-    updateAllDistance: jest.Mock;
     updateBulkDistance: jest.Mock;
   };
   let snackBar: { open: jest.Mock };
@@ -63,7 +62,6 @@ describe('PokestopEventListComponent', () => {
       deleteAll: jest.fn().mockReturnValue(of(void 0)),
       getAll: jest.fn().mockImplementation(() => (Array.isArray(items) ? of(items) : items)),
       update: jest.fn().mockReturnValue(of(void 0)),
-      updateAllDistance: jest.fn().mockReturnValue(of(void 0)),
       updateBulkDistance: jest.fn().mockReturnValue(of(void 0)),
     };
 
@@ -316,6 +314,25 @@ describe('PokestopEventListComponent', () => {
       expect(component.selectedIds().size).toBe(1);
       // No reload: nothing changed, so the list must not claim otherwise.
       expect(pokestopEventService.getAll).toHaveBeenCalledTimes(1);
+    });
+
+    it('says which alarms kept their scope when the server skipped some', async () => {
+      // One of the two is limited to an area, so the server wrote the other and named this one.
+      setup([
+        { ...base, uid: 1 },
+        { ...base, overrideAreas: ['aberdeen'], uid: 2, displayType: KECLEON },
+      ]);
+      dialogReturns(2000);
+      pokestopEventService.updateBulkDistance.mockReturnValue(of({ skippedAreaScoped: [2], skippedPlaceScoped: [], updated: 1 }));
+      component.selectAll();
+
+      await component.bulkUpdateDistance();
+
+      expect(snackBar.open).toHaveBeenCalledWith(
+        'POKESTOP_EVENTS.SNACK_BULK_DISTANCE. WHERE.DISTANCE_SKIPPED_AREAS',
+        'COMMON.OK',
+        expect.objectContaining({ duration: 6000 }),
+      );
     });
 
     it('does nothing when the radius dialog is cancelled', async () => {
