@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.19.0] - 2026-10-10
+
 ### Added
 
 - **Pokemon alarms can include Pokemon nobody has scanned yet.** Poracle gives a spawn nobody has encountered an IV of -1 and leaves it out of any alarm whose minimum IV is 0 or more, so most wild spawns never reached an alarm with an IV range. The Min IV box only took 0 to 100, so no alarm made on this site could ask for them. The add and edit dialogs now have an *Include Pokemon nobody has scanned yet* switch under IV Range. Turning it on saves a minimum of -1, which also lets every IV through, so Min IV is grayed out while it is on. An existing alarm with a minimum of -1, made with the Poracle bot for example, opens with the switch on instead of -1 in the box.
@@ -80,6 +82,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 
 - **Removing someone's access to an account now ends a session they already have on it.** Opening a webhook as its delegate, or any account as an admin, gave a 24-hour session that was checked when it started and never again, so removing the delegate or the admin rights stopped them opening a new one and left the current one working for the rest of the day, with full read and write access. Switching profile inside that session also extended it. The session is now re-checked on every request and ends on the next one after access is removed, and switching profile, or the site correcting your active profile, never extends any session past the moment it was due to end ([#920](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/920)).
+
+### Dependencies
+- Bump jest-preset-angular ([#930](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/930))
+- Bump jsdom in /Applications/Pgan.PoracleWebNet.App/ClientApp ([#909](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/909))
+- Bump the angular group ([#904](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/904))
+- Bump the angular group ([#928](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/928))
+- Bump the eslint group ([#901](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/901))
+- Bump the eslint group ([#906](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/906))
+- Bump the eslint group ([#929](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/929))
+- Bump the jest group ([#907](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/907))
+- Bump the test group with 1 update ([#900](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/900))
+- Bump the test group with 2 updates ([#905](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/905))
 
 ## [2.18.0] - 2026-09-15
 
@@ -1151,7 +1165,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.18.0...HEAD
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.19.0...HEAD
+[2.19.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.18.0...v2.19.0
 [2.18.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.17.1...v2.18.0
 [2.17.1]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.17.0...v2.17.1
 [2.17.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.16.0...v2.17.0
