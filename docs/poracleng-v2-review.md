@@ -37,6 +37,18 @@
       ([#229](https://github.com/jfberry/PoracleNG/issues/229)), so row 2 stays open and
       `HumanRepository` -- and `PoracleContext` -- stay with it.
 
+    **Both of those are now out of date too, as of [PR #230](https://github.com/jfberry/PoracleNG/pull/230)
+    (merged 2026-10-06, not yet released).** #230 fixed `trusted`'s scoping properly -- it lifts
+    `userSelectable` only, confirmed by `jfberry` -- closing #228, and closed #229 by adding the three
+    columns. Row 1 is partially closed (three of six `IUserAreaDualWriter` methods adopted the trusted
+    path; the other three stay blocked on a profile target and on a trusted per-rule *create*, which v2
+    tracking updates have but creates do not) and row 2 is closed, both in PoracleWeb.NET
+    [#838](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/838)/[#937](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/937)
+    and [#839](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/839)/[#936](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/936)
+    respectively. As with everything else on this page: this note is itself a point-in-time correction, not
+    a live status -- [the enhancement requests doc](poracleng-enhancement-requests.md) is still the one
+    kept current.
+
     The reads-first recommendation is not merely reordered but abandoned. Restoring the v1 shape from a v2
     read needs the stored wildcard for 137 nullable fields across eleven schemas, and the server publishes
     none of them: no property carries a machine-readable `default`. Since `TrackingFieldPreserver` re-reads

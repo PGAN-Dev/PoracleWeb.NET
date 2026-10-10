@@ -14,10 +14,10 @@ The primary EF Core context connecting to the existing **Poracle database** mana
 
 | Direct access | What and why |
 |---|---|
-| Human reads and deletion | `GetAllAsync`, `GetWebhooksAsync`, `GetByIdsAsync`, `ExistsAsync`, `DeleteUserAsync` — PoracleNG has no admin-list or admin-delete endpoint, and the purge's existence check reads the database on purpose so an unreachable Poracle is not reported as an absent account |
+| Human reads and deletion (fallback) | `GetAllAsync`, `GetWebhooksAsync`, `GetByIdsAsync`, `DeleteUserAsync` fall back here only on a server too old to carry PoracleNG v2's admin routes ([#839](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/839)); `ExistsAsync` reads the database unconditionally so the purge's existence check is not fooled by an unreachable Poracle reporting as an absent account |
 | Profile **rename** | `ProfileRepository.RenameAsync` — PoracleNG's profile update answers `{"status":"ok"}` and silently ignores `name` |
 | Profile geography | `ProfileRepository.UpdateAsync` — `addProfile` ignores `area`, `latitude` and `longitude`, so create, duplicate and import write them afterwards |
-| User-geofence area writes | `IUserAreaDualWriter` on `humans.area` and `profiles.area` — PoracleNG's `setAreas` strips fences that are not user-selectable |
+| User-geofence area writes (fallback for three of six) | `IUserAreaDualWriter` on `humans.area` and `profiles.area` — PoracleNG's `setAreas` strips fences that are not user-selectable. Three active-profile methods fall back here only when the server's trusted `setAreas` ([#838](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/838)) can't be confirmed safe; the other three have no v2 form yet and always use this path |
 | Alarm `override_areas` | `IUserAreaDualWriter.SetAlarmOverrideAreasAsync` writes this one column on the ten alarm tables. It is the only alarm-table write PoracleWeb makes; everything else about a row goes through the proxy |
 | `schema_migrations` read | `PoracleSchemaVersionReader` reads the applied migration number for the [server capability probe](backend.md#server-capability-probe) |
 | `pweb_settings` | `PwebSettingRepository` still reads and writes the deprecated KV table, and startup runs one `ALTER TABLE pweb_settings MODIFY COLUMN value LONGTEXT NULL` so the old rows can hold JSON. Both exist only to feed `SettingsMigrationService` |

@@ -157,19 +157,50 @@ not close this gap, on three counts:
    tracking write has no `trusted` of its own. `SetAlarmOverrideAreasAsync` and `UserOwnedOverrideAreaProxy`
    stay regardless.
 
-[PR #230](https://github.com/jfberry/PoracleNG/pull/230) addresses all three. Its first two halves check out;
-its `trusted` fix over-corrects, so under `area_security` the flag now rejects the very fences it exists to
-admit -- a drawn fence is in no community's `allowed_areas`, and the community filter strips it immediately
-after the lift adds it. Reported on that PR. **Re-test the mixed case before adopting.**
+[PR #230](https://github.com/jfberry/PoracleNG/pull/230), merged 2026-10-06, addresses all three -- and on
+re-test, properly: `jfberry` confirmed `admin` lifts both `userSelectable` and the community filter while
+`trusted` lifts only `userSelectable`, closing [#228](https://github.com/jfberry/PoracleNG/issues/228) rather
+than over-correcting it the way an earlier build on the same branch did. (The over-correction this section
+used to describe -- `trusted` rejecting a drawn fence outright under `area_security` -- was that earlier,
+pre-#230 build; it did not survive into the merged fix. Re-tested live against a `develop` build carrying
+#230 before trusting this claim again.) The other two gaps are untouched: no profile target on `setAreas`,
+and `override_areas` still has no trusted form on the v1 tracking write (v2's does, per #230, but nothing on
+this side has moved alarm *creates* to v2 yet -- see the v2 migration status below).
 
-Three of the six `IUserAreaDualWriter` methods would be mechanically replaceable once the above lands, and
-should not be: each is a single `SaveChangesAsync` spanning `humans.area` and the active `profiles.area`,
-and `setAreas` replaces the whole list, so going through it turns each into read-modify-write. That is a
-correctness regression bought for no deletion while the other three methods keep the writer alive anyway.
+**Adopted for three of the six methods, in [#838](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/838) /
+[#937](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/937).** `AddAreaToActiveProfileAsync`,
+`RemoveAreaFromActiveProfileAsync` and `AddAreasToActiveProfileAsync` now try PoracleNG's v2 trusted
+`setAreas` first, falling back to the writer only when it is not safe to rely on. This does *not* reopen the
+read-modify-write concern raised above: `setAreas` still commits `humans.area` and the active
+`profiles.area` together, atomically, **inside PoracleNG** on a single HTTP call -- verified live by posting
+to a `develop` build and reading both columns back. The two tables cannot drift from that call the same way
+they could not drift from `SaveChangesAsync`. What *is* new is a read-then-write pair at the HTTP layer (an
+app-side race, not a cross-table one) and the capability question this doc's over-correction history makes
+clear matters: whether the target server actually carries the fix, which neither `/openapi.json` nor
+`/health` can say (both are byte-identical either side of #230). PoracleWeb.NET's gate is therefore schema
+*and* a live read of `area_security.enabled`, taking the trusted path only when area_security is confirmed
+off -- sidestepping the community-restriction question entirely rather than resolving it, since there is
+nothing to restrict with it off. See `IAreaSecurityPolicyService`.
 
-**Workaround (HACK):** `UserGeofenceService` delegates user-geofence area mutations to `IUserAreaDualWriter`, a tiny atomic-write abstraction that holds the Poracle `DbContext` and commits both `humans.area` and the active `profiles.area` in a single `SaveChangesAsync` call. The single-SaveChanges guarantees EF Core wraps both writes in one implicit transaction — `humans.area` and `profiles.area` cannot drift, even if the process crashes between reads. `AreaController.UpdateAreas` additionally calls `IUserGeofenceService.PreserveOwnedAreasInHumanAsync` after the proxy `SetAreasAsync` call to re-add any user-owned geofences that PoracleNG stripped; this hands off to the writer's bulk `AddAreasToActiveProfileAsync` so the merge costs one DB round-trip regardless of how many geofences the user owns. These are the only direct-DB writes left on the area path, and are tagged `HACK: trusted-set-areas`; `grep -rn "HACK: trusted-set-areas" --include="*.cs"` lists every one. `IProfileRepository.RenameAsync` and `HumanRepository.DeleteUserAsync` are direct writes for their own reasons, covered under the v2 findings below.
+The other three methods are not candidates for the same treatment yet, for the same reasons as before:
+`RemoveAreaFromAllProfilesAsync` and `RenameAreaInAllProfilesAsync` have no profile-spanning API form at
+all (`?profile=`/`?all_profiles=`, added by #230, write one list identically to a profile or to every
+profile -- not "remove this name from each profile's own list"), and `SetAlarmOverrideAreasAsync` is
+blocked on this app's own alarm-create migration, not on PoracleNG.
 
-Because the direct-DB writes skip PoracleNG's `HandleSetAreas` handler, they also skip its terminal `reloadState(deps)` call — so `AddToProfileAsync`, `RemoveFromProfileAsync`, and `PreserveOwnedAreasInHumanAsync` each call `ReloadGeofencesSafeAsync` manually to ask PoracleNG to refresh its in-memory state. Without the manual reload, a toggle would only take effect on the next organic state reload (potentially minutes). These manual reload calls are part of the same `HACK: trusted-set-areas` surface area and are removed together when the workaround is reverted.
+**Workaround (HACK), for the three unmigrated methods and as the fallback for the three migrated ones:**
+`UserGeofenceService` delegates to `IUserAreaDualWriter`, a tiny atomic-write abstraction that holds the
+Poracle `DbContext` and commits both `humans.area` and the active `profiles.area` in a single
+`SaveChangesAsync` call. The single-SaveChanges guarantees EF Core wraps both writes in one implicit
+transaction — `humans.area` and `profiles.area` cannot drift, even if the process crashes between reads.
+`AreaController.UpdateAreas` additionally calls `IUserGeofenceService.PreserveOwnedAreasInHumanAsync` after
+the proxy `SetAreasAsync` call to re-add any user-owned geofences that PoracleNG stripped; this prefers the
+same trusted path, falling back to the writer's bulk `AddAreasToActiveProfileAsync`. These direct-DB writes
+are tagged `HACK: trusted-set-areas`; `grep -rn "HACK: trusted-set-areas" --include="*.cs"` lists every one,
+migrated or not. `IProfileRepository.RenameAsync` and `HumanRepository.DeleteUserAsync` are direct writes
+for their own reasons, covered under the v2 findings below.
+
+Because the direct-DB writes skip PoracleNG's `HandleSetAreas` handler, they also skip its terminal `reloadState(deps)` call — so `AddToProfileAsync`, `RemoveFromProfileAsync`, and `PreserveOwnedAreasInHumanAsync` each call `ReloadGeofencesSafeAsync` manually to ask PoracleNG to refresh its in-memory state. The trusted path triggers its own reload server-side, so the manual call is redundant there and load-bearing only on the fallback; it stays unconditional at all three call sites rather than threading "which path was taken" back out of a private helper that has no other reason to report it. Without it on the fallback path, a toggle would only take effect on the next organic state reload (potentially minutes).
 
 **Regression history:** Before PR #88 (v2.0.0), the direct-DB path was the only path. The proxy migration routed user geofence area writes through `setAreas`, which introduced the silent-strip bug. The direct-DB code is the restored pre-#88 behavior, scoped specifically to user geofence names.
 
@@ -371,21 +402,24 @@ lowest free number.
 
 ### v2 `setAreas` keeps the v1 `userSelectable` filter
 
-[#215](https://github.com/jfberry/PoracleNG/issues/215) -- answered on `develop`, incompletely. `setAreas`
-reports what it stored against what it rejected, and takes an opt-in `trusted` flag. The flag does **not**
-lift the `userSelectable` filter only, whatever the comment beside it says: it also bypasses the community
-area restriction, which makes it unusable for the one call that needs it. See
-[#228](https://github.com/jfberry/PoracleNG/issues/228) and the
-[trusted setAreas](#trusted-setareas-bypass-userselectable-filter) gap above for the reproduction and for the
-two further blockers the flag does not address.
+[#215](https://github.com/jfberry/PoracleNG/issues/215) -- answered on `develop`, then fixed properly in
+[#230](https://github.com/jfberry/PoracleNG/pull/230) (merged 2026-10-06). `setAreas` reports what it stored
+against what it rejected, and takes an opt-in `trusted` flag that now lifts the `userSelectable` filter only
+-- the earlier build's over-broad scoping (bypassing the community area restriction too, see
+[#228](https://github.com/jfberry/PoracleNG/issues/228)) did not survive into the merged fix. Re-tested live
+against a `develop` build carrying #230.
 
 Re-confirmed on 5.2.1 rather than taken from source: `POST /api/v2/humans/{id}/areas` with
-`["<a user-drawn fence>", "aberdeen"]` stored `["aberdeen"]` -- silently, 200, exactly as v1 does.
+`["<a user-drawn fence>", "aberdeen"]` stored `["aberdeen"]` -- silently, 200, exactly as v1 does. That
+remains true on 5.2.1; it is #230, not yet in any release, that changes the behaviour.
 
-**Here:** this is the [trusted setAreas](#trusted-setareas-bypass-userselectable-filter) ask above, the
-keystone for deleting `IUserAreaDualWriter`. Every `HACK: trusted-set-areas` site stays -- not merely until a
-release carries the flag, but until the flag's scope, a profile target and a trusted per-rule override write
-all land together.
+**Here:** partially adopted, in [#838](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/838) /
+[#937](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/937) -- see the [trusted setAreas]
+(#trusted-setareas-bypass-userselectable-filter) ask above for what moved (three of six `IUserAreaDualWriter`
+methods) and what is still blocked (a profile target on `setAreas`; a trusted per-rule override write, which
+exists on v2 tracking updates but not creates). Every `HACK: trusted-set-areas` site that has not moved
+stays as the fallback for the sites that have, not merely as a stopgap -- the remaining three methods need
+their own, separate unblocking.
 
 ---
 
@@ -433,10 +467,10 @@ type whose uid survived an edit.
 |-----|----------|-------------------|--------|
 | Bulk distance update | High | Fetch all, modify, POST back | Open |
 | Bulk clean toggle | High | Fetch all, modify, POST back | Open |
-| Trusted setAreas | High | Direct-DB dual write (`IUserAreaDualWriter`) | **Still blocked.** Flag on `develop` ([#215](https://github.com/jfberry/PoracleNG/issues/215)) bypasses the community filter too ([#228](https://github.com/jfberry/PoracleNG/issues/228)); no profile target; per-rule override still refused |
+| Trusted setAreas | High | Direct-DB dual write (`IUserAreaDualWriter`); v2 trusted `setAreas` for 3 of 6 methods | **Partially adopted.** #230 (merged, not yet released) fixed the community-filter over-reach ([#228](https://github.com/jfberry/PoracleNG/issues/228)) properly; adopted for the three active-profile methods in [#838](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/838)/[#937](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/937), gated on area_security being confirmed off since no self-reported signal tells a pre-#230 server from a post-#230 one. No profile target and no trusted per-rule override write for creates, so the other three methods stay blocked |
 | Dashboard counts | Medium | Single `GET /api/tracking/all` call | Open, returns full payloads |
 | Admin delete all alarms | Medium | Fetch UIDs per type, bulk delete each | Open |
-| Admin list / delete human | Medium | `HumanRepository` direct DB | Routes on `develop` ([#214](https://github.com/jfberry/PoracleNG/issues/214)); list projection too thin to back the admin grid until [#229](https://github.com/jfberry/PoracleNG/issues/229) lands |
+| Admin list / delete human | Medium | `IHumanRepository` direct DB (fallback) | **Adopted**, in [#839](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/839)/[#936](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/936), once [#229](https://github.com/jfberry/PoracleNG/issues/229) (closed, merged via #230) reported the fields the admin grid needs. `IHumanRepository` stays as the fallback for a server too old for it |
 | v2 pokemon catch-all unwritable | Medium | `pokemon_id = 0` rules take the v1 write path | [#227](https://github.com/jfberry/PoracleNG/issues/227): `minimum: 1` refuses a rule PoracleNG itself stores. Our half of it -- writing `pvp_ranking_best = 0` -- fixed in PoracleWeb.NET #895 |
 | Profile delete cascade | -- | None needed | PoracleNG cascades; verified upstream |
 | Atomic profile switch | Low | Already in PoracleNG | **Adopted** |
