@@ -26,6 +26,16 @@ public interface IPoracleApiProxy
     /// to call. Verified: 5.1.0 has neither, 5.2.1 has both.
     /// </remarks>
     Task<bool?> GetShowcaseDisabledAsync();
+
+    /// <summary>
+    /// Reads <c>area_security.enabled</c> from PoracleNG's config-values endpoint. Used only to decide
+    /// whether it is safe to rely on <c>trusted</c> on <c>setAreas</c> for the community-restriction
+    /// question jfberry/PoracleNG#228/#230 cover — see #838. Returns <c>null</c> when the value cannot
+    /// be determined (older Poracle, PoracleJS, endpoint shape changed); callers must treat that as
+    /// "cannot confirm disabled", not as "disabled".
+    /// </summary>
+    Task<bool?> GetAreaSecurityEnabledAsync();
+
     Task<string?> GetTemplatesAsync();
     Task<string?> GetGruntsAsync(string? locale = null);
 

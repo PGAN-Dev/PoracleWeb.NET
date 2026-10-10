@@ -202,6 +202,31 @@ public class UserGeofenceServiceTests
     }
 
     [Fact]
+    public async Task CreateAsyncPrefersTrustedSetAreasWhenAvailable()
+    {
+        // #838: once PoracleNG's v2 trusted setAreas is usable, it replaces the atomic writer rather
+        // than being added alongside it -- a non-null answer from the proxy means the write already
+        // happened, so the dual writer must not also run and double-write.
+        var model = new UserGeofenceCreate
+        {
+            DisplayName = "Park",
+            Polygon = [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]
+        };
+        this._repository.Setup(r => r.GetCountByHumanIdAsync("u1")).ReturnsAsync(0);
+        this._repository.Setup(r => r.CreateAsync(It.IsAny<UserGeofence>()))
+            .ReturnsAsync((UserGeofence g) => g);
+        this._humanProxy
+            .Setup(p => p.AddAreaToActiveProfileTrustedAsync("u1", "park"))
+            .ReturnsAsync(true);
+
+        await this._sut.CreateAsync("u1", 1, model);
+
+        this._humanProxy.Verify(p => p.AddAreaToActiveProfileTrustedAsync("u1", "park"), Times.Once);
+        this._areaWriter.Verify(
+            w => w.AddAreaToActiveProfileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
     public async Task CreateAsyncCallsReloadGeofencesAsync()
     {
         var model = new UserGeofenceCreate { DisplayName = "Test", Polygon = [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]] };
@@ -1153,6 +1178,24 @@ public class UserGeofenceServiceTests
     }
 
     [Fact]
+    public async Task AddToProfileAsyncPrefersTrustedSetAreasWhenAvailable()
+    {
+        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown" };
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
+        this._humanProxy
+            .Setup(p => p.AddAreaToActiveProfileTrustedAsync("u1", "downtown"))
+            .ReturnsAsync(true);
+
+        await this._sut.AddToProfileAsync("u1", 1, 1);
+
+        this._areaWriter.Verify(
+            w => w.AddAreaToActiveProfileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        // The trusted call also triggers PoracleNG's own reload, but the manual one stays
+        // unconditional -- harmless there, load-bearing on the fallback.
+        this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Once);
+    }
+
+    [Fact]
     public async Task AddToProfileAsyncPropagatesWriterExceptionsAsNotFound()
     {
         // The writer throws InvalidOperationException if humans row doesn't exist
@@ -1207,6 +1250,22 @@ public class UserGeofenceServiceTests
     }
 
     [Fact]
+    public async Task RemoveFromProfileAsyncPrefersTrustedSetAreasWhenAvailable()
+    {
+        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown" };
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
+        this._humanProxy
+            .Setup(p => p.RemoveAreaFromActiveProfileTrustedAsync("u1", "downtown"))
+            .ReturnsAsync(true);
+
+        await this._sut.RemoveFromProfileAsync("u1", 1, 1);
+
+        this._areaWriter.Verify(
+            w => w.RemoveAreaFromActiveProfileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Once);
+    }
+
+    [Fact]
     public async Task RemoveFromProfileAsyncThrowsWhenNotOwned()
     {
         var geofence = new UserGeofence { Id = 1, HumanId = "other_user", KojiName = "downtown" };
@@ -1254,6 +1313,25 @@ public class UserGeofenceServiceTests
                     c.Count == 2 && c.Contains("my park") && c.Contains("my square"))),
             Times.Once);
         // Reload must fire so PoracleNG picks up the merged state.
+        this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task PreserveOwnedAreasInHumanAsyncPrefersTrustedSetAreasWhenAvailable()
+    {
+        var owned = new List<UserGeofence> { new() { Id = 1, HumanId = "u1", KojiName = "my park" } };
+        this._repository.Setup(r => r.GetByHumanIdAsync("u1")).ReturnsAsync(owned);
+        this._humanProxy
+            .Setup(p => p.AddAreasToActiveProfileTrustedAsync(
+                "u1", It.Is<IReadOnlyCollection<string>>(c => c.Single() == "my park")))
+            .ReturnsAsync(true);
+
+        await this._sut.PreserveOwnedAreasInHumanAsync("u1", ["my park"]);
+
+        this._areaWriter.Verify(
+            w => w.AddAreasToActiveProfileAsync(
+                It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>()),
+            Times.Never);
         this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Once);
     }
 

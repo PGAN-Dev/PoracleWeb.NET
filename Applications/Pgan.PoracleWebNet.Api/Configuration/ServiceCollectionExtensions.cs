@@ -96,6 +96,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IInvasionGruntNameService, InvasionGruntNameService>();
         services.AddScoped<ICostumeCapabilityService, CostumeCapabilityService>();
         services.AddScoped<IUpstreamFeatureFlagService, UpstreamFeatureFlagService>();
+        services.AddScoped<IAreaSecurityPolicyService, AreaSecurityPolicyService>();
         services.AddScoped<IFeatureGate, FeatureGate>();
         services.AddScoped<IWebhookDelegateService, WebhookDelegateService>();
         services.AddScoped<ISettingsMigrationService, SettingsMigrationService>();

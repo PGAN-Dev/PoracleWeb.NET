@@ -149,9 +149,9 @@ public partial class UserGeofenceService(
         if (await this._featureGate.IsEnabledAsync(DisableFeatureKeys.Areas))
         {
             // HACK: trusted-set-areas (see docs/poracleng-enhancement-requests.md)
-            // Atomic direct-DB dual-write of humans.area + current profiles.area. Revert to
-            // IPoracleHumanProxy.SetAreasAsync once PoracleNG ships a trusted setAreas variant.
-            await this._areaWriter.AddAreaToActiveProfileAsync(humanId, kojiName);
+            // Prefers PoracleNG's v2 trusted setAreas; the direct-DB dual writer is now the fallback
+            // rather than the only path. See the private AddAreaToActiveProfileAsync and #838.
+            await this.AddAreaToActiveProfileAsync(humanId, kojiName);
         }
 
         // Reload Poracle geofences (Poracle reads from our feed + Koji)
@@ -834,15 +834,14 @@ public partial class UserGeofenceService(
         }
 
         // HACK: trusted-set-areas (see docs/poracleng-enhancement-requests.md)
-        // Atomic direct-DB dual-write. Revert to IPoracleHumanProxy.SetAreasAsync once
-        // PoracleNG ships a trusted setAreas variant.
-        await this._areaWriter.AddAreaToActiveProfileAsync(humanId, geofence.KojiName);
+        // Prefers PoracleNG's v2 trusted setAreas; the direct-DB dual writer is now the fallback
+        // rather than the only path. See #838.
+        await this.AddAreaToActiveProfileAsync(humanId, geofence.KojiName);
 
-        // HACK: trusted-set-areas — PoracleNG's HandleSetAreas ends with reloadState(deps) so
-        // the proxy path used to trigger the in-memory state refresh automatically. Direct-DB
-        // writes skip that, so we ask PoracleNG to reload manually — otherwise the toggle only
-        // takes effect on the next organic reload (which can be minutes). Drop this line when
-        // the direct-DB write is reverted to a trusted setAreas proxy call.
+        // The trusted setAreas call already triggers PoracleNG's own state reload; this manual one
+        // is only load-bearing for the direct-DB fallback, which skips that hook entirely. Harmless
+        // and redundant on the trusted path, so it stays unconditional rather than threading the
+        // path taken back out of a private helper that otherwise has no reason to report it.
         await this.ReloadGeofencesSafeAsync();
     }
 
@@ -863,19 +862,22 @@ public partial class UserGeofenceService(
             throw new UnauthorizedAccessException("Geofence does not belong to this user.");
         }
 
-        // HACK: trusted-set-areas — atomic direct-DB removal, mirror of AddToProfileAsync.
-        await this._areaWriter.RemoveAreaFromActiveProfileAsync(humanId, geofence.KojiName);
-        // HACK: trusted-set-areas — manual reload, same rationale as AddToProfileAsync.
+        // HACK: trusted-set-areas — mirror of AddToProfileAsync, same trusted-first preference.
+        await this.RemoveAreaFromActiveProfileAsync(humanId, geofence.KojiName);
+        // Manual reload, same rationale as AddToProfileAsync: redundant on the trusted path,
+        // load-bearing on the direct-DB fallback.
         await this.ReloadGeofencesSafeAsync();
     }
 
     public async Task<List<GeofenceRegion>> GetRegionsAsync() => await this._kojiService.GetRegionsAsync();
 
     // HACK: trusted-set-areas (see docs/poracleng-enhancement-requests.md)
-    // Re-adds user-owned geofence names via direct DB after PoracleNG's setAreas stripped them.
-    // Remove this method and its callsite in AreaController.UpdateAreas once PoracleNG ships a
-    // trusted setAreas variant (query flag or dedicated endpoint) that skips the userSelectable
-    // intersection filter. Trust is already established via X-Poracle-Secret.
+    // Re-adds user-owned geofence names, preferring PoracleNG's v2 trusted setAreas over the direct
+    // DB after PoracleNG's non-trusted v1 setAreas stripped them. AreaController.UpdateAreas could
+    // collapse to one trusted call instead of this two-step patch-up once #838 covers the case where
+    // area_security is enabled and in use for that call's own submitted admin-area names too, not just
+    // this method's narrower, already-vetted user-owned-geofence list -- a larger change than migrating
+    // this helper alone. Trust is already established via X-Poracle-Secret.
     public async Task<IReadOnlyList<string>> PreserveOwnedAreasInHumanAsync(string humanId, IReadOnlyCollection<string> candidateAreaNames)
     {
         if (candidateAreaNames.Count == 0)
@@ -902,14 +904,13 @@ public partial class UserGeofenceService(
             return [];
         }
 
-        // Single bulk write — one load of humans + profiles, one SaveChangesAsync, atomic.
-        await this._areaWriter.AddAreasToActiveProfileAsync(humanId, toRestore);
+        await this.AddAreasToActiveProfileAsync(humanId, toRestore);
 
-        // HACK: trusted-set-areas — manual reload because the direct-DB merge above skipped
-        // PoracleNG's internal reloadState hook. The caller (AreaController.UpdateAreas)
-        // already triggered a reload via setAreas, but we need a fresh one so PoracleNG picks
-        // up the restored names too. PoracleNG's reload is debounced 500ms server-side so the
-        // back-to-back calls coalesce. Drop this line when the method is removed.
+        // Manual reload. Load-bearing on the direct-DB fallback, which skips PoracleNG's internal
+        // reloadState hook; redundant (but harmless) on the trusted path, which triggers its own. The
+        // caller (AreaController.UpdateAreas) already triggered a reload via its own setAreas call, but
+        // we need a fresh one so PoracleNG picks up the restored names too. PoracleNG's reload is
+        // debounced 500ms server-side so the back-to-back calls coalesce.
         await this.ReloadGeofencesSafeAsync();
 
         return toRestore;
@@ -939,6 +940,38 @@ public partial class UserGeofenceService(
     /// </summary>
     private static string PublicAreaName(UserGeofence geofence) =>
         string.IsNullOrEmpty(geofence.PromotedName) ? geofence.KojiName : geofence.PromotedName;
+
+    /// <summary>
+    /// Adds one area to the active profile, preferring PoracleNG's v2 trusted <c>setAreas</c> over the
+    /// direct-DB dual writer once #838's conditions allow it: the schema has to declare <c>trusted</c>
+    /// and area_security has to be confirmed off, because no self-reported signal distinguishes a
+    /// server carrying jfberry/PoracleNG#230's community-restriction fix from one that does not.
+    /// </summary>
+    private async Task AddAreaToActiveProfileAsync(string humanId, string areaName)
+    {
+        if (await this._humanProxy.AddAreaToActiveProfileTrustedAsync(humanId, areaName) is null)
+        {
+            await this._areaWriter.AddAreaToActiveProfileAsync(humanId, areaName);
+        }
+    }
+
+    /// <summary>Bulk form of <see cref="AddAreaToActiveProfileAsync(string, string)"/>.</summary>
+    private async Task AddAreasToActiveProfileAsync(string humanId, IReadOnlyCollection<string> areaNames)
+    {
+        if (await this._humanProxy.AddAreasToActiveProfileTrustedAsync(humanId, areaNames) is null)
+        {
+            await this._areaWriter.AddAreasToActiveProfileAsync(humanId, areaNames);
+        }
+    }
+
+    /// <summary>Removes one area from the active profile, with the same trusted-first preference.</summary>
+    private async Task RemoveAreaFromActiveProfileAsync(string humanId, string areaName)
+    {
+        if (await this._humanProxy.RemoveAreaFromActiveProfileTrustedAsync(humanId, areaName) is null)
+        {
+            await this._areaWriter.RemoveAreaFromActiveProfileAsync(humanId, areaName);
+        }
+    }
 
     private async Task ReloadGeofencesSafeAsync()
     {

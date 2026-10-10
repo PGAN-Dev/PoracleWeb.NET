@@ -640,6 +640,147 @@ public class PoracleHumanProxyV2Tests
         Assert.Contains("cannot delete", refused.Message, StringComparison.Ordinal);
     }
 
+    // ---- trusted setAreas for the active-profile dual writer (#838) ----------------------------
+    //
+    // Gated on BOTH IPoracleV2SchemaService.TrustedSetAreas (the schema declares the property) AND
+    // IAreaSecurityPolicyService.IsConfirmedDisabledAsync (area_security is confirmed off) -- neither
+    // /openapi.json nor /health distinguishes a pre-jfberry/PoracleNG#230 server from a post-#230 one,
+    // verified live against two builds either side of the fix, so the schema alone cannot say whether
+    // trusted's community-restriction bypass is safe to rely on.
+
+    private static PoracleV2Capabilities TrustedAreas(bool carries) => new() { Read = true, TrustedSetAreas = carries };
+
+    [Fact]
+    public async Task AddAreaTrustedReturnsNullWithoutTheSchemaCapability()
+    {
+        var handler = ScriptedHandler.Ok("""{"human":{"id":"user1","area":"[\"downtown\"]"}}""");
+        var sut = CreateSut(
+            handler, version: "5.2.1", capabilities: TrustedAreas(carries: false), areaSecurityConfirmedDisabled: true);
+
+        Assert.Null(await sut.AddAreaToActiveProfileTrustedAsync("user1", "park"));
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task AddAreaTrustedReturnsNullWhenAreaSecurityIsNotConfirmedDisabled()
+    {
+        // The load-bearing half: the schema can carry trusted on a pre-#230 build too, where sending
+        // it would silently bypass a community's allowed-area restriction if area_security is on.
+        var handler = ScriptedHandler.Ok("""{"human":{"id":"user1","area":"[\"downtown\"]"}}""");
+        var sut = CreateSut(
+            handler, version: "5.2.1", capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: false);
+
+        Assert.Null(await sut.AddAreaToActiveProfileTrustedAsync("user1", "park"));
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task AddAreaTrustedPostsTheFullListWithTrustedTrue()
+    {
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.OK, """{"human":{"id":"user1","area":"[\"downtown\"]"}}"""),
+            new Reply(HttpStatusCode.OK, """{"areas":["downtown","park"],"rejected":[]}"""));
+        var sut = CreateSut(
+            handler, version: "5.2.1", capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
+
+        Assert.True(await sut.AddAreaToActiveProfileTrustedAsync("user1", "park"));
+
+        Assert.Equal(2, handler.Requests.Count);
+        var post = handler.Requests[1];
+        Assert.Equal(HttpMethod.Post, post.Method);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/areas", post.Url);
+        var body = JsonDocument.Parse(post.Body!).RootElement;
+        Assert.True(body.GetProperty("trusted").GetBoolean());
+        Assert.Equal(
+            ["downtown", "park"],
+            body.GetProperty("areas").EnumerateArray().Select(e => e.GetString()).ToList());
+    }
+
+    [Fact]
+    public async Task AddAreaTrustedIsANoOpWhenAlreadyPresent()
+    {
+        var handler = ScriptedHandler.Ok("""{"human":{"id":"user1","area":"[\"downtown\"]"}}""");
+        var sut = CreateSut(
+            handler, version: "5.2.1", capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
+
+        Assert.False(await sut.AddAreaToActiveProfileTrustedAsync("user1", "downtown"));
+        Assert.Single(handler.Requests); // only the read -- no POST for a no-op
+    }
+
+    [Fact]
+    public async Task RemoveAreaTrustedPostsTheReducedList()
+    {
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.OK, """{"human":{"id":"user1","area":"[\"downtown\",\"park\"]"}}"""),
+            new Reply(HttpStatusCode.OK, """{"areas":["downtown"],"rejected":[]}"""));
+        var sut = CreateSut(
+            handler, version: "5.2.1", capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
+
+        Assert.True(await sut.RemoveAreaFromActiveProfileTrustedAsync("user1", "park"));
+
+        Assert.Equal(
+            ["downtown"],
+            JsonDocument.Parse(handler.Requests[1].Body!).RootElement
+                .GetProperty("areas").EnumerateArray().Select(e => e.GetString()).ToList());
+    }
+
+    [Fact]
+    public async Task RemoveAreaTrustedIsANoOpWhenNotPresent()
+    {
+        var handler = ScriptedHandler.Ok("""{"human":{"id":"user1","area":"[\"downtown\"]"}}""");
+        var sut = CreateSut(
+            handler, version: "5.2.1", capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
+
+        Assert.False(await sut.RemoveAreaFromActiveProfileTrustedAsync("user1", "park"));
+        Assert.Single(handler.Requests);
+    }
+
+    [Fact]
+    public async Task AddAreasTrustedDedupesCaseInsensitivelyAndKeepsWhatIsAlreadyPresent()
+    {
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.OK, """{"human":{"id":"user1","area":"[\"downtown\"]"}}"""),
+            new Reply(HttpStatusCode.OK, """{"areas":["downtown","park","square"],"rejected":[]}"""));
+        var sut = CreateSut(
+            handler, version: "5.2.1", capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
+
+        Assert.True(await sut.AddAreasToActiveProfileTrustedAsync("user1", ["Park", "park", "Square", "downtown"]));
+
+        Assert.Equal(
+            ["downtown", "park", "square"],
+            JsonDocument.Parse(handler.Requests[1].Body!).RootElement
+                .GetProperty("areas").EnumerateArray().Select(e => e.GetString()).ToList());
+    }
+
+    [Fact]
+    public async Task TrustedSetAreasReturnsNullWhenTheCurrentListCannotBeRead()
+    {
+        // Account gone or unreachable -- GetHumanAsync answers null, so there is nothing safe to
+        // compute a full replacement from. The caller must fall back to IUserAreaDualWriter rather
+        // than risk posting an incomplete list that drops areas this call never asked to touch.
+        var handler = ScriptedHandler.Problem(
+            HttpStatusCode.NotFound, """{"title":"Not Found","status":404,"detail":"human not found"}""");
+        var sut = CreateSut(
+            handler, version: "5.2.1", capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
+
+        Assert.Null(await sut.AddAreaToActiveProfileTrustedAsync("nobody", "park"));
+    }
+
+    [Fact]
+    public async Task TrustedSetAreasSucceedsEvenWhenSomethingUnexpectedIsRejected()
+    {
+        // Logged, not thrown. Every HACK: trusted-set-areas call site this replaces already treats
+        // its own write as best-effort, and the geofence row that produced this name is the source
+        // of truth either way.
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.OK, """{"human":{"id":"user1","area":"[\"downtown\"]"}}"""),
+            new Reply(HttpStatusCode.OK, """{"areas":["downtown"],"rejected":["park"]}"""));
+        var sut = CreateSut(
+            handler, version: "5.2.1", capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
+
+        Assert.True(await sut.AddAreaToActiveProfileTrustedAsync("user1", "park"));
+    }
+
     // ---- what the controllers actually send ------------------------------------------------------
     //
     // Every test above posts {"name":"probe-two"}, a body no caller builds. The four callers of
@@ -816,7 +957,8 @@ public class PoracleHumanProxyV2Tests
         ScriptedHandler handler,
         string? version,
         IMemoryCache? cache = null,
-        PoracleV2Capabilities? capabilities = null)
+        PoracleV2Capabilities? capabilities = null,
+        bool areaSecurityConfirmedDisabled = false)
     {
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -831,6 +973,7 @@ public class PoracleHumanProxyV2Tests
             config,
             PoracleHumanProxyTests.ServerProfile(version),
             PoracleHumanProxyTests.V2Schema(capabilities),
+            PoracleHumanProxyTests.AreaSecurityPolicy(areaSecurityConfirmedDisabled),
             cache ?? new MemoryCache(new MemoryCacheOptions()),
             Mock.Of<ILogger<PoracleHumanProxy>>());
     }
