@@ -94,6 +94,29 @@ public interface IPoracleHumanProxy
     public Task<JsonElement?> GetAreasAsync(string userId);
 
     /// <summary>
+    /// Adds one area to the human's active profile via <c>POST /api/v2/humans/{id}/areas</c> with
+    /// <c>trusted: true</c>, bypassing the <c>userSelectable</c> filter non-admin writes would otherwise
+    /// hit -- the same thing <c>IUserAreaDualWriter.AddAreaToActiveProfileAsync</c> does by writing
+    /// <c>humans.area</c>/<c>profiles.area</c> directly. See #838.
+    /// </summary>
+    /// <returns>
+    /// <c>null</c> when this is not safe to rely on yet (the server's schema lacks <c>trusted</c>, or
+    /// area_security is enabled and this server cannot be confirmed to carry jfberry/PoracleNG#230's
+    /// community-restriction fix) -- the caller must fall back to <c>IUserAreaDualWriter</c>. <c>false</c>
+    /// when the area was already present. <c>true</c> once written.
+    /// </returns>
+    public Task<bool?> AddAreaToActiveProfileTrustedAsync(string userId, string areaName);
+
+    /// <summary>Bulk form of <see cref="AddAreaToActiveProfileTrustedAsync"/>.</summary>
+    public Task<bool?> AddAreasToActiveProfileTrustedAsync(string userId, IReadOnlyCollection<string> areaNames);
+
+    /// <summary>
+    /// Removes one area from the human's active profile via the same trusted <c>setAreas</c> call. See
+    /// <see cref="AddAreaToActiveProfileTrustedAsync"/> for the null/false/true contract.
+    /// </summary>
+    public Task<bool?> RemoveAreaFromActiveProfileTrustedAsync(string userId, string areaName);
+
+    /// <summary>
     /// Switches the user's active profile. PoracleNG handles the area save/load
     /// dual-write atomically.
     /// Maps to POST /api/humans/{userId}/switchProfile/{profileNo}

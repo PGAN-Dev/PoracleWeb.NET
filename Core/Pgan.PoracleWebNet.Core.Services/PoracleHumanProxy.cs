@@ -1,4 +1,5 @@
 using Pgan.PoracleWebNet.Core.Models;
+using Pgan.PoracleWebNet.Core.Models.Helpers;
 using System.Globalization;
 using System.Linq;
 using System.Net;
@@ -16,6 +17,7 @@ public partial class PoracleHumanProxy(
     IConfiguration configuration,
     IPoracleServerProfileService serverProfile,
     IPoracleV2SchemaService v2Schema,
+    IAreaSecurityPolicyService areaSecurityPolicy,
     IMemoryCache cache,
     ILogger<PoracleHumanProxy> logger) : IPoracleHumanProxy
 {
@@ -36,6 +38,7 @@ public partial class PoracleHumanProxy(
     private readonly string _apiSecret = configuration["Poracle:ApiSecret"] ?? string.Empty;
     private readonly IPoracleServerProfileService _serverProfile = serverProfile;
     private readonly IPoracleV2SchemaService _v2Schema = v2Schema;
+    private readonly IAreaSecurityPolicyService _areaSecurityPolicy = areaSecurityPolicy;
     private readonly IMemoryCache _cache = cache;
     private readonly ILogger<PoracleHumanProxy> _logger = logger;
 
@@ -330,6 +333,140 @@ public partial class PoracleHumanProxy(
         // User's selected areas are in GET /api/humans/one/{id} → human.area (JSON string).
         // GET /api/humans/{id} returns the available area list, not the user's selection.
         await this.GetHumanAsync(userId);
+
+    /// <summary>
+    /// Whether <c>setAreas</c>'s <c>trusted</c> flag is safe to rely on for the community-restriction
+    /// case right now -- the schema has to declare the property AND area_security has to be confirmed
+    /// off, because neither <c>/openapi.json</c> nor <c>/health</c> can tell a pre-jfberry/PoracleNG#230
+    /// server from a post-#230 one (verified live: byte-identical either side of the fix). See #838.
+    /// </summary>
+    private async Task<bool> CanUseTrustedSetAreasAsync()
+    {
+        var capabilities = await this._v2Schema.GetAsync();
+        return capabilities.TrustedSetAreas && await this._areaSecurityPolicy.IsConfirmedDisabledAsync();
+    }
+
+    /// <summary>The active profile's current area list (<c>humans.area</c>), or null if unreadable.</summary>
+    private async Task<List<string>?> GetCurrentAreaListAsync(string userId)
+    {
+        var human = await this.GetHumanAsync(userId);
+        var areaJson = human?.GetStringPropOrNull("area");
+        return areaJson is null ? null : AreaListJson.Parse(areaJson);
+    }
+
+    /// <summary>
+    /// Posts a full area-list replacement with <c>trusted: true</c>. <c>setAreas</c> replaces the whole
+    /// list -- there is no incremental add/remove on the wire -- so every caller here reads the current
+    /// list first and posts the complete result.
+    /// </summary>
+    private async Task PostTrustedAreasAsync(string userId, List<string> areas)
+    {
+        var body = JsonSerializer.Serialize(new { areas, trusted = true });
+        var (response, payload) =
+            await this.SendReadAsync(HttpMethod.Post, $"/api/v2/humans/{Encode(userId)}/areas", body);
+        await EnsureAcceptedAsync(response);
+
+        using var doc = JsonDocument.Parse(payload);
+        if (doc.RootElement.TryGetProperty("rejected", out var rejectedEl)
+            && rejectedEl.ValueKind == JsonValueKind.Array
+            && rejectedEl.GetArrayLength() > 0)
+        {
+            var rejected = rejectedEl.EnumerateArray().Select(e => e.GetString() ?? string.Empty);
+
+            // Should not happen for a name this app just created or already had selected -- trusted
+            // only lifts userSelectable, not "exists at all". Logged rather than surfaced: every caller
+            // here already treats its own write as best-effort (see the HACK: trusted-set-areas sites
+            // this replaces), and the geofence row these names came from is the source of truth either way.
+            LogTrustedAreasRejected(this._logger, userId, string.Join(", ", rejected));
+        }
+    }
+
+    /// <summary>
+    /// Adds one area to the human's active profile via <c>setAreas</c>'s <c>trusted</c> flag, which
+    /// bypasses the <c>userSelectable</c> filter a user-drawn geofence always fails for a non-admin
+    /// caller. See #838.
+    /// </summary>
+    /// <returns>
+    /// <c>null</c> when <see cref="CanUseTrustedSetAreasAsync"/> says no or the current list could not
+    /// be read -- the caller must fall back to <c>IUserAreaDualWriter</c>; <c>false</c> when the area
+    /// was already present; <c>true</c> once written.
+    /// </returns>
+    public async Task<bool?> AddAreaToActiveProfileTrustedAsync(string userId, string areaName) =>
+        await this.AddAreasToActiveProfileTrustedAsync(userId, [areaName]);
+
+    /// <summary>Bulk form of <see cref="AddAreaToActiveProfileTrustedAsync"/>.</summary>
+    public async Task<bool?> AddAreasToActiveProfileTrustedAsync(string userId, IReadOnlyCollection<string> areaNames)
+    {
+        if (!await this.CanUseTrustedSetAreasAsync())
+        {
+            return null;
+        }
+
+        var normalized = areaNames
+            .Where(a => !string.IsNullOrWhiteSpace(a))
+            .Select(a => a.ToLowerInvariant())
+            .Distinct()
+            .ToList();
+
+        if (normalized.Count == 0)
+        {
+            return false;
+        }
+
+        var current = await this.GetCurrentAreaListAsync(userId);
+        if (current is null)
+        {
+            return null;
+        }
+
+        var currentSet = new HashSet<string>(current, StringComparer.OrdinalIgnoreCase);
+        var changed = false;
+        foreach (var name in normalized)
+        {
+            if (currentSet.Add(name))
+            {
+                current.Add(name);
+                changed = true;
+            }
+        }
+
+        if (!changed)
+        {
+            return false;
+        }
+
+        await this.PostTrustedAreasAsync(userId, current);
+        return true;
+    }
+
+    /// <summary>Removes one area from the human's active profile via the same trusted call.</summary>
+    public async Task<bool?> RemoveAreaFromActiveProfileTrustedAsync(string userId, string areaName)
+    {
+        if (!await this.CanUseTrustedSetAreasAsync())
+        {
+            return null;
+        }
+
+        var current = await this.GetCurrentAreaListAsync(userId);
+        if (current is null)
+        {
+            return null;
+        }
+
+        var removed = current.RemoveAll(a => string.Equals(a, areaName, StringComparison.OrdinalIgnoreCase)) > 0;
+        if (!removed)
+        {
+            return false;
+        }
+
+        await this.PostTrustedAreasAsync(userId, current);
+        return true;
+    }
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "setAreas(trusted) rejected areas for {UserId} that this app expected to be accepted: {Rejected}")]
+    private static partial void LogTrustedAreasRejected(ILogger logger, string userId, string rejected);
 
     public async Task SwitchProfileAsync(string userId, int profileNo)
     {

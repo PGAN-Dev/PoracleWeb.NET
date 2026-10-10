@@ -40,6 +40,7 @@ public class PoracleHumanProxyRefusalTests
             // still gets.
             PoracleHumanProxyTests.ServerProfile(null),
             PoracleHumanProxyTests.V2Schema(),
+            PoracleHumanProxyTests.AreaSecurityPolicy(),
             new MemoryCache(new MemoryCacheOptions()),
             Mock.Of<ILogger<PoracleHumanProxy>>());
 
