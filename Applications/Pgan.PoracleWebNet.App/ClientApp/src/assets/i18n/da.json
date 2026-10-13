@@ -1584,7 +1584,16 @@
     "SEARCH_LABEL": "Søg Pokemon",
     "SEARCH_HINT": "Skriv navn eller ID...",
     "CURRENTLY_SPAWNING": "Spawner lige nu",
-    "ALL_POKEMON": "Alle Pokémon (ID: 0)"
+    "ALL_POKEMON": "Alle Pokémon (ID: 0)",
+    "BULK_TOGGLE": "Tilføj flere",
+    "BULK_BACK_TO_SEARCH": "Tilbage til søgning",
+    "BULK_LABEL": "Indsæt Pokémon-navne",
+    "BULK_HINT": "pikachu, charizard, mewtwo",
+    "BULK_MATCH": "Match og tilføj",
+    "BULK_ADDED": "{{count}} tilføjet",
+    "BULK_ALREADY_SELECTED": "{{count}} allerede valgt",
+    "BULK_DID_YOU_MEAN": "\"{{token}}\" — mente du:",
+    "BULK_UNRECOGNIZED": "Ikke genkendt: {{names}}"
   },
   "TEMPLATE_SELECTOR": {
     "LABEL": "Skabelon",
