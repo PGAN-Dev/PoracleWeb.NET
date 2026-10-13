@@ -12,6 +12,7 @@ import { I18nService } from '../../../core/services/i18n.service';
 import { IconService } from '../../../core/services/icon.service';
 import { MasterDataService, PokemonEntry } from '../../../core/services/masterdata.service';
 import { PokemonAvailabilityService } from '../../../core/services/pokemon-availability.service';
+import { BulkMatchResult, BulkMatchSuggestion, matchPokemonBulkText } from '../../utils/pokemon-bulk-match';
 
 interface GenRange {
   label: string;
@@ -39,6 +40,9 @@ export class PokemonSelectorComponent implements OnInit {
   readonly availability = inject(PokemonAvailabilityService);
 
   availableTypes = computed(() => this.masterData.getAllTypes());
+  bulkControl = new FormControl('');
+  bulkMode = signal(false);
+  bulkResult = signal<BulkMatchResult | null>(null);
   filterSpawning = signal(false);
   multi = input(false);
   searchText = signal('');
@@ -119,6 +123,18 @@ export class PokemonSelectorComponent implements OnInit {
 
   selectionChange = output<number[]>();
 
+  addSuggestion(suggestion: BulkMatchSuggestion, candidate: PokemonEntry): void {
+    if (!this.selectedIds().has(candidate.id)) {
+      this.selectedPokemon.update(list => [...list, candidate]);
+      this.selectionChange.emit(this.selectedPokemon().map(p => p.id));
+    }
+    // The suggestion is resolved either way -- leaving it on screen after its chip was clicked
+    // would read as "that didn't work".
+    this.bulkResult.update(result =>
+      result ? { ...result, suggestions: result.suggestions.filter(s => s.token !== suggestion.token) } : result,
+    );
+  }
+
   formatPokemonName(pokemon: PokemonEntry): string {
     if (pokemon.id === 0) return this.i18n.instant('POKEMON_SELECTOR.ALL_POKEMON');
     return `#${String(pokemon.id).padStart(3, '0')} ${pokemon.name}`;
@@ -147,6 +163,12 @@ export class PokemonSelectorComponent implements OnInit {
         this.searchText.set(value);
       }
     });
+
+    // A stale "3 not recognized" summary reads as a fresh answer to edited text -- clear it the
+    // moment the textarea changes, so it only ever reflects the text Match & Add last ran against.
+    this.bulkControl.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.bulkResult.set(null);
+    });
   }
 
   onImageError(event: Event): void {
@@ -174,6 +196,24 @@ export class PokemonSelectorComponent implements OnInit {
   removePokemon(id: number): void {
     this.selectedPokemon.update(list => list.filter(p => p.id !== id));
     this.selectionChange.emit(this.selectedPokemon().map(p => p.id));
+  }
+
+  runBulkMatch(): void {
+    const text = this.bulkControl.value ?? '';
+    if (!text.trim()) return;
+
+    const result = matchPokemonBulkText(text, this.allPokemon(), this.selectedIds());
+    if (result.matched.length > 0) {
+      this.selectedPokemon.update(list => [...list, ...result.matched]);
+      this.selectionChange.emit(this.selectedPokemon().map(p => p.id));
+    }
+    this.bulkResult.set(result);
+  }
+
+  toggleBulkMode(): void {
+    this.bulkMode.update(v => !v);
+    this.bulkControl.setValue('');
+    this.bulkResult.set(null);
   }
 
   toggleGen(gen: GenRange): void {

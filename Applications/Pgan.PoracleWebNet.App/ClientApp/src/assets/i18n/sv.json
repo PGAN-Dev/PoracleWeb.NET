@@ -1584,7 +1584,16 @@
     "SEARCH_LABEL": "Sök Pokemon",
     "SEARCH_HINT": "Skriv namn eller ID...",
     "CURRENTLY_SPAWNING": "Spawnar just nu",
-    "ALL_POKEMON": "Alla Pokémon (ID: 0)"
+    "ALL_POKEMON": "Alla Pokémon (ID: 0)",
+    "BULK_TOGGLE": "Lägg till flera",
+    "BULK_BACK_TO_SEARCH": "Tillbaka till sökning",
+    "BULK_LABEL": "Klistra in Pokémon-namn",
+    "BULK_HINT": "pikachu, charizard, mewtwo",
+    "BULK_MATCH": "Matcha och lägg till",
+    "BULK_ADDED": "{{count}} tillagda",
+    "BULK_ALREADY_SELECTED": "{{count}} redan valda",
+    "BULK_DID_YOU_MEAN": "\"{{token}}\" — menade du:",
+    "BULK_UNRECOGNIZED": "Kändes inte igen: {{names}}"
   },
   "TEMPLATE_SELECTOR": {
     "LABEL": "Mall",

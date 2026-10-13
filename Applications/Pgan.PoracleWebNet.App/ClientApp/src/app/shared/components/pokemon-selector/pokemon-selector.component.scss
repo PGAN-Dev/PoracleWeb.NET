@@ -210,3 +210,112 @@
 .availability-indicator.unavailable {
   background: var(--card-border, rgba(0, 0, 0, 0.12));
 }
+
+// Bulk paste mode
+.bulk-toggle-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 4px;
+}
+.bulk-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: transparent;
+  color: #1976d2;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+.bulk-toggle mat-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+}
+.bulk-toggle:hover {
+  text-decoration: underline;
+}
+.bulk-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -8px;
+  margin-bottom: 8px;
+}
+.bulk-match-btn {
+  border: 1px solid #1976d2;
+  background: #1976d2;
+  color: #fff;
+  border-radius: 16px;
+  padding: 4px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.bulk-match-btn:disabled {
+  background: transparent;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.38));
+  border-color: var(--card-border, rgba(0, 0, 0, 0.15));
+  cursor: default;
+}
+.bulk-results {
+  margin-bottom: 8px;
+}
+.bulk-summary {
+  font-size: 12px;
+  margin: 2px 0;
+}
+.bulk-success {
+  color: #2e7d32;
+}
+.bulk-muted {
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+}
+.bulk-warning {
+  color: #b45309;
+}
+.bulk-suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 6px 0;
+}
+.bulk-suggestion-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.bulk-suggestion-label {
+  font-size: 11px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.6));
+}
+.bulk-suggestion-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+// Dashed border marks this as a proposed chip, not yet part of the selection below -- same chip
+// shape and color as everything else here, so it reads as "one more state" rather than new chrome.
+.bulk-suggestion-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  border: 1px dashed #1976d2;
+  background: transparent;
+  color: #1976d2;
+  border-radius: 16px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.bulk-suggestion-chip mat-icon {
+  font-size: 13px;
+  width: 13px;
+  height: 13px;
+}
+.bulk-suggestion-chip:hover {
+  background: rgba(25, 118, 210, 0.08);
+}

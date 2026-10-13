@@ -1584,7 +1584,16 @@
     "SEARCH_LABEL": "Pesquisar Pokemon",
     "SEARCH_HINT": "Escreve nome ou ID...",
     "CURRENTLY_SPAWNING": "A spawnar atualmente",
-    "ALL_POKEMON": "Todos os Pokémon (ID: 0)"
+    "ALL_POKEMON": "Todos os Pokémon (ID: 0)",
+    "BULK_TOGGLE": "Adicionar vários",
+    "BULK_BACK_TO_SEARCH": "Voltar à pesquisa",
+    "BULK_LABEL": "Colar nomes de Pokémon",
+    "BULK_HINT": "pikachu, charizard, mewtwo",
+    "BULK_MATCH": "Associar e adicionar",
+    "BULK_ADDED": "{{count}} adicionados",
+    "BULK_ALREADY_SELECTED": "{{count}} já selecionados",
+    "BULK_DID_YOU_MEAN": "\"{{token}}\" — querias dizer:",
+    "BULK_UNRECOGNIZED": "Não reconhecido: {{names}}"
   },
   "TEMPLATE_SELECTOR": {
     "LABEL": "Modelo",

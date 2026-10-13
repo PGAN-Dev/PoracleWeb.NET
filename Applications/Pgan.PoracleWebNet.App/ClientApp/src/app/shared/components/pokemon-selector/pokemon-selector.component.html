@@ -28,35 +28,91 @@
   </div>
 }
 
-<mat-form-field class="full-width" appearance="outline">
-  <mat-label>{{ 'POKEMON_SELECTOR.SEARCH_LABEL' | translate }}</mat-label>
-  <input matInput [formControl]="searchControl" [matAutocomplete]="auto" [placeholder]="'POKEMON_SELECTOR.SEARCH_HINT' | translate" />
-  <mat-autocomplete #auto="matAutocomplete" (optionSelected)="onSelected($event)">
-    @if (!showTileGrid()) {
-      @for (pokemon of filteredPokemon(); track pokemon.id) {
-        <mat-option [value]="pokemon" [class.all-pokemon-option]="pokemon.id === 0">
-          <div class="pokemon-option">
-            @if (pokemon.id === 0) {
-              <mat-icon class="all-pokemon-icon">select_all</mat-icon>
-            } @else {
-              <img [src]="getPokemonImage(pokemon.id)" [alt]="pokemon.name" class="pokemon-option-img" (error)="onImageError($event)" />
-            }
-            @if (showAvailability() && pokemon.id > 0) {
-              <span
-                class="availability-indicator"
-                [class.available]="availability.isAvailable(pokemon.id)"
-                [class.unavailable]="!availability.isAvailable(pokemon.id)"></span>
-            }
-            <span>{{ formatPokemonName(pokemon) }}</span>
-            @if (pokemon.id > 0) {
-              <span class="pokemon-option-id">#{{ padId(pokemon.id) }}</span>
-            }
-          </div>
-        </mat-option>
+@if (multi()) {
+  <div class="bulk-toggle-row">
+    <button type="button" class="bulk-toggle" (click)="toggleBulkMode()">
+      <mat-icon>{{ bulkMode() ? 'search' : 'playlist_add' }}</mat-icon>
+      {{ (bulkMode() ? 'POKEMON_SELECTOR.BULK_BACK_TO_SEARCH' : 'POKEMON_SELECTOR.BULK_TOGGLE') | translate }}
+    </button>
+  </div>
+}
+
+@if (bulkMode()) {
+  <mat-form-field class="full-width" appearance="outline">
+    <mat-label>{{ 'POKEMON_SELECTOR.BULK_LABEL' | translate }}</mat-label>
+    <textarea matInput rows="3" [formControl]="bulkControl" [placeholder]="'POKEMON_SELECTOR.BULK_HINT' | translate"></textarea>
+  </mat-form-field>
+
+  <div class="bulk-actions">
+    <button type="button" class="bulk-match-btn" [disabled]="!bulkControl.value?.trim()" (click)="runBulkMatch()">
+      {{ 'POKEMON_SELECTOR.BULK_MATCH' | translate }}
+    </button>
+  </div>
+
+  @if (bulkResult(); as result) {
+    <div class="bulk-results">
+      @if (result.matched.length > 0) {
+        <p class="bulk-summary bulk-success">{{ 'POKEMON_SELECTOR.BULK_ADDED' | translate: { count: result.matched.length } }}</p>
       }
-    }
-  </mat-autocomplete>
-</mat-form-field>
+      @if (result.alreadySelected.length > 0) {
+        <p class="bulk-summary bulk-muted">
+          {{ 'POKEMON_SELECTOR.BULK_ALREADY_SELECTED' | translate: { count: result.alreadySelected.length } }}
+        </p>
+      }
+      @if (result.suggestions.length > 0) {
+        <div class="bulk-suggestions">
+          @for (suggestion of result.suggestions; track suggestion.token) {
+            <div class="bulk-suggestion-row">
+              <span class="bulk-suggestion-label">{{ 'POKEMON_SELECTOR.BULK_DID_YOU_MEAN' | translate: { token: suggestion.token } }}</span>
+              <div class="bulk-suggestion-chips">
+                @for (candidate of suggestion.candidates; track candidate.id) {
+                  <button type="button" class="bulk-suggestion-chip" (click)="addSuggestion(suggestion, candidate)">
+                    <mat-icon>add</mat-icon>{{ candidate.name }}
+                  </button>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+      @if (result.unrecognized.length > 0) {
+        <p class="bulk-summary bulk-warning">
+          {{ 'POKEMON_SELECTOR.BULK_UNRECOGNIZED' | translate: { names: result.unrecognized.join(', ') } }}
+        </p>
+      }
+    </div>
+  }
+} @else {
+  <mat-form-field class="full-width" appearance="outline">
+    <mat-label>{{ 'POKEMON_SELECTOR.SEARCH_LABEL' | translate }}</mat-label>
+    <input matInput [formControl]="searchControl" [matAutocomplete]="auto" [placeholder]="'POKEMON_SELECTOR.SEARCH_HINT' | translate" />
+    <mat-autocomplete #auto="matAutocomplete" (optionSelected)="onSelected($event)">
+      @if (!showTileGrid()) {
+        @for (pokemon of filteredPokemon(); track pokemon.id) {
+          <mat-option [value]="pokemon" [class.all-pokemon-option]="pokemon.id === 0">
+            <div class="pokemon-option">
+              @if (pokemon.id === 0) {
+                <mat-icon class="all-pokemon-icon">select_all</mat-icon>
+              } @else {
+                <img [src]="getPokemonImage(pokemon.id)" [alt]="pokemon.name" class="pokemon-option-img" (error)="onImageError($event)" />
+              }
+              @if (showAvailability() && pokemon.id > 0) {
+                <span
+                  class="availability-indicator"
+                  [class.available]="availability.isAvailable(pokemon.id)"
+                  [class.unavailable]="!availability.isAvailable(pokemon.id)"></span>
+              }
+              <span>{{ formatPokemonName(pokemon) }}</span>
+              @if (pokemon.id > 0) {
+                <span class="pokemon-option-id">#{{ padId(pokemon.id) }}</span>
+              }
+            </div>
+          </mat-option>
+        }
+      }
+    </mat-autocomplete>
+  </mat-form-field>
+}
 
 @if (showTileGrid()) {
   <div class="tile-grid">

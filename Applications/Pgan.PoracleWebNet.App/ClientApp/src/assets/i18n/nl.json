@@ -1584,7 +1584,16 @@
     "SEARCH_LABEL": "Pokemon Zoeken",
     "SEARCH_HINT": "Typ naam of ID...",
     "CURRENTLY_SPAWNING": "Momenteel aan het spawnen",
-    "ALL_POKEMON": "Alle Pokémon (ID: 0)"
+    "ALL_POKEMON": "Alle Pokémon (ID: 0)",
+    "BULK_TOGGLE": "Meerdere toevoegen",
+    "BULK_BACK_TO_SEARCH": "Terug naar zoeken",
+    "BULK_LABEL": "Plak Pokémon-namen",
+    "BULK_HINT": "pikachu, charizard, mewtwo",
+    "BULK_MATCH": "Koppelen en toevoegen",
+    "BULK_ADDED": "{{count}} toegevoegd",
+    "BULK_ALREADY_SELECTED": "{{count}} al geselecteerd",
+    "BULK_DID_YOU_MEAN": "\"{{token}}\" — bedoelde je:",
+    "BULK_UNRECOGNIZED": "Niet herkend: {{names}}"
   },
   "TEMPLATE_SELECTOR": {
     "LABEL": "Template",
