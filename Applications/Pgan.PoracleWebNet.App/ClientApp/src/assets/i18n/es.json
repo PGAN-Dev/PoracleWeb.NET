@@ -1584,7 +1584,16 @@
     "SEARCH_LABEL": "Buscar Pokemon",
     "SEARCH_HINT": "Escribe nombre o ID...",
     "CURRENTLY_SPAWNING": "Apareciendo actualmente",
-    "ALL_POKEMON": "Todos los Pokémon (ID: 0)"
+    "ALL_POKEMON": "Todos los Pokémon (ID: 0)",
+    "BULK_TOGGLE": "Añadir varios",
+    "BULK_BACK_TO_SEARCH": "Volver a la búsqueda",
+    "BULK_LABEL": "Pega nombres de Pokémon",
+    "BULK_HINT": "pikachu, charizard, mewtwo",
+    "BULK_MATCH": "Emparejar y añadir",
+    "BULK_ADDED": "{{count}} añadidos",
+    "BULK_ALREADY_SELECTED": "{{count}} ya seleccionados",
+    "BULK_DID_YOU_MEAN": "\"{{token}}\" — ¿quisiste decir:",
+    "BULK_UNRECOGNIZED": "No reconocido: {{names}}"
   },
   "TEMPLATE_SELECTOR": {
     "LABEL": "Plantilla",
