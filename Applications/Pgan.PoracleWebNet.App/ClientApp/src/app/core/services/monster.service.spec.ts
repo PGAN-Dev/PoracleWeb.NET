@@ -133,4 +133,37 @@ describe('MonsterService', () => {
     expect(req.request.method).toBe('DELETE');
     req.flush(null);
   });
+
+  // jfberry/PoracleNG#246: whether this deployment's PoracleNG honours the pokemon edit-in-place bit.
+  describe('loadEditCapability', () => {
+    it('sets editSupported from the server response', () => {
+      expect(service.editSupported()).toBe(false);
+
+      service.loadEditCapability();
+
+      const req = httpMock.expectOne(`${API}/api/monsters/capability`);
+      expect(req.request.method).toBe('GET');
+      req.flush({ edit: true });
+
+      expect(service.editSupported()).toBe(true);
+    });
+
+    it('degrades to false on a fault rather than throwing', () => {
+      service.loadEditCapability();
+
+      const req = httpMock.expectOne(`${API}/api/monsters/capability`);
+      req.error(new ProgressEvent('network error'));
+
+      expect(service.editSupported()).toBe(false);
+    });
+
+    it('only fetches once per session', () => {
+      service.loadEditCapability();
+      httpMock.expectOne(`${API}/api/monsters/capability`).flush({ edit: true });
+
+      service.loadEditCapability();
+
+      httpMock.expectNone(`${API}/api/monsters/capability`);
+    });
+  });
 });

@@ -33,7 +33,7 @@ import { RuleSummaryComponent } from '../../shared/components/rule-summary/rule-
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
-import { isAutoDelete as cleanIsAutoDelete } from '../../shared/utils/clean-flags';
+import { isAutoDelete as cleanIsAutoDelete, isEdit as cleanIsEdit } from '../../shared/utils/clean-flags';
 import { readableChip } from '../../shared/utils/contrast';
 import { NO_COSTUME } from '../../shared/utils/costumes';
 import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
@@ -426,6 +426,10 @@ export class PokemonListComponent implements OnInit {
     return cleanIsAutoDelete(clean);
   }
 
+  isEdit(clean: number): boolean {
+    return cleanIsEdit(clean);
+  }
+
   loadMonsters(): void {
     this.loading.set(true);
     this.monsterService
@@ -469,6 +473,7 @@ export class PokemonListComponent implements OnInit {
     // Ensure masterdata is loaded
     this.masterData.loadData().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
     this.loadMonsters();
+    this.monsterService.loadEditCapability();
 
     // Only used to word the inherited scope honestly: "anywhere in my areas" is a lie for a user who
     // has none selected. A failure leaves it empty, which produces the more cautious wording.

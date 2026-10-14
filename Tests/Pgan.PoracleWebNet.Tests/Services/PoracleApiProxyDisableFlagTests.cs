@@ -149,6 +149,34 @@ public class PoracleApiProxyDisableFlagTests
         Assert.True(await sut.GetQuestSummaryEnabledAsync());
     }
 
+    /// <summary>
+    /// Shape verified live against a PoracleNG build carrying jfberry/PoracleNG#246 (dev-01's "next"
+    /// testbed, rebuilt 2026-10-14 to commit 4931758f): <c>GET /api/config/values</c> returns
+    /// <c>tracking.pokemon_edit: true</c>.
+    /// </summary>
+    [Fact]
+    public async Task PokemonEditFlagReadsFromTheTrackingSection()
+    {
+        var sut = CreateSut(new MockHttpMessageHandler(
+            HttpStatusCode.OK, /*lang=json,strict*/ """{"values":{"tracking":{"pokemon_edit":true}}}"""));
+
+        Assert.True(await sut.GetPokemonEditEnabledAsync());
+    }
+
+    /// <summary>
+    /// A PoracleNG built before #246 has no such key: the processor accepted the pokemon edit bit but
+    /// never acted on it, so there was nothing to configure. Null means "cannot determine", which the
+    /// capability service must not read as "enabled".
+    /// </summary>
+    [Fact]
+    public async Task AbsentPokemonEditFlagReturnsNull()
+    {
+        var sut = CreateSut(new MockHttpMessageHandler(
+            HttpStatusCode.OK, /*lang=json,strict*/ """{"values":{"tracking":{}}}"""));
+
+        Assert.Null(await sut.GetPokemonEditEnabledAsync());
+    }
+
     private sealed class MockHttpMessageHandler(HttpStatusCode statusCode, string responseBody) : HttpMessageHandler
     {
         public HttpRequestMessage? LastRequest

@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Add several Pokemon to an alarm at once by pasting or typing their names, instead of searching and clicking one at a time.** `PokemonSelectorComponent`'s multi-select mode (used by the Pokemon add dialog) now has an "Add multiple" toggle next to the search box that swaps it for a text box: paste a list separated by commas, newlines, or spaces in any mixture and click *Match & add*. Multi-word species names (Tapu Koko, Mime Jr.) are recognized the same whether separated by commas or just spaces. A name that doesn't match exactly but has close candidates is offered as a "did you mean" suggestion instead of being guessed at or silently dropped; a name with nothing close is listed as not recognized so it can be fixed or searched for individually ([#946](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/946)).
+- **Pokemon alarms can edit the Discord message in place instead of posting a new one on the same spawn.** Both dialogs gain the same "Edit message in place" switch lures already have. It only appears when your PoracleNG actually honours it (jfberry/PoracleNG#246, not yet in a tagged release) — on an older server the switch stays hidden, since turning it on there would have no effect.
 
 ### Changed
 

@@ -29,6 +29,7 @@ import { PokemonSelectorComponent } from '../../shared/components/pokemon-select
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
+import { compose } from '../../shared/utils/clean-flags';
 import { ANY_COSTUME, costumeHintKey } from '../../shared/utils/costumes';
 import { minTimeLabel, minTimeOptions } from '../../shared/utils/min-time';
 
@@ -81,6 +82,9 @@ export class PokemonAddDialogComponent implements OnInit {
 
   readonly dialogRef = inject(MatDialogRef<PokemonAddDialogComponent>);
 
+  /** Whether to show the edit-in-place toggle at all -- see MonsterService.editSupported. */
+  readonly editSupported = this.monsterService.editSupported;
+
   filtersForm = this.fb.group({
     atk: [0, [Validators.min(0), Validators.max(15)]],
     // 9000 = any costume. Never let this default to 0 -- that is "no costume", a real filter.
@@ -113,6 +117,7 @@ export class PokemonAddDialogComponent implements OnInit {
 
   notifForm = this.fb.group({
     clean: [false],
+    editInPlace: [false],
     // Empty means the profile pin, which is what "set a distance" has always meant. A label points the
     // radius at a saved place instead.
     placeLabel: [''],
@@ -222,7 +227,7 @@ export class PokemonAddDialogComponent implements OnInit {
           overrideAreas: scope.overrideAreas,
           overrideLocationLabel: scope.overrideLocationLabel,
           atk: filters.atk ?? 0,
-          clean: notif.clean ? 1 : 0,
+          clean: compose(!!notif.clean, !!notif.editInPlace, false),
           costume: filters.costume ?? ANY_COSTUME,
           def: filters.def ?? 0,
           distance: scope.distance,
