@@ -357,6 +357,8 @@
     "PING_PLACEHOLDER": "z.B. @Pokemon oder leer lassen",
     "PING_HINT": "Discord-Rolle, die in der Benachrichtigung erwähnt wird",
     "CLEAN_MODE": "Aufräummodus",
+    "MENTION_LABEL": "Erwähnung",
+    "MENTION_HINT": "Wer bei Auslösung dieser Alarmierung erwähnt werden soll — eine Discord-Rolle wie <@&123456789012345678> oder eine Person wie <@123456789012345678>. Wirkt sich nur auf einen Webhook-Alarm aus.",
     "CLEAN_HINT_POKEMON": "Löscht die Benachrichtigung automatisch aus Discord, wenn das Pokemon despawnt",
     "CLEAN_HINT_RAID": "Löscht die Benachrichtigung automatisch aus Discord, wenn der Raid endet",
     "CLEAN_HINT_QUEST": "Löscht die Benachrichtigung automatisch aus Discord, wenn Quests um Mitternacht zurückgesetzt werden",

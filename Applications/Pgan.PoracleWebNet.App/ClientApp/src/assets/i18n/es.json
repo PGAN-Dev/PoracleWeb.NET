@@ -357,6 +357,8 @@
     "PING_PLACEHOLDER": "ej. @Pokemon o dejar vacío",
     "PING_HINT": "Rol de Discord a mencionar en la notificación",
     "CLEAN_MODE": "Modo limpieza",
+    "MENTION_LABEL": "Mención",
+    "MENTION_HINT": "A quién mencionar cuando se dispare esta alerta: un rol de Discord como <@&123456789012345678> o una persona como <@123456789012345678>. Solo tiene efecto en una alarma de webhook.",
     "CLEAN_TAG": "limpieza",
     "CLEAN_HINT_POKEMON": "Elimina automáticamente la notificación de Discord cuando el Pokemon desaparece",
     "CLEAN_HINT_RAID": "Elimina automáticamente la notificación de Discord cuando el raid termina",

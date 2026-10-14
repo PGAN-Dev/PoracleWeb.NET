@@ -151,7 +151,25 @@ public partial class PoracleTrackingProxy(
     public async Task<TrackingUpdateResult?> TryReplaceV2Async(
         string type, string userId, int uid, JsonElement body)
     {
-        if (uid <= 0 || !this.ShouldTryV2(type) || !await this.ServerCarriesV2Async(type))
+        if (uid <= 0)
+        {
+            return null;
+        }
+
+        // Ahead of every other gate below, deliberately: a v1 write destroys a set ping regardless of
+        // *why* this edit is taking the v1 path -- an operator pinning v1, a type with no v2 table yet,
+        // a route this server does not carry, or an unrelated field v2 refused. Every one of those
+        // still sends the row to v1, which blanks it unconditionally. See
+        // TrackingV2Translator.HasNonEmptyPing.
+        if (!(await this._v2Schema.GetAsync()).TrackingPing && TrackingV2Translator.HasNonEmptyPing(body))
+        {
+            throw new AlarmValidationException(
+                "This alarm has a role or user mention set, and the connected PoracleNG can't preserve it "
+                + "through an edit. Nothing was changed. Upgrading PoracleNG, or removing the mention first, "
+                + "will let this edit through.");
+        }
+
+        if (!this.ShouldTryV2(type) || !await this.ServerCarriesV2Async(type))
         {
             return null;
         }
@@ -165,8 +183,9 @@ public partial class PoracleTrackingProxy(
         }
 
         var bounds = await this.ServerBoundsAsync(type);
+        var pingSupported = (await this._v2Schema.GetAsync()).TrackingPing;
 
-        if (!TrackingV2Translator.TryTranslate(type, body, bounds, out var v2Body, out var unsupported))
+        if (!TrackingV2Translator.TryTranslate(type, body, bounds, out var v2Body, out var unsupported, pingSupported))
         {
             // Not a fault. The row carries something v2 has no faithful place for, so it goes to v1,
             // which stores whatever it is given. See TrackingV2Translator.

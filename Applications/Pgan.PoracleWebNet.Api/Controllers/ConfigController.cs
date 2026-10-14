@@ -6,9 +6,13 @@ using Pgan.PoracleWebNet.Core.Models;
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/config")]
-public partial class ConfigController(IPoracleApiProxy poracleApiProxy, ILogger<ConfigController> logger) : BaseApiController
+public partial class ConfigController(
+    IPoracleApiProxy poracleApiProxy,
+    IPoracleV2SchemaService v2Schema,
+    ILogger<ConfigController> logger) : BaseApiController
 {
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
+    private readonly IPoracleV2SchemaService _v2Schema = v2Schema;
     private readonly ILogger<ConfigController> _logger = logger;
 
     [AllowAnonymous]
@@ -62,12 +66,19 @@ public partial class ConfigController(IPoracleApiProxy poracleApiProxy, ILogger<
     [HttpGet]
     public async Task<IActionResult> GetConfig()
     {
+        // Degrades to false on any fault, same as every other v2 schema capability -- an operator cannot
+        // preserve a mention through an edit until this answers true, so treating "could not ask" as "no"
+        // is the only safe direction here.
+        var pingSupported = (await this._v2Schema.GetAsync()).TrackingPing;
+
         try
         {
             var config = await this._poracleApiProxy.GetConfigAsync();
             if (config != null)
             {
-                return this.Ok(PublicPoracleConfig.From(config));
+                var publicConfig = PublicPoracleConfig.From(config);
+                publicConfig.PingSupported = pingSupported;
+                return this.Ok(publicConfig);
             }
         }
         catch (Exception ex)
@@ -86,7 +97,8 @@ public partial class ConfigController(IPoracleApiProxy poracleApiProxy, ILogger<
             PvpLittleLeagueAllowed = true,
             DefaultTemplateName = "default",
             EverythingFlagPermissions = "",
-            MaxDistance = 10726000
+            MaxDistance = 10726000,
+            PingSupported = pingSupported,
         });
     }
 

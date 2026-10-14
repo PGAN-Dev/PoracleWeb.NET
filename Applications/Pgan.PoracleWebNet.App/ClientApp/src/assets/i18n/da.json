@@ -357,6 +357,8 @@
     "PING_PLACEHOLDER": "f.eks. @Pokemon eller lad stå tom",
     "PING_HINT": "Discord-rolle at nævne i notifikationen",
     "CLEAN_MODE": "Oprydningstilstand",
+    "MENTION_LABEL": "Omtale",
+    "MENTION_HINT": "Hvem der skal nævnes, når denne alarm udløses — en Discord-rolle som <@&123456789012345678> eller en person som <@123456789012345678>. Har kun effekt på en webhook-alarm.",
     "CLEAN_TAG": "oprydning",
     "CLEAN_HINT_POKEMON": "Sletter automatisk notifikationen fra Discord, når Pokemon forsvinder",
     "CLEAN_HINT_RAID": "Sletter automatisk notifikationen fra Discord, når raidet slutter",
