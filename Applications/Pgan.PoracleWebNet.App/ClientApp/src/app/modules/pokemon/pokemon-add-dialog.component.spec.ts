@@ -122,7 +122,7 @@ describe('PokemonAddDialogComponent', () => {
     expect((monsterService.create.mock.calls[0][0] as MonsterCreate).costume).toBe(0);
   });
 
-  describe('include Pokemon nobody has scanned yet', () => {
+  describe('include Pokemon without stats', () => {
     const sentMinIv = (): number => (monsterService.create.mock.calls[0][0] as MonsterCreate).minIv;
 
     it('is off by default and the rule keeps its Min IV', () => {
