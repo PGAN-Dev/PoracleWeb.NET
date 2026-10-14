@@ -41,12 +41,33 @@ describe('add and edit dialogs offer the same fields', () => {
       'exception and is editable as `stardust`, because for that reward type PoracleNG reads `reward` as the floor.',
   };
 
+  /**
+   * Shared reasoning for `ping` (jfberry/PoracleNG#249): v1's create/upsert handler blanks it
+   * unconditionally regardless of what is sent -- verified live, both create and update, against a
+   * stock jfberry/PoracleNG `develop` build and the private fork running the same commit -- and no
+   * alarm type's create path ever uses v2. Offering the control on an add dialog would be a control
+   * that silently does nothing on every server that exists, which is exactly the shape this parity
+   * test is built to catch for every *other* field. The edit path is different: edits already go
+   * through v2 on a server that supports it, so a mention set there genuinely survives.
+   */
+  const EDIT_ONLY_PING =
+    'Create always goes to v1, which blanks ping unconditionally -- see PoracleTrackingProxy.CreateAsync and the comment on EDIT_ONLY_PING above.';
+
   /** Controls an edit dialog may have that its add twin does not, and why. */
   const EDIT_ONLY: Record<string, string> = {
+    'raid.ping': EDIT_ONLY_PING,
+    'fort change.ping': EDIT_ONLY_PING,
+    'gym.ping': EDIT_ONLY_PING,
+    'invasion.ping': EDIT_ONLY_PING,
+    'lure.ping': EDIT_ONLY_PING,
     'max battle.gmax': 'Named `gmaxOnly` in the add dialog.',
     'max battle.level': 'The add dialog picks levels with checkboxes and fans out one alarm per level, so it has no single-level control.',
+    'max battle.ping': EDIT_ONLY_PING,
+    'nest.ping': EDIT_ONLY_PING,
+    'pokemon.ping': EDIT_ONLY_PING,
     'pokestop event.displayType':
       'The add dialog picks events with checkboxes and fans out one alarm per event, so it has no single-event control.',
+    'quest.ping': EDIT_ONLY_PING,
     'quest.stardust': 'The stardust floor, which the add dialog collects on its own tab as `reward`.',
   };
 

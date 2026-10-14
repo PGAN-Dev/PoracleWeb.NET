@@ -1,5 +1,5 @@
-import { Component, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -17,6 +17,7 @@ import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { NestService } from '../../core/services/nest.service';
+import { PoracleConfigService } from '../../core/services/poracle-config.service';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
@@ -43,12 +44,13 @@ import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-fl
   styleUrl: './nest-edit-dialog.component.scss',
   templateUrl: './nest-edit-dialog.component.html',
 })
-export class NestEditDialogComponent {
+export class NestEditDialogComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly i18n = inject(I18nService);
   private readonly iconService = inject(IconService);
   private readonly masterData = inject(MasterDataService);
   private readonly nestService = inject(NestService);
+  private readonly poracleConfig = inject(PoracleConfigService);
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<Nest>(MAT_DIALOG_DATA);
   readonly dialogRef = inject(MatDialogRef<NestEditDialogComponent>);
@@ -56,18 +58,29 @@ export class NestEditDialogComponent {
   form = this.fb.group({
     clean: [isAutoDelete(this.data.clean)],
     minSpawnAvg: [this.data.minSpawnAvg],
+    // Always present even when the control is hidden -- see pingSupported below -- so a mention
+    // round-trips unchanged through a save this dialog makes for an unrelated field.
+    ping: [this.data.ping ?? '', [Validators.maxLength(255)]],
     template: [this.data.template ?? ''],
   });
 
   readonly isWebhook = inject(AuthService).isImpersonating();
+
+  /** Whether to show the Mention control at all -- see pokemon-edit-dialog's pingSupported for why. */
+  readonly pingSupported = computed(() => this.poracleConfig.serverConfig().pingSupported);
 
   pokemonName = this.masterData.getPokemonName(this.data.pokemonId);
 
   saving = signal(false);
   /** The alarm's current scope, read back into the shared picker. */
   readonly scope = signal<AlarmScope>(scopeOf(this.data.overrideLocationLabel, this.data.overrideAreas, this.data.distance));
+
   getPokemonImage(): string {
     return this.iconService.getPokemonUrl(this.data.pokemonId);
+  }
+
+  ngOnInit(): void {
+    this.poracleConfig.load().subscribe();
   }
 
   onImageError(event: Event): void {
@@ -85,6 +98,7 @@ export class NestEditDialogComponent {
         clean: preserve(this.data.clean, AUTO_DELETE, v.clean ? 1 : 0),
         distance: scope.distance,
         minSpawnAvg: v.minSpawnAvg ?? 0,
+        ping: v.ping ?? '',
         pokemonId: this.data.pokemonId,
         template: v.template || '',
       } as NestUpdate)

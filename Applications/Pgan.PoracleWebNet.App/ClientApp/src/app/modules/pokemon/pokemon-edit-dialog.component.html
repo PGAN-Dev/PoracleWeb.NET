@@ -299,6 +299,14 @@
           <mat-slide-toggle [formControl]="form.controls.editInPlace"> {{ 'POKEMON.EDIT_MODE' | translate }} </mat-slide-toggle>
           <p class="clean-hint">{{ 'POKEMON.EDIT_HINT' | translate }}</p>
         }
+
+        @if (isWebhook && pingSupported()) {
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'ALARM.MENTION_LABEL' | translate }}</mat-label>
+            <input matInput [formControl]="form.controls.ping" maxlength="255" />
+            <mat-hint>{{ 'ALARM.MENTION_HINT' | translate }}</mat-hint>
+          </mat-form-field>
+        }
       </div>
     </mat-tab>
   </mat-tab-group>

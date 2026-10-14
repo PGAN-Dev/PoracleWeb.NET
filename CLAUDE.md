@@ -881,7 +881,46 @@ Shape differences, all handled once at the wire:
 | `change_types` JSON string | array | fort |
 | `pvp_ranking_league` any int | enum of `{0, 500, 1500, 2500}` | pokemon |
 
-Plus `uid`, `id`, `profile_no`, `ping` and `description`, which v2 has no place for and refuses outright.
+Plus `uid`, `id`, `profile_no` and `description`, which v2 has no place for and refuses outright. `ping`
+used to belong on this list too: every `V2*Rule` had no field for it and the handlers stored `Ping: ""`
+unconditionally on a v2 write, silently erasing a role or user mention set elsewhere (verified live
+against 5.2.1 -- a rule holding a mention came back blanked after one v2 PUT). jfberry/PoracleNG#249
+(merged 2026-10-11, unreleased) adds a real `ping` field to all eleven types. `TrackingV2Translator`
+gates it on `PoracleV2Capabilities.TrackingPing` (read from `V2PokemonRule.ping` in `/openapi.json`,
+standing in for the whole PR the way other single-PR capabilities here do) rather than a version compare,
+same reasoning as every other v2 schema capability: no release carries it, and a fork can report whatever
+version it likes. An empty ping is always fine to carry through either way, since v2 stores the same
+empty string regardless. Verified live against `poracle-ng-dev` once it carried #249: the identical
+mention now round-trips through a v2 PUT intact, read back from v1 as ground truth rather than trusted
+from the v2 response alone.
+
+**A server without the fix does not get the old behaviour back -- it gets a refusal.** The doc comment
+this replaces claimed a set ping "falls back to v1, which keeps it." That was never independently
+checked against what PoracleNG does with the write, only that the outgoing request carried the right
+value, and it was wrong: verified live, against both a stock jfberry/PoracleNG `develop` build and a
+private fork on the same commit, that the older surface blanks `ping` unconditionally too -- present,
+changed, or left untouched, create or update, field omitted or not. There has never been a write surface
+that preserves a mention on a server predating #249. `PoracleTrackingProxy.TryReplaceV2Async` checks
+`TrackingV2Translator.HasNonEmptyPing` before any fallback decision is made -- ahead of the type/version/
+route gates, not only the translation-failure branch, because every one of those still ends at the same
+destructive v1 write -- and throws `AlarmValidationException` rather than letting the edit through. This
+is deliberate data-loss prevention, not a stricter validation rule: refusing the whole edit (not just
+dropping the mention) is the only option that does not silently discard something the dialog may not
+even be showing. Covers all ten tracking types through the one proxy method both architectures share --
+`MonsterService` calls it directly, the other nine reach it through `TrackingV2Replacement.TryApplyAsync`.
+
+**The frontend exposes `ping` as a "Mention" field, edit dialogs only, gated the same way edit-in-place
+is.** `GET /api/config`'s `PingSupported` (sourced from `IPoracleV2SchemaService`, independent of
+Poracle's own config) backs `PoracleConfigService.serverConfig().pingSupported`; every edit dialog
+computes `pingSupported` from it and shows the field only when that *and* `isWebhook` (the dialog's
+existing `AuthService.isImpersonating()` snapshot) are both true -- a personal DM alarm has nobody else
+to notify, so the field would be presentation-only noise even where the server supports it. It is
+deliberately absent from every add dialog: create never uses v2 for any type, and v1 create blanks
+`ping` exactly like v1 update does, so offering it there would be a control that silently does nothing
+on every server that exists. `alarm-dialog-parity.spec.ts` -- the test that catches a control shipped in
+one dialog of a pair and not the other -- carries an explicit `EDIT_ONLY` exception for `ping` on every
+type it was added to, with this reasoning, rather than being silently exempted.
+
 The v1 shape stays the single internal currency — `TrackingFieldPreserver`, `TrackingUpdateReconciler`,
 `BulkUidRemap` and `QuickPickService` all build and compare it — and the translator is the only exit onto
 v2, which is what stops a v1-shaped row reaching a v2 body.

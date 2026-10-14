@@ -11,6 +11,7 @@ const FALLBACK: PoracleServerConfig = {
   everythingFlagPermissions: '',
   locale: 'en',
   maxDistance: 10726000,
+  pingSupported: false,
   poracleVersion: 'unknown',
   prefix: '!',
   pvpCaps: [],

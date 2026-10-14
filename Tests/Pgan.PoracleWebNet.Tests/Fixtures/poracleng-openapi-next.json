@@ -259,6 +259,20 @@
  },
  "components": {
   "schemas": {
+   "V2PokemonRule": {
+    "additionalProperties": false,
+    "properties": {
+     "ping": {
+      "description": "Text appended to the alert, typically Discord role/user mentions. Stored verbatim — not restricted to mention tokens as the bot is, so @everyone/@here in a channel rule will ping. Omit for none. Returned as null when empty.",
+      "maxLength": 255,
+      "type": [
+       "string",
+       "null"
+      ]
+     }
+    },
+    "type": "object"
+   },
    "V2SetAreasBody": {
     "additionalProperties": false,
     "properties": {

@@ -357,6 +357,8 @@
     "PING_PLACEHOLDER": "bijv. @Pokemon of laat leeg",
     "PING_HINT": "Discord rol die vermeld wordt in de melding",
     "CLEAN_MODE": "Opschoonmodus",
+    "MENTION_LABEL": "Vermelding",
+    "MENTION_HINT": "Wie te vermelden wanneer dit alarm afgaat — een Discord-rol zoals <@&123456789012345678> of een persoon zoals <@123456789012345678>. Werkt alleen bij een webhook-alarm.",
     "CLEAN_HINT_POKEMON": "Verwijdert de melding automatisch uit Discord nadat de Pokemon verdwijnt",
     "CLEAN_HINT_RAID": "Verwijdert de melding automatisch uit Discord nadat de raid eindigt",
     "CLEAN_HINT_QUEST": "Verwijdert de melding automatisch uit Discord wanneer quests om middernacht resetten",

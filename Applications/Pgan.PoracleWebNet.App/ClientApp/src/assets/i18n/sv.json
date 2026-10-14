@@ -357,6 +357,8 @@
     "PING_PLACEHOLDER": "t.ex. @Pokemon eller lämna tomt",
     "PING_HINT": "Discord-roll att nämna i notisen",
     "CLEAN_MODE": "Städningsläge",
+    "MENTION_LABEL": "Omnämnande",
+    "MENTION_HINT": "Vem som ska nämnas när detta larm utlöses — en Discord-roll som <@&123456789012345678> eller en person som <@123456789012345678>. Får bara effekt på ett webhook-larm.",
     "CLEAN_TAG": "städning",
     "CLEAN_HINT_POKEMON": "Raderar automatiskt notisen från Discord när Pokemon försvinner",
     "CLEAN_HINT_RAID": "Raderar automatiskt notisen från Discord när raiden är slut",
