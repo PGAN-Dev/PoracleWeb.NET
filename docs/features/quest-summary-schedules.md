@@ -62,6 +62,8 @@ delivery**. The dialog shows your current schedule and lets you edit, clear, or 
 Choose **Edit schedule** to open the schedule editor -- the same editor used for
 [profile active hours](profiles.md#using-the-schedule-editor):
 
+![Quest summary delivery schedule editor with a weekday 9 AM rule and a weekly preview grid](../screenshots/quest-summary-schedule.png)
+
 1. **Select days** with the circular day buttons (**M T W T F S S**). Quick presets are available:
     - **Weekdays** -- Monday through Friday
     - **Weekends** -- Saturday and Sunday
