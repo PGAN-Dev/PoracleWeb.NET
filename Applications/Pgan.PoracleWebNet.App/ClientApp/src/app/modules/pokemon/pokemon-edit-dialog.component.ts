@@ -26,7 +26,7 @@ import { SettingsService } from '../../core/services/settings.service';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
-import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-flags';
+import { AUTO_DELETE, EDIT, compose, isAutoDelete, isEdit, preserve } from '../../shared/utils/clean-flags';
 import { ANY_COSTUME, costumeHintKey } from '../../shared/utils/costumes';
 import { minTimeLabel, minTimeOptions } from '../../shared/utils/min-time';
 
@@ -70,6 +70,9 @@ export class PokemonEditDialogComponent implements OnInit {
 
   readonly dialogRef = inject(MatDialogRef<PokemonEditDialogComponent>);
 
+  /** Whether to show the edit-in-place toggle at all -- see MonsterService.editSupported. */
+  readonly editSupported = this.monsterService.editSupported;
+
   form = this.fb.group({
     atk: [this.data.atk],
     clean: [isAutoDelete(this.data.clean)],
@@ -77,6 +80,7 @@ export class PokemonEditDialogComponent implements OnInit {
     // rather than letting it fall to 0, which would silently narrow the rule on the next save.
     costume: [this.data.costume ?? ANY_COSTUME],
     def: [this.data.def],
+    editInPlace: [isEdit(this.data.clean)],
     form: [this.data.form],
     gender: [this.data.gender],
     // min_iv -1 is Poracle's "include Pokemon nobody has encountered" (and so any IV); it shows as the
@@ -180,7 +184,7 @@ export class PokemonEditDialogComponent implements OnInit {
       overrideAreas: scope.overrideAreas,
       overrideLocationLabel: scope.overrideLocationLabel,
       atk: values.atk ?? 0,
-      clean: preserve(this.data.clean, AUTO_DELETE, values.clean ? 1 : 0),
+      clean: preserve(this.data.clean, AUTO_DELETE | EDIT, compose(!!values.clean, !!values.editInPlace, false)),
       costume: values.costume ?? ANY_COSTUME,
       def: values.def ?? 0,
       distance: scope.distance,

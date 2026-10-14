@@ -563,10 +563,12 @@ Every alarm carries a `clean` field that PoracleNG reads as a **bitmask** contro
 | Mode (`clean` bit) | Applies to | What it does |
 |---|---|---|
 | **Auto-delete** (bit 1) | all alarm types except Fort Changes | Deletes the Discord notification after the event expires (e.g. a Pokemon despawns or a raid ends). Toggle per-alarm in the dialog, or in bulk from the **Cleaning** page. PoracleNG has no `clean` column for fort changes, so the setting does not exist for that type. |
-| **Edit message in place** (bit 2) | Lures; Raids/Eggs (via RSVP mode) | Updates the existing Discord message when the event changes instead of sending a new one. For lures, enable the **"Edit message in place"** toggle in the lure dialog; for raids/eggs it is set automatically when you choose an RSVP mode (see the `rsvpChanges` rows above). |
+| **Edit message in place** (bit 2) | Lures; Pokemon; Raids/Eggs (via RSVP mode) | Updates the existing Discord message when the event changes instead of sending a new one. For lures and Pokemon, enable the **"Edit message in place"** toggle in the alarm dialog; for raids/eggs it is set automatically when you choose an RSVP mode (see the `rsvpChanges` rows above). **Pokemon only:** the toggle appears only when the connected PoracleNG build supports it ([jfberry/PoracleNG#246](https://github.com/jfberry/PoracleNG/pull/246)); on an older build the control is hidden rather than offered as a no-op. While shown, an edit only updates the message within a short window after it was sent (the PoracleNG operator configures how long) -- a later change to the same Pokemon arrives as a threaded reply instead. |
 | **Daily summary** (bit 4) | Quests | Collects matching quests into a single summary message instead of one notification each. Enable the **"Daily summary"** toggle in the quest dialog. Requires a configured summary schedule on the bot. |
 
 The modes combine (a quest can be both auto-delete and daily-summary, for example). PoracleWeb **preserves any bits set elsewhere** — if you configured a delivery mode via the bot's `!command` interface that isn't surfaced in the web UI, editing the alarm in the browser will not wipe it.
+
+![Pokemon alarm dialog, Delivery tab, with Clean mode and Edit message in place both turned on](../screenshots/pokemon-add-dialog-delivery.png){ loading=lazy }
 
 ### RSVP updates (raids & eggs)
 
@@ -642,7 +644,7 @@ Max Battle-specific defaults:
 
 Most alarm cards include a **test button** (send/paper plane icon) that triggers a sample notification for that alarm. This lets users verify their alarm filters and notification formatting without waiting for a real event to occur.
 
-![Pokemon alarm list showing test button](../screenshots/pokemon.png){ loading=lazy }
+![Pokemon alarm list after sending a test alert, with the confirmation snackbar visible](../screenshots/test-alert-sent.png){ loading=lazy }
 
 ### How it works
 

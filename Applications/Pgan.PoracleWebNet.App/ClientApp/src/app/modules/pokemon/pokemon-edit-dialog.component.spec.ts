@@ -23,10 +23,10 @@ import { SettingsService } from '../../core/services/settings.service';
  */
 describe('PokemonEditDialogComponent', () => {
   let component: PokemonEditDialogComponent;
-  let monsterService: { update: jest.Mock };
+  let monsterService: { editSupported: jest.Mock; update: jest.Mock };
 
   function setup(monster: Partial<Monster>, costumeSupported = true) {
-    monsterService = { update: jest.fn().mockReturnValue(of({})) };
+    monsterService = { editSupported: jest.fn().mockReturnValue(true), update: jest.fn().mockReturnValue(of({})) };
 
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
@@ -182,5 +182,37 @@ describe('PokemonEditDialogComponent', () => {
     component.save();
 
     expect(sent().pvpRankingEvolution).toBe(2);
+  });
+
+  // jfberry/PoracleNG#246: edit-in-place for pokemon, mirroring the lure dialog's bit-2 handling.
+  describe('edit-in-place (clean bit 2)', () => {
+    it('initializes edit-in-place on from bit 2 when clean=2', () => {
+      setup({ clean: 2 });
+      expect(component.form.controls.clean.value).toBe(false);
+      expect(component.form.controls.editInPlace.value).toBe(true);
+    });
+
+    it('combines auto-delete + edit (clean 0 -> 3)', () => {
+      setup({ clean: 0 });
+      component.form.controls.clean.setValue(true);
+      component.form.controls.editInPlace.setValue(true);
+      component.save();
+      expect(sent().clean).toBe(3);
+    });
+
+    it('preserves an unsurfaced summary bit when editing (clean 5 -> 7)', () => {
+      // clean=5 => auto-delete (1) + summary (4); turning edit-in-place on must keep bit 4.
+      setup({ clean: 5 });
+      component.form.controls.editInPlace.setValue(true);
+      component.save();
+      expect(sent().clean).toBe(7);
+    });
+
+    it('clears bit 2 when toggled off (clean 3 -> 1)', () => {
+      setup({ clean: 3 });
+      component.form.controls.editInPlace.setValue(false);
+      component.save();
+      expect(sent().clean).toBe(1);
+    });
   });
 });

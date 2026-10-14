@@ -20,7 +20,7 @@ import { SettingsService } from '../../core/services/settings.service';
 describe('PokemonAddDialogComponent', () => {
   let component: PokemonAddDialogComponent;
   let dialogRef: { close: jest.Mock };
-  let monsterService: { create: jest.Mock };
+  let monsterService: { create: jest.Mock; editSupported: jest.Mock };
   let snackBar: { open: jest.Mock };
   let masterData: { costumesAvailable: jest.Mock; getCostumeName: jest.Mock; getCostumes: jest.Mock; getFormsForPokemon: jest.Mock };
 
@@ -34,7 +34,10 @@ describe('PokemonAddDialogComponent', () => {
     // A create answers 200 with uid 0 when the submission duplicates an alarm the user already has, so
     // the uid is what says whether anything was made. See #495.
     let nextUid = 100;
-    monsterService = { create: jest.fn().mockImplementation(() => of({ uid: nextUid++ } as Monster)) };
+    monsterService = {
+      create: jest.fn().mockImplementation(() => of({ uid: nextUid++ } as Monster)),
+      editSupported: jest.fn().mockReturnValue(true),
+    };
     snackBar = { open: jest.fn() };
     masterData = {
       costumesAvailable: jest.fn().mockReturnValue(true),
@@ -325,6 +328,33 @@ describe('PokemonAddDialogComponent', () => {
       component.selectedPokemonIds.set([25]);
       component.save();
       expect((monsterService.create.mock.calls[0][0] as MonsterCreate).costume).toBe(9000);
+    });
+  });
+
+  // jfberry/PoracleNG#246: edit-in-place for pokemon, composed onto clean bit 2.
+  describe('edit-in-place (clean bit 2)', () => {
+    it('sends clean=0 when neither toggle is set', () => {
+      component.selectedPokemonIds.set([MEOWTH]);
+      component.save();
+
+      expect((monsterService.create.mock.calls[0][0] as MonsterCreate).clean).toBe(0);
+    });
+
+    it('sends clean=2 when only edit-in-place is on', () => {
+      component.notifForm.controls.editInPlace.setValue(true);
+      component.selectedPokemonIds.set([MEOWTH]);
+      component.save();
+
+      expect((monsterService.create.mock.calls[0][0] as MonsterCreate).clean).toBe(2);
+    });
+
+    it('combines auto-delete + edit-in-place (clean=3)', () => {
+      component.notifForm.controls.clean.setValue(true);
+      component.notifForm.controls.editInPlace.setValue(true);
+      component.selectedPokemonIds.set([MEOWTH]);
+      component.save();
+
+      expect((monsterService.create.mock.calls[0][0] as MonsterCreate).clean).toBe(3);
     });
   });
 });

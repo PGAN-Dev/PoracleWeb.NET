@@ -705,7 +705,32 @@ Use raw SQL with **unquoted** identifiers (so the statement also parses on SQLit
 The `gym_id` column in Poracle alarm tables (gym, raid, egg) is a `NOT NULL` string that defaults to `""` (empty string) meaning "any gym". PoracleNG handles the null-to-empty normalization on its side. The `GymPickerComponent` emits `null` when cleared and the gym's `id` string when selected.
 
 ### Clean Field Bitmask
-The alarm `clean` field is a **3-bit bitmask** in PoracleNG, not a boolean: bit 1 = auto-delete, bit 2 = edit-in-place, bit 4 = summary (`db.IsClean/IsEdit/IsSummary` in PoracleNG; quest summary is gated by `summary_schedules`). Use `CleanFlags` (`Core.Models/CleanFlags.cs`) and the frontend twin `shared/utils/clean-flags.ts` (`AUTO_DELETE`/`EDIT`/`SUMMARY`, `isAutoDelete/isEdit/isSummary`, `compose`, `preserve(existing, mask, changes)`) for all reads/writes so bits set elsewhere (e.g. via the bot) survive a web edit. Models cap `Clean` at `[Range(0, 7)]`. UI controls exist only where PoracleNG acts on the bit: auto-delete (all types), edit-in-place (lures + raids/eggs via RSVP `rsvpChanges`), and daily summary (quests). **Angular templates can't parse bitwise `&`** — gate card badges via a component method (e.g. `isAutoDelete(clean)`), not inline `clean & 1`. See #292.
+The alarm `clean` field is a **3-bit bitmask** in PoracleNG, not a boolean: bit 1 = auto-delete, bit 2 = edit-in-place, bit 4 = summary (`db.IsClean/IsEdit/IsSummary` in PoracleNG; quest summary is gated by `summary_schedules`). Use `CleanFlags` (`Core.Models/CleanFlags.cs`) and the frontend twin `shared/utils/clean-flags.ts` (`AUTO_DELETE`/`EDIT`/`SUMMARY`, `isAutoDelete/isEdit/isSummary`, `compose`, `preserve(existing, mask, changes)`) for all reads/writes so bits set elsewhere (e.g. via the bot) survive a web edit. Models cap `Clean` at `[Range(0, 7)]`. UI controls exist only where PoracleNG acts on the bit: auto-delete (all types), edit-in-place (lures, raids/eggs via RSVP `rsvpChanges`, and pokemon -- see below), and daily summary (quests). **Angular templates can't parse bitwise `&`** — gate card badges via a component method (e.g. `isAutoDelete(clean)`), not inline `clean & 1`. See #292.
+
+**Pokemon edit-in-place is capability-gated, not unconditional (jfberry/PoracleNG#246).** Before that PR
+(merged into upstream `develop` 2026-10-08, not yet in a tagged release as of this writing), the
+processor accepted the pokemon `edit` bit on every surface (commands, v1, v2) but never acted on it --
+storable and readable, functionally inert. #246 makes it real, with a per-deployment config gate
+(`[tracking] pokemon_edit`, default `true`) and a `pokemon_edit_window_mins` (default 5, `0` = no
+limit): a re-send for the same encounter inside the window edits the original DM; past it, a threaded
+reply is sent instead so the clean-delete on the original is undisturbed. `MonsterController.GetCapability`
+(`GET /api/monsters/capability`) answers `{ edit: bool }` from `PokemonEditCapabilityService`, which
+reads `tracking.pokemon_edit` off `/api/config/values` via `IPoracleApiProxy.GetPokemonEditEnabledAsync()`
+-- mirrors `SummaryCapabilityService`/quest's `pokecoins` capability exactly, 5-minute cache, degrades to
+`false` on any fault or absent key. The SPA's `MonsterService.editSupported` signal gates the toggle in
+both pokemon dialogs; hidden means the form control still exists (seeded from the stored bit) so a toggle
+a bot set earlier round-trips unchanged even when the control itself isn't shown.
+
+**#246 also tightens `/api/v2`: `edit: true` now 422s for gym, invasion, nest, maxbattle and quest** --
+alert types whose message is never tracked for editing, so the bit was never settable there (no UI, and
+the bot's `!track edit` keyword was never declared for those types either). Only pokemon, lure, raid, egg
+and pokestop events (incident) can carry it going forward. `TrackingV2Translator` currently writes `edit`
+unconditionally for every type but fort ("all but fort" in the shape-differences table below) -- latent,
+not live-broken, since nothing has ever set bit 2 for the five rejected types, but worth tightening before
+an operator upgrades PoracleNG out from under it. Verified live against a PoracleNG build carrying #246
+(dev-01's "next" testbed, rebuilt 2026-10-14 to commit `4931758f`): `tracking.pokemon_edit: true` on
+`/api/config/values`, a v2 pokemon PUT with `edit: true` returns 200 and round-trips `clean: 2` on the v1
+read, and the identical PUT against gym returns 422.
 
 ### PoracleNG Decides Insert vs Update vs Duplicate — And PoracleWeb Must Mirror It
 
@@ -848,6 +873,7 @@ Shape differences, all handled once at the wire:
 | v1 | v2 | Types |
 |---|---|---|
 | `clean` 3-bit mask | `clean` / `edit` / `summary` booleans | all but fort |
+| ^ with jfberry/PoracleNG#246 (unreleased): `edit: true` 422s | n/a | gym, invasion, nest, maxbattle, quest -- see "Clean Field Bitmask" above |
 | `gender` 0-3 | `any` / `male` / `female` / `genderless` | pokemon |
 | `team` 0-4 | `harmony` / `mystic` / `valor` / `instinct` / `any` | raid, egg, gym |
 | `rsvp_changes` 0-2 | `none` / `rsvp` / `rsvp_only` | raid, egg |

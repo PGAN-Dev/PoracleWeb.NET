@@ -9,12 +9,28 @@ namespace Pgan.PoracleWebNet.Tests.Controllers;
 public class MonsterControllerTests : ControllerTestBase
 {
     private readonly Mock<IMonsterService> _service = new();
+    private readonly Mock<IPokemonEditCapabilityService> _editCapability = new();
     private readonly MonsterController _sut;
 
     public MonsterControllerTests()
     {
-        this._sut = new MonsterController(this._service.Object);
+        this._sut = new MonsterController(this._service.Object, this._editCapability.Object);
         SetupUser(this._sut);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task GetCapabilityReturnsEditBoolean(bool enabled)
+    {
+        this._editCapability.Setup(c => c.IsPokemonEditEnabledAsync()).ReturnsAsync(enabled);
+
+        var result = await this._sut.GetCapability();
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.NotNull(ok.Value);
+        var flag = (bool?)ok.Value.GetType().GetProperty("edit")?.GetValue(ok.Value);
+        Assert.Equal(enabled, flag);
     }
 
     [Fact]
