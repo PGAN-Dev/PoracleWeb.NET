@@ -568,6 +568,8 @@ Every alarm carries a `clean` field that PoracleNG reads as a **bitmask** contro
 
 The modes combine (a quest can be both auto-delete and daily-summary, for example). PoracleWeb **preserves any bits set elsewhere** — if you configured a delivery mode via the bot's `!command` interface that isn't surfaced in the web UI, editing the alarm in the browser will not wipe it.
 
+![Pokemon alarm dialog, Delivery tab, with Clean mode and Edit message in place both turned on](../screenshots/pokemon-add-dialog-delivery.png){ loading=lazy }
+
 ### RSVP updates (raids & eggs)
 
 Raid and egg alarms add a third delivery setting on top of auto-delete and edit-in-place: an **RSVP notification mode**, stored in the `rsvpChanges` field (see the `rsvpChanges` rows under the raid and egg filter tables above). Choose it from the three-option toggle group in the raid/egg add/edit dialog:
@@ -642,7 +644,7 @@ Max Battle-specific defaults:
 
 Most alarm cards include a **test button** (send/paper plane icon) that triggers a sample notification for that alarm. This lets users verify their alarm filters and notification formatting without waiting for a real event to occur.
 
-![Pokemon alarm list showing test button](../screenshots/pokemon.png){ loading=lazy }
+![Pokemon alarm list after sending a test alert, with the confirmation snackbar visible](../screenshots/test-alert-sent.png){ loading=lazy }
 
 ### How it works
 
