@@ -336,6 +336,37 @@ public class TrackingV2TypeTranslationTests
         Assert.NotNull(unsupported);
     }
 
+    /// <summary>
+    /// The legitimate-case half of the ping refusal above (jfberry/PoracleNG#249). A set ping still
+    /// declines on a server that was not asked whether it supports it -- the default -- but writes
+    /// through, verbatim, once the caller says it does.
+    /// </summary>
+    [Fact]
+    public void ASetPingWritesThroughOnAServerThatSupportsIt()
+    {
+        const string mention = "<@&400027130022592512>";
+
+        Assert.True(
+            TrackingV2Translator.TryTranslate(
+                "raid", Row($$"""{"pokemon_id":150,"ping":"{{mention}}"}"""), ServerDoesNotBoundAnything,
+                out var translated, out var unsupported, pingSupported: true),
+            unsupported);
+        Assert.Equal(mention, translated.GetProperty("ping").GetString());
+    }
+
+    /// <summary>An empty ping is fine to carry through either way: v2 stores the same empty string regardless.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AnEmptyPingNeverBlocksTheWriteEitherWay(bool pingSupported)
+    {
+        Assert.True(
+            TrackingV2Translator.TryTranslate(
+                "raid", Row("""{"pokemon_id":150,"ping":""}"""), ServerDoesNotBoundAnything,
+                out _, out var unsupported, pingSupported),
+            unsupported);
+    }
+
     [Theory]
     [InlineData("pokestop")]
     [InlineData("gym")]

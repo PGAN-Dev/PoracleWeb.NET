@@ -1,5 +1,5 @@
-import { Component, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -16,6 +16,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
+import { PoracleConfigService } from '../../core/services/poracle-config.service';
 import { QuestService } from '../../core/services/quest.service';
 import { SummaryScheduleService } from '../../core/services/summary-schedule.service';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
@@ -65,7 +66,7 @@ const REWARD_SLOT_TYPES = new Set([STARDUST, POKECOINS]);
   styleUrl: './quest-edit-dialog.component.scss',
   templateUrl: './quest-edit-dialog.component.html',
 })
-export class QuestEditDialogComponent {
+export class QuestEditDialogComponent implements OnInit {
   private static readonly FALLBACK =
     "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23999'%3E%3Cpath d='M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z'/%3E%3C/svg%3E";
 
@@ -73,6 +74,7 @@ export class QuestEditDialogComponent {
   private readonly i18n = inject(I18nService);
   private readonly iconService = inject(IconService);
   private readonly masterData = inject(MasterDataService);
+  private readonly poracleConfig = inject(PoracleConfigService);
   private readonly questService = inject(QuestService);
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<Quest>(MAT_DIALOG_DATA);
@@ -84,6 +86,9 @@ export class QuestEditDialogComponent {
     // changing which reward it is about, so unlike the reward itself they are editable here.
     amount: [this.data.amount ?? 0],
     clean: [isAutoDelete(this.data.clean)],
+    // Always present even when the control is hidden -- see pingSupported below -- so a mention
+    // round-trips unchanged through a save this dialog makes for an unrelated field.
+    ping: [this.data.ping ?? '', [Validators.maxLength(255)]],
     stardust: [REWARD_SLOT_TYPES.has(this.data.rewardType) ? (this.data.reward ?? 0) : 0],
     summary: [isSummary(this.data.clean)],
     template: [this.data.template ?? ''],
@@ -95,6 +100,9 @@ export class QuestEditDialogComponent {
   readonly isPokecoins = this.data.rewardType === POKECOINS;
 
   readonly isWebhook = inject(AuthService).isImpersonating();
+
+  /** Whether to show the Mention control at all -- see pokemon-edit-dialog's pingSupported for why. */
+  readonly pingSupported = computed(() => this.poracleConfig.serverConfig().pingSupported);
 
   saving = signal(false);
 
@@ -173,6 +181,10 @@ export class QuestEditDialogComponent {
     return this.getRewardTypeLabel();
   }
 
+  ngOnInit(): void {
+    this.poracleConfig.load().subscribe();
+  }
+
   onImageError(event: Event): void {
     (event.target as HTMLImageElement).style.display = 'none';
   }
@@ -192,6 +204,7 @@ export class QuestEditDialogComponent {
       amount: this.hasAmount ? (values.amount ?? 0) : this.data.amount,
       clean: preserve(this.data.clean, AUTO_DELETE | SUMMARY, compose(!!values.clean, false, !!values.summary)),
       distance: scope.distance,
+      ping: values.ping ?? '',
       pokemonId: this.data.pokemonId,
       reward: this.usesRewardSlot ? (values.stardust ?? 0) : this.data.reward,
       rewardType: this.data.rewardType,

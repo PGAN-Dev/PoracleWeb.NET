@@ -1,5 +1,5 @@
-import { Component, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -18,6 +18,7 @@ import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MaxBattleService } from '../../core/services/max-battle.service';
+import { PoracleConfigService } from '../../core/services/poracle-config.service';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
@@ -67,12 +68,13 @@ const LEVEL_OPTION_KEYS: { gmax: boolean; i18nKey: string; value: number }[] = [
   styleUrl: './max-battle-edit-dialog.component.scss',
   templateUrl: './max-battle-edit-dialog.component.html',
 })
-export class MaxBattleEditDialogComponent {
+export class MaxBattleEditDialogComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly i18n = inject(I18nService);
   private readonly iconService = inject(IconService);
   private readonly masterData = inject(MasterDataService);
   private readonly maxBattleService = inject(MaxBattleService);
+  private readonly poracleConfig = inject(PoracleConfigService);
   private readonly snackBar = inject(MatSnackBar);
 
   readonly data = inject<MaxBattleEditDialogData>(MAT_DIALOG_DATA);
@@ -82,6 +84,9 @@ export class MaxBattleEditDialogComponent {
     clean: [isAutoDelete(this.data.item.clean)],
     gmax: [this.data.item.gmax === 1],
     level: [this.data.item.level],
+    // Always present even when the control is hidden -- see pingSupported below -- so a mention
+    // round-trips unchanged through a save this dialog makes for an unrelated field.
+    ping: [this.data.item.ping ?? '', [Validators.maxLength(255)]],
     template: [this.data.item.template ?? ''],
   });
 
@@ -93,6 +98,9 @@ export class MaxBattleEditDialogComponent {
     label: this.i18n.instant(k.i18nKey),
     value: k.value,
   }));
+
+  /** Whether to show the Mention control at all -- see pokemon-edit-dialog's pingSupported for why. */
+  readonly pingSupported = computed(() => this.poracleConfig.serverConfig().pingSupported);
 
   saving = signal(false);
 
@@ -126,6 +134,10 @@ export class MaxBattleEditDialogComponent {
     return this.data.item.gmax === 1 || this.data.item.level === 7 || this.data.item.level === 8;
   }
 
+  ngOnInit(): void {
+    this.poracleConfig.load().subscribe();
+  }
+
   onImageError(event: Event): void {
     (event.target as HTMLImageElement).style.display = 'none';
   }
@@ -156,6 +168,7 @@ export class MaxBattleEditDialogComponent {
       gmax: gmaxVal,
       level: levelVal,
       move: item.move,
+      ping: values.ping ?? '',
       pokemonId: item.pokemonId,
       stationId: null,
       template: values.template || '',

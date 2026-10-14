@@ -11,8 +11,10 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 /// <para>
 /// The two fixtures are real documents, trimmed to the parts the parser reads: one from a production
 /// 5.2.1, one from a build of PoracleNG's <c>develop</c> at <c>634fe044</c> (PR #217) running on the
-/// dev-01 test bed. A hand-written document would assert this code's own idea of the shape, which is
-/// the failure CLAUDE.md records under "Tests: assert what must still work".
+/// dev-01 test bed, with <c>V2PokemonRule.ping</c> added from a later live capture against
+/// <c>poracle-ng-dev</c> once it carried PR #249 -- the "next" fixture is "develop, trimmed as it is
+/// seen over time", not a single frozen commit. A hand-written document would assert this code's own
+/// idea of the shape, which is the failure CLAUDE.md records under "Tests: assert what must still work".
 /// </para>
 /// <para>
 /// Both halves matter. The 5.2.1 fixture is the no-change case — every capability false, every caller
@@ -40,6 +42,7 @@ public class PoracleV2SchemaServiceTests
         Assert.False(capabilities.ProfileCreateReturnsNumber);
         Assert.False(capabilities.AdminHumanRoutes);
         Assert.False(capabilities.InvasionGruntType);
+        Assert.False(capabilities.TrackingPing);
     }
 
     [Fact]
@@ -53,6 +56,7 @@ public class PoracleV2SchemaServiceTests
         Assert.True(capabilities.ProfileCreateReturnsNumber);
         Assert.True(capabilities.AdminHumanRoutes);
         Assert.True(capabilities.InvasionGruntType);
+        Assert.True(capabilities.TrackingPing);
     }
 
     [Theory]
@@ -74,6 +78,7 @@ public class PoracleV2SchemaServiceTests
         Assert.False(capabilities.ProfileCreateReturnsNumber);
         Assert.False(capabilities.AdminHumanRoutes);
         Assert.False(capabilities.InvasionGruntType);
+        Assert.False(capabilities.TrackingPing);
     }
 
     [Fact]

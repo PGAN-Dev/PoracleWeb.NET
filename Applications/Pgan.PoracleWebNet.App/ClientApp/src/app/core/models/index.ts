@@ -404,6 +404,13 @@ export interface PoracleServerConfig {
   pvpFilterMaxRank: number;
   pvpFilterUltraMinCp: number;
   pvpLittleLeagueAllowed: boolean;
+  /**
+   * Whether the connected PoracleNG's /api/v2 genuinely stores a webhook mention (`ping`) rather than
+   * blanking it -- jfberry/PoracleNG#249, not yet in a tagged release. False on every released server.
+   * Gates the "Mention" delivery control in every alarm dialog: hidden rather than offered as a no-op,
+   * same reasoning as the Pokemon edit-in-place toggle.
+   */
+  pingSupported: boolean;
 }
 
 export interface AreaDefinition {

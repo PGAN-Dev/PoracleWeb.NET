@@ -1,5 +1,5 @@
-import { Component, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -18,6 +18,7 @@ import { EggService } from '../../core/services/egg.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
+import { PoracleConfigService } from '../../core/services/poracle-config.service';
 import { RaidService } from '../../core/services/raid.service';
 import { SettingsService } from '../../core/services/settings.service';
 import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
@@ -60,13 +61,14 @@ export interface RaidEditDialogData {
   styleUrl: './raid-edit-dialog.component.scss',
   templateUrl: './raid-edit-dialog.component.html',
 })
-export class RaidEditDialogComponent {
+export class RaidEditDialogComponent implements OnInit {
   private readonly eggService = inject(EggService);
   private readonly fb = inject(FormBuilder);
   private readonly i18n = inject(I18nService);
   private readonly iconService = inject(IconService);
   private readonly levelLabelPipe = inject(LevelLabelPipe);
   private readonly masterData = inject(MasterDataService);
+  private readonly poracleConfig = inject(PoracleConfigService);
   private readonly raidService = inject(RaidService);
   private readonly settings = inject(SettingsService);
   private readonly snackBar = inject(MatSnackBar);
@@ -77,12 +79,18 @@ export class RaidEditDialogComponent {
     // Eggs have no costume column, and a rule stored before PoracleNG had one reads back undefined.
     // Both widen to "any" rather than falling to 0, which is the real "no costume" filter.
     costume: [this.data.type === 'raid' ? ((this.data.item as Raid).costume ?? ANY_COSTUME) : ANY_COSTUME],
+    // Always present even when the control is hidden -- see pingSupported below -- so a mention
+    // round-trips unchanged through a save this dialog makes for an unrelated field.
+    ping: [this.data.item.ping ?? '', [Validators.maxLength(255)]],
     rsvpChanges: [this.data.item.rsvpChanges],
     team: [this.data.item.team],
     template: [this.data.item.template ?? ''],
   });
 
   readonly isWebhook = inject(AuthService).isImpersonating();
+
+  /** Whether to show the Mention control at all -- see pokemon-edit-dialog's pingSupported for why. */
+  readonly pingSupported = computed(() => this.poracleConfig.serverConfig().pingSupported);
 
   saving = signal(false);
 
@@ -132,6 +140,10 @@ export class RaidEditDialogComponent {
     return this.levelLabelPipe.transform(raid.level) + ' ' + this.i18n.instant('RAIDS.RAID_SUFFIX');
   }
 
+  ngOnInit(): void {
+    this.poracleConfig.load().subscribe();
+  }
+
   onImageError(event: Event): void {
     (event.target as HTMLImageElement).style.display = 'none';
   }
@@ -160,6 +172,7 @@ export class RaidEditDialogComponent {
         gymId: this.selectedGymId() ?? '',
         level: raid.level,
         move: raid.move,
+        ping: values.ping ?? '',
         pokemonId: raid.pokemonId,
         rsvpChanges: values.rsvpChanges ?? 0,
         team: values.team ?? 4,
@@ -189,6 +202,7 @@ export class RaidEditDialogComponent {
         exclusive: egg.exclusive,
         gymId: this.selectedGymId() ?? '',
         level: egg.level,
+        ping: values.ping ?? '',
         rsvpChanges: values.rsvpChanges ?? 0,
         team: values.team ?? 4,
         template: values.template || '',

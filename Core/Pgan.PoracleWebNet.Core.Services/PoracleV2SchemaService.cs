@@ -13,9 +13,9 @@ namespace Pgan.PoracleWebNet.Core.Services;
 /// <remarks>
 /// <para>
 /// One probe, many answers — the same shape as <see cref="PoracleServerProfileService"/>, which reads
-/// <c>/health</c>. Five features gate on PoracleNG PR #217 and none of them can be told apart by version:
-/// the branch reports <c>5.3.0</c>, no release carries it, and which release it eventually lands in is
-/// not knowable from here. The document is.
+/// <c>/health</c>. Five features gate on PoracleNG PR #217 and one on PR #249, and none of them can be
+/// told apart by version: the branch reports <c>5.3.0</c>, no release carries it, and which release it
+/// eventually lands in is not knowable from here. The document is.
 /// </para>
 /// <para>
 /// Cached ten minutes, matching the bounds read in <see cref="PoracleTrackingProxy"/> that already pulls
@@ -106,6 +106,7 @@ public partial class PoracleV2SchemaService(
                     && HasOperation(paths, "/v2/humans/{id}", "delete")
                     && HasProperty(schemas, "V2HumanSummary", "last_checked"),
                 InvasionGruntType = HasProperty(schemas, "V2InvasionRule", "grunt_type"),
+                TrackingPing = HasProperty(schemas, "V2PokemonRule", "ping"),
             };
         }
         catch (JsonException)

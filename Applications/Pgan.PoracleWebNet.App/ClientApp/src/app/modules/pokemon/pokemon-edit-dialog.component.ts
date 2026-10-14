@@ -1,5 +1,5 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -99,6 +99,10 @@ export class PokemonEditDialogComponent implements OnInit {
     minLevel: [this.data.minLevel],
     minTime: [this.data.minTime ?? 0],
     minWeight: [this.data.minWeight],
+    // Always present, even when the control is hidden -- see pingSupported above -- so a mention set
+    // by the bot, or by a web edit on a server that supports it, round-trips unchanged through a save
+    // this dialog makes for an unrelated field.
+    ping: [this.data.ping ?? '', [Validators.maxLength(255)]],
     // Read-only here on purpose: an alarm's place or areas are changed from the card chip, which is one
     // control in one place. This dialog only has to avoid destroying them, which it does by keeping
     // the stored label and sending the radius against it.
@@ -115,6 +119,15 @@ export class PokemonEditDialogComponent implements OnInit {
   });
 
   readonly isWebhook = inject(AuthService).isImpersonating();
+
+  /**
+   * Whether to show the Mention control at all. Gated on both halves: a webhook alarm is the only
+   * place a mention does anything (a personal DM has nobody else to notify), and the connected
+   * PoracleNG must genuinely store it rather than blank it (jfberry/PoracleNG#249) -- offering the
+   * control on an older server would be a control nobody could use. See CLAUDE.md's "Clean Field
+   * Bitmask" / ping section for why a v1 write can never carry a changed mention safely either way.
+   */
+  readonly pingSupported = computed(() => this.poracleConfig.serverConfig().pingSupported);
 
   pokemonName = this.data.pokemonId === 0 ? this.i18n.instant('POKEMON.ALL_POKEMON') : this.masterData.getPokemonName(this.data.pokemonId);
 
@@ -203,6 +216,7 @@ export class PokemonEditDialogComponent implements OnInit {
       minLevel: values.minLevel ?? 0,
       minTime: values.minTime ?? 0,
       minWeight: values.minWeight ?? 0,
+      ping: values.ping ?? '',
       pvpRankingBest: values.pvpRankingLeague ? (values.pvpRankingBest ?? 1) : 1,
       pvpRankingCap: values.pvpRankingLeague ? (values.pvpRankingCap ?? 0) : 0,
       pvpRankingEvolution: values.pvpRankingLeague ? (values.pvpRankingEvolution ?? 0) : 0,

@@ -1,5 +1,5 @@
-import { Component, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -16,6 +16,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { LureService } from '../../core/services/lure.service';
+import { PoracleConfigService } from '../../core/services/poracle-config.service';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
@@ -42,11 +43,12 @@ import { AUTO_DELETE, compose, EDIT, isAutoDelete, isEdit, preserve } from '../.
   styleUrl: './lure-edit-dialog.component.scss',
   templateUrl: './lure-edit-dialog.component.html',
 })
-export class LureEditDialogComponent {
+export class LureEditDialogComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly i18n = inject(I18nService);
   private readonly icons = inject(IconService);
   private readonly lureService = inject(LureService);
+  private readonly poracleConfig = inject(PoracleConfigService);
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<Lure>(MAT_DIALOG_DATA);
   readonly dialogRef = inject(MatDialogRef<LureEditDialogComponent>);
@@ -54,15 +56,22 @@ export class LureEditDialogComponent {
   form = this.fb.group({
     clean: [isAutoDelete(this.data.clean)],
     editInPlace: [isEdit(this.data.clean)],
+    // Always present even when the control is hidden -- see pingSupported below -- so a mention
+    // round-trips unchanged through a save this dialog makes for an unrelated field.
+    ping: [this.data.ping ?? '', [Validators.maxLength(255)]],
     template: [this.data.template ?? ''],
   });
 
   readonly isWebhook = inject(AuthService).isImpersonating();
 
+  /** Whether to show the Mention control at all -- see pokemon-edit-dialog's pingSupported for why. */
+  readonly pingSupported = computed(() => this.poracleConfig.serverConfig().pingSupported);
+
   saving = signal(false);
 
   /** The alarm's current scope, read back into the shared picker. */
   readonly scope = signal<AlarmScope>(scopeOf(this.data.overrideLocationLabel, this.data.overrideAreas, this.data.distance));
+
   getLureIcon(): string {
     return this.icons.getItemUrl(this.data.lureId);
   }
@@ -86,6 +95,10 @@ export class LureEditDialogComponent {
     }
   }
 
+  ngOnInit(): void {
+    this.poracleConfig.load().subscribe();
+  }
+
   save(): void {
     this.saving.set(true);
     const v = this.form.getRawValue();
@@ -99,6 +112,7 @@ export class LureEditDialogComponent {
         clean: preserve(this.data.clean, AUTO_DELETE | EDIT, compose(!!v.clean, !!v.editInPlace, false)),
         distance: scope.distance,
         lureId: this.data.lureId,
+        ping: v.ping ?? '',
         template: v.template || '',
       } as LureUpdate)
       .subscribe({

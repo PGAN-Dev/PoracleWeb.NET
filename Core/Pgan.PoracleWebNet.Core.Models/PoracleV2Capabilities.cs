@@ -92,6 +92,23 @@ public sealed class PoracleV2Capabilities
         get; init;
     }
 
+    /// <summary>
+    /// <c>V2PokemonRule</c> carries <c>ping</c>, and a v2 write of it is genuinely stored rather than
+    /// blanked. See jfberry/PoracleNG#249.
+    /// </summary>
+    /// <remarks>
+    /// Before #249, every <c>V2*Rule</c> had no field for <c>ping</c> at all and the handlers stored
+    /// <c>Ping: ""</c> unconditionally on a v2 write -- silently erasing a role or user mention that was
+    /// the entire point of the alert. Checked against <c>V2PokemonRule</c> only, as the one type verified
+    /// live, standing in for all eleven the way <see cref="InvasionGruntType"/> stands in for one PR
+    /// landing as a whole -- #249 touches the same shared <c>translateV2*</c> functions for every type,
+    /// not pokemon's alone.
+    /// </remarks>
+    public bool TrackingPing
+    {
+        get; init;
+    }
+
     /// <summary>True when the document was read and parsed, whatever it turned out to say.</summary>
     /// <remarks>
     /// Distinct from every capability being false, which is also what an unreachable server looks like.
