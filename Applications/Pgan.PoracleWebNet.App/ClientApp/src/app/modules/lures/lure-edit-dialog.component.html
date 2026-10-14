@@ -47,7 +47,7 @@
         @if (isWebhook && pingSupported()) {
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>{{ 'ALARM.MENTION_LABEL' | translate }}</mat-label>
-            <input matInput [formControl]="form.controls.ping" maxlength="255" placeholder="<@&123456789012345678>" />
+            <input matInput [formControl]="form.controls.ping" maxlength="255" />
             <mat-hint>{{ 'ALARM.MENTION_HINT' | translate }}</mat-hint>
           </mat-form-field>
         }
