@@ -252,6 +252,10 @@ public class PoracleApiProxy(HttpClient httpClient, IConfiguration configuration
     public Task<bool?> GetAreaSecurityEnabledAsync() =>
         this.ReadConfigValueBoolAsync("area_security", "enabled");
 
+    /// <inheritdoc />
+    public Task<bool?> GetPokemonEditEnabledAsync() =>
+        this.ReadConfigValueBoolAsync("tracking", "pokemon_edit");
+
     /// <summary>
     /// Reads a single boolean out of <c>GET /api/config/values</c>, whose body is shaped
     /// <c>{ "values": { "&lt;section&gt;": { "&lt;key&gt;": true } } }</c>. Returns <c>null</c> when the

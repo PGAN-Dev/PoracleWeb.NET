@@ -36,6 +36,17 @@ public interface IPoracleApiProxy
     /// </summary>
     Task<bool?> GetAreaSecurityEnabledAsync();
 
+    /// <summary>
+    /// Reads <c>tracking.pokemon_edit</c> from PoracleNG's config-values endpoint. The key only exists
+    /// on a PoracleNG built after jfberry/PoracleNG#246 (merged 2026-10-08, not yet in a tagged
+    /// release): before that, the processor accepted the pokemon <c>edit</c> bit (commands, v1 and v2)
+    /// but never acted on it, so the bit was storable and readable but inert. <c>null</c> means the key
+    /// is absent -- an older build, or an unreadable response -- distinct from an operator explicitly
+    /// setting <c>pokemon_edit = false</c>. Either way the caller must treat it as "cannot offer the
+    /// control", not "offer it anyway".
+    /// </summary>
+    Task<bool?> GetPokemonEditEnabledAsync();
+
     Task<string?> GetTemplatesAsync();
     Task<string?> GetGruntsAsync(string? locale = null);
 
