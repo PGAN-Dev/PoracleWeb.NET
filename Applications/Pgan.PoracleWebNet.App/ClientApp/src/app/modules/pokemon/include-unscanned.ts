@@ -1,7 +1,7 @@
 import { AbstractControl } from '@angular/forms';
 
 /**
- * Keeps the "include Pokemon nobody has scanned yet" switch and the Min IV box consistent.
+ * Keeps the "include Pokemon without stats" switch and the Min IV box consistent.
  *
  * A Pokemon nobody has encountered has no IV, which Poracle treats as -1 and drops when it is below the
  * rule's min_iv. Saving min_iv -1 is how a rule asks for those spawns, and it also lets every
