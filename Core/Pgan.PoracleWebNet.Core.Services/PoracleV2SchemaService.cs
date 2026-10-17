@@ -107,6 +107,14 @@ public partial class PoracleV2SchemaService(
                     && HasProperty(schemas, "V2HumanSummary", "last_checked"),
                 InvasionGruntType = HasProperty(schemas, "V2InvasionRule", "grunt_type"),
                 TrackingPing = HasProperty(schemas, "V2PokemonRule", "ping"),
+                // jfberry/PoracleNG#255. Both fields together, and the list, add and unlink operations
+                // together: personal tracking matches nothing without a linked account, and an account
+                // that cannot be unlinked is one the user cannot take back.
+                PersonalTracking = HasProperty(schemas, "V2PokemonRule", "personal_shiny")
+                    && HasProperty(schemas, "V2PokemonRule", "personal_background"),
+                PlayerAccounts = HasOperation(paths, "/v2/humans/{id}/accounts", "get")
+                    && HasOperation(paths, "/v2/humans/{id}/accounts", "post")
+                    && HasOperation(paths, "/v2/humans/{id}/accounts/{player_id}", "delete"),
             };
         }
         catch (JsonException)

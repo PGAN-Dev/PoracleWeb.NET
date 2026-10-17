@@ -43,6 +43,8 @@ public class PoracleV2SchemaServiceTests
         Assert.False(capabilities.AdminHumanRoutes);
         Assert.False(capabilities.InvasionGruntType);
         Assert.False(capabilities.TrackingPing);
+        Assert.False(capabilities.PersonalTracking);
+        Assert.False(capabilities.PlayerAccounts);
     }
 
     [Fact]
@@ -57,6 +59,68 @@ public class PoracleV2SchemaServiceTests
         Assert.True(capabilities.AdminHumanRoutes);
         Assert.True(capabilities.InvasionGruntType);
         Assert.True(capabilities.TrackingPing);
+
+        // "All of them" stops at the develop branch. Personal shiny is a separate, later PR (#255), and
+        // `next` is a capture from before it, so these two are false here on purpose -- not forgotten.
+        Assert.False(capabilities.PersonalTracking);
+        Assert.False(capabilities.PlayerAccounts);
+    }
+
+    /// <summary>
+    /// The fixture is hand-trimmed from the Go source of jfberry/PoracleNG <c>feat/personal-shiny</c>
+    /// (see its <c>x-source</c>), not captured live, so this proves the parser reads the document shape
+    /// huma generates for those declarations -- replace the fixture with a live capture when a build exists.
+    /// </summary>
+    [Fact]
+    public void ThePersonalShinyBranchCarriesPersonalTrackingAndAccounts()
+    {
+        var capabilities = PoracleV2SchemaService.Parse(Fixture("personal-shiny"));
+
+        Assert.True(capabilities.Read);
+        Assert.True(capabilities.PersonalTracking);
+        Assert.True(capabilities.PlayerAccounts);
+        Assert.True(capabilities.TrackingPing);
+    }
+
+    [Theory]
+    [InlineData("""{"components":{"schemas":{"V2PokemonRule":{"properties":{"personal_shiny":{}}}}},"paths":{}}""")]
+    [InlineData("""{"components":{"schemas":{"V2PokemonRule":{"properties":{"personal_background":{}}}}},"paths":{}}""")]
+    public void PersonalTrackingNeedsBothFields(string document)
+    {
+        Assert.False(PoracleV2SchemaService.Parse(document).PersonalTracking);
+    }
+
+    [Theory]
+    [InlineData("get")]
+    [InlineData("post")]
+    public void PlayerAccountsNeedsTheListAddAndDeleteOperations(string missing)
+    {
+        var ops = new[] { "get", "post" }.Where(m => m != missing).ToDictionary(m => m, _ => new { });
+        var document = JsonSerializer.Serialize(new
+        {
+            paths = new Dictionary<string, object>
+            {
+                ["/v2/humans/{id}/accounts"] = ops,
+                ["/v2/humans/{id}/accounts/{player_id}"] = new { delete = new { } },
+            },
+        });
+
+        Assert.False(PoracleV2SchemaService.Parse(document).PlayerAccounts);
+    }
+
+    [Fact]
+    public void PlayerAccountsNeedsTheDeleteOperation()
+    {
+        var document = JsonSerializer.Serialize(new
+        {
+            paths = new Dictionary<string, object>
+            {
+                ["/v2/humans/{id}/accounts"] = new { get = new { }, post = new { } },
+                ["/v2/humans/{id}/accounts/{player_id}"] = new { put = new { } },
+            },
+        });
+
+        Assert.False(PoracleV2SchemaService.Parse(document).PlayerAccounts);
     }
 
     [Theory]

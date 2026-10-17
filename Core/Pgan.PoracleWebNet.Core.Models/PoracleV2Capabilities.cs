@@ -109,6 +109,30 @@ public sealed class PoracleV2Capabilities
         get; init;
     }
 
+    /// <summary>
+    /// <c>V2PokemonRule</c> carries <c>personal_shiny</c> and <c>personal_background</c>: a rule can be
+    /// limited to Pokemon that are shiny, or have the special background, for one of the human's linked
+    /// game accounts. jfberry/PoracleNG#255.
+    /// </summary>
+    /// <remarks>
+    /// Both fields, not either: the PR adds them together and a server with one is not a server this
+    /// application knows how to talk to. Read from the schema rather than a version for the usual
+    /// reason: no release carries it, and a fork can report whatever version it likes.
+    /// </remarks>
+    public bool PersonalTracking
+    {
+        get; init;
+    }
+
+    /// <summary>
+    /// The server serves <c>/api/v2/humans/{id}/accounts</c>, where a human's game player IDs are linked.
+    /// Personal tracking matches nothing for a human with no linked account. jfberry/PoracleNG#255.
+    /// </summary>
+    public bool PlayerAccounts
+    {
+        get; init;
+    }
+
     /// <summary>True when the document was read and parsed, whatever it turned out to say.</summary>
     /// <remarks>
     /// Distinct from every capability being false, which is also what an unreachable server looks like.
