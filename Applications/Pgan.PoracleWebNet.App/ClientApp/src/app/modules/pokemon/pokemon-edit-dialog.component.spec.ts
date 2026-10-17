@@ -1,20 +1,25 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { NO_ERRORS_SCHEMA, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideTranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
 
 import { PokemonEditDialogComponent } from './pokemon-edit-dialog.component';
-import { Monster, MonsterUpdate } from '../../core/models';
+import { Monster, MonsterUpdate, PlayerAccount } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { ConfigService } from '../../core/services/config.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MonsterService } from '../../core/services/monster.service';
+import { PlayerAccountService } from '../../core/services/player-account.service';
 import { PoracleConfigService } from '../../core/services/poracle-config.service';
 import { SettingsService } from '../../core/services/settings.service';
+import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
+import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 
 /**
  * The edit dialog is where filters go to die: it is written second, drifts from the add dialog, and a
@@ -25,12 +30,18 @@ describe('PokemonEditDialogComponent', () => {
   let component: PokemonEditDialogComponent;
   let monsterService: { editSupported: jest.Mock; update: jest.Mock };
 
-  function setup(monster: Partial<Monster>, costumeSupported = true) {
+  let accountsSignal: ReturnType<typeof signal<null | PlayerAccount[]>>;
+  let playerAccounts: { accounts: typeof accountsSignal; load: jest.Mock };
+
+  function setup(monster: Partial<Monster>, costumeSupported = true, personalSupported = false, accounts: null | PlayerAccount[] = []) {
+    accountsSignal = signal<null | PlayerAccount[]>(accounts);
+    playerAccounts = { accounts: accountsSignal, load: jest.fn().mockReturnValue(of(accounts)) };
     monsterService = { editSupported: jest.fn().mockReturnValue(true), update: jest.fn().mockReturnValue(of({})) };
 
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
+        provideNoopAnimations(),
         provideTranslateService(),
         provideHttpClient(),
         provideHttpClientTesting(),
@@ -49,18 +60,21 @@ describe('PokemonEditDialogComponent', () => {
           },
         },
         { provide: I18nService, useValue: { instant: (k: string) => k } },
-        { provide: SettingsService, useValue: { supportsCostume: () => costumeSupported } },
+        { provide: SettingsService, useValue: { siteSettings: () => ({}), supportsCostume: () => costumeSupported } },
         {
           provide: PoracleConfigService,
-          useValue: { load: () => of({ defaultPvpCap: 0 }), serverConfig: () => ({ pvpCaps: [] }) },
+          useValue: { load: () => of({ defaultPvpCap: 0 }), serverConfig: () => ({ personalSupported, pvpCaps: [] }) },
         },
+        { provide: PlayerAccountService, useValue: playerAccounts },
         { provide: AuthService, useValue: { isImpersonating: () => false, user: () => ({ type: 'discord:user' }) } },
       ],
       imports: [PokemonEditDialogComponent],
     });
 
     TestBed.overrideComponent(PokemonEditDialogComponent, {
-      add: { providers: [{ provide: MatSnackBar, useValue: { open: jest.fn() } }] },
+      add: { providers: [{ provide: MatSnackBar, useValue: { open: jest.fn() } }], schemas: [NO_ERRORS_SCHEMA] },
+      // Rendering the Filters tab must not drag in the pickers, which have services of their own.
+      remove: { imports: [ScopePickerComponent, TemplateSelectorComponent] },
     });
 
     component = TestBed.createComponent(PokemonEditDialogComponent).componentInstance;
@@ -213,6 +227,110 @@ describe('PokemonEditDialogComponent', () => {
       component.form.controls.editInPlace.setValue(false);
       component.save();
       expect(sent().clean).toBe(1);
+    });
+  });
+
+  describe('personal shiny toggles (personal bitmask)', () => {
+    function render(): HTMLElement {
+      const fixture = TestBed.createComponent(PokemonEditDialogComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+      return fixture.nativeElement as HTMLElement;
+    }
+
+    it('hides the personal toggles without server support but keeps the controls', () => {
+      setup({ personal: 3 }, true, false);
+      const el = render();
+
+      expect(el.textContent).not.toContain('POKEMON.PERSONAL_SHINY');
+      expect(component.form.controls.personalShiny.value).toBe(true);
+      expect(component.form.controls.personalBackground.value).toBe(true);
+      // A hidden toggle still round-trips what the rule holds.
+      component.save();
+      expect(sent().personal).toBe(3);
+    });
+
+    it('shows the personal toggles when the server supports them', () => {
+      setup({ personal: 0 }, true, true);
+      const el = render();
+
+      expect(el.textContent).toContain('POKEMON.PERSONAL_SHINY');
+      expect(el.textContent).toContain('POKEMON.PERSONAL_BACKGROUND');
+    });
+
+    it('seeds the toggles from the stored bits', () => {
+      setup({ personal: 2 }, true, true);
+
+      expect(component.form.controls.personalShiny.value).toBe(false);
+      expect(component.form.controls.personalBackground.value).toBe(true);
+    });
+
+    it('treats a rule without the field as no personal bits', () => {
+      setup({}, true, true);
+      component.save();
+
+      expect(sent().personal).toBe(0);
+    });
+
+    it('preserves reserved personal bits on save', () => {
+      // personal 5 = shiny (1) + reserved (4). An untouched save must send 5 back.
+      setup({ personal: 5 }, true, true);
+      component.save();
+      expect(sent().personal).toBe(5);
+    });
+
+    it('turning shiny off keeps the reserved bit (5 -> 4)', () => {
+      setup({ personal: 5 }, true, true);
+      component.form.controls.personalShiny.setValue(false);
+      component.save();
+
+      expect(sent().personal).toBe(4);
+    });
+
+    it('turning the background on adds only bit 2 (5 -> 7)', () => {
+      setup({ personal: 5 }, true, true);
+      component.form.controls.personalBackground.setValue(true);
+      component.save();
+
+      expect(sent().personal).toBe(7);
+    });
+
+    it('shows the no-accounts hint when a toggle is on and no account is linked', () => {
+      setup({ personal: 1 }, true, true, []);
+      const el = render();
+
+      expect(component.showNoAccountsHint()).toBe(true);
+      expect(el.textContent).toContain('POKEMON.PERSONAL_NO_ACCOUNTS');
+    });
+
+    it('does not show the no-accounts hint with both toggles off', () => {
+      setup({ personal: 0 }, true, true, []);
+
+      expect(component.showNoAccountsHint()).toBe(false);
+    });
+
+    it('does not show the no-accounts hint when the accounts read failed', () => {
+      setup({ personal: 1 }, true, true, null);
+      const el = render();
+
+      expect(component.showNoAccountsHint()).toBe(false);
+      expect(el.textContent).not.toContain('POKEMON.PERSONAL_NO_ACCOUNTS');
+    });
+
+    it('does not show the no-accounts hint when an account is linked', () => {
+      setup({ personal: 1 }, true, true, [{ label: null, playerId: 'AbC' } as PlayerAccount]);
+
+      expect(component.showNoAccountsHint()).toBe(false);
+    });
+
+    it('loads the accounts on open only when the server supports personal rules', () => {
+      setup({ personal: 0 }, true, false);
+      component.ngOnInit();
+      expect(playerAccounts.load).not.toHaveBeenCalled();
+
+      setup({ personal: 0 }, true, true);
+      component.ngOnInit();
+      expect(playerAccounts.load).toHaveBeenCalledTimes(1);
     });
   });
 });

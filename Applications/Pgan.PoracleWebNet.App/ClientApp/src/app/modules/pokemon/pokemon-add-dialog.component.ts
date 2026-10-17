@@ -1,8 +1,9 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
-import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -23,8 +24,10 @@ import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MonsterService } from '../../core/services/monster.service';
+import { PlayerAccountService } from '../../core/services/player-account.service';
 import { PoracleConfigService } from '../../core/services/poracle-config.service';
 import { SettingsService } from '../../core/services/settings.service';
+import { GameAccountsDialogComponent } from '../../shared/components/game-accounts-dialog/game-accounts-dialog.component';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
@@ -32,6 +35,7 @@ import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 import { compose } from '../../shared/utils/clean-flags';
 import { ANY_COSTUME, costumeHintKey } from '../../shared/utils/costumes';
 import { minTimeLabel, minTimeOptions } from '../../shared/utils/min-time';
+import { compose as composePersonal } from '../../shared/utils/personal-flags';
 
 @Component({
   imports: [
@@ -60,31 +64,15 @@ import { minTimeLabel, minTimeOptions } from '../../shared/utils/min-time';
   templateUrl: './pokemon-add-dialog.component.html',
 })
 export class PokemonAddDialogComponent implements OnInit {
+  private readonly accountService = inject(PlayerAccountService);
   private readonly alertDefaults = inject(AlertDefaultsService);
+  private readonly dialog = inject(MatDialog);
 
   private readonly fb = inject(FormBuilder);
 
   private readonly i18n = inject(I18nService);
   private readonly masterData = inject(MasterDataService);
   private readonly monsterService = inject(MonsterService);
-  private readonly poracleConfig = inject(PoracleConfigService);
-  private readonly settings = inject(SettingsService);
-  private readonly snackBar = inject(MatSnackBar);
-  selectedPokemonIds = signal<number[]>([]);
-  readonly availableForms = computed(() => {
-    const ids = this.selectedPokemonIds();
-    if (ids.length !== 1 || ids[0] === 0) return [];
-    return this.masterData.getFormsForPokemon(ids[0]);
-  });
-
-  /** Tracks whether the user has manually changed the cap since the default was applied. */
-  readonly capTouched = signal(false);
-
-  readonly dialogRef = inject(MatDialogRef<PokemonAddDialogComponent>);
-
-  /** Whether to show the edit-in-place toggle at all -- see MonsterService.editSupported. */
-  readonly editSupported = this.monsterService.editSupported;
-
   filtersForm = this.fb.group({
     atk: [0, [Validators.min(0), Validators.max(15)]],
     // 9000 = any costume. Never let this default to 0 -- that is "no costume", a real filter.
@@ -109,9 +97,44 @@ export class PokemonAddDialogComponent implements OnInit {
     minLevel: [0, [Validators.min(0), Validators.max(55)]],
     minTime: [0],
     minWeight: [0],
+    // Always present, even when the toggles are hidden, so the form shape does not depend on the server.
+    personalBackground: [false],
+    personalShiny: [false],
     size: [-1],
     sta: [0, [Validators.min(0), Validators.max(15)]],
   });
+
+  private readonly personalBackgroundOn = toSignal(this.filtersForm.controls.personalBackground.valueChanges, {
+    initialValue: this.filtersForm.controls.personalBackground.value,
+  });
+
+  private readonly personalShinyOn = toSignal(this.filtersForm.controls.personalShiny.valueChanges, {
+    initialValue: this.filtersForm.controls.personalShiny.value,
+  });
+
+  private readonly poracleConfig = inject(PoracleConfigService);
+  private readonly settings = inject(SettingsService);
+
+  private readonly snackBar = inject(MatSnackBar);
+
+  /** The linked game accounts. Null means not loaded or the read failed, which is not the same as none. */
+  readonly accounts = this.accountService.accounts;
+
+  selectedPokemonIds = signal<number[]>([]);
+
+  readonly availableForms = computed(() => {
+    const ids = this.selectedPokemonIds();
+    if (ids.length !== 1 || ids[0] === 0) return [];
+    return this.masterData.getFormsForPokemon(ids[0]);
+  });
+
+  /** Tracks whether the user has manually changed the cap since the default was applied. */
+  readonly capTouched = signal(false);
+
+  readonly dialogRef = inject(MatDialogRef<PokemonAddDialogComponent>);
+
+  /** Whether to show the edit-in-place toggle at all -- see MonsterService.editSupported. */
+  readonly editSupported = this.monsterService.editSupported;
 
   readonly isWebhook = inject(AuthService).isImpersonating();
 
@@ -123,6 +146,9 @@ export class PokemonAddDialogComponent implements OnInit {
     placeLabel: [''],
     template: [''],
   });
+
+  /** Whether the connected PoracleNG stores personal shiny rules at all. */
+  readonly personalSupported = computed(() => this.poracleConfig.serverConfig().personalSupported);
 
   /** Caps offered by Poracle (e.g. [50] or [50, 51]). Empty = hide the cap picker entirely. */
   readonly pvpCaps = computed(() => this.poracleConfig.serverConfig().pvpCaps);
@@ -155,6 +181,15 @@ export class PokemonAddDialogComponent implements OnInit {
 
   /** Whether to render the cap picker at all — only when Poracle offers more than one cap. */
   readonly showCapPicker = computed(() => this.pvpCaps().length > 1);
+
+  /**
+   * A personal rule matches nothing without a linked game account, so say so. Only when the read
+   * succeeded and came back empty: a failed read is unknown, and must not claim the link vanished.
+   */
+  readonly showNoAccountsHint = computed(() => {
+    const accounts = this.accounts();
+    return accounts !== null && accounts.length === 0 && (!!this.personalShinyOn() || !!this.personalBackgroundOn());
+  });
 
   /** The hint under the costume select, which changes with the selection. */
   costumeHint(): string {
@@ -192,6 +227,7 @@ export class PokemonAddDialogComponent implements OnInit {
     // Pre-fill the cap from Poracle's admin-configured default. Users can still override.
     this.poracleConfig.load().subscribe(cfg => {
       this.pvpForm.controls.pvpRankingCap.setValue(cfg.defaultPvpCap);
+      this.loadAccounts();
     });
 
     this.pvpForm.controls.pvpRankingCap.valueChanges.subscribe(() => {
@@ -203,6 +239,14 @@ export class PokemonAddDialogComponent implements OnInit {
 
   onPokemonSelected(ids: number[]): void {
     this.selectedPokemonIds.set(ids);
+  }
+
+  /** Opens the trainer's own game accounts, and re-reads them on close so the hint follows. */
+  openGameAccounts(): void {
+    this.dialog
+      .open(GameAccountsDialogComponent)
+      .afterClosed()
+      .subscribe(() => this.loadAccounts());
   }
 
   save(): void {
@@ -246,6 +290,7 @@ export class PokemonAddDialogComponent implements OnInit {
           minLevel: filters.minLevel ?? 0,
           minTime: filters.minTime ?? 0,
           minWeight: filters.minWeight ?? 0,
+          personal: composePersonal(!!filters.personalShiny, !!filters.personalBackground),
           pokemonId,
           pvpRankingBest: pvp.pvpRankingLeague ? (pvp.pvpRankingBest ?? 1) : 1,
           pvpRankingCap: pvp.pvpRankingLeague ? (pvp.pvpRankingCap ?? 0) : 0,
@@ -303,5 +348,9 @@ export class PokemonAddDialogComponent implements OnInit {
    */
   showCostume(): boolean {
     return this.settings.supportsCostume('pokemon');
+  }
+
+  private loadAccounts(): void {
+    if (this.personalSupported()) this.accountService.load().subscribe();
   }
 }

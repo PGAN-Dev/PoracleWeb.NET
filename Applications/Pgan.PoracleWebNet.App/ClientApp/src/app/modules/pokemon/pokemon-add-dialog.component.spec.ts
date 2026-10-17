@@ -1,21 +1,29 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { NO_ERRORS_SCHEMA, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatTabGroup } from '@angular/material/tabs';
+import { By } from '@angular/platform-browser';
+import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideTranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
 
 import { PokemonAddDialogComponent } from './pokemon-add-dialog.component';
-import { Monster, MonsterCreate } from '../../core/models';
+import { Monster, MonsterCreate, PlayerAccount } from '../../core/models';
 import { AlertDefaultsService } from '../../core/services/alert-defaults.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ConfigService } from '../../core/services/config.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MonsterService } from '../../core/services/monster.service';
+import { PlayerAccountService } from '../../core/services/player-account.service';
 import { PoracleConfigService } from '../../core/services/poracle-config.service';
 import { SettingsService } from '../../core/services/settings.service';
+import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
+import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
+import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 
 describe('PokemonAddDialogComponent', () => {
   let component: PokemonAddDialogComponent;
@@ -29,7 +37,12 @@ describe('PokemonAddDialogComponent', () => {
   const ALOLAN = 78;
   const GALARIAN = 79;
 
-  function setup(costumeSupported = true) {
+  let accountsSignal: ReturnType<typeof signal<null | PlayerAccount[]>>;
+  let playerAccounts: { accounts: typeof accountsSignal; load: jest.Mock };
+
+  function setup(costumeSupported = true, personalSupported = false, accounts: null | PlayerAccount[] = []) {
+    accountsSignal = signal<null | PlayerAccount[]>(accounts);
+    playerAccounts = { accounts: accountsSignal, load: jest.fn().mockReturnValue(of(accounts)) };
     dialogRef = { close: jest.fn() };
     // A create answers 200 with uid 0 when the submission duplicates an alarm the user already has, so
     // the uid is what says whether anything was made. See #495.
@@ -52,6 +65,7 @@ describe('PokemonAddDialogComponent', () => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
+        provideNoopAnimations(),
         provideTranslateService(),
         provideHttpClient(),
         provideHttpClientTesting(),
@@ -67,8 +81,9 @@ describe('PokemonAddDialogComponent', () => {
         },
         {
           provide: PoracleConfigService,
-          useValue: { load: () => of({ defaultPvpCap: 0 }), serverConfig: () => ({ pvpCaps: [] }) },
+          useValue: { load: () => of({ defaultPvpCap: 0 }), serverConfig: () => ({ personalSupported, pvpCaps: [] }) },
         },
+        { provide: PlayerAccountService, useValue: playerAccounts },
         { provide: AuthService, useValue: { isImpersonating: () => false } },
       ],
       imports: [PokemonAddDialogComponent],
@@ -78,7 +93,9 @@ describe('PokemonAddDialogComponent', () => {
     // it resolves from the component's element injector and shadows an environment-level
     // useValue. Override at the component level to inject our mock.
     TestBed.overrideComponent(PokemonAddDialogComponent, {
-      add: { providers: [{ provide: MatSnackBar, useValue: snackBar }] },
+      add: { providers: [{ provide: MatSnackBar, useValue: snackBar }], schemas: [NO_ERRORS_SCHEMA] },
+      // Rendering the Filters tab must not drag in the pickers, which have services of their own.
+      remove: { imports: [PokemonSelectorComponent, ScopePickerComponent, TemplateSelectorComponent] },
     });
 
     // No detectChanges(): we exercise save() logic directly and skip rendering the heavy
@@ -355,6 +372,102 @@ describe('PokemonAddDialogComponent', () => {
       component.save();
 
       expect((monsterService.create.mock.calls[0][0] as MonsterCreate).clean).toBe(3);
+    });
+  });
+
+  describe('personal shiny toggles (personal bitmask)', () => {
+    const sentPersonal = (): number | undefined => (monsterService.create.mock.calls[0][0] as MonsterCreate).personal;
+
+    /** Renders the Filters tab, which is where the toggles live. */
+    function renderFilters(setUp?: (c: PokemonAddDialogComponent) => void): HTMLElement {
+      const fixture = TestBed.createComponent(PokemonAddDialogComponent);
+      component = fixture.componentInstance;
+      setUp?.(component);
+      fixture.debugElement.query(By.directive(MatTabGroup)).componentInstance.selectedIndex = 1;
+      fixture.detectChanges();
+      return fixture.nativeElement as HTMLElement;
+    }
+
+    it('hides the personal toggles without server support but keeps the controls', () => {
+      setup(true, false);
+      const el = renderFilters();
+
+      expect(el.textContent).not.toContain('POKEMON.PERSONAL_SHINY');
+      expect(component.filtersForm.controls.personalShiny).toBeDefined();
+      expect(component.filtersForm.controls.personalBackground).toBeDefined();
+      component.selectedPokemonIds.set([MEOWTH]);
+      component.save();
+      expect(sentPersonal()).toBe(0);
+    });
+
+    it('shows the personal toggles when the server supports them', () => {
+      setup(true, true);
+      const el = renderFilters();
+
+      expect(el.textContent).toContain('POKEMON.PERSONAL_SHINY');
+      expect(el.textContent).toContain('POKEMON.PERSONAL_BACKGROUND');
+    });
+
+    it('sends personal 3 when both are on', () => {
+      setup(true, true);
+      component.filtersForm.controls.personalShiny.setValue(true);
+      component.filtersForm.controls.personalBackground.setValue(true);
+      component.selectedPokemonIds.set([MEOWTH]);
+      component.save();
+
+      expect(sentPersonal()).toBe(3);
+    });
+
+    it('sends personal 1 for shiny alone and 2 for the background alone', () => {
+      setup(true, true);
+      component.filtersForm.controls.personalShiny.setValue(true);
+      component.selectedPokemonIds.set([MEOWTH]);
+      component.save();
+      expect(sentPersonal()).toBe(1);
+
+      setup(true, true);
+      component.filtersForm.controls.personalBackground.setValue(true);
+      component.selectedPokemonIds.set([MEOWTH]);
+      component.save();
+      expect(sentPersonal()).toBe(2);
+    });
+
+    it('shows the no-accounts hint when a toggle is on and no account is linked', () => {
+      setup(true, true, []);
+
+      expect(renderFilters().textContent).not.toContain('POKEMON.PERSONAL_NO_ACCOUNTS');
+
+      setup(true, true, []);
+      const el = renderFilters(c => c.filtersForm.controls.personalBackground.setValue(true));
+
+      expect(component.showNoAccountsHint()).toBe(true);
+      expect(el.textContent).toContain('POKEMON.PERSONAL_NO_ACCOUNTS');
+    });
+
+    it('does not show the no-accounts hint when an account is linked', () => {
+      setup(true, true, [{ label: null, playerId: 'AbC' } as PlayerAccount]);
+      component.filtersForm.controls.personalShiny.setValue(true);
+
+      expect(component.showNoAccountsHint()).toBe(false);
+    });
+
+    it('does not show the no-accounts hint when the accounts read failed', () => {
+      // null is "could not read", which is not the same fact as "none linked".
+      setup(true, true, null);
+      const el = renderFilters(c => c.filtersForm.controls.personalShiny.setValue(true));
+
+      expect(component.showNoAccountsHint()).toBe(false);
+      expect(el.textContent).not.toContain('POKEMON.PERSONAL_NO_ACCOUNTS');
+    });
+
+    it('loads the accounts on open only when the server supports personal rules', () => {
+      setup(true, false);
+      component.ngOnInit();
+      expect(playerAccounts.load).not.toHaveBeenCalled();
+
+      setup(true, true);
+      component.ngOnInit();
+      expect(playerAccounts.load).toHaveBeenCalledTimes(1);
     });
   });
 });

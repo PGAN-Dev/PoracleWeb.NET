@@ -133,6 +133,21 @@
           </div>
         }
 
+        @if (personalSupported()) {
+          <h4>{{ 'POKEMON.PERSONAL_HEADING' | translate }}</h4>
+          <mat-slide-toggle [formControl]="form.controls.personalShiny">{{ 'POKEMON.PERSONAL_SHINY' | translate }}</mat-slide-toggle>
+          <mat-slide-toggle [formControl]="form.controls.personalBackground">{{
+            'POKEMON.PERSONAL_BACKGROUND' | translate
+          }}</mat-slide-toggle>
+          <p class="clean-hint">{{ 'POKEMON.PERSONAL_HINT' | translate }}</p>
+          @if (showNoAccountsHint()) {
+            <p class="clean-hint">
+              {{ 'POKEMON.PERSONAL_NO_ACCOUNTS' | translate }}
+              <a href="#" (click)="openGameAccounts(); $event.preventDefault()">{{ 'MENU.GAME_ACCOUNTS' | translate }}</a>
+            </p>
+          }
+        }
+
         <mat-expansion-panel>
           <mat-expansion-panel-header>
             <mat-panel-title> <mat-icon>more_horiz</mat-icon> {{ 'POKEMON.MORE_FILTERS' | translate }} </mat-panel-title>

@@ -283,6 +283,26 @@
   color: var(--mat-sys-on-secondary);
   flex-shrink: 0;
 }
+// Personal-alert badges (shiny / event background for the trainer's own game accounts). Same geometry
+// as .clean-tag and .edit-tag; fixed colours so they read in both themes.
+.personal-tag {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  line-height: 16px;
+  color: #fff;
+  flex-shrink: 0;
+}
+.personal-shiny-tag {
+  background: #7b1fa2;
+}
+.personal-background-tag {
+  background: #00796b;
+}
 .pokemon-img {
   width: 64px;
   height: 64px;

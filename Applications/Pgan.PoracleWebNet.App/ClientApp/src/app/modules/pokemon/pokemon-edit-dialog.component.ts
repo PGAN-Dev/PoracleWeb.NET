@@ -1,8 +1,9 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
-import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatDialog, MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -21,14 +22,17 @@ import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MonsterService } from '../../core/services/monster.service';
+import { PlayerAccountService } from '../../core/services/player-account.service';
 import { PoracleConfigService } from '../../core/services/poracle-config.service';
 import { SettingsService } from '../../core/services/settings.service';
+import { GameAccountsDialogComponent } from '../../shared/components/game-accounts-dialog/game-accounts-dialog.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, EDIT, compose, isAutoDelete, isEdit, preserve } from '../../shared/utils/clean-flags';
 import { ANY_COSTUME, costumeHintKey } from '../../shared/utils/costumes';
 import { minTimeLabel, minTimeOptions } from '../../shared/utils/min-time';
+import { KNOWN, compose as composePersonal, isBackground, isShiny, preserve as preservePersonal } from '../../shared/utils/personal-flags';
 
 @Component({
   imports: [
@@ -55,24 +59,14 @@ import { minTimeLabel, minTimeOptions } from '../../shared/utils/min-time';
   templateUrl: './pokemon-edit-dialog.component.html',
 })
 export class PokemonEditDialogComponent implements OnInit {
+  private readonly accountService = inject(PlayerAccountService);
+  private readonly dialog = inject(MatDialog);
   private readonly fb = inject(FormBuilder);
   private readonly i18n = inject(I18nService);
   private readonly iconService = inject(IconService);
   private readonly masterData = inject(MasterDataService);
   private readonly monsterService = inject(MonsterService);
-  private readonly poracleConfig = inject(PoracleConfigService);
-  private readonly settings = inject(SettingsService);
-  private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<Monster>(MAT_DIALOG_DATA);
-  readonly availableForms = computed(() => {
-    return this.masterData.getFormsForPokemon(this.data.pokemonId);
-  });
-
-  readonly dialogRef = inject(MatDialogRef<PokemonEditDialogComponent>);
-
-  /** Whether to show the edit-in-place toggle at all -- see MonsterService.editSupported. */
-  readonly editSupported = this.monsterService.editSupported;
-
   form = this.fb.group({
     atk: [this.data.atk],
     clean: [isAutoDelete(this.data.clean)],
@@ -99,6 +93,9 @@ export class PokemonEditDialogComponent implements OnInit {
     minLevel: [this.data.minLevel],
     minTime: [this.data.minTime ?? 0],
     minWeight: [this.data.minWeight],
+    // Always present, even when the toggles are hidden, so a bit set elsewhere round-trips through a save.
+    personalBackground: [isBackground(this.data.personal ?? 0)],
+    personalShiny: [isShiny(this.data.personal ?? 0)],
     // Always present, even when the control is hidden -- see pingSupported above -- so a mention set
     // by the bot, or by a web edit on a server that supports it, round-trips unchanged through a save
     // this dialog makes for an unrelated field.
@@ -118,7 +115,36 @@ export class PokemonEditDialogComponent implements OnInit {
     template: [this.data.template ?? ''],
   });
 
+  private readonly personalBackgroundOn = toSignal(this.form.controls.personalBackground.valueChanges, {
+    initialValue: this.form.controls.personalBackground.value,
+  });
+
+  private readonly personalShinyOn = toSignal(this.form.controls.personalShiny.valueChanges, {
+    initialValue: this.form.controls.personalShiny.value,
+  });
+
+  private readonly poracleConfig = inject(PoracleConfigService);
+
+  private readonly settings = inject(SettingsService);
+
+  private readonly snackBar = inject(MatSnackBar);
+
+  /** The linked game accounts. Null means not loaded or the read failed, which is not the same as none. */
+  readonly accounts = this.accountService.accounts;
+
+  readonly availableForms = computed(() => {
+    return this.masterData.getFormsForPokemon(this.data.pokemonId);
+  });
+
+  readonly dialogRef = inject(MatDialogRef<PokemonEditDialogComponent>);
+
+  /** Whether to show the edit-in-place toggle at all -- see MonsterService.editSupported. */
+  readonly editSupported = this.monsterService.editSupported;
+
   readonly isWebhook = inject(AuthService).isImpersonating();
+
+  /** Whether the connected PoracleNG stores personal shiny rules at all. */
+  readonly personalSupported = computed(() => this.poracleConfig.serverConfig().personalSupported);
 
   /**
    * Whether to show the Mention control at all. Gated on both halves: a webhook alarm is the only
@@ -139,6 +165,15 @@ export class PokemonEditDialogComponent implements OnInit {
   readonly scope = signal<AlarmScope>(scopeOf(this.data.overrideLocationLabel, this.data.overrideAreas, this.data.distance));
 
   readonly showCapPicker = computed(() => this.pvpCaps().length > 1);
+
+  /**
+   * A personal rule matches nothing without a linked game account, so say so. Only when the read
+   * succeeded and came back empty: a failed read is unknown, and must not claim the link vanished.
+   */
+  readonly showNoAccountsHint = computed(() => {
+    const accounts = this.accounts();
+    return accounts !== null && accounts.length === 0 && (!!this.personalShinyOn() || !!this.personalBackgroundOn());
+  });
 
   /** The hint under the costume select, which changes with the selection. */
   costumeHint(): string {
@@ -173,7 +208,7 @@ export class PokemonEditDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.poracleConfig.load().subscribe();
+    this.poracleConfig.load().subscribe(() => this.loadAccounts());
     syncUnscanned(this.form.controls);
   }
 
@@ -185,6 +220,14 @@ export class PokemonEditDialogComponent implements OnInit {
     } else {
       img.style.display = 'none';
     }
+  }
+
+  /** Opens the trainer's own game accounts, and re-reads them on close so the hint follows. */
+  openGameAccounts(): void {
+    this.dialog
+      .open(GameAccountsDialogComponent)
+      .afterClosed()
+      .subscribe(() => this.loadAccounts());
   }
 
   save(): void {
@@ -216,6 +259,7 @@ export class PokemonEditDialogComponent implements OnInit {
       minLevel: values.minLevel ?? 0,
       minTime: values.minTime ?? 0,
       minWeight: values.minWeight ?? 0,
+      personal: preservePersonal(this.data.personal ?? 0, KNOWN, composePersonal(!!values.personalShiny, !!values.personalBackground)),
       ping: values.ping ?? '',
       pvpRankingBest: values.pvpRankingLeague ? (values.pvpRankingBest ?? 1) : 1,
       pvpRankingCap: values.pvpRankingLeague ? (values.pvpRankingCap ?? 0) : 0,
@@ -251,5 +295,9 @@ export class PokemonEditDialogComponent implements OnInit {
    */
   showCostume(): boolean {
     return this.settings.supportsCostume('pokemon');
+  }
+
+  private loadAccounts(): void {
+    if (this.personalSupported()) this.accountService.load().subscribe();
   }
 }

@@ -173,6 +173,16 @@
             @if (isEdit(monster.clean)) {
               <span class="edit-tag" [matTooltip]="'POKEMON.EDIT_HINT' | translate">{{ 'POKEMON.EDIT_BADGE' | translate }}</span>
             }
+            @if (isPersonalShiny(monster.personal)) {
+              <span class="personal-tag personal-shiny-tag" [matTooltip]="'POKEMON.PERSONAL_HINT' | translate">{{
+                'POKEMON.PERSONAL_SHINY_BADGE' | translate
+              }}</span>
+            }
+            @if (isPersonalBackground(monster.personal)) {
+              <span class="personal-tag personal-background-tag" [matTooltip]="'POKEMON.PERSONAL_HINT' | translate">{{
+                'POKEMON.PERSONAL_BACKGROUND_BADGE' | translate
+              }}</span>
+            }
           </div>
         </div>
         <mat-card-content>

@@ -38,6 +38,7 @@ import { readableChip } from '../../shared/utils/contrast';
 import { NO_COSTUME } from '../../shared/utils/costumes';
 import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
 import { minTimePillLabel } from '../../shared/utils/min-time';
+import { isBackground as personalIsBackground, isShiny as personalIsShiny } from '../../shared/utils/personal-flags';
 import { hasLevelFilter } from '../../shared/utils/pokemon-level';
 
 @Component({
@@ -428,6 +429,15 @@ export class PokemonListComponent implements OnInit {
 
   isEdit(clean: number): boolean {
     return cleanIsEdit(clean);
+  }
+
+  /** Rules read back from a server without personal support carry no field at all. */
+  isPersonalBackground(personal: number | undefined): boolean {
+    return personalIsBackground(personal ?? 0);
+  }
+
+  isPersonalShiny(personal: number | undefined): boolean {
+    return personalIsShiny(personal ?? 0);
   }
 
   loadMonsters(): void {
