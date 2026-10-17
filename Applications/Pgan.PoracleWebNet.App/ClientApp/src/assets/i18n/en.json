@@ -63,6 +63,7 @@
     "DISPLAY_LANGUAGE": "Display language",
     "ALERT_LANGUAGE": "Alert language",
     "ALERT_LANGUAGE_HINT": "Used for alert text and Pokemon names.",
+    "GAME_ACCOUNTS": "Game accounts",
     "LOGOUT": "Logout",
     "LOGOUT_EVERYWHERE": "Sign out everywhere",
     "ACCENT_DEFAULT": "Default",
@@ -71,8 +72,7 @@
     "ACCENT_MYSTIC": "Mystic",
     "ACCENT_VALOR": "Valor",
     "ACCENT_INSTINCT": "Instinct",
-    "ALERT_DEFAULTS": "Alert Defaults",
-    "GAME_ACCOUNTS": "Game accounts"
+    "ALERT_DEFAULTS": "Alert Defaults"
   },
   "SHORTCUTS": {
     "TITLE": "Keyboard Shortcuts",
@@ -1438,6 +1438,8 @@
     "MANAGE_ALARMS": "Manage Alarms",
     "MANAGE_ALARMS_IMPERSONATING": "Stop impersonating first to manage this webhook",
     "MANAGE_ALARMS_TOOLTIP": "Manage alarms for this webhook",
+    "GAME_ACCOUNTS": "Game accounts",
+    "PERSONAL_NO_RATE_FEED": "Poracle has no shiny rate feed configured, so personal shiny and background rules match nothing. Set [shiny_rates] url in PoracleNG's config.",
     "MANAGE_DELEGATES": "Manage delegates",
     "DELETE_WEBHOOK": "Delete webhook",
     "NO_WEBHOOKS": "No webhooks found",
@@ -1520,9 +1522,7 @@
     "VERSIONS_WEB": "This site",
     "VERSIONS_BUILD": "Build",
     "UPDATE_CURRENT": "Up to date.",
-    "UPDATE_UNCOMPARABLE": "Development channel. Latest release is {{latest}}.",
-    "GAME_ACCOUNTS": "Game accounts",
-    "PERSONAL_NO_RATE_FEED": "Poracle has no shiny rate feed configured, so personal shiny and background rules match nothing. Set [shiny_rates] url in PoracleNG's config."
+    "UPDATE_UNCOMPARABLE": "Development channel. Latest release is {{latest}}."
   },
   "DIALOG": {
     "LOCATION_PICK_TITLE": "Pick a point",
@@ -1863,6 +1863,23 @@
     "BASEMAP_UNAVAILABLE": "The chosen basemap has no usable tile URL, so maps fall back to {{provider}}. Pick a provider, or set a Basemap Tile URL starting http:// or https://.",
     "FAVICON_PREVIEW_ALT": "Favicon preview"
   },
+  "GAME_ACCOUNTS": {
+    "TITLE": "Game accounts",
+    "INTRO": "Personal shiny and background alerts check each spawn against the game accounts linked here.",
+    "PLAYER_ID": "Player ID",
+    "LABEL": "Label (optional)",
+    "ADD": "Link account",
+    "REMOVE": "Unlink",
+    "EMPTY": "No game accounts linked yet.",
+    "SELF_SERVICE_OFF": "Only an administrator can link game accounts on this server.",
+    "FAILED": "Couldn't update your game accounts. Try again.",
+    "RATE_LIMITED": "Too many changes at once. Wait a minute and try again.",
+    "LOAD_FAILED": "Couldn't load the linked game accounts.",
+    "RETRY": "Try again",
+    "FOR_USER": "Accounts linked to {{name}}",
+    "CONTACT_SUPPORT": "Contact support",
+    "IMPERSONATING": "Game accounts can't be changed while you're viewing another account."
+  },
   "GEOFENCE_DETAIL": {
     "NAME": "Name",
     "OWNER": "Owner",
@@ -2068,22 +2085,5 @@
     "SAVED_NOT_RELOADED": "Saved, but Poracle did not reload. The change takes effect on its next refresh.",
     "SAVE_FAILED": "Could not save. Nothing was changed.",
     "LOAD_FAILED": "Could not read areas from Koji. Check the Koji connection and reload."
-  },
-  "GAME_ACCOUNTS": {
-    "TITLE": "Game accounts",
-    "INTRO": "Personal shiny and background alerts check each spawn against the game accounts linked here.",
-    "PLAYER_ID": "Player ID",
-    "LABEL": "Label (optional)",
-    "ADD": "Link account",
-    "REMOVE": "Unlink",
-    "EMPTY": "No game accounts linked yet.",
-    "SELF_SERVICE_OFF": "Only an administrator can link game accounts on this server.",
-    "FAILED": "Couldn't update your game accounts. Try again.",
-    "RATE_LIMITED": "Too many changes at once. Wait a minute and try again.",
-    "LOAD_FAILED": "Couldn't load the linked game accounts.",
-    "RETRY": "Try again",
-    "FOR_USER": "Accounts linked to {{name}}",
-    "CONTACT_SUPPORT": "Contact support",
-    "IMPERSONATING": "Game accounts can't be changed while you're viewing another account."
   }
 }

@@ -63,6 +63,7 @@
     "DISPLAY_LANGUAGE": "Weergavetaal",
     "ALERT_LANGUAGE": "Meldingstaal",
     "ALERT_LANGUAGE_HINT": "Gebruikt voor meldingstekst en Pokemon-namen.",
+    "GAME_ACCOUNTS": "Spelaccounts",
     "LOGOUT": "Uitloggen",
     "LOGOUT_EVERYWHERE": "Overal uitloggen",
     "ACCENT_DEFAULT": "Standaard",
@@ -71,8 +72,7 @@
     "ACCENT_MYSTIC": "Mystic",
     "ACCENT_VALOR": "Valor",
     "ACCENT_INSTINCT": "Instinct",
-    "ALERT_DEFAULTS": "Standaardinstellingen meldingen",
-    "GAME_ACCOUNTS": "Spelaccounts"
+    "ALERT_DEFAULTS": "Standaardinstellingen meldingen"
   },
   "SHORTCUTS": {
     "TITLE": "Sneltoetsen",
@@ -1437,6 +1437,8 @@
     "MANAGE_ALARMS": "Alarmen Beheren",
     "MANAGE_ALARMS_IMPERSONATING": "Stop eerst met imiteren om deze webhook te beheren",
     "MANAGE_ALARMS_TOOLTIP": "Alarmen beheren voor deze webhook",
+    "GAME_ACCOUNTS": "Spelaccounts",
+    "PERSONAL_NO_RATE_FEED": "Poracle heeft geen shiny-kansenfeed ingesteld, waardoor persoonlijke shiny- en achtergrondregels met niets overeenkomen. Stel [shiny_rates] url in in de PoracleNG-configuratie.",
     "MANAGE_DELEGATES": "Gedelegeerden beheren",
     "DELETE_WEBHOOK": "Webhook verwijderen",
     "NO_WEBHOOKS": "Geen webhooks gevonden",
@@ -1520,9 +1522,7 @@
     "VERSIONS_WEB": "Deze site",
     "VERSIONS_BUILD": "Build",
     "UPDATE_CURRENT": "Actueel.",
-    "UPDATE_UNCOMPARABLE": "Ontwikkelkanaal. Nieuwste uitgave is {{latest}}.",
-    "GAME_ACCOUNTS": "Spelaccounts",
-    "PERSONAL_NO_RATE_FEED": "Poracle heeft geen shiny-kansenfeed ingesteld, waardoor persoonlijke shiny- en achtergrondregels met niets overeenkomen. Stel [shiny_rates] url in in de PoracleNG-configuratie."
+    "UPDATE_UNCOMPARABLE": "Ontwikkelkanaal. Nieuwste uitgave is {{latest}}."
   },
   "DIALOG": {
     "LOCATION_PICK_TITLE": "Kies een punt",
@@ -1863,6 +1863,23 @@
     "BASEMAP_UNAVAILABLE": "De gekozen kaart heeft geen bruikbare tegel-URL, dus kaarten vallen terug op {{provider}}. Kies een aanbieder of stel een tegel-URL in die begint met http:// of https://.",
     "FAVICON_PREVIEW_ALT": "Favicon-voorbeeld"
   },
+  "GAME_ACCOUNTS": {
+    "TITLE": "Spelaccounts",
+    "INTRO": "Persoonlijke shiny- en achtergrondmeldingen vergelijken elke spawn met de hier gekoppelde spelaccounts.",
+    "PLAYER_ID": "Speler-ID",
+    "LABEL": "Label (optioneel)",
+    "ADD": "Account koppelen",
+    "REMOVE": "Ontkoppelen",
+    "EMPTY": "Nog geen spelaccounts gekoppeld.",
+    "SELF_SERVICE_OFF": "Alleen een beheerder kan op deze server spelaccounts koppelen.",
+    "FAILED": "Je spelaccounts konden niet worden bijgewerkt. Probeer het opnieuw.",
+    "RATE_LIMITED": "Te veel wijzigingen tegelijk. Wacht een minuut en probeer het opnieuw.",
+    "LOAD_FAILED": "De gekoppelde spelaccounts konden niet worden geladen.",
+    "RETRY": "Opnieuw proberen",
+    "FOR_USER": "Accounts gekoppeld aan {{name}}",
+    "CONTACT_SUPPORT": "Contact opnemen met support",
+    "IMPERSONATING": "Spelaccounts kunnen niet worden gewijzigd terwijl je een ander account bekijkt."
+  },
   "GEOFENCE_DETAIL": {
     "NAME": "Naam",
     "OWNER": "Eigenaar",
@@ -2068,22 +2085,5 @@
     "SAVED_NOT_RELOADED": "Opgeslagen, maar Poracle heeft niet herladen. De wijziging gaat in bij de volgende verversing.",
     "SAVE_FAILED": "Opslaan mislukt. Er is niets gewijzigd.",
     "LOAD_FAILED": "Kon gebieden niet uit Koji lezen. Controleer de Koji-verbinding en herlaad."
-  },
-  "GAME_ACCOUNTS": {
-    "TITLE": "Spelaccounts",
-    "INTRO": "Persoonlijke shiny- en achtergrondmeldingen vergelijken elke spawn met de hier gekoppelde spelaccounts.",
-    "PLAYER_ID": "Speler-ID",
-    "LABEL": "Label (optioneel)",
-    "ADD": "Account koppelen",
-    "REMOVE": "Ontkoppelen",
-    "EMPTY": "Nog geen spelaccounts gekoppeld.",
-    "SELF_SERVICE_OFF": "Alleen een beheerder kan op deze server spelaccounts koppelen.",
-    "FAILED": "Je spelaccounts konden niet worden bijgewerkt. Probeer het opnieuw.",
-    "RATE_LIMITED": "Te veel wijzigingen tegelijk. Wacht een minuut en probeer het opnieuw.",
-    "LOAD_FAILED": "De gekoppelde spelaccounts konden niet worden geladen.",
-    "RETRY": "Opnieuw proberen",
-    "FOR_USER": "Accounts gekoppeld aan {{name}}",
-    "CONTACT_SUPPORT": "Contact opnemen met support",
-    "IMPERSONATING": "Spelaccounts kunnen niet worden gewijzigd terwijl je een ander account bekijkt."
   }
 }

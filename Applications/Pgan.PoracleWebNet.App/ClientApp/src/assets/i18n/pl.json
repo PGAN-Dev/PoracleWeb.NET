@@ -63,6 +63,7 @@
     "DISPLAY_LANGUAGE": "Język interfejsu",
     "ALERT_LANGUAGE": "Język alertów",
     "ALERT_LANGUAGE_HINT": "Używany w treści alertów i nazwach Pokemonów.",
+    "GAME_ACCOUNTS": "Konta w grze",
     "LOGOUT": "Wyloguj",
     "LOGOUT_EVERYWHERE": "Wyloguj się wszędzie",
     "ACCENT_DEFAULT": "Domyślny",
@@ -71,8 +72,7 @@
     "ACCENT_MYSTIC": "Mystic",
     "ACCENT_VALOR": "Valor",
     "ACCENT_INSTINCT": "Instinct",
-    "ALERT_DEFAULTS": "Domyślne ustawienia alertów",
-    "GAME_ACCOUNTS": "Konta w grze"
+    "ALERT_DEFAULTS": "Domyślne ustawienia alertów"
   },
   "SHORTCUTS": {
     "TITLE": "Skróty klawiszowe",
@@ -1437,6 +1437,8 @@
     "MANAGE_ALARMS": "Zarządzaj alarmami",
     "MANAGE_ALARMS_IMPERSONATING": "Najpierw zakończ podszywanie się, aby zarządzać tym webhookiem",
     "MANAGE_ALARMS_TOOLTIP": "Zarządzaj alarmami dla tego webhooka",
+    "GAME_ACCOUNTS": "Konta w grze",
+    "PERSONAL_NO_RATE_FEED": "W Poracle nie skonfigurowano źródła szans na shiny, więc osobiste reguły shiny i tła niczego nie dopasowują. Ustaw [shiny_rates] url w konfiguracji PoracleNG.",
     "MANAGE_DELEGATES": "Zarządzaj delegatami",
     "DELETE_WEBHOOK": "Usuń webhook",
     "NO_WEBHOOKS": "Nie znaleziono webhooków",
@@ -1520,9 +1522,7 @@
     "VERSIONS_WEB": "Ta strona",
     "VERSIONS_BUILD": "Kompilacja",
     "UPDATE_CURRENT": "Aktualne.",
-    "UPDATE_UNCOMPARABLE": "Kanał rozwojowy. Najnowsze wydanie to {{latest}}.",
-    "GAME_ACCOUNTS": "Konta w grze",
-    "PERSONAL_NO_RATE_FEED": "W Poracle nie skonfigurowano źródła szans na shiny, więc osobiste reguły shiny i tła niczego nie dopasowują. Ustaw [shiny_rates] url w konfiguracji PoracleNG."
+    "UPDATE_UNCOMPARABLE": "Kanał rozwojowy. Najnowsze wydanie to {{latest}}."
   },
   "DIALOG": {
     "LOCATION_PICK_TITLE": "Wybierz punkt",
@@ -1863,6 +1863,23 @@
     "BASEMAP_UNAVAILABLE": "Wybrana mapa nie ma użytecznego adresu kafelków, więc mapy wracają do {{provider}}. Wybierz dostawcę albo podaj adres kafelków zaczynający się od http:// lub https://.",
     "FAVICON_PREVIEW_ALT": "Podgląd favikony"
   },
+  "GAME_ACCOUNTS": {
+    "TITLE": "Konta w grze",
+    "INTRO": "Osobiste alerty shiny i tła porównują każdy spawn z kontami w grze powiązanymi tutaj.",
+    "PLAYER_ID": "ID gracza",
+    "LABEL": "Etykieta (opcjonalnie)",
+    "ADD": "Powiąż konto",
+    "REMOVE": "Odłącz",
+    "EMPTY": "Nie powiązano jeszcze żadnych kont w grze.",
+    "SELF_SERVICE_OFF": "Na tym serwerze konta w grze może powiązać tylko administrator.",
+    "FAILED": "Nie udało się zaktualizować Twoich kont w grze. Spróbuj ponownie.",
+    "RATE_LIMITED": "Zbyt wiele zmian naraz. Odczekaj minutę i spróbuj ponownie.",
+    "LOAD_FAILED": "Nie udało się wczytać powiązanych kont w grze.",
+    "RETRY": "Spróbuj ponownie",
+    "FOR_USER": "Konta powiązane z {{name}}",
+    "CONTACT_SUPPORT": "Skontaktuj się z pomocą",
+    "IMPERSONATING": "Kont w grze nie można zmieniać podczas przeglądania innego konta."
+  },
   "GEOFENCE_DETAIL": {
     "NAME": "Nazwa",
     "OWNER": "Właściciel",
@@ -2068,22 +2085,5 @@
     "SAVED_NOT_RELOADED": "Zapisano, ale Poracle nie przeładował. Zmiana zadziała przy następnym odświeżeniu.",
     "SAVE_FAILED": "Nie udało się zapisać. Nic nie zmieniono.",
     "LOAD_FAILED": "Nie udało się odczytać obszarów z Koji. Sprawdź połączenie z Koji i odśwież."
-  },
-  "GAME_ACCOUNTS": {
-    "TITLE": "Konta w grze",
-    "INTRO": "Osobiste alerty shiny i tła porównują każdy spawn z kontami w grze powiązanymi tutaj.",
-    "PLAYER_ID": "ID gracza",
-    "LABEL": "Etykieta (opcjonalnie)",
-    "ADD": "Powiąż konto",
-    "REMOVE": "Odłącz",
-    "EMPTY": "Nie powiązano jeszcze żadnych kont w grze.",
-    "SELF_SERVICE_OFF": "Na tym serwerze konta w grze może powiązać tylko administrator.",
-    "FAILED": "Nie udało się zaktualizować Twoich kont w grze. Spróbuj ponownie.",
-    "RATE_LIMITED": "Zbyt wiele zmian naraz. Odczekaj minutę i spróbuj ponownie.",
-    "LOAD_FAILED": "Nie udało się wczytać powiązanych kont w grze.",
-    "RETRY": "Spróbuj ponownie",
-    "FOR_USER": "Konta powiązane z {{name}}",
-    "CONTACT_SUPPORT": "Skontaktuj się z pomocą",
-    "IMPERSONATING": "Kont w grze nie można zmieniać podczas przeglądania innego konta."
   }
 }

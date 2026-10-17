@@ -63,6 +63,7 @@
     "DISPLAY_LANGUAGE": "Idioma da interface",
     "ALERT_LANGUAGE": "Idioma dos alertas",
     "ALERT_LANGUAGE_HINT": "Usado no texto dos alertas e nos nomes dos Pokemon.",
+    "GAME_ACCOUNTS": "Contas de jogo",
     "LOGOUT": "Sair",
     "LOGOUT_EVERYWHERE": "Terminar sessão em todo o lado",
     "ACCENT_DEFAULT": "Predefinição",
@@ -71,8 +72,7 @@
     "ACCENT_MYSTIC": "Mystic",
     "ACCENT_VALOR": "Valor",
     "ACCENT_INSTINCT": "Instinct",
-    "ALERT_DEFAULTS": "Padrões de alertas",
-    "GAME_ACCOUNTS": "Contas de jogo"
+    "ALERT_DEFAULTS": "Padrões de alertas"
   },
   "SHORTCUTS": {
     "TITLE": "Atalhos de Teclado",
@@ -1437,6 +1437,8 @@
     "MANAGE_ALARMS": "Gerir Alarmes",
     "MANAGE_ALARMS_IMPERSONATING": "Pare primeiro a personificação para gerir este webhook",
     "MANAGE_ALARMS_TOOLTIP": "Gerir alarmes para este webhook",
+    "GAME_ACCOUNTS": "Contas de jogo",
+    "PERSONAL_NO_RATE_FEED": "O Poracle não tem um feed de taxas de shiny configurado, por isso as regras pessoais de shiny e de fundo não correspondem a nada. Defina [shiny_rates] url na configuração do PoracleNG.",
     "MANAGE_DELEGATES": "Gerir delegados",
     "DELETE_WEBHOOK": "Eliminar webhook",
     "NO_WEBHOOKS": "Nenhum webhook encontrado",
@@ -1520,9 +1522,7 @@
     "VERSIONS_WEB": "Este site",
     "VERSIONS_BUILD": "Compilação",
     "UPDATE_CURRENT": "Atualizado.",
-    "UPDATE_UNCOMPARABLE": "Canal de desenvolvimento. A versão mais recente é {{latest}}.",
-    "GAME_ACCOUNTS": "Contas de jogo",
-    "PERSONAL_NO_RATE_FEED": "O Poracle não tem um feed de taxas de shiny configurado, por isso as regras pessoais de shiny e de fundo não correspondem a nada. Defina [shiny_rates] url na configuração do PoracleNG."
+    "UPDATE_UNCOMPARABLE": "Canal de desenvolvimento. A versão mais recente é {{latest}}."
   },
   "DIALOG": {
     "LOCATION_PICK_TITLE": "Escolhe um ponto",
@@ -1863,6 +1863,23 @@
     "BASEMAP_UNAVAILABLE": "O mapa base escolhido não tem um URL de mosaicos utilizável, por isso os mapas recorrem ao {{provider}}. Escolha um fornecedor ou defina um URL de mosaicos começado por http:// ou https://.",
     "FAVICON_PREVIEW_ALT": "Pré-visualização do favicon"
   },
+  "GAME_ACCOUNTS": {
+    "TITLE": "Contas de jogo",
+    "INTRO": "Os alertas pessoais de shiny e de fundo comparam cada aparecimento com as contas de jogo associadas aqui.",
+    "PLAYER_ID": "ID de jogador",
+    "LABEL": "Etiqueta (opcional)",
+    "ADD": "Associar conta",
+    "REMOVE": "Desassociar",
+    "EMPTY": "Ainda não há contas de jogo associadas.",
+    "SELF_SERVICE_OFF": "Neste servidor, só um administrador pode associar contas de jogo.",
+    "FAILED": "Não foi possível atualizar as suas contas de jogo. Tente novamente.",
+    "RATE_LIMITED": "Demasiadas alterações de uma vez. Aguarde um minuto e tente novamente.",
+    "LOAD_FAILED": "Não foi possível carregar as contas de jogo associadas.",
+    "RETRY": "Tentar novamente",
+    "FOR_USER": "Contas associadas a {{name}}",
+    "CONTACT_SUPPORT": "Contactar o suporte",
+    "IMPERSONATING": "As contas de jogo não podem ser alteradas enquanto está a ver outra conta."
+  },
   "GEOFENCE_DETAIL": {
     "NAME": "Nome",
     "OWNER": "Proprietário",
@@ -2068,22 +2085,5 @@
     "SAVED_NOT_RELOADED": "Guardado, mas o Poracle não recarregou. A alteração entra em vigor na próxima atualização.",
     "SAVE_FAILED": "Não foi possível guardar. Nada foi alterado.",
     "LOAD_FAILED": "Não foi possível ler as áreas do Koji. Verifique a ligação ao Koji e recarregue."
-  },
-  "GAME_ACCOUNTS": {
-    "TITLE": "Contas de jogo",
-    "INTRO": "Os alertas pessoais de shiny e de fundo comparam cada aparecimento com as contas de jogo associadas aqui.",
-    "PLAYER_ID": "ID de jogador",
-    "LABEL": "Etiqueta (opcional)",
-    "ADD": "Associar conta",
-    "REMOVE": "Desassociar",
-    "EMPTY": "Ainda não há contas de jogo associadas.",
-    "SELF_SERVICE_OFF": "Neste servidor, só um administrador pode associar contas de jogo.",
-    "FAILED": "Não foi possível atualizar as suas contas de jogo. Tente novamente.",
-    "RATE_LIMITED": "Demasiadas alterações de uma vez. Aguarde um minuto e tente novamente.",
-    "LOAD_FAILED": "Não foi possível carregar as contas de jogo associadas.",
-    "RETRY": "Tentar novamente",
-    "FOR_USER": "Contas associadas a {{name}}",
-    "CONTACT_SUPPORT": "Contactar o suporte",
-    "IMPERSONATING": "As contas de jogo não podem ser alteradas enquanto está a ver outra conta."
   }
 }
