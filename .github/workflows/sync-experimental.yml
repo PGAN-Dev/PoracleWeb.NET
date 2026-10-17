@@ -1,0 +1,84 @@
+name: Sync experimental
+
+# After every full release, opens a PR from main into each experimental/* branch that is behind,
+# so an experimental line gets the released code it is based on without anyone remembering to.
+#
+# Merge these PRs with a merge commit, never squash or rebase: people clone experimental
+# branches, and a rewritten history stops their clones fast-forwarding.
+#
+# The PR is opened with the CHANGELOG_APP_* GitHub App token when it is configured. A PR opened
+# with GITHUB_TOKEN triggers no workflows (GitHub's recursion guard), so its required checks
+# would never run; release-changelog.yml documents the same trade-off.
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  sync:
+    # A prerelease is an experimental build itself; only a full release has new code to pass on.
+    if: ${{ !github.event.release.prerelease }}
+    runs-on: ubuntu-latest
+    steps:
+      # Unconditional, so the job always has at least one step that runs. A job whose every step
+      # is skipped by an `if:` is recorded as a failure.
+      - name: Context
+        run: echo "release=${{ github.event.release.tag_name }}"
+
+      - name: Detect app config
+        id: cfg
+        env:
+          APP_ID: ${{ secrets.CHANGELOG_APP_ID }}
+        run: |
+          if [ -n "$APP_ID" ]; then
+            echo "has_app=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_app=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::CHANGELOG_APP_ID/CHANGELOG_APP_PRIVATE_KEY not set — opening sync PRs with GITHUB_TOKEN, which does not trigger the required CI checks. They will need a manual (admin) merge."
+          fi
+
+      - name: Generate GitHub App token
+        id: app-token
+        if: steps.cfg.outputs.has_app == 'true'
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.CHANGELOG_APP_ID }}
+          private-key: ${{ secrets.CHANGELOG_APP_PRIVATE_KEY }}
+
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Open sync PRs
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          git fetch --quiet origin '+refs/heads/experimental/*:refs/remotes/origin/experimental/*'
+          branches=$(git for-each-ref --format='%(refname:lstrip=3)' 'refs/remotes/origin/experimental/')
+          if [ -z "$branches" ]; then
+            echo "No experimental branches; nothing to sync."
+            exit 0
+          fi
+          for branch in $branches; do
+            behind=$(git rev-list --count "origin/$branch..origin/main")
+            if [ "$behind" -eq 0 ]; then
+              echo "$branch already contains main."
+              continue
+            fi
+            open=$(gh pr list --base "$branch" --head main --state open --json number -q 'length')
+            if [ "$open" -gt 0 ]; then
+              echo "$branch: a sync PR is already open; it picks up the new commits."
+              continue
+            fi
+            gh pr create --base "$branch" --head main \
+              --title "sync: main into $branch" \
+              --body "$branch is $behind commit(s) behind main after release $TAG. Merge with a merge commit, not squash or rebase, so clones of $branch keep fast-forwarding."
+          done
