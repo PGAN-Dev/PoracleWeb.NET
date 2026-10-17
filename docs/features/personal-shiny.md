@@ -136,9 +136,9 @@ worth knowing first.
   those rules still fire as personal rules.
 - The official PoracleWeb.NET doesn't show it. A personal rule looks like an ordinary Pokemon rule
   with no sign of the setting.
-- Editing such a rule on the official build can drop the setting, and until a fix for that is public
-  you should expect it to. The rule then saves as an ordinary rule and starts matching every spawn
-  that fits its other filters. Don't edit personal rules from the official build.
+- Editing such a rule on the official build keeps the setting. The official build copies the stored
+  value back into the edit and saves it the older way, which PoracleNG stores as sent. You just can't
+  see or change the setting there, so a rule can look ordinary while it only fires for your accounts.
 
 This page doesn't cover what a PoracleNG build without #255 does with the `personal` column, because
 that depends on the build. Check its release notes before pointing the database at one.
