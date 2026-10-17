@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.20.0] - 2026-10-17
+
 ### Added
 
 - **Add several Pokemon to an alarm at once by pasting or typing their names, instead of searching and clicking one at a time.** `PokemonSelectorComponent`'s multi-select mode (used by the Pokemon add dialog) now has an "Add multiple" toggle next to the search box that swaps it for a text box: paste a list separated by commas, newlines, or spaces in any mixture and click *Match & add*. Multi-word species names (Tapu Koko, Mime Jr.) are recognized the same whether separated by commas or just spaces. A name that doesn't match exactly but has close candidates is offered as a "did you mean" suggestion instead of being guessed at or silently dropped; a name with nothing close is listed as not recognized so it can be fixed or searched for individually ([#946](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/946)).
@@ -20,6 +22,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Editing any alarm with a role or user mention set used to silently erase it — on every PoracleNG version released to date.** The write path has always claimed that an edit this site can't send through `/api/v2` "falls back to the older surface, which keeps it." That was never actually checked against what PoracleNG does with the write, only that the outgoing request carried the right value, and it was wrong: verified live, against both a stock jfberry/PoracleNG `develop` build and a private fork on the same commit, that the older surface blanks a mention unconditionally — present, changed, or even left untouched, create or update. Every edit to a webhook alarm with a mention, for any reason, on any server released so far, has been quietly deleting it. Saving now refuses outright instead, with a plain explanation, rather than going through with an edit that would destroy something the dialog never even showed. The one real fix is upstream (jfberry/PoracleNG#249, see the Added entry above) — once a server carries it, the same edit goes through `/api/v2` instead and the mention survives for real.
+
+### Dependencies
+- Bump jest-preset-angular ([#944](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/944))
+- Bump jsdom in /Applications/Pgan.PoracleWebNet.App/ClientApp ([#945](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/945))
+- Bump the angular group ([#941](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/941))
+- Bump the eslint group ([#943](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/943))
 
 ## [2.19.0] - 2026-10-10
 
@@ -1179,7 +1187,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.19.0...HEAD
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.20.0...HEAD
+[2.20.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.19.0...v2.20.0
 [2.19.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.18.0...v2.19.0
 [2.18.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.17.1...v2.18.0
 [2.17.1]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.17.0...v2.17.1
