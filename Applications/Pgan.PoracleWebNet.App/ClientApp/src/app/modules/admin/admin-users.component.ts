@@ -71,7 +71,6 @@ export class AdminUsersComponent implements OnInit {
   private readonly snackBar = inject(MatSnackBar);
 
   readonly searchTerm = signal('');
-
   readonly sortActive = signal('');
   readonly sortDirection = signal<'asc' | 'desc' | ''>('');
   readonly statusFilter = signal<StatusFilter>('all');
@@ -113,8 +112,8 @@ export class AdminUsersComponent implements OnInit {
   });
 
   readonly pageIndex = signal(parseInt(sessionStorage.getItem('admin_pageIndex') || '0', 10));
-
   readonly pageSize = signal(parseInt(sessionStorage.getItem('admin_pageSize') || '25', 10));
+
   readonly paginatedUsers = computed(() => {
     const start = this.pageIndex() * this.pageSize();
     return this.filteredUsers().slice(start, start + this.pageSize());

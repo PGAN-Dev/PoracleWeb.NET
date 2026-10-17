@@ -74,6 +74,7 @@ export class App implements OnInit {
   private readonly dashboardService = inject(DashboardService);
   private readonly dialog = inject(MatDialog);
   private readonly settingsService = inject(SettingsService);
+
   protected readonly faviconUrl = computed(() => this.settingsService.siteSettings()['favicon_url'] || 'favicon.ico');
 
   private readonly faviconEffect = effect(() => {

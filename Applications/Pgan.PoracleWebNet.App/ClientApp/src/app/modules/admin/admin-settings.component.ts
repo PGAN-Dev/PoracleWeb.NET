@@ -563,8 +563,8 @@ export class AdminSettingsComponent implements OnInit {
   protected readonly basemap = inject(BasemapService);
 
   readonly bulkSaving = signal(false);
-
   readonly collapsedGroups = signal<Set<string>>(AdminSettingsComponent.loadCollapsed());
+
   readonly discordConfig = signal<DiscordServerConfig | null>(null);
 
   /**
