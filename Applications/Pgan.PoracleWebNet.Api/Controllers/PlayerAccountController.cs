@@ -8,11 +8,11 @@ namespace Pgan.PoracleWebNet.Api.Controllers;
 
 /// <summary>The body of <c>POST api/accounts</c> and <c>POST api/admin/accounts</c>.</summary>
 public sealed record AddPlayerAccountRequest(
-    [property: Required, StringLength(256, MinimumLength = 1)] string PlayerId,
-    [property: StringLength(64)] string? Label);
+    [Required, StringLength(256, MinimumLength = 1)] string PlayerId,
+    [StringLength(64)] string? Label);
 
 /// <summary>The body of the relabel actions. A null or empty label clears the label.</summary>
-public sealed record RelabelPlayerAccountRequest([property: StringLength(64)] string? Label);
+public sealed record RelabelPlayerAccountRequest([StringLength(64)] string? Label);
 
 /// <summary>
 /// Linked game accounts (player ids), over PoracleNG's <c>/api/v2/humans/{id}/accounts</c>. Personal shiny
