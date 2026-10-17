@@ -201,4 +201,14 @@ public class MonsterCreate
     {
         get; set;
     }
+
+    /// <summary>
+    /// Per-player alert bitmask (1 shiny, 2 event background; 4 and 8 reserved). See the domain model.
+    /// Only a negative mask is refused: reserved bits must stay editable.
+    /// </summary>
+    [Range(0, int.MaxValue)]
+    public int Personal
+    {
+        get; set;
+    }
 }

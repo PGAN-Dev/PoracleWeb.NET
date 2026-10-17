@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Pgan.PoracleWebNet.Core.Mappings;
 using Pgan.PoracleWebNet.Core.Models;
+using Pgan.PoracleWebNet.Core.Services;
 using Pgan.PoracleWebNet.Data.Entities;
 
 namespace Pgan.PoracleWebNet.Tests.Mappings;
@@ -670,6 +671,73 @@ public class MappingExtensionTests
     // 9000 is "any costume", 0 is "no costume". Every one of these guards the same failure: a rule
     // that meant "any" silently becoming "plain spawns only", which stops it firing on every
     // costumed event without changing anything the user can see.
+
+    // ── Personal (PoracleNG #255) ───────────────────────────
+    //
+    // A bitmask: 1 shiny, 2 event background, 4 and 8 reserved. Bits the web UI does not
+    // understand must come back out exactly as they went in.
+
+    [Fact]
+    public void MonsterCreate_ToMonster_CarriesPersonal() =>
+        Assert.Equal(3, new MonsterCreate { Personal = 3 }.ToMonster().Personal);
+
+    [Fact]
+    public void MonsterUpdate_ApplyUpdate_SkipsNullPersonal()
+    {
+        var existing = new Monster { Personal = 5 };
+
+        new MonsterUpdate().ApplyUpdate(existing);
+
+        Assert.Equal(5, existing.Personal);
+    }
+
+    [Fact]
+    public void MonsterUpdate_ApplyUpdate_WritesPersonal()
+    {
+        var existing = new Monster { Personal = 5 };
+
+        new MonsterUpdate { Personal = 4 }.ApplyUpdate(existing);
+
+        Assert.Equal(4, existing.Personal);
+    }
+
+    [Fact]
+    public void MonsterUpdate_ApplyUpdate_WritesZeroPersonal()
+    {
+        // Zero is a real value ("no personal alerts"), not an unset marker.
+        var existing = new Monster { Personal = 3 };
+
+        new MonsterUpdate { Personal = 0 }.ApplyUpdate(existing);
+
+        Assert.Equal(0, existing.Personal);
+    }
+
+    [Fact]
+    public void Monster_Personal_SerialisesSnakeCase()
+    {
+        var json = PoracleJsonHelper.SerializeToElement(new Monster { Personal = 1 });
+
+        Assert.Equal(1, json.GetProperty("personal").GetInt32());
+    }
+
+    [Fact]
+    public void Monster_V1RowWithPersonal_Deserialises()
+    {
+        var rows = JsonDocument.Parse("""[{"uid":7,"pokemon_id":25,"personal":5}]""").RootElement;
+
+        var monsters = PoracleJsonHelper.DeserializeList<Monster>(rows);
+
+        Assert.Equal(5, Assert.Single(monsters).Personal);
+    }
+
+    [Fact]
+    public void Monster_V1RowWithoutPersonal_DefaultsToZero()
+    {
+        // A PoracleNG that predates the column does not send it.
+        var rows = JsonDocument.Parse("""[{"uid":7,"pokemon_id":25}]""").RootElement;
+
+        Assert.Equal(0, Assert.Single(PoracleJsonHelper.DeserializeList<Monster>(rows)).Personal);
+    }
 
     [Fact]
     public void MonsterCreate_DefaultsCostumeToAnyNotZero()

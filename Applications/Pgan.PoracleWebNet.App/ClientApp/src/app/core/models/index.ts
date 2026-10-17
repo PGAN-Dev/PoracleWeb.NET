@@ -32,6 +32,11 @@ export interface Monster {
   minWeight: number;
   overrideAreas?: null | string[];
   overrideLocationLabel?: null | string;
+  /**
+   * Per-player alert bitmask (PoracleNG personal-shiny support): 1 shiny, 2 event background, 4 and 8
+   * reserved. Always write through `preserve` in shared/utils/personal-flags.ts so reserved bits survive.
+   */
+  personal?: number;
   ping?: string | null;
   pokemonId: number;
   profileNo: number;

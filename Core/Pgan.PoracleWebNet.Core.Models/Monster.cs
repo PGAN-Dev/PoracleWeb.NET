@@ -154,6 +154,21 @@ public class Monster
     {
         get; set;
     }
+
+    /// <summary>
+    /// Per-player alert bitmask from PoracleNG's personal-shiny support (PoracleNG PR #255).
+    /// </summary>
+    /// <remarks>
+    /// Bit 1 matches a shiny for one of the human's linked game accounts, bit 2 matches an event
+    /// background for one of them. Bits 4 and 8 are reserved for future per-player sizes: this
+    /// application does not edit them but must round-trip them untouched (see <see cref="PersonalFlags"/>).
+    /// 0 means no personal filter, and is what a PoracleNG that predates the column implies.
+    /// </remarks>
+    public int Personal
+    {
+        get; set;
+    }
+
     /// <summary>
     /// The sentence PoracleNG renders for this rule, in the user's alert language.
     /// </summary>
