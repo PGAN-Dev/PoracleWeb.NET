@@ -183,6 +183,53 @@ public class PlayerAccountControllerTests : ControllerTestBase
         this._proxy.Verify(p => p.RelabelAsync(UserId, "Ab9cD", string.Empty, It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    /// <summary>An administrator linking their own accounts from their own dialog is not a trainer self-service write.</summary>
+    [Fact]
+    public async Task AdministratorCanAddRelabelAndDeleteOwnAccountsWithSelfServiceOff()
+    {
+        SetupUser(this._sut, userId: UserId, isAdmin: true);
+        this.SelfService(false);
+        this._proxy
+            .Setup(p => p.AddAsync(UserId, "Ab9cD", "Main", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(AnAccount());
+
+        Assert.IsType<OkObjectResult>(await this._sut.Add(new AddPlayerAccountRequest("Ab9cD", "Main"), default));
+        Assert.IsType<NoContentResult>(
+            await this._sut.Relabel("Ab9cD", new RelabelPlayerAccountRequest("Alt"), default));
+        Assert.IsType<NoContentResult>(await this._sut.Delete("Ab9cD", default));
+
+        this._proxy.Verify(p => p.RelabelAsync(UserId, "Ab9cD", "Alt", It.IsAny<CancellationToken>()), Times.Once);
+        this._proxy.Verify(p => p.DeleteAsync(UserId, "Ab9cD", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    /// <summary>The impersonation check comes first, even for claims that say administrator.</summary>
+    [Fact]
+    public async Task ImpersonationIsRefusedBeforeTheAdministratorCheck()
+    {
+        SetupImpersonatingUser(this._sut, userId: UserId, isAdmin: true);
+        this.SelfService(false);
+
+        var result = Assert.IsType<ObjectResult>(
+            await this._sut.Add(new AddPlayerAccountRequest("Ab9cD", null), default));
+
+        Assert.Equal(StatusCodes.Status403Forbidden, result.StatusCode);
+        Assert.Equal("Game accounts cannot be changed while viewing another account.", Read<string>(result.Value, "error"));
+        this.NothingReachedTheProxy();
+    }
+
+    [Fact]
+    public async Task AnImpersonatedSessionWithSelfServiceOffStillSaysImpersonating()
+    {
+        SetupImpersonatingUser(this._sut, userId: UserId);
+        this.SelfService(false);
+
+        var result = Assert.IsType<ObjectResult>(await this._sut.Delete("Ab9cD", default));
+
+        Assert.Equal(StatusCodes.Status403Forbidden, result.StatusCode);
+        Assert.Equal("Game accounts cannot be changed while viewing another account.", Read<string>(result.Value, "error"));
+        this.NothingReachedTheProxy();
+    }
+
     // ── admin ────────────────────────────────────────────────────
 
     [Fact]

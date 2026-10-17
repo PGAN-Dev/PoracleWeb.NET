@@ -188,6 +188,12 @@ public class PlayerAccountController(
             });
         }
 
+        // An administrator linking their own accounts is not subject to the self-service setting.
+        if (this.IsAdmin)
+        {
+            return null;
+        }
+
         var config = await this._personalConfig.GetAsync();
         if (!config.SelfService)
         {

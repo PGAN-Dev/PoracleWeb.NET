@@ -34,7 +34,7 @@ describe('GameAccountsDialogComponent', () => {
   });
 
   function create(
-    opts: { data?: GameAccountsDialogData; impersonating?: boolean; selfService?: boolean } = {},
+    opts: { admin?: boolean; data?: GameAccountsDialogData; impersonating?: boolean; selfService?: boolean } = {},
   ): ComponentFixture<GameAccountsDialogComponent> {
     serverConfig = signal({ playerAccountsSelfService: opts.selfService ?? false });
     service = {
@@ -55,7 +55,7 @@ describe('GameAccountsDialogComponent', () => {
         { provide: MAT_DIALOG_DATA, useValue: opts.data ?? {} },
         { provide: PlayerAccountService, useValue: service },
         { provide: PoracleConfigService, useValue: { load: () => of(serverConfig()), serverConfig } },
-        { provide: AuthService, useValue: { isImpersonating: () => opts.impersonating ?? false } },
+        { provide: AuthService, useValue: { isAdmin: () => opts.admin ?? false, isImpersonating: () => opts.impersonating ?? false } },
         { provide: SettingsService, useValue: { supportUrl } },
       ],
       imports: [GameAccountsDialogComponent],
@@ -107,6 +107,30 @@ describe('GameAccountsDialogComponent', () => {
     expect(query(fixture, '.add-form')).not.toBeNull();
     expect(query(fixture, '.remove-button')).not.toBeNull();
     expect(text(fixture)).not.toContain('GAME_ACCOUNTS.SELF_SERVICE_OFF');
+  });
+
+  it('lets an administrator edit their own accounts with self-service off, without blaming the setting', () => {
+    const fixture = create({ admin: true, selfService: false });
+
+    expect(query(fixture, '.add-form')).not.toBeNull();
+    expect(query(fixture, '.remove-button')).not.toBeNull();
+    expect(text(fixture)).not.toContain('GAME_ACCOUNTS.SELF_SERVICE_OFF');
+    expect(text(fixture)).not.toContain('GAME_ACCOUNTS.IMPERSONATING');
+  });
+
+  it('is read-only while impersonating with self-service off, and says it is the impersonation', () => {
+    const fixture = create({ impersonating: true, selfService: false });
+
+    expect(query(fixture, '.add-form')).toBeNull();
+    expect(text(fixture)).toContain('GAME_ACCOUNTS.IMPERSONATING');
+    expect(text(fixture)).not.toContain('GAME_ACCOUNTS.SELF_SERVICE_OFF');
+  });
+
+  it('stays read-only for an administrator session that is impersonating', () => {
+    const fixture = create({ admin: true, impersonating: true, selfService: false });
+
+    expect(query(fixture, '.add-form')).toBeNull();
+    expect(text(fixture)).toContain('GAME_ACCOUNTS.IMPERSONATING');
   });
 
   it('is read-only while impersonating, even with self-service on, and does not blame self-service', () => {

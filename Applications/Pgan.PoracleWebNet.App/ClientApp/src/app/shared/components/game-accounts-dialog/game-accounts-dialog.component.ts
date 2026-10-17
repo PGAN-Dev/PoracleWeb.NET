@@ -53,11 +53,14 @@ export class GameAccountsDialogComponent implements OnInit, OnDestroy {
   /** Whether this viewer is an administrator acting on someone else's accounts. */
   readonly isAdminView = !!this.data.userId;
   /**
-   * An administrator may always edit. A trainer may only when PoracleNG's self-service setting is on, and
-   * never while impersonating, because the API refuses a write there (the account is somebody else's).
+   * An administrator may always edit, their own accounts included. A trainer may only when PoracleNG's
+   * self-service setting is on. Nobody may while impersonating, because the API refuses a write there (the
+   * account is somebody else's).
    */
   readonly canEdit = computed(
-    () => this.isAdminView || (!!this.poracleConfig.serverConfig().playerAccountsSelfService && !this.auth.isImpersonating()),
+    () =>
+      this.isAdminView ||
+      (!this.auth.isImpersonating() && (!!this.poracleConfig.serverConfig().playerAccountsSelfService || this.auth.isAdmin())),
   );
 
   readonly dialogRef = inject(MatDialogRef<GameAccountsDialogComponent>);
@@ -65,10 +68,8 @@ export class GameAccountsDialogComponent implements OnInit, OnDestroy {
   readonly label = signal('');
   readonly playerId = signal('');
 
-  /** Read-only because of impersonation rather than because self-service is off, which needs other words. */
-  readonly readOnlyByImpersonation = computed(
-    () => !this.isAdminView && !!this.poracleConfig.serverConfig().playerAccountsSelfService && this.auth.isImpersonating(),
-  );
+  /** Read-only because of impersonation, which the API reports before self-service, so it gets its own words. */
+  readonly readOnlyByImpersonation = computed(() => !this.isAdminView && this.auth.isImpersonating());
 
   protected readonly supportUrl = this.settings.supportUrl;
 
