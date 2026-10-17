@@ -151,6 +151,16 @@
                 [attr.aria-label]="'ADMIN.VIEW_AS_USER' | translate">
                 <mat-icon>visibility</mat-icon>
               </button>
+              @if (playerAccountsSupported()) {
+                <button
+                  mat-icon-button
+                  class="game-accounts-button"
+                  (click)="openGameAccounts(user)"
+                  [matTooltip]="'ADMIN.GAME_ACCOUNTS' | translate"
+                  [attr.aria-label]="'ADMIN.GAME_ACCOUNTS' | translate">
+                  <mat-icon>badge</mat-icon>
+                </button>
+              }
               <button
                 mat-icon-button
                 color="warn"

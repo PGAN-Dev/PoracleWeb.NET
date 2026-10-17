@@ -71,7 +71,8 @@
     "ACCENT_MYSTIC": "Mystic",
     "ACCENT_VALOR": "Valor",
     "ACCENT_INSTINCT": "Instinct",
-    "ALERT_DEFAULTS": "Standardinställningar för aviseringar"
+    "ALERT_DEFAULTS": "Standardinställningar för aviseringar",
+    "GAME_ACCOUNTS": "Spelkonton"
   },
   "SHORTCUTS": {
     "TITLE": "Kortkommandon",
@@ -1512,7 +1513,9 @@
     "VERSIONS_WEB": "Den här webbplatsen",
     "VERSIONS_BUILD": "Bygge",
     "UPDATE_CURRENT": "Uppdaterad.",
-    "UPDATE_UNCOMPARABLE": "Utvecklingskanal. Senaste släppet är {{latest}}."
+    "UPDATE_UNCOMPARABLE": "Utvecklingskanal. Senaste släppet är {{latest}}.",
+    "GAME_ACCOUNTS": "Spelkonton",
+    "PERSONAL_NO_RATE_FEED": "Poracle har inget shiny-sannolikhetsflöde konfigurerat, så personliga shiny- och bakgrundsregler matchar ingenting. Ange [shiny_rates] url i PoracleNG:s konfiguration."
   },
   "DIALOG": {
     "LOCATION_PICK_TITLE": "Välj en punkt",
@@ -2058,5 +2061,22 @@
     "SAVED_NOT_RELOADED": "Sparat, men Poracle laddade inte om. Ändringen träder i kraft vid nästa uppdatering.",
     "SAVE_FAILED": "Kunde inte spara. Inget ändrades.",
     "LOAD_FAILED": "Kunde inte läsa områden från Koji. Kontrollera Koji-anslutningen och ladda om."
+  },
+  "GAME_ACCOUNTS": {
+    "TITLE": "Spelkonton",
+    "INTRO": "Personliga shiny- och bakgrundsaviseringar jämför varje spawn med de spelkonton som är kopplade här.",
+    "PLAYER_ID": "Spelar-ID",
+    "LABEL": "Etikett (valfri)",
+    "ADD": "Koppla konto",
+    "REMOVE": "Koppla bort",
+    "EMPTY": "Inga spelkonton är kopplade än.",
+    "SELF_SERVICE_OFF": "På den här servern kan bara en administratör koppla spelkonton.",
+    "FAILED": "Det gick inte att uppdatera dina spelkonton. Försök igen.",
+    "RATE_LIMITED": "För många ändringar på en gång. Vänta en minut och försök igen.",
+    "LOAD_FAILED": "Det gick inte att läsa in de kopplade spelkontona.",
+    "RETRY": "Försök igen",
+    "FOR_USER": "Konton kopplade till {{name}}",
+    "CONTACT_SUPPORT": "Kontakta supporten",
+    "IMPERSONATING": "Spelkonton kan inte ändras medan du tittar på ett annat konto."
   }
 }

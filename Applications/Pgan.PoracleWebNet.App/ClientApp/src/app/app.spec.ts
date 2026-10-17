@@ -15,6 +15,7 @@ import { AlertLanguageService } from './core/services/alert-language.service';
 import { AuthService } from './core/services/auth.service';
 import { DashboardService } from './core/services/dashboard.service';
 import { I18nService } from './core/services/i18n.service';
+import { PoracleConfigService } from './core/services/poracle-config.service';
 import { SettingsService } from './core/services/settings.service';
 
 interface NavItemShape {
@@ -334,5 +335,70 @@ describe('App stop impersonating', () => {
     await app.stopImpersonating();
 
     expect(getCounts).toHaveBeenCalledTimes(1);
+  });
+});
+
+/**
+ * The Game accounts entry opens a dialog that only means something on a PoracleNG that has trainer game
+ * accounts, so the user menu offers it only then. The server config is read by the shell, not by a page.
+ */
+describe('App game accounts menu item', () => {
+  const template = fs.readFileSync(path.join(__dirname, 'app.html'), 'utf8');
+
+  const setup = (playerAccountsSupported: boolean) => {
+    const serverConfig = signal({ playerAccountsSupported });
+    const load = jest.fn(() => of(serverConfig()));
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideNoopAnimations(),
+        provideRouter([]),
+        provideTranslateService(),
+        {
+          provide: SettingsService,
+          useValue: { isDisabled: () => false, loadOnce: () => of([]), loadPublic: () => of([]), siteSettings: signal({}) },
+        },
+        {
+          provide: AuthService,
+          useValue: {
+            getProviders: () => of({}),
+            hasManagedWebhooks: () => false,
+            isAdmin: () => false,
+            isAuthenticated: () => true,
+            loadCurrentUser: jest.fn(),
+            logout: jest.fn(),
+            stopImpersonating: jest.fn(),
+            toggleAlerts: () => of(null),
+          },
+        },
+        {
+          provide: AlertLanguageService,
+          useValue: { languages: signal([]), load: jest.fn(), restrictTo: jest.fn(), selected: signal('en') },
+        },
+        { provide: DashboardService, useValue: { getCounts: () => of({}) } },
+        { provide: I18nService, useValue: { init: jest.fn() } },
+        { provide: PoracleConfigService, useValue: { load, serverConfig } },
+      ],
+    });
+    const app = TestBed.runInInjectionContext(() => new App());
+    return { app, load, shown: () => (app as unknown as { showGameAccounts: () => boolean }).showGameAccounts() };
+  };
+
+  it('shows Game accounts only when playerAccountsSupported', () => {
+    expect(setup(true).shown()).toBe(true);
+    expect(setup(false).shown()).toBe(false);
+  });
+
+  it('gates the menu entry on that flag and opens the dialog', () => {
+    expect(template).toMatch(/@if \(showGameAccounts\(\)\)[\s\S]*?openGameAccounts\(\)[\s\S]*?'MENU\.GAME_ACCOUNTS' \| translate/);
+  });
+
+  it('reads the server config for a signed-in user, so the flag is known before the menu opens', () => {
+    const { app, load } = setup(true);
+    app.ngOnInit();
+
+    expect(load).toHaveBeenCalled();
   });
 });

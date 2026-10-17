@@ -71,7 +71,12 @@
       [attr.aria-label]="'TOOLBAR.TOGGLE_DARK_MODE' | translate">
       <mat-icon>{{ darkMode() ? 'light_mode' : 'dark_mode' }}</mat-icon>
     </button>
-    <button mat-icon-button [matMenuTriggerFor]="userMenu" class="user-menu-trigger" [attr.aria-label]="'TOOLBAR.USER_MENU' | translate">
+    <button
+      mat-icon-button
+      [matMenuTriggerFor]="userMenu"
+      (menuOpened)="loadServerConfig()"
+      class="user-menu-trigger"
+      [attr.aria-label]="'TOOLBAR.USER_MENU' | translate">
       @if (auth.user()?.avatarUrl) {
         <img [src]="auth.user()!.avatarUrl!" class="user-avatar" [alt]="'TOOLBAR.AVATAR_ALT' | translate" />
       } @else {
@@ -129,6 +134,12 @@
         <mat-icon>tune</mat-icon>
         <span>{{ 'MENU.ALERT_DEFAULTS' | translate }}</span>
       </button>
+      @if (showGameAccounts()) {
+        <button mat-menu-item (click)="openGameAccounts()">
+          <mat-icon>badge</mat-icon>
+          <span>{{ 'MENU.GAME_ACCOUNTS' | translate }}</span>
+        </button>
+      }
       <button mat-menu-item [matMenuTriggerFor]="accentMenu">
         <mat-icon>palette</mat-icon>
         <span>{{ 'MENU.ACCENT_THEME' | translate }}</span>

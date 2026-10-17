@@ -1,0 +1,125 @@
+h2[mat-dialog-title] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.title-icon {
+  color: var(--accent-primary, var(--mat-sys-primary, #1976d2));
+}
+
+mat-dialog-content {
+  min-width: 340px;
+  max-width: 520px;
+}
+
+.for-user {
+  margin: 0 0 4px;
+  font-weight: 500;
+}
+
+.dialog-desc {
+  margin: 0 0 16px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.6));
+  font-size: 14px;
+}
+
+.empty {
+  margin: 0 0 16px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.6));
+}
+
+.account-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.account-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 12px;
+  border: 1px solid var(--mat-sys-outline-variant, rgba(0, 0, 0, 0.12));
+  border-radius: 12px;
+}
+
+.account-id {
+  flex: 0 1 auto;
+  min-width: 0;
+  font-family: monospace;
+  overflow-wrap: anywhere;
+}
+
+.account-label,
+.account-label-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.6));
+  font-size: 14px;
+}
+
+.account-label {
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+
+  &:hover,
+  &:focus {
+    border-color: var(--mat-sys-outline-variant, rgba(0, 0, 0, 0.3));
+    outline: none;
+  }
+}
+
+.load-failed {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--mat-sys-error, #b3261e);
+}
+
+.add-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.id-field {
+  flex: 1 1 180px;
+}
+
+.label-field {
+  flex: 1 1 140px;
+}
+
+.add-button {
+  margin-top: 8px;
+}
+
+.dialog-footnote {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 12px 0 0;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.6));
+  font-size: 13px;
+}
+
+.dialog-footnote mat-icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  font-size: 16px;
+}
+
+.support-link {
+  margin-left: 4px;
+}

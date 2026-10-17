@@ -290,6 +290,16 @@ export interface Human {
   name: string;
 }
 
+/**
+ * A game account (player id) linked to a human, for personal shiny alerts. The id is case-sensitive and is
+ * shown and sent exactly as stored.
+ */
+export interface PlayerAccount {
+  createdAt: string;
+  label: string | null;
+  playerId: string;
+}
+
 /** Shape returned by GET /api/admin/users (anonymous projection from AdminController). */
 export interface AdminUser {
   adminDisable: number;

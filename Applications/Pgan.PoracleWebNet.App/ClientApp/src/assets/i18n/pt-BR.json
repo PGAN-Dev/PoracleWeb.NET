@@ -71,7 +71,8 @@
     "ACCENT_MYSTIC": "Mystic",
     "ACCENT_VALOR": "Valor",
     "ACCENT_INSTINCT": "Instinct",
-    "ALERT_DEFAULTS": "Padrões de alertas"
+    "ALERT_DEFAULTS": "Padrões de alertas",
+    "GAME_ACCOUNTS": "Contas de jogo"
   },
   "SHORTCUTS": {
     "TITLE": "Atalhos do Teclado",
@@ -1512,7 +1513,9 @@
     "VERSIONS_WEB": "Este site",
     "VERSIONS_BUILD": "Compilação",
     "UPDATE_CURRENT": "Atualizado.",
-    "UPDATE_UNCOMPARABLE": "Canal de desenvolvimento. A versão mais recente é {{latest}}."
+    "UPDATE_UNCOMPARABLE": "Canal de desenvolvimento. A versão mais recente é {{latest}}.",
+    "GAME_ACCOUNTS": "Contas de jogo",
+    "PERSONAL_NO_RATE_FEED": "O Poracle não tem um feed de taxas de shiny configurado, então as regras pessoais de shiny e de fundo não correspondem a nada. Defina [shiny_rates] url na configuração do PoracleNG."
   },
   "DIALOG": {
     "LOCATION_PICK_TITLE": "Escolha um ponto",
@@ -2058,5 +2061,22 @@
     "SAVED_NOT_RELOADED": "Salvo, mas o Poracle não recarregou. A alteração entra em vigor na próxima atualização.",
     "SAVE_FAILED": "Não foi possível salvar. Nada foi alterado.",
     "LOAD_FAILED": "Não foi possível ler as áreas do Koji. Verifique a conexão com o Koji e recarregue."
+  },
+  "GAME_ACCOUNTS": {
+    "TITLE": "Contas de jogo",
+    "INTRO": "Os alertas pessoais de shiny e de fundo comparam cada aparição com as contas de jogo vinculadas aqui.",
+    "PLAYER_ID": "ID do jogador",
+    "LABEL": "Rótulo (opcional)",
+    "ADD": "Vincular conta",
+    "REMOVE": "Desvincular",
+    "EMPTY": "Nenhuma conta de jogo vinculada ainda.",
+    "SELF_SERVICE_OFF": "Neste servidor, só um administrador pode vincular contas de jogo.",
+    "FAILED": "Não foi possível atualizar suas contas de jogo. Tente novamente.",
+    "RATE_LIMITED": "Muitas alterações de uma vez. Aguarde um minuto e tente novamente.",
+    "LOAD_FAILED": "Não foi possível carregar as contas de jogo vinculadas.",
+    "RETRY": "Tentar novamente",
+    "FOR_USER": "Contas vinculadas a {{name}}",
+    "CONTACT_SUPPORT": "Falar com o suporte",
+    "IMPERSONATING": "As contas de jogo não podem ser alteradas enquanto você está vendo outra conta."
   }
 }

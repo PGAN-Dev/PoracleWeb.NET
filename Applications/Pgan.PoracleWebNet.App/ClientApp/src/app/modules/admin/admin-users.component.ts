@@ -20,8 +20,10 @@ import { AdminUser } from '../../core/models';
 import { AdminService } from '../../core/services/admin.service';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
+import { PoracleConfigService } from '../../core/services/poracle-config.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DiscordAvatarComponent } from '../../shared/components/discord-avatar/discord-avatar.component';
+import { GameAccountsDialogComponent } from '../../shared/components/game-accounts-dialog/game-accounts-dialog.component';
 
 type StatusFilter = 'all' | 'active' | 'stopped' | 'blocked';
 
@@ -64,9 +66,12 @@ export class AdminUsersComponent implements OnInit {
 
   private readonly i18n = inject(I18nService);
 
+  private readonly poracleConfig = inject(PoracleConfigService);
+
   private readonly snackBar = inject(MatSnackBar);
 
   readonly searchTerm = signal('');
+
   readonly sortActive = signal('');
   readonly sortDirection = signal<'asc' | 'desc' | ''>('');
   readonly statusFilter = signal<StatusFilter>('all');
@@ -108,12 +113,15 @@ export class AdminUsersComponent implements OnInit {
   });
 
   readonly pageIndex = signal(parseInt(sessionStorage.getItem('admin_pageIndex') || '0', 10));
-  readonly pageSize = signal(parseInt(sessionStorage.getItem('admin_pageSize') || '25', 10));
 
+  readonly pageSize = signal(parseInt(sessionStorage.getItem('admin_pageSize') || '25', 10));
   readonly paginatedUsers = computed(() => {
     const start = this.pageIndex() * this.pageSize();
     return this.filteredUsers().slice(start, start + this.pageSize());
   });
+
+  /** Whether the connected PoracleNG has trainer game accounts; the row button is absent otherwise. */
+  readonly playerAccountsSupported = computed(() => this.poracleConfig.serverConfig().playerAccountsSupported);
 
   readonly userColumns = ['name', 'id', 'enabled', 'disabledSince', 'profileNo', 'actions'];
 
@@ -222,6 +230,7 @@ export class AdminUsersComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.poracleConfig.load().subscribe();
     this.loadUsers();
   }
 
@@ -260,6 +269,15 @@ export class AdminUsersComponent implements OnInit {
   onStatusFilterChange(status: StatusFilter): void {
     this.statusFilter.set(status);
     this.pageIndex.set(0);
+  }
+
+  /** Manage another human's linked game accounts. An administrator may always, whatever self-service says. */
+  openGameAccounts(user: AdminUser): void {
+    this.dialog.open(GameAccountsDialogComponent, {
+      width: '520px',
+      autoFocus: false,
+      data: { displayName: user.name || user.id, userId: user.id },
+    });
   }
 
   pauseUser(user: AdminUser): void {

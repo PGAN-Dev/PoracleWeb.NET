@@ -71,7 +71,8 @@
     "ACCENT_MYSTIC": "Weisheit",
     "ACCENT_VALOR": "Wagemut",
     "ACCENT_INSTINCT": "Intuition",
-    "ALERT_DEFAULTS": "Benachrichtigungs-Standards"
+    "ALERT_DEFAULTS": "Benachrichtigungs-Standards",
+    "GAME_ACCOUNTS": "Spielaccounts"
   },
   "SHORTCUTS": {
     "TITLE": "Tastenkürzel",
@@ -1512,7 +1513,9 @@
     "VERSIONS_WEB": "Diese Seite",
     "VERSIONS_BUILD": "Build",
     "UPDATE_CURRENT": "Aktuell.",
-    "UPDATE_UNCOMPARABLE": "Entwicklungskanal. Neueste Veröffentlichung ist {{latest}}."
+    "UPDATE_UNCOMPARABLE": "Entwicklungskanal. Neueste Veröffentlichung ist {{latest}}.",
+    "GAME_ACCOUNTS": "Spielaccounts",
+    "PERSONAL_NO_RATE_FEED": "In Poracle ist kein Shiny-Raten-Feed konfiguriert, daher treffen persönliche Shiny- und Hintergrundregeln auf nichts zu. Setze [shiny_rates] url in der PoracleNG-Konfiguration."
   },
   "DIALOG": {
     "LOCATION_PICK_TITLE": "Punkt auswählen",
@@ -2058,5 +2061,22 @@
     "SAVED_NOT_RELOADED": "Gespeichert, aber Poracle hat nicht neu geladen. Die Änderung greift beim nächsten Aktualisieren.",
     "SAVE_FAILED": "Speichern fehlgeschlagen. Es wurde nichts geändert.",
     "LOAD_FAILED": "Gebiete konnten nicht aus Koji gelesen werden. Prüfen Sie die Koji-Verbindung und laden Sie neu."
+  },
+  "GAME_ACCOUNTS": {
+    "TITLE": "Spielaccounts",
+    "INTRO": "Persönliche Shiny- und Hintergrund-Benachrichtigungen prüfen jeden Spawn gegen die hier verknüpften Spielaccounts.",
+    "PLAYER_ID": "Spieler-ID",
+    "LABEL": "Bezeichnung (optional)",
+    "ADD": "Account verknüpfen",
+    "REMOVE": "Verknüpfung lösen",
+    "EMPTY": "Noch keine Spielaccounts verknüpft.",
+    "SELF_SERVICE_OFF": "Auf diesem Server kann nur ein Administrator Spielaccounts verknüpfen.",
+    "FAILED": "Deine Spielaccounts konnten nicht aktualisiert werden. Versuche es erneut.",
+    "RATE_LIMITED": "Zu viele Änderungen auf einmal. Warte eine Minute und versuche es erneut.",
+    "LOAD_FAILED": "Die verknüpften Spielaccounts konnten nicht geladen werden.",
+    "RETRY": "Erneut versuchen",
+    "FOR_USER": "Mit {{name}} verknüpfte Accounts",
+    "CONTACT_SUPPORT": "Support kontaktieren",
+    "IMPERSONATING": "Spielaccounts können nicht geändert werden, während du ein anderes Konto ansiehst."
   }
 }

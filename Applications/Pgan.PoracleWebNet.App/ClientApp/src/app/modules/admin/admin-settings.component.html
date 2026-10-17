@@ -8,6 +8,13 @@
 <div class="page-content">
   <app-server-profile-card />
 
+  @if (personalNeedsRateFeed()) {
+    <div class="personal-warning" role="alert">
+      <mat-icon>warning</mat-icon>
+      <span>{{ 'ADMIN.PERSONAL_NO_RATE_FEED' | translate }}</span>
+    </div>
+  }
+
   @if (settingsLoading()) {
     <div class="loading-container">
       <mat-spinner diameter="48"></mat-spinner>

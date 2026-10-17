@@ -30,6 +30,7 @@ import { IconRepoDialogComponent, IconRepoDialogData } from './icon-repo-dialog/
 import { DiscordServerConfig, OidcServerConfig, PwebSetting, SiteSetting, TelegramServerConfig } from '../../core/models';
 import { BasemapService } from '../../core/services/basemap.service';
 import { I18nService } from '../../core/services/i18n.service';
+import { PoracleConfigService } from '../../core/services/poracle-config.service';
 import { SettingsService } from '../../core/services/settings.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { ServerProfileCardComponent } from '../../shared/components/server-profile-card/server-profile-card.component';
@@ -525,6 +526,8 @@ export class AdminSettingsComponent implements OnInit {
 
   private readonly originalSnapshot = signal<AnySettingItem[]>([]);
 
+  private readonly poracleConfig = inject(PoracleConfigService);
+
   readonly settings = signal<AnySettingItem[]>([]);
 
   private readonly settingMap = computed(() => {
@@ -560,8 +563,8 @@ export class AdminSettingsComponent implements OnInit {
   protected readonly basemap = inject(BasemapService);
 
   readonly bulkSaving = signal(false);
-  readonly collapsedGroups = signal<Set<string>>(AdminSettingsComponent.loadCollapsed());
 
+  readonly collapsedGroups = signal<Set<string>>(AdminSettingsComponent.loadCollapsed());
   readonly discordConfig = signal<DiscordServerConfig | null>(null);
 
   /**
@@ -601,6 +604,15 @@ export class AdminSettingsComponent implements OnInit {
 
   /** Single-logout admin toggle state — absent defaults to ON once the end-session URL is wired. */
   readonly oidcSloEnabled = computed(() => (this.getSettingValue('enable_oidc_slo') ?? '').toLowerCase() !== 'false');
+
+  /**
+   * Personal rules are matched against a shiny rate feed. PoracleNG with personal alerts but no
+   * `[shiny_rates] url` matches every one of them to nothing, silently.
+   */
+  readonly personalNeedsRateFeed = computed(() => {
+    const config = this.poracleConfig.serverConfig();
+    return config.personalSupported && !config.personalRatesConfigured;
+  });
 
   /**
    * Poracle's own locale, shown beside Allowed UI Languages because that is the setting it interacts
@@ -769,6 +781,7 @@ export class AdminSettingsComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.poracleConfig.load().subscribe();
     this.settingsService
       .getAll()
       .pipe(takeUntilDestroyed(this.destroyRef))

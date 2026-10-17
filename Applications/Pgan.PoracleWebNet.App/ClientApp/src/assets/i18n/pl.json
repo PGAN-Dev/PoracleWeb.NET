@@ -71,7 +71,8 @@
     "ACCENT_MYSTIC": "Mystic",
     "ACCENT_VALOR": "Valor",
     "ACCENT_INSTINCT": "Instinct",
-    "ALERT_DEFAULTS": "Domyślne ustawienia alertów"
+    "ALERT_DEFAULTS": "Domyślne ustawienia alertów",
+    "GAME_ACCOUNTS": "Konta w grze"
   },
   "SHORTCUTS": {
     "TITLE": "Skróty klawiszowe",
@@ -1512,7 +1513,9 @@
     "VERSIONS_WEB": "Ta strona",
     "VERSIONS_BUILD": "Kompilacja",
     "UPDATE_CURRENT": "Aktualne.",
-    "UPDATE_UNCOMPARABLE": "Kanał rozwojowy. Najnowsze wydanie to {{latest}}."
+    "UPDATE_UNCOMPARABLE": "Kanał rozwojowy. Najnowsze wydanie to {{latest}}.",
+    "GAME_ACCOUNTS": "Konta w grze",
+    "PERSONAL_NO_RATE_FEED": "W Poracle nie skonfigurowano źródła szans na shiny, więc osobiste reguły shiny i tła niczego nie dopasowują. Ustaw [shiny_rates] url w konfiguracji PoracleNG."
   },
   "DIALOG": {
     "LOCATION_PICK_TITLE": "Wybierz punkt",
@@ -2058,5 +2061,22 @@
     "SAVED_NOT_RELOADED": "Zapisano, ale Poracle nie przeładował. Zmiana zadziała przy następnym odświeżeniu.",
     "SAVE_FAILED": "Nie udało się zapisać. Nic nie zmieniono.",
     "LOAD_FAILED": "Nie udało się odczytać obszarów z Koji. Sprawdź połączenie z Koji i odśwież."
+  },
+  "GAME_ACCOUNTS": {
+    "TITLE": "Konta w grze",
+    "INTRO": "Osobiste alerty shiny i tła porównują każdy spawn z kontami w grze powiązanymi tutaj.",
+    "PLAYER_ID": "ID gracza",
+    "LABEL": "Etykieta (opcjonalnie)",
+    "ADD": "Powiąż konto",
+    "REMOVE": "Odłącz",
+    "EMPTY": "Nie powiązano jeszcze żadnych kont w grze.",
+    "SELF_SERVICE_OFF": "Na tym serwerze konta w grze może powiązać tylko administrator.",
+    "FAILED": "Nie udało się zaktualizować Twoich kont w grze. Spróbuj ponownie.",
+    "RATE_LIMITED": "Zbyt wiele zmian naraz. Odczekaj minutę i spróbuj ponownie.",
+    "LOAD_FAILED": "Nie udało się wczytać powiązanych kont w grze.",
+    "RETRY": "Spróbuj ponownie",
+    "FOR_USER": "Konta powiązane z {{name}}",
+    "CONTACT_SUPPORT": "Skontaktuj się z pomocą",
+    "IMPERSONATING": "Kont w grze nie można zmieniać podczas przeglądania innego konta."
   }
 }

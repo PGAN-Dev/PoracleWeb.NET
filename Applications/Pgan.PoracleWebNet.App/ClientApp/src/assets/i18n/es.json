@@ -71,7 +71,8 @@
     "ACCENT_MYSTIC": "Sabiduría",
     "ACCENT_VALOR": "Valor",
     "ACCENT_INSTINCT": "Instinto",
-    "ALERT_DEFAULTS": "Valores predeterminados de alertas"
+    "ALERT_DEFAULTS": "Valores predeterminados de alertas",
+    "GAME_ACCOUNTS": "Cuentas de juego"
   },
   "SHORTCUTS": {
     "TITLE": "Atajos de teclado",
@@ -1512,7 +1513,9 @@
     "VERSIONS_WEB": "Este sitio",
     "VERSIONS_BUILD": "Compilación",
     "UPDATE_CURRENT": "Al día.",
-    "UPDATE_UNCOMPARABLE": "Canal de desarrollo. La última versión publicada es {{latest}}."
+    "UPDATE_UNCOMPARABLE": "Canal de desarrollo. La última versión publicada es {{latest}}.",
+    "GAME_ACCOUNTS": "Cuentas de juego",
+    "PERSONAL_NO_RATE_FEED": "Poracle no tiene configurado un feed de tasas de shiny, así que las reglas personales de shiny y de fondo no coinciden con nada. Define [shiny_rates] url en la configuración de PoracleNG."
   },
   "DIALOG": {
     "LOCATION_PICK_TITLE": "Elige un punto",
@@ -2058,5 +2061,22 @@
     "SAVED_NOT_RELOADED": "Guardado, pero Poracle no recargó. El cambio se aplicará en su próxima actualización.",
     "SAVE_FAILED": "No se pudo guardar. No se cambió nada.",
     "LOAD_FAILED": "No se pudieron leer las áreas de Koji. Comprueba la conexión con Koji y recarga."
+  },
+  "GAME_ACCOUNTS": {
+    "TITLE": "Cuentas de juego",
+    "INTRO": "Las alertas personales de shiny y de fondo comparan cada aparición con las cuentas de juego vinculadas aquí.",
+    "PLAYER_ID": "ID de jugador",
+    "LABEL": "Etiqueta (opcional)",
+    "ADD": "Vincular cuenta",
+    "REMOVE": "Desvincular",
+    "EMPTY": "Aún no hay cuentas de juego vinculadas.",
+    "SELF_SERVICE_OFF": "En este servidor solo un administrador puede vincular cuentas de juego.",
+    "FAILED": "No se pudieron actualizar tus cuentas de juego. Inténtalo de nuevo.",
+    "RATE_LIMITED": "Demasiados cambios a la vez. Espera un minuto e inténtalo de nuevo.",
+    "LOAD_FAILED": "No se pudieron cargar las cuentas de juego vinculadas.",
+    "RETRY": "Reintentar",
+    "FOR_USER": "Cuentas vinculadas a {{name}}",
+    "CONTACT_SUPPORT": "Contactar con soporte",
+    "IMPERSONATING": "Las cuentas de juego no se pueden cambiar mientras ves otra cuenta."
   }
 }

@@ -1,0 +1,89 @@
+<h2 mat-dialog-title>
+  <mat-icon class="title-icon">badge</mat-icon>
+  {{ 'GAME_ACCOUNTS.TITLE' | translate }}
+</h2>
+<mat-dialog-content>
+  @if (data.displayName) {
+    <p class="for-user">{{ 'GAME_ACCOUNTS.FOR_USER' | translate: { name: data.displayName } }}</p>
+  }
+  <p class="dialog-desc">{{ 'GAME_ACCOUNTS.INTRO' | translate }}</p>
+
+  @if (accounts.accounts(); as list) {
+    @if (list.length === 0) {
+      <p class="empty">{{ 'GAME_ACCOUNTS.EMPTY' | translate }}</p>
+    } @else {
+      <ul class="account-list">
+        @for (account of list; track account.playerId) {
+          <li class="account-row">
+            <span class="account-id">{{ account.playerId }}</span>
+            @if (canEdit()) {
+              <input
+                #labelInput
+                class="account-label"
+                type="text"
+                maxlength="64"
+                [value]="account.label ?? ''"
+                [attr.aria-label]="'GAME_ACCOUNTS.LABEL' | translate"
+                (change)="relabel(account, labelInput.value)" />
+              <button
+                mat-icon-button
+                type="button"
+                class="remove-button"
+                [matTooltip]="'GAME_ACCOUNTS.REMOVE' | translate"
+                [attr.aria-label]="('GAME_ACCOUNTS.REMOVE' | translate) + ' ' + account.playerId"
+                (click)="unlink(account.playerId)">
+                <mat-icon>link_off</mat-icon>
+              </button>
+            } @else if (account.label) {
+              <span class="account-label-text">{{ account.label }}</span>
+            }
+          </li>
+        }
+      </ul>
+    }
+  } @else if (accounts.loadFailed()) {
+    <p class="load-failed">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ 'GAME_ACCOUNTS.LOAD_FAILED' | translate }}</span>
+      <button mat-button type="button" (click)="reload()">{{ 'GAME_ACCOUNTS.RETRY' | translate }}</button>
+    </p>
+  }
+
+  @if (canEdit()) {
+    <form class="add-form" (ngSubmit)="add()">
+      <mat-form-field appearance="outline" class="id-field">
+        <mat-label>{{ 'GAME_ACCOUNTS.PLAYER_ID' | translate }}</mat-label>
+        <input
+          matInput
+          name="playerId"
+          autocomplete="off"
+          autocapitalize="off"
+          spellcheck="false"
+          maxlength="256"
+          [ngModel]="playerId()"
+          (ngModelChange)="playerId.set($event)" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="label-field">
+        <mat-label>{{ 'GAME_ACCOUNTS.LABEL' | translate }}</mat-label>
+        <input matInput name="label" autocomplete="off" maxlength="64" [ngModel]="label()" (ngModelChange)="label.set($event)" />
+      </mat-form-field>
+      <button mat-flat-button color="primary" type="submit" class="add-button" [disabled]="busy() || playerId().trim().length === 0">
+        {{ 'GAME_ACCOUNTS.ADD' | translate }}
+      </button>
+    </form>
+  } @else {
+    <p class="dialog-footnote">
+      <mat-icon>info</mat-icon>
+      <span>
+        {{ (readOnlyByImpersonation() ? 'GAME_ACCOUNTS.IMPERSONATING' : 'GAME_ACCOUNTS.SELF_SERVICE_OFF') | translate }}
+        @if (showSupportLink()) {
+          <a class="support-link" [href]="supportUrl()" target="_blank" rel="noopener">{{ 'GAME_ACCOUNTS.CONTACT_SUPPORT' | translate }}</a>
+        }
+      </span>
+    </p>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close>{{ 'COMMON.CLOSE' | translate }}</button>
+</mat-dialog-actions>

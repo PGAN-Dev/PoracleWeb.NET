@@ -71,7 +71,8 @@
     "ACCENT_MYSTIC": "Mystic",
     "ACCENT_VALOR": "Valor",
     "ACCENT_INSTINCT": "Instinct",
-    "ALERT_DEFAULTS": "Standardindstillinger for advarsler"
+    "ALERT_DEFAULTS": "Standardindstillinger for advarsler",
+    "GAME_ACCOUNTS": "Spilkonti"
   },
   "SHORTCUTS": {
     "TITLE": "Tastaturgenveje",
@@ -1512,7 +1513,9 @@
     "VERSIONS_WEB": "Dette websted",
     "VERSIONS_BUILD": "Build",
     "UPDATE_CURRENT": "Opdateret.",
-    "UPDATE_UNCOMPARABLE": "Udviklingskanal. Nyeste udgivelse er {{latest}}."
+    "UPDATE_UNCOMPARABLE": "Udviklingskanal. Nyeste udgivelse er {{latest}}.",
+    "GAME_ACCOUNTS": "Spilkonti",
+    "PERSONAL_NO_RATE_FEED": "Poracle har ikke noget shiny-sandsynlighedsfeed konfigureret, så personlige shiny- og baggrundsregler matcher ingenting. Angiv [shiny_rates] url i PoracleNG-konfigurationen."
   },
   "DIALOG": {
     "LOCATION_PICK_TITLE": "Vælg et punkt",
@@ -2058,5 +2061,22 @@
     "SAVED_NOT_RELOADED": "Gemt, men Poracle genindlæste ikke. Ændringen træder i kraft ved næste opdatering.",
     "SAVE_FAILED": "Kunne ikke gemme. Intet blev ændret.",
     "LOAD_FAILED": "Kunne ikke læse områder fra Koji. Tjek Koji-forbindelsen og genindlæs."
+  },
+  "GAME_ACCOUNTS": {
+    "TITLE": "Spilkonti",
+    "INTRO": "Personlige shiny- og baggrundsalarmer sammenligner hver spawn med de spilkonti, der er knyttet her.",
+    "PLAYER_ID": "Spiller-ID",
+    "LABEL": "Etiket (valgfri)",
+    "ADD": "Knyt konto",
+    "REMOVE": "Fjern tilknytning",
+    "EMPTY": "Ingen spilkonti er knyttet endnu.",
+    "SELF_SERVICE_OFF": "På denne server kan kun en administrator knytte spilkonti.",
+    "FAILED": "Dine spilkonti kunne ikke opdateres. Prøv igen.",
+    "RATE_LIMITED": "For mange ændringer på én gang. Vent et minut, og prøv igen.",
+    "LOAD_FAILED": "De tilknyttede spilkonti kunne ikke indlæses.",
+    "RETRY": "Prøv igen",
+    "FOR_USER": "Konti knyttet til {{name}}",
+    "CONTACT_SUPPORT": "Kontakt support",
+    "IMPERSONATING": "Spilkonti kan ikke ændres, mens du ser en anden konto."
   }
 }

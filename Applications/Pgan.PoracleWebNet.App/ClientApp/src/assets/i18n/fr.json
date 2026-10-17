@@ -71,7 +71,8 @@
     "ACCENT_MYSTIC": "Sagesse",
     "ACCENT_VALOR": "Bravoure",
     "ACCENT_INSTINCT": "Intuition",
-    "ALERT_DEFAULTS": "Réglages par défaut des alertes"
+    "ALERT_DEFAULTS": "Réglages par défaut des alertes",
+    "GAME_ACCOUNTS": "Comptes de jeu"
   },
   "SHORTCUTS": {
     "TITLE": "Raccourcis clavier",
@@ -1512,7 +1513,9 @@
     "VERSIONS_WEB": "Ce site",
     "VERSIONS_BUILD": "Build",
     "UPDATE_CURRENT": "À jour.",
-    "UPDATE_UNCOMPARABLE": "Canal de développement. La dernière version publiée est {{latest}}."
+    "UPDATE_UNCOMPARABLE": "Canal de développement. La dernière version publiée est {{latest}}.",
+    "GAME_ACCOUNTS": "Comptes de jeu",
+    "PERSONAL_NO_RATE_FEED": "Poracle n'a aucun flux de taux de shiny configuré, donc les règles personnelles de shiny et de fond ne correspondent à rien. Définissez [shiny_rates] url dans la configuration de PoracleNG."
   },
   "DIALOG": {
     "LOCATION_PICK_TITLE": "Choisir un point",
@@ -2058,5 +2061,22 @@
     "SAVED_NOT_RELOADED": "Enregistré, mais Poracle n’a pas rechargé. Le changement prendra effet à son prochain rafraîchissement.",
     "SAVE_FAILED": "Enregistrement impossible. Rien n’a été modifié.",
     "LOAD_FAILED": "Impossible de lire les zones depuis Koji. Vérifiez la connexion à Koji et rechargez."
+  },
+  "GAME_ACCOUNTS": {
+    "TITLE": "Comptes de jeu",
+    "INTRO": "Les alertes personnelles de shiny et de fond comparent chaque apparition aux comptes de jeu liés ici.",
+    "PLAYER_ID": "ID du joueur",
+    "LABEL": "Libellé (facultatif)",
+    "ADD": "Lier le compte",
+    "REMOVE": "Délier",
+    "EMPTY": "Aucun compte de jeu lié pour le moment.",
+    "SELF_SERVICE_OFF": "Sur ce serveur, seul un administrateur peut lier des comptes de jeu.",
+    "FAILED": "Impossible de mettre à jour vos comptes de jeu. Réessayez.",
+    "RATE_LIMITED": "Trop de modifications à la fois. Attendez une minute et réessayez.",
+    "LOAD_FAILED": "Impossible de charger les comptes de jeu liés.",
+    "RETRY": "Réessayer",
+    "FOR_USER": "Comptes liés à {{name}}",
+    "CONTACT_SUPPORT": "Contacter le support",
+    "IMPERSONATING": "Les comptes de jeu ne peuvent pas être modifiés pendant que vous consultez un autre compte."
   }
 }

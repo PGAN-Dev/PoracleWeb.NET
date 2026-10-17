@@ -28,6 +28,23 @@
   padding: 0 24px 80px;
   max-width: 860px;
 }
+.personal-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  border: 1px solid var(--mat-sys-error, #b3261e);
+  border-radius: 12px;
+  background: var(--mat-sys-error-container, rgba(179, 38, 30, 0.08));
+  color: var(--mat-sys-on-error-container, inherit);
+  font-size: 14px;
+
+  mat-icon {
+    flex: none;
+    color: var(--mat-sys-error, #b3261e);
+  }
+}
 .loading-container {
   display: flex;
   justify-content: center;

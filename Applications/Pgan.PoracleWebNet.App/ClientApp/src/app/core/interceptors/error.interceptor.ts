@@ -22,6 +22,10 @@ const SILENT_URL_PATTERNS = [
   // the interceptor also toasting, the two snackbars raced and a failed test read "An unexpected server
   // error occurred" instead of saying the test alert failed.
   '/api/test-alert',
+  // PlayerAccountService words every outcome itself: 409 and 422 carry a sentence from the server, and a
+  // coded 403 means self-service is off. The interceptor's generic toast would hide all of that.
+  '/api/accounts',
+  '/api/admin/accounts',
   // BuildInfoService treats a failed version check as "no label"; it is cosmetic and runs on every page load.
   '/api/version',
 ];

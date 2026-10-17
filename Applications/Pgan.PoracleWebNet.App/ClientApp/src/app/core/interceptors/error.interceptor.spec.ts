@@ -256,6 +256,18 @@ describe('errorInterceptor', () => {
 
       expect(toast.error).not.toHaveBeenCalled();
     });
+
+    // PlayerAccountService words its own failures, 409 and 422 included; a second toast would race it. (500 is the status that does toast elsewhere.)
+    it.each(['/api/accounts', '/api/accounts/AbC', '/api/admin/accounts?id=1', '/api/admin/accounts/AbC?id=1'])(
+      'should NOT show toast for %s errors',
+      url => {
+        http.delete(url).subscribe({ error: () => {} });
+
+        httpMock.expectOne(url).flush({ error: 'boom' }, { status: 500, statusText: 'Error' });
+
+        expect(toast.error).not.toHaveBeenCalled();
+      },
+    );
   });
 
   it('should re-throw the error for downstream handling', () => {

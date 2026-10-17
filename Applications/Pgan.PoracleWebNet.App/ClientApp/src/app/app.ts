@@ -20,8 +20,10 @@ import { AuthService } from './core/services/auth.service';
 import { BuildInfoService } from './core/services/build-info.service';
 import { DashboardService } from './core/services/dashboard.service';
 import { I18nService } from './core/services/i18n.service';
+import { PoracleConfigService } from './core/services/poracle-config.service';
 import { SettingsService } from './core/services/settings.service';
 import { AlertDefaultsDialogComponent } from './shared/components/alert-defaults-dialog/alert-defaults-dialog.component';
+import { GameAccountsDialogComponent } from './shared/components/game-accounts-dialog/game-accounts-dialog.component';
 
 interface NavItem {
   adminOnly?: boolean;
@@ -72,7 +74,6 @@ export class App implements OnInit {
   private readonly dashboardService = inject(DashboardService);
   private readonly dialog = inject(MatDialog);
   private readonly settingsService = inject(SettingsService);
-
   protected readonly faviconUrl = computed(() => this.settingsService.siteSettings()['favicon_url'] || 'favicon.ico');
 
   private readonly faviconEffect = effect(() => {
@@ -88,6 +89,8 @@ export class App implements OnInit {
       link.removeAttribute('type');
     }
   });
+
+  private readonly poracleConfig = inject(PoracleConfigService);
 
   private readonly snackBar = inject(MatSnackBar);
 
@@ -284,6 +287,9 @@ export class App implements OnInit {
     ),
   );
 
+  /** Game accounts only mean something on a PoracleNG that has them (PR #255); otherwise the entry is absent. */
+  protected readonly showGameAccounts = computed(() => this.poracleConfig.serverConfig().playerAccountsSupported);
+
   protected readonly showShortcutHelp = signal(false);
 
   protected readonly sidenavCollapsed = signal(localStorage.getItem('poracle-sidenav-collapsed') === 'true');
@@ -348,6 +354,11 @@ export class App implements OnInit {
     });
   }
 
+  /** Reads the Poracle server config once (the service caches it), which decides what the user menu offers. */
+  loadServerConfig(): void {
+    this.poracleConfig.load().subscribe();
+  }
+
   /** @param sso when true, also ends the external provider session (single logout). */
   logout(sso = false): void {
     this.auth.logout({ sso });
@@ -362,6 +373,8 @@ export class App implements OnInit {
     // is re-made from AuthService.handleTokenFromCallback once a token exists, so a login inside this
     // same page session still reconciles. See #775.
     if (this.auth.isAuthenticated()) this.alertLanguage.load();
+    // Cached after the first read. Menu opening reads it too (loadServerConfig), for a sign-in made in this page session.
+    if (this.auth.isAuthenticated()) this.loadServerConfig();
     // Signed-out visitors get the public subset. loadOnce() hits the authenticated endpoint, so
     // calling it on the login page produced a 401 and an uncaught HttpErrorResponse on every visit.
     // AuthService re-runs loadOnce() once a token exists, so nothing is lost by deferring. See #426.
@@ -450,6 +463,10 @@ export class App implements OnInit {
 
   openAlertDefaults(): void {
     this.dialog.open(AlertDefaultsDialogComponent, { width: '480px', autoFocus: false });
+  }
+
+  openGameAccounts(): void {
+    this.dialog.open(GameAccountsDialogComponent, { width: '520px', autoFocus: false, data: {} });
   }
 
   setAccentTheme(theme: string): void {
