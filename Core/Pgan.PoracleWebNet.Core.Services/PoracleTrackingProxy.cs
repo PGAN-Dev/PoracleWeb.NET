@@ -161,7 +161,8 @@ public partial class PoracleTrackingProxy(
         // a route this server does not carry, or an unrelated field v2 refused. Every one of those
         // still sends the row to v1, which blanks it unconditionally. See
         // TrackingV2Translator.HasNonEmptyPing.
-        if (!(await this._v2Schema.GetAsync()).TrackingPing && TrackingV2Translator.HasNonEmptyPing(body))
+        var capabilities = await this._v2Schema.GetAsync();
+        if (!capabilities.TrackingPing && TrackingV2Translator.HasNonEmptyPing(body))
         {
             throw new AlarmValidationException(
                 "This alarm has a role or user mention set, and the connected PoracleNG can't preserve it "
@@ -183,9 +184,9 @@ public partial class PoracleTrackingProxy(
         }
 
         var bounds = await this.ServerBoundsAsync(type);
-        var pingSupported = (await this._v2Schema.GetAsync()).TrackingPing;
 
-        if (!TrackingV2Translator.TryTranslate(type, body, bounds, out var v2Body, out var unsupported, pingSupported))
+        if (!TrackingV2Translator.TryTranslate(
+                type, body, bounds, out var v2Body, out var unsupported, capabilities.TrackingPing, capabilities.PersonalTracking))
         {
             // Not a fault. The row carries something v2 has no faithful place for, so it goes to v1,
             // which stores whatever it is given. See TrackingV2Translator.

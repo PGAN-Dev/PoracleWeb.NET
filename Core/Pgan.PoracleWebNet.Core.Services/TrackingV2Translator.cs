@@ -126,6 +126,7 @@ internal static class TrackingV2Translator
             },
 
             Required = ["pokemon_id"],
+            PersonalBits = true,
         },
         ["raid"] = new TypeSpec
         {
@@ -264,13 +265,19 @@ internal static class TrackingV2Translator
     /// <see cref="Models.PoracleV2Capabilities.TrackingPing"/>. False (the safe default for every
     /// released server) keeps a set ping on the v1 path exactly as before.
     /// </param>
+    /// <param name="personalSupported">
+    /// Whether this server's v2 declares <c>personal_shiny</c> and <c>personal_background</c> --
+    /// <see cref="Models.PoracleV2Capabilities.PersonalTracking"/>. False keeps a set personal flag on the
+    /// v1 path; a clear one (0) never needs the capability.
+    /// </param>
     public static bool TryTranslate(
         string type,
         JsonElement row,
         IReadOnlyDictionary<string, Bound>? serverBounds,
         out JsonElement translated,
         out string? unsupported,
-        bool pingSupported = false)
+        bool pingSupported = false,
+        bool personalSupported = false)
     {
         translated = default;
         unsupported = null;
@@ -304,7 +311,7 @@ internal static class TrackingV2Translator
                     continue;
                 }
 
-                if (!TryWriteProperty(writer, spec, serverBounds, property, pingSupported, out unsupported))
+                if (!TryWriteProperty(writer, spec, serverBounds, property, pingSupported, personalSupported, out unsupported))
                 {
                     return false;
                 }
@@ -346,12 +353,16 @@ internal static class TrackingV2Translator
         IReadOnlyDictionary<string, Bound>? serverBounds,
         JsonProperty property,
         bool pingSupported,
+        bool personalSupported,
         out string? unsupported)
     {
         unsupported = null;
 
         switch (property.Name)
         {
+            case "personal":
+                return TryWritePersonal(writer, spec, property.Value, personalSupported, out unsupported);
+
             case "clean":
                 return spec.HasCleanFlags
                     ? TryWriteClean(writer, property.Value, out unsupported)
@@ -647,6 +658,70 @@ internal static class TrackingV2Translator
     }
 
     /// <summary>
+    /// <c>personal</c> is a bitmask on v1 (jfberry/PoracleNG#255) and two booleans on v2,
+    /// <c>personal_shiny</c> and <c>personal_background</c>. <see cref="Models.Monster.Personal"/> always
+    /// serialises, so 0 -- what almost every rule holds -- must write nothing and cost nothing: v2 reads an
+    /// omitted flag as clear, which is exactly what 0 says.
+    /// </summary>
+    /// <remarks>
+    /// Anything v2 cannot say declines to v1 rather than being dropped: a reserved bit (4, 8) has no v2
+    /// field, and a set flag on a server that does not declare the booleans would be a 422. Unlike
+    /// <c>ping</c>, the v1 path is safe here -- a v1 upsert states <c>personal</c> in full and PoracleNG
+    /// stores what it is given -- so there is no refusal to raise upstream of the fallback.
+    /// </remarks>
+    private static bool TryWritePersonal(
+        Utf8JsonWriter writer, TypeSpec spec, JsonElement value, bool personalSupported, out string? unsupported)
+    {
+        unsupported = null;
+
+        if (value.ValueKind == JsonValueKind.Null)
+        {
+            return true;
+        }
+
+        if (value.ValueKind != JsonValueKind.Number || !value.TryGetInt32(out var bits))
+        {
+            unsupported = "personal is not an integer";
+            return false;
+        }
+
+        if (bits == 0)
+        {
+            return true;
+        }
+
+        if (!spec.PersonalBits)
+        {
+            unsupported = "personal is not a field of this type";
+            return false;
+        }
+
+        if (PersonalFlags.HasUnknownBits(bits))
+        {
+            unsupported = "personal carries a bit v2 cannot express";
+            return false;
+        }
+
+        if (!personalSupported)
+        {
+            unsupported = "personal is set, and this server's v2 does not know it";
+            return false;
+        }
+
+        if (PersonalFlags.IsShiny(bits))
+        {
+            writer.WriteBoolean("personal_shiny", true);
+        }
+
+        if (PersonalFlags.IsBackground(bits))
+        {
+            writer.WriteBoolean("personal_background", true);
+        }
+
+        return true;
+    }
+
+    /// <summary>
     /// <c>override_areas</c> and <c>change_types</c> arrive as real arrays from the models, but a stored row
     /// carried forward by <see cref="TrackingFieldPreserver"/> holds the column verbatim, and PoracleNG's
     /// columns are JSON strings. Normalise rather than refuse — this is PoracleWeb's own read that produced
@@ -739,6 +814,12 @@ internal static class TrackingV2Translator
 
         /// <summary>Columns stored as a JSON string that v2 declares as an array.</summary>
         public HashSet<string> StringArrays { get; init; } = new(StringComparer.Ordinal);
+
+        /// <summary>
+        /// Whether this type has <c>personal_shiny</c> and <c>personal_background</c>. Pokemon only; the
+        /// <c>personal</c> column does not exist on the other tracking tables.
+        /// </summary>
+        public bool PersonalBits { get; init; }
 
         /// <summary>Whether this type has <c>clean</c>/<c>edit</c>/<c>summary</c> at all. Fort does not.</summary>
         public bool HasCleanFlags { get; init; } = true;

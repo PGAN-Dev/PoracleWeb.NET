@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Core.Services;
 
 namespace Pgan.PoracleWebNet.Tests.Services;
@@ -448,6 +449,140 @@ public class TrackingV2TypeTranslationTests
                 "invasion", Row("""{"distance":500}"""), ServerDoesNotBoundAnything, out _, out _));
     }
 
+    // ──────────────────────────────────────────────────────────────
+    // personal: PoracleNG PR #255's bitmask, written as two booleans where the server declares them.
+    // ──────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// The pokemon schema as a server carrying #255 publishes it. Kept apart from <c>V2Schema</c> so the
+    /// two released-server tests above keep proving that nothing outside 5.2.1's list reaches the wire.
+    /// </summary>
+    private static readonly string[] PokemonSchemaWithPersonal =
+        [.. V2Schema["pokemon"], "personal_shiny", "personal_background"];
+
+    private static string WithPersonal(string type, string personalJson) =>
+        V1Row[type].TrimEnd().TrimEnd('}') + $",\"personal\":{personalJson}}}";
+
+    [Fact]
+    public void APersonalOfZeroIsOmittedNotDeclined()
+    {
+        // Monster.Personal always serialises, 0 included, so every pokemon edit on every server carries it.
+        // Declining it as an unknown property sent every one of them to v1.
+        var without = Translate("pokemon", V1Row["pokemon"]);
+        var with = Translate("pokemon", WithPersonal("pokemon", "0"));
+
+        Assert.DoesNotContain(with.EnumerateObject(), p => p.Name.StartsWith("personal", StringComparison.Ordinal));
+        Assert.Equal(without.GetRawText(), with.GetRawText());
+    }
+
+    [Fact]
+    public void ARealMonsterWithNoPersonalFilterTranslatesOnAServerWithoutPersonalSupport()
+    {
+        // Hand-built JSON rows are what let the regression through: the model serialises personal even at
+        // its default, and no fixture said so. This one is the object the services actually build.
+        var body = PoracleJsonHelper.SerializeToElement(new Monster { PokemonId = 25, Personal = 0 });
+
+        Assert.True(body.TryGetProperty("personal", out _), "The model is expected to serialise personal at 0.");
+        Assert.True(
+            TrackingV2Translator.TryTranslate("pokemon", body, ServerDoesNotBoundAnything, out var translated, out var unsupported),
+            unsupported);
+        Assert.DoesNotContain(translated.EnumerateObject(), p => p.Name.StartsWith("personal", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ARealMonsterWithTheShinyBitWritesPersonalShinyOnAServerThatDeclaresIt()
+    {
+        var body = PoracleJsonHelper.SerializeToElement(new Monster { PokemonId = 25, Personal = 1 });
+
+        Assert.True(
+            TrackingV2Translator.TryTranslate(
+                "pokemon", body, ServerDoesNotBoundAnything, out var translated, out var unsupported, personalSupported: true),
+            unsupported);
+        Assert.True(translated.GetProperty("personal_shiny").GetBoolean());
+        Assert.False(translated.TryGetProperty("personal_background", out _));
+        Assert.False(translated.TryGetProperty("personal", out _));
+    }
+
+    [Theory]
+    [InlineData(3, true, true)]
+    [InlineData(1, true, false)]
+    [InlineData(2, false, true)]
+    public void PersonalBitsWriteAsBooleans(int personal, bool shiny, bool background)
+    {
+        var body = Translate("pokemon", WithPersonal("pokemon", personal.ToString()), personalSupported: true);
+
+        Assert.Equal(shiny, body.TryGetProperty("personal_shiny", out var s) && s.GetBoolean());
+        Assert.Equal(background, body.TryGetProperty("personal_background", out var b) && b.GetBoolean());
+        Assert.False(body.TryGetProperty("personal", out _));
+    }
+
+    [Fact]
+    public void AnUnknownPersonalBitDeclinesToV1()
+    {
+        // Bits 4 and 8 are reserved upstream. v2 has no word for them, and dropping one would erase it.
+        Assert.False(
+            TrackingV2Translator.TryTranslate(
+                "pokemon", Row(WithPersonal("pokemon", "5")), ServerDoesNotBoundAnything, out _, out var unsupported,
+                personalSupported: true));
+        Assert.Contains("bit", unsupported, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PersonalOnAServerWithoutItDeclines()
+    {
+        Assert.False(
+            TrackingV2Translator.TryTranslate(
+                "pokemon", Row(WithPersonal("pokemon", "1")), ServerDoesNotBoundAnything, out _, out var unsupported));
+        Assert.Contains("personal", unsupported, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ANonIntegerPersonalDeclines()
+    {
+        Assert.False(
+            TrackingV2Translator.TryTranslate(
+                "pokemon", Row(WithPersonal("pokemon", "\"1\"")), ServerDoesNotBoundAnything, out _, out var unsupported,
+                personalSupported: true));
+        Assert.Contains("integer", unsupported, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("raid")]
+    [InlineData("egg")]
+    [InlineData("quest")]
+    [InlineData("gym")]
+    public void PersonalOnAnyOtherTypeDeclines(string type)
+    {
+        Assert.False(
+            TrackingV2Translator.TryTranslate(
+                type, Row(WithPersonal(type, "1")), ServerDoesNotBoundAnything, out _, out var unsupported, personalSupported: true));
+        Assert.Contains("not a field of this type", unsupported, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void NothingOutsideThePersonalSchemaReachesTheWire()
+    {
+        var translated = Translate("pokemon", WithPersonal("pokemon", "3"), personalSupported: true);
+
+        var leaked = translated.EnumerateObject()
+            .Select(p => p.Name)
+            .Where(name => !PokemonSchemaWithPersonal.Contains(name, StringComparer.Ordinal))
+            .ToList();
+
+        Assert.True(leaked.Count == 0, $"V2PokemonRule has no field for: {string.Join(", ", leaked)}");
+    }
+
+    [Fact]
+    public void EveryPersonalSchemaFieldWithAV1SourceIsWritten()
+    {
+        var translated = Translate("pokemon", WithPersonal("pokemon", "3"), personalSupported: true);
+
+        var written = translated.EnumerateObject().Select(p => p.Name).ToHashSet(StringComparer.Ordinal);
+        var missing = PokemonSchemaWithPersonal.Where(name => !written.Contains(name)).ToList();
+
+        Assert.True(missing.Count == 0, $"The pokemon table does not write: {string.Join(", ", missing)}");
+    }
+
     /// <summary>
     /// These tests are about shape translation, not value limits, so they run against a server that
     /// declares none. The limits have their own file, and passing them here would couple every shape
@@ -457,9 +592,11 @@ public class TrackingV2TypeTranslationTests
 
     private static JsonElement Row(string json) => JsonDocument.Parse(json).RootElement.Clone();
 
-    private static JsonElement Translate(string type, string row)
+    private static JsonElement Translate(string type, string row, bool personalSupported = false)
     {
-        Assert.True(TrackingV2Translator.TryTranslate(type, Row(row), ServerDoesNotBoundAnything, out var translated, out var unsupported), unsupported);
+        Assert.True(
+            TrackingV2Translator.TryTranslate(type, Row(row), ServerDoesNotBoundAnything, out var translated, out var unsupported, personalSupported: personalSupported),
+            unsupported);
         return translated;
     }
 }

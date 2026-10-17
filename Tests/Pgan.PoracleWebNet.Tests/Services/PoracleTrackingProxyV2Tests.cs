@@ -403,6 +403,45 @@ public class PoracleTrackingProxyV2Tests
         Assert.Equal("<@&400027130022592512>", body.RootElement.GetProperty("ping").GetString());
     }
 
+    private static PoracleV2Capabilities WithPersonal() => new() { Read = true, PersonalTracking = true };
+
+    [Fact]
+    public async Task PassesPersonalSupportToTheTranslator()
+    {
+        // A pokemon rule with the shiny bit set rides v2 as personal_shiny once the server declares it.
+        var handler = ScriptedHandler.Ok(RotatedOk);
+        var sut = CreateSut(handler, version: "5.3.0", capabilities: WithPersonal());
+
+        var result = await sut.UpdateByUidAsync(
+            "pokemon", "user1", 7, Row("""{"uid":7,"pokemon_id":25,"min_iv":90,"personal":1}"""));
+
+        Assert.True(result.UsedV2);
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/tracking/pokemon/7?silent=true", request.Url);
+
+        using var body = JsonDocument.Parse(request.Body!);
+        Assert.True(body.RootElement.GetProperty("personal_shiny").GetBoolean());
+        Assert.False(body.RootElement.TryGetProperty("personal", out _));
+    }
+
+    [Fact]
+    public async Task AShinyRuleOnAServerWithoutPersonalSupportStaysOnV1WithItsBitIntact()
+    {
+        // The other half: declining is the safe direction. v1 states personal in full, so nothing is lost,
+        // and nothing is thrown the way a set ping is -- v1 does not blank this column.
+        var handler = ScriptedHandler.Ok(RotatedOk);
+        var sut = CreateSut(handler, version: "5.2.1", capabilities: PoracleV2Capabilities.None);
+
+        await sut.UpdateByUidAsync(
+            "pokemon", "user1", 7, Row("""{"uid":7,"pokemon_id":25,"min_iv":90,"personal":1}"""));
+
+        var request = Assert.Single(handler.Requests);
+        Assert.DoesNotContain("/api/v2/", request.Url, StringComparison.Ordinal);
+
+        using var body = JsonDocument.Parse(request.Body!);
+        Assert.Equal(1, body.RootElement.GetProperty("personal").GetInt32());
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
