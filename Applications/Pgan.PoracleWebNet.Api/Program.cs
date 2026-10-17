@@ -286,6 +286,17 @@ builder.Services.AddRateLimiter(options =>
                 QueueLimit = 0,
                 AutoReplenishment = true,
             }));
+    // Linked game accounts: read when the settings page opens and written a handful of times ever, so 30 a minute per user is slack.
+    options.AddPolicy("accounts", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            UserOrIpPartitionKey(httpContext),
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 30,
+                Window = TimeSpan.FromSeconds(60),
+                QueueLimit = 0,
+                AutoReplenishment = true,
+            }));
     options.AddPolicy("geojson-import", httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
             UserOrIpPartitionKey(httpContext),
