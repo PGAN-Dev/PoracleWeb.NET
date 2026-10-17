@@ -20,7 +20,8 @@ jobs:
   deploy:
     # A prerelease is an experimental build from another branch. Without this, it would
     # redeploy the docs site from that branch's docs.
-    if: ${{ github.event_name != 'release' || !github.event.release.prerelease }}
+    # A hyphenated tag (vX.Y.Z-name.N) is skipped too, in case the pre-release box was left unticked.
+    if: ${{ github.event_name != 'release' || (!github.event.release.prerelease && !contains(github.event.release.tag_name, '-')) }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7

@@ -8,7 +8,8 @@ jobs:
   cut-release:
     # A prerelease is an experimental build from another branch. Without this, it would
     # cut main's CHANGELOG under the prerelease's version (checkout below is ref: main).
-    if: ${{ !github.event.release.prerelease }}
+    # A hyphenated tag (vX.Y.Z-name.N) is skipped too, in case the pre-release box was left unticked.
+    if: ${{ !github.event.release.prerelease && !contains(github.event.release.tag_name, '-') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
