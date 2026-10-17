@@ -12,7 +12,8 @@ jobs:
   preview:
     # Only build when the 'preview' label is present. The label can be added
     # at any time — subsequent pushes rebuild automatically via 'synchronize'.
-    if: contains(github.event.pull_request.labels.*.name, 'preview')
+    # A PR into an experimental branch must not publish a pr-N image into the official package.
+    if: contains(github.event.pull_request.labels.*.name, 'preview') && !startsWith(github.event.pull_request.base.ref, 'experimental/')
     runs-on: ubuntu-latest
     permissions:
       contents: read

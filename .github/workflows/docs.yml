@@ -18,6 +18,9 @@ permissions:
 
 jobs:
   deploy:
+    # A prerelease is an experimental build from another branch. Without this, it would
+    # redeploy the docs site from that branch's docs.
+    if: ${{ github.event_name != 'release' || !github.event.release.prerelease }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
