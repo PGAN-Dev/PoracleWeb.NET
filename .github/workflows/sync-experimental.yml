@@ -21,7 +21,8 @@ permissions:
 jobs:
   sync:
     # A prerelease is an experimental build itself; only a full release has new code to pass on.
-    if: ${{ !github.event.release.prerelease }}
+    # A hyphenated tag (vX.Y.Z-name.N) is skipped too, in case the pre-release box was left unticked.
+    if: ${{ !github.event.release.prerelease && !contains(github.event.release.tag_name, '-') }}
     runs-on: ubuntu-latest
     steps:
       # Unconditional, so the job always has at least one step that runs. A job whose every step
@@ -79,6 +80,6 @@ jobs:
               continue
             fi
             gh pr create --base "$branch" --head main \
-              --title "sync: main into $branch" \
+              --title "chore: sync main into $branch" \
               --body "$branch is $behind commit(s) behind main after release $TAG. Merge with a merge commit, not squash or rebase, so clones of $branch keep fast-forwarding."
           done
