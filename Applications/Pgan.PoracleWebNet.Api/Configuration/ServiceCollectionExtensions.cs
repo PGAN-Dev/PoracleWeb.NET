@@ -189,6 +189,9 @@ public static class ServiceCollectionExtensions
         // Register HttpClient for PoracleNG's v2 mute store (quiet periods).
         services.AddHttpClient<IPoracleMuteProxy, PoracleMuteProxy>();
 
+        // Register HttpClient for PoracleNG's linked game accounts (player ids for personal shiny alerts).
+        services.AddHttpClient<IPoracleAccountProxy, PoracleAccountProxy>();
+
         // Register HttpClient for Discord notification service
         services.AddHttpClient<IDiscordNotificationService, DiscordNotificationService>(client =>
         {
