@@ -92,6 +92,7 @@ nav:
   - Features:
       - Alarm Management: features/alarms.md
       - Quiet Periods: features/quiet-periods.md
+      - Personal Shiny Alerts (Experimental): features/personal-shiny.md
       - Profiles: features/profiles.md
       - Quest Summary Delivery: features/quest-summary-schedules.md
       - Webhooks & Delegates: features/webhooks.md
