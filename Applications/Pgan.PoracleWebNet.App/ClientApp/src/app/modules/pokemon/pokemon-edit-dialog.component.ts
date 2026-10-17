@@ -1,5 +1,5 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
@@ -60,13 +60,30 @@ import { KNOWN, compose as composePersonal, isBackground, isShiny, preserve as p
 })
 export class PokemonEditDialogComponent implements OnInit {
   private readonly accountService = inject(PlayerAccountService);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
   private readonly fb = inject(FormBuilder);
   private readonly i18n = inject(I18nService);
   private readonly iconService = inject(IconService);
   private readonly masterData = inject(MasterDataService);
   private readonly monsterService = inject(MonsterService);
+  private readonly personalBackgroundOn = signal(false);
+  private readonly personalShinyOn = signal(false);
+  private readonly poracleConfig = inject(PoracleConfigService);
+  private readonly settings = inject(SettingsService);
+  private readonly snackBar = inject(MatSnackBar);
+  /** The linked game accounts. Null means not loaded or the read failed, which is not the same as none. */
+  readonly accounts = this.accountService.accounts;
   readonly data = inject<Monster>(MAT_DIALOG_DATA);
+  readonly availableForms = computed(() => {
+    return this.masterData.getFormsForPokemon(this.data.pokemonId);
+  });
+
+  readonly dialogRef = inject(MatDialogRef<PokemonEditDialogComponent>);
+
+  /** Whether to show the edit-in-place toggle at all -- see MonsterService.editSupported. */
+  readonly editSupported = this.monsterService.editSupported;
+
   form = this.fb.group({
     atk: [this.data.atk],
     clean: [isAutoDelete(this.data.clean)],
@@ -115,32 +132,6 @@ export class PokemonEditDialogComponent implements OnInit {
     template: [this.data.template ?? ''],
   });
 
-  private readonly personalBackgroundOn = toSignal(this.form.controls.personalBackground.valueChanges, {
-    initialValue: this.form.controls.personalBackground.value,
-  });
-
-  private readonly personalShinyOn = toSignal(this.form.controls.personalShiny.valueChanges, {
-    initialValue: this.form.controls.personalShiny.value,
-  });
-
-  private readonly poracleConfig = inject(PoracleConfigService);
-
-  private readonly settings = inject(SettingsService);
-
-  private readonly snackBar = inject(MatSnackBar);
-
-  /** The linked game accounts. Null means not loaded or the read failed, which is not the same as none. */
-  readonly accounts = this.accountService.accounts;
-
-  readonly availableForms = computed(() => {
-    return this.masterData.getFormsForPokemon(this.data.pokemonId);
-  });
-
-  readonly dialogRef = inject(MatDialogRef<PokemonEditDialogComponent>);
-
-  /** Whether to show the edit-in-place toggle at all -- see MonsterService.editSupported. */
-  readonly editSupported = this.monsterService.editSupported;
-
   readonly isWebhook = inject(AuthService).isImpersonating();
 
   /** Whether the connected PoracleNG stores personal shiny rules at all. */
@@ -172,7 +163,7 @@ export class PokemonEditDialogComponent implements OnInit {
    */
   readonly showNoAccountsHint = computed(() => {
     const accounts = this.accounts();
-    return accounts !== null && accounts.length === 0 && (!!this.personalShinyOn() || !!this.personalBackgroundOn());
+    return accounts !== null && accounts.length === 0 && (this.personalShinyOn() || this.personalBackgroundOn());
   });
 
   /** The hint under the costume select, which changes with the selection. */
@@ -210,6 +201,13 @@ export class PokemonEditDialogComponent implements OnInit {
   ngOnInit(): void {
     this.poracleConfig.load().subscribe(() => this.loadAccounts());
     syncUnscanned(this.form.controls);
+
+    // Follow the personal toggles for the no-accounts hint. Seeded first, so a stored value counts.
+    const { personalBackground, personalShiny } = this.form.controls;
+    this.personalBackgroundOn.set(!!personalBackground.value);
+    this.personalShinyOn.set(!!personalShiny.value);
+    personalBackground.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(v => this.personalBackgroundOn.set(!!v));
+    personalShiny.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(v => this.personalShinyOn.set(!!v));
   }
 
   onImageError(event: Event): void {

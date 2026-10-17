@@ -1,5 +1,5 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
@@ -66,6 +66,7 @@ import { compose as composePersonal } from '../../shared/utils/personal-flags';
 export class PokemonAddDialogComponent implements OnInit {
   private readonly accountService = inject(PlayerAccountService);
   private readonly alertDefaults = inject(AlertDefaultsService);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
 
   private readonly fb = inject(FormBuilder);
@@ -73,6 +74,29 @@ export class PokemonAddDialogComponent implements OnInit {
   private readonly i18n = inject(I18nService);
   private readonly masterData = inject(MasterDataService);
   private readonly monsterService = inject(MonsterService);
+  private readonly personalBackgroundOn = signal(false);
+  private readonly personalShinyOn = signal(false);
+  private readonly poracleConfig = inject(PoracleConfigService);
+  private readonly settings = inject(SettingsService);
+  private readonly snackBar = inject(MatSnackBar);
+  /** The linked game accounts. Null means not loaded or the read failed, which is not the same as none. */
+  readonly accounts = this.accountService.accounts;
+
+  selectedPokemonIds = signal<number[]>([]);
+  readonly availableForms = computed(() => {
+    const ids = this.selectedPokemonIds();
+    if (ids.length !== 1 || ids[0] === 0) return [];
+    return this.masterData.getFormsForPokemon(ids[0]);
+  });
+
+  /** Tracks whether the user has manually changed the cap since the default was applied. */
+  readonly capTouched = signal(false);
+
+  readonly dialogRef = inject(MatDialogRef<PokemonAddDialogComponent>);
+
+  /** Whether to show the edit-in-place toggle at all -- see MonsterService.editSupported. */
+  readonly editSupported = this.monsterService.editSupported;
+
   filtersForm = this.fb.group({
     atk: [0, [Validators.min(0), Validators.max(15)]],
     // 9000 = any costume. Never let this default to 0 -- that is "no costume", a real filter.
@@ -103,38 +127,6 @@ export class PokemonAddDialogComponent implements OnInit {
     size: [-1],
     sta: [0, [Validators.min(0), Validators.max(15)]],
   });
-
-  private readonly personalBackgroundOn = toSignal(this.filtersForm.controls.personalBackground.valueChanges, {
-    initialValue: this.filtersForm.controls.personalBackground.value,
-  });
-
-  private readonly personalShinyOn = toSignal(this.filtersForm.controls.personalShiny.valueChanges, {
-    initialValue: this.filtersForm.controls.personalShiny.value,
-  });
-
-  private readonly poracleConfig = inject(PoracleConfigService);
-  private readonly settings = inject(SettingsService);
-
-  private readonly snackBar = inject(MatSnackBar);
-
-  /** The linked game accounts. Null means not loaded or the read failed, which is not the same as none. */
-  readonly accounts = this.accountService.accounts;
-
-  selectedPokemonIds = signal<number[]>([]);
-
-  readonly availableForms = computed(() => {
-    const ids = this.selectedPokemonIds();
-    if (ids.length !== 1 || ids[0] === 0) return [];
-    return this.masterData.getFormsForPokemon(ids[0]);
-  });
-
-  /** Tracks whether the user has manually changed the cap since the default was applied. */
-  readonly capTouched = signal(false);
-
-  readonly dialogRef = inject(MatDialogRef<PokemonAddDialogComponent>);
-
-  /** Whether to show the edit-in-place toggle at all -- see MonsterService.editSupported. */
-  readonly editSupported = this.monsterService.editSupported;
 
   readonly isWebhook = inject(AuthService).isImpersonating();
 
@@ -188,7 +180,7 @@ export class PokemonAddDialogComponent implements OnInit {
    */
   readonly showNoAccountsHint = computed(() => {
     const accounts = this.accounts();
-    return accounts !== null && accounts.length === 0 && (!!this.personalShinyOn() || !!this.personalBackgroundOn());
+    return accounts !== null && accounts.length === 0 && (this.personalShinyOn() || this.personalBackgroundOn());
   });
 
   /** The hint under the costume select, which changes with the selection. */
@@ -235,6 +227,13 @@ export class PokemonAddDialogComponent implements OnInit {
     });
 
     syncUnscanned(this.filtersForm.controls);
+
+    // Follow the personal toggles for the no-accounts hint. Seeded first, so a stored value counts.
+    const { personalBackground, personalShiny } = this.filtersForm.controls;
+    this.personalBackgroundOn.set(!!personalBackground.value);
+    this.personalShinyOn.set(!!personalShiny.value);
+    personalBackground.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(v => this.personalBackgroundOn.set(!!v));
+    personalShiny.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(v => this.personalShinyOn.set(!!v));
   }
 
   onPokemonSelected(ids: number[]): void {
