@@ -51,6 +51,8 @@
     "RESUME": "Riprendi"
   },
   "MENU": {
+    "EXPERIMENTAL_CHIP": "Sperimentale",
+    "EXPERIMENTAL_TOOLTIP": "Build non ufficiale con avvisi shiny personali. Non supportata dalle release di PoracleWeb.NET.",
     "DISPLAY_LANGUAGE_HINT": "Cambia solo il testo di questo sito.",
     "PROFILE_PREFIX": "Profilo #",
     "PAUSE_ALERTS": "Metti in Pausa gli Avvisi",

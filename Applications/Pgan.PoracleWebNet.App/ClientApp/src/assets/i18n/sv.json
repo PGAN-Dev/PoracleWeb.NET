@@ -51,6 +51,8 @@
     "RESUME": "Återuppta"
   },
   "MENU": {
+    "EXPERIMENTAL_CHIP": "Experimentell",
+    "EXPERIMENTAL_TOOLTIP": "Inofficiell version med personliga shiny-aviseringar. Stöds inte av PoracleWeb.NET-utgåvor.",
     "DISPLAY_LANGUAGE_HINT": "Ändrar bara texten på den här sidan.",
     "PROFILE_PREFIX": "Profil #",
     "PAUSE_ALERTS": "Pausa larm",

@@ -1,5 +1,14 @@
 # PoracleWeb.NET
 
+> **Experimental, unofficial branch.** `experimental/shiny` adds personal shiny alerts on top of the official release. It is not supported by PoracleWeb.NET releases and can change or break without notice.
+>
+> It needs a PoracleNG built from the `feat/personal-shiny` branch of [`ghcr.io/jfberry/poracleng`](https://github.com/jfberry/PoracleNG) (PoracleNG PR #255, not yet released); an official PoracleNG does not have the endpoints it calls.
+>
+> - Image: `ghcr.io/pgan-dev/poracleweb.net-experimental:shiny`
+> - Setup: [docs/features/personal-shiny.md](docs/features/personal-shiny.md)
+> - What this branch adds: [CHANGELOG-shiny.md](CHANGELOG-shiny.md)
+> - Problems: open an issue with the `experimental-shiny` label
+
 A web application for managing Pokemon GO notification alarms through the [PoracleNG](https://github.com/jfberry/PoracleNG) bot. Users authenticate via Discord OAuth2 or Telegram and configure personalized alert filters (Pokemon, Raids and Eggs, Max Battles, Quests, Invasions, Pokéstop Events, Lures, Nests, Gyms, Fort Changes) through a browser-based UI.
 
 > **PoracleNG 5.1.0 or newer is required.** All alarm management, profile handling, and user operations are proxied through PoracleNG's REST API. On an older server, per-alarm delivery scope, the PVP mega evolution filter and the minimum time-left filter write columns that don't exist: the controls accept input, save, and change nothing. PoracleWeb logs an error at startup and shows the mismatch on the Versions card under Admin > Settings.

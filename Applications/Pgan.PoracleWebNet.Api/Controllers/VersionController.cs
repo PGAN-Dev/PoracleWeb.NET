@@ -16,6 +16,9 @@ public class VersionController(IConfiguration configuration, IHostEnvironment en
     /// <summary>Fallback when the build args were not supplied (local `docker build`, `dotnet run`).</summary>
     internal const string Unknown = "unknown";
 
+    /// <summary>Channel of an image built without <c>RELEASE_CHANNEL</c>: every official release and branch build.</summary>
+    internal const string Official = "official";
+
     private readonly IConfiguration _configuration = configuration;
     private readonly IHostEnvironment _environment = environment;
 
@@ -40,14 +43,17 @@ public class VersionController(IConfiguration configuration, IHostEnvironment en
             // Short form purely for convenience -- it is what you actually paste into `git log`.
             revisionShort = revision == Unknown ? Unknown : revision[..Math.Min(7, revision.Length)],
             buildDate = Value("BUILD_DATE"),
+            // "official" unless the image was built with RELEASE_CHANNEL (the experimental line sets it).
+            // Blank is official rather than unknown: an unset build arg is the normal case, not a gap.
+            channel = Value("RELEASE_CHANNEL", Official),
             environment = this._environment.EnvironmentName,
         });
     }
 
-    private string Value(string key)
+    private string Value(string key, string fallback = Unknown)
     {
         var value = this._configuration[key];
 
-        return string.IsNullOrWhiteSpace(value) ? Unknown : value;
+        return string.IsNullOrWhiteSpace(value) ? fallback : value;
     }
 }

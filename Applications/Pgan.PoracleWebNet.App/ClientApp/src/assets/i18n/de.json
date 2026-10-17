@@ -51,6 +51,8 @@
     "RESUME": "Fortsetzen"
   },
   "MENU": {
+    "EXPERIMENTAL_CHIP": "Experimentell",
+    "EXPERIMENTAL_TOOLTIP": "Inoffizieller Build mit persönlichen Shiny-Benachrichtigungen. Wird von PoracleWeb.NET-Releases nicht unterstützt.",
     "DISPLAY_LANGUAGE_HINT": "Ändert nur den Text dieser Seite.",
     "PROFILE_PREFIX": "Profil #",
     "PAUSE_ALERTS": "Alarme pausieren",

@@ -51,6 +51,8 @@
     "RESUME": "Wznów"
   },
   "MENU": {
+    "EXPERIMENTAL_CHIP": "Eksperymentalne",
+    "EXPERIMENTAL_TOOLTIP": "Nieoficjalna kompilacja z osobistymi alertami shiny. Nieobsługiwana przez wydania PoracleWeb.NET.",
     "DISPLAY_LANGUAGE_HINT": "Zmienia tylko tekst tej strony.",
     "PROFILE_PREFIX": "Profil #",
     "PAUSE_ALERTS": "Wstrzymaj alerty",

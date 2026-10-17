@@ -51,6 +51,8 @@
     "RESUME": "Genoptag"
   },
   "MENU": {
+    "EXPERIMENTAL_CHIP": "Eksperimentel",
+    "EXPERIMENTAL_TOOLTIP": "Uofficiel build med personlige shiny-alarmer. Understøttes ikke af PoracleWeb.NET-udgivelser.",
     "DISPLAY_LANGUAGE_HINT": "Ændrer kun teksten på dette site.",
     "PROFILE_PREFIX": "Profil #",
     "PAUSE_ALERTS": "Pause alarmer",

@@ -51,6 +51,8 @@
     "RESUME": "Hervatten"
   },
   "MENU": {
+    "EXPERIMENTAL_CHIP": "Experimenteel",
+    "EXPERIMENTAL_TOOLTIP": "Onofficiële build met persoonlijke shiny-meldingen. Wordt niet ondersteund door PoracleWeb.NET-releases.",
     "DISPLAY_LANGUAGE_HINT": "Verandert alleen de tekst van deze site.",
     "PROFILE_PREFIX": "Profiel #",
     "PAUSE_ALERTS": "Meldingen Pauzeren",

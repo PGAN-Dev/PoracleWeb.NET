@@ -66,6 +66,26 @@ public class VersionControllerTests
         Assert.Equal("abc", Read(payload, "revisionShort"));
     }
 
+    [Fact]
+    public void ReportsTheReleaseChannel()
+    {
+        var payload = Payload(Build(new() { ["RELEASE_CHANNEL"] = "experimental" }).Get());
+
+        Assert.Equal("experimental", Read(payload, "channel"));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void ChannelDefaultsToOfficial(string? configured)
+    {
+        // Unset, empty and whitespace all mean the official build, never "unknown".
+        var values = configured is null ? new Dictionary<string, string?>() : new() { ["RELEASE_CHANNEL"] = configured };
+
+        Assert.Equal("official", Read(Payload(Build(values).Get()), "channel"));
+    }
+
     private static VersionController Build(Dictionary<string, string?> values)
     {
         var environment = new Mock<IHostEnvironment>();

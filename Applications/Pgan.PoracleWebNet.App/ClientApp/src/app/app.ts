@@ -17,6 +17,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { DashboardCounts } from './core/models';
 import { AlertLanguageService } from './core/services/alert-language.service';
 import { AuthService } from './core/services/auth.service';
+import { BuildInfoService } from './core/services/build-info.service';
 import { DashboardService } from './core/services/dashboard.service';
 import { I18nService } from './core/services/i18n.service';
 import { SettingsService } from './core/services/settings.service';
@@ -253,6 +254,8 @@ export class App implements OnInit {
 
   readonly alertLanguage = inject(AlertLanguageService);
 
+  protected readonly buildInfo = inject(BuildInfoService);
+
   protected readonly counts = signal<DashboardCounts | null>(null);
 
   protected readonly customNavLink = computed(() => {
@@ -351,6 +354,8 @@ export class App implements OnInit {
   }
 
   ngOnInit(): void {
+    // Public endpoint, so it is safe on the login page too. Only drives the Experimental chip.
+    this.buildInfo.load();
     // Only a signed-in user has an alert language to reconcile. GET /api/location/language is
     // [Authorize], so calling this unconditionally fired a guaranteed 401 on every visit to the login
     // page -- invisible only because LocationService swallows the error. Same shape as #426. The call

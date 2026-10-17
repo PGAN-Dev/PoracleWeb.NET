@@ -51,6 +51,8 @@
     "RESUME": "Reanudar"
   },
   "MENU": {
+    "EXPERIMENTAL_CHIP": "Experimental",
+    "EXPERIMENTAL_TOOLTIP": "Versión no oficial con alertas shiny personales. No está respaldada por las versiones de PoracleWeb.NET.",
     "DISPLAY_LANGUAGE_HINT": "Solo cambia el texto de este sitio.",
     "PROFILE_PREFIX": "Perfil #",
     "PAUSE_ALERTS": "Pausar alertas",
