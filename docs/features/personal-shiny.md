@@ -15,7 +15,8 @@ up shiny (or with the background). With both switched on, both must hold.
     The `experimental/shiny` branch is built against PoracleNG's `feat/personal-shiny` branch
     ([PoracleNG PR #255](https://github.com/jfberry/PoracleNG/pull/255)), which is not merged into a
     release. Until it is, you run two pre-release builds together. Either can change or break without
-    notice, and an official PoracleNG does not have the endpoints this build calls.
+    notice. On a PoracleNG without #255 this build behaves like the official release it is based
+    on, with the personal controls hidden.
 
 It exists so people who want the feature can try it before upstream ships it. If you would rather wait
 for a release, stay on the official image. Report problems on GitHub with the `experimental-shiny`
@@ -94,7 +95,8 @@ There are three ways to do it.
 **The trainer dialog.** Open the user menu and choose **Game accounts**. The entry appears only when
 PoracleNG supports trainer game accounts. With `self_service` on, you can link, relabel and unlink.
 With it off, the dialog is read-only and says why, with a link to your support page if one is set.
-Admins can always edit, and the dialog is read-only while an admin is viewing another account.
+Admins can always edit, their own accounts included, and the dialog is read-only while viewing
+another account.
 
 **Admin → Users.** Each row has a **Game accounts** button that opens the same dialog for that user.
 Admins can edit whatever `self_service` says. This is the route to use when self-service is off.

@@ -2,7 +2,7 @@
 
 > **Experimental, unofficial branch.** `experimental/shiny` adds personal shiny alerts on top of the official release. It is not supported by PoracleWeb.NET releases and can change or break without notice.
 >
-> It needs a PoracleNG built from the `feat/personal-shiny` branch of [`ghcr.io/jfberry/poracleng`](https://github.com/jfberry/PoracleNG) (PoracleNG PR #255, not yet released); an official PoracleNG does not have the endpoints it calls.
+> It needs a PoracleNG built from the `feat/personal-shiny` branch of [`ghcr.io/jfberry/poracleng`](https://github.com/jfberry/PoracleNG) (PoracleNG PR #255, not yet released). On a PoracleNG without #255 this build behaves like the official release it is based on, with the personal controls hidden.
 >
 > - Image: `ghcr.io/pgan-dev/poracleweb.net-experimental:shiny`
 > - Setup: [docs/features/personal-shiny.md](docs/features/personal-shiny.md)
