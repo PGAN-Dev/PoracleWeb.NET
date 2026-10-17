@@ -144,6 +144,25 @@ public class PersonalTrackingRefusalTests
         Assert.Equal(1, created);
     }
 
+    // --- Constructed without a schema (main's own call sites do) -----------------------------------
+
+    [Fact]
+    public async Task WithoutASchemaPersonalIsRefusedAndZeroPersonalIsAccepted()
+    {
+        // A caller that predates the schema dependency gets no capabilities, which fails closed.
+        var monsters = new MonsterService(this._proxy.Object, this._featureGate.Object, this._remapper.Object,
+            CostumeCapabilityDoubles.Supported());
+
+        var ex = await Assert.ThrowsAsync<AlarmValidationException>(
+            () => monsters.CreateAsync("u1", new Monster { PokemonId = 25, Personal = 1 }));
+        Assert.Equal(Refusal, ex.Message);
+        this.VerifyNothingWritten();
+
+        await monsters.CreateAsync("u1", new Monster { PokemonId = 25, Personal = 0 });
+        this._proxy.Verify(
+            p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Once);
+    }
+
     // --- The merge guard ----------------------------------------------------------------------------
     //
     // `personal` is untagged upstream, so it is identity: a plain rule and its shiny twin are two rules.

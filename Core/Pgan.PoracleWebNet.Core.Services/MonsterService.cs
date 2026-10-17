@@ -9,14 +9,14 @@ public class MonsterService(
     IFeatureGate featureGate,
     ITrackedUidRemapper uidRemapper,
     ICostumeCapabilityService costumes,
-    IPoracleV2SchemaService v2Schema) : IMonsterService
+    IPoracleV2SchemaService? v2Schema = null) : IMonsterService
 {
     private const string TrackingType = "pokemon";
     private readonly IPoracleTrackingProxy _proxy = proxy;
     private readonly IFeatureGate _featureGate = featureGate;
     private readonly ITrackedUidRemapper _uidRemapper = uidRemapper;
     private readonly ICostumeCapabilityService _costumes = costumes;
-    private readonly IPoracleV2SchemaService _v2Schema = v2Schema;
+    private readonly IPoracleV2SchemaService? _v2Schema = v2Schema;
 
     // profileNo is kept for interface compatibility only. PoracleNG scopes reads to the user's active
     // profile (humans.current_profile_no), and writes no longer carry profile_no at all — see
@@ -212,8 +212,9 @@ public class MonsterService(
             return;
         }
 
-        var capabilities = await this._v2Schema.GetAsync();
-        if (!capabilities.PersonalTracking)
+        // No schema service means no capabilities, which refuses: the safe direction when nothing can say.
+        var capabilities = this._v2Schema is null ? null : await this._v2Schema.GetAsync();
+        if (capabilities?.PersonalTracking != true)
         {
             throw new AlarmValidationException(PersonalUnsupportedMessage);
         }

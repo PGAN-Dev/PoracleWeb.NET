@@ -11,7 +11,7 @@ public class ProfileOverviewService(
     IPoracleTrackingProxy trackingProxy,
     IPoracleHumanProxy humanProxy,
     IFeatureGate featureGate,
-    IPoracleV2SchemaService v2Schema) : IProfileOverviewService
+    IPoracleV2SchemaService? v2Schema = null) : IProfileOverviewService
 {
     private static readonly string[] AlarmTypes =
         ["pokemon", "raid", "egg", "quest", "invasion", "lure", "nest", "gym", "maxbattle", "fort"];
@@ -19,7 +19,7 @@ public class ProfileOverviewService(
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly IPoracleTrackingProxy _trackingProxy = trackingProxy;
     private readonly IFeatureGate _featureGate = featureGate;
-    private readonly IPoracleV2SchemaService _v2Schema = v2Schema;
+    private readonly IPoracleV2SchemaService? _v2Schema = v2Schema;
 
     public async Task<int> DuplicateProfileAsync(string userId, int sourceProfileNo, int newProfileNo)
     {
@@ -182,7 +182,8 @@ public class ProfileOverviewService(
 
         // One schema read for the whole file, and only when a rule asks for the bit. Duplicate needs no
         // such check: it copies rules the same server already holds.
-        if (carriesPersonal && !(await this._v2Schema.GetAsync()).PersonalTracking)
+        // No schema service means no capabilities, which refuses.
+        if (carriesPersonal && (this._v2Schema is null || !(await this._v2Schema.GetAsync()).PersonalTracking))
         {
             throw new AlarmValidationException(MonsterService.PersonalUnsupportedMessage);
         }
