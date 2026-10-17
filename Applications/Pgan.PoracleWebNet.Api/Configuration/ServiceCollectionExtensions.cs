@@ -91,6 +91,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISummaryCapabilityService, SummaryCapabilityService>();
         services.AddScoped<IQuestPokecoinCapabilityService, QuestPokecoinCapabilityService>();
         services.AddScoped<IPokemonEditCapabilityService, PokemonEditCapabilityService>();
+        services.AddScoped<IPersonalShinyConfigService, PersonalShinyConfigService>();
         services.AddScoped<IMuteCapabilityService, MuteCapabilityService>();
         services.AddScoped<IPlaceUpdateCapabilityService, PlaceUpdateCapabilityService>();
         services.AddScoped<INaturalKeyCapabilityService, NaturalKeyCapabilityService>();

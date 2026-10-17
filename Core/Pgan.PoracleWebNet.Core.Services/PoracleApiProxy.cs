@@ -256,6 +256,14 @@ public class PoracleApiProxy(HttpClient httpClient, IConfiguration configuration
     public Task<bool?> GetPokemonEditEnabledAsync() =>
         this.ReadConfigValueBoolAsync("tracking", "pokemon_edit");
 
+    /// <inheritdoc />
+    public Task<string?> GetShinyRatesUrlAsync() =>
+        this.ReadConfigValueStringAsync("shiny_rates", "url");
+
+    /// <inheritdoc />
+    public Task<bool?> GetPlayerAccountsSelfServiceAsync() =>
+        this.ReadConfigValueBoolAsync("player_accounts", "self_service");
+
     /// <summary>
     /// Reads a single boolean out of <c>GET /api/config/values</c>, whose body is shaped
     /// <c>{ "values": { "&lt;section&gt;": { "&lt;key&gt;": true } } }</c>. Returns <c>null</c> when the
@@ -263,6 +271,26 @@ public class PoracleApiProxy(HttpClient httpClient, IConfiguration configuration
     /// distinct from <c>false</c>.
     /// </summary>
     private async Task<bool?> ReadConfigValueBoolAsync(string section, string key)
+    {
+        var value = await this.ReadConfigValueAsync(section, key);
+        return value is { ValueKind: JsonValueKind.True or JsonValueKind.False } ? value.Value.GetBoolean() : null;
+    }
+
+    /// <summary>
+    /// The string sibling of <see cref="ReadConfigValueBoolAsync"/>. Returns <c>null</c> when the
+    /// section or key is missing, or the value is not a string.
+    /// </summary>
+    private async Task<string?> ReadConfigValueStringAsync(string section, string key)
+    {
+        var value = await this.ReadConfigValueAsync(section, key);
+        return value is { ValueKind: JsonValueKind.String } ? value.Value.GetString() : null;
+    }
+
+    /// <summary>
+    /// One value out of <c>GET /api/config/values</c>, cloned so it outlives the parsed document.
+    /// HTTP errors throw; a missing section or key is <c>null</c>.
+    /// </summary>
+    private async Task<JsonElement?> ReadConfigValueAsync(string section, string key)
     {
         var request = this.CreateRequest(HttpMethod.Get, $"{this._apiAddress}/api/config/values");
         var response = await this._httpClient.SendAsync(request);
@@ -273,10 +301,9 @@ public class PoracleApiProxy(HttpClient httpClient, IConfiguration configuration
 
         if (doc.RootElement.TryGetProperty("values", out var values)
             && values.TryGetProperty(section, out var sectionElement)
-            && sectionElement.TryGetProperty(key, out var value)
-            && value.ValueKind is JsonValueKind.True or JsonValueKind.False)
+            && sectionElement.TryGetProperty(key, out var value))
         {
-            return value.GetBoolean();
+            return value.Clone();
         }
 
         return null;

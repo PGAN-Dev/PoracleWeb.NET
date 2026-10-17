@@ -9,10 +9,12 @@ namespace Pgan.PoracleWebNet.Api.Controllers;
 public partial class ConfigController(
     IPoracleApiProxy poracleApiProxy,
     IPoracleV2SchemaService v2Schema,
+    IPersonalShinyConfigService personalShinyConfig,
     ILogger<ConfigController> logger) : BaseApiController
 {
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
     private readonly IPoracleV2SchemaService _v2Schema = v2Schema;
+    private readonly IPersonalShinyConfigService _personalShinyConfig = personalShinyConfig;
     private readonly ILogger<ConfigController> _logger = logger;
 
     [AllowAnonymous]
@@ -69,7 +71,10 @@ public partial class ConfigController(
         // Degrades to false on any fault, same as every other v2 schema capability -- an operator cannot
         // preserve a mention through an edit until this answers true, so treating "could not ask" as "no"
         // is the only safe direction here.
-        var pingSupported = (await this._v2Schema.GetAsync()).TrackingPing;
+        var capabilities = await this._v2Schema.GetAsync();
+
+        // Both the schema read and the config read fail closed (false, false) rather than throw.
+        var personal = await this._personalShinyConfig.GetAsync();
 
         try
         {
@@ -77,7 +82,11 @@ public partial class ConfigController(
             if (config != null)
             {
                 var publicConfig = PublicPoracleConfig.From(config);
-                publicConfig.PingSupported = pingSupported;
+                publicConfig.PingSupported = capabilities.TrackingPing;
+                publicConfig.PersonalSupported = capabilities.PersonalTracking;
+                publicConfig.PlayerAccountsSupported = capabilities.PlayerAccounts;
+                publicConfig.PersonalRatesConfigured = personal.RatesFeedConfigured;
+                publicConfig.PlayerAccountsSelfService = personal.SelfService;
                 return this.Ok(publicConfig);
             }
         }
@@ -98,7 +107,11 @@ public partial class ConfigController(
             DefaultTemplateName = "default",
             EverythingFlagPermissions = "",
             MaxDistance = 10726000,
-            PingSupported = pingSupported,
+            PingSupported = capabilities.TrackingPing,
+            PersonalSupported = capabilities.PersonalTracking,
+            PlayerAccountsSupported = capabilities.PlayerAccounts,
+            PersonalRatesConfigured = personal.RatesFeedConfigured,
+            PlayerAccountsSelfService = personal.SelfService,
         });
     }
 

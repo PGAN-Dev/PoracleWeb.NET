@@ -47,6 +47,20 @@ public interface IPoracleApiProxy
     /// </summary>
     Task<bool?> GetPokemonEditEnabledAsync();
 
+    /// <summary>
+    /// Reads <c>shiny_rates.url</c> from PoracleNG's config-values endpoint (PoracleNG PR #255): the
+    /// rate feed personal shiny rules are matched against. <c>null</c> means the key is absent or not
+    /// a string; a blank string is returned as is, and the caller decides what "configured" means.
+    /// </summary>
+    Task<string?> GetShinyRatesUrlAsync();
+
+    /// <summary>
+    /// Reads <c>player_accounts.self_service</c> (PoracleNG PR #255): whether trainers may link their
+    /// own game accounts. <c>null</c> means the key is absent -- an older build, or an unreadable
+    /// response -- and must be treated as closed.
+    /// </summary>
+    Task<bool?> GetPlayerAccountsSelfServiceAsync();
+
     Task<string?> GetTemplatesAsync();
     Task<string?> GetGruntsAsync(string? locale = null);
 

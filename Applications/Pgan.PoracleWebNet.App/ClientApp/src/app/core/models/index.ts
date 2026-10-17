@@ -400,6 +400,30 @@ export interface PoracleServerConfig {
   everythingFlagPermissions: string;
   locale: string;
   maxDistance: number;
+  /**
+   * `[shiny_rates] url` is configured in PoracleNG. Without a feed every personal rule matches
+   * nothing, so an administrator is warned.
+   */
+  personalRatesConfigured: boolean;
+  /**
+   * Whether PoracleNG's /api/v2 stores personal shiny rules (PoracleNG PR #255). False on every server
+   * that predates it, which hides the personal-shiny controls rather than offering a no-op.
+   */
+  personalSupported: boolean;
+  /**
+   * Whether the connected PoracleNG's /api/v2 genuinely stores a webhook mention (`ping`) rather than
+   * blanking it -- jfberry/PoracleNG#249, not yet in a tagged release. False on every released server.
+   * Gates the "Mention" delivery control in every alarm dialog: hidden rather than offered as a no-op,
+   * same reasoning as the Pokemon edit-in-place toggle.
+   */
+  pingSupported: boolean;
+  /**
+   * `[player_accounts] self_service`: whether trainers may link their own game accounts. PoracleNG's
+   * API trusts its caller on this, so PoracleWeb.NET enforces it.
+   */
+  playerAccountsSelfService: boolean;
+  /** Whether PoracleNG has trainer game accounts (PoracleNG PR #255), per its own schema. */
+  playerAccountsSupported: boolean;
   poracleVersion: string;
   /** The Poracle bot's command prefix, e.g. "$!" — needed to tell a user the right command to type. */
   prefix: string;
@@ -409,13 +433,6 @@ export interface PoracleServerConfig {
   pvpFilterMaxRank: number;
   pvpFilterUltraMinCp: number;
   pvpLittleLeagueAllowed: boolean;
-  /**
-   * Whether the connected PoracleNG's /api/v2 genuinely stores a webhook mention (`ping`) rather than
-   * blanking it -- jfberry/PoracleNG#249, not yet in a tagged release. False on every released server.
-   * Gates the "Mention" delivery control in every alarm dialog: hidden rather than offered as a no-op,
-   * same reasoning as the Pokemon edit-in-place toggle.
-   */
-  pingSupported: boolean;
 }
 
 export interface AreaDefinition {

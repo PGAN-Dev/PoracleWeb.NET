@@ -46,6 +46,29 @@ public class PublicPoracleConfig
     /// </summary>
     public bool PingSupported { get; set; }
 
+    /// <summary>
+    /// Whether this server stores personal shiny rules --
+    /// <see cref="PoracleV2Capabilities.PersonalTracking"/>, read from the v2 schema document. Set by
+    /// <c>ConfigController</c>, not <see cref="From"/>.
+    /// </summary>
+    public bool PersonalSupported { get; set; }
+
+    /// <summary>
+    /// Whether this server has trainer game accounts --
+    /// <see cref="PoracleV2Capabilities.PlayerAccounts"/>, read from the v2 schema document.
+    /// </summary>
+    public bool PlayerAccountsSupported { get; set; }
+
+    /// <summary>
+    /// <c>[shiny_rates] url</c> is configured. Without a feed every personal rule matches nothing.
+    /// </summary>
+    public bool PersonalRatesConfigured { get; set; }
+
+    /// <summary>
+    /// <c>[player_accounts] self_service</c>: whether trainers may link their own game accounts.
+    /// </summary>
+    public bool PlayerAccountsSelfService { get; set; }
+
     public static PublicPoracleConfig From(PoracleConfig source) => new()
     {
         Locale = source.Locale,

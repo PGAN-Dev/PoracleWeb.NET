@@ -11,13 +11,15 @@ public class ConfigControllerTests : ControllerTestBase
 {
     private readonly Mock<IPoracleApiProxy> _proxy = new();
     private readonly Mock<IPoracleV2SchemaService> _v2Schema = new();
+    private readonly Mock<IPersonalShinyConfigService> _personal = new();
     private readonly Mock<ILogger<ConfigController>> _logger = new();
     private readonly ConfigController _sut;
 
     public ConfigControllerTests()
     {
         this._v2Schema.Setup(s => s.GetAsync(It.IsAny<CancellationToken>())).ReturnsAsync(PoracleV2Capabilities.None);
-        this._sut = new ConfigController(this._proxy.Object, this._v2Schema.Object, this._logger.Object);
+        this._personal.Setup(s => s.GetAsync()).ReturnsAsync(new PersonalShinyConfig(false, false));
+        this._sut = new ConfigController(this._proxy.Object, this._v2Schema.Object, this._personal.Object, this._logger.Object);
         SetupUser(this._sut);
     }
 
@@ -238,6 +240,66 @@ public class ConfigControllerTests : ControllerTestBase
 
         var ok = Assert.IsType<OkObjectResult>(result);
         Assert.True(Assert.IsType<PublicPoracleConfig>(ok.Value).PingSupported);
+    }
+
+    // --- GetConfig: personal shiny (PoracleNG PR #255) ---
+
+    [Fact]
+    public async Task ReportsPersonalSupportFromTheSchema()
+    {
+        this._proxy.Setup(p => p.GetConfigAsync()).ReturnsAsync(new PoracleConfig { Locale = "en" });
+        this._v2Schema.Setup(s => s.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PoracleV2Capabilities { Read = true, PersonalTracking = true, PlayerAccounts = true });
+
+        var result = await this._sut.GetConfig();
+
+        var returned = Assert.IsType<PublicPoracleConfig>(Assert.IsType<OkObjectResult>(result).Value);
+        Assert.True(returned.PersonalSupported);
+        Assert.True(returned.PlayerAccountsSupported);
+    }
+
+    [Fact]
+    public async Task ReportsPersonalConfig()
+    {
+        this._proxy.Setup(p => p.GetConfigAsync()).ReturnsAsync(new PoracleConfig { Locale = "en" });
+        this._personal.Setup(s => s.GetAsync()).ReturnsAsync(new PersonalShinyConfig(true, true));
+
+        var result = await this._sut.GetConfig();
+
+        var returned = Assert.IsType<PublicPoracleConfig>(Assert.IsType<OkObjectResult>(result).Value);
+        Assert.True(returned.PersonalRatesConfigured);
+        Assert.True(returned.PlayerAccountsSelfService);
+    }
+
+    [Fact]
+    public async Task PersonalFieldsDefaultToOffOnAnOldServer()
+    {
+        this._proxy.Setup(p => p.GetConfigAsync()).ReturnsAsync(new PoracleConfig { Locale = "en" });
+
+        var result = await this._sut.GetConfig();
+
+        var returned = Assert.IsType<PublicPoracleConfig>(Assert.IsType<OkObjectResult>(result).Value);
+        Assert.False(returned.PersonalSupported);
+        Assert.False(returned.PlayerAccountsSupported);
+        Assert.False(returned.PersonalRatesConfigured);
+        Assert.False(returned.PlayerAccountsSelfService);
+    }
+
+    [Fact]
+    public async Task TheFallbackPathCarriesThemToo()
+    {
+        this._proxy.Setup(p => p.GetConfigAsync()).ThrowsAsync(new InvalidOperationException("fail"));
+        this._v2Schema.Setup(s => s.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PoracleV2Capabilities { Read = true, PersonalTracking = true, PlayerAccounts = true });
+        this._personal.Setup(s => s.GetAsync()).ReturnsAsync(new PersonalShinyConfig(true, true));
+
+        var result = await this._sut.GetConfig();
+
+        var returned = Assert.IsType<PublicPoracleConfig>(Assert.IsType<OkObjectResult>(result).Value);
+        Assert.True(returned.PersonalSupported);
+        Assert.True(returned.PlayerAccountsSupported);
+        Assert.True(returned.PersonalRatesConfigured);
+        Assert.True(returned.PlayerAccountsSelfService);
     }
 
     // --- GetDts ---
