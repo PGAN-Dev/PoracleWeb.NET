@@ -193,7 +193,7 @@ public class UnmodelledFieldPreservationTests
     [Fact]
     public async Task EditKeepsUnmodelledFieldsOnPokemon()
     {
-        var service = new MonsterService(this._proxy.Object, this._featureGate.Object, this._remapper.Object, CostumeCapabilityDoubles.Supported());
+        var service = new MonsterService(this._proxy.Object, this._featureGate.Object, this._remapper.Object, CostumeCapabilityDoubles.Supported(), PoracleTrackingProxyTests.V2Schema());
 
         // Costume is modelled on Monster since #804, so it is no longer carried forward -- it rides on
         // the model. The controller gets it there by merging the stored row (GetByUidAsync deserializes
@@ -249,7 +249,7 @@ public class UnmodelledFieldPreservationTests
     {
         // The other half of the null rule. Null means "not stated, keep what is stored"; empty is how a
         // person says "remove it". Without this, an override could be set but never taken off.
-        var service = new MonsterService(this._proxy.Object, this._featureGate.Object, this._remapper.Object, CostumeCapabilityDoubles.Supported());
+        var service = new MonsterService(this._proxy.Object, this._featureGate.Object, this._remapper.Object, CostumeCapabilityDoubles.Supported(), PoracleTrackingProxyTests.V2Schema());
 
         await service.UpdateAsync("u1", new Monster
         {
@@ -270,7 +270,7 @@ public class UnmodelledFieldPreservationTests
     {
         // uid 0 is a create. There is no stored row to carry anything forward from, and matching on
         // "some row the user already has" would staple a stranger's location override onto a new alarm.
-        var service = new MonsterService(this._proxy.Object, this._featureGate.Object, this._remapper.Object, CostumeCapabilityDoubles.Supported());
+        var service = new MonsterService(this._proxy.Object, this._featureGate.Object, this._remapper.Object, CostumeCapabilityDoubles.Supported(), PoracleTrackingProxyTests.V2Schema());
 
         await service.CreateAsync("u1", new Monster { PokemonId = 999, Distance = 1500 });
 
@@ -340,7 +340,7 @@ public class UnmodelledFieldPreservationTests
 
     private object ServiceFor(string trackingType) => trackingType switch
     {
-        "pokemon" => new MonsterService(this._proxy.Object, this._featureGate.Object, this._remapper.Object, CostumeCapabilityDoubles.Supported()),
+        "pokemon" => new MonsterService(this._proxy.Object, this._featureGate.Object, this._remapper.Object, CostumeCapabilityDoubles.Supported(), PoracleTrackingProxyTests.V2Schema()),
         "raid" => new RaidService(
             this._proxy.Object, this._featureGate.Object, NullLogger<RaidService>.Instance, this._remapper.Object, CostumeCapabilityDoubles.Supported()),
         "egg" => new EggService(

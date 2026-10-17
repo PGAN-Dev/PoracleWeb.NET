@@ -8,13 +8,15 @@ public class MonsterService(
     IPoracleTrackingProxy proxy,
     IFeatureGate featureGate,
     ITrackedUidRemapper uidRemapper,
-    ICostumeCapabilityService costumes) : IMonsterService
+    ICostumeCapabilityService costumes,
+    IPoracleV2SchemaService v2Schema) : IMonsterService
 {
     private const string TrackingType = "pokemon";
     private readonly IPoracleTrackingProxy _proxy = proxy;
     private readonly IFeatureGate _featureGate = featureGate;
     private readonly ITrackedUidRemapper _uidRemapper = uidRemapper;
     private readonly ICostumeCapabilityService _costumes = costumes;
+    private readonly IPoracleV2SchemaService _v2Schema = v2Schema;
 
     // profileNo is kept for interface compatibility only. PoracleNG scopes reads to the user's active
     // profile (humans.current_profile_no), and writes no longer carry profile_no at all — see
@@ -38,6 +40,7 @@ public class MonsterService(
     public async Task<Monster> CreateAsync(string userId, Monster model)
     {
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Pokemon);
+        await this.EnsurePersonalStorableAsync(model);
 
         // A server without monsters.costume takes the field, answers 200 and drops it, so an unguarded
         // write would leave a rule whose card says "Halloween 2025" and which matches every spawn.
@@ -62,6 +65,7 @@ public class MonsterService(
     public async Task<Monster> UpdateAsync(string userId, Monster model)
     {
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Pokemon);
+        await this.EnsurePersonalStorableAsync(model);
         await this._costumes.EnsureCostumeWritableAsync(TrackingType, model.Costume);
         var body = SerializeToElement(model);
 
@@ -170,6 +174,9 @@ public class MonsterService(
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Pokemon);
         var modelList = models.ToList();
 
+        // Checked for the whole batch before the first write, so a batch is never half applied.
+        await this.EnsurePersonalStorableAsync(modelList.ToArray());
+
         foreach (var model in modelList)
         {
             // Profile import and quick-pick apply arrive here without passing a dialog, so the gate the
@@ -188,6 +195,32 @@ public class MonsterService(
 
         return modelList;
     }
+
+    /// <summary>
+    /// Refuses a rule carrying <c>personal</c> when the server cannot store it.
+    /// </summary>
+    /// <remarks>
+    /// A PoracleNG without personal-shiny support takes the field, answers 200 and drops it, so an
+    /// unguarded write would save "shiny only" as a rule that matches every spawn. The schema is read
+    /// only when a rule actually asks for the bit, so the common write costs nothing extra. Zero is
+    /// always storable: it is what every rule written before the field existed carries.
+    /// </remarks>
+    private async Task EnsurePersonalStorableAsync(params Monster[] models)
+    {
+        if (!models.Any(m => m.Personal != 0))
+        {
+            return;
+        }
+
+        var capabilities = await this._v2Schema.GetAsync();
+        if (!capabilities.PersonalTracking)
+        {
+            throw new AlarmValidationException(PersonalUnsupportedMessage);
+        }
+    }
+
+    internal const string PersonalUnsupportedMessage =
+        "Personal shiny and background alerts need a PoracleNG with personal-shiny support.";
 
     private static List<Monster> DeserializeMonsters(JsonElement json) =>
         PoracleJsonHelper.DeserializeList<Monster>(json);

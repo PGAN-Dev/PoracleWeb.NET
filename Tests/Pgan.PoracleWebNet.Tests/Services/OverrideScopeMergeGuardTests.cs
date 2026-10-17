@@ -262,7 +262,7 @@ public class OverrideScopeMergeGuardTests
         {
             case Monster m:
                 await new MonsterService(this._proxy.Object, this._gate.Object, this._remapper.Object,
-                    CostumeCapabilityDoubles.Supported()).CreateAsync("u1", m);
+                    CostumeCapabilityDoubles.Supported(), PoracleTrackingProxyTests.V2Schema()).CreateAsync("u1", m);
                 break;
             case Raid r:
                 await new RaidService(this._proxy.Object, this._gate.Object, NullLogger<RaidService>.Instance,

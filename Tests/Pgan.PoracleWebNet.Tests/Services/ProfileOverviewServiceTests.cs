@@ -16,7 +16,7 @@ public class ProfileOverviewServiceTests
     public ProfileOverviewServiceTests()
     {
         this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
-        this._sut = new ProfileOverviewService(this._proxy.Object, this._humanProxy.Object, this._featureGate.Object);
+        this._sut = new ProfileOverviewService(this._proxy.Object, this._humanProxy.Object, this._featureGate.Object, PoracleTrackingProxyTests.V2Schema());
     }
 
     [Fact]

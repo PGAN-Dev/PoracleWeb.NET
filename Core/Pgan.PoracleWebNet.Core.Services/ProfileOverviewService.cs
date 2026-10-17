@@ -10,7 +10,8 @@ namespace Pgan.PoracleWebNet.Core.Services;
 public class ProfileOverviewService(
     IPoracleTrackingProxy trackingProxy,
     IPoracleHumanProxy humanProxy,
-    IFeatureGate featureGate) : IProfileOverviewService
+    IFeatureGate featureGate,
+    IPoracleV2SchemaService v2Schema) : IProfileOverviewService
 {
     private static readonly string[] AlarmTypes =
         ["pokemon", "raid", "egg", "quest", "invasion", "lure", "nest", "gym", "maxbattle", "fort"];
@@ -18,6 +19,7 @@ public class ProfileOverviewService(
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly IPoracleTrackingProxy _trackingProxy = trackingProxy;
     private readonly IFeatureGate _featureGate = featureGate;
+    private readonly IPoracleV2SchemaService _v2Schema = v2Schema;
 
     public async Task<int> DuplicateProfileAsync(string userId, int sourceProfileNo, int newProfileNo)
     {
@@ -102,7 +104,7 @@ public class ProfileOverviewService(
         // that never ran the alarm models' own rules, so a hand-edited backup could persist a distance of
         // -77, an IV window of -999 to 500 or a clean value of 99 -- every one of which the matching POST
         // refuses with a 400. A partial import is worse than a refused one. See #548.
-        EnsureAlarmsAreValid(alarms);
+        await this.EnsureAlarmsAreValidAsync(alarms);
 
         await this._humanProxy.SwitchProfileAsync(userId, targetProfileNo);
 
@@ -154,13 +156,14 @@ public class ProfileOverviewService(
     /// pair check catches windows nothing can satisfy. A file that fails is refused whole, so the caller
     /// never ends up with half a profile. See #548.
     /// </remarks>
-    private static void EnsureAlarmsAreValid(JsonElement alarms)
+    private async Task EnsureAlarmsAreValidAsync(JsonElement alarms)
     {
         if (alarms.ValueKind != JsonValueKind.Object)
         {
             return;
         }
 
+        var carriesPersonal = false;
         foreach (var type in AlarmTypes)
         {
             if (!alarms.TryGetProperty(type, out var alarmsArray)
@@ -173,12 +176,20 @@ public class ProfileOverviewService(
             foreach (var alarm in alarmsArray.EnumerateArray())
             {
                 index++;
-                ValidateAlarm(type, alarm, index);
+                carriesPersonal |= ValidateAlarm(type, alarm, index);
             }
+        }
+
+        // One schema read for the whole file, and only when a rule asks for the bit. Duplicate needs no
+        // such check: it copies rules the same server already holds.
+        if (carriesPersonal && !(await this._v2Schema.GetAsync()).PersonalTracking)
+        {
+            throw new AlarmValidationException(MonsterService.PersonalUnsupportedMessage);
         }
     }
 
-    private static void ValidateAlarm(string type, JsonElement alarm, int index)
+    /// <summary>Validates one imported alarm; true when it is a pokemon rule with a personal bit set.</summary>
+    private static bool ValidateAlarm(string type, JsonElement alarm, int index)
     {
         object? model;
         try
@@ -206,7 +217,7 @@ public class ProfileOverviewService(
 
         if (model is null)
         {
-            return;
+            return false;
         }
 
         var results = new List<ValidationResult>();
@@ -228,7 +239,11 @@ public class ProfileOverviewService(
             {
                 throw new AlarmValidationException($"{type} alarm {index} in this file is impossible: {inverted}");
             }
+
+            return monster.Personal != 0;
         }
+
+        return false;
     }
 
     private static T? Deserialize<T>(JsonElement alarm) =>

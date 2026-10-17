@@ -41,7 +41,7 @@ public class AlarmWritePayloadTests
     }
 
     private MonsterService Monsters() =>
-        new(this._proxy.Object, this._featureGate.Object, this._remapper.Object, CostumeCapabilityDoubles.Supported());
+        new(this._proxy.Object, this._featureGate.Object, this._remapper.Object, CostumeCapabilityDoubles.Supported(), PoracleTrackingProxyTests.V2Schema());
 
     private static IEnumerable<JsonElement> Objects(JsonElement sent) =>
         sent.ValueKind == JsonValueKind.Array ? sent.EnumerateArray() : [sent];

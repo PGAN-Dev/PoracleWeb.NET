@@ -297,7 +297,7 @@ public class CreateResultSemanticsTests
     [Fact]
     public async Task AddingTheSameSpeciesAtATighterIvIsRefused()
     {
-        var sut = new MonsterService(this._proxy.Object, this._gate.Object, this._remapper.Object, CostumeCapabilityDoubles.Supported());
+        var sut = new MonsterService(this._proxy.Object, this._gate.Object, this._remapper.Object, CostumeCapabilityDoubles.Supported(), PoracleTrackingProxyTests.V2Schema());
         this._proxy.Setup(p => p.GetByUserAsync("pokemon", "u1")).ReturnsAsync(Rows(
             new { uid = 1, id = "u1", pokemon_id = 140, min_iv = 90, distance = 4000 }));
 
