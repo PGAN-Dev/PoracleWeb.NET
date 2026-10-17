@@ -22,6 +22,8 @@ const SILENT_URL_PATTERNS = [
   // the interceptor also toasting, the two snackbars raced and a failed test read "An unexpected server
   // error occurred" instead of saying the test alert failed.
   '/api/test-alert',
+  // BuildInfoService treats a failed version check as "no label"; it is cosmetic and runs on every page load.
+  '/api/version',
 ];
 
 /** The token a request carried, from the header authInterceptor (or the refresh retry) attached. */

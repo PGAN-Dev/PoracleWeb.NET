@@ -245,6 +245,17 @@ describe('errorInterceptor', () => {
 
       expect(toast.error).not.toHaveBeenCalled();
     });
+
+    it('should NOT show toast for /api/version errors', () => {
+      http.get('/api/version').subscribe({ error: () => {} });
+
+      httpMock.expectOne('/api/version').flush(null, {
+        status: 500,
+        statusText: 'Error',
+      });
+
+      expect(toast.error).not.toHaveBeenCalled();
+    });
   });
 
   it('should re-throw the error for downstream handling', () => {
