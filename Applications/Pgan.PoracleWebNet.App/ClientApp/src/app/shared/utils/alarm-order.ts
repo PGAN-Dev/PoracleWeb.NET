@@ -15,9 +15,9 @@
  * than the problem being fixed — and the resolved name changes with the display language, so the order
  * would too.
  *
- * The pokemon list already sorts on its own controls. Invasion does not use this helper: it was left out
- * when its edits still went through PoracleNG's v1 write surface, but every type's edit now goes through
- * v2 where the server supports it, so on 5.2.x an edited invasion card moves like the others did.
+ * The pokemon list already sorts on its own controls. Invasion does not use this helper yet, so where an
+ * invasion edit re-creates the rule (PoracleNG 5.1.0, or a build carrying #217 but not #303) the card can
+ * still move.
  * Pokestop events are here too — that type has only ever had a v2
  * surface, so on 5.2.x its ids rotated on every edit; with #303 they normally stay put, and content order
  * is still the stable choice.

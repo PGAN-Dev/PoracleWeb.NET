@@ -35,14 +35,16 @@ Each alarm type has a dedicated page accessible from the sidebar navigation. The
 
 Open an alarm's edit dialog from its card. Changing anything and saving replaces the rule upstream.
 
-On PoracleNG 5.2.0 and newer, ten of the eleven types take a uid-addressed replace: the rule is
+On PoracleNG 5.2.0 and newer, nine of the eleven types take a uid-addressed replace: the rule is
 swapped in one call rather than deleted and re-created, so there is no window in which the alarm does
-not exist. Lure and max battle edits used to have exactly that window and no longer do. Invasion stays
-on the older path deliberately — the newer one cannot report which grunt a rule targets, so an edit
-could not be written back faithfully.
+not exist. Lure and max battle edits used to have exactly that window and no longer do. Invasion takes
+the same replace only where the server's newer API can report which grunt a rule targets (PoracleNG
+5.2.1 cannot), and otherwise stays on the older path, because an edit could not be written back
+faithfully without it.
 
-!!! note "An edit gives the alarm a new internal id"
-    The replace re-keys the row, so it comes back under a new `uid`. This is invisible in normal use —
+!!! note "An edit can give the alarm a new internal id"
+    On PoracleNG 5.2.x the replace re-keys the row, so it comes back under a new `uid`. Builds carrying
+    jfberry/PoracleNG#303 normally keep the id. Either way this is invisible in normal use —
     the card, its filters and its scope are all unchanged — and [Quick Pick](#quick-picks) applied
     state is remapped to follow the new id, so a pick's remove button keeps working on a rule you have
     since edited. The card also stays where it was in the grid; see [Card order](#card-order).
@@ -197,13 +199,14 @@ grid on what the card is titled by: Pokemon and level for raids and max battles,
 for quests, lure type, species for nests, team for gyms, change type for fort changes, event type for
 Pokéstop Events. An edited card therefore stays where it was instead of jumping to the end of the grid,
 which is what it did on PoracleNG 5.2.x when the grid rendered PoracleNG's insertion order and an
-[edit re-keyed the rule](#editing-alarms). Newer PoracleNG versions keep the rule's id on an edit, and the
-sort holds either way.
+[edit re-keyed the rule](#editing-alarms). PoracleNG builds carrying jfberry/PoracleNG#303 keep the rule's
+id on an edit (no release has it yet), and the sort holds either way.
 
 The keys are the raw fields — dex number rather than species name, reward type rather than reward name
 — so the grid does not re-order itself once the master data arrives, and the order does not change with
 the display language. The Pokemon list already sorted itself on its own controls and is unchanged.
-Invasions are not sorted this way yet, so on PoracleNG 5.2.x an edited invasion card can still move to the end of the grid.
+Invasions are not sorted this way yet, so where an invasion edit re-creates the rule (PoracleNG 5.1.0, or a
+build that has the grunt-type support but not #303) the edited card can still move to the end of the grid.
 
 ## Bulk operations
 
