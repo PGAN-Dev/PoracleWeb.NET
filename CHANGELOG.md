@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.20.2] - 2026-10-18
+
 ### Fixed
 
 - **PoracleWeb.NET keeps working with PoracleNG builds that carry [jfberry/PoracleNG#303](https://github.com/jfberry/PoracleNG/pull/303).** Those builds send account flags as true/false and area lists as arrays on `/api/v2`, and rename the location fields. Against them, signing in, the Areas page, profiles, and saving a location or a saved place all failed. Released PoracleNG versions are unaffected either way.
@@ -1198,7 +1200,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.20.1...HEAD
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.20.2...HEAD
+[2.20.2]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.20.1...v2.20.2
 [2.20.1]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.20.0...v2.20.1
 [2.20.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.19.0...v2.20.0
 [2.19.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.18.0...v2.19.0
