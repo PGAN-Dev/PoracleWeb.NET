@@ -6,14 +6,24 @@
 |---|---|
 | `main` | Released code. Only moves when a release is merged. Publishing a release produces `:latest`, which self-hosters running watchtower auto-deploy. A plain `git clone` lands here, so cloning gives you released code. |
 | `develop` | Integration. **Open pull requests against this.** Publishes `:beta` on every merge. |
+| `experimental/*` | Unofficial release lines built on released `main`. They never merge back into `main` or `develop`, publish only GitHub **prereleases**, and keep their own `CHANGELOG-<name>.md`. |
 
 Cutting a release means merging `develop` into `main` and then publishing a GitHub release — the release
 is what triggers the `:latest` build, so the merge alone ships nothing. `release-changelog.yml` opens a
 PR promoting `[Unreleased]` to the new version section.
 
-`ci.yml` and `changelog.yml` run for pushes and pull requests on **both** branches. That matters: a
-workflow filtered to one branch means PRs into the other run with no checks at all and merge looking
-green.
+`ci.yml` and `changelog.yml` run for pushes and pull requests on `main`, `develop` and `experimental/**`.
+That matters: a workflow filtered to fewer branches means PRs into the others run with no checks at all
+and merge looking green.
+
+!!! warning "Prereleases skip every release workflow"
+    `docker-publish.yml`, `docs.yml`, `release-changelog.yml` and `sync-experimental.yml` all skip a release
+    that is marked **pre-release**, and also one whose tag contains a hyphen (`vX.Y.Z-name.N`), in case the
+    box was left unticked. Without that, a prerelease would move `:latest`, redeploy this site from its
+    branch and cut `main`'s CHANGELOG under its version. Official tags never carry a hyphen.
+
+    Editing a prerelease into a full release later does **not** run them: GitHub sends `released`, not
+    `published`. To ship a version that started as a prerelease, publish a fresh full release.
 
 `main` is behind a merge queue, so `ci.yml` and `changelog.yml` also list the `merge_group` trigger.
 Required checks are reported against the queue's temporary merge branch rather than the PR head;
@@ -21,7 +31,8 @@ without that trigger a queued PR waits on checks that never run and times out.
 
 ## ci.yml
 
-Runs on every push, PR and merge-queue entry for `main` and `develop`, as two independent jobs:
+Runs on every push, PR and merge-queue entry for `main`, `develop` and `experimental/**`, as two
+independent jobs:
 
 1. **Backend (.NET)** — restore, `dotnet build --configuration Release`, `dotnet test`, and upload the
    `.trx` results as an artifact.
@@ -35,11 +46,11 @@ lockfiles that omit nested optional-peer entries; npm 11 is what Dependabot uses
 
 Runs when a **GitHub release is published**, on every push to `develop`, and on manual dispatch — *not*
 on push to `main`. Publishing the release is what produces `:latest`, so merging `develop` into `main`
-alone ships nothing.
+alone ships nothing. A prerelease or hyphenated tag is skipped (see above).
 
 | Trigger | Tags produced |
 |---|---|
-| Release published | `:latest`, `:X.Y.Z`, `:X.Y`, `:<sha>` — note `docker/metadata-action` strips the leading `v`, so a `v2.14.0` tag publishes `:2.14.0` |
+| Full release published | `:latest`, `:X.Y.Z`, `:X.Y`, `:<sha>` — note `docker/metadata-action` strips the leading `v`, so a `v2.14.0` tag publishes `:2.14.0` |
 | Push to `develop` | `:beta`, `:develop-<sha>` |
 | Manual dispatch | None — every `enable=` condition is false and the semver patterns need a tag ref, so no tags are emitted |
 
@@ -62,11 +73,13 @@ Images go to [`ghcr.io/pgan-dev/poracleweb.net`](https://github.com/PGAN-Dev/Por
 
 ## changelog.yml
 
-Runs on every PR to `main` or `develop` as a **verify-only check** (it never writes to the repo). On a
-merge-queue run it reports success without re-checking, because a `merge_group` payload carries no
-pull request to read a title, label or diff from.
+Runs on every PR to `main`, `develop` or `experimental/**` as a **verify-only check** (it never writes to
+the repo). On a merge-queue run it reports success without re-checking, because a `merge_group` payload
+carries no pull request to read a title, label or diff from.
 
-- Confirms the PR adds an entry under the `## [Unreleased]` section of `CHANGELOG.md`.
+- Confirms the PR adds an entry under the `## [Unreleased]` section of `CHANGELOG.md`. For a PR into
+  `experimental/<name>` it reads `CHANGELOG-<name>.md` instead (any further `/` in the name written as
+  `-`), since an experimental line leaves `CHANGELOG.md` exactly as `main` has it.
 - **Exempt** PR types (no entry required): titles prefixed `deps:`, `docs:`, `style:`, `chore:`, `ci:`, `test:`, or `build:`. Conventional-commit scopes and `!` are allowed, so `fix(icons)!:` is matched the same way.
 - **Escape hatch:** apply the `skip-changelog` label for a legitimate exception (re-runs automatically when the label is added). That label does not exist on the repository yet, so create it before you need it — you cannot apply one that has never been defined.
 - Fails with a clear message if a user-facing PR is missing its `[Unreleased]` entry, so it's caught **before** merge.
@@ -80,8 +93,8 @@ pull request to read a title, label or diff from.
 
 ## release-changelog.yml
 
-Runs when a GitHub release is published. It works on `main` and opens a PR rather than pushing, so it
-cannot trip branch protection:
+Runs when a full GitHub release is published (prereleases are skipped). It works on `main` and opens a
+PR rather than pushing, so it cannot trip branch protection:
 
 - Promotes `[Unreleased]` to `[X.Y.Z] - <date>`, opens a fresh `[Unreleased]`, and rewrites the
   comparison links.
@@ -97,14 +110,23 @@ checks permanently pending and needs an admin merge. The workflow logs a warning
 ## docs.yml
 
 Publishes this site to GitHub Pages with `mkdocs gh-deploy`, on pushes to `main` that touch `docs/**` or
-`mkdocs.yml`, on every published release, and on manual dispatch. The release trigger exists so the
-version badge — fetched from the GitHub Releases API at build time — stays current when a release
-changes no documentation.
+`mkdocs.yml`, on every published full release, and on manual dispatch. The release trigger exists so the
+version badge, fetched from the GitHub Releases API at build time, stays current when a release changes
+no documentation. A prerelease is skipped, since it would deploy this site from another branch.
+
+## sync-experimental.yml
+
+After every full release, opens a PR from `main` into each `experimental/*` branch that is behind, titled
+`chore: sync main into <branch>` (an exempt prefix, since `main` never carries that line's changelog).
+Merge these with a **merge commit**, never squash or rebase, so clones of the experimental branch keep
+fast-forwarding. Like `release-changelog.yml` it uses the `CHANGELOG_APP_*` app token when configured, so
+the PR's checks run. With no experimental branches it does nothing.
 
 ## Supporting workflows
 
 `docker-preview.yml` builds a `:pr-<number>` image for any PR carrying the `preview` label and comments
-the pull command on the PR. The tag rebuilds on every subsequent push.
+the pull command on the PR. The tag rebuilds on every subsequent push. PRs into `experimental/*` are
+skipped, so no experimental build lands in the official package.
 
 `docker-prune.yml` runs daily at 03:00 UTC, deleting `pr-*` tags for closed PRs and keeping only the
 last ten `develop-<sha>` images.

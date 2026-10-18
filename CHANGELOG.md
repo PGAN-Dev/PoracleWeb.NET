@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Publishing a GitHub prerelease no longer ships anything official.** Only a full release now moves `:latest`, redeploys the documentation site and cuts the changelog; a prerelease, or any tag containing a hyphen, is skipped by all three. Previously a prerelease would have done all of it, and every watchtower on `:latest` would have deployed it within a minute. Nothing changes for self-hosters on `:latest`. ([#962](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/962), [#963](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/963))
+
 ## [2.20.0] - 2026-10-17
 
 ### Added
