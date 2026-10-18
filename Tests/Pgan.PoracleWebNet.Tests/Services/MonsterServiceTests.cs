@@ -100,7 +100,8 @@ public class MonsterServiceTests
     }
 
     /// <summary>
-    /// The v2 PUT is delete-then-insert, so the rule comes back under a new uid. Anything holding the old
+    /// On 5.2.x the v2 PUT is delete-then-insert, so the rule comes back under a new uid (since
+    /// jfberry/PoracleNG #303 it keeps the uid unless the reassignment fails). Anything holding the old
     /// one has to follow it -- quick-pick applied state above all, whose "remove" button otherwise deletes
     /// nothing and then wipes itself. See #403 and #805.
     /// </summary>

@@ -75,8 +75,9 @@ public partial class UserOwnedOverrideAreaProxy(
     /// The v2 replace needs the same write-back as <see cref="UpdateByUidAsync"/>, and needs it under the
     /// same rule: on 5.2.x the replacement is a new row under a new uid, so the areas go to the uid
     /// PoracleNG just reported. Since jfberry/PoracleNG #303 that is normally the uid that was addressed,
-    /// but a failed reassignment returns a new one, so the response decides either way. A null answer means nothing was written, so there is nothing to write back to -- the
-    /// caller is about to take its own v1 path, which comes back through this decorator anyway.
+    /// but a failed reassignment returns a new one, so the response decides either way. A null answer means
+    /// nothing was written, so there is nothing to write back to -- the caller is about to take its own v1
+    /// path, which comes back through this decorator anyway.
     /// </remarks>
     public async Task<TrackingUpdateResult?> TryReplaceV2Async(
         string type, string userId, int uid, JsonElement body)

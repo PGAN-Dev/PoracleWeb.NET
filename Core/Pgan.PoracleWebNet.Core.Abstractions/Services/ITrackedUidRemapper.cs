@@ -7,11 +7,11 @@ namespace Pgan.PoracleWebNet.Core.Abstractions.Services;
 /// <para>
 /// PoracleNG implements a tracking edit as delete-and-insert, so on 5.2.x the row comes back with a new
 /// uid. Since jfberry/PoracleNG #303 the v2 PUT keeps the uid, but a failed reassignment still returns a
-/// new one, so callers compare and remap only when it moved. Monsters were the one exception -- the v1 surface upserts them in place -- until the v2 pilot: the
-/// full-replace PUT is delete-then-insert like everything else, so pokemon rotates too whenever the
-/// server carries v2 (#805). Quick-pick applied state persists the uids captured at apply time, and
-/// removal deletes by those uids — so after any edit, removal deleted nothing, reported 204, and the
-/// alarm kept firing. Worse, the summary read then saw zero surviving uids, concluded the user had
+/// new one, so callers compare and remap only when it moved. Monsters were the one exception -- the v1
+/// surface upserts them in place -- until the v2 pilot: the full-replace PUT is delete-then-insert like
+/// everything else, so on 5.2.x pokemon rotates too whenever the server carries v2 (#805). Quick-pick
+/// applied state persists the uids captured at apply time, and removal deletes by those uids — so after
+/// any edit, removal deleted nothing, reported 204, and the alarm kept firing. Worse, the summary read then saw zero surviving uids, concluded the user had
 /// deleted the alarms by hand, and cleared the applied state, leaving no way to remove it from the UI
 /// at all. See #403.
 /// </para>

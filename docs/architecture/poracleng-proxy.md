@@ -155,11 +155,13 @@ guard already works.
 **A v2 PUT is a full replace.** Omitting `min_iv` wipes a stored 90, verified live against 5.2.1. That
 makes `TrackingFieldPreserver` load-bearing in a stronger way than it was on v1, where PoracleNG merged.
 
-**The uid rotates on every edit.** The v2 engine is delete-then-insert, so the replacement comes back
-under a new uid. Pokemon used to be the one type whose uid survived an edit; it no longer is.
-`TrackingV2Replacement.TryApplyAsync` calls `ITrackedUidRemapper` for the eight types routed through it,
-and `MonsterService` does the same after its own update, so quick-pick applied state follows the row
-rather than pointing at a uid that is gone.
+**The uid is read back on every edit.** The v2 engine is delete-then-insert, so on 5.2.x the replacement
+comes back under a new uid. Since jfberry/PoracleNG #303 (unreleased) the PUT keeps the rule's uid, but a
+failed reassignment still answers 200 with a new one, so the response is always read. Pokemon used to be
+the one type whose uid survived an edit; on 5.2.x it no longer is.
+`TrackingV2Replacement.TryApplyAsync` calls `ITrackedUidRemapper` for the nine types routed through it,
+and `MonsterService` does the same after its own update, but only when the uid actually moved, so
+quick-pick applied state follows the row rather than pointing at a uid that is gone.
 
 **Two workarounds disappear when the PUT is available.** Max battles are insert-only on v1 and had to be
 deleted and recreated; lures are guarded by a natural unique key whose v1 create has no upsert path, so

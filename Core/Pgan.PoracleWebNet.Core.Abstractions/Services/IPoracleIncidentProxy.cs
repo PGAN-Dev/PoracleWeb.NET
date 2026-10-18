@@ -34,7 +34,9 @@ public interface IPoracleIncidentProxy
     public Task<PokestopEventWriteResult> CreateAsync(string userId, IEnumerable<PokestopEvent> rules);
 
     /// <summary>
-    /// Full-replaces one rule. The engine is delete-then-insert, so the replacement gets a NEW uid.
+    /// Full-replaces one rule. The engine is delete-then-insert, so on 5.2.x the replacement gets a NEW uid.
+    /// Since jfberry/PoracleNG #303 the uid is kept, but a failed reassignment still returns a new one, so
+    /// the result is always read.
     /// </summary>
     public Task<PokestopEventWriteResult> ReplaceAsync(string userId, int uid, PokestopEvent rule);
 

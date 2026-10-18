@@ -21,7 +21,7 @@ public class UserOwnedOverrideAreaProxyTests
 {
     private const string User = "u1";
 
-    /// <summary>What the v2 full-replace PUT hands back: a new row, under a new uid.</summary>
+    /// <summary>What the v2 full-replace PUT hands back on 5.2.x: a new row, under a new uid.</summary>
     private const int RotatedUid = 8;
 
     private readonly Mock<IPoracleTrackingProxy> _inner = new();
@@ -76,8 +76,8 @@ public class UserOwnedOverrideAreaProxyTests
     [Fact]
     public async Task AnEditWritesTheAreaBackAgainstTheUidPoracleJustReported()
     {
-        // The v2 PUT is delete-then-insert, so the row the areas belong to is NOT the one that was
-        // addressed. Writing to the old uid would touch a row that no longer exists and the alarm would
+        // On 5.2.x the v2 PUT is delete-then-insert, so the row the areas belong to is NOT the one that was
+        // addressed (scripted here as RotatedUid). Writing to the old uid would touch a row that no longer exists and the alarm would
         // silently widen to the whole profile -- the same failure the write-back guard exists to prevent.
         var result = await this.Proxy().UpdateByUidAsync("pokemon", User, 7, Row(
             """{"uid":7,"pokemon_id":201,"distance":0,"override_areas":["back garden"]}"""));

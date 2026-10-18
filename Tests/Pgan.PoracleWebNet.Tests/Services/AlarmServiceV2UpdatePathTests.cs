@@ -19,8 +19,9 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 /// worse than not moving the type at all.
 /// </para>
 /// <para>
-/// The other half is the uid. v2's engine is delete-then-insert, so the replacement arrives under a new
-/// uid, and quick-pick applied state has to follow the row or its "remove" button silently deletes
+/// The other half is the uid. v2's engine is delete-then-insert, so on 5.2.x the replacement arrives under
+/// a new uid (since jfberry/PoracleNG #303 it keeps the old one unless the reassignment fails), and
+/// quick-pick applied state has to follow the row or its "remove" button silently deletes
 /// nothing. See #403.
 /// </para>
 /// </remarks>
