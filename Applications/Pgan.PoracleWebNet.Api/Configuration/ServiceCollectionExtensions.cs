@@ -63,7 +63,7 @@ public static class ServiceCollectionExtensions
 
         // Register Services
         services.AddScoped<IMonsterService, MonsterService>();
-        // Keeps quick-pick tracked uids pointing at live rows when an edit rotates them (#403).
+        // Keeps quick-pick tracked uids pointing at live rows when an edit moves them (#403).
         // Registered before the alarm services, which all depend on it.
         services.AddScoped<ITrackedUidRemapper, TrackedUidRemapper>();
         services.AddScoped<IRaidService, RaidService>();

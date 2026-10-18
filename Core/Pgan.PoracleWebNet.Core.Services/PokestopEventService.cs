@@ -101,7 +101,8 @@ public class PokestopEventService(IPoracleIncidentProxy proxy, IFeatureGate feat
 
         var result = await this._proxy.ReplaceAsync(userId, model.Uid, model);
 
-        // A replace is delete-then-insert upstream, so the surviving row is under a new uid.
+        // A replace is delete-then-insert upstream, so the surviving row is under a new uid (on 5.2.x; since
+        // jfberry/PoracleNG #303 it keeps the old one unless the reassignment fails). Take whatever it says.
         model.Uid = result.PrimaryUid ?? model.Uid;
         return model;
     }

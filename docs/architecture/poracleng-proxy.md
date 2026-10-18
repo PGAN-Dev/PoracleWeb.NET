@@ -155,11 +155,13 @@ guard already works.
 **A v2 PUT is a full replace.** Omitting `min_iv` wipes a stored 90, verified live against 5.2.1. That
 makes `TrackingFieldPreserver` load-bearing in a stronger way than it was on v1, where PoracleNG merged.
 
-**The uid rotates on every edit.** The v2 engine is delete-then-insert, so the replacement comes back
-under a new uid. Pokemon used to be the one type whose uid survived an edit; it no longer is.
-`TrackingV2Replacement.TryApplyAsync` calls `ITrackedUidRemapper` for the eight types routed through it,
-and `MonsterService` does the same after its own update, so quick-pick applied state follows the row
-rather than pointing at a uid that is gone.
+**The uid is read back on every edit.** The v2 engine is delete-then-insert, so on 5.2.x the replacement
+comes back under a new uid. Since jfberry/PoracleNG #303 (unreleased) the PUT keeps the rule's uid, but a
+failed reassignment still answers 200 with a new one, so the response is always read. Pokemon used to be
+the one type whose uid survived an edit; on 5.2.x it no longer is.
+`TrackingV2Replacement.TryApplyAsync` calls `ITrackedUidRemapper` for the nine types routed through it,
+and `MonsterService` does the same after its own update, but only when the uid actually moved, so
+quick-pick applied state follows the row rather than pointing at a uid that is gone.
 
 **Two workarounds disappear when the PUT is available.** Max battles are insert-only on v1 and had to be
 deleted and recreated; lures are guarded by a natural unique key whose v1 create has no upsert path, so
@@ -196,10 +198,12 @@ level: any of those and it answers false, and the row goes to v1 instead. Refusi
 PoracleNG newer than the translator broke every edit, and dropping the field silently would be the #730
 field-loss bug again.
 
-`ping` is the one that catches people out. It is a real column on every type, the v1 body carries it, no
-`V2*Rule` has a field for it, and the v2 handlers store an empty string unconditionally — so a rule
-holding a role mention goes to v1 rather than losing the mention. An empty ping is dropped, since v2
-would store the same empty string.
+`ping` is the one that catches people out. It's a real column on every type and the v1 body carries it,
+but a server without jfberry/PoracleNG#249 has no v2 field for it, and both surfaces store an empty string
+on every write there. So the translator sends `ping` only when the server's schema declares it
+(`PoracleV2Capabilities.TrackingPing`), and on a server that doesn't, an edit to a rule holding a mention
+is refused rather than sent anywhere: v1 would erase the mention just as v2 would. Without the field
+an empty ping is simply dropped, since either surface stores the same empty string.
 
 ### Choosing the surface
 
@@ -277,11 +281,11 @@ Ten of them prefer `/api/v2/humans`, each keeping its v1 path as a fallback, so 
 | Get human | `GET /v2/humans/{id}` | `GET /humans/one/{id}` |
 | Enable / disable | `POST .../enable` `.../disable` | `.../start` `.../stop` |
 | Admin disable | `POST .../admin-disable` `{disabled}` | `.../adminDisabled` `{state}` |
-| Set location | `POST .../location` `{lat,lon}` | `.../setLocation/{lat}/{lon}` |
+| Set location | `POST .../location` `{lat,lon}`, or `{latitude,longitude}` (see below) | `.../setLocation/{lat}/{lon}` |
 | Switch profile | `POST .../profile` `{profile_no}` | `.../switchProfile/{n}` |
 | Set language | `POST .../language` | `POST /humans/{id}/language` |
 | List saved places | `GET .../locations` | same path, v1 |
-| Add saved place | `POST .../locations` `{label,lat,lon}` | `.../locations/add` `{label,latitude,longitude}` |
+| Add saved place | `POST .../locations` `{label,lat,lon}`, or `{label,latitude,longitude}` | `.../locations/add` `{label,latitude,longitude}` |
 | Delete saved place | `DELETE .../locations/{label}` | `POST .../locations/{label}/delete` |
 | Admin roles | `GET .../admin-roles` | `.../getAdministrationRoles` |
 
@@ -291,7 +295,7 @@ Three things are worth knowing about how the fallback decides:
 
 - **The version is a belief, not a fact.** A fork can carry the routes while reporting an older number, or the reverse, so `TryV2Async` also handles the route being absent at request time. gin answers a route it does not have with the plaintext `404 page not found`; the v2 surface answers a missing human or place with problem+json at the same status. **The content type is the only thing separating them**, which is why `PoracleProblemDetails.IsProblemJson` is consulted before concluding anything.
 - **Absence is remembered per route, not per surface.** A single shared flag would let one missing route drop every other call back to v1.
-- **Bodies differ in more than shape.** `admin-disable` renames `state` to `disabled`, and `POST .../locations` takes `lat`/`lon` on the way in while the read still answers `latitude`/`longitude`. That asymmetry is upstream's.
+- **Bodies differ in more than shape.** `admin-disable` renames `state` to `disabled`. Released PoracleNG takes `lat`/`lon` on the three v2 location writes (`POST .../location`, `POST .../locations`, `PUT .../locations/{label}`) while every read answers `latitude`/`longitude`; jfberry/PoracleNG#303 (unreleased) renames the write fields to match. v2 refuses whichever pair it doesn't declare, so `PoracleHumanProxy` sends `latitude`/`longitude` only when the server's own `/openapi.json` declares them on `V2LocationBody` (`PoracleV2Capabilities.V2LocationLatitudeLongitude`) and `lat`/`lon` otherwise, including when the document can't be read.
 
 Deliberately **not** moved, because the swap is a rename with a real trap attached: the profile list read (the wrapper key changes from `profile` to `profiles` *and* `active_hours` changes from a string to an array, and the two v2 endpoints disagree with each other about that encoding), profile copy (the arguments invert and the copy replaces, so getting it backwards destroys the source), any `active_hours` write (v2's schema bounds `day` at 0–6 while the scheduler uses ISO 1–7, so Sunday cannot be expressed), and `POST /location?profile=N` (it writes the named profile's row *and* clobbers `humans.latitude/longitude`, the exact drift the dual writer exists to prevent).
 

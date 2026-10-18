@@ -115,6 +115,8 @@ public partial class PoracleV2SchemaService(
                 PlayerAccounts = HasOperation(paths, "/v2/humans/{id}/accounts", "get")
                     && HasOperation(paths, "/v2/humans/{id}/accounts", "post")
                     && HasOperation(paths, "/v2/humans/{id}/accounts/{player_id}", "delete"),
+                V2LocationLatitudeLongitude = HasProperty(schemas, "V2LocationBody", "latitude")
+                    && HasProperty(schemas, "V2LocationBody", "longitude"),
             };
         }
         catch (JsonException)

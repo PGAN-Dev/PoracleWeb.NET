@@ -167,7 +167,7 @@ public class PokestopEventServiceTests
 
         var result = await this._sut.UpdateAsync("u1", Rule(733, PokestopEventTypes.Showcase, distance: 4242));
 
-        // The replace is delete-then-insert upstream, so the surviving row is under a new uid.
+        // On 5.2.x the replace is delete-then-insert upstream, so the surviving row is under a new uid.
         Assert.Equal(735, result.Uid);
     }
 

@@ -14,9 +14,11 @@ namespace Pgan.PoracleWebNet.Core.Services;
 /// running any of them against a write that already landed would be worse than not moving at all.
 /// </para>
 /// <para>
-/// The uid rotates, because v2's engine is delete-then-insert. Quick-pick applied state stores uids
-/// captured at apply time and has to follow the row, or its "remove" button silently deletes nothing.
-/// See #403.
+/// On 5.2.x the uid rotates, because v2's engine is delete-then-insert. Since jfberry/PoracleNG #303 the
+/// PUT keeps the rule's uid, but a failed reassignment still answers 200 with the new one, so the
+/// response is read every time and the remap fires only when the uid really moved. Quick-pick applied
+/// state stores uids captured at apply time and has to follow the row, or its "remove" button silently
+/// deletes nothing. See #403.
 /// </para>
 /// </remarks>
 internal static class TrackingV2Replacement

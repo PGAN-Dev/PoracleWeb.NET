@@ -45,6 +45,7 @@ public class PoracleV2SchemaServiceTests
         Assert.False(capabilities.TrackingPing);
         Assert.False(capabilities.PersonalTracking);
         Assert.False(capabilities.PlayerAccounts);
+        Assert.False(capabilities.V2LocationLatitudeLongitude);
     }
 
     [Fact]
@@ -59,6 +60,7 @@ public class PoracleV2SchemaServiceTests
         Assert.True(capabilities.AdminHumanRoutes);
         Assert.True(capabilities.InvasionGruntType);
         Assert.True(capabilities.TrackingPing);
+        Assert.True(capabilities.V2LocationLatitudeLongitude);
 
         // "All of them" stops at the develop branch. Personal shiny is a separate, later PR (#255), and
         // `next` is a capture from before it, so these two are false here on purpose -- not forgotten.
@@ -123,6 +125,37 @@ public class PoracleV2SchemaServiceTests
         Assert.False(PoracleV2SchemaService.Parse(document).PlayerAccounts);
     }
 
+    [Fact]
+    public void TheDevelopBranchNamesLocationsLatitudeLongitude()
+    {
+        // jfberry/PoracleNG#303 renamed lat/lon on the three location bodies. The fixture is the
+        // schemas as a #303 build serves them.
+        Assert.True(PoracleV2SchemaService.Parse(Fixture("next")).V2LocationLatitudeLongitude);
+    }
+
+    [Fact]
+    public void AReleasedPoracleNamesThemLatLon()
+    {
+        Assert.False(PoracleV2SchemaService.Parse(Fixture("5.2.1")).V2LocationLatitudeLongitude);
+    }
+
+    [Fact]
+    public void AnUnreadableSchemaSendsLatLon()
+    {
+        Assert.False(PoracleV2SchemaService.Parse("not json at all").V2LocationLatitudeLongitude);
+        Assert.False(PoracleV2SchemaService.Parse(null).V2LocationLatitudeLongitude);
+    }
+
+    [Fact]
+    public void BothCoordinatesMustBeRenamedNotJustOne()
+    {
+        const string half = """
+            {"components":{"schemas":{"V2LocationBody":{"properties":{"latitude":{},"lon":{}}}}}}
+            """;
+
+        Assert.False(PoracleV2SchemaService.Parse(half).V2LocationLatitudeLongitude);
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("")]
@@ -143,6 +176,7 @@ public class PoracleV2SchemaServiceTests
         Assert.False(capabilities.AdminHumanRoutes);
         Assert.False(capabilities.InvasionGruntType);
         Assert.False(capabilities.TrackingPing);
+        Assert.False(capabilities.V2LocationLatitudeLongitude);
     }
 
     [Fact]

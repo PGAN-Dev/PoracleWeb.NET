@@ -56,7 +56,8 @@ public interface IPoracleHumanProxy
 
     /// <summary>
     /// Sets user location.
-    /// POST /api/v2/humans/{userId}/location with a {lat,lon} body, or v1's coordinates-in-the-path form.
+    /// POST /api/v2/humans/{userId}/location, with a {latitude,longitude} body where the server's schema declares those
+    /// (<c>PoracleV2Capabilities.V2LocationLatitudeLongitude</c>) and {lat,lon} otherwise, or v1's coordinates-in-the-path form.
     /// </summary>
     public Task SetLocationAsync(string userId, double lat, double lon);
 
@@ -102,7 +103,8 @@ public interface IPoracleHumanProxy
     /// <returns>
     /// <c>null</c> when this is not safe to rely on yet (the server's schema lacks <c>trusted</c>, or
     /// area_security is enabled and this server cannot be confirmed to carry jfberry/PoracleNG#230's
-    /// community-restriction fix) -- the caller must fall back to <c>IUserAreaDualWriter</c>. <c>false</c>
+    /// community-restriction fix), or PoracleNG rejected a requested name (it does not know that fence)
+    /// -- the caller must fall back to <c>IUserAreaDualWriter</c>. <c>false</c>
     /// when the area was already present. <c>true</c> once written.
     /// </returns>
     public Task<bool?> AddAreaToActiveProfileTrustedAsync(string userId, string areaName);

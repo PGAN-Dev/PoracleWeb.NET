@@ -73,9 +73,11 @@ public partial class UserOwnedOverrideAreaProxy(
     /// <inheritdoc />
     /// <remarks>
     /// The v2 replace needs the same write-back as <see cref="UpdateByUidAsync"/>, and needs it under the
-    /// same rule: the replacement is a new row under a new uid, so the areas go to the uid PoracleNG just
-    /// reported. A null answer means nothing was written, so there is nothing to write back to -- the
-    /// caller is about to take its own v1 path, which comes back through this decorator anyway.
+    /// same rule: on 5.2.x the replacement is a new row under a new uid, so the areas go to the uid
+    /// PoracleNG just reported. Since jfberry/PoracleNG #303 that is normally the uid that was addressed,
+    /// but a failed reassignment returns a new one, so the response decides either way. A null answer means
+    /// nothing was written, so there is nothing to write back to -- the caller is about to take its own v1
+    /// path, which comes back through this decorator anyway.
     /// </remarks>
     public async Task<TrackingUpdateResult?> TryReplaceV2Async(
         string type, string userId, int uid, JsonElement body)
@@ -110,9 +112,11 @@ public partial class UserOwnedOverrideAreaProxy(
     /// <inheritdoc />
     /// <remarks>
     /// The same workaround as <see cref="CreateAsync"/>, with one difference that matters: on the v2
-    /// surface the replacement rule is a NEW row with a NEW uid, so the area write-back has to target the
-    /// uid PoracleNG just reported rather than the one that was addressed. Writing to the old uid would
-    /// touch a row that no longer exists, and the alarm would silently widen to the whole profile.
+    /// surface (5.2.x) the replacement rule is a NEW row with a NEW uid, so the area write-back has to
+    /// target the uid PoracleNG just reported rather than the one that was addressed. Writing to the old
+    /// uid would touch a row that no longer exists, and the alarm would silently widen to the whole
+    /// profile. Since jfberry/PoracleNG #303 the reported uid is normally the addressed one, but a failed
+    /// reassignment still returns a new uid, so the response is always the thing to follow.
     /// </remarks>
     public async Task<TrackingUpdateResult> UpdateByUidAsync(
         string type, string userId, int uid, JsonElement body)

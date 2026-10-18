@@ -100,7 +100,8 @@ public class MonsterServiceTests
     }
 
     /// <summary>
-    /// The v2 PUT is delete-then-insert, so the rule comes back under a new uid. Anything holding the old
+    /// On 5.2.x the v2 PUT is delete-then-insert, so the rule comes back under a new uid (since
+    /// jfberry/PoracleNG #303 it keeps the uid unless the reassignment fails). Anything holding the old
     /// one has to follow it -- quick-pick applied state above all, whose "remove" button otherwise deletes
     /// nothing and then wipes itself. See #403 and #805.
     /// </summary>
@@ -133,6 +134,26 @@ public class MonsterServiceTests
         var result = await this._sut.UpdateAsync("user1", monster);
 
         Assert.Equal(7, result.Uid);
+        this._remapper.Verify(
+            r => r.RemapAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()),
+            Times.Never);
+    }
+
+    /// <summary>
+    /// Since jfberry/PoracleNG #303 a v2 PUT keeps the rule's uid. A write that went through v2 and came
+    /// back under the uid it was addressed to has nothing to follow, so applied state is left alone.
+    /// </summary>
+    [Fact]
+    public async Task AKeptUidIsNotRemapped()
+    {
+        var monster = new Monster { Uid = 36486, PokemonId = 25 };
+        this._proxy
+            .Setup(p => p.UpdateByUidAsync("pokemon", "user1", 36486, It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingUpdateResult(36486, true));
+
+        var result = await this._sut.UpdateAsync("user1", monster);
+
+        Assert.Equal(36486, result.Uid);
         this._remapper.Verify(
             r => r.RemapAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()),
             Times.Never);

@@ -90,18 +90,21 @@ public class HumanService(
     public async Task<bool> DeleteUserAsync(string userId) =>
         await this._humanProxy.DeleteHumanAsync(userId) ?? await this._repository.DeleteUserAsync(userId);
 
+    // PoracleNG 5.1.0/5.2.1 send flags as 0/1 and area lists as JSON-encoded strings; jfberry/PoracleNG#303
+    // sends booleans and arrays. Both must read with no version gate, so these four fields use the lenient
+    // readers. The strict ones stay strict for everything else: a lenient int would turn enabled:true into 0.
     private static Human DeserializeHuman(JsonElement json) => new()
     {
         Id = json.GetStringProp("id"),
         Name = json.GetStringPropOrNull("name"),
         Type = json.GetStringPropOrNull("type"),
-        Enabled = json.GetIntProp("enabled"),
-        Area = json.GetStringPropOrNull("area"),
+        Enabled = json.GetBoolAsIntProp("enabled"),
+        Area = json.GetAreaListJsonOrNull("area"),
         Latitude = json.GetDoubleProp("latitude"),
         Longitude = json.GetDoubleProp("longitude"),
         Fails = json.GetIntProp("fails"),
         Language = json.GetStringPropOrNull("language"),
-        AdminDisable = json.GetIntProp("admin_disable"),
+        AdminDisable = json.GetBoolAsIntProp("admin_disable"),
         // Read back because the record is written back whole: EntityMappingExtensions.ApplyTo copies every
         // column, so leaving these unmapped stamped default(DateTime) over the real values on any
         // direct-DB write -- changing the notification language marked the account as never seen, and
@@ -110,7 +113,7 @@ public class HumanService(
         LastChecked = json.GetDateTimePropOrNull("last_checked") ?? default,
         DisabledDate = json.GetDateTimePropOrNull("disabled_date"),
         CurrentProfileNo = json.GetIntProp("current_profile_no"),
-        CommunityMembership = json.GetStringPropOrNull("community_membership"),
+        CommunityMembership = json.GetAreaListJsonOrNull("community_membership"),
         Notes = json.GetStringPropOrNull("notes"),
     };
 
