@@ -40,6 +40,17 @@ export class SettingsService {
   readonly siteSettings = signal<Record<string, string>>({});
 
   /**
+   * Where trainers link a game account for personal shiny alerts, from `game_accounts_link_url`: the map that
+   * pushes accounts into PoracleNG (ReactMap's personal shiny support, Diadem). This site never asks a trainer
+   * for a player id, so it points there instead. Only an absolute http(s) URL counts; anything else draws no
+   * button rather than a broken one.
+   */
+  readonly gameAccountsLinkUrl = computed(() => {
+    const value = this.siteSettings()['game_accounts_link_url']?.trim();
+    return value && /^https?:\/\/[^\s/]+/i.test(value) ? value : null;
+  });
+
+  /**
    * Where members are sent for help, from the `support_url` site setting. Null when the operator has
    * not set one, and the member-facing copy then names no destination rather than a hardcoded one.
    */

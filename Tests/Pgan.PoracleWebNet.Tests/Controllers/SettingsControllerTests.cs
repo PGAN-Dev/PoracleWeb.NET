@@ -137,6 +137,7 @@ public class SettingsControllerTests : ControllerTestBase
     [InlineData("hide_header_logo")]
     [InlineData("signup_url")]
     [InlineData("support_url")]
+    [InlineData("game_accounts_link_url")]
     [InlineData("site_name")]
     [InlineData("basemap_provider")]
     [InlineData("basemap_url")]

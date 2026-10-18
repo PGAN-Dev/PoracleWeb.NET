@@ -223,7 +223,6 @@
     "PERSONAL_SHINY": "Tylko gdy jest dla mnie shiny",
     "PERSONAL_BACKGROUND": "Tylko gdy ma dla mnie tło wydarzenia",
     "PERSONAL_HINT": "Każdy gracz ma własne losowanie shiny. Te opcje sprawdzają twoje, na kontach w grze, które połączysz.",
-    "PERSONAL_NO_ACCOUNTS": "Ta reguła nie wyśle alertu, dopóki nie połączysz konta w grze.",
     "PERSONAL_SHINY_BADGE": "Shiny dla mnie",
     "PERSONAL_BACKGROUND_BADGE": "Tło dla mnie",
     "NO_IV_FILTER": "Brak filtra IV",
@@ -353,11 +352,12 @@
     "NO_COSTUME_PILL": "Bez kostiumu",
     "PERSONAL_BOTH": "Gdy obie są włączone, alert przyjdzie tylko dla shiny, który ma też tło wydarzenia.",
     "PERSONAL_NO_FEED": "Ten serwer nie ma jeszcze skonfigurowanych szans na shiny, więc do tego czasu ta reguła nie wyśle alertu.",
-    "PERSONAL_LINK_BUTTON": "Połącz konto w grze",
-    "PERSONAL_ASK_ADMIN": "Ta reguła nie wyśle alertu, dopóki administrator nie połączy twojego konta w grze. Wyślij mu swoje ID gracza.",
+    "PERSONAL_ASK_ADMIN": "Ta reguła nie wyśle alertu, dopóki administrator nie połączy twojego konta w grze.",
     "PERSONAL_CHECKING_ONE": "Sprawdza twoje konto {{name}}.",
     "PERSONAL_CHECKING_TWO": "Sprawdza {{first}} i {{second}}.",
-    "PERSONAL_CHECKING_MANY": "Sprawdza {{first}} i inne konta (jeszcze {{count}})."
+    "PERSONAL_CHECKING_MANY": "Sprawdza {{first}} i inne konta (jeszcze {{count}}).",
+    "PERSONAL_LINK_ON_MAP": "Ta reguła nie wyśle alertu, dopóki nie połączysz konta w grze na mapie.",
+    "PERSONAL_LINK_WITH_BOT": "Ta reguła nie wyśle alertu, dopóki nie połączysz konta w grze poleceniem !account na Discordzie."
   },
   "ALARM": {
     "LOCATION_MODE": "Tryb lokalizacji",
@@ -1868,7 +1868,9 @@
     "BASEMAP_ATTRIBUTION_DESC": "Atrybucja dla własnego adresu kafelków. Musi być zgodna z warunkami dostawcy. Wyświetlana jako zwykły tekst.",
     "BASEMAP_KEY_MISSING": "Nie ustawiono klucza, więc mapy wracają do {{provider}}. Wybrany dostawca i tak zwróciłby kafelki — CARTO rysuje na nich „API KEY REQUIRED” — i nic innego by tego nie zgłosiło.",
     "BASEMAP_UNAVAILABLE": "Wybrana mapa nie ma użytecznego adresu kafelków, więc mapy wracają do {{provider}}. Wybierz dostawcę albo podaj adres kafelków zaczynający się od http:// lub https://.",
-    "FAVICON_PREVIEW_ALT": "Podgląd favikony"
+    "FAVICON_PREVIEW_ALT": "Podgląd favikony",
+    "GAME_ACCOUNTS_LINK_URL_LABEL": "Adres do łączenia kont w grze",
+    "GAME_ACCOUNTS_LINK_URL_DESC": "Gdzie trenerzy łączą konto w grze dla osobistych alertów shiny, zwykle strona profilu na twojej mapie. Okno Konta w grze i okna Pokémonów odsyłają tam trenerów. Zostaw puste, aby zamiast tego odsyłać ich do !account w bocie."
   },
   "GAME_ACCOUNTS": {
     "TITLE": "Konta w grze",
@@ -1886,15 +1888,23 @@
     "FOR_USER": "Konta powiązane z {{name}}",
     "CONTACT_SUPPORT": "Skontaktuj się z pomocą",
     "IMPERSONATING": "Kont w grze nie można zmieniać podczas przeglądania innego konta.",
-    "PLAYER_ID_HINT": "Litery i cyfry. To twoje ID gracza, a nie 12-cyfrowy kod znajomego.",
     "FRIEND_CODE_WARNING": "To wygląda na kod znajomego. Potrzebujesz ID gracza.",
     "ERROR_INVALID": "Tylko litery i cyfry, bez spacji.",
-    "ERROR_DUPLICATE": "To konto jest już połączone.",
     "ERROR_LABEL_TAKEN": "Inne konto ma już tę etykietę.",
     "ERROR_CONFLICT": "To konto albo ta etykieta są już w użyciu.",
     "UNLINKED": "Odłączono {{name}}",
     "UNDO": "Cofnij",
-    "LABEL_SAVED": "Zapisano etykietę"
+    "LABEL_SAVED": "Zapisano etykietę",
+    "UNNAMED": "Konto {{n}}",
+    "LABEL_FOR": "Etykieta dla {{name}}",
+    "LINK_ON_MAP": "Połącz konto w grze na mapie. Pojawi się tutaj, gdy zostanie połączone.",
+    "OPEN_MAP": "Otwórz mapę",
+    "LINK_WITH_BOT": "Połącz konto w grze poleceniem !account na Discordzie. Pojawi się tutaj, gdy zostanie połączone.",
+    "LINK_ASK_ADMIN": "Poproś administratora o połączenie twojego konta w grze.",
+    "SHOW_ID": "Pokaż ID gracza",
+    "HIDE_ID": "Ukryj ID gracza",
+    "ADMIN_PLAYER_ID_HINT": "Litery i cyfry, nie 12-cyfrowy kod znajomego. Po połączeniu nie jest już pokazywane.",
+    "UNDO_EXPIRED": "Nie można już cofnąć. Połącz konto ponownie."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Nazwa",

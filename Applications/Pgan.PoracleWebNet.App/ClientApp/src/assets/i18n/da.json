@@ -223,7 +223,6 @@
     "PERSONAL_SHINY": "Kun når den er shiny for mig",
     "PERSONAL_BACKGROUND": "Kun når den har eventbaggrunden for mig",
     "PERSONAL_HINT": "Hver spiller har sit eget shiny-slag. De her regler tjekker dit, på de spilkonti, du tilknytter.",
-    "PERSONAL_NO_ACCOUNTS": "Denne regel giver ikke besked, før du tilknytter en spilkonto.",
     "PERSONAL_SHINY_BADGE": "Shiny for mig",
     "PERSONAL_BACKGROUND_BADGE": "Baggrund for mig",
     "NO_IV_FILTER": "Intet IV-filter",
@@ -353,11 +352,12 @@
     "NO_COSTUME_PILL": "Intet kostume",
     "PERSONAL_BOTH": "Med begge slået til giver den kun besked om en shiny, der også har eventbaggrunden.",
     "PERSONAL_NO_FEED": "Denne server har ikke sat shiny-sandsynligheder op endnu, så reglen giver ikke besked, før det sker.",
-    "PERSONAL_LINK_BUTTON": "Tilknyt en spilkonto",
-    "PERSONAL_ASK_ADMIN": "Denne regel giver ikke besked, før en administrator tilknytter din spilkonto. Send dit spiller-ID til vedkommende.",
+    "PERSONAL_ASK_ADMIN": "Denne regel giver ikke besked, før en administrator tilknytter din spilkonto.",
     "PERSONAL_CHECKING_ONE": "Tjekker din konto {{name}}.",
     "PERSONAL_CHECKING_TWO": "Tjekker {{first}} og {{second}}.",
-    "PERSONAL_CHECKING_MANY": "Tjekker {{first}} og {{count}} andre konti."
+    "PERSONAL_CHECKING_MANY": "Tjekker {{first}} og {{count}} andre konti.",
+    "PERSONAL_LINK_ON_MAP": "Denne regel giver ikke besked, før du tilknytter en spilkonto på kortet.",
+    "PERSONAL_LINK_WITH_BOT": "Denne regel giver ikke besked, før du tilknytter en spilkonto med !account i Discord."
   },
   "ALARM": {
     "LOCATION_MODE": "Placeringstilstand",
@@ -1868,7 +1868,9 @@
     "BASEMAP_ATTRIBUTION_DESC": "Kildeangivelse for den egne flise-URL. Skal overholde din udbyders vilkår. Vises som almindelig tekst.",
     "BASEMAP_KEY_MISSING": "Der er ingen nøgle sat, så kortene falder tilbage til {{provider}}. Den valgte udbyder ville stadig returnere fliser — CARTO tegner ”API KEY REQUIRED” ind i dem — og intet andet ville melde det.",
     "BASEMAP_UNAVAILABLE": "Det valgte baggrundskort har ingen brugbar flise-URL, så kortene falder tilbage til {{provider}}. Vælg en udbyder, eller angiv en flise-URL, der begynder med http:// eller https://.",
-    "FAVICON_PREVIEW_ALT": "Favicon-forhåndsvisning"
+    "FAVICON_PREVIEW_ALT": "Favicon-forhåndsvisning",
+    "GAME_ACCOUNTS_LINK_URL_LABEL": "Link til at tilknytte spilkonti",
+    "GAME_ACCOUNTS_LINK_URL_DESC": "Hvor trænere tilknytter en spilkonto til personlige shiny-beskeder, som regel profilsiden på dit kort. Dialogen Spilkonti og Pokémon-dialogerne sender trænere derhen. Lad feltet stå tomt for i stedet at henvise dem til !account i botten."
   },
   "GAME_ACCOUNTS": {
     "TITLE": "Spilkonti",
@@ -1886,15 +1888,23 @@
     "FOR_USER": "Konti knyttet til {{name}}",
     "CONTACT_SUPPORT": "Kontakt support",
     "IMPERSONATING": "Spilkonti kan ikke ændres, mens du ser en anden konto.",
-    "PLAYER_ID_HINT": "Bogstaver og tal. Det er dit spiller-ID, ikke din vennekode på 12 cifre.",
     "FRIEND_CODE_WARNING": "Det ligner en vennekode. Du skal bruge spiller-ID'et i stedet.",
     "ERROR_INVALID": "Kun bogstaver og tal, uden mellemrum.",
-    "ERROR_DUPLICATE": "Denne konto er allerede tilknyttet.",
     "ERROR_LABEL_TAKEN": "En anden konto bruger allerede denne etiket.",
     "ERROR_CONFLICT": "Den konto eller etiket er allerede i brug.",
     "UNLINKED": "{{name}} fjernet",
     "UNDO": "Fortryd",
-    "LABEL_SAVED": "Etiket gemt"
+    "LABEL_SAVED": "Etiket gemt",
+    "UNNAMED": "Konto {{n}}",
+    "LABEL_FOR": "Etiket for {{name}}",
+    "LINK_ON_MAP": "Tilknyt en spilkonto på kortet. Den dukker op her, når den er tilknyttet.",
+    "OPEN_MAP": "Åbn kortet",
+    "LINK_WITH_BOT": "Tilknyt en spilkonto med !account i Discord. Den dukker op her, når den er tilknyttet.",
+    "LINK_ASK_ADMIN": "Bed en administrator om at tilknytte din spilkonto.",
+    "SHOW_ID": "Vis spiller-ID",
+    "HIDE_ID": "Skjul spiller-ID",
+    "ADMIN_PLAYER_ID_HINT": "Bogstaver og tal, ikke vennekoden på 12 cifre. Det vises ikke igen, når det er tilknyttet.",
+    "UNDO_EXPIRED": "Det kan ikke længere fortrydes. Tilknyt kontoen igen."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Navn",

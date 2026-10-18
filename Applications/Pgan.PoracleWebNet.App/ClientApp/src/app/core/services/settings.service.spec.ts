@@ -344,4 +344,27 @@ describe('SettingsService', () => {
       expect(service.supportUrl()).toBe('https://discord.com/channels/1/2');
     });
   });
+
+  /** Where trainers link a game account: the map that pushes accounts into PoracleNG. */
+  describe('gameAccountsLinkUrl', () => {
+    it('is null when the operator has set none, or a blank one', () => {
+      expect(service.gameAccountsLinkUrl()).toBeNull();
+      service.siteSettings.set({ game_accounts_link_url: '  ' });
+      expect(service.gameAccountsLinkUrl()).toBeNull();
+    });
+
+    it('carries an http or https link, trimmed', () => {
+      service.siteSettings.set({ game_accounts_link_url: ' https://map.example.com/profile ' });
+      expect(service.gameAccountsLinkUrl()).toBe('https://map.example.com/profile');
+      service.siteSettings.set({ game_accounts_link_url: 'http://10.0.0.5:8080' });
+      expect(service.gameAccountsLinkUrl()).toBe('http://10.0.0.5:8080');
+    });
+
+    it('ignores anything that is not an absolute http(s) URL, so no broken button is drawn', () => {
+      for (const bad of ['map.example.com', 'javascript:alert(1)', 'ftp://map.example.com', '/profile']) {
+        service.siteSettings.set({ game_accounts_link_url: bad });
+        expect(service.gameAccountsLinkUrl()).toBeNull();
+      }
+    });
+  });
 });

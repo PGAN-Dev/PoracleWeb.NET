@@ -435,6 +435,12 @@ export const SETTING_GROUPS: SettingGroup[] = [
         labelKey: 'ADMIN_SETTINGS.SUPPORT_URL_LABEL',
         type: 'url',
       },
+      {
+        descriptionKey: 'ADMIN_SETTINGS.GAME_ACCOUNTS_LINK_URL_DESC',
+        key: 'game_accounts_link_url',
+        labelKey: 'ADMIN_SETTINGS.GAME_ACCOUNTS_LINK_URL_LABEL',
+        type: 'url',
+      },
     ],
   },
 ];

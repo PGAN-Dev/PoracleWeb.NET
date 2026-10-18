@@ -223,7 +223,6 @@
     "PERSONAL_SHINY": "Solo cuando sea shiny para mí",
     "PERSONAL_BACKGROUND": "Solo cuando tenga el fondo del evento para mí",
     "PERSONAL_HINT": "Cada jugador tiene su propia tirada de shiny. Estas opciones comprueban la tuya, en las cuentas de juego que vincules.",
-    "PERSONAL_NO_ACCOUNTS": "Esta regla no avisará hasta que vincules una cuenta de juego.",
     "PERSONAL_SHINY_BADGE": "Shiny para mí",
     "PERSONAL_BACKGROUND_BADGE": "Fondo para mí",
     "NO_IV_FILTER": "Sin filtro IV",
@@ -353,11 +352,12 @@
     "NO_COSTUME_PILL": "Sin disfraz",
     "PERSONAL_BOTH": "Con las dos activadas, solo avisa de un shiny que además tenga el fondo del evento.",
     "PERSONAL_NO_FEED": "Este servidor aún no ha configurado las tasas de shiny, así que esta regla no avisará hasta que lo haga.",
-    "PERSONAL_LINK_BUTTON": "Vincular una cuenta de juego",
-    "PERSONAL_ASK_ADMIN": "Esta regla no avisará hasta que un administrador vincule tu cuenta de juego. Envíale tu ID de jugador.",
+    "PERSONAL_ASK_ADMIN": "Esta regla no avisará hasta que un administrador vincule tu cuenta de juego.",
     "PERSONAL_CHECKING_ONE": "Comprueba tu cuenta {{name}}.",
     "PERSONAL_CHECKING_TWO": "Comprueba {{first}} y {{second}}.",
-    "PERSONAL_CHECKING_MANY": "Comprueba {{first}} y {{count}} cuentas más."
+    "PERSONAL_CHECKING_MANY": "Comprueba {{first}} y {{count}} cuentas más.",
+    "PERSONAL_LINK_ON_MAP": "Esta regla no avisará hasta que vincules una cuenta de juego en el mapa.",
+    "PERSONAL_LINK_WITH_BOT": "Esta regla no avisará hasta que vincules una cuenta de juego con !account en Discord."
   },
   "ALARM": {
     "LOCATION_MODE": "Modo de ubicación",
@@ -1868,7 +1868,9 @@
     "BASEMAP_ATTRIBUTION_DESC": "Atribución de la URL de teselas personalizada. Debe cumplir los términos de su proveedor. Se muestra como texto plano.",
     "BASEMAP_KEY_MISSING": "No hay clave configurada, así que los mapas recurren a {{provider}}. El proveedor elegido devolvería teselas igualmente — CARTO dibuja «API KEY REQUIRED» en ellas — y nada más lo avisaría.",
     "BASEMAP_UNAVAILABLE": "El mapa base elegido no tiene una URL de teselas utilizable, así que los mapas recurren a {{provider}}. Elija un proveedor o indique una URL de teselas que empiece por http:// o https://.",
-    "FAVICON_PREVIEW_ALT": "Vista previa del favicon"
+    "FAVICON_PREVIEW_ALT": "Vista previa del favicon",
+    "GAME_ACCOUNTS_LINK_URL_LABEL": "URL para vincular cuentas de juego",
+    "GAME_ACCOUNTS_LINK_URL_DESC": "Dónde vinculan los entrenadores una cuenta de juego para los avisos de shiny personales, normalmente la página de perfil de tu mapa. El diálogo Cuentas de juego y los diálogos de Pokémon los envían allí. Déjalo vacío para remitirlos a !account en el bot."
   },
   "GAME_ACCOUNTS": {
     "TITLE": "Cuentas de juego",
@@ -1886,15 +1888,23 @@
     "FOR_USER": "Cuentas vinculadas a {{name}}",
     "CONTACT_SUPPORT": "Contactar con soporte",
     "IMPERSONATING": "Las cuentas de juego no se pueden cambiar mientras ves otra cuenta.",
-    "PLAYER_ID_HINT": "Letras y números. Es tu ID de jugador, no tu código de amigo de 12 dígitos.",
     "FRIEND_CODE_WARNING": "Eso parece un código de amigo. Necesitas el ID de jugador.",
     "ERROR_INVALID": "Solo letras y números, sin espacios.",
-    "ERROR_DUPLICATE": "Esta cuenta ya está vinculada.",
     "ERROR_LABEL_TAKEN": "Otra cuenta ya usa esta etiqueta.",
     "ERROR_CONFLICT": "Esa cuenta o etiqueta ya está en uso.",
     "UNLINKED": "{{name}} desvinculada",
     "UNDO": "Deshacer",
-    "LABEL_SAVED": "Etiqueta guardada"
+    "LABEL_SAVED": "Etiqueta guardada",
+    "UNNAMED": "Cuenta {{n}}",
+    "LABEL_FOR": "Etiqueta de {{name}}",
+    "LINK_ON_MAP": "Vincula una cuenta de juego en el mapa. Aparecerá aquí en cuanto esté vinculada.",
+    "OPEN_MAP": "Abrir el mapa",
+    "LINK_WITH_BOT": "Vincula una cuenta de juego con !account en Discord. Aparecerá aquí en cuanto esté vinculada.",
+    "LINK_ASK_ADMIN": "Pide a un administrador que vincule tu cuenta de juego.",
+    "SHOW_ID": "Mostrar ID de jugador",
+    "HIDE_ID": "Ocultar ID de jugador",
+    "ADMIN_PLAYER_ID_HINT": "Letras y números, no el código de amigo de 12 dígitos. No se vuelve a mostrar una vez vinculada.",
+    "UNDO_EXPIRED": "Ya no se puede deshacer. Vincula la cuenta de nuevo."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Nombre",

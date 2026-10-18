@@ -223,7 +223,6 @@
     "PERSONAL_SHINY": "Only when it's shiny for me",
     "PERSONAL_BACKGROUND": "Only when it has the event background for me",
     "PERSONAL_HINT": "Every player gets their own shiny roll. These check yours, on the game accounts you link.",
-    "PERSONAL_NO_ACCOUNTS": "This rule won't alert until you link a game account.",
     "PERSONAL_SHINY_BADGE": "Shiny for me",
     "PERSONAL_BACKGROUND_BADGE": "Background for me",
     "NO_IV_FILTER": "No IV Filter",
@@ -353,11 +352,12 @@
     "NO_COSTUME_PILL": "No costume",
     "PERSONAL_BOTH": "With both on, it alerts only for a shiny that also has the event background.",
     "PERSONAL_NO_FEED": "This server hasn't set up shiny rates yet, so this rule won't alert until it does.",
-    "PERSONAL_LINK_BUTTON": "Link a game account",
-    "PERSONAL_ASK_ADMIN": "This rule won't alert until an admin links your game account. Send them your player ID.",
+    "PERSONAL_ASK_ADMIN": "This rule won't alert until an admin links your game account.",
     "PERSONAL_CHECKING_ONE": "Checks your account {{name}}.",
     "PERSONAL_CHECKING_TWO": "Checks {{first}} and {{second}}.",
-    "PERSONAL_CHECKING_MANY": "Checks {{first}} and {{count}} other accounts."
+    "PERSONAL_CHECKING_MANY": "Checks {{first}} and {{count}} other accounts.",
+    "PERSONAL_LINK_ON_MAP": "This rule won't alert until you link a game account on the map.",
+    "PERSONAL_LINK_WITH_BOT": "This rule won't alert until you link a game account with !account in Discord."
   },
   "ALARM": {
     "LOCATION_MODE": "Location Mode",
@@ -1868,7 +1868,9 @@
     "BASEMAP_ATTRIBUTION_DESC": "Attribution for the custom tile URL. Must match your provider’s terms. Shown as plain text.",
     "BASEMAP_KEY_MISSING": "No key is set, so maps fall back to {{provider}}. The chosen provider would still return tiles without one — CARTO draws “API KEY REQUIRED” into them — so nothing else would report this.",
     "BASEMAP_UNAVAILABLE": "The chosen basemap has no usable tile URL, so maps fall back to {{provider}}. Pick a provider, or set a Basemap Tile URL starting http:// or https://.",
-    "FAVICON_PREVIEW_ALT": "Favicon preview"
+    "FAVICON_PREVIEW_ALT": "Favicon preview",
+    "GAME_ACCOUNTS_LINK_URL_LABEL": "Game accounts link URL",
+    "GAME_ACCOUNTS_LINK_URL_DESC": "Where trainers link a game account for personal shiny alerts, usually your map's profile page. The Game accounts dialog and the Pokemon dialogs send trainers there. Leave empty to point them at the bot's !account instead."
   },
   "GAME_ACCOUNTS": {
     "TITLE": "Game accounts",
@@ -1886,15 +1888,23 @@
     "FOR_USER": "Accounts linked to {{name}}",
     "CONTACT_SUPPORT": "Contact support",
     "IMPERSONATING": "Game accounts can't be changed while you're viewing another account.",
-    "PLAYER_ID_HINT": "Letters and numbers. This is your player ID, not your 12-digit friend code.",
     "FRIEND_CODE_WARNING": "That looks like a friend code. You need the player ID instead.",
     "ERROR_INVALID": "Use letters and numbers only, with no spaces.",
-    "ERROR_DUPLICATE": "This account is already linked.",
     "ERROR_LABEL_TAKEN": "Another account already uses this label.",
     "ERROR_CONFLICT": "That account or label is already in use.",
     "UNLINKED": "Unlinked {{name}}",
     "UNDO": "Undo",
-    "LABEL_SAVED": "Label saved"
+    "LABEL_SAVED": "Label saved",
+    "UNNAMED": "Account {{n}}",
+    "LABEL_FOR": "Label for {{name}}",
+    "LINK_ON_MAP": "Link a game account on the map. It shows up here once it's linked.",
+    "OPEN_MAP": "Open the map",
+    "LINK_WITH_BOT": "Link a game account with !account in Discord. It shows up here once it's linked.",
+    "LINK_ASK_ADMIN": "Ask an admin to link your game account.",
+    "SHOW_ID": "Show player ID",
+    "HIDE_ID": "Hide player ID",
+    "ADMIN_PLAYER_ID_HINT": "Letters and numbers, not the 12-digit friend code. It isn't shown again once linked.",
+    "UNDO_EXPIRED": "That undo has expired. Link the account again."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Name",

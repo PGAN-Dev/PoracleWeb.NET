@@ -116,54 +116,53 @@ and you should think before changing it.
     may not matter. For a public one, leave it off and have admins link accounts after checking
     ownership some other way.
 
-With it off, only administrators (and a trusted API client) can link accounts. Trainers see their
-linked accounts but can't change them, and the dialog tells them to send an admin their player ID.
+With it off, only administrators (and a trusted API client, such as a map) can link accounts. Trainers
+see their linked accounts but can't change them.
 
 ## Link game accounts
 
-### What a player ID is
+### Where linking happens
 
-The roll uses the game's internal **player ID** for your account: a string of letters and digits. It is
-**not** your 12-digit friend code (trainer code). The Game accounts dialog warns when what you typed
-looks like a friend code.
+The roll uses the game's internal **player ID** for each account. Trainers don't know it, and it is the
+input to their shiny rolls, so **PoracleWeb.NET never shows one and never asks a trainer for one**.
 
-Players don't usually know their player ID. If your community runs ReactMap with personal shiny support
-([WatWowMap/ReactMap#1268](https://github.com/WatWowMap/ReactMap/pull/1268)) and its operator has
-configured a player ID lookup service, ReactMap turns a friend code into the player ID and shows the
-trainer's name to confirm it. Otherwise ask your community's admins how they hand IDs out. Looking an ID
-up from a friend code here is planned ([#974](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/974)).
+Linking belongs to your map. PoracleNG is where accounts end up, and the maps people pair it with look
+the player ID up from a friend code and push it into PoracleNG through its API: ReactMap with personal
+shiny support ([WatWowMap/ReactMap#1268](https://github.com/WatWowMap/ReactMap/pull/1268)) does, and so
+does Diadem. Whatever a map links shows up in PoracleWeb.NET by itself.
 
-Player IDs are case-sensitive and stored exactly as typed, so `AbC` and `abc` are different accounts.
-Each account can carry an optional label, unique per person and compared without case. A person can
-have up to 50 linked accounts.
+Tell PoracleWeb.NET where that is: **Admin > Settings > Game accounts link URL**, usually your map's profile
+page. The Game accounts dialog and the Pokemon dialogs then send trainers there with an **Open the map**
+button. Without it, they point at the bot's `!account` (when `self_service` is on) or at an admin.
 
-### Three ways to link
+### What each place can do
 
-**The trainer dialog.** Open the user menu and choose **Game accounts**. The entry appears only when
-PoracleNG supports trainer game accounts. With `self_service` on, you can link, relabel and unlink. The
-player ID is checked as you type (letters and digits only, nothing already linked), and an unlink offers
-Undo for a few seconds, because removing your last account silently stops every personal rule. With
-`self_service` off, the dialog is read-only and says to send an admin your player ID, with a link to your
-support page if one is set. Admins can always edit, their own accounts included, and the dialog is
-read-only while viewing another account.
+**The Game accounts dialog** (user menu, shown only when PoracleNG supports trainer game accounts) lists
+your accounts by label, or as "Account 1", "Account 2" when they have none. No player ID appears, and the
+API behind it doesn't send one either: each account has an opaque handle instead. With `self_service` on
+you can relabel and unlink; an unlink offers Undo for a few seconds, because removing your last account
+silently stops every personal rule. Linking isn't here.
 
-**Admin > Users.** Each row has a **Game accounts** button that opens the same dialog for that user.
-Admins can edit whatever `self_service` says. This is the route to use when self-service is off.
+**Admin > Users.** Each row has a **Game accounts** button that opens the same list for that user, plus a
+masked player ID field for support cases and for servers whose map doesn't link accounts. Admins can do
+this whatever `self_service` says. The ID isn't shown again once it's linked.
 
 **The bot.** `!account` (or `/account`) lists, adds, removes and labels linked accounts, subject to
 the same `self_service` rule.
 
-### If you also run ReactMap with personal shiny
+Player IDs are case-sensitive, so `AbC` and `abc` are different accounts. Each account can carry an
+optional label, unique per person and compared without case. A person can have up to 50 linked accounts.
+
+### If your map syncs accounts
 
 ReactMap #1268, with a Poracle webhook selected, links each user's active players to their Poracle
 account itself and unlinks paused or removed ones, re-syncing every hour while the map is in use.
-Those accounts show up in the Game accounts dialog like any other. ReactMap's profile is the source of
-truth for them: an account you unlink here that is still active in ReactMap comes back at its next
-sync, so pause or remove the player in ReactMap instead.
+Its profile is the source of truth for those accounts: one you unlink in PoracleWeb.NET that is still
+active in ReactMap comes back at its next sync, so pause or remove the player in ReactMap instead.
 
 ## Create a rule
 
-1. Link at least one game account.
+1. Link at least one game account on your map (or have an admin link one).
 2. Add or edit a Pokemon rule and open the **Filters** tab.
 3. In the **For my game accounts** block at the top, switch on **Only when it's shiny for me**,
    **Only when it has the event background for me**, or both.
@@ -175,8 +174,9 @@ without #255. Under the toggles, one line says whether the rule can fire:
 |---|---|
 | "Checks your account Main." (or two names, or a name and a count) | The accounts the roll will use |
 | "This server hasn't set up shiny rates yet…" | No `[shiny_rates] url`: the rule can't fire anywhere |
-| "This rule won't alert until you link a game account." with a **Link a game account** button | You may link one yourself |
-| "…until an admin links your game account. Send them your player ID." | Self-service is off |
+| "…until you link a game account on the map." with an **Open the map** button | The link URL is set |
+| "…until you link a game account with !account in Discord." | No link URL, and `self_service` is on |
+| "…until an admin links your game account." | Neither |
 
 Cards for these rules show the shiny sprite and a "Shiny for me" or "Background for me" badge under the
 name. An icon pack without shiny art falls back to the ordinary sprite.

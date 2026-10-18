@@ -222,7 +222,6 @@
     "PERSONAL_SHINY": "Alleen als hij shiny is voor mij",
     "PERSONAL_BACKGROUND": "Alleen als hij de evenementachtergrond heeft voor mij",
     "PERSONAL_HINT": "Elke speler heeft een eigen shiny-worp. Deze opties controleren die van jou, op de spelaccounts die je koppelt.",
-    "PERSONAL_NO_ACCOUNTS": "Deze regel geeft geen melding totdat je een spelaccount koppelt.",
     "PERSONAL_SHINY_BADGE": "Shiny voor mij",
     "PERSONAL_BACKGROUND_BADGE": "Achtergrond voor mij",
     "NO_IV_FILTER": "Geen IV Filter",
@@ -353,11 +352,12 @@
     "UNKNOWN_ID": "Pokemon #{{id}}",
     "PERSONAL_BOTH": "Met beide aan krijg je alleen een melding voor een shiny die ook de evenementachtergrond heeft.",
     "PERSONAL_NO_FEED": "Deze server heeft nog geen shiny-kansen ingesteld, dus deze regel geeft tot die tijd geen melding.",
-    "PERSONAL_LINK_BUTTON": "Spelaccount koppelen",
-    "PERSONAL_ASK_ADMIN": "Deze regel geeft geen melding totdat een beheerder je spelaccount koppelt. Stuur hem je speler-ID.",
+    "PERSONAL_ASK_ADMIN": "Deze regel geeft geen melding totdat een beheerder je spelaccount koppelt.",
     "PERSONAL_CHECKING_ONE": "Controleert je account {{name}}.",
     "PERSONAL_CHECKING_TWO": "Controleert {{first}} en {{second}}.",
-    "PERSONAL_CHECKING_MANY": "Controleert {{first}} en {{count}} andere accounts."
+    "PERSONAL_CHECKING_MANY": "Controleert {{first}} en {{count}} andere accounts.",
+    "PERSONAL_LINK_ON_MAP": "Deze regel geeft geen melding totdat je een spelaccount op de kaart koppelt.",
+    "PERSONAL_LINK_WITH_BOT": "Deze regel geeft geen melding totdat je een spelaccount koppelt met !account in Discord."
   },
   "ALARM": {
     "LOCATION_MODE": "Locatiemodus",
@@ -1868,7 +1868,9 @@
     "BASEMAP_ATTRIBUTION_DESC": "Bronvermelding voor de eigen tegel-URL. Moet voldoen aan de voorwaarden van je aanbieder. Wordt als platte tekst getoond.",
     "BASEMAP_KEY_MISSING": "Er is geen sleutel ingesteld, dus kaarten vallen terug op {{provider}}. De gekozen aanbieder zou zonder sleutel gewoon tegels teruggeven — CARTO tekent er ‘API KEY REQUIRED’ in — en niets anders zou dit melden.",
     "BASEMAP_UNAVAILABLE": "De gekozen kaart heeft geen bruikbare tegel-URL, dus kaarten vallen terug op {{provider}}. Kies een aanbieder of stel een tegel-URL in die begint met http:// of https://.",
-    "FAVICON_PREVIEW_ALT": "Favicon-voorbeeld"
+    "FAVICON_PREVIEW_ALT": "Favicon-voorbeeld",
+    "GAME_ACCOUNTS_LINK_URL_LABEL": "URL om spelaccounts te koppelen",
+    "GAME_ACCOUNTS_LINK_URL_DESC": "Waar trainers een spelaccount koppelen voor persoonlijke shiny-meldingen, meestal de profielpagina van je kaart. Het venster Spelaccounts en de Pokémon-vensters sturen trainers daarheen. Laat leeg om ze in plaats daarvan naar !account in de bot te verwijzen."
   },
   "GAME_ACCOUNTS": {
     "TITLE": "Spelaccounts",
@@ -1886,15 +1888,23 @@
     "FOR_USER": "Accounts gekoppeld aan {{name}}",
     "CONTACT_SUPPORT": "Contact opnemen met support",
     "IMPERSONATING": "Spelaccounts kunnen niet worden gewijzigd terwijl je een ander account bekijkt.",
-    "PLAYER_ID_HINT": "Letters en cijfers. Dit is je speler-ID, niet je vriendencode van 12 cijfers.",
     "FRIEND_CODE_WARNING": "Dat lijkt op een vriendencode. Je hebt de speler-ID nodig.",
     "ERROR_INVALID": "Alleen letters en cijfers, zonder spaties.",
-    "ERROR_DUPLICATE": "Dit account is al gekoppeld.",
     "ERROR_LABEL_TAKEN": "Een ander account gebruikt dit label al.",
     "ERROR_CONFLICT": "Dat account of label is al in gebruik.",
     "UNLINKED": "{{name}} ontkoppeld",
     "UNDO": "Ongedaan maken",
-    "LABEL_SAVED": "Label opgeslagen"
+    "LABEL_SAVED": "Label opgeslagen",
+    "UNNAMED": "Account {{n}}",
+    "LABEL_FOR": "Label voor {{name}}",
+    "LINK_ON_MAP": "Koppel een spelaccount op de kaart. Het verschijnt hier zodra het gekoppeld is.",
+    "OPEN_MAP": "Kaart openen",
+    "LINK_WITH_BOT": "Koppel een spelaccount met !account in Discord. Het verschijnt hier zodra het gekoppeld is.",
+    "LINK_ASK_ADMIN": "Vraag een beheerder om je spelaccount te koppelen.",
+    "SHOW_ID": "Speler-ID tonen",
+    "HIDE_ID": "Speler-ID verbergen",
+    "ADMIN_PLAYER_ID_HINT": "Letters en cijfers, niet de vriendencode van 12 cijfers. Na het koppelen wordt hij niet meer getoond.",
+    "UNDO_EXPIRED": "Ongedaan maken is verlopen. Koppel het account opnieuw."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Naam",

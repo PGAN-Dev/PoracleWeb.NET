@@ -20,15 +20,21 @@
           <span>{{ 'POKEMON.PERSONAL_NO_FEED' | translate }}</span>
         </p>
       }
-      @case ('linkAccount') {
+      @case ('linkOnMap') {
         <p class="status-line status-warn">
           <mat-icon aria-hidden="true">link_off</mat-icon>
-          <span>{{ 'POKEMON.PERSONAL_NO_ACCOUNTS' | translate }}</span>
+          <span>{{ 'POKEMON.PERSONAL_LINK_ON_MAP' | translate }}</span>
         </p>
-        <button mat-stroked-button type="button" class="link-button" (click)="openGameAccounts()">
-          <mat-icon>badge</mat-icon>
-          {{ 'POKEMON.PERSONAL_LINK_BUTTON' | translate }}
-        </button>
+        <a mat-stroked-button class="link-button" [href]="linkUrl()" target="_blank" rel="noopener">
+          <mat-icon>map</mat-icon>
+          {{ 'GAME_ACCOUNTS.OPEN_MAP' | translate }}
+        </a>
+      }
+      @case ('linkWithBot') {
+        <p class="status-line status-warn">
+          <mat-icon aria-hidden="true">link_off</mat-icon>
+          <span>{{ 'POKEMON.PERSONAL_LINK_WITH_BOT' | translate }}</span>
+        </p>
       }
       @case ('askAdmin') {
         <p class="status-line status-warn">
@@ -44,18 +50,23 @@
         </p>
       }
       @case ('checking') {
+        @let names = accountNames();
+        @let first = names[0].label || ('GAME_ACCOUNTS.UNNAMED' | translate: { n: names[0].n });
         <p class="status-line status-ok">
           <mat-icon aria-hidden="true">check_circle</mat-icon>
           <span>
-            @switch (accountNames().length) {
+            @switch (names.length) {
               @case (1) {
-                {{ 'POKEMON.PERSONAL_CHECKING_ONE' | translate: { name: accountNames()[0] } }}
+                {{ 'POKEMON.PERSONAL_CHECKING_ONE' | translate: { name: first } }}
               }
               @case (2) {
-                {{ 'POKEMON.PERSONAL_CHECKING_TWO' | translate: { first: accountNames()[0], second: accountNames()[1] } }}
+                {{
+                  'POKEMON.PERSONAL_CHECKING_TWO'
+                    | translate: { first: first, second: names[1].label || ('GAME_ACCOUNTS.UNNAMED' | translate: { n: names[1].n }) }
+                }}
               }
               @default {
-                {{ 'POKEMON.PERSONAL_CHECKING_MANY' | translate: { first: accountNames()[0], count: accountNames().length - 1 } }}
+                {{ 'POKEMON.PERSONAL_CHECKING_MANY' | translate: { first: first, count: names.length - 1 } }}
               }
             }
           </span>

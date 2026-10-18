@@ -12,6 +12,7 @@ using Moq;
 using Pgan.PoracleWebNet.Api.Configuration;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
+using Pgan.PoracleWebNet.Core.Services;
 
 namespace Pgan.PoracleWebNet.Tests.Integration;
 
@@ -35,6 +36,9 @@ public sealed class PlayerAccountPipelineTests : IDisposable
         ExpirationMinutes = 1440,
     };
 
+    /// <summary>The handle the real container hands out for the one linked account, from the same secret.</summary>
+    private static readonly string Handle = PlayerAccountHandles.FromSecret(Jwt.Secret).For(UserId, "Ab9cD");
+
     private readonly Mock<IPoracleAccountProxy> _proxy = new();
     private readonly Factory _factory;
 
@@ -43,6 +47,9 @@ public sealed class PlayerAccountPipelineTests : IDisposable
         this._proxy
             .Setup(p => p.AddAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new PlayerAccount("Ab9cD", "Main", DateTimeOffset.UnixEpoch));
+        this._proxy
+            .Setup(p => p.ListAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new PlayerAccount("Ab9cD", "Main", DateTimeOffset.UnixEpoch)]);
         this._factory = new Factory(this._proxy);
     }
 
@@ -51,12 +58,12 @@ public sealed class PlayerAccountPipelineTests : IDisposable
     private static string Token() => new JwtService(Options.Create(Jwt)).GenerateToken(
         new UserInfo { Id = UserId, Username = UserId, Type = "discord:user", ProfileNo = 1, Enabled = true });
 
-    private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, object body)
+    private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, object? body)
     {
         using var client = this._factory.CreateClient();
         using var request = new HttpRequestMessage(method, path)
         {
-            Content = JsonContent.Create(body),
+            Content = body is null ? null : JsonContent.Create(body),
         };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", Token());
         return await client.SendAsync(request);
@@ -74,7 +81,7 @@ public sealed class PlayerAccountPipelineTests : IDisposable
     [Fact]
     public async Task AValidRelabelReachesTheProxy()
     {
-        using var response = await this.SendAsync(HttpMethod.Put, "/api/accounts/Ab9cD", new { label = "Alt" });
+        using var response = await this.SendAsync(HttpMethod.Put, $"/api/accounts/{Handle}", new { label = "Alt" });
 
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
         this._proxy.Verify(p => p.RelabelAsync(UserId, "Ab9cD", "Alt", It.IsAny<CancellationToken>()), Times.Once);
@@ -112,7 +119,7 @@ public sealed class PlayerAccountPipelineTests : IDisposable
         var label = new string('l', 65);
 
         using var add = await this.SendAsync(HttpMethod.Post, "/api/accounts", new { playerId = "Ab9cD", label });
-        using var relabel = await this.SendAsync(HttpMethod.Put, "/api/accounts/Ab9cD", new { label });
+        using var relabel = await this.SendAsync(HttpMethod.Put, $"/api/accounts/{Handle}", new { label });
 
         Assert.Equal(HttpStatusCode.BadRequest, add.StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, relabel.StatusCode);
@@ -121,10 +128,41 @@ public sealed class PlayerAccountPipelineTests : IDisposable
     [Fact]
     public async Task ALabelOf64CharactersIsAccepted()
     {
-        using var response = await this.SendAsync(HttpMethod.Put, "/api/accounts/Ab9cD", new { label = new string('l', 64) });
+        using var response = await this.SendAsync(HttpMethod.Put, $"/api/accounts/{Handle}", new { label = new string('l', 64) });
 
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
     }
+
+    /// <summary>On the wire as well as in the action: an account is an id, a label and a date, and nothing else.</summary>
+    [Fact]
+    public async Task TheListOnTheWireCarriesAHandleAndNoPlayerId()
+    {
+        using var response = await this.SendAsync(HttpMethod.Get, "/api/accounts", null);
+        var json = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains($"\"id\":\"{Handle}\"", json);
+        Assert.DoesNotContain("Ab9cD", json);
+        Assert.DoesNotContain("playerId", json, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Through the container's real DataProtection: the unlink's token restores the account.</summary>
+    [Fact]
+    public async Task AnUnlinkThenItsUndoRelinksTheAccount()
+    {
+        using var delete = await this.SendAsync(HttpMethod.Delete, $"/api/accounts/{Handle}", null);
+        var body = await delete.Content.ReadFromJsonAsync<UndoBody>();
+
+        Assert.Equal(HttpStatusCode.OK, delete.StatusCode);
+        Assert.DoesNotContain("Ab9cD", body!.UndoToken);
+        using var restore = await this.SendAsync(HttpMethod.Post, "/api/accounts/restore", new { undoToken = body.UndoToken });
+
+        Assert.Equal(HttpStatusCode.OK, restore.StatusCode);
+        this._proxy.Verify(p => p.DeleteAsync(UserId, "Ab9cD", It.IsAny<CancellationToken>()), Times.Once);
+        this._proxy.Verify(p => p.AddAsync(UserId, "Ab9cD", "Main", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    private sealed record UndoBody(string UndoToken);
 
     private sealed class Factory(Mock<IPoracleAccountProxy> proxy) : WebApplicationFactory<Program>
     {

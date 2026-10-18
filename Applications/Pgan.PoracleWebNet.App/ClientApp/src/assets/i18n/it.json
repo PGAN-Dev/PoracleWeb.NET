@@ -223,7 +223,6 @@
     "PERSONAL_SHINY": "Solo quando è shiny per me",
     "PERSONAL_BACKGROUND": "Solo quando ha lo sfondo dell'evento per me",
     "PERSONAL_HINT": "Ogni giocatore ha il proprio tiro per lo shiny. Queste opzioni controllano il tuo, sugli account di gioco che colleghi.",
-    "PERSONAL_NO_ACCOUNTS": "Questa regola non avviserà finché non colleghi un account di gioco.",
     "PERSONAL_SHINY_BADGE": "Shiny per me",
     "PERSONAL_BACKGROUND_BADGE": "Sfondo per me",
     "NO_IV_FILTER": "Nessun Filtro IV",
@@ -353,11 +352,12 @@
     "NO_COSTUME_PILL": "Nessun costume",
     "PERSONAL_BOTH": "Con entrambe attive, avvisa solo per uno shiny che ha anche lo sfondo dell'evento.",
     "PERSONAL_NO_FEED": "Questo server non ha ancora configurato le probabilità shiny, quindi questa regola non avviserà finché non lo farà.",
-    "PERSONAL_LINK_BUTTON": "Collega un account di gioco",
-    "PERSONAL_ASK_ADMIN": "Questa regola non avviserà finché un amministratore non collega il tuo account di gioco. Mandagli il tuo ID giocatore.",
+    "PERSONAL_ASK_ADMIN": "Questa regola non avviserà finché un amministratore non collega il tuo account di gioco.",
     "PERSONAL_CHECKING_ONE": "Controlla il tuo account {{name}}.",
     "PERSONAL_CHECKING_TWO": "Controlla {{first}} e {{second}}.",
-    "PERSONAL_CHECKING_MANY": "Controlla {{first}} e altri {{count}} account."
+    "PERSONAL_CHECKING_MANY": "Controlla {{first}} e altri {{count}} account.",
+    "PERSONAL_LINK_ON_MAP": "Questa regola non avviserà finché non colleghi un account di gioco sulla mappa.",
+    "PERSONAL_LINK_WITH_BOT": "Questa regola non avviserà finché non colleghi un account di gioco con !account su Discord."
   },
   "ALARM": {
     "LOCATION_MODE": "Modalità Posizione",
@@ -1868,7 +1868,9 @@
     "BASEMAP_ATTRIBUTION_DESC": "Attribuzione per l’URL tile personalizzato. Deve rispettare i termini del tuo provider. Mostrata come testo semplice.",
     "BASEMAP_KEY_MISSING": "Nessuna chiave impostata, quindi le mappe ripiegano su {{provider}}. Il provider scelto restituirebbe comunque i tile — CARTO vi disegna sopra «API KEY REQUIRED» — e nient’altro lo segnalerebbe.",
     "BASEMAP_UNAVAILABLE": "La mappa di base scelta non ha un URL tile utilizzabile, quindi le mappe ripiegano su {{provider}}. Scegli un provider oppure imposta un URL tile che inizi con http:// o https://.",
-    "FAVICON_PREVIEW_ALT": "Anteprima favicon"
+    "FAVICON_PREVIEW_ALT": "Anteprima favicon",
+    "GAME_ACCOUNTS_LINK_URL_LABEL": "URL per collegare gli account di gioco",
+    "GAME_ACCOUNTS_LINK_URL_DESC": "Dove gli allenatori collegano un account di gioco per gli avvisi shiny personali, di solito la pagina del profilo della tua mappa. La finestra Account di gioco e le finestre dei Pokémon li mandano lì. Lascia vuoto per indirizzarli invece a !account nel bot."
   },
   "GAME_ACCOUNTS": {
     "TITLE": "Account di gioco",
@@ -1886,15 +1888,23 @@
     "FOR_USER": "Account collegati a {{name}}",
     "CONTACT_SUPPORT": "Contatta il supporto",
     "IMPERSONATING": "Gli account di gioco non possono essere modificati mentre visualizzi un altro account.",
-    "PLAYER_ID_HINT": "Lettere e numeri. È il tuo ID giocatore, non il codice amico di 12 cifre.",
     "FRIEND_CODE_WARNING": "Sembra un codice amico. Ti serve invece l'ID giocatore.",
     "ERROR_INVALID": "Solo lettere e numeri, senza spazi.",
-    "ERROR_DUPLICATE": "Questo account è già collegato.",
     "ERROR_LABEL_TAKEN": "Un altro account usa già questa etichetta.",
     "ERROR_CONFLICT": "Questo account o questa etichetta sono già in uso.",
     "UNLINKED": "{{name}} scollegato",
     "UNDO": "Annulla",
-    "LABEL_SAVED": "Etichetta salvata"
+    "LABEL_SAVED": "Etichetta salvata",
+    "UNNAMED": "Account {{n}}",
+    "LABEL_FOR": "Etichetta di {{name}}",
+    "LINK_ON_MAP": "Collega un account di gioco sulla mappa. Apparirà qui appena è collegato.",
+    "OPEN_MAP": "Apri la mappa",
+    "LINK_WITH_BOT": "Collega un account di gioco con !account su Discord. Apparirà qui appena è collegato.",
+    "LINK_ASK_ADMIN": "Chiedi a un amministratore di collegare il tuo account di gioco.",
+    "SHOW_ID": "Mostra ID giocatore",
+    "HIDE_ID": "Nascondi ID giocatore",
+    "ADMIN_PLAYER_ID_HINT": "Lettere e numeri, non il codice amico di 12 cifre. Non viene più mostrato dopo il collegamento.",
+    "UNDO_EXPIRED": "Non è più possibile annullare. Collega di nuovo l'account."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Nome",

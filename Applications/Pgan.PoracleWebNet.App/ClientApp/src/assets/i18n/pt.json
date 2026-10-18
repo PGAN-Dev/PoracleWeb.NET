@@ -223,7 +223,6 @@
     "PERSONAL_SHINY": "Só quando for shiny para mim",
     "PERSONAL_BACKGROUND": "Só quando tiver o fundo do evento para mim",
     "PERSONAL_HINT": "Cada jogador tem o seu próprio sorteio de shiny. Estas opções verificam o teu, nas contas de jogo que associares.",
-    "PERSONAL_NO_ACCOUNTS": "Esta regra não avisa até associares uma conta de jogo.",
     "PERSONAL_SHINY_BADGE": "Shiny para mim",
     "PERSONAL_BACKGROUND_BADGE": "Fundo para mim",
     "NO_IV_FILTER": "Sem Filtro IV",
@@ -353,11 +352,12 @@
     "NO_COSTUME_PILL": "Sem fantasia",
     "PERSONAL_BOTH": "Com as duas ativas, só avisa de um shiny que também tenha o fundo do evento.",
     "PERSONAL_NO_FEED": "Este servidor ainda não configurou as probabilidades de shiny, por isso esta regra não avisa até o fazer.",
-    "PERSONAL_LINK_BUTTON": "Associar uma conta de jogo",
-    "PERSONAL_ASK_ADMIN": "Esta regra não avisa até um administrador associar a tua conta de jogo. Envia-lhe o teu ID de jogador.",
+    "PERSONAL_ASK_ADMIN": "Esta regra não avisa até um administrador associar a tua conta de jogo.",
     "PERSONAL_CHECKING_ONE": "Verifica a tua conta {{name}}.",
     "PERSONAL_CHECKING_TWO": "Verifica {{first}} e {{second}}.",
-    "PERSONAL_CHECKING_MANY": "Verifica {{first}} e mais {{count}} contas."
+    "PERSONAL_CHECKING_MANY": "Verifica {{first}} e mais {{count}} contas.",
+    "PERSONAL_LINK_ON_MAP": "Esta regra não avisa até associares uma conta de jogo no mapa.",
+    "PERSONAL_LINK_WITH_BOT": "Esta regra não avisa até associares uma conta de jogo com !account no Discord."
   },
   "ALARM": {
     "LOCATION_MODE": "Modo de Localização",
@@ -1868,7 +1868,9 @@
     "BASEMAP_ATTRIBUTION_DESC": "Atribuição do URL de mosaicos personalizado. Deve respeitar os termos do seu fornecedor. Mostrada como texto simples.",
     "BASEMAP_KEY_MISSING": "Não há chave definida, por isso os mapas recorrem ao {{provider}}. O fornecedor escolhido devolveria mosaicos na mesma — a CARTO desenha «API KEY REQUIRED» neles — e mais nada o comunicaria.",
     "BASEMAP_UNAVAILABLE": "O mapa base escolhido não tem um URL de mosaicos utilizável, por isso os mapas recorrem ao {{provider}}. Escolha um fornecedor ou defina um URL de mosaicos começado por http:// ou https://.",
-    "FAVICON_PREVIEW_ALT": "Pré-visualização do favicon"
+    "FAVICON_PREVIEW_ALT": "Pré-visualização do favicon",
+    "GAME_ACCOUNTS_LINK_URL_LABEL": "URL para associar contas de jogo",
+    "GAME_ACCOUNTS_LINK_URL_DESC": "Onde os treinadores associam uma conta de jogo para os alertas de shiny pessoais, normalmente a página de perfil do teu mapa. A janela Contas de jogo e as janelas de Pokémon enviam-nos para lá. Deixa vazio para os remeter antes para !account no bot."
   },
   "GAME_ACCOUNTS": {
     "TITLE": "Contas de jogo",
@@ -1886,15 +1888,23 @@
     "FOR_USER": "Contas associadas a {{name}}",
     "CONTACT_SUPPORT": "Contactar o suporte",
     "IMPERSONATING": "As contas de jogo não podem ser alteradas enquanto está a ver outra conta.",
-    "PLAYER_ID_HINT": "Letras e números. É o teu ID de jogador, não o código de amigo de 12 dígitos.",
     "FRIEND_CODE_WARNING": "Isso parece um código de amigo. Precisas do ID de jogador.",
     "ERROR_INVALID": "Só letras e números, sem espaços.",
-    "ERROR_DUPLICATE": "Esta conta já está associada.",
     "ERROR_LABEL_TAKEN": "Outra conta já usa esta etiqueta.",
     "ERROR_CONFLICT": "Essa conta ou etiqueta já está em uso.",
     "UNLINKED": "{{name}} desassociada",
     "UNDO": "Anular",
-    "LABEL_SAVED": "Etiqueta guardada"
+    "LABEL_SAVED": "Etiqueta guardada",
+    "UNNAMED": "Conta {{n}}",
+    "LABEL_FOR": "Etiqueta de {{name}}",
+    "LINK_ON_MAP": "Associa uma conta de jogo no mapa. Aparece aqui assim que estiver associada.",
+    "OPEN_MAP": "Abrir o mapa",
+    "LINK_WITH_BOT": "Associa uma conta de jogo com !account no Discord. Aparece aqui assim que estiver associada.",
+    "LINK_ASK_ADMIN": "Pede a um administrador para associar a tua conta de jogo.",
+    "SHOW_ID": "Mostrar ID de jogador",
+    "HIDE_ID": "Ocultar ID de jogador",
+    "ADMIN_PLAYER_ID_HINT": "Letras e números, não o código de amigo de 12 dígitos. Deixa de ser mostrado depois de associado.",
+    "UNDO_EXPIRED": "Já não é possível anular. Associa a conta outra vez."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Nome",

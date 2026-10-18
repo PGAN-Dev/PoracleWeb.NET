@@ -14,10 +14,11 @@ describe('PlayerAccountService', () => {
   let snackBar: jest.Mocked<MatSnackBar>;
   const API = 'http://test-api';
 
-  const account = (playerId: string, label: string | null = null): PlayerAccount => ({
+  /** `id` is the server's opaque handle; the player id never reaches the browser. */
+  const account = (id: string, label: string | null = null): PlayerAccount => ({
+    id,
     createdAt: '2026-10-01T00:00:00Z',
     label,
-    playerId,
   });
 
   beforeEach(() => {
@@ -73,17 +74,18 @@ describe('PlayerAccountService', () => {
     expect(service.accounts()).toEqual([]);
   });
 
-  it('adds an account with its case intact and appends it to the list', () => {
+  it('adds an account with its case intact and appends what the server answers', () => {
     service.load().subscribe();
     httpMock.expectOne(`${API}/api/accounts`).flush([]);
 
-    service.add('AbC_Xyz', 'Alt').subscribe();
+    service.add('AbCXyz', 'Alt').subscribe();
     const req = httpMock.expectOne(`${API}/api/accounts`);
     expect(req.request.method).toBe('POST');
-    expect(req.request.body).toEqual({ label: 'Alt', playerId: 'AbC_Xyz' });
-    req.flush(account('AbC_Xyz', 'Alt'));
+    expect(req.request.body).toEqual({ label: 'Alt', playerId: 'AbCXyz' });
+    req.flush(account('h1', 'Alt'));
 
-    expect(service.accounts()).toEqual([account('AbC_Xyz', 'Alt')]);
+    // Only the handle is kept: the id typed in is gone once it is sent.
+    expect(service.accounts()).toEqual([account('h1', 'Alt')]);
   });
 
   it('adds through the admin route when a user is given, sending no label when it is empty', () => {
@@ -94,7 +96,7 @@ describe('PlayerAccountService', () => {
     req.flush(account('p1'));
   });
 
-  it('relabels an account and encodes the player id in the path', () => {
+  it('relabels an account by its handle, encoded in the path', () => {
     service.load().subscribe();
     httpMock.expectOne(`${API}/api/accounts`).flush([account('a/b', null)]);
 
@@ -111,19 +113,50 @@ describe('PlayerAccountService', () => {
     service.load().subscribe();
     httpMock.expectOne(`${API}/api/accounts`).flush([account('One'), account('Two')]);
 
-    service.remove('One').subscribe();
+    let token: null | string = null;
+    service.remove('One').subscribe(t => (token = t));
     const req = httpMock.expectOne(`${API}/api/accounts/One`);
     expect(req.request.method).toBe('DELETE');
-    req.flush(null, { status: 204, statusText: 'No Content' });
+    req.flush({ undoToken: 'sealed' });
 
     expect(service.accounts()).toEqual([account('Two')]);
+    expect(token).toBe('sealed');
+  });
+
+  it('restores an unlinked account from its undo token and puts it back in the list', () => {
+    service.load().subscribe();
+    httpMock.expectOne(`${API}/api/accounts`).flush([account('Two')]);
+
+    service.restore('sealed').subscribe();
+    const req = httpMock.expectOne(`${API}/api/accounts/restore`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ undoToken: 'sealed' });
+    req.flush(account('One'));
+
+    expect(service.accounts()).toEqual([account('Two'), account('One')]);
+  });
+
+  it('restores through the admin route when a user is given', () => {
+    service.restore('sealed', '42').subscribe();
+    const req = httpMock.expectOne(`${API}/api/admin/accounts/restore?id=42`);
+    expect(req.request.method).toBe('POST');
+    req.flush(account('One'));
+  });
+
+  it('says an undo expired rather than that something failed', () => {
+    service.restore('stale').subscribe({ error: () => undefined });
+    httpMock
+      .expectOne(`${API}/api/accounts/restore`)
+      .flush({ code: 'undo_expired', error: 'That undo has expired.' }, { status: 400, statusText: 'Bad Request' });
+
+    expect(snackBar.open).toHaveBeenCalledWith('GAME_ACCOUNTS.UNDO_EXPIRED', 'OK', { duration: 4000 });
   });
 
   it('removes through the admin route with the user in the query', () => {
     service.remove('One', '42').subscribe();
     const req = httpMock.expectOne(`${API}/api/admin/accounts/One?id=42`);
     expect(req.request.method).toBe('DELETE');
-    req.flush(null, { status: 204, statusText: 'No Content' });
+    req.flush({ undoToken: 'sealed' });
   });
 
   it("words a 409 itself rather than showing PoracleNG's lowercase text", () => {

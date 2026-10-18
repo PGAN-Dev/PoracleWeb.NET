@@ -222,7 +222,6 @@
     "PERSONAL_SHINY": "Nur wenn es für mich shiny ist",
     "PERSONAL_BACKGROUND": "Nur wenn es für mich den Event-Hintergrund hat",
     "PERSONAL_HINT": "Jeder Spieler hat seinen eigenen Shiny-Wurf. Diese Schalter prüfen deinen, auf den Spielaccounts, die du verknüpfst.",
-    "PERSONAL_NO_ACCOUNTS": "Diese Regel löst erst aus, wenn du einen Spielaccount verknüpfst.",
     "PERSONAL_SHINY_BADGE": "Shiny für mich",
     "PERSONAL_BACKGROUND_BADGE": "Hintergrund für mich",
     "NO_IV_FILTER": "Kein IV-Filter",
@@ -353,11 +352,12 @@
     "UNKNOWN_ID": "Pokemon #{{id}}",
     "PERSONAL_BOTH": "Sind beide an, gibt es nur einen Alarm für ein Shiny, das auch den Event-Hintergrund hat.",
     "PERSONAL_NO_FEED": "Dieser Server hat noch keine Shiny-Raten eingerichtet. Bis dahin löst diese Regel nicht aus.",
-    "PERSONAL_LINK_BUTTON": "Spielaccount verknüpfen",
-    "PERSONAL_ASK_ADMIN": "Diese Regel löst erst aus, wenn ein Admin deinen Spielaccount verknüpft. Schick ihm deine Spieler-ID.",
+    "PERSONAL_ASK_ADMIN": "Diese Regel löst erst aus, wenn ein Admin deinen Spielaccount verknüpft.",
     "PERSONAL_CHECKING_ONE": "Prüft deinen Account {{name}}.",
     "PERSONAL_CHECKING_TWO": "Prüft {{first}} und {{second}}.",
-    "PERSONAL_CHECKING_MANY": "Prüft {{first}} und {{count}} weitere Accounts."
+    "PERSONAL_CHECKING_MANY": "Prüft {{first}} und {{count}} weitere Accounts.",
+    "PERSONAL_LINK_ON_MAP": "Diese Regel löst erst aus, wenn du einen Spielaccount auf der Karte verknüpfst.",
+    "PERSONAL_LINK_WITH_BOT": "Diese Regel löst erst aus, wenn du einen Spielaccount mit !account in Discord verknüpfst."
   },
   "ALARM": {
     "LOCATION_MODE": "Standortmodus",
@@ -1868,7 +1868,9 @@
     "BASEMAP_ATTRIBUTION_DESC": "Quellenangabe für die eigene Kachel-URL. Muss den Bedingungen Ihres Anbieters entsprechen. Wird als reiner Text angezeigt.",
     "BASEMAP_KEY_MISSING": "Es ist kein Schlüssel gesetzt, daher fallen die Karten auf {{provider}} zurück. Der gewählte Anbieter würde auch ohne Schlüssel Kacheln liefern — CARTO zeichnet „API KEY REQUIRED“ hinein —, sodass nichts anderes darauf hinweist.",
     "BASEMAP_UNAVAILABLE": "Die gewählte Karte hat keine nutzbare Kachel-URL, daher fallen die Karten auf {{provider}} zurück. Wählen Sie einen Anbieter oder setzen Sie eine Kachel-URL, die mit http:// oder https:// beginnt.",
-    "FAVICON_PREVIEW_ALT": "Favicon-Vorschau"
+    "FAVICON_PREVIEW_ALT": "Favicon-Vorschau",
+    "GAME_ACCOUNTS_LINK_URL_LABEL": "Link zum Verknüpfen von Spielaccounts",
+    "GAME_ACCOUNTS_LINK_URL_DESC": "Wo Trainer einen Spielaccount für persönliche Shiny-Alarme verknüpfen, meist die Profilseite deiner Karte. Der Spielaccounts-Dialog und die Pokémon-Dialoge schicken Trainer dorthin. Leer lassen, um sie stattdessen auf !account im Bot zu verweisen."
   },
   "GAME_ACCOUNTS": {
     "TITLE": "Spielaccounts",
@@ -1886,15 +1888,23 @@
     "FOR_USER": "Mit {{name}} verknüpfte Accounts",
     "CONTACT_SUPPORT": "Support kontaktieren",
     "IMPERSONATING": "Spielaccounts können nicht geändert werden, während du ein anderes Konto ansiehst.",
-    "PLAYER_ID_HINT": "Buchstaben und Ziffern. Das ist deine Spieler-ID, nicht dein 12-stelliger Freundescode.",
     "FRIEND_CODE_WARNING": "Das sieht nach einem Freundescode aus. Du brauchst stattdessen die Spieler-ID.",
     "ERROR_INVALID": "Nur Buchstaben und Ziffern, ohne Leerzeichen.",
-    "ERROR_DUPLICATE": "Dieser Account ist bereits verknüpft.",
     "ERROR_LABEL_TAKEN": "Ein anderer Account nutzt diese Bezeichnung schon.",
     "ERROR_CONFLICT": "Dieser Account oder diese Bezeichnung wird schon verwendet.",
     "UNLINKED": "{{name}} getrennt",
     "UNDO": "Rückgängig",
-    "LABEL_SAVED": "Bezeichnung gespeichert"
+    "LABEL_SAVED": "Bezeichnung gespeichert",
+    "UNNAMED": "Account {{n}}",
+    "LABEL_FOR": "Bezeichnung für {{name}}",
+    "LINK_ON_MAP": "Verknüpfe einen Spielaccount auf der Karte. Er erscheint hier, sobald er verknüpft ist.",
+    "OPEN_MAP": "Karte öffnen",
+    "LINK_WITH_BOT": "Verknüpfe einen Spielaccount mit !account in Discord. Er erscheint hier, sobald er verknüpft ist.",
+    "LINK_ASK_ADMIN": "Bitte einen Admin, deinen Spielaccount zu verknüpfen.",
+    "SHOW_ID": "Spieler-ID anzeigen",
+    "HIDE_ID": "Spieler-ID verbergen",
+    "ADMIN_PLAYER_ID_HINT": "Buchstaben und Ziffern, nicht der 12-stellige Freundescode. Sie wird nach dem Verknüpfen nicht mehr angezeigt.",
+    "UNDO_EXPIRED": "Das Rückgängigmachen ist abgelaufen. Verknüpfe den Account erneut."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Name",

@@ -223,7 +223,6 @@
     "PERSONAL_SHINY": "Só quando for shiny para mim",
     "PERSONAL_BACKGROUND": "Só quando tiver o fundo do evento para mim",
     "PERSONAL_HINT": "Cada jogador tem o próprio sorteio de shiny. Estas opções verificam o seu, nas contas de jogo que você vincular.",
-    "PERSONAL_NO_ACCOUNTS": "Esta regra não vai avisar até você vincular uma conta de jogo.",
     "PERSONAL_SHINY_BADGE": "Shiny para mim",
     "PERSONAL_BACKGROUND_BADGE": "Fundo para mim",
     "NO_IV_FILTER": "Sem Filtro de IV",
@@ -353,11 +352,12 @@
     "NO_COSTUME_PILL": "Sem fantasia",
     "PERSONAL_BOTH": "Com as duas ligadas, só avisa de um shiny que também tenha o fundo do evento.",
     "PERSONAL_NO_FEED": "Este servidor ainda não configurou as chances de shiny, então esta regra não vai avisar até isso acontecer.",
-    "PERSONAL_LINK_BUTTON": "Vincular uma conta de jogo",
-    "PERSONAL_ASK_ADMIN": "Esta regra não vai avisar até um administrador vincular sua conta de jogo. Envie a ele o seu ID do jogador.",
+    "PERSONAL_ASK_ADMIN": "Esta regra não vai avisar até um administrador vincular sua conta de jogo.",
     "PERSONAL_CHECKING_ONE": "Verifica sua conta {{name}}.",
     "PERSONAL_CHECKING_TWO": "Verifica {{first}} e {{second}}.",
-    "PERSONAL_CHECKING_MANY": "Verifica {{first}} e mais {{count}} contas."
+    "PERSONAL_CHECKING_MANY": "Verifica {{first}} e mais {{count}} contas.",
+    "PERSONAL_LINK_ON_MAP": "Esta regra não vai avisar até você vincular uma conta de jogo no mapa.",
+    "PERSONAL_LINK_WITH_BOT": "Esta regra não vai avisar até você vincular uma conta de jogo com !account no Discord."
   },
   "ALARM": {
     "LOCATION_MODE": "Modo de Localização",
@@ -1868,7 +1868,9 @@
     "BASEMAP_ATTRIBUTION_DESC": "Atribuição da URL de blocos personalizada. Precisa atender aos termos do seu provedor. Exibida como texto simples.",
     "BASEMAP_KEY_MISSING": "Nenhuma chave definida, então os mapas voltam para o {{provider}}. O provedor escolhido devolveria blocos mesmo assim — a CARTO desenha “API KEY REQUIRED” neles — e nada mais avisaria.",
     "BASEMAP_UNAVAILABLE": "O mapa base escolhido não tem uma URL de blocos utilizável, então os mapas voltam para o {{provider}}. Escolha um provedor ou defina uma URL de blocos começando com http:// ou https://.",
-    "FAVICON_PREVIEW_ALT": "Prévia do favicon"
+    "FAVICON_PREVIEW_ALT": "Prévia do favicon",
+    "GAME_ACCOUNTS_LINK_URL_LABEL": "URL para vincular contas de jogo",
+    "GAME_ACCOUNTS_LINK_URL_DESC": "Onde os treinadores vinculam uma conta de jogo para os alertas de shiny pessoais, geralmente a página de perfil do seu mapa. A janela Contas de jogo e as janelas de Pokémon mandam os treinadores para lá. Deixe vazio para indicar o !account do bot em vez disso."
   },
   "GAME_ACCOUNTS": {
     "TITLE": "Contas de jogo",
@@ -1886,15 +1888,23 @@
     "FOR_USER": "Contas vinculadas a {{name}}",
     "CONTACT_SUPPORT": "Falar com o suporte",
     "IMPERSONATING": "As contas de jogo não podem ser alteradas enquanto você está vendo outra conta.",
-    "PLAYER_ID_HINT": "Letras e números. É o seu ID do jogador, não o código de amigo de 12 dígitos.",
     "FRIEND_CODE_WARNING": "Isso parece um código de amigo. Você precisa do ID do jogador.",
     "ERROR_INVALID": "Só letras e números, sem espaços.",
-    "ERROR_DUPLICATE": "Esta conta já está vinculada.",
     "ERROR_LABEL_TAKEN": "Outra conta já usa este rótulo.",
     "ERROR_CONFLICT": "Essa conta ou rótulo já está em uso.",
     "UNLINKED": "{{name}} desvinculada",
     "UNDO": "Desfazer",
-    "LABEL_SAVED": "Rótulo salvo"
+    "LABEL_SAVED": "Rótulo salvo",
+    "UNNAMED": "Conta {{n}}",
+    "LABEL_FOR": "Rótulo de {{name}}",
+    "LINK_ON_MAP": "Vincule uma conta de jogo no mapa. Ela aparece aqui assim que for vinculada.",
+    "OPEN_MAP": "Abrir o mapa",
+    "LINK_WITH_BOT": "Vincule uma conta de jogo com !account no Discord. Ela aparece aqui assim que for vinculada.",
+    "LINK_ASK_ADMIN": "Peça a um administrador para vincular sua conta de jogo.",
+    "SHOW_ID": "Mostrar ID do jogador",
+    "HIDE_ID": "Ocultar ID do jogador",
+    "ADMIN_PLAYER_ID_HINT": "Letras e números, não o código de amigo de 12 dígitos. Ele não é mais exibido depois de vinculado.",
+    "UNDO_EXPIRED": "Não dá mais para desfazer. Vincule a conta de novo."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Nome",

@@ -8,10 +8,12 @@ import { ConfigService } from './config.service';
 import { PlayerAccount } from '../models';
 
 /**
- * The game accounts (player ids) linked to a human, for personal shiny alerts.
+ * The game accounts linked to a human, for personal shiny alerts.
  *
  * Without `userId` these are the signed-in trainer's own accounts; with it they are that human's, over
- * the admin routes. Player ids are case-sensitive, so nothing here trims or lowercases one.
+ * the admin routes. Accounts are addressed by the opaque `id` the server derives: the player id is never
+ * answered, and the only way one is sent is an administrator's `add`. Player ids are case-sensitive, so
+ * that one is never trimmed or lowercased.
  *
  * `accounts` is null until a load succeeds. That is deliberate: a failed read and an empty list are
  * different facts, and a caller that rendered "No game accounts linked yet" over a failed read would
@@ -32,13 +34,10 @@ export class PlayerAccountService {
   readonly accounts = this.accountsSignal.asReadonly();
   readonly loadFailed = this.loadFailedSignal.asReadonly();
 
-  /** Links an account. The API answers the created account, which is appended to the list. */
+  /** Links an account by player id (the administrator's route). The answer carries only the account's handle. */
   add(playerId: string, label: string, userId?: string): Observable<PlayerAccount> {
     return this.http.post<PlayerAccount>(this.collectionUrl(userId), { label: label || null, playerId }).pipe(
-      tap(created => {
-        const current = this.accountsSignal();
-        if (current) this.accountsSignal.set([...current.filter(a => a.playerId !== created.playerId), created]);
-      }),
+      tap(created => this.append(created)),
       catchError((err: HttpErrorResponse) => this.fail(err)),
     );
   }
@@ -58,24 +57,25 @@ export class PlayerAccountService {
     );
   }
 
-  relabel(playerId: string, label: string, userId?: string): Observable<void> {
-    return this.http.put<void>(this.itemUrl(playerId, userId), { label }).pipe(
+  relabel(id: string, label: string, userId?: string): Observable<void> {
+    return this.http.put<void>(this.itemUrl(id, userId), { label }).pipe(
       tap(() => {
         const current = this.accountsSignal();
-        if (current) this.accountsSignal.set(current.map(a => (a.playerId === playerId ? { ...a, label: label || null } : a)));
+        if (current) this.accountsSignal.set(current.map(a => (a.id === id ? { ...a, label: label || null } : a)));
       }),
       map(() => undefined),
       catchError((err: HttpErrorResponse) => this.fail(err)),
     );
   }
 
-  remove(playerId: string, userId?: string): Observable<void> {
-    return this.http.delete<void>(this.itemUrl(playerId, userId)).pipe(
+  /** Unlinks an account. Answers the sealed token `restore` takes to undo it, for a few minutes. */
+  remove(id: string, userId?: string): Observable<string> {
+    return this.http.delete<{ undoToken: string }>(this.itemUrl(id, userId)).pipe(
       tap(() => {
         const current = this.accountsSignal();
-        if (current) this.accountsSignal.set(current.filter(a => a.playerId !== playerId));
+        if (current) this.accountsSignal.set(current.filter(a => a.id !== id));
       }),
-      map(() => undefined),
+      map(body => body.undoToken),
       catchError((err: HttpErrorResponse) => this.fail(err)),
     );
   }
@@ -84,6 +84,22 @@ export class PlayerAccountService {
   reset(): void {
     this.accountsSignal.set(null);
     this.loadFailedSignal.set(false);
+  }
+
+  /** Puts back the account an unlink removed, from the token that unlink answered with. */
+  restore(undoToken: string, userId?: string): Observable<PlayerAccount> {
+    const url = userId
+      ? `${this.config.apiHost}/api/admin/accounts/restore?id=${encodeURIComponent(userId)}`
+      : `${this.config.apiHost}/api/accounts/restore`;
+    return this.http.post<PlayerAccount>(url, { undoToken }).pipe(
+      tap(restored => this.append(restored)),
+      catchError((err: HttpErrorResponse) => this.fail(err)),
+    );
+  }
+
+  private append(account: PlayerAccount): void {
+    const current = this.accountsSignal();
+    if (current) this.accountsSignal.set([...current.filter(a => a.id !== account.id), account]);
   }
 
   private collectionUrl(userId?: string): string {
@@ -98,16 +114,17 @@ export class PlayerAccountService {
   private failureMessage(err: HttpErrorResponse): string {
     const body = err.error as null | { code?: string; error?: string };
     // Worded here, not passed through: PoracleNG's 409 is lowercase English ("player id already linked") and
-    // its 422 is a schema regex. The dialog checks both before sending, so these are races, not the norm.
+    // its 422 is a schema regex. The dialog checks what it can before sending, so these are races, not the norm.
     if (err.status === 409) return this.translate.instant('GAME_ACCOUNTS.ERROR_CONFLICT');
     if (err.status === 422) return this.translate.instant('GAME_ACCOUNTS.ERROR_INVALID');
+    if (err.status === 400 && body?.code === 'undo_expired') return this.translate.instant('GAME_ACCOUNTS.UNDO_EXPIRED');
     if (err.status === 403 && body?.code === 'self_service_disabled') return this.translate.instant('GAME_ACCOUNTS.SELF_SERVICE_OFF');
     if (err.status === 429) return this.translate.instant('GAME_ACCOUNTS.RATE_LIMITED');
     return this.translate.instant('GAME_ACCOUNTS.FAILED');
   }
 
-  private itemUrl(playerId: string, userId?: string): string {
-    const path = `${this.config.apiHost}/api/${userId ? 'admin/' : ''}accounts/${encodeURIComponent(playerId)}`;
+  private itemUrl(id: string, userId?: string): string {
+    const path = `${this.config.apiHost}/api/${userId ? 'admin/' : ''}accounts/${encodeURIComponent(id)}`;
     return userId ? `${path}?id=${encodeURIComponent(userId)}` : path;
   }
 }
