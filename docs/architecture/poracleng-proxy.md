@@ -198,10 +198,12 @@ level: any of those and it answers false, and the row goes to v1 instead. Refusi
 PoracleNG newer than the translator broke every edit, and dropping the field silently would be the #730
 field-loss bug again.
 
-`ping` is the one that catches people out. It is a real column on every type, the v1 body carries it, no
-`V2*Rule` has a field for it, and the v2 handlers store an empty string unconditionally — so a rule
-holding a role mention goes to v1 rather than losing the mention. An empty ping is dropped, since v2
-would store the same empty string.
+`ping` is the one that catches people out. It's a real column on every type and the v1 body carries it,
+but a server without jfberry/PoracleNG#249 has no v2 field for it, and both surfaces store an empty string
+on every write there. So the translator sends `ping` only when the server's schema declares it
+(`PoracleV2Capabilities.TrackingPing`), and on a server that doesn't, an edit to a rule holding a mention
+is refused rather than sent anywhere: v1 would erase the mention just as v2 would. Without the field
+an empty ping is simply dropped, since either surface stores the same empty string.
 
 ### Choosing the surface
 

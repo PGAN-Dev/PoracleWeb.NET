@@ -35,7 +35,7 @@ Each alarm type has a dedicated page accessible from the sidebar navigation. The
 
 Open an alarm's edit dialog from its card. Changing anything and saving replaces the rule upstream.
 
-On PoracleNG 5.2.0 and newer, nine of the eleven types take a uid-addressed replace: the rule is
+On PoracleNG 5.2.0 and newer, ten of the eleven types take a uid-addressed replace: the rule is
 swapped in one call rather than deleted and re-created, so there is no window in which the alarm does
 not exist. Lure and max battle edits used to have exactly that window and no longer do. Invasion takes
 the same replace only where the server's newer API can report which grunt a rule targets (PoracleNG
