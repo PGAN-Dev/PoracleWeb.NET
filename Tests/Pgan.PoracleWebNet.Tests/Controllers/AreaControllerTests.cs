@@ -49,6 +49,31 @@ public class AreaControllerTests : ControllerTestBase
     }
 
     [Fact]
+    public async Task GetSelectedAreasReadsAnArrayShapedArea()
+    {
+        // jfberry/PoracleNG#303: GET /api/v2/humans/{id} sends area as a real array.
+        var humanJson = JsonSerializer.Deserialize<JsonElement>(/*lang=json,strict*/ "{\"area\":[\"west end\",\"downtown\"]}");
+        this._humanProxy.Setup(p => p.GetAreasAsync("123456789")).ReturnsAsync(humanJson);
+
+        var result = await this._sut.GetSelectedAreas();
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.Equal(["west end", "downtown"], Assert.IsType<string[]>(ok.Value));
+    }
+
+    [Fact]
+    public async Task GetSelectedAreasReturnsEmptyForAnEmptyArrayShapedArea()
+    {
+        var humanJson = JsonSerializer.Deserialize<JsonElement>(/*lang=json,strict*/ "{\"area\":[]}");
+        this._humanProxy.Setup(p => p.GetAreasAsync("123456789")).ReturnsAsync(humanJson);
+
+        var result = await this._sut.GetSelectedAreas();
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.Empty(Assert.IsType<string[]>(ok.Value));
+    }
+
+    [Fact]
     public async Task GetSelectedAreasReturnsEmptyWhenAreaIsNull()
     {
         var humanJson = JsonSerializer.Deserialize<JsonElement>(/*lang=json,strict*/ "{\"area\":null}");
@@ -205,6 +230,21 @@ public class AreaControllerTests : ControllerTestBase
         var ok = Assert.IsType<OkObjectResult>(result);
         var areas = Assert.IsType<string[]>(ok.Value);
         Assert.Equal(["west", "east"], areas);
+    }
+
+    [Theory]
+    [InlineData(/*lang=json,strict*/ "{\"area\":\"[\\\"west\\\"]\"}")]
+    [InlineData(/*lang=json,strict*/ "{\"area\":[\"west\"]}")]
+    public async Task UpdateAreasReadsBackTheStoredListInEitherPoracleShape(string humanBody)
+    {
+        // PoracleNG drops names it will not accept, so the response is the stored list, not the echo.
+        this._humanProxy.Setup(p => p.GetAreasAsync("123456789"))
+            .ReturnsAsync(JsonDocument.Parse(humanBody).RootElement.Clone());
+
+        var result = await this._sut.UpdateAreas(new AreaController.UpdateAreasRequest { Areas = ["West", "Dropped"] });
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.Equal(["west"], Assert.IsType<string[]>(ok.Value));
     }
 
     // --- GetGeofencePolygons ---

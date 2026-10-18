@@ -350,7 +350,7 @@ public partial class PoracleHumanProxy(
     private async Task<List<string>?> GetCurrentAreaListAsync(string userId)
     {
         var human = await this.GetHumanAsync(userId);
-        var areaJson = human?.GetStringPropOrNull("area");
+        var areaJson = human?.GetAreaListJsonOrNull("area");
         return areaJson is null ? null : AreaListJson.Parse(areaJson);
     }
 

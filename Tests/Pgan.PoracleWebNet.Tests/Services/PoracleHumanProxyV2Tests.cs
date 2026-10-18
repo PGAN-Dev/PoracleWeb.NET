@@ -752,6 +752,73 @@ public class PoracleHumanProxyV2Tests
                 .GetProperty("areas").EnumerateArray().Select(e => e.GetString()).ToList());
     }
 
+    // The develop-shape twins: jfberry/PoracleNG#303 sends the human's area as a real array on
+    // GET /api/v2/humans/{id}. Same outcomes as the string-shaped tests above, no version gate.
+
+    [Fact]
+    public async Task AddAreaTrustedReadsAnArrayShapedAreaAndPostsTheFullList()
+    {
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.OK, """{"human":{"id":"user1","area":["downtown"]}}"""),
+            new Reply(HttpStatusCode.OK, """{"areas":["downtown","park"],"rejected":[]}"""));
+        var sut = CreateSut(
+            handler, version: "5.2.1", capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
+
+        Assert.True(await sut.AddAreaToActiveProfileTrustedAsync("user1", "park"));
+
+        Assert.Equal(2, handler.Requests.Count);
+        var body = JsonDocument.Parse(handler.Requests[1].Body!).RootElement;
+        Assert.True(body.GetProperty("trusted").GetBoolean());
+        Assert.Equal(
+            ["downtown", "park"],
+            body.GetProperty("areas").EnumerateArray().Select(e => e.GetString()).ToList());
+    }
+
+    [Fact]
+    public async Task AddAreaTrustedIsANoOpWhenAlreadyPresentInAnArrayShapedArea()
+    {
+        var handler = ScriptedHandler.Ok("""{"human":{"id":"user1","area":["downtown"]}}""");
+        var sut = CreateSut(
+            handler, version: "5.2.1", capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
+
+        Assert.False(await sut.AddAreaToActiveProfileTrustedAsync("user1", "downtown"));
+        Assert.Single(handler.Requests);
+    }
+
+    [Fact]
+    public async Task RemoveAreaTrustedPostsTheReducedListFromAnArrayShapedArea()
+    {
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.OK, """{"human":{"id":"user1","area":["downtown","park"]}}"""),
+            new Reply(HttpStatusCode.OK, """{"areas":["downtown"],"rejected":[]}"""));
+        var sut = CreateSut(
+            handler, version: "5.2.1", capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
+
+        Assert.True(await sut.RemoveAreaFromActiveProfileTrustedAsync("user1", "park"));
+
+        Assert.Equal(
+            ["downtown"],
+            JsonDocument.Parse(handler.Requests[1].Body!).RootElement
+                .GetProperty("areas").EnumerateArray().Select(e => e.GetString()).ToList());
+    }
+
+    [Fact]
+    public async Task AddAreaTrustedTreatsAnEmptyArrayShapedAreaAsNoAreasYet()
+    {
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.OK, """{"human":{"id":"user1","area":[]}}"""),
+            new Reply(HttpStatusCode.OK, """{"areas":["park"],"rejected":[]}"""));
+        var sut = CreateSut(
+            handler, version: "5.2.1", capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
+
+        Assert.True(await sut.AddAreaToActiveProfileTrustedAsync("user1", "park"));
+
+        Assert.Equal(
+            ["park"],
+            JsonDocument.Parse(handler.Requests[1].Body!).RootElement
+                .GetProperty("areas").EnumerateArray().Select(e => e.GetString()).ToList());
+    }
+
     [Fact]
     public async Task TrustedSetAreasReturnsNullWhenTheCurrentListCannotBeRead()
     {
