@@ -109,6 +109,22 @@ public sealed class PoracleV2Capabilities
         get; init;
     }
 
+    /// <summary>
+    /// The three location request bodies (<c>V2LocationBody</c>, <c>V2AddLocationBody</c>,
+    /// <c>V2UpdateLocationBody</c>) name the coordinates <c>latitude</c> and <c>longitude</c>
+    /// (jfberry/PoracleNG#303, unreleased). Every released PoracleNG names them <c>lat</c> and <c>lon</c>.
+    /// </summary>
+    /// <remarks>
+    /// The bodies are <c>additionalProperties:false</c>, so one body cannot carry both spellings, and a
+    /// 422 from the wrong one is not a missing route: <c>TryV2Async</c> does not fall back to v1 on it.
+    /// Read from <c>V2LocationBody</c> alone, which stands in for all three the way #303 changed them
+    /// together; false when the document cannot be read, which is the released names.
+    /// </remarks>
+    public bool V2LocationLatitudeLongitude
+    {
+        get; init;
+    }
+
     /// <summary>True when the document was read and parsed, whatever it turned out to say.</summary>
     /// <remarks>
     /// Distinct from every capability being false, which is also what an unreachable server looks like.

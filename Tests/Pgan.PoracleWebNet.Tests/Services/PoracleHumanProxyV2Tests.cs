@@ -315,6 +315,96 @@ public class PoracleHumanProxyV2Tests
         Assert.Equal(8.5, body.GetProperty("lon").GetDouble());
     }
 
+    // jfberry/PoracleNG#303 renamed lat/lon to latitude/longitude on the three location request bodies.
+    // They are additionalProperties:false, so the wrong names are a 422 that TryV2Async does not fall back
+    // from. The names follow what the server's own /openapi.json declares; the 5.2.1 tests above pin the
+    // old ones.
+
+    private static PoracleV2Capabilities LongNames(bool carries = true) =>
+        new() { Read = true, V2LocationLatitudeLongitude = carries };
+
+    [Fact]
+    public async Task SetLocationSendsLatitudeLongitudeWhereTheServerDeclaresThem()
+    {
+        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
+        await CreateSut(handler, "5.3.0", capabilities: LongNames()).SetLocationAsync("user1", 51.5, -0.12);
+
+        var sent = Assert.Single(handler.Requests);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/location", sent.Url);
+        var body = JsonDocument.Parse(sent.Body!).RootElement;
+        Assert.Equal(51.5, body.GetProperty("latitude").GetDouble());
+        Assert.Equal(-0.12, body.GetProperty("longitude").GetDouble());
+        Assert.False(body.TryGetProperty("lat", out _));
+        Assert.False(body.TryGetProperty("lon", out _));
+        AssertConformsTo(body, "V2LocationBody");
+    }
+
+    [Fact]
+    public async Task AddPlaceSendsLatitudeLongitudeWhereTheServerDeclaresThem()
+    {
+        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
+        var sut = CreateSut(handler, "5.3.0", capabilities: LongNames());
+
+        Assert.Null(await sut.AddPlaceAsync(
+            "user1", new SavedPlace { Label = "home", Latitude = 1.5, Longitude = 2.5 }));
+
+        var sent = Assert.Single(handler.Requests);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/locations", sent.Url);
+        var body = JsonDocument.Parse(sent.Body!).RootElement;
+        Assert.Equal("home", body.GetProperty("label").GetString());
+        Assert.Equal(1.5, body.GetProperty("latitude").GetDouble());
+        Assert.Equal(2.5, body.GetProperty("longitude").GetDouble());
+        Assert.False(body.TryGetProperty("lat", out _));
+        Assert.False(body.TryGetProperty("lon", out _));
+        AssertConformsTo(body, "V2AddLocationBody");
+    }
+
+    [Fact]
+    public async Task UpdatePlaceSendsLatitudeLongitudeWhereTheServerDeclaresThem()
+    {
+        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
+        var sut = CreateSut(handler, "5.3.0", capabilities: LongNames());
+
+        Assert.True(await sut.UpdatePlaceAsync("user1", "home", 9.5, 8.5));
+
+        var sent = Assert.Single(handler.Requests);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/locations/home", sent.Url);
+        var body = JsonDocument.Parse(sent.Body!).RootElement;
+        Assert.Equal(9.5, body.GetProperty("latitude").GetDouble());
+        Assert.Equal(8.5, body.GetProperty("longitude").GetDouble());
+        Assert.False(body.TryGetProperty("lat", out _));
+        Assert.False(body.TryGetProperty("lon", out _));
+        AssertConformsTo(body, "V2UpdateLocationBody");
+    }
+
+    [Fact]
+    public async Task AServerThatDoesNotDeclareTheLongNamesStillGetsLatLonOnAllThreeWrites()
+    {
+        // Not read, or read and not carrying: same answer, the names every released PoracleNG takes.
+        foreach (var capabilities in new[] { LongNames(carries: false), new PoracleV2Capabilities() })
+        {
+            var handler = new ScriptedHandler(
+                new Reply(HttpStatusCode.OK, """{"status":"ok"}"""),
+                new Reply(HttpStatusCode.OK, """{"status":"ok"}"""),
+                new Reply(HttpStatusCode.OK, """{"status":"ok"}"""));
+            var sut = CreateSut(handler, "5.2.1", capabilities: capabilities);
+
+            await sut.SetLocationAsync("user1", 1, 2);
+            await sut.AddPlaceAsync("user1", new SavedPlace { Label = "home", Latitude = 1, Longitude = 2 });
+            await sut.UpdatePlaceAsync("user1", "home", 1, 2);
+
+            Assert.Equal(3, handler.Requests.Count);
+            foreach (var sent in handler.Requests)
+            {
+                var body = JsonDocument.Parse(sent.Body!).RootElement;
+                Assert.True(body.TryGetProperty("lat", out _));
+                Assert.True(body.TryGetProperty("lon", out _));
+                Assert.False(body.TryGetProperty("latitude", out _));
+                Assert.False(body.TryGetProperty("longitude", out _));
+            }
+        }
+    }
+
     [Fact]
     public async Task UpdatePlaceAnswersFalseRatherThanFailingOnAServerWithoutTheRoute()
     {

@@ -285,11 +285,7 @@ public partial class PoracleHumanProxy(
 
     public async Task SetLocationAsync(string userId, double lat, double lon)
     {
-        var v2Body = JsonSerializer.Serialize(new
-        {
-            lat,
-            lon
-        });
+        var v2Body = await this.LocationBodyAsync(lat, lon);
 
         var (response, _) =
             await this.TryV2Async(
@@ -822,14 +818,7 @@ public partial class PoracleHumanProxy(
             return "That name is too long. Use 64 characters or fewer.";
         }
 
-        // v2 takes lat/lon on the way in and still answers latitude/longitude on the way out. The
-        // asymmetry is upstream's, not a typo here.
-        var v2Body = JsonSerializer.Serialize(new
-        {
-            label = place.Label,
-            lat = place.Latitude,
-            lon = place.Longitude,
-        });
+        var v2Body = await this.LocationBodyAsync(place.Latitude, place.Longitude, place.Label);
 
         var v2 = await this.TryV2Async(
             HttpMethod.Post, "locations-add", $"/api/v2/humans/{Encode(userId)}/locations", v2Body);
@@ -884,11 +873,7 @@ public partial class PoracleHumanProxy(
     /// <inheritdoc />
     public async Task<bool> UpdatePlaceAsync(string userId, string label, double latitude, double longitude)
     {
-        var body = JsonSerializer.Serialize(new
-        {
-            lat = latitude,
-            lon = longitude,
-        });
+        var body = await this.LocationBodyAsync(latitude, longitude);
 
         var v2 = await this.TryV2Async(
             HttpMethod.Put, "locations-update", $"/api/v2/humans/{Encode(userId)}/locations/{Encode(label)}", body);
@@ -900,6 +885,30 @@ public partial class PoracleHumanProxy(
 
         await EnsureAcceptedAsync(reply.Response);
         return true;
+    }
+
+    /// <summary>
+    /// The request body for the three v2 location writes, with the coordinate names the target server
+    /// declares: <c>lat</c>/<c>lon</c> on every released PoracleNG (5.2.1 reads them off
+    /// <c>V2LocationBody</c> and its two siblings), <c>latitude</c>/<c>longitude</c> once
+    /// jfberry/PoracleNG#303 lands. The bodies are <c>additionalProperties:false</c> and a 422 does not
+    /// fall back to v1, so the wrong names fail the write rather than degrade it. The reads answer
+    /// <c>latitude</c>/<c>longitude</c> on both. Read once per call; an unreadable document is the
+    /// released names.
+    /// </summary>
+    private async Task<string> LocationBodyAsync(double latitude, double longitude, string? label = null)
+    {
+        var longNames = (await this._v2Schema.GetAsync()).V2LocationLatitudeLongitude;
+        var body = new Dictionary<string, object?>();
+
+        if (label is not null)
+        {
+            body["label"] = label;
+        }
+
+        body[longNames ? "latitude" : "lat"] = latitude;
+        body[longNames ? "longitude" : "lon"] = longitude;
+        return JsonSerializer.Serialize(body);
     }
 
     public async Task DeletePlaceAsync(string userId, string label)

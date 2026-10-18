@@ -107,6 +107,8 @@ public partial class PoracleV2SchemaService(
                     && HasProperty(schemas, "V2HumanSummary", "last_checked"),
                 InvasionGruntType = HasProperty(schemas, "V2InvasionRule", "grunt_type"),
                 TrackingPing = HasProperty(schemas, "V2PokemonRule", "ping"),
+                V2LocationLatitudeLongitude = HasProperty(schemas, "V2LocationBody", "latitude")
+                    && HasProperty(schemas, "V2LocationBody", "longitude"),
             };
         }
         catch (JsonException)

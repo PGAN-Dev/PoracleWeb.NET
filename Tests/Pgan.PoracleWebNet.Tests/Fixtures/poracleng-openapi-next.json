@@ -575,6 +575,71 @@
      "notes"
     ],
     "type": "object"
+   },
+   "V2LocationBody": {
+    "additionalProperties": false,
+    "properties": {
+     "latitude": {
+      "description": "Latitude",
+      "format": "double",
+      "type": "number"
+     },
+     "longitude": {
+      "description": "Longitude",
+      "format": "double",
+      "type": "number"
+     }
+    },
+    "required": [
+     "latitude",
+     "longitude"
+    ],
+    "type": "object"
+   },
+   "V2AddLocationBody": {
+    "additionalProperties": false,
+    "properties": {
+     "label": {
+      "description": "Unique saved-location label",
+      "type": "string"
+     },
+     "latitude": {
+      "description": "Latitude",
+      "format": "double",
+      "type": "number"
+     },
+     "longitude": {
+      "description": "Longitude",
+      "format": "double",
+      "type": "number"
+     }
+    },
+    "required": [
+     "label",
+     "latitude",
+     "longitude"
+    ],
+    "type": "object"
+   },
+   "V2UpdateLocationBody": {
+    "additionalProperties": false,
+    "properties": {
+     "latitude": {
+      "description": "New latitude",
+      "format": "double",
+      "type": "number"
+     },
+     "longitude": {
+      "description": "New longitude",
+      "format": "double",
+      "type": "number"
+     }
+    },
+    "required": [
+     "latitude",
+     "longitude"
+    ],
+    "type": "object"
    }
   }
  }
