@@ -56,7 +56,8 @@ public interface IPoracleHumanProxy
 
     /// <summary>
     /// Sets user location.
-    /// POST /api/v2/humans/{userId}/location with a {lat,lon} body, or v1's coordinates-in-the-path form.
+    /// POST /api/v2/humans/{userId}/location, with a {latitude,longitude} body where the server's schema declares those
+    /// (<c>PoracleV2Capabilities.V2LocationLatitudeLongitude</c>) and {lat,lon} otherwise, or v1's coordinates-in-the-path form.
     /// </summary>
     public Task SetLocationAsync(string userId, double lat, double lon);
 

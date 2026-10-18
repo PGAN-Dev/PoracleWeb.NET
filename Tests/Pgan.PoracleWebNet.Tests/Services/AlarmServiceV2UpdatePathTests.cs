@@ -72,6 +72,20 @@ public class AlarmServiceV2UpdatePathTests
 
     [Theory]
     [MemberData(nameof(MovedTypes))]
+    public async Task AKeptUidIsNotRemapped(string type)
+    {
+        // Since jfberry/PoracleNG #303 the v2 PUT keeps the rule's uid. Nothing moved, so nothing to follow.
+        this.AcceptV2(type, newUid: 990);
+
+        Assert.Equal(990, await this.UpdateAsync(type, uid: 990));
+
+        this._remapper.Verify(
+            r => r.RemapAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()),
+            Times.Never);
+    }
+
+    [Theory]
+    [MemberData(nameof(MovedTypes))]
     public async Task DecliningV2LeavesTheV1PathExactlyAsItWas(string type)
     {
         // The legitimate-case half. A 5.1.0 server, an operator pinned to v1, or a row v2 cannot carry

@@ -96,6 +96,30 @@ public class UserOwnedOverrideAreaProxyTests
     }
 
     [Fact]
+    public async Task KeptUidWritesOwnedAreasToTheSameRow()
+    {
+        // Since jfberry/PoracleNG #303 the v2 PUT keeps the rule's uid, so the row to write the areas to is
+        // the one that was addressed. The write-back follows whatever the response says, which here is 7.
+        this._inner
+            .Setup(p => p.UpdateByUidAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingUpdateResult(7, true));
+
+        var result = await this.Proxy().UpdateByUidAsync("pokemon", User, 7, Row(
+            """{"uid":7,"pokemon_id":201,"distance":0,"override_areas":["back garden"]}"""));
+
+        Assert.Equal(7, result.Uid);
+        this._writer.Verify(
+            w => w.SetAlarmOverrideAreasAsync(
+                User, "pokemon", 7, It.Is<IReadOnlyCollection<string>>(a => a.Contains("back garden"))),
+            Times.Once);
+        this._writer.Verify(
+            w => w.SetAlarmOverrideAreasAsync(
+                It.IsAny<string>(), It.IsAny<string>(), RotatedUid, It.IsAny<IReadOnlyCollection<string>>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task AnEditThatNamesNoOwnedGeofenceGoesStraightThrough()
     {
         // The legitimate-case half: almost every edit carries no override at all, and this must not add a

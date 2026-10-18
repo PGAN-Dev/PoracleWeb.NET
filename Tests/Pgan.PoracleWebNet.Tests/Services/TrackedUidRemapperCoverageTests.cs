@@ -11,7 +11,8 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 public class TrackedUidRemapperCoverageTests
 {
     /// <summary>
-    /// Every service whose update rotates the uid.
+    /// Every service whose update can rotate the uid: all of them on 5.2.x, and any of them on a server
+    /// carrying jfberry/PoracleNG #303 whose uid reassignment fails.
     /// </summary>
     /// <remarks>
     /// Monsters were the exception until #805: PoracleNG upserts pokemon in place on the v1 surface, so

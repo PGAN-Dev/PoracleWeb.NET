@@ -778,7 +778,7 @@ database whose key has another name and survived the migration.
 
 See #462, #463, #502, #531, #553, #561.
 
-### `/api/v2` Writes: All Ten Types, Edits And Deletes, And Every Type Rotates Its uid
+### `/api/v2` Writes: All Ten Types, Edits And Deletes, And The uid Is Read Back Every Time
 
 PoracleNG 5.2.0 added a second tracking surface. `PUT /api/v2/humans/{id}/tracking/{type}/{uid}` is
 addressed by uid: it 404s when the uid is not that human's and 409s when the replacement would exactly
@@ -840,10 +840,16 @@ write**: `player team leader` is stored as `player_team_leader`, so the ten spac
 rows are repaired by a v2 write rather than refused by it. `genderless` has no v2 representation (the
 enum is `any|male|female`) so a stored gender 3 goes to v1.
 
-**The v2 PUT is delete-then-insert, so every type rotates its uid on edit.** Pokemon was the one exception
-and no longer is. Quick-pick applied state is the thing that actually breaks without the remap (#403), so
-every service hands `ITrackedUidRemapper` to `TrackingV2Replacement.TryApplyAsync`, the shared v2 branch
-each `UpdateAsync` takes before its own v1 path. Callers pass PoracleNG's type name and applied state
+**The v2 PUT is delete-then-insert, so on 5.2.x every type rotates its uid on edit; since
+jfberry/PoracleNG #303 (merged into `develop`, unreleased) it keeps the rule's uid for all eleven types.**
+The engine still deletes and inserts, then runs `UPDATE … SET uid = old`. If that reassignment fails the
+PUT still answers 200, with the new uid, so the response is read every time rather than the uid being
+assumed either way. A returned uid equal to the addressed one means no remap: `TrackingV2Replacement`,
+`MonsterService`, `TrackedUidRemapper` and `UserOwnedOverrideAreaProxy` all treat it that way, and tests
+pin it. Pokemon's uid always survived a v1 edit and rotated on v2 until #303. Quick-pick applied
+state is the thing that actually breaks when a uid does move and nobody follows it (#403), so every service
+hands `ITrackedUidRemapper` to `TrackingV2Replacement.TryApplyAsync`, the shared v2 branch each
+`UpdateAsync` takes before its own v1 path. Callers pass PoracleNG's type name and applied state
 stores the quick pick's, and those differ for exactly one type: `pokemon` against `monster`. The remapper
 translates it. Before it did, no Pokemon pick was ever remapped, and removing one after an edit left the
 alarm behind (present in v2.18.0, found by driving the API against 5.2.1).

@@ -139,6 +139,26 @@ public class MonsterServiceTests
     }
 
     /// <summary>
+    /// Since jfberry/PoracleNG #303 a v2 PUT keeps the rule's uid. A write that went through v2 and came
+    /// back under the uid it was addressed to has nothing to follow, so applied state is left alone.
+    /// </summary>
+    [Fact]
+    public async Task AKeptUidIsNotRemapped()
+    {
+        var monster = new Monster { Uid = 36486, PokemonId = 25 };
+        this._proxy
+            .Setup(p => p.UpdateByUidAsync("pokemon", "user1", 36486, It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingUpdateResult(36486, true));
+
+        var result = await this._sut.UpdateAsync("user1", monster);
+
+        Assert.Equal(36486, result.Uid);
+        this._remapper.Verify(
+            r => r.RemapAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()),
+            Times.Never);
+    }
+
+    /// <summary>
     /// A proxy that named no uid -- an unparseable 200, or a v1 response carrying no newUids -- must leave
     /// the alarm where it was rather than moving it to 0.
     /// </summary>
