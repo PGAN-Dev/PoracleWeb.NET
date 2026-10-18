@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using Pgan.PoracleWebNet.Api.Services;
 
@@ -8,13 +9,22 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 /// <summary>
 /// The bounds on the impersonation check during an outage, and what they must not change outside one.
 /// </summary>
+/// <remarks>
+/// The probe's budget and quiet window run on a <see cref="FakeTimeProvider"/>, so neither elapses unless a
+/// test advances it. On the wall clock a 200 ms budget raced the probe's own <c>Task.Run</c>, and on a loaded
+/// CI runner the timer won often enough to bounce merge-queue runs: a healthy resolve came back unresolved.
+/// </remarks>
 public class ImpersonationRoleProbeTests
 {
     private const string Delegate = "delegate-1";
     private static readonly UserRoles Granted = new(false, ["webhook-1"]);
     private static readonly UserRoles Unresolved = new(false, null, Resolved: false);
 
+    /// <summary>A real-time cap on any wait below, so a broken probe fails the test instead of hanging it.</summary>
+    private static readonly TimeSpan Patience = TimeSpan.FromSeconds(10);
+
     private readonly Mock<IUserRoleResolver> _resolver = new();
+    private readonly FakeTimeProvider _time = new();
     private int _calls;
 
     private ImpersonationRoleProbe Probe(TimeSpan? budget = null, TimeSpan? quietFor = null)
@@ -23,7 +33,8 @@ public class ImpersonationRoleProbeTests
         services.AddScoped(_ => this._resolver.Object);
         return new ImpersonationRoleProbe(
             services.BuildServiceProvider().GetRequiredService<IServiceScopeFactory>(),
-            NullLogger<ImpersonationRoleProbe>.Instance)
+            NullLogger<ImpersonationRoleProbe>.Instance,
+            this._time)
         {
             Budget = budget ?? TimeSpan.FromMilliseconds(200),
             QuietFor = quietFor ?? TimeSpan.FromSeconds(30),
@@ -36,6 +47,34 @@ public class ImpersonationRoleProbeTests
             Interlocked.Increment(ref this._calls);
             return answer();
         });
+
+    /// <summary>
+    /// Advances the fake clock past the budget until <paramref name="pending"/> finishes. The probe registers
+    /// its budget timer only once it reaches its <c>await</c>, so a single advance can land before the timer
+    /// exists; advancing again until the call returns removes that race.
+    /// </summary>
+    private async Task<UserRoles> OutlastTheBudgetAsync(Task<UserRoles> pending, TimeSpan budget)
+    {
+        var deadline = DateTime.UtcNow + Patience;
+        while (!pending.IsCompleted && DateTime.UtcNow < deadline)
+        {
+            this._time.Advance(budget);
+            await Task.Delay(10);
+        }
+
+        return await pending.WaitAsync(Patience);
+    }
+
+    /// <summary>Polls until <paramref name="condition"/> holds, failing the test after <see cref="Patience"/>.</summary>
+    private static async Task EventuallyAsync(Func<Task<bool>> condition, string what)
+    {
+        var deadline = DateTime.UtcNow + Patience;
+        while (!await condition())
+        {
+            Assert.True(DateTime.UtcNow < deadline, $"timed out waiting for {what}");
+            await Task.Delay(10);
+        }
+    }
 
     [Fact]
     public async Task AHealthySourceIsAskedEveryTimeSoRevocationIsImmediate()
@@ -52,14 +91,28 @@ public class ImpersonationRoleProbeTests
     [Fact]
     public async Task AResolveThatOutlivesTheBudgetIsUnresolved()
     {
+        var never = new TaskCompletionSource<UserRoles>(TaskCreationOptions.RunContinuationsAsynchronously);
         var probe = this.Probe();
-        this.Answers(async () => { await Task.Delay(TimeSpan.FromSeconds(5)); return Granted; });
+        this.Answers(() => never.Task);
 
-        var clock = System.Diagnostics.Stopwatch.StartNew();
-        var roles = await probe.ResolveAsync(Delegate);
+        var roles = await this.OutlastTheBudgetAsync(probe.ResolveAsync(Delegate), TimeSpan.FromMilliseconds(200));
 
         Assert.False(roles.Resolved);
-        Assert.True(clock.Elapsed < TimeSpan.FromSeconds(2), $"took {clock.Elapsed}");
+    }
+
+    [Fact]
+    public async Task AResolveWithinTheBudgetIsNotCutShortByASlowScheduler()
+    {
+        // The clock never moves, so however long the resolve takes to be scheduled, the budget cannot expire.
+        var answer = new TaskCompletionSource<UserRoles>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var probe = this.Probe();
+        this.Answers(() => answer.Task);
+
+        var pending = probe.ResolveAsync(Delegate);
+        await Task.Delay(300);
+        answer.SetResult(Granted);
+
+        Assert.True((await pending.WaitAsync(Patience)).Resolved);
     }
 
     [Fact]
@@ -82,7 +135,7 @@ public class ImpersonationRoleProbeTests
         this.Answers(() => Task.FromResult(Unresolved));
         await probe.ResolveAsync(Delegate);
 
-        await Task.Delay(200);
+        this._time.Advance(TimeSpan.FromMilliseconds(200));
         this.Answers(() => Task.FromResult(Granted));
 
         Assert.True((await probe.ResolveAsync(Delegate)).Resolved);
@@ -94,14 +147,15 @@ public class ImpersonationRoleProbeTests
         var late = new TaskCompletionSource<UserRoles>(TaskCreationOptions.RunContinuationsAsynchronously);
         var probe = this.Probe();
         this.Answers(() => late.Task);
-        Assert.False((await probe.ResolveAsync(Delegate)).Resolved);
+        Assert.False((await this.OutlastTheBudgetAsync(probe.ResolveAsync(Delegate), TimeSpan.FromMilliseconds(200))).Resolved);
 
-        late.SetResult(Granted);
-        await Task.Delay(100);
         this.Answers(() => Task.FromResult(new UserRoles(false, null)));
+        late.SetResult(Granted);
 
-        var roles = await probe.ResolveAsync(Delegate);
-        Assert.True(roles.Resolved);
+        // The 30 s quiet window cannot run out on its own: the clock is no longer advanced. Only the late
+        // answer closing it lets a resolve through.
+        UserRoles roles = Unresolved;
+        await EventuallyAsync(async () => (roles = await probe.ResolveAsync(Delegate)).Resolved, "the quiet window to close");
         Assert.Null(roles.ManagedWebhooks);
     }
 
@@ -113,9 +167,8 @@ public class ImpersonationRoleProbeTests
         this.Answers(() => gate.Task);
 
         var waiting = Enumerable.Range(0, 5).Select(_ => probe.ResolveAsync(Delegate)).ToList();
-        await Task.Delay(100);
         gate.SetResult(Granted);
-        await Task.WhenAll(waiting);
+        await Task.WhenAll(waiting).WaitAsync(Patience);
 
         Assert.Equal(1, this._calls);
         Assert.All(waiting, w => Assert.True(w.Result.Resolved));
