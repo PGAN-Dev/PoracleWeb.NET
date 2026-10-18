@@ -1,375 +1,792 @@
 {
- "components": {
-  "schemas": {
-   "StatusOKOutputBody": {
-    "additionalProperties": false,
-    "properties": {
-     "status": {
-      "description": "Always \"ok\" on success",
-      "type": "string"
-     }
-    },
-    "required": [
-     "status"
-    ],
-    "type": "object"
-   },
-   "V2AccountItem": {
-    "additionalProperties": false,
-    "properties": {
-     "created_at": {
-      "description": "When the account was linked.",
-      "format": "date-time",
-      "type": "string"
-     },
-     "label": {
-      "description": "Optional label, unique per human (case-insensitive). null when unset.",
-      "type": [
-       "string",
-       "null"
-      ]
-     },
-     "player_id": {
-      "description": "Game player ID: 1-256 ASCII letters or digits, case-sensitive.",
-      "type": "string"
-     }
-    },
-    "required": [
-     "player_id",
-     "label",
-     "created_at"
-    ],
-    "type": "object"
-   },
-   "V2AccountsOutputBody": {
-    "additionalProperties": false,
-    "properties": {
-     "accounts": {
-      "items": {
-       "$ref": "#/components/schemas/V2AccountItem"
-      },
-      "type": [
-       "array",
-       "null"
-      ]
-     }
-    },
-    "required": [
-     "accounts"
-    ],
-    "type": "object"
-   },
-   "V2AddAccountBody": {
-    "additionalProperties": false,
-    "properties": {
-     "label": {
-      "description": "Optional label, unique per human.",
-      "maxLength": 64,
-      "type": "string"
-     },
-     "player_id": {
-      "description": "Game player ID: 1-256 ASCII letters or digits, case-sensitive.",
-      "maxLength": 256,
-      "minLength": 1,
-      "pattern": "^[A-Za-z0-9]+$",
-      "type": "string"
-     }
-    },
-    "required": [
-     "player_id"
-    ],
-    "type": "object"
-   },
-   "V2AddAccountOutputBody": {
-    "additionalProperties": false,
-    "properties": {
-     "account": {
-      "$ref": "#/components/schemas/V2AccountItem"
-     }
-    },
-    "required": [
-     "account"
-    ],
-    "type": "object"
-   },
-   "V2LabelAccountBody": {
-    "additionalProperties": false,
-    "properties": {
-     "label": {
-      "description": "New label; empty clears it.",
-      "maxLength": 64,
-      "type": "string"
-     }
-    },
-    "required": [
-     "label"
-    ],
-    "type": "object"
-   },
-   "V2PokemonRule": {
-    "additionalProperties": false,
-    "properties": {
-     "personal_background": {
-      "description": "Only alert when the pokemon has the special (event) background for one of the human's linked accounts (personal bitmask bit 2). Same requirements as personal_shiny; when both are set both must hold. Omit for false. Returned as null when false.",
-      "type": [
-       "boolean",
-       "null"
-      ]
-     },
-     "personal_shiny": {
-      "description": "Only alert when the pokemon is shiny for one of the human's linked game accounts (personal bitmask bit 1). Needs the server's [shiny_rates] feed; matches nothing until it loads or while the human has no linked accounts. Omit for false. Returned as null when false.",
-      "type": [
-       "boolean",
-       "null"
-      ]
-     },
-     "ping": {
-      "description": "Text appended to the alert, typically Discord role/user mentions. Stored verbatim \u2014 not restricted to mention tokens as the bot is, so @everyone/@here in a channel rule will ping. Omit for none. Returned as null when empty.",
-      "maxLength": 255,
-      "type": [
-       "string",
-       "null"
-      ]
-     }
-    },
-    "type": "object"
-   }
-  }
- },
- "info": {
-  "title": "PoracleNG API",
-  "version": "5.3.0"
- },
- "paths": {
-  "/v2/humans/{id}/accounts": {
-   "get": {
-    "operationId": "v2-list-human-accounts",
-    "parameters": [
-     {
-      "description": "Human id",
-      "in": "path",
-      "name": "id",
-      "required": true,
-      "schema": {
-       "description": "Human id",
-       "type": "string"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/V2AccountsOutputBody"
-        }
-       }
-      },
-      "description": "OK"
-     },
-     "default": {
-      "content": {
-       "application/problem+json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorModel"
-        }
-       }
-      },
-      "description": "Error"
-     }
-    },
-    "security": [
-     {
-      "poracleSecret": []
-     }
-    ],
-    "summary": "List a human's linked game accounts",
-    "tags": [
-     "v2-accounts"
-    ]
-   },
-   "post": {
-    "description": "Links a player ID to the human. 409 if the player ID or label is already linked to this human; 422 when invalid or over the 50-account limit. Triggers a state reload.",
-    "operationId": "v2-add-human-account",
-    "parameters": [
-     {
-      "description": "Human id",
-      "in": "path",
-      "name": "id",
-      "required": true,
-      "schema": {
-       "description": "Human id",
-       "type": "string"
-      }
-     }
-    ],
-    "requestBody": {
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/V2AddAccountBody"
-       }
-      }
-     },
-     "required": true
-    },
-    "responses": {
-     "201": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/V2AddAccountOutputBody"
-        }
-       }
-      },
-      "description": "Created"
-     },
-     "default": {
-      "content": {
-       "application/problem+json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorModel"
-        }
-       }
-      },
-      "description": "Error"
-     }
-    },
-    "security": [
-     {
-      "poracleSecret": []
-     }
-    ],
-    "summary": "Link a game account",
-    "tags": [
-     "v2-accounts"
-    ]
-   }
+  "x-source": "trimmed from a live capture of jfberry/PoracleNG feat/personal-shiny @ 37cc7a33 (/openapi.json, dev-01 test bed, 2026-10-18)",
+  "info": {
+    "title": "PoracleNG API",
+    "version": "5.3.0"
   },
-  "/v2/humans/{id}/accounts/{player_id}": {
-   "delete": {
-    "operationId": "v2-delete-human-account",
-    "parameters": [
-     {
-      "description": "Human id",
-      "in": "path",
-      "name": "id",
-      "required": true,
-      "schema": {
-       "description": "Human id",
-       "type": "string"
-      }
-     },
-     {
-      "description": "Game player ID (ASCII letters or digits, case-sensitive).",
-      "in": "path",
-      "name": "player_id",
-      "required": true,
-      "schema": {
-       "description": "Game player ID (ASCII letters or digits, case-sensitive).",
-       "type": "string"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/StatusOKOutputBody"
-        }
-       }
+  "paths": {
+    "/v2/humans/{id}/accounts": {
+      "get": {
+        "operationId": "v2-list-human-accounts",
+        "parameters": [
+          {
+            "description": "Human id (the owning user)",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Human id (the owning user)",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2AccountsOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "poracleSecret": []
+          }
+        ],
+        "summary": "List a human's linked game accounts",
+        "tags": [
+          "v2-accounts"
+        ]
       },
-      "description": "OK"
-     },
-     "default": {
-      "content": {
-       "application/problem+json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorModel"
-        }
-       }
-      },
-      "description": "Error"
-     }
+      "post": {
+        "description": "Links a player ID to the human. 409 if the player ID or label is already linked to this human; 422 when invalid or over the 50-account limit. Triggers a state reload.",
+        "operationId": "v2-add-human-account",
+        "parameters": [
+          {
+            "description": "Human id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Human id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2AddAccountBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2AccountCreatedOutputBody"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "poracleSecret": []
+          }
+        ],
+        "summary": "Link a game account",
+        "tags": [
+          "v2-accounts"
+        ]
+      }
     },
-    "security": [
-     {
-      "poracleSecret": []
-     }
-    ],
-    "summary": "Unlink a game account",
-    "tags": [
-     "v2-accounts"
-    ]
-   },
-   "put": {
-    "operationId": "v2-label-human-account",
-    "parameters": [
-     {
-      "description": "Human id",
-      "in": "path",
-      "name": "id",
-      "required": true,
-      "schema": {
-       "description": "Human id",
-       "type": "string"
-      }
-     },
-     {
-      "description": "Game player ID (ASCII letters or digits, case-sensitive).",
-      "in": "path",
-      "name": "player_id",
-      "required": true,
-      "schema": {
-       "description": "Game player ID (ASCII letters or digits, case-sensitive).",
-       "type": "string"
-      }
-     }
-    ],
-    "requestBody": {
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/V2LabelAccountBody"
-       }
-      }
-     },
-     "required": true
-    },
-    "responses": {
-     "200": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/StatusOKOutputBody"
-        }
-       }
+    "/v2/humans/{id}/accounts/{player_id}": {
+      "delete": {
+        "operationId": "v2-delete-human-account",
+        "parameters": [
+          {
+            "description": "Human id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Human id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Game player ID (ASCII letters or digits, case-sensitive).",
+            "in": "path",
+            "name": "player_id",
+            "required": true,
+            "schema": {
+              "description": "Game player ID (ASCII letters or digits, case-sensitive).",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusOKOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "poracleSecret": []
+          }
+        ],
+        "summary": "Unlink a game account",
+        "tags": [
+          "v2-accounts"
+        ]
       },
-      "description": "OK"
-     },
-     "default": {
-      "content": {
-       "application/problem+json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorModel"
-        }
-       }
+      "put": {
+        "operationId": "v2-label-human-account",
+        "parameters": [
+          {
+            "description": "Human id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Human id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Game player ID (ASCII letters or digits, case-sensitive).",
+            "in": "path",
+            "name": "player_id",
+            "required": true,
+            "schema": {
+              "description": "Game player ID (ASCII letters or digits, case-sensitive).",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2LabelAccountInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusOKOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "poracleSecret": []
+          }
+        ],
+        "summary": "Set or clear a linked account's label",
+        "tags": [
+          "v2-accounts"
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ErrorDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "location": {
+            "description": "Where the error occurred, e.g. 'body.items[3].tags' or 'path.thing-id'",
+            "type": "string"
+          },
+          "message": {
+            "description": "Error message text",
+            "type": "string"
+          },
+          "value": {
+            "description": "The value at the given location"
+          }
+        },
+        "type": "object"
       },
-      "description": "Error"
-     }
-    },
-    "security": [
-     {
-      "poracleSecret": []
-     }
-    ],
-    "summary": "Set or clear a linked account's label",
-    "tags": [
-     "v2-accounts"
-    ]
-   }
+      "ErrorModel": {
+        "additionalProperties": false,
+        "properties": {
+          "detail": {
+            "description": "A human-readable explanation specific to this occurrence of the problem.",
+            "examples": [
+              "Property foo is required but is missing."
+            ],
+            "type": "string"
+          },
+          "errors": {
+            "description": "Optional list of individual error details",
+            "items": {
+              "$ref": "#/components/schemas/ErrorDetail"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "instance": {
+            "description": "A URI reference that identifies the specific occurrence of the problem.",
+            "examples": [
+              "https://example.com/error-log/abc123"
+            ],
+            "format": "uri",
+            "type": "string"
+          },
+          "status": {
+            "description": "HTTP status code",
+            "examples": [
+              400
+            ],
+            "format": "int64",
+            "type": "integer"
+          },
+          "title": {
+            "description": "A short, human-readable summary of the problem type. This value should not change between occurrences of the error.",
+            "examples": [
+              "Bad Request"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "default": "about:blank",
+            "description": "A URI reference to human-readable documentation for the error.",
+            "examples": [
+              "https://example.com/errors/example"
+            ],
+            "format": "uri",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "StatusOKOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "description": "Always \"ok\" on success",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "type": "object"
+      },
+      "V2AccountCreatedOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "account": {
+            "$ref": "#/components/schemas/V2AccountItem"
+          }
+        },
+        "required": [
+          "account"
+        ],
+        "type": "object"
+      },
+      "V2AccountItem": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "description": "When the account was linked.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "label": {
+            "description": "Optional label, unique per human (case-insensitive). null when unset.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "player_id": {
+            "description": "Game player ID: 1-256 ASCII letters or digits, case-sensitive.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "player_id",
+          "label",
+          "created_at"
+        ],
+        "type": "object"
+      },
+      "V2AccountsOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "accounts": {
+            "items": {
+              "$ref": "#/components/schemas/V2AccountItem"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "accounts"
+        ],
+        "type": "object"
+      },
+      "V2AddAccountBody": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "description": "Optional label, unique per human.",
+            "maxLength": 64,
+            "type": "string"
+          },
+          "player_id": {
+            "description": "Game player ID: 1-256 ASCII letters or digits, case-sensitive.",
+            "maxLength": 256,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9]+$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "player_id"
+        ],
+        "type": "object"
+      },
+      "V2LabelAccountInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "description": "New label; empty clears it.",
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "type": "object"
+      },
+      "V2PokemonRule": {
+        "additionalProperties": false,
+        "properties": {
+          "atk": {
+            "description": "Minimum ATK IV (0-15). Omit to impose no floor (stored as 0 = no floor). Returned as null when at its wildcard.",
+            "format": "int64",
+            "maximum": 15,
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "clean": {
+            "description": "Auto-delete the alert on expiry (clean bitmask bit 1). Omit to disable (default false). Returned as null when false.",
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "costume": {
+            "description": "Costume id. Omit/null = any (stored 9000). 0 = no costume. N = that costume.",
+            "format": "int64",
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "def": {
+            "description": "Minimum DEF IV (0-15). Omit to impose no floor (stored as 0 = no floor). Returned as null when at its wildcard.",
+            "format": "int64",
+            "maximum": 15,
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "distance": {
+            "description": "Radius in metres around the anchor location. Omit (or 0) to match by the profile's geofence areas instead of a radius \u2014 0 means area-based, NOT zero metres (stored as 0). Values above the server's [tracking] max_distance are clamped to it. Returned as null when at its wildcard.",
+            "format": "int64",
+            "maximum": 40000000,
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "edit": {
+            "description": "Edit the original alert in place when the same encounter is re-sent (IV reveal, weather boost, species/form change), while the alert is within the server's pokemon_edit_window_mins (default 5); later updates arrive as threaded replies. The operator can disable pokemon edit ([tracking] pokemon_edit). Clean bitmask bit 2. Omit to disable (default false). Returned as null when false.",
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "form": {
+            "description": "Form id (game-master). Omit to match any form (stored as 0 = any). Returned as null when at its wildcard.",
+            "format": "int64",
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "gender": {
+            "description": "Gender filter: any|male|female|genderless. Omit to match any gender (defaults to 'any', stored as 0). Returned as null when 'any'.",
+            "enum": [
+              "any",
+              "male",
+              "female",
+              "genderless"
+            ],
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "max_atk": {
+            "description": "Maximum ATK IV (0-15). Omit to impose no ceiling (stored as 15 = the IV ceiling, i.e. no upper bound). Returned as null when at its wildcard.",
+            "format": "int64",
+            "maximum": 15,
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "max_cp": {
+            "description": "Maximum CP. Omit to impose no upper bound (stored as 9000 = the CP cap sentinel, i.e. no upper bound). Returned as null when at its wildcard.",
+            "format": "int64",
+            "maximum": 9000,
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "max_def": {
+            "description": "Maximum DEF IV (0-15). Omit to impose no ceiling (stored as 15 = the IV ceiling, i.e. no upper bound). Returned as null when at its wildcard.",
+            "format": "int64",
+            "maximum": 15,
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "max_iv": {
+            "description": "Maximum IV %. Omit to impose no upper bound (stored as 100 = the IV ceiling, i.e. no upper bound). Returned as null when at its wildcard.",
+            "format": "int64",
+            "maximum": 100,
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "max_level": {
+            "description": "Maximum encounter level. Omit to impose no upper bound (stored as 55 = the level ceiling, i.e. no upper bound). Returned as null when at its wildcard.",
+            "format": "int64",
+            "maximum": 55,
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "max_rarity": {
+            "description": "Maximum rarity tier (1-6). Omit to impose no upper bound (stored as 6 = the top tier, i.e. no upper bound). Returned as null when at its wildcard.",
+            "format": "int64",
+            "maximum": 6,
+            "minimum": 1,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "max_size": {
+            "description": "Maximum size tier (1-5). Omit to impose no upper bound (stored as 5 = the top tier, i.e. no upper bound). Returned as null when at its wildcard.",
+            "format": "int64",
+            "maximum": 5,
+            "minimum": 1,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "max_sta": {
+            "description": "Maximum STA IV (0-15). Omit to impose no ceiling (stored as 15 = the IV ceiling, i.e. no upper bound). Returned as null when at its wildcard.",
+            "format": "int64",
+            "maximum": 15,
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "max_weight": {
+            "description": "Maximum weight in grams. Omit to impose no upper bound (stored as 9000000 = no upper weight sentinel). Returned as null when at its wildcard.",
+            "format": "int64",
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "min_cp": {
+            "description": "Minimum CP. Omit to impose no lower bound (stored as 0 = no lower bound). Returned as null when at its wildcard.",
+            "format": "int64",
+            "maximum": 9000,
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "min_iv": {
+            "description": "Minimum IV %. Omit to impose no lower bound (stored as -1 = no lower bound). Returned as null when at its wildcard.",
+            "format": "int64",
+            "maximum": 100,
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "min_level": {
+            "description": "Minimum encounter level. Omit to impose no lower bound (stored as 0 = no lower bound). Returned as null when at its wildcard.",
+            "format": "int64",
+            "maximum": 55,
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "min_time": {
+            "description": "Minimum seconds remaining on the spawn. Omit to impose no minimum (stored as 0 = no minimum). Returned as null when at its wildcard.",
+            "format": "int64",
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "min_weight": {
+            "description": "Minimum weight in grams. Omit to impose no lower bound (stored as 0 = no lower bound). Returned as null when at its wildcard.",
+            "format": "int64",
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "override_areas": {
+            "description": "Restrict this rule to these geofence areas (mutually exclusive with distance > 0 and override_location_label). Omit for none. Returned as null when unset.",
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "override_location_label": {
+            "description": "Saved-location label to use instead of the profile location (requires distance > 0; mutually exclusive with override_areas). Omit for none. Returned as null when unset.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "personal_background": {
+            "description": "Only alert when the pokemon has the special (event) background for one of the human's linked accounts (personal bitmask bit 2). Same requirements as personal_shiny; when both are set both must hold. Omit for false. Returned as null when false.",
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "personal_shiny": {
+            "description": "Only alert when the pokemon is shiny for one of the human's linked game accounts (personal bitmask bit 1). Needs the server's [shiny_rates] feed; matches nothing until it loads or while the human has no linked accounts. Omit for false. Returned as null when false.",
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "ping": {
+            "description": "Text appended to the alert, typically Discord role/user mentions. Stored verbatim \u2014 not restricted to mention tokens as the bot is, so @everyone/@here in a channel rule will ping. Omit for none. Returned as null when empty.",
+            "maxLength": 255,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "pokemon_id": {
+            "description": "Pok\u00e9dex id. Omit (or null) for the catch-all that matches EVERY pokemon \u2014 stored as 0. Returned as null for the catch-all.",
+            "format": "int64",
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "pvp_ranking_best": {
+            "description": "Best (lowest, 1-based) PVP rank to alert on. Omit to start from rank 1 (stored as 1 = best possible rank). Returned as null when at its wildcard.",
+            "format": "int64",
+            "maximum": 4096,
+            "minimum": 1,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "pvp_ranking_cap": {
+            "description": "PVP level cap. Omit to use the league default cap (stored as 0 = league default). Returned as null when at its wildcard.",
+            "format": "int64",
+            "maximum": 100,
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "pvp_ranking_evolution": {
+            "description": "Temp-evolution (mega) PVP discriminator selecting which evolution's PVP rank this rule alerts on: 0 = base form, 1 = Mega, 2 = Mega X, 3 = Mega Y. Omit for base form (stored as 0). Returned as null when at its wildcard (0).",
+            "format": "int64",
+            "maximum": 3,
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "pvp_ranking_league": {
+            "description": "PVP league CP cap (the stored int IS the cap): 0 | 500 | 1500 | 2500. Omit (or 0) for IV-mode tracking with no PVP filter (stored as 0 = none/IV mode). Returned as null when at its wildcard.",
+            "enum": [
+              0,
+              500,
+              1500,
+              2500
+            ],
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "pvp_ranking_min_cp": {
+            "description": "PVP CP floor. Omit to impose no floor (stored as 0 = no floor). Returned as null when at its wildcard.",
+            "format": "int64",
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "pvp_ranking_worst": {
+            "description": "Worst (highest) PVP rank to alert on. Omit to impose no upper rank limit (stored as 4096 = no upper rank limit sentinel; PVP ranks never exceed it). Returned as null when at its wildcard.",
+            "format": "int64",
+            "maximum": 4096,
+            "minimum": 1,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "rarity": {
+            "description": "Minimum rarity tier. Omit to match any rarity (stored as -1 = any). Returned as null when at its wildcard.",
+            "format": "int64",
+            "maximum": 6,
+            "minimum": 1,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "size": {
+            "description": "Minimum size tier. Omit to match any size (stored as -1 = any). Returned as null when at its wildcard.",
+            "format": "int64",
+            "maximum": 5,
+            "minimum": 1,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "sta": {
+            "description": "Minimum STA IV (0-15). Omit to impose no floor (stored as 0 = no floor). Returned as null when at its wildcard.",
+            "format": "int64",
+            "maximum": 15,
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "summary": {
+            "description": "Route into the summary digest (clean bitmask bit 4). Omit to disable (default false). Returned as null when false.",
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "template": {
+            "description": "DTS template name. Omit (or empty) to use the server's configured default template (stored as \"\"). Returned as null when at its wildcard.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      }
+    }
   }
- },
- "x-source": "hand-trimmed from jfberry/PoracleNG feat/personal-shiny source @ 37cc7a33; replace with a live capture"
 }

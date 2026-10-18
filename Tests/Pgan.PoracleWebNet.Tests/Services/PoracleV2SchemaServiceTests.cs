@@ -67,9 +67,9 @@ public class PoracleV2SchemaServiceTests
     }
 
     /// <summary>
-    /// The fixture is hand-trimmed from the Go source of jfberry/PoracleNG <c>feat/personal-shiny</c>
-    /// (see its <c>x-source</c>), not captured live, so this proves the parser reads the document shape
-    /// huma generates for those declarations -- replace the fixture with a live capture when a build exists.
+    /// The fixture is a live capture of jfberry/PoracleNG <c>feat/personal-shiny</c> at <c>37cc7a33</c>,
+    /// trimmed to <c>V2PokemonRule</c> and the account routes with the schemas they reference (see its
+    /// <c>x-source</c>). It replaced a hand-written one; the field and path spellings matched.
     /// </summary>
     [Fact]
     public void ThePersonalShinyBranchCarriesPersonalTrackingAndAccounts()
