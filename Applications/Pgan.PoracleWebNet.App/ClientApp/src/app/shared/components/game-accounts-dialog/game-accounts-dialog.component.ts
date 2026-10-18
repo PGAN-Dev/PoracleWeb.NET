@@ -5,14 +5,20 @@ import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/materia
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
 import { PlayerAccount } from '../../../core/models';
 import { AuthService } from '../../../core/services/auth.service';
 import { PlayerAccountService } from '../../../core/services/player-account.service';
 import { PoracleConfigService } from '../../../core/services/poracle-config.service';
 import { SettingsService } from '../../../core/services/settings.service';
+
+/** PoracleNG's player id rule: 1-256 ASCII letters or digits. */
+const PLAYER_ID = /^[A-Za-z0-9]{1,256}$/;
+/** A Pokemon GO friend (trainer) code: twelve digits, often typed with spaces. */
+const FRIEND_CODE = /^\d{12}$/;
 
 export interface GameAccountsDialogData {
   /** The name to show when an administrator is managing someone else's accounts. */
@@ -45,6 +51,8 @@ export class GameAccountsDialogComponent implements OnInit, OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly poracleConfig = inject(PoracleConfigService);
   private readonly settings = inject(SettingsService);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly translate = inject(TranslateService);
 
   protected readonly accounts = inject(PlayerAccountService);
   readonly busy = signal(false);
@@ -63,10 +71,39 @@ export class GameAccountsDialogComponent implements OnInit, OnDestroy {
       (!this.auth.isImpersonating() && (!!this.poracleConfig.serverConfig().playerAccountsSelfService || this.auth.isAdmin())),
   );
 
-  readonly dialogRef = inject(MatDialogRef<GameAccountsDialogComponent>);
-
   readonly label = signal('');
+
+  /** Labels are unique per human and compared case-insensitively, as PoracleNG compares them. */
+  readonly labelError = computed<null | string>(() => {
+    const label = this.label().trim().toLowerCase();
+    if (label.length === 0) return null;
+    return (this.accounts.accounts() ?? []).some(a => (a.label ?? '').toLowerCase() === label) ? 'GAME_ACCOUNTS.ERROR_LABEL_TAKEN' : null;
+  });
+
   readonly playerId = signal('');
+
+  /** Twelve digits is the shape of a friend code, which people reach for first. Allowed, but worth a word. */
+  readonly looksLikeFriendCode = computed(() => FRIEND_CODE.test(this.playerId().replace(/\s/g, '')));
+
+  /**
+   * What is wrong with the typed player id, checked before anything is sent. The pattern is PoracleNG's
+   * own (letters and digits, 1-256); its refusal is a regex nobody should have to read. A duplicate is
+   * exact, because player ids are case-sensitive.
+   */
+  readonly playerIdError = computed<null | string>(() => {
+    const id = this.playerId();
+    if (id.length === 0) return null;
+    // A friend code typed with its spaces fails the pattern; naming what it is helps more than the rule does.
+    if (!PLAYER_ID.test(id)) return this.looksLikeFriendCode() ? 'GAME_ACCOUNTS.FRIEND_CODE_WARNING' : 'GAME_ACCOUNTS.ERROR_INVALID';
+    if ((this.accounts.accounts() ?? []).some(a => a.playerId === id)) return 'GAME_ACCOUNTS.ERROR_DUPLICATE';
+    return null;
+  });
+
+  readonly canAdd = computed(
+    () => this.canEdit() && !this.busy() && this.playerId().trim().length > 0 && !this.playerIdError() && !this.labelError(),
+  );
+
+  readonly dialogRef = inject(MatDialogRef<GameAccountsDialogComponent>);
 
   /** Read-only because of impersonation, which the API reports before self-service, so it gets its own words. */
   readonly readOnlyByImpersonation = computed(() => !this.isAdminView && this.auth.isImpersonating());
@@ -78,9 +115,8 @@ export class GameAccountsDialogComponent implements OnInit, OnDestroy {
 
   add(): void {
     const playerId = this.playerId();
-    // Blank is the only thing refused here. The id itself is never trimmed or case-folded: the server is
-    // the judge of what a valid player id is, and it is case-sensitive.
-    if (!this.canEdit() || this.busy() || playerId.trim().length === 0) return;
+    // Never trimmed or case-folded: player ids are case-sensitive, and the pattern already refuses spaces.
+    if (!this.canAdd()) return;
 
     this.busy.set(true);
     this.accounts.add(playerId, this.label().trim(), this.data.userId).subscribe({
@@ -107,15 +143,34 @@ export class GameAccountsDialogComponent implements OnInit, OnDestroy {
   relabel(account: PlayerAccount, value: string): void {
     const label = value.trim();
     if (!this.canEdit() || label === (account.label ?? '')) return;
-    this.accounts.relabel(account.playerId, label, this.data.userId).subscribe({ error: () => undefined });
+    this.accounts.relabel(account.playerId, label, this.data.userId).subscribe({
+      error: () => undefined,
+      next: () => this.snackBar.open(this.translate.instant('GAME_ACCOUNTS.LABEL_SAVED'), undefined, { duration: 2000 }),
+    });
   }
 
   reload(): void {
     this.accounts.load(this.data.userId).subscribe();
   }
 
+  /**
+   * Unlinks at once, with an Undo: removing the last account silently turns every personal rule into one
+   * that matches nothing, so a slip has to be cheap to take back. Undo re-links with the same label.
+   */
   unlink(playerId: string): void {
     if (!this.canEdit()) return;
-    this.accounts.remove(playerId, this.data.userId).subscribe({ error: () => undefined });
+    const label = (this.accounts.accounts() ?? []).find(a => a.playerId === playerId)?.label ?? '';
+    const userId = this.data.userId;
+    this.accounts.remove(playerId, userId).subscribe({
+      error: () => undefined,
+      next: () => {
+        const ref = this.snackBar.open(
+          this.translate.instant('GAME_ACCOUNTS.UNLINKED', { name: label || playerId }),
+          this.translate.instant('GAME_ACCOUNTS.UNDO'),
+          { duration: 6000 },
+        );
+        ref.onAction().subscribe(() => this.accounts.add(playerId, label, userId).subscribe({ error: () => undefined }));
+      },
+    });
   }
 }

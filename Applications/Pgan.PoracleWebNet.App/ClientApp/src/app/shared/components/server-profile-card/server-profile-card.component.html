@@ -44,6 +44,13 @@
         <!-- A rolling channel: comparable to nothing, but the latest release is still worth naming. -->
         <p class="server-current">{{ 'ADMIN.UPDATE_UNCOMPARABLE' | translate: { latest: p.webUpdate.latest } }}</p>
       }
+      @if (buildInfo.channel() === 'experimental') {
+        <!-- What the user menu's Experimental chip used to say in a tooltip, for the people it concerns. -->
+        <div class="server-alert server-alert-info server-experimental">
+          <mat-icon>science</mat-icon>
+          <span>{{ 'ADMIN.EXPERIMENTAL_BUILD' | translate }}</span>
+        </div>
+      }
 
       <!-- The Poracle it talks to -->
       <h3 class="server-section">{{ 'ADMIN.SERVER_TITLE' | translate }}</h3>

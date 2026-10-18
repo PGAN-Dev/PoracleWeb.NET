@@ -370,8 +370,9 @@ export class PokemonListComponent implements OnInit {
     }
   }
 
-  getPokemonImage(pokemonId: number, form: number): string {
-    return this.iconService.getPokemonUrl(pokemonId, form);
+  /** A "shiny for me" rule is drawn with the shiny sprite, so the card shows what the rule waits for. */
+  getPokemonImage(pokemonId: number, form: number, personal?: number): string {
+    return this.iconService.getPokemonUrl(pokemonId, form, personalIsShiny(personal ?? 0));
   }
 
   getPokemonName(id: number): string {
@@ -495,6 +496,11 @@ export class PokemonListComponent implements OnInit {
 
   onImageError(event: Event, pokemonId: number): void {
     const img = event.target as HTMLImageElement;
+    // Not every icon pack has shiny art: drop to the ordinary sprite of the same form before the base one.
+    if (img.src.endsWith('_s.png')) {
+      img.src = img.src.slice(0, -'_s.png'.length) + '.png';
+      return;
+    }
     const fallback = this.iconService.getPokemonFallbackUrl(pokemonId);
     if (!img.src.endsWith(`/${pokemonId}.png`)) {
       img.src = fallback;

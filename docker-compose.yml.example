@@ -1,8 +1,10 @@
 services:
   poracleweb.net:
     container_name: poracleweb.net
-    # Default: pull the published image from GitHub Container Registry.
-    image: ghcr.io/pgan-dev/poracleweb.net:latest
+    # Default on the experimental/shiny branch: the experimental image, which follows the newest
+    # -shiny.N prerelease. It needs a PoracleNG with personal shiny support; see
+    # docs/features/personal-shiny.md. The official image is ghcr.io/pgan-dev/poracleweb.net:latest.
+    image: ghcr.io/pgan-dev/poracleweb.net-experimental:shiny
     # Alternatives (uncomment one, comment out the line above):
     # image: poracleweb.net:latest             # Use a locally built image
     # build:                                   # Build from source directly

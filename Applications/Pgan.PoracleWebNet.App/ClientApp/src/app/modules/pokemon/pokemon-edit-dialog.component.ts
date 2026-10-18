@@ -1,9 +1,8 @@
-import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
-import { MatDialog, MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -22,10 +21,9 @@ import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MonsterService } from '../../core/services/monster.service';
-import { PlayerAccountService } from '../../core/services/player-account.service';
 import { PoracleConfigService } from '../../core/services/poracle-config.service';
 import { SettingsService } from '../../core/services/settings.service';
-import { GameAccountsDialogComponent } from '../../shared/components/game-accounts-dialog/game-accounts-dialog.component';
+import { PersonalFilterPanelComponent } from '../../shared/components/personal-filter-panel/personal-filter-panel.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
@@ -51,6 +49,7 @@ import { KNOWN, compose as composePersonal, isBackground, isShiny, preserve as p
     MatSnackBarModule,
     TemplateSelectorComponent,
     TranslatePipe,
+    PersonalFilterPanelComponent,
     ScopePickerComponent,
   ],
   selector: 'app-pokemon-edit-dialog',
@@ -59,21 +58,14 @@ import { KNOWN, compose as composePersonal, isBackground, isShiny, preserve as p
   templateUrl: './pokemon-edit-dialog.component.html',
 })
 export class PokemonEditDialogComponent implements OnInit {
-  private readonly accountService = inject(PlayerAccountService);
-  private readonly destroyRef = inject(DestroyRef);
-  private readonly dialog = inject(MatDialog);
   private readonly fb = inject(FormBuilder);
   private readonly i18n = inject(I18nService);
   private readonly iconService = inject(IconService);
   private readonly masterData = inject(MasterDataService);
   private readonly monsterService = inject(MonsterService);
-  private readonly personalBackgroundOn = signal(false);
-  private readonly personalShinyOn = signal(false);
   private readonly poracleConfig = inject(PoracleConfigService);
   private readonly settings = inject(SettingsService);
   private readonly snackBar = inject(MatSnackBar);
-  /** The linked game accounts. Null means not loaded or the read failed, which is not the same as none. */
-  readonly accounts = this.accountService.accounts;
   readonly data = inject<Monster>(MAT_DIALOG_DATA);
   readonly availableForms = computed(() => {
     return this.masterData.getFormsForPokemon(this.data.pokemonId);
@@ -157,15 +149,6 @@ export class PokemonEditDialogComponent implements OnInit {
 
   readonly showCapPicker = computed(() => this.pvpCaps().length > 1);
 
-  /**
-   * A personal rule matches nothing without a linked game account, so say so. Only when the read
-   * succeeded and came back empty: a failed read is unknown, and must not claim the link vanished.
-   */
-  readonly showNoAccountsHint = computed(() => {
-    const accounts = this.accounts();
-    return accounts !== null && accounts.length === 0 && (this.personalShinyOn() || this.personalBackgroundOn());
-  });
-
   /** The hint under the costume select, which changes with the selection. */
   costumeHint(): string {
     return costumeHintKey(this.form.controls.costume.value ?? ANY_COSTUME, this.costumeNamesAvailable());
@@ -199,15 +182,8 @@ export class PokemonEditDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.poracleConfig.load().subscribe(() => this.loadAccounts());
+    this.poracleConfig.load().subscribe();
     syncUnscanned(this.form.controls);
-
-    // Follow the personal toggles for the no-accounts hint. Seeded first, so a stored value counts.
-    const { personalBackground, personalShiny } = this.form.controls;
-    this.personalBackgroundOn.set(!!personalBackground.value);
-    this.personalShinyOn.set(!!personalShiny.value);
-    personalBackground.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(v => this.personalBackgroundOn.set(!!v));
-    personalShiny.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(v => this.personalShinyOn.set(!!v));
   }
 
   onImageError(event: Event): void {
@@ -218,14 +194,6 @@ export class PokemonEditDialogComponent implements OnInit {
     } else {
       img.style.display = 'none';
     }
-  }
-
-  /** Opens the trainer's own game accounts, and re-reads them on close so the hint follows. */
-  openGameAccounts(): void {
-    this.dialog
-      .open(GameAccountsDialogComponent)
-      .afterClosed()
-      .subscribe(() => this.loadAccounts());
   }
 
   save(): void {
@@ -293,9 +261,5 @@ export class PokemonEditDialogComponent implements OnInit {
    */
   showCostume(): boolean {
     return this.settings.supportsCostume('pokemon');
-  }
-
-  private loadAccounts(): void {
-    if (this.personalSupported()) this.accountService.load().subscribe();
   }
 }

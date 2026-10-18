@@ -87,21 +87,41 @@ mat-dialog-content {
 
 .add-form {
   display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+// The id gets the full width: it is the field people get wrong, and its hint has to fit beside it.
+// The label (optional) and the button share the row under it, so neither truncates its label.
+.id-field {
+  width: 100%;
+}
+
+.add-row {
+  display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
   gap: 8px;
 }
 
-.id-field {
-  flex: 1 1 180px;
-}
-
 .label-field {
-  flex: 1 1 140px;
+  flex: 1 1 200px;
 }
 
 .add-button {
   margin-top: 8px;
+}
+
+.field-error {
+  color: var(--mat-sys-error, #b3261e);
+}
+
+.field-warn {
+  color: #8a5300;
+}
+
+:host-context(body.dark-theme) .field-warn {
+  color: #ffcc80;
 }
 
 .dialog-footnote {

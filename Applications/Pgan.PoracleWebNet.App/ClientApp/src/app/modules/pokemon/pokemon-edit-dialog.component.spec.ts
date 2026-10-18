@@ -4,6 +4,7 @@ import { NO_ERRORS_SCHEMA, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { By } from '@angular/platform-browser';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideTranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
@@ -18,6 +19,7 @@ import { MonsterService } from '../../core/services/monster.service';
 import { PlayerAccountService } from '../../core/services/player-account.service';
 import { PoracleConfigService } from '../../core/services/poracle-config.service';
 import { SettingsService } from '../../core/services/settings.service';
+import { PersonalFilterPanelComponent } from '../../shared/components/personal-filter-panel/personal-filter-panel.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 
@@ -60,13 +62,16 @@ describe('PokemonEditDialogComponent', () => {
           },
         },
         { provide: I18nService, useValue: { instant: (k: string) => k } },
-        { provide: SettingsService, useValue: { siteSettings: () => ({}), supportsCostume: () => costumeSupported } },
+        {
+          provide: SettingsService,
+          useValue: { siteSettings: () => ({}), supportsCostume: () => costumeSupported, supportUrl: () => null },
+        },
         {
           provide: PoracleConfigService,
           useValue: { load: () => of({ defaultPvpCap: 0 }), serverConfig: () => ({ personalSupported, pvpCaps: [] }) },
         },
         { provide: PlayerAccountService, useValue: playerAccounts },
-        { provide: AuthService, useValue: { isImpersonating: () => false, user: () => ({ type: 'discord:user' }) } },
+        { provide: AuthService, useValue: { isAdmin: () => false, isImpersonating: () => false, user: () => ({ type: 'discord:user' }) } },
       ],
       imports: [PokemonEditDialogComponent],
     });
@@ -295,42 +300,18 @@ describe('PokemonEditDialogComponent', () => {
       expect(sent().personal).toBe(7);
     });
 
-    it('shows the no-accounts hint when a toggle is on and no account is linked', () => {
+    it('puts the personal panel first in the Filters tab, bound to the controls the dialog owns', () => {
+      // The panel owns the account status; the dialog owns the controls, so a stored bit round-trips.
       setup({ personal: 1 }, true, true, []);
-      const el = render();
+      const fixture = TestBed.createComponent(PokemonEditDialogComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+      const panel = fixture.debugElement.query(By.directive(PersonalFilterPanelComponent));
 
-      expect(component.showNoAccountsHint()).toBe(true);
-      expect(el.textContent).toContain('POKEMON.PERSONAL_NO_ACCOUNTS');
-    });
-
-    it('does not show the no-accounts hint with both toggles off', () => {
-      setup({ personal: 0 }, true, true, []);
-
-      expect(component.showNoAccountsHint()).toBe(false);
-    });
-
-    it('does not show the no-accounts hint when the accounts read failed', () => {
-      setup({ personal: 1 }, true, true, null);
-      const el = render();
-
-      expect(component.showNoAccountsHint()).toBe(false);
-      expect(el.textContent).not.toContain('POKEMON.PERSONAL_NO_ACCOUNTS');
-    });
-
-    it('does not show the no-accounts hint when an account is linked', () => {
-      setup({ personal: 1 }, true, true, [{ label: null, playerId: 'AbC' } as PlayerAccount]);
-
-      expect(component.showNoAccountsHint()).toBe(false);
-    });
-
-    it('loads the accounts on open only when the server supports personal rules', () => {
-      setup({ personal: 0 }, true, false);
-      component.ngOnInit();
-      expect(playerAccounts.load).not.toHaveBeenCalled();
-
-      setup({ personal: 0 }, true, true);
-      component.ngOnInit();
-      expect(playerAccounts.load).toHaveBeenCalledTimes(1);
+      expect(panel).not.toBeNull();
+      expect(panel.componentInstance.shiny()).toBe(component.form.controls.personalShiny);
+      expect(panel.componentInstance.background()).toBe(component.form.controls.personalBackground);
+      expect((panel.nativeElement as HTMLElement).closest('.tab-content')?.firstElementChild).toBe(panel.nativeElement);
     });
   });
 });

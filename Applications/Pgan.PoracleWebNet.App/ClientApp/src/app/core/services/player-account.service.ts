@@ -97,8 +97,10 @@ export class PlayerAccountService {
 
   private failureMessage(err: HttpErrorResponse): string {
     const body = err.error as null | { code?: string; error?: string };
-    // 409 (already linked) and 422 (not a player id) carry a sentence worth reading.
-    if ((err.status === 409 || err.status === 422) && body?.error) return body.error;
+    // Worded here, not passed through: PoracleNG's 409 is lowercase English ("player id already linked") and
+    // its 422 is a schema regex. The dialog checks both before sending, so these are races, not the norm.
+    if (err.status === 409) return this.translate.instant('GAME_ACCOUNTS.ERROR_CONFLICT');
+    if (err.status === 422) return this.translate.instant('GAME_ACCOUNTS.ERROR_INVALID');
     if (err.status === 403 && body?.code === 'self_service_disabled') return this.translate.instant('GAME_ACCOUNTS.SELF_SERVICE_OFF');
     if (err.status === 429) return this.translate.instant('GAME_ACCOUNTS.RATE_LIMITED');
     return this.translate.instant('GAME_ACCOUNTS.FAILED');

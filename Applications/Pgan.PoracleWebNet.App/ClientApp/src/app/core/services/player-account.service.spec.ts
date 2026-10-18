@@ -126,18 +126,21 @@ describe('PlayerAccountService', () => {
     req.flush(null, { status: 204, statusText: 'No Content' });
   });
 
-  it("shows the server's message on 409", () => {
+  it("words a 409 itself rather than showing PoracleNG's lowercase text", () => {
+    // PoracleNG answers "player id already linked" / "label already in use", untranslated.
     service.add('dup', '').subscribe({ error: () => undefined });
-    httpMock.expectOne(`${API}/api/accounts`).flush({ error: 'Already linked.' }, { status: 409, statusText: 'Conflict' });
+    httpMock.expectOne(`${API}/api/accounts`).flush({ error: 'player id already linked' }, { status: 409, statusText: 'Conflict' });
 
-    expect(snackBar.open).toHaveBeenCalledWith('Already linked.', 'OK', { duration: 4000 });
+    expect(snackBar.open).toHaveBeenCalledWith('GAME_ACCOUNTS.ERROR_CONFLICT', 'OK', { duration: 4000 });
   });
 
-  it("shows the server's message on 422", () => {
+  it("words a 422 itself rather than showing the schema's regex", () => {
     service.add('bad id', '').subscribe({ error: () => undefined });
-    httpMock.expectOne(`${API}/api/accounts`).flush({ error: 'Not a player id.' }, { status: 422, statusText: 'Unprocessable' });
+    httpMock
+      .expectOne(`${API}/api/accounts`)
+      .flush({ error: 'player_id: expected string to match pattern ^[A-Za-z0-9]+$' }, { status: 422, statusText: 'Unprocessable' });
 
-    expect(snackBar.open).toHaveBeenCalledWith('Not a player id.', 'OK', { duration: 4000 });
+    expect(snackBar.open).toHaveBeenCalledWith('GAME_ACCOUNTS.ERROR_INVALID', 'OK', { duration: 4000 });
   });
 
   it('shows SELF_SERVICE_OFF on the coded 403', () => {

@@ -152,7 +152,7 @@
             </div>
           } @else {
             <img
-              [src]="getPokemonImage(monster.pokemonId, monster.form)"
+              [src]="getPokemonImage(monster.pokemonId, monster.form, monster.personal)"
               [alt]="getPokemonName(monster.pokemonId)"
               class="pokemon-img"
               (error)="onImageError($event, monster.pokemonId)" />
@@ -165,6 +165,20 @@
             @if (monster.form > 0) {
               <span class="form-badge">{{ 'POKEMON.FORM_BADGE' | translate: { id: monster.form } }}</span>
             }
+            @if (isPersonalShiny(monster.personal) || isPersonalBackground(monster.personal)) {
+              <div class="personal-tags">
+                @if (isPersonalShiny(monster.personal)) {
+                  <span class="personal-tag personal-shiny-tag">
+                    <mat-icon aria-hidden="true">auto_awesome</mat-icon>{{ 'POKEMON.PERSONAL_SHINY_BADGE' | translate }}
+                  </span>
+                }
+                @if (isPersonalBackground(monster.personal)) {
+                  <span class="personal-tag personal-background-tag">
+                    <mat-icon aria-hidden="true">landscape</mat-icon>{{ 'POKEMON.PERSONAL_BACKGROUND_BADGE' | translate }}
+                  </span>
+                }
+              </div>
+            }
           </div>
           <div class="card-top-actions">
             @if (isAutoDelete(monster.clean)) {
@@ -172,16 +186,6 @@
             }
             @if (isEdit(monster.clean)) {
               <span class="edit-tag" [matTooltip]="'POKEMON.EDIT_HINT' | translate">{{ 'POKEMON.EDIT_BADGE' | translate }}</span>
-            }
-            @if (isPersonalShiny(monster.personal)) {
-              <span class="personal-tag personal-shiny-tag" [matTooltip]="'POKEMON.PERSONAL_HINT' | translate">{{
-                'POKEMON.PERSONAL_SHINY_BADGE' | translate
-              }}</span>
-            }
-            @if (isPersonalBackground(monster.personal)) {
-              <span class="personal-tag personal-background-tag" [matTooltip]="'POKEMON.PERSONAL_HINT' | translate">{{
-                'POKEMON.PERSONAL_BACKGROUND_BADGE' | translate
-              }}</span>
             }
           </div>
         </div>

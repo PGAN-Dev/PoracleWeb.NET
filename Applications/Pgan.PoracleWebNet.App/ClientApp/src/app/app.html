@@ -98,9 +98,7 @@
             auth.user()?.profileName || ('MENU.PROFILE_PREFIX' | translate) + auth.user()?.profileNo
           }}</span>
           @if (buildInfo.channel() === 'experimental') {
-            <span class="experimental-chip" [matTooltip]="'MENU.EXPERIMENTAL_TOOLTIP' | translate">{{
-              'MENU.EXPERIMENTAL_CHIP' | translate
-            }}</span>
+            <span class="experimental-chip">{{ 'MENU.EXPERIMENTAL_CHIP' | translate }}</span>
           }
         </div>
       </div>

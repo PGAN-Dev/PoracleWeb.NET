@@ -24,6 +24,9 @@
         <span class="tab-label">{{ 'POKEMON.TAB_FILTERS' | translate }}</span>
       </ng-template>
       <div class="tab-content">
+        @if (personalSupported()) {
+          <app-personal-filter-panel [shiny]="form.controls.personalShiny" [background]="form.controls.personalBackground" />
+        }
         <h4>{{ 'POKEMON.FILTER_IV_CP_LEVEL' | translate }}</h4>
         <div class="form-row">
           <mat-form-field appearance="outline">
@@ -131,21 +134,6 @@
               <mat-hint>{{ costumeHint() | translate }}</mat-hint>
             </mat-form-field>
           </div>
-        }
-
-        @if (personalSupported()) {
-          <h4>{{ 'POKEMON.PERSONAL_HEADING' | translate }}</h4>
-          <mat-slide-toggle [formControl]="form.controls.personalShiny">{{ 'POKEMON.PERSONAL_SHINY' | translate }}</mat-slide-toggle>
-          <mat-slide-toggle [formControl]="form.controls.personalBackground">{{
-            'POKEMON.PERSONAL_BACKGROUND' | translate
-          }}</mat-slide-toggle>
-          <p class="clean-hint">{{ 'POKEMON.PERSONAL_HINT' | translate }}</p>
-          @if (showNoAccountsHint()) {
-            <p class="clean-hint">
-              {{ 'POKEMON.PERSONAL_NO_ACCOUNTS' | translate }}
-              <a href="#" (click)="openGameAccounts(); $event.preventDefault()">{{ 'MENU.GAME_ACCOUNTS' | translate }}</a>
-            </p>
-          }
         }
 
         <mat-expansion-panel>

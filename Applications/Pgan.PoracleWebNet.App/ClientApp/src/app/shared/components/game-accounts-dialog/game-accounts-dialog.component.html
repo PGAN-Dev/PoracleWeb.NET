@@ -51,7 +51,7 @@
 
   @if (canEdit()) {
     <form class="add-form" (ngSubmit)="add()">
-      <mat-form-field appearance="outline" class="id-field">
+      <mat-form-field appearance="outline" class="id-field" subscriptSizing="dynamic">
         <mat-label>{{ 'GAME_ACCOUNTS.PLAYER_ID' | translate }}</mat-label>
         <input
           matInput
@@ -59,17 +59,36 @@
           autocomplete="off"
           autocapitalize="off"
           spellcheck="false"
-          maxlength="256"
+          [attr.aria-invalid]="!!playerIdError()"
           [ngModel]="playerId()"
           (ngModelChange)="playerId.set($event)" />
+        @if (playerIdError(); as error) {
+          <mat-hint class="field-error">{{ error | translate }}</mat-hint>
+        } @else if (looksLikeFriendCode()) {
+          <mat-hint class="field-warn">{{ 'GAME_ACCOUNTS.FRIEND_CODE_WARNING' | translate }}</mat-hint>
+        } @else {
+          <mat-hint>{{ 'GAME_ACCOUNTS.PLAYER_ID_HINT' | translate }}</mat-hint>
+        }
       </mat-form-field>
-      <mat-form-field appearance="outline" class="label-field">
-        <mat-label>{{ 'GAME_ACCOUNTS.LABEL' | translate }}</mat-label>
-        <input matInput name="label" autocomplete="off" maxlength="64" [ngModel]="label()" (ngModelChange)="label.set($event)" />
-      </mat-form-field>
-      <button mat-flat-button color="primary" type="submit" class="add-button" [disabled]="busy() || playerId().trim().length === 0">
-        {{ 'GAME_ACCOUNTS.ADD' | translate }}
-      </button>
+      <div class="add-row">
+        <mat-form-field appearance="outline" class="label-field" subscriptSizing="dynamic">
+          <mat-label>{{ 'GAME_ACCOUNTS.LABEL' | translate }}</mat-label>
+          <input
+            matInput
+            name="label"
+            autocomplete="off"
+            maxlength="64"
+            [attr.aria-invalid]="!!labelError()"
+            [ngModel]="label()"
+            (ngModelChange)="label.set($event)" />
+          @if (labelError(); as error) {
+            <mat-hint class="field-error">{{ error | translate }}</mat-hint>
+          }
+        </mat-form-field>
+        <button mat-flat-button color="primary" type="submit" class="add-button" [disabled]="!canAdd()">
+          {{ 'GAME_ACCOUNTS.ADD' | translate }}
+        </button>
+      </div>
     </form>
   } @else {
     <p class="dialog-footnote">

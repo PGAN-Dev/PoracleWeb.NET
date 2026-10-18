@@ -67,6 +67,33 @@ describe('PokemonListComponent personal badges', () => {
     expect(el.querySelector('.personal-background-tag')).toBeNull();
   });
 
+  it('draws a shiny-for-me rule with the shiny sprite, and an ordinary rule without it', () => {
+    let el = render(1);
+    expect((el.querySelector('img.pokemon-img') as HTMLImageElement).src).toMatch(/\/25_s\.png$/);
+
+    el = render(2);
+    expect((el.querySelector('img.pokemon-img') as HTMLImageElement).src).toMatch(/\/25\.png$/);
+  });
+
+  it('falls back from a missing shiny sprite to the ordinary one before giving up', () => {
+    // An icon pack without shiny art 404s the _s file; the rule must still show its Pokemon.
+    const el = render(1);
+    const img = el.querySelector('img.pokemon-img') as HTMLImageElement;
+
+    img.dispatchEvent(new Event('error'));
+    expect(img.src).toMatch(/\/25\.png$/);
+    expect(img.style.display).not.toBe('none');
+  });
+
+  it('puts the personal badges with the name, not in the crowded top-right row', () => {
+    // Auto-delete, edit and both personal flags in one row ran the last badge off the card.
+    const el = render(3);
+
+    expect(el.querySelector('.pokemon-info .personal-shiny-tag')).not.toBeNull();
+    expect(el.querySelector('.pokemon-info .personal-background-tag')).not.toBeNull();
+    expect(el.querySelector('.card-top-actions .personal-tag')).toBeNull();
+  });
+
   it('shows no personal badge for a rule without the field', () => {
     const el = render(undefined);
 
