@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using Pgan.PoracleWebNet.Core.Models.Helpers;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
@@ -362,6 +363,49 @@ internal static class JsonElementExtensions
             JsonValueKind.Number when prop.TryGetInt32(out var val) => val,
             _ => 0,
         };
+    }
+
+    /// <summary>
+    /// Reads an area list PoracleNG sends in one of two shapes: a JSON-encoded string
+    /// (<c>"[\"a\",\"b\"]"</c>, what 5.1.0 and 5.2.1 send) or a real array (<c>["a","b"]</c>, what
+    /// <c>GET /api/v2/humans/{id}</c> sends since jfberry/PoracleNG#303). Returns the JSON-encoded string
+    /// form the models store, so nothing downstream changes: a string is returned untouched and an array is
+    /// written with <see cref="AreaListJson.Serialize"/>, the same writer every other area column goes
+    /// through, so non-ASCII names are escaped (<c>Café</c>) exactly as they are everywhere else and
+    /// parse back to the real name. Absent or JSON null is null. Any other kind throws, like the strict
+    /// readers, rather than quietly reading as "no areas".
+    /// </summary>
+    public static string? GetAreaListJsonOrNull(this JsonElement el, string name)
+    {
+        if (!el.TryGetProperty(name, out var prop))
+        {
+            return null;
+        }
+
+        switch (prop.ValueKind)
+        {
+            case JsonValueKind.Null:
+                return null;
+            case JsonValueKind.String:
+                return prop.GetString();
+            case JsonValueKind.Array:
+                var areas = new List<string>();
+                foreach (var item in prop.EnumerateArray())
+                {
+                    if (item.ValueKind != JsonValueKind.String)
+                    {
+                        throw new InvalidOperationException(
+                            $"'{name}' must be a JSON string or an array of strings, but it holds a {item.ValueKind} element.");
+                    }
+
+                    areas.Add(item.GetString()!);
+                }
+
+                return AreaListJson.Serialize(areas);
+            default:
+                throw new InvalidOperationException(
+                    $"'{name}' must be a JSON string or an array of strings, but it is a {prop.ValueKind}.");
+        }
     }
 
     /// <summary>
