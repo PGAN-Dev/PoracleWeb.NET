@@ -155,6 +155,13 @@ CREATE DATABASE poracle_web CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 
 ## 4. Start
 
+The container runs as uid 999 and keeps its keys and caches in `./data`. Create that directory with
+the right owner first, or Docker creates it as root and the app can't write to it:
+
+```bash
+mkdir -p data && sudo chown 999:999 data
+```
+
 === "Pre-built image (recommended)"
 
     ```bash

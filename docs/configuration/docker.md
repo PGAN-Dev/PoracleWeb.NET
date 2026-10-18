@@ -63,6 +63,17 @@ Mounted at `DATA_DIR` (`/app/data` in the image). It persists:
 
 See [Paths](reference.md#paths) for the environment variables behind these.
 
+The container runs as `appuser`, uid and gid 999. Docker creates a bind-mounted `./data` that doesn't
+exist yet as root, and the app then can't write to it: the keys live in memory only, and the log
+starts with `DATA_DIR /app/data is not writable`. Create the directory with the right owner before
+the first start, or fix an existing one:
+
+```bash
+mkdir -p data && sudo chown -R 999:999 data
+```
+
+`./scripts/docker.sh start` creates the directory and warns when its owner is wrong.
+
 ### Poracle config directory
 
 Mount your PoracleNG `config/` directory as read-only for DTS template preview functionality:
