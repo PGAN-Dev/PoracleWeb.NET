@@ -245,4 +245,67 @@ public class HumanServiceTests
             + ". humans has one row per id — use GetByIdAsync.");
     }
 
+    // The same human, captured live from dev-01: first from a released PoracleNG (5.2.1), then from a build
+    // carrying jfberry/PoracleNG#303, which sends flags as booleans and area lists as arrays.
+    private const string ReleasedHumanJson =
+        """{"id":"114774755437051904","type":"discord:user","name":"x","enabled":1,"area":"[\"downtown\",\"west end\"]","latitude":41.6,"longitude":-83.5,"fails":0,"last_checked":"2026-10-17T12:00:00Z","language":"en","admin_disable":0,"disabled_date":null,"current_profile_no":1,"community_membership":"[\"avoca\"]","area_restriction":null,"notes":"","blocked_alerts":null}""";
+
+    private const string V2OwnedHumanJson =
+        """{"id":"114774755437051904","type":"discord:user","name":"x","enabled":true,"admin_disable":false,"area":["downtown","west end"],"latitude":41.6,"longitude":-83.5,"language":"en","current_profile_no":1,"community_membership":["avoca"],"area_restriction":null,"blocked_alerts":[],"fails":0,"last_checked":"2026-10-17T12:00:00Z","disabled_date":null,"notes":""}""";
+
+    private async Task<Human> ReadHumanAsync(string json)
+    {
+        using var doc = JsonDocument.Parse(json);
+        this._humanProxy.Setup(p => p.GetHumanAsync("114774755437051904")).ReturnsAsync(doc.RootElement.Clone());
+
+        var human = await this._sut.GetByIdAsync("114774755437051904");
+        Assert.NotNull(human);
+        return human!;
+    }
+
+    [Fact]
+    public async Task TheReleasedShapeStillReads()
+    {
+        var human = await this.ReadHumanAsync(ReleasedHumanJson);
+
+        Assert.Equal(1, human.Enabled);
+        Assert.Equal(0, human.AdminDisable);
+        Assert.Equal("[\"downtown\",\"west end\"]", human.Area);
+        Assert.Equal("[\"avoca\"]", human.CommunityMembership);
+    }
+
+    [Fact]
+    public async Task TheV2OwnedShapeReads()
+    {
+        var human = await this.ReadHumanAsync(V2OwnedHumanJson);
+
+        Assert.Equal(1, human.Enabled);
+        Assert.Equal(0, human.AdminDisable);
+        Assert.Equal("[\"downtown\",\"west end\"]", human.Area);
+        Assert.Equal("[\"avoca\"]", human.CommunityMembership);
+    }
+
+    [Fact]
+    public async Task ABooleanEnabledHumanIsEnabled()
+    {
+        var human = await this.ReadHumanAsync("""{"id":"114774755437051904","enabled":true}""");
+        Assert.Equal(1, human.Enabled);
+    }
+
+    [Fact]
+    public async Task ABooleanAdminDisabledHumanIsDisabled()
+    {
+        var human = await this.ReadHumanAsync("""{"id":"114774755437051904","enabled":true,"admin_disable":true}""");
+        Assert.Equal(1, human.AdminDisable);
+    }
+
+    [Fact]
+    public async Task AnEmptyAreaArrayIsNoAreas()
+    {
+        var human = await this.ReadHumanAsync("""{"id":"114774755437051904","area":[],"community_membership":[]}""");
+
+        Assert.Equal("[]", human.Area);
+        Assert.Equal("[]", human.CommunityMembership);
+    }
+
 }

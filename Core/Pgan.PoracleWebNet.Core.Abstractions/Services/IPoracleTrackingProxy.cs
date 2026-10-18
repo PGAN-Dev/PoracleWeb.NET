@@ -35,8 +35,9 @@ public interface IPoracleTrackingProxy
     /// <para>
     /// On PoracleNG 5.2.0 and later this is <c>PUT /api/v2/humans/{id}/tracking/{type}/{uid}</c>: scoped by
     /// (human, uid), 404 when the uid is not theirs, 409 when the replacement would duplicate another rule,
-    /// and — because the engine is delete-then-insert — a NEW uid on the way back. On anything older it is
-    /// the v1 create-carrying-a-uid that PoracleWeb has always sent, byte for byte.
+    /// and, because the engine is delete-then-insert, a NEW uid on the way back on 5.2.x. Since
+    /// jfberry/PoracleNG #303 the uid is kept, but a failed reassignment still returns a new one, so the
+    /// response is always read. On anything older it is the v1 create-carrying-a-uid that PoracleWeb has always sent, byte for byte.
     /// </para>
     /// </remarks>
     /// <returns>The uid the rule now lives under, which may differ from <paramref name="uid"/>.</returns>

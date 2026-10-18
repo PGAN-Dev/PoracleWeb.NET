@@ -4,20 +4,21 @@ using Pgan.PoracleWebNet.Core.Services;
 namespace Pgan.PoracleWebNet.Tests.Services;
 
 /// <summary>
-/// A new alarm service that rotates uids but never remaps them reintroduces #403 silently: quick-pick
+/// A new alarm service whose uid can change on update but never remaps it reintroduces #403 silently: quick-pick
 /// removal reports success, deletes nothing, and the summary read then wipes the applied state so the
 /// user cannot retry. Nothing about that failure is visible without knowing to look, so it is pinned here.
 /// </summary>
 public class TrackedUidRemapperCoverageTests
 {
     /// <summary>
-    /// Every service whose update rotates the uid.
+    /// Every service whose update can rotate the uid: all of them on 5.2.x, and any of them on a server
+    /// carrying jfberry/PoracleNG #303 whose uid reassignment fails.
     /// </summary>
     /// <remarks>
     /// Monsters were the exception until #805: PoracleNG upserts pokemon in place on the v1 surface, so
     /// there was no rotation to follow, and this class carried a fact asserting MonsterService did NOT take
-    /// the remapper. The v2 full-replace PUT is delete-then-insert, so pokemon rotates like the other nine
-    /// whenever the server carries v2. The tripwire fired exactly as it was written to; it has been moved
+    /// the remapper. The v2 full-replace PUT is delete-then-insert, so on 5.2.x pokemon rotates like the
+    /// other nine whenever the server carries v2. The tripwire fired exactly as it was written to; it has been moved
     /// rather than weakened.
     /// </remarks>
     public static TheoryData<Type> RotatingServices =>

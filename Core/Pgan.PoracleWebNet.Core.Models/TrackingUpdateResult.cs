@@ -5,10 +5,12 @@ namespace Pgan.PoracleWebNet.Core.Models;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The uid matters because <c>/api/v2</c>'s full-replace PUT is delete-then-insert: the replacement rule
-/// is handed a NEW uid, returned under <c>updated</c>. Anything holding the old one — quick-pick applied
-/// state above all — has to follow it. On the frozen v1 surface the uid normally stays put, so
-/// <see cref="Uid"/> simply echoes what was submitted.
+/// The uid matters because <c>/api/v2</c>'s full-replace PUT is delete-then-insert. On 5.2.x the
+/// replacement rule is handed a NEW uid, returned under <c>updated</c>; since jfberry/PoracleNG #303 the
+/// PUT keeps the original, but a failed reassignment still returns the new one, so the response is always
+/// read. Anything holding the old uid — quick-pick applied state above all — has to follow it when it
+/// moves. On the frozen v1 surface the uid normally stays put, so <see cref="Uid"/> simply echoes what
+/// was submitted.
 /// </para>
 /// <para>
 /// A struct on purpose: a mocked proxy that was never set up answers <c>default</c>, which is uid 0, and

@@ -315,6 +315,96 @@ public class PoracleHumanProxyV2Tests
         Assert.Equal(8.5, body.GetProperty("lon").GetDouble());
     }
 
+    // jfberry/PoracleNG#303 renamed lat/lon to latitude/longitude on the three location request bodies.
+    // They are additionalProperties:false, so the wrong names are a 422 that TryV2Async does not fall back
+    // from. The names follow what the server's own /openapi.json declares; the 5.2.1 tests above pin the
+    // old ones.
+
+    private static PoracleV2Capabilities LongNames(bool carries = true) =>
+        new() { Read = true, V2LocationLatitudeLongitude = carries };
+
+    [Fact]
+    public async Task SetLocationSendsLatitudeLongitudeWhereTheServerDeclaresThem()
+    {
+        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
+        await CreateSut(handler, "5.3.0", capabilities: LongNames()).SetLocationAsync("user1", 51.5, -0.12);
+
+        var sent = Assert.Single(handler.Requests);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/location", sent.Url);
+        var body = JsonDocument.Parse(sent.Body!).RootElement;
+        Assert.Equal(51.5, body.GetProperty("latitude").GetDouble());
+        Assert.Equal(-0.12, body.GetProperty("longitude").GetDouble());
+        Assert.False(body.TryGetProperty("lat", out _));
+        Assert.False(body.TryGetProperty("lon", out _));
+        AssertConformsTo(body, "V2LocationBody");
+    }
+
+    [Fact]
+    public async Task AddPlaceSendsLatitudeLongitudeWhereTheServerDeclaresThem()
+    {
+        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
+        var sut = CreateSut(handler, "5.3.0", capabilities: LongNames());
+
+        Assert.Null(await sut.AddPlaceAsync(
+            "user1", new SavedPlace { Label = "home", Latitude = 1.5, Longitude = 2.5 }));
+
+        var sent = Assert.Single(handler.Requests);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/locations", sent.Url);
+        var body = JsonDocument.Parse(sent.Body!).RootElement;
+        Assert.Equal("home", body.GetProperty("label").GetString());
+        Assert.Equal(1.5, body.GetProperty("latitude").GetDouble());
+        Assert.Equal(2.5, body.GetProperty("longitude").GetDouble());
+        Assert.False(body.TryGetProperty("lat", out _));
+        Assert.False(body.TryGetProperty("lon", out _));
+        AssertConformsTo(body, "V2AddLocationBody");
+    }
+
+    [Fact]
+    public async Task UpdatePlaceSendsLatitudeLongitudeWhereTheServerDeclaresThem()
+    {
+        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
+        var sut = CreateSut(handler, "5.3.0", capabilities: LongNames());
+
+        Assert.True(await sut.UpdatePlaceAsync("user1", "home", 9.5, 8.5));
+
+        var sent = Assert.Single(handler.Requests);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/locations/home", sent.Url);
+        var body = JsonDocument.Parse(sent.Body!).RootElement;
+        Assert.Equal(9.5, body.GetProperty("latitude").GetDouble());
+        Assert.Equal(8.5, body.GetProperty("longitude").GetDouble());
+        Assert.False(body.TryGetProperty("lat", out _));
+        Assert.False(body.TryGetProperty("lon", out _));
+        AssertConformsTo(body, "V2UpdateLocationBody");
+    }
+
+    [Fact]
+    public async Task AServerThatDoesNotDeclareTheLongNamesStillGetsLatLonOnAllThreeWrites()
+    {
+        // Not read, or read and not carrying: same answer, the names every released PoracleNG takes.
+        foreach (var capabilities in new[] { LongNames(carries: false), new PoracleV2Capabilities() })
+        {
+            var handler = new ScriptedHandler(
+                new Reply(HttpStatusCode.OK, """{"status":"ok"}"""),
+                new Reply(HttpStatusCode.OK, """{"status":"ok"}"""),
+                new Reply(HttpStatusCode.OK, """{"status":"ok"}"""));
+            var sut = CreateSut(handler, "5.2.1", capabilities: capabilities);
+
+            await sut.SetLocationAsync("user1", 1, 2);
+            await sut.AddPlaceAsync("user1", new SavedPlace { Label = "home", Latitude = 1, Longitude = 2 });
+            await sut.UpdatePlaceAsync("user1", "home", 1, 2);
+
+            Assert.Equal(3, handler.Requests.Count);
+            foreach (var sent in handler.Requests)
+            {
+                var body = JsonDocument.Parse(sent.Body!).RootElement;
+                Assert.True(body.TryGetProperty("lat", out _));
+                Assert.True(body.TryGetProperty("lon", out _));
+                Assert.False(body.TryGetProperty("latitude", out _));
+                Assert.False(body.TryGetProperty("longitude", out _));
+            }
+        }
+    }
+
     [Fact]
     public async Task UpdatePlaceAnswersFalseRatherThanFailingOnAServerWithoutTheRoute()
     {
@@ -752,6 +842,73 @@ public class PoracleHumanProxyV2Tests
                 .GetProperty("areas").EnumerateArray().Select(e => e.GetString()).ToList());
     }
 
+    // The develop-shape twins: jfberry/PoracleNG#303 sends the human's area as a real array on
+    // GET /api/v2/humans/{id}. Same outcomes as the string-shaped tests above, no version gate.
+
+    [Fact]
+    public async Task AddAreaTrustedReadsAnArrayShapedAreaAndPostsTheFullList()
+    {
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.OK, """{"human":{"id":"user1","area":["downtown"]}}"""),
+            new Reply(HttpStatusCode.OK, """{"areas":["downtown","park"],"rejected":[]}"""));
+        var sut = CreateSut(
+            handler, version: "5.2.1", capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
+
+        Assert.True(await sut.AddAreaToActiveProfileTrustedAsync("user1", "park"));
+
+        Assert.Equal(2, handler.Requests.Count);
+        var body = JsonDocument.Parse(handler.Requests[1].Body!).RootElement;
+        Assert.True(body.GetProperty("trusted").GetBoolean());
+        Assert.Equal(
+            ["downtown", "park"],
+            body.GetProperty("areas").EnumerateArray().Select(e => e.GetString()).ToList());
+    }
+
+    [Fact]
+    public async Task AddAreaTrustedIsANoOpWhenAlreadyPresentInAnArrayShapedArea()
+    {
+        var handler = ScriptedHandler.Ok("""{"human":{"id":"user1","area":["downtown"]}}""");
+        var sut = CreateSut(
+            handler, version: "5.2.1", capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
+
+        Assert.False(await sut.AddAreaToActiveProfileTrustedAsync("user1", "downtown"));
+        Assert.Single(handler.Requests);
+    }
+
+    [Fact]
+    public async Task RemoveAreaTrustedPostsTheReducedListFromAnArrayShapedArea()
+    {
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.OK, """{"human":{"id":"user1","area":["downtown","park"]}}"""),
+            new Reply(HttpStatusCode.OK, """{"areas":["downtown"],"rejected":[]}"""));
+        var sut = CreateSut(
+            handler, version: "5.2.1", capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
+
+        Assert.True(await sut.RemoveAreaFromActiveProfileTrustedAsync("user1", "park"));
+
+        Assert.Equal(
+            ["downtown"],
+            JsonDocument.Parse(handler.Requests[1].Body!).RootElement
+                .GetProperty("areas").EnumerateArray().Select(e => e.GetString()).ToList());
+    }
+
+    [Fact]
+    public async Task AddAreaTrustedTreatsAnEmptyArrayShapedAreaAsNoAreasYet()
+    {
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.OK, """{"human":{"id":"user1","area":[]}}"""),
+            new Reply(HttpStatusCode.OK, """{"areas":["park"],"rejected":[]}"""));
+        var sut = CreateSut(
+            handler, version: "5.2.1", capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
+
+        Assert.True(await sut.AddAreaToActiveProfileTrustedAsync("user1", "park"));
+
+        Assert.Equal(
+            ["park"],
+            JsonDocument.Parse(handler.Requests[1].Body!).RootElement
+                .GetProperty("areas").EnumerateArray().Select(e => e.GetString()).ToList());
+    }
+
     [Fact]
     public async Task TrustedSetAreasReturnsNullWhenTheCurrentListCannotBeRead()
     {
@@ -767,14 +924,40 @@ public class PoracleHumanProxyV2Tests
     }
 
     [Fact]
-    public async Task TrustedSetAreasSucceedsEvenWhenSomethingUnexpectedIsRejected()
+    public async Task TrustedAddReturnsNullWhenPoracleRejectsTheRequestedName()
     {
-        // Logged, not thrown. Every HACK: trusted-set-areas call site this replaces already treats
-        // its own write as best-effort, and the geofence row that produced this name is the source
-        // of truth either way.
+        // PoracleNG answers 200 and lists a name it does not know (a fence it has not loaded) under
+        // `rejected`. Answering non-null told the caller the write happened, so the direct-DB fallback
+        // never ran and the new fence stayed inactive. Null is the "fall back" signal.
         var handler = new ScriptedHandler(
             new Reply(HttpStatusCode.OK, """{"human":{"id":"user1","area":"[\"downtown\"]"}}"""),
             new Reply(HttpStatusCode.OK, """{"areas":["downtown"],"rejected":["park"]}"""));
+        var sut = CreateSut(
+            handler, version: "5.2.1", capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
+
+        Assert.Null(await sut.AddAreaToActiveProfileTrustedAsync("user1", "park"));
+    }
+
+    [Fact]
+    public async Task TrustedAddReturnsNullWhenAnyRequestedNameIsRejectedCaseInsensitively()
+    {
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.OK, """{"human":{"id":"user1","area":"[\"downtown\"]"}}"""),
+            new Reply(HttpStatusCode.OK, """{"areas":["downtown","square"],"rejected":["Park"]}"""));
+        var sut = CreateSut(
+            handler, version: "5.2.1", capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
+
+        Assert.Null(await sut.AddAreasToActiveProfileTrustedAsync("user1", ["park", "square"]));
+    }
+
+    [Fact]
+    public async Task TrustedAddStaysNonNullWhenOnlyAnUnrelatedStaleNameIsRejected()
+    {
+        // A name already in the list that PoracleNG no longer knows (a deleted fence) is dropped on
+        // every full-list replacement. That says nothing about the name just requested, so no fallback.
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.OK, """{"human":{"id":"user1","area":"[\"downtown\",\"gone\"]"}}"""),
+            new Reply(HttpStatusCode.OK, """{"areas":["downtown","park"],"rejected":["gone"]}"""));
         var sut = CreateSut(
             handler, version: "5.2.1", capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
 

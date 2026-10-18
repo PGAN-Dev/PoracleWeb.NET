@@ -2,9 +2,11 @@
  * A stable display order for an alarm list, independent of the rule id.
  *
  * PoracleNG returns tracking rows in id order, and nine of the eleven lists rendered that order straight
- * through. On PoracleNG 5.2.0 and newer an edit is a replace: the rule comes back under a new, higher id,
- * so the card the user just saved jumped to the end of the grid and, on a long list, off the screen —
- * with nothing to say it had moved.
+ * through. On PoracleNG 5.2.x an edit is a replace: the rule comes back under a new, higher id, so the
+ * card the user just saved jumped to the end of the grid and, on a long list, off the screen — with
+ * nothing to say it had moved. Since jfberry/PoracleNG #303 a v2 replace keeps the id, but a failed
+ * reassignment on the server still hands back a new one, so id order is not a dependable "where the card
+ * was" signal on any server.
  *
  * Ordering on the rule's own content instead keeps a card where it was, and is a better order than
  * insertion sequence regardless. The keys are the fields the card is titled by, in their raw form: dex
@@ -13,9 +15,12 @@
  * than the problem being fixed — and the resolved name changes with the display language, so the order
  * would too.
  *
- * Invasion is deliberately absent: it stays on PoracleNG's v1 write surface, so its ids do not rotate. The
- * pokemon list already sorts on its own controls. Pokestop events are here too — that type has only ever
- * had a v2 surface, so its ids have rotated on every edit since it shipped.
+ * The pokemon list already sorts on its own controls. Invasion does not use this helper yet, so where an
+ * invasion edit re-creates the rule (PoracleNG 5.1.0, or a build carrying #217 but not #303) the card can
+ * still move.
+ * Pokestop events are here too — that type has only ever had a v2
+ * surface, so on 5.2.x its ids rotated on every edit; with #303 they normally stay put, and content order
+ * is still the stable choice.
  */
 export function orderAlarms<T extends { uid: number }>(
   items: readonly T[],
