@@ -1,0 +1,66 @@
+<section class="personal-panel" [attr.aria-label]="'POKEMON.PERSONAL_HEADING' | translate">
+  <h4 class="panel-title">
+    <mat-icon aria-hidden="true">auto_awesome</mat-icon>
+    {{ 'POKEMON.PERSONAL_HEADING' | translate }}
+  </h4>
+  <mat-slide-toggle class="toggle-shiny" [formControl]="shiny()">{{ 'POKEMON.PERSONAL_SHINY' | translate }}</mat-slide-toggle>
+  <mat-slide-toggle class="toggle-background" [formControl]="background()">{{
+    'POKEMON.PERSONAL_BACKGROUND' | translate
+  }}</mat-slide-toggle>
+  <p class="panel-hint">{{ 'POKEMON.PERSONAL_HINT' | translate }}</p>
+  @if (bothOn()) {
+    <p class="panel-hint">{{ 'POKEMON.PERSONAL_BOTH' | translate }}</p>
+  }
+
+  <div class="panel-status" role="status" aria-live="polite">
+    @switch (status()) {
+      @case ('noFeed') {
+        <p class="status-line status-warn">
+          <mat-icon aria-hidden="true">warning</mat-icon>
+          <span>{{ 'POKEMON.PERSONAL_NO_FEED' | translate }}</span>
+        </p>
+      }
+      @case ('linkAccount') {
+        <p class="status-line status-warn">
+          <mat-icon aria-hidden="true">link_off</mat-icon>
+          <span>{{ 'POKEMON.PERSONAL_NO_ACCOUNTS' | translate }}</span>
+        </p>
+        <button mat-stroked-button type="button" class="link-button" (click)="openGameAccounts()">
+          <mat-icon>badge</mat-icon>
+          {{ 'POKEMON.PERSONAL_LINK_BUTTON' | translate }}
+        </button>
+      }
+      @case ('askAdmin') {
+        <p class="status-line status-warn">
+          <mat-icon aria-hidden="true">link_off</mat-icon>
+          <span>
+            {{ 'POKEMON.PERSONAL_ASK_ADMIN' | translate }}
+            @if (supportUrl()) {
+              <a class="support-link" [href]="supportUrl()" target="_blank" rel="noopener">{{
+                'GAME_ACCOUNTS.CONTACT_SUPPORT' | translate
+              }}</a>
+            }
+          </span>
+        </p>
+      }
+      @case ('checking') {
+        <p class="status-line status-ok">
+          <mat-icon aria-hidden="true">check_circle</mat-icon>
+          <span>
+            @switch (accountNames().length) {
+              @case (1) {
+                {{ 'POKEMON.PERSONAL_CHECKING_ONE' | translate: { name: accountNames()[0] } }}
+              }
+              @case (2) {
+                {{ 'POKEMON.PERSONAL_CHECKING_TWO' | translate: { first: accountNames()[0], second: accountNames()[1] } }}
+              }
+              @default {
+                {{ 'POKEMON.PERSONAL_CHECKING_MANY' | translate: { first: accountNames()[0], count: accountNames().length - 1 } }}
+              }
+            }
+          </span>
+        </p>
+      }
+    }
+  </div>
+</section>

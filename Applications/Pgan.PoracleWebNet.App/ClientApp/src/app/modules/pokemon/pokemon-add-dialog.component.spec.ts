@@ -21,6 +21,7 @@ import { MonsterService } from '../../core/services/monster.service';
 import { PlayerAccountService } from '../../core/services/player-account.service';
 import { PoracleConfigService } from '../../core/services/poracle-config.service';
 import { SettingsService } from '../../core/services/settings.service';
+import { PersonalFilterPanelComponent } from '../../shared/components/personal-filter-panel/personal-filter-panel.component';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
@@ -74,7 +75,7 @@ describe('PokemonAddDialogComponent', () => {
         { provide: MonsterService, useValue: monsterService },
         { provide: MasterDataService, useValue: masterData },
         { provide: I18nService, useValue: { instant: (k: string) => k } },
-        { provide: SettingsService, useValue: { supportsCostume: () => costumeSupported } },
+        { provide: SettingsService, useValue: { supportsCostume: () => costumeSupported, supportUrl: () => null } },
         {
           provide: AlertDefaultsService,
           useValue: { defaultDistanceKm: () => 1, defaultMode: () => 'areas', defaultPlaceLabel: () => '' },
@@ -84,7 +85,7 @@ describe('PokemonAddDialogComponent', () => {
           useValue: { load: () => of({ defaultPvpCap: 0 }), serverConfig: () => ({ personalSupported, pvpCaps: [] }) },
         },
         { provide: PlayerAccountService, useValue: playerAccounts },
-        { provide: AuthService, useValue: { isImpersonating: () => false } },
+        { provide: AuthService, useValue: { isAdmin: () => false, isImpersonating: () => false } },
       ],
       imports: [PokemonAddDialogComponent],
     });
@@ -432,42 +433,19 @@ describe('PokemonAddDialogComponent', () => {
       expect(sentPersonal()).toBe(2);
     });
 
-    it('shows the no-accounts hint when a toggle is on and no account is linked', () => {
+    it('puts the personal panel first in the Filters tab, bound to the controls the dialog owns', () => {
+      // The panel owns the account status; the dialog owns the controls, so a stored bit round-trips.
       setup(true, true, []);
+      const fixture = TestBed.createComponent(PokemonAddDialogComponent);
+      component = fixture.componentInstance;
+      fixture.debugElement.query(By.directive(MatTabGroup)).componentInstance.selectedIndex = 1;
+      fixture.detectChanges();
+      const panel = fixture.debugElement.query(By.directive(PersonalFilterPanelComponent));
 
-      expect(renderFilters().textContent).not.toContain('POKEMON.PERSONAL_NO_ACCOUNTS');
-
-      setup(true, true, []);
-      const el = renderFilters(c => c.filtersForm.controls.personalBackground.setValue(true));
-
-      expect(component.showNoAccountsHint()).toBe(true);
-      expect(el.textContent).toContain('POKEMON.PERSONAL_NO_ACCOUNTS');
-    });
-
-    it('does not show the no-accounts hint when an account is linked', () => {
-      setup(true, true, [{ label: null, playerId: 'AbC' } as PlayerAccount]);
-      component.filtersForm.controls.personalShiny.setValue(true);
-
-      expect(component.showNoAccountsHint()).toBe(false);
-    });
-
-    it('does not show the no-accounts hint when the accounts read failed', () => {
-      // null is "could not read", which is not the same fact as "none linked".
-      setup(true, true, null);
-      const el = renderFilters(c => c.filtersForm.controls.personalShiny.setValue(true));
-
-      expect(component.showNoAccountsHint()).toBe(false);
-      expect(el.textContent).not.toContain('POKEMON.PERSONAL_NO_ACCOUNTS');
-    });
-
-    it('loads the accounts on open only when the server supports personal rules', () => {
-      setup(true, false);
-      component.ngOnInit();
-      expect(playerAccounts.load).not.toHaveBeenCalled();
-
-      setup(true, true);
-      component.ngOnInit();
-      expect(playerAccounts.load).toHaveBeenCalledTimes(1);
+      expect(panel).not.toBeNull();
+      expect(panel.componentInstance.shiny()).toBe(component.filtersForm.controls.personalShiny);
+      expect(panel.componentInstance.background()).toBe(component.filtersForm.controls.personalBackground);
+      expect((panel.nativeElement as HTMLElement).closest('.tab-content')?.firstElementChild).toBe(panel.nativeElement);
     });
   });
 });

@@ -1,0 +1,87 @@
+// The shiny purple is the same one the "Shiny for me" card badge uses, so the panel, the badge and
+// the card read as one feature. Everything else is the dialog's own tokens.
+$shiny: #7b1fa2;
+
+:host {
+  display: block;
+  margin-bottom: 20px;
+}
+
+.personal-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 16px 14px;
+  border-left: 3px solid $shiny;
+  border-radius: 0 8px 8px 0;
+  background: var(--hover-overlay, rgba(0, 0, 0, 0.04));
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 2px;
+  color: var(--text-muted, rgba(0, 0, 0, 0.64));
+  font-size: 13px;
+  font-weight: 500;
+
+  mat-icon {
+    width: 18px;
+    height: 18px;
+    font-size: 18px;
+    color: $shiny;
+  }
+}
+
+:host-context(body.dark-theme) .panel-title mat-icon {
+  color: #ce93d8;
+}
+
+.panel-hint {
+  margin: 2px 0 0;
+  color: var(--text-hint, rgba(0, 0, 0, 0.6));
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.panel-status:empty {
+  display: none;
+}
+
+.status-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+
+  mat-icon {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    font-size: 18px;
+  }
+}
+
+.status-warn mat-icon {
+  color: var(--mat-sys-error, #b3261e);
+}
+
+.status-ok mat-icon {
+  color: #2e7d32;
+}
+
+:host-context(body.dark-theme) .status-ok mat-icon {
+  color: #81c784;
+}
+
+.link-button {
+  align-self: flex-start;
+  margin-top: 4px;
+}
+
+.support-link {
+  margin-left: 4px;
+}

@@ -7,6 +7,7 @@ import { of, throwError } from 'rxjs';
 import { ServerProfileCardComponent } from './server-profile-card.component';
 import { PoracleServerProfile } from '../../../core/models';
 import { AdminService } from '../../../core/services/admin.service';
+import { BuildInfoService } from '../../../core/services/build-info.service';
 
 /**
  * The card exists so "this server is too old for the feature you just used" is visible somewhere other
@@ -30,6 +31,8 @@ describe('ServerProfileCardComponent', () => {
     webUpdate: upToDate,
   };
 
+  let channel: null | string = null;
+
   function setup(profile: PoracleServerProfile | null) {
     adminService = {
       getServerProfile: jest.fn().mockReturnValue(profile ? of(profile) : throwError(() => new Error('down'))),
@@ -42,6 +45,7 @@ describe('ServerProfileCardComponent', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: AdminService, useValue: adminService },
+        { provide: BuildInfoService, useValue: { channel: () => channel } },
       ],
       imports: [ServerProfileCardComponent],
     });
@@ -92,6 +96,14 @@ describe('ServerProfileCardComponent', () => {
 
     expect(fixture.componentInstance.serverLoading()).toBe(false);
     expect(fixture.componentInstance.serverProfile()).toBeNull();
+  });
+
+  it('explains an experimental build to the admin, and says nothing on an official one', () => {
+    channel = 'experimental';
+    expect(setup(base).nativeElement.querySelector('.server-experimental')?.textContent).toContain('ADMIN.EXPERIMENTAL_BUILD');
+
+    channel = null;
+    expect(setup(base).nativeElement.querySelector('.server-experimental')).toBeNull();
   });
 
   it('names this site as well as the Poracle it talks to', () => {

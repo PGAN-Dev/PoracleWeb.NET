@@ -8,6 +8,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 
 import { PoracleServerProfile } from '../../../core/models';
 import { AdminService } from '../../../core/services/admin.service';
+import { BuildInfoService } from '../../../core/services/build-info.service';
 
 /**
  * Says which PoracleNG this deployment talks to, and warns when it is too old for this build.
@@ -30,6 +31,9 @@ import { AdminService } from '../../../core/services/admin.service';
 })
 export class ServerProfileCardComponent implements OnInit {
   private readonly adminService = inject(AdminService);
+
+  /** The release channel, for the experimental line's note. Loaded once by the shell. */
+  protected readonly buildInfo = inject(BuildInfoService);
 
   readonly serverProfile = signal<PoracleServerProfile | null>(null);
 

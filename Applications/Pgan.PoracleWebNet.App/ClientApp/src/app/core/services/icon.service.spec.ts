@@ -43,6 +43,11 @@ describe('IconService', () => {
       expect(service.getPokemonUrl(25, 0)).toBe(`${DEFAULT_BASE}/pokemon/25.png`);
     });
 
+    it('appends the UICONS shiny suffix last', () => {
+      expect(service.getPokemonUrl(25, 0, true)).toBe(`${DEFAULT_BASE}/pokemon/25_s.png`);
+      expect(service.getPokemonUrl(25, 61, true)).toBe(`${DEFAULT_BASE}/pokemon/25_f61_s.png`);
+    });
+
     it('should return fallback pokemon URL without form', () => {
       expect(service.getPokemonFallbackUrl(25)).toBe(`${DEFAULT_BASE}/pokemon/25.png`);
     });

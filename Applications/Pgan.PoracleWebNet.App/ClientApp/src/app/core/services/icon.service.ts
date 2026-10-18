@@ -116,10 +116,11 @@ export class IconService {
     return `${this.pkmnBase()}/${id}.png`;
   }
 
-  getPokemonUrl(id: number, form?: number): string {
+  /** `shiny` asks for the UICONS shiny variant (`_s`, last). A pack without one 404s; callers fall back. */
+  getPokemonUrl(id: number, form?: number, shiny = false): string {
     if (id === 0) return '';
     const formSuffix = form && form > 0 ? `_f${form}` : '';
-    return `${this.pkmnBase()}/${id}${formSuffix}.png`;
+    return `${this.pkmnBase()}/${id}${formSuffix}${shiny ? '_s' : ''}.png`;
   }
 
   getRaidEggUrl(level: number): string {

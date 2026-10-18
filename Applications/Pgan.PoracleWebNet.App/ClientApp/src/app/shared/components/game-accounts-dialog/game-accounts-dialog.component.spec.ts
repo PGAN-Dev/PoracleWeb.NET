@@ -1,9 +1,10 @@
 import { signal, WritableSignal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideTranslateService } from '@ngx-translate/core';
-import { of } from 'rxjs';
+import { of, Subject } from 'rxjs';
 
 import { GameAccountsDialogComponent, GameAccountsDialogData } from './game-accounts-dialog.component';
 import { PlayerAccount, PoracleServerConfig } from '../../../core/models';
@@ -17,6 +18,8 @@ describe('GameAccountsDialogComponent', () => {
   let loadFailed: WritableSignal<boolean>;
   let serverConfig: WritableSignal<Partial<PoracleServerConfig>>;
   let supportUrl: WritableSignal<string | null>;
+  let snackBar: { open: jest.Mock };
+  let undo: Subject<void>;
   let service: {
     accounts: unknown;
     add: jest.Mock;
@@ -57,6 +60,7 @@ describe('GameAccountsDialogComponent', () => {
         { provide: PoracleConfigService, useValue: { load: () => of(serverConfig()), serverConfig } },
         { provide: AuthService, useValue: { isAdmin: () => opts.admin ?? false, isImpersonating: () => opts.impersonating ?? false } },
         { provide: SettingsService, useValue: { supportUrl } },
+        { provide: MatSnackBar, useValue: snackBar },
       ],
       imports: [GameAccountsDialogComponent],
     });
@@ -73,6 +77,8 @@ describe('GameAccountsDialogComponent', () => {
     accounts = signal<PlayerAccount[] | null>([account('AbC123', 'Main'), account('Zed9')]);
     loadFailed = signal(false);
     supportUrl = signal<string | null>(null);
+    undo = new Subject<void>();
+    snackBar = { open: jest.fn(() => ({ onAction: () => undo })) };
   });
 
   it('lists accounts with labels', () => {
@@ -146,11 +152,11 @@ describe('GameAccountsDialogComponent', () => {
     const fixture = create({ selfService: true });
     const component = fixture.componentInstance;
 
-    component.playerId.set('AbC_xYz9');
+    component.playerId.set('AbCxYz9');
     component.label.set('Alt');
     component.add();
 
-    expect(service.add).toHaveBeenCalledWith('AbC_xYz9', 'Alt', undefined);
+    expect(service.add).toHaveBeenCalledWith('AbCxYz9', 'Alt', undefined);
   });
 
   it('does not add a blank player id', () => {
@@ -243,5 +249,85 @@ describe('GameAccountsDialogComponent', () => {
     fixture.destroy();
 
     expect(service.reset).toHaveBeenCalled();
+  });
+
+  describe('checks a player id before sending it', () => {
+    function typed(playerId: string, label = '') {
+      const fixture = create({ selfService: true });
+      fixture.componentInstance.playerId.set(playerId);
+      fixture.componentInstance.label.set(label);
+      fixture.detectChanges();
+      return fixture;
+    }
+
+    it('refuses anything but letters and numbers, at the field, without a request', () => {
+      // PoracleNG's own rule (^[A-Za-z0-9]+$, at most 256); its refusal text is a regex.
+      for (const bad of ['bad id', 'AbC_123', 'Ab-c', 'a'.repeat(257)]) {
+        const fixture = typed(bad);
+        expect(text(fixture)).toContain('GAME_ACCOUNTS.ERROR_INVALID');
+        expect((query(fixture, '.add-button') as HTMLButtonElement).disabled).toBe(true);
+        fixture.componentInstance.add();
+        expect(service.add).not.toHaveBeenCalled();
+      }
+    });
+
+    it('accepts an id of letters and numbers up to 256 long', () => {
+      for (const ok of ['NewOne7', 'a'.repeat(256)]) {
+        const fixture = typed(ok);
+        expect(text(fixture)).not.toContain('GAME_ACCOUNTS.ERROR_INVALID');
+        fixture.componentInstance.add();
+        expect(service.add).toHaveBeenCalled();
+      }
+    });
+
+    it('refuses an id that is already linked, matching case exactly', () => {
+      let fixture = typed('AbC123');
+      expect(text(fixture)).toContain('GAME_ACCOUNTS.ERROR_DUPLICATE');
+      fixture.componentInstance.add();
+      expect(service.add).not.toHaveBeenCalled();
+
+      // Player ids are case-sensitive, so a different case is a different account.
+      fixture = typed('abc123');
+      expect(text(fixture)).not.toContain('GAME_ACCOUNTS.ERROR_DUPLICATE');
+    });
+
+    it('refuses a label another account already uses, ignoring case', () => {
+      const fixture = typed('NewOne', 'main');
+
+      expect(text(fixture)).toContain('GAME_ACCOUNTS.ERROR_LABEL_TAKEN');
+      fixture.componentInstance.add();
+      expect(service.add).not.toHaveBeenCalled();
+    });
+
+    it('warns that twelve digits look like a friend code, but still lets them through', () => {
+      const fixture = typed('123456789012');
+
+      expect(text(fixture)).toContain('GAME_ACCOUNTS.FRIEND_CODE_WARNING');
+      fixture.componentInstance.add();
+      expect(service.add).toHaveBeenCalledWith('123456789012', '', undefined);
+    });
+
+    it('says what a player id is before anything is typed', () => {
+      expect(text(typed(''))).toContain('GAME_ACCOUNTS.PLAYER_ID_HINT');
+    });
+  });
+
+  it('offers to undo an unlink, putting the label back', () => {
+    const fixture = create({ data: { displayName: 'Ash', userId: '42' } });
+
+    fixture.componentInstance.unlink('AbC123');
+    expect(service.remove).toHaveBeenCalledWith('AbC123', '42');
+    expect(snackBar.open).toHaveBeenCalledWith('GAME_ACCOUNTS.UNLINKED', 'GAME_ACCOUNTS.UNDO', { duration: 6000 });
+
+    undo.next();
+    expect(service.add).toHaveBeenCalledWith('AbC123', 'Main', '42');
+  });
+
+  it('confirms a saved label', () => {
+    const fixture = create({ selfService: true });
+
+    fixture.componentInstance.relabel(account('AbC123', 'Main'), 'Renamed');
+
+    expect(snackBar.open).toHaveBeenCalledWith('GAME_ACCOUNTS.LABEL_SAVED', undefined, { duration: 2000 });
   });
 });
