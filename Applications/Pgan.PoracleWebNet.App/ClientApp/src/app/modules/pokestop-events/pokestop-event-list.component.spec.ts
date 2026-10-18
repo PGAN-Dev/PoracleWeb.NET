@@ -116,9 +116,10 @@ describe('PokestopEventListComponent', () => {
     });
 
     it('keeps a rule where it was after an edit rotated its uid', () => {
-      // This type has only ever had a v2 write surface, and a v2 replace is delete-then-insert, so the
-      // edited rule comes back under the highest uid in the list. Rendering PoracleNG's own order threw
-      // the card the user had just saved to the end of the grid.
+      // The 5.2.x scenario scripted here: this type has only ever had a v2 write surface, and there a v2
+      // replace is delete-then-insert, so the edited rule comes back under the highest uid in the list.
+      // Rendering PoracleNG's own order threw the card the user had just saved to the end of the grid.
+      // (Since jfberry/PoracleNG #303 the uid is normally kept; the order must not depend on either.)
       setup([
         // PoracleNG's own order: by uid, with the just-edited Kecleon rule re-keyed to the highest.
         { ...base, uid: 1, displayType: GOLD_STOP, eventName: 'gold-stop' },

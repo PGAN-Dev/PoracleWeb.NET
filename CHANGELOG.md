@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **PoracleWeb.NET keeps working with PoracleNG builds that carry [jfberry/PoracleNG#303](https://github.com/jfberry/PoracleNG/pull/303).** Those builds send account flags as true/false and area lists as arrays on `/api/v2`, and rename the location fields. Against them, signing in, the Areas page, profiles, and saving a location or a saved place all failed. Released PoracleNG versions are unaffected either way.
+- **Creating a custom geofence no longer leaves it switched off on a PoracleNG that offers trusted area-setting ([jfberry/PoracleNG#230](https://github.com/jfberry/PoracleNG/pull/230)).** The fence was subscribed before PoracleNG had loaded it, so PoracleNG refused the name and the fence stayed inactive. It is now loaded first, and if PoracleNG still refuses it the subscription is written directly, as on released versions.
+
 ## [2.20.1] - 2026-10-18
 
 ### Changed

@@ -83,6 +83,24 @@ public class PoracleTrackingProxyV2Tests
         Assert.True(result.UsedV2);
     }
 
+    /// <summary>
+    /// Since jfberry/PoracleNG #303 the v2 PUT keeps the rule's uid, so <c>updated[0].uid</c> equals the one
+    /// addressed. The proxy still reads the response every time (a failed reassignment on the server hands
+    /// back a new uid and a 200), and a kept uid must come out as itself, still reported as a v2 write.
+    /// </summary>
+    [Fact]
+    public async Task AV2PutThatKeepsTheUidReportsIt()
+    {
+        var handler = ScriptedHandler.Ok(
+            """{"created":null,"updated":[{"pokemon_id":25,"min_iv":90,"uid":36486}],"unchanged":null}""");
+        var sut = CreateSut(handler, version: "5.2.1");
+
+        var result = await sut.UpdateByUidAsync("pokemon", "user1", 36486, Row(StoredRow));
+
+        Assert.Equal(36486, result.Uid);
+        Assert.True(result.UsedV2);
+    }
+
     [Fact]
     public async Task AServerWithoutV2GetsTheSameV1WriteItAlwaysGot()
     {

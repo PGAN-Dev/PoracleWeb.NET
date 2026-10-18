@@ -4,6 +4,7 @@ using Pgan.PoracleWebNet.Api.Filters;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 
 using Pgan.PoracleWebNet.Core.Models;
+using Pgan.PoracleWebNet.Core.Services;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
@@ -37,9 +38,10 @@ public partial class AreaController(
         }
 
         // The proxy returns a JsonElement for the human; extract the area field
-        if (humanJson.Value.TryGetProperty("area", out var areaProp))
+        // The field is a JSON-encoded string on 5.1.0/5.2.1 and a real array since jfberry/PoracleNG#303.
+        if (humanJson.Value.TryGetProperty("area", out _))
         {
-            return this.Ok(ParseAreaJson(areaProp.GetString()));
+            return this.Ok(ParseAreaJson(PoracleAreaJson.ReadAreaListJson(humanJson.Value)));
         }
 
         return this.Ok(Array.Empty<string>());
@@ -158,9 +160,9 @@ public partial class AreaController(
         // userSelectable, so returning the submitted list asserted subscriptions the user does not have
         // - a typo or a stale area name looked accepted until the next page load. See #476.
         var stored = await this._humanProxy.GetAreasAsync(this.UserId);
-        if (stored is not null && stored.Value.TryGetProperty("area", out var storedAreas))
+        if (stored is not null && stored.Value.TryGetProperty("area", out _))
         {
-            return this.Ok(ParseAreaJson(storedAreas.GetString()));
+            return this.Ok(ParseAreaJson(PoracleAreaJson.ReadAreaListJson(stored.Value)));
         }
 
         return this.Ok(normalizedAreas);

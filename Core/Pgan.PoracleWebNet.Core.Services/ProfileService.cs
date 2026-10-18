@@ -60,7 +60,7 @@ public class ProfileService(IPoracleHumanProxy humanProxy) : IProfileService
             Id = userId,
             ProfileNo = activeProfileNo,
             Name = "Default",
-            Area = record.GetStringPropOrNull("area") ?? "[]",
+            Area = record.GetAreaListJsonOrNull("area") ?? "[]",
             Latitude = record.GetDoubleProp("latitude"),
             Longitude = record.GetDoubleProp("longitude"),
         });

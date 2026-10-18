@@ -21,7 +21,7 @@ public class UserOwnedOverrideAreaProxyTests
 {
     private const string User = "u1";
 
-    /// <summary>What the v2 full-replace PUT hands back: a new row, under a new uid.</summary>
+    /// <summary>What the v2 full-replace PUT hands back on 5.2.x: a new row, under a new uid.</summary>
     private const int RotatedUid = 8;
 
     private readonly Mock<IPoracleTrackingProxy> _inner = new();
@@ -76,8 +76,8 @@ public class UserOwnedOverrideAreaProxyTests
     [Fact]
     public async Task AnEditWritesTheAreaBackAgainstTheUidPoracleJustReported()
     {
-        // The v2 PUT is delete-then-insert, so the row the areas belong to is NOT the one that was
-        // addressed. Writing to the old uid would touch a row that no longer exists and the alarm would
+        // On 5.2.x the v2 PUT is delete-then-insert, so the row the areas belong to is NOT the one that was
+        // addressed (scripted here as RotatedUid). Writing to the old uid would touch a row that no longer exists and the alarm would
         // silently widen to the whole profile -- the same failure the write-back guard exists to prevent.
         var result = await this.Proxy().UpdateByUidAsync("pokemon", User, 7, Row(
             """{"uid":7,"pokemon_id":201,"distance":0,"override_areas":["back garden"]}"""));
@@ -92,6 +92,30 @@ public class UserOwnedOverrideAreaProxyTests
         this._writer.Verify(
             w => w.SetAlarmOverrideAreasAsync(
                 It.IsAny<string>(), It.IsAny<string>(), 7, It.IsAny<IReadOnlyCollection<string>>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task KeptUidWritesOwnedAreasToTheSameRow()
+    {
+        // Since jfberry/PoracleNG #303 the v2 PUT keeps the rule's uid, so the row to write the areas to is
+        // the one that was addressed. The write-back follows whatever the response says, which here is 7.
+        this._inner
+            .Setup(p => p.UpdateByUidAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingUpdateResult(7, true));
+
+        var result = await this.Proxy().UpdateByUidAsync("pokemon", User, 7, Row(
+            """{"uid":7,"pokemon_id":201,"distance":0,"override_areas":["back garden"]}"""));
+
+        Assert.Equal(7, result.Uid);
+        this._writer.Verify(
+            w => w.SetAlarmOverrideAreasAsync(
+                User, "pokemon", 7, It.Is<IReadOnlyCollection<string>>(a => a.Contains("back garden"))),
+            Times.Once);
+        this._writer.Verify(
+            w => w.SetAlarmOverrideAreasAsync(
+                It.IsAny<string>(), It.IsAny<string>(), RotatedUid, It.IsAny<IReadOnlyCollection<string>>()),
             Times.Never);
     }
 

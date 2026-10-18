@@ -83,8 +83,10 @@ public class MonsterService(
         var result = await this._proxy.UpdateByUidAsync(TrackingType, userId, model.Uid, body);
 
         // Pokemon used to be the one type whose uid survived an edit. The v2 PUT is delete-then-insert, so
-        // it now rotates like the other nine, and quick-pick applied state has to follow the row or its
-        // "remove" button silently deletes nothing. See #403 and #805.
+        // on 5.2.x it rotates like the other nine, and quick-pick applied state has to follow the row or its
+        // "remove" button silently deletes nothing. Since jfberry/PoracleNG #303 the PUT keeps the uid, but
+        // a failed reassignment still returns a new one, so the result is read and compared every time.
+        // See #403 and #805.
         if (result.Uid > 0 && result.Uid != model.Uid)
         {
             await this._uidRemapper.RemapAsync(userId, TrackingType, model.Uid, result.Uid);

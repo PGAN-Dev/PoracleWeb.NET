@@ -285,11 +285,7 @@ public partial class PoracleHumanProxy(
 
     public async Task SetLocationAsync(string userId, double lat, double lon)
     {
-        var v2Body = JsonSerializer.Serialize(new
-        {
-            lat,
-            lon
-        });
+        var v2Body = await this.LocationBodyAsync(lat, lon);
 
         var (response, _) =
             await this.TryV2Async(
@@ -350,7 +346,7 @@ public partial class PoracleHumanProxy(
     private async Task<List<string>?> GetCurrentAreaListAsync(string userId)
     {
         var human = await this.GetHumanAsync(userId);
-        var areaJson = human?.GetStringPropOrNull("area");
+        var areaJson = human?.GetAreaListJsonOrNull("area");
         return areaJson is null ? null : AreaListJson.Parse(areaJson);
     }
 
@@ -359,7 +355,8 @@ public partial class PoracleHumanProxy(
     /// list -- there is no incremental add/remove on the wire -- so every caller here reads the current
     /// list first and posts the complete result.
     /// </summary>
-    private async Task PostTrustedAreasAsync(string userId, List<string> areas)
+    /// <returns>The names PoracleNG left out (its <c>rejected</c> list), empty when it kept everything.</returns>
+    private async Task<IReadOnlyList<string>> PostTrustedAreasAsync(string userId, List<string> areas)
     {
         var body = JsonSerializer.Serialize(new { areas, trusted = true });
         var (response, payload) =
@@ -371,14 +368,18 @@ public partial class PoracleHumanProxy(
             && rejectedEl.ValueKind == JsonValueKind.Array
             && rejectedEl.GetArrayLength() > 0)
         {
-            var rejected = rejectedEl.EnumerateArray().Select(e => e.GetString() ?? string.Empty);
+            var rejected = rejectedEl.EnumerateArray().Select(e => e.GetString() ?? string.Empty).ToList();
 
-            // Should not happen for a name this app just created or already had selected -- trusted
-            // only lifts userSelectable, not "exists at all". Logged rather than surfaced: every caller
-            // here already treats its own write as best-effort (see the HACK: trusted-set-areas sites
-            // this replaces), and the geofence row these names came from is the source of truth either way.
+            // Trusted only lifts userSelectable, not "exists at all", so a rejected name is one PoracleNG
+            // does not know -- a fence it has not loaded yet, or a stale entry already in the list. Logged
+            // here; the add path decides what a rejected REQUESTED name means (it falls back to the
+            // direct-DB writer), because a successful geofence reload does not prove PoracleNG fetched
+            // our feed: it only logs a feed failure and keeps serving its cached list.
             LogTrustedAreasRejected(this._logger, userId, string.Join(", ", rejected));
+            return rejected;
         }
+
+        return [];
     }
 
     /// <summary>
@@ -435,7 +436,16 @@ public partial class PoracleHumanProxy(
             return false;
         }
 
-        await this.PostTrustedAreasAsync(userId, current);
+        var rejected = await this.PostTrustedAreasAsync(userId, current);
+
+        // A requested name PoracleNG refused was not written. Answer null -- the caller's "use the
+        // direct-DB writer" signal -- rather than true. A rejected name that was only already in the
+        // list (a stale entry) says nothing about the request and is not a reason to fall back.
+        if (rejected.Any(r => normalized.Contains(r, StringComparer.OrdinalIgnoreCase)))
+        {
+            return null;
+        }
+
         return true;
     }
 
@@ -822,14 +832,7 @@ public partial class PoracleHumanProxy(
             return "That name is too long. Use 64 characters or fewer.";
         }
 
-        // v2 takes lat/lon on the way in and still answers latitude/longitude on the way out. The
-        // asymmetry is upstream's, not a typo here.
-        var v2Body = JsonSerializer.Serialize(new
-        {
-            label = place.Label,
-            lat = place.Latitude,
-            lon = place.Longitude,
-        });
+        var v2Body = await this.LocationBodyAsync(place.Latitude, place.Longitude, place.Label);
 
         var v2 = await this.TryV2Async(
             HttpMethod.Post, "locations-add", $"/api/v2/humans/{Encode(userId)}/locations", v2Body);
@@ -884,11 +887,7 @@ public partial class PoracleHumanProxy(
     /// <inheritdoc />
     public async Task<bool> UpdatePlaceAsync(string userId, string label, double latitude, double longitude)
     {
-        var body = JsonSerializer.Serialize(new
-        {
-            lat = latitude,
-            lon = longitude,
-        });
+        var body = await this.LocationBodyAsync(latitude, longitude);
 
         var v2 = await this.TryV2Async(
             HttpMethod.Put, "locations-update", $"/api/v2/humans/{Encode(userId)}/locations/{Encode(label)}", body);
@@ -900,6 +899,30 @@ public partial class PoracleHumanProxy(
 
         await EnsureAcceptedAsync(reply.Response);
         return true;
+    }
+
+    /// <summary>
+    /// The request body for the three v2 location writes, with the coordinate names the target server
+    /// declares: <c>lat</c>/<c>lon</c> on every released PoracleNG (5.2.1 reads them off
+    /// <c>V2LocationBody</c> and its two siblings), <c>latitude</c>/<c>longitude</c> once
+    /// jfberry/PoracleNG#303 lands. The bodies are <c>additionalProperties:false</c> and a 422 does not
+    /// fall back to v1, so the wrong names fail the write rather than degrade it. The reads answer
+    /// <c>latitude</c>/<c>longitude</c> on both. Read once per call; an unreadable document is the
+    /// released names.
+    /// </summary>
+    private async Task<string> LocationBodyAsync(double latitude, double longitude, string? label = null)
+    {
+        var longNames = (await this._v2Schema.GetAsync()).V2LocationLatitudeLongitude;
+        var body = new Dictionary<string, object?>();
+
+        if (label is not null)
+        {
+            body["label"] = label;
+        }
+
+        body[longNames ? "latitude" : "lat"] = latitude;
+        body[longNames ? "longitude" : "lon"] = longitude;
+        return JsonSerializer.Serialize(body);
     }
 
     public async Task DeletePlaceAsync(string userId, string label)

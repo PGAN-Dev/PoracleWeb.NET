@@ -2,6 +2,7 @@ using System.Text.Json;
 using Moq;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
+using Pgan.PoracleWebNet.Core.Models.Helpers;
 using Pgan.PoracleWebNet.Core.Services;
 
 namespace Pgan.PoracleWebNet.Tests.Services;
@@ -165,5 +166,25 @@ public class ProfileServiceTests
 
         Assert.Single(result);
         Assert.Equal("[]", result[0].ActiveHours);
+    }
+
+    [Theory]
+    [InlineData("\"[\\\"downtown\\\"]\"")]
+    [InlineData("[\"downtown\"]")]
+    public async Task GetByUserAsyncSynthesisesTheActiveProfileFromEitherAreaShape(string areaLiteral)
+    {
+        // PoracleNG has no profiles row yet, so the active profile is built from the human. Since
+        // jfberry/PoracleNG#303 that human's area is an array; 5.1.0/5.2.1 send a JSON-encoded string.
+        this._humanProxy.Setup(p => p.GetProfilesAsync("u1"))
+            .ReturnsAsync(JsonSerializer.SerializeToElement(new { profile = Array.Empty<object>(), status = "ok" }));
+        var human = JsonDocument.Parse(
+            $$"""{"id":"u1","current_profile_no":1,"area":{{areaLiteral}},"latitude":1.5,"longitude":2.5}""").RootElement.Clone();
+        this._humanProxy.Setup(p => p.GetHumanAsync("u1")).ReturnsAsync(human);
+
+        var result = (await this._sut.GetByUserAsync("u1")).ToList();
+
+        var synthesised = Assert.Single(result);
+        Assert.Equal(1, synthesised.ProfileNo);
+        Assert.Equal(["downtown"], AreaListJson.Parse(synthesised.Area));
     }
 }

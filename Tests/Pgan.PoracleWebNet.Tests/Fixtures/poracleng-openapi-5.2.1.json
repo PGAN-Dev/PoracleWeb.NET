@@ -294,6 +294,71 @@
      "status"
     ],
     "type": "object"
+   },
+   "V2LocationBody": {
+    "additionalProperties": false,
+    "properties": {
+     "lat": {
+      "description": "Latitude",
+      "format": "double",
+      "type": "number"
+     },
+     "lon": {
+      "description": "Longitude",
+      "format": "double",
+      "type": "number"
+     }
+    },
+    "required": [
+     "lat",
+     "lon"
+    ],
+    "type": "object"
+   },
+   "V2AddLocationBody": {
+    "additionalProperties": false,
+    "properties": {
+     "label": {
+      "description": "Unique saved-location label",
+      "type": "string"
+     },
+     "lat": {
+      "description": "Latitude",
+      "format": "double",
+      "type": "number"
+     },
+     "lon": {
+      "description": "Longitude",
+      "format": "double",
+      "type": "number"
+     }
+    },
+    "required": [
+     "label",
+     "lat",
+     "lon"
+    ],
+    "type": "object"
+   },
+   "V2UpdateLocationBody": {
+    "additionalProperties": false,
+    "properties": {
+     "lat": {
+      "description": "New latitude",
+      "format": "double",
+      "type": "number"
+     },
+     "lon": {
+      "description": "New longitude",
+      "format": "double",
+      "type": "number"
+     }
+    },
+    "required": [
+     "lat",
+     "lon"
+    ],
+    "type": "object"
    }
   }
  }
