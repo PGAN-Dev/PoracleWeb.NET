@@ -1,5 +1,18 @@
 # Troubleshooting
 
+## SSO users are signed out every time the container restarts
+
+**Problem**: The log starts with `DATA_DIR /app/data is not writable`, or with a DataProtection
+`Access to the path '/app/data/dataprotection-keys' is denied` error.
+
+**Solution**: Docker created the bind-mounted `./data` as root, and the container runs as uid 999. Give
+the directory to that user and restart:
+
+```bash
+sudo chown -R 999:999 ./data
+docker compose up -d --force-recreate
+```
+
 ## Sign-in fails with "Invalid OAuth2 redirect_uri"
 
 **Problem**: Clicking sign in sends you to Discord (or your OIDC provider) and it refuses with an invalid `redirect_uri`. Inspecting the URL shows the callback as `http://your-host/api/auth/discord/callback` even though the site is served over HTTPS.

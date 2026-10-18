@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **A Docker install no longer loses its DataProtection keys on every restart.** The container runs as uid 999, and Docker creates a bind-mounted `./data` that doesn't exist yet as root, so the app couldn't write its keys or avatar cache there and every SSO user was signed out whenever the container was recreated. The install docs now create the directory with the right owner (`mkdir -p data && sudo chown 999:999 data`), `./scripts/docker.sh start` warns when the owner is wrong, the image pins uid 999 so that command stays right, and the app logs one error naming the fix when `DATA_DIR` can't be written.
+
 ## [2.20.2] - 2026-10-18
 
 ### Fixed
