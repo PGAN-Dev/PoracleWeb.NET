@@ -223,7 +223,6 @@
     "PERSONAL_SHINY": "Seulement s'il est shiny pour moi",
     "PERSONAL_BACKGROUND": "Seulement s'il a l'arrière-plan d'événement pour moi",
     "PERSONAL_HINT": "Chaque joueur a son propre tirage shiny. Ces options vérifient le vôtre, sur les comptes de jeu que vous liez.",
-    "PERSONAL_NO_ACCOUNTS": "Cette règle ne déclenchera rien tant que vous n'aurez pas lié de compte de jeu.",
     "PERSONAL_SHINY_BADGE": "Shiny pour moi",
     "PERSONAL_BACKGROUND_BADGE": "Arrière-plan pour moi",
     "NO_IV_FILTER": "Pas de filtre IV",
@@ -353,11 +352,12 @@
     "NO_COSTUME_PILL": "Sans costume",
     "PERSONAL_BOTH": "Avec les deux activés, l'alerte ne concerne qu'un shiny qui a aussi l'arrière-plan d'événement.",
     "PERSONAL_NO_FEED": "Ce serveur n'a pas encore configuré les taux de shiny : cette règle ne déclenchera rien d'ici là.",
-    "PERSONAL_LINK_BUTTON": "Lier un compte de jeu",
-    "PERSONAL_ASK_ADMIN": "Cette règle ne déclenchera rien tant qu'un administrateur n'aura pas lié votre compte de jeu. Envoyez-lui votre ID du joueur.",
+    "PERSONAL_ASK_ADMIN": "Cette règle ne déclenchera rien tant qu'un administrateur n'aura pas lié votre compte de jeu.",
     "PERSONAL_CHECKING_ONE": "Vérifie votre compte {{name}}.",
     "PERSONAL_CHECKING_TWO": "Vérifie {{first}} et {{second}}.",
-    "PERSONAL_CHECKING_MANY": "Vérifie {{first}} et {{count}} autres comptes."
+    "PERSONAL_CHECKING_MANY": "Vérifie {{first}} et {{count}} autres comptes.",
+    "PERSONAL_LINK_ON_MAP": "Cette règle ne déclenchera rien tant que vous n'aurez pas lié de compte de jeu sur la carte.",
+    "PERSONAL_LINK_WITH_BOT": "Cette règle ne déclenchera rien tant que vous n'aurez pas lié de compte de jeu avec !account dans Discord."
   },
   "ALARM": {
     "LOCATION_MODE": "Mode de localisation",
@@ -1868,7 +1868,9 @@
     "BASEMAP_ATTRIBUTION_DESC": "Attribution de l’URL de tuiles personnalisée. Doit respecter les conditions de votre fournisseur. Affichée en texte brut.",
     "BASEMAP_KEY_MISSING": "Aucune clé n’est définie : les cartes basculent sur {{provider}}. Le fournisseur choisi renverrait quand même des tuiles — CARTO y inscrit « API KEY REQUIRED » — et rien d’autre ne le signalerait.",
     "BASEMAP_UNAVAILABLE": "Le fond de carte choisi n’a pas d’URL de tuiles utilisable : les cartes basculent sur {{provider}}. Choisissez un fournisseur, ou indiquez une URL de tuiles commençant par http:// ou https://.",
-    "FAVICON_PREVIEW_ALT": "Aperçu du favicon"
+    "FAVICON_PREVIEW_ALT": "Aperçu du favicon",
+    "GAME_ACCOUNTS_LINK_URL_LABEL": "URL pour lier un compte de jeu",
+    "GAME_ACCOUNTS_LINK_URL_DESC": "Où les dresseurs lient un compte de jeu pour les alertes shiny personnelles, en général la page de profil de votre carte. La fenêtre Comptes de jeu et les fenêtres Pokémon y envoient les dresseurs. Laissez vide pour les renvoyer plutôt vers !account dans le bot."
   },
   "GAME_ACCOUNTS": {
     "TITLE": "Comptes de jeu",
@@ -1886,15 +1888,23 @@
     "FOR_USER": "Comptes liés à {{name}}",
     "CONTACT_SUPPORT": "Contacter le support",
     "IMPERSONATING": "Les comptes de jeu ne peuvent pas être modifiés pendant que vous consultez un autre compte.",
-    "PLAYER_ID_HINT": "Lettres et chiffres. C'est votre ID du joueur, pas votre code ami à 12 chiffres.",
     "FRIEND_CODE_WARNING": "Cela ressemble à un code ami. Il vous faut plutôt l'ID du joueur.",
     "ERROR_INVALID": "Lettres et chiffres uniquement, sans espaces.",
-    "ERROR_DUPLICATE": "Ce compte est déjà lié.",
     "ERROR_LABEL_TAKEN": "Un autre compte utilise déjà ce libellé.",
     "ERROR_CONFLICT": "Ce compte ou ce libellé est déjà utilisé.",
     "UNLINKED": "{{name}} délié",
     "UNDO": "Annuler",
-    "LABEL_SAVED": "Libellé enregistré"
+    "LABEL_SAVED": "Libellé enregistré",
+    "UNNAMED": "Compte {{n}}",
+    "LABEL_FOR": "Libellé de {{name}}",
+    "LINK_ON_MAP": "Liez un compte de jeu sur la carte. Il apparaîtra ici une fois lié.",
+    "OPEN_MAP": "Ouvrir la carte",
+    "LINK_WITH_BOT": "Liez un compte de jeu avec !account dans Discord. Il apparaîtra ici une fois lié.",
+    "LINK_ASK_ADMIN": "Demandez à un administrateur de lier votre compte de jeu.",
+    "SHOW_ID": "Afficher l'ID du joueur",
+    "HIDE_ID": "Masquer l'ID du joueur",
+    "ADMIN_PLAYER_ID_HINT": "Lettres et chiffres, pas le code ami à 12 chiffres. Il n'est plus affiché une fois lié.",
+    "UNDO_EXPIRED": "L'annulation a expiré. Liez le compte à nouveau."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Nom",

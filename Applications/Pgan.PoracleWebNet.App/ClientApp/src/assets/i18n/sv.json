@@ -223,7 +223,6 @@
     "PERSONAL_SHINY": "Bara när den är shiny för mig",
     "PERSONAL_BACKGROUND": "Bara när den har eventbakgrunden för mig",
     "PERSONAL_HINT": "Varje spelare har sitt eget shiny-slag. De här reglerna kollar ditt, på spelkontona du kopplar.",
-    "PERSONAL_NO_ACCOUNTS": "Den här regeln varnar inte förrän du kopplar ett spelkonto.",
     "PERSONAL_SHINY_BADGE": "Shiny för mig",
     "PERSONAL_BACKGROUND_BADGE": "Bakgrund för mig",
     "NO_IV_FILTER": "Inget IV-filter",
@@ -353,11 +352,12 @@
     "NO_COSTUME_PILL": "Ingen dräkt",
     "PERSONAL_BOTH": "Med båda på varnar den bara för en shiny som också har eventbakgrunden.",
     "PERSONAL_NO_FEED": "Den här servern har inte ställt in shiny-chanser än, så regeln varnar inte förrän den har gjort det.",
-    "PERSONAL_LINK_BUTTON": "Koppla ett spelkonto",
-    "PERSONAL_ASK_ADMIN": "Den här regeln varnar inte förrän en administratör kopplar ditt spelkonto. Skicka ditt spelar-ID till hen.",
+    "PERSONAL_ASK_ADMIN": "Den här regeln varnar inte förrän en administratör kopplar ditt spelkonto.",
     "PERSONAL_CHECKING_ONE": "Kollar ditt konto {{name}}.",
     "PERSONAL_CHECKING_TWO": "Kollar {{first}} och {{second}}.",
-    "PERSONAL_CHECKING_MANY": "Kollar {{first}} och {{count}} andra konton."
+    "PERSONAL_CHECKING_MANY": "Kollar {{first}} och {{count}} andra konton.",
+    "PERSONAL_LINK_ON_MAP": "Den här regeln varnar inte förrän du kopplar ett spelkonto på kartan.",
+    "PERSONAL_LINK_WITH_BOT": "Den här regeln varnar inte förrän du kopplar ett spelkonto med !account i Discord."
   },
   "ALARM": {
     "LOCATION_MODE": "Platsläge",
@@ -1868,7 +1868,9 @@
     "BASEMAP_ATTRIBUTION_DESC": "Attribution för den egna rut-URL:en. Måste följa din leverantörs villkor. Visas som vanlig text.",
     "BASEMAP_KEY_MISSING": "Ingen nyckel är satt, så kartorna faller tillbaka på {{provider}}. Den valda leverantören skulle ändå returnera rutor — CARTO ritar in ”API KEY REQUIRED” i dem — och inget annat skulle rapportera det.",
     "BASEMAP_UNAVAILABLE": "Den valda bakgrundskartan har ingen användbar rut-URL, så kartorna faller tillbaka på {{provider}}. Välj en leverantör, eller ange en rut-URL som börjar med http:// eller https://.",
-    "FAVICON_PREVIEW_ALT": "Favicon-förhandsvisning"
+    "FAVICON_PREVIEW_ALT": "Favicon-förhandsvisning",
+    "GAME_ACCOUNTS_LINK_URL_LABEL": "Länk för att koppla spelkonton",
+    "GAME_ACCOUNTS_LINK_URL_DESC": "Där tränare kopplar ett spelkonto för personliga shiny-varningar, oftast profilsidan på din karta. Dialogen Spelkonton och Pokémon-dialogerna skickar tränare dit. Lämna tomt för att i stället hänvisa dem till !account i boten."
   },
   "GAME_ACCOUNTS": {
     "TITLE": "Spelkonton",
@@ -1886,15 +1888,23 @@
     "FOR_USER": "Konton kopplade till {{name}}",
     "CONTACT_SUPPORT": "Kontakta supporten",
     "IMPERSONATING": "Spelkonton kan inte ändras medan du tittar på ett annat konto.",
-    "PLAYER_ID_HINT": "Bokstäver och siffror. Det här är ditt spelar-ID, inte din vänkod med 12 siffror.",
     "FRIEND_CODE_WARNING": "Det där ser ut som en vänkod. Du behöver spelar-ID:t i stället.",
     "ERROR_INVALID": "Bara bokstäver och siffror, utan mellanslag.",
-    "ERROR_DUPLICATE": "Det här kontot är redan kopplat.",
     "ERROR_LABEL_TAKEN": "Ett annat konto använder redan den här etiketten.",
     "ERROR_CONFLICT": "Det kontot eller den etiketten används redan.",
     "UNLINKED": "{{name}} bortkopplat",
     "UNDO": "Ångra",
-    "LABEL_SAVED": "Etiketten sparades"
+    "LABEL_SAVED": "Etiketten sparades",
+    "UNNAMED": "Konto {{n}}",
+    "LABEL_FOR": "Etikett för {{name}}",
+    "LINK_ON_MAP": "Koppla ett spelkonto på kartan. Det dyker upp här när det är kopplat.",
+    "OPEN_MAP": "Öppna kartan",
+    "LINK_WITH_BOT": "Koppla ett spelkonto med !account i Discord. Det dyker upp här när det är kopplat.",
+    "LINK_ASK_ADMIN": "Be en administratör att koppla ditt spelkonto.",
+    "SHOW_ID": "Visa spelar-ID",
+    "HIDE_ID": "Dölj spelar-ID",
+    "ADMIN_PLAYER_ID_HINT": "Bokstäver och siffror, inte vänkoden med 12 siffror. Det visas inte igen när det är kopplat.",
+    "UNDO_EXPIRED": "Det går inte längre att ångra. Koppla kontot igen."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Namn",

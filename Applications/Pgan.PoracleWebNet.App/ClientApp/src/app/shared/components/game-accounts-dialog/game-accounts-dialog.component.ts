@@ -28,8 +28,19 @@ export interface GameAccountsDialogData {
 }
 
 /**
- * Links game accounts (player ids) for personal shiny alerts, for a trainer or for an administrator
- * acting on any human. Player ids are case-sensitive and are sent exactly as typed.
+ * Where a trainer is told to go to link an account: the operator's map (which pushes accounts into
+ * PoracleNG), the bot's `!account` when self-service lets trainers use it, or an administrator.
+ */
+export type LinkRoute = 'admin' | 'bot' | 'map';
+
+/**
+ * The game accounts linked to a human, for personal shiny alerts.
+ *
+ * The player id never surfaces: accounts are listed by label, or "Account N", and addressed by the opaque
+ * handle the server answers. Trainers don't link here at all, because the maps people already use (ReactMap's
+ * personal shiny support, Diadem) look the player id up from a friend code and push it into PoracleNG; the
+ * dialog sends them there (`game_accounts_link_url`), or to the bot. The one place an id is typed is the
+ * administrator's view from Admin > Users, masked, for support cases.
  */
 @Component({
   imports: [
@@ -60,16 +71,6 @@ export class GameAccountsDialogComponent implements OnInit, OnDestroy {
 
   /** Whether this viewer is an administrator acting on someone else's accounts. */
   readonly isAdminView = !!this.data.userId;
-  /**
-   * An administrator may always edit, their own accounts included. A trainer may only when PoracleNG's
-   * self-service setting is on. Nobody may while impersonating, because the API refuses a write there (the
-   * account is somebody else's).
-   */
-  readonly canEdit = computed(
-    () =>
-      this.isAdminView ||
-      (!this.auth.isImpersonating() && (!!this.poracleConfig.serverConfig().playerAccountsSelfService || this.auth.isAdmin())),
-  );
 
   readonly label = signal('');
 
@@ -82,49 +83,69 @@ export class GameAccountsDialogComponent implements OnInit, OnDestroy {
 
   readonly playerId = signal('');
 
-  /** Twelve digits is the shape of a friend code, which people reach for first. Allowed, but worth a word. */
+  /** Admin view only. Twelve digits is the shape of a friend code, which people reach for first. */
   readonly looksLikeFriendCode = computed(() => FRIEND_CODE.test(this.playerId().replace(/\s/g, '')));
 
-  /**
-   * What is wrong with the typed player id, checked before anything is sent. The pattern is PoracleNG's
-   * own (letters and digits, 1-256); its refusal is a regex nobody should have to read. A duplicate is
-   * exact, because player ids are case-sensitive.
-   */
+  /** What is wrong with the typed player id (admin view). The pattern is PoracleNG's own; its refusal is a regex. */
   readonly playerIdError = computed<null | string>(() => {
     const id = this.playerId();
     if (id.length === 0) return null;
-    // A friend code typed with its spaces fails the pattern; naming what it is helps more than the rule does.
     if (!PLAYER_ID.test(id)) return this.looksLikeFriendCode() ? 'GAME_ACCOUNTS.FRIEND_CODE_WARNING' : 'GAME_ACCOUNTS.ERROR_INVALID';
-    if ((this.accounts.accounts() ?? []).some(a => a.playerId === id)) return 'GAME_ACCOUNTS.ERROR_DUPLICATE';
     return null;
   });
 
   readonly canAdd = computed(
-    () => this.canEdit() && !this.busy() && this.playerId().trim().length > 0 && !this.playerIdError() && !this.labelError(),
+    () => this.isAdminView && !this.busy() && this.playerId().trim().length > 0 && !this.playerIdError() && !this.labelError(),
+  );
+
+  /**
+   * Relabel and unlink. An administrator may always, their own accounts included. A trainer may only when
+   * PoracleNG's self-service setting is on. Nobody may while impersonating, because the API refuses a write
+   * there (the account is somebody else's).
+   */
+  readonly canEdit = computed(
+    () =>
+      this.isAdminView ||
+      (!this.auth.isImpersonating() && (!!this.poracleConfig.serverConfig().playerAccountsSelfService || this.auth.isAdmin())),
   );
 
   readonly dialogRef = inject(MatDialogRef<GameAccountsDialogComponent>);
 
+  readonly linkUrl = this.settings.gameAccountsLinkUrl;
+
   /** Read-only because of impersonation, which the API reports before self-service, so it gets its own words. */
   readonly readOnlyByImpersonation = computed(() => !this.isAdminView && this.auth.isImpersonating());
 
+  /** Where the trainer's own view sends them to link an account. Null for an administrator's view of someone else. */
+  readonly linkRoute = computed<LinkRoute | null>(() => {
+    if (this.isAdminView || this.readOnlyByImpersonation()) return null;
+    if (this.linkUrl()) return 'map';
+    return this.poracleConfig.serverConfig().playerAccountsSelfService ? 'bot' : 'admin';
+  });
+
+  /** The admin's id field is masked; the eye reveals it to check a paste. */
+  readonly showPlayerId = signal(false);
+
   protected readonly supportUrl = this.settings.supportUrl;
 
-  /** The link is for a trainer blocked by the server setting, who can ask someone to link the account. */
-  readonly showSupportLink = computed(() => !this.canEdit() && !this.readOnlyByImpersonation() && !!this.supportUrl());
+  /** An account as people recognise it: its label, or "Account N" in list order. */
+  accountName(account: PlayerAccount, index: number): string {
+    return account.label?.trim() || this.translate.instant('GAME_ACCOUNTS.UNNAMED', { n: index + 1 });
+  }
 
   add(): void {
-    const playerId = this.playerId();
     // Never trimmed or case-folded: player ids are case-sensitive, and the pattern already refuses spaces.
     if (!this.canAdd()) return;
 
     this.busy.set(true);
-    this.accounts.add(playerId, this.label().trim(), this.data.userId).subscribe({
+    this.accounts.add(this.playerId(), this.label().trim(), this.data.userId).subscribe({
       error: () => this.busy.set(false),
       next: () => {
         this.busy.set(false);
+        // The id is gone from the page the moment it is linked.
         this.playerId.set('');
         this.label.set('');
+        this.showPlayerId.set(false);
       },
     });
   }
@@ -143,7 +164,7 @@ export class GameAccountsDialogComponent implements OnInit, OnDestroy {
   relabel(account: PlayerAccount, value: string): void {
     const label = value.trim();
     if (!this.canEdit() || label === (account.label ?? '')) return;
-    this.accounts.relabel(account.playerId, label, this.data.userId).subscribe({
+    this.accounts.relabel(account.id, label, this.data.userId).subscribe({
       error: () => undefined,
       next: () => this.snackBar.open(this.translate.instant('GAME_ACCOUNTS.LABEL_SAVED'), undefined, { duration: 2000 }),
     });
@@ -155,21 +176,24 @@ export class GameAccountsDialogComponent implements OnInit, OnDestroy {
 
   /**
    * Unlinks at once, with an Undo: removing the last account silently turns every personal rule into one
-   * that matches nothing, so a slip has to be cheap to take back. Undo re-links with the same label.
+   * that matches nothing, and a trainer can't link it back here, so a slip has to be cheap to take back.
+   * Undo hands the server the sealed token the unlink answered with; the player id never comes back.
    */
-  unlink(playerId: string): void {
+  unlink(account: PlayerAccount, index: number): void {
     if (!this.canEdit()) return;
-    const label = (this.accounts.accounts() ?? []).find(a => a.playerId === playerId)?.label ?? '';
+    const name = this.accountName(account, index);
     const userId = this.data.userId;
-    this.accounts.remove(playerId, userId).subscribe({
+    this.accounts.remove(account.id, userId).subscribe({
       error: () => undefined,
-      next: () => {
+      next: undoToken => {
         const ref = this.snackBar.open(
-          this.translate.instant('GAME_ACCOUNTS.UNLINKED', { name: label || playerId }),
+          this.translate.instant('GAME_ACCOUNTS.UNLINKED', { name }),
           this.translate.instant('GAME_ACCOUNTS.UNDO'),
-          { duration: 6000 },
+          {
+            duration: 6000,
+          },
         );
-        ref.onAction().subscribe(() => this.accounts.add(playerId, label, userId).subscribe({ error: () => undefined }));
+        ref.onAction().subscribe(() => this.accounts.restore(undoToken, userId).subscribe({ error: () => undefined }));
       },
     });
   }

@@ -291,13 +291,14 @@ export interface Human {
 }
 
 /**
- * A game account (player id) linked to a human, for personal shiny alerts. The id is case-sensitive and is
- * shown and sent exactly as stored.
+ * A game account linked to a human, for personal shiny alerts. `id` is an opaque handle the server derives:
+ * the player id itself never reaches the browser (it is the input to the person's shiny rolls). Accounts are
+ * shown by label, or as "Account N" in list order when they have none.
  */
 export interface PlayerAccount {
   createdAt: string;
+  id: string;
   label: string | null;
-  playerId: string;
 }
 
 /** Shape returned by GET /api/admin/users (anonymous projection from AdminController). */
@@ -421,6 +422,13 @@ export interface PoracleServerConfig {
    */
   personalSupported: boolean;
   /**
+   * Whether the connected PoracleNG's /api/v2 genuinely stores a webhook mention (`ping`) rather than
+   * blanking it -- jfberry/PoracleNG#249, not yet in a tagged release. False on every released server.
+   * Gates the "Mention" delivery control in every alarm dialog: hidden rather than offered as a no-op,
+   * same reasoning as the Pokemon edit-in-place toggle.
+   */
+  pingSupported: boolean;
+  /**
    * `[player_accounts] self_service`: whether trainers may link their own game accounts. PoracleNG's
    * API trusts its caller on this, so PoracleWeb.NET enforces it.
    */
@@ -436,13 +444,6 @@ export interface PoracleServerConfig {
   pvpFilterMaxRank: number;
   pvpFilterUltraMinCp: number;
   pvpLittleLeagueAllowed: boolean;
-  /**
-   * Whether the connected PoracleNG's /api/v2 genuinely stores a webhook mention (`ping`) rather than
-   * blanking it -- jfberry/PoracleNG#249, not yet in a tagged release. False on every released server.
-   * Gates the "Mention" delivery control in every alarm dialog: hidden rather than offered as a no-op,
-   * same reasoning as the Pokemon edit-in-place toggle.
-   */
-  pingSupported: boolean;
 }
 
 export interface AreaDefinition {

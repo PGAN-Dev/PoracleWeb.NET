@@ -2,24 +2,27 @@ import { Component, DestroyRef, OnInit, computed, inject, input, signal } from '
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { TranslatePipe } from '@ngx-translate/core';
 
-import { PlayerAccount } from '../../../core/models';
-import { AuthService } from '../../../core/services/auth.service';
 import { PlayerAccountService } from '../../../core/services/player-account.service';
 import { PoracleConfigService } from '../../../core/services/poracle-config.service';
 import { SettingsService } from '../../../core/services/settings.service';
-import { GameAccountsDialogComponent } from '../game-accounts-dialog/game-accounts-dialog.component';
 
 /**
  * What the status line under the toggles says. Only one applies, in this order: a server with no rate
  * feed matches no personal rule whatever else is true, and an account list that could not be read says
- * nothing rather than claiming the trainer has no accounts.
+ * nothing rather than claiming the trainer has no accounts. With no account linked, the line says where
+ * linking happens: the operator's map, the bot, or an administrator. Never here.
  */
-export type PersonalPanelStatus = 'askAdmin' | 'checking' | 'idle' | 'linkAccount' | 'noFeed' | 'unknown';
+export type PersonalPanelStatus = 'askAdmin' | 'checking' | 'idle' | 'linkOnMap' | 'linkWithBot' | 'noFeed' | 'unknown';
+
+/** An account as the status line names it: its label, or its place in the list for "Account N". */
+export interface PanelAccountName {
+  label: null | string;
+  n: number;
+}
 
 /**
  * The "shiny for me" block at the top of the Pokemon dialogs' Filters tab. Both dialogs own the two form
@@ -35,26 +38,21 @@ export type PersonalPanelStatus = 'askAdmin' | 'checking' | 'idle' | 'linkAccoun
 })
 export class PersonalFilterPanelComponent implements OnInit {
   private readonly accountService = inject(PlayerAccountService);
-  private readonly auth = inject(AuthService);
   private readonly backgroundOn = signal(false);
   private readonly destroyRef = inject(DestroyRef);
-  private readonly dialog = inject(MatDialog);
   private readonly poracleConfig = inject(PoracleConfigService);
   private readonly settings = inject(SettingsService);
   private readonly shinyOn = signal(false);
 
   readonly accounts = this.accountService.accounts;
-  /** The linked accounts as a trainer recognises them: the label, or the end of an unlabelled id. */
-  readonly accountNames = computed(() => (this.accounts() ?? []).map(displayName));
+  /** The linked accounts as a trainer recognises them. The player id is never one of them. */
+  readonly accountNames = computed<PanelAccountName[]>(() =>
+    (this.accounts() ?? []).map((a, i) => ({ label: a.label?.trim() || null, n: i + 1 })),
+  );
 
   readonly background = input.required<FormControl<boolean | null>>();
   readonly bothOn = computed(() => this.shinyOn() && this.backgroundOn());
-
-  /** Who can link an account from here: an administrator always, a trainer when PoracleNG allows it. Nobody while impersonating. */
-  readonly canLink = computed(
-    () => !this.auth.isImpersonating() && (!!this.poracleConfig.serverConfig().playerAccountsSelfService || this.auth.isAdmin()),
-  );
-
+  readonly linkUrl = this.settings.gameAccountsLinkUrl;
   readonly shiny = input.required<FormControl<boolean | null>>();
 
   readonly status = computed<PersonalPanelStatus>(() => {
@@ -63,7 +61,8 @@ export class PersonalFilterPanelComponent implements OnInit {
     const accounts = this.accounts();
     if (accounts === null) return 'unknown';
     if (accounts.length > 0) return 'checking';
-    return this.canLink() ? 'linkAccount' : 'askAdmin';
+    if (this.linkUrl()) return 'linkOnMap';
+    return this.poracleConfig.serverConfig().playerAccountsSelfService ? 'linkWithBot' : 'askAdmin';
   });
 
   protected readonly supportUrl = this.settings.supportUrl;
@@ -78,17 +77,4 @@ export class PersonalFilterPanelComponent implements OnInit {
     background.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(v => this.backgroundOn.set(!!v));
     this.accountService.load().subscribe();
   }
-
-  /** Opens the trainer's own game accounts, and re-reads them on close so the status follows. */
-  openGameAccounts(): void {
-    this.dialog
-      .open(GameAccountsDialogComponent)
-      .afterClosed()
-      .subscribe(() => this.accountService.load().subscribe());
-  }
-}
-
-/** An account's label, or "…" and the last four characters of its player id when it has none (PoracleNG's own convention). */
-export function displayName(account: PlayerAccount): string {
-  return account.label?.trim() || `…${account.playerId.slice(-4)}`;
 }
