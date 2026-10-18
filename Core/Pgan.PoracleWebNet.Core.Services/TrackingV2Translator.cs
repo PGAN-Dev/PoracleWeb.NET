@@ -666,8 +666,9 @@ internal static class TrackingV2Translator
     /// <remarks>
     /// Anything v2 cannot say declines to v1 rather than being dropped: a reserved bit (4, 8) has no v2
     /// field, and a set flag on a server that does not declare the booleans would be a 422. Unlike
-    /// <c>ping</c>, the v1 path is safe here -- a v1 upsert states <c>personal</c> in full and PoracleNG
-    /// stores what it is given -- so there is no refusal to raise upstream of the fallback.
+    /// <c>ping</c>, there is no refusal to raise upstream of the fallback: v1 stores the shiny and
+    /// background bits it is given. It masks the reserved ones (<c>db.PersonalKnownMask</c>), exactly as v2
+    /// would by having no field for them, so the v1 path loses nothing v2 would have kept.
     /// </remarks>
     private static bool TryWritePersonal(
         Utf8JsonWriter writer, TypeSpec spec, JsonElement value, bool personalSupported, out string? unsupported)
