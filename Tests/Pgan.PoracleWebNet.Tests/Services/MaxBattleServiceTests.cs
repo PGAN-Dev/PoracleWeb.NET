@@ -423,8 +423,9 @@ public class MaxBattleServiceTests
         return doc.RootElement.Clone();
     }
 
-    // MaxBattle is insert-only upstream, so every edit rotates the uid and orphans any quick pick
-    // that created the alarm. See #403.
+    // On the v1 path (no v2 route, so a server older than 5.2.0) MaxBattle is insert-only upstream, so an
+    // edit is delete-then-create and rotates the uid, which orphans any quick pick that created the
+    // alarm. A v2-routed edit keeps the uid since jfberry/PoracleNG #303. See #403.
     [Fact]
     public async Task UpdateAsyncRepointsQuickPickTrackedUidAtTheReplacementRow()
     {

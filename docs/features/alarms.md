@@ -196,13 +196,14 @@ Raids, eggs, quests, lures, nests, gyms, max battles, fort changes and Pokéstop
 grid on what the card is titled by: Pokemon and level for raids and max battles, level for eggs, reward
 for quests, lure type, species for nests, team for gyms, change type for fort changes, event type for
 Pokéstop Events. An edited card therefore stays where it was instead of jumping to the end of the grid,
-which is what it did when the grid rendered PoracleNG's insertion order and an
-[edit re-keyed the rule](#editing-alarms).
+which is what it did on PoracleNG 5.2.x when the grid rendered PoracleNG's insertion order and an
+[edit re-keyed the rule](#editing-alarms). Newer PoracleNG versions keep the rule's id on an edit, and the
+sort holds either way.
 
 The keys are the raw fields — dex number rather than species name, reward type rather than reward name
 — so the grid does not re-order itself once the master data arrives, and the order does not change with
 the display language. The Pokemon list already sorted itself on its own controls and is unchanged.
-Invasions are not sorted this way: that type stays on the older write path, so its ids do not rotate.
+Invasions are not sorted this way yet, so on PoracleNG 5.2.x an edited invasion card can still move to the end of the grid.
 
 ## Bulk operations
 
