@@ -146,16 +146,32 @@ public partial class UserGeofenceService(
         // deleting fences was a way to edit area subscriptions with the switch on, and a GeoJSON import
         // could write up to 50 of them in one request. With areas frozen the fence is still created;
         // it just arrives inactive, and the user can turn it on when areas are re-enabled. See #505.
+        // Reload first: PoracleNG reads the new fence from our feed, and its trusted setAreas rejects
+        // a name it has not loaded (it answers 200 with the name in `rejected`, which the proxy only
+        // logs). Adding the name before this reload left every new fence inactive on a server offering
+        // trusted setAreas, and because the proxy still answered non-null the dual-writer fallback never
+        // ran. PoracleNG's reload handler is synchronous (it answers after swapping state), so once this
+        // returns the fence is known.
+        var fenceKnownToPoracle = await this.ReloadGeofencesSafeAsync();
+
         if (await this._featureGate.IsEnabledAsync(DisableFeatureKeys.Areas))
         {
             // HACK: trusted-set-areas (see docs/poracleng-enhancement-requests.md)
             // Prefers PoracleNG's v2 trusted setAreas; the direct-DB dual writer is now the fallback
-            // rather than the only path. See the private AddAreaToActiveProfileAsync and #838.
-            await this.AddAreaToActiveProfileAsync(humanId, kojiName);
-        }
+            // rather than the only path. See the private AddAreaToActiveProfileAsync and #838. If the
+            // reload above failed PoracleNG cannot be relied on to accept the name, so go straight to
+            // the direct-DB write, which does not consult PoracleNG's fence list.
+            var wroteDirectly = await this.AddAreaToActiveProfileAsync(
+                humanId, kojiName, allowTrusted: fenceKnownToPoracle);
 
-        // Reload Poracle geofences (Poracle reads from our feed + Koji)
-        await this.ReloadGeofencesSafeAsync();
+            // The trusted call triggers PoracleNG's own state reload; the direct-DB write skips that
+            // hook, so PoracleNG needs another reload to see the changed area. Not made otherwise:
+            // GeoJSON import creates up to 50 fences through here, and each reload re-reads the state.
+            if (wroteDirectly)
+            {
+                await this.ReloadGeofencesSafeAsync();
+            }
+        }
 
         // Set polygon on result from input
         geofence.Polygon = model.Polygon;
@@ -947,12 +963,21 @@ public partial class UserGeofenceService(
     /// and area_security has to be confirmed off, because no self-reported signal distinguishes a
     /// server carrying jfberry/PoracleNG#230's community-restriction fix from one that does not.
     /// </summary>
-    private async Task AddAreaToActiveProfileAsync(string humanId, string areaName)
+    /// <param name="humanId">The user.</param>
+    /// <param name="areaName">The area to add.</param>
+    /// <param name="allowTrusted">
+    /// False skips the trusted call, for a caller that could not make PoracleNG load the fence first.
+    /// </param>
+    /// <returns>True when the direct-DB writer did the write (PoracleNG needs a reload to see it).</returns>
+    private async Task<bool> AddAreaToActiveProfileAsync(string humanId, string areaName, bool allowTrusted = true)
     {
-        if (await this._humanProxy.AddAreaToActiveProfileTrustedAsync(humanId, areaName) is null)
+        if (allowTrusted && await this._humanProxy.AddAreaToActiveProfileTrustedAsync(humanId, areaName) is not null)
         {
-            await this._areaWriter.AddAreaToActiveProfileAsync(humanId, areaName);
+            return false;
         }
+
+        await this._areaWriter.AddAreaToActiveProfileAsync(humanId, areaName);
+        return true;
     }
 
     /// <summary>Bulk form of <see cref="AddAreaToActiveProfileAsync(string, string)"/>.</summary>
@@ -973,16 +998,19 @@ public partial class UserGeofenceService(
         }
     }
 
-    private async Task ReloadGeofencesSafeAsync()
+    /// <returns>True when PoracleNG acknowledged the reload; false when it failed (logged, never thrown).</returns>
+    private async Task<bool> ReloadGeofencesSafeAsync()
     {
         try
         {
             this._kojiService.InvalidateAdminGeofenceCache();
             await this._poracleApiProxy.ReloadGeofencesAsync();
+            return true;
         }
         catch (Exception ex)
         {
             LogGeofenceReloadFailed(this._logger, ex);
+            return false;
         }
     }
 

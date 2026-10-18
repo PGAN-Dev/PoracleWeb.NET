@@ -237,6 +237,88 @@ public class UserGeofenceServiceTests
 
         await this._sut.CreateAsync("u1", 1, model);
 
+        // Before the area add so PoracleNG knows the fence, and again after the direct-DB write
+        // (the default mocks take the dual-writer path) so it sees the changed area.
+        this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Exactly(2));
+    }
+
+    private void SetUpCreate()
+    {
+        this._repository.Setup(r => r.GetCountByHumanIdAsync("u1")).ReturnsAsync(0);
+        this._repository.Setup(r => r.CreateAsync(It.IsAny<UserGeofence>()))
+            .ReturnsAsync((UserGeofence g) => g);
+    }
+
+    private static UserGeofenceCreate ParkModel() => new()
+    {
+        DisplayName = "Park",
+        Polygon = [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]
+    };
+
+    [Fact]
+    public async Task CreateReloadsGeofencesBeforeAddingTheAreaOnTheTrustedPath()
+    {
+        // PoracleNG's trusted setAreas rejects a name it has not loaded, and it only learns of a brand-new
+        // fence from the reload. Reloading after the add left every new fence inactive on a server offering
+        // trusted setAreas, with the proxy logging the rejection and the dual-writer fallback never running.
+        this.SetUpCreate();
+        var calls = new List<string>();
+        this._poracleApiProxy.Setup(p => p.ReloadGeofencesAsync())
+            .Callback(() => calls.Add("reload")).Returns(Task.CompletedTask);
+        this._humanProxy.Setup(p => p.AddAreaToActiveProfileTrustedAsync("u1", "park"))
+            .Callback(() => calls.Add("trusted-add")).ReturnsAsync(true);
+
+        await this._sut.CreateAsync("u1", 1, ParkModel());
+
+        Assert.Equal(["reload", "trusted-add"], calls);
+        this._areaWriter.Verify(
+            w => w.AddAreaToActiveProfileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateStillUsesTheDualWriterWhenTrustedIsUnavailable()
+    {
+        // Released PoracleNG has no trusted setAreas: the direct-DB write runs, and PoracleNG needs a
+        // reload after it to see the changed area, so the reload is made on both sides of the write.
+        this.SetUpCreate();
+        var calls = new List<string>();
+        this._poracleApiProxy.Setup(p => p.ReloadGeofencesAsync())
+            .Callback(() => calls.Add("reload")).Returns(Task.CompletedTask);
+        this._humanProxy.Setup(p => p.AddAreaToActiveProfileTrustedAsync("u1", "park"))
+            .Callback(() => calls.Add("trusted-add")).ReturnsAsync((bool?)null);
+        this._areaWriter.Setup(w => w.AddAreaToActiveProfileAsync("u1", "park"))
+            .Callback(() => calls.Add("dual-writer")).ReturnsAsync(true);
+
+        await this._sut.CreateAsync("u1", 1, ParkModel());
+
+        Assert.Equal(["reload", "trusted-add", "dual-writer", "reload"], calls);
+    }
+
+    [Fact]
+    public async Task CreateUsesTheDualWriterWhenTheReloadBeforeTheAddFailed()
+    {
+        // Without that reload PoracleNG does not know the fence, so a trusted add would be rejected
+        // and silently leave it inactive. The direct-DB write does not depend on PoracleNG's list.
+        this.SetUpCreate();
+        this._poracleApiProxy.Setup(p => p.ReloadGeofencesAsync()).ThrowsAsync(new HttpRequestException("down"));
+        this._humanProxy.Setup(p => p.AddAreaToActiveProfileTrustedAsync("u1", "park")).ReturnsAsync(true);
+
+        await this._sut.CreateAsync("u1", 1, ParkModel());
+
+        this._humanProxy.Verify(
+            p => p.AddAreaToActiveProfileTrustedAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        this._areaWriter.Verify(w => w.AddAreaToActiveProfileAsync("u1", "park"), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateReloadsOnceWhenAreasAreDisabled()
+    {
+        // No area write means nothing to reload after: the one reload makes the new fence known.
+        this.SetUpCreate();
+        this._featureGate.Setup(g => g.IsEnabledAsync(DisableFeatureKeys.Areas)).ReturnsAsync(false);
+
+        await this._sut.CreateAsync("u1", 1, ParkModel());
+
         this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Once);
     }
 
