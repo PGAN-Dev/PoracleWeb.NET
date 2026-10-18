@@ -192,6 +192,10 @@ public static class ServiceCollectionExtensions
         // Register HttpClient for PoracleNG's linked game accounts (player ids for personal shiny alerts).
         services.AddHttpClient<IPoracleAccountProxy, PoracleAccountProxy>();
 
+        // The opaque ids the account API hands out instead of player ids, keyed from the JWT secret
+        // (validated at startup to be at least 32 characters) so they survive a restart.
+        services.AddSingleton(_ => PlayerAccountHandles.FromSecret(configuration["Jwt:Secret"] ?? string.Empty));
+
         // Register HttpClient for Discord notification service
         services.AddHttpClient<IDiscordNotificationService, DiscordNotificationService>(client =>
         {

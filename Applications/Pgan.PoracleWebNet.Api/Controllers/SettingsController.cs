@@ -44,6 +44,9 @@ public partial class SettingsController(
         // Where a member is sent for help: the disabled-account banner and the Help page footer link it.
         // It is public by nature -- it only works if the people who need help can see it.
         "support_url",
+        // Where trainers link a game account for personal shiny alerts (the map that pushes accounts into
+        // PoracleNG). Read by the Game accounts dialog and the Pokemon dialogs, so it is for everyone.
+        "game_accounts_link_url",
         // Poracle's own locale and its alert-language allow-list, synthesized rather than stored --
         // see GetPoracleProjectionsAsync.
         PoracleLocaleKey, PoracleAlertLanguagesKey,
