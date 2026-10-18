@@ -1095,10 +1095,13 @@ JWT token generation is centralized in `IJwtService` / `JwtService` (singleton).
 |---|---|
 | `main` | Released code. Only moves when a release is merged. Publishing the release builds `:latest`, which prod's watchtower auto-deploys within its 60s poll -- the merge itself ships nothing. `docker-publish.yml` also has an SSH deploy step, but it is inert here: it exits early unless `DEPLOY_HOST` and `DEPLOY_SSH_KEY` are set, and this repo has neither. A plain `git clone` lands here, so self-hosters get released code. |
 | `develop` | Integration. **Open pull requests against this.** Publishes `:beta` on every merge, which the dev instance auto-deploys. |
+| `experimental/*` | Unofficial release lines built on released `main`. Never merged back. Publish only GitHub **prereleases**, keep their own `CHANGELOG-<name>.md`, and take `main` through the merge PRs `sync-experimental.yml` opens after each full release (merge commit, never squash or rebase). |
 
 Cutting a release: merge `develop` into `main`, then publish a GitHub release. `release-changelog.yml` opens a PR promoting `[Unreleased]` to the new version section, and `docker-publish.yml` pushes `:latest`.
 
-`ci.yml` and `changelog.yml` run for pushes and PRs on **both** branches -- a workflow filtered to one branch means PRs into the other run with no checks at all and merge looking green (this happened to #394 while it was stacked on another branch).
+`ci.yml` and `changelog.yml` run for pushes and PRs on `main`, `develop` and `experimental/**` -- a workflow filtered to fewer branches means PRs into the others run with no checks at all and merge looking green (this happened to #394 while it was stacked on another branch).
+
+**Prereleases skip every release workflow** (#962): `docker-publish`, `docs`, `release-changelog` and `sync-experimental` skip a release marked pre-release and any tag containing a hyphen, so an experimental build cannot move `:latest`, redeploy the docs site from its branch, or cut `main`'s CHANGELOG. Promoting a prerelease to a full release later sends `released`, not `published`, and runs none of them; publish a fresh full release instead.
 
 ## Build & Run
 

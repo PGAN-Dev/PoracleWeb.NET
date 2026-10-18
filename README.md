@@ -163,12 +163,13 @@ Cutting a release means merging `develop` into `main` and publishing a GitHub re
 ## CI/CD
 
 - **ci.yml** — Builds backend, runs tests, builds frontend, runs lint/prettier/jest
-- **docker-publish.yml** — Builds and publishes Docker image to [`ghcr.io/pgan-dev/poracleweb.net`](https://github.com/PGAN-Dev/PoracleWeb.NET/pkgs/container/poracleweb.net) (`:latest` on release, `:beta` on `develop`)
-- **docker-preview.yml** — Builds `:pr-<number>` images on PRs labeled `preview`
+- **docker-publish.yml** — Builds and publishes Docker image to [`ghcr.io/pgan-dev/poracleweb.net`](https://github.com/PGAN-Dev/PoracleWeb.NET/pkgs/container/poracleweb.net) (`:latest` on a full release, `:beta` on `develop`; prereleases are skipped)
+- **docker-preview.yml** — Builds `:pr-<number>` images on PRs labeled `preview` (not for PRs into `experimental/*`)
 - **docker-prune.yml** — Nightly cleanup of stale `pr-*` and `develop-<sha>` tags
 - **pr-labeler.yml** — Auto-labels PRs from branch prefix / PR title for release-note grouping
 - **changelog.yml** — Checks that a PR adds an entry under `## [Unreleased]` in CHANGELOG.md
-- **release-changelog.yml** — On a published release, opens a PR promoting `[Unreleased]` to the new version section
+- **release-changelog.yml** — On a published full release, opens a PR promoting `[Unreleased]` to the new version section
+- **sync-experimental.yml** — After a full release, opens a merge PR from `main` into each `experimental/*` branch that is behind
 - **docs.yml** — Builds the MkDocs site and deploys it to GitHub Pages
 - **auto-merge-deps.yml** — Enables auto-merge on low-risk Dependabot bumps (patches, curated groups, Actions minors); majors wait for review
 

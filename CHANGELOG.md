@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.20.1] - 2026-10-18
+
+### Changed
+
+- **Publishing a GitHub prerelease no longer ships anything official.** Only a full release now moves `:latest`, redeploys the documentation site and cuts the changelog; a prerelease, or any tag containing a hyphen, is skipped by all three. Previously a prerelease would have done all of it, and every watchtower on `:latest` would have deployed it within a minute. Nothing changes for self-hosters on `:latest`. ([#962](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/962), [#963](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/963))
+
 ## [2.20.0] - 2026-10-17
 
 ### Added
@@ -1187,7 +1193,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.20.0...HEAD
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.20.1...HEAD
+[2.20.1]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.20.0...v2.20.1
 [2.20.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.19.0...v2.20.0
 [2.19.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.18.0...v2.19.0
 [2.18.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.17.1...v2.18.0

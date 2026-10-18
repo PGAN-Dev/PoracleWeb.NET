@@ -15,7 +15,7 @@ name: Changelog Check
 on:
   pull_request:
     types: [opened, synchronize, reopened, labeled, unlabeled]
-    branches: [main, develop]
+    branches: [main, develop, 'experimental/**']
   merge_group:
 
 permissions:
@@ -50,8 +50,17 @@ jobs:
           LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
         run: |
           set -euo pipefail
+
+          # An experimental branch keeps its own release notes and leaves CHANGELOG.md exactly as
+          # main has it, so merges from main never conflict on [Unreleased]. experimental/<name>
+          # reads CHANGELOG-<name>.md, with any further "/" in the name written as "-".
+          FILE=CHANGELOG.md
+          case "${BASE_REF:-}" in
+            experimental/*) line="${BASE_REF#experimental/}"; FILE="CHANGELOG-${line//\//-}.md" ;;
+          esac
 
           # 1) Exempt non-user-facing PR types (mirrors the previous skip set).
           #
@@ -74,7 +83,7 @@ jobs:
 
           # 3) Extract the [Unreleased] block from both sides of the PR.
           unreleased() {
-            git show "$1:CHANGELOG.md" 2>/dev/null \
+            git show "$1:$FILE" 2>/dev/null \
               | awk '/^## \[Unreleased\]/{f=1; next} f && /^## \[/{f=0} f'
           }
           base_block="$(unreleased "$BASE_SHA" || true)"
@@ -91,7 +100,7 @@ jobs:
             exit 0
           fi
 
-          echo "::error::This PR has no new entry under '## [Unreleased]' in CHANGELOG.md."
+          echo "::error::This PR has no new entry under '## [Unreleased]' in $FILE."
           echo "Add a Keep a Changelog entry (e.g. under '### Fixed'), or:"
           echo "  - use a 'deps|docs|style|chore|ci|test|build:' PR title for non-user-facing changes, or"
           echo "  - apply the 'skip-changelog' label for a legitimate exception."
