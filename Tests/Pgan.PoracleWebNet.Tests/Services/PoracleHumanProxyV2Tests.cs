@@ -924,14 +924,40 @@ public class PoracleHumanProxyV2Tests
     }
 
     [Fact]
-    public async Task TrustedSetAreasSucceedsEvenWhenSomethingUnexpectedIsRejected()
+    public async Task TrustedAddReturnsNullWhenPoracleRejectsTheRequestedName()
     {
-        // Logged, not thrown. Every HACK: trusted-set-areas call site this replaces already treats
-        // its own write as best-effort, and the geofence row that produced this name is the source
-        // of truth either way.
+        // PoracleNG answers 200 and lists a name it does not know (a fence it has not loaded) under
+        // `rejected`. Answering non-null told the caller the write happened, so the direct-DB fallback
+        // never ran and the new fence stayed inactive. Null is the "fall back" signal.
         var handler = new ScriptedHandler(
             new Reply(HttpStatusCode.OK, """{"human":{"id":"user1","area":"[\"downtown\"]"}}"""),
             new Reply(HttpStatusCode.OK, """{"areas":["downtown"],"rejected":["park"]}"""));
+        var sut = CreateSut(
+            handler, version: "5.2.1", capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
+
+        Assert.Null(await sut.AddAreaToActiveProfileTrustedAsync("user1", "park"));
+    }
+
+    [Fact]
+    public async Task TrustedAddReturnsNullWhenAnyRequestedNameIsRejectedCaseInsensitively()
+    {
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.OK, """{"human":{"id":"user1","area":"[\"downtown\"]"}}"""),
+            new Reply(HttpStatusCode.OK, """{"areas":["downtown","square"],"rejected":["Park"]}"""));
+        var sut = CreateSut(
+            handler, version: "5.2.1", capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
+
+        Assert.Null(await sut.AddAreasToActiveProfileTrustedAsync("user1", ["park", "square"]));
+    }
+
+    [Fact]
+    public async Task TrustedAddStaysNonNullWhenOnlyAnUnrelatedStaleNameIsRejected()
+    {
+        // A name already in the list that PoracleNG no longer knows (a deleted fence) is dropped on
+        // every full-list replacement. That says nothing about the name just requested, so no fallback.
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.OK, """{"human":{"id":"user1","area":"[\"downtown\",\"gone\"]"}}"""),
+            new Reply(HttpStatusCode.OK, """{"areas":["downtown","park"],"rejected":["gone"]}"""));
         var sut = CreateSut(
             handler, version: "5.2.1", capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
 

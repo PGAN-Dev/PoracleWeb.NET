@@ -141,19 +141,20 @@ public partial class UserGeofenceService(
             Status = "active",
         });
 
+        // Reload first: PoracleNG reads the new fence from our feed, and its trusted setAreas rejects
+        // a name it has not loaded (it answers 200 with the name in `rejected`). Adding the name before
+        // this reload left every new fence inactive on a server offering trusted setAreas. The reload
+        // is synchronous but does not prove the fence arrived: PoracleNG only logs a failed feed fetch
+        // and keeps its cached list, still answering ok. So this is the common-case fix, and the
+        // backstop is in the proxy, which answers null when PoracleNG rejects the requested name,
+        // sending the add to the direct-DB writer below.
+        var fenceKnownToPoracle = await this.ReloadGeofencesSafeAsync();
+
         // Creating a geofence subscribes the current profile to it -- an area write, and one that ran
         // straight past disable_areas while every documented area path was refused. Drawing and
         // deleting fences was a way to edit area subscriptions with the switch on, and a GeoJSON import
         // could write up to 50 of them in one request. With areas frozen the fence is still created;
         // it just arrives inactive, and the user can turn it on when areas are re-enabled. See #505.
-        // Reload first: PoracleNG reads the new fence from our feed, and its trusted setAreas rejects
-        // a name it has not loaded (it answers 200 with the name in `rejected`, which the proxy only
-        // logs). Adding the name before this reload left every new fence inactive on a server offering
-        // trusted setAreas, and because the proxy still answered non-null the dual-writer fallback never
-        // ran. PoracleNG's reload handler is synchronous (it answers after swapping state), so once this
-        // returns the fence is known.
-        var fenceKnownToPoracle = await this.ReloadGeofencesSafeAsync();
-
         if (await this._featureGate.IsEnabledAsync(DisableFeatureKeys.Areas))
         {
             // HACK: trusted-set-areas (see docs/poracleng-enhancement-requests.md)

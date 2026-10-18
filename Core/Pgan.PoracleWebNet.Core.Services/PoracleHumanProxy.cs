@@ -355,7 +355,8 @@ public partial class PoracleHumanProxy(
     /// list -- there is no incremental add/remove on the wire -- so every caller here reads the current
     /// list first and posts the complete result.
     /// </summary>
-    private async Task PostTrustedAreasAsync(string userId, List<string> areas)
+    /// <returns>The names PoracleNG left out (its <c>rejected</c> list), empty when it kept everything.</returns>
+    private async Task<IReadOnlyList<string>> PostTrustedAreasAsync(string userId, List<string> areas)
     {
         var body = JsonSerializer.Serialize(new { areas, trusted = true });
         var (response, payload) =
@@ -367,14 +368,18 @@ public partial class PoracleHumanProxy(
             && rejectedEl.ValueKind == JsonValueKind.Array
             && rejectedEl.GetArrayLength() > 0)
         {
-            var rejected = rejectedEl.EnumerateArray().Select(e => e.GetString() ?? string.Empty);
+            var rejected = rejectedEl.EnumerateArray().Select(e => e.GetString() ?? string.Empty).ToList();
 
-            // Should not happen for a name this app just created or already had selected -- trusted
-            // only lifts userSelectable, not "exists at all". Logged rather than surfaced: every caller
-            // here already treats its own write as best-effort (see the HACK: trusted-set-areas sites
-            // this replaces), and the geofence row these names came from is the source of truth either way.
+            // Trusted only lifts userSelectable, not "exists at all", so a rejected name is one PoracleNG
+            // does not know -- a fence it has not loaded yet, or a stale entry already in the list. Logged
+            // here; the add path decides what a rejected REQUESTED name means (it falls back to the
+            // direct-DB writer), because a successful geofence reload does not prove PoracleNG fetched
+            // our feed: it only logs a feed failure and keeps serving its cached list.
             LogTrustedAreasRejected(this._logger, userId, string.Join(", ", rejected));
+            return rejected;
         }
+
+        return [];
     }
 
     /// <summary>
@@ -431,7 +436,16 @@ public partial class PoracleHumanProxy(
             return false;
         }
 
-        await this.PostTrustedAreasAsync(userId, current);
+        var rejected = await this.PostTrustedAreasAsync(userId, current);
+
+        // A requested name PoracleNG refused was not written. Answer null -- the caller's "use the
+        // direct-DB writer" signal -- rather than true. A rejected name that was only already in the
+        // list (a stale entry) says nothing about the request and is not a reason to fall back.
+        if (rejected.Any(r => normalized.Contains(r, StringComparer.OrdinalIgnoreCase)))
+        {
+            return null;
+        }
+
         return true;
     }
 

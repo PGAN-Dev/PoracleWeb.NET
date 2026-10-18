@@ -295,6 +295,25 @@ public class UserGeofenceServiceTests
     }
 
     [Fact]
+    public async Task CreateFallsBackToTheDualWriterAndReloadsAfterWhenTrustedRejectsTheFence()
+    {
+        // A reload that answered ok does not prove PoracleNG fetched our feed. If it still did not know
+        // the fence, the proxy answers null after the rejection and the direct write must follow.
+        this.SetUpCreate();
+        var calls = new List<string>();
+        this._poracleApiProxy.Setup(p => p.ReloadGeofencesAsync())
+            .Callback(() => calls.Add("reload")).Returns(Task.CompletedTask);
+        this._humanProxy.Setup(p => p.AddAreaToActiveProfileTrustedAsync("u1", "park"))
+            .Callback(() => calls.Add("trusted-add")).ReturnsAsync((bool?)null);
+        this._areaWriter.Setup(w => w.AddAreaToActiveProfileAsync("u1", "park"))
+            .Callback(() => calls.Add("dual-writer")).ReturnsAsync(true);
+
+        await this._sut.CreateAsync("u1", 1, ParkModel());
+
+        Assert.Equal(["reload", "trusted-add", "dual-writer", "reload"], calls);
+    }
+
+    [Fact]
     public async Task CreateUsesTheDualWriterWhenTheReloadBeforeTheAddFailed()
     {
         // Without that reload PoracleNG does not know the fence, so a trusted add would be rejected

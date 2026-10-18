@@ -103,7 +103,8 @@ public interface IPoracleHumanProxy
     /// <returns>
     /// <c>null</c> when this is not safe to rely on yet (the server's schema lacks <c>trusted</c>, or
     /// area_security is enabled and this server cannot be confirmed to carry jfberry/PoracleNG#230's
-    /// community-restriction fix) -- the caller must fall back to <c>IUserAreaDualWriter</c>. <c>false</c>
+    /// community-restriction fix), or PoracleNG rejected a requested name (it does not know that fence)
+    /// -- the caller must fall back to <c>IUserAreaDualWriter</c>. <c>false</c>
     /// when the area was already present. <c>true</c> once written.
     /// </returns>
     public Task<bool?> AddAreaToActiveProfileTrustedAsync(string userId, string areaName);
