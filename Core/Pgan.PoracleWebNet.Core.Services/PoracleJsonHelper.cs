@@ -345,9 +345,10 @@ internal static class JsonElementExtensions
         el.TryGetProperty(name, out var prop) && prop.TryGetDouble(out var val) ? val : 0.0;
 
     /// <summary>
-    /// Reads a flag PoracleNG may send as a real JSON boolean or as a v1-style 0/1 integer. Verified live:
-    /// <c>GET /api/v2/humans/{id}</c> sends the integer and <c>GET /api/v2/humans</c> (the list) sends the
-    /// boolean for the same fields on the same server -- an undocumented divergence, not a version split.
+    /// Reads a flag PoracleNG may send as a real JSON boolean or as a v1-style 0/1 integer. Released servers
+    /// (5.1.0, 5.2.1) send the integer from <c>GET /api/v2/humans/{id}</c> and the boolean from the list
+    /// <c>GET /api/v2/humans</c>; since jfberry/PoracleNG#303 the single-human route sends booleans too.
+    /// Both shapes must read, with no version gate.
     /// </summary>
     public static int GetBoolAsIntProp(this JsonElement el, string name)
     {
