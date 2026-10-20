@@ -12,6 +12,7 @@ import { I18nService } from '../../../core/services/i18n.service';
 import { IconService } from '../../../core/services/icon.service';
 import { MasterDataService, PokemonEntry } from '../../../core/services/masterdata.service';
 import { PokemonAvailabilityService } from '../../../core/services/pokemon-availability.service';
+import { includesMinior } from '../../utils/minior';
 import { BulkMatchResult, BulkMatchSuggestion, matchPokemonBulkText } from '../../utils/pokemon-bulk-match';
 
 interface GenRange {
@@ -49,9 +50,7 @@ export class PokemonSelectorComponent implements OnInit {
   selectedPokemon = signal<PokemonEntry[]>([]);
   selectedIds = computed(() => new Set(this.selectedPokemon().map(p => p.id)));
   showAvailability = computed(() => this.availability.enabled());
-
   showTileGrid = computed(() => this.multi() && (this.activeGen() != null || this.activeType() != null || this.filterSpawning()));
-
   filteredPokemon = computed(() => {
     const search = this.searchText().toLowerCase();
     const selected = this.selectedIds();
@@ -119,9 +118,18 @@ export class PokemonSelectorComponent implements OnInit {
     { label: '9', max: 1025, min: 906 },
   ];
 
+  /**
+   * Set by pickers whose alert has IV, CP and level filters (Pokemon alerts). Raid, nest and quest
+   * pickers leave it off: those alerts have no such filters, so the Minior note would mean nothing there.
+   */
+  ivFilters = input(false);
+
   searchControl = new FormControl('');
 
   selectionChange = output<number[]>();
+
+  /** Shown the moment Minior is picked for an alert with IV filters. See `utils/minior.ts`. */
+  showMiniorNote = computed(() => this.ivFilters() && includesMinior(this.selectedIds()));
 
   addSuggestion(suggestion: BulkMatchSuggestion, candidate: PokemonEntry): void {
     if (!this.selectedIds().has(candidate.id)) {

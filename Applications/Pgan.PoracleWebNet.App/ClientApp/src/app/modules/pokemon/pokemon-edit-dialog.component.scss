@@ -20,6 +20,22 @@ mat-dialog-content {
   gap: 16px;
   margin-bottom: 16px;
 }
+.minior-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: -8px 0 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+}
+.minior-note mat-icon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  font-size: 18px;
+  margin-top: 1px;
+}
 .pokemon-img {
   width: 64px;
   height: 64px;

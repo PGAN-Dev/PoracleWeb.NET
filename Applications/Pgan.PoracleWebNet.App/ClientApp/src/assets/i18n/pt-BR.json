@@ -233,6 +233,7 @@
     "TAB_DELIVERY": "Entrega",
     "SELECTION_COUNT": "{{count}} Pokemon selecionados",
     "SELECTION_HINT": "Busque e selecione um ou mais Pokemon para rastrear",
+    "MINIOR_IV_NOTE": "Os IVs do Minior são sorteados de novo quando ele é capturado, então filtros de IV, CP e nível não vão encontrá-lo.",
     "LABEL_MIN_IV": "IV Mín",
     "LABEL_MAX_IV": "IV Máx",
     "LABEL_MIN_CP": "CP Mín",
