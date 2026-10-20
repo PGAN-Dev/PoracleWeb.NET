@@ -6,8 +6,8 @@ using Pgan.PoracleWebNet.Core.Services;
 namespace Pgan.PoracleWebNet.Tests.Services;
 
 /// <summary>
-/// Parsing of the two upstream disable signals: the <c>disabledHooks</c> array on
-/// <c>/api/config/poracleWeb</c>, and <c>general.disable_fort_update</c> on
+/// Parsing of the upstream disable signals and the alert-language allow-list: the <c>disabledHooks</c>
+/// array and <c>availableLanguages</c> on <c>/api/config/poracleWeb</c>, and the booleans read from
 /// <c>/api/config/values</c>. See #769.
 /// </summary>
 public class PoracleApiProxyDisableFlagTests
@@ -69,47 +69,18 @@ public class PoracleApiProxyDisableFlagTests
         Assert.Null((await sut.GetConfigAsync())?.DisabledHooks);
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task FortUpdateDisabledIsReadFromTheGeneralSection(bool disabled)
-    {
-        var body = """{"values":{"general":{"disable_fort_update":VALUE}}}"""
-            .Replace("VALUE", disabled ? "true" : "false", StringComparison.Ordinal);
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, body);
-        var sut = CreateSut(handler);
-
-        Assert.Equal(disabled, await sut.GetFortUpdateDisabledAsync());
-        Assert.Equal($"{ApiAddress}/api/config/values", handler.LastRequest?.RequestUri?.ToString());
-    }
+    // --- availableLanguages: absent and null both restrict nothing; a list is the allow-list ---
 
     /// <summary>
-    /// PoracleJS and older PoracleNG builds do not carry the key. Null means "cannot determine",
-    /// which the caller must not read as "disabled".
+    /// Verified against a live 5.1.0: the key is absent. That reads as unrestricted, like null.
     /// </summary>
     [Fact]
-    public async Task AbsentFortUpdateFlagReturnsNull()
-    {
-        var sut = CreateSut(new MockHttpMessageHandler(
-            HttpStatusCode.OK, /*lang=json,strict*/ """{"values":{"general":{}}}"""));
-
-        Assert.Null(await sut.GetFortUpdateDisabledAsync());
-    }
-
-    // --- availableLanguages: absent, null and a list are three different answers ---
-
-    /// <summary>
-    /// Verified against a live 5.1.0: the key is absent. That absence is the only signal telling this
-    /// application it is talking to a server that leaves <c>fort</c> out of <c>disabledHooks</c>.
-    /// </summary>
-    [Fact]
-    public async Task AbsentAvailableLanguagesMarksTheServerAsNotReportingThem()
+    public async Task AbsentAvailableLanguagesRestrictsNothing()
     {
         var sut = CreateSut(new MockHttpMessageHandler(HttpStatusCode.OK, /*lang=json,strict*/ """{"locale":"en"}"""));
 
         var config = await sut.GetConfigAsync();
 
-        Assert.False(config?.ReportsAvailableLanguages);
         Assert.Null(config?.AvailableLanguages);
     }
 
@@ -118,13 +89,12 @@ public class PoracleApiProxyDisableFlagTests
     /// both an unset and an empty map, because its own write path only validates a non-empty one.
     /// </summary>
     [Fact]
-    public async Task NullAvailableLanguagesReportsTheFieldButRestrictsNothing()
+    public async Task NullAvailableLanguagesRestrictsNothing()
     {
         var sut = CreateSut(new MockHttpMessageHandler(HttpStatusCode.OK, /*lang=json,strict*/ """{"availableLanguages":null}"""));
 
         var config = await sut.GetConfigAsync();
 
-        Assert.True(config?.ReportsAvailableLanguages);
         Assert.Null(config?.AvailableLanguages);
     }
 
@@ -136,7 +106,6 @@ public class PoracleApiProxyDisableFlagTests
 
         var config = await sut.GetConfigAsync();
 
-        Assert.True(config?.ReportsAvailableLanguages);
         Assert.Equal(["en", "de", "pt-BR"], config?.AvailableLanguages);
     }
 

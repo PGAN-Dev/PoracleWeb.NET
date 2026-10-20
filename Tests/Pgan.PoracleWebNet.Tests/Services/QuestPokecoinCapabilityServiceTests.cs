@@ -6,7 +6,8 @@ using Pgan.PoracleWebNet.Core.Services;
 namespace Pgan.PoracleWebNet.Tests.Services;
 
 /// <summary>
-/// The version is the only signal for pokecoins, so this is where that reading is pinned down.
+/// The pokecoin gate. Every supported PoracleNG accepts reward type 8, so this is
+/// <see cref="PoracleServerProfile.IsSupported"/>.
 /// </summary>
 /// <remarks>
 /// 5.2.0 widened PoracleNG's <c>validRewardTypes</c> allowlist and changed nothing else: no column, no
@@ -19,11 +20,12 @@ public class QuestPokecoinCapabilityServiceTests
 
     [Theory]
     [InlineData("5.2.1", true)]
-    [InlineData("5.2.0", true)]
+    [InlineData("5.3.0", true)]
     [InlineData("6.0.0", true)]
+    [InlineData("5.2.0", false)]
     [InlineData("5.1.0", false)]
     [InlineData("5.0.9", false)]
-    public async Task TheVersionDecides(string version, bool expected)
+    public async Task TheMinimumDecides(string version, bool expected)
     {
         this.Answers(new PoracleServerProfile
         {
@@ -34,13 +36,16 @@ public class QuestPokecoinCapabilityServiceTests
         Assert.Equal(expected, await this.Sut().ArePokecoinRewardsSupportedAsync());
     }
 
-    /// <summary>A build with no version stamped reports 0.0.0, which says nothing about what it can store.</summary>
+    /// <summary>
+    /// A build with no version stamped reports 0.0.0. It is built from source newer than the minimum, so
+    /// it is assumed current rather than having the tab hidden on a guess.
+    /// </summary>
     [Theory]
     [InlineData("0.0.0")]
     [InlineData("not-a-version")]
     [InlineData("")]
     [InlineData(null)]
-    public async Task AnUnreadableVersionFailsClosed(string? version)
+    public async Task AnUnreadableVersionIsAssumedCurrent(string? version)
     {
         this.Answers(new PoracleServerProfile
         {
@@ -48,12 +53,12 @@ public class QuestPokecoinCapabilityServiceTests
             Reachable = true
         });
 
-        Assert.False(await this.Sut().ArePokecoinRewardsSupportedAsync());
+        Assert.True(await this.Sut().ArePokecoinRewardsSupportedAsync());
     }
 
     /// <summary>
-    /// An unreachable server is not a new one. Offering the tab here would hand the user a control every
-    /// save of which fails for a reason that has nothing to do with pokecoins.
+    /// An unreachable server is not a supported one. Offering the tab here would hand the user a control
+    /// every save of which fails for a reason that has nothing to do with pokecoins.
     /// </summary>
     [Fact]
     public async Task AnUnreachableServerFailsClosed()
@@ -65,7 +70,7 @@ public class QuestPokecoinCapabilityServiceTests
 
     /// <summary>
     /// A version string carrying a build suffix still parses -- self-hosters stamp 5.2.1-rc1 and the
-    /// like, and treating those as unknown would switch the feature off for a server that has it.
+    /// like, and treating those as old would switch the feature off for a server that has it.
     /// </summary>
     [Fact]
     public async Task ATaggedReleaseStillCounts()

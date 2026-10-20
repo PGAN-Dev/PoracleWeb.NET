@@ -35,12 +35,12 @@ Each alarm type has a dedicated page accessible from the sidebar navigation. The
 
 Open an alarm's edit dialog from its card. Changing anything and saving replaces the rule upstream.
 
-On PoracleNG 5.2.0 and newer, ten of the eleven types take a uid-addressed replace: the rule is
-swapped in one call rather than deleted and re-created, so there is no window in which the alarm does
-not exist. Lure and max battle edits used to have exactly that window and no longer do. Invasion takes
-the same replace only where the server's newer API can report which grunt a rule targets (PoracleNG
-5.2.1 cannot), and otherwise stays on the older path, because an edit could not be written back
-faithfully without it.
+Ten of the eleven types take a uid-addressed replace: the rule is swapped in one call rather than
+deleted and re-created, so there is no window in which the alarm does not exist. Lure and max battle
+edits used to have exactly that window and no longer do. Invasion takes the same replace only where the
+server's newer API can report which grunt a rule targets (PoracleNG 5.2.1 cannot), and otherwise saves
+through the older API the way every other type does when the replace is unavailable: it writes the new
+rule, then removes the one it replaced.
 
 !!! note "An edit can give the alarm a new internal id"
     On PoracleNG 5.2.x the replace re-keys the row, so it comes back under a new `uid`. Builds carrying
@@ -75,9 +75,6 @@ Under the hood the picker writes three fields. "Anywhere in my areas" clears bot
 
 If you choose "Near a point" without ever having set a pin, the picker says so and offers a **Set your pin** button in place, rather than saving an alarm that measures from 0,0.
 
-!!! warning "Needs PoracleNG 5.1.0"
-    `override_location_label` and `override_areas` arrive in PoracleNG 5.1.0. On an older server the columns don't exist, so the scope picker saves without complaint and changes nothing. PoracleWeb logs an error at startup and reports the detected version on **Admin → Settings**.
-
 !!! note "Your own geofences work here"
     PoracleWeb serves user-drawn geofences with `userSelectable: false` to keep them out of the bot's `!area` picker, and PoracleNG rejects those names when they arrive in `override_areas`. PoracleWeb sends only the names PoracleNG will accept and writes the rest into the alarm row directly, so a geofence you drew can scope one alarm whether or not your profile subscribes to it. See [Custom geofences](custom-geofences/key-concepts.md).
 
@@ -96,8 +93,9 @@ it. Both come back with the reason against the field rather than as a server err
 adding one does, and the label is untouched, so every alarm aimed at that place follows it. There is
 no naming step, because the label is what the alarms point at and changing it is a different act.
 
-!!! note "Moving needs PoracleNG 5.2.0"
-    That is where the endpoint arrives. On an older server the pencil is absent and the only route is
+!!! note "Moving needs a reachable, supported PoracleNG"
+    The endpoint arrived in PoracleNG 5.2.0, so every supported release has it. If PoracleNG is
+    unreachable or older than the supported minimum, the pencil is absent and the only route is
     delete-and-re-add — which is refused while any alarm still points at the place, so those alarms
     have to be repointed first.
 
@@ -205,8 +203,8 @@ id on an edit (no release has it yet), and the sort holds either way.
 The keys are the raw fields — dex number rather than species name, reward type rather than reward name
 — so the grid does not re-order itself once the master data arrives, and the order does not change with
 the display language. The Pokemon list already sorted itself on its own controls and is unchanged.
-Invasions are not sorted this way yet, so where an invasion edit re-creates the rule (PoracleNG 5.1.0, or a
-build that has the grunt-type support but not #303) the edited card can still move to the end of the grid.
+Invasions are not sorted this way yet, so where an invasion edit gives the rule a new id the edited card
+can still move to the end of the grid.
 
 ## Bulk operations
 
@@ -291,19 +289,14 @@ Costume names come from the WatWowMap masterfile — the same file PoracleNG rea
 lookups — and are **English in every interface language**. A costume too new for that file shows as its
 number rather than a name. See [Game data names](internationalization.md#game-data-names).
 
-!!! warning "Needs PoracleNG schema 6 (Pokemon) or 7 (raids)"
-    The costume column arrives in two separate PoracleNG database migrations: `monsters.costume` at
-    migration 6 and `raid.costume` at migration 7. A server sitting between the two stores a costumed
-    Pokemon rule and refuses a costumed raid rule, so the two controls are gated independently and the
-    select is simply absent where the column is missing.
-
-    PoracleWeb.NET reads the applied migration number from PoracleNG's `schema_migrations` table rather
-    than trusting the version string, because a self-hoster may cherry-pick and a locally built binary
-    reports `0.0.0`. A server that does not answer unlocks neither.
+!!! warning "Needs a supported PoracleNG"
+    The costume column arrives in PoracleNG database migrations 6 (`monsters.costume`) and 7
+    (`raid.costume`), both in every supported release. The select is absent when PoracleNG does not
+    answer, or reports a version older than 5.2.1.
 
     A costume that reaches the API anyway — through profile import or a Quick Pick — is refused with
-    *"This Poracle server cannot store a costume filter. It needs the costume column (PoracleNG schema
-    6)."* Create, update and the bulk path all enforce it, so nothing slips in by a side door.
+    *"This Poracle server cannot store a costume filter. It needs PoracleNG 5.2.1 or newer."* Create,
+    update and the bulk path all enforce it, so nothing slips in by a side door.
 
 ### Level range
 
@@ -320,9 +313,6 @@ When set, the card shows a "5 min left" pill alongside the IV and CP pills.
 On the **PVP** tab, once a league is selected, **Mega evolution** chooses which form the rank applies to: Base, Mega, Mega X or Mega Y (`pvp_ranking_evolution` 0–3). Megas are ranked separately from their base forms, so a Mega rule will not match a base-form spawn. Pick Base unless you specifically want mega rankings.
 
 The chosen form appears as a suffix on the card's PVP badge ("Great League · Mega X").
-
-!!! warning "Needs PoracleNG 5.1.0"
-    `pvp_ranking_evolution` arrives in PoracleNG 5.1.0. Below that the column doesn't exist and the toggle group saves without effect.
 
 ## Raid level selector
 
@@ -386,15 +376,14 @@ Stardust and PokéCoins work differently from the rest, and identically to each 
 
 Quest cards render the amount ahead of the reward name — "3× Rare Candy" — but only when it is above one; an amount of 1 shows the reward name on its own. Stardust cards read "25000 Stardust", from `reward`, and PokéCoin cards read the same way.
 
-!!! warning "PokéCoins needs PoracleNG 5.2.0"
-    PokéCoins is the last entry in the dropdown and is **hidden entirely below 5.2.0**, so if you
-    cannot find it, that is the reason. 5.2.0 widened PoracleNG's list of accepted reward types; it
-    added no column and no capability flag, so this is one of the few gates decided by the reported
-    version rather than by a database migration. A 5.1.0 server answers
+!!! warning "PokéCoins needs a reachable, supported PoracleNG"
+    PokéCoins is the last entry in the dropdown. 5.2.0 widened PoracleNG's list of accepted reward
+    types, so every supported release takes it, but the entry is **hidden** while PoracleNG is
+    unreachable or reports a version older than the supported minimum. A 5.1.0 server answers
     `400 "Unrecognised reward_type value"`.
 
     Reads and deletes are not gated, so a PokéCoin rule set from the Discord bot stays visible and
-    removable on an older server.
+    removable whatever the server.
 
 ## Gym alarm filters
 
@@ -455,7 +444,7 @@ Max Battle levels follow the PoracleNG `util.json` definitions:
 
 PoracleNG's older maxbattle handler has **no diff/dedup logic** — every POST creates a new row — so an
 edit had to delete the old alarm by uid and insert the replacement, with a window in between where the
-alarm did not exist. On PoracleNG 5.2.0 and newer the uid-addressed replace closes that window;
+alarm did not exist. PoracleNG's uid-addressed replace closes that window;
 `MaxBattleService.UpdateAsync()` takes it when it is available and falls back to delete-then-create
 when it is not. Either way an edit that would land on another max battle's settings is refused before
 anything is deleted.
@@ -535,7 +524,7 @@ offering the three events. The dashboard counts agree with whichever page the ro
 
 The **Cleaning** page's invasion toggle leaves event rows alone — it would otherwise set the
 auto-delete bit on rules belonging to a page it never mentions. Where the Pokéstop Events page is
-unavailable (`disable_showcase`, or a Poracle older than 5.2.0) it sweeps them along with the invasion
+unavailable (`disable_showcase`, or a Poracle too old to report it) it sweeps them along with the invasion
 rules, because then that switch is the only control you have over them.
 
 ### What this type does not do
@@ -547,13 +536,13 @@ rules, because then that switch is the only control you have over them.
 - **Not in the cross-profile overview, export or import.** Pokéstop Event rules are absent from all
   three, so a profile export does not carry them and an import will not recreate them.
 
-!!! warning "Needs PoracleNG 5.2.0 and `disable_showcase = false`"
+!!! warning "Needs `disable_showcase = false`"
     The page appears only when Poracle's configuration carries an explicit `general.disable_showcase =
     false`. Absent, unreadable, or set to true all mean the page is hidden.
 
     This is the one upstream probe in PoracleWeb.NET that **fails closed**, and deliberately so: a
-    server without the option is a server below 5.2.0, and every one of those answers 404 on the route
-    the page is built from. Showing the page on a guess would produce a page that only errors. Every
+    server without the option is a server below 5.2.0, older than the supported minimum, and every one
+    of those answers 404 on the route the page is built from. Showing the page on a guess would produce a page that only errors. Every
     other upstream flag fails open, on the reasoning that a Poracle outage must not switch off alarm
     types that work.
 

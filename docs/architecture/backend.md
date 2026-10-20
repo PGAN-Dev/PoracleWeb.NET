@@ -26,7 +26,7 @@ PoracleNG's tracking POST endpoint handles both creates and updates. When the re
 
 An edit therefore sends the whole row, and the body is built by serializing the typed model — so every column PoracleWeb has no property for arrives absent and PoracleNG stores the default over what the user had. `TrackingFieldPreserver.PreserveStoredFieldsAsync` runs first on every update: it re-reads the stored row and copies across any property the submitted body lacks. Before it existed, editing an alarm on the web reset `override_location_label`, `override_areas` and `pvp_ranking_evolution` set from the bot (#730). A read failure returns the body untouched rather than failing the edit.
 
-On PoracleNG 5.2.0 and later an edit to any of nine types takes a different route: `PUT /api/v2/humans/{id}/tracking/{type}/{uid}`, which is a **full replace**. A field left out of the body is reset to its default rather than left alone, so the same merge that fixed #730 is what stops a v2 edit wiping a stored `min_iv`. The PUT is also delete-then-insert, so on 5.2.x the uid rotates on edit (since jfberry/PoracleNG #303 it is kept unless the server's reassignment fails, so the response is always read) and `ITrackedUidRemapper` moves quick-pick applied state to the new one whenever it does change. Invasion, the tenth, joins them only when the server's own `/openapi.json` declares `grunt_type` on the invasion rule (jfberry/PoracleNG#217) and its grunt masterdata lists the name, so on 5.2.1 and 5.1.0 it stays on v1. A row carrying something else v2 cannot express, such as an egg with no level, falls back to v1 rather than failing. A non-empty `ping` is different: on a server without jfberry/PoracleNG#249 the edit is refused with an `AlarmValidationException`, because both surfaces blank the mention. See [The v2 write path](poracleng-proxy.md#the-v2-write-path).
+On every supported PoracleNG an edit to any of nine types takes a different route: `PUT /api/v2/humans/{id}/tracking/{type}/{uid}`, which is a **full replace**. A field left out of the body is reset to its default rather than left alone, so the same merge that fixed #730 is what stops a v2 edit wiping a stored `min_iv`. The PUT is also delete-then-insert, so on 5.2.x the uid rotates on edit (since jfberry/PoracleNG #303 it is kept unless the server's reassignment fails, so the response is always read) and `ITrackedUidRemapper` moves quick-pick applied state to the new one whenever it does change. Invasion, the tenth, joins them only when the server's own `/openapi.json` declares `grunt_type` on the invasion rule (jfberry/PoracleNG#217) and its grunt masterdata lists the name, so on 5.2.1 it stays on v1. A row carrying something else v2 cannot express, such as an egg with no level, falls back to v1 rather than failing. A non-empty `ping` is different: on a server without jfberry/PoracleNG#249 the edit is refused with an `AlarmValidationException`, because both surfaces blank the mention. See [The v2 write path](poracleng-proxy.md#the-v2-write-path).
 
 The merge runs *before* the collision guards, because `TrackingUpdateReconciler.CountUpdatableDifferences` only compares properties present in the submission — an unmodelled property could not tell two alarms apart, so the guard refused edits PoracleNG would have accepted. See [PoracleNG API Proxy](poracleng-proxy.md#insert-update-or-duplicate) for what the guards are mirroring.
 
@@ -161,27 +161,27 @@ That makes five Poracle proxies in total: tracking, human, api, mute and inciden
 
 ## Server capability probe
 
-`IPoracleServerProfileService` / `PoracleServerProfileService` asks the PoracleNG instance what it is and
-what it can store. PoracleWeb previously assumed 5.1.0 and never checked, so on an older server the
-per-alarm scope, the PVP mega picker and the minimum-time filter wrote fields nothing stored and failed
-without a word.
+`IPoracleServerProfileService` / `PoracleServerProfileService` asks the PoracleNG instance what it is.
+One read: `GET {Poracle:ApiAddress}/health`, which carries the release number and PoracleNG's own
+capability map. It is unauthenticated, so the probe carries no secret and still works when the API key
+is wrong, which is itself worth knowing: "reachable but every write 401s" and "not running" look
+identical otherwise. The map is read key-by-key rather than into a fixed type, because it is upstream's
+and it grows. It covers bot and template-editor features and says nothing about alarms.
 
-Two reads, answering different questions:
+There used to be a second read, `schema_migrations` and `information_schema` straight out of PoracleNG's
+database, for the costume columns and the lure and invasion unique keys. Every supported release answers
+those the same way, so it went when 5.2.1 became the minimum.
 
-- `GET {Poracle:ApiAddress}/health` — the release number and PoracleNG's own capability map. It is
-  unauthenticated, so the probe carries no secret and still works when the API key is wrong, which is
-  itself worth knowing: "reachable but every write 401s" and "not running" look identical otherwise. The
-  map is read key-by-key rather than into a fixed type, because it is upstream's and it grows.
-- `SELECT version FROM schema_migrations` on `PoracleContext`, via `PoracleSchemaVersionReader`. The
-  capability map covers bot and template-editor features and says nothing about alarm columns; the
-  applied migration number is what answers "can this server store that filter". 5.1.0 sits at migration
-  5. A missing table or a permission error reports an unknown schema, which unlocks nothing.
+`PoracleServerProfile.MinimumSupported` is **5.2.1**. `IsBelowMinimum` is true only when the server is
+*known* to be older: unreachable, unparseable, or the `0.0.0` a locally built binary reports are all
+unknown rather than too old, so the banner is not shown on a guess. `IsSupported` is the rule every
+version-decided feature shares: reachable and not known to be older, so a local build counts as current
+and an unreachable server does not. `Supports(capability)` defaults a missing key to false, per
+PoracleNG's map contract.
 
-`PoracleServerProfile.MinimumSupported` is **5.1.0** — where `override_location_label`, `override_areas`
-and `pvp_ranking_evolution` arrive. `IsBelowMinimum` is true only when the server is *known* to be older:
-unreachable, unparseable, or the `0.0.0` a locally built binary reports are all unknown rather than too
-old, so the banner is not shown on a guess. `Supports(capability)` defaults a missing key to false, per
-PoracleNG's map contract; `HasSchema(n)` answers false on an unknown schema.
+Against a server below the minimum PoracleWeb.NET keeps running. `PoracleCompatibilityStartupService`
+logs an error at startup naming what breaks, and the Versions card on the admin settings page shows the
+same thing. Refusing to start would take the whole site down over something an operator can fix.
 
 The profile is cached in `IMemoryCache` for five minutes and the HttpClient's timeout is five seconds, so
 an unreachable server answers "unknown" quickly instead of stalling the admin page.
@@ -192,11 +192,10 @@ GitHub update check first.
 
 Four services sit over the profile and answer one question each: `MuteCapabilityService`,
 `QuestPokecoinCapabilityService`, `PlaceUpdateCapabilityService` and `CostumeCapabilityService`. All the
-same shape — one method, fail closed, no cache of their own, since `IPoracleServerProfileService`
-already caches for five minutes and exposes `Invalidate()`. Each picks the narrowest signal that
-predicts its feature: `CostumeCapabilityService` reads the migration number (`monsters.costume` at 6,
-`raid.costume` at 7), while the other three read the version and all three compare against **5.2.0** —
-the release that added the features, not the 5.2.1 production happens to run.
+same shape — one method, no cache of their own, since `IPoracleServerProfileService` already caches for
+five minutes and exposes `Invalidate()`. Every feature they gate arrived by 5.2.1, so all four answer
+`PoracleServerProfile.IsSupported`. They stay as separate services because the SPA asks each one, and a
+feature that one day needs more than the minimum gets its refinement there.
 
 `SummaryCapabilityService` answers the same shape of question from a different place. Quest summary
 delivery is a deployment setting rather than a server capability, so it reads

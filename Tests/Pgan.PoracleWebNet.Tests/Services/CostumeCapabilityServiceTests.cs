@@ -6,15 +6,15 @@ using Pgan.PoracleWebNet.Core.Services;
 namespace Pgan.PoracleWebNet.Tests.Services;
 
 /// <summary>
-/// The costume gate. The two numbers are not invented: the dev instance running 5.1.0 reports
-/// schema 5 and has neither column, the one running 5.2.1 reports schema 8 and has both.
+/// The costume gate. <c>monsters.costume</c> (migration 6) and <c>raid.costume</c> (7) are in every
+/// supported PoracleNG, so a supported server offers both and anything else offers neither. The dev
+/// instance running 5.1.0 had neither column; the one running 5.2.1 has both.
 /// </summary>
 public class CostumeCapabilityServiceTests
 {
-    private static PoracleServerProfile Profile(long? schema, bool reachable = true, string? version = "5.2.1") => new()
+    private static PoracleServerProfile Profile(string? version = "5.2.1", bool reachable = true) => new()
     {
         Version = version,
-        SchemaVersion = schema,
         Reachable = reachable,
         CheckedAt = DateTimeOffset.UtcNow,
     };
@@ -29,68 +29,50 @@ public class CostumeCapabilityServiceTests
 
     // --- What the server can store ---
 
-    [Fact]
-    public async Task ServerWithBothMigrationsOffersBoth()
+    [Theory]
+    [InlineData("5.2.1")]
+    [InlineData("5.3.0")]
+    public async Task ASupportedServerOffersBoth(string version)
     {
-        var capability = await Sut(Profile(8)).GetAsync();
+        var capability = await Sut(Profile(version)).GetAsync();
 
         Assert.True(capability.Pokemon);
         Assert.True(capability.Raid);
     }
 
-    /// <summary>
-    /// The reason this is two answers. A server that stopped at 6 stores a costumed pokemon rule and
-    /// drops a costumed raid rule, and a single boolean would have to lie about one of them.
-    /// </summary>
-    [Fact]
-    public async Task ServerBetweenTheTwoMigrationsOffersPokemonOnly()
+    [Theory]
+    [InlineData("5.1.0")]
+    [InlineData("5.2.0")]
+    public async Task AServerBelowTheMinimumOffersNeither(string version)
     {
-        var capability = await Sut(Profile(6)).GetAsync();
-
-        Assert.True(capability.Pokemon);
-        Assert.False(capability.Raid);
-    }
-
-    [Fact]
-    public async Task ServerOnFiveOneOffersNeither()
-    {
-        var capability = await Sut(Profile(5, version: "5.1.0")).GetAsync();
+        var capability = await Sut(Profile(version)).GetAsync();
 
         Assert.False(capability.Pokemon);
         Assert.False(capability.Raid);
+    }
+
+    /// <summary>
+    /// A locally built PoracleNG reports 0.0.0. It is built from source newer than the minimum, so the
+    /// filter is offered. Before 5.2.1 was the minimum this gate read the migration number out of
+    /// PoracleNG's database to cover exactly this case; it no longer needs to.
+    /// </summary>
+    [Fact]
+    public async Task ALocallyBuiltBinaryIsAssumedCurrent()
+    {
+        var capability = await Sut(Profile("0.0.0")).GetAsync();
+
+        Assert.True(capability.Pokemon);
+        Assert.True(capability.Raid);
     }
 
     // --- Failing closed ---
 
     [Fact]
-    public async Task UnreadableSchemaOffersNeither()
+    public async Task UnreachableServerOffersNeither()
     {
-        var capability = await Sut(Profile(null)).GetAsync();
+        var capability = await Sut(Profile(reachable: false)).GetAsync();
 
-        Assert.False(capability.Pokemon);
-        Assert.False(capability.Raid);
-    }
-
-    [Fact]
-    public async Task UnreachableServerOffersNeitherEvenWhenItsDatabaseIsMigrated()
-    {
-        var capability = await Sut(Profile(8, reachable: false)).GetAsync();
-
-        Assert.False(capability.Pokemon);
-        Assert.False(capability.Raid);
-    }
-
-    /// <summary>
-    /// A locally built PoracleNG reports 0.0.0 and gets no version out of it, which is exactly why the
-    /// gate reads the migration instead. The columns are there; the filter is offered.
-    /// </summary>
-    [Fact]
-    public async Task LocallyBuiltBinaryIsJudgedOnItsSchemaNotItsVersion()
-    {
-        var capability = await Sut(Profile(8, version: "0.0.0")).GetAsync();
-
-        Assert.True(capability.Pokemon);
-        Assert.True(capability.Raid);
+        Assert.Equal(CostumeCapability.None, capability);
     }
 
     [Fact]
@@ -113,16 +95,17 @@ public class CostumeCapabilityServiceTests
     {
         // 9000 asks for no filtering and is what PoracleNG stores for an absent key, so nothing is lost
         // by writing it to a server that has no costume column. Refusing it would ban every ordinary
-        // alarm on 5.1.0.
-        await Sut(Profile(5)).EnsureCostumeWritableAsync(trackingType, CostumeCapability.AnyCostume);
+        // alarm there.
+        await Sut(Profile("5.1.0")).EnsureCostumeWritableAsync(trackingType, CostumeCapability.AnyCostume);
+        await Sut(Profile(reachable: false)).EnsureCostumeWritableAsync(trackingType, CostumeCapability.AnyCostume);
     }
 
     [Theory]
     [InlineData("pokemon")]
     [InlineData("raid")]
-    public async Task NamedCostumeIsWritableOnAMigratedServer(string trackingType)
+    public async Task NamedCostumeIsWritableOnASupportedServer(string trackingType)
     {
-        await Sut(Profile(8)).EnsureCostumeWritableAsync(trackingType, 85);
+        await Sut(Profile()).EnsureCostumeWritableAsync(trackingType, 85);
     }
 
     [Theory]
@@ -131,27 +114,18 @@ public class CostumeCapabilityServiceTests
     // "No costume" is a real filter, not an unset marker, so it is refused like any other.
     [InlineData("pokemon", 0)]
     [InlineData("raid", 0)]
-    public async Task NamedCostumeIsRefusedOnAServerWithoutTheColumns(string trackingType, int costume)
+    public async Task NamedCostumeIsRefusedOnAServerBelowTheMinimum(string trackingType, int costume)
     {
         await Assert.ThrowsAsync<AlarmValidationException>(
-            () => Sut(Profile(5)).EnsureCostumeWritableAsync(trackingType, costume));
+            () => Sut(Profile("5.1.0")).EnsureCostumeWritableAsync(trackingType, costume));
     }
 
     [Fact]
-    public async Task RaidCostumeIsRefusedOnAServerThatOnlyHasTheMonsterColumn()
-    {
-        var sut = Sut(Profile(6));
-
-        await sut.EnsureCostumeWritableAsync("pokemon", 85);
-        await Assert.ThrowsAsync<AlarmValidationException>(() => sut.EnsureCostumeWritableAsync("raid", 85));
-    }
-
-    [Fact]
-    public async Task RefusalNamesTheMigrationItNeeds()
+    public async Task RefusalNamesTheVersionItNeeds()
     {
         var ex = await Assert.ThrowsAsync<AlarmValidationException>(
-            () => Sut(Profile(5)).EnsureCostumeWritableAsync("raid", 85));
+            () => Sut(Profile("5.1.0")).EnsureCostumeWritableAsync("raid", 85));
 
-        Assert.Contains("7", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("5.2.1", ex.Message, StringComparison.Ordinal);
     }
 }

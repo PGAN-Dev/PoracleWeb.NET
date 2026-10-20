@@ -45,7 +45,7 @@ public class QuestPokecoinCapabilityTests
         var ex = await Assert.ThrowsAsync<AlarmValidationException>(
             () => sut.CreateAsync("u1", Pokecoins()));
 
-        Assert.Contains("5.2.0", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("5.2.1", ex.Message, StringComparison.Ordinal);
         this._proxy.Verify(
             p => p.CreateAsync("quest", It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
     }

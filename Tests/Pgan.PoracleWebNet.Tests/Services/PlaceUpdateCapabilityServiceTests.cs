@@ -6,43 +6,40 @@ using Pgan.PoracleWebNet.Core.Services;
 namespace Pgan.PoracleWebNet.Tests.Services;
 
 /// <summary>
-/// The version gate on <c>PUT /api/v2/humans/{id}/locations/{label}</c>, the one operation in the v2
-/// migration with no v1 equivalent and therefore the one that needs a gate rather than a fallback.
-/// Verified live: 5.1.0 answers gin's plaintext 404 on the route and 5.2.1 serves it.
+/// The gate on <c>PUT /api/v2/humans/{id}/locations/{label}</c>, the one operation in the v2 migration with
+/// no v1 equivalent and therefore the one that needs a gate rather than a fallback. Verified live: 5.1.0
+/// answers gin's plaintext 404 on the route and 5.2.1 serves it, so every supported server has it.
 /// </summary>
 public class PlaceUpdateCapabilityServiceTests
 {
     [Theory]
-    [InlineData("5.2.0")]
     [InlineData("5.2.1")]
     [InlineData("6.0.0")]
     // A build script may stamp a suffix; the profile's parser tolerates it and so must the gate.
-    [InlineData("5.2.0-rc1")]
-    public async Task ServersFromTheFirstReleaseWithTheRouteAreCapable(string version) =>
+    [InlineData("5.2.1-rc1")]
+    public async Task SupportedServersAreCapable(string version) =>
         Assert.True(await CreateSut(Reachable(version)).IsPlaceUpdateAvailableAsync());
 
     [Theory]
+    [InlineData("5.2.0")]
     [InlineData("5.1.0")]
     [InlineData("4.9.9")]
-    public async Task OlderServersAreNotCapable(string version) =>
+    public async Task ServersBelowTheMinimumAreNotCapable(string version) =>
         Assert.False(await CreateSut(Reachable(version)).IsPlaceUpdateAvailableAsync());
 
     /// <summary>
-    /// PoracleNG reports 0.0.0 when the build flags are not injected, so a locally built binary is
-    /// unknown rather than ancient -- and unknown must fail closed, leaving the user the
-    /// delete-and-re-add flow rather than an edit button that 404s.
+    /// PoracleNG reports 0.0.0 when the build flags are not injected. A local build is built from source
+    /// newer than the minimum, so the edit button is offered rather than hidden on a guess.
     /// </summary>
-    [Fact]
-    public async Task ALocallyBuiltServerReportingZeroIsNotCapable() =>
-        Assert.False(await CreateSut(Reachable("0.0.0")).IsPlaceUpdateAvailableAsync());
+    [Theory]
+    [InlineData("0.0.0")]
+    [InlineData("not-a-version")]
+    public async Task AReachableServerWithAnUnreadableVersionIsAssumedCurrent(string version) =>
+        Assert.True(await CreateSut(Reachable(version)).IsPlaceUpdateAvailableAsync());
 
     [Fact]
     public async Task AnUnreachableServerIsNotCapable() =>
         Assert.False(await CreateSut(PoracleServerProfile.Unknown(DateTimeOffset.UtcNow)).IsPlaceUpdateAvailableAsync());
-
-    [Fact]
-    public async Task AnUnparseableVersionIsNotCapable() =>
-        Assert.False(await CreateSut(Reachable("not-a-version")).IsPlaceUpdateAvailableAsync());
 
     [Fact]
     public async Task AProfileReadThatThrowsIsNotCapable()

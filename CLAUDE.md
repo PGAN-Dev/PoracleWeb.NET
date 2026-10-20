@@ -372,11 +372,11 @@ Deliberately **not** gated: `/api/auth/me` under `disable_profiles`, so the JWT 
 
 `disable_geomap` and `disable_geomap_select` were removed from the admin UI and from `SettingsMigrationService` in the same change. They are legacy PoracleJS keys describing a map picker PoracleWeb does not have, so there was nothing to wire them to and inventing a meaning would have been worse than deleting them. Any rows left in `site_settings` are harmless -- nothing reads them. `disable_userlist` was never a toggle in this UI (the migration carries `admin_disable_userlist` as a legacy key only).
 
-**Poracle's own flags are a floor under these (#769).** `UpstreamFeatureFlagService` reads `disabledHooks` from `/api/config/poracleWeb`, plus `general.disable_fort_update` from `/api/config/values` on a server too old to report `fort` in the array, maps them to `disable_*` keys via `PoracleDisabledHookMap`, and `FeatureGate` treats a type as off if **either** source disables it. Cached 5 min. It **fails open**: any fault, timeout or absent field yields an empty set, because a Poracle outage disabling every alarm type for everyone is worse than the problem being solved. `GET /api/settings/upstream-disabled` exposes the resolved keys so nav, route guards and the admin toggles agree with the API.
+**Poracle's own flags are a floor under these (#769).** `UpstreamFeatureFlagService` reads `disabledHooks` from `/api/config/poracleWeb`, maps them to `disable_*` keys via `PoracleDisabledHookMap`, and `FeatureGate` treats a type as off if **either** source disables it. Cached 5 min. It **fails open**: any fault, timeout or absent field yields an empty set, because a Poracle outage disabling every alarm type for everyone is worse than the problem being solved. `GET /api/settings/upstream-disabled` exposes the resolved keys so nav, route guards and the admin toggles agree with the API.
 
-Two traps, both verified against 5.1.0, both filed upstream as jfberry/PoracleNG#195 and both fixed in 5.2.1 (jfberry/PoracleNG#197). `pokestop` was in `disabledHooks` while `DisablePokestop` had no consumer in the processor, so it maps to **nothing** — mapping it to lures/invasions/quests would disable three working types. It is gone from the array now, and the mapping stays empty for the older servers that still send it. `disable_fort_update` was enforced upstream but omitted from the array; `fort` is in it as of 5.2.1 and maps like any other hook.
+Two traps, both verified against 5.1.0, both filed upstream as jfberry/PoracleNG#195 and both fixed in 5.2.1 (jfberry/PoracleNG#197). `pokestop` was in `disabledHooks` while `DisablePokestop` had no consumer in the processor, so it maps to **nothing** — mapping it to lures/invasions/quests would disable three working types. It is gone from the array now; the empty mapping costs nothing and stays. `disable_fort_update` was enforced upstream but omitted from the array; `fort` is in it as of 5.2.1 and maps like any other hook.
 
-The second `/api/config/values` read for `disable_fort_update` survives for those older servers only, and **`availableLanguages` is how one is recognised** — not a version number. Both landed in the same release, the field's presence is unambiguous where an empty `disabledHooks` is not (nothing disabled, or too old to say?), and PoracleNG serves no version endpoint. A config read that failed answers the question with nothing, so the probe is made rather than skipped: assuming "new" there would stop honouring the flag on every older server the moment Poracle hiccuped.
+There used to be a second `/api/config/values` read of `general.disable_fort_update` for servers too old to report `fort`, recognised by the absence of `availableLanguages`. It went when 5.2.1 became the minimum (see "Minimum PoracleNG Is 5.2.1"); do not bring it back for an unsupported server.
 
 **Adding a new alarm type? Wire it through all four layers:**
 
@@ -418,10 +418,12 @@ to ten unrelated rules and light the chip on their cards too, since the mute lis
 cannot say which type it meant. That needs an upstream fix, not a client workaround. `scope=pokestop` is
 read-only here for a duller reason: neither the lure nor the invasion model carries a fort id.
 
-**Capability is the reported version, not the `/health` map.** 5.2.1's map is
+**Capability is the shared minimum-version rule, not the `/health` map.** 5.2.1's map is
 `{buttons, snapshots, autocreate, tomlDts, buttonResponseObject, derivedDtsTypes}` -- no mutes key -- so
 "improving" `MuteCapabilityService` to consult `Supports("mutes")` switches the whole feature off, because
-absent means false by that map's own contract. The gate is `ParsedVersion >= 5.2.0` and it fails closed.
+absent means false by that map's own contract. The gate is `PoracleServerProfile.IsSupported`
+(reachable, and not known to be older than 5.2.1): the endpoints arrived in 5.2.0, so every supported
+server has them. An unreachable server answers false; a local build's `0.0.0` counts as current.
 
 Two smaller ones. **Nobody validates a gym or station id**: `scope=gym value=abc123` is accepted verbatim,
 so only ever create those from an existing alarm's `gymId`/`stationId`, never from free text. And **mutes
@@ -471,7 +473,7 @@ in `PROJECTED_KEYS`. It carries Poracle's `availableLanguages` as CSV and govern
 menu — which codes Poracle will accept for `humans.language`, answering 422 to anything else. Not the
 display language, and nothing to do with `allowed_languages`, which is this site's own restriction on
 the display menu. No row is served when Poracle restricts nothing, and absent, `null` and an empty list
-all mean exactly that: a 5.2.1 with nothing configured and a 5.1.0 that cannot say both accept any code,
+all mean exactly that: a 5.2.1 with nothing configured and an older server that cannot say both accept any code,
 so both get the full menu.
 
 `hidden_areas` is a real row, but one another page owns: Admin → Areas (`PUT /api/admin/areas`) writes it
@@ -564,7 +566,7 @@ the same basemap looks the same on both sites and a catalogue edit cannot drift 
 - **Unified `.env` file**: A single `.env` file (copied from `.env.example`) configures PoracleWeb for both Docker and standalone mode. `Program.cs` loads `.env` at startup, bridges short env var names (e.g., `JWT_SECRET`, `DISCORD_CLIENT_ID`) to .NET's `__` convention (e.g., `Jwt__Secret`, `Discord__ClientId`), and auto-composes MySQL connection strings from `DB_HOST`/`DB_PORT`/`DB_NAME`/`DB_USER`/`DB_PASSWORD` (and `WEB_DB_*` for the PoracleWeb DB). Docker Compose also reads `.env` natively; the Program.cs bridge covers the standalone (`dotnet run`) case.
 - **Env var bridge** (in `Program.cs`): Maps ~18 short env var names to .NET config paths. Two static helpers at the end of Program.cs: `MapEnvVar()` and `ComposeConnectionString()`.
 - **`appsettings.Development.json`** (gitignored) can still be used for overrides, but `.env` is the primary configuration mechanism.
-- **Poracle API** (critical for all writes): `Poracle:ApiAddress` and `Poracle:ApiSecret` are required for the application to function. All alarm CRUD, human/profile management, area updates, and profile switches are proxied through the PoracleNG REST API. If the API is unreachable, all alarm, human, and profile operations will fail (no DB fallback). (**Deprecated**: previously also read from the `pweb_settings` table in the Poracle DB; now stored in `poracle_web.site_settings`.)
+- **Poracle API** (critical for all writes): `Poracle:ApiAddress` and `Poracle:ApiSecret` are required for the application to function, against PoracleNG **5.2.1 or newer** (see "Minimum PoracleNG Is 5.2.1"). All alarm CRUD, human/profile management, area updates, and profile switches are proxied through the PoracleNG REST API. If the API is unreachable, all alarm, human, and profile operations will fail (no DB fallback). (**Deprecated**: previously also read from the `pweb_settings` table in the Poracle DB; now stored in `poracle_web.site_settings`.)
 - **Site Settings**: Admin-configurable settings (custom title, feature flags, etc.) are stored in `poracle_web.site_settings`. On first startup after upgrade, `SettingsMigrationStartupService` migrates any existing data from the deprecated `pweb_settings` table automatically.
 - **Discord Bot Token**: Sourced from PoracleJS server's `config/local-discord.json`.
 - **Admin IDs**: Comma-separated Discord user IDs in `Poracle:AdminIds`.
@@ -768,19 +770,19 @@ Fort changes used to carry a second, hand-written dedup check on `(fort_type, in
 change_types)`. It refused three Adds PoracleNG stores as separate rules (beside an area-scoped twin, two
 updatable differences, change types in another order) and is gone; the shared guard is the only one.
 
-**Lure, invasion and Pokestop events are guarded by what the database enforces.** Up to schema 5
-(5.1.0) `lures` carries `UNIQUE lure_tracking(id, profile_no, lure_id)` and `invasion` carries
+**Lure, invasion and Pokestop events take the shared guard and nothing stricter.** Up to schema 5
+(5.1.0) `lures` carried `UNIQUE lure_tracking(id, profile_no, lure_id)` and `invasion` carried
 `UNIQUE invasion_tracking(id, profile_no, gender, grunt_type)` (case-insensitive), so any second rule on
-that key is a 500 and the natural-key refusal is right. Migration 8 (5.2.x) drops both, and from then on an
-area-scoped twin, different areas, a place label or two updatable differences are separate rules
-(`insert:1`, verified on 5.2.1 and 5.3.0, and through `/api/v2/.../tracking/incident` for events).
-`INaturalKeyCapabilityService` answers which world a write is in from `information_schema` (a unique key
-besides PRIMARY on the table), falling back to the applied migration, and to "enforced" when neither can
-be read. Where the key is gone, lure and invasion use the shared merge guard on create and edit and the
-shared v1 upsert-and-reconcile path rather than `NaturalKeyTrackingUpdate`, whose delete-first replace exists
-only to free the key; Pokestop events mirror the invasion diff (`display_type`, areas and label identify;
-`distance`, `template`, `clean` update). Keying the refusal on the version alone would miss an adopted
-database whose key has another name and survived the migration.
+that key was a 500, and PoracleWeb.NET refused on the natural key and edited by deleting the row first
+(`INaturalKeyCapabilityService`, `NaturalKeyTrackingUpdate`). Migration 8 (5.2.x) drops both keys, and from
+then on an area-scoped twin, different areas, a place label or two updatable differences are separate
+rules (`insert:1`, verified on 5.2.1 and 5.3.0, and through `/api/v2/.../tracking/incident` for events).
+That code went when 5.2.1 became the minimum: lure and invasion use the shared merge guard on create and
+edit and the shared v1 upsert-and-reconcile path, and Pokestop events mirror the invasion diff
+(`display_type`, areas and label identify; `distance`, `template`, `clean` update). **Do not reintroduce a
+refusal on `lure_id` or on `(grunt_type, gender)` alone**: on every supported server it refuses rules
+PoracleNG stores, and leaves a rule with an area-scoped twin uneditable (the #553 shape).
+`LureInvasionMergeGuardTests` holds the legitimate cases, including the grunt names v2 refuses.
 
 See #462, #463, #502, #531, #553, #561.
 
@@ -832,10 +834,10 @@ type has a field table, and `PoracleTrackingProxy.InvasionUnsendableReasonAsync`
 invasion-only questions after it.
 
 **#841 built the proxy half and never wired the service.** `InvasionService.UpdateAsync` went straight to
-`NaturalKeyTrackingUpdate.ReplaceAsync`, so the gate above was unit-tested and unreachable, and every
+`NaturalKeyTrackingUpdate.ReplaceAsync` (since removed), so the gate above was unit-tested and unreachable, and every
 invasion edit on every server took the v1 delete-and-re-create. It now calls
-`TrackingV2Replacement.TryApplyAsync` like the other nine, after its own grunt-type-and-gender sibling
-check and before the natural-key path, which stays as the fallback for everything the gate refuses. The
+`TrackingV2Replacement.TryApplyAsync` like the other nine, after the shared merge guard and before the
+shared v1 upsert, which is the fallback for everything the gate refuses. The
 lesson generalises: a capability added to the proxy is not in use until a service calls it, and
 `AlarmServiceV2UpdatePathTests.MovedTypes` is the list that says which ones do.
 
@@ -865,14 +867,11 @@ where the wins are:
 
 | Type | What the v1 path does that v2 makes unnecessary |
 |---|---|
-| lure, invasion | where the unique key still exists (5.1.0), `NaturalKeyTrackingUpdate` deletes the row to free it (`lure_id`; `grunt_type` and `gender`), re-creates it, and restores the original if that fails; without the key they take the same reconcile path as the other seven |
 | maxbattle | delete-then-create, with a window where the alarm exists nowhere |
-| the other seven | `TrackingUpdateReconciler.ReconcileAsync` cleans up the duplicate a v1 create leaves behind |
+| the other eight | `TrackingUpdateReconciler.ReconcileAsync` cleans up the duplicate a v1 create leaves behind |
 
-The pre-write guards stay. `EnsureNoMergeIntoAnotherAlarmAsync`, lure's sibling `lure_id` check and
-invasion's grunt-type-and-gender check (both only where the unique key exists; otherwise the shared guard)
-and max battle's identical-alarm check all run before the v2 attempt: v2's POST still merges, and the 409 covers
-only an exact duplicate.
+The pre-write guards stay. `EnsureNoMergeIntoAnotherAlarmAsync` and max battle's identical-alarm check
+both run before the v2 attempt: v2's POST still merges, and the 409 covers only an exact duplicate.
 
 **One field table per type in `TrackingV2Translator`, never a shared one.** `V2PokemonRule` declares 28
 integer filters and `V2FortRule` declares one; every rule sets `additionalProperties: false`, so a leaked
@@ -969,8 +968,8 @@ whose `location` is `body.x` on a PUT and `body[0].x` on a POST, and a semantic 
 `PoracleErrorMessage.cs` doing the same job for the create path; whichever lands second should collapse
 them.
 
-Gating, two kinds. **Version** — `PoracleServerProfile.SupportsV2Tracking` is >= 5.2.0 — decides whether
-the v2 surface exists at all. **What the server publishes about itself** decides the rest, and
+Gating, two kinds. **Version** — `PoracleServerProfile.SupportsV2Tracking`, which is `IsSupported`
+(reachable and not known to be older than 5.2.1) — decides whether the v2 surface is tried at all. **What the server publishes about itself** decides the rest, and
 `IPoracleV2SchemaService` answers it by reading the target instance's own `/openapi.json`: invasion's
 `grunt_type`, profile create returning its number, profile rename through `PATCH`, the `trusted` flag on
 `setAreas`, the admin human routes, and the five human/profile calls #995 moved (areas save, available
@@ -985,8 +984,8 @@ thing, and the proxy falls back to v1 for five minutes when the route answers gi
 `404 page not found`. **That flag is keyed per type**: one absent route must not drop the other eight, and
 for `incident` — whose only surface is v2 — a shared flag would mean the type vanishing rather than
 degrading. `PoracleServerProfileService.GetAsync` is single-flighted behind a static gate, because it is
-registered transient, a cold cache costs a `/health` GET plus a `schema_migrations` SELECT, and a
-dashboard load now sends several version-gated writes at once.
+registered transient, a cold cache costs a `/health` GET, and a dashboard load sends several
+version-gated writes at once.
 
 ### Keep the PoracleNG Checkout Pinned To What Prod Runs
 
@@ -1025,6 +1024,27 @@ Three rules follow:
   rules hold one and have to stay editable; refusing the value would fail an edit on a rule the user did
   not break. Editing one does **not** repair it: the preserver re-reads the stored 0 and sends it back,
   verified on 5.1.0, 5.2.1 and 5.3.0. Unmerged PoracleNG PR #230 would have the v2 read report such rows as the wildcard.
+
+### Minimum PoracleNG Is 5.2.1
+
+`PoracleServerProfile.MinimumSupported` is 5.2.1, since 2026-10-20 (#996). Raising it from 5.1.0 deleted
+what existed only for 5.1.0: the lure/invasion natural-key refusals and delete-and-recreate edit
+(`INaturalKeyCapabilityService`, `NaturalKeyTrackingUpdate`), `PoracleSchemaVersionReader` (the last read
+of PoracleNG's `schema_migrations` and `information_schema`), the separate `general.disable_fort_update`
+read, and every per-feature `>= 5.2.0` compare. What stayed is anything that covers a *newer* build or a
+fork rather than an older release: every schema-gated v2 path with its v1 fallback, the per-type plaintext-404
+fallback, the `Poracle:TrackingApiVersion` pin.
+
+**One rule decides version-gated features: `PoracleServerProfile.IsSupported`** — PoracleNG answered and
+is not known to be older than the minimum. Mutes, Pokécoin rewards, moving a place, costume and whether v2
+is tried all use it. An unparseable version, or the `0.0.0` a locally built binary reports, counts as
+current; an unreachable server does not. Anything newer than 5.2.1 is gated on the server's own
+`/openapi.json` (`IPoracleV2SchemaService`), never on a version compare.
+
+**Older servers fail open, loudly.** `PoracleCompatibilityStartupService` logs an error at startup naming
+what breaks, and the admin Versions card shows `belowMinimum`; the app keeps running, because refusing to
+start would take the whole site down over something an operator fixes in minutes. Raising the floor again
+follows the same rule: delete what only the old floor needed, keep what covers newer builds and forks.
 
 ### PoracleNG API Availability
 The PoracleNG REST API (`Poracle:ApiAddress`) must be running and reachable for all alarm, human, profile, and area operations. If the API is down: alarm CRUD, human lookups, profile reads/writes, location updates, area updates, and profile switches all fail with no DB fallback. Only admin bulk operations (`GetAllAsync`, `DeleteUserAsync`) and non-active profile cleanup in `UserGeofenceService` use direct DB. Monitor PoracleNG uptime as a hard dependency.

@@ -14,8 +14,7 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 /// <remarks>
 /// <para>
 /// The uid-addressed PUT is a genuine full replace, so every repair the v1 path wraps around its create
-/// has to be skipped as a unit: the reconcile of a stray insert, lure's delete-to-free-the-natural-key,
-/// max battle's delete-then-recreate. Running any of them against a write that already landed would be
+/// has to be skipped as a unit: the reconcile of a stray insert, max battle's delete-then-recreate. Running any of them against a write that already landed would be
 /// worse than not moving the type at all.
 /// </para>
 /// <para>
@@ -105,17 +104,14 @@ public class AlarmServiceV2UpdatePathTests
     }
 
     [Fact]
-    public async Task LureNoLongerDeletesItsRowToFreeTheNaturalKey()
+    public async Task ALureEditReplacesTheRuleThroughV2WithoutDeletingIt()
     {
-        // The single biggest reason to move this type. PoracleNG's v1 create has no upsert path for
-        // lure_tracking(id, profile_no, lure_id), so editing a lure's distance had to delete the row,
-        // re-create it, and restore the original if that failed. Verified live on 5.2.1: the v2 PUT
-        // replaced lure 266 in place as 267, where the v1 create-carrying-a-uid inserted 264 alongside
-        // 263 and left both.
+        // Verified live on 5.2.1: the v2 PUT replaced lure 266 in place as 267, where the v1
+        // create-carrying-a-uid inserted 264 alongside 263 and left both for the reconciler.
         this.AcceptV2("lure", newUid: 267);
 
         var updated = await new LureService(
-                this._proxy.Object, this._featureGate.Object, NullLogger<LureService>.Instance, this._remapper.Object, NaturalKeyStub.Enforced)
+                this._proxy.Object, this._featureGate.Object, NullLogger<LureService>.Instance, this._remapper.Object)
             .UpdateAsync("u1", new Lure { Uid = 266, LureId = 501, Distance = 5000 });
 
         Assert.Equal(267, updated.Uid);
@@ -123,14 +119,14 @@ public class AlarmServiceV2UpdatePathTests
     }
 
     [Fact]
-    public async Task InvasionNoLongerDeletesItsRowToFreeTheNaturalKey()
+    public async Task AnInvasionEditReplacesTheRuleThroughV2WithoutDeletingIt()
     {
         // #841 moved invasion to v2 in the proxy, and the service never called it: UpdateAsync went
-        // straight to NaturalKeyTrackingUpdate, which deletes the row and re-creates it through v1.
+        // straight to a delete-and-recreate through v1 that PoracleNG 5.1.0's unique key needed.
         this.AcceptV2("invasion", newUid: 312);
 
         var updated = await new InvasionService(
-                this._proxy.Object, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._remapper.Object, NaturalKeyStub.Enforced)
+                this._proxy.Object, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._remapper.Object)
             .UpdateAsync("u1", new Invasion { Uid = 311, GruntType = "water", Gender = 1, Distance = 800 });
 
         Assert.Equal(312, updated.Uid);
@@ -139,20 +135,21 @@ public class AlarmServiceV2UpdatePathTests
     }
 
     [Fact]
-    public async Task InvasionKeepsItsOwnCollisionGuardAheadOfV2()
+    public async Task InvasionRunsTheSharedMergeGuardAheadOfV2()
     {
-        // The natural-key check stays in front: v2's 409 covers only an exact duplicate, and editing one
-        // alarm onto another's grunt type and gender is not one.
+        // v2's 409 covers only an exact duplicate. Editing 311 to fire at 1 km lands one updatable field
+        // (distance) away from 320, which PoracleNG's create would merge into, so the guard every type
+        // shares refuses it before anything is sent.
         this.AcceptV2("invasion", newUid: 312);
         this._proxy
             .Setup(p => p.GetByUserAsync("invasion", "u1"))
             .ReturnsAsync(JsonDocument.Parse(
-                """[{"uid":311,"id":"u1","grunt_type":"water","gender":0},{"uid":320,"id":"u1","grunt_type":"Fire","gender":0}]""")
+                """[{"uid":320,"id":"u1","grunt_type":"fire","gender":0,"distance":500,"template":"1","clean":0,"override_areas":null,"override_location_label":""},{"uid":311,"id":"u1","grunt_type":"water","gender":0,"distance":1000,"template":"1","clean":0,"override_areas":null,"override_location_label":""}]""")
                 .RootElement.Clone());
 
         await Assert.ThrowsAsync<TrackingConflictException>(() => new InvasionService(
-                this._proxy.Object, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._remapper.Object, NaturalKeyStub.Enforced)
-            .UpdateAsync("u1", new Invasion { Uid = 311, GruntType = "fire", Gender = 0 }));
+                this._proxy.Object, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._remapper.Object)
+            .UpdateAsync("u1", new Invasion { Uid = 311, GruntType = "fire", Gender = 0, Distance = 1000, Template = "1", OverrideAreas = [], OverrideLocationLabel = "" }));
 
         this._proxy.Verify(
             p => p.TryReplaceV2Async(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<JsonElement>()),
@@ -205,10 +202,10 @@ public class AlarmServiceV2UpdatePathTests
                 this._proxy.Object, this._featureGate.Object, NullLogger<FortChangeService>.Instance, this._remapper.Object)
             .UpdateAsync("u1", new FortChange { Uid = uid, FortType = "gym" })).Uid,
         "lure" => (await new LureService(
-                this._proxy.Object, this._featureGate.Object, NullLogger<LureService>.Instance, this._remapper.Object, NaturalKeyStub.Enforced)
+                this._proxy.Object, this._featureGate.Object, NullLogger<LureService>.Instance, this._remapper.Object)
             .UpdateAsync("u1", new Lure { Uid = uid, LureId = 501 })).Uid,
         "invasion" => (await new InvasionService(
-                this._proxy.Object, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._remapper.Object, NaturalKeyStub.Enforced)
+                this._proxy.Object, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._remapper.Object)
             .UpdateAsync("u1", new Invasion { Uid = uid, GruntType = "water", Gender = 0 })).Uid,
         _ => throw new ArgumentOutOfRangeException(nameof(type), type, "No fixture for this tracking type."),
     };

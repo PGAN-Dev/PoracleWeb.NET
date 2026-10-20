@@ -24,9 +24,6 @@ public partial class PoracleHumanProxy(
     /// <summary>What to say when PoracleNG refused and explained nothing usable.</summary>
     private const string Unexplained = "Poracle rejected the request.";
 
-    /// <summary>The release that first carries <c>/api/v2/humans</c>.</summary>
-    private static readonly Version FirstWithV2 = new(5, 2, 0);
-
     /// <summary>
     /// How long a route is remembered as missing. Matches the server profile's own cache, so an upgrade
     /// is picked up on the same clock as every other version-gated thing.
@@ -58,7 +55,8 @@ public partial class PoracleHumanProxy(
     private static string Coord(double value) => value.ToString(CultureInfo.InvariantCulture);
 
     /// <summary>
-    /// Whether PoracleNG is believed to carry <c>/api/v2</c>, from the version it reports.
+    /// Whether PoracleNG is believed to carry <c>/api/v2</c>: every supported release does, so this is
+    /// <see cref="PoracleServerProfile.IsSupported"/>.
     /// </summary>
     /// <remarks>
     /// A belief, not a fact: a fork can carry the routes while reporting an older number, or the reverse.
@@ -68,7 +66,7 @@ public partial class PoracleHumanProxy(
     private async Task<bool> ServerCarriesV2Async()
     {
         var profile = await this._serverProfile.GetAsync();
-        return profile.Reachable && profile.ParsedVersion is { } version && version >= FirstWithV2;
+        return profile.IsSupported;
     }
 
     /// <summary>

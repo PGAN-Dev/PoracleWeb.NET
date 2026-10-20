@@ -9,7 +9,7 @@ PoracleWeb.NET uses two separate MySQL databases and optionally connects to a th
 The primary EF Core context connecting to the existing **Poracle database** managed by PoracleNG.
 
 - Connection string: `ConnectionStrings:PoracleDb`
-- Contains: `humans` and `profiles` (direct access), ten alarm tables, PoracleNG's `schema_migrations`, and the deprecated `pweb_settings` KV table. `PoracleContext` maps **three** entities — `humans`, `profiles` and `pweb_settings`. There are deliberately no alarm entities: the one place that still reaches an alarm table (`IUserAreaDualWriter.SetAlarmOverrideAreasAsync`) uses raw SQL over a table name from a fixed map, and `schema_migrations` is read the same way. Mapping the tables again would put a direct alarm write one `DbSet` away, which is what the 2.0 migration existed to prevent
+- Contains: `humans` and `profiles` (direct access), ten alarm tables, and the deprecated `pweb_settings` KV table. `PoracleContext` maps **three** entities — `humans`, `profiles` and `pweb_settings`. There are deliberately no alarm entities: the one place that still reaches an alarm table (`IUserAreaDualWriter.SetAlarmOverrideAreasAsync`) uses raw SQL over a table name from a fixed map. PoracleWeb.NET no longer reads PoracleNG's `schema_migrations` or `information_schema`; both went when PoracleNG 5.2.1 became the minimum. Mapping the tables again would put a direct alarm write one `DbSet` away, which is what the 2.0 migration existed to prevent
 - **Limited direct access** — Alarm tracking is proxied through `IPoracleTrackingProxy`, and single-user human/profile operations go through `IPoracleHumanProxy`. Direct access is confined to:
 
 | Direct access | What and why |
@@ -19,7 +19,6 @@ The primary EF Core context connecting to the existing **Poracle database** mana
 | Profile geography | `ProfileRepository.UpdateAsync` — `addProfile` ignores `area`, `latitude` and `longitude`, so create, duplicate and import write them afterwards |
 | User-geofence area writes (fallback for three of six) | `IUserAreaDualWriter` on `humans.area` and `profiles.area` — PoracleNG's `setAreas` strips fences that are not user-selectable. Three active-profile methods fall back here only when the server's trusted `setAreas` ([#838](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/838)) can't be confirmed safe; the other three have no v2 form yet and always use this path |
 | Alarm `override_areas` | `IUserAreaDualWriter.SetAlarmOverrideAreasAsync` writes this one column on the ten alarm tables. It is the only alarm-table write PoracleWeb makes; everything else about a row goes through the proxy |
-| `schema_migrations` read | `PoracleSchemaVersionReader` reads the applied migration number for the [server capability probe](backend.md#server-capability-probe) |
 | `pweb_settings` | `PwebSettingRepository` still reads and writes the deprecated KV table, and startup runs one `ALTER TABLE pweb_settings MODIFY COLUMN value LONGTEXT NULL` so the old rows can hold JSON. Both exist only to feed `SettingsMigrationService` |
 
 The user-geofence area writes and the `override_areas` write are tagged `HACK: trusted-set-areas` in code and explained in [Backend](backend.md#areas).
@@ -86,10 +85,11 @@ Two more columns on `monsters` alone, also 5.1.0:
 | `pvp_ranking_evolution` | int, default 0 | Which form the PVP ranks are read from: 0 base, 1 any mega, 2 Mega X, 3 Mega Y. Only consulted when a league is set. |
 | `min_time` | int, default 0 | Seconds a spawn must still have left when it is found, or the alert is skipped. 0 means any. |
 
-#### Costume, after 5.1.0
+#### Costume
 
-`costume` arrives later and on two tables at different times: `monsters.costume` at PoracleNG database
-migration **6**, `raid.costume` at migration **7**.
+`costume` arrived after 5.1.0 and on two tables at different times: `monsters.costume` at PoracleNG
+database migration **6**, `raid.costume` at migration **7**. Both are in every supported release (5.2.1
+and later).
 
 | Value | Meaning |
 |---|---|
@@ -97,10 +97,10 @@ migration **6**, `raid.costume` at migration **7**.
 | `0` | No costume |
 | _n_ | That costume |
 
-The migration number is what decides whether the filter is offered, not the version string, and
-`IPoracleSchemaVersionReader` reads it straight from `schema_migrations` — no HTTP involved, so a
-server that cherry-picked the migration is judged on what it actually applied. See
-[Version compatibility](poracleng-compatibility.md#prefer-the-migration-number).
+The filter is offered whenever PoracleNG answers and is not known to be older than the minimum. It used
+to be gated on the applied migration number, read straight from `schema_migrations`; with 5.2.1 the
+minimum that read had nothing left to decide. See
+[Version compatibility](poracleng-compatibility.md#how-support-is-decided).
 
 #### `user_locations`
 

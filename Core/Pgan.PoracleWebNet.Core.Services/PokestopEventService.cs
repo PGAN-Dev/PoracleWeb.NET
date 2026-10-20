@@ -21,11 +21,10 @@ namespace Pgan.PoracleWebNet.Core.Services;
 /// 733 to 735. Callers must refetch rather than patch a list in place.
 /// </para>
 /// </remarks>
-public class PokestopEventService(IPoracleIncidentProxy proxy, IFeatureGate featureGate, INaturalKeyCapabilityService naturalKeys) : IPokestopEventService
+public class PokestopEventService(IPoracleIncidentProxy proxy, IFeatureGate featureGate) : IPokestopEventService
 {
     private readonly IPoracleIncidentProxy _proxy = proxy;
     private readonly IFeatureGate _featureGate = featureGate;
-    private readonly INaturalKeyCapabilityService _naturalKeys = naturalKeys;
 
     public async Task<IEnumerable<PokestopEvent>> GetByUserAsync(string userId, int profileNo) =>
         await this._proxy.GetByUserAsync(userId);
@@ -41,9 +40,8 @@ public class PokestopEventService(IPoracleIncidentProxy proxy, IFeatureGate feat
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.PokestopEvents);
         model.Id = userId;
 
-        var keyEnforced = await this._naturalKeys.IsEnforcedAsync(TrackingTypeName);
         var existing = await this._proxy.GetByUserAsync(userId);
-        RefuseIfEventTaken(existing, model, ignoreUid: 0, keyEnforced);
+        RefuseIfEventTaken(existing, model, ignoreUid: 0);
 
         var result = await this._proxy.CreateAsync(userId, [model]);
         model.Uid = result.PrimaryUid ?? 0;
@@ -59,12 +57,11 @@ public class PokestopEventService(IPoracleIncidentProxy proxy, IFeatureGate feat
             return list;
         }
 
-        var keyEnforced = await this._naturalKeys.IsEnforcedAsync(TrackingTypeName);
         var existing = await this._proxy.GetByUserAsync(userId);
         foreach (var model in list)
         {
             model.Id = userId;
-            RefuseIfEventTaken(existing, model, ignoreUid: 0, keyEnforced);
+            RefuseIfEventTaken(existing, model, ignoreUid: 0);
         }
 
         // Two boxes ticked for the same event would collapse into one rule upstream and the caller
@@ -95,9 +92,8 @@ public class PokestopEventService(IPoracleIncidentProxy proxy, IFeatureGate feat
     {
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.PokestopEvents);
 
-        var keyEnforced = await this._naturalKeys.IsEnforcedAsync(TrackingTypeName);
         var existing = await this._proxy.GetByUserAsync(userId);
-        RefuseIfEventTaken(existing, model, ignoreUid: model.Uid, keyEnforced);
+        RefuseIfEventTaken(existing, model, ignoreUid: model.Uid);
 
         var result = await this._proxy.ReplaceAsync(userId, model.Uid, model);
 
@@ -185,40 +181,36 @@ public class PokestopEventService(IPoracleIncidentProxy proxy, IFeatureGate feat
     private const string TrackingTypeName = "incident";
 
     /// <summary>
-    /// Refuses a write PoracleNG would resolve into a rule the user already has, or that its database
-    /// would refuse outright.
+    /// Refuses a write PoracleNG would resolve into a rule the user already has.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Where the <c>invasion</c> table still carries its unique key (a server before migration 8), any second
-    /// rule for the same event is a duplicate-key 500, so the event alone decides.
-    /// </para>
-    /// <para>
-    /// Past migration 8 the rows are diffed like any invasion: <c>display_type</c> (stored as the event's
+    /// The rows are diffed like any invasion: <c>display_type</c> (stored as the event's
     /// name), the override areas and the place label identify a rule, and <c>distance</c>, <c>template</c> and
     /// <c>clean</c> are updatable. Verified by posting straight to <c>/api/v2/.../tracking/incident</c> on
     /// 5.2.1 and 5.3.0: beside an area-scoped twin, a different area list, a place label or two updatable
     /// differences it creates a second rule; an exact duplicate is <c>unchanged</c> and one updatable
     /// difference rewrites the stored rule. Only those last two are refused.
     /// </para>
+    /// <para>
+    /// Do not refuse on the event alone. That was right only on PoracleNG 5.1.0, whose unique key on the
+    /// <c>invasion</c> table made any second rule for one event a 500; migration 8 dropped it, and 5.2.1 is
+    /// the minimum.
+    /// </para>
     /// </remarks>
     private static void RefuseIfEventTaken(
-        IReadOnlyList<PokestopEvent> existing, PokestopEvent submitted, int ignoreUid, bool keyEnforced)
+        IReadOnlyList<PokestopEvent> existing, PokestopEvent submitted, int ignoreUid)
     {
         // Any other rule within one updatable field refuses. On a create PoracleNG would find the first
         // such rule unchanged or take it over; on an edit the replace does not diff, and would leave two
         // rules that close together, a state no create can produce.
-        var decisive = keyEnforced
-            ? existing.FirstOrDefault(x => x.DisplayType == submitted.DisplayType && x.Uid != ignoreUid)
-            : existing.FirstOrDefault(x => x.Uid != ignoreUid && UpdatableDifferences(x, submitted) is <= 1);
+        var decisive = existing.FirstOrDefault(x => x.Uid != ignoreUid && UpdatableDifferences(x, submitted) is <= 1);
 
         if (decisive is not null)
         {
             throw new TrackingConflictException(
                 TrackingTypeName,
-                keyEnforced
-                    ? $"You already have an alarm for {NameOf(submitted.DisplayType)}. Edit that one instead."
-                    : $"You already have an alarm for {NameOf(submitted.DisplayType)} with those settings. Edit that one instead.");
+                $"You already have an alarm for {NameOf(submitted.DisplayType)} with those settings. Edit that one instead.");
         }
     }
 

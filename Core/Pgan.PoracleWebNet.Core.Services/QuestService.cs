@@ -220,7 +220,7 @@ public class QuestService(
     /// <remarks>
     /// Pokecoins is the only gated type. PoracleNG below 5.2.0 answers 400 "Unrecognised reward_type
     /// value", which reaches the user as a generic failure naming neither cause nor fix; this says which
-    /// version would be needed. It lives in the service rather than the controller so quick-pick apply
+    /// version would be needed -- the supported minimum, since every supported release accepts it. It lives in the service rather than the controller so quick-pick apply
     /// and profile import are covered too -- both reach <c>BulkCreateAsync</c> without passing a quest
     /// action. See #565 for that shape.
     ///
@@ -240,7 +240,7 @@ public class QuestService(
         }
 
         throw new AlarmValidationException(
-            "This Poracle server does not support PokeCoin quest rewards. PoracleNG 5.2.0 or newer is required.");
+            $"This Poracle server does not support PokeCoin quest rewards. PoracleNG {PoracleServerProfile.MinimumSupported} or newer is required.");
     }
 
     private static List<Quest> DeserializeItems(JsonElement json) =>

@@ -28,7 +28,7 @@ All configuration can be provided via environment variables or `appsettings.json
 
 | Setting | `.env` name | `.NET` env variable | Default | Description |
 |---|---|---|---|---|
-| Tracking API version | `PORACLE_TRACKING_API_VERSION` | `Poracle__TrackingApiVersion` | `auto` | Which PoracleNG tracking surface single-rule edits are written through: `auto`, `v1` or `v2`. `auto` uses the strict `/api/v2` surface on PoracleNG 5.2.0 and later and v1 below that. Set `v1` to stay on the old surface, or `v2` for a fork that carries the routes without reporting a version that says so. It covers nine types -- Pokemon, raids, eggs, quests, gyms, max battles, nests, lures and fort changes. Invasion edits, every read, every create and both distance endpoints stay on v1 whatever this is set to, and Pokéstop Events are v2-only and unaffected. See [The v2 write path](../architecture/poracleng-proxy.md#the-v2-write-path). |
+| Tracking API version | `PORACLE_TRACKING_API_VERSION` | `Poracle__TrackingApiVersion` | `auto` | Which PoracleNG tracking surface single-rule edits are written through: `auto`, `v1` or `v2`. `auto` uses the strict `/api/v2` surface on every supported PoracleNG (5.2.1 and later) and v1 when PoracleNG is unreachable or reports an older version. Set `v1` to stay on the old surface, or `v2` for a fork that carries the routes without reporting a version that says so. It covers nine types -- Pokemon, raids, eggs, quests, gyms, max battles, nests, lures and fort changes. Invasion edits, every read, every create and both distance endpoints stay on v1 whatever this is set to, and Pokéstop Events are v2-only and unaffected. See [The v2 write path](../architecture/poracleng-proxy.md#the-v2-write-path). |
 
 ## Optional settings
 
@@ -160,8 +160,8 @@ Required if anything terminates TLS in front of PoracleWeb.NET. See [Behind a re
 !!! warning "PoracleNG must be reachable"
     `Poracle:ApiAddress` must point to a running PoracleNG instance that is reachable from the PoracleWeb.NET container. All alarm tracking, human/profile management, location, area operations, and active hours management are proxied through this API. If PoracleNG is unreachable, alarm operations fail entirely and user management (registration, login, location, areas, profile switch, active hours) also fails. The `Poracle:ApiSecret` must match the `server.apiSecret` value in PoracleNG's config.
 
-!!! info "Minimum PoracleNG is 5.1.0; some features need 5.2.0"
-    Below 5.1.0 the app logs an error at startup and three filters write columns that do not exist. Pokéstop Events, quiet periods and Pokécoin quest rewards need **5.2.0** or newer and hide themselves on anything older. See [Version compatibility](../architecture/poracleng-compatibility.md).
+!!! info "Minimum PoracleNG is 5.2.1"
+    Against anything older the app still starts, but logs an error at startup and flags the version on **Admin → Settings**. On 5.1.0, lure and invasion edits can fail with a server error and the features 5.2.x added (Pokéstop Events, quiet periods, Pokécoin quest rewards, costume filters, moving a saved place) are hidden. Upgrade PoracleNG before upgrading PoracleWeb.NET. See [Version compatibility](../architecture/poracleng-compatibility.md).
 
 !!! note "Secrets"
     `appsettings.Development.json` is gitignored and holds all connection strings, JWT secret, Discord/Telegram credentials, and Poracle API address/secret. Never commit secrets to the repository.

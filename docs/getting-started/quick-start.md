@@ -81,8 +81,8 @@ PORACLE_ADMIN_IDS=your_discord_user_id        # Comma-separated Discord user IDs
 CORS_ORIGIN=http://localhost:8082
 ```
 
-!!! warning "PoracleNG 5.1.0 or newer"
-    Point `PORACLE_API_ADDRESS` at PoracleNG 5.1.0 or later. Older servers have no column for per-alarm delivery scope, the PVP mega evolution filter or the minimum time-left filter, so those three controls save without an error and change nothing. PoracleWeb logs an error at startup and shows the detected version on **Admin → Settings**.
+!!! warning "PoracleNG 5.2.1 or newer"
+    Point `PORACLE_API_ADDRESS` at PoracleNG 5.2.1 or later. Against an older server PoracleWeb.NET still starts, but it logs an error at startup, shows the detected version on **Admin → Settings**, and parts of it fail: on 5.1.0, lure and invasion edits can answer a server error and the features 5.2.x added are hidden.
 
 ### Optional settings
 

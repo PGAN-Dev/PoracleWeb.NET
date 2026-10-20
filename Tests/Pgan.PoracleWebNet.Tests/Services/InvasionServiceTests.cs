@@ -5,7 +5,6 @@ using Moq;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Core.Services;
-using Pgan.PoracleWebNet.Tests.TestDoubles;
 
 namespace Pgan.PoracleWebNet.Tests.Services;
 
@@ -26,8 +25,7 @@ public class InvasionServiceTests
         this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
         // Default: a server that serves the Pokestop Events page, so event rows belong to it.
         this._featureGate.Setup(g => g.IsEnabledAsync(It.IsAny<string>())).ReturnsAsync(true);
-        this._sut = new InvasionService(this._proxy.Object, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._uidRemapper.Object, NaturalKeyStub.Enforced);
-        // The natural-key replace strategy reads the original row and frees the key first.
+        this._sut = new InvasionService(this._proxy.Object, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._uidRemapper.Object);
         this._proxy.Setup(p => p.GetByUserAsync("invasion", It.IsAny<string>()))
             .ReturnsAsync(JsonSerializer.SerializeToElement(Array.Empty<object>()));
         this._proxy.Setup(p => p.DeleteByUidAsync("invasion", It.IsAny<string>(), It.IsAny<int>()))
@@ -80,8 +78,7 @@ public class InvasionServiceTests
     public async Task UpdateAsyncDelegates()
     {
         var i = new Invasion { Uid = 1, GruntType = "fire" };
-        // A real replace frees the natural key then inserts, so insert=1. A response of insert=0 now
-        // means PoracleNG merged into a DIFFERENT alarm, which is a conflict rather than success (#462).
+        // PoracleNG re-keys the edited rule, so a new uid comes back and the reconciler drops the old one.
         this._proxy.Setup(p => p.CreateAsync("invasion", "user1", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([2], 0, 0, 1));
 
@@ -281,39 +278,43 @@ public class InvasionServiceTests
         return doc.RootElement.Clone();
     }
 
-    // --- Natural-key replace (#401) ---
-    // PoracleNG guards invasion with a unique natural key and its create has no upsert path, so editing a field
-    // OUTSIDE that key made it INSERT, collide (Error 1062) and return 500 while discarding the edit.
+    // --- Edit path ---
+    // PoracleNG 5.1.0 guarded invasion with a unique natural key, so an edit once had to delete the row and
+    // re-create it. 5.2.1 is the minimum and migration 8 dropped the key: an edit that does not go through
+    // v2 is the create-carrying-a-uid every other type uses, followed by the reconciler.
 
     [Fact]
-    public async Task UpdateAsyncDeletesTheOldRowBeforeRecreatingIt()
+    public async Task UpdateAsyncCreatesFirstAndOnlyThenDropsTheSupersededRow()
     {
         var model = new Invasion { Uid = 41, GruntType = "grunt" };
+        var order = new List<string>();
         this._proxy.Setup(p => p.GetByUserAsync("invasion", "user1")).ReturnsAsync(ItemsJson(41));
-        this._proxy.Setup(p => p.DeleteByUidAsync("invasion", "user1", 41)).Returns(Task.CompletedTask);
         this._proxy.Setup(p => p.CreateAsync("invasion", "user1", It.IsAny<JsonElement>()))
+            .Callback(() => order.Add("create"))
             .ReturnsAsync(new TrackingCreateResult([42], 0, 0, 1));
+        this._proxy.Setup(p => p.DeleteByUidAsync("invasion", "user1", 41))
+            .Callback(() => order.Add("delete"))
+            .Returns(Task.CompletedTask);
 
         var result = await this._sut.UpdateAsync("user1", model);
 
-        this._proxy.Verify(p => p.DeleteByUidAsync("invasion", "user1", 41), Times.Once);
         Assert.Equal(42, result.Uid);
+        Assert.Equal(["create", "delete"], order);
     }
 
     [Fact]
-    public async Task UpdateAsyncRestoresTheOriginalWhenRecreatingFails()
+    public async Task UpdateAsyncLeavesTheOriginalAloneWhenTheCreateFails()
     {
+        // With no delete-first there is nothing to restore: the stored rule is untouched.
         var model = new Invasion { Uid = 41, GruntType = "grunt" };
         this._proxy.Setup(p => p.GetByUserAsync("invasion", "user1")).ReturnsAsync(ItemsJson(41));
-        this._proxy.Setup(p => p.DeleteByUidAsync("invasion", "user1", 41)).Returns(Task.CompletedTask);
-        this._proxy.SetupSequence(p => p.CreateAsync("invasion", "user1", It.IsAny<JsonElement>()))
-            .ThrowsAsync(new HttpRequestException("upstream 500"))
-            .ReturnsAsync(new TrackingCreateResult([43], 0, 0, 1));
+        this._proxy.Setup(p => p.CreateAsync("invasion", "user1", It.IsAny<JsonElement>()))
+            .ThrowsAsync(new HttpRequestException("upstream 500"));
 
         await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.UpdateAsync("user1", model));
 
-        // Two creates: the failed edit, then the restore of the original row.
-        this._proxy.Verify(p => p.CreateAsync("invasion", "user1", It.IsAny<JsonElement>()), Times.Exactly(2));
+        this._proxy.Verify(p => p.CreateAsync("invasion", "user1", It.IsAny<JsonElement>()), Times.Once);
+        this._proxy.Verify(p => p.DeleteByUidAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
     }
 
     [Fact]
@@ -323,15 +324,13 @@ public class InvasionServiceTests
         this._proxy.Setup(p => p.CreateAsync("invasion", "user1", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([44], 0, 0, 1));
 
-        var result = await this._sut.UpdateAsync("user1", model);
+        await this._sut.UpdateAsync("user1", model);
 
         this._proxy.Verify(p => p.DeleteByUidAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
-        Assert.Equal(44, result.Uid);
     }
 
     private static JsonElement ItemsJson(int uid) =>
         JsonSerializer.SerializeToElement(new[] { new { uid, id = "user1" } });
-
 
     [Theory]
     [InlineData("fi\u0000re")]

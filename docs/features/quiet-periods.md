@@ -88,11 +88,12 @@ missing and no chip you can find explains it.
 
 ## Requirements
 
-!!! warning "Needs PoracleNG 5.2.0"
-    The mute endpoints arrive in PoracleNG 5.2.0. Below that, every chip and the dashboard card render
-    nothing at all — a control that fails on every press is worse than no control. PoracleWeb.NET
-    decides this from the version PoracleNG reports, and an unreachable or unparseable server counts as
-    "no", so the feature is hidden rather than half-working.
+!!! warning "Needs a reachable, supported PoracleNG"
+    The mute endpoints arrived in PoracleNG 5.2.0, so every supported release (5.2.1 and later) has
+    them. While PoracleNG is unreachable, or reports a version older than the minimum, every chip and
+    the dashboard card render nothing at all — a control that fails on every press is worse than no
+    control. A version PoracleWeb.NET cannot parse, such as the `0.0.0` a locally built PoracleNG
+    reports, counts as current.
 
 There is **no site setting that turns quiet periods off.** Nothing on **Admin → Settings** governs
 them; availability is entirely a question of which PoracleNG is running.

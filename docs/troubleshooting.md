@@ -631,27 +631,19 @@ An empty array on the first call, with the type still locked, means the local `d
 **Symptom**: Pokéstop Events is not in the sidebar, alarm cards have no quiet chip, the Pokécoins tab is
 absent from the quest dialog, or the costume filter is missing. No error, no toast, no empty state.
 
-**Cause**: PoracleNG is older than the feature. Every version-gated control is checked before it is
-rendered, and every check fails closed — an unreachable server, an unreadable migration number or an
-unparseable version all resolve to "not supported". Hiding a control that would have worked is a
-nuisance; showing one that writes a column the server does not have is a filter that silently never
-fires.
-
-**What needs what**:
-
-| Feature | Needs |
-|---|---|
-| Quiet periods, Pokécoin quest rewards | PoracleNG 5.2.0 |
-| Moving a saved place without deleting it | PoracleNG 5.2.0 |
-| Costume filter on pokemon alarms | PoracleNG database migration 6 |
-| Costume filter on raid alarms | PoracleNG database migration 7 |
+**Cause**: PoracleNG is older than the supported minimum (5.2.1), or was unreachable when PoracleWeb.NET
+last checked. Quiet periods, Pokécoin quest rewards, moving a saved place and the costume filter are all
+in every supported release, so they are offered whenever PoracleNG answers with a version that is not
+known to be older. They are hidden while it is unreachable, because a control that fails on every
+press is worse than none. The check is cached for five minutes; the refresh button on the Versions card
+re-runs it.
 
 Pokéstop Events looks like it belongs here but does not: it is switched off by Poracle's own
 `general.disable_showcase` config flag, so it behaves like a disabled alarm type — see the section
 above.
 
-**Fix**: upgrade PoracleNG, or accept the gap. **Admin > Settings** shows the version and migration
-number the deployment is talking to — start there before assuming a bug.
+**Fix**: upgrade PoracleNG to 5.2.1 or later. **Admin > Settings** shows the version the deployment is
+talking to and says when it is too old — start there before assuming a bug.
 
 Hiding the control is the whole mechanism today, with one exception: `PUT /api/location/places/{label}`
 answers **501 Not Implemented** with "This Poracle server cannot move a saved place. Delete it and add it
@@ -661,9 +653,9 @@ missing, but nothing throws it yet:
 
 ```json
 {
-  "error": "This PoracleNG does not support costume filters. It requires PoracleNG database migration 6.",
-  "feature": "costume filters",
-  "requires": "PoracleNG database migration 6"
+  "error": "This PoracleNG does not support quiet periods. It requires PoracleNG 5.2.1.",
+  "feature": "quiet periods",
+  "requires": "PoracleNG 5.2.1"
 }
 ```
 
