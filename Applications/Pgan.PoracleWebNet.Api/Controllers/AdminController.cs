@@ -203,8 +203,27 @@ public partial class AdminController(
         this._cache.Remove($"blocked:{id}");
 
         // Re-fetch to return the updated state
-        var updated = await this._humanService.GetByIdAsync(id) ?? human;
-        return this.Ok(updated);
+        return this.Ok(await this.ReReadAsync(id, human));
+    }
+
+    /// <summary>
+    /// The account as stored after a write that has already landed, or <paramref name="before"/> when it
+    /// cannot be read back.
+    /// </summary>
+    /// <remarks>
+    /// A failed read throws since #994 rather than answering null. These four endpoints only re-read to show
+    /// the admin what was stored, so a failure there must not turn a change that took effect into a 500.
+    /// </remarks>
+    private async Task<Human> ReReadAsync(string id, Human before)
+    {
+        try
+        {
+            return await this._humanService.GetByIdAsync(id) ?? before;
+        }
+        catch (HttpRequestException)
+        {
+            return before;
+        }
     }
 
     [HttpPut("users/disable")]
@@ -240,8 +259,7 @@ public partial class AdminController(
         this._cache.Remove($"blocked:{id}");
 
         // Re-fetch to return the updated state
-        var updated = await this._humanService.GetByIdAsync(id) ?? human;
-        return this.Ok(updated);
+        return this.Ok(await this.ReReadAsync(id, human));
     }
 
     [HttpPut("users/pause")]
@@ -261,8 +279,7 @@ public partial class AdminController(
         await this._humanProxy.StopAsync(id);
 
         // Re-fetch to return the updated state
-        var updated = await this._humanService.GetByIdAsync(id) ?? human;
-        return this.Ok(updated);
+        return this.Ok(await this.ReReadAsync(id, human));
     }
 
     [HttpPut("users/resume")]
@@ -282,8 +299,7 @@ public partial class AdminController(
         await this._humanProxy.StartAsync(id);
 
         // Re-fetch to return the updated state
-        var updated = await this._humanService.GetByIdAsync(id) ?? human;
-        return this.Ok(updated);
+        return this.Ok(await this.ReReadAsync(id, human));
     }
 
     [HttpDelete("users/alarms")]
@@ -352,9 +368,22 @@ public partial class AdminController(
             // PoracleNG commits the human and can still fail on the rest of its create, leaving a row the
             // admin was told was never written -- and a retry that answers 409 for a webhook the UI does
             // not show. Undo the half-write so the reported failure is the truth. See #482.
-            if (await this._humanService.ExistsAsync(request.Url))
+            try
             {
-                await this._humanService.DeleteUserAsync(request.Url);
+                if (await this._humanService.ExistsAsync(request.Url))
+                {
+                    await this._humanService.DeleteUserAsync(request.Url);
+                }
+            }
+            catch (HttpRequestException)
+            {
+                // The existence read throws on a failed answer since #994, where it used to answer "no" and
+                // skip the cleanup silently. Either way nothing can say whether a half-write is there, so
+                // the admin is told that rather than "nothing was created".
+                return this.StatusCode(StatusCodes.Status502BadGateway, new
+                {
+                    error = "Poracle rejected the webhook, and could not be asked whether part of it was saved. Check the webhook list before trying again.",
+                });
             }
 
             return this.StatusCode(StatusCodes.Status502BadGateway, new

@@ -200,10 +200,18 @@ public partial class PoracleHumanProxy(
             await this.TryV2Async(HttpMethod.Get, "get", $"/api/v2/humans/{Encode(userId)}")
             ?? await this.SendReadAsync(HttpMethod.Get, $"/api/humans/one/{Encode(userId)}");
 
-        if (!response.IsSuccessStatusCode)
+        // A 404 is PoracleNG answering: no such human (v1 says "User not found", v2 a problem+json
+        // "human not found"; a v2 route that is merely absent never gets here, TryV2Async has already
+        // retried it on v1). Anything else non-2xx is PoracleNG failing to answer, and null for it -- what
+        // this returned for every status -- told every caller the account was gone: the purge answered
+        // "already deleted" during an outage and /api/auth/me signed live users out. The same contract as
+        // GetAdminRolesAsync. See #994.
+        if (response.StatusCode == HttpStatusCode.NotFound)
         {
             return null;
         }
+
+        response.EnsureSuccessStatusCode();
 
         using var doc = JsonDocument.Parse(json);
 
@@ -345,7 +353,20 @@ public partial class PoracleHumanProxy(
     /// <summary>The active profile's current area list (<c>humans.area</c>), or null if unreadable.</summary>
     private async Task<List<string>?> GetCurrentAreaListAsync(string userId)
     {
-        var human = await this.GetHumanAsync(userId);
+        JsonElement? human;
+        try
+        {
+            human = await this.GetHumanAsync(userId);
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode is not null)
+        {
+            // GetHumanAsync throws on a failed answer since #994. Here, as before, a failed answer means
+            // there is no list to build a full replacement from, and null sends the caller to
+            // IUserAreaDualWriter instead. Only an answer is caught: an unreachable PoracleNG threw before
+            // and still does.
+            return null;
+        }
+
         var areaJson = human?.GetAreaListJsonOrNull("area");
         return areaJson is null ? null : AreaListJson.Parse(areaJson);
     }

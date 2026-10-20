@@ -114,14 +114,33 @@ public class PoracleHumanProxyTests
     }
 
     [Fact]
-    public async Task GetHumanAsyncReturnsNullOnOtherErrors()
+    public async Task GetHumanAsyncReturnsNullForV1sUserNotFound()
     {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.InternalServerError, "{}");
+        // What 5.1.0's HandleGetOneHuman actually sends for an id it has no row for.
+        var handler = new MockHttpMessageHandler(
+            HttpStatusCode.NotFound, /*lang=json,strict*/ """{"status":"error","message":"User not found"}""");
         var sut = CreateSut(handler);
 
-        var result = await sut.GetHumanAsync("user1");
+        Assert.Null(await sut.GetHumanAsync("nonexistent"));
+    }
 
-        Assert.Null(result);
+    /// <summary>
+    /// Only a 404 says the account is absent. Answering null for every other status made a PoracleNG that
+    /// could not answer look like a deleted account: the purge told an admin the user was already gone,
+    /// and /api/auth/me signed a live user out. See #994.
+    /// </summary>
+    [Theory]
+    [InlineData(HttpStatusCode.InternalServerError)]
+    [InlineData(HttpStatusCode.BadGateway)]
+    [InlineData(HttpStatusCode.ServiceUnavailable)]
+    [InlineData(HttpStatusCode.Unauthorized)]
+    public async Task GetHumanAsyncThrowsWhenPoracleCannotAnswer(HttpStatusCode status)
+    {
+        var handler = new MockHttpMessageHandler(status, "{}");
+        var sut = CreateSut(handler);
+
+        var ex = await Assert.ThrowsAsync<HttpRequestException>(() => sut.GetHumanAsync("user1"));
+        Assert.Equal(status, ex.StatusCode);
     }
 
     [Fact]

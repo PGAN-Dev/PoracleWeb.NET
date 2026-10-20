@@ -52,7 +52,9 @@ public class HumanRepository(PoracleContext context) : IHumanRepository
     // which also means nothing can stamp a stale copy of the whole record over PoracleNG's -- the shape
     // of #517.
 
-    public async Task<bool> ExistsAsync(string id) => await this._context.Humans.AnyAsync(h => h.Id == id);
+    // ExistsAsync lived here for one caller: UserPurgeService read the humans table directly because the
+    // proxy answered null for an outage as well as for a missing account. The proxy tells them apart now
+    // and the purge asks IHumanService. See #994.
 
     // DeleteAllAlarmsByUserAsync lived here and was dead: HumanService has looped the tracking proxy
     // since the PoracleNG migration, so nothing reached it. Its eight ExecuteDeleteAsync calls would

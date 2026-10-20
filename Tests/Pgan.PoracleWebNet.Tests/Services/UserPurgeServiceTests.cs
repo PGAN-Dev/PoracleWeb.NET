@@ -1,3 +1,8 @@
+using System.Net;
+using System.Text;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
@@ -14,7 +19,6 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 /// </summary>
 public class UserPurgeServiceTests
 {
-    private readonly Mock<IHumanRepository> _humans = new();
     private readonly Mock<IUserGeofenceRepository> _geofences = new();
     private readonly Mock<IUserGeofenceService> _geofenceService = new();
     private readonly Mock<IWebhookDelegateRepository> _delegates = new();
@@ -25,21 +29,22 @@ public class UserPurgeServiceTests
 
     public UserPurgeServiceTests()
     {
-        this._humans.Setup(r => r.ExistsAsync("u1")).ReturnsAsync(true);
+        this._humanService.Setup(s => s.ExistsAsync("u1")).ReturnsAsync(true);
         this._humanService.Setup(s => s.DeleteUserAsync("u1")).ReturnsAsync(true);
         this._geofences.Setup(r => r.GetByHumanIdAsync("u1")).ReturnsAsync([]);
         this._quickPicks.Setup(r => r.GetByOwnerAsync("u1")).ReturnsAsync([]);
 
-        this._sut = new UserPurgeService(
-            this._humans.Object,
-            this._geofences.Object,
-            this._geofenceService.Object,
-            this._delegates.Object,
-            this._quickPicks.Object,
-            this._appliedStates.Object,
-            this._humanService.Object,
-            NullLogger<UserPurgeService>.Instance);
+        this._sut = this.CreateSut(this._humanService.Object);
     }
+
+    private UserPurgeService CreateSut(IHumanService humanService) => new(
+        this._geofences.Object,
+        this._geofenceService.Object,
+        this._delegates.Object,
+        this._quickPicks.Object,
+        this._appliedStates.Object,
+        humanService,
+        NullLogger<UserPurgeService>.Instance);
 
     [Fact]
     public async Task PurgeRemovesEverythingTheAccountOwns()
@@ -77,7 +82,7 @@ public class UserPurgeServiceTests
     [Fact]
     public async Task AnUnknownUserIsReportedRatherThanPartiallyPurged()
     {
-        this._humans.Setup(r => r.ExistsAsync("ghost")).ReturnsAsync(false);
+        this._humanService.Setup(s => s.ExistsAsync("ghost")).ReturnsAsync(false);
 
         Assert.False(await this._sut.PurgeAsync("ghost"));
 
@@ -116,5 +121,87 @@ public class UserPurgeServiceTests
         await this._sut.PurgeAsync("u1");
 
         Assert.Equal("human", order[^1]);
+    }
+
+    // ---- Existence through PoracleNG, end to end (#994) ----------------------------------------------
+    //
+    // These run the real HumanService over the real PoracleHumanProxy, so what is under test is the whole
+    // chain the admin's DELETE reaches: a status from PoracleNG in, a purge answer out. The existence check
+    // used to read Poracle's humans table directly, only because the proxy answered null for any failure.
+
+    [Fact]
+    public async Task APoracleOutageIsNotReportedAsAnAccountAlreadyGone()
+    {
+        var sut = this.CreateSut(OverProxy(HttpStatusCode.ServiceUnavailable, """{"status":"error","message":"database error"}"""));
+
+        // Not false: the controller turns false into 404, which told the admin the account was gone.
+        var ex = await Assert.ThrowsAsync<HttpRequestException>(() => sut.PurgeAsync("u1"));
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, ex.StatusCode);
+        // And nothing was half-erased on the strength of an answer nobody gave.
+        this._delegates.Verify(r => r.RemoveAllForIdAsync(It.IsAny<string>()), Times.Never);
+        this._appliedStates.Verify(r => r.DeleteByUserAsync(It.IsAny<string>()), Times.Never);
+        this._geofences.Verify(r => r.GetByHumanIdAsync(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task AnAccountPoracleSaysIsMissingIsStillReportedAsMissing()
+    {
+        var sut = this.CreateSut(OverProxy(HttpStatusCode.NotFound, """{"status":"error","message":"User not found"}"""));
+
+        Assert.False(await sut.PurgeAsync("ghost"));
+
+        this._delegates.Verify(r => r.RemoveAllForIdAsync(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task AnAccountPoracleKnowsIsStillPurged()
+    {
+        // Every request answers 200: the existence read, the per-type alarm reads (an empty list) and the
+        // v1 fallback delete, which a server without the v2 route goes through the repository for.
+        var humanRepository = new Mock<IHumanRepository>();
+        humanRepository.Setup(r => r.DeleteUserAsync("u1")).ReturnsAsync(true);
+        var sut = this.CreateSut(OverProxy(HttpStatusCode.OK, """{"human":{"id":"u1"},"status":"ok"}""", humanRepository.Object));
+
+        Assert.True(await sut.PurgeAsync("u1"));
+
+        this._delegates.Verify(r => r.RemoveAllForIdAsync("u1"), Times.Once);
+        humanRepository.Verify(r => r.DeleteUserAsync("u1"), Times.Once);
+    }
+
+    /// <summary>A real HumanService over a real PoracleHumanProxy on a PoracleNG without /api/v2.</summary>
+    private static HumanService OverProxy(HttpStatusCode status, string body, IHumanRepository? repository = null)
+    {
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Poracle:ApiAddress"] = "http://localhost:3030",
+                ["Poracle:ApiSecret"] = "test-secret",
+            })
+            .Build();
+
+        var proxy = new PoracleHumanProxy(
+            new HttpClient(new FixedReply(status, body)),
+            config,
+            PoracleHumanProxyTests.ServerProfile("5.1.0"),
+            PoracleHumanProxyTests.V2Schema(),
+            PoracleHumanProxyTests.AreaSecurityPolicy(),
+            new MemoryCache(new MemoryCacheOptions()),
+            Mock.Of<ILogger<PoracleHumanProxy>>());
+
+        var tracking = new Mock<IPoracleTrackingProxy>();
+        tracking.Setup(t => t.GetByUserAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(System.Text.Json.JsonDocument.Parse("[]").RootElement.Clone());
+
+        return new HumanService(repository ?? Mock.Of<IHumanRepository>(), proxy, tracking.Object);
+    }
+
+    private sealed class FixedReply(HttpStatusCode status, string body) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            Task.FromResult(new HttpResponseMessage(status)
+            {
+                Content = new StringContent(body, Encoding.UTF8, "application/json"),
+            });
     }
 }

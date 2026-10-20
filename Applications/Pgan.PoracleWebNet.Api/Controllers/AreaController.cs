@@ -159,7 +159,18 @@ public partial class AreaController(
         // Read back rather than echo. PoracleNG silently drops any name whose fence is not
         // userSelectable, so returning the submitted list asserted subscriptions the user does not have
         // - a typo or a stale area name looked accepted until the next page load. See #476.
-        var stored = await this._humanProxy.GetAreasAsync(this.UserId);
+        // The read throws on a failed answer since #994; the save has landed, so it falls back to the echo
+        // a null always fell back to rather than reporting a save that took effect as a 500.
+        JsonElement? stored;
+        try
+        {
+            stored = await this._humanProxy.GetAreasAsync(this.UserId);
+        }
+        catch (HttpRequestException)
+        {
+            stored = null;
+        }
+
         if (stored is not null && stored.Value.TryGetProperty("area", out _))
         {
             return this.Ok(ParseAreaJson(PoracleAreaJson.ReadAreaListJson(stored.Value)));

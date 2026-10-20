@@ -247,6 +247,21 @@ public class AreaControllerTests : ControllerTestBase
         Assert.Equal(["west"], Assert.IsType<string[]>(ok.Value));
     }
 
+    [Fact]
+    public async Task UpdateAreasThatLandedIsNotReportedAsAFailureWhenTheReadBackFails()
+    {
+        // setAreas has succeeded by the time this read runs. It throws on a failed answer since #994;
+        // a 500 here would tell the user a save that took effect did not. The submitted list is the
+        // fallback it always was.
+        this._humanProxy.Setup(p => p.GetAreasAsync("123456789"))
+            .ThrowsAsync(new HttpRequestException("503", null, System.Net.HttpStatusCode.ServiceUnavailable));
+
+        var result = await this._sut.UpdateAreas(new AreaController.UpdateAreasRequest { Areas = ["West", "EAST"] });
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.Equal(["west", "east"], Assert.IsType<string[]>(ok.Value));
+    }
+
     // --- GetGeofencePolygons ---
 
     [Fact]
