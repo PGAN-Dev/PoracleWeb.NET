@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.21.0] - 2026-10-20
+
 ### Added
 
 - **Picking Minior for a Pokemon alert now says why IV, CP and level filters won't match it.** Minior's IVs, CP and level are rerolled for each player when it's caught, so a scanner may report it without stats, and a rule that filters on them never fires. The note shows in the Pokemon picker the moment Minior is selected, and on the edit dialog of a Minior alert.
@@ -14,6 +16,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **A Docker install no longer loses its DataProtection keys on every restart.** The container runs as uid 999, and Docker creates a bind-mounted `./data` that doesn't exist yet as root, so the app couldn't write its keys or avatar cache there and every SSO user was signed out whenever the container was recreated. The install docs now create the directory with the right owner (`mkdir -p data && sudo chown 999:999 data`), `./scripts/docker.sh start` warns when the owner is wrong, the image pins uid 999 so that command stays right, and the app logs one error naming the fix when `DATA_DIR` can't be written.
+
+### Dependencies
+- Bump @angular/cli ([#979](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/979))
+- Bump Microsoft.NET.Test.Sdk from 18.10.1 to 18.11.0 ([#982](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/982))
+- Bump jest-preset-angular ([#985](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/985))
+- Bump jsdom in /Applications/Pgan.PoracleWebNet.App/ClientApp ([#984](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/984))
+- Bump the dotnet group with 12 updates ([#980](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/980))
+- Bump the eslint group ([#983](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/983))
+- Bump xunit.runner.visualstudio from 4.0.0 to 4.0.1 ([#942](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/942))
 
 ## [2.20.2] - 2026-10-18
 
@@ -1208,7 +1219,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.20.2...HEAD
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.21.0...HEAD
+[2.21.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.20.2...v2.21.0
 [2.20.2]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.20.1...v2.20.2
 [2.20.1]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.20.0...v2.20.1
 [2.20.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.19.0...v2.20.0
