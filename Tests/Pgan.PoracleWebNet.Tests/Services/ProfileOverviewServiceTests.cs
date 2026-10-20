@@ -47,34 +47,28 @@ public class ProfileOverviewServiceTests
         this._proxy.Verify(p => p.GetAllTrackingAllProfilesAsync("user42"), Times.Once);
     }
 
+    /// <summary>
+    /// Changed deliberately, with the copy (#993). This used to assert that a failed per-alarm create
+    /// switched the user back to their original profile. The duplicate now uses PoracleNG's own copy, which
+    /// never switches, so there is nothing to restore; what must still hold is that a failure reaches the
+    /// controller, which deletes the half-made profile.
+    /// </summary>
     [Fact]
-    public async Task DuplicateProfileAsyncRestoresProfileOnError()
+    public async Task DuplicateProfileAsyncLetsACopyFailureThroughWithoutEverSwitchingProfile()
     {
-        // Current profile is 1
-        var humanJson = CreateJsonObject(new
-        {
-            current_profile_no = 1
-        });
-        this._humanProxy.Setup(h => h.GetHumanAsync("u1")).ReturnsAsync(humanJson);
-        this._humanProxy.Setup(h => h.SwitchProfileAsync("u1", 5)).Returns(Task.CompletedTask);
-
-        // Return alarms on the source profile
         var allTracking = CreateJsonObject(new
         {
             pokemon = new[] { new { uid = 10, profile_no = 2 } }
         });
         this._proxy.Setup(p => p.GetAllTrackingAllProfilesAsync("u1")).ReturnsAsync(allTracking);
-
-        // CreateAsync throws after switching to the new profile
-        this._proxy
-            .Setup(p => p.CreateAsync("pokemon", "u1", It.IsAny<JsonElement>()))
+        this._humanProxy
+            .Setup(h => h.CopyProfileAsync("u1", 2, 5))
             .ThrowsAsync(new HttpRequestException("API error"));
 
         await Assert.ThrowsAsync<HttpRequestException>(() =>
             this._sut.DuplicateProfileAsync("u1", 2, 5));
 
-        // Verify profile was restored to original (1)
-        this._humanProxy.Verify(h => h.SwitchProfileAsync("u1", 1), Times.Once);
+        this._humanProxy.Verify(h => h.SwitchProfileAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
     }
 
     [Fact]
@@ -135,9 +129,14 @@ public class ProfileOverviewServiceTests
 
         // Only 2 alarms from source profile 2 (pokemon uid=10 + raid uid=30), not the one from profile 3
         Assert.Equal(2, result);
+
+        // PoracleNG's copy, source to destination, in that order: inverting them would replace the
+        // source's rules with the empty new profile's. Nothing is re-created one rule at a time (#993).
+        this._humanProxy.Verify(h => h.CopyProfileAsync("u1", 2, 5), Times.Once);
         this._proxy.Verify(
-            p => p.CreateAsync(It.IsAny<string>(), "u1", It.IsAny<JsonElement>()),
-            Times.Exactly(2));
+            p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()),
+            Times.Never);
+        this._humanProxy.Verify(h => h.SwitchProfileAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
     }
 
     [Fact]
@@ -168,6 +167,10 @@ public class ProfileOverviewServiceTests
         Assert.Equal(DisableFeatureKeys.Pokemon, ex.DisableKey);
         this._humanProxy.Verify(h => h.SwitchProfileAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
         this._proxy.Verify(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+
+        // PoracleNG's copy does not know about disable_* switches; refusing before it runs is the gate.
+        this._humanProxy.Verify(
+            h => h.CopyProfileAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()), Times.Never);
     }
 
     [Fact]

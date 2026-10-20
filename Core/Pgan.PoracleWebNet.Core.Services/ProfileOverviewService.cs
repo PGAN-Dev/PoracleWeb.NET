@@ -24,63 +24,37 @@ public class ProfileOverviewService(
         // Get all alarms across all profiles
         var allTracking = await this._trackingProxy.GetAllTrackingAllProfilesAsync(userId);
 
-        // Pre-validate: this service writes to the tracking proxy directly, bypassing the per-type
-        // alarm services and their FeatureGate checks. Without this pass, a partial duplicate could
-        // succeed for some types and 403 mid-loop for a disabled type — leaving the new profile
-        // half-populated. Walk the source first to surface the disable error before any writes. (#236)
+        // Pre-validate: PoracleNG's copy knows nothing of this site's disable_* switches, so this pass is
+        // the only thing standing between a disabled type and a duplicate that carries it. Walk the source
+        // first and refuse before anything is written. (#236)
         await this.EnsureNoDisabledTypesAsync(allTracking, alarm => alarm.GetIntProp("profile_no") == sourceProfileNo);
 
-        // Remember current profile so we can restore it
-        var humanJson = await this._humanProxy.GetHumanAsync(userId);
-        var originalProfileNo = humanJson?.GetIntProp("current_profile_no") ?? 1;
+        // PoracleNG's own copy, rather than re-creating each rule here through the v1 create. Checked
+        // against the 5.3.0 bed, which runs production's build: it copied every type including Pokestop
+        // events, with ping, clean bits, override_areas and override_location_label intact -- where the
+        // re-create blanked every ping (v1 create stores none) and ran each rule through PoracleNG's merge
+        // diff. It also needs no profile switch, so the user's active profile is never moved mid-copy. The
+        // copy replaces the destination's rules; the destination here is a profile created moments ago, so
+        // it has none. /api/profiles/duplicate has always copied this way. See #993.
+        await this._humanProxy.CopyProfileAsync(userId, sourceProfileNo, newProfileNo);
 
-        // Switch to the new profile so PoracleNG scopes creates to it
-        await this._humanProxy.SwitchProfileAsync(userId, newProfileNo);
+        return CountAlarms(allTracking, sourceProfileNo);
+    }
 
-        var totalCreated = 0;
-        try
+    /// <summary>How many of the alarm types this page lists the profile holds.</summary>
+    private static int CountAlarms(JsonElement allTracking, int profileNo)
+    {
+        var count = 0;
+
+        foreach (var type in AlarmTypes)
         {
-            foreach (var type in AlarmTypes)
+            if (allTracking.TryGetProperty(type, out var alarms) && alarms.ValueKind == JsonValueKind.Array)
             {
-                if (!allTracking.TryGetProperty(type, out var alarmsArray) ||
-                    alarmsArray.ValueKind != JsonValueKind.Array)
-                {
-                    continue;
-                }
-
-                foreach (var alarm in alarmsArray.EnumerateArray())
-                {
-                    if (alarm.GetIntProp("profile_no") != sourceProfileNo)
-                    {
-                        continue;
-                    }
-
-                    // Strip uid so PoracleNG creates a new alarm instead of updating -- and profile_no
-                    // with it. PoracleNG takes a submitted profile_no at face value (#411), and the
-                    // copy carries the SOURCE profile's, so every pokemon alarm was written back onto
-                    // the profile being copied FROM: the new profile came up with no Pokemon tracking
-                    // and the source quietly gained a duplicate on every run. Import has stripped these
-                    // since #465; duplicate never did. See #576.
-                    var cleaned = alarm;
-                    foreach (var owned in ImportIgnoredFields)
-                    {
-                        if (cleaned.TryGetProperty(owned, out _))
-                        {
-                            cleaned = PoracleJsonHelper.StripProperty(cleaned, owned);
-                        }
-                    }
-                    await this._trackingProxy.CreateAsync(type, userId, cleaned);
-                    totalCreated++;
-                }
+                count += alarms.EnumerateArray().Count(alarm => alarm.GetIntProp("profile_no") == profileNo);
             }
         }
-        finally
-        {
-            // Always restore the original profile
-            await this._humanProxy.SwitchProfileAsync(userId, originalProfileNo);
-        }
 
-        return totalCreated;
+        return count;
     }
 
     /// <summary>
@@ -91,8 +65,8 @@ public class ProfileOverviewService(
 
     public async Task<int> ImportAlarmsAsync(string userId, int targetProfileNo, JsonElement alarms)
     {
-        // Pre-validate the import payload before any state mutation. See DuplicateProfileAsync above
-        // for why this can't be a per-iteration check. (#236)
+        // Pre-validate the import payload before any state mutation. A per-iteration check could let some
+        // types through and 403 mid-loop on a disabled one, leaving the new profile half-populated. (#236)
         await this.EnsureNoDisabledTypesAsync(alarms, _ => true);
 
         var humanJson = await this._humanProxy.GetHumanAsync(userId);

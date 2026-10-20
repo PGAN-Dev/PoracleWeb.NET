@@ -32,7 +32,7 @@ public class ProfileControllerTests : ControllerTestBase
         this._humanProxy.SetReturnsDefault<Task<int?>>(Task.FromResult<int?>(null));
         this._humanProxy.SetReturnsDefault<Task<bool>>(Task.FromResult(false));
 
-        this._sut = new ProfileController(this._profileService.Object, this._humanService.Object, this._humanProxy.Object, this._profileRepository.Object, this._jwtService.Object, this._roleResolver.Object, this._userGeofenceRepository.Object);
+        this._sut = new ProfileController(this._profileService.Object, this._humanService.Object, this._humanProxy.Object, this._profileRepository.Object, this._jwtService.Object, this._roleResolver.Object, this._userGeofenceRepository.Object, Microsoft.Extensions.Logging.Abstractions.NullLogger<ProfileController>.Instance);
         SetupUser(this._sut);
     }
 

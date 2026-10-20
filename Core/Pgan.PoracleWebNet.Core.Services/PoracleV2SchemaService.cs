@@ -123,6 +123,9 @@ public partial class PoracleV2SchemaService(
                 ProfileDelete = HasOperation(paths, "/v2/humans/{id}/profiles/{profile_no}", "delete"),
                 ProfileCopy = HasOperation(paths, "/v2/humans/{id}/profiles/{profile_no}/copy", "post")
                     && HasProperty(schemas, "V2CopyProfileBody", "from_profile"),
+                ProfileScopedGeography = HasQueryParameter(paths, "/v2/humans/{id}/areas", "post", "profile")
+                    && HasQueryParameter(paths, "/v2/humans/{id}/location", "post", "profile")
+                    && HasProperty(schemas, ResponseSchema(paths, "/v2/humans/{id}/areas", "post"), "rejected"),
             };
         }
         catch (JsonException)
@@ -148,6 +151,17 @@ public partial class PoracleV2SchemaService(
     /// <summary>True when the path declares the method.</summary>
     private static bool HasOperation(JsonElement paths, string path, string method) =>
         Property(Property(paths, path), method).ValueKind != JsonValueKind.Undefined;
+
+    /// <summary>True when the operation declares a query parameter of that name.</summary>
+    private static bool HasQueryParameter(JsonElement paths, string path, string method, string name)
+    {
+        var parameters = Property(Property(Property(paths, path), method), "parameters");
+
+        return parameters.ValueKind == JsonValueKind.Array
+            && parameters.EnumerateArray().Any(p =>
+                Property(p, "name") is { ValueKind: JsonValueKind.String } n && n.GetString() == name
+                && Property(p, "in") is { ValueKind: JsonValueKind.String } at && at.GetString() == "query");
+    }
 
     /// <summary>
     /// True when creating a profile answers with the assigned number.

@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Saving the Areas page, listing the areas you can choose from, and listing, deleting and copying profiles now go through PoracleNG's `/api/v2` where your PoracleNG offers it.** PoracleWeb.NET asks PoracleNG's own `/openapi.json` which of these routes it serves and keeps using the older routes for the rest, so nothing changes on a server that lacks them. Nothing looks different either: the Areas page still keeps your own drawn geofences when you save, and profiles read back exactly as before. ([#995](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/995))
+- **A new profile's areas and location are now set through PoracleNG instead of written straight into its database, where PoracleNG supports it.** Creating, duplicating or importing a profile used to write the new profile's areas and location directly into PoracleNG's `profiles` table, because PoracleNG's add ignores them. On a PoracleNG whose `/openapi.json` offers per-profile area and location writes, PoracleWeb.NET uses those instead; elsewhere, or if PoracleNG declines, it writes them directly as before, and the create still succeeds either way. Duplicating from the Profile Overview page now copies alarms with PoracleNG's own profile copy, the way the Profiles page always has, so a webhook alarm's mention is copied too instead of being dropped. ([#993](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/993))
 
 ### Fixed
 

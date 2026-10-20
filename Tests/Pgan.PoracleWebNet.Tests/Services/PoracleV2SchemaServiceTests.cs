@@ -70,6 +70,7 @@ public class PoracleV2SchemaServiceTests
         Assert.True(capabilities.ProfileList);
         Assert.True(capabilities.ProfileDelete);
         Assert.True(capabilities.ProfileCopy);
+        Assert.True(capabilities.ProfileScopedGeography);
     }
 
     [Fact]
@@ -102,6 +103,45 @@ public class PoracleV2SchemaServiceTests
 
         Assert.False(PoracleV2SchemaService.Parse(statusOnly).SetAreasReportsRejected);
         Assert.True(PoracleV2SchemaService.Parse(reporting).SetAreasReportsRejected);
+    }
+
+    [Fact]
+    public void TheDevelopBranchCanWriteANewProfilesGeographyAndAReleasedOneCannot()
+    {
+        Assert.True(PoracleV2SchemaService.Parse(Fixture("next")).ProfileScopedGeography);
+
+        // 5.2.1 declares ?profile= on the location write but not on the areas write.
+        Assert.False(PoracleV2SchemaService.Parse(Fixture("5.2.1")).ProfileScopedGeography);
+    }
+
+    [Fact]
+    public void ProfileScopedGeographyNeedsTheParameterOnBothWrites()
+    {
+        const string locationOnly = """
+            {"paths":{
+              "/v2/humans/{id}/location":{"post":{"parameters":[{"name":"profile","in":"query"}]}},
+              "/v2/humans/{id}/areas":{"post":{"parameters":[{"name":"id","in":"path"}],
+                "responses":{"200":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/V2SetAreasOutputBody"}}}}}}}},
+             "components":{"schemas":{"V2SetAreasOutputBody":{"properties":{"areas":{},"rejected":{}}}}}}
+            """;
+        const string both = """
+            {"paths":{
+              "/v2/humans/{id}/location":{"post":{"parameters":[{"name":"profile","in":"query"}]}},
+              "/v2/humans/{id}/areas":{"post":{"parameters":[{"name":"profile","in":"query"}],
+                "responses":{"200":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/V2SetAreasOutputBody"}}}}}}}},
+             "components":{"schemas":{"V2SetAreasOutputBody":{"properties":{"areas":{},"rejected":{}}}}}}
+            """;
+        const string pathParameterOfThatName = """
+            {"paths":{
+              "/v2/humans/{id}/location":{"post":{"parameters":[{"name":"profile","in":"path"}]}},
+              "/v2/humans/{id}/areas":{"post":{"parameters":[{"name":"profile","in":"query"}],
+                "responses":{"200":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/V2SetAreasOutputBody"}}}}}}}},
+             "components":{"schemas":{"V2SetAreasOutputBody":{"properties":{"areas":{},"rejected":{}}}}}}
+            """;
+
+        Assert.False(PoracleV2SchemaService.Parse(locationOnly).ProfileScopedGeography);
+        Assert.False(PoracleV2SchemaService.Parse(pathParameterOfThatName).ProfileScopedGeography);
+        Assert.True(PoracleV2SchemaService.Parse(both).ProfileScopedGeography);
     }
 
     [Fact]
@@ -171,6 +211,7 @@ public class PoracleV2SchemaServiceTests
         Assert.False(capabilities.ProfileList);
         Assert.False(capabilities.ProfileDelete);
         Assert.False(capabilities.ProfileCopy);
+        Assert.False(capabilities.ProfileScopedGeography);
     }
 
     [Fact]

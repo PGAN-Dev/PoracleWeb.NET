@@ -166,6 +166,26 @@ public interface IPoracleHumanProxy
     public Task<bool> UpdateProfileAsync(string userId, JsonElement body);
 
     /// <summary>
+    /// Sets one profile's areas and location without touching the active profile, through
+    /// <c>POST /api/v2/humans/{userId}/areas?profile=N</c> and <c>POST /api/v2/humans/{userId}/location?profile=N</c>.
+    /// Used for a profile just created, duplicated or imported, because PoracleNG's add ignores both. See #993.
+    /// </summary>
+    /// <remarks>
+    /// A non-empty area list is sent with <c>trusted</c>, because a user's own drawn fences are not
+    /// <c>userSelectable</c>; that is only done where <c>trusted</c> is safe to rely on, the same gate as
+    /// <see cref="AddAreaToActiveProfileTrustedAsync"/>. An empty list needs no trust and is always sent plain.
+    /// </remarks>
+    /// <returns>
+    /// <c>true</c> once both are written. <c>false</c> when the caller must write them itself: the server does
+    /// not declare the two routes with <c>?profile=</c>, <c>trusted</c> is needed and not safe, a route is
+    /// missing, or PoracleNG refused a requested area name (one it has not loaded) -- the same "fall back"
+    /// rule the trusted active-profile writes follow.
+    /// </returns>
+    /// <exception cref="PoracleRequestRefusedException">PoracleNG refused either write outright.</exception>
+    public Task<bool> SetProfileGeographyAsync(
+        string userId, int profileNo, IReadOnlyCollection<string> areas, double latitude, double longitude);
+
+    /// <summary>
     /// Deletes a profile and its tracking rules; when it was the active one, PoracleNG moves
     /// <c>current_profile_no</c> to another.
     /// Maps to DELETE /api/v2/humans/{userId}/profiles/{profileNo} where declared, or

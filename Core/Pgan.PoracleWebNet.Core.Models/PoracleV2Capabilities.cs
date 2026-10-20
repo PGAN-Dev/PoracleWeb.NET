@@ -179,6 +179,24 @@ public sealed class PoracleV2Capabilities
         get; init;
     }
 
+    /// <summary>
+    /// <c>POST /v2/humans/{id}/areas</c> and <c>POST /v2/humans/{id}/location</c> both take a
+    /// <c>?profile=</c> naming the profile to write, and the areas answer reports what it refused, so a new
+    /// profile's areas and location can be set through the API rather than by writing the
+    /// <c>profiles</c> row directly. See #993.
+    /// </summary>
+    /// <remarks>
+    /// All three, deliberately. 5.2.1 declares <c>?profile=</c> on the location write alone, and
+    /// <c>docs/architecture/poracleng-proxy.md</c> records that write moving <c>humans.latitude/longitude</c>
+    /// as well as the named profile's row there. Requiring the areas parameter too limits this to builds of
+    /// the kind it was verified on (5.3.0, the build production runs), where writing a non-active profile
+    /// leaves the active one alone.
+    /// </remarks>
+    public bool ProfileScopedGeography
+    {
+        get; init;
+    }
+
     /// <summary>True when the document was read and parsed, whatever it turned out to say.</summary>
     /// <remarks>
     /// Distinct from every capability being false, which is also what an unreachable server looks like.

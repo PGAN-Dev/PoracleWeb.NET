@@ -104,9 +104,10 @@ public partial class ProfileOverviewController(
 
         // PoracleNG's addProfile ignores area, latitude and longitude, so the copy silently inherited
         // whichever profile happened to be active: the right alarms over the wrong map, and a location
-        // that also drives the active-hours timezone. Written AFTER the alarm copy, because copying
-        // switches profiles and back and the switch rewrites the geography again. This is #466, fixed on
-        // /api/profiles/duplicate and left open here. See #503.
+        // that also drives the active-hours timezone. This is #466, fixed on /api/profiles/duplicate and
+        // left open here. See #503. Written after the alarm copy, which used to switch profiles and back --
+        // a switch that rewrites the geography. The copy no longer switches (#993), but nothing is gained
+        // by moving this ahead of it.
         await this.WriteGeographyAsync(
             newProfileNo, request.Name.Trim(), source.Area ?? "[]", source.Latitude, source.Longitude);
 
@@ -240,36 +241,17 @@ public partial class ProfileOverviewController(
     }
 
     /// <summary>
-    /// Writes a profile's name, areas and location directly.
+    /// Sets a new profile's areas and location, which addProfile ignores.
     /// </summary>
     /// <remarks>
-    /// PoracleNG has no endpoint that sets these on an existing profile -- its update ignores name (#406)
-    /// and addProfile ignores the geography -- so this is a direct write, the same workaround rename uses.
-    /// Never fails the request: the alarms are already copied, and a wrong area list is recoverable from
-    /// the Areas page while a failed duplicate is not.
+    /// Through PoracleNG's v2 <c>?profile=</c> writes where the server has them, directly otherwise. Never
+    /// fails the request: the alarms are already copied, and a wrong area list is recoverable from the
+    /// Areas page while a failed duplicate is not. See <see cref="NewProfileGeography"/> and #993.
     /// </remarks>
-    private async Task WriteGeographyAsync(int profileNo, string name, string area, double latitude, double longitude)
-    {
-        try
-        {
-            await this._profileRepository.UpdateAsync(new Profile
-            {
-                Id = this.UserId,
-                ProfileNo = profileNo,
-                Name = name,
-                Area = area,
-                Latitude = latitude,
-                Longitude = longitude,
-            });
-        }
-        catch (InvalidOperationException ex)
-        {
-            LogGeographyWriteFailed(this._logger, ex, profileNo);
-        }
-    }
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Could not write areas and location onto profile {ProfileNo}; it may have inherited them from the active profile")]
-    private static partial void LogGeographyWriteFailed(ILogger logger, Exception ex, int profileNo);
+    private Task WriteGeographyAsync(int profileNo, string name, string area, double latitude, double longitude) =>
+        NewProfileGeography.WriteAsync(
+            this._humanProxy, this._profileRepository, this._logger,
+            this.UserId, profileNo, name, area, latitude, longitude);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Profile import failed for profile {ProfileNo}; the partially created profile was rolled back")]
     private static partial void LogImportFailed(ILogger logger, Exception ex, int profileNo);
