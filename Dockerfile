@@ -40,7 +40,9 @@ WORKDIR /app
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
-RUN useradd --system --no-create-home appuser
+# uid/gid 999 pinned, not left to --system: a bind-mounted ./data has to be chowned to this id on the
+# host (see docs/configuration/docker.md), so it must not move when the base image changes.
+RUN useradd --system --uid 999 --user-group --no-create-home appuser
 COPY --from=dotnet-build /app/publish .
 COPY --from=angular-build /app/angular/dist/ClientApp/browser wwwroot/
 

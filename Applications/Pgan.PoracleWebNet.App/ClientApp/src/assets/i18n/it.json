@@ -241,6 +241,7 @@
     "TAB_DELIVERY": "Consegna",
     "SELECTION_COUNT": "{{count}} Pokemon selezionati",
     "SELECTION_HINT": "Cerca e seleziona uno o più Pokemon da monitorare",
+    "MINIOR_IV_NOTE": "Le IV di Minior vengono ricalcolate quando viene catturato, quindi i filtri per IV, CP e livello non lo troveranno.",
     "LABEL_MIN_IV": "IV Min",
     "LABEL_MAX_IV": "IV Max",
     "LABEL_MIN_CP": "CP Min",

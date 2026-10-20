@@ -384,6 +384,14 @@ builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
+// A DATA_DIR the container user cannot write loses the DataProtection keys on every recreate. Say so once,
+// with the fix, rather than leaving only DataProtection's own stack trace to find.
+var dataDirectory = Path.GetFullPath(app.Configuration["DATA_DIR"] ?? Path.Join(Directory.GetCurrentDirectory(), "data"));
+if (!Pgan.PoracleWebNet.Api.Configuration.DataDirectoryCheck.IsWritable(dataDirectory))
+{
+    StartupLog.LogDataDirectoryNotWritable(app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Startup"), dataDirectory);
+}
+
 // Ensure pweb_settings.value can hold JSON blobs (quick pick definitions/applied states)
 using (var scope = app.Services.CreateScope())
 {
@@ -635,6 +643,10 @@ static void ComposeConnectionString(string name, string hostVar, string portVar,
 
 internal static partial class StartupLog
 {
+    [LoggerMessage(Level = LogLevel.Error, Message = "DATA_DIR {DataDirectory} is not writable, so the DataProtection keys and the avatar cache will not survive a restart, and every SSO user is signed out when the container is recreated. " +
+        "In Docker this is usually a bind-mounted ./data that Docker created as root: run 'sudo chown -R 999:999 ./data' on the host, then restart the container.")]
+    public static partial void LogDataDirectoryNotWritable(ILogger logger, string dataDirectory);
+
     [LoggerMessage(Level = LogLevel.Warning, Message = "Could not alter pweb_settings.value column (may already be LONGTEXT).")]
     public static partial void LogPwebSettingsAlterFailed(ILogger logger, Exception ex);
 

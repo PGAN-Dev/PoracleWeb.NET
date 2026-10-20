@@ -240,6 +240,7 @@
     "TAB_DELIVERY": "Zustellung",
     "SELECTION_COUNT": "{{count}} Pokemon ausgewählt",
     "SELECTION_HINT": "Suche und wähle ein oder mehrere Pokemon zum Verfolgen",
+    "MINIOR_IV_NOTE": "Metenos IVs werden beim Fangen neu ausgewürfelt, daher greifen IV-, CP- und Level-Filter bei ihm nicht.",
     "LABEL_MIN_IV": "Min IV",
     "LABEL_MAX_IV": "Max IV",
     "LABEL_MIN_CP": "Min CP",
