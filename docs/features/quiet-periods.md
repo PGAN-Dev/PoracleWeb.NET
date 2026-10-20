@@ -51,6 +51,11 @@ upstream's matcher compares the number without asking which table it came from. 
 121" would also quiet raid rule 121. That is an upstream defect rather than something a client can
 work around, so the site declines to offer it.
 
+PoracleNG 5.3.0 fixes this ([jfberry/PoracleNG#328](https://github.com/jfberry/PoracleNG/pull/328)):
+a rule quiet period records the rule's type as well as its number. On such a server the list shows a
+bot-set rule quiet period as, for example, "raid 60", and lifting it sends the type back. Older servers
+report no type, and the list shows the number alone, as before.
+
 **Pokestop** quiets one stop. Nothing in PoracleWeb.NET names a stop: neither the lure model nor the
 invasion model carries a fort id.
 
@@ -114,14 +119,16 @@ else's alerts.
 |---|---|
 | `GET /api/mutes` | `{ capable, mutes }` — whether this server supports the feature, and the caller's active quiet periods |
 | `POST /api/mutes` | Quiets a subject, or extends an existing quiet period on the same subject |
-| `DELETE /api/mutes?scope=&value=` | Lifts one; with no scope, lifts all |
+| `DELETE /api/mutes?scope=&value=[&trackingType=]` | Lifts one; with no scope, lifts all. `trackingType` only with `scope=tracking` |
 
 Rate limited to 60 requests per 60 seconds. Creates accept the four writable scopes; deletes accept
 all seven, so a bot-set mute is liftable.
 
 PoracleNG canonicalises the value it stores — an area submitted as `aberdeen` comes back as
 `Aberdeen` — and matches a delete string exactly, so a delete has to send back the value the list
-returned rather than the one that was submitted.
+returned rather than the one that was submitted. The same goes for a rule quiet period's
+`trackingType`: send the one the list returned, and send none when it returned none, because a server
+older than 5.3.0 does not know the parameter. A refusal from PoracleNG comes back as 422 with its reason.
 
 ## Related
 

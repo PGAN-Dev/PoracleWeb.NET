@@ -90,7 +90,31 @@ describe('QuietListSheetComponent', () => {
     const sheet = build([aMute({ scope: 'area', value: 'Aberdeen' })]);
     sheet.resume(sheet.rows()[0]);
 
-    expect(resume).toHaveBeenCalledWith('area', 'Aberdeen');
+    expect(resume).toHaveBeenCalledWith('area', 'Aberdeen', null);
+  });
+
+  /** jfberry/PoracleNG#328 §6: a tracking mute is addressed by its rule type as well as its uid. */
+  it('lifts a typed tracking mute by its type as well as its uid', () => {
+    const sheet = build([aMute({ scope: 'tracking', trackingType: 'raid', value: '60' })]);
+    sheet.resume(sheet.rows()[0]);
+
+    expect(resume).toHaveBeenCalledWith('tracking', '60', 'raid');
+  });
+
+  /** Raid rule 60 and pokemon rule 60 are two rows, not one key twice. */
+  it('keeps two rule types with the same uid apart', () => {
+    const sheet = build([
+      aMute({ scope: 'tracking', trackingType: 'raid', value: '60' }),
+      aMute({ scope: 'tracking', trackingType: 'pokemon', value: '60' }),
+    ]);
+
+    const rows = sheet.rows();
+    expect(new Set(rows.map(row => row.key)).size).toBe(2);
+    expect(rows.map(row => row.subject)).toEqual(['raid 60', 'pokemon 60']);
+  });
+
+  it('shows an untyped tracking mute by its uid alone', () => {
+    expect(build([aMute({ scope: 'tracking', value: '60' })]).rows()[0].subject).toBe('60');
   });
 
   /**

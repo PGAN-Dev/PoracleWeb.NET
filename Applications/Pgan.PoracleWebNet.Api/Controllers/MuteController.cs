@@ -122,13 +122,21 @@ public class MuteController(
     /// Lifts one quiet period, or every one of them when no scope is given.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <paramref name="value"/> must be the value the LIST returned, not the one that was submitted:
     /// upstream canonicalises area names to the geofence's own casing ("aberdeen" is stored as
     /// "Aberdeen") and matches the delete string exactly.
+    /// </para>
+    /// <para>
+    /// <paramref name="trackingType"/> is the same rule for a <c>tracking</c> mute: send back the
+    /// <see cref="Mute.TrackingType"/> the list returned, or nothing when it returned none. This app never
+    /// creates a tracking mute, but the bot does, and from jfberry/PoracleNG#328 §6 such a mute is
+    /// addressed by type and uid together because uids are numbered per table.
+    /// </para>
     /// </remarks>
     [HttpDelete]
     public async Task<IActionResult> DeleteMute(
-        [FromQuery] string? scope, [FromQuery] string? value, CancellationToken cancellationToken)
+        [FromQuery] string? scope, [FromQuery] string? value, [FromQuery] string? trackingType, CancellationToken cancellationToken)
     {
         var refusal = await this.RefuseWriteAsync(cancellationToken);
         if (refusal is not null)
@@ -136,13 +144,15 @@ public class MuteController(
             return refusal;
         }
 
+        trackingType = string.IsNullOrWhiteSpace(trackingType) ? null : trackingType;
+
         if (string.IsNullOrWhiteSpace(scope))
         {
-            if (!string.IsNullOrWhiteSpace(value))
+            if (!string.IsNullOrWhiteSpace(value) || trackingType is not null)
             {
                 return this.BadRequest(new
                 {
-                    error = "A value requires a scope."
+                    error = "A value or tracking type requires a scope."
                 });
             }
 
@@ -172,13 +182,32 @@ public class MuteController(
             });
         }
 
-        var deleted = await this._muteProxy.DeleteAsync(
-            this.UserId, scope, scope == MuteScopes.Everything ? null : value, cancellationToken);
-
-        return this.Ok(new
+        // Upstream refuses a tracking type on any other scope, so say so here rather than forward a 422.
+        if (trackingType is not null && scope != MuteScopes.Tracking)
         {
-            deleted
-        });
+            return this.BadRequest(new
+            {
+                error = $"A tracking type only applies to scope '{MuteScopes.Tracking}'."
+            });
+        }
+
+        try
+        {
+            var deleted = await this._muteProxy.DeleteAsync(
+                this.UserId, scope, scope == MuteScopes.Everything ? null : value, trackingType, cancellationToken);
+
+            return this.Ok(new
+            {
+                deleted
+            });
+        }
+        catch (MuteRejectedException ex)
+        {
+            return this.UnprocessableEntity(new
+            {
+                error = ex.Reason
+            });
+        }
     }
 
     /// <summary>

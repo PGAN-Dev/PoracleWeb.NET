@@ -162,6 +162,63 @@ describe('MuteService', () => {
     req.flush({ deleted: [] });
   });
 
+  // ──────────────────────────────────────────────────────────────
+  // Typed tracking mutes (jfberry/PoracleNG#328 §6)
+  // ──────────────────────────────────────────────────────────────
+  // Rule uids are numbered per table, so raid rule 60 and pokemon rule 60 are different rules. A server
+  // carrying §6 reports the type on each tracking mute and needs it back on the delete; a server without
+  // it reports none and must never see the parameter.
+
+  it('sends the tracking type back when lifting a typed tracking mute', () => {
+    seed([aMute({ scope: 'tracking', trackingType: 'raid', value: '60' })]);
+    service.resume('tracking', '60', 'raid').subscribe();
+
+    const req = httpMock.expectOne(r => r.url === `${API}/api/mutes` && r.method === 'DELETE');
+    expect(req.request.params.get('scope')).toBe('tracking');
+    expect(req.request.params.get('value')).toBe('60');
+    expect(req.request.params.get('trackingType')).toBe('raid');
+    req.flush({ deleted: [] });
+  });
+
+  it('sends no tracking type when the server reported none', () => {
+    seed([aMute({ scope: 'tracking', trackingType: null, value: '60' })]);
+    service.resume('tracking', '60', null).subscribe();
+
+    const req = httpMock.expectOne(r => r.url === `${API}/api/mutes` && r.method === 'DELETE');
+    expect(req.request.params.has('trackingType')).toBe(false);
+    req.flush({ deleted: [] });
+  });
+
+  it('sends no tracking type for any other scope', () => {
+    seed([aMute()]);
+    service.resume('gym', 'abc123').subscribe();
+
+    const req = httpMock.expectOne(r => r.url === `${API}/api/mutes` && r.method === 'DELETE');
+    expect(req.request.params.has('trackingType')).toBe(false);
+    req.flush({ deleted: [] });
+  });
+
+  it('lifts only the rule of the type asked for when two types share a uid', () => {
+    seed([
+      aMute({ scope: 'tracking', trackingType: 'raid', value: '60' }),
+      aMute({ scope: 'tracking', trackingType: 'pokemon', value: '60' }),
+    ]);
+    service.resume('tracking', '60', 'pokemon').subscribe();
+    httpMock.expectOne(r => r.url === `${API}/api/mutes` && r.method === 'DELETE').flush({ deleted: [] });
+
+    expect(service.mutes().map(mute => mute.trackingType)).toEqual(['raid']);
+  });
+
+  it('surfaces the server sentence when a lift is refused', () => {
+    seed([aMute({ scope: 'tracking', value: '60' })]);
+    service.resume('tracking', '60').subscribe({ error: () => undefined });
+    httpMock
+      .expectOne(r => r.url === `${API}/api/mutes` && r.method === 'DELETE')
+      .flush({ error: 'tracking_type is required' }, { status: 422, statusText: 'Unprocessable Entity' });
+
+    expect(snackBar.open).toHaveBeenCalledWith('tracking_type is required', 'OK', expect.anything());
+  });
+
   /** The store expires entries itself, so a 404 here means it already lapsed. Not an error. */
   it('treats a 404 on resume as success and says nothing', () => {
     seed([aMute()]);
