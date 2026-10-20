@@ -25,7 +25,8 @@ public class PoracleApiProxyGeocodingTests
                 ["Poracle:ApiAddress"] = ApiAddress,
                 ["Poracle:ApiSecret"] = "test-secret"
             })
-            .Build());
+            .Build(),
+        PoracleHumanProxyTests.V2Schema());
 
     [Fact]
     public async Task GetGeocodeForwardAsyncRequestsThePoracleEndpointWithTheQuery()

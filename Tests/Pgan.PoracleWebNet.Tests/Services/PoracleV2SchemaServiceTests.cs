@@ -17,9 +17,15 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 /// idea of the shape, which is the failure CLAUDE.md records under "Tests: assert what must still work".
 /// </para>
 /// <para>
-/// Both halves matter. The 5.2.1 fixture is the no-change case — every capability false, every caller
-/// keeping its workaround — and it is the one that fails if a probe is written so loosely it matches
-/// anything.
+/// The area and profile routes #995 moves (<c>/v2/humans/{id}/areas</c>, <c>/location</c>,
+/// <c>/profiles</c>, <c>/profiles/{profile_no}</c> and its <c>/copy</c>) were added to both fixtures later,
+/// copied verbatim from the live documents of the dev-01 test beds: the 5.2.1 bed and the 5.3.0 bed
+/// running the same PoracleNG build as production.
+/// </para>
+/// <para>
+/// Both halves matter. The 5.2.1 fixture is the no-change case for PR #217's capabilities — every one of
+/// them false, every caller keeping its workaround — and it is the one that fails if a probe is written so
+/// loosely it matches anything.
 /// </para>
 /// </remarks>
 public class PoracleV2SchemaServiceTests
@@ -59,6 +65,53 @@ public class PoracleV2SchemaServiceTests
         Assert.True(capabilities.InvasionGruntType);
         Assert.True(capabilities.TrackingPing);
         Assert.True(capabilities.V2LocationLatitudeLongitude);
+        Assert.True(capabilities.SetAreasReportsRejected);
+        Assert.True(capabilities.AvailableAreas);
+        Assert.True(capabilities.ProfileList);
+        Assert.True(capabilities.ProfileDelete);
+        Assert.True(capabilities.ProfileCopy);
+    }
+
+    [Fact]
+    public void AReleasedPoracleAlreadyServesTheProfileAndAreaReadsButNotTheReportingSave()
+    {
+        // Read off 5.2.1's own document: every route #995 moves is there, but its POST .../areas answers
+        // {"status":"ok"} rather than what it stored and refused, so the Areas save stays on v1 there.
+        var capabilities = PoracleV2SchemaService.Parse(Fixture("5.2.1"));
+
+        Assert.True(capabilities.AvailableAreas);
+        Assert.True(capabilities.ProfileList);
+        Assert.True(capabilities.ProfileDelete);
+        Assert.True(capabilities.ProfileCopy);
+        Assert.False(capabilities.SetAreasReportsRejected);
+    }
+
+    [Fact]
+    public void TheAreasSaveIsReadByWhatItsAnswerCarriesNotByTheRouteExisting()
+    {
+        const string statusOnly = """
+            {"paths":{"/v2/humans/{id}/areas":{"post":{"responses":{"200":{"content":{"application/json":
+              {"schema":{"$ref":"#/components/schemas/StatusOKOutputBody"}}}}}}}},
+             "components":{"schemas":{"StatusOKOutputBody":{"properties":{"status":{}}}}}}
+            """;
+        const string reporting = """
+            {"paths":{"/v2/humans/{id}/areas":{"post":{"responses":{"200":{"content":{"application/json":
+              {"schema":{"$ref":"#/components/schemas/V2SetAreasOutputBody"}}}}}}}},
+             "components":{"schemas":{"V2SetAreasOutputBody":{"properties":{"areas":{},"rejected":{}}}}}}
+            """;
+
+        Assert.False(PoracleV2SchemaService.Parse(statusOnly).SetAreasReportsRejected);
+        Assert.True(PoracleV2SchemaService.Parse(reporting).SetAreasReportsRejected);
+    }
+
+    [Fact]
+    public void CopyNeedsTheSourceInTheBodyNotJustTheRoute()
+    {
+        const string routeOnly = """
+            {"paths":{"/v2/humans/{id}/profiles/{profile_no}/copy":{"post":{}}},"components":{"schemas":{}}}
+            """;
+
+        Assert.False(PoracleV2SchemaService.Parse(routeOnly).ProfileCopy);
     }
 
     [Fact]
@@ -113,6 +166,11 @@ public class PoracleV2SchemaServiceTests
         Assert.False(capabilities.InvasionGruntType);
         Assert.False(capabilities.TrackingPing);
         Assert.False(capabilities.V2LocationLatitudeLongitude);
+        Assert.False(capabilities.SetAreasReportsRejected);
+        Assert.False(capabilities.AvailableAreas);
+        Assert.False(capabilities.ProfileList);
+        Assert.False(capabilities.ProfileDelete);
+        Assert.False(capabilities.ProfileCopy);
     }
 
     [Fact]

@@ -125,6 +125,60 @@ public sealed class PoracleV2Capabilities
         get; init;
     }
 
+    /// <summary>
+    /// <c>POST /v2/humans/{id}/areas</c> answers with what it stored and what it refused
+    /// (<c>V2SetAreasOutputBody</c>: <c>areas</c> and <c>rejected</c>), so the Areas page save can go
+    /// through v2 instead of v1's <c>setAreas</c>. See #995.
+    /// </summary>
+    /// <remarks>
+    /// Read off the response rather than the route. 5.2.1 serves the same route answering a bare
+    /// <c>{"status":"ok"}</c>, and only the shape that reports <c>rejected</c> was verified against a running
+    /// build; on 5.2.1 the save stays on v1, which behaves the same way it always has.
+    /// </remarks>
+    public bool SetAreasReportsRejected
+    {
+        get; init;
+    }
+
+    /// <summary>
+    /// <c>GET /v2/humans/{id}/areas</c> lists the areas this human may see as <c>V2AreaInfo</c> items
+    /// (<c>name</c>, <c>group</c>, <c>description</c>, <c>userSelectable</c>), the same four fields v1's
+    /// <c>GET /api/humans/{id}</c> carries under <c>areas</c>. See #995.
+    /// </summary>
+    public bool AvailableAreas
+    {
+        get; init;
+    }
+
+    /// <summary>
+    /// <c>GET /v2/humans/{id}/profiles</c> lists profiles as <c>V2ProfileResponse</c>, carrying <c>area</c>
+    /// and <c>active_hours</c>. See #995.
+    /// </summary>
+    /// <remarks>
+    /// The two fields change shape across versions: 5.2.1 sends <c>area</c> as the JSON-encoded string v1
+    /// sends, jfberry/PoracleNG#303 sends a real array, and both send <c>active_hours</c> as the typed
+    /// entry array where v1 sends a string. The proxy translates all of them back to v1's shape.
+    /// </remarks>
+    public bool ProfileList
+    {
+        get; init;
+    }
+
+    /// <summary><c>DELETE /v2/humans/{id}/profiles/{profile_no}</c> exists. See #995.</summary>
+    public bool ProfileDelete
+    {
+        get; init;
+    }
+
+    /// <summary>
+    /// <c>POST /v2/humans/{id}/profiles/{profile_no}/copy</c> exists and its body names the source as
+    /// <c>from_profile</c>. See #995.
+    /// </summary>
+    public bool ProfileCopy
+    {
+        get; init;
+    }
+
     /// <summary>True when the document was read and parsed, whatever it turned out to say.</summary>
     /// <remarks>
     /// Distinct from every capability being false, which is also what an unreachable server looks like.

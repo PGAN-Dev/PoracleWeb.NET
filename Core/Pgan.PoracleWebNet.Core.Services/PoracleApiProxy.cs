@@ -9,9 +9,13 @@ using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
-public class PoracleApiProxy(HttpClient httpClient, IConfiguration configuration) : IPoracleApiProxy
+public class PoracleApiProxy(
+    HttpClient httpClient,
+    IConfiguration configuration,
+    IPoracleV2SchemaService v2Schema) : IPoracleApiProxy
 {
     private readonly HttpClient _httpClient = httpClient;
+    private readonly IPoracleV2SchemaService _v2Schema = v2Schema;
     private readonly string _apiAddress = configuration["Poracle:ApiAddress"] ?? string.Empty;
     private readonly string _apiSecret = configuration["Poracle:ApiSecret"] ?? string.Empty;
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -340,8 +344,29 @@ public class PoracleApiProxy(HttpClient httpClient, IConfiguration configuration
         return await response.Content.ReadAsStringAsync();
     }
 
+    /// <remarks>
+    /// <c>GET /api/v2/humans/{id}/areas</c> where the server declares it, v1's <c>GET /api/humans/{id}</c>
+    /// otherwise or when the route turns out to be missing. Both answer the same items -- <c>name</c>,
+    /// <c>group</c>, <c>description</c>, <c>userSelectable</c>, verified item for item against one build --
+    /// under an <c>areas</c> key, so the array is handed on as it came. See #995.
+    /// </remarks>
     public async Task<string?> GetAreasWithGroupsAsync(string userId)
     {
+        if ((await this._v2Schema.GetAsync()).AvailableAreas)
+        {
+            var v2 = this.CreateRequest(
+                HttpMethod.Get, $"{this._apiAddress}/api/v2/humans/{Uri.EscapeDataString(userId)}/areas");
+            var v2Response = await this._httpClient.SendAsync(v2);
+            var v2Json = await v2Response.Content.ReadAsStringAsync();
+
+            // gin's plaintext "404 page not found" is a route this build lacks; problem+json at 404 is a
+            // human PoracleNG does not have, which v1 answers with a 404 too, so it ends here the same way.
+            if (v2Response.StatusCode != HttpStatusCode.NotFound || PoracleProblemDetails.IsProblemJson(v2Json))
+            {
+                return v2Response.IsSuccessStatusCode ? AreasArray(v2Json) : null;
+            }
+        }
+
         var request = this.CreateRequest(HttpMethod.Get, $"{this._apiAddress}/api/humans/{Uri.EscapeDataString(userId)}");
         var response = await this._httpClient.SendAsync(request);
         if (!response.IsSuccessStatusCode)
@@ -349,12 +374,18 @@ public class PoracleApiProxy(HttpClient httpClient, IConfiguration configuration
             return null;
         }
 
-        var json = await response.Content.ReadAsStringAsync();
+        return AreasArray(await response.Content.ReadAsStringAsync());
+    }
+
+    /// <summary>The <c>areas</c> array out of either answer; a JSON null is the empty list.</summary>
+    private static string? AreasArray(string json)
+    {
         // Extract just the areas array from the response
         using var doc = JsonDocument.Parse(json);
         if (doc.RootElement.TryGetProperty("areas", out var areas))
         {
-            return areas.GetRawText();
+            // V2AreasOutputBody declares the list as array-or-null.
+            return areas.ValueKind == JsonValueKind.Null ? "[]" : areas.GetRawText();
         }
 
         return null;

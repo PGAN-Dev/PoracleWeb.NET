@@ -273,7 +273,7 @@ The user-geofence area writes and the per-alarm `override_areas` write are tagge
 
 ## Which human operations use /api/v2
 
-Ten of them prefer `/api/v2/humans`, each keeping its v1 path as a fallback, so **there is no version floor**: a server without the routes gets exactly the requests it got before.
+Fifteen of them prefer `/api/v2/humans`, each keeping its v1 path as a fallback, so **there is no version floor**: a server without the routes gets exactly the requests it got before. The last five (from areas save down) also gate on the server's own `/openapi.json` declaring the route, via `PoracleV2Capabilities` ([#995](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/995)).
 
 | Operation | v2 | v1 fallback |
 |---|---|---|
@@ -287,6 +287,11 @@ Ten of them prefer `/api/v2/humans`, each keeping its v1 path as a fallback, so 
 | Add saved place | `POST .../locations` `{label,lat,lon}`, or `{label,latitude,longitude}` | `.../locations/add` `{label,latitude,longitude}` |
 | Delete saved place | `DELETE .../locations/{label}` | `POST .../locations/{label}/delete` |
 | Admin roles | `GET .../admin-roles` | `.../getAdministrationRoles` |
+| Save areas (Areas page) | `POST .../areas` `{areas}`, never `trusted`; only where the answer reports `rejected` | `POST /humans/{id}/setAreas` `[...]` |
+| Available areas | `GET .../areas` | `GET /humans/{id}`, its `areas` key |
+| List profiles | `GET .../profiles`, translated back to v1's `{"profile":[...]}` with `area` and `active_hours` as strings | `GET /profiles/{id}` |
+| Delete profile | `DELETE .../profiles/{n}` | `DELETE /profiles/{id}/byProfileNo/{n}` |
+| Copy profile | `POST .../profiles/{to}/copy` `{from_profile}` | `POST /profiles/{id}/copy/{from}/{to}` |
 
 `PUT /v2/humans/{id}/locations/{label}` — moving a place — has **no** v1 equivalent and is therefore gated by `IPlaceUpdateCapabilityService` rather than given a fallback.
 
@@ -296,7 +301,9 @@ Three things are worth knowing about how the fallback decides:
 - **Absence is remembered per route, not per surface.** A single shared flag would let one missing route drop every other call back to v1.
 - **Bodies differ in more than shape.** `admin-disable` renames `state` to `disabled`. Released PoracleNG takes `lat`/`lon` on the three v2 location writes (`POST .../location`, `POST .../locations`, `PUT .../locations/{label}`) while every read answers `latitude`/`longitude`; jfberry/PoracleNG#303 (unreleased) renames the write fields to match. v2 refuses whichever pair it doesn't declare, so `PoracleHumanProxy` sends `latitude`/`longitude` only when the server's own `/openapi.json` declares them on `V2LocationBody` (`PoracleV2Capabilities.V2LocationLatitudeLongitude`) and `lat`/`lon` otherwise, including when the document can't be read.
 
-Deliberately **not** moved, because the swap is a rename with a real trap attached: the profile list read (the wrapper key changes from `profile` to `profiles` *and* `active_hours` changes from a string to an array, and the two v2 endpoints disagree with each other about that encoding), profile copy (the arguments invert and the copy replaces, so getting it backwards destroys the source), any `active_hours` write (v2's schema bounds `day` at 0–6 while the scheduler uses ISO 1–7, so Sunday cannot be expressed), and `POST /location?profile=N` (it writes the named profile's row *and* clobbers `humans.latitude/longitude`, the exact drift the dual writer exists to prevent).
+The profile list and copy were held back here once, for traps that are now handled in the proxy rather than avoided: the list's wrapper key changes from `profile` to `profiles` and `active_hours` (and, since jfberry/PoracleNG#303, `area`) arrive as arrays, so `PoracleHumanProxy` restates the v2 answer in v1's shape before `ProfileService` sees it; and copy inverts its arguments (destination in the path, source as `from_profile`) and replaces the destination's rules, which the tests pin. Both surfaces' copy replaces, so copying from a profile with no rules empties the destination. Verified on the 5.3.0 bed: the v2 copy carried every rule type, including Pokéstop events, with `ping`, `clean`, `override_areas` and `override_location_label` intact, and the v2 delete cascaded the profile's rules and moved `current_profile_no` off a deleted active profile.
+
+`POST /location?profile=N` still is not used on its own. On 5.2.1 it wrote the named profile's row *and* clobbered `humans.latitude/longitude`; the 5.3.0 bed leaves `humans` alone for a non-active profile, but only builds whose `POST .../areas` also declares `profile` are trusted with it.
 
 ## IPoracleTrackingProxy interface
 

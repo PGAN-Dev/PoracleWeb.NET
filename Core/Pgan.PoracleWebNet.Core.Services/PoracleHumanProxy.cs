@@ -326,12 +326,72 @@ public partial class PoracleHumanProxy(
         return payload;
     }
 
+    /// <remarks>
+    /// <para>
+    /// v2 is used only where the server says its answer reports what it stored and what it refused. Never
+    /// with <c>trusted</c>: this is the user's own save, and trusted would let them select fences PoracleNG
+    /// hides from them. See #995.
+    /// </para>
+    /// <para>
+    /// A name in <c>rejected</c> is not a failure, deliberately. Every user-drawn fence is served
+    /// <c>userSelectable:false</c>, so v2 refuses one on every save that includes it, exactly where v1
+    /// dropped it without a word -- and <c>AreaController</c> re-adds the caller's own fences straight
+    /// after, through the trusted-set-areas workaround, and then answers with the list read back, so the page shows
+    /// what actually stuck (#476). Turning the refusal into an error would fail the save of everyone who
+    /// has drawn a fence. It is logged at debug for diagnosis, not at warning, for the same reason.
+    /// </para>
+    /// </remarks>
     public async Task SetAreasAsync(string userId, string[] areas)
     {
+        if ((await this._v2Schema.GetAsync()).SetAreasReportsRejected
+            && await this.TryV2Async(
+                HttpMethod.Post,
+                "areas",
+                $"/api/v2/humans/{Encode(userId)}/areas",
+                JsonSerializer.Serialize(new { areas }))
+                is { } reply)
+        {
+            await EnsureAcceptedAsync(reply.Response);
+
+            var rejected = RejectedAreas(reply.Payload);
+            if (rejected.Count > 0)
+            {
+                LogAreasRefused(this._logger, userId, rejected);
+            }
+
+            return;
+        }
+
         var body = JsonSerializer.Serialize(areas);
         var response = await this.SendAsync(HttpMethod.Post, $"/api/humans/{Encode(userId)}/setAreas", body);
         await EnsureAcceptedAsync(response);
     }
+
+    /// <summary>The <c>rejected</c> list out of a v2 areas answer, empty when there is none to read.</summary>
+    private static List<string> RejectedAreas(string payload)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(payload);
+
+            return doc.RootElement.ValueKind == JsonValueKind.Object
+                && doc.RootElement.TryGetProperty("rejected", out var rejected)
+                && rejected.ValueKind == JsonValueKind.Array
+                    ? [.. rejected.EnumerateArray()
+                        .Where(e => e.ValueKind == JsonValueKind.String)
+                        .Select(e => e.GetString()!)]
+                    : [];
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
+    }
+
+    [LoggerMessage(
+        Level = LogLevel.Debug,
+        Message = "setAreas for {UserId} left out {Rejected}; the caller's own fences among them are re-added by the geofence service")]
+    private static partial void LogAreasRefused(ILogger logger, string userId, IReadOnlyList<string> rejected);
 
     public async Task<JsonElement?> GetAreasAsync(string userId) =>
         // User's selected areas are in GET /api/humans/one/{id} → human.area (JSON string).
@@ -515,8 +575,22 @@ public partial class PoracleHumanProxy(
         await EnsureAcceptedAsync(response);
     }
 
+    /// <remarks>
+    /// Answers v1's shape whichever surface served it -- <c>{"profile":[...]}</c>, with <c>area</c> and
+    /// <c>active_hours</c> as the JSON-encoded strings v1 stores -- so <c>ProfileService</c> and everything
+    /// downstream of <see cref="Profile"/> stay as they are. See <see cref="V1ProfilesFromV2"/>.
+    /// </remarks>
     public async Task<JsonElement> GetProfilesAsync(string userId)
     {
+        if ((await this._v2Schema.GetAsync()).ProfileList
+            && await this.TryV2Async(HttpMethod.Get, "profiles-list", $"/api/v2/humans/{Encode(userId)}/profiles")
+                is { } reply)
+        {
+            await EnsureAcceptedAsync(reply.Response);
+
+            return V1ProfilesFromV2(reply.Payload);
+        }
+
         var response = await this.SendAsync(HttpMethod.Get, $"/api/profiles/{Encode(userId)}");
         await EnsureAcceptedAsync(response);
 
@@ -524,6 +598,63 @@ public partial class PoracleHumanProxy(
         using var doc = JsonDocument.Parse(json);
         return doc.RootElement.Clone();
     }
+
+    /// <summary>
+    /// A v2 profile list (<c>V2ProfilesOutputBody</c>) restated in v1's shape.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// v1 answers <c>{"profile":[...],"status":"ok"}</c> with <c>area</c> and <c>active_hours</c> as
+    /// JSON-encoded strings. v2 answers <c>{"profiles":[...]}</c>, sends <c>active_hours</c> as the typed
+    /// entry array on every version that has the route, and sends <c>area</c> as a string on 5.2.1 and as
+    /// a real array since jfberry/PoracleNG#303. A string passes through untouched; an array is encoded
+    /// the way v1 stores it. Translated here, once, rather than taught to every reader of
+    /// <see cref="Profile.Area"/> and <see cref="Profile.ActiveHours"/>.
+    /// </para>
+    /// <para>
+    /// One difference survives and is harmless: v2 has already turned string-typed <c>hours</c>/<c>mins</c>
+    /// into integers and answers an unscheduled profile as <c>[]</c> where v1 might answer the stored
+    /// <c>{}</c>. Both read as the same schedule everywhere a schedule is read.
+    /// </para>
+    /// </remarks>
+    private static JsonElement V1ProfilesFromV2(string payload)
+    {
+        using var doc = JsonDocument.Parse(payload);
+        var profiles = new List<Dictionary<string, object?>>();
+
+        if (doc.RootElement.ValueKind == JsonValueKind.Object
+            && doc.RootElement.TryGetProperty("profiles", out var list)
+            && list.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var item in list.EnumerateArray())
+            {
+                if (item.ValueKind != JsonValueKind.Object)
+                {
+                    continue;
+                }
+
+                var profile = new Dictionary<string, object?>(StringComparer.Ordinal);
+                foreach (var property in item.EnumerateObject())
+                {
+                    profile[property.Name] = property.NameEquals("area") || property.NameEquals("active_hours")
+                        ? EncodedAsV1(property.Value)
+                        : property.Value.Clone();
+                }
+
+                profiles.Add(profile);
+            }
+        }
+
+        return JsonSerializer.SerializeToElement(new Dictionary<string, object>
+        {
+            ["profile"] = profiles,
+            ["status"] = "ok",
+        });
+    }
+
+    /// <summary>An array as the JSON text v1 stores it in; a string or null unchanged.</summary>
+    private static object? EncodedAsV1(JsonElement value) =>
+        value.ValueKind == JsonValueKind.Array ? JsonSerializer.Serialize(value) : value.Clone();
 
     /// <inheritdoc />
     public async Task<int?> AddProfileAsync(string userId, JsonElement body)
@@ -785,15 +916,40 @@ public partial class PoracleHumanProxy(
         }
     }
 
+    /// <remarks>
+    /// Both surfaces cascade the profile's tracking rules and move <c>current_profile_no</c> when the active
+    /// profile goes; v2's was checked against a running build rather than read (#995). The one difference:
+    /// v2 answers a human that does not exist with a 404, where v1 answered 200.
+    /// </remarks>
     public async Task DeleteProfileAsync(string userId, int profileNo)
     {
-        var response = await this.SendAsync(HttpMethod.Delete, $"/api/profiles/{Encode(userId)}/byProfileNo/{profileNo}");
+        var (response, _) =
+            ((await this._v2Schema.GetAsync()).ProfileDelete
+                ? await this.TryV2Async(
+                    HttpMethod.Delete, "profiles-delete", $"/api/v2/humans/{Encode(userId)}/profiles/{profileNo}")
+                : null)
+            ?? await this.SendReadAsync(HttpMethod.Delete, $"/api/profiles/{Encode(userId)}/byProfileNo/{profileNo}");
+
         await EnsureAcceptedAsync(response);
     }
 
+    /// <remarks>
+    /// Replaces every rule on <paramref name="toProfileNo"/> with a copy of <paramref name="fromProfileNo"/>'s,
+    /// on both surfaces. Copying from a profile with no rules therefore empties the destination.
+    /// </remarks>
     public async Task CopyProfileAsync(string userId, int fromProfileNo, int toProfileNo)
     {
-        var response = await this.SendAsync(HttpMethod.Post, $"/api/profiles/{Encode(userId)}/copy/{fromProfileNo}/{toProfileNo}");
+        var (response, _) =
+            ((await this._v2Schema.GetAsync()).ProfileCopy
+                ? await this.TryV2Async(
+                    HttpMethod.Post,
+                    "profiles-copy",
+                    $"/api/v2/humans/{Encode(userId)}/profiles/{toProfileNo}/copy",
+                    JsonSerializer.Serialize(new { from_profile = fromProfileNo }))
+                : null)
+            ?? await this.SendReadAsync(
+                HttpMethod.Post, $"/api/profiles/{Encode(userId)}/copy/{fromProfileNo}/{toProfileNo}");
+
         await EnsureAcceptedAsync(response);
     }
 

@@ -90,8 +90,13 @@ public interface IPoracleHumanProxy
     /// <summary>
     /// Sets user area subscriptions. PoracleNG handles the dual-write to
     /// humans.area + profiles.area atomically.
-    /// Maps to POST /api/humans/{userId}/setAreas
+    /// Maps to POST /api/v2/humans/{userId}/areas (never with <c>trusted</c>) where the server's schema says
+    /// that answer reports what it refused, or POST /api/humans/{userId}/setAreas.
     /// </summary>
+    /// <remarks>
+    /// Either way PoracleNG leaves out names this user may not select, including every user-drawn fence.
+    /// That is not an error on either surface; the caller re-adds the user's own fences afterwards.
+    /// </remarks>
     public Task SetAreasAsync(string userId, string[] areas);
 
     /// <summary>
@@ -132,8 +137,9 @@ public interface IPoracleHumanProxy
     public Task SwitchProfileAsync(string userId, int profileNo);
 
     /// <summary>
-    /// Fetches all profiles for a user.
-    /// Maps to GET /api/profiles/{userId}
+    /// Fetches all profiles for a user, always in v1's shape: <c>{"profile":[...]}</c> with <c>area</c> and
+    /// <c>active_hours</c> as JSON-encoded strings.
+    /// Maps to GET /api/v2/humans/{userId}/profiles where declared, or GET /api/profiles/{userId}.
     /// </summary>
     public Task<JsonElement> GetProfilesAsync(string userId);
 
@@ -160,14 +166,17 @@ public interface IPoracleHumanProxy
     public Task<bool> UpdateProfileAsync(string userId, JsonElement body);
 
     /// <summary>
-    /// Deletes a profile. PoracleNG may cascade-delete alarms.
-    /// Maps to DELETE /api/profiles/{userId}/byProfileNo/{profileNo}
+    /// Deletes a profile and its tracking rules; when it was the active one, PoracleNG moves
+    /// <c>current_profile_no</c> to another.
+    /// Maps to DELETE /api/v2/humans/{userId}/profiles/{profileNo} where declared, or
+    /// DELETE /api/profiles/{userId}/byProfileNo/{profileNo}.
     /// </summary>
     public Task DeleteProfileAsync(string userId, int profileNo);
 
     /// <summary>
-    /// Copies all tracking rules from one profile to another.
-    /// Maps to POST /api/profiles/{userId}/copy/{fromProfileNo}/{toProfileNo}
+    /// Copies all tracking rules from one profile to another, replacing the destination's.
+    /// Maps to POST /api/v2/humans/{userId}/profiles/{toProfileNo}/copy (<c>from_profile</c> in the body)
+    /// where declared, or POST /api/profiles/{userId}/copy/{fromProfileNo}/{toProfileNo}.
     /// </summary>
     public Task CopyProfileAsync(string userId, int fromProfileNo, int toProfileNo);
 
