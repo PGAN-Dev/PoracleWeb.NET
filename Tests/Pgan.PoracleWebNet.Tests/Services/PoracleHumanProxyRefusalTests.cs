@@ -409,14 +409,19 @@ public class PoracleHumanProxyRefusalTests
     }
 
     [Fact]
-    public async Task ReadsThatAnswerNullOnFailureStillAnswerNull()
+    public async Task HumanReadsAnswerNullOnlyWhenTheAccountIsMissing()
     {
-        // GetHumanAsync and GetAreasAsync are read paths whose callers branch on null. Turning their
-        // failures into throws would break HumanService, ProfileService and TestAlertService at once.
-        var sut = Refusing(HttpStatusCode.BadRequest, """{"message":"invalid latitude","status":"error"}""");
+        // This used to assert null for any failure, on the grounds that callers branch on null. They do,
+        // and every branch reads null as "no such account" -- so a refusal or an outage was reported as a
+        // deleted user (the purge's 404, /api/auth/me's sign-out). The callers that genuinely need to
+        // carry on through a failed read catch it themselves now. See #994.
+        var missing = Refusing(HttpStatusCode.NotFound, """{"message":"User not found","status":"error"}""");
+        Assert.Null(await missing.GetHumanAsync("user1"));
+        Assert.Null(await missing.GetAreasAsync("user1"));
 
-        Assert.Null(await sut.GetHumanAsync("user1"));
-        Assert.Null(await sut.GetAreasAsync("user1"));
+        var refused = Refusing(HttpStatusCode.BadRequest, """{"message":"missing id parameter","status":"error"}""");
+        await Assert.ThrowsAsync<HttpRequestException>(() => refused.GetHumanAsync("user1"));
+        await Assert.ThrowsAsync<HttpRequestException>(() => refused.GetAreasAsync("user1"));
     }
 
     private sealed class MockHandler(HttpStatusCode statusCode, string responseBody) : HttpMessageHandler

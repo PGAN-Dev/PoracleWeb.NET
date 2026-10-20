@@ -90,6 +90,48 @@ public class PoracleHumanProxyV2Tests
     }
 
     [Fact]
+    public async Task AServerThatCannotAnswerIsNotMistakenForAMissingHuman()
+    {
+        // The purge read this as "already gone" and answered 404 to an admin mid-outage. A 503 is neither
+        // a missing human nor a missing route, so it neither answers null nor retries on v1. See #994.
+        var handler = ScriptedHandler.Problem(
+            HttpStatusCode.ServiceUnavailable, """{"title":"Service Unavailable","status":503,"detail":"database error"}""");
+        var sut = CreateSut(handler, "5.2.1");
+
+        var ex = await Assert.ThrowsAsync<HttpRequestException>(() => sut.GetHumanAsync("user1"));
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, ex.StatusCode);
+        Assert.Single(handler.Requests);
+    }
+
+    [Fact]
+    public async Task AMissingRouteStillFallsBackToV1AndV1sNotFoundStillMeansAbsent()
+    {
+        // The gin plaintext 404 is about the route, so it must still reach v1 -- and v1's own 404 is
+        // about the human.
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.NotFound, RouteMissing, "text/plain"),
+            new Reply(HttpStatusCode.NotFound, """{"status":"error","message":"User not found"}"""));
+        var sut = CreateSut(handler, "5.2.1");
+
+        Assert.Null(await sut.GetHumanAsync("nobody"));
+        Assert.Equal(2, handler.Requests.Count);
+        Assert.Equal($"{ApiAddress}/api/humans/one/nobody", handler.Requests[1].Url);
+    }
+
+    [Fact]
+    public async Task AMissingRouteFallsBackToV1AndAFailingV1StillThrows()
+    {
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.NotFound, RouteMissing, "text/plain"),
+            new Reply(HttpStatusCode.InternalServerError, """{"status":"error","message":"database error"}"""));
+        var sut = CreateSut(handler, "5.2.1");
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => sut.GetHumanAsync("user1"));
+        Assert.Equal(2, handler.Requests.Count);
+    }
+
+    [Fact]
     public async Task OneMissingRouteDoesNotDropTheOthersToV1()
     {
         // The absence is remembered per route. A single shared flag would let a 404 on one route send
@@ -921,6 +963,22 @@ public class PoracleHumanProxyV2Tests
             handler, version: "5.2.1", capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
 
         Assert.Null(await sut.AddAreaToActiveProfileTrustedAsync("nobody", "park"));
+    }
+
+    [Fact]
+    public async Task TrustedSetAreasStillFallsBackWhenTheCurrentListReadFails()
+    {
+        // GetHumanAsync throws on a failed read now (#994). This path relied on its old null, which is
+        // the caller's "use IUserAreaDualWriter" signal, so it keeps answering null rather than letting
+        // a PoracleNG blip fail the geofence activation outright -- and it posts nothing.
+        var handler = ScriptedHandler.Problem(
+            HttpStatusCode.ServiceUnavailable, """{"title":"Service Unavailable","status":503,"detail":"database error"}""");
+        var sut = CreateSut(
+            handler, version: "5.2.1", capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
+
+        Assert.Null(await sut.AddAreaToActiveProfileTrustedAsync("user1", "park"));
+        Assert.Null(await sut.RemoveAreaFromActiveProfileTrustedAsync("user1", "park"));
+        Assert.All(handler.Requests, r => Assert.Equal(HttpMethod.Get, r.Method));
     }
 
     [Fact]

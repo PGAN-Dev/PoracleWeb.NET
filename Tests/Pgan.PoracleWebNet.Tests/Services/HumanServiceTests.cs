@@ -76,6 +76,24 @@ public class HumanServiceTests
     }
 
     /// <summary>
+    /// The create has landed by the time the re-fetch runs. Since a failed read throws (#994), letting it
+    /// escape would tell <c>AdminController.CreateWebhook</c> the create failed, and its cleanup would then
+    /// delete the webhook it had just made. The submitted record is the fallback it always was.
+    /// </summary>
+    [Fact]
+    public async Task CreateAsyncStillSucceedsWhenOnlyTheReFetchFails()
+    {
+        var human = new Human { Id = "u1", Name = "Hook", Type = "webhook" };
+        this._humanProxy.Setup(p => p.GetHumanAsync("u1"))
+            .ThrowsAsync(new HttpRequestException("503", null, System.Net.HttpStatusCode.ServiceUnavailable));
+
+        var result = await this._sut.CreateAsync(human);
+
+        Assert.Same(human, result);
+        this._humanProxy.Verify(p => p.CreateHumanAsync(It.IsAny<JsonElement>()), Times.Once);
+    }
+
+    /// <summary>
     /// PoracleNG's <c>createHumanRequest</c> declares <c>Enabled</c> and <c>AdminDisable</c> as <c>*bool</c>.
     /// These are stored as <c>int</c> here, and sending the raw int failed with
     /// "json: cannot unmarshal number into Go struct field createHumanRequest.enabled of type bool",

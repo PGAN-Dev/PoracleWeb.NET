@@ -213,6 +213,23 @@ public class LocationControllerTests : ControllerTestBase
     }
 
     [Fact]
+    public async Task UpdateLanguageThatLandedIsNotReportedAsAFailureWhenTheReadBackFails()
+    {
+        // The language is stored before the read-back runs. That read throws on a failed answer since
+        // #994; answering 500 here would tell the user a change that took effect did not. The request is
+        // the fallback it always was.
+        this._humanService.SetupSequence(s => s.GetByIdAsync("123456789"))
+            .ReturnsAsync(new Human { Id = "123456789", Language = "en" })
+            .ThrowsAsync(new HttpRequestException("503", null, System.Net.HttpStatusCode.ServiceUnavailable));
+
+        var result = await this.LanguageSut()
+            .UpdateLanguage(new NotificationLanguageController.LanguageUpdateRequest { Language = "de" });
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.Equal("de", ok.Value?.GetType().GetProperty("language")?.GetValue(ok.Value));
+    }
+
+    [Fact]
     public async Task UpdateLanguageReturnsNotFoundWhenHumanMissing()
     {
         this._humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync((Human?)null);

@@ -14,7 +14,7 @@ The primary EF Core context connecting to the existing **Poracle database** mana
 
 | Direct access | What and why |
 |---|---|
-| Human reads and deletion (fallback) | `GetAllAsync`, `GetWebhooksAsync`, `GetByIdsAsync`, `DeleteUserAsync` fall back here only on a server too old to carry PoracleNG v2's admin routes ([#839](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/839)); `ExistsAsync` reads the database unconditionally so the purge's existence check is not fooled by an unreachable Poracle reporting as an absent account |
+| Human reads and deletion (fallback) | `GetAllAsync`, `GetWebhooksAsync`, `GetByIdsAsync`, `DeleteUserAsync` fall back here only on a server too old to carry PoracleNG v2's admin routes ([#839](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/839)) |
 | Profile **rename** | `ProfileRepository.RenameAsync` — PoracleNG's profile update answers `{"status":"ok"}` and silently ignores `name` |
 | Profile geography | `ProfileRepository.UpdateAsync` — `addProfile` ignores `area`, `latitude` and `longitude`, so create, duplicate and import write them afterwards |
 | User-geofence area writes (fallback for three of six) | `IUserAreaDualWriter` on `humans.area` and `profiles.area` — PoracleNG's `setAreas` strips fences that are not user-selectable. Three active-profile methods fall back here only when the server's trusted `setAreas` ([#838](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/838)) can't be confirmed safe; the other three have no v2 form yet and always use this path |

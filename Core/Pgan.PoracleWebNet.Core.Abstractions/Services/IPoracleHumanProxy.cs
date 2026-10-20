@@ -13,6 +13,12 @@ public interface IPoracleHumanProxy
     /// Fetches a single human record.
     /// GET /api/v2/humans/{userId}, or GET /api/humans/one/{userId} on a PoracleNG without v2.
     /// </summary>
+    /// <returns>The human, or null when PoracleNG answers 404: it has no such human.</returns>
+    /// <exception cref="HttpRequestException">
+    /// PoracleNG answered anything else non-2xx, or could not be reached. The caller must not read that
+    /// as "this account does not exist". It used to answer null here too, which is how an outage was
+    /// reported as a deleted account. See #994.
+    /// </exception>
     public Task<JsonElement?> GetHumanAsync(string userId);
 
     /// <summary>
@@ -89,8 +95,8 @@ public interface IPoracleHumanProxy
     public Task SetAreasAsync(string userId, string[] areas);
 
     /// <summary>
-    /// Fetches the user's current area subscriptions.
-    /// Maps to GET /api/humans/{userId}
+    /// Fetches the user's current area subscriptions: the human record, read the same way as
+    /// <see cref="GetHumanAsync"/>, with the same null-on-404, throw-otherwise contract.
     /// </summary>
     public Task<JsonElement?> GetAreasAsync(string userId);
 

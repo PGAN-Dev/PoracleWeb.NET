@@ -54,11 +54,21 @@ public class NotificationLanguageController(IHumanService humanService) : BaseAp
         // Read back rather than echo. PoracleNG lowercases and trims what it stores -- "pt-BR" becomes
         // "pt-br" -- and an endpoint that reported the request instead of the row would leave the SPA
         // holding a value the server does not have. Verified on 5.2.1 against both API versions.
-        var stored = await this._humanService.GetByIdAsync(this.UserId);
+        // The write has landed by now. A failed read-back throws since #994; the request stays the fallback
+        // a null always was, so a change that took effect is not reported as a failure.
+        string? storedLanguage;
+        try
+        {
+            storedLanguage = (await this._humanService.GetByIdAsync(this.UserId))?.Language;
+        }
+        catch (HttpRequestException)
+        {
+            storedLanguage = null;
+        }
 
         return this.Ok(new
         {
-            language = stored?.Language ?? request.Language
+            language = storedLanguage ?? request.Language
         });
     }
 

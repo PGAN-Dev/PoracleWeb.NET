@@ -377,9 +377,10 @@ stored value `GetWebhooksAsync` would filter on.
 
 `GetByIdsAsync` and `DeleteUserAsync` would work against the list as it already stands, and are deliberately
 not moved ahead of `GetAllAsync`: neither deletes anything while the repository survives for the third
-method, so moving them early buys a capability-gated second path and no removal. `ExistsAsync` is a separate
-case and stays regardless -- `UserPurgeService` reads the database on purpose, because the proxy cannot tell
-an account that is gone from a Poracle that is unreachable, and the caller turns that into a 404.
+method, so moving them early buys a capability-gated second path and no removal. `ExistsAsync` was a separate
+case and is gone from the repository: `UserPurgeService` read the database only because the proxy could not tell
+an account that is gone from a Poracle that is unreachable. That was our proxy's limitation, not PoracleNG's, and
+since PoracleWeb.NET [#994](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/994) the proxy answers null only for a 404.
 
 ### Profile create returns no `profile_no`, and nothing can rename a profile
 

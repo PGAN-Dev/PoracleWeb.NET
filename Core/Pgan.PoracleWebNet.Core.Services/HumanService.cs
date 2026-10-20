@@ -9,8 +9,9 @@ namespace Pgan.PoracleWebNet.Core.Services;
 /// <summary>
 /// Proxy-first service for human operations. Admin bulk operations (GetAll, GetWebhooks, GetByIds,
 /// DeleteUser) prefer PoracleNG's v2 humans list/delete and fall back to IHumanRepository on a server
-/// too old for it (jfberry/PoracleNG#230, develop only as of this writing). ExistsAsync stays direct DB
-/// always -- see UserPurgeService for why. See #839.
+/// too old for it (jfberry/PoracleNG#230, develop only as of this writing). See #839. GetByIdAsync and
+/// ExistsAsync answer null/false only when PoracleNG says the human does not exist (404); any other failure
+/// throws, so a caller can no longer mistake an outage for a missing account. See #994.
 /// </summary>
 public class HumanService(
     IHumanRepository repository,
@@ -55,9 +56,18 @@ public class HumanService(
         var body = SerializeHumanForCreate(human);
         await this._humanProxy.CreateHumanAsync(body);
 
-        // Re-fetch via proxy to get the full record with defaults applied by PoracleNG
-        var created = await this.GetByIdAsync(human.Id);
-        return created ?? human;
+        // Re-fetch via proxy to get the full record with defaults applied by PoracleNG. The create has landed
+        // by now, so a failed re-read (which throws since #994) falls back to the submitted record, as a null
+        // always did. Letting it escape would tell AdminController.CreateWebhook the create failed, and its
+        // half-write cleanup would delete the webhook it had just made.
+        try
+        {
+            return await this.GetByIdAsync(human.Id) ?? human;
+        }
+        catch (HttpRequestException)
+        {
+            return human;
+        }
     }
 
     /// <inheritdoc />
