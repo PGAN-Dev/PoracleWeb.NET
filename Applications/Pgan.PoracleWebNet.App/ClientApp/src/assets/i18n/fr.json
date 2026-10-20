@@ -233,6 +233,7 @@
     "TAB_DELIVERY": "Livraison",
     "SELECTION_COUNT": "{{count}} Pokemon sélectionnés",
     "SELECTION_HINT": "Recherche et sélectionne un ou plusieurs Pokemon à suivre",
+    "MINIOR_IV_NOTE": "Les IV de Météno sont retirés au sort quand il est capturé, donc les filtres d'IV, de CP et de niveau ne le trouveront pas.",
     "LABEL_MIN_IV": "IV min",
     "LABEL_MAX_IV": "IV max",
     "LABEL_MIN_CP": "CP min",

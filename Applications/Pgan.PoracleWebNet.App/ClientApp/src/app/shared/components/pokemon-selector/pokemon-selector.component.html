@@ -151,3 +151,10 @@
     }
   </mat-chip-set>
 }
+
+@if (showMiniorNote()) {
+  <p class="minior-note" role="note">
+    <mat-icon>info_outline</mat-icon>
+    <span>{{ 'POKEMON.MINIOR_IV_NOTE' | translate }}</span>
+  </p>
+}

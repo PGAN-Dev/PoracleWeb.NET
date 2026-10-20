@@ -232,6 +232,7 @@
     "TAB_DELIVERY": "Bezorging",
     "SELECTION_COUNT": "{{count}} Pokemon geselecteerd",
     "SELECTION_HINT": "Zoek en selecteer een of meer Pokemon om te volgen",
+    "MINIOR_IV_NOTE": "De IV van Minior wordt opnieuw bepaald als je hem vangt, dus IV-, CP- en levelfilters vinden hem niet.",
     "LABEL_MIN_IV": "Min IV",
     "LABEL_MAX_IV": "Max IV",
     "LABEL_MIN_CP": "Min CP",

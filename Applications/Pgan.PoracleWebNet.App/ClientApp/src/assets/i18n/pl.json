@@ -233,6 +233,7 @@
     "TAB_DELIVERY": "Dostarczanie",
     "SELECTION_COUNT": "Wybrano {{count}} Pokemon",
     "SELECTION_HINT": "Wyszukaj i wybierz jednego lub więcej Pokemon do śledzenia",
+    "MINIOR_IV_NOTE": "IV Miniora są losowane od nowa przy złapaniu, więc filtry IV, CP i poziomu go nie dopasują.",
     "LABEL_MIN_IV": "Min IV",
     "LABEL_MAX_IV": "Maks IV",
     "LABEL_MIN_CP": "Min CP",
