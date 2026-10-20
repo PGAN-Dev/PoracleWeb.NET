@@ -19,7 +19,8 @@ public class ProfileController(
     IProfileRepository profileRepository,
     IJwtService jwtService,
     IUserRoleResolver roleResolver,
-    IUserGeofenceRepository userGeofenceRepository) : BaseApiController
+    IUserGeofenceRepository userGeofenceRepository,
+    ILogger<ProfileController> logger) : BaseApiController
 {
     private readonly IProfileService _profileService = profileService;
     private readonly IHumanService _humanService = humanService;
@@ -28,6 +29,7 @@ public class ProfileController(
     private readonly IJwtService _jwtService = jwtService;
     private readonly IUserRoleResolver _roleResolver = roleResolver;
     private readonly IUserGeofenceRepository _userGeofenceRepository = userGeofenceRepository;
+    private readonly ILogger<ProfileController> _logger = logger;
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
@@ -146,9 +148,14 @@ public class ProfileController(
         // user who has ever deleted a non-last profile. Ask what it chose. See #407.
         var before = (await this._profileService.GetByUserAsync(this.UserId)).ToList();
 
+        // Trimmed here rather than only by the direct geography write below, which used to be the step that
+        // trimmed it: where that write goes through v2 instead it carries no name, so the add stores the
+        // name that stays. See #993.
+        var name = profile.Name.Trim();
+
         var body = JsonSerializer.SerializeToElement(new
         {
-            name = profile.Name,
+            name,
             area = requestedAreas,
             latitude = profile.Latitude,
             longitude = profile.Longitude,
@@ -157,7 +164,7 @@ public class ProfileController(
         var assignedNo = await this._humanProxy.AddProfileAsync(this.UserId, body);
 
         var after = (await this._profileService.GetByUserAsync(this.UserId)).ToList();
-        var createdNo = assignedNo ?? ProfileNumbering.ResolveCreated(before, after, profile.Name);
+        var createdNo = assignedNo ?? ProfileNumbering.ResolveCreated(before, after, name);
         if (createdNo is null)
         {
             return this.StatusCode(StatusCodes.Status502BadGateway, new
@@ -168,25 +175,12 @@ public class ProfileController(
 
         // addProfile ignores area, latitude and longitude, so a new profile came up carrying whatever the
         // ACTIVE profile had -- every area subscription the user held, and a location that also drives the
-        // active-hours timezone. Duplicate and import already write the geography directly after creating;
-        // create needs the same. Empty unless the request asked for something. See #563.
-        try
-        {
-            await this._profileRepository.UpdateAsync(new Profile
-            {
-                Id = this.UserId,
-                ProfileNo = createdNo.Value,
-                Name = profile.Name.Trim(),
-                Area = requestedAreas,
-                Latitude = profile.Latitude,
-                Longitude = profile.Longitude,
-            });
-        }
-        catch (InvalidOperationException)
-        {
-            // The row is not visible yet in some PoracleNG timings. The profile exists either way, and a
-            // wrong area list is fixable from the Areas page; a failed create is not.
-        }
+        // active-hours timezone. Duplicate and import already write the geography after creating; create
+        // needs the same. Empty unless the request asked for something. See #563. Through PoracleNG's v2
+        // ?profile= writes where it has them, directly otherwise; never fails the create (#993).
+        await NewProfileGeography.WriteAsync(
+            this._humanProxy, this._profileRepository, this._logger,
+            this.UserId, createdNo.Value, name, requestedAreas, profile.Latitude, profile.Longitude);
 
         var result = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, createdNo.Value);
         return this.CreatedAtAction(nameof(GetAll), result);
@@ -338,25 +332,12 @@ public class ProfileController(
         // PoracleNG's addProfile ignores area, latitude and longitude while honouring active_hours
         // from the same payload, so a duplicate silently inherited the ACTIVE profile's geography
         // instead of the source's: the right alarms over the wrong map, and a location that also
-        // feeds the active-hours timezone. Write them directly, the same way rename has to (#406).
-        // See #466.
-        try
-        {
-            await this._profileRepository.UpdateAsync(new Profile
-            {
-                Id = this.UserId,
-                ProfileNo = newProfileNo,
-                Name = request.Name.Trim(),
-                Area = sourceProfile.Area ?? "[]",
-                Latitude = sourceProfile.Latitude,
-                Longitude = sourceProfile.Longitude,
-            });
-        }
-        catch (InvalidOperationException)
-        {
-            // The row is not there yet in some PoracleNG timings; the profile still exists and the
-            // alarms still copy, so this must not fail the duplicate.
-        }
+        // feeds the active-hours timezone. See #466. Through PoracleNG's v2 ?profile= writes where it has
+        // them, directly otherwise, the same way rename has to (#406); never fails the duplicate (#993).
+        await NewProfileGeography.WriteAsync(
+            this._humanProxy, this._profileRepository, this._logger,
+            this.UserId, newProfileNo, request.Name.Trim(), sourceProfile.Area ?? "[]",
+            sourceProfile.Latitude, sourceProfile.Longitude);
 
         // Copy all alarms from source to new profile; clean up on failure
         try

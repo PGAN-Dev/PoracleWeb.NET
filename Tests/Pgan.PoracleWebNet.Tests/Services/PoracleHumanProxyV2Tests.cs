@@ -1464,6 +1464,117 @@ public class PoracleHumanProxyV2Tests
         Assert.All(handler.Requests, r => Assert.DoesNotContain("/api/v2/", r.Url, StringComparison.Ordinal));
     }
 
+    // ---- a new profile's areas and location through v2 (#993) ------------------------------------
+
+    private static PoracleV2Capabilities Geography(bool declared = true) => new()
+    {
+        Read = true,
+        ProfileScopedGeography = declared,
+        TrustedSetAreas = true,
+        V2LocationLatitudeLongitude = true,
+    };
+
+    [Fact]
+    public async Task ANewProfilesGeographyIsWrittenToThatProfileAlone()
+    {
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.OK, """{"areas":["aberdeen","my fence"],"rejected":[]}"""),
+            new Reply(HttpStatusCode.OK, """{"status":"ok"}"""));
+        var sut = CreateSut(handler, "5.3.0", capabilities: Geography(), areaSecurityConfirmedDisabled: true);
+
+        Assert.True(await sut.SetProfileGeographyAsync("user1", 4, ["Aberdeen", "my fence"], 40.25, -75.5));
+
+        Assert.Equal(2, handler.Requests.Count);
+
+        var areas = handler.Requests[0];
+        Assert.Equal(HttpMethod.Post, areas.Method);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/areas?profile=4", areas.Url);
+        using var areasBody = JsonDocument.Parse(areas.Body!);
+        AssertConformsTo(areasBody.RootElement, "V2SetAreasBody");
+        Assert.True(areasBody.RootElement.GetProperty("trusted").GetBoolean());
+        Assert.Equal(
+            ["aberdeen", "my fence"],
+            areasBody.RootElement.GetProperty("areas").EnumerateArray().Select(e => e.GetString()).ToList());
+
+        var location = handler.Requests[1];
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/location?profile=4", location.Url);
+        using var locationBody = JsonDocument.Parse(location.Body!);
+        AssertConformsTo(locationBody.RootElement, "V2LocationBody");
+        Assert.Equal(40.25, locationBody.RootElement.GetProperty("latitude").GetDouble());
+        Assert.Equal(-75.5, locationBody.RootElement.GetProperty("longitude").GetDouble());
+    }
+
+    [Fact]
+    public async Task AnEmptyAreaListNeedsNoTrustSoItGoesThroughEvenWithAreaSecurityOn()
+    {
+        // Import always creates a profile with no areas. Nothing to trust, so area_security does not
+        // send it back to the direct write.
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.OK, """{"areas":[],"rejected":[]}"""),
+            new Reply(HttpStatusCode.OK, """{"status":"ok"}"""));
+        var sut = CreateSut(handler, "5.3.0", capabilities: Geography(), areaSecurityConfirmedDisabled: false);
+
+        Assert.True(await sut.SetProfileGeographyAsync("user1", 4, [], 0, 0));
+
+        using var body = JsonDocument.Parse(handler.Requests[0].Body!);
+        Assert.False(body.RootElement.TryGetProperty("trusted", out _));
+        Assert.Equal(0, body.RootElement.GetProperty("areas").GetArrayLength());
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/location?profile=4", handler.Requests[1].Url);
+    }
+
+    [Fact]
+    public async Task AreasThatNeedTrustWhereItIsNotSafeAreLeftToTheDirectWrite()
+    {
+        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
+        var sut = CreateSut(handler, "5.3.0", capabilities: Geography(), areaSecurityConfirmedDisabled: false);
+
+        Assert.False(await sut.SetProfileGeographyAsync("user1", 4, ["aberdeen"], 1, 2));
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task ANewProfilesGeographyIsLeftToTheDirectWriteWhereTheServerDoesNotDeclareIt()
+    {
+        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
+        var sut = CreateSut(handler, "5.2.1", capabilities: Geography(declared: false), areaSecurityConfirmedDisabled: true);
+
+        Assert.False(await sut.SetProfileGeographyAsync("user1", 4, ["aberdeen"], 1, 2));
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task ARefusedRequestedAreaHandsTheWholeWriteToTheDirectPath()
+    {
+        // Trusted still refuses a fence PoracleNG has not loaded. The direct write keeps it, as it always
+        // has, and writes the location too, so the location is not sent here.
+        var handler = ScriptedHandler.Ok("""{"areas":["aberdeen"],"rejected":["Not Loaded Yet"]}""");
+        var sut = CreateSut(handler, "5.3.0", capabilities: Geography(), areaSecurityConfirmedDisabled: true);
+
+        Assert.False(await sut.SetProfileGeographyAsync("user1", 4, ["aberdeen", "not loaded yet"], 1, 2));
+        Assert.Single(handler.Requests);
+    }
+
+    [Fact]
+    public async Task AMissingGeographyRouteIsLeftToTheDirectWrite()
+    {
+        var handler = new ScriptedHandler(new Reply(HttpStatusCode.NotFound, RouteMissing, "text/plain"));
+        var sut = CreateSut(handler, "5.3.0", capabilities: Geography(), areaSecurityConfirmedDisabled: true);
+
+        Assert.False(await sut.SetProfileGeographyAsync("user1", 4, ["aberdeen"], 1, 2));
+    }
+
+    [Fact]
+    public async Task AGeographyWriteV2RefusesIsARefusal()
+    {
+        var handler = ScriptedHandler.Problem(
+            HttpStatusCode.UnprocessableEntity,
+            """{"title":"Unprocessable Entity","status":422,"detail":"invalid latitude"}""");
+        var sut = CreateSut(handler, "5.3.0", capabilities: Geography(), areaSecurityConfirmedDisabled: true);
+
+        await Assert.ThrowsAsync<PoracleRequestRefusedException>(
+            () => sut.SetProfileGeographyAsync("user1", 4, [], 91, 0));
+    }
+
     /// <summary>
     /// Every property of <paramref name="body"/> is one the named schema declares, recursing into
     /// <c>active_hours</c> entries -- the schemas set <c>additionalProperties:false</c>, so anything else

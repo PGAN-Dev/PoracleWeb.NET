@@ -554,6 +554,87 @@ public partial class PoracleHumanProxy(
         return true;
     }
 
+    /// <inheritdoc />
+    /// <remarks>
+    /// <para>
+    /// Areas first, then location, each addressed to the profile by <c>?profile=</c>. Verified on the 5.3.0
+    /// bed that both write the named profile's row and leave <c>humans.area</c>, <c>humans.latitude</c>,
+    /// <c>humans.longitude</c> and every other profile alone. That bed also answers 200 and writes nothing
+    /// for a profile number that does not exist, so a write here cannot report "no such profile"; the
+    /// callers pass the number PoracleNG has just assigned.
+    /// </para>
+    /// <para>
+    /// A <c>false</c> after the areas landed is still safe: the caller's direct write sets areas and location
+    /// together, so the two are never left half from one path and half from the other.
+    /// </para>
+    /// </remarks>
+    public async Task<bool> SetProfileGeographyAsync(
+        string userId, int profileNo, IReadOnlyCollection<string> areas, double latitude, double longitude)
+    {
+        if (!(await this._v2Schema.GetAsync()).ProfileScopedGeography)
+        {
+            return false;
+        }
+
+        var requested = areas
+            .Where(a => !string.IsNullOrWhiteSpace(a))
+            .Select(a => a.ToLowerInvariant())
+            .Distinct()
+            .ToList();
+
+        // A user's own fences are userSelectable:false and would come back rejected without trusted. Trusted
+        // is gated exactly as the active-profile writes gate it (#838, #937): never where area_security is on
+        // or cannot be confirmed off, because there it would let the list escape a community's restriction.
+        var trusted = requested.Count > 0;
+        if (trusted && !await this.CanUseTrustedSetAreasAsync())
+        {
+            return false;
+        }
+
+        var areasBody = trusted
+            ? JsonSerializer.Serialize(new { areas = requested, trusted = true })
+            : JsonSerializer.Serialize(new { areas = requested });
+
+        if (await this.TryV2Async(
+                HttpMethod.Post, "areas-profile", $"/api/v2/humans/{Encode(userId)}/areas?profile={profileNo}", areasBody)
+            is not { } areasReply)
+        {
+            return false;
+        }
+
+        await EnsureAcceptedAsync(areasReply.Response);
+
+        // Trusted lifts userSelectable, not "exists at all", so a refused name is one PoracleNG has not
+        // loaded. The direct write keeps it, as it always has; answer false so the caller does that.
+        var refused = RejectedAreas(areasReply.Payload)
+            .Where(r => requested.Contains(r, StringComparer.OrdinalIgnoreCase))
+            .ToList();
+        if (refused.Count > 0)
+        {
+            LogProfileAreasRefused(this._logger, userId, profileNo, refused);
+            return false;
+        }
+
+        if (await this.TryV2Async(
+                HttpMethod.Post,
+                "location-profile",
+                $"/api/v2/humans/{Encode(userId)}/location?profile={profileNo}",
+                await this.LocationBodyAsync(latitude, longitude))
+            is not { } locationReply)
+        {
+            return false;
+        }
+
+        await EnsureAcceptedAsync(locationReply.Response);
+        return true;
+    }
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "PoracleNG refused {Rejected} for {UserId}'s profile {ProfileNo}; writing the profile's areas directly instead")]
+    private static partial void LogProfileAreasRefused(
+        ILogger logger, string userId, int profileNo, IReadOnlyList<string> rejected);
+
     [LoggerMessage(
         Level = LogLevel.Warning,
         Message = "setAreas(trusted) rejected areas for {UserId} that this app expected to be accepted: {Rejected}")]
