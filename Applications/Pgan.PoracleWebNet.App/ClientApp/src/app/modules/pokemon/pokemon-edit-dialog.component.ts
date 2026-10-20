@@ -29,6 +29,7 @@ import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-sco
 import { AUTO_DELETE, EDIT, compose, isAutoDelete, isEdit, preserve } from '../../shared/utils/clean-flags';
 import { ANY_COSTUME, costumeHintKey } from '../../shared/utils/costumes';
 import { minTimeLabel, minTimeOptions } from '../../shared/utils/min-time';
+import { MINIOR_POKEMON_ID } from '../../shared/utils/minior';
 
 @Component({
   imports: [
@@ -139,6 +140,9 @@ export class PokemonEditDialogComponent implements OnInit {
   readonly scope = signal<AlarmScope>(scopeOf(this.data.overrideLocationLabel, this.data.overrideAreas, this.data.distance));
 
   readonly showCapPicker = computed(() => this.pvpCaps().length > 1);
+
+  /** Minior's stats are rerolled on catch, so its IV, CP and level filters never match. See `utils/minior.ts`. */
+  readonly showMiniorNote = this.data.pokemonId === MINIOR_POKEMON_ID;
 
   /** The hint under the costume select, which changes with the selection. */
   costumeHint(): string {

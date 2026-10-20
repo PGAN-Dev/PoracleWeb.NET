@@ -91,6 +91,18 @@ describe('PokemonEditDialogComponent', () => {
     expect(sent().minIv).toBe(80);
   });
 
+  it('notes that IV, CP and level filters will not match Minior', () => {
+    setup({ pokemonId: 774 });
+
+    expect(component.showMiniorNote).toBe(true);
+  });
+
+  it('has no Minior note for other Pokemon', () => {
+    setup({ pokemonId: 52 });
+
+    expect(component.showMiniorNote).toBe(false);
+  });
+
   it('seeds the time filter from the alarm', () => {
     setup({ minTime: 300 });
 

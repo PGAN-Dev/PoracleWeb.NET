@@ -15,6 +15,12 @@
       }
     </div>
   </div>
+  @if (showMiniorNote) {
+    <p class="minior-note" role="note">
+      <mat-icon>info_outline</mat-icon>
+      <span>{{ 'POKEMON.MINIOR_IV_NOTE' | translate }}</span>
+    </p>
+  }
 
   <mat-tab-group animationDuration="200ms" class="alarm-tabs">
     <!-- Tab 1: Filters -->

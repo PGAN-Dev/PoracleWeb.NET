@@ -35,7 +35,10 @@ cp docker-compose.yml.example docker-compose.yml
 # Edit .env with your database, Discord, and Poracle settings.
 # docker-compose.yml rarely needs changes — all config flows through .env.
 
-# 2. Pull and run
+# 2. Create the data directory, owned by the user the container runs as (uid 999)
+mkdir -p data && sudo chown 999:999 data
+
+# 3. Pull and run
 docker compose pull
 docker compose up -d
 ```
