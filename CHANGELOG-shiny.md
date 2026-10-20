@@ -8,6 +8,14 @@ This line is unofficial and unsupported by PoracleWeb.NET releases. Report probl
 
 ## [Unreleased]
 
+## [2.21.0-shiny.1] - 2026-10-20
+
+Based on PoracleWeb.NET 2.21.0. The experimental additions are unchanged from 2.20.2-shiny.1, so it needs the same PoracleNG: `feat/personal-shiny` ([jfberry/PoracleNG#255](https://github.com/jfberry/PoracleNG/pull/255)), last tested at `37cc7a3`.
+
+### Changed
+
+- **Rebased onto PoracleWeb.NET 2.21.0.** It brings the Minior note in the Pokemon picker and edit dialog, the Docker `./data` ownership fix (run `mkdir -p data && sudo chown 999:999 data` before updating) and that release's dependency bumps. See [CHANGELOG.md](CHANGELOG.md) for details.
+
 ## [2.20.2-shiny.1] - 2026-10-18
 
 The first prerelease of the experimental line. Based on PoracleWeb.NET 2.20.2, tested against PoracleNG `feat/personal-shiny` at `37cc7a3` (`ghcr.io/jfberry/poracleng:37cc7a3`).
@@ -25,5 +33,6 @@ The first prerelease of the experimental line. Based on PoracleWeb.NET 2.20.2, t
 - **"Shiny for me" on pokemon rules.** The add and edit dialogs open their Filters tab with a "For my game accounts" block, shown only when PoracleNG supports personal rules: "Only when it's shiny for me" and "Only when it has the event background for me". Under the toggles one line says whether the rule can fire: which of your accounts it checks, that the server has no shiny rate feed yet, or that it won't alert until an account is linked and where that happens: an **Open the map** button when the link URL is set, the bot's `!account` when self-service is on, or an admin (plus the support link). Accounts are named by label or "Account N", never by player ID. If the accounts could not be read it says nothing rather than claiming you have none. Cards for these rules show the shiny sprite (falling back to the ordinary one when the icon pack has no shiny art) and "Shiny for me" or "Background for me" badges under the name. Editing keeps the reserved bits (4 and 8), so a rule holding one saves it back unchanged. Translated in all eleven languages.
 - **A setup page for the experimental line.** [Personal Shiny Alerts (Experimental)](docs/features/personal-shiny.md) covers the two images and their tags, PoracleNG's `[shiny_rates]` feed (the community feed most servers use, or a static file of your own) and `[player_accounts] self_service` (and what turning it on means), what a player ID is and how to find it, how this coexists with ReactMap's personal shiny linking, creating a rule, and what happens to personal rules if you go back to the official image. On this branch `docker-compose.yml.example` points at the experimental image, so copying it lands you on the line you cloned.
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.20.2-shiny.1...experimental/shiny
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.21.0-shiny.1...experimental/shiny
+[2.21.0-shiny.1]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.20.2-shiny.1...v2.21.0-shiny.1
 [2.20.2-shiny.1]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.20.2...v2.20.2-shiny.1
