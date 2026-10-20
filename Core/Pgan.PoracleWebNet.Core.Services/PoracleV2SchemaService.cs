@@ -109,6 +109,20 @@ public partial class PoracleV2SchemaService(
                 TrackingPing = HasProperty(schemas, "V2PokemonRule", "ping"),
                 V2LocationLatitudeLongitude = HasProperty(schemas, "V2LocationBody", "latitude")
                     && HasProperty(schemas, "V2LocationBody", "longitude"),
+                SetAreasReportsRejected = HasProperty(
+                    schemas, ResponseSchema(paths, "/v2/humans/{id}/areas", "post"), "rejected"),
+                AvailableAreas = HasProperty(schemas, "V2AreaInfo", "name")
+                    && HasProperty(schemas, "V2AreaInfo", "group")
+                    && HasProperty(schemas, "V2AreaInfo", "userSelectable")
+                    && HasProperty(
+                        schemas, ResponseSchema(paths, "/v2/humans/{id}/areas", "get"), "areas"),
+                ProfileList = HasProperty(
+                        schemas, ResponseSchema(paths, "/v2/humans/{id}/profiles", "get"), "profiles")
+                    && HasProperty(schemas, "V2ProfileResponse", "area")
+                    && HasProperty(schemas, "V2ProfileResponse", "active_hours"),
+                ProfileDelete = HasOperation(paths, "/v2/humans/{id}/profiles/{profile_no}", "delete"),
+                ProfileCopy = HasOperation(paths, "/v2/humans/{id}/profiles/{profile_no}/copy", "post")
+                    && HasProperty(schemas, "V2CopyProfileBody", "from_profile"),
             };
         }
         catch (JsonException)
@@ -144,11 +158,17 @@ public partial class PoracleV2SchemaService(
     /// being absent, which a rename upstream would silently turn into a false positive — and a false
     /// positive here means reading a number out of a body that does not carry one.
     /// </remarks>
-    private static bool CreateReturnsNumber(JsonElement paths, JsonElement schemas)
+    private static bool CreateReturnsNumber(JsonElement paths, JsonElement schemas) =>
+        HasProperty(schemas, ResponseSchema(paths, "/v2/humans/{id}/profiles", "post"), "profile_no");
+
+    /// <summary>
+    /// The name of the schema an operation's 200 answers with, or an empty string when the operation is
+    /// absent or answers something other than a <c>$ref</c>. Empty names no schema, so a
+    /// <see cref="HasProperty"/> on it answers false.
+    /// </summary>
+    private static string ResponseSchema(JsonElement paths, string path, string method)
     {
-        var ok = Property(
-            Property(Property(Property(paths, "/v2/humans/{id}/profiles"), "post"), "responses"),
-            "200");
+        var ok = Property(Property(Property(Property(paths, path), method), "responses"), "200");
 
         var refValue = Property(
             Property(Property(Property(ok, "content"), "application/json"), "schema"),
@@ -156,14 +176,7 @@ public partial class PoracleV2SchemaService(
 
         var reference = refValue.ValueKind == JsonValueKind.String ? refValue.GetString() : null;
 
-        if (string.IsNullOrEmpty(reference))
-        {
-            return false;
-        }
-
-        var name = reference[(reference.LastIndexOf('/') + 1)..];
-
-        return HasProperty(schemas, name, "profile_no");
+        return string.IsNullOrEmpty(reference) ? string.Empty : reference[(reference.LastIndexOf('/') + 1)..];
     }
 
     private async Task<string?> FetchAsync(CancellationToken cancellationToken)

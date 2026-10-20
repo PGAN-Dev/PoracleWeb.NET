@@ -22,7 +22,8 @@ public class PoracleApiProxyDisableFlagTests
                 ["Poracle:ApiAddress"] = ApiAddress,
                 ["Poracle:ApiSecret"] = "test-secret"
             })
-            .Build());
+            .Build(),
+        PoracleHumanProxyTests.V2Schema());
 
     /// <summary>The body prod actually returns, trimmed to the field under test.</summary>
     [Fact]

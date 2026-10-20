@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Picking Minior for a Pokemon alert now says why IV, CP and level filters won't match it.** Minior's IVs, CP and level are rerolled for each player when it's caught, so a scanner may report it without stats, and a rule that filters on them never fires. The note shows in the Pokemon picker the moment Minior is selected, and on the edit dialog of a Minior alert.
 
+### Changed
+
+- **Saving the Areas page, listing the areas you can choose from, and listing, deleting and copying profiles now go through PoracleNG's `/api/v2` where your PoracleNG offers it.** PoracleWeb.NET asks PoracleNG's own `/openapi.json` which of these routes it serves and keeps using the older routes for the rest, so nothing changes on a server that lacks them. Nothing looks different either: the Areas page still keeps your own drawn geofences when you save, and profiles read back exactly as before. ([#995](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/995))
+
 ### Fixed
 
 - **While PoracleNG is failing, deleting a user no longer reports the account as already gone, and nobody's session is ended for it.** PoracleWeb.NET read any failed answer from PoracleNG about an account as "this account doesn't exist", so an admin deleting a user mid-outage got a 404, and `/api/auth/me` answered "this account no longer exists", which signed out whoever asked. Only PoracleNG's own "not found" means that now; anything else is reported as the error it is, and the delete stops before touching anything. The delete's existence check also goes through PoracleNG now instead of reading Poracle's `humans` table directly. ([#994](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/994))

@@ -1158,6 +1158,312 @@ public class PoracleHumanProxyV2Tests
         Assert.Equal($"{ApiAddress}/api/profiles/user1/update", Assert.Single(handler.Requests).Url);
     }
 
+    // ---- the five v1-only calls moved to v2 (#995) -----------------------------------------------
+    //
+    // Each gates on what the server's own /openapi.json declares and falls back to v1 when it does not, or
+    // when the route answers gin's plaintext 404. Response bodies are the ones a live 5.3.0 (the build
+    // production runs) answered on the dev-01 test bed; request bodies are the ones the callers build.
+
+    private static PoracleV2Capabilities Moved(
+        bool setAreas = false, bool list = false, bool delete = false, bool copy = false) =>
+        new()
+        {
+            Read = true,
+            SetAreasReportsRejected = setAreas,
+            ProfileList = list,
+            ProfileDelete = delete,
+            ProfileCopy = copy,
+        };
+
+    [Fact]
+    public async Task SavingAreasPostsTheV2BodyWithoutTrusted()
+    {
+        // AreaController.UpdateAreas sends the submitted list lowercased. This is the user-facing save, so
+        // trusted must never ride along: it would let any user select a fence PoracleNG hides from them.
+        var handler = ScriptedHandler.Ok("""{"areas":["aberdeen","abingdon"],"rejected":[]}""");
+        var sut = CreateSut(handler, "5.3.0", capabilities: Moved(setAreas: true));
+
+        await sut.SetAreasAsync("user1", ["aberdeen", "abingdon"]);
+
+        var sent = Assert.Single(handler.Requests);
+        Assert.Equal(HttpMethod.Post, sent.Method);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/areas", sent.Url);
+        using var body = JsonDocument.Parse(sent.Body!);
+        AssertConformsTo(body.RootElement, "V2SetAreasBody");
+        Assert.False(body.RootElement.TryGetProperty("trusted", out _));
+        Assert.Equal(
+            ["aberdeen", "abingdon"],
+            body.RootElement.GetProperty("areas").EnumerateArray().Select(e => e.GetString()).ToList());
+    }
+
+    [Fact]
+    public async Task AnAreaV2RefusesIsReportedNotThrown()
+    {
+        // The legitimate case that must keep working. A user-drawn fence is userSelectable:false, so v2
+        // refuses it on every save that includes one -- verified live, it comes back in `rejected` beside a
+        // 200. v1 dropped the same name silently, and PreserveOwnedAreasInHumanAsync puts it back. Throwing
+        // here would fail every Areas save of everyone who has drawn a fence.
+        var handler = ScriptedHandler.Ok("""{"areas":["aberdeen"],"rejected":["my fence","nosuchfence"]}""");
+        var sut = CreateSut(handler, "5.3.0", capabilities: Moved(setAreas: true));
+
+        await sut.SetAreasAsync("user1", ["aberdeen", "my fence", "nosuchfence"]);
+
+        Assert.Single(handler.Requests);
+    }
+
+    [Fact]
+    public async Task SavingAreasStaysOnV1WhereTheServerDoesNotReportWhatItStored()
+    {
+        // 5.2.1 serves POST .../areas too, answering {"status":"ok"}; only the reporting shape was verified.
+        var handler = ScriptedHandler.Ok("""{"setAreas":["aberdeen"],"status":"ok"}""");
+        var sut = CreateSut(handler, "5.2.1", capabilities: Moved(setAreas: false));
+
+        await sut.SetAreasAsync("user1", ["aberdeen"]);
+
+        var sent = Assert.Single(handler.Requests);
+        Assert.Equal($"{ApiAddress}/api/humans/user1/setAreas", sent.Url);
+        Assert.Equal("aberdeen", JsonDocument.Parse(sent.Body!).RootElement[0].GetString());
+    }
+
+    [Fact]
+    public async Task SavingAreasFallsBackToV1WhenTheRouteIsMissing()
+    {
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.NotFound, RouteMissing, "text/plain"),
+            new Reply(HttpStatusCode.OK, """{"setAreas":["aberdeen"],"status":"ok"}"""));
+        var sut = CreateSut(handler, "5.3.0", capabilities: Moved(setAreas: true));
+
+        await sut.SetAreasAsync("user1", ["aberdeen"]);
+
+        Assert.Equal(2, handler.Requests.Count);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/areas", handler.Requests[0].Url);
+        Assert.Equal($"{ApiAddress}/api/humans/user1/setAreas", handler.Requests[1].Url);
+    }
+
+    [Fact]
+    public async Task ASaveV2RefusesOutrightIsARefusalLikeV1sFourHundred()
+    {
+        var handler = ScriptedHandler.Problem(
+            HttpStatusCode.UnprocessableEntity,
+            """{"title":"Unprocessable Entity","status":422,"detail":"validation failed"}""");
+        var sut = CreateSut(handler, "5.3.0", capabilities: Moved(setAreas: true));
+
+        await Assert.ThrowsAsync<PoracleRequestRefusedException>(() => sut.SetAreasAsync("user1", ["aberdeen"]));
+        Assert.Single(handler.Requests);
+    }
+
+    // The shapes a live 5.3.0 and the 5.2.1 document answer for the same two profiles. The second one
+    // carries what PoracleNG writes for a schedule entered as strings, which v2 hands back as integers.
+    private const string ProfilesV2Develop = """
+        {"profiles":[
+          {"uid":497,"id":"user1","profile_no":2,"name":"p2","area":["aberdeen"],"latitude":0,"longitude":0,
+           "active_hours":[]},
+          {"uid":498,"id":"user1","profile_no":3,"name":"p3","area":["aberdeen","animal kingdom"],
+           "latitude":40.25,"longitude":-75.5,
+           "active_hours":[{"day":1,"hours":8,"mins":0},{"day":2,"hours":9,"mins":15,"step":2,"end_hours":17,"end_mins":0}]}]}
+        """;
+
+    private const string ProfilesV2Released = """
+        {"profiles":[
+          {"uid":497,"id":"user1","profile_no":2,"name":"p2","area":"[\"aberdeen\"]","latitude":0,"longitude":0,
+           "active_hours":[]},
+          {"uid":498,"id":"user1","profile_no":3,"name":"p3","area":"[\"aberdeen\",\"animal kingdom\"]",
+           "latitude":40.25,"longitude":-75.5,
+           "active_hours":[{"day":1,"hours":8,"mins":0},{"day":2,"hours":9,"mins":15,"step":2,"end_hours":17,"end_mins":0}]}]}
+        """;
+
+    [Theory]
+    [InlineData(ProfilesV2Develop)]
+    [InlineData(ProfilesV2Released)]
+    public async Task TheV2ProfileListReachesProfileServiceInV1sShape(string payload)
+    {
+        var handler = ScriptedHandler.Ok(payload);
+        var sut = CreateSut(handler, "5.3.0", capabilities: Moved(list: true));
+
+        var profile = await new ProfileService(sut).GetByUserAndProfileNoAsync("user1", 3);
+
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/profiles", Assert.Single(handler.Requests).Url);
+        Assert.NotNull(profile);
+        Assert.Equal("user1", profile.Id);
+        Assert.Equal("p3", profile.Name);
+        Assert.Equal(40.25, profile.Latitude);
+        Assert.Equal(-75.5, profile.Longitude);
+
+        // Both stay the JSON-encoded strings every consumer of Profile is written against.
+        Assert.Equal(["aberdeen", "animal kingdom"], JsonSerializer.Deserialize<List<string>>(profile.Area!));
+        Assert.True(ActiveHoursValidator.Validate(profile.ActiveHours).IsValid);
+        using var hours = JsonDocument.Parse(profile.ActiveHours!);
+        Assert.Equal(2, hours.RootElement.GetArrayLength());
+        Assert.Equal(17, hours.RootElement[1].GetProperty("end_hours").GetInt32());
+    }
+
+    [Fact]
+    public async Task AnUnscheduledV2ProfileReadsAsTheEmptyListV1Sends()
+    {
+        var handler = ScriptedHandler.Ok(ProfilesV2Develop);
+        var sut = CreateSut(handler, "5.3.0", capabilities: Moved(list: true));
+
+        var profile = await new ProfileService(sut).GetByUserAndProfileNoAsync("user1", 2);
+
+        Assert.Equal("[]", profile!.ActiveHours);
+        Assert.Equal("""["aberdeen"]""", profile.Area);
+    }
+
+    [Fact]
+    public async Task AScheduleReadFromV2GoesBackThroughTheRenamePatchUnchanged()
+    {
+        // ProfileController.Update resends the stored schedule on every rename. What the list now hands
+        // it must be something V2ProfileBody can turn back into the entries it came from.
+        var read = ScriptedHandler.Ok(ProfilesV2Develop);
+        var profile = await new ProfileService(CreateSut(read, "5.3.0", capabilities: Moved(list: true)))
+            .GetByUserAndProfileNoAsync("user1", 3);
+
+        var write = ScriptedHandler.Ok("""{"status":"ok"}""");
+        var sut = CreateSut(write, "5.3.0", capabilities: Carrying(rename: true));
+        Assert.True(await sut.UpdateProfileAsync(
+            "user1",
+            JsonSerializer.SerializeToElement(new { profile_no = 3, name = "p3", active_hours = profile!.ActiveHours })));
+
+        using var body = JsonDocument.Parse(Assert.Single(write.Requests).Body!);
+        AssertConformsTo(body.RootElement, "V2UpdateProfileBody");
+        var entries = body.RootElement.GetProperty("active_hours");
+        Assert.Equal(2, entries.GetArrayLength());
+        Assert.Equal(2, entries[1].GetProperty("step").GetInt32());
+    }
+
+    [Fact]
+    public async Task TheProfileListStaysOnV1WhereTheServerDoesNotDeclareIt()
+    {
+        var handler = ScriptedHandler.Ok("""{"profile":[{"id":"user1","profile_no":1,"name":"Default","area":"[]","active_hours":"[]"}],"status":"ok"}""");
+        var sut = CreateSut(handler, "5.3.0", capabilities: Moved(list: false));
+
+        var profile = await new ProfileService(sut).GetByUserAndProfileNoAsync("user1", 1);
+
+        Assert.Equal($"{ApiAddress}/api/profiles/user1", Assert.Single(handler.Requests).Url);
+        Assert.Equal("Default", profile!.Name);
+    }
+
+    [Fact]
+    public async Task TheProfileListFallsBackToV1WhenTheRouteIsMissing()
+    {
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.NotFound, RouteMissing, "text/plain"),
+            new Reply(HttpStatusCode.OK, """{"profile":[{"id":"user1","profile_no":1,"name":"Default","area":"[]"}],"status":"ok"}"""));
+        var sut = CreateSut(handler, "5.3.0", capabilities: Moved(list: true));
+
+        var profile = await new ProfileService(sut).GetByUserAndProfileNoAsync("user1", 1);
+
+        Assert.Equal($"{ApiAddress}/api/profiles/user1", handler.Requests[1].Url);
+        Assert.Equal("Default", profile!.Name);
+    }
+
+    [Fact]
+    public async Task AMissingHumanOnTheV2ListIsTheAccountGoneNotARouteMissing()
+    {
+        var handler = ScriptedHandler.Problem(
+            HttpStatusCode.NotFound, """{"title":"Not Found","status":404,"detail":"human not found"}""");
+        var sut = CreateSut(handler, "5.3.0", capabilities: Moved(list: true));
+
+        await Assert.ThrowsAsync<AccountGoneException>(() => sut.GetProfilesAsync("nobody"));
+        Assert.Single(handler.Requests);
+    }
+
+    [Fact]
+    public async Task DeletingAProfileUsesV2WhereDeclared()
+    {
+        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
+        var sut = CreateSut(handler, "5.3.0", capabilities: Moved(delete: true));
+
+        await sut.DeleteProfileAsync("user1", 3);
+
+        var sent = Assert.Single(handler.Requests);
+        Assert.Equal(HttpMethod.Delete, sent.Method);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/profiles/3", sent.Url);
+    }
+
+    [Fact]
+    public async Task DeletingAProfileStaysOnV1WhereNotDeclared()
+    {
+        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
+        var sut = CreateSut(handler, "5.3.0", capabilities: Moved(delete: false));
+
+        await sut.DeleteProfileAsync("user1", 3);
+
+        var sent = Assert.Single(handler.Requests);
+        Assert.Equal(HttpMethod.Delete, sent.Method);
+        Assert.Equal($"{ApiAddress}/api/profiles/user1/byProfileNo/3", sent.Url);
+    }
+
+    [Fact]
+    public async Task DeletingAProfileFallsBackToV1WhenTheRouteIsMissing()
+    {
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.NotFound, RouteMissing, "text/plain"),
+            new Reply(HttpStatusCode.OK, """{"status":"ok"}"""));
+        var sut = CreateSut(handler, "5.3.0", capabilities: Moved(delete: true));
+
+        await sut.DeleteProfileAsync("user1", 3);
+
+        Assert.Equal($"{ApiAddress}/api/profiles/user1/byProfileNo/3", handler.Requests[1].Url);
+    }
+
+    [Fact]
+    public async Task CopyingAProfileNamesTheSourceInTheBody()
+    {
+        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
+        var sut = CreateSut(handler, "5.3.0", capabilities: Moved(copy: true));
+
+        await sut.CopyProfileAsync("user1", fromProfileNo: 2, toProfileNo: 4);
+
+        var sent = Assert.Single(handler.Requests);
+        Assert.Equal(HttpMethod.Post, sent.Method);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/profiles/4/copy", sent.Url);
+        using var body = JsonDocument.Parse(sent.Body!);
+        AssertConformsTo(body.RootElement, "V2CopyProfileBody");
+        Assert.Equal(2, body.RootElement.GetProperty("from_profile").GetInt32());
+    }
+
+    [Fact]
+    public async Task CopyingAProfileStaysOnV1WhereNotDeclared()
+    {
+        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
+        var sut = CreateSut(handler, "5.3.0", capabilities: Moved(copy: false));
+
+        await sut.CopyProfileAsync("user1", 2, 4);
+
+        var sent = Assert.Single(handler.Requests);
+        Assert.Equal($"{ApiAddress}/api/profiles/user1/copy/2/4", sent.Url);
+        Assert.Null(sent.Body);
+    }
+
+    [Fact]
+    public async Task CopyingAProfileFallsBackToV1WhenTheRouteIsMissing()
+    {
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.NotFound, RouteMissing, "text/plain"),
+            new Reply(HttpStatusCode.OK, """{"status":"ok"}"""));
+        var sut = CreateSut(handler, "5.3.0", capabilities: Moved(copy: true));
+
+        await sut.CopyProfileAsync("user1", 2, 4);
+
+        Assert.Equal($"{ApiAddress}/api/profiles/user1/copy/2/4", handler.Requests[1].Url);
+    }
+
+    [Fact]
+    public async Task NoneOfTheMovedCallsTryV2OnAServerWithoutIt()
+    {
+        // A 5.1.0 has no v2 at all. Even a schema that claimed otherwise must not cost it a round trip.
+        var handler = ScriptedHandler.Ok("""{"profile":[],"status":"ok"}""");
+        var sut = CreateSut(handler, "5.1.0", capabilities: Moved(setAreas: true, list: true, delete: true, copy: true));
+
+        await sut.SetAreasAsync("user1", []);
+        await sut.GetProfilesAsync("user1");
+        await sut.DeleteProfileAsync("user1", 2);
+        await sut.CopyProfileAsync("user1", 1, 2);
+
+        Assert.All(handler.Requests, r => Assert.DoesNotContain("/api/v2/", r.Url, StringComparison.Ordinal));
+    }
+
     /// <summary>
     /// Every property of <paramref name="body"/> is one the named schema declares, recursing into
     /// <c>active_hours</c> entries -- the schemas set <c>additionalProperties:false</c>, so anything else
