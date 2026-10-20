@@ -810,7 +810,9 @@ left frozen. Bulk distance and cleaning stay on v1 because v2 has no bulk write:
 field at its wildcard where v1 answers the sentinel, and both the C# and TypeScript models are built on the
 sentinels. Rebuilding them needs the stored wildcard for **137 nullable fields across the eleven rule
 schemas**, and the server publishes none of them: measured against a live 5.2.1, *no* property carries a
-machine-readable `default`, and scraping the English descriptions finds a number for 59 of the 137. Since
+machine-readable `default`, and scraping the English descriptions finds a number for 59 of the 137. Upstream
+`develop` (`25ff8c0a`) now states the stored value in prose for all 149 nullable properties, still with no
+machine-readable form; that is asked for in jfberry/PoracleNG#324. Since
 `TrackingFieldPreserver` re-reads a row before every PUT, a wrong wildcard is not a display bug — it is
 written back. Migrate a **type** (read, write and delete together, service moved to the v2 shape) rather
 than a **verb**, so two shapes never coexist.

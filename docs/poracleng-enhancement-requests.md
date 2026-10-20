@@ -35,6 +35,12 @@ Body: { "uids": [1, 2, 3], "distance": 500 }
 
 **Workaround without enhancement:** Fetch all alarms via GET, then POST each one back with the distance field changed. Very inefficient for users with hundreds of alarms.
 
+**Filed upstream** as [jfberry/PoracleNG#325](https://github.com/jfberry/PoracleNG/issues/325), together with
+bulk clean below, as a v2 partial update over a uid set (`PATCH .../tracking/{type}?uid=`). v1's one-POST
+form still works; the gap is that v2 has no bulk write at all, which matters once v1 writes go away. The
+issue also asks for per-uid refusals instead of a failed batch, which would retire `DistanceRewrite.Build`'s
+area-scoped/place-scoped split.
+
 ---
 
 ### Bulk Clean Toggle
@@ -54,6 +60,8 @@ Body: { "clean": 1 }
 ```
 
 **Workaround without enhancement:** Fetch all alarms via GET, then POST each back with the clean field changed. Same inefficiency as bulk distance.
+
+**Filed upstream** with bulk distance, as [jfberry/PoracleNG#325](https://github.com/jfberry/PoracleNG/issues/325).
 
 ---
 
@@ -524,8 +532,10 @@ adapted to in PoracleWeb.NET #969 and #970.
 
 | Gap | Priority | Workaround in use | Status |
 |-----|----------|-------------------|--------|
-| Bulk distance update | High | Fetch all, modify, POST back | Open |
-| Bulk clean toggle | High | Fetch all, modify, POST back | Open |
+| Bulk distance update | High | Fetch all, modify, POST back | Filed as [#325](https://github.com/jfberry/PoracleNG/issues/325) (v2 has no bulk write) |
+| Bulk clean toggle | High | Fetch all, modify, POST back | Filed as [#325](https://github.com/jfberry/PoracleNG/issues/325) |
+| Tracking mutes match uid alone | Medium | `scope=tracking` not offered | Filed as [#323](https://github.com/jfberry/PoracleNG/issues/323) |
+| v2 stored wildcards prose-only | Medium | Tracking reads stay on v1 (#860) | Filed as [#324](https://github.com/jfberry/PoracleNG/issues/324); `develop` states all 149 in prose |
 | Trusted setAreas | High | Direct-DB dual write (`IUserAreaDualWriter`); v2 trusted `setAreas` for 3 of 6 methods | **Partially adopted.** #230 (merged, not yet released) fixed the community-filter over-reach ([#228](https://github.com/jfberry/PoracleNG/issues/228)) properly; adopted for the three active-profile methods in [#838](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/838)/[#937](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/937), gated on area_security being confirmed off since no self-reported signal tells a pre-#230 server from a post-#230 one. No profile target and no trusted per-rule override write for creates, so the other three methods stay blocked. Delete and rename across profiles filed as [#253](https://github.com/jfberry/PoracleNG/issues/253)/[#259](https://github.com/jfberry/PoracleNG/issues/259); #259 accepted with a planned `PATCH .../areas?from=&to=` that also rewrites `override_areas` |
 | Dashboard counts | Medium | Single `GET /api/tracking/all` call | Open, returns full payloads |
 | Admin delete all alarms | Medium | Fetch UIDs per type, bulk delete each | Open |
