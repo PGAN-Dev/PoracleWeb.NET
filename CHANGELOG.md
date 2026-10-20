@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Picking Minior for a Pokemon alert now says why IV, CP and level filters won't match it.** Minior's IVs, CP and level are rerolled for each player when it's caught, so a scanner may report it without stats, and a rule that filters on them never fires. The note shows in the Pokemon picker the moment Minior is selected, and on the edit dialog of a Minior alert.
+- **The geofence feed marks users' own drawn geofences `exemptFromAreaSecurity`, so an operator can turn on PoracleNG's `[area_security]` without breaking them.** A drawn geofence belongs to no community, so on a PoracleNG carrying [jfberry/PoracleNG#243](https://github.com/jfberry/PoracleNG/issues/243) with area security on, it would be refused wherever a user's areas are checked, and alerts scoped to it would fail their next edit with `area not permitted`. The flag takes those fences out of the community check and nothing else: they stay unselectable in the bot and out of alert text, and Koji areas, including approved geofences, are never marked. PoracleNG versions without #243 ignore the field.
 
 ### Changed
 
