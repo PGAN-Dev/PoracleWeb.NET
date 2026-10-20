@@ -182,6 +182,12 @@ clear matters: whether the target server actually carries the fix, which neither
 off -- sidestepping the community-restriction question entirely rather than resolving it, since there is
 nothing to restrict with it off. See `IAreaSecurityPolicyService`.
 
+The feed side of [jfberry/PoracleNG#243](https://github.com/jfberry/PoracleNG/issues/243) is done:
+`GeofenceFeedController` serves every user-drawn fence with `exemptFromAreaSecurity: true` (and no Koji fence
+with it), so a server carrying #254 keeps the community filter off users' own fences. The gate above is
+unchanged; relaxing it to take the trusted path with area security on is a separate step, once a release
+carries #254.
+
 The other three methods are not candidates for the same treatment yet, for the same reasons as before:
 `RemoveAreaFromAllProfilesAsync` and `RenameAreaInAllProfilesAsync` have no profile-spanning API form at
 all (`?profile=`/`?all_profiles=`, added by #230, write one list identically to a profile or to every

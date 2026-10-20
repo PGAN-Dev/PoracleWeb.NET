@@ -154,7 +154,9 @@ There are two groups. The `__`-prefixed keys are **Koji structural directives** 
 | `userSelectable` | `true` when public, `false` when private | **The visibility switch.** `true` = the area appears in the bot's `!area` picker. `false` = hidden. PoracleNG also refuses to let a non-admin subscribe to a `userSelectable=false` area through its `setAreas` call, which is why private user geofences are managed entirely inside PoracleWeb.NET. |
 | `displayInMatches` | `true` when public, `false` when private | Whether the **area name appears in notification DM text**. `false` keeps private geofence names out of messages. |
 
-For a **private** user geofence, PoracleWeb.NET never writes any of this to Koji — it serves the geofence from its own feed with `userSelectable=false` and `displayInMatches=false`. For an **approved (public)** geofence, both flags are set to `true` and the geofence is written into Koji as a normal public area.
+For a **private** user geofence, PoracleWeb.NET never writes any of this to Koji — it serves the geofence from its own feed with `userSelectable=false`, `displayInMatches=false` and `exemptFromAreaSecurity=true`. For an **approved (public)** geofence, both flags are set to `true` and the geofence is written into Koji as a normal public area.
+
+`exemptFromAreaSecurity` matters only on a PoracleNG carrying [jfberry/PoracleNG#243](https://github.com/jfberry/PoracleNG/issues/243) with `[area_security] enabled = true`. A user's own geofence belongs to no community, so without the flag area security would refuse it wherever a user's areas are checked and prune it when their community changes. The flag exempts the fence from the community check only: it stays hidden from the bot's `!area` picker and from alert text. PoracleWeb.NET never sets it on a Koji area, and you shouldn't either: an exempt public area can be picked by anyone in any community. Older PoracleNG versions ignore the field.
 
 ### What PoracleWeb.NET reads back from Koji
 

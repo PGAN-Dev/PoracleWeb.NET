@@ -244,6 +244,22 @@ public sealed class GeofenceFeedPipelineTests : IDisposable
         Assert.False(user.GetProperty("displayInMatches").GetBoolean());
     }
 
+    /// <summary>
+    /// The wire spelling, through the real serializer. PoracleNG matches the key exactly
+    /// (<c>json:"exemptFromAreaSecurity"</c>) and silently ignores anything else, so a casing slip here
+    /// would leave every user fence subject to area_security with nothing failing anywhere.
+    /// </summary>
+    [Fact]
+    public async Task AUserFenceCarriesExemptFromAreaSecurityOnTheWire()
+    {
+        using var client = this._factory.CreateClient();
+
+        using var response = await client.GetAsync("/api/geofence-feed");
+        var raw = await response.Content.ReadAsStringAsync();
+
+        Assert.Contains("\"exemptFromAreaSecurity\":true", raw, StringComparison.Ordinal);
+    }
+
     /// <summary>The feed keeps working after a refresh, rather than being left in a broken state.</summary>
     [Fact]
     public async Task TheFeedStillServesAfterARefresh()
