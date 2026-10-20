@@ -8,9 +8,9 @@ ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # Colors
 if [ -t 1 ]; then
-  BOLD='\033[1m' DIM='\033[2m' GREEN='\033[32m' CYAN='\033[36m' RESET='\033[0m'
+  BOLD='\033[1m' DIM='\033[2m' GREEN='\033[32m' YELLOW='\033[33m' CYAN='\033[36m' RESET='\033[0m'
 else
-  BOLD='' DIM='' GREEN='' CYAN='' RESET=''
+  BOLD='' DIM='' GREEN='' YELLOW='' CYAN='' RESET=''
 fi
 
 usage() {
@@ -58,6 +58,13 @@ cmd_build() {
 }
 
 cmd_start() {
+  # The image runs as uid 999. A ./data that Docker creates for the bind mount is root-owned, and the app
+  # then cannot persist its DataProtection keys (every SSO user is signed out on each recreate).
+  mkdir -p "$ROOT/data"
+  if [ "$(stat -c %u "$ROOT/data" 2>/dev/null)" != "999" ]; then
+    echo -e "${YELLOW}./data is not owned by uid 999, the user the container runs as. Fix it with:${RESET}"
+    echo "  sudo chown -R 999:999 \"$ROOT/data\""
+  fi
   echo -e "${CYAN}Starting container...${RESET}"
   dc up -d
   echo -e "${GREEN}Started. View logs: ./scripts/docker.sh logs${RESET}"

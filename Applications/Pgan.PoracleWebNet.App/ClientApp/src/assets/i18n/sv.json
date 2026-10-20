@@ -241,6 +241,7 @@
     "TAB_DELIVERY": "Leverans",
     "SELECTION_COUNT": "{{count}} Pokemon valda",
     "SELECTION_HINT": "Sök och välj en eller flera Pokemon att spåra",
+    "MINIOR_IV_NOTE": "Miniors IV slumpas om när den fångas, så IV-, CP- och nivåfilter matchar den inte.",
     "LABEL_MIN_IV": "Min IV",
     "LABEL_MAX_IV": "Max IV",
     "LABEL_MIN_CP": "Min CP",

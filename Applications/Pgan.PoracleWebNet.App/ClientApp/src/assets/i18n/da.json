@@ -241,6 +241,7 @@
     "TAB_DELIVERY": "Levering",
     "SELECTION_COUNT": "{{count}} Pokemon valgt",
     "SELECTION_HINT": "Søg og vælg en eller flere Pokemon at spore",
+    "MINIOR_IV_NOTE": "Miniors IV slås om, når den bliver fanget, så IV-, CP- og niveaufiltre matcher den ikke.",
     "LABEL_MIN_IV": "Min IV",
     "LABEL_MAX_IV": "Maks IV",
     "LABEL_MIN_CP": "Min CP",
