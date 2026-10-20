@@ -17,6 +17,12 @@ export interface Mute {
   expiresAt: number;
   remainingSecs: number;
   scope: MuteScope;
+  /**
+   * For a `tracking` mute, the type of the rule it silences (`raid`, `pokemon`, ...): rule uids are
+   * numbered per table, so the uid alone does not say which rule. Null everywhere else, and on every
+   * server older than jfberry/PoracleNG#328 §6. A lift sends it back exactly when it is present.
+   */
+  trackingType?: null | string;
   value: null | string;
 }
 
@@ -121,9 +127,12 @@ export class MuteService {
     return label === key ? `${minutes} min` : label;
   }
 
-  /** The stored entry for a subject, whose `value` is the one a delete has to send back. */
-  find(scope: MuteScope, value: null | string): Mute | undefined {
-    return this.mutes().find(mute => mute.scope === scope && sameValue(mute.value, value));
+  /**
+   * The stored entry for a subject, whose `value` is the one a delete has to send back. A tracking type,
+   * when given, has to match too: raid rule 60 and pokemon rule 60 are two mutes.
+   */
+  find(scope: MuteScope, value: null | string, trackingType: null | string = null): Mute | undefined {
+    return this.mutes().find(mute => sameMute(mute, scope, value, trackingType));
   }
 
   isQuiet(scope: MuteScope, value: null | string): boolean {
@@ -202,29 +211,37 @@ export class MuteService {
   /**
    * Lifts one quiet period. Sends back the value the SERVER holds rather than the caller's, because the
    * upstream delete is an exact string match against a canonicalised area name.
+   *
+   * `trackingType` is the same rule for a bot-made `tracking` mute (jfberry/PoracleNG#328 §6): pass the
+   * type the list reported, and it goes out only when there is one, so a server that never reports a
+   * type never sees the parameter.
    */
-  resume(scope: MuteScope, value: null | string): Observable<void> {
-    const stored = this.find(scope, value);
+  resume(scope: MuteScope, value: null | string, trackingType: null | string = null): Observable<void> {
+    const stored = this.find(scope, value, trackingType);
     const serverValue = stored ? stored.value : value;
+    const serverType = stored ? (stored.trackingType ?? null) : trackingType;
     const params: Record<string, string> = { scope };
     if (serverValue !== null && serverValue !== undefined) {
       params['value'] = serverValue;
     }
+    if (serverType) {
+      params['trackingType'] = serverType;
+    }
 
     return this.http.delete<{ deleted: Mute[] }>(`${this.config.apiHost}/api/mutes`, { params }).pipe(
       tap(() => {
-        this.remove(scope, serverValue);
+        this.remove(scope, serverValue, serverType);
         this.toast(this.translate.instant('QUIET.TOAST_RESUMED'));
       }),
       map(() => undefined),
-      catchError((err: { status: number }) => {
+      catchError((err: { error?: { error?: string }; status: number }) => {
         // 404 means it had already lapsed — the store expires entries itself. The user asked for it to
         // be gone and it is, so drop it locally and say nothing.
         if (err.status === 404) {
-          this.remove(scope, serverValue);
+          this.remove(scope, serverValue, serverType);
           return of(undefined);
         }
-        this.toast(this.translate.instant('QUIET.TOAST_FAILED'));
+        this.toast(this.failureMessage(err));
         throw err;
       }),
     );
@@ -269,8 +286,8 @@ export class MuteService {
     this.stopTicking();
   }
 
-  private remove(scope: MuteScope, value: null | string): void {
-    this.mutesSignal.set(this.mutesSignal().filter(mute => !(mute.scope === scope && sameValue(mute.value, value))));
+  private remove(scope: MuteScope, value: null | string, trackingType: null | string = null): void {
+    this.mutesSignal.set(this.mutesSignal().filter(mute => !sameMute(mute, scope, value, trackingType)));
     this.syncTicker();
   }
 
@@ -302,11 +319,21 @@ export class MuteService {
   }
 
   private upsert(mute: Mute): void {
-    const rest = this.mutesSignal().filter(existing => !(existing.scope === mute.scope && sameValue(existing.value, mute.value)));
+    const rest = this.mutesSignal().filter(existing => !sameMute(existing, mute.scope, mute.value, mute.trackingType ?? null));
     this.mutesSignal.set([...rest, mute]);
     this.nowSignal.set(Date.now());
     this.syncTicker();
   }
+}
+
+/**
+ * Whether a stored mute is the one a (scope, value, trackingType) triple names. A null type matches any
+ * type, which is what a server without typed tracking mutes needs and what the four scopes this app
+ * creates always pass.
+ */
+function sameMute(mute: Mute, scope: MuteScope, value: null | string, trackingType: null | string): boolean {
+  if (mute.scope !== scope || !sameValue(mute.value, value)) return false;
+  return !trackingType || (mute.trackingType ?? null) === trackingType;
 }
 
 /**
