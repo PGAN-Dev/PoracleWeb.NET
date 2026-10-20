@@ -421,7 +421,9 @@ jfberry/PoracleNG#328 §6 (5.3.0): GET returns `tracking_type` on a tracking mut
 `?tracking_type=` for that scope, a breaking change to the shipped 5.2.1 API. We still create none, but we
 list and lift the bot's, so `Mute.TrackingType` is read from the list and sent back on DELETE (SPA
 `trackingType` → API → upstream `tracking_type`) **only when the list returned one**, so a server that has
-never heard of it never sees the parameter -- the same send-back-what-the-LIST-said rule as area casing. The
+never heard of it never sees the parameter -- the same send-back-what-the-LIST-said rule as area casing. That
+gate is load-bearing: the mutes DELETE rejects unknown query parameters, and the dev-01 5.3.0 bed (`be070623`)
+answered `?tracking_type=pokemon` with `422 unknown query parameter` (verified 2026-10-20 on a probe human). The
 SPA keys a mute by scope, type and value, since raid 60 and pokemon 60 are two rows. Creating `scope=tracking`
 mutes would be possible once a server carries §6; that is a separate decision. `scope=pokestop` is
 read-only here for a duller reason: neither the lure nor the invasion model carries a fort id.
