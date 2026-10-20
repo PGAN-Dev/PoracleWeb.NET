@@ -4,7 +4,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Moq.Protected;
-using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Core.Services;
 
@@ -14,21 +13,20 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 /// Reading which PoracleNG is on the other end.
 /// </summary>
 /// <remarks>
-/// The rule every one of these encodes: not knowing is not the same as supporting. A server that does
-/// not answer, a version that will not parse, a schema that cannot be read — each unlocks nothing. The
-/// opposite default would offer controls that write columns which do not exist, which is the silent
-/// no-op this whole thing exists to make loud.
+/// Two rules these encode. A server that does not answer supports nothing, so nothing is offered on the
+/// strength of it. A server that answers with a version nobody can read is assumed current, because the
+/// only build that reports one (a local build, <c>0.0.0</c>) is built from source newer than the minimum.
 /// </remarks>
 public class PoracleServerProfileTests
 {
-    /// <summary>The real payload from production, 5.1.0.</summary>
+    /// <summary>The real payload from production when it ran 5.1.0.</summary>
     private const string HealthyResponse =
         """
         {"capabilities":{"buttons":true,"snapshots":true,"autocreate":true,"tomlDts":true,
         "buttonResponseObject":true},"status":"healthy","version":"5.1.0"}
         """;
 
-    private readonly Mock<IPoracleSchemaVersionReader> _schema = new();
+    private int _probes;
 
     private PoracleServerProfileService Service(
         HttpStatusCode status = HttpStatusCode.OK,
@@ -43,14 +41,18 @@ public class PoracleServerProfileTests
 
         if (throws is not null)
         {
-            setup.ThrowsAsync(throws);
+            setup.Callback(() => Interlocked.Increment(ref this._probes)).ThrowsAsync(throws);
         }
         else
         {
             // A fresh response per call: the service disposes what it reads, which is correct, and a
             // single shared instance makes the second probe fail on a disposed stream rather than on
             // anything real.
-            setup.ReturnsAsync(() => new HttpResponseMessage(status) { Content = new StringContent(body) });
+            setup.ReturnsAsync(() =>
+            {
+                Interlocked.Increment(ref this._probes);
+                return new HttpResponseMessage(status) { Content = new StringContent(body) };
+            });
         }
 
         var configuration = new ConfigurationBuilder()
@@ -59,7 +61,6 @@ public class PoracleServerProfileTests
 
         return new PoracleServerProfileService(
             new HttpClient(handler.Object),
-            this._schema.Object,
             new MemoryCache(new MemoryCacheOptions()),
             configuration,
             NullLogger<PoracleServerProfileService>.Instance);
@@ -68,13 +69,10 @@ public class PoracleServerProfileTests
     [Fact]
     public async Task ReadsTheVersionAndTheWholeCapabilityMap()
     {
-        this._schema.Setup(s => s.GetAppliedMigrationAsync(It.IsAny<CancellationToken>())).ReturnsAsync(5L);
-
         var profile = await this.Service().GetAsync();
 
         Assert.True(profile.Reachable);
         Assert.Equal("5.1.0", profile.Version);
-        Assert.Equal(5L, profile.SchemaVersion);
         Assert.Equal(5, profile.Capabilities.Count);
         Assert.True(profile.Supports("buttons"));
     }
@@ -84,7 +82,7 @@ public class PoracleServerProfileTests
     {
         // derivedDtsTypes exists on PoracleNG's develop branch and in no release. Reading the map into a
         // fixed set of known keys would drop whatever lands next, which is the opposite of the point.
-        var profile = await this.Service(body: """{"version":"5.2.0","capabilities":{"derivedDtsTypes":true}}""").GetAsync();
+        var profile = await this.Service(body: """{"version":"5.2.1","capabilities":{"derivedDtsTypes":true}}""").GetAsync();
 
         Assert.True(profile.Supports("derivedDtsTypes"));
     }
@@ -108,6 +106,8 @@ public class PoracleServerProfileTests
         Assert.Null(profile.Version);
         Assert.False(profile.Supports("buttons"));
         Assert.False(profile.IsBelowMinimum); // unknown, not old
+        Assert.False(profile.IsSupported);
+        Assert.False(profile.SupportsV2Tracking);
     }
 
     [Fact]
@@ -116,30 +116,7 @@ public class PoracleServerProfileTests
         var profile = await this.Service(apiAddress: "").GetAsync();
 
         Assert.False(profile.Reachable);
-        this._schema.Verify(s => s.GetAppliedMigrationAsync(It.IsAny<CancellationToken>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task TheSchemaIsStillReadWhenTheProcessIsDown()
-    {
-        // A stopped PoracleNG leaves its migrated database behind, and that still says which columns
-        // exist. Losing it would turn a restart into "every gated feature disappears".
-        this._schema.Setup(s => s.GetAppliedMigrationAsync(It.IsAny<CancellationToken>())).ReturnsAsync(8L);
-
-        var profile = await this.Service(throws: new HttpRequestException("down")).GetAsync();
-
-        Assert.Equal(8L, profile.SchemaVersion);
-    }
-
-    [Fact]
-    public async Task AnUnreadableSchemaUnlocksNothing()
-    {
-        this._schema.Setup(s => s.GetAppliedMigrationAsync(It.IsAny<CancellationToken>())).ReturnsAsync((long?)null);
-
-        var profile = await this.Service().GetAsync();
-
-        Assert.Null(profile.SchemaVersion);
-        Assert.False(profile.HasSchema(6));
+        Assert.Equal(0, this._probes);
     }
 
     [Fact]
@@ -150,7 +127,7 @@ public class PoracleServerProfileTests
         await service.GetAsync();
         await service.GetAsync();
 
-        this._schema.Verify(s => s.GetAppliedMigrationAsync(It.IsAny<CancellationToken>()), Times.Once);
+        Assert.Equal(1, this._probes);
     }
 
     [Fact]
@@ -162,20 +139,30 @@ public class PoracleServerProfileTests
         service.Invalidate();
         await service.GetAsync();
 
-        this._schema.Verify(s => s.GetAppliedMigrationAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
+        Assert.Equal(2, this._probes);
+    }
+
+    [Fact]
+    public void TheMinimumIs521()
+    {
+        Assert.Equal(new System.Version(5, 2, 1), PoracleServerProfile.MinimumSupported);
     }
 
     [Theory]
-    [InlineData("5.1.0", false)]
-    [InlineData("5.2.0", false)]
-    [InlineData("6.0.0", false)]
+    [InlineData("5.1.0", true)]
+    [InlineData("5.2.0", true)]
     [InlineData("5.0.9", true)]
     [InlineData("4.9.9", true)]
+    [InlineData("5.2.1", false)]
+    [InlineData("5.3.0", false)]
+    [InlineData("6.0.0", false)]
     public void OnlyAVersionKnownToBeOlderCountsAsTooOld(string version, bool tooOld)
     {
         var profile = new PoracleServerProfile { Version = version, Reachable = true };
 
         Assert.Equal(tooOld, profile.IsBelowMinimum);
+        Assert.Equal(!tooOld, profile.IsSupported);
+        Assert.Equal(!tooOld, profile.SupportsV2Tracking);
     }
 
     [Theory]
@@ -186,11 +173,22 @@ public class PoracleServerProfileTests
     public void AVersionThatSaysNothingIsNotTreatedAsOld(string? version)
     {
         // Shouting "upgrade PoracleNG" at someone running a local build would teach them to ignore the
-        // banner, and the banner has one job.
+        // banner, and the banner has one job. Hiding features from it would be the same mistake quieter.
         var profile = new PoracleServerProfile { Version = version, Reachable = true };
 
         Assert.Null(profile.ParsedVersion);
         Assert.False(profile.IsBelowMinimum);
+        Assert.True(profile.IsSupported);
+        Assert.True(profile.SupportsV2Tracking);
+    }
+
+    [Fact]
+    public void AnUnreachableServerIsNotSupportedWhateverItLastSaid()
+    {
+        var profile = new PoracleServerProfile { Version = "5.3.0", Reachable = false };
+
+        Assert.False(profile.IsSupported);
+        Assert.False(profile.SupportsV2Tracking);
     }
 
     [Theory]
@@ -201,17 +199,6 @@ public class PoracleServerProfileTests
         var profile = new PoracleServerProfile { Version = raw, Reachable = true };
 
         Assert.Equal(new System.Version(major, minor, build), profile.ParsedVersion);
-    }
-
-    [Theory]
-    [InlineData(5, 5, true)]
-    [InlineData(8, 6, true)]
-    [InlineData(5, 6, false)]
-    public void SchemaComparisonsAreInclusive(long applied, long required, bool satisfied)
-    {
-        var profile = new PoracleServerProfile { SchemaVersion = applied };
-
-        Assert.Equal(satisfied, profile.HasSchema(required));
     }
 
     [Fact]
@@ -238,8 +225,7 @@ public class PoracleServerProfileTests
     {
         // AddHttpClient registers this transient, so every caller gets its own instance and the cache is
         // the only thing they share. A dashboard load fires several version-gated tracking writes at
-        // once; without the gate each of them misses the same empty cache and runs its own /health GET
-        // and schema_migrations SELECT.
+        // once; without the gate each of them misses the same empty cache and runs its own /health GET.
         var probes = 0;
         var handler = new Mock<HttpMessageHandler>();
         handler.Protected()
@@ -260,7 +246,6 @@ public class PoracleServerProfileTests
 
         PoracleServerProfileService Instance() => new(
             new HttpClient(handler.Object),
-            this._schema.Object,
             shared,
             configuration,
             NullLogger<PoracleServerProfileService>.Instance);
@@ -269,7 +254,6 @@ public class PoracleServerProfileTests
             Enumerable.Range(0, 8).Select(_ => Task.Run(() => Instance().GetAsync())));
 
         Assert.Equal(1, probes);
-        this._schema.Verify(r => r.GetAppliedMigrationAsync(It.IsAny<CancellationToken>()), Times.Once);
         Assert.All(results, profile => Assert.Equal("5.1.0", profile.Version));
     }
 }

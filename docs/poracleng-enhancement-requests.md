@@ -261,11 +261,10 @@ server older than 5.2.1 sends, and both accept any code, so the two need no tell
 hook. `pokestop`, which was in the array while nothing in the processor read the flag, is gone from it and
 the config field is deprecated.
 
-Both halves leave a tail for older servers. `UpstreamFeatureFlagService` still reads
-`general.disable_fort_update` from `GET /api/config/values`, but only when the config response did not
-carry `availableLanguages` — the discriminator for pre-5.2.1, since both fields arrived in the same
-release. And `pokestop` still maps to nothing, because a 5.1.0 server still sends it and the obvious
-reading would switch off lures, invasions and quests on a flag that does nothing.
+The tail this left for older servers is gone. `UpstreamFeatureFlagService` used to read
+`general.disable_fort_update` from `GET /api/config/values` for a server that did not report
+`availableLanguages`; that read went when 5.2.1 became the minimum (2026-10-20). `pokestop` still maps to
+nothing, which costs nothing and stays right if anything still sends it.
 
 `disable_showcase` is the same shape one release later: enforced, absent from `disabledHooks`, and read
 separately by `IPoracleApiProxy.GetShowcaseDisabledAsync`. Filed as
@@ -362,7 +361,10 @@ number would make PoracleNG's migration *numbering* a public contract. PR #217 a
 instead, with a `costume` capability flag on `/health`, `GET /api/v2/activity` and
 `GET /api/masterdata/costumes`.
 
-**Here:** `PoracleSchemaVersionReader` keeps reading `schema_migrations` from the Poracle database directly.
+**Here:** nothing any more. `PoracleSchemaVersionReader` read `schema_migrations` (and `information_schema`)
+from the Poracle database directly, for the costume columns and the lure and invasion unique keys. Every
+supported release (5.2.1 and later) has all three answers the same way, so it was deleted when 5.2.1 became
+the minimum.
 
 ### No list-humans and no delete-human, on either version
 
@@ -433,7 +435,8 @@ their own, separate unblocking.
 ### Tracking create has no upsert path for natural-key types
 
 **Status: closed by a schema change in 5.2.1.** Migration `000008_drop_tracking_unique_keys` (upstream
-commit `5a3886a`, 2026-08-18, three days before the 5.2.1 version bump) drops both keys.
+commit `5a3886a`, 2026-08-18, three days before the 5.2.1 version bump) drops both keys. The workaround
+below was deleted when 5.2.1 became PoracleWeb.NET's minimum (2026-10-20).
 
 `lure` and `invasion` were the only types PoracleWeb tracks that carried a unique index over a natural key:
 
@@ -452,15 +455,14 @@ Duplicate entry '<id>-<profile_no>-<lure_id>' for key 'lure_tracking'
 ```
 
 PoracleNG answered `500 {"message":"database error"}` and the edit was discarded, so the only way to edit
-these two types was to delete the row first. That is what `NaturalKeyTrackingUpdate` does, at the cost of
+these two types was to delete the row first. That is what `NaturalKeyTrackingUpdate` did, at the cost of
 rotating the `uid` on every edit and orphaning anything holding the old one -- quick-pick applied state
 tracks uids. `ITrackedUidRemapper` moves that state across, so the rotation is handled rather than merely
 known about.
 
-**Here, still:** `LureService` tries the v2 PUT first and only falls back to delete-then-create when that
-write is declined. `InvasionService` has no v2 path at all (see #209 above), so it takes the fallback every
-time -- which on a 5.2.1-migrated database pays the uid rotation to avoid a collision that can no longer
-happen.
+**Here, now:** `LureService` and `InvasionService` try the v2 PUT first and otherwise take the same v1
+upsert-and-reconcile path as every other type, behind the shared merge guard. `NaturalKeyTrackingUpdate`,
+`INaturalKeyCapabilityService` and the natural-key Add refusals are gone.
 
 Pokemon rotates too, for a different reason: on 5.2.0 and later its edits go through
 `PUT /api/v2/humans/{id}/tracking/pokemon/{uid}`, whose engine is delete-then-insert. It used to be the one
@@ -485,5 +487,5 @@ type whose uid survived an edit.
 | NULL field defaults | Low | Handled by PoracleNG `cleanRow()` | Resolved by the proxy migration |
 | monsters.go COALESCE | -- | None needed | Fixed upstream; `template` is COALESCE'd on `main` |
 | available_languages not readable | -- | None needed | **Adopted** on 5.2.1 ([#194](https://github.com/jfberry/PoracleNG/issues/194)) |
-| disabledHooks omits fort | Low | Second config call, pre-5.2.1 servers only | Fixed in 5.2.1 ([#195](https://github.com/jfberry/PoracleNG/issues/195)) |
-| Natural-key create collision | -- | Delete-then-create (`NaturalKeyTrackingUpdate`) | Keys dropped by 5.2.1 migration 8 |
+| disabledHooks omits fort | Low | None needed | Fixed in 5.2.1 ([#195](https://github.com/jfberry/PoracleNG/issues/195)); the pre-5.2.1 second config call was removed with 5.1.0 support |
+| Natural-key create collision | -- | None needed | Keys dropped by 5.2.1 migration 8; `NaturalKeyTrackingUpdate` removed with 5.1.0 support |

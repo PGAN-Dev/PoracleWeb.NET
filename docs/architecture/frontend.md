@@ -29,7 +29,7 @@ src/app/
 │   ├── gyms/            Gym alarm management
 │   ├── fort-changes/    Fort change alarm management
 │   ├── max-battles/     Max Battle (Dynamax) alarm management
-│   ├── pokestop-events/ Pokéstop Event alarm management (PoracleNG 5.2.0+)
+│   ├── pokestop-events/ Pokéstop Event alarm management
 │   ├── areas/           Areas, the home pin, and saved places on one page
 │   ├── geofences/       Custom geofence drawing
 │   ├── profiles-overview/  Profile cards, the routed /profiles page
@@ -64,8 +64,9 @@ The `GymSearchResult` interface defines the shape: `id`, `name`, `url`, `lat`, `
 
 `MuteService` (`core/services/mute.service.ts`) holds the user's quiet periods as a live signal, read
 from and written to `/api/mutes`. The list response carries `capable` alongside the rules, so one call
-answers both whether this PoracleNG has the mute store (5.2.0 and later) and what is currently muted.
-When it does not, the quiet surface is not rendered at all.
+answers both whether this PoracleNG has the mute store (every supported release does; an unreachable or
+too-old server does not) and what is currently muted. When it does not, the quiet surface is not
+rendered at all.
 
 Two things about the upstream store shape the service. Mutes are keyed by `(scope, value)` with no id,
 so that pair is the key here too. And the store lives in the processor's memory, so a restart wipes it
@@ -76,7 +77,7 @@ ticks rather than resolving to a clock time. PoracleNG holds seven scopes; the S
 ### PokestopEventService
 
 `PokestopEventService` (`core/services/pokestop-event.service.ts`) backs the Pokéstop Events module.
-Same v2-only constraint as mutes: on an older PoracleNG the page is not reachable.
+The type is v2-only, and the page exists only where Poracle's config carries `general.disable_showcase = false`; elsewhere it is not reachable.
 
 ### ProfileService — active hours
 
@@ -93,7 +94,7 @@ The `active-hours.models.ts` file (`core/models/`) defines the `ActiveHoursEntry
 - `load()` / `add(place)` / `move(label, lat, lon)` — each sets the signal from the response
 - `remove(label)` — answers **409** with `referencingRules` when alarms still point at the place; the caller should name them rather than reporting a bare failure
 
-A `canEdit` computed comes from the same response and gates the move control: the route behind it is v2-only, so on PoracleNG 5.1.0 there is no way to move a place and the pencil is not rendered. See [Version compatibility](poracleng-compatibility.md#what-depends-on-the-server-version).
+A `canEdit` computed comes from the same response and gates the move control: the route behind it is v2-only, so when PoracleNG is unreachable or older than the supported minimum the pencil is not rendered. See [Version compatibility](poracleng-compatibility.md#what-depends-on-the-server-version).
 
 ### AlertLanguageService
 

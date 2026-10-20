@@ -151,11 +151,8 @@ public class PoracleApiProxy(
 
         if (root.TryGetProperty("availableLanguages", out var availableLanguages))
         {
-            // Presence is the signal, value is the restriction. Absent means a PoracleNG older than
-            // 5.2.1; present-and-null means present-and-unrestricted, which upstream reports for an
-            // unset and an empty map alike.
-            config.ReportsAvailableLanguages = true;
-
+            // The value is the restriction. Absent (a PoracleNG older than 5.2.1) and present-and-null
+            // both mean unrestricted, which upstream reports for an unset and an empty map alike.
             if (availableLanguages.ValueKind == JsonValueKind.Array)
             {
                 config.AvailableLanguages = [];
@@ -243,10 +240,6 @@ public class PoracleApiProxy(
     /// </summary>
     public Task<bool?> GetQuestSummaryEnabledAsync() =>
         this.ReadConfigValueBoolAsync("tracking", "quest_summary_enabled");
-
-    /// <inheritdoc />
-    public Task<bool?> GetFortUpdateDisabledAsync() =>
-        this.ReadConfigValueBoolAsync("general", "disable_fort_update");
 
     /// <inheritdoc />
     public Task<bool?> GetShowcaseDisabledAsync() =>

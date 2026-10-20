@@ -776,10 +776,6 @@ export interface AlarmScope {
 
 // ─── PoracleNG server profile ──────────────────────────────────────────────────
 
-/**
- * What PoracleWeb knows about the PoracleNG it is pointed at. Read from that server's `/health` plus
- * its applied migration number; used to say when the server is too old for features this build ships.
- */
 /** How a running component compares to what has been published. */
 export type UpdateState = 'Behind' | 'PreRelease' | 'Unknown' | 'UpToDate';
 
@@ -789,6 +785,10 @@ export interface UpdateStatus {
   state: UpdateState;
 }
 
+/**
+ * What PoracleWeb knows about the PoracleNG it is pointed at, read from that server's `/health`; used to
+ * say when the server is older than the minimum this build supports.
+ */
 export interface PoracleServerProfile {
   /** True only when the version is known and older than `minimumSupported`. */
   belowMinimum: boolean;
@@ -796,11 +796,9 @@ export interface PoracleServerProfile {
   capabilities: Record<string, boolean>;
   checkedAt: string;
   minimumSupported: string;
-  /** Applied migration number, or null when it could not be read. */
   /** Whether the Poracle server is behind its own latest release. */
   poracleUpdate: UpdateStatus;
   reachable: boolean;
-  schemaVersion: null | number;
   version: null | string;
   /** This site's own build. */
   web: { buildDate: null | string; revision: null | string; version: null | string };

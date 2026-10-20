@@ -8,17 +8,8 @@ public interface IPoracleApiProxy
     Task<bool?> GetQuestSummaryEnabledAsync();
 
     /// <summary>
-    /// Reads <c>general.disable_fort_update</c> from PoracleNG's config-values endpoint. PoracleNG
-    /// honours this flag in the processor and the bot but leaves it out of the <c>disabledHooks</c>
-    /// array on <c>/api/config/poracleWeb</c>, so fort changes have to be asked about separately.
-    /// Returns <c>null</c> when the value cannot be determined (older Poracle, PoracleJS, endpoint
-    /// shape changed) so the caller can leave the site setting in sole charge.
-    /// </summary>
-    Task<bool?> GetFortUpdateDisabledAsync();
-
-    /// <summary>
-    /// Reads <c>general.disable_showcase</c> from PoracleNG's config-values endpoint. Like
-    /// <c>disable_fort_update</c> it is enforced upstream but omitted from <c>disabledHooks</c>.
+    /// Reads <c>general.disable_showcase</c> from PoracleNG's config-values endpoint. It is enforced
+    /// upstream but omitted from <c>disabledHooks</c>.
     /// </summary>
     /// <remarks>
     /// <c>null</c> here means more than "cannot determine": the key is absent on every PoracleNG below

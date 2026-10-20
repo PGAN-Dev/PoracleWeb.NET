@@ -19,15 +19,13 @@ namespace Pgan.PoracleWebNet.Core.Models;
 /// vestigial: <c>DisablePokestop</c> appeared nowhere in the 5.1.0 processor outside the array
 /// itself, and mapping it would have taken three working types away for a flag that did nothing.
 /// PoracleNG 5.2.1 dropped it from the array and marked the config field deprecated
-/// (jfberry/PoracleNG#197), so it now only reaches here from an older server — where ignoring it is
-/// still the right answer.
+/// (jfberry/PoracleNG#197). Leaving it unmapped costs nothing and stays right if a server still sends it.
 /// </para>
 /// <para>
 /// <c>fort</c> was the mirror-image case up to 5.1.0: enforced in the processor and the bot but left
-/// out of <c>hookTypes</c>, so it had to be read separately from <c>general.disable_fort_update</c>
-/// on <c>GET /api/config/values</c>. The same upstream release added it to the array under the name
-/// its tracking type already used, so it maps here like any other hook and the second read is now
-/// made only for a server too old to report it — see <c>UpstreamFeatureFlagService.ProbeAsync</c>.
+/// out of <c>hookTypes</c>. The same upstream release added it to the array under the name its tracking
+/// type already used, so it maps here like any other hook. The separate
+/// <c>general.disable_fort_update</c> read that covered older servers went when 5.2.1 became the minimum.
 /// </para>
 /// <para>
 /// <c>disable_showcase</c> still has deliberately no entry: verified on a live 5.2.1, it is present in
@@ -55,7 +53,7 @@ public static class PoracleDisabledHookMap
         ["nest"] = DisableFeatureKeys.Nests,
         ["gym"] = DisableFeatureKeys.Gyms,
         ["maxbattle"] = DisableFeatureKeys.MaxBattles,
-        // Reported from PoracleNG 5.2.1 on. Older servers say so only via general.disable_fort_update.
+        // Reported from PoracleNG 5.2.1 on, the supported minimum.
         ["fort"] = DisableFeatureKeys.FortChanges,
     };
 

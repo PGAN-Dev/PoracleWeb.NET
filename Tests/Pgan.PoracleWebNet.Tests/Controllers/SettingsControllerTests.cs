@@ -267,7 +267,6 @@ public class SettingsControllerTests : ControllerTestBase
         SetupUser(this._sut, isAdmin: false);
         this._poracleApi.Setup(p => p.GetConfigAsync()).ReturnsAsync(new PoracleConfig
         {
-            ReportsAvailableLanguages = true,
             AvailableLanguages = ["en", "de", "pt-BR"],
         });
         this._siteService.Setup(s => s.GetAllAsync()).ReturnsAsync([]);
@@ -289,7 +288,6 @@ public class SettingsControllerTests : ControllerTestBase
         this._poracleApi.Setup(p => p.GetConfigAsync()).ReturnsAsync(new PoracleConfig
         {
             Locale = "en",
-            ReportsAvailableLanguages = true,
         });
         this._siteService.Setup(s => s.GetAllAsync()).ReturnsAsync([]);
 
@@ -322,7 +320,6 @@ public class SettingsControllerTests : ControllerTestBase
         };
         this._poracleApi.Setup(p => p.GetConfigAsync()).ReturnsAsync(new PoracleConfig
         {
-            ReportsAvailableLanguages = true,
             AvailableLanguages = ["en", "sv"],
         });
         this._siteService.Setup(s => s.GetPublicAsync()).ReturnsAsync([]);
@@ -357,7 +354,6 @@ public class SettingsControllerTests : ControllerTestBase
         SetupUser(this._sut, isAdmin: false);
         this._poracleApi.Setup(p => p.GetConfigAsync()).ReturnsAsync(new PoracleConfig
         {
-            ReportsAvailableLanguages = true,
             AvailableLanguages = ["en", "en; DROP TABLE humans", "de"],
         });
         this._siteService.Setup(s => s.GetAllAsync()).ReturnsAsync([]);

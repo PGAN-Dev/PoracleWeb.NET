@@ -2,20 +2,20 @@ using System.Text.Json;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
 /// <summary>
-/// Asks PoracleNG what it is and what it can store.
+/// Asks PoracleNG what it is.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Two reads, because they answer different questions. <c>/health</c> gives the release number and
-/// PoracleNG's own capability map — which covers bot and template-editor features, and nothing about
-/// alarm columns. The applied migration number covers the columns.
+/// One read: <c>/health</c> gives the release number and PoracleNG's own capability map. It used to be
+/// paired with a <c>schema_migrations</c> read straight out of PoracleNG's database, for the columns 5.1.0
+/// lacked; with 5.2.1 the minimum nothing needs the migration number, so PoracleWeb.NET no longer reads
+/// PoracleNG's database to answer this.
 /// </para>
 /// <para>
 /// <c>/health</c> is unauthenticated, so this carries no secret and works even when the API key is
@@ -25,7 +25,6 @@ namespace Pgan.PoracleWebNet.Core.Services;
 /// </remarks>
 public partial class PoracleServerProfileService(
     HttpClient httpClient,
-    IPoracleSchemaVersionReader schemaReader,
     IMemoryCache cache,
     IConfiguration configuration,
     ILogger<PoracleServerProfileService> logger) : IPoracleServerProfileService
@@ -42,16 +41,15 @@ public partial class PoracleServerProfileService(
     /// One probe at a time, process-wide.
     /// </summary>
     /// <remarks>
-    /// A cold cache costs an HTTP <c>/health</c> GET and a <c>schema_migrations</c> SELECT, and the callers
-    /// arrive in parallel: every version-gated tracking write consults this, and a dashboard load fires
-    /// several at once. Without the gate they all miss the same empty cache and each runs the pair. The
+    /// A cold cache costs an HTTP <c>/health</c> GET, and the callers arrive in parallel: every
+    /// version-gated tracking write consults this, and a dashboard load fires several at once. Without the
+    /// gate they all miss the same empty cache and each sends its own probe. The
     /// gate is static because <c>AddHttpClient</c> registers this transient, so an instance field would
     /// serialise nothing; the cache it guards is the shared singleton either way.
     /// </remarks>
     private static readonly SemaphoreSlim ProbeGate = new(1, 1);
 
     private readonly HttpClient _httpClient = httpClient;
-    private readonly IPoracleSchemaVersionReader _schemaReader = schemaReader;
     private readonly IMemoryCache _cache = cache;
     private readonly string _apiAddress = configuration["Poracle:ApiAddress"] ?? string.Empty;
     private readonly ILogger<PoracleServerProfileService> _logger = logger;
@@ -109,11 +107,6 @@ public partial class PoracleServerProfileService(
             return PoracleServerProfile.Unknown(now);
         }
 
-        // The schema read is independent of whether PoracleNG answers, and is worth having either way:
-        // a stopped process still leaves a migrated database behind.
-        var schemaVersion = await this._schemaReader.GetAppliedMigrationAsync(cancellationToken);
-        var uniqueKeyed = await this._schemaReader.GetUniqueKeyedTablesAsync(cancellationToken);
-
         try
         {
             using var response = await this._httpClient.GetAsync(
@@ -127,8 +120,6 @@ public partial class PoracleServerProfileService(
             {
                 Version = version,
                 Capabilities = capabilities,
-                SchemaVersion = schemaVersion,
-                UniqueKeyedTrackingTables = uniqueKeyed,
                 Reachable = true,
                 CheckedAt = now,
             };
@@ -137,13 +128,7 @@ public partial class PoracleServerProfileService(
         {
             LogProbeFailed(this._logger, this._apiAddress, ex);
 
-            return new PoracleServerProfile
-            {
-                SchemaVersion = schemaVersion,
-                UniqueKeyedTrackingTables = uniqueKeyed,
-                Reachable = false,
-                CheckedAt = now,
-            };
+            return PoracleServerProfile.Unknown(now);
         }
     }
 

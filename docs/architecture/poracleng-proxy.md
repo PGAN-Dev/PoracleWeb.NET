@@ -2,8 +2,8 @@
 
 All alarm tracking operations (create, read, update, delete) are proxied through the PoracleNG REST API instead of writing directly to the Poracle MySQL database. This ensures PoracleNG applies field defaults, deduplication, and immediate state reload on every mutation.
 
-!!! warning "PoracleNG 5.1.0 or newer"
-    `PoracleServerProfile.MinimumSupported` is 5.1.0 — the release that adds `override_location_label`, `override_areas` and `pvp_ranking_evolution`. Below it those columns do not exist, so per-alarm delivery scope, the PVP mega picker and the minimum time-left filter write fields nothing stores and fail silently. The [server capability probe](backend.md#server-capability-probe) reports the running version and warns an admin when it is known to be older.
+!!! warning "PoracleNG 5.2.1 or newer"
+    `PoracleServerProfile.MinimumSupported` is 5.2.1. Against anything older PoracleWeb.NET still runs, but the [server capability probe](backend.md#server-capability-probe) logs an error at startup and warns an admin, and lure and invasion edits can fail there. See [Version compatibility](poracleng-compatibility.md).
 
 ## Why we migrated
 
@@ -76,18 +76,13 @@ usable default rather than failing the request:
 |---|---|---|
 | `GET /api/masterdata/monsters?locale={code}` | Pokemon names, types, form names and evolution chains, translated into the display language | Falls back to the English [WatWowMap masterfile](https://github.com/WatWowMap/Masterfile-Generator) cached server-side, so the pickers stay populated |
 | `GET /api/config/poracleWeb` &rarr; `disabledHooks` | The per-type disable flags Poracle sets in its own config, honoured here as a floor under the site settings | Empty set: the local `disable_*` settings are in sole charge. Fails **open**, deliberately |
-| `GET /api/config/values` &rarr; `general.disable_fort_update` | Fort changes on a PoracleNG older than 5.2.1, which enforced the flag but left `fort` out of `disabledHooks` | Same, and independently of the call above, so a Poracle without this route keeps the hook list it already has |
 | `GET /api/config/values` &rarr; `general.disable_showcase` | Whether the Pokéstop Events page exists at all | Treated as disabled. This one probe fails **closed**, because a server that cannot answer it is also a server whose v2 `incident` route the page would 404 against |
 | `GET /api/config/values` &rarr; `tracking.quest_summary_enabled` | Whether quest summary delivery is offered | Treated as off, so the control is hidden rather than saving into a delivery nothing performs |
 
-The fort row is a wart, not a design: 5.2.1 put `fort` in the array
-([jfberry/PoracleNG#197](https://github.com/jfberry/PoracleNG/issues/197)), so the extra call is now made
-only against a server old enough to need it. What identifies one is the **presence of
-`availableLanguages` on the config response**, not a version string: both arrived in the same release,
-and an empty `disabledHooks` cannot say whether nothing is disabled or the server is too old to report
-it. A config read that failed leaves the question unanswered, so the extra call is made rather than
-skipped — guessing "new" would stop honouring the flag on every older server the moment Poracle
-hiccuped.
+Fort changes arrive in `disabledHooks` as `fort` from 5.2.1
+([jfberry/PoracleNG#197](https://github.com/jfberry/PoracleNG/issues/197)). Up to 5.1.0 they did not,
+and a second read of `general.disable_fort_update` covered those servers; it went when 5.2.1 became the
+minimum.
 
 The locale on the first row is the display language, which is why switching language re-fetches the
 map — Poracle owns the translations, so this site does not carry Pokemon names of its own.
@@ -123,6 +118,12 @@ Two qualifications:
 - A field PoracleWeb does not supply cannot be compared. PoracleNG fills it with its own default, so a
   null says nothing about what will be stored. That is why `TrackingFieldPreserver` merges the stored
   row in before the guard runs — see [Backend → Update pattern](backend.md#update-pattern).
+- Lures, invasions and Pokéstop events take this same guard and nothing stricter. Up to PoracleNG 5.1.0
+  their tables carried a unique key on the natural key (`lure_id`; `grunt_type` and `gender`), so
+  PoracleWeb.NET refused any second rule on it and edited by deleting the row first. Migration 8 dropped
+  the keys, and that code went when 5.2.1 became the minimum. A refusal on the natural key alone would
+  now refuse rules PoracleNG stores side by side: an area-scoped twin, a place-measured one, two
+  updatable fields apart.
 
 <a id="the-v2-pilot"></a>
 
@@ -163,10 +164,9 @@ the one type whose uid survived an edit; on 5.2.x it no longer is.
 and `MonsterService` does the same after its own update, but only when the uid actually moved, so
 quick-pick applied state follows the row rather than pointing at a uid that is gone.
 
-**Two workarounds disappear when the PUT is available.** Max battles are insert-only on v1 and had to be
-deleted and recreated; lures are guarded by a natural unique key whose v1 create has no upsert path, so
-an edit had to delete, create and restore on failure. A uid-addressed replace needs neither, and skips
-the window where the alarm exists nowhere. Both keep their v1 path for a server without the route.
+**A workaround disappears when the PUT is available.** Max battles are insert-only on v1 and have to be
+deleted and recreated; a uid-addressed replace skips the window where the alarm exists nowhere. Max
+battles keep that v1 path for a server without the route.
 
 ### What changes at the wire
 
@@ -209,9 +209,10 @@ an empty ping is simply dropped, since either surface stores the same empty stri
 
 `Poracle:TrackingApiVersion` (env `PORACLE_TRACKING_API_VERSION`, mapped in `Program.cs`) takes `auto`,
 `v1` or `v2`. `auto` is the default and asks the server: `SupportsV2Tracking` is
-`ParsedVersion >= 5.2.0`, and an unknown or unparseable version resolves to false. An operator needs the
-pin because a fork can carry the routes while reporting an older number, or the reverse, and a version
-probe sees neither. Pinning `v2` skips the probe but not the runtime fallback, so a server that turns
+`PoracleServerProfile.IsSupported`, true when PoracleNG answered and is not known to be older than 5.2.1
+(an unparseable version or a local build's `0.0.0` counts as current; an unreachable server does not).
+An operator needs the pin because a fork can carry the routes while reporting an older number, or the
+reverse, and a version probe sees neither. Pinning `v2` skips the probe but not the runtime fallback, so a server that turns
 out not to have the route degrades rather than failing every edit.
 
 If the v2 route answers gin's plaintext `404 page not found` anyway, the proxy remembers that absence
@@ -261,7 +262,6 @@ asked for it. Nothing throws it yet — the capability services hide their contr
 | Profile geography after a create, duplicate or import (`ProfileRepository.UpdateAsync`) **as a fallback only** | `addProfile` ignores `area`, `latitude` and `longitude`, so a new profile inherited whatever the **active** one had — the right alarms over the wrong map. Where the server declares `?profile=` on both `POST /v2/humans/{id}/areas` and `POST /v2/humans/{id}/location` (`PoracleV2Capabilities.ProfileScopedGeography`), `NewProfileGeography` writes them there instead ([#993](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/993)): a non-empty area list goes with `trusted`, so only where `trusted` is safe (the #838 gate), and a refused name, a refusal or a missing route falls back to the direct write |
 | User-geofence area writes (`IUserAreaDualWriter`, `humans.area` + `profiles.area`) **as a fallback for three of six methods** | `setAreas` intersects the submitted list against `userSelectable=true` fences for non-admins, so a user's own geofence is silently stripped. Three active-profile methods prefer v2's trusted `setAreas` instead when the server carries jfberry/PoracleNG#230 and `area_security` is confirmed off ([#838](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/838)); the other three have no safe v2 form yet |
 | Per-alarm `override_areas` (`IUserAreaDualWriter.SetAlarmOverrideAreasAsync`) | The tracking write validates the same names against `GetAvailableAreas` and answers 400 "area not permitted", failing the whole request. Matching never consults `userSelectable`, so the name is written into the column directly |
-| `schema_migrations` read (`PoracleSchemaVersionReader`) | The applied migration number is what says whether a column exists; nothing in the `/health` capability map describes alarm columns |
 | Deprecated `pweb_settings` KV table (`PwebSettingRepository`, plus one `ALTER TABLE ... MODIFY COLUMN value LONGTEXT NULL` at startup) | Legacy rows PoracleNG never knew about, kept alive only so `SettingsMigrationService` can copy them into `poracle_web` |
 | `poracle_web` database (geofences, settings, webhook delegates, quick picks) | Application-owned data, not managed by PoracleNG |
 | Scanner database (gym search, weather) | Read-only, separate database |
@@ -327,7 +327,7 @@ Key design points:
 - **`JsonElement` throughout** -- alarm data flows as raw JSON. Services deserialize with `JsonNamingPolicy.SnakeCaseLower` to map between C# PascalCase models and PoracleNG's snake_case JSON.
 - **`?silent=true`** on create, update **and delete** -- suppresses PoracleNG's DM confirmation. Without it on the delete routes, clearing a list DMed the user one filter dump per row removed: a bulk delete, a cleaning reset and an admin delete-all could each produce dozens.
 - **`X-Poracle-Secret` header** -- authenticates requests to the PoracleNG API. Configured via `Poracle:ApiSecret`.
-- **Two update entry points.** `UpdateByUidAsync` tries v2 and falls back to the v1 POST carrying the `uid`; `MonsterService` uses it. The other eight v2 types go through `TrackingV2Replacement.TryApplyAsync`, the only service-layer caller of `TryReplaceV2Async`, because each wraps its own v1 path in guards a successful v2 replace must skip — the max-battle delete-then-create, the lure natural-key replace, the reconcile of a stray insert. Both return the uid the rule now lives under, which may differ from the one that went in. See [The v2 write path](#the-v2-write-path).
+- **Two update entry points.** `UpdateByUidAsync` tries v2 and falls back to the v1 POST carrying the `uid`; `MonsterService` uses it. The other eight v2 types go through `TrackingV2Replacement.TryApplyAsync`, the only service-layer caller of `TryReplaceV2Async`, because each wraps its own v1 path in guards a successful v2 replace must skip — the max-battle delete-then-create, the reconcile of a stray insert. Both return the uid the rule now lives under, which may differ from the one that went in. See [The v2 write path](#the-v2-write-path).
 - **`uid:0` stripped on create** -- `PoracleJsonHelper.SerializeToElement()` removes `"uid":0` from request bodies. PoracleNG treats `uid=0` as an update target instead of a new insert; omitting `uid` tells PoracleNG to create a new row.
 - **`profile_no` stripped on every alarm write** -- the same helper removes it. PoracleNG takes a submitted
   `profile_no` at face value on the pokemon type (creating a row on a profile that may not exist) while

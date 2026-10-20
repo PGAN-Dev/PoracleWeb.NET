@@ -396,7 +396,7 @@ public partial class AdminController(
     public record CreateWebhookRequest(string Name, string Url);
 
     /// <summary>
-    /// Which PoracleNG this instance is talking to, what it can store, and whether that is new enough.
+    /// Which PoracleNG this instance is talking to, and whether that is new enough.
     /// </summary>
     /// <remarks>
     /// Admin-only because it describes the deployment rather than the account. Refreshes on request:
@@ -426,7 +426,6 @@ public partial class AdminController(
         return this.Ok(new
         {
             version = profile.Version,
-            schemaVersion = profile.SchemaVersion,
             capabilities = profile.Capabilities,
             reachable = profile.Reachable,
             checkedAt = profile.CheckedAt,

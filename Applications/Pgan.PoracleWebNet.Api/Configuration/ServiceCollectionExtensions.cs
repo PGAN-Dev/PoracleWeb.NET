@@ -93,7 +93,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPokemonEditCapabilityService, PokemonEditCapabilityService>();
         services.AddScoped<IMuteCapabilityService, MuteCapabilityService>();
         services.AddScoped<IPlaceUpdateCapabilityService, PlaceUpdateCapabilityService>();
-        services.AddScoped<INaturalKeyCapabilityService, NaturalKeyCapabilityService>();
         services.AddScoped<IInvasionGruntNameService, InvasionGruntNameService>();
         services.AddScoped<ICostumeCapabilityService, CostumeCapabilityService>();
         services.AddScoped<IUpstreamFeatureFlagService, UpstreamFeatureFlagService>();
@@ -132,11 +131,6 @@ public static class ServiceCollectionExtensions
         // Register HttpClient for Poracle API (config, geofences, templates — read-only proxy)
         services.AddHttpClient<IPoracleApiProxy, PoracleApiProxy>();
 
-        // Which PoracleNG this is, and what it can store. /health is unauthenticated, so this needs no
-        // secret and still answers when the API key is wrong -- a state that otherwise looks exactly
-        // like the server being down.
-        services.AddScoped<IPoracleSchemaVersionReader, PoracleSchemaVersionReader>();
-
         // The one outbound call PoracleWeb makes. Anonymous, cached for six hours, and switchable off
         // with disable_update_check for deployments that do not want egress at all.
         services.AddHttpClient<IUpdateCheckService, UpdateCheckService>(client =>
@@ -146,6 +140,8 @@ public static class ServiceCollectionExtensions
             client.DefaultRequestHeaders.UserAgent.ParseAdd("PoracleWeb.NET");
         });
 
+        // Which PoracleNG this is. /health is unauthenticated, so this needs no secret and still answers
+        // when the API key is wrong -- a state that otherwise looks exactly like the server being down.
         services.AddHttpClient<IPoracleServerProfileService, PoracleServerProfileService>(client =>
         {
             // A diagnostic must not hold a request open: an unreachable server should answer

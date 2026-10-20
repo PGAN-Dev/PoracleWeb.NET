@@ -6,9 +6,9 @@ namespace Pgan.PoracleWebNet.Core.Abstractions.Services;
 public interface IMuteCapabilityService
 {
     /// <summary>
-    /// True when the server is 5.2.0 or newer. Never throws -- an unreachable or unparseable server
-    /// answers false, so the surface stays hidden rather than offering a control every press of which
-    /// would 404.
+    /// True when the server answered and is not known to be older than the supported minimum. Never
+    /// throws -- an unreachable or too-old server answers false, so the surface stays hidden rather than
+    /// offering a control every press of which would 404.
     /// </summary>
     Task<bool> IsMuteApiAvailableAsync(CancellationToken cancellationToken = default);
 }

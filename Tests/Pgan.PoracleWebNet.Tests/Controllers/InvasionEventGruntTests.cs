@@ -5,7 +5,6 @@ using Pgan.PoracleWebNet.Api.Controllers;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Core.Services;
-using Pgan.PoracleWebNet.Tests.TestDoubles;
 
 namespace Pgan.PoracleWebNet.Tests.Controllers;
 
@@ -85,7 +84,7 @@ public class InvasionEventGruntTests : ControllerTestBase
         gate.Setup(g => g.IsEnabledAsync(DisableFeatureKeys.PokestopEvents)).ReturnsAsync(eventsPage);
         var service = new InvasionService(
             new Mock<IPoracleTrackingProxy>().Object, gate.Object, NullLogger<InvasionService>.Instance,
-            new Mock<ITrackedUidRemapper>().Object, NaturalKeyStub.Dropped);
+            new Mock<ITrackedUidRemapper>().Object);
 
         Assert.Equal(expected, await service.BelongsToPokestopEventsAsync(grunt));
     }
