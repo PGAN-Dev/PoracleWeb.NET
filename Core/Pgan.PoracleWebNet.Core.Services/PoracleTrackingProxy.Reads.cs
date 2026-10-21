@@ -1,0 +1,253 @@
+using System.Net;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using Microsoft.Extensions.Logging;
+using Pgan.PoracleWebNet.Core.Models;
+
+namespace Pgan.PoracleWebNet.Core.Services;
+
+/// <summary>
+/// Tracking reads, over PoracleNG's <c>/api/v2</c> surface and restated in the v1 shape every caller was
+/// written against (see <see cref="TrackingV2Translator.ToV1Row"/>). Nothing here reads a v1 route.
+/// </summary>
+public partial class PoracleTrackingProxy
+{
+    /// <summary>The keys v1's <c>/api/tracking/all</c> answered, which is what every consumer indexes by.</summary>
+    private static readonly string[] SnapshotTypes =
+        ["egg", "fort", "gym", "invasion", "lure", "maxbattle", "nest", "pokemon", "quest", "raid"];
+
+    private const string RequiredVersion = "PoracleNG 5.4.0";
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// <c>invasion</c> reads the <c>incident</c> list as well and folds it in: v1's invasion list held the
+    /// Pokestop events (<c>kecleon</c>, <c>gold-stop</c>, <c>showcase</c>) as rows whose <c>grunt_type</c> is
+    /// the event name, and every caller was written against that.
+    /// </remarks>
+    public async Task<JsonElement> GetByUserAsync(string type, string userId)
+    {
+        var rules = await this.ReadRulesAsync(type, userId);
+        var rows = this.V1Rows(type, rules, userId);
+
+        if (type == "invasion")
+        {
+            var events = await this.ReadRulesAsync("incident", userId);
+            rows.AddRange(this.EventRowsAsInvasions(this.V1Rows("incident", events, userId)));
+        }
+
+        return JsonSerializer.SerializeToElement(rows);
+    }
+
+    /// <inheritdoc />
+    public async Task<JsonElement> GetAllTrackingAsync(string userId)
+    {
+        var snapshot = await this.ReadSnapshotAsync(userId, string.Empty, "All alarms");
+        return this.SnapshotAsV1(snapshot, userId, stampProfileNo: null, profiles: null);
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// PoracleNG answers <c>?all_profiles=true</c> with nothing at all for a human who has no
+    /// <c>profiles</c> rows, though their rules exist (v1's <c>allProfiles</c> returned them). Losing them
+    /// here would blank the overview and let a duplicate copy nothing, so that case reads the
+    /// active-profile snapshot instead and stamps each rule with the human's current profile number.
+    /// </remarks>
+    public async Task<JsonElement> GetAllTrackingAllProfilesAsync(string userId)
+    {
+        var snapshot = await this.ReadSnapshotAsync(userId, "?all_profiles=true&include_descriptions=true", "All alarms");
+
+        if (HasProfiles(snapshot, out var profiles))
+        {
+            return this.SnapshotAsV1(snapshot, userId, stampProfileNo: null, profiles);
+        }
+
+        var active = await this.ReadSnapshotAsync(userId, "?include_descriptions=true", "All alarms");
+        var profileNo = CurrentProfileNo(active) ?? CurrentProfileNo(snapshot) ?? 0;
+        return this.SnapshotAsV1(active, userId, profileNo, profiles: null);
+    }
+
+    private static bool HasProfiles(JsonElement snapshot, out JsonElement profiles)
+    {
+        if (snapshot.TryGetProperty("profiles", out profiles)
+            && profiles.ValueKind == JsonValueKind.Array
+            && profiles.GetArrayLength() > 0)
+        {
+            return true;
+        }
+
+        profiles = default;
+        return false;
+    }
+
+    private static int? CurrentProfileNo(JsonElement snapshot) =>
+        snapshot.TryGetProperty("human", out var human)
+        && human.ValueKind == JsonValueKind.Object
+        && human.TryGetProperty("current_profile_no", out var no)
+        && no.ValueKind == JsonValueKind.Number
+            ? no.GetInt32()
+            : null;
+
+    private async Task<JsonElement> ReadRulesAsync(string type, string userId)
+    {
+        var root = await this.GetV2Async(
+            $"{this._apiAddress}/api/v2/humans/{Encode(userId)}/tracking/{type}?include_descriptions=true", "Alarm list");
+
+        return root.ValueKind == JsonValueKind.Object && root.TryGetProperty("rules", out var rules) ? rules : default;
+    }
+
+    private async Task<JsonElement> ReadSnapshotAsync(string userId, string query, string feature) =>
+        await this.GetV2Async(
+            $"{this._apiAddress}/api/v2/humans/{Encode(userId)}/tracking{query}", feature);
+
+    private async Task<JsonElement> GetV2Async(string url, string feature)
+    {
+        var request = this.CreateRequest(HttpMethod.Get, url);
+        var response = await this._httpClient.SendAsync(request);
+        var payload = await response.Content.ReadAsStringAsync();
+
+        if (!response.IsSuccessStatusCode)
+        {
+            switch (response.StatusCode)
+            {
+                case HttpStatusCode.NotFound when !PoracleProblemDetails.IsProblemJson(payload):
+                    // gin's plaintext "404 page not found": the route is absent, so this is not 5.4.0.
+                    throw new PoracleUnsupportedException(feature, RequiredVersion);
+
+                case HttpStatusCode.NotFound when payload.Contains("human not found", StringComparison.Ordinal):
+                    throw new AccountGoneException();
+
+                default:
+                    response.EnsureSuccessStatusCode();
+                    break;
+            }
+        }
+
+        using var doc = JsonDocument.Parse(payload);
+        return doc.RootElement.Clone();
+    }
+
+    /// <summary>
+    /// A list of v2 rules as v1 rows. A rule that cannot be translated (an enum value this build does not
+    /// know) is logged and left out rather than failing the list: one rule written by a newer PoracleNG
+    /// must not blank the dashboard, the cleaning page or an account deletion for everyone who holds it.
+    /// </summary>
+    private List<JsonElement> V1Rows(string type, JsonElement rules, string userId, int? stampProfileNo = null)
+    {
+        var rows = new List<JsonElement>();
+        if (rules.ValueKind != JsonValueKind.Array)
+        {
+            return rows;
+        }
+
+        foreach (var rule in rules.EnumerateArray())
+        {
+            if (rule.ValueKind != JsonValueKind.Object)
+            {
+                continue;
+            }
+
+            try
+            {
+                var row = TrackingV2Translator.ToV1Row(type, rule, userId);
+                rows.Add(stampProfileNo is { } no && !row.TryGetProperty("profile_no", out _) ? WithProfileNo(row, no) : row);
+            }
+            catch (InvalidOperationException ex)
+            {
+                LogUnreadableRule(this._logger, type, UidOf(rule), ex.Message);
+            }
+        }
+
+        return rows;
+    }
+
+    private static JsonElement WithProfileNo(JsonElement row, int profileNo)
+    {
+        var node = JsonNode.Parse(row.GetRawText())!.AsObject();
+        node["profile_no"] = profileNo;
+        return JsonSerializer.SerializeToElement(node);
+    }
+
+    private static int UidOf(JsonElement rule) =>
+        rule.TryGetProperty("uid", out var uid) && uid.ValueKind == JsonValueKind.Number ? uid.GetInt32() : 0;
+
+    /// <summary>
+    /// <c>incident</c> rows in the form v1's invasion list held them: <c>grunt_type</c> is the event name
+    /// (the mapping PoracleNG itself stores) and <c>gender</c> is 0. An event of a kind this build has no
+    /// name for is left out and logged, since a row with no <c>grunt_type</c> could be written back as an
+    /// ordinary invasion.
+    /// </summary>
+    private List<JsonElement> EventRowsAsInvasions(IEnumerable<JsonElement> incidentRows)
+    {
+        var rows = new List<JsonElement>();
+
+        foreach (var row in incidentRows)
+        {
+            var name = row.TryGetProperty("display_type", out var type) && type.ValueKind == JsonValueKind.Number
+                ? PokestopEventTypes.NameFor(type.GetInt32())
+                : null;
+
+            if (name is null)
+            {
+                LogUnreadableRule(this._logger, "incident", UidOf(row), $"display_type {(row.TryGetProperty("display_type", out var t) ? t.ToString() : "absent")} is not a known Pokestop event");
+                continue;
+            }
+
+            var node = JsonNode.Parse(row.GetRawText())!.AsObject();
+            node.Remove("display_type");
+            node["grunt_type"] = name;
+            node["gender"] = 0;
+            rows.Add(JsonSerializer.SerializeToElement(node));
+        }
+
+        return rows;
+    }
+
+    /// <summary>
+    /// A v2 snapshot as v1's <c>{ "pokemon": [...], ..., "status": "ok" }</c>. Types the snapshot leaves
+    /// null come out as empty arrays; <c>incident</c> has no key of its own, its rules sit in
+    /// <c>invasion</c>. The <c>profile</c> list is present only when the caller asked for it.
+    /// </summary>
+    private JsonElement SnapshotAsV1(JsonElement snapshot, string userId, int? stampProfileNo, JsonElement? profiles)
+    {
+        var tracking = snapshot.ValueKind == JsonValueKind.Object
+            && snapshot.TryGetProperty("tracking", out var t)
+            && t.ValueKind == JsonValueKind.Object
+                ? t
+                : default;
+
+        var output = new Dictionary<string, object>(StringComparer.Ordinal);
+
+        foreach (var type in SnapshotTypes)
+        {
+            var rules = tracking.ValueKind == JsonValueKind.Object && tracking.TryGetProperty(type, out var list) ? list : default;
+            var rows = this.V1Rows(type, rules, userId, stampProfileNo);
+
+            if (type == "invasion")
+            {
+                var events = tracking.ValueKind == JsonValueKind.Object && tracking.TryGetProperty("incident", out var e) ? e : default;
+                rows.AddRange(this.EventRowsAsInvasions(this.V1Rows("incident", events, userId, stampProfileNo)));
+            }
+
+            output[type] = rows;
+        }
+
+        if (profiles is { } supplied)
+        {
+            output["profile"] = PoracleHumanProxy
+                .V1ProfilesFromV2($$"""{"profiles":{{supplied.GetRawText()}}}""")
+                .GetProperty("profile");
+        }
+        else if (stampProfileNo is not null)
+        {
+            output["profile"] = Array.Empty<object>();
+        }
+
+        output["status"] = "ok";
+        return JsonSerializer.SerializeToElement(output);
+    }
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Left out {Type} rule uid={Uid} from a read: it cannot be restated in the v1 shape ({Reason}).")]
+    private static partial void LogUnreadableRule(ILogger logger, string type, int uid, string reason);
+}

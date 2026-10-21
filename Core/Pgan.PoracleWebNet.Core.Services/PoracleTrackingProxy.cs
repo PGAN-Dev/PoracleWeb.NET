@@ -74,25 +74,6 @@ public partial class PoracleTrackingProxy(
     private readonly IMemoryCache _cache = cache;
     private readonly ILogger<PoracleTrackingProxy> _logger = logger;
 
-    public async Task<JsonElement> GetByUserAsync(string type, string userId)
-    {
-        var request = this.CreateRequest(HttpMethod.Get, $"{this._apiAddress}/api/tracking/{type}/{Encode(userId)}");
-        var response = await this._httpClient.SendAsync(request);
-        EnsureAccountStillExists(response);
-        response.EnsureSuccessStatusCode();
-
-        var json = await response.Content.ReadAsStringAsync();
-        using var doc = JsonDocument.Parse(json);
-
-        // PoracleNG returns { "pokemon": [...], ... } — extract the array by type key
-        if (doc.RootElement.TryGetProperty(type, out var array))
-        {
-            return array.Clone();
-        }
-
-        return PoracleJsonHelper.EmptyArray;
-    }
-
     public async Task<TrackingCreateResult> CreateAsync(string type, string userId, JsonElement body)
     {
         var bodyText = body.GetRawText();
@@ -325,30 +306,6 @@ public partial class PoracleTrackingProxy(
                 && uid.ValueKind == JsonValueKind.Number)
             .Select(rule => rule.GetProperty("uid").GetInt32())
             .ToList();
-    }
-
-    public async Task<JsonElement> GetAllTrackingAsync(string userId)
-    {
-        var request = this.CreateRequest(HttpMethod.Get, $"{this._apiAddress}/api/tracking/all/{Encode(userId)}");
-        var response = await this._httpClient.SendAsync(request);
-        EnsureAccountStillExists(response);
-        response.EnsureSuccessStatusCode();
-
-        var json = await response.Content.ReadAsStringAsync();
-        using var doc = JsonDocument.Parse(json);
-        return doc.RootElement.Clone();
-    }
-
-    public async Task<JsonElement> GetAllTrackingAllProfilesAsync(string userId)
-    {
-        var request = this.CreateRequest(HttpMethod.Get, $"{this._apiAddress}/api/tracking/allProfiles/{Encode(userId)}?includeDescriptions=true");
-        var response = await this._httpClient.SendAsync(request);
-        EnsureAccountStillExists(response);
-        response.EnsureSuccessStatusCode();
-
-        var json = await response.Content.ReadAsStringAsync();
-        using var doc = JsonDocument.Parse(json);
-        return doc.RootElement.Clone();
     }
 
     public async Task ReloadStateAsync()

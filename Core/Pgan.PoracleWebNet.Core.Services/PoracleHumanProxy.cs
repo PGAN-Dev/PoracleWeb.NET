@@ -512,7 +512,7 @@ public partial class PoracleHumanProxy(
     /// <c>{}</c>. Both read as the same schedule everywhere a schedule is read.
     /// </para>
     /// </remarks>
-    private static JsonElement V1ProfilesFromV2(string payload)
+    internal static JsonElement V1ProfilesFromV2(string payload)
     {
         using var doc = JsonDocument.Parse(payload);
         var profiles = new List<Dictionary<string, object?>>();
