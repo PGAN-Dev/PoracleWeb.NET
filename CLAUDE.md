@@ -428,12 +428,9 @@ SPA keys a mute by scope, type and value, since raid 60 and pokemon 60 are two r
 mutes would be possible once a server carries §6; that is a separate decision. `scope=pokestop` is
 read-only here for a duller reason: neither the lure nor the invasion model carries a fort id.
 
-**Capability is the shared minimum-version rule, not the `/health` map.** 5.2.1's map is
-`{buttons, snapshots, autocreate, tomlDts, buttonResponseObject, derivedDtsTypes}` -- no mutes key -- so
-"improving" `MuteCapabilityService` to consult `Supports("mutes")` switches the whole feature off, because
-absent means false by that map's own contract. The gate is `PoracleServerProfile.IsSupported`
-(reachable, and not known to be older than 5.2.1): the endpoints arrived in 5.2.0, so every supported
-server has them. An unreachable server answers false; a local build's `0.0.0` counts as current.
+**There is no capability check.** The mute routes arrived in 5.2.0, so every supported server (5.4.0 and
+later) has them. `GET /api/mutes` answers `{ mutes }`, and `503` with a message when PoracleNG cannot be
+reached, so the SPA toasts the failure instead of drawing a chip that claims nothing is quiet.
 
 Two smaller ones. **Nobody validates a gym or station id**: `scope=gym value=abc123` is accepted verbatim,
 so only ever create those from an existing alarm's `gymId`/`stationId`, never from free text. And **mutes
@@ -1354,7 +1351,6 @@ dotnet ef migrations script \
 | Mute Controller | `Applications/Pgan.PoracleWebNet.Api/Controllers/MuteController.cs` |
 | IPoracleMuteProxy | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/IPoracleMuteProxy.cs` |
 | PoracleMuteProxy | `Core/Pgan.PoracleWebNet.Core.Services/PoracleMuteProxy.cs` |
-| MuteCapabilityService | `Core/Pgan.PoracleWebNet.Core.Services/MuteCapabilityService.cs` |
 | Mute / MuteScopes Models | `Core/Pgan.PoracleWebNet.Core.Models/Mute.cs`, `MuteScopes.cs` |
 | Mute Service (frontend) | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/core/services/mute.service.ts` |
 | Quiet Chip / Sheet / List Sheet | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/shared/components/quiet-chip/`, `quiet-sheet/`, `quiet-list-sheet/` |

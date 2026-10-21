@@ -190,10 +190,10 @@ GitHub update check first.
 
 ### Per-feature capability services
 
-Four services sit over the profile and answer one question each: `MuteCapabilityService`,
+Three services sit over the profile and answer one question each:
 `QuestPokecoinCapabilityService`, `PlaceUpdateCapabilityService` and `CostumeCapabilityService`. All the
 same shape — one method, no cache of their own, since `IPoracleServerProfileService` already caches for
-five minutes and exposes `Invalidate()`. Every feature they gate arrived by 5.2.1, so all four answer
+five minutes and exposes `Invalidate()`. Every feature they gate arrived by 5.2.1, so all three answer
 `PoracleServerProfile.IsSupported`. They stay as separate services because the SPA asks each one, and a
 feature that one day needs more than the minimum gets its refinement there.
 

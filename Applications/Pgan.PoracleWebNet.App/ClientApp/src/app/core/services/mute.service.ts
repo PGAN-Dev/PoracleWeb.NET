@@ -27,7 +27,6 @@ export interface Mute {
 }
 
 interface MutesResponse {
-  capable: boolean;
   mutes: Mute[];
 }
 
@@ -47,8 +46,6 @@ const STALE_AFTER_MS = 20_000;
  */
 @Injectable({ providedIn: 'root' })
 export class MuteService {
-  /** False on a PoracleNG older than 5.2.0, where the whole surface stays hidden. */
-  private readonly capableSignal = signal(false);
   private readonly config = inject(ConfigService);
   private readonly http = inject(HttpClient);
   private lastLoadedAt = 0;
@@ -63,7 +60,6 @@ export class MuteService {
 
   private readonly tokenStore = inject(TokenStoreService);
   private readonly translate = inject(TranslateService);
-  readonly capable = this.capableSignal.asReadonly();
 
   /** Active mutes, with anything whose countdown has run out dropped as the clock passes it. */
   readonly mutes = computed(() => {
@@ -143,18 +139,20 @@ export class MuteService {
    * Refetches the list. Cheap and called often on purpose: the store is upstream's memory, so a deploy
    * between two page views can empty it without anything telling us.
    */
-  load(): Observable<boolean> {
+  load(): Observable<void> {
     return this.http.get<MutesResponse>(`${this.config.apiHost}/api/mutes`).pipe(
       tap(response => {
         this.apply(response);
         this.lastLoadedAt = Date.now();
       }),
-      map(response => response.capable),
+      map(() => undefined),
       catchError(() => {
-        // A failed read must not blank a list the user is looking at, and must not claim the server
-        // cannot do this. Leave what we have; the next load will correct it.
+        // A failed read must not blank a list the user is looking at. Leave what we have; the next load
+        // will correct it. /api/mutes is on the error interceptor's silent list, so say so here: a chip
+        // that quietly shows nothing quiet while PoracleNG is down is worse than an error.
         this.loadedSignal.set(true);
-        return of(this.capableSignal());
+        this.toast(this.translate.instant('QUIET.TOAST_LOAD_FAILED'));
+        return of(undefined);
       }),
     );
   }
@@ -264,7 +262,6 @@ export class MuteService {
   }
 
   private apply(response: MutesResponse): void {
-    this.capableSignal.set(response.capable);
     this.mutesSignal.set(response.mutes ?? []);
     this.loadedSignal.set(true);
     this.syncTicker();

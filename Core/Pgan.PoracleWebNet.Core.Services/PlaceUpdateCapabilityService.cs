@@ -9,7 +9,7 @@ namespace Pgan.PoracleWebNet.Core.Services;
 /// <para>
 /// <c>PUT /api/v2/humans/{id}/locations/{label}</c> is the one operation in the v2 migration with no v1
 /// equivalent, so it is the one thing that needs a gate rather than a fallback. It arrived in 5.2.0, so
-/// every supported PoracleNG has it. Same shape as <see cref="MuteCapabilityService"/>: answers
+/// every supported PoracleNG has it. Answers
 /// <see cref="Pgan.PoracleWebNet.Core.Models.PoracleServerProfile.IsSupported"/>, no cache of its own
 /// because <see cref="IPoracleServerProfileService"/> already caches the profile for five minutes.
 /// </para>

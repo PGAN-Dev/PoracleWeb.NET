@@ -2031,6 +2031,7 @@
     "SUBJECT_STATION": "diese Station",
     "SUBJECT_TRACKING": "diese Regel",
     "TOAST_EXTENDED": "Stummschaltung auf {{duration}} verlängert.",
+    "TOAST_LOAD_FAILED": "Ruhezeiten konnten nicht geladen werden. PoracleNG ist möglicherweise nicht erreichbar.",
     "TOAST_FAILED": "Konnte nicht stummgeschaltet werden. Versuch es nochmal.",
     "TOAST_QUIETED": "Für {{duration}} stummgeschaltet.",
     "TOAST_RATE_LIMITED": "Zu viele Änderungen auf einmal. Versuch es in einer Minute nochmal.",

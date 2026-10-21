@@ -84,7 +84,7 @@ Invasion needs a second question after the first, because a server carrying the 
 `grunt_type` its grunt masterdata does not list. `InvasionGruntNameService` asks it, and fails closed to an
 empty set, which routes every invasion edit to v1.
 
-`MuteCapabilityService`, `QuestPokecoinCapabilityService`, `PlaceUpdateCapabilityService` and
+`QuestPokecoinCapabilityService`, `PlaceUpdateCapabilityService` and
 `CostumeCapabilityService` are kept even though each now answers from `IsSupported` alone. The SPA asks
 them before offering a control, and they are where a future refinement belongs if one of these features
 ever needs more than "a supported server that answered". `SummaryCapabilityService` is the same shape over

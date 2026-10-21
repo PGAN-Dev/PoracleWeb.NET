@@ -12,16 +12,11 @@ public class MuteControllerTests : ControllerTestBase
     private const string UserId = "123456789";
 
     private readonly Mock<IPoracleMuteProxy> _proxy = new();
-    private readonly Mock<IMuteCapabilityService> _capability = new();
     private readonly MuteController _sut;
 
     public MuteControllerTests()
     {
-        this._capability
-            .Setup(c => c.IsMuteApiAvailableAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
-
-        this._sut = new MuteController(this._proxy.Object, this._capability.Object);
+        this._sut = new MuteController(this._proxy.Object);
         SetupUser(this._sut, userId: UserId);
     }
 
@@ -41,7 +36,7 @@ public class MuteControllerTests : ControllerTestBase
     // ──────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task GetReturnsCapableAndTheListForACapableServer()
+    public async Task GetReturnsTheListWithoutACapabilityFlag()
     {
         this._proxy
             .Setup(p => p.ListAsync(UserId, It.IsAny<CancellationToken>()))
@@ -49,25 +44,33 @@ public class MuteControllerTests : ControllerTestBase
 
         var ok = Assert.IsType<OkObjectResult>(await this._sut.GetMutes(default));
 
-        Assert.True(Read<bool>(ok.Value, "capable"));
+        Assert.Null(ok.Value!.GetType().GetProperty("capable"));
         Assert.Single(Read<IReadOnlyList<Mute>>(ok.Value, "mutes")!);
     }
 
-    /// <summary>
-    /// On a server too old for the endpoint the SPA must be told so plainly, and no call may go out —
-    /// the route does not exist there and would 404 on every alarm page load.
-    /// </summary>
     [Fact]
-    public async Task GetReportsIncapableWithoutCallingUpstream()
+    public async Task GetAnswers503WithAReadableMessageWhenPoracleNgIsUnreachable()
     {
-        this._capability
-            .Setup(c => c.IsMuteApiAvailableAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
+        this._proxy
+            .Setup(p => p.ListAsync(UserId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("connection refused"));
 
-        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetMutes(default));
+        var result = Assert.IsType<ObjectResult>(await this._sut.GetMutes(default));
 
-        Assert.False(Read<bool>(ok.Value, "capable"));
-        this._proxy.Verify(p => p.ListAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        Assert.Equal(StatusCodes.Status503ServiceUnavailable, result.StatusCode);
+        Assert.False(string.IsNullOrWhiteSpace(Read<string>(result.Value, "error")));
+    }
+
+    [Fact]
+    public async Task GetAnswers503WhenPoracleNgTimesOut()
+    {
+        this._proxy
+            .Setup(p => p.ListAsync(UserId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new TaskCanceledException("timed out"));
+
+        var result = Assert.IsType<ObjectResult>(await this._sut.GetMutes(default));
+
+        Assert.Equal(StatusCodes.Status503ServiceUnavailable, result.StatusCode);
     }
 
     /// <summary>
@@ -187,23 +190,6 @@ public class MuteControllerTests : ControllerTestBase
         Assert.IsType<BadRequestObjectResult>(await this._sut.CreateMute(
             new MuteCreateRequest { Scope = MuteScopes.Gym, Value = "abc123", DurationMinutes = minutes }, default));
 
-    [Fact]
-    public async Task AWriteToAServerWithoutTheEndpointIs501()
-    {
-        this._capability
-            .Setup(c => c.IsMuteApiAvailableAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
-
-        var result = Assert.IsType<ObjectResult>(await this._sut.CreateMute(
-            new MuteCreateRequest { Scope = MuteScopes.Gym, Value = "abc123" }, default));
-
-        Assert.Equal(StatusCodes.Status501NotImplemented, result.StatusCode);
-    }
-
-    /// <summary>
-    /// UserId names the INSPECTED account during impersonation, so an unguarded write would silence
-    /// somebody else's alerts. The #663 shape.
-    /// </summary>
     [Fact]
     public async Task AWriteWhileImpersonatingIs403AndNeverReachesUpstream()
     {
@@ -421,17 +407,5 @@ public class MuteControllerTests : ControllerTestBase
         this._proxy.Verify(
             p => p.DeleteAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
-    }
-
-    [Fact]
-    public async Task ADeleteAgainstAServerWithoutTheEndpointIs501()
-    {
-        this._capability
-            .Setup(c => c.IsMuteApiAvailableAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
-
-        var result = Assert.IsType<ObjectResult>(await this._sut.DeleteMute(MuteScopes.Gym, "abc123", null, default));
-
-        Assert.Equal(StatusCodes.Status501NotImplemented, result.StatusCode);
     }
 }
