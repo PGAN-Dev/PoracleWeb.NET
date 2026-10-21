@@ -237,7 +237,7 @@ public class UnmodelledFieldPreservationTests
     public async Task EditKeepsUnmodelledFieldsOnMaxBattle()
     {
         var service = new MaxBattleService(
-            this._proxy.Object, this._featureGate.Object, NullLogger<MaxBattleService>.Instance, this._remapper.Object, PoracleTrackingProxyTests.V2Schema());
+            this._proxy.Object, this._featureGate.Object, NullLogger<MaxBattleService>.Instance, this._remapper.Object);
 
         await service.UpdateAsync("u1", new MaxBattle { Uid = 7, PokemonId = 201, Distance = 1500 });
 
@@ -362,7 +362,7 @@ public class UnmodelledFieldPreservationTests
         "fort" => new FortChangeService(
             this._proxy.Object, this._featureGate.Object, NullLogger<FortChangeService>.Instance, this._remapper.Object),
         "maxbattle" => new MaxBattleService(
-            this._proxy.Object, this._featureGate.Object, NullLogger<MaxBattleService>.Instance, this._remapper.Object, PoracleTrackingProxyTests.V2Schema()),
+            this._proxy.Object, this._featureGate.Object, NullLogger<MaxBattleService>.Instance, this._remapper.Object),
         _ => throw new ArgumentOutOfRangeException(nameof(trackingType), trackingType, "unknown tracking type"),
     };
 }
