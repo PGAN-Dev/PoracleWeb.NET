@@ -273,10 +273,24 @@ public partial class UserGeofenceService(
 
         // Every profile that was subscribed stays subscribed, under the new name. This is the whole
         // point of renaming in place rather than delete-then-recreate. See #543.
-        // HACK: trusted-set-areas (see docs/poracleng-enhancement-requests.md)
-        await this._areaWriter.RenameAreaInAllProfilesAsync(humanId, oldKojiName, newKojiName);
-
-        await this.ReloadGeofencesSafeAsync();
+        // Reload first: PoracleNG refuses a rename to a name it has not loaded, and the feed only serves
+        // the new name now that the row is updated. A failed reload or a refused rename is logged and the
+        // fence stays renamed, as before; the subscription then keeps the old name.
+        if (!string.Equals(oldKojiName, newKojiName, StringComparison.Ordinal))
+        {
+            if (await this.ReloadGeofencesSafeAsync())
+            {
+                _ = await this._userAreaWriter.RenameEverywhereAsync(humanId, oldKojiName, newKojiName);
+            }
+            else
+            {
+                LogRenameSkippedReloadFailed(this._logger, oldKojiName, newKojiName);
+            }
+        }
+        else
+        {
+            _ = await this.ReloadGeofencesSafeAsync();
+        }
 
         // The repository round-trip returns the row without its parsed polygon, and the page renders the
         // map straight from this response -- so a renamed geofence vanished from the map and reported 0
@@ -752,7 +766,7 @@ public partial class UserGeofenceService(
         // Save to Koji as a public geofence (userSelectable + displayInMatches = true). This name is also
         // what Poracle matches area subscriptions against, so -- like every other geofence name in this
         // file -- it must be lowercase; Poracle's matching is case-sensitive. An admin-typed promoted name
-        // with any uppercase letter used to reach Koji verbatim while RenameAreaInAllProfilesAsync (below)
+        // with any uppercase letter used to reach Koji verbatim while the area rename (below)
         // lowercased the same name for the owner's subscription: the two diverged, Koji served the mixed
         // case and the owner's humans.area/profiles.area held the lowercase, and that user's alerts for
         // the area they just had approved silently stopped firing. geofence.PromotedName keeps the
@@ -761,26 +775,30 @@ public partial class UserGeofenceService(
         await this._kojiService.SaveGeofenceAsync(
             targetName, geofence.DisplayName, geofence.GroupName, geofence.ParentId, polygon, isPublic: true);
 
-        // Move the owner's subscription to the promoted name.
-        //
-        // HACK: trusted-set-areas — this must not go through SetAreasAsync. PoracleNG intersects the
-        // submitted list against userSelectable=true fences for non-admins, and at this point BOTH names
-        // fail that test: the old one because user geofences are served userSelectable=false, and the
-        // promoted one because PoracleNG has not reloaded its fence list yet (that happens below). The
-        // result was a silent wipe of the owner's entire custom-geofence subscription set — not just this
-        // fence — while approve still returned 200. See #408.
+        // Move the owner's subscription to the promoted name. This must not go through SetAreasAsync:
+        // PoracleNG intersects the submitted list against userSelectable=true fences, which dropped the
+        // owner's entire custom-geofence set while approve still returned 200 (#408). The v2 rename moves
+        // one name on every profile and in every rule's override areas, but PoracleNG refuses a name it
+        // has not loaded, so its list is reloaded first (which also drops the Koji admin cache the save
+        // above just made stale). Everything after the Koji save is best effort: the fence is public by
+        // now, so the approval stands and the response says whether the owner's areas followed.
+        bool? ownerAreasRenamed = null;
         if (!string.Equals(targetName, geofence.KojiName, StringComparison.Ordinal))
         {
             try
             {
-                await this._areaWriter.RenameAreaInAllProfilesAsync(
-                    geofence.HumanId, geofence.KojiName, targetName);
+                ownerAreasRenamed = await this.ReloadGeofencesSafeAsync()
+                    && await this._userAreaWriter.RenameEverywhereAsync(geofence.HumanId, geofence.KojiName, targetName);
             }
             catch (Exception ex)
             {
-                // The geofence is public in Koji by now, so the approval itself stands. Surface the
-                // subscription loss instead of failing an approval that already took effect upstream.
+                ownerAreasRenamed = false;
                 LogAreaSwapFallbackFailed(this._logger, ex, geofence.KojiName);
+            }
+
+            if (ownerAreasRenamed == false)
+            {
+                LogOwnerAreasNotRenamed(this._logger, geofence.KojiName, targetName);
             }
         }
 
@@ -812,6 +830,7 @@ public partial class UserGeofenceService(
         LogGeofenceApproved(this._logger, adminId, geofence.KojiName, id, promotedName);
 
         await this.EnrichWithDetailsAsync([updated]);
+        updated.OwnerAreasRenamed = ownerAreasRenamed;
         return updated;
     }
 
@@ -1039,6 +1058,12 @@ public partial class UserGeofenceService(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to reload Poracle geofences after custom geofence change")]
     private static partial void LogGeofenceReloadFailed(ILogger logger, Exception ex);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Geofence '{OldName}' was renamed to '{NewName}' but PoracleNG could not reload its geofences, so the owner's subscriptions keep the old name")]
+    private static partial void LogRenameSkippedReloadFailed(ILogger logger, string oldName, string newName);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Approved geofence '{OldName}' as '{NewName}' in Koji, but the owner's subscriptions were not moved to the new name")]
+    private static partial void LogOwnerAreasNotRenamed(ILogger logger, string oldName, string newName);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Could not move the owner's subscription to the promoted name for geofence '{KojiName}'; they are no longer subscribed to it")]
     private static partial void LogAreaSwapFallbackFailed(ILogger logger, Exception ex, string kojiName);

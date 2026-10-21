@@ -658,14 +658,14 @@ public class UserGeofenceServiceTests
     {
         // The bug this guards: Koji's __name is also Poracle's matching key, and humans.area/profiles.area
         // must hold the identical string -- Poracle matches case-sensitively. A promoted name reaching Koji
-        // verbatim while RenameAreaInAllProfilesAsync lowercased its own copy left the two diverged, so the
+        // verbatim while the rename lowercased its own copy left the two diverged, so the
         // owner's subscription silently stopped matching anything Poracle served for that area.
         this.SeedPendingGeofence();
 
         await this._sut.ApproveSubmissionAsync("admin1", 1, "New Downtown");
 
         this._kojiService.Verify(k => k.SaveGeofenceAsync("new downtown", "Downtown", "City", 5, It.IsAny<double[][]>(), true), Times.Once);
-        this._areaWriter.Verify(w => w.RenameAreaInAllProfilesAsync("u1", "downtown", "new downtown"), Times.Once);
+        this._userAreaWriter.Verify(w => w.RenameEverywhereAsync("u1", "downtown", "new downtown"), Times.Once);
     }
 
     // This used to assert that approve calls SetAreasAsync with a swapped list. That WAS the bug:
@@ -700,7 +700,7 @@ public class UserGeofenceServiceTests
 
         await this._sut.ApproveSubmissionAsync("admin1", 1, "New Downtown");
 
-        this._areaWriter.Verify(w => w.RenameAreaInAllProfilesAsync("u1", "downtown", "new downtown"), Times.Once);
+        this._userAreaWriter.Verify(w => w.RenameEverywhereAsync("u1", "downtown", "new downtown"), Times.Once);
     }
 
     [Fact]
@@ -720,10 +720,11 @@ public class UserGeofenceServiceTests
 
         await this._sut.ApproveSubmissionAsync("admin1", 1, null);
 
-        this._areaWriter.Verify(
-            w => w.RenameAreaInAllProfilesAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        this._userAreaWriter.Verify(
+            w => w.RenameEverywhereAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
         this._humanProxy.Verify(p => p.SetAreasAsync(It.IsAny<string>(), It.IsAny<string[]>()), Times.Never);
     }
+
 
     [Fact]
     public async Task ApproveSubmissionAsyncStillApprovesWhenTheSubscriptionMoveFails()
@@ -731,15 +732,110 @@ public class UserGeofenceServiceTests
         // The fence is already public in Koji by this point, so the approval stands; the owner losing
         // their subscription is logged rather than rolled back into a failed approve.
         this.SeedPendingGeofence();
-        this._areaWriter
-            .Setup(w => w.RenameAreaInAllProfilesAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .ThrowsAsync(new InvalidOperationException("db down"));
+        this._userAreaWriter
+            .Setup(w => w.RenameEverywhereAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ThrowsAsync(new InvalidOperationException("down"));
 
         var result = await this._sut.ApproveSubmissionAsync("admin1", 1, "New Downtown");
 
         Assert.Equal("approved", result.Status);
+        Assert.False(result.OwnerAreasRenamed);
     }
 
+    [Fact]
+    public async Task ApproveSubmissionAsyncReportsOwnerAreasRenamedFalseWhenTheRenameIsRefused()
+    {
+        this.SeedPendingGeofence();
+        this._userAreaWriter
+            .Setup(w => w.RenameEverywhereAsync("u1", "downtown", "new downtown")).ReturnsAsync(false);
+
+        var result = await this._sut.ApproveSubmissionAsync("admin1", 1, "New Downtown");
+
+        Assert.Equal("approved", result.Status);
+        Assert.False(result.OwnerAreasRenamed);
+    }
+
+    [Fact]
+    public async Task ApproveSubmissionAsyncReportsOwnerAreasRenamedTrueWhenTheRenameLands()
+    {
+        this.SeedPendingGeofence();
+        this._userAreaWriter
+            .Setup(w => w.RenameEverywhereAsync("u1", "downtown", "new downtown")).ReturnsAsync(true);
+
+        var result = await this._sut.ApproveSubmissionAsync("admin1", 1, "New Downtown");
+
+        Assert.True(result.OwnerAreasRenamed);
+    }
+
+    [Fact]
+    public async Task ApproveSubmissionAsyncReloadsAfterTheKojiSaveAndBeforeTheRename()
+    {
+        this.SeedPendingGeofence();
+        var order = new List<string>();
+        this._kojiService
+            .Setup(k => k.SaveGeofenceAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<double[][]>(), It.IsAny<bool>()))
+            .Callback(() => order.Add("koji")).Returns(Task.CompletedTask);
+        this._kojiService.Setup(k => k.InvalidateAdminGeofenceCache()).Callback(() => order.Add("invalidate"));
+        this._poracleApiProxy.Setup(p => p.ReloadGeofencesAsync()).Callback(() => order.Add("reload")).Returns(Task.CompletedTask);
+        this._userAreaWriter
+            .Setup(w => w.RenameEverywhereAsync("u1", "downtown", "new downtown"))
+            .Callback(() => order.Add("rename")).ReturnsAsync(true);
+
+        await this._sut.ApproveSubmissionAsync("admin1", 1, "New Downtown");
+
+        var firstReload = order.IndexOf("reload");
+        Assert.True(order.IndexOf("koji") < order.IndexOf("invalidate"));
+        Assert.True(order.IndexOf("invalidate") < firstReload);
+        Assert.True(firstReload < order.IndexOf("rename"));
+    }
+
+    [Fact]
+    public async Task ApproveSubmissionAsyncSkipsTheRenameWhenTheReloadFailed()
+    {
+        this.SeedPendingGeofence();
+        this._poracleApiProxy.Setup(p => p.ReloadGeofencesAsync()).ThrowsAsync(new HttpRequestException("down"));
+
+        var result = await this._sut.ApproveSubmissionAsync("admin1", 1, "New Downtown");
+
+        Assert.Equal("approved", result.Status);
+        Assert.False(result.OwnerAreasRenamed);
+        this._userAreaWriter.Verify(
+            w => w.RenameEverywhereAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RenameAsyncRenamesTheAreaEverywhereAfterTheRowUpdate()
+    {
+        var order = new List<string>();
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(new UserGeofence
+        {
+            Id = 1, HumanId = "u1", KojiName = "downtown", DisplayName = "Downtown", Status = "active",
+        });
+        this._repository.Setup(r => r.UpdateAsync(It.IsAny<UserGeofence>()))
+            .Callback(() => order.Add("update")).ReturnsAsync((UserGeofence g) => g);
+        this._poracleApiProxy.Setup(p => p.ReloadGeofencesAsync()).Callback(() => order.Add("reload")).Returns(Task.CompletedTask);
+        this._userAreaWriter.Setup(w => w.RenameEverywhereAsync("u1", "downtown", "uptown"))
+            .Callback(() => order.Add("rename")).ReturnsAsync(true);
+
+        await this._sut.RenameAsync("u1", 1, "Uptown", null, null);
+
+        Assert.Equal(["update", "reload", "rename"], order);
+    }
+
+    [Fact]
+    public async Task RenameAsyncDoesNotRenameWhenOnlyTheCasingChanges()
+    {
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(new UserGeofence
+        {
+            Id = 1, HumanId = "u1", KojiName = "downtown", DisplayName = "downtown", Status = "active",
+        });
+        this._repository.Setup(r => r.UpdateAsync(It.IsAny<UserGeofence>())).ReturnsAsync((UserGeofence g) => g);
+
+        await this._sut.RenameAsync("u1", 1, "Downtown", null, null);
+
+        this._userAreaWriter.Verify(
+            w => w.RenameEverywhereAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
     [Fact]
     public async Task ApproveSubmissionAsyncThrowsWhenPromotedNameHasInvalidChars() => await Assert.ThrowsAsync<InvalidOperationException>(
             () => this._sut.ApproveSubmissionAsync("admin1", 1, "test<script>"));
@@ -1757,8 +1853,8 @@ public class UserGeofenceServiceTests
             () => this._sut.ApproveSubmissionAsync("admin1", 7, null));
 
         this._repository.Verify(r => r.UpdateAsync(It.IsAny<UserGeofence>()), Times.Never);
-        this._areaWriter.Verify(
-            w => w.RenameAreaInAllProfilesAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        this._userAreaWriter.Verify(
+            w => w.RenameEverywhereAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
     // ── Koji failures during approve (#422) ─────────────────────────────────────

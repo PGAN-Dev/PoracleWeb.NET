@@ -365,4 +365,37 @@ public class UserAreaWriterTests
 
         this._proxy.Verify(p => p.RemoveAreaEverywhereAsync(Human, "my park", false), Times.Never);
     }
+
+    [Fact]
+    public async Task RenameEverywhereAsyncSendsTheCleanedNamesAndReportsTrue()
+    {
+        this._proxy.Setup(p => p.RenameAreaEverywhereAsync(Human, "old park", "new park", false))
+            .ReturnsAsync(new AreaRenameResult([0, 1], false));
+
+        var renamed = await this._sut.RenameEverywhereAsync(Human, " Old Park ", "New Park");
+
+        Assert.True(renamed);
+        this._proxy.Verify(p => p.RenameAreaEverywhereAsync(Human, "old park", "new park", false), Times.Once);
+    }
+
+    [Fact]
+    public async Task RenameEverywhereAsyncReturnsFalseAndWarnsWhenPoracleRefuses()
+    {
+        this._proxy.Setup(p => p.RenameAreaEverywhereAsync(Human, It.IsAny<string>(), It.IsAny<string>(), false))
+            .ThrowsAsync(new PoracleRequestRefusedException("unknown area", 422));
+
+        var renamed = await this._sut.RenameEverywhereAsync(Human, "old park", "new park");
+
+        Assert.False(renamed);
+        Assert.Contains(this._log.Entries, e => e.Level == LogLevel.Warning && e.Message.Contains("new park"));
+    }
+
+    [Fact]
+    public async Task RenameEverywhereAsyncLetsAnOutagePropagate()
+    {
+        this._proxy.Setup(p => p.RenameAreaEverywhereAsync(Human, It.IsAny<string>(), It.IsAny<string>(), false))
+            .ThrowsAsync(new HttpRequestException("down"));
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.RenameEverywhereAsync(Human, "a", "b"));
+    }
 }

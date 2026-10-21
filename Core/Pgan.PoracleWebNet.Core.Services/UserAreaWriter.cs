@@ -139,6 +139,29 @@ public partial class UserAreaWriter(
         _ = await this._humanProxy.RemoveAreaEverywhereAsync(humanId, clean, dryRun: false);
     }
 
+    /// <remarks>
+    /// The caller reloads PoracleNG's geofences first (that also drops the Koji admin cache, which this
+    /// class has no handle on): PoracleNG answers 422 for a <c>to</c> it has not loaded.
+    /// </remarks>
+    public async Task<bool> RenameEverywhereAsync(string humanId, string from, string to)
+    {
+        try
+        {
+            _ = await this._humanProxy.RenameAreaEverywhereAsync(humanId, Clean(from), Clean(to), dryRun: false);
+            return true;
+        }
+        catch (PoracleRequestRefusedException ex)
+        {
+            LogRenameRefused(this._logger, ex, humanId, Clean(from), Clean(to));
+            return false;
+        }
+    }
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Renaming area '{From}' to '{To}' for {HumanId} was refused by PoracleNG; the owner's subscriptions keep the old name")]
+    private static partial void LogRenameRefused(ILogger logger, Exception ex, string humanId, string from, string to);
+
     private const string InvasionType = "invasion";
     private const string IncidentType = "incident";
 

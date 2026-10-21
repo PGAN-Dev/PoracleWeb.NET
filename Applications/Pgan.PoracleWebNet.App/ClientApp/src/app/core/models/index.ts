@@ -564,6 +564,8 @@ export interface UserGeofence {
   humanId: string;
   id: number;
   kojiName: string;
+  /** Approve response only: false when Koji has the fence but the owner's areas still hold the old name. */
+  ownerAreasRenamed?: boolean | null;
   ownerAvatarUrl?: string;
   ownerName?: string;
   parentId: number;

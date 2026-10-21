@@ -87,4 +87,13 @@ public class UserGeofence
     {
         get; set;
     }
+
+    /// <summary>
+    /// Set on approval only: whether the owner's subscriptions were moved to the promoted name. Null when
+    /// no rename was needed. False means Koji has the fence but the owner still holds the old name.
+    /// </summary>
+    public bool? OwnerAreasRenamed
+    {
+        get; set;
+    }
 }

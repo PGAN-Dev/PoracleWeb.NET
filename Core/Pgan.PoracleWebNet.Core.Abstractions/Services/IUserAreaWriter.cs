@@ -41,4 +41,12 @@ public interface IUserAreaWriter
     /// or cannot be reached; the caller must not treat the name as gone in that case.
     /// </summary>
     public Task RemoveEverywhereAsync(string humanId, string name, bool deleteWidenedAlarms);
+
+    /// <summary>
+    /// Renames <paramref name="from"/> to <paramref name="to"/> on every profile and in every rule's
+    /// override areas, in one PoracleNG call. False when PoracleNG refused it (<paramref name="to"/> is not
+    /// a fence it has loaded: the caller must reload its geofences first); logged, never thrown for that.
+    /// Other failures propagate.
+    /// </summary>
+    public Task<bool> RenameEverywhereAsync(string humanId, string from, string to);
 }
