@@ -21,7 +21,7 @@ describe('ServerProfileCardComponent', () => {
     belowMinimum: false,
     capabilities: { autocreate: true, buttons: true, snapshots: false },
     checkedAt: '2026-08-19T19:00:00Z',
-    minimumSupported: '5.2.1',
+    minimumSupported: '5.4.0',
     poracleUpdate: upToDate,
     reachable: true,
     version: '5.3.0',
@@ -66,7 +66,7 @@ describe('ServerProfileCardComponent', () => {
   });
 
   it('no longer shows a database schema row', () => {
-    // PoracleWeb.NET stopped reading PoracleNG's schema_migrations when 5.2.1 became the minimum.
+    // PoracleWeb.NET stopped reading PoracleNG's schema_migrations when 5.2.1 became the minimum (5.4.0 now).
     const fixture = setup(base);
 
     expect(fixture.nativeElement.textContent).not.toContain('ADMIN.SERVER_SCHEMA');

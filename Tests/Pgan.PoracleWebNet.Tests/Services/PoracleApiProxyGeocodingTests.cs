@@ -11,8 +11,8 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 /// <c>GetGeocodeForwardAsync</c>/<c>GetGeocodeReverseAsync</c> call PoracleNG's own <c>/api/geocode</c>
 /// endpoints, which resolve via whichever provider the operator configured (Nominatim, Photon or Google)
 /// and answer in one shape regardless -- this app never calls a provider URL directly and never parses
-/// a provider's payload. A PoracleNG too old for either route falls back to calling its configured
-/// provider directly, exactly as this app did before the routes existed. See #845.
+/// a provider's payload. A PoracleNG below 5.4.0 has neither route and answers gin's plaintext 404, which
+/// is reported as unsupported; there is no direct-provider fallback. See #845.
 /// </summary>
 public class PoracleApiProxyGeocodingTests
 {
@@ -139,11 +139,11 @@ public class PoracleApiProxyGeocodingTests
     /// <summary>
     /// PoracleNG's reverse answers 404 as problem+json for "nothing at this coordinate" -- including
     /// every reverse call when <c>[geocoding] forward_only</c> is set, which disables reverse deliberately.
-    /// That must read as "no address here", not "this PoracleNG is too old", or the fallback would
-    /// silently reintroduce reverse geocoding against a provider the operator turned it off for.
+    /// That must read as "no address here", not "this PoracleNG is too old" (which throws
+    /// <c>PoracleUnsupportedException</c>), so an operator who turned reverse off does not see an upgrade prompt.
     /// </summary>
     [Fact]
-    public async Task GetGeocodeReverseAsyncDoesNotFallBackOnASemanticNotFound()
+    public async Task GetGeocodeReverseAsyncReadsASemanticNotFoundAsNoAddress()
     {
         const string problemJson = /*lang=json,strict*/ """{"title":"Not Found","status":404,"detail":"nothing here"}""";
         var handler = new MockHttpMessageHandler(HttpStatusCode.NotFound, problemJson);

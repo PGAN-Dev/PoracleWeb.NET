@@ -134,13 +134,10 @@ public class PoracleTrackingProxyV2Tests
     }
 
     [Fact]
-    public async Task InvasionStaysOnV1EvenOnA521Server()
+    public async Task InvasionStaysOnV1BecauseItsTrackingMovesInSubProject3()
     {
-        // The one type with a v2 surface PoracleWeb deliberately stays off. A v2 read of a named-grunt
-        // rule carries no targeting field at all, and PoracleWeb holds only the grunt name -- which live
-        // data fills with values it cannot reverse into a type_id or grunt_id (blanche, candela, spark,
-        // npc 0..npc 10, player team leader). Filed upstream; until it is answered, invasion has no
-        // faithful v2 body in either direction.
+        // Invasion's edit is still on v1 in this build: tracking moves to v2 one type at a time
+        // (sub-project 3), and invasion's grunt-type handling goes with its move.
         var handler = ScriptedHandler.Ok("""{"newUids":[9],"alreadyPresent":0,"updates":1,"insert":0}""");
         var sut = CreateSut(handler, version: "5.4.0");
 

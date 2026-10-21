@@ -26,13 +26,13 @@ PoracleNG's tracking POST endpoint handles both creates and updates. When the re
 
 An edit therefore sends the whole row, and the body is built by serializing the typed model — so every column PoracleWeb has no property for arrives absent and PoracleNG stores the default over what the user had. `TrackingFieldPreserver.PreserveStoredFieldsAsync` runs first on every update: it re-reads the stored row and copies across any property the submitted body lacks. Before it existed, editing an alarm on the web reset `override_location_label`, `override_areas` and `pvp_ranking_evolution` set from the bot (#730). A read failure returns the body untouched rather than failing the edit.
 
-On every supported PoracleNG an edit to any of nine types takes a different route: `PUT /api/v2/humans/{id}/tracking/{type}/{uid}`, which is a **full replace**. A field left out of the body is reset to its default rather than left alone, so the same merge that fixed #730 is what stops a v2 edit wiping a stored `min_iv`. The PUT is also delete-then-insert, so on 5.2.x the uid rotates on edit (since jfberry/PoracleNG #303 it is kept unless the server's reassignment fails, so the response is always read) and `ITrackedUidRemapper` moves quick-pick applied state to the new one whenever it does change. Invasion, the tenth, joins them only when the server's own `/openapi.json` declares `grunt_type` on the invasion rule (jfberry/PoracleNG#217) and its grunt masterdata lists the name, so on 5.2.1 it stays on v1. A row carrying something else v2 cannot express, such as an egg with no level, falls back to v1 rather than failing. A non-empty `ping` is different: on a server without jfberry/PoracleNG#249 the edit is refused with an `AlarmValidationException`, because both surfaces blank the mention. See [The v2 write path](poracleng-proxy.md#the-v2-write-path).
+On every supported PoracleNG an edit to any of nine types takes a different route: `PUT /api/v2/humans/{id}/tracking/{type}/{uid}`, which is a **full replace**. A field left out of the body is reset to its default rather than left alone, so the same merge that fixed #730 is what stops a v2 edit wiping a stored `min_iv`. The PUT is also delete-then-insert, so on 5.2.x the uid rotates on edit (since jfberry/PoracleNG #303 it is kept unless the server's reassignment fails, so the response is always read) and `ITrackedUidRemapper` moves quick-pick applied state to the new one whenever it does change. Invasion, the tenth, joins them only when the server's own `/openapi.json` declares `grunt_type` on the invasion rule and its grunt masterdata lists the name; otherwise it stays on v1. A row carrying something else v2 cannot express, such as an egg with no level, falls back to v1 rather than failing. A non-empty `ping` is different: v1 blanks the mention, so an edit that would fall back to v1 while the row holds one is refused with an `AlarmValidationException` (`RefuseIfV1WouldDropPing`). See [The v2 write path](poracleng-proxy.md#the-v2-write-path).
 
 The merge runs *before* the collision guards, because `TrackingUpdateReconciler.CountUpdatableDifferences` only compares properties present in the submission — an unmodelled property could not tell two alarms apart, so the guard refused edits PoracleNG would have accepted. See [PoracleNG API Proxy](poracleng-proxy.md#insert-update-or-duplicate) for what the guards are mirroring.
 
 ## Repository layer (non-alarm entities)
 
-`HumanRepository` covers what an older PoracleNG's API has no endpoint for: the admin user list (`GetAllAsync`), the webhook list (`GetWebhooksAsync`), the batch read that resolves geofence owners' names (`GetByIdsAsync`), and account deletion (`DeleteUserAsync`). All four are fallbacks, used only on a server without the v2 admin routes ([#839](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/839)). Everything else about a single human goes through `IPoracleHumanProxy`. `ProfileRepository` holds the two profile writes the API cannot serve: `RenameAsync`, and `UpdateAsync` for the area and coordinates `addProfile` ignores. `poracle_web`-owned entities (`SiteSettingRepository`, `WebhookDelegateRepository`, `QuickPickDefinitionRepository`, `QuickPickAppliedStateRepository`) use their own dedicated repository classes.
+There is no repository for humans or profiles. Every human and profile read and write, the admin user list, the webhook list, the batch read that resolves geofence owners' names and account deletion go through `IPoracleHumanProxy` and PoracleNG's `/api/v2` routes. `poracle_web`-owned entities (`SiteSettingRepository`, `WebhookDelegateRepository`, `QuickPickDefinitionRepository`, `QuickPickAppliedStateRepository`) use their own dedicated repository classes.
 
 !!! note "`BaseRepository` removed"
     The generic `BaseRepository<TEntity, TModel>` and all alarm repository classes have been removed. `EnsureNotNullDefaults()` is no longer needed -- PoracleNG handles NULL defaults for alarm writes, and the remaining repositories handle null normalization as needed.
@@ -142,9 +142,9 @@ Wraps HttpClient calls for non-tracking Poracle API operations.
 
 ### IPoracleMuteProxy (quiet periods)
 
-Proxies the mute store at `/api/v2/humans/{id}/mutes`. **v2 only** — there is no v1 equivalent, so
-`MuteCapabilityService` gates every call and `MuteController` answers the capability alongside the list
-rather than from a separate endpoint.
+Proxies the mute store at `/api/v2/humans/{id}/mutes`. **v2 only**, with no v1 equivalent and no capability
+check: every supported PoracleNG has the routes. `MuteController` answers `{ mutes }`, and all three actions
+answer 503 through `PoracleUnreachableExceptionFilter` when PoracleNG cannot be reached.
 
 ### IPoracleIncidentProxy (Pokéstop Events)
 
@@ -170,9 +170,10 @@ and it grows. It covers bot and template-editor features and says nothing about 
 
 There used to be a second read, `schema_migrations` and `information_schema` straight out of PoracleNG's
 database, for the costume columns and the lure and invasion unique keys. Every supported release answers
-those the same way, so it went when 5.2.1 became the minimum.
+those the same way, so it went when 5.2.1 became the minimum, and `Poracle:TrackingApiVersion` went with
+5.4.0.
 
-`PoracleServerProfile.MinimumSupported` is **5.2.1**. `IsBelowMinimum` is true only when the server is
+`PoracleServerProfile.MinimumSupported` is **5.4.0**. `IsBelowMinimum` is true only when the server is
 *known* to be older: unreachable, unparseable, or the `0.0.0` a locally built binary reports are all
 unknown rather than too old, so the banner is not shown on a guess. `IsSupported` is the rule every
 version-decided feature shares: reachable and not known to be older, so a local build counts as current
@@ -190,23 +191,20 @@ GitHub update check first.
 
 ### Per-feature capability services
 
-Three services sit over the profile and answer one question each:
-`QuestPokecoinCapabilityService`, `PlaceUpdateCapabilityService` and `CostumeCapabilityService`. All the
-same shape — one method, no cache of their own, since `IPoracleServerProfileService` already caches for
-five minutes and exposes `Invalidate()`. Every feature they gate arrived by 5.2.1, so all three answer
-`PoracleServerProfile.IsSupported`. They stay as separate services because the SPA asks each one, and a
-feature that one day needs more than the minimum gets its refinement there.
+Two services answer a question from Poracle's own configuration: `SummaryCapabilityService` reads
+`tracking.quest_summary_enabled` and `PokemonEditCapabilityService` reads `tracking.pokemon_edit`, both
+from `GET /api/config/values`, caching for five minutes. They exist because both are deployment settings
+an operator can switch off on a server that supports the feature, not because of the server's version.
 
-`SummaryCapabilityService` answers the same shape of question from a different place. Quest summary
-delivery is a deployment setting rather than a server capability, so it reads
-`tracking.quest_summary_enabled` from `GET /api/config/values` and caches that itself for five minutes.
+The services that used to answer "is this server new enough" (`QuestPokecoinCapabilityService`,
+`PlaceUpdateCapabilityService`, `CostumeCapabilityService`, `MuteCapabilityService`) are gone with the
+fallbacks they guarded: every supported release has the feature, so its control is always shown and the
+endpoints that only reported them (`GET /api/settings/costume-capability`, `GET /api/quests/capability`)
+no longer exist.
 
 There is deliberately no central registry. A user-facing control cannot ask the admin-only
-`GET /api/admin/server-profile`, so ordinary authenticated endpoints answer instead:
-`GET /api/settings/costume-capability`, `GET /api/quests/capability` and
-`GET /api/summary-schedules/capability` answer on their own, while `GET /api/mutes` and
-`GET /api/location/places` fold the capability into the list response, because their callers need the
-list anyway.
+`GET /api/admin/server-profile`, so an ordinary authenticated endpoint answers instead, like
+`GET /api/summary-schedules/capability`.
 
 See [Version compatibility](poracleng-compatibility.md) for how to choose a signal and what each
 feature needs.

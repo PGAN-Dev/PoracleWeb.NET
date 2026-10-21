@@ -225,7 +225,7 @@ public class NewProfileGeographyTests : ControllerTestBase
     }
 
     private static string Fixture([System.Runtime.CompilerServices.CallerFilePath] string? here = null) =>
-        Path.Combine(Path.GetDirectoryName(here)!, "..", "Fixtures", "poracleng-openapi-next.json");
+        Path.Combine(Path.GetDirectoryName(here)!, "..", "Fixtures", "poracleng-openapi-5.4.0.json");
 
     private sealed record Sent(HttpMethod Method, string Path, string Query, string? Body);
 

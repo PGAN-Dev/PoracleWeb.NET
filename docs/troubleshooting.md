@@ -83,7 +83,7 @@ Then recreate the container: `docker compose up -d --force-recreate`. For revers
 The historical cause is a NULL `template` left behind by a pre-v2.0.0 direct write. PoracleNG's loader
 scans that column into a non-nullable Go field, so a single NULL row aborts the whole reload. Commit
 `e81b629` added `COALESCE(template, '')` to the loaders, and every build from 5.1.0 onward carries it,
-so this only bites an older PoracleNG. On one of those, clear the data:
+so this only bites a PoracleNG older than the supported minimum. On one of those, clear the data:
 
 ```sql
 UPDATE monsters SET template = '1' WHERE template IS NULL;
@@ -597,13 +597,13 @@ Configure the end-session URL, leave `enable_oidc_slo` unset (or `true`), and re
 !!! warning "Pokéstop Events is the one that fails closed"
     You do not need to write `disable_showcase` into your `config.toml` to switch it on.
     `GET /api/config/values` reflects over the config Poracle actually loaded and reports the effective
-    value, and the option is declared with a default of `false`, so a 5.2.1 server answers `false`
+    value, and the option is declared with a default of `false`, so a supported server answers `false`
     whether or not the line is present. Set it only when you want the feature **off**.
 
-    What does close the gate is a Poracle that has never heard of the option — it is absent from the
-    config schema before 5.2.0, so the read comes back as "cannot tell" — or one whose config this site
-    cannot read at all. Both resolve to off, deliberately: every such server also 404s the route the page
-    is built on. If Pokéstop Events is missing on an older Poracle, the fix is an upgrade, not a setting.
+    What does close the gate is a Poracle whose config this site cannot read at all, or one that answers
+    without the option: both resolve to off, deliberately, because showing a page whose route the server
+    cannot serve produces a page that only errors. If Pokéstop Events is missing and Poracle is
+    reachable, check the PoracleNG version on **Admin > Settings** before looking at the flag.
 
     Unlike the others it does not travel in `disabledHooks`; it is read separately from
     `GET /api/config/values`, so the `jq .disabledHooks` check below will not show it.
@@ -615,7 +615,7 @@ Configure the end-session URL, leave `enable_oidc_slo` unset (or `true`), and re
 curl -s -H "X-Poracle-Secret: $SECRET"   http://poracle-host:3030/api/config/poracleWeb | jq .disabledHooks
 
 # Pokestop Events travels separately. `false` means available, `null` means
-# the server is too old to have the option.
+# the server did not report the option.
 curl -s -H "X-Poracle-Secret: $SECRET"   http://poracle-host:3030/api/config/values | jq .values.general.disable_showcase
 
 # What this site resolved that into (any signed-in user)
@@ -631,31 +631,29 @@ An empty array on the first call, with the type still locked, means the local `d
 **Symptom**: Pokéstop Events is not in the sidebar, alarm cards have no quiet chip, the Pokécoins tab is
 absent from the quest dialog, or the costume filter is missing. No error, no toast, no empty state.
 
-**Cause**: PoracleNG is older than the supported minimum (5.2.1), or was unreachable when PoracleWeb.NET
+**Cause**: PoracleNG is older than the supported minimum (5.4.0), or was unreachable when PoracleWeb.NET
 last checked. Quiet periods, Pokécoin quest rewards, moving a saved place and the costume filter are all
-in every supported release, so they are offered whenever PoracleNG answers with a version that is not
-known to be older. They are hidden while it is unreachable, because a control that fails on every
-press is worse than none. The check is cached for five minutes; the refresh button on the Versions card
-re-runs it.
+in every supported release and are always offered; on an older server they fail instead of hiding, with a
+message naming the version they need. What can still hide a control without a word is a Poracle config
+flag (the quest summary delivery menu, the pokemon edit-in-place toggle) or an unreachable PoracleNG. The
+version check is cached for five minutes; the refresh button on the Versions card re-runs it.
 
 Pokéstop Events looks like it belongs here but does not: it is switched off by Poracle's own
 `general.disable_showcase` config flag, so it behaves like a disabled alarm type — see the section
 above.
 
-**Fix**: upgrade PoracleNG to 5.2.1 or later. **Admin > Settings** shows the version the deployment is
+**Fix**: upgrade PoracleNG to 5.4.0 or later. **Admin > Settings** shows the version the deployment is
 talking to and says when it is too old — start there before assuming a bug.
 
-Hiding the control is the whole mechanism today, with one exception: `PUT /api/location/places/{label}`
-answers **501 Not Implemented** with "This Poracle server cannot move a saved place. Delete it and add it
-again." `PoracleUnsupportedException` is the general backstop for a request that gets past the hidden
-control — a stale tab, a saved bookmark, a direct API call — and answers **409 Conflict** naming what is
-missing, but nothing throws it yet:
+`PoracleUnsupportedException` is what a request gets when it reaches a route the server doesn't have: a
+human, profile, area, place or geocode call on PoracleNG below 5.4.0 answers **409 Conflict** naming what
+is missing. When PoracleNG can't be reached at all, the mute, location and quest endpoints answer **503**.
 
 ```json
 {
-  "error": "This PoracleNG does not support quiet periods. It requires PoracleNG 5.2.1.",
-  "feature": "quiet periods",
-  "requires": "PoracleNG 5.2.1"
+  "error": "This PoracleNG does not support listing areas. It requires PoracleNG 5.4.0.",
+  "feature": "listing areas",
+  "requires": "PoracleNG 5.4.0"
 }
 ```
 

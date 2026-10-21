@@ -11,7 +11,7 @@ public interface IPoracleHumanProxy
 {
     /// <summary>
     /// Fetches a single human record.
-    /// GET /api/v2/humans/{userId}, or GET /api/humans/one/{userId} on a PoracleNG without v2.
+    /// GET /api/v2/humans/{userId}.
     /// </summary>
     /// <returns>The human, or null when PoracleNG answers 404: it has no such human.</returns>
     /// <exception cref="HttpRequestException">
@@ -23,19 +23,19 @@ public interface IPoracleHumanProxy
 
     /// <summary>
     /// Creates a new human record.
-    /// Maps to POST /api/humans
+    /// Maps to POST /api/v2/humans
     /// </summary>
     public Task CreateHumanAsync(JsonElement body);
 
     /// <summary>
     /// Enables alerts for a user.
-    /// POST /api/v2/humans/{userId}/enable, or POST /api/humans/{userId}/start without v2.
+    /// POST /api/v2/humans/{userId}/enable.
     /// </summary>
     public Task StartAsync(string userId);
 
     /// <summary>
     /// Disables alerts for a user.
-    /// POST /api/v2/humans/{userId}/disable, or POST /api/humans/{userId}/stop without v2.
+    /// POST /api/v2/humans/{userId}/disable.
     /// </summary>
     public Task StopAsync(string userId);
 
@@ -43,20 +43,19 @@ public interface IPoracleHumanProxy
     /// Sets the language PoracleNG writes this user's alerts in.
     /// </summary>
     /// <remarks>
-    /// POST /api/v2/humans/{userId}/language, falling back to POST /api/humans/{userId}/language, which
-    /// exists on both supported releases. Replaces a direct write to <c>humans.language</c>: the handler
+    /// POST /api/v2/humans/{userId}/language. Replaces a direct write to <c>humans.language</c>: the handler
     /// also reloads PoracleNG's in-memory state, which the direct write never did, so a language change
     /// now takes effect on the next alert instead of at the next restart.
     /// <para>
     /// Both handlers lowercase and trim what they store, so <c>pt-BR</c> comes back as <c>pt-br</c>.
-    /// Verified on 5.2.1 against v1 and v2 alike.
+    /// Verified on 5.2.1 and 5.4.0.
     /// </para>
     /// </remarks>
     public Task SetLanguageAsync(string userId, string language);
 
     /// <summary>
     /// Admin-disables or re-enables a user.
-    /// Maps to POST /api/humans/{userId}/adminDisabled
+    /// Maps to POST /api/v2/humans/{userId}/admin-disable
     /// </summary>
     public Task AdminDisabledAsync(string userId, bool disabled);
 
@@ -70,9 +69,7 @@ public interface IPoracleHumanProxy
     /// The channels, webhooks and users this human may administer on Discord and Telegram.
     /// </summary>
     /// <remarks>
-    /// GET /api/v2/humans/{userId}/admin-roles, or v1's getAdministrationRoles. Both compute the same
-    /// answer -- v2's handler calls the same delegated-administration logic -- and the only difference
-    /// on the wire is v1's extra "status":"ok".
+    /// GET /api/v2/humans/{userId}/admin-roles.
     /// <para>
     /// This sits on the delegated-webhook path, which has broken four separate times by one surface
     /// disagreeing with another (#564, #601, #626, #786), so the distinction below is load-bearing: an
@@ -89,12 +86,11 @@ public interface IPoracleHumanProxy
     /// <summary>
     /// Sets user area subscriptions. PoracleNG handles the dual-write to
     /// humans.area + profiles.area atomically.
-    /// Maps to POST /api/v2/humans/{userId}/areas (never with <c>trusted</c>) where the server's schema says
-    /// that answer reports what it refused, or POST /api/humans/{userId}/setAreas.
+    /// Maps to POST /api/v2/humans/{userId}/areas (never with <c>trusted</c>).
     /// </summary>
     /// <remarks>
-    /// Either way PoracleNG leaves out names this user may not select, including every user-drawn fence.
-    /// That is not an error on either surface; the caller re-adds the user's own fences afterwards.
+    /// PoracleNG leaves out names this user may not select, including every user-drawn fence.
+    /// That is not an error; the caller re-adds the user's own fences afterwards.
     /// </remarks>
     public Task SetAreasAsync(string userId, string[] areas);
 
@@ -191,14 +187,14 @@ public interface IPoracleHumanProxy
 
     /// <summary>
     /// The user's saved places, plus the profile pin every alarm falls back to.
-    /// Maps to GET /api/humans/{id}/locations
+    /// Maps to GET /api/v2/humans/{id}/locations
     /// </summary>
     public Task<SavedPlaces> GetPlacesAsync(string userId);
 
     /// <summary>
     /// Saves a place. PoracleNG reports per-row outcomes rather than failing the request, so a
     /// duplicate label comes back as a message here rather than an exception.
-    /// Maps to POST /api/humans/{id}/locations/add
+    /// Maps to POST /api/v2/humans/{id}/locations
     /// </summary>
     /// <returns>Null on success, or PoracleNG's reason for refusing this label.</returns>
     public Task<string?> AddPlaceAsync(string userId, SavedPlace place);
@@ -207,16 +203,16 @@ public interface IPoracleHumanProxy
     /// Moves a saved place, keeping its label so every alarm pointing at it follows.
     /// </summary>
     /// <remarks>
-    /// PUT /api/v2/humans/{id}/locations/{label}. There is no v1 equivalent, which is why moving a place
-    /// an alarm referenced was impossible before: the delete answers 409 while anything still points at
-    /// it, so the only route was to repoint every alarm, delete, re-add and repoint back.
+    /// PUT /api/v2/humans/{id}/locations/{label}. Before this route existed, moving a place an alarm
+    /// referenced meant repointing every alarm, deleting, re-adding and repointing back, because the
+    /// delete answers 409 while anything still points at it.
     /// </remarks>
     /// <exception cref="PoracleUnsupportedException">This PoracleNG is older than 5.4.0 and has no such route.</exception>
     public Task UpdatePlaceAsync(string userId, string label, double latitude, double longitude);
 
     /// <summary>
     /// Deletes a saved place.
-    /// Maps to POST /api/humans/{id}/locations/{label}/delete
+    /// Maps to DELETE /api/v2/humans/{id}/locations/{label}
     /// </summary>
     /// <exception cref="PlaceInUseException">Alarms still point at this place.</exception>
     public Task DeletePlaceAsync(string userId, string label);

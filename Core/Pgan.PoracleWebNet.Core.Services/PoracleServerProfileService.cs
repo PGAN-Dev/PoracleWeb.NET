@@ -14,7 +14,7 @@ namespace Pgan.PoracleWebNet.Core.Services;
 /// <para>
 /// One read: <c>/health</c> gives the release number and PoracleNG's own capability map. It used to be
 /// paired with a <c>schema_migrations</c> read straight out of PoracleNG's database, for the columns 5.1.0
-/// lacked; with 5.2.1 the minimum nothing needs the migration number, so PoracleWeb.NET no longer reads
+/// lacked; with 5.4.0 the minimum nothing needs the migration number, so PoracleWeb.NET no longer reads
 /// PoracleNG's database to answer this.
 /// </para>
 /// <para>

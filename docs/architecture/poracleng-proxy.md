@@ -2,8 +2,8 @@
 
 All alarm tracking operations (create, read, update, delete) are proxied through the PoracleNG REST API instead of writing directly to the Poracle MySQL database. This ensures PoracleNG applies field defaults, deduplication, and immediate state reload on every mutation.
 
-!!! warning "PoracleNG 5.2.1 or newer"
-    `PoracleServerProfile.MinimumSupported` is 5.2.1. Against anything older PoracleWeb.NET still runs, but the [server capability probe](backend.md#server-capability-probe) logs an error at startup and warns an admin, and lure and invasion edits can fail there. See [Version compatibility](poracleng-compatibility.md).
+!!! warning "PoracleNG 5.4.0 or newer"
+    `PoracleServerProfile.MinimumSupported` is 5.4.0. Against anything older PoracleWeb.NET still runs, but the [server capability probe](backend.md#server-capability-probe) logs an error at startup and warns an admin, and the human, profile, area, place and mute calls answer with a message naming the version they need. See [Version compatibility](poracleng-compatibility.md).
 
 ## Why we migrated
 
@@ -26,7 +26,7 @@ Alarm Services  (MonsterService, RaidService, etc.)
 IPoracleTrackingProxy  (PoracleTrackingProxy)
     |  HTTP + X-Poracle-Secret header
     v
-PoracleNG REST API  (/api/tracking/*)
+PoracleNG REST API  (/api/tracking/*, /api/v2/humans/*)
     |
     v
 MySQL (Poracle DB)  +  State Reload
@@ -79,10 +79,9 @@ usable default rather than failing the request:
 | `GET /api/config/values` &rarr; `general.disable_showcase` | Whether the Pokéstop Events page exists at all | Treated as disabled. This one probe fails **closed**, because a server that cannot answer it is also a server whose v2 `incident` route the page would 404 against |
 | `GET /api/config/values` &rarr; `tracking.quest_summary_enabled` | Whether quest summary delivery is offered | Treated as off, so the control is hidden rather than saving into a delivery nothing performs |
 
-Fort changes arrive in `disabledHooks` as `fort` from 5.2.1
-([jfberry/PoracleNG#197](https://github.com/jfberry/PoracleNG/issues/197)). Up to 5.1.0 they did not,
-and a second read of `general.disable_fort_update` covered those servers; it went when 5.2.1 became the
-minimum.
+Fort changes arrive in `disabledHooks` as `fort`
+([jfberry/PoracleNG#197](https://github.com/jfberry/PoracleNG/issues/197)). A second read of
+`general.disable_fort_update` covered servers before 5.2.1; it is gone.
 
 The locale on the first row is the display language, which is why switching language re-fetches the
 map — Poracle owns the translations, so this site does not carry Pokemon names of its own.
@@ -199,27 +198,27 @@ PoracleNG newer than the translator broke every edit, and dropping the field sil
 field-loss bug again.
 
 `ping` is the one that catches people out. It's a real column on every type and the v1 body carries it,
-but a server without jfberry/PoracleNG#249 has no v2 field for it, and both surfaces store an empty string
-on every write there. So the translator sends `ping` only when the server's schema declares it
-(`PoracleV2Capabilities.TrackingPing`), and on a server that doesn't, an edit to a rule holding a mention
-is refused rather than sent anywhere: v1 would erase the mention just as v2 would. Without the field
-an empty ping is simply dropped, since either surface stores the same empty string.
+and v2 declares it on every rule (jfberry/PoracleNG#249), so a mention survives an edit that goes through
+v2. v1 doesn't: its write handler blanks `ping` unconditionally, create or update, sent or omitted
+(verified live on 5.4.0). An edit that would **fall back to v1** while the row holds a mention is
+therefore refused with an `AlarmValidationException` (`RefuseIfV1WouldDropPing`, run by
+`TryReplaceV2Async` whenever it is about to answer "use v1"), whatever the reason for the fallback: an
+untranslatable field, an invasion v2 won't take, a route remembered as absent. An empty ping is
+always fine. The SPA shows the Mention field in edit dialogs for webhooks and nowhere else; it asks the
+server nothing first.
 
 ### Choosing the surface
 
-`Poracle:TrackingApiVersion` (env `PORACLE_TRACKING_API_VERSION`, mapped in `Program.cs`) takes `auto`,
-`v1` or `v2`. `auto` is the default and asks the server: `SupportsV2Tracking` is
-`PoracleServerProfile.IsSupported`, true when PoracleNG answered and is not known to be older than 5.2.1
-(an unparseable version or a local build's `0.0.0` counts as current; an unreachable server does not).
-An operator needs the pin because a fork can carry the routes while reporting an older number, or the
-reverse, and a version probe sees neither. Pinning `v2` skips the probe but not the runtime fallback, so a server that turns
-out not to have the route degrades rather than failing every edit.
+There is no setting for it. `PoracleServerProfile.IsSupported` (PoracleNG answered and is not known to be
+older than 5.4.0; an unparseable version or a local build's `0.0.0` counts as current, an unreachable
+server does not) decides whether the proxy tries v2 at all. `Poracle:TrackingApiVersion` and
+`PORACLE_TRACKING_API_VERSION` are gone, and a leftover value is ignored.
 
-If the v2 route answers gin's plaintext `404 page not found` anyway, the proxy remembers that absence
-**per type** for five minutes, the same clock the server profile is cached on, and uses v1 until it
-expires. Per type rather than per surface: one shared flag would let a single missing route drop every
+If a v2 tracking route answers gin's plaintext `404 page not found` anyway, the proxy remembers that
+absence **per type** for five minutes, the same clock the server profile is cached on, and uses v1 until
+it expires. Per type rather than per surface: one shared flag would let a single missing route drop every
 other type back to v1, and for `incident`, whose only surface is v2, that would mean the type vanishing
-rather than degrading.
+rather than degrading. This tracking-only fallback goes when tracking moves to v2 entirely.
 
 ## Reading a refusal
 
@@ -250,16 +249,17 @@ failure surfaces as a sentence rather than an opaque 500.
 global `PoracleUnsupportedExceptionFilter` turns it into **409 Conflict** with
 `{error, feature, requires}`. 409 rather than 403 because 403 is the `disable_*` path and keys off
 `disableKey` in the body; 409 has no interceptor branch, so the message lands beside the control that
-asked for it. Nothing throws it yet — the capability services hide their controls first. See
+asked for it. `PoracleHumanProxy` and the areas and geocode calls on `PoracleApiProxy` throw it for a
+plaintext 404 from a route 5.4.0 added; a problem+json 404 keeps its ordinary meaning. See
 [Version compatibility](poracleng-compatibility.md#when-a-request-cannot-be-served).
+
+When PoracleNG cannot be reached at all, `PoracleUnreachableExceptionFilter` answers 503 with a message on
+the mute, location and quest controllers.
 
 ## What stays on direct database access
 
 | Operation | Reason |
 |---|---|
-| Admin and lookup human reads, plus user deletion (`GetAllAsync`, `GetWebhooksAsync`, `GetByIdsAsync`, `DeleteUserAsync`) **as a fallback only** | Prefer PoracleNG's v2 `/v2/humans` list/delete routes ([#839](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/839)) when the server's schema confirms both the routes and the three admin-grid fields jfberry/PoracleNG#230 added; `IHumanRepository` is the fallback for a server too old for either |
-| Profile **rename** (`ProfileRepository.RenameAsync`) | PoracleNG's profile update answers `{"status":"ok"}` and writes nothing for `name`, while honouring `active_hours` on the same request |
-| Profile geography after a create, duplicate or import (`ProfileRepository.UpdateAsync`) **as a fallback only** | `addProfile` ignores `area`, `latitude` and `longitude`, so a new profile inherited whatever the **active** one had — the right alarms over the wrong map. Where the server declares `?profile=` on both `POST /v2/humans/{id}/areas` and `POST /v2/humans/{id}/location` (`PoracleV2Capabilities.ProfileScopedGeography`), `NewProfileGeography` writes them there instead ([#993](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/993)): a non-empty area list goes with `trusted`, so only where `trusted` is safe (the #838 gate), and a refused name, a refusal or a missing route falls back to the direct write |
 | User-geofence area writes (`IUserAreaDualWriter`, `humans.area` + `profiles.area`) **as a fallback for three of six methods** | `setAreas` intersects the submitted list against `userSelectable=true` fences for non-admins, so a user's own geofence is silently stripped. Three active-profile methods prefer v2's trusted `setAreas` instead when the server carries jfberry/PoracleNG#230 and `area_security` is confirmed off ([#838](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/838)); the other three have no safe v2 form yet |
 | Per-alarm `override_areas` (`IUserAreaDualWriter.SetAlarmOverrideAreasAsync`) | The tracking write validates the same names against `GetAvailableAreas` and answers 400 "area not permitted", failing the whole request. Matching never consults `userSelectable`, so the name is written into the column directly |
 | Deprecated `pweb_settings` KV table (`PwebSettingRepository`, plus one `ALTER TABLE ... MODIFY COLUMN value LONGTEXT NULL` at startup) | Legacy rows PoracleNG never knew about, kept alive only so `SettingsMigrationService` can copy them into `poracle_web` |
@@ -268,42 +268,47 @@ asked for it. Nothing throws it yet — the capability services hide their contr
 
 The user-geofence area writes and the per-alarm `override_areas` write are tagged `HACK: trusted-set-areas` in code — `grep -rn "HACK: trusted-set-areas" --include="*.cs"` lists every reversion point. See [Backend → Areas](backend.md#areas) for the mechanism; this table and the one in [Database](database.md#poraclecontext) describe the same set.
 
-!!! note "Single-user human/profile operations are fully proxied; admin bulk operations now prefer the proxy too"
-    `HumanService` reads and creates a single human via `IPoracleHumanProxy` with **no DB fallback**. Location, areas, profile switch, profile CRUD, profile copy and the notification language all go through the proxy. The admin-bulk set — the full user list, the webhook list, the batch read that resolves geofence owners' names, and user deletion — prefers the proxy's v2 routes since [#839](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/839), falling back to `IHumanRepository` on a server too old to carry them. The existence check the purge runs first used to read the database unconditionally, because the proxy answered null for any non-success and an unreachable Poracle would have been reported to the admin as "already gone". The proxy's human read now answers null only for a 404 and throws for anything else, the same contract as `GetAdminRolesAsync`, so the purge asks `IHumanService.ExistsAsync` like everything else ([#994](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/994)).
+!!! note "Every human and profile operation is proxied"
+    `HumanService` and `ProfileService` read and write a single human through `IPoracleHumanProxy` with **no DB fallback**, and so do the admin-bulk operations: the full user list, the webhook list, the batch read that resolves geofence owners' names, and user deletion use `GET /api/v2/humans` (with `?type=` and `?id=a,b,c`) and `DELETE /api/v2/humans/{id}`. `HumanRepository` and `ProfileRepository` no longer exist. The existence check the purge runs first reads the proxy too: its human read answers null only for a 404 and throws for anything else, the same contract as `GetAdminRolesAsync`, so an unreachable PoracleNG is not reported to the admin as "already gone" ([#994](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/994)).
+
+    **A new profile's areas and location** are written by `NewProfileGeography` through `POST /api/v2/humans/{id}/areas?profile=N` and `.../location?profile=N`, because PoracleNG's add ignores both ([#993](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/993)). Names PoracleNG rejects are logged and dropped, the list goes untrusted where `trusted` isn't safe (`area_security` on or unconfirmed), and a refusal of either write deletes the profile just created and returns the original error, since there is no direct write left to repair it with.
+
+    **Rename** is `PATCH /api/v2/humans/{id}/profiles/{n}`, and it sends only the `active_hours` the caller submitted, so renaming a profile whose stored schedule v2 would refuse still works.
 
 ## Which human operations use /api/v2
 
-Fifteen of them prefer `/api/v2/humans`, each keeping its v1 path as a fallback, so **there is no version floor**: a server without the routes gets exactly the requests it got before. The last five (from areas save down) also gate on the server's own `/openapi.json` declaring the route, via `PoracleV2Capabilities` ([#995](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/995)).
+All of them, with no fallback. A route 5.4.0 added that answers gin's plaintext `404 page not found` is a
+`PoracleUnsupportedException`, not a retry on v1.
 
-| Operation | v2 | v1 fallback |
-|---|---|---|
-| Get human | `GET /v2/humans/{id}` | `GET /humans/one/{id}` |
-| Enable / disable | `POST .../enable` `.../disable` | `.../start` `.../stop` |
-| Admin disable | `POST .../admin-disable` `{disabled}` | `.../adminDisabled` `{state}` |
-| Set location | `POST .../location` `{lat,lon}`, or `{latitude,longitude}` (see below) | `.../setLocation/{lat}/{lon}` |
-| Switch profile | `POST .../profile` `{profile_no}` | `.../switchProfile/{n}` |
-| Set language | `POST .../language` | `POST /humans/{id}/language` |
-| List saved places | `GET .../locations` | same path, v1 |
-| Add saved place | `POST .../locations` `{label,lat,lon}`, or `{label,latitude,longitude}` | `.../locations/add` `{label,latitude,longitude}` |
-| Delete saved place | `DELETE .../locations/{label}` | `POST .../locations/{label}/delete` |
-| Admin roles | `GET .../admin-roles` | `.../getAdministrationRoles` |
-| Save areas (Areas page) | `POST .../areas` `{areas}`, never `trusted`; only where the answer reports `rejected` | `POST /humans/{id}/setAreas` `[...]` |
-| Available areas | `GET .../areas` | `GET /humans/{id}`, its `areas` key |
-| List profiles | `GET .../profiles`, translated back to v1's `{"profile":[...]}` with `area` and `active_hours` as strings | `GET /profiles/{id}` |
-| Delete profile | `DELETE .../profiles/{n}` | `DELETE /profiles/{id}/byProfileNo/{n}` |
-| Copy profile | `POST .../profiles/{to}/copy` `{from_profile}` | `POST /profiles/{id}/copy/{from}/{to}` |
+| Operation | Route |
+|---|---|
+| Get human | `GET /v2/humans/{id}` |
+| Create human | `POST /v2/humans` |
+| Admin list / delete | `GET /v2/humans`, `DELETE /v2/humans/{id}` |
+| Enable / disable | `POST .../enable`, `.../disable` |
+| Admin disable | `POST .../admin-disable` `{disabled}` |
+| Set location | `POST .../location` `{latitude,longitude}` |
+| Switch profile | `POST .../profile` `{profile_no}` |
+| Set language | `POST .../language` |
+| List / add / move / delete saved place | `GET`, `POST .../locations`, `PUT`, `DELETE .../locations/{label}` |
+| Admin roles | `GET .../admin-roles` |
+| Save areas (Areas page) | `POST .../areas` `{areas}`, never `trusted` |
+| Available areas | `GET .../areas` |
+| List profiles | `GET .../profiles`, translated back to v1's `{"profile":[...]}` with `area` and `active_hours` as strings |
+| Create / rename profile | `POST .../profiles` (returns the number), `PATCH .../profiles/{n}` |
+| Delete profile | `DELETE .../profiles/{n}` |
+| Copy profile | `POST .../profiles/{to}/copy` `{from_profile}` |
+| A new profile's geography | `POST .../areas?profile=N`, `POST .../location?profile=N` |
 
-`PUT /v2/humans/{id}/locations/{label}` — moving a place — has **no** v1 equivalent and is therefore gated by `IPlaceUpdateCapabilityService` rather than given a fallback.
+Three things are worth knowing about how a missing route is told from a missing record:
 
-Three things are worth knowing about how the fallback decides:
+- **The content type is the only thing separating them.** gin answers a route it does not have with the plaintext `404 page not found`; the v2 surface answers a missing human or place with problem+json at the same status. `PoracleProblemDetails.IsProblemJson` is consulted before concluding anything.
+- **Every webhook id in a path goes through `Uri.EscapeDataString`**, because the id is a URL.
+- **Bodies differ from v1 in more than shape.** `admin-disable` renames `state` to `disabled`. The location writes take `latitude`/`longitude`, matching what every read answers (jfberry/PoracleNG#303). The profile create and update bodies are translated, never forwarded: `V2AddProfileBody` and `V2UpdateProfileBody` declare `name` and `active_hours` under `additionalProperties: false`, and `active_hours` is the entry array rather than the JSON string stored here.
 
-- **The version is a belief, not a fact.** A fork can carry the routes while reporting an older number, or the reverse, so `TryV2Async` also handles the route being absent at request time. gin answers a route it does not have with the plaintext `404 page not found`; the v2 surface answers a missing human or place with problem+json at the same status. **The content type is the only thing separating them**, which is why `PoracleProblemDetails.IsProblemJson` is consulted before concluding anything.
-- **Absence is remembered per route, not per surface.** A single shared flag would let one missing route drop every other call back to v1.
-- **Bodies differ in more than shape.** `admin-disable` renames `state` to `disabled`. Released PoracleNG takes `lat`/`lon` on the three v2 location writes (`POST .../location`, `POST .../locations`, `PUT .../locations/{label}`) while every read answers `latitude`/`longitude`; jfberry/PoracleNG#303 (unreleased) renames the write fields to match. v2 refuses whichever pair it doesn't declare, so `PoracleHumanProxy` sends `latitude`/`longitude` only when the server's own `/openapi.json` declares them on `V2LocationBody` (`PoracleV2Capabilities.V2LocationLatitudeLongitude`) and `lat`/`lon` otherwise, including when the document can't be read.
+The profile list restates the v2 answer in v1's shape before `ProfileService` sees it: the wrapper key changes from `profile` to `profiles`, and `active_hours` and `area` arrive as arrays. Copy inverts its arguments (destination in the path, source as `from_profile`) and replaces the destination's rules, which the tests pin. Both surfaces' copy replaces, so copying from a profile with no rules empties the destination. Delete cascades the profile's rules and moves `current_profile_no` off a deleted active profile.
 
-The profile list and copy were held back here once, for traps that are now handled in the proxy rather than avoided: the list's wrapper key changes from `profile` to `profiles` and `active_hours` (and, since jfberry/PoracleNG#303, `area`) arrive as arrays, so `PoracleHumanProxy` restates the v2 answer in v1's shape before `ProfileService` sees it; and copy inverts its arguments (destination in the path, source as `from_profile`) and replaces the destination's rules, which the tests pin. Both surfaces' copy replaces, so copying from a profile with no rules empties the destination. Verified on the 5.3.0 bed: the v2 copy carried every rule type, including Pokéstop events, with `ping`, `clean`, `override_areas` and `override_location_label` intact, and the v2 delete cascaded the profile's rules and moved `current_profile_no` off a deleted active profile.
-
-`POST /location?profile=N` is not used on its own. On 5.2.1 it wrote the named profile's row *and* clobbered `humans.latitude/longitude`; the 5.3.0 bed leaves `humans` alone for a non-active profile, so it is used only on builds whose `POST .../areas` also declares `profile`, and only to give a new profile its location ([#993](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/993)). The 5.3.0 bed also answers 200 and writes nothing for a profile number that does not exist, on both routes.
+A `?profile=N` write for a profile number that does not exist answers 200 and writes nothing, on both routes, so a geography write can't report "no such profile"; callers pass the number PoracleNG has just assigned.
 
 ## IPoracleTrackingProxy interface
 

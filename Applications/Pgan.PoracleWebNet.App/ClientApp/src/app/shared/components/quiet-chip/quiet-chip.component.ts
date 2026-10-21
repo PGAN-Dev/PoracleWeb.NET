@@ -16,9 +16,8 @@ import { QuietSheetComponent, QuietSheetData, QuietSheetResult } from '../quiet-
  * chip around it. Whichever form, when the subject is quiet it carries a live countdown, and pressing
  * it opens the same sheet.
  *
- * Renders nothing at all on a PoracleNG older than 5.2.0. There is nothing useful to say about a
- * server feature the operator has not got yet, and a control that 404s on every press is worse than
- * its absence.
+ * Renders nothing while nothing is quiet. It asks no capability question: the mute routes exist on
+ * every supported PoracleNG (5.4.0 and up).
  */
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,

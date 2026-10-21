@@ -90,17 +90,16 @@ public partial class PoracleHumanProxy(
     /// were logged as one. #539 fixed exactly this on the tracking proxy and never reached here.
     /// </para>
     /// <para>
-    /// 422 is the same refusal wearing a different number. Verified live: the v1 human and profile routes
-    /// answer 400 on 5.1.0 and 5.2.1 alike, but 5.2.1's <c>/api/v2/humans</c> surface answers RFC 9457
-    /// problem+json at 422 for the same mistakes. Matching only 400 would re-open this the day a call
-    /// site moves to v2.
+    /// 422 is the same refusal wearing a different number. Verified live: <c>/api/v2/humans</c> answers
+    /// RFC 9457 problem+json at 422 for these mistakes, where the v1 routes this class once called
+    /// answered 400. Matching only 400 would re-open this.
     /// </para>
     /// <para>
     /// A 404 is account-gone only when PoracleNG says so. It also answers 404 "Profile not found" when a
     /// profile number does not exist, and gin answers a plaintext "404 page not found" for a route this
     /// build does not have -- treating either as a dead account signed the user out of a working session,
     /// and in <c>ProfileOverviewService</c>'s restore-the-profile <c>finally</c> it did so while
-    /// swallowing the real failure. Both verified against 5.1.0 and 5.2.1.
+    /// swallowing the real failure. Both verified against 5.2.1 and 5.4.0.
     /// </para>
     /// </remarks>
     private static async Task EnsureAcceptedAsync(HttpResponseMessage response)
@@ -341,8 +340,7 @@ public partial class PoracleHumanProxy(
     private static partial void LogAreasRefused(ILogger logger, string userId, IReadOnlyList<string> rejected);
 
     public async Task<JsonElement?> GetAreasAsync(string userId) =>
-        // User's selected areas are in GET /api/humans/one/{id} → human.area (JSON string).
-        // GET /api/humans/{id} returns the available area list, not the user's selection.
+        // The user's selected areas are the human's own area field; the available list is a separate route.
         await this.GetHumanAsync(userId);
 
     /// <summary>
@@ -716,8 +714,8 @@ public partial class PoracleHumanProxy(
     /// never had one -- is where create and update part. On a create, omission and <c>[]</c> both leave the
     /// new profile unscheduled, and omission is sent. On an update, v2 reads omission as "leave it
     /// unchanged", so a caller sending <c>""</c> to clear a schedule kept the old one; there it is sent as
-    /// <c>[]</c>. That also clears an already-empty schedule whenever a rename resends the stored
-    /// <c>{}</c>, which changes nothing.
+    /// <c>[]</c>. That also clears an already-empty schedule when a caller sends <c>{}</c>, which
+    /// changes nothing.
     /// </para>
     /// </remarks>
     private static string? V2ProfileBody(JsonElement body, bool isUpdate)

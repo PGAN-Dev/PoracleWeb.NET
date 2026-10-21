@@ -2,9 +2,7 @@
 
 A web application for managing Pokemon GO notification alarms through the [PoracleNG](https://github.com/jfberry/PoracleNG) bot. Users authenticate via Discord OAuth2 or Telegram and configure personalized alert filters (Pokemon, Raids and Eggs, Max Battles, Quests, Invasions, Pokéstop Events, Lures, Nests, Gyms, Fort Changes) through a browser-based UI.
 
-> **PoracleNG 5.2.1 or newer is required.** All alarm management, profile handling, and user operations are proxied through PoracleNG's REST API. PoracleWeb.NET still starts against an older PoracleNG, but it logs an error at startup and shows the mismatch on the Versions card under Admin > Settings, and parts of it will fail: on 5.1.0, lure and invasion edits can answer a server error, and quiet periods, Pokéstop Event alarms, PokéCoin quest rewards, costume filters and moving a saved place are hidden. Upgrade PoracleNG first.
->
-> A few features need more than 5.2.1 and switch themselves on when PoracleNG says it can serve them. Which feature needs what, and how support is decided, is in [PoracleNG Version Compatibility](https://pgan-dev.github.io/PoracleWeb.NET/architecture/poracleng-compatibility/).
+> **PoracleNG 5.4.0 or newer is required.** All alarm management, profile handling, and user operations are proxied through PoracleNG's REST API. PoracleWeb.NET still starts against an older PoracleNG, but it logs an error at startup and shows the mismatch on the Versions card under Admin > Settings, and the calls that need a 5.4.0 route fail. Upgrade PoracleNG first. Why 5.4.0, and what it replaced, is in [PoracleNG Version Compatibility](https://pgan-dev.github.io/PoracleWeb.NET/architecture/poracleng-compatibility/).
 >
 > [PoracleJS](https://github.com/KartulUdus/PoracleJS) is not a tested or supported configuration — some operations that rely on PoracleNG-specific endpoints will not work.
 

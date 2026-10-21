@@ -51,10 +51,9 @@ upstream's matcher compares the number without asking which table it came from. 
 121" would also quiet raid rule 121. That is an upstream defect rather than something a client can
 work around, so the site declines to offer it.
 
-PoracleNG 5.3.0 fixes this ([jfberry/PoracleNG#328](https://github.com/jfberry/PoracleNG/pull/328)):
-a rule quiet period records the rule's type as well as its number. On such a server the list shows a
-bot-set rule quiet period as, for example, "raid 60", and lifting it sends the type back. Older servers
-report no type, and the list shows the number alone, as before.
+PoracleNG 5.4.0 fixes this ([jfberry/PoracleNG#328](https://github.com/jfberry/PoracleNG/pull/328)):
+a rule quiet period records the rule's type as well as its number. The list shows a bot-set rule quiet
+period as, for example, "raid 60", and lifting it sends the type back.
 
 **Pokestop** quiets one stop. Nothing in PoracleWeb.NET names a stop: neither the lure model nor the
 invasion model carries a fort id.
@@ -93,13 +92,12 @@ missing and no chip you can find explains it.
 
 ## Requirements
 
-!!! warning "Needs a reachable, supported PoracleNG"
-    The mute endpoints arrived in PoracleNG 5.2.0, so every supported release (5.2.1 and later) has
-    them. While PoracleNG is unreachable, or reports a version older than the minimum, every chip and
-    the dashboard card render nothing at all — a control that fails on every press is worse than no
-    control. A version PoracleWeb.NET cannot parse, such as the `0.0.0` a locally built PoracleNG
-    reports, counts as current.
-
+!!! warning "Needs a reachable PoracleNG 5.4.0 or newer"
+    The mute endpoints exist on every supported release, so nothing asks the server whether it can do
+    this before the chips appear. While PoracleNG is unreachable, `GET /api/mutes` answers 503 and the
+    page shows one error toast saying so; the chips draw nothing, rather than claiming nothing is quiet.
+    A server below 5.4.0 is told apart at startup, not here: the Versions card on **Admin → Settings**
+    says it is too old.
 There is **no site setting that turns quiet periods off.** Nothing on **Admin → Settings** governs
 them; availability is entirely a question of which PoracleNG is running.
 
@@ -117,7 +115,7 @@ else's alerts.
 
 | Endpoint | Purpose |
 |---|---|
-| `GET /api/mutes` | `{ capable, mutes }` — whether this server supports the feature, and the caller's active quiet periods |
+| `GET /api/mutes` | `{ mutes }`, the caller's active quiet periods. `503` with a message when PoracleNG can't be reached |
 | `POST /api/mutes` | Quiets a subject, or extends an existing quiet period on the same subject |
 | `DELETE /api/mutes?scope=&value=[&trackingType=]` | Lifts one; with no scope, lifts all. `trackingType` only with `scope=tracking` |
 
@@ -127,8 +125,8 @@ all seven, so a bot-set mute is liftable.
 PoracleNG canonicalises the value it stores — an area submitted as `aberdeen` comes back as
 `Aberdeen` — and matches a delete string exactly, so a delete has to send back the value the list
 returned rather than the one that was submitted. The same goes for a rule quiet period's
-`trackingType`: send the one the list returned, and send none when it returned none, because a server
-older than 5.3.0 does not know the parameter. A refusal from PoracleNG comes back as 422 with its reason.
+`trackingType`: send the one the list returned, and send none when it returned none (a quiet period
+on any other scope has none). A refusal from PoracleNG comes back as 422 with its reason.
 
 ## Related
 

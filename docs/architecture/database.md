@@ -9,14 +9,11 @@ PoracleWeb.NET uses two separate MySQL databases and optionally connects to a th
 The primary EF Core context connecting to the existing **Poracle database** managed by PoracleNG.
 
 - Connection string: `ConnectionStrings:PoracleDb`
-- Contains: `humans` and `profiles` (direct access), ten alarm tables, and the deprecated `pweb_settings` KV table. `PoracleContext` maps **three** entities — `humans`, `profiles` and `pweb_settings`. There are deliberately no alarm entities: the one place that still reaches an alarm table (`IUserAreaDualWriter.SetAlarmOverrideAreasAsync`) uses raw SQL over a table name from a fixed map. PoracleWeb.NET no longer reads PoracleNG's `schema_migrations` or `information_schema`; both went when PoracleNG 5.2.1 became the minimum. Mapping the tables again would put a direct alarm write one `DbSet` away, which is what the 2.0 migration existed to prevent
+- Contains: `humans` and `profiles` (no longer read or written directly except by `IUserAreaDualWriter`), ten alarm tables, and the deprecated `pweb_settings` KV table. `PoracleContext` maps **three** entities — `humans`, `profiles` and `pweb_settings`. There are deliberately no alarm entities: the one place that still reaches an alarm table (`IUserAreaDualWriter.SetAlarmOverrideAreasAsync`) uses raw SQL over a table name from a fixed map. PoracleWeb.NET no longer reads PoracleNG's `schema_migrations` or `information_schema`; both went when PoracleNG 5.2.1 became the minimum. Mapping the tables again would put a direct alarm write one `DbSet` away, which is what the 2.0 migration existed to prevent
 - **Limited direct access** — Alarm tracking is proxied through `IPoracleTrackingProxy`, and single-user human/profile operations go through `IPoracleHumanProxy`. Direct access is confined to:
 
 | Direct access | What and why |
 |---|---|
-| Human reads and deletion (fallback) | `GetAllAsync`, `GetWebhooksAsync`, `GetByIdsAsync`, `DeleteUserAsync` fall back here only on a server too old to carry PoracleNG v2's admin routes ([#839](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/839)) |
-| Profile **rename** | `ProfileRepository.RenameAsync` — PoracleNG's profile update answers `{"status":"ok"}` and silently ignores `name` |
-| Profile geography | `ProfileRepository.UpdateAsync` — `addProfile` ignores `area`, `latitude` and `longitude`, so create, duplicate and import write them afterwards |
 | User-geofence area writes (fallback for three of six) | `IUserAreaDualWriter` on `humans.area` and `profiles.area` — PoracleNG's `setAreas` strips fences that are not user-selectable. Three active-profile methods fall back here only when the server's trusted `setAreas` ([#838](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/838)) can't be confirmed safe; the other three have no v2 form yet and always use this path |
 | Alarm `override_areas` | `IUserAreaDualWriter.SetAlarmOverrideAreasAsync` writes this one column on the ten alarm tables. It is the only alarm-table write PoracleWeb makes; everything else about a row goes through the proxy |
 | `pweb_settings` | `PwebSettingRepository` still reads and writes the deprecated KV table, and startup runs one `ALTER TABLE pweb_settings MODIFY COLUMN value LONGTEXT NULL` so the old rows can hold JSON. Both exist only to feed `SettingsMigrationService` |
@@ -31,9 +28,9 @@ The user-geofence area writes and the `override_areas` write are tagged `HACK: t
     endpoints.
 
     **v1 applies no such filter**, so a Showcase rule created through `/api/v2/.../tracking/incident`
-    comes straight back out of `GET /api/tracking/invasion/{id}`, verified against 5.2.1.
+    comes straight back out of `GET /api/tracking/invasion/{id}`, verified against 5.2.1 and 5.4.0.
     `InvasionService` therefore does the partition itself — but only when the Pokéstop Events page
-    exists. Where it does not (an older PoracleNG, or `disable_showcase`), the event rows stay in the
+    exists. Where it does not (`disable_showcase`, or Poracle's config unreadable), the event rows stay in the
     invasion list, because filtering them out of the only page that can show them would leave alarms
     that fire and cannot be deleted.
 
@@ -97,10 +94,9 @@ and later).
 | `0` | No costume |
 | _n_ | That costume |
 
-The filter is offered whenever PoracleNG answers and is not known to be older than the minimum. It used
-to be gated on the applied migration number, read straight from `schema_migrations`; with 5.2.1 the
-minimum that read had nothing left to decide. See
-[Version compatibility](poracleng-compatibility.md#how-support-is-decided).
+The filter is always offered: every supported PoracleNG stores it. It used to be gated on the applied
+migration number, read straight from `schema_migrations`, and later on a capability endpoint; neither exists
+any more. See [Version compatibility](poracleng-compatibility.md#how-support-is-decided).
 
 #### `user_locations`
 

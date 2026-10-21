@@ -16,10 +16,9 @@ import { QuestService } from '../../core/services/quest.service';
 
 /**
  * Pokecoin quests are always offered: every supported PoracleNG (5.4.0 and up) stores them, so there is
- * no capability request. Before 5.2.0 a server answered 400 "Unrecognised reward_type value" -- confirmed by POSTing to a live
- * 5.1.0 -- so the reward type is absent rather than present-and-failing. The pairing matters more than
- * either half: a test that only proved it hides on an old server would pass just as well if it never
- * rendered at all.
+ * no capability request. A server below 5.2.0 answers 400 "Unrecognised reward_type value", which is
+ * why 5.4.0 is the floor. The pairing matters more than either half: a test that only proved it hides
+ * would pass just as well if it never rendered at all.
  */
 describe('QuestAddDialogComponent — pokecoins', () => {
   let component: QuestAddDialogComponent;
@@ -129,8 +128,8 @@ describe('QuestAddDialogComponent — pokecoins', () => {
     expect(component.canSave()).toBe(true);
   });
 
-  /** The stardust tab keeps working on a server that has no pokecoin support at all. */
-  it('still creates a stardust quest against an older PoracleNG', () => {
+  /** The stardust tab is unaffected by the pokecoin tab being there. */
+  it('still creates a stardust quest', () => {
     setup();
 
     component.rewardKind = 4;

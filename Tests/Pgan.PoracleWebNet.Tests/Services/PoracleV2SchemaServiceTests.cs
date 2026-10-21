@@ -9,17 +9,13 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The two fixtures are real documents, trimmed to the parts the parser reads: one from a production
-/// 5.2.1, one from a build of PoracleNG's <c>develop</c> at <c>634fe044</c> (PR #217) running on the
-/// dev-01 test bed, with <c>V2PokemonRule.ping</c> added from a later live capture against
-/// <c>poracle-ng-dev</c> once it carried PR #249 -- the "next" fixture is "develop, trimmed as it is
-/// seen over time", not a single frozen commit. A hand-written document would assert this code's own
-/// idea of the shape, which is the failure CLAUDE.md records under "Tests: assert what must still work".
+/// The fixture is a real document, PoracleNG 5.4.0's own <c>/openapi.json</c>, trimmed to the parts the
+/// parser reads. A hand-written document would assert this code's own idea of the shape, which is the
+/// failure CLAUDE.md records under "Tests: assert what must still work".
 /// </para>
 /// <para>
-/// Both halves matter. The 5.2.1 fixture is the no-change case for PR #217's capabilities — every one of
-/// them false, every caller keeping its workaround — and it is the one that fails if a probe is written so
-/// loosely it matches anything.
+/// The no-change half is the inline documents below: a probe written so loosely that it matches anything
+/// would answer true for them.
 /// </para>
 /// </remarks>
 public class PoracleV2SchemaServiceTests
@@ -32,9 +28,9 @@ public class PoracleV2SchemaServiceTests
         File.ReadAllText(Path.Combine(Path.GetDirectoryName(here)!, "..", "Fixtures", $"poracleng-openapi-{name}.json"));
 
     [Fact]
-    public void AReleasedPoracleCarriesNoneOfThem()
+    public void ADocumentThatDeclaresNeitherPropertyCarriesNeitherCapability()
     {
-        var capabilities = PoracleV2SchemaService.Parse(Fixture("5.2.1"));
+        var capabilities = PoracleV2SchemaService.Parse("""{"components":{"schemas":{"V2SetAreasBody":{"properties":{"areas":{}}},"V2InvasionRule":{"properties":{"type_id":{}}}}},"paths":{}}""");
 
         Assert.True(capabilities.Read);
         Assert.False(capabilities.TrustedSetAreas);
@@ -42,9 +38,9 @@ public class PoracleV2SchemaServiceTests
     }
 
     [Fact]
-    public void TheDevelopBranchCarriesAllOfThem()
+    public void TheMinimumSupportedReleaseCarriesAllOfThem()
     {
-        var capabilities = PoracleV2SchemaService.Parse(Fixture("next"));
+        var capabilities = PoracleV2SchemaService.Parse(Fixture("5.4.0"));
 
         Assert.True(capabilities.Read);
         Assert.True(capabilities.TrustedSetAreas);
@@ -80,14 +76,11 @@ public class PoracleV2SchemaServiceTests
     }
 
     [Fact]
-    public void TheFixturesAreRealDocumentsAndNotEachOther()
+    public void TheFixtureIsTheMinimumReleasesOwnDocument()
     {
-        // Cheap guard against a fixture being regenerated from the wrong instance, which would make the
-        // no-change half of this suite silently assert nothing.
-        using var released = JsonDocument.Parse(Fixture("5.2.1"));
-        using var next = JsonDocument.Parse(Fixture("next"));
+        // Cheap guard against the fixture being regenerated from the wrong instance.
+        using var minimum = JsonDocument.Parse(Fixture("5.4.0"));
 
-        Assert.Equal("5.2.1", released.RootElement.GetProperty("info").GetProperty("version").GetString());
-        Assert.Equal("5.3.0", next.RootElement.GetProperty("info").GetProperty("version").GetString());
+        Assert.Equal("5.4.0", minimum.RootElement.GetProperty("info").GetProperty("version").GetString());
     }
 }

@@ -38,7 +38,7 @@ Open an alarm's edit dialog from its card. Changing anything and saving replaces
 Ten of the eleven types take a uid-addressed replace: the rule is swapped in one call rather than
 deleted and re-created, so there is no window in which the alarm does not exist. Lure and max battle
 edits used to have exactly that window and no longer do. Invasion takes the same replace only where the
-server's newer API can report which grunt a rule targets (PoracleNG 5.2.1 cannot), and otherwise saves
+server's newer API can report which grunt a rule targets (the server has to publish it, and know the rule's grunt name), and otherwise saves
 through the older API the way every other type does when the replace is unavailable: it writes the new
 rule, then removes the one it replaced.
 
@@ -93,11 +93,11 @@ it. Both come back with the reason against the field rather than as a server err
 adding one does, and the label is untouched, so every alarm aimed at that place follows it. There is
 no naming step, because the label is what the alarms point at and changing it is a different act.
 
-!!! note "Moving needs a reachable, supported PoracleNG"
-    The endpoint arrived in PoracleNG 5.2.0, so every supported release has it. If PoracleNG is
-    unreachable or older than the supported minimum, the pencil is absent and the only route is
-    delete-and-re-add — which is refused while any alarm still points at the place, so those alarms
-    have to be repointed first.
+!!! note "Moving needs a reachable PoracleNG"
+    Every supported PoracleNG (5.4.0 and later) has the endpoint, so the pencil is always there. If
+    PoracleNG is unreachable the move fails with an error. Without the endpoint the only route would be
+    delete-and-re-add, which is refused while any alarm still points at the place, so those alarms
+    would have to be repointed first.
 
 Deleting a place that alarms still point at is refused. `DELETE /api/location/places/{label}` answers 409 with a `referencingRules` list, and the UI names the alarms so you know what to repoint first.
 
@@ -187,7 +187,7 @@ than a sentence. Pokéstop Events has no line either.
 
 The sentence follows your **Alert language**, not your display language, because Poracle writes it.
 When the two differ the line is hidden entirely rather than putting one language's prose under another
-language's chips. It is also absent on a Poracle too old to send the field, in which case the card is
+language's chips. It is also absent when Poracle sends no description, in which case the card is
 exactly what it was before. Nothing extra is fetched for it — the field was already on the response.
 
 ### Card order
@@ -289,14 +289,10 @@ Costume names come from the WatWowMap masterfile — the same file PoracleNG rea
 lookups — and are **English in every interface language**. A costume too new for that file shows as its
 number rather than a name. See [Game data names](internationalization.md#game-data-names).
 
-!!! warning "Needs a supported PoracleNG"
-    The costume column arrives in PoracleNG database migrations 6 (`monsters.costume`) and 7
-    (`raid.costume`), both in every supported release. The select is absent when PoracleNG does not
-    answer, or reports a version older than 5.2.1.
-
-    A costume that reaches the API anyway — through profile import or a Quick Pick — is refused with
-    *"This Poracle server cannot store a costume filter. It needs PoracleNG 5.2.1 or newer."* Create,
-    update and the bulk path all enforce it, so nothing slips in by a side door.
+!!! note "Always offered"
+    The costume column exists in every supported PoracleNG (database migrations 6 for `monsters.costume`
+    and 7 for `raid.costume` are in 5.4.0), so the select is always there and nothing asks the server
+    first.
 
 ### Level range
 
@@ -376,14 +372,12 @@ Stardust and PokéCoins work differently from the rest, and identically to each 
 
 Quest cards render the amount ahead of the reward name — "3× Rare Candy" — but only when it is above one; an amount of 1 shows the reward name on its own. Stardust cards read "25000 Stardust", from `reward`, and PokéCoin cards read the same way.
 
-!!! warning "PokéCoins needs a reachable, supported PoracleNG"
-    PokéCoins is the last entry in the dropdown. 5.2.0 widened PoracleNG's list of accepted reward
-    types, so every supported release takes it, but the entry is **hidden** while PoracleNG is
-    unreachable or reports a version older than the supported minimum. A 5.1.0 server answers
-    `400 "Unrecognised reward_type value"`.
+!!! note "PokéCoins is always offered"
+    PokéCoins is the last entry in the dropdown. PoracleNG 5.2.0 widened its list of accepted reward
+    types, so every supported release takes it and nothing asks the server first.
 
-    Reads and deletes are not gated, so a PokéCoin rule set from the Discord bot stays visible and
-    removable whatever the server.
+    Reads and deletes are never refused, so a PokéCoin rule set from the Discord bot stays visible and
+    removable.
 
 ## Gym alarm filters
 
@@ -524,7 +518,7 @@ offering the three events. The dashboard counts agree with whichever page the ro
 
 The **Cleaning** page's invasion toggle leaves event rows alone — it would otherwise set the
 auto-delete bit on rules belonging to a page it never mentions. Where the Pokéstop Events page is
-unavailable (`disable_showcase`, or a Poracle too old to report it) it sweeps them along with the invasion
+unavailable (`disable_showcase`, or Poracle's config unreadable) it sweeps them along with the invasion
 rules, because then that switch is the only control you have over them.
 
 ### What this type does not do
@@ -541,8 +535,8 @@ rules, because then that switch is the only control you have over them.
     false`. Absent, unreadable, or set to true all mean the page is hidden.
 
     This is the one upstream probe in PoracleWeb.NET that **fails closed**, and deliberately so: a
-    server without the option is a server below 5.2.0, older than the supported minimum, and every one
-    of those answers 404 on the route the page is built from. Showing the page on a guess would produce a page that only errors. Every
+    server that cannot answer the question is one whose `incident` route the page would 404 against.
+    Showing the page on a guess would produce a page that only errors. Every
     other upstream flag fails open, on the reasoning that a Poracle outage must not switch off alarm
     types that work.
 

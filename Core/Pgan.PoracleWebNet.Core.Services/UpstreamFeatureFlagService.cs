@@ -14,7 +14,7 @@ namespace Pgan.PoracleWebNet.Core.Services;
 /// included. Up to PoracleNG 5.1.0 it left <c>fort</c> out, and this class made a second read of
 /// <c>general.disable_fort_update</c> from <c>GET /api/config/values</c> for any server that did not
 /// report <c>availableLanguages</c> (the field 5.2.1 added in the same release, jfberry/PoracleNG#197).
-/// With 5.2.1 the minimum that read is gone; do not bring it back for a server that is not supported.
+/// With 5.4.0 the minimum that read is gone; do not bring it back for a server that is not supported.
 /// </para>
 /// <para>
 /// The result is cached server-wide for five minutes, matching <c>SiteSettingService</c>. Upstream

@@ -105,7 +105,7 @@ public class UpstreamFeatureFlagServiceTests
 
     /// <summary>
     /// <c>general.disable_fort_update</c> used to be read from <c>/api/config/values</c> for a server too
-    /// old to put <c>fort</c> in <c>disabledHooks</c> (5.1.0). 5.2.1 is the minimum, so the hook list and
+    /// old to put <c>fort</c> in <c>disabledHooks</c> (5.1.0). 5.4.0 is the minimum, so the hook list and
     /// the showcase flag are the only two reads; a third would be a round-trip on the gate's hot path for
     /// a server that is not supported.
     /// </summary>

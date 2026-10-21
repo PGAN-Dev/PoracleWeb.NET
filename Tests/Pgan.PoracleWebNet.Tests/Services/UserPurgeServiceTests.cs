@@ -166,7 +166,7 @@ public class UserPurgeServiceTests
         this._delegates.Verify(r => r.RemoveAllForIdAsync("u1"), Times.Once);
     }
 
-    /// <summary>A real HumanService over a real PoracleHumanProxy on a PoracleNG without /api/v2.</summary>
+    /// <summary>A real HumanService over a real PoracleHumanProxy whose every request gets the one scripted answer.</summary>
     private static HumanService OverProxy(HttpStatusCode status, string body)
     {
         var config = new ConfigurationBuilder()

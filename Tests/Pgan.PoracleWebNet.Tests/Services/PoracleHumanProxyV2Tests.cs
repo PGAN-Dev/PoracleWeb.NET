@@ -999,10 +999,10 @@ public class PoracleHumanProxyV2Tests
     }
 
     [Fact]
-    public async Task RenamingSendsTheStoredScheduleAsAnArray()
+    public async Task ASubmittedScheduleTravelsAsAnArray()
     {
-        // ProfileController.Update always sends active_hours, falling back to the stored string, so a
-        // plain rename carries it too.
+        // ProfileController.Update sends only the active_hours the caller submitted (a plain rename sends
+        // none, so v2 leaves the stored schedule alone); when one is submitted it goes out as v2's array.
         var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
         var sut = CreateSut(handler);
 
@@ -1459,7 +1459,7 @@ public class PoracleHumanProxyV2Tests
     /// </summary>
     private static void AssertConformsTo(JsonElement body, string schema)
     {
-        using var doc = JsonDocument.Parse(File.ReadAllText(OpenApiFixture("next")));
+        using var doc = JsonDocument.Parse(File.ReadAllText(OpenApiFixture("5.4.0")));
         var schemas = doc.RootElement.GetProperty("components").GetProperty("schemas");
         var declared = schemas.GetProperty(schema).GetProperty("properties").EnumerateObject().Select(p => p.Name).ToHashSet();
         var entry = schemas.GetProperty("V2ActiveHourEntry").GetProperty("properties").EnumerateObject().Select(p => p.Name).ToHashSet();
