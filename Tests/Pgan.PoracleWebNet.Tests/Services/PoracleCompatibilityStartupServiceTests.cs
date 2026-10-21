@@ -28,10 +28,13 @@ public class PoracleCompatibilityStartupServiceTests
             .ReturnsAsync(new PoracleServerProfile { Version = version, Reachable = true, CheckedAt = DateTimeOffset.UtcNow });
         var provider = new ServiceCollection().AddSingleton(profiles.Object).BuildServiceProvider();
         var logger = new CapturingLogger();
-        var service = new PoracleCompatibilityStartupService(provider.GetRequiredService<IServiceScopeFactory>(), logger);
+        var service = new PoracleCompatibilityStartupService(provider.GetRequiredService<IServiceScopeFactory>(), logger)
+        {
+            StartupDelay = TimeSpan.Zero,
+        };
 
         await service.StartAsync(CancellationToken.None);
-        await Task.Delay(TimeSpan.FromSeconds(6));
+        await service.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(15));
         await service.StopAsync(CancellationToken.None);
         return logger;
     }

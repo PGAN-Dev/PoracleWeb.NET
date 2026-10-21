@@ -22,10 +22,13 @@ public partial class PoracleCompatibilityStartupService(
     IServiceScopeFactory scopeFactory,
     ILogger<PoracleCompatibilityStartupService> logger) : BackgroundService
 {
+    /// <summary>How long to wait after startup before checking. Production keeps the default; tests set zero.</summary>
+    public TimeSpan StartupDelay { get; init; } = TimeSpan.FromSeconds(5);
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         // After the migration service, whose delay this matches; nothing here blocks startup.
-        await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+        await Task.Delay(this.StartupDelay, stoppingToken);
 
         try
         {
