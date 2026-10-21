@@ -82,7 +82,7 @@ public class PoracleHumanProxyRefusalTests
             """{"title":"Unprocessable Entity","status":422,"detail":"cannot unmarshal object"}""");
 
         var ex = await Assert.ThrowsAsync<PoracleRequestRefusedException>(
-            () => sut.SetAreasAsync("user1", ["area1"]));
+            () => sut.SetAreasTrustedAsync("user1", ["area1"]));
 
         Assert.Contains("cannot unmarshal object", ex.Message, StringComparison.Ordinal);
     }
@@ -236,7 +236,7 @@ public class PoracleHumanProxyRefusalTests
         Task Call() => path switch
         {
             "/stop" => sut.StopAsync("deleted-user"),
-            "/setAreas" => sut.SetAreasAsync("deleted-user", ["area1"]),
+            "/setAreas" => sut.SetAreasTrustedAsync("deleted-user", ["area1"]),
             _ => sut.GetProfilesAsync("deleted-user"),
         };
 
@@ -350,7 +350,7 @@ public class PoracleHumanProxyRefusalTests
         // 500, 502 and the rest are not the caller's problem and must not be dressed up as a 400.
         var sut = Refusing(HttpStatusCode.InternalServerError, "{}");
 
-        await Assert.ThrowsAsync<HttpRequestException>(() => sut.SetAreasAsync("user1", ["area1"]));
+        await Assert.ThrowsAsync<HttpRequestException>(() => sut.SetAreasTrustedAsync("user1", ["area1"]));
     }
 
     [Fact]
@@ -381,7 +381,7 @@ public class PoracleHumanProxyRefusalTests
         await sut.StopAsync("user1");
         await sut.AdminDisabledAsync("user1", true);
         await sut.SetLocationAsync("user1", 1, 2);
-        await sut.SetAreasAsync("user1", ["area1"]);
+        await sut.SetAreasTrustedAsync("user1", ["area1"]);
         await sut.SwitchProfileAsync("user1", 1);
         await sut.AddProfileAsync("user1", Body("""{"name":"p"}"""));
         await sut.UpdateProfileAsync("user1", Body("""{"profile_no":1}"""));

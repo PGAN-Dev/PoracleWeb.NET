@@ -84,17 +84,6 @@ public interface IPoracleHumanProxy
     public Task<string?> GetAdminRolesAsync(string userId);
 
     /// <summary>
-    /// Sets user area subscriptions. PoracleNG handles the dual-write to
-    /// humans.area + profiles.area atomically.
-    /// Maps to POST /api/v2/humans/{userId}/areas (never with <c>trusted</c>).
-    /// </summary>
-    /// <remarks>
-    /// PoracleNG leaves out names this user may not select, including every user-drawn fence.
-    /// That is not an error; the caller re-adds the user's own fences afterwards.
-    /// </remarks>
-    public Task SetAreasAsync(string userId, string[] areas);
-
-    /// <summary>
     /// Fetches the user's current area subscriptions: the human record, read the same way as
     /// <see cref="GetHumanAsync"/>, with the same null-on-404, throw-otherwise contract.
     /// </summary>

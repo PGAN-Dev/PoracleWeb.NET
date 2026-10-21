@@ -808,68 +808,6 @@ public class PoracleHumanProxyV2Tests
 
     // ---- profile reads, delete and copy on v2 (#995) -----------------------------------------------
 
-    [Fact]
-    public async Task SavingAreasPostsTheV2BodyWithoutTrusted()
-    {
-        // AreaController.UpdateAreas sends the submitted list lowercased. This is the user-facing save, so
-        // trusted must never ride along: it would let any user select a fence PoracleNG hides from them.
-        var handler = ScriptedHandler.Ok("""{"areas":["aberdeen","abingdon"],"rejected":[]}""");
-        var sut = CreateSut(handler);
-
-        await sut.SetAreasAsync("user1", ["aberdeen", "abingdon"]);
-
-        var sent = Assert.Single(handler.Requests);
-        Assert.Equal(HttpMethod.Post, sent.Method);
-        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/areas", sent.Url);
-        using var body = JsonDocument.Parse(sent.Body!);
-        AssertConformsTo(body.RootElement, "V2SetAreasBody");
-        Assert.False(body.RootElement.TryGetProperty("trusted", out _));
-        Assert.Equal(
-            ["aberdeen", "abingdon"],
-            body.RootElement.GetProperty("areas").EnumerateArray().Select(e => e.GetString()).ToList());
-    }
-
-    [Fact]
-    public async Task AnAreaV2RefusesIsReportedNotThrown()
-    {
-        // The legitimate case that must keep working. A user-drawn fence is userSelectable:false, so v2
-        // refuses it on every save that includes one -- verified live, it comes back in `rejected` beside a
-        // 200. v1 dropped the same name silently, and PreserveOwnedAreasInHumanAsync puts it back. Throwing
-        // here would fail every Areas save of everyone who has drawn a fence.
-        var handler = ScriptedHandler.Ok("""{"areas":["aberdeen"],"rejected":["my fence","nosuchfence"]}""");
-        var sut = CreateSut(handler);
-
-        await sut.SetAreasAsync("user1", ["aberdeen", "my fence", "nosuchfence"]);
-
-        Assert.Single(handler.Requests);
-    }
-
-    [Fact]
-    public async Task SavingAreasOnAServerWithoutTheRouteIsUnsupportedNotRetriedOnV1()
-    {
-        var handler = new ScriptedHandler(
-            new Reply(HttpStatusCode.NotFound, RouteMissing, "text/plain"),
-            new Reply(HttpStatusCode.OK, """{"setAreas":["aberdeen"],"status":"ok"}"""));
-        var sut = CreateSut(handler);
-
-        var ex = await Assert.ThrowsAsync<PoracleUnsupportedException>(() => sut.SetAreasAsync("user1", ["aberdeen"]));
-
-        Assert.Contains("5.4.0", ex.Message, StringComparison.Ordinal);
-        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/areas", Assert.Single(handler.Requests).Url);
-    }
-
-    [Fact]
-    public async Task ASaveV2RefusesOutrightIsARefusalLikeV1sFourHundred()
-    {
-        var handler = ScriptedHandler.Problem(
-            HttpStatusCode.UnprocessableEntity,
-            """{"title":"Unprocessable Entity","status":422,"detail":"validation failed"}""");
-        var sut = CreateSut(handler);
-
-        await Assert.ThrowsAsync<PoracleRequestRefusedException>(() => sut.SetAreasAsync("user1", ["aberdeen"]));
-        Assert.Single(handler.Requests);
-    }
-
     // The shapes a live 5.3.0 and the 5.2.1 document answer for the same two profiles. The second one
     // carries what PoracleNG writes for a schedule entered as strings, which v2 hands back as integers.
     private const string ProfilesV2Develop = """
@@ -1251,6 +1189,7 @@ public class PoracleHumanProxyV2Tests
         Assert.Equal(HttpMethod.Post, request.Method);
         Assert.Equal($"{ApiAddress}/api/v2/humans/user1/areas", request.Url);
         using var body = JsonDocument.Parse(request.Body!);
+        AssertConformsTo(body.RootElement, "V2SetAreasBody");
         Assert.True(body.RootElement.GetProperty("trusted").GetBoolean());
         Assert.Equal(["aberdeen", "ghost"], body.RootElement.GetProperty("areas").EnumerateArray().Select(e => e.GetString()));
         Assert.Equal(["ghost"], rejected);

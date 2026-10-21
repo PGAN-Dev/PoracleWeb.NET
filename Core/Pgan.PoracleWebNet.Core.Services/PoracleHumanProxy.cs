@@ -273,37 +273,6 @@ public partial class PoracleHumanProxy(
         return await response.Content.ReadAsStringAsync();
     }
 
-    /// <remarks>
-    /// <para>
-    /// v2 is used only where the server says its answer reports what it stored and what it refused. Never
-    /// with <c>trusted</c>: this is the user's own save, and trusted would let them select fences PoracleNG
-    /// hides from them. See #995.
-    /// </para>
-    /// <para>
-    /// A name in <c>rejected</c> is not a failure, deliberately. Every user-drawn fence is served
-    /// <c>userSelectable:false</c>, so v2 refuses one on every save that includes it, exactly where v1
-    /// dropped it without a word -- and <c>AreaController</c> re-adds the caller's own fences straight
-    /// after, through the trusted-set-areas workaround, and then answers with the list read back, so the page shows
-    /// what actually stuck (#476). Turning the refusal into an error would fail the save of everyone who
-    /// has drawn a fence. It is logged at debug for diagnosis, not at warning, for the same reason.
-    /// </para>
-    /// </remarks>
-    public async Task SetAreasAsync(string userId, string[] areas)
-    {
-        var response = await this.SendV2Async(
-            HttpMethod.Post,
-            $"/api/v2/humans/{Encode(userId)}/areas",
-            "saving areas",
-            new { areas });
-        await EnsureAcceptedAsync(response);
-
-        var rejected = RejectedAreas(await response.Content.ReadAsStringAsync());
-        if (rejected.Count > 0)
-        {
-            LogAreasRefused(this._logger, userId, rejected);
-        }
-    }
-
     /// <summary>The <c>rejected</c> list out of a v2 areas answer, empty when there is none to read.</summary>
     private static List<string> RejectedAreas(string payload)
     {
@@ -325,11 +294,6 @@ public partial class PoracleHumanProxy(
         }
     }
 
-    [LoggerMessage(
-        Level = LogLevel.Debug,
-        Message = "setAreas for {UserId} left out {Rejected}; the caller's own fences among them are re-added by the geofence service")]
-    private static partial void LogAreasRefused(ILogger logger, string userId, IReadOnlyList<string> rejected);
-
     public async Task<JsonElement?> GetAreasAsync(string userId) =>
         // The user's selected areas are the human's own area field; the available list is a separate route.
         await this.GetHumanAsync(userId);
@@ -346,7 +310,9 @@ public partial class PoracleHumanProxy(
         if (rejected.Count > 0)
         {
             // Trusted lifts userSelectable, not "exists at all": a rejected name is a fence PoracleNG has
-            // not loaded or a stale entry. The caller decides what that means for the save.
+            // not loaded or a stale entry. The caller decides what that means for the save. Debug, not
+            // warning: production holds dead names (30 users, 69 names on 2026-10-21) that come back
+            // here on every save and toggle.
             LogTrustedAreasRejected(this._logger, userId, string.Join(", ", rejected));
         }
 
@@ -493,14 +459,14 @@ public partial class PoracleHumanProxy(
     }
 
     [LoggerMessage(
-        Level = LogLevel.Warning,
-        Message = "PoracleNG refused areas {Rejected} for {UserId}'s new profile {ProfileNo}; they were dropped")]
+        Level = LogLevel.Debug,
+        Message = "PoracleNG has no fence by {Rejected} for {UserId}'s new profile {ProfileNo}; they were dropped")]
     private static partial void LogProfileAreasRefused(
         ILogger logger, string userId, int profileNo, string rejected);
 
     [LoggerMessage(
-        Level = LogLevel.Warning,
-        Message = "setAreas(trusted) rejected areas for {UserId} that this app expected to be accepted: {Rejected}")]
+        Level = LogLevel.Debug,
+        Message = "setAreas(trusted) for {UserId}: PoracleNG has no fence by these names, so it left them out: {Rejected}")]
     private static partial void LogTrustedAreasRejected(ILogger logger, string userId, string rejected);
 
     public async Task SwitchProfileAsync(string userId, int profileNo)

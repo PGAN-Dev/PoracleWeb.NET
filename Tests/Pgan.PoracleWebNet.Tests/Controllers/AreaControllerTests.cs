@@ -174,8 +174,7 @@ public class AreaControllerTests : ControllerTestBase
 
         this._areaWriter.Verify(w => w.SaveSelectionAsync("123456789",
             It.Is<IReadOnlyCollection<string>>(c => c.SequenceEqual(AreasArray))), Times.Once);
-        // The old two-step write is gone: no untrusted setAreas, no patch-up.
-        this._humanProxy.Verify(p => p.SetAreasAsync(It.IsAny<string>(), It.IsAny<string[]>()), Times.Never);
+        // The old two-step write is gone: no untrusted setAreas, no patch-up (the proxy no longer has one).
         var ok = Assert.IsType<OkObjectResult>(result);
         Assert.Equal(["west", "east"], Assert.IsType<string[]>(ok.Value));
     }

@@ -192,7 +192,6 @@ public class UserGeofenceServiceTests
 
         // Not SetAreasAsync (PoracleNG would strip the userSelectable=false fence).
         this._userAreaWriter.Verify(w => w.AddToActiveProfileAsync("u1", "park"), Times.Once);
-        this._humanProxy.Verify(p => p.SetAreasAsync(It.IsAny<string>(), It.IsAny<string[]>()), Times.Never);
         Assert.False(result.ActivationFailed);
     }
 
@@ -702,7 +701,6 @@ public class UserGeofenceServiceTests
 
         await this._sut.ApproveSubmissionAsync("admin1", 1, "New Downtown");
 
-        this._humanProxy.Verify(p => p.SetAreasAsync(It.IsAny<string>(), It.IsAny<string[]>()), Times.Never);
     }
 
     [Fact]
@@ -714,7 +712,6 @@ public class UserGeofenceServiceTests
 
         this._userAreaWriter.Verify(
             w => w.RenameEverywhereAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
-        this._humanProxy.Verify(p => p.SetAreasAsync(It.IsAny<string>(), It.IsAny<string[]>()), Times.Never);
     }
 
     [Fact]
@@ -1502,7 +1499,6 @@ public class UserGeofenceServiceTests
         await this._sut.AddToProfileAsync("u1", 1, 1);
 
         this._userAreaWriter.Verify(w => w.AddToActiveProfileAsync("u1", "downtown"), Times.Once);
-        this._humanProxy.Verify(p => p.SetAreasAsync(It.IsAny<string>(), It.IsAny<string[]>()), Times.Never);
         this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Once);
     }
 
@@ -1596,7 +1592,6 @@ public class UserGeofenceServiceTests
         await this._sut.RemoveFromProfileAsync("u1", 1, 1);
 
         Assert.Equal(["remove", "reload"], calls);
-        this._humanProxy.Verify(p => p.SetAreasAsync(It.IsAny<string>(), It.IsAny<string[]>()), Times.Never);
     }
 
     [Fact]
