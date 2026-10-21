@@ -43,7 +43,7 @@ If your project has **no regions**, the picker simply doesn't appear, and the ar
 
 Admins can delete any geofence from the admin screen:
 
-- If it's a **private** geofence, it's removed from PoracleWeb.NET and from every profile that had it switched on.
+- If it's a **private** geofence, it's removed from PoracleWeb.NET and from every profile that had it switched on. If the owner has alarms limited to it, the dialog names the owner and asks whether to delete those alarms too (the default) or keep them on the owner's profile areas. If PoracleNG can't take the name off the owner's profiles, nothing is deleted and you can retry.
 - If it was **ever promoted to Koji**, PoracleWeb.NET also removes it from the Koji project so it stops being a selectable public area. The test is "was this published?", not the current status — a geofence approved and later rejected still has to be pulled out of the shared project.
 
 !!! warning "Project removal vs. full deletion"

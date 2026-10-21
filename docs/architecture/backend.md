@@ -119,7 +119,7 @@ services.AddHttpClient<PoracleTrackingProxy>();
 services.AddScoped<IPoracleTrackingProxy>(sp => new UserOwnedOverrideAreaProxy(
     sp.GetRequiredService<PoracleTrackingProxy>(),
     sp.GetRequiredService<IUserGeofenceRepository>(),
-    sp.GetRequiredService<IUserAreaDualWriter>(),
+    sp.GetRequiredService<IAlarmOverrideAreaWriter>(),
     sp.GetRequiredService<ILogger<UserOwnedOverrideAreaProxy>>()));
 ```
 
@@ -211,22 +211,31 @@ feature needs.
 
 ## Areas
 
-User areas are managed through `IPoracleHumanProxy.SetAreasAsync()`, and PoracleNG handles the dual-write
-to both `humans.area` and `profiles.area` — **for admin areas**.
+Every area write goes to PoracleNG's `/api/v2` area routes, and PoracleNG keeps `humans.area` and
+`profiles.area` in step. PoracleWeb.NET writes neither table.
 
-User-drawn geofences are the exception. PoracleWeb serves them with `userSelectable=false` to keep them
-off the bot's area picker, and PoracleNG's `HandleSetAreas` silently strips any name whose fence is not
-user-selectable. On a PoracleNG new enough to carry jfberry/PoracleNG#230's `trusted` fix and confirmed
-to have `area_security` switched off (see `IAreaSecurityPolicyService` — no self-reported signal tells a
-pre-#230 server from a post-#230 one otherwise), three of the six mutations — adding or removing one area
-from the active profile, and the bulk-add used to restore an owner's own geofences — go through v2's
-trusted `setAreas` instead, which PoracleNG itself commits atomically to both tables. Everywhere else,
-every user-geofence area mutation still goes through `IUserAreaDualWriter`, which writes both tables
-directly in a single `SaveChangesAsync`, and `AreaController.UpdateAreas` calls
-`PreserveOwnedAreasInHumanAsync` after `SetAreasAsync` to re-add what was stripped. Every such direct-DB
-site is tagged `HACK: trusted-set-areas` — `grep -rn "HACK: trusted-set-areas" --include="*.cs"` lists
-them, migrated or not; see [#838](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/838) for what moved
-and what is still blocked.
+User-drawn geofences are why there is more than a plain `SetAreasAsync`. PoracleWeb.NET serves them with
+`userSelectable=false` to keep them off the bot's area picker, and PoracleNG's `setAreas` drops any name
+whose fence is not user-selectable. `IUserAreaWriter` gets round that with the v2 `trusted` flag (PoracleNG
+5.4.0) and does its own authorising first, because `trusted` skips PoracleNG's check. A name is allowed when
+it is in the union of:
+
+- the names PoracleNG lists as `userSelectable` for this user;
+- the user's own drawn geofences;
+- the names already on the profile being written.
+
+| Operation | What it does |
+|---|---|
+| `SaveSelectionAsync` (Areas page) | One trusted `POST /api/v2/humans/{id}/areas`. A name outside the union answers 400 `{ error, areas }` before anything is sent. Names PoracleNG has no fence for are dropped by PoracleNG and reported back, not treated as an error. |
+| `FilterAllowedAsync` (new profile) | The same union, but a disallowed name is dropped with a warning instead of refused. Used by profile create, both duplicates and import. |
+| `AddToActiveProfileAsync` / `RemoveFromActiveProfileAsync` | The geofence toggle, and create. Read the active profile's list, change it, post it trusted. |
+| `PreviewRemovalAsync` / `RemoveEverywhereAsync` | Delete. A dry run reports the alarms that would widen; the real call removes the name from every profile. |
+| `RenameEverywhereAsync` | Rename and approval. PoracleNG's geofences are reloaded first, because the new name has to be loaded. |
+
+The geofence service orders these so a failure leaves something retryable. Create reloads PoracleNG's
+fences before it adds the name, and if the add fails the fence is kept and flagged `activationFailed`.
+Delete removes the name from the profiles first and deletes the row last, so a failed removal keeps the
+fence. A user rename that PoracleNG refuses puts the old name back.
 
 Geofence polygons come from the Poracle API (via the unified feed), not the database.
 
@@ -247,13 +256,13 @@ matches exactly like a permitted one. `UserOwnedOverrideAreaProxy`, the decorato
    enforces the same three rules, but only on the body it is sent, and it never sees the stripped names.
 2. Any of the user's own geofence names are removed from `override_areas` for the POST. A list left
    empty drops the property entirely, so PoracleNG sees no override rather than an empty one.
-3. The full list is written into the row by `IUserAreaDualWriter.SetAlarmOverrideAreasAsync`, a raw
+3. The full list is written into the row by `IAlarmOverrideAreaWriter.SetAlarmOverrideAreasAsync`, a raw
    `UPDATE` scoped by both `id` and `uid`. An empty list stores NULL, not `[]` — `parseOverrideAreas`
    reads `""` back as no override, while `[]` would be a list matching nothing.
 4. `ReloadStateAsync` is called afterwards, because a direct column write is not a PoracleNG mutation
    and would otherwise wait for the periodic reload.
 
-Writes that name no override at all skip all of this. Tagged `HACK: trusted-set-areas` like the rest.
+Writes that name no override at all skip all of this. This is the only place PoracleWeb.NET still writes an alert table, and it is tagged `HACK: trusted-set-areas` (`grep -rn "HACK: trusted-set-areas" --include="*.cs"` finds it).
 
 ## Location
 

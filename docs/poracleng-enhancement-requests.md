@@ -156,7 +156,7 @@ while it is the only profile is the single exception: the row goes, the tracking
 
 **Current behavior:** PoracleNG's `POST /api/humans/{id}/setAreas` handler (`processor/internal/api/humans.go:HandleSetAreas`) intersects the submitted area list against fences where `UserSelectable == true` for non-admin users. Any area whose fence has `userSelectable=false` is silently dropped -- no error, no warning. PoracleWeb.NET's `GeofenceFeedController.cs` serves user-drawn custom geofences with `userSelectable: false` (to hide them from the Poracle bot's `!area` picker and from other users' views), so every `SetAreasAsync` call that contains a user-drawn geofence name loses that name. This is the root cause of [#163](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/163) -- "custom geofence toggle doesn't persist."
 
-**Status: answered upstream, answered incompletely, still blocked.** Filed as
+**Status: adopted for user-geofence area writes (history below); the per-alarm `override_areas` write is still a workaround.** Filed as
 [jfberry/PoracleNG#215](https://github.com/jfberry/PoracleNG/issues/215) and given a `trusted` flag in
 [PR #217](https://github.com/jfberry/PoracleNG/pull/217). Building against that branch showed the flag does
 not close this gap, on three counts:
@@ -234,8 +234,9 @@ fence they were limited to ([#253](https://github.com/jfberry/PoracleNG/issues/2
 transaction ([#259](https://github.com/jfberry/PoracleNG/issues/259)). `trusted` lifts only
 `userSelectable`, and a user's own fence can carry `exemptFromAreaSecurity`
 ([#243](https://github.com/jfberry/PoracleNG/issues/243)), so the "confirmed off" gate on `area_security` is
-no longer needed. **Not yet adopted**: `IUserAreaDualWriter` and every `HACK: trusted-set-areas` site below
-still run, and the sub-project that moves area writes to v2 deletes them.
+no longer needed. **Adopted** with the area writes release: `IUserAreaDualWriter` is deleted and every user-geofence
+area write goes through the v2 routes. Only the per-alarm `override_areas` site is still tagged `HACK: trusted-set-areas`.
+The workaround description below is kept as history.
 
 **Workaround (HACK), still running for all six methods until then; before 5.4.0 it was the fallback for three:**
 `UserGeofenceService` delegates to `IUserAreaDualWriter`, a tiny atomic-write abstraction that holds the
