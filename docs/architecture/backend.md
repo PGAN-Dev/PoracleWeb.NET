@@ -227,7 +227,7 @@ it is in the union of:
 | Operation | What it does |
 |---|---|
 | `SaveSelectionAsync` (Areas page) | One trusted `POST /api/v2/humans/{id}/areas`. A name outside the union answers 400 `{ error, areas }` before anything is sent. Names PoracleNG has no fence for are dropped by PoracleNG and reported back, not treated as an error. |
-| `FilterAllowedAsync` (new profile) | The same union, but a disallowed name is dropped with a warning instead of refused. Used by profile create, both duplicates and import. |
+| `FilterAllowedAsync` (new profile) | The same union, but a disallowed name is dropped with a warning instead of refused. Used by profile create only. Both duplicates copy the caller's own source profile's list trusted and unfiltered (the source may be a non-active profile); import writes no areas. |
 | `AddToActiveProfileAsync` / `RemoveFromActiveProfileAsync` | The geofence toggle, and create. Read the active profile's list, change it, post it trusted. |
 | `PreviewRemovalAsync` / `RemoveEverywhereAsync` | Delete. A dry run reports the alarms that would widen; the real call removes the name from every profile. |
 | `RenameEverywhereAsync` | Rename and approval. PoracleNG's geofences are reloaded first, because the new name has to be loaded. |

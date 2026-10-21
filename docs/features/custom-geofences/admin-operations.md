@@ -39,6 +39,8 @@ If your Koji project has regions, the approval dialog shows a region picker, pre
 
 If your project has **no regions**, the picker simply doesn't appear, and the area is promoted ungrouped. You can always organize it in Koji afterward.
 
+With `[area_security]` on in PoracleNG, the promoted name must also be in the owner's community `allowed_areas`. If it isn't, PoracleNG refuses to move the owner's subscription to the new name, and you see the "areas weren't moved" warning after approving. The approval stands; the owner picks the area on the Areas page.
+
 ## Deleting geofences
 
 Admins can delete any geofence from the admin screen:
