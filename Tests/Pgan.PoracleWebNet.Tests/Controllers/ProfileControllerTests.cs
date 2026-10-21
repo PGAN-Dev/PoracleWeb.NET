@@ -388,16 +388,86 @@ public class ProfileControllerTests : ControllerTestBase
             Times.Once);
     }
 
-    [Fact]
-    public async Task AGeographyFailureOnCreateReachesTheCallerRatherThanBeingSwallowed()
+    private void GeographyFails()
     {
-        this.SetupCreateAssigns(1, "New");
         this._humanProxy
             .Setup(h => h.SetProfileGeographyAsync(
                 It.IsAny<string>(), It.IsAny<int>(), It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<double>(), It.IsAny<double>()))
             .ThrowsAsync(new PoracleRequestRefusedException("invalid latitude"));
+    }
 
-        await Assert.ThrowsAsync<PoracleRequestRefusedException>(() => this._sut.Create(new Profile { Name = "New" }));
+    [Fact]
+    public async Task AGeographyFailureOnCreateDeletesTheNewProfileAndReachesTheCaller()
+    {
+        this.SetupCreateAssigns(1, "New");
+        this.GeographyFails();
+
+        var ex = await Assert.ThrowsAsync<PoracleRequestRefusedException>(() => this._sut.Create(new Profile { Name = "New" }));
+
+        Assert.Equal("invalid latitude", ex.Message);
+        this._humanProxy.Verify(h => h.DeleteProfileAsync("123456789", 1), Times.Once);
+    }
+
+    [Fact]
+    public async Task AGeographyFailureOnDuplicateDeletesTheNewProfileAndSkipsTheCopy()
+    {
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(P(1, "Work"));
+        this.SetupCreateAssigns(2, "Copy");
+        this.GeographyFails();
+
+        await Assert.ThrowsAsync<PoracleRequestRefusedException>(
+            () => this._sut.Duplicate(new DuplicateProfileRequest { FromProfileNo = 1, Name = "Copy" }));
+
+        this._humanProxy.Verify(h => h.DeleteProfileAsync("123456789", 2), Times.Once);
+        this._profileService.Verify(s => s.CopyAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ACopyFailureOnDuplicateStillDeletesTheNewProfile()
+    {
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(P(1, "Work"));
+        this.SetupCreateAssigns(2, "Copy");
+        this._profileService.Setup(s => s.CopyAsync("123456789", 1, 2)).ThrowsAsync(new InvalidOperationException("copy failed"));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => this._sut.Duplicate(new DuplicateProfileRequest { FromProfileNo = 1, Name = "Copy" }));
+
+        this._humanProxy.Verify(h => h.DeleteProfileAsync("123456789", 2), Times.Once);
+    }
+
+    [Fact]
+    public async Task AFailedRollbackDoesNotHideTheGeographyError()
+    {
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(P(1, "Work"));
+        this.SetupCreateAssigns(2, "Copy");
+        this.GeographyFails();
+        this._humanProxy.Setup(h => h.DeleteProfileAsync("123456789", 2)).ThrowsAsync(new HttpRequestException("delete failed"));
+
+        var ex = await Assert.ThrowsAsync<PoracleRequestRefusedException>(
+            () => this._sut.Duplicate(new DuplicateProfileRequest { FromProfileNo = 1, Name = "Copy" }));
+
+        Assert.Equal("invalid latitude", ex.Message);
+    }
+
+    [Fact]
+    public async Task ARenameOfAProfileWhoseStoredScheduleV2WouldRefuseSendsNoSchedule()
+    {
+        // day 0 is stored by a PoracleNG that used 0-6; v2 refuses it. A rename must not resend it.
+        var existing = new Profile
+        {
+            Id = "123456789", ProfileNo = 1, Name = "Old",
+            ActiveHours = /*lang=json,strict*/ "[{\"day\":0,\"hours\":8,\"mins\":0}]",
+        };
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(existing);
+        JsonElement captured = default;
+        this._humanProxy.Setup(p => p.UpdateProfileAsync(It.IsAny<string>(), It.IsAny<JsonElement>()))
+            .Callback<string, JsonElement>((_, body) => captured = body.Clone());
+
+        var result = await this._sut.Update(1, new Profile { Name = "New" });
+
+        Assert.IsType<OkObjectResult>(result);
+        Assert.Equal("New", captured.GetProperty("name").GetString());
+        Assert.Equal(JsonValueKind.Null, captured.GetProperty("active_hours").ValueKind);
     }
 
     // --- Control and bidi characters in names -------------------------------------------------------

@@ -163,8 +163,8 @@ public class ProfileController(
         // active-hours timezone. Duplicate and import already write the geography after creating; create
         // needs the same. Empty unless the request asked for something. See #563. Through PoracleNG's v2
         // ?profile= writes (#993).
-        await NewProfileGeography.WriteAsync(
-            this._humanProxy, this.UserId, createdNo, requestedAreas, profile.Latitude, profile.Longitude);
+        await NewProfileGeography.WriteOrRollBackAsync(
+            this._humanProxy, this._logger, this.UserId, createdNo, requestedAreas, profile.Latitude, profile.Longitude);
 
         var result = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, createdNo);
         return this.CreatedAtAction(nameof(GetAll), result);
@@ -202,12 +202,14 @@ public class ProfileController(
         }
 
         // Trimmed, and the stored name when none was given: the PATCH stores exactly what it is sent, so
-        // untrimmed it kept the padding and a blank one blanked the name.
+        // untrimmed it kept the padding and a blank one blanked the name. The stored schedule is not
+        // resent: a null active_hours is omitted and v2 leaves the schedule unchanged, so a profile whose
+        // stored schedule v2 would refuse can still be renamed.
         var body = JsonSerializer.SerializeToElement(new
         {
             profile_no = profileNo,
             name = newName ?? existing.Name,
-            active_hours = profile.ActiveHours ?? existing.ActiveHours
+            active_hours = profile.ActiveHours
         });
         await this._humanProxy.UpdateProfileAsync(this.UserId, body);
 
@@ -283,19 +285,20 @@ public class ProfileController(
         // from the same payload, so a duplicate silently inherited the ACTIVE profile's geography
         // instead of the source's: the right alarms over the wrong map, and a location that also
         // feeds the active-hours timezone. See #466. Through PoracleNG's v2 ?profile= writes (#993).
-        await NewProfileGeography.WriteAsync(
-            this._humanProxy, this.UserId, newProfileNo, sourceProfile.Area ?? "[]",
-            sourceProfile.Latitude, sourceProfile.Longitude);
-
-        // Copy all alarms from source to new profile; clean up on failure
+        // Geography and the alarm copy share one rollback: a failure of either removes the new profile.
         try
         {
+            await NewProfileGeography.WriteAsync(
+                this._humanProxy, this.UserId, newProfileNo, sourceProfile.Area ?? "[]",
+                sourceProfile.Latitude, sourceProfile.Longitude);
+
+            // Copy all alarms from source to new profile
             await this._profileService.CopyAsync(this.UserId, request.FromProfileNo, newProfileNo);
         }
         catch
         {
             // Roll back the empty profile so the user doesn't end up with a shell
-            await this._humanProxy.DeleteProfileAsync(this.UserId, newProfileNo);
+            await NewProfileGeography.RollBackAsync(this._humanProxy, this._logger, this.UserId, newProfileNo);
             throw;
         }
 

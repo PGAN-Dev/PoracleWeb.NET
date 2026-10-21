@@ -77,7 +77,7 @@ public class NewProfileGeographyTests : ControllerTestBase
     public async Task WhereTheServerDeclaresItTheGeographyGoesToTheNewProfileThroughV2(string endpoint)
     {
         var handler = new Routed();
-        await this.RunAsync(endpoint, handler, declared: true);
+        await this.RunAsync(endpoint, handler);
 
         var expected = Expected(endpoint);
 
@@ -99,18 +99,63 @@ public class NewProfileGeographyTests : ControllerTestBase
 
     [Theory]
     [MemberData(nameof(Endpoints))]
-    public async Task AV2RefusalReachesTheCallerAndNothingIsWrittenDirectly(string endpoint)
+    public async Task AV2RefusalDeletesTheNewProfileAndReachesTheCaller(string endpoint)
     {
         var handler = new Routed(refuseGeography: true);
 
-        await Assert.ThrowsAsync<PoracleRequestRefusedException>(() => this.RunAsync(endpoint, handler, declared: true));
+        var ex = await Assert.ThrowsAsync<PoracleRequestRefusedException>(() => this.RunAsync(endpoint, handler));
 
+        Assert.Contains("validation failed", ex.Message, StringComparison.Ordinal);
         Assert.Contains(handler.Requests, r => r.Path == "/api/v2/humans/123456789/areas");
+        var delete = Assert.Single(handler.Requests, r => r.Method == HttpMethod.Delete);
+        Assert.Equal($"/api/v2/humans/123456789/profiles/{NewProfileNo}", delete.Path);
     }
 
-    private async Task RunAsync(string endpoint, Routed handler, bool declared)
+    [Theory]
+    [MemberData(nameof(Endpoints))]
+    public async Task AFailedRollbackDoesNotHideTheOriginalError(string endpoint)
     {
-        var proxy = CreateProxy(handler, declared);
+        var handler = new Routed(refuseGeography: true, failDelete: true);
+
+        var ex = await Assert.ThrowsAsync<PoracleRequestRefusedException>(() => this.RunAsync(endpoint, handler));
+
+        Assert.Contains("validation failed", ex.Message, StringComparison.Ordinal);
+        Assert.Contains(handler.Requests, r => r.Method == HttpMethod.Delete);
+    }
+
+    [Theory]
+    [MemberData(nameof(Endpoints))]
+    public async Task AnAreaPoracleRejectsIsDroppedAndTheLocationIsStillWritten(string endpoint)
+    {
+        // A stale name on the source profile (a fence since removed) must not fail the duplicate.
+        var handler = new Routed(rejected: ["my fence"]);
+
+        await this.RunAsync(endpoint, handler);
+
+        Assert.Contains(handler.Requests, r => r.Path == "/api/v2/humans/123456789/location" && r.Query == $"profile={NewProfileNo}");
+        Assert.DoesNotContain(handler.Requests, r => r.Method == HttpMethod.Delete);
+    }
+
+    [Theory]
+    [MemberData(nameof(Endpoints))]
+    public async Task WhereTrustedIsNotAvailableTheAreasGoUntrustedAndTheRequestStillSucceeds(string endpoint)
+    {
+        var handler = new Routed();
+
+        await this.RunAsync(endpoint, handler, confirmedDisabled: false);
+
+        var areas = Assert.Single(handler.Requests, r => r.Path == "/api/v2/humans/123456789/areas");
+        using var body = JsonDocument.Parse(areas.Body!);
+        Assert.False(body.RootElement.TryGetProperty("trusted", out _));
+        Assert.Equal(
+            Expected(endpoint).Areas,
+            body.RootElement.GetProperty("areas").EnumerateArray().Select(e => e.GetString()).ToArray());
+        Assert.Contains(handler.Requests, r => r.Path == "/api/v2/humans/123456789/location");
+    }
+
+    private async Task RunAsync(string endpoint, Routed handler, bool confirmedDisabled = true)
+    {
+        var proxy = CreateProxy(handler, confirmedDisabled);
 
         IActionResult result;
         if (endpoint is "create" or "duplicate")
@@ -149,7 +194,7 @@ public class NewProfileGeographyTests : ControllerTestBase
         Assert.IsType<OkObjectResult>(result);
     }
 
-    private static PoracleHumanProxy CreateProxy(Routed handler, bool declared) => new(
+    private static PoracleHumanProxy CreateProxy(Routed handler, bool confirmedDisabled) => new(
         new HttpClient(handler),
         new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -163,7 +208,7 @@ public class NewProfileGeographyTests : ControllerTestBase
             Read = true,
             TrustedSetAreas = true,
         }),
-        PoracleHumanProxyTests.AreaSecurityPolicy(confirmedDisabled: true),
+        PoracleHumanProxyTests.AreaSecurityPolicy(confirmedDisabled),
         Mock.Of<ILogger<PoracleHumanProxy>>());
 
     /// <summary>Every property of the body is one the named schema in the openapi fixture declares.</summary>
@@ -188,7 +233,7 @@ public class NewProfileGeographyTests : ControllerTestBase
     /// Answers by route, the way PoracleNG would for these calls. The profile create reports the number
     /// assigned; the two geography writes answer what a live 5.3.0 answered, or 422 when told to refuse.
     /// </summary>
-    private sealed class Routed(bool refuseGeography = false) : HttpMessageHandler
+    private sealed class Routed(bool refuseGeography = false, bool failDelete = false, string[]? rejected = null) : HttpMessageHandler
     {
         public List<Sent> Requests { get; } = [];
 
@@ -205,20 +250,22 @@ public class NewProfileGeographyTests : ControllerTestBase
                     (HttpStatusCode.UnprocessableEntity,
                      """{"title":"Unprocessable Entity","status":422,"detail":"validation failed"}""",
                      "application/problem+json"),
+                _ when request.Method == HttpMethod.Delete && failDelete =>
+                    (HttpStatusCode.InternalServerError, """{"title":"boom","status":500}""", "application/problem+json"),
                 "/api/v2/humans/123456789/profiles" when request.Method == HttpMethod.Post =>
                     (HttpStatusCode.OK, $$"""{"profile_no":{{NewProfileNo}}}""", "application/json"),
                 "/api/v2/humans/123456789/areas" =>
-                    (HttpStatusCode.OK, AreasAnswer(body), "application/json"),
+                    (HttpStatusCode.OK, AreasAnswer(body, rejected), "application/json"),
                 _ => (HttpStatusCode.OK, """{"status":"ok"}""", "application/json"),
             };
 
             return new HttpResponseMessage(status) { Content = new StringContent(reply, Encoding.UTF8, type) };
         }
 
-        private static string AreasAnswer(string? body)
+        private static string AreasAnswer(string? body, string[]? rejected)
         {
             var areas = JsonDocument.Parse(body!).RootElement.GetProperty("areas").GetRawText();
-            return $$"""{"areas":{{areas}},"rejected":[]}""";
+            return $$"""{"areas":{{areas}},"rejected":{{JsonSerializer.Serialize(rejected ?? [])}}}""";
         }
     }
 }

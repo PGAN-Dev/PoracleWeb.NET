@@ -1419,28 +1419,37 @@ public class PoracleHumanProxyV2Tests
     }
 
     [Fact]
-    public async Task ANewProfilesGeographyFailureIsThrownNotReturned()
+    public async Task WhereTrustedIsNotSafeTheAreasAreSentUntrustedNotRefused()
     {
-        // Used to answer false and send the caller to a direct database write.
-        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
+        // Used to answer false and send the caller to a direct database write; then threw. PoracleNG filters
+        // an untrusted list itself, and what it drops is handled as any other rejected name.
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.OK, """{"areas":["aberdeen"],"rejected":[]}"""),
+            new Reply(HttpStatusCode.OK, """{"status":"ok"}"""));
         var sut = CreateSut(handler, areaSecurityConfirmedDisabled: false);
 
-        await Assert.ThrowsAsync<PoracleRequestRefusedException>(
-            () => sut.SetProfileGeographyAsync("user1", 4, ["aberdeen"], 1, 2));
-        Assert.Empty(handler.Requests);
+        await sut.SetProfileGeographyAsync("user1", 4, ["aberdeen"], 1, 2);
+
+        Assert.Equal(2, handler.Requests.Count);
+        using var body = JsonDocument.Parse(handler.Requests[0].Body!);
+        Assert.False(body.RootElement.TryGetProperty("trusted", out _));
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/location?profile=4", handler.Requests[1].Url);
     }
 
     [Fact]
-    public async Task ANewProfilesRefusedAreaIsThrownNotHandedToTheDatabase()
+    public async Task ANewProfilesRejectedAreaIsDroppedAndTheLocationIsStillWritten()
     {
-        var handler = ScriptedHandler.Ok("""{"areas":["aberdeen"],"rejected":["Not Loaded Yet"]}""");
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.OK, """{"areas":["aberdeen"],"rejected":["Not Loaded Yet"]}"""),
+            new Reply(HttpStatusCode.OK, """{"status":"ok"}"""));
         var sut = CreateSut(
             handler, capabilities: new PoracleV2Capabilities { Read = true, TrustedSetAreas = true },
             areaSecurityConfirmedDisabled: true);
 
-        await Assert.ThrowsAsync<PoracleRequestRefusedException>(
-            () => sut.SetProfileGeographyAsync("user1", 4, ["aberdeen", "not loaded yet"], 1, 2));
-        Assert.Single(handler.Requests);
+        await sut.SetProfileGeographyAsync("user1", 4, ["aberdeen", "not loaded yet"], 1, 2);
+
+        Assert.Equal(2, handler.Requests.Count);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/location?profile=4", handler.Requests[1].Url);
     }
 
     /// <summary>

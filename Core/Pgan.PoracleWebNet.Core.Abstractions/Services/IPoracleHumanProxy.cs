@@ -131,7 +131,7 @@ public interface IPoracleHumanProxy
     /// <summary>
     /// Switches the user's active profile. PoracleNG handles the area save/load
     /// dual-write atomically.
-    /// Maps to POST /api/humans/{userId}/switchProfile/{profileNo}
+    /// Maps to POST /api/v2/humans/{userId}/profile
     /// </summary>
     public Task SwitchProfileAsync(string userId, int profileNo);
 
@@ -169,11 +169,10 @@ public interface IPoracleHumanProxy
     /// <remarks>
     /// A non-empty area list is sent with <c>trusted</c>, because a user's own drawn fences are not
     /// <c>userSelectable</c>; that is only done where <c>trusted</c> is safe to rely on, the same gate as
-    /// <see cref="AddAreaToActiveProfileTrustedAsync"/>. An empty list needs no trust and is always sent plain.
+    /// <see cref="AddAreaToActiveProfileTrustedAsync"/>. Elsewhere, and for an empty list, it is sent plain
+    /// and PoracleNG filters it. Names PoracleNG rejects are logged and dropped; the location is still written.
     /// </remarks>
-    /// <exception cref="PoracleRequestRefusedException">
-    /// PoracleNG refused either write, or an area could not be sent safely or was not accepted.
-    /// </exception>
+    /// <exception cref="PoracleRequestRefusedException">PoracleNG refused either write outright.</exception>
     public Task SetProfileGeographyAsync(
         string userId, int profileNo, IReadOnlyCollection<string> areas, double latitude, double longitude);
 

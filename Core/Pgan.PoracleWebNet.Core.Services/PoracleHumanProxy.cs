@@ -511,9 +511,10 @@ public partial class PoracleHumanProxy(
     /// callers pass the number PoracleNG has just assigned.
     /// </para>
     /// <para>
-    /// There is no direct database write behind this any more. Where the areas cannot be sent safely
-    /// (<c>trusted</c> is needed and <c>area_security</c> is on or unconfirmed) or PoracleNG refuses a
-    /// requested name, it throws, and the caller decides what to do about a profile that already exists.
+    /// There is no direct database write behind this any more. Names PoracleNG rejects are logged and
+    /// dropped, and where <c>trusted</c> is not safe (<c>area_security</c> on or unconfirmed) the list is
+    /// sent untrusted. A refusal of either write throws, and the caller decides what to do about a profile
+    /// that already exists.
     /// </para>
     /// </remarks>
     public async Task SetProfileGeographyAsync(
@@ -528,13 +529,9 @@ public partial class PoracleHumanProxy(
         // A user's own fences are userSelectable:false and would come back rejected without trusted. Trusted
         // is gated exactly as the active-profile writes gate it (#838, #937): never where area_security is on
         // or cannot be confirmed off, because there it would let the list escape a community's restriction.
-        var trusted = requested.Count > 0;
-        if (trusted && !await this.CanUseTrustedSetAreasAsync())
-        {
-            throw new PoracleRequestRefusedException(
-                "The new profile's areas could not be saved: PoracleNG cannot accept private areas for it on this server.",
-                (int)HttpStatusCode.BadGateway);
-        }
+        // Where it is not available the list goes untrusted and PoracleNG filters it; what it refuses is
+        // dropped below.
+        var trusted = requested.Count > 0 && await this.CanUseTrustedSetAreasAsync();
 
         var areasBody = trusted
             ? JsonSerializer.Serialize(new { areas = requested, trusted = true })
@@ -544,17 +541,15 @@ public partial class PoracleHumanProxy(
             HttpMethod.Post, $"/api/v2/humans/{Encode(userId)}/areas?profile={profileNo}", "saving a profile's areas", areasBody);
         await EnsureAcceptedAsync(areasResponse);
 
-        // Trusted lifts userSelectable, not "exists at all", so a refused name is one PoracleNG has not
-        // loaded.
+        // A refused name is one PoracleNG has not loaded (a stale area on the source profile), or one the
+        // list may not carry untrusted. It is dropped, not fatal: the profile and its location are worth more
+        // than the one area, and the user can add it back from the Areas page.
         var refused = RejectedAreas(await areasResponse.Content.ReadAsStringAsync())
             .Where(r => requested.Contains(r, StringComparer.OrdinalIgnoreCase))
             .ToList();
         if (refused.Count > 0)
         {
-            LogProfileAreasRefused(this._logger, userId, profileNo, refused);
-            throw new PoracleRequestRefusedException(
-                $"PoracleNG did not accept these areas for the new profile: {string.Join(", ", refused)}.",
-                (int)HttpStatusCode.BadGateway);
+            LogProfileAreasRefused(this._logger, userId, profileNo, string.Join(", ", refused));
         }
 
         var locationResponse = await this.SendV2Async(
@@ -566,10 +561,10 @@ public partial class PoracleHumanProxy(
     }
 
     [LoggerMessage(
-        Level = LogLevel.Information,
-        Message = "PoracleNG refused {Rejected} for {UserId}'s profile {ProfileNo}")]
+        Level = LogLevel.Warning,
+        Message = "PoracleNG refused areas {Rejected} for {UserId}'s new profile {ProfileNo}; they were dropped")]
     private static partial void LogProfileAreasRefused(
-        ILogger logger, string userId, int profileNo, IReadOnlyList<string> rejected);
+        ILogger logger, string userId, int profileNo, string rejected);
 
     [LoggerMessage(
         Level = LogLevel.Warning,
@@ -706,8 +701,8 @@ public partial class PoracleHumanProxy(
     /// <para>
     /// <c>V2AddProfileBody</c> and <c>V2UpdateProfileBody</c> both declare <c>name</c> and
     /// <c>active_hours</c> and nothing else, under <c>additionalProperties: false</c>. The callers build
-    /// one body for both surfaces, carrying <c>area</c>, <c>latitude</c> and <c>longitude</c> (which v1's
-    /// create ignores, so every caller writes them to the row afterwards) and <c>profile_no</c> (which v2
+    /// one body for both surfaces, carrying <c>area</c>, <c>latitude</c> and <c>longitude</c> (which the
+    /// create ignores, so every caller sets them afterwards through the ?profile= writes) and <c>profile_no</c> (which v2
     /// takes from the path). Forwarding it made every create and every rename a 422 on a server carrying
     /// PoracleNG #217, so only the two declared fields are sent.
     /// </para>
@@ -770,7 +765,7 @@ public partial class PoracleHumanProxy(
     /// <summary>
     /// A stored <c>active_hours</c> value as the entry list v2 declares. <paramref name="entries"/> is null
     /// for "no schedule" -- a null, an empty string, or the <c>{}</c> PoracleNG writes for a profile that
-    /// never had one. False means v2 cannot take this schedule and the caller should use v1.
+    /// never had one. False means v2 cannot take this schedule, which the callers report as a refusal.
     /// </summary>
     /// <remarks>
     /// PoracleNG stores <c>hours</c> and <c>mins</c> as strings as often as numbers, and v2 declares
@@ -884,8 +879,7 @@ public partial class PoracleHumanProxy(
     /// The profile number out of a v2 create response, or null when it does not carry one.
     /// </summary>
     /// <remarks>
-    /// Null is not a failure. It means this server answered the older shape, and the caller falls back to
-    /// diffing the profile list — which is what every released PoracleNG needs anyway.
+    /// Null means the answer carried no number; <see cref="AddProfileAsync"/> turns that into a refusal.
     /// </remarks>
     private static int? ProfileNoFrom(string payload)
     {

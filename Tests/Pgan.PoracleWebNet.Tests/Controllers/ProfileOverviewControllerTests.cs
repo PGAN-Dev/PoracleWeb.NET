@@ -274,6 +274,8 @@ public class ProfileOverviewControllerTests : ControllerTestBase
 
         await Assert.ThrowsAsync<PoracleRequestRefusedException>(() => this._sut.ImportProfile(
             new ProfileOverviewImportRequest("Imported", 1, CreateJsonObject(new { pokemon = new[] { new { pokemon_id = 1 } } }))));
+
+        this._humanProxy.Verify(h => h.DeleteProfileAsync("123456789", 2), Times.Once);
     }
 
     private static JsonElement CreateJsonObject(object obj)
