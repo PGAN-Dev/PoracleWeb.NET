@@ -97,31 +97,6 @@ public sealed class PoracleV2Capabilities
     }
 
     /// <summary>
-    /// <c>POST /v2/humans/{id}/areas</c> answers with what it stored and what it refused
-    /// (<c>V2SetAreasOutputBody</c>: <c>areas</c> and <c>rejected</c>), so the Areas page save can go
-    /// through v2 instead of v1's <c>setAreas</c>. See #995.
-    /// </summary>
-    /// <remarks>
-    /// Read off the response rather than the route. 5.2.1 serves the same route answering a bare
-    /// <c>{"status":"ok"}</c>, and only the shape that reports <c>rejected</c> was verified against a running
-    /// build; on 5.2.1 the save stays on v1, which behaves the same way it always has.
-    /// </remarks>
-    public bool SetAreasReportsRejected
-    {
-        get; init;
-    }
-
-    /// <summary>
-    /// <c>GET /v2/humans/{id}/areas</c> lists the areas this human may see as <c>V2AreaInfo</c> items
-    /// (<c>name</c>, <c>group</c>, <c>description</c>, <c>userSelectable</c>), the same four fields v1's
-    /// <c>GET /api/humans/{id}</c> carries under <c>areas</c>. See #995.
-    /// </summary>
-    public bool AvailableAreas
-    {
-        get; init;
-    }
-
-    /// <summary>
     /// <c>GET /v2/humans/{id}/profiles</c> lists profiles as <c>V2ProfileResponse</c>, carrying <c>area</c>
     /// and <c>active_hours</c>. See #995.
     /// </summary>

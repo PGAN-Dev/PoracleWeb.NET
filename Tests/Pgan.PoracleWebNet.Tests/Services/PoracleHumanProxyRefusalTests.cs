@@ -81,10 +81,10 @@ public class PoracleHumanProxyRefusalTests
     [Fact]
     public async Task SetAreasPassesPoracleWordingThroughOn400()
     {
-        // Live: POST /api/humans/{id}/setAreas with an object instead of an array.
+        // The v2 schema failure, in problem+json.
         var sut = Refusing(
-            HttpStatusCode.BadRequest,
-            """{"message":"json: cannot unmarshal object into Go value of type []string","status":"error"}""");
+            HttpStatusCode.UnprocessableEntity,
+            """{"title":"Unprocessable Entity","status":422,"detail":"cannot unmarshal object"}""");
 
         var ex = await Assert.ThrowsAsync<PoracleRequestRefusedException>(
             () => sut.SetAreasAsync("user1", ["area1"]));
@@ -235,9 +235,9 @@ public class PoracleHumanProxyRefusalTests
     [InlineData("/profiles")]
     public async Task EveryWritePathStillReportsAMissingAccountAsGone(string path)
     {
-        // The single-human calls are v2 only and say it in problem+json; the profile and area calls still
+        // The single-human and area calls are v2 only and say it in problem+json; the profile calls still
         // have a v1 path whose wording is its own.
-        var sut = path == "/stop"
+        var sut = path != "/profiles"
             ? Refusing(HttpStatusCode.NotFound, """{"title":"Not Found","status":404,"detail":"human not found"}""")
             : Refusing(HttpStatusCode.NotFound, """{"message":"User not found","status":"error"}""");
 
@@ -399,17 +399,6 @@ public class PoracleHumanProxyRefusalTests
         await sut.DeletePlaceAsync("user1", "home");
 
         Assert.Null(await sut.AddPlaceAsync("user1", new SavedPlace { Label = "home" }));
-    }
-
-    [Fact]
-    public async Task AddPlaceStillReportsTheRefusalHiddenInsideA200()
-    {
-        // PoracleNG answers per row so a batch can partly succeed. This is not a status-code refusal and
-        // must not turn into one.
-        var handler = new MockHandler(HttpStatusCode.OK, """{"results":[{"error":"label already used"}]}""");
-        var sut = CreateSut(handler);
-
-        Assert.Equal("label already used", await sut.AddPlaceAsync("user1", new SavedPlace { Label = "home" }));
     }
 
     [Fact]

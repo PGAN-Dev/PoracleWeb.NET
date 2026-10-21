@@ -8,8 +8,8 @@ using Pgan.PoracleWebNet.Core.Services;
 namespace Pgan.PoracleWebNet.Tests.Services;
 
 /// <summary>
-/// The Areas page's list of areas a user may choose from: <c>GET /api/v2/humans/{id}/areas</c> where the
-/// server declares it, v1's <c>GET /api/humans/{id}</c> otherwise. See #995.
+/// The Areas page's list of areas a user may choose from: <c>GET /api/v2/humans/{id}/areas</c>, and
+/// nothing else. A server older than 5.4.0 is told so rather than served v1's <c>GET /api/humans/{id}</c>.
 /// </summary>
 /// <remarks>
 /// The bodies are trimmed from what a live 5.3.0 answered on the dev-01 test bed for the same probe human
@@ -25,43 +25,39 @@ public class PoracleApiProxyAvailableAreasTests
          {"name":"Animal Kingdom","group":"US - FL - Orlando","description":"","userSelectable":false}]
         """;
 
-    private static readonly PoracleV2Capabilities Declared = new() { Read = true, AvailableAreas = true };
-
     [Fact]
-    public async Task ReadsV2WhereTheServerDeclaresItAndAnswersTheSameArray()
+    public async Task ReadsV2AndAnswersTheArray()
     {
         var handler = new Scripted(new Reply(HttpStatusCode.OK, $$"""{"areas":{{Items}}}"""));
 
-        var areas = await CreateSut(handler, Declared).GetAreasWithGroupsAsync("user1");
+        var areas = await CreateSut(handler).GetAreasWithGroupsAsync("user1");
 
         Assert.Equal($"{ApiAddress}/api/v2/humans/user1/areas", Assert.Single(handler.Urls));
         AssertSameItems(areas);
     }
 
     [Fact]
-    public async Task StaysOnV1WhereTheServerDoesNotDeclareIt()
-    {
-        var handler = new Scripted(new Reply(HttpStatusCode.OK, $$"""{"areas":{{Items}},"status":"ok"}"""));
-
-        var areas = await CreateSut(handler, PoracleV2Capabilities.None).GetAreasWithGroupsAsync("user1");
-
-        Assert.Equal($"{ApiAddress}/api/humans/user1", Assert.Single(handler.Urls));
-        AssertSameItems(areas);
-    }
-
-    [Fact]
-    public async Task FallsBackToV1WhenTheRouteIsMissing()
+    public async Task AServerWithoutTheRouteIsAnUnsupportedServerNotAV1Retry()
     {
         var handler = new Scripted(
             new Reply(HttpStatusCode.NotFound, "404 page not found", "text/plain"),
             new Reply(HttpStatusCode.OK, $$"""{"areas":{{Items}},"status":"ok"}"""));
 
-        var areas = await CreateSut(handler, Declared).GetAreasWithGroupsAsync("user1");
+        var ex = await Assert.ThrowsAsync<PoracleUnsupportedException>(
+            () => CreateSut(handler).GetAreasWithGroupsAsync("user1"));
 
-        Assert.Equal(
-            [$"{ApiAddress}/api/v2/humans/user1/areas", $"{ApiAddress}/api/humans/user1"],
-            handler.Urls);
-        AssertSameItems(areas);
+        Assert.Contains("5.4.0", ex.Message, StringComparison.Ordinal);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/areas", Assert.Single(handler.Urls));
+    }
+
+    [Fact]
+    public async Task NeverRequestsTheV1HumanRoute()
+    {
+        var handler = new Scripted(new Reply(HttpStatusCode.OK, """{"areas":[]}"""));
+
+        await CreateSut(handler).GetAreasWithGroupsAsync("user1");
+
+        Assert.DoesNotContain(handler.Urls, u => u.Contains("/api/humans/", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -73,7 +69,7 @@ public class PoracleApiProxyAvailableAreasTests
             """{"title":"Not Found","status":404,"detail":"human not found"}""",
             "application/problem+json"));
 
-        Assert.Null(await CreateSut(handler, Declared).GetAreasWithGroupsAsync("nobody"));
+        Assert.Null(await CreateSut(handler).GetAreasWithGroupsAsync("nobody"));
         Assert.Single(handler.Urls);
     }
 
@@ -83,7 +79,7 @@ public class PoracleApiProxyAvailableAreasTests
         // V2AreasOutputBody declares areas as array-or-null.
         var handler = new Scripted(new Reply(HttpStatusCode.OK, """{"areas":null}"""));
 
-        Assert.Equal("[]", await CreateSut(handler, Declared).GetAreasWithGroupsAsync("user1"));
+        Assert.Equal("[]", await CreateSut(handler).GetAreasWithGroupsAsync("user1"));
     }
 
     [Fact]
@@ -91,7 +87,7 @@ public class PoracleApiProxyAvailableAreasTests
     {
         var handler = new Scripted(new Reply(HttpStatusCode.OK, """{"areas":[]}"""));
 
-        await CreateSut(handler, Declared).GetAreasWithGroupsAsync("https://discordapp.com/api/webhooks/1/tok");
+        await CreateSut(handler).GetAreasWithGroupsAsync("https://discordapp.com/api/webhooks/1/tok");
 
         Assert.Equal(
             $"{ApiAddress}/api/v2/humans/https%3A%2F%2Fdiscordapp.com%2Fapi%2Fwebhooks%2F1%2Ftok/areas",
@@ -113,7 +109,7 @@ public class PoracleApiProxyAvailableAreasTests
         }
     }
 
-    private static PoracleApiProxy CreateSut(HttpMessageHandler handler, PoracleV2Capabilities capabilities) => new(
+    private static PoracleApiProxy CreateSut(HttpMessageHandler handler) => new(
         new HttpClient(handler),
         new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -121,8 +117,7 @@ public class PoracleApiProxyAvailableAreasTests
                 ["Poracle:ApiAddress"] = ApiAddress,
                 ["Poracle:ApiSecret"] = "test-secret",
             })
-            .Build(),
-        PoracleHumanProxyTests.V2Schema(capabilities));
+            .Build());
 
     private sealed record Reply(HttpStatusCode Status, string Body, string ContentType = "application/json");
 

@@ -221,8 +221,8 @@ public interface IPoracleHumanProxy
     /// an alarm referenced was impossible before: the delete answers 409 while anything still points at
     /// it, so the only route was to repoint every alarm, delete, re-add and repoint back.
     /// </remarks>
-    /// <returns>False when this PoracleNG has no such route; the caller should say so rather than retry.</returns>
-    public Task<bool> UpdatePlaceAsync(string userId, string label, double latitude, double longitude);
+    /// <exception cref="PoracleUnsupportedException">This PoracleNG is older than 5.4.0 and has no such route.</exception>
+    public Task UpdatePlaceAsync(string userId, string label, double latitude, double longitude);
 
     /// <summary>
     /// Deletes a saved place.

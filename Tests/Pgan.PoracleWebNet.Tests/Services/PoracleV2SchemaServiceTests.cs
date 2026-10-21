@@ -61,44 +61,10 @@ public class PoracleV2SchemaServiceTests
         Assert.True(capabilities.ProfileCreateReturnsNumber);
         Assert.True(capabilities.InvasionGruntType);
         Assert.True(capabilities.TrackingPing);
-        Assert.True(capabilities.SetAreasReportsRejected);
-        Assert.True(capabilities.AvailableAreas);
         Assert.True(capabilities.ProfileList);
         Assert.True(capabilities.ProfileDelete);
         Assert.True(capabilities.ProfileCopy);
         Assert.True(capabilities.ProfileScopedGeography);
-    }
-
-    [Fact]
-    public void AReleasedPoracleAlreadyServesTheProfileAndAreaReadsButNotTheReportingSave()
-    {
-        // Read off 5.2.1's own document: every route #995 moves is there, but its POST .../areas answers
-        // {"status":"ok"} rather than what it stored and refused, so the Areas save stays on v1 there.
-        var capabilities = PoracleV2SchemaService.Parse(Fixture("5.2.1"));
-
-        Assert.True(capabilities.AvailableAreas);
-        Assert.True(capabilities.ProfileList);
-        Assert.True(capabilities.ProfileDelete);
-        Assert.True(capabilities.ProfileCopy);
-        Assert.False(capabilities.SetAreasReportsRejected);
-    }
-
-    [Fact]
-    public void TheAreasSaveIsReadByWhatItsAnswerCarriesNotByTheRouteExisting()
-    {
-        const string statusOnly = """
-            {"paths":{"/v2/humans/{id}/areas":{"post":{"responses":{"200":{"content":{"application/json":
-              {"schema":{"$ref":"#/components/schemas/StatusOKOutputBody"}}}}}}}},
-             "components":{"schemas":{"StatusOKOutputBody":{"properties":{"status":{}}}}}}
-            """;
-        const string reporting = """
-            {"paths":{"/v2/humans/{id}/areas":{"post":{"responses":{"200":{"content":{"application/json":
-              {"schema":{"$ref":"#/components/schemas/V2SetAreasOutputBody"}}}}}}}},
-             "components":{"schemas":{"V2SetAreasOutputBody":{"properties":{"areas":{},"rejected":{}}}}}}
-            """;
-
-        Assert.False(PoracleV2SchemaService.Parse(statusOnly).SetAreasReportsRejected);
-        Assert.True(PoracleV2SchemaService.Parse(reporting).SetAreasReportsRejected);
     }
 
     [Fact]
@@ -169,8 +135,6 @@ public class PoracleV2SchemaServiceTests
         Assert.False(capabilities.ProfileCreateReturnsNumber);
         Assert.False(capabilities.InvasionGruntType);
         Assert.False(capabilities.TrackingPing);
-        Assert.False(capabilities.SetAreasReportsRejected);
-        Assert.False(capabilities.AvailableAreas);
         Assert.False(capabilities.ProfileList);
         Assert.False(capabilities.ProfileDelete);
         Assert.False(capabilities.ProfileCopy);

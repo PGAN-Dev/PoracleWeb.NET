@@ -23,8 +23,7 @@ public class PoracleApiProxyGruntsTests
                 ["Poracle:ApiAddress"] = ApiAddress,
                 ["Poracle:ApiSecret"] = "test-secret"
             })
-            .Build(),
-        PoracleHumanProxyTests.V2Schema());
+            .Build());
 
     [Fact]
     public async Task GetGruntsAsyncRequestsTheMasterdataPath()

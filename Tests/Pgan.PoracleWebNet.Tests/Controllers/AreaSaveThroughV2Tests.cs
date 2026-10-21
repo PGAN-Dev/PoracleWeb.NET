@@ -15,7 +15,7 @@ using Pgan.PoracleWebNet.Tests.Services;
 namespace Pgan.PoracleWebNet.Tests.Controllers;
 
 /// <summary>
-/// The Areas page save end to end through a real <see cref="PoracleHumanProxy"/>, on both surfaces: what
+/// The Areas page save end to end through a real <see cref="PoracleHumanProxy"/>: what
 /// PoracleNG is sent, that a user-drawn fence it refuses is still handed to
 /// <c>PreserveOwnedAreasInHumanAsync</c>, and that the response is the stored list read back. See #995.
 /// </summary>
@@ -30,15 +30,11 @@ public class AreaSaveThroughV2Tests : ControllerTestBase
     private const string ApiAddress = "http://localhost:3030";
     private const string UserId = "123456789";
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task AUserFencePoracleRefusesIsStillPreservedAndTheSaveSucceeds(bool v2)
+    [Fact]
+    public async Task AUserFencePoracleRefusesIsStillPreservedAndTheSaveSucceeds()
     {
         var handler = new Scripted(
-            v2
-                ? new Reply("""{"areas":["downtown"],"rejected":["my park"]}""")
-                : new Reply("""{"setAreas":["downtown"],"status":"ok"}"""),
+            new Reply("""{"areas":["downtown"],"rejected":["my park"]}"""),
             // The read-back after PreserveOwnedAreasInHumanAsync put the fence back.
             new Reply("""{"human":{"id":"123456789","area":["downtown","my park"],"current_profile_no":1}}"""));
 
@@ -48,7 +44,7 @@ public class AreaSaveThroughV2Tests : ControllerTestBase
             .ReturnsAsync(["my park"]);
 
         var sut = new AreaController(
-            CreateProxy(handler, v2),
+            CreateProxy(handler),
             Mock.Of<IPoracleApiProxy>(),
             geofences.Object,
             Mock.Of<ILogger<AreaController>>());
@@ -57,17 +53,12 @@ public class AreaSaveThroughV2Tests : ControllerTestBase
         var result = await sut.UpdateAreas(new AreaController.UpdateAreasRequest { Areas = ["Downtown", "My Park"] });
 
         var save = handler.Requests[0];
-        Assert.Equal(
-            v2 ? $"{ApiAddress}/api/v2/humans/{UserId}/areas" : $"{ApiAddress}/api/humans/{UserId}/setAreas",
-            save.Url);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/{UserId}/areas", save.Url);
 
         using var body = JsonDocument.Parse(save.Body!);
-        var sentAreas = v2 ? body.RootElement.GetProperty("areas") : body.RootElement;
+        var sentAreas = body.RootElement.GetProperty("areas");
         Assert.Equal(["downtown", "my park"], sentAreas.EnumerateArray().Select(e => e.GetString()).ToList());
-        if (v2)
-        {
-            Assert.False(body.RootElement.TryGetProperty("trusted", out _));
-        }
+        Assert.False(body.RootElement.TryGetProperty("trusted", out _));
 
         geofences.Verify(
             s => s.PreserveOwnedAreasInHumanAsync(
@@ -79,7 +70,7 @@ public class AreaSaveThroughV2Tests : ControllerTestBase
         Assert.Equal(["downtown", "my park"], Assert.IsType<string[]>(ok.Value));
     }
 
-    private static PoracleHumanProxy CreateProxy(Scripted handler, bool v2) => new(
+    private static PoracleHumanProxy CreateProxy(Scripted handler) => new(
         new HttpClient(handler),
         new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -89,7 +80,7 @@ public class AreaSaveThroughV2Tests : ControllerTestBase
             })
             .Build(),
         PoracleHumanProxyTests.ServerProfile("5.4.0"),
-        PoracleHumanProxyTests.V2Schema(new PoracleV2Capabilities { Read = true, SetAreasReportsRejected = v2 }),
+        PoracleHumanProxyTests.V2Schema(new PoracleV2Capabilities { Read = true }),
         PoracleHumanProxyTests.AreaSecurityPolicy(),
         new MemoryCache(new MemoryCacheOptions()),
         Mock.Of<ILogger<PoracleHumanProxy>>());

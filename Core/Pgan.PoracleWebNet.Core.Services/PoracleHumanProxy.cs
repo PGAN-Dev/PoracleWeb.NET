@@ -365,28 +365,18 @@ public partial class PoracleHumanProxy(
     /// </remarks>
     public async Task SetAreasAsync(string userId, string[] areas)
     {
-        if ((await this._v2Schema.GetAsync()).SetAreasReportsRejected
-            && await this.TryV2Async(
-                HttpMethod.Post,
-                "areas",
-                $"/api/v2/humans/{Encode(userId)}/areas",
-                JsonSerializer.Serialize(new { areas }))
-                is { } reply)
-        {
-            await EnsureAcceptedAsync(reply.Response);
-
-            var rejected = RejectedAreas(reply.Payload);
-            if (rejected.Count > 0)
-            {
-                LogAreasRefused(this._logger, userId, rejected);
-            }
-
-            return;
-        }
-
-        var body = JsonSerializer.Serialize(areas);
-        var response = await this.SendAsync(HttpMethod.Post, $"/api/humans/{Encode(userId)}/setAreas", body);
+        var response = await this.SendV2Async(
+            HttpMethod.Post,
+            $"/api/v2/humans/{Encode(userId)}/areas",
+            "saving areas",
+            new { areas });
         await EnsureAcceptedAsync(response);
+
+        var rejected = RejectedAreas(await response.Content.ReadAsStringAsync());
+        if (rejected.Count > 0)
+        {
+            LogAreasRefused(this._logger, userId, rejected);
+        }
     }
 
     /// <summary>The <c>rejected</c> list out of a v2 areas answer, empty when there is none to read.</summary>
@@ -1059,9 +1049,9 @@ public partial class PoracleHumanProxy(
 
     public async Task<SavedPlaces> GetPlacesAsync(string userId)
     {
-        var (response, json) =
-            await this.TryV2Async(HttpMethod.Get, "locations", $"/api/v2/humans/{Encode(userId)}/locations")
-            ?? await this.SendReadAsync(HttpMethod.Get, $"/api/humans/{Encode(userId)}/locations");
+        var response = await this.SendV2Async(
+            HttpMethod.Get, $"/api/v2/humans/{Encode(userId)}/locations", "reading saved places");
+        var json = await response.Content.ReadAsStringAsync();
 
         await EnsureAcceptedAsync(response);
 
@@ -1112,73 +1102,33 @@ public partial class PoracleHumanProxy(
             return "That name is too long. Use 64 characters or fewer.";
         }
 
-        var v2Body = LocationBody(place.Latitude, place.Longitude, place.Label);
+        var response = await this.SendV2Async(
+            HttpMethod.Post,
+            $"/api/v2/humans/{Encode(userId)}/locations",
+            "saving a place",
+            LocationBody(place.Latitude, place.Longitude, place.Label));
 
-        var v2 = await this.TryV2Async(
-            HttpMethod.Post, "locations-add", $"/api/v2/humans/{Encode(userId)}/locations", v2Body);
-
-        if (v2 is { } reply)
+        // v2 turns the duplicate label into a real 409 instead of burying it in a 200. Returned as a
+        // message so the controller and the SPA see a refusal they can show, not an exception.
+        if (response.StatusCode == HttpStatusCode.Conflict)
         {
-            // v2 turns the duplicate label into a real 409 instead of burying it in a 200. Returned as
-            // the same string v1 produced so the controller and the SPA see one behaviour.
-            if (reply.Response.StatusCode == HttpStatusCode.Conflict)
-            {
-                return PoracleProblemDetails.Describe(reply.Payload, Unexplained);
-            }
-
-            await EnsureAcceptedAsync(reply.Response);
-            return null;
+            return PoracleProblemDetails.Describe(await response.Content.ReadAsStringAsync(), Unexplained);
         }
 
-        var body = JsonSerializer.Serialize(new
-        {
-            label = place.Label,
-            latitude = place.Latitude,
-            longitude = place.Longitude,
-        });
-
-        var response = await this.SendAsync(
-            HttpMethod.Post, $"/api/humans/{Encode(userId)}/locations/add", body);
         await EnsureAcceptedAsync(response);
-
-        // A rejected label is reported inside a 200: PoracleNG answers per row so a batch can partly
-        // succeed. Treating the 200 as success stored nothing and told the user it worked.
-        var json = await response.Content.ReadAsStringAsync();
-        using var doc = JsonDocument.Parse(json);
-
-        if (!doc.RootElement.TryGetProperty("results", out var results)
-            || results.ValueKind != JsonValueKind.Array)
-        {
-            return null;
-        }
-
-        foreach (var row in results.EnumerateArray())
-        {
-            var error = row.GetStringPropOrNull("error");
-            if (!string.IsNullOrEmpty(error))
-            {
-                return error;
-            }
-        }
-
         return null;
     }
 
     /// <inheritdoc />
-    public async Task<bool> UpdatePlaceAsync(string userId, string label, double latitude, double longitude)
+    public async Task UpdatePlaceAsync(string userId, string label, double latitude, double longitude)
     {
-        var body = LocationBody(latitude, longitude);
+        var response = await this.SendV2Async(
+            HttpMethod.Put,
+            $"/api/v2/humans/{Encode(userId)}/locations/{Encode(label)}",
+            "moving a saved place",
+            LocationBody(latitude, longitude));
 
-        var v2 = await this.TryV2Async(
-            HttpMethod.Put, "locations-update", $"/api/v2/humans/{Encode(userId)}/locations/{Encode(label)}", body);
-
-        if (v2 is not { } reply)
-        {
-            return false;
-        }
-
-        await EnsureAcceptedAsync(reply.Response);
-        return true;
+        await EnsureAcceptedAsync(response);
     }
 
     /// <summary>
@@ -1203,20 +1153,19 @@ public partial class PoracleHumanProxy(
 
     public async Task DeletePlaceAsync(string userId, string label)
     {
-        var reply =
-            await this.TryV2Async(
-                HttpMethod.Delete, "locations-delete", $"/api/v2/humans/{Encode(userId)}/locations/{Encode(label)}")
-            ?? await this.SendReadAsync(
-                HttpMethod.Post, $"/api/humans/{Encode(userId)}/locations/{Encode(label)}/delete");
+        var response = await this.SendV2Async(
+            HttpMethod.Delete,
+            $"/api/v2/humans/{Encode(userId)}/locations/{Encode(label)}",
+            "deleting a saved place");
 
         // Read before the general refusal path: a 409 here names the alarms still pointing at the place,
         // which is the difference between "could not delete" and knowing what to repoint first.
-        if (reply.Response.StatusCode == HttpStatusCode.Conflict)
+        if (response.StatusCode == HttpStatusCode.Conflict)
         {
-            throw new PlaceInUseException(ReferencingRules(reply.Payload));
+            throw new PlaceInUseException(ReferencingRules(await response.Content.ReadAsStringAsync()));
         }
 
-        await EnsureAcceptedAsync(reply.Response);
+        await EnsureAcceptedAsync(response);
     }
 
     public async Task<IReadOnlyList<Human>> ListHumansAsync(string? type = null, IReadOnlyCollection<string>? ids = null)

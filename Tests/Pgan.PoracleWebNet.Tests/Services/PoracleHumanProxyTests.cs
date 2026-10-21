@@ -315,7 +315,7 @@ public class PoracleHumanProxyTests
 
         Assert.NotNull(handler.LastRequest);
         Assert.Equal(HttpMethod.Post, handler.LastRequest.Method);
-        Assert.Equal($"{ApiAddress}/api/humans/user1/setAreas", handler.LastRequest.RequestUri?.ToString());
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/areas", handler.LastRequest.RequestUri?.ToString());
 
         var sentBody = await handler.LastRequest.Content!.ReadAsStringAsync();
         Assert.Contains("downtown", sentBody);

@@ -293,7 +293,8 @@ public class LocationController(
     /// <remarks>
     /// New on PoracleNG 5.2.0. Before it, a place an alarm referenced could not be moved at all: the
     /// delete answers 409 while anything still points at it, so the only route was to repoint every
-    /// alarm, delete, re-add and repoint back. An older server answers 501 and the SPA hides the control.
+    /// alarm, delete, re-add and repoint back. A server older than 5.4.0 raises
+    /// <see cref="PoracleUnsupportedException"/>, which the exception filter reports.
     /// </remarks>
     [HttpPut("places/{label}")]
     public async Task<IActionResult> UpdatePlace(
@@ -309,14 +310,9 @@ public class LocationController(
             return this.BadRequest(new { error = "Latitude must be -90 to 90 and longitude -180 to 180." });
         }
 
-        var moved = await this._humanProxy.UpdatePlaceAsync(this.UserId, label, latitude, longitude);
+        await this._humanProxy.UpdatePlaceAsync(this.UserId, label, latitude, longitude);
 
-        return moved
-            ? this.Ok(await this.PlacesWithCapabilityAsync(cancellationToken))
-            : this.StatusCode(StatusCodes.Status501NotImplemented, new
-            {
-                error = "This Poracle server cannot move a saved place. Delete it and add it again.",
-            });
+        return this.Ok(await this.PlacesWithCapabilityAsync(cancellationToken));
     }
 
     /// <summary>New coordinates for a saved place. The label is the path segment and does not change.</summary>
