@@ -29,11 +29,11 @@ went in the first step, which covers humans, profiles, places, mutes and geocodi
 | The legacy geocoder call | Called the geocoder PoracleNG was configured with, as Nominatim, when PoracleNG had no `/api/geocode` routes |
 | `ProbePokestopEventsAsync` | Probed for the Pokéstop Events page on a server without it |
 | `Poracle:TrackingApiVersion` (`PORACLE_TRACKING_API_VERSION`) | Pinned the tracking surface for a fork whose version string lied. A leftover setting is ignored |
-| Eleven `PoracleV2Capabilities` flags | Each asked the server's `/openapi.json` whether one field or route existed. `TrustedSetAreas` and `InvasionGruntType` remain until areas and tracking move to v2 |
+| Eleven `PoracleV2Capabilities` flags | Each asked the server's `/openapi.json` whether one field or route existed. `TrustedSetAreas` went with the area writes; `InvasionGruntType` remains until tracking moves to v2 |
 
 The v1 tracking API is **not** gone from this application. Tracking reads, creates and the bulk
 distance and clean writes still use it, and so does a plaintext-404 fallback on the single-rule edit
-routes. User-drawn geofence names still reach PoracleNG's area columns through a direct database write.
+routes. User-drawn geofence names reach PoracleNG through its `/api/v2` area routes with the `trusted` flag, which 5.4.0 carries; an alert's own area override is the one thing still written straight to the database.
 Both are later steps, and this page changes again when they land.
 
 ## How support is decided

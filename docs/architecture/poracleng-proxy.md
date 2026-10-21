@@ -260,18 +260,17 @@ the mute and location controllers and all eleven alarm controllers.
 
 | Operation | Reason |
 |---|---|
-| User-geofence area writes (`IUserAreaDualWriter`, `humans.area` + `profiles.area`) **as a fallback for three of six methods** | `setAreas` intersects the submitted list against `userSelectable=true` fences for non-admins, so a user's own geofence is silently stripped. Three active-profile methods prefer v2's trusted `setAreas` instead when the server carries jfberry/PoracleNG#230 and `area_security` is confirmed off ([#838](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/838)); the other three have no safe v2 form yet |
-| Per-alarm `override_areas` (`IUserAreaDualWriter.SetAlarmOverrideAreasAsync`) | The tracking write validates the same names against `GetAvailableAreas` and answers 400 "area not permitted", failing the whole request. Matching never consults `userSelectable`, so the name is written into the column directly |
+| Per-alarm `override_areas` (`IAlarmOverrideAreaWriter.SetAlarmOverrideAreasAsync`) | The tracking write validates the same names against `GetAvailableAreas` and answers 400 "area not permitted", failing the whole request. Matching never consults `userSelectable`, so the name is written into the column directly |
 | Deprecated `pweb_settings` KV table (`PwebSettingRepository`, plus one `ALTER TABLE ... MODIFY COLUMN value LONGTEXT NULL` at startup) | Legacy rows PoracleNG never knew about, kept alive only so `SettingsMigrationService` can copy them into `poracle_web` |
 | `poracle_web` database (geofences, settings, webhook delegates, quick picks) | Application-owned data, not managed by PoracleNG |
 | Scanner database (gym search, weather) | Read-only, separate database |
 
-The user-geofence area writes and the per-alarm `override_areas` write are tagged `HACK: trusted-set-areas` in code — `grep -rn "HACK: trusted-set-areas" --include="*.cs"` lists every reversion point. See [Backend → Areas](backend.md#areas) for the mechanism; this table and the one in [Database](database.md#poraclecontext) describe the same set.
+The per-alarm `override_areas` write is tagged `HACK: trusted-set-areas` in code — `grep -rn "HACK: trusted-set-areas" --include="*.cs"` lists every reversion point. See [Backend → Areas](backend.md#areas) for the mechanism; this table and the one in [Database](database.md#poraclecontext) describe the same set.
 
 !!! note "Every human and profile operation is proxied"
     `HumanService` and `ProfileService` read and write a single human through `IPoracleHumanProxy` with **no DB fallback**, and so do the admin-bulk operations: the full user list, the webhook list, the batch read that resolves geofence owners' names, and user deletion use `GET /api/v2/humans` (with `?type=` and `?id=a,b,c`) and `DELETE /api/v2/humans/{id}`. `HumanRepository` and `ProfileRepository` no longer exist. The existence check the purge runs first reads the proxy too: its human read answers null only for a 404 and throws for anything else, the same contract as `GetAdminRolesAsync`, so an unreachable PoracleNG is not reported to the admin as "already gone" ([#994](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/994)).
 
-    **A new profile's areas and location** are written by `NewProfileGeography` through `POST /api/v2/humans/{id}/areas?profile=N` and `.../location?profile=N`, because PoracleNG's add ignores both ([#993](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/993)). Names PoracleNG rejects are logged and dropped, the list goes untrusted where `trusted` isn't safe (`area_security` on or unconfirmed), and a refusal of either write deletes the profile just created and returns the original error, since there is no direct write left to repair it with.
+    **A new profile's areas and location** are written by `NewProfileGeography` through `POST /api/v2/humans/{id}/areas?profile=N` and `.../location?profile=N`, because PoracleNG's add ignores both ([#993](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/993)). Names PoracleNG rejects are logged and dropped, create first filters the list through the same allowed-name check as the Areas page (`IUserAreaWriter.FilterAllowedAsync`), both duplicates send the caller's own source profile's list unfiltered, import sends none, and whatever is sent is always `trusted`, so the profile keeps the user's drawn fences whatever `area_security` is, and a refusal of either write deletes the profile just created and returns the original error, since there is no direct write left to repair it with.
 
     **Rename** is `PATCH /api/v2/humans/{id}/profiles/{n}`, and it sends only the `active_hours` the caller submitted, so renaming a profile whose stored schedule v2 would refuse still works.
 
@@ -292,7 +291,9 @@ All of them, with no fallback. A route 5.4.0 added that answers gin's plaintext 
 | Set language | `POST .../language` |
 | List / add / move / delete saved place | `GET`, `POST .../locations`, `PUT`, `DELETE .../locations/{label}` |
 | Admin roles | `GET .../admin-roles` |
-| Save areas (Areas page) | `POST .../areas` `{areas}`, never `trusted` |
+| Save areas, toggle a fence, create | `POST .../areas` `{areas, trusted: true}`, after `IUserAreaWriter` has checked every name (see [Backend → Areas](backend.md#areas)). Names PoracleNG has no fence for come back in `rejected` and are not an error |
+| Delete a fence | `DELETE .../areas?name=&all_profiles=true`, preceded by a `dry_run=true` call that reports the alarms scoped to that fence alone. Alarms the user chose to delete go first, per profile, through the tracking bulk delete with `?profile=N` |
+| Rename a fence | `PATCH .../areas?from=&to=&all_profiles=true&trusted=true`, after a geofence reload so `to` is loaded |
 | Available areas | `GET .../areas` |
 | List profiles | `GET .../profiles`, translated back to v1's `{"profile":[...]}` with `area` and `active_hours` as strings |
 | Create / rename profile | `POST .../profiles` (returns the number), `PATCH .../profiles/{n}` |
@@ -406,7 +407,7 @@ services.AddHttpClient<PoracleTrackingProxy>();
 services.AddScoped<IPoracleTrackingProxy>(sp => new UserOwnedOverrideAreaProxy(
     sp.GetRequiredService<PoracleTrackingProxy>(),
     sp.GetRequiredService<IUserGeofenceRepository>(),
-    sp.GetRequiredService<IUserAreaDualWriter>(),
+    sp.GetRequiredService<IAlarmOverrideAreaWriter>(),
     sp.GetRequiredService<ILogger<UserOwnedOverrideAreaProxy>>()));
 
 services.AddHttpClient<IPoracleHumanProxy, PoracleHumanProxy>();
@@ -434,7 +435,7 @@ On a create or an edit it:
    three rules, but only against the body it receives — which by step 2 may no longer mention the areas.
 2. Strips the user's own geofence names out of `override_areas` before the POST, because PoracleNG
    rejects them outright with a 400 rather than stripping them the way `setAreas` does.
-3. Writes the full list into the row with `IUserAreaDualWriter.SetAlarmOverrideAreasAsync`, resolving
+3. Writes the full list into the row with `IAlarmOverrideAreaWriter.SetAlarmOverrideAreasAsync`, resolving
    the uid from the create response for a single row and by re-reading and pairing on content for a
    batch (PoracleNG returns `newUids` in its own order). A row that is not there to write to throws
    rather than leaving an alarm that quietly covers the whole profile.

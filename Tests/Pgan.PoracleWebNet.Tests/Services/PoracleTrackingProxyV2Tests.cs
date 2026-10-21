@@ -862,6 +862,75 @@ public class PoracleTrackingProxyV2Tests
         Assert.Equal("<@&400027130022592512>", body.RootElement.GetProperty("ping").GetString());
     }
 
+    [Fact]
+    public async Task ABulkDeleteOnAProfileSendsProfileAndTheUidsAndReturnsWhatWasDeleted()
+    {
+        // The answer lists only the rules PoracleNG removed: it skips a uid that is not on that profile
+        // without complaint, so the caller learns what happened from this list and nowhere else.
+        var handler = ScriptedHandler.Ok("""{"deleted":[{"uid":672},{"uid":673}],"dry_run":false}""");
+        var sut = CreateSut(handler, version: "5.4.0");
+
+        var deleted = await sut.BulkDeleteByUidsOnProfileAsync("raid", "user1", [672, 673, 999], 2);
+
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal(HttpMethod.Delete, request.Method);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/tracking/raid?silent=true&profile=2", request.Url);
+        using var body = JsonDocument.Parse(request.Body!);
+        Assert.Equal([672, 673, 999], body.RootElement.GetProperty("uids").EnumerateArray().Select(e => e.GetInt32()));
+        Assert.Equal([672, 673], deleted);
+    }
+
+    [Fact]
+    public async Task ABulkDeleteOnAProfileWithNothingToDeleteSendsNothing()
+    {
+        var handler = ScriptedHandler.Ok("""{"deleted":[]}""");
+
+        var deleted = await CreateSut(handler, version: "5.4.0").BulkDeleteByUidsOnProfileAsync("raid", "user1", [], 2);
+
+        Assert.Empty(deleted);
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task ABulkDeleteOnAProfileReadsNullDeletedAsNone()
+    {
+        var deleted = await CreateSut(ScriptedHandler.Ok("""{"deleted":null}"""), version: "5.4.0")
+            .BulkDeleteByUidsOnProfileAsync("raid", "user1", [1], 2);
+
+        Assert.Empty(deleted);
+    }
+
+    [Fact]
+    public async Task ABulkDeleteOnAProfileReportsAServerWithoutTheRouteAsUnsupported()
+    {
+        var handler = new ScriptedHandler(new Reply(HttpStatusCode.NotFound, "404 page not found", "text/plain"));
+
+        await Assert.ThrowsAsync<PoracleUnsupportedException>(
+            () => CreateSut(handler, version: "5.4.0").BulkDeleteByUidsOnProfileAsync("raid", "user1", [1], 2));
+    }
+
+    [Fact]
+    public async Task ABulkDeleteOnAProfileCarriesPoracleNgsDetailOnARefusal()
+    {
+        var handler = ScriptedHandler.Problem(
+            HttpStatusCode.UnprocessableEntity, """{"title":"Unprocessable Entity","status":422,"detail":"unknown profile"}""");
+
+        var ex = await Assert.ThrowsAsync<PoracleRequestRefusedException>(
+            () => CreateSut(handler, version: "5.4.0").BulkDeleteByUidsOnProfileAsync("raid", "user1", [1], 2));
+
+        Assert.Contains("unknown profile", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ABulkDeleteOnAProfileTreatsAMissingHumanAsAGoneAccount()
+    {
+        var handler = ScriptedHandler.Problem(
+            HttpStatusCode.NotFound, """{"title":"Not Found","status":404,"detail":"human not found"}""");
+
+        await Assert.ThrowsAsync<AccountGoneException>(
+            () => CreateSut(handler, version: "5.4.0").BulkDeleteByUidsOnProfileAsync("raid", "user1", [1], 2));
+    }
+
     private static JsonElement Row(string json) => JsonDocument.Parse(json).RootElement.Clone();
 
     private static PoracleTrackingProxy CreateSut(

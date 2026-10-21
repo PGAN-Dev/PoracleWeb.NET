@@ -7,7 +7,14 @@ using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
+/// <remarks>
+/// Carries <see cref="PoracleUnreachableExceptionFilter"/> for the whole class. Every action's outbound HTTP
+/// that can escape is to PoracleNG: Koji and Discord calls reachable from here catch their own failures
+/// (delete's Koji cleanup, submit's forum post, region and reserved-name reads, and the geofence reload), and
+/// GetRegions, export and import catch everything themselves.
+/// </remarks>
 [Route("api/geofences")]
+[TypeFilter(typeof(PoracleUnreachableExceptionFilter))]
 public partial class UserGeofenceController(
     IUserGeofenceService userGeofenceService,
     IGeoJsonService geoJsonService,
@@ -54,6 +61,11 @@ public partial class UserGeofenceController(
             // Not Forbid: a geofence the caller does not own should not be distinguishable from one that
             // does not exist.
             return this.NotFound();
+        }
+        catch (GeofenceRenameFailedException ex)
+        {
+            // Rolled back: the input was fine and a retry can succeed, so not a 400.
+            return this.Conflict(new { error = ex.Message });
         }
         catch (InvalidOperationException ex)
         {
@@ -102,13 +114,26 @@ public partial class UserGeofenceController(
     /// carries 42 of them, so the stranding is not hypothetical.
     /// </para>
     /// <para>Pinned by a test, because this reads like an oversight and has been reported as one.</para>
+    /// <para>
+    /// <c>alarms</c> is required and says what happens to alarms limited to this fence alone (see
+    /// <see cref="GetDeleteImpact"/>): <c>delete</c> deletes them; <c>keep</c> leaves them, matching across
+    /// the profile's areas. Absent or anything else is a 400, so no caller deletes alarms by omission.
+    /// </para>
     /// </remarks>
     [HttpDelete("custom/{id:int}")]
-    public async Task<IActionResult> DeleteGeofence(int id)
+    public async Task<IActionResult> DeleteGeofence(int id, [FromQuery] string? alarms)
     {
+        if (!TryParseAlarmsChoice(alarms, out var deleteWidened))
+        {
+            return this.BadRequest(new
+            {
+                error = AlarmsChoiceError
+            });
+        }
+
         try
         {
-            await this._userGeofenceService.DeleteAsync(this.UserId, this.ProfileNo, id);
+            await this._userGeofenceService.DeleteAsync(this.UserId, this.ProfileNo, id, deleteWidened);
             return this.NoContent();
         }
         catch (InvalidOperationException ex)
@@ -124,6 +149,57 @@ public partial class UserGeofenceController(
             return this.Forbid();
         }
     }
+
+    /// <summary>
+    /// How many of the caller's alarms are limited to this fence alone, per tracking type. Deleting the fence
+    /// would otherwise leave them matching across the profile's areas. Writes nothing.
+    /// </summary>
+    [HttpGet("custom/{id:int}/delete-impact")]
+    public async Task<IActionResult> GetDeleteImpact(int id)
+    {
+        try
+        {
+            var impact = await this._userGeofenceService.GetDeleteImpactAsync(this.UserId, id);
+            return this.Ok(DeleteImpactBody(impact));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return this.NotFound(new
+            {
+                error = ex.Message
+            });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            LogDeleteGeofenceUnauthorized(this._logger, ex, this.UserId, id);
+            return this.Forbid();
+        }
+    }
+
+    internal const string AlarmsChoiceError = "alarms is required and must be 'delete' or 'keep'.";
+
+    /// <summary>Reads the required <c>?alarms=</c>: <c>delete</c> is true, <c>keep</c> false; absent or anything else is refused.</summary>
+    internal static bool TryParseAlarmsChoice(string? alarms, out bool deleteWidened)
+    {
+        switch (alarms)
+        {
+            case "delete":
+                deleteWidened = true;
+                return true;
+            case "keep":
+                deleteWidened = false;
+                return true;
+            default:
+                deleteWidened = true;
+                return false;
+        }
+    }
+
+    internal static object DeleteImpactBody(AreaDeleteImpact impact) => new
+    {
+        widened = impact.WidenedByType,
+        total = impact.Total
+    };
 
     [HttpPost("custom/{kojiName}/submit")]
     [RequireFeatureEnabled(DisableFeatureKeys.UserGeofences)]
@@ -159,6 +235,14 @@ public partial class UserGeofenceController(
         {
             await this._userGeofenceService.AddToProfileAsync(this.UserId, this.ProfileNo, id);
             return this.NoContent();
+        }
+        catch (GeofenceActivationFailedException ex)
+        {
+            // Not a 204: the user would believe the fence is on when PoracleNG refused it.
+            return this.Conflict(new
+            {
+                error = ex.Message
+            });
         }
         catch (InvalidOperationException ex)
         {

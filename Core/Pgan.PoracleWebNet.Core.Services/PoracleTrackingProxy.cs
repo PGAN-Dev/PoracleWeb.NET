@@ -262,6 +262,71 @@ public partial class PoracleTrackingProxy(
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task<IReadOnlyList<int>> BulkDeleteByUidsOnProfileAsync(
+        string type, string userId, IReadOnlyList<int> uids, int profileNo)
+    {
+        if (uids.Count == 0)
+        {
+            return [];
+        }
+
+        // v2 only: v1's delete ignores the profile, which is exactly what this exists to avoid. The uids
+        // go in the body rather than the query, so the length cap the active-profile form needs does not
+        // apply. ?all_profiles is a 422 on this route, so a profile number is always named.
+        var request = this.CreateRequest(
+            HttpMethod.Delete,
+            $"{this._apiAddress}/api/v2/humans/{Encode(userId)}/tracking/{type}?silent=true&profile={profileNo}");
+        request.Content = new StringContent(
+            JsonSerializer.Serialize(new { uids }), Encoding.UTF8, "application/json");
+
+        var response = await this._httpClient.SendAsync(request);
+        var payload = await response.Content.ReadAsStringAsync();
+
+        if (response.IsSuccessStatusCode)
+        {
+            return DeletedUids(payload);
+        }
+
+        switch (response.StatusCode)
+        {
+            case HttpStatusCode.NotFound when !PoracleProblemDetails.IsProblemJson(payload):
+                throw new PoracleUnsupportedException("deleting alarms on a profile", "PoracleNG 5.4.0");
+
+            case HttpStatusCode.NotFound when payload.Contains("human not found", StringComparison.Ordinal):
+                throw new AccountGoneException();
+
+            case HttpStatusCode.NotFound:
+            case HttpStatusCode.Conflict:
+            case HttpStatusCode.BadRequest:
+            case HttpStatusCode.UnprocessableEntity:
+                throw new PoracleRequestRefusedException(
+                    PoracleProblemDetails.Describe(payload), (int)response.StatusCode);
+
+            default:
+                response.EnsureSuccessStatusCode();
+                return [];
+        }
+    }
+
+    /// <summary>The uids in a v2 bulk-delete answer's <c>deleted</c> rules; null or absent is none.</summary>
+    private static List<int> DeletedUids(string payload)
+    {
+        using var document = JsonDocument.Parse(payload);
+        if (document.RootElement.ValueKind != JsonValueKind.Object
+            || !document.RootElement.TryGetProperty("deleted", out var deleted)
+            || deleted.ValueKind != JsonValueKind.Array)
+        {
+            return [];
+        }
+
+        return deleted.EnumerateArray()
+            .Where(rule => rule.ValueKind == JsonValueKind.Object
+                && rule.TryGetProperty("uid", out var uid)
+                && uid.ValueKind == JsonValueKind.Number)
+            .Select(rule => rule.GetProperty("uid").GetInt32())
+            .ToList();
+    }
+
     public async Task<JsonElement> GetAllTrackingAsync(string userId)
     {
         var request = this.CreateRequest(HttpMethod.Get, $"{this._apiAddress}/api/tracking/all/{Encode(userId)}");

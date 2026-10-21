@@ -77,6 +77,16 @@ public interface IPoracleTrackingProxy
     public Task BulkDeleteByUidsAsync(string type, string userId, IEnumerable<int> uids);
 
     /// <summary>
+    /// Deletes multiple alarms of one type that sit on a specific profile, not the active one. Maps to
+    /// <c>DELETE /api/v2/humans/{id}/tracking/{type}?silent=true&amp;profile=N</c> with the uids in the body.
+    /// </summary>
+    /// <returns>
+    /// The uids PoracleNG reports deleted. It silently skips a uid that is not on that profile, so a
+    /// shorter list than was asked for is an answer, not an error.
+    /// </returns>
+    public Task<IReadOnlyList<int>> BulkDeleteByUidsOnProfileAsync(string type, string userId, IReadOnlyList<int> uids, int profileNo);
+
+    /// <summary>
     /// Fetches all tracking alarms across all types for a user on their active profile.
     /// Maps to GET /api/tracking/all/{userId}
     /// </summary>

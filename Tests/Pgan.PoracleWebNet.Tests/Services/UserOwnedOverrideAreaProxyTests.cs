@@ -26,7 +26,7 @@ public class UserOwnedOverrideAreaProxyTests
 
     private readonly Mock<IPoracleTrackingProxy> _inner = new();
     private readonly Mock<IUserGeofenceRepository> _geofences = new();
-    private readonly Mock<IUserAreaDualWriter> _writer = new();
+    private readonly Mock<IAlarmOverrideAreaWriter> _writer = new();
     private readonly List<JsonElement> _sentToPoracle = [];
 
     public UserOwnedOverrideAreaProxyTests()

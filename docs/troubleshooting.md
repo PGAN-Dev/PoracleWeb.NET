@@ -227,11 +227,19 @@ immediately rather than eventually, ask them to untick it.
 
 ---
 
+## A geofence saved but not switched on
+
+**Problem**: After drawing a geofence the user sees "Saved, but it couldn't be switched on yet. Use the toggle to retry."
+
+**Solution**: The geofence row is saved and PoracleNG then refused or missed the name on the user's profile, most often because PoracleNG was unreachable or hadn't reloaded its geofences yet. The user flips the toggle on the Geofences page to retry (it reloads PoracleNG's geofences and retries once; a second failure answers a 409). Check that PoracleNG is up and that `geofence.path` points at `/api/geofence-feed`. See also [Custom geofences troubleshooting](features/custom-geofences/troubleshooting.md#a-geofence-saved-but-not-switched-on).
+
+---
+
 ## Geofence names not matching in Poracle
 
 **Problem**: Custom geofences don't trigger alerts even though they're in the user's area list.
 
-**Solution**: Poracle does **case-sensitive** area matching. Geofence names must always be lowercase. The `kojiName` field in `user_geofences` and entries in `humans.area` must match exactly. `UserGeofenceService.CreateAsync()` enforces this with `ToLowerInvariant()`.
+**Solution**: Poracle does **case-sensitive** area matching. Geofence names must always be lowercase. The `kojiName` field in `user_geofences` and entries in a profile's area list must match exactly. `UserGeofenceService.CreateAsync()` enforces this with `ToLowerInvariant()`.
 
 ---
 

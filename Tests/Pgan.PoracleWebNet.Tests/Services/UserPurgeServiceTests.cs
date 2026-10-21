@@ -59,7 +59,8 @@ public class UserPurgeServiceTests
         this._humanService.Verify(s => s.DeleteAllAlarmsByUserAsync("u1"), Times.Once);
         // Through the service, not the repository: a promoted fence must also leave the shared Koji project,
         // and Poracle has to re-read the feed. See #511.
-        this._geofenceService.Verify(s => s.AdminDeleteAsync("u1", 7), Times.Once);
+        // Alarms limited to one of the user's fences go too: the account is going, so nothing is kept.
+        this._geofenceService.Verify(s => s.AdminDeleteAsync("u1", 7, true), Times.Once);
         this._delegates.Verify(r => r.RemoveAllForIdAsync("u1"), Times.Once);
         this._appliedStates.Verify(r => r.DeleteByUserAsync("u1"), Times.Once);
         this._quickPicks.Verify(r => r.DeleteByIdAndOwnerAsync("p1", "u1"), Times.Once);
@@ -181,7 +182,6 @@ public class UserPurgeServiceTests
             new HttpClient(new FixedReply(status, body)),
             config,
             PoracleHumanProxyTests.V2Schema(),
-            PoracleHumanProxyTests.AreaSecurityPolicy(),
             Mock.Of<ILogger<PoracleHumanProxy>>());
 
         var tracking = new Mock<IPoracleTrackingProxy>();
@@ -198,5 +198,56 @@ public class UserPurgeServiceTests
             {
                 Content = new StringContent(body, Encoding.UTF8, "application/json"),
             });
+    }
+    // ---- Geofences PoracleNG would not clean ----------------------------------------------------------
+    //
+    // A fence delete now keeps its row (and its Koji copy) when PoracleNG cannot remove the name from the
+    // owner's profiles, so the user can retry. A purge has no user to retry: once the account itself is gone
+    // its area lists are gone with it, and a row left behind would only keep serving the polygon in the
+    // geofence feed, so the geofence service sweeps what is left.
+
+    private static UserGeofence Fence(int id) => new() { Id = id, HumanId = "u1", KojiName = $"f{id}" };
+
+    [Fact]
+    public async Task AFenceThatCannotBeCleanedDoesNotStopTheNextOne()
+    {
+        this._geofences.Setup(r => r.GetByHumanIdAsync("u1")).ReturnsAsync([Fence(7), Fence(8)]);
+        this._geofenceService.Setup(s => s.AdminDeleteAsync("u1", 7, true))
+            .ThrowsAsync(new PoracleRequestRefusedException("refused"));
+
+        Assert.True(await this._sut.PurgeAsync("u1"));
+
+        this._geofenceService.Verify(s => s.AdminDeleteAsync("u1", 8, true), Times.Once);
+    }
+
+    [Fact]
+    public async Task FencesLeftBehindAreSweptOnceTheAccountIsGone()
+    {
+        this._geofences.Setup(r => r.GetByHumanIdAsync("u1")).ReturnsAsync([Fence(7)]);
+        this._geofenceService.Setup(s => s.AdminDeleteAsync("u1", 7, true))
+            .ThrowsAsync(new PoracleRequestRefusedException("refused"));
+        var order = new List<string>();
+        this._humanService.Setup(s => s.DeleteUserAsync("u1")).Callback(() => order.Add("human")).ReturnsAsync(true);
+        this._geofenceService.Setup(s => s.RemoveFencesOfDeletedAccountAsync("u1"))
+            .Callback(() => order.Add("sweep")).Returns(Task.CompletedTask);
+
+        Assert.True(await this._sut.PurgeAsync("u1"));
+
+        Assert.Equal(["human", "sweep"], order);
+        // Through the service, so a promoted fence leaves Koji and PoracleNG re-reads the feed once.
+        this._geofences.Verify(r => r.DeleteAsync(It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task AFenceLeftBehindStaysWhileTheAccountDoes()
+    {
+        this._geofences.Setup(r => r.GetByHumanIdAsync("u1")).ReturnsAsync([Fence(7)]);
+        this._geofenceService.Setup(s => s.AdminDeleteAsync("u1", 7, true))
+            .ThrowsAsync(new HttpRequestException("PoracleNG is down"));
+        this._humanService.Setup(s => s.DeleteUserAsync("u1")).ThrowsAsync(new HttpRequestException("PoracleNG is down"));
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.PurgeAsync("u1"));
+
+        this._geofenceService.Verify(s => s.RemoveFencesOfDeletedAccountAsync(It.IsAny<string>()), Times.Never);
     }
 }

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Pgan.PoracleWebNet.Api.Filters;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
@@ -56,17 +57,33 @@ public partial class AdminGeofenceController(IUserGeofenceService userGeofenceSe
         return this.Ok(submissions);
     }
 
+    /// <summary>Deletes any user's geofence. <c>alarms</c> works as on the owner's own delete.</summary>
+    /// <remarks>
+    /// <see cref="PoracleUnreachableExceptionFilter"/> is on this action and <see cref="GetDeleteImpact"/>,
+    /// not the class: approve calls Koji's save without catching a connection failure, and a class-level
+    /// filter would report that as PoracleNG being unreachable. Here Koji's cleanup and the reload catch
+    /// their own failures, so what can escape is PoracleNG's.
+    /// </remarks>
     [HttpDelete("{id:int}")]
-    public async Task<IActionResult> AdminDelete(int id)
+    [TypeFilter(typeof(PoracleUnreachableExceptionFilter))]
+    public async Task<IActionResult> AdminDelete(int id, [FromQuery] string? alarms)
     {
         if (!this.IsAdmin)
         {
             return this.Forbid();
         }
 
+        if (!UserGeofenceController.TryParseAlarmsChoice(alarms, out var deleteWidened))
+        {
+            return this.BadRequest(new
+            {
+                error = UserGeofenceController.AlarmsChoiceError
+            });
+        }
+
         try
         {
-            await this._userGeofenceService.AdminDeleteAsync(this.UserId, id);
+            await this._userGeofenceService.AdminDeleteAsync(this.UserId, id, deleteWidened);
             return this.NoContent();
         }
         catch (KojiOperationException ex)
@@ -94,6 +111,30 @@ public partial class AdminGeofenceController(IUserGeofenceService userGeofenceSe
             // "Not found" for a submission sitting visible in the admin list. See #421.
             LogAdminDeleteFailed(this._logger, ex, id);
             return this.BadRequest(new
+            {
+                error = ex.Message
+            });
+        }
+    }
+
+    /// <summary>How many of the owner's alarms are limited to this fence alone. Writes nothing.</summary>
+    [HttpGet("{id:int}/delete-impact")]
+    [TypeFilter(typeof(PoracleUnreachableExceptionFilter))]
+    public async Task<IActionResult> GetDeleteImpact(int id)
+    {
+        if (!this.IsAdmin)
+        {
+            return this.Forbid();
+        }
+
+        try
+        {
+            var impact = await this._userGeofenceService.AdminGetDeleteImpactAsync(id);
+            return this.Ok(UserGeofenceController.DeleteImpactBody(impact));
+        }
+        catch (GeofenceNotFoundException ex)
+        {
+            return this.NotFound(new
             {
                 error = ex.Message
             });

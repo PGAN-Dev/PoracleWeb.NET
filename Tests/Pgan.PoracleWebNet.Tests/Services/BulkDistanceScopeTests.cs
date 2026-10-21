@@ -67,7 +67,7 @@ public class BulkDistanceScopeTests
         var geofences = new Mock<IUserGeofenceRepository>();
         geofences.Setup(g => g.GetByHumanIdAsync(It.IsAny<string>())).ReturnsAsync([]);
         this._proxy = new UserOwnedOverrideAreaProxy(
-            this._inner.Object, geofences.Object, Mock.Of<IUserAreaDualWriter>(),
+            this._inner.Object, geofences.Object, Mock.Of<IAlarmOverrideAreaWriter>(),
             NullLogger<UserOwnedOverrideAreaProxy>.Instance);
     }
 

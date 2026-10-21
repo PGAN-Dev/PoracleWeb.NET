@@ -4,6 +4,11 @@
 
 > Companion to [`poracleng-enhancement-requests.md`](poracleng-enhancement-requests.md). That doc tracks v1-era workaround gaps; this doc evaluated whether v2 closes them and what we would still have to ask for.
 
+!!! note "Area writes: updated 2026-10-21"
+    Row 1 ("NOT closed") and every other claim below about user-fence area writes predate sub-project 2.
+    Area writes now go through PoracleNG 5.4.0's v2 routes (trusted `setAreas`, rename and remove with
+    `all_profiles`), with no direct database write behind them. This page is a historical review.
+
 !!! warning "Historical record, written 2026-08 against an open pull request"
     This review was written against PoracleNG PR #139 (branch `huma-api-migration`) while it was still
     open. Every "source-verified" claim in it is a claim about that branch, not about a release. v2 has

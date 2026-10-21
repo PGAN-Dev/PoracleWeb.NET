@@ -556,12 +556,16 @@ export interface WebhookDelegate {
 // ─── User Geofence ───────────────────────────────────────────────────────────
 
 export interface UserGeofence {
+  /** Create response only: saved, but could not be switched on for the active profile. */
+  activationFailed?: boolean;
   createdAt: string;
   displayName: string;
   groupName: string;
   humanId: string;
   id: number;
   kojiName: string;
+  /** Approve response only: false when Koji has the fence but the owner's areas still hold the old name. */
+  ownerAreasRenamed?: boolean | null;
   ownerAvatarUrl?: string;
   ownerName?: string;
   parentId: number;
@@ -576,6 +580,15 @@ export interface UserGeofence {
   status: 'active' | 'pending_review' | 'approved' | 'rejected';
   submittedAt?: string;
   updatedAt: string;
+}
+
+/** What `?alarms=` tells a fence delete to do with alarms limited to that fence alone. */
+export type GeofenceAlarmsChoice = 'delete' | 'keep';
+
+/** Alarms limited to one fence alone, per PoracleNG tracking type. Deleting the fence would widen them. */
+export interface GeofenceDeleteImpact {
+  total: number;
+  widened: Record<string, number>;
 }
 
 export interface UserGeofenceCreate {

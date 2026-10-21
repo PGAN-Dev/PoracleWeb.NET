@@ -42,7 +42,7 @@ public class PoracleHumanProxyTests
     {
         var client = new HttpClient(handler);
         return new PoracleHumanProxy(
-            client, config ?? CreateConfig(), V2Schema(), AreaSecurityPolicy(),
+            client, config ?? CreateConfig(), V2Schema(),
             Mock.Of<ILogger<PoracleHumanProxy>>());
     }
 
@@ -58,18 +58,6 @@ public class PoracleHumanProxyTests
             .ReturnsAsync(capabilities ?? PoracleV2Capabilities.None);
 
         return schema.Object;
-    }
-
-    /// <summary>
-    /// An area-security policy answering the given confirmed-disabled state. Defaults to false, matching
-    /// the real service's fail-closed stance -- a test exercising a trusted-area method must opt in
-    /// explicitly rather than inherit a safe-by-accident default.
-    /// </summary>
-    internal static IAreaSecurityPolicyService AreaSecurityPolicy(bool confirmedDisabled = false)
-    {
-        var policy = new Mock<IAreaSecurityPolicyService>();
-        policy.Setup(p => p.IsConfirmedDisabledAsync()).ReturnsAsync(confirmedDisabled);
-        return policy.Object;
     }
 
     /// <summary>A server profile reporting the given version, or an unreachable one when null.</summary>
@@ -302,36 +290,6 @@ public class PoracleHumanProxyTests
     }
 
     // ──────────────────────────────────────────────────────────────
-    // SetAreasAsync
-    // ──────────────────────────────────────────────────────────────
-
-    [Fact]
-    public async Task SetAreasAsyncSendsAreaArray()
-    {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, "{}");
-        var sut = CreateSut(handler);
-
-        await sut.SetAreasAsync("user1", ["downtown", "west end"]);
-
-        Assert.NotNull(handler.LastRequest);
-        Assert.Equal(HttpMethod.Post, handler.LastRequest.Method);
-        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/areas", handler.LastRequest.RequestUri?.ToString());
-
-        var sentBody = await handler.LastRequest.Content!.ReadAsStringAsync();
-        Assert.Contains("downtown", sentBody);
-        Assert.Contains("west end", sentBody);
-    }
-
-    [Fact]
-    public async Task SetAreasAsyncThrowsOnNon2xx()
-    {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.InternalServerError, "{}");
-        var sut = CreateSut(handler);
-
-        await Assert.ThrowsAsync<HttpRequestException>(() => sut.SetAreasAsync("user1", ["area1"]));
-    }
-
-    // ──────────────────────────────────────────────────────────────
     // GetAreasAsync
     // ──────────────────────────────────────────────────────────────
 
@@ -561,18 +519,6 @@ public class PoracleHumanProxyTests
         var sut = CreateSut(handler);
 
         await sut.StartAsync("user1");
-
-        Assert.NotNull(handler.LastRequest);
-        Assert.True(handler.LastRequest.Headers.Contains("X-Poracle-Secret"));
-    }
-
-    [Fact]
-    public async Task SetAreasAsyncIncludesPoracleSecretHeader()
-    {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, "{}");
-        var sut = CreateSut(handler);
-
-        await sut.SetAreasAsync("user1", ["area"]);
 
         Assert.NotNull(handler.LastRequest);
         Assert.True(handler.LastRequest.Headers.Contains("X-Poracle-Secret"));

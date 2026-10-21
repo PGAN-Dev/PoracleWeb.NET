@@ -23,6 +23,14 @@ Work down this list:
 4. **Is the alarm pointed somewhere else?** An alarm with its own delivery scope ignores the profile area list. If its scope chip reads "Within N km of ..." or "Only in ..." and the geofence isn't in that list, the geofence has nothing to do with whether that alarm fires. Open the chip on the alarm card to check or change it.
 5. **Polygon too small or odd?** A shape needs at least 3 points and must be a real area. Degenerate shapes are dropped from the feed.
 
+## A geofence saved but not switched on
+
+**Symptom:** a user draws a geofence and sees "Saved, but it couldn't be switched on yet. Use the toggle to retry." The geofence is on the map, with the toggle off.
+
+**Cause:** the geofence was saved, but PoracleNG didn't accept its name on the user's profile. Usually PoracleNG was unreachable or slow to reload its geofences at that moment.
+
+**Fix:** have the user flip the toggle on the Geofences page. It retries once on its own. If it still fails, it answers a conflict error; check that PoracleNG is up and that it reads the combined feed (see the list above), then try again.
+
 ## Public (approved) geofences aren't showing up
 
 1. **Wait up to 5 minutes, or force a refresh.** PoracleWeb.NET caches the Koji public list for 5 minutes. An approval clears that cache immediately, but a change made **directly in the Koji UI** won't be picked up until the cache expires — or until you call [`POST /api/geofence-feed/refresh`](koji-and-regions.md#forcing-a-refresh-after-a-change-in-koji).

@@ -15,7 +15,6 @@ public partial class PoracleHumanProxy(
     HttpClient httpClient,
     IConfiguration configuration,
     IPoracleV2SchemaService v2Schema,
-    IAreaSecurityPolicyService areaSecurityPolicy,
     ILogger<PoracleHumanProxy> logger) : IPoracleHumanProxy
 {
     /// <summary>What to say when PoracleNG refused and explained nothing usable.</summary>
@@ -25,7 +24,6 @@ public partial class PoracleHumanProxy(
     private readonly string _apiAddress = configuration["Poracle:ApiAddress"] ?? string.Empty;
     private readonly string _apiSecret = configuration["Poracle:ApiSecret"] ?? string.Empty;
     private readonly IPoracleV2SchemaService _v2Schema = v2Schema;
-    private readonly IAreaSecurityPolicyService _areaSecurityPolicy = areaSecurityPolicy;
     private readonly ILogger<PoracleHumanProxy> _logger = logger;
 
     /// <summary>
@@ -69,13 +67,6 @@ public partial class PoracleHumanProxy(
         }
 
         return response;
-    }
-
-    private async Task<(HttpResponseMessage Response, string Payload)> SendReadAsync(
-        HttpMethod method, string path, string? body = null)
-    {
-        var response = await this.SendAsync(method, path, body);
-        return (response, await response.Content.ReadAsStringAsync());
     }
 
     /// <summary>
@@ -282,37 +273,6 @@ public partial class PoracleHumanProxy(
         return await response.Content.ReadAsStringAsync();
     }
 
-    /// <remarks>
-    /// <para>
-    /// v2 is used only where the server says its answer reports what it stored and what it refused. Never
-    /// with <c>trusted</c>: this is the user's own save, and trusted would let them select fences PoracleNG
-    /// hides from them. See #995.
-    /// </para>
-    /// <para>
-    /// A name in <c>rejected</c> is not a failure, deliberately. Every user-drawn fence is served
-    /// <c>userSelectable:false</c>, so v2 refuses one on every save that includes it, exactly where v1
-    /// dropped it without a word -- and <c>AreaController</c> re-adds the caller's own fences straight
-    /// after, through the trusted-set-areas workaround, and then answers with the list read back, so the page shows
-    /// what actually stuck (#476). Turning the refusal into an error would fail the save of everyone who
-    /// has drawn a fence. It is logged at debug for diagnosis, not at warning, for the same reason.
-    /// </para>
-    /// </remarks>
-    public async Task SetAreasAsync(string userId, string[] areas)
-    {
-        var response = await this.SendV2Async(
-            HttpMethod.Post,
-            $"/api/v2/humans/{Encode(userId)}/areas",
-            "saving areas",
-            new { areas });
-        await EnsureAcceptedAsync(response);
-
-        var rejected = RejectedAreas(await response.Content.ReadAsStringAsync());
-        if (rejected.Count > 0)
-        {
-            LogAreasRefused(this._logger, userId, rejected);
-        }
-    }
-
     /// <summary>The <c>rejected</c> list out of a v2 areas answer, empty when there is none to read.</summary>
     private static List<string> RejectedAreas(string payload)
     {
@@ -334,170 +294,115 @@ public partial class PoracleHumanProxy(
         }
     }
 
-    [LoggerMessage(
-        Level = LogLevel.Debug,
-        Message = "setAreas for {UserId} left out {Rejected}; the caller's own fences among them are re-added by the geofence service")]
-    private static partial void LogAreasRefused(ILogger logger, string userId, IReadOnlyList<string> rejected);
-
     public async Task<JsonElement?> GetAreasAsync(string userId) =>
         // The user's selected areas are the human's own area field; the available list is a separate route.
         await this.GetHumanAsync(userId);
 
-    /// <summary>
-    /// Whether <c>setAreas</c>'s <c>trusted</c> flag is safe to rely on for the community-restriction
-    /// case right now -- the schema has to declare the property AND area_security has to be confirmed
-    /// off, because neither <c>/openapi.json</c> nor <c>/health</c> can tell a pre-jfberry/PoracleNG#230
-    /// server from a post-#230 one (verified live: byte-identical either side of the fix). See #838.
-    /// </summary>
-    private async Task<bool> CanUseTrustedSetAreasAsync()
-    {
-        var capabilities = await this._v2Schema.GetAsync();
-        return capabilities.TrustedSetAreas && await this._areaSecurityPolicy.IsConfirmedDisabledAsync();
-    }
-
-    /// <summary>The active profile's current area list (<c>humans.area</c>), or null if unreadable.</summary>
-    private async Task<List<string>?> GetCurrentAreaListAsync(string userId)
-    {
-        JsonElement? human;
-        try
-        {
-            human = await this.GetHumanAsync(userId);
-        }
-        catch (HttpRequestException ex) when (ex.StatusCode is not null)
-        {
-            // GetHumanAsync throws on a failed answer since #994. Here, as before, a failed answer means
-            // there is no list to build a full replacement from, and null sends the caller to
-            // IUserAreaDualWriter instead. Only an answer is caught: an unreachable PoracleNG threw before
-            // and still does.
-            return null;
-        }
-
-        var areaJson = human?.GetAreaListJsonOrNull("area");
-        return areaJson is null ? null : AreaListJson.Parse(areaJson);
-    }
-
-    /// <summary>
-    /// Posts a full area-list replacement with <c>trusted: true</c>. <c>setAreas</c> replaces the whole
-    /// list -- there is no incremental add/remove on the wire -- so every caller here reads the current
-    /// list first and posts the complete result.
-    /// </summary>
-    /// <returns>The names PoracleNG left out (its <c>rejected</c> list), empty when it kept everything.</returns>
-    private async Task<IReadOnlyList<string>> PostTrustedAreasAsync(string userId, List<string> areas)
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<string>> SetAreasTrustedAsync(string userId, IReadOnlyCollection<string> areas)
     {
         var body = JsonSerializer.Serialize(new { areas, trusted = true });
-        var (response, payload) =
-            await this.SendReadAsync(HttpMethod.Post, $"/api/v2/humans/{Encode(userId)}/areas", body);
+        var response = await this.SendV2Async(HttpMethod.Post, $"/api/v2/humans/{Encode(userId)}/areas", "setting areas", body);
         await EnsureAcceptedAsync(response);
 
-        using var doc = JsonDocument.Parse(payload);
-        if (doc.RootElement.TryGetProperty("rejected", out var rejectedEl)
-            && rejectedEl.ValueKind == JsonValueKind.Array
-            && rejectedEl.GetArrayLength() > 0)
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var rejected = StringList(doc.RootElement, "rejected");
+        if (rejected.Count > 0)
         {
-            var rejected = rejectedEl.EnumerateArray().Select(e => e.GetString() ?? string.Empty).ToList();
-
-            // Trusted only lifts userSelectable, not "exists at all", so a rejected name is one PoracleNG
-            // does not know -- a fence it has not loaded yet, or a stale entry already in the list. Logged
-            // here; the add path decides what a rejected REQUESTED name means (it falls back to the
-            // direct-DB writer), because a successful geofence reload does not prove PoracleNG fetched
-            // our feed: it only logs a feed failure and keeps serving its cached list.
+            // Trusted lifts userSelectable, not "exists at all": a rejected name is a fence PoracleNG has
+            // not loaded or a stale entry. The caller decides what that means for the save. Debug, not
+            // warning: production holds dead names (30 users, 69 names on 2026-10-21) that come back
+            // here on every save and toggle.
             LogTrustedAreasRejected(this._logger, userId, string.Join(", ", rejected));
-            return rejected;
         }
 
-        return [];
+        return rejected;
     }
 
-    /// <summary>
-    /// Adds one area to the human's active profile via <c>setAreas</c>'s <c>trusted</c> flag, which
-    /// bypasses the <c>userSelectable</c> filter a user-drawn geofence always fails for a non-admin
-    /// caller. See #838.
-    /// </summary>
-    /// <returns>
-    /// <c>null</c> when <see cref="CanUseTrustedSetAreasAsync"/> says no or the current list could not
-    /// be read -- the caller must fall back to <c>IUserAreaDualWriter</c>; <c>false</c> when the area
-    /// was already present; <c>true</c> once written.
-    /// </returns>
-    public async Task<bool?> AddAreaToActiveProfileTrustedAsync(string userId, string areaName) =>
-        await this.AddAreasToActiveProfileTrustedAsync(userId, [areaName]);
-
-    /// <summary>Bulk form of <see cref="AddAreaToActiveProfileTrustedAsync"/>.</summary>
-    public async Task<bool?> AddAreasToActiveProfileTrustedAsync(string userId, IReadOnlyCollection<string> areaNames)
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<string>> GetAreaListAsync(string userId)
     {
-        if (!await this.CanUseTrustedSetAreasAsync())
+        // GetHumanAsync throws on any failed answer except a missing human, which is null. A missing
+        // human has no list to read, and answering empty would let a caller write a replacement over it.
+        var human = await this.GetHumanAsync(userId) ?? throw new AccountGoneException();
+        var areaJson = human.GetAreaListJsonOrNull("area");
+        return AreaListJson.Parse(areaJson).Select(a => a.ToLowerInvariant()).ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<V2AreaInfo>> GetAvailableAreasAsync(string userId)
+    {
+        var response = await this.SendV2Async(HttpMethod.Get, $"/api/v2/humans/{Encode(userId)}/areas", "listing areas");
+        await EnsureAcceptedAsync(response);
+
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        if (!doc.RootElement.TryGetProperty("areas", out var areas) || areas.ValueKind != JsonValueKind.Array)
         {
-            return null;
+            return [];
         }
 
-        var normalized = areaNames
-            .Where(a => !string.IsNullOrWhiteSpace(a))
-            .Select(a => a.ToLowerInvariant())
-            .Distinct()
+        return areas.EnumerateArray()
+            .Where(a => a.ValueKind == JsonValueKind.Object && a.TryGetProperty("name", out var n) && n.ValueKind == JsonValueKind.String)
+            .Select(a => new V2AreaInfo(
+                a.GetProperty("name").GetString()!,
+                BoolOrFalse(a, "userSelectable"),
+                BoolOrFalse(a, "exemptFromAreaSecurity")))
             .ToList();
+    }
 
-        if (normalized.Count == 0)
-        {
-            return false;
-        }
+    /// <inheritdoc />
+    public async Task<AreaRemovalResult> RemoveAreaEverywhereAsync(string userId, string name, bool dryRun)
+    {
+        var path = $"/api/v2/humans/{Encode(userId)}/areas?name={Uri.EscapeDataString(name)}&all_profiles=true"
+            + (dryRun ? "&dry_run=true" : string.Empty);
+        var response = await this.SendV2Async(HttpMethod.Delete, path, "removing an area");
+        await EnsureAcceptedAsync(response);
 
-        var current = await this.GetCurrentAreaListAsync(userId);
-        if (current is null)
-        {
-            return null;
-        }
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var root = doc.RootElement;
 
-        var currentSet = new HashSet<string>(current, StringComparer.OrdinalIgnoreCase);
-        var changed = false;
-        foreach (var name in normalized)
+        var broadened = new Dictionary<string, IReadOnlyList<int>>(StringComparer.Ordinal);
+        if (root.TryGetProperty("broadened", out var map) && map.ValueKind == JsonValueKind.Object)
         {
-            if (currentSet.Add(name))
+            foreach (var type in map.EnumerateObject())
             {
-                current.Add(name);
-                changed = true;
+                broadened[type.Name] = IntList(type.Value);
             }
         }
 
-        if (!changed)
-        {
-            return false;
-        }
-
-        var rejected = await this.PostTrustedAreasAsync(userId, current);
-
-        // A requested name PoracleNG refused was not written. Answer null -- the caller's "use the
-        // direct-DB writer" signal -- rather than true. A rejected name that was only already in the
-        // list (a stale entry) says nothing about the request and is not a reason to fall back.
-        if (rejected.Any(r => normalized.Contains(r, StringComparer.OrdinalIgnoreCase)))
-        {
-            return null;
-        }
-
-        return true;
+        return new AreaRemovalResult(
+            root.TryGetProperty("removed_from", out var removed) ? IntList(removed) : [],
+            broadened,
+            BoolOrFalse(root, "dry_run"));
     }
 
-    /// <summary>Removes one area from the human's active profile via the same trusted call.</summary>
-    public async Task<bool?> RemoveAreaFromActiveProfileTrustedAsync(string userId, string areaName)
+    /// <inheritdoc />
+    public async Task<AreaRenameResult> RenameAreaEverywhereAsync(string userId, string from, string to, bool dryRun)
     {
-        if (!await this.CanUseTrustedSetAreasAsync())
-        {
-            return null;
-        }
+        var path = $"/api/v2/humans/{Encode(userId)}/areas?from={Uri.EscapeDataString(from)}&to={Uri.EscapeDataString(to)}"
+            + "&all_profiles=true&trusted=true" + (dryRun ? "&dry_run=true" : string.Empty);
+        var response = await this.SendV2Async(HttpMethod.Patch, path, "renaming an area");
+        await EnsureAcceptedAsync(response);
 
-        var current = await this.GetCurrentAreaListAsync(userId);
-        if (current is null)
-        {
-            return null;
-        }
-
-        var removed = current.RemoveAll(a => string.Equals(a, areaName, StringComparison.OrdinalIgnoreCase)) > 0;
-        if (!removed)
-        {
-            return false;
-        }
-
-        await this.PostTrustedAreasAsync(userId, current);
-        return true;
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var root = doc.RootElement;
+        return new AreaRenameResult(
+            root.TryGetProperty("renamed_in", out var renamed) ? IntList(renamed) : [],
+            BoolOrFalse(root, "dry_run"));
     }
+
+    private static bool BoolOrFalse(JsonElement element, string property) =>
+        element.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.True;
+
+    private static List<int> IntList(JsonElement element) =>
+        element.ValueKind == JsonValueKind.Array
+            ? element.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.Number).Select(e => e.GetInt32()).ToList()
+            : [];
+
+    private static List<string> StringList(JsonElement root, string property) =>
+        root.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.Array
+            ? value.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.String).Select(e => e.GetString()!).ToList()
+            : [];
 
     /// <inheritdoc />
     /// <remarks>
@@ -509,9 +414,9 @@ public partial class PoracleHumanProxy(
     /// callers pass the number PoracleNG has just assigned.
     /// </para>
     /// <para>
-    /// There is no direct database write behind this any more. Names PoracleNG rejects are logged and
-    /// dropped, and where <c>trusted</c> is not safe (<c>area_security</c> on or unconfirmed) the list is
-    /// sent untrusted. A refusal of either write throws, and the caller decides what to do about a profile
+    /// There is no direct database write behind this. A non-empty list is always sent <c>trusted</c>, so a
+    /// duplicated profile keeps the user's own drawn fences. Names PoracleNG rejects are logged and
+    /// dropped. A refusal of either write throws, and the caller decides what to do about a profile
     /// that already exists.
     /// </para>
     /// </remarks>
@@ -524,12 +429,8 @@ public partial class PoracleHumanProxy(
             .Distinct()
             .ToList();
 
-        // A user's own fences are userSelectable:false and would come back rejected without trusted. Trusted
-        // is gated exactly as the active-profile writes gate it (#838, #937): never where area_security is on
-        // or cannot be confirmed off, because there it would let the list escape a community's restriction.
-        // Where it is not available the list goes untrusted and PoracleNG filters it; what it refuses is
-        // dropped below.
-        var trusted = requested.Count > 0 && await this.CanUseTrustedSetAreasAsync();
+        // A user's own fences are userSelectable:false and would come back rejected without trusted.
+        var trusted = requested.Count > 0;
 
         var areasBody = trusted
             ? JsonSerializer.Serialize(new { areas = requested, trusted = true })
@@ -539,9 +440,8 @@ public partial class PoracleHumanProxy(
             HttpMethod.Post, $"/api/v2/humans/{Encode(userId)}/areas?profile={profileNo}", "saving a profile's areas", areasBody);
         await EnsureAcceptedAsync(areasResponse);
 
-        // A refused name is one PoracleNG has not loaded (a stale area on the source profile), or one the
-        // list may not carry untrusted. It is dropped, not fatal: the profile and its location are worth more
-        // than the one area, and the user can add it back from the Areas page.
+        // A refused name is one PoracleNG has not loaded (a stale area on the source profile). It is
+        // dropped, not fatal: the profile and its location are worth more than the one area, and the user can add it back from the Areas page.
         var refused = RejectedAreas(await areasResponse.Content.ReadAsStringAsync())
             .Where(r => requested.Contains(r, StringComparer.OrdinalIgnoreCase))
             .ToList();
@@ -559,14 +459,14 @@ public partial class PoracleHumanProxy(
     }
 
     [LoggerMessage(
-        Level = LogLevel.Warning,
-        Message = "PoracleNG refused areas {Rejected} for {UserId}'s new profile {ProfileNo}; they were dropped")]
+        Level = LogLevel.Debug,
+        Message = "PoracleNG has no fence by {Rejected} for {UserId}'s new profile {ProfileNo}; they were dropped")]
     private static partial void LogProfileAreasRefused(
         ILogger logger, string userId, int profileNo, string rejected);
 
     [LoggerMessage(
-        Level = LogLevel.Warning,
-        Message = "setAreas(trusted) rejected areas for {UserId} that this app expected to be accepted: {Rejected}")]
+        Level = LogLevel.Debug,
+        Message = "setAreas(trusted) for {UserId}: PoracleNG has no fence by these names, so it left them out: {Rejected}")]
     private static partial void LogTrustedAreasRejected(ILogger logger, string userId, string rejected);
 
     public async Task SwitchProfileAsync(string userId, int profileNo)

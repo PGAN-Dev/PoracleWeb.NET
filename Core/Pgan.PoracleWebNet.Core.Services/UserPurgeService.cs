@@ -41,7 +41,13 @@ public partial class UserPurgeService(
         await this.TryAsync("webhook delegates", () => this._webhookDelegateRepository.RemoveAllForIdAsync(userId));
         await this.TryAsync("quick picks", () => this.PurgeQuickPicksAsync(userId));
 
-        return await this._humanService.DeleteUserAsync(userId);
+        var deleted = await this._humanService.DeleteUserAsync(userId);
+        if (deleted)
+        {
+            await this.TryAsync("leftover geofences", () => this._geofenceService.RemoveFencesOfDeletedAccountAsync(userId));
+        }
+
+        return deleted;
     }
 
     /// <summary>
@@ -49,11 +55,21 @@ public partial class UserPurgeService(
     /// the shared Koji project, and so Poracle re-reads the feed. Otherwise a deleted user's polygons keep
     /// being served to PoracleJS. See #511.
     /// </summary>
+    /// <remarks>
+    /// Alarms limited to a fence are deleted with it: the account is going, so there is nothing to keep them
+    /// for (and the alarm step has normally removed them already). One fence that cannot be cleaned does not
+    /// stop the rest. Its row and any Koji copy are kept, as any fence delete keeps them when PoracleNG fails,
+    /// and <see cref="IUserGeofenceService.RemoveFencesOfDeletedAccountAsync"/> sweeps both once the account
+    /// is gone: its area lists went with it, and a row left behind would keep serving the polygon in the
+    /// geofence feed.
+    /// </remarks>
     private async Task PurgeGeofencesAsync(string userId)
     {
         foreach (var geofence in await this._geofenceRepository.GetByHumanIdAsync(userId))
         {
-            await this._geofenceService.AdminDeleteAsync(userId, geofence.Id);
+            await this.TryAsync(
+                $"geofence {geofence.Id}",
+                () => this._geofenceService.AdminDeleteAsync(userId, geofence.Id, deleteWidenedAlarms: true));
         }
     }
 

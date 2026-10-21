@@ -84,45 +84,39 @@ public interface IPoracleHumanProxy
     public Task<string?> GetAdminRolesAsync(string userId);
 
     /// <summary>
-    /// Sets user area subscriptions. PoracleNG handles the dual-write to
-    /// humans.area + profiles.area atomically.
-    /// Maps to POST /api/v2/humans/{userId}/areas (never with <c>trusted</c>).
-    /// </summary>
-    /// <remarks>
-    /// PoracleNG leaves out names this user may not select, including every user-drawn fence.
-    /// That is not an error; the caller re-adds the user's own fences afterwards.
-    /// </remarks>
-    public Task SetAreasAsync(string userId, string[] areas);
-
-    /// <summary>
     /// Fetches the user's current area subscriptions: the human record, read the same way as
     /// <see cref="GetHumanAsync"/>, with the same null-on-404, throw-otherwise contract.
     /// </summary>
     public Task<JsonElement?> GetAreasAsync(string userId);
 
     /// <summary>
-    /// Adds one area to the human's active profile via <c>POST /api/v2/humans/{id}/areas</c> with
-    /// <c>trusted: true</c>, bypassing the <c>userSelectable</c> filter non-admin writes would otherwise
-    /// hit -- the same thing <c>IUserAreaDualWriter.AddAreaToActiveProfileAsync</c> does by writing
-    /// <c>humans.area</c>/<c>profiles.area</c> directly. See #838.
+    /// Replaces the active profile's whole area list with <paramref name="areas"/> via
+    /// <c>POST /api/v2/humans/{id}/areas</c> with <c>trusted: true</c>.
     /// </summary>
-    /// <returns>
-    /// <c>null</c> when this is not safe to rely on yet (the server's schema lacks <c>trusted</c>, or
-    /// area_security is enabled and this server cannot be confirmed to carry jfberry/PoracleNG#230's
-    /// community-restriction fix), or PoracleNG rejected a requested name (it does not know that fence)
-    /// -- the caller must fall back to <c>IUserAreaDualWriter</c>. <c>false</c>
-    /// when the area was already present. <c>true</c> once written.
-    /// </returns>
-    public Task<bool?> AddAreaToActiveProfileTrustedAsync(string userId, string areaName);
-
-    /// <summary>Bulk form of <see cref="AddAreaToActiveProfileTrustedAsync"/>.</summary>
-    public Task<bool?> AddAreasToActiveProfileTrustedAsync(string userId, IReadOnlyCollection<string> areaNames);
+    /// <returns>The names PoracleNG left out (its <c>rejected</c> list); empty when it kept everything.</returns>
+    public Task<IReadOnlyList<string>> SetAreasTrustedAsync(string userId, IReadOnlyCollection<string> areas);
 
     /// <summary>
-    /// Removes one area from the human's active profile via the same trusted <c>setAreas</c> call. See
-    /// <see cref="AddAreaToActiveProfileTrustedAsync"/> for the null/false/true contract.
+    /// The active profile's current area list, lowercased, from the v2 human read. Throws when it cannot
+    /// be read (including a missing human); there is no null and no fallback.
     /// </summary>
-    public Task<bool?> RemoveAreaFromActiveProfileTrustedAsync(string userId, string areaName);
+    public Task<IReadOnlyList<string>> GetAreaListAsync(string userId);
+
+    /// <summary>The fences <c>GET /api/v2/humans/{id}/areas</c> lists for this human.</summary>
+    public Task<IReadOnlyList<V2AreaInfo>> GetAvailableAreasAsync(string userId);
+
+    /// <summary>
+    /// Removes <paramref name="name"/> from every profile of the human (<c>DELETE .../areas?all_profiles=true</c>).
+    /// With <paramref name="dryRun"/> nothing is written and the result says what would happen.
+    /// </summary>
+    public Task<AreaRemovalResult> RemoveAreaEverywhereAsync(string userId, string name, bool dryRun);
+
+    /// <summary>
+    /// Renames <paramref name="from"/> to <paramref name="to"/> in every profile
+    /// (<c>PATCH .../areas?all_profiles=true&amp;trusted=true</c>). <paramref name="to"/> must already be loaded
+    /// in PoracleNG.
+    /// </summary>
+    public Task<AreaRenameResult> RenameAreaEverywhereAsync(string userId, string from, string to, bool dryRun);
 
     /// <summary>
     /// Switches the user's active profile. PoracleNG handles the area save/load
@@ -163,10 +157,9 @@ public interface IPoracleHumanProxy
     /// Used for a profile just created, duplicated or imported, because PoracleNG's add ignores both. See #993.
     /// </summary>
     /// <remarks>
-    /// A non-empty area list is sent with <c>trusted</c>, because a user's own drawn fences are not
-    /// <c>userSelectable</c>; that is only done where <c>trusted</c> is safe to rely on, the same gate as
-    /// <see cref="AddAreaToActiveProfileTrustedAsync"/>. Elsewhere, and for an empty list, it is sent plain
-    /// and PoracleNG filters it. Names PoracleNG rejects are logged and dropped; the location is still written.
+    /// A non-empty area list is always sent with <c>trusted</c>, because a user's own drawn fences are not
+    /// <c>userSelectable</c>; an empty list is sent plain. Names PoracleNG rejects are logged and dropped;
+    /// the location is still written.
     /// </remarks>
     /// <exception cref="PoracleRequestRefusedException">PoracleNG refused either write outright.</exception>
     public Task SetProfileGeographyAsync(

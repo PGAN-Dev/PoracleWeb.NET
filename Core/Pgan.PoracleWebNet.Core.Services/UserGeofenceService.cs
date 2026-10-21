@@ -15,7 +15,7 @@ public partial class UserGeofenceService(
     IPoracleApiProxy poracleApiProxy,
     IPoracleHumanProxy humanProxy,
     IHumanService humanService,
-    IUserAreaDualWriter areaWriter,
+    IUserAreaWriter userAreaWriter,
     IDiscordNotificationService discordNotificationService,
     IFeatureGate featureGate,
     IConfiguration configuration,
@@ -28,7 +28,7 @@ public partial class UserGeofenceService(
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly IHumanService _humanService = humanService;
-    private readonly IUserAreaDualWriter _areaWriter = areaWriter;
+    private readonly IUserAreaWriter _userAreaWriter = userAreaWriter;
     private readonly IDiscordNotificationService _discordNotificationService = discordNotificationService;
     private readonly IFeatureGate _featureGate = featureGate;
     private readonly IConfiguration _configuration = configuration;
@@ -141,37 +141,21 @@ public partial class UserGeofenceService(
             Status = "active",
         });
 
-        // Reload first: PoracleNG reads the new fence from our feed, and its trusted setAreas rejects
-        // a name it has not loaded (it answers 200 with the name in `rejected`). Adding the name before
-        // this reload left every new fence inactive on a server offering trusted setAreas. The reload
-        // is synchronous but does not prove the fence arrived: PoracleNG only logs a failed feed fetch
-        // and keeps its cached list, still answering ok. So this is the common-case fix, and the
-        // backstop is in the proxy, which answers null when PoracleNG rejects the requested name,
-        // sending the add to the direct-DB writer below.
+        // Reload first: PoracleNG reads the new fence from our feed, and its trusted write rejects a
+        // name it has not loaded. The reload does not prove the fence arrived (PoracleNG only logs a
+        // failed feed fetch and keeps its cached list), so a rejected add is handled below as well.
         var fenceKnownToPoracle = await this.ReloadGeofencesSafeAsync();
 
         // Creating a geofence subscribes the current profile to it -- an area write, and one that ran
-        // straight past disable_areas while every documented area path was refused. Drawing and
-        // deleting fences was a way to edit area subscriptions with the switch on, and a GeoJSON import
-        // could write up to 50 of them in one request. With areas frozen the fence is still created;
-        // it just arrives inactive, and the user can turn it on when areas are re-enabled. See #505.
+        // straight past disable_areas while every documented area path was refused. With areas frozen
+        // the fence is still created; it just arrives inactive. See #505.
         if (await this._featureGate.IsEnabledAsync(DisableFeatureKeys.Areas))
         {
-            // HACK: trusted-set-areas (see docs/poracleng-enhancement-requests.md)
-            // Prefers PoracleNG's v2 trusted setAreas; the direct-DB dual writer is now the fallback
-            // rather than the only path. See the private AddAreaToActiveProfileAsync and #838. If the
-            // reload above failed PoracleNG cannot be relied on to accept the name, so go straight to
-            // the direct-DB write, which does not consult PoracleNG's fence list.
-            var wroteDirectly = await this.AddAreaToActiveProfileAsync(
-                humanId, kojiName, allowTrusted: fenceKnownToPoracle);
-
-            // The trusted call triggers PoracleNG's own state reload; the direct-DB write skips that
-            // hook, so PoracleNG needs another reload to see the changed area. Not made otherwise:
-            // GeoJSON import creates up to 50 fences through here, and each reload re-reads the state.
-            if (wroteDirectly)
-            {
-                await this.ReloadGeofencesSafeAsync();
-            }
+            // The fence is kept either way. When it could not be switched on the caller is told
+            // (ActivationFailed) so the user can retry with the toggle; nothing is written around
+            // PoracleNG. The user owns this fence (just created above), which authorises the name.
+            var activated = fenceKnownToPoracle && await this.TryAddToActiveProfileAsync(humanId, kojiName);
+            geofence.ActivationFailed = !activated;
         }
 
         // Set polygon on result from input
@@ -263,6 +247,7 @@ public partial class UserGeofenceService(
 
         var oldKojiName = geofence.KojiName;
         var newKojiName = trimmedName.ToLowerInvariant();
+        var (previousDisplayName, previousGroupName, previousParentId) = (geofence.DisplayName, geofence.GroupName, geofence.ParentId);
 
         if (!string.Equals(oldKojiName, newKojiName, StringComparison.OrdinalIgnoreCase))
         {
@@ -287,10 +272,32 @@ public partial class UserGeofenceService(
 
         // Every profile that was subscribed stays subscribed, under the new name. This is the whole
         // point of renaming in place rather than delete-then-recreate. See #543.
-        // HACK: trusted-set-areas (see docs/poracleng-enhancement-requests.md)
-        await this._areaWriter.RenameAreaInAllProfilesAsync(humanId, oldKojiName, newKojiName);
-
-        await this.ReloadGeofencesSafeAsync();
+        // Reload first: PoracleNG refuses a rename to a name it has not loaded, and the feed only serves
+        // the new name now that the row is updated. A DEFINITE failure (reload failed, or PoracleNG refused
+        // the rename) puts the row back: left alone it carries the new name while every profile holds the
+        // old one, the save looks successful, and a later fence reusing the old name would inherit its
+        // subscribers. An ambiguous failure (the rename call throwing) is not rolled back: the write may
+        // have landed, and restoring the row then would strand the subscriptions under the new name.
+        if (!string.Equals(CleanName(oldKojiName), CleanName(newKojiName), StringComparison.Ordinal))
+        {
+            var renamed = await this.ReloadGeofencesSafeAsync()
+                && await this._userAreaWriter.RenameEverywhereAsync(humanId, oldKojiName, newKojiName);
+            if (!renamed)
+            {
+                geofence.DisplayName = previousDisplayName;
+                geofence.KojiName = oldKojiName;
+                geofence.GroupName = previousGroupName;
+                geofence.ParentId = previousParentId;
+                _ = await this._repository.UpdateAsync(geofence);
+                _ = await this.ReloadGeofencesSafeAsync();
+                LogRenameRolledBack(this._logger, oldKojiName, newKojiName);
+                throw new GeofenceRenameFailedException();
+            }
+        }
+        else
+        {
+            _ = await this.ReloadGeofencesSafeAsync();
+        }
 
         // The repository round-trip returns the row without its parsed polygon, and the page renders the
         // map straight from this response -- so a renamed geofence vanished from the map and reported 0
@@ -318,7 +325,7 @@ public partial class UserGeofenceService(
         }
     }
 
-    public async Task DeleteAsync(string humanId, int profileNo, int id)
+    public async Task<AreaDeleteImpact> GetDeleteImpactAsync(string humanId, int id)
     {
         var geofence = await this._repository.GetByIdAsync(id)
             ?? throw new GeofenceNotFoundException(id);
@@ -328,28 +335,40 @@ public partial class UserGeofenceService(
             throw new UnauthorizedAccessException("Geofence does not belong to this user.");
         }
 
-        // Same orphan risk as the admin path: if this fence was ever promoted it exists in Koji under the
-        // public name, and deleting only the local row leaves it there forever. See #409.
-        if (WasPromotedToKoji(geofence))
+        return await this._userAreaWriter.PreviewRemovalAsync(humanId, PublicAreaName(geofence).ToLowerInvariant());
+    }
+
+    public async Task<AreaDeleteImpact> AdminGetDeleteImpactAsync(int id)
+    {
+        var geofence = await this._repository.GetByIdAsync(id)
+            ?? throw new GeofenceNotFoundException(id);
+
+        return await this._userAreaWriter.PreviewRemovalAsync(geofence.HumanId, PublicAreaName(geofence).ToLowerInvariant());
+    }
+
+    public async Task DeleteAsync(string humanId, int profileNo, int id, bool deleteWidenedAlarms)
+    {
+        var geofence = await this._repository.GetByIdAsync(id)
+            ?? throw new GeofenceNotFoundException(id);
+
+        if (!string.Equals(geofence.HumanId, humanId, StringComparison.OrdinalIgnoreCase))
         {
-            try
-            {
-                await this._kojiService.RemoveGeofenceFromProjectAsync(PublicAreaName(geofence));
-            }
-            catch (Exception ex)
-            {
-                LogKojiRemovalFailed(this._logger, ex, geofence.KojiName);
-            }
+            throw new UnauthorizedAccessException("Geofence does not belong to this user.");
         }
 
         // Deliberately not gated on disable_areas, unlike the subscribe on create: this is cleanup, not
         // editing. The polygon is about to stop existing, and leaving its name in every profile's area
         // list would subscribe those profiles to something Poracle can no longer resolve. See #505.
         //
-        // HACK: trusted-set-areas (see docs/poracleng-enhancement-requests.md)
-        // Atomic direct-DB removal from humans.area + every profiles.area row. Uses the promoted name
-        // when there is one — that is what the owner is actually subscribed to after an approval.
-        await this._areaWriter.RemoveAreaFromAllProfilesAsync(humanId, PublicAreaName(geofence).ToLowerInvariant());
+        // Removes the name from every profile and every alarm's override areas, through PoracleNG. Uses the
+        // promoted name when there is one: that is what the owner is subscribed to after an approval, and
+        // what GetDeleteImpactAsync previewed. It goes first: if it throws, Koji, the row and the
+        // subscriptions are all left as they were, so the delete can simply be retried.
+        await this._userAreaWriter.RemoveEverywhereAsync(humanId, PublicAreaName(geofence).ToLowerInvariant(), deleteWidenedAlarms);
+
+        // Same orphan risk as the admin path: if this fence was ever promoted it exists in Koji under the
+        // public name, and deleting only the local row leaves it there forever. See #409.
+        await this.RemoveFromKojiIfPromotedAsync(geofence);
 
         // Delete from local DB
         await this._repository.DeleteAsync(id);
@@ -431,43 +450,71 @@ public partial class UserGeofenceService(
         }
     }
 
-    public async Task AdminDeleteAsync(string adminId, int id)
+    public async Task AdminDeleteAsync(string adminId, int id, bool deleteWidenedAlarms)
     {
         var geofence = await this._repository.GetByIdAsync(id)
             ?? throw new GeofenceNotFoundException(id);
 
-        // Keyed on "was this ever pushed to Koji?", not on the current status. Gating on
-        // status == "approved" meant a reject-then-delete left a public, userSelectable fence in the
-        // shared Koji project that no PoracleWeb record could manage — recoverable only by hand-editing
-        // Koji. PromotedName is set by approval and never cleared, so it is the durable marker. See #409.
-        if (WasPromotedToKoji(geofence))
-        {
-            try
-            {
-                await this._kojiService.RemoveGeofenceFromProjectAsync(PublicAreaName(geofence));
-            }
-            catch (Exception ex)
-            {
-                LogKojiRemovalFailed(this._logger, ex, geofence.KojiName);
-            }
-        }
-
-        // Remove from user's area across all profiles
+        // Remove from the owner's areas across all profiles first, as DeleteAsync does. A failure used to be
+        // logged and the row deleted anyway, stranding the name in the owner's lists; now it stops the delete
+        // before Koji or the row is touched. An owner PoracleNG no longer has holds no areas, so that one case
+        // goes ahead.
         try
         {
-            var areaName = PublicAreaName(geofence).ToLowerInvariant();
-            // HACK: trusted-set-areas (see docs/poracleng-enhancement-requests.md)
-            await this._areaWriter.RemoveAreaFromAllProfilesAsync(geofence.HumanId, areaName);
+            await this._userAreaWriter.RemoveEverywhereAsync(
+                geofence.HumanId, PublicAreaName(geofence).ToLowerInvariant(), deleteWidenedAlarms);
         }
-        catch (Exception ex)
+        catch (AccountGoneException)
         {
-            LogAreaRemovalFailed(this._logger, ex, geofence.KojiName);
+            LogAreaOwnerGone(this._logger, geofence.KojiName, geofence.HumanId);
         }
+
+        await this.RemoveFromKojiIfPromotedAsync(geofence);
 
         await this._repository.DeleteAsync(id);
         await this.ReloadGeofencesSafeAsync();
 
         LogAdminDeletedGeofence(this._logger, adminId, geofence.KojiName, id, geofence.Status);
+    }
+
+    public async Task RemoveFencesOfDeletedAccountAsync(string humanId)
+    {
+        var leftovers = await this._repository.GetByHumanIdAsync(humanId);
+        if (leftovers.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var geofence in leftovers)
+        {
+            await this.RemoveFromKojiIfPromotedAsync(geofence);
+            await this._repository.DeleteAsync(geofence.Id);
+        }
+
+        await this.ReloadGeofencesSafeAsync();
+    }
+
+    /// <summary>
+    /// Keyed on "was this ever pushed to Koji?", not on the current status. Gating on status == "approved"
+    /// meant a reject-then-delete left a public, userSelectable fence in the shared Koji project that no
+    /// PoracleWeb record could manage, recoverable only by hand-editing Koji. PromotedName is set by approval
+    /// and never cleared, so it is the durable marker. A Koji failure is logged, never thrown. See #409.
+    /// </summary>
+    private async Task RemoveFromKojiIfPromotedAsync(UserGeofence geofence)
+    {
+        if (!WasPromotedToKoji(geofence))
+        {
+            return;
+        }
+
+        try
+        {
+            await this._kojiService.RemoveGeofenceFromProjectAsync(PublicAreaName(geofence));
+        }
+        catch (Exception ex)
+        {
+            LogKojiRemovalFailed(this._logger, ex, geofence.KojiName);
+        }
     }
 
     public async Task<UserGeofence> SubmitForReviewAsync(string humanId, string kojiName)
@@ -726,7 +773,7 @@ public partial class UserGeofenceService(
         // Save to Koji as a public geofence (userSelectable + displayInMatches = true). This name is also
         // what Poracle matches area subscriptions against, so -- like every other geofence name in this
         // file -- it must be lowercase; Poracle's matching is case-sensitive. An admin-typed promoted name
-        // with any uppercase letter used to reach Koji verbatim while RenameAreaInAllProfilesAsync (below)
+        // with any uppercase letter used to reach Koji verbatim while the area rename (below)
         // lowercased the same name for the owner's subscription: the two diverged, Koji served the mixed
         // case and the owner's humans.area/profiles.area held the lowercase, and that user's alerts for
         // the area they just had approved silently stopped firing. geofence.PromotedName keeps the
@@ -735,26 +782,35 @@ public partial class UserGeofenceService(
         await this._kojiService.SaveGeofenceAsync(
             targetName, geofence.DisplayName, geofence.GroupName, geofence.ParentId, polygon, isPublic: true);
 
-        // Move the owner's subscription to the promoted name.
-        //
-        // HACK: trusted-set-areas — this must not go through SetAreasAsync. PoracleNG intersects the
-        // submitted list against userSelectable=true fences for non-admins, and at this point BOTH names
-        // fail that test: the old one because user geofences are served userSelectable=false, and the
-        // promoted one because PoracleNG has not reloaded its fence list yet (that happens below). The
-        // result was a silent wipe of the owner's entire custom-geofence subscription set — not just this
-        // fence — while approve still returned 200. See #408.
-        if (!string.Equals(targetName, geofence.KojiName, StringComparison.Ordinal))
+        // Move the owner's subscription to the promoted name. This must not go through SetAreasAsync:
+        // PoracleNG intersects the submitted list against userSelectable=true fences, which dropped the
+        // owner's entire custom-geofence set while approve still returned 200 (#408). The v2 rename moves
+        // one name on every profile and in every rule's override areas, but PoracleNG refuses a name it
+        // has not loaded, so its list is reloaded first (which also drops the Koji admin cache the save
+        // above just made stale). Everything after the Koji save is best effort: the fence is public by
+        // now, so the approval stands and the response says whether the owner's areas followed.
+        bool? ownerAreasRenamed = null;
+        if (!string.Equals(CleanName(targetName), CleanName(geofence.KojiName), StringComparison.Ordinal))
         {
-            try
+            // One retry: the first reload can lose a race with Koji, and a second attempt is cheap next to
+            // an admin having to tell an owner to re-pick the area.
+            ownerAreasRenamed = false;
+            for (var attempt = 0; attempt < 2 && ownerAreasRenamed != true; attempt++)
             {
-                await this._areaWriter.RenameAreaInAllProfilesAsync(
-                    geofence.HumanId, geofence.KojiName, targetName);
+                try
+                {
+                    ownerAreasRenamed = await this.ReloadGeofencesSafeAsync()
+                        && await this._userAreaWriter.RenameEverywhereAsync(geofence.HumanId, geofence.KojiName, targetName);
+                }
+                catch (Exception ex)
+                {
+                    LogAreaSwapFallbackFailed(this._logger, ex, geofence.KojiName);
+                }
             }
-            catch (Exception ex)
+
+            if (ownerAreasRenamed != true)
             {
-                // The geofence is public in Koji by now, so the approval itself stands. Surface the
-                // subscription loss instead of failing an approval that already took effect upstream.
-                LogAreaSwapFallbackFailed(this._logger, ex, geofence.KojiName);
+                LogOwnerAreasNotRenamed(this._logger, geofence.KojiName, targetName);
             }
         }
 
@@ -786,6 +842,7 @@ public partial class UserGeofenceService(
         LogGeofenceApproved(this._logger, adminId, geofence.KojiName, id, promotedName);
 
         await this.EnrichWithDetailsAsync([updated]);
+        updated.OwnerAreasRenamed = ownerAreasRenamed;
         return updated;
     }
 
@@ -850,15 +907,24 @@ public partial class UserGeofenceService(
             throw new UnauthorizedAccessException("Geofence does not belong to this user.");
         }
 
-        // HACK: trusted-set-areas (see docs/poracleng-enhancement-requests.md)
-        // Prefers PoracleNG's v2 trusted setAreas; the direct-DB dual writer is now the fallback
-        // rather than the only path. See #838.
-        await this.AddAreaToActiveProfileAsync(humanId, geofence.KojiName);
+        // The user owns the fence (checked above), which authorises the name for the trusted write.
+        // False means "already on the profile" or "PoracleNG rejected the name". Reload and retry once
+        // for the second (PoracleNG may not have loaded the fence), then tell the two apart by reading
+        // the list: a name that is there is a successful, idempotent activate; one that is not is a
+        // failure the caller must see rather than a silent 204.
+        if (!await this._userAreaWriter.AddToActiveProfileAsync(humanId, geofence.KojiName))
+        {
+            await this.ReloadGeofencesSafeAsync();
+            if (!await this._userAreaWriter.AddToActiveProfileAsync(humanId, geofence.KojiName))
+            {
+                var held = await this._humanProxy.GetAreaListAsync(humanId);
+                if (!held.Contains(geofence.KojiName, StringComparer.OrdinalIgnoreCase))
+                {
+                    throw new GeofenceActivationFailedException(geofence.KojiName);
+                }
+            }
+        }
 
-        // The trusted setAreas call already triggers PoracleNG's own state reload; this manual one
-        // is only load-bearing for the direct-DB fallback, which skips that hook entirely. Harmless
-        // and redundant on the trusted path, so it stays unconditional rather than threading the
-        // path taken back out of a private helper that otherwise has no reason to report it.
         await this.ReloadGeofencesSafeAsync();
     }
 
@@ -879,59 +945,13 @@ public partial class UserGeofenceService(
             throw new UnauthorizedAccessException("Geofence does not belong to this user.");
         }
 
-        // HACK: trusted-set-areas — mirror of AddToProfileAsync, same trusted-first preference.
-        await this.RemoveAreaFromActiveProfileAsync(humanId, geofence.KojiName);
-        // Manual reload, same rationale as AddToProfileAsync: redundant on the trusted path,
-        // load-bearing on the direct-DB fallback.
+        // The user owns the fence (checked above), which authorises the name. False means it was
+        // not on the profile, which is the state the caller asked for.
+        _ = await this._userAreaWriter.RemoveFromActiveProfileAsync(humanId, geofence.KojiName);
         await this.ReloadGeofencesSafeAsync();
     }
 
     public async Task<List<GeofenceRegion>> GetRegionsAsync() => await this._kojiService.GetRegionsAsync();
-
-    // HACK: trusted-set-areas (see docs/poracleng-enhancement-requests.md)
-    // Re-adds user-owned geofence names, preferring PoracleNG's v2 trusted setAreas over the direct
-    // DB after PoracleNG's non-trusted v1 setAreas stripped them. AreaController.UpdateAreas could
-    // collapse to one trusted call instead of this two-step patch-up once #838 covers the case where
-    // area_security is enabled and in use for that call's own submitted admin-area names too, not just
-    // this method's narrower, already-vetted user-owned-geofence list -- a larger change than migrating
-    // this helper alone. Trust is already established via X-Poracle-Secret.
-    public async Task<IReadOnlyList<string>> PreserveOwnedAreasInHumanAsync(string humanId, IReadOnlyCollection<string> candidateAreaNames)
-    {
-        if (candidateAreaNames.Count == 0)
-        {
-            return [];
-        }
-
-        // Only write back names that the user actually owns as custom geofences.
-        var owned = await this._repository.GetByHumanIdAsync(humanId);
-        if (owned.Count == 0)
-        {
-            return [];
-        }
-
-        var ownedNames = new HashSet<string>(owned.Select(g => g.KojiName.ToLowerInvariant()));
-        var toRestore = candidateAreaNames
-            .Select(a => a.ToLowerInvariant())
-            .Where(ownedNames.Contains)
-            .Distinct()
-            .ToList();
-
-        if (toRestore.Count == 0)
-        {
-            return [];
-        }
-
-        await this.AddAreasToActiveProfileAsync(humanId, toRestore);
-
-        // Manual reload. Load-bearing on the direct-DB fallback, which skips PoracleNG's internal
-        // reloadState hook; redundant (but harmless) on the trusted path, which triggers its own. The
-        // caller (AreaController.UpdateAreas) already triggered a reload via its own setAreas call, but
-        // we need a fresh one so PoracleNG picks up the restored names too. PoracleNG's reload is
-        // debounced 500ms server-side so the back-to-back calls coalesce.
-        await this.ReloadGeofencesSafeAsync();
-
-        return toRestore;
-    }
 
     /// <summary>
     /// Statuses an admin may approve from. See the comment in <see cref="ApproveSubmissionAsync"/> for why
@@ -958,44 +978,17 @@ public partial class UserGeofenceService(
     private static string PublicAreaName(UserGeofence geofence) =>
         string.IsNullOrEmpty(geofence.PromotedName) ? geofence.KojiName : geofence.PromotedName;
 
-    /// <summary>
-    /// Adds one area to the active profile, preferring PoracleNG's v2 trusted <c>setAreas</c> over the
-    /// direct-DB dual writer once #838's conditions allow it: the schema has to declare <c>trusted</c>
-    /// and area_security has to be confirmed off, because no self-reported signal distinguishes a
-    /// server carrying jfberry/PoracleNG#230's community-restriction fix from one that does not.
-    /// </summary>
-    /// <param name="humanId">The user.</param>
-    /// <param name="areaName">The area to add.</param>
-    /// <param name="allowTrusted">
-    /// False skips the trusted call, for a caller that could not make PoracleNG load the fence first.
-    /// </param>
-    /// <returns>True when the direct-DB writer did the write (PoracleNG needs a reload to see it).</returns>
-    private async Task<bool> AddAreaToActiveProfileAsync(string humanId, string areaName, bool allowTrusted = true)
+    /// <summary>True when the name is now on the active profile; false when PoracleNG rejected it or it was already there.</summary>
+    private async Task<bool> TryAddToActiveProfileAsync(string humanId, string name)
     {
-        if (allowTrusted && await this._humanProxy.AddAreaToActiveProfileTrustedAsync(humanId, areaName) is not null)
+        try
         {
+            return await this._userAreaWriter.AddToActiveProfileAsync(humanId, name);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            LogGeofenceActivationFailed(this._logger, ex, name);
             return false;
-        }
-
-        await this._areaWriter.AddAreaToActiveProfileAsync(humanId, areaName);
-        return true;
-    }
-
-    /// <summary>Bulk form of <see cref="AddAreaToActiveProfileAsync(string, string)"/>.</summary>
-    private async Task AddAreasToActiveProfileAsync(string humanId, IReadOnlyCollection<string> areaNames)
-    {
-        if (await this._humanProxy.AddAreasToActiveProfileTrustedAsync(humanId, areaNames) is null)
-        {
-            await this._areaWriter.AddAreasToActiveProfileAsync(humanId, areaNames);
-        }
-    }
-
-    /// <summary>Removes one area from the active profile, with the same trusted-first preference.</summary>
-    private async Task RemoveAreaFromActiveProfileAsync(string humanId, string areaName)
-    {
-        if (await this._humanProxy.RemoveAreaFromActiveProfileTrustedAsync(humanId, areaName) is null)
-        {
-            await this._areaWriter.RemoveAreaFromActiveProfileAsync(humanId, areaName);
         }
     }
 
@@ -1018,6 +1011,14 @@ public partial class UserGeofenceService(
     [System.Text.RegularExpressions.GeneratedRegex(@"^[a-zA-Z0-9 \-'.()&]+$")]
     private static partial System.Text.RegularExpressions.Regex MyRegex();
 
+    private static string CleanName(string name) => name.Trim().ToLowerInvariant();
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Renaming geofence '{OldName}' to '{NewName}' failed at PoracleNG; the row was restored and the user asked to retry")]
+    private static partial void LogRenameRolledBack(ILogger logger, string oldName, string newName);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Could not switch on new geofence '{KojiName}'; it is saved but inactive")]
+    private static partial void LogGeofenceActivationFailed(ILogger logger, Exception ex, string kojiName);
+
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to deserialize polygon for geofence '{KojiName}'")]
     private static partial void LogPolygonDeserializationFailed(ILogger logger, Exception ex, string kojiName);
 
@@ -1030,8 +1031,8 @@ public partial class UserGeofenceService(
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to remove approved geofence '{KojiName}' from Koji during admin delete")]
     private static partial void LogKojiRemovalFailed(ILogger logger, Exception ex, string kojiName);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to remove area for geofence '{KojiName}' during admin delete")]
-    private static partial void LogAreaRemovalFailed(ILogger logger, Exception ex, string kojiName);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Owner {HumanId} of geofence '{KojiName}' is gone from PoracleNG; no areas to remove")]
+    private static partial void LogAreaOwnerGone(ILogger logger, string kojiName, string humanId);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Admin {AdminId} deleted geofence '{KojiName}' (ID {Id}, status: {Status})")]
     private static partial void LogAdminDeletedGeofence(ILogger logger, string adminId, string kojiName, int id, string status);
@@ -1074,6 +1075,9 @@ public partial class UserGeofenceService(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to reload Poracle geofences after custom geofence change")]
     private static partial void LogGeofenceReloadFailed(ILogger logger, Exception ex);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Approved geofence '{OldName}' as '{NewName}' in Koji, but the owner's subscriptions were not moved to the new name")]
+    private static partial void LogOwnerAreasNotRenamed(ILogger logger, string oldName, string newName);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Could not move the owner's subscription to the promoted name for geofence '{KojiName}'; they are no longer subscribed to it")]
     private static partial void LogAreaSwapFallbackFailed(ILogger logger, Exception ex, string kojiName);

@@ -16,23 +16,41 @@ public interface IUserGeofenceService
     /// </remarks>
     public Task<UserGeofence> RenameAsync(string humanId, int id, string displayName, string? groupName, int? parentId);
 
-    public Task DeleteAsync(string humanId, int profileNo, int id);
+    /// <summary>
+    /// What deleting the caller's own fence would do to their alarms. Same ownership rules as
+    /// <see cref="DeleteAsync"/>.
+    /// </summary>
+    public Task<AreaDeleteImpact> GetDeleteImpactAsync(string humanId, int id);
+
+    /// <summary>
+    /// Deletes the caller's own fence and removes its name from every profile and every alarm's override
+    /// areas. With <paramref name="deleteWidenedAlarms"/>, alarms limited to this fence alone are deleted
+    /// rather than left matching across the profile's areas. If PoracleNG cannot remove the name, the fence
+    /// is not deleted.
+    /// </summary>
+    public Task DeleteAsync(string humanId, int profileNo, int id, bool deleteWidenedAlarms);
     public Task<UserGeofence> SubmitForReviewAsync(string humanId, string kojiName);
     public Task<List<UserGeofence>> GetAllAsync();
     public Task<List<UserGeofence>> GetAllWithDetailsAsync();
     public Task<List<UserGeofence>> GetPendingSubmissionsAsync();
-    public Task AdminDeleteAsync(string adminId, int id);
+    /// <summary>What deleting this fence would do to its owner's alarms.</summary>
+    public Task<AreaDeleteImpact> AdminGetDeleteImpactAsync(int id);
+
+    /// <summary>
+    /// <see cref="DeleteAsync"/> for any owner. An owner PoracleNG no longer knows has no areas to clean,
+    /// so the fence is deleted anyway.
+    /// </summary>
+    public Task AdminDeleteAsync(string adminId, int id, bool deleteWidenedAlarms);
+
+    /// <summary>
+    /// For an account that has just been deleted: removes every fence it still owns from Koji (if promoted)
+    /// and from the table, then reloads PoracleNG's geofences once. Touches no area lists, because the
+    /// account's went with it. Used by the user purge for fences whose normal delete failed.
+    /// </summary>
+    public Task RemoveFencesOfDeletedAccountAsync(string humanId);
     public Task<UserGeofence> ApproveSubmissionAsync(string adminId, int id, string? promotedName, int? parentId = null, string? groupName = null);
     public Task<UserGeofence> RejectSubmissionAsync(string adminId, int id, string reviewNotes);
     public Task AddToProfileAsync(string humanId, int profileNo, int geofenceId);
     public Task RemoveFromProfileAsync(string humanId, int profileNo, int geofenceId);
     public Task<List<GeofenceRegion>> GetRegionsAsync();
-
-    /// <summary>
-    /// Given a list of requested area names, re-adds any that correspond to user-owned custom
-    /// geofences back into <c>humans.area</c> and the current <c>profiles.area</c> via direct DB.
-    /// Used to undo PoracleNG's setAreas filter which silently drops userSelectable=false fences.
-    /// Returns the subset of names that were preserved.
-    /// </summary>
-    public Task<IReadOnlyList<string>> PreserveOwnedAreasInHumanAsync(string humanId, IReadOnlyCollection<string> candidateAreaNames);
 }

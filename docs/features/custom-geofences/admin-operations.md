@@ -39,11 +39,13 @@ If your Koji project has regions, the approval dialog shows a region picker, pre
 
 If your project has **no regions**, the picker simply doesn't appear, and the area is promoted ungrouped. You can always organize it in Koji afterward.
 
+With `[area_security]` on in PoracleNG, the promoted name must also be in the owner's community `allowed_areas`. If it isn't, PoracleNG refuses to move the owner's subscription to the new name, and you see the "areas weren't moved" warning after approving. The approval stands; the owner picks the area on the Areas page.
+
 ## Deleting geofences
 
 Admins can delete any geofence from the admin screen:
 
-- If it's a **private** geofence, it's removed from PoracleWeb.NET and from every profile that had it switched on.
+- If it's a **private** geofence, it's removed from PoracleWeb.NET and from every profile that had it switched on. If the owner has alarms limited to it, the dialog names the owner and asks whether to delete those alarms too (the default) or keep them on the owner's profile areas. If PoracleNG can't take the name off the owner's profiles, nothing is deleted and you can retry.
 - If it was **ever promoted to Koji**, PoracleWeb.NET also removes it from the Koji project so it stops being a selectable public area. The test is "was this published?", not the current status — a geofence approved and later rejected still has to be pulled out of the shared project.
 
 !!! warning "Project removal vs. full deletion"

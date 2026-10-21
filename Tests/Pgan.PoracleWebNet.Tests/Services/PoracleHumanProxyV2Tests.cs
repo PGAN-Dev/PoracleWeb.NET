@@ -697,256 +697,6 @@ public class PoracleHumanProxyV2Tests
             schema.GetProperty("required").EnumerateArray().Select(e => e.GetString()!).ToList());
     }
 
-    // ---- trusted setAreas for the active-profile dual writer (#838) ----------------------------
-    //
-    // Gated on BOTH IPoracleV2SchemaService.TrustedSetAreas (the schema declares the property) AND
-    // IAreaSecurityPolicyService.IsConfirmedDisabledAsync (area_security is confirmed off) -- neither
-    // /openapi.json nor /health distinguishes a pre-jfberry/PoracleNG#230 server from a post-#230 one,
-    // verified live against two builds either side of the fix, so the schema alone cannot say whether
-    // trusted's community-restriction bypass is safe to rely on.
-
-    private static PoracleV2Capabilities TrustedAreas(bool carries) => new() { Read = true, TrustedSetAreas = carries };
-
-    [Fact]
-    public async Task AddAreaTrustedReturnsNullWithoutTheSchemaCapability()
-    {
-        var handler = ScriptedHandler.Ok("""{"human":{"id":"user1","area":"[\"downtown\"]"}}""");
-        var sut = CreateSut(
-            handler, capabilities: TrustedAreas(carries: false), areaSecurityConfirmedDisabled: true);
-
-        Assert.Null(await sut.AddAreaToActiveProfileTrustedAsync("user1", "park"));
-        Assert.Empty(handler.Requests);
-    }
-
-    [Fact]
-    public async Task AddAreaTrustedReturnsNullWhenAreaSecurityIsNotConfirmedDisabled()
-    {
-        // The load-bearing half: the schema can carry trusted on a pre-#230 build too, where sending
-        // it would silently bypass a community's allowed-area restriction if area_security is on.
-        var handler = ScriptedHandler.Ok("""{"human":{"id":"user1","area":"[\"downtown\"]"}}""");
-        var sut = CreateSut(
-            handler, capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: false);
-
-        Assert.Null(await sut.AddAreaToActiveProfileTrustedAsync("user1", "park"));
-        Assert.Empty(handler.Requests);
-    }
-
-    [Fact]
-    public async Task AddAreaTrustedPostsTheFullListWithTrustedTrue()
-    {
-        var handler = new ScriptedHandler(
-            new Reply(HttpStatusCode.OK, """{"human":{"id":"user1","area":"[\"downtown\"]"}}"""),
-            new Reply(HttpStatusCode.OK, """{"areas":["downtown","park"],"rejected":[]}"""));
-        var sut = CreateSut(
-            handler, capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
-
-        Assert.True(await sut.AddAreaToActiveProfileTrustedAsync("user1", "park"));
-
-        Assert.Equal(2, handler.Requests.Count);
-        var post = handler.Requests[1];
-        Assert.Equal(HttpMethod.Post, post.Method);
-        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/areas", post.Url);
-        var body = JsonDocument.Parse(post.Body!).RootElement;
-        Assert.True(body.GetProperty("trusted").GetBoolean());
-        Assert.Equal(
-            ["downtown", "park"],
-            body.GetProperty("areas").EnumerateArray().Select(e => e.GetString()).ToList());
-    }
-
-    [Fact]
-    public async Task AddAreaTrustedIsANoOpWhenAlreadyPresent()
-    {
-        var handler = ScriptedHandler.Ok("""{"human":{"id":"user1","area":"[\"downtown\"]"}}""");
-        var sut = CreateSut(
-            handler, capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
-
-        Assert.False(await sut.AddAreaToActiveProfileTrustedAsync("user1", "downtown"));
-        Assert.Single(handler.Requests); // only the read -- no POST for a no-op
-    }
-
-    [Fact]
-    public async Task RemoveAreaTrustedPostsTheReducedList()
-    {
-        var handler = new ScriptedHandler(
-            new Reply(HttpStatusCode.OK, """{"human":{"id":"user1","area":"[\"downtown\",\"park\"]"}}"""),
-            new Reply(HttpStatusCode.OK, """{"areas":["downtown"],"rejected":[]}"""));
-        var sut = CreateSut(
-            handler, capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
-
-        Assert.True(await sut.RemoveAreaFromActiveProfileTrustedAsync("user1", "park"));
-
-        Assert.Equal(
-            ["downtown"],
-            JsonDocument.Parse(handler.Requests[1].Body!).RootElement
-                .GetProperty("areas").EnumerateArray().Select(e => e.GetString()).ToList());
-    }
-
-    [Fact]
-    public async Task RemoveAreaTrustedIsANoOpWhenNotPresent()
-    {
-        var handler = ScriptedHandler.Ok("""{"human":{"id":"user1","area":"[\"downtown\"]"}}""");
-        var sut = CreateSut(
-            handler, capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
-
-        Assert.False(await sut.RemoveAreaFromActiveProfileTrustedAsync("user1", "park"));
-        Assert.Single(handler.Requests);
-    }
-
-    [Fact]
-    public async Task AddAreasTrustedDedupesCaseInsensitivelyAndKeepsWhatIsAlreadyPresent()
-    {
-        var handler = new ScriptedHandler(
-            new Reply(HttpStatusCode.OK, """{"human":{"id":"user1","area":"[\"downtown\"]"}}"""),
-            new Reply(HttpStatusCode.OK, """{"areas":["downtown","park","square"],"rejected":[]}"""));
-        var sut = CreateSut(
-            handler, capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
-
-        Assert.True(await sut.AddAreasToActiveProfileTrustedAsync("user1", ["Park", "park", "Square", "downtown"]));
-
-        Assert.Equal(
-            ["downtown", "park", "square"],
-            JsonDocument.Parse(handler.Requests[1].Body!).RootElement
-                .GetProperty("areas").EnumerateArray().Select(e => e.GetString()).ToList());
-    }
-
-    // The develop-shape twins: jfberry/PoracleNG#303 sends the human's area as a real array on
-    // GET /api/v2/humans/{id}. Same outcomes as the string-shaped tests above, no version gate.
-
-    [Fact]
-    public async Task AddAreaTrustedReadsAnArrayShapedAreaAndPostsTheFullList()
-    {
-        var handler = new ScriptedHandler(
-            new Reply(HttpStatusCode.OK, """{"human":{"id":"user1","area":["downtown"]}}"""),
-            new Reply(HttpStatusCode.OK, """{"areas":["downtown","park"],"rejected":[]}"""));
-        var sut = CreateSut(
-            handler, capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
-
-        Assert.True(await sut.AddAreaToActiveProfileTrustedAsync("user1", "park"));
-
-        Assert.Equal(2, handler.Requests.Count);
-        var body = JsonDocument.Parse(handler.Requests[1].Body!).RootElement;
-        Assert.True(body.GetProperty("trusted").GetBoolean());
-        Assert.Equal(
-            ["downtown", "park"],
-            body.GetProperty("areas").EnumerateArray().Select(e => e.GetString()).ToList());
-    }
-
-    [Fact]
-    public async Task AddAreaTrustedIsANoOpWhenAlreadyPresentInAnArrayShapedArea()
-    {
-        var handler = ScriptedHandler.Ok("""{"human":{"id":"user1","area":["downtown"]}}""");
-        var sut = CreateSut(
-            handler, capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
-
-        Assert.False(await sut.AddAreaToActiveProfileTrustedAsync("user1", "downtown"));
-        Assert.Single(handler.Requests);
-    }
-
-    [Fact]
-    public async Task RemoveAreaTrustedPostsTheReducedListFromAnArrayShapedArea()
-    {
-        var handler = new ScriptedHandler(
-            new Reply(HttpStatusCode.OK, """{"human":{"id":"user1","area":["downtown","park"]}}"""),
-            new Reply(HttpStatusCode.OK, """{"areas":["downtown"],"rejected":[]}"""));
-        var sut = CreateSut(
-            handler, capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
-
-        Assert.True(await sut.RemoveAreaFromActiveProfileTrustedAsync("user1", "park"));
-
-        Assert.Equal(
-            ["downtown"],
-            JsonDocument.Parse(handler.Requests[1].Body!).RootElement
-                .GetProperty("areas").EnumerateArray().Select(e => e.GetString()).ToList());
-    }
-
-    [Fact]
-    public async Task AddAreaTrustedTreatsAnEmptyArrayShapedAreaAsNoAreasYet()
-    {
-        var handler = new ScriptedHandler(
-            new Reply(HttpStatusCode.OK, """{"human":{"id":"user1","area":[]}}"""),
-            new Reply(HttpStatusCode.OK, """{"areas":["park"],"rejected":[]}"""));
-        var sut = CreateSut(
-            handler, capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
-
-        Assert.True(await sut.AddAreaToActiveProfileTrustedAsync("user1", "park"));
-
-        Assert.Equal(
-            ["park"],
-            JsonDocument.Parse(handler.Requests[1].Body!).RootElement
-                .GetProperty("areas").EnumerateArray().Select(e => e.GetString()).ToList());
-    }
-
-    [Fact]
-    public async Task TrustedSetAreasReturnsNullWhenTheCurrentListCannotBeRead()
-    {
-        // Account gone or unreachable -- GetHumanAsync answers null, so there is nothing safe to
-        // compute a full replacement from. The caller must fall back to IUserAreaDualWriter rather
-        // than risk posting an incomplete list that drops areas this call never asked to touch.
-        var handler = ScriptedHandler.Problem(
-            HttpStatusCode.NotFound, """{"title":"Not Found","status":404,"detail":"human not found"}""");
-        var sut = CreateSut(
-            handler, capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
-
-        Assert.Null(await sut.AddAreaToActiveProfileTrustedAsync("nobody", "park"));
-    }
-
-    [Fact]
-    public async Task TrustedSetAreasStillFallsBackWhenTheCurrentListReadFails()
-    {
-        // GetHumanAsync throws on a failed read now (#994). This path relied on its old null, which is
-        // the caller's "use IUserAreaDualWriter" signal, so it keeps answering null rather than letting
-        // a PoracleNG blip fail the geofence activation outright -- and it posts nothing.
-        var handler = ScriptedHandler.Problem(
-            HttpStatusCode.ServiceUnavailable, """{"title":"Service Unavailable","status":503,"detail":"database error"}""");
-        var sut = CreateSut(
-            handler, capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
-
-        Assert.Null(await sut.AddAreaToActiveProfileTrustedAsync("user1", "park"));
-        Assert.Null(await sut.RemoveAreaFromActiveProfileTrustedAsync("user1", "park"));
-        Assert.All(handler.Requests, r => Assert.Equal(HttpMethod.Get, r.Method));
-    }
-
-    [Fact]
-    public async Task TrustedAddReturnsNullWhenPoracleRejectsTheRequestedName()
-    {
-        // PoracleNG answers 200 and lists a name it does not know (a fence it has not loaded) under
-        // `rejected`. Answering non-null told the caller the write happened, so the direct-DB fallback
-        // never ran and the new fence stayed inactive. Null is the "fall back" signal.
-        var handler = new ScriptedHandler(
-            new Reply(HttpStatusCode.OK, """{"human":{"id":"user1","area":"[\"downtown\"]"}}"""),
-            new Reply(HttpStatusCode.OK, """{"areas":["downtown"],"rejected":["park"]}"""));
-        var sut = CreateSut(
-            handler, capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
-
-        Assert.Null(await sut.AddAreaToActiveProfileTrustedAsync("user1", "park"));
-    }
-
-    [Fact]
-    public async Task TrustedAddReturnsNullWhenAnyRequestedNameIsRejectedCaseInsensitively()
-    {
-        var handler = new ScriptedHandler(
-            new Reply(HttpStatusCode.OK, """{"human":{"id":"user1","area":"[\"downtown\"]"}}"""),
-            new Reply(HttpStatusCode.OK, """{"areas":["downtown","square"],"rejected":["Park"]}"""));
-        var sut = CreateSut(
-            handler, capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
-
-        Assert.Null(await sut.AddAreasToActiveProfileTrustedAsync("user1", ["park", "square"]));
-    }
-
-    [Fact]
-    public async Task TrustedAddStaysNonNullWhenOnlyAnUnrelatedStaleNameIsRejected()
-    {
-        // A name already in the list that PoracleNG no longer knows (a deleted fence) is dropped on
-        // every full-list replacement. That says nothing about the name just requested, so no fallback.
-        var handler = new ScriptedHandler(
-            new Reply(HttpStatusCode.OK, """{"human":{"id":"user1","area":"[\"downtown\",\"gone\"]"}}"""),
-            new Reply(HttpStatusCode.OK, """{"areas":["downtown","park"],"rejected":["gone"]}"""));
-        var sut = CreateSut(
-            handler, capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
-
-        Assert.True(await sut.AddAreaToActiveProfileTrustedAsync("user1", "park"));
-    }
-
     // ---- what the controllers actually send ------------------------------------------------------
     //
     // Every test above posts {"name":"probe-two"}, a body no caller builds. The four callers of
@@ -1057,68 +807,6 @@ public class PoracleHumanProxyV2Tests
     }
 
     // ---- profile reads, delete and copy on v2 (#995) -----------------------------------------------
-
-    [Fact]
-    public async Task SavingAreasPostsTheV2BodyWithoutTrusted()
-    {
-        // AreaController.UpdateAreas sends the submitted list lowercased. This is the user-facing save, so
-        // trusted must never ride along: it would let any user select a fence PoracleNG hides from them.
-        var handler = ScriptedHandler.Ok("""{"areas":["aberdeen","abingdon"],"rejected":[]}""");
-        var sut = CreateSut(handler);
-
-        await sut.SetAreasAsync("user1", ["aberdeen", "abingdon"]);
-
-        var sent = Assert.Single(handler.Requests);
-        Assert.Equal(HttpMethod.Post, sent.Method);
-        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/areas", sent.Url);
-        using var body = JsonDocument.Parse(sent.Body!);
-        AssertConformsTo(body.RootElement, "V2SetAreasBody");
-        Assert.False(body.RootElement.TryGetProperty("trusted", out _));
-        Assert.Equal(
-            ["aberdeen", "abingdon"],
-            body.RootElement.GetProperty("areas").EnumerateArray().Select(e => e.GetString()).ToList());
-    }
-
-    [Fact]
-    public async Task AnAreaV2RefusesIsReportedNotThrown()
-    {
-        // The legitimate case that must keep working. A user-drawn fence is userSelectable:false, so v2
-        // refuses it on every save that includes one -- verified live, it comes back in `rejected` beside a
-        // 200. v1 dropped the same name silently, and PreserveOwnedAreasInHumanAsync puts it back. Throwing
-        // here would fail every Areas save of everyone who has drawn a fence.
-        var handler = ScriptedHandler.Ok("""{"areas":["aberdeen"],"rejected":["my fence","nosuchfence"]}""");
-        var sut = CreateSut(handler);
-
-        await sut.SetAreasAsync("user1", ["aberdeen", "my fence", "nosuchfence"]);
-
-        Assert.Single(handler.Requests);
-    }
-
-    [Fact]
-    public async Task SavingAreasOnAServerWithoutTheRouteIsUnsupportedNotRetriedOnV1()
-    {
-        var handler = new ScriptedHandler(
-            new Reply(HttpStatusCode.NotFound, RouteMissing, "text/plain"),
-            new Reply(HttpStatusCode.OK, """{"setAreas":["aberdeen"],"status":"ok"}"""));
-        var sut = CreateSut(handler);
-
-        var ex = await Assert.ThrowsAsync<PoracleUnsupportedException>(() => sut.SetAreasAsync("user1", ["aberdeen"]));
-
-        Assert.Contains("5.4.0", ex.Message, StringComparison.Ordinal);
-        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/areas", Assert.Single(handler.Requests).Url);
-    }
-
-    [Fact]
-    public async Task ASaveV2RefusesOutrightIsARefusalLikeV1sFourHundred()
-    {
-        var handler = ScriptedHandler.Problem(
-            HttpStatusCode.UnprocessableEntity,
-            """{"title":"Unprocessable Entity","status":422,"detail":"validation failed"}""");
-        var sut = CreateSut(handler);
-
-        await Assert.ThrowsAsync<PoracleRequestRefusedException>(() => sut.SetAreasAsync("user1", ["aberdeen"]));
-        Assert.Single(handler.Requests);
-    }
 
     // The shapes a live 5.3.0 and the 5.2.1 document answer for the same two profiles. The second one
     // carries what PoracleNG writes for a schedule entered as strings, which v2 hands back as integers.
@@ -1244,7 +932,6 @@ public class PoracleHumanProxyV2Tests
     private static PoracleV2Capabilities Geography() => new()
     {
         Read = true,
-        TrustedSetAreas = true,
     };
 
     [Fact]
@@ -1253,7 +940,7 @@ public class PoracleHumanProxyV2Tests
         var handler = new ScriptedHandler(
             new Reply(HttpStatusCode.OK, """{"areas":["aberdeen","my fence"],"rejected":[]}"""),
             new Reply(HttpStatusCode.OK, """{"status":"ok"}"""));
-        var sut = CreateSut(handler, capabilities: Geography(), areaSecurityConfirmedDisabled: true);
+        var sut = CreateSut(handler, capabilities: Geography());
 
         await sut.SetProfileGeographyAsync("user1", 4, ["Aberdeen", "my fence"], 40.25, -75.5);
 
@@ -1285,7 +972,7 @@ public class PoracleHumanProxyV2Tests
         var handler = new ScriptedHandler(
             new Reply(HttpStatusCode.OK, """{"areas":[],"rejected":[]}"""),
             new Reply(HttpStatusCode.OK, """{"status":"ok"}"""));
-        var sut = CreateSut(handler, capabilities: Geography(), areaSecurityConfirmedDisabled: false);
+        var sut = CreateSut(handler, capabilities: Geography());
 
         await sut.SetProfileGeographyAsync("user1", 4, [], 0, 0);
 
@@ -1299,7 +986,7 @@ public class PoracleHumanProxyV2Tests
     public async Task AMissingGeographyRouteMeansTheServerIsTooOld()
     {
         var handler = new ScriptedHandler(new Reply(HttpStatusCode.NotFound, RouteMissing, "text/plain"));
-        var sut = CreateSut(handler, capabilities: Geography(), areaSecurityConfirmedDisabled: true);
+        var sut = CreateSut(handler, capabilities: Geography());
 
         var ex = await Assert.ThrowsAsync<PoracleUnsupportedException>(
             () => sut.SetProfileGeographyAsync("user1", 4, ["aberdeen"], 1, 2));
@@ -1312,7 +999,7 @@ public class PoracleHumanProxyV2Tests
         var handler = ScriptedHandler.Problem(
             HttpStatusCode.UnprocessableEntity,
             """{"title":"Unprocessable Entity","status":422,"detail":"invalid latitude"}""");
-        var sut = CreateSut(handler, capabilities: Geography(), areaSecurityConfirmedDisabled: true);
+        var sut = CreateSut(handler, capabilities: Geography());
 
         await Assert.ThrowsAsync<PoracleRequestRefusedException>(
             () => sut.SetProfileGeographyAsync("user1", 4, [], 91, 0));
@@ -1419,20 +1106,24 @@ public class PoracleHumanProxyV2Tests
     }
 
     [Fact]
-    public async Task WhereTrustedIsNotSafeTheAreasAreSentUntrustedNotRefused()
+    public async Task ANewProfilesAreasAreAlwaysSentTrustedSoADuplicateKeepsTheUsersOwnFences()
     {
-        // Used to answer false and send the caller to a direct database write; then threw. PoracleNG filters
-        // an untrusted list itself, and what it drops is handled as any other rejected name.
+        // Used to go untrusted where area_security was on or unconfirmed, which dropped every drawn fence
+        // from a duplicated profile (they are userSelectable:false). PoracleNG 5.4.0 is the minimum, so
+        // trusted is always available and there is nothing to gate.
         var handler = new ScriptedHandler(
             new Reply(HttpStatusCode.OK, """{"areas":["aberdeen"],"rejected":[]}"""),
             new Reply(HttpStatusCode.OK, """{"status":"ok"}"""));
-        var sut = CreateSut(handler, areaSecurityConfirmedDisabled: false);
+        var sut = CreateSut(handler);
 
-        await sut.SetProfileGeographyAsync("user1", 4, ["aberdeen"], 1, 2);
+        await sut.SetProfileGeographyAsync("user1", 4, ["aberdeen", "my fence"], 1, 2);
 
         Assert.Equal(2, handler.Requests.Count);
         using var body = JsonDocument.Parse(handler.Requests[0].Body!);
-        Assert.False(body.RootElement.TryGetProperty("trusted", out _));
+        Assert.True(body.RootElement.GetProperty("trusted").GetBoolean());
+        Assert.Equal(
+            ["aberdeen", "my fence"],
+            body.RootElement.GetProperty("areas").EnumerateArray().Select(e => e.GetString()).ToList());
         Assert.Equal($"{ApiAddress}/api/v2/humans/user1/location?profile=4", handler.Requests[1].Url);
     }
 
@@ -1442,9 +1133,7 @@ public class PoracleHumanProxyV2Tests
         var handler = new ScriptedHandler(
             new Reply(HttpStatusCode.OK, """{"areas":["aberdeen"],"rejected":["Not Loaded Yet"]}"""),
             new Reply(HttpStatusCode.OK, """{"status":"ok"}"""));
-        var sut = CreateSut(
-            handler, capabilities: new PoracleV2Capabilities { Read = true, TrustedSetAreas = true },
-            areaSecurityConfirmedDisabled: true);
+        var sut = CreateSut(handler);
 
         await sut.SetProfileGeographyAsync("user1", 4, ["aberdeen", "not loaded yet"], 1, 2);
 
@@ -1486,12 +1175,220 @@ public class PoracleHumanProxyV2Tests
     private static string OpenApiFixture(string name, [System.Runtime.CompilerServices.CallerFilePath] string? here = null) =>
         Path.Combine(Path.GetDirectoryName(here)!, "..", "Fixtures", $"poracleng-openapi-{name}.json");
 
+    // ---- v2 area operations (sub-project 2) ----
+
+    [Fact]
+    public async Task SetAreasTrustedPostsTheWholeListWithTrustedAndReturnsRejected()
+    {
+        var handler = ScriptedHandler.Ok("""{"areas":["aberdeen"],"rejected":["ghost"]}""");
+        var sut = CreateSut(handler);
+
+        var rejected = await sut.SetAreasTrustedAsync("user1", ["aberdeen", "ghost"]);
+
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal(HttpMethod.Post, request.Method);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/areas", request.Url);
+        using var body = JsonDocument.Parse(request.Body!);
+        AssertConformsTo(body.RootElement, "V2SetAreasBody");
+        Assert.True(body.RootElement.GetProperty("trusted").GetBoolean());
+        Assert.Equal(["aberdeen", "ghost"], body.RootElement.GetProperty("areas").EnumerateArray().Select(e => e.GetString()));
+        Assert.Equal(["ghost"], rejected);
+    }
+
+    [Theory]
+    [InlineData("""{"areas":["a"],"rejected":null}""")]
+    [InlineData("""{"areas":["a"],"rejected":[]}""")]
+    [InlineData("""{"areas":["a"]}""")]
+    public async Task SetAreasTrustedReturnsEmptyWhenNothingWasRejected(string payload)
+    {
+        var rejected = await CreateSut(ScriptedHandler.Ok(payload)).SetAreasTrustedAsync("user1", ["a"]);
+
+        Assert.Empty(rejected);
+    }
+
+    [Fact]
+    public async Task SetAreasTrustedEscapesAWebhookId()
+    {
+        var handler = ScriptedHandler.Ok("""{"areas":[],"rejected":null}""");
+
+        await CreateSut(handler).SetAreasTrustedAsync("http://h:1/x", []);
+
+        Assert.Equal($"{ApiAddress}/api/v2/humans/http%3A%2F%2Fh%3A1%2Fx/areas", Assert.Single(handler.Requests).Url);
+    }
+
+    [Fact]
+    public async Task GetAreaListReadsTheActiveProfilesAreasLowercased()
+    {
+        var handler = ScriptedHandler.Ok("""{"human":{"id":"user1","area":"[\"Aberdeen\",\"Airport\"]"}}""");
+
+        var areas = await CreateSut(handler).GetAreaListAsync("user1");
+
+        Assert.Equal(["aberdeen", "airport"], areas);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1", Assert.Single(handler.Requests).Url);
+    }
+
+    [Fact]
+    public async Task GetAreaListThrowsWhenTheHumanIsGone()
+    {
+        var handler = ScriptedHandler.Problem(
+            HttpStatusCode.NotFound, """{"title":"Not Found","status":404,"detail":"human not found"}""");
+
+        await Assert.ThrowsAnyAsync<Exception>(() => CreateSut(handler).GetAreaListAsync("user1"));
+    }
+
+    [Fact]
+    public async Task GetAreaListThrowsWhenPoracleCannotAnswer()
+    {
+        var handler = ScriptedHandler.Problem(
+            HttpStatusCode.ServiceUnavailable, """{"title":"Service Unavailable","status":503,"detail":"db"}""");
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => CreateSut(handler).GetAreaListAsync("user1"));
+    }
+
+    [Fact]
+    public async Task GetAvailableAreasReadsNameSelectabilityAndExemption()
+    {
+        var handler = ScriptedHandler.Ok(
+            """{"areas":[{"name":"Aberdeen","group":"g","userSelectable":true,"exemptFromAreaSecurity":false},{"name":"hq","userSelectable":false,"exemptFromAreaSecurity":true}]}""");
+
+        var areas = await CreateSut(handler).GetAvailableAreasAsync("user1");
+
+        Assert.Equal(
+            [new V2AreaInfo("Aberdeen", true, false), new V2AreaInfo("hq", false, true)],
+            areas);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/areas", Assert.Single(handler.Requests).Url);
+    }
+
+    [Fact]
+    public async Task GetAvailableAreasTreatsANullListAsEmpty()
+    {
+        var areas = await CreateSut(ScriptedHandler.Ok("""{"areas":null}""")).GetAvailableAreasAsync("user1");
+
+        Assert.Empty(areas);
+    }
+
+    [Fact]
+    public async Task RemoveAreaEverywhereSendsNameAndAllProfilesAndParsesTheAnswer()
+    {
+        var handler = ScriptedHandler.Ok(
+            """{"name":"aberdeen","removed_from":[1,2],"broadened":{"raid":[672,673]},"dry_run":false}""");
+
+        var result = await CreateSut(handler).RemoveAreaEverywhereAsync("user1", "aberdeen", dryRun: false);
+
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal(HttpMethod.Delete, request.Method);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/areas?name=aberdeen&all_profiles=true", request.Url);
+        Assert.Equal([1, 2], result.RemovedFrom);
+        Assert.Equal([672, 673], result.Broadened["raid"]);
+        Assert.False(result.DryRun);
+    }
+
+    [Fact]
+    public async Task RemoveAreaEverywhereDryRunAddsTheFlagAndEncodesTheName()
+    {
+        var handler = ScriptedHandler.Ok("""{"name":"a b&c","removed_from":[1],"broadened":{},"dry_run":true}""");
+
+        var result = await CreateSut(handler).RemoveAreaEverywhereAsync("user1", "a b&c", dryRun: true);
+
+        Assert.Equal(
+            // Uri.ToString() shows a space decoded; the wire form is %20, and the &-escape is what matters here.
+            $"{ApiAddress}/api/v2/humans/user1/areas?name=a b%26c&all_profiles=true&dry_run=true",
+            Assert.Single(handler.Requests).Url);
+        Assert.Empty(result.Broadened);
+        Assert.True(result.DryRun);
+    }
+
+    [Theory]
+    [InlineData("""{"name":"x","removed_from":null,"broadened":null,"dry_run":false}""")]
+    [InlineData("""{"name":"x","dry_run":false}""")]
+    public async Task RemoveAreaEverywhereReadsNullAndMissingAsEmpty(string payload)
+    {
+        var result = await CreateSut(ScriptedHandler.Ok(payload)).RemoveAreaEverywhereAsync("user1", "x", dryRun: false);
+
+        Assert.Empty(result.RemovedFrom);
+        Assert.Empty(result.Broadened);
+    }
+
+    [Fact]
+    public async Task RemoveAreaEverywhereReadsANullUidListInsideBroadenedAsEmpty()
+    {
+        var result = await CreateSut(ScriptedHandler.Ok("""{"removed_from":[1],"broadened":{"raid":null},"dry_run":false}"""))
+            .RemoveAreaEverywhereAsync("user1", "x", dryRun: false);
+
+        Assert.Empty(result.Broadened["raid"]);
+    }
+
+    [Fact]
+    public async Task RenameAreaEverywhereSendsFromToAllProfilesAndTrusted()
+    {
+        var handler = ScriptedHandler.Ok("""{"from":"aiea","to":"airport","renamed_in":[1],"dry_run":false}""");
+
+        var result = await CreateSut(handler).RenameAreaEverywhereAsync("user1", "aiea", "airport", dryRun: false);
+
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal(HttpMethod.Patch, request.Method);
+        Assert.Equal(
+            $"{ApiAddress}/api/v2/humans/user1/areas?from=aiea&to=airport&all_profiles=true&trusted=true",
+            request.Url);
+        Assert.Equal([1], result.RenamedIn);
+        Assert.False(result.DryRun);
+    }
+
+    [Fact]
+    public async Task RenameAreaEverywhereDryRunAddsTheFlagAndEncodesBothNames()
+    {
+        var handler = ScriptedHandler.Ok("""{"from":"a b","to":"c&d","renamed_in":null,"dry_run":true}""");
+
+        var result = await CreateSut(handler).RenameAreaEverywhereAsync("user1", "a b", "c&d", dryRun: true);
+
+        Assert.Equal(
+            $"{ApiAddress}/api/v2/humans/user1/areas?from=a b&to=c%26d&all_profiles=true&trusted=true&dry_run=true",
+            Assert.Single(handler.Requests).Url);
+        Assert.Empty(result.RenamedIn);
+        Assert.True(result.DryRun);
+    }
+
+    public static TheoryData<string> AreaCalls =>
+        ["set", "list", "available", "remove", "rename"];
+
+    private static Task CallAreaOperation(PoracleHumanProxy sut, string which) => which switch
+    {
+        "set" => sut.SetAreasTrustedAsync("user1", ["a"]),
+        "list" => sut.GetAreaListAsync("user1"),
+        "available" => sut.GetAvailableAreasAsync("user1"),
+        "remove" => sut.RemoveAreaEverywhereAsync("user1", "a", false),
+        _ => sut.RenameAreaEverywhereAsync("user1", "a", "b", false),
+    };
+
+    [Theory]
+    [MemberData(nameof(AreaCalls))]
+    public async Task EveryNewAreaRouteReportsAServerWithoutItAsUnsupported(string which)
+    {
+        var handler = new ScriptedHandler(new Reply(HttpStatusCode.NotFound, RouteMissing, "text/plain"));
+
+        await Assert.ThrowsAsync<PoracleUnsupportedException>(() => CallAreaOperation(CreateSut(handler), which));
+    }
+
+    [Theory]
+    [InlineData("set")]
+    [InlineData("available")]
+    [InlineData("remove")]
+    [InlineData("rename")]
+    public async Task EveryNewAreaRouteCarriesPoracleNgsDetailOnARefusal(string which)
+    {
+        var handler = ScriptedHandler.Problem(
+            HttpStatusCode.UnprocessableEntity, """{"title":"Unprocessable Entity","status":422,"detail":"to is not a loaded fence"}""");
+
+        var ex = await Assert.ThrowsAsync<PoracleRequestRefusedException>(() => CallAreaOperation(CreateSut(handler), which));
+
+        Assert.Contains("to is not a loaded fence", ex.Message, StringComparison.Ordinal);
+    }
+
     private static JsonElement Body(string json) => JsonDocument.Parse(json).RootElement.Clone();
 
     private static PoracleHumanProxy CreateSut(
         ScriptedHandler handler,
-        PoracleV2Capabilities? capabilities = null,
-        bool areaSecurityConfirmedDisabled = false)
+        PoracleV2Capabilities? capabilities = null)
     {
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -1505,7 +1402,6 @@ public class PoracleHumanProxyV2Tests
             new HttpClient(handler),
             config,
             PoracleHumanProxyTests.V2Schema(capabilities),
-            PoracleHumanProxyTests.AreaSecurityPolicy(areaSecurityConfirmedDisabled),
             Mock.Of<ILogger<PoracleHumanProxy>>());
     }
 

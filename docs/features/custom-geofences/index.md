@@ -35,6 +35,21 @@ Why it's set up this way:
 
 The full breakdown is in [Troubleshooting → How the combined feed works](troubleshooting.md#how-the-combined-feed-works-background).
 
+## Creating, switching on and deleting
+
+PoracleWeb.NET never writes a user's area list itself. Creating, switching on or off, renaming and deleting a geofence all go through PoracleNG's own API (5.4.0 or later), and PoracleNG updates every profile it affects.
+
+**Saved, but not switched on.** A new geofence is saved first and switched on second. If the second step fails, the geofence still exists and the user sees "Saved, but it couldn't be switched on yet. Use the toggle to retry." Flipping the toggle on the Geofences page tries again. See [Troubleshooting](troubleshooting.md#a-geofence-saved-but-not-switched-on).
+
+**Deleting.** Deleting a geofence takes its name off every profile of the user. An alarm that was limited to that geofence alone would then have no area left and start matching the whole of the profile's areas, so the delete checks first. If no alarm is affected, it is the usual "are you sure". If some are, the dialog says how many ("3 alarms are limited to this fence.") and asks:
+
+- **Delete those alarms too** (the default). The alarms limited to this geofence are deleted on every profile, Pokéstop event alarms included.
+- **Keep them, using my profile's areas.** The alarms stay and match the areas on their profile instead.
+
+![The delete dialog for a geofence with three alarms limited to it, offering to delete those alarms too or keep them](../../screenshots/geofence-delete-choice.png)
+
+If PoracleNG can't remove the name, nothing is deleted: the geofence stays and the user can try again. Admins see the same question under Admin > Geofences, worded around the owner's alarms. Deleting a user account deletes the alarms along with the geofences.
+
 ## Importing and exporting shapes
 
 This is a user feature, not an admin one. The **My Geofences** page carries **Export** and **Import** buttons above the map, and every signed-in user sees both.

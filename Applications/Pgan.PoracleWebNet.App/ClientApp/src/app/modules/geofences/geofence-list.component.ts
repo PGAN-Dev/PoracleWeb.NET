@@ -11,7 +11,15 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 
-import { AreaDefinition, GeoJsonImportResult, GeofenceData, GeofenceRegion, UserGeofence } from '../../core/models';
+import {
+  AreaDefinition,
+  GeoJsonImportResult,
+  GeofenceAlarmsChoice,
+  GeofenceData,
+  GeofenceDeleteImpact,
+  GeofenceRegion,
+  UserGeofence,
+} from '../../core/models';
 import { AreaService } from '../../core/services/area.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { LocationService } from '../../core/services/location.service';
@@ -19,6 +27,10 @@ import { SettingsService } from '../../core/services/settings.service';
 import { UserGeofenceService } from '../../core/services/user-geofence.service';
 import { AreaMapComponent } from '../../shared/components/area-map/area-map.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
+import {
+  GeofenceDeleteDialogComponent,
+  GeofenceDeleteDialogData,
+} from '../../shared/components/geofence-delete-dialog/geofence-delete-dialog.component';
 import {
   GeofenceNameDialogComponent,
   GeofenceNameDialogData,
@@ -130,30 +142,56 @@ export class GeofenceListComponent implements OnInit {
   /** The profile pin for the map's opening view, or undefined when there is none to use. */
   readonly userLocation = signal<undefined | { lat: number; lng: number }>(undefined);
 
+  /**
+   * Deleting a fence also clears it from every alarm's override areas, so an alarm limited to this fence
+   * alone would start matching across the profile's areas. When any would, the user chooses what happens
+   * to them; otherwise it is the plain confirm.
+   */
   async deleteGeofence(geofence: UserGeofence): Promise<void> {
-    const ref = this.dialog.open(ConfirmDialogComponent, {
-      data: {
-        confirmText: this.i18n.instant('COMMON.DELETE'),
-        message: this.i18n.instant('GEOFENCES.CONFIRM_DELETE_MSG', { name: geofence.displayName }),
-        title: this.i18n.instant('GEOFENCES.CONFIRM_DELETE_TITLE'),
-        warn: true,
-      } as ConfirmDialogData,
-    });
-    const confirmed = await firstValueFrom(ref.afterClosed());
-    if (confirmed) {
-      this.userGeofenceService
-        .deleteGeofence(geofence.id)
-        .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe({
-          error: () =>
-            this.snackBar.open(this.i18n.instant('GEOFENCES.SNACK_FAILED_DELETE'), this.i18n.instant('TOAST.OK'), { duration: 3000 }),
-          next: () => {
-            this.customGeofences.update(list => list.filter(g => g.id !== geofence.id));
-            this.activeAreas.update(areas => areas.filter(a => a !== geofence.kojiName));
-            this.snackBar.open(this.i18n.instant('GEOFENCES.SNACK_DELETED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
-          },
-        });
+    let impact: GeofenceDeleteImpact;
+    try {
+      impact = await firstValueFrom(this.userGeofenceService.getDeleteImpact(geofence.id));
+    } catch {
+      this.snackBar.open(this.i18n.instant('GEOFENCES.SNACK_FAILED_DELETE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+      return;
     }
+
+    let alarms: GeofenceAlarmsChoice;
+    if (impact.total > 0) {
+      const ref = this.dialog.open<GeofenceDeleteDialogComponent, GeofenceDeleteDialogData, GeofenceAlarmsChoice | null>(
+        GeofenceDeleteDialogComponent,
+        { data: { name: geofence.displayName, count: impact.total } },
+      );
+      const choice = await firstValueFrom(ref.afterClosed());
+      if (!choice) return;
+      alarms = choice;
+    } else {
+      const ref = this.dialog.open(ConfirmDialogComponent, {
+        data: {
+          confirmText: this.i18n.instant('COMMON.DELETE'),
+          message: this.i18n.instant('GEOFENCES.CONFIRM_DELETE_MSG', { name: geofence.displayName }),
+          title: this.i18n.instant('GEOFENCES.CONFIRM_DELETE_TITLE'),
+          warn: true,
+        } as ConfirmDialogData,
+      });
+      if (!(await firstValueFrom(ref.afterClosed()))) return;
+      // Nothing was limited to the fence when asked. keep, so a rule scoped to it since then is not deleted
+      // behind the user's back.
+      alarms = 'keep';
+    }
+
+    this.userGeofenceService
+      .deleteGeofence(geofence.id, alarms)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        error: () =>
+          this.snackBar.open(this.i18n.instant('GEOFENCES.SNACK_FAILED_DELETE'), this.i18n.instant('TOAST.OK'), { duration: 3000 }),
+        next: () => {
+          this.customGeofences.update(list => list.filter(g => g.id !== geofence.id));
+          this.activeAreas.update(areas => areas.filter(a => a !== geofence.kojiName));
+          this.snackBar.open(this.i18n.instant('GEOFENCES.SNACK_DELETED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+        },
+      });
   }
 
   editGeofence(geofence: UserGeofence): void {
@@ -273,6 +311,11 @@ export class GeofenceListComponent implements OnInit {
           next: created => {
             this.savingGeofence.set(false);
             this.customGeofences.update(list => [...list, created]);
+            if (created.activationFailed) {
+              // Saved but not switched on: leave the toggle off so the user can retry with it.
+              this.snackBar.open(this.i18n.instant('GEOFENCES.SNACK_SAVED_NOT_ACTIVE'), this.i18n.instant('TOAST.OK'), { duration: 6000 });
+              return;
+            }
             this.activeAreas.update(areas => [...areas, created.kojiName]);
             this.snackBar.open(this.i18n.instant('GEOFENCES.SNACK_CREATED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           },

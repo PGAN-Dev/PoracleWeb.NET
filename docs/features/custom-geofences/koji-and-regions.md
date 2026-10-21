@@ -40,6 +40,13 @@ Then point your **PoracleNG** bot at PoracleWeb.NET's combined feed (a single UR
 
 That's the whole connection. If Koji goes down, PoracleWeb.NET keeps serving the private user geofences on their own, so notifications don't stop dead — see [Troubleshooting](troubleshooting.md#koji-is-down-what-happens).
 
+## Renames and approvals move the owner's subscriptions
+
+When a geofence is renamed, or approved under a different public name, the name in every profile that had it switched on has to change too. PoracleWeb.NET asks PoracleNG to do that across all of the owner's profiles, after telling PoracleNG to reload its geofences (the new name must be loaded first).
+
+- **A user's rename** is all-or-nothing. If PoracleNG can't move the name, the geofence gets its old name back and the user sees an error saying nothing was changed.
+- **An approval** goes ahead either way, because the geofence is already public in Koji. It tries the move twice. If both attempts fail, the admin sees "Approved, but the owner's areas weren't moved. They can pick the new area on the Areas page.", and the owner picks the public area again from the Areas page.
+
 ## Forcing a refresh after a change in Koji
 
 PoracleWeb.NET caches Koji's public-area list for 5 minutes. A change made directly in the Koji UI won't reach the feed until that expires — which is a problem for provisioning tools that create an area in Koji and then tell PoracleNG to reload: the reload re-reads the stale list, answers `{"status":"ok"}`, and the new area still isn't selectable.

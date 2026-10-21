@@ -56,7 +56,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IWebhookDelegateRepository, WebhookDelegateRepository>();
         services.AddScoped<IQuickPickDefinitionRepository, QuickPickDefinitionRepository>();
         services.AddScoped<IQuickPickAppliedStateRepository, QuickPickAppliedStateRepository>();
-        services.AddScoped<IUserAreaDualWriter, UserAreaDualWriter>();
+        services.AddScoped<IAlarmOverrideAreaWriter, AlarmOverrideAreaWriter>();
         services.AddScoped<IOidcSessionRepository, OidcSessionRepository>();
 
         // Register Services
@@ -85,12 +85,12 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IPvpRankService, PvpRankService>();
         services.AddScoped<IQuickPickService, QuickPickService>();
         services.AddScoped<IUserGeofenceService, UserGeofenceService>();
+        services.AddScoped<IUserAreaWriter, UserAreaWriter>();
         services.AddScoped<ISiteSettingService, SiteSettingService>();
         services.AddScoped<ISummaryCapabilityService, SummaryCapabilityService>();
         services.AddScoped<IPokemonEditCapabilityService, PokemonEditCapabilityService>();
         services.AddScoped<IInvasionGruntNameService, InvasionGruntNameService>();
         services.AddScoped<IUpstreamFeatureFlagService, UpstreamFeatureFlagService>();
-        services.AddScoped<IAreaSecurityPolicyService, AreaSecurityPolicyService>();
         services.AddScoped<IFeatureGate, FeatureGate>();
         services.AddScoped<IWebhookDelegateService, WebhookDelegateService>();
         services.AddScoped<ISettingsMigrationService, SettingsMigrationService>();
@@ -159,14 +159,14 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPoracleTrackingProxy>(sp => new UserOwnedOverrideAreaProxy(
             sp.GetRequiredService<PoracleTrackingProxy>(),
             sp.GetRequiredService<IUserGeofenceRepository>(),
-            sp.GetRequiredService<IUserAreaDualWriter>(),
+            sp.GetRequiredService<IAlarmOverrideAreaWriter>(),
             sp.GetRequiredService<ILogger<UserOwnedOverrideAreaProxy>>()));
 
         // Pokestop events (upstream "incident") are v2-only, so they get their own proxy rather than a
         // second wire shape inside the v1 one. Deliberately NOT wrapped in UserOwnedOverrideAreaProxy:
         // that decorator speaks v1's stored-row JSON, so confining a pokestop-event alarm to a
         // user-drawn geofence is refused by PoracleNG with its own message rather than being smuggled
-        // past. HACK: trusted-set-areas would need a v2 twin to change that.
+        // past. Giving it a v2 twin of that writer is what would change that.
         services.AddHttpClient<IPoracleIncidentProxy, PoracleIncidentProxy>();
 
         // Register HttpClient for PoracleNG human/profile proxy (replaces direct DB writes)
