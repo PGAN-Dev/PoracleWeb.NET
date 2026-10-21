@@ -594,16 +594,16 @@ Configure the end-session URL, leave `enable_oidc_slo` unset (or `true`), and re
 
 **Fix**: change it in Poracle's `config.toml`, not here. The flags are `disable_pokemon`, `disable_raid`, `disable_quest`, `disable_invasion`, `disable_lure`, `disable_nest`, `disable_gym`, `disable_max_battle`, `disable_fort_update` and `disable_showcase`. Restart Poracle afterwards; this site re-reads them within five minutes, or immediately on restart.
 
-!!! warning "Pokéstop Events is the one that fails closed"
+!!! warning "Pokéstop Events is read from a different place"
     You do not need to write `disable_showcase` into your `config.toml` to switch it on.
     `GET /api/config/values` reflects over the config Poracle actually loaded and reports the effective
     value, and the option is declared with a default of `false`, so a supported server answers `false`
     whether or not the line is present. Set it only when you want the feature **off**.
 
-    What does close the gate is a Poracle whose config this site cannot read at all, or one that answers
-    without the option: both resolve to off, deliberately, because showing a page whose route the server
-    cannot serve produces a page that only errors. If Pokéstop Events is missing and Poracle is
-    reachable, check the PoracleNG version on **Admin > Settings** before looking at the flag.
+    Only an explicit `true` hides the page. A Poracle whose config this site cannot read, or one that
+    answers without the option, leaves Pokéstop Events on, because every supported PoracleNG serves the
+    `incident` route. If the page is missing, Poracle is reporting `disable_showcase = true`; check
+    `GET /api/config/values` and the flag in `config.toml`.
 
     Unlike the others it does not travel in `disabledHooks`; it is read separately from
     `GET /api/config/values`, so the `jq .disabledHooks` check below will not show it.

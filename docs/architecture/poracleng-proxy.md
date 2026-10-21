@@ -76,7 +76,7 @@ usable default rather than failing the request:
 |---|---|---|
 | `GET /api/masterdata/monsters?locale={code}` | Pokemon names, types, form names and evolution chains, translated into the display language | Falls back to the English [WatWowMap masterfile](https://github.com/WatWowMap/Masterfile-Generator) cached server-side, so the pickers stay populated |
 | `GET /api/config/poracleWeb` &rarr; `disabledHooks` | The per-type disable flags Poracle sets in its own config, honoured here as a floor under the site settings | Empty set: the local `disable_*` settings are in sole charge. Fails **open**, deliberately |
-| `GET /api/config/values` &rarr; `general.disable_showcase` | Whether the Pokéstop Events page exists at all | Treated as disabled. This one probe fails **closed**, because a server that cannot answer it is also a server whose v2 `incident` route the page would 404 against |
+| `GET /api/config/values` &rarr; `general.disable_showcase` | Whether the Pokéstop Events page exists at all | Only `true` hides the page; absent or unreadable leaves it on, because every supported PoracleNG serves the v2 `incident` route |
 | `GET /api/config/values` &rarr; `tracking.quest_summary_enabled` | Whether quest summary delivery is offered | Treated as off, so the control is hidden rather than saving into a delivery nothing performs |
 
 Fort changes arrive in `disabledHooks` as `fort`

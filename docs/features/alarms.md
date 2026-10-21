@@ -512,13 +512,13 @@ rules you already had, and a Pokéstop Events count appears holding them. Nothin
 or moved — the same rows are being counted in two piles instead of one, and the overall total is
 unchanged.
 
-The split is conditional. Where the feature is unavailable — an older Poracle, or `disable_showcase`
-set — event rows stay listed and deletable under **Invasions**, and the invasion add dialog keeps
+The split is conditional. Where the feature is unavailable (Poracle reports `disable_showcase`
+as set), event rows stay listed and deletable under **Invasions**, and the invasion add dialog keeps
 offering the three events. The dashboard counts agree with whichever page the rows are on.
 
 The **Cleaning** page's invasion toggle leaves event rows alone — it would otherwise set the
 auto-delete bit on rules belonging to a page it never mentions. Where the Pokéstop Events page is
-unavailable (`disable_showcase`, or Poracle's config unreadable) it sweeps them along with the invasion
+unavailable (Poracle reports `disable_showcase = true`) it sweeps them along with the invasion
 rules, because then that switch is the only control you have over them.
 
 ### What this type does not do

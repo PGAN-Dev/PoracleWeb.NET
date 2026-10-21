@@ -30,7 +30,7 @@ The user-geofence area writes and the `override_areas` write are tagged `HACK: t
     **v1 applies no such filter**, so a Showcase rule created through `/api/v2/.../tracking/incident`
     comes straight back out of `GET /api/tracking/invasion/{id}`, verified against 5.2.1 and 5.4.0.
     `InvasionService` therefore does the partition itself — but only when the Pokéstop Events page
-    exists. Where it does not (`disable_showcase`, or Poracle's config unreadable), the event rows stay in the
+    exists. Where it does not (Poracle reports `disable_showcase = true`), the event rows stay in the
     invasion list, because filtering them out of the only page that can show them would leave alarms
     that fire and cannot be deleted.
 

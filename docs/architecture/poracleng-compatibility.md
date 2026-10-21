@@ -60,7 +60,7 @@ about alarms. A missing key there means unsupported, PoracleNG's own contract fo
 | Feature | Signal | Needs |
 |---|---|---|
 | Alarm edits and deletes through `/api/v2` | Version, then a plaintext 404 | A supported PoracleNG. A route that answers gin's plaintext `404 page not found` is remembered as absent for five minutes and the write goes to v1. Deletes fall back to v1 for a rule outside the active profile, which v2 refuses and v1 deletes |
-| Pokéstop-event tracking (`incident`) | Poracle's own `general.disable_showcase` | The key set to `false`. Absent or unreadable keeps the page hidden |
+| Pokéstop-event tracking (`incident`) | Poracle's own `general.disable_showcase` | Only `true` hides the page. Absent or unreadable leaves it on |
 | Invasion edits through `/api/v2` | Published schema, then game data | A `V2InvasionRule` declaring `grunt_type`, **and** that server's grunt masterdata listing the rule's own name |
 | Pokemon edit-in-place | Poracle's `tracking.pokemon_edit` config | The key `true`. Absent or unreadable hides the toggle |
 | Translated grunt display names | Response field | A `/api/masterdata/grunts` entry carrying `grunt_type` and `short_name` |
