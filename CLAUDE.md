@@ -1023,8 +1023,9 @@ the v1 branch of every single-human call and its per-route "v2 absent" flags,
 `MuteCapabilityService`, `PlaceUpdateCapabilityService`, `QuestPokecoinCapabilityService` and
 `CostumeCapabilityService` (with `GET /api/quests/capability` and `GET /api/settings/costume-capability`
 and the SPA's `canEdit`/`pingSupported`/capability conditionals), `ProbePokestopEventsAsync`, the legacy
-geocoder call, `Poracle:TrackingApiVersion`, and every `PoracleV2Capabilities` flag except two.
-`TrustedSetAreas` stays until areas move to v2 and `InvasionGruntType` until tracking does. What stayed
+geocoder call, `Poracle:TrackingApiVersion`, and every `PoracleV2Capabilities` flag except three.
+`TrustedSetAreas` stays until areas move to v2 and `InvasionGruntType` until tracking does; `Read` also
+survives, set but never read. What stayed
 is anything still needed by a later sub-project (`IUserAreaDualWriter`, every tracking v1 read, create
 and bulk path with its plaintext-404 fallback, `pweb_settings`, `PoracleContext`) or covering a newer
 build or fork.

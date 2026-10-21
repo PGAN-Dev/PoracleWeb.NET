@@ -663,7 +663,10 @@ public partial class PoracleHumanProxy(
 
         // 5.4.0 reports the number it assigned (PoracleNG picks the lowest free one, so it cannot be
         // predicted). A 200 without it is a server we cannot safely carry on with: guessing would file the
-        // profile's alarms under a number that may belong to nothing (#407).
+        // profile's alarms under a number that may belong to nothing (#407). The profile row already exists
+        // by now and nothing here deletes it, so a 200 without profile_no would leave it behind. 5.4.0's
+        // create always reports the number, which is why no rollback is written; if that stops being true
+        // the profile needs removing here.
         return ProfileNoFrom(await response.Content.ReadAsStringAsync())
             ?? throw new PoracleRequestRefusedException(
                 "PoracleNG created the profile but did not report its profile number.",

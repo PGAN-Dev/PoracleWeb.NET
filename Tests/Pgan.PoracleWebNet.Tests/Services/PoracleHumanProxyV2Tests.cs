@@ -1281,7 +1281,7 @@ public class PoracleHumanProxyV2Tests
     public async Task AnEmptyAreaListNeedsNoTrustSoItGoesThroughEvenWithAreaSecurityOn()
     {
         // Import always creates a profile with no areas. Nothing to trust, so area_security does not
-        // send it back to the direct write.
+        // change the request: it goes out untrusted, and the location call follows.
         var handler = new ScriptedHandler(
             new Reply(HttpStatusCode.OK, """{"areas":[],"rejected":[]}"""),
             new Reply(HttpStatusCode.OK, """{"status":"ok"}"""));

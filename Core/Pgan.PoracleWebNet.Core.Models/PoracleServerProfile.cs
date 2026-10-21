@@ -78,9 +78,9 @@ public sealed class PoracleServerProfile
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The one rule every version-decided feature shares: costume filters, quiet periods, Pokécoin quest
-    /// rewards, moving a saved place, and whether edits and deletes try <c>/api/v2</c>. Each of those
-    /// exists on 5.4.0, so on a supported server the answer is always yes.
+    /// Its only caller is <c>PoracleTrackingProxy.ServerCarriesV2Async</c>, which asks whether edits and
+    /// deletes may try <c>/api/v2</c>. Costume filters, quiet periods, Pokécoin quest rewards and moving a
+    /// saved place used to be decided here too; they exist on 5.4.0 and are no longer asked about.
     /// </para>
     /// <para>
     /// An unparseable version, or the <c>0.0.0</c> a locally built binary reports, counts as supported: a
