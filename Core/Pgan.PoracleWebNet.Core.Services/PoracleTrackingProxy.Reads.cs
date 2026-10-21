@@ -26,6 +26,11 @@ public partial class PoracleTrackingProxy
     /// </remarks>
     public async Task<JsonElement> GetByUserAsync(string type, string userId)
     {
+        if (type != "incident" && !SnapshotTypes.Contains(type))
+        {
+            throw new ArgumentException($"'{type}' is not a PoracleNG tracking type.", nameof(type));
+        }
+
         var rules = await this.ReadRulesAsync(type, userId);
         var rows = this.V1Rows(type, rules, userId);
 
@@ -42,7 +47,7 @@ public partial class PoracleTrackingProxy
     public async Task<JsonElement> GetAllTrackingAsync(string userId)
     {
         var snapshot = await this.ReadSnapshotAsync(userId, string.Empty, "All alarms");
-        return this.SnapshotAsV1(snapshot, userId, stampProfileNo: null, profiles: null);
+        return this.SnapshotAsV1(snapshot, userId, profiles: null, appended: null);
     }
 
     /// <inheritdoc />
@@ -56,28 +61,37 @@ public partial class PoracleTrackingProxy
     {
         var snapshot = await this.ReadSnapshotAsync(userId, "?all_profiles=true&include_descriptions=true", "All alarms");
 
-        if (HasProfiles(snapshot, out var profiles))
+        var profiles = ProfilesOf(snapshot);
+        var current = CurrentProfileNo(snapshot);
+
+        if (current is not null && ListsProfile(profiles, current.Value))
         {
-            return this.SnapshotAsV1(snapshot, userId, stampProfileNo: null, profiles);
+            return this.SnapshotAsV1(snapshot, userId, profiles, appended: null);
         }
 
         var active = await this.ReadSnapshotAsync(userId, "?include_descriptions=true", "All alarms");
-        var profileNo = CurrentProfileNo(active) ?? CurrentProfileNo(snapshot) ?? 0;
-        return this.SnapshotAsV1(active, userId, profileNo, profiles: null);
+        var activeNo = CurrentProfileNo(active) ?? current ?? 0;
+
+        // The active profile has no profiles row (so all_profiles skipped it), unless the active read
+        // says otherwise: then its rules are already in the first answer and must not be added twice.
+        return ListsProfile(profiles, activeNo)
+            ? this.SnapshotAsV1(snapshot, userId, profiles, appended: null)
+            : this.SnapshotAsV1(snapshot, userId, profiles, (active, activeNo));
     }
 
-    private static bool HasProfiles(JsonElement snapshot, out JsonElement profiles)
-    {
-        if (snapshot.TryGetProperty("profiles", out profiles)
-            && profiles.ValueKind == JsonValueKind.Array
-            && profiles.GetArrayLength() > 0)
-        {
-            return true;
-        }
+    private static JsonElement ProfilesOf(JsonElement snapshot) =>
+        snapshot.ValueKind == JsonValueKind.Object
+        && snapshot.TryGetProperty("profiles", out var profiles)
+        && profiles.ValueKind == JsonValueKind.Array
+            ? profiles
+            : JsonDocument.Parse("[]").RootElement;
 
-        profiles = default;
-        return false;
-    }
+    private static bool ListsProfile(JsonElement profiles, int profileNo) =>
+        profiles.EnumerateArray().Any(p =>
+            p.ValueKind == JsonValueKind.Object
+            && p.TryGetProperty("profile_no", out var no)
+            && no.ValueKind == JsonValueKind.Number
+            && no.GetInt32() == profileNo);
 
     private static int? CurrentProfileNo(JsonElement snapshot) =>
         snapshot.TryGetProperty("human", out var human)
@@ -207,25 +221,17 @@ public partial class PoracleTrackingProxy
     /// null come out as empty arrays; <c>incident</c> has no key of its own, its rules sit in
     /// <c>invasion</c>. The <c>profile</c> list is present only when the caller asked for it.
     /// </summary>
-    private JsonElement SnapshotAsV1(JsonElement snapshot, string userId, int? stampProfileNo, JsonElement? profiles)
+    private JsonElement SnapshotAsV1(JsonElement snapshot, string userId, JsonElement? profiles, (JsonElement Snapshot, int ProfileNo)? appended)
     {
-        var tracking = snapshot.ValueKind == JsonValueKind.Object
-            && snapshot.TryGetProperty("tracking", out var t)
-            && t.ValueKind == JsonValueKind.Object
-                ? t
-                : default;
-
         var output = new Dictionary<string, object>(StringComparer.Ordinal);
 
         foreach (var type in SnapshotTypes)
         {
-            var rules = tracking.ValueKind == JsonValueKind.Object && tracking.TryGetProperty(type, out var list) ? list : default;
-            var rows = this.V1Rows(type, rules, userId, stampProfileNo);
+            var rows = this.SnapshotRows(snapshot, type, userId, stampProfileNo: null);
 
-            if (type == "invasion")
+            if (appended is { } extra)
             {
-                var events = tracking.ValueKind == JsonValueKind.Object && tracking.TryGetProperty("incident", out var e) ? e : default;
-                rows.AddRange(this.EventRowsAsInvasions(this.V1Rows("incident", events, userId, stampProfileNo)));
+                rows.AddRange(this.SnapshotRows(extra.Snapshot, type, userId, extra.ProfileNo));
             }
 
             output[type] = rows;
@@ -237,13 +243,31 @@ public partial class PoracleTrackingProxy
                 .V1ProfilesFromV2($$"""{"profiles":{{supplied.GetRawText()}}}""")
                 .GetProperty("profile");
         }
-        else if (stampProfileNo is not null)
-        {
-            output["profile"] = Array.Empty<object>();
-        }
 
         output["status"] = "ok";
         return JsonSerializer.SerializeToElement(output);
+    }
+
+    /// <summary>One snapshot type as v1 rows; <c>invasion</c> carries the <c>incident</c> rules too.</summary>
+    private List<JsonElement> SnapshotRows(JsonElement snapshot, string type, string userId, int? stampProfileNo)
+    {
+        var tracking = snapshot.ValueKind == JsonValueKind.Object
+            && snapshot.TryGetProperty("tracking", out var t)
+            && t.ValueKind == JsonValueKind.Object
+                ? t
+                : default;
+
+        JsonElement Of(string key) =>
+            tracking.ValueKind == JsonValueKind.Object && tracking.TryGetProperty(key, out var list) ? list : default;
+
+        var rows = this.V1Rows(type, Of(type), userId, stampProfileNo);
+
+        if (type == "invasion")
+        {
+            rows.AddRange(this.EventRowsAsInvasions(this.V1Rows("incident", Of("incident"), userId, stampProfileNo)));
+        }
+
+        return rows;
     }
 
     [LoggerMessage(

@@ -315,6 +315,39 @@ public class PoracleTrackingProxyV2ReadTests
     }
 
     [Fact]
+    public async Task AnActiveProfileWithNoRowIsAppendedToTheListedProfiles()
+    {
+        var handler = new Router()
+            .On("all_profiles=true", """
+                {"human":{"current_profile_no":1},
+                 "profiles":[{"uid":2,"id":"user1","profile_no":2,"name":"b","area":[],"latitude":0,"longitude":0,"active_hours":[]}],
+                 "tracking":{"pokemon":[{"uid":6,"profile_no":2,"pokemon_id":26}]}}
+                """)
+            .On("/tracking?include_descriptions=true", """
+                {"human":{"current_profile_no":1},"profiles":[{"uid":2,"profile_no":2}],
+                 "tracking":{"pokemon":[{"uid":5,"pokemon_id":25}],"incident":[{"uid":9,"display_type":8}]}}
+                """);
+
+        var all = await CreateSut(handler).GetAllTrackingAllProfilesAsync("user1");
+
+        Assert.Equal(2, handler.Requests.Count);
+        var pokemon = all.GetProperty("pokemon").EnumerateArray().ToList();
+        Assert.Equal([(6, 2), (5, 1)], pokemon.Select(r => (r.GetProperty("uid").GetInt32(), r.GetProperty("profile_no").GetInt32())));
+        Assert.Equal(1, all.GetProperty("invasion")[0].GetProperty("profile_no").GetInt32());
+        Assert.Equal(1, all.GetProperty("profile").GetArrayLength());
+    }
+
+    [Fact]
+    public async Task AnUnknownTypeThrowsBeforeAnyRequest()
+    {
+        var handler = new Router();
+
+        await Assert.ThrowsAsync<ArgumentException>(() => CreateSut(handler).GetByUserAsync("unknown_type", "user1"));
+
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
     public async Task AHumanWithProfilesDoesNotNeedTheFallback()
     {
         var handler = new Router().On("/tracking", AllProfiles);
