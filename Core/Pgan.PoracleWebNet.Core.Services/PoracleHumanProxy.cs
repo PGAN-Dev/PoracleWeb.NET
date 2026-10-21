@@ -500,6 +500,110 @@ public partial class PoracleHumanProxy(
     }
 
     /// <inheritdoc />
+    public async Task<IReadOnlyList<string>> SetAreasTrustedAsync(string userId, IReadOnlyCollection<string> areas)
+    {
+        var body = JsonSerializer.Serialize(new { areas, trusted = true });
+        var response = await this.SendV2Async(HttpMethod.Post, $"/api/v2/humans/{Encode(userId)}/areas", "setting areas", body);
+        await EnsureAcceptedAsync(response);
+
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var rejected = StringList(doc.RootElement, "rejected");
+        if (rejected.Count > 0)
+        {
+            // Trusted lifts userSelectable, not "exists at all": a rejected name is a fence PoracleNG has
+            // not loaded or a stale entry. The caller decides what that means for the save.
+            LogTrustedAreasRejected(this._logger, userId, string.Join(", ", rejected));
+        }
+
+        return rejected;
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<string>> GetAreaListAsync(string userId)
+    {
+        // GetHumanAsync throws on any failed answer except a missing human, which is null. A missing
+        // human has no list to read, and answering empty would let a caller write a replacement over it.
+        var human = await this.GetHumanAsync(userId) ?? throw new AccountGoneException();
+        var areaJson = human.GetAreaListJsonOrNull("area");
+        return AreaListJson.Parse(areaJson).Select(a => a.ToLowerInvariant()).ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<V2AreaInfo>> GetAvailableAreasAsync(string userId)
+    {
+        var response = await this.SendV2Async(HttpMethod.Get, $"/api/v2/humans/{Encode(userId)}/areas", "listing areas");
+        await EnsureAcceptedAsync(response);
+
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        if (!doc.RootElement.TryGetProperty("areas", out var areas) || areas.ValueKind != JsonValueKind.Array)
+        {
+            return [];
+        }
+
+        return areas.EnumerateArray()
+            .Where(a => a.ValueKind == JsonValueKind.Object && a.TryGetProperty("name", out var n) && n.ValueKind == JsonValueKind.String)
+            .Select(a => new V2AreaInfo(
+                a.GetProperty("name").GetString()!,
+                BoolOrFalse(a, "userSelectable"),
+                BoolOrFalse(a, "exemptFromAreaSecurity")))
+            .ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task<AreaRemovalResult> RemoveAreaEverywhereAsync(string userId, string name, bool dryRun)
+    {
+        var path = $"/api/v2/humans/{Encode(userId)}/areas?name={Uri.EscapeDataString(name)}&all_profiles=true"
+            + (dryRun ? "&dry_run=true" : string.Empty);
+        var response = await this.SendV2Async(HttpMethod.Delete, path, "removing an area");
+        await EnsureAcceptedAsync(response);
+
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var root = doc.RootElement;
+
+        var broadened = new Dictionary<string, IReadOnlyList<int>>(StringComparer.Ordinal);
+        if (root.TryGetProperty("broadened", out var map) && map.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var type in map.EnumerateObject())
+            {
+                broadened[type.Name] = IntList(type.Value);
+            }
+        }
+
+        return new AreaRemovalResult(
+            root.TryGetProperty("removed_from", out var removed) ? IntList(removed) : [],
+            broadened,
+            BoolOrFalse(root, "dry_run"));
+    }
+
+    /// <inheritdoc />
+    public async Task<AreaRenameResult> RenameAreaEverywhereAsync(string userId, string from, string to, bool dryRun)
+    {
+        var path = $"/api/v2/humans/{Encode(userId)}/areas?from={Uri.EscapeDataString(from)}&to={Uri.EscapeDataString(to)}"
+            + "&all_profiles=true&trusted=true" + (dryRun ? "&dry_run=true" : string.Empty);
+        var response = await this.SendV2Async(HttpMethod.Patch, path, "renaming an area");
+        await EnsureAcceptedAsync(response);
+
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var root = doc.RootElement;
+        return new AreaRenameResult(
+            root.TryGetProperty("renamed_in", out var renamed) ? IntList(renamed) : [],
+            BoolOrFalse(root, "dry_run"));
+    }
+
+    private static bool BoolOrFalse(JsonElement element, string property) =>
+        element.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.True;
+
+    private static List<int> IntList(JsonElement element) =>
+        element.ValueKind == JsonValueKind.Array
+            ? element.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.Number).Select(e => e.GetInt32()).ToList()
+            : [];
+
+    private static List<string> StringList(JsonElement root, string property) =>
+        root.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.Array
+            ? value.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.String).Select(e => e.GetString()!).ToList()
+            : [];
+
+    /// <inheritdoc />
     /// <remarks>
     /// <para>
     /// Areas first, then location, each addressed to the profile by <c>?profile=</c>. Verified on the 5.3.0

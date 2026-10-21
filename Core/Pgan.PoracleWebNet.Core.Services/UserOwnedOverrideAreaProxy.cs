@@ -62,6 +62,9 @@ public partial class UserOwnedOverrideAreaProxy(
     public Task BulkDeleteByUidsAsync(string type, string userId, IEnumerable<int> uids) =>
         this._inner.BulkDeleteByUidsAsync(type, userId, uids);
 
+    public Task<IReadOnlyList<int>> BulkDeleteByUidsOnProfileAsync(string type, string userId, IReadOnlyList<int> uids, int profileNo) =>
+        this._inner.BulkDeleteByUidsOnProfileAsync(type, userId, uids, profileNo);
+
     public Task<JsonElement> GetAllTrackingAsync(string userId) =>
         this._inner.GetAllTrackingAsync(userId);
 

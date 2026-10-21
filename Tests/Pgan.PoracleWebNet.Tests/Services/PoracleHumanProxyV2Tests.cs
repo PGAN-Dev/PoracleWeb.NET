@@ -1486,6 +1486,214 @@ public class PoracleHumanProxyV2Tests
     private static string OpenApiFixture(string name, [System.Runtime.CompilerServices.CallerFilePath] string? here = null) =>
         Path.Combine(Path.GetDirectoryName(here)!, "..", "Fixtures", $"poracleng-openapi-{name}.json");
 
+    // ---- v2 area operations (sub-project 2) ----
+
+    [Fact]
+    public async Task SetAreasTrustedPostsTheWholeListWithTrustedAndReturnsRejected()
+    {
+        var handler = ScriptedHandler.Ok("""{"areas":["aberdeen"],"rejected":["ghost"]}""");
+        var sut = CreateSut(handler);
+
+        var rejected = await sut.SetAreasTrustedAsync("user1", ["aberdeen", "ghost"]);
+
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal(HttpMethod.Post, request.Method);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/areas", request.Url);
+        using var body = JsonDocument.Parse(request.Body!);
+        Assert.True(body.RootElement.GetProperty("trusted").GetBoolean());
+        Assert.Equal(["aberdeen", "ghost"], body.RootElement.GetProperty("areas").EnumerateArray().Select(e => e.GetString()));
+        Assert.Equal(["ghost"], rejected);
+    }
+
+    [Theory]
+    [InlineData("""{"areas":["a"],"rejected":null}""")]
+    [InlineData("""{"areas":["a"],"rejected":[]}""")]
+    [InlineData("""{"areas":["a"]}""")]
+    public async Task SetAreasTrustedReturnsEmptyWhenNothingWasRejected(string payload)
+    {
+        var rejected = await CreateSut(ScriptedHandler.Ok(payload)).SetAreasTrustedAsync("user1", ["a"]);
+
+        Assert.Empty(rejected);
+    }
+
+    [Fact]
+    public async Task SetAreasTrustedEscapesAWebhookId()
+    {
+        var handler = ScriptedHandler.Ok("""{"areas":[],"rejected":null}""");
+
+        await CreateSut(handler).SetAreasTrustedAsync("http://h:1/x", []);
+
+        Assert.Equal($"{ApiAddress}/api/v2/humans/http%3A%2F%2Fh%3A1%2Fx/areas", Assert.Single(handler.Requests).Url);
+    }
+
+    [Fact]
+    public async Task GetAreaListReadsTheActiveProfilesAreasLowercased()
+    {
+        var handler = ScriptedHandler.Ok("""{"human":{"id":"user1","area":"[\"Aberdeen\",\"Airport\"]"}}""");
+
+        var areas = await CreateSut(handler).GetAreaListAsync("user1");
+
+        Assert.Equal(["aberdeen", "airport"], areas);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1", Assert.Single(handler.Requests).Url);
+    }
+
+    [Fact]
+    public async Task GetAreaListThrowsWhenTheHumanIsGone()
+    {
+        var handler = ScriptedHandler.Problem(
+            HttpStatusCode.NotFound, """{"title":"Not Found","status":404,"detail":"human not found"}""");
+
+        await Assert.ThrowsAnyAsync<Exception>(() => CreateSut(handler).GetAreaListAsync("user1"));
+    }
+
+    [Fact]
+    public async Task GetAreaListThrowsWhenPoracleCannotAnswer()
+    {
+        var handler = ScriptedHandler.Problem(
+            HttpStatusCode.ServiceUnavailable, """{"title":"Service Unavailable","status":503,"detail":"db"}""");
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => CreateSut(handler).GetAreaListAsync("user1"));
+    }
+
+    [Fact]
+    public async Task GetAvailableAreasReadsNameSelectabilityAndExemption()
+    {
+        var handler = ScriptedHandler.Ok(
+            """{"areas":[{"name":"Aberdeen","group":"g","userSelectable":true,"exemptFromAreaSecurity":false},{"name":"hq","userSelectable":false,"exemptFromAreaSecurity":true}]}""");
+
+        var areas = await CreateSut(handler).GetAvailableAreasAsync("user1");
+
+        Assert.Equal(
+            [new V2AreaInfo("Aberdeen", true, false), new V2AreaInfo("hq", false, true)],
+            areas);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/areas", Assert.Single(handler.Requests).Url);
+    }
+
+    [Fact]
+    public async Task GetAvailableAreasTreatsANullListAsEmpty()
+    {
+        var areas = await CreateSut(ScriptedHandler.Ok("""{"areas":null}""")).GetAvailableAreasAsync("user1");
+
+        Assert.Empty(areas);
+    }
+
+    [Fact]
+    public async Task RemoveAreaEverywhereSendsNameAndAllProfilesAndParsesTheAnswer()
+    {
+        var handler = ScriptedHandler.Ok(
+            """{"name":"aberdeen","removed_from":[1,2],"broadened":{"raid":[672,673]},"dry_run":false}""");
+
+        var result = await CreateSut(handler).RemoveAreaEverywhereAsync("user1", "aberdeen", dryRun: false);
+
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal(HttpMethod.Delete, request.Method);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/areas?name=aberdeen&all_profiles=true", request.Url);
+        Assert.Equal([1, 2], result.RemovedFrom);
+        Assert.Equal([672, 673], result.Broadened["raid"]);
+        Assert.False(result.DryRun);
+    }
+
+    [Fact]
+    public async Task RemoveAreaEverywhereDryRunAddsTheFlagAndEncodesTheName()
+    {
+        var handler = ScriptedHandler.Ok("""{"name":"a b&c","removed_from":[1],"broadened":{},"dry_run":true}""");
+
+        var result = await CreateSut(handler).RemoveAreaEverywhereAsync("user1", "a b&c", dryRun: true);
+
+        Assert.Equal(
+            // Uri.ToString() shows a space decoded; the wire form is %20, and the &-escape is what matters here.
+            $"{ApiAddress}/api/v2/humans/user1/areas?name=a b%26c&all_profiles=true&dry_run=true",
+            Assert.Single(handler.Requests).Url);
+        Assert.Empty(result.Broadened);
+        Assert.True(result.DryRun);
+    }
+
+    [Theory]
+    [InlineData("""{"name":"x","removed_from":null,"broadened":null,"dry_run":false}""")]
+    [InlineData("""{"name":"x","dry_run":false}""")]
+    public async Task RemoveAreaEverywhereReadsNullAndMissingAsEmpty(string payload)
+    {
+        var result = await CreateSut(ScriptedHandler.Ok(payload)).RemoveAreaEverywhereAsync("user1", "x", dryRun: false);
+
+        Assert.Empty(result.RemovedFrom);
+        Assert.Empty(result.Broadened);
+    }
+
+    [Fact]
+    public async Task RemoveAreaEverywhereReadsANullUidListInsideBroadenedAsEmpty()
+    {
+        var result = await CreateSut(ScriptedHandler.Ok("""{"removed_from":[1],"broadened":{"raid":null},"dry_run":false}"""))
+            .RemoveAreaEverywhereAsync("user1", "x", dryRun: false);
+
+        Assert.Empty(result.Broadened["raid"]);
+    }
+
+    [Fact]
+    public async Task RenameAreaEverywhereSendsFromToAllProfilesAndTrusted()
+    {
+        var handler = ScriptedHandler.Ok("""{"from":"aiea","to":"airport","renamed_in":[1],"dry_run":false}""");
+
+        var result = await CreateSut(handler).RenameAreaEverywhereAsync("user1", "aiea", "airport", dryRun: false);
+
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal(HttpMethod.Patch, request.Method);
+        Assert.Equal(
+            $"{ApiAddress}/api/v2/humans/user1/areas?from=aiea&to=airport&all_profiles=true&trusted=true",
+            request.Url);
+        Assert.Equal([1], result.RenamedIn);
+        Assert.False(result.DryRun);
+    }
+
+    [Fact]
+    public async Task RenameAreaEverywhereDryRunAddsTheFlagAndEncodesBothNames()
+    {
+        var handler = ScriptedHandler.Ok("""{"from":"a b","to":"c&d","renamed_in":null,"dry_run":true}""");
+
+        var result = await CreateSut(handler).RenameAreaEverywhereAsync("user1", "a b", "c&d", dryRun: true);
+
+        Assert.Equal(
+            $"{ApiAddress}/api/v2/humans/user1/areas?from=a b&to=c%26d&all_profiles=true&trusted=true&dry_run=true",
+            Assert.Single(handler.Requests).Url);
+        Assert.Empty(result.RenamedIn);
+        Assert.True(result.DryRun);
+    }
+
+    public static TheoryData<string> AreaCalls =>
+        ["set", "list", "available", "remove", "rename"];
+
+    private static Task CallAreaOperation(PoracleHumanProxy sut, string which) => which switch
+    {
+        "set" => sut.SetAreasTrustedAsync("user1", ["a"]),
+        "list" => sut.GetAreaListAsync("user1"),
+        "available" => sut.GetAvailableAreasAsync("user1"),
+        "remove" => sut.RemoveAreaEverywhereAsync("user1", "a", false),
+        _ => sut.RenameAreaEverywhereAsync("user1", "a", "b", false),
+    };
+
+    [Theory]
+    [MemberData(nameof(AreaCalls))]
+    public async Task EveryNewAreaRouteReportsAServerWithoutItAsUnsupported(string which)
+    {
+        var handler = new ScriptedHandler(new Reply(HttpStatusCode.NotFound, RouteMissing, "text/plain"));
+
+        await Assert.ThrowsAsync<PoracleUnsupportedException>(() => CallAreaOperation(CreateSut(handler), which));
+    }
+
+    [Theory]
+    [InlineData("set")]
+    [InlineData("available")]
+    [InlineData("remove")]
+    [InlineData("rename")]
+    public async Task EveryNewAreaRouteCarriesPoracleNgsDetailOnARefusal(string which)
+    {
+        var handler = ScriptedHandler.Problem(
+            HttpStatusCode.UnprocessableEntity, """{"title":"Unprocessable Entity","status":422,"detail":"to is not a loaded fence"}""");
+
+        var ex = await Assert.ThrowsAsync<PoracleRequestRefusedException>(() => CallAreaOperation(CreateSut(handler), which));
+
+        Assert.Contains("to is not a loaded fence", ex.Message, StringComparison.Ordinal);
+    }
+
     private static JsonElement Body(string json) => JsonDocument.Parse(json).RootElement.Clone();
 
     private static PoracleHumanProxy CreateSut(

@@ -125,6 +125,35 @@ public interface IPoracleHumanProxy
     public Task<bool?> RemoveAreaFromActiveProfileTrustedAsync(string userId, string areaName);
 
     /// <summary>
+    /// Replaces the active profile's whole area list with <paramref name="areas"/> via
+    /// <c>POST /api/v2/humans/{id}/areas</c> with <c>trusted: true</c>.
+    /// </summary>
+    /// <returns>The names PoracleNG left out (its <c>rejected</c> list); empty when it kept everything.</returns>
+    public Task<IReadOnlyList<string>> SetAreasTrustedAsync(string userId, IReadOnlyCollection<string> areas);
+
+    /// <summary>
+    /// The active profile's current area list, lowercased, from the v2 human read. Throws when it cannot
+    /// be read (including a missing human); there is no null and no fallback.
+    /// </summary>
+    public Task<IReadOnlyList<string>> GetAreaListAsync(string userId);
+
+    /// <summary>The fences <c>GET /api/v2/humans/{id}/areas</c> lists for this human.</summary>
+    public Task<IReadOnlyList<V2AreaInfo>> GetAvailableAreasAsync(string userId);
+
+    /// <summary>
+    /// Removes <paramref name="name"/> from every profile of the human (<c>DELETE .../areas?all_profiles=true</c>).
+    /// With <paramref name="dryRun"/> nothing is written and the result says what would happen.
+    /// </summary>
+    public Task<AreaRemovalResult> RemoveAreaEverywhereAsync(string userId, string name, bool dryRun);
+
+    /// <summary>
+    /// Renames <paramref name="from"/> to <paramref name="to"/> in every profile
+    /// (<c>PATCH .../areas?all_profiles=true&amp;trusted=true</c>). <paramref name="to"/> must already be loaded
+    /// in PoracleNG.
+    /// </summary>
+    public Task<AreaRenameResult> RenameAreaEverywhereAsync(string userId, string from, string to, bool dryRun);
+
+    /// <summary>
     /// Switches the user's active profile. PoracleNG handles the area save/load
     /// dual-write atomically.
     /// Maps to POST /api/v2/humans/{userId}/profile
