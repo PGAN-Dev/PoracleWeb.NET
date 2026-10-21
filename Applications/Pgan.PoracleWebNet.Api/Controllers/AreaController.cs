@@ -15,6 +15,8 @@ namespace Pgan.PoracleWebNet.Api.Controllers;
 // user to the dashboard. Turning off area editing took the separately-toggled geofence page with it.
 // disable_areas means area subscriptions cannot be CHANGED; it never meant they cannot be seen.
 // See #506, #515, #516.
+// Every outbound HTTP call here is PoracleNG (the human and API proxies); the geofence lookup is the local database.
+[TypeFilter(typeof(PoracleUnreachableExceptionFilter))]
 [Route("api/areas")]
 public partial class AreaController(
     IPoracleHumanProxy humanProxy,

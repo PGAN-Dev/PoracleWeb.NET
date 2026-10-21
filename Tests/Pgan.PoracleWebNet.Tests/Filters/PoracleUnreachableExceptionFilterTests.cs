@@ -91,6 +91,12 @@ public class PoracleUnreachableExceptionFilterTests
             typeof(QuestController).GetCustomAttributes<TypeFilterAttribute>(),
             a => a.ImplementationType == typeof(PoracleUnreachableExceptionFilter));
 
+    [Fact]
+    public void AreaControllerCarriesTheFilter() =>
+        Assert.Contains(
+            typeof(AreaController).GetCustomAttributes<TypeFilterAttribute>(),
+            a => a.ImplementationType == typeof(PoracleUnreachableExceptionFilter));
+
     public static TheoryData<Type> AlarmControllers() =>
     [
         typeof(MonsterController),
