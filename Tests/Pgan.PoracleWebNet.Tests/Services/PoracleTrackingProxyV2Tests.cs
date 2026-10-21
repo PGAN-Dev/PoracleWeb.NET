@@ -332,27 +332,37 @@ public class PoracleTrackingProxyV2Tests
     }
 
     /// <summary>
-    /// The one row-level refusal in this file that isn't about what v2 will accept. Falling back to v1 is
-    /// safe for every other untranslatable field — v1 stores what it is given — but not for <c>ping</c>:
-    /// verified live, against both a stock jfberry/PoracleNG <c>develop</c> build and the private fork
-    /// running the same commit, that v1's write handler blanks it unconditionally, field present, changed
-    /// or omitted, create or update. The in-code claim this replaces ("falls back to v1, which keeps it")
-    /// was never actually checked against what PoracleNG does with the write — only that the outgoing
-    /// request carried the right value — and was wrong.
+    /// PoracleNG 5.4.0 stores <c>ping</c> on every v2 write, so a set mention is no reason to refuse an
+    /// edit or to leave v2. A row v2 cannot carry for some other reason still goes to v1 unchanged.
     /// </summary>
-    [Theory]
-    [InlineData("""{"uid":7,"pokemon_id":25,"some_field_from_a_newer_poracle":4,"ping":"<@&400027130022592512>"}""")]
-    [InlineData("""{"uid":7,"pokemon_id":25,"min_iv":90,"ping":"<@&400027130022592512>"}""")]
-    public async Task ARowWithAPingNeverFallsBackToV1Silently(string row)
+    [Fact]
+    public async Task ARowWithAPingRidesV2WithoutAnyCapabilityProbe()
+    {
+        const string row = """{"uid":7,"pokemon_id":25,"min_iv":90,"ping":"<@&400027130022592512>"}""";
+        var handler = ScriptedHandler.Ok("""{"created":null,"updated":[{"pokemon_id":25,"min_iv":90,"uid":8}],"unchanged":null}""");
+        var sut = CreateSut(handler, version: "5.4.0");
+
+        var result = await sut.UpdateByUidAsync("pokemon", "user1", 7, Row(row));
+
+        Assert.True(result.UsedV2);
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/tracking/pokemon/7?silent=true", request.Url);
+        using var body = JsonDocument.Parse(request.Body!);
+        Assert.Equal("<@&400027130022592512>", body.RootElement.GetProperty("ping").GetString());
+    }
+
+    [Fact]
+    public async Task ARowWithAPingAndAnUnrelatedUntranslatableFieldStillEditsOnV1NotRefused()
     {
         var handler = ScriptedHandler.Ok("""{"newUids":[7],"alreadyPresent":0,"updates":1,"insert":0}""");
         var sut = CreateSut(handler, version: "5.4.0");
 
-        var exception = await Assert.ThrowsAsync<AlarmValidationException>(
-            () => sut.UpdateByUidAsync("pokemon", "user1", 7, Row(row)));
+        var result = await sut.UpdateByUidAsync(
+            "pokemon", "user1", 7,
+            Row("""{"uid":7,"pokemon_id":25,"some_field_from_a_newer_poracle":4,"ping":"<@&400027130022592512>"}"""));
 
-        Assert.Contains("mention", exception.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Empty(handler.Requests);
+        Assert.False(result.UsedV2);
+        Assert.Equal($"{ApiAddress}/api/tracking/pokemon/user1?silent=true", Assert.Single(handler.Requests).Url);
     }
 
     [Fact]
@@ -387,50 +397,14 @@ public class PoracleTrackingProxyV2Tests
     }
 
 
-    /// <summary>
-    /// <c>V2PokemonRule.ping</c>, from jfberry/PoracleNG#249. Whether a set ping stays on v1 or now
-    /// rides v2 depends on whether the target server carries the fix, read the same way as every other
-    /// v2 capability — see <see cref="PoracleV2Capabilities.TrackingPing"/>.
-    /// </summary>
-    private static PoracleV2Capabilities WithPing() => new() { Read = true, TrackingPing = true };
-
-    // The "server predates the fix" half lives with ARowWithAPingNeverFallsBackToV1Silently above: on
-    // every released server this refuses the edit outright now, rather than silently falling back to a
-    // v1 write that was never actually safe.
-
     [Fact]
-    public async Task ASetPingRidesV2OnceTheServerCarriesTheFix()
-    {
-        // The other half of the test above, same row, the one thing that changed is the capability —
-        // verified live against poracle-ng-dev once it carried #249: the mention genuinely persists
-        // through a v2 PUT, read back from v1 as ground truth rather than trusted from the v2 echo alone.
-        const string WithPingSet = """
-            {"uid":7,"pokemon_id":25,"min_iv":90,"ping":"<@&400027130022592512>"}
-            """;
-
-        var handler = ScriptedHandler.Ok("""{"created":null,"updated":[{"pokemon_id":25,"min_iv":90,"uid":8}],"unchanged":null}""");
-        var sut = CreateSut(handler, version: "5.4.0", capabilities: WithPing());
-
-        var result = await sut.UpdateByUidAsync("pokemon", "user1", 7, Row(WithPingSet));
-
-        Assert.True(result.UsedV2);
-        var request = Assert.Single(handler.Requests);
-        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/tracking/pokemon/7?silent=true", request.Url);
-
-        using var body = JsonDocument.Parse(request.Body!);
-        Assert.Equal("<@&400027130022592512>", body.RootElement.GetProperty("ping").GetString());
-    }
-
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task AnEmptyPingIsStillDroppedAndTheRowStaysOnV2EitherWay(bool pingSupported)
+    public async Task AnEmptyPingIsStillDroppedAndTheRowStaysOnV2()
     {
         // The legitimate-case half: 18488 of 18490 production rules carry no ping, and v2 would store the
         // same empty string whether or not this server carries #249, so those must not all be pushed onto
         // v1 by the guard above regardless of the capability.
         var handler = ScriptedHandler.Ok(RotatedOk);
-        var sut = CreateSut(handler, version: "5.4.0", capabilities: pingSupported ? WithPing() : PoracleV2Capabilities.None);
+        var sut = CreateSut(handler, version: "5.4.0");
 
         await sut.UpdateByUidAsync(
             "pokemon", "user1", 7, Row("""{"uid":7,"pokemon_id":25,"min_iv":90,"ping":""}"""));
@@ -824,25 +798,20 @@ public class PoracleTrackingProxyV2Tests
         Assert.True((await sut.UpdateByUidAsync("pokemon", "user1", 36486, Row(StoredRow))).UsedV2);
     }
 
-    /// <summary>
-    /// The ping guard lives on <c>TryReplaceV2Async</c>, the one method both architectures share:
-    /// <c>MonsterService</c> calls <c>UpdateByUidAsync</c> directly, and the other nine reach the same
-    /// method through <see cref="TrackingV2Replacement.TryApplyAsync"/>. Invasion exercises that second
-    /// path and has its own grunt-type gate besides, so this is also proof the two gates do not interfere.
-    /// </summary>
     [Fact]
-    public async Task ARowWithAPingNeverFallsBackToV1SilentlyOnTheOtherNineTypesEither()
+    public async Task ARowWithAPingRidesV2OnTheOtherNineTypesEither()
     {
         var handler = ScriptedHandler.Ok("""{"newUids":[412],"alreadyPresent":0,"updates":1,"insert":0}""");
-        var sut = CreateSut(handler, version: "5.4.0", capabilities: PoracleV2Capabilities.None, gruntNames: ["water"]);
+        var sut = CreateSut(handler, version: "5.4.0", capabilities: WithGruntType(), gruntNames: ["water"]);
 
         var row = InvasionRow.Replace("\"ping\":\"\"", "\"ping\":\"<@&400027130022592512>\"", StringComparison.Ordinal);
 
-        var exception = await Assert.ThrowsAsync<AlarmValidationException>(
-            () => sut.UpdateByUidAsync("invasion", "user1", 412, Row(row)));
+        await sut.UpdateByUidAsync("invasion", "user1", 412, Row(row));
 
-        Assert.Contains("mention", exception.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Empty(handler.Requests);
+        var request = Assert.Single(handler.Requests);
+        Assert.Contains("/api/v2/humans/user1/tracking/invasion/412", request.Url, StringComparison.Ordinal);
+        using var body = JsonDocument.Parse(request.Body!);
+        Assert.Equal("<@&400027130022592512>", body.RootElement.GetProperty("ping").GetString());
     }
 
     private static JsonElement Row(string json) => JsonDocument.Parse(json).RootElement.Clone();

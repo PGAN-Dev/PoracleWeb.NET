@@ -18,6 +18,7 @@ import { SettingsService } from '../../core/services/settings.service';
 
 /** Costume is offered only where it can mean something: a raid rule with a specific boss. See #804. */
 describe('RaidEditDialogComponent', () => {
+  let webhookSession = false;
   let component: RaidEditDialogComponent;
   let eggService: { update: jest.Mock };
   let raidService: { update: jest.Mock };
@@ -65,7 +66,7 @@ describe('RaidEditDialogComponent', () => {
         },
         { provide: I18nService, useValue: { instant: (k: string) => k } },
         { provide: SettingsService, useValue: { supportsCostume: () => costumeSupported } },
-        { provide: AuthService, useValue: { isImpersonating: () => false } },
+        { provide: AuthService, useValue: { isImpersonating: () => webhookSession } },
       ],
       imports: [RaidEditDialogComponent],
     });
@@ -162,5 +163,27 @@ describe('RaidEditDialogComponent', () => {
     component.save();
 
     expect(sentRaid().costume).toBe(9000);
+  });
+
+  describe('Mention field', () => {
+    // The dialog's only condition for the Mention field is the impersonation snapshot: PoracleNG 5.4.0
+    // always stores a ping, so there is no server-config dependency left to consult.
+    it('is offered on a webhook alarm', () => {
+      webhookSession = true;
+      setup({ item: { ...BASE_RAID } });
+      expect(TestBed.createComponent(RaidEditDialogComponent).componentInstance.isWebhook).toBe(true);
+    });
+
+    it('is hidden on a personal alarm', () => {
+      webhookSession = false;
+      setup({ item: { ...BASE_RAID } });
+      expect(TestBed.createComponent(RaidEditDialogComponent).componentInstance.isWebhook).toBe(false);
+    });
+
+    it('does not read pingSupported from the server config', () => {
+      webhookSession = true;
+      setup({ item: { ...BASE_RAID } });
+      expect('pingSupported' in TestBed.createComponent(RaidEditDialogComponent).componentInstance).toBe(false);
+    });
   });
 });

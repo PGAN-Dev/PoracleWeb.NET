@@ -67,7 +67,7 @@
           <p class="clean-hint">{{ 'QUESTS.SUMMARY_DISABLED_HINT' | translate }}</p>
         }
 
-        @if (isWebhook && pingSupported()) {
+        @if (isWebhook) {
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>{{ 'ALARM.MENTION_LABEL' | translate }}</mat-label>
             <input matInput [formControl]="form.controls.ping" maxlength="255" />

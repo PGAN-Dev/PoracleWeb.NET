@@ -325,7 +325,6 @@ public class TrackingV2TypeTranslationTests
     [InlineData("raid", """{"pokemon_id":150,"some_field_from_a_newer_poracle":4}""")]
     [InlineData("raid", """{"pokemon_id":150,"team":9}""")]
     [InlineData("raid", """{"pokemon_id":150,"rsvp_changes":7}""")]
-    [InlineData("raid", """{"pokemon_id":150,"ping":"<@&400027130022592512>"}""")]
     [InlineData("raid", """{"pokemon_id":150,"clean":9}""")]
     [InlineData("gym", """{"team":4,"slot_changes":2}""")]
     [InlineData("fort", """{"fort_type":"stadium","include_empty":0}""")]
@@ -336,35 +335,38 @@ public class TrackingV2TypeTranslationTests
         Assert.NotNull(unsupported);
     }
 
-    /// <summary>
-    /// The legitimate-case half of the ping refusal above (jfberry/PoracleNG#249). A set ping still
-    /// declines on a server that was not asked whether it supports it -- the default -- but writes
-    /// through, verbatim, once the caller says it does.
-    /// </summary>
+    /// <summary>PoracleNG 5.4.0 stores ping on every type, so a set one is written verbatim and an empty one is dropped.</summary>
     [Fact]
-    public void ASetPingWritesThroughOnAServerThatSupportsIt()
+    public void ASetPingIsAlwaysWrittenThrough()
     {
         const string mention = "<@&400027130022592512>";
 
         Assert.True(
             TrackingV2Translator.TryTranslate(
                 "raid", Row($$"""{"pokemon_id":150,"ping":"{{mention}}"}"""), ServerDoesNotBoundAnything,
-                out var translated, out var unsupported, pingSupported: true),
+                out var translated, out var unsupported),
             unsupported);
         Assert.Equal(mention, translated.GetProperty("ping").GetString());
     }
 
-    /// <summary>An empty ping is fine to carry through either way: v2 stores the same empty string regardless.</summary>
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void AnEmptyPingNeverBlocksTheWriteEitherWay(bool pingSupported)
+    [Fact]
+    public void AnEmptyPingNeverBlocksTheWrite()
     {
         Assert.True(
             TrackingV2Translator.TryTranslate(
                 "raid", Row("""{"pokemon_id":150,"ping":""}"""), ServerDoesNotBoundAnything,
-                out _, out var unsupported, pingSupported),
+                out var translated, out var unsupported),
             unsupported);
+        Assert.False(translated.TryGetProperty("ping", out _));
+    }
+
+    [Fact]
+    public void ANonStringPingDeclines()
+    {
+        Assert.False(
+            TrackingV2Translator.TryTranslate(
+                "raid", Row("""{"pokemon_id":150,"ping":5}"""), ServerDoesNotBoundAnything, out _, out var unsupported));
+        Assert.NotNull(unsupported);
     }
 
     [Theory]

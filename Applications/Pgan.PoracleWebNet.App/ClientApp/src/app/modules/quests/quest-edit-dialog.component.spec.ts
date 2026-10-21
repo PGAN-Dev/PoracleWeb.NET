@@ -14,6 +14,7 @@ import { MasterDataService } from '../../core/services/masterdata.service';
 import { QuestService } from '../../core/services/quest.service';
 
 describe('QuestEditDialogComponent', () => {
+  let webhookSession = false;
   let component: QuestEditDialogComponent;
   let dialogRef: { close: jest.Mock };
   let questService: { update: jest.Mock };
@@ -48,7 +49,7 @@ describe('QuestEditDialogComponent', () => {
         { provide: MAT_DIALOG_DATA, useValue: data },
         { provide: MatDialogRef, useValue: dialogRef },
         { provide: QuestService, useValue: questService },
-        { provide: AuthService, useValue: { isImpersonating: () => false, user: () => ({ type: 'discord:user' }) } },
+        { provide: AuthService, useValue: { isImpersonating: () => webhookSession, user: () => ({ type: 'discord:user' }) } },
         {
           provide: MasterDataService,
           useValue: { getItemName: () => 'Item', getPokemonName: () => 'Pikachu', loadData: () => of(void 0) },
@@ -200,6 +201,28 @@ describe('QuestEditDialogComponent', () => {
       component.save();
 
       expect((questService.update.mock.calls[0][1] as QuestUpdate).amount).toBe(0);
+    });
+  });
+
+  describe('Mention field', () => {
+    // The dialog's only condition for the Mention field is the impersonation snapshot: PoracleNG 5.4.0
+    // always stores a ping, so there is no server-config dependency left to consult.
+    it('is offered on a webhook alarm', () => {
+      webhookSession = true;
+      setup({ ...baseQuest });
+      expect(TestBed.createComponent(QuestEditDialogComponent).componentInstance.isWebhook).toBe(true);
+    });
+
+    it('is hidden on a personal alarm', () => {
+      webhookSession = false;
+      setup({ ...baseQuest });
+      expect(TestBed.createComponent(QuestEditDialogComponent).componentInstance.isWebhook).toBe(false);
+    });
+
+    it('does not read pingSupported from the server config', () => {
+      webhookSession = true;
+      setup({ ...baseQuest });
+      expect('pingSupported' in TestBed.createComponent(QuestEditDialogComponent).componentInstance).toBe(false);
     });
   });
 });

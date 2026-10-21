@@ -44,7 +44,7 @@
         <mat-slide-toggle [formControl]="form.controls.editInPlace"> {{ 'LURES.EDIT_MODE' | translate }} </mat-slide-toggle>
         <p class="clean-hint">{{ 'LURES.EDIT_HINT' | translate }}</p>
 
-        @if (isWebhook && pingSupported()) {
+        @if (isWebhook) {
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>{{ 'ALARM.MENTION_LABEL' | translate }}</mat-label>
             <input matInput [formControl]="form.controls.ping" maxlength="255" />

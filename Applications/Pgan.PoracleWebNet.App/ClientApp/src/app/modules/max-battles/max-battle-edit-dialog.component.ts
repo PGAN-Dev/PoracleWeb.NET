@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -84,7 +84,7 @@ export class MaxBattleEditDialogComponent implements OnInit {
     clean: [isAutoDelete(this.data.item.clean)],
     gmax: [this.data.item.gmax === 1],
     level: [this.data.item.level],
-    // Always present even when the control is hidden -- see pingSupported below -- so a mention
+    // Always present even when the Mention control is hidden (not a webhook alarm) -- so a mention
     // round-trips unchanged through a save this dialog makes for an unrelated field.
     ping: [this.data.item.ping ?? '', [Validators.maxLength(255)]],
     template: [this.data.item.template ?? ''],
@@ -98,9 +98,6 @@ export class MaxBattleEditDialogComponent implements OnInit {
     label: this.i18n.instant(k.i18nKey),
     value: k.value,
   }));
-
-  /** Whether to show the Mention control at all -- see pokemon-edit-dialog's pingSupported for why. */
-  readonly pingSupported = computed(() => this.poracleConfig.serverConfig().pingSupported);
 
   saving = signal(false);
 

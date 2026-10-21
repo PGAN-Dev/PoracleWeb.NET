@@ -39,7 +39,6 @@ public class PoracleV2SchemaServiceTests
         Assert.True(capabilities.Read);
         Assert.False(capabilities.TrustedSetAreas);
         Assert.False(capabilities.InvasionGruntType);
-        Assert.False(capabilities.TrackingPing);
     }
 
     [Fact]
@@ -50,7 +49,6 @@ public class PoracleV2SchemaServiceTests
         Assert.True(capabilities.Read);
         Assert.True(capabilities.TrustedSetAreas);
         Assert.True(capabilities.InvasionGruntType);
-        Assert.True(capabilities.TrackingPing);
     }
 
     [Theory]
@@ -69,7 +67,6 @@ public class PoracleV2SchemaServiceTests
 
         Assert.False(capabilities.TrustedSetAreas);
         Assert.False(capabilities.InvasionGruntType);
-        Assert.False(capabilities.TrackingPing);
     }
 
     [Fact]

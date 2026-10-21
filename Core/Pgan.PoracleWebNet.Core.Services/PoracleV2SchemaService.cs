@@ -96,7 +96,6 @@ public partial class PoracleV2SchemaService(
                 Read = true,
                 TrustedSetAreas = HasProperty(schemas, "V2SetAreasBody", "trusted"),
                 InvasionGruntType = HasProperty(schemas, "V2InvasionRule", "grunt_type"),
-                TrackingPing = HasProperty(schemas, "V2PokemonRule", "ping"),
             };
         }
         catch (JsonException)

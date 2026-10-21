@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -58,16 +58,13 @@ export class NestEditDialogComponent implements OnInit {
   form = this.fb.group({
     clean: [isAutoDelete(this.data.clean)],
     minSpawnAvg: [this.data.minSpawnAvg],
-    // Always present even when the control is hidden -- see pingSupported below -- so a mention
+    // Always present even when the Mention control is hidden (not a webhook alarm) -- so a mention
     // round-trips unchanged through a save this dialog makes for an unrelated field.
     ping: [this.data.ping ?? '', [Validators.maxLength(255)]],
     template: [this.data.template ?? ''],
   });
 
   readonly isWebhook = inject(AuthService).isImpersonating();
-
-  /** Whether to show the Mention control at all -- see pokemon-edit-dialog's pingSupported for why. */
-  readonly pingSupported = computed(() => this.poracleConfig.serverConfig().pingSupported);
 
   pokemonName = this.masterData.getPokemonName(this.data.pokemonId);
 

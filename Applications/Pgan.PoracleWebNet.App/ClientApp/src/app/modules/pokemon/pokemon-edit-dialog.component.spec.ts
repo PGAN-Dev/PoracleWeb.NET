@@ -22,6 +22,7 @@ import { SettingsService } from '../../core/services/settings.service';
  * PoracleNG 5.1.0 added, including a time value the bot can set and the presets do not contain.
  */
 describe('PokemonEditDialogComponent', () => {
+  let webhookSession = false;
   let component: PokemonEditDialogComponent;
   let monsterService: { editSupported: jest.Mock; update: jest.Mock };
 
@@ -54,7 +55,7 @@ describe('PokemonEditDialogComponent', () => {
           provide: PoracleConfigService,
           useValue: { load: () => of({ defaultPvpCap: 0 }), serverConfig: () => ({ pvpCaps: [] }) },
         },
-        { provide: AuthService, useValue: { isImpersonating: () => false, user: () => ({ type: 'discord:user' }) } },
+        { provide: AuthService, useValue: { isImpersonating: () => webhookSession, user: () => ({ type: 'discord:user' }) } },
       ],
       imports: [PokemonEditDialogComponent],
     });
@@ -225,6 +226,28 @@ describe('PokemonEditDialogComponent', () => {
       component.form.controls.editInPlace.setValue(false);
       component.save();
       expect(sent().clean).toBe(1);
+    });
+  });
+
+  describe('Mention field', () => {
+    // The dialog's only condition for the Mention field is the impersonation snapshot: PoracleNG 5.4.0
+    // always stores a ping, so there is no server-config dependency left to consult.
+    it('is offered on a webhook alarm', () => {
+      webhookSession = true;
+      setup({ minIv: -1 });
+      expect(TestBed.createComponent(PokemonEditDialogComponent).componentInstance.isWebhook).toBe(true);
+    });
+
+    it('is hidden on a personal alarm', () => {
+      webhookSession = false;
+      setup({ minIv: -1 });
+      expect(TestBed.createComponent(PokemonEditDialogComponent).componentInstance.isWebhook).toBe(false);
+    });
+
+    it('does not read pingSupported from the server config', () => {
+      webhookSession = true;
+      setup({ minIv: -1 });
+      expect('pingSupported' in TestBed.createComponent(PokemonEditDialogComponent).componentInstance).toBe(false);
     });
   });
 });
