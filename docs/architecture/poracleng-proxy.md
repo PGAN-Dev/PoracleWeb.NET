@@ -143,9 +143,17 @@ where v2's does not.
 Pokéstop Events are the exception in the other direction: v2 is their only surface, so they have their
 own proxy rather than a fallback.
 
-**Reads stay on v1 on purpose.** v2 answers `null` for every field at its wildcard where v1 answers the
-sentinel, so rebuilding a model from a v2 read would need a per-field default table matching
-PoracleNG's exactly, forever. The sentinels already say what the wildcard means.
+**Reads and deletes go through v2.** `TrackingV2Translator.ToV1Row` rebuilds the v1 row from a v2 rule:
+enums back to integers, booleans to 0/1, the three clean booleans to the `CleanFlags` bitmask, and every
+`null` to a default from `DefaultsFor`, which follows PoracleNG's own read translation where it differs
+from ours (fort `include_empty` null is 1, raid and max battle `level` null is 9000 with a pokemon and 90
+without). A property the table doesn't know is carried through, so an upstream addition or the fork's
+`personal_shiny` isn't dropped, and an edit sends it back when the server's `/openapi.json` declares it.
+The whole-profile reads use the v2 snapshot; the all-profiles read adds the active profile's rules itself
+when that profile has no `profiles` row, since PoracleNG only lists profiles that have one. Pokéstop
+event rules come from `incident` and are folded into the invasion list as v1 returned them. Deletes use
+the uid route, a `{uids}` body for bulk; a uid on a profile other than the active one is looked up with one
+all-profiles read and deleted with `?profile=N`, and an invasion delete retries leftovers as `incident`.
 
 **Creates stay on v1 because v2 POST still diffs and merges.** The uid-addressed PUT does not: it 404s
 when the uid is not that human's, and 409s when the replacement would exactly duplicate another rule. A

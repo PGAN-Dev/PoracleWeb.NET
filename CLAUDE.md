@@ -796,33 +796,53 @@ duplicate another rule, so the server enforces what `EnsureNoMergeIntoAnotherAla
 reconstruct from a 200. **v2 POST still diffs and merges** — the #561 takeover reproduces on it — so
 creates stay on v1 and the reconciler stays.
 
-**`UpdateAsync` and both deletes use it, on all ten types.** Everything else — every read,
-`CreateAsync`, `BulkCreateAsync`, both distance endpoints and cleaning — is unchanged on v1, which 5.2.1
-left frozen. Bulk distance and cleaning stay on v1 because v2 has no bulk write: 305 uid-addressed PUTs at
-7.8ms would replace one 20ms POST.
+**`UpdateAsync`, reads and both deletes use it, on all ten types.** What stays on v1 is `CreateAsync`,
+`BulkCreateAsync`, both distance endpoints, cleaning, and an edit's fallback when v2 can't take the row:
+v2 has no bulk write (305 uid-addressed PUTs at 7.8ms would replace one 20ms POST), and v2 POST still
+diffs and merges.
 
-**Reads stay on v1, and that is now a decision rather than a deferral (#860).** v2 answers `null` for every
-field at its wildcard where v1 answers the sentinel, and both the C# and TypeScript models are built on the
-sentinels. Rebuilding them needs the stored wildcard for **137 nullable fields across the eleven rule
-schemas**, and the server publishes none of them: measured against a live 5.2.1, *no* property carries a
-machine-readable `default`, and scraping the English descriptions finds a number for 59 of the 137. Upstream
-`develop` (`25ff8c0a`) now states the stored value in prose for all 149 nullable properties, still with no
-machine-readable form; jfberry/PoracleNG#324 asked for one and was declined (v2 keeps `null` as the
-wildcard), so the read direction will map `null` to our own defaults. Since
-`TrackingFieldPreserver` re-reads a row before every PUT, a wrong wildcard is not a display bug — it is
-written back. Migrate a **type** (read, write and delete together, service moved to the v2 shape) rather
-than a **verb**, so two shapes never coexist.
+**Reads go through v2 (sub-project 3a, PoracleNG 5.4.0), translated back to the v1 row.** v2 answers `null`
+for a field at its wildcard where v1 answers the sentinel, and both the C# and TypeScript models are built on
+the sentinels, so `TrackingV2Translator.ToV1Row` rebuilds the v1 row and `DefaultsFor` is the null-to-default
+table (one entry per nullable property of each `V2*Rule` schema; a test checks it against the 5.4.0 schema
+fixture in both directions). The `*Create` initialisers are ours, but where PoracleNG's own read translation
+disagrees the table follows PoracleNG: fort `include_empty` null is 1 (v2's default, not v1's), raid and
+max battle `level` null is 9000 with a `pokemon_id` and 90 without (90 is "every tier"), `gym_id` and
+`station_id` null stay null, fort `fort_type` is `everything`, pokemon `min_iv` is -1. Enums go back to
+ints, booleans to 0/1, `clean`/`edit`/`summary` to the `CleanFlags` bitmask, `change_types` to a JSON
+string. **A property the type's table doesn't know is carried through verbatim**, so a future upstream field
+or the fork's `personal_shiny` survives a read; an unknown enum value throws, and the proxy logs and skips
+the one rule rather than blanking the page. The write side matches: `TryTranslate` sends such a property
+back on an edit when the server's own `/openapi.json` declares it, and declines otherwise.
 
-**Deletes fall back to v1 where the two surfaces disagree, which is on profile scoping (#889).** v1's
-handler is keyed on `(human, uid)` and ignores the profile; v2's `v2FindOwnedRow` reads
-`SelectByIDProfile` and 404s for a uid that is not on the active profile, while its bulk form skips such a
-uid silently and still answers 200. Every caller derives its uid list from a profile-scoped read, so
-nothing depends on the loose behaviour by design. A rule-not-found 404 goes to v1 rather than being
-swallowed as "already deleted", and a bulk delete v2 only partly took sends the whole set to v1, which is
-idempotent. The single-alarm case never reaches that fallback from the UI, though: each controller's
-`Delete` looks the uid up on the active profile first and answers 404, so a click on a rule the scheduler
-has just moved out of view is refused rather than half-done (verified on 5.1.0, 5.2.1 and 5.3.0). v2 also takes the bulk uid list
-in the query string, so a list past 2000 rendered characters stays on v1.
+`GetByUserAsync` reads `/tracking/{type}` per type (validating the type first). `GetAllTrackingAsync`
+reads the v2 snapshot, `GET /tracking`. `GetAllTrackingAllProfilesAsync` uses `all_profiles=true` with
+`include_descriptions=true`, and **PoracleNG only enumerates profiles that have a `profiles` row**: a human
+whose active profile has none (or who has none at all) gets nothing back for it. The proxy then appends the
+active profile's rules from the plain snapshot, stamped with `current_profile_no`. Reads stay
+active-profile scoped, as on v1. Legacy zeros in production (`pvp_ranking_best 0` on about 12,700 rules,
+`pvp_ranking_worst 0`, `size 0`) come back from v2 as null and read as the defaults 1, 4096 and -1;
+matching doesn't change. v2 also drops the gender on an invasion "everything"/boss rule and the `edit` bit
+on gym, quest, nest, max battle and invasion rules.
+
+**Pokéstop events (`incident`) are folded into the invasion read, as v1 did.** v2's invasion list excludes
+them, so the proxy reads the incident list too and restates each rule in v1's form (`grunt_type` from
+`display_type`, gender 0). Cleaning, the dashboard counts, `InvasionService` and `HumanService`'s delete-all
+all see the same rows they did on v1 (`PokestopEventConsumerTests`).
+
+**Deletes are v2 only.** Single is `DELETE /tracking/{type}/{uid}`, bulk takes a `{uids}` body, and a
+422 naming `query.uid` raises `PoracleUnsupportedException` ("Deleting alarms", PoracleNG 5.4.0). v2's ownership check reads the active profile, so it 404s a uid on another
+profile and its bulk form skips such a uid and still answers 200 (#889). v1 ignored the profile. Three
+things keep a delete from stranding a rule: an invasion delete retries leftovers as `incident`; whatever is
+still left is resolved through one all-profiles read and re-issued with `?profile=N`, grouped by profile
+for the bulk form (so quick-pick Remove still works after the scheduler has switched profile); and a
+rule-not-found for a uid that really is gone counts as already gone and is logged, matching v1's
+idempotence. Only uids that stay unresolved are logged as lost. The single-alarm case never reaches that
+from the UI: each controller's `Delete` looks the uid up on the active profile first and answers 404, so a
+click on a rule the scheduler just moved out of view is refused rather than half-done.
+
+Migrate a **type** (read, write and delete together) rather than a **verb**, so two shapes never coexist.
+The v1 shape is still the internal currency, which is why the reads translate back to it.
 
 **Invasion writes through v2 as well (#841), behind a second gate the other nine do not have.**
 `grunt_type` — its one targeting field, and the only one PoracleWeb.NET ever holds — exists solely on a
