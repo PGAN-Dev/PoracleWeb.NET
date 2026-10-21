@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -20,7 +20,6 @@ import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { InvasionService } from '../../core/services/invasion.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
-import { PoracleConfigService } from '../../core/services/poracle-config.service';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
@@ -48,13 +47,12 @@ import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-fl
   styleUrl: './invasion-edit-dialog.component.scss',
   templateUrl: './invasion-edit-dialog.component.html',
 })
-export class InvasionEditDialogComponent implements OnInit {
+export class InvasionEditDialogComponent {
   private readonly fb = inject(FormBuilder);
   private readonly i18n = inject(I18nService);
   private readonly icons = inject(IconService);
   private readonly invasionService = inject(InvasionService);
   private readonly masterData = inject(MasterDataService);
-  private readonly poracleConfig = inject(PoracleConfigService);
   private readonly snackBar = inject(MatSnackBar);
 
   readonly data = inject<Invasion>(MAT_DIALOG_DATA);
@@ -116,10 +114,6 @@ export class InvasionEditDialogComponent implements OnInit {
 
   getGruntIcon(): string {
     return this.icons.getPackUrl(getGruntIconPath(this.data.gruntType, this.selectedGender()));
-  }
-
-  ngOnInit(): void {
-    this.poracleConfig.load().subscribe();
   }
 
   save(): void {

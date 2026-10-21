@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -17,7 +17,6 @@ import { FortChange, FortChangeUpdate } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { FortChangeService } from '../../core/services/fort-change.service';
 import { I18nService } from '../../core/services/i18n.service';
-import { PoracleConfigService } from '../../core/services/poracle-config.service';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
@@ -48,11 +47,10 @@ const KNOWN_CHANGE_TYPES = new Set(['name', 'location', 'image_url', 'removal', 
   styleUrl: './fort-change-edit-dialog.component.scss',
   templateUrl: './fort-change-edit-dialog.component.html',
 })
-export class FortChangeEditDialogComponent implements OnInit {
+export class FortChangeEditDialogComponent {
   private readonly fb = inject(FormBuilder);
   private readonly fortChangeService = inject(FortChangeService);
   private readonly i18n = inject(I18nService);
-  private readonly poracleConfig = inject(PoracleConfigService);
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<FortChange>(MAT_DIALOG_DATA);
   readonly dialogRef = inject(MatDialogRef<FortChangeEditDialogComponent>);
@@ -78,10 +76,6 @@ export class FortChangeEditDialogComponent implements OnInit {
 
   /** The alarm's current scope, read back into the shared picker. */
   readonly scope = signal<AlarmScope>(scopeOf(this.data.overrideLocationLabel, this.data.overrideAreas, this.data.distance));
-
-  ngOnInit(): void {
-    this.poracleConfig.load().subscribe();
-  }
 
   save(): void {
     this.saving.set(true);

@@ -16,7 +16,7 @@ import { QuietSheetComponent, QuietSheetData, QuietSheetResult } from '../quiet-
  * chip around it. Whichever form, when the subject is quiet it carries a live countdown, and pressing
  * it opens the same sheet.
  *
- * Renders nothing while nothing is quiet. It asks no capability question: the mute routes exist on
+ * Always renders its button or chip, quiet or not. It asks no capability question: the mute routes exist on
  * every supported PoracleNG (5.4.0 and up).
  */
 @Component({

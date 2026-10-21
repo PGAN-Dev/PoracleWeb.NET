@@ -232,11 +232,5 @@ describe('PokemonEditDialogComponent', () => {
       setup({ minIv: -1 });
       expect(TestBed.createComponent(PokemonEditDialogComponent).componentInstance.isWebhook).toBe(false);
     });
-
-    it('does not read pingSupported from the server config', () => {
-      webhookSession = true;
-      setup({ minIv: -1 });
-      expect('pingSupported' in TestBed.createComponent(PokemonEditDialogComponent).componentInstance).toBe(false);
-    });
   });
 });

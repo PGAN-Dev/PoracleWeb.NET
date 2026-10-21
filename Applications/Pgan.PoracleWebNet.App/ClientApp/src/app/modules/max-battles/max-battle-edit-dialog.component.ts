@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -18,7 +18,6 @@ import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MaxBattleService } from '../../core/services/max-battle.service';
-import { PoracleConfigService } from '../../core/services/poracle-config.service';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
@@ -68,13 +67,12 @@ const LEVEL_OPTION_KEYS: { gmax: boolean; i18nKey: string; value: number }[] = [
   styleUrl: './max-battle-edit-dialog.component.scss',
   templateUrl: './max-battle-edit-dialog.component.html',
 })
-export class MaxBattleEditDialogComponent implements OnInit {
+export class MaxBattleEditDialogComponent {
   private readonly fb = inject(FormBuilder);
   private readonly i18n = inject(I18nService);
   private readonly iconService = inject(IconService);
   private readonly masterData = inject(MasterDataService);
   private readonly maxBattleService = inject(MaxBattleService);
-  private readonly poracleConfig = inject(PoracleConfigService);
   private readonly snackBar = inject(MatSnackBar);
 
   readonly data = inject<MaxBattleEditDialogData>(MAT_DIALOG_DATA);
@@ -129,10 +127,6 @@ export class MaxBattleEditDialogComponent implements OnInit {
 
   isGmax(): boolean {
     return this.data.item.gmax === 1 || this.data.item.level === 7 || this.data.item.level === 8;
-  }
-
-  ngOnInit(): void {
-    this.poracleConfig.load().subscribe();
   }
 
   onImageError(event: Event): void {

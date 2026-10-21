@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -16,7 +16,6 @@ import { AuthService } from '../../core/services/auth.service';
 import { GymService } from '../../core/services/gym.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
-import { PoracleConfigService } from '../../core/services/poracle-config.service';
 import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
@@ -45,12 +44,11 @@ import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-fl
   styleUrl: './gym-edit-dialog.component.scss',
   templateUrl: './gym-edit-dialog.component.html',
 })
-export class GymEditDialogComponent implements OnInit {
+export class GymEditDialogComponent {
   private readonly fb = inject(FormBuilder);
   private readonly gymService = inject(GymService);
   private readonly i18n = inject(I18nService);
   private readonly icons = inject(IconService);
-  private readonly poracleConfig = inject(PoracleConfigService);
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<Gym>(MAT_DIALOG_DATA);
   readonly dialogRef = inject(MatDialogRef<GymEditDialogComponent>);
@@ -90,10 +88,6 @@ export class GymEditDialogComponent implements OnInit {
       default:
         return this.i18n.instant('GYMS.TEAM_UNKNOWN', { id: team });
     }
-  }
-
-  ngOnInit(): void {
-    this.poracleConfig.load().subscribe();
   }
 
   save(): void {

@@ -129,11 +129,5 @@ describe('MaxBattleEditDialogComponent — filter preservation (#412)', () => {
       setup();
       expect(TestBed.createComponent(MaxBattleEditDialogComponent).componentInstance.isWebhook).toBe(false);
     });
-
-    it('does not read pingSupported from the server config', () => {
-      webhookSession = true;
-      setup();
-      expect('pingSupported' in TestBed.createComponent(MaxBattleEditDialogComponent).componentInstance).toBe(false);
-    });
   });
 });

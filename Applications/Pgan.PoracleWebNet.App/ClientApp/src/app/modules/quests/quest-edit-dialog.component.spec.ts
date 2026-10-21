@@ -218,11 +218,5 @@ describe('QuestEditDialogComponent', () => {
       setup({ ...baseQuest });
       expect(TestBed.createComponent(QuestEditDialogComponent).componentInstance.isWebhook).toBe(false);
     });
-
-    it('does not read pingSupported from the server config', () => {
-      webhookSession = true;
-      setup({ ...baseQuest });
-      expect('pingSupported' in TestBed.createComponent(QuestEditDialogComponent).componentInstance).toBe(false);
-    });
   });
 });

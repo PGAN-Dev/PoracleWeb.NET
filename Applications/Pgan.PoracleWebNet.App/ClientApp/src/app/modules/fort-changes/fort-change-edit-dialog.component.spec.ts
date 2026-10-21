@@ -115,11 +115,5 @@ describe('FortChangeEditDialogComponent', () => {
       setup({ changeTypes: ['name'] });
       expect(TestBed.createComponent(FortChangeEditDialogComponent).componentInstance.isWebhook).toBe(false);
     });
-
-    it('does not read pingSupported from the server config', () => {
-      webhookSession = true;
-      setup({ changeTypes: ['name'] });
-      expect('pingSupported' in TestBed.createComponent(FortChangeEditDialogComponent).componentInstance).toBe(false);
-    });
   });
 });

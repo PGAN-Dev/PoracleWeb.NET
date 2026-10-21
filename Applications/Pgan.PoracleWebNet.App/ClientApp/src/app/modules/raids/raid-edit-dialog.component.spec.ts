@@ -174,11 +174,5 @@ describe('RaidEditDialogComponent', () => {
       setup({ item: { ...BASE_RAID } });
       expect(TestBed.createComponent(RaidEditDialogComponent).componentInstance.isWebhook).toBe(false);
     });
-
-    it('does not read pingSupported from the server config', () => {
-      webhookSession = true;
-      setup({ item: { ...BASE_RAID } });
-      expect('pingSupported' in TestBed.createComponent(RaidEditDialogComponent).componentInstance).toBe(false);
-    });
   });
 });

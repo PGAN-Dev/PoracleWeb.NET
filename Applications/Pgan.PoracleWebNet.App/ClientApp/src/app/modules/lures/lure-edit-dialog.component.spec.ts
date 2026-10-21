@@ -153,11 +153,5 @@ describe('LureEditDialogComponent', () => {
       setup({ ...baseLure });
       expect(TestBed.createComponent(LureEditDialogComponent).componentInstance.isWebhook).toBe(false);
     });
-
-    it('does not read pingSupported from the server config', () => {
-      webhookSession = true;
-      setup({ ...baseLure });
-      expect('pingSupported' in TestBed.createComponent(LureEditDialogComponent).componentInstance).toBe(false);
-    });
   });
 });
