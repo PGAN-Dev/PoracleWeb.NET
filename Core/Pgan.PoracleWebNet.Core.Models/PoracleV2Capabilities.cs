@@ -197,6 +197,22 @@ public sealed class PoracleV2Capabilities
         get; init;
     }
 
+    /// <summary>
+    /// Max battles merge like raids: <c>clean</c>, <c>distance</c> and <c>template</c> are updatable, so a
+    /// write one of those apart from an existing max battle updates that alarm in place instead of adding a
+    /// second one. On every write surface, v1 included, because the diff lives in the database layer.
+    /// </summary>
+    /// <remarks>
+    /// Read from <c>?dry_run</c> on <c>POST /v2/humans/{id}/tracking/maxbattle</c>, which shipped in the
+    /// same PR as the squash (jfberry/PoracleNG#328, PoracleNG 5.4.0). Up to 5.3.0 max battles tag nothing
+    /// updatable and every write inserts, so refusing a one-field-apart Add there would block an alarm the
+    /// server stores separately. Version cannot answer it: develop builds already reported 5.3.0. See #1003.
+    /// </remarks>
+    public bool MaxBattleSquashes
+    {
+        get; init;
+    }
+
     /// <summary>True when the document was read and parsed, whatever it turned out to say.</summary>
     /// <remarks>
     /// Distinct from every capability being false, which is also what an unreachable server looks like.

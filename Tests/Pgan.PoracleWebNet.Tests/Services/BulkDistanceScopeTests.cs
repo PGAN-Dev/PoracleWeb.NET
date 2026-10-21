@@ -203,7 +203,7 @@ public class BulkDistanceScopeTests
         "nest" => new NestService(this._proxy, this._featureGate.Object, NullLogger<NestService>.Instance, this._remapper.Object),
         "gym" => new GymService(this._proxy, this._featureGate.Object, NullLogger<GymService>.Instance, this._remapper.Object),
         "fort" => new FortChangeService(this._proxy, this._featureGate.Object, NullLogger<FortChangeService>.Instance, this._remapper.Object),
-        "maxbattle" => new MaxBattleService(this._proxy, this._featureGate.Object, NullLogger<MaxBattleService>.Instance, this._remapper.Object),
+        "maxbattle" => new MaxBattleService(this._proxy, this._featureGate.Object, NullLogger<MaxBattleService>.Instance, this._remapper.Object, PoracleTrackingProxyTests.V2Schema()),
         _ => throw new ArgumentOutOfRangeException(nameof(trackingType), trackingType, "unknown tracking type"),
     };
 }
