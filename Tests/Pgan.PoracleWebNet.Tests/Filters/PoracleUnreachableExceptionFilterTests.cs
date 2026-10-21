@@ -90,4 +90,26 @@ public class PoracleUnreachableExceptionFilterTests
         Assert.Contains(
             typeof(QuestController).GetCustomAttributes<TypeFilterAttribute>(),
             a => a.ImplementationType == typeof(PoracleUnreachableExceptionFilter));
+
+    public static TheoryData<Type> AlarmControllers() =>
+    [
+        typeof(MonsterController),
+        typeof(RaidController),
+        typeof(EggController),
+        typeof(InvasionController),
+        typeof(LureController),
+        typeof(NestController),
+        typeof(GymController),
+        typeof(MaxBattleController),
+        typeof(FortChangeController),
+        typeof(PokestopEventController)
+    ];
+
+    /// <summary>These controllers reach PoracleNG alone, so an HttpRequestException from them names the right upstream.</summary>
+    [Theory]
+    [MemberData(nameof(AlarmControllers))]
+    public void AlarmControllersCarryTheFilter(Type controller) =>
+        Assert.Contains(
+            controller.GetCustomAttributes<TypeFilterAttribute>(),
+            a => a.ImplementationType == typeof(PoracleUnreachableExceptionFilter));
 }

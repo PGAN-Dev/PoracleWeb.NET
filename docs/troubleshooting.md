@@ -647,7 +647,7 @@ talking to and says when it is too old — start there before assuming a bug.
 
 `PoracleUnsupportedException` is what a request gets when it reaches a route the server doesn't have: a
 human, profile, area, place or geocode call on PoracleNG below 5.4.0 answers **409 Conflict** naming what
-is missing. When PoracleNG can't be reached at all, the mute, location and quest endpoints answer **503**.
+is missing. When PoracleNG can't be reached at all, the mute and location endpoints and every alarm endpoint answer **503**.
 
 ```json
 {

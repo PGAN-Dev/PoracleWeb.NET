@@ -8,6 +8,7 @@ namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/monsters")]
 [RequireFeatureEnabled(DisableFeatureKeys.Pokemon)]
+[TypeFilter(typeof(PoracleUnreachableExceptionFilter))]
 public class MonsterController(IMonsterService monsterService, IPokemonEditCapabilityService editCapability) : BaseApiController
 {
     private readonly IMonsterService _monsterService = monsterService;

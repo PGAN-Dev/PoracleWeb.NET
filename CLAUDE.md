@@ -424,7 +424,7 @@ SPA keys a mute by scope, type and value, since raid 60 and pokemon 60 are two r
 mutes is possible now; that is a separate decision. `scope=pokestop` is
 read-only here for a duller reason: neither the lure nor the invasion model carries a fort id.
 
-**There is no capability check**, and `MuteCapabilityService` is deleted. The mute routes arrived in 5.2.0, so every supported server (5.4.0 and later) has them. `GET /api/mutes` answers `{ mutes }`, and all three actions answer `503` with a message when PoracleNG cannot be reached (`PoracleUnreachableExceptionFilter`, also on the Location and Quest controllers), so the SPA toasts the failure once instead of drawing a chip that claims nothing is quiet. Do not add a `Supports("mutes")` check against `/health`: 5.2.1's map has no mutes key, and absent means false by that map's own contract.
+**There is no capability check**, and `MuteCapabilityService` is deleted. The mute routes arrived in 5.2.0, so every supported server (5.4.0 and later) has them. `GET /api/mutes` answers `{ mutes }`, and all three actions answer `503` with a message when PoracleNG cannot be reached (`PoracleUnreachableExceptionFilter`, also on the Location controller and all eleven alarm controllers), so the SPA toasts the failure once instead of drawing a chip that claims nothing is quiet. Do not add a `Supports("mutes")` check against `/health`: 5.2.1's map has no mutes key, and absent means false by that map's own contract.
 
 Two smaller ones. **Nobody validates a gym or station id**: `scope=gym value=abc123` is accepted verbatim,
 so only ever create those from an existing alarm's `gymId`/`stationId`, never from free text. And **mutes
@@ -1039,8 +1039,9 @@ server's own `/openapi.json` (`IPoracleV2SchemaService`), never on a version com
 v2 human, profile, area, place or geocode route throws `PoracleUnsupportedException(feature,
 "PoracleNG 5.4.0")` (409 through `PoracleUnsupportedExceptionFilter`). A problem+json 404 keeps its
 meaning: not found. Webhook ids in those paths go through `Uri.EscapeDataString`. When PoracleNG cannot be
-reached at all, `PoracleUnreachableExceptionFilter` answers 503 on the Mute, Location and Quest
-controllers, where a failed read used to look like an empty list.
+reached at all, `PoracleUnreachableExceptionFilter` answers 503 on the Mute and Location
+controllers and on all eleven alarm controllers (Pokemon, raid, egg, quest, invasion, Pokestop event, lure, nest,
+gym, max battle, fort change), where a failed read used to look like an empty list.
 
 **Older servers fail open, loudly.** `PoracleCompatibilityStartupService` logs an error at startup naming
 what breaks, and the admin Versions card shows `belowMinimum`; the app keeps running, because refusing to

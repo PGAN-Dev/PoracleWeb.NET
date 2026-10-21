@@ -254,7 +254,7 @@ plaintext 404 from a route 5.4.0 added; a problem+json 404 keeps its ordinary me
 [Version compatibility](poracleng-compatibility.md#when-a-request-cannot-be-served).
 
 When PoracleNG cannot be reached at all, `PoracleUnreachableExceptionFilter` answers 503 with a message on
-the mute, location and quest controllers.
+the mute and location controllers and all eleven alarm controllers.
 
 ## What stays on direct database access
 

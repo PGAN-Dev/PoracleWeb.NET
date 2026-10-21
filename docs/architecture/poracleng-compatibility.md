@@ -126,7 +126,7 @@ branch, so it falls through to the caller, which shows the message beside the co
 swallows the 409, so on a too-old server the search just returns nothing.
 
 A separate filter, `PoracleUnreachableExceptionFilter`, answers **503** with a message when PoracleNG
-cannot be reached at all. It is applied to the mute, location and quest controllers, where a failed read
+cannot be reached at all. It is applied to the mute and location controllers and to all eleven alarm controllers, where a failed read
 used to look like an empty answer: a quiet-period chip claiming nothing is quiet, or a places list that
 said the user had none.
 

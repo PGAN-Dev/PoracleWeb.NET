@@ -8,6 +8,7 @@ namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/nests")]
 [RequireFeatureEnabled(DisableFeatureKeys.Nests)]
+[TypeFilter(typeof(PoracleUnreachableExceptionFilter))]
 public class NestController(INestService nestService) : BaseApiController
 {
     private readonly INestService _nestService = nestService;

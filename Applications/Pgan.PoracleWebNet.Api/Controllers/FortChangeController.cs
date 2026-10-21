@@ -8,6 +8,7 @@ namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/fort-changes")]
 [RequireFeatureEnabled(DisableFeatureKeys.FortChanges)]
+[TypeFilter(typeof(PoracleUnreachableExceptionFilter))]
 public class FortChangeController(IFortChangeService fortChangeService) : BaseApiController
 {
     private readonly IFortChangeService _fortChangeService = fortChangeService;
