@@ -22,7 +22,7 @@ public class MaxBattleServiceTests
     public MaxBattleServiceTests()
     {
         this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
-        this._sut = new MaxBattleService(this._proxy.Object, this._featureGate.Object, Mock.Of<ILogger<MaxBattleService>>(), this._uidRemapper.Object);
+        this._sut = new MaxBattleService(this._proxy.Object, this._featureGate.Object, Mock.Of<ILogger<MaxBattleService>>(), this._uidRemapper.Object, PoracleTrackingProxyTests.V2Schema());
     }
 
     [Fact]

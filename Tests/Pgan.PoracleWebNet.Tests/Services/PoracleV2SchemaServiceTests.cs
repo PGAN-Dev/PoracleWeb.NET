@@ -282,6 +282,40 @@ public class PoracleV2SchemaServiceTests
         Assert.True(PoracleV2SchemaService.Parse(carriesTheNumber).ProfileCreateReturnsNumber);
     }
 
+    /// <summary>
+    /// Max battles merge from 5.4.0 (jfberry/PoracleNG#328), which ships <c>?dry_run</c> on the same
+    /// route. The 5.4.0 fixture is upstream's own golden spec at that PR, trimmed to the one operation.
+    /// See #1003.
+    /// </summary>
+    [Fact]
+    public void MaxBattlesMergeOnlyWhereTheirCreateDeclaresDryRun()
+    {
+        Assert.True(PoracleV2SchemaService.Parse(Fixture("5.4.0")).MaxBattleSquashes);
+        Assert.False(PoracleV2SchemaService.Parse(Fixture("next")).MaxBattleSquashes);
+        Assert.False(PoracleV2SchemaService.Parse(Fixture("5.2.1")).MaxBattleSquashes);
+    }
+
+    [Fact]
+    public void MaxBattleSquashesIsReadFromTheQueryParameterOnTheMaxBattleCreate()
+    {
+        const string RouteWithoutIt = """
+            {"paths":{"/v2/humans/{id}/tracking/maxbattle":{"post":{"parameters":[
+              {"name":"silent","in":"query"}]}}}}
+            """;
+        const string AnotherTypeOnly = """
+            {"paths":{"/v2/humans/{id}/tracking/raid":{"post":{"parameters":[
+              {"name":"dry_run","in":"query"}]}}}}
+            """;
+        const string OnTheEditOnly = """
+            {"paths":{"/v2/humans/{id}/tracking/maxbattle/{uid}":{"put":{"parameters":[
+              {"name":"dry_run","in":"query"}]}}}}
+            """;
+
+        Assert.False(PoracleV2SchemaService.Parse(RouteWithoutIt).MaxBattleSquashes);
+        Assert.False(PoracleV2SchemaService.Parse(AnotherTypeOnly).MaxBattleSquashes);
+        Assert.False(PoracleV2SchemaService.Parse(OnTheEditOnly).MaxBattleSquashes);
+    }
+
     [Fact]
     public void TheFixturesAreRealDocumentsAndNotEachOther()
     {

@@ -286,6 +286,67 @@ internal static partial class TrackingUpdateReconciler
             "Another alarm of this type already uses those settings. Edit or remove that one instead.");
     }
 
+    /// <summary>
+    /// Refuses a delete-then-create write whose re-created rows PoracleNG would resolve against a row that
+    /// is NOT being deleted.
+    /// </summary>
+    /// <remarks>
+    /// The other guards compare against every stored row, including the ones being rewritten, and a
+    /// candidate that classifies against its own row first is let through. That is right when the write
+    /// is an upsert. It is wrong when the rows are deleted before the create: the row that would have
+    /// absorbed the candidate is gone, so PoracleNG moves on to the next match, which is an alarm the user
+    /// never touched. A duplicate counts too, because PoracleNG then writes nothing and the deleted alarm
+    /// is simply lost. Max battles take this path (their v1 edit and both distance endpoints delete first),
+    /// and only matter once the server merges them at all. See #1003.
+    /// </remarks>
+    public static async Task EnsureNoMergeIntoRemainingAsync(
+        IPoracleTrackingProxy proxy,
+        string trackingType,
+        string userId,
+        IReadOnlyCollection<int> deletedUids,
+        JsonElement submitted,
+        string message)
+    {
+        var candidates = submitted.ValueKind switch
+        {
+            JsonValueKind.Array => submitted.EnumerateArray().Where(r => r.ValueKind == JsonValueKind.Object).ToList(),
+            JsonValueKind.Object => [submitted],
+            _ => [],
+        };
+
+        if (candidates.Count == 0)
+        {
+            return;
+        }
+
+        JsonElement rows;
+        try
+        {
+            rows = await proxy.GetByUserAsync(trackingType, userId);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            return;
+        }
+
+        if (rows.ValueKind != JsonValueKind.Array)
+        {
+            return;
+        }
+
+        var remaining = rows.EnumerateArray()
+            .Where(r => PoracleJsonHelper.UidOf(r) is not int uid || !deletedUids.Contains(uid))
+            .ToList();
+
+        foreach (var candidate in candidates)
+        {
+            if (FirstClassifyingRow(remaining, candidate, trackingType) is not null)
+            {
+                throw new TrackingConflictException(trackingType, message);
+            }
+        }
+    }
+
     private enum RowMatch
     {
         Duplicate,
@@ -299,9 +360,13 @@ internal static partial class TrackingUpdateReconciler
     /// DiffAndClassify. Rows it would treat as unrelated, or as a separate insert, are skipped.
     /// </summary>
     private static ClassifiedRow? FirstClassifyingRow(
-        JsonElement rows, JsonElement submitted, string trackingType)
+        JsonElement rows, JsonElement submitted, string trackingType) =>
+        FirstClassifyingRow(rows.EnumerateArray(), submitted, trackingType);
+
+    private static ClassifiedRow? FirstClassifyingRow(
+        IEnumerable<JsonElement> rows, JsonElement submitted, string trackingType)
     {
-        foreach (var row in rows.EnumerateArray())
+        foreach (var row in rows)
         {
             if (row.ValueKind != JsonValueKind.Object
                 || !row.TryGetProperty("uid", out var uid)
@@ -372,15 +437,17 @@ internal static partial class TrackingUpdateReconciler
             ["invasion"] = new(StringComparer.Ordinal) { "clean", "distance", "template" },
             ["lure"] = new(StringComparer.Ordinal) { "clean", "distance", "template" },
             ["nest"] = new(StringComparer.Ordinal) { "clean", "distance", "template" },
+            // Up to 5.3.0 max battles tag nothing diff:"update" and every write inserts. From 5.4.0
+            // (jfberry/PoracleNG#328) they tag these three, as raids do. MaxBattleService only asks these
+            // guards when the server declares the squash (PoracleV2Capabilities.MaxBattleSquashes), so
+            // this entry describes 5.4.0 and is never consulted for an older server. See #1003.
+            ["maxbattle"] = new(StringComparer.Ordinal) { "clean", "distance", "template" },
         };
 
     /// <summary>Types PoracleNG does not diff at all fall back to the common three.</summary>
     /// <remarks>
-    /// Unreached today. Maxbattle is the only type missing from the dictionary above, and it tags nothing
-    /// <c>diff:"update"</c> upstream, so this fallback would over-predict merges for it -- except
-    /// MaxBattleService never calls the reconciler: it deletes and re-creates, and pre-checks siblings
-    /// with its own IsSameAlarm. Verified at 5.1.0 rather than assumed. Left as the conservative default
-    /// for whatever type is added next.
+    /// Unreached today: every type has an entry above. Left as the conservative default for whatever
+    /// type is added next.
     /// </remarks>
     private static readonly HashSet<string> DefaultUpdatableFields = new(StringComparer.Ordinal)
     {

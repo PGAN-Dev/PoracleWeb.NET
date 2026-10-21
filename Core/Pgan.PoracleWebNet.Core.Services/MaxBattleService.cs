@@ -5,9 +5,19 @@ using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
-public partial class MaxBattleService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, ILogger<MaxBattleService> logger, ITrackedUidRemapper uidRemapper) : IMaxBattleService
+public partial class MaxBattleService(
+    IPoracleTrackingProxy proxy,
+    IFeatureGate featureGate,
+    ILogger<MaxBattleService> logger,
+    ITrackedUidRemapper uidRemapper,
+    IPoracleV2SchemaService v2Schema) : IMaxBattleService
 {
     private const string TrackingType = "maxbattle";
+    private const string TakeoverOnEditMessage =
+        "Another alarm of this type already uses those settings. Edit or remove that one instead.";
+    private const string TakeoverOnDistanceMessage =
+        "That radius would overwrite another alarm you did not select. Remove or edit that alarm first.";
+    private readonly IPoracleV2SchemaService _v2Schema = v2Schema;
     private readonly ILogger<MaxBattleService> _logger = logger;
     private readonly ITrackedUidRemapper _uidRemapper = uidRemapper;
     private readonly IPoracleTrackingProxy _proxy = proxy;
@@ -31,11 +41,10 @@ public partial class MaxBattleService(IPoracleTrackingProxy proxy, IFeatureGate 
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.MaxBattles);
         model.Id = userId;
 
-        // Max battles are insert-only upstream: PoracleNG dedups every other type and this one not at all,
-        // so pressing Add twice stacked identical alarms forever and the user got two of every
-        // notification, with no way to tell the rows apart in the list. An exact duplicate is refused
-        // rather than filed again. Alarms that differ in any field -- including radius -- still stack,
-        // because upstream has no key that would merge them. See #521.
+        // Up to PoracleNG 5.3.0 max battles are insert-only: PoracleNG dedups every other type and this
+        // one not at all, so pressing Add twice stacked identical alarms forever and the user got two of
+        // every notification, with no way to tell the rows apart in the list. An exact duplicate is
+        // refused rather than filed again. See #521.
         var siblings = await this.GetByUserAsync(userId, model.ProfileNo);
         if (siblings.Any(x => IsSameAlarm(x, model)))
         {
@@ -45,6 +54,17 @@ public partial class MaxBattleService(IPoracleTrackingProxy proxy, IFeatureGate 
         }
 
         var body = SerializeToElement(model);
+
+        // From 5.4.0 (jfberry/PoracleNG#328) clean, distance and template are updatable, so an Add one of
+        // those apart from an existing max battle updates that alarm instead: 201, and the user quietly
+        // has one alarm where they expected two. The same takeover #561 closed for the other types.
+        // Before 5.4.0 such an Add is a separate alarm, so the check runs only where the server merges.
+        if (await this.SquashesAsync())
+        {
+            await TrackingUpdateReconciler.EnsureNoMergeIntoAnotherAlarmAsync(
+                this._proxy, TrackingType, userId, 0, body);
+        }
+
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
 
         if (result.NewUids.Count > 0)
@@ -58,8 +78,8 @@ public partial class MaxBattleService(IPoracleTrackingProxy proxy, IFeatureGate 
     public async Task<MaxBattle> UpdateAsync(string userId, MaxBattle model)
     {
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.MaxBattles);
-        // MaxBattle is insert-only in PoracleNG (no dedup/upsert).
-        // Delete the old alarm first, then create a replacement.
+        // Up to 5.3.0 max battles are insert-only in PoracleNG (no dedup/upsert), so the v1 path below
+        // deletes the old alarm first, then creates a replacement.
         var oldUid = model.Uid;
         var body = SerializeToElement(model);
 
@@ -76,6 +96,16 @@ public partial class MaxBattleService(IPoracleTrackingProxy proxy, IFeatureGate 
             throw new TrackingConflictException(
                 TrackingType,
                 "You already have an identical max battle alarm.");
+        }
+
+        // From 5.4.0 an edit can also merge into another max battle one updatable field away. v2's PUT
+        // refuses that with a 409, but the v1 path below deletes this alarm first and its create is then
+        // resolved against the rest: the edited alarm gone and a sibling rewritten. So the check leaves
+        // this row out, and runs before the v2 attempt the way every other type's guard does. See #1003.
+        if (await this.SquashesAsync())
+        {
+            await TrackingUpdateReconciler.EnsureNoMergeIntoRemainingAsync(
+                this._proxy, TrackingType, userId, [oldUid], body, TakeoverOnEditMessage);
         }
 
         // /api/v2 replaces the rule in place, addressed by its uid, so this type stops being insert-only
@@ -136,9 +166,10 @@ public partial class MaxBattleService(IPoracleTrackingProxy proxy, IFeatureGate 
             return skipped;
         }
 
-        // MaxBattle is insert-only — bulk delete then re-create with updated distance.
-        // If the re-create fails after delete, alarms are lost. Log for recovery.
+        // Bulk delete then re-create with the updated distance, since max battles are insert-only up to
+        // 5.3.0. If the re-create fails after delete, alarms are lost. Log for recovery.
         var uids = body.EnumerateArray().Select(PoracleJsonHelper.UidOf).OfType<int>().ToList();
+        await this.EnsureRecreateKeepsEveryAlarmAsync(userId, uids, body);
         await this._proxy.BulkDeleteByUidsAsync(TrackingType, userId, uids);
 
         try
@@ -177,8 +208,10 @@ public partial class MaxBattleService(IPoracleTrackingProxy proxy, IFeatureGate 
             return skipped;
         }
 
-        // MaxBattle is insert-only — bulk delete then re-create with updated distance.
+        // Bulk delete then re-create with the updated distance, since max battles are insert-only up to
+        // 5.3.0.
         var matchingUids = body.EnumerateArray().Select(PoracleJsonHelper.UidOf).OfType<int>().ToList();
+        await this.EnsureRecreateKeepsEveryAlarmAsync(userId, matchingUids, body);
         await this._proxy.BulkDeleteByUidsAsync(TrackingType, userId, matchingUids);
 
         try
@@ -229,11 +262,41 @@ public partial class MaxBattleService(IPoracleTrackingProxy proxy, IFeatureGate 
     }
 
     /// <summary>
+    /// Whether the server merges max battles one updatable field apart (PoracleNG 5.4.0 on).
+    /// </summary>
+    private async Task<bool> SquashesAsync() =>
+        (await this._v2Schema.GetAsync()).MaxBattleSquashes;
+
+    /// <summary>
+    /// Refuses a distance rewrite that a merging server would turn into fewer alarms than the user had.
+    /// </summary>
+    /// <remarks>
+    /// Before 5.4.0 every re-created row is inserted and nothing here applies. From 5.4.0 two selected
+    /// rows that differed only by radius become one alarm at the new radius, and a re-created row one
+    /// field from an alarm left in place (unselected, or skipped as area- or place-scoped) rewrites that
+    /// alarm instead. The rows being deleted are left out of the second check: they will not exist when
+    /// the create runs. These are the refusals the other types make on these endpoints (#580, #598).
+    /// See #1003.
+    /// </remarks>
+    private async Task EnsureRecreateKeepsEveryAlarmAsync(string userId, List<int> deletedUids, JsonElement body)
+    {
+        if (!await this.SquashesAsync())
+        {
+            return;
+        }
+
+        TrackingUpdateReconciler.EnsureBatchDoesNotCollapse(body, TrackingType);
+        await TrackingUpdateReconciler.EnsureNoMergeIntoRemainingAsync(
+            this._proxy, TrackingType, userId, deletedUids, body, TakeoverOnDistanceMessage);
+    }
+
+    /// <summary>
     /// Whether two max battle alarms are the same alarm: every field a user can set, radius included.
     /// </summary>
     /// <remarks>
-    /// Deliberately strict. Upstream has no key that would merge two alarms differing by radius, so
-    /// refusing those would block something that does work. Only an exact repeat is refused. See #521.
+    /// Deliberately strict. Up to 5.3.0 upstream has no key that would merge two alarms differing by
+    /// radius, so refusing those would block something that does work. Only an exact repeat is refused
+    /// here; from 5.4.0 the one-field-apart case is the shared merge guard's job. See #521, #1003.
     /// </remarks>
     private static bool IsSameAlarm(MaxBattle existing, MaxBattle candidate) =>
         existing.PokemonId == candidate.PokemonId

@@ -126,6 +126,8 @@ public partial class PoracleV2SchemaService(
                 ProfileScopedGeography = HasQueryParameter(paths, "/v2/humans/{id}/areas", "post", "profile")
                     && HasQueryParameter(paths, "/v2/humans/{id}/location", "post", "profile")
                     && HasProperty(schemas, ResponseSchema(paths, "/v2/humans/{id}/areas", "post"), "rejected"),
+                MaxBattleSquashes = HasQueryParameter(
+                    paths, "/v2/humans/{id}/tracking/maxbattle", "post", "dry_run"),
             };
         }
         catch (JsonException)

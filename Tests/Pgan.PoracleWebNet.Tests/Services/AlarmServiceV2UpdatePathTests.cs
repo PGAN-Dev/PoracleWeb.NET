@@ -164,7 +164,7 @@ public class AlarmServiceV2UpdatePathTests
         this.AcceptV2("maxbattle", newUid: 92);
 
         var updated = await new MaxBattleService(
-                this._proxy.Object, this._featureGate.Object, NullLogger<MaxBattleService>.Instance, this._remapper.Object)
+                this._proxy.Object, this._featureGate.Object, NullLogger<MaxBattleService>.Instance, this._remapper.Object, PoracleTrackingProxyTests.V2Schema())
             .UpdateAsync("u1", new MaxBattle { Uid = 91, PokemonId = 150 });
 
         Assert.Equal(92, updated.Uid);
@@ -196,7 +196,7 @@ public class AlarmServiceV2UpdatePathTests
                 this._proxy.Object, this._featureGate.Object, NullLogger<GymService>.Instance, this._remapper.Object)
             .UpdateAsync("u1", new Gym { Uid = uid, Team = 4 })).Uid,
         "maxbattle" => (await new MaxBattleService(
-                this._proxy.Object, this._featureGate.Object, NullLogger<MaxBattleService>.Instance, this._remapper.Object)
+                this._proxy.Object, this._featureGate.Object, NullLogger<MaxBattleService>.Instance, this._remapper.Object, PoracleTrackingProxyTests.V2Schema())
             .UpdateAsync("u1", new MaxBattle { Uid = uid, PokemonId = 150 })).Uid,
         "fort" => (await new FortChangeService(
                 this._proxy.Object, this._featureGate.Object, NullLogger<FortChangeService>.Instance, this._remapper.Object)

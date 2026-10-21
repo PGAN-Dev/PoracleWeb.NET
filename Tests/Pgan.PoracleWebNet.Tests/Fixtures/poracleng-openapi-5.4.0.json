@@ -1,0 +1,97 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "PoracleNG API",
+    "version": "5.4.0",
+    "x-fixture-source": "jfberry/PoracleNG fa2836719 (PR #328) processor/internal/api/testdata/openapi.golden.json, trimmed to the maxbattle tracking POST. The golden file itself reports version 'test'."
+  },
+  "servers": [
+    {
+      "url": "/api"
+    }
+  ],
+  "paths": {
+    "/v2/humans/{id}/tracking/maxbattle": {
+      "post": {
+        "description": "Body is an array of strict rule objects. Returns {created,updated,unchanged} (POST keeps the diff/upsert behaviour). With ?include_descriptions=true each rule gains a description. ?silent=true suppresses the confirmation push.",
+        "operationId": "v2-create-maxbattle",
+        "parameters": [
+          {
+            "description": "Human id (the owning user); ownership scope for every rule",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Human id (the owning user); ownership scope for every rule",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Profile number; defaults to the human's active profile",
+            "explode": false,
+            "in": "query",
+            "name": "profile",
+            "schema": {
+              "default": -1,
+              "description": "Profile number; defaults to the human's active profile",
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Add a human-readable description to each rule in the response",
+            "explode": false,
+            "in": "query",
+            "name": "include_descriptions",
+            "schema": {
+              "description": "Add a human-readable description to each rule in the response",
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Apply without sending the confirmation push",
+            "explode": false,
+            "in": "query",
+            "name": "silent",
+            "schema": {
+              "description": "Apply without sending the confirmation push",
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Allow override_areas to name fences that are not userSelectable, for a client that has already authorised the change. Unknown fence names are still rejected; area_security community restrictions still apply.",
+            "explode": false,
+            "in": "query",
+            "name": "trusted",
+            "schema": {
+              "description": "Allow override_areas to name fences that are not userSelectable, for a client that has already authorised the change. Unknown fence names are still rejected; area_security community restrictions still apply.",
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Validate and classify without writing: returns what would be created/updated/unchanged (created rules have uid 0, updated rules carry previous), with dry_run:true. Nothing is stored, reloaded or pushed. The preview is advisory; a later commit reports what it actually did.",
+            "explode": false,
+            "in": "query",
+            "name": "dry_run",
+            "schema": {
+              "description": "Validate and classify without writing: returns what would be created/updated/unchanged (created rules have uid 0, updated rules carry previous), with dry_run:true. Nothing is stored, reloaded or pushed. The preview is advisory; a later commit reports what it actually did.",
+              "type": "boolean"
+            }
+          }
+        ],
+        "security": [
+          {
+            "poracleSecret": []
+          }
+        ],
+        "summary": "Create maxbattle tracking rule(s)",
+        "tags": [
+          "v2-tracking"
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {}
+  }
+}
