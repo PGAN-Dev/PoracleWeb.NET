@@ -92,15 +92,6 @@ describe('AdminGeofenceService', () => {
     req.flush(geofences);
   });
 
-  it('should delete a geofence by id as admin', () => {
-    const geofenceId = 42;
-    service.adminDelete(geofenceId).subscribe();
-
-    const req = httpMock.expectOne(`${API}/api/admin/geofences/${geofenceId}`);
-    expect(req.request.method).toBe('DELETE');
-    req.flush(null);
-  });
-
   it.each(['delete', 'keep'] as const)('should send alarms=%s on admin delete', alarms => {
     service.adminDelete(42, alarms).subscribe();
 

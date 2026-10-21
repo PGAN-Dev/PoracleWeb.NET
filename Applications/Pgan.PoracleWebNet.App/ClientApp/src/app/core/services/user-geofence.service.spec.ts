@@ -97,15 +97,6 @@ describe('UserGeofenceService', () => {
     req.flush(created);
   });
 
-  it('should delete a geofence by id', () => {
-    const geofenceId = 42;
-    service.deleteGeofence(geofenceId).subscribe();
-
-    const req = httpMock.expectOne(`${API}/api/geofences/custom/${geofenceId}`);
-    expect(req.request.method).toBe('DELETE');
-    req.flush(null);
-  });
-
   it.each(['delete', 'keep'] as const)('should send alarms=%s on delete', alarms => {
     service.deleteGeofence(42, alarms).subscribe();
 

@@ -29,9 +29,9 @@ export class UserGeofenceService {
     return this.http.post<void>(`${this.config.apiHost}/api/geofences/custom/${id}/deactivate`, {});
   }
 
-  /** `alarms` decides what happens to alarms limited to this fence alone; the server's default is `delete`. */
-  deleteGeofence(id: number, alarms?: GeofenceAlarmsChoice): Observable<void> {
-    const params = alarms ? new HttpParams().set('alarms', alarms) : undefined;
+  /** `alarms` decides what happens to alarms limited to this fence alone. The server requires it and answers 400 without one. */
+  deleteGeofence(id: number, alarms: GeofenceAlarmsChoice): Observable<void> {
+    const params = new HttpParams().set('alarms', alarms);
     return this.http.delete<void>(`${this.config.apiHost}/api/geofences/custom/${id}`, { params });
   }
 

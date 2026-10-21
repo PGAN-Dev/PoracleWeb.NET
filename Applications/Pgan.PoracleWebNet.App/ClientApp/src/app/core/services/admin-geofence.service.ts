@@ -10,9 +10,9 @@ export class AdminGeofenceService {
   private readonly config = inject(ConfigService);
   private readonly http = inject(HttpClient);
 
-  /** `alarms` decides what happens to the owner's alarms limited to this fence alone; the server's default is `delete`. */
-  adminDelete(id: number, alarms?: GeofenceAlarmsChoice): Observable<void> {
-    const params = alarms ? new HttpParams().set('alarms', alarms) : undefined;
+  /** `alarms` decides what happens to the owner's alarms limited to this fence alone. The server requires it and answers 400 without one. */
+  adminDelete(id: number, alarms: GeofenceAlarmsChoice): Observable<void> {
+    const params = new HttpParams().set('alarms', alarms);
     return this.http.delete<void>(`${this.config.apiHost}/api/admin/geofences/${id}`, { params });
   }
 
