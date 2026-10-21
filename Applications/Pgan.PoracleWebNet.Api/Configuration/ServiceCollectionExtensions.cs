@@ -50,7 +50,6 @@ public static class ServiceCollectionExtensions
             .SetApplicationName("Pgan.PoracleWebNet.Api");
 
         // Register Repositories
-        services.AddScoped<IHumanRepository, HumanRepository>();
         services.AddScoped<IProfileRepository, ProfileRepository>();
         services.AddScoped<IPwebSettingRepository, PwebSettingRepository>();
         services.AddScoped<IUserGeofenceRepository, UserGeofenceRepository>();

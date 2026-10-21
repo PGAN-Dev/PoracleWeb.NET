@@ -674,21 +674,8 @@ public class PoracleHumanProxyV2Tests
 
     // ---- admin human list & delete (#839) -----------------------------------------------------
     //
-    // Gated purely on IPoracleV2SchemaService.AdminHumanRoutes, not on ServerCarriesV2Async/TryV2Async:
-    // the schema check already encodes "the route exists AND the list item has the three #230 fields",
-    // which is the exact bar HumanService needs before it can stop falling back to IHumanRepository.
-
-    private static PoracleV2Capabilities AdminRoutes(bool carries) => new() { Read = true, AdminHumanRoutes = carries };
-
-    [Fact]
-    public async Task ListHumansReturnsNullWithoutTheCapabilitySoTheCallerFallsBackToTheRepository()
-    {
-        var handler = ScriptedHandler.Ok("""{"humans":[]}""");
-        var sut = CreateSut(handler, version: "5.4.0", capabilities: AdminRoutes(carries: false));
-
-        Assert.Null(await sut.ListHumansAsync());
-        Assert.Empty(handler.Requests);
-    }
+    // PoracleNG 5.4.0 is the minimum, so these routes are always there; a plaintext 404 means the server is
+    // older than that and is reported as such rather than falling back to the Poracle database.
 
     [Fact]
     public async Task ListHumansReadsTheWrapperAndTheBooleanFieldsTheListEndpointActuallySends()
@@ -700,12 +687,12 @@ public class PoracleHumanProxyV2Tests
               "admin_disable":false,"language":"en","current_profile_no":2,
               "last_checked":"2026-10-01T00:00:00Z","disabled_date":null,"notes":"vip"}]}
             """);
-        var sut = CreateSut(handler, version: "5.4.0", capabilities: AdminRoutes(carries: true));
+        var sut = CreateSut(handler, version: "5.4.0");
 
         var humans = await sut.ListHumansAsync();
 
         Assert.Equal($"{ApiAddress}/api/v2/humans", Assert.Single(handler.Requests).Url);
-        var human = Assert.Single(humans!);
+        var human = Assert.Single(humans);
         Assert.Equal("user1", human.Id);
         Assert.Equal(1, human.Enabled);
         Assert.Equal(0, human.AdminDisable);
@@ -718,7 +705,7 @@ public class PoracleHumanProxyV2Tests
     public async Task ListHumansFiltersByTypeAndEncodesTheCommaSeparatedIds()
     {
         var handler = ScriptedHandler.Ok("""{"humans":[]}""");
-        var sut = CreateSut(handler, version: "5.4.0", capabilities: AdminRoutes(carries: true));
+        var sut = CreateSut(handler, version: "5.4.0");
 
         await sut.ListHumansAsync(type: "webhook", ids: ["user1", "https://discordapp.com/api/webhooks/1/tok"]);
 
@@ -727,20 +714,10 @@ public class PoracleHumanProxyV2Tests
     }
 
     [Fact]
-    public async Task DeleteHumanReturnsNullWithoutTheCapabilitySoTheCallerFallsBackToTheRepository()
-    {
-        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
-        var sut = CreateSut(handler, version: "5.4.0", capabilities: AdminRoutes(carries: false));
-
-        Assert.Null(await sut.DeleteHumanAsync("user1"));
-        Assert.Empty(handler.Requests);
-    }
-
-    [Fact]
     public async Task DeleteHumanReturnsTrueOnSuccess()
     {
         var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
-        var sut = CreateSut(handler, version: "5.4.0", capabilities: AdminRoutes(carries: true));
+        var sut = CreateSut(handler, version: "5.4.0");
 
         Assert.True(await sut.DeleteHumanAsync("user1"));
         var request = Assert.Single(handler.Requests);
@@ -754,7 +731,7 @@ public class PoracleHumanProxyV2Tests
         // false, not an exception: the account being gone is the caller's success case, not a refusal.
         var handler = ScriptedHandler.Problem(
             HttpStatusCode.NotFound, """{"title":"Not Found","status":404,"detail":"human not found"}""");
-        var sut = CreateSut(handler, version: "5.4.0", capabilities: AdminRoutes(carries: true));
+        var sut = CreateSut(handler, version: "5.4.0");
 
         Assert.False(await sut.DeleteHumanAsync("nobody"));
     }
@@ -764,12 +741,57 @@ public class PoracleHumanProxyV2Tests
     {
         var handler = ScriptedHandler.Problem(
             HttpStatusCode.UnprocessableEntity, """{"title":"Unprocessable Entity","status":422,"detail":"cannot delete"}""");
-        var sut = CreateSut(handler, version: "5.4.0", capabilities: AdminRoutes(carries: true));
+        var sut = CreateSut(handler, version: "5.4.0");
 
         var refused = await Assert.ThrowsAsync<PoracleRequestRefusedException>(
             () => sut.DeleteHumanAsync("user1"));
 
         Assert.Contains("cannot delete", refused.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ListHumansThrowsUnsupportedOnAServerWithoutTheRoute()
+    {
+        var handler = new ScriptedHandler(new Reply(HttpStatusCode.NotFound, RouteMissing, "text/plain"));
+        var sut = CreateSut(handler, version: "5.4.0");
+
+        var ex = await Assert.ThrowsAsync<PoracleUnsupportedException>(() => sut.ListHumansAsync());
+
+        Assert.Equal("PoracleNG 5.4.0", ex.Requires);
+        Assert.Single(handler.Requests);
+    }
+
+    [Fact]
+    public async Task ListHumansAnswersAnEmptyListNotNullWhenNobodyMatches()
+    {
+        var handler = ScriptedHandler.Ok("""{"humans":[]}""");
+        var sut = CreateSut(handler, version: "5.4.0");
+
+        Assert.Empty(await sut.ListHumansAsync(ids: ["nobody"]));
+    }
+
+    [Fact]
+    public async Task DeleteHumanThrowsUnsupportedOnAServerWithoutTheRoute()
+    {
+        var handler = new ScriptedHandler(new Reply(HttpStatusCode.NotFound, RouteMissing, "text/plain"));
+        var sut = CreateSut(handler, version: "5.4.0");
+
+        var ex = await Assert.ThrowsAsync<PoracleUnsupportedException>(() => sut.DeleteHumanAsync("user1"));
+
+        Assert.Equal("PoracleNG 5.4.0", ex.Requires);
+    }
+
+    [Fact]
+    public async Task DeleteHumanEncodesAWebhookUrlIdIntoOnePathSegment()
+    {
+        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
+        var sut = CreateSut(handler, version: "5.4.0");
+
+        Assert.True(await sut.DeleteHumanAsync("https://discord.com/api/webhooks/1/x"));
+
+        Assert.Equal(
+            $"{ApiAddress}/api/v2/humans/https%3A%2F%2Fdiscord.com%2Fapi%2Fwebhooks%2F1%2Fx",
+            Assert.Single(handler.Requests).Url);
     }
 
     // ---- trusted setAreas for the active-profile dual writer (#838) ----------------------------

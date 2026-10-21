@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Moq;
-using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Core.Services;
@@ -9,28 +8,59 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 
 public class HumanServiceTests
 {
-    private readonly Mock<IHumanRepository> _repository = new();
     private readonly Mock<IPoracleHumanProxy> _humanProxy = new();
     private readonly Mock<IPoracleTrackingProxy> _trackingProxy = new();
     private readonly HumanService _sut;
 
     public HumanServiceTests() => this._sut = new HumanService(
-        this._repository.Object,
         this._humanProxy.Object,
         this._trackingProxy.Object);
 
     [Fact]
-    public async Task GetAllAsyncReturnsHumansFromRepository()
+    public async Task GetAllAsyncReturnsTheProxyList()
     {
-        // GetAllAsync still uses direct DB (no proxy equivalent)
-        this._repository.Setup(r => r.GetAllAsync()).ReturnsAsync(
+        this._humanProxy.Setup(p => p.ListHumansAsync(null, null)).ReturnsAsync(
         [
             new() { Id = "u1", Name = "User1" },
             new() { Id = "u2", Name = "User2" }
         ]);
 
-        var result = (await this._sut.GetAllAsync()).ToList();
-        Assert.Equal(2, result.Count);
+        Assert.Equal(2, (await this._sut.GetAllAsync()).Count());
+    }
+
+    [Fact]
+    public async Task GetWebhooksAsyncAsksTheProxyForWebhooks()
+    {
+        this._humanProxy.Setup(p => p.ListHumansAsync("webhook", null)).ReturnsAsync([new() { Id = "w1" }]);
+
+        Assert.Single(await this._sut.GetWebhooksAsync());
+    }
+
+    [Fact]
+    public async Task GetByIdsAsyncAsksTheProxyForThoseIds()
+    {
+        this._humanProxy.Setup(p => p.ListHumansAsync(null, It.Is<IReadOnlyCollection<string>>(c => c.SequenceEqual(new[] { "u1", "u2" }))))
+            .ReturnsAsync([new() { Id = "u1" }, new() { Id = "u2" }]);
+
+        Assert.Equal(2, (await this._sut.GetByIdsAsync(["u1", "u2"])).Count());
+    }
+
+    [Fact]
+    public async Task GetByIdsAsyncDoesNotAskWhenThereAreNoIds()
+    {
+        Assert.Empty(await this._sut.GetByIdsAsync([]));
+        this._humanProxy.Verify(p => p.ListHumansAsync(It.IsAny<string?>(), It.IsAny<IReadOnlyCollection<string>?>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task AdminListsThrowWhenTheProxyDoes()
+    {
+        this._humanProxy.Setup(p => p.ListHumansAsync(It.IsAny<string?>(), It.IsAny<IReadOnlyCollection<string>?>()))
+            .ThrowsAsync(new HttpRequestException("fail"));
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.GetAllAsync());
+        await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.GetWebhooksAsync());
+        await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.GetByIdsAsync(["u1"]));
     }
 
     [Fact]
@@ -133,7 +163,6 @@ public class HumanServiceTests
         await this._sut.SetLanguageAsync("u1", "de");
 
         this._humanProxy.Verify(p => p.SetLanguageAsync("u1", "de"), Times.Once);
-        this._repository.VerifyNoOtherCalls();
     }
 
     [Fact]
@@ -191,17 +220,24 @@ public class HumanServiceTests
     }
 
     [Fact]
-    public async Task DeleteUserAsyncDelegatesToRepository()
+    public async Task DeleteUserAsyncDelegatesToTheProxy()
     {
-        this._repository.Setup(r => r.DeleteUserAsync("u1")).ReturnsAsync(true);
+        this._humanProxy.Setup(p => p.DeleteHumanAsync("u1")).ReturnsAsync(true);
         Assert.True(await this._sut.DeleteUserAsync("u1"));
     }
 
     [Fact]
-    public async Task DeleteUserAsyncReturnsFalse()
+    public async Task DeleteUserAsyncReturnsFalseWhenPoracleHadNoSuchHuman()
     {
-        this._repository.Setup(r => r.DeleteUserAsync("unknown")).ReturnsAsync(false);
+        this._humanProxy.Setup(p => p.DeleteHumanAsync("unknown")).ReturnsAsync(false);
         Assert.False(await this._sut.DeleteUserAsync("unknown"));
+    }
+
+    [Fact]
+    public async Task DeleteUserAsyncThrowsWhenTheProxyDoes()
+    {
+        this._humanProxy.Setup(p => p.DeleteHumanAsync("u1")).ThrowsAsync(new HttpRequestException("fail"));
+        await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.DeleteUserAsync("u1"));
     }
 
     /// <summary>
@@ -251,7 +287,7 @@ public class HumanServiceTests
     [Fact]
     public void NoProfileFilteredHumanLookupExists()
     {
-        var offenders = new[] { typeof(IHumanService), typeof(IHumanRepository) }
+        var offenders = new[] { typeof(IHumanService) }
             .SelectMany(t => t.GetMethods())
             .Where(m => m.Name.Contains("AndProfile", StringComparison.Ordinal))
             .Select(m => $"{m.DeclaringType!.Name}.{m.Name}")

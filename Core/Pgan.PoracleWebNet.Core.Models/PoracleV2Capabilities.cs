@@ -67,19 +67,6 @@ public sealed class PoracleV2Capabilities
     }
 
     /// <summary>
-    /// <c>GET /v2/humans</c> lists humans and <c>DELETE /v2/humans/{id}</c> purges one, which together
-    /// are the last three things keeping <c>IHumanRepository</c> alive. See #839.
-    /// </summary>
-    /// <remarks>
-    /// Both, deliberately. The list alone does not let the repository go, and reporting them separately
-    /// would invite a half-migration that keeps the Poracle-DB dependency for the remaining method.
-    /// </remarks>
-    public bool AdminHumanRoutes
-    {
-        get; init;
-    }
-
-    /// <summary>
     /// <c>V2InvasionRule</c> carries <c>grunt_type</c>, so an invasion rule names the grunt it targets
     /// on the way in and on the way out. See #841.
     /// </summary>

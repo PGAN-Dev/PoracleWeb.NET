@@ -1199,14 +1199,8 @@ public partial class PoracleHumanProxy(
         await EnsureAcceptedAsync(reply.Response);
     }
 
-    public async Task<IReadOnlyList<Human>?> ListHumansAsync(string? type = null, IReadOnlyCollection<string>? ids = null)
+    public async Task<IReadOnlyList<Human>> ListHumansAsync(string? type = null, IReadOnlyCollection<string>? ids = null)
     {
-        var capabilities = await this._v2Schema.GetAsync();
-        if (!capabilities.AdminHumanRoutes)
-        {
-            return null;
-        }
-
         var query = new List<string>();
         if (!string.IsNullOrEmpty(type))
         {
@@ -1221,6 +1215,7 @@ public partial class PoracleHumanProxy(
         var path = query.Count > 0 ? $"/api/v2/humans?{string.Join('&', query)}" : "/api/v2/humans";
 
         var (response, payload) = await this.SendReadAsync(HttpMethod.Get, path);
+        ThrowIfRouteMissing(response, payload, "the admin user list");
         await EnsureAcceptedAsync(response);
 
         using var doc = JsonDocument.Parse(payload);
@@ -1259,15 +1254,10 @@ public partial class PoracleHumanProxy(
         Notes = json.GetStringPropOrNull("notes"),
     };
 
-    public async Task<bool?> DeleteHumanAsync(string userId)
+    public async Task<bool> DeleteHumanAsync(string userId)
     {
-        var capabilities = await this._v2Schema.GetAsync();
-        if (!capabilities.AdminHumanRoutes)
-        {
-            return null;
-        }
-
-        var (response, _) = await this.SendReadAsync(HttpMethod.Delete, $"/api/v2/humans/{Encode(userId)}");
+        var (response, payload) = await this.SendReadAsync(HttpMethod.Delete, $"/api/v2/humans/{Encode(userId)}");
+        ThrowIfRouteMissing(response, payload, "deleting a user");
 
         if (response.StatusCode == HttpStatusCode.NotFound)
         {
@@ -1276,6 +1266,18 @@ public partial class PoracleHumanProxy(
 
         await EnsureAcceptedAsync(response);
         return true;
+    }
+
+    /// <summary>
+    /// gin's plaintext <c>404 page not found</c> means the route is not there, which on a 5.4.0 minimum
+    /// is a server older than that. A problem+json 404 is PoracleNG answering about the human.
+    /// </summary>
+    private static void ThrowIfRouteMissing(HttpResponseMessage response, string payload, string feature)
+    {
+        if (response.StatusCode == HttpStatusCode.NotFound && !PoracleProblemDetails.IsProblemJson(payload))
+        {
+            throw new PoracleUnsupportedException(feature, "PoracleNG 5.4.0");
+        }
     }
 
     /// <summary>

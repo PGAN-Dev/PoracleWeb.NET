@@ -46,7 +46,6 @@ public class PoracleV2SchemaServiceTests
         Assert.False(capabilities.TrustedSetAreas);
         Assert.False(capabilities.ProfileRename);
         Assert.False(capabilities.ProfileCreateReturnsNumber);
-        Assert.False(capabilities.AdminHumanRoutes);
         Assert.False(capabilities.InvasionGruntType);
         Assert.False(capabilities.TrackingPing);
         Assert.False(capabilities.V2LocationLatitudeLongitude);
@@ -61,7 +60,6 @@ public class PoracleV2SchemaServiceTests
         Assert.True(capabilities.TrustedSetAreas);
         Assert.True(capabilities.ProfileRename);
         Assert.True(capabilities.ProfileCreateReturnsNumber);
-        Assert.True(capabilities.AdminHumanRoutes);
         Assert.True(capabilities.InvasionGruntType);
         Assert.True(capabilities.TrackingPing);
         Assert.True(capabilities.V2LocationLatitudeLongitude);
@@ -202,7 +200,6 @@ public class PoracleV2SchemaServiceTests
         Assert.False(capabilities.TrustedSetAreas);
         Assert.False(capabilities.ProfileRename);
         Assert.False(capabilities.ProfileCreateReturnsNumber);
-        Assert.False(capabilities.AdminHumanRoutes);
         Assert.False(capabilities.InvasionGruntType);
         Assert.False(capabilities.TrackingPing);
         Assert.False(capabilities.V2LocationLatitudeLongitude);
@@ -222,43 +219,6 @@ public class PoracleV2SchemaServiceTests
         Assert.True(PoracleV2SchemaService.Parse("""{"components":{"schemas":{}},"paths":{}}""").Read);
         Assert.False(PoracleV2SchemaService.Parse("not json at all").Read);
         Assert.False(PoracleV2SchemaService.Parse(null).Read);
-    }
-
-    [Fact]
-    public void AdminHumanRoutesNeedsBothTheListAndTheDelete()
-    {
-        // Reporting them separately would invite a half-migration that keeps IHumanRepository — and with
-        // it PoracleContext — alive for the one method that did not move.
-        const string listOnly = """
-            {"paths":{"/v2/humans":{"get":{}},"/v2/humans/{id}":{"get":{}}},
-             "components":{"schemas":{}}}
-            """;
-        const string deleteOnly = """
-            {"paths":{"/v2/humans":{"post":{}},"/v2/humans/{id}":{"get":{},"delete":{}}},
-             "components":{"schemas":{}}}
-            """;
-        const string both = """
-            {"paths":{"/v2/humans":{"get":{},"post":{}},"/v2/humans/{id}":{"get":{},"delete":{}}},
-             "components":{"schemas":{"V2HumanSummary":{"properties":{"last_checked":{"type":"string"}}}}}}
-            """;
-
-        Assert.False(PoracleV2SchemaService.Parse(listOnly).AdminHumanRoutes);
-        Assert.False(PoracleV2SchemaService.Parse(deleteOnly).AdminHumanRoutes);
-        Assert.True(PoracleV2SchemaService.Parse(both).AdminHumanRoutes);
-    }
-
-    [Fact]
-    public void AdminHumanRoutesNeedsTheThreeHashFieldsNotJustTheRoutes()
-    {
-        // The routes existed from PR #217 on; #230 added last_checked/disabled_date/notes, which the
-        // admin grid actually reads. A server with the routes but the pre-#230 summary shape must not
-        // report this as available -- it is not meaningfully different from having no route at all.
-        const string preHash230 = """
-            {"paths":{"/v2/humans":{"get":{}},"/v2/humans/{id}":{"get":{},"delete":{}}},
-             "components":{"schemas":{"V2HumanSummary":{"properties":{"id":{"type":"string"}}}}}}
-            """;
-
-        Assert.False(PoracleV2SchemaService.Parse(preHash230).AdminHumanRoutes);
     }
 
     [Fact]
