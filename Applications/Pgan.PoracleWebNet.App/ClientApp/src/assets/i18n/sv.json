@@ -1501,6 +1501,7 @@
     "SNACK_FAILED_LOAD_GEOFENCES": "Kunde inte ladda geofences",
     "SNACK_FAILED_APPROVE": "Kunde inte godkänna inskickning",
     "SNACK_APPROVED": "\"{{name}}\" godkänd",
+    "SNACK_APPROVED_AREAS_NOT_MOVED": "Godkänd, men ägarens områden flyttades inte. Hen kan välja det nya området på sidan Områden.",
     "SNACK_FAILED_REJECT": "Kunde inte avvisa inskickning",
     "SNACK_REJECTED": "\"{{name}}\" avvisad",
     "APPROVAL_REGION_HINT": "Välj den region som detta geostängsel ska visas under.",

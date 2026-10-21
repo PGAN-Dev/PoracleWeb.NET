@@ -92,6 +92,7 @@ public class UserGeofence
     /// Set on approval only: whether the owner's subscriptions were moved to the promoted name. Null when
     /// no rename was needed. False means Koji has the fence but the owner still holds the old name.
     /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public bool? OwnerAreasRenamed
     {
         get; set;

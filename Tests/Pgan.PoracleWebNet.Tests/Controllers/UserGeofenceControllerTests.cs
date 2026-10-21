@@ -384,4 +384,15 @@ public class UserGeofenceControllerTests : ControllerTestBase
         var ok = Assert.IsType<OkObjectResult>(result);
         Assert.NotNull(ok.Value);
     }
+
+    [Fact]
+    public async Task RenameGeofenceReturnsConflictWhenPoracleCouldNotTakeTheName()
+    {
+        this._service.Setup(s => s.RenameAsync("123456789", 1, "Uptown", null, null))
+            .ThrowsAsync(new GeofenceRenameFailedException());
+
+        var result = await this._sut.RenameGeofence(1, new UserGeofenceRenameRequest("Uptown", null, null));
+
+        Assert.IsType<ConflictObjectResult>(result);
+    }
 }

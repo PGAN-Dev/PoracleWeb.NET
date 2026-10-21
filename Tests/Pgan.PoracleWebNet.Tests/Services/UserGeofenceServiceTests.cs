@@ -30,6 +30,7 @@ public class UserGeofenceServiceTests
         this._featureGate.Setup(g => g.IsEnabledAsync(It.IsAny<string>())).ReturnsAsync(true);
         this._userAreaWriter.Setup(w => w.AddToActiveProfileAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
         this._userAreaWriter.Setup(w => w.RemoveFromActiveProfileAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
+        this._userAreaWriter.Setup(w => w.RenameEverywhereAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
 
         this._sut = new UserGeofenceService(
             this._repository.Object,
@@ -724,7 +725,6 @@ public class UserGeofenceServiceTests
             w => w.RenameEverywhereAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
         this._humanProxy.Verify(p => p.SetAreasAsync(It.IsAny<string>(), It.IsAny<string[]>()), Times.Never);
     }
-
 
     [Fact]
     public async Task ApproveSubmissionAsyncStillApprovesWhenTheSubscriptionMoveFails()
@@ -2051,5 +2051,98 @@ public class UserGeofenceServiceTests
 
         Assert.Equal(7, saved?.ParentId);
         Assert.Equal("South", saved?.GroupName);
+    }
+
+    private UserGeofence SeedRenameable(string kojiName = "downtown")
+    {
+        var geofence = new UserGeofence
+        {
+            Id = 1, HumanId = "u1", KojiName = kojiName, DisplayName = "Downtown", GroupName = "North", ParentId = 42, Status = "active",
+        };
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
+        this._repository.Setup(r => r.UpdateAsync(It.IsAny<UserGeofence>())).ReturnsAsync((UserGeofence g) => g);
+        return geofence;
+    }
+
+    [Fact]
+    public async Task RenameAsyncRestoresTheRowAndThrowsWhenTheReloadFails()
+    {
+        this.SeedRenameable();
+        var saves = new List<(string, string, string?, int)>();
+        this._repository.Setup(r => r.UpdateAsync(It.IsAny<UserGeofence>()))
+            .Callback<UserGeofence>(g => saves.Add((g.DisplayName, g.KojiName, g.GroupName, g.ParentId)))
+            .ReturnsAsync((UserGeofence g) => g);
+        this._poracleApiProxy.Setup(p => p.ReloadGeofencesAsync()).ThrowsAsync(new HttpRequestException("down"));
+
+        await Assert.ThrowsAsync<GeofenceRenameFailedException>(() => this._sut.RenameAsync("u1", 1, "Uptown", "South", 7));
+
+        Assert.Equal(("Uptown", "uptown", "South", 7), saves[0]);
+        Assert.Equal(("Downtown", "downtown", "North", 42), saves[^1]);
+        this._userAreaWriter.Verify(
+            w => w.RenameEverywhereAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RenameAsyncRestoresTheRowAndThrowsWhenThePoracleRenameIsRefused()
+    {
+        this.SeedRenameable();
+        var saves = new List<(string, string, string?, int)>();
+        this._repository.Setup(r => r.UpdateAsync(It.IsAny<UserGeofence>()))
+            .Callback<UserGeofence>(g => saves.Add((g.DisplayName, g.KojiName, g.GroupName, g.ParentId)))
+            .ReturnsAsync((UserGeofence g) => g);
+        this._userAreaWriter.Setup(w => w.RenameEverywhereAsync("u1", "downtown", "uptown")).ReturnsAsync(false);
+
+        await Assert.ThrowsAsync<GeofenceRenameFailedException>(() => this._sut.RenameAsync("u1", 1, "Uptown", "South", 7));
+
+        Assert.Equal(("Downtown", "downtown", "North", 42), saves[^1]);
+        this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.AtLeast(2));
+    }
+
+    [Fact]
+    public async Task RenameAsyncDoesNotRollBackWhenTheRenameCallItselfThrows()
+    {
+        this.SeedRenameable();
+        this._userAreaWriter.Setup(w => w.RenameEverywhereAsync("u1", "downtown", "uptown"))
+            .ThrowsAsync(new HttpRequestException("timeout"));
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.RenameAsync("u1", 1, "Uptown", null, null));
+
+        this._repository.Verify(r => r.UpdateAsync(It.IsAny<UserGeofence>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task RenameAsyncSkipsTheRenameWhenTheCleanedNamesMatchAMixedCaseLegacyRow()
+    {
+        this.SeedRenameable("Downtown");
+
+        await this._sut.RenameAsync("u1", 1, " downtown ", null, null);
+
+        this._userAreaWriter.Verify(
+            w => w.RenameEverywhereAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ApproveSubmissionAsyncRetriesTheRenameOnceAndReportsTrueWhenTheRetryLands()
+    {
+        this.SeedPendingGeofence();
+        this._userAreaWriter.SetupSequence(w => w.RenameEverywhereAsync("u1", "downtown", "new downtown"))
+            .ReturnsAsync(false).ReturnsAsync(true);
+
+        var result = await this._sut.ApproveSubmissionAsync("admin1", 1, "New Downtown");
+
+        Assert.True(result.OwnerAreasRenamed);
+        this._userAreaWriter.Verify(w => w.RenameEverywhereAsync("u1", "downtown", "new downtown"), Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task ApproveSubmissionAsyncTriesTheRenameExactlyTwiceBeforeGivingUp()
+    {
+        this.SeedPendingGeofence();
+        this._userAreaWriter.Setup(w => w.RenameEverywhereAsync("u1", "downtown", "new downtown")).ReturnsAsync(false);
+
+        var result = await this._sut.ApproveSubmissionAsync("admin1", 1, "New Downtown");
+
+        Assert.False(result.OwnerAreasRenamed);
+        this._userAreaWriter.Verify(w => w.RenameEverywhereAsync("u1", "downtown", "new downtown"), Times.Exactly(2));
     }
 }

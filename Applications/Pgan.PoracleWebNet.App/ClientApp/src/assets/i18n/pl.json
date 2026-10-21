@@ -1501,6 +1501,7 @@
     "SNACK_FAILED_LOAD_GEOFENCES": "Nie udało się załadować geofence",
     "SNACK_FAILED_APPROVE": "Nie udało się zatwierdzić zgłoszenia",
     "SNACK_APPROVED": "\"{{name}}\" zatwierdzony",
+    "SNACK_APPROVED_AREAS_NOT_MOVED": "Zatwierdzono, ale obszary właściciela nie zostały przeniesione. Może wybrać nowy obszar na stronie Obszary.",
     "SNACK_FAILED_REJECT": "Nie udało się odrzucić zgłoszenia",
     "SNACK_REJECTED": "\"{{name}}\" odrzucony",
     "APPROVAL_REGION_HINT": "Wybierz region, w którym pojawi się ten geofence.",

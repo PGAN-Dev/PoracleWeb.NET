@@ -1501,6 +1501,7 @@
     "SNACK_FAILED_LOAD_GEOFENCES": "Falha ao carregar geofences",
     "SNACK_FAILED_APPROVE": "Falha ao aprovar envio",
     "SNACK_APPROVED": "\"{{name}}\" aprovada",
+    "SNACK_APPROVED_AREAS_NOT_MOVED": "Aprovada, mas as áreas do proprietário não foram movidas. Ele pode escolher a nova área na página Áreas.",
     "SNACK_FAILED_REJECT": "Falha ao rejeitar envio",
     "SNACK_REJECTED": "\"{{name}}\" rejeitada",
     "APPROVAL_REGION_HINT": "Escolha a região sob a qual esta geocerca aparecerá.",

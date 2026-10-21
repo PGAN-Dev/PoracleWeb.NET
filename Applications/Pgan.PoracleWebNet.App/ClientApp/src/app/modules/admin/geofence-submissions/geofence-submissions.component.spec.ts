@@ -778,4 +778,29 @@ describe('GeofenceSubmissionsComponent', () => {
     expect(promotedItem).toBeTruthy();
     expect(promotedItem?.textContent).toContain('Official Park Area');
   });
+
+  describe('approval and the owner areas', () => {
+    function approveWith(response: Partial<UserGeofence>): void {
+      setup();
+      component.ngOnInit();
+      const pending = component.allGeofences().find(g => g.status === 'pending_review')!;
+      adminGeofenceService['approveSubmission'].mockReturnValue(of({ ...pending, ...response, status: 'approved' }));
+      mockDialog.open.mockReturnValue({ afterClosed: () => of({ action: 'approve', promotedName: 'Official' }) });
+      component.openReviewDialog(pending);
+    }
+
+    it('warns the admin when the owner areas were not moved', () => {
+      approveWith({ ownerAreasRenamed: false });
+
+      expect(mockSnackBar.open).toHaveBeenCalledWith('ADMIN.SNACK_APPROVED_AREAS_NOT_MOVED', 'TOAST.OK', { duration: 8000 });
+      expect(mockSnackBar.open).not.toHaveBeenCalledWith('ADMIN.SNACK_APPROVED', expect.anything(), expect.anything());
+    });
+
+    it.each([true, null, undefined])('shows the plain approval when ownerAreasRenamed is %s', renamed => {
+      approveWith({ ownerAreasRenamed: renamed });
+
+      expect(mockSnackBar.open).toHaveBeenCalledWith('ADMIN.SNACK_APPROVED', 'TOAST.OK', { duration: 3000 });
+      expect(mockSnackBar.open).not.toHaveBeenCalledWith('ADMIN.SNACK_APPROVED_AREAS_NOT_MOVED', expect.anything(), expect.anything());
+    });
+  });
 });

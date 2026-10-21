@@ -1502,6 +1502,7 @@
     "SNACK_FAILED_LOAD_GEOFENCES": "Failed to load geofences",
     "SNACK_FAILED_APPROVE": "Failed to approve submission",
     "SNACK_APPROVED": "\"{{name}}\" approved",
+    "SNACK_APPROVED_AREAS_NOT_MOVED": "Approved, but the owner's areas weren't moved. They can pick the new area on the Areas page.",
     "SNACK_FAILED_REJECT": "Failed to reject submission",
     "SNACK_REJECTED": "\"{{name}}\" rejected",
     "SERVER_TITLE": "Poracle server",

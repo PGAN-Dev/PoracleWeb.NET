@@ -62,6 +62,11 @@ public partial class UserGeofenceController(
             // does not exist.
             return this.NotFound();
         }
+        catch (GeofenceRenameFailedException ex)
+        {
+            // Rolled back: the input was fine and a retry can succeed, so not a 400.
+            return this.Conflict(new { error = ex.Message });
+        }
         catch (InvalidOperationException ex)
         {
             // The rename status guard (#646) threw straight past these arms as an unhandled 500.

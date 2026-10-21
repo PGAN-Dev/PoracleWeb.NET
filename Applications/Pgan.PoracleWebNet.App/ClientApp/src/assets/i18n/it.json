@@ -1502,6 +1502,7 @@
     "SNACK_FAILED_LOAD_GEOFENCES": "Caricamento geofence fallito",
     "SNACK_FAILED_APPROVE": "Approvazione invio fallita",
     "SNACK_APPROVED": "\"{{name}}\" approvata",
+    "SNACK_APPROVED_AREAS_NOT_MOVED": "Approvata, ma le aree del proprietario non sono state spostate. Può scegliere la nuova area nella pagina Aree.",
     "SNACK_FAILED_REJECT": "Rifiuto invio fallito",
     "SNACK_REJECTED": "\"{{name}}\" rifiutata",
     "SERVER_TITLE": "Server Poracle",

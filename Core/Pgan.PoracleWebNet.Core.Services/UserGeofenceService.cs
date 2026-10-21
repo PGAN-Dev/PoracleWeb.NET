@@ -249,6 +249,7 @@ public partial class UserGeofenceService(
 
         var oldKojiName = geofence.KojiName;
         var newKojiName = trimmedName.ToLowerInvariant();
+        var (previousDisplayName, previousGroupName, previousParentId) = (geofence.DisplayName, geofence.GroupName, geofence.ParentId);
 
         if (!string.Equals(oldKojiName, newKojiName, StringComparison.OrdinalIgnoreCase))
         {
@@ -274,17 +275,25 @@ public partial class UserGeofenceService(
         // Every profile that was subscribed stays subscribed, under the new name. This is the whole
         // point of renaming in place rather than delete-then-recreate. See #543.
         // Reload first: PoracleNG refuses a rename to a name it has not loaded, and the feed only serves
-        // the new name now that the row is updated. A failed reload or a refused rename is logged and the
-        // fence stays renamed, as before; the subscription then keeps the old name.
-        if (!string.Equals(oldKojiName, newKojiName, StringComparison.Ordinal))
+        // the new name now that the row is updated. A DEFINITE failure (reload failed, or PoracleNG refused
+        // the rename) puts the row back: left alone it carries the new name while every profile holds the
+        // old one, the save looks successful, and a later fence reusing the old name would inherit its
+        // subscribers. An ambiguous failure (the rename call throwing) is not rolled back: the write may
+        // have landed, and restoring the row then would strand the subscriptions under the new name.
+        if (!string.Equals(CleanName(oldKojiName), CleanName(newKojiName), StringComparison.Ordinal))
         {
-            if (await this.ReloadGeofencesSafeAsync())
+            var renamed = await this.ReloadGeofencesSafeAsync()
+                && await this._userAreaWriter.RenameEverywhereAsync(humanId, oldKojiName, newKojiName);
+            if (!renamed)
             {
-                _ = await this._userAreaWriter.RenameEverywhereAsync(humanId, oldKojiName, newKojiName);
-            }
-            else
-            {
-                LogRenameSkippedReloadFailed(this._logger, oldKojiName, newKojiName);
+                geofence.DisplayName = previousDisplayName;
+                geofence.KojiName = oldKojiName;
+                geofence.GroupName = previousGroupName;
+                geofence.ParentId = previousParentId;
+                _ = await this._repository.UpdateAsync(geofence);
+                _ = await this.ReloadGeofencesSafeAsync();
+                LogRenameRolledBack(this._logger, oldKojiName, newKojiName);
+                throw new GeofenceRenameFailedException();
             }
         }
         else
@@ -783,20 +792,25 @@ public partial class UserGeofenceService(
         // above just made stale). Everything after the Koji save is best effort: the fence is public by
         // now, so the approval stands and the response says whether the owner's areas followed.
         bool? ownerAreasRenamed = null;
-        if (!string.Equals(targetName, geofence.KojiName, StringComparison.Ordinal))
+        if (!string.Equals(CleanName(targetName), CleanName(geofence.KojiName), StringComparison.Ordinal))
         {
-            try
+            // One retry: the first reload can lose a race with Koji, and a second attempt is cheap next to
+            // an admin having to tell an owner to re-pick the area.
+            ownerAreasRenamed = false;
+            for (var attempt = 0; attempt < 2 && ownerAreasRenamed != true; attempt++)
             {
-                ownerAreasRenamed = await this.ReloadGeofencesSafeAsync()
-                    && await this._userAreaWriter.RenameEverywhereAsync(geofence.HumanId, geofence.KojiName, targetName);
-            }
-            catch (Exception ex)
-            {
-                ownerAreasRenamed = false;
-                LogAreaSwapFallbackFailed(this._logger, ex, geofence.KojiName);
+                try
+                {
+                    ownerAreasRenamed = await this.ReloadGeofencesSafeAsync()
+                        && await this._userAreaWriter.RenameEverywhereAsync(geofence.HumanId, geofence.KojiName, targetName);
+                }
+                catch (Exception ex)
+                {
+                    LogAreaSwapFallbackFailed(this._logger, ex, geofence.KojiName);
+                }
             }
 
-            if (ownerAreasRenamed == false)
+            if (ownerAreasRenamed != true)
             {
                 LogOwnerAreasNotRenamed(this._logger, geofence.KojiName, targetName);
             }
@@ -999,6 +1013,11 @@ public partial class UserGeofenceService(
     [System.Text.RegularExpressions.GeneratedRegex(@"^[a-zA-Z0-9 \-'.()&]+$")]
     private static partial System.Text.RegularExpressions.Regex MyRegex();
 
+    private static string CleanName(string name) => name.Trim().ToLowerInvariant();
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Renaming geofence '{OldName}' to '{NewName}' failed at PoracleNG; the row was restored and the user asked to retry")]
+    private static partial void LogRenameRolledBack(ILogger logger, string oldName, string newName);
+
     [LoggerMessage(Level = LogLevel.Warning, Message = "Could not switch on new geofence '{KojiName}'; it is saved but inactive")]
     private static partial void LogGeofenceActivationFailed(ILogger logger, Exception ex, string kojiName);
 
@@ -1058,9 +1077,6 @@ public partial class UserGeofenceService(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to reload Poracle geofences after custom geofence change")]
     private static partial void LogGeofenceReloadFailed(ILogger logger, Exception ex);
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Geofence '{OldName}' was renamed to '{NewName}' but PoracleNG could not reload its geofences, so the owner's subscriptions keep the old name")]
-    private static partial void LogRenameSkippedReloadFailed(ILogger logger, string oldName, string newName);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Approved geofence '{OldName}' as '{NewName}' in Koji, but the owner's subscriptions were not moved to the new name")]
     private static partial void LogOwnerAreasNotRenamed(ILogger logger, string oldName, string newName);

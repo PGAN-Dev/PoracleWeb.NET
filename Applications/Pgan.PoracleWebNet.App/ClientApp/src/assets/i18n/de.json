@@ -1501,6 +1501,7 @@
     "SNACK_FAILED_LOAD_GEOFENCES": "Geofences konnten nicht geladen werden",
     "SNACK_FAILED_APPROVE": "Einreichung konnte nicht genehmigt werden",
     "SNACK_APPROVED": "\"{{name}}\" genehmigt",
+    "SNACK_APPROVED_AREAS_NOT_MOVED": "Genehmigt, aber die Gebiete des Besitzers wurden nicht verschoben. Er kann das neue Gebiet auf der Seite Gebiete auswählen.",
     "SNACK_FAILED_REJECT": "Einreichung konnte nicht abgelehnt werden",
     "SNACK_REJECTED": "\"{{name}}\" abgelehnt",
     "APPROVAL_REGION_HINT": "Wähle die Region, unter der dieses Geofence erscheinen soll.",

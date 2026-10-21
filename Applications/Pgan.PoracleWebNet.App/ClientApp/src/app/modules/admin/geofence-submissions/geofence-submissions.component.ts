@@ -318,6 +318,14 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
                 this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_APPROVE'), this.i18n.instant('TOAST.OK'), { duration: 3000 }),
               next: updated => {
                 this.allGeofences.update(list => list.map(g => (g.id === geofence.id ? updated : g)));
+                // Koji has the fence but the owner's areas still hold the old name. Say so, or the owner
+                // is silently unsubscribed from the area they just had approved.
+                if (updated.ownerAreasRenamed === false) {
+                  this.snackBar.open(this.i18n.instant('ADMIN.SNACK_APPROVED_AREAS_NOT_MOVED'), this.i18n.instant('TOAST.OK'), {
+                    duration: 8000,
+                  });
+                  return;
+                }
                 this.snackBar.open(
                   this.i18n.instant('ADMIN.SNACK_APPROVED', { name: geofence.displayName }),
                   this.i18n.instant('TOAST.OK'),

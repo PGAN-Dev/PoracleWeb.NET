@@ -1501,6 +1501,7 @@
     "SNACK_FAILED_LOAD_GEOFENCES": "Kunne ikke indlæse geofences",
     "SNACK_FAILED_APPROVE": "Kunne ikke godkende indsendelse",
     "SNACK_APPROVED": "\"{{name}}\" godkendt",
+    "SNACK_APPROVED_AREAS_NOT_MOVED": "Godkendt, men ejerens områder blev ikke flyttet. De kan vælge det nye område på siden Områder.",
     "SNACK_FAILED_REJECT": "Kunne ikke afvise indsendelse",
     "SNACK_REJECTED": "\"{{name}}\" afvist",
     "APPROVAL_REGION_HINT": "Vælg den region, dette geofence skal vises under.",

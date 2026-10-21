@@ -1501,6 +1501,7 @@
     "SNACK_FAILED_LOAD_GEOFENCES": "Geofences laden mislukt",
     "SNACK_FAILED_APPROVE": "Inzending goedkeuren mislukt",
     "SNACK_APPROVED": "\"{{name}}\" goedgekeurd",
+    "SNACK_APPROVED_AREAS_NOT_MOVED": "Goedgekeurd, maar de gebieden van de eigenaar zijn niet verplaatst. Die kan het nieuwe gebied kiezen op de pagina Gebieden.",
     "SNACK_FAILED_REJECT": "Inzending afwijzen mislukt",
     "SNACK_REJECTED": "\"{{name}}\" afgewezen",
     "APPROVAL_REGION_HINT": "Kies de regio waaronder deze geofence verschijnt.",

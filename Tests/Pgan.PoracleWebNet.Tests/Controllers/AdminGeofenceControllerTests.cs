@@ -283,6 +283,23 @@ public class AdminGeofenceControllerTests : ControllerTestBase
         Assert.Equal(approved, ok.Value);
     }
 
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    [InlineData(null, false)]
+    public async Task ApproveSubmissionResponseCarriesOwnerAreasRenamedUnlessItIsNull(bool? renamed, bool expectedPresent)
+    {
+        var approved = new UserGeofence { Id = 1, KojiName = "a", DisplayName = "A", Status = "approved", OwnerAreasRenamed = renamed };
+        this._service.Setup(s => s.ApproveSubmissionAsync("123456789", 1, null, null, null)).ReturnsAsync(approved);
+
+        var result = await this._sut.ApproveSubmission(1, null);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var json = System.Text.Json.JsonSerializer.Serialize(ok.Value, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
+        Assert.Equal(expectedPresent, json.Contains("\"ownerAreasRenamed\":" + (renamed == true ? "true" : "false"), StringComparison.Ordinal));
+        Assert.Equal(renamed is null, !json.Contains("ownerAreasRenamed", StringComparison.Ordinal));
+    }
+
     [Fact]
     public async Task ApproveSubmissionFillsInTheAvatarsTheListProjectionAdds()
     {

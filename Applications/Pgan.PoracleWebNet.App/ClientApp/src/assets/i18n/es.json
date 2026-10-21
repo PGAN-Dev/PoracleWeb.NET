@@ -1502,6 +1502,7 @@
     "SNACK_FAILED_LOAD_GEOFENCES": "Error al cargar las geofences",
     "SNACK_FAILED_APPROVE": "Error al aprobar el envío",
     "SNACK_APPROVED": "\"{{name}}\" aprobada",
+    "SNACK_APPROVED_AREAS_NOT_MOVED": "Aprobada, pero las áreas del propietario no se movieron. Puede elegir la nueva área en la página Áreas.",
     "SNACK_FAILED_REJECT": "Error al rechazar el envío",
     "SNACK_REJECTED": "\"{{name}}\" rechazada",
     "SERVER_TITLE": "Servidor Poracle",
