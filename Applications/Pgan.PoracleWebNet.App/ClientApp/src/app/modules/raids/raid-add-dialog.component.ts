@@ -23,7 +23,6 @@ import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { RaidService } from '../../core/services/raid.service';
-import { SettingsService } from '../../core/services/settings.service';
 import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
 import { LevelSelectorComponent } from '../../shared/components/level-selector/level-selector.component';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
@@ -71,7 +70,6 @@ export class RaidAddDialogComponent {
   private readonly icons = inject(IconService);
   private readonly masterData = inject(MasterDataService);
   private readonly raidService = inject(RaidService);
-  private readonly settings = inject(SettingsService);
   private readonly snackBar = inject(MatSnackBar);
   commonForm = this.fb.group({
     clean: [false],
@@ -258,14 +256,5 @@ export class RaidAddDialogComponent {
         this.dialogRef.close(true);
       },
     });
-  }
-
-  /**
-   * Whether to offer the costume filter at all. False on a Poracle without the raid.costume column: it
-   * takes the field, answers 200 and drops it, so the control would produce a rule that reads
-   * "Halloween 2025" and matches every spawn. Unknown counts as absent.
-   */
-  showCostume(): boolean {
-    return this.settings.supportsCostume('raid');
   }
 }

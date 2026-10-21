@@ -179,7 +179,7 @@ public class AlarmServiceV2UpdatePathTests
     {
         "raid" => (await new RaidService(
                 this._proxy.Object, this._featureGate.Object, NullLogger<RaidService>.Instance,
-                this._remapper.Object, CostumeCapabilityDoubles.Supported())
+                this._remapper.Object)
             .UpdateAsync("u1", new Raid { Uid = uid, PokemonId = 150 })).Uid,
         "egg" => (await new EggService(
                 this._proxy.Object, this._featureGate.Object, NullLogger<EggService>.Instance, this._remapper.Object)

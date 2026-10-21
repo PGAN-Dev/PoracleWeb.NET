@@ -191,9 +191,9 @@ public class BulkDistanceScopeTests
 
     private object ServiceFor(string trackingType) => trackingType switch
     {
-        "pokemon" => new MonsterService(this._proxy, this._featureGate.Object, this._remapper.Object, CostumeCapabilityDoubles.Supported()),
+        "pokemon" => new MonsterService(this._proxy, this._featureGate.Object, this._remapper.Object),
         "raid" => new RaidService(
-            this._proxy, this._featureGate.Object, NullLogger<RaidService>.Instance, this._remapper.Object, CostumeCapabilityDoubles.Supported()),
+            this._proxy, this._featureGate.Object, NullLogger<RaidService>.Instance, this._remapper.Object),
         "egg" => new EggService(this._proxy, this._featureGate.Object, NullLogger<EggService>.Instance, this._remapper.Object),
         "quest" => new QuestService(
             this._proxy, this._featureGate.Object, NullLogger<QuestService>.Instance, this._remapper.Object),

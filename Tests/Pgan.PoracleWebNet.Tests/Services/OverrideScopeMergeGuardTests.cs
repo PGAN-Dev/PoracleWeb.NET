@@ -185,7 +185,7 @@ public class OverrideScopeMergeGuardTests
         JsonSerializer.Deserialize<RaidUpdate>(edited, WebOptions)!.ApplyUpdate(existing);
 
         var sut = new RaidService(this._proxy.Object, this._gate.Object, NullLogger<RaidService>.Instance,
-            this._remapper.Object, CostumeCapabilityDoubles.Supported());
+            this._remapper.Object);
 
         await Assert.ThrowsAsync<TrackingConflictException>(() => sut.UpdateAsync("u1", existing));
     }
@@ -260,12 +260,11 @@ public class OverrideScopeMergeGuardTests
         switch (model)
         {
             case Monster m:
-                await new MonsterService(this._proxy.Object, this._gate.Object, this._remapper.Object,
-                    CostumeCapabilityDoubles.Supported()).CreateAsync("u1", m);
+                await new MonsterService(this._proxy.Object, this._gate.Object, this._remapper.Object).CreateAsync("u1", m);
                 break;
             case Raid r:
                 await new RaidService(this._proxy.Object, this._gate.Object, NullLogger<RaidService>.Instance,
-                    this._remapper.Object, CostumeCapabilityDoubles.Supported()).CreateAsync("u1", r);
+                    this._remapper.Object).CreateAsync("u1", r);
                 break;
             case Egg e:
                 await new EggService(this._proxy.Object, this._gate.Object, NullLogger<EggService>.Instance,

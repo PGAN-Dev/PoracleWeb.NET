@@ -24,7 +24,6 @@ import { I18nService } from '../../core/services/i18n.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MonsterService } from '../../core/services/monster.service';
 import { PoracleConfigService } from '../../core/services/poracle-config.service';
-import { SettingsService } from '../../core/services/settings.service';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
@@ -68,7 +67,6 @@ export class PokemonAddDialogComponent implements OnInit {
   private readonly masterData = inject(MasterDataService);
   private readonly monsterService = inject(MonsterService);
   private readonly poracleConfig = inject(PoracleConfigService);
-  private readonly settings = inject(SettingsService);
   private readonly snackBar = inject(MatSnackBar);
   selectedPokemonIds = signal<number[]>([]);
   readonly availableForms = computed(() => {
@@ -294,14 +292,5 @@ export class PokemonAddDialogComponent implements OnInit {
         this.dialogRef.close(true);
       },
     });
-  }
-
-  /**
-   * Whether to offer the costume filter at all. False on a Poracle without the monsters.costume column: it
-   * takes the field, answers 200 and drops it, so the control would produce a rule that reads
-   * "Halloween 2025" and matches every spawn. Unknown counts as absent.
-   */
-  showCostume(): boolean {
-    return this.settings.supportsCostume('pokemon');
   }
 }

@@ -15,7 +15,6 @@ import { EggService } from '../../core/services/egg.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { RaidService } from '../../core/services/raid.service';
-import { SettingsService } from '../../core/services/settings.service';
 
 /**
  * The costume filter belongs to the By Boss tab only. A level rule matches whatever hatches, but
@@ -27,7 +26,7 @@ describe('RaidAddDialogComponent', () => {
   let eggService: { create: jest.Mock };
   let raidService: { create: jest.Mock };
 
-  function setup(costumeSupported = true) {
+  function setup() {
     let nextUid = 100;
     raidService = { create: jest.fn().mockImplementation(() => of({ uid: nextUid++ } as Raid)) };
     eggService = { create: jest.fn().mockImplementation(() => of({ uid: nextUid++ })) };
@@ -50,7 +49,6 @@ describe('RaidAddDialogComponent', () => {
           },
         },
         { provide: I18nService, useValue: { instant: (k: string) => k } },
-        { provide: SettingsService, useValue: { supportsCostume: () => costumeSupported } },
         {
           provide: AlertDefaultsService,
           useValue: { defaultDistanceKm: () => 1, defaultMode: () => 'areas', defaultPlaceLabel: () => '' },
@@ -108,27 +106,5 @@ describe('RaidAddDialogComponent', () => {
     expect(component.costumeHint()).toBe('POKEMON.COSTUME_HINT_NONE');
     component.commonForm.controls.costume.setValue(85);
     expect(component.costumeHint()).toBe('POKEMON.COSTUME_HINT_SPECIFIC');
-  });
-
-  /**
-   * The gate. A Poracle without the raid.costume column takes the field, answers 200 and drops it, so an
-   * offered control produces a rule that reads "Halloween 2025" and matches every spawn. The rest of
-   * the dialog is untouched -- only this one control goes.
-   */
-  describe('server capability', () => {
-    it('offers the costume filter when Poracle has the column', () => {
-      expect(component.showCostume()).toBe(true);
-    });
-
-    it('hides the costume filter when Poracle does not', () => {
-      setup(false);
-
-      expect(component.showCostume()).toBe(false);
-      // The wildcard still goes out, which is what an old Poracle stores for an absent key anyway.
-      component.tabIndex = 1;
-      component.selectedPokemonIds.set([150]);
-      component.save();
-      expect((raidService.create.mock.calls[0][0] as RaidCreate).costume).toBe(9000);
-    });
   });
 });
