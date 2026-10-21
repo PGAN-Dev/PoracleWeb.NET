@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
@@ -11,6 +11,8 @@ export interface GeofenceDeleteDialogData {
   /** Alarms limited to this fence alone. */
   count: number;
   name: string;
+  /** Set when an admin deletes someone else's fence, so the copy names whose alarms these are. */
+  owner?: string;
 }
 
 /**
@@ -32,9 +34,16 @@ export interface GeofenceDeleteDialogData {
 })
 export class GeofenceDeleteDialogComponent {
   private readonly dialogRef = inject<MatDialogRef<GeofenceDeleteDialogComponent, GeofenceAlarmsChoice | null>>(MatDialogRef);
+  readonly data = inject<GeofenceDeleteDialogData>(MAT_DIALOG_DATA);
+  private readonly prefix = this.data.owner ? 'GEOFENCES.ADMIN_DELETE_WIDEN' : 'GEOFENCES.DELETE_WIDEN';
+
+  /** Picked by count, the way the active-hours editor picks its _ONE/_OTHER keys. */
+  readonly bodyKey = computed(() => `${this.prefix}_BODY_${this.data.count === 1 ? 'ONE' : 'OTHER'}`);
+
   /** Deleting them is the default: a fence the user removes should stop alerting them, not alert more. */
   readonly choice = signal<GeofenceAlarmsChoice>('delete');
-  readonly data = inject<GeofenceDeleteDialogData>(MAT_DIALOG_DATA);
+
+  readonly keepKey = computed(() => `${this.prefix}_KEEP`);
 
   cancel(): void {
     this.dialogRef.close(null);

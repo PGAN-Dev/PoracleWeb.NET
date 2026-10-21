@@ -175,7 +175,9 @@ export class GeofenceListComponent implements OnInit {
         } as ConfirmDialogData,
       });
       if (!(await firstValueFrom(ref.afterClosed()))) return;
-      alarms = 'delete';
+      // Nothing was limited to the fence when asked. keep, so a rule scoped to it since then is not deleted
+      // behind the user's back.
+      alarms = 'keep';
     }
 
     this.userGeofenceService

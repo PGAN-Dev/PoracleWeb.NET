@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
@@ -14,12 +14,25 @@ public class UserAreaWriterTests
     private readonly Mock<IPoracleHumanProxy> _proxy = new();
     private readonly Mock<IUserGeofenceRepository> _fences = new();
     private readonly Mock<IPoracleTrackingProxy> _tracking = new();
+    private readonly CapturingLogger _log = new();
     private readonly UserAreaWriter _sut;
+
+    private sealed class CapturingLogger : ILogger<UserAreaWriter>
+    {
+        public List<(LogLevel Level, string Message)> Entries { get; } = [];
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) =>
+            this.Entries.Add((logLevel, formatter(state, exception)));
+    }
 
     public UserAreaWriterTests()
     {
         this._sut = new UserAreaWriter(
-            this._proxy.Object, this._fences.Object, this._tracking.Object, NullLogger<UserAreaWriter>.Instance);
+            this._proxy.Object, this._fences.Object, this._tracking.Object, this._log);
         this._proxy.Setup(p => p.GetAreaListAsync(Human)).ReturnsAsync([]);
         this._proxy.Setup(p => p.GetAvailableAreasAsync(Human)).ReturnsAsync([]);
         this._proxy.Setup(p => p.SetAreasTrustedAsync(Human, It.IsAny<IReadOnlyCollection<string>>())).ReturnsAsync([]);
@@ -281,6 +294,40 @@ public class UserAreaWriterTests
         await this._sut.RemoveEverywhereAsync(Human, "my park", deleteWidenedAlarms: true);
 
         this._proxy.Verify(p => p.RemoveAreaEverywhereAsync(Human, "my park", false), Times.Once);
+        var warning = Assert.Single(this._log.Entries, e => e.Level == LogLevel.Warning);
+        Assert.Contains("99", warning.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("11", warning.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// PoracleNG reports Pokestop event rules under <c>invasion</c> in <c>broadened</c>, but the v2 invasion
+    /// delete filters event rows out and skips them. Without a second pass under <c>incident</c> they would
+    /// survive "delete those alarms too" and then widen.
+    /// </summary>
+    [Fact]
+    public async Task APokestopEventReportedAsAnInvasionIsDeletedAsAnIncident()
+    {
+        this.Broadens(new() { ["invasion"] = [5] }, 1);
+        this.HasProfiles(1, 2);
+        var calls = this.AlarmsLiveOn(new() { [("incident", 1)] = [5] });
+
+        await this._sut.RemoveEverywhereAsync(Human, "my park", deleteWidenedAlarms: true);
+
+        Assert.Equal(["invasion@1:5", "invasion@2:5", "incident@1:5"], calls);
+        Assert.DoesNotContain(this._log.Entries, e => e.Level == LogLevel.Warning);
+    }
+
+    [Fact]
+    public async Task APlainInvasionIsDeletedWithoutAnIncidentPass()
+    {
+        this.Broadens(new() { ["invasion"] = [6] }, 1);
+        this.HasProfiles(1, 2);
+        var calls = this.AlarmsLiveOn(new() { [("invasion", 1)] = [6] });
+
+        await this._sut.RemoveEverywhereAsync(Human, "my park", deleteWidenedAlarms: true);
+
+        Assert.Equal(["invasion@1:6"], calls);
+        Assert.DoesNotContain(this._log.Entries, e => e.Level == LogLevel.Warning);
     }
 
     [Fact]

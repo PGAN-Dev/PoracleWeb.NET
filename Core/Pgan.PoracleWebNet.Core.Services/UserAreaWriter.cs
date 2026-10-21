@@ -118,16 +118,14 @@ public partial class UserAreaWriter(
                 var profiles = await this.TargetProfilesAsync(humanId, preview.RemovedFrom);
                 foreach (var (type, uids) in widened)
                 {
-                    var remaining = new List<int>(uids);
-                    foreach (var profileNo in profiles)
-                    {
-                        if (remaining.Count == 0)
-                        {
-                            break;
-                        }
+                    var remaining = await this.DeleteOnEachProfileAsync(type, humanId, uids, profiles);
 
-                        var deleted = await this._trackingProxy.BulkDeleteByUidsOnProfileAsync(type, humanId, remaining, profileNo);
-                        remaining = remaining.Except(deleted).ToList();
+                    // PoracleNG reports Pokestop event rules under "invasion" (they share the table), but the
+                    // v2 invasion delete filters event rows out and skips them. What the invasion pass left
+                    // is tried again as "incident", or every event alarm would survive and then widen.
+                    if (type == InvasionType && remaining.Count > 0)
+                    {
+                        remaining = await this.DeleteOnEachProfileAsync(IncidentType, humanId, remaining, profiles);
                     }
 
                     if (remaining.Count > 0)
@@ -139,6 +137,27 @@ public partial class UserAreaWriter(
         }
 
         _ = await this._humanProxy.RemoveAreaEverywhereAsync(humanId, clean, dryRun: false);
+    }
+
+    private const string InvasionType = "invasion";
+    private const string IncidentType = "incident";
+
+    /// <returns>The uids no profile's delete removed.</returns>
+    private async Task<List<int>> DeleteOnEachProfileAsync(string type, string humanId, List<int> uids, List<int> profiles)
+    {
+        var remaining = uids;
+        foreach (var profileNo in profiles)
+        {
+            if (remaining.Count == 0)
+            {
+                break;
+            }
+
+            var deleted = await this._trackingProxy.BulkDeleteByUidsOnProfileAsync(type, humanId, remaining, profileNo);
+            remaining = remaining.Except(deleted).ToList();
+        }
+
+        return remaining;
     }
 
     private static Dictionary<string, List<int>> Widened(AreaRemovalResult result) =>

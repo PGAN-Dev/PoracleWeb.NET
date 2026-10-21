@@ -335,29 +335,19 @@ public partial class UserGeofenceService(
             throw new UnauthorizedAccessException("Geofence does not belong to this user.");
         }
 
-        // Same orphan risk as the admin path: if this fence was ever promoted it exists in Koji under the
-        // public name, and deleting only the local row leaves it there forever. See #409.
-        if (WasPromotedToKoji(geofence))
-        {
-            try
-            {
-                await this._kojiService.RemoveGeofenceFromProjectAsync(PublicAreaName(geofence));
-            }
-            catch (Exception ex)
-            {
-                LogKojiRemovalFailed(this._logger, ex, geofence.KojiName);
-            }
-        }
-
         // Deliberately not gated on disable_areas, unlike the subscribe on create: this is cleanup, not
         // editing. The polygon is about to stop existing, and leaving its name in every profile's area
         // list would subscribe those profiles to something Poracle can no longer resolve. See #505.
         //
         // Removes the name from every profile and every alarm's override areas, through PoracleNG. Uses the
         // promoted name when there is one: that is what the owner is subscribed to after an approval, and
-        // what GetDeleteImpactAsync previewed. If this throws, the row stays: it is the only record of the
-        // name, and deleting it would leave profiles holding an area nothing serves or can clean up.
+        // what GetDeleteImpactAsync previewed. It goes first: if it throws, Koji, the row and the
+        // subscriptions are all left as they were, so the delete can simply be retried.
         await this._userAreaWriter.RemoveEverywhereAsync(humanId, PublicAreaName(geofence).ToLowerInvariant(), deleteWidenedAlarms);
+
+        // Same orphan risk as the admin path: if this fence was ever promoted it exists in Koji under the
+        // public name, and deleting only the local row leaves it there forever. See #409.
+        await this.RemoveFromKojiIfPromotedAsync(geofence);
 
         // Delete from local DB
         await this._repository.DeleteAsync(id);
@@ -444,25 +434,10 @@ public partial class UserGeofenceService(
         var geofence = await this._repository.GetByIdAsync(id)
             ?? throw new GeofenceNotFoundException(id);
 
-        // Keyed on "was this ever pushed to Koji?", not on the current status. Gating on
-        // status == "approved" meant a reject-then-delete left a public, userSelectable fence in the
-        // shared Koji project that no PoracleWeb record could manage — recoverable only by hand-editing
-        // Koji. PromotedName is set by approval and never cleared, so it is the durable marker. See #409.
-        if (WasPromotedToKoji(geofence))
-        {
-            try
-            {
-                await this._kojiService.RemoveGeofenceFromProjectAsync(PublicAreaName(geofence));
-            }
-            catch (Exception ex)
-            {
-                LogKojiRemovalFailed(this._logger, ex, geofence.KojiName);
-            }
-        }
-
-        // Remove from the owner's areas across all profiles, as DeleteAsync does. A failure used to be logged
-        // and the row deleted anyway, stranding the name in the owner's lists; now it stops the delete. An
-        // owner PoracleNG no longer has holds no areas, so that one case goes ahead.
+        // Remove from the owner's areas across all profiles first, as DeleteAsync does. A failure used to be
+        // logged and the row deleted anyway, stranding the name in the owner's lists; now it stops the delete
+        // before Koji or the row is touched. An owner PoracleNG no longer has holds no areas, so that one case
+        // goes ahead.
         try
         {
             await this._userAreaWriter.RemoveEverywhereAsync(
@@ -473,10 +448,52 @@ public partial class UserGeofenceService(
             LogAreaOwnerGone(this._logger, geofence.KojiName, geofence.HumanId);
         }
 
+        await this.RemoveFromKojiIfPromotedAsync(geofence);
+
         await this._repository.DeleteAsync(id);
         await this.ReloadGeofencesSafeAsync();
 
         LogAdminDeletedGeofence(this._logger, adminId, geofence.KojiName, id, geofence.Status);
+    }
+
+    public async Task RemoveFencesOfDeletedAccountAsync(string humanId)
+    {
+        var leftovers = await this._repository.GetByHumanIdAsync(humanId);
+        if (leftovers.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var geofence in leftovers)
+        {
+            await this.RemoveFromKojiIfPromotedAsync(geofence);
+            await this._repository.DeleteAsync(geofence.Id);
+        }
+
+        await this.ReloadGeofencesSafeAsync();
+    }
+
+    /// <summary>
+    /// Keyed on "was this ever pushed to Koji?", not on the current status. Gating on status == "approved"
+    /// meant a reject-then-delete left a public, userSelectable fence in the shared Koji project that no
+    /// PoracleWeb record could manage, recoverable only by hand-editing Koji. PromotedName is set by approval
+    /// and never cleared, so it is the durable marker. A Koji failure is logged, never thrown. See #409.
+    /// </summary>
+    private async Task RemoveFromKojiIfPromotedAsync(UserGeofence geofence)
+    {
+        if (!WasPromotedToKoji(geofence))
+        {
+            return;
+        }
+
+        try
+        {
+            await this._kojiService.RemoveGeofenceFromProjectAsync(PublicAreaName(geofence));
+        }
+        catch (Exception ex)
+        {
+            LogKojiRemovalFailed(this._logger, ex, geofence.KojiName);
+        }
     }
 
     public async Task<UserGeofence> SubmitForReviewAsync(string humanId, string kojiName)

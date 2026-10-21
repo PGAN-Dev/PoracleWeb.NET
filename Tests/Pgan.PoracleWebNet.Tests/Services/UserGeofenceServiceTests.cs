@@ -355,19 +355,21 @@ public class UserGeofenceServiceTests
     // --- DeleteAsync ---
 
     [Fact]
-    public async Task DeleteAsyncRemovesTheNameThroughPoracleThenDeletesTheRowThenReloads()
+    public async Task DeleteAsyncRemovesTheNameThroughPoracleThenCleansKojiThenDeletesTheRowThenReloads()
     {
-        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown" };
+        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown", Status = "approved", PromotedName = "Downtown Official" };
         this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
         var order = new List<string>();
-        this._userAreaWriter.Setup(w => w.RemoveEverywhereAsync("u1", "downtown", true))
+        this._userAreaWriter.Setup(w => w.RemoveEverywhereAsync("u1", "downtown official", true))
             .Callback(() => order.Add("remove")).Returns(Task.CompletedTask);
+        this._kojiService.Setup(k => k.RemoveGeofenceFromProjectAsync("Downtown Official"))
+            .Callback(() => order.Add("koji")).Returns(Task.CompletedTask);
         this._repository.Setup(r => r.DeleteAsync(1)).Callback(() => order.Add("row")).Returns(Task.CompletedTask);
         this._poracleApiProxy.Setup(p => p.ReloadGeofencesAsync()).Callback(() => order.Add("reload")).Returns(Task.CompletedTask);
 
         await this._sut.DeleteAsync("u1", 1, 1, deleteWidenedAlarms: true);
 
-        Assert.Equal(["remove", "row", "reload"], order);
+        Assert.Equal(["remove", "koji", "row", "reload"], order);
         this._areaWriter.Verify(w => w.RemoveAreaFromAllProfilesAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
@@ -390,13 +392,15 @@ public class UserGeofenceServiceTests
     [Fact]
     public async Task DeleteAsyncKeepsTheRowWhenPoracleCannotRemoveTheName()
     {
-        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown" };
+        // Promoted, so a Koji copy exists: it must survive too, or the retry finds a fence Koji no longer has.
+        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown", Status = "approved", PromotedName = "Downtown Official" };
         this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
-        this._userAreaWriter.Setup(w => w.RemoveEverywhereAsync("u1", "downtown", true))
+        this._userAreaWriter.Setup(w => w.RemoveEverywhereAsync("u1", "downtown official", true))
             .ThrowsAsync(new HttpRequestException("poracle down"));
 
         await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.DeleteAsync("u1", 1, 1, deleteWidenedAlarms: true));
 
+        this._kojiService.Verify(k => k.RemoveGeofenceFromProjectAsync(It.IsAny<string>()), Times.Never);
         this._repository.Verify(r => r.DeleteAsync(It.IsAny<int>()), Times.Never);
         this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Never);
     }
@@ -914,14 +918,64 @@ public class UserGeofenceServiceTests
     [Fact]
     public async Task AdminDeleteAsyncKeepsTheRowWhenPoracleCannotRemoveTheName()
     {
-        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown", Status = "active" };
+        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown", Status = "approved", PromotedName = "Downtown Official" };
         this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
-        this._userAreaWriter.Setup(w => w.RemoveEverywhereAsync("u1", "downtown", true))
+        this._userAreaWriter.Setup(w => w.RemoveEverywhereAsync("u1", "downtown official", true))
             .ThrowsAsync(new HttpRequestException("poracle down"));
 
         await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.AdminDeleteAsync("admin1", 1, true));
 
+        this._kojiService.Verify(k => k.RemoveGeofenceFromProjectAsync(It.IsAny<string>()), Times.Never);
         this._repository.Verify(r => r.DeleteAsync(It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task AdminDeleteAsyncRemovesTheNameBeforeCleaningKoji()
+    {
+        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown", Status = "approved", PromotedName = "Downtown Official" };
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
+        var order = new List<string>();
+        this._userAreaWriter.Setup(w => w.RemoveEverywhereAsync("u1", "downtown official", true))
+            .Callback(() => order.Add("remove")).Returns(Task.CompletedTask);
+        this._kojiService.Setup(k => k.RemoveGeofenceFromProjectAsync("Downtown Official"))
+            .Callback(() => order.Add("koji")).Returns(Task.CompletedTask);
+        this._repository.Setup(r => r.DeleteAsync(1)).Callback(() => order.Add("row")).Returns(Task.CompletedTask);
+
+        await this._sut.AdminDeleteAsync("admin1", 1, true);
+
+        Assert.Equal(["remove", "koji", "row"], order);
+    }
+
+    // --- RemoveFencesOfDeletedAccountAsync (purge leftovers) ---
+
+    [Fact]
+    public async Task RemoveFencesOfDeletedAccountAsyncCleansKojiDeletesRowsAndReloadsOnce()
+    {
+        this._repository.Setup(r => r.GetByHumanIdAsync("u1")).ReturnsAsync(
+        [
+            new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown", Status = "approved", PromotedName = "Downtown Official" },
+            new UserGeofence { Id = 2, HumanId = "u1", KojiName = "park", Status = "active" },
+        ]);
+
+        await this._sut.RemoveFencesOfDeletedAccountAsync("u1");
+
+        this._kojiService.Verify(k => k.RemoveGeofenceFromProjectAsync("Downtown Official"), Times.Once);
+        this._kojiService.Verify(k => k.RemoveGeofenceFromProjectAsync("park"), Times.Never);
+        this._repository.Verify(r => r.DeleteAsync(1), Times.Once);
+        this._repository.Verify(r => r.DeleteAsync(2), Times.Once);
+        this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Once);
+        // The account is gone, so there are no area lists to touch.
+        this._userAreaWriter.Verify(w => w.RemoveEverywhereAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RemoveFencesOfDeletedAccountAsyncWithNothingLeftDoesNotReload()
+    {
+        this._repository.Setup(r => r.GetByHumanIdAsync("u1")).ReturnsAsync([]);
+
+        await this._sut.RemoveFencesOfDeletedAccountAsync("u1");
+
+        this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Never);
     }
 
     /// <summary>An owner PoracleNG no longer has holds no areas, so there is nothing to clean and the row goes.</summary>

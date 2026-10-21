@@ -44,7 +44,7 @@ public partial class UserPurgeService(
         var deleted = await this._humanService.DeleteUserAsync(userId);
         if (deleted)
         {
-            await this.TryAsync("leftover geofences", () => this.DeleteLeftoverGeofencesAsync(userId));
+            await this.TryAsync("leftover geofences", () => this._geofenceService.RemoveFencesOfDeletedAccountAsync(userId));
         }
 
         return deleted;
@@ -58,8 +58,10 @@ public partial class UserPurgeService(
     /// <remarks>
     /// Alarms limited to a fence are deleted with it: the account is going, so there is nothing to keep them
     /// for (and the alarm step has normally removed them already). One fence that cannot be cleaned does not
-    /// stop the rest. Its row is kept, as any fence delete keeps it when PoracleNG fails, and swept once the
-    /// account is gone.
+    /// stop the rest. Its row and any Koji copy are kept, as any fence delete keeps them when PoracleNG fails,
+    /// and <see cref="IUserGeofenceService.RemoveFencesOfDeletedAccountAsync"/> sweeps both once the account
+    /// is gone: its area lists went with it, and a row left behind would keep serving the polygon in the
+    /// geofence feed.
     /// </remarks>
     private async Task PurgeGeofencesAsync(string userId)
     {
@@ -68,19 +70,6 @@ public partial class UserPurgeService(
             await this.TryAsync(
                 $"geofence {geofence.Id}",
                 () => this._geofenceService.AdminDeleteAsync(userId, geofence.Id, deleteWidenedAlarms: true));
-        }
-    }
-
-    /// <summary>
-    /// Deletes the rows of fences whose delete failed above. The account's area lists went with the account,
-    /// so there is nothing left to clean in PoracleNG, and a row left behind would keep serving the polygon in
-    /// the geofence feed. Any Koji copy was removed before the area step failed.
-    /// </summary>
-    private async Task DeleteLeftoverGeofencesAsync(string userId)
-    {
-        foreach (var geofence in await this._geofenceRepository.GetByHumanIdAsync(userId))
-        {
-            await this._geofenceRepository.DeleteAsync(geofence.Id);
         }
     }
 

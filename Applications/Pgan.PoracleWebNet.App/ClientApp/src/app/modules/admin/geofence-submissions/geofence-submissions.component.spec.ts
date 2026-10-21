@@ -513,7 +513,7 @@ describe('GeofenceSubmissionsComponent', () => {
     const geofence = component.allGeofences()[0];
     await component.adminDelete(geofence);
 
-    expect(adminGeofenceService.adminDelete).toHaveBeenCalledWith(geofence.id, 'delete');
+    expect(adminGeofenceService.adminDelete).toHaveBeenCalledWith(geofence.id, 'keep');
     expect(mockDialog.open.mock.calls[0][0]).toBe(ConfirmDialogComponent);
   });
 
@@ -529,7 +529,7 @@ describe('GeofenceSubmissionsComponent', () => {
     expect(adminGeofenceService.getDeleteImpact).toHaveBeenCalledWith(geofence.id);
     expect(mockDialog.open).toHaveBeenCalledTimes(1);
     expect(mockDialog.open.mock.calls[0][0]).toBe(GeofenceDeleteDialogComponent);
-    expect(mockDialog.open.mock.calls[0][1].data).toEqual({ name: geofence.displayName, count: 2 });
+    expect(mockDialog.open.mock.calls[0][1].data).toEqual({ name: geofence.displayName, count: 2, owner: geofence.ownerName });
     expect(adminGeofenceService.adminDelete).toHaveBeenCalledWith(geofence.id, 'delete');
   });
 

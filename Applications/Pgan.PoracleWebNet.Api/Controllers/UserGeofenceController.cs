@@ -110,13 +110,13 @@ public partial class UserGeofenceController(
     /// </para>
     /// <para>Pinned by a test, because this reads like an oversight and has been reported as one.</para>
     /// <para>
-    /// <c>alarms</c> says what happens to alarms limited to this fence alone (see
-    /// <see cref="GetDeleteImpact"/>): <c>delete</c>, the default, deletes them; <c>keep</c> leaves them,
-    /// matching across the profile's areas. Anything else is a 400, so a typo cannot silently pick one.
+    /// <c>alarms</c> is required and says what happens to alarms limited to this fence alone (see
+    /// <see cref="GetDeleteImpact"/>): <c>delete</c> deletes them; <c>keep</c> leaves them, matching across
+    /// the profile's areas. Absent or anything else is a 400, so no caller deletes alarms by omission.
     /// </para>
     /// </remarks>
     [HttpDelete("custom/{id:int}")]
-    public async Task<IActionResult> DeleteGeofence(int id, [FromQuery] string? alarms = null)
+    public async Task<IActionResult> DeleteGeofence(int id, [FromQuery] string? alarms)
     {
         if (!TryParseAlarmsChoice(alarms, out var deleteWidened))
         {
@@ -171,14 +171,14 @@ public partial class UserGeofenceController(
         }
     }
 
-    internal const string AlarmsChoiceError = "alarms must be 'delete' or 'keep'.";
+    internal const string AlarmsChoiceError = "alarms is required and must be 'delete' or 'keep'.";
 
-    /// <summary>Reads <c>?alarms=</c>: absent or <c>delete</c> is true, <c>keep</c> false, anything else refused.</summary>
+    /// <summary>Reads the required <c>?alarms=</c>: <c>delete</c> is true, <c>keep</c> false; absent or anything else is refused.</summary>
     internal static bool TryParseAlarmsChoice(string? alarms, out bool deleteWidened)
     {
         switch (alarms)
         {
-            case null or "" or "delete":
+            case "delete":
                 deleteWidened = true;
                 return true;
             case "keep":

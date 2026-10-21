@@ -197,7 +197,7 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
     if (impact.total > 0) {
       const ref = this.dialog.open<GeofenceDeleteDialogComponent, GeofenceDeleteDialogData, GeofenceAlarmsChoice | null>(
         GeofenceDeleteDialogComponent,
-        { data: { name, count: impact.total } },
+        { data: { name, count: impact.total, owner } },
       );
       const choice = await firstValueFrom(ref.afterClosed());
       if (!choice) return;
@@ -212,7 +212,9 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
         } as ConfirmDialogData,
       });
       if (!(await firstValueFrom(ref.afterClosed()))) return;
-      alarms = 'delete';
+      // Nothing was limited to the fence when asked. keep, so a rule scoped to it since then is not deleted
+      // without anyone having chosen to.
+      alarms = 'keep';
     }
 
     this.adminGeofenceService

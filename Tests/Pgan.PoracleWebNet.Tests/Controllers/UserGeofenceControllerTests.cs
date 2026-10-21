@@ -118,10 +118,9 @@ public class UserGeofenceControllerTests : ControllerTestBase
     {
         this._service.Setup(s => s.DeleteAsync("123456789", 1, 42, true)).Returns(Task.CompletedTask);
 
-        var result = await this._sut.DeleteGeofence(42);
+        var result = await this._sut.DeleteGeofence(42, "delete");
 
         Assert.IsType<NoContentResult>(result);
-        // No choice sent means the default: alarms limited to the fence go with it.
         this._service.Verify(s => s.DeleteAsync("123456789", 1, 42, true), Times.Once);
     }
 
@@ -139,7 +138,9 @@ public class UserGeofenceControllerTests : ControllerTestBase
     [Theory]
     [InlineData("bogus")]
     [InlineData("DELETE ALL")]
-    public async Task DeleteGeofenceRefusesAnUnknownAlarmsChoice(string alarms)
+    [InlineData("")]
+    [InlineData(null)]
+    public async Task DeleteGeofenceRefusesAMissingOrUnknownAlarmsChoice(string? alarms)
     {
         var result = await this._sut.DeleteGeofence(42, alarms);
 
@@ -157,7 +158,7 @@ public class UserGeofenceControllerTests : ControllerTestBase
         this._service.Setup(s => s.DeleteAsync("123456789", 1, 42, true))
             .ThrowsAsync(new HttpRequestException("connection refused"));
 
-        await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.DeleteGeofence(42));
+        await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.DeleteGeofence(42, "delete"));
     }
 
     [Fact]
@@ -202,7 +203,7 @@ public class UserGeofenceControllerTests : ControllerTestBase
         this._service.Setup(s => s.DeleteAsync("123456789", 1, 99, true))
             .ThrowsAsync(new InvalidOperationException("Geofence with ID 99 not found."));
 
-        var result = await this._sut.DeleteGeofence(99);
+        var result = await this._sut.DeleteGeofence(99, "delete");
 
         Assert.IsType<NotFoundObjectResult>(result);
     }
@@ -213,7 +214,7 @@ public class UserGeofenceControllerTests : ControllerTestBase
         this._service.Setup(s => s.DeleteAsync("123456789", 1, 42, true))
             .ThrowsAsync(new UnauthorizedAccessException("Geofence does not belong to this user."));
 
-        var result = await this._sut.DeleteGeofence(42);
+        var result = await this._sut.DeleteGeofence(42, "delete");
 
         Assert.IsType<ForbidResult>(result);
     }
@@ -224,7 +225,7 @@ public class UserGeofenceControllerTests : ControllerTestBase
         SetupUser(this._sut, userId: "777", profileNo: 4);
         this._service.Setup(s => s.DeleteAsync("777", 4, 10, true)).Returns(Task.CompletedTask);
 
-        await this._sut.DeleteGeofence(10);
+        await this._sut.DeleteGeofence(10, "delete");
 
         this._service.Verify(s => s.DeleteAsync("777", 4, 10, true), Times.Once);
     }

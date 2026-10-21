@@ -66,7 +66,7 @@ public partial class AdminGeofenceController(IUserGeofenceService userGeofenceSe
     /// </remarks>
     [HttpDelete("{id:int}")]
     [TypeFilter(typeof(PoracleUnreachableExceptionFilter))]
-    public async Task<IActionResult> AdminDelete(int id, [FromQuery] string? alarms = null)
+    public async Task<IActionResult> AdminDelete(int id, [FromQuery] string? alarms)
     {
         if (!this.IsAdmin)
         {

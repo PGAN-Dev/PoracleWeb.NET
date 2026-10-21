@@ -41,6 +41,13 @@ public interface IUserGeofenceService
     /// so the fence is deleted anyway.
     /// </summary>
     public Task AdminDeleteAsync(string adminId, int id, bool deleteWidenedAlarms);
+
+    /// <summary>
+    /// For an account that has just been deleted: removes every fence it still owns from Koji (if promoted)
+    /// and from the table, then reloads PoracleNG's geofences once. Touches no area lists, because the
+    /// account's went with it. Used by the user purge for fences whose normal delete failed.
+    /// </summary>
+    public Task RemoveFencesOfDeletedAccountAsync(string humanId);
     public Task<UserGeofence> ApproveSubmissionAsync(string adminId, int id, string? promotedName, int? parentId = null, string? groupName = null);
     public Task<UserGeofence> RejectSubmissionAsync(string adminId, int id, string reviewNotes);
     public Task AddToProfileAsync(string humanId, int profileNo, int geofenceId);

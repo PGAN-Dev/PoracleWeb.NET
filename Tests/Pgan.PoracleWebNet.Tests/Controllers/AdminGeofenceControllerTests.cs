@@ -129,7 +129,7 @@ public class AdminGeofenceControllerTests : ControllerTestBase
     {
         this._service.Setup(s => s.AdminDeleteAsync("123456789", 1, true)).Returns(Task.CompletedTask);
 
-        var result = await this._sut.AdminDelete(1);
+        var result = await this._sut.AdminDelete(1, "delete");
 
         Assert.IsType<NoContentResult>(result);
         this._service.Verify(s => s.AdminDeleteAsync("123456789", 1, true), Times.Once);
@@ -146,10 +146,13 @@ public class AdminGeofenceControllerTests : ControllerTestBase
         this._service.Verify(s => s.AdminDeleteAsync("123456789", 1, deleteWidened), Times.Once);
     }
 
-    [Fact]
-    public async Task AdminDeleteRefusesAnUnknownAlarmsChoice()
+    [Theory]
+    [InlineData("bogus")]
+    [InlineData("")]
+    [InlineData(null)]
+    public async Task AdminDeleteRefusesAMissingOrUnknownAlarmsChoice(string? alarms)
     {
-        var result = await this._sut.AdminDelete(1, "bogus");
+        var result = await this._sut.AdminDelete(1, alarms);
 
         Assert.IsType<BadRequestObjectResult>(result);
         this._service.Verify(s => s.AdminDeleteAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<bool>()), Times.Never);
@@ -161,7 +164,7 @@ public class AdminGeofenceControllerTests : ControllerTestBase
         this._service.Setup(s => s.AdminDeleteAsync("123456789", 1, true))
             .ThrowsAsync(new HttpRequestException("connection refused"));
 
-        await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.AdminDelete(1));
+        await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.AdminDelete(1, "delete"));
     }
 
     [Fact]
@@ -215,7 +218,7 @@ public class AdminGeofenceControllerTests : ControllerTestBase
         this._service.Setup(s => s.AdminDeleteAsync("123456789", 99, true))
             .ThrowsAsync(new GeofenceNotFoundException(99));
 
-        var result = await this._sut.AdminDelete(99);
+        var result = await this._sut.AdminDelete(99, "delete");
 
         var notFound = Assert.IsType<NotFoundObjectResult>(result);
         Assert.NotNull(notFound.Value);
@@ -226,7 +229,7 @@ public class AdminGeofenceControllerTests : ControllerTestBase
     {
         SetupUser(this._sut, isAdmin: false);
 
-        var result = await this._sut.AdminDelete(1);
+        var result = await this._sut.AdminDelete(1, "delete");
 
         Assert.IsType<ForbidResult>(result);
     }
@@ -455,7 +458,7 @@ public class AdminGeofenceControllerTests : ControllerTestBase
             .Setup(s => s.AdminDeleteAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<bool>()))
             .ThrowsAsync(new InvalidOperationException("something invalid"));
 
-        var result = await this._sut.AdminDelete(1);
+        var result = await this._sut.AdminDelete(1, "delete");
 
         Assert.IsType<BadRequestObjectResult>(result);
     }

@@ -71,7 +71,7 @@ describe('GeofenceListComponent delete flow', () => {
 
   afterEach(() => jest.restoreAllMocks());
 
-  it('uses the plain confirm when nothing would widen, then deletes', async () => {
+  it('uses the plain confirm when nothing would widen, then deletes keeping alarms', async () => {
     const { component, open, service } = setup(of({ widened: {}, total: 0 }), true);
 
     await component.deleteGeofence(fence);
@@ -79,7 +79,9 @@ describe('GeofenceListComponent delete flow', () => {
     expect(service.getDeleteImpact).toHaveBeenCalledWith(9);
     expect(open).toHaveBeenCalledTimes(1);
     expect(open.mock.calls[0][0]).toBe(ConfirmDialogComponent);
-    expect(service.deleteGeofence).toHaveBeenCalledWith(9, 'delete');
+    // keep, not delete: nothing was limited to the fence when asked, so nothing should be deleted if a rule
+    // was scoped to it in the meantime.
+    expect(service.deleteGeofence).toHaveBeenCalledWith(9, 'keep');
     expect(component.customGeofences()).toEqual([]);
   });
 
