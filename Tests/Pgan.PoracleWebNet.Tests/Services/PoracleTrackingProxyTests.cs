@@ -33,7 +33,7 @@ public class PoracleTrackingProxyTests
         .Build();
 
     /// <summary>
-    /// A server profile reporting nothing, so <c>SupportsV2Tracking</c> is false and every write in this
+    /// A server profile reporting nothing, so <c>IsSupported</c> is false and every write in this
     /// fixture goes to the v1 surface -- which is the point: v1 must stay byte-identical.
     /// </summary>
     private static PoracleTrackingProxy CreateSut(

@@ -28,7 +28,8 @@ namespace Pgan.PoracleWebNet.Core.Services;
 /// every alarm type for everyone, which is a far worse failure than the one this feature prevents.
 /// </para>
 /// <para>
-/// <c>disable_showcase</c> is the single exception, and <see cref="ProbePokestopEventsAsync"/> says why.
+/// <c>disable_showcase</c> is read beside the hook list (<c>general.disable_showcase = true</c> turns
+/// Pokestop Events off) and fails open like the rest.
 /// </para>
 /// </remarks>
 public sealed partial class UpstreamFeatureFlagService(
@@ -72,48 +73,28 @@ public sealed partial class UpstreamFeatureFlagService(
         {
             LogProbeFailed(this._logger, "disabledHooks", ex);
 
-            // Partial, not none. A hook list we could not read must not discard the probe below it,
-            // which is the only thing keeping the SPA off a route that does not exist on an older server.
+            // Partial, not none. A hook list we could not read must not discard the showcase read below it.
         }
 
-        await this.ProbePokestopEventsAsync(keys);
+        await this.ReadShowcaseFlagAsync(keys);
 
         return keys;
     }
 
-    /// <summary>
-    /// Decides whether the Pokestop Events surface is available, and is <strong>the one probe in this
-    /// class that fails closed</strong>.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// Only an explicit <c>general.disable_showcase = false</c> opens the gate. Absent means the server
-    /// predates the option, and every such server also 404s the v2 <c>incident</c> route the page is
-    /// built on — verified: 5.1.0 has neither the config key nor the route, 5.2.1 has both. Unreadable
-    /// means we cannot tell, and a server whose config we cannot read is not one we can send v2 writes
-    /// to either.
-    /// </para>
-    /// <para>
-    /// This inverts the class's stated contract deliberately, and the reason is narrower than it looks:
-    /// failing open elsewhere leaves a working page switched on, while failing open here produces a page
-    /// whose every call 404s. The cost is bounded by the five-minute cache. Do not "fix" it back.
-    /// </para>
-    /// </remarks>
-    private async Task ProbePokestopEventsAsync(HashSet<string> keys)
+    /// <summary>Pokestop Events are off only when Poracle says so; absent or unreadable leaves them on.</summary>
+    private async Task ReadShowcaseFlagAsync(HashSet<string> keys)
     {
         try
         {
-            if (await this._poracleApiProxy.GetShowcaseDisabledAsync() is false)
+            if (await this._poracleApiProxy.GetShowcaseDisabledAsync() is true)
             {
-                return;
+                keys.Add(DisableFeatureKeys.PokestopEvents);
             }
         }
         catch (Exception ex)
         {
             LogProbeFailed(this._logger, "general.disable_showcase", ex);
         }
-
-        keys.Add(DisableFeatureKeys.PokestopEvents);
     }
 
     [LoggerMessage(

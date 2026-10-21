@@ -93,24 +93,6 @@ public sealed class PoracleServerProfile
     [JsonIgnore]
     public bool IsSupported => this.Reachable && !this.IsBelowMinimum;
 
-    /// <summary>
-    /// True when this server is expected to carry the strict <c>/api/v2</c> tracking surface.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// Every supported PoracleNG does, so this is <see cref="IsSupported"/>. The capability map cannot say:
-    /// 5.4.0 reports <c>{buttons, snapshots, autocreate, tomlDts, buttonResponseObject, derivedDtsTypes}</c>
-    /// and nothing about v2.
-    /// </para>
-    /// <para>
-    /// A fork that carries v2 while reporting an older number, or reports a supported one without it, is
-    /// exactly what a version probe cannot see. <c>Poracle:TrackingApiVersion</c> pins the answer for
-    /// those, and the proxy falls back to v1 at runtime when the route answers gin's plaintext 404.
-    /// </para>
-    /// </remarks>
-    [JsonIgnore]
-    public bool SupportsV2Tracking => this.IsSupported;
-
     /// <summary>The profile for a server that did not answer: nothing known, nothing assumed.</summary>
     public static PoracleServerProfile Unknown(DateTimeOffset checkedAt) => new()
     {

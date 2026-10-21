@@ -68,14 +68,6 @@ public partial class PoracleTrackingProxy(
     private readonly string _apiAddress = configuration["Poracle:ApiAddress"] ?? string.Empty;
     private readonly string _apiSecret = configuration["Poracle:ApiSecret"] ?? string.Empty;
 
-    /// <summary>
-    /// <c>auto</c> (the default) asks the server what it is; <c>v1</c> and <c>v2</c> pin it. An operator
-    /// needs the override because a fork can carry v2 while reporting an older number, or the reverse,
-    /// and a version probe cannot see either.
-    /// </summary>
-    private readonly string _trackingApiVersion =
-        (configuration["Poracle:TrackingApiVersion"] ?? "auto").Trim().ToLowerInvariant();
-
     private readonly IPoracleServerProfileService _serverProfile = serverProfile;
     private readonly IPoracleV2SchemaService _v2Schema = v2Schema;
     private readonly IInvasionGruntNameService _gruntNames = gruntNames;
@@ -160,7 +152,7 @@ public partial class PoracleTrackingProxy(
         if (result is null)
         {
             // Every null means "use the v1 write", and v1 blanks a set ping unconditionally (verified live
-            // on 5.4.0, create and uid-upsert alike): a pinned TrackingApiVersion, a missing route, an
+            // on 5.4.0, create and uid-upsert alike): a missing route, an
             // invasion v2 will not take, a row the translator declines. Refuse rather than lose a mention.
             RefuseIfV1WouldDropPing(body);
         }
@@ -397,20 +389,11 @@ public partial class PoracleTrackingProxy(
     /// names that server's masterdata lists.
     /// </remarks>
     private bool ShouldTryV2(string type) =>
-        TrackingV2Translator.Handles(type) && this._trackingApiVersion != "v1";
-
-    /// <summary>Whether a delete may go to v2 at all.</summary>
-    /// <remarks>
-    /// Deliberately does not consult <see cref="TrackingV2Translator"/> the way <see cref="ShouldTryV2"/>
-    /// does. A delete carries no rule body, so there is nothing to translate and nothing v2 could fail to
-    /// express -- which puts invasion, the one type held off the v2 writes, in scope here.
-    /// </remarks>
-    private bool ShouldTryV2Delete() => this._trackingApiVersion != "v1";
+        TrackingV2Translator.Handles(type);
 
     /// <summary>
-    /// Whether the server is believed to carry v2. Pinned to <c>v2</c> this skips the probe but not the
-    /// runtime fallback, so pinning a server that turns out not to have the route degrades to v1 rather
-    /// than failing every edit.
+    /// Whether the server is believed to carry v2: its reported version is supported, and a plaintext 404
+    /// has not already shown this type's route absent.
     /// </summary>
     private async Task<bool> ServerCarriesV2Async(string type)
     {
@@ -419,13 +402,8 @@ public partial class PoracleTrackingProxy(
             return false;
         }
 
-        if (this._trackingApiVersion == "v2")
-        {
-            return true;
-        }
-
         var profile = await this._serverProfile.GetAsync();
-        return profile.SupportsV2Tracking;
+        return profile.IsSupported;
     }
 
     /// <summary>
@@ -491,7 +469,7 @@ public partial class PoracleTrackingProxy(
     /// </summary>
     private async Task<bool> TryDeleteByUidV2Async(string type, string userId, int uid)
     {
-        if (uid <= 0 || !this.ShouldTryV2Delete() || !await this.ServerCarriesV2Async(type))
+        if (uid <= 0 || !await this.ServerCarriesV2Async(type))
         {
             return false;
         }
@@ -547,7 +525,7 @@ public partial class PoracleTrackingProxy(
     /// </remarks>
     private async Task<bool> TryBulkDeleteByUidsV2Async(string type, string userId, List<int> uids)
     {
-        if (!this.ShouldTryV2Delete() || uids.Exists(u => u <= 0) || !await this.ServerCarriesV2Async(type))
+        if (uids.Exists(u => u <= 0) || !await this.ServerCarriesV2Async(type))
         {
             return false;
         }

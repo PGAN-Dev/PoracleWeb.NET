@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Net;
 using System.Text;
 using Microsoft.Extensions.Configuration;
+using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Core.Services;
 
 namespace Pgan.PoracleWebNet.Tests.Services;
@@ -153,52 +154,36 @@ public class PoracleApiProxyGeocodingTests
     }
 
     [Fact]
-    public async Task GetGeocodeForwardAsyncFallsBackToTheConfiguredProviderWhenTheRouteIsAbsent()
+    public async Task GetGeocodeForwardAsyncThrowsUnsupportedOnAPlaintext404AndAsksNoProvider()
     {
         var handler = new RoutingHandler();
         handler.RespondTo("/api/geocode/forward", HttpStatusCode.NotFound, "404 page not found");
         handler.RespondTo(
             "/api/config/poracleWeb", HttpStatusCode.OK, /*lang=json,strict*/ """{"providerURL":"http://nominatim.example/"}""");
-        const string legacyBody = /*lang=json,strict*/ """[{"lat":"41.65","lon":"-83.53","display_name":"Toledo"}]""";
-        handler.RespondTo("/search", HttpStatusCode.OK, legacyBody);
+        handler.RespondTo("/search", HttpStatusCode.OK, "[]");
         var sut = CreateSut(handler);
 
-        var result = await sut.GetGeocodeForwardAsync("Toledo");
+        var ex = await Assert.ThrowsAsync<PoracleUnsupportedException>(() => sut.GetGeocodeForwardAsync("Toledo"));
 
-        Assert.Equal(legacyBody, result);
-        var legacyRequest = Assert.Single(handler.Requests, r => r.RequestUri!.AbsolutePath == "/search");
-        Assert.Equal(
-            "http://nominatim.example/search?addressdetails=1&q=Toledo&format=json&limit=5", legacyRequest.RequestUri!.ToString());
-        Assert.False(legacyRequest.Headers.Contains("X-Poracle-Secret"));
+        Assert.Equal("Address search", ex.Feature);
+        Assert.Equal("PoracleNG 5.4.0", ex.Requires);
+        Assert.DoesNotContain(handler.Requests, r => r.RequestUri!.Host == "nominatim.example");
+        Assert.Single(handler.Requests);
     }
 
     [Fact]
-    public async Task GetGeocodeReverseAsyncFallsBackToTheConfiguredProviderWhenTheRouteIsAbsent()
+    public async Task GetGeocodeReverseAsyncThrowsUnsupportedOnAPlaintext404AndAsksNoProvider()
     {
         var handler = new RoutingHandler();
         handler.RespondTo("/api/geocode/reverse", HttpStatusCode.NotFound, "404 page not found");
         handler.RespondTo(
             "/api/config/poracleWeb", HttpStatusCode.OK, /*lang=json,strict*/ """{"providerURL":"http://nominatim.example"}""");
-        const string legacyBody = /*lang=json,strict*/ """{"display_name":"Toledo, Ohio"}""";
-        handler.RespondTo("/reverse", HttpStatusCode.OK, legacyBody);
+        handler.RespondTo("/reverse", HttpStatusCode.OK, "{}");
         var sut = CreateSut(handler);
 
-        var result = await sut.GetGeocodeReverseAsync(41.65, -83.53);
+        await Assert.ThrowsAsync<PoracleUnsupportedException>(() => sut.GetGeocodeReverseAsync(41.65, -83.53));
 
-        Assert.Equal(legacyBody, result);
-        var legacyRequest = Assert.Single(handler.Requests, r => r.RequestUri!.AbsolutePath == "/reverse");
-        Assert.Equal("http://nominatim.example/reverse?lat=41.65&lon=-83.53&format=json&addressdetails=1", legacyRequest.RequestUri!.ToString());
-    }
-
-    [Fact]
-    public async Task FallbackReturnsNullWhenTheOlderServerHasNoProviderConfiguredEither()
-    {
-        var handler = new RoutingHandler();
-        handler.RespondTo("/api/geocode/forward", HttpStatusCode.NotFound, "404 page not found");
-        handler.RespondTo("/api/config/poracleWeb", HttpStatusCode.OK, /*lang=json,strict*/ """{}""");
-        var sut = CreateSut(handler);
-
-        Assert.Null(await sut.GetGeocodeForwardAsync("Toledo"));
+        Assert.DoesNotContain(handler.Requests, r => r.RequestUri!.Host == "nominatim.example");
     }
 
     private sealed class MockHttpMessageHandler(HttpStatusCode statusCode, string responseBody) : HttpMessageHandler

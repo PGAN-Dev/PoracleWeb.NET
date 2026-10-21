@@ -107,7 +107,6 @@ public class PoracleServerProfileTests
         Assert.False(profile.Supports("buttons"));
         Assert.False(profile.IsBelowMinimum); // unknown, not old
         Assert.False(profile.IsSupported);
-        Assert.False(profile.SupportsV2Tracking);
     }
 
     [Fact]
@@ -164,7 +163,6 @@ public class PoracleServerProfileTests
 
         Assert.Equal(tooOld, profile.IsBelowMinimum);
         Assert.Equal(!tooOld, profile.IsSupported);
-        Assert.Equal(!tooOld, profile.SupportsV2Tracking);
     }
 
     [Theory]
@@ -181,7 +179,6 @@ public class PoracleServerProfileTests
         Assert.Null(profile.ParsedVersion);
         Assert.False(profile.IsBelowMinimum);
         Assert.True(profile.IsSupported);
-        Assert.True(profile.SupportsV2Tracking);
     }
 
     [Fact]
@@ -190,7 +187,6 @@ public class PoracleServerProfileTests
         var profile = new PoracleServerProfile { Version = "5.4.0", Reachable = false };
 
         Assert.False(profile.IsSupported);
-        Assert.False(profile.SupportsV2Tracking);
     }
 
     [Theory]

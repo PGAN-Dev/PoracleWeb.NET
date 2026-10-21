@@ -150,13 +150,13 @@ public class PoracleTrackingProxyV2Tests
     }
 
     [Theory]
-    [InlineData("v1", "5.4.0", "/api/tracking/pokemon/user1?silent=true")]
-    [InlineData("v2", "5.1.0", "/api/v2/humans/user1/tracking/pokemon/36486?silent=true")]
+    [InlineData("v1", "5.4.0", "/api/v2/humans/user1/tracking/pokemon/36486?silent=true")]
+    [InlineData("v2", "5.1.0", "/api/tracking/pokemon/user1?silent=true")]
     [InlineData("auto", "5.4.0", "/api/v2/humans/user1/tracking/pokemon/36486?silent=true")]
-    public async Task TheOperatorOverridePinsTheSurface(string setting, string version, string expectedPath)
+    public async Task ALeftoverTrackingApiVersionSettingIsIgnored(string setting, string version, string expectedPath)
     {
-        // A fork can carry v2 while reporting an older number, or report 5.2.1 without it. A version probe
-        // cannot see either, so the operator gets the last word.
+        // Poracle:TrackingApiVersion no longer exists: an install that still has it set gets the same
+        // routing as one that never did. The server's reported version decides, 5.4.0 being the minimum.
         var handler = ScriptedHandler.Ok(RotatedOk);
         var sut = CreateSut(handler, version: version, trackingApiVersion: setting);
 
@@ -381,15 +381,16 @@ public class PoracleTrackingProxyV2Tests
     }
 
     [Fact]
-    public async Task APingIsRefusedWhenTheTrackingApiVersionIsPinnedToV1()
+    public async Task APingIsKeptOnV2WhateverALeftoverTrackingApiVersionSettingSays()
     {
         var handler = ScriptedHandler.Ok("""{"newUids":[7],"alreadyPresent":0,"updates":1,"insert":0}""");
         var sut = CreateSut(handler, version: "5.4.0", trackingApiVersion: "v1");
 
-        await Assert.ThrowsAsync<AlarmValidationException>(() => sut.UpdateByUidAsync(
-            "pokemon", "user1", 7, Row($$"""{"uid":7,"pokemon_id":25,"ping":"{{MentionPing}}"}""")));
+        var result = await sut.UpdateByUidAsync(
+            "pokemon", "user1", 7, Row($$"""{"uid":7,"pokemon_id":25,"ping":"{{MentionPing}}"}"""));
 
-        Assert.Empty(handler.Requests);
+        Assert.True(result.UsedV2);
+        Assert.Contains("/api/v2/", Assert.Single(handler.Requests).Url, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -635,7 +636,6 @@ public class PoracleTrackingProxyV2Tests
 
     [Theory]
     [InlineData("5.1.0", "auto")]
-    [InlineData("5.4.0", "v1")]
     [InlineData(null, "auto")]
     public async Task ADeleteStaysOnV1WhereItAlwaysWas(string? version, string setting)
     {
