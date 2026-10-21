@@ -15,7 +15,7 @@ The primary EF Core context connecting to the existing **Poracle database** mana
 | Direct access | What and why |
 |---|---|
 | Alarm `override_areas` | `IAlarmOverrideAreaWriter.SetAlarmOverrideAreasAsync` writes this one column on the ten alarm tables. It is the only alarm-table write PoracleWeb.NET makes; everything else about a row goes through the proxy |
-| `pweb_settings` | `PwebSettingRepository` still reads and writes the deprecated KV table, and startup runs one `ALTER TABLE pweb_settings MODIFY COLUMN value LONGTEXT NULL` so the old rows can hold JSON. Both exist only to feed `SettingsMigrationService` |
+| `pweb_settings` | `PwebSettingRepository` still reads the deprecated KV table for the one-time settings migration, and startup runs one `ALTER TABLE pweb_settings MODIFY COLUMN value LONGTEXT NULL` so the old rows can hold JSON. Both exist only to feed `SettingsMigrationService` |
 
 User-geofence area writes (Areas save, create, toggle, delete, rename, approval) do not appear here: they go through PoracleNG's `/api/v2` area routes, so `humans.area` and `profiles.area` are never written from this application. The `override_areas` write is tagged `HACK: trusted-set-areas` in code and explained in [Backend](backend.md#areas).
 
@@ -99,7 +99,7 @@ any more. See [Version compatibility](poracleng-compatibility.md#how-support-is-
 
 #### `user_locations`
 
-Saved places live here, keyed by (human, label), and are written only through `IPoracleHumanProxy` — PoracleWeb makes no direct read or write to this table. See [Backend](backend.md#saved-places).
+Saved places live here, keyed by (human, label), and are written only through `IPoracleHumanProxy` — PoracleWeb.NET makes no direct read or write to this table. See [Backend](backend.md#saved-places).
 
 ### PoracleWebContext
 

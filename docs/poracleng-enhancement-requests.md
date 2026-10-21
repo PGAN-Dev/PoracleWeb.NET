@@ -187,36 +187,15 @@ pre-#230 build; it did not survive into the merged fix. Re-tested live against a
 and `override_areas` still has no trusted form on the v1 tracking write (v2's does, per #230, but nothing on
 this side has moved alarm *creates* to v2 yet -- see the v2 migration status below).
 
-**Adopted for three of the six methods, in [#838](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/838) /
-[#937](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/937).** `AddAreaToActiveProfileAsync`,
-`RemoveAreaFromActiveProfileAsync` and `AddAreasToActiveProfileAsync` now try PoracleNG's v2 trusted
-`setAreas` first, falling back to the writer only when it is not safe to rely on. This does *not* reopen the
-read-modify-write concern raised above: `setAreas` still commits `humans.area` and the active
-`profiles.area` together, atomically, **inside PoracleNG** on a single HTTP call -- verified live by posting
-to a `develop` build and reading both columns back. The two tables cannot drift from that call the same way
-they could not drift from `SaveChangesAsync`. What *is* new is a read-then-write pair at the HTTP layer (an
-app-side race, not a cross-table one) and the capability question this doc's over-correction history makes
-clear matters: whether the target server actually carries the fix, which neither `/openapi.json` nor
-`/health` can say (both are byte-identical either side of #230). PoracleWeb.NET's gate is therefore schema
-*and* a live read of `area_security.enabled`, taking the trusted path only when area_security is confirmed
-off -- sidestepping the community-restriction question entirely rather than resolving it, since there is
-nothing to restrict with it off. See `IAreaSecurityPolicyService`.
-
-The other three methods are not candidates for the same treatment yet, for the same reasons as before:
-`RemoveAreaFromAllProfilesAsync` and `RenameAreaInAllProfilesAsync` have no profile-spanning API form at
-all (`?profile=`/`?all_profiles=`, added by #230, write one list identically to a profile or to every
-profile -- not "remove this name from each profile's own list"), and `SetAlarmOverrideAreasAsync` is
-blocked on this app's own alarm-create migration, not on PoracleNG. The first gap is now formally filed
-upstream as [jfberry/PoracleNG#253](https://github.com/jfberry/PoracleNG/issues/253) ("no API operation
-removes one area name from every profile") and
-[#252](https://github.com/jfberry/PoracleNG/issues/252) ("`?all_profiles=` doc recommends using a
-whole-list replace as a per-name removal, which destroys the other profiles' selections"), both opened
-2026-10-11, neither fixed as of this writing. The rename half is
-[#259](https://github.com/jfberry/PoracleNG/issues/259). `jfberry` accepted it on 2026-10-17 with a planned
-`PATCH /api/v2/humans/{id}/areas?from=<old>&to=<new>[&profile=N|&all_profiles=true][&trusted=true]`, one
-transaction, with two conditions that matter here: `to` must already be a loaded fence (so promotion is
-Koji publish, then `POST /api/geofence/reload`, then the PATCH, else a 422 and nothing changes), and every
-rule whose `override_areas` holds the old name is rewritten in the same transaction.
+**Adopted for all six methods** (first three in [#838](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/838) /
+[#937](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/937), the rest with the area writes release). Adding
+or removing one area and the Areas page save use PoracleNG's v2 trusted `setAreas`; removing a name from
+every profile and renaming it use v2's remove-everywhere and rename-everywhere. There is no writer and no
+`area_security` gate any more: PoracleWeb.NET checks each name itself (selectable for the user, one of their
+own fences, or already on the profile) before sending `trusted`. The two tables cannot drift, because
+`setAreas` commits `humans.area` and the active `profiles.area` together inside PoracleNG on one HTTP call.
+The only workaround left is `SetAlarmOverrideAreasAsync`, which waits on this app's alarm-create migration,
+not on PoracleNG. The text below is the history of how that was reached.
 
 That second point exposes a gap in the current workaround. `RenameAreaInAllProfilesAsync`, and the delete
 path, touch `humans.area` and `profiles.area` only, never `override_areas`. A rule scoped to a deleted or
