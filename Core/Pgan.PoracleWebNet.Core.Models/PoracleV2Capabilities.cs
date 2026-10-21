@@ -45,28 +45,6 @@ public sealed class PoracleV2Capabilities
     }
 
     /// <summary>
-    /// <c>V2UpdateProfileBody</c> carries <c>name</c>, so a profile can be renamed through the API
-    /// instead of by writing <c>profiles.name</c> directly. See #837.
-    /// </summary>
-    public bool ProfileRename
-    {
-        get; init;
-    }
-
-    /// <summary>
-    /// Creating a profile answers with the number it was assigned, rather than a bare
-    /// <c>{"status":"ok"}</c>. See #836.
-    /// </summary>
-    /// <remarks>
-    /// PoracleNG assigns the lowest free number, so the caller cannot predict it. Without this the only
-    /// way to learn it is to snapshot the profile list, create, re-read and diff.
-    /// </remarks>
-    public bool ProfileCreateReturnsNumber
-    {
-        get; init;
-    }
-
-    /// <summary>
     /// <c>V2InvasionRule</c> carries <c>grunt_type</c>, so an invasion rule names the grunt it targets
     /// on the way in and on the way out. See #841.
     /// </summary>
@@ -92,53 +70,6 @@ public sealed class PoracleV2Capabilities
     /// not pokemon's alone.
     /// </remarks>
     public bool TrackingPing
-    {
-        get; init;
-    }
-
-    /// <summary>
-    /// <c>GET /v2/humans/{id}/profiles</c> lists profiles as <c>V2ProfileResponse</c>, carrying <c>area</c>
-    /// and <c>active_hours</c>. See #995.
-    /// </summary>
-    /// <remarks>
-    /// The two fields change shape across versions: 5.2.1 sends <c>area</c> as the JSON-encoded string v1
-    /// sends, jfberry/PoracleNG#303 sends a real array, and both send <c>active_hours</c> as the typed
-    /// entry array where v1 sends a string. The proxy translates all of them back to v1's shape.
-    /// </remarks>
-    public bool ProfileList
-    {
-        get; init;
-    }
-
-    /// <summary><c>DELETE /v2/humans/{id}/profiles/{profile_no}</c> exists. See #995.</summary>
-    public bool ProfileDelete
-    {
-        get; init;
-    }
-
-    /// <summary>
-    /// <c>POST /v2/humans/{id}/profiles/{profile_no}/copy</c> exists and its body names the source as
-    /// <c>from_profile</c>. See #995.
-    /// </summary>
-    public bool ProfileCopy
-    {
-        get; init;
-    }
-
-    /// <summary>
-    /// <c>POST /v2/humans/{id}/areas</c> and <c>POST /v2/humans/{id}/location</c> both take a
-    /// <c>?profile=</c> naming the profile to write, and the areas answer reports what it refused, so a new
-    /// profile's areas and location can be set through the API rather than by writing the
-    /// <c>profiles</c> row directly. See #993.
-    /// </summary>
-    /// <remarks>
-    /// All three, deliberately. 5.2.1 declares <c>?profile=</c> on the location write alone, and
-    /// <c>docs/architecture/poracleng-proxy.md</c> records that write moving <c>humans.latitude/longitude</c>
-    /// as well as the named profile's row there. Requiring the areas parameter too limits this to builds of
-    /// the kind it was verified on (5.3.0, the build production runs), where writing a non-active profile
-    /// leaves the active one alone.
-    /// </remarks>
-    public bool ProfileScopedGeography
     {
         get; init;
     }

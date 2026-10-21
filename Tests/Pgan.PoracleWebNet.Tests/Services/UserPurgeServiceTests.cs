@@ -180,10 +180,8 @@ public class UserPurgeServiceTests
         var proxy = new PoracleHumanProxy(
             new HttpClient(new FixedReply(status, body)),
             config,
-            PoracleHumanProxyTests.ServerProfile("5.1.0"),
             PoracleHumanProxyTests.V2Schema(),
             PoracleHumanProxyTests.AreaSecurityPolicy(),
-            new MemoryCache(new MemoryCacheOptions()),
             Mock.Of<ILogger<PoracleHumanProxy>>());
 
         var tracking = new Mock<IPoracleTrackingProxy>();

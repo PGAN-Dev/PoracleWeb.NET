@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Pgan.PoracleWebNet.Api.Configuration;
 using Pgan.PoracleWebNet.Api.Controllers;
-using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
@@ -13,7 +12,6 @@ public class ProfileOverviewControllerTests : ControllerTestBase
 {
     private readonly Mock<IPoracleHumanProxy> _humanProxy = new();
     private readonly Mock<IProfileService> _profileService = new();
-    private readonly Mock<IProfileRepository> _profileRepository = new();
     private readonly Mock<IProfileOverviewService> _service = new();
     private readonly ProfileOverviewController _sut;
 
@@ -24,17 +22,10 @@ public class ProfileOverviewControllerTests : ControllerTestBase
     {
         this._jwtService.Setup(j => j.GenerateTokenWithReplacedProfile(It.IsAny<System.Security.Claims.ClaimsPrincipal>(), It.IsAny<int>(), It.IsAny<bool?>()))
             .Returns("test-jwt-token");
-        // These two report what the server actually did as of #836 and #837. Every pre-existing test here
-        // was written against a PoracleNG that reports neither, so that is what they keep answering --
-        // preserving the path each was written to exercise rather than silently moving them onto the new
-        // one. Tests about the new behaviour set their own return.
-        this._humanProxy.SetReturnsDefault<Task<int?>>(Task.FromResult<int?>(null));
-        this._humanProxy.SetReturnsDefault<Task<bool>>(Task.FromResult(false));
 
         this._sut = new ProfileOverviewController(
             this._service.Object,
             this._profileService.Object,
-            this._profileRepository.Object,
             this._humanProxy.Object,
             this._jwtService.Object,
             this._roleResolver.Object,
@@ -89,12 +80,9 @@ public class ProfileOverviewControllerTests : ControllerTestBase
         this._profileService
             .Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1))
             .ReturnsAsync(source);
-        this._profileService.SetupSequence(s => s.GetByUserAsync("123456789"))
-            .ReturnsAsync([source])
-            .ReturnsAsync([source, new Profile { ProfileNo = 2, Name = "created" }]);
         this._humanProxy
             .Setup(h => h.AddProfileAsync("123456789", It.IsAny<JsonElement>()))
-            .ReturnsAsync((int?)null);
+            .ReturnsAsync(2);
         this._service
             .Setup(s => s.DuplicateProfileAsync("123456789", 1, 2))
             .ReturnsAsync(5);
@@ -111,12 +99,10 @@ public class ProfileOverviewControllerTests : ControllerTestBase
     [Fact]
     public async Task ImportProfileReturnsOkWithAlarmCount()
     {
-        this._profileService.SetupSequence(s => s.GetByUserAsync("123456789"))
-            .ReturnsAsync([new Profile { ProfileNo = 1, Name = "Main" }])
-            .ReturnsAsync([new Profile { ProfileNo = 1, Name = "Main" }, new Profile { ProfileNo = 2, Name = "created" }]);
+        this._profileService.Setup(s => s.GetByUserAsync("123456789")).ReturnsAsync([new Profile { ProfileNo = 1, Name = "Main" }]);
         this._humanProxy
             .Setup(h => h.AddProfileAsync("123456789", It.IsAny<JsonElement>()))
-            .ReturnsAsync((int?)null);
+            .ReturnsAsync(2);
         var alarms = CreateJsonObject(new
         {
             pokemon = new[] { new { pokemon_id = 1 } }
@@ -147,7 +133,7 @@ public class ProfileOverviewControllerTests : ControllerTestBase
             .ReturnsAsync(existing);
         this._humanProxy
             .Setup(h => h.AddProfileAsync("123456789", It.IsAny<JsonElement>()))
-            .ReturnsAsync((int?)null);
+            .ReturnsAsync(3);
         var alarms = CreateJsonObject(new
         {
             pokemon = new[] { new { pokemon_id = 1 } }
@@ -174,10 +160,7 @@ public class ProfileOverviewControllerTests : ControllerTestBase
         // propagate (no try/catch swallowing it) so the global filter can map it to 403. (#236)
         var source = new Profile { ProfileNo = 1, Name = "Main", Area = "[]" };
         this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(source);
-        this._profileService.SetupSequence(s => s.GetByUserAsync("123456789"))
-            .ReturnsAsync([source])
-            .ReturnsAsync([source, new Profile { ProfileNo = 2, Name = "created" }]);
-        this._humanProxy.Setup(h => h.AddProfileAsync("123456789", It.IsAny<JsonElement>())).ReturnsAsync((int?)null);
+        this._humanProxy.Setup(h => h.AddProfileAsync("123456789", It.IsAny<JsonElement>())).ReturnsAsync(2);
         this._humanProxy.Setup(h => h.DeleteProfileAsync("123456789", It.IsAny<int>())).Returns(Task.CompletedTask);
         this._service
             .Setup(s => s.DuplicateProfileAsync("123456789", 1, 2))
@@ -192,10 +175,8 @@ public class ProfileOverviewControllerTests : ControllerTestBase
     [Fact]
     public async Task ImportProfilePropagatesFeatureDisabledException()
     {
-        this._profileService.SetupSequence(s => s.GetByUserAsync("123456789"))
-            .ReturnsAsync([new Profile { ProfileNo = 1, Name = "Main" }])
-            .ReturnsAsync([new Profile { ProfileNo = 1, Name = "Main" }, new Profile { ProfileNo = 2, Name = "created" }]);
-        this._humanProxy.Setup(h => h.AddProfileAsync("123456789", It.IsAny<JsonElement>())).ReturnsAsync((int?)null);
+        this._profileService.Setup(s => s.GetByUserAsync("123456789")).ReturnsAsync([new Profile { ProfileNo = 1, Name = "Main" }]);
+        this._humanProxy.Setup(h => h.AddProfileAsync("123456789", It.IsAny<JsonElement>())).ReturnsAsync(2);
         var alarms = CreateJsonObject(new
         {
             invasion = new[] { new { grunt_type = "fire" } }
@@ -238,16 +219,61 @@ public class ProfileOverviewControllerTests : ControllerTestBase
     [Fact]
     public async Task ImportProfileStillAcceptsAnEmojiName()
     {
-        this._profileService.SetupSequence(s => s.GetByUserAsync("123456789"))
-            .ReturnsAsync([new Profile { ProfileNo = 1, Name = "Main" }])
-            .ReturnsAsync([new Profile { ProfileNo = 1, Name = "Main" }, new Profile { ProfileNo = 2, Name = "👨\u200D👩\u200D👧 family" }]);
-        this._humanProxy.Setup(h => h.AddProfileAsync("123456789", It.IsAny<JsonElement>())).ReturnsAsync((int?)null);
+        this._profileService.Setup(s => s.GetByUserAsync("123456789")).ReturnsAsync([new Profile { ProfileNo = 1, Name = "Main" }]);
+        this._humanProxy.Setup(h => h.AddProfileAsync("123456789", It.IsAny<JsonElement>())).ReturnsAsync(2);
         var alarms = CreateJsonObject(new { pokemon = new[] { new { pokemon_id = 1 } } });
         this._service.Setup(s => s.ImportAlarmsAsync("123456789", 2, It.IsAny<JsonElement>())).ReturnsAsync(1);
 
         var result = await this._sut.ImportProfile(new ProfileOverviewImportRequest("👨\u200D👩\u200D👧 family", 1, alarms));
 
         Assert.IsType<OkObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task DuplicateProfileReadsNoProfileListToLearnTheNumber()
+    {
+        var source = new Profile { ProfileNo = 1, Name = "Main", Area = "[]" };
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(source);
+        this._humanProxy.Setup(h => h.AddProfileAsync("123456789", It.IsAny<JsonElement>())).ReturnsAsync(2);
+        this._service.Setup(s => s.DuplicateProfileAsync("123456789", 1, 2)).ReturnsAsync(1);
+
+        await this._sut.DuplicateProfile(1, new ProfileOverviewDuplicateRequest("Copy"));
+
+        this._profileService.Verify(s => s.GetByUserAsync(It.IsAny<string>()), Times.Never);
+        this._humanProxy.Verify(
+            h => h.SetProfileGeographyAsync("123456789", 2, It.IsAny<IReadOnlyCollection<string>>(), 0, 0), Times.Once);
+    }
+
+    [Fact]
+    public async Task ImportProfileReadsTheProfileListOnceAndUsesTheReportedNumber()
+    {
+        // The one read is for name de-duplication; the number comes from the create, not from a second list.
+        this._profileService.Setup(s => s.GetByUserAsync("123456789")).ReturnsAsync([new Profile { ProfileNo = 1, Name = "Main" }]);
+        this._humanProxy.Setup(h => h.AddProfileAsync("123456789", It.IsAny<JsonElement>())).ReturnsAsync(6);
+        this._service.Setup(s => s.ImportAlarmsAsync("123456789", 6, It.IsAny<JsonElement>())).ReturnsAsync(1);
+
+        var result = await this._sut.ImportProfile(new ProfileOverviewImportRequest(
+            "Imported", 1, CreateJsonObject(new { pokemon = new[] { new { pokemon_id = 1 } } })));
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        using var doc = JsonDocument.Parse(JsonSerializer.Serialize(ok.Value));
+        Assert.Equal(6, doc.RootElement.GetProperty("newProfileNo").GetInt32());
+        this._profileService.Verify(s => s.GetByUserAsync("123456789"), Times.Once);
+    }
+
+    [Fact]
+    public async Task AGeographyFailureOnImportReachesTheCaller()
+    {
+        this._profileService.Setup(s => s.GetByUserAsync("123456789")).ReturnsAsync([]);
+        this._humanProxy.Setup(h => h.AddProfileAsync("123456789", It.IsAny<JsonElement>())).ReturnsAsync(2);
+        this._service.Setup(s => s.ImportAlarmsAsync("123456789", 2, It.IsAny<JsonElement>())).ReturnsAsync(1);
+        this._humanProxy
+            .Setup(h => h.SetProfileGeographyAsync(
+                It.IsAny<string>(), It.IsAny<int>(), It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<double>(), It.IsAny<double>()))
+            .ThrowsAsync(new PoracleRequestRefusedException("refused"));
+
+        await Assert.ThrowsAsync<PoracleRequestRefusedException>(() => this._sut.ImportProfile(
+            new ProfileOverviewImportRequest("Imported", 1, CreateJsonObject(new { pokemon = new[] { new { pokemon_id = 1 } } }))));
     }
 
     private static JsonElement CreateJsonObject(object obj)

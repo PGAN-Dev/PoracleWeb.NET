@@ -90,26 +90,13 @@ public partial class PoracleV2SchemaService(
             // TryGetProperty on one of those throws rather than answering false.
             var components = Property(root, "components");
             var schemas = Property(components, "schemas");
-            var paths = Property(root, "paths");
 
             return new PoracleV2Capabilities
             {
                 Read = true,
                 TrustedSetAreas = HasProperty(schemas, "V2SetAreasBody", "trusted"),
-                ProfileRename = HasProperty(schemas, "V2UpdateProfileBody", "name"),
-                ProfileCreateReturnsNumber = CreateReturnsNumber(paths, schemas),
                 InvasionGruntType = HasProperty(schemas, "V2InvasionRule", "grunt_type"),
                 TrackingPing = HasProperty(schemas, "V2PokemonRule", "ping"),
-                ProfileList = HasProperty(
-                        schemas, ResponseSchema(paths, "/v2/humans/{id}/profiles", "get"), "profiles")
-                    && HasProperty(schemas, "V2ProfileResponse", "area")
-                    && HasProperty(schemas, "V2ProfileResponse", "active_hours"),
-                ProfileDelete = HasOperation(paths, "/v2/humans/{id}/profiles/{profile_no}", "delete"),
-                ProfileCopy = HasOperation(paths, "/v2/humans/{id}/profiles/{profile_no}/copy", "post")
-                    && HasProperty(schemas, "V2CopyProfileBody", "from_profile"),
-                ProfileScopedGeography = HasQueryParameter(paths, "/v2/humans/{id}/areas", "post", "profile")
-                    && HasQueryParameter(paths, "/v2/humans/{id}/location", "post", "profile")
-                    && HasProperty(schemas, ResponseSchema(paths, "/v2/humans/{id}/areas", "post"), "rejected"),
             };
         }
         catch (JsonException)
@@ -131,51 +118,6 @@ public partial class PoracleV2SchemaService(
     /// <summary>True when the named schema declares the named property.</summary>
     private static bool HasProperty(JsonElement schemas, string schema, string property) =>
         Property(Property(Property(schemas, schema), "properties"), property).ValueKind != JsonValueKind.Undefined;
-
-    /// <summary>True when the path declares the method.</summary>
-    private static bool HasOperation(JsonElement paths, string path, string method) =>
-        Property(Property(paths, path), method).ValueKind != JsonValueKind.Undefined;
-
-    /// <summary>True when the operation declares a query parameter of that name.</summary>
-    private static bool HasQueryParameter(JsonElement paths, string path, string method, string name)
-    {
-        var parameters = Property(Property(Property(paths, path), method), "parameters");
-
-        return parameters.ValueKind == JsonValueKind.Array
-            && parameters.EnumerateArray().Any(p =>
-                Property(p, "name") is { ValueKind: JsonValueKind.String } n && n.GetString() == name
-                && Property(p, "in") is { ValueKind: JsonValueKind.String } at && at.GetString() == "query");
-    }
-
-    /// <summary>
-    /// True when creating a profile answers with the assigned number.
-    /// </summary>
-    /// <remarks>
-    /// Read as "the 200 body has a <c>profile_no</c>", not as "the response is not
-    /// <c>StatusOKOutputBody</c>". Naming the old type would make this a test for one specific shape
-    /// being absent, which a rename upstream would silently turn into a false positive — and a false
-    /// positive here means reading a number out of a body that does not carry one.
-    /// </remarks>
-    private static bool CreateReturnsNumber(JsonElement paths, JsonElement schemas) =>
-        HasProperty(schemas, ResponseSchema(paths, "/v2/humans/{id}/profiles", "post"), "profile_no");
-
-    /// <summary>
-    /// The name of the schema an operation's 200 answers with, or an empty string when the operation is
-    /// absent or answers something other than a <c>$ref</c>. Empty names no schema, so a
-    /// <see cref="HasProperty"/> on it answers false.
-    /// </summary>
-    private static string ResponseSchema(JsonElement paths, string path, string method)
-    {
-        var ok = Property(Property(Property(Property(paths, path), method), "responses"), "200");
-
-        var refValue = Property(
-            Property(Property(Property(ok, "content"), "application/json"), "schema"),
-            "$ref");
-
-        var reference = refValue.ValueKind == JsonValueKind.String ? refValue.GetString() : null;
-
-        return string.IsNullOrEmpty(reference) ? string.Empty : reference[(reference.LastIndexOf('/') + 1)..];
-    }
 
     private async Task<string?> FetchAsync(CancellationToken cancellationToken)
     {

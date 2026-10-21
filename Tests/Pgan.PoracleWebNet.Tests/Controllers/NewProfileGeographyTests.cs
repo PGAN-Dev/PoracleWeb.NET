@@ -2,7 +2,6 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -25,9 +24,8 @@ namespace Pgan.PoracleWebNet.Tests.Controllers;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Each case is run on both paths. Where the server declares <c>?profile=</c> on its v2 areas and location
-/// writes, the profile's geography goes there and the direct <c>profiles</c> write is not made. Where it
-/// does not, or where v2 refuses, the direct write carries the same values it always has.
+/// The geography goes to the new profile through PoracleNG's v2 <c>?profile=</c> writes, and a refusal
+/// reaches the caller: there is no direct <c>profiles</c> write behind it any more.
 /// </para>
 /// <para>
 /// The bodies checked are the ones each controller builds, against the schemas in the openapi fixture.
@@ -40,7 +38,6 @@ public class NewProfileGeographyTests : ControllerTestBase
     private const int NewProfileNo = 4;
 
     private readonly Mock<IProfileService> _profileService = new();
-    private readonly Mock<IProfileRepository> _profileRepository = new();
     private readonly Mock<IProfileOverviewService> _overview = new();
     private readonly Mock<IJwtService> _jwtService = new();
     private readonly Mock<IUserRoleResolver> _roleResolver = new();
@@ -98,42 +95,17 @@ public class NewProfileGeographyTests : ControllerTestBase
         Assert.Equal(expected.Latitude, locationBody.RootElement.GetProperty("latitude").GetDouble());
         Assert.Equal(expected.Longitude, locationBody.RootElement.GetProperty("longitude").GetDouble());
 
-        this._profileRepository.Verify(r => r.UpdateAsync(It.IsAny<Profile>()), Times.Never);
     }
 
     [Theory]
     [MemberData(nameof(Endpoints))]
-    public async Task WhereTheServerDoesNotTheDirectWriteCarriesTheSameValues(string endpoint)
-    {
-        var handler = new Routed();
-        await this.RunAsync(endpoint, handler, declared: false);
-
-        Assert.DoesNotContain(handler.Requests, r => r.Query.Contains("profile=", StringComparison.Ordinal));
-        this.VerifyDirectWrite(endpoint);
-    }
-
-    [Theory]
-    [MemberData(nameof(Endpoints))]
-    public async Task AV2RefusalFallsBackToTheDirectWriteAndTheRequestStillSucceeds(string endpoint)
+    public async Task AV2RefusalReachesTheCallerAndNothingIsWrittenDirectly(string endpoint)
     {
         var handler = new Routed(refuseGeography: true);
-        await this.RunAsync(endpoint, handler, declared: true);
+
+        await Assert.ThrowsAsync<PoracleRequestRefusedException>(() => this.RunAsync(endpoint, handler, declared: true));
 
         Assert.Contains(handler.Requests, r => r.Path == "/api/v2/humans/123456789/areas");
-        this.VerifyDirectWrite(endpoint);
-    }
-
-    private void VerifyDirectWrite(string endpoint)
-    {
-        var expected = Expected(endpoint);
-        this._profileRepository.Verify(
-            r => r.UpdateAsync(It.Is<Profile>(p =>
-                p.Id == UserId
-                && p.ProfileNo == NewProfileNo
-                && JsonSerializer.Deserialize<string[]>(p.Area!, (JsonSerializerOptions?)null)!.SequenceEqual(expected.Areas)
-                && p.Latitude == expected.Latitude
-                && p.Longitude == expected.Longitude)),
-            Times.Once);
     }
 
     private async Task RunAsync(string endpoint, Routed handler, bool declared)
@@ -144,7 +116,7 @@ public class NewProfileGeographyTests : ControllerTestBase
         if (endpoint is "create" or "duplicate")
         {
             var controller = new ProfileController(
-                this._profileService.Object, Mock.Of<IHumanService>(), proxy, this._profileRepository.Object,
+                this._profileService.Object, Mock.Of<IHumanService>(), proxy,
                 this._jwtService.Object, this._roleResolver.Object, this._userGeofences.Object,
                 NullLogger<ProfileController>.Instance);
             SetupUser(controller, UserId);
@@ -165,7 +137,7 @@ public class NewProfileGeographyTests : ControllerTestBase
         }
 
         var overview = new ProfileOverviewController(
-            this._overview.Object, this._profileService.Object, this._profileRepository.Object, proxy,
+            this._overview.Object, this._profileService.Object, proxy,
             this._jwtService.Object, this._roleResolver.Object, NullLogger<ProfileOverviewController>.Instance);
         SetupUser(overview, UserId);
 
@@ -186,16 +158,12 @@ public class NewProfileGeographyTests : ControllerTestBase
                 ["Poracle:ApiSecret"] = "test-secret",
             })
             .Build(),
-        PoracleHumanProxyTests.ServerProfile("5.4.0"),
         PoracleHumanProxyTests.V2Schema(new PoracleV2Capabilities
         {
             Read = true,
-            ProfileCreateReturnsNumber = true,
-            ProfileScopedGeography = declared,
             TrustedSetAreas = true,
         }),
         PoracleHumanProxyTests.AreaSecurityPolicy(confirmedDisabled: true),
-        new MemoryCache(new MemoryCacheOptions()),
         Mock.Of<ILogger<PoracleHumanProxy>>());
 
     /// <summary>Every property of the body is one the named schema in the openapi fixture declares.</summary>

@@ -5,7 +5,6 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
@@ -15,28 +14,18 @@ namespace Pgan.PoracleWebNet.Core.Services;
 public partial class PoracleHumanProxy(
     HttpClient httpClient,
     IConfiguration configuration,
-    IPoracleServerProfileService serverProfile,
     IPoracleV2SchemaService v2Schema,
     IAreaSecurityPolicyService areaSecurityPolicy,
-    IMemoryCache cache,
     ILogger<PoracleHumanProxy> logger) : IPoracleHumanProxy
 {
     /// <summary>What to say when PoracleNG refused and explained nothing usable.</summary>
     private const string Unexplained = "Poracle rejected the request.";
 
-    /// <summary>
-    /// How long a route is remembered as missing. Matches the server profile's own cache, so an upgrade
-    /// is picked up on the same clock as every other version-gated thing.
-    /// </summary>
-    private static readonly TimeSpan V2AbsentFor = TimeSpan.FromMinutes(5);
-
     private readonly HttpClient _httpClient = httpClient;
     private readonly string _apiAddress = configuration["Poracle:ApiAddress"] ?? string.Empty;
     private readonly string _apiSecret = configuration["Poracle:ApiSecret"] ?? string.Empty;
-    private readonly IPoracleServerProfileService _serverProfile = serverProfile;
     private readonly IPoracleV2SchemaService _v2Schema = v2Schema;
     private readonly IAreaSecurityPolicyService _areaSecurityPolicy = areaSecurityPolicy;
-    private readonly IMemoryCache _cache = cache;
     private readonly ILogger<PoracleHumanProxy> _logger = logger;
 
     /// <summary>
@@ -44,21 +33,6 @@ public partial class PoracleHumanProxy(
     /// containing slashes that would break routing without encoding.
     /// </summary>
     private static string Encode(string userId) => Uri.EscapeDataString(userId);
-
-    /// <summary>
-    /// Whether PoracleNG is believed to carry <c>/api/v2</c>: every supported release does, so this is
-    /// <see cref="PoracleServerProfile.IsSupported"/>.
-    /// </summary>
-    /// <remarks>
-    /// A belief, not a fact: a fork can carry the routes while reporting an older number, or the reverse.
-    /// <see cref="TryV2Async"/> therefore also handles the route being absent at request time, so being
-    /// wrong here costs one extra round-trip rather than the operation.
-    /// </remarks>
-    private async Task<bool> ServerCarriesV2Async()
-    {
-        var profile = await this._serverProfile.GetAsync();
-        return profile.IsSupported;
-    }
 
     /// <summary>The release that carries every <c>/api/v2</c> route the single-human calls need.</summary>
     private const string MinimumRelease = "PoracleNG 5.4.0";
@@ -95,45 +69,6 @@ public partial class PoracleHumanProxy(
         }
 
         return response;
-    }
-
-    /// <summary>
-    /// Sends one request to <c>/api/v2</c>, or answers null when this server has no such route so the
-    /// caller can use its v1 path for the same request instead of failing it.
-    /// </summary>
-    /// <remarks>
-    /// The absence is remembered per route, not per surface. One shared flag would let a single missing
-    /// route drop every other call back to v1 -- and <c>PUT /locations/{label}</c> has no v1 path at all,
-    /// so for that one "fall back" means "vanish".
-    /// </remarks>
-    private async Task<(HttpResponseMessage Response, string Payload)?> TryV2Async(
-        HttpMethod method, string route, string path, string? body = null)
-    {
-        var absentKey = $"poracle:v2-humans-absent:{route}";
-        if (this._cache.TryGetValue(absentKey, out _))
-        {
-            return null;
-        }
-
-        if (!await this.ServerCarriesV2Async())
-        {
-            return null;
-        }
-
-        var reply = await this.SendReadAsync(method, path, body);
-
-        // gin answers a route it does not have with the plaintext "404 page not found"; the v2 surface
-        // answers a missing human or place with problem+json at the same status. Verified against 5.1.0
-        // and 5.2.1 -- the content type is the only thing separating them.
-        if (reply.Response.StatusCode == HttpStatusCode.NotFound
-            && !PoracleProblemDetails.IsProblemJson(reply.Payload))
-        {
-            this._cache.Set(absentKey, true, V2AbsentFor);
-            LogV2RouteAbsent(this._logger, route);
-            return null;
-        }
-
-        return reply;
     }
 
     private async Task<(HttpResponseMessage Response, string Payload)> SendReadAsync(
@@ -576,18 +511,14 @@ public partial class PoracleHumanProxy(
     /// callers pass the number PoracleNG has just assigned.
     /// </para>
     /// <para>
-    /// A <c>false</c> after the areas landed is still safe: the caller's direct write sets areas and location
-    /// together, so the two are never left half from one path and half from the other.
+    /// There is no direct database write behind this any more. Where the areas cannot be sent safely
+    /// (<c>trusted</c> is needed and <c>area_security</c> is on or unconfirmed) or PoracleNG refuses a
+    /// requested name, it throws, and the caller decides what to do about a profile that already exists.
     /// </para>
     /// </remarks>
-    public async Task<bool> SetProfileGeographyAsync(
+    public async Task SetProfileGeographyAsync(
         string userId, int profileNo, IReadOnlyCollection<string> areas, double latitude, double longitude)
     {
-        if (!(await this._v2Schema.GetAsync()).ProfileScopedGeography)
-        {
-            return false;
-        }
-
         var requested = areas
             .Where(a => !string.IsNullOrWhiteSpace(a))
             .Select(a => a.ToLowerInvariant())
@@ -600,50 +531,43 @@ public partial class PoracleHumanProxy(
         var trusted = requested.Count > 0;
         if (trusted && !await this.CanUseTrustedSetAreasAsync())
         {
-            return false;
+            throw new PoracleRequestRefusedException(
+                "The new profile's areas could not be saved: PoracleNG cannot accept private areas for it on this server.",
+                (int)HttpStatusCode.BadGateway);
         }
 
         var areasBody = trusted
             ? JsonSerializer.Serialize(new { areas = requested, trusted = true })
             : JsonSerializer.Serialize(new { areas = requested });
 
-        if (await this.TryV2Async(
-                HttpMethod.Post, "areas-profile", $"/api/v2/humans/{Encode(userId)}/areas?profile={profileNo}", areasBody)
-            is not { } areasReply)
-        {
-            return false;
-        }
-
-        await EnsureAcceptedAsync(areasReply.Response);
+        var areasResponse = await this.SendV2Async(
+            HttpMethod.Post, $"/api/v2/humans/{Encode(userId)}/areas?profile={profileNo}", "saving a profile's areas", areasBody);
+        await EnsureAcceptedAsync(areasResponse);
 
         // Trusted lifts userSelectable, not "exists at all", so a refused name is one PoracleNG has not
-        // loaded. The direct write keeps it, as it always has; answer false so the caller does that.
-        var refused = RejectedAreas(areasReply.Payload)
+        // loaded.
+        var refused = RejectedAreas(await areasResponse.Content.ReadAsStringAsync())
             .Where(r => requested.Contains(r, StringComparer.OrdinalIgnoreCase))
             .ToList();
         if (refused.Count > 0)
         {
             LogProfileAreasRefused(this._logger, userId, profileNo, refused);
-            return false;
+            throw new PoracleRequestRefusedException(
+                $"PoracleNG did not accept these areas for the new profile: {string.Join(", ", refused)}.",
+                (int)HttpStatusCode.BadGateway);
         }
 
-        if (await this.TryV2Async(
-                HttpMethod.Post,
-                "location-profile",
-                $"/api/v2/humans/{Encode(userId)}/location?profile={profileNo}",
-                LocationBody(latitude, longitude))
-            is not { } locationReply)
-        {
-            return false;
-        }
-
-        await EnsureAcceptedAsync(locationReply.Response);
-        return true;
+        var locationResponse = await this.SendV2Async(
+            HttpMethod.Post,
+            $"/api/v2/humans/{Encode(userId)}/location?profile={profileNo}",
+            "saving a profile's location",
+            LocationBody(latitude, longitude));
+        await EnsureAcceptedAsync(locationResponse);
     }
 
     [LoggerMessage(
         Level = LogLevel.Information,
-        Message = "PoracleNG refused {Rejected} for {UserId}'s profile {ProfileNo}; writing the profile's areas directly instead")]
+        Message = "PoracleNG refused {Rejected} for {UserId}'s profile {ProfileNo}")]
     private static partial void LogProfileAreasRefused(
         ILogger logger, string userId, int profileNo, IReadOnlyList<string> rejected);
 
@@ -654,42 +578,27 @@ public partial class PoracleHumanProxy(
 
     public async Task SwitchProfileAsync(string userId, int profileNo)
     {
-        var v2Body = JsonSerializer.Serialize(new
-        {
-            profile_no = profileNo
-        });
-
-        var (response, _) =
-            await this.TryV2Async(
-                HttpMethod.Post, "profile", $"/api/v2/humans/{Encode(userId)}/profile", v2Body)
-            ?? await this.SendReadAsync(
-                HttpMethod.Post, $"/api/humans/{Encode(userId)}/switchProfile/{profileNo}");
+        var response = await this.SendV2Async(
+            HttpMethod.Post,
+            $"/api/v2/humans/{Encode(userId)}/profile",
+            "switching profile",
+            JsonSerializer.Serialize(new { profile_no = profileNo }));
 
         await EnsureAcceptedAsync(response);
     }
 
     /// <remarks>
-    /// Answers v1's shape whichever surface served it -- <c>{"profile":[...]}</c>, with <c>area</c> and
-    /// <c>active_hours</c> as the JSON-encoded strings v1 stores -- so <c>ProfileService</c> and everything
-    /// downstream of <see cref="Profile"/> stay as they are. See <see cref="V1ProfilesFromV2"/>.
+    /// Answers v1's shape -- <c>{"profile":[...]}</c>, with <c>area</c> and <c>active_hours</c> as the
+    /// JSON-encoded strings v1 stored -- so <c>ProfileService</c> and everything downstream of
+    /// <see cref="Profile"/> stay as they are. See <see cref="V1ProfilesFromV2"/>.
     /// </remarks>
     public async Task<JsonElement> GetProfilesAsync(string userId)
     {
-        if ((await this._v2Schema.GetAsync()).ProfileList
-            && await this.TryV2Async(HttpMethod.Get, "profiles-list", $"/api/v2/humans/{Encode(userId)}/profiles")
-                is { } reply)
-        {
-            await EnsureAcceptedAsync(reply.Response);
-
-            return V1ProfilesFromV2(reply.Payload);
-        }
-
-        var response = await this.SendAsync(HttpMethod.Get, $"/api/profiles/{Encode(userId)}");
+        var response = await this.SendV2Async(
+            HttpMethod.Get, $"/api/v2/humans/{Encode(userId)}/profiles", "reading profiles");
         await EnsureAcceptedAsync(response);
 
-        var json = await response.Content.ReadAsStringAsync();
-        using var doc = JsonDocument.Parse(json);
-        return doc.RootElement.Clone();
+        return V1ProfilesFromV2(await response.Content.ReadAsStringAsync());
     }
 
     /// <summary>
@@ -750,60 +659,48 @@ public partial class PoracleHumanProxy(
         value.ValueKind == JsonValueKind.Array ? JsonSerializer.Serialize(value) : value.Clone();
 
     /// <inheritdoc />
-    public async Task<int?> AddProfileAsync(string userId, JsonElement body)
+    public async Task<int> AddProfileAsync(string userId, JsonElement body)
     {
-        // The v2 route exists on 5.2.1 too, and there it answers {"status":"ok"} with no number. So the
-        // route being present is not the question -- whether its 200 carries profile_no is, and only the
-        // schema says that. Without the check this would read a number out of a body that has none and
-        // quietly answer null, which is the same as today but a round trip slower. See #836.
-        if ((await this._v2Schema.GetAsync()).ProfileCreateReturnsNumber
-            && V2ProfileBody(body, isUpdate: false) is { } v2Body
-            && await this.TryV2Async(
-                HttpMethod.Post, "profiles-add", $"/api/v2/humans/{Encode(userId)}/profiles", v2Body)
-                is { } reply)
-        {
-            await EnsureAcceptedAsync(reply.Response);
+        var v2Body = V2ProfileBody(body, isUpdate: false)
+            ?? throw new PoracleRequestRefusedException(UnsendableSchedule);
 
-            return ProfileNoFrom(reply.Payload);
-        }
-
-        var response = await this.SendAsync(HttpMethod.Post, $"/api/profiles/{Encode(userId)}/add", body.GetRawText());
+        var response = await this.SendV2Async(
+            HttpMethod.Post, $"/api/v2/humans/{Encode(userId)}/profiles", "creating a profile", v2Body);
         await EnsureAcceptedAsync(response);
 
-        return null;
+        // 5.4.0 reports the number it assigned (PoracleNG picks the lowest free one, so it cannot be
+        // predicted). A 200 without it is a server we cannot safely carry on with: guessing would file the
+        // profile's alarms under a number that may belong to nothing (#407).
+        return ProfileNoFrom(await response.Content.ReadAsStringAsync())
+            ?? throw new PoracleRequestRefusedException(
+                "PoracleNG created the profile but did not report its profile number.",
+                (int)HttpStatusCode.BadGateway);
     }
 
     /// <inheritdoc />
-    public async Task<bool> UpdateProfileAsync(string userId, JsonElement body)
+    public async Task UpdateProfileAsync(string userId, JsonElement body)
     {
-        // Gated, and the gate is load-bearing rather than an optimisation. PATCH exists on 5.2.1, where
-        // V2UpdateProfileBody declares active_hours alone under additionalProperties:false -- so sending
-        // a name to it there is a 422, not an ignored field. See #837.
-        if ((await this._v2Schema.GetAsync()).ProfileRename
-            && body.TryGetProperty("profile_no", out var profileNo)
-            && profileNo.ValueKind == JsonValueKind.Number
-            && V2ProfileBody(body, isUpdate: true) is { } v2Body
-            && await this.TryV2Async(
-                HttpMethod.Patch,
-                "profiles-update",
-                $"/api/v2/humans/{Encode(userId)}/profiles/{profileNo.GetInt32()}",
-                v2Body)
-                is { } reply)
+        if (!body.TryGetProperty("profile_no", out var profileNo)
+            || profileNo.ValueKind != JsonValueKind.Number
+            || !profileNo.TryGetInt32(out var number))
         {
-            await EnsureAcceptedAsync(reply.Response);
-
-            return true;
+            throw new ArgumentException("An update must say which profile it is for (profile_no).", nameof(body));
         }
 
-        var response = await this.SendAsync(HttpMethod.Post, $"/api/profiles/{Encode(userId)}/update", body.GetRawText());
-        await EnsureAcceptedAsync(response);
+        var v2Body = V2ProfileBody(body, isUpdate: true)
+            ?? throw new PoracleRequestRefusedException(UnsendableSchedule);
 
-        return false;
+        var response = await this.SendV2Async(
+            HttpMethod.Patch, $"/api/v2/humans/{Encode(userId)}/profiles/{number}", "updating a profile", v2Body);
+        await EnsureAcceptedAsync(response);
     }
 
+    private const string UnsendableSchedule =
+        "The profile's active hours are not in a form PoracleNG accepts (day 1-7, hours 0-23, mins 0-59).";
+
     /// <summary>
-    /// The body for a v2 profile create or PATCH, or null when the profile cannot be said in v2's terms
-    /// and the caller should use v1.
+    /// The body for a v2 profile create or PATCH, or null when the profile's schedule cannot be said in v2's
+    /// terms, which the callers report as a refusal.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -1010,42 +907,32 @@ public partial class PoracleHumanProxy(
     }
 
     /// <remarks>
-    /// Both surfaces cascade the profile's tracking rules and move <c>current_profile_no</c> when the active
-    /// profile goes; v2's was checked against a running build rather than read (#995). The one difference:
-    /// v2 answers a human that does not exist with a 404, where v1 answered 200.
+    /// Cascades the profile's tracking rules and moves <c>current_profile_no</c> when the active profile
+    /// goes (#995). A human that does not exist is a 404 problem+json, which becomes
+    /// <see cref="AccountGoneException"/>.
     /// </remarks>
     public async Task DeleteProfileAsync(string userId, int profileNo)
     {
-        var (response, _) =
-            ((await this._v2Schema.GetAsync()).ProfileDelete
-                ? await this.TryV2Async(
-                    HttpMethod.Delete, "profiles-delete", $"/api/v2/humans/{Encode(userId)}/profiles/{profileNo}")
-                : null)
-            ?? await this.SendReadAsync(HttpMethod.Delete, $"/api/profiles/{Encode(userId)}/byProfileNo/{profileNo}");
+        var response = await this.SendV2Async(
+            HttpMethod.Delete, $"/api/v2/humans/{Encode(userId)}/profiles/{profileNo}", "deleting a profile");
 
         await EnsureAcceptedAsync(response);
     }
 
     /// <remarks>
-    /// Replaces every rule on <paramref name="toProfileNo"/> with a copy of <paramref name="fromProfileNo"/>'s,
-    /// on both surfaces. Copying from a profile with no rules therefore empties the destination.
+    /// Replaces every rule on <paramref name="toProfileNo"/> with a copy of <paramref name="fromProfileNo"/>'s.
+    /// Copying from a profile with no rules therefore empties the destination.
     /// </remarks>
     public async Task CopyProfileAsync(string userId, int fromProfileNo, int toProfileNo)
     {
-        var (response, _) =
-            ((await this._v2Schema.GetAsync()).ProfileCopy
-                ? await this.TryV2Async(
-                    HttpMethod.Post,
-                    "profiles-copy",
-                    $"/api/v2/humans/{Encode(userId)}/profiles/{toProfileNo}/copy",
-                    JsonSerializer.Serialize(new { from_profile = fromProfileNo }))
-                : null)
-            ?? await this.SendReadAsync(
-                HttpMethod.Post, $"/api/profiles/{Encode(userId)}/copy/{fromProfileNo}/{toProfileNo}");
+        var response = await this.SendV2Async(
+            HttpMethod.Post,
+            $"/api/v2/humans/{Encode(userId)}/profiles/{toProfileNo}/copy",
+            "copying a profile",
+            JsonSerializer.Serialize(new { from_profile = fromProfileNo }));
 
         await EnsureAcceptedAsync(response);
     }
-
 
     public async Task<SavedPlaces> GetPlacesAsync(string userId)
     {
@@ -1323,10 +1210,4 @@ public partial class PoracleHumanProxy(
 
         return await this._httpClient.SendAsync(request);
     }
-
-    [LoggerMessage(
-        EventId = 6301,
-        Level = LogLevel.Debug,
-        Message = "PoracleNG has no /api/v2 route for {Route}; using the v1 path for it.")]
-    private static partial void LogV2RouteAbsent(ILogger logger, string route);
 }

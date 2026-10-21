@@ -17,12 +17,6 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 /// idea of the shape, which is the failure CLAUDE.md records under "Tests: assert what must still work".
 /// </para>
 /// <para>
-/// The area and profile routes #995 moves (<c>/v2/humans/{id}/areas</c>, <c>/location</c>,
-/// <c>/profiles</c>, <c>/profiles/{profile_no}</c> and its <c>/copy</c>) were added to both fixtures later,
-/// copied verbatim from the live documents of the dev-01 test beds: the 5.2.1 bed and the 5.3.0 bed
-/// running the same PoracleNG build as production.
-/// </para>
-/// <para>
 /// Both halves matter. The 5.2.1 fixture is the no-change case for PR #217's capabilities — every one of
 /// them false, every caller keeping its workaround — and it is the one that fails if a probe is written so
 /// loosely it matches anything.
@@ -44,8 +38,6 @@ public class PoracleV2SchemaServiceTests
 
         Assert.True(capabilities.Read);
         Assert.False(capabilities.TrustedSetAreas);
-        Assert.False(capabilities.ProfileRename);
-        Assert.False(capabilities.ProfileCreateReturnsNumber);
         Assert.False(capabilities.InvasionGruntType);
         Assert.False(capabilities.TrackingPing);
     }
@@ -57,63 +49,8 @@ public class PoracleV2SchemaServiceTests
 
         Assert.True(capabilities.Read);
         Assert.True(capabilities.TrustedSetAreas);
-        Assert.True(capabilities.ProfileRename);
-        Assert.True(capabilities.ProfileCreateReturnsNumber);
         Assert.True(capabilities.InvasionGruntType);
         Assert.True(capabilities.TrackingPing);
-        Assert.True(capabilities.ProfileList);
-        Assert.True(capabilities.ProfileDelete);
-        Assert.True(capabilities.ProfileCopy);
-        Assert.True(capabilities.ProfileScopedGeography);
-    }
-
-    [Fact]
-    public void TheDevelopBranchCanWriteANewProfilesGeographyAndAReleasedOneCannot()
-    {
-        Assert.True(PoracleV2SchemaService.Parse(Fixture("next")).ProfileScopedGeography);
-
-        // 5.2.1 declares ?profile= on the location write but not on the areas write.
-        Assert.False(PoracleV2SchemaService.Parse(Fixture("5.2.1")).ProfileScopedGeography);
-    }
-
-    [Fact]
-    public void ProfileScopedGeographyNeedsTheParameterOnBothWrites()
-    {
-        const string locationOnly = """
-            {"paths":{
-              "/v2/humans/{id}/location":{"post":{"parameters":[{"name":"profile","in":"query"}]}},
-              "/v2/humans/{id}/areas":{"post":{"parameters":[{"name":"id","in":"path"}],
-                "responses":{"200":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/V2SetAreasOutputBody"}}}}}}}},
-             "components":{"schemas":{"V2SetAreasOutputBody":{"properties":{"areas":{},"rejected":{}}}}}}
-            """;
-        const string both = """
-            {"paths":{
-              "/v2/humans/{id}/location":{"post":{"parameters":[{"name":"profile","in":"query"}]}},
-              "/v2/humans/{id}/areas":{"post":{"parameters":[{"name":"profile","in":"query"}],
-                "responses":{"200":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/V2SetAreasOutputBody"}}}}}}}},
-             "components":{"schemas":{"V2SetAreasOutputBody":{"properties":{"areas":{},"rejected":{}}}}}}
-            """;
-        const string pathParameterOfThatName = """
-            {"paths":{
-              "/v2/humans/{id}/location":{"post":{"parameters":[{"name":"profile","in":"path"}]}},
-              "/v2/humans/{id}/areas":{"post":{"parameters":[{"name":"profile","in":"query"}],
-                "responses":{"200":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/V2SetAreasOutputBody"}}}}}}}},
-             "components":{"schemas":{"V2SetAreasOutputBody":{"properties":{"areas":{},"rejected":{}}}}}}
-            """;
-
-        Assert.False(PoracleV2SchemaService.Parse(locationOnly).ProfileScopedGeography);
-        Assert.False(PoracleV2SchemaService.Parse(pathParameterOfThatName).ProfileScopedGeography);
-        Assert.True(PoracleV2SchemaService.Parse(both).ProfileScopedGeography);
-    }
-
-    [Fact]
-    public void CopyNeedsTheSourceInTheBodyNotJustTheRoute()
-    {
-        const string routeOnly = """
-            {"paths":{"/v2/humans/{id}/profiles/{profile_no}/copy":{"post":{}}},"components":{"schemas":{}}}
-            """;
-
-        Assert.False(PoracleV2SchemaService.Parse(routeOnly).ProfileCopy);
     }
 
     [Theory]
@@ -131,14 +68,8 @@ public class PoracleV2SchemaServiceTests
         var capabilities = PoracleV2SchemaService.Parse(document);
 
         Assert.False(capabilities.TrustedSetAreas);
-        Assert.False(capabilities.ProfileRename);
-        Assert.False(capabilities.ProfileCreateReturnsNumber);
         Assert.False(capabilities.InvasionGruntType);
         Assert.False(capabilities.TrackingPing);
-        Assert.False(capabilities.ProfileList);
-        Assert.False(capabilities.ProfileDelete);
-        Assert.False(capabilities.ProfileCopy);
-        Assert.False(capabilities.ProfileScopedGeography);
     }
 
     [Fact]
@@ -149,27 +80,6 @@ public class PoracleV2SchemaServiceTests
         Assert.True(PoracleV2SchemaService.Parse("""{"components":{"schemas":{}},"paths":{}}""").Read);
         Assert.False(PoracleV2SchemaService.Parse("not json at all").Read);
         Assert.False(PoracleV2SchemaService.Parse(null).Read);
-    }
-
-    [Fact]
-    public void ProfileCreateIsReadByWhatTheBodyCarriesNotByWhatItIsCalled()
-    {
-        // Testing for "the response is not StatusOKOutputBody" would make an upstream rename read as the
-        // capability arriving, and a false positive here means reading a number out of a body that does
-        // not carry one. So the question is whether the referenced schema declares profile_no.
-        const string renamedButStillEmpty = """
-            {"paths":{"/v2/humans/{id}/profiles":{"post":{"responses":{"200":{"content":
-              {"application/json":{"schema":{"$ref":"#/components/schemas/SomethingElse"}}}}}}}},
-             "components":{"schemas":{"SomethingElse":{"properties":{"status":{"type":"string"}}}}}}
-            """;
-        const string carriesTheNumber = """
-            {"paths":{"/v2/humans/{id}/profiles":{"post":{"responses":{"200":{"content":
-              {"application/json":{"schema":{"$ref":"#/components/schemas/Whatever"}}}}}}}},
-             "components":{"schemas":{"Whatever":{"properties":{"profile_no":{"type":"integer"}}}}}}
-            """;
-
-        Assert.False(PoracleV2SchemaService.Parse(renamedButStillEmpty).ProfileCreateReturnsNumber);
-        Assert.True(PoracleV2SchemaService.Parse(carriesTheNumber).ProfileCreateReturnsNumber);
     }
 
     [Fact]

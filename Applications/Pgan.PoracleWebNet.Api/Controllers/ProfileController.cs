@@ -16,7 +16,6 @@ public class ProfileController(
     IProfileService profileService,
     IHumanService humanService,
     IPoracleHumanProxy humanProxy,
-    IProfileRepository profileRepository,
     IJwtService jwtService,
     IUserRoleResolver roleResolver,
     IUserGeofenceRepository userGeofenceRepository,
@@ -25,7 +24,6 @@ public class ProfileController(
     private readonly IProfileService _profileService = profileService;
     private readonly IHumanService _humanService = humanService;
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
-    private readonly IProfileRepository _profileRepository = profileRepository;
     private readonly IJwtService _jwtService = jwtService;
     private readonly IUserRoleResolver _roleResolver = roleResolver;
     private readonly IUserGeofenceRepository _userGeofenceRepository = userGeofenceRepository;
@@ -144,13 +142,7 @@ public class ProfileController(
             return this.BadRequest(new { error = ex.Message });
         }
 
-        // PoracleNG assigns the lowest free number, not max+1, so the number cannot be predicted for a
-        // user who has ever deleted a non-last profile. Ask what it chose. See #407.
-        var before = (await this._profileService.GetByUserAsync(this.UserId)).ToList();
-
-        // Trimmed here rather than only by the direct geography write below, which used to be the step that
-        // trimmed it: where that write goes through v2 instead it carries no name, so the add stores the
-        // name that stays. See #993.
+        // Trimmed here: the add stores the name that stays, and the geography write below carries none.
         var name = profile.Name.Trim();
 
         var body = JsonSerializer.SerializeToElement(new
@@ -161,28 +153,20 @@ public class ProfileController(
             longitude = profile.Longitude,
             active_hours = profile.ActiveHours
         });
-        var assignedNo = await this._humanProxy.AddProfileAsync(this.UserId, body);
 
-        var after = (await this._profileService.GetByUserAsync(this.UserId)).ToList();
-        var createdNo = assignedNo ?? ProfileNumbering.ResolveCreated(before, after, name);
-        if (createdNo is null)
-        {
-            return this.StatusCode(StatusCodes.Status502BadGateway, new
-            {
-                error = "The profile was not created."
-            });
-        }
+        // PoracleNG assigns the lowest free number, not max+1, and reports it; AddProfileAsync throws when
+        // it does not. See #407.
+        var createdNo = await this._humanProxy.AddProfileAsync(this.UserId, body);
 
         // addProfile ignores area, latitude and longitude, so a new profile came up carrying whatever the
         // ACTIVE profile had -- every area subscription the user held, and a location that also drives the
         // active-hours timezone. Duplicate and import already write the geography after creating; create
         // needs the same. Empty unless the request asked for something. See #563. Through PoracleNG's v2
-        // ?profile= writes where it has them, directly otherwise; never fails the create (#993).
+        // ?profile= writes (#993).
         await NewProfileGeography.WriteAsync(
-            this._humanProxy, this._profileRepository, this._logger,
-            this.UserId, createdNo.Value, name, requestedAreas, profile.Latitude, profile.Longitude);
+            this._humanProxy, this.UserId, createdNo, requestedAreas, profile.Latitude, profile.Longitude);
 
-        var result = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, createdNo.Value);
+        var result = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, createdNo);
         return this.CreatedAtAction(nameof(GetAll), result);
     }
 
@@ -195,7 +179,7 @@ public class ProfileController(
             return this.NotFound();
         }
 
-        // Blank means "not renaming", as it always has on the direct-write path below. Only a name that
+        // Blank means "not renaming". Only a name that
         // actually changes is judged: one stored before a rule existed must not fail every later edit of
         // the profile, and the active-hours editor resubmits the name it was given.
         var newName = string.IsNullOrWhiteSpace(profile.Name) ? null : profile.Name.Trim();
@@ -217,34 +201,15 @@ public class ProfileController(
             return this.BadRequest(validationError);
         }
 
-        // Trimmed, and the stored name when none was given. On a server whose PATCH takes the name the
-        // direct write below is skipped, so this is what gets stored: untrimmed it kept the padding, and a
-        // blank one blanked the name.
+        // Trimmed, and the stored name when none was given: the PATCH stores exactly what it is sent, so
+        // untrimmed it kept the padding and a blank one blanked the name.
         var body = JsonSerializer.SerializeToElement(new
         {
             profile_no = profileNo,
             name = newName ?? existing.Name,
             active_hours = profile.ActiveHours ?? existing.ActiveHours
         });
-        var nameApplied = await this._humanProxy.UpdateProfileAsync(this.UserId, body);
-
-        // A released PoracleNG's update handler answers ok and silently drops the name, while honouring
-        // active_hours on the very same request -- so rename has to be written directly. The response used
-        // to be re-read and returned as a 200 carrying the OLD name, and the SPA built a success toast from
-        // it. See #406.
-        //
-        // PoracleNG PR #217 gives V2UpdateProfileBody a name, and the proxy says so by answering true: on
-        // such a server the rename has already happened and this direct write is skipped. See #837.
-        if (!nameApplied
-            && !string.IsNullOrEmpty(newName)
-            && !string.Equals(newName, existing.Name, StringComparison.Ordinal))
-        {
-            var renamed = await this._profileRepository.RenameAsync(this.UserId, profileNo, newName);
-            if (!renamed)
-            {
-                return this.NotFound();
-            }
-        }
+        await this._humanProxy.UpdateProfileAsync(this.UserId, body);
 
         var result = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, profileNo);
         return this.Ok(result);
@@ -302,11 +267,6 @@ public class ProfileController(
             return this.NotFound();
         }
 
-        // See #407: PoracleNG picks the number, so create first and then ask which one it used. Copying
-        // to a predicted max+1 wrote the alarms to a profile_no with no profile row, and those orphans
-        // later attached themselves to whatever profile was eventually created at that number.
-        var before = (await this._profileService.GetByUserAsync(this.UserId)).ToList();
-
         var body = JsonSerializer.SerializeToElement(new
         {
             name = request.Name.Trim(),
@@ -315,28 +275,16 @@ public class ProfileController(
             longitude = sourceProfile.Longitude,
             active_hours = sourceProfile.ActiveHours
         });
-        var assignedNo = await this._humanProxy.AddProfileAsync(this.UserId, body);
-
-        var after = (await this._profileService.GetByUserAsync(this.UserId)).ToList();
-        var resolved = assignedNo ?? ProfileNumbering.ResolveCreated(before, after, request.Name.Trim());
-        if (resolved is null)
-        {
-            return this.StatusCode(StatusCodes.Status502BadGateway, new
-            {
-                error = "The profile was not created."
-            });
-        }
-
-        var newProfileNo = resolved.Value;
+        // See #407: PoracleNG picks the number and reports it. Copying to a predicted max+1 wrote the
+        // alarms to a profile_no with no profile row.
+        var newProfileNo = await this._humanProxy.AddProfileAsync(this.UserId, body);
 
         // PoracleNG's addProfile ignores area, latitude and longitude while honouring active_hours
         // from the same payload, so a duplicate silently inherited the ACTIVE profile's geography
         // instead of the source's: the right alarms over the wrong map, and a location that also
-        // feeds the active-hours timezone. See #466. Through PoracleNG's v2 ?profile= writes where it has
-        // them, directly otherwise, the same way rename has to (#406); never fails the duplicate (#993).
+        // feeds the active-hours timezone. See #466. Through PoracleNG's v2 ?profile= writes (#993).
         await NewProfileGeography.WriteAsync(
-            this._humanProxy, this._profileRepository, this._logger,
-            this.UserId, newProfileNo, request.Name.Trim(), sourceProfile.Area ?? "[]",
+            this._humanProxy, this.UserId, newProfileNo, sourceProfile.Area ?? "[]",
             sourceProfile.Latitude, sourceProfile.Longitude);
 
         // Copy all alarms from source to new profile; clean up on failure

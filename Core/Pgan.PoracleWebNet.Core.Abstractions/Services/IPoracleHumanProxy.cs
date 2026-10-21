@@ -136,33 +136,30 @@ public interface IPoracleHumanProxy
     public Task SwitchProfileAsync(string userId, int profileNo);
 
     /// <summary>
-    /// Fetches all profiles for a user, always in v1's shape: <c>{"profile":[...]}</c> with <c>area</c> and
+    /// Fetches all profiles for a user in v1's shape: <c>{"profile":[...]}</c> with <c>area</c> and
     /// <c>active_hours</c> as JSON-encoded strings.
-    /// Maps to GET /api/v2/humans/{userId}/profiles where declared, or GET /api/profiles/{userId}.
+    /// Maps to GET /api/v2/humans/{userId}/profiles.
     /// </summary>
     public Task<JsonElement> GetProfilesAsync(string userId);
 
     /// <summary>
-    /// Creates a new profile, and reports the number it was given when the server says so.
-    /// Maps to POST /api/v2/humans/{userId}/profiles, or POST /api/profiles/{userId}/add.
+    /// Creates a new profile and returns the number PoracleNG gave it.
+    /// Maps to POST /api/v2/humans/{userId}/profiles.
     /// </summary>
     /// <returns>
-    /// The assigned profile number, or <c>null</c> when this server does not report it — which is every
-    /// released PoracleNG, so callers still need <c>ProfileNumbering.ResolveCreated</c> as a fallback.
-    /// PoracleNG picks the lowest free number, so <c>null</c> cannot be replaced by arithmetic.
+    /// The assigned profile number. PoracleNG picks the lowest free one, so it cannot be predicted.
     /// </returns>
-    public Task<int?> AddProfileAsync(string userId, JsonElement body);
+    /// <exception cref="PoracleRequestRefusedException">
+    /// PoracleNG refused the profile, the schedule cannot be said in v2's terms, or the answer carried no
+    /// profile number.
+    /// </exception>
+    public Task<int> AddProfileAsync(string userId, JsonElement body);
 
     /// <summary>
-    /// Updates a profile's name and active hours.
-    /// Maps to PATCH /api/v2/humans/{userId}/profiles/{profileNo}, or POST /api/profiles/{userId}/update.
+    /// Updates a profile's name and active hours; <c>profile_no</c> in <paramref name="body"/> says which.
+    /// Maps to PATCH /api/v2/humans/{userId}/profiles/{profileNo}.
     /// </summary>
-    /// <returns>
-    /// <c>true</c> when the server applied the name as well. Released PoracleNG accepts the request and
-    /// silently keeps the old name, so a <c>false</c> here means the caller must still write
-    /// <c>profiles.name</c> itself.
-    /// </returns>
-    public Task<bool> UpdateProfileAsync(string userId, JsonElement body);
+    public Task UpdateProfileAsync(string userId, JsonElement body);
 
     /// <summary>
     /// Sets one profile's areas and location without touching the active profile, through
@@ -174,28 +171,22 @@ public interface IPoracleHumanProxy
     /// <c>userSelectable</c>; that is only done where <c>trusted</c> is safe to rely on, the same gate as
     /// <see cref="AddAreaToActiveProfileTrustedAsync"/>. An empty list needs no trust and is always sent plain.
     /// </remarks>
-    /// <returns>
-    /// <c>true</c> once both are written. <c>false</c> when the caller must write them itself: the server does
-    /// not declare the two routes with <c>?profile=</c>, <c>trusted</c> is needed and not safe, a route is
-    /// missing, or PoracleNG refused a requested area name (one it has not loaded) -- the same "fall back"
-    /// rule the trusted active-profile writes follow.
-    /// </returns>
-    /// <exception cref="PoracleRequestRefusedException">PoracleNG refused either write outright.</exception>
-    public Task<bool> SetProfileGeographyAsync(
+    /// <exception cref="PoracleRequestRefusedException">
+    /// PoracleNG refused either write, or an area could not be sent safely or was not accepted.
+    /// </exception>
+    public Task SetProfileGeographyAsync(
         string userId, int profileNo, IReadOnlyCollection<string> areas, double latitude, double longitude);
 
     /// <summary>
     /// Deletes a profile and its tracking rules; when it was the active one, PoracleNG moves
     /// <c>current_profile_no</c> to another.
-    /// Maps to DELETE /api/v2/humans/{userId}/profiles/{profileNo} where declared, or
-    /// DELETE /api/profiles/{userId}/byProfileNo/{profileNo}.
+    /// Maps to DELETE /api/v2/humans/{userId}/profiles/{profileNo}.
     /// </summary>
     public Task DeleteProfileAsync(string userId, int profileNo);
 
     /// <summary>
     /// Copies all tracking rules from one profile to another, replacing the destination's.
-    /// Maps to POST /api/v2/humans/{userId}/profiles/{toProfileNo}/copy (<c>from_profile</c> in the body)
-    /// where declared, or POST /api/profiles/{userId}/copy/{fromProfileNo}/{toProfileNo}.
+    /// Maps to POST /api/v2/humans/{userId}/profiles/{toProfileNo}/copy (<c>from_profile</c> in the body).
     /// </summary>
     public Task CopyProfileAsync(string userId, int fromProfileNo, int toProfileNo);
 
