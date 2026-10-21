@@ -760,7 +760,7 @@ totalDiffs == 1 && nonUpdatableDiffs == 0  -> UPDATE of that existing row, re-ke
 otherwise                                  -> new insert
 ```
 
-`diff:"update"` fields are `clean`, `distance`, `template`, plus `slot_changes` and `battle_changes` on gyms. `diff:"match"` and untagged fields identify the alarm. That list is not the whole story for Pokemon: two rules differing only in `min_iv` merge on 5.2.1 (`{"updates":1}`, one row left), verified by posting both straight to PoracleNG. Read the struct tags for the type in hand rather than trusting this list.
+`diff:"update"` fields are `clean`, `distance`, `template`, plus `slot_changes` and `battle_changes` on gyms. `diff:"match"` and untagged fields identify the alarm. That list is not the whole story for Pokemon: two rules differing only in `min_iv` merge on 5.2.1 (`{"updates":1}`, one row left), verified by posting both straight to PoracleNG. Read the struct tags for the type in hand rather than trusting this list. Then check which handler actually runs the diff: PoracleNG 5.4.0 tags max battle `clean`, `distance` and `template` as updatable, but v1 `POST /api/tracking/maxbattle` never diffs (frozen, "always inserts"), so only v2 POST/PUT and the bot merge max battles. Every max-battle write here is v1 or a v2 PUT that 409s on its own, so max battles need no merge guard. #1004 added one from the tags alone, refused Adds 5.4.0 stores as separate alarms, and was reverted (#1003).
 
 The consequence that keeps biting: **an Add or an Edit that differs from a *different* alarm by exactly one updatable field takes that alarm over.** The user gets 201/200, and one alarm exists where there were two. `TrackingUpdateReconciler.EnsureNoMergeIntoAnotherAlarmAsync` mirrors the rule and refuses before the write — on create and update alike. Two or more updatable differences genuinely coexist and must stay editable; refusing those made alarms permanently uneditable (#553).
 
@@ -779,21 +779,6 @@ through the `*Create` DTO, against rows in the shape PoracleNG returns — `Over
 Fort changes used to carry a second, hand-written dedup check on `(fort_type, include_empty,
 change_types)`. It refused three Adds PoracleNG stores as separate rules (beside an area-scoped twin, two
 updatable differences, change types in another order) and is gone; the shared guard is the only one.
-
-**Max battles merge from PoracleNG 5.4.0, and only there (#1003).** Up to 5.3.0 they tag nothing
-`diff:"update"`, so every write inserts and `MaxBattleService` refuses only an exact duplicate
-(`IsSameAlarm`, #521). jfberry/PoracleNG#328 (5.4.0) tags `clean`, `distance` and `template` as raids do,
-on every surface including v1, because the diff is in the database layer. From then on an Add one of
-those apart takes the existing alarm over, the #561 shape. The guard is gated on
-`PoracleV2Capabilities.MaxBattleSquashes`, read from `?dry_run` on `POST /v2/humans/{id}/tracking/maxbattle`
-(same PR); refusing one-field-apart Adds on an older server would block alarms it stores separately, and
-the version cannot say which (develop builds reported 5.3.0 long before). With the gate on: the shared
-guard on create; on the edit and both distance endpoints, which delete before re-creating,
-`EnsureNoMergeIntoRemainingAsync`, which leaves the rows being deleted **out** of the comparison. The upsert
-guards accept a candidate that classifies against its own row first, but once that row is deleted
-PoracleNG resolves the create against the next match, an alarm the user never touched. A duplicate counts
-there too, since PoracleNG then writes nothing and the deleted alarm is just gone. `BulkCreateAsync` is
-unguarded, as it is for every other type.
 
 **Lure, invasion and Pokestop events take the shared guard and nothing stricter.** Up to schema 5
 (5.1.0) `lures` carried `UNIQUE lure_tracking(id, profile_no, lure_id)` and `invasion` carried
@@ -896,9 +881,7 @@ where the wins are:
 | the other eight | `TrackingUpdateReconciler.ReconcileAsync` cleans up the duplicate a v1 create leaves behind |
 
 The pre-write guards stay. `EnsureNoMergeIntoAnotherAlarmAsync` and max battle's identical-alarm check
-(plus, from 5.4.0, its `EnsureNoMergeIntoRemainingAsync`) all run before the v2 attempt: v2's POST still
-merges, and before 5.4.0 the PUT's 409 covers only an exact duplicate. From 5.4.0 the PUT also refuses a
-near-duplicate, one updatable field from another rule.
+both run before the v2 attempt: v2's POST still merges, and the 409 covers only an exact duplicate.
 
 **One field table per type in `TrackingV2Translator`, never a shared one.** `V2PokemonRule` declares 28
 integer filters and `V2FortRule` declares one; every rule sets `additionalProperties: false`, so a leaked

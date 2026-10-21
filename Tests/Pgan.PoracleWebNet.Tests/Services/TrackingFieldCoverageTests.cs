@@ -178,7 +178,7 @@ public class TrackingFieldCoverageTests
                 this._proxy.Object, this._featureGate.Object, NullLogger<FortChangeService>.Instance, this._remapper.Object)
             .CreateAsync("u1", new FortChangeCreate { FortType = "everything" }.ToFortChange()),
         "maxbattle" => new MaxBattleService(
-                this._proxy.Object, this._featureGate.Object, NullLogger<MaxBattleService>.Instance, this._remapper.Object, PoracleTrackingProxyTests.V2Schema())
+                this._proxy.Object, this._featureGate.Object, NullLogger<MaxBattleService>.Instance, this._remapper.Object)
             .CreateAsync("u1", new MaxBattleCreate { Level = 5 }.ToMaxBattle()),
         _ => throw new ArgumentOutOfRangeException(nameof(type), type, "No fixture for this tracking type."),
     };

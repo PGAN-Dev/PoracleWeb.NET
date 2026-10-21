@@ -57,10 +57,8 @@ their own rows; **the v1 invasion read does not**, so `InvasionService` repeats 
 skips it when the Pokéstop Events page is unavailable, so those rows stay visible somewhere. See
 [Database](database.md#poraclecontext).
 
-!!! warning "MaxBattle: insert-only up to 5.3.0, merges from 5.4.0"
-    Up to PoracleNG 5.3.0 the maxbattle handler has no diff/dedup logic: every POST creates new rows, so `MaxBattleService` deletes and recreates, logging enough to recover if the second half fails. A single-rule edit escapes that on a server carrying the v2 PUT, which replaces the row in place; bulk distance changes still delete and recreate, because they stay on v1.
-
-    From 5.4.0 (jfberry/PoracleNG#328) max battles merge like raids: `clean`, `distance` and `template` are updatable, so a write one of those apart from an existing max battle updates it instead. Where the server's `/openapi.json` shows this (`?dry_run` on the maxbattle create), `MaxBattleService` refuses an Add, an edit or a distance change that would take over another alarm or collapse two into one. See [#1003](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/1003).
+!!! warning "MaxBattle: insert-only on v1"
+    PoracleNG's v1 maxbattle handler has no diff/dedup logic — every POST creates new rows, so `MaxBattleService` deletes and recreates, logging enough to recover if the second half fails. A single-rule edit escapes that on a server carrying the v2 PUT, which replaces the row in place; bulk distance changes still delete and recreate, because they stay on v1.
 
 Also proxied:
 
