@@ -277,6 +277,40 @@ describe('MuteService', () => {
     expect(snackBar.open).toHaveBeenCalledWith('QUIET.TOAST_LOAD_FAILED', 'OK', expect.anything());
   });
 
+  it('toasts once across consecutive failed loads', () => {
+    for (let i = 0; i < 2; i++) {
+      service.load().subscribe();
+      httpMock.expectOne(`${API}/api/mutes`).flush('down', { status: 503, statusText: 'Service Unavailable' });
+    }
+
+    expect(snackBar.open).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not toast a 429, which is not an unreachable server', () => {
+    service.load().subscribe();
+    httpMock.expectOne(`${API}/api/mutes`).flush('slow down', { status: 429, statusText: 'Too Many Requests' });
+
+    expect(snackBar.open).not.toHaveBeenCalled();
+  });
+
+  it('toasts a read that got no response at all (status 0)', () => {
+    service.load().subscribe();
+    httpMock.expectOne(`${API}/api/mutes`).error(new ProgressEvent('error'));
+
+    expect(snackBar.open).toHaveBeenCalledTimes(1);
+  });
+
+  it('re-arms the toast after a successful load', () => {
+    service.load().subscribe();
+    httpMock.expectOne(`${API}/api/mutes`).flush('down', { status: 503, statusText: 'Service Unavailable' });
+    service.load().subscribe();
+    httpMock.expectOne(`${API}/api/mutes`).flush({ mutes: [] });
+    service.load().subscribe();
+    httpMock.expectOne(`${API}/api/mutes`).flush('down', { status: 503, statusText: 'Service Unavailable' });
+
+    expect(snackBar.open).toHaveBeenCalledTimes(2);
+  });
+
   it('does not toast on a successful read', () => {
     seed([aMute()]);
 

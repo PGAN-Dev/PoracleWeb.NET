@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Pgan.PoracleWebNet.Api.Filters;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
@@ -18,11 +19,13 @@ namespace Pgan.PoracleWebNet.Api.Controllers;
 /// </para>
 /// <para>
 /// Every supported PoracleNG (5.4.0 and later) has the mute routes, so there is no capability probe: GET
-/// returns the list, and answers 503 when PoracleNG cannot be reached.
+/// returns the list. All three actions answer 503 when PoracleNG cannot be reached
+/// (<see cref="PoracleUnreachableExceptionFilter"/>).
 /// </para>
 /// </remarks>
 [Route("api/mutes")]
 [EnableRateLimiting("mutes")]
+[TypeFilter(typeof(PoracleUnreachableExceptionFilter))]
 public class MuteController(IPoracleMuteProxy muteProxy) : BaseApiController
 {
     private readonly IPoracleMuteProxy _muteProxy = muteProxy;
@@ -35,22 +38,12 @@ public class MuteController(IPoracleMuteProxy muteProxy) : BaseApiController
     [HttpGet]
     public async Task<IActionResult> GetMutes(CancellationToken cancellationToken)
     {
-        try
-        {
-            var mutes = await this._muteProxy.ListAsync(this.UserId, cancellationToken);
+        var mutes = await this._muteProxy.ListAsync(this.UserId, cancellationToken);
 
-            return this.Ok(new
-            {
-                mutes
-            });
-        }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException && !cancellationToken.IsCancellationRequested)
+        return this.Ok(new
         {
-            return this.StatusCode(StatusCodes.Status503ServiceUnavailable, new
-            {
-                error = "Quiet periods are unavailable because PoracleNG could not be reached."
-            });
-        }
+            mutes
+        });
     }
 
     /// <summary>Quiets a subject for a while, or extends an existing quiet period on the same subject.</summary>

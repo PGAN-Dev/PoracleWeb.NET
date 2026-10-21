@@ -33,6 +33,9 @@ interface MutesResponse {
 /** The durations the quiet sheet offers, in minutes. 60 is PoracleNG's own default. */
 export const QUIET_DURATIONS = [15, 30, 60, 240, 480, 1440];
 
+/** Statuses that mean PoracleNG could not be reached: 0 is no response, the rest are gateway failures. */
+const UNREACHABLE_STATUSES = new Set([0, 502, 503, 504]);
+
 /** How long a fetched list is treated as current, in ms. */
 const STALE_AFTER_MS = 20_000;
 
@@ -49,8 +52,10 @@ export class MuteService {
   private readonly config = inject(ConfigService);
   private readonly http = inject(HttpClient);
   private lastLoadedAt = 0;
-
   private readonly loadedSignal = signal(false);
+
+  /** Set by the first unreachable read of a streak, cleared by the next successful one. */
+  private loadFailureToasted = false;
   private readonly mutesSignal = signal<Mute[]>([]);
   /** Advances once a second while anything is quiet; the countdowns read it. */
   private readonly nowSignal = signal(Date.now());
@@ -144,14 +149,20 @@ export class MuteService {
       tap(response => {
         this.apply(response);
         this.lastLoadedAt = Date.now();
+        this.loadFailureToasted = false;
       }),
       map(() => undefined),
-      catchError(() => {
+      catchError((err: { status?: number }) => {
         // A failed read must not blank a list the user is looking at. Leave what we have; the next load
         // will correct it. /api/mutes is on the error interceptor's silent list, so say so here: a chip
         // that quietly shows nothing quiet while PoracleNG is down is worse than an error.
         this.loadedSignal.set(true);
-        this.toast(this.translate.instant('QUIET.TOAST_LOAD_FAILED'));
+        // Only an unreachable PoracleNG warrants it (0 is no response at all), and once per failing
+        // streak: a 429 or 401 is not "unreachable", and refocusing the tab must not repeat the toast.
+        if (UNREACHABLE_STATUSES.has(err?.status ?? -1) && !this.loadFailureToasted) {
+          this.loadFailureToasted = true;
+          this.toast(this.translate.instant('QUIET.TOAST_LOAD_FAILED'));
+        }
         return of(undefined);
       }),
     );

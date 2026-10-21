@@ -48,29 +48,40 @@ public class MuteControllerTests : ControllerTestBase
         Assert.Single(Read<IReadOnlyList<Mute>>(ok.Value, "mutes")!);
     }
 
+    /// <summary>
+    /// The 503 mapping lives in PoracleUnreachableExceptionFilter (tested in its own class, and its
+    /// presence on this controller is pinned there), shared by GET, POST and DELETE. The actions must let
+    /// the exception reach it rather than answer 500 themselves.
+    /// </summary>
     [Fact]
-    public async Task GetAnswers503WithAReadableMessageWhenPoracleNgIsUnreachable()
+    public async Task GetLetsAnUnreachableProxyExceptionReachTheFilter()
     {
         this._proxy
             .Setup(p => p.ListAsync(UserId, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new HttpRequestException("connection refused"));
 
-        var result = Assert.IsType<ObjectResult>(await this._sut.GetMutes(default));
-
-        Assert.Equal(StatusCodes.Status503ServiceUnavailable, result.StatusCode);
-        Assert.False(string.IsNullOrWhiteSpace(Read<string>(result.Value, "error")));
+        await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.GetMutes(default));
     }
 
     [Fact]
-    public async Task GetAnswers503WhenPoracleNgTimesOut()
+    public async Task CreateLetsAnUnreachableProxyExceptionReachTheFilter()
     {
         this._proxy
-            .Setup(p => p.ListAsync(UserId, It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new TaskCanceledException("timed out"));
+            .Setup(p => p.CreateAsync(UserId, MuteScopes.Gym, "abc123", 60, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("connection refused"));
 
-        var result = Assert.IsType<ObjectResult>(await this._sut.GetMutes(default));
+        await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.CreateMute(
+            new MuteCreateRequest { Scope = MuteScopes.Gym, Value = "abc123" }, default));
+    }
 
-        Assert.Equal(StatusCodes.Status503ServiceUnavailable, result.StatusCode);
+    [Fact]
+    public async Task DeleteLetsAnUnreachableProxyExceptionReachTheFilter()
+    {
+        this._proxy
+            .Setup(p => p.DeleteAsync(UserId, MuteScopes.Gym, "abc123", null, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("connection refused"));
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.DeleteMute(MuteScopes.Gym, "abc123", null, default));
     }
 
     /// <summary>
