@@ -156,6 +156,35 @@ public partial class PoracleTrackingProxy(
             return null;
         }
 
+        var result = await this.TryReplaceV2CoreAsync(type, userId, uid, body);
+        if (result is null)
+        {
+            // Every null means "use the v1 write", and v1 blanks a set ping unconditionally (verified live
+            // on 5.4.0, create and uid-upsert alike): a pinned TrackingApiVersion, a missing route, an
+            // invasion v2 will not take, a row the translator declines. Refuse rather than lose a mention.
+            RefuseIfV1WouldDropPing(body);
+        }
+
+        return result;
+    }
+
+    private static void RefuseIfV1WouldDropPing(JsonElement body)
+    {
+        if (body.ValueKind == JsonValueKind.Object
+            && body.TryGetProperty("ping", out var ping)
+            && ping.ValueKind == JsonValueKind.String
+            && !string.IsNullOrEmpty(ping.GetString()))
+        {
+            throw new AlarmValidationException(
+                "This alarm has a role or user mention set, and the connected PoracleNG can't preserve it "
+                + "through this edit. Nothing was changed. Removing the mention first will let this edit through.");
+        }
+    }
+
+    private async Task<TrackingUpdateResult?> TryReplaceV2CoreAsync(
+        string type, string userId, int uid, JsonElement body)
+    {
+
         if (!this.ShouldTryV2(type) || !await this.ServerCarriesV2Async(type))
         {
             return null;

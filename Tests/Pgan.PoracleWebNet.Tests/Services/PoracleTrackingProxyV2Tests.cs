@@ -351,18 +351,69 @@ public class PoracleTrackingProxyV2Tests
         Assert.Equal("<@&400027130022592512>", body.RootElement.GetProperty("ping").GetString());
     }
 
+    private const string MentionPing = "<@&400027130022592512>";
+
     [Fact]
-    public async Task ARowWithAPingAndAnUnrelatedUntranslatableFieldStillEditsOnV1NotRefused()
+    public async Task APingWithAnUntranslatableFieldIsRefusedAndNothingIsSent()
+    {
+        var handler = ScriptedHandler.Ok("""{"newUids":[7],"alreadyPresent":0,"updates":1,"insert":0}""");
+        var sut = CreateSut(handler, version: "5.4.0");
+
+        var ex = await Assert.ThrowsAsync<AlarmValidationException>(() => sut.UpdateByUidAsync(
+            "pokemon", "user1", 7,
+            Row($$"""{"uid":7,"pokemon_id":25,"some_field_from_a_newer_poracle":4,"ping":"{{MentionPing}}"}""")));
+
+        Assert.Contains("mention", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task AnEmptyPingWithAnUntranslatableFieldStillEditsOnV1()
     {
         var handler = ScriptedHandler.Ok("""{"newUids":[7],"alreadyPresent":0,"updates":1,"insert":0}""");
         var sut = CreateSut(handler, version: "5.4.0");
 
         var result = await sut.UpdateByUidAsync(
-            "pokemon", "user1", 7,
-            Row("""{"uid":7,"pokemon_id":25,"some_field_from_a_newer_poracle":4,"ping":"<@&400027130022592512>"}"""));
+            "pokemon", "user1", 7, Row("""{"uid":7,"pokemon_id":25,"some_field_from_a_newer_poracle":4,"ping":""}"""));
 
         Assert.False(result.UsedV2);
         Assert.Equal($"{ApiAddress}/api/tracking/pokemon/user1?silent=true", Assert.Single(handler.Requests).Url);
+    }
+
+    [Fact]
+    public async Task APingIsRefusedWhenTheTrackingApiVersionIsPinnedToV1()
+    {
+        var handler = ScriptedHandler.Ok("""{"newUids":[7],"alreadyPresent":0,"updates":1,"insert":0}""");
+        var sut = CreateSut(handler, version: "5.4.0", trackingApiVersion: "v1");
+
+        await Assert.ThrowsAsync<AlarmValidationException>(() => sut.UpdateByUidAsync(
+            "pokemon", "user1", 7, Row($$"""{"uid":7,"pokemon_id":25,"ping":"{{MentionPing}}"}""")));
+
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task APingIsRefusedWhenTheGruntTypeIsNotInTheServersMasterdata()
+    {
+        var handler = ScriptedHandler.Ok("""{"newUids":[412],"alreadyPresent":0,"updates":1,"insert":0}""");
+        var sut = CreateSut(handler, version: "5.4.0", capabilities: WithGruntType(), gruntNames: ["fire"]);
+        var row = InvasionRow.Replace("\"ping\":\"\"", $"\"ping\":\"{MentionPing}\"", StringComparison.Ordinal);
+
+        await Assert.ThrowsAsync<AlarmValidationException>(() => sut.UpdateByUidAsync("invasion", "user1", 412, Row(row)));
+
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task APingIsRefusedWhenTheV2RouteAnswersPlaintext404()
+    {
+        var handler = new ScriptedHandler(new Reply(HttpStatusCode.NotFound, "404 page not found", "text/plain"));
+        var sut = CreateSut(handler, version: "5.4.0");
+
+        await Assert.ThrowsAsync<AlarmValidationException>(() => sut.UpdateByUidAsync(
+            "pokemon", "user1", 7, Row($$"""{"uid":7,"pokemon_id":25,"ping":"{{MentionPing}}"}""")));
+
+        Assert.All(handler.Requests, r => Assert.Contains("/api/v2/", r.Url, StringComparison.Ordinal));
     }
 
     [Fact]
