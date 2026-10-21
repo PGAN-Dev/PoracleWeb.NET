@@ -26,9 +26,8 @@ import { LocationDialogComponent } from '../location-dialog/location-dialog.comp
  * putting them on one screen makes both feel like a form.
  *
  * Moving one reuses the same picker and skips the naming step, because the label is what every alarm
- * points at and changing it is a different act. The control only appears where the Poracle server can
- * do it (PoracleNG 5.2.0) — with no @else, and no tooltip explaining a version number to someone who
- * cannot act on it. On an older server the delete-and-re-add flow is still right there.
+ * points at and changing it is a different act. Every supported PoracleNG (5.4.0 and up) can do it, so
+ * the control is always shown and nothing asks the server first.
  */
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,

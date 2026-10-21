@@ -5,7 +5,6 @@ using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Core.Services;
-using Pgan.PoracleWebNet.Tests.TestDoubles;
 
 namespace Pgan.PoracleWebNet.Tests.Services;
 
@@ -192,12 +191,12 @@ public class BulkDistanceScopeTests
 
     private object ServiceFor(string trackingType) => trackingType switch
     {
-        "pokemon" => new MonsterService(this._proxy, this._featureGate.Object, this._remapper.Object, CostumeCapabilityDoubles.Supported()),
+        "pokemon" => new MonsterService(this._proxy, this._featureGate.Object, this._remapper.Object),
         "raid" => new RaidService(
-            this._proxy, this._featureGate.Object, NullLogger<RaidService>.Instance, this._remapper.Object, CostumeCapabilityDoubles.Supported()),
+            this._proxy, this._featureGate.Object, NullLogger<RaidService>.Instance, this._remapper.Object),
         "egg" => new EggService(this._proxy, this._featureGate.Object, NullLogger<EggService>.Instance, this._remapper.Object),
         "quest" => new QuestService(
-            this._proxy, this._featureGate.Object, PokecoinCapabilityStub.Supported, NullLogger<QuestService>.Instance, this._remapper.Object),
+            this._proxy, this._featureGate.Object, NullLogger<QuestService>.Instance, this._remapper.Object),
         "invasion" => new InvasionService(this._proxy, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._remapper.Object),
         "lure" => new LureService(this._proxy, this._featureGate.Object, NullLogger<LureService>.Instance, this._remapper.Object),
         "nest" => new NestService(this._proxy, this._featureGate.Object, NullLogger<NestService>.Instance, this._remapper.Object),

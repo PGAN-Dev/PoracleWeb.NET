@@ -234,24 +234,6 @@ internal static class TrackingV2Translator
     public static bool Handles(string type) => Specs.ContainsKey(type);
 
     /// <summary>
-    /// Whether <paramref name="row"/> carries a <c>ping</c> worth protecting -- a non-empty string, on
-    /// any type. Every v1 write this application can reach blanks <c>ping</c> unconditionally, verified
-    /// live against both a stock jfberry/PoracleNG <c>develop</c> build and a private fork carrying the
-    /// same commit, create and update alike, the field present, changed or omitted entirely: a role or
-    /// user mention set elsewhere (the bot, or a v2 write on a server carrying #249) does not survive a
-    /// v1 write that merely carries it forward unchanged, let alone one that touches an unrelated field.
-    /// Callers use this before falling back to v1 at all, not just when the fallback is for ping's own
-    /// sake -- the row goes to v1 for plenty of reasons that have nothing to do with ping, and every one
-    /// of them is still destructive to it.
-    /// </summary>
-    public static bool HasNonEmptyPing(JsonElement row) =>
-        row.ValueKind == JsonValueKind.Object
-        && row.TryGetProperty("ping", out var ping)
-        && ping.ValueKind == JsonValueKind.String
-        && !string.IsNullOrEmpty(ping.GetString());
-
-
-    /// <summary>
     /// Translates one v1-shaped row. Returns false — leaving <paramref name="translated"/> untouched —
     /// when the row carries something v2 cannot be told faithfully, or the type has no v2 table.
     /// </summary>
@@ -259,18 +241,12 @@ internal static class TrackingV2Translator
     /// <param name="row">A single v1-shaped alarm object, as every alarm service already builds.</param>
     /// <param name="translated">The v2 body on success.</param>
     /// <param name="unsupported">What stopped the translation, for the log. Null on success.</param>
-    /// <param name="pingSupported">
-    /// Whether this server's v2 genuinely stores <c>ping</c> rather than blanking it --
-    /// <see cref="Models.PoracleV2Capabilities.TrackingPing"/>. False (the safe default for every
-    /// released server) keeps a set ping on the v1 path exactly as before.
-    /// </param>
     public static bool TryTranslate(
         string type,
         JsonElement row,
         IReadOnlyDictionary<string, Bound>? serverBounds,
         out JsonElement translated,
-        out string? unsupported,
-        bool pingSupported = false)
+        out string? unsupported)
     {
         translated = default;
         unsupported = null;
@@ -304,7 +280,7 @@ internal static class TrackingV2Translator
                     continue;
                 }
 
-                if (!TryWriteProperty(writer, spec, serverBounds, property, pingSupported, out unsupported))
+                if (!TryWriteProperty(writer, spec, serverBounds, property, out unsupported))
                 {
                     return false;
                 }
@@ -345,7 +321,6 @@ internal static class TrackingV2Translator
         TypeSpec spec,
         IReadOnlyDictionary<string, Bound>? serverBounds,
         JsonProperty property,
-        bool pingSupported,
         out string? unsupported)
     {
         unsupported = null;
@@ -358,7 +333,7 @@ internal static class TrackingV2Translator
                     : TryWriteAbsentClean(property.Value, out unsupported);
 
             case "ping":
-                return TryWritePing(writer, property.Value, pingSupported, out unsupported);
+                return TryWritePing(writer, property.Value, out unsupported);
 
             case "override_areas":
                 return TryWriteArrayLike(writer, "override_areas", property.Value, out unsupported);
@@ -608,25 +583,11 @@ internal static class TrackingV2Translator
     }
 
     /// <summary>
-    /// <c>ping</c> is the mention prepended to the DM — a role or user the alert is meant to notify. It is
-    /// a real tracking column on every type and the v1 body carries it. Before jfberry/PoracleNG#249, no
-    /// <c>V2*Rule</c> had a field for it and the handlers stored <c>Ping: ""</c> unconditionally on a v2
-    /// write ("server-managed") -- verified live against 5.2.1: a rule holding
-    /// <c>&lt;@&amp;400027130022592512&gt;</c> came back with an empty ping after one v2 PUT. #249 adds a
-    /// real <c>ping</c> field, verified live the same way: the identical rule now round-trips through a
-    /// v2 PUT with the mention intact, read back from v1 as ground truth rather than trusted from the v2
-    /// response alone.
+    /// <c>ping</c> is the mention prepended to the DM, a role or user the alert is meant to notify.
+    /// PoracleNG 5.4.0 declares it on every <c>V2*Rule</c> and stores it, so a set string is written
+    /// verbatim. An empty one is dropped: v2 would store the same empty string either way.
     /// </summary>
-    /// <remarks>
-    /// Gated on <paramref name="pingSupported"/>, not a version compare -- no release carries #249 either,
-    /// same as every other v2 schema capability here. An empty ping is always fine to carry through: v2
-    /// would store the same empty string whichever way this goes, pre- or post-#249. A set ping on a
-    /// server that does not support it still sends the whole row to v1, which keeps it -- silently
-    /// discarding it here is exactly the #730 shape this translator exists to avoid, and it lands on
-    /// webhook alarms, where the role mention is the entire point of the alert.
-    /// </remarks>
-    private static bool TryWritePing(
-        Utf8JsonWriter writer, JsonElement value, bool pingSupported, out string? unsupported)
+    private static bool TryWritePing(Utf8JsonWriter writer, JsonElement value, out string? unsupported)
     {
         unsupported = null;
 
@@ -636,13 +597,13 @@ internal static class TrackingV2Translator
             return true;
         }
 
-        if (pingSupported && value.ValueKind == JsonValueKind.String)
+        if (value.ValueKind == JsonValueKind.String)
         {
             writer.WriteString("ping", value.GetString());
             return true;
         }
 
-        unsupported = pingSupported ? "ping is not a string" : "ping is set, and this server's v2 would blank it";
+        unsupported = "ping is not a string";
         return false;
     }
 

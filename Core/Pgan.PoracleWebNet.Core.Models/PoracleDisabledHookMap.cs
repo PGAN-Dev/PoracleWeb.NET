@@ -25,7 +25,7 @@ namespace Pgan.PoracleWebNet.Core.Models;
 /// <c>fort</c> was the mirror-image case up to 5.1.0: enforced in the processor and the bot but left
 /// out of <c>hookTypes</c>. The same upstream release added it to the array under the name its tracking
 /// type already used, so it maps here like any other hook. The separate
-/// <c>general.disable_fort_update</c> read that covered older servers went when 5.2.1 became the minimum.
+/// <c>general.disable_fort_update</c> read that covered older servers went when 5.2.1 became the minimum, and every server at 5.4.0 or later reports it.
 /// </para>
 /// <para>
 /// <c>disable_showcase</c> still has deliberately no entry: verified on a live 5.2.1, it is present in
@@ -53,7 +53,7 @@ public static class PoracleDisabledHookMap
         ["nest"] = DisableFeatureKeys.Nests,
         ["gym"] = DisableFeatureKeys.Gyms,
         ["maxbattle"] = DisableFeatureKeys.MaxBattles,
-        // Reported from PoracleNG 5.2.1 on, the supported minimum.
+        // Reported by every supported PoracleNG (5.4.0 and later).
         ["fort"] = DisableFeatureKeys.FortChanges,
     };
 

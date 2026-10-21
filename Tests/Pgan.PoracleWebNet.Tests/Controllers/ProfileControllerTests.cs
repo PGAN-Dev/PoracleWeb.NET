@@ -17,7 +17,6 @@ public class ProfileControllerTests : ControllerTestBase
     private readonly ProfileController _sut;
 
     private readonly Mock<IJwtService> _jwtService = new();
-    private readonly Mock<IProfileRepository> _profileRepository = new();
     private readonly Mock<Pgan.PoracleWebNet.Api.Services.IUserRoleResolver> _roleResolver = new();
     private readonly Mock<IUserGeofenceRepository> _userGeofenceRepository = new();
 
@@ -25,32 +24,23 @@ public class ProfileControllerTests : ControllerTestBase
     {
         this._jwtService.Setup(j => j.GenerateTokenWithReplacedProfile(It.IsAny<System.Security.Claims.ClaimsPrincipal>(), It.IsAny<int>(), It.IsAny<bool?>()))
             .Returns("test-jwt-token");
-        // These two report what the server actually did as of #836 and #837. Every pre-existing test here
-        // was written against a PoracleNG that reports neither, so that is what they keep answering --
-        // preserving the path each was written to exercise rather than silently moving them onto the new
-        // one. Tests about the new behaviour set their own return.
-        this._humanProxy.SetReturnsDefault<Task<int?>>(Task.FromResult<int?>(null));
-        this._humanProxy.SetReturnsDefault<Task<bool>>(Task.FromResult(false));
 
-        this._sut = new ProfileController(this._profileService.Object, this._humanService.Object, this._humanProxy.Object, this._profileRepository.Object, this._jwtService.Object, this._roleResolver.Object, this._userGeofenceRepository.Object, Microsoft.Extensions.Logging.Abstractions.NullLogger<ProfileController>.Instance);
+        this._sut = new ProfileController(this._profileService.Object, this._humanService.Object, this._humanProxy.Object, this._jwtService.Object, this._roleResolver.Object, this._userGeofenceRepository.Object, Microsoft.Extensions.Logging.Abstractions.NullLogger<ProfileController>.Instance);
         SetupUser(this._sut);
     }
 
-
     /// <summary>
-    /// PoracleNG picks the profile number, so the controller creates first and then diffs the profile
-    /// list to learn which number it got. Mocks therefore have to return a DIFFERENT list after the
-    /// create than before it. See #407.
+    /// PoracleNG picks the profile number and reports it from the create, so the controller reads no
+    /// profile list to find out which one it got. See #407.
     /// </summary>
-    private void SetupCreateAssigns(int newProfileNo, string name, params Profile[] before)
+    private void SetupCreateAssigns(int newProfileNo, string name)
     {
-        var after = before.Append(new Profile { Id = "123456789", ProfileNo = newProfileNo, Name = name }).ToArray();
-        this._profileService.SetupSequence(s => s.GetByUserAsync("123456789"))
-            .ReturnsAsync(before)
-            .ReturnsAsync(after);
+        this._humanProxy.Setup(h => h.AddProfileAsync("123456789", It.IsAny<JsonElement>())).ReturnsAsync(newProfileNo);
         this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", newProfileNo))
             .ReturnsAsync(new Profile { Id = "123456789", ProfileNo = newProfileNo, Name = name });
     }
+
+    private static Profile P(int no, string name) => new() { Id = "123456789", ProfileNo = no, Name = name };
 
     [Fact]
     public async Task GetAllReturnsOkWithProfiles()
@@ -84,14 +74,11 @@ public class ProfileControllerTests : ControllerTestBase
     {
         var existing = new Profile { Id = "123456789", ProfileNo = 1, Name = "Old" };
         this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(existing);
-        this._profileRepository.Setup(r => r.RenameAsync("123456789", 1, "Updated")).ReturnsAsync(true);
 
         var result = await this._sut.Update(1, new Profile { Name = "Updated" });
 
         Assert.IsType<OkObjectResult>(result);
         this._humanProxy.Verify(p => p.UpdateProfileAsync("123456789", It.IsAny<JsonElement>()), Times.Once);
-        // PoracleNG drops the name, so the rename has to be written directly. See #406.
-        this._profileRepository.Verify(r => r.RenameAsync("123456789", 1, "Updated"), Times.Once);
     }
 
     [Fact]
@@ -125,7 +112,7 @@ public class ProfileControllerTests : ControllerTestBase
     {
         var sourceProfile = new Profile { Id = "123456789", ProfileNo = 1, Name = "Main", Area = "[\"area1\"]" };
         this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(sourceProfile);
-        this.SetupCreateAssigns(2, "Main (copy)", sourceProfile);
+        this.SetupCreateAssigns(2, "Main (copy)");
 
         var result = await this._sut.Duplicate(new DuplicateProfileRequest { FromProfileNo = 1, Name = "Main (copy)" });
 
@@ -140,12 +127,13 @@ public class ProfileControllerTests : ControllerTestBase
         var schedule = /*lang=json,strict*/ "[{\"day\":1,\"hours\":\"09\",\"mins\":\"00\"}]";
         var sourceProfile = new Profile { Id = "123456789", ProfileNo = 1, Name = "Main", ActiveHours = schedule };
         this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(sourceProfile);
-        this.SetupCreateAssigns(2, "Copy", sourceProfile);
+        this.SetupCreateAssigns(2, "Copy");
 
         JsonElement? capturedBody = null;
         this._humanProxy
             .Setup(p => p.AddProfileAsync("123456789", It.IsAny<JsonElement>()))
-            .Callback<string, JsonElement>((_, body) => capturedBody = body);
+            .Callback<string, JsonElement>((_, body) => capturedBody = body.Clone())
+            .ReturnsAsync(2);
 
         await this._sut.Duplicate(new DuplicateProfileRequest { FromProfileNo = 1, Name = "Copy" });
 
@@ -178,92 +166,67 @@ public class ProfileControllerTests : ControllerTestBase
         Assert.IsType<NotFoundResult>(await this._sut.Delete(99));
     }
 
-    // ---- profiles on v2 (#836, #837) ------------------------------------------------------------
+    // ---- profile numbering (#407): the create reports the number, nothing is diffed ---------------
 
     [Fact]
-    public async Task UpdateStillWritesTheNameItselfWhenPoracleDidNot()
+    public async Task CreateUsesTheNumberPoracleAssignedAndReadsNoProfileList()
     {
-        // Every released PoracleNG. Its update handler answers ok and keeps the old name, so the direct
-        // write to profiles.name is the only thing that renames anything. See #406.
-        var existing = new Profile { Id = "123456789", ProfileNo = 1, Name = "Old" };
-        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(existing);
-        this._humanProxy.Setup(p => p.UpdateProfileAsync(It.IsAny<string>(), It.IsAny<JsonElement>()))
-            .ReturnsAsync(false);
-        this._profileRepository.Setup(r => r.RenameAsync("123456789", 1, "Renamed")).ReturnsAsync(true);
+        // PoracleNG assigns the lowest free number. Profiles 0, 1, 3 -> 2, and it says so; arithmetic
+        // (max + 1 = 4) and a before/after list diff are both gone.
+        this.SetupCreateAssigns(2, "Gap Filler");
 
-        await this._sut.Update(1, new Profile { Name = "Renamed" });
+        var result = await this._sut.Create(new Profile { Name = "Gap Filler" });
 
-        this._profileRepository.Verify(r => r.RenameAsync("123456789", 1, "Renamed"), Times.Once);
+        var created = Assert.IsType<CreatedAtActionResult>(result);
+        Assert.Equal(2, Assert.IsType<Profile>(created.Value).ProfileNo);
+        this._profileService.Verify(s => s.GetByUserAsync(It.IsAny<string>()), Times.Never);
+        this._profileService.Verify(s => s.GetByUserAndProfileNoAsync("123456789", 4), Times.Never);
     }
 
     [Fact]
-    public async Task UpdateDoesNotTouchTheDatabaseWhenPoracleAppliedTheName()
+    public async Task DuplicateCopiesAlarmsToTheNumberPoracleReported()
     {
-        // The point of #837: on a server whose PATCH takes a name, the rename has already happened and
-        // the direct write is the thing being retired.
-        var existing = new Profile { Id = "123456789", ProfileNo = 1, Name = "Old" };
-        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(existing);
-        this._humanProxy.Setup(p => p.UpdateProfileAsync(It.IsAny<string>(), It.IsAny<JsonElement>()))
-            .ReturnsAsync(true);
+        // The orphan case: alarms used to be copied to max+1 = 4 while the profile was created at 2.
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 0)).ReturnsAsync(P(0, "Source"));
+        this.SetupCreateAssigns(2, "Dup");
 
-        await this._sut.Update(1, new Profile { Name = "Renamed" });
+        await this._sut.Duplicate(new DuplicateProfileRequest { FromProfileNo = 0, Name = "Dup" });
 
-        this._profileRepository.Verify(
-            r => r.RenameAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>()), Times.Never);
+        this._profileService.Verify(s => s.CopyAsync("123456789", 0, 2), Times.Once);
+        this._profileService.Verify(s => s.CopyAsync("123456789", 0, 4), Times.Never);
+        this._profileService.Verify(s => s.GetByUserAsync(It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
-    public async Task UpdateLeavesAnUnchangedNameAloneOnEitherKindOfServer()
+    public async Task CreateDoesNotDictateTheProfileNumberToPoracleNg()
     {
-        // Renaming to the name it already has is not a rename, and was not one before this change.
-        var existing = new Profile { Id = "123456789", ProfileNo = 1, Name = "Same" };
-        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(existing);
-        this._humanProxy.Setup(p => p.UpdateProfileAsync(It.IsAny<string>(), It.IsAny<JsonElement>()))
-            .ReturnsAsync(false);
-
-        await this._sut.Update(1, new Profile { Name = "Same" });
-
-        this._profileRepository.Verify(
-            r => r.RenameAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task CreateUsesTheNumberPoracleAssignedRatherThanDiffingTheList()
-    {
-        // PoracleNG assigns the lowest free number. Here the list diff would answer 2 and the server says
-        // 7; the server is right by construction, and the whole point of #836 is to stop inferring it.
-        this._profileService.SetupSequence(s => s.GetByUserAsync("123456789"))
-            .ReturnsAsync([new Profile { ProfileNo = 1 }])
-            .ReturnsAsync([new Profile { ProfileNo = 1 }, new Profile { ProfileNo = 2 }]);
+        this.SetupCreateAssigns(1, "New");
+        JsonElement? sent = null;
         this._humanProxy.Setup(h => h.AddProfileAsync("123456789", It.IsAny<JsonElement>()))
-            .ReturnsAsync(7);
-        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 7))
-            .ReturnsAsync(new Profile { ProfileNo = 7, Name = "New" });
+            .Callback<string, JsonElement>((_, b) => sent = b.Clone())
+            .ReturnsAsync(1);
 
         await this._sut.Create(new Profile { Name = "New" });
 
-        this._profileService.Verify(s => s.GetByUserAndProfileNoAsync("123456789", 7), Times.Once);
-        this._profileService.Verify(s => s.GetByUserAndProfileNoAsync("123456789", 2), Times.Never);
+        Assert.NotNull(sent);
+        Assert.False(sent!.Value.TryGetProperty("profileNo", out _));
+        Assert.False(sent.Value.TryGetProperty("profile_no", out _));
     }
 
     [Fact]
-    public async Task CreateFallsBackToDiffingTheListWhenPoracleSaysNothing()
+    public async Task ACreateThatReportsNoNumberIsNotAnsweredWithA201()
     {
-        // The released-server path, and the reason ProfileNumbering stays rather than being deleted.
-        this._profileService.SetupSequence(s => s.GetByUserAsync("123456789"))
-            .ReturnsAsync([new Profile { ProfileNo = 0 }, new Profile { ProfileNo = 1 }, new Profile { ProfileNo = 3 }])
-            .ReturnsAsync([new Profile { ProfileNo = 0 }, new Profile { ProfileNo = 1 },
-                           new Profile { ProfileNo = 2 }, new Profile { ProfileNo = 3 }]);
+        // The proxy throws when PoracleNG's answer carries no number; the controller must not swallow it.
         this._humanProxy.Setup(h => h.AddProfileAsync("123456789", It.IsAny<JsonElement>()))
-            .ReturnsAsync((int?)null);
-        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 2))
-            .ReturnsAsync(new Profile { ProfileNo = 2, Name = "New" });
+            .ThrowsAsync(new PoracleRequestRefusedException("no profile number", 502));
 
-        await this._sut.Create(new Profile { Name = "New" });
-
-        // 2, not 4: the lowest free number, which is the #407 case arithmetic gets wrong.
-        this._profileService.Verify(s => s.GetByUserAndProfileNoAsync("123456789", 2), Times.Once);
+        await Assert.ThrowsAsync<PoracleRequestRefusedException>(() => this._sut.Create(new Profile { Name = "Nope" }));
+        this._humanProxy.Verify(
+            h => h.SetProfileGeographyAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<double>(), It.IsAny<double>()),
+            Times.Never);
     }
+
+    // ---- active hours reach the proxy --------------------------------------------------------------
 
     [Fact]
     public async Task UpdateIncludesActiveHoursInProxyPayload()
@@ -273,7 +236,7 @@ public class ProfileControllerTests : ControllerTestBase
 
         JsonElement? capturedBody = null;
         this._humanProxy.Setup(p => p.UpdateProfileAsync(It.IsAny<string>(), It.IsAny<JsonElement>()))
-            .Callback<string, JsonElement>((_, body) => capturedBody = body);
+            .Callback<string, JsonElement>((_, body) => capturedBody = body.Clone());
 
         var profile = new Profile { Name = "Updated", ActiveHours = /*lang=json,strict*/ "[{\"day\":1,\"hours\":\"09\",\"mins\":\"00\"}]" };
         await this._sut.Update(1, profile);
@@ -291,7 +254,7 @@ public class ProfileControllerTests : ControllerTestBase
 
         JsonElement? capturedBody = null;
         this._humanProxy.Setup(p => p.UpdateProfileAsync(It.IsAny<string>(), It.IsAny<JsonElement>()))
-            .Callback<string, JsonElement>((_, body) => capturedBody = body);
+            .Callback<string, JsonElement>((_, body) => capturedBody = body.Clone());
 
         var profile = new Profile { Name = "Updated", ActiveHours = null };
         await this._sut.Update(1, profile);
@@ -306,12 +269,12 @@ public class ProfileControllerTests : ControllerTestBase
     {
         var activeHours = /*lang=json,strict*/ "[{\"day\":2,\"hours\":\"18\",\"mins\":\"30\"}]";
         var profile = new Profile { Name = "New", ActiveHours = activeHours };
-        this._profileService.Setup(s => s.GetByUserAsync("123456789")).ReturnsAsync([]);
-        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(profile);
+        this.SetupCreateAssigns(1, "New");
 
         JsonElement? capturedBody = null;
         this._humanProxy.Setup(p => p.AddProfileAsync(It.IsAny<string>(), It.IsAny<JsonElement>()))
-            .Callback<string, JsonElement>((_, body) => capturedBody = body);
+            .Callback<string, JsonElement>((_, body) => capturedBody = body.Clone())
+            .ReturnsAsync(1);
 
         await this._sut.Create(profile);
 
@@ -341,111 +304,35 @@ public class ProfileControllerTests : ControllerTestBase
         Assert.Null(returnedProfiles[1].ActiveHours);
     }
 
-    // ── Profile numbering with a gap (#407) ─────────────────────────────────────
-    // PoracleWeb predicted max+1; PoracleNG assigns the lowest free number. Any user who had deleted a
-    // non-last profile therefore got a different number than PoracleWeb assumed, and create returned an
-    // empty body while duplicate copied alarms to a profile_no with no profile row.
-
-    private static Profile P(int no, string name) => new() { Id = "123456789", ProfileNo = no, Name = name };
+    // ---- rename (#406, #837): always the proxy's PATCH, never a database write --------------------
 
     [Fact]
-    public async Task CreateReturnsTheProfileAtTheNumberPoracleNgActuallyChose()
-    {
-        // Profiles 0, 1, 3 -> PoracleNG fills the gap at 2, not max+1 = 4.
-        this._profileService.SetupSequence(s => s.GetByUserAsync("123456789"))
-            .ReturnsAsync([P(0, "Default"), P(1, "Work"), P(3, "Other")])
-            .ReturnsAsync([P(0, "Default"), P(1, "Work"), P(2, "Gap Filler"), P(3, "Other")]);
-        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 2))
-            .ReturnsAsync(P(2, "Gap Filler"));
-
-        var result = await this._sut.Create(new Profile { Name = "Gap Filler" });
-
-        var created = Assert.IsType<CreatedAtActionResult>(result);
-        Assert.Equal(2, Assert.IsType<Profile>(created.Value).ProfileNo);
-    }
-
-    [Fact]
-    public async Task CreateDoesNotDictateTheProfileNumberToPoracleNg()
-    {
-        this._profileService.SetupSequence(s => s.GetByUserAsync("123456789"))
-            .ReturnsAsync([P(0, "Default")])
-            .ReturnsAsync([P(0, "Default"), P(1, "New")]);
-        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(P(1, "New"));
-
-        JsonElement? sent = null;
-        this._humanProxy.Setup(h => h.AddProfileAsync("123456789", It.IsAny<JsonElement>()))
-            .Callback<string, JsonElement>((_, b) => sent = b.Clone())
-            .ReturnsAsync((int?)null);
-
-        await this._sut.Create(new Profile { Name = "New" });
-
-        Assert.NotNull(sent);
-        Assert.False(sent!.Value.TryGetProperty("profileNo", out _));
-    }
-
-    [Fact]
-    public async Task DuplicateCopiesAlarmsToTheNumberThatActuallyExists()
-    {
-        // The orphan case: alarms used to be copied to max+1 = 4 while the profile was created at 2.
-        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 0)).ReturnsAsync(P(0, "Source"));
-        this._profileService.SetupSequence(s => s.GetByUserAsync("123456789"))
-            .ReturnsAsync([P(0, "Source"), P(1, "Work"), P(3, "Other")])
-            .ReturnsAsync([P(0, "Source"), P(1, "Work"), P(2, "Dup"), P(3, "Other")]);
-        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 2)).ReturnsAsync(P(2, "Dup"));
-
-        await this._sut.Duplicate(new DuplicateProfileRequest { FromProfileNo = 0, Name = "Dup" });
-
-        this._profileService.Verify(s => s.CopyAsync("123456789", 0, 2), Times.Once);
-        this._profileService.Verify(s => s.CopyAsync("123456789", 0, 4), Times.Never);
-    }
-
-    [Fact]
-    public async Task CreateReportsAFailureRatherThanReturningAnEmptyBody()
-    {
-        // When nothing appears, the create did not happen. Returning 201 with a null body left the SPA
-        // list and counter stale while the user was told it worked.
-        this._profileService.SetupSequence(s => s.GetByUserAsync("123456789"))
-            .ReturnsAsync([P(0, "Default")])
-            .ReturnsAsync([P(0, "Default")]);
-
-        var result = await this._sut.Create(new Profile { Name = "Nope" });
-
-        Assert.Equal(Microsoft.AspNetCore.Http.StatusCodes.Status502BadGateway, Assert.IsType<ObjectResult>(result).StatusCode);
-    }
-
-    // ── Rename (#406) ───────────────────────────────────────────────────────────
-
-    [Fact]
-    public async Task UpdateWritesTheRenameDirectlyBecauseTheProxyDropsIt()
+    public async Task ARenameIsSentToTheProxyInTheBodyAndNothingElseWritesIt()
     {
         this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(P(1, "Old"));
-        this._profileRepository.Setup(r => r.RenameAsync("123456789", 1, "New")).ReturnsAsync(true);
+        JsonElement captured = default;
+        this._humanProxy.Setup(p => p.UpdateProfileAsync(It.IsAny<string>(), It.IsAny<JsonElement>()))
+            .Callback<string, JsonElement>((_, body) => captured = body.Clone());
 
-        await this._sut.Update(1, new Profile { Name = "New" });
+        Assert.IsType<OkObjectResult>(await this._sut.Update(1, new Profile { Name = "New" }));
 
-        this._profileRepository.Verify(r => r.RenameAsync("123456789", 1, "New"), Times.Once);
+        Assert.Equal("New", captured.GetProperty("name").GetString());
+        Assert.Equal(1, captured.GetProperty("profile_no").GetInt32());
+        this._humanProxy.Verify(p => p.UpdateProfileAsync("123456789", It.IsAny<JsonElement>()), Times.Once);
     }
 
     [Fact]
-    public async Task UpdateDoesNotRenameWhenTheNameIsUnchanged()
-    {
-        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(P(1, "Same"));
-
-        await this._sut.Update(1, new Profile { Name = "Same" });
-
-        this._profileRepository.Verify(
-            r => r.RenameAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task UpdateDoesNotRenameWhenOnlyActiveHoursChange()
+    public async Task AnUnchangedNameIsStillSentSoAnActiveHoursEditKeepsIt()
     {
         this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(P(1, "Keep"));
+        JsonElement captured = default;
+        this._humanProxy.Setup(p => p.UpdateProfileAsync(It.IsAny<string>(), It.IsAny<JsonElement>()))
+            .Callback<string, JsonElement>((_, body) => captured = body.Clone());
 
         await this._sut.Update(1, new Profile { ActiveHours = "[]" });
 
-        this._profileRepository.Verify(
-            r => r.RenameAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>()), Times.Never);
+        Assert.Equal("Keep", captured.GetProperty("name").GetString());
+        Assert.Equal("[]", captured.GetProperty("active_hours").GetString());
     }
 
     // ── Name length and duplicate geography (#466, #467) ────────────────────
@@ -491,15 +378,96 @@ public class ProfileControllerTests : ControllerTestBase
             Area = "[\"downtown\",\"fan\"]", Latitude = 37.5, Longitude = -77.4,
         };
         this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(source);
-        this.SetupCreateAssigns(2, "Copy", source);
+        this.SetupCreateAssigns(2, "Copy");
 
         await this._sut.Duplicate(new DuplicateProfileRequest { FromProfileNo = 1, Name = "Copy" });
 
-        this._profileRepository.Verify(r => r.UpdateAsync(It.Is<Profile>(x =>
-            x.ProfileNo == 2
-            && x.Area == source.Area
-            && x.Latitude == source.Latitude
-            && x.Longitude == source.Longitude)), Times.Once);
+        this._humanProxy.Verify(
+            h => h.SetProfileGeographyAsync(
+                "123456789", 2, It.Is<IReadOnlyCollection<string>>(a => a.SequenceEqual(new[] { "downtown", "fan" })), 37.5, -77.4),
+            Times.Once);
+    }
+
+    private void GeographyFails()
+    {
+        this._humanProxy
+            .Setup(h => h.SetProfileGeographyAsync(
+                It.IsAny<string>(), It.IsAny<int>(), It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<double>(), It.IsAny<double>()))
+            .ThrowsAsync(new PoracleRequestRefusedException("invalid latitude"));
+    }
+
+    [Fact]
+    public async Task AGeographyFailureOnCreateDeletesTheNewProfileAndReachesTheCaller()
+    {
+        this.SetupCreateAssigns(1, "New");
+        this.GeographyFails();
+
+        var ex = await Assert.ThrowsAsync<PoracleRequestRefusedException>(() => this._sut.Create(new Profile { Name = "New" }));
+
+        Assert.Equal("invalid latitude", ex.Message);
+        this._humanProxy.Verify(h => h.DeleteProfileAsync("123456789", 1), Times.Once);
+    }
+
+    [Fact]
+    public async Task AGeographyFailureOnDuplicateDeletesTheNewProfileAndSkipsTheCopy()
+    {
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(P(1, "Work"));
+        this.SetupCreateAssigns(2, "Copy");
+        this.GeographyFails();
+
+        await Assert.ThrowsAsync<PoracleRequestRefusedException>(
+            () => this._sut.Duplicate(new DuplicateProfileRequest { FromProfileNo = 1, Name = "Copy" }));
+
+        this._humanProxy.Verify(h => h.DeleteProfileAsync("123456789", 2), Times.Once);
+        this._profileService.Verify(s => s.CopyAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ACopyFailureOnDuplicateStillDeletesTheNewProfile()
+    {
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(P(1, "Work"));
+        this.SetupCreateAssigns(2, "Copy");
+        this._profileService.Setup(s => s.CopyAsync("123456789", 1, 2)).ThrowsAsync(new InvalidOperationException("copy failed"));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => this._sut.Duplicate(new DuplicateProfileRequest { FromProfileNo = 1, Name = "Copy" }));
+
+        this._humanProxy.Verify(h => h.DeleteProfileAsync("123456789", 2), Times.Once);
+    }
+
+    [Fact]
+    public async Task AFailedRollbackDoesNotHideTheGeographyError()
+    {
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(P(1, "Work"));
+        this.SetupCreateAssigns(2, "Copy");
+        this.GeographyFails();
+        this._humanProxy.Setup(h => h.DeleteProfileAsync("123456789", 2)).ThrowsAsync(new HttpRequestException("delete failed"));
+
+        var ex = await Assert.ThrowsAsync<PoracleRequestRefusedException>(
+            () => this._sut.Duplicate(new DuplicateProfileRequest { FromProfileNo = 1, Name = "Copy" }));
+
+        Assert.Equal("invalid latitude", ex.Message);
+    }
+
+    [Fact]
+    public async Task ARenameOfAProfileWhoseStoredScheduleV2WouldRefuseSendsNoSchedule()
+    {
+        // day 0 is stored by a PoracleNG that used 0-6; v2 refuses it. A rename must not resend it.
+        var existing = new Profile
+        {
+            Id = "123456789", ProfileNo = 1, Name = "Old",
+            ActiveHours = /*lang=json,strict*/ "[{\"day\":0,\"hours\":8,\"mins\":0}]",
+        };
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(existing);
+        JsonElement captured = default;
+        this._humanProxy.Setup(p => p.UpdateProfileAsync(It.IsAny<string>(), It.IsAny<JsonElement>()))
+            .Callback<string, JsonElement>((_, body) => captured = body.Clone());
+
+        var result = await this._sut.Update(1, new Profile { Name = "New" });
+
+        Assert.IsType<OkObjectResult>(result);
+        Assert.Equal("New", captured.GetProperty("name").GetString());
+        Assert.Equal(JsonValueKind.Null, captured.GetProperty("active_hours").ValueKind);
     }
 
     // --- Control and bidi characters in names -------------------------------------------------------
@@ -509,7 +477,7 @@ public class ProfileControllerTests : ControllerTestBase
     [Fact]
     public async Task CreateRefusesANameCarryingABidiOverride()
     {
-        var result = await this._sut.Create(new Profile { Name = "evil\u202Elive" });
+        var result = await this._sut.Create(new Profile { Name = "evil‮live" });
 
         Assert.IsType<BadRequestObjectResult>(result);
         this._humanProxy.Verify(p => p.AddProfileAsync(It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
@@ -526,7 +494,7 @@ public class ProfileControllerTests : ControllerTestBase
     [Theory]
     [InlineData("tab\tbed")]
     [InlineData("nul\u0000")]
-    [InlineData("evil\u202Elive")]
+    [InlineData("evil‮live")]
     public async Task UpdateRefusesARenameCarryingAControlCharacter(string name)
     {
         var existing = new Profile { Id = "123456789", ProfileNo = 1, Name = "Old" };
@@ -534,8 +502,6 @@ public class ProfileControllerTests : ControllerTestBase
 
         Assert.IsType<BadRequestObjectResult>(await this._sut.Update(1, new Profile { Name = name }));
         this._humanProxy.Verify(p => p.UpdateProfileAsync(It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
-        this._profileRepository.Verify(
-            r => r.RenameAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
@@ -560,25 +526,24 @@ public class ProfileControllerTests : ControllerTestBase
         this._humanProxy.Verify(p => p.AddProfileAsync(It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
     }
 
-    // --- Rename on a server whose PATCH takes the name (PoracleNG #217) --------------------------------
-    // There the direct, trimmed write is skipped, so whatever reaches UpdateProfileAsync is what is stored.
+    // --- What reaches the PATCH: trimmed, and the stored name when the incoming one is blank ----------
+    // The name goes to PoracleNG as sent and nothing trims it after, so the controller does.
 
-    private JsonElement CaptureUpdateBodyOnAV2Server(Profile existing, Profile request)
+    private JsonElement CaptureUpdateBody(Profile existing, Profile request)
     {
         this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", existing.ProfileNo)).ReturnsAsync(existing);
         JsonElement captured = default;
         this._humanProxy.Setup(p => p.UpdateProfileAsync(It.IsAny<string>(), It.IsAny<JsonElement>()))
-            .Callback<string, JsonElement>((_, body) => captured = body.Clone())
-            .ReturnsAsync(true);
+            .Callback<string, JsonElement>((_, body) => captured = body.Clone());
 
         this._sut.Update(existing.ProfileNo, request).GetAwaiter().GetResult();
         return captured;
     }
 
     [Fact]
-    public void ARenameReachesAV2ServerTrimmed()
+    public void ARenameReachesTheProxyTrimmed()
     {
-        var body = this.CaptureUpdateBodyOnAV2Server(
+        var body = this.CaptureUpdateBody(
             new Profile { Id = "123456789", ProfileNo = 4, Name = "Delta" },
             new Profile { Name = "   Delta spaced   " });
 
@@ -586,10 +551,9 @@ public class ProfileControllerTests : ControllerTestBase
     }
 
     [Fact]
-    public void ABlankNameIsNotARenameOnAV2Server()
+    public void ABlankNameIsNotARename()
     {
-        // The v1 path has always read a blank name as "leave it alone"; on v2 it stored a blank name.
-        var body = this.CaptureUpdateBodyOnAV2Server(
+        var body = this.CaptureUpdateBody(
             new Profile { Id = "123456789", ProfileNo = 4, Name = "Delta" },
             new Profile { Name = "   " });
 

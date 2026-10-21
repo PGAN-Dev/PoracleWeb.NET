@@ -91,7 +91,6 @@ MapEnvVar("AUTH_FORCE_LOCAL", "Auth__ForceLocal");
 MapEnvVar("PORACLE_API_ADDRESS", "Poracle__ApiAddress");
 MapEnvVar("PORACLE_API_SECRET", "Poracle__ApiSecret");
 MapEnvVar("PORACLE_ADMIN_IDS", "Poracle__AdminIds");
-MapEnvVar("PORACLE_TRACKING_API_VERSION", "Poracle__TrackingApiVersion");
 MapEnvVar("KOJI_API_ADDRESS", "Koji__ApiAddress");
 MapEnvVar("KOJI_BEARER_TOKEN", "Koji__BearerToken");
 MapEnvVar("KOJI_PROJECT_ID", "Koji__ProjectId");

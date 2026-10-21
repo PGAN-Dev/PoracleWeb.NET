@@ -9,7 +9,7 @@ A web application for managing Pokemon GO notification alarms through the [Porac
 !!! warning "PoracleNG is required"
     All alarm management, profile handling, and user operations are proxied through PoracleNG's REST API. [PoracleJS](https://github.com/KartulUdus/PoracleJS) is not a tested or supported configuration — some operations that rely on PoracleNG-specific endpoints will not work.
 
-    **PoracleNG 5.2.1 or newer is required.** PoracleWeb.NET still starts against an older server, but logs an error at startup and reports the version on Admin → Settings, and parts of it fail there: on 5.1.0, lure and invasion edits can answer a server error and the features 5.2.x added are hidden. Which features need a newer server than that, and how support is decided, is in [PoracleNG Version Compatibility](architecture/poracleng-compatibility.md).
+    **PoracleNG 5.4.0 or newer is required.** PoracleWeb.NET still starts against an older server, so an admin can reach the UI and read what went wrong, but it logs an error at startup, reports the version on Admin → Settings, and every call to a route 5.4.0 added fails with a message naming the version it needs. Upgrade PoracleNG first. Why 5.4.0, and what it replaced, is in [PoracleNG Version Compatibility](architecture/poracleng-compatibility.md).
 
 ## Tech Stack
 
@@ -62,7 +62,7 @@ A web application for managing Pokemon GO notification alarms through the [Porac
 | Requirement | Version | Purpose |
 |---|---|---|
 | MySQL or MariaDB | Whatever your Poracle installation runs | The Poracle database from your existing Poracle installation, plus a second `poracle_web` database this application creates its own tables in |
-| Poracle | [PoracleNG](https://github.com/jfberry/PoracleNG) 5.2.1 or newer | Running instance with REST API enabled. All alarm, profile, and user operations are proxied through PoracleNG's REST API. PoracleJS is not a tested configuration. |
+| Poracle | [PoracleNG](https://github.com/jfberry/PoracleNG) 5.4.0 or newer | Running instance with REST API enabled. All alarm, profile, and user operations are proxied through PoracleNG's REST API. PoracleJS is not a tested configuration. |
 | Discord App | — | OAuth2 application for user authentication |
 | Koji | — | Geofence server. Supplies the admin areas in the unified geofence feed and receives user geofences an admin approves. Drawing a private geofence still works while Koji is unreachable |
 | .NET SDK | 10.0 | Backend development (not needed for Docker) |

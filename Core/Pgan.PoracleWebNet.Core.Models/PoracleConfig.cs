@@ -68,11 +68,11 @@ public class PoracleConfig
     /// <c>GET /api/config/poracleWeb</c> (e.g. <c>["raid", "quest"]</c>).
     /// </summary>
     /// <remarks>
-    /// <c>null</c> means the field was absent — an older Poracle or PoracleJS, which has no opinion —
+    /// <c>null</c> means the field was absent — PoracleJS, or a Poracle that could not be read, which has no opinion —
     /// and is deliberately distinct from an empty list, which means "nothing is disabled upstream".
     /// Only the latter is safe to enforce on. Translate to <c>disable_*</c> keys with
     /// <see cref="PoracleDisabledHookMap.ToDisableKeys"/>. Fort changes appear here as <c>fort</c> from
-    /// PoracleNG 5.2.1, the supported minimum.
+    /// every supported PoracleNG (5.4.0 and later).
     /// </remarks>
     public List<string>? DisabledHooks
     {

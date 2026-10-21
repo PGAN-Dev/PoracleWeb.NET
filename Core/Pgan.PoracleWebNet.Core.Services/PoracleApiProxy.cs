@@ -11,11 +11,9 @@ namespace Pgan.PoracleWebNet.Core.Services;
 
 public class PoracleApiProxy(
     HttpClient httpClient,
-    IConfiguration configuration,
-    IPoracleV2SchemaService v2Schema) : IPoracleApiProxy
+    IConfiguration configuration) : IPoracleApiProxy
 {
     private readonly HttpClient _httpClient = httpClient;
-    private readonly IPoracleV2SchemaService _v2Schema = v2Schema;
     private readonly string _apiAddress = configuration["Poracle:ApiAddress"] ?? string.Empty;
     private readonly string _apiSecret = configuration["Poracle:ApiSecret"] ?? string.Empty;
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -338,39 +336,27 @@ public class PoracleApiProxy(
     }
 
     /// <remarks>
-    /// <c>GET /api/v2/humans/{id}/areas</c> where the server declares it, v1's <c>GET /api/humans/{id}</c>
-    /// otherwise or when the route turns out to be missing. Both answer the same items -- <c>name</c>,
-    /// <c>group</c>, <c>description</c>, <c>userSelectable</c>, verified item for item against one build --
-    /// under an <c>areas</c> key, so the array is handed on as it came. See #995.
+    /// <c>GET /api/v2/humans/{id}/areas</c> only. The items -- <c>name</c>, <c>group</c>, <c>description</c>,
+    /// <c>userSelectable</c> -- sit under an <c>areas</c> key, so the array is handed on as it came. gin's
+    /// plaintext <c>404 page not found</c> is a server older than 5.4.0; problem+json at 404 is a human
+    /// PoracleNG does not have, answered as null.
     /// </remarks>
     public async Task<string?> GetAreasWithGroupsAsync(string userId)
     {
-        if ((await this._v2Schema.GetAsync()).AvailableAreas)
-        {
-            var v2 = this.CreateRequest(
-                HttpMethod.Get, $"{this._apiAddress}/api/v2/humans/{Uri.EscapeDataString(userId)}/areas");
-            var v2Response = await this._httpClient.SendAsync(v2);
-            var v2Json = await v2Response.Content.ReadAsStringAsync();
-
-            // gin's plaintext "404 page not found" is a route this build lacks; problem+json at 404 is a
-            // human PoracleNG does not have, which v1 answers with a 404 too, so it ends here the same way.
-            if (v2Response.StatusCode != HttpStatusCode.NotFound || PoracleProblemDetails.IsProblemJson(v2Json))
-            {
-                return v2Response.IsSuccessStatusCode ? AreasArray(v2Json) : null;
-            }
-        }
-
-        var request = this.CreateRequest(HttpMethod.Get, $"{this._apiAddress}/api/humans/{Uri.EscapeDataString(userId)}");
+        var request = this.CreateRequest(
+            HttpMethod.Get, $"{this._apiAddress}/api/v2/humans/{Uri.EscapeDataString(userId)}/areas");
         var response = await this._httpClient.SendAsync(request);
-        if (!response.IsSuccessStatusCode)
+        var json = await response.Content.ReadAsStringAsync();
+
+        if (response.StatusCode == HttpStatusCode.NotFound && !PoracleProblemDetails.IsProblemJson(json))
         {
-            return null;
+            throw new PoracleUnsupportedException("listing areas", "PoracleNG 5.4.0");
         }
 
-        return AreasArray(await response.Content.ReadAsStringAsync());
+        return response.IsSuccessStatusCode ? AreasArray(json) : null;
     }
 
-    /// <summary>The <c>areas</c> array out of either answer; a JSON null is the empty list.</summary>
+    /// <summary>The <c>areas</c> array out of the answer; a JSON null is the empty list.</summary>
     private static string? AreasArray(string json)
     {
         // Extract just the areas array from the response
@@ -487,21 +473,16 @@ public class PoracleApiProxy(
     /// <inheritdoc />
     public async Task<string?> GetGeocodeForwardAsync(string query, string? language = null)
     {
-        var (body, routeAbsent) = await this.GetGeocodeAsync(
+        return await this.GetGeocodeAsync(
             $"{this._apiAddress}/api/geocode/forward?q={Uri.EscapeDataString(query)}{LanguageParam(language)}");
-        return body ?? (routeAbsent ? await this.GetLegacyGeocodeAsync(providerUrl =>
-            $"{providerUrl}/search?addressdetails=1&q={Uri.EscapeDataString(query)}&format=json&limit=5") : null);
     }
 
     /// <inheritdoc />
     public async Task<string?> GetGeocodeReverseAsync(double lat, double lon, string? language = null)
     {
-        var (body, routeAbsent) = await this.GetGeocodeAsync(
+        return await this.GetGeocodeAsync(
             $"{this._apiAddress}/api/geocode/reverse?lat={lat.ToString(CultureInfo.InvariantCulture)}" +
             $"&lon={lon.ToString(CultureInfo.InvariantCulture)}{LanguageParam(language)}");
-        return body ?? (routeAbsent ? await this.GetLegacyGeocodeAsync(providerUrl =>
-            $"{providerUrl}/reverse?lat={lat.ToString(CultureInfo.InvariantCulture)}" +
-            $"&lon={lon.ToString(CultureInfo.InvariantCulture)}&format=json&addressdetails=1") : null);
     }
 
     private static string LanguageParam(string? language) =>
@@ -514,12 +495,12 @@ public class PoracleApiProxy(
     /// from holding up the picker the way it used to with a direct provider call.
     /// </summary>
     /// <returns>
-    /// The body on success; otherwise <c>null</c> and whether the 404 was gin's plaintext "route does not
-    /// exist" rather than PoracleNG's own "nothing at this coordinate" -- <c>reverse</c> answers the
-    /// latter as JSON (and always does under <c>[geocoding] forward_only</c>), which must not trigger the
-    /// legacy fallback the former does. See <see cref="PoracleProblemDetails.IsProblemJson"/>.
+    /// The body on success, otherwise <c>null</c>. A 404 that is gin's plaintext "route does not exist"
+    /// means a PoracleNG below 5.4.0 and throws <see cref="PoracleUnsupportedException"/>; PoracleNG's own
+    /// "nothing at this coordinate" -- <c>reverse</c> answers that as JSON, and always does under
+    /// <c>[geocoding] forward_only</c> -- stays <c>null</c>. See <see cref="PoracleProblemDetails.IsProblemJson"/>.
     /// </returns>
-    private async Task<(string? Body, bool RouteAbsent)> GetGeocodeAsync(string url)
+    private async Task<string?> GetGeocodeAsync(string url)
     {
         var request = this.CreateRequest(HttpMethod.Get, url);
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
@@ -529,49 +510,24 @@ public class PoracleApiProxy(
             var payload = await response.Content.ReadAsStringAsync(cts.Token);
             if (response.IsSuccessStatusCode)
             {
-                return (payload, false);
+                return payload;
             }
 
-            var routeAbsent = response.StatusCode == HttpStatusCode.NotFound && !PoracleProblemDetails.IsProblemJson(payload);
-            return (null, routeAbsent);
+            if (response.StatusCode == HttpStatusCode.NotFound && !PoracleProblemDetails.IsProblemJson(payload))
+            {
+                throw new PoracleUnsupportedException("Address search", "PoracleNG 5.4.0");
+            }
+
+            return null;
+        }
+        catch (PoracleUnsupportedException)
+        {
+            throw;
         }
         catch (Exception)
         {
             // Unreachable PoracleNG, a timeout, a malformed response -- all the same "no address this
             // time" answer to the caller, which is decoration and must not surface an error.
-            return (null, false);
-        }
-    }
-
-    /// <summary>
-    /// PoracleNG older than jfberry/PoracleNG#224 (merged into its <c>develop</c> 2026-09-16; not yet in
-    /// any tagged release as of this writing, confirmed against a live 5.2.1) has neither geocode route
-    /// and answers gin's plaintext 404 for both. Falls back to calling its configured provider directly
-    /// and speaking to it as Nominatim, exactly as this app did before the routes existed, so an existing
-    /// install does not lose geocoding outright -- see #845. This carries no <c>X-Poracle-Secret</c>: the
-    /// target is a third-party geocoder, not PoracleNG, and the secret must not reach it.
-    /// </summary>
-    private async Task<string?> GetLegacyGeocodeAsync(Func<string, string> buildUrl)
-    {
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-        try
-        {
-            // GetConfigAsync() uses EnsureSuccessStatusCode() and throws on anything but 2xx, so it has
-            // to share this try as well -- a PoracleNG old enough to miss the geocode routes is exactly
-            // the kind of build this app must keep working against, not one more way to surface an error.
-            // It also has to share the timeout: without passing cts.Token through, a slow /api/config/
-            // poracleWeb could hold this up past the 10 seconds the rest of this method is bounded to.
-            var config = await this.GetConfigAsync(cts.Token);
-            if (string.IsNullOrEmpty(config?.ProviderUrl))
-            {
-                return null;
-            }
-
-            var response = await this._httpClient.GetAsync(buildUrl(config.ProviderUrl.TrimEnd('/')), cts.Token);
-            return response.IsSuccessStatusCode ? await response.Content.ReadAsStringAsync(cts.Token) : null;
-        }
-        catch (Exception)
-        {
             return null;
         }
     }

@@ -108,8 +108,9 @@ nav:
       - CI/CD: development/ci-cd.md
       - Code Style: development/code-style.md
   - Troubleshooting: troubleshooting.md
-  - PoracleNG Enhancement Requests: poracleng-enhancement-requests.md
-  - PoracleNG v2 API Review: poracleng-v2-review.md
+  - Upstream history:
+      - PoracleNG Enhancement Requests: poracleng-enhancement-requests.md
+      - PoracleNG v2 API Review: poracleng-v2-review.md
 
 extra:
   social:

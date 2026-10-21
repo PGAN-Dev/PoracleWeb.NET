@@ -1,6 +1,6 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideTranslateService } from '@ngx-translate/core';
@@ -15,21 +15,30 @@ import { I18nService } from '../../core/services/i18n.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MonsterService } from '../../core/services/monster.service';
 import { PoracleConfigService } from '../../core/services/poracle-config.service';
-import { SettingsService } from '../../core/services/settings.service';
 
 describe('PokemonAddDialogComponent', () => {
   let component: PokemonAddDialogComponent;
   let dialogRef: { close: jest.Mock };
   let monsterService: { create: jest.Mock; editSupported: jest.Mock };
   let snackBar: { open: jest.Mock };
-  let masterData: { costumesAvailable: jest.Mock; getCostumeName: jest.Mock; getCostumes: jest.Mock; getFormsForPokemon: jest.Mock };
+  let masterData: {
+    costumesAvailable: jest.Mock;
+    getAllPokemon$: jest.Mock;
+    getAllTypes: jest.Mock;
+    getTypeLabel: jest.Mock;
+    getCostumeName: jest.Mock;
+    getCostumes: jest.Mock;
+    getFormsForPokemon: jest.Mock;
+  };
 
   /** Meowth (52) with two non-Normal forms: Alolan + Galarian. */
   const MEOWTH = 52;
   const ALOLAN = 78;
   const GALARIAN = 79;
 
-  function setup(costumeSupported = true) {
+  let fixture: ComponentFixture<PokemonAddDialogComponent>;
+
+  function setup() {
     dialogRef = { close: jest.fn() };
     // A create answers 200 with uid 0 when the submission duplicates an alarm the user already has, so
     // the uid is what says whether anything was made. See #495.
@@ -41,12 +50,15 @@ describe('PokemonAddDialogComponent', () => {
     snackBar = { open: jest.fn() };
     masterData = {
       costumesAvailable: jest.fn().mockReturnValue(true),
+      getAllPokemon$: jest.fn().mockReturnValue(of([])),
+      getAllTypes: jest.fn().mockReturnValue([]),
       getCostumeName: jest.fn().mockReturnValue('Halloween 2025'),
       getCostumes: jest.fn().mockReturnValue([{ id: 85, name: 'Halloween 2025' }]),
       getFormsForPokemon: jest.fn().mockReturnValue([
         { id: ALOLAN, name: 'Alolan' },
         { id: GALARIAN, name: 'Galarian' },
       ]),
+      getTypeLabel: jest.fn().mockImplementation((t: string) => t),
     };
 
     TestBed.resetTestingModule();
@@ -60,7 +72,6 @@ describe('PokemonAddDialogComponent', () => {
         { provide: MonsterService, useValue: monsterService },
         { provide: MasterDataService, useValue: masterData },
         { provide: I18nService, useValue: { instant: (k: string) => k } },
-        { provide: SettingsService, useValue: { supportsCostume: () => costumeSupported } },
         {
           provide: AlertDefaultsService,
           useValue: { defaultDistanceKm: () => 1, defaultMode: () => 'areas', defaultPlaceLabel: () => '' },
@@ -69,7 +80,7 @@ describe('PokemonAddDialogComponent', () => {
           provide: PoracleConfigService,
           useValue: { load: () => of({ defaultPvpCap: 0 }), serverConfig: () => ({ pvpCaps: [] }) },
         },
-        { provide: AuthService, useValue: { isImpersonating: () => false } },
+        { provide: AuthService, useValue: { isImpersonating: () => false, user: () => ({ type: 'discord:user' }) } },
       ],
       imports: [PokemonAddDialogComponent],
     });
@@ -83,7 +94,7 @@ describe('PokemonAddDialogComponent', () => {
 
     // No detectChanges(): we exercise save() logic directly and skip rendering the heavy
     // app-pokemon-selector child. Computed signals (availableForms) evaluate lazily on read.
-    const fixture = TestBed.createComponent(PokemonAddDialogComponent);
+    fixture = TestBed.createComponent(PokemonAddDialogComponent);
     component = fixture.componentInstance;
   }
 
@@ -92,6 +103,18 @@ describe('PokemonAddDialogComponent', () => {
   }
 
   beforeEach(() => setup());
+
+  // PoracleNG 5.4.0 stores a costume on every rule, so the control renders with the standard mocks and
+  // nothing telling the dialog the server supports it.
+  it('renders the costume filter on the Filters tab without any server capability', async () => {
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelectorAll('.mat-mdc-tab')[1] as HTMLElement).click();
+    fixture.detectChanges();
+    await new Promise(resolve => setTimeout(resolve, 400));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('POKEMON.LABEL_COSTUME');
+  });
 
   it('defaults the multi-select forms control to empty', () => {
     expect(component.filtersForm.controls.forms.value).toEqual([]);
@@ -308,27 +331,6 @@ describe('PokemonAddDialogComponent', () => {
     component.filtersForm.controls.forms.setValue([ALOLAN]);
     component.save();
     expect(monsterService.create).not.toHaveBeenCalled();
-  });
-
-  /**
-   * The gate. A Poracle without the monsters.costume column takes the field, answers 200 and drops it, so an
-   * offered control produces a rule that reads "Halloween 2025" and matches every spawn. The rest of
-   * the dialog is untouched -- only this one control goes.
-   */
-  describe('server capability', () => {
-    it('offers the costume filter when Poracle has the column', () => {
-      expect(component.showCostume()).toBe(true);
-    });
-
-    it('hides the costume filter when Poracle does not', () => {
-      setup(false);
-
-      expect(component.showCostume()).toBe(false);
-      // The wildcard still goes out, which is what an old Poracle stores for an absent key anyway.
-      component.selectedPokemonIds.set([25]);
-      component.save();
-      expect((monsterService.create.mock.calls[0][0] as MonsterCreate).costume).toBe(9000);
-    });
   });
 
   // jfberry/PoracleNG#246: edit-in-place for pokemon, composed onto clean bit 2.

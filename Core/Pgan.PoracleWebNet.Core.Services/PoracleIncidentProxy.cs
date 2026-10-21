@@ -216,8 +216,7 @@ public sealed partial class PoracleIncidentProxy(
                 return response;
             }
 
-            // The route itself 404s on a PoracleNG older than 5.2.0, but the feature gate is meant to
-            // have kept us off it entirely by then, so a 404 here means the human is gone -- the same
+            // A 404 here means the human is gone -- the same
             // dead-session case the v1 proxy maps. See #595.
             throw new AccountGoneException();
         }

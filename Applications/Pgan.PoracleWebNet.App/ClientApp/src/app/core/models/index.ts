@@ -404,13 +404,6 @@ export interface PoracleServerConfig {
   pvpFilterMaxRank: number;
   pvpFilterUltraMinCp: number;
   pvpLittleLeagueAllowed: boolean;
-  /**
-   * Whether the connected PoracleNG's /api/v2 genuinely stores a webhook mention (`ping`) rather than
-   * blanking it -- jfberry/PoracleNG#249, not yet in a tagged release. False on every released server.
-   * Gates the "Mention" delivery control in every alarm dialog: hidden rather than offered as a no-op,
-   * same reasoning as the Pokemon edit-in-place toggle.
-   */
-  pingSupported: boolean;
 }
 
 export interface AreaDefinition {
@@ -747,11 +740,6 @@ export interface SavedPlace {
 
 /** Everywhere a user's alarms can be anchored: the profile pin, plus whatever they have named. */
 export interface SavedPlaces {
-  /**
-   * Whether this Poracle server can move a place without deleting it first. Absent on an older
-   * PoracleWeb.NET API, and treated as false, because the edit is what would 404.
-   */
-  canEdit?: boolean;
   /** The profile pin every alarm falls back to. Absent when the user has never set a location. */
   default?: null | SavedPlace;
   named: SavedPlace[];

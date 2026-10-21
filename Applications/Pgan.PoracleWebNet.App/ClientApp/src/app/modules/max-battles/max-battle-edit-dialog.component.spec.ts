@@ -22,6 +22,7 @@ import { MaxBattleService } from '../../core/services/max-battle.service';
  * on, with no way to put them back from the UI. See #412.
  */
 describe('MaxBattleEditDialogComponent — filter preservation (#412)', () => {
+  let webhookSession = false;
   const ANY = 9000;
 
   /** Charizard, filtered to a specific move and evolution. */
@@ -58,7 +59,7 @@ describe('MaxBattleEditDialogComponent — filter preservation (#412)', () => {
         { provide: I18nService, useValue: { instant: (k: string) => k } },
         { provide: IconService, useValue: { getPokemonUrl: () => '' } },
         { provide: MasterDataService, useValue: { getPokemonName: () => 'Charizard' } },
-        { provide: AuthService, useValue: { isImpersonating: () => false } },
+        { provide: AuthService, useValue: { isImpersonating: () => webhookSession } },
         {
           provide: MaxBattleService,
           useValue: {
@@ -112,5 +113,21 @@ describe('MaxBattleEditDialogComponent — filter preservation (#412)', () => {
 
     expect(sent[0].move).toBe(ANY);
     expect(sent[0].evolution).toBe(ANY);
+  });
+
+  describe('Mention field', () => {
+    // The dialog's only condition for the Mention field is the impersonation snapshot: PoracleNG 5.4.0
+    // always stores a ping, so there is no server-config dependency left to consult.
+    it('is offered on a webhook alarm', () => {
+      webhookSession = true;
+      setup();
+      expect(TestBed.createComponent(MaxBattleEditDialogComponent).componentInstance.isWebhook).toBe(true);
+    });
+
+    it('is hidden on a personal alarm', () => {
+      webhookSession = false;
+      setup();
+      expect(TestBed.createComponent(MaxBattleEditDialogComponent).componentInstance.isWebhook).toBe(false);
+    });
   });
 });

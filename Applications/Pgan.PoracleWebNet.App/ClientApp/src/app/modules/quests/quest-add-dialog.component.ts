@@ -89,8 +89,7 @@ export class QuestAddDialogComponent {
 
   /**
    * Pokecoins mirror stardust exactly: no selector, and PoracleNG reads the minimum from `reward`
-   * rather than `amount`. Only offered when the server can store reward_type 8 -- see
-   * {@link supportsPokecoins}.
+   * rather than `amount`.
    */
   pokecoinsForm = this.fb.group({
     reward: [0],
@@ -104,8 +103,8 @@ export class QuestAddDialogComponent {
 
   /**
    * The reward types, with the numbers `save()` switches on written down rather than inferred from
-   * render order. Pokecoins is hidden on a PoracleNG that would refuse it (see `supportsPokecoins`);
-   * declaring its value keeps every other type where it was whether it renders or not.
+   * render order. Declared values keep every
+   * type where it is whatever the order.
    */
   readonly rewardKinds: { label: string; value: number }[] = [
     { label: 'QUESTS.TAB_POKEMON', value: 0 },
@@ -351,16 +350,5 @@ export class QuestAddDialogComponent {
         this.dialogRef.close(true);
       },
     });
-  }
-
-  /**
-   * Whether this PoracleNG can store pokecoin quest rewards at all.
-   *
-   * PoracleNG below 5.2.0 answers 400 "Unrecognised reward_type value", so the reward type is absent
-   * rather than present-and-failing. Hiding it shifts nothing: the values in `rewardKinds` are
-   * declared, not positional.
-   */
-  supportsPokecoins(): boolean {
-    return this.questService.pokecoinsSupported();
   }
 }

@@ -344,7 +344,6 @@ export class QuestListComponent implements OnInit {
   ngOnInit(): void {
     this.loadProfileAreas();
     this.summaryService.loadCapability();
-    this.questService.loadPokecoinCapability();
     this.masterData
       .loadData()
       .pipe(takeUntilDestroyed(this.destroyRef))

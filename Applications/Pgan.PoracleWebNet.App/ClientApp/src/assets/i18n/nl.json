@@ -2031,6 +2031,7 @@
     "SUBJECT_STATION": "dit station",
     "SUBJECT_TRACKING": "deze regel",
     "TOAST_EXTENDED": "Stil verlengd naar {{duration}}.",
+    "TOAST_LOAD_FAILED": "Kon je stille periodes niet laden. PoracleNG is mogelijk onbereikbaar.",
     "TOAST_FAILED": "Kon dat niet stilzetten. Probeer opnieuw.",
     "TOAST_QUIETED": "{{duration}} stilgezet.",
     "TOAST_RATE_LIMITED": "Te veel wijzigingen tegelijk. Probeer het over een minuut.",

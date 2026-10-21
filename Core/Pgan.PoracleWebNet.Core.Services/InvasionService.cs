@@ -26,7 +26,7 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
     /// </para>
     /// <para>
     /// <strong>Conditional, and that is the whole point.</strong> When the Pokestop Events surface is
-    /// unavailable — an operator who set <c>disable_showcase</c>, or a PoracleNG too old to report it — the page that
+    /// unavailable — an operator who set <c>disable_showcase</c>, or a PoracleNG that could not be asked — the page that
     /// would hold these rows does not exist, and filtering them out here would leave alarms that fire
     /// and cannot be seen or deleted. Event rows are creatable from the invasion add dialog wherever the
     /// page is off, so this is not hypothetical.
@@ -135,7 +135,7 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
         // No delete-first and no window in which the alarm exists nowhere: the create carrying the uid is
         // resolved by PoracleNG's diff like any other type's, and the reconciler drops the superseded row
         // when one was inserted. (PoracleNG 5.1.0's unique key made this a 500, which is why invasion once
-        // deleted the row first; 5.2.1 is the minimum and migration 8 dropped the key.)
+        // deleted the row first; 5.4.0 is the minimum and migration 8 dropped the key.)
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
         model.Uid = await TrackingUpdateReconciler.ReconcileAsync(
             this._proxy, TrackingType, userId, oldUid, result, this._logger, body, this._uidRemapper);

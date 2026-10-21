@@ -1,24 +1,21 @@
 using System.Text.Json;
 
-using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
 /// <summary>
-/// Proxy-first service for human operations. Admin bulk operations (GetAll, GetWebhooks, GetByIds,
-/// DeleteUser) prefer PoracleNG's v2 humans list/delete and fall back to IHumanRepository on a server
-/// too old for it (jfberry/PoracleNG#230, develop only as of this writing). See #839. GetByIdAsync and
-/// ExistsAsync answer null/false only when PoracleNG says the human does not exist (404); any other failure
-/// throws, so a caller can no longer mistake an outage for a missing account. See #994.
+/// Service for human operations, all of it through PoracleNG. Admin bulk operations (GetAll, GetWebhooks,
+/// GetByIds, DeleteUser) use PoracleNG's v2 humans list/delete; a server without them is older than the
+/// 5.4.0 minimum and the proxy says so. GetByIdAsync and ExistsAsync answer null/false only when PoracleNG
+/// says the human does not exist (404); any other failure throws, so a caller can no longer mistake an
+/// outage for a missing account. See #994.
 /// </summary>
 public class HumanService(
-    IHumanRepository repository,
     IPoracleHumanProxy humanProxy,
     IPoracleTrackingProxy trackingProxy) : IHumanService
 {
-    private readonly IHumanRepository _repository = repository;
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly IPoracleTrackingProxy _trackingProxy = trackingProxy;
 
@@ -28,10 +25,10 @@ public class HumanService(
         ["pokemon", "raid", "egg", "quest", "invasion", "lure", "nest", "gym", "fort", "maxbattle"];
 
     public async Task<IEnumerable<Human>> GetAllAsync() =>
-        await this._humanProxy.ListHumansAsync() ?? await this._repository.GetAllAsync();
+        await this._humanProxy.ListHumansAsync();
 
     public async Task<IEnumerable<Human>> GetWebhooksAsync() =>
-        await this._humanProxy.ListHumansAsync(type: "webhook") ?? await this._repository.GetWebhooksAsync();
+        await this._humanProxy.ListHumansAsync(type: "webhook");
 
     public async Task<IEnumerable<Human>> GetByIdsAsync(IEnumerable<string> ids)
     {
@@ -41,7 +38,7 @@ public class HumanService(
             return [];
         }
 
-        return await this._humanProxy.ListHumansAsync(ids: idList) ?? await this._repository.GetByIdsAsync(idList);
+        return await this._humanProxy.ListHumansAsync(ids: idList);
     }
 
     public async Task<Human?> GetByIdAsync(string id)
@@ -98,7 +95,7 @@ public class HumanService(
     }
 
     public async Task<bool> DeleteUserAsync(string userId) =>
-        await this._humanProxy.DeleteHumanAsync(userId) ?? await this._repository.DeleteUserAsync(userId);
+        await this._humanProxy.DeleteHumanAsync(userId);
 
     // PoracleNG 5.1.0/5.2.1 send flags as 0/1 and area lists as JSON-encoded strings; jfberry/PoracleNG#303
     // sends booleans and arrays. Both must read with no version gate, so these four fields use the lenient

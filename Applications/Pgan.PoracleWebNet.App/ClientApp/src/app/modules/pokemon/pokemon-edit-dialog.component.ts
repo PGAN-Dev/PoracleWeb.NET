@@ -22,7 +22,6 @@ import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MonsterService } from '../../core/services/monster.service';
 import { PoracleConfigService } from '../../core/services/poracle-config.service';
-import { SettingsService } from '../../core/services/settings.service';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
@@ -62,7 +61,6 @@ export class PokemonEditDialogComponent implements OnInit {
   private readonly masterData = inject(MasterDataService);
   private readonly monsterService = inject(MonsterService);
   private readonly poracleConfig = inject(PoracleConfigService);
-  private readonly settings = inject(SettingsService);
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<Monster>(MAT_DIALOG_DATA);
   readonly availableForms = computed(() => {
@@ -100,7 +98,7 @@ export class PokemonEditDialogComponent implements OnInit {
     minLevel: [this.data.minLevel],
     minTime: [this.data.minTime ?? 0],
     minWeight: [this.data.minWeight],
-    // Always present, even when the control is hidden -- see pingSupported above -- so a mention set
+    // Always present, even when the Mention control is hidden (not a webhook alarm) -- so a mention set
     // by the bot, or by a web edit on a server that supports it, round-trips unchanged through a save
     // this dialog makes for an unrelated field.
     ping: [this.data.ping ?? '', [Validators.maxLength(255)]],
@@ -120,15 +118,6 @@ export class PokemonEditDialogComponent implements OnInit {
   });
 
   readonly isWebhook = inject(AuthService).isImpersonating();
-
-  /**
-   * Whether to show the Mention control at all. Gated on both halves: a webhook alarm is the only
-   * place a mention does anything (a personal DM has nobody else to notify), and the connected
-   * PoracleNG must genuinely store it rather than blank it (jfberry/PoracleNG#249) -- offering the
-   * control on an older server would be a control nobody could use. See CLAUDE.md's "Clean Field
-   * Bitmask" / ping section for why a v1 write can never carry a changed mention safely either way.
-   */
-  readonly pingSupported = computed(() => this.poracleConfig.serverConfig().pingSupported);
 
   pokemonName = this.data.pokemonId === 0 ? this.i18n.instant('POKEMON.ALL_POKEMON') : this.masterData.getPokemonName(this.data.pokemonId);
 
@@ -246,14 +235,5 @@ export class PokemonEditDialogComponent implements OnInit {
         this.dialogRef.close(true);
       },
     });
-  }
-
-  /**
-   * Whether to offer the costume filter at all. False on a Poracle without the monsters.costume column: it
-   * takes the field, answers 200 and drops it, so the control would produce a rule that reads
-   * "Halloween 2025" and matches every spawn. Unknown counts as absent.
-   */
-  showCostume(): boolean {
-    return this.settings.supportsCostume('pokemon');
   }
 }

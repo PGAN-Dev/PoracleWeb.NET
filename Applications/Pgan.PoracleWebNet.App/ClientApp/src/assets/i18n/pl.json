@@ -2031,6 +2031,7 @@
     "SUBJECT_STATION": "tę stację",
     "SUBJECT_TRACKING": "tę regułę",
     "TOAST_EXTENDED": "Wyciszenie przedłużone do {{duration}}.",
+    "TOAST_LOAD_FAILED": "Nie udało się wczytać okresów ciszy. PoracleNG może być nieosiągalny.",
     "TOAST_FAILED": "Nie udało się wyciszyć. Spróbuj ponownie.",
     "TOAST_QUIETED": "Wyciszone na {{duration}}.",
     "TOAST_RATE_LIMITED": "Za dużo zmian naraz. Spróbuj za minutę.",

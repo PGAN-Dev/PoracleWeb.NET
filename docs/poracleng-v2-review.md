@@ -7,7 +7,8 @@
 !!! warning "Historical record, written 2026-08 against an open pull request"
     This review was written against PoracleNG PR #139 (branch `huma-api-migration`) while it was still
     open. Every "source-verified" claim in it is a claim about that branch, not about a release. v2 has
-    since shipped in **PoracleNG 5.2.0**, and PGAN production runs 5.2.1.
+    since shipped in **PoracleNG 5.2.0**, and the fixes it asked for shipped in **5.4.0**, which PoracleWeb.NET
+    now requires. `Poracle:TrackingApiVersion` no longer exists.
 
     Read it for the reasoning, not for the current state. Three of its recommendations were overtaken:
 
@@ -21,8 +22,8 @@
       `RuleSummaryComponent` renders.
 
     Appendix A's asks were later filed as jfberry/PoracleNG#208 through #216 and fixed in
-    [PR #217](https://github.com/jfberry/PoracleNG/pull/217), merged 2026-08-31 -- onto `develop`, so no
-    released build carries any of it. Where each ask now stands is tracked in
+    [PR #217](https://github.com/jfberry/PoracleNG/pull/217), merged 2026-08-31 and released in 5.4.0.
+    Where each ask now stands is tracked in
     [the enhancement requests](poracleng-enhancement-requests.md), which is the document kept current.
 
     Two of that batch were built against a running `develop` on 2026-09-16 and **do not close the rows

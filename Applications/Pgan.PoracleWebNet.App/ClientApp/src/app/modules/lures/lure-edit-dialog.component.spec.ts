@@ -13,6 +13,7 @@ import { ConfigService } from '../../core/services/config.service';
 import { LureService } from '../../core/services/lure.service';
 
 describe('LureEditDialogComponent', () => {
+  let webhookSession = false;
   let component: LureEditDialogComponent;
   let dialogRef: { close: jest.Mock };
   let lureService: { update: jest.Mock };
@@ -44,7 +45,7 @@ describe('LureEditDialogComponent', () => {
         { provide: MAT_DIALOG_DATA, useValue: data },
         { provide: MatDialogRef, useValue: dialogRef },
         { provide: LureService, useValue: lureService },
-        { provide: AuthService, useValue: { isImpersonating: () => false, user: () => ({ type: 'discord:user' }) } },
+        { provide: AuthService, useValue: { isImpersonating: () => webhookSession, user: () => ({ type: 'discord:user' }) } },
       ],
       imports: [LureEditDialogComponent],
     });
@@ -135,6 +136,22 @@ describe('LureEditDialogComponent', () => {
       component.save();
       expect(lureService.update).toHaveBeenCalledWith(42, expect.objectContaining({ clean: 2 }));
       expect(dialogRef.close).toHaveBeenCalledWith(true);
+    });
+  });
+
+  describe('Mention field', () => {
+    // The dialog's only condition for the Mention field is the impersonation snapshot: PoracleNG 5.4.0
+    // always stores a ping, so there is no server-config dependency left to consult.
+    it('is offered on a webhook alarm', () => {
+      webhookSession = true;
+      setup({ ...baseLure });
+      expect(TestBed.createComponent(LureEditDialogComponent).componentInstance.isWebhook).toBe(true);
+    });
+
+    it('is hidden on a personal alarm', () => {
+      webhookSession = false;
+      setup({ ...baseLure });
+      expect(TestBed.createComponent(LureEditDialogComponent).componentInstance.isWebhook).toBe(false);
     });
   });
 });

@@ -1,6 +1,17 @@
 # PoracleNG API Enhancement Requests
 
-This document tracks PoracleNG API gaps that require workarounds in PoracleWeb.NET. Each gap is referenced by inline `HACK`/`TODO` comments throughout the codebase.
+This document tracks PoracleNG API gaps that required workarounds in PoracleWeb.NET, and what became of each. Some gaps are still referenced by inline `HACK`/`TODO` comments in the codebase.
+
+!!! success "Everything requested upstream landed in PoracleNG 5.4.0"
+    Every request filed against PoracleNG while PoracleWeb.NET worked out how to stop reading and
+    writing its database was answered in [jfberry/PoracleNG#328](https://github.com/jfberry/PoracleNG/pull/328),
+    which ships as 5.4.0: #243 (`exemptFromAreaSecurity`), #252, #253 and #259 (area delete and rename
+    across profiles), #323 (the type on a rule mute), #325 (bulk writes) and #326 (a strict create,
+    answered as `dry_run` plus `previous`). The one exception is #324, which was declined: v2 keeps `null`
+    as the stored wildcard, and PoracleWeb.NET translates it. PoracleWeb.NET requires 5.4.0 for that
+    reason, so the workarounds for older servers are gone. What 5.4.0 offers that this application hasn't
+    adopted yet is marked **Not yet adopted** below; the tracker is
+    [#996](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/996).
 
 ## Background
 
@@ -35,6 +46,12 @@ Body: { "uids": [1, 2, 3], "distance": 500 }
 
 **Workaround without enhancement:** Fetch all alarms via GET, then POST each one back with the distance field changed. Very inefficient for users with hundreds of alarms.
 
+**Landed in 5.4.0** ([jfberry/PoracleNG#325](https://github.com/jfberry/PoracleNG/issues/325), via #328), together
+with bulk clean below, as a v2 partial update over a uid set: `PATCH .../tracking/{type}` with
+`{uids, set}`. It answers per-uid refusals (`invalid`, `conflict`) instead of failing the batch, which
+retires `DistanceRewrite.Build`'s area-scoped/place-scoped split once tracking moves to v2.
+**Not yet adopted**: the fetch-modify-POST above is still what runs.
+
 ---
 
 ### Bulk Clean Toggle
@@ -54,6 +71,9 @@ Body: { "clean": 1 }
 ```
 
 **Workaround without enhancement:** Fetch all alarms via GET, then POST each back with the clean field changed. Same inefficiency as bulk distance.
+
+**Landed in 5.4.0** with bulk distance ([jfberry/PoracleNG#325](https://github.com/jfberry/PoracleNG/issues/325)).
+**Not yet adopted.**
 
 ---
 
@@ -100,7 +120,7 @@ DELETE /api/tracking/all/{id}
 **Code refs:** `ProfileController.cs:Delete`
 
 **Status: Resolved, verified upstream.** `ProfileController.Delete` proxies to
-`DELETE /api/profiles/{id}/byProfileNo/{n}` and PoracleNG cascades. `SQLHumanStore.DeleteProfile`
+`DELETE /api/v2/humans/{id}/profiles/{n}` and PoracleNG cascades. `SQLHumanStore.DeleteProfile`
 (`processor/internal/store/human_sql.go`) deletes the `profiles` row, deletes every tracking row for that
 `(id, profile_no)`, and when the deleted profile was the active one moves `current_profile_no` to the
 lowest remaining profile, copying that profile's area and coordinates into `humans`. Deleting profile 1
@@ -182,19 +202,42 @@ clear matters: whether the target server actually carries the fix, which neither
 off -- sidestepping the community-restriction question entirely rather than resolving it, since there is
 nothing to restrict with it off. See `IAreaSecurityPolicyService`.
 
-The feed side of [jfberry/PoracleNG#243](https://github.com/jfberry/PoracleNG/issues/243) is done:
-`GeofenceFeedController` serves every user-drawn fence with `exemptFromAreaSecurity: true` (and no Koji fence
-with it), so a server carrying #254 keeps the community filter off users' own fences. The gate above is
-unchanged; relaxing it to take the trusted path with area security on is a separate step, once a release
-carries #254.
-
 The other three methods are not candidates for the same treatment yet, for the same reasons as before:
 `RemoveAreaFromAllProfilesAsync` and `RenameAreaInAllProfilesAsync` have no profile-spanning API form at
 all (`?profile=`/`?all_profiles=`, added by #230, write one list identically to a profile or to every
 profile -- not "remove this name from each profile's own list"), and `SetAlarmOverrideAreasAsync` is
-blocked on this app's own alarm-create migration, not on PoracleNG.
+blocked on this app's own alarm-create migration, not on PoracleNG. The first gap is now formally filed
+upstream as [jfberry/PoracleNG#253](https://github.com/jfberry/PoracleNG/issues/253) ("no API operation
+removes one area name from every profile") and
+[#252](https://github.com/jfberry/PoracleNG/issues/252) ("`?all_profiles=` doc recommends using a
+whole-list replace as a per-name removal, which destroys the other profiles' selections"), both opened
+2026-10-11, neither fixed as of this writing. The rename half is
+[#259](https://github.com/jfberry/PoracleNG/issues/259). `jfberry` accepted it on 2026-10-17 with a planned
+`PATCH /api/v2/humans/{id}/areas?from=<old>&to=<new>[&profile=N|&all_profiles=true][&trusted=true]`, one
+transaction, with two conditions that matter here: `to` must already be a loaded fence (so promotion is
+Koji publish, then `POST /api/geofence/reload`, then the PATCH, else a 422 and nothing changes), and every
+rule whose `override_areas` holds the old name is rewritten in the same transaction.
 
-**Workaround (HACK), for the three unmigrated methods and as the fallback for the three migrated ones:**
+That second point exposes a gap in the current workaround. `RenameAreaInAllProfilesAsync`, and the delete
+path, touch `humans.area` and `profiles.area` only, never `override_areas`. A rule scoped to a deleted or
+renamed fence keeps the dead name, and `UserOwnedOverrideAreaProxy` strips only names the user still owns,
+so the dead name goes to PoracleNG on the rule's next edit. With #211's fix, `newOverrideContext` builds
+the permitted set from the live fences and answers `400 "area not permitted"` for anything else (read on
+`develop` at `25ff8c0a`), so on a server carrying #217 that rule cannot be edited until it is deleted.
+
+**5.4.0 answered the remaining gaps** ([#328](https://github.com/jfberry/PoracleNG/pull/328)).
+`DELETE /api/v2/humans/{id}/areas?name=&all_profiles=true` removes one name from every profile in a
+transaction and takes `dry_run=true`, which reports the alarms that would be `broadened` by losing a
+fence they were limited to ([#253](https://github.com/jfberry/PoracleNG/issues/253), with
+[#252](https://github.com/jfberry/PoracleNG/issues/252) as the documentation fix). `PATCH
+/api/v2/humans/{id}/areas?from=&to=` renames across profiles, rewriting `override_areas` in the same
+transaction ([#259](https://github.com/jfberry/PoracleNG/issues/259)). `trusted` lifts only
+`userSelectable`, and a user's own fence can carry `exemptFromAreaSecurity`
+([#243](https://github.com/jfberry/PoracleNG/issues/243)), so the "confirmed off" gate on `area_security` is
+no longer needed. **Not yet adopted**: `IUserAreaDualWriter` and every `HACK: trusted-set-areas` site below
+still run, and the sub-project that moves area writes to v2 deletes them.
+
+**Workaround (HACK), still running for all six methods until then; before 5.4.0 it was the fallback for three:**
 `UserGeofenceService` delegates to `IUserAreaDualWriter`, a tiny atomic-write abstraction that holds the
 Poracle `DbContext` and commits both `humans.area` and the active `profiles.area` in a single
 `SaveChangesAsync` call. The single-SaveChanges guarantees EF Core wraps both writes in one implicit
@@ -203,8 +246,8 @@ transaction — `humans.area` and `profiles.area` cannot drift, even if the proc
 the proxy `SetAreasAsync` call to re-add any user-owned geofences that PoracleNG stripped; this prefers the
 same trusted path, falling back to the writer's bulk `AddAreasToActiveProfileAsync`. These direct-DB writes
 are tagged `HACK: trusted-set-areas`; `grep -rn "HACK: trusted-set-areas" --include="*.cs"` lists every one,
-migrated or not. `IProfileRepository.RenameAsync` and `HumanRepository.DeleteUserAsync` are direct writes
-for their own reasons, covered under the v2 findings below.
+migrated or not. The two other direct writes this list used to carry, a profile rename and a human delete,
+went with 5.4.0 (see the v2 findings below).
 
 Because the direct-DB writes skip PoracleNG's `HandleSetAreas` handler, they also skip its terminal `reloadState(deps)` call — so `AddToProfileAsync`, `RemoveFromProfileAsync`, and `PreserveOwnedAreasInHumanAsync` each call `ReloadGeofencesSafeAsync` manually to ask PoracleNG to refresh its in-memory state. The trusted path triggers its own reload server-side, so the manual call is redundant there and load-bearing only on the fallback; it stays unconditional at all three call sites rather than threading "which path was taken" back out of a private helper that has no other reason to report it. Without it on the fallback path, a toggle would only take effect on the next organic state reload (potentially minutes).
 
@@ -217,7 +260,7 @@ Because the direct-DB writes skip PoracleNG's `HandleSetAreas` handler, they als
 **ID:** `null-field-defaults`  
 **Priority:** Low (resolved)
 
-**Status: Resolved.** `BaseRepository` and `EnsureNotNullDefaults()` have been removed. All alarm writes go through the PoracleNG API, which applies proper defaults via `cleanRow()`. Remaining direct-DB repositories (`HumanRepository` for admin ops, `poracle_web`-owned tables) handle null normalization as needed.
+**Status: Resolved.** `BaseRepository` and `EnsureNotNullDefaults()` have been removed. All alarm writes go through the PoracleNG API, which applies proper defaults via `cleanRow()`. The remaining direct-DB repositories (`poracle_web`-owned tables) handle null normalization as needed; the human repository is gone.
 
 ---
 
@@ -247,8 +290,8 @@ languages and let the write fail.
 
 `GET /api/config/poracleWeb` now carries `availableLanguages`. `PoracleApiProxy` reads it,
 `SettingsController` projects it as `poracle_alert_languages`, and `AlertLanguageService.restrictTo`
-narrows the menu to codes Poracle will accept. Absent or empty means unrestricted — which is also what a
-server older than 5.2.1 sends, and both accept any code, so the two need no telling apart.
+narrows the menu to codes Poracle will accept. Absent or empty means unrestricted, and both accept any code,
+so the two need no telling apart.
 
 ---
 
@@ -261,14 +304,13 @@ server older than 5.2.1 sends, and both accept any code, so the two need no tell
 hook. `pokestop`, which was in the array while nothing in the processor read the flag, is gone from it and
 the config field is deprecated.
 
-The tail this left for older servers is gone. `UpstreamFeatureFlagService` used to read
-`general.disable_fort_update` from `GET /api/config/values` for a server that did not report
-`availableLanguages`; that read went when 5.2.1 became the minimum (2026-10-20). `pokestop` still maps to
-nothing, which costs nothing and stays right if anything still sends it.
+Both halves left a tail for servers older than 5.2.1, and it is gone. `UpstreamFeatureFlagService` no
+longer reads `general.disable_fort_update` separately, and `pokestop` still maps to nothing so that a
+stray entry can't switch off lures, invasions and quests on a flag that does nothing.
 
 `disable_showcase` is the same shape one release later: enforced, absent from `disabledHooks`, and read
 separately by `IPoracleApiProxy.GetShowcaseDisabledAsync`. Filed as
-[#210](https://github.com/jfberry/PoracleNG/issues/210) and fixed in PR #217, which is on `develop` only.
+[#210](https://github.com/jfberry/PoracleNG/issues/210) and fixed in PR #217, which ships in 5.4.0.
 
 ---
 
@@ -277,9 +319,9 @@ separately by `IPoracleApiProxy.GetShowcaseDisabledAsync`. Filed as
 Nine things found while planning the v1-to-v2 migration against **PoracleNG 5.2.1**, each confirmed by
 calling a running instance on 2026-08-24 rather than by reading source. All nine were filed as
 jfberry/PoracleNG#208 through #216, accepted, and fixed in
-[PR #217](https://github.com/jfberry/PoracleNG/pull/217), merged 2026-08-31 -- onto `develop`.
-**No released build carries any of it**, so every consequence below is still live and every workaround is
-still the one running.
+[PR #217](https://github.com/jfberry/PoracleNG/pull/217), merged 2026-08-31 and shipped in 5.4.0. The
+"Here" paragraphs say what PoracleWeb.NET did about each; the workarounds that existed only for servers
+without the fix are gone.
 
 Eight of the nine are below; the ninth, `disable_showcase` missing from `disabledHooks`, sits with its
 twin under [disabledHooks](#disabledhooks-corrected-in-521).
@@ -294,8 +336,8 @@ The v2 schema declared `day` as `minimum: 0, maximum: 6` and the migration guide
 translated between them, so through v2 a Sunday schedule could not be expressed at all and the value that
 *was* accepted matched no weekday. Any client following the guide wrote schedules that never fire.
 
-**Here:** profile writes stay on v1 and `ActiveHoursValidator` enforces 1-7, which is what the fix settles
-on. Nothing to change.
+**Here:** `ActiveHoursValidator` enforces 1-7, which is what the fix settles on. Profile writes now go
+through v2 and the schedule is sent as v2's entry array.
 
 ### v2 invasion reads omit the targeting field for a named grunt, so GET then PUT is impossible
 
@@ -361,10 +403,8 @@ number would make PoracleNG's migration *numbering* a public contract. PR #217 a
 instead, with a `costume` capability flag on `/health`, `GET /api/v2/activity` and
 `GET /api/masterdata/costumes`.
 
-**Here:** nothing any more. `PoracleSchemaVersionReader` read `schema_migrations` (and `information_schema`)
-from the Poracle database directly, for the costume columns and the lure and invasion unique keys. Every
-supported release (5.2.1 and later) has all three answers the same way, so it was deleted when 5.2.1 became
-the minimum.
+**Here:** `PoracleSchemaVersionReader` is gone. Nothing needs the migration number now that 5.4.0 is the
+minimum, so PoracleWeb.NET no longer reads `schema_migrations` or `information_schema`.
 
 ### No list-humans and no delete-human, on either version
 
@@ -374,21 +414,15 @@ the minimum.
 Every human route was single-`{id}`: `GET /api/humans`, `GET /api/v2/humans` and `DELETE /api/v2/humans/{id}`
 all answered 404.
 
-**Here:** all three still keep `HumanRepository.GetAllAsync`, `GetByIdsAsync` and `DeleteUserAsync` -- and
-therefore `PoracleContext` -- alive, and the list alone does not release them. Its item carries seven fields
-(`admin_disable`, `current_profile_no`, `enabled`, `id`, `language`, `name`, `type`) and the admin grid also
-renders `disabled_date` and `notes`. Both come back from `GET /v2/humans/{id}` for a single human and neither
-from the list, and per-id is not an option against 2,333 humans. Filed as
-[#229](https://github.com/jfberry/PoracleNG/issues/229) and added in
-[PR #230](https://github.com/jfberry/PoracleNG/pull/230), which also confirms `type=webhook` is the exact
-stored value `GetWebhooksAsync` would filter on.
-
-`GetByIdsAsync` and `DeleteUserAsync` would work against the list as it already stands, and are deliberately
-not moved ahead of `GetAllAsync`: neither deletes anything while the repository survives for the third
-method, so moving them early buys a capability-gated second path and no removal. `ExistsAsync` was a separate
-case and is gone from the repository: `UserPurgeService` read the database only because the proxy could not tell
-an account that is gone from a Poracle that is unreachable. That was our proxy's limitation, not PoracleNG's, and
-since PoracleWeb.NET [#994](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/994) the proxy answers null only for a 404.
+**Here: adopted**, in PoracleWeb.NET #839/#936 first as a fallback, and now with no fallback. The list, the
+webhook list, the batch read that resolves geofence owners' names and the delete all go through
+`/api/v2/humans`, and `HumanRepository` is deleted. The list item carries seven fields (`admin_disable`,
+`current_profile_no`, `enabled`, `id`, `language`, `name`, `type`) and the admin grid also renders
+`disabled_date` and `notes`; [#229](https://github.com/jfberry/PoracleNG/issues/229) (closed, merged via
+[PR #230](https://github.com/jfberry/PoracleNG/pull/230)) added them, and confirms `type=webhook` is the
+exact stored value `GetWebhooksAsync` filters on. The existence check behind the purge reads the proxy
+too, which answers null only for a 404 and throws for anything else, so an outage is no longer reported
+as "already gone" ([#994](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/994)).
 
 ### Profile create returns no `profile_no`, and nothing can rename a profile
 
@@ -399,15 +433,13 @@ profile, and `PATCH` is a real PATCH that can rename.
 rather than max + 1, so the caller could not predict it. `PATCH .../profiles/{n}` required `active_hours` and
 refused every other property, `name` included.
 
-**Here: adopted**, in PoracleWeb.NET #891, behind `IPoracleV2SchemaService` -- which reads the target
-instance's own `/openapi.json` and answers whether it carries each capability. Version would not do: the
-branch reports `5.3.0`, no release carries it, and a fork that cherry-picks one fix reports whatever it likes.
-
-Both fallbacks stay for released servers, and the rename gate is load-bearing rather than an optimisation:
-`PATCH .../profiles/{n}` exists on 5.2.1, where `V2UpdateProfileBody` declares `active_hours` alone under
-`additionalProperties: false`, so sending a name there is a 422 rather than an ignored field.
-`ProfileNumbering.ResolveCreated` cannot be replaced by arithmetic either way, because PoracleNG assigns the
-lowest free number.
+**Here: adopted**, in PoracleWeb.NET #891 behind a schema probe, and now unconditional: the create returns
+the number, and the rename is `PATCH .../profiles/{n}`, sent with only the `active_hours` the caller
+submitted. `ProfileNumbering`'s list-create-list-diff and `IProfileRepository.RenameAsync` are deleted,
+along with the schema flags that chose between paths. A new profile's areas and location are written by
+`NewProfileGeography` through `?profile=N` on the v2 areas and location routes (#993), because PoracleNG's
+add still ignores both; if that fails the new profile is deleted again, since no direct write is left to
+repair it.
 
 ### v2 `setAreas` keeps the v1 `userSelectable` filter
 
@@ -420,23 +452,52 @@ against a `develop` build carrying #230.
 
 Re-confirmed on 5.2.1 rather than taken from source: `POST /api/v2/humans/{id}/areas` with
 `["<a user-drawn fence>", "aberdeen"]` stored `["aberdeen"]` -- silently, 200, exactly as v1 does. That
-remains true on 5.2.1; it is #230, not yet in any release, that changes the behaviour.
+remains true on 5.2.1; it is #230, in 5.4.0, that changes the behaviour.
 
 **Here:** partially adopted, in [#838](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/838) /
 [#937](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/937) -- see the [trusted setAreas]
 (#trusted-setareas-bypass-userselectable-filter) ask above for what moved (three of six `IUserAreaDualWriter`
-methods) and what is still blocked (a profile target on `setAreas`; a trusted per-rule override write, which
-exists on v2 tracking updates but not creates). Every `HACK: trusted-set-areas` site that has not moved
-stays as the fallback for the sites that have, not merely as a stopgap -- the remaining three methods need
-their own, separate unblocking.
+methods) and what was blocked (a profile target on `setAreas`, filed as
+[#252](https://github.com/jfberry/PoracleNG/issues/252)/[#253](https://github.com/jfberry/PoracleNG/issues/253),
+now answered by 5.4.0; a trusted per-rule override write, which exists on v2 tracking updates but not
+creates). Every
+`HACK: trusted-set-areas` site that has not moved stays as the fallback for the sites that have, not
+merely as a stopgap -- the remaining three methods need their own, separate unblocking.
+
+---
+
+### `ping` is blanked unconditionally by v1 writes too, not only by pre-#249 v2
+
+**Status: upstream half fixed in [jfberry/PoracleNG#249](https://github.com/jfberry/PoracleNG/pull/249)
+(merged 2026-10-11, in 5.4.0); the v1 half is not fixed and is why a refusal remains.**
+
+Every `V2*Rule` had no field for `ping` until #249, and the handlers stored `Ping: ""` unconditionally on
+a v2 write — verified live against 5.2.1. What had never been checked until this week: whether falling
+back to v1 for a pinged row actually preserved it, as the long-standing fallback comment claimed
+("sends the row to v1, which keeps it"). It doesn't. Verified live, against both a stock
+jfberry/PoracleNG `develop` build and a private fork on the same commit: **v1's write handler blanks
+`ping` unconditionally too** — present, changed, or left untouched, create or update, field sent or
+omitted from the request. There has never been a write surface, on any PoracleNG released to date, that
+preserves a role or user mention through an edit made from this site. Every such edit, for any reason, on
+any server, has been silently deleting the mention.
+
+**Here:** v2 carries `ping` on every rule, so an edit that goes through v2 keeps a mention. v1 still
+blanks it, so `PoracleTrackingProxy.TryReplaceV2Async` refuses the whole edit with
+`AlarmValidationException` (`RefuseIfV1WouldDropPing`) whenever it is about to answer "use v1" for a row
+holding a non-empty `ping`, whatever the reason for the fallback. This is the one gap in this document
+where the workaround is refusal rather than a `HACK`: there is no safe write to fall back to. The
+`TrackingPing` capability flag that used to gate it is deleted, and the Mention field in the edit dialogs
+no longer asks the server whether `ping` is supported. Creates that carry a ping (quick-pick apply,
+import, duplicate) still go to v1 and lose it; moving creates to v2 fixes that. PoracleWeb.NET #956 (the
+first fix) and #957 (a UX bug it surfaced: the Mention placeholder was realistic enough to be mistaken
+for a stored value).
 
 ---
 
 ### Tracking create has no upsert path for natural-key types
 
 **Status: closed by a schema change in 5.2.1.** Migration `000008_drop_tracking_unique_keys` (upstream
-commit `5a3886a`, 2026-08-18, three days before the 5.2.1 version bump) drops both keys. The workaround
-below was deleted when 5.2.1 became PoracleWeb.NET's minimum (2026-10-20).
+commit `5a3886a`, 2026-08-18, three days before the 5.2.1 version bump) drops both keys.
 
 `lure` and `invasion` were the only types PoracleWeb tracks that carried a unique index over a natural key:
 
@@ -455,18 +516,29 @@ Duplicate entry '<id>-<profile_no>-<lure_id>' for key 'lure_tracking'
 ```
 
 PoracleNG answered `500 {"message":"database error"}` and the edit was discarded, so the only way to edit
-these two types was to delete the row first. That is what `NaturalKeyTrackingUpdate` did, at the cost of
+these two types was to delete the row first. That is what `NaturalKeyTrackingUpdate` does, at the cost of
 rotating the `uid` on every edit and orphaning anything holding the old one -- quick-pick applied state
 tracks uids. `ITrackedUidRemapper` moves that state across, so the rotation is handled rather than merely
 known about.
 
-**Here, now:** `LureService` and `InvasionService` try the v2 PUT first and otherwise take the same v1
-upsert-and-reconcile path as every other type, behind the shared merge guard. `NaturalKeyTrackingUpdate`,
-`INaturalKeyCapabilityService` and the natural-key Add refusals are gone.
+**Here, still:** `LureService` and `InvasionService` both try the v2 PUT first and only fall back to
+delete-then-create when that write is declined. Invasion's v2 path is gated on the server's grunt
+masterdata accepting the stored name (see #209 above), so a rule v2 would refuse still pays the uid
+rotation to avoid a collision that, on a 5.2.1-migrated database, can no longer happen.
 
-Pokemon rotates too, for a different reason: on 5.2.0 and later its edits go through
+Pokemon rotated too, for a different reason: on 5.2.x its edits went through
 `PUT /api/v2/humans/{id}/tracking/pokemon/{uid}`, whose engine is delete-then-insert. It used to be the one
 type whose uid survived an edit.
+
+**Upstream has since stopped rotating.** [jfberry/PoracleNG#303](https://github.com/jfberry/PoracleNG/pull/303)
+(merged 2026-10-17) moves a v2 PUT's replacement row back onto the old uid, and
+[#305](https://github.com/jfberry/PoracleNG/pull/305) (merged the same day) does the same for `ApplyDiff`,
+which covers bot edits, v1 `POST /api/tracking/*` and v2 `POST`. A failed reassign is logged and the rule
+keeps its new uid, so the rotation can still happen, just rarely. Both ship in 5.4.0. Nothing here
+changes: `ITrackedUidRemapper` is a no-op when old and new uid match and still covers the rare failure, and
+the delete-then-create fallbacks above rotate regardless because they are two requests, not one.
+#303 also retyped every v2 human and profile shape (booleans, real arrays, `latitude`/`longitude`); that was
+adapted to in PoracleWeb.NET #969 and #970.
 
 ---
 
@@ -474,12 +546,15 @@ type whose uid survived an edit.
 
 | Gap | Priority | Workaround in use | Status |
 |-----|----------|-------------------|--------|
-| Bulk distance update | High | Fetch all, modify, POST back | Open |
-| Bulk clean toggle | High | Fetch all, modify, POST back | Open |
-| Trusted setAreas | High | Direct-DB dual write (`IUserAreaDualWriter`); v2 trusted `setAreas` for 3 of 6 methods | **Partially adopted.** #230 (merged, not yet released) fixed the community-filter over-reach ([#228](https://github.com/jfberry/PoracleNG/issues/228)) properly; adopted for the three active-profile methods in [#838](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/838)/[#937](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/937), gated on area_security being confirmed off since no self-reported signal tells a pre-#230 server from a post-#230 one. No profile target and no trusted per-rule override write for creates, so the other three methods stay blocked |
+| Bulk distance update | High | Fetch all, modify, POST back | Landed in 5.4.0 ([#325](https://github.com/jfberry/PoracleNG/issues/325)): `PATCH .../tracking/{type}` `{uids,set}`. **Not yet adopted** |
+| Bulk clean toggle | High | Fetch all, modify, POST back | Landed in 5.4.0 ([#325](https://github.com/jfberry/PoracleNG/issues/325)). **Not yet adopted** |
+| Create silently updates a different rule; maxbattle never dedups | High | Client-side `DiffTracking` mirror (`EnsureNoMergeIntoAnotherAlarmAsync`), max battle identical-alarm check | Landed in 5.4.0 ([#326](https://github.com/jfberry/PoracleNG/issues/326), answered as `POST ?dry_run=true` plus `previous`). **Not yet adopted**; the mirror goes with tracking's move to v2 |
+| Tracking mutes match uid alone | Medium | `scope=tracking` not offered | Landed in 5.4.0 ([#323](https://github.com/jfberry/PoracleNG/issues/323)): a rule mute carries its `tracking_type`. Listed and lifted here; creating one is a separate decision |
+| v2 stored wildcards prose-only | Medium | Tracking reads stay on v1 (#860) | **Declined** ([#324](https://github.com/jfberry/PoracleNG/issues/324)): v2 keeps `null` as the wildcard. `TrackingV2Translator` will map `null` to this application's own defaults when tracking reads move to v2 |
+| Trusted setAreas | High | Direct-DB dual write (`IUserAreaDualWriter`) for all six methods; v2 trusted `setAreas` for three of them where `area_security` is confirmed off | 5.4.0 carries every piece: `trusted` ([#230](https://github.com/jfberry/PoracleNG/pull/230)), delete across profiles with `dry_run` ([#253](https://github.com/jfberry/PoracleNG/issues/253), [#252](https://github.com/jfberry/PoracleNG/issues/252)), rename across profiles ([#259](https://github.com/jfberry/PoracleNG/issues/259)), `exemptFromAreaSecurity` ([#243](https://github.com/jfberry/PoracleNG/issues/243)). **Not yet adopted**; the area sub-project deletes the writer |
 | Dashboard counts | Medium | Single `GET /api/tracking/all` call | Open, returns full payloads |
 | Admin delete all alarms | Medium | Fetch UIDs per type, bulk delete each | Open |
-| Admin list / delete human | Medium | `IHumanRepository` direct DB (fallback) | **Adopted**, in [#839](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/839)/[#936](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/936), once [#229](https://github.com/jfberry/PoracleNG/issues/229) (closed, merged via #230) reported the fields the admin grid needs. `IHumanRepository` stays as the fallback for a server too old for it |
+| Admin list / delete human | Medium | None | **Adopted**, in [#839](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/839)/[#936](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/936), once [#229](https://github.com/jfberry/PoracleNG/issues/229) reported the fields the admin grid needs. `HumanRepository` is deleted |
 | v2 pokemon catch-all unwritable | Medium | `pokemon_id = 0` rules take the v1 write path | [#227](https://github.com/jfberry/PoracleNG/issues/227): `minimum: 1` refuses a rule PoracleNG itself stores. Our half of it -- writing `pvp_ranking_best = 0` -- fixed in PoracleWeb.NET #895 |
 | Profile delete cascade | -- | None needed | PoracleNG cascades; verified upstream |
 | Atomic profile switch | Low | Already in PoracleNG | **Adopted** |
@@ -487,5 +562,6 @@ type whose uid survived an edit.
 | NULL field defaults | Low | Handled by PoracleNG `cleanRow()` | Resolved by the proxy migration |
 | monsters.go COALESCE | -- | None needed | Fixed upstream; `template` is COALESCE'd on `main` |
 | available_languages not readable | -- | None needed | **Adopted** on 5.2.1 ([#194](https://github.com/jfberry/PoracleNG/issues/194)) |
-| disabledHooks omits fort | Low | None needed | Fixed in 5.2.1 ([#195](https://github.com/jfberry/PoracleNG/issues/195)); the pre-5.2.1 second config call was removed with 5.1.0 support |
-| Natural-key create collision | -- | None needed | Keys dropped by 5.2.1 migration 8; `NaturalKeyTrackingUpdate` removed with 5.1.0 support |
+| disabledHooks omits fort | Low | None | Fixed in 5.2.1 ([#195](https://github.com/jfberry/PoracleNG/issues/195)); the second config call for older servers is deleted |
+| Natural-key create collision | -- | Delete-then-create (`NaturalKeyTrackingUpdate`) | Keys dropped by 5.2.1 migration 8 |
+| ping blanked on every write surface | High | Refuse an edit that would fall back to v1 while the row holds a mention | **Partially adopted.** [jfberry/PoracleNG#249](https://github.com/jfberry/PoracleNG/pull/249) (in 5.4.0) fixes v2; v1 still blanks it, so PoracleWeb.NET #956 refuses rather than silently destroying the mention |

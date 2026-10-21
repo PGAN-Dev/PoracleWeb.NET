@@ -2031,6 +2031,7 @@
     "SUBJECT_STATION": "this station",
     "SUBJECT_TRACKING": "this rule",
     "TOAST_EXTENDED": "Quiet extended to {{duration}}.",
+    "TOAST_LOAD_FAILED": "Couldn't load your quiet periods. PoracleNG may be unreachable.",
     "TOAST_FAILED": "Couldn't quiet that. Try again.",
     "TOAST_QUIETED": "Quieted for {{duration}}.",
     "TOAST_RATE_LIMITED": "Too many changes at once. Try again in a minute.",

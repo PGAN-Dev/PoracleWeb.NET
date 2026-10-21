@@ -65,7 +65,7 @@
       place a mute set from the Discord bot (an 'everything' or 'pokestop' scope PoracleWeb.NET cannot
       create) can be seen and lifted.
     -->
-    @if (mutes.capable() && mutes.hasMutes()) {
+    @if (mutes.hasMutes()) {
       <mat-card class="status-card quiet-card" (click)="openQuietList()">
         <div class="status-icon-wrap quiet-icon">
           <mat-icon>notifications_paused</mat-icon>

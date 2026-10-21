@@ -1,80 +1,68 @@
-using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
-using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Core.Models.Helpers;
 
 namespace Pgan.PoracleWebNet.Api.Services;
 
 /// <summary>
-/// Gives a profile that was just created, duplicated or imported the areas and location it should have.
+/// Gives a profile that was just created, duplicated or imported the areas and location it should have,
+/// and removes the profile again when that fails.
 /// </summary>
 /// <remarks>
-/// <para>
 /// PoracleNG's add ignores <c>area</c>, <c>latitude</c> and <c>longitude</c>, so a new profile comes up
-/// carrying whatever the active profile had (#466, #563). Where the server can set them on one profile
-/// through <c>/api/v2</c> this does that; otherwise, or when that path declines, it writes the
-/// <c>profiles</c> row directly as every caller always has. See #993.
-/// </para>
-/// <para>
-/// Never fails the request, the same as the direct write it replaces: the profile already exists and its
-/// alarms may already be copied, and a wrong area list is fixable from the Areas page while a failed
-/// create is not. A v2 refusal or an unreachable PoracleNG falls through to the direct write, which writes
-/// areas and location together, so a half-applied v2 write is overwritten rather than left behind.
-/// </para>
+/// carrying whatever the active profile had (#466, #563). This sets them on that one profile through
+/// <c>/api/v2</c>. There is no direct <c>profiles</c> write behind it, so a failure that is not just a
+/// rejected area name would leave a profile with the wrong map: <see cref="WriteOrRollBackAsync"/> deletes
+/// the just-created profile and surfaces the original error instead.
 /// </remarks>
 public static partial class NewProfileGeography
 {
-    /// <param name="name">
-    /// What the direct write stores as the name. PoracleNG's add already stored it on both surfaces, so the
-    /// v2 path does not send it.
-    /// </param>
     /// <param name="areaJson">The area list in the column's JSON-encoded form, as the callers hold it.</param>
-    public static async Task WriteAsync(
+    public static Task WriteAsync(
         IPoracleHumanProxy humanProxy,
-        IProfileRepository profileRepository,
+        string userId,
+        int profileNo,
+        string? areaJson,
+        double latitude,
+        double longitude) =>
+        humanProxy.SetProfileGeographyAsync(userId, profileNo, AreaListJson.Parse(areaJson), latitude, longitude);
+
+    /// <summary><see cref="WriteAsync"/>, deleting the new profile and rethrowing when it fails.</summary>
+    public static async Task WriteOrRollBackAsync(
+        IPoracleHumanProxy humanProxy,
         ILogger logger,
         string userId,
         int profileNo,
-        string name,
         string? areaJson,
         double latitude,
         double longitude)
     {
         try
         {
-            if (await humanProxy.SetProfileGeographyAsync(
-                    userId, profileNo, AreaListJson.Parse(areaJson), latitude, longitude))
-            {
-                return;
-            }
+            await WriteAsync(humanProxy, userId, profileNo, areaJson, latitude, longitude);
         }
-        catch (Exception ex) when (ex is PoracleRequestRefusedException or HttpRequestException or TaskCanceledException)
+        catch
         {
-            LogV2GeographyFailed(logger, ex, profileNo);
-        }
-
-        try
-        {
-            await profileRepository.UpdateAsync(new Profile
-            {
-                Id = userId,
-                ProfileNo = profileNo,
-                Name = name,
-                Area = areaJson ?? "[]",
-                Latitude = latitude,
-                Longitude = longitude,
-            });
-        }
-        catch (InvalidOperationException ex)
-        {
-            // The row is not visible yet in some PoracleNG timings. The profile exists either way.
-            LogGeographyWriteFailed(logger, ex, profileNo);
+            await RollBackAsync(humanProxy, logger, userId, profileNo);
+            throw;
         }
     }
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Could not set areas and location on profile {ProfileNo} through PoracleNG; writing them directly instead")]
-    private static partial void LogV2GeographyFailed(ILogger logger, Exception ex, int profileNo);
+    /// <summary>
+    /// Deletes a profile this request just created. A failure to delete is logged and swallowed so the
+    /// error that caused the rollback is the one the caller sees.
+    /// </summary>
+    public static async Task RollBackAsync(IPoracleHumanProxy humanProxy, ILogger logger, string userId, int profileNo)
+    {
+        try
+        {
+            await humanProxy.DeleteProfileAsync(userId, profileNo);
+        }
+        catch (Exception ex)
+        {
+            LogRollbackFailed(logger, ex, profileNo);
+        }
+    }
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Could not write areas and location onto profile {ProfileNo}; it may have inherited them from the active profile")]
-    private static partial void LogGeographyWriteFailed(ILogger logger, Exception ex, int profileNo);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Could not delete profile {ProfileNo} after its creation failed; it may be left behind")]
+    private static partial void LogRollbackFailed(ILogger logger, Exception ex, int profileNo);
 }

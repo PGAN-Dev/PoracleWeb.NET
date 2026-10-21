@@ -17,12 +17,11 @@ import { QuestService } from '../../core/services/quest.service';
 describe('QuestAddDialogComponent', () => {
   let component: QuestAddDialogComponent;
   let dialogRef: { close: jest.Mock };
-  let questService: { create: jest.Mock; pokecoinsSupported: () => boolean };
+  let questService: { create: jest.Mock };
 
   function setup() {
     dialogRef = { close: jest.fn() };
-    // Pokecoins off: this suite is about the five tabs every PoracleNG has.
-    questService = { create: jest.fn().mockReturnValue(of({} as Quest)), pokecoinsSupported: () => false };
+    questService = { create: jest.fn().mockReturnValue(of({} as Quest)) };
 
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({

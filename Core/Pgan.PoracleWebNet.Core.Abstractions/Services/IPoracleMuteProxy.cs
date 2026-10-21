@@ -7,8 +7,8 @@ namespace Pgan.PoracleWebNet.Core.Abstractions.Services;
 /// </summary>
 /// <remarks>
 /// The first /api/v2 call in PoracleWeb.NET. v2 is huma-generated: its error envelope is
-/// <c>{title,status,detail}</c>, not v1's <c>{error}</c>, and it exists only from PoracleNG 5.2.0 --
-/// callers must ask <see cref="IMuteCapabilityService"/> first.
+/// <c>{title,status,detail}</c>, not v1's <c>{error}</c>, and every supported PoracleNG (5.4.0 and
+/// later) serves it, so there is no capability check.
 /// </remarks>
 public interface IPoracleMuteProxy
 {

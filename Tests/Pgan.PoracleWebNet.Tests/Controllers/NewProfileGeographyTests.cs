@@ -2,7 +2,6 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -25,9 +24,8 @@ namespace Pgan.PoracleWebNet.Tests.Controllers;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Each case is run on both paths. Where the server declares <c>?profile=</c> on its v2 areas and location
-/// writes, the profile's geography goes there and the direct <c>profiles</c> write is not made. Where it
-/// does not, or where v2 refuses, the direct write carries the same values it always has.
+/// The geography goes to the new profile through PoracleNG's v2 <c>?profile=</c> writes, and a refusal
+/// reaches the caller: there is no direct <c>profiles</c> write behind it any more.
 /// </para>
 /// <para>
 /// The bodies checked are the ones each controller builds, against the schemas in the openapi fixture.
@@ -40,7 +38,6 @@ public class NewProfileGeographyTests : ControllerTestBase
     private const int NewProfileNo = 4;
 
     private readonly Mock<IProfileService> _profileService = new();
-    private readonly Mock<IProfileRepository> _profileRepository = new();
     private readonly Mock<IProfileOverviewService> _overview = new();
     private readonly Mock<IJwtService> _jwtService = new();
     private readonly Mock<IUserRoleResolver> _roleResolver = new();
@@ -80,7 +77,7 @@ public class NewProfileGeographyTests : ControllerTestBase
     public async Task WhereTheServerDeclaresItTheGeographyGoesToTheNewProfileThroughV2(string endpoint)
     {
         var handler = new Routed();
-        await this.RunAsync(endpoint, handler, declared: true);
+        await this.RunAsync(endpoint, handler);
 
         var expected = Expected(endpoint);
 
@@ -98,53 +95,73 @@ public class NewProfileGeographyTests : ControllerTestBase
         Assert.Equal(expected.Latitude, locationBody.RootElement.GetProperty("latitude").GetDouble());
         Assert.Equal(expected.Longitude, locationBody.RootElement.GetProperty("longitude").GetDouble());
 
-        this._profileRepository.Verify(r => r.UpdateAsync(It.IsAny<Profile>()), Times.Never);
     }
 
     [Theory]
     [MemberData(nameof(Endpoints))]
-    public async Task WhereTheServerDoesNotTheDirectWriteCarriesTheSameValues(string endpoint)
-    {
-        var handler = new Routed();
-        await this.RunAsync(endpoint, handler, declared: false);
-
-        Assert.DoesNotContain(handler.Requests, r => r.Query.Contains("profile=", StringComparison.Ordinal));
-        this.VerifyDirectWrite(endpoint);
-    }
-
-    [Theory]
-    [MemberData(nameof(Endpoints))]
-    public async Task AV2RefusalFallsBackToTheDirectWriteAndTheRequestStillSucceeds(string endpoint)
+    public async Task AV2RefusalDeletesTheNewProfileAndReachesTheCaller(string endpoint)
     {
         var handler = new Routed(refuseGeography: true);
-        await this.RunAsync(endpoint, handler, declared: true);
 
+        var ex = await Assert.ThrowsAsync<PoracleRequestRefusedException>(() => this.RunAsync(endpoint, handler));
+
+        Assert.Contains("validation failed", ex.Message, StringComparison.Ordinal);
         Assert.Contains(handler.Requests, r => r.Path == "/api/v2/humans/123456789/areas");
-        this.VerifyDirectWrite(endpoint);
+        var delete = Assert.Single(handler.Requests, r => r.Method == HttpMethod.Delete);
+        Assert.Equal($"/api/v2/humans/123456789/profiles/{NewProfileNo}", delete.Path);
     }
 
-    private void VerifyDirectWrite(string endpoint)
+    [Theory]
+    [MemberData(nameof(Endpoints))]
+    public async Task AFailedRollbackDoesNotHideTheOriginalError(string endpoint)
     {
-        var expected = Expected(endpoint);
-        this._profileRepository.Verify(
-            r => r.UpdateAsync(It.Is<Profile>(p =>
-                p.Id == UserId
-                && p.ProfileNo == NewProfileNo
-                && JsonSerializer.Deserialize<string[]>(p.Area!, (JsonSerializerOptions?)null)!.SequenceEqual(expected.Areas)
-                && p.Latitude == expected.Latitude
-                && p.Longitude == expected.Longitude)),
-            Times.Once);
+        var handler = new Routed(refuseGeography: true, failDelete: true);
+
+        var ex = await Assert.ThrowsAsync<PoracleRequestRefusedException>(() => this.RunAsync(endpoint, handler));
+
+        Assert.Contains("validation failed", ex.Message, StringComparison.Ordinal);
+        Assert.Contains(handler.Requests, r => r.Method == HttpMethod.Delete);
     }
 
-    private async Task RunAsync(string endpoint, Routed handler, bool declared)
+    [Theory]
+    [MemberData(nameof(Endpoints))]
+    public async Task AnAreaPoracleRejectsIsDroppedAndTheLocationIsStillWritten(string endpoint)
     {
-        var proxy = CreateProxy(handler, declared);
+        // A stale name on the source profile (a fence since removed) must not fail the duplicate.
+        var handler = new Routed(rejected: ["my fence"]);
+
+        await this.RunAsync(endpoint, handler);
+
+        Assert.Contains(handler.Requests, r => r.Path == "/api/v2/humans/123456789/location" && r.Query == $"profile={NewProfileNo}");
+        Assert.DoesNotContain(handler.Requests, r => r.Method == HttpMethod.Delete);
+    }
+
+    [Theory]
+    [MemberData(nameof(Endpoints))]
+    public async Task WhereTrustedIsNotAvailableTheAreasGoUntrustedAndTheRequestStillSucceeds(string endpoint)
+    {
+        var handler = new Routed();
+
+        await this.RunAsync(endpoint, handler, confirmedDisabled: false);
+
+        var areas = Assert.Single(handler.Requests, r => r.Path == "/api/v2/humans/123456789/areas");
+        using var body = JsonDocument.Parse(areas.Body!);
+        Assert.False(body.RootElement.TryGetProperty("trusted", out _));
+        Assert.Equal(
+            Expected(endpoint).Areas,
+            body.RootElement.GetProperty("areas").EnumerateArray().Select(e => e.GetString()).ToArray());
+        Assert.Contains(handler.Requests, r => r.Path == "/api/v2/humans/123456789/location");
+    }
+
+    private async Task RunAsync(string endpoint, Routed handler, bool confirmedDisabled = true)
+    {
+        var proxy = CreateProxy(handler, confirmedDisabled);
 
         IActionResult result;
         if (endpoint is "create" or "duplicate")
         {
             var controller = new ProfileController(
-                this._profileService.Object, Mock.Of<IHumanService>(), proxy, this._profileRepository.Object,
+                this._profileService.Object, Mock.Of<IHumanService>(), proxy,
                 this._jwtService.Object, this._roleResolver.Object, this._userGeofences.Object,
                 NullLogger<ProfileController>.Instance);
             SetupUser(controller, UserId);
@@ -165,7 +182,7 @@ public class NewProfileGeographyTests : ControllerTestBase
         }
 
         var overview = new ProfileOverviewController(
-            this._overview.Object, this._profileService.Object, this._profileRepository.Object, proxy,
+            this._overview.Object, this._profileService.Object, proxy,
             this._jwtService.Object, this._roleResolver.Object, NullLogger<ProfileOverviewController>.Instance);
         SetupUser(overview, UserId);
 
@@ -177,7 +194,7 @@ public class NewProfileGeographyTests : ControllerTestBase
         Assert.IsType<OkObjectResult>(result);
     }
 
-    private static PoracleHumanProxy CreateProxy(Routed handler, bool declared) => new(
+    private static PoracleHumanProxy CreateProxy(Routed handler, bool confirmedDisabled) => new(
         new HttpClient(handler),
         new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -186,17 +203,12 @@ public class NewProfileGeographyTests : ControllerTestBase
                 ["Poracle:ApiSecret"] = "test-secret",
             })
             .Build(),
-        PoracleHumanProxyTests.ServerProfile("5.3.0"),
         PoracleHumanProxyTests.V2Schema(new PoracleV2Capabilities
         {
             Read = true,
-            ProfileCreateReturnsNumber = true,
-            ProfileScopedGeography = declared,
             TrustedSetAreas = true,
-            V2LocationLatitudeLongitude = true,
         }),
-        PoracleHumanProxyTests.AreaSecurityPolicy(confirmedDisabled: true),
-        new MemoryCache(new MemoryCacheOptions()),
+        PoracleHumanProxyTests.AreaSecurityPolicy(confirmedDisabled),
         Mock.Of<ILogger<PoracleHumanProxy>>());
 
     /// <summary>Every property of the body is one the named schema in the openapi fixture declares.</summary>
@@ -213,7 +225,7 @@ public class NewProfileGeographyTests : ControllerTestBase
     }
 
     private static string Fixture([System.Runtime.CompilerServices.CallerFilePath] string? here = null) =>
-        Path.Combine(Path.GetDirectoryName(here)!, "..", "Fixtures", "poracleng-openapi-next.json");
+        Path.Combine(Path.GetDirectoryName(here)!, "..", "Fixtures", "poracleng-openapi-5.4.0.json");
 
     private sealed record Sent(HttpMethod Method, string Path, string Query, string? Body);
 
@@ -221,7 +233,7 @@ public class NewProfileGeographyTests : ControllerTestBase
     /// Answers by route, the way PoracleNG would for these calls. The profile create reports the number
     /// assigned; the two geography writes answer what a live 5.3.0 answered, or 422 when told to refuse.
     /// </summary>
-    private sealed class Routed(bool refuseGeography = false) : HttpMessageHandler
+    private sealed class Routed(bool refuseGeography = false, bool failDelete = false, string[]? rejected = null) : HttpMessageHandler
     {
         public List<Sent> Requests { get; } = [];
 
@@ -238,20 +250,22 @@ public class NewProfileGeographyTests : ControllerTestBase
                     (HttpStatusCode.UnprocessableEntity,
                      """{"title":"Unprocessable Entity","status":422,"detail":"validation failed"}""",
                      "application/problem+json"),
+                _ when request.Method == HttpMethod.Delete && failDelete =>
+                    (HttpStatusCode.InternalServerError, """{"title":"boom","status":500}""", "application/problem+json"),
                 "/api/v2/humans/123456789/profiles" when request.Method == HttpMethod.Post =>
                     (HttpStatusCode.OK, $$"""{"profile_no":{{NewProfileNo}}}""", "application/json"),
                 "/api/v2/humans/123456789/areas" =>
-                    (HttpStatusCode.OK, AreasAnswer(body), "application/json"),
+                    (HttpStatusCode.OK, AreasAnswer(body, rejected), "application/json"),
                 _ => (HttpStatusCode.OK, """{"status":"ok"}""", "application/json"),
             };
 
             return new HttpResponseMessage(status) { Content = new StringContent(reply, Encoding.UTF8, type) };
         }
 
-        private static string AreasAnswer(string? body)
+        private static string AreasAnswer(string? body, string[]? rejected)
         {
             var areas = JsonDocument.Parse(body!).RootElement.GetProperty("areas").GetRawText();
-            return $$"""{"areas":{{areas}},"rejected":[]}""";
+            return $$"""{"areas":{{areas}},"rejected":{{JsonSerializer.Serialize(rejected ?? [])}}}""";
         }
     }
 }

@@ -2031,6 +2031,7 @@
     "SUBJECT_STATION": "denne station",
     "SUBJECT_TRACKING": "denne regel",
     "TOAST_EXTENDED": "Stille forlænget til {{duration}}.",
+    "TOAST_LOAD_FAILED": "Kunne ikke indlæse dine stille perioder. PoracleNG kan være utilgængelig.",
     "TOAST_FAILED": "Kunne ikke gøre det stille. Prøv igen.",
     "TOAST_QUIETED": "Stille i {{duration}}.",
     "TOAST_RATE_LIMITED": "For mange ændringer på én gang. Prøv igen om et minut.",

@@ -50,8 +50,6 @@ public static class ServiceCollectionExtensions
             .SetApplicationName("Pgan.PoracleWebNet.Api");
 
         // Register Repositories
-        services.AddScoped<IHumanRepository, HumanRepository>();
-        services.AddScoped<IProfileRepository, ProfileRepository>();
         services.AddScoped<IPwebSettingRepository, PwebSettingRepository>();
         services.AddScoped<IUserGeofenceRepository, UserGeofenceRepository>();
         services.AddScoped<ISiteSettingRepository, SiteSettingRepository>();
@@ -89,12 +87,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUserGeofenceService, UserGeofenceService>();
         services.AddScoped<ISiteSettingService, SiteSettingService>();
         services.AddScoped<ISummaryCapabilityService, SummaryCapabilityService>();
-        services.AddScoped<IQuestPokecoinCapabilityService, QuestPokecoinCapabilityService>();
         services.AddScoped<IPokemonEditCapabilityService, PokemonEditCapabilityService>();
-        services.AddScoped<IMuteCapabilityService, MuteCapabilityService>();
-        services.AddScoped<IPlaceUpdateCapabilityService, PlaceUpdateCapabilityService>();
         services.AddScoped<IInvasionGruntNameService, InvasionGruntNameService>();
-        services.AddScoped<ICostumeCapabilityService, CostumeCapabilityService>();
         services.AddScoped<IUpstreamFeatureFlagService, UpstreamFeatureFlagService>();
         services.AddScoped<IAreaSecurityPolicyService, AreaSecurityPolicyService>();
         services.AddScoped<IFeatureGate, FeatureGate>();

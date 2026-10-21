@@ -2031,6 +2031,7 @@
     "SUBJECT_STATION": "cette station",
     "SUBJECT_TRACKING": "cette règle",
     "TOAST_EXTENDED": "Silence prolongé à {{duration}}.",
+    "TOAST_LOAD_FAILED": "Impossible de charger tes périodes de silence. PoracleNG est peut-être injoignable.",
     "TOAST_FAILED": "Impossible de mettre ça en silence. Réessaie.",
     "TOAST_QUIETED": "En silence pour {{duration}}.",
     "TOAST_RATE_LIMITED": "Trop de changements d'un coup. Réessaie dans une minute.",

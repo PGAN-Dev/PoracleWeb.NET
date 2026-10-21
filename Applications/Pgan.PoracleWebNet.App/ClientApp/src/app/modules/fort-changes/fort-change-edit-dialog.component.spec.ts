@@ -19,6 +19,7 @@ import { I18nService } from '../../core/services/i18n.service';
  * a rule set with `description` lost it the next time its owner changed the radius.
  */
 describe('FortChangeEditDialogComponent', () => {
+  let webhookSession = false;
   let component: FortChangeEditDialogComponent;
   let fortChangeService: { update: jest.Mock };
 
@@ -47,7 +48,7 @@ describe('FortChangeEditDialogComponent', () => {
         { provide: MatDialogRef, useValue: { close: jest.fn() } },
         { provide: FortChangeService, useValue: fortChangeService },
         { provide: I18nService, useValue: { instant: (k: string) => k } },
-        { provide: AuthService, useValue: { isImpersonating: () => false, user: () => ({ type: 'discord:user' }) } },
+        { provide: AuthService, useValue: { isImpersonating: () => webhookSession, user: () => ({ type: 'discord:user' }) } },
       ],
       imports: [FortChangeEditDialogComponent],
     });
@@ -98,5 +99,21 @@ describe('FortChangeEditDialogComponent', () => {
     component.save();
 
     expect(saved().sort()).toEqual(['location', 'name']);
+  });
+
+  describe('Mention field', () => {
+    // The dialog's only condition for the Mention field is the impersonation snapshot: PoracleNG 5.4.0
+    // always stores a ping, so there is no server-config dependency left to consult.
+    it('is offered on a webhook alarm', () => {
+      webhookSession = true;
+      setup({ changeTypes: ['name'] });
+      expect(TestBed.createComponent(FortChangeEditDialogComponent).componentInstance.isWebhook).toBe(true);
+    });
+
+    it('is hidden on a personal alarm', () => {
+      webhookSession = false;
+      setup({ changeTypes: ['name'] });
+      expect(TestBed.createComponent(FortChangeEditDialogComponent).componentInstance.isWebhook).toBe(false);
+    });
   });
 });

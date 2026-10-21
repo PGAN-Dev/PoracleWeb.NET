@@ -21,13 +21,6 @@ export class PlacesService {
   private readonly places = signal<null | SavedPlaces>(null);
   private readonly settings = inject(SettingsService);
 
-  /**
-   * Whether this Poracle server can move a place without deleting it first. Needs PoracleNG 5.2.0;
-   * before it, a place an alarm referenced could not be moved at all, because the delete answers 409
-   * while anything still points at it. False until {@link load} has run.
-   */
-  readonly canEdit = computed(() => this.places()?.canEdit === true);
-
   /** Named places only. Empty until {@link load} has run. */
   readonly named = computed(() => this.places()?.named ?? []);
 
@@ -50,8 +43,7 @@ export class PlacesService {
   }
 
   /**
-   * Moves a place, keeping its label so every alarm pointing at it follows. Answers 501 on a server
-   * without the endpoint, which is why {@link canEdit} gates the control that calls this.
+   * Moves a place, keeping its label so every alarm pointing at it follows.
    */
   move(label: string, latitude: number, longitude: number): Observable<SavedPlaces> {
     return this.http

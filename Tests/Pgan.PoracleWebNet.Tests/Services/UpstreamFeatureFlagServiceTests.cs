@@ -105,7 +105,7 @@ public class UpstreamFeatureFlagServiceTests
 
     /// <summary>
     /// <c>general.disable_fort_update</c> used to be read from <c>/api/config/values</c> for a server too
-    /// old to put <c>fort</c> in <c>disabledHooks</c> (5.1.0). 5.2.1 is the minimum, so the hook list and
+    /// old to put <c>fort</c> in <c>disabledHooks</c> (5.1.0). 5.4.0 is the minimum, so the hook list and
     /// the showcase flag are the only two reads; a third would be a round-trip on the gate's hot path for
     /// a server that is not supported.
     /// </summary>
@@ -183,12 +183,8 @@ public class UpstreamFeatureFlagServiceTests
         this._proxy.Verify(p => p.GetConfigAsync(), Times.Once);
     }
 
-    // ── disable_showcase: the one probe that fails closed ────────────────────
+    // ── disable_showcase: follows the flag like every other type ─────────────
 
-    /// <summary>
-    /// The legitimate case. A 5.2.x server with the option present and off leaves the page available,
-    /// and does not disable anything else on the way past.
-    /// </summary>
     [Fact]
     public async Task ShowcaseOptionPresentAndOffLeavesPokestopEventsAvailable()
     {
@@ -208,42 +204,33 @@ public class UpstreamFeatureFlagServiceTests
     }
 
     /// <summary>
-    /// An absent option means a PoracleNG below 5.2.0, which is unsupported, and every such server 404s
-    /// the v2 incident route the page is built on. Verified: 5.1.0 has neither the option nor the route.
+    /// 5.4.0 is the minimum and always carries the option, so an absent value is no longer evidence of
+    /// an old server. Pokestop Events stay on, like every other type.
     /// </summary>
     [Fact]
-    public async Task AbsentShowcaseOptionDisablesPokestopEvents()
+    public async Task AbsentShowcaseOptionLeavesPokestopEventsAvailable()
     {
         this.UpstreamHooks();
         this._proxy.Setup(p => p.GetShowcaseDisabledAsync()).ReturnsAsync((bool?)null);
 
-        Assert.Equal([DisableFeatureKeys.PokestopEvents], await this.CreateSut().GetDisabledKeysAsync());
+        Assert.Empty(await this.CreateSut().GetDisabledKeysAsync());
     }
 
-    /// <summary>
-    /// The deliberate inversion of this class's fail-open rule. Everywhere else an unreadable config
-    /// leaves the site settings in charge; here it closes the gate, because a server whose config we
-    /// cannot read is not one we can send v2 writes to either — and failing open would produce a page
-    /// whose every call 404s.
-    /// </summary>
+    /// <summary>The class's fail-open rule now holds here too: an unreadable config must not switch a page off.</summary>
     [Fact]
-    public async Task UnreadableShowcaseOptionDisablesPokestopEvents()
+    public async Task UnreadableShowcaseOptionLeavesPokestopEventsAvailable()
     {
         this.UpstreamHooks();
         this._proxy.Setup(p => p.GetShowcaseDisabledAsync()).ThrowsAsync(new HttpRequestException("boom"));
 
-        Assert.Equal([DisableFeatureKeys.PokestopEvents], await this.CreateSut().GetDisabledKeysAsync());
+        Assert.Empty(await this.CreateSut().GetDisabledKeysAsync());
     }
 
-    /// <summary>
-    /// A hook list that could not be read used to abandon the whole probe. That would have skipped the
-    /// showcase question entirely and left the page on for a server that cannot serve it.
-    /// </summary>
     [Fact]
     public async Task FailedHookReadStillAnswersTheShowcaseQuestion()
     {
         this._proxy.Setup(p => p.GetConfigAsync()).ThrowsAsync(new HttpRequestException("boom"));
-        this._proxy.Setup(p => p.GetShowcaseDisabledAsync()).ReturnsAsync((bool?)null);
+        this._proxy.Setup(p => p.GetShowcaseDisabledAsync()).ReturnsAsync(true);
 
         Assert.Equal([DisableFeatureKeys.PokestopEvents], await this.CreateSut().GetDisabledKeysAsync());
     }

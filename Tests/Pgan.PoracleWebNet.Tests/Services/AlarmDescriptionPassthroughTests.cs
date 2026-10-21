@@ -30,7 +30,7 @@ public class AlarmDescriptionPassthroughTests
     public AlarmDescriptionPassthroughTests()
     {
         this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
-        this._monsters = new MonsterService(this._proxy.Object, this._featureGate.Object, this._remapper.Object, CostumeCapabilityDoubles.Supported());
+        this._monsters = new MonsterService(this._proxy.Object, this._featureGate.Object, this._remapper.Object);
     }
 
     private static JsonElement StoredRow(int uid, string? description) => JsonSerializer.SerializeToElement(

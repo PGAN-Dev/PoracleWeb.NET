@@ -2031,6 +2031,7 @@
     "SUBJECT_STATION": "den här stationen",
     "SUBJECT_TRACKING": "den här regeln",
     "TOAST_EXTENDED": "Tystnaden förlängd till {{duration}}.",
+    "TOAST_LOAD_FAILED": "Kunde inte läsa in dina tysta perioder. PoracleNG kan vara onåbart.",
     "TOAST_FAILED": "Kunde inte tysta det. Försök igen.",
     "TOAST_QUIETED": "Tystat i {{duration}}.",
     "TOAST_RATE_LIMITED": "För många ändringar på en gång. Försök igen om en minut.",

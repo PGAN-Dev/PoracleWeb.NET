@@ -83,7 +83,7 @@ Or manually: `cd Applications/Pgan.PoracleWebNet.App/ClientApp && npm install`
     ```
 
 !!! warning "PoracleNG must be running"
-    `Poracle:ApiAddress` must point to a running PoracleNG instance. All alarm tracking writes are proxied through this API. `Poracle:ApiSecret` must match PoracleNG's `server.apiSecret` config value.
+    `Poracle:ApiAddress` must point to a running PoracleNG 5.4.0 or newer instance. All alarm tracking writes are proxied through this API. `Poracle:ApiSecret` must match PoracleNG's `server.apiSecret` config value.
 
 ## 3. Run the application
 

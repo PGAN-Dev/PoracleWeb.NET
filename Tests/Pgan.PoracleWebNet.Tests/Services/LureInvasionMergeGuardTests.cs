@@ -17,7 +17,7 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 /// Up to schema 5 (PoracleNG 5.1.0) <c>lures</c> and <c>invasion</c> carried a UNIQUE key on the natural
 /// key, so a second rule for the same lure type answered <c>500 database error</c> however else it
 /// differed, and PoracleWeb.NET refused those Adds and edited by deleting the row first. Migration 8 (5.2.x)
-/// drops both keys, and 5.2.1 is now the minimum, so that code is gone. Verified by posting straight to
+/// drops both keys, and 5.4.0 is now the minimum, so that code is gone. Verified by posting straight to
 /// PoracleNG on 5.2.1 and 5.3.0: an area-scoped twin, different areas, a place label and two updatable
 /// differences are <c>insert:1</c>, and the same four through <c>/api/v2/.../tracking/incident</c> create a
 /// second rule.

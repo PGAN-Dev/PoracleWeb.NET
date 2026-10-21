@@ -6,10 +6,8 @@ using Pgan.PoracleWebNet.Core.Models;
 namespace Pgan.PoracleWebNet.Core.Services;
 
 /// <summary>
-/// Profile reads and copy, all served by PoracleNG. Create, delete and switch are proxied directly by
-/// ProfileController through IPoracleHumanProxy. Rename and a new profile's area/coordinate write go
-/// through PoracleNG's v2 where the server offers them and straight to the database through
-/// IProfileRepository where it does not (#837, #993).
+/// Profile reads and copy, all served by PoracleNG's v2 API. Create, rename, delete and switch are proxied
+/// directly by the controllers through IPoracleHumanProxy.
 /// </summary>
 public class ProfileService(IPoracleHumanProxy humanProxy) : IProfileService
 {

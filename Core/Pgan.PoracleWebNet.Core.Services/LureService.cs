@@ -79,7 +79,7 @@ public class LureService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, 
         // No delete-first and no window in which the alarm exists nowhere: the create carrying the uid is
         // resolved by PoracleNG's diff like any other type's, and the reconciler drops the superseded row
         // when one was inserted. (PoracleNG 5.1.0's unique key made this a 500, which is why lure once
-        // deleted the row first; 5.2.1 is the minimum and migration 8 dropped the key.)
+        // deleted the row first; 5.4.0 is the minimum and migration 8 dropped the key.)
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
         model.Uid = await TrackingUpdateReconciler.ReconcileAsync(
             this._proxy, TrackingType, userId, oldUid, result, this._logger, body, this._uidRemapper);

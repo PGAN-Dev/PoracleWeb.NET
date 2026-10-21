@@ -9,7 +9,6 @@ import { Mute, MuteService } from '../../../core/services/mute.service';
 describe('QuietChipComponent', () => {
   let fixture: ComponentFixture<QuietChipComponent>;
   let mutes: {
-    capable: jest.Mock;
     countdownLabel: jest.Mock;
     find: jest.Mock;
     quiet: jest.Mock;
@@ -40,7 +39,6 @@ describe('QuietChipComponent', () => {
 
   beforeEach(() => {
     mutes = {
-      capable: jest.fn(() => true),
       countdownLabel: jest.fn(() => '47m'),
       find: jest.fn((): Mute | undefined => undefined),
       quiet: jest.fn(() => of(false)),
@@ -60,17 +58,6 @@ describe('QuietChipComponent', () => {
       ],
       imports: [QuietChipComponent],
     });
-  });
-
-  /**
-   * There is nothing useful to say about a server feature the operator has not got yet, and a control
-   * that 404s on every press is worse than its absence.
-   */
-  it('renders nothing on a server that cannot do quiet periods', () => {
-    mutes.capable.mockReturnValue(false);
-    build();
-
-    expect(fixture.nativeElement.querySelector('button')).toBeNull();
   });
 
   it('offers the control when the subject is not quiet', () => {

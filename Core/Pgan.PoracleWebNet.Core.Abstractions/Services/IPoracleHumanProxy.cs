@@ -11,7 +11,7 @@ public interface IPoracleHumanProxy
 {
     /// <summary>
     /// Fetches a single human record.
-    /// GET /api/v2/humans/{userId}, or GET /api/humans/one/{userId} on a PoracleNG without v2.
+    /// GET /api/v2/humans/{userId}.
     /// </summary>
     /// <returns>The human, or null when PoracleNG answers 404: it has no such human.</returns>
     /// <exception cref="HttpRequestException">
@@ -23,19 +23,19 @@ public interface IPoracleHumanProxy
 
     /// <summary>
     /// Creates a new human record.
-    /// Maps to POST /api/humans
+    /// Maps to POST /api/v2/humans
     /// </summary>
     public Task CreateHumanAsync(JsonElement body);
 
     /// <summary>
     /// Enables alerts for a user.
-    /// POST /api/v2/humans/{userId}/enable, or POST /api/humans/{userId}/start without v2.
+    /// POST /api/v2/humans/{userId}/enable.
     /// </summary>
     public Task StartAsync(string userId);
 
     /// <summary>
     /// Disables alerts for a user.
-    /// POST /api/v2/humans/{userId}/disable, or POST /api/humans/{userId}/stop without v2.
+    /// POST /api/v2/humans/{userId}/disable.
     /// </summary>
     public Task StopAsync(string userId);
 
@@ -43,27 +43,25 @@ public interface IPoracleHumanProxy
     /// Sets the language PoracleNG writes this user's alerts in.
     /// </summary>
     /// <remarks>
-    /// POST /api/v2/humans/{userId}/language, falling back to POST /api/humans/{userId}/language, which
-    /// exists on both supported releases. Replaces a direct write to <c>humans.language</c>: the handler
+    /// POST /api/v2/humans/{userId}/language. Replaces a direct write to <c>humans.language</c>: the handler
     /// also reloads PoracleNG's in-memory state, which the direct write never did, so a language change
     /// now takes effect on the next alert instead of at the next restart.
     /// <para>
     /// Both handlers lowercase and trim what they store, so <c>pt-BR</c> comes back as <c>pt-br</c>.
-    /// Verified on 5.2.1 against v1 and v2 alike.
+    /// Verified on 5.2.1 and 5.4.0.
     /// </para>
     /// </remarks>
     public Task SetLanguageAsync(string userId, string language);
 
     /// <summary>
     /// Admin-disables or re-enables a user.
-    /// Maps to POST /api/humans/{userId}/adminDisabled
+    /// Maps to POST /api/v2/humans/{userId}/admin-disable
     /// </summary>
     public Task AdminDisabledAsync(string userId, bool disabled);
 
     /// <summary>
     /// Sets user location.
-    /// POST /api/v2/humans/{userId}/location, with a {latitude,longitude} body where the server's schema declares those
-    /// (<c>PoracleV2Capabilities.V2LocationLatitudeLongitude</c>) and {lat,lon} otherwise, or v1's coordinates-in-the-path form.
+    /// POST /api/v2/humans/{userId}/location with a {latitude,longitude} body.
     /// </summary>
     public Task SetLocationAsync(string userId, double lat, double lon);
 
@@ -71,9 +69,7 @@ public interface IPoracleHumanProxy
     /// The channels, webhooks and users this human may administer on Discord and Telegram.
     /// </summary>
     /// <remarks>
-    /// GET /api/v2/humans/{userId}/admin-roles, or v1's getAdministrationRoles. Both compute the same
-    /// answer -- v2's handler calls the same delegated-administration logic -- and the only difference
-    /// on the wire is v1's extra "status":"ok".
+    /// GET /api/v2/humans/{userId}/admin-roles.
     /// <para>
     /// This sits on the delegated-webhook path, which has broken four separate times by one surface
     /// disagreeing with another (#564, #601, #626, #786), so the distinction below is load-bearing: an
@@ -90,12 +86,11 @@ public interface IPoracleHumanProxy
     /// <summary>
     /// Sets user area subscriptions. PoracleNG handles the dual-write to
     /// humans.area + profiles.area atomically.
-    /// Maps to POST /api/v2/humans/{userId}/areas (never with <c>trusted</c>) where the server's schema says
-    /// that answer reports what it refused, or POST /api/humans/{userId}/setAreas.
+    /// Maps to POST /api/v2/humans/{userId}/areas (never with <c>trusted</c>).
     /// </summary>
     /// <remarks>
-    /// Either way PoracleNG leaves out names this user may not select, including every user-drawn fence.
-    /// That is not an error on either surface; the caller re-adds the user's own fences afterwards.
+    /// PoracleNG leaves out names this user may not select, including every user-drawn fence.
+    /// That is not an error; the caller re-adds the user's own fences afterwards.
     /// </remarks>
     public Task SetAreasAsync(string userId, string[] areas);
 
@@ -132,38 +127,35 @@ public interface IPoracleHumanProxy
     /// <summary>
     /// Switches the user's active profile. PoracleNG handles the area save/load
     /// dual-write atomically.
-    /// Maps to POST /api/humans/{userId}/switchProfile/{profileNo}
+    /// Maps to POST /api/v2/humans/{userId}/profile
     /// </summary>
     public Task SwitchProfileAsync(string userId, int profileNo);
 
     /// <summary>
-    /// Fetches all profiles for a user, always in v1's shape: <c>{"profile":[...]}</c> with <c>area</c> and
+    /// Fetches all profiles for a user in v1's shape: <c>{"profile":[...]}</c> with <c>area</c> and
     /// <c>active_hours</c> as JSON-encoded strings.
-    /// Maps to GET /api/v2/humans/{userId}/profiles where declared, or GET /api/profiles/{userId}.
+    /// Maps to GET /api/v2/humans/{userId}/profiles.
     /// </summary>
     public Task<JsonElement> GetProfilesAsync(string userId);
 
     /// <summary>
-    /// Creates a new profile, and reports the number it was given when the server says so.
-    /// Maps to POST /api/v2/humans/{userId}/profiles, or POST /api/profiles/{userId}/add.
+    /// Creates a new profile and returns the number PoracleNG gave it.
+    /// Maps to POST /api/v2/humans/{userId}/profiles.
     /// </summary>
     /// <returns>
-    /// The assigned profile number, or <c>null</c> when this server does not report it — which is every
-    /// released PoracleNG, so callers still need <c>ProfileNumbering.ResolveCreated</c> as a fallback.
-    /// PoracleNG picks the lowest free number, so <c>null</c> cannot be replaced by arithmetic.
+    /// The assigned profile number. PoracleNG picks the lowest free one, so it cannot be predicted.
     /// </returns>
-    public Task<int?> AddProfileAsync(string userId, JsonElement body);
+    /// <exception cref="PoracleRequestRefusedException">
+    /// PoracleNG refused the profile, the schedule cannot be said in v2's terms, or the answer carried no
+    /// profile number.
+    /// </exception>
+    public Task<int> AddProfileAsync(string userId, JsonElement body);
 
     /// <summary>
-    /// Updates a profile's name and active hours.
-    /// Maps to PATCH /api/v2/humans/{userId}/profiles/{profileNo}, or POST /api/profiles/{userId}/update.
+    /// Updates a profile's name and active hours; <c>profile_no</c> in <paramref name="body"/> says which.
+    /// Maps to PATCH /api/v2/humans/{userId}/profiles/{profileNo}.
     /// </summary>
-    /// <returns>
-    /// <c>true</c> when the server applied the name as well. Released PoracleNG accepts the request and
-    /// silently keeps the old name, so a <c>false</c> here means the caller must still write
-    /// <c>profiles.name</c> itself.
-    /// </returns>
-    public Task<bool> UpdateProfileAsync(string userId, JsonElement body);
+    public Task UpdateProfileAsync(string userId, JsonElement body);
 
     /// <summary>
     /// Sets one profile's areas and location without touching the active profile, through
@@ -173,43 +165,36 @@ public interface IPoracleHumanProxy
     /// <remarks>
     /// A non-empty area list is sent with <c>trusted</c>, because a user's own drawn fences are not
     /// <c>userSelectable</c>; that is only done where <c>trusted</c> is safe to rely on, the same gate as
-    /// <see cref="AddAreaToActiveProfileTrustedAsync"/>. An empty list needs no trust and is always sent plain.
+    /// <see cref="AddAreaToActiveProfileTrustedAsync"/>. Elsewhere, and for an empty list, it is sent plain
+    /// and PoracleNG filters it. Names PoracleNG rejects are logged and dropped; the location is still written.
     /// </remarks>
-    /// <returns>
-    /// <c>true</c> once both are written. <c>false</c> when the caller must write them itself: the server does
-    /// not declare the two routes with <c>?profile=</c>, <c>trusted</c> is needed and not safe, a route is
-    /// missing, or PoracleNG refused a requested area name (one it has not loaded) -- the same "fall back"
-    /// rule the trusted active-profile writes follow.
-    /// </returns>
     /// <exception cref="PoracleRequestRefusedException">PoracleNG refused either write outright.</exception>
-    public Task<bool> SetProfileGeographyAsync(
+    public Task SetProfileGeographyAsync(
         string userId, int profileNo, IReadOnlyCollection<string> areas, double latitude, double longitude);
 
     /// <summary>
     /// Deletes a profile and its tracking rules; when it was the active one, PoracleNG moves
     /// <c>current_profile_no</c> to another.
-    /// Maps to DELETE /api/v2/humans/{userId}/profiles/{profileNo} where declared, or
-    /// DELETE /api/profiles/{userId}/byProfileNo/{profileNo}.
+    /// Maps to DELETE /api/v2/humans/{userId}/profiles/{profileNo}.
     /// </summary>
     public Task DeleteProfileAsync(string userId, int profileNo);
 
     /// <summary>
     /// Copies all tracking rules from one profile to another, replacing the destination's.
-    /// Maps to POST /api/v2/humans/{userId}/profiles/{toProfileNo}/copy (<c>from_profile</c> in the body)
-    /// where declared, or POST /api/profiles/{userId}/copy/{fromProfileNo}/{toProfileNo}.
+    /// Maps to POST /api/v2/humans/{userId}/profiles/{toProfileNo}/copy (<c>from_profile</c> in the body).
     /// </summary>
     public Task CopyProfileAsync(string userId, int fromProfileNo, int toProfileNo);
 
     /// <summary>
     /// The user's saved places, plus the profile pin every alarm falls back to.
-    /// Maps to GET /api/humans/{id}/locations
+    /// Maps to GET /api/v2/humans/{id}/locations
     /// </summary>
     public Task<SavedPlaces> GetPlacesAsync(string userId);
 
     /// <summary>
     /// Saves a place. PoracleNG reports per-row outcomes rather than failing the request, so a
     /// duplicate label comes back as a message here rather than an exception.
-    /// Maps to POST /api/humans/{id}/locations/add
+    /// Maps to POST /api/v2/humans/{id}/locations
     /// </summary>
     /// <returns>Null on success, or PoracleNG's reason for refusing this label.</returns>
     public Task<string?> AddPlaceAsync(string userId, SavedPlace place);
@@ -218,16 +203,16 @@ public interface IPoracleHumanProxy
     /// Moves a saved place, keeping its label so every alarm pointing at it follows.
     /// </summary>
     /// <remarks>
-    /// PUT /api/v2/humans/{id}/locations/{label}. There is no v1 equivalent, which is why moving a place
-    /// an alarm referenced was impossible before: the delete answers 409 while anything still points at
-    /// it, so the only route was to repoint every alarm, delete, re-add and repoint back.
+    /// PUT /api/v2/humans/{id}/locations/{label}. Before this route existed, moving a place an alarm
+    /// referenced meant repointing every alarm, deleting, re-adding and repointing back, because the
+    /// delete answers 409 while anything still points at it.
     /// </remarks>
-    /// <returns>False when this PoracleNG has no such route; the caller should say so rather than retry.</returns>
-    public Task<bool> UpdatePlaceAsync(string userId, string label, double latitude, double longitude);
+    /// <exception cref="PoracleUnsupportedException">This PoracleNG is older than 5.4.0 and has no such route.</exception>
+    public Task UpdatePlaceAsync(string userId, string label, double latitude, double longitude);
 
     /// <summary>
     /// Deletes a saved place.
-    /// Maps to POST /api/humans/{id}/locations/{label}/delete
+    /// Maps to DELETE /api/v2/humans/{id}/locations/{label}
     /// </summary>
     /// <exception cref="PlaceInUseException">Alarms still point at this place.</exception>
     public Task DeletePlaceAsync(string userId, string label);
@@ -237,22 +222,18 @@ public interface IPoracleHumanProxy
     /// restricted to a batch of <paramref name="ids"/>. Maps to <c>GET /api/v2/humans</c>.
     /// </summary>
     /// <remarks>
-    /// Returns <c>null</c> when this PoracleNG has no v2 humans list route at all, <em>or</em> when it
-    /// has the route but its list item predates jfberry/PoracleNG#230 and is missing
-    /// <c>last_checked</c>/<c>disabled_date</c>/<c>notes</c> -- the admin grid needs all three, and a
-    /// server answering fewer of them is not meaningfully different from one with no route. Either way
-    /// the caller falls back to <c>IHumanRepository</c>. See #839.
+    /// Never null: nobody matching is an empty list. A PoracleNG without the route (older than 5.4.0)
+    /// throws <see cref="PoracleUnsupportedException"/> rather than answering a list that looks genuine.
     /// </remarks>
-    public Task<IReadOnlyList<Human>?> ListHumansAsync(string? type = null, IReadOnlyCollection<string>? ids = null);
+    public Task<IReadOnlyList<Human>> ListHumansAsync(string? type = null, IReadOnlyCollection<string>? ids = null);
 
     /// <summary>
     /// Deletes a human and cascades every table PoracleNG owns for it (tracking rules, profiles, summary
     /// schedules) in one call. Maps to <c>DELETE /api/v2/humans/{id}</c>.
     /// </summary>
     /// <returns>
-    /// <c>true</c> if deleted; <c>false</c> if this PoracleNG answered and the human did not exist
-    /// (nothing to fall back to -- the account is genuinely gone); <c>null</c> if this PoracleNG has no
-    /// v2 delete route, so the caller should fall back to <c>IHumanRepository</c>.
+    /// <c>true</c> if deleted; <c>false</c> if PoracleNG answered and the human did not exist. Anything
+    /// else throws, including <see cref="PoracleUnsupportedException"/> on a server older than 5.4.0.
     /// </returns>
-    public Task<bool?> DeleteHumanAsync(string userId);
+    public Task<bool> DeleteHumanAsync(string userId);
 }

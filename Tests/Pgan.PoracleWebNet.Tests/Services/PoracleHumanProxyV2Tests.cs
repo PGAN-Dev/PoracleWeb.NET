@@ -2,7 +2,6 @@ using System.Globalization;
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -13,7 +12,7 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 
 /// <summary>
 /// The human, location and place operations on PoracleNG's <c>/api/v2</c> surface, and every way they
-/// must fall back to v1 instead.
+/// answer when the server is older than the 5.4.0 minimum.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -23,8 +22,7 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 /// route the build has never had.
 /// </para>
 /// <para>
-/// Half of these assert that a 5.1.0 self-hoster is unaffected. That is the point of keeping v1: there
-/// is no version floor, so the fallback has to be exercised as hard as the new path.
+/// There is no v1 fallback: a route the server does not have is a server older than 5.4.0, and says so.
 /// </para>
 /// </remarks>
 public class PoracleHumanProxyV2Tests
@@ -35,44 +33,15 @@ public class PoracleHumanProxyV2Tests
     private const string RouteMissing = "404 page not found";
 
     [Fact]
-    public async Task GetHumanReadsTheV2RouteOn521()
+    public async Task GetHumanReadsTheV2Route()
     {
         var handler = ScriptedHandler.Ok("""{"human":{"id":"user1","language":"en"}}""");
-        var sut = CreateSut(handler, "5.2.1");
+        var sut = CreateSut(handler);
 
         var human = await sut.GetHumanAsync("user1");
 
         var request = Assert.Single(handler.Requests);
         Assert.Equal($"{ApiAddress}/api/v2/humans/user1", request.Url);
-        Assert.Equal("user1", human!.Value.GetProperty("id").GetString());
-    }
-
-    [Fact]
-    public async Task GetHumanUsesV1OnAServerWithoutV2()
-    {
-        var handler = ScriptedHandler.Ok("""{"human":{"id":"user1"},"status":"ok"}""");
-        var sut = CreateSut(handler, "5.1.0");
-
-        await sut.GetHumanAsync("user1");
-
-        Assert.Equal($"{ApiAddress}/api/humans/one/user1", Assert.Single(handler.Requests).Url);
-    }
-
-    [Fact]
-    public async Task AVersionThatClaimsV2ButHasNoRouteFallsBackToV1()
-    {
-        // A fork can carry a version number without the routes. The plaintext 404 is the only signal,
-        // and answering it with a failure rather than a retry would take the operation away entirely.
-        var handler = new ScriptedHandler(
-            new Reply(HttpStatusCode.NotFound, RouteMissing, "text/plain"),
-            new Reply(HttpStatusCode.OK, """{"human":{"id":"user1"},"status":"ok"}"""));
-        var sut = CreateSut(handler, "5.2.1");
-
-        var human = await sut.GetHumanAsync("user1");
-
-        Assert.Equal(2, handler.Requests.Count);
-        Assert.Equal($"{ApiAddress}/api/v2/humans/user1", handler.Requests[0].Url);
-        Assert.Equal($"{ApiAddress}/api/humans/one/user1", handler.Requests[1].Url);
         Assert.Equal("user1", human!.Value.GetProperty("id").GetString());
     }
 
@@ -83,7 +52,7 @@ public class PoracleHumanProxyV2Tests
         // missing route would drop the whole surface to v1 for five minutes over a stale user id.
         var handler = ScriptedHandler.Problem(
             HttpStatusCode.NotFound, """{"title":"Not Found","status":404,"detail":"human not found"}""");
-        var sut = CreateSut(handler, "5.2.1");
+        var sut = CreateSut(handler);
 
         Assert.Null(await sut.GetHumanAsync("nobody"));
         Assert.Single(handler.Requests);
@@ -96,7 +65,7 @@ public class PoracleHumanProxyV2Tests
         // a missing human nor a missing route, so it neither answers null nor retries on v1. See #994.
         var handler = ScriptedHandler.Problem(
             HttpStatusCode.ServiceUnavailable, """{"title":"Service Unavailable","status":503,"detail":"database error"}""");
-        var sut = CreateSut(handler, "5.2.1");
+        var sut = CreateSut(handler);
 
         var ex = await Assert.ThrowsAsync<HttpRequestException>(() => sut.GetHumanAsync("user1"));
 
@@ -105,84 +74,15 @@ public class PoracleHumanProxyV2Tests
     }
 
     [Fact]
-    public async Task AMissingRouteStillFallsBackToV1AndV1sNotFoundStillMeansAbsent()
-    {
-        // The gin plaintext 404 is about the route, so it must still reach v1 -- and v1's own 404 is
-        // about the human.
-        var handler = new ScriptedHandler(
-            new Reply(HttpStatusCode.NotFound, RouteMissing, "text/plain"),
-            new Reply(HttpStatusCode.NotFound, """{"status":"error","message":"User not found"}"""));
-        var sut = CreateSut(handler, "5.2.1");
-
-        Assert.Null(await sut.GetHumanAsync("nobody"));
-        Assert.Equal(2, handler.Requests.Count);
-        Assert.Equal($"{ApiAddress}/api/humans/one/nobody", handler.Requests[1].Url);
-    }
-
-    [Fact]
-    public async Task AMissingRouteFallsBackToV1AndAFailingV1StillThrows()
-    {
-        var handler = new ScriptedHandler(
-            new Reply(HttpStatusCode.NotFound, RouteMissing, "text/plain"),
-            new Reply(HttpStatusCode.InternalServerError, """{"status":"error","message":"database error"}"""));
-        var sut = CreateSut(handler, "5.2.1");
-
-        await Assert.ThrowsAsync<HttpRequestException>(() => sut.GetHumanAsync("user1"));
-        Assert.Equal(2, handler.Requests.Count);
-    }
-
-    [Fact]
-    public async Task OneMissingRouteDoesNotDropTheOthersToV1()
-    {
-        // The absence is remembered per route. A single shared flag would let a 404 on one route send
-        // every other call back to v1 -- and PUT /locations/{label} has no v1 path at all, so for that
-        // one "fall back" means the feature disappears.
-        var cache = new MemoryCache(new MemoryCacheOptions());
-        var handler = new ScriptedHandler(
-            new Reply(HttpStatusCode.NotFound, RouteMissing, "text/plain"),
-            new Reply(HttpStatusCode.OK, """{"status":"ok"}"""));
-
-        await CreateSut(handler, "5.2.1", cache).StartAsync("user1");
-        await CreateSut(handler, "5.2.1", cache).StopAsync("user1");
-
-        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/enable", handler.Requests[0].Url);
-        Assert.Equal($"{ApiAddress}/api/humans/user1/start", handler.Requests[1].Url);
-        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/disable", handler.Requests[2].Url);
-    }
-
-    [Fact]
-    public async Task AMissingRouteIsNotProbedAgainWhileItIsRemembered()
-    {
-        var cache = new MemoryCache(new MemoryCacheOptions());
-        var handler = new ScriptedHandler(
-            new Reply(HttpStatusCode.NotFound, RouteMissing, "text/plain"),
-            new Reply(HttpStatusCode.OK, """{"status":"ok"}"""));
-
-        await CreateSut(handler, "5.2.1", cache).StartAsync("user1");
-        await CreateSut(handler, "5.2.1", cache).StartAsync("user1");
-
-        Assert.Equal(3, handler.Requests.Count);
-        Assert.Equal($"{ApiAddress}/api/humans/user1/start", handler.Requests[2].Url);
-    }
-
-    [Fact]
-    public async Task SetLanguageSendsTheSameBodyToWhicheverRouteAnswers()
+    public async Task SetLanguagePostsTheLanguageToTheV2Route()
     {
         var v2 = ScriptedHandler.Ok("""{"status":"ok"}""");
-        await CreateSut(v2, "5.2.1").SetLanguageAsync("user1", "de");
+        await CreateSut(v2).SetLanguageAsync("user1", "de");
 
         var sent = Assert.Single(v2.Requests);
         Assert.Equal(HttpMethod.Post, sent.Method);
         Assert.Equal($"{ApiAddress}/api/v2/humans/user1/language", sent.Url);
         Assert.Equal("de", JsonDocument.Parse(sent.Body!).RootElement.GetProperty("language").GetString());
-
-        var v1 = ScriptedHandler.Ok("""{"language":"de","status":"ok"}""");
-        await CreateSut(v1, "5.1.0").SetLanguageAsync("user1", "de");
-
-        // Identical body on both, which is the whole reason this one needed no translation.
-        var legacy = Assert.Single(v1.Requests);
-        Assert.Equal($"{ApiAddress}/api/humans/user1/language", legacy.Url);
-        Assert.Equal("de", JsonDocument.Parse(legacy.Body!).RootElement.GetProperty("language").GetString());
     }
 
     [Fact]
@@ -195,74 +95,45 @@ public class PoracleHumanProxyV2Tests
             """{"title":"Unprocessable Entity","status":422,"detail":"language is required"}""");
 
         var refused = await Assert.ThrowsAsync<PoracleRequestRefusedException>(
-            () => CreateSut(handler, "5.2.1").SetLanguageAsync("user1", ""));
+            () => CreateSut(handler).SetLanguageAsync("user1", ""));
 
         Assert.Contains("language is required", refused.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task AdminDisableRenamesTheKeyAsWellAsTheRoute()
+    public async Task AdminDisableSendsDisabledNotState()
     {
-        // v2's body is `disabled`; v1's is `state`. Sending v1's key to v2 is a 422, and sending v2's
-        // key to v1 is "state is required (true/false)" -- the defect the v1 body already exists to fix.
+        // v2's body is `disabled`; v1's was `state`, which v2 refuses with a 422.
         var v2 = ScriptedHandler.Ok("""{"status":"ok"}""");
-        await CreateSut(v2, "5.2.1").AdminDisabledAsync("user1", true);
+        await CreateSut(v2).AdminDisabledAsync("user1", true);
 
         var sent = Assert.Single(v2.Requests);
         Assert.Equal($"{ApiAddress}/api/v2/humans/user1/admin-disable", sent.Url);
         var v2Body = JsonDocument.Parse(sent.Body!).RootElement;
         Assert.True(v2Body.GetProperty("disabled").GetBoolean());
         Assert.False(v2Body.TryGetProperty("state", out _));
-
-        var v1 = ScriptedHandler.Ok("""{"status":"ok"}""");
-        await CreateSut(v1, "5.1.0").AdminDisabledAsync("user1", true);
-
-        var legacy = Assert.Single(v1.Requests);
-        Assert.Equal($"{ApiAddress}/api/humans/user1/adminDisabled", legacy.Url);
-        Assert.True(JsonDocument.Parse(legacy.Body!).RootElement.GetProperty("state").GetBoolean());
     }
 
     [Fact]
     public async Task SetLocationMovesTheCoordinatesIntoTheBody()
     {
         var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
-        await CreateSut(handler, "5.2.1").SetLocationAsync("user1", 51.5, -0.12);
+        await CreateSut(handler).SetLocationAsync("user1", 51.5, -0.12);
 
         var sent = Assert.Single(handler.Requests);
         Assert.Equal($"{ApiAddress}/api/v2/humans/user1/location", sent.Url);
         var body = JsonDocument.Parse(sent.Body!).RootElement;
-        Assert.Equal(51.5, body.GetProperty("lat").GetDouble());
-        Assert.Equal(-0.12, body.GetProperty("lon").GetDouble());
-    }
-
-    [Fact]
-    public async Task TheV1LocationPathIsInvariantWhateverTheServerCultureIs()
-    {
-        // The v1 path interpolates the doubles. Under a culture with a comma decimal separator that
-        // produced /setLocation/51,5/-0,12 -- four path segments where PoracleNG routes two.
-        var previous = CultureInfo.CurrentCulture;
-        try
-        {
-            CultureInfo.CurrentCulture = new CultureInfo("de-DE");
-
-            var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
-            await CreateSut(handler, "5.1.0").SetLocationAsync("user1", 51.5, -0.12);
-
-            Assert.Equal(
-                $"{ApiAddress}/api/humans/user1/setLocation/51.5/-0.12",
-                Assert.Single(handler.Requests).Url);
-        }
-        finally
-        {
-            CultureInfo.CurrentCulture = previous;
-        }
+        Assert.Equal(51.5, body.GetProperty("latitude").GetDouble());
+        Assert.Equal(-0.12, body.GetProperty("longitude").GetDouble());
+        Assert.False(body.TryGetProperty("lat", out _));
+        Assert.False(body.TryGetProperty("lon", out _));
     }
 
     [Fact]
     public async Task SwitchProfileMovesTheNumberIntoTheBody()
     {
         var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
-        await CreateSut(handler, "5.2.1").SwitchProfileAsync("user1", 3);
+        await CreateSut(handler).SwitchProfileAsync("user1", 3);
 
         var sent = Assert.Single(handler.Requests);
         Assert.Equal($"{ApiAddress}/api/v2/humans/user1/profile", sent.Url);
@@ -270,12 +141,10 @@ public class PoracleHumanProxyV2Tests
     }
 
     [Fact]
-    public async Task AddPlaceSendsLatLonWhereTheListAnswersLatitudeLongitude()
+    public async Task AddPlaceSendsLatitudeLongitude()
     {
-        // The asymmetry is upstream's, not a typo: the request takes lat/lon, the read answers the
-        // long names.
         var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
-        var sut = CreateSut(handler, "5.2.1");
+        var sut = CreateSut(handler);
 
         var refusal = await sut.AddPlaceAsync(
             "user1", new SavedPlace { Label = "home", Latitude = 1.5, Longitude = 2.5 });
@@ -286,9 +155,9 @@ public class PoracleHumanProxyV2Tests
         Assert.Equal($"{ApiAddress}/api/v2/humans/user1/locations", sent.Url);
         var body = JsonDocument.Parse(sent.Body!).RootElement;
         Assert.Equal("home", body.GetProperty("label").GetString());
-        Assert.Equal(1.5, body.GetProperty("lat").GetDouble());
-        Assert.Equal(2.5, body.GetProperty("lon").GetDouble());
-        Assert.False(body.TryGetProperty("latitude", out _));
+        Assert.Equal(1.5, body.GetProperty("latitude").GetDouble());
+        Assert.Equal(2.5, body.GetProperty("longitude").GetDouble());
+        Assert.False(body.TryGetProperty("lat", out _));
     }
 
     [Fact]
@@ -299,7 +168,7 @@ public class PoracleHumanProxyV2Tests
         var handler = ScriptedHandler.Problem(
             HttpStatusCode.Conflict,
             """{"title":"Conflict","status":409,"detail":"location label already exists"}""");
-        var sut = CreateSut(handler, "5.2.1");
+        var sut = CreateSut(handler);
 
         var refusal = await sut.AddPlaceAsync("user1", new SavedPlace { Label = "home" });
 
@@ -313,7 +182,7 @@ public class PoracleHumanProxyV2Tests
         // 'label'" inside a 200 and v2 answers 500 {"detail":"database error"} -- both verified live,
         // and neither is a sentence to show someone who typed a long name.
         var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
-        var sut = CreateSut(handler, "5.2.1");
+        var sut = CreateSut(handler);
 
         var refusal = await sut.AddPlaceAsync("user1", new SavedPlace { Label = new string('x', 65) });
 
@@ -325,51 +194,36 @@ public class PoracleHumanProxyV2Tests
     public async Task ALabelOfExactlySixtyFourStillSaves()
     {
         var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
-        var sut = CreateSut(handler, "5.2.1");
+        var sut = CreateSut(handler);
 
         Assert.Null(await sut.AddPlaceAsync("user1", new SavedPlace { Label = new string('x', 64) }));
         Assert.Single(handler.Requests);
     }
 
     [Fact]
-    public async Task AddPlaceStillReadsTheV1ResultsArrayOnAnOlderServer()
-    {
-        var handler = ScriptedHandler.Ok("""{"results":[{"error":"label already used"}],"status":"ok"}""");
-        var sut = CreateSut(handler, "5.1.0");
-
-        Assert.Equal("label already used", await sut.AddPlaceAsync("user1", new SavedPlace { Label = "home" }));
-        Assert.Equal($"{ApiAddress}/api/humans/user1/locations/add", Assert.Single(handler.Requests).Url);
-    }
-
-    [Fact]
     public async Task UpdatePlacePutsTheNewCoordinates()
     {
         var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
-        var sut = CreateSut(handler, "5.2.1");
+        var sut = CreateSut(handler);
 
-        Assert.True(await sut.UpdatePlaceAsync("user1", "home", 9.5, 8.5));
+        await sut.UpdatePlaceAsync("user1", "home", 9.5, 8.5);
 
         var sent = Assert.Single(handler.Requests);
         Assert.Equal(HttpMethod.Put, sent.Method);
         Assert.Equal($"{ApiAddress}/api/v2/humans/user1/locations/home", sent.Url);
         var body = JsonDocument.Parse(sent.Body!).RootElement;
-        Assert.Equal(9.5, body.GetProperty("lat").GetDouble());
-        Assert.Equal(8.5, body.GetProperty("lon").GetDouble());
+        Assert.Equal(9.5, body.GetProperty("latitude").GetDouble());
+        Assert.Equal(8.5, body.GetProperty("longitude").GetDouble());
     }
 
-    // jfberry/PoracleNG#303 renamed lat/lon to latitude/longitude on the three location request bodies.
-    // They are additionalProperties:false, so the wrong names are a 422 that TryV2Async does not fall back
-    // from. The names follow what the server's own /openapi.json declares; the 5.2.1 tests above pin the
-    // old ones.
-
-    private static PoracleV2Capabilities LongNames(bool carries = true) =>
-        new() { Read = true, V2LocationLatitudeLongitude = carries };
+    // The three location request bodies are additionalProperties:false and 5.4.0 names the coordinates
+    // latitude/longitude on all of them (jfberry/PoracleNG#303); lat/lon is a 422.
 
     [Fact]
     public async Task SetLocationSendsLatitudeLongitudeWhereTheServerDeclaresThem()
     {
         var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
-        await CreateSut(handler, "5.3.0", capabilities: LongNames()).SetLocationAsync("user1", 51.5, -0.12);
+        await CreateSut(handler).SetLocationAsync("user1", 51.5, -0.12);
 
         var sent = Assert.Single(handler.Requests);
         Assert.Equal($"{ApiAddress}/api/v2/humans/user1/location", sent.Url);
@@ -385,7 +239,7 @@ public class PoracleHumanProxyV2Tests
     public async Task AddPlaceSendsLatitudeLongitudeWhereTheServerDeclaresThem()
     {
         var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
-        var sut = CreateSut(handler, "5.3.0", capabilities: LongNames());
+        var sut = CreateSut(handler);
 
         Assert.Null(await sut.AddPlaceAsync(
             "user1", new SavedPlace { Label = "home", Latitude = 1.5, Longitude = 2.5 }));
@@ -405,9 +259,9 @@ public class PoracleHumanProxyV2Tests
     public async Task UpdatePlaceSendsLatitudeLongitudeWhereTheServerDeclaresThem()
     {
         var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
-        var sut = CreateSut(handler, "5.3.0", capabilities: LongNames());
+        var sut = CreateSut(handler);
 
-        Assert.True(await sut.UpdatePlaceAsync("user1", "home", 9.5, 8.5));
+        await sut.UpdatePlaceAsync("user1", "home", 9.5, 8.5);
 
         var sent = Assert.Single(handler.Requests);
         Assert.Equal($"{ApiAddress}/api/v2/humans/user1/locations/home", sent.Url);
@@ -420,43 +274,18 @@ public class PoracleHumanProxyV2Tests
     }
 
     [Fact]
-    public async Task AServerThatDoesNotDeclareTheLongNamesStillGetsLatLonOnAllThreeWrites()
+    public async Task UpdatePlaceOnAServerWithoutTheRouteIsUnsupported()
     {
-        // Not read, or read and not carrying: same answer, the names every released PoracleNG takes.
-        foreach (var capabilities in new[] { LongNames(carries: false), new PoracleV2Capabilities() })
-        {
-            var handler = new ScriptedHandler(
-                new Reply(HttpStatusCode.OK, """{"status":"ok"}"""),
-                new Reply(HttpStatusCode.OK, """{"status":"ok"}"""),
-                new Reply(HttpStatusCode.OK, """{"status":"ok"}"""));
-            var sut = CreateSut(handler, "5.2.1", capabilities: capabilities);
+        // The v1 server answered 501 through a false return. Now the route is the only one, and its
+        // plaintext 404 names the minimum release.
+        var handler = new ScriptedHandler(new Reply(HttpStatusCode.NotFound, RouteMissing, "text/plain"));
+        var sut = CreateSut(handler);
 
-            await sut.SetLocationAsync("user1", 1, 2);
-            await sut.AddPlaceAsync("user1", new SavedPlace { Label = "home", Latitude = 1, Longitude = 2 });
-            await sut.UpdatePlaceAsync("user1", "home", 1, 2);
+        var ex = await Assert.ThrowsAsync<PoracleUnsupportedException>(
+            () => sut.UpdatePlaceAsync("user1", "home", 9.5, 8.5));
 
-            Assert.Equal(3, handler.Requests.Count);
-            foreach (var sent in handler.Requests)
-            {
-                var body = JsonDocument.Parse(sent.Body!).RootElement;
-                Assert.True(body.TryGetProperty("lat", out _));
-                Assert.True(body.TryGetProperty("lon", out _));
-                Assert.False(body.TryGetProperty("latitude", out _));
-                Assert.False(body.TryGetProperty("longitude", out _));
-            }
-        }
-    }
-
-    [Fact]
-    public async Task UpdatePlaceAnswersFalseRatherThanFailingOnAServerWithoutTheRoute()
-    {
-        // There is no v1 equivalent, so the honest answer is "this server cannot", not an exception the
-        // SPA would show as a failed save.
-        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
-        var sut = CreateSut(handler, "5.1.0");
-
-        Assert.False(await sut.UpdatePlaceAsync("user1", "home", 9.5, 8.5));
-        Assert.Empty(handler.Requests);
+        Assert.Contains("5.4.0", ex.Message, StringComparison.Ordinal);
+        Assert.Single(handler.Requests);
     }
 
     [Fact]
@@ -464,7 +293,7 @@ public class PoracleHumanProxyV2Tests
     {
         var handler = ScriptedHandler.Problem(
             HttpStatusCode.NotFound, """{"title":"Not Found","status":404,"detail":"location not found"}""");
-        var sut = CreateSut(handler, "5.2.1");
+        var sut = CreateSut(handler);
 
         var refused = await Assert.ThrowsAsync<PoracleRequestRefusedException>(
             () => sut.UpdatePlaceAsync("user1", "nope", 1, 2));
@@ -474,41 +303,62 @@ public class PoracleHumanProxyV2Tests
     }
 
     [Fact]
-    public async Task GetPlacesReadsTheSameWrapperFromBothSurfaces()
+    public async Task GetPlacesReadsTheV2WrapperAndOnlyTheV2Route()
     {
         const string Body =
             """{"locations":{"default":{"latitude":1,"longitude":2},"named":[{"label":"home","latitude":3,"longitude":4}]}}""";
 
-        foreach (var (version, url) in new[]
-        {
-            ("5.2.1", $"{ApiAddress}/api/v2/humans/user1/locations"),
-            ("5.1.0", $"{ApiAddress}/api/humans/user1/locations"),
-        })
-        {
-            var handler = ScriptedHandler.Ok(Body);
-            var places = await CreateSut(handler, version).GetPlacesAsync("user1");
+        var handler = ScriptedHandler.Ok(Body);
+        var places = await CreateSut(handler).GetPlacesAsync("user1");
 
-            Assert.Equal(url, Assert.Single(handler.Requests).Url);
-            Assert.Equal("home", Assert.Single(places.Named).Label);
-            Assert.Equal(1, places.Default!.Latitude);
-        }
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/locations", Assert.Single(handler.Requests).Url);
+        Assert.Equal("home", Assert.Single(places.Named).Label);
+        Assert.Equal(1, places.Default!.Latitude);
     }
 
     [Fact]
-    public async Task AdminRolesReadsWhicheverRouteTheServerHas()
+    public async Task DeletePlaceSendsOnlyTheV2Delete()
+    {
+        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
+
+        await CreateSut(handler).DeletePlaceAsync("user1", "home");
+
+        var sent = Assert.Single(handler.Requests);
+        Assert.Equal(HttpMethod.Delete, sent.Method);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/locations/home", sent.Url);
+    }
+
+    [Theory]
+    [InlineData("get")]
+    [InlineData("add")]
+    [InlineData("delete")]
+    public async Task APlaceCallToAServerWithoutTheRouteIsUnsupportedNotRetriedOnV1(string call)
+    {
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.NotFound, RouteMissing, "text/plain"),
+            new Reply(HttpStatusCode.OK, """{"locations":{},"results":[],"status":"ok"}"""));
+        var sut = CreateSut(handler);
+
+        await Assert.ThrowsAsync<PoracleUnsupportedException>(() => call switch
+        {
+            "get" => sut.GetPlacesAsync("user1"),
+            "add" => sut.AddPlaceAsync("user1", new SavedPlace { Label = "home" }),
+            _ => sut.DeletePlaceAsync("user1", "home"),
+        });
+
+        Assert.Single(handler.Requests);
+    }
+
+    [Fact]
+    public async Task AdminRolesReadsTheV2Route()
     {
         // The response is identical apart from v1's extra "status":"ok", because v2's handler calls the
         // same delegated-administration logic. Verified live against both.
         const string Body = """{"admin":{"discord":{"channels":[],"webhooks":["teamharmonyrares"],"users":false}}}""";
 
         var v2 = ScriptedHandler.Ok(Body);
-        Assert.NotNull(await CreateSut(v2, "5.2.1").GetAdminRolesAsync("user1"));
+        Assert.NotNull(await CreateSut(v2).GetAdminRolesAsync("user1"));
         Assert.Equal($"{ApiAddress}/api/v2/humans/user1/admin-roles", Assert.Single(v2.Requests).Url);
-
-        var v1 = ScriptedHandler.Ok(Body);
-        Assert.NotNull(await CreateSut(v1, "5.1.0").GetAdminRolesAsync("user1"));
-        Assert.Equal(
-            $"{ApiAddress}/api/humans/user1/getAdministrationRoles", Assert.Single(v1.Requests).Url);
     }
 
     [Fact]
@@ -519,11 +369,11 @@ public class PoracleHumanProxyV2Tests
         // legitimate delegate for the full minute after a blip. See #656 and #667.
         var missing = ScriptedHandler.Problem(
             HttpStatusCode.NotFound, """{"title":"Not Found","status":404,"detail":"human not found"}""");
-        Assert.Null(await CreateSut(missing, "5.2.1").GetAdminRolesAsync("nobody"));
+        Assert.Null(await CreateSut(missing).GetAdminRolesAsync("nobody"));
 
         var degraded = new ScriptedHandler(new Reply(HttpStatusCode.ServiceUnavailable, "{}"));
         await Assert.ThrowsAsync<HttpRequestException>(
-            () => CreateSut(degraded, "5.2.1").GetAdminRolesAsync("user1"));
+            () => CreateSut(degraded).GetAdminRolesAsync("user1"));
     }
 
     [Fact]
@@ -533,162 +383,17 @@ public class PoracleHumanProxyV2Tests
         // segments and the request could only 404 -- which then read as "administers nothing".
         var handler = ScriptedHandler.Ok("""{"admin":{"discord":{"channels":[],"webhooks":[],"users":false}}}""");
 
-        await CreateSut(handler, "5.2.1").GetAdminRolesAsync("https://discordapp.com/api/webhooks/1/tok");
+        await CreateSut(handler).GetAdminRolesAsync("https://discordapp.com/api/webhooks/1/tok");
 
         Assert.Equal(
             $"{ApiAddress}/api/v2/humans/https%3A%2F%2Fdiscordapp.com%2Fapi%2Fwebhooks%2F1%2Ftok/admin-roles",
             Assert.Single(handler.Requests).Url);
     }
 
-    [Fact]
-    public async Task AnUnreachableServerStaysOnV1()
-    {
-        // Unknown version means unknown routes. Guessing v2 costs an extra round-trip on every call
-        // while PoracleNG is down, and it is down often enough for that to matter.
-        var handler = ScriptedHandler.Ok("""{"human":{"id":"user1"},"status":"ok"}""");
-        var sut = CreateSut(handler, version: null);
-
-        await sut.GetHumanAsync("user1");
-
-        Assert.Equal($"{ApiAddress}/api/humans/one/user1", Assert.Single(handler.Requests).Url);
-    }
-
-    // ---- profiles on v2 (#836, #837) ------------------------------------------------------------
-    //
-    // Both gate on what the server's own /openapi.json declares rather than on the route answering,
-    // because on 5.2.1 both routes exist and neither does what is wanted: the create answers
-    // {"status":"ok"} with no number, and the PATCH declares active_hours alone under
-    // additionalProperties:false, so sending a name to it is a 422.
-
-    private static PoracleV2Capabilities Carrying(bool create = false, bool rename = false) =>
-        new() { Read = true, ProfileCreateReturnsNumber = create, ProfileRename = rename };
-
-    [Fact]
-    public async Task CreatingAProfileTakesTheNumberTheServerAssigned()
-    {
-        var handler = ScriptedHandler.Ok("""
-            {"profile_no":2,"profile":{"uid":347,"id":"user1","profile_no":2,"name":"probe-two"}}
-            """);
-        var sut = CreateSut(handler, version: "5.3.0", capabilities: Carrying(create: true));
-
-        var assigned = await sut.AddProfileAsync("user1", Body("""{"name":"probe-two"}"""));
-
-        Assert.Equal(2, assigned);
-        var request = Assert.Single(handler.Requests);
-        Assert.Equal(HttpMethod.Post, request.Method);
-        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/profiles", request.Url);
-    }
-
-    [Fact]
-    public async Task CreatingAProfileStaysOnV1WhenTheServerWouldNotReportTheNumber()
-    {
-        // The no-change case, and the reason this gates on the schema rather than on the route. 5.2.1
-        // serves POST /v2/humans/{id}/profiles perfectly well — it just answers {"status":"ok"}, so
-        // going there would cost a round trip and still leave the caller diffing the profile list.
-        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
-        var sut = CreateSut(handler, version: "5.2.1", capabilities: Carrying(create: false));
-
-        var assigned = await sut.AddProfileAsync("user1", Body("""{"name":"probe-two"}"""));
-
-        Assert.Null(assigned);
-        Assert.Equal($"{ApiAddress}/api/profiles/user1/add", Assert.Single(handler.Requests).Url);
-    }
-
-    [Fact]
-    public async Task ACreateThatAnswersWithoutTheNumberIsNotAFailure()
-    {
-        // A server that declares the capability and then does not carry it. Null sends the caller back
-        // to diffing the list, which is what it does on every released version anyway.
-        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
-        var sut = CreateSut(handler, version: "5.3.0", capabilities: Carrying(create: true));
-
-        Assert.Null(await sut.AddProfileAsync("user1", Body("""{"name":"probe-two"}""")));
-    }
-
-    [Fact]
-    public async Task RenamingAProfilePatchesV2AndSaysTheNameWasApplied()
-    {
-        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
-        var sut = CreateSut(handler, version: "5.3.0", capabilities: Carrying(rename: true));
-
-        var applied = await sut.UpdateProfileAsync(
-            "user1", Body("""{"profile_no":2,"name":"renamed","active_hours":null}"""));
-
-        Assert.True(applied);
-        var request = Assert.Single(handler.Requests);
-        Assert.Equal(HttpMethod.Patch, request.Method);
-        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/profiles/2", request.Url);
-
-        // profile_no addresses the row in the path; v2 sets additionalProperties:false, so leaving it in
-        // the body is a 422 rather than a harmless extra.
-        using var body = JsonDocument.Parse(request.Body!);
-        Assert.False(body.RootElement.TryGetProperty("profile_no", out _));
-        Assert.Equal("renamed", body.RootElement.GetProperty("name").GetString());
-
-        // v1 says "leave this alone" with a null; v2 says it by omission and declares active_hours as an
-        // array rather than a nullable one. A live build accepts the null anyway, but that is tolerance
-        // the schema does not promise and TryV2Async falls back on a missing route, not on a 422.
-        Assert.False(body.RootElement.TryGetProperty("active_hours", out _));
-    }
-
-    [Fact]
-    public async Task ClearingTheScheduleIsAnEmptyArrayAndSurvivesTheNullStrip()
-    {
-        // The legitimate-case half: [] is how v2 documents "clear it", and it is not a null.
-        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
-        var sut = CreateSut(handler, version: "5.3.0", capabilities: Carrying(rename: true));
-
-        await sut.UpdateProfileAsync("user1", Body("""{"profile_no":2,"active_hours":[]}"""));
-
-        using var body = JsonDocument.Parse(Assert.Single(handler.Requests).Body!);
-        Assert.Equal(JsonValueKind.Array, body.RootElement.GetProperty("active_hours").ValueKind);
-        Assert.Equal(0, body.RootElement.GetProperty("active_hours").GetArrayLength());
-    }
-
-    [Fact]
-    public async Task RenamingStaysOnV1WhenTheServerWouldRefuseAName()
-    {
-        // The load-bearing half. PATCH exists on 5.2.1 and would answer 422 for the name, so this is not
-        // an optimisation — without the gate, every profile edit on the version everyone runs would fail.
-        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
-        var sut = CreateSut(handler, version: "5.2.1", capabilities: Carrying(rename: false));
-
-        var applied = await sut.UpdateProfileAsync(
-            "user1", Body("""{"profile_no":2,"name":"renamed"}"""));
-
-        Assert.False(applied);
-        Assert.Equal($"{ApiAddress}/api/profiles/user1/update", Assert.Single(handler.Requests).Url);
-    }
-
-    [Fact]
-    public async Task AnUpdateWithNoProfileNumberStaysOnV1()
-    {
-        // v2 addresses the profile in the path, so a body that does not say which profile cannot go
-        // there. v1 reads it out of the body and is the only surface that can serve this.
-        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
-        var sut = CreateSut(handler, version: "5.3.0", capabilities: Carrying(rename: true));
-
-        Assert.False(await sut.UpdateProfileAsync("user1", Body("""{"name":"renamed"}""")));
-        Assert.Equal($"{ApiAddress}/api/profiles/user1/update", Assert.Single(handler.Requests).Url);
-    }
-
     // ---- admin human list & delete (#839) -----------------------------------------------------
     //
-    // Gated purely on IPoracleV2SchemaService.AdminHumanRoutes, not on ServerCarriesV2Async/TryV2Async:
-    // the schema check already encodes "the route exists AND the list item has the three #230 fields",
-    // which is the exact bar HumanService needs before it can stop falling back to IHumanRepository.
-
-    private static PoracleV2Capabilities AdminRoutes(bool carries) => new() { Read = true, AdminHumanRoutes = carries };
-
-    [Fact]
-    public async Task ListHumansReturnsNullWithoutTheCapabilitySoTheCallerFallsBackToTheRepository()
-    {
-        var handler = ScriptedHandler.Ok("""{"humans":[]}""");
-        var sut = CreateSut(handler, version: "5.2.1", capabilities: AdminRoutes(carries: false));
-
-        Assert.Null(await sut.ListHumansAsync());
-        Assert.Empty(handler.Requests);
-    }
+    // PoracleNG 5.4.0 is the minimum, so these routes are always there; a plaintext 404 means the server is
+    // older than that and is reported as such rather than falling back to the Poracle database.
 
     [Fact]
     public async Task ListHumansReadsTheWrapperAndTheBooleanFieldsTheListEndpointActuallySends()
@@ -700,12 +405,12 @@ public class PoracleHumanProxyV2Tests
               "admin_disable":false,"language":"en","current_profile_no":2,
               "last_checked":"2026-10-01T00:00:00Z","disabled_date":null,"notes":"vip"}]}
             """);
-        var sut = CreateSut(handler, version: "5.2.1", capabilities: AdminRoutes(carries: true));
+        var sut = CreateSut(handler);
 
         var humans = await sut.ListHumansAsync();
 
         Assert.Equal($"{ApiAddress}/api/v2/humans", Assert.Single(handler.Requests).Url);
-        var human = Assert.Single(humans!);
+        var human = Assert.Single(humans);
         Assert.Equal("user1", human.Id);
         Assert.Equal(1, human.Enabled);
         Assert.Equal(0, human.AdminDisable);
@@ -718,7 +423,7 @@ public class PoracleHumanProxyV2Tests
     public async Task ListHumansFiltersByTypeAndEncodesTheCommaSeparatedIds()
     {
         var handler = ScriptedHandler.Ok("""{"humans":[]}""");
-        var sut = CreateSut(handler, version: "5.2.1", capabilities: AdminRoutes(carries: true));
+        var sut = CreateSut(handler);
 
         await sut.ListHumansAsync(type: "webhook", ids: ["user1", "https://discordapp.com/api/webhooks/1/tok"]);
 
@@ -727,20 +432,10 @@ public class PoracleHumanProxyV2Tests
     }
 
     [Fact]
-    public async Task DeleteHumanReturnsNullWithoutTheCapabilitySoTheCallerFallsBackToTheRepository()
-    {
-        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
-        var sut = CreateSut(handler, version: "5.2.1", capabilities: AdminRoutes(carries: false));
-
-        Assert.Null(await sut.DeleteHumanAsync("user1"));
-        Assert.Empty(handler.Requests);
-    }
-
-    [Fact]
     public async Task DeleteHumanReturnsTrueOnSuccess()
     {
         var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
-        var sut = CreateSut(handler, version: "5.2.1", capabilities: AdminRoutes(carries: true));
+        var sut = CreateSut(handler);
 
         Assert.True(await sut.DeleteHumanAsync("user1"));
         var request = Assert.Single(handler.Requests);
@@ -754,7 +449,7 @@ public class PoracleHumanProxyV2Tests
         // false, not an exception: the account being gone is the caller's success case, not a refusal.
         var handler = ScriptedHandler.Problem(
             HttpStatusCode.NotFound, """{"title":"Not Found","status":404,"detail":"human not found"}""");
-        var sut = CreateSut(handler, version: "5.2.1", capabilities: AdminRoutes(carries: true));
+        var sut = CreateSut(handler);
 
         Assert.False(await sut.DeleteHumanAsync("nobody"));
     }
@@ -764,12 +459,242 @@ public class PoracleHumanProxyV2Tests
     {
         var handler = ScriptedHandler.Problem(
             HttpStatusCode.UnprocessableEntity, """{"title":"Unprocessable Entity","status":422,"detail":"cannot delete"}""");
-        var sut = CreateSut(handler, version: "5.2.1", capabilities: AdminRoutes(carries: true));
+        var sut = CreateSut(handler);
 
         var refused = await Assert.ThrowsAsync<PoracleRequestRefusedException>(
             () => sut.DeleteHumanAsync("user1"));
 
         Assert.Contains("cannot delete", refused.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ListHumansThrowsUnsupportedOnAServerWithoutTheRoute()
+    {
+        var handler = new ScriptedHandler(new Reply(HttpStatusCode.NotFound, RouteMissing, "text/plain"));
+        var sut = CreateSut(handler);
+
+        var ex = await Assert.ThrowsAsync<PoracleUnsupportedException>(() => sut.ListHumansAsync());
+
+        Assert.Equal("PoracleNG 5.4.0", ex.Requires);
+        Assert.Single(handler.Requests);
+    }
+
+    [Fact]
+    public async Task ListHumansAnswersAnEmptyListNotNullWhenNobodyMatches()
+    {
+        var handler = ScriptedHandler.Ok("""{"humans":[]}""");
+        var sut = CreateSut(handler);
+
+        Assert.Empty(await sut.ListHumansAsync(ids: ["nobody"]));
+    }
+
+    [Fact]
+    public async Task DeleteHumanThrowsUnsupportedOnAServerWithoutTheRoute()
+    {
+        var handler = new ScriptedHandler(new Reply(HttpStatusCode.NotFound, RouteMissing, "text/plain"));
+        var sut = CreateSut(handler);
+
+        var ex = await Assert.ThrowsAsync<PoracleUnsupportedException>(() => sut.DeleteHumanAsync("user1"));
+
+        Assert.Equal("PoracleNG 5.4.0", ex.Requires);
+    }
+
+    [Fact]
+    public async Task DeleteHumanEncodesAWebhookUrlIdIntoOnePathSegment()
+    {
+        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
+        var sut = CreateSut(handler);
+
+        Assert.True(await sut.DeleteHumanAsync("https://discord.com/api/webhooks/1/x"));
+
+        Assert.Equal(
+            $"{ApiAddress}/api/v2/humans/https%3A%2F%2Fdiscord.com%2Fapi%2Fwebhooks%2F1%2Fx",
+            Assert.Single(handler.Requests).Url);
+    }
+
+    // ---- single-human calls are v2 only (PoracleNG 5.4.0 minimum) ------------------------------------
+    //
+    // These ignore the server profile and the schema probe on purpose: a build too old to carry the route
+    // answers gin's plaintext 404, which is the only signal, and it is reported as unsupported rather than
+    // retried on a v1 path 5.4.0 no longer needs.
+
+    private static Task Run(PoracleHumanProxy sut, string operation) => operation switch
+    {
+        "get" => sut.GetHumanAsync("user1"),
+        "create" => sut.CreateHumanAsync(Body("""{"id":"user1","name":"n"}""")),
+        "enable" => sut.StartAsync("user1"),
+        "disable" => sut.StopAsync("user1"),
+        "language" => sut.SetLanguageAsync("user1", "de"),
+        "admin-disable" => sut.AdminDisabledAsync("user1", true),
+        "location" => sut.SetLocationAsync("user1", 51.5, -0.12),
+        "admin-roles" => sut.GetAdminRolesAsync("user1"),
+        "list" => sut.ListHumansAsync(),
+        "delete" => sut.DeleteHumanAsync("user1"),
+        _ => throw new ArgumentOutOfRangeException(nameof(operation)),
+    };
+
+    public static TheoryData<string, string, string, string> SingleHumanOperations => new()
+    {
+        { "get", "GET", "/api/v2/humans/user1", "reading a user" },
+        { "create", "POST", "/api/v2/humans", "creating a user" },
+        { "enable", "POST", "/api/v2/humans/user1/enable", "enabling a user" },
+        { "disable", "POST", "/api/v2/humans/user1/disable", "disabling a user" },
+        { "language", "POST", "/api/v2/humans/user1/language", "setting a user's language" },
+        { "admin-disable", "POST", "/api/v2/humans/user1/admin-disable", "banning a user" },
+        { "location", "POST", "/api/v2/humans/user1/location", "setting a user's location" },
+        { "admin-roles", "GET", "/api/v2/humans/user1/admin-roles", "reading a user's delegated webhooks" },
+        { "list", "GET", "/api/v2/humans", "the admin user list" },
+        { "delete", "DELETE", "/api/v2/humans/user1", "deleting a user" },
+    };
+
+    [Theory]
+    [MemberData(nameof(SingleHumanOperations))]
+    public async Task EachSingleHumanCallRequestsOnlyItsV2Route(string operation, string method, string path, string feature)
+    {
+        _ = feature;
+        var handler = ScriptedHandler.Ok("""{"human":{"id":"user1"},"humans":[],"status":"ok"}""");
+
+        // No version and no schema: neither may send a single-human call anywhere but /api/v2.
+        await Run(CreateSut(handler), operation);
+
+        var sent = Assert.Single(handler.Requests);
+        Assert.Equal(new HttpMethod(method), sent.Method);
+        Assert.Equal($"{ApiAddress}{path}", sent.Url);
+    }
+
+    [Theory]
+    [MemberData(nameof(SingleHumanOperations))]
+    public async Task APlaintextNotFoundIsAServerOlderThanTheMinimumNotAMissingHuman(
+        string operation, string method, string path, string feature)
+    {
+        _ = method;
+        _ = path;
+        var handler = new ScriptedHandler(new Reply(HttpStatusCode.NotFound, RouteMissing, "text/plain"));
+
+        var ex = await Assert.ThrowsAsync<PoracleUnsupportedException>(() => Run(CreateSut(handler), operation));
+
+        Assert.Equal(feature, ex.Feature);
+        Assert.Equal("PoracleNG 5.4.0", ex.Requires);
+        Assert.Single(handler.Requests);
+    }
+
+    [Fact]
+    public async Task AProblemJsonNotFoundIsStillAMissingHumanOnEveryCallThatReadsItThatWay()
+    {
+        // The legitimate case beside the refusal above: PoracleNG answering about the human is not a
+        // missing route, whatever the server's version says.
+        const string Missing = """{"title":"Not Found","status":404,"detail":"human not found"}""";
+
+        Assert.Null(await CreateSut(ScriptedHandler.Problem(HttpStatusCode.NotFound, Missing)).GetHumanAsync("nobody"));
+        Assert.Null(await CreateSut(ScriptedHandler.Problem(HttpStatusCode.NotFound, Missing)).GetAdminRolesAsync("nobody"));
+        Assert.False(await CreateSut(ScriptedHandler.Problem(HttpStatusCode.NotFound, Missing)).DeleteHumanAsync("nobody"));
+        await Assert.ThrowsAsync<AccountGoneException>(
+            () => CreateSut(ScriptedHandler.Problem(HttpStatusCode.NotFound, Missing)).StartAsync("nobody"));
+    }
+
+    [Fact]
+    public async Task SetLocationSendsInvariantNumbersWhateverTheServerCultureIs()
+    {
+        // The v1 path interpolated the doubles and produced /setLocation/51,5/-0,12 under a comma-decimal
+        // culture. The v2 body is JSON, which is invariant -- pinned so it stays that way.
+        var previous = CultureInfo.CurrentCulture;
+        try
+        {
+            CultureInfo.CurrentCulture = new CultureInfo("de-DE");
+
+            var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
+            await CreateSut(handler).SetLocationAsync("user1", 51.5, -0.12);
+
+            var body = JsonDocument.Parse(Assert.Single(handler.Requests).Body!).RootElement;
+            Assert.Equal(51.5, body.GetProperty("latitude").GetDouble());
+            Assert.Equal(-0.12, body.GetProperty("longitude").GetDouble());
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = previous;
+        }
+    }
+
+    [Fact]
+    public async Task CreateHumanSendsWhatHumanServiceBuildsAndNothingV2WouldRefuse()
+    {
+        // The real caller: HumanService.CreateAsync builds the body, so drive it rather than restating it.
+        JsonElement? built = null;
+        var humans = new Mock<Pgan.PoracleWebNet.Core.Abstractions.Services.IPoracleHumanProxy>();
+        humans.Setup(h => h.CreateHumanAsync(It.IsAny<JsonElement>()))
+            .Callback<JsonElement>(b => built = b.Clone())
+            .Returns(Task.CompletedTask);
+        humans.Setup(h => h.GetHumanAsync(It.IsAny<string>())).ReturnsAsync((JsonElement?)null);
+        var service = new HumanService(
+            humans.Object, Mock.Of<Pgan.PoracleWebNet.Core.Abstractions.Services.IPoracleTrackingProxy>());
+
+        await service.CreateAsync(new Human { Id = "https://discord.com/api/webhooks/1/x", Name = "Hook", Type = "webhook", Enabled = 1, AdminDisable = 0 });
+
+        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
+        await CreateSut(handler).CreateHumanAsync(built!.Value);
+
+        var sent = Assert.Single(handler.Requests);
+        Assert.Equal(HttpMethod.Post, sent.Method);
+        Assert.Equal($"{ApiAddress}/api/v2/humans", sent.Url);
+
+        var body = JsonDocument.Parse(sent.Body!).RootElement;
+        var schema = CreateHumanSchema();
+        foreach (var property in body.EnumerateObject())
+        {
+            Assert.True(schema.Properties.Contains(property.Name), $"{property.Name} is not on V2CreateHumanBody");
+        }
+
+        // Types as the schema declares them: bool where the service stores 0/1, string for the ids.
+        Assert.Equal("https://discord.com/api/webhooks/1/x", body.GetProperty("id").GetString());
+        Assert.Equal("Hook", body.GetProperty("name").GetString());
+        Assert.Equal("webhook", body.GetProperty("type").GetString());
+        Assert.Equal(JsonValueKind.True, body.GetProperty("enabled").ValueKind);
+        Assert.Equal(JsonValueKind.False, body.GetProperty("admin_disable").ValueKind);
+        Assert.All(schema.Required, name => Assert.True(body.TryGetProperty(name, out _), $"{name} is required"));
+    }
+
+    [Fact]
+    public async Task CreateHumanSendsExactlyTheDeclaredPropertiesInBothDirections()
+    {
+        // Every declared property reaches the wire, and a property the schema does not declare does not
+        // (additionalProperties:false makes it a 422).
+        var everything = """
+            {"admin_disable":false,"area":["a"],"community":["c"],"enabled":true,"id":"u","language":"en",
+             "latitude":1.5,"longitude":2.5,"name":"n","notes":"x","profile_name":"p","type":"discord:user",
+             "bogus":1,"uid":7}
+            """;
+        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
+
+        await CreateSut(handler).CreateHumanAsync(Body(everything));
+
+        var sent = JsonDocument.Parse(Assert.Single(handler.Requests).Body!).RootElement
+            .EnumerateObject().Select(p => p.Name).OrderBy(n => n, StringComparer.Ordinal).ToList();
+        var declared = CreateHumanSchema().Properties.OrderBy(n => n, StringComparer.Ordinal).ToList();
+
+        Assert.Equal(declared, sent);
+        Assert.Equal(12, declared.Count);
+    }
+
+    [Fact]
+    public async Task CreateHumanLeavesOutWhatTheCallerDidNotSupply()
+    {
+        // Required are id and name only; the rest take PoracleNG's defaults, so an absent key must stay absent.
+        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
+
+        await CreateSut(handler).CreateHumanAsync(Body("""{"id":"u","name":"n"}"""));
+
+        var body = JsonDocument.Parse(Assert.Single(handler.Requests).Body!).RootElement;
+        Assert.Equal(["id", "name"], body.EnumerateObject().Select(p => p.Name).OrderBy(n => n, StringComparer.Ordinal));
+    }
+
+    private static (HashSet<string> Properties, List<string> Required) CreateHumanSchema()
+    {
+        using var doc = JsonDocument.Parse(File.ReadAllText(OpenApiFixture("5.4.0")));
+        var schema = doc.RootElement.GetProperty("components").GetProperty("schemas").GetProperty("V2CreateHumanBody");
+
+        return (
+            schema.GetProperty("properties").EnumerateObject().Select(p => p.Name).ToHashSet(),
+            schema.GetProperty("required").EnumerateArray().Select(e => e.GetString()!).ToList());
     }
 
     // ---- trusted setAreas for the active-profile dual writer (#838) ----------------------------
@@ -787,7 +712,7 @@ public class PoracleHumanProxyV2Tests
     {
         var handler = ScriptedHandler.Ok("""{"human":{"id":"user1","area":"[\"downtown\"]"}}""");
         var sut = CreateSut(
-            handler, version: "5.2.1", capabilities: TrustedAreas(carries: false), areaSecurityConfirmedDisabled: true);
+            handler, capabilities: TrustedAreas(carries: false), areaSecurityConfirmedDisabled: true);
 
         Assert.Null(await sut.AddAreaToActiveProfileTrustedAsync("user1", "park"));
         Assert.Empty(handler.Requests);
@@ -800,7 +725,7 @@ public class PoracleHumanProxyV2Tests
         // it would silently bypass a community's allowed-area restriction if area_security is on.
         var handler = ScriptedHandler.Ok("""{"human":{"id":"user1","area":"[\"downtown\"]"}}""");
         var sut = CreateSut(
-            handler, version: "5.2.1", capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: false);
+            handler, capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: false);
 
         Assert.Null(await sut.AddAreaToActiveProfileTrustedAsync("user1", "park"));
         Assert.Empty(handler.Requests);
@@ -813,7 +738,7 @@ public class PoracleHumanProxyV2Tests
             new Reply(HttpStatusCode.OK, """{"human":{"id":"user1","area":"[\"downtown\"]"}}"""),
             new Reply(HttpStatusCode.OK, """{"areas":["downtown","park"],"rejected":[]}"""));
         var sut = CreateSut(
-            handler, version: "5.2.1", capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
+            handler, capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
 
         Assert.True(await sut.AddAreaToActiveProfileTrustedAsync("user1", "park"));
 
@@ -833,7 +758,7 @@ public class PoracleHumanProxyV2Tests
     {
         var handler = ScriptedHandler.Ok("""{"human":{"id":"user1","area":"[\"downtown\"]"}}""");
         var sut = CreateSut(
-            handler, version: "5.2.1", capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
+            handler, capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
 
         Assert.False(await sut.AddAreaToActiveProfileTrustedAsync("user1", "downtown"));
         Assert.Single(handler.Requests); // only the read -- no POST for a no-op
@@ -846,7 +771,7 @@ public class PoracleHumanProxyV2Tests
             new Reply(HttpStatusCode.OK, """{"human":{"id":"user1","area":"[\"downtown\",\"park\"]"}}"""),
             new Reply(HttpStatusCode.OK, """{"areas":["downtown"],"rejected":[]}"""));
         var sut = CreateSut(
-            handler, version: "5.2.1", capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
+            handler, capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
 
         Assert.True(await sut.RemoveAreaFromActiveProfileTrustedAsync("user1", "park"));
 
@@ -861,7 +786,7 @@ public class PoracleHumanProxyV2Tests
     {
         var handler = ScriptedHandler.Ok("""{"human":{"id":"user1","area":"[\"downtown\"]"}}""");
         var sut = CreateSut(
-            handler, version: "5.2.1", capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
+            handler, capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
 
         Assert.False(await sut.RemoveAreaFromActiveProfileTrustedAsync("user1", "park"));
         Assert.Single(handler.Requests);
@@ -874,7 +799,7 @@ public class PoracleHumanProxyV2Tests
             new Reply(HttpStatusCode.OK, """{"human":{"id":"user1","area":"[\"downtown\"]"}}"""),
             new Reply(HttpStatusCode.OK, """{"areas":["downtown","park","square"],"rejected":[]}"""));
         var sut = CreateSut(
-            handler, version: "5.2.1", capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
+            handler, capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
 
         Assert.True(await sut.AddAreasToActiveProfileTrustedAsync("user1", ["Park", "park", "Square", "downtown"]));
 
@@ -894,7 +819,7 @@ public class PoracleHumanProxyV2Tests
             new Reply(HttpStatusCode.OK, """{"human":{"id":"user1","area":["downtown"]}}"""),
             new Reply(HttpStatusCode.OK, """{"areas":["downtown","park"],"rejected":[]}"""));
         var sut = CreateSut(
-            handler, version: "5.2.1", capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
+            handler, capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
 
         Assert.True(await sut.AddAreaToActiveProfileTrustedAsync("user1", "park"));
 
@@ -911,7 +836,7 @@ public class PoracleHumanProxyV2Tests
     {
         var handler = ScriptedHandler.Ok("""{"human":{"id":"user1","area":["downtown"]}}""");
         var sut = CreateSut(
-            handler, version: "5.2.1", capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
+            handler, capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
 
         Assert.False(await sut.AddAreaToActiveProfileTrustedAsync("user1", "downtown"));
         Assert.Single(handler.Requests);
@@ -924,7 +849,7 @@ public class PoracleHumanProxyV2Tests
             new Reply(HttpStatusCode.OK, """{"human":{"id":"user1","area":["downtown","park"]}}"""),
             new Reply(HttpStatusCode.OK, """{"areas":["downtown"],"rejected":[]}"""));
         var sut = CreateSut(
-            handler, version: "5.2.1", capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
+            handler, capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
 
         Assert.True(await sut.RemoveAreaFromActiveProfileTrustedAsync("user1", "park"));
 
@@ -941,7 +866,7 @@ public class PoracleHumanProxyV2Tests
             new Reply(HttpStatusCode.OK, """{"human":{"id":"user1","area":[]}}"""),
             new Reply(HttpStatusCode.OK, """{"areas":["park"],"rejected":[]}"""));
         var sut = CreateSut(
-            handler, version: "5.2.1", capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
+            handler, capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
 
         Assert.True(await sut.AddAreaToActiveProfileTrustedAsync("user1", "park"));
 
@@ -960,7 +885,7 @@ public class PoracleHumanProxyV2Tests
         var handler = ScriptedHandler.Problem(
             HttpStatusCode.NotFound, """{"title":"Not Found","status":404,"detail":"human not found"}""");
         var sut = CreateSut(
-            handler, version: "5.2.1", capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
+            handler, capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
 
         Assert.Null(await sut.AddAreaToActiveProfileTrustedAsync("nobody", "park"));
     }
@@ -974,7 +899,7 @@ public class PoracleHumanProxyV2Tests
         var handler = ScriptedHandler.Problem(
             HttpStatusCode.ServiceUnavailable, """{"title":"Service Unavailable","status":503,"detail":"database error"}""");
         var sut = CreateSut(
-            handler, version: "5.2.1", capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
+            handler, capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
 
         Assert.Null(await sut.AddAreaToActiveProfileTrustedAsync("user1", "park"));
         Assert.Null(await sut.RemoveAreaFromActiveProfileTrustedAsync("user1", "park"));
@@ -991,7 +916,7 @@ public class PoracleHumanProxyV2Tests
             new Reply(HttpStatusCode.OK, """{"human":{"id":"user1","area":"[\"downtown\"]"}}"""),
             new Reply(HttpStatusCode.OK, """{"areas":["downtown"],"rejected":["park"]}"""));
         var sut = CreateSut(
-            handler, version: "5.2.1", capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
+            handler, capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
 
         Assert.Null(await sut.AddAreaToActiveProfileTrustedAsync("user1", "park"));
     }
@@ -1003,7 +928,7 @@ public class PoracleHumanProxyV2Tests
             new Reply(HttpStatusCode.OK, """{"human":{"id":"user1","area":"[\"downtown\"]"}}"""),
             new Reply(HttpStatusCode.OK, """{"areas":["downtown","square"],"rejected":["Park"]}"""));
         var sut = CreateSut(
-            handler, version: "5.2.1", capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
+            handler, capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
 
         Assert.Null(await sut.AddAreasToActiveProfileTrustedAsync("user1", ["park", "square"]));
     }
@@ -1017,7 +942,7 @@ public class PoracleHumanProxyV2Tests
             new Reply(HttpStatusCode.OK, """{"human":{"id":"user1","area":"[\"downtown\",\"gone\"]"}}"""),
             new Reply(HttpStatusCode.OK, """{"areas":["downtown","park"],"rejected":["gone"]}"""));
         var sut = CreateSut(
-            handler, version: "5.2.1", capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
+            handler, capabilities: TrustedAreas(carries: true), areaSecurityConfirmedDisabled: true);
 
         Assert.True(await sut.AddAreaToActiveProfileTrustedAsync("user1", "park"));
     }
@@ -1039,7 +964,7 @@ public class PoracleHumanProxyV2Tests
     public async Task CreatingAProfileSendsOnlyWhatV2AddProfileBodyDeclares()
     {
         var handler = ScriptedHandler.Ok("""{"profile_no":2,"profile":{"profile_no":2,"name":"probe-two"}}""");
-        var sut = CreateSut(handler, version: "5.3.0", capabilities: Carrying(create: true));
+        var sut = CreateSut(handler);
 
         Assert.Equal(2, await sut.AddProfileAsync("user1", Body(ControllerCreateBody)));
 
@@ -1064,7 +989,7 @@ public class PoracleHumanProxyV2Tests
     {
         // "{}" is what PoracleNG writes for a profile with no schedule. It is not an entry list.
         var handler = ScriptedHandler.Ok("""{"profile_no":2}""");
-        var sut = CreateSut(handler, version: "5.3.0", capabilities: Carrying(create: true));
+        var sut = CreateSut(handler);
 
         await sut.AddProfileAsync("user1", Body($$"""{"name":"probe-two","area":"[]","latitude":0,"longitude":0,"active_hours":{{activeHours}}}"""));
 
@@ -1073,31 +998,16 @@ public class PoracleHumanProxyV2Tests
         AssertConformsTo(body.RootElement, "V2AddProfileBody");
     }
 
-    [Theory]
-    [InlineData("[{\\\"day\\\":8,\\\"hours\\\":8,\\\"mins\\\":0}]")]
-    [InlineData("[{\\\"day\\\":1,\\\"hours\\\":8}]")]
-    [InlineData("[{\\\"day\\\":1,\\\"hours\\\":8,\\\"mins\\\":0,\\\"colour\\\":\\\"red\\\"}]")]
-    [InlineData("not json")]
-    public async Task CreatingAProfileWithAScheduleV2CannotTakeStaysOnV1(string activeHours)
-    {
-        // Never reshape what PoracleNG will accept. v1 has taken these for years; v2 would 422 them.
-        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
-        var sut = CreateSut(handler, version: "5.3.0", capabilities: Carrying(create: true));
-
-        Assert.Null(await sut.AddProfileAsync("user1", Body($$"""{"name":"probe-two","active_hours":"{{activeHours}}"}""")));
-        Assert.Equal($"{ApiAddress}/api/profiles/user1/add", Assert.Single(handler.Requests).Url);
-    }
-
     [Fact]
-    public async Task RenamingSendsTheStoredScheduleAsAnArray()
+    public async Task ASubmittedScheduleTravelsAsAnArray()
     {
-        // ProfileController.Update always sends active_hours, falling back to the stored string, so a
-        // plain rename carries it too.
+        // ProfileController.Update sends only the active_hours the caller submitted (a plain rename sends
+        // none, so v2 leaves the stored schedule alone); when one is submitted it goes out as v2's array.
         var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
-        var sut = CreateSut(handler, version: "5.3.0", capabilities: Carrying(rename: true));
+        var sut = CreateSut(handler);
 
-        Assert.True(await sut.UpdateProfileAsync(
-            "user1", Body("""{"profile_no":2,"name":"renamed","active_hours":"[{\"day\":1,\"hours\":8,\"mins\":0}]"}""")));
+        await sut.UpdateProfileAsync(
+            "user1", Body("""{"profile_no":2,"name":"renamed","active_hours":"[{\"day\":1,\"hours\":8,\"mins\":0}]"}"""));
 
         var request = Assert.Single(handler.Requests);
         Assert.Equal(HttpMethod.Patch, request.Method);
@@ -1121,10 +1031,10 @@ public class PoracleHumanProxyV2Tests
     public async Task AnUpdateSayingNoScheduleClearsIt(string activeHours)
     {
         var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
-        var sut = CreateSut(handler, version: "5.3.0", capabilities: Carrying(rename: true));
+        var sut = CreateSut(handler);
 
-        Assert.True(await sut.UpdateProfileAsync(
-            "user1", Body($$"""{"profile_no":2,"name":"renamed","active_hours":{{activeHours}}}""")));
+        await sut.UpdateProfileAsync(
+            "user1", Body($$"""{"profile_no":2,"name":"renamed","active_hours":{{activeHours}}}"""));
 
         using var body = JsonDocument.Parse(Assert.Single(handler.Requests).Body!);
         Assert.Equal("renamed", body.RootElement.GetProperty("name").GetString());
@@ -1138,7 +1048,7 @@ public class PoracleHumanProxyV2Tests
     {
         // The half that must not move: null is "not part of this edit", and v2 says that by omission.
         var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
-        var sut = CreateSut(handler, version: "5.3.0", capabilities: Carrying(rename: true));
+        var sut = CreateSut(handler);
 
         await sut.UpdateProfileAsync("user1", Body("""{"profile_no":2,"name":"renamed","active_hours":null}"""));
 
@@ -1146,34 +1056,7 @@ public class PoracleHumanProxyV2Tests
         Assert.False(body.RootElement.TryGetProperty("active_hours", out _));
     }
 
-    [Fact]
-    public async Task RenamingWithAScheduleV2CannotTakeStaysOnV1()
-    {
-        // False sends ProfileController to its direct rename, so the name still lands.
-        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
-        var sut = CreateSut(handler, version: "5.3.0", capabilities: Carrying(rename: true));
-
-        Assert.False(await sut.UpdateProfileAsync(
-            "user1", Body("""{"profile_no":2,"name":"renamed","active_hours":"[{\"day\":0,\"hours\":8,\"mins\":0}]"}""")));
-        Assert.Equal($"{ApiAddress}/api/profiles/user1/update", Assert.Single(handler.Requests).Url);
-    }
-
-    // ---- the five v1-only calls moved to v2 (#995) -----------------------------------------------
-    //
-    // Each gates on what the server's own /openapi.json declares and falls back to v1 when it does not, or
-    // when the route answers gin's plaintext 404. Response bodies are the ones a live 5.3.0 (the build
-    // production runs) answered on the dev-01 test bed; request bodies are the ones the callers build.
-
-    private static PoracleV2Capabilities Moved(
-        bool setAreas = false, bool list = false, bool delete = false, bool copy = false) =>
-        new()
-        {
-            Read = true,
-            SetAreasReportsRejected = setAreas,
-            ProfileList = list,
-            ProfileDelete = delete,
-            ProfileCopy = copy,
-        };
+    // ---- profile reads, delete and copy on v2 (#995) -----------------------------------------------
 
     [Fact]
     public async Task SavingAreasPostsTheV2BodyWithoutTrusted()
@@ -1181,7 +1064,7 @@ public class PoracleHumanProxyV2Tests
         // AreaController.UpdateAreas sends the submitted list lowercased. This is the user-facing save, so
         // trusted must never ride along: it would let any user select a fence PoracleNG hides from them.
         var handler = ScriptedHandler.Ok("""{"areas":["aberdeen","abingdon"],"rejected":[]}""");
-        var sut = CreateSut(handler, "5.3.0", capabilities: Moved(setAreas: true));
+        var sut = CreateSut(handler);
 
         await sut.SetAreasAsync("user1", ["aberdeen", "abingdon"]);
 
@@ -1204,7 +1087,7 @@ public class PoracleHumanProxyV2Tests
         // 200. v1 dropped the same name silently, and PreserveOwnedAreasInHumanAsync puts it back. Throwing
         // here would fail every Areas save of everyone who has drawn a fence.
         var handler = ScriptedHandler.Ok("""{"areas":["aberdeen"],"rejected":["my fence","nosuchfence"]}""");
-        var sut = CreateSut(handler, "5.3.0", capabilities: Moved(setAreas: true));
+        var sut = CreateSut(handler);
 
         await sut.SetAreasAsync("user1", ["aberdeen", "my fence", "nosuchfence"]);
 
@@ -1212,32 +1095,17 @@ public class PoracleHumanProxyV2Tests
     }
 
     [Fact]
-    public async Task SavingAreasStaysOnV1WhereTheServerDoesNotReportWhatItStored()
-    {
-        // 5.2.1 serves POST .../areas too, answering {"status":"ok"}; only the reporting shape was verified.
-        var handler = ScriptedHandler.Ok("""{"setAreas":["aberdeen"],"status":"ok"}""");
-        var sut = CreateSut(handler, "5.2.1", capabilities: Moved(setAreas: false));
-
-        await sut.SetAreasAsync("user1", ["aberdeen"]);
-
-        var sent = Assert.Single(handler.Requests);
-        Assert.Equal($"{ApiAddress}/api/humans/user1/setAreas", sent.Url);
-        Assert.Equal("aberdeen", JsonDocument.Parse(sent.Body!).RootElement[0].GetString());
-    }
-
-    [Fact]
-    public async Task SavingAreasFallsBackToV1WhenTheRouteIsMissing()
+    public async Task SavingAreasOnAServerWithoutTheRouteIsUnsupportedNotRetriedOnV1()
     {
         var handler = new ScriptedHandler(
             new Reply(HttpStatusCode.NotFound, RouteMissing, "text/plain"),
             new Reply(HttpStatusCode.OK, """{"setAreas":["aberdeen"],"status":"ok"}"""));
-        var sut = CreateSut(handler, "5.3.0", capabilities: Moved(setAreas: true));
+        var sut = CreateSut(handler);
 
-        await sut.SetAreasAsync("user1", ["aberdeen"]);
+        var ex = await Assert.ThrowsAsync<PoracleUnsupportedException>(() => sut.SetAreasAsync("user1", ["aberdeen"]));
 
-        Assert.Equal(2, handler.Requests.Count);
-        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/areas", handler.Requests[0].Url);
-        Assert.Equal($"{ApiAddress}/api/humans/user1/setAreas", handler.Requests[1].Url);
+        Assert.Contains("5.4.0", ex.Message, StringComparison.Ordinal);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/areas", Assert.Single(handler.Requests).Url);
     }
 
     [Fact]
@@ -1246,7 +1114,7 @@ public class PoracleHumanProxyV2Tests
         var handler = ScriptedHandler.Problem(
             HttpStatusCode.UnprocessableEntity,
             """{"title":"Unprocessable Entity","status":422,"detail":"validation failed"}""");
-        var sut = CreateSut(handler, "5.3.0", capabilities: Moved(setAreas: true));
+        var sut = CreateSut(handler);
 
         await Assert.ThrowsAsync<PoracleRequestRefusedException>(() => sut.SetAreasAsync("user1", ["aberdeen"]));
         Assert.Single(handler.Requests);
@@ -1278,7 +1146,7 @@ public class PoracleHumanProxyV2Tests
     public async Task TheV2ProfileListReachesProfileServiceInV1sShape(string payload)
     {
         var handler = ScriptedHandler.Ok(payload);
-        var sut = CreateSut(handler, "5.3.0", capabilities: Moved(list: true));
+        var sut = CreateSut(handler);
 
         var profile = await new ProfileService(sut).GetByUserAndProfileNoAsync("user1", 3);
 
@@ -1301,7 +1169,7 @@ public class PoracleHumanProxyV2Tests
     public async Task AnUnscheduledV2ProfileReadsAsTheEmptyListV1Sends()
     {
         var handler = ScriptedHandler.Ok(ProfilesV2Develop);
-        var sut = CreateSut(handler, "5.3.0", capabilities: Moved(list: true));
+        var sut = CreateSut(handler);
 
         var profile = await new ProfileService(sut).GetByUserAndProfileNoAsync("user1", 2);
 
@@ -1315,14 +1183,14 @@ public class PoracleHumanProxyV2Tests
         // ProfileController.Update resends the stored schedule on every rename. What the list now hands
         // it must be something V2ProfileBody can turn back into the entries it came from.
         var read = ScriptedHandler.Ok(ProfilesV2Develop);
-        var profile = await new ProfileService(CreateSut(read, "5.3.0", capabilities: Moved(list: true)))
+        var profile = await new ProfileService(CreateSut(read))
             .GetByUserAndProfileNoAsync("user1", 3);
 
         var write = ScriptedHandler.Ok("""{"status":"ok"}""");
-        var sut = CreateSut(write, "5.3.0", capabilities: Carrying(rename: true));
-        Assert.True(await sut.UpdateProfileAsync(
+        var sut = CreateSut(write);
+        await sut.UpdateProfileAsync(
             "user1",
-            JsonSerializer.SerializeToElement(new { profile_no = 3, name = "p3", active_hours = profile!.ActiveHours })));
+            JsonSerializer.SerializeToElement(new { profile_no = 3, name = "p3", active_hours = profile!.ActiveHours }));
 
         using var body = JsonDocument.Parse(Assert.Single(write.Requests).Body!);
         AssertConformsTo(body.RootElement, "V2UpdateProfileBody");
@@ -1332,37 +1200,11 @@ public class PoracleHumanProxyV2Tests
     }
 
     [Fact]
-    public async Task TheProfileListStaysOnV1WhereTheServerDoesNotDeclareIt()
-    {
-        var handler = ScriptedHandler.Ok("""{"profile":[{"id":"user1","profile_no":1,"name":"Default","area":"[]","active_hours":"[]"}],"status":"ok"}""");
-        var sut = CreateSut(handler, "5.3.0", capabilities: Moved(list: false));
-
-        var profile = await new ProfileService(sut).GetByUserAndProfileNoAsync("user1", 1);
-
-        Assert.Equal($"{ApiAddress}/api/profiles/user1", Assert.Single(handler.Requests).Url);
-        Assert.Equal("Default", profile!.Name);
-    }
-
-    [Fact]
-    public async Task TheProfileListFallsBackToV1WhenTheRouteIsMissing()
-    {
-        var handler = new ScriptedHandler(
-            new Reply(HttpStatusCode.NotFound, RouteMissing, "text/plain"),
-            new Reply(HttpStatusCode.OK, """{"profile":[{"id":"user1","profile_no":1,"name":"Default","area":"[]"}],"status":"ok"}"""));
-        var sut = CreateSut(handler, "5.3.0", capabilities: Moved(list: true));
-
-        var profile = await new ProfileService(sut).GetByUserAndProfileNoAsync("user1", 1);
-
-        Assert.Equal($"{ApiAddress}/api/profiles/user1", handler.Requests[1].Url);
-        Assert.Equal("Default", profile!.Name);
-    }
-
-    [Fact]
     public async Task AMissingHumanOnTheV2ListIsTheAccountGoneNotARouteMissing()
     {
         var handler = ScriptedHandler.Problem(
             HttpStatusCode.NotFound, """{"title":"Not Found","status":404,"detail":"human not found"}""");
-        var sut = CreateSut(handler, "5.3.0", capabilities: Moved(list: true));
+        var sut = CreateSut(handler);
 
         await Assert.ThrowsAsync<AccountGoneException>(() => sut.GetProfilesAsync("nobody"));
         Assert.Single(handler.Requests);
@@ -1372,7 +1214,7 @@ public class PoracleHumanProxyV2Tests
     public async Task DeletingAProfileUsesV2WhereDeclared()
     {
         var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
-        var sut = CreateSut(handler, "5.3.0", capabilities: Moved(delete: true));
+        var sut = CreateSut(handler);
 
         await sut.DeleteProfileAsync("user1", 3);
 
@@ -1382,36 +1224,10 @@ public class PoracleHumanProxyV2Tests
     }
 
     [Fact]
-    public async Task DeletingAProfileStaysOnV1WhereNotDeclared()
-    {
-        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
-        var sut = CreateSut(handler, "5.3.0", capabilities: Moved(delete: false));
-
-        await sut.DeleteProfileAsync("user1", 3);
-
-        var sent = Assert.Single(handler.Requests);
-        Assert.Equal(HttpMethod.Delete, sent.Method);
-        Assert.Equal($"{ApiAddress}/api/profiles/user1/byProfileNo/3", sent.Url);
-    }
-
-    [Fact]
-    public async Task DeletingAProfileFallsBackToV1WhenTheRouteIsMissing()
-    {
-        var handler = new ScriptedHandler(
-            new Reply(HttpStatusCode.NotFound, RouteMissing, "text/plain"),
-            new Reply(HttpStatusCode.OK, """{"status":"ok"}"""));
-        var sut = CreateSut(handler, "5.3.0", capabilities: Moved(delete: true));
-
-        await sut.DeleteProfileAsync("user1", 3);
-
-        Assert.Equal($"{ApiAddress}/api/profiles/user1/byProfileNo/3", handler.Requests[1].Url);
-    }
-
-    [Fact]
     public async Task CopyingAProfileNamesTheSourceInTheBody()
     {
         var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
-        var sut = CreateSut(handler, "5.3.0", capabilities: Moved(copy: true));
+        var sut = CreateSut(handler);
 
         await sut.CopyProfileAsync("user1", fromProfileNo: 2, toProfileNo: 4);
 
@@ -1423,55 +1239,12 @@ public class PoracleHumanProxyV2Tests
         Assert.Equal(2, body.RootElement.GetProperty("from_profile").GetInt32());
     }
 
-    [Fact]
-    public async Task CopyingAProfileStaysOnV1WhereNotDeclared()
-    {
-        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
-        var sut = CreateSut(handler, "5.3.0", capabilities: Moved(copy: false));
-
-        await sut.CopyProfileAsync("user1", 2, 4);
-
-        var sent = Assert.Single(handler.Requests);
-        Assert.Equal($"{ApiAddress}/api/profiles/user1/copy/2/4", sent.Url);
-        Assert.Null(sent.Body);
-    }
-
-    [Fact]
-    public async Task CopyingAProfileFallsBackToV1WhenTheRouteIsMissing()
-    {
-        var handler = new ScriptedHandler(
-            new Reply(HttpStatusCode.NotFound, RouteMissing, "text/plain"),
-            new Reply(HttpStatusCode.OK, """{"status":"ok"}"""));
-        var sut = CreateSut(handler, "5.3.0", capabilities: Moved(copy: true));
-
-        await sut.CopyProfileAsync("user1", 2, 4);
-
-        Assert.Equal($"{ApiAddress}/api/profiles/user1/copy/2/4", handler.Requests[1].Url);
-    }
-
-    [Fact]
-    public async Task NoneOfTheMovedCallsTryV2OnAServerWithoutIt()
-    {
-        // A 5.1.0 has no v2 at all. Even a schema that claimed otherwise must not cost it a round trip.
-        var handler = ScriptedHandler.Ok("""{"profile":[],"status":"ok"}""");
-        var sut = CreateSut(handler, "5.1.0", capabilities: Moved(setAreas: true, list: true, delete: true, copy: true));
-
-        await sut.SetAreasAsync("user1", []);
-        await sut.GetProfilesAsync("user1");
-        await sut.DeleteProfileAsync("user1", 2);
-        await sut.CopyProfileAsync("user1", 1, 2);
-
-        Assert.All(handler.Requests, r => Assert.DoesNotContain("/api/v2/", r.Url, StringComparison.Ordinal));
-    }
-
     // ---- a new profile's areas and location through v2 (#993) ------------------------------------
 
-    private static PoracleV2Capabilities Geography(bool declared = true) => new()
+    private static PoracleV2Capabilities Geography() => new()
     {
         Read = true,
-        ProfileScopedGeography = declared,
         TrustedSetAreas = true,
-        V2LocationLatitudeLongitude = true,
     };
 
     [Fact]
@@ -1480,9 +1253,9 @@ public class PoracleHumanProxyV2Tests
         var handler = new ScriptedHandler(
             new Reply(HttpStatusCode.OK, """{"areas":["aberdeen","my fence"],"rejected":[]}"""),
             new Reply(HttpStatusCode.OK, """{"status":"ok"}"""));
-        var sut = CreateSut(handler, "5.3.0", capabilities: Geography(), areaSecurityConfirmedDisabled: true);
+        var sut = CreateSut(handler, capabilities: Geography(), areaSecurityConfirmedDisabled: true);
 
-        Assert.True(await sut.SetProfileGeographyAsync("user1", 4, ["Aberdeen", "my fence"], 40.25, -75.5));
+        await sut.SetProfileGeographyAsync("user1", 4, ["Aberdeen", "my fence"], 40.25, -75.5);
 
         Assert.Equal(2, handler.Requests.Count);
 
@@ -1508,13 +1281,13 @@ public class PoracleHumanProxyV2Tests
     public async Task AnEmptyAreaListNeedsNoTrustSoItGoesThroughEvenWithAreaSecurityOn()
     {
         // Import always creates a profile with no areas. Nothing to trust, so area_security does not
-        // send it back to the direct write.
+        // change the request: it goes out untrusted, and the location call follows.
         var handler = new ScriptedHandler(
             new Reply(HttpStatusCode.OK, """{"areas":[],"rejected":[]}"""),
             new Reply(HttpStatusCode.OK, """{"status":"ok"}"""));
-        var sut = CreateSut(handler, "5.3.0", capabilities: Geography(), areaSecurityConfirmedDisabled: false);
+        var sut = CreateSut(handler, capabilities: Geography(), areaSecurityConfirmedDisabled: false);
 
-        Assert.True(await sut.SetProfileGeographyAsync("user1", 4, [], 0, 0));
+        await sut.SetProfileGeographyAsync("user1", 4, [], 0, 0);
 
         using var body = JsonDocument.Parse(handler.Requests[0].Body!);
         Assert.False(body.RootElement.TryGetProperty("trusted", out _));
@@ -1523,44 +1296,14 @@ public class PoracleHumanProxyV2Tests
     }
 
     [Fact]
-    public async Task AreasThatNeedTrustWhereItIsNotSafeAreLeftToTheDirectWrite()
-    {
-        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
-        var sut = CreateSut(handler, "5.3.0", capabilities: Geography(), areaSecurityConfirmedDisabled: false);
-
-        Assert.False(await sut.SetProfileGeographyAsync("user1", 4, ["aberdeen"], 1, 2));
-        Assert.Empty(handler.Requests);
-    }
-
-    [Fact]
-    public async Task ANewProfilesGeographyIsLeftToTheDirectWriteWhereTheServerDoesNotDeclareIt()
-    {
-        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
-        var sut = CreateSut(handler, "5.2.1", capabilities: Geography(declared: false), areaSecurityConfirmedDisabled: true);
-
-        Assert.False(await sut.SetProfileGeographyAsync("user1", 4, ["aberdeen"], 1, 2));
-        Assert.Empty(handler.Requests);
-    }
-
-    [Fact]
-    public async Task ARefusedRequestedAreaHandsTheWholeWriteToTheDirectPath()
-    {
-        // Trusted still refuses a fence PoracleNG has not loaded. The direct write keeps it, as it always
-        // has, and writes the location too, so the location is not sent here.
-        var handler = ScriptedHandler.Ok("""{"areas":["aberdeen"],"rejected":["Not Loaded Yet"]}""");
-        var sut = CreateSut(handler, "5.3.0", capabilities: Geography(), areaSecurityConfirmedDisabled: true);
-
-        Assert.False(await sut.SetProfileGeographyAsync("user1", 4, ["aberdeen", "not loaded yet"], 1, 2));
-        Assert.Single(handler.Requests);
-    }
-
-    [Fact]
-    public async Task AMissingGeographyRouteIsLeftToTheDirectWrite()
+    public async Task AMissingGeographyRouteMeansTheServerIsTooOld()
     {
         var handler = new ScriptedHandler(new Reply(HttpStatusCode.NotFound, RouteMissing, "text/plain"));
-        var sut = CreateSut(handler, "5.3.0", capabilities: Geography(), areaSecurityConfirmedDisabled: true);
+        var sut = CreateSut(handler, capabilities: Geography(), areaSecurityConfirmedDisabled: true);
 
-        Assert.False(await sut.SetProfileGeographyAsync("user1", 4, ["aberdeen"], 1, 2));
+        var ex = await Assert.ThrowsAsync<PoracleUnsupportedException>(
+            () => sut.SetProfileGeographyAsync("user1", 4, ["aberdeen"], 1, 2));
+        Assert.Contains("5.4.0", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1569,10 +1312,144 @@ public class PoracleHumanProxyV2Tests
         var handler = ScriptedHandler.Problem(
             HttpStatusCode.UnprocessableEntity,
             """{"title":"Unprocessable Entity","status":422,"detail":"invalid latitude"}""");
-        var sut = CreateSut(handler, "5.3.0", capabilities: Geography(), areaSecurityConfirmedDisabled: true);
+        var sut = CreateSut(handler, capabilities: Geography(), areaSecurityConfirmedDisabled: true);
 
         await Assert.ThrowsAsync<PoracleRequestRefusedException>(
             () => sut.SetProfileGeographyAsync("user1", 4, [], 91, 0));
+    }
+
+    // ---- profiles are v2 only (5.4.0 minimum) --------------------------------------------------
+    //
+    // None of these declares a capability: the minimum release carries every route, so the schema does
+    // not decide anything and there is no v1 to fall back to.
+
+    [Fact]
+    public async Task ACreateThatAnswersWithoutTheNumberIsRefused()
+    {
+        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
+        var sut = CreateSut(handler);
+
+        var refused = await Assert.ThrowsAsync<PoracleRequestRefusedException>(
+            () => sut.AddProfileAsync("user1", Body("""{"name":"probe-two"}""")));
+
+        Assert.Equal(502, refused.StatusCode);
+        Assert.Contains("profile number", refused.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/profiles", Assert.Single(handler.Requests).Url);
+    }
+
+    [Fact]
+    public async Task ARenameIsAlwaysAV2Patch()
+    {
+        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
+        var sut = CreateSut(handler);
+
+        await sut.UpdateProfileAsync("user1", Body("""{"profile_no":2,"name":"renamed","active_hours":null}"""));
+
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal(HttpMethod.Patch, request.Method);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/profiles/2", request.Url);
+        Assert.Equal("renamed", JsonDocument.Parse(request.Body!).RootElement.GetProperty("name").GetString());
+    }
+
+    [Fact]
+    public async Task AScheduleV2CannotTakeIsRefusedNotSentToV1()
+    {
+        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
+        var sut = CreateSut(handler);
+
+        await Assert.ThrowsAsync<PoracleRequestRefusedException>(() => sut.UpdateProfileAsync(
+            "user1", Body("""{"profile_no":2,"name":"x","active_hours":"[{\"day\":0,\"hours\":8,\"mins\":0}]"}""")));
+        await Assert.ThrowsAsync<PoracleRequestRefusedException>(() => sut.AddProfileAsync(
+            "user1", Body("""{"name":"x","active_hours":"not json"}""")));
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task AnUpdateWithNoProfileNumberIsAnError()
+    {
+        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
+        var sut = CreateSut(handler);
+
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => sut.UpdateProfileAsync("user1", Body("""{"name":"renamed"}""")));
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task TheProfileCallsRequestOnlyTheirV2Url()
+    {
+        var handler = ScriptedHandler.Ok(ProfilesV2Develop);
+        var sut = CreateSut(handler);
+
+        await sut.GetProfilesAsync("user1");
+        await sut.DeleteProfileAsync("user1", 3);
+        await sut.CopyProfileAsync("user1", 2, 4);
+
+        Assert.Equal(
+            [
+                $"{ApiAddress}/api/v2/humans/user1/profiles",
+                $"{ApiAddress}/api/v2/humans/user1/profiles/3",
+                $"{ApiAddress}/api/v2/humans/user1/profiles/4/copy",
+            ],
+            handler.Requests.Select(r => r.Url).ToList());
+    }
+
+    [Theory]
+    [InlineData("list")]
+    [InlineData("delete")]
+    [InlineData("copy")]
+    [InlineData("add")]
+    [InlineData("update")]
+    public async Task AMissingProfileRouteMeansTheServerIsTooOld(string call)
+    {
+        var handler = new ScriptedHandler(new Reply(HttpStatusCode.NotFound, RouteMissing, "text/plain"));
+        var sut = CreateSut(handler);
+
+        var ex = await Assert.ThrowsAsync<PoracleUnsupportedException>(() => call switch
+        {
+            "list" => sut.GetProfilesAsync("user1"),
+            "delete" => sut.DeleteProfileAsync("user1", 3),
+            "copy" => sut.CopyProfileAsync("user1", 2, 4),
+            "add" => sut.AddProfileAsync("user1", Body("""{"name":"x"}""")),
+            _ => sut.UpdateProfileAsync("user1", Body("""{"profile_no":2,"name":"x"}""")),
+        });
+
+        Assert.Contains("5.4.0", ex.Message, StringComparison.Ordinal);
+        Assert.Single(handler.Requests);
+    }
+
+    [Fact]
+    public async Task WhereTrustedIsNotSafeTheAreasAreSentUntrustedNotRefused()
+    {
+        // Used to answer false and send the caller to a direct database write; then threw. PoracleNG filters
+        // an untrusted list itself, and what it drops is handled as any other rejected name.
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.OK, """{"areas":["aberdeen"],"rejected":[]}"""),
+            new Reply(HttpStatusCode.OK, """{"status":"ok"}"""));
+        var sut = CreateSut(handler, areaSecurityConfirmedDisabled: false);
+
+        await sut.SetProfileGeographyAsync("user1", 4, ["aberdeen"], 1, 2);
+
+        Assert.Equal(2, handler.Requests.Count);
+        using var body = JsonDocument.Parse(handler.Requests[0].Body!);
+        Assert.False(body.RootElement.TryGetProperty("trusted", out _));
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/location?profile=4", handler.Requests[1].Url);
+    }
+
+    [Fact]
+    public async Task ANewProfilesRejectedAreaIsDroppedAndTheLocationIsStillWritten()
+    {
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.OK, """{"areas":["aberdeen"],"rejected":["Not Loaded Yet"]}"""),
+            new Reply(HttpStatusCode.OK, """{"status":"ok"}"""));
+        var sut = CreateSut(
+            handler, capabilities: new PoracleV2Capabilities { Read = true, TrustedSetAreas = true },
+            areaSecurityConfirmedDisabled: true);
+
+        await sut.SetProfileGeographyAsync("user1", 4, ["aberdeen", "not loaded yet"], 1, 2);
+
+        Assert.Equal(2, handler.Requests.Count);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/location?profile=4", handler.Requests[1].Url);
     }
 
     /// <summary>
@@ -1582,7 +1459,7 @@ public class PoracleHumanProxyV2Tests
     /// </summary>
     private static void AssertConformsTo(JsonElement body, string schema)
     {
-        using var doc = JsonDocument.Parse(File.ReadAllText(OpenApiFixture("next")));
+        using var doc = JsonDocument.Parse(File.ReadAllText(OpenApiFixture("5.4.0")));
         var schemas = doc.RootElement.GetProperty("components").GetProperty("schemas");
         var declared = schemas.GetProperty(schema).GetProperty("properties").EnumerateObject().Select(p => p.Name).ToHashSet();
         var entry = schemas.GetProperty("V2ActiveHourEntry").GetProperty("properties").EnumerateObject().Select(p => p.Name).ToHashSet();
@@ -1613,8 +1490,6 @@ public class PoracleHumanProxyV2Tests
 
     private static PoracleHumanProxy CreateSut(
         ScriptedHandler handler,
-        string? version,
-        IMemoryCache? cache = null,
         PoracleV2Capabilities? capabilities = null,
         bool areaSecurityConfirmedDisabled = false)
     {
@@ -1629,10 +1504,8 @@ public class PoracleHumanProxyV2Tests
         return new PoracleHumanProxy(
             new HttpClient(handler),
             config,
-            PoracleHumanProxyTests.ServerProfile(version),
             PoracleHumanProxyTests.V2Schema(capabilities),
             PoracleHumanProxyTests.AreaSecurityPolicy(areaSecurityConfirmedDisabled),
-            cache ?? new MemoryCache(new MemoryCacheOptions()),
             Mock.Of<ILogger<PoracleHumanProxy>>());
     }
 

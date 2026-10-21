@@ -12,7 +12,6 @@ public class LocationControllerTests : ControllerTestBase
     private readonly Mock<IProfileService> _profileService = new();
     private readonly Mock<IPoracleHumanProxy> _humanProxy = new();
     private readonly Mock<IPoracleApiProxy> _proxy = new();
-    private readonly Mock<IPlaceUpdateCapabilityService> _placeUpdateCapability = new();
     private readonly LocationController _sut;
 
     public LocationControllerTests()
@@ -21,8 +20,7 @@ public class LocationControllerTests : ControllerTestBase
             this._humanService.Object,
             this._profileService.Object,
             this._humanProxy.Object,
-            this._proxy.Object,
-            this._placeUpdateCapability.Object);
+            this._proxy.Object);
         SetupUser(this._sut);
     }
 
@@ -87,16 +85,14 @@ public class LocationControllerTests : ControllerTestBase
     // --- Places ---
 
     [Fact]
-    public async Task GetPlacesReportsWhetherThisServerCanMoveOne()
+    public async Task GetPlacesCarriesNoCapabilityFlag()
     {
         this._humanProxy.Setup(p => p.GetPlacesAsync("123456789")).ReturnsAsync(new SavedPlaces());
-        this._placeUpdateCapability
-            .Setup(c => c.IsPlaceUpdateAvailableAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
 
-        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetPlaces(CancellationToken.None));
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetPlaces());
 
-        Assert.Equal(true, ok.Value?.GetType().GetProperty("canEdit")?.GetValue(ok.Value));
+        Assert.Null(ok.Value?.GetType().GetProperty("canEdit"));
+        Assert.NotNull(ok.Value?.GetType().GetProperty("Named"));
     }
 
     [Fact]
@@ -109,14 +105,11 @@ public class LocationControllerTests : ControllerTestBase
             .Setup(p => p.AddPlaceAsync("123456789", It.IsAny<SavedPlace>()))
             .ReturnsAsync((string?)null);
         this._humanProxy.Setup(p => p.GetPlacesAsync("123456789")).ReturnsAsync(new SavedPlaces());
-        this._placeUpdateCapability
-            .Setup(c => c.IsPlaceUpdateAvailableAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
 
         var ok = Assert.IsType<OkObjectResult>(
             await this._sut.AddPlace(new SavedPlace { Label = "work", Latitude = 1, Longitude = 2 }));
 
-        Assert.Equal(true, ok.Value?.GetType().GetProperty("canEdit")?.GetValue(ok.Value));
+        Assert.Null(ok.Value?.GetType().GetProperty("canEdit"));
     }
 
     [Fact]
@@ -124,7 +117,7 @@ public class LocationControllerTests : ControllerTestBase
     {
         this._humanProxy
             .Setup(p => p.UpdatePlaceAsync("123456789", "home", 9.5, 8.5))
-            .ReturnsAsync(true);
+            .Returns(Task.CompletedTask);
         this._humanProxy.Setup(p => p.GetPlacesAsync("123456789")).ReturnsAsync(new SavedPlaces());
 
         var result = await this._sut.UpdatePlace(
@@ -134,18 +127,15 @@ public class LocationControllerTests : ControllerTestBase
     }
 
     [Fact]
-    public async Task UpdatePlaceSaysSoWhenTheServerCannotDoIt()
+    public async Task UpdatePlaceLetsAnUnsupportedServerReachTheExceptionFilter()
     {
-        // No v1 equivalent exists, so there is nothing to fall back to. 501 rather than a 500, because
-        // the request was fine and the server simply cannot.
+        // No 501 from the controller any more: the proxy throws and PoracleUnsupportedExceptionFilter maps it.
         this._humanProxy
             .Setup(p => p.UpdatePlaceAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<double>(), It.IsAny<double>()))
-            .ReturnsAsync(false);
+            .ThrowsAsync(new PoracleUnsupportedException("moving a saved place", "PoracleNG 5.4.0"));
 
-        var result = await this._sut.UpdatePlace(
-            "home", new LocationController.PlaceMoveRequest { Latitude = 9.5, Longitude = 8.5 });
-
-        Assert.Equal(501, Assert.IsType<ObjectResult>(result).StatusCode);
+        await Assert.ThrowsAsync<PoracleUnsupportedException>(() => this._sut.UpdatePlace(
+            "home", new LocationController.PlaceMoveRequest { Latitude = 9.5, Longitude = 8.5 }));
     }
 
     [Theory]
@@ -169,7 +159,7 @@ public class LocationControllerTests : ControllerTestBase
     {
         // The legitimate case beside the refusal: -90 and 180 are real places, and a guard written as
         // an exclusive range would have quietly refused the poles and the antimeridian.
-        this._humanProxy.Setup(p => p.UpdatePlaceAsync("123456789", "home", -90, 180)).ReturnsAsync(true);
+        this._humanProxy.Setup(p => p.UpdatePlaceAsync("123456789", "home", -90, 180)).Returns(Task.CompletedTask);
         this._humanProxy.Setup(p => p.GetPlacesAsync("123456789")).ReturnsAsync(new SavedPlaces());
 
         var result = await this._sut.UpdatePlace(

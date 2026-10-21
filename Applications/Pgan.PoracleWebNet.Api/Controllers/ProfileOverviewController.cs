@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Pgan.PoracleWebNet.Api.Filters;
 using Pgan.PoracleWebNet.Api.Configuration;
 using Pgan.PoracleWebNet.Api.Services;
-using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 
 using Pgan.PoracleWebNet.Core.Models;
@@ -16,7 +15,6 @@ namespace Pgan.PoracleWebNet.Api.Controllers;
 public partial class ProfileOverviewController(
     IProfileOverviewService profileOverviewService,
     IProfileService profileService,
-    IProfileRepository profileRepository,
     IPoracleHumanProxy humanProxy,
     IJwtService jwtService,
     IUserRoleResolver roleResolver,
@@ -27,7 +25,6 @@ public partial class ProfileOverviewController(
     private readonly IJwtService _jwtService = jwtService;
     private readonly IUserRoleResolver _roleResolver = roleResolver;
     private readonly IProfileService _profileService = profileService;
-    private readonly IProfileRepository _profileRepository = profileRepository;
     private readonly ILogger<ProfileOverviewController> _logger = logger;
 
     [HttpGet]
@@ -56,10 +53,6 @@ public partial class ProfileOverviewController(
             return this.NotFound();
         }
 
-        // PoracleNG assigns the lowest free number, not max+1, so it cannot be predicted. Create, then
-        // ask which number it used. See #407.
-        var before = (await this._profileService.GetByUserAsync(this.UserId)).ToList();
-
         var body = JsonSerializer.SerializeToElement(new
         {
             name = request.Name.Trim(),
@@ -68,19 +61,8 @@ public partial class ProfileOverviewController(
             longitude = source.Longitude,
             active_hours = source.ActiveHours
         });
-        var assignedNo = await this._humanProxy.AddProfileAsync(this.UserId, body);
-
-        var after = (await this._profileService.GetByUserAsync(this.UserId)).ToList();
-        var resolved = assignedNo ?? ProfileNumbering.ResolveCreated(before, after, request.Name.Trim());
-        if (resolved is null)
-        {
-            return this.StatusCode(StatusCodes.Status502BadGateway, new
-            {
-                error = "The profile was not created."
-            });
-        }
-
-        var newProfileNo = resolved.Value;
+        // PoracleNG assigns the lowest free number, not max+1, and reports it. See #407.
+        var newProfileNo = await this._humanProxy.AddProfileAsync(this.UserId, body);
 
         // Copy all alarms from source to new profile; roll back on failure
         int alarmsCopied;
@@ -88,28 +70,18 @@ public partial class ProfileOverviewController(
         {
             alarmsCopied = await this._profileOverviewService.DuplicateProfileAsync(
                 this.UserId, profileNo, newProfileNo);
+
+            // PoracleNG's addProfile ignores area, latitude and longitude, so the copy would inherit the
+            // active profile's: the right alarms over the wrong map, and a location that also drives the
+            // active-hours timezone (#466, #503). Written after the alarm copy, and inside the same rollback.
+            await this.WriteGeographyAsync(newProfileNo, source.Area ?? "[]", source.Latitude, source.Longitude);
         }
         catch
         {
-            try
-            {
-                await this._humanProxy.DeleteProfileAsync(this.UserId, newProfileNo);
-            }
-            catch
-            {
-                // Rollback failed — log but don't mask the original error
-            }
+            // A rollback failure is logged, not thrown, so the original error is the one reported
+            await NewProfileGeography.RollBackAsync(this._humanProxy, this._logger, this.UserId, newProfileNo);
             throw;
         }
-
-        // PoracleNG's addProfile ignores area, latitude and longitude, so the copy silently inherited
-        // whichever profile happened to be active: the right alarms over the wrong map, and a location
-        // that also drives the active-hours timezone. This is #466, fixed on /api/profiles/duplicate and
-        // left open here. See #503. Written after the alarm copy, which used to switch profiles and back --
-        // a switch that rewrites the geography. The copy no longer switches (#993), but nothing is gained
-        // by moving this ahead of it.
-        await this.WriteGeographyAsync(
-            newProfileNo, request.Name.Trim(), source.Area ?? "[]", source.Latitude, source.Longitude);
 
         // Issue a new JWT so the current profile stays correct
         // Resolved fresh, not copied from the old token: a profile switch was the way a de-admined
@@ -165,19 +137,7 @@ public partial class ProfileOverviewController(
             latitude = 0.0,
             longitude = 0.0
         });
-        var assignedNo = await this._humanProxy.AddProfileAsync(this.UserId, body);
-
-        var after = (await this._profileService.GetByUserAsync(this.UserId)).ToList();
-        var resolved = assignedNo ?? ProfileNumbering.ResolveCreated(existing, after, profileName);
-        if (resolved is null)
-        {
-            return this.StatusCode(StatusCodes.Status502BadGateway, new
-            {
-                error = "The profile was not created."
-            });
-        }
-
-        var newProfileNo = resolved.Value;
+        var newProfileNo = await this._humanProxy.AddProfileAsync(this.UserId, body);
 
         // A malformed payload -- including "alarms": null, which the SPA's typeof-object guard lets
         // through from the file picker -- used to throw here with the profile row already created,
@@ -217,7 +177,15 @@ public partial class ProfileOverviewController(
         // it and back, and that switch carries the active profile's areas and location across -- so an
         // import ended up subscribed to every area the user currently had, delivering notifications they
         // never chose for it. Restore what the file actually declared. See #522.
-        await this.WriteGeographyAsync(newProfileNo, profileName, "[]", 0.0, 0.0);
+        try
+        {
+            await this.WriteGeographyAsync(newProfileNo, "[]", 0.0, 0.0);
+        }
+        catch
+        {
+            await NewProfileGeography.RollBackAsync(this._humanProxy, this._logger, this.UserId, newProfileNo);
+            throw;
+        }
 
         // Resolved fresh, not copied from the old token: a profile switch was the way a de-admined
         // user kept their isAdmin claim alive indefinitely. See #624.
@@ -241,17 +209,11 @@ public partial class ProfileOverviewController(
     }
 
     /// <summary>
-    /// Sets a new profile's areas and location, which addProfile ignores.
+    /// Sets a new profile's areas and location, which addProfile ignores, through PoracleNG's v2
+    /// <c>?profile=</c> writes. A failure propagates. See <see cref="NewProfileGeography"/> and #993.
     /// </summary>
-    /// <remarks>
-    /// Through PoracleNG's v2 <c>?profile=</c> writes where the server has them, directly otherwise. Never
-    /// fails the request: the alarms are already copied, and a wrong area list is recoverable from the
-    /// Areas page while a failed duplicate is not. See <see cref="NewProfileGeography"/> and #993.
-    /// </remarks>
-    private Task WriteGeographyAsync(int profileNo, string name, string area, double latitude, double longitude) =>
-        NewProfileGeography.WriteAsync(
-            this._humanProxy, this._profileRepository, this._logger,
-            this.UserId, profileNo, name, area, latitude, longitude);
+    private Task WriteGeographyAsync(int profileNo, string area, double latitude, double longitude) =>
+        NewProfileGeography.WriteAsync(this._humanProxy, this.UserId, profileNo, area, latitude, longitude);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Profile import failed for profile {ProfileNo}; the partially created profile was rolled back")]
     private static partial void LogImportFailed(ILogger logger, Exception ex, int profileNo);

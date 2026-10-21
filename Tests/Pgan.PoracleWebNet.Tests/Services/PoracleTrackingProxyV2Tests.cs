@@ -50,7 +50,7 @@ public class PoracleTrackingProxyV2Tests
     public async Task V2PutSendsTheTranslatedRuleAndReportsTheNewUid()
     {
         var handler = ScriptedHandler.Ok(RotatedOk);
-        var sut = CreateSut(handler, version: "5.2.1");
+        var sut = CreateSut(handler, version: "5.4.0");
 
         var result = await sut.UpdateByUidAsync("pokemon", "user1", 36486, Row(StoredRow));
 
@@ -93,7 +93,7 @@ public class PoracleTrackingProxyV2Tests
     {
         var handler = ScriptedHandler.Ok(
             """{"created":null,"updated":[{"pokemon_id":25,"min_iv":90,"uid":36486}],"unchanged":null}""");
-        var sut = CreateSut(handler, version: "5.2.1");
+        var sut = CreateSut(handler, version: "5.4.0");
 
         var result = await sut.UpdateByUidAsync("pokemon", "user1", 36486, Row(StoredRow));
 
@@ -134,15 +134,12 @@ public class PoracleTrackingProxyV2Tests
     }
 
     [Fact]
-    public async Task InvasionStaysOnV1EvenOnA521Server()
+    public async Task InvasionStaysOnV1BecauseItsTrackingMovesInSubProject3()
     {
-        // The one type with a v2 surface PoracleWeb deliberately stays off. A v2 read of a named-grunt
-        // rule carries no targeting field at all, and PoracleWeb holds only the grunt name -- which live
-        // data fills with values it cannot reverse into a type_id or grunt_id (blanche, candela, spark,
-        // npc 0..npc 10, player team leader). Filed upstream; until it is answered, invasion has no
-        // faithful v2 body in either direction.
+        // Invasion's edit is still on v1 in this build: tracking moves to v2 one type at a time
+        // (sub-project 3), and invasion's grunt-type handling goes with its move.
         var handler = ScriptedHandler.Ok("""{"newUids":[9],"alreadyPresent":0,"updates":1,"insert":0}""");
-        var sut = CreateSut(handler, version: "5.2.1");
+        var sut = CreateSut(handler, version: "5.4.0");
 
         await sut.UpdateByUidAsync("invasion", "user1", 9, Row("""{"uid":9,"grunt_type":"blanche"}"""));
 
@@ -150,13 +147,13 @@ public class PoracleTrackingProxyV2Tests
     }
 
     [Theory]
-    [InlineData("v1", "5.2.1", "/api/tracking/pokemon/user1?silent=true")]
-    [InlineData("v2", "5.1.0", "/api/v2/humans/user1/tracking/pokemon/36486?silent=true")]
-    [InlineData("auto", "5.2.1", "/api/v2/humans/user1/tracking/pokemon/36486?silent=true")]
-    public async Task TheOperatorOverridePinsTheSurface(string setting, string version, string expectedPath)
+    [InlineData("v1", "5.4.0", "/api/v2/humans/user1/tracking/pokemon/36486?silent=true")]
+    [InlineData("v2", "5.1.0", "/api/tracking/pokemon/user1?silent=true")]
+    [InlineData("auto", "5.4.0", "/api/v2/humans/user1/tracking/pokemon/36486?silent=true")]
+    public async Task ALeftoverTrackingApiVersionSettingIsIgnored(string setting, string version, string expectedPath)
     {
-        // A fork can carry v2 while reporting an older number, or report 5.2.1 without it. A version probe
-        // cannot see either, so the operator gets the last word.
+        // Poracle:TrackingApiVersion no longer exists: an install that still has it set gets the same
+        // routing as one that never did. The server's reported version decides, 5.4.0 being the minimum.
         var handler = ScriptedHandler.Ok(RotatedOk);
         var sut = CreateSut(handler, version: version, trackingApiVersion: setting);
 
@@ -173,7 +170,7 @@ public class PoracleTrackingProxyV2Tests
         var handler = new ScriptedHandler(
             new Reply(HttpStatusCode.NotFound, "404 page not found", "text/plain"),
             new Reply(HttpStatusCode.OK, """{"newUids":[36486],"alreadyPresent":0,"updates":1,"insert":0}"""));
-        var sut = CreateSut(handler, version: "5.2.1");
+        var sut = CreateSut(handler, version: "5.4.0");
 
         var result = await sut.UpdateByUidAsync("pokemon", "user1", 36486, Row(StoredRow));
 
@@ -191,7 +188,7 @@ public class PoracleTrackingProxyV2Tests
             new Reply(HttpStatusCode.OK, """{"newUids":[36486],"alreadyPresent":0,"updates":1,"insert":0}"""),
             new Reply(HttpStatusCode.OK, """{"newUids":[36486],"alreadyPresent":0,"updates":1,"insert":0}"""));
         var cache = new MemoryCache(new MemoryCacheOptions());
-        var sut = CreateSut(handler, version: "5.2.1", cache: cache);
+        var sut = CreateSut(handler, version: "5.4.0", cache: cache);
 
         await sut.UpdateByUidAsync("pokemon", "user1", 36486, Row(StoredRow));
         await sut.UpdateByUidAsync("pokemon", "user1", 36486, Row(StoredRow));
@@ -211,7 +208,7 @@ public class PoracleTrackingProxyV2Tests
             new Reply(HttpStatusCode.OK, """{"newUids":[63],"alreadyPresent":0,"updates":1,"insert":0}"""),
             new Reply(HttpStatusCode.OK, RotatedOk));
         var cache = new MemoryCache(new MemoryCacheOptions());
-        var sut = CreateSut(handler, version: "5.2.1", cache: cache);
+        var sut = CreateSut(handler, version: "5.4.0", cache: cache);
 
         await sut.UpdateByUidAsync("fort", "user1", 63, Row("""{"uid":63,"fort_type":"gym","include_empty":0}"""));
         var pokemon = await sut.UpdateByUidAsync("pokemon", "user1", 36486, Row(StoredRow));
@@ -227,7 +224,7 @@ public class PoracleTrackingProxyV2Tests
         var handler = ScriptedHandler.Problem(
             HttpStatusCode.NotFound,
             """{"title":"Not Found","status":404,"detail":"pokemon rule 999999 not found for this human"}""");
-        var sut = CreateSut(handler, version: "5.2.1");
+        var sut = CreateSut(handler, version: "5.4.0");
 
         var ex = await Assert.ThrowsAsync<TrackingRuleNotFoundException>(
             () => sut.UpdateByUidAsync("pokemon", "user1", 999999, Row(StoredRow)));
@@ -245,7 +242,7 @@ public class PoracleTrackingProxyV2Tests
         var handler = ScriptedHandler.Problem(
             HttpStatusCode.NotFound,
             """{"title":"Not Found","status":404,"detail":"human not found"}""");
-        var sut = CreateSut(handler, version: "5.2.1");
+        var sut = CreateSut(handler, version: "5.4.0");
 
         await Assert.ThrowsAsync<AccountGoneException>(
             () => sut.UpdateByUidAsync("pokemon", "user1", 36486, Row(StoredRow)));
@@ -258,7 +255,7 @@ public class PoracleTrackingProxyV2Tests
         var handler = ScriptedHandler.Problem(
             HttpStatusCode.Conflict,
             """{"title":"Conflict","status":409,"detail":"an identical rule already exists (uid 36488)"}""");
-        var sut = CreateSut(handler, version: "5.2.1");
+        var sut = CreateSut(handler, version: "5.4.0");
 
         var ex = await Assert.ThrowsAsync<TrackingConflictException>(
             () => sut.UpdateByUidAsync("pokemon", "user1", 36486, Row(StoredRow)));
@@ -278,7 +275,7 @@ public class PoracleTrackingProxyV2Tests
             {"title":"Unprocessable Entity","status":422,"detail":"validation failed",
              "errors":[{"message":"expected integer","location":"body.pokemon_id","value":"twenty-five"}]}
             """);
-        var sut = CreateSut(handler, version: "5.2.1");
+        var sut = CreateSut(handler, version: "5.4.0");
 
         var ex = await Assert.ThrowsAsync<AlarmValidationException>(
             () => sut.UpdateByUidAsync("pokemon", "user1", 36486, Row(StoredRow)));
@@ -295,7 +292,7 @@ public class PoracleTrackingProxyV2Tests
             {"title":"Unprocessable Entity","status":422,
              "detail":"override_areas and distance are mutually exclusive"}
             """);
-        var sut = CreateSut(handler, version: "5.2.1");
+        var sut = CreateSut(handler, version: "5.4.0");
 
         var ex = await Assert.ThrowsAsync<AlarmValidationException>(
             () => sut.UpdateByUidAsync("pokemon", "user1", 36486, Row(StoredRow)));
@@ -321,7 +318,7 @@ public class PoracleTrackingProxyV2Tests
         // ping is the one exception to "falling back is safe" -- see ARowWithAPingNeverFallsBackToV1Silently
         // below, and PoracleTrackingProxy.TryReplaceV2Async.
         var handler = ScriptedHandler.Ok("""{"newUids":[7],"alreadyPresent":0,"updates":1,"insert":0}""");
-        var sut = CreateSut(handler, version: "5.2.1");
+        var sut = CreateSut(handler, version: "5.4.0");
 
         var result = await sut.UpdateByUidAsync("pokemon", "user1", 7, Row(row));
 
@@ -332,27 +329,89 @@ public class PoracleTrackingProxyV2Tests
     }
 
     /// <summary>
-    /// The one row-level refusal in this file that isn't about what v2 will accept. Falling back to v1 is
-    /// safe for every other untranslatable field — v1 stores what it is given — but not for <c>ping</c>:
-    /// verified live, against both a stock jfberry/PoracleNG <c>develop</c> build and the private fork
-    /// running the same commit, that v1's write handler blanks it unconditionally, field present, changed
-    /// or omitted, create or update. The in-code claim this replaces ("falls back to v1, which keeps it")
-    /// was never actually checked against what PoracleNG does with the write — only that the outgoing
-    /// request carried the right value — and was wrong.
+    /// PoracleNG 5.4.0 stores <c>ping</c> on every v2 write, so a set mention is no reason to refuse an
+    /// edit or to leave v2. A row v2 cannot carry for some other reason still goes to v1 unchanged.
     /// </summary>
-    [Theory]
-    [InlineData("""{"uid":7,"pokemon_id":25,"some_field_from_a_newer_poracle":4,"ping":"<@&400027130022592512>"}""")]
-    [InlineData("""{"uid":7,"pokemon_id":25,"min_iv":90,"ping":"<@&400027130022592512>"}""")]
-    public async Task ARowWithAPingNeverFallsBackToV1Silently(string row)
+    [Fact]
+    public async Task ARowWithAPingRidesV2WithoutAnyCapabilityProbe()
+    {
+        const string row = """{"uid":7,"pokemon_id":25,"min_iv":90,"ping":"<@&400027130022592512>"}""";
+        var handler = ScriptedHandler.Ok("""{"created":null,"updated":[{"pokemon_id":25,"min_iv":90,"uid":8}],"unchanged":null}""");
+        var sut = CreateSut(handler, version: "5.4.0");
+
+        var result = await sut.UpdateByUidAsync("pokemon", "user1", 7, Row(row));
+
+        Assert.True(result.UsedV2);
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/tracking/pokemon/7?silent=true", request.Url);
+        using var body = JsonDocument.Parse(request.Body!);
+        Assert.Equal("<@&400027130022592512>", body.RootElement.GetProperty("ping").GetString());
+    }
+
+    private const string MentionPing = "<@&400027130022592512>";
+
+    [Fact]
+    public async Task APingWithAnUntranslatableFieldIsRefusedAndNothingIsSent()
     {
         var handler = ScriptedHandler.Ok("""{"newUids":[7],"alreadyPresent":0,"updates":1,"insert":0}""");
-        var sut = CreateSut(handler, version: "5.2.1");
+        var sut = CreateSut(handler, version: "5.4.0");
 
-        var exception = await Assert.ThrowsAsync<AlarmValidationException>(
-            () => sut.UpdateByUidAsync("pokemon", "user1", 7, Row(row)));
+        var ex = await Assert.ThrowsAsync<AlarmValidationException>(() => sut.UpdateByUidAsync(
+            "pokemon", "user1", 7,
+            Row($$"""{"uid":7,"pokemon_id":25,"some_field_from_a_newer_poracle":4,"ping":"{{MentionPing}}"}""")));
 
-        Assert.Contains("mention", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("mention", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task AnEmptyPingWithAnUntranslatableFieldStillEditsOnV1()
+    {
+        var handler = ScriptedHandler.Ok("""{"newUids":[7],"alreadyPresent":0,"updates":1,"insert":0}""");
+        var sut = CreateSut(handler, version: "5.4.0");
+
+        var result = await sut.UpdateByUidAsync(
+            "pokemon", "user1", 7, Row("""{"uid":7,"pokemon_id":25,"some_field_from_a_newer_poracle":4,"ping":""}"""));
+
+        Assert.False(result.UsedV2);
+        Assert.Equal($"{ApiAddress}/api/tracking/pokemon/user1?silent=true", Assert.Single(handler.Requests).Url);
+    }
+
+    [Fact]
+    public async Task APingIsKeptOnV2WhateverALeftoverTrackingApiVersionSettingSays()
+    {
+        var handler = ScriptedHandler.Ok("""{"newUids":[7],"alreadyPresent":0,"updates":1,"insert":0}""");
+        var sut = CreateSut(handler, version: "5.4.0", trackingApiVersion: "v1");
+
+        var result = await sut.UpdateByUidAsync(
+            "pokemon", "user1", 7, Row($$"""{"uid":7,"pokemon_id":25,"ping":"{{MentionPing}}"}"""));
+
+        Assert.True(result.UsedV2);
+        Assert.Contains("/api/v2/", Assert.Single(handler.Requests).Url, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task APingIsRefusedWhenTheGruntTypeIsNotInTheServersMasterdata()
+    {
+        var handler = ScriptedHandler.Ok("""{"newUids":[412],"alreadyPresent":0,"updates":1,"insert":0}""");
+        var sut = CreateSut(handler, version: "5.4.0", capabilities: WithGruntType(), gruntNames: ["fire"]);
+        var row = InvasionRow.Replace("\"ping\":\"\"", $"\"ping\":\"{MentionPing}\"", StringComparison.Ordinal);
+
+        await Assert.ThrowsAsync<AlarmValidationException>(() => sut.UpdateByUidAsync("invasion", "user1", 412, Row(row)));
+
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task APingIsRefusedWhenTheV2RouteAnswersPlaintext404()
+    {
+        var handler = new ScriptedHandler(new Reply(HttpStatusCode.NotFound, "404 page not found", "text/plain"));
+        var sut = CreateSut(handler, version: "5.4.0");
+
+        await Assert.ThrowsAsync<AlarmValidationException>(() => sut.UpdateByUidAsync(
+            "pokemon", "user1", 7, Row($$"""{"uid":7,"pokemon_id":25,"ping":"{{MentionPing}}"}""")));
+
+        Assert.All(handler.Requests, r => Assert.Contains("/api/v2/", r.Url, StringComparison.Ordinal));
     }
 
     [Fact]
@@ -370,7 +429,7 @@ public class PoracleTrackingProxyV2Tests
             OpenApi = @"{""components"":{""schemas"":{""V2PokemonRule"":{""properties"":{""pvp_ranking_best"":{""minimum"":1,""maximum"":4096}}}}}}",
         };
 
-        await CreateSut(bounded, version: "5.2.1").UpdateByUidAsync("pokemon", "user1", 7, Row(Row7));
+        await CreateSut(bounded, version: "5.4.0").UpdateByUidAsync("pokemon", "user1", 7, Row(Row7));
 
         var toV1 = Assert.Single(bounded.Requests);
         Assert.Equal($"{ApiAddress}/api/tracking/pokemon/user1?silent=true", toV1.Url);
@@ -379,7 +438,7 @@ public class PoracleTrackingProxyV2Tests
         // Same row, same version, a server declaring no such limit: unchanged from today.
         var unbounded = ScriptedHandler.Ok(@"{""status"":""ok"",""uid"":7}");
 
-        await CreateSut(unbounded, version: "5.2.1").UpdateByUidAsync("pokemon", "user1", 7, Row(Row7));
+        await CreateSut(unbounded, version: "5.4.0").UpdateByUidAsync("pokemon", "user1", 7, Row(Row7));
 
         var toV2 = Assert.Single(unbounded.Requests);
         Assert.Equal($"{ApiAddress}/api/v2/humans/user1/tracking/pokemon/7?silent=true", toV2.Url);
@@ -387,50 +446,14 @@ public class PoracleTrackingProxyV2Tests
     }
 
 
-    /// <summary>
-    /// <c>V2PokemonRule.ping</c>, from jfberry/PoracleNG#249. Whether a set ping stays on v1 or now
-    /// rides v2 depends on whether the target server carries the fix, read the same way as every other
-    /// v2 capability — see <see cref="PoracleV2Capabilities.TrackingPing"/>.
-    /// </summary>
-    private static PoracleV2Capabilities WithPing() => new() { Read = true, TrackingPing = true };
-
-    // The "server predates the fix" half lives with ARowWithAPingNeverFallsBackToV1Silently above: on
-    // every released server this refuses the edit outright now, rather than silently falling back to a
-    // v1 write that was never actually safe.
-
     [Fact]
-    public async Task ASetPingRidesV2OnceTheServerCarriesTheFix()
-    {
-        // The other half of the test above, same row, the one thing that changed is the capability —
-        // verified live against poracle-ng-dev once it carried #249: the mention genuinely persists
-        // through a v2 PUT, read back from v1 as ground truth rather than trusted from the v2 echo alone.
-        const string WithPingSet = """
-            {"uid":7,"pokemon_id":25,"min_iv":90,"ping":"<@&400027130022592512>"}
-            """;
-
-        var handler = ScriptedHandler.Ok("""{"created":null,"updated":[{"pokemon_id":25,"min_iv":90,"uid":8}],"unchanged":null}""");
-        var sut = CreateSut(handler, version: "5.3.0", capabilities: WithPing());
-
-        var result = await sut.UpdateByUidAsync("pokemon", "user1", 7, Row(WithPingSet));
-
-        Assert.True(result.UsedV2);
-        var request = Assert.Single(handler.Requests);
-        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/tracking/pokemon/7?silent=true", request.Url);
-
-        using var body = JsonDocument.Parse(request.Body!);
-        Assert.Equal("<@&400027130022592512>", body.RootElement.GetProperty("ping").GetString());
-    }
-
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task AnEmptyPingIsStillDroppedAndTheRowStaysOnV2EitherWay(bool pingSupported)
+    public async Task AnEmptyPingIsStillDroppedAndTheRowStaysOnV2()
     {
         // The legitimate-case half: 18488 of 18490 production rules carry no ping, and v2 would store the
         // same empty string whether or not this server carries #249, so those must not all be pushed onto
         // v1 by the guard above regardless of the capability.
         var handler = ScriptedHandler.Ok(RotatedOk);
-        var sut = CreateSut(handler, version: "5.2.1", capabilities: pingSupported ? WithPing() : PoracleV2Capabilities.None);
+        var sut = CreateSut(handler, version: "5.4.0");
 
         await sut.UpdateByUidAsync(
             "pokemon", "user1", 7, Row("""{"uid":7,"pokemon_id":25,"min_iv":90,"ping":""}"""));
@@ -452,7 +475,7 @@ public class PoracleTrackingProxyV2Tests
             foreach (var gender in new[] { 0, 1, 2, 3 })
             {
                 var handler = ScriptedHandler.Ok(RotatedOk);
-                var sut = CreateSut(handler, version: "5.2.1");
+                var sut = CreateSut(handler, version: "5.4.0");
 
                 await sut.UpdateByUidAsync(
                     "pokemon",
@@ -474,7 +497,7 @@ public class PoracleTrackingProxyV2Tests
     public async Task EveryCleanBitmaskBecomesItsThreeBooleans(int mask, bool clean, bool edit, bool summary)
     {
         var handler = ScriptedHandler.Ok(RotatedOk);
-        var sut = CreateSut(handler, version: "5.2.1");
+        var sut = CreateSut(handler, version: "5.4.0");
 
         await sut.UpdateByUidAsync(
             "pokemon", "user1", 36486, Row($$"""{"uid":36486,"pokemon_id":25,"clean":{{mask}}}"""));
@@ -489,7 +512,7 @@ public class PoracleTrackingProxyV2Tests
     public async Task AUserDrawnGeofenceStillReachesV2AsAnArray()
     {
         var handler = ScriptedHandler.Ok(RotatedOk);
-        var sut = CreateSut(handler, version: "5.2.1");
+        var sut = CreateSut(handler, version: "5.4.0");
 
         await sut.UpdateByUidAsync(
             "pokemon",
@@ -507,7 +530,7 @@ public class PoracleTrackingProxyV2Tests
         // uid 0 is an insert. v2's PUT is addressed by uid and would 404; v2's POST still diffs and merges,
         // so it buys nothing. Creates stay on v1 for the pilot.
         var handler = ScriptedHandler.Ok("""{"newUids":[1],"alreadyPresent":0,"updates":0,"insert":1}""");
-        var sut = CreateSut(handler, version: "5.2.1");
+        var sut = CreateSut(handler, version: "5.4.0");
 
         await sut.UpdateByUidAsync("pokemon", "user1", 0, Row("""{"pokemon_id":25}"""));
 
@@ -529,7 +552,7 @@ public class PoracleTrackingProxyV2Tests
     public async Task ADeleteGoesToV2OnAServerThatCarriesIt()
     {
         var handler = ScriptedHandler.Ok("""{"deleted":[{"uid":36486,"pokemon_id":25}]}""");
-        var sut = CreateSut(handler, version: "5.2.1");
+        var sut = CreateSut(handler, version: "5.4.0");
 
         await sut.DeleteByUidAsync("pokemon", "user1", 36486);
 
@@ -551,7 +574,7 @@ public class PoracleTrackingProxyV2Tests
         var handler = new ScriptedHandler(
             new Reply(HttpStatusCode.NotFound, RuleNotOnThisProfile, "application/problem+json"),
             new Reply(HttpStatusCode.OK, """{"message":""}"""));
-        var sut = CreateSut(handler, version: "5.2.1");
+        var sut = CreateSut(handler, version: "5.4.0");
 
         await sut.DeleteByUidAsync("pokemon", "user1", 36486);
 
@@ -567,7 +590,7 @@ public class PoracleTrackingProxyV2Tests
         var handler = new ScriptedHandler(
             new Reply(HttpStatusCode.NotFound, "404 page not found", "text/plain"),
             new Reply(HttpStatusCode.OK, """{"message":""}"""));
-        var sut = CreateSut(handler, version: "5.2.1");
+        var sut = CreateSut(handler, version: "5.4.0");
 
         await sut.DeleteByUidAsync("pokemon", "user1", 36486);
 
@@ -584,7 +607,7 @@ public class PoracleTrackingProxyV2Tests
         var handler = ScriptedHandler.Problem(
             HttpStatusCode.NotFound,
             """{"title":"Not Found","status":404,"detail":"human not found"}""");
-        var sut = CreateSut(handler, version: "5.2.1");
+        var sut = CreateSut(handler, version: "5.4.0");
 
         await Assert.ThrowsAsync<AccountGoneException>(
             () => sut.DeleteByUidAsync("pokemon", "user1", 36486));
@@ -599,7 +622,7 @@ public class PoracleTrackingProxyV2Tests
         // grunt_type to write back into, but a delete names only the uid -- so gating deletes on the
         // translator, as the write path does, would exclude a type for a reason that does not apply.
         var handler = ScriptedHandler.Ok("""{"deleted":[{"uid":412}]}""");
-        var sut = CreateSut(handler, version: "5.2.1");
+        var sut = CreateSut(handler, version: "5.4.0");
 
         await sut.DeleteByUidAsync("invasion", "user1", 412);
 
@@ -610,7 +633,6 @@ public class PoracleTrackingProxyV2Tests
 
     [Theory]
     [InlineData("5.1.0", "auto")]
-    [InlineData("5.2.1", "v1")]
     [InlineData(null, "auto")]
     public async Task ADeleteStaysOnV1WhereItAlwaysWas(string? version, string setting)
     {
@@ -630,7 +652,7 @@ public class PoracleTrackingProxyV2Tests
         // v2 takes the list as ?uid=1,2,3 where v1 takes a JSON array body. silent matters as much here as
         // on the single form: v2PushRemoved writes one "Removed:" line per row into a single DM (#848).
         var handler = ScriptedHandler.Ok("""{"deleted":[{"uid":1},{"uid":2},{"uid":3}]}""");
-        var sut = CreateSut(handler, version: "5.2.1");
+        var sut = CreateSut(handler, version: "5.4.0");
 
         await sut.BulkDeleteByUidsAsync("pokemon", "user1", [1, 2, 3]);
 
@@ -650,7 +672,7 @@ public class PoracleTrackingProxyV2Tests
         var handler = new ScriptedHandler(
             new Reply(HttpStatusCode.OK, """{"deleted":[{"uid":1}]}"""),
             new Reply(HttpStatusCode.OK, """{"message":""}"""));
-        var sut = CreateSut(handler, version: "5.2.1");
+        var sut = CreateSut(handler, version: "5.4.0");
 
         await sut.BulkDeleteByUidsAsync("pokemon", "user1", [1, 2, 3]);
 
@@ -666,7 +688,7 @@ public class PoracleTrackingProxyV2Tests
         var handler = new ScriptedHandler(
             new Reply(HttpStatusCode.OK, "not json at all"),
             new Reply(HttpStatusCode.OK, """{"message":""}"""));
-        var sut = CreateSut(handler, version: "5.2.1");
+        var sut = CreateSut(handler, version: "5.4.0");
 
         await sut.BulkDeleteByUidsAsync("pokemon", "user1", [1, 2]);
 
@@ -680,7 +702,7 @@ public class PoracleTrackingProxyV2Tests
         // "Delete all alarms" on a heavy account reaches several hundred uids, and v2 has nowhere to put
         // them but the URL. v1's body has no such ceiling, so the long case simply stays where it was.
         var handler = ScriptedHandler.Ok("""{"message":""}""");
-        var sut = CreateSut(handler, version: "5.2.1");
+        var sut = CreateSut(handler, version: "5.4.0");
 
         await sut.BulkDeleteByUidsAsync("pokemon", "user1", Enumerable.Range(100000, 400));
 
@@ -696,7 +718,7 @@ public class PoracleTrackingProxyV2Tests
         var uids = Enumerable.Range(100000, 100).ToList();
         var deleted = string.Join(',', uids.Select(u => $"{{\"uid\":{u}}}"));
         var handler = ScriptedHandler.Ok($"{{\"deleted\":[{deleted}]}}");
-        var sut = CreateSut(handler, version: "5.2.1");
+        var sut = CreateSut(handler, version: "5.4.0");
 
         await sut.BulkDeleteByUidsAsync("pokemon", "user1", uids);
 
@@ -707,7 +729,7 @@ public class PoracleTrackingProxyV2Tests
     public async Task ABulkDeleteOfNothingStillAsksTheServerNothing()
     {
         var handler = ScriptedHandler.Ok("""{"deleted":[]}""");
-        var sut = CreateSut(handler, version: "5.2.1");
+        var sut = CreateSut(handler, version: "5.4.0");
 
         await sut.BulkDeleteByUidsAsync("pokemon", "user1", []);
 
@@ -733,7 +755,7 @@ public class PoracleTrackingProxyV2Tests
     public async Task AnInvasionEditUsesV2WhenTheServerCarriesGruntTypeAndKnowsTheName()
     {
         var handler = ScriptedHandler.Ok("""{"created":null,"updated":[{"grunt_type":"water","uid":413}],"unchanged":null}""");
-        var sut = CreateSut(handler, version: "5.3.0", capabilities: WithGruntType(), gruntNames: ["water"]);
+        var sut = CreateSut(handler, version: "5.4.0", capabilities: WithGruntType(), gruntNames: ["water"]);
 
         var result = await sut.UpdateByUidAsync("invasion", "user1", 412, Row(InvasionRow));
 
@@ -754,7 +776,7 @@ public class PoracleTrackingProxyV2Tests
         // express a grunt name — so there is nothing faithful to send.
         var handler = new ScriptedHandler(
             new Reply(HttpStatusCode.OK, """{"newUids":[412],"alreadyPresent":0,"updates":1,"insert":0}"""));
-        var sut = CreateSut(handler, version: "5.2.1", capabilities: PoracleV2Capabilities.None, gruntNames: ["water"]);
+        var sut = CreateSut(handler, version: "5.4.0", capabilities: PoracleV2Capabilities.None, gruntNames: ["water"]);
 
         var result = await sut.UpdateByUidAsync("invasion", "user1", 412, Row(InvasionRow));
 
@@ -776,7 +798,7 @@ public class PoracleTrackingProxyV2Tests
         var handler = new ScriptedHandler(
             new Reply(HttpStatusCode.OK, """{"newUids":[412],"alreadyPresent":0,"updates":1,"insert":0}"""));
         var sut = CreateSut(
-            handler, version: "5.3.0", capabilities: WithGruntType(), gruntNames: ["water", "steel", "giovanni"]);
+            handler, version: "5.4.0", capabilities: WithGruntType(), gruntNames: ["water", "steel", "giovanni"]);
 
         var row = InvasionRow.Replace("\"water\"", $"\"{gruntType}\"", StringComparison.Ordinal);
         var result = await sut.UpdateByUidAsync("invasion", "user1", 412, Row(row));
@@ -794,7 +816,7 @@ public class PoracleTrackingProxyV2Tests
         // build — so they are sendable, and matching has to normalise the same way or they would be sent
         // to v1 for no reason at all.
         var handler = ScriptedHandler.Ok("""{"updated":[{"uid":413}]}""");
-        var sut = CreateSut(handler, version: "5.3.0", capabilities: WithGruntType(), gruntNames: [known]);
+        var sut = CreateSut(handler, version: "5.4.0", capabilities: WithGruntType(), gruntNames: [known]);
 
         var row = InvasionRow.Replace("\"water\"", $"\"{stored}\"", StringComparison.Ordinal);
         var result = await sut.UpdateByUidAsync("invasion", "user1", 412, Row(row));
@@ -809,7 +831,7 @@ public class PoracleTrackingProxyV2Tests
         // write goes to v1 today anyway, so it is a no-change rather than a failure.
         var handler = new ScriptedHandler(
             new Reply(HttpStatusCode.OK, """{"newUids":[412],"alreadyPresent":0,"updates":1,"insert":0}"""));
-        var sut = CreateSut(handler, version: "5.3.0", capabilities: WithGruntType(), gruntNames: []);
+        var sut = CreateSut(handler, version: "5.4.0", capabilities: WithGruntType(), gruntNames: []);
 
         Assert.False((await sut.UpdateByUidAsync("invasion", "user1", 412, Row(InvasionRow))).UsedV2);
     }
@@ -819,30 +841,25 @@ public class PoracleTrackingProxyV2Tests
     {
         // The check is keyed on the type. A pokemon edit must not start consulting a grunt list.
         var handler = ScriptedHandler.Ok(RotatedOk);
-        var sut = CreateSut(handler, version: "5.2.1", capabilities: PoracleV2Capabilities.None, gruntNames: []);
+        var sut = CreateSut(handler, version: "5.4.0", capabilities: PoracleV2Capabilities.None, gruntNames: []);
 
         Assert.True((await sut.UpdateByUidAsync("pokemon", "user1", 36486, Row(StoredRow))).UsedV2);
     }
 
-    /// <summary>
-    /// The ping guard lives on <c>TryReplaceV2Async</c>, the one method both architectures share:
-    /// <c>MonsterService</c> calls <c>UpdateByUidAsync</c> directly, and the other nine reach the same
-    /// method through <see cref="TrackingV2Replacement.TryApplyAsync"/>. Invasion exercises that second
-    /// path and has its own grunt-type gate besides, so this is also proof the two gates do not interfere.
-    /// </summary>
     [Fact]
-    public async Task ARowWithAPingNeverFallsBackToV1SilentlyOnTheOtherNineTypesEither()
+    public async Task ARowWithAPingRidesV2OnTheOtherNineTypesEither()
     {
         var handler = ScriptedHandler.Ok("""{"newUids":[412],"alreadyPresent":0,"updates":1,"insert":0}""");
-        var sut = CreateSut(handler, version: "5.2.1", capabilities: PoracleV2Capabilities.None, gruntNames: ["water"]);
+        var sut = CreateSut(handler, version: "5.4.0", capabilities: WithGruntType(), gruntNames: ["water"]);
 
         var row = InvasionRow.Replace("\"ping\":\"\"", "\"ping\":\"<@&400027130022592512>\"", StringComparison.Ordinal);
 
-        var exception = await Assert.ThrowsAsync<AlarmValidationException>(
-            () => sut.UpdateByUidAsync("invasion", "user1", 412, Row(row)));
+        await sut.UpdateByUidAsync("invasion", "user1", 412, Row(row));
 
-        Assert.Contains("mention", exception.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Empty(handler.Requests);
+        var request = Assert.Single(handler.Requests);
+        Assert.Contains("/api/v2/humans/user1/tracking/invasion/412", request.Url, StringComparison.Ordinal);
+        using var body = JsonDocument.Parse(request.Body!);
+        Assert.Equal("<@&400027130022592512>", body.RootElement.GetProperty("ping").GetString());
     }
 
     private static JsonElement Row(string json) => JsonDocument.Parse(json).RootElement.Clone();

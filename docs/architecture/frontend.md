@@ -94,7 +94,7 @@ The `active-hours.models.ts` file (`core/models/`) defines the `ActiveHoursEntry
 - `load()` / `add(place)` / `move(label, lat, lon)` — each sets the signal from the response
 - `remove(label)` — answers **409** with `referencingRules` when alarms still point at the place; the caller should name them rather than reporting a bare failure
 
-A `canEdit` computed comes from the same response and gates the move control: the route behind it is v2-only, so when PoracleNG is unreachable or older than the supported minimum the pencil is not rendered. See [Version compatibility](poracleng-compatibility.md#what-depends-on-the-server-version).
+There is no `canEdit` flag: the move control is always rendered, because every supported PoracleNG has the route, and a failed move shows an error. See [Version compatibility](poracleng-compatibility.md#what-still-depends-on-the-server).
 
 ### AlertLanguageService
 
@@ -181,8 +181,7 @@ the card, from the `description` PoracleNG returns beside each rule — the same
 `!pokemon` command with. It is on eight of the ten list templates, covering nine tracking types since the
 raid list holds both raids and eggs. Fort changes and Pokéstop events do not carry it.
 
-It renders nothing when there is nothing worth rendering: no description, or a Poracle too old to
-produce one, and the card is exactly what it was before. It also renders nothing when the alert language
+It renders nothing when there is nothing worth rendering: no description, and the card is exactly what it was before. It also renders nothing when the alert language
 and the display language disagree, since Poracle localises this sentence with the alert language while
 the pills above it follow the display language.
 

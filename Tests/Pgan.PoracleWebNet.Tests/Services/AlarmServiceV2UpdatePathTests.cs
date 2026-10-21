@@ -4,7 +4,6 @@ using Moq;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Core.Services;
-using Pgan.PoracleWebNet.Tests.TestDoubles;
 
 namespace Pgan.PoracleWebNet.Tests.Services;
 
@@ -180,13 +179,13 @@ public class AlarmServiceV2UpdatePathTests
     {
         "raid" => (await new RaidService(
                 this._proxy.Object, this._featureGate.Object, NullLogger<RaidService>.Instance,
-                this._remapper.Object, CostumeCapabilityDoubles.Supported())
+                this._remapper.Object)
             .UpdateAsync("u1", new Raid { Uid = uid, PokemonId = 150 })).Uid,
         "egg" => (await new EggService(
                 this._proxy.Object, this._featureGate.Object, NullLogger<EggService>.Instance, this._remapper.Object)
             .UpdateAsync("u1", new Egg { Uid = uid, Level = 5 })).Uid,
         "quest" => (await new QuestService(
-                this._proxy.Object, this._featureGate.Object, PokecoinCapabilityStub.Supported,
+                this._proxy.Object, this._featureGate.Object,
                 NullLogger<QuestService>.Instance, this._remapper.Object)
             .UpdateAsync("u1", new Quest { Uid = uid, RewardType = 7, Reward = 25 })).Uid,
         "nest" => (await new NestService(

@@ -10,11 +10,11 @@ You'll configure everything in a single `.env` file at the project root and run 
 |---|---|---|
 | **.NET 10 Runtime** | [dotnet.microsoft.com/download](https://dotnet.microsoft.com/download/dotnet/10.0) | Like installing Node.js or Go |
 | **MySQL / MariaDB** | Your existing Poracle database server | Same DB your Poracle bot uses |
-| **PoracleNG 5.2.1+** | Already running with REST API enabled | The bot this app talks to |
+| **PoracleNG 5.4.0+** | Already running with REST API enabled | The bot this app talks to |
 | **Discord App** | [discord.com/developers](https://discord.com/developers/applications) | OAuth2 for user login |
 
 !!! warning "Why the PoracleNG version matters"
-    PoracleWeb.NET is written against PoracleNG 5.2.1 and later. On an older server it still starts, but lure and invasion edits can fail and the features 5.2.x added (quiet periods, Pokéstop Events, PokéCoin quest rewards, costume filters, moving a saved place) are hidden. PoracleWeb.NET logs an error at startup when it detects one, and reports the version it found on **Admin → Settings**.
+    PoracleWeb.NET is written against PoracleNG 5.4.0 and later and calls its `/api/v2` routes without a fallback. On an older server it still starts and logs an error, but profile, area, place and quiet-period calls fail with a message naming the version they need. The version it found is on **Admin → Settings**. Upgrade PoracleNG before PoracleWeb.NET.
 
 !!! tip "Runtime vs SDK"
     You only need the **ASP.NET Core Runtime** to run a pre-built release. The **.NET SDK** is only needed if you want to build from source.

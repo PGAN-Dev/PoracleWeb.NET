@@ -147,7 +147,7 @@ public class UserPurgeServiceTests
     [Fact]
     public async Task AnAccountPoracleSaysIsMissingIsStillReportedAsMissing()
     {
-        var sut = this.CreateSut(OverProxy(HttpStatusCode.NotFound, """{"status":"error","message":"User not found"}"""));
+        var sut = this.CreateSut(OverProxy(HttpStatusCode.NotFound, """{"title":"Not Found","status":404,"detail":"human not found"}"""));
 
         Assert.False(await sut.PurgeAsync("ghost"));
 
@@ -158,19 +158,16 @@ public class UserPurgeServiceTests
     public async Task AnAccountPoracleKnowsIsStillPurged()
     {
         // Every request answers 200: the existence read, the per-type alarm reads (an empty list) and the
-        // v1 fallback delete, which a server without the v2 route goes through the repository for.
-        var humanRepository = new Mock<IHumanRepository>();
-        humanRepository.Setup(r => r.DeleteUserAsync("u1")).ReturnsAsync(true);
-        var sut = this.CreateSut(OverProxy(HttpStatusCode.OK, """{"human":{"id":"u1"},"status":"ok"}""", humanRepository.Object));
+        // v2 delete.
+        var sut = this.CreateSut(OverProxy(HttpStatusCode.OK, """{"human":{"id":"u1"},"status":"ok"}"""));
 
         Assert.True(await sut.PurgeAsync("u1"));
 
         this._delegates.Verify(r => r.RemoveAllForIdAsync("u1"), Times.Once);
-        humanRepository.Verify(r => r.DeleteUserAsync("u1"), Times.Once);
     }
 
-    /// <summary>A real HumanService over a real PoracleHumanProxy on a PoracleNG without /api/v2.</summary>
-    private static HumanService OverProxy(HttpStatusCode status, string body, IHumanRepository? repository = null)
+    /// <summary>A real HumanService over a real PoracleHumanProxy whose every request gets the one scripted answer.</summary>
+    private static HumanService OverProxy(HttpStatusCode status, string body)
     {
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -183,17 +180,15 @@ public class UserPurgeServiceTests
         var proxy = new PoracleHumanProxy(
             new HttpClient(new FixedReply(status, body)),
             config,
-            PoracleHumanProxyTests.ServerProfile("5.1.0"),
             PoracleHumanProxyTests.V2Schema(),
             PoracleHumanProxyTests.AreaSecurityPolicy(),
-            new MemoryCache(new MemoryCacheOptions()),
             Mock.Of<ILogger<PoracleHumanProxy>>());
 
         var tracking = new Mock<IPoracleTrackingProxy>();
         tracking.Setup(t => t.GetByUserAsync(It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(System.Text.Json.JsonDocument.Parse("[]").RootElement.Clone());
 
-        return new HumanService(repository ?? Mock.Of<IHumanRepository>(), proxy, tracking.Object);
+        return new HumanService(proxy, tracking.Object);
     }
 
     private sealed class FixedReply(HttpStatusCode status, string body) : HttpMessageHandler

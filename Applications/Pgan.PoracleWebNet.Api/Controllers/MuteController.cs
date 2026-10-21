@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Pgan.PoracleWebNet.Api.Filters;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
@@ -17,43 +18,30 @@ namespace Pgan.PoracleWebNet.Api.Controllers;
 /// memory: a processor restart clears every one of them.
 /// </para>
 /// <para>
-/// GET returns capability and the list together, deliberately unlike
-/// <see cref="SummaryScheduleController"/>'s separate <c>/capability</c> endpoint. The quiet chip is
-/// read on every alarm page, so folding the two halves the roundtrips; the schedule surface is one page
-/// and could afford the extra call.
+/// Every supported PoracleNG (5.4.0 and later) has the mute routes, so there is no capability probe: GET
+/// returns the list. All three actions answer 503 when PoracleNG cannot be reached
+/// (<see cref="PoracleUnreachableExceptionFilter"/>).
 /// </para>
 /// </remarks>
 [Route("api/mutes")]
 [EnableRateLimiting("mutes")]
-public class MuteController(
-    IPoracleMuteProxy muteProxy,
-    IMuteCapabilityService capability) : BaseApiController
+[TypeFilter(typeof(PoracleUnreachableExceptionFilter))]
+public class MuteController(IPoracleMuteProxy muteProxy) : BaseApiController
 {
     private readonly IPoracleMuteProxy _muteProxy = muteProxy;
-    private readonly IMuteCapabilityService _capability = capability;
 
     /// <summary>
-    /// Whether this server can do quiet periods at all, plus the caller's active ones. Reads stay open
-    /// during impersonation so an admin can answer "why am I getting nothing".
+    /// The caller's active quiet periods. Reads stay open during impersonation so an admin can answer
+    /// "why am I getting nothing". Answers 503 when PoracleNG is unreachable, so the SPA can say so
+    /// rather than show a chip that silently claims nothing is quiet.
     /// </summary>
     [HttpGet]
     public async Task<IActionResult> GetMutes(CancellationToken cancellationToken)
     {
-        var capable = await this._capability.IsMuteApiAvailableAsync(cancellationToken);
-        if (!capable)
-        {
-            return this.Ok(new
-            {
-                capable = false,
-                mutes = Array.Empty<Mute>()
-            });
-        }
-
         var mutes = await this._muteProxy.ListAsync(this.UserId, cancellationToken);
 
         return this.Ok(new
         {
-            capable = true,
             mutes
         });
     }
@@ -62,7 +50,7 @@ public class MuteController(
     [HttpPost]
     public async Task<IActionResult> CreateMute([FromBody] MuteCreateRequest request, CancellationToken cancellationToken)
     {
-        var refusal = await this.RefuseWriteAsync(cancellationToken);
+        var refusal = this.RefuseWrite();
         if (refusal is not null)
         {
             return refusal;
@@ -138,7 +126,7 @@ public class MuteController(
     public async Task<IActionResult> DeleteMute(
         [FromQuery] string? scope, [FromQuery] string? value, [FromQuery] string? trackingType, CancellationToken cancellationToken)
     {
-        var refusal = await this.RefuseWriteAsync(cancellationToken);
+        var refusal = this.RefuseWrite();
         if (refusal is not null)
         {
             return refusal;
@@ -211,30 +199,20 @@ public class MuteController(
     }
 
     /// <summary>
-    /// Refuses a write the caller must not make: one the server cannot honour, and one that would land
-    /// on somebody else's account.
+    /// Refuses a write that would land on somebody else's account.
     /// </summary>
     /// <remarks>
     /// <see cref="BaseApiController.UserId"/> is the INSPECTED account during impersonation, so an
     /// unguarded write would silence the alerts of the person being looked at -- the shape of #663.
     /// Reads are deliberately left open.
     /// </remarks>
-    private async Task<IActionResult?> RefuseWriteAsync(CancellationToken cancellationToken)
+    private IActionResult? RefuseWrite()
     {
         if (this.IsImpersonating)
         {
             return this.StatusCode(StatusCodes.Status403Forbidden, new
             {
                 error = "Quiet periods cannot be changed while viewing another account."
-            });
-        }
-
-        if (!await this._capability.IsMuteApiAvailableAsync(cancellationToken))
-        {
-            return this.StatusCode(StatusCodes.Status501NotImplemented, new
-            {
-                error = "This Poracle server does not support quiet periods.",
-                capable = false
             });
         }
 
