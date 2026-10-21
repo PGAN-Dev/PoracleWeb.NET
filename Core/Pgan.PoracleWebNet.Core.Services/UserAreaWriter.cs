@@ -36,14 +36,7 @@ public partial class UserAreaWriter(
             .Distinct(StringComparer.Ordinal)
             .ToList();
 
-        var held = await this._humanProxy.GetAreaListAsync(humanId);
-        var available = await this._humanProxy.GetAvailableAreasAsync(humanId);
-        var own = await this._geofences.GetByHumanIdAsync(humanId);
-
-        var allowed = new HashSet<string>(StringComparer.Ordinal);
-        allowed.UnionWith(available.Where(a => a.UserSelectable).Select(a => Key(a.Name)));
-        allowed.UnionWith(own.Select(g => Key(g.KojiName)));
-        allowed.UnionWith(held.Select(Key));
+        var allowed = await this.AllowedKeysAsync(humanId);
 
         var refused = names.Where(n => !allowed.Contains(Key(n))).ToList();
         if (refused.Count > 0)
@@ -56,6 +49,50 @@ public partial class UserAreaWriter(
         var droppedKeys = dropped.Select(Key).ToHashSet(StringComparer.Ordinal);
         return new AreaSaveResult(names.Where(n => !droppedKeys.Contains(Key(n))).ToList(), dropped);
     }
+
+    public async Task<IReadOnlyList<string>> FilterAllowedAsync(string humanId, IReadOnlyCollection<string> requested)
+    {
+        var names = requested
+            .Select(Clean)
+            .Where(n => n.Length > 0)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        if (names.Count == 0)
+        {
+            return [];
+        }
+
+        var allowed = await this.AllowedKeysAsync(humanId);
+        var refused = names.Where(n => !allowed.Contains(Key(n))).ToList();
+        if (refused.Count > 0)
+        {
+            LogNamesDropped(this._logger, humanId, string.Join(", ", refused));
+        }
+
+        return names.Where(n => allowed.Contains(Key(n))).ToList();
+    }
+
+    /// <summary>
+    /// The names a human may subscribe to: PoracleNG's <c>userSelectable</c> areas for them, their own drawn
+    /// fences, and what the active profile already holds. Keyed as PoracleNG keys them.
+    /// </summary>
+    private async Task<HashSet<string>> AllowedKeysAsync(string humanId)
+    {
+        var held = await this._humanProxy.GetAreaListAsync(humanId);
+        var available = await this._humanProxy.GetAvailableAreasAsync(humanId);
+        var own = await this._geofences.GetByHumanIdAsync(humanId);
+
+        var allowed = new HashSet<string>(StringComparer.Ordinal);
+        allowed.UnionWith(available.Where(a => a.UserSelectable).Select(a => Key(a.Name)));
+        allowed.UnionWith(own.Select(g => Key(g.KojiName)));
+        allowed.UnionWith(held.Select(Key));
+        return allowed;
+    }
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Dropped areas {Names} from a request for {HumanId}: not selectable by them, not their own fences, not already held")]
+    private static partial void LogNamesDropped(ILogger logger, string humanId, string names);
 
     public async Task<bool> AddToActiveProfileAsync(string humanId, string name)
     {

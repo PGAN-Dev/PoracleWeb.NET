@@ -57,7 +57,7 @@ public class NewProfileGeographyTests : ControllerTestBase
             .Returns("jwt");
         this._profileService.Setup(s => s.GetByUserAndProfileNoAsync(UserId, 1)).ReturnsAsync(Source);
         this._profileService.Setup(s => s.GetByUserAsync(UserId)).ReturnsAsync([Source]);
-        this._userGeofences.Setup(r => r.GetAllAsync()).ReturnsAsync([]);
+        this._userGeofences.Setup(r => r.GetByHumanIdAsync(UserId)).ReturnsAsync([new UserGeofence { KojiName = "my fence" }]);
         this._overview.Setup(s => s.DuplicateProfileAsync(UserId, 1, NewProfileNo)).ReturnsAsync(2);
         this._overview.Setup(s => s.ImportAlarmsAsync(UserId, NewProfileNo, It.IsAny<JsonElement>())).ReturnsAsync(1);
     }
@@ -81,7 +81,7 @@ public class NewProfileGeographyTests : ControllerTestBase
 
         var expected = Expected(endpoint);
 
-        var areas = Assert.Single(handler.Requests, r => r.Path == "/api/v2/humans/123456789/areas");
+        var areas = Assert.Single(handler.Requests, r => r.Method == HttpMethod.Post && r.Path == "/api/v2/humans/123456789/areas");
         Assert.Equal($"profile={NewProfileNo}", areas.Query);
         using var areasBody = JsonDocument.Parse(areas.Body!);
         AssertDeclares("V2SetAreasBody", areasBody.RootElement);
@@ -146,7 +146,7 @@ public class NewProfileGeographyTests : ControllerTestBase
 
         await this.RunAsync(endpoint, handler);
 
-        var areas = Assert.Single(handler.Requests, r => r.Path == "/api/v2/humans/123456789/areas");
+        var areas = Assert.Single(handler.Requests, r => r.Method == HttpMethod.Post && r.Path == "/api/v2/humans/123456789/areas");
         using var body = JsonDocument.Parse(areas.Body!);
         var sent = body.RootElement.GetProperty("areas").EnumerateArray().Select(e => e.GetString()).ToArray();
         Assert.Equal(Expected(endpoint).Areas, sent);
@@ -163,7 +163,42 @@ public class NewProfileGeographyTests : ControllerTestBase
         Assert.Contains(handler.Requests, r => r.Path == "/api/v2/humans/123456789/location");
     }
 
-    private async Task RunAsync(string endpoint, Routed handler)
+    private static string[] PostedAreas(Routed handler)
+    {
+        var areas = Assert.Single(handler.Requests, r => r.Method == HttpMethod.Post && r.Path == "/api/v2/humans/123456789/areas");
+        using var body = JsonDocument.Parse(areas.Body!);
+        return body.RootElement.GetProperty("areas").EnumerateArray().Select(e => e.GetString()!).ToArray();
+    }
+
+    [Fact]
+    public async Task CreateDropsAreasTheUserMayNotSelectInsteadOfWritingThemTrusted()
+    {
+        // A crafted POST names a fence userSelectable=false (admin-only) and one PoracleNG does not offer
+        // this user at all (another community). The write is trusted, so the filter here is the only gate.
+        var handler = new Routed(
+            available: """[{"name":"downtown","userSelectable":true},{"name":"admin only","userSelectable":false}]""");
+
+        await this.RunAsync("create", handler, createArea: """["downtown","my fence","admin only","Other Community"]""");
+
+        Assert.Equal(["downtown", "my fence"], PostedAreas(handler));
+    }
+
+    [Fact]
+    public async Task CreateKeepsOwnFencesSelectableAreasAndWhatTheActiveProfileHolds()
+    {
+        var handler = new Routed(
+            available: """[{"name":"Downtown","userSelectable":true},{"name":"old_held","userSelectable":false}]""",
+            humanArea: """["old held"]""");
+
+        await this.RunAsync("create", handler, createArea: """["downtown","my fence","old held"]""");
+
+        Assert.Equal(["downtown", "my fence", "old held"], PostedAreas(handler));
+        var areas = Assert.Single(handler.Requests, r => r.Method == HttpMethod.Post && r.Path == "/api/v2/humans/123456789/areas");
+        using var body = JsonDocument.Parse(areas.Body!);
+        Assert.True(body.RootElement.GetProperty("trusted").GetBoolean());
+    }
+
+    private async Task RunAsync(string endpoint, Routed handler, string? createArea = null)
     {
         var proxy = CreateProxy(handler);
 
@@ -172,7 +207,8 @@ public class NewProfileGeographyTests : ControllerTestBase
         {
             var controller = new ProfileController(
                 this._profileService.Object, Mock.Of<IHumanService>(), proxy,
-                this._jwtService.Object, this._roleResolver.Object, this._userGeofences.Object,
+                this._jwtService.Object, this._roleResolver.Object,
+                new UserAreaWriter(proxy, this._userGeofences.Object, Mock.Of<IPoracleTrackingProxy>(), NullLogger<UserAreaWriter>.Instance),
                 NullLogger<ProfileController>.Instance);
             SetupUser(controller, UserId);
 
@@ -180,7 +216,7 @@ public class NewProfileGeographyTests : ControllerTestBase
                 ? await controller.Create(new Profile
                 {
                     Name = "probe-two",
-                    Area = """["downtown","my fence"]""",
+                    Area = createArea ?? """["downtown","my fence"]""",
                     Latitude = 41.65,
                     Longitude = -83.53,
                     ActiveHours = """[{"day":1,"hours":8,"mins":0}]""",
@@ -238,7 +274,12 @@ public class NewProfileGeographyTests : ControllerTestBase
     /// Answers by route, the way PoracleNG would for these calls. The profile create reports the number
     /// assigned; the two geography writes answer what a live 5.3.0 answered, or 422 when told to refuse.
     /// </summary>
-    private sealed class Routed(bool refuseGeography = false, bool failDelete = false, string[]? rejected = null) : HttpMessageHandler
+    private sealed class Routed(
+        bool refuseGeography = false,
+        bool failDelete = false,
+        string[]? rejected = null,
+        string available = """[{"name":"downtown","userSelectable":true}]""",
+        string humanArea = "[]") : HttpMessageHandler
     {
         public List<Sent> Requests { get; } = [];
 
@@ -259,6 +300,10 @@ public class NewProfileGeographyTests : ControllerTestBase
                     (HttpStatusCode.InternalServerError, """{"title":"boom","status":500}""", "application/problem+json"),
                 "/api/v2/humans/123456789/profiles" when request.Method == HttpMethod.Post =>
                     (HttpStatusCode.OK, $$"""{"profile_no":{{NewProfileNo}}}""", "application/json"),
+                "/api/v2/humans/123456789/areas" when request.Method == HttpMethod.Get =>
+                    (HttpStatusCode.OK, $$$"""{"areas":{{{available}}}}""", "application/json"),
+                "/api/v2/humans/123456789" when request.Method == HttpMethod.Get =>
+                    (HttpStatusCode.OK, $$$"""{"human":{"id":"123456789","area":{{{humanArea}}}}}""", "application/json"),
                 "/api/v2/humans/123456789/areas" =>
                     (HttpStatusCode.OK, AreasAnswer(body, rejected), "application/json"),
                 _ => (HttpStatusCode.OK, """{"status":"ok"}""", "application/json"),

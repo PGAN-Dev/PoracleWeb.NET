@@ -17,6 +17,13 @@ public interface IUserAreaWriter
     public Task<AreaSaveResult> SaveSelectionAsync(string humanId, IReadOnlyCollection<string> requested);
 
     /// <summary>
+    /// The names in <paramref name="requested"/> the human may subscribe to, by the same rule as
+    /// <see cref="SaveSelectionAsync"/> (lowercased, trimmed, distinct, request order). The rest are dropped
+    /// with a warning rather than refused; nothing is written.
+    /// </summary>
+    public Task<IReadOnlyList<string>> FilterAllowedAsync(string humanId, IReadOnlyCollection<string> requested);
+
+    /// <summary>
     /// Adds one name to the active profile. False when already present or PoracleNG rejected it.
     /// Does not authorise the name: the caller must have (for a user fence, that the user owns it).
     /// </summary>

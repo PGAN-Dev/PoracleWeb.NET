@@ -18,7 +18,7 @@ public class ProfileController(
     IPoracleHumanProxy humanProxy,
     IJwtService jwtService,
     IUserRoleResolver roleResolver,
-    IUserGeofenceRepository userGeofenceRepository,
+    IUserAreaWriter areaWriter,
     ILogger<ProfileController> logger) : BaseApiController
 {
     private readonly IProfileService _profileService = profileService;
@@ -26,7 +26,7 @@ public class ProfileController(
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly IJwtService _jwtService = jwtService;
     private readonly IUserRoleResolver _roleResolver = roleResolver;
-    private readonly IUserGeofenceRepository _userGeofenceRepository = userGeofenceRepository;
+    private readonly IUserAreaWriter _areaWriter = areaWriter;
     private readonly ILogger<ProfileController> _logger = logger;
 
     [HttpGet]
@@ -45,12 +45,12 @@ public class ProfileController(
     }
 
     /// <summary>
-    /// Drops any private geofence name from a submitted area list that the caller does not own.
+    /// Drops any name from a submitted area list that the caller may not subscribe to.
     /// </summary>
     /// <remarks>
-    /// Public and admin areas are anyone's to select, so they pass through. What does not is another
-    /// user's private fence: PoracleNG's setAreas intersects against userSelectable fences and would
-    /// have stripped it, but this path writes the profile row directly. See #647.
+    /// Another user's private fence, a non-selectable admin fence and an out-of-community fence all fall
+    /// outside <see cref="IUserAreaWriter.FilterAllowedAsync"/>. The new profile's areas are written
+    /// trusted, so this is the only check. See #647.
     /// </remarks>
     private async Task<string> RemoveAreasTheCallerMayNotSelectAsync(string? area)
     {
@@ -76,19 +76,11 @@ public class ProfileController(
             return "[]";
         }
 
-        // Approved fences are excluded: approval promotes them to public Koji areas that anyone may
-        // select, and when no promotedName was supplied the public area's name IS the KojiName -- so
-        // denying it silently dropped a legitimate public area from the new profile. Only another
-        // user's still-private fence is refused. See #658.
-        var privateNames = (await this._userGeofenceRepository.GetAllAsync())
-            .Where(g => !string.Equals(g.HumanId, this.UserId, StringComparison.OrdinalIgnoreCase))
-            .Where(g => !string.Equals(g.Status, "approved", StringComparison.OrdinalIgnoreCase))
-            .Select(g => g.KojiName)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        var allowed = requested
-            .Where(name => !string.IsNullOrWhiteSpace(name) && !privateNames.Contains(name))
-            .ToList();
+        // The same rule a save applies: PoracleNG's selectable areas for this user, their own fences, and
+        // what their active profile already holds. The geography write below is trusted, so anything not
+        // allowed here would otherwise reach a fence area_security or userSelectable=false is meant to deny.
+        var allowed = await this._areaWriter.FilterAllowedAsync(
+            this.UserId, requested.Where(name => !string.IsNullOrWhiteSpace(name)).ToList());
 
         return JsonSerializer.Serialize(allowed);
     }

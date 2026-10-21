@@ -84,6 +84,30 @@ public class UserAreaWriterTests
         this.VerifyNothingPosted();
     }
 
+    // --- FilterAllowedAsync: the same rule, dropping instead of refusing ---
+
+    [Fact]
+    public async Task FilterDropsWhatASaveWouldRefuseAndLogsIt()
+    {
+        this.Selectable("downtown");
+        this.Owns("my park");
+        this.Holds("held area");
+
+        var kept = await this._sut.FilterAllowedAsync(
+            Human, ["Downtown", "MY_PARK", "Held_Area", "staff only", " ", "downtown"]);
+
+        Assert.Equal(["downtown", "my_park", "held_area"], kept);
+        Assert.Contains(this._log.Entries, e => e.Level == LogLevel.Warning && e.Message.Contains("staff only", StringComparison.Ordinal));
+        this.VerifyNothingPosted();
+    }
+
+    [Fact]
+    public async Task FilterOfNothingReadsNothing()
+    {
+        Assert.Empty(await this._sut.FilterAllowedAsync(Human, []));
+        this._proxy.Verify(p => p.GetAvailableAreasAsync(It.IsAny<string>()), Times.Never);
+    }
+
     // --- legitimate cases still pass ---
 
     [Fact]
