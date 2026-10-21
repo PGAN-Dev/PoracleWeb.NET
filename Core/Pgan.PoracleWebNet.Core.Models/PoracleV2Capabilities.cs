@@ -97,22 +97,6 @@ public sealed class PoracleV2Capabilities
     }
 
     /// <summary>
-    /// The three location request bodies (<c>V2LocationBody</c>, <c>V2AddLocationBody</c>,
-    /// <c>V2UpdateLocationBody</c>) name the coordinates <c>latitude</c> and <c>longitude</c>
-    /// (jfberry/PoracleNG#303, unreleased). Every released PoracleNG names them <c>lat</c> and <c>lon</c>.
-    /// </summary>
-    /// <remarks>
-    /// The bodies are <c>additionalProperties:false</c>, so one body cannot carry both spellings, and a
-    /// 422 from the wrong one is not a missing route: <c>TryV2Async</c> does not fall back to v1 on it.
-    /// Read from <c>V2LocationBody</c> alone, which stands in for all three the way #303 changed them
-    /// together; false when the document cannot be read, which is the released names.
-    /// </remarks>
-    public bool V2LocationLatitudeLongitude
-    {
-        get; init;
-    }
-
-    /// <summary>
     /// <c>POST /v2/humans/{id}/areas</c> answers with what it stored and what it refused
     /// (<c>V2SetAreasOutputBody</c>: <c>areas</c> and <c>rejected</c>), so the Areas page save can go
     /// through v2 instead of v1's <c>setAreas</c>. See #995.

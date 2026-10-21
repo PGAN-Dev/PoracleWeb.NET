@@ -48,7 +48,6 @@ public class PoracleV2SchemaServiceTests
         Assert.False(capabilities.ProfileCreateReturnsNumber);
         Assert.False(capabilities.InvasionGruntType);
         Assert.False(capabilities.TrackingPing);
-        Assert.False(capabilities.V2LocationLatitudeLongitude);
     }
 
     [Fact]
@@ -62,7 +61,6 @@ public class PoracleV2SchemaServiceTests
         Assert.True(capabilities.ProfileCreateReturnsNumber);
         Assert.True(capabilities.InvasionGruntType);
         Assert.True(capabilities.TrackingPing);
-        Assert.True(capabilities.V2LocationLatitudeLongitude);
         Assert.True(capabilities.SetAreasReportsRejected);
         Assert.True(capabilities.AvailableAreas);
         Assert.True(capabilities.ProfileList);
@@ -152,37 +150,6 @@ public class PoracleV2SchemaServiceTests
         Assert.False(PoracleV2SchemaService.Parse(routeOnly).ProfileCopy);
     }
 
-    [Fact]
-    public void TheDevelopBranchNamesLocationsLatitudeLongitude()
-    {
-        // jfberry/PoracleNG#303 renamed lat/lon on the three location bodies. The fixture is the
-        // schemas as a #303 build serves them.
-        Assert.True(PoracleV2SchemaService.Parse(Fixture("next")).V2LocationLatitudeLongitude);
-    }
-
-    [Fact]
-    public void AReleasedPoracleNamesThemLatLon()
-    {
-        Assert.False(PoracleV2SchemaService.Parse(Fixture("5.2.1")).V2LocationLatitudeLongitude);
-    }
-
-    [Fact]
-    public void AnUnreadableSchemaSendsLatLon()
-    {
-        Assert.False(PoracleV2SchemaService.Parse("not json at all").V2LocationLatitudeLongitude);
-        Assert.False(PoracleV2SchemaService.Parse(null).V2LocationLatitudeLongitude);
-    }
-
-    [Fact]
-    public void BothCoordinatesMustBeRenamedNotJustOne()
-    {
-        const string half = """
-            {"components":{"schemas":{"V2LocationBody":{"properties":{"latitude":{},"lon":{}}}}}}
-            """;
-
-        Assert.False(PoracleV2SchemaService.Parse(half).V2LocationLatitudeLongitude);
-    }
-
     [Theory]
     [InlineData(null)]
     [InlineData("")]
@@ -202,7 +169,6 @@ public class PoracleV2SchemaServiceTests
         Assert.False(capabilities.ProfileCreateReturnsNumber);
         Assert.False(capabilities.InvasionGruntType);
         Assert.False(capabilities.TrackingPing);
-        Assert.False(capabilities.V2LocationLatitudeLongitude);
         Assert.False(capabilities.SetAreasReportsRejected);
         Assert.False(capabilities.AvailableAreas);
         Assert.False(capabilities.ProfileList);

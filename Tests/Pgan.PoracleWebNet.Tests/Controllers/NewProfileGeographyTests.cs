@@ -193,7 +193,6 @@ public class NewProfileGeographyTests : ControllerTestBase
             ProfileCreateReturnsNumber = true,
             ProfileScopedGeography = declared,
             TrustedSetAreas = true,
-            V2LocationLatitudeLongitude = true,
         }),
         PoracleHumanProxyTests.AreaSecurityPolicy(confirmedDisabled: true),
         new MemoryCache(new MemoryCacheOptions()),

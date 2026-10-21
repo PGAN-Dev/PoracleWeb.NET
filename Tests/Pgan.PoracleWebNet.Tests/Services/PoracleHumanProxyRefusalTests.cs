@@ -36,8 +36,8 @@ public class PoracleHumanProxyRefusalTests
                 ["Poracle:ApiSecret"] = "test-secret",
             })
             .Build(),
-            // No version, so no /api/v2: every refusal here is v1's, which is what a 5.1.0 self-hoster
-            // still gets.
+            // No version, so the profile, place and area calls that still have a v1 fallback take it. The
+            // single-human calls go to /api/v2 whatever the version says.
             PoracleHumanProxyTests.ServerProfile(null),
             PoracleHumanProxyTests.V2Schema(),
             PoracleHumanProxyTests.AreaSecurityPolicy(),
@@ -222,9 +222,9 @@ public class PoracleHumanProxyRefusalTests
     [Fact]
     public async Task AMissingAccountIsStillAccountGone()
     {
-        // The SPA signs out only on 401, and AccountGoneExceptionFilter is what produces it. Live wording
-        // from both 5.1.0 and 5.2.1.
-        var sut = Refusing(HttpStatusCode.NotFound, """{"message":"User not found","status":"error"}""");
+        // The SPA signs out only on 401, and AccountGoneExceptionFilter is what produces it. The v2
+        // surface's wording; a bare 404 would be a missing route, not a missing account.
+        var sut = Refusing(HttpStatusCode.NotFound, """{"title":"Not Found","status":404,"detail":"human not found"}""");
 
         await Assert.ThrowsAsync<AccountGoneException>(() => sut.StartAsync("deleted-user"));
     }
@@ -235,7 +235,11 @@ public class PoracleHumanProxyRefusalTests
     [InlineData("/profiles")]
     public async Task EveryWritePathStillReportsAMissingAccountAsGone(string path)
     {
-        var sut = Refusing(HttpStatusCode.NotFound, """{"message":"User not found","status":"error"}""");
+        // The single-human calls are v2 only and say it in problem+json; the profile and area calls still
+        // have a v1 path whose wording is its own.
+        var sut = path == "/stop"
+            ? Refusing(HttpStatusCode.NotFound, """{"title":"Not Found","status":404,"detail":"human not found"}""")
+            : Refusing(HttpStatusCode.NotFound, """{"message":"User not found","status":"error"}""");
 
         Task Call() => path switch
         {
@@ -415,7 +419,7 @@ public class PoracleHumanProxyRefusalTests
         // and every branch reads null as "no such account" -- so a refusal or an outage was reported as a
         // deleted user (the purge's 404, /api/auth/me's sign-out). The callers that genuinely need to
         // carry on through a failed read catch it themselves now. See #994.
-        var missing = Refusing(HttpStatusCode.NotFound, """{"message":"User not found","status":"error"}""");
+        var missing = Refusing(HttpStatusCode.NotFound, """{"title":"Not Found","status":404,"detail":"human not found"}""");
         Assert.Null(await missing.GetHumanAsync("user1"));
         Assert.Null(await missing.GetAreasAsync("user1"));
 

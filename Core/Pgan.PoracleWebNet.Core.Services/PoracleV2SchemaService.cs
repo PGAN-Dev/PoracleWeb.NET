@@ -100,8 +100,6 @@ public partial class PoracleV2SchemaService(
                 ProfileCreateReturnsNumber = CreateReturnsNumber(paths, schemas),
                 InvasionGruntType = HasProperty(schemas, "V2InvasionRule", "grunt_type"),
                 TrackingPing = HasProperty(schemas, "V2PokemonRule", "ping"),
-                V2LocationLatitudeLongitude = HasProperty(schemas, "V2LocationBody", "latitude")
-                    && HasProperty(schemas, "V2LocationBody", "longitude"),
                 SetAreasReportsRejected = HasProperty(
                     schemas, ResponseSchema(paths, "/v2/humans/{id}/areas", "post"), "rejected"),
                 AvailableAreas = HasProperty(schemas, "V2AreaInfo", "name")

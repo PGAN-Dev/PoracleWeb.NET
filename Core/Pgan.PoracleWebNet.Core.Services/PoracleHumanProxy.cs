@@ -45,15 +45,6 @@ public partial class PoracleHumanProxy(
     /// </summary>
     private static string Encode(string userId) => Uri.EscapeDataString(userId);
 
-    /// <summary>A latitude or longitude in a form PoracleNG parses whatever the server's culture is.</summary>
-    /// <remarks>
-    /// The v1 location paths interpolate the doubles straight into the URL. On a machine whose current
-    /// culture uses a comma for the decimal separator that produced <c>/setLocation/51,5/-0,12</c>, which
-    /// is four path segments rather than two. The v2 body does not have the problem -- <c>JsonSerializer</c>
-    /// is invariant -- but the v1 fallback is still there and still has to be right.
-    /// </remarks>
-    private static string Coord(double value) => value.ToString(CultureInfo.InvariantCulture);
-
     /// <summary>
     /// Whether PoracleNG is believed to carry <c>/api/v2</c>: every supported release does, so this is
     /// <see cref="PoracleServerProfile.IsSupported"/>.
@@ -67,6 +58,43 @@ public partial class PoracleHumanProxy(
     {
         var profile = await this._serverProfile.GetAsync();
         return profile.IsSupported;
+    }
+
+    /// <summary>The release that carries every <c>/api/v2</c> route the single-human calls need.</summary>
+    private const string MinimumRelease = "PoracleNG 5.4.0";
+
+    /// <summary>
+    /// Sends one request to <c>/api/v2</c>. A route the server does not have is reported as
+    /// <see cref="PoracleUnsupportedException"/>; every other response is returned for the caller to read.
+    /// </summary>
+    /// <remarks>
+    /// gin answers a route it does not have with the plaintext <c>404 page not found</c>, and the v2
+    /// surface answers a missing human or place with problem+json at the same status, so the content is
+    /// the only thing separating "this server is older than the minimum" from "no such human". There is
+    /// no version check first and no v1 retry: the minimum is 5.4.0, and a server below it is told so
+    /// rather than served a path it no longer needs. <paramref name="body"/> is sent as is when it is a
+    /// string (already JSON), by raw text when a <see cref="JsonElement"/>, and serialised otherwise.
+    /// </remarks>
+    private async Task<HttpResponseMessage> SendV2Async(
+        HttpMethod method, string path, string feature, object? body = null)
+    {
+        var json = body switch
+        {
+            null => null,
+            string raw => raw,
+            JsonElement element => element.GetRawText(),
+            _ => JsonSerializer.Serialize(body),
+        };
+
+        var response = await this.SendAsync(method, path, json);
+
+        if (response.StatusCode == HttpStatusCode.NotFound
+            && !PoracleProblemDetails.IsProblemJson(await response.Content.ReadAsStringAsync()))
+        {
+            throw new PoracleUnsupportedException(feature, MinimumRelease);
+        }
+
+        return response;
     }
 
     /// <summary>
@@ -192,15 +220,11 @@ public partial class PoracleHumanProxy(
 
     public async Task<JsonElement?> GetHumanAsync(string userId)
     {
-        // Both surfaces answer the same wrapper and the same columns -- verified field by field against a
-        // live 5.2.1 -- so nothing downstream can tell which one answered.
-        var (response, json) =
-            await this.TryV2Async(HttpMethod.Get, "get", $"/api/v2/humans/{Encode(userId)}")
-            ?? await this.SendReadAsync(HttpMethod.Get, $"/api/humans/one/{Encode(userId)}");
+        var response = await this.SendV2Async(HttpMethod.Get, $"/api/v2/humans/{Encode(userId)}", "reading a user");
 
-        // A 404 is PoracleNG answering: no such human (v1 says "User not found", v2 a problem+json
-        // "human not found"; a v2 route that is merely absent never gets here, TryV2Async has already
-        // retried it on v1). Anything else non-2xx is PoracleNG failing to answer, and null for it -- what
+        // A 404 is PoracleNG answering: no such human (problem+json "human not found"; a route that is
+        // merely absent never gets here, SendV2Async has already refused it). Anything else non-2xx is
+        // PoracleNG failing to answer, and null for it -- what
         // this returned for every status -- told every caller the account was gone: the purge answered
         // "already deleted" during an outage and /api/auth/me signed live users out. The same contract as
         // GetAdminRolesAsync. See #994.
@@ -211,9 +235,9 @@ public partial class PoracleHumanProxy(
 
         response.EnsureSuccessStatusCode();
 
-        using var doc = JsonDocument.Parse(json);
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
 
-        // PoracleNG wraps the response: { "human": { ... }, "status": "ok" }
+        // PoracleNG wraps the response: { "human": { ... } }
         if (doc.RootElement.TryGetProperty("human", out var human))
         {
             return human.Clone();
@@ -222,26 +246,48 @@ public partial class PoracleHumanProxy(
         return doc.RootElement.Clone();
     }
 
+    /// <summary>
+    /// The properties <c>V2CreateHumanBody</c> declares. The body is <c>additionalProperties:false</c>, so
+    /// anything else is a 422; checked against the 5.4.0 schema in both directions by the proxy tests.
+    /// </summary>
+    private static readonly string[] CreateHumanProperties =
+    [
+        "admin_disable", "area", "community", "enabled", "id", "language",
+        "latitude", "longitude", "name", "notes", "profile_name", "type",
+    ];
+
     public async Task CreateHumanAsync(JsonElement body)
     {
-        var response = await this.SendAsync(HttpMethod.Post, "/api/humans", body.GetRawText());
+        // Only what v2 declares goes out, and only what the caller supplied: every other field takes
+        // PoracleNG's default, so an absent key has to stay absent.
+        var declared = new Dictionary<string, JsonElement>();
+        if (body.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var property in body.EnumerateObject())
+            {
+                if (Array.IndexOf(CreateHumanProperties, property.Name) >= 0)
+                {
+                    declared[property.Name] = property.Value;
+                }
+            }
+        }
+
+        var response = await this.SendV2Async(HttpMethod.Post, "/api/v2/humans", "creating a user", declared);
         await EnsureAcceptedAsync(response);
     }
 
     public async Task StartAsync(string userId)
     {
-        var (response, _) =
-            await this.TryV2Async(HttpMethod.Post, "enable", $"/api/v2/humans/{Encode(userId)}/enable")
-            ?? await this.SendReadAsync(HttpMethod.Post, $"/api/humans/{Encode(userId)}/start");
+        var response = await this.SendV2Async(
+            HttpMethod.Post, $"/api/v2/humans/{Encode(userId)}/enable", "enabling a user");
 
         await EnsureAcceptedAsync(response);
     }
 
     public async Task StopAsync(string userId)
     {
-        var (response, _) =
-            await this.TryV2Async(HttpMethod.Post, "disable", $"/api/v2/humans/{Encode(userId)}/disable")
-            ?? await this.SendReadAsync(HttpMethod.Post, $"/api/humans/{Encode(userId)}/stop");
+        var response = await this.SendV2Async(
+            HttpMethod.Post, $"/api/v2/humans/{Encode(userId)}/disable", "disabling a user");
 
         await EnsureAcceptedAsync(response);
     }
@@ -249,56 +295,34 @@ public partial class PoracleHumanProxy(
     /// <inheritdoc />
     public async Task SetLanguageAsync(string userId, string language)
     {
-        var v2Body = JsonSerializer.Serialize(new
-        {
-            language
-        });
-
-        var (response, _) =
-            await this.TryV2Async(
-                HttpMethod.Post, "language", $"/api/v2/humans/{Encode(userId)}/language", v2Body)
-            ?? await this.SendReadAsync(
-                HttpMethod.Post, $"/api/humans/{Encode(userId)}/language", v2Body);
+        var response = await this.SendV2Async(
+            HttpMethod.Post,
+            $"/api/v2/humans/{Encode(userId)}/language",
+            "setting a user's language",
+            new { language });
 
         await EnsureAcceptedAsync(response);
     }
 
     public async Task AdminDisabledAsync(string userId, bool disabled)
     {
-        // PoracleNG's adminDisabledRequest is `State *bool \`json:"state"\`` -- it rejects any other key
-        // with 400 "state is required (true/false)", including the `adminDisable` this used to send, so
-        // ban/unban failed on every call against every PoracleNG.
-        var body = JsonSerializer.Serialize(new
-        {
-            state = disabled
-        });
-
-        // v2 renamed the key as well as the route: its adminDisableBody is `Disabled *bool`, so sending
-        // v1's `state` to it is a 422 rather than a no-op.
-        var v2Body = JsonSerializer.Serialize(new
-        {
-            disabled
-        });
-
-        var (response, _) =
-            await this.TryV2Async(
-                HttpMethod.Post, "admin-disable", $"/api/v2/humans/{Encode(userId)}/admin-disable", v2Body)
-            ?? await this.SendReadAsync(
-                HttpMethod.Post, $"/api/humans/{Encode(userId)}/adminDisabled", body);
+        // v2's adminDisableBody is `Disabled *bool`; v1's `state` is a 422 there.
+        var response = await this.SendV2Async(
+            HttpMethod.Post,
+            $"/api/v2/humans/{Encode(userId)}/admin-disable",
+            "banning a user",
+            new { disabled });
 
         await EnsureAcceptedAsync(response);
     }
 
     public async Task SetLocationAsync(string userId, double lat, double lon)
     {
-        var v2Body = await this.LocationBodyAsync(lat, lon);
-
-        var (response, _) =
-            await this.TryV2Async(
-                HttpMethod.Post, "location", $"/api/v2/humans/{Encode(userId)}/location", v2Body)
-            ?? await this.SendReadAsync(
-                HttpMethod.Post,
-                $"/api/humans/{Encode(userId)}/setLocation/{Coord(lat)}/{Coord(lon)}");
+        var response = await this.SendV2Async(
+            HttpMethod.Post,
+            $"/api/v2/humans/{Encode(userId)}/location",
+            "setting a user's location",
+            LocationBody(lat, lon));
 
         await EnsureAcceptedAsync(response);
     }
@@ -306,10 +330,10 @@ public partial class PoracleHumanProxy(
     /// <inheritdoc />
     public async Task<string?> GetAdminRolesAsync(string userId)
     {
-        var (response, payload) =
-            await this.TryV2Async(HttpMethod.Get, "admin-roles", $"/api/v2/humans/{Encode(userId)}/admin-roles")
-            ?? await this.SendReadAsync(
-                HttpMethod.Get, $"/api/humans/{Encode(userId)}/getAdministrationRoles");
+        var response = await this.SendV2Async(
+            HttpMethod.Get,
+            $"/api/v2/humans/{Encode(userId)}/admin-roles",
+            "reading a user's delegated webhooks");
 
         // A 404 is PoracleNG answering: this human has no roles because it has no such human. Anything
         // else non-2xx is PoracleNG failing to answer, and returning null for it -- which is what this
@@ -321,7 +345,7 @@ public partial class PoracleHumanProxy(
         }
 
         response.EnsureSuccessStatusCode();
-        return payload;
+        return await response.Content.ReadAsStringAsync();
     }
 
     /// <remarks>
@@ -617,7 +641,7 @@ public partial class PoracleHumanProxy(
                 HttpMethod.Post,
                 "location-profile",
                 $"/api/v2/humans/{Encode(userId)}/location?profile={profileNo}",
-                await this.LocationBodyAsync(latitude, longitude))
+                LocationBody(latitude, longitude))
             is not { } locationReply)
         {
             return false;
@@ -1088,7 +1112,7 @@ public partial class PoracleHumanProxy(
             return "That name is too long. Use 64 characters or fewer.";
         }
 
-        var v2Body = await this.LocationBodyAsync(place.Latitude, place.Longitude, place.Label);
+        var v2Body = LocationBody(place.Latitude, place.Longitude, place.Label);
 
         var v2 = await this.TryV2Async(
             HttpMethod.Post, "locations-add", $"/api/v2/humans/{Encode(userId)}/locations", v2Body);
@@ -1143,7 +1167,7 @@ public partial class PoracleHumanProxy(
     /// <inheritdoc />
     public async Task<bool> UpdatePlaceAsync(string userId, string label, double latitude, double longitude)
     {
-        var body = await this.LocationBodyAsync(latitude, longitude);
+        var body = LocationBody(latitude, longitude);
 
         var v2 = await this.TryV2Async(
             HttpMethod.Put, "locations-update", $"/api/v2/humans/{Encode(userId)}/locations/{Encode(label)}", body);
@@ -1158,17 +1182,13 @@ public partial class PoracleHumanProxy(
     }
 
     /// <summary>
-    /// The request body for the three v2 location writes, with the coordinate names the target server
-    /// declares: <c>lat</c>/<c>lon</c> on every released PoracleNG (5.2.1 reads them off
-    /// <c>V2LocationBody</c> and its two siblings), <c>latitude</c>/<c>longitude</c> once
-    /// jfberry/PoracleNG#303 lands. The bodies are <c>additionalProperties:false</c> and a 422 does not
-    /// fall back to v1, so the wrong names fail the write rather than degrade it. The reads answer
-    /// <c>latitude</c>/<c>longitude</c> on both. Read once per call; an unreadable document is the
-    /// released names.
+    /// The request body for the v2 location writes. <c>V2LocationBody</c> and its two siblings are
+    /// <c>additionalProperties:false</c> and name the coordinates <c>latitude</c>/<c>longitude</c> on
+    /// 5.4.0 (jfberry/PoracleNG#303); <c>lat</c>/<c>lon</c> is a 422. <c>JsonSerializer</c> is
+    /// culture-invariant, so the numbers cannot pick up a comma decimal separator.
     /// </summary>
-    private async Task<string> LocationBodyAsync(double latitude, double longitude, string? label = null)
+    private static string LocationBody(double latitude, double longitude, string? label = null)
     {
-        var longNames = (await this._v2Schema.GetAsync()).V2LocationLatitudeLongitude;
         var body = new Dictionary<string, object?>();
 
         if (label is not null)
@@ -1176,8 +1196,8 @@ public partial class PoracleHumanProxy(
             body["label"] = label;
         }
 
-        body[longNames ? "latitude" : "lat"] = latitude;
-        body[longNames ? "longitude" : "lon"] = longitude;
+        body["latitude"] = latitude;
+        body["longitude"] = longitude;
         return JsonSerializer.Serialize(body);
     }
 
@@ -1214,11 +1234,10 @@ public partial class PoracleHumanProxy(
 
         var path = query.Count > 0 ? $"/api/v2/humans?{string.Join('&', query)}" : "/api/v2/humans";
 
-        var (response, payload) = await this.SendReadAsync(HttpMethod.Get, path);
-        ThrowIfRouteMissing(response, payload, "the admin user list");
+        var response = await this.SendV2Async(HttpMethod.Get, path, "the admin user list");
         await EnsureAcceptedAsync(response);
 
-        using var doc = JsonDocument.Parse(payload);
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
 
         if (!doc.RootElement.TryGetProperty("humans", out var humans) || humans.ValueKind != JsonValueKind.Array)
         {
@@ -1256,8 +1275,8 @@ public partial class PoracleHumanProxy(
 
     public async Task<bool> DeleteHumanAsync(string userId)
     {
-        var (response, payload) = await this.SendReadAsync(HttpMethod.Delete, $"/api/v2/humans/{Encode(userId)}");
-        ThrowIfRouteMissing(response, payload, "deleting a user");
+        var response = await this.SendV2Async(
+            HttpMethod.Delete, $"/api/v2/humans/{Encode(userId)}", "deleting a user");
 
         if (response.StatusCode == HttpStatusCode.NotFound)
         {
@@ -1266,18 +1285,6 @@ public partial class PoracleHumanProxy(
 
         await EnsureAcceptedAsync(response);
         return true;
-    }
-
-    /// <summary>
-    /// gin's plaintext <c>404 page not found</c> means the route is not there, which on a 5.4.0 minimum
-    /// is a server older than that. A problem+json 404 is PoracleNG answering about the human.
-    /// </summary>
-    private static void ThrowIfRouteMissing(HttpResponseMessage response, string payload, string feature)
-    {
-        if (response.StatusCode == HttpStatusCode.NotFound && !PoracleProblemDetails.IsProblemJson(payload))
-        {
-            throw new PoracleUnsupportedException(feature, "PoracleNG 5.4.0");
-        }
     }
 
     /// <summary>

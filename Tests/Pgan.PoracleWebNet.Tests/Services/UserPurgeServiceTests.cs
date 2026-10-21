@@ -147,7 +147,7 @@ public class UserPurgeServiceTests
     [Fact]
     public async Task AnAccountPoracleSaysIsMissingIsStillReportedAsMissing()
     {
-        var sut = this.CreateSut(OverProxy(HttpStatusCode.NotFound, """{"status":"error","message":"User not found"}"""));
+        var sut = this.CreateSut(OverProxy(HttpStatusCode.NotFound, """{"title":"Not Found","status":404,"detail":"human not found"}"""));
 
         Assert.False(await sut.PurgeAsync("ghost"));
 
