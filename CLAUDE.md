@@ -1330,7 +1330,8 @@ dotnet ef migrations script \
 | QuickPickAppliedStateRepository | `Core/Pgan.PoracleWebNet.Core.Repositories/QuickPickAppliedStateRepository.cs` |
 | IUserAreaWriter | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/IUserAreaWriter.cs` |
 | IAlarmOverrideAreaWriter | `Core/Pgan.PoracleWebNet.Core.Abstractions/Repositories/IAlarmOverrideAreaWriter.cs` |
-| UserAreaDualWriter | `Core/Pgan.PoracleWebNet.Core.Repositories/UserAreaDualWriter.cs` |
+| UserAreaWriter | `Core/Pgan.PoracleWebNet.Core.Services/UserAreaWriter.cs` |
+| AlarmOverrideAreaWriter | `Core/Pgan.PoracleWebNet.Core.Repositories/AlarmOverrideAreaWriter.cs` |
 | Service Layer | `Core/Pgan.PoracleWebNet.Core.Services/` |
 | UserGeofenceService | `Core/Pgan.PoracleWebNet.Core.Services/UserGeofenceService.cs` |
 | SiteSettingService | `Core/Pgan.PoracleWebNet.Core.Services/SiteSettingService.cs` |

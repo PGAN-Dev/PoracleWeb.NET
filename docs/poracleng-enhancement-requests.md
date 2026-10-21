@@ -141,10 +141,10 @@ while it is the only profile is the single exception: the row goes, the tracking
 ### Atomic Area Update
 
 **ID:** `atomic-area-update`  
-**Priority:** Low (partially adopted)  
+**Priority:** Low (adopted)  
 **Code refs:** `AreaController.cs:UpdateAreas`, `PoracleHumanProxy.cs:SetAreasAsync`
 
-**Status: Partially adopted.** `AreaController.UpdateAreas` calls `IPoracleHumanProxy.SetAreasAsync(userId, areas)` for admin-area writes. PoracleNG handles the dual-write to both `humans.area` and `profiles.area` internally. However, user-drawn geofence names are silently stripped by PoracleNG's `userSelectable` intersection filter -- see the **Trusted setAreas (bypass userSelectable filter)** gap below.
+**Status: Adopted.** `AreaController.UpdateAreas` calls `IUserAreaWriter.SaveSelectionAsync`, which sends one trusted v2 `POST .../areas` after PoracleWeb.NET's own allowed-name check. PoracleNG writes both `humans.area` and `profiles.area` internally. See the **Trusted setAreas (bypass userSelectable filter)** entry below.
 
 ---
 
@@ -152,7 +152,7 @@ while it is the only profile is the single exception: the row goes, the tracking
 
 **ID:** `trusted-set-areas`  
 **Priority:** High  
-**Code refs:** `IUserAreaDualWriter.cs`, `UserAreaDualWriter.cs`, `UserGeofenceService.cs:CreateAsync`, `UserGeofenceService.cs:DeleteAsync`, `UserGeofenceService.cs:AdminDeleteAsync`, `UserGeofenceService.cs:AddToProfileAsync`, `UserGeofenceService.cs:RemoveFromProfileAsync`, `UserGeofenceService.cs:PreserveOwnedAreasInHumanAsync`, `AreaController.cs:UpdateAreas`
+**Code refs:** `IUserAreaWriter.cs`, `UserAreaWriter.cs`, `UserGeofenceService.cs`, `AreaController.cs:UpdateAreas` (historical refs: the deleted `IUserAreaDualWriter` and `PreserveOwnedAreasInHumanAsync`)
 
 **Current behavior:** PoracleNG's `POST /api/humans/{id}/setAreas` handler (`processor/internal/api/humans.go:HandleSetAreas`) intersects the submitted area list against fences where `UserSelectable == true` for non-admin users. Any area whose fence has `userSelectable=false` is silently dropped -- no error, no warning. PoracleWeb.NET's `GeofenceFeedController.cs` serves user-drawn custom geofences with `userSelectable: false` (to hide them from the Poracle bot's `!area` picker and from other users' views), so every `SetAreasAsync` call that contains a user-drawn geofence name loses that name. This is the root cause of [#163](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/163) -- "custom geofence toggle doesn't persist."
 
@@ -238,7 +238,7 @@ no longer needed. **Adopted** with the area writes release: `IUserAreaDualWriter
 area write goes through the v2 routes. Only the per-alarm `override_areas` site is still tagged `HACK: trusted-set-areas`.
 The workaround description below is kept as history.
 
-**Workaround (HACK), still running for all six methods until then; before 5.4.0 it was the fallback for three:**
+**Workaround (HACK), history. Deleted with the area writes release; it ran for all six methods until then, and before 5.4.0 was the fallback for three:**
 `UserGeofenceService` delegates to `IUserAreaDualWriter`, a tiny atomic-write abstraction that holds the
 Poracle `DbContext` and commits both `humans.area` and the active `profiles.area` in a single
 `SaveChangesAsync` call. The single-SaveChanges guarantees EF Core wraps both writes in one implicit
@@ -455,15 +455,11 @@ Re-confirmed on 5.2.1 rather than taken from source: `POST /api/v2/humans/{id}/a
 `["<a user-drawn fence>", "aberdeen"]` stored `["aberdeen"]` -- silently, 200, exactly as v1 does. That
 remains true on 5.2.1; it is #230, in 5.4.0, that changes the behaviour.
 
-**Here:** partially adopted, in [#838](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/838) /
-[#937](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/937) -- see the [trusted setAreas]
-(#trusted-setareas-bypass-userselectable-filter) ask above for what moved (three of six `IUserAreaDualWriter`
-methods) and what was blocked (a profile target on `setAreas`, filed as
-[#252](https://github.com/jfberry/PoracleNG/issues/252)/[#253](https://github.com/jfberry/PoracleNG/issues/253),
-now answered by 5.4.0; a trusted per-rule override write, which exists on v2 tracking updates but not
-creates). Every
-`HACK: trusted-set-areas` site that has not moved stays as the fallback for the sites that have, not
-merely as a stopgap -- the remaining three methods need their own, separate unblocking.
+**Here:** first partially adopted in [#838](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/838) /
+[#937](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/937), then completed with the area writes release: every
+user-geofence area write goes through the v2 routes and the dual writer is gone. The one remaining
+`HACK: trusted-set-areas` site is the per-alarm `override_areas` column (a trusted per-rule override write
+exists on v2 tracking updates but not creates).
 
 ---
 
@@ -552,7 +548,7 @@ adapted to in PoracleWeb.NET #969 and #970.
 | Create silently updates a different rule; maxbattle never dedups | High | Client-side `DiffTracking` mirror (`EnsureNoMergeIntoAnotherAlarmAsync`), max battle identical-alarm check | Landed in 5.4.0 ([#326](https://github.com/jfberry/PoracleNG/issues/326), answered as `POST ?dry_run=true` plus `previous`). **Not yet adopted**; the mirror goes with tracking's move to v2 |
 | Tracking mutes match uid alone | Medium | `scope=tracking` not offered | Landed in 5.4.0 ([#323](https://github.com/jfberry/PoracleNG/issues/323)): a rule mute carries its `tracking_type`. Listed and lifted here; creating one is a separate decision |
 | v2 stored wildcards prose-only | Medium | Tracking reads stay on v1 (#860) | **Declined** ([#324](https://github.com/jfberry/PoracleNG/issues/324)): v2 keeps `null` as the wildcard. `TrackingV2Translator` will map `null` to this application's own defaults when tracking reads move to v2 |
-| Trusted setAreas | High | Direct-DB dual write (`IUserAreaDualWriter`) for all six methods; v2 trusted `setAreas` for three of them where `area_security` is confirmed off | 5.4.0 carries every piece: `trusted` ([#230](https://github.com/jfberry/PoracleNG/pull/230)), delete across profiles with `dry_run` ([#253](https://github.com/jfberry/PoracleNG/issues/253), [#252](https://github.com/jfberry/PoracleNG/issues/252)), rename across profiles ([#259](https://github.com/jfberry/PoracleNG/issues/259)), `exemptFromAreaSecurity` ([#243](https://github.com/jfberry/PoracleNG/issues/243)). **Not yet adopted**; the area sub-project deletes the writer |
+| Trusted setAreas | High | v2 trusted `setAreas` for every user-geofence area write, behind PoracleWeb.NET's own allowed-name check (the dual writer is deleted) | 5.4.0 carries every piece: `trusted` ([#230](https://github.com/jfberry/PoracleNG/pull/230)), delete across profiles with `dry_run` ([#253](https://github.com/jfberry/PoracleNG/issues/253), [#252](https://github.com/jfberry/PoracleNG/issues/252)), rename across profiles ([#259](https://github.com/jfberry/PoracleNG/issues/259)), `exemptFromAreaSecurity` ([#243](https://github.com/jfberry/PoracleNG/issues/243)). **Adopted** |
 | Dashboard counts | Medium | Single `GET /api/tracking/all` call | Open, returns full payloads |
 | Admin delete all alarms | Medium | Fetch UIDs per type, bulk delete each | Open |
 | Admin list / delete human | Medium | None | **Adopted**, in [#839](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/839)/[#936](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/936), once [#229](https://github.com/jfberry/PoracleNG/issues/229) reported the fields the admin grid needs. `HumanRepository` is deleted |
