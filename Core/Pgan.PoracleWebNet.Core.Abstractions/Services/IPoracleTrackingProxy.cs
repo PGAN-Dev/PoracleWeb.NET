@@ -65,14 +65,18 @@ public interface IPoracleTrackingProxy
         string type, string userId, int uid, System.Text.Json.JsonElement body);
 
     /// <summary>
-    /// Deletes a single tracking alarm by UID.
-    /// Maps to DELETE /api/tracking/{type}/{userId}/byUid/{uid}
+    /// Deletes a single tracking alarm by UID on the active profile. Maps to
+    /// <c>DELETE /api/v2/humans/{id}/tracking/{type}/{uid}?silent=true</c>; a rule PoracleNG does not hold is
+    /// treated as already gone. For <c>invasion</c>, a uid the invasion route does not hold is tried as an
+    /// <c>incident</c> (a Pokestop event the invasion read folded in).
     /// </summary>
     public Task DeleteByUidAsync(string type, string userId, int uid);
 
     /// <summary>
-    /// Deletes multiple tracking alarms by UID list.
-    /// Maps to POST /api/tracking/{type}/{userId}/delete
+    /// Deletes multiple tracking alarms by UID list on the active profile. Maps to
+    /// <c>DELETE /api/v2/humans/{id}/tracking/{type}?silent=true</c> with <c>{"uids":[...]}</c> in the body.
+    /// Uids PoracleNG did not delete are logged, not retried, except that <c>invasion</c> sends what it left
+    /// to <c>incident</c>.
     /// </summary>
     public Task BulkDeleteByUidsAsync(string type, string userId, IEnumerable<int> uids);
 

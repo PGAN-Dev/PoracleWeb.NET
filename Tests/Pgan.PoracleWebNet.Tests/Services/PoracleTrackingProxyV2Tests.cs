@@ -537,19 +537,28 @@ public class PoracleTrackingProxyV2Tests
         Assert.Equal(HttpMethod.Post, Assert.Single(handler.Requests).Method);
     }
 
-    // ---- deletes (#860) -------------------------------------------------------------------------
+    // ---- deletes (sub-project 3a) ----------------------------------------------------------------
     //
-    // A delete carries no rule body, so none of the translation above applies. What does apply is a
-    // scoping difference the two surfaces do not share: v1's handler calls DeleteByUID(table, id, uid),
-    // keyed on the human and the uid alone, while v2's v2FindOwnedRow reads SelectByIDProfile and 404s
-    // for a uid that is not on the active profile. Every fallback below exists to keep v1's answer.
+    // Deletes go through v2 and nowhere else. A delete names only the uid, so none of the translation
+    // above applies and nothing is version-gated: a server without the route answers gin's plaintext 404
+    // and is told it is too old, the way the reads are.
+    //
+    // v2 scopes a uid to the active profile, where v1 deleted it whatever profile it sat on. That
+    // difference no longer reaches the user from the UI: every controller's Delete looks the uid up on
+    // the active profile first and answers 404 (#889), which each controller's delete-not-found test
+    // pins. What is left -- a uid the scheduler moved between the read and the delete -- is reported as
+    // already gone, as v1 reported a uid it could not find.
 
     private const string RuleNotOnThisProfile = """
         {"title":"Not Found","status":404,"detail":"pokemon rule 36486 not found for this human"}
         """;
 
+    private const string HumanNotFound = """
+        {"title":"Not Found","status":404,"detail":"human not found"}
+        """;
+
     [Fact]
-    public async Task ADeleteGoesToV2OnAServerThatCarriesIt()
+    public async Task ADeleteSendsOnlyItsV2Request()
     {
         var handler = ScriptedHandler.Ok("""{"deleted":[{"uid":36486,"pokemon_id":25}]}""");
         var sut = CreateSut(handler, version: "5.4.0");
@@ -558,70 +567,87 @@ public class PoracleTrackingProxyV2Tests
 
         var request = Assert.Single(handler.Requests);
         Assert.Equal(HttpMethod.Delete, request.Method);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/tracking/pokemon/36486?silent=true", request.Url);
+    }
+
+    [Theory]
+    [InlineData("5.1.0")]
+    [InlineData(null)]
+    public async Task ADeleteIsNotGatedOnTheReportedVersion(string? version)
+    {
+        // The version used to decide between the surfaces. There is only one surface now, and a server
+        // that lacks it says so with a plaintext 404 (below), not with a version number.
+        var handler = ScriptedHandler.Ok("""{"deleted":[{"uid":36486}]}""");
+        var sut = CreateSut(handler, version: version);
+
+        await sut.DeleteByUidAsync("pokemon", "user1", 36486);
+
         Assert.Equal(
             $"{ApiAddress}/api/v2/humans/user1/tracking/pokemon/36486?silent=true",
-            request.Url);
+            Assert.Single(handler.Requests).Url);
     }
 
     [Fact]
-    public async Task ADeleteForARuleOnAnotherProfileGoesToV1RatherThanBeingCalledAlreadyGone()
+    public async Task ADeleteOfARuleThatIsNotThereIsAlreadyGoneAndNeverReachesV1()
     {
-        // The regression this whole path is shaped around. PoracleNG's active-hours scheduler can move a
-        // user between profiles with no involvement from here -- which is why /api/auth/me resyncs the JWT
-        // at all -- so a uid rendered on a card can outlive the profile it belongs to. v2 refuses it and
-        // the 404 handler below would read that as "already deleted": the card would vanish and the row
-        // would survive. v1 deletes it whatever profile it sits on, so v1 is what answers.
-        var handler = new ScriptedHandler(
-            new Reply(HttpStatusCode.NotFound, RuleNotOnThisProfile, "application/problem+json"),
-            new Reply(HttpStatusCode.OK, """{"message":""}"""));
-        var sut = CreateSut(handler, version: "5.4.0");
+        var handler = ScriptedHandler.Problem(HttpStatusCode.NotFound, RuleNotOnThisProfile);
+        var logger = new CapturingLogger();
+        var sut = CreateSut(handler, version: "5.4.0", logger: logger);
 
         await sut.DeleteByUidAsync("pokemon", "user1", 36486);
 
-        Assert.Equal(2, handler.Requests.Count);
-        Assert.Equal(
-            $"{ApiAddress}/api/tracking/pokemon/user1/byUid/36486?silent=true",
-            handler.Requests[1].Url);
+        Assert.Single(handler.Requests);
+        Assert.Contains(logger.Entries, e => e.Message.Contains("36486", StringComparison.Ordinal));
     }
 
     [Fact]
-    public async Task ADeleteFallsBackToV1WhenTheV2RouteIsAbsent()
+    public async Task ADeleteAgainstAGoneAccountIsReportedAsGone()
     {
-        var handler = new ScriptedHandler(
-            new Reply(HttpStatusCode.NotFound, "404 page not found", "text/plain"),
-            new Reply(HttpStatusCode.OK, """{"message":""}"""));
+        // Swallowing this as "already gone" would leave a dead session looking alive (#595).
+        var handler = ScriptedHandler.Problem(HttpStatusCode.NotFound, HumanNotFound);
         var sut = CreateSut(handler, version: "5.4.0");
 
-        await sut.DeleteByUidAsync("pokemon", "user1", 36486);
-
-        Assert.Equal(2, handler.Requests.Count);
-        Assert.Equal(
-            $"{ApiAddress}/api/tracking/pokemon/user1/byUid/36486?silent=true",
-            handler.Requests[1].Url);
-    }
-
-    [Fact]
-    public async Task ADeleteAgainstAGoneAccountIsReportedRatherThanRetriedOnV1()
-    {
-        // Retrying this one on v1 would turn a dead session into a 500 on the pages #595 fixed.
-        var handler = ScriptedHandler.Problem(
-            HttpStatusCode.NotFound,
-            """{"title":"Not Found","status":404,"detail":"human not found"}""");
-        var sut = CreateSut(handler, version: "5.4.0");
-
-        await Assert.ThrowsAsync<AccountGoneException>(
-            () => sut.DeleteByUidAsync("pokemon", "user1", 36486));
+        await Assert.ThrowsAsync<AccountGoneException>(() => sut.DeleteByUidAsync("pokemon", "user1", 36486));
 
         Assert.Single(handler.Requests);
     }
 
     [Fact]
-    public async Task AnInvasionDeleteUsesV2ThoughAnInvasionEditDoesNot()
+    public async Task ADeleteOnAServerWithoutTheRouteIsUnsupported()
     {
-        // The legitimate-case half of the gate. Invasion is held off the v2 writes because v2 has no
-        // grunt_type to write back into, but a delete names only the uid -- so gating deletes on the
-        // translator, as the write path does, would exclude a type for a reason that does not apply.
-        var handler = ScriptedHandler.Ok("""{"deleted":[{"uid":412}]}""");
+        var handler = new ScriptedHandler(new Reply(HttpStatusCode.NotFound, "404 page not found", "text/plain"));
+        var sut = CreateSut(handler, version: "5.4.0");
+
+        await Assert.ThrowsAsync<PoracleUnsupportedException>(() => sut.DeleteByUidAsync("pokemon", "user1", 36486));
+
+        Assert.Single(handler.Requests);
+    }
+
+    [Fact]
+    public async Task ADeleteTheServerFailsIsAFailure()
+    {
+        var handler = ScriptedHandler.Problem(
+            HttpStatusCode.InternalServerError, """{"title":"Internal Server Error","status":500,"detail":"database error"}""");
+        var sut = CreateSut(handler, version: "5.4.0");
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => sut.DeleteByUidAsync("pokemon", "user1", 36486));
+    }
+
+    // ---- invasion deletes reach the Pokestop events the invasion read folds in --------------------
+    //
+    // The invasion read carries the incident rules (kecleon, gold-stop, showcase) as v1 did, so a uid
+    // handed to an invasion delete may be an event. v2's invasion routes filter event rows out
+    // (isEventGruntType in v2_incident.go): the single form 404s and the bulk form skips them. The proxy
+    // therefore asks incident for whatever invasion did not take, so no caller has to know.
+
+    private const string InvasionRuleNotFound = """
+        {"title":"Not Found","status":404,"detail":"invasion rule 412 not found for this human"}
+        """;
+
+    [Fact]
+    public async Task AnInvasionDeleteOfAGruntUsesOnlyTheInvasionRoute()
+    {
+        var handler = ScriptedHandler.Ok("""{"deleted":[{"uid":412,"grunt_type":"water"}]}""");
         var sut = CreateSut(handler, version: "5.4.0");
 
         await sut.DeleteByUidAsync("invasion", "user1", 412);
@@ -631,26 +657,67 @@ public class PoracleTrackingProxyV2Tests
             Assert.Single(handler.Requests).Url);
     }
 
-    [Theory]
-    [InlineData("5.1.0", "auto")]
-    [InlineData(null, "auto")]
-    public async Task ADeleteStaysOnV1WhereItAlwaysWas(string? version, string setting)
+    [Fact]
+    public async Task AnInvasionDeleteOfAPokestopEventIsDeletedAsAnIncident()
     {
-        var handler = ScriptedHandler.Ok("""{"message":""}""");
-        var sut = CreateSut(handler, version: version, trackingApiVersion: setting);
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.NotFound, InvasionRuleNotFound, "application/problem+json"),
+            new Reply(HttpStatusCode.OK, """{"deleted":[{"uid":412,"display_type":8}]}"""));
+        var sut = CreateSut(handler, version: "5.4.0");
 
-        await sut.DeleteByUidAsync("pokemon", "user1", 36486);
+        await sut.DeleteByUidAsync("invasion", "user1", 412);
 
-        Assert.Equal(
-            $"{ApiAddress}/api/tracking/pokemon/user1/byUid/36486?silent=true",
-            Assert.Single(handler.Requests).Url);
+        Assert.Equal(2, handler.Requests.Count);
+        Assert.Equal(HttpMethod.Delete, handler.Requests[1].Method);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/tracking/incident/412?silent=true", handler.Requests[1].Url);
     }
 
     [Fact]
-    public async Task ABulkDeleteSendsTheUidsInTheQueryAndAsksForSilence()
+    public async Task AnInvasionDeleteOfAUidNeitherRouteHoldsIsAlreadyGone()
     {
-        // v2 takes the list as ?uid=1,2,3 where v1 takes a JSON array body. silent matters as much here as
-        // on the single form: v2PushRemoved writes one "Removed:" line per row into a single DM (#848).
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.NotFound, InvasionRuleNotFound, "application/problem+json"),
+            new Reply(
+                HttpStatusCode.NotFound,
+                """{"title":"Not Found","status":404,"detail":"incident rule 412 not found for this human"}""",
+                "application/problem+json"));
+        var sut = CreateSut(handler, version: "5.4.0");
+
+        await sut.DeleteByUidAsync("invasion", "user1", 412);
+
+        Assert.Equal(2, handler.Requests.Count);
+    }
+
+    [Fact]
+    public async Task AnInvasionDeleteAgainstAGoneAccountIsNotRetriedAsAnIncident()
+    {
+        var handler = ScriptedHandler.Problem(HttpStatusCode.NotFound, HumanNotFound);
+        var sut = CreateSut(handler, version: "5.4.0");
+
+        await Assert.ThrowsAsync<AccountGoneException>(() => sut.DeleteByUidAsync("invasion", "user1", 412));
+
+        Assert.Single(handler.Requests);
+    }
+
+    [Fact]
+    public async Task ARuleNotFoundOnAnotherTypeIsNotRetriedAsAnIncident()
+    {
+        // The retry is invasion's alone: only invasion's read folds the events in.
+        var handler = ScriptedHandler.Problem(HttpStatusCode.NotFound, RuleNotOnThisProfile);
+        var sut = CreateSut(handler, version: "5.4.0");
+
+        await sut.DeleteByUidAsync("pokemon", "user1", 36486);
+
+        Assert.Single(handler.Requests);
+    }
+
+    // ---- bulk deletes ----------------------------------------------------------------------------
+
+    [Fact]
+    public async Task ABulkDeleteSendsTheUidsInTheBodyAndAsksForSilence()
+    {
+        // silent matters as much here as on the single form: v2PushRemoved writes one "Removed:" line per
+        // row into a single DM (#848).
         var handler = ScriptedHandler.Ok("""{"deleted":[{"uid":1},{"uid":2},{"uid":3}]}""");
         var sut = CreateSut(handler, version: "5.4.0");
 
@@ -658,75 +725,71 @@ public class PoracleTrackingProxyV2Tests
 
         var request = Assert.Single(handler.Requests);
         Assert.Equal(HttpMethod.Delete, request.Method);
-        Assert.Equal(
-            $"{ApiAddress}/api/v2/humans/user1/tracking/pokemon?uid=1,2,3&silent=true",
-            request.Url);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/tracking/pokemon?silent=true", request.Url);
+        Assert.Equal("""{"uids":[1,2,3]}""", request.Body);
     }
 
     [Fact]
-    public async Task ABulkDeleteThatV2OnlyPartlyTookGoesToV1ForTheWholeSet()
+    public async Task ABulkDeleteFarTooLongForAQueryStringIsStillOneV2Request()
     {
-        // v2 drops a uid outside the active profile silently and still answers 200, so the length of
-        // {deleted} is the only evidence it did less than was asked. v1's delete is idempotent, so
-        // repeating the ones v2 did take costs a round trip and changes nothing.
-        var handler = new ScriptedHandler(
-            new Reply(HttpStatusCode.OK, """{"deleted":[{"uid":1}]}"""),
-            new Reply(HttpStatusCode.OK, """{"message":""}"""));
-        var sut = CreateSut(handler, version: "5.4.0");
-
-        await sut.BulkDeleteByUidsAsync("pokemon", "user1", [1, 2, 3]);
-
-        Assert.Equal(2, handler.Requests.Count);
-        Assert.Equal($"{ApiAddress}/api/tracking/pokemon/user1/delete?silent=true", handler.Requests[1].Url);
-        Assert.Equal("[1,2,3]", handler.Requests[1].Body);
-    }
-
-    [Fact]
-    public async Task ABulkDeleteWhoseAnswerCannotBeReadGoesToV1()
-    {
-        // An unreadable 200 is not evidence that the delete happened.
-        var handler = new ScriptedHandler(
-            new Reply(HttpStatusCode.OK, "not json at all"),
-            new Reply(HttpStatusCode.OK, """{"message":""}"""));
-        var sut = CreateSut(handler, version: "5.4.0");
-
-        await sut.BulkDeleteByUidsAsync("pokemon", "user1", [1, 2]);
-
-        Assert.Equal(2, handler.Requests.Count);
-        Assert.Equal(HttpMethod.Post, handler.Requests[1].Method);
-    }
-
-    [Fact]
-    public async Task ABulkDeleteTooLongForAQueryStringStaysOnV1()
-    {
-        // "Delete all alarms" on a heavy account reaches several hundred uids, and v2 has nowhere to put
-        // them but the URL. v1's body has no such ceiling, so the long case simply stays where it was.
-        var handler = ScriptedHandler.Ok("""{"message":""}""");
-        var sut = CreateSut(handler, version: "5.4.0");
-
-        await sut.BulkDeleteByUidsAsync("pokemon", "user1", Enumerable.Range(100000, 400));
-
-        var request = Assert.Single(handler.Requests);
-        Assert.Equal(HttpMethod.Post, request.Method);
-        Assert.Equal($"{ApiAddress}/api/tracking/pokemon/user1/delete?silent=true", request.Url);
-    }
-
-    [Fact]
-    public async Task ABulkDeleteShortEnoughForAQueryStringUsesV2()
-    {
-        // The other half of the length rule: a bound that never lets anything through is not a bound.
-        var uids = Enumerable.Range(100000, 100).ToList();
+        // "Delete all alarms" on a heavy account. The uids travel in the body, so there is no length at
+        // which they have to go anywhere else: 500 six-digit uids render to 3,499 characters.
+        var uids = Enumerable.Range(100000, 500).ToList();
+        Assert.True(string.Join(',', uids).Length > 3000);
         var deleted = string.Join(',', uids.Select(u => $"{{\"uid\":{u}}}"));
         var handler = ScriptedHandler.Ok($"{{\"deleted\":[{deleted}]}}");
         var sut = CreateSut(handler, version: "5.4.0");
 
         await sut.BulkDeleteByUidsAsync("pokemon", "user1", uids);
 
-        Assert.Equal(HttpMethod.Delete, Assert.Single(handler.Requests).Method);
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal(HttpMethod.Delete, request.Method);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/tracking/pokemon?silent=true", request.Url);
+        using var body = JsonDocument.Parse(request.Body!);
+        Assert.Equal(uids, body.RootElement.GetProperty("uids").EnumerateArray().Select(e => e.GetInt32()));
     }
 
     [Fact]
-    public async Task ABulkDeleteOfNothingStillAsksTheServerNothing()
+    public async Task ABulkDeleteThatV2OnlyPartlyTookLogsWhatItLeftAndDoesNotCallV1()
+    {
+        // v2 skips a uid it does not hold (gone already, or on another profile) and still answers 200.
+        // That is an answer, not a fault, so it is logged rather than retried anywhere.
+        var handler = ScriptedHandler.Ok("""{"deleted":[{"uid":1}]}""");
+        var logger = new CapturingLogger();
+        var sut = CreateSut(handler, version: "5.4.0", logger: logger);
+
+        await sut.BulkDeleteByUidsAsync("pokemon", "user1", [1, 2, 3]);
+
+        Assert.Single(handler.Requests);
+        var entry = Assert.Single(logger.Entries, e => e.Level == LogLevel.Information);
+        Assert.Contains("2, 3", entry.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ABulkDeleteThatTookEverythingLogsNothing()
+    {
+        var handler = ScriptedHandler.Ok("""{"deleted":[{"uid":1},{"uid":2}]}""");
+        var logger = new CapturingLogger();
+        var sut = CreateSut(handler, version: "5.4.0", logger: logger);
+
+        await sut.BulkDeleteByUidsAsync("pokemon", "user1", [1, 2]);
+
+        Assert.DoesNotContain(logger.Entries, e => e.Level >= LogLevel.Information);
+    }
+
+    [Fact]
+    public async Task ABulkDeleteWhoseAnswerCannotBeReadDoesNotFallBackToV1()
+    {
+        var handler = ScriptedHandler.Ok("not json at all");
+        var sut = CreateSut(handler, version: "5.4.0");
+
+        await sut.BulkDeleteByUidsAsync("pokemon", "user1", [1, 2]);
+
+        Assert.Single(handler.Requests);
+    }
+
+    [Fact]
+    public async Task ABulkDeleteOfNothingAsksTheServerNothing()
     {
         var handler = ScriptedHandler.Ok("""{"deleted":[]}""");
         var sut = CreateSut(handler, version: "5.4.0");
@@ -735,6 +798,239 @@ public class PoracleTrackingProxyV2Tests
 
         Assert.Empty(handler.Requests);
     }
+
+    [Fact]
+    public async Task ABulkDeleteAgainstAGoneAccountIsReportedAsGone()
+    {
+        var handler = ScriptedHandler.Problem(HttpStatusCode.NotFound, HumanNotFound);
+        var sut = CreateSut(handler, version: "5.4.0");
+
+        await Assert.ThrowsAsync<AccountGoneException>(() => sut.BulkDeleteByUidsAsync("pokemon", "user1", [1]));
+
+        Assert.Single(handler.Requests);
+    }
+
+    [Fact]
+    public async Task ABulkDeleteOnAServerWithoutTheRouteIsUnsupported()
+    {
+        var handler = new ScriptedHandler(new Reply(HttpStatusCode.NotFound, "404 page not found", "text/plain"));
+        var sut = CreateSut(handler, version: "5.4.0");
+
+        await Assert.ThrowsAsync<PoracleUnsupportedException>(() => sut.BulkDeleteByUidsAsync("pokemon", "user1", [1]));
+
+        Assert.Single(handler.Requests);
+    }
+
+    [Fact]
+    public async Task ABulkDeleteTheServerFailsIsAFailure()
+    {
+        var handler = ScriptedHandler.Problem(
+            HttpStatusCode.InternalServerError, """{"title":"Internal Server Error","status":500,"detail":"database error"}""");
+        var sut = CreateSut(handler, version: "5.4.0");
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => sut.BulkDeleteByUidsAsync("pokemon", "user1", [1]));
+    }
+
+    [Fact]
+    public async Task AnInvasionBulkDeleteOfGruntsOnlyNeverAsksIncident()
+    {
+        var handler = ScriptedHandler.Ok("""{"deleted":[{"uid":10},{"uid":11}]}""");
+        var sut = CreateSut(handler, version: "5.4.0");
+
+        await sut.BulkDeleteByUidsAsync("invasion", "user1", [10, 11]);
+
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/tracking/invasion?silent=true", request.Url);
+    }
+
+    [Fact]
+    public async Task AnInvasionBulkDeleteOfMixedRulesSendsTheEventsToIncident()
+    {
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.OK, """{"deleted":[{"uid":10},{"uid":12}]}"""),
+            new Reply(HttpStatusCode.OK, """{"deleted":[{"uid":11},{"uid":13}]}"""));
+        var logger = new CapturingLogger();
+        var sut = CreateSut(handler, version: "5.4.0", logger: logger);
+
+        await sut.BulkDeleteByUidsAsync("invasion", "user1", [10, 11, 12, 13]);
+
+        Assert.Equal(2, handler.Requests.Count);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/tracking/invasion?silent=true", handler.Requests[0].Url);
+        Assert.Equal("""{"uids":[10,11,12,13]}""", handler.Requests[0].Body);
+        Assert.Equal(HttpMethod.Delete, handler.Requests[1].Method);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/tracking/incident?silent=true", handler.Requests[1].Url);
+        Assert.Equal("""{"uids":[11,13]}""", handler.Requests[1].Body);
+        Assert.DoesNotContain(logger.Entries, e => e.Level >= LogLevel.Information);
+    }
+
+    [Fact]
+    public async Task AnInvasionBulkDeleteOfEventsOnlySendsThemAllToIncident()
+    {
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.OK, """{"deleted":null}"""),
+            new Reply(HttpStatusCode.OK, """{"deleted":[{"uid":11}]}"""));
+        var sut = CreateSut(handler, version: "5.4.0");
+
+        await sut.BulkDeleteByUidsAsync("invasion", "user1", [11]);
+
+        Assert.Equal("""{"uids":[11]}""", handler.Requests[1].Body);
+    }
+
+    [Fact]
+    public async Task AnInvasionBulkDeleteLogsWhatNeitherRouteTook()
+    {
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.OK, """{"deleted":[{"uid":10}]}"""),
+            new Reply(HttpStatusCode.OK, """{"deleted":[]}"""));
+        var logger = new CapturingLogger();
+        var sut = CreateSut(handler, version: "5.4.0", logger: logger);
+
+        await sut.BulkDeleteByUidsAsync("invasion", "user1", [10, 99]);
+
+        var entry = Assert.Single(logger.Entries, e => e.Level == LogLevel.Information);
+        Assert.Contains("99", entry.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task DeletingEveryAlarmOnAnAccountRemovesItsPokestopEventsToo()
+    {
+        // HumanService reads each type and bulk-deletes what it read. The invasion read hands it the event
+        // rules as well; before the incident retry they would have been skipped by v2 and survived the
+        // account's deletion.
+        var handler = new ScriptedHandler()
+        {
+            Route = request =>
+            {
+                var path = request.Url;
+                if (request.Method == HttpMethod.Get)
+                {
+                    if (path.Contains("/tracking/invasion?", StringComparison.Ordinal))
+                    {
+                        return """{"rules":[{"uid":10,"grunt_type":"water","gender":null,"distance":0,"clean":false}]}""";
+                    }
+
+                    if (path.Contains("/tracking/incident?", StringComparison.Ordinal))
+                    {
+                        return """{"rules":[{"uid":11,"display_type":8,"distance":0,"clean":false}]}""";
+                    }
+
+                    return """{"rules":[]}""";
+                }
+
+                if (path.Contains("/tracking/invasion?", StringComparison.Ordinal))
+                {
+                    return """{"deleted":[{"uid":10}]}""";
+                }
+
+                if (path.Contains("/tracking/incident?", StringComparison.Ordinal))
+                {
+                    return """{"deleted":[{"uid":11}]}""";
+                }
+
+                throw new InvalidOperationException($"unexpected {request.Method} {path}");
+            },
+        };
+
+        var proxy = CreateSut(handler, version: "5.4.0");
+        var humans = new HumanService(Mock.Of<IPoracleHumanProxy>(), proxy);
+
+        var count = await humans.DeleteAllAlarmsByUserAsync("user1");
+
+        Assert.Equal(2, count);
+        var deletes = handler.Requests.Where(r => r.Method == HttpMethod.Delete).ToList();
+        Assert.Equal(2, deletes.Count);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/tracking/invasion?silent=true", deletes[0].Url);
+        Assert.Equal("""{"uids":[10,11]}""", deletes[0].Body);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/tracking/incident?silent=true", deletes[1].Url);
+        Assert.Equal("""{"uids":[11]}""", deletes[1].Body);
+    }
+
+    // ---- carrying what the read kept but this build does not model -----------------------------------
+    //
+    // The v2 read copies an unmodelled property through verbatim (the PGAN fork's personal_shiny and
+    // personal_background, 1,111 production rules), TrackingFieldPreserver carries it onto the edit, and
+    // the write must then send it back. It may, exactly when the server's own /openapi.json declares that
+    // property on the type's V2*Rule: every rule is additionalProperties:false, so a property the server
+    // does not declare is still a row v2 cannot be told faithfully.
+
+    private const string PersonalShinyRead = """
+        {"rules":[{"uid":36486,"pokemon_id":25,"min_iv":90,"distance":0,"clean":true,"template":"1",
+                   "personal_shiny":true,"description":"**Pikachu**"}]}
+        """;
+
+    /// <summary>An edit as MonsterService builds it: the modelled fields only.</summary>
+    private const string PersonalShinyEdit = """
+        {"uid":36486,"id":"user1","pokemon_id":25,"min_iv":95,"distance":0,"clean":1,"template":"1"}
+        """;
+
+    [Fact]
+    public async Task AnEditCarriesAPersonalShinyTheServerDeclaresOntoTheV2Put()
+    {
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.OK, PersonalShinyRead),
+            new Reply(HttpStatusCode.OK, """{"updated":[{"uid":36486}]}"""))
+        {
+            OpenApi = OpenApiDeclaring("V2PokemonRule", "personal_shiny", "boolean"),
+        };
+        var sut = CreateSut(handler, version: "5.4.0");
+
+        var body = await TrackingFieldPreserver.PreserveStoredFieldsAsync(sut, "pokemon", "user1", 36486, Row(PersonalShinyEdit));
+        var result = await sut.TryReplaceV2Async("pokemon", "user1", 36486, body);
+
+        Assert.NotNull(result);
+        Assert.True(result.Value.UsedV2);
+        var put = handler.Requests[^1];
+        Assert.Equal(HttpMethod.Put, put.Method);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/tracking/pokemon/36486?silent=true", put.Url);
+        using var sent = JsonDocument.Parse(put.Body!);
+        Assert.True(sent.RootElement.GetProperty("personal_shiny").GetBoolean());
+        Assert.Equal(95, sent.RootElement.GetProperty("min_iv").GetInt32());
+    }
+
+    [Fact]
+    public async Task AnUnmodelledPropertyTheServerDoesNotDeclareStillKeepsTheRowOffV2()
+    {
+        // The other half: the plain 5.4.0 schema has no personal_shiny, so sending it would be a 422. The
+        // row declines exactly as it did before the carry-through existed.
+        var handler = new ScriptedHandler(new Reply(HttpStatusCode.OK, PersonalShinyRead))
+        {
+            OpenApi = File.ReadAllText(Fixture("poracleng-openapi-5.4.0.json")),
+        };
+        var sut = CreateSut(handler, version: "5.4.0");
+
+        var body = await TrackingFieldPreserver.PreserveStoredFieldsAsync(sut, "pokemon", "user1", 36486, Row(PersonalShinyEdit));
+        var result = await sut.TryReplaceV2Async("pokemon", "user1", 36486, body);
+
+        Assert.Null(result);
+        Assert.DoesNotContain(handler.Requests, r => r.Method == HttpMethod.Put);
+    }
+
+    [Fact]
+    public async Task ADeclaredPropertyOnAnotherTypeDoesNotLetItThrough()
+    {
+        // Declared per rule schema: personal_shiny on V2RaidRule says nothing about V2PokemonRule.
+        var handler = new ScriptedHandler(new Reply(HttpStatusCode.OK, PersonalShinyRead))
+        {
+            OpenApi = OpenApiDeclaring("V2RaidRule", "personal_shiny", "boolean"),
+        };
+        var sut = CreateSut(handler, version: "5.4.0");
+
+        var body = await TrackingFieldPreserver.PreserveStoredFieldsAsync(sut, "pokemon", "user1", 36486, Row(PersonalShinyEdit));
+
+        Assert.Null(await sut.TryReplaceV2Async("pokemon", "user1", 36486, body));
+    }
+
+    /// <summary>The real 5.4.0 schema with one extra property declared on one rule.</summary>
+    private static string OpenApiDeclaring(string schema, string property, string type)
+    {
+        var document = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Fixture("poracleng-openapi-5.4.0.json")))!;
+        document["components"]!["schemas"]![schema]!["properties"]![property] =
+            new System.Text.Json.Nodes.JsonObject { ["type"] = type };
+        return document.ToJsonString();
+    }
+
+    private static string Fixture(string name, [System.Runtime.CompilerServices.CallerFilePath] string? here = null) =>
+        Path.Combine(Path.GetDirectoryName(here)!, "..", "Fixtures", name);
 
     // ---- invasion (#841) ------------------------------------------------------------------------
     //
@@ -939,7 +1235,8 @@ public class PoracleTrackingProxyV2Tests
         string trackingApiVersion = "auto",
         IMemoryCache? cache = null,
         PoracleV2Capabilities? capabilities = null,
-        string[]? gruntNames = null)
+        string[]? gruntNames = null,
+        ILogger<PoracleTrackingProxy>? logger = null)
     {
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -964,7 +1261,7 @@ public class PoracleTrackingProxyV2Tests
             PoracleTrackingProxyTests.V2Schema(capabilities),
             PoracleTrackingProxyTests.GruntNames(gruntNames ?? []),
             cache ?? new MemoryCache(new MemoryCacheOptions()),
-            Mock.Of<ILogger<PoracleTrackingProxy>>());
+            logger ?? Mock.Of<ILogger<PoracleTrackingProxy>>());
     }
 
     private sealed record Reply(HttpStatusCode Status, string Body, string ContentType = "application/json");
@@ -986,6 +1283,9 @@ public class PoracleTrackingProxyV2Tests
         /// </summary>
         public string OpenApi { get; init; } = @"{""components"":{""schemas"":{}}}";
 
+        /// <summary>When set, answers every request 200 with whatever this returns, instead of the script.</summary>
+        public Func<Sent, string>? Route { get; init; }
+
         public static ScriptedHandler Ok(string body) => new(new Reply(HttpStatusCode.OK, body));
 
         public static ScriptedHandler Problem(HttpStatusCode status, string body) =>
@@ -1006,7 +1306,16 @@ public class PoracleTrackingProxyV2Tests
                 ? null
                 : await request.Content.ReadAsStringAsync(cancellationToken);
 
-            this.Requests.Add(new Sent(request.Method, request.RequestUri.ToString(), body));
+            var sent = new Sent(request.Method, request.RequestUri.ToString(), body);
+            this.Requests.Add(sent);
+
+            if (this.Route is { } route)
+            {
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(route(sent), Encoding.UTF8, "application/json"),
+                };
+            }
 
             var reply = replies[Math.Min(this._next++, replies.Length - 1)];
             return new HttpResponseMessage(reply.Status)
@@ -1014,5 +1323,19 @@ public class PoracleTrackingProxyV2Tests
                 Content = new StringContent(reply.Body, Encoding.UTF8, reply.ContentType),
             };
         }
+    }
+
+    /// <summary>Records every log line the proxy writes, at every level.</summary>
+    private sealed class CapturingLogger : ILogger<PoracleTrackingProxy>
+    {
+        public List<(LogLevel Level, string Message)> Entries { get; } = [];
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) =>
+            this.Entries.Add((logLevel, formatter(state, exception)));
     }
 }

@@ -45,7 +45,9 @@ namespace Pgan.PoracleWebNet.Core.Services;
 /// faithfully — a property it does not know, an enum outside its range, an egg without a level — makes it
 /// answer false, and the caller sends the row to the frozen v1 surface instead. Refusing outright would
 /// mean a PoracleNG newer than this translator broke every edit; dropping the field silently would be #730
-/// all over again. Falling back does neither.
+/// all over again. Falling back does neither. The one exception is a property the target server's own
+/// <c>/openapi.json</c> declares on the rule: that is sent verbatim, so a field the v2 read copied through
+/// (the PGAN fork's <c>personal_shiny</c>) survives the edit that follows.
 /// </para>
 /// </remarks>
 internal static class TrackingV2Translator
@@ -525,6 +527,27 @@ internal static class TrackingV2Translator
         JsonElement row,
         IReadOnlyDictionary<string, Bound>? serverBounds,
         out JsonElement translated,
+        out string? unsupported) =>
+        TryTranslate(type, row, serverBounds, serverDeclared: null, out translated, out unsupported);
+
+    /// <summary>
+    /// <see cref="TryTranslate(string, JsonElement, IReadOnlyDictionary{string, Bound}?, out JsonElement, out string?)"/>,
+    /// carrying through any property this build does not model that the server's own <c>V2*Rule</c> for
+    /// <paramref name="type"/> declares.
+    /// </summary>
+    /// <param name="serverDeclared">
+    /// Every property name the target server's <c>/openapi.json</c> declares on this type's rule schema, or
+    /// null when that could not be read. A property outside the field table is sent verbatim only when it is
+    /// in this set: that is how the PGAN fork's <c>personal_shiny</c>/<c>personal_background</c>, which the
+    /// v2 read copies through, survive an edit. Undeclared, it would be a 422 under
+    /// <c>additionalProperties: false</c>, so the row still declines.
+    /// </param>
+    public static bool TryTranslate(
+        string type,
+        JsonElement row,
+        IReadOnlyDictionary<string, Bound>? serverBounds,
+        IReadOnlySet<string>? serverDeclared,
+        out JsonElement translated,
         out string? unsupported)
     {
         translated = default;
@@ -559,7 +582,7 @@ internal static class TrackingV2Translator
                     continue;
                 }
 
-                if (!TryWriteProperty(writer, spec, serverBounds, property, out unsupported))
+                if (!TryWriteProperty(writer, spec, serverBounds, serverDeclared, property, out unsupported))
                 {
                     return false;
                 }
@@ -599,6 +622,7 @@ internal static class TrackingV2Translator
         Utf8JsonWriter writer,
         TypeSpec spec,
         IReadOnlyDictionary<string, Bound>? serverBounds,
+        IReadOnlySet<string>? serverDeclared,
         JsonProperty property,
         out string? unsupported)
     {
@@ -654,8 +678,18 @@ internal static class TrackingV2Translator
 
         if (!spec.Integers.Contains(property.Name))
         {
-            // A field this build has never heard of. Newer PoracleNG, older PoracleWeb — send the
-            // row to v1, which takes anything, rather than dropping the user's value.
+            if (serverDeclared is not null && serverDeclared.Contains(property.Name))
+            {
+                // Not modelled here, but this server's own rule schema declares it: the read copied it
+                // through in the server's shape, so it goes back the same way. The PGAN fork's
+                // personal_shiny/personal_background, and whatever a newer PoracleNG adds.
+                property.WriteTo(writer);
+                return true;
+            }
+
+            // A field this build has never heard of and the server does not declare. Newer PoracleNG,
+            // older PoracleWeb — send the row to v1, which takes anything, rather than dropping the
+            // user's value.
             unsupported = $"unknown property {property.Name}";
             return false;
         }
