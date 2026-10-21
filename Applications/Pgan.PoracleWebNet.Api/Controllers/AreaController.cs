@@ -20,11 +20,13 @@ public partial class AreaController(
     IPoracleHumanProxy humanProxy,
     IPoracleApiProxy poracleApiProxy,
     IUserGeofenceService userGeofenceService,
+    IUserAreaWriter areaWriter,
     ILogger<AreaController> logger) : BaseApiController
 {
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
     private readonly IUserGeofenceService _userGeofenceService = userGeofenceService;
+    private readonly IUserAreaWriter _areaWriter = areaWriter;
     private readonly ILogger<AreaController> _logger = logger;
 
     [HttpGet]
@@ -138,23 +140,10 @@ public partial class AreaController(
             ? request.Areas.Select(a => a.ToLowerInvariant()).ToArray()
             : [];
 
-        // PoracleNG handles the dual-write to humans.area + profiles.area atomically.
-        // It also silently filters out any area name whose fence has userSelectable=false,
-        // which includes every user-drawn custom geofence (PoracleWeb's feed serves them
-        // as userSelectable=false to hide them from the Poracle bot's area picker).
-        await this._humanProxy.SetAreasAsync(this.UserId, normalizedAreas);
-
-        // HACK: trusted-set-areas (see docs/poracleng-enhancement-requests.md)
-        // Re-add any user-owned custom geofences that were in the submitted list by writing
-        // directly to humans.area + active profiles.area — bypassing the setAreas filter.
-        // Without this merge, saving on the Areas page would strip every user geofence the
-        // user has activated via the Geofences page. Remove this call once PoracleNG ships
-        // a trusted setAreas variant that skips the userSelectable intersection.
-        //
-        // The returned list is always a subset of `normalizedAreas` (it's filtered down to the
-        // user-owned subset), so the effective response is just `normalizedAreas` — no Union
-        // needed. The discard is intentional.
-        _ = await this._userGeofenceService.PreserveOwnedAreasInHumanAsync(this.UserId, normalizedAreas);
+        // One trusted write for the whole list. PoracleWeb.NET authorises the names first (a trusted write
+        // skips PoracleNG's own filter), so a fence the user may not have is refused with a 400 naming it
+        // by AreaNotPermittedExceptionFilter, and a name PoracleNG has no fence for is dropped, not an error.
+        var saved = await this._areaWriter.SaveSelectionAsync(this.UserId, normalizedAreas);
 
         // Read back rather than echo. PoracleNG silently drops any name whose fence is not
         // userSelectable, so returning the submitted list asserted subscriptions the user does not have
@@ -176,7 +165,7 @@ public partial class AreaController(
             return this.Ok(ParseAreaJson(PoracleAreaJson.ReadAreaListJson(stored.Value)));
         }
 
-        return this.Ok(normalizedAreas);
+        return this.Ok(saved.Stored.ToArray());
     }
 
     [HttpGet("geofence")]

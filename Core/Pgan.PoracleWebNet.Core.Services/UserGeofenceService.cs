@@ -888,51 +888,6 @@ public partial class UserGeofenceService(
 
     public async Task<List<GeofenceRegion>> GetRegionsAsync() => await this._kojiService.GetRegionsAsync();
 
-    // HACK: trusted-set-areas (see docs/poracleng-enhancement-requests.md)
-    // Re-adds user-owned geofence names, preferring PoracleNG's v2 trusted setAreas over the direct
-    // DB after PoracleNG's non-trusted v1 setAreas stripped them. AreaController.UpdateAreas could
-    // collapse to one trusted call instead of this two-step patch-up once #838 covers the case where
-    // area_security is enabled and in use for that call's own submitted admin-area names too, not just
-    // this method's narrower, already-vetted user-owned-geofence list -- a larger change than migrating
-    // this helper alone. Trust is already established via X-Poracle-Secret.
-    public async Task<IReadOnlyList<string>> PreserveOwnedAreasInHumanAsync(string humanId, IReadOnlyCollection<string> candidateAreaNames)
-    {
-        if (candidateAreaNames.Count == 0)
-        {
-            return [];
-        }
-
-        // Only write back names that the user actually owns as custom geofences.
-        var owned = await this._repository.GetByHumanIdAsync(humanId);
-        if (owned.Count == 0)
-        {
-            return [];
-        }
-
-        var ownedNames = new HashSet<string>(owned.Select(g => g.KojiName.ToLowerInvariant()));
-        var toRestore = candidateAreaNames
-            .Select(a => a.ToLowerInvariant())
-            .Where(ownedNames.Contains)
-            .Distinct()
-            .ToList();
-
-        if (toRestore.Count == 0)
-        {
-            return [];
-        }
-
-        await this.AddAreasToActiveProfileAsync(humanId, toRestore);
-
-        // Manual reload. Load-bearing on the direct-DB fallback, which skips PoracleNG's internal
-        // reloadState hook; redundant (but harmless) on the trusted path, which triggers its own. The
-        // caller (AreaController.UpdateAreas) already triggered a reload via its own setAreas call, but
-        // we need a fresh one so PoracleNG picks up the restored names too. PoracleNG's reload is
-        // debounced 500ms server-side so the back-to-back calls coalesce.
-        await this.ReloadGeofencesSafeAsync();
-
-        return toRestore;
-    }
-
     /// <summary>
     /// Statuses an admin may approve from. See the comment in <see cref="ApproveSubmissionAsync"/> for why
     /// <c>active</c> and <c>approved</c> are not among them.
