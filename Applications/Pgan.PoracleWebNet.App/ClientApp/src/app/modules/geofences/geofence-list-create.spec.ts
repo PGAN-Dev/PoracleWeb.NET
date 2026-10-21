@@ -45,7 +45,7 @@ describe('GeofenceListComponent create flow', () => {
         {
           provide: UserGeofenceService,
           useValue: {
-            createGeofence: jest.fn(() => of({ displayName: 'Park', id: 9, kojiName: 'park', status: 'active', ...created })),
+            createGeofence: jest.fn(() => of({ id: 9, displayName: 'Park', kojiName: 'park', status: 'active', ...created })),
             getCustomGeofences: () => of([]),
             getRegions: () => of([]),
           },
