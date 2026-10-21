@@ -53,7 +53,7 @@ There is an eleventh tracking type, Pokéstop Events (`incident`), and it is **n
 has no v1 route at all, so it goes through its own `IPoracleIncidentProxy` against
 `/api/v2/humans/{id}/tracking/incident`. Its rows live in the same `invasion` table as invasion rows,
 told apart only by `grunt_type` carrying an event name. PoracleNG's two v2 endpoints each filter to
-their own rows; **the v1 invasion read does not**, so `InvasionService` repeats the partition — and
+their own rows; **the invasion read the application uses does not**: the proxy folds the incident rules into the invasion list as v1 did, so `InvasionService` still partitions — and
 skips it when the Pokéstop Events page is unavailable, so those rows stay visible somewhere. See
 [Database](database.md#poraclecontext).
 
@@ -129,8 +129,8 @@ Two qualifications:
 ## The v2 write path
 
 PoracleNG 5.2.0 added a second tracking surface at `/api/v2` and left v1 frozen. **Nine of the ten v1
-tracking types send an edit through it**: `PUT /api/v2/humans/{id}/tracking/{type}/{uid}`. Reads,
-creates and both distance endpoints stay on v1 for every type.
+tracking types send an edit through it**: `PUT /api/v2/humans/{id}/tracking/{type}/{uid}`. Reads and
+deletes are v2 for every type. Creates and both distance endpoints stay on v1.
 
 Invasion writes through v2 as well, since #841, but behind a second gate the other types do not have.
 `grunt_type` — its one targeting field, and the only one PoracleWeb.NET ever holds — exists solely on a
@@ -147,8 +147,8 @@ own proxy rather than a fallback.
 enums back to integers, booleans to 0/1, the three clean booleans to the `CleanFlags` bitmask, and every
 `null` to a default from `DefaultsFor`, which follows PoracleNG's own read translation where it differs
 from ours (fort `include_empty` null is 1, raid and max battle `level` null is 9000 with a pokemon and 90
-without). A property the table doesn't know is carried through, so an upstream addition or the fork's
-`personal_shiny` isn't dropped, and an edit sends it back when the server's `/openapi.json` declares it.
+without). A property the table doesn't know is carried through, so a field PoracleNG's own `/openapi.json` declares that
+PoracleWeb.NET doesn't model (a personal-shiny flag, say) isn't dropped, and an edit sends it back.
 The whole-profile reads use the v2 snapshot; the all-profiles read adds the active profile's rules itself
 when that profile has no `profiles` row, since PoracleNG only lists profiles that have one. Pokéstop
 event rules come from `incident` and are folded into the invasion list as v1 returned them. Deletes use

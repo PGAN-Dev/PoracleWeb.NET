@@ -811,7 +811,7 @@ max battle `level` null is 9000 with a `pokemon_id` and 90 without (90 is "every
 `station_id` null stay null, fort `fort_type` is `everything`, pokemon `min_iv` is -1. Enums go back to
 ints, booleans to 0/1, `clean`/`edit`/`summary` to the `CleanFlags` bitmask, `change_types` to a JSON
 string. **A property the type's table doesn't know is carried through verbatim**, so a future upstream field
-or the fork's `personal_shiny` survives a read; an unknown enum value throws, and the proxy logs and skips
+or a field PoracleNG's own `/openapi.json` declares that PoracleWeb.NET doesn't model (a personal-shiny flag, say) survives a read; an unknown enum value throws, and the proxy logs and skips
 the one rule rather than blanking the page. The write side matches: `TryTranslate` sends such a property
 back on an edit when the server's own `/openapi.json` declares it, and declines otherwise.
 
@@ -1028,8 +1028,8 @@ Three rules follow:
   game's 2020 ceiling -- under a comment claiming it matched the add dialog's 55. 4,088 production rows.
 - **Do not tighten the `[Range]` to match the default.** `PvpRankingBest` still admits 0 because 15,383
   rules hold one and have to stay editable; refusing the value would fail an edit on a rule the user did
-  not break. Editing one does **not** repair it: the preserver re-reads the stored 0 and sends it back,
-  verified on 5.1.0, 5.2.1 and 5.3.0. PoracleNG #230 (in 5.4.0) makes the v2 read report such rows as the wildcard.
+  not break. On v1 an edit did not repair it: the preserver re-read the stored 0 and sent it back (verified on 5.1.0, 5.2.1 and 5.3.0).
+  The preserver now reads through v2, where such a row comes back as the wildcard (PoracleNG #230, in 5.4.0), so it reads as 1 and an edit repairs it.
 
 ### Minimum PoracleNG Is 5.4.0
 
