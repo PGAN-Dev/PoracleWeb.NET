@@ -143,9 +143,9 @@ public class PoracleServerProfileTests
     }
 
     [Fact]
-    public void TheMinimumIs521()
+    public void TheMinimumIs540()
     {
-        Assert.Equal(new System.Version(5, 2, 1), PoracleServerProfile.MinimumSupported);
+        Assert.Equal(new System.Version(5, 4, 0), PoracleServerProfile.MinimumSupported);
     }
 
     [Theory]
@@ -153,8 +153,10 @@ public class PoracleServerProfileTests
     [InlineData("5.2.0", true)]
     [InlineData("5.0.9", true)]
     [InlineData("4.9.9", true)]
-    [InlineData("5.2.1", false)]
-    [InlineData("5.3.0", false)]
+    [InlineData("5.2.1", true)]
+    [InlineData("5.3.0", true)]
+    [InlineData("5.4.0", false)]
+    [InlineData("5.4.1", false)]
     [InlineData("6.0.0", false)]
     public void OnlyAVersionKnownToBeOlderCountsAsTooOld(string version, bool tooOld)
     {
@@ -185,7 +187,7 @@ public class PoracleServerProfileTests
     [Fact]
     public void AnUnreachableServerIsNotSupportedWhateverItLastSaid()
     {
-        var profile = new PoracleServerProfile { Version = "5.3.0", Reachable = false };
+        var profile = new PoracleServerProfile { Version = "5.4.0", Reachable = false };
 
         Assert.False(profile.IsSupported);
         Assert.False(profile.SupportsV2Tracking);

@@ -88,7 +88,7 @@ public class AreaSaveThroughV2Tests : ControllerTestBase
                 ["Poracle:ApiSecret"] = "test-secret",
             })
             .Build(),
-        PoracleHumanProxyTests.ServerProfile("5.3.0"),
+        PoracleHumanProxyTests.ServerProfile("5.4.0"),
         PoracleHumanProxyTests.V2Schema(new PoracleV2Capabilities { Read = true, SetAreasReportsRejected = v2 }),
         PoracleHumanProxyTests.AreaSecurityPolicy(),
         new MemoryCache(new MemoryCacheOptions()),

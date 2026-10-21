@@ -12,7 +12,7 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 /// </summary>
 public class CostumeCapabilityServiceTests
 {
-    private static PoracleServerProfile Profile(string? version = "5.2.1", bool reachable = true) => new()
+    private static PoracleServerProfile Profile(string? version = "5.4.0", bool reachable = true) => new()
     {
         Version = version,
         Reachable = reachable,
@@ -30,8 +30,8 @@ public class CostumeCapabilityServiceTests
     // --- What the server can store ---
 
     [Theory]
-    [InlineData("5.2.1")]
-    [InlineData("5.3.0")]
+    [InlineData("5.4.0")]
+    [InlineData("5.4.1")]
     public async Task ASupportedServerOffersBoth(string version)
     {
         var capability = await Sut(Profile(version)).GetAsync();
@@ -126,6 +126,6 @@ public class CostumeCapabilityServiceTests
         var ex = await Assert.ThrowsAsync<AlarmValidationException>(
             () => Sut(Profile("5.1.0")).EnsureCostumeWritableAsync("raid", 85));
 
-        Assert.Contains("5.2.1", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("5.4.0", ex.Message, StringComparison.Ordinal);
     }
 }

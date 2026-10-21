@@ -72,10 +72,9 @@ public partial class PoracleCompatibilityStartupService(
         EventId = 6111,
         Level = LogLevel.Error,
         Message = "PoracleNG is {Version}, which this build of PoracleWeb.NET does not support: it needs {Minimum} or "
-            + "newer. PoracleWeb.NET will keep running, but on an older PoracleNG editing a lure or invasion alert, or "
-            + "adding a second one for a lure type or grunt already tracked, can fail with a server error; fort changes "
-            + "switched off in Poracle's config stay on offer; and quiet periods, Pokestop Events, PokeCoin quest "
-            + "rewards, costume filters and moving a saved place are hidden. Upgrade PoracleNG.")]
+            + "newer. PoracleWeb.NET will keep running, but it calls PoracleNG routes that older "
+            + "releases do not have, so alerts, profiles, quiet periods and Pokestop Events can fail with a server error "
+            + "or be hidden. Upgrade PoracleNG.")]
     private static partial void LogTooOld(ILogger logger, string version, string minimum);
 
     [LoggerMessage(

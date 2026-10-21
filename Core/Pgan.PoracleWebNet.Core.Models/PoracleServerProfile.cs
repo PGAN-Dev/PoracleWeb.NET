@@ -23,20 +23,15 @@ public sealed class PoracleServerProfile
     /// <summary>The oldest PoracleNG this build of PoracleWeb is written against.</summary>
     /// <remarks>
     /// <para>
-    /// 5.2.1 since 2026-10-20. It is the first release that reports <c>fort</c> in <c>disabledHooks</c> and
-    /// <c>availableLanguages</c> on its config, and it carries migration 8, which drops the unique keys
-    /// on <c>lures</c> and <c>invasion</c>, plus the costume columns (migrations 6 and 7), the
-    /// <c>/api/v2</c> tracking surface, mutes, Pokécoin quest rewards and the saved-place update route.
-    /// </para>
-    /// <para>
-    /// Raising it deleted the code that kept 5.1.0 working: the natural-key refusals and the
-    /// delete-and-recreate edit for lure and invasion, the reads of PoracleNG's <c>schema_migrations</c>
-    /// and <c>information_schema</c>, and the separate <c>general.disable_fort_update</c> read.
+    /// 5.4.0 since 2026-10-21. Every PoracleNG surface this build calls (the <c>/api/v2</c> tracking, human,
+    /// profile and mute routes among them) exists on that release, so code that kept older servers working
+    /// is deleted rather than gated. Before it the minimum was 5.2.1, which deleted the 5.1.0 fallbacks the
+    /// same way.
     /// </para>
     /// </remarks>
-    public static readonly System.Version MinimumSupported = new(5, 2, 1);
+    public static readonly System.Version MinimumSupported = new(5, 4, 0);
 
-    /// <summary>Version string as reported, e.g. <c>5.2.1</c>. Null when the server could not be reached.</summary>
+    /// <summary>Version string as reported, e.g. <c>5.4.0</c>. Null when the server could not be reached.</summary>
     public string? Version
     {
         get; init;
@@ -85,14 +80,14 @@ public sealed class PoracleServerProfile
     /// <para>
     /// The one rule every version-decided feature shares: costume filters, quiet periods, Pokécoin quest
     /// rewards, moving a saved place, and whether edits and deletes try <c>/api/v2</c>. Each of those
-    /// arrived by 5.2.1, so on a supported server the answer is always yes.
+    /// exists on 5.4.0, so on a supported server the answer is always yes.
     /// </para>
     /// <para>
     /// An unparseable version, or the <c>0.0.0</c> a locally built binary reports, counts as supported: a
     /// build of current source is newer than the minimum, and hiding features from it on a guess helps
     /// nobody. An unreachable server does not, so a control it would decide stays hidden until it answers
-    /// and the v2 surfaces are not tried. Known-older servers answer false, which keeps an operator who
-    /// has not upgraded yet on the paths that still work there.
+    /// and the v2 surfaces are not tried. Known-older servers answer false: this build is not written
+    /// against them, and the startup log and the admin Versions card say so.
     /// </para>
     /// </remarks>
     [JsonIgnore]
@@ -104,7 +99,7 @@ public sealed class PoracleServerProfile
     /// <remarks>
     /// <para>
     /// Every supported PoracleNG does, so this is <see cref="IsSupported"/>. The capability map cannot say:
-    /// 5.2.1 reports <c>{buttons, snapshots, autocreate, tomlDts, buttonResponseObject, derivedDtsTypes}</c>
+    /// 5.4.0 reports <c>{buttons, snapshots, autocreate, tomlDts, buttonResponseObject, derivedDtsTypes}</c>
     /// and nothing about v2.
     /// </para>
     /// <para>

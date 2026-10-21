@@ -19,9 +19,11 @@ public class QuestPokecoinCapabilityServiceTests
     private readonly Mock<IPoracleServerProfileService> _profiles = new();
 
     [Theory]
-    [InlineData("5.2.1", true)]
-    [InlineData("5.3.0", true)]
+    [InlineData("5.4.0", true)]
+    [InlineData("5.4.1", true)]
     [InlineData("6.0.0", true)]
+    [InlineData("5.3.0", false)]
+    [InlineData("5.2.1", false)]
     [InlineData("5.2.0", false)]
     [InlineData("5.1.0", false)]
     [InlineData("5.0.9", false)]
@@ -77,7 +79,7 @@ public class QuestPokecoinCapabilityServiceTests
     {
         this.Answers(new PoracleServerProfile
         {
-            Version = "5.2.1-rc1",
+            Version = "5.4.0-rc1",
             Reachable = true
         });
 

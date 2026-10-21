@@ -186,7 +186,7 @@ public class NewProfileGeographyTests : ControllerTestBase
                 ["Poracle:ApiSecret"] = "test-secret",
             })
             .Build(),
-        PoracleHumanProxyTests.ServerProfile("5.3.0"),
+        PoracleHumanProxyTests.ServerProfile("5.4.0"),
         PoracleHumanProxyTests.V2Schema(new PoracleV2Capabilities
         {
             Read = true,

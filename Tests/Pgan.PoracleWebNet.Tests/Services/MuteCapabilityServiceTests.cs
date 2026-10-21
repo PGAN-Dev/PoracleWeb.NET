@@ -30,16 +30,17 @@ public class MuteCapabilityServiceTests
     };
 
     [Theory]
-    [InlineData("5.2.1")]
-    [InlineData("5.3.0")]
+    [InlineData("5.4.0")]
+    [InlineData("5.4.1")]
     [InlineData("6.0.0")]
     // A build script may stamp a suffix; the profile's parser tolerates it and so must the gate.
-    [InlineData("5.2.1-rc1")]
+    [InlineData("5.4.0-rc1")]
     public async Task SupportedServersAreCapable(string version) =>
         Assert.True(await CreateSut(Reachable(version)).IsMuteApiAvailableAsync());
 
     [Theory]
-    [InlineData("5.2.0")]
+    [InlineData("5.3.0")]
+    [InlineData("5.2.1")]
     [InlineData("5.1.0")]
     [InlineData("4.9.9")]
     public async Task ServersBelowTheMinimumAreNotCapable(string version) =>
@@ -77,11 +78,11 @@ public class MuteCapabilityServiceTests
     /// live instance — so a capability-map gate would answer false on a server that serves the endpoint.
     /// </summary>
     [Fact]
-    public async Task CapabilityMapWithoutAMutesKeyDoesNotBlockA521Server()
+    public async Task CapabilityMapWithoutAMutesKeyDoesNotBlockA540Server()
     {
         var profile = new PoracleServerProfile
         {
-            Version = "5.2.1",
+            Version = "5.4.0",
             Reachable = true,
             CheckedAt = DateTimeOffset.UtcNow,
             Capabilities = new Dictionary<string, bool>(StringComparer.Ordinal)

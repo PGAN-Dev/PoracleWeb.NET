@@ -13,15 +13,16 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 public class PlaceUpdateCapabilityServiceTests
 {
     [Theory]
-    [InlineData("5.2.1")]
+    [InlineData("5.4.0")]
     [InlineData("6.0.0")]
     // A build script may stamp a suffix; the profile's parser tolerates it and so must the gate.
-    [InlineData("5.2.1-rc1")]
+    [InlineData("5.4.0-rc1")]
     public async Task SupportedServersAreCapable(string version) =>
         Assert.True(await CreateSut(Reachable(version)).IsPlaceUpdateAvailableAsync());
 
     [Theory]
-    [InlineData("5.2.0")]
+    [InlineData("5.3.0")]
+    [InlineData("5.2.1")]
     [InlineData("5.1.0")]
     [InlineData("4.9.9")]
     public async Task ServersBelowTheMinimumAreNotCapable(string version) =>
