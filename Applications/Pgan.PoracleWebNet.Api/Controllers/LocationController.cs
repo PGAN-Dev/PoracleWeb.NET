@@ -9,19 +9,18 @@ namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/location")]
 [RequireFeatureEnabled(DisableFeatureKeys.Location)]
+[TypeFilter(typeof(PoracleUnreachableExceptionFilter))]
 public class LocationController(
     IHumanService humanService,
     IProfileService profileService,
     IPoracleHumanProxy humanProxy,
     IPoracleApiProxy poracleApiProxy,
-    IPlaceUpdateCapabilityService placeUpdateCapability,
     IScannerService? scannerService = null) : BaseApiController
 {
     private readonly IHumanService _humanService = humanService;
     private readonly IProfileService _profileService = profileService;
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
-    private readonly IPlaceUpdateCapabilityService _placeUpdateCapability = placeUpdateCapability;
     private readonly IScannerService? _scannerService = scannerService;
 
     [HttpGet]
@@ -262,20 +261,16 @@ public class LocationController(
     /// The user's saved places, plus the profile pin every alarm falls back to.
     /// </summary>
     /// <remarks>
-    /// <c>canEdit</c> rides along rather than sitting on its own endpoint, matching
-    /// <c>MuteController</c>: the list is read on every visit to the Areas page, and a second call for
-    /// one boolean would double that for no gain.
+    /// There is no <c>canEdit</c> flag: moving a place works on every supported PoracleNG (5.4.0 and up).
     /// </remarks>
     [HttpGet("places")]
-    public async Task<IActionResult> GetPlaces(CancellationToken cancellationToken) =>
-        this.Ok(await this.PlacesWithCapabilityAsync(cancellationToken));
+    public async Task<IActionResult> GetPlaces() =>
+        this.Ok(await this.PlacesAsync());
 
     /// <summary>
-    /// The place list in the one shape every caller gets, capability included. The PUT answers it too:
-    /// a reply missing canEdit would clear the flag the SPA is holding and hide the control the user
-    /// just used.
+    /// The place list in the one shape every caller gets; the PUT and POST answer it too.
     /// </summary>
-    private async Task<object> PlacesWithCapabilityAsync(CancellationToken cancellationToken)
+    private async Task<object> PlacesAsync()
     {
         var places = await this._humanProxy.GetPlacesAsync(this.UserId);
 
@@ -283,7 +278,6 @@ public class LocationController(
         {
             places.Default,
             places.Named,
-            canEdit = await this._placeUpdateCapability.IsPlaceUpdateAvailableAsync(cancellationToken),
         };
     }
 
@@ -298,7 +292,7 @@ public class LocationController(
     /// </remarks>
     [HttpPut("places/{label}")]
     public async Task<IActionResult> UpdatePlace(
-        string label, [FromBody] PlaceMoveRequest request, CancellationToken cancellationToken = default)
+        string label, [FromBody] PlaceMoveRequest request)
     {
         if (request.Latitude is not { } latitude || request.Longitude is not { } longitude)
         {
@@ -312,7 +306,7 @@ public class LocationController(
 
         await this._humanProxy.UpdatePlaceAsync(this.UserId, label, latitude, longitude);
 
-        return this.Ok(await this.PlacesWithCapabilityAsync(cancellationToken));
+        return this.Ok(await this.PlacesAsync());
     }
 
     /// <summary>New coordinates for a saved place. The label is the path segment and does not change.</summary>
@@ -340,15 +334,13 @@ public class LocationController(
     /// </remarks>
     [HttpPost("places")]
     public async Task<IActionResult> AddPlace(
-        [FromBody] SavedPlace place, CancellationToken cancellationToken = default)
+        [FromBody] SavedPlace place)
     {
         var refusal = await this._humanProxy.AddPlaceAsync(this.UserId, place);
 
-        // Answers the same shape as the GET and the PUT. The SPA replaces its whole places signal
-        // from this reply, so a body without canEdit cleared the flag and took the edit control off
-        // every card until the next reload -- the hazard already noted on the PUT, one path along.
+        // Answers the same shape as the GET and the PUT; the SPA replaces its places signal from it.
         return refusal is null
-            ? this.Ok(await this.PlacesWithCapabilityAsync(cancellationToken))
+            ? this.Ok(await this.PlacesAsync())
             : this.BadRequest(new { error = refusal });
     }
 

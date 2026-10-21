@@ -15,9 +15,7 @@
           <mat-label>{{ 'QUESTS.REWARD_TYPE' | translate }}</mat-label>
           <mat-select [(value)]="rewardKind">
             @for (kind of rewardKinds; track kind.value) {
-              @if (kind.value !== 5 || supportsPokecoins()) {
-                <mat-option [value]="kind.value">{{ kind.label | translate }}</mat-option>
-              }
+              <mat-option [value]="kind.value">{{ kind.label | translate }}</mat-option>
             }
           </mat-select>
         </mat-form-field>

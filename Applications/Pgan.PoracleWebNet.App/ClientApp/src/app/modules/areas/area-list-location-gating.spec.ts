@@ -29,7 +29,6 @@ describe('AreaListComponent location gating', () => {
     };
     const places = {
       named: computed(() => []),
-      canEdit: computed(() => false),
       load: jest.fn(() => of({ named: [] })),
       pin: computed(() => null),
     };

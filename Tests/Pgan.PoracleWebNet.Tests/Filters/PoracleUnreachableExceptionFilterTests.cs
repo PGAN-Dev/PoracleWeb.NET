@@ -78,4 +78,16 @@ public class PoracleUnreachableExceptionFilterTests
         Assert.Contains(
             typeof(MuteController).GetCustomAttributes<TypeFilterAttribute>(),
             a => a.ImplementationType == typeof(PoracleUnreachableExceptionFilter));
+
+    [Fact]
+    public void LocationControllerCarriesTheFilter() =>
+        Assert.Contains(
+            typeof(LocationController).GetCustomAttributes<TypeFilterAttribute>(),
+            a => a.ImplementationType == typeof(PoracleUnreachableExceptionFilter));
+
+    [Fact]
+    public void QuestControllerCarriesTheFilter() =>
+        Assert.Contains(
+            typeof(QuestController).GetCustomAttributes<TypeFilterAttribute>(),
+            a => a.ImplementationType == typeof(PoracleUnreachableExceptionFilter));
 }

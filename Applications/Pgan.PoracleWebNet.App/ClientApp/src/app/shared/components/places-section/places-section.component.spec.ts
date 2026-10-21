@@ -14,7 +14,6 @@ describe('PlacesSectionComponent', () => {
   let dialog: { open: jest.Mock };
   let places: {
     add: jest.Mock;
-    canEdit: jest.Mock;
     load: jest.Mock;
     move: jest.Mock;
     named: jest.Mock;
@@ -34,7 +33,6 @@ describe('PlacesSectionComponent', () => {
     places = {
       named: jest.fn().mockReturnValue([{ label: 'work', latitude: 1, longitude: 2 }]),
       add: jest.fn().mockReturnValue(of({ named: [], default: null })),
-      canEdit: jest.fn().mockReturnValue(true),
       load: jest.fn().mockReturnValue(of({ named: [], default: null })),
       move: jest.fn().mockReturnValue(of({ named: [], default: null })),
       pin: jest.fn().mockReturnValue({ label: '', latitude: 3, longitude: 4 }),

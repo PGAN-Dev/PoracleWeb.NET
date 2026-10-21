@@ -6,7 +6,6 @@ using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Mappings;
 using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Core.Services;
-using Pgan.PoracleWebNet.Tests.TestDoubles;
 
 namespace Pgan.PoracleWebNet.Tests.Services;
 
@@ -273,7 +272,7 @@ public class OverrideScopeMergeGuardTests
                     this._remapper.Object).CreateAsync("u1", e);
                 break;
             case Quest q:
-                await new QuestService(this._proxy.Object, this._gate.Object, PokecoinCapabilityStub.Supported,
+                await new QuestService(this._proxy.Object, this._gate.Object,
                     NullLogger<QuestService>.Instance, this._remapper.Object).CreateAsync("u1", q);
                 break;
             case Nest n:

@@ -4,7 +4,6 @@ using Moq;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Core.Services;
-using Pgan.PoracleWebNet.Tests.TestDoubles;
 
 namespace Pgan.PoracleWebNet.Tests.Services;
 
@@ -26,10 +25,25 @@ public class QuestServiceTests
         this._sut = new QuestService(
             this._proxy.Object,
             this._featureGate.Object,
-            PokecoinCapabilityStub.Supported,
             NullLogger<QuestService>.Instance,
             this._uidRemapper.Object);
     }
+
+    [Fact]
+    public async Task CreateAcceptsPokecoinsWithNoCapabilityCheck()
+    {
+        this._proxy.Setup(p => p.GetByUserAsync("quest", "u1")).ReturnsAsync(JsonSerializer.Deserialize<JsonElement>("[]"));
+        this._proxy.Setup(p => p.CreateAsync("quest", "u1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([7], 0, 0, 1));
+
+        var result = await this._sut.CreateAsync("u1", new Quest { Reward = 50, RewardType = QuestRewardTypes.Pokecoins });
+
+        Assert.Equal(7, result.Uid);
+    }
+
+    [Fact]
+    public void TheQuestControllerHasNoCapabilityEndpoint() =>
+        Assert.Null(typeof(Pgan.PoracleWebNet.Api.Controllers.QuestController).GetMethod("GetCapability"));
 
     [Fact]
     public async Task GetByUserAsyncReturnsQuests()

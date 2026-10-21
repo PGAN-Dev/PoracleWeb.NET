@@ -12,7 +12,6 @@ public class LocationControllerTests : ControllerTestBase
     private readonly Mock<IProfileService> _profileService = new();
     private readonly Mock<IPoracleHumanProxy> _humanProxy = new();
     private readonly Mock<IPoracleApiProxy> _proxy = new();
-    private readonly Mock<IPlaceUpdateCapabilityService> _placeUpdateCapability = new();
     private readonly LocationController _sut;
 
     public LocationControllerTests()
@@ -21,8 +20,7 @@ public class LocationControllerTests : ControllerTestBase
             this._humanService.Object,
             this._profileService.Object,
             this._humanProxy.Object,
-            this._proxy.Object,
-            this._placeUpdateCapability.Object);
+            this._proxy.Object);
         SetupUser(this._sut);
     }
 
@@ -87,16 +85,14 @@ public class LocationControllerTests : ControllerTestBase
     // --- Places ---
 
     [Fact]
-    public async Task GetPlacesReportsWhetherThisServerCanMoveOne()
+    public async Task GetPlacesCarriesNoCapabilityFlag()
     {
         this._humanProxy.Setup(p => p.GetPlacesAsync("123456789")).ReturnsAsync(new SavedPlaces());
-        this._placeUpdateCapability
-            .Setup(c => c.IsPlaceUpdateAvailableAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
 
-        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetPlaces(CancellationToken.None));
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetPlaces());
 
-        Assert.Equal(true, ok.Value?.GetType().GetProperty("canEdit")?.GetValue(ok.Value));
+        Assert.Null(ok.Value?.GetType().GetProperty("canEdit"));
+        Assert.NotNull(ok.Value?.GetType().GetProperty("Named"));
     }
 
     [Fact]
@@ -109,14 +105,11 @@ public class LocationControllerTests : ControllerTestBase
             .Setup(p => p.AddPlaceAsync("123456789", It.IsAny<SavedPlace>()))
             .ReturnsAsync((string?)null);
         this._humanProxy.Setup(p => p.GetPlacesAsync("123456789")).ReturnsAsync(new SavedPlaces());
-        this._placeUpdateCapability
-            .Setup(c => c.IsPlaceUpdateAvailableAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
 
         var ok = Assert.IsType<OkObjectResult>(
             await this._sut.AddPlace(new SavedPlace { Label = "work", Latitude = 1, Longitude = 2 }));
 
-        Assert.Equal(true, ok.Value?.GetType().GetProperty("canEdit")?.GetValue(ok.Value));
+        Assert.Null(ok.Value?.GetType().GetProperty("canEdit"));
     }
 
     [Fact]

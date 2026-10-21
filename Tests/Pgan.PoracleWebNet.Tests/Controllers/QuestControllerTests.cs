@@ -3,7 +3,6 @@ using Moq;
 using Pgan.PoracleWebNet.Api.Controllers;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
-using Pgan.PoracleWebNet.Tests.TestDoubles;
 
 namespace Pgan.PoracleWebNet.Tests.Controllers;
 
@@ -14,7 +13,7 @@ public class QuestControllerTests : ControllerTestBase
 
     public QuestControllerTests()
     {
-        this._sut = new QuestController(this._service.Object, PokecoinCapabilityStub.Supported);
+        this._sut = new QuestController(this._service.Object);
         SetupUser(this._sut);
     }
 
