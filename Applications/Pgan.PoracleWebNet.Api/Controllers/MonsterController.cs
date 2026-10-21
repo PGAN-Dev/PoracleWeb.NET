@@ -17,7 +17,7 @@ public class MonsterController(IMonsterService monsterService, IPokemonEditCapab
     /// Whether this deployment's PoracleNG honours the pokemon edit-in-place bit
     /// (jfberry/PoracleNG#246). Degrades to <c>edit:false</c> on any fault -- never 5xx -- so a
     /// transient outage hides the toggle rather than offering a control that would be a no-op.
-    /// Mirrors the shape of <c>GET /api/quests/capability</c>.
+    /// Mirrors the shape of <c>GET /api/summary-schedules/capability</c>.
     /// </summary>
     [HttpGet("capability")]
     public async Task<IActionResult> GetCapability() => this.Ok(new

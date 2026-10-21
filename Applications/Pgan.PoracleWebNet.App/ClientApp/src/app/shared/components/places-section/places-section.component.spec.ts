@@ -1,6 +1,6 @@
 import { HttpErrorResponse, provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideTranslateService } from '@ngx-translate/core';
@@ -21,6 +21,7 @@ describe('PlacesSectionComponent', () => {
     remove: jest.Mock;
   };
   let snackBar: { open: jest.Mock };
+  let fixture: ComponentFixture<PlacesSectionComponent>;
 
   /** Queues what each successive dialog.open() should resolve to. */
   function queueDialogResults(...results: unknown[]): void {
@@ -64,10 +65,20 @@ describe('PlacesSectionComponent', () => {
       },
     });
 
-    const component = TestBed.createComponent(PlacesSectionComponent).componentInstance;
+    fixture = TestBed.createComponent(PlacesSectionComponent);
+    const component = fixture.componentInstance;
     component.ngOnInit();
     return component;
   }
+
+  it('always renders the move control on a saved place', () => {
+    // No capability flag exists any more: every supported PoracleNG can move a place.
+    create();
+    fixture.detectChanges();
+
+    const icons = Array.from(fixture.nativeElement.querySelectorAll('mat-icon')).map(el => (el as HTMLElement).textContent!.trim());
+    expect(icons).toContain('edit_location_alt');
+  });
 
   it('borrows the location dialog as a picker rather than moving the profile pin', () => {
     // Without pickOnly the location dialog saves whatever point is chosen as the user's pin, so

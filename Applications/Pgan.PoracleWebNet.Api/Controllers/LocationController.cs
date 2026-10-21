@@ -9,6 +9,7 @@ namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/location")]
 [RequireFeatureEnabled(DisableFeatureKeys.Location)]
+// Assumes every outbound HTTP call here is PoracleNG (geocode and static map catch their own errors); a non-PoracleNG call would need its own handling.
 [TypeFilter(typeof(PoracleUnreachableExceptionFilter))]
 public class LocationController(
     IHumanService humanService,
