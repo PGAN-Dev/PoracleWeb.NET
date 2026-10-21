@@ -160,6 +160,14 @@ public partial class UserGeofenceController(
             await this._userGeofenceService.AddToProfileAsync(this.UserId, this.ProfileNo, id);
             return this.NoContent();
         }
+        catch (GeofenceActivationFailedException ex)
+        {
+            // Not a 204: the user would believe the fence is on when PoracleNG refused it.
+            return this.Conflict(new
+            {
+                error = ex.Message
+            });
+        }
         catch (InvalidOperationException ex)
         {
             return this.NotFound(new

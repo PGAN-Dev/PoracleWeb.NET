@@ -17,6 +17,7 @@ public class UserGeofenceServiceTests
     private readonly Mock<IPoracleHumanProxy> _humanProxy = new();
     private readonly Mock<IHumanService> _humanService = new();
     private readonly Mock<IUserAreaDualWriter> _areaWriter = new();
+    private readonly Mock<IUserAreaWriter> _userAreaWriter = new();
     private readonly Mock<IDiscordNotificationService> _discordNotificationService = new();
     private readonly Mock<IFeatureGate> _featureGate = new();
     private readonly IConfiguration _configuration = new ConfigurationBuilder().Build();
@@ -27,6 +28,8 @@ public class UserGeofenceServiceTests
     {
         // Features are on unless a test says otherwise.
         this._featureGate.Setup(g => g.IsEnabledAsync(It.IsAny<string>())).ReturnsAsync(true);
+        this._userAreaWriter.Setup(w => w.AddToActiveProfileAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
+        this._userAreaWriter.Setup(w => w.RemoveFromActiveProfileAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
 
         this._sut = new UserGeofenceService(
             this._repository.Object,
@@ -35,6 +38,7 @@ public class UserGeofenceServiceTests
             this._humanProxy.Object,
             this._humanService.Object,
             this._areaWriter.Object,
+            this._userAreaWriter.Object,
             this._discordNotificationService.Object,
             this._featureGate.Object,
             this._configuration,
@@ -97,8 +101,8 @@ public class UserGeofenceServiceTests
             Polygon = [[37.66, -77.60], [37.67, -77.60], [37.67, -77.59]],
         });
 
-        this._areaWriter.Verify(
-            w => w.AddAreaToActiveProfileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        this._userAreaWriter.Verify(
+            w => w.AddToActiveProfileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
         // The geofence itself is not the gated feature -- it still gets created, just inactive.
         this._repository.Verify(r => r.CreateAsync(It.IsAny<UserGeofence>()), Times.Once);
     }
@@ -181,65 +185,28 @@ public class UserGeofenceServiceTests
     }
 
     [Fact]
-    public async Task CreateAsyncDelegatesAreaAddToAtomicWriter()
+    public async Task CreateAsyncAddsTheAreaThroughTheV2Writer()
     {
-        var model = new UserGeofenceCreate
-        {
-            DisplayName = "Park",
-            Polygon = [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]
-        };
-        this._repository.Setup(r => r.GetCountByHumanIdAsync("u1")).ReturnsAsync(0);
-        this._repository.Setup(r => r.CreateAsync(It.IsAny<UserGeofence>()))
-            .ReturnsAsync((UserGeofence g) => g);
+        this.SetUpCreate();
 
-        await this._sut.CreateAsync("u1", 1, model);
+        var result = await this._sut.CreateAsync("u1", 1, ParkModel());
 
-        // The service must delegate the dual-write to the atomic IUserAreaDualWriter —
-        // going through IPoracleHumanProxy.SetAreasAsync would let PoracleNG strip the
-        // geofence because the feed serves it with userSelectable=false.
-        this._areaWriter.Verify(w => w.AddAreaToActiveProfileAsync("u1", "park"), Times.Once);
+        // Not SetAreasAsync (PoracleNG would strip the userSelectable=false fence) and not the dual writer.
+        this._userAreaWriter.Verify(w => w.AddToActiveProfileAsync("u1", "park"), Times.Once);
         this._humanProxy.Verify(p => p.SetAreasAsync(It.IsAny<string>(), It.IsAny<string[]>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task CreateAsyncPrefersTrustedSetAreasWhenAvailable()
-    {
-        // #838: once PoracleNG's v2 trusted setAreas is usable, it replaces the atomic writer rather
-        // than being added alongside it -- a non-null answer from the proxy means the write already
-        // happened, so the dual writer must not also run and double-write.
-        var model = new UserGeofenceCreate
-        {
-            DisplayName = "Park",
-            Polygon = [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]
-        };
-        this._repository.Setup(r => r.GetCountByHumanIdAsync("u1")).ReturnsAsync(0);
-        this._repository.Setup(r => r.CreateAsync(It.IsAny<UserGeofence>()))
-            .ReturnsAsync((UserGeofence g) => g);
-        this._humanProxy
-            .Setup(p => p.AddAreaToActiveProfileTrustedAsync("u1", "park"))
-            .ReturnsAsync(true);
-
-        await this._sut.CreateAsync("u1", 1, model);
-
-        this._humanProxy.Verify(p => p.AddAreaToActiveProfileTrustedAsync("u1", "park"), Times.Once);
         this._areaWriter.Verify(
             w => w.AddAreaToActiveProfileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        Assert.False(result.ActivationFailed);
     }
 
     [Fact]
-    public async Task CreateAsyncCallsReloadGeofencesAsync()
+    public async Task CreateAsyncReloadsOnceBecauseTheTrustedWriteReloadsItself()
     {
-        var model = new UserGeofenceCreate { DisplayName = "Test", Polygon = [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]] };
-        this._repository.Setup(r => r.GetCountByHumanIdAsync("u1")).ReturnsAsync(0);
-        this._repository.Setup(r => r.CreateAsync(It.IsAny<UserGeofence>()))
-            .ReturnsAsync((UserGeofence g) => g);
-        this._humanProxy.Setup(p => p.GetHumanAsync("u1")).ReturnsAsync(MakeHumanJson("u1", "[]"));
+        this.SetUpCreate();
 
-        await this._sut.CreateAsync("u1", 1, model);
+        await this._sut.CreateAsync("u1", 1, ParkModel());
 
-        // Before the area add so PoracleNG knows the fence, and again after the direct-DB write
-        // (the default mocks take the dual-writer path) so it sees the changed area.
-        this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Exactly(2));
+        this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Once);
     }
 
     private void SetUpCreate()
@@ -256,77 +223,74 @@ public class UserGeofenceServiceTests
     };
 
     [Fact]
-    public async Task CreateReloadsGeofencesBeforeAddingTheAreaOnTheTrustedPath()
+    public async Task CreateReloadsGeofencesBeforeAddingTheArea()
     {
-        // PoracleNG's trusted setAreas rejects a name it has not loaded, and it only learns of a brand-new
-        // fence from the reload. Reloading after the add left every new fence inactive on a server offering
-        // trusted setAreas, with the proxy logging the rejection and the dual-writer fallback never running.
+        // The v2 trusted write rejects a name PoracleNG has not loaded, and it only learns of a brand-new
+        // fence from the reload (#937).
         this.SetUpCreate();
         var calls = new List<string>();
         this._poracleApiProxy.Setup(p => p.ReloadGeofencesAsync())
             .Callback(() => calls.Add("reload")).Returns(Task.CompletedTask);
-        this._humanProxy.Setup(p => p.AddAreaToActiveProfileTrustedAsync("u1", "park"))
-            .Callback(() => calls.Add("trusted-add")).ReturnsAsync(true);
+        this._userAreaWriter.Setup(w => w.AddToActiveProfileAsync("u1", "park"))
+            .Callback(() => calls.Add("add")).ReturnsAsync(true);
 
         await this._sut.CreateAsync("u1", 1, ParkModel());
 
-        Assert.Equal(["reload", "trusted-add"], calls);
+        Assert.Equal(["reload", "add"], calls);
+    }
+
+    [Fact]
+    public async Task CreateKeepsTheFenceAndFlagsActivationFailedWhenTheAddIsRejected()
+    {
+        this.SetUpCreate();
+        this._userAreaWriter.Setup(w => w.AddToActiveProfileAsync("u1", "park")).ReturnsAsync(false);
+
+        var result = await this._sut.CreateAsync("u1", 1, ParkModel());
+
+        Assert.True(result.ActivationFailed);
+        this._repository.Verify(r => r.CreateAsync(It.IsAny<UserGeofence>()), Times.Once);
+        this._repository.Verify(r => r.DeleteAsync(It.IsAny<int>()), Times.Never);
         this._areaWriter.Verify(
             w => w.AddAreaToActiveProfileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
-    public async Task CreateStillUsesTheDualWriterWhenTrustedIsUnavailable()
+    public async Task CreateFlagsActivationFailedWithoutTryingTheAddWhenTheReloadFailed()
     {
-        // Released PoracleNG has no trusted setAreas: the direct-DB write runs, and PoracleNG needs a
-        // reload after it to see the changed area, so the reload is made on both sides of the write.
-        this.SetUpCreate();
-        var calls = new List<string>();
-        this._poracleApiProxy.Setup(p => p.ReloadGeofencesAsync())
-            .Callback(() => calls.Add("reload")).Returns(Task.CompletedTask);
-        this._humanProxy.Setup(p => p.AddAreaToActiveProfileTrustedAsync("u1", "park"))
-            .Callback(() => calls.Add("trusted-add")).ReturnsAsync((bool?)null);
-        this._areaWriter.Setup(w => w.AddAreaToActiveProfileAsync("u1", "park"))
-            .Callback(() => calls.Add("dual-writer")).ReturnsAsync(true);
-
-        await this._sut.CreateAsync("u1", 1, ParkModel());
-
-        Assert.Equal(["reload", "trusted-add", "dual-writer", "reload"], calls);
-    }
-
-    [Fact]
-    public async Task CreateFallsBackToTheDualWriterAndReloadsAfterWhenTrustedRejectsTheFence()
-    {
-        // A reload that answered ok does not prove PoracleNG fetched our feed. If it still did not know
-        // the fence, the proxy answers null after the rejection and the direct write must follow.
-        this.SetUpCreate();
-        var calls = new List<string>();
-        this._poracleApiProxy.Setup(p => p.ReloadGeofencesAsync())
-            .Callback(() => calls.Add("reload")).Returns(Task.CompletedTask);
-        this._humanProxy.Setup(p => p.AddAreaToActiveProfileTrustedAsync("u1", "park"))
-            .Callback(() => calls.Add("trusted-add")).ReturnsAsync((bool?)null);
-        this._areaWriter.Setup(w => w.AddAreaToActiveProfileAsync("u1", "park"))
-            .Callback(() => calls.Add("dual-writer")).ReturnsAsync(true);
-
-        await this._sut.CreateAsync("u1", 1, ParkModel());
-
-        Assert.Equal(["reload", "trusted-add", "dual-writer", "reload"], calls);
-    }
-
-    [Fact]
-    public async Task CreateUsesTheDualWriterWhenTheReloadBeforeTheAddFailed()
-    {
-        // Without that reload PoracleNG does not know the fence, so a trusted add would be rejected
-        // and silently leave it inactive. The direct-DB write does not depend on PoracleNG's list.
+        // PoracleNG would reject a name it has not loaded, so the add is not attempted.
         this.SetUpCreate();
         this._poracleApiProxy.Setup(p => p.ReloadGeofencesAsync()).ThrowsAsync(new HttpRequestException("down"));
-        this._humanProxy.Setup(p => p.AddAreaToActiveProfileTrustedAsync("u1", "park")).ReturnsAsync(true);
 
-        await this._sut.CreateAsync("u1", 1, ParkModel());
+        var result = await this._sut.CreateAsync("u1", 1, ParkModel());
 
-        this._humanProxy.Verify(
-            p => p.AddAreaToActiveProfileTrustedAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
-        this._areaWriter.Verify(w => w.AddAreaToActiveProfileAsync("u1", "park"), Times.Once);
+        Assert.True(result.ActivationFailed);
+        this._userAreaWriter.Verify(
+            w => w.AddToActiveProfileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        this._areaWriter.Verify(
+            w => w.AddAreaToActiveProfileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateKeepsTheFenceWhenTheWriterThrows()
+    {
+        this.SetUpCreate();
+        this._userAreaWriter.Setup(w => w.AddToActiveProfileAsync("u1", "park"))
+            .ThrowsAsync(new HttpRequestException("down"));
+
+        var result = await this._sut.CreateAsync("u1", 1, ParkModel());
+
+        Assert.True(result.ActivationFailed);
+    }
+
+    [Fact]
+    public async Task CreateWithAreasDisabledIsNotReportedAsAFailedActivation()
+    {
+        this.SetUpCreate();
+        this._featureGate.Setup(g => g.IsEnabledAsync(DisableFeatureKeys.Areas)).ReturnsAsync(false);
+
+        var result = await this._sut.CreateAsync("u1", 1, ParkModel());
+
+        Assert.False(result.ActivationFailed);
     }
 
     [Fact]
@@ -1257,55 +1221,73 @@ public class UserGeofenceServiceTests
 
     // --- AddToProfileAsync ---
 
-    [Fact]
-    public async Task AddToProfileAsyncDelegatesToAtomicWriterAndTriggersReload()
+    private UserGeofence SeedOwned()
     {
-        // Regression guard for #163: the toggle must actually persist. Before #88 the toggle
-        // wrote directly to humans.area. The proxy migration in #88 routed it through
-        // PoracleNG's setAreas, which silently strips every fence with userSelectable=false —
-        // the default for user geofences — so the toggle appeared to succeed but never
-        // actually persisted. We restored the direct-DB path through IUserAreaDualWriter.
         var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown" };
         this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
-
-        await this._sut.AddToProfileAsync("u1", 1, 1);
-
-        this._areaWriter.Verify(w => w.AddAreaToActiveProfileAsync("u1", "downtown"), Times.Once);
-        this._humanProxy.Verify(p => p.SetAreasAsync(It.IsAny<string>(), It.IsAny<string[]>()), Times.Never);
-        // Direct-DB writes bypass PoracleNG's internal reloadState, so we must trigger one
-        // ourselves. Without this, the toggle would only take effect on the next organic
-        // PoracleNG state reload (potentially minutes).
-        this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Once);
+        return geofence;
     }
 
     [Fact]
-    public async Task AddToProfileAsyncPrefersTrustedSetAreasWhenAvailable()
+    public async Task AddToProfileAsyncWritesThroughTheV2WriterAndReloads()
     {
-        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown" };
-        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
-        this._humanProxy
-            .Setup(p => p.AddAreaToActiveProfileTrustedAsync("u1", "downtown"))
-            .ReturnsAsync(true);
+        this.SeedOwned();
 
         await this._sut.AddToProfileAsync("u1", 1, 1);
 
+        this._userAreaWriter.Verify(w => w.AddToActiveProfileAsync("u1", "downtown"), Times.Once);
+        this._humanProxy.Verify(p => p.SetAreasAsync(It.IsAny<string>(), It.IsAny<string[]>()), Times.Never);
         this._areaWriter.Verify(
             w => w.AddAreaToActiveProfileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
-        // The trusted call also triggers PoracleNG's own reload, but the manual one stays
-        // unconditional -- harmless there, load-bearing on the fallback.
         this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Once);
     }
 
     [Fact]
-    public async Task AddToProfileAsyncPropagatesWriterExceptionsAsNotFound()
+    public async Task AddToProfileAsyncReloadsAndRetriesOnceWhenTheFirstAddIsRejected()
     {
-        // The writer throws InvalidOperationException if humans row doesn't exist
-        // (TOCTOU: user deleted mid-request). It must propagate so the controller returns 404
-        // instead of a misleading 204 "success".
-        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown" };
-        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
-        this._areaWriter
-            .Setup(w => w.AddAreaToActiveProfileAsync("u1", "downtown"))
+        this.SeedOwned();
+        var calls = new List<string>();
+        this._userAreaWriter.SetupSequence(w => w.AddToActiveProfileAsync("u1", "downtown"))
+            .Returns(() => { calls.Add("add"); return Task.FromResult(false); })
+            .Returns(() => { calls.Add("add"); return Task.FromResult(true); });
+        this._poracleApiProxy.Setup(p => p.ReloadGeofencesAsync())
+            .Callback(() => calls.Add("reload")).Returns(Task.CompletedTask);
+
+        await this._sut.AddToProfileAsync("u1", 1, 1);
+
+        Assert.Equal(["add", "reload", "add", "reload"], calls);
+    }
+
+    [Fact]
+    public async Task AddToProfileAsyncThrowsWhenPoracleKeepsRejectingTheName()
+    {
+        this.SeedOwned();
+        this._userAreaWriter.Setup(w => w.AddToActiveProfileAsync("u1", "downtown")).ReturnsAsync(false);
+        this._humanProxy.Setup(p => p.GetAreaListAsync("u1")).ReturnsAsync(["aberdeen"]);
+
+        await Assert.ThrowsAsync<GeofenceActivationFailedException>(
+            () => this._sut.AddToProfileAsync("u1", 1, 1));
+    }
+
+    [Fact]
+    public async Task AddToProfileAsyncIsIdempotentWhenTheNameIsAlreadyOnTheProfile()
+    {
+        // The writer answers false for "already there" too; that is a successful activate, not a failure.
+        this.SeedOwned();
+        this._userAreaWriter.Setup(w => w.AddToActiveProfileAsync("u1", "downtown")).ReturnsAsync(false);
+        this._humanProxy.Setup(p => p.GetAreaListAsync("u1")).ReturnsAsync(["Downtown"]);
+
+        await this._sut.AddToProfileAsync("u1", 1, 1);
+    }
+
+    [Fact]
+    public async Task AddToProfileAsyncPropagatesWriterExceptions()
+    {
+        // A missing human (deleted mid-request) must propagate so the controller does not answer a
+        // misleading 204.
+        this.SeedOwned();
+        this._userAreaWriter
+            .Setup(w => w.AddToActiveProfileAsync("u1", "downtown"))
             .ThrowsAsync(new InvalidOperationException("Human with id u1 not found."));
 
         await Assert.ThrowsAsync<InvalidOperationException>(
@@ -1330,40 +1312,38 @@ public class UserGeofenceServiceTests
         await Assert.ThrowsAsync<UnauthorizedAccessException>(
             () => this._sut.AddToProfileAsync("u1", 1, 1));
         // Writer must not be touched when ownership check fails.
-        this._areaWriter.Verify(
-            w => w.AddAreaToActiveProfileAsync(It.IsAny<string>(), It.IsAny<string>()),
+        this._userAreaWriter.Verify(
+            w => w.AddToActiveProfileAsync(It.IsAny<string>(), It.IsAny<string>()),
             Times.Never);
     }
 
     // --- RemoveFromProfileAsync ---
 
     [Fact]
-    public async Task RemoveFromProfileAsyncDelegatesToAtomicWriterAndTriggersReload()
+    public async Task RemoveFromProfileAsyncWritesThroughTheV2WriterAndReloads()
     {
-        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown" };
-        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
+        this.SeedOwned();
+        var calls = new List<string>();
+        this._userAreaWriter.Setup(w => w.RemoveFromActiveProfileAsync("u1", "downtown"))
+            .Callback(() => calls.Add("remove")).ReturnsAsync(true);
+        this._poracleApiProxy.Setup(p => p.ReloadGeofencesAsync())
+            .Callback(() => calls.Add("reload")).Returns(Task.CompletedTask);
 
         await this._sut.RemoveFromProfileAsync("u1", 1, 1);
 
-        this._areaWriter.Verify(w => w.RemoveAreaFromActiveProfileAsync("u1", "downtown"), Times.Once);
+        Assert.Equal(["remove", "reload"], calls);
         this._humanProxy.Verify(p => p.SetAreasAsync(It.IsAny<string>(), It.IsAny<string[]>()), Times.Never);
-        this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Once);
+        this._areaWriter.Verify(
+            w => w.RemoveAreaFromActiveProfileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
-    public async Task RemoveFromProfileAsyncPrefersTrustedSetAreasWhenAvailable()
+    public async Task RemoveFromProfileAsyncSucceedsWhenTheNameWasNotOnTheProfile()
     {
-        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown" };
-        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
-        this._humanProxy
-            .Setup(p => p.RemoveAreaFromActiveProfileTrustedAsync("u1", "downtown"))
-            .ReturnsAsync(true);
+        this.SeedOwned();
+        this._userAreaWriter.Setup(w => w.RemoveFromActiveProfileAsync("u1", "downtown")).ReturnsAsync(false);
 
         await this._sut.RemoveFromProfileAsync("u1", 1, 1);
-
-        this._areaWriter.Verify(
-            w => w.RemoveAreaFromActiveProfileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
-        this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Once);
     }
 
     [Fact]
@@ -1374,8 +1354,8 @@ public class UserGeofenceServiceTests
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(
             () => this._sut.RemoveFromProfileAsync("u1", 1, 1));
-        this._areaWriter.Verify(
-            w => w.RemoveAreaFromActiveProfileAsync(It.IsAny<string>(), It.IsAny<string>()),
+        this._userAreaWriter.Verify(
+            w => w.RemoveFromActiveProfileAsync(It.IsAny<string>(), It.IsAny<string>()),
             Times.Never);
     }
 

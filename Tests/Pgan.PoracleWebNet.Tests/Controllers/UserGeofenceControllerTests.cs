@@ -216,6 +216,17 @@ public class UserGeofenceControllerTests : ControllerTestBase
     }
 
     [Fact]
+    public async Task ActivateGeofenceReturnsConflictWhenPoracleRefusesTheName()
+    {
+        this._service.Setup(s => s.AddToProfileAsync("123456789", 1, 42))
+            .ThrowsAsync(new GeofenceActivationFailedException("downtown"));
+
+        var result = await this._sut.ActivateGeofence(42);
+
+        Assert.IsType<ConflictObjectResult>(result);
+    }
+
+    [Fact]
     public async Task ActivateGeofenceReturnsForbidWhenNotOwned()
     {
         this._service.Setup(s => s.AddToProfileAsync("123456789", 1, 42))

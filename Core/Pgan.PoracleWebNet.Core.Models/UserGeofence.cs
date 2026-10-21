@@ -79,4 +79,12 @@ public class UserGeofence
     {
         get; set;
     }
+
+    /// <summary>
+    /// Set on create only: the fence was saved but could not be switched on for the active profile.
+    /// </summary>
+    public bool ActivationFailed
+    {
+        get; set;
+    }
 }

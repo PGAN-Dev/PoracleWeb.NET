@@ -273,6 +273,11 @@ export class GeofenceListComponent implements OnInit {
           next: created => {
             this.savingGeofence.set(false);
             this.customGeofences.update(list => [...list, created]);
+            if (created.activationFailed) {
+              // Saved but not switched on: leave the toggle off so the user can retry with it.
+              this.snackBar.open(this.i18n.instant('GEOFENCES.SNACK_SAVED_NOT_ACTIVE'), this.i18n.instant('TOAST.OK'), { duration: 6000 });
+              return;
+            }
             this.activeAreas.update(areas => [...areas, created.kojiName]);
             this.snackBar.open(this.i18n.instant('GEOFENCES.SNACK_CREATED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           },

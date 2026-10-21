@@ -556,6 +556,8 @@ export interface WebhookDelegate {
 // ─── User Geofence ───────────────────────────────────────────────────────────
 
 export interface UserGeofence {
+  /** Create response only: saved, but could not be switched on for the active profile. */
+  activationFailed?: boolean;
   createdAt: string;
   displayName: string;
   groupName: string;

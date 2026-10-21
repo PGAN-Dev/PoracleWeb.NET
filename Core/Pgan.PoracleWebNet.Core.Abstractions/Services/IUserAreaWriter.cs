@@ -16,9 +16,15 @@ public interface IUserAreaWriter
     /// </summary>
     public Task<AreaSaveResult> SaveSelectionAsync(string humanId, IReadOnlyCollection<string> requested);
 
-    /// <summary>Adds one name to the active profile. False when already present or PoracleNG rejected it.</summary>
+    /// <summary>
+    /// Adds one name to the active profile. False when already present or PoracleNG rejected it.
+    /// Does not authorise the name: the caller must have (for a user fence, that the user owns it).
+    /// </summary>
     public Task<bool> AddToActiveProfileAsync(string humanId, string name);
 
-    /// <summary>Removes one name from the active profile. False when it was not there.</summary>
+    /// <summary>
+    /// Removes one name from the active profile. False when it was not there.
+    /// Does not authorise the name: the caller must have (for a user fence, that the user owns it).
+    /// </summary>
     public Task<bool> RemoveFromActiveProfileAsync(string humanId, string name);
 }

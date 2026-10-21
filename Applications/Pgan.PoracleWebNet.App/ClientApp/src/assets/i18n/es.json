@@ -1086,6 +1086,7 @@
     "DRAW_NEW": "Dibujar nueva Geofence",
     "LIMIT_NOTICE": "Has alcanzado el máximo de {{max}} geofences personalizadas.",
     "SNACK_CREATED": "Geofence creada",
+    "SNACK_SAVED_NOT_ACTIVE": "Guardada, pero todavía no se pudo activar. Usa el interruptor para reintentarlo.",
     "SNACK_DELETED": "Geofence eliminada",
     "SNACK_SUBMITTED": "Geofence enviada para revisión",
     "SNACK_ACTIVATED": "Geofence activada para este perfil",

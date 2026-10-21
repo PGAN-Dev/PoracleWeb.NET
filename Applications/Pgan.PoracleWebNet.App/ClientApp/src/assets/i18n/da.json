@@ -1086,6 +1086,7 @@
     "DRAW_NEW": "Tegn ny geofence",
     "LIMIT_NOTICE": "Du har nået maksimum på {{max}} brugerdefinerede geofences.",
     "SNACK_CREATED": "Geofence oprettet",
+    "SNACK_SAVED_NOT_ACTIVE": "Gemt, men den kunne ikke slås til endnu. Brug kontakten for at prøve igen.",
     "SNACK_DELETED": "Geofence slettet",
     "SNACK_SUBMITTED": "Geofence indsendt til gennemgang",
     "SNACK_ACTIVATED": "Geofence aktiveret for denne profil",

@@ -16,6 +16,7 @@ public partial class UserGeofenceService(
     IPoracleHumanProxy humanProxy,
     IHumanService humanService,
     IUserAreaDualWriter areaWriter,
+    IUserAreaWriter userAreaWriter,
     IDiscordNotificationService discordNotificationService,
     IFeatureGate featureGate,
     IConfiguration configuration,
@@ -29,6 +30,7 @@ public partial class UserGeofenceService(
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly IHumanService _humanService = humanService;
     private readonly IUserAreaDualWriter _areaWriter = areaWriter;
+    private readonly IUserAreaWriter _userAreaWriter = userAreaWriter;
     private readonly IDiscordNotificationService _discordNotificationService = discordNotificationService;
     private readonly IFeatureGate _featureGate = featureGate;
     private readonly IConfiguration _configuration = configuration;
@@ -141,37 +143,21 @@ public partial class UserGeofenceService(
             Status = "active",
         });
 
-        // Reload first: PoracleNG reads the new fence from our feed, and its trusted setAreas rejects
-        // a name it has not loaded (it answers 200 with the name in `rejected`). Adding the name before
-        // this reload left every new fence inactive on a server offering trusted setAreas. The reload
-        // is synchronous but does not prove the fence arrived: PoracleNG only logs a failed feed fetch
-        // and keeps its cached list, still answering ok. So this is the common-case fix, and the
-        // backstop is in the proxy, which answers null when PoracleNG rejects the requested name,
-        // sending the add to the direct-DB writer below.
+        // Reload first: PoracleNG reads the new fence from our feed, and its trusted write rejects a
+        // name it has not loaded. The reload does not prove the fence arrived (PoracleNG only logs a
+        // failed feed fetch and keeps its cached list), so a rejected add is handled below as well.
         var fenceKnownToPoracle = await this.ReloadGeofencesSafeAsync();
 
         // Creating a geofence subscribes the current profile to it -- an area write, and one that ran
-        // straight past disable_areas while every documented area path was refused. Drawing and
-        // deleting fences was a way to edit area subscriptions with the switch on, and a GeoJSON import
-        // could write up to 50 of them in one request. With areas frozen the fence is still created;
-        // it just arrives inactive, and the user can turn it on when areas are re-enabled. See #505.
+        // straight past disable_areas while every documented area path was refused. With areas frozen
+        // the fence is still created; it just arrives inactive. See #505.
         if (await this._featureGate.IsEnabledAsync(DisableFeatureKeys.Areas))
         {
-            // HACK: trusted-set-areas (see docs/poracleng-enhancement-requests.md)
-            // Prefers PoracleNG's v2 trusted setAreas; the direct-DB dual writer is now the fallback
-            // rather than the only path. See the private AddAreaToActiveProfileAsync and #838. If the
-            // reload above failed PoracleNG cannot be relied on to accept the name, so go straight to
-            // the direct-DB write, which does not consult PoracleNG's fence list.
-            var wroteDirectly = await this.AddAreaToActiveProfileAsync(
-                humanId, kojiName, allowTrusted: fenceKnownToPoracle);
-
-            // The trusted call triggers PoracleNG's own state reload; the direct-DB write skips that
-            // hook, so PoracleNG needs another reload to see the changed area. Not made otherwise:
-            // GeoJSON import creates up to 50 fences through here, and each reload re-reads the state.
-            if (wroteDirectly)
-            {
-                await this.ReloadGeofencesSafeAsync();
-            }
+            // The fence is kept either way. When it could not be switched on the caller is told
+            // (ActivationFailed) so the user can retry with the toggle; nothing is written around
+            // PoracleNG. The user owns this fence (just created above), which authorises the name.
+            var activated = fenceKnownToPoracle && await this.TryAddToActiveProfileAsync(humanId, kojiName);
+            geofence.ActivationFailed = !activated;
         }
 
         // Set polygon on result from input
@@ -850,15 +836,24 @@ public partial class UserGeofenceService(
             throw new UnauthorizedAccessException("Geofence does not belong to this user.");
         }
 
-        // HACK: trusted-set-areas (see docs/poracleng-enhancement-requests.md)
-        // Prefers PoracleNG's v2 trusted setAreas; the direct-DB dual writer is now the fallback
-        // rather than the only path. See #838.
-        await this.AddAreaToActiveProfileAsync(humanId, geofence.KojiName);
+        // The user owns the fence (checked above), which authorises the name for the trusted write.
+        // False means "already on the profile" or "PoracleNG rejected the name". Reload and retry once
+        // for the second (PoracleNG may not have loaded the fence), then tell the two apart by reading
+        // the list: a name that is there is a successful, idempotent activate; one that is not is a
+        // failure the caller must see rather than a silent 204.
+        if (!await this._userAreaWriter.AddToActiveProfileAsync(humanId, geofence.KojiName))
+        {
+            await this.ReloadGeofencesSafeAsync();
+            if (!await this._userAreaWriter.AddToActiveProfileAsync(humanId, geofence.KojiName))
+            {
+                var held = await this._humanProxy.GetAreaListAsync(humanId);
+                if (!held.Contains(geofence.KojiName, StringComparer.OrdinalIgnoreCase))
+                {
+                    throw new GeofenceActivationFailedException(geofence.KojiName);
+                }
+            }
+        }
 
-        // The trusted setAreas call already triggers PoracleNG's own state reload; this manual one
-        // is only load-bearing for the direct-DB fallback, which skips that hook entirely. Harmless
-        // and redundant on the trusted path, so it stays unconditional rather than threading the
-        // path taken back out of a private helper that otherwise has no reason to report it.
         await this.ReloadGeofencesSafeAsync();
     }
 
@@ -879,10 +874,9 @@ public partial class UserGeofenceService(
             throw new UnauthorizedAccessException("Geofence does not belong to this user.");
         }
 
-        // HACK: trusted-set-areas — mirror of AddToProfileAsync, same trusted-first preference.
-        await this.RemoveAreaFromActiveProfileAsync(humanId, geofence.KojiName);
-        // Manual reload, same rationale as AddToProfileAsync: redundant on the trusted path,
-        // load-bearing on the direct-DB fallback.
+        // The user owns the fence (checked above), which authorises the name. False means it was
+        // not on the profile, which is the state the caller asked for.
+        _ = await this._userAreaWriter.RemoveFromActiveProfileAsync(humanId, geofence.KojiName);
         await this.ReloadGeofencesSafeAsync();
     }
 
@@ -913,44 +907,17 @@ public partial class UserGeofenceService(
     private static string PublicAreaName(UserGeofence geofence) =>
         string.IsNullOrEmpty(geofence.PromotedName) ? geofence.KojiName : geofence.PromotedName;
 
-    /// <summary>
-    /// Adds one area to the active profile, preferring PoracleNG's v2 trusted <c>setAreas</c> over the
-    /// direct-DB dual writer once #838's conditions allow it: the schema has to declare <c>trusted</c>
-    /// and area_security has to be confirmed off, because no self-reported signal distinguishes a
-    /// server carrying jfberry/PoracleNG#230's community-restriction fix from one that does not.
-    /// </summary>
-    /// <param name="humanId">The user.</param>
-    /// <param name="areaName">The area to add.</param>
-    /// <param name="allowTrusted">
-    /// False skips the trusted call, for a caller that could not make PoracleNG load the fence first.
-    /// </param>
-    /// <returns>True when the direct-DB writer did the write (PoracleNG needs a reload to see it).</returns>
-    private async Task<bool> AddAreaToActiveProfileAsync(string humanId, string areaName, bool allowTrusted = true)
+    /// <summary>True when the name is now on the active profile; false when PoracleNG rejected it or it was already there.</summary>
+    private async Task<bool> TryAddToActiveProfileAsync(string humanId, string name)
     {
-        if (allowTrusted && await this._humanProxy.AddAreaToActiveProfileTrustedAsync(humanId, areaName) is not null)
+        try
         {
+            return await this._userAreaWriter.AddToActiveProfileAsync(humanId, name);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            LogGeofenceActivationFailed(this._logger, ex, name);
             return false;
-        }
-
-        await this._areaWriter.AddAreaToActiveProfileAsync(humanId, areaName);
-        return true;
-    }
-
-    /// <summary>Bulk form of <see cref="AddAreaToActiveProfileAsync(string, string)"/>.</summary>
-    private async Task AddAreasToActiveProfileAsync(string humanId, IReadOnlyCollection<string> areaNames)
-    {
-        if (await this._humanProxy.AddAreasToActiveProfileTrustedAsync(humanId, areaNames) is null)
-        {
-            await this._areaWriter.AddAreasToActiveProfileAsync(humanId, areaNames);
-        }
-    }
-
-    /// <summary>Removes one area from the active profile, with the same trusted-first preference.</summary>
-    private async Task RemoveAreaFromActiveProfileAsync(string humanId, string areaName)
-    {
-        if (await this._humanProxy.RemoveAreaFromActiveProfileTrustedAsync(humanId, areaName) is null)
-        {
-            await this._areaWriter.RemoveAreaFromActiveProfileAsync(humanId, areaName);
         }
     }
 
@@ -972,6 +939,9 @@ public partial class UserGeofenceService(
 
     [System.Text.RegularExpressions.GeneratedRegex(@"^[a-zA-Z0-9 \-'.()&]+$")]
     private static partial System.Text.RegularExpressions.Regex MyRegex();
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Could not switch on new geofence '{KojiName}'; it is saved but inactive")]
+    private static partial void LogGeofenceActivationFailed(ILogger logger, Exception ex, string kojiName);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to deserialize polygon for geofence '{KojiName}'")]
     private static partial void LogPolygonDeserializationFailed(ILogger logger, Exception ex, string kojiName);

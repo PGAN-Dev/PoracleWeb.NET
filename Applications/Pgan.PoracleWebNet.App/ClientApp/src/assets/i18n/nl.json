@@ -1086,6 +1086,7 @@
     "DRAW_NEW": "Nieuwe Geofence Tekenen",
     "LIMIT_NOTICE": "Je hebt het maximum van {{max}} aangepaste geofences bereikt.",
     "SNACK_CREATED": "Geofence aangemaakt",
+    "SNACK_SAVED_NOT_ACTIVE": "Opgeslagen, maar het kon nog niet worden ingeschakeld. Gebruik de schakelaar om het opnieuw te proberen.",
     "SNACK_DELETED": "Geofence verwijderd",
     "SNACK_SUBMITTED": "Geofence ingediend voor beoordeling",
     "SNACK_ACTIVATED": "Geofence geactiveerd voor dit profiel",
