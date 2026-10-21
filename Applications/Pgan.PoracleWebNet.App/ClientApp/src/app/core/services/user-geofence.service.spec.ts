@@ -106,6 +106,25 @@ describe('UserGeofenceService', () => {
     req.flush(null);
   });
 
+  it.each(['delete', 'keep'] as const)('should send alarms=%s on delete', alarms => {
+    service.deleteGeofence(42, alarms).subscribe();
+
+    const req = httpMock.expectOne(r => r.url === `${API}/api/geofences/custom/42`);
+    expect(req.request.method).toBe('DELETE');
+    expect(req.request.params.get('alarms')).toBe(alarms);
+    req.flush(null);
+  });
+
+  it('should fetch the delete impact', () => {
+    let impact: unknown;
+    service.getDeleteImpact(42).subscribe(r => (impact = r));
+
+    const req = httpMock.expectOne(`${API}/api/geofences/custom/42/delete-impact`);
+    expect(req.request.method).toBe('GET');
+    req.flush({ widened: { pokemon: 2 }, total: 2 });
+    expect(impact).toEqual({ widened: { pokemon: 2 }, total: 2 });
+  });
+
   it('should fetch regions', () => {
     const regions = [
       { id: 1, name: 'downtown', displayName: 'Downtown' },

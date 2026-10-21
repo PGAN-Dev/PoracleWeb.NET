@@ -13,6 +13,8 @@ import { AdminGeofenceService } from '../../../core/services/admin-geofence.serv
 import { AreaService } from '../../../core/services/area.service';
 import { ConfigService } from '../../../core/services/config.service';
 import { UserGeofenceService } from '../../../core/services/user-geofence.service';
+import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { GeofenceDeleteDialogComponent } from '../../../shared/components/geofence-delete-dialog/geofence-delete-dialog.component';
 
 // Mock IntersectionObserver for jsdom
 global.IntersectionObserver = jest.fn().mockImplementation(() => ({
@@ -126,6 +128,7 @@ describe('GeofenceSubmissionsComponent', () => {
       adminDelete: jest.fn().mockReturnValue(of(null)),
       approveSubmission: jest.fn().mockReturnValue(of(mockGeofences[0])),
       getAll: jest.fn().mockReturnValue(of(geofences)),
+      getDeleteImpact: jest.fn().mockReturnValue(of({ widened: {}, total: 0 })),
       getSubmissions: jest.fn().mockReturnValue(of(geofences.filter(g => g.status === 'pending_review'))),
       rejectSubmission: jest.fn().mockReturnValue(of(mockGeofences[0])),
     };
@@ -510,7 +513,59 @@ describe('GeofenceSubmissionsComponent', () => {
     const geofence = component.allGeofences()[0];
     await component.adminDelete(geofence);
 
-    expect(adminGeofenceService.adminDelete).toHaveBeenCalledWith(geofence.id);
+    expect(adminGeofenceService.adminDelete).toHaveBeenCalledWith(geofence.id, 'delete');
+    expect(mockDialog.open.mock.calls[0][0]).toBe(ConfirmDialogComponent);
+  });
+
+  it('should ask about widened alarms and delete them by default', async () => {
+    setup();
+    component.ngOnInit();
+    adminGeofenceService.getDeleteImpact!.mockReturnValue(of({ widened: { quest: 2 }, total: 2 }));
+    mockDialog.open.mockReturnValue({ afterClosed: () => of('delete') });
+
+    const geofence = component.allGeofences()[0];
+    await component.adminDelete(geofence);
+
+    expect(adminGeofenceService.getDeleteImpact).toHaveBeenCalledWith(geofence.id);
+    expect(mockDialog.open).toHaveBeenCalledTimes(1);
+    expect(mockDialog.open.mock.calls[0][0]).toBe(GeofenceDeleteDialogComponent);
+    expect(mockDialog.open.mock.calls[0][1].data).toEqual({ name: geofence.displayName, count: 2 });
+    expect(adminGeofenceService.adminDelete).toHaveBeenCalledWith(geofence.id, 'delete');
+  });
+
+  it('should send keep when the admin keeps the alarms', async () => {
+    setup();
+    component.ngOnInit();
+    adminGeofenceService.getDeleteImpact!.mockReturnValue(of({ widened: { quest: 2 }, total: 2 }));
+    mockDialog.open.mockReturnValue({ afterClosed: () => of('keep') });
+
+    const geofence = component.allGeofences()[0];
+    await component.adminDelete(geofence);
+
+    expect(adminGeofenceService.adminDelete).toHaveBeenCalledWith(geofence.id, 'keep');
+  });
+
+  it('should not delete when the widened-alarms choice is cancelled', async () => {
+    setup();
+    component.ngOnInit();
+    adminGeofenceService.getDeleteImpact!.mockReturnValue(of({ widened: { quest: 2 }, total: 2 }));
+    mockDialog.open.mockReturnValue({ afterClosed: () => of(null) });
+
+    await component.adminDelete(component.allGeofences()[0]);
+
+    expect(adminGeofenceService.adminDelete).not.toHaveBeenCalled();
+  });
+
+  it('should not delete when the impact cannot be read', async () => {
+    setup();
+    component.ngOnInit();
+    adminGeofenceService.getDeleteImpact!.mockReturnValue(throwError(() => new Error('503')));
+
+    await component.adminDelete(component.allGeofences()[0]);
+
+    expect(mockDialog.open).not.toHaveBeenCalled();
+    expect(adminGeofenceService.adminDelete).not.toHaveBeenCalled();
+    expect(mockSnackBar.open).toHaveBeenCalledWith('ADMIN.SNACK_FAILED_DELETE_GEOFENCE', 'TOAST.OK', { duration: 3000 });
   });
 
   it('should not delete when dialog is cancelled', async () => {

@@ -355,18 +355,80 @@ public class UserGeofenceServiceTests
     // --- DeleteAsync ---
 
     [Fact]
-    public async Task DeleteAsyncDelegatesRemoveAllToAtomicWriterAndDeletesRecord()
+    public async Task DeleteAsyncRemovesTheNameThroughPoracleThenDeletesTheRowThenReloads()
+    {
+        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown" };
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
+        var order = new List<string>();
+        this._userAreaWriter.Setup(w => w.RemoveEverywhereAsync("u1", "downtown", true))
+            .Callback(() => order.Add("remove")).Returns(Task.CompletedTask);
+        this._repository.Setup(r => r.DeleteAsync(1)).Callback(() => order.Add("row")).Returns(Task.CompletedTask);
+        this._poracleApiProxy.Setup(p => p.ReloadGeofencesAsync()).Callback(() => order.Add("reload")).Returns(Task.CompletedTask);
+
+        await this._sut.DeleteAsync("u1", 1, 1, deleteWidenedAlarms: true);
+
+        Assert.Equal(["remove", "row", "reload"], order);
+        this._areaWriter.Verify(w => w.RemoveAreaFromAllProfilesAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task DeleteAsyncPassesKeepThrough()
     {
         var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown" };
         this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
 
-        await this._sut.DeleteAsync("u1", 1, 1);
+        await this._sut.DeleteAsync("u1", 1, 1, deleteWidenedAlarms: false);
 
-        // Atomic cross-profile removal goes through the writer, never the proxy.
-        this._areaWriter.Verify(w => w.RemoveAreaFromAllProfilesAsync("u1", "downtown"), Times.Once);
-        this._humanProxy.Verify(p => p.SetAreasAsync(It.IsAny<string>(), It.IsAny<string[]>()), Times.Never);
+        this._userAreaWriter.Verify(w => w.RemoveEverywhereAsync("u1", "downtown", false), Times.Once);
         this._repository.Verify(r => r.DeleteAsync(1), Times.Once);
-        this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Once);
+    }
+
+    /// <summary>
+    /// The row is the only record of the fence's name. Deleting it after PoracleNG failed to remove the name
+    /// would leave every profile subscribed to an area nothing serves, with no way to clean it up.
+    /// </summary>
+    [Fact]
+    public async Task DeleteAsyncKeepsTheRowWhenPoracleCannotRemoveTheName()
+    {
+        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown" };
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
+        this._userAreaWriter.Setup(w => w.RemoveEverywhereAsync("u1", "downtown", true))
+            .ThrowsAsync(new HttpRequestException("poracle down"));
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.DeleteAsync("u1", 1, 1, deleteWidenedAlarms: true));
+
+        this._repository.Verify(r => r.DeleteAsync(It.IsAny<int>()), Times.Never);
+        this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task GetDeleteImpactAsyncPreviewsTheOwnersName()
+    {
+        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown" };
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
+        var impact = new AreaDeleteImpact(new Dictionary<string, int> { ["pokemon"] = 2 }, 2);
+        this._userAreaWriter.Setup(w => w.PreviewRemovalAsync("u1", "downtown")).ReturnsAsync(impact);
+
+        Assert.Same(impact, await this._sut.GetDeleteImpactAsync("u1", 1));
+        this._userAreaWriter.Verify(w => w.RemoveEverywhereAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GetDeleteImpactAsyncRefusesAnotherUsersFence()
+    {
+        var geofence = new UserGeofence { Id = 1, HumanId = "other_user", KojiName = "downtown" };
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => this._sut.GetDeleteImpactAsync("u1", 1));
+        this._userAreaWriter.Verify(w => w.PreviewRemovalAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GetDeleteImpactAsyncThrowsWhenGeofenceNotFound()
+    {
+        this._repository.Setup(r => r.GetByIdAsync(99)).ReturnsAsync((UserGeofence?)null);
+
+        await Assert.ThrowsAsync<GeofenceNotFoundException>(() => this._sut.GetDeleteImpactAsync("u1", 99));
     }
 
     [Fact]
@@ -375,7 +437,8 @@ public class UserGeofenceServiceTests
         var geofence = new UserGeofence { Id = 1, HumanId = "other_user", KojiName = "pweb_other_user_downtown" };
         this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
 
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => this._sut.DeleteAsync("u1", 1, 1));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => this._sut.DeleteAsync("u1", 1, 1, true));
+        this._userAreaWriter.Verify(w => w.RemoveEverywhereAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
     }
 
     [Fact]
@@ -383,7 +446,7 @@ public class UserGeofenceServiceTests
     {
         this._repository.Setup(r => r.GetByIdAsync(99)).ReturnsAsync((UserGeofence?)null);
 
-        await Assert.ThrowsAsync<GeofenceNotFoundException>(() => this._sut.DeleteAsync("u1", 1, 99));
+        await Assert.ThrowsAsync<GeofenceNotFoundException>(() => this._sut.DeleteAsync("u1", 1, 99, true));
     }
 
     // --- SubmitForReviewAsync ---
@@ -826,10 +889,72 @@ public class UserGeofenceServiceTests
         this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
         this._humanProxy.Setup(p => p.GetHumanAsync("u1")).ReturnsAsync(MakeHumanJson("u1", "[\"downtown\"]"));
 
-        await this._sut.AdminDeleteAsync("admin1", 1);
+        await this._sut.AdminDeleteAsync("admin1", 1, true);
 
+        this._userAreaWriter.Verify(w => w.RemoveEverywhereAsync("u1", "downtown", true), Times.Once);
         this._repository.Verify(r => r.DeleteAsync(1), Times.Once);
         this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task AdminDeleteAsyncPassesKeepThrough()
+    {
+        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown", Status = "active" };
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
+
+        await this._sut.AdminDeleteAsync("admin1", 1, false);
+
+        this._userAreaWriter.Verify(w => w.RemoveEverywhereAsync("u1", "downtown", false), Times.Once);
+    }
+
+    /// <summary>
+    /// This used to log the failure and delete the row anyway, which left the owner's profiles holding a
+    /// name nothing would ever clean up.
+    /// </summary>
+    [Fact]
+    public async Task AdminDeleteAsyncKeepsTheRowWhenPoracleCannotRemoveTheName()
+    {
+        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown", Status = "active" };
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
+        this._userAreaWriter.Setup(w => w.RemoveEverywhereAsync("u1", "downtown", true))
+            .ThrowsAsync(new HttpRequestException("poracle down"));
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.AdminDeleteAsync("admin1", 1, true));
+
+        this._repository.Verify(r => r.DeleteAsync(It.IsAny<int>()), Times.Never);
+    }
+
+    /// <summary>An owner PoracleNG no longer has holds no areas, so there is nothing to clean and the row goes.</summary>
+    [Fact]
+    public async Task AdminDeleteAsyncDeletesTheRowWhenTheOwnerIsGoneFromPoracle()
+    {
+        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown", Status = "active" };
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
+        this._userAreaWriter.Setup(w => w.RemoveEverywhereAsync("u1", "downtown", true))
+            .ThrowsAsync(new AccountGoneException());
+
+        await this._sut.AdminDeleteAsync("admin1", 1, true);
+
+        this._repository.Verify(r => r.DeleteAsync(1), Times.Once);
+    }
+
+    [Fact]
+    public async Task AdminGetDeleteImpactAsyncPreviewsForTheOwner()
+    {
+        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown", Status = "active" };
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
+        var impact = new AreaDeleteImpact(new Dictionary<string, int>(), 0);
+        this._userAreaWriter.Setup(w => w.PreviewRemovalAsync("u1", "downtown")).ReturnsAsync(impact);
+
+        Assert.Same(impact, await this._sut.AdminGetDeleteImpactAsync(1));
+    }
+
+    [Fact]
+    public async Task AdminGetDeleteImpactAsyncThrowsWhenNotFound()
+    {
+        this._repository.Setup(r => r.GetByIdAsync(99)).ReturnsAsync((UserGeofence?)null);
+
+        await Assert.ThrowsAsync<GeofenceNotFoundException>(() => this._sut.AdminGetDeleteImpactAsync(99));
     }
 
     [Fact]
@@ -839,7 +964,7 @@ public class UserGeofenceServiceTests
         this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
         this._humanProxy.Setup(p => p.GetHumanAsync("u1")).ReturnsAsync(MakeHumanJson("u1", "[\"downtown official\"]"));
 
-        await this._sut.AdminDeleteAsync("admin1", 1);
+        await this._sut.AdminDeleteAsync("admin1", 1, true);
 
         this._kojiService.Verify(k => k.RemoveGeofenceFromProjectAsync("Downtown Official"), Times.Once);
     }
@@ -851,7 +976,7 @@ public class UserGeofenceServiceTests
         this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
         this._humanProxy.Setup(p => p.GetHumanAsync("u1")).ReturnsAsync(MakeHumanJson("u1", "[\"downtown\"]"));
 
-        await this._sut.AdminDeleteAsync("admin1", 1);
+        await this._sut.AdminDeleteAsync("admin1", 1, true);
 
         this._kojiService.Verify(k => k.RemoveGeofenceFromProjectAsync(It.IsAny<string>()), Times.Never);
     }
@@ -861,7 +986,7 @@ public class UserGeofenceServiceTests
     {
         this._repository.Setup(r => r.GetByIdAsync(99)).ReturnsAsync((UserGeofence?)null);
 
-        await Assert.ThrowsAsync<GeofenceNotFoundException>(() => this._sut.AdminDeleteAsync("admin1", 99));
+        await Assert.ThrowsAsync<GeofenceNotFoundException>(() => this._sut.AdminDeleteAsync("admin1", 99, true));
     }
 
     // --- GetAllAsync ---
@@ -1414,7 +1539,7 @@ public class UserGeofenceServiceTests
         // The orphan case: status is no longer "approved" but the fence is still public in Koji.
         this.SeedGeofence("rejected", promotedName: "Downtown Official");
 
-        await this._sut.AdminDeleteAsync("admin1", 7);
+        await this._sut.AdminDeleteAsync("admin1", 7, true);
 
         this._kojiService.Verify(k => k.RemoveGeofenceFromProjectAsync("Downtown Official"), Times.Once);
     }
@@ -1426,9 +1551,9 @@ public class UserGeofenceServiceTests
         // left them subscribed to a fence that no longer exists.
         this.SeedGeofence("rejected", promotedName: "Downtown Official");
 
-        await this._sut.AdminDeleteAsync("admin1", 7);
+        await this._sut.AdminDeleteAsync("admin1", 7, true);
 
-        this._areaWriter.Verify(w => w.RemoveAreaFromAllProfilesAsync("u1", "downtown official"), Times.Once);
+        this._userAreaWriter.Verify(w => w.RemoveEverywhereAsync("u1", "downtown official", true), Times.Once);
     }
 
     [Fact]
@@ -1436,10 +1561,10 @@ public class UserGeofenceServiceTests
     {
         this.SeedGeofence("active");
 
-        await this._sut.AdminDeleteAsync("admin1", 7);
+        await this._sut.AdminDeleteAsync("admin1", 7, true);
 
         this._kojiService.Verify(k => k.RemoveGeofenceFromProjectAsync(It.IsAny<string>()), Times.Never);
-        this._areaWriter.Verify(w => w.RemoveAreaFromAllProfilesAsync("u1", "downtown"), Times.Once);
+        this._userAreaWriter.Verify(w => w.RemoveEverywhereAsync("u1", "downtown", true), Times.Once);
     }
 
     [Fact]
@@ -1448,10 +1573,23 @@ public class UserGeofenceServiceTests
         // The owner's own delete had the identical hole.
         this.SeedGeofence("approved", promotedName: "Downtown Official");
 
-        await this._sut.DeleteAsync("u1", 1, 7);
+        await this._sut.DeleteAsync("u1", 1, 7, true);
 
         this._kojiService.Verify(k => k.RemoveGeofenceFromProjectAsync("Downtown Official"), Times.Once);
-        this._areaWriter.Verify(w => w.RemoveAreaFromAllProfilesAsync("u1", "downtown official"), Times.Once);
+        this._userAreaWriter.Verify(w => w.RemoveEverywhereAsync("u1", "downtown official", true), Times.Once);
+    }
+
+    /// <summary>The preview must ask about the name the delete will remove, or its count is for another fence.</summary>
+    [Fact]
+    public async Task GetDeleteImpactAsyncUsesThePromotedName()
+    {
+        this.SeedGeofence("approved", promotedName: "Downtown Official");
+        this._userAreaWriter.Setup(w => w.PreviewRemovalAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(new AreaDeleteImpact(new Dictionary<string, int>(), 0));
+
+        await this._sut.GetDeleteImpactAsync("u1", 7);
+
+        this._userAreaWriter.Verify(w => w.PreviewRemovalAsync("u1", "downtown official"), Times.Once);
     }
 
     [Fact]
@@ -1462,7 +1600,7 @@ public class UserGeofenceServiceTests
             .Setup(k => k.RemoveGeofenceFromProjectAsync(It.IsAny<string>()))
             .ThrowsAsync(new HttpRequestException("koji down"));
 
-        await this._sut.DeleteAsync("u1", 1, 7);
+        await this._sut.DeleteAsync("u1", 1, 7, true);
 
         this._repository.Verify(r => r.DeleteAsync(7), Times.Once);
     }

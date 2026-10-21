@@ -25,7 +25,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import * as L from 'leaflet';
 import { firstValueFrom } from 'rxjs';
 
-import { GeofenceData, GeofenceRegion, UserGeofence } from '../../../core/models';
+import { GeofenceAlarmsChoice, GeofenceData, GeofenceDeleteImpact, GeofenceRegion, UserGeofence } from '../../../core/models';
 import { AdminGeofenceService } from '../../../core/services/admin-geofence.service';
 import { AreaService } from '../../../core/services/area.service';
 import { BasemapService } from '../../../core/services/basemap.service';
@@ -37,6 +37,10 @@ import {
   GeofenceApprovalDialogData,
   GeofenceApprovalDialogResult,
 } from '../../../shared/components/geofence-approval-dialog/geofence-approval-dialog.component';
+import {
+  GeofenceDeleteDialogComponent,
+  GeofenceDeleteDialogData,
+} from '../../../shared/components/geofence-delete-dialog/geofence-delete-dialog.component';
 import { GeofenceDetailDialogComponent } from '../../../shared/components/geofence-detail-dialog/geofence-detail-dialog.component';
 import { GEOFENCE_STATUS_COLORS } from '../../../shared/utils/geofence.utils';
 
@@ -174,34 +178,56 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
     });
   }
 
+  /** The same choice the owner gets: asked only when deleting would widen some of the owner's alarms. */
   async adminDelete(geofence: UserGeofence): Promise<void> {
     const name = geofence.displayName;
     const owner = geofence.ownerName ?? geofence.humanId;
-    const ref = this.dialog.open(ConfirmDialogComponent, {
-      data: {
-        confirmText: this.i18n.instant('COMMON.DELETE'),
-        message: this.i18n.instant('ADMIN.CONFIRM_DELETE_GEOFENCE', { name, owner }),
-        title: this.i18n.instant('ADMIN.ADMIN_DELETE_GEOFENCE'),
-        warn: true,
-      } as ConfirmDialogData,
-    });
-    const confirmed = await firstValueFrom(ref.afterClosed());
-    if (confirmed) {
-      this.adminGeofenceService
-        .adminDelete(geofence.id)
-        .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe({
-          error: () =>
-            this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_DELETE_GEOFENCE'), this.i18n.instant('TOAST.OK'), { duration: 3000 }),
-          next: () => {
-            this.destroyMap(geofence.id);
-            this.allGeofences.update(list => list.filter(g => g.id !== geofence.id));
-            this.snackBar.open(this.i18n.instant('ADMIN.SNACK_GEOFENCE_DELETED', { name }), this.i18n.instant('TOAST.OK'), {
-              duration: 3000,
-            });
-          },
-        });
+    const failed = () =>
+      this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_DELETE_GEOFENCE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+
+    let impact: GeofenceDeleteImpact;
+    try {
+      impact = await firstValueFrom(this.adminGeofenceService.getDeleteImpact(geofence.id));
+    } catch {
+      failed();
+      return;
     }
+
+    let alarms: GeofenceAlarmsChoice;
+    if (impact.total > 0) {
+      const ref = this.dialog.open<GeofenceDeleteDialogComponent, GeofenceDeleteDialogData, GeofenceAlarmsChoice | null>(
+        GeofenceDeleteDialogComponent,
+        { data: { name, count: impact.total } },
+      );
+      const choice = await firstValueFrom(ref.afterClosed());
+      if (!choice) return;
+      alarms = choice;
+    } else {
+      const ref = this.dialog.open(ConfirmDialogComponent, {
+        data: {
+          confirmText: this.i18n.instant('COMMON.DELETE'),
+          message: this.i18n.instant('ADMIN.CONFIRM_DELETE_GEOFENCE', { name, owner }),
+          title: this.i18n.instant('ADMIN.ADMIN_DELETE_GEOFENCE'),
+          warn: true,
+        } as ConfirmDialogData,
+      });
+      if (!(await firstValueFrom(ref.afterClosed()))) return;
+      alarms = 'delete';
+    }
+
+    this.adminGeofenceService
+      .adminDelete(geofence.id, alarms)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        error: failed,
+        next: () => {
+          this.destroyMap(geofence.id);
+          this.allGeofences.update(list => list.filter(g => g.id !== geofence.id));
+          this.snackBar.open(this.i18n.instant('ADMIN.SNACK_GEOFENCE_DELETED', { name }), this.i18n.instant('TOAST.OK'), {
+            duration: 3000,
+          });
+        },
+      });
   }
 
   /**

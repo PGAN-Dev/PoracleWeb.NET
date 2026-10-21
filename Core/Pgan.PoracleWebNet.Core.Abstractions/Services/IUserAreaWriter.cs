@@ -27,4 +27,18 @@ public interface IUserAreaWriter
     /// Does not authorise the name: the caller must have (for a user fence, that the user owns it).
     /// </summary>
     public Task<bool> RemoveFromActiveProfileAsync(string humanId, string name);
+
+    /// <summary>
+    /// Asks PoracleNG, without writing anything, which of the human's rules would widen if
+    /// <paramref name="name"/> were removed everywhere: the rules whose only override area it is.
+    /// </summary>
+    public Task<AreaDeleteImpact> PreviewRemovalAsync(string humanId, string name);
+
+    /// <summary>
+    /// Removes <paramref name="name"/> from every profile's area list and from every rule's override areas.
+    /// With <paramref name="deleteWidenedAlarms"/>, the rules that would widen are deleted first, on every
+    /// profile, so none of them is left matching across the profile's areas. Throws when PoracleNG refuses
+    /// or cannot be reached; the caller must not treat the name as gone in that case.
+    /// </summary>
+    public Task RemoveEverywhereAsync(string humanId, string name, bool deleteWidenedAlarms);
 }

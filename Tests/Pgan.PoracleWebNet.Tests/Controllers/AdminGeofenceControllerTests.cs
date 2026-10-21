@@ -127,18 +127,92 @@ public class AdminGeofenceControllerTests : ControllerTestBase
     [Fact]
     public async Task AdminDeleteReturnsNoContent()
     {
-        this._service.Setup(s => s.AdminDeleteAsync("123456789", 1)).Returns(Task.CompletedTask);
+        this._service.Setup(s => s.AdminDeleteAsync("123456789", 1, true)).Returns(Task.CompletedTask);
 
         var result = await this._sut.AdminDelete(1);
 
         Assert.IsType<NoContentResult>(result);
-        this._service.Verify(s => s.AdminDeleteAsync("123456789", 1), Times.Once);
+        this._service.Verify(s => s.AdminDeleteAsync("123456789", 1, true), Times.Once);
+    }
+
+    [Theory]
+    [InlineData("delete", true)]
+    [InlineData("keep", false)]
+    public async Task AdminDeletePassesTheAlarmsChoice(string alarms, bool deleteWidened)
+    {
+        var result = await this._sut.AdminDelete(1, alarms);
+
+        Assert.IsType<NoContentResult>(result);
+        this._service.Verify(s => s.AdminDeleteAsync("123456789", 1, deleteWidened), Times.Once);
+    }
+
+    [Fact]
+    public async Task AdminDeleteRefusesAnUnknownAlarmsChoice()
+    {
+        var result = await this._sut.AdminDelete(1, "bogus");
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        this._service.Verify(s => s.AdminDeleteAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<bool>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task AdminDeleteLetsAPoracleOutageReachTheFilter()
+    {
+        this._service.Setup(s => s.AdminDeleteAsync("123456789", 1, true))
+            .ThrowsAsync(new HttpRequestException("connection refused"));
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.AdminDelete(1));
+    }
+
+    [Fact]
+    public async Task GetDeleteImpactAnswersWidenedCountsAndTotal()
+    {
+        this._service.Setup(s => s.AdminGetDeleteImpactAsync(1))
+            .ReturnsAsync(new AreaDeleteImpact(new Dictionary<string, int> { ["quest"] = 4 }, 4));
+
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetDeleteImpact(1));
+
+        Assert.Equal("{\"widened\":{\"quest\":4},\"total\":4}", System.Text.Json.JsonSerializer.Serialize(ok.Value));
+    }
+
+    [Fact]
+    public async Task GetDeleteImpactReturnsNotFoundWhenNotExists()
+    {
+        this._service.Setup(s => s.AdminGetDeleteImpactAsync(99)).ThrowsAsync(new GeofenceNotFoundException(99));
+
+        Assert.IsType<NotFoundObjectResult>(await this._sut.GetDeleteImpact(99));
+    }
+
+    [Fact]
+    public async Task GetDeleteImpactReturnsForbidWhenNotAdmin()
+    {
+        SetupUser(this._sut, isAdmin: false);
+
+        Assert.IsType<ForbidResult>(await this._sut.GetDeleteImpact(1));
+        this._service.Verify(s => s.AdminGetDeleteImpactAsync(It.IsAny<int>()), Times.Never);
+    }
+
+    private static bool CarriesPoracleFilter(System.Reflection.MemberInfo member) =>
+        member.GetCustomAttributes(typeof(TypeFilterAttribute), true).Cast<TypeFilterAttribute>()
+            .Any(a => a.ImplementationType == typeof(Pgan.PoracleWebNet.Api.Filters.PoracleUnreachableExceptionFilter));
+
+    /// <summary>
+    /// On the two delete actions only. Approve calls Koji's save without catching a connection failure, so
+    /// a class-level filter would report a Koji outage as "PoracleNG could not be reached".
+    /// </summary>
+    [Fact]
+    public void ThePoracleUnreachableFilterIsOnTheDeleteActionsOnly()
+    {
+        Assert.False(CarriesPoracleFilter(typeof(AdminGeofenceController)));
+        Assert.True(CarriesPoracleFilter(typeof(AdminGeofenceController).GetMethod(nameof(AdminGeofenceController.AdminDelete))!));
+        Assert.True(CarriesPoracleFilter(typeof(AdminGeofenceController).GetMethod(nameof(AdminGeofenceController.GetDeleteImpact))!));
+        Assert.False(CarriesPoracleFilter(typeof(AdminGeofenceController).GetMethod(nameof(AdminGeofenceController.ApproveSubmission))!));
     }
 
     [Fact]
     public async Task AdminDeleteReturnsNotFoundWhenNotExists()
     {
-        this._service.Setup(s => s.AdminDeleteAsync("123456789", 99))
+        this._service.Setup(s => s.AdminDeleteAsync("123456789", 99, true))
             .ThrowsAsync(new GeofenceNotFoundException(99));
 
         var result = await this._sut.AdminDelete(99);
@@ -378,7 +452,7 @@ public class AdminGeofenceControllerTests : ControllerTestBase
     public async Task AdminDeleteReturnsBadRequestForAValidationFailure()
     {
         this._service
-            .Setup(s => s.AdminDeleteAsync(It.IsAny<string>(), It.IsAny<int>()))
+            .Setup(s => s.AdminDeleteAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<bool>()))
             .ThrowsAsync(new InvalidOperationException("something invalid"));
 
         var result = await this._sut.AdminDelete(1);

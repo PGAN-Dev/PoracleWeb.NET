@@ -580,6 +580,15 @@ export interface UserGeofence {
   updatedAt: string;
 }
 
+/** What `?alarms=` tells a fence delete to do with alarms limited to that fence alone. */
+export type GeofenceAlarmsChoice = 'delete' | 'keep';
+
+/** Alarms limited to one fence alone, per PoracleNG tracking type. Deleting the fence would widen them. */
+export interface GeofenceDeleteImpact {
+  total: number;
+  widened: Record<string, number>;
+}
+
 export interface UserGeofenceCreate {
   displayName: string;
   groupName: string;

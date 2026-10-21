@@ -101,6 +101,23 @@ describe('AdminGeofenceService', () => {
     req.flush(null);
   });
 
+  it.each(['delete', 'keep'] as const)('should send alarms=%s on admin delete', alarms => {
+    service.adminDelete(42, alarms).subscribe();
+
+    const req = httpMock.expectOne(r => r.url === `${API}/api/admin/geofences/42`);
+    expect(req.request.method).toBe('DELETE');
+    expect(req.request.params.get('alarms')).toBe(alarms);
+    req.flush(null);
+  });
+
+  it('should fetch the delete impact as admin', () => {
+    service.getDeleteImpact(42).subscribe();
+
+    const req = httpMock.expectOne(`${API}/api/admin/geofences/42/delete-impact`);
+    expect(req.request.method).toBe('GET');
+    req.flush({ widened: {}, total: 0 });
+  });
+
   it('should include reviewedByName and reviewedByAvatarUrl in responses', () => {
     const geofences = [
       {

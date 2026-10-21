@@ -304,7 +304,28 @@ public partial class UserGeofenceService(
         }
     }
 
-    public async Task DeleteAsync(string humanId, int profileNo, int id)
+    public async Task<AreaDeleteImpact> GetDeleteImpactAsync(string humanId, int id)
+    {
+        var geofence = await this._repository.GetByIdAsync(id)
+            ?? throw new GeofenceNotFoundException(id);
+
+        if (!string.Equals(geofence.HumanId, humanId, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new UnauthorizedAccessException("Geofence does not belong to this user.");
+        }
+
+        return await this._userAreaWriter.PreviewRemovalAsync(humanId, PublicAreaName(geofence).ToLowerInvariant());
+    }
+
+    public async Task<AreaDeleteImpact> AdminGetDeleteImpactAsync(int id)
+    {
+        var geofence = await this._repository.GetByIdAsync(id)
+            ?? throw new GeofenceNotFoundException(id);
+
+        return await this._userAreaWriter.PreviewRemovalAsync(geofence.HumanId, PublicAreaName(geofence).ToLowerInvariant());
+    }
+
+    public async Task DeleteAsync(string humanId, int profileNo, int id, bool deleteWidenedAlarms)
     {
         var geofence = await this._repository.GetByIdAsync(id)
             ?? throw new GeofenceNotFoundException(id);
@@ -332,10 +353,11 @@ public partial class UserGeofenceService(
         // editing. The polygon is about to stop existing, and leaving its name in every profile's area
         // list would subscribe those profiles to something Poracle can no longer resolve. See #505.
         //
-        // HACK: trusted-set-areas (see docs/poracleng-enhancement-requests.md)
-        // Atomic direct-DB removal from humans.area + every profiles.area row. Uses the promoted name
-        // when there is one — that is what the owner is actually subscribed to after an approval.
-        await this._areaWriter.RemoveAreaFromAllProfilesAsync(humanId, PublicAreaName(geofence).ToLowerInvariant());
+        // Removes the name from every profile and every alarm's override areas, through PoracleNG. Uses the
+        // promoted name when there is one: that is what the owner is subscribed to after an approval, and
+        // what GetDeleteImpactAsync previewed. If this throws, the row stays: it is the only record of the
+        // name, and deleting it would leave profiles holding an area nothing serves or can clean up.
+        await this._userAreaWriter.RemoveEverywhereAsync(humanId, PublicAreaName(geofence).ToLowerInvariant(), deleteWidenedAlarms);
 
         // Delete from local DB
         await this._repository.DeleteAsync(id);
@@ -417,7 +439,7 @@ public partial class UserGeofenceService(
         }
     }
 
-    public async Task AdminDeleteAsync(string adminId, int id)
+    public async Task AdminDeleteAsync(string adminId, int id, bool deleteWidenedAlarms)
     {
         var geofence = await this._repository.GetByIdAsync(id)
             ?? throw new GeofenceNotFoundException(id);
@@ -438,16 +460,17 @@ public partial class UserGeofenceService(
             }
         }
 
-        // Remove from user's area across all profiles
+        // Remove from the owner's areas across all profiles, as DeleteAsync does. A failure used to be logged
+        // and the row deleted anyway, stranding the name in the owner's lists; now it stops the delete. An
+        // owner PoracleNG no longer has holds no areas, so that one case goes ahead.
         try
         {
-            var areaName = PublicAreaName(geofence).ToLowerInvariant();
-            // HACK: trusted-set-areas (see docs/poracleng-enhancement-requests.md)
-            await this._areaWriter.RemoveAreaFromAllProfilesAsync(geofence.HumanId, areaName);
+            await this._userAreaWriter.RemoveEverywhereAsync(
+                geofence.HumanId, PublicAreaName(geofence).ToLowerInvariant(), deleteWidenedAlarms);
         }
-        catch (Exception ex)
+        catch (AccountGoneException)
         {
-            LogAreaRemovalFailed(this._logger, ex, geofence.KojiName);
+            LogAreaOwnerGone(this._logger, geofence.KojiName, geofence.HumanId);
         }
 
         await this._repository.DeleteAsync(id);
@@ -955,8 +978,8 @@ public partial class UserGeofenceService(
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to remove approved geofence '{KojiName}' from Koji during admin delete")]
     private static partial void LogKojiRemovalFailed(ILogger logger, Exception ex, string kojiName);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to remove area for geofence '{KojiName}' during admin delete")]
-    private static partial void LogAreaRemovalFailed(ILogger logger, Exception ex, string kojiName);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Owner {HumanId} of geofence '{KojiName}' is gone from PoracleNG; no areas to remove")]
+    private static partial void LogAreaOwnerGone(ILogger logger, string kojiName, string humanId);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Admin {AdminId} deleted geofence '{KojiName}' (ID {Id}, status: {Status})")]
     private static partial void LogAdminDeletedGeofence(ILogger logger, string adminId, string kojiName, int id, string status);

@@ -116,17 +116,90 @@ public class UserGeofenceControllerTests : ControllerTestBase
     [Fact]
     public async Task DeleteGeofenceReturnsNoContent()
     {
-        this._service.Setup(s => s.DeleteAsync("123456789", 1, 42)).Returns(Task.CompletedTask);
+        this._service.Setup(s => s.DeleteAsync("123456789", 1, 42, true)).Returns(Task.CompletedTask);
 
         var result = await this._sut.DeleteGeofence(42);
 
         Assert.IsType<NoContentResult>(result);
+        // No choice sent means the default: alarms limited to the fence go with it.
+        this._service.Verify(s => s.DeleteAsync("123456789", 1, 42, true), Times.Once);
     }
+
+    [Theory]
+    [InlineData("delete", true)]
+    [InlineData("keep", false)]
+    public async Task DeleteGeofencePassesTheAlarmsChoice(string alarms, bool deleteWidened)
+    {
+        var result = await this._sut.DeleteGeofence(42, alarms);
+
+        Assert.IsType<NoContentResult>(result);
+        this._service.Verify(s => s.DeleteAsync("123456789", 1, 42, deleteWidened), Times.Once);
+    }
+
+    [Theory]
+    [InlineData("bogus")]
+    [InlineData("DELETE ALL")]
+    public async Task DeleteGeofenceRefusesAnUnknownAlarmsChoice(string alarms)
+    {
+        var result = await this._sut.DeleteGeofence(42, alarms);
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        this._service.Verify(s => s.DeleteAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<bool>()), Times.Never);
+    }
+
+    /// <summary>
+    /// The filter turns this into a 503 naming PoracleNG. The action must not swallow it into a 204 (the
+    /// fence was not deleted) or a 404 (it still exists).
+    /// </summary>
+    [Fact]
+    public async Task DeleteGeofenceLetsAPoracleOutageReachTheFilter()
+    {
+        this._service.Setup(s => s.DeleteAsync("123456789", 1, 42, true))
+            .ThrowsAsync(new HttpRequestException("connection refused"));
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.DeleteGeofence(42));
+    }
+
+    [Fact]
+    public async Task GetDeleteImpactAnswersWidenedCountsAndTotal()
+    {
+        this._service.Setup(s => s.GetDeleteImpactAsync("123456789", 42))
+            .ReturnsAsync(new AreaDeleteImpact(new Dictionary<string, int> { ["pokemon"] = 2, ["raid"] = 1 }, 3));
+
+        var result = await this._sut.GetDeleteImpact(42);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var json = System.Text.Json.JsonSerializer.Serialize(ok.Value);
+        Assert.Equal("{\"widened\":{\"pokemon\":2,\"raid\":1},\"total\":3}", json);
+    }
+
+    [Fact]
+    public async Task GetDeleteImpactReturnsNotFoundWhenNotExists()
+    {
+        this._service.Setup(s => s.GetDeleteImpactAsync("123456789", 99)).ThrowsAsync(new GeofenceNotFoundException(99));
+
+        Assert.IsType<NotFoundObjectResult>(await this._sut.GetDeleteImpact(99));
+    }
+
+    [Fact]
+    public async Task GetDeleteImpactReturnsForbidWhenNotOwned()
+    {
+        this._service.Setup(s => s.GetDeleteImpactAsync("123456789", 42))
+            .ThrowsAsync(new UnauthorizedAccessException("Geofence does not belong to this user."));
+
+        Assert.IsType<ForbidResult>(await this._sut.GetDeleteImpact(42));
+    }
+
+    [Fact]
+    public void ControllerCarriesThePoracleUnreachableFilter() =>
+        Assert.Contains(
+            typeof(UserGeofenceController).GetCustomAttributes(typeof(TypeFilterAttribute), true).Cast<TypeFilterAttribute>(),
+            a => a.ImplementationType == typeof(Pgan.PoracleWebNet.Api.Filters.PoracleUnreachableExceptionFilter));
 
     [Fact]
     public async Task DeleteGeofenceReturnsNotFoundWhenNotExists()
     {
-        this._service.Setup(s => s.DeleteAsync("123456789", 1, 99))
+        this._service.Setup(s => s.DeleteAsync("123456789", 1, 99, true))
             .ThrowsAsync(new InvalidOperationException("Geofence with ID 99 not found."));
 
         var result = await this._sut.DeleteGeofence(99);
@@ -137,7 +210,7 @@ public class UserGeofenceControllerTests : ControllerTestBase
     [Fact]
     public async Task DeleteGeofenceReturnsForbidWhenNotOwned()
     {
-        this._service.Setup(s => s.DeleteAsync("123456789", 1, 42))
+        this._service.Setup(s => s.DeleteAsync("123456789", 1, 42, true))
             .ThrowsAsync(new UnauthorizedAccessException("Geofence does not belong to this user."));
 
         var result = await this._sut.DeleteGeofence(42);
@@ -149,11 +222,11 @@ public class UserGeofenceControllerTests : ControllerTestBase
     public async Task DeleteGeofenceUsesUserIdAndProfileNoFromClaims()
     {
         SetupUser(this._sut, userId: "777", profileNo: 4);
-        this._service.Setup(s => s.DeleteAsync("777", 4, 10)).Returns(Task.CompletedTask);
+        this._service.Setup(s => s.DeleteAsync("777", 4, 10, true)).Returns(Task.CompletedTask);
 
         await this._sut.DeleteGeofence(10);
 
-        this._service.Verify(s => s.DeleteAsync("777", 4, 10), Times.Once);
+        this._service.Verify(s => s.DeleteAsync("777", 4, 10, true), Times.Once);
     }
 
     // --- SubmitForReview ---
