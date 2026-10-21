@@ -56,7 +56,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IWebhookDelegateRepository, WebhookDelegateRepository>();
         services.AddScoped<IQuickPickDefinitionRepository, QuickPickDefinitionRepository>();
         services.AddScoped<IQuickPickAppliedStateRepository, QuickPickAppliedStateRepository>();
-        services.AddScoped<IUserAreaDualWriter, UserAreaDualWriter>();
+        services.AddScoped<IAlarmOverrideAreaWriter, AlarmOverrideAreaWriter>();
         services.AddScoped<IOidcSessionRepository, OidcSessionRepository>();
 
         // Register Services
@@ -91,7 +91,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPokemonEditCapabilityService, PokemonEditCapabilityService>();
         services.AddScoped<IInvasionGruntNameService, InvasionGruntNameService>();
         services.AddScoped<IUpstreamFeatureFlagService, UpstreamFeatureFlagService>();
-        services.AddScoped<IAreaSecurityPolicyService, AreaSecurityPolicyService>();
         services.AddScoped<IFeatureGate, FeatureGate>();
         services.AddScoped<IWebhookDelegateService, WebhookDelegateService>();
         services.AddScoped<ISettingsMigrationService, SettingsMigrationService>();
@@ -160,7 +159,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPoracleTrackingProxy>(sp => new UserOwnedOverrideAreaProxy(
             sp.GetRequiredService<PoracleTrackingProxy>(),
             sp.GetRequiredService<IUserGeofenceRepository>(),
-            sp.GetRequiredService<IUserAreaDualWriter>(),
+            sp.GetRequiredService<IAlarmOverrideAreaWriter>(),
             sp.GetRequiredService<ILogger<UserOwnedOverrideAreaProxy>>()));
 
         // Pokestop events (upstream "incident") are v2-only, so they get their own proxy rather than a

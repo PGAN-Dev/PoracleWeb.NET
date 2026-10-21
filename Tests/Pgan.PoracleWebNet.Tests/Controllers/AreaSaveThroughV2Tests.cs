@@ -76,7 +76,6 @@ public class AreaSaveThroughV2Tests : ControllerTestBase
             })
             .Build(),
         PoracleHumanProxyTests.V2Schema(new PoracleV2Capabilities { Read = true }),
-        PoracleHumanProxyTests.AreaSecurityPolicy(),
         Mock.Of<ILogger<PoracleHumanProxy>>());
 
     private sealed record Reply(string Body);

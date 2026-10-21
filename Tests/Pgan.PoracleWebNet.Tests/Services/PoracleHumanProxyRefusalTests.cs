@@ -37,7 +37,6 @@ public class PoracleHumanProxyRefusalTests
             })
             .Build(),
             PoracleHumanProxyTests.V2Schema(),
-            PoracleHumanProxyTests.AreaSecurityPolicy(),
             Mock.Of<ILogger<PoracleHumanProxy>>());
 
     private static PoracleHumanProxy Refusing(HttpStatusCode status, string body) =>

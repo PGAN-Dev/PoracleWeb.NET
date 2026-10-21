@@ -45,12 +45,12 @@ namespace Pgan.PoracleWebNet.Core.Services;
 public partial class UserOwnedOverrideAreaProxy(
     IPoracleTrackingProxy inner,
     IUserGeofenceRepository geofences,
-    IUserAreaDualWriter areaWriter,
+    IAlarmOverrideAreaWriter areaWriter,
     ILogger<UserOwnedOverrideAreaProxy> logger) : IPoracleTrackingProxy
 {
     private readonly IPoracleTrackingProxy _inner = inner;
     private readonly IUserGeofenceRepository _geofences = geofences;
-    private readonly IUserAreaDualWriter _areaWriter = areaWriter;
+    private readonly IAlarmOverrideAreaWriter _areaWriter = areaWriter;
     private readonly ILogger<UserOwnedOverrideAreaProxy> _logger = logger;
 
     public Task<JsonElement> GetByUserAsync(string type, string userId) =>

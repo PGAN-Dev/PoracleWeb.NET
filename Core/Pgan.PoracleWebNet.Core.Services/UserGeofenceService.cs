@@ -15,7 +15,6 @@ public partial class UserGeofenceService(
     IPoracleApiProxy poracleApiProxy,
     IPoracleHumanProxy humanProxy,
     IHumanService humanService,
-    IUserAreaDualWriter areaWriter,
     IUserAreaWriter userAreaWriter,
     IDiscordNotificationService discordNotificationService,
     IFeatureGate featureGate,
@@ -29,7 +28,6 @@ public partial class UserGeofenceService(
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly IHumanService _humanService = humanService;
-    private readonly IUserAreaDualWriter _areaWriter = areaWriter;
     private readonly IUserAreaWriter _userAreaWriter = userAreaWriter;
     private readonly IDiscordNotificationService _discordNotificationService = discordNotificationService;
     private readonly IFeatureGate _featureGate = featureGate;

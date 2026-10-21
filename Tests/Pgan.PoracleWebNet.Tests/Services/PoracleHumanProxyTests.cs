@@ -42,7 +42,7 @@ public class PoracleHumanProxyTests
     {
         var client = new HttpClient(handler);
         return new PoracleHumanProxy(
-            client, config ?? CreateConfig(), V2Schema(), AreaSecurityPolicy(),
+            client, config ?? CreateConfig(), V2Schema(),
             Mock.Of<ILogger<PoracleHumanProxy>>());
     }
 
@@ -58,18 +58,6 @@ public class PoracleHumanProxyTests
             .ReturnsAsync(capabilities ?? PoracleV2Capabilities.None);
 
         return schema.Object;
-    }
-
-    /// <summary>
-    /// An area-security policy answering the given confirmed-disabled state. Defaults to false, matching
-    /// the real service's fail-closed stance -- a test exercising a trusted-area method must opt in
-    /// explicitly rather than inherit a safe-by-accident default.
-    /// </summary>
-    internal static IAreaSecurityPolicyService AreaSecurityPolicy(bool confirmedDisabled = false)
-    {
-        var policy = new Mock<IAreaSecurityPolicyService>();
-        policy.Setup(p => p.IsConfirmedDisabledAsync()).ReturnsAsync(confirmedDisabled);
-        return policy.Object;
     }
 
     /// <summary>A server profile reporting the given version, or an unreachable one when null.</summary>

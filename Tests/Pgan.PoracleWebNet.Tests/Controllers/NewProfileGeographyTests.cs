@@ -138,24 +138,34 @@ public class NewProfileGeographyTests : ControllerTestBase
 
     [Theory]
     [MemberData(nameof(Endpoints))]
-    public async Task WhereTrustedIsNotAvailableTheAreasGoUntrustedAndTheRequestStillSucceeds(string endpoint)
+    public async Task ANewProfileKeepsTheUsersOwnDrawnFencesWhateverAreaSecurityIs(string endpoint)
     {
+        // A drawn fence is userSelectable:false, so it only survives a trusted write. There is no longer
+        // any area_security gate in front of that: the proxy sends trusted whenever there is a list.
         var handler = new Routed();
 
-        await this.RunAsync(endpoint, handler, confirmedDisabled: false);
+        await this.RunAsync(endpoint, handler);
 
         var areas = Assert.Single(handler.Requests, r => r.Path == "/api/v2/humans/123456789/areas");
         using var body = JsonDocument.Parse(areas.Body!);
-        Assert.False(body.RootElement.TryGetProperty("trusted", out _));
-        Assert.Equal(
-            Expected(endpoint).Areas,
-            body.RootElement.GetProperty("areas").EnumerateArray().Select(e => e.GetString()).ToArray());
+        var sent = body.RootElement.GetProperty("areas").EnumerateArray().Select(e => e.GetString()).ToArray();
+        Assert.Equal(Expected(endpoint).Areas, sent);
+        if (sent.Length > 0)
+        {
+            Assert.Contains("my fence", sent);
+            Assert.True(body.RootElement.GetProperty("trusted").GetBoolean());
+        }
+        else
+        {
+            Assert.False(body.RootElement.TryGetProperty("trusted", out _));
+        }
+
         Assert.Contains(handler.Requests, r => r.Path == "/api/v2/humans/123456789/location");
     }
 
-    private async Task RunAsync(string endpoint, Routed handler, bool confirmedDisabled = true)
+    private async Task RunAsync(string endpoint, Routed handler)
     {
-        var proxy = CreateProxy(handler, confirmedDisabled);
+        var proxy = CreateProxy(handler);
 
         IActionResult result;
         if (endpoint is "create" or "duplicate")
@@ -194,7 +204,7 @@ public class NewProfileGeographyTests : ControllerTestBase
         Assert.IsType<OkObjectResult>(result);
     }
 
-    private static PoracleHumanProxy CreateProxy(Routed handler, bool confirmedDisabled) => new(
+    private static PoracleHumanProxy CreateProxy(Routed handler) => new(
         new HttpClient(handler),
         new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -203,12 +213,7 @@ public class NewProfileGeographyTests : ControllerTestBase
                 ["Poracle:ApiSecret"] = "test-secret",
             })
             .Build(),
-        PoracleHumanProxyTests.V2Schema(new PoracleV2Capabilities
-        {
-            Read = true,
-            TrustedSetAreas = true,
-        }),
-        PoracleHumanProxyTests.AreaSecurityPolicy(confirmedDisabled),
+        PoracleHumanProxyTests.V2Schema(new PoracleV2Capabilities { Read = true }),
         Mock.Of<ILogger<PoracleHumanProxy>>());
 
     /// <summary>Every property of the body is one the named schema in the openapi fixture declares.</summary>

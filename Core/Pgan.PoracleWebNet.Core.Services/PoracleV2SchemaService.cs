@@ -94,7 +94,6 @@ public partial class PoracleV2SchemaService(
             return new PoracleV2Capabilities
             {
                 Read = true,
-                TrustedSetAreas = HasProperty(schemas, "V2SetAreasBody", "trusted"),
                 InvasionGruntType = HasProperty(schemas, "V2InvasionRule", "grunt_type"),
             };
         }

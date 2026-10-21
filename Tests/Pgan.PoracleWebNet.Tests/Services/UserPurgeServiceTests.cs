@@ -182,7 +182,6 @@ public class UserPurgeServiceTests
             new HttpClient(new FixedReply(status, body)),
             config,
             PoracleHumanProxyTests.V2Schema(),
-            PoracleHumanProxyTests.AreaSecurityPolicy(),
             Mock.Of<ILogger<PoracleHumanProxy>>());
 
         var tracking = new Mock<IPoracleTrackingProxy>();

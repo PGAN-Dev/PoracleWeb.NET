@@ -33,7 +33,6 @@ public class PoracleV2SchemaServiceTests
         var capabilities = PoracleV2SchemaService.Parse("""{"components":{"schemas":{"V2SetAreasBody":{"properties":{"areas":{}}},"V2InvasionRule":{"properties":{"type_id":{}}}}},"paths":{}}""");
 
         Assert.True(capabilities.Read);
-        Assert.False(capabilities.TrustedSetAreas);
         Assert.False(capabilities.InvasionGruntType);
     }
 
@@ -43,7 +42,6 @@ public class PoracleV2SchemaServiceTests
         var capabilities = PoracleV2SchemaService.Parse(Fixture("5.4.0"));
 
         Assert.True(capabilities.Read);
-        Assert.True(capabilities.TrustedSetAreas);
         Assert.True(capabilities.InvasionGruntType);
     }
 
@@ -61,7 +59,6 @@ public class PoracleV2SchemaServiceTests
     {
         var capabilities = PoracleV2SchemaService.Parse(document);
 
-        Assert.False(capabilities.TrustedSetAreas);
         Assert.False(capabilities.InvasionGruntType);
     }
 

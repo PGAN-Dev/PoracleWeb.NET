@@ -31,20 +31,6 @@ public sealed class PoracleV2Capabilities
     public static readonly PoracleV2Capabilities None = new();
 
     /// <summary>
-    /// <c>V2SetAreasBody</c> carries <c>trusted</c>, so a client holding the API secret can select a
-    /// fence that is not <c>userSelectable</c>.
-    /// </summary>
-    /// <remarks>
-    /// The keystone. Without it every user-drawn geofence name sent to <c>setAreas</c> is silently
-    /// dropped, which is the entire reason <c>IUserAreaDualWriter</c> and the
-    /// <c>HACK: trusted-set-areas</c> sites exist. See #838.
-    /// </remarks>
-    public bool TrustedSetAreas
-    {
-        get; init;
-    }
-
-    /// <summary>
     /// <c>V2InvasionRule</c> carries <c>grunt_type</c>, so an invasion rule names the grunt it targets
     /// on the way in and on the way out. See #841.
     /// </summary>
