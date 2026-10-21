@@ -152,8 +152,8 @@ public partial class PoracleTrackingProxy(
         if (result is null)
         {
             // Every null means "use the v1 write", and v1 blanks a set ping unconditionally (verified live
-            // on 5.4.0, create and uid-upsert alike): a missing route, an
-            // invasion v2 will not take, a row the translator declines. Refuse rather than lose a mention.
+            // on 5.4.0, create and uid-upsert alike): a missing route, an invasion v2 will not take, a row
+            // the translator declines. Refuse rather than lose a mention.
             RefuseIfV1WouldDropPing(body);
         }
 
