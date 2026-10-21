@@ -1,6 +1,6 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideTranslateService } from '@ngx-translate/core';
@@ -26,6 +26,8 @@ describe('RaidAddDialogComponent', () => {
   let eggService: { create: jest.Mock };
   let raidService: { create: jest.Mock };
 
+  let fixture: ComponentFixture<RaidAddDialogComponent>;
+
   function setup() {
     let nextUid = 100;
     raidService = { create: jest.fn().mockImplementation(() => of({ uid: nextUid++ } as Raid)) };
@@ -45,7 +47,10 @@ describe('RaidAddDialogComponent', () => {
           provide: MasterDataService,
           useValue: {
             costumesAvailable: () => true,
+            getAllPokemon$: () => of([]),
+            getAllTypes: () => [],
             getCostumes: () => [{ id: 85, name: 'Halloween 2025' }],
+            getTypeLabel: (t: string) => t,
           },
         },
         { provide: I18nService, useValue: { instant: (k: string) => k } },
@@ -53,7 +58,7 @@ describe('RaidAddDialogComponent', () => {
           provide: AlertDefaultsService,
           useValue: { defaultDistanceKm: () => 1, defaultMode: () => 'areas', defaultPlaceLabel: () => '' },
         },
-        { provide: AuthService, useValue: { isImpersonating: () => false } },
+        { provide: AuthService, useValue: { isImpersonating: () => false, user: () => ({ type: 'discord:user' }) } },
       ],
       imports: [RaidAddDialogComponent],
     });
@@ -62,10 +67,22 @@ describe('RaidAddDialogComponent', () => {
       add: { providers: [{ provide: MatSnackBar, useValue: { open: jest.fn() } }] },
     });
 
-    component = TestBed.createComponent(RaidAddDialogComponent).componentInstance;
+    fixture = TestBed.createComponent(RaidAddDialogComponent);
+    component = fixture.componentInstance;
   }
 
   beforeEach(() => setup());
+
+  // PoracleNG 5.4.0 stores a costume on every rule, so the By Boss tab renders the control with the
+  // standard mocks and nothing telling the dialog the server supports it.
+  it('renders the costume filter on the By Boss tab without any server capability', async () => {
+    component.tabIndex = 1;
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('POKEMON.LABEL_COSTUME');
+  });
 
   it('defaults the costume filter to "any", not "none"', () => {
     expect(component.commonForm.controls.costume.value).toBe(9000);

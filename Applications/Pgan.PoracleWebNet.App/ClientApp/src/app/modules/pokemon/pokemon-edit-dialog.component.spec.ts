@@ -1,6 +1,6 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideTranslateService } from '@ngx-translate/core';
@@ -24,6 +24,8 @@ describe('PokemonEditDialogComponent', () => {
   let webhookSession = false;
   let component: PokemonEditDialogComponent;
   let monsterService: { editSupported: jest.Mock; update: jest.Mock };
+
+  let fixture: ComponentFixture<PokemonEditDialogComponent>;
 
   function setup(monster: Partial<Monster>) {
     monsterService = { editSupported: jest.fn().mockReturnValue(true), update: jest.fn().mockReturnValue(of({})) };
@@ -62,7 +64,8 @@ describe('PokemonEditDialogComponent', () => {
       add: { providers: [{ provide: MatSnackBar, useValue: { open: jest.fn() } }] },
     });
 
-    component = TestBed.createComponent(PokemonEditDialogComponent).componentInstance;
+    fixture = TestBed.createComponent(PokemonEditDialogComponent);
+    component = fixture.componentInstance;
   }
 
   function sent(): MonsterUpdate {
@@ -164,6 +167,16 @@ describe('PokemonEditDialogComponent', () => {
     component.save();
 
     expect(sent().costume).toBe(0);
+  });
+
+  // PoracleNG 5.4.0 stores a costume on every rule, so the control renders with the standard mocks and
+  // nothing telling the dialog the server supports it.
+  it('renders the costume filter without any server capability', () => {
+    setup({ costume: 85 });
+    component.ngOnInit();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('POKEMON.LABEL_COSTUME');
   });
 
   it('keeps the mega mode of a PVP rule it did not change', () => {
