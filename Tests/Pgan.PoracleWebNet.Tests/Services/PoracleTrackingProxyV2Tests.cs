@@ -5,6 +5,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Core.Services;
@@ -543,11 +544,19 @@ public class PoracleTrackingProxyV2Tests
     // above applies and nothing is version-gated: a server without the route answers gin's plaintext 404
     // and is told it is too old, the way the reads are.
     //
-    // v2 scopes a uid to the active profile, where v1 deleted it whatever profile it sat on. That
-    // difference no longer reaches the user from the UI: every controller's Delete looks the uid up on
-    // the active profile first and answers 404 (#889), which each controller's delete-not-found test
-    // pins. What is left -- a uid the scheduler moved between the read and the delete -- is reported as
-    // already gone, as v1 reported a uid it could not find.
+    // v2 scopes a uid to the active profile, where v1 deleted it whatever profile it sat on. The UI never
+    // asks for that (every controller's Delete looks the uid up on the active profile first, #889), but
+    // quick-pick remove does: its tracked uids can sit on a profile the scheduler has since switched away
+    // from. So a uid the active profile does not hold is looked up once across every profile and deleted
+    // there with ?profile=N. Only a uid no profile holds is "already gone". A delete that succeeds on the
+    // active profile makes no extra read.
+
+    /// <summary>An all-profiles snapshot holding <paramref name="tracking"/>, with profile 1 active.</summary>
+    private static string AllProfiles(string tracking = "{}") =>
+        $$"""{"human":{"current_profile_no":1},"profiles":[{"profile_no":1},{"profile_no":2},{"profile_no":3}],"tracking":{{tracking}}}""";
+
+    private static bool IsAllProfilesRead(Sent request) =>
+        request.Method == HttpMethod.Get && request.Url.Contains("all_profiles=true", StringComparison.Ordinal);
 
     private const string RuleNotOnThisProfile = """
         {"title":"Not Found","status":404,"detail":"pokemon rule 36486 not found for this human"}
@@ -558,7 +567,7 @@ public class PoracleTrackingProxyV2Tests
         """;
 
     [Fact]
-    public async Task ADeleteSendsOnlyItsV2Request()
+    public async Task ADeleteSendsOnlyItsV2RequestAndReadsNothing()
     {
         var handler = ScriptedHandler.Ok("""{"deleted":[{"uid":36486,"pokemon_id":25}]}""");
         var sut = CreateSut(handler, version: "5.4.0");
@@ -588,15 +597,19 @@ public class PoracleTrackingProxyV2Tests
     }
 
     [Fact]
-    public async Task ADeleteOfARuleThatIsNotThereIsAlreadyGoneAndNeverReachesV1()
+    public async Task ADeleteOfARuleNoProfileHoldsIsAlreadyGoneAndNeverReachesV1()
     {
-        var handler = ScriptedHandler.Problem(HttpStatusCode.NotFound, RuleNotOnThisProfile);
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.NotFound, RuleNotOnThisProfile, "application/problem+json"),
+            new Reply(HttpStatusCode.OK, AllProfiles()));
         var logger = new CapturingLogger();
         var sut = CreateSut(handler, version: "5.4.0", logger: logger);
 
         await sut.DeleteByUidAsync("pokemon", "user1", 36486);
 
-        Assert.Single(handler.Requests);
+        Assert.Equal(2, handler.Requests.Count);
+        Assert.True(IsAllProfilesRead(handler.Requests[1]));
+        Assert.DoesNotContain(handler.Requests, r => r.Url.Contains("/api/tracking/", StringComparison.Ordinal));
         Assert.Contains(logger.Entries, e => e.Message.Contains("36486", StringComparison.Ordinal));
     }
 
@@ -680,12 +693,14 @@ public class PoracleTrackingProxyV2Tests
             new Reply(
                 HttpStatusCode.NotFound,
                 """{"title":"Not Found","status":404,"detail":"incident rule 412 not found for this human"}""",
-                "application/problem+json"));
+                "application/problem+json"),
+            new Reply(HttpStatusCode.OK, AllProfiles()));
         var sut = CreateSut(handler, version: "5.4.0");
 
         await sut.DeleteByUidAsync("invasion", "user1", 412);
 
-        Assert.Equal(2, handler.Requests.Count);
+        Assert.Equal(3, handler.Requests.Count);
+        Assert.True(IsAllProfilesRead(handler.Requests[2]));
     }
 
     [Fact]
@@ -703,12 +718,14 @@ public class PoracleTrackingProxyV2Tests
     public async Task ARuleNotFoundOnAnotherTypeIsNotRetriedAsAnIncident()
     {
         // The retry is invasion's alone: only invasion's read folds the events in.
-        var handler = ScriptedHandler.Problem(HttpStatusCode.NotFound, RuleNotOnThisProfile);
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.NotFound, RuleNotOnThisProfile, "application/problem+json"),
+            new Reply(HttpStatusCode.OK, AllProfiles()));
         var sut = CreateSut(handler, version: "5.4.0");
 
         await sut.DeleteByUidAsync("pokemon", "user1", 36486);
 
-        Assert.Single(handler.Requests);
+        Assert.DoesNotContain(handler.Requests, r => r.Url.Contains("/incident", StringComparison.Ordinal));
     }
 
     // ---- bulk deletes ----------------------------------------------------------------------------
@@ -754,19 +771,22 @@ public class PoracleTrackingProxyV2Tests
     {
         // v2 skips a uid it does not hold (gone already, or on another profile) and still answers 200.
         // That is an answer, not a fault, so it is logged rather than retried anywhere.
-        var handler = ScriptedHandler.Ok("""{"deleted":[{"uid":1}]}""");
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.OK, """{"deleted":[{"uid":1}]}"""),
+            new Reply(HttpStatusCode.OK, AllProfiles()));
         var logger = new CapturingLogger();
         var sut = CreateSut(handler, version: "5.4.0", logger: logger);
 
         await sut.BulkDeleteByUidsAsync("pokemon", "user1", [1, 2, 3]);
 
-        Assert.Single(handler.Requests);
+        Assert.Equal(2, handler.Requests.Count);
+        Assert.True(IsAllProfilesRead(handler.Requests[1]));
         var entry = Assert.Single(logger.Entries, e => e.Level == LogLevel.Information);
         Assert.Contains("2, 3", entry.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task ABulkDeleteThatTookEverythingLogsNothing()
+    public async Task ABulkDeleteThatTookEverythingLogsNothingAndReadsNothing()
     {
         var handler = ScriptedHandler.Ok("""{"deleted":[{"uid":1},{"uid":2}]}""");
         var logger = new CapturingLogger();
@@ -774,18 +794,21 @@ public class PoracleTrackingProxyV2Tests
 
         await sut.BulkDeleteByUidsAsync("pokemon", "user1", [1, 2]);
 
+        Assert.Single(handler.Requests);
         Assert.DoesNotContain(logger.Entries, e => e.Level >= LogLevel.Information);
     }
 
     [Fact]
     public async Task ABulkDeleteWhoseAnswerCannotBeReadDoesNotFallBackToV1()
     {
-        var handler = ScriptedHandler.Ok("not json at all");
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.OK, "not json at all"),
+            new Reply(HttpStatusCode.OK, AllProfiles()));
         var sut = CreateSut(handler, version: "5.4.0");
 
         await sut.BulkDeleteByUidsAsync("pokemon", "user1", [1, 2]);
 
-        Assert.Single(handler.Requests);
+        Assert.DoesNotContain(handler.Requests, r => r.Url.Contains("/api/tracking/", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -881,7 +904,8 @@ public class PoracleTrackingProxyV2Tests
     {
         var handler = new ScriptedHandler(
             new Reply(HttpStatusCode.OK, """{"deleted":[{"uid":10}]}"""),
-            new Reply(HttpStatusCode.OK, """{"deleted":[]}"""));
+            new Reply(HttpStatusCode.OK, """{"deleted":[]}"""),
+            new Reply(HttpStatusCode.OK, AllProfiles()));
         var logger = new CapturingLogger();
         var sut = CreateSut(handler, version: "5.4.0", logger: logger);
 
@@ -889,6 +913,202 @@ public class PoracleTrackingProxyV2Tests
 
         var entry = Assert.Single(logger.Entries, e => e.Level == LogLevel.Information);
         Assert.Contains("99", entry.Message, StringComparison.Ordinal);
+    }
+
+    // ---- the human's own uids on a profile that is not active (fix round 1) ---------------------------
+
+    [Fact]
+    public async Task ASingleDeleteOfAUidOnAnotherProfileIsDeletedThere()
+    {
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.NotFound, RuleNotOnThisProfile, "application/problem+json"),
+            new Reply(HttpStatusCode.OK, AllProfiles("""{"pokemon":[{"uid":36486,"profile_no":2,"pokemon_id":25}]}""")),
+            new Reply(HttpStatusCode.OK, """{"deleted":[{"uid":36486}]}"""));
+        var logger = new CapturingLogger();
+        var sut = CreateSut(handler, version: "5.4.0", logger: logger);
+
+        await sut.DeleteByUidAsync("pokemon", "user1", 36486);
+
+        Assert.Equal(3, handler.Requests.Count);
+        Assert.True(IsAllProfilesRead(handler.Requests[1]));
+        Assert.Equal(HttpMethod.Delete, handler.Requests[2].Method);
+        Assert.Equal(
+            $"{ApiAddress}/api/v2/humans/user1/tracking/pokemon/36486?silent=true&profile=2",
+            handler.Requests[2].Url);
+        Assert.DoesNotContain(logger.Entries, e => e.Level >= LogLevel.Information);
+    }
+
+    [Fact]
+    public async Task AnEventUidOnAnotherProfileIsDeletedAsAnIncidentThere()
+    {
+        // The all-profiles read folds incident into invasion; the row's grunt_type says it is an event.
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.NotFound, InvasionRuleNotFound, "application/problem+json"),
+            new Reply(
+                HttpStatusCode.NotFound,
+                """{"title":"Not Found","status":404,"detail":"incident rule 412 not found for this human"}""",
+                "application/problem+json"),
+            new Reply(HttpStatusCode.OK, AllProfiles("""{"incident":[{"uid":412,"profile_no":3,"display_type":8}]}""")),
+            new Reply(HttpStatusCode.OK, """{"deleted":[{"uid":412}]}"""));
+        var sut = CreateSut(handler, version: "5.4.0");
+
+        await sut.DeleteByUidAsync("invasion", "user1", 412);
+
+        Assert.Equal(
+            $"{ApiAddress}/api/v2/humans/user1/tracking/incident/412?silent=true&profile=3",
+            handler.Requests[^1].Url);
+    }
+
+    [Fact]
+    public async Task ABulkDeleteOfUidsOnTwoOtherProfilesDeletesOnEach()
+    {
+        var handler = new ScriptedHandler
+        {
+            RouteReply = request =>
+            {
+                if (IsAllProfilesRead(request))
+                {
+                    return new Reply(HttpStatusCode.OK, AllProfiles("""
+                        {"raid":[{"uid":1,"profile_no":1,"level":5},{"uid":2,"profile_no":2,"level":5},
+                                 {"uid":3,"profile_no":3,"level":5},{"uid":4,"profile_no":2,"level":5}]}
+                        """));
+                }
+
+                if (request.Url.EndsWith("profile=2", StringComparison.Ordinal))
+                {
+                    return new Reply(HttpStatusCode.OK, """{"deleted":[{"uid":2},{"uid":4}]}""");
+                }
+
+                if (request.Url.EndsWith("profile=3", StringComparison.Ordinal))
+                {
+                    return new Reply(HttpStatusCode.OK, """{"deleted":[{"uid":3}]}""");
+                }
+
+                return new Reply(HttpStatusCode.OK, """{"deleted":[{"uid":1}]}""");
+            },
+        };
+        var logger = new CapturingLogger();
+        var sut = CreateSut(handler, version: "5.4.0", logger: logger);
+
+        await sut.BulkDeleteByUidsAsync("raid", "user1", [1, 2, 3, 4, 99]);
+
+        var deletes = handler.Requests.Where(r => r.Method == HttpMethod.Delete).ToList();
+        Assert.Equal(3, deletes.Count);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/tracking/raid?silent=true", deletes[0].Url);
+        var onTwo = Assert.Single(deletes, d => d.Url == $"{ApiAddress}/api/v2/humans/user1/tracking/raid?silent=true&profile=2");
+        Assert.Equal("""{"uids":[2,4]}""", onTwo.Body);
+        var onThree = Assert.Single(deletes, d => d.Url == $"{ApiAddress}/api/v2/humans/user1/tracking/raid?silent=true&profile=3");
+        Assert.Equal("""{"uids":[3]}""", onThree.Body);
+        Assert.Single(handler.Requests, IsAllProfilesRead);
+
+        // Only the uid no profile holds is left to report.
+        var entry = Assert.Single(logger.Entries, e => e.Level == LogLevel.Information);
+        Assert.Contains("99", entry.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("2,", entry.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task AnInvasionBulkDeleteRoutesEventsOnAnotherProfileToIncidentThere()
+    {
+        var handler = new ScriptedHandler
+        {
+            RouteReply = request =>
+            {
+                if (IsAllProfilesRead(request))
+                {
+                    return new Reply(HttpStatusCode.OK, AllProfiles("""
+                        {"invasion":[{"uid":10,"profile_no":2,"grunt_type":"water"}],
+                         "incident":[{"uid":11,"profile_no":2,"display_type":8}]}
+                        """));
+                }
+
+                return request.Url.EndsWith("profile=2", StringComparison.Ordinal)
+                    ? new Reply(HttpStatusCode.OK, request.Url.Contains("/incident", StringComparison.Ordinal)
+                        ? """{"deleted":[{"uid":11}]}"""
+                        : """{"deleted":[{"uid":10}]}""")
+                    : new Reply(HttpStatusCode.OK, """{"deleted":[]}""");
+            },
+        };
+        var sut = CreateSut(handler, version: "5.4.0");
+
+        await sut.BulkDeleteByUidsAsync("invasion", "user1", [10, 11]);
+
+        var onProfile = handler.Requests.Where(r => r.Url.EndsWith("profile=2", StringComparison.Ordinal)).ToList();
+        Assert.Equal(2, onProfile.Count);
+        Assert.Contains(onProfile, r => r.Url == $"{ApiAddress}/api/v2/humans/user1/tracking/invasion?silent=true&profile=2" && r.Body == """{"uids":[10]}""");
+        Assert.Contains(onProfile, r => r.Url == $"{ApiAddress}/api/v2/humans/user1/tracking/incident?silent=true&profile=2" && r.Body == """{"uids":[11]}""");
+    }
+
+    [Fact]
+    public async Task AQuickPickRemovedAfterAProfileSwitchDeletesItsAlarmsOnTheirProfile()
+    {
+        // The case that made this necessary. The pick was applied on profile 2; the scheduler has since made
+        // profile 1 active. Remove deletes each tracked uid, and v2 alone would call them already gone, clear
+        // the applied state, and leave the alarms firing.
+        var handler = new ScriptedHandler
+        {
+            RouteReply = request =>
+            {
+                if (IsAllProfilesRead(request))
+                {
+                    return new Reply(HttpStatusCode.OK, AllProfiles("""{"pokemon":[{"uid":36486,"profile_no":2,"pokemon_id":25}]}"""));
+                }
+
+                return request.Url.EndsWith("profile=2", StringComparison.Ordinal)
+                    ? new Reply(HttpStatusCode.OK, """{"deleted":[{"uid":36486}]}""")
+                    : new Reply(HttpStatusCode.NotFound, RuleNotOnThisProfile, "application/problem+json");
+            },
+        };
+        var proxy = CreateSut(handler, version: "5.4.0");
+
+        var applied = new Mock<IQuickPickAppliedStateRepository>();
+        applied.Setup(r => r.GetAsync("user1", 2, "pick"))
+            .ReturnsAsync(new QuickPickAppliedState { UserId = "user1", ProfileNo = 2, QuickPickId = "pick", AlarmType = "monster", TrackedUids = [36486] });
+
+        var quickPicks = new QuickPickService(
+            Mock.Of<IQuickPickDefinitionRepository>(),
+            applied.Object,
+            new MonsterService(proxy, Mock.Of<IFeatureGate>(), Mock.Of<ITrackedUidRemapper>()),
+            Mock.Of<IRaidService>(),
+            Mock.Of<IEggService>(),
+            Mock.Of<IQuestService>(),
+            Mock.Of<IInvasionService>(),
+            Mock.Of<ILureService>(),
+            Mock.Of<INestService>(),
+            Mock.Of<IGymService>(),
+            Mock.Of<IMaxBattleService>(),
+            Mock.Of<IMasterDataService>(),
+            Mock.Of<IFeatureGate>(),
+            Mock.Of<ILogger<QuickPickService>>());
+
+        Assert.True(await quickPicks.RemoveAsync("user1", 2, "pick"));
+
+        Assert.Contains(
+            handler.Requests,
+            r => r.Method == HttpMethod.Delete && r.Url == $"{ApiAddress}/api/v2/humans/user1/tracking/pokemon/36486?silent=true&profile=2");
+    }
+
+    [Fact]
+    public async Task ABulkDeleteAServerOlderThan540RefusesForWantOfAUidQueryIsUnsupported()
+    {
+        // Before the body form, ?uid was required, so a 5.3 server answers the body with a 422 about it.
+        var handler = ScriptedHandler.Problem(
+            HttpStatusCode.UnprocessableEntity,
+            """{"title":"Unprocessable Entity","status":422,"detail":"validation failed","errors":[{"message":"required query parameter is missing","location":"query.uid"}]}""");
+        var sut = CreateSut(handler, version: "5.4.0");
+
+        await Assert.ThrowsAsync<PoracleUnsupportedException>(() => sut.BulkDeleteByUidsAsync("pokemon", "user1", [1]));
+    }
+
+    [Fact]
+    public async Task AnyOtherBulkDelete422IsStillAFailure()
+    {
+        var handler = ScriptedHandler.Problem(
+            HttpStatusCode.UnprocessableEntity,
+            """{"title":"Unprocessable Entity","status":422,"detail":"validation failed","errors":[{"message":"unknown query parameter","location":"query.profile"}]}""");
+        var sut = CreateSut(handler, version: "5.4.0");
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => sut.BulkDeleteByUidsAsync("pokemon", "user1", [1]));
     }
 
     [Fact]
@@ -1286,6 +1506,9 @@ public class PoracleTrackingProxyV2Tests
         /// <summary>When set, answers every request 200 with whatever this returns, instead of the script.</summary>
         public Func<Sent, string>? Route { get; init; }
 
+        /// <summary>When set, answers every request with the reply this returns, instead of the script.</summary>
+        public Func<Sent, Reply>? RouteReply { get; init; }
+
         public static ScriptedHandler Ok(string body) => new(new Reply(HttpStatusCode.OK, body));
 
         public static ScriptedHandler Problem(HttpStatusCode status, string body) =>
@@ -1308,6 +1531,15 @@ public class PoracleTrackingProxyV2Tests
 
             var sent = new Sent(request.Method, request.RequestUri.ToString(), body);
             this.Requests.Add(sent);
+
+            if (this.RouteReply is { } routeReply)
+            {
+                var routed = routeReply(sent);
+                return new HttpResponseMessage(routed.Status)
+                {
+                    Content = new StringContent(routed.Body, Encoding.UTF8, routed.ContentType),
+                };
+            }
 
             if (this.Route is { } route)
             {
