@@ -28,10 +28,14 @@ public sealed class NoPoracleDatabaseTests
         new("(MapEnvVar|ComposeConnectionString)\\s*\\([^)]*\"DB_HOST\"", RegexOptions.Compiled),
         new("\"pweb_settings\"", RegexOptions.Compiled),
         new(@"GetEnvironmentVariable\s*\(\s*""DB_(HOST|PORT|NAME|USER|PASSWORD)""", RegexOptions.Compiled),
+        // The bare names as whole literals, however they are read: an array walked by a loop variable
+        // slips past every call-shaped pattern above. The quotes keep "WEB_DB_HOST" out of it.
+        new(@"""DB_(HOST|PORT|NAME|USER|PASSWORD)""", RegexOptions.Compiled),
         new(@"\[Table\s*\(\s*""(humans|profiles)""", RegexOptions.Compiled),
     ];
 
-    // The single place allowed to name the retired connection string: the line that detects a leftover one.
+    // The single place allowed to name the retired settings: the lines that detect a leftover one. Each line
+    // carries the marker itself, so an unmarked line beside them is still refused.
     private const string AllowMarker = "// legacy-db-setting-detection";
     private const string AllowedFile = "Applications/Pgan.PoracleWebNet.Api/Program.cs";
 
@@ -93,6 +97,9 @@ public sealed class NoPoracleDatabaseTests
     [InlineData("Environment.GetEnvironmentVariable(\"DB_PASSWORD\")")]
     [InlineData("[Table(\"humans\")]")]
     [InlineData("[Table(\"profiles\")]")]
+    [InlineData("private static readonly string[] Names = [\"DB_HOST\", \"DB_PORT\"];")]
+    [InlineData("var names = new[] { \"DB_NAME\", \"DB_USER\", \"DB_PASSWORD\" };")]
+    [InlineData("foreach (var v in new[] { \"ConnectionStrings__PoracleDb\" }) { }")]
     public void TheMatcherFindsEachForbiddenForm(string planted) =>
         Assert.True(Matches(planted), $"The matcher missed: {planted}");
 
@@ -114,11 +121,23 @@ public sealed class NoPoracleDatabaseTests
         Assert.True(Violates("Applications/Pgan.PoracleWebNet.Api/appsettings.json", "\"PoracleDb\": \"\", " + AllowMarker));
     }
 
+    [Fact]
+    public void TheAllowlistCoversTheMarkedLegacyNamesArrayInProgramCs()
+    {
+        var array = "private static readonly string[] Variables = [\"DB_HOST\", \"DB_PORT\"];";
+
+        Assert.False(Violates(AllowedFile, array + " " + AllowMarker));
+        Assert.True(Violates(AllowedFile, array));
+        Assert.True(Violates("Core/Pgan.PoracleWebNet.Core.Services/Other.cs", array + " " + AllowMarker));
+    }
+
     [Theory]
     [InlineData("ComposeConnectionString(\"PoracleWebDb\", \"WEB_DB_HOST\", \"WEB_DB_PORT\");")]
     [InlineData("var context = typeof(PoracleWebContext);")]
     [InlineData("Environment.GetEnvironmentVariable(\"WEB_DB_HOST\")")]
     [InlineData("[Table(\"user_geofences\")]")]
+    [InlineData("private static readonly string[] Names = [\"WEB_DB_HOST\", \"WEB_DB_PORT\", \"WEB_DB_NAME\"];")]
+    [InlineData("var user = \"WEB_DB_USER\"; var password = \"WEB_DB_PASSWORD\";")]
     [InlineData("DB_* settings are no longer used by PoracleWeb.NET and can be removed.")]
     public void TheMatcherLeavesTheWebDatabaseAlone(string line) =>
         Assert.False(Matches(line), $"The matcher flagged: {line}");
