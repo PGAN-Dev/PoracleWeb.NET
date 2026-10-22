@@ -381,23 +381,6 @@ if (!Pgan.PoracleWebNet.Api.Configuration.DataDirectoryCheck.IsWritable(dataDire
     StartupLog.LogDataDirectoryNotWritable(app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Startup"), dataDirectory);
 }
 
-// Ensure pweb_settings.value can hold JSON blobs (quick pick definitions/applied states)
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<Pgan.PoracleWebNet.Data.PoracleContext>();
-    try
-    {
-        await db.Database.ExecuteSqlRawAsync(
-            "ALTER TABLE pweb_settings MODIFY COLUMN `value` LONGTEXT NULL");
-    }
-    catch (Exception ex)
-    {
-        var startupLogger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>()
-            .CreateLogger("Startup");
-        StartupLog.LogPwebSettingsAlterFailed(startupLogger, ex);
-    }
-}
-
 // Apply pending EF Core migrations for the PoracleWeb database
 using (var scope = app.Services.CreateScope())
 {
@@ -635,9 +618,6 @@ internal static partial class StartupLog
     [LoggerMessage(Level = LogLevel.Error, Message = "DATA_DIR {DataDirectory} is not writable, so the DataProtection keys and the avatar cache will not survive a restart, and every SSO user is signed out when the container is recreated. " +
         "In Docker this is usually a bind-mounted ./data that Docker created as root: run 'sudo chown -R 999:999 ./data' on the host, then restart the container.")]
     public static partial void LogDataDirectoryNotWritable(ILogger logger, string dataDirectory);
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Could not alter pweb_settings.value column (may already be LONGTEXT).")]
-    public static partial void LogPwebSettingsAlterFailed(ILogger logger, Exception ex);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Could not ensure PoracleWeb database tables exist.")]
     public static partial void LogPoracleWebDbEnsureCreatedFailed(ILogger logger, Exception ex);

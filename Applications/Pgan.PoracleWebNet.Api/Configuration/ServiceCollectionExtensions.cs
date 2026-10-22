@@ -50,7 +50,6 @@ public static class ServiceCollectionExtensions
             .SetApplicationName("Pgan.PoracleWebNet.Api");
 
         // Register Repositories
-        services.AddScoped<IPwebSettingRepository, PwebSettingRepository>();
         services.AddScoped<IUserGeofenceRepository, UserGeofenceRepository>();
         services.AddScoped<ISiteSettingRepository, SiteSettingRepository>();
         services.AddScoped<IWebhookDelegateRepository, WebhookDelegateRepository>();
@@ -78,7 +77,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IProfileService, ProfileService>();
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<ICleaningService, CleaningService>();
-        services.AddScoped<IPwebSettingService, PwebSettingService>();
         services.AddSingleton<IMasterDataService, MasterDataService>();
         services.AddSingleton<IRaidLevelService, RaidLevelService>();
         services.AddSingleton<IPvpRankService, PvpRankService>();

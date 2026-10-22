@@ -12,7 +12,6 @@ namespace Pgan.PoracleWebNet.Core.Models;
 ///      <c>ClientApp/src/app/modules/admin/admin-settings.component.ts</c>.
 ///   2. Add the same key (lowercase) to the nav definitions in
 ///      <c>ClientApp/src/app/app.ts</c>.
-///   3. Add it to <c>SettingsMigrationService.BooleanKeys</c> and <c>CategoryMap</c>.
 /// </summary>
 public static class DisableFeatureKeys
 {

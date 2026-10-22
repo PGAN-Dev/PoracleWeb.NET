@@ -140,19 +140,6 @@ public class MappingExtensionTests
         Assert.Equal(-0.1278, model.Longitude);
     }
 
-    // ── PwebSettingEntity.ToModel ────────────────────────────
-
-    [Fact]
-    public void PwebSettingEntity_ToModel_MapsAllFields()
-    {
-        var entity = new PwebSettingEntity { Setting = "site_title", Value = "My Poracle" };
-
-        var model = entity.ToModel();
-
-        Assert.Equal("site_title", model.Setting);
-        Assert.Equal("My Poracle", model.Value);
-    }
-
     // ── MaxBattleCreate.ToMaxBattle ─────────────────────────
 
     [Fact]
@@ -1596,17 +1583,6 @@ public class MappingExtensionTests
     }
 
     [Fact]
-    public void PwebSetting_ToEntity_MapsAllFields()
-    {
-        var model = new PwebSetting { Setting = "site_title", Value = "My Site" };
-
-        var entity = model.ToEntity();
-
-        Assert.Equal("site_title", entity.Setting);
-        Assert.Equal("My Site", entity.Value);
-    }
-
-    [Fact]
     public void UserGeofence_ToEntity_SkipsId()
     {
         var now = DateTime.UtcNow;
@@ -1852,21 +1828,6 @@ public class MappingExtensionTests
         Assert.Equal("[\"new\"]", entity.Area);
         Assert.Equal(30.0, entity.Latitude);
         Assert.Equal(40.0, entity.Longitude);
-    }
-
-    [Fact]
-    public void PwebSetting_ApplyTo_UpdatesValueOnly()
-    {
-        var entity = new PwebSettingEntity { Setting = "site_title", Value = "Old" };
-
-        var model = new PwebSetting { Setting = "different_key", Value = "New" };
-
-        model.ApplyTo(entity);
-
-        // Setting (key) is NOT changed
-        Assert.Equal("site_title", entity.Setting);
-        // Value IS changed
-        Assert.Equal("New", entity.Value);
     }
 
     [Fact]

@@ -99,25 +99,6 @@ public static class EntityMappingExtensions
         dest.Longitude = src.Longitude;
     }
 
-    // ── PwebSetting ──────────────────────────────────────────
-
-    public static PwebSetting ToModel(this PwebSettingEntity e) => new()
-    {
-        Setting = e.Setting,
-        Value = e.Value,
-    };
-
-    public static PwebSettingEntity ToEntity(this PwebSetting m) => new()
-    {
-        Setting = m.Setting,
-        Value = m.Value,
-    };
-
-    public static void ApplyTo(this PwebSetting src, PwebSettingEntity dest)
-    {
-        dest.Value = src.Value;
-    }
-
     // ── UserGeofence ─────────────────────────────────────────
 
     public static UserGeofence ToModel(this UserGeofenceEntity e) => new()
