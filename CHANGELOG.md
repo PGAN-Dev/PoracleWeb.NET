@@ -58,6 +58,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The webhook delegate dialog adds only a user picked from the list.** Typing a name and pressing Add used to send the name as a user id and fail with a generic toast; Add now waits for a pick, and a refusal shows the server's reason.
 - **The Users list shows profile 0 as 0**, not 1.
 - **The Add webhook dialog's URL message matches what it accepts** ("Must start with http:// or https://"); it said https only while accepting http, as the server does.
+- **A refused Add keeps the dialog open.** When an Add for one alarm is refused (another alarm already uses those settings, say), the dialog stays open with the reason above Save, names the alarm in the way ("Already covered by: Snorlax · Within 2 km of my pin") and offers "Edit that one". Every alarm type does this, and a refused quick pick shows its reason in the dialog too. Adding several at once closes as before and reports what landed.
+- **Adding one alarm you already track exactly now says nothing changed.** It read "0 created, 1 already tracked", which hid that a setting you changed, such as Clean mode, wasn't saved; it now says "You already track this. Nothing was changed; edit that alarm to change its settings." Fort change and Pokéstop event Adds said "created" in this case and now say the same.
 - **Delete webhook has its own icon** instead of the person icon Delete user uses.
 - **Opening an admin page without admin rights says "That page is for admins."** It used to send you to the dashboard with no word. Ending an impersonation still returns quietly.
 - **The French message for a radius change that would clash with another rule reads naturally.**

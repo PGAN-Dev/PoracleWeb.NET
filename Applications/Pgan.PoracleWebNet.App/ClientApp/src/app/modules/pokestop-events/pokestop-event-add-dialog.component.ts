@@ -10,21 +10,24 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 
 import { PokestopEvent } from '../../core/models';
 import { AlertDefaultsService } from '../../core/services/alert-defaults.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { PokestopEventService } from '../../core/services/pokestop-event.service';
+import { AddRefusalComponent } from '../../shared/components/add-refusal/add-refusal.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { AddRefusal, editExistingResult, ExistingRule, refusalOf, ruleSummary } from '../../shared/utils/add-outcome';
 import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE } from '../../shared/utils/clean-flags';
 import { POKESTOP_EVENTS } from '../../shared/utils/pokestop-events';
 
 @Component({
   imports: [
+    AddRefusalComponent,
     ReactiveFormsModule,
     MatButtonModule,
     MatCheckboxModule,
@@ -55,6 +58,8 @@ export class PokestopEventAddDialogComponent {
 
   private readonly snackBar = inject(MatSnackBar);
 
+  private readonly translate = inject(TranslateService);
+
   readonly dialogRef = inject(MatDialogRef<PokestopEventAddDialogComponent>);
 
   form = this.fb.group({
@@ -76,6 +81,9 @@ export class PokestopEventAddDialogComponent {
     ...e,
     alreadyTracked: this.existing.some(x => x.displayType === e.displayType),
   }));
+
+  /** Why the last single Add was refused; shown above the actions, cleared on the next save. */
+  readonly refusal = signal<AddRefusal | null>(null);
 
   readonly saving = signal(false);
 
@@ -108,6 +116,11 @@ export class PokestopEventAddDialogComponent {
     return name === 'kecleon' ? 'eventKecleon' : name === 'gold-stop' ? 'eventGoldStop' : 'eventShowcase';
   }
 
+  /** The refusal named a stored rule: close and let the list open that one for editing. */
+  editExisting(rule: ExistingRule): void {
+    this.dialogRef.close(editExistingResult(rule));
+  }
+
   hasSelection(): boolean {
     return this.chosen().length > 0;
   }
@@ -117,15 +130,18 @@ export class PokestopEventAddDialogComponent {
     if (chosen.length === 0) return;
 
     this.saving.set(true);
+    this.refusal.set(null);
     const v = this.form.getRawValue();
     const scope = scopeToFields(this.scope());
+    const single = chosen.length === 1;
 
     // One request per event. The API refuses a second alarm for an event the profile already tracks,
     // so a partial success is possible and each is reported on its own rather than as one verdict.
     let created = 0;
+    let unchanged = 0;
     for (const displayType of chosen) {
       try {
-        await firstValueFrom(
+        const result = await firstValueFrom(
           this.pokestopEventService.create({
             overrideAreas: scope.overrideAreas,
             overrideLocationLabel: scope.overrideLocationLabel,
@@ -135,26 +151,44 @@ export class PokestopEventAddDialogComponent {
             template: v.template || null,
           }),
         );
-        created++;
+        if ((result?.uid ?? 0) > 0) created++;
+        else unchanged++;
       } catch (err) {
+        this.saving.set(false);
+        if (single) {
+          // Nothing was created, so keep the dialog and the user's choices, and say why inline.
+          this.refusal.set(refusalOf(err, this.i18n.instant('POKESTOP_EVENTS.CREATE_FAILED'), (uid, type) => this.describe(uid, type)));
+          return;
+        }
         const message = (err as { error?: { error?: string } })?.error?.error;
         this.snackBar.open(message ?? this.i18n.instant('POKESTOP_EVENTS.CREATE_FAILED'), this.i18n.instant('COMMON.OK'), {
           duration: 6000,
         });
-        this.saving.set(false);
         // Whatever was written before the failure still exists, so close and reload rather than
         // leaving the list showing a state that is already out of date.
-        this.dialogRef.close(created > 0);
+        this.dialogRef.close(created + unchanged > 0);
         return;
       }
     }
 
-    this.snackBar.open(this.i18n.instant('POKESTOP_EVENTS.CREATE_SUCCESS'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
+    // A single event PoracleNG found already stored exactly was left as it is; saying "created" hid that.
+    const message =
+      single && unchanged === 1 ? this.i18n.instant('ALARM.ALREADY_TRACKED_ONE') : this.i18n.instant('POKESTOP_EVENTS.CREATE_SUCCESS');
+    this.snackBar.open(message, this.i18n.instant('COMMON.OK'), { duration: single && unchanged === 1 ? 6000 : 3000 });
     this.dialogRef.close(true);
   }
 
   private chosen(): number[] {
     const v = this.form.getRawValue();
     return this.options.filter(o => !o.alreadyTracked && v[this.controlFor(o.name)]).map(o => o.displayType);
+  }
+
+  /** Names a stored event rule the API reported in the way, from the rules the list passed in. */
+  private describe(uid: number, trackingType: null | string): null | string {
+    if (trackingType !== null && trackingType !== 'incident') return null;
+    const rule = this.existing.find(x => x.uid === uid);
+    if (!rule) return null;
+    const event = POKESTOP_EVENTS.find(e => e.displayType === rule.displayType);
+    return ruleSummary(event ? this.translate.instant(event.displayKey) : '', rule, [], this.translate);
   }
 }

@@ -2,7 +2,7 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
-import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -14,7 +14,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { TranslatePipe } from '@ngx-translate/core';
-import { catchError, forkJoin, of } from 'rxjs';
+import { forkJoin } from 'rxjs';
 
 import { syncUnscanned } from './include-unscanned';
 import { MonsterCreate } from '../../core/models';
@@ -24,9 +24,11 @@ import { I18nService } from '../../core/services/i18n.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MonsterService } from '../../core/services/monster.service';
 import { PoracleConfigService } from '../../core/services/poracle-config.service';
+import { AddRefusalComponent } from '../../shared/components/add-refusal/add-refusal.component';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { AddDialogData, AddRefusal, editExistingResult, ExistingRule, finishAdd, settle } from '../../shared/utils/add-outcome';
 import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 import { compose } from '../../shared/utils/clean-flags';
 import { ANY_COSTUME, costumeHintKey } from '../../shared/utils/costumes';
@@ -34,6 +36,7 @@ import { minTimeLabel, minTimeOptions } from '../../shared/utils/min-time';
 
 @Component({
   imports: [
+    AddRefusalComponent,
     ReactiveFormsModule,
     MatDialogModule,
     MatButtonModule,
@@ -61,14 +64,16 @@ import { minTimeLabel, minTimeOptions } from '../../shared/utils/min-time';
 export class PokemonAddDialogComponent implements OnInit {
   private readonly alertDefaults = inject(AlertDefaultsService);
 
-  private readonly fb = inject(FormBuilder);
+  private readonly data = inject<AddDialogData | null>(MAT_DIALOG_DATA, { optional: true });
 
+  private readonly fb = inject(FormBuilder);
   private readonly i18n = inject(I18nService);
   private readonly masterData = inject(MasterDataService);
   private readonly monsterService = inject(MonsterService);
   private readonly poracleConfig = inject(PoracleConfigService);
   private readonly snackBar = inject(MatSnackBar);
   selectedPokemonIds = signal<number[]>([]);
+
   readonly availableForms = computed(() => {
     const ids = this.selectedPokemonIds();
     if (ids.length !== 1 || ids[0] === 0) return [];
@@ -77,9 +82,7 @@ export class PokemonAddDialogComponent implements OnInit {
 
   /** Tracks whether the user has manually changed the cap since the default was applied. */
   readonly capTouched = signal(false);
-
   readonly dialogRef = inject(MatDialogRef<PokemonAddDialogComponent>);
-
   /** Whether to show the edit-in-place toggle at all -- see MonsterService.editSupported. */
   readonly editSupported = this.monsterService.editSupported;
 
@@ -135,6 +138,9 @@ export class PokemonAddDialogComponent implements OnInit {
     pvpRankingWorst: [100],
   });
 
+  /** Why the last single Add was refused; shown above the actions, cleared on the next save. */
+  readonly refusal = signal<AddRefusal | null>(null);
+
   saving = signal(false);
 
   /**
@@ -167,6 +173,11 @@ export class PokemonAddDialogComponent implements OnInit {
   /** The named costumes for the select, newest first. */
   costumeOptions(): { id: number; name: string }[] {
     return this.masterData.getCostumes();
+  }
+
+  /** The refusal named a stored rule: close and let the list open that one for editing. */
+  editExisting(rule: ExistingRule): void {
+    this.dialogRef.close(editExistingResult(rule));
   }
 
   isFormValid(): boolean {
@@ -206,6 +217,7 @@ export class PokemonAddDialogComponent implements OnInit {
   save(): void {
     if (!this.isFormValid()) return;
     this.saving.set(true);
+    this.refusal.set(null);
 
     const filters = this.filtersForm.getRawValue();
     const pvp = this.pvpForm.getRawValue();
@@ -259,38 +271,18 @@ export class PokemonAddDialogComponent implements OnInit {
       }),
     );
 
-    // forkJoin fails fast, so one refused alarm aborted the whole batch: the creates that had already
-    // succeeded were never reported, the dialog stayed open and the list never reloaded. Each request
-    // settles on its own now, and the toast says how many landed. See #577.
-    forkJoin(creates.map(c => c.pipe(catchError((err: { error?: { error?: string } }) => of({ failed: err }))))).subscribe({
-      // Each create settles on its own, so a refused one no longer hides the ones that landed.
-      // The first refusal's message is shown, because it names what is in the way. See #577.
-      next: (results: ({ uid?: number } | { failed: { error?: { error?: string } } })[]) => {
-        const refused = results.filter((r): r is { failed: { error?: { error?: string } } } => 'failed' in r);
-        // Three outcomes, not two: a refusal (409), an alarm already tracked (200 with no uid, see #495),
-        // and a genuine creation. Counting the first two together would misreport both.
-        const landed = results.filter((r): r is { uid?: number } => !('failed' in r));
-        const created = landed.filter(r => (r.uid ?? 0) > 0).length;
-        const duplicates = landed.length - created;
-        this.saving.set(false);
-
-        if (refused.length > 0) {
-          this.snackBar.open(
-            refused[0].failed?.error?.error ?? this.i18n.instant('POKEMON.SNACK_FAILED_CREATE'),
-            this.i18n.instant('COMMON.OK'),
-            { duration: 6000 },
-          );
-        } else {
-          const message =
-            duplicates > 0
-              ? this.i18n.instant('ALARM.SNACK_CREATED_WITH_DUPLICATES', { count: created, duplicates })
-              : this.i18n.plural('ALARM.SNACK_CREATED', created);
-          this.snackBar.open(message, this.i18n.instant('COMMON.OK'), { duration: 4000 });
-        }
-
-        // Close either way: whatever was created is real, and the list must reload to show it.
-        this.dialogRef.close(true);
-      },
+    // Each create settles on its own, so one refusal cannot hide the ones that landed (#577). A single
+    // refused Add keeps the dialog open with the reason inline; see finishAdd.
+    forkJoin(creates.map(c => settle(c))).subscribe(results => {
+      this.saving.set(false);
+      finishAdd(results, {
+        dialogRef: this.dialogRef,
+        failedKey: 'POKEMON.SNACK_FAILED_CREATE',
+        i18n: this.i18n,
+        lookup: this.data?.existingRule,
+        refusal: this.refusal,
+        snackBar: this.snackBar,
+      });
     });
   }
 }

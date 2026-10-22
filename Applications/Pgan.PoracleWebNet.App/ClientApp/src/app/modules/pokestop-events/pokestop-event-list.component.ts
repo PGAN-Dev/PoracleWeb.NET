@@ -24,6 +24,7 @@ import { DistanceDialogComponent } from '../../shared/components/distance-dialog
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
 import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
+import { isEditExisting } from '../../shared/utils/add-outcome';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { isAutoDelete } from '../../shared/utils/clean-flags';
@@ -269,7 +270,8 @@ export class PokestopEventListComponent implements OnInit {
       .open(PokestopEventAddDialogComponent, { width: '600px', data: this.events(), maxHeight: '90vh' })
       .afterClosed()
       .subscribe(r => {
-        if (r) this.loadItems();
+        if (isEditExisting(r)) this.openExisting(r.editExisting.uid, r.editExisting.trackingType);
+        else if (r) this.loadItems();
       });
   }
 
@@ -290,5 +292,11 @@ export class PokestopEventListComponent implements OnInit {
 
   private loadProfileAreas(): void {
     this.areaService.getSelected().subscribe({ error: () => undefined, next: areas => this.profileAreas.set(areas) });
+  }
+
+  /** An add dialog was refused because of this rule and the user chose to edit it instead. */
+  private openExisting(uid: number, _trackingType: null | string): void {
+    const item = this.events().find(e => e.uid === uid);
+    if (item) this.editItem(item);
   }
 }

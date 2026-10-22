@@ -14,7 +14,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 
 import { PokemonAddDialogComponent } from './pokemon-add-dialog.component';
@@ -33,6 +33,7 @@ import { RuleSummaryComponent } from '../../shared/components/rule-summary/rule-
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
 import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
+import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { isAutoDelete as cleanIsAutoDelete, isEdit as cleanIsEdit } from '../../shared/utils/clean-flags';
 import { readableChip } from '../../shared/utils/contrast';
@@ -83,6 +84,7 @@ export class PokemonListComponent implements OnInit {
   readonly searchControl = new FormControl('');
   private readonly searchValue = toSignal(this.searchControl.valueChanges, { initialValue: '' });
   private readonly snackBar = inject(MatSnackBar);
+  private readonly translate = inject(TranslateService);
   readonly activeFilter = signal<string | null>(null);
 
   readonly activeGen = signal<{ label: string; min: number; max: number } | null>(null);
@@ -494,10 +496,12 @@ export class PokemonListComponent implements OnInit {
   openAddDialog(): void {
     const ref = this.dialog.open(PokemonAddDialogComponent, {
       width: '600px',
+      data: { existingRule: (uid, type) => this.describeExisting(uid, type) } satisfies AddDialogData,
       maxHeight: '90vh',
     });
     ref.afterClosed().subscribe(result => {
-      if (result) this.loadMonsters();
+      if (isEditExisting(result)) this.openExisting(result.editExisting.uid, result.editExisting.trackingType);
+      else if (result) this.loadMonsters();
     });
   }
 
@@ -544,6 +548,13 @@ export class PokemonListComponent implements OnInit {
     });
   }
 
+  /** Names one of this list's rules for an add dialog's refusal, or null when the list holds no such rule. */
+  private describeExisting(uid: number, trackingType: null | string): null | string {
+    if (trackingType !== null && trackingType !== 'pokemon') return null;
+    const monster = this.monsters().find(m => m.uid === uid);
+    return monster ? ruleSummary(this.getPokemonName(monster.pokemonId), monster, this.profileAreas(), this.translate) : null;
+  }
+
   private getBaseEvolution(id: number): number {
     return this.masterData.getBaseEvolution(id);
   }
@@ -553,5 +564,11 @@ export class PokemonListComponent implements OnInit {
       if (id >= gen.min && id <= gen.max) return +gen.label;
     }
     return 10;
+  }
+
+  /** An add dialog was refused because of this rule and the user chose to edit it instead. */
+  private openExisting(uid: number, _trackingType: null | string): void {
+    const monster = this.monsters().find(m => m.uid === uid);
+    if (monster) this.editMonster(monster);
   }
 }

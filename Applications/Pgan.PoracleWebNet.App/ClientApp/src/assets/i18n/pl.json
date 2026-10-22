@@ -414,6 +414,9 @@
     "TAB_DELIVERY": "Dostarczanie",
     "COMMON_SETTINGS": "Wspólne ustawienia",
     "SNACK_CREATED_WITH_DUPLICATES": "Utworzono: {{count}}, już śledzone: {{duplicates}}",
+    "ALREADY_TRACKED_ONE": "Już to śledzisz. Nic nie zmieniono; edytuj ten alarm, aby zmienić jego ustawienia.",
+    "REFUSAL_COVERED_BY": "Już objęte przez: {{summary}}",
+    "REFUSAL_EDIT_EXISTING": "Edytuj ten",
     "RULE_SUMMARY_MORE": "Pokaż całą regułę",
     "RULE_SUMMARY_LESS": "Pokaż mniej"
   },

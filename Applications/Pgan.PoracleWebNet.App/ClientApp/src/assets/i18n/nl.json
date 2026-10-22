@@ -395,6 +395,9 @@
     "TAB_DELIVERY": "Bezorging",
     "COMMON_SETTINGS": "Gemeenschappelijke Instellingen",
     "SNACK_CREATED_WITH_DUPLICATES": "{{count}} aangemaakt, {{duplicates}} al gevolgd",
+    "ALREADY_TRACKED_ONE": "Je volgt dit al. Er is niets gewijzigd; bewerk dat alarm om de instellingen te wijzigen.",
+    "REFUSAL_COVERED_BY": "Al gedekt door: {{summary}}",
+    "REFUSAL_EDIT_EXISTING": "Die bewerken",
     "RULE_SUMMARY_MORE": "Toon de hele regel",
     "RULE_SUMMARY_LESS": "Toon minder",
     "CLEAN_TAG": "opschonen"

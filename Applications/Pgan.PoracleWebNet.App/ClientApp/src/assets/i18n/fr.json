@@ -396,6 +396,9 @@
     "TAB_DELIVERY": "Livraison",
     "COMMON_SETTINGS": "Paramètres communs",
     "SNACK_CREATED_WITH_DUPLICATES": "{{count}} créées, {{duplicates}} déjà suivies",
+    "ALREADY_TRACKED_ONE": "Vous suivez déjà ceci. Rien n'a été modifié ; modifiez cette alarme pour changer ses paramètres.",
+    "REFUSAL_COVERED_BY": "Déjà couvert par : {{summary}}",
+    "REFUSAL_EDIT_EXISTING": "Modifier celle-ci",
     "RULE_SUMMARY_MORE": "Afficher toute la règle",
     "RULE_SUMMARY_LESS": "Afficher moins"
   },

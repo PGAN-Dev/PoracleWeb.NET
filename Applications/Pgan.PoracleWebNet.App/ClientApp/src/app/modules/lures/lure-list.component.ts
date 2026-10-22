@@ -9,7 +9,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 
 import { LureAddDialogComponent } from './lure-add-dialog.component';
@@ -26,6 +26,7 @@ import { RuleSummaryComponent } from '../../shared/components/rule-summary/rule-
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
 import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
+import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { readableTextOn } from '../../shared/utils/contrast';
@@ -63,6 +64,7 @@ export class LureListComponent implements OnInit {
   private readonly icons = inject(IconService);
   private readonly lureService = inject(LureService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly translate = inject(TranslateService);
   readonly loading = signal(true);
   readonly lures = signal<Lure[]>([]);
   /** Only used to word the inherited scope honestly; empty produces the more cautious wording. */
@@ -302,10 +304,15 @@ export class LureListComponent implements OnInit {
 
   openAddDialog(): void {
     this.dialog
-      .open(LureAddDialogComponent, { width: '600px', maxHeight: '90vh' })
+      .open(LureAddDialogComponent, {
+        width: '600px',
+        data: { existingRule: (uid, type) => this.describeExisting(uid, type) } satisfies AddDialogData,
+        maxHeight: '90vh',
+      })
       .afterClosed()
       .subscribe(r => {
-        if (r) this.loadLures();
+        if (isEditExisting(r)) this.openExisting(r.editExisting.uid, r.editExisting.trackingType);
+        else if (r) this.loadLures();
       });
   }
 
@@ -329,7 +336,21 @@ export class LureListComponent implements OnInit {
     if (!this.selectMode()) this.selectedIds.set(new Set());
   }
 
+  /** Names one of this list's rules for an add dialog's refusal, or null when the list holds no such rule. */
+  private describeExisting(uid: number, trackingType: null | string): null | string {
+    if (trackingType !== null && trackingType !== 'lure') return null;
+    const lure = this.lures().find(l => l.uid === uid);
+    const title = lure ? `${this.getLureName(lure.lureId)} ${this.i18n.instant('LURES.LURE_SUFFIX')}` : '';
+    return lure ? ruleSummary(title, lure, this.profileAreas(), this.translate) : null;
+  }
+
   private loadProfileAreas(): void {
     this.areaService.getSelected().subscribe({ error: () => undefined, next: areas => this.profileAreas.set(areas) });
+  }
+
+  /** An add dialog was refused because of this rule and the user chose to edit it instead. */
+  private openExisting(uid: number, _trackingType: null | string): void {
+    const lure = this.lures().find(l => l.uid === uid);
+    if (lure) this.editLure(lure);
   }
 }

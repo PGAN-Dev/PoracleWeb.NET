@@ -7,7 +7,7 @@ import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 
 import { MaxBattleAddDialogComponent } from './max-battle-add-dialog.component';
@@ -25,6 +25,7 @@ import { QuietChipComponent } from '../../shared/components/quiet-chip/quiet-chi
 import { RuleSummaryComponent } from '../../shared/components/rule-summary/rule-summary.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
 import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
+import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
@@ -61,6 +62,7 @@ export class MaxBattleListComponent implements OnInit {
   private readonly masterData = inject(MasterDataService);
   private readonly maxBattleService = inject(MaxBattleService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly translate = inject(TranslateService);
 
   readonly loading = signal(true);
   readonly maxBattles = signal<MaxBattle[]>([]);
@@ -323,9 +325,13 @@ export class MaxBattleListComponent implements OnInit {
   }
 
   openAddDialog(): void {
-    const ref = this.dialog.open(MaxBattleAddDialogComponent, { width: '600px' });
+    const ref = this.dialog.open(MaxBattleAddDialogComponent, {
+      width: '600px',
+      data: { existingRule: (uid, type) => this.describeExisting(uid, type) } satisfies AddDialogData,
+    });
     ref.afterClosed().subscribe(result => {
-      if (result) this.loadData();
+      if (isEditExisting(result)) this.openExisting(result.editExisting.uid, result.editExisting.trackingType);
+      else if (result) this.loadData();
     });
   }
 
@@ -352,7 +358,20 @@ export class MaxBattleListComponent implements OnInit {
     }
   }
 
+  /** Names one of this list's rules for an add dialog's refusal, or null when the list holds no such rule. */
+  private describeExisting(uid: number, trackingType: null | string): null | string {
+    if (trackingType !== null && trackingType !== 'maxbattle') return null;
+    const maxBattle = this.maxBattles().find(m => m.uid === uid);
+    return maxBattle ? ruleSummary(this.getTitle(maxBattle), maxBattle, this.profileAreas(), this.translate) : null;
+  }
+
   private loadProfileAreas(): void {
     this.areaService.getSelected().subscribe({ error: () => undefined, next: areas => this.profileAreas.set(areas) });
+  }
+
+  /** An add dialog was refused because of this rule and the user chose to edit it instead. */
+  private openExisting(uid: number, _trackingType: null | string): void {
+    const maxBattle = this.maxBattles().find(m => m.uid === uid);
+    if (maxBattle) this.editMaxBattle(maxBattle);
   }
 }

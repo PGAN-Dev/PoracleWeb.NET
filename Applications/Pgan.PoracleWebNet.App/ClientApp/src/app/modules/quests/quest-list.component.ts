@@ -8,7 +8,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 
 import { QuestAddDialogComponent } from './quest-add-dialog.component';
@@ -28,6 +28,7 @@ import { DistanceDialogComponent } from '../../shared/components/distance-dialog
 import { RuleSummaryComponent } from '../../shared/components/rule-summary/rule-summary.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
 import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
+import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { ChipColors, readableChip } from '../../shared/utils/contrast';
@@ -70,6 +71,7 @@ export class QuestListComponent implements OnInit {
   private readonly masterData = inject(MasterDataService);
   private readonly questService = inject(QuestService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly translate = inject(TranslateService);
   readonly loading = signal(true);
   /** Only used to word the inherited scope honestly; empty produces the more cautious wording. */
   readonly profileAreas = signal<string[]>([]);
@@ -361,10 +363,12 @@ export class QuestListComponent implements OnInit {
   openAddDialog(): void {
     const ref = this.dialog.open(QuestAddDialogComponent, {
       width: '600px',
+      data: { existingRule: (uid, type) => this.describeExisting(uid, type) } satisfies AddDialogData,
       maxHeight: '90vh',
     });
     ref.afterClosed().subscribe(result => {
-      if (result) this.loadQuests();
+      if (isEditExisting(result)) this.openExisting(result.editExisting.uid, result.editExisting.trackingType);
+      else if (result) this.loadQuests();
     });
   }
 
@@ -395,6 +399,13 @@ export class QuestListComponent implements OnInit {
   toggleSelectMode(): void {
     this.selectMode.update(v => !v);
     if (!this.selectMode()) this.selectedIds.set(new Set());
+  }
+
+  /** Names one of this list's rules for an add dialog's refusal, or null when the list holds no such rule. */
+  private describeExisting(uid: number, trackingType: null | string): null | string {
+    if (trackingType !== null && trackingType !== 'quest') return null;
+    const quest = this.quests().find(q => q.uid === uid);
+    return quest ? ruleSummary(this.getQuestTitle(quest), quest, this.profileAreas(), this.translate) : null;
   }
 
   private describeReward(quest: Quest): string {
@@ -434,5 +445,11 @@ export class QuestListComponent implements OnInit {
 
   private loadProfileAreas(): void {
     this.areaService.getSelected().subscribe({ error: () => undefined, next: areas => this.profileAreas.set(areas) });
+  }
+
+  /** An add dialog was refused because of this rule and the user chose to edit it instead. */
+  private openExisting(uid: number, _trackingType: null | string): void {
+    const quest = this.quests().find(q => q.uid === uid);
+    if (quest) this.editQuest(quest);
   }
 }

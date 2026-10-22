@@ -98,6 +98,7 @@
   </mat-tab-group>
 </mat-dialog-content>
 
+<app-add-refusal [refusal]="refusal()" (editExisting)="editExisting($event)" />
 <mat-dialog-actions align="end">
   <button mat-button (click)="dialogRef.close(false)">{{ 'ALARM.CANCEL' | translate }}</button>
   <button mat-raised-button color="primary" (click)="save()" [disabled]="saving() || !canSave()">

@@ -407,6 +407,20 @@ describe('PokestopEventListComponent', () => {
       expect(dialog.open).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ data: [base] }));
       expect(pokestopEventService.getAll).toHaveBeenCalledTimes(2);
     });
+
+    it('opens the clashing rule for editing when the add dialog asks, without reloading', () => {
+      const other = { ...base, uid: 5, displayType: KECLEON, eventName: 'kecleon' };
+      setup([base, other]);
+      dialog.open
+        .mockReturnValueOnce({ afterClosed: () => of({ editExisting: { uid: 5, trackingType: 'incident' } }) })
+        .mockReturnValue({ afterClosed: () => of(undefined) });
+
+      component.openAddDialog();
+
+      expect(dialog.open).toHaveBeenCalledTimes(2);
+      expect(dialog.open).toHaveBeenLastCalledWith(expect.anything(), expect.objectContaining({ data: other }));
+      expect(pokestopEventService.getAll).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('scope editing from the card', () => {

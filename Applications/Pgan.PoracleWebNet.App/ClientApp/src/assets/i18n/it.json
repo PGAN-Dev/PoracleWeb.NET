@@ -396,6 +396,9 @@
     "TAB_DELIVERY": "Consegna",
     "COMMON_SETTINGS": "Impostazioni comuni",
     "SNACK_CREATED_WITH_DUPLICATES": "{{count}} create, {{duplicates}} già tracciate",
+    "ALREADY_TRACKED_ONE": "Lo tracci già. Non è stato cambiato nulla; modifica quell'allarme per cambiarne le impostazioni.",
+    "REFUSAL_COVERED_BY": "Già coperto da: {{summary}}",
+    "REFUSAL_EDIT_EXISTING": "Modifica quello",
     "RULE_SUMMARY_MORE": "Mostra tutta la regola",
     "RULE_SUMMARY_LESS": "Mostra meno"
   },

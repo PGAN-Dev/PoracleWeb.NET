@@ -2,7 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -17,12 +17,15 @@ import { AlertDefaultsService } from '../../core/services/alert-defaults.service
 import { AuthService } from '../../core/services/auth.service';
 import { FortChangeService } from '../../core/services/fort-change.service';
 import { I18nService } from '../../core/services/i18n.service';
+import { AddRefusalComponent } from '../../shared/components/add-refusal/add-refusal.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { AddDialogData, AddRefusal, editExistingResult, ExistingRule, refusalOf } from '../../shared/utils/add-outcome';
 import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 
 @Component({
   imports: [
+    AddRefusalComponent,
     ReactiveFormsModule,
     MatButtonModule,
     MatCheckboxModule,
@@ -47,8 +50,9 @@ import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 export class FortChangeAddDialogComponent {
   private readonly alertDefaults = inject(AlertDefaultsService);
 
-  private readonly fb = inject(FormBuilder);
+  private readonly data = inject<AddDialogData | null>(MAT_DIALOG_DATA, { optional: true });
 
+  private readonly fb = inject(FormBuilder);
   private readonly fortChangeService = inject(FortChangeService);
   private readonly i18n = inject(I18nService);
   private readonly snackBar = inject(MatSnackBar);
@@ -66,6 +70,8 @@ export class FortChangeAddDialogComponent {
   });
 
   readonly isWebhook = inject(AuthService).isImpersonating();
+  /** Why the last Add was refused; shown above the actions, cleared on the next save. */
+  readonly refusal = signal<AddRefusal | null>(null);
 
   saving = signal(false);
 
@@ -83,8 +89,14 @@ export class FortChangeAddDialogComponent {
         },
   );
 
+  /** The refusal named a stored rule: close and let the list open that one for editing. */
+  editExisting(rule: ExistingRule): void {
+    this.dialogRef.close(editExistingResult(rule));
+  }
+
   save(): void {
     this.saving.set(true);
+    this.refusal.set(null);
     const v = this.form.getRawValue();
     const scope = scopeToFields(this.scope());
     const changeTypes: string[] = [];
@@ -107,15 +119,20 @@ export class FortChangeAddDialogComponent {
       })
       .subscribe({
         // The server names what is wrong -- which alarm already uses these settings, which
-        // field a file got wrong. A fixed string threw that away. See #567, #568.
-        error: (err: { error?: { error?: string } }) => {
-          this.snackBar.open(err?.error?.error ?? this.i18n.instant('FORT_CHANGES.CREATE_FAILED'), this.i18n.instant('COMMON.OK'), {
-            duration: 6000,
-          });
+        // field a file got wrong. A fixed string threw that away (#567, #568). Nothing was created, so
+        // the dialog stays open with the reason inline and the user's settings kept.
+        error: (err: unknown) => {
+          this.refusal.set(refusalOf(err, this.i18n.instant('FORT_CHANGES.CREATE_FAILED'), this.data?.existingRule));
           this.saving.set(false);
         },
-        next: () => {
-          this.snackBar.open(this.i18n.instant('FORT_CHANGES.CREATE_SUCCESS'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
+        next: created => {
+          // uid 0: PoracleNG found this exact rule already stored and left it as it was.
+          const unchanged = (created?.uid ?? 0) <= 0;
+          this.snackBar.open(
+            this.i18n.instant(unchanged ? 'ALARM.ALREADY_TRACKED_ONE' : 'FORT_CHANGES.CREATE_SUCCESS'),
+            this.i18n.instant('COMMON.OK'),
+            { duration: unchanged ? 6000 : 3000 },
+          );
           this.dialogRef.close(true);
         },
       });

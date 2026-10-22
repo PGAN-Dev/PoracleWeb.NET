@@ -9,7 +9,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 
 import { NestAddDialogComponent } from './nest-add-dialog.component';
@@ -28,6 +28,7 @@ import { RuleSummaryComponent } from '../../shared/components/rule-summary/rule-
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
 import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
+import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { isAutoDelete as cleanIsAutoDelete } from '../../shared/utils/clean-flags';
@@ -67,6 +68,7 @@ export class NestListComponent implements OnInit {
   private readonly masterData = inject(MasterDataService);
   private readonly nestService = inject(NestService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly translate = inject(TranslateService);
   readonly loading = signal(true);
   readonly nests = signal<Nest[]>([]);
   /** Only used to word the inherited scope honestly; empty produces the more cautious wording. */
@@ -267,10 +269,15 @@ export class NestListComponent implements OnInit {
 
   openAddDialog(): void {
     this.dialog
-      .open(NestAddDialogComponent, { width: '600px', maxHeight: '90vh' })
+      .open(NestAddDialogComponent, {
+        width: '600px',
+        data: { existingRule: (uid, type) => this.describeExisting(uid, type) } satisfies AddDialogData,
+        maxHeight: '90vh',
+      })
       .afterClosed()
       .subscribe(r => {
-        if (r) this.loadNests();
+        if (isEditExisting(r)) this.openExisting(r.editExisting.uid, r.editExisting.trackingType);
+        else if (r) this.loadNests();
       });
   }
 
@@ -294,7 +301,20 @@ export class NestListComponent implements OnInit {
     if (!this.selectMode()) this.selectedIds.set(new Set());
   }
 
+  /** Names one of this list's rules for an add dialog's refusal, or null when the list holds no such rule. */
+  private describeExisting(uid: number, trackingType: null | string): null | string {
+    if (trackingType !== null && trackingType !== 'nest') return null;
+    const nest = this.nests().find(n => n.uid === uid);
+    return nest ? ruleSummary(this.getPokemonName(nest.pokemonId), nest, this.profileAreas(), this.translate) : null;
+  }
+
   private loadProfileAreas(): void {
     this.areaService.getSelected().subscribe({ error: () => undefined, next: areas => this.profileAreas.set(areas) });
+  }
+
+  /** An add dialog was refused because of this rule and the user chose to edit it instead. */
+  private openExisting(uid: number, _trackingType: null | string): void {
+    const nest = this.nests().find(n => n.uid === uid);
+    if (nest) this.editNest(nest);
   }
 }

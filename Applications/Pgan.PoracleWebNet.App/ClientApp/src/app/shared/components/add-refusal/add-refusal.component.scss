@@ -1,0 +1,43 @@
+:host {
+  display: block;
+}
+
+.add-refusal {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 24px 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--mat-sys-error-container, #f9dedc);
+  color: var(--mat-sys-on-error-container, #410e0b);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.add-refusal__icon {
+  flex: none;
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+}
+
+.add-refusal__text {
+  flex: 1;
+  min-width: 0;
+
+  p {
+    margin: 0;
+  }
+}
+
+.add-refusal__existing {
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.add-refusal__edit {
+  flex: none;
+  align-self: center;
+  color: inherit;
+}

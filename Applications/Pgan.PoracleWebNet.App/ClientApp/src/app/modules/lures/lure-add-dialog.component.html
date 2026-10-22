@@ -47,6 +47,7 @@
     </mat-tab>
   </mat-tab-group>
 </mat-dialog-content>
+<app-add-refusal [refusal]="refusal()" (editExisting)="editExisting($event)" />
 <mat-dialog-actions align="end">
   <button mat-button (click)="dialogRef.close(false)">{{ 'COMMON.CANCEL' | translate }}</button>
   <button mat-raised-button color="primary" (click)="save()" [disabled]="saving() || selectedLureIds().length === 0">

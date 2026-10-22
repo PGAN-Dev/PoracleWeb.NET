@@ -396,6 +396,9 @@
     "TAB_DELIVERY": "Levering",
     "COMMON_SETTINGS": "Fælles indstillinger",
     "SNACK_CREATED_WITH_DUPLICATES": "{{count}} oprettet, {{duplicates}} spores allerede",
+    "ALREADY_TRACKED_ONE": "Du sporer allerede dette. Intet blev ændret; rediger den alarm for at ændre dens indstillinger.",
+    "REFUSAL_COVERED_BY": "Allerede dækket af: {{summary}}",
+    "REFUSAL_EDIT_EXISTING": "Rediger den",
     "RULE_SUMMARY_MORE": "Vis hele reglen",
     "RULE_SUMMARY_LESS": "Vis mindre"
   },

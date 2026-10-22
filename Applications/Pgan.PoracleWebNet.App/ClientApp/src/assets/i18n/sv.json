@@ -396,6 +396,9 @@
     "TAB_DELIVERY": "Leverans",
     "COMMON_SETTINGS": "Gemensamma inställningar",
     "SNACK_CREATED_WITH_DUPLICATES": "{{count}} skapade, {{duplicates}} bevakas redan",
+    "ALREADY_TRACKED_ONE": "Du bevakar redan detta. Inget ändrades; redigera det larmet för att ändra dess inställningar.",
+    "REFUSAL_COVERED_BY": "Täcks redan av: {{summary}}",
+    "REFUSAL_EDIT_EXISTING": "Redigera det",
     "RULE_SUMMARY_MORE": "Visa hela regeln",
     "RULE_SUMMARY_LESS": "Visa mindre"
   },

@@ -9,7 +9,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { firstValueFrom, forkJoin } from 'rxjs';
 
 import { GymAddDialogComponent } from './gym-add-dialog.component';
@@ -28,6 +28,7 @@ import { RuleSummaryComponent } from '../../shared/components/rule-summary/rule-
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
 import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
+import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
@@ -66,6 +67,7 @@ export class GymListComponent implements OnInit {
   private readonly icons = inject(IconService);
   private readonly scannerService = inject(ScannerService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly translate = inject(TranslateService);
   readonly gymNames = signal<Record<string, string>>({});
   readonly gyms = signal<Gym[]>([]);
   readonly loading = signal(true);
@@ -292,10 +294,15 @@ export class GymListComponent implements OnInit {
 
   openAddDialog(): void {
     this.dialog
-      .open(GymAddDialogComponent, { width: '600px', maxHeight: '90vh' })
+      .open(GymAddDialogComponent, {
+        width: '600px',
+        data: { existingRule: (uid, type) => this.describeExisting(uid, type) } satisfies AddDialogData,
+        maxHeight: '90vh',
+      })
       .afterClosed()
       .subscribe(r => {
-        if (r) this.loadGyms();
+        if (isEditExisting(r)) this.openExisting(r.editExisting.uid, r.editExisting.trackingType);
+        else if (r) this.loadGyms();
       });
   }
 
@@ -319,8 +326,21 @@ export class GymListComponent implements OnInit {
     if (!this.selectMode()) this.selectedIds.set(new Set());
   }
 
+  /** Names one of this list's rules for an add dialog's refusal, or null when the list holds no such rule. */
+  private describeExisting(uid: number, trackingType: null | string): null | string {
+    if (trackingType !== null && trackingType !== 'gym') return null;
+    const gym = this.gyms().find(g => g.uid === uid);
+    return gym ? ruleSummary(this.getTeamName(gym.team), gym, this.profileAreas(), this.translate) : null;
+  }
+
   private loadProfileAreas(): void {
     this.areaService.getSelected().subscribe({ error: () => undefined, next: areas => this.profileAreas.set(areas) });
+  }
+
+  /** An add dialog was refused because of this rule and the user chose to edit it instead. */
+  private openExisting(uid: number, _trackingType: null | string): void {
+    const gym = this.gyms().find(g => g.uid === uid);
+    if (gym) this.editGym(gym);
   }
 
   private resolveGymNames(gyms: Gym[]): void {

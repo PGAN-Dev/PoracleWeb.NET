@@ -396,6 +396,9 @@
     "TAB_DELIVERY": "Delivery",
     "COMMON_SETTINGS": "Common Settings",
     "SNACK_CREATED_WITH_DUPLICATES": "{{count}} created, {{duplicates}} already tracked",
+    "ALREADY_TRACKED_ONE": "You already track this. Nothing was changed; edit that alarm to change its settings.",
+    "REFUSAL_COVERED_BY": "Already covered by: {{summary}}",
+    "REFUSAL_EDIT_EXISTING": "Edit that one",
     "RULE_SUMMARY_MORE": "Show the whole rule",
     "RULE_SUMMARY_LESS": "Show less"
   },

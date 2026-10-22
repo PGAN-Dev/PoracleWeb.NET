@@ -8,7 +8,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { firstValueFrom, forkJoin } from 'rxjs';
 
 import { RaidAddDialogComponent } from './raid-add-dialog.component';
@@ -33,6 +33,7 @@ import { RuleSummaryComponent } from '../../shared/components/rule-summary/rule-
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
 import { LevelLabelPipe } from '../../shared/pipes/level-label.pipe';
 import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
+import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { NO_COSTUME } from '../../shared/utils/costumes';
@@ -76,6 +77,7 @@ export class RaidListComponent implements OnInit {
   private readonly raidService = inject(RaidService);
   private readonly scannerService = inject(ScannerService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly translate = inject(TranslateService);
   /** Which tab is in front: 0 raids, 1 eggs. Bulk actions are scoped to it. See #642. */
   readonly activeTab = signal(0);
 
@@ -439,10 +441,12 @@ export class RaidListComponent implements OnInit {
   openAddDialog(): void {
     const ref = this.dialog.open(RaidAddDialogComponent, {
       width: '600px',
+      data: { existingRule: (uid, type) => this.describeExisting(uid, type) } satisfies AddDialogData,
       maxHeight: '90vh',
     });
     ref.afterClosed().subscribe(result => {
-      if (result) this.loadData();
+      if (isEditExisting(result)) this.openExisting(result.editExisting.uid, result.editExisting.trackingType);
+      else if (result) this.loadData();
     });
   }
 
@@ -484,8 +488,31 @@ export class RaidListComponent implements OnInit {
     }
   }
 
+  /** Names one of this list's rules for an add dialog's refusal, or null when the list holds no such rule. */
+  private describeExisting(uid: number, trackingType: null | string): null | string {
+    if (trackingType === 'egg') {
+      const egg = this.eggs().find(e => e.uid === uid);
+      const title = egg ? `${this.getRaidLevelName(egg.level)} ${this.i18n.instant('RAIDS.EGG_SUFFIX')}` : '';
+      return egg ? ruleSummary(title, egg, this.profileAreas(), this.translate) : null;
+    }
+    if (trackingType !== null && trackingType !== 'raid') return null;
+    const raid = this.raids().find(r => r.uid === uid);
+    return raid ? ruleSummary(this.getRaidTitle(raid), raid, this.profileAreas(), this.translate) : null;
+  }
+
   private loadProfileAreas(): void {
     this.areaService.getSelected().subscribe({ error: () => undefined, next: areas => this.profileAreas.set(areas) });
+  }
+
+  /** An add dialog was refused because of this rule and the user chose to edit it instead. */
+  private openExisting(uid: number, trackingType: null | string): void {
+    if (trackingType === 'egg') {
+      const egg = this.eggs().find(e => e.uid === uid);
+      if (egg) this.editEgg(egg);
+      return;
+    }
+    const raid = this.raids().find(r => r.uid === uid);
+    if (raid) this.editRaid(raid);
   }
 
   private resolveGymNames(items: (Raid | Egg)[]): void {

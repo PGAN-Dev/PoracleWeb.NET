@@ -396,6 +396,9 @@
     "TAB_DELIVERY": "Entrega",
     "COMMON_SETTINGS": "Configurações comuns",
     "SNACK_CREATED_WITH_DUPLICATES": "{{count}} criados, {{duplicates}} já monitorados",
+    "ALREADY_TRACKED_ONE": "Você já monitora isso. Nada foi alterado; edite esse alarme para mudar as configurações.",
+    "REFUSAL_COVERED_BY": "Já coberto por: {{summary}}",
+    "REFUSAL_EDIT_EXISTING": "Editar esse",
     "RULE_SUMMARY_MORE": "Mostrar a regra completa",
     "RULE_SUMMARY_LESS": "Mostrar menos"
   },
