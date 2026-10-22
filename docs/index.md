@@ -84,6 +84,8 @@ A web application for managing Pokemon GO notification alarms through the [Porac
 
     [:octicons-arrow-right-24: Standalone Setup (no Docker)](getting-started/standalone-setup.md)
 
+    [:octicons-arrow-right-24: Upgrading to PoracleNG 5.4.0](getting-started/upgrading-to-poracleng-5-4.md)
+
 -   :material-cog:{ .lg .middle } **Configuration**
 
     ---
