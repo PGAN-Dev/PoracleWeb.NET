@@ -233,3 +233,46 @@ Run by the controller, not a subagent: it needs dev-01.
 - [ ] **Step 2:** Confirm the batch assumption live: a three-rule POST with `dry_run=true` where one rule is new, one identical and one a one-field update reports them in `created`, `unchanged`, `updated` with `previous`, and a commit of the new rule alone reports one `created` in order.
 - [ ] **Step 3:** Run `smoke.py` and the e2e scripts (`e2eB`, `e2eC`, `e2eD`) against the instance. Expected: no new failures against 3a's baseline (254/260 smoke, 149/173 e2eC, with the known environmental and gender-3 cases). Exercise by hand: Add next to a one-field sibling (refused), Add next to a two-field sibling (created), edit a boss raid, edit a pokemon limited to a drawn fence, apply `all-invasions` with two grunts already tracked, import a profile.
 - [ ] **Step 4:** Record the results in the PR body.
+
+---
+
+## Addendum (2026-10-22): bulk distance and cleaning move to PATCH in this branch
+
+Found on the bed (Task 8): a rule created through v2 without a template stores `template: ""`, and v1's create fills an empty template with the server default name (`"1"`). So the v1 upsert behind bulk distance and the cleaning toggle sees two updatable differences on every v2-created rule and **inserts a second rule** instead of updating. Nothing sent to v1 can express `""`. The v1 surface can't be kept even temporarily, so sub-project 3c's bulk work lands here. Spec: "Bulk distance and cleaning. `PATCH …/tracking/{type} {uids, set}`. Upstream's `invalid` refusals map onto `skippedAreaScoped` / `skippedPlaceScoped`; `conflict` refusals become a new `skippedConflict` list and one more line in the SPA's message. Deleted: max battle's delete-then-recreate, `DistanceRewrite`'s write-back, `EnsureBatchDoesNotCollapse`, `EnsureBatchDoesNotTakeOverOthersAsync`, cleaning's fetch-mutate-POST."
+
+### Task 9: Bulk distance and cleaning through v2 PATCH; v1 gone
+
+**Files:**
+- Modify: `IPoracleTrackingProxy.cs`, `PoracleTrackingProxy.Writes.cs` (add PATCH; delete `UpsertV1Async`), `IPoracleIncidentProxy.cs` / `PoracleIncidentProxy.cs` (PATCH for incident), the ten alarm services' `UpdateDistanceByUserAsync` / `UpdateDistanceByUidsAsync`, `PokestopEventService` distance methods, `CleaningService.cs`, `Core.Models/DistanceUpdateResult.cs`, `DistanceRewrite.cs` (keep only the scope pre-split if still used), `TrackingUpdateReconciler.cs` (delete the file if nothing is left), `BulkUidRemap.cs` (delete if PATCH keeps uids and nothing else uses it)
+- Test: proxy PATCH tests, per-service distance tests, `CleaningServiceTests`, `BulkDistanceScopeTests`
+
+**Interfaces:**
+- Produces: `Task<TrackingPatchResult> PatchAsync(string type, string userId, IReadOnlyList<int> uids, TrackingPatchSet set)` on `IPoracleTrackingProxy`: `PATCH /api/v2/humans/{id}/tracking/{type}?silent=true` with `{"uids":[...],"set":{...}}`. `TrackingPatchSet` carries nullable `Distance` and `Clean` (bool, bit 1 only); only non-null members are serialised (fields not named are left as stored upstream, so edit and summary bits survive). `TrackingPatchResult(IReadOnlyList<int> Updated, IReadOnlyList<int> Unchanged, IReadOnlyList<PatchRefusal> Refused)` with `PatchRefusal(int Uid, string Reason /* invalid|conflict|not_found */, string Detail, int? ConflictsWith)`. Status mapping as the other v2 writes (plaintext 404 → `PoracleUnsupportedException("saving alarms", RequiredVersion)`, human-not-found → `AccountGoneException`, 400/422 → `AlarmValidationException`). Same for `IPoracleIncidentProxy.PatchAsync(userId, uids, set)`.
+- Produces: `DistanceUpdateResult(int Updated, IReadOnlyList<int> SkippedAreaScoped, IReadOnlyList<int> SkippedPlaceScoped, IReadOnlyList<int> SkippedConflict)`; the new member defaults to empty so existing constructions compile; serialised as `skippedConflict`.
+- Consumes: the uid lists the services already compute from their reads.
+
+**Behaviour:**
+- Distance: keep the local scope pre-split (area-scoped rows can't take a radius above 0, place-scoped rows can't take 0) so those uids are reported as today without being sent; PATCH the rest with `set.distance`. `updated` + `unchanged` count as updated. Refusals: `conflict` → `SkippedConflict`; `invalid` → `SkippedAreaScoped` or `SkippedPlaceScoped` by the same scope test (if neither applies, log it and add it to `SkippedConflict`); `not_found` → logged, not reported. One PATCH per type; PoracleNG processes uids in order and decides conflicts itself.
+- Invasion: event rows in the selection go to the incident PATCH, the rest to invasion (the same partition the services use today).
+- Max battle: no delete-then-recreate.
+- Cleaning: `set.clean` = the toggle; uids from the same filtered read as today; returns updated + unchanged.
+- PATCH keeps uids, so no remap. Delete `UpsertV1Async`, `EnsureBatchDoesNotCollapse`, `EnsureBatchDoesNotTakeOverOthersAsync` and everything only they use, and the `DistanceRewrite` write-back.
+- After this task no code path calls `/api/tracking` (v1): add `NoV1TrackingCallsTests`, which fails the build if `"/api/tracking/"` appears in a string literal under `Core/` or the API project.
+
+- [ ] **Step 1: Write the failing tests**: `PatchSendsUidsAndOnlyTheNamedSettings` (body is exactly `{"uids":[1,2],"set":{"distance":500}}`), `PatchMapsRefusals`, `PatchPlaintext404IsUnsupported`; per service `BulkDistanceUsesOnePatchNoPost`, `BulkDistanceConflictRefusalReportedAsSkippedConflict`, `BulkDistanceAreaScopedNotSent` (legit: the other rows are still patched); `MaxBattleBulkDistanceNoDelete`; `InvasionBulkDistanceSplitsEventsToIncident`; `CleaningToggleIsOnePatchPerTypeKeepsOtherBits` (set carries only `clean`); `NoV1TrackingCallsTests`.
+- [ ] **Step 2: Run, expect failures.**
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run** the full backend suite → green; `grep -rn "UpsertV1Async\|EnsureBatchDoesNot\|/api/tracking/" Core Applications --include=*.cs` → no hits outside the guard test's own pattern.
+- [ ] **Step 5: Commit** `feat: bulk distance and cleaning go through PoracleNG v2 PATCH; the v1 tracking surface is gone`.
+
+### Task 10: SPA reports conflict-skipped rules; docs
+
+**Files:**
+- Modify: `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/shared/utils/distance-update.ts` (+ spec), the eleven locale files under `src/assets/i18n/` (one new key, translated; follow how the area/place skipped keys are worded and named)
+- Modify: `docs/features/alarms.md` ("skipped, would clash"), `docs/architecture/poracleng-proxy.md`, `backend.md`, `poracleng-compatibility.md` (no v1 tracking call left), `CLAUDE.md` (the bulk distance, cleaning, "fetch-mutate-POST", `UpsertV1Async` and `DistanceRewrite` passages), `CHANGELOG.md` (bulk distance and cleaning go through PoracleNG; a rule skipped because it would clash with another is reported; cleaning keeps edit and summary bits)
+
+- [ ] **Step 1: Write the failing spec**: `distanceUpdateMessage` mentions conflict-skipped rules when `skippedConflict` is non-empty and stays as today when it's empty; the accumulator sums `skippedConflict` across types; `hasSkipped` counts it.
+- [ ] **Step 2: Run** `npx jest distance-update` → FAIL.
+- [ ] **Step 3: Implement**, adding the locale key to all eleven files.
+- [ ] **Step 4: Run** `npx jest`, `npm run lint`, `npm run prettier-check`, `npm run build` and `mkdocs build --strict` → all pass.
+- [ ] **Step 5: Commit** `feat: say when a radius change skipped rules that would clash` and `docs: bulk distance and cleaning on v2`.
