@@ -354,15 +354,15 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 4px;
+  padding: 0 8px 12px;
+  border-bottom: 1px solid var(--card-border, rgba(0, 0, 0, 0.08));
+  margin-bottom: 12px;
 
   // The Switch button shrank below its label on a phone ("Przełącz" ran out of its outline).
   .mat-mdc-outlined-button {
     flex-shrink: 0;
     white-space: nowrap;
   }
-  padding: 0 8px 12px;
-  border-bottom: 1px solid var(--card-border, rgba(0, 0, 0, 0.08));
-  margin-bottom: 12px;
 }
 
 // ─── Type Section ───────────────────────────────────────────────────────────────

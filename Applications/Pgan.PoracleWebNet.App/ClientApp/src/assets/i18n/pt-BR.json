@@ -928,6 +928,7 @@
     "SNACK_DELETED": "Perfil excluído",
     "SNACK_DUPLICATED_ONE": "Perfil duplicado com {{count}} alarme",
     "SNACK_DUPLICATED_OTHER": "Perfil duplicado com {{count}} alarmes",
+    "SNACK_DUPLICATED_ALL": "Perfil duplicado com todos os seus alarmes",
     "SNACK_IMPORTED_ONE": "Perfil importado com {{count}} alarme",
     "SNACK_IMPORTED_OTHER": "Perfil importado com {{count}} alarmes",
     "SNACK_FAILED_CREATE": "Falha ao criar perfil",

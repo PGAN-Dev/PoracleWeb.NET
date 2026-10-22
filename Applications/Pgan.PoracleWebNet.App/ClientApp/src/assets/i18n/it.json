@@ -928,6 +928,7 @@
     "SNACK_DELETED": "Profilo eliminato",
     "SNACK_DUPLICATED_ONE": "Profilo duplicato con {{count}} allarme",
     "SNACK_DUPLICATED_OTHER": "Profilo duplicato con {{count}} allarmi",
+    "SNACK_DUPLICATED_ALL": "Profilo duplicato con tutti i suoi allarmi",
     "SNACK_IMPORTED_ONE": "Profilo importato con {{count}} allarme",
     "SNACK_IMPORTED_OTHER": "Profilo importato con {{count}} allarmi",
     "SNACK_FAILED_CREATE": "Creazione profilo fallita",

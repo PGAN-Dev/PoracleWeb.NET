@@ -52,7 +52,7 @@ export class ProfileDuplicateDialogComponent {
       },
       next: profile => {
         this.duplicating.set(false);
-        this.snackBar.open(this.i18n.instant('PROFILES.SNACK_DUPLICATED_OTHER', { count: 'all' }), this.i18n.instant('TOAST.OK'), {
+        this.snackBar.open(this.i18n.instant('PROFILES.SNACK_DUPLICATED_ALL'), this.i18n.instant('TOAST.OK'), {
           duration: 3000,
         });
         this.dialogRef.close(profile);
