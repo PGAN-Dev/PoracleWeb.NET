@@ -47,7 +47,9 @@ public class AreaSaveThroughV2Tests : ControllerTestBase
             proxy,
             Mock.Of<IPoracleApiProxy>(),
             Mock.Of<IUserGeofenceService>(),
-            new UserAreaWriter(proxy, fences.Object, Mock.Of<IPoracleTrackingProxy>(), Mock.Of<ILogger<UserAreaWriter>>()),
+            new UserAreaWriter(
+                proxy, fences.Object, Mock.Of<IPoracleTrackingProxy>(), Mock.Of<ILogger<UserAreaWriter>>(),
+                new UserAreaPolicy(proxy, fences.Object)),
             Mock.Of<ILogger<AreaController>>());
         SetupUser(sut, UserId);
 

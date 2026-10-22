@@ -24,15 +24,6 @@ public partial class UserAreaWriter(
     ILogger<UserAreaWriter> logger,
     IUserAreaPolicy policy) : IUserAreaWriter
 {
-    public UserAreaWriter(
-        IPoracleHumanProxy humanProxy,
-        IUserGeofenceRepository geofences,
-        IPoracleTrackingProxy trackingProxy,
-        ILogger<UserAreaWriter> logger)
-        : this(humanProxy, geofences, trackingProxy, logger, new UserAreaPolicy(humanProxy, geofences))
-    {
-    }
-
     private readonly IUserAreaPolicy _policy = policy;
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly IUserGeofenceRepository _geofences = geofences;
