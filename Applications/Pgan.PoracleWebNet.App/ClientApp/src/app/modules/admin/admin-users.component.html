@@ -1,9 +1,8 @@
 <div class="page-header">
   <div class="page-header-text">
     <h1>{{ 'ADMIN.USERS_TITLE' | translate }}</h1>
-    <p class="page-description">
-      {{ 'ADMIN.USERS_DESC_FULL' | translate }}
-    </p>
+    <!-- The string marks the two status names in <strong>; Angular sanitises it, as for the banners in app.html. -->
+    <p class="page-description" [innerHTML]="'ADMIN.USERS_DESC_FULL' | translate"></p>
   </div>
 </div>
 
