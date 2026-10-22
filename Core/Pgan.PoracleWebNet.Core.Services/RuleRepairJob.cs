@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -23,8 +24,10 @@ namespace Pgan.PoracleWebNet.Core.Services;
 /// </para>
 /// <para>
 /// A run stops rather than grinding on when PoracleNG is too old (<see cref="PoracleUnsupportedException"/>)
-/// or stops answering (<see cref="MaxUnreachableInARow"/> requests in a row with no response). Anything
-/// else unexpected fails the run too, so a bug reads as a failure, not as a skipped human.
+/// or stops answering (<see cref="MaxUnreachableInARow"/> requests in a row with no response, or a gateway
+/// error in front of it). Anything else unexpected fails the run too, so a bug reads as a failure, not as a
+/// skipped human. A scan that skipped every human fails as well, whatever the reasons were, because a scan
+/// that read nobody has found nothing and must not say "nothing to repair".
 /// </para>
 /// </remarks>
 public sealed partial class RuleRepairJob(IServiceScopeFactory scopes, ILogger<RuleRepairJob> logger) : IRuleRepairJob
@@ -34,6 +37,10 @@ public sealed partial class RuleRepairJob(IServiceScopeFactory scopes, ILogger<R
 
     /// <summary>Requests in a row that got no response before a run gives up on PoracleNG.</summary>
     internal const int MaxUnreachableInARow = 5;
+
+    /// <summary>Why a rule whose repair would collide with another of the same human's rules was left alone.</summary>
+    internal const string DuplicateReason =
+        "Repairing it would duplicate another of this user's rules, so it was left as it is. One of the two is probably redundant.";
 
     /// <summary>What an any-tier raid or max battle is stored as when its dry run answers <c>updated</c>.</summary>
     private const string StoredAnyTier = "pokemon 9000, level 9000";
@@ -105,9 +112,16 @@ public sealed partial class RuleRepairJob(IServiceScopeFactory scopes, ILogger<R
 
     private static bool IsBusy(RuleRepairPhase phase) => phase is RuleRepairPhase.Scanning or RuleRepairPhase.Applying;
 
-    /// <summary>No response at all: refused, reset, timed out. A status code means PoracleNG answered.</summary>
+    /// <summary>
+    /// No usable response: refused, reset, timed out, or a gateway (502, 503, 504) saying PoracleNG behind it
+    /// did not answer. Any other status code means PoracleNG answered for that human.
+    /// </summary>
     private static bool IsUnreachable(Exception ex) =>
-        ex is HttpRequestException { StatusCode: null } or TaskCanceledException;
+        ex is TaskCanceledException
+            or HttpRequestException
+            {
+                StatusCode: null or HttpStatusCode.BadGateway or HttpStatusCode.ServiceUnavailable or HttpStatusCode.GatewayTimeout,
+            };
 
     private void ResetUnreachable()
     {
@@ -146,7 +160,7 @@ public sealed partial class RuleRepairJob(IServiceScopeFactory scopes, ILogger<R
     }
 
     private string UnreachableError(string stopped) =>
-        $"PoracleNG could not be reached: {MaxUnreachableInARow} requests in a row got no response ({this._unreachableReason}). {stopped}";
+        $"PoracleNG could not be reached: {MaxUnreachableInARow} requests in a row got no response or a gateway error ({this._unreachableReason}). {stopped}";
 
     private async Task RunScanAsync()
     {
@@ -177,10 +191,18 @@ public sealed partial class RuleRepairJob(IServiceScopeFactory scopes, ILogger<R
                     this.Update(s => s with { HumansDone = s.HumansDone + 1 });
                 });
 
-            // Fewer humans than the in-a-row limit, none of them reachable: still nothing was scanned.
-            if (ids.Count > 0 && results.All(r => r.Unreachable))
+            // Nobody read, for whatever mix of reasons: an empty list here would read as "nothing to repair".
+            if (ids.Count > 0 && results.All(r => r.Skip is not null))
             {
-                this.Fail($"PoracleNG could not be reached for any human ({results[0].Skip?.Reason}). Nothing was scanned.", "scan");
+                var (reason, count) = results
+                    .GroupBy(r => r.Skip!.Reason, StringComparer.Ordinal)
+                    .Select(g => (Reason: g.Key, Count: g.Count()))
+                    .OrderByDescending(g => g.Count)
+                    .ThenBy(g => g.Reason, StringComparer.Ordinal)
+                    .First();
+                this.Fail(
+                    $"No user's rules could be read, so nothing was scanned. The most common reason ({count} of {ids.Count}): {reason}",
+                    "scan");
                 return;
             }
 
@@ -253,6 +275,13 @@ public sealed partial class RuleRepairJob(IServiceScopeFactory scopes, ILogger<R
                         continue;
                     }
 
+                    // The repaired rule would be a copy of another one; list it rather than drop it.
+                    if (outcome == StoredRuleReplaceOutcome.Conflict)
+                    {
+                        cannotEdit.Add(item with { Kind = RuleRepairKind.CannotEdit, After = null, Reason = DuplicateReason });
+                        continue;
+                    }
+
                     // Only "updated" says the stored rule is 9000/9000; anything else leaves nothing to repair.
                     if (outcome != StoredRuleReplaceOutcome.Updated)
                     {
@@ -265,12 +294,12 @@ public sealed partial class RuleRepairJob(IServiceScopeFactory scopes, ILogger<R
                 repairable.Add(item);
             }
 
-            return new HumanScan(repairable, cannotEdit, null, false);
+            return new HumanScan(repairable, cannotEdit, null);
         }
         catch (Exception ex) when (SkipReason(ex) is { } reason)
         {
             LogHumanSkipped(this._logger, humanId, reason);
-            return new HumanScan([], [], new RuleRepairSkip(humanId, reason), IsUnreachable(ex));
+            return new HumanScan([], [], new RuleRepairSkip(humanId, reason));
         }
     }
 
@@ -312,13 +341,13 @@ public sealed partial class RuleRepairJob(IServiceScopeFactory scopes, ILogger<R
             var result = new RuleRepairApplyResult(
                 tallies.Sum(t => t.Repaired),
                 tallies.Sum(t => t.AlreadyFine),
-                tallies.Sum(t => t.Conflicts),
                 tallies.Sum(t => t.Gone),
+                tallies.SelectMany(t => t.Conflicts).OrderBy(i => i, ItemOrder.Instance).ToList(),
                 tallies.SelectMany(t => t.Failed).OrderBy(i => i, ItemOrder.Instance).ToList());
 
             this.Update(s => s with { Phase = RuleRepairPhase.Applied, FinishedAt = DateTimeOffset.UtcNow, Applied = result });
 
-            LogApplied(this._logger, result.Repaired, result.AlreadyFine, result.Conflicts, result.Gone, result.Failed.Count);
+            LogApplied(this._logger, result.Repaired, result.AlreadyFine, result.Conflicts.Count, result.Gone, result.Failed.Count);
         }
         catch (Exception) when (abort.IsCancellationRequested)
         {
@@ -334,7 +363,8 @@ public sealed partial class RuleRepairJob(IServiceScopeFactory scopes, ILogger<R
     /// Repairs one human's items in turn. The human's rules are read again first, and each item is
     /// classified on what is stored now: a rule that has gone is Gone, one that no longer needs this repair
     /// is AlreadyFine, and the rest are dry-run and written from the fresh row, so nothing edited since the
-    /// scan is reverted. A conflict is left as it is.
+    /// scan is reverted. A conflict is left as it is. The stored rule is logged just before each real write,
+    /// so a repair can be undone from the log.
     /// </summary>
     private async Task<ApplyTally> ApplyHumanAsync(string humanId, List<RuleRepairItem> items, CancellationTokenSource abort)
     {
@@ -384,7 +414,8 @@ public sealed partial class RuleRepairJob(IServiceScopeFactory scopes, ILogger<R
                     () => tracking.ReplaceStoredRuleAsync(item.Type, humanId, item.Uid, item.ProfileNo, row, dryRun: true), abort);
                 if (outcome == StoredRuleReplaceOutcome.Updated)
                 {
-                    // The uid may come back different; nothing in PoracleWeb.NET tracks these rules by uid.
+                    // 5.4.0 keeps the uid; nothing in PoracleWeb.NET tracks these rules by uid if it ever does not.
+                    LogRepairWriting(this._logger, humanId, item.Type, item.ProfileNo, item.Uid, item.Kind, rule.Rule);
                     outcome = await this.CallAsync(
                         () => tracking.ReplaceStoredRuleAsync(item.Type, humanId, item.Uid, item.ProfileNo, row, dryRun: false), abort);
                     if (outcome == StoredRuleReplaceOutcome.Updated)
@@ -400,7 +431,7 @@ public sealed partial class RuleRepairJob(IServiceScopeFactory scopes, ILogger<R
                         tally.AlreadyFine++;
                         break;
                     case StoredRuleReplaceOutcome.Conflict:
-                        tally.Conflicts++;
+                        tally.Conflicts.Add(item with { Reason = DuplicateReason });
                         break;
                     default:
                         tally.Gone++;
@@ -445,14 +476,13 @@ public sealed partial class RuleRepairJob(IServiceScopeFactory scopes, ILogger<R
     private sealed record HumanScan(
         IReadOnlyList<RuleRepairItem> Repairable,
         IReadOnlyList<RuleRepairItem> CannotEdit,
-        RuleRepairSkip? Skip,
-        bool Unreachable);
+        RuleRepairSkip? Skip);
 
     private sealed class ApplyTally
     {
         public int Repaired { get; set; }
         public int AlreadyFine { get; set; }
-        public int Conflicts { get; set; }
+        public List<RuleRepairItem> Conflicts { get; } = [];
         public int Gone { get; set; }
         public List<RuleRepairItem> Failed { get; } = [];
     }
@@ -499,6 +529,12 @@ public sealed partial class RuleRepairJob(IServiceScopeFactory scopes, ILogger<R
         Level = LogLevel.Information,
         Message = "Rule repair applied: {Repaired} repaired, {AlreadyFine} already fine, {Conflicts} conflicts, {Gone} gone, {Failed} failed.")]
     private static partial void LogApplied(ILogger logger, int repaired, int alreadyFine, int conflicts, int gone, int failed);
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "Rule repair writing human {HumanId} {Type} profile {ProfileNo} uid {Uid} ({Kind}); the stored v2 rule it replaces: {StoredRule}")]
+    private static partial void LogRepairWriting(
+        ILogger logger, string humanId, string type, int profileNo, int uid, RuleRepairKind kind, JsonElement storedRule);
 
     [LoggerMessage(
         Level = LogLevel.Warning,

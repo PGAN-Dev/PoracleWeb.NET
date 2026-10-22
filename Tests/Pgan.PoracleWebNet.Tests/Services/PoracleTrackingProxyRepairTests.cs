@@ -38,8 +38,9 @@ public class PoracleTrackingProxyRepairTests
 
         var rules = await CreateSut(handler).GetStoredRulesAsync("user1");
 
+        // Descriptions are never used here, so PoracleNG is not asked to render them for every rule.
         var sent = Assert.Single(handler.Requests);
-        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/tracking?all_profiles=true&include_descriptions=true", sent.Url);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/tracking?all_profiles=true", sent.Url);
 
         var pokemon = rules.Where(r => r.Type == "pokemon").ToList();
         Assert.Equal([(1, 5), (2, 6)], pokemon.Select(r => (r.ProfileNo, r.Uid)));
@@ -67,18 +68,19 @@ public class PoracleTrackingProxyRepairTests
     [Fact]
     public async Task StoredRulesAppendActiveProfileWithoutRow()
     {
+        // Routes are matched newest first, so the all_profiles route is added last to win over "/tracking".
         var handler = new Router()
-            .On("all_profiles=true", """{"human":{"id":"user1","current_profile_no":1},"profiles":[],"tracking":{"pokemon":[]}}""")
-            .On("/tracking?include_descriptions=true", """
+            .On("/tracking", """
                 {"human":{"id":"user1","current_profile_no":1},"profiles":[],
                  "tracking":{"pokemon":[{"uid":5,"pokemon_id":25}],"incident":[{"uid":9,"display_type":7}]}}
-                """);
+                """)
+            .On("all_profiles=true", """{"human":{"id":"user1","current_profile_no":1},"profiles":[],"tracking":{"pokemon":[]}}""");
 
         var rules = await CreateSut(handler).GetStoredRulesAsync("user1");
 
         Assert.Equal(
-            [$"{ApiAddress}/api/v2/humans/user1/tracking?all_profiles=true&include_descriptions=true",
-             $"{ApiAddress}/api/v2/humans/user1/tracking?include_descriptions=true"],
+            [$"{ApiAddress}/api/v2/humans/user1/tracking?all_profiles=true",
+             $"{ApiAddress}/api/v2/humans/user1/tracking"],
             handler.Requests.Select(r => r.Url));
         Assert.Equal([("pokemon", 1, 5), ("incident", 1, 9)], rules.Select(r => (r.Type, r.ProfileNo, r.Uid)));
     }

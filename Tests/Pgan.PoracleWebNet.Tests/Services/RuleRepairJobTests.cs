@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
@@ -16,6 +16,7 @@ public class RuleRepairJobTests
 
     private readonly Mock<IPoracleTrackingProxy> _tracking = new();
     private readonly Mock<IPoracleHumanProxy> _humans = new();
+    private readonly CapturingLogger _log = new();
     private readonly RuleRepairJob _job;
 
     /// <summary>Real (non dry-run) PUTs, in the order sent.</summary>
@@ -31,7 +32,7 @@ public class RuleRepairJobTests
         services.AddScoped(_ => this._humans.Object);
         var provider = services.BuildServiceProvider();
 
-        this._job = new RuleRepairJob(provider.GetRequiredService<IServiceScopeFactory>(), NullLogger<RuleRepairJob>.Instance);
+        this._job = new RuleRepairJob(provider.GetRequiredService<IServiceScopeFactory>(), this._log);
 
         // By default a dry run says the repair would change something until a real PUT has made it so.
         this._tracking
@@ -287,7 +288,9 @@ public class RuleRepairJobTests
 
         Assert.NotNull(status.Applied);
         Assert.Equal(1, status.Applied.Repaired);
-        Assert.Equal(1, status.Applied.Conflicts);
+        var conflict = Assert.Single(status.Applied.Conflicts);
+        Assert.Equal((10, "invasion", 1), (conflict.Uid, conflict.Type, conflict.ProfileNo));
+        Assert.Contains("duplicate", conflict.Reason, StringComparison.Ordinal);
         Assert.Equal(1, status.Applied.Gone);
         var failed = Assert.Single(status.Applied.Failed);
         Assert.Equal(12, failed.Uid);
@@ -542,6 +545,181 @@ public class RuleRepairJobTests
             }
         }
         while (Interlocked.CompareExchange(ref target, value, current) != current);
+    }
+
+    [Fact]
+    public async Task ScanFailsWhenEveryHumanIsSkippedWhateverTheReason()
+    {
+        // A reverse proxy answering 500 for everybody is a status code, not "no response", yet nothing was read.
+        this.Humans("alice", "bob", "carol", "dave");
+        this._tracking.Setup(t => t.GetStoredRulesAsync(It.IsAny<string>()))
+            .ThrowsAsync(new HttpRequestException("Response status code does not indicate success: 500 (Internal Server Error).", null, HttpStatusCode.InternalServerError));
+        this._tracking.Setup(t => t.GetStoredRulesAsync("dave")).ThrowsAsync(new AccountGoneException());
+
+        var status = await this.ScanAsync();
+
+        Assert.Equal(RuleRepairPhase.Failed, status.Phase);
+        Assert.Contains("PoracleNG answered 500", status.Error, StringComparison.Ordinal);
+        Assert.Contains("3 of 4", status.Error, StringComparison.Ordinal);
+        Assert.False(this._job.TryStartApply());
+    }
+
+    [Fact]
+    public async Task ScanWithOneHumanReadIsNotAFailureEvenIfEveryOtherIsSkipped()
+    {
+        this.Humans("alice", "bob", "carol");
+        this._tracking.Setup(t => t.GetStoredRulesAsync(It.IsAny<string>()))
+            .ThrowsAsync(new HttpRequestException("boom", null, HttpStatusCode.InternalServerError));
+        this.Rules("carol");
+
+        var status = await this.ScanAsync();
+
+        Assert.Equal(RuleRepairPhase.Scanned, status.Phase);
+        Assert.Equal(2, status.Skipped.Count);
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.BadGateway)]
+    [InlineData(HttpStatusCode.ServiceUnavailable)]
+    [InlineData(HttpStatusCode.GatewayTimeout)]
+    public async Task ScanStopsAfterFiveGatewayErrorsInARow(HttpStatusCode gateway)
+    {
+        this.Humans(Enumerable.Range(0, 30).Select(i => $"h{i}").ToArray());
+        var reads = 0;
+        this._tracking
+            .Setup(t => t.GetStoredRulesAsync(It.IsAny<string>()))
+            .Returns(() =>
+            {
+                Interlocked.Increment(ref reads);
+                return Task.FromException<IReadOnlyList<StoredRule>>(new HttpRequestException("bad gateway", null, gateway));
+            });
+
+        var status = await this.ScanAsync();
+
+        Assert.Equal(RuleRepairPhase.Failed, status.Phase);
+        Assert.Contains("could not be reached", status.Error, StringComparison.Ordinal);
+        Assert.InRange(reads, 5, 5 + RuleRepairJob.MaxHumansInFlight);
+    }
+
+    [Fact]
+    public async Task ScanDoesNotStopOnInternalServerErrorsInARow()
+    {
+        // A 500 is about the human PoracleNG was asked for, so it is skipped, not counted as PoracleNG gone.
+        this.Humans([.. Enumerable.Range(0, 10).Select(i => $"h{i}"), "zed"]);
+        this._tracking.Setup(t => t.GetStoredRulesAsync(It.Is<string>(id => id.StartsWith('h'))))
+            .ThrowsAsync(new HttpRequestException("boom", null, HttpStatusCode.InternalServerError));
+        this.Rules("zed", Rule("invasion", 1, 10, """{"grunt_type":"metal"}"""));
+
+        var status = await this.ScanAsync();
+
+        Assert.Equal(RuleRepairPhase.Scanned, status.Phase);
+        Assert.Equal(10, status.Skipped.Count);
+        Assert.Single(status.Repairable);
+    }
+
+    [Fact]
+    public async Task ScanListsAnAnyTierRuleWhoseRepairWouldConflict()
+    {
+        this.Humans("alice");
+        this.Rules("alice",
+            Rule("raid", 1, 30, """{"pokemon_id":null,"level":null}"""),
+            Rule("raid", 1, 31, """{"pokemon_id":null,"level":null}"""));
+        this.DryRunAnswers(30, StoredRuleReplaceOutcome.Conflict);
+        this.DryRunAnswers(31, StoredRuleReplaceOutcome.Updated);
+
+        var status = await this.ScanAsync();
+
+        Assert.Equal(31, Assert.Single(status.Repairable).Uid);
+        var conflict = Assert.Single(status.CannotEdit);
+        Assert.Equal((30, RuleRepairKind.CannotEdit), (conflict.Uid, conflict.Kind));
+        Assert.Contains("duplicate", conflict.Reason, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ApplyLogsTheStoredRuleJustBeforeEachRealWrite()
+    {
+        this.Humans("alice");
+        this.Rules("alice", Rule("invasion", 2, 10, """{"grunt_type":"metal","distance":250}"""));
+        await this.ScanAsync();
+        this._log.Entries.Clear();
+
+        await this.ApplyAsync();
+
+        var audit = Assert.Single(this._log.Entries, e => e.Message.Contains("Rule repair writing", StringComparison.Ordinal));
+        Assert.Equal(LogLevel.Information, audit.Level);
+        Assert.Contains("human alice", audit.Message, StringComparison.Ordinal);
+        Assert.Contains("invasion", audit.Message, StringComparison.Ordinal);
+        Assert.Contains("profile 2", audit.Message, StringComparison.Ordinal);
+        Assert.Contains("uid 10", audit.Message, StringComparison.Ordinal);
+        Assert.Contains("MetalGrunt", audit.Message, StringComparison.Ordinal);
+        Assert.Contains("""{"grunt_type":"metal","distance":250}""", audit.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ApplyLogsNothingForARuleItDoesNotWrite()
+    {
+        this.Humans("alice");
+        this.Rules("alice", Rule("invasion", 1, 10, """{"grunt_type":"metal"}"""));
+        await this.ScanAsync();
+        this.DryRunAnswers(10, StoredRuleReplaceOutcome.Unchanged);
+
+        var status = await this.ApplyAsync();
+
+        Assert.Equal(1, status.Applied!.AlreadyFine);
+        Assert.DoesNotContain(this._log.Entries, e => e.Message.Contains("Rule repair writing", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void SummaryKeepsTheCountsAndDropsTheLists()
+    {
+        var item = new RuleRepairItem("alice", "invasion", 1, 10, RuleRepairKind.MetalGrunt, "grunt_type metal", "grunt_type steel", null);
+        var full = RuleRepairStatus.Idle with
+        {
+            Phase = RuleRepairPhase.Scanned,
+            Repairable = [item, item with { Uid = 11 }],
+            CannotEdit = [item with { Kind = RuleRepairKind.CannotEdit }],
+            Skipped = [new RuleRepairSkip("bob", "gone"), new RuleRepairSkip("carol", "gone"), new RuleRepairSkip("dave", "gone")],
+        };
+
+        var summary = full.Summary();
+
+        Assert.Equal((2, 1, 3), (full.RepairableCount, full.CannotEditCount, full.SkippedCount));
+        Assert.Equal((2, 1, 3), (summary.RepairableCount, summary.CannotEditCount, summary.SkippedCount));
+        Assert.Empty(summary.Repairable);
+        Assert.Empty(summary.CannotEdit);
+        Assert.Empty(summary.Skipped);
+        Assert.Equal(RuleRepairPhase.Scanned, summary.Phase);
+
+        var json = JsonSerializer.Serialize(summary, WebJson);
+        Assert.Contains("\"repairableCount\":2", json, StringComparison.Ordinal);
+        Assert.Contains("\"cannotEditCount\":1", json, StringComparison.Ordinal);
+        Assert.Contains("\"skippedCount\":3", json, StringComparison.Ordinal);
+        Assert.Contains("\"repairable\":[]", json, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FullStatusCarriesTheCountsToo()
+    {
+        var full = RuleRepairStatus.Idle with { Skipped = [new RuleRepairSkip("bob", "gone")] };
+
+        var json = JsonSerializer.Serialize(full, WebJson);
+
+        Assert.Contains("\"skippedCount\":1", json, StringComparison.Ordinal);
+        Assert.Contains("\"repairableCount\":0", json, StringComparison.Ordinal);
+    }
+
+    private sealed class CapturingLogger : ILogger<RuleRepairJob>
+    {
+        public ConcurrentQueue<(LogLevel Level, string Message)> Entries { get; } = new();
+
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) =>
+            this.Entries.Enqueue((logLevel, formatter(state, exception)));
     }
 
     [Fact]

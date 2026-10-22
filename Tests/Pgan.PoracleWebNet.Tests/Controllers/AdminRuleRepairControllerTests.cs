@@ -55,6 +55,29 @@ public class AdminRuleRepairControllerTests : ControllerTestBase
     }
 
     [Fact]
+    public void AdminReadsASummaryWithCountsButNoLists()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        var item = new RuleRepairItem("alice", "invasion", 1, 10, RuleRepairKind.MetalGrunt, "grunt_type metal", "grunt_type steel", null);
+        this._job.Setup(j => j.GetStatus()).Returns(Scanned with { Repairable = [item, item with { Uid = 11 }] });
+
+        var ok = Assert.IsType<OkObjectResult>(this._sut.GetStatus(summary: true));
+
+        var status = Assert.IsType<RuleRepairStatus>(ok.Value);
+        Assert.Empty(status.Repairable);
+        Assert.Equal(2, status.RepairableCount);
+        Assert.Equal(RuleRepairPhase.Scanned, status.Phase);
+    }
+
+    [Fact]
+    public void SummaryIsStillAdminOnly()
+    {
+        SetupUser(this._sut, isAdmin: false);
+
+        Assert.IsType<ForbidResult>(this._sut.GetStatus(summary: true));
+    }
+
+    [Fact]
     public void ScanStartsAndAnswers202()
     {
         SetupUser(this._sut, isAdmin: true);

@@ -62,16 +62,29 @@ public sealed record RuleRepairSkip(string HumanId, string Reason);
 /// <summary>What an apply did, item by item, after each item's own dry run.</summary>
 /// <param name="Repaired">Rules PoracleNG rewrote.</param>
 /// <param name="AlreadyFine">Rules whose dry run answered <c>unchanged</c>, so nothing was written.</param>
-/// <param name="Conflicts">Rules left as they are because the repair would duplicate another rule.</param>
 /// <param name="Gone">Rules (or whole accounts) PoracleNG no longer holds.</param>
+/// <param name="Conflicts">
+/// Rules left as they are because the repair would duplicate another rule; <see cref="RuleRepairItem.Reason"/> says so.
+/// </param>
 /// <param name="Failed">Rules whose repair threw; <see cref="RuleRepairItem.Reason"/> carries the message.</param>
-public sealed record RuleRepairApplyResult(int Repaired, int AlreadyFine, int Conflicts, int Gone, IReadOnlyList<RuleRepairItem> Failed);
+public sealed record RuleRepairApplyResult(
+    int Repaired,
+    int AlreadyFine,
+    int Gone,
+    IReadOnlyList<RuleRepairItem> Conflicts,
+    IReadOnlyList<RuleRepairItem> Failed);
 
 /// <summary>A snapshot of the rule repair job, safe to hand to any thread.</summary>
 /// <remarks>
+/// <para>
 /// <see cref="Repairable"/>, <see cref="CannotEdit"/> and <see cref="Skipped"/> are what the last scan found
 /// and are not changed by an apply; what an apply did lives in <see cref="Applied"/>. Scan again to see
 /// what is left.
+/// </para>
+/// <para>
+/// The three lists can run to thousands of rows. <see cref="Summary"/> drops them and keeps their counts,
+/// which is what a progress poll needs.
+/// </para>
 /// </remarks>
 public sealed record RuleRepairStatus(
     RuleRepairPhase Phase,
@@ -87,4 +100,34 @@ public sealed record RuleRepairStatus(
 {
     /// <summary>The state before anything has run.</summary>
     public static RuleRepairStatus Idle { get; } = new(RuleRepairPhase.Idle, 0, 0, null, null, [], [], [], null, null);
+
+    // Set only by Summary(), whose lists are empty; a full status counts its own lists.
+    private int? RepairableCountKept { get; init; }
+
+    private int? CannotEditCountKept { get; init; }
+
+    private int? SkippedCountKept { get; init; }
+
+    /// <summary>How many rules the scan found to repair, whether or not <see cref="Repairable"/> is included.</summary>
+    public int RepairableCount => this.RepairableCountKept ?? this.Repairable.Count;
+
+    /// <summary>How many rules the scan found that can't be edited, whether or not the list is included.</summary>
+    public int CannotEditCount => this.CannotEditCountKept ?? this.CannotEdit.Count;
+
+    /// <summary>How many humans the scan could not read, whether or not the list is included.</summary>
+    public int SkippedCount => this.SkippedCountKept ?? this.Skipped.Count;
+
+    /// <summary>
+    /// This status with the three lists emptied and their counts kept, for a progress poll. A summary is
+    /// for sending, never for building on: a later <c>with</c> would keep its counts beside new lists.
+    /// </summary>
+    public RuleRepairStatus Summary() => this with
+    {
+        Repairable = [],
+        CannotEdit = [],
+        Skipped = [],
+        RepairableCountKept = this.RepairableCount,
+        CannotEditCountKept = this.CannotEditCount,
+        SkippedCountKept = this.SkippedCount,
+    };
 }

@@ -19,7 +19,8 @@ public sealed partial class AdminRuleRepairController(IRuleRepairJob job, ILogge
     private readonly ILogger<AdminRuleRepairController> _logger = logger;
 
     [HttpGet]
-    public IActionResult GetStatus() => this.Refused ? this.Forbid() : this.Ok(this._job.GetStatus());
+    public IActionResult GetStatus([FromQuery] bool summary = false) =>
+        this.Refused ? this.Forbid() : this.Ok(summary ? this._job.GetStatus().Summary() : this._job.GetStatus());
 
     /// <summary>Starts a scan. 202 with the new state, or 409 with the current one while a job runs.</summary>
     [HttpPost("scan")]

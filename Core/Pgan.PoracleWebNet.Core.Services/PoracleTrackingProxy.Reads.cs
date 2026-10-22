@@ -83,11 +83,12 @@ public partial class PoracleTrackingProxy
     /// <remarks>
     /// The same snapshot and the same gap as <see cref="GetAllTrackingAllProfilesAsync"/> (a human whose active
     /// profile has no <c>profiles</c> row is missing from <c>all_profiles</c>), but the rules come back as v2
-    /// sent them, <c>incident</c> included as its own type.
+    /// sent them, <c>incident</c> included as its own type. Without descriptions: nothing reads them here, and
+    /// rendering one for every rule of every human is work PoracleNG need not do during a scan.
     /// </remarks>
     public async Task<IReadOnlyList<StoredRule>> GetStoredRulesAsync(string userId)
     {
-        var snapshot = await this.ReadSnapshotAsync(userId, "?all_profiles=true&include_descriptions=true", "All alarms");
+        var snapshot = await this.ReadSnapshotAsync(userId, "?all_profiles=true", "All alarms");
 
         var profiles = ProfilesOf(snapshot);
         var current = CurrentProfileNo(snapshot);
@@ -100,7 +101,7 @@ public partial class PoracleTrackingProxy
             return rules;
         }
 
-        var active = await this.ReadSnapshotAsync(userId, "?include_descriptions=true", "All alarms");
+        var active = await this.ReadSnapshotAsync(userId, string.Empty, "All alarms");
         var activeNo = CurrentProfileNo(active) ?? current ?? 0;
 
         if (!ListsProfile(profiles, activeNo))
