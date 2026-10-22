@@ -224,7 +224,7 @@ export class PlacesSectionComponent implements OnInit {
   private showInUse(place: SavedPlace, rules: PlaceUsageRule[]): void {
     const shown = rules
       .slice(0, PlacesSectionComponent.LISTED_RULES)
-      .map(rule => describeUsageRule(rule, key => this.translate.instant(key)));
+      .map(rule => describeUsageRule(rule, (key, params) => this.translate.instant(key, params), place.label));
     if (rules.length > shown.length) {
       shown.push(this.translate.instant('WHERE.LIST_MORE', { count: rules.length - shown.length }));
     }

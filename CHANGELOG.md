@@ -57,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A place that's in use lists its alarms in plain words.** Deleting a saved place that alarms still point at used to list PoracleNG's raw summary, asterisks and every filter included; each line now reads like "Pokémon: Pikachu · Within 1 km of Work".
 - **Map controls are easier to tap on a phone.** On a touch screen the zoom and basemap buttons, the Areas Map/List switch and the place markers take a 44px tap, and the map credits' links are spaced apart.
 - **Amber warning text is readable in both themes.** The warnings in Admin > Server settings, the Help page's "English only" chip and the amber alert on the Versions card were orange on a light orange tint at about 3.4:1; they now pass 4.5:1.
 - **The sample filter pills in Help look like the pills on the alarm cards** (grey, rounded, in both themes) instead of bold text.
