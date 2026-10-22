@@ -1530,6 +1530,7 @@
       "SCANNING": "Scansione in corso: {{done}} utenti su {{total}} controllati",
       "APPLYING": "Riparazione in corso: {{done}} utenti su {{total}} completati",
       "NOTHING": "Non c’è nulla da riparare.",
+      "NOTHING_READABLE": "Niente da riparare tra gli utenti che è stato possibile leggere, ma {{count}} non sono stati letti e potrebbero avere ancora regole da riparare. I motivi sono qui sotto; scansiona di nuovo quando PoracleNG risponde per loro.",
       "FOUND": "Regole riparabili: {{count}}",
       "CONFIRM_TITLE": "Ripara le regole",
       "CONFIRM_MESSAGE": "Regole da riparare: {{count}}. Ognuna viene ricontrollata subito prima della scrittura e quelle cambiate dopo la scansione restano com’erano.",
@@ -1555,6 +1556,7 @@
       "CANNOT_EDIT_DESC": "PoracleNG 5.4.0 non salverà queste regole così come sono. Correggile a mano o eliminale.",
       "SKIPPED": "Utenti saltati perché non leggibili: {{count}}",
       "RUN_FAILED": "L’esecuzione non è riuscita:",
+      "SCAN_AGAIN_HINT": "L'elenco dell'ultima scansione potrebbe non essere aggiornato. Scansiona di nuovo per vedere cosa resta da riparare; le riparazioni già scritte restano.",
       "REQUEST_FAILED": "Impossibile raggiungere il server. Riprova."
     }
   },

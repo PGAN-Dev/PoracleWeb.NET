@@ -9,13 +9,16 @@ import { RuleRepairStatus } from '../models';
 const status = (phase: RuleRepairStatus['phase']): RuleRepairStatus => ({
   applied: null,
   cannotEdit: [],
+  cannotEditCount: 0,
   error: null,
   finishedAt: null,
   humansDone: 0,
   humansTotal: 0,
   phase,
   repairable: [],
+  repairableCount: 0,
   skipped: [],
+  skippedCount: 0,
   startedAt: null,
 });
 
@@ -41,6 +44,15 @@ describe('RuleRepairService', () => {
     expect(req.request.method).toBe('GET');
     req.flush(status('Scanned'));
     expect(got?.phase).toBe('Scanned');
+  });
+
+  it('reads a summary, without the lists, when asked', () => {
+    let got: RuleRepairStatus | undefined;
+    service.getStatus(true).subscribe(s => (got = s));
+    const req = http.expectOne('http://api/api/admin/rule-repair?summary=true');
+    expect(req.request.method).toBe('GET');
+    req.flush({ ...status('Scanning'), repairableCount: 7 });
+    expect(got?.repairableCount).toBe(7);
   });
 
   it('starts a scan with a POST', () => {

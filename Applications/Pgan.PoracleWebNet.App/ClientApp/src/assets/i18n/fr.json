@@ -1530,6 +1530,7 @@
       "SCANNING": "Analyse en cours : {{done}} utilisateurs sur {{total}} vérifiés",
       "APPLYING": "Réparation en cours : {{done}} utilisateurs sur {{total}} traités",
       "NOTHING": "Rien à réparer.",
+      "NOTHING_READABLE": "Rien à réparer parmi les utilisateurs lisibles, mais {{count}} n’ont pas pu être lus et ont peut-être encore des règles à réparer. Les raisons sont ci-dessous ; relancez l’analyse quand PoracleNG répondra pour eux.",
       "FOUND": "Règles réparables : {{count}}",
       "CONFIRM_TITLE": "Réparer les règles",
       "CONFIRM_MESSAGE": "Règles à réparer : {{count}}. Chacune est revérifiée juste avant l’écriture, et celles qui ont changé depuis l’analyse sont laissées telles quelles.",
@@ -1555,6 +1556,7 @@
       "CANNOT_EDIT_DESC": "PoracleNG 5.4.0 n’enregistrera pas celles-ci telles quelles. Corrige-les à la main ou supprime-les.",
       "SKIPPED": "Utilisateurs ignorés car illisibles : {{count}}",
       "RUN_FAILED": "L’exécution a échoué :",
+      "SCAN_AGAIN_HINT": "La liste de la dernière analyse n’est peut-être plus à jour. Relancez l’analyse pour voir ce qu’il reste à réparer ; les réparations déjà écrites restent en place.",
       "REQUEST_FAILED": "Impossible de joindre le serveur. Réessaie."
     }
   },

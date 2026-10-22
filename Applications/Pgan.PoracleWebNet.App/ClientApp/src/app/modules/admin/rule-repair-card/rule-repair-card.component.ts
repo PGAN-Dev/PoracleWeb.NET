@@ -5,9 +5,9 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
-import { EMPTY, catchError, interval, switchMap } from 'rxjs';
+import { EMPTY, catchError, interval, of, switchMap } from 'rxjs';
 
-import { RuleRepairItem, RuleRepairKind, RuleRepairStatus } from '../../../core/models';
+import { RuleRepairItem, RuleRepairKind, RuleRepairSkip, RuleRepairStatus } from '../../../core/models';
 import { RuleRepairService } from '../../../core/services/rule-repair.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 
@@ -18,16 +18,32 @@ export interface RuleRepairGroup {
   shown: RuleRepairItem[];
 }
 
+/** Rules that cannot be edited, sharing one reason. */
+export interface RuleRepairReasonGroup {
+  reason: string;
+  shown: RuleRepairItem[];
+  total: number;
+}
+
+/** A list cut to {@link MAX_ROWS_PER_GROUP} rows, with how long it was. */
+export interface CappedList<T> {
+  shown: T[];
+  total: number;
+}
+
 const IDLE: RuleRepairStatus = {
   applied: null,
   cannotEdit: [],
+  cannotEditCount: 0,
   error: null,
   finishedAt: null,
   humansDone: 0,
   humansTotal: 0,
   phase: 'Idle',
   repairable: [],
+  repairableCount: 0,
   skipped: [],
+  skippedCount: 0,
   startedAt: null,
 };
 
@@ -46,10 +62,15 @@ const MAX_ROWS_PER_GROUP = 100;
 
 const POLL_MS = 2000;
 
+const isBusy = (s: RuleRepairStatus) => s.phase === 'Scanning' || s.phase === 'Applying';
+
+const cap = <T>(items: T[]): CappedList<T> => ({ shown: items.slice(0, MAX_ROWS_PER_GROUP), total: items.length });
+
 /**
  * Scans every user's stored rules for ones PoracleNG 5.4.0 reads differently, and repairs them on an
  * admin's confirmation. The job runs on the server; this card starts it and polls for progress, and only
- * while a run is going.
+ * while a run is going. The poll asks for a summary (counts, no lists), and the full status is read once,
+ * when the run has ended.
  */
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -66,10 +87,31 @@ export class RuleRepairCardComponent {
 
   readonly status = signal<RuleRepairStatus>(IDLE);
 
-  readonly busy = computed(() => this.status().phase === 'Scanning' || this.status().phase === 'Applying');
+  readonly busy = computed(() => isBusy(this.status()));
+
+  /** Grouped by reason, largest first, so one common reason can't push a rare one off the page. */
+  readonly cannotEditGroups = computed<RuleRepairReasonGroup[]>(() => {
+    const byReason = new Map<string, RuleRepairItem[]>();
+    for (const item of this.status().cannotEdit) {
+      const reason = item.reason ?? '';
+      const list = byReason.get(reason);
+      if (list) {
+        list.push(item);
+      } else {
+        byReason.set(reason, [item]);
+      }
+    }
+    return [...byReason.entries()]
+      .map(([reason, items]) => ({ reason, ...cap(items) }))
+      .sort((a, b) => b.total - a.total || a.reason.localeCompare(b.reason));
+  });
 
   /** Repair is offered after a scan only; once applied the list is the old scan's, so the admin rescans. */
-  readonly canRepair = computed(() => this.status().phase === 'Scanned' && this.status().repairable.length > 0);
+  readonly canRepair = computed(() => this.status().phase === 'Scanned' && this.status().repairableCount > 0);
+
+  readonly conflicts = computed<CappedList<RuleRepairItem>>(() => cap(this.status().applied?.conflicts ?? []));
+
+  readonly failed = computed<CappedList<RuleRepairItem>>(() => cap(this.status().applied?.failed ?? []));
 
   readonly groups = computed<RuleRepairGroup[]>(() => {
     const repairable = this.status().repairable;
@@ -88,6 +130,11 @@ export class RuleRepairCardComponent {
 
   readonly requestFailed = signal(false);
 
+  readonly skipped = computed<CappedList<RuleRepairSkip>>(() => cap(this.status().skipped));
+
+  /** An apply that failed leaves the scan's list behind it, which may no longer be true. */
+  readonly staleAfterFailedApply = computed(() => this.status().phase === 'Failed' && this.status().repairableCount > 0);
+
   constructor() {
     this.service.getStatus().subscribe({
       error: () => this.requestFailed.set(true),
@@ -95,20 +142,25 @@ export class RuleRepairCardComponent {
     });
 
     // The effect re-runs when `busy` flips, and onCleanup tears the timer down each time and when the
-    // component is destroyed, so nothing polls while the card is idle or gone.
+    // component is destroyed, so nothing polls while the card is idle or gone. A summary that says the run
+    // has ended is not shown: the full status is read in its place, and if that read fails the card stays
+    // busy and the next tick tries again.
     effect(onCleanup => {
       if (!this.busy()) {
         return;
       }
       const sub = interval(POLL_MS)
-        .pipe(switchMap(() => this.service.getStatus().pipe(catchError(() => EMPTY))))
+        .pipe(
+          switchMap(() => this.service.getStatus(true).pipe(catchError(() => EMPTY))),
+          switchMap(s => (isBusy(s) ? of(s) : this.service.getStatus().pipe(catchError(() => EMPTY)))),
+        )
         .subscribe(s => this.status.set(s));
       onCleanup(() => sub.unsubscribe());
     });
   }
 
   repair(): void {
-    const count = this.status().repairable.length;
+    const count = this.status().repairableCount;
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
         confirmText: this.i18n.instant('ADMIN.RULE_REPAIR.CONFIRM_BUTTON', { count }),

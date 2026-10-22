@@ -1530,6 +1530,7 @@
       "SCANNING": "Skanowanie: sprawdzono {{done}} z {{total}} użytkowników",
       "APPLYING": "Naprawa: gotowe {{done}} z {{total}} użytkowników",
       "NOTHING": "Nic nie wymaga naprawy.",
+      "NOTHING_READABLE": "Wśród użytkowników, których dało się odczytać, nie ma nic do naprawy, ale {{count}} nie udało się odczytać i mogą mieć jeszcze reguły do naprawy. Powody są poniżej; zeskanuj ponownie, gdy PoracleNG zacznie dla nich odpowiadać.",
       "FOUND": "Reguły do naprawy: {{count}}",
       "CONFIRM_TITLE": "Napraw reguły",
       "CONFIRM_MESSAGE": "Reguły do naprawy: {{count}}. Każda jest sprawdzana jeszcze raz tuż przed zapisem, a te, które zmieniły się od skanowania, zostają bez zmian.",
@@ -1555,6 +1556,7 @@
       "CANNOT_EDIT_DESC": "PoracleNG 5.4.0 nie zapisze ich w obecnej postaci. Popraw je ręcznie albo usuń.",
       "SKIPPED": "Pominięci użytkownicy, których nie udało się odczytać: {{count}}",
       "RUN_FAILED": "Uruchomienie nie powiodło się:",
+      "SCAN_AGAIN_HINT": "Lista z ostatniego skanowania może być nieaktualna. Zeskanuj ponownie, aby zobaczyć, co zostało do naprawy; zapisane już naprawy pozostają.",
       "REQUEST_FAILED": "Nie udało się połączyć z serwerem. Spróbuj ponownie."
     }
   },

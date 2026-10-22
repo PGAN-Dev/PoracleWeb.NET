@@ -1530,6 +1530,7 @@
       "SCANNING": "Scanning: {{done}} of {{total}} users checked",
       "APPLYING": "Repairing: {{done}} of {{total}} users done",
       "NOTHING": "Nothing needs repairing.",
+      "NOTHING_READABLE": "Nothing to repair among the users that could be read, but {{count}} couldn't be read and may still have rules to repair. Their reasons are below; scan again once PoracleNG answers for them.",
       "FOUND": "Rules that can be repaired: {{count}}",
       "CONFIRM_TITLE": "Repair rules",
       "CONFIRM_MESSAGE": "Rules to repair: {{count}}. Each one is checked again just before it's written, and any that changed since the scan are left alone.",
@@ -1555,6 +1556,7 @@
       "CANNOT_EDIT_DESC": "PoracleNG 5.4.0 won't save these as they stand. Fix them by hand or delete them.",
       "SKIPPED": "Users skipped because they couldn't be read: {{count}}",
       "RUN_FAILED": "The run failed:",
+      "SCAN_AGAIN_HINT": "The list from the last scan may be out of date. Scan again to see what's left to repair; repairs already written stay written.",
       "REQUEST_FAILED": "Couldn't reach the server. Try again."
     }
   },

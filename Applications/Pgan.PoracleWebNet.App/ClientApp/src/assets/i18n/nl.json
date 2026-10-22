@@ -1530,6 +1530,7 @@
       "SCANNING": "Bezig met scannen: {{done}} van {{total}} gebruikers gecontroleerd",
       "APPLYING": "Bezig met herstellen: {{done}} van {{total}} gebruikers klaar",
       "NOTHING": "Er hoeft niets hersteld te worden.",
+      "NOTHING_READABLE": "Niets te repareren bij de gebruikers die gelezen konden worden, maar {{count}} konden niet gelezen worden en hebben misschien nog regels die gerepareerd moeten worden. De redenen staan hieronder; scan opnieuw zodra PoracleNG voor hen antwoordt.",
       "FOUND": "Regels die hersteld kunnen worden: {{count}}",
       "CONFIRM_TITLE": "Regels herstellen",
       "CONFIRM_MESSAGE": "Te herstellen regels: {{count}}. Elke regel wordt vlak voor het schrijven opnieuw gecontroleerd, en regels die sinds de scan zijn gewijzigd blijven ongemoeid.",
@@ -1555,6 +1556,7 @@
       "CANNOT_EDIT_DESC": "PoracleNG 5.4.0 slaat deze niet op zoals ze nu zijn. Pas ze handmatig aan of verwijder ze.",
       "SKIPPED": "Overgeslagen gebruikers die niet gelezen konden worden: {{count}}",
       "RUN_FAILED": "De run is mislukt:",
+      "SCAN_AGAIN_HINT": "De lijst van de laatste scan is misschien niet meer actueel. Scan opnieuw om te zien wat er nog gerepareerd moet worden; reparaties die al geschreven zijn, blijven staan.",
       "REQUEST_FAILED": "De server is niet bereikbaar. Probeer het opnieuw."
     }
   },

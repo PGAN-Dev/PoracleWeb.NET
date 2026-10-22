@@ -1530,6 +1530,7 @@
       "SCANNING": "Scanner: {{done}} af {{total}} brugere tjekket",
       "APPLYING": "Reparerer: {{done}} af {{total}} brugere færdige",
       "NOTHING": "Der er intet at reparere.",
+      "NOTHING_READABLE": "Intet at reparere blandt de brugere, der kunne læses, men {{count}} kunne ikke læses og kan stadig have regler, der skal repareres. Årsagerne står nedenfor; scan igen, når PoracleNG svarer for dem.",
       "FOUND": "Regler der kan repareres: {{count}}",
       "CONFIRM_TITLE": "Reparer regler",
       "CONFIRM_MESSAGE": "Regler der skal repareres: {{count}}. Hver regel tjekkes igen lige før den skrives, og regler der er ændret siden scanningen, bliver ikke rørt.",
@@ -1555,6 +1556,7 @@
       "CANNOT_EDIT_DESC": "PoracleNG 5.4.0 gemmer ikke disse, som de er. Ret dem i hånden eller slet dem.",
       "SKIPPED": "Brugere sprunget over, fordi de ikke kunne læses: {{count}}",
       "RUN_FAILED": "Kørslen mislykkedes:",
+      "SCAN_AGAIN_HINT": "Listen fra den seneste scanning er måske forældet. Scan igen for at se, hvad der mangler at blive repareret; reparationer, der allerede er skrevet, bliver stående.",
       "REQUEST_FAILED": "Kunne ikke nå serveren. Prøv igen."
     }
   },

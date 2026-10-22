@@ -21,19 +21,34 @@ const item = (over: Partial<RuleRepairItem> = {}): RuleRepairItem => ({
   ...over,
 });
 
-const status = (over: Partial<RuleRepairStatus> = {}): RuleRepairStatus => ({
-  applied: null,
-  cannotEdit: [],
-  error: null,
-  finishedAt: null,
-  humansDone: 0,
-  humansTotal: 0,
-  phase: 'Idle',
-  repairable: [],
-  skipped: [],
-  startedAt: null,
-  ...over,
-});
+/** A full status: the counts follow the lists unless a test says otherwise, as the server's do. */
+const status = (over: Partial<RuleRepairStatus> = {}): RuleRepairStatus => {
+  const base: RuleRepairStatus = {
+    applied: null,
+    cannotEdit: [],
+    cannotEditCount: 0,
+    error: null,
+    finishedAt: null,
+    humansDone: 0,
+    humansTotal: 0,
+    phase: 'Idle',
+    repairable: [],
+    repairableCount: 0,
+    skipped: [],
+    skippedCount: 0,
+    startedAt: null,
+    ...over,
+  };
+  return {
+    ...base,
+    cannotEditCount: over.cannotEditCount ?? base.cannotEdit.length,
+    repairableCount: over.repairableCount ?? base.repairable.length,
+    skippedCount: over.skippedCount ?? base.skipped.length,
+  };
+};
+
+const many = (n: number, over: (i: number) => Partial<RuleRepairItem>): RuleRepairItem[] =>
+  Array.from({ length: n }, (_, i) => item({ uid: i + 1, ...over(i) }));
 
 describe('RuleRepairCardComponent', () => {
   let service: { apply: jest.Mock; getStatus: jest.Mock; scan: jest.Mock };
@@ -80,27 +95,35 @@ describe('RuleRepairCardComponent', () => {
     expect(service.getStatus).toHaveBeenCalledTimes(1);
   });
 
-  it('polls every two seconds while scanning, then stops when the scan is done', () => {
+  it('polls a summary every two seconds while scanning, then reads the full status once when the scan is done', () => {
     const fixture = setup(status({ humansDone: 1, humansTotal: 4, phase: 'Scanning' }));
     service.getStatus.mockReturnValue(of(status({ humansDone: 2, humansTotal: 4, phase: 'Scanning' })));
     jest.advanceTimersByTime(2000);
     fixture.detectChanges();
     expect(service.getStatus).toHaveBeenCalledTimes(2);
+    expect(service.getStatus).toHaveBeenLastCalledWith(true);
     expect(fixture.componentInstance.status().humansDone).toBe(2);
 
-    service.getStatus.mockReturnValue(of(status({ phase: 'Scanned', repairable: [item()] })));
+    // The summary says the scan is done, with the lists left out; the full status follows it.
+    service.getStatus.mockImplementation((summary?: boolean) =>
+      of(summary ? status({ phase: 'Scanned', repairableCount: 1 }) : status({ phase: 'Scanned', repairable: [item()] })),
+    );
     jest.advanceTimersByTime(2000);
     fixture.detectChanges();
-    expect(service.getStatus).toHaveBeenCalledTimes(3);
+    expect(service.getStatus).toHaveBeenCalledTimes(4);
+    expect(service.getStatus.mock.calls[2]).toEqual([true]);
+    expect(service.getStatus.mock.calls[3]).toEqual([]);
+    expect(fixture.componentInstance.status().repairable).toHaveLength(1);
 
     jest.advanceTimersByTime(10000);
-    expect(service.getStatus).toHaveBeenCalledTimes(3);
+    expect(service.getStatus).toHaveBeenCalledTimes(4);
   });
 
-  it('polls while applying', () => {
+  it('polls summaries while applying', () => {
     setup(status({ phase: 'Applying', repairable: [item()] }));
     jest.advanceTimersByTime(4000);
     expect(service.getStatus).toHaveBeenCalledTimes(3);
+    expect(service.getStatus.mock.calls.slice(1)).toEqual([[true], [true]]);
   });
 
   it('keeps polling after one poll fails', () => {
@@ -109,7 +132,27 @@ describe('RuleRepairCardComponent', () => {
     jest.advanceTimersByTime(2000);
     service.getStatus.mockReturnValue(of(status({ phase: 'Scanned' })));
     jest.advanceTimersByTime(2000);
-    expect(service.getStatus).toHaveBeenCalledTimes(3);
+    // The failed poll, then a summary saying done, then the full read.
+    expect(service.getStatus).toHaveBeenCalledTimes(4);
+  });
+
+  it('keeps polling when the full read after a finished run fails, and tries it again', () => {
+    const fixture = setup(status({ phase: 'Scanning' }));
+    let fullReads = 0;
+    service.getStatus.mockImplementation((summary?: boolean) => {
+      if (summary) {
+        return of(status({ phase: 'Scanned', repairableCount: 1 }));
+      }
+      fullReads++;
+      return fullReads === 1 ? throwError(() => new Error('blip')) : of(status({ phase: 'Scanned', repairable: [item()] }));
+    });
+    jest.advanceTimersByTime(2000);
+    fixture.detectChanges();
+    expect(fixture.componentInstance.busy()).toBe(true);
+    jest.advanceTimersByTime(2000);
+    fixture.detectChanges();
+    expect(fullReads).toBe(2);
+    expect(fixture.componentInstance.status().repairable).toHaveLength(1);
   });
 
   it('stops polling when destroyed', () => {
@@ -164,6 +207,82 @@ describe('RuleRepairCardComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('ADMIN.RULE_REPAIR.NOTHING');
   });
 
+  it('never says nothing needs repairing when users were skipped', () => {
+    const fixture = setup(status({ phase: 'Scanned', skipped: [{ humanId: 'bob', reason: 'PoracleNG answered 502' }] }));
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-test="nothing"]')).toBeNull();
+    expect(el.querySelector('[data-test="nothing-readable"]')).not.toBeNull();
+    expect(el.textContent).toContain('ADMIN.RULE_REPAIR.NOTHING_READABLE');
+  });
+
+  it('opens the skipped list by default', () => {
+    const fixture = setup(status({ phase: 'Scanned', skipped: [{ humanId: 'bob', reason: 'PoracleNG answered 502' }] }));
+    expect((fixture.nativeElement as HTMLElement).querySelector('details')!.open).toBe(true);
+  });
+
+  it('caps the skipped list and says how many it hid', () => {
+    const skipped = Array.from({ length: 150 }, (_, i) => ({ humanId: `h${i}`, reason: 'PoracleNG answered 500' }));
+    const fixture = setup(status({ phase: 'Scanned', skipped }));
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelectorAll('details li')).toHaveLength(100);
+    expect(el.querySelector('details')!.textContent).toContain('ADMIN.RULE_REPAIR.SHOWING');
+  });
+
+  it('groups the rules that cannot be edited by reason, with a count each, and caps each group', () => {
+    const cannotEdit = [
+      ...many(130, () => ({ after: null, kind: 'CannotEdit', reason: 'Level 9 is not a raid tier.', type: 'egg' })),
+      ...many(2, i => ({
+        uid: 500 + i,
+        after: null,
+        kind: 'CannotEdit',
+        reason: 'Repairing it would duplicate another rule.',
+        type: 'raid',
+      })),
+    ];
+    const fixture = setup(status({ cannotEdit, phase: 'Scanned' }));
+    const groups = fixture.componentInstance.cannotEditGroups();
+    expect(groups.map(g => [g.reason, g.total, g.shown.length])).toEqual([
+      ['Level 9 is not a raid tier.', 130, 100],
+      ['Repairing it would duplicate another rule.', 2, 2],
+    ]);
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelectorAll('[data-test="cannot-edit"] li')).toHaveLength(102);
+    expect(el.querySelector('[data-test="cannot-edit"]')!.textContent).toContain('ADMIN.RULE_REPAIR.SHOWING');
+  });
+
+  it('lists the conflicts and failures of an apply, capped', () => {
+    const fixture = setup(
+      status({
+        applied: {
+          alreadyFine: 0,
+          conflicts: many(120, () => ({ reason: "Repairing it would duplicate another of this user's rules." })),
+          failed: [item({ reason: 'boom' })],
+          gone: 0,
+          repaired: 0,
+        },
+        phase: 'Applied',
+      }),
+    );
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelectorAll('[data-test="conflicts"] li')).toHaveLength(100);
+    expect(el.querySelector('[data-test="conflicts"]')!.textContent).toContain('duplicate another');
+    expect(el.textContent).toContain('ADMIN.RULE_REPAIR.SHOWING');
+  });
+
+  it('after a failed apply shows a scan-again hint, not the stale list', () => {
+    const fixture = setup(status({ error: 'PoracleNG could not be reached', phase: 'Failed', repairable: [item()] }));
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.textContent).toContain('ADMIN.RULE_REPAIR.SCAN_AGAIN_HINT');
+    expect(el.textContent).not.toContain('grunt_type metal');
+    expect(el.querySelector('table')).toBeNull();
+    expect(button(el, 'repair')).toBeNull();
+  });
+
+  it('after a failed scan shows no scan-again hint (there is no stale list)', () => {
+    const fixture = setup(status({ error: 'No user could be read', phase: 'Failed' }));
+    expect(fixture.nativeElement.textContent).not.toContain('ADMIN.RULE_REPAIR.SCAN_AGAIN_HINT');
+  });
+
   it('groups repairable rules by kind and shows before and after', () => {
     const fixture = setup(
       status({
@@ -203,7 +322,13 @@ describe('RuleRepairCardComponent', () => {
   it('shows the apply outcome', () => {
     const fixture = setup(
       status({
-        applied: { alreadyFine: 1, conflicts: 2, failed: [item({ reason: 'boom' })], gone: 3, repaired: 4 },
+        applied: {
+          alreadyFine: 1,
+          conflicts: [item({ uid: 20 }), item({ uid: 21 })],
+          failed: [item({ reason: 'boom' })],
+          gone: 3,
+          repaired: 4,
+        },
         phase: 'Applied',
         repairable: [item()],
       }),

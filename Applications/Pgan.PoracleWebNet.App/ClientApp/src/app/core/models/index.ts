@@ -851,21 +851,29 @@ export interface RuleRepairSkip {
 
 export interface RuleRepairApplyResult {
   alreadyFine: number;
-  conflicts: number;
+  /** Rules left alone because the repair would duplicate another rule; `reason` says so. */
+  conflicts: RuleRepairItem[];
   failed: RuleRepairItem[];
   gone: number;
   repaired: number;
 }
 
+/**
+ * The rule repair job's state. A summary (`?summary=true`, what the card polls while a run is going) has
+ * the three lists empty; the counts are always there.
+ */
 export interface RuleRepairStatus {
   applied: null | RuleRepairApplyResult;
   cannotEdit: RuleRepairItem[];
+  cannotEditCount: number;
   error: null | string;
   finishedAt: null | string;
   humansDone: number;
   humansTotal: number;
   phase: RuleRepairPhase;
   repairable: RuleRepairItem[];
+  repairableCount: number;
   skipped: RuleRepairSkip[];
+  skippedCount: number;
   startedAt: null | string;
 }

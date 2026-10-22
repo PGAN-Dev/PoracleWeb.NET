@@ -21,6 +21,9 @@
         <mat-icon>error</mat-icon>
         <span>{{ 'ADMIN.RULE_REPAIR.RUN_FAILED' | translate }} {{ status().error }}</span>
       </div>
+      @if (staleAfterFailedApply()) {
+        <p class="repair-note" data-test="scan-again">{{ 'ADMIN.RULE_REPAIR.SCAN_AGAIN_HINT' | translate }}</p>
+      }
     }
 
     @if (busy()) {
@@ -34,10 +37,16 @@
     }
 
     @if (status().phase === 'Scanned') {
-      @if (status().repairable.length === 0) {
-        <p class="repair-note">{{ 'ADMIN.RULE_REPAIR.NOTHING' | translate }}</p>
+      @if (status().repairableCount > 0) {
+        <p class="repair-note">{{ 'ADMIN.RULE_REPAIR.FOUND' | translate: { count: status().repairableCount } }}</p>
+      } @else if (status().skippedCount > 0) {
+        <!-- Users that could not be read may hold rules to repair, so this is never "nothing". -->
+        <div class="repair-alert repair-alert-warn" role="status" data-test="nothing-readable">
+          <mat-icon>warning</mat-icon>
+          <span>{{ 'ADMIN.RULE_REPAIR.NOTHING_READABLE' | translate: { count: status().skippedCount } }}</span>
+        </div>
       } @else {
-        <p class="repair-note">{{ 'ADMIN.RULE_REPAIR.FOUND' | translate: { count: status().repairable.length } }}</p>
+        <p class="repair-note" data-test="nothing">{{ 'ADMIN.RULE_REPAIR.NOTHING' | translate }}</p>
       }
     }
 
@@ -46,21 +55,51 @@
       <ul class="repair-result">
         <li>{{ 'ADMIN.RULE_REPAIR.RESULT_REPAIRED' | translate: { count: result.repaired } }}</li>
         <li>{{ 'ADMIN.RULE_REPAIR.RESULT_ALREADY_FINE' | translate: { count: result.alreadyFine } }}</li>
-        <li>{{ 'ADMIN.RULE_REPAIR.RESULT_CONFLICTS' | translate: { count: result.conflicts } }}</li>
+        <li>{{ 'ADMIN.RULE_REPAIR.RESULT_CONFLICTS' | translate: { count: result.conflicts.length } }}</li>
         <li>{{ 'ADMIN.RULE_REPAIR.RESULT_GONE' | translate: { count: result.gone } }}</li>
         <li>{{ 'ADMIN.RULE_REPAIR.RESULT_FAILED' | translate: { count: result.failed.length } }}</li>
       </ul>
-      @if (result.failed.length > 0) {
-        <ul class="repair-reasons">
-          @for (f of result.failed; track f.humanId + f.type + f.profileNo + f.uid) {
-            <li>
-              <code>{{ f.humanId }} · {{ f.type }} #{{ f.uid }}</code>
-              {{ f.reason }}
-            </li>
+      @if (conflicts().total > 0) {
+        <div data-test="conflicts">
+          <h3 class="repair-section">{{ 'ADMIN.RULE_REPAIR.RESULT_CONFLICTS' | translate: { count: conflicts().total } }}</h3>
+          <ul class="repair-reasons">
+            @for (f of conflicts().shown; track f.humanId + f.type + f.profileNo + f.uid) {
+              <li>
+                <code
+                  >{{ f.humanId }} · {{ f.type }} #{{ f.uid }} · {{ 'ADMIN.RULE_REPAIR.COL_PROFILE' | translate }} {{ f.profileNo }}</code
+                >
+                {{ f.reason }}
+              </li>
+            }
+          </ul>
+          @if (conflicts().total > conflicts().shown.length) {
+            <p class="repair-more">
+              {{ 'ADMIN.RULE_REPAIR.SHOWING' | translate: { shown: conflicts().shown.length, total: conflicts().total } }}
+            </p>
           }
-        </ul>
+        </div>
       }
-    } @else {
+      @if (failed().total > 0) {
+        <div data-test="failed">
+          <h3 class="repair-section">{{ 'ADMIN.RULE_REPAIR.RESULT_FAILED' | translate: { count: failed().total } }}</h3>
+          <ul class="repair-reasons">
+            @for (f of failed().shown; track f.humanId + f.type + f.profileNo + f.uid) {
+              <li>
+                <code
+                  >{{ f.humanId }} · {{ f.type }} #{{ f.uid }} · {{ 'ADMIN.RULE_REPAIR.COL_PROFILE' | translate }} {{ f.profileNo }}</code
+                >
+                {{ f.reason }}
+              </li>
+            }
+          </ul>
+          @if (failed().total > failed().shown.length) {
+            <p class="repair-more">
+              {{ 'ADMIN.RULE_REPAIR.SHOWING' | translate: { shown: failed().shown.length, total: failed().total } }}
+            </p>
+          }
+        </div>
+      }
+    } @else if (status().phase === 'Scanned') {
       @for (group of groups(); track group.kind) {
         <h3 class="repair-section">{{ group.labelKey | translate }} ({{ group.items.length }})</h3>
         <div class="repair-table-wrap">
@@ -102,30 +141,45 @@
       </div>
     }
 
-    @if ((status().phase === 'Scanned' || status().phase === 'Applied') && status().cannotEdit.length > 0) {
-      <h3 class="repair-section">{{ 'ADMIN.RULE_REPAIR.CANNOT_EDIT_TITLE' | translate }} ({{ status().cannotEdit.length }})</h3>
-      <p class="repair-note">{{ 'ADMIN.RULE_REPAIR.CANNOT_EDIT_DESC' | translate }}</p>
-      <ul class="repair-reasons">
-        @for (c of status().cannotEdit; track c.humanId + c.type + c.profileNo + c.uid) {
-          <li>
-            <code>{{ c.humanId }} · {{ c.type }} #{{ c.uid }} · {{ 'ADMIN.RULE_REPAIR.COL_PROFILE' | translate }} {{ c.profileNo }}</code>
-            {{ c.reason }}
-          </li>
+    @if ((status().phase === 'Scanned' || status().phase === 'Applied') && cannotEditGroups().length > 0) {
+      <div data-test="cannot-edit">
+        <h3 class="repair-section">{{ 'ADMIN.RULE_REPAIR.CANNOT_EDIT_TITLE' | translate }} ({{ status().cannotEditCount }})</h3>
+        <p class="repair-note">{{ 'ADMIN.RULE_REPAIR.CANNOT_EDIT_DESC' | translate }}</p>
+        @for (group of cannotEditGroups(); track group.reason) {
+          <p class="repair-reason-head">{{ group.reason }} ({{ group.total }})</p>
+          <ul class="repair-reasons">
+            @for (c of group.shown; track c.humanId + c.type + c.profileNo + c.uid) {
+              <li>
+                <code
+                  >{{ c.humanId }} · {{ c.type }} #{{ c.uid }} · {{ 'ADMIN.RULE_REPAIR.COL_PROFILE' | translate }} {{ c.profileNo }}</code
+                >
+              </li>
+            }
+          </ul>
+          @if (group.total > group.shown.length) {
+            <p class="repair-more">{{ 'ADMIN.RULE_REPAIR.SHOWING' | translate: { shown: group.shown.length, total: group.total } }}</p>
+          }
         }
-      </ul>
+      </div>
     }
 
-    @if ((status().phase === 'Scanned' || status().phase === 'Applied') && status().skipped.length > 0) {
-      <details class="repair-skipped">
-        <summary>{{ 'ADMIN.RULE_REPAIR.SKIPPED' | translate: { count: status().skipped.length } }}</summary>
+    @if ((status().phase === 'Scanned' || status().phase === 'Applied') && skipped().total > 0) {
+      <!-- Open by default: a user who could not be read is a gap in the scan, not a footnote. -->
+      <details class="repair-skipped" open>
+        <summary>{{ 'ADMIN.RULE_REPAIR.SKIPPED' | translate: { count: skipped().total } }}</summary>
         <ul class="repair-reasons">
-          @for (s of status().skipped; track s.humanId) {
+          @for (s of skipped().shown; track s.humanId) {
             <li>
               <code>{{ s.humanId }}</code>
               {{ s.reason }}
             </li>
           }
         </ul>
+        @if (skipped().total > skipped().shown.length) {
+          <p class="repair-more">
+            {{ 'ADMIN.RULE_REPAIR.SHOWING' | translate: { shown: skipped().shown.length, total: skipped().total } }}
+          </p>
+        }
       </details>
     }
   </mat-card-content>

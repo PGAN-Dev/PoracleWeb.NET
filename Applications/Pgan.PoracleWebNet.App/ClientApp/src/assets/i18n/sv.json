@@ -1530,6 +1530,7 @@
       "SCANNING": "Skannar: {{done}} av {{total}} användare kontrollerade",
       "APPLYING": "Reparerar: {{done}} av {{total}} användare klara",
       "NOTHING": "Det finns inget att reparera.",
+      "NOTHING_READABLE": "Inget att reparera bland användarna som kunde läsas, men {{count}} kunde inte läsas och kan fortfarande ha regler som behöver repareras. Orsakerna står nedan; skanna igen när PoracleNG svarar för dem.",
       "FOUND": "Regler som kan repareras: {{count}}",
       "CONFIRM_TITLE": "Reparera regler",
       "CONFIRM_MESSAGE": "Regler att reparera: {{count}}. Varje regel kontrolleras igen precis innan den skrivs, och regler som ändrats sedan skanningen lämnas orörda.",
@@ -1555,6 +1556,7 @@
       "CANNOT_EDIT_DESC": "PoracleNG 5.4.0 sparar inte dessa som de är. Rätta dem för hand eller ta bort dem.",
       "SKIPPED": "Användare som hoppades över eftersom de inte gick att läsa: {{count}}",
       "RUN_FAILED": "Körningen misslyckades:",
+      "SCAN_AGAIN_HINT": "Listan från den senaste skanningen kan vara inaktuell. Skanna igen för att se vad som återstår att reparera; reparationer som redan skrivits ligger kvar.",
       "REQUEST_FAILED": "Det gick inte att nå servern. Försök igen."
     }
   },

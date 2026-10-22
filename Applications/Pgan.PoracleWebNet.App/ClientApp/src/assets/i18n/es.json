@@ -1530,6 +1530,7 @@
       "SCANNING": "Analizando: {{done}} de {{total}} usuarios revisados",
       "APPLYING": "Reparando: {{done}} de {{total}} usuarios terminados",
       "NOTHING": "No hay nada que reparar.",
+      "NOTHING_READABLE": "No hay nada que reparar entre los usuarios que se pudieron leer, pero {{count}} no se pudieron leer y puede que aún tengan reglas por reparar. Los motivos están abajo; vuelve a analizar cuando PoracleNG responda por ellos.",
       "FOUND": "Reglas que se pueden reparar: {{count}}",
       "CONFIRM_TITLE": "Reparar reglas",
       "CONFIRM_MESSAGE": "Reglas por reparar: {{count}}. Cada una se vuelve a comprobar justo antes de escribirla, y las que hayan cambiado desde el análisis se dejan como están.",
@@ -1555,6 +1556,7 @@
       "CANNOT_EDIT_DESC": "PoracleNG 5.4.0 no guardará estas tal como están. Corrígelas a mano o bórralas.",
       "SKIPPED": "Usuarios omitidos por no poder leerse: {{count}}",
       "RUN_FAILED": "La ejecución falló:",
+      "SCAN_AGAIN_HINT": "La lista del último análisis puede estar desactualizada. Vuelve a analizar para ver qué queda por reparar; las reparaciones ya escritas se mantienen.",
       "REQUEST_FAILED": "No se pudo conectar con el servidor. Inténtalo de nuevo."
     }
   },
