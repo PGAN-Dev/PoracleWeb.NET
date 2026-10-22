@@ -3,7 +3,7 @@ import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { provideTranslateService } from '@ngx-translate/core';
-import { of, throwError } from 'rxjs';
+import { map, of, throwError, timer } from 'rxjs';
 
 import { RuleRepairCardComponent } from './rule-repair-card.component';
 import { RuleRepairItem, RuleRepairStatus } from '../../../core/models';
@@ -153,6 +153,28 @@ describe('RuleRepairCardComponent', () => {
     fixture.detectChanges();
     expect(fullReads).toBe(2);
     expect(fixture.componentInstance.status().repairable).toHaveLength(1);
+  });
+
+  it('reads the finished report once when the full read outlasts the poll interval', () => {
+    const fixture = setup(status({ phase: 'Scanning' }));
+    service.getStatus.mockClear();
+    service.getStatus.mockImplementation((summary?: boolean) =>
+      summary
+        ? of(status({ phase: 'Scanned', repairableCount: 1 }))
+        : timer(5000).pipe(map(() => status({ phase: 'Scanned', repairable: [item()] }))),
+    );
+    jest.advanceTimersByTime(2000);
+    // Ticks land at 4s and 6s while the full read is still in flight.
+    jest.advanceTimersByTime(5000);
+    fixture.detectChanges();
+    const fullReads = () => service.getStatus.mock.calls.filter(c => !c[0]).length;
+    expect(fullReads()).toBe(1);
+    expect(fixture.componentInstance.busy()).toBe(false);
+    expect(fixture.componentInstance.status().repairable).toHaveLength(1);
+
+    const callsAfter = service.getStatus.mock.calls.length;
+    jest.advanceTimersByTime(20000);
+    expect(service.getStatus.mock.calls.length).toBe(callsAfter);
   });
 
   it('stops polling when destroyed', () => {

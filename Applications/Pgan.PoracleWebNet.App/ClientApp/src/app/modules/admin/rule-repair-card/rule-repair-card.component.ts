@@ -5,7 +5,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
-import { EMPTY, catchError, interval, of, switchMap } from 'rxjs';
+import { EMPTY, catchError, exhaustMap, interval, of, switchMap } from 'rxjs';
 
 import { RuleRepairItem, RuleRepairKind, RuleRepairSkip, RuleRepairStatus } from '../../../core/models';
 import { RuleRepairService } from '../../../core/services/rule-repair.service';
@@ -151,8 +151,14 @@ export class RuleRepairCardComponent {
       }
       const sub = interval(POLL_MS)
         .pipe(
-          switchMap(() => this.service.getStatus(true).pipe(catchError(() => EMPTY))),
-          switchMap(s => (isBusy(s) ? of(s) : this.service.getStatus().pipe(catchError(() => EMPTY)))),
+          // exhaustMap, not switchMap: once the summary says the run ended, the full read must not be
+          // cancelled and restarted by every later tick, or a slow read never lands.
+          exhaustMap(() =>
+            this.service.getStatus(true).pipe(
+              switchMap(s => (isBusy(s) ? of(s) : this.service.getStatus())),
+              catchError(() => EMPTY),
+            ),
+          ),
         )
         .subscribe(s => this.status.set(s));
       onCleanup(() => sub.unsubscribe());
