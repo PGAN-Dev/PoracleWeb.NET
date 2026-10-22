@@ -34,6 +34,7 @@ import { byNumber, byText, queryAlarms, visibleSelection } from '../../shared/ut
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
+import { questRewardIcon } from '../../shared/utils/quest-reward-icon';
 import { serverReason } from '../../shared/utils/server-reason';
 
 @Component({
@@ -242,7 +243,7 @@ export class QuestListComponent implements OnInit {
   }
 
   editQuest(quest: Quest): void {
-    const ref = this.dialog.open(QuestEditDialogComponent, { autoFocus: 'first-heading', width: '600px', data: quest, maxHeight: '90vh' });
+    const ref = this.dialog.open(QuestEditDialogComponent, { width: '600px', autoFocus: 'first-heading', data: quest, maxHeight: '90vh' });
     ref.afterClosed().subscribe(result => {
       if (result) this.loadQuests();
     });
@@ -282,23 +283,7 @@ export class QuestListComponent implements OnInit {
   }
 
   getQuestImage(quest: Quest): string {
-    // Pokemon encounter: ID may be in pokemonId or reward field
-    const pokemonId = quest.pokemonId > 0 ? quest.pokemonId : quest.reward;
-    if ((quest.rewardType === 7 || quest.rewardType === 12 || quest.rewardType === 4) && pokemonId > 0) {
-      return this.iconService.getPokemonUrl(pokemonId);
-    }
-    if (quest.rewardType === 7 && pokemonId === 0) {
-      return ''; // fallback icon in template
-    }
-    // Item reward — show the item icon
-    if (quest.rewardType === 2 && quest.reward > 0) {
-      return this.iconService.getItemUrl(quest.reward);
-    }
-    // Stardust
-    if (quest.rewardType === 3) {
-      return this.iconService.getRewardUrl('stardust', quest.reward || 0);
-    }
-    return this.iconService.getRewardUrl('quest', quest.rewardType);
+    return questRewardIcon(quest, this.iconService);
   }
 
   getQuestTitle(quest: Quest): string {
@@ -376,8 +361,8 @@ export class QuestListComponent implements OnInit {
 
   openAddDialog(): void {
     const ref = this.dialog.open(QuestAddDialogComponent, {
-      autoFocus: 'first-heading',
       width: '600px',
+      autoFocus: 'first-heading',
       data: { existingRule: (uid, type) => this.describeExisting(uid, type) } satisfies AddDialogData,
       maxHeight: '90vh',
     });

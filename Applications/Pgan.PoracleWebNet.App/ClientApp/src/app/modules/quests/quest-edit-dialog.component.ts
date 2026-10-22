@@ -23,6 +23,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
 import { createFailureText } from '../../shared/utils/add-outcome';
 import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, compose, isAutoDelete, isSummary, preserve, SUMMARY } from '../../shared/utils/clean-flags';
+import { questRewardIcon } from '../../shared/utils/quest-reward-icon';
 
 /** Item, candy and mega energy: the three PoracleNG compares `amount` against. */
 const QUANTITY_REWARD_TYPES = new Set([2, 4, 12]);
@@ -121,17 +122,7 @@ export class QuestEditDialogComponent {
   }
 
   getImage(): string {
-    const pid = this.questPokemonId;
-    if ((this.data.rewardType === 7 || this.data.rewardType === 12 || this.data.rewardType === 4) && pid > 0) {
-      return this.iconService.getPokemonUrl(pid);
-    }
-    if (this.data.rewardType === 7 && pid === 0) {
-      return '';
-    }
-    if (this.data.rewardType === 2 && this.data.reward > 0) {
-      return this.iconService.getItemUrl(this.data.reward);
-    }
-    return this.iconService.getRewardUrl('quest', this.data.rewardType);
+    return questRewardIcon(this.data, this.iconService);
   }
 
   getRewardTypeLabel(): string {

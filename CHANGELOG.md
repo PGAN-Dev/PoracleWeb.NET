@@ -57,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Stardust and PokéCoin quest cards show their reward picture** instead of a question mark, as do candy, mega energy, XL candy and experience rules for any Pokémon.
 - **A nest alarm for any Pokémon reads "All Pokémon" in your language with the same icon as the Pokémon list**, instead of "All Pokemon" beside a broken picture.
 - **Confirmations on a phone rise from the bottom at their own height** instead of filling the screen with the buttons far below the question.
 - **Add and edit dialogs no longer open with their first tab looking pressed.** The ten alarm types' dialogs and the quick pick dialog open focused on their title; Tab still reaches the tabs first.
