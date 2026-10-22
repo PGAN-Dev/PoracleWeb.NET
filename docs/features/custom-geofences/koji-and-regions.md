@@ -158,7 +158,7 @@ There are two groups. The `__`-prefixed keys are **Koji structural directives** 
 | `name` | the user-facing display name | The friendly label shown in PoracleWeb.NET's region/area lists. Read back from Koji to label regions. |
 | `group` | the region/category label | The folder a public area is shown under in the bot's area picker. For admin geofences this is resolved from the parent chain. |
 | `parent` | the same region/category label | A duplicate of `group` that some PoracleNG format serializers read instead of `group`. (This is the *custom* `parent` property — a text label — and is separate from the structural `__parent` id above.) |
-| `userSelectable` | `true` when public, `false` when private | **The visibility switch.** `true` = the area appears in the bot's `!area` picker. `false` = hidden. PoracleNG also refuses to let a non-admin subscribe to a `userSelectable=false` area through its `setAreas` call, which is why private user geofences are managed entirely inside PoracleWeb.NET. |
+| `userSelectable` | `true` when public, `false` when private | **The visibility switch.** `true` = the area appears in the bot's `!area` picker. `false` = hidden. PoracleNG's own area check allows only `userSelectable=true` areas for non-admins, so PoracleWeb.NET checks a private geofence's name itself and saves it to PoracleNG as a trusted write. PoracleNG stores the name on the profile like any other area. |
 | `displayInMatches` | `true` when public, `false` when private | Whether the **area name appears in notification DM text**. `false` keeps private geofence names out of messages. |
 
 For a **private** user geofence, PoracleWeb.NET never writes any of this to Koji — it serves the geofence from its own feed with `userSelectable=false`, `displayInMatches=false` and `exemptFromAreaSecurity=true`. For an **approved (public)** geofence, both flags are set to `true` and the geofence is written into Koji as a normal public area.
@@ -193,23 +193,20 @@ already made private in Koji was handed to every user as selectable anyway. Both
 Areas private in Koji are listed as *Private in Koji* and their switch is disabled, because clearing a
 flag this site did not set would not make them selectable.
 
-!!! warning "Hiding takes effect on a delay you do not control"
-    Hiding is immediate for **new** selections and invisible to matching, so nobody loses an alert the
-    moment you flip the switch. Matching never consults `userSelectable` — `resolveOverride` hands a
-    rule's areas to `areaOverlap`, which compares names against the fences a spawn fell in — so a
-    profile still carrying a hidden name keeps receiving its alerts.
+!!! warning "Hiding doesn't take anyone off an area"
+    Hiding is immediate for **new** selections and invisible to matching. Matching never consults
+    `userSelectable` (`resolveOverride` hands a rule's areas to `areaOverlap`, which compares names against
+    the fences a spawn fell in), so a profile still carrying a hidden name keeps receiving its alerts.
 
-    It then goes away by itself, quietly, on the user's next write. Two paths:
+    It stays that way through later saves. The Areas & Places page sends back every name the profile
+    already holds, including ones it no longer lists, and PoracleWeb.NET allows a name the profile already
+    has before writing the list to PoracleNG as trusted. An alarm limited to the area keeps it too: the
+    scope picker keeps the areas an alarm already carries, and the area check allows a name already on
+    the rule. A user leaves a hidden area only by removing it from their selection, or by changing the
+    alarm's scope.
 
-    * **Saving on Areas & Places.** PoracleNG's `setAreas` intersects the submitted list against
-      `userSelectable=true` fences for non-admins and drops the rest with no error, returning 200.
-      A user who ticks any unrelated area loses the hidden one in the same save.
-    * **Editing an alarm scoped to it.** The scope picker lists only areas still on offer, so the
-      hidden one is absent from the dialog and the rule is saved without it.
-
-    Neither path tells the user. If you are hiding a test fence that is usually what you wanted; if you
-    are hiding something people legitimately use, tell them first. Alarm matching itself is never
-    interrupted — only the moment they next save.
+    If you're hiding a test fence nobody uses, that's all there is to it. If people use it and you need
+    them off it, tell them to remove it.
 
 The list is kept in the `hidden_areas` site setting. A name you hide that Koji later stops serving is
 kept rather than dropped, so a Koji outage does not silently un-hide anything; the page flags those

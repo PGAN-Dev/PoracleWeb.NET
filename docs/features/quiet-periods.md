@@ -30,10 +30,10 @@ Four scopes are offered:
 
 | Scope | Where the chip is | What it silences |
 |---|---|---|
-| **Gym** | Gym cards, and raid and egg cards that target a specific gym | Everything at that gym |
-| **Species** | Pokemon cards and nest cards | That Pokemon, from any rule |
-| **Area** | Both halves of the Areas page — the selected-area chips and the area list rows | Everything inside that area |
-| **Station** | Max Battle cards that target a specific station | Everything at that Power Spot |
+| Gym | Gym cards, and raid and egg cards that target a specific gym | Everything at that gym |
+| Species | Pokemon cards and nest cards | That Pokemon, from any rule |
+| Area | Both halves of the Areas page — the selected-area chips and the area list rows | Everything inside that area |
+| Station | Max Battle cards that target a specific station | Everything at that Power Spot |
 
 A chip only appears where there is an identifier to quiet. A gym alarm set to "any gym" has no gym
 id, so it gets no chip; the same for a Max Battle rule with no station. Quests, invasions, lures and
@@ -90,6 +90,8 @@ Opening it lists every active quiet period, including the three scopes only the 
 with a **Resume** button, plus **Resume everything**. This is the place to look when alerts have gone
 missing and no chip you can find explains it.
 
+![The dashboard's Quiet card opened, listing a quiet area and a quiet species, each with a countdown and a Resume button](../screenshots/quiet-list.png)
+
 ## Requirements
 
 !!! warning "Needs a reachable PoracleNG 5.4.0 or newer"
@@ -98,6 +100,7 @@ missing and no chip you can find explains it.
     page shows one error toast saying so; the chips draw nothing, rather than claiming nothing is quiet.
     A server below 5.4.0 is told apart at startup, not here: the Versions card on **Admin → Settings**
     says it is too old.
+
 There is **no site setting that turns quiet periods off.** Nothing on **Admin → Settings** governs
 them; availability is entirely a question of which PoracleNG is running.
 

@@ -4,19 +4,23 @@ PoracleWeb.NET supports 11 UI languages. Users can switch the interface language
 
 ## Supported Languages
 
-| Flag | Language | Code | Completeness |
-|---|---|---|---|
-| :flag_gb: | English | `en` | Full (baseline) |
-| :flag_fr: | Français | `fr` | Full |
-| :flag_de: | Deutsch | `de` | Full |
-| :flag_es: | Español | `es` | Full |
-| :flag_nl: | Nederlands | `nl` | Full |
-| :flag_it: | Italiano | `it` | Full |
-| :flag_pt: | Português | `pt` | Full |
-| :flag_br: | Português (BR) | `pt-BR` | Full |
-| :flag_pl: | Polski | `pl` | Full |
-| :flag_dk: | Dansk | `da` | Full |
-| :flag_se: | Svenska | `sv` | Full |
+| Flag | Language | Code |
+|---|---|---|
+| :flag_gb: | English | `en` (baseline) |
+| :flag_fr: | Français | `fr` |
+| :flag_de: | Deutsch | `de` |
+| :flag_es: | Español | `es` |
+| :flag_nl: | Nederlands | `nl` |
+| :flag_it: | Italiano | `it` |
+| :flag_pt: | Português | `pt` |
+| :flag_br: | Português (BR) | `pt-BR` |
+| :flag_pl: | Polski | `pl` |
+| :flag_dk: | Dansk | `da` |
+| :flag_se: | Svenska | `sv` |
+
+Every language carries the full set of interface keys. Some text stays in English whatever you pick: move, item and costume names, and anything stored rather than translated, such as quick-pick names and the site title. In Dutch, Portuguese, Brazilian Portuguese and Danish, Pokemon names are English too, because Poracle has no translation to serve. [What is not translated](#what-is-not-translated) has the full list.
+
+![The Pokemon page in German, with a PvP card](../screenshots/display-language-de.png)
 
 ## How It Works
 
@@ -24,8 +28,7 @@ PoracleWeb.NET supports 11 UI languages. Users can switch the interface language
 
 The UI translation system uses [ngx-translate](https://github.com/ngx-translate/core) for runtime language switching:
 
-- **Translation files** are stored in `ClientApp/src/assets/i18n/{code}.json` as flat namespaced JSON
-- **Instant switching** — changing language updates all visible text immediately, no page reload needed
+Translation files are stored in `ClientApp/src/assets/i18n/{code}.json` as namespaced JSON, and changing language updates every visible string straight away, with no page reload.
 
 The language a visitor lands on is decided in this order, first match winning:
 
@@ -42,8 +45,9 @@ Poracle's locale has to clear the same two filters as any other option: this sit
 
 There are two, and they sit next to each other in the **user menu** (top-right toolbar):
 
-- **Display language** changes this site's text and nothing else. Its submenu is hidden when an admin has restricted the selector to a single language.
-- **Alert language** is what Poracle writes your DMs in: alert text, Pokemon names, move names. The authoritative copy lives on your Poracle account (`humans.language`), with a browser cache used only for the first render, so it follows you between devices and reconciles if the bot changes it.
+**Display language** changes this site's text and nothing else. Its submenu is hidden when an admin has restricted the selector to a single language.
+
+**Alert language** is what Poracle writes your DMs in: alert text, Pokemon names, move names. The authoritative copy lives on your Poracle account (`humans.language`), with a browser cache used only for the first render, so it follows you between devices and reconciles if the bot changes it.
 
 Its list is Poracle's to restrict, not this site's. Poracle publishes the language codes it accepts (`availableLanguages` on `GET /api/config/poracleWeb`), and the alert-language submenu offers only those — intersected with the eleven this UI has a flag row for. Restrict Poracle to English and German and those are the two rows you get; restrict it to languages this UI does not ship and the menu item disappears rather than offering a write Poracle answers 422 to. A Poracle that restricts nothing publishes no list and every language stays on offer.
 
@@ -193,9 +197,11 @@ Switching the display language re-fetches them, so an open species picker update
 
 Three things this does not cover:
 
-- **Move and item names** stay English. Poracle serves no translated equivalent for them, so they come from the [WatWowMap masterfile](https://github.com/WatWowMap/Masterfile-Generator) as before.
-- **Costume names** stay English too, in every interface language. They are not in the endpoint above: the poracle-shaped masterfile carries no costume map, so the [costume picker](alarms.md#costume-filter) reads the raw WatWowMap file — the same one Poracle downloads for its own costume lookups. Poracle does translate costume names internally, but exposes no endpoint serving them. A costume too new for that file shows as its number rather than a name.
-- **A Poracle that cannot answer** — an older build without the endpoint, or one that is unreachable — falls back to the same English masterfile, so the pickers keep working rather than emptying out.
+Move and item names stay English. Poracle serves no translated equivalent for them, so they come from the [WatWowMap masterfile](https://github.com/WatWowMap/Masterfile-Generator) as before.
+
+Costume names stay English too, in every interface language. They're not in the endpoint above: the poracle-shaped masterfile carries no costume map, so the [costume picker](alarms.md#costume-filter) reads the raw WatWowMap file, the same one Poracle downloads for its own costume lookups. Poracle translates costume names internally but exposes no endpoint serving them. A costume too new for that file shows as its number rather than a name.
+
+A Poracle that can't answer (unreachable, or without the endpoint) falls back to the same English masterfile, so the pickers keep working rather than emptying out.
 
 ### Rule summaries follow the alert language
 
@@ -207,9 +213,9 @@ Poracle ships translations for `de`, `en`, `es`, `fr`, `it`, `ja`, `nb-no`, `pl`
 
 ### What Is NOT Translated
 
-- **Move names, item names and costume names** — see above
-- **Admin-configured values** — site title, logo, custom navigation links
-- **User-generated content** — profile names, geofence names, area names
+- move, item and costume names (see above)
+- what admins configure: the site title, logo, custom navigation links, quick-pick names and descriptions
+- what users name: profiles, geofences, saved places, and area names from Koji
 
 The help guide is translated, body and all: the `HELP.CONTENT_*` values carry the HTML for each section and every locale has its own. The 38 `HELP.SECTION_*` headings are complete too. Dutch, German and Italian leave one of them reading as English ("Dashboard"), because that is the word in those languages as well.
 

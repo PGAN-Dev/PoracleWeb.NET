@@ -6,13 +6,11 @@ Profiles let users maintain separate alarm configurations for different situatio
 
 The Profiles page provides a consolidated view of all profiles and their alarms in one place.
 
-![Profiles overview page](../screenshots/profiles.png)
+![The Profiles page with three profiles, one with a schedule and one expanded to show its alarms](../screenshots/profiles.png)
 
-- **Stats bar** at the top shows total alarm counts per type (Pokemon, Raids, Quests, etc.) across all profiles
-- **Search bar** filters alarms across all profiles by name, Pokemon, or other alarm attributes
-- **Type filter chips** narrow the view to specific alarm types. Ten of them: Pokemon, Raids, Eggs, Max Battles, Quests, Invasions, Lures, Nests, Gyms and Fort Changes
-- **Expandable panels** for each profile display grouped alarms with game asset images for quick identification
-- **Duplicate detection** -- a rule that matches another rule of the same type is highlighted with an orange border, making it easy to spot redundant filters. Hovering the tag names the other profiles carrying it, or says the duplicates all sit on this one
+A stats bar at the top counts alarms per type across all profiles. The search bar filters every profile's alarms by name, Pokemon or other attributes, and ten type chips (Pokemon, Raids, Eggs, Max Battles, Quests, Invasions, Lures, Nests, Gyms and Fort Changes) narrow the view. Each profile is an expandable panel with its alarms grouped by type.
+
+A rule that matches another rule of the same type is highlighted with an orange border, so redundant filters stand out. Hovering the tag names the other profiles carrying it, or says the duplicates all sit on this one.
 
 !!! tip
     Use the search bar and type filters together to quickly find a specific alarm across all your profiles. For example, search for "Gible" with the Pokemon filter chip active to see which profiles are tracking it.
@@ -32,10 +30,7 @@ The Profiles page provides a consolidated view of all profiles and their alarms 
 
 ## Creating & Switching Profiles
 
-- Tap the **+** button to create a new profile with a unique name (up to 32 characters)
-- **Switch** makes a profile the active one, indicated by a green badge
-- **Edit** to rename an existing profile
-- **Delete** to remove a profile (the currently active profile cannot be deleted)
+Tap **+** to create a profile. The dialog takes up to 32 characters and flags a name you already use; the server itself accepts up to 255 and doesn't insist on unique names. **Switch** makes a profile the active one, marked with a green badge. The pencil renames a profile, and the bin deletes one, except the active profile, which can't be deleted.
 
 Each profile maintains its own independent:
 
@@ -51,9 +46,7 @@ Each profile maintains its own independent:
 
 The **copy icon** on any profile creates an exact duplicate with all alarm filters.
 
-- You are prompted for a new name (default: "Profile (Copy)")
-- All alarm filters from the source profile, Pokéstop Event rules included, are copied to the new profile
-- Area selections, location and active hours **are** copied too
+You're asked for a name, pre-filled as "<source name> (Copy)". Every alarm filter on the source profile is copied, Pokéstop Event rules and webhook mentions included, using PoracleNG's own profile copy ([#993](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/993)). Area selections, location and active hours are copied too, and your active profile doesn't change.
 
 !!! note "Duplication copies the whole profile, geography included"
     This changed in #503. `addProfile` upstream ignores area, latitude and longitude, so a copy used to
@@ -72,9 +65,9 @@ The **download icon** saves a JSON backup file containing all alarms from that p
 
 1. Tap the **upload button** on the Profiles page
 2. Select a previously exported JSON backup file
-3. Choose a name for the new profile
-4. If the chosen name conflicts with an existing profile, a numeric suffix is added automatically
-5. All alarm filters from the backup are restored into the new profile
+3. Choose a name for the new profile. A name you already use gets a numeric suffix, "Home (2)"
+
+The alarms are written straight to the new profile, so your active profile stays as it is. Every alarm is checked before the first is saved, and one that already exists or would replace another is skipped. An import carries alarms only: the new profile starts with no areas, so pick them afterwards.
 
 !!! tip
     Export your profiles before making major changes. The backup file can be used to restore your configuration if something goes wrong, or to share alarm setups with other users.
@@ -87,9 +80,7 @@ Active hours let you schedule automatic profile switching based on time of day. 
 
 Each active hours rule defines a specific activation point: a day of the week, an hour, and a minute. PoracleNG checks every few minutes and switches to the profile whose most recent activation time matches the current local time (within a 10-minute matching window).
 
-- **Day**: Monday (1) through Sunday (7)
-- **Hour**: 0-23 (24-hour format)
-- **Minute**: 0-59
+A rule's day runs from Monday (1) to Sunday (7), its hour from 0 to 23 and its minute from 0 to 59.
 
 When multiple profiles have active hours configured, the scheduler treats them as a timeline. At 9:00 AM on Monday, if your "Work" profile has a rule for Monday at 9:00, PoracleNG activates it. At 6:00 PM, if your "Home" profile has a Monday 18:00 rule, it switches to that profile. The switch happens automatically with no user interaction.
 
@@ -102,10 +93,7 @@ The schedule editor is accessed from the Profiles page by clicking the **clock i
 
 #### Setting up a schedule
 
-1. **Select days** using the circular day buttons (**M T W T F S S**). Multiple days can be selected at once. Quick presets are available:
-    - **Weekdays** -- selects Monday through Friday
-    - **Weekends** -- selects Saturday and Sunday
-    - **Every day** -- selects all seven days
+1. **Select days** using the circular day buttons (**M T W T F S S**). Several can be selected at once, and the **Weekdays**, **Weekends** and **Every day** presets select Monday to Friday, Saturday and Sunday, or all seven
 2. **Choose a time** using the **hour** and **minute** dropdowns
 3. Optionally turn on **Repeat until a later time** to make the rule repeat (see below)
 4. Click **Add** to create entries for all selected days at the chosen time
@@ -132,9 +120,8 @@ PoracleNG's rule, not ours); use two rules instead. Ranges set from the Poracle 
 
 - The **rules list** displays all configured rules, grouped by time when multiple days share the same activation time (e.g., "Mon-Fri at 9:00 AM" instead of five separate entries). A repeating rule carries a circular-arrow icon instead of the plain clock, and reads "Weekdays 9:00 AM-5:00 PM, every 2h"
 - Each rule or group has a **remove button** to delete it
-- **Clear all** removes every rule, making the profile manual-only again
-- **Save** persists the schedule to PoracleNG immediately
-- **Cancel** discards unsaved changes
+- **Clear all** removes every rule, so the profile is switched on only by hand
+- **Save** sends the schedule to PoracleNG straight away, and **Cancel** discards unsaved changes
 
 #### Mini weekly preview
 
@@ -144,8 +131,7 @@ Below the rules list, a visual timeline shows when each activation time occurs d
 
 Each profile card on the Profiles page shows its schedule status:
 
-- **Amber schedule pills** display the configured activation times, grouped by day pattern (e.g., "Mon-Fri 9:00 AM", "Sat-Sun 7:00 AM"). Repeating rules read "Mon-Fri 9:00 AM-5:00 PM, every 2h", or "..., hourly" when the interval is one hour
-- **"Manual only"** label appears when no active hours are configured, meaning the profile is only activated by manually switching to it
+Amber pills show the activation times, grouped by day pattern ("Mon-Fri 9:00 AM", "Sat-Sun 7:00 AM"). A repeating rule reads "Mon-Fri 9:00 AM-5:00 PM, every 2h", or "..., hourly" when the interval is one hour. A profile with no active hours says "Manual only": it becomes active only when you switch to it.
 
 ### Location warning
 

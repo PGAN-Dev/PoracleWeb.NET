@@ -111,7 +111,7 @@ See the [Configuration Reference](../configuration/reference.md) for the full li
 PUBLIC_URL=https://alerts.example.com
 ```
 
-Leave it unset if the container is exposed directly, or if people reach it on several hostnames and you want the callback to follow whichever one they used. It is also the base for the links PoracleWeb puts in geofence review threads, so set it if you use the Discord submission forum.
+Leave it unset if the container is exposed directly, or if people reach it on several hostnames and you want the callback to follow whichever one they used. It is also the base for the links PoracleWeb.NET puts in geofence review threads, so set it if you use the Discord submission forum.
 
 If anything terminates TLS in front of the container — nginx, Caddy, Traefik, a Cloudflare Tunnel — also name it. `X-Forwarded-For` and `X-Forwarded-Proto` are believed only from declared addresses, because a header trusted from anyone lets a caller invent a new address per request and hand itself a fresh rate-limit allowance on the sign-in endpoints.
 
@@ -125,7 +125,7 @@ With neither set, the app falls back to the connection address. That is safe but
 
 ### Version checking
 
-The Versions card under **Admin → Settings** compares your PoracleWeb and PoracleNG versions against the latest releases. Opening that page makes two anonymous GETs, to `api.github.com` and `raw.githubusercontent.com`, with no identifiers sent. There is no scheduler behind it: the result is cached for six hours, so an instance whose admins never open the page never calls GitHub at all. If your egress policy blocks it, or you'd rather it didn't happen, switch on **Do not check for updates** (`disable_update_check`) under **Admin → Settings**.
+The Versions card under **Admin → Settings** compares your PoracleWeb.NET and PoracleNG versions against the latest releases. Opening that page makes two anonymous GETs, to `api.github.com` and `raw.githubusercontent.com`, with no identifiers sent. There is no scheduler behind it: the result is cached for six hours, so an instance whose admins never open the page never calls GitHub at all. If your egress policy blocks it, or you'd rather it didn't happen, switch on **Do not check for updates** (`disable_update_check`) under **Admin → Settings**.
 
 ## 3. Create the PoracleWeb.NET database
 

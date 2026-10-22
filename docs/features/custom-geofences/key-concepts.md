@@ -64,7 +64,7 @@ If the name is **not** on the list, the shape is dormant — it exists, but it's
 
 The rule above is the default, not the only path. An individual alarm can name areas of its own through its **Where** control ("Only in specific areas"), and geofences you drew yourself are offered there alongside the admin areas. An alarm scoped that way fires inside those areas whether or not the active profile subscribes to them, and ignores the profile's area list entirely.
 
-This works because PoracleNG never checks `userSelectable` when it matches a spawn against an alarm's own areas — only when it validates an area list on the way in. PoracleWeb writes the name past that check. See [Where an alert reaches you](../alarms.md#where-an-alert-reaches-you).
+This works because PoracleNG never checks `userSelectable` when it matches a spawn against an alarm's own areas — only when it validates an area list on the way in. PoracleWeb.NET writes the name past that check. See [Where an alert reaches you](../alarms.md#where-an-alert-reaches-you).
 
 ## Profiles: on for one, off for another
 

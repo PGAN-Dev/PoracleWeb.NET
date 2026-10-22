@@ -60,7 +60,7 @@ Then recreate the container: `docker compose up -d --force-recreate`. For revers
 
 ## PoracleNG unreachable (alarm operations fail)
 
-**Problem**: All alarm operations (create, edit, delete, list) fail with HTTP 500 errors. The dashboard shows zero alarms. Logs show `HttpRequestException` or `TaskCanceledException` when calling the PoracleNG API.
+**Problem**: Every alarm page shows "The server is temporarily unavailable" instead of its list, and adds, edits and deletes fail the same way. The API answers 503 with `{"error": "PoracleNG could not be reached. Try again shortly."}`. Logs show `HttpRequestException` or `TaskCanceledException` when calling the PoracleNG API.
 
 **Solution**: Check that PoracleNG is running and reachable from the PoracleWeb.NET container:
 
@@ -96,7 +96,7 @@ produce this — every alarm write goes through the PoracleNG API, which fills t
 
 ## Webhook user operations fail with 404
 
-**Problem**: Alarm or human operations fail with HTTP 404 for webhook users. Logs may show mangled URL paths like `/api/tracking/pokemon/https://discord.com/api/webhooks/123/abc`.
+**Problem**: Alarm or human operations fail with HTTP 404 for webhook users. Logs may show mangled URL paths like `/api/v2/humans/https://discord.com/api/webhooks/123/abc/tracking/pokemon`.
 
 **Solution**: Webhook user IDs are full URLs containing slashes. Both `PoracleTrackingProxy` and `PoracleHumanProxy` must URL-encode user IDs with `Uri.EscapeDataString()` before inserting them into URL paths. If you add a new proxy method, always use the `Encode()` helper.
 
@@ -104,9 +104,7 @@ produce this — every alarm write goes through the PoracleNG API, which fills t
 
 ## uid:0 causes updates instead of creates
 
-**Problem**: Creating a new alarm silently updates an existing alarm instead of creating a new one, or PoracleNG returns an error about invalid UID.
-
-**Solution**: PoracleNG treats `uid=0` in a create request body as an update target. C# model `int` properties default to `0`, so freshly constructed models include `"uid":0` when serialized. `PoracleJsonHelper.SerializeToElement()` automatically strips `"uid":0` from request bodies. If you serialize alarm data manually (bypassing the helper), ensure you remove the `uid` property when its value is `0`.
+This was a v1 problem. PoracleNG's v1 create read `uid=0` as an update target, and a freshly built C# model serialises `"uid":0`. `PoracleJsonHelper.SerializeToElement()` still strips it, and every write now goes through the v2 translator, which never sends `uid` in a rule body, so it can't happen on a current build.
 
 ---
 
@@ -114,7 +112,7 @@ produce this — every alarm write goes through the PoracleNG API, which fills t
 
 **Problem**: Human data appears as `null` or deserialization fails even though the PoracleNG API returns a 200 response.
 
-**Solution**: PoracleNG wraps certain responses in container objects. For example, `GET /api/humans/one/{id}` returns `{ "human": { ... }, "status": "ok" }`, not the human object directly. `PoracleHumanProxy.GetHumanAsync()` unwraps the `"human"` property. If you add new proxy endpoints, inspect the actual PoracleNG response shape and unwrap accordingly.
+**Solution**: PoracleNG wraps certain responses in container objects. For example, `GET /api/v2/humans/{id}` returns `{ "human": { ... } }`, not the human object directly. `PoracleHumanProxy.GetHumanAsync()` unwraps the `"human"` property. If you add new proxy endpoints, inspect the actual PoracleNG response shape and unwrap accordingly.
 
 ---
 
@@ -126,7 +124,7 @@ produce this — every alarm write goes through the PoracleNG API, which fills t
 
 1. Check that the C# model property name matches the snake_case convention (e.g., `PokemonId` maps to `pokemon_id`)
 2. Verify `PropertyNameCaseInsensitive = true` is set on the `JsonSerializerOptions`
-3. Compare the actual JSON response from PoracleNG (`GET /api/tracking/{type}/{userId}`) against the expected field names
+3. Compare the actual JSON response from PoracleNG (`GET /api/v2/humans/{id}/tracking/{type}`) against the expected field names. The proxy restates v2's rules in the v1 row shape before any service sees them, so check `TrackingV2Translator.ToV1Row` too
 
 ---
 
@@ -174,9 +172,9 @@ Also note: Use API **v9** (not v10) — v10 is not supported on the `discordapp.
 
 ## Bulk update zeroing out alarm fields
 
-**Problem**: After bulk updating alarms, fields like `clean`, `template`, and filter settings are reset to 0.
+**Problem**: After a bulk change, fields like `clean`, `template` and the filters are reset.
 
-**Solution**: Alarm updates are now proxied through PoracleNG, which applies `cleanRow()` defaults. However, it is still important to send the full alarm object when updating. The frontend should spread the full alarm: `{ ...alarm, distance }`. The dedicated `PUT /distance/bulk` endpoint handles this correctly by fetching all alarms, modifying only the distance, and POSTing back.
+**Solution**: Not possible on a current build. Bulk distance and the cleaning toggle send one `PATCH /api/v2/humans/{id}/tracking/{type}` carrying the uids and the one setting (`{"uids": [...], "set": {"distance": n}}`), and PoracleNG leaves everything the set doesn't name as stored. A single edit is different: `PUT /api/v2/humans/{id}/tracking/{type}/{uid}` is a full replace, which is why `TrackingFieldPreserver` merges the stored rule into the body first. If a single edit loses a field, look there.
 
 ---
 
@@ -208,22 +206,12 @@ so rather than claiming success.
 
 **Problem**: You hid an area, but people who had already selected it keep receiving its notifications.
 
-**Solution**: Working as intended, and it is worth understanding rather than working around.
-
-Hiding controls the **pickers**, not matching. Poracle never consults `userSelectable` when deciding
-which fences a spawn fell in, so a profile still carrying the name keeps matching it. Nobody loses an
-alert at the moment you flip the switch.
-
-It then goes away on its own, silently, the next time that person writes:
-
-* saving on **Areas & Places** — Poracle's `setAreas` drops any name that is no longer selectable and
-  answers `200` with the survivors, so ticking any unrelated area takes the hidden one with it;
-* editing an alarm scoped to it — the scope picker only lists areas still on offer, so the rule saves
-  without it.
-
-Neither path tells the user. If you are hiding a staging or test fence that is usually what you wanted.
-If you are hiding something people legitimately use, tell them first — and if you need them off it
-immediately rather than eventually, ask them to untick it.
+**Solution**: Working as intended. Hiding controls the pickers, not matching. Poracle never consults
+`userSelectable` when deciding which fences a spawn fell in, so a profile still carrying the name keeps
+matching it, and it keeps carrying it: saving on **Areas & Places** sends back every area the profile
+already holds, hidden ones included, and an alarm limited to the area keeps it when edited. A user
+leaves a hidden area only by removing it themselves. If you need people off an area, tell them; see
+[Hiding an area from your users](features/custom-geofences/koji-and-regions.md#hiding-an-area-from-your-users).
 
 ---
 
@@ -298,7 +286,7 @@ UPDATE gym SET team = 4 WHERE team = 0;
 **Solution**: PoracleWeb.NET reads active hours from PoracleNG's profile API responses — they should appear automatically. If they don't:
 
 1. Verify PoracleNG is reachable (`Poracle:ApiAddress`)
-2. Check that PoracleNG is returning `active_hours` in profile responses (`GET /api/humans/one/{id}` should include profile data with `active_hours`)
+2. Check that PoracleNG is returning `active_hours` in profile responses (`GET /api/v2/humans/{id}/profiles` should list each profile with its `active_hours`)
 3. If active hours were set via `$!profile` bot commands, they are stored in the same place PoracleWeb.NET reads from — no separate sync is needed
 
 ---
@@ -327,36 +315,36 @@ basemap that is not the one configured.
 
 **Causes and fixes**:
 
-1. **`API KEY REQUIRED` across the tiles**: a CARTO or Stadia basemap is being requested without a
+1. `API KEY REQUIRED` across the tiles. A CARTO or Stadia basemap is being requested without a
    key. Set **Basemap API Key** in **Admin > Settings > Maps**. Takes effect on the next page load,
    no restart.
 
-2. **Still watermarked after setting a key**: the key is wrong, not missing. The site can detect an
+2. Still watermarked after setting a key. The key is wrong, not missing. The site can detect an
    absent key and avoid the request; it cannot detect an invalid one, because the response is
    identical. Check the key itself, and — for a custom tile URL — check the parameter name. CARTO's
    is `key`, not `api_key`; the wrong name also returns 200 and also watermarks.
 
-3. **`403 Access blocked — App is not following the tile usage policy`**: OpenStreetMap refuses
+3. `403 Access blocked — App is not following the tile usage policy`. OpenStreetMap refuses
    requests it cannot identify. The built-in OpenStreetMap entry handles this by sending the site's
    origin on its tile images. If you see this, you are on a **custom tile URL pointing at
    `tile.openstreetmap.org`** rather than the built-in entry — switch the provider to
    **OpenStreetMap**, which carries the required behaviour.
 
-4. **Blank map, no tiles, no message**: a custom tile URL over plain `http://`. The site's
+4. Blank map, no tiles, no message. A custom tile URL over plain `http://`. The site's
    Content-Security-Policy allows images from `https:` only, so the browser blocks them silently.
    Serve your tiles over HTTPS.
 
-5. **Blank map with a custom URL over HTTPS**: check the template. It must be an absolute URL
+5. Blank map with a custom URL over HTTPS. Check the template. It must be an absolute URL
    containing Leaflet's `{z}`, `{x}` and `{y}` placeholders. A URL that is not a tile template is
    never requested at all, and the site falls back to OpenStreetMap and says so in the Maps section.
 
-6. **The basemap is not the one you configured**: you have picked a different one for yourself. Each
+6. The basemap is not the one you configured. You have picked a different one for yourself. Each
    viewer's choice is stored per-browser and outranks the site setting, so an admin who clicked the
    layers button once while testing will see every later change to the setting do nothing. Open the
    layers button on any map and choose **Site default**. The Maps section says so when it applies to
    the admin reading it.
 
-7. **The Maps section shows a key field on an install you never configured**: you are running a build
+7. The Maps section shows a key field on an install you never configured. You are running a build
    older than the fix that made "not set" mean OpenStreetMap. Older builds resolved an unset provider
    to CARTO, then fell back, so they asked for a key nobody had chosen. Update.
 
@@ -391,15 +379,15 @@ See [Site Settings > Maps](configuration/site-settings.md#maps) for the full set
 
 **Causes and fixes**:
 
-1. **Golbat not configured**: Set `GOLBAT_API_ADDRESS` and `GOLBAT_API_SECRET` in `.env` and restart the container. The feature is only enabled when both are set.
+1. Golbat not configured. Set `GOLBAT_API_ADDRESS` and `GOLBAT_API_SECRET` in `.env` and restart the container. The feature is only enabled when both are set.
 
-2. **Env vars not reaching the container**: The compose file loads configuration via `env_file: .env`, so any var defined in `.env` is automatically passed in — no per-key entries in `docker-compose.yml` are needed. If you've customized your `docker-compose.yml` (a local copy of `docker-compose.yml.example`), confirm the `env_file: .env` line is still present under the app service.
+2. Env vars not reaching the container. The compose file loads configuration via `env_file: .env`, so any var defined in `.env` is automatically passed in — no per-key entries in `docker-compose.yml` are needed. If you've customized your `docker-compose.yml` (a local copy of `docker-compose.yml.example`), confirm the `env_file: .env` line is still present under the app service.
 
-3. **Golbat API unreachable from container**: Verify connectivity from inside the container. Check the app logs for `Failed to fetch available Pokemon from Golbat API` warnings.
+3. Golbat API unreachable from container. Verify connectivity from inside the container. Check the app logs for `Failed to fetch available Pokemon from Golbat API` warnings.
 
-4. **Wrong API secret**: The `GOLBAT_API_SECRET` must match Golbat's `api_secret` value in its `config.toml`. An incorrect secret results in `401 Unauthorised` responses.
+4. Wrong API secret. The `GOLBAT_API_SECRET` must match Golbat's `api_secret` value in its `config.toml`. An incorrect secret results in `401 Unauthorised` responses.
 
-5. **Browser cache**: Hard refresh (Ctrl+Shift+R) after deploying a new build. The old JavaScript bundle won't have the availability code.
+5. Browser cache. Hard refresh (Ctrl+Shift+R) after deploying a new build. The old JavaScript bundle won't have the availability code.
 
 **Diagnostic**:
 ```bash
@@ -421,9 +409,9 @@ docker logs poracleweb.net 2>&1 | grep -i golbat
 
 **Solution**: The menu is shown only when the connected PoracleNG instance reports quest summaries as enabled. PoracleWeb.NET reads the effective `tracking.quest_summary_enabled` flag from PoracleNG's `/api/config/values` endpoint (cached for five minutes). If the menu is missing:
 
-1. **Enable the feature on the bot**: set `quest_summary_enabled = true` under `[tracking]` in PoracleNG's `config.toml` and restart the processor.
-2. **Make sure the processor API is reachable**: PoracleWeb.NET must be able to reach PoracleNG over HTTP. If they run on different machines or in separate containers, set `host = "0.0.0.0"` (or the LAN IP) under `[processor]` in PoracleNG's config — the `127.0.0.1` default refuses off-box connections.
-3. **Wait out the cache / hard refresh**: the capability is cached for five minutes; reload the Quests page (Ctrl+Shift+R) after enabling.
+1. Enable the feature on the bot. Set `quest_summary_enabled = true` under `[tracking]` in PoracleNG's `config.toml` and restart the processor.
+2. Make sure the processor API is reachable. PoracleWeb.NET must be able to reach PoracleNG over HTTP. If they run on different machines or in separate containers, set `host = "0.0.0.0"` (or the LAN IP) under `[processor]` in PoracleNG's config — the `127.0.0.1` default refuses off-box connections.
+3. Wait out the cache / hard refresh. The capability is cached for five minutes; reload the Quests page (Ctrl+Shift+R) after enabling.
 
 !!! note
     A transient `503` from PoracleNG's summary endpoints is treated as a temporary backend fault, **not** as "feature off." The feature flag is read from the config endpoint, not inferred from a 503.
@@ -438,7 +426,7 @@ docker logs poracleweb.net 2>&1 | grep -i golbat
 
 1. **Enable Daily summary on at least one quest alarm** (the per-alarm toggle in the quest add/edit dialog). Only alarms with this toggle are buffered; the rest deliver immediately.
 2. **Confirm the feature is enabled on the bot** (`tracking.quest_summary_enabled = true`) — when it is off, PoracleNG's matcher does not buffer at all, so the buffer stays empty.
-3. **Give it time**: quests are buffered as they match. Right after enabling the feature, or after a summary fires, the buffer starts empty and fills as matching quests come in. PoracleNG's status log shows the current count (`Summary: N buffered`).
+3. Give it time. Quests are buffered as they match. Right after enabling the feature, or after a summary fires, the buffer starts empty and fills as matching quests come in. PoracleNG's status log shows the current count (`Summary: N buffered`).
 
 ---
 
@@ -562,9 +550,9 @@ This forces the local login page regardless of the `enable_oidc` mode, so an adm
 
 **Solution**: RP-initiated single logout requires all three of:
 
-1. **`OIDC_END_SESSION_URL` configured** — without it, logout falls back to a plain local sign-out.
-2. **`enable_oidc_slo` not set to `false`** — this admin runtime toggle defaults to on once the end-session URL is wired; an explicit `false` disables single logout.
-3. **The `post_logout_redirect_uri` registered at the IdP** — PoracleWeb.NET sends `{origin}/login?loggedout=1`. If that URL isn't in the provider's allow-list, the provider rejects the logout redirect.
+1. `OIDC_END_SESSION_URL` configured. Without it, logout falls back to a plain local sign-out.
+2. `enable_oidc_slo` not set to `false`. This admin runtime toggle defaults to on once the end-session URL is wired; an explicit `false` disables single logout.
+3. The `post_logout_redirect_uri` registered at the IdP. PoracleWeb.NET sends `{origin}/login?loggedout=1`. If that URL isn't in the provider's allow-list, the provider rejects the logout redirect.
 
 Configure the end-session URL, leave `enable_oidc_slo` unset (or `true`), and register the post-logout redirect URI at the IdP.
 
@@ -636,22 +624,26 @@ An empty array on the first call, with the type still locked, means the local `d
 
 ## A feature is missing and nothing says why
 
-**Symptom**: Pokéstop Events is not in the sidebar, alarm cards have no quiet chip, the Pokécoins tab is
-absent from the quest dialog, or the costume filter is missing. No error, no toast, no empty state.
+**Symptom**: A page or control the docs mention isn't there, with no error, toast or empty state.
 
-**Cause**: PoracleNG is older than the supported minimum (5.4.0), or was unreachable when PoracleWeb.NET
-last checked. Quiet periods, Pokécoin quest rewards, moving a saved place and the costume filter are all
-in every supported release and are always offered; on an older server they fail instead of hiding, with a
-message naming the version they need. What can still hide a control without a word is a Poracle config
-flag (the quest summary delivery menu, the pokemon edit-in-place toggle) or an unreachable PoracleNG. The
-version check is cached for five minutes; the refresh button on the Versions card re-runs it.
+**Cause**: Every supported PoracleNG (5.4.0 and later) has the quiet chip, Pokécoin quest rewards, the
+costume filter and the pencil that moves a saved place, so PoracleWeb.NET always offers them. What can
+hide something without a word is configuration:
 
-Pokéstop Events looks like it belongs here but does not: it is switched off by Poracle's own
-`general.disable_showcase` config flag, so it behaves like a disabled alarm type — see the section
-above.
+| Missing | Hidden by |
+|---|---|
+| An alarm type's page and sidebar item | Its `disable_*` site setting on **Admin > Settings**, or the type in Poracle's own `disabledHooks` (see the section above) |
+| Pokéstop Events | Poracle's `general.disable_showcase = true`, or the `disable_showcase` site setting |
+| Quest summary delivery | Poracle's `tracking.quest_summary_enabled` not `true` |
+| The Pokemon edit-in-place toggle | Poracle's `tracking.pokemon_edit` not `true` |
+| Areas & Places, Profiles, Geofences and similar pages | Their `disable_*` site settings |
 
-**Fix**: upgrade PoracleNG to 5.4.0 or later. **Admin > Settings** shows the version the deployment is
-talking to and says when it is too old — start there before assuming a bug.
+The two `tracking.*` values are read from `GET /api/config/values` and cached for five minutes, and
+read as off when PoracleNG can't be asked.
+
+**Fix**: check the setting on **Admin > Settings**, then Poracle's `config.toml`. The Versions card on
+the same page shows which PoracleNG the deployment is talking to; below 5.4.0 these features fail with a
+message naming the version rather than hiding.
 
 `PoracleUnsupportedException` is what a request gets when it reaches a route the server doesn't have: a
 human, profile, area, place or geocode call on PoracleNG below 5.4.0 answers **409 Conflict** naming what

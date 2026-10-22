@@ -17,6 +17,8 @@ is safe.
 The same page can pause, resume, block, delete the account's alarms, delete the account outright, and
 open its alarms directly (see [what a delegate can do](#what-a-delegate-can-do)).
 
+![Admin → Webhooks filtered to one example.com webhook, with its row actions](../screenshots/admin-webhooks.png)
+
 Deleting a webhook takes everything it owned with it, delegate grants included. Recreating the same
 URL later starts clean rather than adopting the old grants.
 
@@ -49,9 +51,37 @@ that webhook: from there they see the site as it does, and can set up alarms, ar
 pin, and send test alerts. A banner names the account being viewed, and the button on it returns them
 to their own.
 
+![My Webhooks for a delegate, listing one webhook with its Manage Alarms button](../screenshots/my-webhooks.png)
+
 A delegate **cannot** create or delete webhooks, grant delegation to anyone else, or reach any admin
 page. Their access is exactly the webhooks granted to them and nothing more, re-checked on every
 attempt rather than trusted from their sign-in.
+
+## Mentions on a webhook's alarms
+
+A webhook's alerts land in a channel, so an alarm can mention a role or a person when it fires. While
+you're managing another account (a delegate on a webhook, or an admin viewing one), the edit dialogs
+have a **Mention** field taking a Discord role (`<@&123456789012345678>`) or a person
+(`<@123456789012345678>`). Every type has it except Pokéstop Events. It isn't offered on your own
+alarms, where it would have nobody to notify, and it isn't in the add dialogs: add the alarm, then
+edit it to set the mention.
+
+The mention is stored as the rule's `ping`. Later edits from the web, a bulk distance change and the
+cleaning toggle keep it, and duplicating a profile copies it.
+
+## Viewing as another account
+
+The same session switch is open to admins for any account. **Admin → Users** lists everyone Poracle
+knows, with actions to stop or start their alerts, block them, delete their alarms or the account, and
+**View as this user**.
+
+![Admin → Users filtered to test accounts, with the row actions](../screenshots/admin-users.png)
+
+While viewing, a banner reads "Viewing as" and the account's name, with **Back to your account** to
+return. Quiet-period writes are refused in that session, so an admin checking why someone gets nothing
+can't silence them by accident.
+
+![The dashboard while an admin views another account, with the Viewing as banner across the top](../screenshots/admin-impersonation-banner.png)
 
 ## Do you need to edit Poracle's config?
 
@@ -70,11 +100,11 @@ adding a row.
 
 Three sources, unioned on every check:
 
-1. **Poracle's `getAdministrationRoles`** — covers `discord.webhook_admins` and any Discord
-   guild-role-based delegation Poracle performs.
-2. **This site's `webhook_delegates` table** — what the admin dialog writes.
-3. **Administrators**, from `PORACLE_ADMIN_IDS` or Poracle's `admins` list, who can manage any
-   webhook and are never listed as delegates of a particular one.
+| Source | Covers |
+|---|---|
+| Poracle's `getAdministrationRoles` | `discord.webhook_admins` and any Discord guild-role delegation Poracle performs |
+| This site's `webhook_delegates` table | What the admin dialog writes |
+| Administrators, from `PORACLE_ADMIN_IDS` or Poracle's `admins` list | Every webhook. They're never listed as delegates of a particular one |
 
 A Poracle-side grant names its webhook however the operator wrote it in `webhook_admins` — by the
 webhook's name, or by its URL. Either is resolved to the webhook it names before anything is decided,
