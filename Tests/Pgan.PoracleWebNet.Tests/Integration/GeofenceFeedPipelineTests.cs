@@ -586,7 +586,7 @@ public sealed class GeofenceFeedPipelineTests : IDisposable
     /// </summary>
     private sealed class PipelineFactory(string? configuredSecret) : WebApplicationFactory<Program>
     {
-        // Port 1 refuses instantly, so the startup ALTER TABLE and MigrateAsync fail fast into their
+        // Port 1 refuses instantly, so the startup MigrateAsync fails fast into its
         // existing try/catch instead of waiting out a connect timeout. Nothing under test touches a DB.
         private const string DeadDb = "Server=127.0.0.1;Port=1;Database=none;User=none;Password=none";
 
@@ -620,7 +620,6 @@ public sealed class GeofenceFeedPipelineTests : IDisposable
             builder.UseContentRoot(this._contentRoot);
             builder.UseWebRoot(Path.Combine(this._contentRoot, "wwwroot"));
 
-            builder.UseSetting("ConnectionStrings:PoracleDb", DeadDb);
             builder.UseSetting("ConnectionStrings:PoracleWebDb", DeadDb);
             builder.UseSetting("Jwt:Secret", "integration-test-jwt-secret-at-least-32-chars");
             builder.UseSetting("Jwt:Issuer", "PoracleWeb");

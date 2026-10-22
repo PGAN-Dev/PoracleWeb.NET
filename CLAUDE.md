@@ -39,7 +39,7 @@ Pgan.PoracleWebNet.slnx
 |   |                            PokemonAvailabilityService, etc.)
 |
 +-- Data/
-|   +-- Data/                    PoracleContext (EF Core), PoracleWebContext (app-owned DB),
+|   +-- Data/                    PoracleWebContext (app-owned DB, the only one),
 |   |                            Entities/ (incl. UserGeofenceEntity, SiteSettingEntity,
 |   |                            WebhookDelegateEntity, QuickPickDefinitionEntity,
 |   |                            QuickPickAppliedStateEntity),
@@ -96,13 +96,13 @@ Pgan.PoracleWebNet.slnx
 - **PoracleNG handles**: field defaults (template, PVP, size, etc.), dedup detection, immediate state reload on every mutation, grunt_type normalization, saving the active profile's areas on a profile switch.
 
 ### Repository Layer
-- Repositories remain for **non-alarm** data only: all PoracleWeb-owned tables (`SiteSettingRepository`, `WebhookDelegateRepository`, `UserGeofenceRepository`, `QuickPickDefinitionRepository`, `QuickPickAppliedStateRepository`), and the deprecated `PwebSettingRepository`. There is no human or profile repository: every human and profile read and write, admin bulk included, goes through `IPoracleHumanProxy` (5.4.0's `/api/v2`).
-- **Removed**: `HumanRepository` and `ProfileRepository` (5.4.0), 8 alarm repository classes (MonsterRepository, RaidRepository, etc.), `BaseRepository<TEntity, TModel>`, `PoracleUnitOfWork`, `IUnitOfWork`, and all alarm repository interfaces. `PoracleContext` no longer maps the eight alarm tables at all -- the DbSets, the entity classes and their `OnModelCreating` configuration are gone, so a direct alarm write is not one `DbSet` away. Nothing writes an alarm table: per-alarm `override_areas` go through PoracleNG's trusted tracking write. `EnsureNotNullDefaults()` is no longer needed for alarm writes (PoracleNG handles NULL defaults).
+- Repositories remain for **non-alarm** data only: all PoracleWeb-owned tables (`SiteSettingRepository`, `WebhookDelegateRepository`, `UserGeofenceRepository`, `QuickPickDefinitionRepository`, `QuickPickAppliedStateRepository`). There is no human or profile repository: every human and profile read and write, admin bulk included, goes through `IPoracleHumanProxy` (5.4.0's `/api/v2`).
+- **Removed**: `HumanRepository` and `ProfileRepository` (5.4.0), 8 alarm repository classes (MonsterRepository, RaidRepository, etc.), `BaseRepository<TEntity, TModel>`, `PoracleUnitOfWork`, `IUnitOfWork`, and all alarm repository interfaces. `PoracleContext` itself is gone: PoracleWeb.NET has no connection to Poracle's database, so a direct alarm write is not one `DbSet` away. Nothing writes an alarm table: per-alarm `override_areas` go through PoracleNG's trusted tracking write. `EnsureNotNullDefaults()` is no longer needed for alarm writes (PoracleNG handles NULL defaults).
 
 ### Manual Mapping Extensions
 - **No AutoMapper dependency.** All mappings use static extension methods in `Core.Mappings/`.
 - `AlarmMappingExtensions` provides `To*()` (e.g., `model.ToMonster()`) and `ApplyUpdate()` (e.g., `model.ApplyUpdate(existing)`) methods for all 10 alarm types. `ApplyUpdate()` replicates the null-skip semantics: only non-null source properties overwrite the destination.
-- `EntityMappingExtensions` provides `ToModel()`, `ToEntity()`, and `ApplyTo()` methods for `Human`, `Profile`, `PwebSetting`, `UserGeofence`, `SiteSetting`, `WebhookDelegate`, `QuickPickDefinition`, and `QuickPickAppliedState` entity-model pairs.
+- `EntityMappingExtensions` provides `ToModel()`, `ToEntity()`, and `ApplyTo()` methods for `Human`, `Profile`, `UserGeofence`, `SiteSetting`, `WebhookDelegate`, `QuickPickDefinition`, and `QuickPickAppliedState` entity-model pairs.
 - `QuickPickDefinition` mappings handle `FiltersJson` (string) to `Filters` (`Dictionary<string, object?>`) JSON deserialization with `CamelCase` naming policy. `QuickPickAppliedState` mappings handle `ExcludePokemonIdsJson`/`TrackedUidsJson` to `List<int>` deserialization.
 - `UserGeofence` entity-to-model mapping intentionally skips `Polygon` (populated by service layer). Model-to-entity mapping intentionally skips `Id` (auto-generated).
 
@@ -135,10 +135,8 @@ Pgan.PoracleWebNet.slnx
 
 ### Settings Architecture
 - Site settings are stored in typed columns in `poracle_web.site_settings` with categories (branding, features, alarms, admin, etc.) and typed values.
-- **Deprecated**: The `pweb_settings` KV store in the Poracle DB (`PwebSettingEntity` / `IPwebSettingService`) is deprecated. Settings, webhook delegates, and quick picks previously stored as key-prefixed JSON blobs in `pweb_settings` are migrated to dedicated structured tables in the `poracle_web` database.
-- Webhook delegation uses the `poracle_web.webhook_delegates` relational table with a composite unique constraint (user + webhook), replacing the old `webhook_delegates:` key prefix pattern in `pweb_settings`.
+- Webhook delegation uses the `poracle_web.webhook_delegates` relational table with a composite unique constraint (user + webhook), replacing an old key-prefix pattern.
 - Quick pick definitions use `poracle_web.quick_pick_definitions` with JSON columns for filter definitions. Applied state is tracked in `poracle_web.quick_pick_applied_states` per user/profile, replacing the old `quick_pick:`, `user_quick_pick:`, and `qp_applied:` key prefix patterns.
-- On first startup after upgrade, `SettingsMigrationStartupService` automatically migrates data from `pweb_settings` to the structured tables. This is idempotent and safe to run multiple times.
 
 ### Poracle API Proxy (Config/Read-Only)
 - `IPoracleApiProxy` / `PoracleApiProxy` wraps HttpClient calls to the external Poracle REST API for **read-only** operations: fetching config, geofence definitions, templates, sending commands.
@@ -223,10 +221,10 @@ answers behind it (see "Feature Gating" above).
 ### PoracleWeb Database
 - Second `DbContext`: `PoracleWebContext` using `ConnectionStrings:PoracleWebDb`.
 - Separate `poracle_web` MariaDB/MySQL database for application-owned data (not managed by PoracleJS).
-- Does **not** modify the Poracle DB schema -- the Poracle database remains exclusively managed by PoracleJS.
+- PoracleWeb.NET has no connection to Poracle's database; it is managed entirely by PoracleNG.
 - Tables:
   - `user_geofences` -- user-drawn custom geofence polygons.
-  - `site_settings` -- typed admin-configurable settings with categories (replaces `pweb_settings` KV store).
+  - `site_settings` -- typed admin-configurable settings with categories .
   - `webhook_delegates` -- relational user-to-webhook delegation mappings with composite unique constraint.
   - `quick_pick_definitions` -- structured quick pick alarm presets (global and user-scoped) with JSON filter columns.
   - `quick_pick_applied_states` -- tracks which quick picks users have applied per profile, with tracked alarm UIDs.
@@ -382,7 +380,7 @@ Deliberately **not** gated: `/api/auth/me` under `disable_profiles`, so the JWT 
 
 **The SPA must not send a request a `disable_*` switch will refuse**, even one whose caller swallows the error: the error interceptor toasts the 403 before any `catchError` runs. `LocationService` and `PlacesService` check `disable_location` (and `disable_nominatim` for the two geocode calls) themselves and answer empty, or fail without a request where the caller expects an error, so the dashboard, Areas & Places and the scope picker in every add dialog stay quiet. The Areas page hides its pin card and Places section under `disable_location`, and the dashboard's quick actions, tips and the user menu carry the same `disable_*` keys as the sidebar. See #915.
 
-`disable_geomap` and `disable_geomap_select` were removed from the admin UI and from `SettingsMigrationService` in the same change. They are legacy PoracleJS keys describing a map picker PoracleWeb does not have, so there was nothing to wire them to and inventing a meaning would have been worse than deleting them. Any rows left in `site_settings` are harmless -- nothing reads them. `disable_userlist` was never a toggle in this UI (the migration carries `admin_disable_userlist` as a legacy key only).
+`disable_geomap` and `disable_geomap_select` were removed from the admin UI and from `SettingsMigrationService` (now only the defaults seeder) in the same change. They are legacy PoracleJS keys describing a map picker PoracleWeb does not have, so there was nothing to wire them to and inventing a meaning would have been worse than deleting them. Any rows left in `site_settings` are harmless -- nothing reads them. `disable_userlist` was never a toggle in this UI (`admin_disable_userlist` only ever existed as a legacy key).
 
 **Poracle's own flags are a floor under these (#769).** `UpstreamFeatureFlagService` reads `disabledHooks` from `/api/config/poracleWeb`, maps them to `disable_*` keys via `PoracleDisabledHookMap`, and `FeatureGate` treats a type as off if **either** source disables it. Cached 5 min. It **fails open**: any fault, timeout or absent field yields an empty set, because a Poracle outage disabling every alarm type for everyone is worse than the problem being solved. `GET /api/settings/upstream-disabled` exposes the resolved keys so nav, route guards and the admin toggles agree with the API.
 
@@ -396,7 +394,6 @@ There used to be a second `/api/config/values` read of `general.disable_fort_upd
 2. **Service-layer guard** — inject `IFeatureGate` and `await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.X)` at the top of `CreateAsync`, `BulkCreateAsync`, and `UpdateAsync`. Throws `FeatureDisabledException` when disabled. Closes service-to-service bypasses (quick-pick apply, profile duplicate/import, cleaning toggle).
 3. **Controller filter** — `[RequireFeatureEnabled(DisableFeatureKeys.X)]` on the controller class. Resource filter that 403s before model binding via `IFeatureGate.IsEnabledAsync`. The global `FeatureDisabledExceptionFilter` (registered in `Program.cs`) also catches `FeatureDisabledException` from any service path and returns the same 403 — both paths share `FeatureDisabledResponse.Create(disableKey)` so the wire format can't drift.
 4. **Frontend** — add a `disabledFeatureGuard('disable_X')` to the route in `app.routes.ts`, and add the matching `disableKey` to the nav-item definition in `app.ts`. The 403 interceptor automatically redirects to `/dashboard` with an `ERROR.FEATURE_DISABLED` toast when the response body has a `disableKey` field.
-5. **Settings migration** — add the key to `SettingsMigrationService.BooleanKeys` and `CategoryMap` (so legacy `pweb_settings` migrations carry it over) and to the admin-settings UI in `admin-settings.component.ts`.
 
 **Caching:** `SiteSettingService.GetByKeyAsync` is wrapped in `IMemoryCache` with a 5-min TTL and explicit invalidation on writes. Without this, gate checks would add ~10 MySQL roundtrips per dashboard load. There's a documented TOCTOU window (slow read overlapping a write can leak a stale value for up to the TTL) — acceptable for admin-rare toggles.
 
@@ -587,11 +584,11 @@ the same basemap looks the same on both sites and a catalogue edit cannot drift 
 
 ## Configuration
 
-- **Unified `.env` file**: A single `.env` file (copied from `.env.example`) configures PoracleWeb for both Docker and standalone mode. `Program.cs` loads `.env` at startup, bridges short env var names (e.g., `JWT_SECRET`, `DISCORD_CLIENT_ID`) to .NET's `__` convention (e.g., `Jwt__Secret`, `Discord__ClientId`), and auto-composes MySQL connection strings from `DB_HOST`/`DB_PORT`/`DB_NAME`/`DB_USER`/`DB_PASSWORD` (and `WEB_DB_*` for the PoracleWeb DB). Docker Compose also reads `.env` natively; the Program.cs bridge covers the standalone (`dotnet run`) case.
+- **Unified `.env` file**: A single `.env` file (copied from `.env.example`) configures PoracleWeb for both Docker and standalone mode. `Program.cs` loads `.env` at startup, bridges short env var names (e.g., `JWT_SECRET`, `DISCORD_CLIENT_ID`) to .NET's `__` convention (e.g., `Jwt__Secret`, `Discord__ClientId`), and auto-composes the PoracleWeb DB connection string from `WEB_DB_*`. The old `DB_*` variables are not mapped; an install that still sets them gets one Information line at startup and runs normally. Docker Compose also reads `.env` natively; the Program.cs bridge covers the standalone (`dotnet run`) case.
 - **Env var bridge** (in `Program.cs`): Maps ~18 short env var names to .NET config paths. Two static helpers at the end of Program.cs: `MapEnvVar()` and `ComposeConnectionString()`.
 - **`appsettings.Development.json`** (gitignored) can still be used for overrides, but `.env` is the primary configuration mechanism.
-- **Poracle API** (critical for all writes): `Poracle:ApiAddress` and `Poracle:ApiSecret` are required for the application to function, against PoracleNG **5.4.0 or newer** (see "Minimum PoracleNG Is 5.4.0"). All alarm CRUD, human/profile management, area updates, and profile switches are proxied through the PoracleNG REST API. If the API is unreachable, all alarm, human, and profile operations will fail (no DB fallback). (**Deprecated**: previously also read from the `pweb_settings` table in the Poracle DB; now stored in `poracle_web.site_settings`.)
-- **Site Settings**: Admin-configurable settings (custom title, feature flags, etc.) are stored in `poracle_web.site_settings`. On first startup after upgrade, `SettingsMigrationStartupService` migrates any existing data from the deprecated `pweb_settings` table automatically.
+- **Poracle API** (critical for all writes): `Poracle:ApiAddress` and `Poracle:ApiSecret` are required for the application to function, against PoracleNG **5.4.0 or newer** (see "Minimum PoracleNG Is 5.4.0"). All alarm CRUD, human/profile management, area updates, and profile switches are proxied through the PoracleNG REST API. If the API is unreachable, all alarm, human, and profile operations will fail (no DB fallback).
+- **Site Settings**: Admin-configurable settings (custom title, feature flags, etc.) are stored in `poracle_web.site_settings`. At startup `SettingsMigrationStartupService` seeds missing defaults; nothing reads Poracle's `pweb_settings` table any more, and the app never alters or drops it.
 - **Discord Bot Token**: Sourced from PoracleJS server's `config/local-discord.json`.
 - **Admin IDs**: Comma-separated Discord user IDs in `Poracle:AdminIds`.
 - **PoracleWeb DB**: `ConnectionStrings:PoracleWebDb` -- connection string for the `poracle_web` database (user geofences, site settings, webhook delegates, quick picks). Auto-composed by `Program.cs` from `WEB_DB_HOST`, `WEB_DB_PORT`, `WEB_DB_NAME`, `WEB_DB_USER`, `WEB_DB_PASSWORD` env vars when the full connection string is not set.
@@ -626,8 +623,8 @@ which legitimate cases are now refused too.
 
 1. **Query production for what currently satisfies the loose rule.** An invasion `gruntType` allowlist
    built from `InvasionGruntTypes.All` would have refused `blanche`, `candela`, `spark`, `npc 0`-`npc 10`
-   and `player team leader` -- every one of them live. Connection details are in `.env`; query with
-   `docker run --rm mariadb:latest mariadb --skip-ssl -h HOST -P PORT -u USER -pPASS DB -e "SQL"`.
+   and `player team leader` -- every one of them live. Query production read-only, for example through
+   `docker run --rm mariadb:latest mariadb --skip-ssl -h HOST -P PORT -u USER -pPASS DB -e "SELECT ..."`.
    If you cannot enumerate what the loose rule permits, you cannot safely tighten it.
 2. **Prefer refusing the impossible over allowing only the known.** "No control characters, no more than
    the column holds" ages well. "One of these thirty values" does not.
@@ -677,9 +674,6 @@ lens which catches the one-in-five, and it is the one most easily forgotten.
 ### MySQL Provider
 Pomelo MySQL provider (`Pomelo.EntityFrameworkCore.MySql`) is **incompatible** with EF Core 10. This project uses `MySql.EntityFrameworkCore` (Oracle's official provider). Connection setup uses `options.UseMySQL(connectionString)` (capital SQL).
 
-### NULL String Columns
-Many Poracle DB columns are `NOT NULL` with empty-string defaults but EF Core maps them as `string?`. For alarm writes, this is handled by PoracleNG. For remaining direct DB writes (Human, Profile, PoracleWeb-owned tables), repositories handle null normalization as needed.
-
 ### Discord API
 - Use `discordapp.com` (not `discord.com`) for API calls -- `discord.com` is blocked by Cloudflare in some server environments.
 - `AvatarCacheService` fetches avatars sequentially with delays to avoid rate limiting.
@@ -720,8 +714,8 @@ The answer is the v2 `trusted` flag (jfberry/PoracleNG#230, in 5.4.0), which lif
 
 **An alarm's `override_areas` are authorised here and saved by PoracleNG.** The tracking write checks names against the fences a user may select and answers 400 "area not permitted" for a drawn fence. `PoracleTrackingProxy` (and `PoracleIncidentProxy`) therefore asks `IUserAreaPolicy` to authorise each name (selectable for the user, the user's own drawn fence, on the active profile, or already on the rule being edited) and sends the write `?trusted=true`. A bulk distance or clean PATCH is always sent trusted, with nothing to authorise: its set carries no `override_areas`, and PoracleNG re-checks the areas already stored on each rule, which an untrusted PATCH refused for a drawn fence (see "Bulk Operations"). Nothing is written to a Poracle table, and `IAlarmOverrideAreaWriter`, `AlarmOverrideAreaWriter` and `UserOwnedOverrideAreaProxy` are gone.
 
-### Settings Migration
-On first startup after upgrade, the `SettingsMigrationStartupService` automatically migrates data from the deprecated `pweb_settings` KV store (in the Poracle DB) to structured tables in the `poracle_web` database (`site_settings`, `webhook_delegates`, `quick_pick_definitions`, `quick_pick_applied_states`). This is idempotent -- safe to run multiple times. If migration fails, the app continues with existing data and logs the error. The old `pweb_settings` table is not deleted; it remains read-only as a fallback until fully decommissioned.
+### Settings Seeding
+At startup `SettingsMigrationStartupService` calls `SeedDefaultsAsync` (default site settings, the quick-pick seed marker, the dead icon pack repoint). It only adds what is missing. The one-time copy out of the `pweb_settings` KV table in Poracle's database was removed with the Poracle DB connection; an install older than 0.6.0 has to start any 2.x release once before taking this one. The table itself is never read, altered or dropped.
 
 ### MariaDB GET_LOCK Compatibility
 `MySql.EntityFrameworkCore`'s `MigrateAsync()` uses `GET_LOCK('__EFMigrationsLock', -1)` which returns NULL on MariaDB (infinite timeout not supported), causing `System.InvalidCastException`. The `MariaDbHistoryRepository` class overrides the lock acquisition to use `GET_LOCK(3600)` instead. This is registered via `ReplaceService<IHistoryRepository, MariaDbHistoryRepository>()` on `PoracleWebContext`.
@@ -972,7 +966,7 @@ the v1 branch of every single-human call and its per-route "v2 absent" flags,
 and the SPA's `canEdit`/`pingSupported`/capability conditionals), `ProbePokestopEventsAsync`, the legacy
 geocoder call, `Poracle:TrackingApiVersion`, and every `PoracleV2Capabilities` flag except three.
 `InvasionGruntType` and `Read` survive too, set but never read (`TrustedSetAreas` went with the area writes). What stayed
-is anything still needed by a later sub-project (`pweb_settings`, `PoracleContext`) or covering a newer build or fork.
+is anything covering a newer build or fork. `PoracleContext`, `pweb_settings` and the `DB_*` bridge went in the same release (PoracleWeb.NET no longer connects to Poracle's database).
 
 **One rule decides version-gated features: `PoracleServerProfile.IsSupported`** — PoracleNG answered and
 is not known to be older than the minimum. It now decides little beyond whether the v2 tracking surface is
@@ -994,7 +988,7 @@ start would take the whole site down over something an operator fixes in minutes
 follows the same rule: delete what only the old floor needed, keep what covers newer builds and forks.
 
 ### PoracleNG API Availability
-The PoracleNG REST API (`Poracle:ApiAddress`) must be running and reachable for all alarm, human, profile, and area operations. If the API is down: alarm CRUD, human lookups, profile reads/writes, location updates, area updates, and profile switches all fail with no DB fallback. Only the deprecated `pweb_settings` table is still read from the Poracle database directly, for the one-time settings migration. Monitor PoracleNG uptime as a hard dependency.
+The PoracleNG REST API (`Poracle:ApiAddress`) must be running and reachable for all alarm, human, profile, and area operations. If the API is down: alarm CRUD, human lookups, profile reads/writes, location updates, area updates, and profile switches all fail with no DB fallback. PoracleWeb.NET has no connection to Poracle's database. Monitor PoracleNG uptime as a hard dependency.
 
 ### PoracleNG Response Wrappers
 PoracleNG wraps its API responses in container objects. Human data is returned as `{"human": {...}}` and profile lists as `{"profile": [...]}`. The proxy classes (`PoracleHumanProxy`) must extract the inner object/array before deserializing to model types. Failing to unwrap causes deserialization to return null/empty results.
@@ -1171,11 +1165,11 @@ dotnet ef migrations script \
    ```sql
    CREATE DATABASE poracle_web CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
    ```
-3. **Configuration**: All settings are read from `.env` at the project root. `Program.cs` loads the file, bridges short env var names to .NET config paths, and auto-composes MySQL connection strings from the `DB_*` / `WEB_DB_*` variables. You can also use `appsettings.Development.json` (gitignored) for overrides if preferred.
+3. **Configuration**: All settings are read from `.env` at the project root. `Program.cs` loads the file, bridges short env var names to .NET config paths, and auto-composes the PoracleWeb connection string from the `WEB_DB_*` variables. You can also use `appsettings.Development.json` (gitignored) for overrides if preferred.
 4. **Run the app** — `./scripts/dev.sh start` (runs both API + Angular), or individually:
    - `./scripts/dev.sh api` — starts the .NET API on http://localhost:5048
    - `./scripts/dev.sh app` — starts the Angular dev server on http://localhost:4200
-   - On first startup, `MigrateAsync()` applies pending EF Core migrations and `SettingsMigrationStartupService` migrates data from the old `pweb_settings` table (if any exists).
+   - On first startup, `MigrateAsync()` applies pending EF Core migrations and `SettingsMigrationStartupService` seeds default settings.
 
 ### Adding new PoracleWeb tables
 1. Add the entity class to `Data/Pgan.PoracleWebNet.Data/Entities/`
@@ -1187,13 +1181,12 @@ dotnet ef migrations script \
 ## Production Setup (Docker)
 
 1. **Build the image**: `./scripts/docker.sh build` (or `docker build -t poracleweb.net:latest .`)
-2. **Configure `.env`** with production values (DB hosts, secrets, Koji API, Discord bot token). The same `.env` format works for both Docker and standalone — `Program.cs` bridges the env vars at startup.
+2. **Configure `.env`** with production values (`WEB_DB_*`, secrets, Koji API, Discord bot token). The same `.env` format works for both Docker and standalone — `Program.cs` bridges the env vars at startup.
 3. **Ensure the `poracle_web` database exists** in MariaDB/MySQL (tables are created automatically on startup)
 4. **Start**: `./scripts/docker.sh start` (or `docker compose up -d`)
 5. **On first start**, the app will:
    - Run EF Core migrations to create all `poracle_web` tables
-   - Migrate settings data from `pweb_settings` (Poracle DB) to the new structured tables
-6. **Subsequent starts** skip both steps (migrations already applied, sentinel key set)
+6. **Subsequent starts** skip both steps (migrations already applied, defaults already seeded)
 7. **Updates**: `./scripts/docker.sh update` (or `docker build -t poracleweb.net:latest . && docker compose up -d --force-recreate`)
    - New migrations (if any) apply automatically on startup
 
@@ -1208,14 +1201,12 @@ dotnet ef migrations script \
 | What | Path |
 |---|---|
 | EF Core Entities | `Data/Pgan.PoracleWebNet.Data/Entities/` |
-| EF Core DbContext (Poracle) | `Data/Pgan.PoracleWebNet.Data/PoracleContext.cs` |
 | EF Core DbContext (PoracleWeb) | `Data/Pgan.PoracleWebNet.Data/PoracleWebContext.cs` |
 | User Geofence Entity | `Data/Pgan.PoracleWebNet.Data/Entities/UserGeofenceEntity.cs` |
 | Site Setting Entity | `Data/Pgan.PoracleWebNet.Data/Entities/SiteSettingEntity.cs` |
 | Webhook Delegate Entity | `Data/Pgan.PoracleWebNet.Data/Entities/WebhookDelegateEntity.cs` |
 | Quick Pick Definition Entity | `Data/Pgan.PoracleWebNet.Data/Entities/QuickPickDefinitionEntity.cs` |
 | Quick Pick Applied State Entity | `Data/Pgan.PoracleWebNet.Data/Entities/QuickPickAppliedStateEntity.cs` |
-| PwebSetting Entity (deprecated) | `Data/Pgan.PoracleWebNet.Data/Entities/PwebSettingEntity.cs` |
 | Entity Configurations | `Data/Pgan.PoracleWebNet.Data/Configurations/` |
 | MariaDb History Repository | `Data/Pgan.PoracleWebNet.Data/MariaDbHistoryRepository.cs` |
 | Design-Time Context Factory | `Data/Pgan.PoracleWebNet.Data/PoracleWebContextDesignTimeFactory.cs` |
@@ -1278,12 +1269,10 @@ dotnet ef migrations script \
 | SiteSettingService | `Core/Pgan.PoracleWebNet.Core.Services/SiteSettingService.cs` |
 | WebhookDelegateService | `Core/Pgan.PoracleWebNet.Core.Services/WebhookDelegateService.cs` |
 | QuickPickService | `Core/Pgan.PoracleWebNet.Core.Services/QuickPickService.cs` |
-| PwebSettingService (deprecated) | `Core/Pgan.PoracleWebNet.Core.Services/PwebSettingService.cs` |
 | KojiService | `Core/Pgan.PoracleWebNet.Core.Services/KojiService.cs` |
 | DiscordNotificationService | `Core/Pgan.PoracleWebNet.Core.Services/DiscordNotificationService.cs` |
 | GeoMath (area/centroid/containment) | `Core/Pgan.PoracleWebNet.Core.Services/GeoMath.cs` |
 | GeofenceSubmissionPost Model | `Core/Pgan.PoracleWebNet.Core.Models/GeofenceSubmissionPost.cs` |
-| IPwebSettingService (deprecated) | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/IPwebSettingService.cs` |
 | IScannerService | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/IScannerService.cs` |
 | ScannerService | `Core/Pgan.PoracleWebNet.Core.Services/ScannerService.cs` |
 | GymSearchResult Model | `Core/Pgan.PoracleWebNet.Core.Models/GymSearchResult.cs` |
@@ -1326,5 +1315,5 @@ dotnet ef migrations script \
 ## Testing
 
 - **Frontend**: Jest with jest-preset-angular. Run with `npm test` from `ClientApp/`. Tests cover services, pipes, components, dialogs, and utilities (including `geo.utils.spec.ts`, `user-geofence.service.spec.ts`, `admin-geofence.service.spec.ts`, `region-selector.component.spec.ts`, `geofence-name-dialog.component.spec.ts`, `geofence-approval-dialog.component.spec.ts`, `geofence-submissions.component.spec.ts`, `test-alert.service.spec.ts`, `active-hours.utils.spec.ts`, `active-hours-chip.component.spec.ts`, `active-hours-editor-dialog.component.spec.ts`, `location-warning.component.spec.ts`).
-- **Backend**: xUnit with Moq. Run with `dotnet test` from solution root. Tests cover controllers, services, and manual mapping extensions. Alarm service tests mock `IPoracleTrackingProxy` (returning `JsonElement` payloads) instead of repositories. Human/Profile/Area controller tests mock `IPoracleHumanProxy`. Key test classes: `MonsterServiceTests`, `RaidServiceTests`, `EggServiceTests`, `QuestServiceTests`, `InvasionServiceTests`, `LureServiceTests`, `NestServiceTests`, `GymServiceTests`, `HumanServiceTests`, `DashboardServiceTests`, `CleaningServiceTests`, `AreaControllerTests`, `ProfileControllerTests`, `AdminControllerTests`, `UserGeofenceControllerTests`, `AdminGeofenceControllerTests`, `GeofenceFeedControllerTests`, `UserGeofenceServiceTests`, `SettingsControllerTests`, `PwebSettingServiceTests`, `QuickPickServiceSecurityTests`, `SiteSettingServiceTests`, `WebhookDelegateServiceTests`, `SettingsMigrationServiceTests`, `TestAlertControllerTests`, `TestAlertServiceTests`, `ActiveHoursValidationTests`, `MappingExtensionTests`, `DataProtectionConfigurationTests`, `DiscordNotificationServiceTests`, `GeoMathTests`.
+- **Backend**: xUnit with Moq. Run with `dotnet test` from solution root. Tests cover controllers, services, and manual mapping extensions. Alarm service tests mock `IPoracleTrackingProxy` (returning `JsonElement` payloads) instead of repositories. Human/Profile/Area controller tests mock `IPoracleHumanProxy`. Key test classes: `MonsterServiceTests`, `RaidServiceTests`, `EggServiceTests`, `QuestServiceTests`, `InvasionServiceTests`, `LureServiceTests`, `NestServiceTests`, `GymServiceTests`, `HumanServiceTests`, `DashboardServiceTests`, `CleaningServiceTests`, `AreaControllerTests`, `ProfileControllerTests`, `AdminControllerTests`, `UserGeofenceControllerTests`, `AdminGeofenceControllerTests`, `GeofenceFeedControllerTests`, `UserGeofenceServiceTests`, `SettingsControllerTests`, `QuickPickServiceSecurityTests`, `SiteSettingServiceTests`, `WebhookDelegateServiceTests`, `SettingsMigrationServiceTests`, `TestAlertControllerTests`, `TestAlertServiceTests`, `ActiveHoursValidationTests`, `MappingExtensionTests`, `DataProtectionConfigurationTests`, `DiscordNotificationServiceTests`, `GeoMathTests`.
 - **CI**: Both test suites run automatically on push/PR to main via GitHub Actions.

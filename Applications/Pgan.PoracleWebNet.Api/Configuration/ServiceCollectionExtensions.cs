@@ -16,11 +16,6 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddPoracleServices(this IServiceCollection services, IConfiguration configuration)
     {
-        // Register DbContext with Oracle MySQL provider
-        var connectionString = configuration.GetConnectionString("PoracleDb");
-        services.AddDbContext<PoracleContext>(options =>
-            options.UseMySQL(connectionString!));
-
         // Register PoracleWebContext for the poracle_web database (owned by this app)
         var webConnectionString = configuration.GetConnectionString("PoracleWebDb");
         services.AddDbContext<PoracleWebContext>(options =>
@@ -50,7 +45,6 @@ public static class ServiceCollectionExtensions
             .SetApplicationName("Pgan.PoracleWebNet.Api");
 
         // Register Repositories
-        services.AddScoped<IPwebSettingRepository, PwebSettingRepository>();
         services.AddScoped<IUserGeofenceRepository, UserGeofenceRepository>();
         services.AddScoped<ISiteSettingRepository, SiteSettingRepository>();
         services.AddScoped<IWebhookDelegateRepository, WebhookDelegateRepository>();
@@ -78,7 +72,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IProfileService, ProfileService>();
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<ICleaningService, CleaningService>();
-        services.AddScoped<IPwebSettingService, PwebSettingService>();
         services.AddSingleton<IMasterDataService, MasterDataService>();
         services.AddSingleton<IRaidLevelService, RaidLevelService>();
         services.AddSingleton<IPvpRankService, PvpRankService>();

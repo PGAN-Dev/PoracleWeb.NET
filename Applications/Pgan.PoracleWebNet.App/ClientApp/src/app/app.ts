@@ -26,7 +26,7 @@ interface NavItem {
   adminOnly?: boolean;
   countKey?: keyof DashboardCounts;
   delegateOnly?: boolean;
-  /** pweb_settings key that disables this item when set to 'True' */
+  /** Site setting key that disables this item when set to 'True' */
   disableKey?: string;
   group: 'alarms' | 'settings' | 'admin' | 'webhooks' | 'support';
   icon: string;

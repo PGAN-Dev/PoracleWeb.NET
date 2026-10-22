@@ -4,18 +4,12 @@ import { TestBed } from '@angular/core/testing';
 
 import { ConfigService } from './config.service';
 import { SettingsService } from './settings.service';
-import { PwebSetting, SiteSetting } from '../models';
+import { SiteSetting } from '../models';
 
 describe('SettingsService', () => {
   let service: SettingsService;
   let httpMock: HttpTestingController;
   const API = 'http://test-api';
-
-  const mockPwebSettings: PwebSetting[] = [
-    { setting: 'enable_templates', value: 'true' },
-    { setting: 'disable_raids', value: 'false' },
-    { setting: 'site_name', value: 'My Site' },
-  ];
 
   const mockSiteSettings: SiteSetting[] = [
     { id: 1, category: 'features', key: 'enable_templates', value: 'true', valueType: 'boolean' },
@@ -44,43 +38,19 @@ describe('SettingsService', () => {
   };
 
   describe('normalize', () => {
-    it('should normalize PwebSetting items', () => {
-      const result = service.normalize(mockPwebSettings);
-      expect(result['enable_templates']).toBe('true');
-      expect(result['site_name']).toBe('My Site');
-    });
-
     it('should normalize SiteSetting items', () => {
       const result = service.normalize(mockSiteSettings);
       expect(result['enable_templates']).toBe('true');
       expect(result['site_name']).toBe('My Site');
     });
 
-    it('should handle mixed arrays', () => {
-      const mixed = [mockPwebSettings[0], mockSiteSettings[2]];
-      const result = service.normalize(mixed);
-      expect(result['enable_templates']).toBe('true');
-      expect(result['site_name']).toBe('My Site');
-    });
-
     it('should handle null values by mapping to empty string', () => {
-      const result = service.normalize([{ setting: 'key1', value: null }]);
+      const result = service.normalize([{ id: 9, category: 'x', key: 'key1', value: null, valueType: 'string' }]);
       expect(result['key1']).toBe('');
     });
   });
 
   describe('getAll', () => {
-    it('should fetch settings and populate siteSettings signal with PwebSetting response', () => {
-      service.getAll().subscribe(settings => {
-        expect(settings).toHaveLength(3);
-      });
-
-      flushGetAll(mockPwebSettings);
-
-      expect(service.siteSettings()['enable_templates']).toBe('true');
-      expect(service.siteSettings()['site_name']).toBe('My Site');
-    });
-
     it('should fetch settings and populate siteSettings signal with SiteSetting response', () => {
       service.getAll().subscribe(settings => {
         expect(settings).toHaveLength(3);
@@ -236,13 +206,6 @@ describe('SettingsService', () => {
       expect(service.siteSettings()['site_name']).toBe('Public Name');
       // Existing settings should still be present
       expect(service.siteSettings()['enable_templates']).toBe('true');
-    });
-
-    it('should handle PwebSetting response shape in loadPublic', () => {
-      service.loadPublic().subscribe();
-      httpMock.expectOne(`${API}/api/settings/public`).flush([{ setting: 'site_name', value: 'Legacy' }]);
-
-      expect(service.siteSettings()['site_name']).toBe('Legacy');
     });
   });
 

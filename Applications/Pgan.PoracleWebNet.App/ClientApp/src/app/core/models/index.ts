@@ -483,13 +483,6 @@ export interface AreaSelection {
   selected: boolean;
 }
 
-// ─── PwebSetting ──────────────────────────────────────────────────────────────
-
-export interface PwebSetting {
-  setting: string;
-  value: string | null;
-}
-
 // ─── SiteSetting ──────────────────────────────────────────────────────────────
 
 export interface SiteSetting {
