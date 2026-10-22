@@ -152,6 +152,12 @@ Dark and light mode bridge Material tokens to component styles through CSS varia
 
 ![The dashboard in dark mode](../screenshots/dark-mode.png)
 
+![The toolbar with the default accent](../screenshots/toolbar-theme.png)
+
+![The user menu, with Accent Theme, Display language and Alert language](../screenshots/user-menu.png)
+
+![The sidebar on the Pokémon page](../screenshots/sidenav.png)
+
 ### Onboarding wizard
 Shows on the dashboard for new users until explicitly dismissed. Detects existing location/areas/alarms and marks steps as complete. Route-based actions (Choose Areas, Add Alarm) hide the overlay temporarily without setting the localStorage completion flag.
 

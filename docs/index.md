@@ -55,7 +55,11 @@ A web application for managing Pokemon GO notification alarms through the [Porac
 | Max battles | Track Dynamax and Gigantamax battles at Power Spots by level or by Pokemon |
 | GeoJSON import and export | Move custom geofences in and out in standard GeoJSON |
 
-![The dashboard: alarm counts by type, the active profile, selected areas and a quiet period](screenshots/dashboard.png)
+![The sign-in page with the Sign in with Discord button](screenshots/login.png)
+
+![The dashboard: pin, active areas, two quiet periods, the active profile and the weather at the pin](screenshots/dashboard.png)
+
+![Further down the dashboard: Quick Actions and one alarm-count card per alarm type](screenshots/dashboard-bottom.png)
 
 ![The onboarding wizard's first step on an empty dashboard](screenshots/onboarding.png)
 
@@ -70,6 +74,12 @@ On a phone the sidebar becomes a menu and each add dialog fills the screen, with
 ![The sidebar opened as a menu on a phone](screenshots/mobile-sidenav.png)
 
 ![The Add Raid dialog filling a phone screen](screenshots/mobile-add-dialog.png)
+
+![The Profiles page on a phone](screenshots/mobile-profiles.png)
+
+![Areas & Places on a phone](screenshots/mobile-areas.png)
+
+![My Geofences on a phone](screenshots/mobile-geofences.png)
 
 </div>
 

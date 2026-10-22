@@ -91,7 +91,9 @@ If you choose "Near a point" without ever having set a pin, the picker says so a
 
 A place is a named point ("home", "work", "the gym") that an alarm can measure from instead of your profile pin. They live on the **Areas & Places** page, below the pin and the area map. (`/places` still resolves; it redirects to `/areas`.)
 
-![Areas & Places with three areas selected on the map](../screenshots/areas.png)
+![Areas & Places with four areas selected on the map, one of them a drawn geofence](../screenshots/areas.png)
+
+![The List view of Areas & Places, with a search box above every area that can be selected](../screenshots/areas-bottom.png)
 
 The pin is set from the **My pin** card on the same page, through a map picker with an address search; the search goes through PoracleNG's geocoder, and the `disable_nominatim` site setting hides it.
 
@@ -152,7 +154,7 @@ The preference is **per-browser** (stored in `localStorage` under `poracle-defau
 
 When a [Golbat scanner](../configuration/reference.md#golbat-api) is configured, the Pokemon selector shows which species are currently spawning in the wild. This helps users create alarms for Pokemon that are actually available to encounter.
 
-![Pokemon add dialog with availability indicators](../screenshots/pokemon-add-dialog.png)
+![The Add Pokémon dialog with Snorlax picked](../screenshots/pokemon-add-dialog.png)
 
 ### How it works
 
@@ -384,7 +386,7 @@ Egg alarms support:
 
 ## Quest alarm filters
 
-![The Quests page with three reward rules](../screenshots/quests.png)
+![The Quests page with five reward rules](../screenshots/quests.png)
 
 ![The Add Quest dialog with the Reward type box](../screenshots/quests-add-dialog.png)
 
@@ -620,6 +622,8 @@ Every alarm carries a `clean` field that PoracleNG reads as a **bitmask** contro
 The modes combine (a quest can be both auto-delete and daily-summary, for example). PoracleWeb.NET **preserves any bits set elsewhere**: if you configured a delivery mode via the bot's `!command` interface that isn't surfaced in the web UI, editing the alarm in the browser will not wipe it.
 
 ![Pokemon alarm dialog, Delivery tab, with Clean mode and Edit message in place both turned on](../screenshots/pokemon-add-dialog-delivery.png){ loading=lazy }
+
+![The Cleaning page with auto-delete on for every lure alarm and off for the other types](../screenshots/cleaning.png){ loading=lazy }
 
 ### RSVP updates (raids & eggs)
 

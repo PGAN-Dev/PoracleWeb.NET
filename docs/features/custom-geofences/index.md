@@ -49,7 +49,7 @@ PoracleWeb.NET never writes a user's area list itself. Creating, switching on or
 
 **Delete those alarms too**, the default, deletes the alarms limited to this geofence on every profile, Pokéstop event alarms included. **Keep them, using my profile's areas** leaves them in place, matching the areas on their profile instead.
 
-![The delete dialog for a geofence with three alarms limited to it, offering to delete those alarms too or keep them](../../screenshots/geofence-delete-choice.png)
+![The delete dialog for a geofence with one alarm limited to it, offering to delete those alarms too or keep them](../../screenshots/geofence-delete-choice.png)
 
 If PoracleNG can't remove the name, nothing is deleted: the geofence stays and the user can try again. Admins see the same question under Admin > Geofences, worded around the owner's alarms. Deleting a user account deletes the alarms along with the geofences.
 

@@ -6,7 +6,7 @@ Profiles let users maintain separate alarm configurations for different situatio
 
 The Profiles page provides a consolidated view of all profiles and their alarms in one place.
 
-![The Profiles page with three profiles, one with a schedule and one expanded to show its alarms](../screenshots/profiles.png)
+![The Profiles page with three profiles, one with a schedule, expanded to show its schedule chip and actions](../screenshots/profiles.png)
 
 A stats bar at the top counts alarms per type across all profiles. The search bar filters every profile's alarms by name, Pokemon or other attributes, and ten type chips (Pokemon, Raids, Eggs, Max Battles, Quests, Invasions, Lures, Nests, Gyms and Fort Changes) narrow the view. Each profile is an expandable panel with its alarms grouped by type.
 
