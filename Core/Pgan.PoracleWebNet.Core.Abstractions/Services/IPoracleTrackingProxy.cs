@@ -96,6 +96,9 @@ public interface IPoracleTrackingProxy
     /// Replaces one stored rule on its own profile, <c>trusted</c> and without consulting the area policy: it
     /// restores what PoracleNG already holds. <paramref name="dryRun"/> asks what would change and writes nothing.
     /// </summary>
+    /// <exception cref="Pgan.PoracleWebNet.Core.Models.PoracleAmbiguousAnswerException">
+    /// PoracleNG answered with neither an updated nor an unchanged rule.
+    /// </exception>
     public Task<Pgan.PoracleWebNet.Core.Models.StoredRuleReplaceOutcome> ReplaceStoredRuleAsync(
         string type, string userId, int uid, int profileNo, System.Text.Json.JsonElement v1Row, bool dryRun);
 

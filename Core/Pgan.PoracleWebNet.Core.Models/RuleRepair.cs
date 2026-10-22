@@ -68,6 +68,11 @@ public sealed record RuleRepairSkip(string HumanId, string Reason);
 public sealed record RuleRepairApplyResult(int Repaired, int AlreadyFine, int Conflicts, int Gone, IReadOnlyList<RuleRepairItem> Failed);
 
 /// <summary>A snapshot of the rule repair job, safe to hand to any thread.</summary>
+/// <remarks>
+/// <see cref="Repairable"/>, <see cref="CannotEdit"/> and <see cref="Skipped"/> are what the last scan found
+/// and are not changed by an apply; what an apply did lives in <see cref="Applied"/>. Scan again to see
+/// what is left.
+/// </remarks>
 public sealed record RuleRepairStatus(
     RuleRepairPhase Phase,
     int HumansTotal,

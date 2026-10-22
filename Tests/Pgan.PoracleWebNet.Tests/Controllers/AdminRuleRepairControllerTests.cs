@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Pgan.PoracleWebNet.Api.Controllers;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
@@ -16,7 +17,7 @@ public class AdminRuleRepairControllerTests : ControllerTestBase
 
     public AdminRuleRepairControllerTests()
     {
-        this._sut = new AdminRuleRepairController(this._job.Object);
+        this._sut = new AdminRuleRepairController(this._job.Object, NullLogger<AdminRuleRepairController>.Instance);
         this._job.Setup(j => j.GetStatus()).Returns(Scanned);
     }
 

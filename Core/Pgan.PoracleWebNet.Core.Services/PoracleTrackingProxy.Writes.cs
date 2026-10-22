@@ -533,7 +533,7 @@ public partial class PoracleTrackingProxy
             : throw AmbiguousReplaceAnswer(type, uid, payload);
     }
 
-    private static InvalidOperationException AmbiguousReplaceAnswer(string type, int uid, string payload) =>
+    private static PoracleAmbiguousAnswerException AmbiguousReplaceAnswer(string type, int uid, string payload) =>
         new($"PoracleNG answered the {type} rule {uid} replace with neither an updated nor an unchanged rule: {(payload.Length > 200 ? payload[..200] : payload)}");
 
     private static string TrustedQuery(bool trusted) => trusted ? "&trusted=true" : string.Empty;

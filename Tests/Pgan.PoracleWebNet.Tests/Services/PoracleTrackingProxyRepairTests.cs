@@ -154,7 +154,7 @@ public class PoracleTrackingProxyRepairTests
     {
         var handler = new Router().On("/tracking/raid/12", answer);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<PoracleAmbiguousAnswerException>(
             () => CreateSut(handler).ReplaceStoredRuleAsync("raid", "user1", 12, 3, Row(RaidRow), dryRun: true));
 
         Assert.Contains("raid rule 12", ex.Message, StringComparison.Ordinal);

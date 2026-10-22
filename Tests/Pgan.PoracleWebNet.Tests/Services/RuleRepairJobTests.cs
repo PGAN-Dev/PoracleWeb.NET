@@ -184,7 +184,7 @@ public class RuleRepairJobTests
         this.Rules("bob", Rule("invasion", 1, 40, """{"grunt_type":"metal"}"""));
         this._tracking
             .Setup(t => t.ReplaceStoredRuleAsync("raid", "alice", 30, 1, It.IsAny<JsonElement>(), true))
-            .ThrowsAsync(new InvalidOperationException("ambiguous"));
+            .ThrowsAsync(new PoracleAmbiguousAnswerException("ambiguous"));
 
         var status = await this.ScanAsync();
 
@@ -281,7 +281,7 @@ public class RuleRepairJobTests
         this.DryRunAnswers(11, StoredRuleReplaceOutcome.NotFound);
         this._tracking
             .Setup(t => t.ReplaceStoredRuleAsync(It.IsAny<string>(), It.IsAny<string>(), 12, It.IsAny<int>(), It.IsAny<JsonElement>(), true))
-            .ThrowsAsync(new InvalidOperationException("PoracleNG answered nothing explicit"));
+            .ThrowsAsync(new PoracleAmbiguousAnswerException("PoracleNG answered nothing explicit"));
 
         var status = await this.ApplyAsync();
 
@@ -293,6 +293,199 @@ public class RuleRepairJobTests
         Assert.Equal(12, failed.Uid);
         Assert.Contains("nothing explicit", failed.Reason);
         Assert.Equal([13], this._writes.Select(w => w.Uid));
+    }
+
+    [Fact]
+    public async Task ScanFailsOnAnUnexpectedErrorRatherThanSkippingTheHuman()
+    {
+        this.Humans("alice");
+        this._tracking.Setup(t => t.GetStoredRulesAsync("alice")).ThrowsAsync(new InvalidOperationException("a bug"));
+
+        var status = await this.ScanAsync();
+
+        Assert.Equal(RuleRepairPhase.Failed, status.Phase);
+        Assert.Contains("a bug", status.Error, StringComparison.Ordinal);
+        Assert.Empty(status.Skipped);
+    }
+
+    [Fact]
+    public async Task ScanFailsWhenNoHumanCouldBeReached()
+    {
+        this.Humans("alice", "bob");
+        this._tracking.Setup(t => t.GetStoredRulesAsync(It.IsAny<string>())).ThrowsAsync(new HttpRequestException("connection refused"));
+
+        var status = await this.ScanAsync();
+
+        Assert.Equal(RuleRepairPhase.Failed, status.Phase);
+        Assert.Contains("could not be reached", status.Error, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ScanStopsAfterFiveUnreachableReadsInARow()
+    {
+        var ids = Enumerable.Range(0, 30).Select(i => $"h{i}").ToArray();
+        this.Humans(ids);
+        var reads = 0;
+        this._tracking
+            .Setup(t => t.GetStoredRulesAsync(It.IsAny<string>()))
+            .Returns(() =>
+            {
+                Interlocked.Increment(ref reads);
+                return Task.FromException<IReadOnlyList<StoredRule>>(new TaskCanceledException("timed out"));
+            });
+
+        var status = await this.ScanAsync();
+
+        Assert.Equal(RuleRepairPhase.Failed, status.Phase);
+        Assert.Contains("could not be reached", status.Error, StringComparison.Ordinal);
+
+        // Four humans in flight may each have started a read when the fifth failure lands.
+        Assert.InRange(reads, 5, 5 + RuleRepairJob.MaxHumansInFlight);
+    }
+
+    [Fact]
+    public async Task ScanSkipsAnUnreachableHumanAmongReachableOnes()
+    {
+        this.Humans("alice", "bob", "carol");
+        this._tracking.Setup(t => t.GetStoredRulesAsync("bob")).ThrowsAsync(new HttpRequestException("connection reset"));
+        this.Rules("alice", Rule("invasion", 1, 10, """{"grunt_type":"metal"}"""));
+        this.Rules("carol");
+
+        var status = await this.ScanAsync();
+
+        Assert.Equal(RuleRepairPhase.Scanned, status.Phase);
+        Assert.Equal("bob", Assert.Single(status.Skipped).HumanId);
+        Assert.Single(status.Repairable);
+    }
+
+    [Fact]
+    public async Task ApplyWritesTheRuleAsItIsNowNotAsScanned()
+    {
+        this.Humans("alice");
+        this.Rules("alice", Rule("invasion", 1, 10, """{"grunt_type":"metal","distance":100,"template":"old"}"""));
+        await this.ScanAsync();
+
+        // Somebody edited the rule between the scan and the apply.
+        this.Rules("alice", Rule("invasion", 1, 10, """{"grunt_type":"metal","distance":900,"template":"new"}"""));
+
+        var status = await this.ApplyAsync();
+
+        Assert.Equal(1, status.Applied!.Repaired);
+        var write = Assert.Single(this._writes);
+        Assert.Equal(900, write.Row.GetProperty("distance").GetInt32());
+        Assert.Equal("new", write.Row.GetProperty("template").GetString());
+        Assert.Equal("steel", write.Row.GetProperty("grunt_type").GetString());
+    }
+
+    [Fact]
+    public async Task ApplyLeavesARuleRepairedByHandSinceTheScanAlone()
+    {
+        this.Humans("alice");
+        this.Rules("alice", Rule("invasion", 1, 10, """{"grunt_type":"metal"}"""));
+        await this.ScanAsync();
+
+        this.Rules("alice", Rule("invasion", 1, 10, """{"grunt_type":"steel"}"""));
+
+        var status = await this.ApplyAsync();
+
+        Assert.Equal(0, status.Applied!.Repaired);
+        Assert.Equal(1, status.Applied.AlreadyFine);
+        this._tracking.Verify(t => t.ReplaceStoredRuleAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<JsonElement>(), It.IsAny<bool>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ApplyCountsARuleDeletedSinceTheScanAsGone()
+    {
+        this.Humans("alice");
+        this.Rules("alice",
+            Rule("invasion", 1, 10, """{"grunt_type":"metal"}"""),
+            Rule("invasion", 2, 11, """{"grunt_type":"metal"}"""));
+        await this.ScanAsync();
+
+        // uid 11 is gone from profile 2; a rule with the same uid on another profile is not the same rule.
+        this.Rules("alice",
+            Rule("invasion", 1, 10, """{"grunt_type":"metal"}"""),
+            Rule("invasion", 3, 11, """{"grunt_type":"metal"}"""));
+
+        var status = await this.ApplyAsync();
+
+        Assert.Equal(1, status.Applied!.Repaired);
+        Assert.Equal(1, status.Applied.Gone);
+        Assert.Equal([10], this._writes.Select(w => w.Uid));
+    }
+
+    [Fact]
+    public async Task ApplyCountsEveryRuleOfAnAccountDeletedSinceTheScanAsGone()
+    {
+        this.Humans("alice");
+        this.Rules("alice",
+            Rule("invasion", 1, 10, """{"grunt_type":"metal"}"""),
+            Rule("invasion", 1, 11, """{"grunt_type":"metal"}"""));
+        await this.ScanAsync();
+        this._tracking.Setup(t => t.GetStoredRulesAsync("alice")).ThrowsAsync(new AccountGoneException());
+
+        var status = await this.ApplyAsync();
+
+        Assert.Equal(RuleRepairPhase.Applied, status.Phase);
+        Assert.Equal(2, status.Applied!.Gone);
+        Assert.Empty(this._writes);
+    }
+
+    [Fact]
+    public async Task ApplyFailsTheRunWhenPoracleNGIsTooOld()
+    {
+        this.Humans("alice");
+        this.Rules("alice",
+            Rule("invasion", 1, 10, """{"grunt_type":"metal"}"""),
+            Rule("invasion", 1, 11, """{"grunt_type":"metal"}"""));
+        await this.ScanAsync();
+        this._tracking
+            .Setup(t => t.ReplaceStoredRuleAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<JsonElement>(), It.IsAny<bool>()))
+            .ThrowsAsync(new PoracleUnsupportedException("Rule repair", "PoracleNG 5.4.0"));
+
+        var status = await this.ApplyAsync();
+
+        Assert.Equal(RuleRepairPhase.Failed, status.Phase);
+        Assert.Contains("5.4.0", status.Error, StringComparison.Ordinal);
+        Assert.Null(status.Applied);
+        this._tracking.Verify(t => t.ReplaceStoredRuleAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<JsonElement>(), It.IsAny<bool>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplyStopsAfterFiveUnreachableRequestsInARow()
+    {
+        this.Humans("alice");
+        this.Rules("alice", Enumerable.Range(10, 10).Select(uid => Rule("invasion", 1, uid, """{"grunt_type":"metal"}""")).ToArray());
+        await this.ScanAsync();
+        this._tracking
+            .Setup(t => t.ReplaceStoredRuleAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<JsonElement>(), It.IsAny<bool>()))
+            .ThrowsAsync(new HttpRequestException("connection refused"));
+
+        var status = await this.ApplyAsync();
+
+        Assert.Equal(RuleRepairPhase.Failed, status.Phase);
+        Assert.Contains("could not be reached", status.Error, StringComparison.Ordinal);
+        this._tracking.Verify(t => t.ReplaceStoredRuleAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<JsonElement>(), It.IsAny<bool>()), Times.Exactly(5));
+    }
+
+    [Fact]
+    public async Task ApplyKeepsGoingPastFewerThanFiveUnreachableRequests()
+    {
+        this.Humans("alice");
+        this.Rules("alice", Enumerable.Range(10, 6).Select(uid => Rule("invasion", 1, uid, """{"grunt_type":"metal"}""")).ToArray());
+        await this.ScanAsync();
+        foreach (var uid in new[] { 10, 11, 12, 13 })
+        {
+            this._tracking
+                .Setup(t => t.ReplaceStoredRuleAsync(It.IsAny<string>(), It.IsAny<string>(), uid, It.IsAny<int>(), It.IsAny<JsonElement>(), true))
+                .ThrowsAsync(new HttpRequestException("connection reset"));
+        }
+
+        var status = await this.ApplyAsync();
+
+        Assert.Equal(RuleRepairPhase.Applied, status.Phase);
+        Assert.Equal(2, status.Applied!.Repaired);
+        Assert.Equal([10, 11, 12, 13], status.Applied.Failed.Select(f => f.Uid));
     }
 
     [Fact]
