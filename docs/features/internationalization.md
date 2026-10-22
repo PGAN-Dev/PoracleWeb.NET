@@ -73,7 +73,7 @@ Admins can restrict which languages appear in the selector by setting the `allow
 
 English is always available regardless of the `allowed_languages` setting. The restriction applies to the signed-out login page as well as to signed-in users. It governs the **display** language only — see the alert-language note above.
 
-![The Allowed UI Languages field, with a line beneath it reading "Default language for new users: en, taken from Poracle's own configuration."](../screenshots/admin-language-default.png)
+![The Allowed UI languages field, with a line beneath it reading "Default language for new users: en, taken from Poracle's own configuration."](../screenshots/admin-language-default.png)
 
 Set this in **Admin → Server settings** under the **Features** category. Directly beneath it, the page reports Poracle's own configured locale as a read-only line — the default a new visitor lands on, per the order above. It is Poracle's to set, not this site's: it is read from Poracle's configuration on every load and cannot be edited or overridden here.
 

@@ -97,7 +97,7 @@ Beneath that row the page reports Poracle's own configured locale, which is the 
 first-time visitor lands on when neither a stored choice nor their browser can answer. It is read
 from Poracle and cannot be set here — see [Values that are not settings](#values-that-are-not-settings).
 
-![The Allowed UI Languages field, with a line beneath it reading "Default language for new users: en, taken from Poracle's own configuration."](../screenshots/admin-language-default.png)
+![The Allowed UI languages field, with a line beneath it reading "Default language for new users: en, taken from Poracle's own configuration."](../screenshots/admin-language-default.png)
 
 ---
 
