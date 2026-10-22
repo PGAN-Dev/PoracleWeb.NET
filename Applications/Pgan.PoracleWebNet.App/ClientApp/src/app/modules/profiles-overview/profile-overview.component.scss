@@ -136,7 +136,7 @@
 .search-field {
   flex: 1;
   min-width: 200px;
-  max-width: 400px;
+  max-width: 480px;
 }
 .search-field .mat-mdc-form-field-subscript-wrapper {
   display: none;
@@ -284,10 +284,15 @@
     border-left: 4px solid #4caf50;
   }
 }
+// Lets the profile name below shrink and ellipsise inside the header instead of pushing it wider.
+.profile-panel mat-panel-title {
+  min-width: 0;
+}
 .panel-title-row {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
 }
 .profile-icon-svg {
   width: 24px;
@@ -298,6 +303,12 @@
 .profile-name {
   font-size: 16px;
   font-weight: 500;
+  // The expansion header has a fixed height, so a wrapped name lost its first and last lines on a phone.
+  // One line with an ellipsis; the full name is in the title attribute.
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .profile-areas {
   display: inline-flex;
@@ -340,8 +351,15 @@
 
 .profile-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 4px;
+
+  // The Switch button shrank below its label on a phone ("Przełącz" ran out of its outline).
+  .mat-mdc-outlined-button {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
   padding: 0 8px 12px;
   border-bottom: 1px solid var(--card-border, rgba(0, 0, 0, 0.08));
   margin-bottom: 12px;

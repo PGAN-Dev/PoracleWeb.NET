@@ -84,10 +84,11 @@
     flex-shrink: 0;
   }
 
+  // Wrap rather than ellipsise: German, Polish and French section titles run past the column, and the
+  // cut-off part was often the word that told sections apart.
   span {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
 
   &:hover {
