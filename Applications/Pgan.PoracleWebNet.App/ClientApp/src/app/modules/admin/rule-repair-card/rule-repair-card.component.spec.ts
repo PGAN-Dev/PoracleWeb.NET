@@ -426,4 +426,49 @@ describe('RuleRepairCardComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('ADMIN.RULE_REPAIR.REQUEST_FAILED');
     expect(button(fixture.nativeElement, 'scan')!.disabled).toBe(false);
   });
+  describe('when the last run finished', () => {
+    const finished = '2026-10-22T12:00:00Z';
+
+    const withEnglish = (fixture: ReturnType<typeof setup>) => {
+      const translate = TestBed.inject(TranslateService);
+      translate.setTranslation('en', {
+        ADMIN: { RULE_REPAIR: { REPAIRED_AGO: 'Repaired {{when}}', SCANNED_AGO: 'Scanned {{when}}' } },
+      });
+      translate.use('en');
+      fixture.componentInstance.refreshClock();
+      fixture.detectChanges();
+      return fixture.nativeElement.querySelector('[data-test="last-run"]')?.textContent?.trim();
+    };
+
+    it('says how long ago the scan ran, so a remembered result does not read as fresh', () => {
+      jest.setSystemTime(new Date('2026-10-22T12:03:00Z'));
+      const fixture = setup(status({ finishedAt: finished, phase: 'Scanned' }));
+
+      expect(withEnglish(fixture)).toBe('Scanned 3 minutes ago');
+    });
+
+    it('says how long ago a repair ran', () => {
+      jest.setSystemTime(new Date('2026-10-22T14:00:00Z'));
+      const fixture = setup(
+        status({ applied: { alreadyFine: 0, conflicts: [], failed: [], gone: 0, repaired: 1 }, finishedAt: finished, phase: 'Applied' }),
+      );
+
+      expect(withEnglish(fixture)).toBe('Repaired 2 hours ago');
+    });
+
+    it('keeps counting while the page stays open', () => {
+      jest.setSystemTime(new Date('2026-10-22T12:00:10Z'));
+      const fixture = setup(status({ finishedAt: finished, phase: 'Scanned' }));
+      expect(withEnglish(fixture)).toBe('Scanned now');
+
+      jest.advanceTimersByTime(5 * 60 * 1000);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('[data-test="last-run"]').textContent.trim()).toBe('Scanned 5 minutes ago');
+    });
+
+    it('says nothing before any run, or while one is going', () => {
+      expect(setup(status()).nativeElement.querySelector('[data-test="last-run"]')).toBeNull();
+      expect(setup(status({ finishedAt: finished, phase: 'Scanning' })).nativeElement.querySelector('[data-test="last-run"]')).toBeNull();
+    });
+  });
 });

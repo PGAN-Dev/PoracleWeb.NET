@@ -1697,7 +1697,9 @@
       "SKIPPED": "Usuários ignorados por não ser possível lê-los: {{count}}",
       "RUN_FAILED": "A execução falhou:",
       "SCAN_AGAIN_HINT": "A lista do último escaneamento pode estar desatualizada. Escaneie de novo para ver o que falta reparar; os reparos já gravados continuam valendo.",
-      "REQUEST_FAILED": "Não foi possível acessar o servidor. Tente de novo."
+      "REQUEST_FAILED": "Não foi possível acessar o servidor. Tente de novo.",
+      "SCANNED_AGO": "Verificado {{when}}",
+      "REPAIRED_AGO": "Reparado {{when}}"
     }
   },
   "DIALOG": {
@@ -1766,7 +1768,11 @@
     "ITEM_UNKNOWN": "Item #{{id}}",
     "MOVE_UNKNOWN": "Golpe #{{id}}",
     "CLEAR_SEARCH": "Limpar busca",
-    "MORE_ACTIONS": "Mais ações"
+    "MORE_ACTIONS": "Mais ações",
+    "UNSAVED_LEAVE_TITLE": "Sair sem salvar?",
+    "UNSAVED_LEAVE_MESSAGE": "Você tem alterações nesta página que não foram salvas. Se sair, elas serão perdidas.",
+    "UNSAVED_LEAVE": "Sair",
+    "UNSAVED_STAY": "Ficar"
   },
   "POKEMON_SELECTOR": {
     "GEN": "Ger",
@@ -2038,7 +2044,8 @@
     "BASEMAP_ATTRIBUTION_DESC": "Atribuição da URL de blocos personalizada. Precisa atender aos termos do seu provedor. Exibida como texto simples.",
     "BASEMAP_KEY_MISSING": "Nenhuma chave definida, então os mapas voltam para o {{provider}}. O provedor escolhido devolveria blocos mesmo assim — a CARTO desenha “API KEY REQUIRED” neles — e nada mais avisaria.",
     "BASEMAP_UNAVAILABLE": "O mapa base escolhido não tem uma URL de blocos utilizável, então os mapas voltam para o {{provider}}. Escolha um provedor ou defina uma URL de blocos começando com http:// ou https://.",
-    "FAVICON_PREVIEW_ALT": "Prévia do favicon"
+    "FAVICON_PREVIEW_ALT": "Prévia do favicon",
+    "SEARCH_NO_MATCH": "Nenhuma configuração corresponde a \"{{query}}\""
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Nome",

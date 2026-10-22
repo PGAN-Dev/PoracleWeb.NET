@@ -1697,7 +1697,9 @@
       "SKIPPED": "Users skipped because they couldn't be read: {{count}}",
       "RUN_FAILED": "The run failed:",
       "SCAN_AGAIN_HINT": "The list from the last scan may be out of date. Scan again to see what's left to repair; repairs already written stay written.",
-      "REQUEST_FAILED": "Couldn't reach the server. Try again."
+      "REQUEST_FAILED": "Couldn't reach the server. Try again.",
+      "SCANNED_AGO": "Scanned {{when}}",
+      "REPAIRED_AGO": "Repaired {{when}}"
     }
   },
   "DIALOG": {
@@ -1766,7 +1768,11 @@
     "ITEM_UNKNOWN": "Item #{{id}}",
     "MOVE_UNKNOWN": "Move #{{id}}",
     "CLEAR_SEARCH": "Clear search",
-    "MORE_ACTIONS": "More actions"
+    "MORE_ACTIONS": "More actions",
+    "UNSAVED_LEAVE_TITLE": "Leave without saving?",
+    "UNSAVED_LEAVE_MESSAGE": "You have changes on this page that aren't saved. Leave and they're lost.",
+    "UNSAVED_LEAVE": "Leave",
+    "UNSAVED_STAY": "Stay"
   },
   "POKEMON_SELECTOR": {
     "GEN": "Gen",
@@ -2038,7 +2044,8 @@
     "BASEMAP_ATTRIBUTION_DESC": "Attribution for the custom tile URL. Must match your provider’s terms. Shown as plain text.",
     "BASEMAP_KEY_MISSING": "No key is set, so maps fall back to {{provider}}. The chosen provider would still return tiles without one — CARTO draws “API KEY REQUIRED” into them — so nothing else would report this.",
     "BASEMAP_UNAVAILABLE": "The chosen basemap has no usable tile URL, so maps fall back to {{provider}}. Pick a provider, or set a Basemap Tile URL starting http:// or https://.",
-    "FAVICON_PREVIEW_ALT": "Favicon preview"
+    "FAVICON_PREVIEW_ALT": "Favicon preview",
+    "SEARCH_NO_MATCH": "No settings match \"{{query}}\""
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Name",

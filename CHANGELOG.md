@@ -46,6 +46,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Keyboard focus is visible on buttons, menu and nav items, tabs and chips.** Material's own focus ring is now on, white on the toolbar.
 - **Reduced motion also skips the stagger delays**, so list cards and admin rows appear at once instead of one after another.
 - **The impersonation banner is readable and says what it means.** Dark text on the amber bar (it was white at 2.15:1), and it now reads "Viewing as Jordan. Changes you make are saved to Jordan's alerts." in all eleven languages.
+- **Admin > Settings shows Discord and Telegram sign-in as on when nothing has been saved for them.** The server has always treated a missing setting as on, so a fresh install showed both switches off while both sign-ins worked.
+- **Leaving Admin > Areas or Admin > Settings with unsaved changes asks first**, in the app and on a reload or tab close. A clean page, or one just saved, leaves without asking.
+- **A settings search that matches nothing says so** ("No settings match ...") instead of leaving the page empty under the search box.
+- **The Rule repair card says when the last scan or repair ran** ("Scanned 3 minutes ago"), since a result from an earlier visit looked like a fresh one.
 - **A double-click on Repair no longer opens two confirm dialogs.** Repair is ignored while a confirmation is open or a repair is being sent.
 - **A failed rule repair shows its reason on its own line** under the message, instead of running it into the sentence.
 - **The French message for a radius change that would clash with another rule reads naturally.**

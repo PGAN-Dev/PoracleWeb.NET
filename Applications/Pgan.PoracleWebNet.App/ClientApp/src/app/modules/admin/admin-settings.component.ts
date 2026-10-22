@@ -28,6 +28,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 
 import { IconRepoDialogComponent, IconRepoDialogData } from './icon-repo-dialog/icon-repo-dialog.component';
 import { RuleRepairCardComponent } from './rule-repair-card/rule-repair-card.component';
+import { HasUnsavedChanges } from '../../core/guards/unsaved-changes.guard';
 import { DiscordServerConfig, OidcServerConfig, SiteSetting, TelegramServerConfig } from '../../core/models';
 import { BasemapService } from '../../core/services/basemap.service';
 import { I18nService } from '../../core/services/i18n.service';
@@ -124,6 +125,13 @@ export const PROJECTED_KEYS = ['poracle_locale', 'poracle_alert_languages'];
  * it from the generic settings endpoint as well. See #886.
  */
 export const MANAGED_ELSEWHERE_KEYS = ['hidden_areas'];
+
+/**
+ * Switches the server treats as on until a row says otherwise. `AuthController` refuses a Discord or
+ * Telegram sign-in only when the stored value is "false", and a fresh install writes neither row, so
+ * reading absent as off showed both sign-ins disabled on a site where both worked.
+ */
+export const ABSENT_MEANS_ON_KEYS = ['enable_discord', 'enable_telegram'];
 
 const RETIRED_KEYS = [
   // Legacy Poracle keys describing a map picker this app does not have. Removed from the settings UI and
@@ -462,7 +470,7 @@ export const SETTING_GROUPS: SettingGroup[] = [
   styleUrl: './admin-settings.component.scss',
   templateUrl: './admin-settings.component.html',
 })
-export class AdminSettingsComponent implements OnInit {
+export class AdminSettingsComponent implements OnInit, HasUnsavedChanges {
   private static readonly COLLAPSED_STORAGE_KEY = 'poracle-admin-settings-collapsed';
   private readonly allDefinedKeys = new Set([
     ...SETTING_GROUPS.flatMap(g => g.settings.map(s => s.key)),
@@ -613,18 +621,6 @@ export class AdminSettingsComponent implements OnInit {
 
   readonly repoPreviews = ICON_REPO_PREVIEWS;
 
-  @ViewChild('searchInput') searchInput?: ElementRef<HTMLInputElement>;
-  readonly settingsLoading = signal(true);
-
-  readonly telegramConfig = signal<TelegramServerConfig | null>(null);
-
-  readonly unknownSettings = computed(() =>
-    this.settings().filter(s => {
-      const k = settingKey(s);
-      return !this.allDefinedKeys.has(k) && !this.internalPrefixes.some(p => k.startsWith(p));
-    }),
-  );
-
   readonly visibleGroups = computed(() => {
     // In OIDC sign-in mode the local provider sections are moot — hide them; the read-only
     // OIDC config card is shown by the bespoke Authentication section instead.
@@ -648,6 +644,27 @@ export class AdminSettingsComponent implements OnInit {
     if (!query) return base;
     return base.map(g => ({ ...g, settings: g.settings.filter(s => this.settingMatches(s)) })).filter(g => g.settings.length > 0);
   });
+
+  /**
+   * A query that matches nothing left the page ending at the search box, which reads as a page that
+   * failed to load. The icon packs and "Other" sections already hide under any query.
+   */
+  readonly searchHasNoMatch = computed(
+    () => !!this.searchQuery().trim() && !this.authSectionVisible() && this.visibleGroups().length === 0,
+  );
+
+  @ViewChild('searchInput') searchInput?: ElementRef<HTMLInputElement>;
+
+  readonly settingsLoading = signal(true);
+
+  readonly telegramConfig = signal<TelegramServerConfig | null>(null);
+
+  readonly unknownSettings = computed(() =>
+    this.settings().filter(s => {
+      const k = settingKey(s);
+      return !this.allDefinedKeys.has(k) && !this.internalPrefixes.some(p => k.startsWith(p));
+    }),
+  );
 
   private static loadCollapsed(): Set<string> {
     try {
@@ -698,7 +715,10 @@ export class AdminSettingsComponent implements OnInit {
   }
 
   getBool(key: string): boolean {
-    return (this.getSettingValue(key) ?? '').toLowerCase() === 'true';
+    const value = (this.getSettingValue(key) ?? '').toLowerCase();
+    // Mirrors the server's read for these keys exactly: anything but "false" is on.
+    if (ABSENT_MEANS_ON_KEYS.includes(key)) return value !== 'false';
+    return value === 'true';
   }
 
   getSettingValue(key: string): string | null | undefined {
@@ -718,6 +738,10 @@ export class AdminSettingsComponent implements OnInit {
     // Poracle-forced type as off, so the header agrees with the switches underneath it.
     const count = disableKeys.reduce((acc, s) => acc + (this.featureEnabled(s) ? 1 : 0), 0);
     return this.i18n.instant('ADMIN_SETTINGS.SUMMARY_ENABLED', { count, total: disableKeys.length });
+  }
+
+  hasUnsavedChanges(): boolean {
+    return this.modifiedSettings().size > 0;
   }
 
   /** Translated label/description with current search matches wrapped in <mark>. */
@@ -798,6 +822,14 @@ export class AdminSettingsComponent implements OnInit {
       .getOidcConfig()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({ next: config => this.oidcConfig.set(config) });
+  }
+
+  /** A reload or tab close is outside the router, so the route guard cannot ask; the browser can. */
+  @HostListener('window:beforeunload', ['$event'])
+  onBeforeUnload(event: BeforeUnloadEvent | Event): void {
+    if (!this.hasUnsavedChanges()) return;
+    event.preventDefault();
+    (event as BeforeUnloadEvent).returnValue = '';
   }
 
   onBoolChange(key: string, value: boolean): void {

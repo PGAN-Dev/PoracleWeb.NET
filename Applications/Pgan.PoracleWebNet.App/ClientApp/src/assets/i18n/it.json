@@ -1697,7 +1697,9 @@
       "SKIPPED": "Utenti saltati perché non leggibili: {{count}}",
       "RUN_FAILED": "L’esecuzione non è riuscita:",
       "SCAN_AGAIN_HINT": "L'elenco dell'ultima scansione potrebbe non essere aggiornato. Scansiona di nuovo per vedere cosa resta da riparare; le riparazioni già scritte restano.",
-      "REQUEST_FAILED": "Impossibile raggiungere il server. Riprova."
+      "REQUEST_FAILED": "Impossibile raggiungere il server. Riprova.",
+      "SCANNED_AGO": "Analizzato {{when}}",
+      "REPAIRED_AGO": "Riparato {{when}}"
     }
   },
   "DIALOG": {
@@ -1766,7 +1768,11 @@
     "ITEM_UNKNOWN": "Oggetto #{{id}}",
     "MOVE_UNKNOWN": "Mossa #{{id}}",
     "CLEAR_SEARCH": "Cancella ricerca",
-    "MORE_ACTIONS": "Altre azioni"
+    "MORE_ACTIONS": "Altre azioni",
+    "UNSAVED_LEAVE_TITLE": "Uscire senza salvare?",
+    "UNSAVED_LEAVE_MESSAGE": "Ci sono modifiche non salvate in questa pagina. Se esci, andranno perse.",
+    "UNSAVED_LEAVE": "Esci",
+    "UNSAVED_STAY": "Resta"
   },
   "POKEMON_SELECTOR": {
     "GEN": "Gen",
@@ -2038,7 +2044,8 @@
     "BASEMAP_ATTRIBUTION_DESC": "Attribuzione per l’URL tile personalizzato. Deve rispettare i termini del tuo provider. Mostrata come testo semplice.",
     "BASEMAP_KEY_MISSING": "Nessuna chiave impostata, quindi le mappe ripiegano su {{provider}}. Il provider scelto restituirebbe comunque i tile — CARTO vi disegna sopra «API KEY REQUIRED» — e nient’altro lo segnalerebbe.",
     "BASEMAP_UNAVAILABLE": "La mappa di base scelta non ha un URL tile utilizzabile, quindi le mappe ripiegano su {{provider}}. Scegli un provider oppure imposta un URL tile che inizi con http:// o https://.",
-    "FAVICON_PREVIEW_ALT": "Anteprima favicon"
+    "FAVICON_PREVIEW_ALT": "Anteprima favicon",
+    "SEARCH_NO_MATCH": "Nessuna impostazione corrisponde a \"{{query}}\""
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Nome",

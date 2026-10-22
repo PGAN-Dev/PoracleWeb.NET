@@ -1697,7 +1697,9 @@
       "SKIPPED": "Utilisateurs ignorés car illisibles : {{count}}",
       "RUN_FAILED": "L’exécution a échoué :",
       "SCAN_AGAIN_HINT": "La liste de la dernière analyse n’est peut-être plus à jour. Relancez l’analyse pour voir ce qu’il reste à réparer ; les réparations déjà écrites restent en place.",
-      "REQUEST_FAILED": "Impossible de joindre le serveur. Réessaie."
+      "REQUEST_FAILED": "Impossible de joindre le serveur. Réessaie.",
+      "SCANNED_AGO": "Analysé {{when}}",
+      "REPAIRED_AGO": "Réparé {{when}}"
     }
   },
   "DIALOG": {
@@ -1766,7 +1768,11 @@
     "ITEM_UNKNOWN": "Objet #{{id}}",
     "MOVE_UNKNOWN": "Attaque #{{id}}",
     "CLEAR_SEARCH": "Effacer la recherche",
-    "MORE_ACTIONS": "Plus d'actions"
+    "MORE_ACTIONS": "Plus d'actions",
+    "UNSAVED_LEAVE_TITLE": "Quitter sans enregistrer ?",
+    "UNSAVED_LEAVE_MESSAGE": "Cette page contient des modifications non enregistrées. Si vous la quittez, elles seront perdues.",
+    "UNSAVED_LEAVE": "Quitter",
+    "UNSAVED_STAY": "Rester"
   },
   "POKEMON_SELECTOR": {
     "GEN": "Gén",
@@ -2038,7 +2044,8 @@
     "BASEMAP_ATTRIBUTION_DESC": "Attribution de l’URL de tuiles personnalisée. Doit respecter les conditions de votre fournisseur. Affichée en texte brut.",
     "BASEMAP_KEY_MISSING": "Aucune clé n’est définie : les cartes basculent sur {{provider}}. Le fournisseur choisi renverrait quand même des tuiles — CARTO y inscrit « API KEY REQUIRED » — et rien d’autre ne le signalerait.",
     "BASEMAP_UNAVAILABLE": "Le fond de carte choisi n’a pas d’URL de tuiles utilisable : les cartes basculent sur {{provider}}. Choisissez un fournisseur, ou indiquez une URL de tuiles commençant par http:// ou https://.",
-    "FAVICON_PREVIEW_ALT": "Aperçu du favicon"
+    "FAVICON_PREVIEW_ALT": "Aperçu du favicon",
+    "SEARCH_NO_MATCH": "Aucun paramètre ne correspond à « {{query}} »"
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Nom",

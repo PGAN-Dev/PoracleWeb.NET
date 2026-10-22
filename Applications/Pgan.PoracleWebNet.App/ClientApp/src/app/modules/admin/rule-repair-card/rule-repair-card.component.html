@@ -8,6 +8,9 @@
       </button>
     </div>
     <p class="repair-desc">{{ 'ADMIN.RULE_REPAIR.DESC' | translate }}</p>
+    @if (lastRun(); as when) {
+      <p class="repair-last-run" data-test="last-run">{{ when }}</p>
+    }
 
     @if (requestFailed()) {
       <div class="repair-alert repair-alert-error" role="alert">

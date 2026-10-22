@@ -1697,7 +1697,9 @@
       "SKIPPED": "Brugere sprunget over, fordi de ikke kunne læses: {{count}}",
       "RUN_FAILED": "Kørslen mislykkedes:",
       "SCAN_AGAIN_HINT": "Listen fra den seneste scanning er måske forældet. Scan igen for at se, hvad der mangler at blive repareret; reparationer, der allerede er skrevet, bliver stående.",
-      "REQUEST_FAILED": "Kunne ikke nå serveren. Prøv igen."
+      "REQUEST_FAILED": "Kunne ikke nå serveren. Prøv igen.",
+      "SCANNED_AGO": "Scannet {{when}}",
+      "REPAIRED_AGO": "Repareret {{when}}"
     }
   },
   "DIALOG": {
@@ -1766,7 +1768,11 @@
     "ITEM_UNKNOWN": "Genstand #{{id}}",
     "MOVE_UNKNOWN": "Angreb #{{id}}",
     "CLEAR_SEARCH": "Ryd søgning",
-    "MORE_ACTIONS": "Flere handlinger"
+    "MORE_ACTIONS": "Flere handlinger",
+    "UNSAVED_LEAVE_TITLE": "Forlad uden at gemme?",
+    "UNSAVED_LEAVE_MESSAGE": "Du har ændringer på denne side, der ikke er gemt. Forlader du siden, går de tabt.",
+    "UNSAVED_LEAVE": "Forlad",
+    "UNSAVED_STAY": "Bliv"
   },
   "POKEMON_SELECTOR": {
     "GEN": "Gen",
@@ -2038,7 +2044,8 @@
     "BASEMAP_ATTRIBUTION_DESC": "Kildeangivelse for den egne flise-URL. Skal overholde din udbyders vilkår. Vises som almindelig tekst.",
     "BASEMAP_KEY_MISSING": "Der er ingen nøgle sat, så kortene falder tilbage til {{provider}}. Den valgte udbyder ville stadig returnere fliser — CARTO tegner ”API KEY REQUIRED” ind i dem — og intet andet ville melde det.",
     "BASEMAP_UNAVAILABLE": "Det valgte baggrundskort har ingen brugbar flise-URL, så kortene falder tilbage til {{provider}}. Vælg en udbyder, eller angiv en flise-URL, der begynder med http:// eller https://.",
-    "FAVICON_PREVIEW_ALT": "Favicon-forhåndsvisning"
+    "FAVICON_PREVIEW_ALT": "Favicon-forhåndsvisning",
+    "SEARCH_NO_MATCH": "Ingen indstillinger matcher \"{{query}}\""
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Navn",

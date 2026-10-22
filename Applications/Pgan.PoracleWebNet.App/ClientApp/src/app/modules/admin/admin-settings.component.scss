@@ -446,6 +446,11 @@
   border: 1px solid var(--card-border, rgba(0, 0, 0, 0.12));
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
+.search-no-match {
+  margin: 8px 4px 24px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.6));
+  font-size: 14px;
+}
 .search-leading {
   flex-shrink: 0;
   font-size: 20px;

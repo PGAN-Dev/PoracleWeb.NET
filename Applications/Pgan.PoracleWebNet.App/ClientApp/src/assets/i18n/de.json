@@ -1697,7 +1697,9 @@
       "SKIPPED": "Übersprungene Nutzer, die nicht gelesen werden konnten: {{count}}",
       "RUN_FAILED": "Der Durchlauf ist fehlgeschlagen:",
       "SCAN_AGAIN_HINT": "Die Liste aus dem letzten Scan ist möglicherweise veraltet. Scanne erneut, um zu sehen, was noch zu reparieren ist; bereits geschriebene Reparaturen bleiben bestehen.",
-      "REQUEST_FAILED": "Der Server ist nicht erreichbar. Versuch es noch einmal."
+      "REQUEST_FAILED": "Der Server ist nicht erreichbar. Versuch es noch einmal.",
+      "SCANNED_AGO": "Geprüft {{when}}",
+      "REPAIRED_AGO": "Repariert {{when}}"
     }
   },
   "DIALOG": {
@@ -1766,7 +1768,11 @@
     "ITEM_UNKNOWN": "Item #{{id}}",
     "MOVE_UNKNOWN": "Attacke #{{id}}",
     "CLEAR_SEARCH": "Suche löschen",
-    "MORE_ACTIONS": "Weitere Aktionen"
+    "MORE_ACTIONS": "Weitere Aktionen",
+    "UNSAVED_LEAVE_TITLE": "Ohne Speichern verlassen?",
+    "UNSAVED_LEAVE_MESSAGE": "Auf dieser Seite gibt es ungespeicherte Änderungen. Wenn du sie verlässt, gehen sie verloren.",
+    "UNSAVED_LEAVE": "Verlassen",
+    "UNSAVED_STAY": "Bleiben"
   },
   "POKEMON_SELECTOR": {
     "GEN": "Gen",
@@ -2038,7 +2044,8 @@
     "BASEMAP_ATTRIBUTION_DESC": "Quellenangabe für die eigene Kachel-URL. Muss den Bedingungen Ihres Anbieters entsprechen. Wird als reiner Text angezeigt.",
     "BASEMAP_KEY_MISSING": "Es ist kein Schlüssel gesetzt, daher fallen die Karten auf {{provider}} zurück. Der gewählte Anbieter würde auch ohne Schlüssel Kacheln liefern — CARTO zeichnet „API KEY REQUIRED“ hinein —, sodass nichts anderes darauf hinweist.",
     "BASEMAP_UNAVAILABLE": "Die gewählte Karte hat keine nutzbare Kachel-URL, daher fallen die Karten auf {{provider}} zurück. Wählen Sie einen Anbieter oder setzen Sie eine Kachel-URL, die mit http:// oder https:// beginnt.",
-    "FAVICON_PREVIEW_ALT": "Favicon-Vorschau"
+    "FAVICON_PREVIEW_ALT": "Favicon-Vorschau",
+    "SEARCH_NO_MATCH": "Keine Einstellung passt zu „{{query}}“"
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Name",

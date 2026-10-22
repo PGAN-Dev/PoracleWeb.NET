@@ -1697,7 +1697,9 @@
       "SKIPPED": "Overgeslagen gebruikers die niet gelezen konden worden: {{count}}",
       "RUN_FAILED": "De run is mislukt:",
       "SCAN_AGAIN_HINT": "De lijst van de laatste scan is misschien niet meer actueel. Scan opnieuw om te zien wat er nog gerepareerd moet worden; reparaties die al geschreven zijn, blijven staan.",
-      "REQUEST_FAILED": "De server is niet bereikbaar. Probeer het opnieuw."
+      "REQUEST_FAILED": "De server is niet bereikbaar. Probeer het opnieuw.",
+      "SCANNED_AGO": "Gescand {{when}}",
+      "REPAIRED_AGO": "Hersteld {{when}}"
     }
   },
   "DIALOG": {
@@ -1766,7 +1768,11 @@
     "ITEM_UNKNOWN": "Item #{{id}}",
     "MOVE_UNKNOWN": "Aanval #{{id}}",
     "CLEAR_SEARCH": "Zoekopdracht wissen",
-    "MORE_ACTIONS": "Meer acties"
+    "MORE_ACTIONS": "Meer acties",
+    "UNSAVED_LEAVE_TITLE": "Verlaten zonder op te slaan?",
+    "UNSAVED_LEAVE_MESSAGE": "Er zijn niet-opgeslagen wijzigingen op deze pagina. Als je weggaat, gaan ze verloren.",
+    "UNSAVED_LEAVE": "Verlaten",
+    "UNSAVED_STAY": "Blijven"
   },
   "POKEMON_SELECTOR": {
     "GEN": "Gen",
@@ -2038,7 +2044,8 @@
     "BASEMAP_ATTRIBUTION_DESC": "Bronvermelding voor de eigen tegel-URL. Moet voldoen aan de voorwaarden van je aanbieder. Wordt als platte tekst getoond.",
     "BASEMAP_KEY_MISSING": "Er is geen sleutel ingesteld, dus kaarten vallen terug op {{provider}}. De gekozen aanbieder zou zonder sleutel gewoon tegels teruggeven — CARTO tekent er ‘API KEY REQUIRED’ in — en niets anders zou dit melden.",
     "BASEMAP_UNAVAILABLE": "De gekozen kaart heeft geen bruikbare tegel-URL, dus kaarten vallen terug op {{provider}}. Kies een aanbieder of stel een tegel-URL in die begint met http:// of https://.",
-    "FAVICON_PREVIEW_ALT": "Favicon-voorbeeld"
+    "FAVICON_PREVIEW_ALT": "Favicon-voorbeeld",
+    "SEARCH_NO_MATCH": "Geen instellingen komen overeen met \"{{query}}\""
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Naam",

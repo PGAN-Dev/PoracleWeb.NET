@@ -3,6 +3,7 @@ import { Routes } from '@angular/router';
 import { adminGuard } from './core/guards/admin.guard';
 import { authGuard } from './core/guards/auth.guard';
 import { disabledFeatureGuard } from './core/guards/disabled-feature.guard';
+import { unsavedChangesGuard } from './core/guards/unsaved-changes.guard';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
@@ -131,11 +132,13 @@ export const routes: Routes = [
   },
   {
     canActivate: [authGuard, adminGuard],
+    canDeactivate: [unsavedChangesGuard],
     loadComponent: () => import('./modules/admin/admin-areas.component').then(m => m.AdminAreasComponent),
     path: 'admin/areas',
   },
   {
     canActivate: [authGuard, adminGuard],
+    canDeactivate: [unsavedChangesGuard],
     loadComponent: () => import('./modules/admin/admin-settings.component').then(m => m.AdminSettingsComponent),
     path: 'admin/settings',
   },

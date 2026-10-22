@@ -16,7 +16,8 @@
 }
 
 .repair-desc,
-.repair-note {
+.repair-note,
+.repair-last-run {
   margin: 8px 0;
   font-size: 13px;
   line-height: 1.45;
@@ -130,4 +131,9 @@
   summary {
     cursor: pointer;
   }
+}
+
+.repair-last-run {
+  margin-top: 0;
+  font-size: 12px;
 }

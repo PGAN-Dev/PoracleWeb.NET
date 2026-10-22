@@ -1697,7 +1697,9 @@
       "SKIPPED": "Usuarios omitidos por no poder leerse: {{count}}",
       "RUN_FAILED": "La ejecución falló:",
       "SCAN_AGAIN_HINT": "La lista del último análisis puede estar desactualizada. Vuelve a analizar para ver qué queda por reparar; las reparaciones ya escritas se mantienen.",
-      "REQUEST_FAILED": "No se pudo conectar con el servidor. Inténtalo de nuevo."
+      "REQUEST_FAILED": "No se pudo conectar con el servidor. Inténtalo de nuevo.",
+      "SCANNED_AGO": "Analizado {{when}}",
+      "REPAIRED_AGO": "Reparado {{when}}"
     }
   },
   "DIALOG": {
@@ -1766,7 +1768,11 @@
     "ITEM_UNKNOWN": "Objeto n.º {{id}}",
     "MOVE_UNKNOWN": "Movimiento n.º {{id}}",
     "CLEAR_SEARCH": "Borrar búsqueda",
-    "MORE_ACTIONS": "Más acciones"
+    "MORE_ACTIONS": "Más acciones",
+    "UNSAVED_LEAVE_TITLE": "¿Salir sin guardar?",
+    "UNSAVED_LEAVE_MESSAGE": "Tienes cambios sin guardar en esta página. Si sales, se perderán.",
+    "UNSAVED_LEAVE": "Salir",
+    "UNSAVED_STAY": "Quedarse"
   },
   "POKEMON_SELECTOR": {
     "GEN": "Gen",
@@ -2038,7 +2044,8 @@
     "BASEMAP_ATTRIBUTION_DESC": "Atribución de la URL de teselas personalizada. Debe cumplir los términos de su proveedor. Se muestra como texto plano.",
     "BASEMAP_KEY_MISSING": "No hay clave configurada, así que los mapas recurren a {{provider}}. El proveedor elegido devolvería teselas igualmente — CARTO dibuja «API KEY REQUIRED» en ellas — y nada más lo avisaría.",
     "BASEMAP_UNAVAILABLE": "El mapa base elegido no tiene una URL de teselas utilizable, así que los mapas recurren a {{provider}}. Elija un proveedor o indique una URL de teselas que empiece por http:// o https://.",
-    "FAVICON_PREVIEW_ALT": "Vista previa del favicon"
+    "FAVICON_PREVIEW_ALT": "Vista previa del favicon",
+    "SEARCH_NO_MATCH": "Ningún ajuste coincide con \"{{query}}\""
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Nombre",

@@ -38,6 +38,12 @@
       }
     </div>
 
+    @if (searchHasNoMatch()) {
+      <p class="search-no-match" role="status" data-test="search-no-match">
+        {{ 'ADMIN_SETTINGS.SEARCH_NO_MATCH' | translate: { query: searchQuery().trim() } }}
+      </p>
+    }
+
     <!-- Authentication mode: Local (Discord/Telegram) vs external SSO (OIDC) -->
     @if (authSectionVisible()) {
       <section class="settings-section">

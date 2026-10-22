@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatDialog } from '@angular/material/dialog';
@@ -10,6 +11,7 @@ import { EMPTY, catchError, exhaustMap, interval, of, switchMap } from 'rxjs';
 import { RuleRepairItem, RuleRepairKind, RuleRepairSkip, RuleRepairStatus } from '../../../core/models';
 import { RuleRepairService } from '../../../core/services/rule-repair.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { relativeTime } from '../../../shared/utils/relative-time';
 
 export interface RuleRepairGroup {
   items: RuleRepairItem[];
@@ -62,6 +64,9 @@ const MAX_ROWS_PER_GROUP = 100;
 
 const POLL_MS = 2000;
 
+/** How often "Scanned 3 minutes ago" is re-read while the card stays open. */
+const CLOCK_MS = 30_000;
+
 const isBusy = (s: RuleRepairStatus) => s.phase === 'Scanning' || s.phase === 'Applying';
 
 const cap = <T>(items: T[]): CappedList<T> => ({ shown: items.slice(0, MAX_ROWS_PER_GROUP), total: items.length });
@@ -83,6 +88,8 @@ const cap = <T>(items: T[]): CappedList<T> => ({ shown: items.slice(0, MAX_ROWS_
 export class RuleRepairCardComponent {
   private readonly dialog = inject(MatDialog);
   private readonly i18n = inject(TranslateService);
+  /** Ticks every {@link CLOCK_MS}, so the "ago" line moves while the page stays open. */
+  private readonly now = signal(Date.now());
   /** True from the Repair click until the apply request has answered, so a double-click cannot open two dialogs or send two applies. */
   private repairing = false;
 
@@ -124,6 +131,19 @@ export class RuleRepairCardComponent {
     }).filter(g => g.items.length > 0);
   });
 
+  /**
+   * "Scanned 3 minutes ago". The job's state lives on the server and outlasts the visit, so a result read
+   * on a later visit looked like a scan that had just run.
+   */
+  readonly lastRun = computed<null | string>(() => {
+    const { finishedAt, phase } = this.status();
+    if (!finishedAt || (phase !== 'Scanned' && phase !== 'Applied')) return null;
+    const then = Date.parse(finishedAt);
+    if (Number.isNaN(then)) return null;
+    const when = relativeTime(then, this.now(), this.i18n.getCurrentLang() ?? 'en');
+    return this.i18n.instant(phase === 'Scanned' ? 'ADMIN.RULE_REPAIR.SCANNED_AGO' : 'ADMIN.RULE_REPAIR.REPAIRED_AGO', { when });
+  });
+
   readonly maxRows = MAX_ROWS_PER_GROUP;
 
   readonly progress = computed(() => {
@@ -139,6 +159,10 @@ export class RuleRepairCardComponent {
   readonly staleAfterFailedApply = computed(() => this.status().phase === 'Failed' && this.status().repairableCount > 0);
 
   constructor() {
+    interval(CLOCK_MS)
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => this.refreshClock());
+
     this.service.getStatus().subscribe({
       error: () => this.requestFailed.set(true),
       next: s => this.status.set(s),
@@ -166,6 +190,11 @@ export class RuleRepairCardComponent {
         .subscribe(s => this.status.set(s));
       onCleanup(() => sub.unsubscribe());
     });
+  }
+
+  /** Re-reads the clock, and so the "ago" line. */
+  refreshClock(): void {
+    this.now.set(Date.now());
   }
 
   repair(): void {
