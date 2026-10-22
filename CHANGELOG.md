@@ -57,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **French names the PvP leagues as the game does**: Super Ligue and Hyper Ligue.
 - **Rule repair names the user beside their Discord id** ("Alice (123456789)"), from the user list the scan already reads.
 - **The dashboard's New alarm menu and alarm counts list the types in the sidebar's order** (Max battles after Raids, not last).
 - **The geofence name rule under the field reads cleanly**: its list of allowed characters stays on one line and the "8 / 50" counter keeps its width.
