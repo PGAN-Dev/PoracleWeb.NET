@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-10-22
+
+## [2.21.0] - 2026-10-20
+
 ### Added
 
 - **Admin > Settings has a Rule repair card for rules PoracleNG 5.4.0 reads differently.** Scan lists invasion alarms saved as `metal` (now `steel`), raids saved with Pokémon 0, and raids and max battles for any boss stored with the boss and level left undefined, plus rules 5.4.0 won't save as they stand, which need fixing by hand. Nothing changes until you press Repair, and each rule is checked again just before it's written. A write that would duplicate another rule is left alone and listed. Users who couldn't be read are listed with the reason, and the card never reports "nothing to repair" while any were skipped. Only admins can run it (not while impersonating), and the log records who did and the rule as it was stored.
@@ -157,6 +161,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Closing GeoJSON import's results with Esc or a click outside refreshes the list**, as Done did, and so does closing it while the import is still running, once the import finishes. The preview says how many features it skipped because they aren't polygons and how many past the first 50 it left out, the results name any fence that was saved but couldn't be switched on yet, and a file that isn't usable GeoJSON is refused on the upload step instead of moving on to an empty preview.
 - **Geofence and profile failures show the server's reason.** Switching a geofence on, renaming, creating, submitting or deleting one, and creating, renaming or duplicating a profile now say what the server said (for example "could not be renamed right now, so nothing was changed") instead of "Failed to update". When PoracleNG can't be reached they keep the translated message rather than the server's English. Saving areas the server won't accept names them ("Not saved. These areas aren't available to you: ...").
 - **Area chips' remove and quiet buttons have names for screen readers** ("Remove Downtown", "Quiet Downtown for a while"), and so do the remove buttons on Pokémon and region chips.
+
+### Dependencies
+- Bump @angular/cli ([#979](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/979))
+- Bump Microsoft.NET.Test.Sdk from 18.10.1 to 18.11.0 ([#982](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/982))
+- Bump jest-preset-angular ([#985](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/985))
+- Bump jsdom in /Applications/Pgan.PoracleWebNet.App/ClientApp ([#984](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/984))
+- Bump the dotnet group with 12 updates ([#980](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/980))
+- Bump the eslint group ([#983](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/983))
+- Bump xunit.runner.visualstudio from 4.0.0 to 4.0.1 ([#942](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/942))
 
 ## [2.20.2] - 2026-10-18
 
@@ -1351,7 +1364,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.20.2...HEAD
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.0.0...HEAD
+[3.0.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.21.0...v3.0.0
+[2.21.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.20.2...v2.21.0
 [2.20.2]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.20.1...v2.20.2
 [2.20.1]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.20.0...v2.20.1
 [2.20.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.19.0...v2.20.0
