@@ -21,14 +21,22 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 /// <para>
 /// Those rows are now skipped, the rest are written, and the response names what was skipped.
 /// </para>
+/// <para>
+/// The write is one v2 <c>PATCH</c> per type naming the uids and the radius alone. PoracleNG decides for
+/// itself which rows would collide with another rule at the new radius and refuses those; they are reported
+/// as <c>SkippedConflict</c> rather than failing the rest.
+/// </para>
 /// </remarks>
 public class BulkDistanceScopeTests
 {
     private readonly Mock<IPoracleTrackingProxy> _inner = new();
+    private readonly Mock<IPoracleIncidentProxy> _incident = new();
     private readonly Mock<IFeatureGate> _featureGate = new();
     private readonly Mock<ITrackedUidRemapper> _remapper = new();
-    private readonly List<JsonElement> _sent = [];
-    private readonly List<List<int>> _deleted = [];
+    private readonly List<(string Type, List<int> Uids, TrackingPatchSet Set)> _patched = [];
+    private readonly List<(List<int> Uids, TrackingPatchSet Set)> _incidentPatched = [];
+    private readonly Dictionary<int, PatchRefusal> _refusals = [];
+    private readonly HashSet<int> _unchanged = [];
     private readonly IPoracleTrackingProxy _proxy;
 
     /// <summary>One alarm of each scope, as PoracleNG 5.2.1 reads them back.</summary>
@@ -47,26 +55,24 @@ public class BulkDistanceScopeTests
     {
         this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
         this._featureGate.Setup(g => g.IsEnabledAsync(It.IsAny<string>())).ReturnsAsync(false);
-        this._remapper
-            .Setup(r => r.RemapAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()))
-            .Returns(Task.CompletedTask);
         this._inner
             .Setup(p => p.GetByUserAsync(It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(() => JsonDocument.Parse(StoredRows).RootElement.Clone());
         this._inner
-            .Setup(p => p.UpsertV1Async(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()))
-            .Callback<string, string, JsonElement>((_, _, body) =>
+            .Setup(p => p.PatchAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IReadOnlyList<int>>(), It.IsAny<TrackingPatchSet>()))
+            .ReturnsAsync((string type, string _, IReadOnlyList<int> uids, TrackingPatchSet set) =>
             {
-                // The check the real UpsertV1Async makes, so a row it would refuse fails the test the way
-                // it failed live.
-                OverrideScope.EnsureCoherent(body);
-                this._sent.Add(body.Clone());
-            })
-            .ReturnsAsync(new TrackingCreateResult([], 0, 1, 0));
-        this._inner
-            .Setup(p => p.BulkDeleteByUidsAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IEnumerable<int>>()))
-            .Callback<string, string, IEnumerable<int>>((_, _, uids) => this._deleted.Add([.. uids]))
-            .Returns(Task.CompletedTask);
+                this._patched.Add((type, [.. uids], set));
+                return this.Answer(uids);
+            });
+        this._incident
+            .Setup(p => p.PatchAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<int>>(), It.IsAny<TrackingPatchSet>()))
+            .ReturnsAsync((string _, IReadOnlyList<int> uids, TrackingPatchSet set) =>
+            {
+                this._incidentPatched.Add(([.. uids], set));
+                return this.Answer(uids);
+            });
 
         this._proxy = this._inner.Object;
     }
@@ -78,7 +84,7 @@ public class BulkDistanceScopeTests
 
     [Theory]
     [MemberData(nameof(AllTrackingTypes))]
-    public async Task ARadiusOverASelectionSkipsTheAreaScopedAlarmAndUpdatesTheRest(string type)
+    public async Task BulkDistanceAreaScopedNotSent(string type)
     {
         var result = await UpdateSelected(this.ServiceFor(type), [1, 2, 3], 1500);
 
@@ -86,6 +92,82 @@ public class BulkDistanceScopeTests
         Assert.Equal([1, 3], this.UidsSent());
         Assert.Equal(2, result.Updated);
         Assert.Equal([2], result.SkippedAreaScoped);
+        Assert.Empty(result.SkippedPlaceScoped);
+        Assert.Empty(result.SkippedConflict);
+    }
+
+    [Theory]
+    [MemberData(nameof(AllTrackingTypes))]
+    public async Task BulkDistanceUsesOnePatchNoPost(string type)
+    {
+        await UpdateAll(this.ServiceFor(type), 1500);
+
+        var (patchedType, _, set) = Assert.Single(this._patched);
+        Assert.Equal(type, patchedType);
+        Assert.Equal(new TrackingPatchSet(Distance: 1500), set);
+        this._inner.Verify(
+            p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+        this._inner.Verify(
+            p => p.UpdateByUidAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<JsonElement>()),
+            Times.Never);
+        this._inner.Verify(
+            p => p.BulkDeleteByUidsAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IEnumerable<int>>()),
+            Times.Never);
+    }
+
+    [Theory]
+    [MemberData(nameof(AllTrackingTypes))]
+    public async Task BulkDistanceConflictRefusalReportedAsSkippedConflict(string type)
+    {
+        this._refusals[3] = new PatchRefusal(3, PatchRefusalReasons.Conflict, "would duplicate rule 1", 1);
+
+        var result = await UpdateSelected(this.ServiceFor(type), [1, 2, 3], 1500);
+
+        // The legitimate row beside the refused one is still written and counted.
+        Assert.Equal([1, 3], this.UidsSent());
+        Assert.Equal(1, result.Updated);
+        Assert.Equal([3], result.SkippedConflict);
+        Assert.Equal([2], result.SkippedAreaScoped);
+    }
+
+    [Theory]
+    [MemberData(nameof(AllTrackingTypes))]
+    public async Task BulkDistanceCountsUnchangedAsUpdated(string type)
+    {
+        this._unchanged.Add(1);
+
+        var result = await UpdateSelected(this.ServiceFor(type), [1, 3], 1500);
+
+        Assert.Equal(2, result.Updated);
+    }
+
+    [Fact]
+    public async Task BulkDistanceInvalidRefusalIsReportedByTheRowsScope()
+    {
+        // At zero the area-scoped row is sent; should PoracleNG still find it invalid, it is reported as
+        // area-scoped. An invalid refusal on a row with no override has no scope to blame and is reported as
+        // a conflict rather than dropped.
+        this._refusals[1] = new PatchRefusal(1, PatchRefusalReasons.Invalid, "bad", null);
+        this._refusals[2] = new PatchRefusal(2, PatchRefusalReasons.Invalid, "bad", null);
+
+        var result = await UpdateSelected(this.ServiceFor("raid"), [1, 2, 3], 0);
+
+        Assert.Equal(0, result.Updated);
+        Assert.Equal([2], result.SkippedAreaScoped);
+        Assert.Equal([3], result.SkippedPlaceScoped);
+        Assert.Equal([1], result.SkippedConflict);
+    }
+
+    [Fact]
+    public async Task BulkDistanceNotFoundRefusalIsNeitherCountedNorReported()
+    {
+        this._refusals[1] = new PatchRefusal(1, PatchRefusalReasons.NotFound, "gone", null);
+
+        var result = await UpdateSelected(this.ServiceFor("gym"), [1, 3], 1500);
+
+        Assert.Equal(1, result.Updated);
+        Assert.Empty(result.SkippedConflict);
+        Assert.Empty(result.SkippedAreaScoped);
         Assert.Empty(result.SkippedPlaceScoped);
     }
 
@@ -120,44 +202,117 @@ public class BulkDistanceScopeTests
     {
         var result = await UpdateSelected(this.ServiceFor(type), [2], 1500);
 
-        Assert.Empty(this._sent);
+        Assert.Empty(this._patched);
         Assert.Equal(0, result.Updated);
         Assert.Equal([2], result.SkippedAreaScoped);
     }
 
     [Fact]
-    public async Task MaxBattleDoesNotDeleteTheAlarmItIsGoingToSkip()
+    public async Task MaxBattleBulkDistanceNoDelete()
     {
-        // Max battles delete then re-create. The refusal used to land after the delete.
-        await UpdateSelected(this.ServiceFor("maxbattle"), [1, 2, 3], 1500);
+        // Max battles used to delete then re-create, so a failure after the delete lost the alarms.
+        var result = await UpdateSelected(this.ServiceFor("maxbattle"), [1, 2, 3], 1500);
 
-        Assert.Equal([1, 3], Assert.Single(this._deleted));
+        Assert.Equal(2, result.Updated);
+        Assert.Equal([1, 3], this.UidsSent());
+        this._inner.Verify(
+            p => p.BulkDeleteByUidsAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IEnumerable<int>>()),
+            Times.Never);
+        this._inner.Verify(
+            p => p.DeleteByUidAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task InvasionBulkDistanceSplitsEventsToIncident()
+    {
+        // With no Pokestop Events page the invasion list holds the event rules, so its bulk distance reaches
+        // them -- through incident, since v2's invasion route does not hold them.
+        this._inner
+            .Setup(p => p.GetByUserAsync("invasion", "u1"))
+            .ReturnsAsync(JsonDocument.Parse("""
+                [
+                  {"uid":1,"id":"u1","grunt_type":"water","gender":0,"distance":500,"override_location_label":"","override_areas":null},
+                  {"uid":7,"id":"u1","grunt_type":"kecleon","gender":0,"distance":500,"override_location_label":"","override_areas":null},
+                  {"uid":3,"id":"u1","grunt_type":"fire","gender":0,"distance":500,"override_location_label":"","override_areas":null}
+                ]
+                """).RootElement.Clone());
+
+        var result = await UpdateSelected(this.ServiceFor("invasion"), [1, 7, 3], 1500);
+
+        var (type, uids, set) = Assert.Single(this._patched);
+        Assert.Equal("invasion", type);
+        Assert.Equal([1, 3], uids);
+        Assert.Equal(new TrackingPatchSet(Distance: 1500), set);
+        var (eventUids, eventSet) = Assert.Single(this._incidentPatched);
+        Assert.Equal([7], eventUids);
+        Assert.Equal(new TrackingPatchSet(Distance: 1500), eventSet);
+        Assert.Equal(3, result.Updated);
+    }
+
+    [Fact]
+    public async Task InvasionBulkDistanceLeavesEventsAloneWhereTheyHaveTheirOwnPage()
+    {
+        this._featureGate.Setup(g => g.IsEnabledAsync(DisableFeatureKeys.PokestopEvents)).ReturnsAsync(true);
+        this._inner
+            .Setup(p => p.GetByUserAsync("invasion", "u1"))
+            .ReturnsAsync(JsonDocument.Parse("""
+                [
+                  {"uid":1,"id":"u1","grunt_type":"water","gender":0,"distance":500},
+                  {"uid":7,"id":"u1","grunt_type":"kecleon","gender":0,"distance":500}
+                ]
+                """).RootElement.Clone());
+
+        var result = await UpdateAll(this.ServiceFor("invasion"), 1500);
+
+        Assert.Equal([1], Assert.Single(this._patched).Uids);
+        Assert.Empty(this._incidentPatched);
+        Assert.Equal(1, result.Updated);
     }
 
     [Fact]
     public async Task PokestopEventsSkipTheSameWay()
     {
-        var proxy = new Mock<IPoracleIncidentProxy>();
-        proxy.Setup(p => p.GetByUserAsync("u1")).ReturnsAsync(
+        this._incident.Setup(p => p.GetByUserAsync("u1")).ReturnsAsync(
         [
             new PokestopEvent { Uid = 1, DisplayType = PokestopEventTypes.Showcase, Distance = 100 },
             new PokestopEvent { Uid = 2, DisplayType = PokestopEventTypes.Kecleon, OverrideAreas = ["aberdeen"] },
         ]);
-        List<PokestopEvent>? sent = null;
-        proxy.Setup(p => p.CreateAsync("u1", It.IsAny<IEnumerable<PokestopEvent>>(), It.IsAny<bool>()))
-            .Callback<string, IEnumerable<PokestopEvent>, bool>((_, rules, _) => sent = [.. rules])
-            .ReturnsAsync(new PokestopEventWriteResult([], [], []));
 
-        var result = await new PokestopEventService(proxy.Object, this._featureGate.Object)
+        var result = await new PokestopEventService(this._incident.Object, this._featureGate.Object)
             .UpdateDistanceByUidsAsync([1, 2], "u1", 750);
 
-        Assert.Equal(1, Assert.Single(sent!).Uid);
+        var (uids, set) = Assert.Single(this._incidentPatched);
+        Assert.Equal([1], uids);
+        Assert.Equal(new TrackingPatchSet(Distance: 750), set);
         Assert.Equal(1, result.Updated);
         Assert.Equal([2], result.SkippedAreaScoped);
+        this._incident.Verify(
+            p => p.CreateAsync(It.IsAny<string>(), It.IsAny<IEnumerable<PokestopEvent>>(), It.IsAny<bool>()), Times.Never);
     }
 
-    private List<int> UidsSent() =>
-        [.. Assert.Single(this._sent).EnumerateArray().Select(r => r.GetProperty("uid").GetInt32()).Order()];
+    [Fact]
+    public async Task PokestopEventConflictRefusalReportedAsSkippedConflict()
+    {
+        this._incident.Setup(p => p.GetByUserAsync("u1")).ReturnsAsync(
+        [
+            new PokestopEvent { Uid = 1, DisplayType = PokestopEventTypes.Showcase, Distance = 100 },
+            new PokestopEvent { Uid = 2, DisplayType = PokestopEventTypes.Kecleon, Distance = 100 },
+        ]);
+        this._refusals[2] = new PatchRefusal(2, PatchRefusalReasons.Conflict, "duplicate", 1);
+
+        var result = await new PokestopEventService(this._incident.Object, this._featureGate.Object)
+            .UpdateDistanceByUserAsync("u1", 0, 750);
+
+        Assert.Equal(1, result.Updated);
+        Assert.Equal([2], result.SkippedConflict);
+    }
+
+    private TrackingPatchResult Answer(IReadOnlyList<int> uids) => new(
+        [.. uids.Where(u => !this._refusals.ContainsKey(u) && !this._unchanged.Contains(u))],
+        [.. uids.Where(this._unchanged.Contains)],
+        [.. uids.Where(this._refusals.ContainsKey).Select(u => this._refusals[u])]);
+
+    private List<int> UidsSent() => [.. Assert.Single(this._patched).Uids.Order()];
 
     private static Task<DistanceUpdateResult> UpdateAll(object service, int distance) => service switch
     {
@@ -197,7 +352,7 @@ public class BulkDistanceScopeTests
         "egg" => new EggService(this._proxy, this._featureGate.Object, NullLogger<EggService>.Instance, this._remapper.Object),
         "quest" => new QuestService(
             this._proxy, this._featureGate.Object, NullLogger<QuestService>.Instance, this._remapper.Object),
-        "invasion" => new InvasionService(this._proxy, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._remapper.Object, Mock.Of<IPoracleIncidentProxy>()),
+        "invasion" => new InvasionService(this._proxy, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._remapper.Object, this._incident.Object),
         "lure" => new LureService(this._proxy, this._featureGate.Object, NullLogger<LureService>.Instance, this._remapper.Object),
         "nest" => new NestService(this._proxy, this._featureGate.Object, NullLogger<NestService>.Instance, this._remapper.Object),
         "gym" => new GymService(this._proxy, this._featureGate.Object, NullLogger<GymService>.Instance, this._remapper.Object),

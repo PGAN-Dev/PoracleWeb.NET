@@ -12,8 +12,8 @@ namespace Pgan.PoracleWebNet.Core.Services;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The whole of PoracleWeb builds and compares alarm bodies in v1's shape — <see cref="TrackingFieldPreserver"/>,
-/// <see cref="TrackingUpdateReconciler"/>, <c>BulkUidRemap</c> and <c>QuickPickService</c> all do. Keeping
+/// The whole of PoracleWeb builds and compares alarm bodies in v1's shape — <see cref="TrackingFieldPreserver"/>
+/// and <c>QuickPickService</c> both do. Keeping
 /// that shape as the single internal currency and translating once, at the wire, is what stops a v1-shaped
 /// row leaking into a v2 request: every <c>V2*Rule</c> sets <c>additionalProperties: false</c>, so one stray
 /// <c>ping</c> is a 422 and the write fails outright. Verified live against 5.2.1.

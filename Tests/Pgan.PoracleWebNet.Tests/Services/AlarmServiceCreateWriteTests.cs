@@ -41,7 +41,8 @@ public class AlarmServiceCreateWriteTests
         // The proxy refused, so the service must not try another way in.
         this._proxy.Verify(p => p.CreateAsync(type, "u1", It.IsAny<JsonElement>()), Times.Once);
         this._proxy.Verify(
-            p => p.UpsertV1Async(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+            p => p.PatchAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IReadOnlyList<int>>(), It.IsAny<TrackingPatchSet>()),
+            Times.Never);
         this._proxy.Verify(
             p => p.UpdateByUidAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<JsonElement>()),
             Times.Never);

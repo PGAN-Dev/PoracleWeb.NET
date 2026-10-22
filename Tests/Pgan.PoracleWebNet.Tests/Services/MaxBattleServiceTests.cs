@@ -215,8 +215,8 @@ public class MaxBattleServiceTests
         this._proxy.Setup(p => p.GetByUserAsync("maxbattle", "u")).ReturnsAsync(json);
         this._proxy.Setup(p => p.BulkDeleteByUidsAsync("maxbattle", "u", It.IsAny<IEnumerable<int>>()))
             .Returns(Task.CompletedTask);
-        this._proxy.Setup(p => p.UpsertV1Async("maxbattle", "u", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([], 0, 0, 2));
+        this._proxy.Setup(p => p.PatchAsync("maxbattle", "u", It.IsAny<IReadOnlyList<int>>(), It.IsAny<TrackingPatchSet>()))
+            .ReturnsAsync((string _, string _, IReadOnlyList<int> uids, TrackingPatchSet _) => new TrackingPatchResult([.. uids], [], []));
 
         Assert.Equal(2, (await this._sut.UpdateDistanceByUserAsync("u", 1, 100)).Updated);
     }
@@ -249,8 +249,8 @@ public class MaxBattleServiceTests
         this._proxy.Setup(p => p.GetByUserAsync("maxbattle", "u")).ReturnsAsync(json);
         this._proxy.Setup(p => p.BulkDeleteByUidsAsync("maxbattle", "u", It.IsAny<IEnumerable<int>>()))
             .Returns(Task.CompletedTask);
-        this._proxy.Setup(p => p.UpsertV1Async("maxbattle", "u", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([], 0, 0, 2));
+        this._proxy.Setup(p => p.PatchAsync("maxbattle", "u", It.IsAny<IReadOnlyList<int>>(), It.IsAny<TrackingPatchSet>()))
+            .ReturnsAsync((string _, string _, IReadOnlyList<int> uids, TrackingPatchSet _) => new TrackingPatchResult([.. uids], [], []));
 
         Assert.Equal(2, (await this._sut.UpdateDistanceByUidsAsync([1, 3], "u", 100)).Updated);
     }

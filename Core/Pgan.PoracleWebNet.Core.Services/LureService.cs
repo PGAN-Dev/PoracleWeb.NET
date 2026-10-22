@@ -83,71 +83,25 @@ public class LureService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, 
     public async Task<DistanceUpdateResult> UpdateDistanceByUserAsync(string userId, int profileNo, int distance)
     {
         var json = await this._proxy.GetByUserAsync(TrackingType, userId);
-        // The stored rows are rewritten in place rather than round-tripped through the typed model,
-        // so fields PoracleWeb does not model survive the write-back. See #730.
-        var (body, skipped) = DistanceRewrite.Build(json, _ => true, distance);
-        var count = body.GetArrayLength();
 
-        if (count == 0)
-        {
-            return skipped;
-        }
-        // Two selected rows that differed only by radius become the same alarm once both are set to
-        // the same one, and PoracleNG resolves that inside the batch -- fewer alarms than selected,
-        // one left at its old radius, and a response claiming all were updated. See #580.
-        TrackingUpdateReconciler.EnsureBatchDoesNotCollapse(body, TrackingType);
-
-        // And against the rows NOT selected: at the new radius a selected row can differ from an
-        // unselected sibling by exactly one updatable field, and PoracleNG then rewrites the SIBLING
-        // -- an alarm the user never touched -- while the selected one keeps its old radius and the
-        // response claims it was updated. See #598.
-        await TrackingUpdateReconciler.EnsureBatchDoesNotTakeOverOthersAsync(
-            this._proxy, TrackingType, userId, body);
-
-        await this._proxy.UpsertV1Async(TrackingType, userId, body);
-        // PoracleNG rewrites every row, so the uids change. Follow any quick-pick that
-        // tracks them, pairing on content because the batch response is reordered. See #443.
-        await BulkUidRemap.ApplyAsync(
-            this._proxy, TrackingType, userId, body, this._uidRemapper, this._logger);
-
-        return skipped with { Updated = count };
+        // One v2 PATCH naming the uids and the radius: nothing else a rule holds is re-sent (#730), each keeps
+        // its uid, and PoracleNG refuses a rule that would collide with another rather than merging it.
+        return await DistanceRewrite.ApplyAsync(this._proxy, TrackingType, userId, json, _ => true, distance, this._logger);
     }
 
     public async Task<DistanceUpdateResult> UpdateDistanceByUidsAsync(List<int> uids, string userId, int distance)
     {
         var json = await this._proxy.GetByUserAsync(TrackingType, userId);
-        // The stored rows are rewritten in place rather than round-tripped through the typed model,
-        // so fields PoracleWeb does not model survive the write-back. See #730.
         var selected = new HashSet<int>(uids);
-        var (body, skipped) = DistanceRewrite.Build(
+
+        return await DistanceRewrite.ApplyAsync(
+            this._proxy,
+            TrackingType,
+            userId,
             json,
             row => PoracleJsonHelper.UidOf(row) is int rowUid && selected.Contains(rowUid),
-            distance);
-        var count = body.GetArrayLength();
-
-        if (count == 0)
-        {
-            return skipped;
-        }
-        // Two selected rows that differed only by radius become the same alarm once both are set to
-        // the same one, and PoracleNG resolves that inside the batch -- fewer alarms than selected,
-        // one left at its old radius, and a response claiming all were updated. See #580.
-        TrackingUpdateReconciler.EnsureBatchDoesNotCollapse(body, TrackingType);
-
-        // And against the rows NOT selected: at the new radius a selected row can differ from an
-        // unselected sibling by exactly one updatable field, and PoracleNG then rewrites the SIBLING
-        // -- an alarm the user never touched -- while the selected one keeps its old radius and the
-        // response claims it was updated. See #598.
-        await TrackingUpdateReconciler.EnsureBatchDoesNotTakeOverOthersAsync(
-            this._proxy, TrackingType, userId, body);
-
-        await this._proxy.UpsertV1Async(TrackingType, userId, body);
-        // PoracleNG rewrites every row, so the uids change. Follow any quick-pick that
-        // tracks them, pairing on content because the batch response is reordered. See #443.
-        await BulkUidRemap.ApplyAsync(
-            this._proxy, TrackingType, userId, body, this._uidRemapper, this._logger);
-
-        return skipped with { Updated = count };
+            distance,
+            this._logger);
     }
 
     public async Task<int> CountByUserAsync(string userId, int profileNo)

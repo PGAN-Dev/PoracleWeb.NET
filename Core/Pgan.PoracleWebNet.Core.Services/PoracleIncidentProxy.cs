@@ -100,6 +100,22 @@ public sealed partial class PoracleIncidentProxy(
         return ReadRules(root, "deleted").Count;
     }
 
+    /// <inheritdoc />
+    public async Task<TrackingPatchResult> PatchAsync(string userId, IReadOnlyList<int> uids, TrackingPatchSet settings)
+    {
+        if (uids.Count == 0)
+        {
+            return TrackingPatchResult.None;
+        }
+
+        var response = await this.SendAsync(
+            HttpMethod.Patch,
+            $"{this.Route(userId)}?silent=true",
+            TrackingPatchWire.Body(uids, settings),
+            writeFeature: "saving alarms");
+        return TrackingPatchWire.Parse(await response.Content.ReadAsStringAsync());
+    }
+
     /// <summary>Authorises every override area the rules name, through the one area policy.</summary>
     /// <returns>
     /// True when any rule names one, so the write is sent <c>trusted</c>: PoracleNG's own check allows only

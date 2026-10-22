@@ -10,8 +10,8 @@ namespace Pgan.PoracleWebNet.Core.Abstractions.Services;
 public interface IPoracleTrackingProxy
 {
     /// <summary>
-    /// Fetches all tracking alarms of a type for a user on their active profile.
-    /// Maps to GET /api/tracking/{type}/{userId}
+    /// Fetches all tracking alarms of a type for a user on their active profile, read through v2 and
+    /// restated in v1's row shape.
     /// </summary>
     public Task<JsonElement> GetByUserAsync(string type, string userId);
 
@@ -46,13 +46,25 @@ public interface IPoracleTrackingProxy
     public Task<TrackingCreateResult> CreateOnProfileAsync(string type, string userId, JsonElement body, int profileNo);
 
     /// <summary>
-    /// v1; bulk distance and cleaning only, until sub-project 3c.
+    /// Applies the same settings to several rules of one type through
+    /// <c>PATCH /api/v2/humans/{id}/tracking/{type}?silent=true</c> with <c>{"uids":[...],"set":{...}}</c>.
+    /// Bulk distance and the clean toggle use it.
     /// </summary>
     /// <remarks>
-    /// <c>POST /api/tracking/{type}/{userId}?silent=true</c> with rows that carry their stored uids, which
-    /// PoracleNG upserts in place. Returns PoracleNG's <c>{ newUids, alreadyPresent, updates, insert }</c>.
+    /// <para>
+    /// Only the members of <paramref name="settings"/> that are not null are sent, and PoracleNG leaves every field
+    /// the request does not name as stored. Each rule keeps its uid. The uids are processed in the order
+    /// given, which decides which rule wins a conflict, and each lands in exactly one of the result's lists:
+    /// there is no all-or-nothing, so a refusal is an answer, not an exception.
+    /// </para>
+    /// <para>
+    /// An empty <paramref name="uids"/> sends nothing. A server without the route (gin's plaintext 404) is
+    /// <see cref="Pgan.PoracleWebNet.Core.Models.PoracleUnsupportedException"/>; a 400 or 422 for the whole
+    /// request is <see cref="Pgan.PoracleWebNet.Core.Models.AlarmValidationException"/>.
+    /// </para>
     /// </remarks>
-    public Task<TrackingCreateResult> UpsertV1Async(string type, string userId, JsonElement body);
+    public Task<Pgan.PoracleWebNet.Core.Models.TrackingPatchResult> PatchAsync(
+        string type, string userId, IReadOnlyList<int> uids, Pgan.PoracleWebNet.Core.Models.TrackingPatchSet settings);
 
     /// <summary>
     /// Replaces one existing tracking rule, addressed by its uid, through
@@ -101,14 +113,14 @@ public interface IPoracleTrackingProxy
     public Task<IReadOnlyList<int>> BulkDeleteByUidsOnProfileAsync(string type, string userId, IReadOnlyList<int> uids, int profileNo);
 
     /// <summary>
-    /// Fetches all tracking alarms across all types for a user on their active profile.
-    /// Maps to GET /api/tracking/all/{userId}
+    /// Fetches all tracking alarms across all types for a user on their active profile, read through v2's
+    /// snapshot and keyed as v1's <c>all</c> answer was.
     /// </summary>
     public Task<JsonElement> GetAllTrackingAsync(string userId);
 
     /// <summary>
-    /// Fetches all tracking rules across all profiles for a user.
-    /// Maps to GET /api/tracking/allProfiles/{userId}?includeDescriptions=true
+    /// Fetches all tracking rules across all profiles for a user, read through v2's snapshot with
+    /// <c>?all_profiles=true</c>.
     /// </summary>
     public Task<JsonElement> GetAllTrackingAllProfilesAsync(string userId);
 
@@ -129,8 +141,7 @@ public interface IPoracleTrackingProxy
 /// <param name="Inserts">How many rules were created.</param>
 /// <param name="RowUids">
 /// One entry per submitted row, in submission order: the uid created for it, or 0 when nothing was created for
-/// that row (already present, skipped as a takeover, or the commit could not be paired back to it). Empty from
-/// <see cref="IPoracleTrackingProxy.UpsertV1Async"/>, whose answer cannot be paired with its rows.
+/// that row (already present, skipped as a takeover, or the commit could not be paired back to it).
 /// </param>
 /// <param name="TakeoversSkipped">Rows of a batch left out because they would have taken another rule over.</param>
 public record TrackingCreateResult(

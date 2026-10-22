@@ -57,59 +57,6 @@ public partial class PoracleTrackingProxy(
 
     /// <inheritdoc />
     /// <remarks>
-    /// The one v1 tracking write left, for bulk distance and cleaning, whose rows carry their own uids and
-    /// are upserted in place. The scope rules are checked here too, as they are on every v2 write.
-    /// </remarks>
-    public async Task<TrackingCreateResult> UpsertV1Async(string type, string userId, JsonElement body)
-    {
-        OverrideScope.EnsureCoherent(body);
-
-        var bodyText = body.GetRawText();
-        LogCreateRequest(this._logger, type, userId, bodyText);
-        var request = this.CreateRequest(HttpMethod.Post, $"{this._apiAddress}/api/tracking/{type}/{Encode(userId)}?silent=true");
-        request.Content = new StringContent(bodyText, Encoding.UTF8, "application/json");
-
-        var response = await this._httpClient.SendAsync(request);
-
-        // A 400 from PoracleNG is the caller's problem, not the server's. EnsureSuccessStatusCode threw
-        // an HttpRequestException that the global handler flattened into 500 "An unexpected error
-        // occurred", so the user was told the server broke instead of what was wrong with their input,
-        // and it was logged as a fault. Pass the explanation through as a 400. See #539.
-        //
-        // 422 is the same refusal wearing a different number: PoracleNG 5.2.1 moved several validation
-        // 400s to 422 when it adopted RFC 9457. Matching only 400 would have re-opened #539 on every
-        // one of them.
-        if (response.StatusCode is HttpStatusCode.BadRequest or HttpStatusCode.UnprocessableEntity)
-        {
-            throw new AlarmValidationException(await ExtractMessageAsync(response));
-        }
-
-        EnsureAccountStillExists(response);
-        response.EnsureSuccessStatusCode();
-
-        var json = await response.Content.ReadAsStringAsync();
-        LogCreateResponse(this._logger, type, userId, json);
-        using var doc = JsonDocument.Parse(json);
-        var root = doc.RootElement;
-
-        var newUids = new List<long>();
-        if (root.TryGetProperty("newUids", out var uidsEl) && uidsEl.ValueKind == JsonValueKind.Array)
-        {
-            foreach (var uid in uidsEl.EnumerateArray())
-            {
-                newUids.Add(uid.GetInt64());
-            }
-        }
-
-        return new TrackingCreateResult(
-            newUids,
-            root.TryGetProperty("alreadyPresent", out var ap) ? ap.GetInt32() : 0,
-            root.TryGetProperty("updates", out var upd) ? upd.GetInt32() : 0,
-            root.TryGetProperty("insert", out var ins) ? ins.GetInt32() : 0);
-    }
-
-    /// <inheritdoc />
-    /// <remarks>
     /// <para>
     /// v2 only. An invasion uid that invasion does not hold is tried as an incident, since the invasion read
     /// hands out Pokestop event uids too.
@@ -410,18 +357,6 @@ public partial class PoracleTrackingProxy(
         response.EnsureSuccessStatusCode();
     }
 
-    /// <summary>
-    /// Reads whatever explanation PoracleNG returned, falling back to something honest.
-    /// </summary>
-    /// <remarks>
-    /// The same reader the v2 path uses. v1 and v2 disagree about the shape of an error -- v1 answers
-    /// <c>{message, status}</c> and v2 answers RFC 9457 problem+json -- but one reader covers both,
-    /// because the field names do not collide. Two readers would be two places to fix a wording bug,
-    /// and one of them would eventually be the one nobody updated.
-    /// </remarks>
-    private static async Task<string> ExtractMessageAsync(HttpResponseMessage response)
-        => PoracleProblemDetails.Describe(await response.Content.ReadAsStringAsync());
-
     private HttpRequestMessage CreateRequest(HttpMethod method, string url)
     {
         var request = new HttpRequestMessage(method, url);
@@ -442,10 +377,4 @@ public partial class PoracleTrackingProxy(
         Level = LogLevel.Information,
         Message = "Bulk delete {Type} for {UserId}: PoracleNG did not report deleting uids {Uids} (already gone, or not on the active profile).")]
     private static partial void LogBulkDeleteLeftUids(ILogger logger, string type, string userId, UidList uids);
-
-    [LoggerMessage(Level = LogLevel.Information, Message = "Create {Type} for {UserId} request: {Body}")]
-    private static partial void LogCreateRequest(ILogger logger, string type, string userId, string body);
-
-    [LoggerMessage(Level = LogLevel.Information, Message = "Create {Type} for {UserId} response: {Response}")]
-    private static partial void LogCreateResponse(ILogger logger, string type, string userId, string response);
 }

@@ -285,16 +285,19 @@ public class PokestopEventServiceTests
         this.Existing(
             Rule(1, PokestopEventTypes.Showcase, distance: 100),
             Rule(2, PokestopEventTypes.Kecleon, distance: 100));
-        List<PokestopEvent>? sent = null;
-        this._proxy.Setup(p => p.CreateAsync("u1", It.IsAny<IEnumerable<PokestopEvent>>(), It.IsAny<bool>()))
-            .Callback<string, IEnumerable<PokestopEvent>, bool>((_, rules, _) => sent = [.. rules])
-            .ReturnsAsync(new PokestopEventWriteResult([], [], []));
+        List<int>? sent = null;
+        TrackingPatchSet? settings = null;
+        this._proxy.Setup(p => p.PatchAsync("u1", It.IsAny<IReadOnlyList<int>>(), It.IsAny<TrackingPatchSet>()))
+            .Callback<string, IReadOnlyList<int>, TrackingPatchSet>((_, uids, s) => (sent, settings) = ([.. uids], s))
+            .ReturnsAsync(new TrackingPatchResult([2], [], []));
 
         var count = (await this._sut.UpdateDistanceByUidsAsync([2], "u1", 750)).Updated;
 
         Assert.Equal(1, count);
-        Assert.Equal(PokestopEventTypes.Kecleon, Assert.Single(sent!).DisplayType);
-        Assert.Equal(750, sent![0].Distance);
+        Assert.Equal([2], sent);
+        Assert.Equal(new TrackingPatchSet(Distance: 750), settings);
+        this._proxy.Verify(
+            p => p.CreateAsync(It.IsAny<string>(), It.IsAny<IEnumerable<PokestopEvent>>(), It.IsAny<bool>()), Times.Never);
     }
 
     [Fact]

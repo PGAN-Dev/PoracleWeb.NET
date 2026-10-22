@@ -76,6 +76,60 @@ public class PoracleIncidentProxyTests
         await Assert.ThrowsAsync<AlarmValidationException>(() => CreateSut(handler).BulkDeleteByUidsAsync("u1", [1]));
     }
 
+    // ── patch ────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task IncidentPatchSendsUidsAndOnlyTheNamedSettings()
+    {
+        var handler = new Handler(new Reply(
+            HttpStatusCode.OK,
+            """{"dry_run":false,"updated":[{"uid":1,"display_type":9}],"unchanged":[{"uid":2,"display_type":8}],"refused":null}"""));
+
+        var result = await CreateSut(handler).PatchAsync("u1", [1, 2], new TrackingPatchSet(Distance: 750));
+
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal(HttpMethod.Patch, request.Method);
+        Assert.Equal($"{Route}?silent=true", request.Url);
+        Assert.Equal("""{"uids":[1,2],"set":{"distance":750}}""", request.Body);
+        Assert.Equal([1], result.Updated);
+        Assert.Equal([2], result.Unchanged);
+        Assert.Empty(result.Refused);
+    }
+
+    [Fact]
+    public async Task IncidentPatchMapsRefusals()
+    {
+        var handler = new Handler(new Reply(
+            HttpStatusCode.OK,
+            """{"updated":null,"unchanged":null,"refused":[{"uid":3,"reason":"conflict","detail":"duplicate","conflicts_with":4}]}"""));
+
+        var result = await CreateSut(handler).PatchAsync("u1", [3], new TrackingPatchSet(Distance: 750));
+
+        Assert.Equal(new PatchRefusal(3, PatchRefusalReasons.Conflict, "duplicate", 4), Assert.Single(result.Refused));
+    }
+
+    [Fact]
+    public async Task IncidentPatchOnAServerWithoutTheRouteIsUnsupported()
+    {
+        var handler = new Handler(new Reply(HttpStatusCode.NotFound, "404 page not found", "text/plain"));
+
+        var ex = await Assert.ThrowsAsync<PoracleUnsupportedException>(
+            () => CreateSut(handler).PatchAsync("u1", [3], new TrackingPatchSet(Distance: 750)));
+
+        Assert.Equal("saving alarms", ex.Feature);
+        Assert.Equal("PoracleNG 5.4.0", ex.Requires);
+    }
+
+    [Fact]
+    public async Task IncidentPatchWithNoUidsSendsNothing()
+    {
+        var handler = new Handler(new Reply(HttpStatusCode.OK, "{}"));
+
+        await CreateSut(handler).PatchAsync("u1", [], new TrackingPatchSet(Distance: 750));
+
+        Assert.Empty(handler.Requests);
+    }
+
     // ── trusted override areas ───────────────────────────────────────────────
 
     [Fact]

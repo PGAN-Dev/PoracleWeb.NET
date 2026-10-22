@@ -58,10 +58,6 @@ public class AlarmDescriptionPassthroughTests
             .Setup(p => p.CreateAsync("pokemon", "user1", It.IsAny<JsonElement>()))
             .Callback<string, string, JsonElement>((_, _, body) => slot[0] = body.Clone())
             .ReturnsAsync(new TrackingCreateResult([], 0, 0, 0));
-        this._proxy
-            .Setup(p => p.UpsertV1Async("pokemon", "user1", It.IsAny<JsonElement>()))
-            .Callback<string, string, JsonElement>((_, _, body) => slot[0] = body.Clone())
-            .ReturnsAsync(new TrackingCreateResult([], 0, 0, 0));
         return slot;
     }
 
@@ -165,18 +161,22 @@ public class AlarmDescriptionPassthroughTests
     }
 
     [Fact]
-    public async Task BulkDistanceRewriteDropsTheDescriptionAndKeepsTheRest()
+    public async Task BulkDistanceSendsNoRowSoNoDescriptionCanReachTheWire()
     {
+        // A v2 PATCH names the uids and the radius; the stored row, description and all, is never re-sent.
         this._proxy.Setup(p => p.GetByUserAsync("pokemon", "user1")).ReturnsAsync(StoredRow(7, LiveDescription));
-        var written = this.CaptureWrites();
+        this._proxy
+            .Setup(p => p.PatchAsync("pokemon", "user1", It.IsAny<IReadOnlyList<int>>(), It.IsAny<TrackingPatchSet>()))
+            .ReturnsAsync(new TrackingPatchResult([7], [], []));
 
-        await this._monsters.UpdateDistanceByUserAsync("user1", 1, 1234);
+        var result = await this._monsters.UpdateDistanceByUserAsync("user1", 1, 1234);
 
-        var row = written[0].EnumerateArray().Single();
-        Assert.False(row.TryGetProperty("description", out _));
-        Assert.Equal(25, row.GetProperty("pokemon_id").GetInt32());
-        Assert.Equal(90, row.GetProperty("min_iv").GetInt32());
-        Assert.Equal(1234, row.GetProperty("distance").GetInt32());
+        Assert.Equal(1, result.Updated);
+        this._proxy.Verify(
+            p => p.PatchAsync("pokemon", "user1", It.Is<IReadOnlyList<int>>(u => u.Count == 1 && u[0] == 7), new TrackingPatchSet(1234, null)),
+            Times.Once);
+        this._proxy.Verify(
+            p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
     }
 
     [Fact]

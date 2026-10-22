@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
@@ -128,42 +129,27 @@ public class PokestopEventService(IPoracleIncidentProxy proxy, IFeatureGate feat
     }
 
     /// <summary>
-    /// Re-sends the whole rule with a new radius rather than a patch, so template, clean bits and
-    /// override scope survive.
+    /// One v2 PATCH naming the uids and the radius, so template, clean bits and override scope stay as stored
+    /// and each rule keeps its uid.
     /// </summary>
-    /// <remarks>
-    /// Safe to send as one batch, unlike the v1 types: each rule's identity is its own event, so no
-    /// two rows in the set can collapse into each other at the new radius — the #580/#598 failure has
-    /// nothing to bite on here.
-    /// </remarks>
     private async Task<DistanceUpdateResult> RewriteDistanceAsync(string userId, IReadOnlyList<PokestopEvent> items, int distance)
     {
         // A radius cannot apply to a rule limited to areas, and a rule measured from a place needs one.
-        // PoracleNG refuses both, so one such rule in the batch failed all of them; skip and report it.
-        var conflicts = items
-            .Select(item => (item, conflict: DistanceRewrite.ConflictOf(
+        // PoracleNG refuses both; skip and report them rather than sending them.
+        var plan = DistanceRewrite.Plan(
+            items.Select(item => new DistanceRewrite.RowScope(
+                item.Uid,
                 item.OverrideAreas is { Count: > 0 },
-                !string.IsNullOrWhiteSpace(item.OverrideLocationLabel),
-                distance)))
-            .ToList();
-        var writable = conflicts.Where(c => c.conflict == DistanceRewrite.ScopeConflict.None).Select(c => c.item).ToList();
-        var skipped = new DistanceUpdateResult(
-            0,
-            [.. conflicts.Where(c => c.conflict == DistanceRewrite.ScopeConflict.AreaScoped).Select(c => c.item.Uid)],
-            [.. conflicts.Where(c => c.conflict == DistanceRewrite.ScopeConflict.PlaceScoped).Select(c => c.item.Uid)]);
+                !string.IsNullOrWhiteSpace(item.OverrideLocationLabel))),
+            distance);
 
-        if (writable.Count == 0)
+        if (plan.Writable.Count == 0)
         {
-            return skipped;
+            return DistanceRewrite.Report(plan, TrackingTypeName, [], NullLogger.Instance);
         }
 
-        foreach (var item in writable)
-        {
-            item.Distance = distance;
-        }
-
-        await this._proxy.CreateAsync(userId, writable);
-        return skipped with { Updated = writable.Count };
+        var result = await this._proxy.PatchAsync(userId, plan.WritableUids, new TrackingPatchSet(Distance: distance));
+        return DistanceRewrite.Report(plan, TrackingTypeName, [result], NullLogger.Instance);
     }
 
     private const string TrackingTypeName = "incident";

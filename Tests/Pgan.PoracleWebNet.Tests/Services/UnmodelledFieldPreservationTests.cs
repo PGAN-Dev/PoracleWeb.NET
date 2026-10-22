@@ -28,6 +28,10 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 /// <see cref="TrackingFieldCoverageTests"/>.
 /// </para>
 /// <para>
+/// Bulk distance no longer sends rows at all: it is a v2 <c>PATCH</c> naming the uids and the radius, which
+/// leaves every other stored field alone upstream. Its tests here pin that no row is sent.
+/// </para>
+/// <para>
 /// These assert the legitimate case still works (the distance genuinely changes, the count is still
 /// reported) alongside the preservation, because a helper that dropped the change on the floor would
 /// preserve everything perfectly and do nothing useful.
@@ -39,6 +43,7 @@ public class UnmodelledFieldPreservationTests
     private readonly Mock<IFeatureGate> _featureGate = new();
     private readonly Mock<ITrackedUidRemapper> _remapper = new();
     private readonly List<JsonElement> _sent = [];
+    private readonly List<(List<int> Uids, TrackingPatchSet Set)> _patched = [];
 
     /// <summary>A stored row as PoracleNG 5.1.0 returns it, carrying fields PoracleWeb has no model for.</summary>
     private const string StoredRow =
@@ -89,9 +94,10 @@ public class UnmodelledFieldPreservationTests
             .Callback<string, string, JsonElement>((_, _, body) => this._sent.Add(body.Clone()))
             .ReturnsAsync(new TrackingCreateResult([7], 0, 0, 1));
         this._proxy
-            .Setup(p => p.UpsertV1Async(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()))
-            .Callback<string, string, JsonElement>((_, _, body) => this._sent.Add(body.Clone()))
-            .ReturnsAsync(new TrackingCreateResult([7], 0, 0, 1));
+            .Setup(p => p.PatchAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IReadOnlyList<int>>(), It.IsAny<TrackingPatchSet>()))
+            .Callback<string, string, IReadOnlyList<int>, TrackingPatchSet>((_, _, uids, set) => this._patched.Add(([.. uids], set)))
+            .ReturnsAsync((string _, string _, IReadOnlyList<int> uids, TrackingPatchSet _) => new TrackingPatchResult([.. uids], [], []));
         this._proxy
             .Setup(p => p.UpdateByUidAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<JsonElement>()))
@@ -113,67 +119,42 @@ public class UnmodelledFieldPreservationTests
 
     [Theory]
     [MemberData(nameof(AllTrackingTypes))]
-    public async Task BulkDistanceForEveryAlarmKeepsUnmodelledFields(string trackingType)
+    public async Task BulkDistanceForEveryAlarmSendsTheRadiusAlone(string trackingType)
     {
+        // A v2 PATCH names the uid and the radius and nothing else, and PoracleNG leaves every field it is not
+        // told about as stored. No row goes back on the wire, so no unmodelled field can be lost, and
+        // profile_no (#411) cannot ride along.
         this.Store(PlaceScopedRow);
         var changed = await UpdateAllDistance(this.ServiceFor(trackingType), 1500);
 
         Assert.Equal(1, changed);
-        var row = this.OnlyRowSent();
-        Assert.Equal(1500, row.GetProperty("distance").GetInt32());
-        AssertCarriedForward(row, areas: null);
+        var (uids, set) = Assert.Single(this._patched);
+        Assert.Equal([7], uids);
+        Assert.Equal(new TrackingPatchSet(Distance: 1500), set);
+        Assert.Empty(this._sent);
     }
 
     [Theory]
     [MemberData(nameof(AllTrackingTypes))]
-    public async Task BulkDistanceForSelectedAlarmsKeepsUnmodelledFields(string trackingType)
+    public async Task BulkDistanceForSelectedAlarmsSendsOnlyTheSelectedUid(string trackingType)
     {
         this.Store(PlaceScopedRow);
         var changed = await UpdateSelectedDistance(this.ServiceFor(trackingType), 1500);
 
         Assert.Equal(1, changed);
-        var row = this.OnlyRowSent();
-        Assert.Equal(1500, row.GetProperty("distance").GetInt32());
-        AssertCarriedForward(row, areas: null);
+        Assert.Equal([7], Assert.Single(this._patched).Uids);
+        Assert.Empty(this._sent);
     }
 
     [Theory]
     [MemberData(nameof(AllTrackingTypes))]
-    public async Task BulkDistanceRewritesOnlyTheSelectedRow(string trackingType)
-    {
-        this.Store(PlaceScopedRow);
-        // The legitimate-case half: selection still has to work now that the rewrite runs off the stored
-        // rows rather than a filtered typed list.
-        await UpdateSelectedDistance(this.ServiceFor(trackingType), 1500);
-
-        Assert.Equal(7, this.OnlyRowSent().GetProperty("uid").GetInt32());
-    }
-
-    [Theory]
-    [MemberData(nameof(AllTrackingTypes))]
-    public async Task BulkDistanceStillStripsProfileNo(string trackingType)
-    {
-        this.Store(PlaceScopedRow);
-        // The stored row carries profile_no and the rewrite passes properties through verbatim, so the
-        // strip has to survive the new path or #411 comes straight back.
-        await UpdateAllDistance(this.ServiceFor(trackingType), 1500);
-
-        Assert.False(this.OnlyRowSent().TryGetProperty("profile_no", out _));
-    }
-
-    [Theory]
-    [MemberData(nameof(AllTrackingTypes))]
-    public async Task BulkDistanceToZeroKeepsTheAreasOfAnAreaScopedAlarm(string trackingType)
+    public async Task BulkDistanceToZeroStillReachesAnAreaScopedAlarm(string trackingType)
     {
         this.Store(AreaScopedRow);
 
         Assert.Equal(1, await UpdateAllDistance(this.ServiceFor(trackingType), 0));
 
-        var row = this.OnlyRowSent();
-        Assert.Equal(0, row.GetProperty("distance").GetInt32());
-        Assert.Equal("terrigal", row.GetProperty("override_areas").EnumerateArray().Single().GetString());
-        Assert.Equal(3, row.GetProperty("rarity").GetInt32());
-        Assert.Equal(85, row.GetProperty("costume").GetInt32());
+        Assert.Equal(new TrackingPatchSet(Distance: 0), Assert.Single(this._patched).Set);
     }
 
     [Fact]
@@ -184,6 +165,7 @@ public class UnmodelledFieldPreservationTests
             .ReturnsAsync(JsonDocument.Parse("[]").RootElement.Clone());
 
         Assert.Equal(0, await UpdateAllDistance(this.ServiceFor("pokemon"), 1500));
+        Assert.Empty(this._patched);
         Assert.Empty(this._sent);
     }
 

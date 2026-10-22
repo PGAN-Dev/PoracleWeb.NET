@@ -9,7 +9,7 @@ using Pgan.PoracleWebNet.Core.Models;
 namespace Pgan.PoracleWebNet.Core.Services;
 
 /// <summary>
-/// Tracking creates and edits, over PoracleNG's <c>/api/v2</c> surface only.
+/// Tracking creates, edits and bulk settings, over PoracleNG's <c>/api/v2</c> surface only.
 /// </summary>
 public partial class PoracleTrackingProxy
 {
@@ -41,6 +41,38 @@ public partial class PoracleTrackingProxy
             userId, [body], () => this.StoredOverrideAreasAsync(type, userId, uid));
 
         return await this.PutV2Async(type, userId, uid, translated[0], trusted);
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// A refusal of one rule is in the answer, not an exception: PATCH has no all-or-nothing. A failure of the
+    /// whole request maps as every other v2 write does (<see cref="ThrowForFailedWrite"/>).
+    /// </remarks>
+    public async Task<TrackingPatchResult> PatchAsync(
+        string type, string userId, IReadOnlyList<int> uids, TrackingPatchSet settings)
+    {
+        if (uids.Count == 0)
+        {
+            return TrackingPatchResult.None;
+        }
+
+        var bodyText = TrackingPatchWire.Body(uids, settings);
+        LogPatchRequest(this._logger, type, userId, bodyText);
+
+        var request = this.CreateRequest(
+            HttpMethod.Patch, $"{this._apiAddress}/api/v2/humans/{Encode(userId)}/tracking/{type}?silent=true");
+        request.Content = new StringContent(bodyText, Encoding.UTF8, "application/json");
+
+        var response = await this._httpClient.SendAsync(request);
+        var payload = await response.Content.ReadAsStringAsync();
+
+        if (!response.IsSuccessStatusCode)
+        {
+            ThrowForFailedWrite(response, type, payload);
+        }
+
+        LogPatchResponse(this._logger, type, userId, payload);
+        return TrackingPatchWire.Parse(payload);
     }
 
     /// <summary>
@@ -514,6 +546,12 @@ public partial class PoracleTrackingProxy
         Level = LogLevel.Debug,
         Message = "Could not read PoracleNG's /openapi.json ({Reason}); treating its v2 rules as unbounded, which is how they are sent today.")]
     private static partial void LogV2BoundsUnavailable(ILogger logger, string reason);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "v2 patch {Type} for {UserId} request: {Body}")]
+    private static partial void LogPatchRequest(ILogger logger, string type, string userId, string body);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "v2 patch {Type} for {UserId} response: {Response}")]
+    private static partial void LogPatchResponse(ILogger logger, string type, string userId, string response);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "v2 create {Type} for {UserId} request to {Url}: {Body}")]
     private static partial void LogV2CreateRequest(ILogger logger, string type, string userId, string url, string body);

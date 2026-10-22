@@ -66,6 +66,13 @@ public interface IPoracleIncidentProxy
     /// Returns how many PoracleNG actually removed.
     /// </summary>
     public Task<int> BulkDeleteByUidsAsync(string userId, IEnumerable<int> uids);
+
+    /// <summary>
+    /// Applies the same settings to several rules through <c>PATCH .../tracking/incident?silent=true</c> with
+    /// <c>{"uids":[...],"set":{...}}</c>, the contract <see cref="IPoracleTrackingProxy.PatchAsync"/> speaks for
+    /// the other types. Each rule keeps its uid; an empty <paramref name="uids"/> sends nothing.
+    /// </summary>
+    public Task<TrackingPatchResult> PatchAsync(string userId, IReadOnlyList<int> uids, TrackingPatchSet settings);
 }
 
 /// <summary>

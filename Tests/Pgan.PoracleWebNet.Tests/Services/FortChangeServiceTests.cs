@@ -160,8 +160,8 @@ public class FortChangeServiceTests
                 template = "ZZrow2"
             });
         this._proxy.Setup(p => p.GetByUserAsync("fort", "u1")).ReturnsAsync(json);
-        this._proxy.Setup(p => p.UpsertV1Async("fort", "u1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([], 0, 2, 0));
+        this._proxy.Setup(p => p.PatchAsync("fort", "u1", It.IsAny<IReadOnlyList<int>>(), It.IsAny<TrackingPatchSet>()))
+            .ReturnsAsync((string _, string _, IReadOnlyList<int> uids, TrackingPatchSet _) => new TrackingPatchResult([.. uids], [], []));
         Assert.Equal(2, (await this._sut.UpdateDistanceByUserAsync("u1", 1, 5000)).Updated);
     }
 

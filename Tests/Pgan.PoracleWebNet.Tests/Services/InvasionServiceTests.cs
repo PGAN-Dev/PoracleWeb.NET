@@ -169,8 +169,8 @@ public class InvasionServiceTests
                 template = "ZZrow4"
             });
         this._proxy.Setup(p => p.GetByUserAsync("invasion", "u")).ReturnsAsync(json);
-        this._proxy.Setup(p => p.UpsertV1Async("invasion", "u", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([], 0, 4, 0));
+        this._proxy.Setup(p => p.PatchAsync("invasion", "u", It.IsAny<IReadOnlyList<int>>(), It.IsAny<TrackingPatchSet>()))
+            .ReturnsAsync((string _, string _, IReadOnlyList<int> uids, TrackingPatchSet _) => new TrackingPatchResult([.. uids], [], []));
 
         Assert.Equal(4, (await this._sut.UpdateDistanceByUserAsync("u", 1, 50)).Updated);
     }
@@ -411,33 +411,34 @@ public class InvasionServiceTests
     public async Task UpdateDistanceByUserAsyncDoesNotRewritePokestopEventRows()
     {
         this.MixedTable();
-        JsonElement? body = null;
-        this._proxy.Setup(p => p.UpsertV1Async("invasion", "u1", It.IsAny<JsonElement>()))
-            .Callback<string, string, JsonElement>((_, _, b) => body = b)
-            .ReturnsAsync(new TrackingCreateResult([], 0, 2, 0));
+        List<int>? sent = null;
+        this._proxy.Setup(p => p.PatchAsync("invasion", "u1", It.IsAny<IReadOnlyList<int>>(), It.IsAny<TrackingPatchSet>()))
+            .Callback<string, string, IReadOnlyList<int>, TrackingPatchSet>((_, _, uids, _) => sent = [.. uids])
+            .ReturnsAsync((string _, string _, IReadOnlyList<int> uids, TrackingPatchSet _) => new TrackingPatchResult([.. uids], [], []));
 
         var count = (await this._sut.UpdateDistanceByUserAsync("u1", 1, 500)).Updated;
 
         Assert.Equal(2, count);
-        Assert.DoesNotContain(
-            "showcase",
-            body!.Value.GetRawText(),
-            StringComparison.Ordinal);
+        Assert.Equal([1, 3], sent);
+        this._incident.Verify(
+            p => p.PatchAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<int>>(), It.IsAny<TrackingPatchSet>()), Times.Never);
     }
 
     [Fact]
     public async Task UpdateDistanceByUidsAsyncIgnoresAPokestopEventUid()
     {
         this.MixedTable();
-        JsonElement? body = null;
-        this._proxy.Setup(p => p.UpsertV1Async("invasion", "u1", It.IsAny<JsonElement>()))
-            .Callback<string, string, JsonElement>((_, _, b) => body = b)
-            .ReturnsAsync(new TrackingCreateResult([], 0, 1, 0));
+        List<int>? sent = null;
+        this._proxy.Setup(p => p.PatchAsync("invasion", "u1", It.IsAny<IReadOnlyList<int>>(), It.IsAny<TrackingPatchSet>()))
+            .Callback<string, string, IReadOnlyList<int>, TrackingPatchSet>((_, _, uids, _) => sent = [.. uids])
+            .ReturnsAsync((string _, string _, IReadOnlyList<int> uids, TrackingPatchSet _) => new TrackingPatchResult([.. uids], [], []));
 
         var count = (await this._sut.UpdateDistanceByUidsAsync([1, 2], "u1", 500)).Updated;
 
         Assert.Equal(1, count);
-        Assert.DoesNotContain("showcase", body!.Value.GetRawText(), StringComparison.Ordinal);
+        Assert.Equal([1], sent);
+        this._incident.Verify(
+            p => p.PatchAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<int>>(), It.IsAny<TrackingPatchSet>()), Times.Never);
     }
 
     // ── Pokestop events written through the invasion service ────────────────

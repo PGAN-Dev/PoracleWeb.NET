@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging.Abstractions;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
@@ -98,47 +99,28 @@ public class MonsterService(
         return uids.Count;
     }
 
-    // Fetch-modify-POST workaround: not atomic. Concurrent distance updates from the same user
-    // could race, but this is acceptable — the last write wins and distance is a single scalar.
-    // See: docs/poracleng-enhancement-requests.md#bulk-distance-update
     public async Task<DistanceUpdateResult> UpdateDistanceByUserAsync(string userId, int profileNo, int distance)
     {
         var json = await this._proxy.GetByUserAsync(TrackingType, userId);
 
-        // The stored rows are rewritten in place rather than round-tripped through the typed model,
-        // so fields PoracleWeb does not model survive the write-back. See #730.
-        var (body, skipped) = DistanceRewrite.Build(json, _ => true, distance);
-        var count = body.GetArrayLength();
-
-        if (count == 0)
-        {
-            return skipped;
-        }
-
-        await this._proxy.UpsertV1Async(TrackingType, userId, body);
-        return skipped with { Updated = count };
+        // One v2 PATCH naming the uids and the radius: nothing else a rule holds is re-sent (#730), each keeps
+        // its uid, and PoracleNG refuses a rule that would collide with another rather than merging it.
+        return await DistanceRewrite.ApplyAsync(this._proxy, TrackingType, userId, json, _ => true, distance, NullLogger.Instance);
     }
 
     public async Task<DistanceUpdateResult> UpdateDistanceByUidsAsync(List<int> uids, string userId, int distance)
     {
         var json = await this._proxy.GetByUserAsync(TrackingType, userId);
-
-        // The stored rows are rewritten in place rather than round-tripped through the typed model,
-        // so fields PoracleWeb does not model survive the write-back. See #730.
         var selected = new HashSet<int>(uids);
-        var (body, skipped) = DistanceRewrite.Build(
+
+        return await DistanceRewrite.ApplyAsync(
+            this._proxy,
+            TrackingType,
+            userId,
             json,
             row => PoracleJsonHelper.UidOf(row) is int rowUid && selected.Contains(rowUid),
-            distance);
-        var count = body.GetArrayLength();
-
-        if (count == 0)
-        {
-            return skipped;
-        }
-
-        await this._proxy.UpsertV1Async(TrackingType, userId, body);
-        return skipped with { Updated = count };
+            distance,
+            NullLogger.Instance);
     }
 
     public async Task<int> CountByUserAsync(string userId, int profileNo)

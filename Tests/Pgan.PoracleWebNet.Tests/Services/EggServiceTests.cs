@@ -146,8 +146,8 @@ public class EggServiceTests
                 template = "ZZrow3"
             });
         this._proxy.Setup(p => p.GetByUserAsync("egg", "u")).ReturnsAsync(json);
-        this._proxy.Setup(p => p.UpsertV1Async("egg", "u", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([], 0, 3, 0));
+        this._proxy.Setup(p => p.PatchAsync("egg", "u", It.IsAny<IReadOnlyList<int>>(), It.IsAny<TrackingPatchSet>()))
+            .ReturnsAsync((string _, string _, IReadOnlyList<int> uids, TrackingPatchSet _) => new TrackingPatchResult([.. uids], [], []));
 
         Assert.Equal(3, (await this._sut.UpdateDistanceByUserAsync("u", 1, 200)).Updated);
     }

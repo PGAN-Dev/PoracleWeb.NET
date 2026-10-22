@@ -144,33 +144,34 @@ public class PokestopEventConsumerTests
     public async Task InvasionBulkDistanceWritesOnlyTheInvasionsWhenTheEventsPageIsOn()
     {
         var handler = new Handler().Get("/tracking/invasion", InvasionRules).Get("/tracking/incident", IncidentRules)
-            .Post("/api/tracking/invasion/u1", """{"newUids":[],"alreadyPresent":0,"updates":1,"insert":0}""");
+            .Patch("/tracking/invasion?", PatchedUids(1));
 
-        await this.CreateInvasions(handler).UpdateDistanceByUserAsync("u1", 1, 500);
+        var result = await this.CreateInvasions(handler).UpdateDistanceByUserAsync("u1", 1, 500);
 
-        var post = Assert.Single(handler.Requests, r => r.Method == HttpMethod.Post);
-        Assert.DoesNotContain("kecleon", post.Body!, StringComparison.Ordinal);
-        Assert.DoesNotContain("showcase", post.Body!, StringComparison.Ordinal);
+        Assert.Equal(1, result.Updated);
+        var patch = Assert.Single(handler.Requests, r => r.Method == HttpMethod.Patch);
+        Assert.Contains("/tracking/invasion?silent=true", patch.Url, StringComparison.Ordinal);
+        Assert.Equal("""{"uids":[1],"set":{"distance":500}}""", patch.Body);
     }
 
     [Fact]
-    public async Task InvasionBulkDistanceStillWritesEventRowsThroughV1WhenTheEventsPageIsOff()
+    public async Task InvasionBulkDistanceSendsEventRowsToIncidentWhenTheEventsPageIsOff()
     {
-        // 3b/3c: this write path is still v1 (the invasion table). The folded event row has to go back in the
-        // shape v1's create accepts: grunt_type as the event name, gender 0.
+        // v2's invasion route does not hold the event rules, so the folded event uids are patched as incident.
         this.EventsPageOff();
         var handler = new Handler().Get("/tracking/invasion", InvasionRules).Get("/tracking/incident", IncidentRules)
-            .Post("/api/tracking/invasion/u1", """{"newUids":[],"alreadyPresent":0,"updates":3,"insert":0}""");
+            .Patch("/tracking/invasion?", PatchedUids(1))
+            .Patch("/tracking/incident?", PatchedUids(289, 290));
 
         var result = await this.CreateInvasions(handler).UpdateDistanceByUserAsync("u1", 1, 500);
 
         Assert.Equal(3, result.Updated);
-        var post = Assert.Single(handler.Requests, r => r.Method == HttpMethod.Post);
-        using var doc = JsonDocument.Parse(post.Body!);
-        var rows = doc.RootElement.EnumerateArray().ToList();
-        Assert.Equal(["water", "kecleon", "showcase"], rows.Select(r => r.GetProperty("grunt_type").GetString()));
-        Assert.All(rows, r => Assert.Equal(500, r.GetProperty("distance").GetInt32()));
-        Assert.Equal(0, rows[1].GetProperty("gender").GetInt32());
+        var patches = handler.Requests.Where(r => r.Method == HttpMethod.Patch).ToList();
+        Assert.Equal(2, patches.Count);
+        Assert.Contains(patches, r => r.Url.Contains("/tracking/invasion?", StringComparison.Ordinal)
+            && r.Body == """{"uids":[1],"set":{"distance":500}}""");
+        Assert.Contains(patches, r => r.Url.Contains("/tracking/incident?", StringComparison.Ordinal)
+            && r.Body == """{"uids":[289,290],"set":{"distance":500}}""");
     }
 
     // -- CleaningService --------------------------------------------------
@@ -216,13 +217,13 @@ public class PokestopEventConsumerTests
     public async Task TheInvasionCleanToggleSkipsEventsWhenThePokestopEventsPageIsOn()
     {
         var handler = new Handler().Get("/tracking/invasion", InvasionRules).Get("/tracking/incident", IncidentRules)
-            .Post("/api/tracking/invasion/u1", """{"newUids":[],"alreadyPresent":0,"updates":1,"insert":0}""");
+            .Patch("/tracking/invasion?", PatchedUids(1));
 
         var count = await this.CreateCleaning(handler).ToggleCleanInvasionsAsync("u1", 1, 1);
 
         Assert.Equal(1, count);
-        var post = Assert.Single(handler.Requests, r => r.Method == HttpMethod.Post);
-        Assert.DoesNotContain("kecleon", post.Body!, StringComparison.Ordinal);
+        var patch = Assert.Single(handler.Requests, r => r.Method == HttpMethod.Patch);
+        Assert.Equal("""{"uids":[1],"set":{"clean":true}}""", patch.Body);
     }
 
     [Fact]
@@ -230,16 +231,17 @@ public class PokestopEventConsumerTests
     {
         this.EventsPageOff();
         var handler = new Handler().Get("/tracking/invasion", InvasionRules).Get("/tracking/incident", IncidentRules)
-            .Post("/api/tracking/invasion/u1", """{"newUids":[],"alreadyPresent":0,"updates":3,"insert":0}""");
+            .Patch("/tracking/invasion?", PatchedUids(1))
+            .Patch("/tracking/incident?", PatchedUids(289, 290));
 
         var count = await this.CreateCleaning(handler).ToggleCleanInvasionsAsync("u1", 1, 1);
 
         Assert.Equal(3, count);
-        var post = Assert.Single(handler.Requests, r => r.Method == HttpMethod.Post);
-        using var doc = JsonDocument.Parse(post.Body!);
-        var rows = doc.RootElement.EnumerateArray().ToList();
-        Assert.Equal(["water", "kecleon", "showcase"], rows.Select(r => r.GetProperty("grunt_type").GetString()));
-        Assert.All(rows, r => Assert.Equal(1, r.GetProperty("clean").GetInt32()));
+        var patches = handler.Requests.Where(r => r.Method == HttpMethod.Patch).ToList();
+        Assert.Contains(patches, r => r.Url.Contains("/tracking/invasion?", StringComparison.Ordinal)
+            && r.Body == """{"uids":[1],"set":{"clean":true}}""");
+        Assert.Contains(patches, r => r.Url.Contains("/tracking/incident?", StringComparison.Ordinal)
+            && r.Body == """{"uids":[289,290],"set":{"clean":true}}""");
     }
 
     // -- HumanService -----------------------------------------------------
@@ -252,10 +254,26 @@ public class PokestopEventConsumerTests
     // and removes through InvasionService.DeleteAsync (single event uid tested above).
 
     private InvasionService CreateInvasions(Handler handler) =>
-        new(CreateProxy(handler), this._gate.Object, NullLogger<InvasionService>.Instance, Mock.Of<ITrackedUidRemapper>(), Mock.Of<IPoracleIncidentProxy>());
+        new(CreateProxy(handler), this._gate.Object, NullLogger<InvasionService>.Instance, Mock.Of<ITrackedUidRemapper>(), CreateIncidentProxy(handler));
 
     private CleaningService CreateCleaning(Handler handler) =>
-        new(CreateProxy(handler), this._gate.Object, Mock.Of<ITrackedUidRemapper>(), NullLogger<CleaningService>.Instance);
+        new(CreateProxy(handler), this._gate.Object, CreateIncidentProxy(handler), NullLogger<CleaningService>.Instance);
+
+    /// <summary>A PATCH answer reporting every named uid as updated.</summary>
+    private static string PatchedUids(params int[] uids) =>
+        "{\"dry_run\":false,\"updated\":[" + string.Join(",", uids.Select(u => $"{{\"uid\":{u}}}")) + "],\"unchanged\":null,\"refused\":null}";
+
+    private static PoracleIncidentProxy CreateIncidentProxy(Handler handler) => new(
+        new HttpClient(handler),
+        new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Poracle:ApiAddress"] = Api,
+                ["Poracle:ApiSecret"] = "test-secret",
+            })
+            .Build(),
+        PoracleTrackingProxyTests.AnyAreaPolicy(),
+        NullLogger<PoracleIncidentProxy>.Instance);
 
     private static PoracleTrackingProxy CreateProxy(Handler handler)
     {
@@ -286,6 +304,8 @@ public class PokestopEventConsumerTests
         public Handler Get(string fragment, string body) => this.On(HttpMethod.Get, fragment, body);
 
         public Handler Post(string fragment, string body) => this.On(HttpMethod.Post, fragment, body);
+
+        public Handler Patch(string fragment, string body) => this.On(HttpMethod.Patch, fragment, body);
 
         public Handler Delete(string fragment, string body, HttpStatusCode status = HttpStatusCode.OK, string contentType = "application/json") =>
             this.On(HttpMethod.Delete, fragment, body, status, contentType);

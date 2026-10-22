@@ -91,78 +91,25 @@ public partial class MaxBattleService(IPoracleTrackingProxy proxy, IFeatureGate 
     public async Task<DistanceUpdateResult> UpdateDistanceByUserAsync(string userId, int profileNo, int distance)
     {
         var json = await this._proxy.GetByUserAsync(TrackingType, userId);
-        // The stored rows are rewritten in place rather than round-tripped through the typed model,
-        // so fields PoracleWeb does not model survive the write-back. See #730.
-        var (body, skipped) = DistanceRewrite.Build(json, _ => true, distance);
-        var count = body.GetArrayLength();
 
-        if (count == 0)
-        {
-            return skipped;
-        }
-
-        // MaxBattle is insert-only — bulk delete then re-create with updated distance.
-        // If the re-create fails after delete, alarms are lost. Log for recovery.
-        var uids = body.EnumerateArray().Select(PoracleJsonHelper.UidOf).OfType<int>().ToList();
-        await this._proxy.BulkDeleteByUidsAsync(TrackingType, userId, uids);
-
-        try
-        {
-            await this._proxy.UpsertV1Async(TrackingType, userId, body);
-
-            // The rows were deleted and re-made, so every uid changed. Follow any quick pick that
-            // tracks them, pairing on content because the batch response is reordered. See #443.
-            await BulkUidRemap.ApplyAsync(
-                this._proxy, TrackingType, userId, body, this._uidRemapper, this._logger);
-        }
-        catch (Exception ex)
-        {
-            LogRecreateFailed(this._logger, ex,
-                count, userId, string.Join(", ", uids));
-            throw;
-        }
-
-        return skipped with { Updated = count };
+        // One v2 PATCH naming the uids and the radius: nothing else a rule holds is re-sent (#730), each keeps
+        // its uid, and PoracleNG refuses a rule that would collide with another rather than merging it.
+        return await DistanceRewrite.ApplyAsync(this._proxy, TrackingType, userId, json, _ => true, distance, this._logger);
     }
 
     public async Task<DistanceUpdateResult> UpdateDistanceByUidsAsync(List<int> uids, string userId, int distance)
     {
         var json = await this._proxy.GetByUserAsync(TrackingType, userId);
-        // The stored rows are rewritten in place rather than round-tripped through the typed model,
-        // so fields PoracleWeb does not model survive the write-back. See #730.
         var selected = new HashSet<int>(uids);
-        var (body, skipped) = DistanceRewrite.Build(
+
+        return await DistanceRewrite.ApplyAsync(
+            this._proxy,
+            TrackingType,
+            userId,
             json,
             row => PoracleJsonHelper.UidOf(row) is int rowUid && selected.Contains(rowUid),
-            distance);
-        var count = body.GetArrayLength();
-
-        if (count == 0)
-        {
-            return skipped;
-        }
-
-        // MaxBattle is insert-only — bulk delete then re-create with updated distance.
-        var matchingUids = body.EnumerateArray().Select(PoracleJsonHelper.UidOf).OfType<int>().ToList();
-        await this._proxy.BulkDeleteByUidsAsync(TrackingType, userId, matchingUids);
-
-        try
-        {
-            await this._proxy.UpsertV1Async(TrackingType, userId, body);
-
-            // The rows were deleted and re-made, so every uid changed. Follow any quick pick that
-            // tracks them, pairing on content because the batch response is reordered. See #443.
-            await BulkUidRemap.ApplyAsync(
-                this._proxy, TrackingType, userId, body, this._uidRemapper, this._logger);
-        }
-        catch (Exception ex)
-        {
-            LogRecreateFailed(this._logger, ex,
-                count, userId, string.Join(", ", matchingUids));
-            throw;
-        }
-
-        return skipped with { Updated = count };
+            distance,
+            this._logger);
     }
 
     public async Task<int> CountByUserAsync(string userId, int profileNo)
@@ -198,7 +145,4 @@ public partial class MaxBattleService(IPoracleTrackingProxy proxy, IFeatureGate 
 
     private static JsonElement SerializeToElement<T>(T value) =>
         PoracleJsonHelper.SerializeToElement(value);
-
-    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to re-create {Count} maxbattle alarms after bulk delete for user {UserId}. Alarms with UIDs [{Uids}] were deleted but not re-created")]
-    private static partial void LogRecreateFailed(ILogger logger, Exception ex, int count, string userId, string uids);
 }
