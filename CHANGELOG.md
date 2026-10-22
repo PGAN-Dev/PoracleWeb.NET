@@ -40,7 +40,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Smaller fixes around the 5.4.0 rule repair and alarm saves.** A double-click on Repair no longer opens two confirm dialogs, a failed run shows its reason on a separate line under the message, and the French "would clash" line on a bulk radius change reads naturally. The scan no longer counts a rule twice on PoracleNG builds that list rules from profiles with no profile row, and an override area with a blank name is dropped instead of being sent to PoracleNG.
+- **A double-click on Repair no longer opens two confirm dialogs.** Repair is ignored while a confirmation is open or a repair is being sent.
+- **A failed rule repair shows its reason on its own line** under the message, instead of running it into the sentence.
+- **The French message for a radius change that would clash with another rule reads naturally.**
+- **The rule repair scan no longer counts a rule twice** on a PoracleNG that includes rules from profiles with no saved profile entry.
+- **Profile Overview no longer lists the active profile's alarms twice** on a PoracleNG that includes rules from profiles with no saved profile entry.
+- **An override area with a blank name is dropped** instead of being sent to PoracleNG.
 - **The steel grunt was being saved as `metal`, which matched nothing.** PoracleNG's game data calls it `steel`, and its v2 API refuses `metal`, so an invasion alert for the steel grunt never fired. New alerts and imports save `steel`, and a stored `metal` alert is saved as `steel` the next time you edit it.
 - **Duplicating a profile from Profile Overview now copies a webhook alert's mention.** The Profile Overview duplicate button copies alerts with PoracleNG's own profile copy, the way the Profiles page always has, so a role or user mention on a webhook alert is kept instead of being dropped. ([#993](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/993))
 - **While PoracleNG is failing, deleting a user no longer reports the account as already gone, and nobody's session is ended for it.** PoracleWeb.NET read any failed answer from PoracleNG about an account as "this account doesn't exist", so an admin deleting a user mid-outage got a 404, and `/api/auth/me` answered "this account no longer exists", which signed out whoever asked. Only PoracleNG's own "not found" means that now; anything else is reported as the error it is, and the delete stops before touching anything. The delete's existence check also goes through PoracleNG now instead of reading Poracle's `humans` table directly. ([#994](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/994))

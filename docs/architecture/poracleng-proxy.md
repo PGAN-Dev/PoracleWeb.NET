@@ -159,10 +159,9 @@ old client-side mirror had to reconstruct.
 **A v2 PUT is a full replace.** Omitting `min_iv` wipes a stored 90, verified live against 5.2.1. That
 makes `TrackingFieldPreserver` load-bearing in a stronger way than it was on v1, where PoracleNG merged.
 
-**The uid is read back on every edit.** The v2 engine is delete-then-insert, so on 5.2.x the replacement
-comes back under a new uid. Since jfberry/PoracleNG #303 (unreleased) the PUT keeps the rule's uid, but a
-failed reassignment still answers 200 with a new one, so the response is always read. Pokemon used to be
-the one type whose uid survived an edit; on 5.2.x it no longer is.
+**The uid is read back on every edit.** The v2 engine is delete-then-insert, then reassigns the old uid
+(jfberry/PoracleNG #303, in 5.4.0). A failed reassignment still answers 200 with a new uid, so the response
+is always read.
 `TrackingV2Replacement.ApplyAsync` calls `ITrackedUidRemapper` for every type but pokemon,
 and `MonsterService` does the same after its own update, but only when the uid actually moved, so
 quick-pick applied state follows the row rather than pointing at a uid that is gone.
