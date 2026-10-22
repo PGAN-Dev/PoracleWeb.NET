@@ -19,7 +19,9 @@
   }
 }
 
+// One mid blue in both themes, not the theme's primary: the tiles stay light in dark mode, where the dark
+// theme's pale primary all but vanished against them, and a mid blue still reads on a dark basemap.
 :host ::ng-deep .scope-map-shape {
-  stroke: var(--mat-sys-primary, #1976d2);
-  fill: var(--mat-sys-primary, #1976d2);
+  stroke: #1e88e5;
+  fill: #1e88e5;
 }

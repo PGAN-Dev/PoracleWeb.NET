@@ -112,9 +112,8 @@ mat-expansion-panel {
   margin: 0 0 6px;
   padding: 0;
   color: var(--text-muted, rgba(0, 0, 0, 0.64));
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-size: 14px;
+  font-weight: 600;
 }
 .pvp-cap-toggle {
   display: inline-flex;

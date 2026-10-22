@@ -67,6 +67,7 @@ export class ScopeMapComponent {
   private polygonsRequested = false;
 
   private resizeObserver: null | ResizeObserver = null;
+  private retry: ReturnType<typeof setTimeout> | undefined;
 
   private readonly shapes = computed(() => {
     const wanted = new Set(this.drawing().areas.map(a => a.toLowerCase()));
@@ -91,6 +92,8 @@ export class ScopeMapComponent {
         this.teardown();
         return;
       }
+      // A container that came back (the map hid, then had something to draw again) is a new element.
+      if (this.map && this.map.getContainer() !== container) this.teardown();
       if (!this.map) this.createMap(container);
       this.draw(shapes.circle, shapes.fences);
     });
@@ -107,6 +110,8 @@ export class ScopeMapComponent {
       scrollWheelZoom: false,
       touchZoom: false,
       zoomControl: false,
+      // Half steps let a fitted circle or area fill the strip instead of sitting small in a level too far out.
+      zoomSnap: 0.5,
     });
     this.map.attributionControl.setPrefix(false);
     // Asked for here rather than injected up front: only a dialog that actually draws a map needs the
@@ -129,9 +134,8 @@ export class ScopeMapComponent {
     if (!this.map || !this.layer) return;
     this.layer.clearLayers();
 
-    // The colour itself comes from the stylesheet (`.scope-map-shape`), which can read the theme's tokens;
-    // an SVG attribute can't hold a `light-dark()` value. These are the fallback.
-    const colour = '#1976d2';
+    // The stylesheet (`.scope-map-shape`) sets the colour; this is only Leaflet's attribute value.
+    const colour = '#1e88e5';
     const bounds = L.latLngBounds([]);
 
     for (const fence of fences) {
@@ -169,14 +173,24 @@ export class ScopeMapComponent {
     this.fit();
   }
 
-  private fit(): void {
+  private fit(attempt = 0): void {
     if (!this.map || !this.bounds) return;
-    const size = this.map.getSize();
-    if (size.x === 0 || size.y === 0) return;
+    // Leaflet caches the size it measured when the map was made, which inside a tab still sliding in is
+    // often 0x0, and the tab's slide moves the container without resizing it, so no observer fires again.
+    // Leaflet won't re-measure a map that has no view yet (invalidateSize returns early), so read the
+    // container itself, give the map a view once it has a size, and only then let it measure and fit.
+    const container = this.map.getContainer();
+    if (container.clientWidth === 0 || container.clientHeight === 0) {
+      if (attempt < 20) this.retry = setTimeout(() => this.fit(attempt + 1), 100);
+      return;
+    }
+    this.map.setView(this.bounds.getCenter(), this.map.getZoom() || 12, { animate: false });
+    this.map.invalidateSize({ animate: false });
     this.map.fitBounds(this.bounds, { animate: false, padding: [12, 12] });
   }
 
   private teardown(): void {
+    clearTimeout(this.retry);
     this.resizeObserver?.disconnect();
     this.resizeObserver = null;
     this.map?.remove();

@@ -228,8 +228,11 @@ export class QuickPickListComponent implements OnInit {
     const count = pick.appliedState?.trackedUids?.length ?? 0;
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
+        // The button names the action, as every other confirm does; "Confirm" said nothing about deleting alarms.
+        confirmText: this.i18n.instant('QUICK_PICKS.REMOVE'),
         message: this.i18n.plural('QUICK_PICKS.CONFIRM_REMOVE_MSG', count, { name: this.pickName(pick.definition) }),
         title: this.i18n.instant('QUICK_PICKS.CONFIRM_REMOVE_TITLE'),
+        warn: true,
       },
     });
     ref.afterClosed().subscribe(confirmed => {
