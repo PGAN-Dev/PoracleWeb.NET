@@ -157,6 +157,11 @@ if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ASPNETCORE_URLS")))
 // or a Poracle connection string keeps starting; it is told once, after the host is built, that they are dead.
 var legacyPoracleDbSettings = LegacyPoracleDbSettings.AreSet(builder.Configuration);
 
+if (string.IsNullOrWhiteSpace(builder.Configuration.GetConnectionString("PoracleWebDb")))
+{
+    throw new InvalidOperationException("Configuration 'ConnectionStrings:PoracleWebDb' is required but was not provided.");
+}
+
 var jwtSecret = builder.Configuration["Jwt:Secret"];
 if (string.IsNullOrWhiteSpace(jwtSecret) || jwtSecret.Length < 32)
 {

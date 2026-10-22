@@ -20,8 +20,13 @@ namespace Pgan.PoracleWebNet.Tests.Integration;
 [Collection("PoracleDbEnvironment")]
 public sealed class PoracleDatabaseStartupTests
 {
+    private const string DeadDb = "Server=127.0.0.1;Port=1;Database=none;User=none;Password=none";
     private const string Line = "DB_* settings are no longer used by PoracleWeb.NET and can be removed.";
-    private static readonly string[] LegacyVariables = ["DB_HOST", "DB_PORT", "DB_NAME", "DB_USER", "DB_PASSWORD"];
+    private static readonly string[] LegacyVariables =
+    [
+        "DB_HOST", "DB_PORT", "DB_NAME", "DB_USER", "DB_PASSWORD", "ConnectionStrings__PoracleDb",
+        "WEB_DB_HOST", "WEB_DB_PORT", "WEB_DB_NAME", "WEB_DB_USER", "WEB_DB_PASSWORD", "ConnectionStrings__PoracleWebDb",
+    ];
 
     [Fact]
     public async Task StartsWithoutAPoracleConnectionString()
@@ -35,6 +40,19 @@ public sealed class PoracleDatabaseStartupTests
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.DoesNotContain(logs.Messages, m => m == Line);
+    }
+
+    [Fact]
+    public async Task RefusesToStartWithoutThePoracleWebConnectionString()
+    {
+        using var env = new LegacyEnvironment(null);
+        var logs = new CapturedLogs();
+        await using var factory = new Factory(logs, null);
+
+        var ex = Assert.ThrowsAny<Exception>(() => factory.CreateClient());
+
+        var message = (ex as InvalidOperationException ?? ex.InnerException as InvalidOperationException)?.Message ?? ex.ToString();
+        Assert.Contains("Configuration 'ConnectionStrings:PoracleWebDb' is required but was not provided.", message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -101,16 +119,18 @@ public sealed class PoracleDatabaseStartupTests
         }
     }
 
-    private sealed class Factory(CapturedLogs logs) : WebApplicationFactory<Program>
+    private sealed class Factory(CapturedLogs logs, string? webDb = DeadDb) : WebApplicationFactory<Program>
     {
-        private const string DeadDb = "Server=127.0.0.1;Port=1;Database=none;User=none;Password=none";
-
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             ArgumentNullException.ThrowIfNull(builder);
 
             builder.UseEnvironment(Environments.Production);
-            builder.UseSetting("ConnectionStrings:PoracleWebDb", DeadDb);
+            if (webDb is not null)
+            {
+                builder.UseSetting("ConnectionStrings:PoracleWebDb", webDb);
+            }
+
             builder.UseSetting("Jwt:Secret", "integration-test-jwt-secret-at-least-32-chars");
             builder.UseSetting("Jwt:Issuer", "PoracleWeb");
             builder.UseSetting("Jwt:Audience", "PoracleWeb.App");
