@@ -727,6 +727,16 @@ public partial class AdminController(
             return this.Forbid();
         }
 
+        // The purge below cannot be undone, and an admin's own row sits in the list like any other. The
+        // sibling of #613's self-block, which guarded blocking yourself and left deleting yourself open.
+        if (string.Equals(id, this.UserId, StringComparison.Ordinal))
+        {
+            return this.BadRequest(new
+            {
+                error = "You cannot delete your own account.",
+            });
+        }
+
         // Everything the account owns goes with it: alarms, geofences, delegate grants, quick picks and
         // their applied state. Removing the humans row alone left all of it behind, unreachable but
         // intact, and re-creating the same id adopted the lot -- including impersonation rights over a
