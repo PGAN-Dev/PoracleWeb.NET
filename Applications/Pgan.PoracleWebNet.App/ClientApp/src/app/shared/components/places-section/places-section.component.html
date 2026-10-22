@@ -1,70 +1,54 @@
-<h2 class="section-title">
-  <mat-icon>place</mat-icon>
-  {{ 'WHERE.PLACES_TITLE' | translate }}
+<div class="places-header">
+  <h2 class="places-title">{{ 'WHERE.PLACES_TITLE' | translate }}</h2>
   <button mat-stroked-button class="section-action" [disabled]="busy() || loading()" (click)="addPlace()">
     <mat-icon>add_location_alt</mat-icon>
     {{ 'WHERE.ADD_PLACE' | translate }}
   </button>
-</h2>
+</div>
 
 <p class="section-description">{{ 'WHERE.PLACES_PAGE_DESC' | translate }}</p>
 
 @if (loading()) {
-  <div class="place-grid">
+  <ul class="place-list" aria-hidden="true">
     @for (i of skeletons; track i) {
-      <div class="skeleton-place-card">
-        <div class="skeleton-place-header">
-          <div class="skeleton-place-icon"></div>
-          <div class="skeleton-place-lines">
-            <div class="skeleton-line" style="width: 55%"></div>
-            <div class="skeleton-line" style="width: 75%"></div>
-          </div>
-        </div>
-      </div>
+      <li class="place-row skeleton-place-row">
+        <span class="skeleton-place-dot"></span>
+        <span class="skeleton-line" style="width: 40%"></span>
+      </li>
     }
-  </div>
+  </ul>
 } @else if (places.named().length === 0) {
   <div class="place-empty-state">
-    <mat-icon class="place-empty-icon">add_location_alt</mat-icon>
     <p class="place-empty-title">{{ 'WHERE.PLACES_EMPTY_TITLE' | translate }}</p>
     <p class="place-empty-subtitle">{{ 'WHERE.PLACES_EMPTY' | translate }}</p>
-    <button mat-stroked-button color="primary" [disabled]="busy()" (click)="addPlace()">
-      <mat-icon>add</mat-icon> {{ 'WHERE.ADD_PLACE' | translate }}
-    </button>
   </div>
 } @else {
-  <div class="place-grid">
+  <!-- Each row carries the same violet dot as its marker on the map above. -->
+  <ul class="place-list">
     @for (place of places.named(); track place.label) {
-      <div class="place-card">
-        <div class="place-card-accent"></div>
-        <div class="place-card-body">
-          <div class="place-card-header">
-            <mat-icon class="place-card-icon">place</mat-icon>
-            <div class="place-card-info">
-              <span class="place-card-name">{{ place.label }}</span>
-              <span class="place-card-coords">{{ place.latitude | number: '1.4-4' }}, {{ place.longitude | number: '1.4-4' }}</span>
-            </div>
-          </div>
-          <div class="place-card-footer">
-            <button
-              mat-icon-button
-              [disabled]="busy()"
-              [matTooltip]="'WHERE.PLACE_MOVE_TITLE' | translate"
-              [attr.aria-label]="'WHERE.PLACE_MOVE_TITLE' | translate"
-              (click)="movePlace(place)">
-              <mat-icon>edit_location_alt</mat-icon>
-            </button>
-            <button
-              mat-icon-button
-              [disabled]="busy()"
-              [matTooltip]="'WHERE.PLACE_DELETE_TITLE' | translate"
-              [attr.aria-label]="'WHERE.PLACE_DELETE_TITLE' | translate"
-              (click)="confirmRemove(place)">
-              <mat-icon>delete</mat-icon>
-            </button>
-          </div>
+      <li class="place-row">
+        <span class="place-dot" aria-hidden="true"></span>
+        <div class="place-info">
+          <span class="place-name">{{ place.label }}</span>
+          <span class="place-coords">{{ place.latitude | number: '1.4-4' }}, {{ place.longitude | number: '1.4-4' }}</span>
         </div>
-      </div>
+        <button
+          mat-icon-button
+          [disabled]="busy()"
+          [matTooltip]="'WHERE.PLACE_MOVE_TITLE' | translate"
+          [attr.aria-label]="'WHERE.PLACE_MOVE_NAMED' | translate: { place: place.label }"
+          (click)="movePlace(place)">
+          <mat-icon>edit_location_alt</mat-icon>
+        </button>
+        <button
+          mat-icon-button
+          [disabled]="busy()"
+          [matTooltip]="'WHERE.PLACE_DELETE_TITLE' | translate"
+          [attr.aria-label]="'WHERE.PLACE_DELETE_NAMED' | translate: { place: place.label }"
+          (click)="confirmRemove(place)">
+          <mat-icon>delete</mat-icon>
+        </button>
+      </li>
     }
-  </div>
+  </ul>
 }

@@ -1,11 +1,12 @@
 import { SlicePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal, computed } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, OnInit, DestroyRef, inject, signal, computed, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatExpansionModule } from '@angular/material/expansion';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -18,8 +19,9 @@ import { AreaDefinition, GeofenceData, Location } from '../../core/models';
 import { AreaService } from '../../core/services/area.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { LocationService } from '../../core/services/location.service';
+import { PlacesService } from '../../core/services/places.service';
 import { SettingsService } from '../../core/services/settings.service';
-import { AreaMapComponent } from '../../shared/components/area-map/area-map.component';
+import { AreaMapComponent, MapPlace } from '../../shared/components/area-map/area-map.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { LocationDialogComponent } from '../../shared/components/location-dialog/location-dialog.component';
 import { PlacesSectionComponent } from '../../shared/components/places-section/places-section.component';
@@ -33,6 +35,14 @@ interface AreaItem {
   group: string;
   name: string;
   selected: boolean;
+}
+
+/**
+ * PoracleNG's comparison key for an area name (`NormalizeAreaKey`): lowercase, trimmed, `_` equal to a space.
+ * Used to tell which of the names sent it kept.
+ */
+function areaKey(name: string): string {
+  return name.trim().toLowerCase().replace(/_/g, ' ');
 }
 
 interface GroupInfo {
@@ -51,6 +61,7 @@ interface GroupInfo {
     MatCheckboxModule,
     MatChipsModule,
     MatDialogModule,
+    MatExpansionModule,
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
@@ -84,8 +95,9 @@ export class AreaListComponent implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly i18n = inject(I18nService);
   private readonly locationService = inject(LocationService);
-  private readonly rawGeofenceData = signal<GeofenceData[]>([]);
+  private readonly pinPanel = viewChild('pinPanel', { read: ElementRef });
 
+  private readonly rawGeofenceData = signal<GeofenceData[]>([]);
   /**
    * What PoracleNG holds for the active profile, as last read or saved. The Areas card and the quiet chips
    * speak about this, not about the ticks: an area ticked and not yet saved is not active, and has no
@@ -94,6 +106,7 @@ export class AreaListComponent implements OnInit {
   readonly savedAreas = signal<string[]>([]);
   private readonly savedAreaKeys = computed(() => new Set(this.savedAreas().map(a => a.toLowerCase())));
   private readonly settingsService = inject(SettingsService);
+
   private readonly snackBar = inject(MatSnackBar);
 
   /** Label for areas Koji reports with no group. Doubles as the key the group filter matches on. */
@@ -166,6 +179,7 @@ export class AreaListComponent implements OnInit {
 
   readonly loading = signal(true);
   readonly location = signal<Location | null>(null);
+
   readonly locationAddress = signal<string>('');
 
   /**
@@ -178,6 +192,12 @@ export class AreaListComponent implements OnInit {
   readonly locationMapUrl = signal<string>('');
 
   manualAreaName = '';
+
+  readonly places = inject(PlacesService);
+  /** The named places, drawn on the map beside the pin. None while location is switched off. */
+  readonly mapPlaces = computed((): MapPlace[] => (this.locationEnabled() ? this.places.named() : []));
+  /** The pin and places panel. Closed by default: the map above it already shows both. */
+  readonly pinPanelOpen = signal(false);
   readonly saving = signal(false);
 
   searchText = '';
@@ -327,6 +347,13 @@ export class AreaListComponent implements OnInit {
     });
   }
 
+  /** A marker was clicked: open the panel that manages the pin and places, and bring it into view. */
+  openPinPanel(): void {
+    this.pinPanelOpen.set(true);
+    // After the panel has had a frame to start opening, so the scroll lands on its expanded position.
+    setTimeout(() => this.pinPanel()?.nativeElement.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' }));
+  }
+
   removeAreaDirect(name: string): void {
     const lowerName = name.toLowerCase();
     const area = this.areas().find(a => a.name.toLowerCase() === lowerName);
@@ -360,12 +387,7 @@ export class AreaListComponent implements OnInit {
             duration: message ? 6000 : 3000,
           });
         },
-        next: () => {
-          this.savedAreas.set([...selected]);
-          this.selectedAreas.set(selected);
-          this.saving.set(false);
-          this.snackBar.open(this.i18n.instant('AREAS.SNACK_UPDATED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
-        },
+        next: stored => this.applySaved(selected, stored),
       });
   }
 
@@ -377,6 +399,33 @@ export class AreaListComponent implements OnInit {
   toggleAreaDirect(area: AreaItem): void {
     area.selected = !area.selected;
     this.syncSelectedFromAreas();
+  }
+
+  /**
+   * The page takes what PoracleNG kept, not what it was sent. PUT /api/areas answers with the profile's list
+   * read back after the write, and a name PoracleNG has no fence for (a renamed or deleted area) is dropped
+   * there without an error. Trusting the names sent showed such an area as active, with a quiet chip, until
+   * the next reload; now it is unticked and the snackbar names it.
+   */
+  private applySaved(sent: string[], stored: null | string[] | undefined): void {
+    const kept = Array.isArray(stored) ? stored : sent;
+    const keptKeys = new Set(kept.map(areaKey));
+    const dropped = sent.filter(name => !keptKeys.has(areaKey(name)));
+
+    for (const a of this.areas()) a.selected = keptKeys.has(areaKey(a.name));
+    this.savedAreas.set([...kept]);
+    this.selectedAreas.set([...kept]);
+    this.saving.set(false);
+
+    if (dropped.length > 0) {
+      this.snackBar.open(
+        this.i18n.instant('AREAS.SNACK_SAVED_DROPPED', { names: dropped.map(name => this.areaDisplayName(name)).join(', ') }),
+        this.i18n.instant('TOAST.OK'),
+        { duration: 6000 },
+      );
+    } else {
+      this.snackBar.open(this.i18n.instant('AREAS.SNACK_UPDATED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+    }
   }
 
   private buildAreaList(): void {

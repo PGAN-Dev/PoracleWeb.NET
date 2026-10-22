@@ -89,13 +89,13 @@ If you choose "Near a point" without ever having set a pin, the picker says so a
 
 ### Saved places
 
-A place is a named point ("home", "work", "the gym") that an alarm can measure from instead of your profile pin. They live on the **Areas & Places** page, below the pin and the area map. (`/places` still resolves; it redirects to `/areas`.)
+A place is a named point ("home", "work", "the gym") that an alarm can measure from instead of your profile pin. They live on the **Areas & Places** page: the area map draws each one as a labelled violet dot beside the blue pin, and the **Pin and places** panel under the map is where you add, move and delete them. (`/places` still resolves; it redirects to `/areas`.)
 
 ![Areas & Places with four areas selected on the map, one of them a drawn geofence](../screenshots/areas.png)
 
 ![The List view of Areas & Places, with a search box above every area that can be selected](../screenshots/areas-bottom.png)
 
-The pin is set from the **My pin** card on the same page, through a map picker with an address search; the search goes through PoracleNG's geocoder, and the `disable_nominatim` site setting hides it.
+The pin is set from the **My pin** row of that panel, through a map picker with an address search; the search goes through PoracleNG's geocoder, and the `disable_nominatim` site setting hides it.
 
 ![The pin dialog with address search results listed under the search box](../screenshots/location-dialog.png)
 

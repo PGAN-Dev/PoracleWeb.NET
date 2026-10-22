@@ -10,6 +10,7 @@ import { MatInputModule } from '@angular/material/input';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { GeofenceRegion } from '../../../core/models';
+import { GEOFENCE_NAME_PATTERN } from '../../utils/geofence.utils';
 import { RegionOption, RegionSelectorComponent } from '../region-selector/region-selector.component';
 
 export interface GeofenceNameDialogData {
@@ -62,7 +63,7 @@ export class GeofenceNameDialogComponent {
   /** In the error state whenever the name breaks the rule, touched or not, so the reason shows at once. */
   readonly nameErrors: ErrorStateMatcher = { isErrorState: () => this.isWhitespaceOnly || this.hasInvalidChars };
 
-  readonly namePattern = /^[a-zA-Z0-9 \-'.()&]+$/;
+  readonly namePattern = GEOFENCE_NAME_PATTERN;
 
   selectedRegionId: number | null = this.data.detectedRegion?.id ?? null;
 

@@ -10,6 +10,7 @@ import { MatInputModule } from '@angular/material/input';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { GeofenceRegion, UserGeofence } from '../../../core/models';
+import { GEOFENCE_NAME_PATTERN } from '../../utils/geofence.utils';
 import { RegionOption, RegionSelectorComponent } from '../region-selector/region-selector.component';
 
 export interface GeofenceApprovalDialogData {
@@ -50,7 +51,7 @@ export class GeofenceApprovalDialogComponent {
    * after it. The server rejects anything outside this set, and used to answer 404 for it, so the
    * SPA reported the submission as missing while it sat visible in the list. See #421.
    */
-  static readonly PROMOTED_NAME_PATTERN = /^[a-zA-Z0-9 \-'.()&]+$/;
+  static readonly PROMOTED_NAME_PATTERN = GEOFENCE_NAME_PATTERN;
 
   readonly data = inject<GeofenceApprovalDialogData>(MAT_DIALOG_DATA);
 

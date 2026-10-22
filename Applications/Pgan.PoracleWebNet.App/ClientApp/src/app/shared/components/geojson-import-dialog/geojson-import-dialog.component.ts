@@ -17,6 +17,7 @@ import { I18nService } from '../../../core/services/i18n.service';
 import { UserGeofenceService } from '../../../core/services/user-geofence.service';
 import { detectRegion } from '../../../shared/utils/geo.utils';
 import { TranslatePluralPipe } from '../../pipes/translate-plural.pipe';
+import { GEOFENCE_NAME_PATTERN } from '../../utils/geofence.utils';
 
 export interface GeoJsonImportDialogData {
   currentGeofenceCount: number;
@@ -139,7 +140,7 @@ export class GeoJsonImportDialogComponent {
     const name = feature.editedName.trim();
     if (!name) return this.i18n.instant('GEOJSON_IMPORT.ERR_NAME_REQUIRED');
     if (name.length > 50) return this.i18n.instant('GEOJSON_IMPORT.ERR_NAME_MAX_LENGTH');
-    if (!/^[a-zA-Z0-9 \-'.()&]+$/.test(name)) return this.i18n.instant('GEOJSON_IMPORT.ERR_NAME_INVALID_CHARS');
+    if (!GEOFENCE_NAME_PATTERN.test(name)) return this.i18n.instant('GEOJSON_IMPORT.ERR_NAME_INVALID_CHARS');
     const lowerName = name.toLowerCase();
     if (this.data.existingNames.some(n => n.toLowerCase() === lowerName)) return this.i18n.instant('GEOJSON_IMPORT.ERR_NAME_EXISTS');
     const others = this.previewFeatures().filter(f => f !== feature && f.selected);

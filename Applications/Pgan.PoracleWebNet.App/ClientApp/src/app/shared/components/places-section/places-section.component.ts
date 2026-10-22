@@ -19,10 +19,11 @@ import { LocationDialogComponent } from '../location-dialog/location-dialog.comp
 /**
  * The places a user's alarms can be aimed at: the profile pin, plus whatever they have named.
  *
- * A section of the Areas page, directly under the Location card that holds the pin. The pin and the
+ * Part of the Areas page's "Pin and places" panel, under the row that holds the pin. The pin and the
  * named places are the same kind of thing — points an alert can measure from — and three design
- * reviews all landed on the same objection to giving them separate homes. The pin is not repeated in
- * this grid because the card immediately above it is the pin.
+ * reviews all landed on the same objection to giving them separate homes. The map above the panel draws
+ * both as markers, so this list only names each place and offers Move and Delete; the pin is not repeated
+ * here because the row immediately above it is the pin.
  *
  * Adding a place borrows the location dialog as a coordinate picker rather than growing a second map,
  * then asks for the name separately, because picking a point and naming it are two decisions and

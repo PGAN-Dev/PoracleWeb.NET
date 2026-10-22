@@ -86,7 +86,7 @@ describe('AreaListComponent location gating', () => {
 
     expect(fixture.componentInstance.loading()).toBe(false);
     expect(fixture.componentInstance.selectedAreas()).toEqual(['downtown']);
-    expect(el.querySelector('.method-areas')).not.toBeNull();
+    expect(el.querySelector('.areas-status')).not.toBeNull();
   });
 
   it('shows the pin without an address lookup when only geocoding is disabled', () => {

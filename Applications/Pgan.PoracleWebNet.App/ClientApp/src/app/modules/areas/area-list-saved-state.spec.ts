@@ -65,6 +65,8 @@ describe('AreaListComponent saved and unsaved selections', () => {
         METHOD_AREAS_ACTIVE_OTHER: '{{count}} areas active',
         SNACK_FAILED: 'Failed to update areas',
         SNACK_NOT_PERMITTED: 'Not saved. These areas aren’t available to you: {{names}}',
+        SNACK_SAVED_DROPPED: 'Saved. Left out, because Poracle has no such area: {{names}}',
+        SNACK_UPDATED: 'Areas updated',
       },
       COMMON: { REMOVE_NAMED: 'Remove {{name}}' },
     });
@@ -85,19 +87,56 @@ describe('AreaListComponent saved and unsaved selections', () => {
     fixture.detectChanges();
 
     expect(component.selectedAreas()).toHaveLength(2);
-    expect(el.querySelector('.method-areas .method-status')?.textContent?.trim()).toBe('1 area active');
+    expect(el.querySelector('.areas-status')?.textContent?.trim()).toBe('1 area active');
   });
 
   it('counts the new area once it is saved', () => {
     const { component, el, fixture, uptown } = setup();
     const areas = TestBed.inject(AreaService) as unknown as { update: jest.Mock };
-    areas.update = jest.fn(() => of(undefined));
+    areas.update = jest.fn(() => of(['downtown', 'uptown']));
 
     component.toggleAreaDirect(uptown());
     component.saveAreas();
     fixture.detectChanges();
 
-    expect(el.querySelector('.method-areas .method-status')?.textContent?.trim()).toBe('2 areas active');
+    expect(el.querySelector('.areas-status')?.textContent?.trim()).toBe('2 areas active');
+    expect(component.hasChanges()).toBe(false);
+  });
+
+  /**
+   * PUT /api/areas answers with the list PoracleNG holds after the write, and PoracleNG drops a name it has
+   * no fence for without an error. The page used to keep the names it sent, so a dropped area read as
+   * active, with a quiet chip, until the next reload.
+   */
+  it('keeps what PoracleNG kept, unticks what it dropped, and names it', () => {
+    const { component, el, fixture, uptown } = setup();
+    const areas = TestBed.inject(AreaService) as unknown as { update: jest.Mock };
+    areas.update = jest.fn(() => of(['downtown']));
+    const snackOpen = jest.spyOn(fixture.debugElement.injector.get(MatSnackBar), 'open');
+
+    component.toggleAreaDirect(uptown());
+    component.saveAreas();
+    fixture.detectChanges();
+
+    expect(component.savedAreas()).toEqual(['downtown']);
+    expect(component.selectedAreas()).toEqual(['downtown']);
+    expect(uptown().selected).toBe(false);
+    expect(component.hasChanges()).toBe(false);
+    expect(el.querySelector('.areas-status')?.textContent?.trim()).toBe('1 area active');
+    expect(snackOpen.mock.calls[0][0]).toBe('Saved. Left out, because Poracle has no such area: Uptown');
+  });
+
+  it('says only "updated" when everything sent was kept, whatever case it comes back in', () => {
+    const { component, fixture, uptown } = setup();
+    const areas = TestBed.inject(AreaService) as unknown as { update: jest.Mock };
+    areas.update = jest.fn(() => of(['downtown', 'uptown']));
+    const snackOpen = jest.spyOn(fixture.debugElement.injector.get(MatSnackBar), 'open');
+
+    component.toggleAreaDirect(uptown());
+    component.saveAreas();
+
+    expect(snackOpen.mock.calls[0][0]).toBe('Areas updated');
+    expect(uptown().selected).toBe(true);
   });
 
   it('offers to quiet a saved area and not one that is only ticked', () => {
