@@ -656,18 +656,21 @@ public class CleaningServiceTests
     }
 
     [Fact]
-    public async Task GetCleanStatusAsyncReadsBooleanAndNullCleanAsNotCleanRatherThanThrowing()
+    public async Task GetCleanCountsAsyncCountsBooleanTrueAsCleanAndFalseNullOrStringAsNotRatherThanThrowing()
     {
         var json = JsonSerializer.SerializeToElement(new
         {
-            pokemon = new object[] { new { uid = 1, clean = true }, new { uid = 2, clean = false } },
-            raid = new object?[] { new { uid = 1, clean = (int?)null } },
+            pokemon = new object[] { new { uid = 1, clean = true } },
+            raid = new object?[] { new { uid = 1, clean = false }, new { uid = 2, clean = (int?)null }, new { uid = 3, clean = "1" } },
         });
         this._proxy.Setup(p => p.GetAllTrackingAsync("u1")).ReturnsAsync(json);
 
+        var counts = await this._sut.GetCleanCountsAsync("u1", 1);
         var status = await this._sut.GetCleanStatusAsync("u1", 1);
 
-        Assert.False(status["monsters"]);
+        Assert.Equal(new CleanCount(1, 1), counts["monsters"]);
+        Assert.True(status["monsters"]);
+        Assert.Equal(new CleanCount(0, 3), counts["raids"]);
         Assert.False(status["raids"]);
     }
 }

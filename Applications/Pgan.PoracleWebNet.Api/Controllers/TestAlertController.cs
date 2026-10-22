@@ -62,10 +62,12 @@ public partial class TestAlertController(
                 error = ex.Message
             });
         }
-        catch (PoracleRequestRefusedException ex)
+        catch (PoracleRequestRefusedException ex) when (ex.StatusCode == StatusCodes.Status502BadGateway)
         {
-            // PoracleNG answered and said why it couldn't deliver. Pass the reason on, as the 501 does:
-            // "try again later" is wrong when the cause is configuration.
+            // PoracleNG's /api/test answered and said why it couldn't deliver (the proxy reports that one
+            // refusal as 502). Pass the reason on, as the 501 does: "try again later" is wrong when the cause
+            // is configuration. A refusal from the alarm or human read carries its own status and falls
+            // through to the generic 500 below, as it always did.
             LogSendTestAlertFailed(this._logger, ex, type, uid, this.UserId);
             return this.StatusCode(ex.StatusCode, new
             {

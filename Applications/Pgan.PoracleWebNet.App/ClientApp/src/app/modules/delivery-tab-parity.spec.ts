@@ -43,6 +43,10 @@ describe('alarm dialog Delivery tabs', () => {
     const toggle = html.indexOf("'ALARM.CLEAN_MODE'");
     if (toggle < 0) return;
 
-    expect(html.indexOf('class="clean-hint"', toggle)).toBeGreaterThan(toggle);
+    // The hint must be this toggle's: before the next toggle, not any later hint in the file.
+    const next = html.indexOf('<mat-slide-toggle', toggle);
+    const hint = html.indexOf('class="clean-hint"', toggle);
+    expect(hint).toBeGreaterThan(toggle);
+    if (next >= 0) expect(hint).toBeLessThan(next);
   });
 });

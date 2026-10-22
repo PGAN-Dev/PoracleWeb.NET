@@ -163,7 +163,8 @@ public partial class CleaningService(
 
     /// <summary>
     /// Counts the rules in a tracking array, and those with the auto-delete bit set. A missing array is
-    /// zero of zero. A <c>clean</c> that is absent, null, false or not a number counts as not clean.
+    /// zero of zero. A <c>clean</c> of true, or a mask with the auto-delete bit, is clean; absent, null, false
+    /// or a string is not.
     /// </summary>
     private static CleanCount CountClean(JsonElement root, string key, Func<JsonElement, bool>? isOurs = null)
     {
@@ -184,11 +185,7 @@ public partial class CleaningService(
 
             total++;
 
-            if (item.ValueKind == JsonValueKind.Object
-                && item.TryGetProperty("clean", out var cleanVal)
-                && cleanVal.ValueKind == JsonValueKind.Number
-                && cleanVal.TryGetInt32(out var bits)
-                && CleanFlags.IsAutoDelete(bits))
+            if (item.ValueKind == JsonValueKind.Object && item.TryGetProperty("clean", out var cleanVal) && IsCleanValue(cleanVal))
             {
                 clean++;
             }
@@ -196,6 +193,11 @@ public partial class CleaningService(
 
         return new CleanCount(clean, total);
     }
+
+    /// <summary>A boolean true or a mask with the auto-delete bit is clean; anything else is not.</summary>
+    private static bool IsCleanValue(JsonElement value) =>
+        value.ValueKind == JsonValueKind.True
+        || (value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var bits) && CleanFlags.IsAutoDelete(bits));
 
     // Warning: the count the user sees already leaves this rule out, so nothing on screen says it kept its old
     // setting. This line is the only place that does.

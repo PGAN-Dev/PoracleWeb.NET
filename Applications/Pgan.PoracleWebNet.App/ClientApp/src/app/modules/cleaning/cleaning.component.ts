@@ -209,6 +209,7 @@ export class CleaningComponent implements OnInit {
             item.partial.set(null);
           }
           this.toggling.set(false);
+          this.readStatus();
           const action = this.i18n.instant(enabled ? 'CLEANING.ENABLED' : 'CLEANING.DISABLED');
           this.snackBar.open(this.i18n.plural('CLEANING.SNACK_TOGGLE_ALL', result.updated, { action }), this.i18n.instant('TOAST.OK'), {
             duration: 3000,
@@ -231,6 +232,7 @@ export class CleaningComponent implements OnInit {
           item.enabled.set(enabled);
           item.partial.set(null);
           this.toggling.set(false);
+          this.readStatus();
           const action = this.i18n.instant(enabled ? 'CLEANING.ENABLED' : 'CLEANING.DISABLED');
           const type = this.i18n.instant(item.labelKey);
           this.snackBar.open(
@@ -259,6 +261,14 @@ export class CleaningComponent implements OnInit {
         },
       });
 
+    this.readStatus();
+  }
+
+  /**
+   * Reads which types are clean. Run again after every toggle: PoracleNG can refuse some rules, which keep
+   * their old setting, so assuming the whole type moved could hide a type that is still only partly clean.
+   */
+  private readStatus(): void {
     this.cleaningService
       .getStatus()
       .pipe(takeUntilDestroyed(this.destroyRef))

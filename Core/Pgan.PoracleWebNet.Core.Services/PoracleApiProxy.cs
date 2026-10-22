@@ -462,7 +462,7 @@ public class PoracleApiProxy(
             // the failure is PoracleNG's, not the caller's request.
             var body = await response.Content.ReadAsStringAsync();
             throw new PoracleRequestRefusedException(
-                PoracleProblemDetails.Describe(body, "PoracleNG couldn't send the test alert."),
+                PoracleProblemDetails.Describe(body, "no reason given"),
                 (int)HttpStatusCode.BadGateway);
         }
     }
