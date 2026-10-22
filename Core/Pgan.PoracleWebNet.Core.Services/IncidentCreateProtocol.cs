@@ -62,6 +62,11 @@ internal static class IncidentCreateProtocol
             // An identical rule is already stored; nothing is written.
             return uids;
         }
+        else if (dry.Created.Count == 0)
+        {
+            // Nothing in the batch is new, so nothing would be written and no rule needs telling apart.
+            return uids;
+        }
         else
         {
             keep = [];

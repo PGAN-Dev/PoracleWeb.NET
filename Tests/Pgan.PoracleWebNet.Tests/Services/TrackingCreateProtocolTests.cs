@@ -244,6 +244,28 @@ public class TrackingCreateProtocolTests
     }
 
     [Fact]
+    public async Task BatchAllExistingMakesNoPerRowRuns()
+    {
+        // Re-applying a quick pick of a thousand rules that are all stored already: the batch dry run creates
+        // nothing, so nothing would be written and there is nothing to tell apart row by row. Asking about each
+        // row alone cost one POST per row.
+        var handler = new Handler(_ => Reply.Ok(Envelope(
+            true,
+            updated: """[{"uid":40,"pokemon_id":26,"previous":{"uid":40,"pokemon_id":26}}]""",
+            unchanged: """[{"uid":41,"pokemon_id":25},{"uid":42,"pokemon_id":27}]""")));
+
+        var result = await this.CreateSut(handler).CreateAsync(
+            "pokemon", "user1", Json("""[{"pokemon_id":25},{"pokemon_id":26},{"pokemon_id":27}]"""));
+
+        Assert.True(IsDryRun(Assert.Single(handler.Requests)));
+        Assert.Equal([0, 0, 0], result.RowUids);
+        Assert.Equal(2, result.AlreadyPresent);
+        Assert.Equal(1, result.TakeoversSkipped);
+        Assert.Equal(0, result.Inserts);
+        Assert.Empty(result.NewUids);
+    }
+
+    [Fact]
     public async Task BatchCommitCountMismatchRowUidsAllZeroNewUidsKept()
     {
         var handler = new Handler(sent => IsDryRun(sent)

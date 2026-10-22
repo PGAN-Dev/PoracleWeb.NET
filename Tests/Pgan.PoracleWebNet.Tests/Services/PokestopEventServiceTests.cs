@@ -234,6 +234,24 @@ public class PokestopEventServiceTests
     }
 
     [Fact]
+    public async Task BulkCreateAsyncAllExistingMakesNoPerRowRuns()
+    {
+        // The batch dry run creates nothing, so nothing would be written: there is no row to tell apart.
+        this.CreateAnswers(
+            _ => new PokestopEventWriteResult([], [Rule(7, PokestopEventTypes.GoldStop)], [Rule(8, PokestopEventTypes.Showcase)]),
+            _ => throw new InvalidOperationException("nothing should be committed"));
+
+        var result = (await this._sut.BulkCreateAsync("u1", [
+            Rule(0, PokestopEventTypes.GoldStop),
+            Rule(0, PokestopEventTypes.Showcase),
+        ])).ToList();
+
+        Assert.Equal([0, 0], result.Select(r => r.Uid));
+        this._proxy.Verify(p => p.CreateAsync("u1", It.IsAny<IEnumerable<PokestopEvent>>(), true), Times.Once);
+        this.VerifyNoCommit();
+    }
+
+    [Fact]
     public async Task BulkCreateAsyncAllNewDryRunsOnceAndCommitsOnce()
     {
         this.CreateAnswers(

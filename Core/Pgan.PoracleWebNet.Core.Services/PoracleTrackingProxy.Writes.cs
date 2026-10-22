@@ -138,6 +138,14 @@ public partial class PoracleTrackingProxy
             // An identical rule is already stored; nothing is written.
             return new TrackingCreateResult([], 1, 0, 0, [0]);
         }
+        else if (dry.Created.Count == 0)
+        {
+            // Nothing in the batch is new, so nothing would be written and no row needs telling apart. Each row
+            // lands in exactly one bucket, so the buckets are the counts. Re-applying a large quick pick used to
+            // ask about every row alone here: one POST per row.
+            LogCreateSummary(this._logger, type, userId, rows.Count, 0, dry.Unchanged.Count, dry.Updated.Count);
+            return new TrackingCreateResult([], dry.Unchanged.Count, 0, 0, rowUids, dry.Updated.Count);
+        }
         else
         {
             keep = [];
@@ -167,6 +175,7 @@ public partial class PoracleTrackingProxy
 
             if (keep.Count == 0)
             {
+                LogCreateSummary(this._logger, type, userId, rows.Count, 0, alreadyPresent, takeovers);
                 return new TrackingCreateResult([], alreadyPresent, 0, 0, rowUids, takeovers);
             }
         }
@@ -199,6 +208,7 @@ public partial class PoracleTrackingProxy
             LogCreateUnpaired(this._logger, type, userId, keep.Count, created.Count);
         }
 
+        LogCreateSummary(this._logger, type, userId, rows.Count, created.Count, alreadyPresent, takeovers);
         return new TrackingCreateResult(
             [.. created.Select(uid => (long)uid)], alreadyPresent, 0, created.Count, rowUids, takeovers);
     }
@@ -559,11 +569,19 @@ public partial class PoracleTrackingProxy
     [LoggerMessage(Level = LogLevel.Information, Message = "v2 patch {Type} for {UserId} response: {Response}")]
     private static partial void LogPatchResponse(ILogger logger, string type, string userId, string response);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "v2 create {Type} for {UserId} request to {Url}: {Body}")]
+    // Debug, not Information: a create of a large batch posts its rows more than once, and every body logged in
+    // full at Information filled the log. LogCreateSummary is the Information line.
+    [LoggerMessage(Level = LogLevel.Debug, Message = "v2 create {Type} for {UserId} request to {Url}: {Body}")]
     private static partial void LogV2CreateRequest(ILogger logger, string type, string userId, string url, string body);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "v2 create {Type} for {UserId} response: {Response}")]
+    [LoggerMessage(Level = LogLevel.Debug, Message = "v2 create {Type} for {UserId} response: {Response}")]
     private static partial void LogV2CreateResponse(ILogger logger, string type, string userId, string response);
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "v2 create {Type} for {UserId}: {Rows} rows, {Created} created, {AlreadyPresent} already present, {Takeovers} left out as takeovers")]
+    private static partial void LogCreateSummary(
+        ILogger logger, string type, string userId, int rows, int created, int alreadyPresent, int takeovers);
 
     [LoggerMessage(
         Level = LogLevel.Information,
