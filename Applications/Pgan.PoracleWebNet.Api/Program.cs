@@ -635,8 +635,9 @@ internal static class LegacyPoracleDbSettings
 {
     private static readonly string[] Variables = ["DB_HOST", "DB_PORT", "DB_NAME", "DB_USER", "DB_PASSWORD"];
 
-    // The retired connection string's name, assembled so that nothing in the source spells the setting out.
-    private const string ConnectionName = "Poracle" + "Db";
+    // The one deliberate mention of the retired connection string, so an install still carrying it is told.
+    // NoPoracleDatabaseTests allows exactly this marker, in this file only.
+    private const string ConnectionName = "PoracleDb"; // legacy-db-setting-detection
 
     internal static bool AreSet(IConfiguration configuration) =>
         Variables.Any(v => !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(v)))

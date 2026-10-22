@@ -24,8 +24,13 @@ public sealed class NoPoracleDatabaseTests
         new("\"PoracleDb\"", RegexOptions.Compiled),
         new(@"ConnectionStrings:PoracleDb", RegexOptions.Compiled),
         new(@"ConnectionStrings__PoracleDb", RegexOptions.Compiled),
+        new(@"""PoracleDb""\s*:", RegexOptions.Compiled),
         new("(MapEnvVar|ComposeConnectionString)\\s*\\([^)]*\"DB_HOST\"", RegexOptions.Compiled),
     ];
+
+    // The single place allowed to name the retired connection string: the line that detects a leftover one.
+    private const string AllowMarker = "// legacy-db-setting-detection";
+    private const string AllowedFile = "Applications/Pgan.PoracleWebNet.Api/Program.cs";
 
     [Fact]
     public void NoProductionCodeReferencesPoraclesDatabase()
@@ -35,7 +40,7 @@ public sealed class NoPoracleDatabaseTests
 
         foreach (var rootName in ScannedRoots)
         {
-            var files = FilesUnder(root, rootName).ToList();
+            var files = FilesUnder(root, rootName, "*.cs").ToList();
             Assert.True(files.Count > 0, $"Scanned no .cs files under {rootName}, so this test would pass by scanning nothing.");
 
             foreach (var file in files)
@@ -43,10 +48,25 @@ public sealed class NoPoracleDatabaseTests
                 var lines = File.ReadAllLines(file);
                 for (var i = 0; i < lines.Length; i++)
                 {
-                    if (Matches(lines[i]))
+                    if (Violates(Path.GetRelativePath(root, file), lines[i]))
                     {
                         offenders.Add($"{Path.GetRelativePath(root, file)}:{i + 1}");
                     }
+                }
+            }
+        }
+
+        // Configuration too: a "PoracleDb" key in appsettings is the same dependency as the code reading it.
+        var jsonFiles = FilesUnder(root, "Applications/Pgan.PoracleWebNet.Api", "*.json").ToList();
+        Assert.True(jsonFiles.Count > 0, "Scanned no .json files under the API project, so the configuration check would pass by scanning nothing.");
+        foreach (var file in jsonFiles)
+        {
+            var lines = File.ReadAllLines(file);
+            for (var i = 0; i < lines.Length; i++)
+            {
+                if (Violates(Path.GetRelativePath(root, file), lines[i]))
+                {
+                    offenders.Add($"{Path.GetRelativePath(root, file)}:{i + 1}");
                 }
             }
         }
@@ -69,6 +89,24 @@ public sealed class NoPoracleDatabaseTests
         Assert.True(Matches(planted), $"The matcher missed: {planted}");
 
     [Theory]
+    [InlineData("    \"PoracleDb\": \"\",")]
+    [InlineData("  \"ConnectionStrings:PoracleDb\": \"x\"")]
+    public void TheMatcherFindsAConfigurationKey(string line) =>
+        Assert.True(Matches(line), $"The matcher missed: {line}");
+
+    [Fact]
+    public void TheAllowlistCoversOnlyTheMarkedLineInProgramCs()
+    {
+        var marked = "private const string ConnectionName = \"PoracleDb\"; " + AllowMarker;
+
+        Assert.False(Violates(AllowedFile, marked));
+        Assert.False(Violates(AllowedFile.Replace('/', Path.DirectorySeparatorChar), marked));
+        Assert.True(Violates(AllowedFile, "private const string ConnectionName = \"PoracleDb\";"));
+        Assert.True(Violates("Core/Pgan.PoracleWebNet.Core.Services/Other.cs", marked));
+        Assert.True(Violates("Applications/Pgan.PoracleWebNet.Api/appsettings.json", "\"PoracleDb\": \"\", " + AllowMarker));
+    }
+
+    [Theory]
     [InlineData("ComposeConnectionString(\"PoracleWebDb\", \"WEB_DB_HOST\", \"WEB_DB_PORT\");")]
     [InlineData("var context = typeof(PoracleWebContext);")]
     [InlineData("DB_* settings are no longer used by PoracleWeb.NET and can be removed.")]
@@ -77,7 +115,15 @@ public sealed class NoPoracleDatabaseTests
 
     private static bool Matches(string line) => Forbidden.Any(r => r.IsMatch(line));
 
-    private static IEnumerable<string> FilesUnder(string root, string rootName)
+    private static bool Violates(string relativePath, string line)
+    {
+        var normalised = relativePath.Replace(Path.DirectorySeparatorChar, '/');
+        var allowed = string.Equals(normalised, AllowedFile, StringComparison.Ordinal)
+            && line.Contains(AllowMarker, StringComparison.Ordinal);
+        return !allowed && Matches(line);
+    }
+
+    private static IEnumerable<string> FilesUnder(string root, string rootName, string pattern)
     {
         var dir = Path.Combine(root, rootName.Replace('/', Path.DirectorySeparatorChar));
         if (!Directory.Exists(dir))
@@ -85,7 +131,7 @@ public sealed class NoPoracleDatabaseTests
             return [];
         }
 
-        return Directory.EnumerateFiles(dir, "*.cs", SearchOption.AllDirectories)
+        return Directory.EnumerateFiles(dir, pattern, SearchOption.AllDirectories)
             .Where(f => !Path.GetRelativePath(root, f)
                 .Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
                 .Any(s => s is "bin" or "obj"));
