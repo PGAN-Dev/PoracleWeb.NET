@@ -2079,7 +2079,7 @@
     "AUTH_MODE_LOCAL_DESC": "Zaloguj się bezpośrednio przez Discord lub Telegram.",
     "AUTH_FORCE_LOCAL_ACTIVE": "Logowanie lokalne jest wymuszone przez konfigurację serwera.",
     "DISABLE_UPDATE_CHECK_LABEL": "Sprawdzaj aktualizacje",
-    "DISABLE_UPDATE_CHECK_DESC": "Pozwala pytać GitHuba o nowsze wydanie PoracleWeb lub Poracle. To jedyne żądanie wychodzące poza twoją sieć i nie wysyła żadnych danych.",
+    "DISABLE_UPDATE_CHECK_DESC": "Pozwala pytać GitHuba o nowsze wydanie PoracleWeb.NET lub Poracle. To jedyne żądanie wychodzące poza twoją sieć i nie wysyła żadnych danych.",
     "GROUP_MAPS": "Mapy",
     "BASEMAP_PROVIDER_LABEL": "Dostawca mapy podkładowej",
     "BASEMAP_PROVIDER_DESC": "Jakie kafelki mapy strona rysuje domyślnie. Pola poniżej dostosowują się: wbudowany dostawca wymaga co najwyżej klucza API, „Własny adres kafelków” wymaga adresu. Każdy może wybrać inną mapę przyciskiem warstw na dowolnej mapie.",

@@ -2017,7 +2017,7 @@
     "EXPAND_SECTION": "Expandir sección",
     "SUMMARY_ENABLED": "{{count}} de {{total}} activados",
     "DISABLE_UPDATE_CHECK_LABEL": "Buscar actualizaciones",
-    "DISABLE_UPDATE_CHECK_DESC": "Permite que el sitio pregunte a GitHub si hay una versión más reciente de PoracleWeb o Poracle. Es la única petición que sale de tu red y no envía ningún dato.",
+    "DISABLE_UPDATE_CHECK_DESC": "Permite que el sitio pregunte a GitHub si hay una versión más reciente de PoracleWeb.NET o Poracle. Es la única petición que sale de tu red y no envía ningún dato.",
     "GROUP_MAPS": "Mapas",
     "BASEMAP_PROVIDER_LABEL": "Proveedor del mapa base",
     "BASEMAP_PROVIDER_DESC": "Qué teselas dibuja el sitio por defecto. Los campos de abajo se adaptan: un proveedor integrado necesita como mucho una clave API, «URL de teselas personalizada» necesita la URL. Cada usuario puede elegir otro desde el botón de capas en cualquier mapa.",

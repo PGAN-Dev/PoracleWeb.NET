@@ -2017,7 +2017,7 @@
     "AUTH_MODE_LOCAL_DESC": "Faça login diretamente com Discord ou Telegram.",
     "AUTH_FORCE_LOCAL_ACTIVE": "O login local é forçado pela configuração do servidor.",
     "DISABLE_UPDATE_CHECK_LABEL": "Procurar atualizações",
-    "DISABLE_UPDATE_CHECK_DESC": "Permite que o site pergunte ao GitHub se saiu uma versão mais recente do PoracleWeb ou do Poracle. É a única requisição que sai da sua rede e não envia nada.",
+    "DISABLE_UPDATE_CHECK_DESC": "Permite que o site pergunte ao GitHub se saiu uma versão mais recente do PoracleWeb.NET ou do Poracle. É a única requisição que sai da sua rede e não envia nada.",
     "GROUP_MAPS": "Mapas",
     "BASEMAP_PROVIDER_LABEL": "Provedor do mapa base",
     "BASEMAP_PROVIDER_DESC": "Quais blocos o site desenha por padrão. Os campos abaixo se adaptam: um provedor integrado precisa no máximo de uma chave de API, “URL de blocos personalizada” precisa da URL. Cada usuário pode escolher outro no botão de camadas em qualquer mapa.",

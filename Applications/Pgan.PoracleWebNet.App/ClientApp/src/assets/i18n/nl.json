@@ -2017,7 +2017,7 @@
     "AUTH_MODE_LOCAL_DESC": "Meld je rechtstreeks aan met Discord of Telegram.",
     "AUTH_FORCE_LOCAL_ACTIVE": "Lokaal aanmelden wordt afgedwongen door de serverconfiguratie.",
     "DISABLE_UPDATE_CHECK_LABEL": "Op updates controleren",
-    "DISABLE_UPDATE_CHECK_DESC": "Laat de site aan GitHub vragen of er een nieuwere PoracleWeb of Poracle is uitgebracht. Dit is het enige verzoek buiten je eigen netwerk en er wordt niets meegestuurd.",
+    "DISABLE_UPDATE_CHECK_DESC": "Laat de site aan GitHub vragen of er een nieuwere PoracleWeb.NET of Poracle is uitgebracht. Dit is het enige verzoek buiten je eigen netwerk en er wordt niets meegestuurd.",
     "GROUP_MAPS": "Kaarten",
     "BASEMAP_PROVIDER_LABEL": "Kaartaanbieder",
     "BASEMAP_PROVIDER_DESC": "Welke kaarttegels de site standaard tekent. De velden hieronder passen zich aan: een ingebouwde aanbieder heeft hooguit een API-sleutel nodig, ‘Eigen tegel-URL’ heeft de URL nodig. Bezoekers kunnen via de lagenknop op elke kaart een andere kiezen.",

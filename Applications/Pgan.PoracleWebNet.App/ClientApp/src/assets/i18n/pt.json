@@ -2017,7 +2017,7 @@
     "AUTH_MODE_LOCAL_DESC": "Inicia sessão diretamente com o Discord ou o Telegram.",
     "AUTH_FORCE_LOCAL_ACTIVE": "O início de sessão local é imposto pela configuração do servidor.",
     "DISABLE_UPDATE_CHECK_LABEL": "Procurar atualizações",
-    "DISABLE_UPDATE_CHECK_DESC": "Permite ao site perguntar ao GitHub se saiu uma versão mais recente do PoracleWeb ou do Poracle. É o único pedido que sai da tua rede e não envia nada.",
+    "DISABLE_UPDATE_CHECK_DESC": "Permite ao site perguntar ao GitHub se saiu uma versão mais recente do PoracleWeb.NET ou do Poracle. É o único pedido que sai da tua rede e não envia nada.",
     "GROUP_MAPS": "Mapas",
     "BASEMAP_PROVIDER_LABEL": "Fornecedor do mapa base",
     "BASEMAP_PROVIDER_DESC": "Que mosaicos o site desenha por omissão. Os campos abaixo adaptam-se: um fornecedor integrado precisa no máximo de uma chave API, «URL de mosaicos personalizado» precisa do URL. Cada utilizador pode escolher outro no botão de camadas de qualquer mapa.",

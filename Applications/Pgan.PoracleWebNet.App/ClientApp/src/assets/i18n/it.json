@@ -2017,7 +2017,7 @@
     "EXPAND_SECTION": "Espandi sezione",
     "SUMMARY_ENABLED": "{{count}} di {{total}} attive",
     "DISABLE_UPDATE_CHECK_LABEL": "Cerca aggiornamenti",
-    "DISABLE_UPDATE_CHECK_DESC": "Consente al sito di chiedere a GitHub se è uscita una versione più recente di PoracleWeb o Poracle. È l’unica richiesta che esce dalla tua rete e non invia nulla.",
+    "DISABLE_UPDATE_CHECK_DESC": "Consente al sito di chiedere a GitHub se è uscita una versione più recente di PoracleWeb.NET o Poracle. È l’unica richiesta che esce dalla tua rete e non invia nulla.",
     "GROUP_MAPS": "Mappe",
     "BASEMAP_PROVIDER_LABEL": "Provider della mappa di base",
     "BASEMAP_PROVIDER_DESC": "Quali tile disegna il sito per impostazione predefinita. I campi qui sotto si adattano: un provider integrato richiede al massimo una chiave API, «URL tile personalizzato» richiede l’URL. Ogni utente può sceglierne un’altra dal pulsante dei livelli su qualsiasi mappa.",

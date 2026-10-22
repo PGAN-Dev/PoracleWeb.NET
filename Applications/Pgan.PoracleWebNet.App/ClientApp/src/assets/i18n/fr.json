@@ -2017,7 +2017,7 @@
     "AUTH_MODE_LOCAL_DESC": "Connexion directe avec Discord ou Telegram.",
     "AUTH_FORCE_LOCAL_ACTIVE": "La connexion locale est imposée par la configuration du serveur.",
     "DISABLE_UPDATE_CHECK_LABEL": "Rechercher les mises à jour",
-    "DISABLE_UPDATE_CHECK_DESC": "Permet au site de demander à GitHub si une version plus récente de PoracleWeb ou de Poracle est parue. C’est la seule requête sortant de votre réseau, et elle n’envoie rien.",
+    "DISABLE_UPDATE_CHECK_DESC": "Permet au site de demander à GitHub si une version plus récente de PoracleWeb.NET ou de Poracle est parue. C’est la seule requête sortant de votre réseau, et elle n’envoie rien.",
     "GROUP_MAPS": "Cartes",
     "BASEMAP_PROVIDER_LABEL": "Fournisseur de fond de carte",
     "BASEMAP_PROVIDER_DESC": "Les tuiles que le site affiche par défaut. Les champs ci-dessous s’adaptent : un fournisseur intégré demande au plus une clé API, « URL de tuiles personnalisée » demande l’URL. Chacun peut en choisir un autre via le bouton des calques sur n’importe quelle carte.",

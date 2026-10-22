@@ -2017,7 +2017,7 @@
     "AUTH_MODE_LOCAL_DESC": "Direkt mit Discord oder Telegram anmelden.",
     "AUTH_FORCE_LOCAL_ACTIVE": "Die lokale Anmeldung wird durch die Serverkonfiguration erzwungen.",
     "DISABLE_UPDATE_CHECK_LABEL": "Nach Updates suchen",
-    "DISABLE_UPDATE_CHECK_DESC": "Lässt die Seite bei GitHub nachfragen, ob ein neueres PoracleWeb oder Poracle erschienen ist. Das ist die einzige Anfrage außerhalb deines Netzwerks; es werden keine Daten übermittelt.",
+    "DISABLE_UPDATE_CHECK_DESC": "Lässt die Seite bei GitHub nachfragen, ob ein neueres PoracleWeb.NET oder Poracle erschienen ist. Das ist die einzige Anfrage außerhalb deines Netzwerks; es werden keine Daten übermittelt.",
     "GROUP_MAPS": "Karten",
     "BASEMAP_PROVIDER_LABEL": "Kartenanbieter",
     "BASEMAP_PROVIDER_DESC": "Welche Kartenkacheln die Seite standardmäßig zeichnet. Die Felder darunter passen sich an: ein eingebauter Anbieter braucht höchstens einen API-Schlüssel, „Eigene Kachel-URL“ braucht die URL. Nutzer können über die Ebenen-Schaltfläche auf jeder Karte eine andere wählen.",

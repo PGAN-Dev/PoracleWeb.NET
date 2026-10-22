@@ -2017,7 +2017,7 @@
     "EXPAND_SECTION": "Expand section",
     "SUMMARY_ENABLED": "{{count}} of {{total}} enabled",
     "DISABLE_UPDATE_CHECK_LABEL": "Check for updates",
-    "DISABLE_UPDATE_CHECK_DESC": "Lets the site ask GitHub whether a newer PoracleWeb or Poracle has been released. This is the only request it makes outside your own network; nothing is sent with it.",
+    "DISABLE_UPDATE_CHECK_DESC": "Lets the site ask GitHub whether a newer PoracleWeb.NET or Poracle has been released. This is the only request it makes outside your own network; nothing is sent with it.",
     "GROUP_MAPS": "Maps",
     "BASEMAP_PROVIDER_LABEL": "Basemap Provider",
     "BASEMAP_PROVIDER_DESC": "Which map tiles the site draws by default. The fields below change to match: a built-in provider needs at most an API key, Custom tile URL needs the URL. Viewers can pick a different one from the layers button on any map.",

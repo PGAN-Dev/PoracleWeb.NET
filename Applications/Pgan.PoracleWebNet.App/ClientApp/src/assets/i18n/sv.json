@@ -2017,7 +2017,7 @@
     "AUTH_MODE_LOCAL_DESC": "Logga in direkt med Discord eller Telegram.",
     "AUTH_FORCE_LOCAL_ACTIVE": "Lokal inloggning tvingas av serverkonfigurationen.",
     "DISABLE_UPDATE_CHECK_LABEL": "Sök efter uppdateringar",
-    "DISABLE_UPDATE_CHECK_DESC": "Låter webbplatsen fråga GitHub om en nyare PoracleWeb eller Poracle har släppts. Det är den enda förfrågan utanför ditt eget nätverk och inget skickas med.",
+    "DISABLE_UPDATE_CHECK_DESC": "Låter webbplatsen fråga GitHub om en nyare PoracleWeb.NET eller Poracle har släppts. Det är den enda förfrågan utanför ditt eget nätverk och inget skickas med.",
     "GROUP_MAPS": "Kartor",
     "BASEMAP_PROVIDER_LABEL": "Bakgrundskartleverantör",
     "BASEMAP_PROVIDER_DESC": "Vilka kartrutor webbplatsen ritar som standard. Fälten nedan anpassar sig: en inbyggd leverantör behöver högst en API-nyckel, ”Egen rut-URL” behöver URL:en. Alla kan välja en annan via lagerknappen på valfri karta.",
