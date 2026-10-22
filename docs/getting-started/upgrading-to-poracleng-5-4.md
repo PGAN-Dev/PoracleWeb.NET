@@ -2,6 +2,8 @@
 
 This release of PoracleWeb.NET needs PoracleNG 5.4.0 or newer. Upgrade PoracleNG first, then PoracleWeb.NET, then run the rule repair once.
 
+PoracleNG doesn't publish tagged releases for this: 5.4.0 is its `develop` branch, which reports version 5.4.0. Build from a `develop` commit of 22 October 2026 or later, which includes [jfberry/PoracleNG#331](https://github.com/jfberry/PoracleNG/pull/331), so the rule repair and Profile Overview see every rule (see below). [Which PoracleNG to run](../architecture/poracleng-compatibility.md#which-poracleng-to-run) lists the tested combinations.
+
 PoracleWeb.NET still starts against an older PoracleNG, but it logs an error, the Versions card under **Admin > Server settings** warns that PoracleNG is too old, and calls to routes the older server lacks fail with a message naming the version they need.
 
 ## What users will notice
@@ -16,7 +18,7 @@ Most of the change is underneath. Every alarm read, add, edit, delete, bulk dist
 - Importing a profile no longer switches your active profile while it copies.
 - A role or user mention on a webhook's alarm survives an edit.
 - Invasion alarms saved as `metal` become `steel` the next time they're edited. `metal` never matched anything, because PoracleNG's game data calls the grunt `steel`.
-- An invasion rule for every grunt, or for every boss encounter, that was limited to one gender loses that limit the next time it's saved, because PoracleNG's v2 read doesn't report a gender on those two catch-all rules ([jfberry/PoracleNG#331](https://github.com/jfberry/PoracleNG/pull/331) fixes the read). Only rules set up through the bot have this shape.
+- An invasion rule for every grunt, or for every boss encounter, that was limited to one gender loses that limit the next time it's saved on a PoracleNG build from before 22 October 2026, whose v2 read doesn't report a gender on those two catch-all rules. [jfberry/PoracleNG#331](https://github.com/jfberry/PoracleNG/pull/331) fixed the read, so a current build keeps the limit. Only rules set up through the bot have this shape.
 - A rule stored with a legacy zero (`pvp_ranking_best 0`, `size 0`) shows the default instead, and the next edit, bulk distance change or cleaning toggle saves the default. Matching doesn't change.
 - Deleting a geofence that alarms are limited to asks whether to delete those alarms too or keep them on the profile's areas.
 - A new geofence that couldn't be switched on straight away says "Saved, but it couldn't be switched on yet. Use the toggle to retry."
@@ -83,12 +85,11 @@ The `...` in each route is `/api/v2/humans/{id}`. The card polls `GET /api/admin
 
 ## Rules on a profile with no profile row
 
-A rule's `profile_no` can point at a profile that has no row in PoracleNG's profiles table, usually one deleted through an older tool. PoracleNG's v2 read of all of a user's profiles skips such rules ([jfberry/PoracleNG#330](https://github.com/jfberry/PoracleNG/issues/330)). What that means today depends on which profile it is:
+A rule's `profile_no` can point at a profile that has no row in PoracleNG's profiles table, usually one deleted through an older tool, or the active profile of a user who never created one.
 
-- Rules on the user's **active** profile are read and repaired. When the active profile has no row, PoracleWeb.NET reads it a second time on its own and files the rules under the active profile number, so they show in Profile Overview and the scan.
-- Rules on any **other** profile with no row aren't read. They don't appear in Profile Overview or the scan, and the repair can't reach them. Like every rule off the active profile, they don't fire.
+On a PoracleNG build that includes [jfberry/PoracleNG#331](https://github.com/jfberry/PoracleNG/pull/331) (`develop` from 22 October 2026), the all-profiles read returns these rules with their profile number, so they show in Profile Overview and the scan, and the repair reaches them. Like every rule off the active profile, a rule on a deleted profile doesn't fire, but you can now see it and delete it.
 
-[jfberry/PoracleNG#331](https://github.com/jfberry/PoracleNG/pull/331) (open, not yet merged) makes the all-profiles read return those rules. PoracleWeb.NET already handles its answer, dropping the rules both reads return, so once your PoracleNG carries that change the leftover profiles' rules appear in Profile Overview and the scan with nothing to change here.
+On an earlier 5.4.0 build the read skipped them ([jfberry/PoracleNG#330](https://github.com/jfberry/PoracleNG/issues/330)). PoracleWeb.NET still reads the active profile a second time for those builds, so rules on the active profile are covered either way; rules on other row-less profiles stay out of sight until PoracleNG is updated. A rule both reads return is counted once.
 
 ## The database settings can go
 
