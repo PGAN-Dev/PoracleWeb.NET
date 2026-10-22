@@ -27,9 +27,11 @@ Press **Scan** first. The scan reads every user's rules and writes nothing; you 
 | Max battle for any boss | The same shape on a max battle alarm | Saves it as any boss, any tier |
 | Cannot be edited | A rule PoracleNG 5.4.0 won't save as it stands | Nothing. The card lists it so you can fix or delete it by hand |
 
-Nothing changes until you press **Repair**. Each rule is then checked again just before it's written, so a rule that someone edited after the scan is judged on its current state. If PoracleNG says a write would be identical to the rule already stored, the card counts it as already fine. If it would duplicate another rule, the card leaves it alone and counts it as a conflict. Each rule is rewritten from the values PoracleNG holds for it, with the one stored value changed. PoracleNG may give a repaired rule a new id.
+Nothing changes until you press **Repair**. Each rule is then checked again just before it's written, so a rule that someone edited after the scan is judged on its current state. If PoracleNG says a write would be identical to the rule already stored, the card counts it as already fine. If it would duplicate another rule, the card leaves it alone and lists it as a conflict; one of the two rules is probably redundant. Each rule is rewritten from the values PoracleNG holds for it, with the one stored value changed, and it normally keeps its id.
 
-Only one scan or repair runs at a time, and a second start is refused while one is running. A run stops if PoracleNG stops answering or turns out to be too old; repairs already written stay written, and you can scan again afterwards. Only admins can use the card, and not while impersonating a user. The server log records which admin started each run.
+If some users couldn't be read, the card lists them with the reason and opens that list, and it won't tell you nothing needs repairing. If no user could be read at all, the scan fails and says why.
+
+Only one scan or repair runs at a time, and a second start is refused while one is running. A run stops if PoracleNG stops answering (or a proxy in front of it keeps answering 502, 503 or 504) or turns out to be too old; repairs already written stay written, and you can scan again afterwards. The job's state lives in memory, so if PoracleWeb.NET restarts during a scan or repair, scan again; running it again is safe. Only admins can use the card, and not while impersonating a user. The server log records which admin started each run, and, just before each repair is written, the rule as it was stored, so a repair can be undone by hand.
 
 You can run the repair again at any time. A rule that has been repaired no longer shows up in the next scan.
 
