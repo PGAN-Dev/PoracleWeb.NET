@@ -44,3 +44,43 @@ describe('alarm failure messages', () => {
     }
   });
 });
+
+/**
+ * The rest of the app's write failures: the server's reason first when it gave one (a 4xx), and otherwise
+ * a line that says what did not happen and what to do next. "Failed to update location" said neither.
+ */
+describe('other failure messages', () => {
+  const read = (relative: string) => readFileSync(join(__dirname, relative), 'utf8');
+
+  it.each([
+    ['dashboard/dashboard.component.ts', 'DASHBOARD.SWITCH_PROFILE_FAILED'],
+    ['areas/area-list.component.ts', 'AREAS.SNACK_LOCATION_FAILED'],
+    ['../shared/components/location-dialog/location-dialog.component.ts', 'DIALOG.LOCATION_SAVE_ERROR'],
+    ['admin/my-webhooks.component.ts', 'ADMIN.SNACK_FAILED_SWITCH_WEBHOOK'],
+    ['admin/admin-webhooks.component.ts', 'ADMIN.SNACK_FAILED_SWITCH_WEBHOOK'],
+    ['admin/admin-webhooks.component.ts', 'ADMIN.SNACK_FAILED_ADD_WEBHOOK'],
+    ['admin/geofence-submissions/geofence-submissions.component.ts', 'ADMIN.SNACK_FAILED_DELETE_GEOFENCE'],
+    ['admin/geofence-submissions/geofence-submissions.component.ts', 'ADMIN.SNACK_FAILED_APPROVE'],
+    ['admin/geofence-submissions/geofence-submissions.component.ts', 'ADMIN.SNACK_FAILED_REJECT'],
+  ])("%s puts the server's reason ahead of %s", (file, key) => {
+    const source = read(file);
+
+    expect(source).toContain(`serverReason(err) ?? this.i18n.instant('${key}')`);
+    expect(source).not.toMatch(/\?\.error\?\.error/);
+  });
+
+  it('has no English failure line that starts "Failed to"', () => {
+    const en = JSON.parse(read('../../assets/i18n/en.json')) as Record<string, unknown>;
+    const failed: string[] = [];
+    const walk = (node: unknown, path: string) => {
+      if (typeof node === 'string') {
+        if (/^Failed to\b/.test(node)) failed.push(path);
+      } else if (node && typeof node === 'object') {
+        for (const [key, value] of Object.entries(node)) walk(value, path ? `${path}.${key}` : key);
+      }
+    };
+    walk(en, '');
+
+    expect(failed).toEqual([]);
+  });
+});

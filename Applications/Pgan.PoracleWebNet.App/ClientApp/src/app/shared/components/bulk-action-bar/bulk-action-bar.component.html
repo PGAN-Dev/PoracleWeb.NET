@@ -1,6 +1,12 @@
 <div class="bulk-toolbar">
   <div class="bulk-selection">
-    <span class="bulk-count" role="status">{{ 'ALARM.SELECTED_COUNT' | translate: { count: count() } }}</span>
+    <span class="bulk-count">{{ 'ALARM.SELECTED_COUNT' | translate: { count: count() } }}</span>
+    <!-- Read aloud once the count settles: as a live region itself, the count announced every tick. -->
+    <span class="visually-hidden" role="status">
+      @if (announced() !== null) {
+        {{ 'ALARM.SELECTED_COUNT' | translate: { count: announced() } }}
+      }
+    </span>
     <button mat-button type="button" (click)="selectAll.emit()">{{ 'ALARM.SELECT_ALL' | translate }}</button>
     @if (anySelected()) {
       <button mat-button type="button" (click)="deselectAll.emit()">{{ 'ALARM.DESELECT_ALL' | translate }}</button>

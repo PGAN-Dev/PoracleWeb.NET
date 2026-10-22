@@ -20,6 +20,7 @@ import { BasemapService } from '../../../core/services/basemap.service';
 import { I18nService } from '../../../core/services/i18n.service';
 import { LocationService } from '../../../core/services/location.service';
 import { SettingsService } from '../../../core/services/settings.service';
+import { serverReason } from '../../utils/server-reason';
 
 /** Extra options for {@link LocationDialogComponent}. */
 export interface LocationDialogData {
@@ -257,9 +258,11 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
 
     this.saving.set(true);
     this.locationService.setLocation(loc).subscribe({
-      error: () => {
+      error: err => {
         this.saving.set(false);
-        this.snackBar.open(this.i18n.instant('DIALOG.LOCATION_SAVE_ERROR'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
+        this.snackBar.open(serverReason(err) ?? this.i18n.instant('DIALOG.LOCATION_SAVE_ERROR'), this.i18n.instant('COMMON.OK'), {
+          duration: 4000,
+        });
       },
       next: () => {
         this.saving.set(false);

@@ -301,6 +301,18 @@ export class QuickPickAdminDialogComponent implements OnInit {
         });
       }
     }
+
+    // `reward` means a different thing for each reward type: an encounter's species, an item's id, an
+    // amount. Kept across a change of type it was saved as the wrong thing (a Dragonite id read as item
+    // 149), so a change of type starts the reward over. Subscribed after the stored filters load, so
+    // opening a pick never clears its own reward.
+    const reward = this.questForm.controls.reward;
+    let rewardType = Number(this.questForm.controls.rewardType.value);
+    this.questForm.controls.rewardType.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(value => {
+      const next = Number(value);
+      if (next !== rewardType) reward.setValue(0);
+      rewardType = next;
+    });
   }
 
   onPokemonPicked(ids: number[]): void {

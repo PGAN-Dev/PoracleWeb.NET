@@ -136,13 +136,13 @@ The `PokemonSelectorComponent` injects this service and calls `load()` in `ngOnI
 Card grid with filter pills showing IV/CP/Level/PVP/Gender at a glance. All alarm types (including Fort Changes and Max Battles) follow this same card grid pattern with type-specific filter pills.
 
 ### Bulk operations
-Select mode toggle (checklist icon) on each alarm list. The bulk bar is one shared component, `shared/components/bulk-action-bar/`: the count of selected cards on screen (`actionIds`), Select all / Deselect all as text buttons, a tonal Change radius, and a filled warn "Delete N". Below 600px it is fixed to the bottom of the screen and `styles.scss` pads `main` while it shows. `bulk-action-bar.component.spec.ts` pins all ten lists to it.
+Select mode toggle (checklist icon) on each alarm list. Its count is read to screen readers only once it has stopped changing. The bulk bar is one shared component, `shared/components/bulk-action-bar/`: the count of selected cards on screen (`actionIds`), Select all / Deselect all as text buttons, a tonal Change radius, and a filled warn "Delete N". Below 600px it is fixed to the bottom of the screen and `styles.scss` pads `main` while it shows. `bulk-action-bar.component.spec.ts` pins all ten lists to it.
 
 ### Loading states
 Animated skeleton card placeholders on Pokemon, Raids, and Quests pages.
 
-### Animations
-Grid items fade in with 30ms stagger delay.
+### Page header and design rules
+Every page uses the one `.page-header` in `styles.scss`: the title, one line on what the page is for, and the page's one primary action, a filled, labelled `mat-flat-button.page-primary-action` placed last ("New alarm" on the ten alarm lists, "New profile" on Profiles). Pages don't restyle the header and nothing uses a FAB. Body text is Atkinson Hyperlegible Next, titles Plus Jakarta Sans, with tabular figures throughout. Labels are sentence case with no ALL-CAPS eyebrows, colour carries data (team, tier, type, state) and nothing decorative, and nothing moves unless the user did something: there are no staggered entrances or hover lifts. `design-foundations.spec.ts` checks all of this.
 
 ### Theming
 

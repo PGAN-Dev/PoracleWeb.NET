@@ -213,16 +213,16 @@
 
   <mat-sidenav-container class="app-sidenav-container">
     <mat-sidenav
-      [mode]="isMobile() ? 'over' : 'side'"
+      [mode]="overlayNav() ? 'over' : 'side'"
       [opened]="sidenavOpened()"
       (openedChange)="sidenavOpened.set($event)"
-      [style.width]="sidenavCollapsed() && !isMobile() ? '64px' : '250px'"
+      [style.width]="sidenavCollapsed() && !overlayNav() ? '64px' : '250px'"
       class="app-sidenav"
-      [class.collapsed]="sidenavCollapsed() && !isMobile()">
+      [class.collapsed]="sidenavCollapsed() && !overlayNav()">
       <nav [attr.aria-label]="'TOOLBAR.MAIN_NAV' | translate">
         <mat-nav-list>
           <!-- Alarms Section -->
-          @if ((!sidenavCollapsed() || isMobile()) && alarmNavItems().length > 0) {
+          @if ((!sidenavCollapsed() || overlayNav()) && alarmNavItems().length > 0) {
             <div class="nav-group-label">{{ 'NAV.GROUP_ALARMS' | translate }}</div>
           }
           @for (item of alarmNavItems(); track item.route) {
@@ -233,10 +233,10 @@
               (click)="onNavClick()"
               class="nav-item"
               [matTooltip]="item.label | translate"
-              [matTooltipDisabled]="!sidenavCollapsed() || isMobile()"
+              [matTooltipDisabled]="!sidenavCollapsed() || overlayNav()"
               matTooltipPosition="right">
               <mat-icon matListItemIcon [style.color]="item.iconColor">{{ item.icon }}</mat-icon>
-              @if (!sidenavCollapsed() || isMobile()) {
+              @if (!sidenavCollapsed() || overlayNav()) {
                 <span matListItemTitle>{{ item.label | translate }}</span>
               }
             </a>
@@ -247,7 +247,7 @@
           }
 
           <!-- Settings Section -->
-          @if ((!sidenavCollapsed() || isMobile()) && settingsNavItems().length > 0) {
+          @if ((!sidenavCollapsed() || overlayNav()) && settingsNavItems().length > 0) {
             <div class="nav-group-label">{{ 'NAV.GROUP_SETTINGS' | translate }}</div>
           }
           @for (item of settingsNavItems(); track item.route) {
@@ -258,10 +258,10 @@
               (click)="onNavClick()"
               class="nav-item"
               [matTooltip]="item.label | translate"
-              [matTooltipDisabled]="!sidenavCollapsed() || isMobile()"
+              [matTooltipDisabled]="!sidenavCollapsed() || overlayNav()"
               matTooltipPosition="right">
               <mat-icon matListItemIcon [style.color]="item.iconColor">{{ item.icon }}</mat-icon>
-              @if (!sidenavCollapsed() || isMobile()) {
+              @if (!sidenavCollapsed() || overlayNav()) {
                 <span matListItemTitle>{{ item.label | translate }}</span>
               }
             </a>
@@ -271,7 +271,7 @@
             <mat-divider class="nav-divider"></mat-divider>
 
             <!-- Admin Section -->
-            @if (!sidenavCollapsed() || isMobile()) {
+            @if (!sidenavCollapsed() || overlayNav()) {
               <div class="nav-group-label">{{ 'NAV.GROUP_ADMIN' | translate }}</div>
             }
             @for (item of adminNavItems(); track item.route) {
@@ -282,10 +282,10 @@
                 (click)="onNavClick()"
                 class="nav-item"
                 [matTooltip]="item.label | translate"
-                [matTooltipDisabled]="!sidenavCollapsed() || isMobile()"
+                [matTooltipDisabled]="!sidenavCollapsed() || overlayNav()"
                 matTooltipPosition="right">
                 <mat-icon matListItemIcon [style.color]="item.iconColor">{{ item.icon }}</mat-icon>
-                @if (!sidenavCollapsed() || isMobile()) {
+                @if (!sidenavCollapsed() || overlayNav()) {
                   <span matListItemTitle>{{ item.label | translate }}</span>
                 }
               </a>
@@ -296,7 +296,7 @@
             <mat-divider class="nav-divider"></mat-divider>
 
             <!-- Webhooks Section (for delegates) -->
-            @if (!sidenavCollapsed() || isMobile()) {
+            @if (!sidenavCollapsed() || overlayNav()) {
               <div class="nav-group-label">{{ 'NAV.GROUP_WEBHOOKS' | translate }}</div>
             }
             @for (item of webhookNavItems(); track item.route) {
@@ -307,10 +307,10 @@
                 (click)="onNavClick()"
                 class="nav-item"
                 [matTooltip]="item.label | translate"
-                [matTooltipDisabled]="!sidenavCollapsed() || isMobile()"
+                [matTooltipDisabled]="!sidenavCollapsed() || overlayNav()"
                 matTooltipPosition="right">
                 <mat-icon matListItemIcon [style.color]="item.iconColor">{{ item.icon }}</mat-icon>
-                @if (!sidenavCollapsed() || isMobile()) {
+                @if (!sidenavCollapsed() || overlayNav()) {
                   <span matListItemTitle>{{ item.label | translate }}</span>
                 }
               </a>
@@ -329,10 +329,10 @@
               (click)="onNavClick()"
               class="nav-item"
               [matTooltip]="item.label | translate"
-              [matTooltipDisabled]="!sidenavCollapsed() || isMobile()"
+              [matTooltipDisabled]="!sidenavCollapsed() || overlayNav()"
               matTooltipPosition="right">
               <mat-icon matListItemIcon [style.color]="item.iconColor">{{ item.icon }}</mat-icon>
-              @if (!sidenavCollapsed() || isMobile()) {
+              @if (!sidenavCollapsed() || overlayNav()) {
                 <span matListItemTitle>{{ item.label | translate }}</span>
               }
             </a>
@@ -340,7 +340,7 @@
         </mat-nav-list>
 
         <!-- Collapse toggle (desktop only) -->
-        @if (!isMobile()) {
+        @if (!overlayNav()) {
           <div class="sidenav-collapse-toggle">
             <button
               mat-icon-button

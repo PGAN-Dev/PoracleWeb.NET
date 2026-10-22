@@ -9,7 +9,7 @@
   </div>
   <!-- The page's one primary action. A menu, because "new" needs a type before it can be anything. -->
   @if (newAlarmTypes().length > 0) {
-    <button mat-flat-button class="new-alarm-btn" [matMenuTriggerFor]="newAlarmMenu">
+    <button mat-flat-button class="page-primary-action new-alarm-btn" [matMenuTriggerFor]="newAlarmMenu">
       <mat-icon>add</mat-icon>
       {{ 'DASHBOARD.NEW_ALARM' | translate }}
       <mat-icon iconPositionEnd>arrow_drop_down</mat-icon>
@@ -138,7 +138,8 @@
           <span class="strip-label">{{ 'DASHBOARD.WEATHER' | translate }}</span>
           <span class="strip-value">{{ w.conditionName }}</span>
           @for (type of w.boostedTypes; track type) {
-            <span class="type-chip" [style.--type-color]="getTypeColor(type)">{{ type }}</span>
+            @let edge = boostedTypeEdge(type);
+            <span class="type-chip" [style.--type-color-light]="edge.light" [style.--type-color-dark]="edge.dark">{{ type }}</span>
           }
           @if (weatherUpdatedAgo()) {
             <span class="weather-updated">{{ weatherUpdatedAgo() }}</span>

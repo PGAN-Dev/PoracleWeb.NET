@@ -361,6 +361,25 @@ describe('BasemapService', () => {
       expect(service.active().id).toBe('carto-positron');
     });
 
+    it('draws Dark Matter for every CARTO style the admin can pick, Voyager included', async () => {
+      siteSettings.set({ basemap_provider: 'carto-voyager', basemap_key: 'abc123' });
+      await setTheme(true);
+
+      expect(service.tileUrl()).toContain('/dark_all/');
+      expect(service.tileUrl()).not.toContain(DARK_GRAY);
+    });
+
+    // A key left behind under a keyless provider says nothing about whose key it is (one field serves
+    // CARTO and Stadia, and the admin page hides it), and a CARTO tile asked for with someone else's key
+    // answers 200 with "API KEY REQUIRED" drawn into it. So it does not switch the dark default to CARTO.
+    it('keeps the keyless dark default under a keyless provider, whatever key is left in the settings', async () => {
+      siteSettings.set({ basemap_provider: 'esri-street', basemap_key: 'abc123' });
+      await setTheme(true);
+
+      expect(service.tileUrl()).toContain(DARK_GRAY);
+      expect(service.tileUrl()).not.toContain('cartocdn');
+    });
+
     it('darkens the keyless fallback too, and still reports the missing key', async () => {
       siteSettings.set({ basemap_provider: 'carto-positron' });
       await setTheme(true);

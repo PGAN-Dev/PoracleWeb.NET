@@ -364,7 +364,7 @@ describe('App sidenav by width', () => {
       ],
     });
     const app = TestBed.runInInjectionContext(() => new App()) as unknown as {
-      isMobile: () => boolean;
+      overlayNav: () => boolean;
       onResize: () => void;
       sidenavOpened: () => boolean;
     };
@@ -376,14 +376,14 @@ describe('App sidenav by width', () => {
   it.each([390, 820, 1024])('slides the sidenav over the page at %ipx, closed until asked for', width => {
     const app = build(width);
 
-    expect(app.isMobile()).toBe(true);
+    expect(app.overlayNav()).toBe(true);
     expect(app.sidenavOpened()).toBe(false);
   });
 
   it.each([1025, 1440])('keeps the side-by-side sidenav at %ipx', width => {
     const app = build(width);
 
-    expect(app.isMobile()).toBe(false);
+    expect(app.overlayNav()).toBe(false);
     expect(app.sidenavOpened()).toBe(true);
   });
 
@@ -393,14 +393,14 @@ describe('App sidenav by width', () => {
     setWidth(820);
     app.onResize();
 
-    expect(app.isMobile()).toBe(true);
+    expect(app.overlayNav()).toBe(true);
     expect(app.sidenavOpened()).toBe(false);
   });
 
   it('shows the collapse chevron only beside the side-by-side sidenav', () => {
     const html = fs.readFileSync(path.join(__dirname, 'app.html'), 'utf8');
 
-    expect(html).toMatch(/@if \(!isMobile\(\)\) \{\s*<div class="sidenav-collapse-toggle">/);
-    expect(html).toContain(`[mode]="isMobile() ? 'over' : 'side'"`);
+    expect(html).toMatch(/@if \(!overlayNav\(\)\) \{\s*<div class="sidenav-collapse-toggle">/);
+    expect(html).toContain(`[mode]="overlayNav() ? 'over' : 'side'"`);
   });
 });

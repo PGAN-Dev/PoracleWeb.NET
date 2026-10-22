@@ -1,6 +1,6 @@
 import { DARK_CARD_SURFACE, LIGHT_CARD_SURFACE, contrastRatio } from './contrast';
 import { POKEMON_TYPE_NAMES_BY_ID } from './pokemon-types';
-import { RuleEdge, TEAM_ANY, speciesEdge, teamEdge, tierEdge } from './rule-colours';
+import { RuleEdge, TEAM_ANY, speciesEdge, teamEdge, tierEdge, typeEdge } from './rule-colours';
 
 /**
  * Colour on an alarm card is data: a gym or raid team, an egg's tier, a species' primary type. The
@@ -43,6 +43,13 @@ describe('rule card edges', () => {
     expect(speciesEdge(['Fire', 'Flying'])).toEqual(speciesEdge(['Fire']));
     expect(speciesEdge([])).toBeNull();
     expect(speciesEdge(['NotAType'])).toBeNull();
+  });
+
+  it('gives a weather-boosted type the same colour its species card carries (the dashboard reads it here)', () => {
+    for (const type of Object.values(POKEMON_TYPE_NAMES_BY_ID)) {
+      expect(typeEdge(type)).toEqual(speciesEdge([type]));
+    }
+    expect(typeEdge('Shadow')).toBeNull();
   });
 
   it('groups tiers the way the game draws its eggs', () => {

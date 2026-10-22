@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideTranslateService, TranslateService } from '@ngx-translate/core';
 
-import { BulkActionBarComponent } from './bulk-action-bar.component';
+import { BULK_COUNT_SETTLE_MS, BulkActionBarComponent } from './bulk-action-bar.component';
 
 describe('BulkActionBarComponent', () => {
   let fixture: ComponentFixture<BulkActionBarComponent>;
@@ -84,6 +84,46 @@ describe('BulkActionBarComponent', () => {
     render(0, false);
 
     expect(buttons().some(b => b.textContent?.includes('Deselect all'))).toBe(false);
+  });
+
+  describe('announcing the count', () => {
+    const live = () => el().querySelector('[role="status"]');
+
+    beforeEach(() => jest.useFakeTimers());
+    afterEach(() => jest.useRealTimers());
+
+    it('keeps the visible count out of the live region, so each tick is not read aloud', () => {
+      render(1);
+
+      expect(el().querySelector('.bulk-count')?.getAttribute('role')).toBeNull();
+      expect(el().querySelector('.bulk-count')?.getAttribute('aria-live')).toBeNull();
+    });
+
+    it('announces the count once it settles, not every step on the way', () => {
+      render(1);
+      jest.advanceTimersByTime(200);
+      render(2);
+      jest.advanceTimersByTime(200);
+      render(3);
+      fixture.detectChanges();
+
+      expect(live()?.textContent?.trim()).toBe('');
+
+      jest.advanceTimersByTime(BULK_COUNT_SETTLE_MS);
+      fixture.detectChanges();
+
+      expect(live()?.textContent?.trim()).toBe('3 selected');
+    });
+
+    it('still announces a later settled change, such as Select all', () => {
+      render(1);
+      jest.advanceTimersByTime(BULK_COUNT_SETTLE_MS);
+      render(12);
+      jest.advanceTimersByTime(BULK_COUNT_SETTLE_MS);
+      fixture.detectChanges();
+
+      expect(live()?.textContent?.trim()).toBe('12 selected');
+    });
   });
 
   it('asks its list to act', () => {

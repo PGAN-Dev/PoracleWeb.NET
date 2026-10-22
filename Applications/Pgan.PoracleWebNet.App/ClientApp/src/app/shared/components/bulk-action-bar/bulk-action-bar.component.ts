@@ -1,9 +1,12 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { TranslatePluralPipe } from '../../pipes/translate-plural.pipe';
+
+/** How long the count has to hold still before it is read aloud. */
+export const BULK_COUNT_SETTLE_MS = 700;
 
 /**
  * The bar an alarm list shows in select mode: how many are selected, Select all / Deselect all, and the
@@ -27,12 +30,46 @@ import { TranslatePluralPipe } from '../../pipes/translate-plural.pipe';
   templateUrl: './bulk-action-bar.component.html',
 })
 export class BulkActionBarComponent {
+  private timer: null | ReturnType<typeof setTimeout> = null;
+  /**
+   * The count a screen reader hears: set once the count has not moved for {@link BULK_COUNT_SETTLE_MS}, so
+   * ticking five cards in a row is one announcement, not five. Null until the first change settles.
+   */
+  protected readonly announced = signal<null | number>(null);
   /** True while anything is ticked, on screen or not, so the way to clear a hidden tick stays offered. */
   readonly anySelected = input(false);
   readonly changeRadius = output<void>();
   /** Selected cards the actions would act on. */
   readonly count = input.required<number>();
   readonly deleteSelected = output<void>();
+
   readonly deselectAll = output<void>();
+
   readonly selectAll = output<void>();
+
+  constructor() {
+    let first = true;
+    effect(() => {
+      const count = this.count();
+      if (first) {
+        first = false;
+        return;
+      }
+      untracked(() => this.settle(count));
+    });
+    inject(DestroyRef).onDestroy(() => this.clearTimer());
+  }
+
+  private clearTimer(): void {
+    if (this.timer !== null) clearTimeout(this.timer);
+    this.timer = null;
+  }
+
+  private settle(count: number): void {
+    this.clearTimer();
+    this.timer = setTimeout(() => {
+      this.timer = null;
+      this.announced.set(count);
+    }, BULK_COUNT_SETTLE_MS);
+  }
 }

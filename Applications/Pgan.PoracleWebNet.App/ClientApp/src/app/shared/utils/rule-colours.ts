@@ -100,3 +100,8 @@ export function speciesEdge(types: readonly string[]): null | RuleEdge {
   const hue = types.length > 0 ? TYPE_HUES[types[0]] : undefined;
   return hue ? edgeOf(hue) : null;
 }
+
+/** One type's colour (a weather-boosted type on the dashboard), or null for a name this build does not know. */
+export function typeEdge(type: string): null | RuleEdge {
+  return speciesEdge([type]);
+}

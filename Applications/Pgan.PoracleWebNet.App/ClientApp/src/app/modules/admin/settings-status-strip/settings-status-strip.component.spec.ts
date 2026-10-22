@@ -2,6 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
+import { By } from '@angular/platform-browser';
 import { provideTranslateService, TranslateService } from '@ngx-translate/core';
 import { of, throwError } from 'rxjs';
 
@@ -9,6 +10,7 @@ import { SettingsStatusStripComponent } from './settings-status-strip.component'
 import { PoracleServerProfile, RuleRepairItem, RuleRepairStatus } from '../../../core/models';
 import { AdminService } from '../../../core/services/admin.service';
 import { RuleRepairService } from '../../../core/services/rule-repair.service';
+import { RuleRepairCardComponent } from '../rule-repair-card/rule-repair-card.component';
 
 const upToDate = { latest: null, running: null, state: 'UpToDate' as const };
 
@@ -231,6 +233,44 @@ describe('SettingsStatusStripComponent', () => {
       toggle.click();
       fixture.detectChanges();
       expect(details(fixture).hidden).toBe(false);
+    });
+
+    const setStatus = (fixture: ReturnType<typeof setup>, status: RuleRepairStatus) => {
+      fixture.debugElement.query(By.directive(RuleRepairCardComponent)).componentInstance.status.set(status);
+      fixture.detectChanges();
+    };
+    const toggleDetails = (fixture: ReturnType<typeof setup>) => {
+      ((fixture.nativeElement as HTMLElement).querySelector('[data-test="status-details-toggle"]') as HTMLButtonElement).click();
+      fixture.detectChanges();
+    };
+
+    it('reopens the details for a later outcome after the admin collapsed an earlier one', () => {
+      const fixture = setup(profile(), applied({ failed: 1 }));
+      toggleDetails(fixture);
+      expect(details(fixture).hidden).toBe(true);
+
+      setStatus(fixture, repair({ finishedAt: '2026-10-22T11:30:00Z', phase: 'Failed', startedAt: '2026-10-22T11:29:00Z' }));
+
+      expect(details(fixture).hidden).toBe(false);
+    });
+
+    it('treats two failed runs as two outcomes even when neither says when it finished', () => {
+      const fixture = setup(profile(), repair({ error: 'down', phase: 'Failed', startedAt: '2026-10-22T10:00:00Z' }));
+      toggleDetails(fixture);
+      expect(details(fixture).hidden).toBe(true);
+
+      setStatus(fixture, repair({ error: 'down', phase: 'Failed', startedAt: '2026-10-22T12:00:00Z' }));
+
+      expect(details(fixture).hidden).toBe(false);
+    });
+
+    it('keeps a collapsed outcome collapsed while it is still the same outcome', () => {
+      const fixture = setup(profile(), repair({ error: 'down', phase: 'Failed', startedAt: '2026-10-22T10:00:00Z' }));
+      toggleDetails(fixture);
+
+      setStatus(fixture, repair({ error: 'down', phase: 'Failed', startedAt: '2026-10-22T10:00:00Z' }));
+
+      expect(details(fixture).hidden).toBe(true);
     });
 
     it('opens the details for a run that failed', () => {

@@ -454,8 +454,10 @@ export class AreaListComponent implements OnInit {
       .setLocation({ latitude: 0, longitude: 0 })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        error: () =>
-          this.snackBar.open(this.i18n.instant('AREAS.SNACK_LOCATION_FAILED'), this.i18n.instant('TOAST.OK'), { duration: 3000 }),
+        error: err =>
+          this.snackBar.open(serverReason(err) ?? this.i18n.instant('AREAS.SNACK_LOCATION_FAILED'), this.i18n.instant('TOAST.OK'), {
+            duration: 4000,
+          }),
         next: () => {
           this.location.set(null);
           this.locationAddress.set('');

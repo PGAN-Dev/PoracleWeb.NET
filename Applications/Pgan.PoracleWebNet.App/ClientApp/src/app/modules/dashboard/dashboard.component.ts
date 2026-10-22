@@ -26,6 +26,8 @@ import { QuietListSheetComponent } from '../../shared/components/quiet-list-shee
 import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
 import { ADD_ON_ARRIVAL } from '../../shared/utils/add-on-arrival';
 import { polygonCentroid } from '../../shared/utils/geo.utils';
+import { RuleEdge, typeEdge } from '../../shared/utils/rule-colours';
+import { serverReason } from '../../shared/utils/server-reason';
 
 interface DashboardCard {
   /** The `disable_*` key that governs this alarm type. Eggs share the raid one. */
@@ -72,27 +74,6 @@ interface Tip {
   templateUrl: './dashboard.component.html',
 })
 export class DashboardComponent implements OnInit {
-  private static readonly TYPE_COLORS: Record<string, string> = {
-    Bug: '#8BC34A',
-    Dark: '#424242',
-    Dragon: '#7C4DFF',
-    Electric: '#FFC107',
-    Fairy: '#EC407A',
-    Fighting: '#FF5722',
-    Fire: '#F44336',
-    Flying: '#90CAF9',
-    Ghost: '#7E57C2',
-    Grass: '#4CAF50',
-    Ground: '#795548',
-    Ice: '#00BCD4',
-    Normal: '#A1887F',
-    Poison: '#9C27B0',
-    Psychic: '#F06292',
-    Rock: '#9E9E9E',
-    Steel: '#78909C',
-    Water: '#2196F3',
-  };
-
   readonly geofencePolygons = signal<GeofenceData[]>([]);
   /**
    * Stored area names are lowercase, because Poracle matches case-sensitively; the fence keeps its own
@@ -426,6 +407,11 @@ export class DashboardComponent implements OnInit {
     return remaining === null ? null : this.mutes.countdownLabel(remaining);
   }
 
+  /** A boosted type's colour, from the same table the Pokémon cards use, as a light and a dark value. */
+  boostedTypeEdge(type: string): RuleEdge {
+    return typeEdge(type) ?? { dark: '#9e9e9e', light: '#757575' };
+  }
+
   dismissTip(tip: Tip): void {
     const current = this.dismissedTips();
     this.dismissedTips.set([...current, tip.id]);
@@ -434,10 +420,6 @@ export class DashboardComponent implements OnInit {
 
   getAreaWeatherData(areaName: string): WeatherData | null {
     return this.areaWeather()[areaName.toLowerCase()] ?? null;
-  }
-
-  getTypeColor(type: string): string {
-    return DashboardComponent.TYPE_COLORS[type] ?? '#9E9E9E';
   }
 
   handleTipAction(tip: Tip): void {
@@ -513,8 +495,10 @@ export class DashboardComponent implements OnInit {
       .switchProfile(profile.profileNo)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        error: () =>
-          this.snackBar.open(this.i18n.instant('DASHBOARD.SWITCH_PROFILE_FAILED'), this.i18n.instant('TOAST.OK'), { duration: 3000 }),
+        error: err =>
+          this.snackBar.open(serverReason(err) ?? this.i18n.instant('DASHBOARD.SWITCH_PROFILE_FAILED'), this.i18n.instant('TOAST.OK'), {
+            duration: 4000,
+          }),
         next: res => {
           if (res.token) {
             this.authService.setToken(res.token);

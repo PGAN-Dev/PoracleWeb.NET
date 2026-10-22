@@ -49,8 +49,10 @@ export class SettingsStatusStripComponent {
    */
   readonly attentionKey = computed<null | string>(() => {
     const s = this.repairCard().status();
-    if (s.phase === 'Failed') return `Failed:${s.finishedAt ?? ''}`;
-    if (s.phase === 'Applied' && this.applyProblems(s).length > 0) return `Applied:${s.finishedAt ?? ''}`;
+    // Every run stamps its start, so two runs never share a key even when one ends without a finish time.
+    const run = `${s.startedAt ?? ''}/${s.finishedAt ?? ''}`;
+    if (s.phase === 'Failed') return `Failed:${run}`;
+    if (s.phase === 'Applied' && this.applyProblems(s).length > 0) return `Applied:${run}`;
     return null;
   });
 

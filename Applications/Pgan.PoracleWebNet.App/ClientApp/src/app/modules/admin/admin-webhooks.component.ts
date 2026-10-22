@@ -389,8 +389,10 @@ export class AdminWebhooksComponent implements OnInit {
       .impersonateById(user.id)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        error: () =>
-          this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_SWITCH_WEBHOOK'), this.i18n.instant('TOAST.OK'), { duration: 3000 }),
+        error: err =>
+          this.snackBar.open(serverReason(err) ?? this.i18n.instant('ADMIN.SNACK_FAILED_SWITCH_WEBHOOK'), this.i18n.instant('TOAST.OK'), {
+            duration: 4000,
+          }),
         next: res => this.auth.impersonate(res.token),
       });
   }
@@ -429,7 +431,7 @@ export class AdminWebhooksComponent implements OnInit {
           .pipe(takeUntilDestroyed(this.destroyRef))
           .subscribe({
             error: err => {
-              const msg = err?.error?.error ?? this.i18n.instant('ADMIN.SNACK_FAILED_ADD_WEBHOOK');
+              const msg = serverReason(err) ?? this.i18n.instant('ADMIN.SNACK_FAILED_ADD_WEBHOOK');
               this.snackBar.open(msg, this.i18n.instant('TOAST.OK'), { duration: 4000 });
             },
             next: () => {

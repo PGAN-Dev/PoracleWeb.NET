@@ -588,7 +588,7 @@ describe('GeofenceSubmissionsComponent', () => {
 
     expect(mockDialog.open).not.toHaveBeenCalled();
     expect(adminGeofenceService.adminDelete).not.toHaveBeenCalled();
-    expect(mockSnackBar.open).toHaveBeenCalledWith('ADMIN.SNACK_FAILED_DELETE_GEOFENCE', 'TOAST.OK', { duration: 3000 });
+    expect(mockSnackBar.open).toHaveBeenCalledWith('ADMIN.SNACK_FAILED_DELETE_GEOFENCE', 'TOAST.OK', { duration: 4000 });
   });
 
   it('should not delete when dialog is cancelled', async () => {
@@ -616,6 +616,17 @@ describe('GeofenceSubmissionsComponent', () => {
     expect(component.allGeofences().find(g => g.id === geofence.id)).toBeUndefined();
   });
 
+  it("shows the server's reason when it refuses the delete", async () => {
+    setup();
+    component.ngOnInit();
+    mockDialog.open.mockReturnValue({ afterClosed: () => of(true) });
+    adminGeofenceService.adminDelete!.mockReturnValue(throwError(() => ({ error: { error: 'Owner not found.' }, status: 409 })));
+
+    await component.adminDelete(component.allGeofences()[0]);
+
+    expect(mockSnackBar.open).toHaveBeenCalledWith('Owner not found.', 'TOAST.OK', { duration: 4000 });
+  });
+
   it('should show snackbar on delete error', async () => {
     setup();
     component.ngOnInit();
@@ -625,7 +636,7 @@ describe('GeofenceSubmissionsComponent', () => {
     const geofence = component.allGeofences()[0];
     await component.adminDelete(geofence);
 
-    expect(mockSnackBar.open).toHaveBeenCalledWith('ADMIN.SNACK_FAILED_DELETE_GEOFENCE', 'TOAST.OK', { duration: 3000 });
+    expect(mockSnackBar.open).toHaveBeenCalledWith('ADMIN.SNACK_FAILED_DELETE_GEOFENCE', 'TOAST.OK', { duration: 4000 });
   });
 
   // ─── Geofence Reference Polygons ────────────────────────────────────────────

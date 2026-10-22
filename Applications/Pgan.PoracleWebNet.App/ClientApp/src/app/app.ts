@@ -274,7 +274,7 @@ export class App implements OnInit {
    * control. Phones and tablets up to {@link OVERLAY_NAV_MAX_WIDTH}: a tablet in portrait kept the
    * permanent sidenav and was left one narrow column of cards beside it.
    */
-  protected readonly isMobile = signal(usesOverlayNav(window.innerWidth));
+  protected readonly overlayNav = signal(usesOverlayNav(window.innerWidth));
 
   protected readonly settingsNavItems = computed(() =>
     this.navItems.filter(
@@ -286,7 +286,7 @@ export class App implements OnInit {
 
   protected readonly sidenavCollapsed = signal(localStorage.getItem('poracle-sidenav-collapsed') === 'true');
 
-  protected readonly sidenavOpened = signal(!this.isMobile());
+  protected readonly sidenavOpened = signal(!this.overlayNav());
 
   // document.title is PageTitleStrategy's: "<page> · <site title>".
   protected readonly siteTitle = computed(() => this.settingsService.siteSettings()['custom_title'] || DEFAULT_SITE_TITLE);
@@ -416,18 +416,18 @@ export class App implements OnInit {
       case 'Escape':
         if (this.showShortcutHelp()) {
           this.showShortcutHelp.set(false);
-        } else if (this.isMobile() && this.sidenavOpened()) {
+        } else if (this.overlayNav() && this.sidenavOpened()) {
           this.sidenavOpened.set(false);
         }
         break;
       case '[':
-        if (!this.isMobile()) {
+        if (!this.overlayNav()) {
           this.sidenavCollapsed.set(true);
           localStorage.setItem('poracle-sidenav-collapsed', 'true');
         }
         break;
       case ']':
-        if (!this.isMobile()) {
+        if (!this.overlayNav()) {
           this.sidenavCollapsed.set(false);
           localStorage.setItem('poracle-sidenav-collapsed', 'false');
         }
@@ -436,16 +436,16 @@ export class App implements OnInit {
   }
 
   onNavClick(): void {
-    if (this.isMobile()) {
+    if (this.overlayNav()) {
       this.sidenavOpened.set(false);
     }
   }
 
   @HostListener('window:resize')
   onResize(): void {
-    const mobile = usesOverlayNav(window.innerWidth);
-    this.isMobile.set(mobile);
-    if (mobile) {
+    const overlay = usesOverlayNav(window.innerWidth);
+    this.overlayNav.set(overlay);
+    if (overlay) {
       this.sidenavOpened.set(false);
     }
   }

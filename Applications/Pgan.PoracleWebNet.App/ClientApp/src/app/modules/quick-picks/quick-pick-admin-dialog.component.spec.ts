@@ -389,6 +389,48 @@ describe('QuickPickAdminDialogComponent', () => {
       expect(savedDefinition().filters['rewardType']).toBe(3);
     });
 
+    const encounterPick = (reward: number, rewardType: number): QuickPickDefinition => ({
+      id: 'dratini',
+      name: 'Dratini encounter',
+      alarmType: 'quest',
+      category: 'Quests',
+      description: '',
+      enabled: true,
+      filters: { reward, rewardType },
+      icon: 'bolt',
+      scope: 'global',
+      sortOrder: 0,
+    });
+
+    it('opens a stored encounter quest with its species, and saves it unchanged', () => {
+      setup(encounterPick(147, QUEST_REWARD_POKEMON));
+
+      expect(component.questForm.controls.reward.value).toBe(147);
+      component.save();
+
+      expect(savedDefinition().filters['reward']).toBe(147);
+      expect(savedDefinition().filters['rewardType']).toBe(QUEST_REWARD_POKEMON);
+    });
+
+    it('clears the reward when the reward type moves off an encounter, so a species id is not saved as an item id', () => {
+      setup(encounterPick(147, QUEST_REWARD_POKEMON));
+
+      component.questForm.controls.rewardType.setValue(2);
+      component.save();
+
+      expect(savedDefinition().filters['reward']).toBe(0);
+      expect(savedDefinition().filters['rewardType']).toBe(2);
+    });
+
+    it('clears an item reward when the reward type moves onto an encounter, so the item id is not a species', () => {
+      setup(encounterPick(1301, 2));
+
+      component.questForm.controls.rewardType.setValue(QUEST_REWARD_POKEMON);
+
+      expect(component.questForm.controls.reward.value).toBe(0);
+      expect(component.pokemonInitialIds()).toEqual([]);
+    });
+
     it('rebuilds the Pokémon picker when the type changes', () => {
       setup(null);
       const before = component.selectorKey();
