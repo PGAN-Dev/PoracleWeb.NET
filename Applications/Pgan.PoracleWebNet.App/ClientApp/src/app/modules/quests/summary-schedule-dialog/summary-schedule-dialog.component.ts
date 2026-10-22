@@ -65,7 +65,7 @@ export class SummaryScheduleDialogComponent {
   readonly loading = signal(true);
   /** Grouped amber pills mirroring the active-hours-chip idiom. */
   readonly pills = computed(() =>
-    groupActiveHours(this.entries()).map(g => ({ label: formatRuleLabel(g, (key, params) => this.translate.instant(key, params)) })),
+    groupActiveHours(this.entries()).map(g => ({ label: formatRuleLabel(g, (key, params) => this.translate.instant(key, params), this.translate.currentLang() ?? 'en') })),
   );
 
   readonly saving = signal(false);

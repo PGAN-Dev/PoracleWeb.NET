@@ -13,6 +13,8 @@ import {
   ActiveHourEntry,
   ActiveHourGroup,
   activeHoursFires,
+  formatAxisHour,
+  formatHourOption,
   formatRuleLabel,
   groupActiveHours,
 } from '../../../core/models/active-hours.models';
@@ -66,6 +68,12 @@ export class ActiveHoursEditorDialogComponent {
   readonly entries = signal<ActiveHourEntry[]>([...this.data.activeHours]);
   readonly groups = computed<ActiveHourGroup[]>(() => groupActiveHours(this.entries()));
   readonly hourOptions = Array.from({ length: 24 }, (_, i) => i);
+
+  /** The weekly preview's axis ticks (midnight, 6, noon, 18, midnight) on the display language's clock. */
+  readonly axisLabels = computed(() => {
+    const lang = this.translate.currentLang() ?? 'en';
+    return [0, 6, 12, 18, 24].map(h => formatAxisHour(h % 24, lang));
+  });
   readonly minuteOptions = Array.from({ length: 12 }, (_, i) => i * 5);
 
   /**
@@ -142,14 +150,13 @@ export class ActiveHoursEditorDialogComponent {
   }
 
   formatGroupLabel(group: ActiveHourGroup): string {
-    return formatRuleLabel(group, (key, params) => this.translate.instant(key, params));
+    return formatRuleLabel(group, (key, params) => this.translate.instant(key, params), this.translate.currentLang() ?? 'en');
   }
 
   formatHour(h: number): string {
-    const period = this.translate.instant(h >= 12 ? 'PROFILES.ACTIVE_HOURS_PM' : 'PROFILES.ACTIVE_HOURS_AM');
-    const display = h % 12 || 12;
-    return `${display} ${period}`;
+    return formatHourOption(h, this.translate.currentLang() ?? 'en');
   }
+
 
   formatMinute(m: number): string {
     return `:${m.toString().padStart(2, '0')}`;
