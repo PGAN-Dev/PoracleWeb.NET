@@ -32,7 +32,7 @@ internal static class RuleRepairClassifier
         {
             row = TrackingV2Translator.ToV1Row(rule.Type, rule.Rule, humanId);
         }
-        catch (InvalidOperationException ex)
+        catch (Exception ex) when (ex is InvalidOperationException or JsonException or FormatException or InvalidCastException)
         {
             return CannotEdit(rule, humanId, ex.Message);
         }
@@ -56,10 +56,10 @@ internal static class RuleRepairClassifier
                 return Repair(rule, humanId, RuleRepairKind.RaidPokemonZero, row, "pokemon_id", JsonValue.Create(ByLevel), "pokemon_id 0", "by level", false);
 
             case "raid" when IsAnyBossAnyLevel(rule.Rule):
-                return Repair(rule, humanId, RuleRepairKind.RaidAnyBossLevel9000, row, null, null, "level 9000, pokemon_id 9000", "level 90", true);
+                return Repair(rule, humanId, RuleRepairKind.RaidAnyBossLevel9000, row, null, null, "any boss, level unconfirmed", "any boss, any tier", true);
 
             case "maxbattle" when IsAnyBossAnyLevel(rule.Rule):
-                return Repair(rule, humanId, RuleRepairKind.MaxBattleAnyBossLevel9000, row, null, null, "level 9000, pokemon_id 9000", "level 90", true);
+                return Repair(rule, humanId, RuleRepairKind.MaxBattleAnyBossLevel9000, row, null, null, "any boss, level unconfirmed", "any boss, any tier", true);
 
             default:
                 return null;
