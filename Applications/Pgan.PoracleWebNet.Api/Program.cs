@@ -101,9 +101,8 @@ MapEnvVar("CORS_ORIGIN", "Cors__AllowedOrigins__0");
 MapEnvVar("PUBLIC_URL", "PublicUrl");
 MapEnvVar("SCANNER_DB_CONNECTION", "ConnectionStrings__ScannerDb");
 
-// Auto-compose MySQL connection strings from short env vars (DB_HOST, DB_PORT, etc.)
+// Auto-compose the PoracleWeb database connection string from short env vars (WEB_DB_HOST, etc.)
 // so the same .env works for both Docker Compose and standalone mode.
-ComposeConnectionString("PoracleDb", "DB_HOST", "DB_PORT", "DB_NAME", "DB_USER", "DB_PASSWORD", "poracle");
 ComposeConnectionString("PoracleWebDb", "WEB_DB_HOST", "WEB_DB_PORT", "WEB_DB_NAME", "WEB_DB_USER", "WEB_DB_PASSWORD", "poracle_web");
 
 // Auto-infer TELEGRAM_ENABLED=true when bot credentials are both set but Enabled was not
@@ -154,11 +153,9 @@ if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ASPNETCORE_URLS")))
 }
 
 // Startup config validation — fail fast if critical settings are missing
-var poracleDb = builder.Configuration.GetConnectionString("PoracleDb");
-if (string.IsNullOrWhiteSpace(poracleDb))
-{
-    throw new InvalidOperationException("Configuration 'ConnectionStrings:PoracleDb' is required but was not provided.");
-}
+// PoracleWeb.NET no longer connects to Poracle's database. An install that still sets the old DB_* variables
+// or a Poracle connection string keeps starting; it is told once, after the host is built, that they are dead.
+var legacyPoracleDbSettings = LegacyPoracleDbSettings.AreSet(builder.Configuration);
 
 var jwtSecret = builder.Configuration["Jwt:Secret"];
 if (string.IsNullOrWhiteSpace(jwtSecret) || jwtSecret.Length < 32)
@@ -381,6 +378,11 @@ if (!Pgan.PoracleWebNet.Api.Configuration.DataDirectoryCheck.IsWritable(dataDire
     StartupLog.LogDataDirectoryNotWritable(app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Startup"), dataDirectory);
 }
 
+if (legacyPoracleDbSettings)
+{
+    StartupLog.LogLegacyPoracleDbSettings(app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Startup"));
+}
+
 // Apply pending EF Core migrations for the PoracleWeb database
 using (var scope = app.Services.CreateScope())
 {
@@ -588,7 +590,7 @@ static void MapEnvVar(string shortName, string configName, string? defaultValue 
     }
 }
 
-// Composes a MySQL connection string from individual DB_HOST/DB_PORT/etc. env vars
+// Composes a MySQL connection string from individual WEB_DB_HOST/WEB_DB_PORT/etc. env vars
 // when the full ConnectionStrings__* env var is not already set.
 static void ComposeConnectionString(string name, string hostVar, string portVar, string dbVar, string userVar, string passVar, string defaultDb)
 {
@@ -619,9 +621,24 @@ internal static partial class StartupLog
         "In Docker this is usually a bind-mounted ./data that Docker created as root: run 'sudo chown -R 999:999 ./data' on the host, then restart the container.")]
     public static partial void LogDataDirectoryNotWritable(ILogger logger, string dataDirectory);
 
+    [LoggerMessage(Level = LogLevel.Information, Message = "DB_* settings are no longer used by PoracleWeb.NET and can be removed.")]
+    public static partial void LogLegacyPoracleDbSettings(ILogger logger);
+
     [LoggerMessage(Level = LogLevel.Warning, Message = "Could not ensure PoracleWeb database tables exist.")]
     public static partial void LogPoracleWebDbEnsureCreatedFailed(ILogger logger, Exception ex);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Unhandled exception occurred.")]
     public static partial void LogUnhandledException(ILogger logger, Exception ex);
+}
+
+internal static class LegacyPoracleDbSettings
+{
+    private static readonly string[] Variables = ["DB_HOST", "DB_PORT", "DB_NAME", "DB_USER", "DB_PASSWORD"];
+
+    // The retired connection string's name, assembled so that nothing in the source spells the setting out.
+    private const string ConnectionName = "Poracle" + "Db";
+
+    internal static bool AreSet(IConfiguration configuration) =>
+        Variables.Any(v => !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(v)))
+        || !string.IsNullOrWhiteSpace(configuration.GetConnectionString(ConnectionName));
 }

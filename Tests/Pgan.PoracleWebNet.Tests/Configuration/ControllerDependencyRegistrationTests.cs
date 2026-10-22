@@ -111,7 +111,6 @@ public class ControllerDependencyRegistrationTests
                 ["Poracle:ApiAddress"] = "http://localhost:3030",
                 ["Poracle:ApiSecret"] = "test-secret",
                 ["Jwt:Secret"] = "test-secret-that-is-long-enough-for-hmac-sha256-signing",
-                ["ConnectionStrings:PoracleDb"] = "server=localhost;database=poracle;user=root;password=x",
                 ["ConnectionStrings:PoracleWebDb"] = "server=localhost;database=poracle_web;user=root;password=x",
             })
             .Build());
@@ -204,7 +203,6 @@ public class ControllerDependencyRegistrationTests
                 ["Poracle:ApiAddress"] = "http://localhost:3030",
                 ["Poracle:ApiSecret"] = "test-secret",
                 ["Jwt:Secret"] = "test-secret-that-is-long-enough-for-hmac-sha256-signing",
-                ["ConnectionStrings:PoracleDb"] = "server=localhost;database=poracle;user=root;password=x",
                 ["ConnectionStrings:PoracleWebDb"] = "server=localhost;database=poracle_web;user=root;password=x",
             })
             .Build());
