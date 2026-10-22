@@ -155,7 +155,12 @@ public class TrackingV2TypeTranslationTests
 
         var written = translated.EnumerateObject().Select(p => p.Name).ToHashSet(StringComparer.Ordinal);
         var noSource = NoV1Source.GetValueOrDefault(type, []);
-        var missing = V2Schema[type].Where(name => !written.Contains(name) && !noSource.Contains(name)).ToList();
+        var row = Row(V1Row[type]);
+
+        // A field holding its default is rightly absent: v2 stores an absent property as that value.
+        var missing = V2Schema[type]
+            .Where(name => !written.Contains(name) && !noSource.Contains(name) && !HoldsItsDefault(type, row, name))
+            .ToList();
 
         Assert.True(missing.Count == 0, $"The {type} table does not write: {string.Join(", ", missing)}");
     }
@@ -185,7 +190,8 @@ public class TrackingV2TypeTranslationTests
     {
         var body = Translate("egg", $$"""{"level":5,"rsvp_changes":{{rsvp}}}""");
 
-        Assert.Equal(expected, body.GetProperty("rsvp_changes").GetString());
+        // 0 ("none") is the read default, so it goes out as absent.
+        Assert.Equal(rsvp == 0 ? null : expected, body.TryGetProperty("rsvp_changes", out var sent) ? sent.GetString() : null);
     }
 
     [Theory]
@@ -238,18 +244,21 @@ public class TrackingV2TypeTranslationTests
     }
 
     [Fact]
-    public void The9000SentinelIsSentVerbatimWhereverV2StillAcceptsIt()
+    public void The9000SentinelGoesOutAsAbsentAndARealValueIsSent()
     {
-        // The migration guide says to omit them. Verified on 5.2.1 instead: a raid PUT carrying costume,
-        // move and evolution at 9000 stored exactly what the v1 create stores, and the v1 read came back
-        // byte-identical but for the rotated uid. All three are declared minimum 0 with no maximum, so
-        // 9000 stays inside the schema and is still sent as-is.
+        // 9000 is what v2 reports as null for costume, move and evolution, so an absent property stores the
+        // same thing. A real value is still sent.
         var body = Translate("raid", @"{""pokemon_id"":9000,""level"":5,""costume"":9000,""move"":9000,""evolution"":9000}");
 
-        foreach (var name in new[] { "costume", "move", "evolution" })
+        foreach (var name in new[] { "costume", "move", "evolution", "pokemon_id" })
         {
-            Assert.Equal(9000, body.GetProperty(name).GetInt32());
+            Assert.False(body.TryGetProperty(name, out _), $"{name} 9000 should be absent");
         }
+
+        Assert.Equal(5, body.GetProperty("level").GetInt32());
+        Assert.Equal(
+            7,
+            Translate("raid", @"{""pokemon_id"":9000,""level"":5,""move"":7}").GetProperty("move").GetInt32());
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -387,7 +396,8 @@ public class TrackingV2TypeTranslationTests
         // one and these three must translate.
         var translated = Translate("invasion", $$"""{"grunt_type":"water","gender":{{stored}}}""");
 
-        Assert.Equal(expected, translated.GetProperty("gender").GetString());
+        // 0 ("any") is the read default, so it goes out as absent.
+        Assert.Equal(stored == 0 ? null : expected, translated.TryGetProperty("gender", out var sent) ? sent.GetString() : null);
     }
 
     [Fact]
@@ -423,6 +433,31 @@ public class TrackingV2TypeTranslationTests
     private const IReadOnlyDictionary<string, TrackingV2Translator.Bound>? ServerDoesNotBoundAnything = null;
 
     private static JsonElement Row(string json) => JsonDocument.Parse(json).RootElement.Clone();
+
+    /// <summary>Whether the stored row holds, for a v2 field, the value a v2 read reports as null.</summary>
+    private static bool HoldsItsDefault(string type, JsonElement row, string v2Name)
+    {
+        // clean, edit and summary are one v1 mask.
+        var v1Name = v2Name is "edit" or "summary" ? "clean" : v2Name;
+
+        if (!row.TryGetProperty(v1Name, out var value) || !TrackingV2Translator.DefaultsFor(type).TryGetValue(v2Name, out var fallback))
+        {
+            return false;
+        }
+
+        static string? Normalise(JsonElement e) => e.ValueKind switch
+        {
+            JsonValueKind.Null => string.Empty,
+            JsonValueKind.True => "1",
+            JsonValueKind.False => "0",
+            JsonValueKind.String => e.GetString(),
+            _ => e.GetRawText(),
+        };
+
+        return v1Name == "clean" && value.ValueKind == JsonValueKind.Number
+            ? value.GetInt32() == 0
+            : Normalise(value) == Normalise(fallback);
+    }
 
     [Fact]
     public void TheSchemaListsAreReadFromTheFixtureAndCarryWhat540Added()

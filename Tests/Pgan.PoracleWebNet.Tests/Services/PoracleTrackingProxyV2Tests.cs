@@ -78,7 +78,7 @@ public class PoracleTrackingProxyV2Tests
         Assert.Equal("female", sent.GetProperty("gender").GetString());
         Assert.Equal(1500, sent.GetProperty("pvp_ranking_league").GetInt32());
         Assert.Equal(90, sent.GetProperty("min_iv").GetInt32());
-        Assert.Equal(JsonValueKind.Null, sent.GetProperty("override_areas").ValueKind);
+        Assert.False(sent.TryGetProperty("override_areas", out _), "a null area list is the read default and goes out as absent");
 
         Assert.Equal(36487, result.Uid);
         Assert.True(result.UsedV2);
@@ -504,9 +504,10 @@ public class PoracleTrackingProxyV2Tests
             "pokemon", "user1", 36486, Row($$"""{"uid":36486,"pokemon_id":25,"clean":{{mask}}}"""));
 
         using var body = JsonDocument.Parse(Assert.Single(handler.Requests).Body!);
-        Assert.Equal(clean, body.RootElement.GetProperty("clean").GetBoolean());
-        Assert.Equal(edit, body.RootElement.GetProperty("edit").GetBoolean());
-        Assert.Equal(summary, body.RootElement.GetProperty("summary").GetBoolean());
+        // Mask 0 is the read default for all three, so none is sent.
+        Assert.Equal(clean, body.RootElement.TryGetProperty("clean", out var c) && c.GetBoolean());
+        Assert.Equal(edit, body.RootElement.TryGetProperty("edit", out var e) && e.GetBoolean());
+        Assert.Equal(summary, body.RootElement.TryGetProperty("summary", out var s) && s.GetBoolean());
     }
 
     [Fact]
