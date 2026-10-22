@@ -40,7 +40,7 @@ describe('QuestListComponent reward type label', () => {
 
   /** Every reward type the add dialog can create: Pokemon, item, stardust, candy, pokecoins, mega energy. */
   it.each([
-    [7, 'Pokemon'],
+    [7, 'Pokémon'],
     [2, 'Item'],
     [3, 'Stardust'],
     [4, 'Candy'],
