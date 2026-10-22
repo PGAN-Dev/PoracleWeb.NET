@@ -479,34 +479,45 @@ router-outlet + * {
 // A dialog opened with the `phone-bottom-sheet` panel class (the "where" sheet) is a few rows tall, so on
 // a phone it rises from the bottom at its own height instead of taking the whole screen, and the card it
 // changes stays in view above it. Overrides the fullscreen rules above, which every other dialog keeps.
+// The confirm dialog takes the same shape wherever it is opened from: a two-line question with its
+// buttons a screen away read as a page, not a question. It is keyed on the component, not a panel class,
+// so none of its fifty-odd callers has to remember one.
 
 @media (max-width: 599px) {
-  .cdk-global-overlay-wrapper:has(> .phone-bottom-sheet) {
+  .cdk-global-overlay-wrapper:has(> .phone-bottom-sheet),
+  .cdk-global-overlay-wrapper:has(> .cdk-overlay-pane app-confirm-dialog) {
     align-items: flex-end !important;
   }
 
-  .cdk-overlay-pane.phone-bottom-sheet {
+  .cdk-overlay-pane.phone-bottom-sheet,
+  .cdk-overlay-pane:has(app-confirm-dialog) {
     height: auto !important;
     max-height: 90dvh !important;
   }
 
   .phone-bottom-sheet mat-dialog-container .mat-mdc-dialog-surface,
   .phone-bottom-sheet mat-dialog-container .mdc-dialog__container,
-  .phone-bottom-sheet mat-dialog-container .mdc-dialog__surface {
+  .phone-bottom-sheet mat-dialog-container .mdc-dialog__surface,
+  .cdk-overlay-pane:has(app-confirm-dialog) mat-dialog-container .mat-mdc-dialog-surface,
+  .cdk-overlay-pane:has(app-confirm-dialog) mat-dialog-container .mdc-dialog__container,
+  .cdk-overlay-pane:has(app-confirm-dialog) mat-dialog-container .mdc-dialog__surface {
     height: auto !important;
     max-height: 90dvh !important;
   }
 
-  .phone-bottom-sheet mat-dialog-container .mat-mdc-dialog-surface {
+  .phone-bottom-sheet mat-dialog-container .mat-mdc-dialog-surface,
+  .cdk-overlay-pane:has(app-confirm-dialog) mat-dialog-container .mat-mdc-dialog-surface {
     border-radius: 28px 28px 0 0 !important;
   }
 
-  .phone-bottom-sheet .mat-mdc-dialog-content {
+  .phone-bottom-sheet .mat-mdc-dialog-content,
+  .cdk-overlay-pane:has(app-confirm-dialog) .mat-mdc-dialog-content {
     flex: 0 1 auto !important;
   }
 
   // It starts at the bottom, so the title needs no room for the status bar.
-  .phone-bottom-sheet .mat-mdc-dialog-title {
+  .phone-bottom-sheet .mat-mdc-dialog-title,
+  .cdk-overlay-pane:has(app-confirm-dialog) .mat-mdc-dialog-title {
     padding-top: 20px !important;
   }
 }
