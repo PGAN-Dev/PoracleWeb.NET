@@ -12,7 +12,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { TranslatePipe } from '@ngx-translate/core';
-import { switchMap } from 'rxjs';
+import { finalize, switchMap } from 'rxjs';
 
 import { AreaDefinition, GeofenceData, Location } from '../../core/models';
 import { AreaService } from '../../core/services/area.service';
@@ -111,6 +111,9 @@ export class AreaListComponent implements OnInit {
       .sort((a, b) => a.name.localeCompare(b.name));
   });
 
+  /** True from the Clear click until its confirm closes, so a double click opens one dialog. */
+  readonly clearingPin = signal(false);
+
   /** Street addresses for the pin. Off with `disable_nominatim`, and with location itself. */
   readonly geocodingEnabled = computed(
     () => !this.settingsService.isDisabled('disable_location') && !this.settingsService.isDisabled('disable_nominatim'),
@@ -155,7 +158,6 @@ export class AreaListComponent implements OnInit {
   });
 
   readonly loading = signal(true);
-
   readonly location = signal<Location | null>(null);
   readonly locationAddress = signal<string>('');
 
@@ -236,6 +238,8 @@ export class AreaListComponent implements OnInit {
    * one of them matching, and there is no undo. A count that cannot be read still asks, without a number.
    */
   clearLocation(): void {
+    if (this.clearingPin()) return;
+    this.clearingPin.set(true);
     this.locationService
       .getPinUsage()
       .pipe(
@@ -256,6 +260,7 @@ export class AreaListComponent implements OnInit {
             })
             .afterClosed(),
         ),
+        finalize(() => this.clearingPin.set(false)),
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe(confirmed => {

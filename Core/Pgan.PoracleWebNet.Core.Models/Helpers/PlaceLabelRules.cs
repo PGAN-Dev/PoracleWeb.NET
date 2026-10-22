@@ -17,7 +17,7 @@ namespace Pgan.PoracleWebNet.Core.Models.Helpers;
 /// </remarks>
 public static class PlaceLabelRules
 {
-    /// <summary><c>humans_locations.label</c> is varchar(64).</summary>
+    /// <summary><c>user_locations.label</c> is varchar(64).</summary>
     public const int MaxLength = 64;
 
     /// <summary>

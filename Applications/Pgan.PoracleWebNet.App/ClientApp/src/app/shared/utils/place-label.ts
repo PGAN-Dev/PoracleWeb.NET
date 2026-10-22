@@ -3,7 +3,7 @@
  * `ProfileNameRules`' character rule).
  */
 
-/** `humans_locations.label` is varchar(64). */
+/** `user_locations.label` is varchar(64). */
 export const PLACE_LABEL_MAX_LENGTH = 64;
 
 /**
@@ -26,18 +26,18 @@ export const PLACE_NAME_PROMPT = {
 
 /** PoracleNG's tracking type to the nav label that names its list. */
 const TYPE_LABEL_KEYS: Record<string, string> = {
-  incident: 'NAV.POKESTOP_EVENTS',
-  raid: 'NAV.RAIDS',
-  egg: 'NAV.RAIDS',
-  fort: 'NAV.FORT_CHANGES',
-  gym: 'NAV.GYMS',
-  invasion: 'NAV.INVASIONS',
-  lure: 'NAV.LURES',
-  maxbattle: 'NAV.MAX_BATTLES',
-  monster: 'NAV.POKEMON',
-  nest: 'NAV.NESTS',
-  pokemon: 'NAV.POKEMON',
-  quest: 'NAV.QUESTS',
+  incident: 'WHERE.RULE_TYPE_INCIDENT',
+  raid: 'QUICK_PICKS.ALARM_TYPES.RAID',
+  egg: 'QUICK_PICKS.ALARM_TYPES.EGG',
+  fort: 'WHERE.RULE_TYPE_FORT',
+  gym: 'QUICK_PICKS.ALARM_TYPES.GYM',
+  invasion: 'QUICK_PICKS.ALARM_TYPES.INVASION',
+  lure: 'QUICK_PICKS.ALARM_TYPES.LURE',
+  maxbattle: 'QUICK_PICKS.ALARM_TYPES.MAXBATTLE',
+  monster: 'QUICK_PICKS.ALARM_TYPES.MONSTER',
+  nest: 'QUICK_PICKS.ALARM_TYPES.NEST',
+  pokemon: 'QUICK_PICKS.ALARM_TYPES.MONSTER',
+  quest: 'QUICK_PICKS.ALARM_TYPES.QUEST',
 };
 
 /**
@@ -48,4 +48,14 @@ export function describeReferencingRule(rule: string, instant: (key: string) => 
   const match = /^(\S+)\s+(\d+)$/.exec(rule.trim());
   const key = match ? TYPE_LABEL_KEYS[match[1].toLowerCase()] : undefined;
   return match && key ? `${instant(key)} #${match[2]}` : rule;
+}
+
+/** One alarm from the usage read, in words: the singular type, then PoracleNG's summary or the rule number. */
+export function describeUsageRule(
+  rule: { description: null | string; type: string; uid: number },
+  instant: (key: string) => string,
+): string {
+  const key = TYPE_LABEL_KEYS[rule.type.toLowerCase()];
+  const type = key ? instant(key) : rule.type;
+  return rule.description ? `${type}: ${rule.description}` : `${type} #${rule.uid}`;
 }

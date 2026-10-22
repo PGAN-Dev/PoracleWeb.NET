@@ -19,6 +19,7 @@ describe('PlacesSectionComponent', () => {
     named: jest.Mock;
     pin: jest.Mock;
     remove: jest.Mock;
+    usage: jest.Mock;
   };
   let snackBar: { open: jest.Mock };
   let fixture: ComponentFixture<PlacesSectionComponent>;
@@ -38,6 +39,7 @@ describe('PlacesSectionComponent', () => {
       move: jest.fn().mockReturnValue(of({ named: [], default: null })),
       pin: jest.fn().mockReturnValue({ label: '', latitude: 3, longitude: 4 }),
       remove: jest.fn().mockReturnValue(of(void 0)),
+      usage: jest.fn().mockReturnValue(of({ alarms: 0, rules: [] })),
     };
 
     TestBed.resetTestingModule();
@@ -219,13 +221,69 @@ describe('PlacesSectionComponent', () => {
     expect(dialog.open.mock.calls[0][1].data.title).toBe('WHERE.PLACE_MOVE_NAMED');
   });
 
-  it('warns before a delete that a place still in use is refused, rather than promising a fallback', () => {
+  it('names the alarms using a place before anything else, and offers no Delete', () => {
+    // The D6 ruling: the confirm says up front which alarms use the place, since PoracleNG refuses the
+    // delete while they do. Offering Delete there would only lead to the refusal.
     const component = create();
-    queueDialogResults(false);
+    places.usage.mockReturnValue(
+      of({
+        alarms: 2,
+        rules: [
+          { uid: 37337, description: 'Pikachu 90%+', type: 'pokemon' },
+          { uid: 9, description: null, type: 'raid' },
+        ],
+      }),
+    );
+    queueDialogResults(undefined);
+
+    component.confirmRemove({ label: 'work', latitude: 1, longitude: 2 });
+
+    expect(places.usage).toHaveBeenCalledWith('work');
+    const data = dialog.open.mock.calls[0][1].data;
+    expect(data.infoOnly).toBe(true);
+    expect(data.title).toBe('WHERE.PLACE_IN_USE_TITLE');
+    expect(data.message).toBe('WHERE.PLACE_IN_USE_BLOCKED_OTHER');
+    expect(data.items).toEqual(['QUICK_PICKS.ALARM_TYPES.MONSTER: Pikachu 90%+', 'QUICK_PICKS.ALARM_TYPES.RAID #9']);
+    expect(places.remove).not.toHaveBeenCalled();
+  });
+
+  it('caps a long list of alarms in the way', () => {
+    const component = create();
+    const rules = Array.from({ length: 12 }, (_, i) => ({ uid: i + 1, description: null, type: 'gym' }));
+    places.usage.mockReturnValue(of({ alarms: 12, rules }));
+    queueDialogResults(undefined);
+
+    component.confirmRemove({ label: 'work', latitude: 1, longitude: 2 });
+
+    const items: string[] = dialog.open.mock.calls[0][1].data.items;
+    expect(items).toHaveLength(9);
+    expect(items[8]).toBe('WHERE.LIST_MORE');
+  });
+
+  it('asks the plain delete question for a place nothing uses, and deletes on yes', () => {
+    const component = create();
+    queueDialogResults(true);
+
+    component.confirmRemove({ label: 'work', latitude: 1, longitude: 2 });
+
+    const data = dialog.open.mock.calls[0][1].data;
+    expect(data.infoOnly).toBeFalsy();
+    expect(data.message).toBe('WHERE.PLACE_DELETE_CONFIRM_UNUSED');
+    expect(places.remove).toHaveBeenCalledWith('work');
+  });
+
+  it('falls back to the cautious confirm, quietly, when the usage read fails', () => {
+    // PlacesService answers null for a failed read, and the interceptor keeps the URL silent, so the
+    // person sees the confirm and never a toast for a pre-check. The 409 path still lists the rules.
+    const component = create();
+    places.usage.mockReturnValue(of(null));
+    queueDialogResults(true);
 
     component.confirmRemove({ label: 'work', latitude: 1, longitude: 2 });
 
     expect(dialog.open.mock.calls[0][1].data.message).toBe('WHERE.PLACE_DELETE_CONFIRM');
+    expect(snackBar.open).not.toHaveBeenCalledWith(expect.stringContaining('ERROR'), expect.anything(), expect.anything());
+    expect(places.remove).toHaveBeenCalledWith('work');
   });
 
   it('lists the alarms in the way when a delete is refused', () => {
@@ -239,7 +297,11 @@ describe('PlacesSectionComponent', () => {
     component.removePlace({ label: 'work', latitude: 1, longitude: 2 });
 
     const call = instant.mock.calls.find(([key, params]) => key === 'WHERE.PLACE_IN_USE_OTHER' && params);
-    expect(call?.[1]).toMatchObject({ count: 2, place: 'work', rules: 'NAV.POKEMON #37337, NAV.RAIDS #9' });
+    expect(call?.[1]).toMatchObject({
+      count: 2,
+      place: 'work',
+      rules: 'QUICK_PICKS.ALARM_TYPES.MONSTER #37337, QUICK_PICKS.ALARM_TYPES.RAID #9',
+    });
   });
 
   it('reports a failed move rather than leaving the card looking changed', () => {

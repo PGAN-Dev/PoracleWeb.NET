@@ -1,11 +1,11 @@
 using System.ComponentModel.DataAnnotations;
-using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Pgan.PoracleWebNet.Api.Filters;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 
 using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Core.Models.Helpers;
+using Pgan.PoracleWebNet.Core.Services;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
@@ -364,44 +364,26 @@ public class LocationController(
     public async Task<IActionResult> GetPinUsage([FromServices] IPoracleTrackingProxy trackingProxy)
     {
         var snapshot = await trackingProxy.GetAllTrackingAsync(this.UserId);
-        return this.Ok(new { alarms = CountMeasuredFromPin(snapshot) });
+        return this.Ok(new { alarms = PlaceUsage.CountMeasuredFromPin(snapshot) });
     }
 
-    internal static int CountMeasuredFromPin(JsonElement snapshot)
+    /// <summary>
+    /// The active profile's alarms aimed at a saved place, every type included (Pokéstop events too).
+    /// PoracleNG refuses to delete a place while any exist, so the SPA reads this before it offers Delete
+    /// and lists them instead. The delete's own 409 still covers a rule added in between.
+    /// </summary>
+    [HttpGet("place-usage")]
+    public async Task<IActionResult> GetPlaceUsage(
+        [FromQuery] string? label, [FromServices] IPoracleTrackingProxy trackingProxy)
     {
-        if (snapshot.ValueKind != JsonValueKind.Object)
+        if (string.IsNullOrWhiteSpace(label))
         {
-            return 0;
+            return this.BadRequest(new { error = "Name the place to check." });
         }
 
-        var count = 0;
-        foreach (var type in snapshot.EnumerateObject())
-        {
-            if (type.Value.ValueKind != JsonValueKind.Array)
-            {
-                continue;
-            }
-
-            foreach (var row in type.Value.EnumerateArray())
-            {
-                var radius = row.ValueKind == JsonValueKind.Object
-                    && row.TryGetProperty("distance", out var d)
-                    && d.ValueKind == JsonValueKind.Number
-                    && d.TryGetDouble(out var metres)
-                    && metres > 0;
-                var hasPlace = radius
-                    && row.TryGetProperty("override_location_label", out var label)
-                    && label.ValueKind == JsonValueKind.String
-                    && !string.IsNullOrWhiteSpace(label.GetString());
-
-                if (radius && !hasPlace)
-                {
-                    count++;
-                }
-            }
-        }
-
-        return count;
+        var snapshot = await trackingProxy.GetAllTrackingWithDescriptionsAsync(this.UserId);
+        var rules = PlaceUsage.RulesAimedAt(snapshot, label);
+        return this.Ok(new { alarms = rules.Count, rules });
     }
 
     /// <summary>

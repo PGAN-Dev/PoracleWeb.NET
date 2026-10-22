@@ -135,6 +135,12 @@ public interface IPoracleTrackingProxy
     public Task<JsonElement> GetAllTrackingAsync(string userId);
 
     /// <summary>
+    /// <see cref="GetAllTrackingAsync"/> with PoracleNG's one-line <c>description</c> on every rule. Costs
+    /// PoracleNG a render per rule, so only for reads that show rules to a person (the place-delete check).
+    /// </summary>
+    public Task<JsonElement> GetAllTrackingWithDescriptionsAsync(string userId);
+
+    /// <summary>
     /// Fetches all tracking rules across all profiles for a user, read through v2's snapshot with
     /// <c>?all_profiles=true</c>.
     /// </summary>

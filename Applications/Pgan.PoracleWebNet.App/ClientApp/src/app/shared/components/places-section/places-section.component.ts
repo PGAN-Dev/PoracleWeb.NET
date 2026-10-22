@@ -9,11 +9,11 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
 import { translatePlural } from '../../../core/i18n/plural';
-import { Location, SavedPlace } from '../../../core/models';
+import { Location, PlaceUsageRule, SavedPlace } from '../../../core/models';
 import { PlacesService } from '../../../core/services/places.service';
-import { describeReferencingRule, PLACE_NAME_PROMPT } from '../../utils/place-label';
+import { describeReferencingRule, describeUsageRule, PLACE_NAME_PROMPT } from '../../utils/place-label';
 import { serverReason } from '../../utils/server-reason';
-import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component';
+import { ConfirmDialogComponent, ConfirmDialogData } from '../confirm-dialog/confirm-dialog.component';
 import { LocationDialogComponent } from '../location-dialog/location-dialog.component';
 
 /**
@@ -41,6 +41,8 @@ import { LocationDialogComponent } from '../location-dialog/location-dialog.comp
   templateUrl: './places-section.component.html',
 })
 export class PlacesSectionComponent implements OnInit {
+  /** How many alarms the in-use dialog names before "and N more". */
+  private static readonly LISTED_RULES = 8;
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   private readonly translate = inject(TranslateService);
@@ -62,19 +64,37 @@ export class PlacesSectionComponent implements OnInit {
     });
   }
 
+  /**
+   * Reads which alarms use the place before offering Delete. PoracleNG refuses the delete while any do, so
+   * the dialog names them and offers only Close; with none it is the plain delete question. A failed read
+   * falls back to the cautious confirm, and the delete's own 409 still lists them if one was added since.
+   */
   confirmRemove(place: SavedPlace): void {
-    this.dialog
-      .open(ConfirmDialogComponent, {
-        data: {
-          confirmText: this.translate.instant('COMMON.DELETE'),
-          message: this.translate.instant('WHERE.PLACE_DELETE_CONFIRM', { place: place.label }),
-          title: this.translate.instant('WHERE.PLACE_DELETE_TITLE'),
-        },
-      })
-      .afterClosed()
-      .subscribe(confirmed => {
-        if (confirmed) this.removePlace(place);
-      });
+    if (this.busy()) return;
+    this.busy.set(true);
+    this.places.usage(place.label).subscribe(usage => {
+      this.busy.set(false);
+      if (usage && usage.rules.length > 0) {
+        this.showInUse(place, usage.rules);
+        return;
+      }
+
+      this.dialog
+        .open(ConfirmDialogComponent, {
+          data: {
+            confirmText: this.translate.instant('COMMON.DELETE'),
+            message: this.translate.instant(usage ? 'WHERE.PLACE_DELETE_CONFIRM_UNUSED' : 'WHERE.PLACE_DELETE_CONFIRM', {
+              place: place.label,
+            }),
+            title: this.translate.instant('WHERE.PLACE_DELETE_TITLE'),
+            warn: true,
+          } satisfies ConfirmDialogData,
+        })
+        .afterClosed()
+        .subscribe(confirmed => {
+          if (confirmed) this.removePlace(place);
+        });
+    });
   }
 
   /** Moves a place to a new point, keeping its label so every alarm pointing at it follows. */
@@ -196,6 +216,28 @@ export class PlacesSectionComponent implements OnInit {
     this.places.load().subscribe({
       error: () => this.loading.set(false),
       next: () => this.loading.set(false),
+    });
+  }
+
+  /** Names the alarms aimed at the place; nothing to confirm, since PoracleNG would refuse the delete. */
+  private showInUse(place: SavedPlace, rules: PlaceUsageRule[]): void {
+    const shown = rules
+      .slice(0, PlacesSectionComponent.LISTED_RULES)
+      .map(rule => describeUsageRule(rule, key => this.translate.instant(key)));
+    if (rules.length > shown.length) {
+      shown.push(this.translate.instant('WHERE.LIST_MORE', { count: rules.length - shown.length }));
+    }
+
+    this.dialog.open(ConfirmDialogComponent, {
+      data: {
+        confirmText: this.translate.instant('COMMON.CLOSE'),
+        infoOnly: true,
+        items: shown,
+        message: translatePlural(this.translate, this.translate.getCurrentLang() ?? 'en', 'WHERE.PLACE_IN_USE_BLOCKED', rules.length, {
+          place: place.label,
+        }),
+        title: this.translate.instant('WHERE.PLACE_IN_USE_TITLE', { place: place.label }),
+      } satisfies ConfirmDialogData,
     });
   }
 }

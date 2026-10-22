@@ -14,7 +14,11 @@ import { hasRefusedNameCharacter } from '../../utils/place-label';
 export interface ConfirmDialogData {
   cancelText?: string;
   confirmText?: string;
+  /** One button (`confirmText`, else Close) that closes with false: the dialog explains, it asks nothing. */
+  infoOnly?: boolean;
   itemDescription?: string;
+  /** A short list under the message, such as the alarms that stop a delete. */
+  items?: string[];
   message: string;
   promptField?: ConfirmDialogPrompt;
   showDontAskAgain?: boolean;

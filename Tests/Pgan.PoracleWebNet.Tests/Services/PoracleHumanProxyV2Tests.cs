@@ -178,7 +178,7 @@ public class PoracleHumanProxyV2Tests
     [Fact]
     public async Task ALabelTooLongForTheColumnIsRefusedBeforeItIsSent()
     {
-        // humans_locations.label is varchar(64). v1 reported the overflow as "Data too long for column
+        // user_locations.label is varchar(64). v1 reported the overflow as "Data too long for column
         // 'label'" inside a 200 and v2 answers 500 {"detail":"database error"} -- both verified live,
         // and neither is a sentence to show someone who typed a long name.
         var handler = ScriptedHandler.Ok("""{"status":"ok"}""");

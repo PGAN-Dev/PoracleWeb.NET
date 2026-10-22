@@ -129,4 +129,31 @@ describe('ConfirmDialogComponent name prompt', () => {
 
     expect(saveButton(fixture).disabled).toBe(false);
   });
+
+  it('shows an explanation with one Close button and no Delete when it only informs', () => {
+    close = jest.fn();
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        provideTranslateService(),
+        {
+          provide: MAT_DIALOG_DATA,
+          useValue: { infoOnly: true, items: ['Pokémon: Pikachu', 'Raid #9'], message: 'Work is in use.', title: 'In use' },
+        },
+        { provide: MatDialogRef, useValue: { close } },
+      ],
+      imports: [ConfirmDialogComponent],
+    });
+    const fixture = TestBed.createComponent(ConfirmDialogComponent);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+
+    const buttons = el.querySelectorAll('mat-dialog-actions button');
+    expect(buttons).toHaveLength(1);
+    expect(buttons[0].textContent?.trim()).toBe('COMMON.CLOSE');
+    expect(Array.from(el.querySelectorAll('li')).map(li => li.textContent?.trim())).toEqual(['Pokémon: Pikachu', 'Raid #9']);
+
+    (buttons[0] as HTMLButtonElement).click();
+    expect(close).toHaveBeenCalledWith(false);
+  });
 });

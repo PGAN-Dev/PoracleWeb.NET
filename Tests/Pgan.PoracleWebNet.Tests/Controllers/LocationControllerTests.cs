@@ -185,6 +185,63 @@ public class LocationControllerTests : ControllerTestBase
         Assert.Equal(2, ok.Value?.GetType().GetProperty("alarms")?.GetValue(ok.Value));
     }
 
+    /// <summary>
+    /// The place-delete pre-check (flows D6): the confirm lists what is in the way before it offers Delete.
+    /// Counted on the active profile across every type, a Pokéstop event folded into invasion included, and
+    /// matched on the exact label, so a rule aimed at another place, or at the pin, is not in the list.
+    /// </summary>
+    [Fact]
+    public async Task PlaceUsageListsTheRulesAimedAtThePlaceWithTheirSummaries()
+    {
+        var snapshot = System.Text.Json.JsonDocument.Parse("""
+            {
+              "pokemon": [
+                { "uid": 37337, "distance": 500, "override_location_label": "Work", "description": "Pikachu 90%+" },
+                { "uid": 2, "distance": 500, "override_location_label": "Home" },
+                { "uid": 3, "distance": 500, "override_location_label": "" }
+              ],
+              "raid": [ { "uid": 9, "distance": 1000, "override_location_label": "Work" } ],
+              "invasion": [
+                { "uid": 11, "distance": 800, "grunt_type": "kecleon", "override_location_label": "Work" },
+                { "uid": 12, "distance": 800, "grunt_type": "water", "override_location_label": "work" }
+              ]
+            }
+            """).RootElement;
+        var tracking = new Mock<IPoracleTrackingProxy>();
+        tracking.Setup(t => t.GetAllTrackingWithDescriptionsAsync("123456789")).ReturnsAsync(snapshot);
+
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetPlaceUsage("Work", tracking.Object));
+
+        Assert.Equal(3, ok.Value?.GetType().GetProperty("alarms")?.GetValue(ok.Value));
+        var rules = Assert.IsAssignableFrom<IReadOnlyList<PlaceUsageRule>>(ok.Value?.GetType().GetProperty("rules")?.GetValue(ok.Value));
+        Assert.Equal(
+            [new PlaceUsageRule("pokemon", 37337, "Pikachu 90%+"), new PlaceUsageRule("raid", 9, null), new PlaceUsageRule("incident", 11, null)],
+            rules);
+    }
+
+    [Fact]
+    public async Task PlaceUsageAnswersNoneForAPlaceNothingUses()
+    {
+        var snapshot = System.Text.Json.JsonDocument.Parse("""{ "pokemon": [ { "uid": 1, "distance": 500 } ] }""").RootElement;
+        var tracking = new Mock<IPoracleTrackingProxy>();
+        tracking.Setup(t => t.GetAllTrackingWithDescriptionsAsync("123456789")).ReturnsAsync(snapshot);
+
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetPlaceUsage("Work", tracking.Object));
+
+        Assert.Equal(0, ok.Value?.GetType().GetProperty("alarms")?.GetValue(ok.Value));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(" ")]
+    public async Task PlaceUsageRefusesAMissingLabelWithoutReadingAnything(string? label)
+    {
+        var tracking = new Mock<IPoracleTrackingProxy>();
+
+        Assert.IsType<BadRequestObjectResult>(await this._sut.GetPlaceUsage(label, tracking.Object));
+        tracking.VerifyNoOtherCalls();
+    }
+
     [Fact]
     public async Task UpdatePlaceMovesItAndAnswersTheNewList()
     {
