@@ -1,15 +1,25 @@
-<h2 mat-dialog-title>{{ 'GEOFENCES.NAME_DIALOG_TITLE' | translate }}</h2>
+<h2 mat-dialog-title>{{ (data.rename ? 'GEOFENCES.RENAME_DIALOG_TITLE' : 'GEOFENCES.NAME_DIALOG_TITLE') | translate }}</h2>
 <mat-dialog-content>
   <mat-form-field appearance="outline" class="full-width">
     <mat-label>{{ 'GEOFENCES.NAME_LABEL' | translate }}</mat-label>
-    <input matInput [(ngModel)]="displayName" maxlength="50" [placeholder]="'GEOFENCES.NAME_PLACEHOLDER' | translate" required />
+    <input
+      matInput
+      [(ngModel)]="displayName"
+      maxlength="50"
+      [placeholder]="'GEOFENCES.NAME_PLACEHOLDER' | translate"
+      [errorStateMatcher]="nameErrors"
+      required />
+    <!--
+      The rule is always on screen: an untouched input never shows its errors, so Save used to go grey
+      with nothing to say why. nameErrors puts the field in its error state as soon as the name breaks the
+      rule, which swaps the hint for the error text and sets aria-invalid, so the change is announced and
+      isn't carried by colour alone.
+    -->
+    <mat-hint class="name-rule">{{ 'GEOFENCES.NAME_RULE_HINT' | translate }}</mat-hint>
+    <mat-error class="name-rule name-error">
+      {{ (isWhitespaceOnly ? 'GEOFENCES.NAME_WHITESPACE_ERROR' : 'GEOFENCES.NAME_RULE_ERROR') | translate }}
+    </mat-error>
     <mat-hint align="end">{{ displayName.length }} / 50</mat-hint>
-    @if (displayName.length > 0 && displayName.trim().length === 0) {
-      <mat-error>{{ 'GEOFENCES.NAME_WHITESPACE_ERROR' | translate }}</mat-error>
-    }
-    @if (hasInvalidChars) {
-      <mat-error>{{ 'GEOFENCES.NAME_INVALID_CHARS_ERROR' | translate }}</mat-error>
-    }
   </mat-form-field>
 
   @if (hasRegions) {

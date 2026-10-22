@@ -51,6 +51,13 @@ public partial class PoracleTrackingProxy
     }
 
     /// <inheritdoc />
+    public async Task<JsonElement> GetAllTrackingWithDescriptionsAsync(string userId)
+    {
+        var snapshot = await this.ReadSnapshotAsync(userId, "?include_descriptions=true", "All alarms");
+        return this.SnapshotAsV1(snapshot, userId, profiles: null, appended: null);
+    }
+
+    /// <inheritdoc />
     /// <remarks>
     /// PoracleNG answers <c>?all_profiles=true</c> with nothing at all for a human who has no
     /// <c>profiles</c> rows, though their rules exist (v1's <c>allProfiles</c> returned them). Losing them

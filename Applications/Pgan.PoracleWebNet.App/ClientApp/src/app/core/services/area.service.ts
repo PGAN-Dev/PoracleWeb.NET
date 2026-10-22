@@ -40,7 +40,11 @@ export class AreaService {
     return this.http.get<string[]>(`${this.config.apiHost}/api/areas`);
   }
 
-  update(areas: string[]): Observable<void> {
-    return this.http.put<void>(`${this.config.apiHost}/api/areas`, { areas });
+  /**
+   * Saves the profile's areas and answers with the list PoracleNG holds afterwards, read back after the write.
+   * A name it has no fence for is dropped there, not refused, so the answer can be shorter than what was sent.
+   */
+  update(areas: string[]): Observable<string[]> {
+    return this.http.put<string[]>(`${this.config.apiHost}/api/areas`, { areas });
   }
 }

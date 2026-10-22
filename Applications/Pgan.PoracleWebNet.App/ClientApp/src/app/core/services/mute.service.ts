@@ -340,8 +340,20 @@ export class MuteService {
  * creates always pass.
  */
 function sameMute(mute: Mute, scope: MuteScope, value: null | string, trackingType: null | string): boolean {
-  if (mute.scope !== scope || !sameValue(mute.value, value)) return false;
+  if (mute.scope !== scope) return false;
+  if (scope === 'area' ? !sameArea(mute.value, value) : !sameValue(mute.value, value)) return false;
   return !trackingType || (mute.trackingType ?? null) === trackingType;
+}
+
+/**
+ * Compares two area names the way PoracleNG keys them (`NormalizeAreaKey`): case-insensitive, trimmed,
+ * `_` equal to a space. A profile can hold `west_end` for the fence "West End", and its quiet chip has to
+ * find the mute PoracleNG stores under the fence's own name.
+ */
+function sameArea(a: null | string | undefined, b: null | string | undefined): boolean {
+  const key = (v: string) => v.trim().toLowerCase().replace(/_/g, ' ');
+  if (a === null || a === undefined || b === null || b === undefined) return sameValue(a, b);
+  return key(a) === key(b);
 }
 
 /**

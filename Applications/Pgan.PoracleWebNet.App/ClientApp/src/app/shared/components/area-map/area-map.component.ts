@@ -42,23 +42,51 @@ const FIT_OPTIONS: L.FitBoundsOptions = {
   paddingTopLeft: [24, 24],
 };
 
-const GROUP_COLORS = [
-  '#e53935',
-  '#1e88e5',
-  '#43a047',
-  '#fb8c00',
-  '#8e24aa',
-  '#00acc1',
-  '#f4511e',
-  '#3949ab',
-  '#7cb342',
-  '#c0ca33',
-  '#6d4c41',
-  '#546e7a',
-  '#d81b60',
-  '#039be5',
-  '#00897b',
-];
+/**
+ * How an area looks when it is selected, and when it is not. One selected colour for every area, whatever its
+ * group: the map is the control on Areas & Places, and the fill is what says "this one is mine". It used to
+ * take the group's colour when unselected and a green only a little stronger when selected, so a selected
+ * area could sit beside an unselected green group and read the same. Unselected areas are now a neutral
+ * outline with almost no fill, so the colour on the map means one thing.
+ *
+ * The same values in both themes, since the basemap under them is the same. Each path also carries
+ * `area-selected` / `area-unselected`, so a stylesheet can tell them apart.
+ */
+export const AREA_STYLE_SELECTED: L.PathOptions = {
+  color: '#15803d',
+  dashArray: undefined,
+  fillColor: '#16a34a',
+  fillOpacity: 0.45,
+  opacity: 1,
+  weight: 3,
+};
+
+// Strong enough to find on busy tiles, and on My Geofences, where every admin area is unselected.
+export const AREA_STYLE_UNSELECTED: L.PathOptions = {
+  color: '#475569',
+  dashArray: '5, 5',
+  fillColor: '#64748b',
+  fillOpacity: 0.06,
+  opacity: 1,
+  weight: 2,
+};
+
+/** A hovered area, selected or not: a little more fill so the pointer has something to answer it. */
+const HOVER_FILL_BOOST = 0.15;
+
+/** A point an alert can measure from, drawn as a marker: the user's named places. */
+export interface MapPlace {
+  label: string;
+  latitude: number;
+  longitude: number;
+}
+
+const HTML_ESCAPES: Record<string, string> = { '"': '&quot;', '&': '&amp;', "'": '&#39;', '<': '&lt;', '>': '&gt;' };
+
+/** Escapes a place label for the marker's HTML; labels are user text. */
+function escapeHtml(text: string): string {
+  return text.replace(/[&<>"']/g, ch => HTML_ESCAPES[ch]);
+}
 
 interface RegionEntry {
   areaCount: number;
@@ -102,8 +130,6 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     }
   };
 
-  private groupColorMap = new Map<string, string>();
-
   private readonly i18n = inject(I18nService);
 
   private initialized = false;
@@ -123,6 +149,8 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     // Do not add to map -- parent component handles saving and re-rendering
   };
 
+  private placeLayer: L.LayerGroup = L.layerGroup();
+
   private polygonByName = new Map<string, L.Polygon>();
 
   private polygonLayers: L.Polygon[] = [];
@@ -139,6 +167,10 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   @Input() groupMapping: Map<string, string> = new Map();
   readonly isFullscreen = signal(false);
   @ViewChild('mapContainer', { static: true }) mapElement!: ElementRef<HTMLDivElement>;
+  /** A marker was clicked: the place's label, or null for the pin. */
+  placeClicked = output<null | string>();
+  /** Named places, drawn as labelled markers beside the pin. */
+  places = input<MapPlace[]>([]);
   polygonDrawn = output<[number, number][]>();
   regionChanged = output<RegionOption>();
 
@@ -157,8 +189,6 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
 
   @Input() userLocation?: { lat: number; lng: number };
 
-  readonly visibleLegend = signal<{ group: string; color: string }[]>([]);
-
   constructor() {
     // React to drawMode changes
     effect(() => {
@@ -176,6 +206,11 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     effect(() => {
       const geofences = this.customGeofences();
       this.renderCustomGeofences(geofences);
+    });
+
+    effect(() => {
+      const places = this.places();
+      this.renderPlaces(places);
     });
   }
 
@@ -203,6 +238,7 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     // The customGeofences effect runs before the map exists and bails out, so the first value has
     // to be drawn here or My Geofences opens with no shapes and no bounds to anchor on.
     this.renderCustomGeofences(this.customGeofences());
+    this.renderPlaces(this.places());
     document.addEventListener('fullscreenchange', this.fullscreenHandler);
   }
 
@@ -323,6 +359,24 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   }
 
   /**
+   * Styles one area as selected or not, marks its path with `area-selected` / `area-unselected` so a
+   * stylesheet can tell them apart, and rebinds the hover so it returns to the right resting style.
+   */
+  private applyAreaStyle(polygon: L.Polygon, isSelected: boolean): void {
+    const style = isSelected ? AREA_STYLE_SELECTED : AREA_STYLE_UNSELECTED;
+    polygon.setStyle(style);
+
+    const path = polygon.getElement();
+    path?.classList.toggle('area-selected', isSelected);
+    path?.classList.toggle('area-unselected', !isSelected);
+
+    polygon.off('mouseover');
+    polygon.off('mouseout');
+    polygon.on('mouseover', () => polygon.setStyle({ fillOpacity: (style.fillOpacity ?? 0) + HOVER_FILL_BOOST }));
+    polygon.on('mouseout', () => polygon.setStyle({ fillOpacity: style.fillOpacity }));
+  }
+
+  /**
    * Positions the map on the best anchor available so far, upgrading if better data has since
    * arrived. Safe to call as often as you like -- planInitialView decides whether anything happens.
    */
@@ -429,27 +483,8 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     // Case-insensitive match: DB stores lowercase, geofence names may be mixed case
     const selectedSet = new Set(this.selectedAreas.map(a => a.toLowerCase()));
 
-    // Build group-to-color mapping
-    this.groupColorMap.clear();
-    let colorIndex = 0;
-    for (const fence of this.geofence) {
-      const group = this.groupMapping.get(fence.name) || '';
-      if (!this.groupColorMap.has(group)) {
-        this.groupColorMap.set(group, GROUP_COLORS[colorIndex % GROUP_COLORS.length]);
-        colorIndex++;
-      }
-    }
-
     // Build regions from groups (group by state/country prefix)
     this.buildRegions();
-
-    // Build legend
-    const legend: { group: string; color: string }[] = [];
-    this.groupColorMap.forEach((color, group) => {
-      legend.push({ color, group });
-    });
-    legend.sort((a, b) => a.group.localeCompare(b.group));
-    this.visibleLegend.set(legend);
 
     const allBounds: L.LatLngExpression[] = [];
 
@@ -474,17 +509,7 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       allBounds.push(...latLngs);
 
       const isSelected = selectedSet.has(fence.name.toLowerCase());
-      const group = this.groupMapping.get(fence.name) || '';
-      const color = this.groupColorMap.get(group) || GROUP_COLORS[0];
-
-      const polygon = L.polygon(latLngs, {
-        color: isSelected ? '#4caf50' : color,
-        dashArray: isSelected ? undefined : '5, 5',
-        fillColor: isSelected ? '#4caf50' : color,
-        fillOpacity: isSelected ? 0.35 : 0.08,
-        opacity: isSelected ? 1 : 0.4,
-        weight: isSelected ? 3 : 1,
-      });
+      const polygon = L.polygon(latLngs, isSelected ? AREA_STYLE_SELECTED : AREA_STYLE_UNSELECTED);
 
       polygon.bindTooltip(fence.name, {
         className: 'area-tooltip',
@@ -492,21 +517,12 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
         sticky: true,
       });
 
-      const originalWeight = isSelected ? 3 : 1;
-      const originalFillOpacity = isSelected ? 0.35 : 0.08;
-
-      polygon.on('mouseover', () => {
-        polygon.setStyle({ fillOpacity: 0.4, weight: 3 });
-      });
-      polygon.on('mouseout', () => {
-        polygon.setStyle({ fillOpacity: originalFillOpacity, weight: originalWeight });
-      });
-
       polygon.on('click', () => {
         this.areaClicked.emit(fence.name);
       });
 
       polygon.addTo(this.map!);
+      this.applyAreaStyle(polygon, isSelected);
       this.polygonLayers.push(polygon);
       this.polygonByName.set(fence.name, polygon);
     }
@@ -545,6 +561,7 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     }
 
     this.customGeofenceLayer.addTo(this.map);
+    this.placeLayer.addTo(this.map);
   }
 
   private removeDrawControl(): void {
@@ -590,6 +607,31 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     this.applyInitialView();
   }
 
+  /**
+   * The user's named places, as labelled markers. Like the pin, Leaflet makes each one a focusable button;
+   * `title` names it. Clicking one says which, so the page can open the panel where it is managed.
+   */
+  private renderPlaces(places: MapPlace[]): void {
+    if (!this.map) return;
+    this.placeLayer.clearLayers();
+
+    for (const place of places) {
+      const name = this.i18n.instant('AREA_MAP.PLACE_MARKER', { place: place.label });
+      const marker = L.marker([place.latitude, place.longitude], {
+        alt: name,
+        icon: L.divIcon({
+          className: 'place-marker',
+          html: `<span class="place-marker__dot"></span><span class="place-marker__label">${escapeHtml(place.label)}</span>`,
+          iconAnchor: [8, 8],
+          iconSize: undefined,
+        }),
+        title: name,
+      });
+      marker.on('click', () => this.placeClicked.emit(place.label));
+      this.placeLayer.addLayer(marker);
+    }
+  }
+
   private updatePolygonStyles(): void {
     if (!this.map) return;
 
@@ -599,30 +641,7 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       const polygon = this.polygonByName.get(fence.name);
       if (!polygon) continue;
 
-      const isSelected = selectedSet.has(fence.name.toLowerCase());
-      const group = this.groupMapping.get(fence.name) || '';
-      const color = this.groupColorMap.get(group) || GROUP_COLORS[0];
-
-      polygon.setStyle({
-        color: isSelected ? '#4caf50' : color,
-        dashArray: isSelected ? undefined : '5, 5',
-        fillColor: isSelected ? '#4caf50' : color,
-        fillOpacity: isSelected ? 0.35 : 0.08,
-        opacity: isSelected ? 1 : 0.4,
-        weight: isSelected ? 3 : 1,
-      });
-
-      // Rebind hover handlers with updated base values
-      polygon.off('mouseover');
-      polygon.off('mouseout');
-      const originalWeight = isSelected ? 3 : 1;
-      const originalFillOpacity = isSelected ? 0.35 : 0.08;
-      polygon.on('mouseover', () => {
-        polygon.setStyle({ fillOpacity: 0.4, weight: 3 });
-      });
-      polygon.on('mouseout', () => {
-        polygon.setStyle({ fillOpacity: originalFillOpacity, weight: originalWeight });
-      });
+      this.applyAreaStyle(polygon, selectedSet.has(fence.name.toLowerCase()));
     }
   }
 
@@ -654,6 +673,7 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
         title: label,
       })
         .bindTooltip(label, { direction: 'top' })
+        .on('click', () => this.placeClicked.emit(null))
         .addTo(this.map);
 
       this.userCircle = L.circle([this.userLocation.lat, this.userLocation.lng], {

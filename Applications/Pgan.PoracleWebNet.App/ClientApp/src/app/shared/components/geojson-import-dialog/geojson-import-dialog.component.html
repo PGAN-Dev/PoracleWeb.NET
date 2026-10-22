@@ -41,6 +41,20 @@
         </div>
       </div>
 
+      @if (skippedCount() > 0) {
+        <div class="warning-banner skipped-banner">
+          <mat-icon>info</mat-icon>
+          <span>{{ 'GEOJSON_IMPORT.SKIPPED_NOT_POLYGON' | translatePlural: skippedCount() }}</span>
+        </div>
+      }
+
+      @if (overLimitCount() > 0) {
+        <div class="warning-banner over-limit-banner">
+          <mat-icon>info</mat-icon>
+          <span>{{ 'GEOJSON_IMPORT.SKIPPED_OVER_LIMIT' | translatePlural: overLimitCount() }}</span>
+        </div>
+      }
+
       @if (wouldExceedLimit) {
         <div class="warning-banner">
           <mat-icon>warning</mat-icon>
@@ -128,6 +142,19 @@
         <div class="result-row success">
           <mat-icon>check_circle</mat-icon>
           <span>{{ 'GEOJSON_IMPORT.RESULT_IMPORTED' | translatePlural: importResult()!.created.length }}</span>
+        </div>
+      }
+      @if (notActivated().length) {
+        <div class="result-row not-activated">
+          <mat-icon>toggle_off</mat-icon>
+          <span>{{ 'GEOJSON_IMPORT.RESULT_NOT_ACTIVE' | translatePlural: notActivated().length }}</span>
+        </div>
+        <div class="error-list">
+          @for (fence of notActivated(); track fence.id) {
+            <div class="error-item">
+              <span class="error-feature-name">{{ fence.displayName }}</span>
+            </div>
+          }
         </div>
       }
       @if (importResult()?.errors?.length) {

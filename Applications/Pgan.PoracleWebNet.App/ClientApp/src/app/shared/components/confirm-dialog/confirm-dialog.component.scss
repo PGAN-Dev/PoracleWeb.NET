@@ -18,6 +18,12 @@
   border-radius: 0 4px 4px 0;
   margin: 8px 0;
 }
+.item-list {
+  margin: 8px 0;
+  padding-left: 20px;
+  max-height: 240px;
+  overflow-y: auto;
+}
 .dont-ask-checkbox {
   margin-top: 16px;
   display: block;
