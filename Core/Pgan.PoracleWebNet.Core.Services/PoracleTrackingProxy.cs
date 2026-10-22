@@ -260,7 +260,7 @@ public partial class PoracleTrackingProxy(
 
         if (remaining.Count > 0)
         {
-            LogBulkDeleteLeftUids(this._logger, type, userId, string.Join(", ", remaining));
+            LogBulkDeleteLeftUids(this._logger, type, userId, new UidList(remaining));
         }
     }
 
@@ -292,12 +292,19 @@ public partial class PoracleTrackingProxy(
                     continue;
                 }
 
-                var routeType = snapshotKey == InvasionType
+                var isEvent = snapshotKey == InvasionType
                     && row.TryGetProperty("grunt_type", out var grunt)
                     && grunt.ValueKind == JsonValueKind.String
-                    && PokestopEventTypes.IsEventName(grunt.GetString())
-                        ? IncidentType
-                        : snapshotKey;
+                    && PokestopEventTypes.IsEventName(grunt.GetString());
+
+                // The snapshot folds events into invasion, so a plain grunt rule sharing an incident
+                // uid is not the rule the caller named.
+                if (type == IncidentType && !isEvent)
+                {
+                    continue;
+                }
+
+                var routeType = isEvent ? IncidentType : snapshotKey;
 
                 var key = (routeType, no.GetInt32());
                 if (!placed.TryGetValue(key, out var group))
@@ -367,7 +374,13 @@ public partial class PoracleTrackingProxy(
             {
                 // Before 5.4.0 the bulk route required ?uid and had no body form, so it refuses the body by
                 // naming the missing query parameter. That is a server too old, not a bad request.
-                throw new PoracleUnsupportedException("Deleting alarms", RequiredVersion);
+                throw new PoracleUnsupportedException("deleting alarms", RequiredVersion);
+            }
+
+            if (response.StatusCode is HttpStatusCode.Conflict or HttpStatusCode.BadRequest or HttpStatusCode.UnprocessableEntity)
+            {
+                throw new PoracleRequestRefusedException(
+                    PoracleProblemDetails.Describe(payload), (int)response.StatusCode);
             }
 
             ThrowUnlessRuleNotFound(response, payload);
@@ -386,6 +399,12 @@ public partial class PoracleTrackingProxy(
         }
     }
 
+    /// <summary>Joins uids only if the log line is actually rendered.</summary>
+    private readonly record struct UidList(List<int> Uids)
+    {
+        public override string ToString() => string.Join(", ", this.Uids);
+    }
+
     /// <summary>
     /// Returns when a failed v2 delete is PoracleNG saying it holds no such rule; throws for everything else.
     /// </summary>
@@ -395,7 +414,7 @@ public partial class PoracleTrackingProxy(
         {
             case HttpStatusCode.NotFound when !PoracleProblemDetails.IsProblemJson(payload):
                 // gin's plaintext "404 page not found": the route is absent, so this is not 5.4.0.
-                throw new PoracleUnsupportedException("Deleting alarms", RequiredVersion);
+                throw new PoracleUnsupportedException("deleting alarms", RequiredVersion);
 
             case HttpStatusCode.NotFound when payload.Contains("human not found", StringComparison.Ordinal):
                 throw new AccountGoneException();
@@ -752,13 +771,13 @@ public partial class PoracleTrackingProxy(
 
     [LoggerMessage(
         Level = LogLevel.Information,
-        Message = "Delete {Type} uid={Uid}: PoracleNG holds no such rule for this human on the active profile; treating it as already gone.")]
+        Message = "Delete {Type} uid={Uid}: no profile of this human holds that rule (all were searched); treating it as already gone.")]
     private static partial void LogDeleteAlreadyGone(ILogger logger, string type, int uid);
 
     [LoggerMessage(
         Level = LogLevel.Information,
         Message = "Bulk delete {Type} for {UserId}: PoracleNG did not report deleting uids {Uids} (already gone, or not on the active profile).")]
-    private static partial void LogBulkDeleteLeftUids(ILogger logger, string type, string userId, string uids);
+    private static partial void LogBulkDeleteLeftUids(ILogger logger, string type, string userId, UidList uids);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Create {Type} for {UserId} request: {Body}")]
     private static partial void LogCreateRequest(ILogger logger, string type, string userId, string body);

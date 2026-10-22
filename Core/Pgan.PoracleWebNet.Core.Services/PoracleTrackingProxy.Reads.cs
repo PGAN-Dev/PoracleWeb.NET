@@ -84,7 +84,7 @@ public partial class PoracleTrackingProxy
         && snapshot.TryGetProperty("profiles", out var profiles)
         && profiles.ValueKind == JsonValueKind.Array
             ? profiles
-            : JsonDocument.Parse("[]").RootElement;
+            : PoracleJsonHelper.EmptyArray;
 
     private static bool ListsProfile(JsonElement profiles, int profileNo) =>
         profiles.EnumerateArray().Any(p =>

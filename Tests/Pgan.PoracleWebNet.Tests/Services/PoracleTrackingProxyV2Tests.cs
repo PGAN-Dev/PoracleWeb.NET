@@ -1108,7 +1108,27 @@ public class PoracleTrackingProxyV2Tests
             """{"title":"Unprocessable Entity","status":422,"detail":"validation failed","errors":[{"message":"unknown query parameter","location":"query.profile"}]}""");
         var sut = CreateSut(handler, version: "5.4.0");
 
-        await Assert.ThrowsAsync<HttpRequestException>(() => sut.BulkDeleteByUidsAsync("pokemon", "user1", [1]));
+        var ex = await Assert.ThrowsAsync<PoracleRequestRefusedException>(() => sut.BulkDeleteByUidsAsync("pokemon", "user1", [1]));
+        Assert.Equal(422, ex.StatusCode);
+    }
+
+    [Fact]
+    public async Task AnIncidentDeleteNeverRoutesAPlainInvasionRowThatSharesItsUid()
+    {
+        // The all-profiles read folds incident into invasion, so a same-numbered grunt rule on another
+        // profile is in the snapshot. An incident delete must leave it alone.
+        var handler = new ScriptedHandler(
+            new Reply(
+                HttpStatusCode.NotFound,
+                """{"title":"Not Found","status":404,"detail":"incident rule 412 not found for this human"}""",
+                "application/problem+json"),
+            new Reply(HttpStatusCode.OK, AllProfiles("""{"invasion":[{"uid":412,"profile_no":3,"grunt_type":"water"}]}""")));
+        var sut = CreateSut(handler, version: "5.4.0");
+
+        await sut.DeleteByUidAsync("incident", "user1", 412);
+
+        Assert.Equal(2, handler.Requests.Count);
+        Assert.DoesNotContain(handler.Requests, r => r.Method == HttpMethod.Delete && r.Url.Contains("profile=3", StringComparison.Ordinal));
     }
 
     [Fact]
