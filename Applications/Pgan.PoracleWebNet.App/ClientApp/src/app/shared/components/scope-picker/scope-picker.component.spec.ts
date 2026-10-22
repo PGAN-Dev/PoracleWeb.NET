@@ -271,4 +271,17 @@ describe('ScopePickerComponent', () => {
     expect(picker.mode()).toBe('near');
     expect(picker.radiusValid()).toBe(false);
   });
+
+  it("summarises the profile's areas with a drawn fence's own name, not its stored key", () => {
+    const picker = create({ mode: 'profile' }, { profileAreas: ['lake eola loop 2', 'terrigal'] });
+    const http = TestBed.inject(HttpTestingController);
+
+    http
+      .match('http://test/api/geofences/custom')
+      .forEach(r => r.flush([{ id: 1, displayName: 'Lake Eola Loop', kojiName: 'lake eola loop 2' }]));
+    http.match(() => true).forEach(r => r.flush([]));
+    fixture.detectChanges();
+
+    expect(picker.profileAreaSummary()).toBe('Lake Eola Loop, Terrigal');
+  });
 });

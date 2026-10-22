@@ -64,11 +64,16 @@ export function scopeToFields(scope: AlarmScope): {
 }
 
 /** One line describing the scope, in the second person, for a chip or a summary row. */
-export function describeScope(scope: AlarmScope, profileAreas: string[], translate: TranslateService): string {
+export function describeScope(
+  scope: AlarmScope,
+  profileAreas: string[],
+  translate: TranslateService,
+  areaName: (area: string) => string = titleCaseArea,
+): string {
   switch (scope.mode) {
     case 'areas': {
       const areas = scope.areas ?? [];
-      return translate.instant('WHERE.ONLY_IN', { areas: formatAreaList(areas, translate) });
+      return translate.instant('WHERE.ONLY_IN', { areas: formatAreaList(areas, translate, areaName) });
     }
     case 'place':
       return translate.instant('WHERE.NEAR_PLACE', {
@@ -88,8 +93,8 @@ export function describeScope(scope: AlarmScope, profileAreas: string[], transla
  * Area names as a reader would say them. Past three the list stops being informative and starts being
  * a wall, so the tail is counted instead.
  */
-export function formatAreaList(areas: string[], translate: TranslateService): string {
-  const shown = areas.slice(0, 3).map(titleCaseArea);
+export function formatAreaList(areas: string[], translate: TranslateService, areaName: (area: string) => string = titleCaseArea): string {
+  const shown = areas.slice(0, 3).map(area => areaName(area));
 
   return areas.length > 3
     ? translate.instant('WHERE.AREA_LIST_MORE', { areas: shown.join(', '), count: areas.length - 3 })

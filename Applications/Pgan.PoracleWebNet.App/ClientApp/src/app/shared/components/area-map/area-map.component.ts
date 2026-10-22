@@ -511,7 +511,7 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       const isSelected = selectedSet.has(fence.name.toLowerCase());
       const polygon = L.polygon(latLngs, isSelected ? AREA_STYLE_SELECTED : AREA_STYLE_UNSELECTED);
 
-      polygon.bindTooltip(fence.name, {
+      polygon.bindTooltip(fence.displayName || fence.name, {
         className: 'area-tooltip',
         direction: 'top',
         sticky: true,
@@ -594,7 +594,7 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
         weight: 2,
       });
 
-      polygon.bindTooltip(fence.name, {
+      polygon.bindTooltip(fence.displayName || fence.name, {
         className: 'area-tooltip',
         direction: 'top',
         sticky: true,

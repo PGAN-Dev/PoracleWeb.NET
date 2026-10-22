@@ -11,6 +11,7 @@ import { firstValueFrom } from 'rxjs';
 import { MaxBattleAddDialogComponent } from './max-battle-add-dialog.component';
 import { MaxBattleEditDialogComponent, MaxBattleEditDialogData } from './max-battle-edit-dialog.component';
 import { MaxBattle } from '../../core/models';
+import { AreaNameService } from '../../core/services/area-name.service';
 import { AreaService } from '../../core/services/area.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
@@ -55,6 +56,7 @@ import { serverReason } from '../../shared/utils/server-reason';
   templateUrl: './max-battle-list.component.html',
 })
 export class MaxBattleListComponent implements OnInit {
+  private readonly areaNames = inject(AreaNameService);
   private readonly areaService = inject(AreaService);
 
   private readonly destroyRef = inject(DestroyRef);
@@ -388,7 +390,9 @@ export class MaxBattleListComponent implements OnInit {
   private describeExisting(uid: number, trackingType: null | string): null | string {
     if (trackingType !== null && trackingType !== 'maxbattle') return null;
     const maxBattle = this.maxBattles().find(m => m.uid === uid);
-    return maxBattle ? ruleSummary(this.getTitle(maxBattle), maxBattle, this.profileAreas(), this.translate) : null;
+    return maxBattle
+      ? ruleSummary(this.getTitle(maxBattle), maxBattle, this.profileAreas(), this.translate, area => this.areaNames.label(area))
+      : null;
   }
 
   private loadProfileAreas(): void {

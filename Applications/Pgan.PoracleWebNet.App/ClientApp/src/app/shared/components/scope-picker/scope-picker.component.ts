@@ -12,10 +12,11 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { catchError, forkJoin, of } from 'rxjs';
 
+import { AreaNameService } from '../../../core/services/area-name.service';
 import { AreaService } from '../../../core/services/area.service';
 import { PlacesService } from '../../../core/services/places.service';
 import { UserGeofenceService } from '../../../core/services/user-geofence.service';
-import { AlarmScope, formatKm, MAX_RADIUS_KM, MIN_RADIUS_KM, radiusAcceptable, titleCaseArea } from '../../utils/alarm-scope';
+import { AlarmScope, formatKm, MAX_RADIUS_KM, MIN_RADIUS_KM, radiusAcceptable } from '../../utils/alarm-scope';
 import { PLACE_NAME_PROMPT } from '../../utils/place-label';
 import { serverReason } from '../../utils/server-reason';
 import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component';
@@ -62,6 +63,7 @@ type PickerMode = 'areas' | 'inherit' | 'near';
   templateUrl: './scope-picker.component.html',
 })
 export class ScopePickerComponent implements OnInit {
+  private readonly areaNames = inject(AreaNameService);
   private readonly areaService = inject(AreaService);
   private readonly dialog = inject(MatDialog);
   private readonly geofenceService = inject(UserGeofenceService);
@@ -123,7 +125,11 @@ export class ScopePickerComponent implements OnInit {
     return passed.length > 0 ? passed : this.subscribedAreas();
   });
 
-  readonly profileAreaSummary = computed(() => this.profileAreaNames().map(titleCaseArea).join(', '));
+  readonly profileAreaSummary = computed(() =>
+    this.profileAreaNames()
+      .map(area => this.areaNames.label(area))
+      .join(', '),
+  );
 
   /**
    * The radius the rule was stored with, when editing one. Production holds rules past 100 km, and an
@@ -199,7 +205,10 @@ export class ScopePickerComponent implements OnInit {
 
     this.geofenceService.getCustomGeofences().subscribe({
       error: () => undefined,
-      next: own => this.availableAreas.update(current => [...current, ...own.map(g => ({ name: g.kojiName, own: true }))]),
+      next: own => {
+        this.areaNames.learn(own);
+        this.availableAreas.update(current => [...current, ...own.map(g => ({ name: g.kojiName, own: true }))]);
+      },
     });
   }
 
@@ -244,7 +253,7 @@ export class ScopePickerComponent implements OnInit {
   }
 
   protected titleCase(area: string): string {
-    return titleCaseArea(area);
+    return this.areaNames.label(area);
   }
 
   private currentScope(): AlarmScope {

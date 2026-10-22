@@ -13,6 +13,7 @@ import { QuestAddDialogComponent } from './quest-add-dialog.component';
 import { QuestEditDialogComponent } from './quest-edit-dialog.component';
 import { SummaryScheduleDialogComponent, SummaryScheduleDialogData } from './summary-schedule-dialog/summary-schedule-dialog.component';
 import { Quest } from '../../core/models';
+import { AreaNameService } from '../../core/services/area-name.service';
 import { AreaService } from '../../core/services/area.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
@@ -62,6 +63,7 @@ export class QuestListComponent implements OnInit {
   private static readonly FALLBACK =
     "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23999'%3E%3Cpath d='M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z'/%3E%3C/svg%3E";
 
+  private readonly areaNames = inject(AreaNameService);
   private readonly areaService = inject(AreaService);
 
   /** True while this alarm type is switched off: the page reads and deletes, but cannot create or edit. */
@@ -406,7 +408,9 @@ export class QuestListComponent implements OnInit {
   private describeExisting(uid: number, trackingType: null | string): null | string {
     if (trackingType !== null && trackingType !== 'quest') return null;
     const quest = this.quests().find(q => q.uid === uid);
-    return quest ? ruleSummary(this.getQuestTitle(quest), quest, this.profileAreas(), this.translate) : null;
+    return quest
+      ? ruleSummary(this.getQuestTitle(quest), quest, this.profileAreas(), this.translate, area => this.areaNames.label(area))
+      : null;
   }
 
   private describeReward(quest: Quest): string {

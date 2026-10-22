@@ -51,8 +51,19 @@ export interface ScopedRule {
 }
 
 /** "Snorlax · Within 2 km of my pin": what the rule is about, then where it reaches you, as the card says it. */
-export function ruleSummary(title: string, rule: ScopedRule, profileAreas: string[], translate: TranslateService): string {
-  const where = describeScope(scopeOf(rule.overrideLocationLabel, rule.overrideAreas, rule.distance ?? 0), profileAreas, translate);
+export function ruleSummary(
+  title: string,
+  rule: ScopedRule,
+  profileAreas: string[],
+  translate: TranslateService,
+  areaName?: (area: string) => string,
+): string {
+  const where = describeScope(
+    scopeOf(rule.overrideLocationLabel, rule.overrideAreas, rule.distance ?? 0),
+    profileAreas,
+    translate,
+    areaName,
+  );
   return title ? `${title} · ${where}` : where;
 }
 

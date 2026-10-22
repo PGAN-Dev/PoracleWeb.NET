@@ -13,6 +13,7 @@ import { firstValueFrom } from 'rxjs';
 import { FortChangeAddDialogComponent } from './fort-change-add-dialog.component';
 import { FortChangeEditDialogComponent } from './fort-change-edit-dialog.component';
 import { FortChange } from '../../core/models';
+import { AreaNameService } from '../../core/services/area-name.service';
 import { AreaService } from '../../core/services/area.service';
 import { FortChangeService } from '../../core/services/fort-change.service';
 import { I18nService } from '../../core/services/i18n.service';
@@ -55,6 +56,7 @@ import { serverReason } from '../../shared/utils/server-reason';
   templateUrl: './fort-change-list.component.html',
 })
 export class FortChangeListComponent implements OnInit {
+  private readonly areaNames = inject(AreaNameService);
   private readonly areaService = inject(AreaService);
 
   private readonly destroyRef = inject(DestroyRef);
@@ -351,7 +353,9 @@ export class FortChangeListComponent implements OnInit {
   private describeExisting(uid: number, trackingType: null | string): null | string {
     if (trackingType !== null && trackingType !== 'fort') return null;
     const item = this.fortChanges().find(f => f.uid === uid);
-    return item ? ruleSummary(this.formatFortType(item.fortType), item, this.profileAreas(), this.translate) : null;
+    return item
+      ? ruleSummary(this.formatFortType(item.fortType), item, this.profileAreas(), this.translate, area => this.areaNames.label(area))
+      : null;
   }
 
   private loadProfileAreas(): void {

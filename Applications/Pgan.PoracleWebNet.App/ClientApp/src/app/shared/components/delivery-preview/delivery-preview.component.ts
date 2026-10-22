@@ -6,9 +6,9 @@ import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { catchError, of } from 'rxjs';
 
+import { AreaNameService } from '../../../core/services/area-name.service';
 import { AreaService } from '../../../core/services/area.service';
 import { LocationService } from '../../../core/services/location.service';
-import { titleCaseArea } from '../../utils/alarm-scope';
 
 @Component({
   imports: [RouterLink, MatChipsModule, MatIconModule, MatProgressSpinnerModule, TranslatePipe],
@@ -18,6 +18,7 @@ import { titleCaseArea } from '../../utils/alarm-scope';
   templateUrl: './delivery-preview.component.html',
 })
 export class DeliveryPreviewComponent implements OnChanges {
+  private readonly areaNames = inject(AreaNameService);
   private readonly areaService = inject(AreaService);
   private areasLoaded = false;
 
@@ -68,6 +69,6 @@ export class DeliveryPreviewComponent implements OnChanges {
 
   /** Area names are stored lowercase; the scope picker shows them title-cased, and so does this. */
   protected titleCase(area: string): string {
-    return titleCaseArea(area);
+    return this.areaNames.label(area);
   }
 }

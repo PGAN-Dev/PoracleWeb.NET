@@ -17,6 +17,7 @@ import { firstValueFrom } from 'rxjs';
 import { PokemonAddDialogComponent } from './pokemon-add-dialog.component';
 import { PokemonEditDialogComponent } from './pokemon-edit-dialog.component';
 import { Monster } from '../../core/models';
+import { AreaNameService } from '../../core/services/area-name.service';
 import { AreaService } from '../../core/services/area.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
@@ -73,6 +74,7 @@ import { serverReason } from '../../shared/utils/server-reason';
   templateUrl: './pokemon-list.component.html',
 })
 export class PokemonListComponent implements OnInit {
+  private readonly areaNames = inject(AreaNameService);
   private readonly areaService = inject(AreaService);
 
   private readonly destroyRef = inject(DestroyRef);
@@ -580,7 +582,11 @@ export class PokemonListComponent implements OnInit {
   private describeExisting(uid: number, trackingType: null | string): null | string {
     if (trackingType !== null && trackingType !== 'pokemon') return null;
     const monster = this.monsters().find(m => m.uid === uid);
-    return monster ? ruleSummary(this.getPokemonName(monster.pokemonId), monster, this.profileAreas(), this.translate) : null;
+    return monster
+      ? ruleSummary(this.getPokemonName(monster.pokemonId), monster, this.profileAreas(), this.translate, area =>
+          this.areaNames.label(area),
+        )
+      : null;
   }
 
   private getBaseEvolution(id: number): number {

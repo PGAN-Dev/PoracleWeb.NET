@@ -13,6 +13,7 @@ import { RaidAddDialogComponent } from './raid-add-dialog.component';
 import { RaidEditDialogComponent, RaidEditDialogData } from './raid-edit-dialog.component';
 import { Raid, Egg } from '../../core/models';
 import { resolveLevel } from '../../core/models/raid-level.models';
+import { AreaNameService } from '../../core/services/area-name.service';
 import { AreaService } from '../../core/services/area.service';
 import { EggService } from '../../core/services/egg.service';
 import { I18nService } from '../../core/services/i18n.service';
@@ -68,6 +69,7 @@ import { serverReason } from '../../shared/utils/server-reason';
   templateUrl: './raid-list.component.html',
 })
 export class RaidListComponent implements OnInit {
+  private readonly areaNames = inject(AreaNameService);
   private readonly areaService = inject(AreaService);
 
   private readonly destroyRef = inject(DestroyRef);
@@ -540,11 +542,13 @@ export class RaidListComponent implements OnInit {
     if (trackingType === 'egg') {
       const egg = this.eggs().find(e => e.uid === uid);
       const title = egg ? `${this.getRaidLevelName(egg.level)} ${this.i18n.instant('RAIDS.EGG_SUFFIX')}` : '';
-      return egg ? ruleSummary(title, egg, this.profileAreas(), this.translate) : null;
+      return egg ? ruleSummary(title, egg, this.profileAreas(), this.translate, area => this.areaNames.label(area)) : null;
     }
     if (trackingType !== null && trackingType !== 'raid') return null;
     const raid = this.raids().find(r => r.uid === uid);
-    return raid ? ruleSummary(this.getRaidTitle(raid), raid, this.profileAreas(), this.translate) : null;
+    return raid
+      ? ruleSummary(this.getRaidTitle(raid), raid, this.profileAreas(), this.translate, area => this.areaNames.label(area))
+      : null;
   }
 
   private loadProfileAreas(): void {

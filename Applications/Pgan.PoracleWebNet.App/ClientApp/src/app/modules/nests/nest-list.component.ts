@@ -13,6 +13,7 @@ import { firstValueFrom } from 'rxjs';
 import { NestAddDialogComponent } from './nest-add-dialog.component';
 import { NestEditDialogComponent } from './nest-edit-dialog.component';
 import { Nest } from '../../core/models';
+import { AreaNameService } from '../../core/services/area-name.service';
 import { AreaService } from '../../core/services/area.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
@@ -63,6 +64,7 @@ import { serverReason } from '../../shared/utils/server-reason';
   templateUrl: './nest-list.component.html',
 })
 export class NestListComponent implements OnInit {
+  private readonly areaNames = inject(AreaNameService);
   private readonly areaService = inject(AreaService);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -349,7 +351,9 @@ export class NestListComponent implements OnInit {
   private describeExisting(uid: number, trackingType: null | string): null | string {
     if (trackingType !== null && trackingType !== 'nest') return null;
     const nest = this.nests().find(n => n.uid === uid);
-    return nest ? ruleSummary(this.getPokemonName(nest.pokemonId), nest, this.profileAreas(), this.translate) : null;
+    return nest
+      ? ruleSummary(this.getPokemonName(nest.pokemonId), nest, this.profileAreas(), this.translate, area => this.areaNames.label(area))
+      : null;
   }
 
   private loadProfileAreas(): void {

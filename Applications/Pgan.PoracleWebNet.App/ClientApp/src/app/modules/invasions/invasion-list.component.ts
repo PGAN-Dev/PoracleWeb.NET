@@ -20,6 +20,7 @@ import {
   isGenderFixed as checkGenderFixed,
 } from './invasion.constants';
 import { Invasion } from '../../core/models';
+import { AreaNameService } from '../../core/services/area-name.service';
 import { AreaService } from '../../core/services/area.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
@@ -67,6 +68,7 @@ import { serverReason } from '../../shared/utils/server-reason';
   templateUrl: './invasion-list.component.html',
 })
 export class InvasionListComponent implements OnInit {
+  private readonly areaNames = inject(AreaNameService);
   private readonly areaService = inject(AreaService);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -396,7 +398,9 @@ export class InvasionListComponent implements OnInit {
     if (trackingType !== null && trackingType !== 'invasion' && trackingType !== 'incident') return null;
     const invasion = this.invasions().find(i => i.uid === uid);
     return invasion
-      ? ruleSummary(this.getDisplayName(invasion.gruntType, invasion.gender), invasion, this.profileAreas(), this.translate)
+      ? ruleSummary(this.getDisplayName(invasion.gruntType, invasion.gender), invasion, this.profileAreas(), this.translate, area =>
+          this.areaNames.label(area),
+        )
       : null;
   }
 

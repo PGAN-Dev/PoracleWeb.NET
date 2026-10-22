@@ -67,7 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **A nest alarm for any Pokémon reads "All Pokémon" in your language with the same icon as the Pokémon list**, instead of "All Pokemon" beside a broken picture.
 - **Confirmations on a phone rise from the bottom at their own height** instead of filling the screen with the buttons far below the question.
 - **Add and edit dialogs no longer open with their first tab looking pressed.** The ten alarm types' dialogs and the quick pick dialog open focused on their title; Tab still reaches the tabs first.
-- **Your own geofences show the name you gave them on the dashboard and in the Areas chips**, not the stored key ("Lake Eola Loop", not "lake eola loop 2"). `GET /api/areas/geofence` adds `displayName` to the caller's own drawn fences.
+- **Your own geofences show the name you gave them on the dashboard, in the Areas chips and wherever an alarm names its areas**, not the stored key ("Lake Eola Loop", not "lake eola loop 2"). `GET /api/areas/geofence` adds `displayName` to the caller's own drawn fences; the alarm scope chip, the where sheet and scope picker, the delivery preview, the add-refusal summaries and the Areas map tooltips use it too.
 - **The dashboard names the weather in your language**, as it already did the boosted types ("Windig", not "Windy").
 - **A missing pin map or weather reading no longer shows "The requested resource was not found."** The dashboard and Areas page already draw nothing in their place.
 - **A place that's in use lists its alarms in plain words.** Deleting a saved place that alarms still point at used to list PoracleNG's raw summary, asterisks and every filter included; each line now reads like "Pokémon: Pikachu · Within 1 km of Work".

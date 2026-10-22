@@ -16,6 +16,7 @@ import { firstValueFrom } from 'rxjs';
 import { reportedByInterceptor } from '../../core/interceptors/error.interceptor';
 import { PokestopEvent } from '../../core/models';
 import { AlertDefaultsService } from '../../core/services/alert-defaults.service';
+import { AreaNameService } from '../../core/services/area-name.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { PokestopEventService } from '../../core/services/pokestop-event.service';
 import { AddRefusalComponent } from '../../shared/components/add-refusal/add-refusal.component';
@@ -70,6 +71,7 @@ export interface PokestopEventAddDialogData {
 })
 export class PokestopEventAddDialogComponent {
   private readonly alertDefaults = inject(AlertDefaultsService);
+  private readonly areaNames = inject(AreaNameService);
   private readonly data = inject<null | PokestopEventAddDialogData>(MAT_DIALOG_DATA, { optional: true });
   /** The alarms the profile already has, so an event it already tracks cannot be picked twice. */
   private readonly existing = this.data?.events ?? [];
@@ -231,7 +233,13 @@ export class PokestopEventAddDialogComponent {
     const rule = this.existing.find(x => x.uid === uid);
     if (!rule) return null;
     const event = POKESTOP_EVENTS.find(e => e.displayType === rule.displayType);
-    return ruleSummary(event ? this.translate.instant(event.displayKey) : '', rule, this.data?.profileAreas?.() ?? [], this.translate);
+    return ruleSummary(
+      event ? this.translate.instant(event.displayKey) : '',
+      rule,
+      this.data?.profileAreas?.() ?? [],
+      this.translate,
+      area => this.areaNames.label(area),
+    );
   }
 }
 

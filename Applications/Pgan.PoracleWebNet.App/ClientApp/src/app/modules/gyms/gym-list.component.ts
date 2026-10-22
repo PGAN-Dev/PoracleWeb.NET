@@ -13,6 +13,7 @@ import { firstValueFrom, forkJoin } from 'rxjs';
 import { GymAddDialogComponent } from './gym-add-dialog.component';
 import { GymEditDialogComponent } from './gym-edit-dialog.component';
 import { Gym } from '../../core/models';
+import { AreaNameService } from '../../core/services/area-name.service';
 import { AreaService } from '../../core/services/area.service';
 import { GymService } from '../../core/services/gym.service';
 import { I18nService } from '../../core/services/i18n.service';
@@ -61,6 +62,7 @@ import { serverReason } from '../../shared/utils/server-reason';
   templateUrl: './gym-list.component.html',
 })
 export class GymListComponent implements OnInit {
+  private readonly areaNames = inject(AreaNameService);
   private readonly areaService = inject(AreaService);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -364,7 +366,9 @@ export class GymListComponent implements OnInit {
   private describeExisting(uid: number, trackingType: null | string): null | string {
     if (trackingType !== null && trackingType !== 'gym') return null;
     const gym = this.gyms().find(g => g.uid === uid);
-    return gym ? ruleSummary(this.getTeamName(gym.team), gym, this.profileAreas(), this.translate) : null;
+    return gym
+      ? ruleSummary(this.getTeamName(gym.team), gym, this.profileAreas(), this.translate, area => this.areaNames.label(area))
+      : null;
   }
 
   private loadProfileAreas(): void {

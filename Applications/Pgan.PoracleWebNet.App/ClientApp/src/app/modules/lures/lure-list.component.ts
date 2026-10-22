@@ -13,6 +13,7 @@ import { firstValueFrom } from 'rxjs';
 import { LureAddDialogComponent } from './lure-add-dialog.component';
 import { LureEditDialogComponent } from './lure-edit-dialog.component';
 import { Lure } from '../../core/models';
+import { AreaNameService } from '../../core/services/area-name.service';
 import { AreaService } from '../../core/services/area.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
@@ -57,6 +58,7 @@ import { serverReason } from '../../shared/utils/server-reason';
   templateUrl: './lure-list.component.html',
 })
 export class LureListComponent implements OnInit {
+  private readonly areaNames = inject(AreaNameService);
   private readonly areaService = inject(AreaService);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -356,7 +358,7 @@ export class LureListComponent implements OnInit {
     if (trackingType !== null && trackingType !== 'lure') return null;
     const lure = this.lures().find(l => l.uid === uid);
     const title = lure ? `${this.getLureName(lure.lureId)} ${this.i18n.instant('LURES.LURE_SUFFIX')}` : '';
-    return lure ? ruleSummary(title, lure, this.profileAreas(), this.translate) : null;
+    return lure ? ruleSummary(title, lure, this.profileAreas(), this.translate, area => this.areaNames.label(area)) : null;
   }
 
   private loadProfileAreas(): void {
