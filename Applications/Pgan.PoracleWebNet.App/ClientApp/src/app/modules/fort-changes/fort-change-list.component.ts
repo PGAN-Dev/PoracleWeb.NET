@@ -247,7 +247,7 @@ export class FortChangeListComponent implements OnInit {
 
   editItem(item: FortChange): void {
     this.dialog
-      .open(FortChangeEditDialogComponent, { width: '600px', data: item, maxHeight: '90vh' })
+      .open(FortChangeEditDialogComponent, { autoFocus: 'first-heading', width: '600px', data: item, maxHeight: '90vh' })
       .afterClosed()
       .subscribe(r => {
         if (r) this.loadItems();
@@ -318,6 +318,7 @@ export class FortChangeListComponent implements OnInit {
   openAddDialog(): void {
     this.dialog
       .open(FortChangeAddDialogComponent, {
+        autoFocus: 'first-heading',
         width: '600px',
         data: { existingRule: (uid, type) => this.describeExisting(uid, type) } satisfies AddDialogData,
         maxHeight: '90vh',

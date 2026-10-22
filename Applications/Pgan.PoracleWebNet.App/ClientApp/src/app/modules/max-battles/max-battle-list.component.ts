@@ -232,6 +232,7 @@ export class MaxBattleListComponent implements OnInit {
 
   editMaxBattle(maxBattle: MaxBattle): void {
     const ref = this.dialog.open(MaxBattleEditDialogComponent, {
+      autoFocus: 'first-heading',
       width: '600px',
       data: { item: maxBattle } as MaxBattleEditDialogData,
     });
@@ -350,6 +351,7 @@ export class MaxBattleListComponent implements OnInit {
 
   openAddDialog(): void {
     const ref = this.dialog.open(MaxBattleAddDialogComponent, {
+      autoFocus: 'first-heading',
       width: '600px',
       data: { existingRule: (uid, type) => this.describeExisting(uid, type) } satisfies AddDialogData,
     });

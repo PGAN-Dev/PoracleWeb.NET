@@ -327,6 +327,7 @@ export class PokemonListComponent implements OnInit {
 
   editMonster(monster: Monster): void {
     const ref = this.dialog.open(PokemonEditDialogComponent, {
+      autoFocus: 'first-heading',
       width: '600px',
       data: monster,
       maxHeight: '90vh',
@@ -518,6 +519,7 @@ export class PokemonListComponent implements OnInit {
 
   openAddDialog(): void {
     const ref = this.dialog.open(PokemonAddDialogComponent, {
+      autoFocus: 'first-heading',
       width: '600px',
       data: { existingRule: (uid, type) => this.describeExisting(uid, type) } satisfies AddDialogData,
       maxHeight: '90vh',

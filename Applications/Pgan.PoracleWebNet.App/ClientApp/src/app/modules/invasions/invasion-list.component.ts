@@ -249,7 +249,7 @@ export class InvasionListComponent implements OnInit {
 
   editInvasion(invasion: Invasion): void {
     this.dialog
-      .open(InvasionEditDialogComponent, { width: '600px', data: invasion, maxHeight: '90vh' })
+      .open(InvasionEditDialogComponent, { autoFocus: 'first-heading', width: '600px', data: invasion, maxHeight: '90vh' })
       .afterClosed()
       .subscribe(r => {
         if (r) this.loadInvasions();
@@ -357,6 +357,7 @@ export class InvasionListComponent implements OnInit {
   openAddDialog(): void {
     this.dialog
       .open(InvasionAddDialogComponent, {
+        autoFocus: 'first-heading',
         width: '600px',
         data: { existingRule: (uid, type) => this.describeExisting(uid, type) } satisfies AddDialogData,
         maxHeight: '90vh',

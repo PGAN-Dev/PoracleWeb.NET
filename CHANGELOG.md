@@ -57,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Add and edit dialogs no longer open with their first tab looking pressed.** The ten alarm types' dialogs and the quick pick dialog open focused on their title; Tab still reaches the tabs first.
 - **Your own geofences show the name you gave them on the dashboard and in the Areas chips**, not the stored key ("Lake Eola Loop", not "lake eola loop 2"). `GET /api/areas/geofence` adds `displayName` to the caller's own drawn fences.
 - **The dashboard names the weather in your language**, as it already did the boosted types ("Windig", not "Windy").
 - **A missing pin map or weather reading no longer shows "The requested resource was not found."** The dashboard and Areas page already draw nothing in their place.

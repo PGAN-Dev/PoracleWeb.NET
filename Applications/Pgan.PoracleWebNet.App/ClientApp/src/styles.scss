@@ -195,6 +195,12 @@ body:not(.dark-theme) {
   outline-offset: 2px;
 }
 
+// A dialog title takes focus only as the place a tabbed dialog starts (autoFocus: 'first-heading'). It
+// isn't a control, so it draws no ring; Tab moves on to the first one.
+.mat-mdc-dialog-title:focus-visible {
+  outline: none;
+}
+
 // ─── Global utility classes ─────────────────────────────────────────
 
 .spacer {

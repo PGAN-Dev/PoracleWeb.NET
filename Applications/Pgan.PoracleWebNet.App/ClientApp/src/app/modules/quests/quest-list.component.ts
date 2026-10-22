@@ -242,11 +242,7 @@ export class QuestListComponent implements OnInit {
   }
 
   editQuest(quest: Quest): void {
-    const ref = this.dialog.open(QuestEditDialogComponent, {
-      width: '600px',
-      data: quest,
-      maxHeight: '90vh',
-    });
+    const ref = this.dialog.open(QuestEditDialogComponent, { autoFocus: 'first-heading', width: '600px', data: quest, maxHeight: '90vh' });
     ref.afterClosed().subscribe(result => {
       if (result) this.loadQuests();
     });
@@ -380,6 +376,7 @@ export class QuestListComponent implements OnInit {
 
   openAddDialog(): void {
     const ref = this.dialog.open(QuestAddDialogComponent, {
+      autoFocus: 'first-heading',
       width: '600px',
       data: { existingRule: (uid, type) => this.describeExisting(uid, type) } satisfies AddDialogData,
       maxHeight: '90vh',
