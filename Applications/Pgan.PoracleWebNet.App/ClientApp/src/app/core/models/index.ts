@@ -470,6 +470,8 @@ export interface ReverseGeocodingResult {
 // ─── Geofence ─────────────────────────────────────────────────────────────────
 
 export interface GeofenceData {
+  /** The caller's own drawn fence only: the name they gave it. `name` is its stored key ("lake eola loop 2"). */
+  displayName?: string;
   id: number;
   name: string;
   path: [number, number][];

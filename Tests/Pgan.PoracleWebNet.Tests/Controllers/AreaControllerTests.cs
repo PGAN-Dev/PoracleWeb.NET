@@ -257,6 +257,41 @@ public class AreaControllerTests : ControllerTestBase
         Assert.IsType<ContentResult>(await this._sut.GetGeofencePolygons());
     }
 
+    /// <summary>
+    /// A drawn fence is stored under its key ("lake eola loop 2", the collision suffix included), and the
+    /// dashboard and Areas chips showed that key beside "Downtown Orlando". The caller's own fences carry
+    /// the name they gave them; nobody else's fence gains one.
+    /// </summary>
+    [Fact]
+    public async Task GetGeofencePolygonsNamesTheCallersOwnFences()
+    {
+        this._proxy.Setup(p => p.GetAllGeofenceDataAsync()).ReturnsAsync(
+            /*lang=json,strict*/
+            "{\"status\":\"ok\",\"geofence\":[{\"id\":1,\"name\":\"lake eola loop 2\",\"path\":[]},{\"id\":2,\"name\":\"Downtown Orlando\",\"path\":[]},{\"id\":3,\"name\":\"someone elses home\",\"path\":[]}]}");
+        this._userGeofenceService.Setup(s => s.GetByUserAsync("123456789"))
+            .ReturnsAsync([new UserGeofence { Id = 7, HumanId = "123456789", KojiName = "lake eola loop 2", DisplayName = "Lake Eola Loop" }]);
+
+        var result = Assert.IsType<ContentResult>(await this._sut.GetGeofencePolygons());
+
+        var fences = JsonDocument.Parse(result.Content!).RootElement.GetProperty("geofence").EnumerateArray().ToList();
+        Assert.Equal("Lake Eola Loop", fences[0].GetProperty("displayName").GetString());
+        Assert.Equal("lake eola loop 2", fences[0].GetProperty("name").GetString());
+        Assert.False(fences[1].TryGetProperty("displayName", out _));
+        Assert.False(fences[2].TryGetProperty("displayName", out _));
+    }
+
+    [Fact]
+    public async Task GetGeofencePolygonsPassesThePayloadThroughWhenTheOwnFencesCannotBeRead()
+    {
+        const string Payload = /*lang=json,strict*/ "{\"status\":\"ok\",\"geofence\":[{\"id\":1,\"name\":\"a\",\"path\":[]}]}";
+        this._proxy.Setup(p => p.GetAllGeofenceDataAsync()).ReturnsAsync(Payload);
+        this._userGeofenceService.Setup(s => s.GetByUserAsync("123456789")).ThrowsAsync(new InvalidOperationException());
+
+        var result = Assert.IsType<ContentResult>(await this._sut.GetGeofencePolygons());
+
+        Assert.Equal(Payload, result.Content);
+    }
+
     [Fact]
     public async Task GetGeofencePolygonsReturnsFallbackWhenNull()
     {

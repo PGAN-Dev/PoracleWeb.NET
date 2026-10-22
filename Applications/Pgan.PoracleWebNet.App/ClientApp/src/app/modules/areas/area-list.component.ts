@@ -96,10 +96,16 @@ export class AreaListComponent implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly i18n = inject(I18nService);
   private readonly locationService = inject(LocationService);
+  private readonly rawGeofenceData = signal<GeofenceData[]>([]);
+
+  /** The caller's own drawn fences, by stored key, to the name they gave them. They're not in `availableAreas`. */
+  private readonly ownFenceNames = computed(
+    () => new Map(this.rawGeofenceData().flatMap(g => (g.displayName ? [[areaKey(g.name), g.displayName] as const] : []))),
+  );
+
   private readonly pinPanel = viewChild('pinPanel', { read: ElementRef });
 
   private pinPanelScroll?: ReturnType<typeof setTimeout>;
-  private readonly rawGeofenceData = signal<GeofenceData[]>([]);
   /**
    * What PoracleNG holds for the active profile, as last read or saved. The Areas card and the quiet chips
    * speak about this, not about the ticks: an area ticked and not yet saved is not active, and has no
@@ -248,7 +254,7 @@ export class AreaListComponent implements OnInit {
    * to keep rendering so the user can see it and remove it.
    */
   areaDisplayName(area: string): string {
-    return this.areaNamesByLower().get(areaKey(area)) ?? area;
+    return this.areaNamesByLower().get(areaKey(area)) ?? this.ownFenceNames().get(areaKey(area)) ?? area;
   }
 
   cancelChanges(): void {

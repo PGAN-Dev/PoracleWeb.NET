@@ -18,10 +18,12 @@ import { AreaService } from '../../core/services/area.service';
  */
 describe('AreaListComponent area display names', () => {
   let component: AreaListComponent;
+  let polygons: { displayName?: string; id: number; name: string; path: [number, number][] }[] = [];
 
   const available = (...names: string[]): AreaDefinition[] => names.map(name => ({ name, group: 'Richmond', userSelectable: true }));
 
   beforeEach(async () => {
+    polygons = [];
     TestBed.resetTestingModule();
     await TestBed.configureTestingModule({
       providers: [
@@ -34,7 +36,7 @@ describe('AreaListComponent area display names', () => {
           provide: AreaService,
           useValue: {
             getAvailable: () => of([]),
-            getGeofencePolygons: () => of([]),
+            getGeofencePolygons: () => of(polygons),
             getMapUrl: () => of(null),
             getSelected: () => of([]),
           },
@@ -80,6 +82,18 @@ describe('AreaListComponent area display names', () => {
     component.availableAreas.set(available('my back garden'));
 
     expect(component.areaDisplayName('my back garden')).toBe('my back garden');
+  });
+
+  /**
+   * A drawn fence is stored under its key, collision suffix and all ("lake eola loop 2"). The polygon
+   * list carries the name its owner gave it, and the chips show that.
+   */
+  it('shows the name the user gave their own drawn fence', () => {
+    polygons = [{ displayName: 'Lake Eola Loop', id: 7, name: 'lake eola loop 2', path: [] }];
+    const fixture = TestBed.createComponent(AreaListComponent);
+    fixture.componentInstance.ngOnInit();
+
+    expect(fixture.componentInstance.areaDisplayName('lake eola loop 2')).toBe('Lake Eola Loop');
   });
 
   it('resolves nothing before the area list has loaded', () => {

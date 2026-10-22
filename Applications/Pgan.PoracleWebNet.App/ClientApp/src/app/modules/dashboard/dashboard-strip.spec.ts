@@ -282,6 +282,22 @@ describe('DashboardComponent status strip and alarm summary', () => {
     });
   });
 
+  describe('area names', () => {
+    it('shows the name the user gave their own drawn fence, not its stored key', () => {
+      const { component } = setup({
+        areas: ['lake eola loop 2', 'downtown orlando'],
+        geofences: [
+          { displayName: 'Lake Eola Loop', id: 7, name: 'lake eola loop 2', path: [] },
+          { id: 1, name: 'Downtown Orlando', path: [] },
+        ],
+        location: { latitude: 41.6, longitude: -83.5 },
+      });
+
+      expect(component.areaLabel('lake eola loop 2')).toBe('Lake Eola Loop');
+      expect(component.areaLabel('downtown orlando')).toBe('Downtown Orlando');
+    });
+  });
+
   describe('weather', () => {
     /** The boosted types come from the server in English; the chips show the display language. */
     it('names the boosted types in the display language', () => {

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Mvc;
 using Pgan.PoracleWebNet.Api.Filters;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
@@ -114,6 +115,50 @@ public partial class AreaController(
         return JsonSerializer.Serialize(kept);
     }
 
+    /// <summary>
+    /// Adds <c>displayName</c> to each of the caller's own drawn fences in the polygon payload.
+    /// </summary>
+    /// <remarks>
+    /// A drawn fence is stored and served under its key, lowercased with any collision suffix
+    /// ("lake eola loop 2"), and the dashboard and Areas chips printed that key. The name the user gave
+    /// it lives only in <c>user_geofences</c>. Anything that can't be read or parsed is passed through
+    /// unchanged: the polygons matter more than the label.
+    /// </remarks>
+    private async Task<string> NameCallersOwnFencesAsync(string json)
+    {
+        try
+        {
+            var names = (await this._userGeofenceService.GetByUserAsync(this.UserId) ?? [])
+                .Where(g => !string.IsNullOrEmpty(g.KojiName) && !string.IsNullOrWhiteSpace(g.DisplayName))
+                .GroupBy(g => g.KojiName, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.First().DisplayName, StringComparer.OrdinalIgnoreCase);
+            if (names.Count == 0 || JsonNode.Parse(json) is not JsonObject root
+                || root["geofence"] is not JsonArray fences)
+            {
+                return json;
+            }
+
+            var named = false;
+            foreach (var fence in fences.OfType<JsonObject>())
+            {
+                if (fence["name"] is JsonValue value
+                    && value.TryGetValue<string>(out var name)
+                    && names.TryGetValue(name, out var displayName))
+                {
+                    fence["displayName"] = displayName;
+                    named = true;
+                }
+            }
+
+            return named ? root.ToJsonString() : json;
+        }
+        catch (Exception ex)
+        {
+            LogNameOwnFencesFailed(this._logger, ex, this.UserId);
+            return json;
+        }
+    }
+
     private static bool IsSelectable(JsonElement area) =>
         area.ValueKind != JsonValueKind.Object
         || !area.TryGetProperty("userSelectable", out var selectable)
@@ -178,7 +223,7 @@ public partial class AreaController(
             var json = await this._poracleApiProxy.GetAllGeofenceDataAsync();
             if (json != null)
             {
-                return this.Content(json, "application/json");
+                return this.Content(await this.NameCallersOwnFencesAsync(json), "application/json");
             }
         }
         catch (Exception ex)
@@ -245,6 +290,9 @@ public partial class AreaController(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch geofence data from Poracle API")]
     private static partial void LogFetchGeofenceDataFailed(ILogger logger, Exception ex);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Could not name user {UserId}'s own geofences in the polygon list; served it unnamed")]
+    private static partial void LogNameOwnFencesFailed(ILogger logger, Exception ex, string userId);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch map URL for area {AreaName} from Poracle API")]
     private static partial void LogFetchAreaMapFailed(ILogger logger, Exception ex, string areaName);

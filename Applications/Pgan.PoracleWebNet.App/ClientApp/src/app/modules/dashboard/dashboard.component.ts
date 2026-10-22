@@ -83,7 +83,10 @@ export class DashboardComponent implements OnInit {
    * Stored area names are lowercase, because Poracle matches case-sensitively; the fence keeps its own
    * casing, which is what the Areas page shows. Display only: mutes and links keep the stored name.
    */
-  private readonly areaNamesByLower = computed(() => new Map(this.geofencePolygons().map(g => [g.name.toLowerCase(), g.name])));
+  private readonly areaNamesByLower = computed(
+    () => new Map(this.geofencePolygons().map(g => [g.name.toLowerCase(), g.displayName || g.name])),
+  );
+
   private readonly areaService = inject(AreaService);
   private readonly authService = inject(AuthService);
   private readonly dashboardService = inject(DashboardService);
@@ -422,16 +425,6 @@ export class DashboardComponent implements OnInit {
     return this.masterData.getTypeLabel(type);
   }
 
-  /**
-   * The weather condition in the display language, by its game number; the server names it in English
-   * ("Windy"). A number with no translation keeps the server's name.
-   */
-  weatherConditionLabel(weather: Pick<WeatherData, 'condition' | 'conditionName'>): string {
-    return WEATHER_CONDITIONS.has(weather.condition)
-      ? this.i18n.instant(`DASHBOARD.WEATHER_CONDITION_${weather.condition}`)
-      : weather.conditionName;
-  }
-
   /** The area weather tooltip's list of boosted types, in the display language. */
   boostedTypeLabels(types: string[]): string {
     return types.map(t => this.masterData.getTypeLabel(t)).join(', ');
@@ -535,6 +528,16 @@ export class DashboardComponent implements OnInit {
 
   toggleIdle(): void {
     this.showAllIdle.update(open => !open);
+  }
+
+  /**
+   * The weather condition in the display language, by its game number; the server names it in English
+   * ("Windy"). A number with no translation keeps the server's name.
+   */
+  weatherConditionLabel(weather: Pick<WeatherData, 'condition' | 'conditionName'>): string {
+    return WEATHER_CONDITIONS.has(weather.condition)
+      ? this.i18n.instant(`DASHBOARD.WEATHER_CONDITION_${weather.condition}`)
+      : weather.conditionName;
   }
 
   private loadAreaWeather(areas: string[], geofences: GeofenceData[]): void {

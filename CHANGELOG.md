@@ -57,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Your own geofences show the name you gave them on the dashboard and in the Areas chips**, not the stored key ("Lake Eola Loop", not "lake eola loop 2"). `GET /api/areas/geofence` adds `displayName` to the caller's own drawn fences.
 - **The dashboard names the weather in your language**, as it already did the boosted types ("Windig", not "Windy").
 - **A missing pin map or weather reading no longer shows "The requested resource was not found."** The dashboard and Areas page already draw nothing in their place.
 - **A place that's in use lists its alarms in plain words.** Deleting a saved place that alarms still point at used to list PoracleNG's raw summary, asterisks and every filter included; each line now reads like "Pokémon: Pikachu · Within 1 km of Work".
