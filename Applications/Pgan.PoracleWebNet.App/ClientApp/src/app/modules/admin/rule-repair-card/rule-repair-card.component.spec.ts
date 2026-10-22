@@ -373,6 +373,24 @@ describe('RuleRepairCardComponent', () => {
     expect(text).toContain('ADMIN.RULE_REPAIR.KIND_RAID_ANY_BOSS');
   });
 
+  // A bare Discord id said nothing to an admin. The scan's own human list names each user it lists.
+  it('names each user beside their id, and shows the id alone for a user with no name', () => {
+    const fixture = setup(
+      status({
+        cannotEdit: [item({ after: null, humanId: 'bob', kind: 'CannotEdit', reason: 'Level 9 is not a raid tier.', type: 'egg' })],
+        humanNames: { alice: 'Alice' },
+        phase: 'Scanned',
+        repairable: [item()],
+        skipped: [{ humanId: 'carol', reason: 'PoracleNG answered 502' }],
+      }),
+    );
+    const text = (fixture.nativeElement as HTMLElement).textContent as string;
+    expect(text).toContain('Alice (alice)');
+    expect(text).toContain('bob');
+    expect(text).not.toContain('undefined');
+    expect(fixture.componentInstance.humanLabel('carol')).toBe('carol');
+  });
+
   it('lists the rules that cannot be edited with their reasons', () => {
     const fixture = setup(
       status({

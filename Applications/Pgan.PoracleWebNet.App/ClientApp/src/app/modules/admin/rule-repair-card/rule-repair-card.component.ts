@@ -193,6 +193,12 @@ export class RuleRepairCardComponent {
   }
 
   /** Re-reads the clock, and so the "ago" line. */
+  /** "Alice (123456789)" when the scan's human list named the user, the bare id otherwise. */
+  humanLabel(humanId: string): string {
+    const name = this.status().humanNames?.[humanId];
+    return name ? `${name} (${humanId})` : humanId;
+  }
+
   refreshClock(): void {
     this.now.set(Date.now());
   }

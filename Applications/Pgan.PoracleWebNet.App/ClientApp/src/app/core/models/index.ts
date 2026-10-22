@@ -878,6 +878,8 @@ export interface RuleRepairStatus {
   cannotEditCount: number;
   error: null | string;
   finishedAt: null | string;
+  /** The name of each user the lists mention, by id; absent for a user with no name, and in a summary. */
+  humanNames?: null | Record<string, string>;
   humansDone: number;
   humansTotal: number;
   phase: RuleRepairPhase;
