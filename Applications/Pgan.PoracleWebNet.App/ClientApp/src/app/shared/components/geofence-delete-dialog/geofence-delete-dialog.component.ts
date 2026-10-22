@@ -3,8 +3,9 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatRadioModule } from '@angular/material/radio';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
+import { pluralKey } from '../../../core/i18n/plural';
 import { GeofenceAlarmsChoice } from '../../../core/models';
 
 export interface GeofenceDeleteDialogData {
@@ -36,9 +37,12 @@ export class GeofenceDeleteDialogComponent {
   private readonly dialogRef = inject<MatDialogRef<GeofenceDeleteDialogComponent, GeofenceAlarmsChoice | null>>(MatDialogRef);
   readonly data = inject<GeofenceDeleteDialogData>(MAT_DIALOG_DATA);
   private readonly prefix = this.data.owner ? 'GEOFENCES.ADMIN_DELETE_WIDEN' : 'GEOFENCES.DELETE_WIDEN';
+  private readonly translate = inject(TranslateService);
 
-  /** Picked by count, the way the active-hours editor picks its _ONE/_OTHER keys. */
-  readonly bodyKey = computed(() => `${this.prefix}_BODY_${this.data.count === 1 ? 'ONE' : 'OTHER'}`);
+  /** Picked by the display language's plural rules (Polish has three forms), see core/i18n/plural.ts. */
+  readonly bodyKey = computed(() =>
+    pluralKey(`${this.prefix}_BODY`, this.data.count, this.translate.currentLang() ?? 'en', k => this.translate.instant(k) !== k),
+  );
 
   /** Deleting them is the default: a fence the user removes should stop alerting them, not alert more. */
   readonly choice = signal<GeofenceAlarmsChoice>('delete');

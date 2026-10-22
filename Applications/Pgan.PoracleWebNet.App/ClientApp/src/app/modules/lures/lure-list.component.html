@@ -11,7 +11,7 @@
 </div>
 @if (!loading() && lures().length > 0) {
   <div class="filter-bar">
-    <span class="result-count">{{ 'ALARM.ALARMS_COUNT' | translate: { count: lures().length } }}</span>
+    <span class="result-count">{{ 'ALARM.ALARMS_COUNT' | translatePlural: lures().length }}</span>
     <div class="bulk-spacer"></div>
     <button
       mat-icon-button

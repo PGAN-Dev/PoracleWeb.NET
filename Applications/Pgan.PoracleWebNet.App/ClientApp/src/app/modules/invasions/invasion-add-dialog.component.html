@@ -42,7 +42,7 @@
           }
 
           @if (selectedCount() > 0) {
-            <p class="selection-count">{{ 'INVASIONS.TYPES_SELECTED' | translate: { count: selectedCount() } }}</p>
+            <p class="selection-count">{{ 'INVASIONS.TYPES_SELECTED' | translatePlural: selectedCount() }}</p>
           }
         }
         @if (showGender()) {

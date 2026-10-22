@@ -34,6 +34,6 @@
 <div class="map-wrapper">
   <div #mapContainer class="area-map-container"></div>
   @if (selectedAreas.length > 0) {
-    <div class="map-selection-badge">{{ 'AREA_MAP.AREAS_SELECTED' | translate: { count: selectedAreas.length } }}</div>
+    <div class="map-selection-badge">{{ 'AREA_MAP.AREAS_SELECTED' | translatePlural: selectedAreas.length }}</div>
   }
 </div>

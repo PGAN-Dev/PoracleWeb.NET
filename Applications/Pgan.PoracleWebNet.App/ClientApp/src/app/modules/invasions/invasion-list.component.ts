@@ -33,6 +33,7 @@ import { DistanceDialogComponent } from '../../shared/components/distance-dialog
 import { RuleSummaryComponent } from '../../shared/components/rule-summary/rule-summary.component';
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
+import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { isAutoDelete as cleanIsAutoDelete } from '../../shared/utils/clean-flags';
 import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
@@ -51,6 +52,7 @@ import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../s
     MatProgressSpinnerModule,
     RuleSummaryComponent,
     TranslatePipe,
+    TranslatePluralPipe,
     WhereChipComponent,
   ],
   selector: 'app-invasion-list',
@@ -82,7 +84,7 @@ export class InvasionListComponent implements OnInit {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
         confirmText: this.i18n.instant('INVASIONS.CONFIRM_DELETE_SELECTED'),
-        message: this.i18n.instant('INVASIONS.CONFIRM_BULK_DELETE_MSG', { count: this.selectedIds().size }),
+        message: this.i18n.plural('ALARM.CONFIRM_BULK_DELETE_MSG', this.selectedIds().size),
         title: this.i18n.instant('INVASIONS.CONFIRM_BULK_DELETE_TITLE'),
         warn: true,
       } as ConfirmDialogData,
@@ -105,7 +107,7 @@ export class InvasionListComponent implements OnInit {
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadInvasions();
-      this.snackBar.open(this.i18n.instant('INVASIONS.SNACK_BULK_DELETED', { count: deleted }), this.i18n.instant('TOAST.OK'), {
+      this.snackBar.open(this.i18n.plural('ALARM.SNACK_BULK_DELETED', deleted), this.i18n.instant('TOAST.OK'), {
         duration: 3000,
       });
     }
@@ -133,11 +135,7 @@ export class InvasionListComponent implements OnInit {
       this.selectMode.set(false);
       this.loadInvasions();
       this.snackBar.open(
-        distanceUpdateMessage(
-          result,
-          this.i18n.instant('INVASIONS.SNACK_BULK_DISTANCE', { count: result?.updated ?? uids.length }),
-          this.i18n,
-        ),
+        distanceUpdateMessage(result, this.i18n.plural('ALARM.SNACK_BULK_DISTANCE', result?.updated ?? uids.length), this.i18n),
         this.i18n.instant('TOAST.OK'),
         {
           duration: skippedAny(result) ? 6000 : 3000,

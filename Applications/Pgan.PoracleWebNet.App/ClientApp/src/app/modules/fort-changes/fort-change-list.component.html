@@ -15,7 +15,7 @@
 </div>
 @if (!loading() && fortChanges().length > 0) {
   <div class="filter-bar">
-    <span class="result-count">{{ 'ALARM.ALARMS_COUNT' | translate: { count: fortChanges().length } }}</span>
+    <span class="result-count">{{ 'ALARM.ALARMS_COUNT' | translatePlural: fortChanges().length }}</span>
     <div class="bulk-spacer"></div>
     <button
       mat-icon-button

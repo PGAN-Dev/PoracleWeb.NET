@@ -21,6 +21,7 @@ import { QuickPickService } from '../../core/services/quick-pick.service';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
 import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, preserve } from '../../shared/utils/clean-flags';
 
@@ -39,6 +40,7 @@ import { AUTO_DELETE, preserve } from '../../shared/utils/clean-flags';
     MatTabsModule,
     MatProgressSpinnerModule,
     TranslatePipe,
+    TranslatePluralPipe,
     PokemonSelectorComponent,
     TemplateSelectorComponent,
     ScopePickerComponent,
@@ -106,7 +108,7 @@ export class QuickPickApplyDialogComponent {
     this.dialogRef.disableClose = true;
 
     if (this.willTrackIndividually()) {
-      this.applyStatus.set(this.i18n.instant('QUICK_PICKS.APPLY_STATUS_CREATING', { count: this.individualAlarmCount() }));
+      this.applyStatus.set(this.i18n.plural('QUICK_PICKS.APPLY_STATUS_CREATING', this.individualAlarmCount()));
     } else {
       this.applyStatus.set(this.i18n.instant('QUICK_PICKS.APPLY_STATUS_APPLYING'));
     }
@@ -145,7 +147,7 @@ export class QuickPickApplyDialogComponent {
       },
       next: state => {
         const count = state.trackedUids?.length ?? 0;
-        this.snackBar.open(this.i18n.instant('QUICK_PICKS.SNACK_APPLIED', { count }), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+        this.snackBar.open(this.i18n.plural('QUICK_PICKS.SNACK_APPLIED', count), this.i18n.instant('TOAST.OK'), { duration: 3000 });
         this.dialogRef.close(true);
       },
     });

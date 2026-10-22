@@ -130,7 +130,7 @@ describe('PlacesSectionComponent', () => {
 
     component.removePlace({ label: 'work', latitude: 1, longitude: 2 });
 
-    expect(snackBar.open).toHaveBeenCalledWith('WHERE.PLACE_IN_USE', expect.anything(), expect.anything());
+    expect(snackBar.open).toHaveBeenCalledWith('WHERE.PLACE_IN_USE_OTHER', expect.anything(), expect.anything());
   });
 
   it('reports a plain failure when the delete fails for any other reason', () => {

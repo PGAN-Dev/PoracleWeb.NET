@@ -16,6 +16,7 @@ import { GeoJsonImportResult, GeofenceRegion } from '../../../core/models';
 import { I18nService } from '../../../core/services/i18n.service';
 import { UserGeofenceService } from '../../../core/services/user-geofence.service';
 import { detectRegion } from '../../../shared/utils/geo.utils';
+import { TranslatePluralPipe } from '../../pipes/translate-plural.pipe';
 
 export interface GeoJsonImportDialogData {
   currentGeofenceCount: number;
@@ -52,6 +53,7 @@ type DialogStep = 'upload' | 'preview' | 'results';
     MatSelectModule,
     MatTooltipModule,
     TranslatePipe,
+    TranslatePluralPipe,
   ],
   selector: 'app-geojson-import-dialog',
   standalone: true,

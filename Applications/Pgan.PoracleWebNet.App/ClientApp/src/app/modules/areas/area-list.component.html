@@ -20,7 +20,7 @@
             <h3>{{ 'AREAS.METHOD_AREAS' | translate }}</h3>
             <span class="method-status">
               @if (selectedAreas().length > 0) {
-                {{ 'AREAS.METHOD_AREAS_ACTIVE' | translate: { count: selectedAreas().length } }}
+                {{ 'AREAS.METHOD_AREAS_ACTIVE' | translatePlural: selectedAreas().length }}
               } @else {
                 {{ 'AREAS.METHOD_NOT_CONFIGURED' | translate }}
               }
@@ -108,7 +108,7 @@
           {{ 'AREAS.LIST_VIEW' | translate }}
         </button>
       </div>
-      <span class="selection-summary">{{ 'AREAS.SELECTION_SUMMARY' | translate: { count: selectedAreas().length } }}</span>
+      <span class="selection-summary">{{ 'AREAS.SELECTION_SUMMARY' | translatePlural: selectedAreas().length }}</span>
       @if (selectedAreas().length > 0) {
         <button mat-button color="warn" (click)="clearAllAreas()">
           <mat-icon>delete_sweep</mat-icon> {{ 'AREAS.CLEAR_ALL' | translate }}
@@ -228,7 +228,7 @@
         @if (selectionUnknown()) {
           <span class="save-info">{{ 'AREAS.SELECTION_UNKNOWN' | translate }}</span>
         } @else {
-          <span class="save-info">{{ 'AREAS.SELECTION_SUMMARY' | translate: { count: selectedAreas().length } }}</span>
+          <span class="save-info">{{ 'AREAS.SELECTION_SUMMARY' | translatePlural: selectedAreas().length }}</span>
         }
         <button mat-button (click)="cancelChanges()">{{ 'AREAS.CANCEL_CHANGES' | translate }}</button>
         <button mat-raised-button color="primary" (click)="saveAreas()" [disabled]="saving() || selectionUnknown()">

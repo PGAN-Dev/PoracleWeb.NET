@@ -20,7 +20,7 @@ describe('PokemonSelectorComponent', () => {
     TestBed.configureTestingModule({
       providers: [
         provideTranslateService(),
-        { provide: I18nService, useValue: { instant: (k: string) => k } },
+        { provide: I18nService, useValue: { instant: (k: string) => k, plural: (k: string) => k } },
         { provide: IconService, useValue: { getPokemonUrl: () => '', getTypeUrl: () => '' } },
         {
           provide: MasterDataService,

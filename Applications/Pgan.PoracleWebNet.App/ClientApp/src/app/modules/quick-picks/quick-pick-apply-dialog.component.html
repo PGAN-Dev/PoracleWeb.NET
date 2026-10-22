@@ -33,7 +33,7 @@
               <div class="individual-warning">
                 <mat-icon>info</mat-icon>
                 <span>
-                  {{ 'QUICK_PICKS.INDIVIDUAL_WARNING' | translate: { count: individualAlarmCount() } }}
+                  {{ 'QUICK_PICKS.INDIVIDUAL_WARNING' | translatePlural: individualAlarmCount() }}
                 </span>
               </div>
             }
@@ -86,7 +86,7 @@
     @if (applying()) {
       {{ 'QUICK_PICKS.APPLYING' | translate }}
     } @else if (willTrackIndividually()) {
-      {{ 'QUICK_PICKS.APPLY_WITH_COUNT' | translate: { count: individualAlarmCount() } }}
+      {{ 'QUICK_PICKS.APPLY_WITH_COUNT' | translatePlural: individualAlarmCount() }}
     } @else {
       {{ (isReapply ? 'QUICK_PICKS.REAPPLY' : 'QUICK_PICKS.APPLY') | translate }}
     }

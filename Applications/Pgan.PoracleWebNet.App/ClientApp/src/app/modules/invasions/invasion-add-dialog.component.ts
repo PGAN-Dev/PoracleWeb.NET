@@ -24,6 +24,7 @@ import { MasterDataService } from '../../core/services/masterdata.service';
 import { SettingsService } from '../../core/services/settings.service';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
 import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 
 interface GruntOption {
@@ -59,6 +60,7 @@ interface GruntOption {
     MatTabsModule,
     MatSnackBarModule,
     TranslatePipe,
+    TranslatePluralPipe,
     TemplateSelectorComponent,
     ScopePickerComponent,
   ],
@@ -262,7 +264,7 @@ export class InvasionAddDialogComponent implements OnInit {
           const message =
             duplicates > 0
               ? this.i18n.instant('ALARM.SNACK_CREATED_WITH_DUPLICATES', { count: created, duplicates })
-              : this.i18n.instant('INVASIONS.SNACK_CREATED_COUNT', { count: created });
+              : this.i18n.plural('ALARM.SNACK_CREATED', created);
           this.snackBar.open(message, this.i18n.instant('COMMON.OK'), { duration: 4000 });
         }
 

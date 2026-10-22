@@ -22,6 +22,7 @@ import { IconService } from '../../core/services/icon.service';
 import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
 import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 import { compose } from '../../shared/utils/clean-flags';
 
@@ -45,6 +46,7 @@ interface TeamOption {
     MatTabsModule,
     MatSnackBarModule,
     TranslatePipe,
+    TranslatePluralPipe,
     TemplateSelectorComponent,
     GymPickerComponent,
     MatSelectModule,
@@ -148,7 +150,7 @@ export class GymAddDialogComponent {
           const message =
             duplicates > 0
               ? this.i18n.instant('ALARM.SNACK_CREATED_WITH_DUPLICATES', { count: created, duplicates })
-              : this.i18n.instant('GYMS.SNACK_CREATED', { count: created });
+              : this.i18n.plural('ALARM.SNACK_CREATED', created);
           this.snackBar.open(message, this.i18n.instant('COMMON.OK'), { duration: 4000 });
         }
 

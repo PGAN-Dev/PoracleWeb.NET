@@ -23,6 +23,7 @@ import { LocationDialogComponent } from '../../shared/components/location-dialog
 import { PlacesSectionComponent } from '../../shared/components/places-section/places-section.component';
 import { QuietChipComponent } from '../../shared/components/quiet-chip/quiet-chip.component';
 import { RegionOption, RegionSelectorComponent } from '../../shared/components/region-selector/region-selector.component';
+import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
 import { hasPin, pinOrNull } from '../../shared/utils/location.utils';
 
 interface AreaItem {
@@ -53,6 +54,7 @@ interface GroupInfo {
     MatProgressSpinnerModule,
     MatSnackBarModule,
     TranslatePipe,
+    TranslatePluralPipe,
     AreaMapComponent,
     RegionSelectorComponent,
     PlacesSectionComponent,

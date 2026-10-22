@@ -28,6 +28,7 @@ import { INITIAL_VIEW_MAX_ZOOM, LOCATION_ONLY_ZOOM, planInitialView } from './in
 import { GeofenceData } from '../../../core/models';
 import { BasemapService } from '../../../core/services/basemap.service';
 import { I18nService } from '../../../core/services/i18n.service';
+import { TranslatePluralPipe } from '../../pipes/translate-plural.pipe';
 import { RegionOption, RegionSelectorComponent } from '../region-selector/region-selector.component';
 
 /**
@@ -78,7 +79,7 @@ function polygonHandlerOf(control: L.Control.Draw): { enable(): void } | undefin
 }
 
 @Component({
-  imports: [MatButtonModule, MatIconModule, MatTooltipModule, TranslatePipe, RegionSelectorComponent],
+  imports: [MatButtonModule, MatIconModule, MatTooltipModule, TranslatePipe, TranslatePluralPipe, RegionSelectorComponent],
   selector: 'app-area-map',
   standalone: true,
   styleUrl: './area-map.component.scss',

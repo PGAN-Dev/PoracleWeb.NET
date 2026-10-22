@@ -51,7 +51,7 @@
         <div class="status-info">
           <span class="status-label">{{ 'DASHBOARD.ACTIVE_AREAS' | translate }}</span>
           @if (selectedAreas().length > 0) {
-            <span class="status-value">{{ 'DASHBOARD.AREAS_COUNT' | translate: { count: selectedAreas().length } }}</span>
+            <span class="status-value">{{ 'DASHBOARD.AREAS_COUNT' | translatePlural: selectedAreas().length }}</span>
           } @else {
             <span class="status-value not-set">{{ 'DASHBOARD.NO_AREAS' | translate }}</span>
           }
@@ -199,7 +199,7 @@
       <div class="area-overview-header">
         <mat-icon>map</mat-icon>
         <span>{{ 'DASHBOARD.AREA_COVERAGE' | translate }}</span>
-        <span class="area-overview-count">{{ 'DASHBOARD.AREAS_COUNT' | translate: { count: selectedAreas().length } }}</span>
+        <span class="area-overview-count">{{ 'DASHBOARD.AREAS_COUNT' | translatePlural: selectedAreas().length }}</span>
         <mat-icon class="status-arrow">chevron_right</mat-icon>
       </div>
       @defer (on viewport) {
@@ -250,7 +250,7 @@
   <!-- Alarm Counts Section -->
   <div class="section-header">
     <h2>{{ 'DASHBOARD.ACTIVE_FILTERS' | translate }}</h2>
-    <span class="total-count">{{ 'DASHBOARD.TOTAL_ALARMS' | translate: { count: totalAlarms() } }}</span>
+    <span class="total-count">{{ 'DASHBOARD.TOTAL_ALARMS' | translatePlural: totalAlarms() }}</span>
   </div>
 
   <div class="dashboard-grid">

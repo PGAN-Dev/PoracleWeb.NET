@@ -21,7 +21,7 @@
           }
         </div>
         @if (selectedLureIds().length > 0) {
-          <p class="selection-count">{{ 'LURES.TYPES_SELECTED' | translate: { count: selectedLureIds().length } }}</p>
+          <p class="selection-count">{{ 'LURES.TYPES_SELECTED' | translatePlural: selectedLureIds().length }}</p>
         }
       </div>
     </mat-tab>

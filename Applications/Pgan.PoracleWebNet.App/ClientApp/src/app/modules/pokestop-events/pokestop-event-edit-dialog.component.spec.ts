@@ -55,7 +55,7 @@ describe('PokestopEventEditDialogComponent', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: ConfigService, useValue: { apiHost: 'http://test-api' } },
-        { provide: I18nService, useValue: { instant: (k: string) => k } },
+        { provide: I18nService, useValue: { instant: (k: string) => k, plural: (k: string) => k } },
         { provide: MAT_DIALOG_DATA, useValue: { ...base, ...event } },
         { provide: MatDialogRef, useValue: dialogRef },
         { provide: PokestopEventService, useValue: pokestopEventService },

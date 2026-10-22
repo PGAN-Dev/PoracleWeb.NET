@@ -53,7 +53,7 @@ describe('RaidAddDialogComponent', () => {
             getTypeLabel: (t: string) => t,
           },
         },
-        { provide: I18nService, useValue: { instant: (k: string) => k } },
+        { provide: I18nService, useValue: { instant: (k: string) => k, plural: (k: string) => k } },
         {
           provide: AlertDefaultsService,
           useValue: { defaultDistanceKm: () => 1, defaultMode: () => 'areas', defaultPlaceLabel: () => '' },

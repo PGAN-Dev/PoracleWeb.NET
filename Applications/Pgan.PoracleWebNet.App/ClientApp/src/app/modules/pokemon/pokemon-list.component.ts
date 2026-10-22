@@ -32,6 +32,7 @@ import { QuietChipComponent } from '../../shared/components/quiet-chip/quiet-chi
 import { RuleSummaryComponent } from '../../shared/components/rule-summary/rule-summary.component';
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
+import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { isAutoDelete as cleanIsAutoDelete, isEdit as cleanIsEdit } from '../../shared/utils/clean-flags';
 import { readableChip } from '../../shared/utils/contrast';
@@ -60,6 +61,7 @@ import { hasLevelFilter } from '../../shared/utils/pokemon-level';
     MatSelectModule,
     RuleSummaryComponent,
     TranslatePipe,
+    TranslatePluralPipe,
     WhereChipComponent,
   ],
   selector: 'app-pokemon-list',
@@ -176,7 +178,7 @@ export class PokemonListComponent implements OnInit {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
         confirmText: this.i18n.instant('COMMON.DELETE_ALL'),
-        message: this.i18n.instant('POKEMON.CONFIRM_BULK_DELETE_MSG', { count: this.selectedIds().size }),
+        message: this.i18n.plural('ALARM.CONFIRM_BULK_DELETE_MSG', this.selectedIds().size),
         title: this.i18n.instant('POKEMON.CONFIRM_BULK_DELETE_TITLE'),
         warn: true,
       } as ConfirmDialogData,
@@ -199,7 +201,7 @@ export class PokemonListComponent implements OnInit {
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadMonsters();
-      this.snackBar.open(this.i18n.instant('POKEMON.SNACK_BULK_DELETED', { count: deleted }), this.i18n.instant('COMMON.OK'), {
+      this.snackBar.open(this.i18n.plural('ALARM.SNACK_BULK_DELETED', deleted), this.i18n.instant('COMMON.OK'), {
         duration: 3000,
       });
     }
@@ -227,11 +229,7 @@ export class PokemonListComponent implements OnInit {
       this.selectMode.set(false);
       this.loadMonsters();
       this.snackBar.open(
-        distanceUpdateMessage(
-          result,
-          this.i18n.instant('POKEMON.SNACK_BULK_DISTANCE', { count: result?.updated ?? uids.length }),
-          this.i18n,
-        ),
+        distanceUpdateMessage(result, this.i18n.plural('ALARM.SNACK_BULK_DISTANCE', result?.updated ?? uids.length), this.i18n),
         this.i18n.instant('COMMON.OK'),
         {
           duration: skippedAny(result) ? 6000 : 3000,

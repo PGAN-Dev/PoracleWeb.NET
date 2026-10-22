@@ -63,7 +63,7 @@ describe('RaidEditDialogComponent', () => {
             getCostumes: () => [{ id: 85, name: 'Halloween 2025' }],
           },
         },
-        { provide: I18nService, useValue: { instant: (k: string) => k } },
+        { provide: I18nService, useValue: { instant: (k: string) => k, plural: (k: string) => k } },
         { provide: AuthService, useValue: { isImpersonating: () => webhookSession } },
       ],
       imports: [RaidEditDialogComponent],

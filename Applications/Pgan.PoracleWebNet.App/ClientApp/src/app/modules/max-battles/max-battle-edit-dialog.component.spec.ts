@@ -56,7 +56,7 @@ describe('MaxBattleEditDialogComponent — filter preservation (#412)', () => {
         { provide: MAT_DIALOG_DATA, useValue: { item: { ...item, ...overrides } } },
         { provide: MatDialogRef, useValue: { close: jest.fn() } },
         { provide: MatSnackBar, useValue: { open: jest.fn() } },
-        { provide: I18nService, useValue: { instant: (k: string) => k } },
+        { provide: I18nService, useValue: { instant: (k: string) => k, plural: (k: string) => k } },
         { provide: IconService, useValue: { getPokemonUrl: () => '' } },
         { provide: MasterDataService, useValue: { getPokemonName: () => 'Charizard' } },
         { provide: AuthService, useValue: { isImpersonating: () => webhookSession } },

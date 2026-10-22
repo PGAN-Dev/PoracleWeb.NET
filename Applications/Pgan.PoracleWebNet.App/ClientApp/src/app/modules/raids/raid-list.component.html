@@ -19,7 +19,7 @@
 
 @if (!loading() && (raids().length > 0 || eggs().length > 0)) {
   <div class="filter-bar">
-    <span class="result-count">{{ 'ALARM.ALARMS_COUNT' | translate: { count: raids().length + eggs().length } }}</span>
+    <span class="result-count">{{ 'ALARM.ALARMS_COUNT' | translatePlural: raids().length + eggs().length }}</span>
     <div class="bulk-spacer"></div>
     <button
       mat-icon-button

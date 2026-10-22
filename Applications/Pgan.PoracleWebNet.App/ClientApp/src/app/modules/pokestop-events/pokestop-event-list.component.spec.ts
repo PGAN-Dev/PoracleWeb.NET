@@ -73,7 +73,7 @@ describe('PokestopEventListComponent', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: ConfigService, useValue: { apiHost: 'http://test-api' } },
-        { provide: I18nService, useValue: { instant: (k: string) => k } },
+        { provide: I18nService, useValue: { instant: (k: string) => k, plural: (k: string) => k } },
         { provide: MatDialog, useValue: dialog },
         { provide: MatSnackBar, useValue: snackBar },
         { provide: AreaService, useValue: { getSelected: () => of(areas) } },
@@ -274,7 +274,7 @@ describe('PokestopEventListComponent', () => {
       await component.bulkDelete();
 
       expect(pokestopEventService.delete).toHaveBeenCalledTimes(2);
-      expect(snackBar.open).toHaveBeenCalledWith('POKESTOP_EVENTS.SNACK_BULK_DELETED', 'COMMON.OK', expect.anything());
+      expect(snackBar.open).toHaveBeenCalledWith('ALARM.SNACK_BULK_DELETED', 'COMMON.OK', expect.anything());
     });
 
     it('deletes nothing when the confirmation is dismissed', async () => {
@@ -330,7 +330,7 @@ describe('PokestopEventListComponent', () => {
       await component.bulkUpdateDistance();
 
       expect(snackBar.open).toHaveBeenCalledWith(
-        'POKESTOP_EVENTS.SNACK_BULK_DISTANCE. WHERE.DISTANCE_SKIPPED_AREAS',
+        'ALARM.SNACK_BULK_DISTANCE. WHERE.DISTANCE_SKIPPED_AREAS',
         'COMMON.OK',
         expect.objectContaining({ duration: 6000 }),
       );

@@ -27,6 +27,7 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/componen
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
 import { RuleSummaryComponent } from '../../shared/components/rule-summary/rule-summary.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
+import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { ChipColors, readableChip } from '../../shared/utils/contrast';
@@ -45,6 +46,7 @@ import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../s
     MatSnackBarModule,
     RuleSummaryComponent,
     TranslatePipe,
+    TranslatePluralPipe,
     AlarmInfoComponent,
   ],
   selector: 'app-quest-list',
@@ -84,7 +86,7 @@ export class QuestListComponent implements OnInit {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
         confirmText: this.i18n.instant('QUESTS.CONFIRM_DELETE_SELECTED'),
-        message: this.i18n.instant('QUESTS.CONFIRM_BULK_DELETE_MSG', { count: this.selectedIds().size }),
+        message: this.i18n.plural('ALARM.CONFIRM_BULK_DELETE_MSG', this.selectedIds().size),
         title: this.i18n.instant('QUESTS.CONFIRM_BULK_DELETE_TITLE'),
         warn: true,
       } as ConfirmDialogData,
@@ -107,7 +109,7 @@ export class QuestListComponent implements OnInit {
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadQuests();
-      this.snackBar.open(this.i18n.instant('QUESTS.SNACK_BULK_DELETED', { count: deleted }), this.i18n.instant('TOAST.OK'), {
+      this.snackBar.open(this.i18n.plural('ALARM.SNACK_BULK_DELETED', deleted), this.i18n.instant('TOAST.OK'), {
         duration: 3000,
       });
     }
@@ -135,11 +137,7 @@ export class QuestListComponent implements OnInit {
       this.selectMode.set(false);
       this.loadQuests();
       this.snackBar.open(
-        distanceUpdateMessage(
-          result,
-          this.i18n.instant('QUESTS.SNACK_BULK_DISTANCE', { count: result?.updated ?? uids.length }),
-          this.i18n,
-        ),
+        distanceUpdateMessage(result, this.i18n.plural('ALARM.SNACK_BULK_DISTANCE', result?.updated ?? uids.length), this.i18n),
         this.i18n.instant('TOAST.OK'),
         {
           duration: skippedAny(result) ? 6000 : 3000,

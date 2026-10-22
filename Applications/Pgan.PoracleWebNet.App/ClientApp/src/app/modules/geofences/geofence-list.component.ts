@@ -350,7 +350,7 @@ export class GeofenceListComponent implements OnInit {
       if (result && result.created.length > 0) {
         this.loadCustomGeofences();
         this.loadActiveAreas();
-        this.snackBar.open(this.i18n.instant('GEOFENCES.SNACK_IMPORTED', { count: result.created.length }), this.i18n.instant('TOAST.OK'), {
+        this.snackBar.open(this.i18n.plural('GEOFENCES.SNACK_IMPORTED', result.created.length), this.i18n.instant('TOAST.OK'), {
           duration: 3000,
         });
       }
@@ -454,7 +454,7 @@ export class GeofenceListComponent implements OnInit {
     a.download = 'geofences.geojson';
     a.click();
     URL.revokeObjectURL(url);
-    this.snackBar.open(this.i18n.instant('GEOFENCES.SNACK_EXPORTED', { count: features.length }), this.i18n.instant('TOAST.OK'), {
+    this.snackBar.open(this.i18n.plural('GEOFENCES.SNACK_EXPORTED', features.length), this.i18n.instant('TOAST.OK'), {
       duration: 3000,
     });
   }

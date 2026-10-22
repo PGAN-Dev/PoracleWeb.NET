@@ -7,6 +7,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { UserGeofence } from '../../../core/models';
+import { TranslatePluralPipe } from '../../pipes/translate-plural.pipe';
 
 export interface GeoJsonExportDialogData {
   geofences: UserGeofence[];
@@ -18,7 +19,7 @@ export interface GeoJsonExportDialogResult {
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, MatButtonModule, MatCheckboxModule, MatDialogModule, MatIconModule, TranslatePipe],
+  imports: [FormsModule, MatButtonModule, MatCheckboxModule, MatDialogModule, MatIconModule, TranslatePipe, TranslatePluralPipe],
   selector: 'app-geojson-export-dialog',
   standalone: true,
   styles: `
@@ -103,7 +104,7 @@ export interface GeoJsonExportDialogResult {
       <button mat-button (click)="dialogRef.close(null)">{{ 'COMMON.CANCEL' | translate }}</button>
       <button mat-raised-button color="primary" [disabled]="selectedCount() === 0" (click)="export()">
         <mat-icon>download</mat-icon>
-        {{ 'GEOJSON_EXPORT.EXPORT_BTN' | translate: { count: selectedCount() } }}
+        {{ 'GEOJSON_EXPORT.EXPORT_BTN' | translatePlural: selectedCount() }}
       </button>
     </mat-dialog-actions>
   `,

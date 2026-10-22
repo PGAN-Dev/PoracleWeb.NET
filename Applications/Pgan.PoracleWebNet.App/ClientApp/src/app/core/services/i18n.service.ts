@@ -1,6 +1,8 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 
+import { translatePlural } from '../i18n/plural';
+
 export interface UiLanguage {
   code: string;
   /** Two-letter country code for display (emoji flags don't render on Windows) */
@@ -113,6 +115,14 @@ export class I18nService {
   /** Returns a translated string synchronously (for use in TypeScript code). */
   instant(key: string, params?: Record<string, unknown>): string {
     return this.translate.instant(key, params);
+  }
+
+  /**
+   * Translates a counted message by the display language's plural rules: `plural('ALARM.ALARMS_COUNT', 3)`
+   * reads `ALARM.ALARMS_COUNT_OTHER` in English and `ALARM.ALARMS_COUNT_FEW` in Polish. See core/i18n/plural.ts.
+   */
+  plural(base: string, count: number, params?: Record<string, unknown>): string {
+    return translatePlural(this.translate, this.translate.getCurrentLang() ?? this.currentLang(), base, count, params);
   }
 
   /** Switch UI language, and remember it as this user's choice. */

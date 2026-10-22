@@ -24,6 +24,7 @@ import { DistanceDialogComponent } from '../../shared/components/distance-dialog
 import { QuietChipComponent } from '../../shared/components/quiet-chip/quiet-chip.component';
 import { RuleSummaryComponent } from '../../shared/components/rule-summary/rule-summary.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
+import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
@@ -41,6 +42,7 @@ import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../s
     MatSnackBarModule,
     RuleSummaryComponent,
     TranslatePipe,
+    TranslatePluralPipe,
     AlarmInfoComponent,
   ],
   selector: 'app-max-battle-list',
@@ -96,7 +98,7 @@ export class MaxBattleListComponent implements OnInit {
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadData();
-      this.snackBar.open(this.i18n.instant('MAX_BATTLES.SNACK_BULK_DELETED', { count: deleted }), this.i18n.instant('COMMON.OK'), {
+      this.snackBar.open(this.i18n.plural('ALARM.SNACK_BULK_DELETED', deleted), this.i18n.instant('COMMON.OK'), {
         duration: 3000,
       });
     }
@@ -124,11 +126,7 @@ export class MaxBattleListComponent implements OnInit {
       this.selectMode.set(false);
       this.loadData();
       this.snackBar.open(
-        distanceUpdateMessage(
-          result,
-          this.i18n.instant('MAX_BATTLES.SNACK_BULK_DISTANCE', { count: result?.updated ?? ids.length }),
-          this.i18n,
-        ),
+        distanceUpdateMessage(result, this.i18n.plural('ALARM.SNACK_BULK_DISTANCE', result?.updated ?? ids.length), this.i18n),
         this.i18n.instant('COMMON.OK'),
         {
           duration: skippedAny(result) ? 6000 : 3000,

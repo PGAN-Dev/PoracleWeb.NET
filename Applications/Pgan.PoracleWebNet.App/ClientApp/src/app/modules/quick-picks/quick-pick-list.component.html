@@ -90,7 +90,7 @@
                 <div class="applied-info">
                   <mat-icon>check_circle</mat-icon>
                   <span>
-                    {{ 'QUICK_PICKS.APPLIED_INFO' | translate: { count: pick.appliedState.trackedUids.length } }}
+                    {{ 'QUICK_PICKS.APPLIED_INFO' | translatePlural: pick.appliedState.trackedUids.length }}
                     @if (pick.appliedState.excludePokemonIds?.length) {
                       · {{ 'QUICK_PICKS.EXCLUDED_INFO' | translate: { count: pick.appliedState.excludePokemonIds.length } }}
                     }

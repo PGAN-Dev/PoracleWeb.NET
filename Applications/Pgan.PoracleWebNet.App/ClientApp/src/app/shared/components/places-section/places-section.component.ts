@@ -8,6 +8,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
+import { translatePlural } from '../../../core/i18n/plural';
 import { Location, SavedPlace } from '../../../core/models';
 import { PlacesService } from '../../../core/services/places.service';
 import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component';
@@ -116,7 +117,9 @@ export class PlacesSectionComponent implements OnInit {
         const rules: string[] = err.status === 409 ? (err.error?.referencingRules ?? []) : [];
         this.snackBar.open(
           rules.length > 0
-            ? this.translate.instant('WHERE.PLACE_IN_USE', { count: rules.length, place: place.label })
+            ? translatePlural(this.translate, this.translate.getCurrentLang() ?? 'en', 'WHERE.PLACE_IN_USE', rules.length, {
+                place: place.label,
+              })
             : this.translate.instant('WHERE.PLACE_DELETE_ERROR'),
           this.translate.instant('COMMON.OK'),
           { duration: 6000 },

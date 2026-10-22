@@ -37,6 +37,7 @@ import {
 } from '../../shared/components/active-hours-editor-dialog/active-hours-editor-dialog.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { LocationWarningComponent } from '../../shared/components/location-warning/location-warning.component';
+import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
 import { hasLevelFilter } from '../../shared/utils/pokemon-level';
 import { getGruntDisplayName } from '../invasions/invasion.constants';
 import { ProfileAddDialogComponent } from '../profiles/profile-add-dialog.component';
@@ -77,6 +78,7 @@ function duplicateKey(type: string, uid: number): string {
     MatSnackBarModule,
     MatTooltipModule,
     TranslatePipe,
+    TranslatePluralPipe,
     ActiveHoursChipComponent,
     LocationWarningComponent,
   ],
@@ -317,11 +319,9 @@ export class ProfileOverviewComponent implements OnInit {
               if (res.token) {
                 this.authService.setToken(res.token);
               }
-              this.snackBar.open(
-                this.i18n.instant('PROFILES.SNACK_DUPLICATED', { count: res.alarmsCopied }),
-                this.i18n.instant('TOAST.OK'),
-                { duration: 3000 },
-              );
+              this.snackBar.open(this.i18n.plural('PROFILES.SNACK_DUPLICATED', res.alarmsCopied), this.i18n.instant('TOAST.OK'), {
+                duration: 3000,
+              });
               this.loadAll();
             },
           });
@@ -646,11 +646,9 @@ export class ProfileOverviewComponent implements OnInit {
                 next: res => {
                   this.switching.set(false);
                   if (res.token) this.authService.setToken(res.token);
-                  this.snackBar.open(
-                    this.i18n.instant('PROFILES.SNACK_IMPORTED', { count: res.alarmsCopied }),
-                    this.i18n.instant('TOAST.OK'),
-                    { duration: 3000 },
-                  );
+                  this.snackBar.open(this.i18n.plural('PROFILES.SNACK_IMPORTED', res.alarmsCopied), this.i18n.instant('TOAST.OK'), {
+                    duration: 3000,
+                  });
                   this.loadAll();
                 },
               });

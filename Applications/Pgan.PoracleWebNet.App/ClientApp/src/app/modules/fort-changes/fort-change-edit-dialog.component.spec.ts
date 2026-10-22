@@ -47,7 +47,7 @@ describe('FortChangeEditDialogComponent', () => {
         { provide: MAT_DIALOG_DATA, useValue: { ...base, ...fort } },
         { provide: MatDialogRef, useValue: { close: jest.fn() } },
         { provide: FortChangeService, useValue: fortChangeService },
-        { provide: I18nService, useValue: { instant: (k: string) => k } },
+        { provide: I18nService, useValue: { instant: (k: string) => k, plural: (k: string) => k } },
         { provide: AuthService, useValue: { isImpersonating: () => webhookSession, user: () => ({ type: 'discord:user' }) } },
       ],
       imports: [FortChangeEditDialogComponent],

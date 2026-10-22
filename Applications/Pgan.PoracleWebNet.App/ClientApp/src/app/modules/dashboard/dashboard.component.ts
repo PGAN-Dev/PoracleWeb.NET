@@ -26,6 +26,7 @@ import { AreaOverviewMapComponent } from '../../shared/components/area-overview-
 import { LocationDialogComponent } from '../../shared/components/location-dialog/location-dialog.component';
 import { OnboardingComponent } from '../../shared/components/onboarding/onboarding.component';
 import { QuietListSheetComponent } from '../../shared/components/quiet-list-sheet/quiet-list-sheet.component';
+import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
 import { polygonCentroid } from '../../shared/utils/geo.utils';
 
 interface DashboardCard {
@@ -72,6 +73,7 @@ interface Tip {
     OnboardingComponent,
     RouterModule,
     TranslatePipe,
+    TranslatePluralPipe,
   ],
   selector: 'app-dashboard',
   standalone: true,
@@ -381,7 +383,7 @@ export class DashboardComponent implements OnInit {
     if (diff === 1) return this.i18n.instant('DASHBOARD.WEATHER_1_MIN_AGO');
     if (diff < 60) return this.i18n.instant('DASHBOARD.WEATHER_MIN_AGO', { count: diff });
     if (diff < 120) return this.i18n.instant('DASHBOARD.WEATHER_1_HR_AGO');
-    return this.i18n.instant('DASHBOARD.WEATHER_HRS_AGO', { count: Math.floor(diff / 60) });
+    return this.i18n.plural('DASHBOARD.WEATHER_HRS_AGO', Math.floor(diff / 60));
   });
 
   dismissTip(tip: Tip): void {

@@ -1023,7 +1023,7 @@ export class AdminSettingsComponent implements OnInit {
     }
     const msg =
       errors === 0
-        ? this.i18n.instant('ADMIN_SETTINGS.SAVE_SUCCESS', { count: done })
+        ? this.i18n.plural('ADMIN_SETTINGS.SAVE_SUCCESS', done)
         : errorMessages.length > 0
           ? errorMessages.join(' ')
           : this.i18n.instant('ADMIN_SETTINGS.SAVE_PARTIAL', { done, errors });

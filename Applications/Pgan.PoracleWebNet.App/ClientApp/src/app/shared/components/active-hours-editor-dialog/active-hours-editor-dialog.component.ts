@@ -9,6 +9,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
+import { translatePlural } from '../../../core/i18n/plural';
 import {
   ActiveHourEntry,
   ActiveHourGroup,
@@ -54,7 +55,14 @@ export class ActiveHoursEditorDialogComponent {
   private readonly translate = inject(TranslateService);
   readonly allDays = [1, 2, 3, 4, 5, 6, 7];
 
+  /** The weekly preview's axis ticks (midnight, 6, noon, 18, midnight) on the display language's clock. */
+  readonly axisLabels = computed(() => {
+    const lang = this.translate.currentLang() ?? 'en';
+    return [0, 6, 12, 18, 24].map(h => formatAxisHour(h % 24, lang));
+  });
+
   readonly data: ActiveHoursEditorData = inject(MAT_DIALOG_DATA);
+
   readonly dayLetters: Record<number, string> = {
     1: this.translate.instant('PROFILES.ACTIVE_HOURS_DAY_LETTER_MON'),
     2: this.translate.instant('PROFILES.ACTIVE_HOURS_DAY_LETTER_TUE'),
@@ -67,13 +75,8 @@ export class ActiveHoursEditorDialogComponent {
 
   readonly entries = signal<ActiveHourEntry[]>([...this.data.activeHours]);
   readonly groups = computed<ActiveHourGroup[]>(() => groupActiveHours(this.entries()));
-  readonly hourOptions = Array.from({ length: 24 }, (_, i) => i);
 
-  /** The weekly preview's axis ticks (midnight, 6, noon, 18, midnight) on the display language's clock. */
-  readonly axisLabels = computed(() => {
-    const lang = this.translate.currentLang() ?? 'en';
-    return [0, 6, 12, 18, 24].map(h => formatAxisHour(h % 24, lang));
-  });
+  readonly hourOptions = Array.from({ length: 24 }, (_, i) => i);
   readonly minuteOptions = Array.from({ length: 12 }, (_, i) => i * 5);
 
   /**
@@ -157,13 +160,12 @@ export class ActiveHoursEditorDialogComponent {
     return formatHourOption(h, this.translate.currentLang() ?? 'en');
   }
 
-
   formatMinute(m: number): string {
     return `:${m.toString().padStart(2, '0')}`;
   }
 
   formatStep(step: number): string {
-    return this.translate.instant(step === 1 ? 'PROFILES.ACTIVE_HOURS_HOURS_ONE' : 'PROFILES.ACTIVE_HOURS_HOURS_OTHER', { step });
+    return translatePlural(this.translate, this.translate.currentLang() ?? 'en', 'PROFILES.ACTIVE_HOURS_HOURS', step, { step });
   }
 
   /** Stable identity for a rules-list row, so two rules can never collide on a translated string. */

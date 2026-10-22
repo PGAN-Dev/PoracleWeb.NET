@@ -196,11 +196,9 @@ export class CleaningComponent implements OnInit {
           }
           this.toggling.set(false);
           const action = this.i18n.instant(enabled ? 'CLEANING.ENABLED' : 'CLEANING.DISABLED');
-          this.snackBar.open(
-            this.i18n.instant('CLEANING.SNACK_TOGGLE_ALL', { action, count: result.updated }),
-            this.i18n.instant('TOAST.OK'),
-            { duration: 3000 },
-          );
+          this.snackBar.open(this.i18n.plural('CLEANING.SNACK_TOGGLE_ALL', result.updated, { action }), this.i18n.instant('TOAST.OK'), {
+            duration: 3000,
+          });
         },
       });
   }
@@ -221,7 +219,7 @@ export class CleaningComponent implements OnInit {
           const action = this.i18n.instant(enabled ? 'CLEANING.ENABLED' : 'CLEANING.DISABLED');
           const type = this.i18n.instant(item.labelKey);
           this.snackBar.open(
-            this.i18n.instant('CLEANING.SNACK_TOGGLE_TYPE', { action, count: result.updated, type }),
+            this.i18n.plural('CLEANING.SNACK_TOGGLE_TYPE', result.updated, { action, type }),
             this.i18n.instant('TOAST.OK'),
             { duration: 3000 },
           );

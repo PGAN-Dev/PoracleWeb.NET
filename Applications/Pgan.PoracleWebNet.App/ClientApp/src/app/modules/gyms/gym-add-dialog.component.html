@@ -21,7 +21,7 @@
           }
         </div>
         @if (selectedTeamIds().length > 0) {
-          <p class="selection-count">{{ 'GYMS.TEAMS_SELECTED' | translate: { count: selectedTeamIds().length } }}</p>
+          <p class="selection-count">{{ 'GYMS.TEAMS_SELECTED' | translatePlural: selectedTeamIds().length }}</p>
         }
         <h4>{{ 'RAIDS.SPECIFIC_GYM' | translate }}</h4>
         <app-gym-picker [(gymId)]="selectedGymId" />

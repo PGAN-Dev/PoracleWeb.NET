@@ -47,7 +47,7 @@ describe('PokestopEventAddDialogComponent', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: ConfigService, useValue: { apiHost: 'http://test-api' } },
-        { provide: I18nService, useValue: { instant: (k: string) => k } },
+        { provide: I18nService, useValue: { instant: (k: string) => k, plural: (k: string) => k } },
         { provide: MAT_DIALOG_DATA, useValue: existing },
         { provide: MatDialogRef, useValue: dialogRef },
         { provide: AlertDefaultsService, useValue: alertDefaults },

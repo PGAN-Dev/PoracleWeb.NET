@@ -50,7 +50,7 @@ describe('PokemonEditDialogComponent', () => {
             getPokemonName: () => 'Meowth',
           },
         },
-        { provide: I18nService, useValue: { instant: (k: string) => k } },
+        { provide: I18nService, useValue: { instant: (k: string) => k, plural: (k: string) => k } },
         {
           provide: PoracleConfigService,
           useValue: { load: () => of({ defaultPvpCap: 0 }), serverConfig: () => ({ pvpCaps: [] }) },

@@ -43,7 +43,7 @@
 
     <div class="filter-meta">
       <span class="result-count">{{
-        'POKEMON.RESULT_COUNT' | translate: { filtered: filteredMonsters().length, total: monsters().length }
+        'POKEMON.RESULT_COUNT' | translatePlural: monsters().length : { filtered: filteredMonsters().length, total: monsters().length }
       }}</span>
       <button
         mat-icon-button
@@ -83,7 +83,7 @@
       </mat-select>
     </mat-form-field>
     @if (activeGen()) {
-      <span class="gen-count">{{ 'ALARM.ALARMS_COUNT' | translate: { count: filteredMonsters().length } }}</span>
+      <span class="gen-count">{{ 'ALARM.ALARMS_COUNT' | translatePlural: filteredMonsters().length }}</span>
     }
   </div>
 

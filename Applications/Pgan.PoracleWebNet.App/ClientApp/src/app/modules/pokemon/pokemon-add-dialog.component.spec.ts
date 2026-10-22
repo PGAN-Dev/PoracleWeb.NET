@@ -71,7 +71,7 @@ describe('PokemonAddDialogComponent', () => {
         { provide: MatDialogRef, useValue: dialogRef },
         { provide: MonsterService, useValue: monsterService },
         { provide: MasterDataService, useValue: masterData },
-        { provide: I18nService, useValue: { instant: (k: string) => k } },
+        { provide: I18nService, useValue: { instant: (k: string) => k, plural: (k: string) => k } },
         {
           provide: AlertDefaultsService,
           useValue: { defaultDistanceKm: () => 1, defaultMode: () => 'areas', defaultPlaceLabel: () => '' },
@@ -230,7 +230,7 @@ describe('PokemonAddDialogComponent', () => {
     component.filtersForm.controls.forms.setValue([ALOLAN, GALARIAN]);
     component.save();
 
-    expect(snackBar.open).toHaveBeenCalledWith('POKEMON.SNACK_CREATED', 'COMMON.OK', expect.objectContaining({ duration: 4000 }));
+    expect(snackBar.open).toHaveBeenCalledWith('ALARM.SNACK_CREATED', 'COMMON.OK', expect.objectContaining({ duration: 4000 }));
   });
 
   // Counting the submissions claimed every selected Pokemon was added while the list grew by fewer, or
@@ -242,7 +242,7 @@ describe('PokemonAddDialogComponent', () => {
     component.save();
 
     expect(snackBar.open).toHaveBeenCalledWith(
-      'POKEMON.SNACK_CREATED_WITH_DUPLICATES',
+      'ALARM.SNACK_CREATED_WITH_DUPLICATES',
       'COMMON.OK',
       expect.objectContaining({ duration: 4000 }),
     );

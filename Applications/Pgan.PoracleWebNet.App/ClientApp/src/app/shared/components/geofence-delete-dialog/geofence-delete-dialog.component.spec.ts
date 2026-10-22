@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { By } from '@angular/platform-browser';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
-import { provideTranslateService } from '@ngx-translate/core';
+import { provideTranslateService, TranslateService } from '@ngx-translate/core';
 
 import { GeofenceDeleteDialogComponent, GeofenceDeleteDialogData } from './geofence-delete-dialog.component';
 
@@ -21,6 +21,11 @@ describe('GeofenceDeleteDialogComponent', () => {
       ],
       imports: [GeofenceDeleteDialogComponent],
     });
+    // Each body key translates to its own name, so the rendered text says which form was chosen.
+    const bodies = ['DELETE_WIDEN_BODY', 'ADMIN_DELETE_WIDEN_BODY'].flatMap(b => [`${b}_ONE`, `${b}_OTHER`]);
+    const translate = TestBed.inject(TranslateService);
+    translate.setTranslation('en', { GEOFENCES: Object.fromEntries(bodies.map(k => [k, `GEOFENCES.${k} (text)`])) });
+    translate.use('en');
     const fixture = TestBed.createComponent(GeofenceDeleteDialogComponent);
     fixture.detectChanges();
     return { component: fixture.componentInstance, fixture };
@@ -72,7 +77,7 @@ describe('GeofenceDeleteDialogComponent', () => {
 
     expect(component.bodyKey()).toBe(body);
     expect(component.keepKey()).toBe(keep);
-    // No translations are loaded, so the pipe renders the key itself.
+    // The keep keys are not loaded, so the pipe renders the key itself.
     expect((fixture.nativeElement as HTMLElement).textContent).toContain(body);
     expect((fixture.nativeElement as HTMLElement).textContent).toContain(keep);
   });

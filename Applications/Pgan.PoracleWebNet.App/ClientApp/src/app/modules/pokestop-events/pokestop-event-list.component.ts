@@ -23,6 +23,7 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/componen
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
+import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { isAutoDelete } from '../../shared/utils/clean-flags';
@@ -42,6 +43,7 @@ import { pokestopEventInfo } from '../../shared/utils/pokestop-events';
     MatSnackBarModule,
     MatProgressSpinnerModule,
     TranslatePipe,
+    TranslatePluralPipe,
     WhereChipComponent,
   ],
   selector: 'app-pokestop-event-list',
@@ -91,7 +93,7 @@ export class PokestopEventListComponent implements OnInit {
     this.selectedIds.set(new Set());
     this.selectMode.set(false);
     this.loadItems();
-    this.snackBar.open(this.i18n.instant('POKESTOP_EVENTS.SNACK_BULK_DELETED', { count: deleted }), this.i18n.instant('COMMON.OK'), {
+    this.snackBar.open(this.i18n.plural('ALARM.SNACK_BULK_DELETED', deleted), this.i18n.instant('COMMON.OK'), {
       duration: 3000,
     });
   }
@@ -118,11 +120,7 @@ export class PokestopEventListComponent implements OnInit {
     this.selectMode.set(false);
     this.loadItems();
     this.snackBar.open(
-      distanceUpdateMessage(
-        result,
-        this.i18n.instant('POKESTOP_EVENTS.SNACK_BULK_DISTANCE', { count: result?.updated ?? uids.length }),
-        this.i18n,
-      ),
+      distanceUpdateMessage(result, this.i18n.plural('ALARM.SNACK_BULK_DISTANCE', result?.updated ?? uids.length), this.i18n),
       this.i18n.instant('COMMON.OK'),
       {
         duration: skippedAny(result) ? 6000 : 3000,

@@ -34,7 +34,7 @@ describe('InvasionAddDialogComponent — track all (#416)', () => {
         { provide: ConfigService, useValue: { apiHost: 'http://test-api' } },
         { provide: MatDialogRef, useValue: { close: jest.fn() } },
         { provide: MatSnackBar, useValue: { open: jest.fn() } },
-        { provide: I18nService, useValue: { instant: (k: string) => k } },
+        { provide: I18nService, useValue: { instant: (k: string) => k, plural: (k: string) => k } },
         { provide: AuthService, useValue: { isImpersonating: () => false } },
         { provide: MasterDataService, useValue: { getPokemon: () => of([]) } },
         {

@@ -15,6 +15,7 @@ import { I18nService } from '../../core/services/i18n.service';
 import { QuickPickService } from '../../core/services/quick-pick.service';
 import { SettingsService } from '../../core/services/settings.service';
 import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
+import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
 import { ChipColors, readableChip } from '../../shared/utils/contrast';
 
 /** Site setting marking that the built-in presets have been seeded once. See #634, #662. */
@@ -44,6 +45,7 @@ const CATEGORY_KEYS: Record<string, string> = {
     MatSnackBarModule,
     MatTooltipModule,
     TranslatePipe,
+    TranslatePluralPipe,
   ],
   selector: 'app-quick-pick-list',
   standalone: true,
@@ -217,7 +219,7 @@ export class QuickPickListComponent implements OnInit {
     const count = pick.appliedState?.trackedUids?.length ?? 0;
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        message: this.i18n.instant('QUICK_PICKS.CONFIRM_REMOVE_MSG', { name: pick.definition.name, count }),
+        message: this.i18n.plural('QUICK_PICKS.CONFIRM_REMOVE_MSG', count, { name: pick.definition.name }),
         title: this.i18n.instant('QUICK_PICKS.CONFIRM_REMOVE_TITLE'),
       },
     });
@@ -230,7 +232,7 @@ export class QuickPickListComponent implements OnInit {
           this.removing.set(null);
         },
         next: () => {
-          this.snackBar.open(this.i18n.instant('QUICK_PICKS.SNACK_REMOVED', { count }), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+          this.snackBar.open(this.i18n.plural('QUICK_PICKS.SNACK_REMOVED', count), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           this.removing.set(null);
           this.loadPicks();
         },

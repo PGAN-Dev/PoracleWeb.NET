@@ -219,17 +219,15 @@ describe('range entries (issue #808)', () => {
   });
 
   it('should label an hourly range', () => {
-    const label = formatRuleLabel(
-      { days: [1], endHours: 17, endMins: 0, hours: 9, mins: 0, step: 1 },
-      (k, p) => (p ? `${k}|${p['days']}|${p['start']}|${p['end']}` : k),
+    const label = formatRuleLabel({ days: [1], endHours: 17, endMins: 0, hours: 9, mins: 0, step: 1 }, (k, p) =>
+      p ? `${k}|${p['days']}|${p['start']}|${p['end']}` : k,
     );
     expect(label).toBe('PROFILES.ACTIVE_HOURS_RANGE_HOURLY|Mon|9:00 AM|5:00 PM');
   });
 
   it('should label a stepped range', () => {
-    const label = formatRuleLabel(
-      { days: [1], endHours: 17, endMins: 0, hours: 9, mins: 0, step: 2 },
-      (k, p) => (p ? `${k}|${p['days']}|${p['start']}|${p['end']}|${p['step']}` : k),
+    const label = formatRuleLabel({ days: [1], endHours: 17, endMins: 0, hours: 9, mins: 0, step: 2 }, (k, p) =>
+      p ? `${k}|${p['days']}|${p['start']}|${p['end']}|${p['step']}` : k,
     );
     expect(label).toBe('PROFILES.ACTIVE_HOURS_RANGE_EVERY|Mon|9:00 AM|5:00 PM|2');
   });
@@ -238,13 +236,13 @@ describe('range entries (issue #808)', () => {
 describe('display-language formatting (UI audit D3)', () => {
   const german: Record<string, string> = {
     'PROFILES.ACTIVE_HOURS_DAY_MON': 'Mo',
+    'PROFILES.ACTIVE_HOURS_DAY_SAT': 'Sa',
     'PROFILES.ACTIVE_HOURS_DAY_TUE': 'Di',
     'PROFILES.ACTIVE_HOURS_DAY_WED': 'Mi',
-    'PROFILES.ACTIVE_HOURS_DAY_SAT': 'Sa',
     'PROFILES.ACTIVE_HOURS_EVERY_DAY': 'Jeden Tag',
+    'PROFILES.ACTIVE_HOURS_RANGE_HOURLY': '{{days}} {{start}}–{{end}}, stündlich',
     'PROFILES.ACTIVE_HOURS_WEEKDAYS': 'Wochentage',
     'PROFILES.ACTIVE_HOURS_WEEKENDS': 'Wochenende',
-    'PROFILES.ACTIVE_HOURS_RANGE_HOURLY': '{{days}} {{start}}–{{end}}, stündlich',
   };
   const de = (key: string, params?: Record<string, unknown>) =>
     (german[key] ?? key).replace(/\{\{(\w+)\}\}/g, (_, name: string) => String(params?.[name] ?? ''));
@@ -287,8 +285,6 @@ describe('display-language formatting (UI audit D3)', () => {
 
   it('labels a German rule without AM/PM or English words', () => {
     expect(formatRuleLabel({ days: [6, 7], hours: 9, mins: 30, step: 0 }, de, 'de')).toBe('Wochenende 9:30');
-    expect(formatRuleLabel({ days: [1], endHours: 17, endMins: 0, hours: 9, mins: 0, step: 1 }, de, 'de')).toBe(
-      'Mo 9:00–17:00, stündlich',
-    );
+    expect(formatRuleLabel({ days: [1], endHours: 17, endMins: 0, hours: 9, mins: 0, step: 1 }, de, 'de')).toBe('Mo 9:00–17:00, stündlich');
   });
 });
