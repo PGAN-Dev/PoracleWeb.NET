@@ -5,6 +5,10 @@ repo_url: https://github.com/PGAN-Dev/PoracleWeb.NET
 repo_name: PGAN-Dev/PoracleWeb.NET
 edit_uri: edit/main/docs/
 
+# Implementation plans and design specs live beside the docs for history; they aren't user documentation.
+exclude_docs: |
+  superpowers/
+
 theme:
   name: material
   palette:

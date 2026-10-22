@@ -38,7 +38,13 @@ sequenceDiagram
     alt uid not on the active profile
         API-->>SPA: 404
     end
+    alt the edit changes nothing
+        API-->>SPA: 200, nothing sent to PoracleNG
+    end
     API->>API: ApplyUpdate, nulls skipped
+    alt a min above its max (range validator)
+        API-->>SPA: 400 naming the field
+    end
     API->>API: TrackingFieldPreserver carries stored fields across
     API->>API: translate to a V2 rule
     API->>NG: PUT .../tracking/{type}/{uid}?silent=true, trusted if override areas allowed
