@@ -83,6 +83,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **English spells Pokémon and Pokéstop one way** across the site, Help included.
 - **Admin > Areas no longer says a hidden area drops off people's profiles when they next save.** It doesn't: saving the Areas page keeps an area someone already holds, so the note now says they keep it until they remove it themselves.
 - **A Docker install no longer loses its DataProtection keys on every restart.** The container runs as uid 999, and Docker creates a bind-mounted `./data` that doesn't exist yet as root, so the app couldn't write its keys or avatar cache there and every SSO user was signed out whenever the container was recreated. The install docs now create the directory with the right owner (`mkdir -p data && sudo chown 999:999 data`), `./scripts/docker.sh start` warns when the owner is wrong, the image pins uid 999 so that command stays right, and the app logs one error naming the fix when `DATA_DIR` can't be written.
+- **The dashboard names the profile you were moved to.** When PoracleNG switched your active profile outside the tab (the schedule, the bot's `!profile`, another tab), the message named the old profile. It now reads "Your active profile is now "Weekend Raids". It was changed outside this tab."
+- **Add Pokémon, Add Raid and Add Quest on the dashboard open the add dialog.** They used to land on the list and stop there. The first-alarm tip and the onboarding wizard's Add Alarm do the same for whichever alarm type comes first.
+- **The dashboard's location card says "Not set" on a profile with no pin** instead of "0.0000, 0.0000", and its icon is no longer cut in half on desktop and tablet. The weather card is hidden when there's no weather for the pin, and the cut-off pokéballs beside the section headings are gone.
+- **Dashboard cards can be reached and opened from the keyboard** (Tab, then Enter or Space).
+- **Each page has its own browser tab title**, such as "Pokémon · DM Alerts", with the site title you set kept at the end. Before the app loads the tab reads "PoracleWeb.NET".
+- **A skip link jumps past the navigation to the page content**, the toolbar sits in a header landmark, alarm card titles follow the page heading in order, and the keyboard-shortcut panel is announced as a dialog.
+- **The sign-in page shows a plain message for an error it doesn't recognise**, not the raw code.
+- **Generation chips, quiet-period lengths, the Profiles type filters and the area chip buttons are 44px tall on touch screens.**
+- **A rate-limited sign-in check no longer logs an uncaught error in the browser console.**
 
 ## [2.20.2] - 2026-10-18
 

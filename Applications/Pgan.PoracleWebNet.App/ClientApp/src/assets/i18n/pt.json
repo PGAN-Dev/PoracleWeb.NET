@@ -38,6 +38,7 @@
     "EXPAND_SIDEBAR": "Expandir barra lateral",
     "COLLAPSE_SIDEBAR": "Recolher barra lateral",
     "MAIN_NAV": "Navegação principal",
+    "SKIP_TO_CONTENT": "Saltar para o conteúdo principal",
     "LOGO_ALT": "Logótipo do site",
     "AVATAR_ALT": "O teu avatar"
   },
@@ -161,7 +162,7 @@
     "TIP_NO_ALARMS_ACTION": "Adicionar Alarme Pokemon",
     "SWITCH_PROFILE_SUCCESS": "Mudado para \"{{name}}\"",
     "SWITCH_PROFILE_FAILED": "Falha ao trocar perfil",
-    "PROFILE_RESYNCED": "Perfil alterado para \"{{name}}\" por agendamento"
+    "PROFILE_RESYNCED": "O seu perfil ativo é agora \"{{name}}\". Foi alterado fora deste separador."
   },
   "ONBOARDING": {
     "TITLE_COMPLETE": "Está Tudo Pronto!",
@@ -1480,6 +1481,7 @@
     "ERR_TELEGRAM_FAILED": "O início de sessão com Telegram falhou. Tenta novamente.",
     "ERR_TOKEN_EXCHANGE": "O início de sessão com Discord falhou. Tenta novamente.",
     "ERR_GENERIC": "Erro de autenticação: {{error}}",
+    "ERR_UNKNOWN": "O início de sessão não foi concluído. Tente novamente.",
     "ERR_NO_TOKEN": "Nenhum token de autenticação recebido.",
     "SIGN_IN_OIDC": "Iniciar sessão com {{provider}}",
     "SIGNED_OUT_TITLE": "Sessão terminada",

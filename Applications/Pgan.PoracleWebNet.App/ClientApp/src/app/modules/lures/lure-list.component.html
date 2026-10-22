@@ -63,7 +63,7 @@
         <div class="card-top" [style.border-top-color]="getLureColor(lure.lureId)">
           <img [src]="getLureIcon(lure.lureId)" class="lure-img" alt="" (error)="$any($event.target).style.display = 'none'" />
           <div class="item-info">
-            <h3>{{ getLureName(lure.lureId) }} {{ 'LURES.LURE_SUFFIX' | translate }}</h3>
+            <h2>{{ getLureName(lure.lureId) }} {{ 'LURES.LURE_SUFFIX' | translate }}</h2>
           </div>
           <div class="card-top-actions">
             @if (isAutoDelete(lure.clean)) {

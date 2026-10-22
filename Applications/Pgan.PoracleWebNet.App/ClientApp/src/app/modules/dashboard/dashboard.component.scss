@@ -139,6 +139,10 @@
 .location-card-full {
   padding: 0 !important;
   overflow: hidden;
+  // mat-card is a column; .status-card's align-items: center sized the body to its content and centred
+  // it, so on a narrow card the body hung past both edges and the clip cut the icon in half (cross D7).
+  align-items: stretch;
+  justify-content: center;
   cursor: pointer;
   transition:
     transform 0.15s,
@@ -159,6 +163,10 @@
   align-items: center;
   padding: 12px 16px;
   gap: 16px;
+  min-width: 0;
+}
+.location-card-body .status-info {
+  min-width: 0;
 }
 
 /* Weather Card */
@@ -179,10 +187,6 @@
 .weather-icon.weather-warning {
   background: #fbe9e7;
   color: #d84315;
-}
-.weather-icon-empty {
-  background: var(--skeleton-bg, rgba(0, 0, 0, 0.06));
-  color: var(--text-hint, rgba(0, 0, 0, 0.38));
 }
 .weather-warn-badge {
   position: absolute;
@@ -337,25 +341,6 @@
 }
 
 /* Section Header */
-.section-header,
-.areas-header {
-  position: relative;
-  overflow: hidden;
-}
-.section-header::before,
-.areas-header::before {
-  content: '';
-  position: absolute;
-  right: -10px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 40px;
-  height: 40px;
-  opacity: 0.06;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='46' fill='none' stroke='%23000' stroke-width='6'/%3E%3Cpath d='M4 50 H36' stroke='%23000' stroke-width='6'/%3E%3Cpath d='M64 50 H96' stroke='%23000' stroke-width='6'/%3E%3Cpath d='M4 50 A46 46 0 0 1 96 50' fill='%23000'/%3E%3Ccircle cx='50' cy='50' r='14' fill='none' stroke='%23000' stroke-width='6'/%3E%3Ccircle cx='50' cy='50' r='7' fill='%23000'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-size: contain;
-}
 .section-header {
   display: flex;
   justify-content: space-between;

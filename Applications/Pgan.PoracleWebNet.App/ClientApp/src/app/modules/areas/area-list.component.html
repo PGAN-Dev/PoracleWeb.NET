@@ -17,7 +17,7 @@
         <div class="method-header">
           <mat-icon class="method-icon">map</mat-icon>
           <div>
-            <h3>{{ 'AREAS.METHOD_AREAS' | translate }}</h3>
+            <h2>{{ 'AREAS.METHOD_AREAS' | translate }}</h2>
             <span class="method-status">
               @if (selectedAreas().length > 0) {
                 {{ 'AREAS.METHOD_AREAS_ACTIVE' | translatePlural: selectedAreas().length }}
@@ -41,7 +41,7 @@
           <div class="method-header">
             <mat-icon class="method-icon">my_location</mat-icon>
             <div>
-              <h3>{{ 'AREAS.METHOD_LOCATION' | translate }}</h3>
+              <h2>{{ 'AREAS.METHOD_LOCATION' | translate }}</h2>
               <span class="method-status">
                 @if (location(); as loc) {
                   @if (locationAddress()) {

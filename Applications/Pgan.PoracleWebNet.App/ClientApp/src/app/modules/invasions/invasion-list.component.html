@@ -77,7 +77,7 @@
             <mat-icon class="rocket-icon">security</mat-icon>
           }
           <div class="item-info">
-            <h3>{{ getDisplayName(invasion.gruntType, invasion.gender) }}</h3>
+            <h2>{{ getDisplayName(invasion.gruntType, invasion.gender) }}</h2>
             @if (isEventType(invasion.gruntType)) {
               <span class="event-label">{{ 'INVASIONS.POKESTOP_EVENT' | translate }}</span>
             } @else if (!hideGenderLabel(invasion.gruntType)) {

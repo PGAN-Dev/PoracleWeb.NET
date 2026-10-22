@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal, computed } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, effect, inject, signal, computed, untracked } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -27,6 +27,7 @@ import { LocationDialogComponent } from '../../shared/components/location-dialog
 import { OnboardingComponent } from '../../shared/components/onboarding/onboarding.component';
 import { QuietListSheetComponent } from '../../shared/components/quiet-list-sheet/quiet-list-sheet.component';
 import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
+import { ADD_ON_ARRIVAL } from '../../shared/utils/add-on-arrival';
 import { polygonCentroid } from '../../shared/utils/geo.utils';
 
 interface DashboardCard {
@@ -40,12 +41,16 @@ interface DashboardCard {
   subtitle: string;
 }
 
-/** A quick-action button. `disableKey` is the same key the matching sidebar item carries. */
+/**
+ * A quick-action button. `disableKey` is the same key the matching sidebar item carries. `opensAdd` sends
+ * `?add=1`, which the list honours by opening its add dialog: the button says "Add", so it adds.
+ */
 interface QuickAction {
   cssClass: string;
   disableKey: string | null;
   icon: string;
   label: string;
+  opensAdd?: boolean;
   route: string;
 }
 
@@ -54,6 +59,7 @@ interface Tip {
   icon: string;
   id: string;
   message: string;
+  queryParams?: Record<string, number>;
   route: string | null;
   type: 'warning' | 'info';
 }
@@ -82,9 +88,23 @@ interface Tip {
 })
 export class DashboardComponent implements OnInit {
   private static readonly QUICK_ACTIONS: readonly QuickAction[] = [
-    { cssClass: 'action-pokemon', disableKey: 'disable_mons', icon: 'catching_pokemon', label: 'DASHBOARD.ADD_POKEMON', route: '/pokemon' },
-    { cssClass: 'action-raids', disableKey: 'disable_raids', icon: 'shield', label: 'DASHBOARD.ADD_RAID', route: '/raids' },
-    { cssClass: 'action-quests', disableKey: 'disable_quests', icon: 'explore', label: 'DASHBOARD.ADD_QUEST', route: '/quests' },
+    {
+      cssClass: 'action-pokemon',
+      disableKey: 'disable_mons',
+      icon: 'catching_pokemon',
+      label: 'DASHBOARD.ADD_POKEMON',
+      opensAdd: true,
+      route: '/pokemon',
+    },
+    { cssClass: 'action-raids', disableKey: 'disable_raids', icon: 'shield', label: 'DASHBOARD.ADD_RAID', opensAdd: true, route: '/raids' },
+    {
+      cssClass: 'action-quests',
+      disableKey: 'disable_quests',
+      icon: 'explore',
+      label: 'DASHBOARD.ADD_QUEST',
+      opensAdd: true,
+      route: '/quests',
+    },
     { cssClass: 'action-areas', disableKey: 'disable_areas', icon: 'map', label: 'DASHBOARD.MANAGE_AREAS', route: '/areas' },
     { cssClass: 'action-cleaning', disableKey: null, icon: 'cleaning_services', label: 'DASHBOARD.CLEANING_ACTION', route: '/cleaning' },
   ];
@@ -118,9 +138,37 @@ export class DashboardComponent implements OnInit {
   private readonly i18n = inject(I18nService);
   private readonly locationService = inject(LocationService);
   private readonly profileService = inject(ProfileService);
+  private readonly snackBar = inject(MatSnackBar);
+  readonly profileNo = computed(() => this.authService.user()?.profileNo ?? 1);
+  readonly profiles = signal<Profile[]>([]);
+
+  readonly profileName = computed(() => {
+    const profiles = this.profiles();
+    if (profiles.length === 0) return this.i18n.instant('DASHBOARD.DEFAULT_PROFILE');
+    const no = this.profileNo();
+    const match = profiles.find(p => p.profileNo === no);
+    return match?.name ?? this.i18n.instant('DASHBOARD.DEFAULT_PROFILE');
+  });
+
+  /**
+   * "Your active profile is now X". It used to run once in ngOnInit and read the name from a profile list
+   * that had not loaded yet, so it named the profile the user had just been moved off. /api/auth/me
+   * carries the new profile's name with the refreshed token, and may land after the dashboard opens, so
+   * this waits for it. The cause is not stated: the scheduler, the bot's !profile and another tab all
+   * look the same from here.
+   */
+  private readonly resyncNotice = effect(() => {
+    if (!this.authService.profileResynced()) return;
+    const user = this.authService.user();
+    untracked(() => {
+      const name = user?.profileName || this.profileName();
+      this.snackBar.open(this.i18n.instant('DASHBOARD.PROFILE_RESYNCED', { name }), this.i18n.instant('TOAST.OK'), { duration: 5000 });
+      this.authService.clearProfileResynced();
+    });
+  });
+
   private readonly router = inject(Router);
   private readonly settingsService = inject(SettingsService);
-  private readonly snackBar = inject(MatSnackBar);
 
   readonly alertsPaused = computed(() => {
     const user = this.authService.user();
@@ -133,6 +181,7 @@ export class DashboardComponent implements OnInit {
   readonly areasEnabled = computed(() => !this.settingsService.isDisabled('disable_areas'));
 
   readonly areaWeather = signal<Record<string, WeatherData>>({});
+
   readonly cards: DashboardCard[] = [
     {
       colorClass: 'card-pokemon',
@@ -243,25 +292,13 @@ export class DashboardComponent implements OnInit {
 
   /** Street addresses for the pin. `disable_nominatim` 403s the lookup, and so does `disable_location`. */
   readonly geocodingEnabled = computed(() => this.locationEnabled() && !this.settingsService.isDisabled('disable_nominatim'));
-
   readonly geofencePolygons = signal<GeofenceData[]>([]);
-
   readonly location = signal<Location | null>(null);
-
   readonly locationAddress = signal<string>('');
 
   readonly locationMapUrl = signal<string>('');
-  protected readonly mutes = inject(MuteService);
-  readonly profileNo = computed(() => this.authService.user()?.profileNo ?? 1);
-  readonly profiles = signal<Profile[]>([]);
 
-  readonly profileName = computed(() => {
-    const profiles = this.profiles();
-    if (profiles.length === 0) return this.i18n.instant('DASHBOARD.DEFAULT_PROFILE');
-    const no = this.profileNo();
-    const match = profiles.find(p => p.profileNo === no);
-    return match?.name ?? this.i18n.instant('DASHBOARD.DEFAULT_PROFILE');
-  });
+  protected readonly mutes = inject(MuteService);
 
   readonly profilesEnabled = computed(() => !this.settingsService.isDisabled('disable_profiles'));
 
@@ -290,15 +327,25 @@ export class DashboardComponent implements OnInit {
   });
 
   readonly selectedAreas = signal<string[]>([]);
-
   readonly showOnboarding = signal(!localStorage.getItem('poracle-onboarding-complete'));
-  readonly skeletonItems = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
   readonly userLocation = computed(() => {
     const loc = this.location();
     if (!loc) return false;
     return loc.latitude !== 0 || loc.longitude !== 0;
   });
+
+  readonly weather = signal<WeatherData | null>(null);
+
+  readonly weatherLoading = signal(false);
+
+  /**
+   * The weather card answers a question only when there is weather to show. With none for the pin it
+   * read "No data" and took a quarter of the status row.
+   */
+  readonly showWeather = computed(() => this.userLocation() && (this.weatherLoading() || this.weather() !== null));
+
+  readonly skeletonItems = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
   /**
    * Cards for the alarm types this instance actually offers. A disabled type is gone from here as it
@@ -344,6 +391,7 @@ export class DashboardComponent implements OnInit {
         action: this.i18n.instant('DASHBOARD.TIP_NO_ALARMS_ACTION'),
         icon: 'add_alert',
         message: this.i18n.instant('DASHBOARD.TIP_NO_ALARMS'),
+        queryParams: ADD_ON_ARRIVAL,
         route: firstType.route,
         type: 'info',
       });
@@ -370,10 +418,6 @@ export class DashboardComponent implements OnInit {
   });
 
   readonly username = computed(() => this.authService.user()?.username ?? 'Trainer');
-
-  readonly weather = signal<WeatherData | null>(null);
-
-  readonly weatherLoading = signal(false);
 
   readonly weatherUpdatedAgo = computed(() => {
     const w = this.weather();
@@ -409,7 +453,8 @@ export class DashboardComponent implements OnInit {
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe(() => this.authService.loadCurrentUser());
     } else if (tip.route) {
-      this.router.navigate([tip.route]);
+      if (tip.queryParams) this.router.navigate([tip.route], { queryParams: tip.queryParams });
+      else this.router.navigate([tip.route]);
     }
   }
 
@@ -424,13 +469,6 @@ export class DashboardComponent implements OnInit {
     // Read fresh rather than trusting whatever an alarm page left behind: the store is upstream's
     // memory and a restart empties it without telling anyone.
     this.mutes.refresh(true);
-
-    // Notify user if PoracleNG changed their active profile (via active_hours or bot command)
-    if (this.authService.profileResynced()) {
-      const name = this.profileName();
-      this.snackBar.open(this.i18n.instant('DASHBOARD.PROFILE_RESYNCED', { name }), this.i18n.instant('TOAST.OK'), { duration: 5000 });
-      this.authService.clearProfileResynced();
-    }
   }
 
   openLocationDialog(): void {
@@ -467,6 +505,11 @@ export class DashboardComponent implements OnInit {
 
   openQuietList(): void {
     this.dialog.open(QuietListSheetComponent, { width: '420px' });
+  }
+
+  runQuickAction(action: QuickAction): void {
+    if (action.opensAdd) this.router.navigate([action.route], { queryParams: ADD_ON_ARRIVAL });
+    else this.navigate(action.route);
   }
 
   switchProfile(profile: Profile): void {

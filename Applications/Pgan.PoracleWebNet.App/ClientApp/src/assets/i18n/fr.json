@@ -38,6 +38,7 @@
     "EXPAND_SIDEBAR": "Développer la barre latérale",
     "COLLAPSE_SIDEBAR": "Réduire la barre latérale",
     "MAIN_NAV": "Navigation principale",
+    "SKIP_TO_CONTENT": "Aller au contenu principal",
     "LOGO_ALT": "Logo du site",
     "AVATAR_ALT": "Ton avatar"
   },
@@ -161,7 +162,7 @@
     "TIP_NO_ALARMS_ACTION": "Ajouter une alarme Pokemon",
     "SWITCH_PROFILE_SUCCESS": "Basculé vers \"{{name}}\"",
     "SWITCH_PROFILE_FAILED": "Échec du changement de profil",
-    "PROFILE_RESYNCED": "Profil basculé sur \"{{name}}\" par planification"
+    "PROFILE_RESYNCED": "Votre profil actif est maintenant \"{{name}}\". Il a été modifié en dehors de cet onglet."
   },
   "ONBOARDING": {
     "TITLE_COMPLETE": "Tout est prêt !",
@@ -1487,6 +1488,7 @@
     "ERR_TELEGRAM_FAILED": "La connexion Telegram a échoué. Réessayez.",
     "ERR_TOKEN_EXCHANGE": "La connexion Discord a échoué. Réessayez.",
     "ERR_GENERIC": "Erreur d'authentification : {{error}}",
+    "ERR_UNKNOWN": "La connexion n'a pas abouti. Veuillez réessayer.",
     "ERR_NO_TOKEN": "Aucun jeton d'authentification reçu.",
     "SIGN_UP": "S'inscrire",
     "SIGN_UP_DESC": "Pas encore de compte ? Inscrivez-vous pour commencer.",

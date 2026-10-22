@@ -38,6 +38,7 @@
     "EXPAND_SIDEBAR": "Udvid sidepanel",
     "COLLAPSE_SIDEBAR": "Skjul sidepanel",
     "MAIN_NAV": "Hovednavigation",
+    "SKIP_TO_CONTENT": "Spring til hovedindhold",
     "LOGO_ALT": "Sidelogo",
     "AVATAR_ALT": "Din avatar"
   },
@@ -161,7 +162,7 @@
     "TIP_NO_ALARMS_ACTION": "Tilføj Pokemon-alarm",
     "SWITCH_PROFILE_SUCCESS": "Skiftet til \"{{name}}\"",
     "SWITCH_PROFILE_FAILED": "Kunne ikke skifte profil",
-    "PROFILE_RESYNCED": "Profil skiftet til \"{{name}}\" efter tidsplan"
+    "PROFILE_RESYNCED": "Din aktive profil er nu \"{{name}}\". Den blev ændret uden for denne fane."
   },
   "ONBOARDING": {
     "TITLE_COMPLETE": "Du er klar!",
@@ -1487,6 +1488,7 @@
     "ERR_TELEGRAM_FAILED": "Login med Telegram mislykkedes. Prøv igen.",
     "ERR_TOKEN_EXCHANGE": "Login med Discord mislykkedes. Prøv igen.",
     "ERR_GENERIC": "Godkendelsesfejl: {{error}}",
+    "ERR_UNKNOWN": "Login blev ikke gennemført. Prøv igen.",
     "ERR_NO_TOKEN": "Intet godkendelsestoken modtaget.",
     "SIGN_UP": "Tilmeld dig",
     "SIGN_UP_DESC": "Har du ikke en konto? Tilmeld dig for at komme i gang.",

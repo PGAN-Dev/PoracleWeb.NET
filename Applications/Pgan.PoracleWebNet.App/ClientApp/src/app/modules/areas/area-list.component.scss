@@ -94,7 +94,7 @@
   gap: 10px;
   margin-bottom: 10px;
 
-  h3 {
+  h2 {
     margin: 0;
     font-size: 16px;
     font-weight: 500;
@@ -563,5 +563,18 @@
   .save-bar {
     padding: 12px 16px;
     padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+  }
+}
+
+// Touch screens get 44px targets (WCAG 2.5.5, UI audit cross D10). A mouse keeps the compact size.
+// The chip grows to hold its two trailing buttons.
+@media (pointer: coarse) {
+  .selected-chips {
+    --mat-chip-container-height: 44px;
+  }
+
+  .selected-chips .mat-mdc-chip-remove {
+    min-height: 44px;
+    min-width: 44px;
   }
 }

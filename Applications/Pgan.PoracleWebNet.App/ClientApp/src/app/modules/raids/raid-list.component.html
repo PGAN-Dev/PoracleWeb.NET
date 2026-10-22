@@ -94,7 +94,7 @@
             <div class="card-top" [style.border-top-color]="getLevelColor(raid.level)">
               <img [src]="getRaidImage(raid)" [alt]="getRaidTitle(raid)" class="item-img" (error)="onImageError($event)" />
               <div class="item-info">
-                <h3>{{ getRaidTitle(raid) }}</h3>
+                <h2>{{ getRaidTitle(raid) }}</h2>
                 <div class="level-stars">
                   @if (raid.level === 9000) {
                     <span class="any-level-label">{{ 'ALARM.ANY_LEVEL' | translate }}</span>
@@ -239,7 +239,7 @@
                 class="item-img"
                 (error)="onImageError($event)" />
               <div class="item-info">
-                <h3>{{ getRaidLevelName(egg.level) }} {{ 'RAIDS.EGG_SUFFIX' | translate }}</h3>
+                <h2>{{ getRaidLevelName(egg.level) }} {{ 'RAIDS.EGG_SUFFIX' | translate }}</h2>
                 <div class="level-stars">
                   @if (egg.level === 9000) {
                     <span class="any-level-label">{{ 'ALARM.ANY_LEVEL' | translate }}</span>

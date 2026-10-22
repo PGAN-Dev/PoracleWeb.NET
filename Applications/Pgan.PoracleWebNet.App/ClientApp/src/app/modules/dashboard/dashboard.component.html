@@ -15,7 +15,13 @@
   <div class="status-row">
     @if (locationEnabled()) {
       <!-- Location Card -->
-      <mat-card class="status-card location-card-full" (click)="openLocationDialog()">
+      <mat-card
+        class="status-card location-card-full"
+        role="button"
+        tabindex="0"
+        (click)="openLocationDialog()"
+        (keydown.enter)="openLocationDialog()"
+        (keydown.space)="$event.preventDefault(); openLocationDialog()">
         @if (locationMapUrl()) {
           <img [src]="locationMapUrl()" class="location-map-thumb" [alt]="'DASHBOARD.LOCATION' | translate" loading="lazy" />
         }
@@ -25,7 +31,8 @@
           </div>
           <div class="status-info">
             <span class="status-label">{{ 'DASHBOARD.LOCATION' | translate }}</span>
-            @if (location(); as loc) {
+            <!-- 0,0 is Poracle's "not set", not a point off the coast of Africa. -->
+            @if (userLocation() && location(); as loc) {
               @if (locationAddress()) {
                 <span class="status-value status-address" [title]="loc.latitude.toFixed(4) + ', ' + loc.longitude.toFixed(4)">{{
                   locationAddress()
@@ -44,7 +51,13 @@
 
     @if (areasEnabled()) {
       <!-- Areas Card -->
-      <mat-card class="status-card areas-card" (click)="navigate('/areas')">
+      <mat-card
+        class="status-card areas-card"
+        role="button"
+        tabindex="0"
+        (click)="navigate('/areas')"
+        (keydown.enter)="navigate('/areas')"
+        (keydown.space)="$event.preventDefault(); navigate('/areas')">
         <div class="status-icon-wrap areas-icon">
           <mat-icon>map</mat-icon>
         </div>
@@ -66,7 +79,13 @@
       create) can be seen and lifted.
     -->
     @if (mutes.hasMutes()) {
-      <mat-card class="status-card quiet-card" (click)="openQuietList()">
+      <mat-card
+        class="status-card quiet-card"
+        role="button"
+        tabindex="0"
+        (click)="openQuietList()"
+        (keydown.enter)="openQuietList()"
+        (keydown.space)="$event.preventDefault(); openQuietList()">
         <div class="status-icon-wrap quiet-icon">
           <mat-icon>notifications_paused</mat-icon>
         </div>
@@ -80,7 +99,14 @@
 
     <!-- Profile Card -->
     @if (profilesEnabled() && profiles().length > 1) {
-      <mat-card class="status-card profile-card" [matMenuTriggerFor]="profileMenu">
+      <mat-card
+        class="status-card profile-card"
+        role="button"
+        tabindex="0"
+        [matMenuTriggerFor]="profileMenu"
+        #profileTrigger="matMenuTrigger"
+        (keydown.enter)="profileTrigger.openMenu()"
+        (keydown.space)="$event.preventDefault(); profileTrigger.openMenu()">
         <div class="status-icon-wrap profile-icon">
           <mat-icon>person</mat-icon>
         </div>
@@ -103,7 +129,13 @@
         </button>
       </mat-menu>
     } @else {
-      <mat-card class="status-card profile-card" (click)="navigate('/profiles')">
+      <mat-card
+        class="status-card profile-card"
+        role="button"
+        tabindex="0"
+        (click)="navigate('/profiles')"
+        (keydown.enter)="navigate('/profiles')"
+        (keydown.space)="$event.preventDefault(); navigate('/profiles')">
         <div class="status-icon-wrap profile-icon">
           <mat-icon>person</mat-icon>
         </div>
@@ -114,8 +146,8 @@
         <mat-icon class="status-arrow">chevron_right</mat-icon>
       </mat-card>
     }
-    <!-- Weather Card -->
-    @if (userLocation()) {
+    <!-- Weather Card: only while there is weather, or it is on its way. -->
+    @if (showWeather()) {
       <mat-card class="status-card weather-card">
         @if (weatherLoading()) {
           <div class="status-icon-wrap weather-icon skeleton-icon">
@@ -154,14 +186,6 @@
               </div>
             }
           </div>
-        } @else {
-          <div class="status-icon-wrap weather-icon weather-icon-empty">
-            <mat-icon>cloud_off</mat-icon>
-          </div>
-          <div class="status-info">
-            <span class="status-label">{{ 'DASHBOARD.WEATHER' | translate }}</span>
-            <span class="status-value not-set">{{ 'DASHBOARD.NO_WEATHER_DATA' | translate }}</span>
-          </div>
         }
       </mat-card>
     }
@@ -195,7 +219,13 @@
 
   <!-- Area Overview Map -->
   @if (selectedAreas().length > 0 && geofencePolygons().length > 0) {
-    <mat-card class="area-overview-card" (click)="navigate('/areas')">
+    <mat-card
+      class="area-overview-card"
+      role="button"
+      tabindex="0"
+      (click)="navigate('/areas')"
+      (keydown.enter)="navigate('/areas')"
+      (keydown.space)="$event.preventDefault(); navigate('/areas')">
       <div class="area-overview-header">
         <mat-icon>map</mat-icon>
         <span>{{ 'DASHBOARD.AREA_COVERAGE' | translate }}</span>
@@ -222,7 +252,7 @@
           <div class="tip-content">
             <span>{{ tip.message }}</span>
             @if (tip.route) {
-              <a [routerLink]="tip.route" class="tip-action">{{ tip.action }}</a>
+              <a [routerLink]="tip.route" [queryParams]="tip.queryParams ?? null" class="tip-action">{{ tip.action }}</a>
             } @else {
               <a class="tip-action" (click)="handleTipAction(tip); $event.stopPropagation()">{{ tip.action }}</a>
             }
@@ -241,7 +271,7 @@
   </div>
   <div class="quick-actions">
     @for (action of quickActions(); track action.route) {
-      <button mat-flat-button (click)="navigate(action.route)" class="action-btn" [class]="action.cssClass">
+      <button mat-flat-button (click)="runQuickAction(action)" class="action-btn" [class]="action.cssClass">
         <mat-icon>{{ action.icon }}</mat-icon> {{ action.label | translate }}
       </button>
     }
@@ -256,7 +286,15 @@
   <div class="dashboard-grid">
     @if (counts(); as c) {
       @for (card of visibleCards(); track card.key) {
-        <mat-card class="dashboard-card" [class]="card.colorClass" [class.muted]="c[card.key] === 0" (click)="navigate(card.route)">
+        <mat-card
+          class="dashboard-card"
+          [class]="card.colorClass"
+          [class.muted]="c[card.key] === 0"
+          role="button"
+          tabindex="0"
+          (click)="navigate(card.route)"
+          (keydown.enter)="navigate(card.route)"
+          (keydown.space)="$event.preventDefault(); navigate(card.route)">
           <div class="card-header-row">
             <div class="card-icon-wrap" [class.muted-icon]="c[card.key] === 0">
               <mat-icon>{{ card.icon }}</mat-icon>

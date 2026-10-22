@@ -38,6 +38,7 @@
     "EXPAND_SIDEBAR": "Expandera sidopanel",
     "COLLAPSE_SIDEBAR": "Minimera sidopanel",
     "MAIN_NAV": "Huvudnavigering",
+    "SKIP_TO_CONTENT": "Hoppa till huvudinnehållet",
     "LOGO_ALT": "Webbplatsens logotyp",
     "AVATAR_ALT": "Din avatar"
   },
@@ -161,7 +162,7 @@
     "TIP_NO_ALARMS_ACTION": "Lägg till Pokemon-larm",
     "SWITCH_PROFILE_SUCCESS": "Bytt till \"{{name}}\"",
     "SWITCH_PROFILE_FAILED": "Kunde inte byta profil",
-    "PROFILE_RESYNCED": "Profil byttes till \"{{name}}\" enligt schema"
+    "PROFILE_RESYNCED": "Din aktiva profil är nu \"{{name}}\". Den ändrades utanför den här fliken."
   },
   "ONBOARDING": {
     "TITLE_COMPLETE": "Du är redo!",
@@ -1480,6 +1481,7 @@
     "ERR_TELEGRAM_FAILED": "Inloggningen med Telegram misslyckades. Försök igen.",
     "ERR_TOKEN_EXCHANGE": "Inloggningen med Discord misslyckades. Försök igen.",
     "ERR_GENERIC": "Autentiseringsfel: {{error}}",
+    "ERR_UNKNOWN": "Inloggningen slutfördes inte. Försök igen.",
     "ERR_NO_TOKEN": "Ingen autentiseringstoken mottagen.",
     "SIGN_IN_OIDC": "Logga in med {{provider}}",
     "SIGNED_OUT_TITLE": "Utloggad",

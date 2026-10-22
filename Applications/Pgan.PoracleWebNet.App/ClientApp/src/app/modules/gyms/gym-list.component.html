@@ -63,7 +63,7 @@
         <div class="card-top" [style.border-top-color]="getTeamColor(gym.team)">
           <img [src]="getGymIcon(gym.team)" class="gym-img" alt="" (error)="$any($event.target).style.display = 'none'" />
           <div class="item-info">
-            <h3>{{ getTeamName(gym.team) }}</h3>
+            <h2>{{ getTeamName(gym.team) }}</h2>
             @if (gym.gymId && gymNames()[gym.gymId]) {
               <span class="gym-target"><mat-icon>place</mat-icon> {{ gymNames()[gym.gymId] }}</span>
             }

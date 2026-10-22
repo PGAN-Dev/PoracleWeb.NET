@@ -38,6 +38,7 @@
     "EXPAND_SIDEBAR": "Zijbalk uitklappen",
     "COLLAPSE_SIDEBAR": "Zijbalk inklappen",
     "MAIN_NAV": "Hoofdnavigatie",
+    "SKIP_TO_CONTENT": "Naar hoofdinhoud springen",
     "LOGO_ALT": "Sitelogo",
     "AVATAR_ALT": "Je avatar"
   },
@@ -161,7 +162,7 @@
     "TIP_NO_ALARMS_ACTION": "Pokemon Alarm Toevoegen",
     "SWITCH_PROFILE_SUCCESS": "Gewisseld naar \"{{name}}\"",
     "SWITCH_PROFILE_FAILED": "Profiel wisselen mislukt",
-    "PROFILE_RESYNCED": "Profiel gewisseld naar \"{{name}}\" volgens schema"
+    "PROFILE_RESYNCED": "Je actieve profiel is nu \"{{name}}\". Het is buiten dit tabblad gewijzigd."
   },
   "ONBOARDING": {
     "TITLE_COMPLETE": "Je bent klaar!",
@@ -1480,6 +1481,7 @@
     "ERR_TELEGRAM_FAILED": "Inloggen met Telegram is mislukt. Probeer het opnieuw.",
     "ERR_TOKEN_EXCHANGE": "Inloggen met Discord is mislukt. Probeer het opnieuw.",
     "ERR_GENERIC": "Authenticatiefout: {{error}}",
+    "ERR_UNKNOWN": "Inloggen is niet gelukt. Probeer het opnieuw.",
     "ERR_NO_TOKEN": "Geen authenticatietoken ontvangen.",
     "SIGN_UP": "Aanmelden",
     "SIGN_UP_DESC": "Nog geen account? Meld je aan om te beginnen.",

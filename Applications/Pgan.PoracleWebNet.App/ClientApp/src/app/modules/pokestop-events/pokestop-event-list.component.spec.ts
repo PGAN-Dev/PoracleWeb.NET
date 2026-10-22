@@ -100,7 +100,7 @@ describe('PokestopEventListComponent', () => {
   }
 
   function cardTitles(): string[] {
-    return Array.from(fixture.nativeElement.querySelectorAll('.alarm-card .item-info h3')).map(h => (h as HTMLElement).textContent!.trim());
+    return Array.from(fixture.nativeElement.querySelectorAll('.alarm-card .item-info h2')).map(h => (h as HTMLElement).textContent!.trim());
   }
 
   describe('rendering', () => {

@@ -33,6 +33,7 @@ import { RuleSummaryComponent } from '../../shared/components/rule-summary/rule-
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
 import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
+import { addOnArrival } from '../../shared/utils/add-on-arrival';
 import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { isAutoDelete as cleanIsAutoDelete, isEdit as cleanIsEdit } from '../../shared/utils/clean-flags';
@@ -72,10 +73,10 @@ import { hasLevelFilter } from '../../shared/utils/pokemon-level';
 })
 export class PokemonListComponent implements OnInit {
   private readonly areaService = inject(AreaService);
-
   private readonly destroyRef = inject(DestroyRef);
 
   private readonly dialog = inject(MatDialog);
+
   private readonly i18n = inject(I18nService);
   private readonly iconService = inject(IconService);
   private readonly masterData = inject(MasterDataService);
@@ -84,6 +85,8 @@ export class PokemonListComponent implements OnInit {
   readonly searchControl = new FormControl('');
   private readonly searchValue = toSignal(this.searchControl.valueChanges, { initialValue: '' });
   private readonly snackBar = inject(MatSnackBar);
+  /** `?add=1` from the dashboard or onboarding opens the add dialog once. */
+  private readonly takeAddRequest = addOnArrival();
   private readonly translate = inject(TranslateService);
   readonly activeFilter = signal<string | null>(null);
 
@@ -481,6 +484,7 @@ export class PokemonListComponent implements OnInit {
       .getSelected()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({ error: () => undefined, next: areas => this.profileAreas.set(areas) });
+    if (this.takeAddRequest()) this.openAddDialog();
   }
 
   onImageError(event: Event, pokemonId: number): void {

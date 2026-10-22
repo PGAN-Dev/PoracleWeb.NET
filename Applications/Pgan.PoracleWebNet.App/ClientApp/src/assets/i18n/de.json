@@ -38,6 +38,7 @@
     "EXPAND_SIDEBAR": "Seitenleiste ausklappen",
     "COLLAPSE_SIDEBAR": "Seitenleiste einklappen",
     "MAIN_NAV": "Hauptnavigation",
+    "SKIP_TO_CONTENT": "Zum Hauptinhalt springen",
     "LOGO_ALT": "Website-Logo",
     "AVATAR_ALT": "Dein Avatar"
   },
@@ -161,7 +162,7 @@
     "TIP_NO_ALARMS_ACTION": "Pokemon-Alarm hinzufügen",
     "SWITCH_PROFILE_SUCCESS": "Gewechselt zu \"{{name}}\"",
     "SWITCH_PROFILE_FAILED": "Profilwechsel fehlgeschlagen",
-    "PROFILE_RESYNCED": "Profil wurde planmäßig auf \"{{name}}\" gewechselt"
+    "PROFILE_RESYNCED": "Dein aktives Profil ist jetzt \"{{name}}\". Es wurde außerhalb dieses Tabs geändert."
   },
   "ONBOARDING": {
     "TITLE_COMPLETE": "Alles fertig!",
@@ -1487,6 +1488,7 @@
     "ERR_TELEGRAM_FAILED": "Die Telegram-Anmeldung ist fehlgeschlagen. Bitte versuche es erneut.",
     "ERR_TOKEN_EXCHANGE": "Die Discord-Anmeldung ist fehlgeschlagen. Bitte versuche es erneut.",
     "ERR_GENERIC": "Authentifizierungsfehler: {{error}}",
+    "ERR_UNKNOWN": "Die Anmeldung wurde nicht abgeschlossen. Bitte versuche es erneut.",
     "ERR_NO_TOKEN": "Kein Authentifizierungstoken erhalten.",
     "SIGN_UP": "Registrieren",
     "SIGN_UP_DESC": "Noch kein Konto? Registriere dich, um zu starten.",

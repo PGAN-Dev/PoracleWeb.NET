@@ -91,7 +91,7 @@
             <mat-icon class="quest-fallback-icon">catching_pokemon</mat-icon>
           }
           <div class="item-info">
-            <h3>{{ getQuestTitle(quest) }}</h3>
+            <h2>{{ getQuestTitle(quest) }}</h2>
             @let rewardChip = getRewardChip(quest.rewardType);
             <span class="reward-badge" [style.background]="rewardChip.background" [style.color]="rewardChip.color">
               {{ getRewardTypeLabel(quest.rewardType) }}

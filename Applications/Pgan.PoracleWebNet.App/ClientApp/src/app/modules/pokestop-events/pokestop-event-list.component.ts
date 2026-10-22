@@ -24,6 +24,7 @@ import { DistanceDialogComponent } from '../../shared/components/distance-dialog
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
 import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
+import { addOnArrival } from '../../shared/utils/add-on-arrival';
 import { isEditExisting } from '../../shared/utils/add-outcome';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
@@ -60,6 +61,8 @@ export class PokestopEventListComponent implements OnInit {
   private readonly icons = inject(IconService);
   private readonly pokestopEventService = inject(PokestopEventService);
   private readonly snackBar = inject(MatSnackBar);
+  /** `?add=1` from the dashboard or onboarding opens the add dialog once. */
+  private readonly takeAddRequest = addOnArrival();
 
   readonly events = signal<PokestopEvent[]>([]);
   readonly loading = signal(true);
@@ -263,6 +266,7 @@ export class PokestopEventListComponent implements OnInit {
   ngOnInit(): void {
     this.loadProfileAreas();
     this.loadItems();
+    if (this.takeAddRequest()) this.openAddDialog();
   }
 
   openAddDialog(): void {

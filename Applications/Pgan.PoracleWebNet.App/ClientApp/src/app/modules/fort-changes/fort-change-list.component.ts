@@ -23,6 +23,7 @@ import { DistanceDialogComponent } from '../../shared/components/distance-dialog
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
 import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
+import { addOnArrival } from '../../shared/utils/add-on-arrival';
 import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
@@ -51,13 +52,15 @@ import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../s
 })
 export class FortChangeListComponent implements OnInit {
   private readonly areaService = inject(AreaService);
-
   private readonly destroyRef = inject(DestroyRef);
 
   private readonly dialog = inject(MatDialog);
+
   private readonly fortChangeService = inject(FortChangeService);
   private readonly i18n = inject(I18nService);
   private readonly snackBar = inject(MatSnackBar);
+  /** `?add=1` from the dashboard or onboarding opens the add dialog once. */
+  private readonly takeAddRequest = addOnArrival();
   private readonly translate = inject(TranslateService);
   readonly fortChanges = signal<FortChange[]>([]);
   readonly loading = signal(true);
@@ -269,6 +272,7 @@ export class FortChangeListComponent implements OnInit {
   ngOnInit(): void {
     this.loadProfileAreas();
     this.loadItems();
+    if (this.takeAddRequest()) this.openAddDialog();
   }
 
   openAddDialog(): void {

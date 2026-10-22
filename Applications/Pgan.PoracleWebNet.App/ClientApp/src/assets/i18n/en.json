@@ -38,6 +38,7 @@
     "EXPAND_SIDEBAR": "Expand sidebar",
     "COLLAPSE_SIDEBAR": "Collapse sidebar",
     "MAIN_NAV": "Main navigation",
+    "SKIP_TO_CONTENT": "Skip to main content",
     "LOGO_ALT": "Site logo",
     "AVATAR_ALT": "Your avatar"
   },
@@ -161,7 +162,7 @@
     "TIP_NO_ALARMS_ACTION": "Add Pokémon Alarm",
     "SWITCH_PROFILE_SUCCESS": "Switched to \"{{name}}\"",
     "SWITCH_PROFILE_FAILED": "Failed to switch profile",
-    "PROFILE_RESYNCED": "Profile switched to \"{{name}}\" by schedule"
+    "PROFILE_RESYNCED": "Your active profile is now \"{{name}}\". It was changed outside this tab."
   },
   "ONBOARDING": {
     "TITLE_COMPLETE": "You're All Set!",
@@ -1488,6 +1489,7 @@
     "ERR_TELEGRAM_FAILED": "Telegram authentication failed. Please try again.",
     "ERR_TOKEN_EXCHANGE": "Discord authentication failed. Please try again.",
     "ERR_GENERIC": "Authentication error: {{error}}",
+    "ERR_UNKNOWN": "Sign-in didn't complete. Please try again.",
     "ERR_NO_TOKEN": "No authentication token received.",
     "SIGN_UP": "Sign Up",
     "SIGN_UP_DESC": "Don't have an account? Sign up to get started."

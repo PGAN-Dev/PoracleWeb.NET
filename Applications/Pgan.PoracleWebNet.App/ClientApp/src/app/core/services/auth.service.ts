@@ -142,7 +142,8 @@ export class AuthService {
     // Load site settings now that we have a valid token — the initial loadOnce()
     // in App.ngOnInit() fires before the token is stored, so settings (including
     // custom_title) fail silently and never reload.
-    this.settingsService.loadOnce().subscribe();
+    // A failure (a 429 under load, say) leaves the defaults in place; the next page load retries.
+    this.settingsService.loadOnce().subscribe({ error: () => undefined });
     // Same reason, for the same reason: App.ngOnInit skips this while signed out (#775), so without
     // it here a login completed inside one page session would never reconcile the alert language.
     this.alertLanguage.load();

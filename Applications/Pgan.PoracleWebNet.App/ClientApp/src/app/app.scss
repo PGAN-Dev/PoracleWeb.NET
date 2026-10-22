@@ -77,6 +77,36 @@
   }
 }
 
+// Off-screen until focused, then over the toolbar's top-left corner.
+.skip-link {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 1100;
+  padding: 10px 16px;
+  border-radius: 8px;
+  background: var(--mat-sys-surface, #fff);
+  color: var(--mat-sys-on-surface, #1c1b1f);
+  font-weight: 500;
+  text-decoration: none;
+  transform: translateY(-200%);
+
+  &:focus {
+    transform: none;
+  }
+}
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+// The skip link's target. Focus lands here to move the reading position, not to mark a control.
+#main-content:focus {
+  outline: none;
+}
+
 .app-toolbar {
   position: sticky;
   top: 0;
@@ -405,9 +435,10 @@ body.dark-theme .app-content::after {
   min-width: 320px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 
-  h3 {
+  h2 {
     margin: 0 0 16px;
     font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 1.17em;
     font-weight: 600;
   }
 }
