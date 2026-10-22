@@ -10,8 +10,9 @@ export interface Translator {
  * server left alone because a radius cannot apply to their scope: one limited to areas cannot take a
  * radius above zero, and one measured from a saved place cannot take zero. PoracleNG refuses both, so
  * sending them failed the whole selection; the server now skips them and says so. `skippedConflict` names
- * the rules whose new radius would make them identical to another rule of the same user, which PoracleNG
- * refuses; the rest of the selection is still updated.
+ * the rules PoracleNG refused because the new radius would make them clash with another rule of the same
+ * user (identical to it, or one updatable field from taking it over), along with any refusal the server
+ * could not otherwise explain; the rest of the selection is still updated.
  */
 export interface DistanceUpdateResult {
   skippedAreaScoped?: number[];

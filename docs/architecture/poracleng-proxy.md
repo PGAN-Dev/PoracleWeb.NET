@@ -115,7 +115,7 @@ colliding edit comes back 409. The proxy acts on the answer:
   boss differing only by radius is refused where v1 used to stack it.
 
 No client-side takeover check is left. Bulk distance sends a PATCH, and PoracleNG refuses a rule whose
-new radius would make it identical to another, naming it as a `conflict`. `TrackingFieldPreserver` still merges the stored row into an edit, because a v2 PUT is a full replace;
+new radius would make it clash with another, naming it as a `conflict`. `TrackingFieldPreserver` still merges the stored row into an edit, because a v2 PUT is a full replace;
 see [Backend → Update pattern](backend.md#update-pattern).
 
 <a id="the-v2-pilot"></a>
@@ -128,6 +128,11 @@ toggle use v2's `PATCH /api/v2/humans/{id}/tracking/{type}` with `{uids, set}`: 
 one setting named, every rule keeping its uid. PoracleNG answers per rule, so a rule it refuses
 (`conflict`, `invalid`, `not_found`) doesn't fail the rest; conflicts come back to the SPA as
 `skippedConflict`. No v1 tracking call remains.
+
+Every PATCH is sent `?trusted=true`. PoracleNG re-validates the whole stored rule on a PATCH, and untrusted
+its area check allows only `userSelectable` fences, so a rule limited to the user's own drawn fence came
+back `invalid` and kept its old setting. Trusting the PATCH grants nothing new: its set has no
+`override_areas`, so the only areas re-checked are the ones already on the rule.
 
 Pokéstop Events have their own proxy (`PoracleIncidentProxy`), whose only surface is v2. Invasion rules
 go to the invasion routes, except the event grunts (`kecleon`, `gold-stop`, `showcase`), which are saved

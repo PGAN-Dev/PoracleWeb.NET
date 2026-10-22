@@ -1958,7 +1958,7 @@
   "WHERE": {
     "DISTANCE_SKIPPED_AREAS": "{{count}} limitados a áreas foram ignorados: um raio não se aplica a eles.",
     "DISTANCE_SKIPPED_PLACE": "{{count}} medidos a partir de um local salvo foram ignorados: precisam de um raio.",
-    "DISTANCE_SKIPPED_CONFLICT": "{{count}} foram ignoradas: com o novo raio ficariam idênticas a outra regra.",
+    "DISTANCE_SKIPPED_CONFLICT": "{{count}} foram ignorados: entrariam em conflito com outra regra.",
     "SET_PIN": "Definir sua localização",
     "PIN_MISSING_WARNING": "Você ainda não definiu sua localização, então este alerta não teria de onde medir.",
     "PLACES_EMPTY_TITLE": "Nenhum local ainda",

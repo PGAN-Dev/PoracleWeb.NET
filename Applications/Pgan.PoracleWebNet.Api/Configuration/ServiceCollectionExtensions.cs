@@ -149,8 +149,8 @@ public static class ServiceCollectionExtensions
             client.Timeout = TimeSpan.FromSeconds(15);
         });
 
-        // Register HttpClient for PoracleNG tracking proxy (alarm CRUD, all through /api/v2 but for the
-        // bulk distance and cleaning upserts)
+        // Register HttpClient for PoracleNG tracking proxy (every alarm read and write, including bulk
+        // distance and cleaning, through /api/v2)
         services.AddHttpClient<IPoracleTrackingProxy, PoracleTrackingProxy>();
 
         // Pokestop events (upstream "incident") are v2-only, so they get their own proxy rather than a

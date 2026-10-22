@@ -221,7 +221,7 @@ Each alarm list page has a **select mode** toggle (checklist icon in the toolbar
 
     - Limited to areas: a radius doesn't apply to them, so they're left alone.
     - Measured from a saved place: they need a radius, so a zero skips them.
-    - Skipped, would clash: at the new radius the alarm would be identical to another one you already have.
+    - Skipped, would clash: at the new radius the alarm would clash with another one you already have, either matching it exactly or close enough that PoracleNG would merge the two. A refusal PoracleNG gives no clearer reason for is counted here too.
 
 ## Profiles
 

@@ -1958,7 +1958,7 @@
   "WHERE": {
     "DISTANCE_SKIPPED_AREAS": "{{count}} auf Gebiete beschränkte übersprungen: Ein Radius gilt für sie nicht.",
     "DISTANCE_SKIPPED_PLACE": "{{count}} von einem gespeicherten Ort gemessene übersprungen: Sie brauchen einen Radius.",
-    "DISTANCE_SKIPPED_CONFLICT": "{{count}} übersprungen, die beim neuen Radius mit einer anderen Regel identisch wären.",
+    "DISTANCE_SKIPPED_CONFLICT": "{{count}} übersprungen, die mit einer anderen Regel kollidieren würden.",
     "SET_PIN": "Standort setzen",
     "PIN_MISSING_WARNING": "Du hast noch keinen Standort gesetzt, diese Meldung hätte also keinen Bezugspunkt.",
     "PLACES_EMPTY_TITLE": "Noch keine Orte",

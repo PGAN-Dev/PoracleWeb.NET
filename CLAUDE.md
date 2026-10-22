@@ -114,16 +114,24 @@ Pgan.PoracleWebNet.slnx
 - Both distance endpoints send `PATCH /api/v2/humans/{id}/tracking/{type}` with `{uids, set: {distance}}`
   (Pokestop event rules held in the invasion table go to `incident`'s PATCH). Only the one setting travels,
   so nothing else a rule holds is re-sent and every rule keeps its uid.
+- **Every PATCH is sent `?trusted=true`**, from both `PoracleTrackingProxy.PatchAsync` and
+  `PoracleIncidentProxy.PatchAsync`. PoracleNG re-validates the whole stored rule on a PATCH, and untrusted
+  its area check allows only `userSelectable` fences, so every rule limited to a user's own drawn fence came
+  back `invalid`: cleaning silently skipped them and bulk distance mislabelled them. Trusted grants nothing
+  new, because a PATCH set has no `override_areas`; the only areas re-checked are the ones already stored,
+  which `IUserAreaPolicy` allows as "already on the rule".
 - They answer `{ updated, skippedAreaScoped: [uid], skippedPlaceScoped: [uid], skippedConflict: [uid] }`.
   An alarm limited to areas cannot take a radius above zero and one measured from a saved place cannot take
-  zero: `DistanceRewrite.Build` splits those off before sending, as PoracleNG would refuse them. PoracleNG
-  also answers per rule: `conflict` (the new radius would make the rule identical to another) lands in
-  `skippedConflict`, `invalid` is put down to the rule's scope, `not_found` is logged. One refused rule
-  never fails the rest. The SPA's `distanceUpdateMessage` reports all three.
+  zero: `DistanceRewrite.Plan` splits those off before `DistanceRewrite.ApplyAsync` sends the rest, as
+  PoracleNG would refuse them. PoracleNG also answers per rule: `conflict` (at the new radius the rule would
+  clash with another) lands in `skippedConflict`; `invalid` lands there too, with a warning in the log,
+  because a rule is only sent when its scope takes the radius, so its scope can't be the reason;
+  `not_found` is logged. One refused rule never fails the rest. The SPA's `distanceUpdateMessage` reports
+  all three.
 - Every radius is bounded at `AlarmDistance.MaxMetres` (20,037,509 m, half the Earth's circumference) on
   every `*Create`/`*Update` DTO, `BulkDistanceRequest` and `RejectInvalidDistance`. That is the physically
   impossible, not a product limit: production holds a rule at 10,000,000 m. `pokemon_id` stays uncapped.
-- **CleaningService** sends one v2 PATCH per type naming the uids and the clean bit to change, so the edit-in-place and summary bits a rule already holds survive the toggle. Pokestop event rules in the invasion table go to `incident`'s PATCH.
+- **CleaningService** sends one v2 PATCH per type naming the uids and the clean bit to change, so the edit-in-place and summary bits a rule already holds survive the toggle. Pokestop event rules in the invasion table go to `incident`'s PATCH. A rule PoracleNG refuses keeps its old setting and is left out of the count; the service logs a warning naming it and the reason, since nothing on screen does.
 
 ### Settings Architecture
 - Site settings are stored in typed columns in `poracle_web.site_settings` with categories (branding, features, alarms, admin, etc.) and typed values.
@@ -700,7 +708,7 @@ The answer is the v2 `trusted` flag (jfberry/PoracleNG#230, in 5.4.0), which lif
 
 **Trusted setAreas refuses any name PoracleNG has not loaded.** A fence created in the same call is unknown to PoracleNG until its geofence list is reloaded, so `CreateAsync` reloads *before* posting the name, and rename and approval reload before the rename (#937). A rejected requested name is a failure the caller handles (`activationFailed`, 409, rollback), not something to paper over: a reload can answer ok while PoracleNG keeps its cached fence list when it can't reach the feed.
 
-**An alarm's `override_areas` are authorised here and saved by PoracleNG.** The tracking write checks names against the fences a user may select and answers 400 "area not permitted" for a drawn fence. `PoracleTrackingProxy` (and `PoracleIncidentProxy`) therefore asks `IUserAreaPolicy` to authorise each name (selectable for the user, the user's own drawn fence, on the active profile, or already on the rule being edited) and sends the write `?trusted=true`. Nothing is written to a Poracle table, and `IAlarmOverrideAreaWriter`, `AlarmOverrideAreaWriter` and `UserOwnedOverrideAreaProxy` are gone.
+**An alarm's `override_areas` are authorised here and saved by PoracleNG.** The tracking write checks names against the fences a user may select and answers 400 "area not permitted" for a drawn fence. `PoracleTrackingProxy` (and `PoracleIncidentProxy`) therefore asks `IUserAreaPolicy` to authorise each name (selectable for the user, the user's own drawn fence, on the active profile, or already on the rule being edited) and sends the write `?trusted=true`. A bulk distance or clean PATCH is always sent trusted, with nothing to authorise: its set carries no `override_areas`, and PoracleNG re-checks the areas already stored on each rule, which an untrusted PATCH refused for a drawn fence (see "Bulk Operations"). Nothing is written to a Poracle table, and `IAlarmOverrideAreaWriter`, `AlarmOverrideAreaWriter` and `UserOwnedOverrideAreaProxy` are gone.
 
 ### Settings Migration
 On first startup after upgrade, the `SettingsMigrationStartupService` automatically migrates data from the deprecated `pweb_settings` KV store (in the Poracle DB) to structured tables in the `poracle_web` database (`site_settings`, `webhook_delegates`, `quick_pick_definitions`, `quick_pick_applied_states`). This is idempotent -- safe to run multiple times. If migration fails, the app continues with existing data and logs the error. The old `pweb_settings` table is not deleted; it remains read-only as a fallback until fully decommissioned.
@@ -1242,8 +1250,6 @@ dotnet ef migrations script \
 | IPoracleV2SchemaService (what the server's own /openapi.json declares) | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/IPoracleV2SchemaService.cs` |
 | PoracleV2SchemaService | `Core/Pgan.PoracleWebNet.Core.Services/PoracleV2SchemaService.cs` |
 | PoracleV2Capabilities | `Core/Pgan.PoracleWebNet.Core.Models/PoracleV2Capabilities.cs` |
-| IInvasionGruntNameService (grunt names v2 will accept) | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/IInvasionGruntNameService.cs` |
-| InvasionGruntNameService | `Core/Pgan.PoracleWebNet.Core.Services/InvasionGruntNameService.cs` |
 | TrackingV2Translator (v1 row -> /api/v2 body) | `Core/Pgan.PoracleWebNet.Core.Services/TrackingV2Translator.cs` |
 | TrackingV2Replacement (the v2 branch each UpdateAsync takes) | `Core/Pgan.PoracleWebNet.Core.Services/TrackingV2Replacement.cs` |
 | PoracleProblemDetails (RFC 9457 + v1 errors) | `Core/Pgan.PoracleWebNet.Core.Services/PoracleProblemDetails.cs` |

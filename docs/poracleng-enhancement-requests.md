@@ -48,8 +48,10 @@ Body: { "uids": [1, 2, 3], "distance": 500 }
 
 **Landed in 5.4.0** ([jfberry/PoracleNG#325](https://github.com/jfberry/PoracleNG/issues/325), via #328), together
 with bulk clean below, as a v2 partial update over a uid set: `PATCH .../tracking/{type}` with
-`{uids, set}`. It answers per-uid refusals (`invalid`, `conflict`) instead of failing the batch, which
-`DistanceRewrite.Build` still splits off the area-scoped and place-scoped rules before sending, to report them without a round trip; `conflict` comes back as `skippedConflict`.
+`{uids, set}`. It answers per-uid refusals (`invalid`, `conflict`) instead of failing the batch.
+`DistanceRewrite.Plan` still splits off the area-scoped and place-scoped rules before sending, to report them
+without a round trip; `conflict` comes back as `skippedConflict`. The PATCH is sent `trusted`, because
+PoracleNG re-validates each stored rule's areas and untrusted it refuses a user's own drawn fence.
 **Adopted** in PoracleWeb.NET with sub-project 3b.
 
 ---
