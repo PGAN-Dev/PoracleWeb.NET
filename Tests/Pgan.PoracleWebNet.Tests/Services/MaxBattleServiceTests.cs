@@ -80,20 +80,14 @@ public class MaxBattleServiceTests
     [Fact]
     public async Task CreateAsyncRefusesAnExactDuplicate()
     {
-        this._proxy.Setup(p => p.GetByUserAsync("maxbattle", "user1")).ReturnsAsync(CreateJsonArray(new
-        {
-            uid = 5,
-            id = "user1",
-            pokemon_id = 150,
-            distance = 500,
-            level = 3,
-        }));
+        // PoracleNG 5.4.0 answers an exact repeat as alreadyPresent and writes nothing.
+        this._proxy.Setup(p => p.CreateAsync("maxbattle", "user1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([], 1, 0, 0) { RowUids = [0] });
 
-        await Assert.ThrowsAsync<TrackingConflictException>(
+        var ex = await Assert.ThrowsAsync<TrackingConflictException>(
             () => this._sut.CreateAsync("user1", new MaxBattle { PokemonId = 150, Distance = 500, Level = 3 }));
 
-        this._proxy.Verify(
-            p => p.CreateAsync("maxbattle", "user1", It.IsAny<JsonElement>()), Times.Never);
+        Assert.Equal("You already have an identical max battle alarm.", ex.Message);
     }
 
     /// <summary>
@@ -117,27 +111,6 @@ public class MaxBattleServiceTests
         var result = await this._sut.CreateAsync("user1", new MaxBattle { PokemonId = 150, Distance = 900, Level = 3 });
 
         Assert.Equal(6, result.Uid);
-    }
-
-    /// <summary>
-    /// The dialog sends no override as <c>[]</c> and <c>""</c>; PoracleNG reads it back as null and "".
-    /// Pressing Add twice from the UI is still a duplicate.
-    /// </summary>
-    [Fact]
-    public async Task CreateAsyncRefusesAnExactDuplicateSentTheWayTheDialogSendsIt()
-    {
-        this._proxy.Setup(p => p.GetByUserAsync("maxbattle", "user1")).ReturnsAsync(JsonDocument.Parse(
-            """[{"uid":5,"id":"user1","pokemon_id":150,"distance":500,"level":9000,"override_areas":null,"override_location_label":""}]""")
-            .RootElement.Clone());
-
-        await Assert.ThrowsAsync<TrackingConflictException>(() => this._sut.CreateAsync("user1", new MaxBattle
-        {
-            PokemonId = 150,
-            Distance = 500,
-            Level = 3,
-            OverrideAreas = [],
-            OverrideLocationLabel = "",
-        }));
     }
 
     /// <summary>
@@ -176,29 +149,6 @@ public class MaxBattleServiceTests
         var result = await this._sut.CreateAsync("user1", maxBattle);
 
         Assert.Equal("user1", result.Id);
-    }
-
-    [Fact]
-    public async Task UpdateAsyncUsesDeleteThenCreate()
-    {
-        this._proxy.Setup(p => p.GetByUserAsync("maxbattle", "user1")).ReturnsAsync(CreateJsonArray());
-        var maxBattle = new MaxBattle { Uid = 1, PokemonId = 9000, Gmax = 1 };
-        var callOrder = new List<string>();
-
-        this._proxy.Setup(p => p.DeleteByUidAsync("maxbattle", "user1", 1))
-            .Callback(() => callOrder.Add("delete"))
-            .Returns(Task.CompletedTask);
-        this._proxy.Setup(p => p.CreateAsync("maxbattle", "user1", It.IsAny<JsonElement>()))
-            .Callback(() => callOrder.Add("create"))
-            .ReturnsAsync(new TrackingCreateResult([2], 0, 0, 1));
-
-        await this._sut.UpdateAsync("user1", maxBattle);
-
-        this._proxy.Verify(p => p.DeleteByUidAsync("maxbattle", "user1", 1), Times.Once);
-        this._proxy.Verify(p => p.CreateAsync("maxbattle", "user1", It.IsAny<JsonElement>()), Times.Once);
-        Assert.Equal(2, callOrder.Count);
-        Assert.Equal("delete", callOrder[0]);
-        Assert.Equal("create", callOrder[1]);
     }
 
     [Fact]
@@ -358,7 +308,7 @@ public class MaxBattleServiceTests
             new() { PokemonId = 9001, Gmax = 0 },
         };
         this._proxy.Setup(p => p.CreateAsync("maxbattle", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([10, 11], 0, 0, 2));
+            .ReturnsAsync(new TrackingCreateResult([10, 11], 0, 0, 2) { RowUids = [10, 11] });
 
         var result = (await this._sut.BulkCreateAsync("user1", models)).ToList();
 
@@ -430,9 +380,8 @@ public class MaxBattleServiceTests
     public async Task UpdateAsyncRepointsQuickPickTrackedUidAtTheReplacementRow()
     {
         this._proxy.Setup(p => p.GetByUserAsync("maxbattle", "user1")).ReturnsAsync(CreateJsonArray());
-        this._proxy.Setup(p => p.DeleteByUidAsync("maxbattle", "user1", 82)).Returns(Task.CompletedTask);
-        this._proxy.Setup(p => p.CreateAsync("maxbattle", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([83], 0, 0, 1));
+        this._proxy.Setup(p => p.UpdateByUidAsync("maxbattle", "user1", 82, It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingUpdateResult(83, true));
 
         var result = await this._sut.UpdateAsync("user1", new MaxBattle { Uid = 82 });
 

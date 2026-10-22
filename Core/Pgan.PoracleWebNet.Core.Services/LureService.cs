@@ -33,14 +33,6 @@ public class LureService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, 
 
         var body = SerializeToElement(model);
 
-        // PoracleNG stores a second rule for one lure type beside an area-scoped twin, a place-measured
-        // one, or one two updatable fields away; what it still does is resolve an Add one updatable field
-        // away into the existing rule, so that is the only Add refused here: the guard the other types use.
-        // Do not bring back a refusal on lure_id alone. It existed for PoracleNG 5.1.0, whose unique key
-        // made every such Add a 500, and on any later server it refuses rules PoracleNG stores. See #562.
-        await TrackingUpdateReconciler.EnsureNoMergeIntoAnotherAlarmAsync(
-            this._proxy, TrackingType, userId, 0, body);
-
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
 
         if (result.NewUids.Count > 0)
@@ -61,28 +53,8 @@ public class LureService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, 
         body = await TrackingFieldPreserver.PreserveStoredFieldsAsync(
             this._proxy, TrackingType, userId, oldUid, body);
 
-        // Refuse only the edit PoracleNG would merge into a different rule, as the other types do.
-        // Refusing on lure_id alone would leave a rule with an area-scoped twin uneditable, the #553 shape.
-        await TrackingUpdateReconciler.EnsureNoMergeIntoAnotherAlarmAsync(
-            this._proxy, TrackingType, userId, oldUid, body);
-
-        // /api/v2's PUT is addressed by uid and replaces the row rather than inserting beside it. Verified
-        // live on 5.2.1: a PUT changing only the distance of lure 266 replaced it as 267, where the v1
-        // create-carrying-a-uid inserts a second row and leaves 266 behind for the reconciler below.
-        if (await TrackingV2Replacement.TryApplyAsync(
-                this._proxy, TrackingType, userId, oldUid, body, this._uidRemapper) is { } v2Uid)
-        {
-            model.Uid = v2Uid;
-            return model;
-        }
-
-        // No delete-first and no window in which the alarm exists nowhere: the create carrying the uid is
-        // resolved by PoracleNG's diff like any other type's, and the reconciler drops the superseded row
-        // when one was inserted. (PoracleNG 5.1.0's unique key made this a 500, which is why lure once
-        // deleted the row first; 5.4.0 is the minimum and migration 8 dropped the key.)
-        var result = await this._proxy.CreateAsync(TrackingType, userId, body);
-        model.Uid = await TrackingUpdateReconciler.ReconcileAsync(
-            this._proxy, TrackingType, userId, oldUid, result, this._logger, body, this._uidRemapper);
+        model.Uid = await TrackingV2Replacement.ApplyAsync(
+            this._proxy, TrackingType, userId, oldUid, body, this._uidRemapper);
 
         return model;
     }
@@ -198,9 +170,9 @@ public class LureService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, 
         var body = SerializeToElement(modelList);
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
 
-        for (var i = 0; i < modelList.Count && i < result.NewUids.Count; i++)
+        for (var i = 0; i < modelList.Count && i < result.RowUids.Count; i++)
         {
-            modelList[i].Uid = (int)result.NewUids[i];
+            modelList[i].Uid = result.RowUids[i];
         }
 
         return modelList;

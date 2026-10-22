@@ -75,15 +75,16 @@ public class InvasionServiceTests
     }
 
     [Fact]
-    public async Task UpdateAsyncDelegates()
+    public async Task UpdateAsyncPutsByUid()
     {
         var i = new Invasion { Uid = 1, GruntType = "fire" };
-        // PoracleNG re-keys the edited rule, so a new uid comes back and the reconciler drops the old one.
-        this._proxy.Setup(p => p.CreateAsync("invasion", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([2], 0, 0, 1));
+        this._proxy.Setup(p => p.UpdateByUidAsync("invasion", "user1", 1, It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingUpdateResult(1, true));
 
         await this._sut.UpdateAsync("user1", i);
-        this._proxy.Verify(p => p.CreateAsync("invasion", "user1", It.IsAny<JsonElement>()), Times.Once);
+
+        this._proxy.Verify(p => p.UpdateByUidAsync("invasion", "user1", 1, It.IsAny<JsonElement>()), Times.Once);
+        this._proxy.Verify(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
     }
 
     [Fact]
@@ -233,7 +234,7 @@ public class InvasionServiceTests
             new() { GruntType = "giovanni" },
         };
         this._proxy.Setup(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([10, 11, 12], 0, 0, 3));
+            .ReturnsAsync(new TrackingCreateResult([10, 11, 12], 0, 0, 3) { RowUids = [10, 11, 12] });
 
         var results = (await this._sut.BulkCreateAsync("u1", models)).ToList();
 
@@ -282,40 +283,6 @@ public class InvasionServiceTests
     // PoracleNG 5.1.0 guarded invasion with a unique natural key, so an edit once had to delete the row and
     // re-create it. 5.4.0 is the minimum and migration 8 dropped the key: an edit that does not go through
     // v2 is the create-carrying-a-uid every other type uses, followed by the reconciler.
-
-    [Fact]
-    public async Task UpdateAsyncCreatesFirstAndOnlyThenDropsTheSupersededRow()
-    {
-        var model = new Invasion { Uid = 41, GruntType = "grunt" };
-        var order = new List<string>();
-        this._proxy.Setup(p => p.GetByUserAsync("invasion", "user1")).ReturnsAsync(ItemsJson(41));
-        this._proxy.Setup(p => p.CreateAsync("invasion", "user1", It.IsAny<JsonElement>()))
-            .Callback(() => order.Add("create"))
-            .ReturnsAsync(new TrackingCreateResult([42], 0, 0, 1));
-        this._proxy.Setup(p => p.DeleteByUidAsync("invasion", "user1", 41))
-            .Callback(() => order.Add("delete"))
-            .Returns(Task.CompletedTask);
-
-        var result = await this._sut.UpdateAsync("user1", model);
-
-        Assert.Equal(42, result.Uid);
-        Assert.Equal(["create", "delete"], order);
-    }
-
-    [Fact]
-    public async Task UpdateAsyncLeavesTheOriginalAloneWhenTheCreateFails()
-    {
-        // With no delete-first there is nothing to restore: the stored rule is untouched.
-        var model = new Invasion { Uid = 41, GruntType = "grunt" };
-        this._proxy.Setup(p => p.GetByUserAsync("invasion", "user1")).ReturnsAsync(ItemsJson(41));
-        this._proxy.Setup(p => p.CreateAsync("invasion", "user1", It.IsAny<JsonElement>()))
-            .ThrowsAsync(new HttpRequestException("upstream 500"));
-
-        await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.UpdateAsync("user1", model));
-
-        this._proxy.Verify(p => p.CreateAsync("invasion", "user1", It.IsAny<JsonElement>()), Times.Once);
-        this._proxy.Verify(p => p.DeleteByUidAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
-    }
 
     [Fact]
     public async Task UpdateAsyncOnANewRecordDoesNotDeleteAnything()

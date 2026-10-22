@@ -38,10 +38,6 @@ public class MonsterService(
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Pokemon);
         model.Id = userId;
 
-        // An Add that PoracleNG resolves into an update of an existing alarm takes that alarm over:
-        // 201 Created, and the user quietly loses the one they had. See #561.
-        await TrackingUpdateReconciler.EnsureNoMergeIntoAnotherAlarmAsync(
-            this._proxy, TrackingType, userId, 0, SerializeToElement(model));
         var body = SerializeToElement(model);
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
 
@@ -63,14 +59,6 @@ public class MonsterService(
         // out of the body is reset to its default rather than left alone -- verified live against 5.2.1,
         // where omitting min_iv wiped a stored 90.
         body = await TrackingFieldPreserver.PreserveStoredFieldsAsync(
-            this._proxy, TrackingType, userId, model.Uid, body);
-
-        // Pokemon is the one type with no collision guard on the v1 update path: PoracleNG updates it in
-        // place rather than merging, so this call early-returns for pokemon edits (#606). It stays because
-        // it is the guard for the create path in CreateAsync, and because deleting it here would make the
-        // two paths look different for no reason. On v2 the guard is upstream's: the uid-addressed PUT
-        // answers 409 rather than taking another rule over.
-        await TrackingUpdateReconciler.EnsureNoMergeIntoAnotherAlarmAsync(
             this._proxy, TrackingType, userId, model.Uid, body);
 
         var result = await this._proxy.UpdateByUidAsync(TrackingType, userId, model.Uid, body);
@@ -173,9 +161,9 @@ public class MonsterService(
         var body = SerializeToElement(modelList);
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
 
-        for (var i = 0; i < modelList.Count && i < result.NewUids.Count; i++)
+        for (var i = 0; i < modelList.Count && i < result.RowUids.Count; i++)
         {
-            modelList[i].Uid = (int)result.NewUids[i];
+            modelList[i].Uid = result.RowUids[i];
         }
 
         return modelList;

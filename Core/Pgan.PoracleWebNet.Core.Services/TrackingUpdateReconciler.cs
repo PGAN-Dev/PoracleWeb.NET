@@ -1,107 +1,17 @@
 using System.Text.Json;
-using Microsoft.Extensions.Logging;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
 /// <summary>
-/// Reconciles a tracking update against what PoracleNG actually did.
-/// <para>
-/// Updates are sent as a create carrying the existing <c>uid</c>, which PoracleNG normally treats as an
-/// upsert. But it dedups each tracking type by a natural key (egg level, raid team/exclusive, quest reward,
-/// lure id, and so on), so when an edit changes a field in that key it <em>inserts a new row</em> instead of
-/// updating the one the uid points at. The original row survives and the user ends up with two alarms —
-/// one still matching their pre-edit filter — while the API reports success.
-/// </para>
-/// <para>
-/// This detects that case from the create response and removes the superseded row. The upsert path is left
-/// alone, so the uid only changes when PoracleNG genuinely made a new row.
-/// </para>
+/// What the bulk-distance endpoints still need before they POST a batch through the v1 upsert: a refusal
+/// when two submitted rows would collapse into one, and when a submitted row would take over one that was
+/// not submitted. Creates and edits no longer need it, because they go through <c>/api/v2</c>, which
+/// reports a duplicate or a takeover itself. Goes with the bulk paths in sub-project 3c.
 /// </summary>
-internal static partial class TrackingUpdateReconciler
+internal static class TrackingUpdateReconciler
 {
-    /// <summary>
-    /// Deletes the superseded row when PoracleNG inserted rather than updated.
-    /// Returns the uid the caller should report back — the new one when a row was inserted, otherwise the original.
-    /// </summary>
-    public static async Task<int> ReconcileAsync(
-        IPoracleTrackingProxy proxy,
-        string trackingType,
-        string userId,
-        int oldUid,
-        TrackingCreateResult result,
-        ILogger logger,
-        JsonElement submitted,
-        ITrackedUidRemapper? uidRemapper = null)
-    {
-        // oldUid <= 0 means this was not an edit, so there is nothing to reconcile.
-        if (oldUid <= 0)
-        {
-            return oldUid;
-        }
-
-        // PoracleNG declined to write because the edited values collide with an alarm the user
-        // already has. Nothing changed, so reporting success while echoing the requested values back
-        // told the user their edit applied when it had not. See #463.
-        //
-        // But it reports the same {alreadyPresent:1, insert:0, updates:0} when the collision is with the
-        // row being edited -- pressing Save with nothing changed, which every edit dialog does by
-        // resubmitting the whole form. Reading that as a conflict told the user another alarm was in the
-        // way when the only candidate was itself. The two are told apart by asking whether the row at
-        // oldUid already holds what was submitted: if it does, the edit is a no-op and there is nothing
-        // to report. See #495.
-        if (result.AlreadyPresent > 0 && result.Inserts == 0 && result.Updates == 0)
-        {
-            if (await IsNoOpEditAsync(proxy, trackingType, userId, oldUid, submitted))
-            {
-                return oldUid;
-            }
-
-            throw new TrackingConflictException(
-                trackingType,
-                "Another alarm of this type already uses those settings. Edit or remove that one instead.");
-        }
-
-        if (result.NewUids.Count == 0)
-        {
-            return oldUid;
-        }
-
-        // Trust newUids, not the insert counter. PoracleNG re-keys a row on edit while reporting
-        // {"insert":0,"updates":1,"newUids":[<new>]} -- verified directly against it. Gating on
-        // Inserts > 0 therefore skipped both the uid correction and the remap for raids, eggs,
-        // quests, gyms, fort changes and nests: the PUT answered 200 with a uid that 404s on the very
-        // next GET, and any quick pick tracking the row kept pointing at the dead uid. Monsters were
-        // unaffected because PoracleNG genuinely updates that type in place. See #460, #464.
-        var newUid = (int)result.NewUids[0];
-        if (newUid == oldUid)
-        {
-            return oldUid;
-        }
-
-        try
-        {
-            // Idempotent: when PoracleNG replaced the row in place rather than inserting a duplicate,
-            // the old uid is already gone and the proxy swallows the resulting 404.
-            await proxy.DeleteByUidAsync(trackingType, userId, oldUid);
-        }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
-        {
-            // The new row already carries the user's intended settings, so the edit succeeded. Surface the
-            // leftover duplicate for triage rather than failing an update that actually applied.
-            LogStaleDeleteFailed(logger, ex, trackingType, oldUid, newUid);
-        }
-
-        // Quick-pick applied state stores uids captured at apply time; follow the row. See #403.
-        if (uidRemapper != null)
-        {
-            await uidRemapper.RemapAsync(userId, trackingType, oldUid, newUid);
-        }
-
-        return newUid;
-    }
-
     /// <summary>
     /// Refuses a bulk write in which a submitted row would take over a row that was NOT submitted.
     /// </summary>
@@ -209,83 +119,6 @@ internal static partial class TrackingUpdateReconciler
                 .Where(p => !AssignedByPoracle.Contains(p.Name))
                 .OrderBy(p => p.Name, StringComparer.Ordinal)
                 .Select(p => $"{p.Name}={p.Value}"));
-    /// <summary>
-    /// Refuses an edit that PoracleNG would satisfy by merging into a DIFFERENT alarm.
-    /// </summary>
-    /// <remarks>
-    /// PoracleNG decides what to do with a submitted row by diffing it against the existing ones
-    /// (diffTracking in processor/internal/api/tracking.go). When the only differences are in fields it
-    /// tags <c>diff:"update"</c>, it updates that existing row in place and re-keys it -- answering
-    /// {insert:0, updates:1, newUids:[new]}. If the row it picked is not the one being edited, the edit
-    /// has just overwritten somebody else's alarm, and the reconciler below then deleted the original as
-    /// "superseded": two alarms became one, the victim's radius replaced by the editor's, reported as a
-    /// clean 200. Reachable from the ordinary edit dialogs -- changing a raid's team, a gym's slot or
-    /// battle toggles, an egg's level, a fort-change's change types. Lures and invasions were never
-    /// exposed because they carry their own pre-flight checks from #462.
-    /// <para>
-    /// The updatable set is uniform upstream -- template, distance and clean, plus slot_changes and
-    /// battle_changes on gyms -- so the collision test is the same for every type: equal on everything
-    /// else means PoracleNG will merge them.
-    /// </para>
-    /// </remarks>
-    public static async Task EnsureNoMergeIntoAnotherAlarmAsync(
-        IPoracleTrackingProxy proxy,
-        string trackingType,
-        string userId,
-        int oldUid,
-        JsonElement submitted)
-    {
-        if (submitted.ValueKind != JsonValueKind.Object)
-        {
-            return;
-        }
-
-        // Pokemon edits cannot merge at all: trackingMonster.go splits rows on req.UID.isSet() and sends
-        // uid-bearing ones straight to UpdateMonsterByUID, never reaching the diff. Every refusal this
-        // guard produced for a monster edit was therefore false. It is the only type that does this.
-        // See #606.
-        if (oldUid > 0 && string.Equals(trackingType, "pokemon", StringComparison.Ordinal))
-        {
-            return;
-        }
-
-        JsonElement rows;
-        try
-        {
-            rows = await proxy.GetByUserAsync(trackingType, userId);
-        }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
-        {
-            return;
-        }
-
-        if (rows.ValueKind != JsonValueKind.Array)
-        {
-            return;
-        }
-
-        // In list order, and stopping at the first row that classifies. DiffAndClassify walks the
-        // existing rows and BREAKS on the first duplicate-or-update match, so only that row is ever
-        // taken over -- a later sibling is irrelevant. Refusing on any match anywhere blocked ordinary
-        // radius and template edits whenever a similar alarm existed further down the list, and the
-        // error told the user to do the very thing that was blocked. See #606.
-        var decisive = FirstClassifyingRow(rows, submitted, trackingType);
-        if (decisive is not { Classification: RowMatch.Update } match)
-        {
-            return;
-        }
-
-        if (match.Uid == oldUid)
-        {
-            // PoracleNG would update the row being edited, which is exactly what was asked for.
-            return;
-        }
-
-        throw new TrackingConflictException(
-            trackingType,
-            "Another alarm of this type already uses those settings. Edit or remove that one instead.");
-    }
-
     private enum RowMatch
     {
         Duplicate,
@@ -464,94 +297,6 @@ internal static partial class TrackingUpdateReconciler
         (UpdatableFieldsByType.TryGetValue(trackingType, out var fields) ? fields : DefaultUpdatableFields)
             .Contains(fieldName);
     /// <summary>
-    /// True when the row being edited already holds every value the update submitted, so PoracleNG's
-    /// "already present" was the row colliding with itself rather than with a different alarm.
-    /// </summary>
-    /// <remarks>
-    /// A missing row is not a no-op: something else removed it, and the caller should hear about the
-    /// conflict rather than be told the edit applied. Fields PoracleNG does not persist are excluded --
-    /// otherwise a ping-only edit, which PoracleNG drops on every tracking type, looks like a change and
-    /// reads as a conflict.
-    /// </remarks>
-    private static async Task<bool> IsNoOpEditAsync(
-        IPoracleTrackingProxy proxy,
-        string trackingType,
-        string userId,
-        int oldUid,
-        JsonElement submitted)
-    {
-        if (submitted.ValueKind != JsonValueKind.Object)
-        {
-            return false;
-        }
-
-        JsonElement rows;
-        try
-        {
-            rows = await proxy.GetByUserAsync(trackingType, userId);
-        }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
-        {
-            // Cannot tell the two cases apart, so keep the conservative answer: report the conflict.
-            return false;
-        }
-
-        if (rows.ValueKind != JsonValueKind.Array)
-        {
-            return false;
-        }
-
-        foreach (var row in rows.EnumerateArray())
-        {
-            if (row.ValueKind != JsonValueKind.Object
-                || !row.TryGetProperty("uid", out var uid)
-                || uid.ValueKind != JsonValueKind.Number
-                || uid.GetInt32() != oldUid)
-            {
-                continue;
-            }
-
-            return MatchesStoredRow(submitted, row);
-        }
-
-        return false;
-    }
-
-    /// <summary>Fields the comparison ignores, because the stored row never reflects them.</summary>
-    private static readonly HashSet<string> IgnoredForNoOp = new(StringComparer.Ordinal)
-    {
-        // Assigned by PoracleNG, or rendered by it from the other fields.
-        "uid", "profile_no", "description",
-        // Never persisted, on any tracking type -- verified directly against PoracleNG. An edit that
-        // changes only this therefore leaves the row untouched, which is a no-op, not a conflict.
-        "ping",
-    };
-
-    private static bool MatchesStoredRow(JsonElement submitted, JsonElement stored)
-    {
-        foreach (var field in submitted.EnumerateObject())
-        {
-            if (IgnoredForNoOp.Contains(field.Name))
-            {
-                continue;
-            }
-
-            // A field the stored row does not carry cannot have changed it.
-            if (!stored.TryGetProperty(field.Name, out var storedValue))
-            {
-                continue;
-            }
-
-            if (!SameFieldValue(field.Name, field.Value, storedValue))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /// <summary>
     /// Equality that tolerates the shapes PoracleNG stores a value in.
     /// </summary>
     /// <remarks>
@@ -692,9 +437,4 @@ internal static partial class TrackingUpdateReconciler
             return false;
         }
     }
-
-    [LoggerMessage(
-        Level = LogLevel.Warning,
-        Message = "Failed to delete superseded {TrackingType} uid {OldUid} after the edit created uid {NewUid}; a duplicate row may remain.")]
-    private static partial void LogStaleDeleteFailed(ILogger logger, Exception exception, string trackingType, int oldUid, int newUid);
 }

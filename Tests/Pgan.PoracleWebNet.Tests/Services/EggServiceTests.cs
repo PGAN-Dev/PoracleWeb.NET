@@ -70,14 +70,16 @@ public class EggServiceTests
     }
 
     [Fact]
-    public async Task UpdateAsyncCallsProxy()
+    public async Task UpdateAsyncPutsByUid()
     {
         var egg = new Egg { Uid = 1 };
-        this._proxy.Setup(p => p.CreateAsync("egg", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([], 0, 1, 0));
+        this._proxy.Setup(p => p.UpdateByUidAsync("egg", "user1", 1, It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingUpdateResult(1, true));
 
         await this._sut.UpdateAsync("user1", egg);
-        this._proxy.Verify(p => p.CreateAsync("egg", "user1", It.IsAny<JsonElement>()), Times.Once);
+
+        this._proxy.Verify(p => p.UpdateByUidAsync("egg", "user1", 1, It.IsAny<JsonElement>()), Times.Once);
+        this._proxy.Verify(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
     }
 
     [Fact]
@@ -224,20 +226,6 @@ public class EggServiceTests
     // instead of upserting, leaving the pre-edit row behind as a second live alarm firing the old filter.
 
     [Fact]
-    public async Task UpdateAsyncDeletesTheSupersededRowWhenPoracleNgInsertsInsteadOfUpdating()
-    {
-        var model = new Egg { Uid = 41 };
-        this._proxy.Setup(p => p.CreateAsync("egg", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([42], 0, 0, 1));
-        this._proxy.Setup(p => p.DeleteByUidAsync("egg", "user1", 41)).Returns(Task.CompletedTask);
-
-        var result = await this._sut.UpdateAsync("user1", model);
-
-        this._proxy.Verify(p => p.DeleteByUidAsync("egg", "user1", 41), Times.Once);
-        Assert.Equal(42, result.Uid);
-    }
-
-    [Fact]
     public async Task UpdateAsyncKeepsTheUidAndDeletesNothingWhenPoracleNgUpserts()
     {
         var model = new Egg { Uid = 41 };
@@ -248,21 +236,6 @@ public class EggServiceTests
 
         this._proxy.Verify(p => p.DeleteByUidAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
         Assert.Equal(41, result.Uid);
-    }
-
-    [Fact]
-    public async Task UpdateAsyncStillSucceedsWhenDeletingTheSupersededRowFails()
-    {
-        var model = new Egg { Uid = 41 };
-        this._proxy.Setup(p => p.CreateAsync("egg", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([42], 0, 0, 1));
-        this._proxy.Setup(p => p.DeleteByUidAsync("egg", "user1", 41))
-            .ThrowsAsync(new HttpRequestException("boom"));
-
-        // The inserted row already carries the user's settings, so the edit must not fail.
-        var result = await this._sut.UpdateAsync("user1", model);
-
-        Assert.Equal(42, result.Uid);
     }
 
     [Fact]

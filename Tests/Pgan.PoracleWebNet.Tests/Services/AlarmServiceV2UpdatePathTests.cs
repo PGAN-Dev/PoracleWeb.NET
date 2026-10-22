@@ -13,8 +13,7 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 /// <remarks>
 /// <para>
 /// The uid-addressed PUT is a genuine full replace, so every repair the v1 path wraps around its create
-/// has to be skipped as a unit: the reconcile of a stray insert, max battle's delete-then-recreate. Running any of them against a write that already landed would be
-/// worse than not moving the type at all.
+/// needs no repair around it: no reconcile of a stray insert, no delete-then-recreate for max battle.
 /// </para>
 /// <para>
 /// The other half is the uid. v2's engine is delete-then-insert, so on 5.2.x the replacement arrives under
@@ -41,17 +40,19 @@ public class AlarmServiceV2UpdatePathTests
     }
 
     public static TheoryData<string> MovedTypes() =>
-        ["raid", "egg", "quest", "nest", "gym", "maxbattle", "fort", "lure", "invasion"];
+        ["pokemon", "raid", "egg", "quest", "nest", "gym", "maxbattle", "fort", "lure", "invasion"];
 
     [Theory]
     [MemberData(nameof(MovedTypes))]
-    public async Task AV2ReplaceSkipsTheWholeV1RepairPath(string type)
+    public async Task UpdateMakesOnePutNoPost(string type)
     {
         this.AcceptV2(type, newUid: 991);
 
         Assert.Equal(991, await this.UpdateAsync(type, uid: 990));
 
-        // No create, so no reconcile. No delete, so no window where the alarm exists nowhere.
+        // Exactly one uid-addressed PUT, no POST, and no delete, so no window where the alarm exists nowhere.
+        this._proxy.Verify(
+            p => p.UpdateByUidAsync(type, "u1", 990, It.IsAny<JsonElement>()), Times.Once);
         this._proxy.Verify(
             p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
         this._proxy.Verify(
@@ -115,29 +116,7 @@ public class AlarmServiceV2UpdatePathTests
     }
 
     [Fact]
-    public async Task InvasionRunsTheSharedMergeGuardAheadOfV2()
-    {
-        // v2's 409 covers only an exact duplicate. Editing 311 to fire at 1 km lands one updatable field
-        // (distance) away from 320, which PoracleNG's create would merge into, so the guard every type
-        // shares refuses it before anything is sent.
-        this.AcceptV2("invasion", newUid: 312);
-        this._proxy
-            .Setup(p => p.GetByUserAsync("invasion", "u1"))
-            .ReturnsAsync(JsonDocument.Parse(
-                """[{"uid":320,"id":"u1","grunt_type":"fire","gender":0,"distance":500,"template":"1","clean":0,"override_areas":null,"override_location_label":""},{"uid":311,"id":"u1","grunt_type":"water","gender":0,"distance":1000,"template":"1","clean":0,"override_areas":null,"override_location_label":""}]""")
-                .RootElement.Clone());
-
-        await Assert.ThrowsAsync<TrackingConflictException>(() => new InvasionService(
-                this._proxy.Object, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._remapper.Object)
-            .UpdateAsync("u1", new Invasion { Uid = 311, GruntType = "fire", Gender = 0, Distance = 1000, Template = "1", OverrideAreas = [], OverrideLocationLabel = "" }));
-
-        this._proxy.Verify(
-            p => p.UpdateByUidAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<JsonElement>()),
-            Times.Never);
-    }
-
-    [Fact]
-    public async Task MaxBattleStopsBeingInsertOnly()
+    public async Task MaxBattleUpdateNoDeleteThenCreate()
     {
         // Its v1 path deletes the row and creates a replacement, so a failed create leaves the user with
         // no alarm at all. The v2 PUT has no such window.
@@ -158,6 +137,8 @@ public class AlarmServiceV2UpdatePathTests
 
     private async Task<int> UpdateAsync(string type, int uid) => type switch
     {
+        "pokemon" => (await new MonsterService(this._proxy.Object, this._featureGate.Object, this._remapper.Object)
+            .UpdateAsync("u1", new Monster { Uid = uid, PokemonId = 25 })).Uid,
         "raid" => (await new RaidService(
                 this._proxy.Object, this._featureGate.Object, NullLogger<RaidService>.Instance,
                 this._remapper.Object)

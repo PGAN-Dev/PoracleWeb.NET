@@ -315,7 +315,7 @@ public class MonsterServiceTests
             new() { PokemonId = 25 },
             new() { PokemonId = 150 },
         };
-        var createResult = new TrackingCreateResult([10, 11], 0, 0, 2);
+        var createResult = new TrackingCreateResult([10, 11], 0, 0, 2) { RowUids = [10, 11] };
         this._proxy.Setup(p => p.CreateAsync("pokemon", "user1", It.IsAny<JsonElement>()))
             .ReturnsAsync(createResult);
 

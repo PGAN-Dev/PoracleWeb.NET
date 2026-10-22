@@ -4,7 +4,7 @@ using Pgan.PoracleWebNet.Core.Abstractions.Services;
 namespace Pgan.PoracleWebNet.Core.Services;
 
 /// <summary>
-/// The v2 branch every alarm service takes before its v1 update path.
+/// How every alarm service edits a rule.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -24,15 +24,11 @@ namespace Pgan.PoracleWebNet.Core.Services;
 internal static class TrackingV2Replacement
 {
     /// <summary>
-    /// Replaces the rule through <c>/api/v2</c> when that surface is available for this type, this server
-    /// and this row.
+    /// Replaces the rule through <c>/api/v2</c>; PoracleNG answers 409 itself when the replacement would
+    /// duplicate another rule.
     /// </summary>
-    /// <returns>
-    /// The uid the rule now lives under, or null when the caller should take its own v1 path — the type
-    /// has no v2 field table, the operator pinned v1, the route is absent, or the row carries something
-    /// v2 could not be told faithfully.
-    /// </returns>
-    public static async Task<int?> TryApplyAsync(
+    /// <returns>The uid the rule now lives under.</returns>
+    public static async Task<int> ApplyAsync(
         IPoracleTrackingProxy proxy,
         string trackingType,
         string userId,
@@ -40,7 +36,6 @@ internal static class TrackingV2Replacement
         JsonElement body,
         ITrackedUidRemapper uidRemapper)
     {
-        // Every edit is a v2 replace now; the nullable answer stays until the services drop their v1 tails.
         var replaced = await proxy.UpdateByUidAsync(trackingType, userId, oldUid, body);
 
         var newUid = replaced.Uid > 0 ? replaced.Uid : oldUid;

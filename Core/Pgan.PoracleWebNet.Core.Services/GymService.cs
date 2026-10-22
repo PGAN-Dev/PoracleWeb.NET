@@ -31,10 +31,6 @@ public class GymService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, I
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Gyms);
         model.Id = userId;
 
-        // An Add that PoracleNG resolves into an update of an existing alarm takes that alarm over:
-        // 201 Created, and the user quietly loses the one they had. See #561.
-        await TrackingUpdateReconciler.EnsureNoMergeIntoAnotherAlarmAsync(
-            this._proxy, TrackingType, userId, 0, SerializeToElement(model));
         var body = SerializeToElement(model);
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
 
@@ -56,26 +52,8 @@ public class GymService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, I
         body = await TrackingFieldPreserver.PreserveStoredFieldsAsync(
             this._proxy, TrackingType, userId, model.Uid, body);
 
-        // Refuse before writing: PoracleNG would satisfy this by merging into the other alarm and
-        // the reconciler would then delete this one, losing a row the user never touched. See #531.
-        await TrackingUpdateReconciler.EnsureNoMergeIntoAnotherAlarmAsync(
-            this._proxy, TrackingType, userId, oldUid, body);
-
-        // /api/v2 replaces the rule in place, addressed by its uid, and answers 409 itself when the
-        // replacement would duplicate another rule. None of the v1 repair below applies to it.
-        if (await TrackingV2Replacement.TryApplyAsync(
-                this._proxy, TrackingType, userId, oldUid, body, this._uidRemapper) is { } v2Uid)
-        {
-            model.Uid = v2Uid;
-            return model;
-        }
-
-        var result = await this._proxy.CreateAsync(TrackingType, userId, body);
-
-        // PoracleNG inserts instead of upserting when the edit changes a dedup-key field,
-        // leaving the pre-edit row behind as a duplicate. Drop it and report the surviving uid.
-        model.Uid = await TrackingUpdateReconciler.ReconcileAsync(
-            this._proxy, TrackingType, userId, oldUid, result, this._logger, body, this._uidRemapper);
+        model.Uid = await TrackingV2Replacement.ApplyAsync(
+            this._proxy, TrackingType, userId, oldUid, body, this._uidRemapper);
 
         return model;
     }
@@ -191,9 +169,9 @@ public class GymService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, I
         var body = SerializeToElement(modelList);
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
 
-        for (var i = 0; i < modelList.Count && i < result.NewUids.Count; i++)
+        for (var i = 0; i < modelList.Count && i < result.RowUids.Count; i++)
         {
-            modelList[i].Uid = (int)result.NewUids[i];
+            modelList[i].Uid = result.RowUids[i];
         }
 
         return modelList;
