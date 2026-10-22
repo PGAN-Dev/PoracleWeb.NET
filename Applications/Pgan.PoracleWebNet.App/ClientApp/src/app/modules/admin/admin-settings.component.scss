@@ -253,11 +253,16 @@
     font-size: 12px;
   }
 
+  // #e65100 read 3.39:1 here (light) and 4.34:1 (dark); see warning-text-contrast.spec.ts.
   &.warning {
     background-color: rgba(255, 152, 0, 0.08);
-    color: #e65100;
+    color: #a33b00;
     border: 1px solid rgba(255, 152, 0, 0.2);
   }
+}
+
+:host-context(.dark-theme) .config-hint.warning {
+  color: #ffb74d;
 }
 
 // ─── Server Config (read-only) ──────────────────────────────────────────────
