@@ -868,7 +868,7 @@
     "CLEAR_PIN_CONFIRM_UNKNOWN": "Gli avvisi con un raggio attorno alla tua posizione smetteranno di corrispondere finché non imposti una nuova posizione.",
     "CHANGE_LOCATION": "Modifica",
     "SET_LOCATION": "Imposta",
-    "METHOD_NOTE": "Ogni allarme sceglie un metodo nella scheda Consegna.",
+    "METHOD_NOTE": "Ogni allarme sceglie aree o un raggio nella scheda Consegna.",
     "NOTIFICATION_LANGUAGE": "Lingua delle notifiche",
     "NOTIFICATION_LANGUAGE_DESC": "La lingua che Poracle usa per i messaggi di avviso e i nomi dei Pokémon. È distinta dalla lingua di visualizzazione nel menu in alto.",
     "SNACK_LANGUAGE_UPDATED": "Lingua delle notifiche aggiornata",

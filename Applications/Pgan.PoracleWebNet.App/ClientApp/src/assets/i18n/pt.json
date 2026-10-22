@@ -868,7 +868,7 @@
     "CLEAR_PIN_CONFIRM_UNKNOWN": "Os alertas com raio à volta da tua localização deixam de corresponder até definires uma nova localização.",
     "CHANGE_LOCATION": "Alterar",
     "SET_LOCATION": "Definir",
-    "METHOD_NOTE": "Cada alarme escolhe um método no separador Entrega.",
+    "METHOD_NOTE": "Cada alarme escolhe áreas ou um raio no separador Entrega.",
     "NOTIFICATION_LANGUAGE": "Idioma das notificações",
     "NOTIFICATION_LANGUAGE_DESC": "O idioma que o Poracle usa para as suas mensagens de alerta e nomes de Pokémon. É distinto do idioma de exibição no menu superior.",
     "SNACK_LANGUAGE_UPDATED": "Idioma das notificações atualizado",

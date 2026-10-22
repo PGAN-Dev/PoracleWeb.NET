@@ -61,13 +61,14 @@ export const AREA_STYLE_SELECTED: L.PathOptions = {
   weight: 3,
 };
 
+// Strong enough to find on busy tiles, and on My Geofences, where every admin area is unselected.
 export const AREA_STYLE_UNSELECTED: L.PathOptions = {
-  color: '#64748b',
+  color: '#475569',
   dashArray: '5, 5',
   fillColor: '#64748b',
   fillOpacity: 0.06,
-  opacity: 0.8,
-  weight: 1.5,
+  opacity: 1,
+  weight: 2,
 };
 
 /** A hovered area, selected or not: a little more fill so the pointer has something to answer it. */
@@ -358,8 +359,8 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   }
 
   /**
-   * Styles one area as selected or not, marks its path with a class so the dark theme can lighten the
-   * selected outline, and rebinds the hover so it returns to the right resting style.
+   * Styles one area as selected or not, marks its path with `area-selected` / `area-unselected` so a
+   * stylesheet can tell them apart, and rebinds the hover so it returns to the right resting style.
    */
   private applyAreaStyle(polygon: L.Polygon, isSelected: boolean): void {
     const style = isSelected ? AREA_STYLE_SELECTED : AREA_STYLE_UNSELECTED;

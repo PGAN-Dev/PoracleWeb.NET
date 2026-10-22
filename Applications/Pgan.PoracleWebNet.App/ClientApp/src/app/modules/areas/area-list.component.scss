@@ -206,13 +206,14 @@
   }
 }
 
-// Orange keeps its hue and takes dark text: white on #ff9800 was 2.2:1.
+// The chosen view takes the theme's primary container, not a page accent: colour here says "selected",
+// nothing more.
 .mode-active {
-  background: #ff9800;
-  color: #212121;
+  background: var(--mat-sys-primary-container, #d6e3ff);
+  color: var(--mat-sys-on-primary-container, #001b3e);
 
   &:hover {
-    background: #f57c00;
+    background: var(--mat-sys-primary-container, #d6e3ff);
   }
 }
 

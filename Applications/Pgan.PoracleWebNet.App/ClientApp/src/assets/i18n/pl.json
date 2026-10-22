@@ -898,7 +898,7 @@
     "CLEAR_PIN_CONFIRM_UNKNOWN": "Alerty z promieniem wokół twojej lokalizacji przestaną pasować, dopóki nie ustawisz nowej lokalizacji.",
     "CHANGE_LOCATION": "Zmień",
     "SET_LOCATION": "Ustaw",
-    "METHOD_NOTE": "Każdy alarm wybiera jedną metodę w zakładce Dostarczanie.",
+    "METHOD_NOTE": "Każdy alarm wybiera obszary albo promień w zakładce Dostarczanie.",
     "NOTIFICATION_LANGUAGE": "Język powiadomień",
     "NOTIFICATION_LANGUAGE_DESC": "Język, którego Poracle używa w treści powiadomień i nazwach Pokémonów. Jest niezależny od języka interfejsu w górnym menu.",
     "SNACK_LANGUAGE_UPDATED": "Zaktualizowano język powiadomień",

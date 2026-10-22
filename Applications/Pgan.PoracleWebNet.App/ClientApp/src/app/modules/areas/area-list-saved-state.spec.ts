@@ -20,7 +20,13 @@ import { SettingsService } from '../../core/services/settings.service';
  * to: Poracle had never heard of the subscription the card was describing.
  */
 describe('AreaListComponent saved and unsaved selections', () => {
-  const setup = () => {
+  const setup = (
+    available = [
+      { name: 'Downtown', group: 'City', userSelectable: true },
+      { name: 'Uptown', group: 'City', userSelectable: true },
+    ],
+    selected = ['downtown'],
+  ) => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
@@ -44,14 +50,10 @@ describe('AreaListComponent saved and unsaved selections', () => {
         {
           provide: AreaService,
           useValue: {
-            getAvailable: () =>
-              of([
-                { name: 'Downtown', group: 'City', userSelectable: true },
-                { name: 'Uptown', group: 'City', userSelectable: true },
-              ]),
+            getAvailable: () => of(available),
             getGeofencePolygons: () => of([]),
             getMapUrl: () => of(null),
-            getSelected: () => of(['downtown']),
+            getSelected: () => of(selected),
           },
         },
       ],
@@ -124,6 +126,34 @@ describe('AreaListComponent saved and unsaved selections', () => {
     expect(component.hasChanges()).toBe(false);
     expect(el.querySelector('.areas-status')?.textContent?.trim()).toBe('1 area active');
     expect(snackOpen.mock.calls[0][0]).toBe('Saved. Left out, because Poracle has no such area: Uptown');
+  });
+
+  /**
+   * PoracleNG keys area names lowercase with `_` equal to a space. A profile holding `west_end` is the
+   * fence "West End": it must read as saved (quiet chip and all), not as an unsaved change, and a save
+   * that comes back as `west_end` must not list it twice or call it dropped.
+   */
+  it('treats a held underscore spelling as the same area as the published name', () => {
+    const { component, el, fixture } = setup([{ name: 'West End', group: 'City', userSelectable: true }], ['west_end']);
+    const areas = TestBed.inject(AreaService) as unknown as { update: jest.Mock };
+    areas.update = jest.fn(() => of(['west_end']));
+    const snackOpen = jest.spyOn(fixture.debugElement.injector.get(MatSnackBar), 'open');
+
+    const westEnd = component.areas().find(a => a.name === 'West End')!;
+    expect(westEnd.selected).toBe(true);
+    expect(component.isSaved('West End')).toBe(true);
+    expect(component.hasChanges()).toBe(false);
+
+    component.toggleAreaDirect(westEnd);
+    component.toggleAreaDirect(westEnd);
+    expect(component.selectedAreas()).toEqual(['West End']);
+    expect(component.hasChanges()).toBe(false);
+
+    component.saveAreas();
+    fixture.detectChanges();
+    expect(snackOpen.mock.calls[0][0]).toBe('Areas updated');
+    expect(el.querySelectorAll('.selected-chips mat-chip')).toHaveLength(1);
+    expect(el.querySelector('.selected-chips app-quiet-chip')).not.toBeNull();
   });
 
   it('says only "updated" when everything sent was kept, whatever case it comes back in', () => {

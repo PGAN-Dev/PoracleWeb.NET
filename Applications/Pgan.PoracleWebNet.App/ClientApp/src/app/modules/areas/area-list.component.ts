@@ -1,4 +1,4 @@
-import { SlicePipe } from '@angular/common';
+import { NgTemplateOutlet, SlicePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, ElementRef, OnInit, DestroyRef, inject, signal, computed, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
@@ -55,6 +55,7 @@ interface GroupInfo {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     QuietChipComponent,
+    NgTemplateOutlet,
     SlicePipe,
     FormsModule,
     MatButtonModule,
@@ -88,7 +89,7 @@ export class AreaListComponent implements OnInit {
    * not a display decision, and rendering it verbatim is why the chips and the quiet dialog read
    * "mechanicsville". Of 934 fences on one instance, 883 carry capitals.
    */
-  private readonly areaNamesByLower = computed(() => new Map(this.availableAreas().map(area => [area.name.toLowerCase(), area.name])));
+  private readonly areaNamesByLower = computed(() => new Map(this.availableAreas().map(area => [areaKey(area.name), area.name])));
 
   private readonly areaService = inject(AreaService);
   private readonly destroyRef = inject(DestroyRef);
@@ -97,6 +98,7 @@ export class AreaListComponent implements OnInit {
   private readonly locationService = inject(LocationService);
   private readonly pinPanel = viewChild('pinPanel', { read: ElementRef });
 
+  private pinPanelScroll?: ReturnType<typeof setTimeout>;
   private readonly rawGeofenceData = signal<GeofenceData[]>([]);
   /**
    * What PoracleNG holds for the active profile, as last read or saved. The Areas card and the quiet chips
@@ -104,7 +106,8 @@ export class AreaListComponent implements OnInit {
    * alerts to quiet.
    */
   readonly savedAreas = signal<string[]>([]);
-  private readonly savedAreaKeys = computed(() => new Set(this.savedAreas().map(a => a.toLowerCase())));
+  private readonly savedAreaKeys = computed(() => new Set(this.savedAreas().map(a => areaKey(a))));
+
   private readonly settingsService = inject(SettingsService);
 
   private readonly snackBar = inject(MatSnackBar);
@@ -166,8 +169,9 @@ export class AreaListComponent implements OnInit {
   readonly selectedAreas = signal<string[]>([]);
 
   readonly hasChanges = computed(() => {
-    const current = [...this.selectedAreas()].sort();
-    const saved = [...this.savedAreas()].sort();
+    // Compared by PoracleNG's key, so `west_end` held and `West End` ticked are one area, not a change.
+    const current = this.selectedAreas().map(areaKey).sort();
+    const saved = this.savedAreas().map(areaKey).sort();
     if (current.length !== saved.length) return true;
     return current.some((v, i) => v !== saved[i]);
   });
@@ -178,6 +182,7 @@ export class AreaListComponent implements OnInit {
   });
 
   readonly loading = signal(true);
+
   readonly location = signal<Location | null>(null);
 
   readonly locationAddress = signal<string>('');
@@ -192,7 +197,6 @@ export class AreaListComponent implements OnInit {
   readonly locationMapUrl = signal<string>('');
 
   manualAreaName = '';
-
   readonly places = inject(PlacesService);
   /** The named places, drawn on the map beside the pin. None while location is switched off. */
   readonly mapPlaces = computed((): MapPlace[] => (this.locationEnabled() ? this.places.named() : []));
@@ -244,13 +248,13 @@ export class AreaListComponent implements OnInit {
    * to keep rendering so the user can see it and remove it.
    */
   areaDisplayName(area: string): string {
-    return this.areaNamesByLower().get(area.toLowerCase()) ?? area;
+    return this.areaNamesByLower().get(areaKey(area)) ?? area;
   }
 
   cancelChanges(): void {
     const savedSet = this.savedAreaKeys();
     for (const a of this.areas()) {
-      a.selected = savedSet.has(a.name.toLowerCase());
+      a.selected = savedSet.has(areaKey(a.name));
     }
     this.selectedAreas.set([...this.savedAreas()]);
   }
@@ -306,10 +310,11 @@ export class AreaListComponent implements OnInit {
 
   /** Whether the area is subscribed on the server, rather than only ticked on this page. */
   isSaved(name: string): boolean {
-    return this.savedAreaKeys().has(name.toLowerCase());
+    return this.savedAreaKeys().has(areaKey(name));
   }
 
   ngOnInit(): void {
+    this.destroyRef.onDestroy(() => clearTimeout(this.pinPanelScroll));
     this.loadData();
   }
 
@@ -318,8 +323,8 @@ export class AreaListComponent implements OnInit {
   }
 
   onMapAreaClicked(name: string): void {
-    const lowerName = name.toLowerCase();
-    const area = this.areas().find(a => a.name.toLowerCase() === lowerName);
+    const lowerName = areaKey(name);
+    const area = this.areas().find(a => areaKey(a.name) === lowerName);
     if (area) {
       this.toggleAreaDirect(area);
     }
@@ -351,29 +356,30 @@ export class AreaListComponent implements OnInit {
   openPinPanel(): void {
     this.pinPanelOpen.set(true);
     // After the panel has had a frame to start opening, so the scroll lands on its expanded position.
-    setTimeout(() => this.pinPanel()?.nativeElement.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' }));
+    clearTimeout(this.pinPanelScroll);
+    this.pinPanelScroll = setTimeout(() => this.pinPanel()?.nativeElement.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' }));
   }
 
   removeAreaDirect(name: string): void {
-    const lowerName = name.toLowerCase();
-    const area = this.areas().find(a => a.name.toLowerCase() === lowerName);
+    const lowerName = areaKey(name);
+    const area = this.areas().find(a => areaKey(a.name) === lowerName);
     if (area) {
       area.selected = false;
       this.syncSelectedFromAreas();
     } else {
       // Custom geofence not in available areas list — remove directly
-      this.selectedAreas.update(selected => selected.filter(a => a.toLowerCase() !== lowerName));
+      this.selectedAreas.update(selected => selected.filter(a => areaKey(a) !== lowerName));
     }
   }
 
   saveAreas(): void {
     this.saving.set(true);
-    const areaListNames = new Set(this.areas().map(a => a.name.toLowerCase()));
+    const areaListNames = new Set(this.areas().map(a => areaKey(a.name)));
     const fromChecklist = this.areas()
       .filter(a => a.selected)
       .map(a => a.name);
     // Preserve custom geofence names that aren't in the available areas list
-    const customNames = this.selectedAreas().filter(a => !areaListNames.has(a.toLowerCase()));
+    const customNames = this.selectedAreas().filter(a => !areaListNames.has(areaKey(a)));
     const selected = [...fromChecklist, ...customNames];
 
     this.areaService
@@ -430,14 +436,14 @@ export class AreaListComponent implements OnInit {
 
   private buildAreaList(): void {
     // DB stores lowercase area names, API may return mixed case
-    const selectedSet = new Set(this.selectedAreas().map(a => a.toLowerCase()));
+    const selectedSet = new Set(this.selectedAreas().map(a => areaKey(a)));
     const available = this.availableAreas();
     this.areas.set(
       available
         .map(a => ({
           name: a.name,
           group: a.group ?? '',
-          selected: selectedSet.has(a.name.toLowerCase()),
+          selected: selectedSet.has(areaKey(a.name)),
         }))
         .sort((a, b) => a.name.localeCompare(b.name)),
     );
@@ -569,12 +575,12 @@ export class AreaListComponent implements OnInit {
   }
 
   private syncSelectedFromAreas(): void {
-    const areaListNames = new Set(this.areas().map(a => a.name.toLowerCase()));
+    const areaListNames = new Set(this.areas().map(a => areaKey(a.name)));
     const fromChecklist = this.areas()
       .filter(a => a.selected)
       .map(a => a.name);
     // Preserve custom geofence names that aren't in the predefined areas list
-    const customNames = this.selectedAreas().filter(a => !areaListNames.has(a.toLowerCase()));
+    const customNames = this.selectedAreas().filter(a => !areaListNames.has(areaKey(a)));
     this.selectedAreas.set([...fromChecklist, ...customNames]);
   }
 }

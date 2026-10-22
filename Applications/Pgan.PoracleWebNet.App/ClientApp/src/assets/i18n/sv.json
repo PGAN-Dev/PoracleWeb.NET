@@ -868,7 +868,7 @@
     "CLEAR_PIN_CONFIRM_UNKNOWN": "Aviseringar med en radie runt din position slutar matcha tills du anger en ny position.",
     "CHANGE_LOCATION": "Ändra",
     "SET_LOCATION": "Ange",
-    "METHOD_NOTE": "Varje larm väljer en metod i sin Leverans-flik.",
+    "METHOD_NOTE": "Varje larm väljer områden eller en radie i sin Leverans-flik.",
     "NOTIFICATION_LANGUAGE": "Aviseringsspråk",
     "NOTIFICATION_LANGUAGE_DESC": "Språket som Poracle använder för dina aviseringar och Pokémon-namn. Det är skilt från visningsspråket i toppmenyn.",
     "SNACK_LANGUAGE_UPDATED": "Aviseringsspråk uppdaterat",

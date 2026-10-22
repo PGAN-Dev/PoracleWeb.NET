@@ -868,7 +868,7 @@
     "CLEAR_PIN_CONFIRM_UNKNOWN": "Beskeder med en radius omkring din position holder op med at matche, indtil du angiver en ny position.",
     "CHANGE_LOCATION": "Ændr",
     "SET_LOCATION": "Angiv",
-    "METHOD_NOTE": "Hver alarm vælger én metode i sin Levering-fane.",
+    "METHOD_NOTE": "Hver alarm vælger områder eller en radius i sin Levering-fane.",
     "NOTIFICATION_LANGUAGE": "Notifikationssprog",
     "NOTIFICATION_LANGUAGE_DESC": "Det sprog Poracle bruger til dine alarmbeskeder og Pokémon-navne. Det er adskilt fra visningssproget i topmenuen.",
     "SNACK_LANGUAGE_UPDATED": "Notifikationssprog opdateret",

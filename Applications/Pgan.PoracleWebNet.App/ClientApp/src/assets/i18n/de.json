@@ -868,7 +868,7 @@
     "CLEAR_PIN_CONFIRM_UNKNOWN": "Meldungen mit einem Radius um deinen Standort greifen nicht mehr, bis du einen neuen Standort setzt.",
     "CHANGE_LOCATION": "Ändern",
     "SET_LOCATION": "Setzen",
-    "METHOD_NOTE": "Jeder Alarm wählt eine Methode im Zustellungs-Tab.",
+    "METHOD_NOTE": "Jeder Alarm wählt im Zustellungs-Tab Gebiete oder einen Radius.",
     "NOTIFICATION_LANGUAGE": "Benachrichtigungssprache",
     "NOTIFICATION_LANGUAGE_DESC": "Die Sprache, die Poracle für deine Alarmtexte und Pokémon-Namen verwendet. Sie ist unabhängig von der Anzeigesprache im oberen Menü.",
     "SNACK_LANGUAGE_UPDATED": "Benachrichtigungssprache aktualisiert",

@@ -868,7 +868,7 @@
     "CLEAR_PIN_CONFIRM_UNKNOWN": "Las alertas con un radio alrededor de tu ubicación dejarán de coincidir hasta que definas una nueva.",
     "CHANGE_LOCATION": "Cambiar",
     "SET_LOCATION": "Establecer",
-    "METHOD_NOTE": "Cada alarma elige un método en su pestaña de Entrega.",
+    "METHOD_NOTE": "Cada alarma elige zonas o un radio en su pestaña de Entrega.",
     "NOTIFICATION_LANGUAGE": "Idioma de notificaciones",
     "NOTIFICATION_LANGUAGE_DESC": "El idioma que Poracle usa para tus mensajes de alerta y los nombres de Pokémon. Es distinto del idioma de la interfaz en el menú superior.",
     "SNACK_LANGUAGE_UPDATED": "Idioma de notificaciones actualizado",

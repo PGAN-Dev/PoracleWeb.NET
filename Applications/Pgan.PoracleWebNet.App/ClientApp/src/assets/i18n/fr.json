@@ -868,7 +868,7 @@
     "CLEAR_PIN_CONFIRM_UNKNOWN": "Les alertes avec un rayon autour de votre position ne correspondront plus à rien tant que vous n'aurez pas défini une nouvelle position.",
     "CHANGE_LOCATION": "Modifier",
     "SET_LOCATION": "Définir",
-    "METHOD_NOTE": "Chaque alarme choisit une méthode dans son onglet Livraison.",
+    "METHOD_NOTE": "Chaque alarme choisit des zones ou un rayon dans son onglet Livraison.",
     "NOTIFICATION_LANGUAGE": "Langue des notifications",
     "NOTIFICATION_LANGUAGE_DESC": "La langue utilisée par Poracle pour vos messages d'alerte et les noms de Pokémon. Elle est distincte de la langue d'affichage du menu en haut.",
     "SNACK_LANGUAGE_UPDATED": "Langue des notifications mise à jour",

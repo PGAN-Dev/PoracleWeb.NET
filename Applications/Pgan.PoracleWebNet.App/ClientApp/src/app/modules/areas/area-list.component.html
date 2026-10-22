@@ -15,6 +15,38 @@
     the pin and places, which the map already draws as markers, are managed in a panel below.
   -->
   <div class="areas-page">
+    <!--
+      The selected areas as chips. Under the map in Map view; above the checklist in List view, so they
+      stay near the top instead of after a long list.
+    -->
+    <ng-template #selectedChips>
+      @if (selectedAreas().length > 0) {
+        <section class="selected-bar" [attr.aria-label]="'AREAS.SELECTION_SUMMARY' | translatePlural: selectedAreas().length">
+          <mat-chip-set class="selected-chips">
+            @for (area of selectedAreas(); track area) {
+              <mat-chip highlighted color="primary" (removed)="removeAreaDirect(area)">
+                {{ areaDisplayName(area) }}
+                <!--
+                  A second trailing affordance beside remove. Anyone who works from the chips rather than
+                  the checklist would otherwise have no sight of what is quiet.
+
+                  value is the STORED name, which is what Poracle keys a quiet period on; subject is the
+                  published name, which is what the reader is shown. They differ in case and must not be
+                  collapsed into one.
+                -->
+                @if (isSaved(area)) {
+                  <app-quiet-chip appearance="trailing" scope="area" [value]="area" [subject]="areaDisplayName(area)" />
+                }
+                <button matChipRemove [attr.aria-label]="'COMMON.REMOVE_NAMED' | translate: { name: areaDisplayName(area) }">
+                  <mat-icon>cancel</mat-icon>
+                </button>
+              </mat-chip>
+            }
+          </mat-chip-set>
+        </section>
+      }
+    </ng-template>
+
     <div class="mode-bar">
       <div class="mode-toggle" role="group" [attr.aria-label]="'AREAS.VIEW_MODE' | translate">
         <button
@@ -72,8 +104,13 @@
       }
     }
 
+    @if (viewMode() === 'map') {
+      <ng-container [ngTemplateOutlet]="selectedChips" />
+    }
+
     <!-- List View -->
     @if (viewMode() === 'list') {
+      <ng-container [ngTemplateOutlet]="selectedChips" />
       <div class="list-view">
         <app-region-selector
           [regions]="groupOptions()"
@@ -133,33 +170,6 @@
           </div>
         }
       </div>
-    }
-
-    <!-- Selected Areas Chips -->
-    @if (selectedAreas().length > 0) {
-      <section class="selected-bar" [attr.aria-label]="'AREAS.SELECTION_SUMMARY' | translatePlural: selectedAreas().length">
-        <mat-chip-set class="selected-chips">
-          @for (area of selectedAreas(); track area) {
-            <mat-chip highlighted color="primary" (removed)="removeAreaDirect(area)">
-              {{ areaDisplayName(area) }}
-              <!--
-                A second trailing affordance beside remove. Anyone who works from the chips rather than
-                the checklist would otherwise have no sight of what is quiet.
-
-                value is the STORED name, which is what Poracle keys a quiet period on; subject is the
-                published name, which is what the reader is shown. They differ in case and must not be
-                collapsed into one.
-              -->
-              @if (isSaved(area)) {
-                <app-quiet-chip appearance="trailing" scope="area" [value]="area" [subject]="areaDisplayName(area)" />
-              }
-              <button matChipRemove [attr.aria-label]="'COMMON.REMOVE_NAMED' | translate: { name: areaDisplayName(area) }">
-                <mat-icon>cancel</mat-icon>
-              </button>
-            </mat-chip>
-          }
-        </mat-chip-set>
-      </section>
     }
 
     <!--

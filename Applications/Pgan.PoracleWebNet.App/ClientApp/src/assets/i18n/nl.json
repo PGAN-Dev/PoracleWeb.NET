@@ -868,7 +868,7 @@
     "CLEAR_PIN_CONFIRM_UNKNOWN": "Meldingen met een straal rond je locatie werken niet meer tot je een nieuwe locatie instelt.",
     "CHANGE_LOCATION": "Wijzigen",
     "SET_LOCATION": "Instellen",
-    "METHOD_NOTE": "Elk alarm kiest één methode in het Bezorging tabblad.",
+    "METHOD_NOTE": "Elk alarm kiest gebieden of een straal in het Bezorging tabblad.",
     "NOTIFICATION_LANGUAGE": "Meldingstaal",
     "NOTIFICATION_LANGUAGE_DESC": "De taal die Poracle gebruikt voor je meldingsteksten en Pokémon-namen. Dit staat los van de weergavetaal in het bovenste menu.",
     "SNACK_LANGUAGE_UPDATED": "Meldingstaal bijgewerkt",

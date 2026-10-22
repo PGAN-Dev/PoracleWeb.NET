@@ -868,7 +868,7 @@
     "CLEAR_PIN_CONFIRM_UNKNOWN": "Alerts with a radius around your pin stop matching until you set a new pin.",
     "CHANGE_LOCATION": "Change",
     "SET_LOCATION": "Set",
-    "METHOD_NOTE": "Each alarm chooses one method in its Delivery tab.",
+    "METHOD_NOTE": "Each alarm chooses areas or a radius in its Delivery tab.",
     "NOTIFICATION_LANGUAGE": "Notification language",
     "NOTIFICATION_LANGUAGE_DESC": "The language Poracle uses for your alert messages and Pokémon names. This is separate from the display language in the top menu.",
     "SNACK_LANGUAGE_UPDATED": "Notification language updated",

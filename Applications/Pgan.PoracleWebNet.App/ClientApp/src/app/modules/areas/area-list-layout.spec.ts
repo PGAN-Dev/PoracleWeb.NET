@@ -95,6 +95,15 @@ describe('AreaListComponent map-first layout', () => {
     expect(panel?.querySelector('app-places-section')).not.toBeNull();
   });
 
+  it('puts the selected areas above the checklist in List view, not after it', () => {
+    const { component, el, fixture } = setup();
+    component.viewMode.set('list');
+    fixture.detectChanges();
+
+    expect(el.querySelectorAll('.selected-chips')).toHaveLength(1);
+    expect(before(el.querySelector('.selected-chips'), el.querySelector('.area-checklist'))).toBe(true);
+  });
+
   it('draws the named places on the map', () => {
     const { fixture } = setup();
 
