@@ -5,7 +5,7 @@
     <mat-tab>
       <ng-template mat-tab-label>
         <mat-icon>shield</mat-icon>
-        <span class="tab-label">{{ 'RAIDS.TAB_SELECTION' | translate }}</span>
+        <span class="tab-label">{{ 'NAV.RAIDS' | translate }}</span>
       </ng-template>
       <div class="tab-content">
         <mat-form-field appearance="outline" class="full-width">
@@ -78,7 +78,7 @@
     <mat-tab>
       <ng-template mat-tab-label>
         <mat-icon>notifications</mat-icon>
-        <span class="tab-label">{{ 'RAIDS.TAB_DELIVERY' | translate }}</span>
+        <span class="tab-label">{{ 'ALARM.TAB_DELIVERY' | translate }}</span>
       </ng-template>
       <div class="tab-content">
         <app-scope-picker [(scope)]="scope" [(radiusValid)]="radiusValid" />
@@ -90,9 +90,12 @@
           [value]="commonForm.controls.template.value ?? ''"
           (valueChange)="commonForm.controls.template.setValue($event)">
         </app-template-selector>
-
-        <mat-slide-toggle [formControl]="commonForm.controls.clean"> {{ 'ALARM.CLEAN_MODE' | translate }} </mat-slide-toggle>
-        <p class="clean-hint">{{ 'ALARM.CLEAN_HINT_RAID' | translate }}</p>
+        <div class="message-row">
+          <div class="message-option">
+            <mat-slide-toggle [formControl]="commonForm.controls.clean"> {{ 'ALARM.CLEAN_MODE' | translate }} </mat-slide-toggle>
+            <p class="clean-hint">{{ 'ALARM.CLEAN_HINT_RAID' | translate }}</p>
+          </div>
+        </div>
       </div>
     </mat-tab>
   </mat-tab-group>

@@ -5,7 +5,7 @@
     <mat-tab>
       <ng-template mat-tab-label>
         <mat-icon>fitness_center</mat-icon>
-        <span class="tab-label">{{ 'GYMS.TAB_TEAMS' | translate }}</span>
+        <span class="tab-label">{{ 'NAV.GYMS' | translate }}</span>
       </ng-template>
       <div class="tab-content">
         <h4>{{ 'GYMS.TAB_TEAMS' | translate }}</h4>
@@ -35,7 +35,7 @@
     <mat-tab>
       <ng-template mat-tab-label>
         <mat-icon>notifications</mat-icon>
-        <span class="tab-label">{{ 'POKEMON.TAB_DELIVERY' | translate }}</span>
+        <span class="tab-label">{{ 'ALARM.TAB_DELIVERY' | translate }}</span>
       </ng-template>
       <div class="tab-content">
         <app-scope-picker [(scope)]="scope" [(radiusValid)]="radiusValid" />
@@ -44,8 +44,12 @@
           [alarmType]="'gym'"
           [value]="form.controls.template.value ?? ''"
           (valueChange)="form.controls.template.setValue($event)"></app-template-selector>
-        <mat-slide-toggle [formControl]="form.controls.clean"> {{ 'ALARM.CLEAN_MODE' | translate }} </mat-slide-toggle>
-        <p class="clean-hint">{{ 'ALARM.CLEAN_HINT_GYM' | translate }}</p>
+        <div class="message-row">
+          <div class="message-option">
+            <mat-slide-toggle [formControl]="form.controls.clean"> {{ 'ALARM.CLEAN_MODE' | translate }} </mat-slide-toggle>
+            <p class="clean-hint">{{ 'ALARM.CLEAN_HINT_GYM' | translate }}</p>
+          </div>
+        </div>
       </div>
     </mat-tab>
   </mat-tab-group>

@@ -25,10 +25,6 @@ mat-dialog-content {
 .form-row mat-form-field {
   flex: 1;
 }
-.form-row.triple mat-form-field {
-  flex: 1;
-  min-width: 0;
-}
 .full-width {
   width: 100%;
 }
@@ -57,9 +53,8 @@ h4 {
     margin-top: 0;
   }
   color: var(--text-muted, rgba(0, 0, 0, 0.64));
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-size: 14px;
+  font-weight: 600;
 }
 mat-slide-toggle {
   margin: 16px 0;

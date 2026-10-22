@@ -30,7 +30,7 @@
         <span class="tab-label">{{ 'POKEMON.TAB_FILTERS' | translate }}</span>
       </ng-template>
       <div class="tab-content">
-        <h4>{{ 'POKEMON.FILTER_IV_CP_LEVEL' | translate }}</h4>
+        <h4>{{ 'POKEMON.FILTER_IV_RANGE' | translate }}</h4>
         <div class="form-row">
           <mat-form-field appearance="outline">
             <mat-label>{{ 'POKEMON.LABEL_MIN_IV' | translate }}</mat-label>
@@ -44,6 +44,7 @@
         <mat-slide-toggle [formControl]="form.controls.includeUnscanned"> {{ 'POKEMON.INCLUDE_UNSCANNED' | translate }} </mat-slide-toggle>
         <p class="clean-hint">{{ 'POKEMON.INCLUDE_UNSCANNED_HINT' | translate }}</p>
 
+        <h4>{{ 'POKEMON.FILTER_CP_LEVEL' | translate }}</h4>
         <div class="form-row">
           <mat-form-field appearance="outline">
             <mat-label>{{ 'POKEMON.LABEL_MIN_CP' | translate }}</mat-label>
@@ -66,7 +67,7 @@
           </mat-form-field>
         </div>
 
-        <h4>{{ 'POKEMON.FILTER_STATS_SECTION' | translate }}</h4>
+        <h4>{{ 'POKEMON.FILTER_STATS' | translate }}</h4>
         <div class="form-row">
           <mat-form-field appearance="outline">
             <mat-label>{{ 'POKEMON.LABEL_MIN_ATK' | translate }}</mat-label>
@@ -220,7 +221,7 @@
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>{{ 'POKEMON.PVP_LEAGUE' | translate }}</mat-label>
           <mat-select [formControl]="form.controls.pvpRankingLeague">
-            <mat-option [value]="0">{{ 'POKEMON.PVP_NONE_EDIT' | translate }}</mat-option>
+            <mat-option [value]="0">{{ 'POKEMON.PVP_NONE' | translate }}</mat-option>
             <mat-option [value]="500">{{ 'POKEMON.PVP_LITTLE_CUP_SHORT' | translate }}</mat-option>
             <mat-option [value]="1500">{{ 'POKEMON.PVP_GREAT_LEAGUE_SHORT' | translate }}</mat-option>
             <mat-option [value]="2500">{{ 'POKEMON.PVP_ULTRA_LEAGUE_SHORT' | translate }}</mat-option>
@@ -283,7 +284,7 @@
     <mat-tab>
       <ng-template mat-tab-label>
         <mat-icon>notifications</mat-icon>
-        <span class="tab-label">{{ 'POKEMON.TAB_DELIVERY' | translate }}</span>
+        <span class="tab-label">{{ 'ALARM.TAB_DELIVERY' | translate }}</span>
       </ng-template>
       <div class="tab-content">
         <app-scope-picker [(scope)]="scope" [(radiusValid)]="radiusValid" [storedRadiusKm]="storedRadiusKm" />
@@ -295,15 +296,18 @@
           [value]="form.controls.template.value ?? ''"
           (valueChange)="form.controls.template.setValue($event)">
         </app-template-selector>
-
-        <mat-slide-toggle [formControl]="form.controls.clean"> {{ 'ALARM.CLEAN_MODE' | translate }} </mat-slide-toggle>
-        <p class="clean-hint">{{ 'ALARM.CLEAN_HINT_POKEMON' | translate }}</p>
-
-        @if (editSupported()) {
-          <mat-slide-toggle [formControl]="form.controls.editInPlace"> {{ 'POKEMON.EDIT_MODE' | translate }} </mat-slide-toggle>
-          <p class="clean-hint">{{ 'POKEMON.EDIT_HINT' | translate }}</p>
-        }
-
+        <div class="message-row">
+          <div class="message-option">
+            <mat-slide-toggle [formControl]="form.controls.clean"> {{ 'ALARM.CLEAN_MODE' | translate }} </mat-slide-toggle>
+            <p class="clean-hint">{{ 'ALARM.CLEAN_HINT_POKEMON' | translate }}</p>
+          </div>
+          @if (editSupported()) {
+            <div class="message-option">
+              <mat-slide-toggle [formControl]="form.controls.editInPlace"> {{ 'POKEMON.EDIT_MODE' | translate }} </mat-slide-toggle>
+              <p class="clean-hint">{{ 'POKEMON.EDIT_HINT' | translate }}</p>
+            </div>
+          }
+        </div>
         @if (isWebhook) {
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>{{ 'ALARM.MENTION_LABEL' | translate }}</mat-label>

@@ -77,9 +77,8 @@ h4 {
   // 16px left a two-line hint touching the next heading with no gap at all; see the add dialog.
   margin: 24px 0 8px;
   color: var(--text-muted, rgba(0, 0, 0, 0.64));
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-size: 14px;
+  font-weight: 600;
 }
 mat-slide-toggle {
   margin: 16px 0;
