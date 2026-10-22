@@ -66,9 +66,8 @@ internal static class PoracleJsonHelper
     /// <remarks>
     /// <c>description</c> is PoracleNG's own rendering of the rule, handed back on every read. No
     /// tracking table has a column for it, so sending it back is at best ignored -- and it travels on
-    /// three separate write paths, because <see cref="PreserveUnmodelled"/> and
-    /// <see cref="RewriteRows"/> both copy stored properties through verbatim. Stripping it here covers
-    /// all three at once. See #810.
+    /// more than one write path, because <see cref="PreserveUnmodelled"/> copies stored properties
+    /// through verbatim. Stripping it here covers them all at once. See #810.
     /// </remarks>
     private static bool ShouldStrip(JsonProperty prop) =>
         prop.NameEquals("profile_no") ||
@@ -153,93 +152,6 @@ internal static class PoracleJsonHelper
 
 
     /// <summary>
-    /// Rewrites stored rows for a write-back, changing only the named properties and passing every
-    /// other property through byte-for-byte.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// The bulk paths used to deserialize into the typed alarm model, mutate one field and serialize the
-    /// model again. That silently dropped every property PoracleWeb does not model, and because the POST
-    /// carries a uid PoracleNG upserts the row — so the dropped values were not orphaned, they were
-    /// erased. PoracleNG 5.1.0 added <c>override_location_label</c>, <c>override_areas</c> and
-    /// <c>pvp_ranking_evolution</c>; 5.2.0 adds <c>costume</c>. Enumerating them here would only work
-    /// until the next one lands, so nothing is enumerated: the stored row is the source of truth and the
-    /// caller states the few properties it means to change. See #730.
-    /// </para>
-    /// <para>
-    /// The same uid/profile_no stripping as <see cref="SerializeToElement{T}"/> applies, so a rewritten
-    /// row lands on the live active profile rather than a stale one. See #411.
-    /// </para>
-    /// </remarks>
-    /// <param name="rows">The array PoracleNG returned from a tracking read.</param>
-    /// <param name="include">Rows to write back. Rows it rejects are left out of the result entirely.</param>
-    /// <param name="changes">Properties to set. A name the row does not carry is appended.</param>
-    public static JsonElement RewriteRows(
-        JsonElement rows,
-        Func<JsonElement, bool> include,
-        params (string Name, int Value)[] changes)
-    {
-        if (rows.ValueKind != JsonValueKind.Array)
-        {
-            return EmptyArray;
-        }
-
-        using var stream = new MemoryStream();
-        using (var writer = new Utf8JsonWriter(stream))
-        {
-            writer.WriteStartArray();
-            foreach (var row in rows.EnumerateArray())
-            {
-                if (row.ValueKind != JsonValueKind.Object || !include(row))
-                {
-                    continue;
-                }
-
-                WriteRowWithChanges(writer, row, changes);
-            }
-
-            writer.WriteEndArray();
-        }
-
-        return JsonDocument.Parse(stream.ToArray()).RootElement.Clone();
-    }
-
-    private static void WriteRowWithChanges(
-        Utf8JsonWriter writer, JsonElement row, (string Name, int Value)[] changes)
-    {
-        writer.WriteStartObject();
-        var written = new HashSet<string>(StringComparer.Ordinal);
-
-        foreach (var prop in row.EnumerateObject())
-        {
-            if (ShouldStrip(prop))
-            {
-                continue;
-            }
-
-            var change = Array.FindIndex(changes, c => string.Equals(c.Name, prop.Name, StringComparison.Ordinal));
-            if (change >= 0)
-            {
-                writer.WriteNumber(changes[change].Name, changes[change].Value);
-                written.Add(prop.Name);
-                continue;
-            }
-
-            prop.WriteTo(writer);
-        }
-
-        foreach (var (name, value) in changes)
-        {
-            if (written.Add(name))
-            {
-                writer.WriteNumber(name, value);
-            }
-        }
-
-        writer.WriteEndObject();
-    }
-
-    /// <summary>
     /// Reads the uid of a row PoracleNG returned, or null when it carries none.
     /// </summary>
     public static int? UidOf(JsonElement row) =>
@@ -251,7 +163,7 @@ internal static class PoracleJsonHelper
 
     /// <summary>
     /// Adds back every property the stored row carries that the written body does not state, so a
-    /// single-alarm edit preserves fields the caller had no value for. See <see cref="RewriteRows"/>.
+    /// single-alarm edit preserves fields the caller had no value for. See #730.
     /// </summary>
     /// <remarks>
     /// <para>

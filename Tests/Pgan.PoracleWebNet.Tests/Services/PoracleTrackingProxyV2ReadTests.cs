@@ -338,6 +338,63 @@ public class PoracleTrackingProxyV2ReadTests
     }
 
     [Fact]
+    public async Task ActiveProfileRulesTheSnapshotAlreadyCarriesAreNotAppendedTwice()
+    {
+        // jfberry/PoracleNG#331: all_profiles also returns the rules of an active profile with no profiles row,
+        // profile_no and all. The second read still runs for older servers and must not add them again.
+        var handler = new Router()
+            .On("all_profiles=true", """
+                {"human":{"current_profile_no":1},
+                 "profiles":[{"uid":2,"id":"user1","profile_no":2,"name":"b","area":[],"latitude":0,"longitude":0,"active_hours":[]}],
+                 "tracking":{"pokemon":[{"uid":5,"profile_no":1,"pokemon_id":25},{"uid":6,"profile_no":2,"pokemon_id":26}],
+                             "invasion":[{"uid":9,"profile_no":1,"grunt_type":"water"}],
+                             "incident":[{"uid":9,"profile_no":1,"display_type":8}]}}
+                """)
+            .On("/tracking?include_descriptions=true", """
+                {"human":{"current_profile_no":1},
+                 "tracking":{"pokemon":[{"uid":5,"pokemon_id":25}],
+                             "invasion":[{"uid":9,"grunt_type":"water"}],
+                             "incident":[{"uid":9,"display_type":8}]}}
+                """);
+
+        var all = await CreateSut(handler).GetAllTrackingAllProfilesAsync("user1");
+
+        Assert.Equal(2, handler.Requests.Count);
+        Assert.Equal([5, 6], all.GetProperty("pokemon").EnumerateArray().Select(r => r.GetProperty("uid").GetInt32()));
+        Assert.Equal(
+            ["water", "kecleon"],
+            all.GetProperty("invasion").EnumerateArray().Select(r => r.GetProperty("grunt_type").GetString()));
+    }
+
+    [Fact]
+    public async Task AnAppendedRuleSharingAUidWithAnotherTypeIsKept()
+    {
+        // uids are per table. Pokemon 5 and invasion 9 on profile 0 say nothing about incident 5 or incident 9
+        // on the active profile, even though incident rules land in the same invasion list.
+        var handler = new Router()
+            .On("all_profiles=true", """
+                {"human":{"current_profile_no":1},
+                 "profiles":[{"uid":1,"id":"user1","profile_no":0,"name":"a","area":[],"latitude":0,"longitude":0,"active_hours":[]}],
+                 "tracking":{"pokemon":[{"uid":5,"profile_no":0,"pokemon_id":25}],
+                             "invasion":[{"uid":9,"profile_no":0,"grunt_type":"water"}]}}
+                """)
+            .On("/tracking?include_descriptions=true", """
+                {"human":{"current_profile_no":1},
+                 "tracking":{"incident":[{"uid":5,"display_type":8},{"uid":9,"display_type":7}]}}
+                """);
+
+        var all = await CreateSut(handler).GetAllTrackingAllProfilesAsync("user1");
+
+        var invasion = all.GetProperty("invasion").EnumerateArray()
+            .Select(r => (r.GetProperty("uid").GetInt32(), r.GetProperty("grunt_type").GetString(), r.GetProperty("profile_no").GetInt32()))
+            .ToList();
+        Assert.Contains((5, "kecleon", 1), invasion);
+        Assert.Contains((9, "water", 0), invasion);
+        Assert.Equal(3, invasion.Count);
+        Assert.Single(all.GetProperty("pokemon").EnumerateArray());
+    }
+
+    [Fact]
     public async Task AnUnknownTypeThrowsBeforeAnyRequest()
     {
         var handler = new Router();

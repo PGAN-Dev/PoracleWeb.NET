@@ -59,6 +59,9 @@ public sealed partial class PoracleIncidentProxy(
 
     private async Task<PokestopEventWriteResult> ReplaceCoreAsync(string userId, int uid, PokestopEvent rule, int? profileNo)
     {
+        // uid 0 is an insert, which v2's uid-addressed PUT cannot express.
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(uid);
+
         var trusted = await this.AuthoriseOverrideAreasAsync(
             userId, [rule], () => this.StoredOverrideAreasAsync(userId, uid, profileNo));
         var response = await this.SendAsync(
@@ -182,6 +185,13 @@ public sealed partial class PoracleIncidentProxy(
             writer.WriteStartArray();
             foreach (var area in rule.OverrideAreas ?? [])
             {
+                // A blank name names no fence and is never put to the area policy, so it does not ride a
+                // trusted write either.
+                if (string.IsNullOrWhiteSpace(area))
+                {
+                    continue;
+                }
+
                 writer.WriteStringValue(area);
             }
 
@@ -348,8 +358,8 @@ public sealed partial class PoracleIncidentProxy(
 
         if (response.StatusCode == HttpStatusCode.Conflict)
         {
-            // v2 refuses a replacement that would exactly duplicate another rule. To the user that is the
-            // same thing as a takeover: another alarm already holds those settings.
+            // v2 refuses a replacement that would duplicate another rule, exactly or one updatable field away.
+            // To the user that is the same thing as a takeover: another alarm already holds those settings.
             throw new TrackingConflictException("incident", PoracleTrackingProxy.TakeoverMessage);
         }
 

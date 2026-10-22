@@ -187,7 +187,7 @@ public sealed partial class RuleRepairJob(IServiceScopeFactory scopes, ILogger<R
                 new ParallelOptions { MaxDegreeOfParallelism = MaxHumansInFlight, CancellationToken = abort.Token },
                 async (index, _) =>
                 {
-                    results[index] = await this.ScanHumanAsync(ids[index], abort);
+                    results[index] = await NamingTheHumanAsync(ids[index], abort, () => this.ScanHumanAsync(ids[index], abort));
                     this.Update(s => s with { HumansDone = s.HumansDone + 1 });
                 });
 
@@ -334,7 +334,9 @@ public sealed partial class RuleRepairJob(IServiceScopeFactory scopes, ILogger<R
                 new ParallelOptions { MaxDegreeOfParallelism = MaxHumansInFlight, CancellationToken = abort.Token },
                 async (index, _) =>
                 {
-                    tallies[index] = await this.ApplyHumanAsync(byHuman[index].Key, byHuman[index].ToList(), abort);
+                    var humanId = byHuman[index].Key;
+                    tallies[index] = await NamingTheHumanAsync(
+                        humanId, abort, () => this.ApplyHumanAsync(humanId, byHuman[index].ToList(), abort));
                     this.Update(s => s with { HumansDone = s.HumansDone + 1 });
                 });
 
@@ -451,6 +453,36 @@ public sealed partial class RuleRepairJob(IServiceScopeFactory scopes, ILogger<R
 
         return tally;
     }
+
+    /// <summary>
+    /// Runs one human's work and, when something unexpected fails the run there, says whose rules were being
+    /// processed. <see cref="PoracleUnsupportedException"/> is about the server, not the human, and a stopped
+    /// run has its own message, so both pass through as they are.
+    /// </summary>
+    private static async Task<T> NamingTheHumanAsync<T>(string humanId, CancellationTokenSource abort, Func<Task<T>> run)
+    {
+        try
+        {
+            return await run();
+        }
+        catch (Exception ex) when (!abort.IsCancellationRequested && ex is not (PoracleUnsupportedException or OperationCanceledException))
+        {
+            throw new RuleRepairHumanFailedException(HumanLabel(humanId), ex);
+        }
+    }
+
+    /// <summary>
+    /// How a human is named in a failure the admin page shows. A webhook's id is its URL, which carries its
+    /// token, so it is never printed.
+    /// </summary>
+    internal static string HumanLabel(string humanId) =>
+        Uri.TryCreate(humanId, UriKind.Absolute, out var uri) && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
+            ? "a webhook"
+            : $"user {humanId}";
+
+    /// <summary>An unexpected failure while processing one human, which fails the whole run.</summary>
+    private sealed class RuleRepairHumanFailedException(string human, Exception inner)
+        : Exception($"{inner.Message} (while processing {human})", inner);
 
     /// <summary>
     /// Failures that belong to one rule (or one human's read). <see cref="PoracleUnsupportedException"/> and

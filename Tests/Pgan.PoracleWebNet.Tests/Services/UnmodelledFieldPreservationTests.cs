@@ -169,11 +169,9 @@ public class UnmodelledFieldPreservationTests
         Assert.Empty(this._sent);
     }
 
-    // The four edit tests below are the four distinct shapes UpdateAsync takes. Pokemon writes straight
-    // through; raid, egg, quest, nest, gym and fort share the reconciler shape verbatim; invasion and
-    // lure share the natural-key replace; maxbattle deletes then re-creates. The preservation call is
-    // the same line in all ten, so one test per shape covers the wiring without ten near-identical
-    // fixtures, each of which would have to satisfy that type's own natural-key guard.
+    // Every edit is one v2 PUT addressed by uid: pokemon calls the proxy directly and the other nine go
+    // through TrackingV2Replacement. The preservation call is the same line in all ten, so a few
+    // representative types cover the wiring without ten near-identical fixtures.
 
     [Fact]
     public async Task EditKeepsUnmodelledFieldsOnPokemon()

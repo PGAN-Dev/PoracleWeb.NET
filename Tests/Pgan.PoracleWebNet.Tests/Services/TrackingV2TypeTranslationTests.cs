@@ -10,9 +10,9 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 /// <remarks>
 /// <para>
 /// Every <c>V2*Rule</c> sets <c>additionalProperties: false</c>, so a field the table leaks is a 422 and a
-/// field the table misses is a value quietly sent to v1 forever. Both failures are invisible at runtime,
-/// because the fallback catches them and the write still succeeds — which is exactly why they need a test
-/// that reads the schema rather than the translator.
+/// field the table misses is a value the translator cannot state, so the write is refused. Neither shows up
+/// until a user's edit fails on it, which is why they need a test that reads the schema rather than the
+/// translator.
 /// </para>
 /// <para>
 /// <c>V2Schema</c> is the property list of each <c>V2*Rule</c>, read from the PoracleNG 5.4.0
@@ -217,7 +217,7 @@ public class TrackingV2TypeTranslationTests
         Assert.False(
             TrackingV2Translator.TryTranslate(
                 "fort", Row("""{"fort_type":"gym","distance":0}"""), ServerDoesNotBoundAnything, out _, out var unsupported),
-            "A fort row with no include_empty cannot be sent faithfully and must fall back to v1.");
+            "A fort row with no include_empty cannot be sent faithfully, so the translator must decline it.");
         Assert.Contains("include_empty", unsupported, StringComparison.Ordinal);
     }
 

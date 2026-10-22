@@ -179,23 +179,4 @@ public class AlarmDescriptionPassthroughTests
         this._proxy.Verify(
             p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
     }
-
-    [Fact]
-    public async Task TheCollisionGuardIsBlindToTheDescription()
-    {
-        // The reconciler compares submitted against stored field by field. A description present on one
-        // side only would read as a difference -- either refusing a legitimate edit (#553) or hiding a
-        // real collision (#561). It is listed in AssignedByPoracle/IgnoredForNoOp; this pins that.
-        this._proxy.Setup(p => p.GetByUserAsync("pokemon", "user1")).ReturnsAsync(StoredRow(7, LiveDescription));
-        this._proxy
-            .Setup(p => p.CreateAsync("pokemon", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([], 0, 0, 0));
-
-        // Same row, same values: a no-op edit, which must be allowed rather than read as a collision.
-        var exception = await Record.ExceptionAsync(() => this._monsters.UpdateAsync(
-            "user1",
-            new Monster { Uid = 7, Id = "user1", PokemonId = 25, Distance = 5000, MinIv = 90, Template = "1" }));
-
-        Assert.Null(exception);
-    }
 }

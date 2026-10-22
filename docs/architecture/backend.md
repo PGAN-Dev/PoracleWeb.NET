@@ -26,7 +26,7 @@ Creates and edits both go to PoracleNG's `/api/v2` and nowhere else. There is no
 
 An edit is `PUT /api/v2/humans/{id}/tracking/{type}/{uid}`, a **full replace**: a field left out of the body is reset to its default. The body is built by serializing the typed model, so every column PoracleWeb has no property for would arrive absent. `TrackingFieldPreserver.PreserveStoredFieldsAsync` runs first on every update: it re-reads the stored row and copies across any property the submitted body lacks. Before it existed, editing an alarm on the web reset `override_location_label`, `override_areas` and `pvp_ranking_evolution` set from the bot (#730). A read failure returns the body untouched rather than failing the edit.
 
-PoracleNG answers 409 for an edit that would duplicate another rule or change exactly one updatable field of it, and the proxy turns that into the takeover message. Services keep no copy of PoracleNG's diff any more. The PUT is delete-then-insert, so on 5.2.x the uid rotates on edit (since jfberry/PoracleNG #303 it is kept unless the server's reassignment fails, so the response is always read) and `ITrackedUidRemapper` moves quick-pick applied state to the new one whenever it does change. See [The v2 write path](poracleng-proxy.md#the-v2-write-path).
+PoracleNG answers 409 for an edit that would duplicate another rule or change exactly one updatable field of it, and the proxy turns that into the takeover message. Services keep no copy of PoracleNG's diff any more. The PUT keeps the rule's uid on 5.4.0 (jfberry/PoracleNG #303) unless the server's reassignment fails, so the response is always read, and `ITrackedUidRemapper` moves quick-pick applied state to the new uid whenever it does change. See [The v2 write path](poracleng-proxy.md#the-v2-write-path).
 
 ## Repository layer (non-alarm entities)
 
@@ -83,7 +83,7 @@ PoracleNG accepts any positive integer as a raid/egg level, so the picker's `+ A
 
 ## Fort change and Max Battle services
 
-`FortChangeService` and `MaxBattleService` follow the same `IPoracleTrackingProxy` pattern as all other alarm services. They proxy CRUD operations through PoracleNG's tracking endpoints with no direct database access. Each has the standard three distance endpoints (`PUT /{uid}`, `PUT /distance`, `PUT /distance/bulk`).
+`FortChangeService` and `MaxBattleService` follow the same `IPoracleTrackingProxy` pattern as all other alarm services. They proxy CRUD operations through PoracleNG's tracking endpoints. Each has the standard three distance endpoints (`PUT /{uid}`, `PUT /distance`, `PUT /distance/bulk`).
 
 ## Invasion service
 
@@ -245,7 +245,7 @@ The Pokéstop event proxy (`PoracleIncidentProxy`) does the same for its own rou
 
 ## Location
 
-`LocationController` uses `IPoracleHumanProxy.SetLocationAsync()` to set the user's location. No direct DB access or transactions are needed -- PoracleNG handles the write and state reload atomically.
+`LocationController` uses `IPoracleHumanProxy.SetLocationAsync()` to set the user's location. PoracleNG handles the write and state reload atomically, so there's no transaction to manage here.
 
 ### Saved places
 
@@ -271,7 +271,7 @@ A label is what an alarm's `override_location_label` refers to. The whole contro
 | `UpstreamFeatureFlagService` | Scoped | Resolves Poracle's own per-type disable flags into `disable_*` keys, cached 5 min; fails open |
 
 !!! info "DashboardService uses the proxy"
-    `DashboardService` calls `IPoracleTrackingProxy.GetAllTrackingAsync()` to fetch all alarm types in a single API call, then counts each type from the response. No direct DB queries.
+    `DashboardService` calls `IPoracleTrackingProxy.GetAllTrackingAsync()` to fetch all alarm types in a single API call, then counts each type from the response.
 
 ## Profiles
 

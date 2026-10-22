@@ -638,7 +638,7 @@ internal static partial class StartupLog
 
 internal static class LegacyPoracleDbSettings
 {
-    private static readonly string[] Variables = ["DB_HOST", "DB_PORT", "DB_NAME", "DB_USER", "DB_PASSWORD"];
+    private static readonly string[] Variables = ["DB_HOST", "DB_PORT", "DB_NAME", "DB_USER", "DB_PASSWORD"]; // legacy-db-setting-detection
 
     // The one deliberate mention of the retired connection string, so an install still carrying it is told.
     // NoPoracleDatabaseTests allows exactly this marker, in this file only.

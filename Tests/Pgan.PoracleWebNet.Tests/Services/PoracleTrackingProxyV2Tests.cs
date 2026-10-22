@@ -194,8 +194,8 @@ public class PoracleTrackingProxyV2Tests
     [Fact]
     public async Task Update409MapsToTakeoverMessage()
     {
-        // v2 refuses a replacement that exactly duplicates another rule. The user is told what an Add next to
-        // that rule is told, in the same words.
+        // v2 refuses a replacement that duplicates another rule, exactly or one updatable field away. The user
+        // is told what an Add next to that rule is told, in the same words.
         var handler = ScriptedHandler.Problem(
             HttpStatusCode.Conflict,
             """{"title":"Conflict","status":409,"detail":"an identical rule already exists (uid 36488)"}""");

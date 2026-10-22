@@ -35,6 +35,7 @@ public partial class PoracleTrackingProxy
     {
         // uid 0 is an insert, which v2's uid-addressed PUT cannot express.
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(uid);
+        body = OverrideScope.WithoutBlankAreas(body);
 
         var translated = await this.TranslateAllAsync(type, [body]);
         var trusted = await this.AuthoriseOverrideAreasAsync(
@@ -107,6 +108,7 @@ public partial class PoracleTrackingProxy
     {
         var single = body.ValueKind != JsonValueKind.Array;
         List<JsonElement> rows = single ? [body] : [.. body.EnumerateArray()];
+        rows = [.. rows.Select(OverrideScope.WithoutBlankAreas)];
         if (rows.Count == 0)
         {
             return new TrackingCreateResult([], 0, 0, 0, []);
@@ -203,8 +205,10 @@ public partial class PoracleTrackingProxy
                 rowUids[keep[k]] = created[k];
             }
         }
-        else
+        else if (created.Count > 0 || commit.Unchanged.Count + commit.Updated.Count != keep.Count)
         {
+            // Nothing created and every kept row accounted for (a single create that a concurrent write made
+            // identical, say) leaves nothing to pair, so there is nothing to warn about.
             LogCreateUnpaired(this._logger, type, userId, keep.Count, created.Count);
         }
 
@@ -555,8 +559,8 @@ public partial class PoracleTrackingProxy
                 throw new TrackingRuleNotFoundException(type, PoracleProblemDetails.Describe(payload));
 
             case HttpStatusCode.Conflict:
-                // v2 refuses a replacement that would exactly duplicate another rule. To the user that is the
-                // same thing as a takeover: another alarm already holds those settings.
+                // v2 refuses a replacement that would duplicate another rule, exactly or one updatable field
+                // away. To the user that is the same thing as a takeover: another alarm already holds those settings.
                 throw new TrackingConflictException(type, TakeoverMessage);
 
             case HttpStatusCode.UnprocessableEntity:

@@ -168,6 +168,54 @@ public class PoracleIncidentProxyTests
     }
 
     [Fact]
+    public async Task ABlankOverrideAreaNameDoesNotRideTheTrustedWrite()
+    {
+        var policy = new Mock<IUserAreaPolicy>();
+        var handler = new Handler(new Reply(HttpStatusCode.OK, CreatedOk));
+
+        await CreateSut(handler, policy.Object).CreateAsync("u1", [
+            new PokestopEvent { DisplayType = PokestopEventTypes.Showcase, OverrideAreas = ["my fence", "  ", ""] },
+        ]);
+
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal($"{Route}?silent=true&trusted=true", request.Url);
+        using var body = JsonDocument.Parse(request.Body!);
+        var areas = body.RootElement[0].GetProperty("override_areas").EnumerateArray().Select(a => a.GetString()).ToList();
+        Assert.Equal(["my fence"], areas);
+        policy.Verify(
+            p => p.EnsureOverrideAreasAllowedAsync(
+                "u1", It.Is<IReadOnlyCollection<string>>(n => n.Count == 1 && n.Contains("my fence")), null),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ACreateKeepsItsPingAndPlaceLabel()
+    {
+        var handler = new Handler(new Reply(HttpStatusCode.OK, CreatedOk));
+
+        await CreateSut(handler).CreateAsync("u1", [
+            new PokestopEvent { DisplayType = 9, Distance = 500, Ping = "<@&1>", OverrideLocationLabel = "home" },
+        ]);
+
+        using var body = JsonDocument.Parse(Assert.Single(handler.Requests).Body!);
+        var rule = Assert.Single(body.RootElement.EnumerateArray());
+        Assert.Equal("<@&1>", rule.GetProperty("ping").GetString());
+        Assert.Equal("home", rule.GetProperty("override_location_label").GetString());
+        Assert.Equal(500, rule.GetProperty("distance").GetInt32());
+    }
+
+    [Fact]
+    public async Task AReplaceWithoutAUidIsRefusedBeforeAnyRequest()
+    {
+        var handler = new Handler(new Reply(HttpStatusCode.OK, CreatedOk));
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => CreateSut(handler).ReplaceAsync("u1", 0, new PokestopEvent { DisplayType = 9 }));
+
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
     public async Task ACreateWithoutOverrideAreasIsNotTrustedAndAsksNoPolicy()
     {
         var policy = new Mock<IUserAreaPolicy>(MockBehavior.Strict);

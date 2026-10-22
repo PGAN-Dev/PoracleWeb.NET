@@ -39,12 +39,12 @@ All eleven types take a uid-addressed replace: the rule is swapped in one call r
 deleted and re-created, so there is no window in which the alarm does not exist. Lure and max battle
 edits used to have exactly that window and no longer do.
 
-!!! note "An edit can give the alarm a new internal id"
-    On PoracleNG 5.2.x the replace re-keys the row, so it comes back under a new `uid`. Builds carrying
-    jfberry/PoracleNG#303 normally keep the id. Either way this is invisible in normal use —
-    the card, its filters and its scope are all unchanged — and [Quick Pick](#quick-picks) applied
-    state is remapped to follow the new id, so a pick's remove button keeps working on a rule you have
-    since edited. The card also stays where it was in the grid; see [Card order](#card-order).
+!!! note "An edit keeps the alarm's internal id"
+    PoracleNG 5.4.0 puts the replaced rule back under its old `uid`, so the card, its filters and its
+    scope are all unchanged after a save. If PoracleNG can't reassign the id it logs that and the rule
+    comes back under a new one, which is rare; [Quick Pick](#quick-picks) applied state follows the new
+    id, so a pick's remove button keeps working on a rule you have since edited. The card also stays
+    where it was in the grid; see [Card order](#card-order).
 
 ## Where an alert reaches you
 
@@ -196,15 +196,13 @@ Raids, eggs, quests, lures, nests, gyms, max battles, fort changes and Pokéstop
 grid on what the card is titled by: Pokemon and level for raids and max battles, level for eggs, reward
 for quests, lure type, species for nests, team for gyms, change type for fort changes, event type for
 Pokéstop Events. An edited card therefore stays where it was instead of jumping to the end of the grid,
-which is what it did on PoracleNG 5.2.x when the grid rendered PoracleNG's insertion order and an
-[edit re-keyed the rule](#editing-alarms). PoracleNG builds carrying jfberry/PoracleNG#303 keep the rule's
-id on an edit (no release has it yet), and the sort holds either way.
+even in the rare case where an [edit gives the rule a new id](#editing-alarms).
 
 The keys are the raw fields — dex number rather than species name, reward type rather than reward name
 — so the grid does not re-order itself once the master data arrives, and the order does not change with
 the display language. The Pokemon list already sorted itself on its own controls and is unchanged.
-Invasions are not sorted this way yet, so where an invasion edit gives the rule a new id the edited card
-can still move to the end of the grid.
+Invasions are not sorted this way yet, so in that rare case an edited invasion card can still move to the
+end of the grid.
 
 ## Bulk operations
 

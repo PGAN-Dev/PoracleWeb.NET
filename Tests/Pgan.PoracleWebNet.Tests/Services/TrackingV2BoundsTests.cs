@@ -20,8 +20,8 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 /// </para>
 /// <para>
 /// Where a bound does apply, a field is omitted only if v2's own write default is the identical value,
-/// so the row stores what it already holds. Everywhere else the row goes to v1. Verified against a live
-/// 5.2.1: omitting <c>size</c> stores -1 while sending 0 stores 0, and the server reports the two as
+/// so the row stores what it already holds. Everywhere else the write is refused: there is no v1 left to
+/// fall back to. Verified against a live 5.2.1: omitting <c>size</c> stores -1 while sending 0 stores 0, and the server reports the two as
 /// different rules, so <c>size 0</c> is refused rather than dropped.
 /// </para>
 /// </remarks>

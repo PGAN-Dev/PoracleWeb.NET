@@ -76,7 +76,7 @@ public partial class PoracleTrackingProxy
         // says otherwise: then its rules are already in the first answer and must not be added twice.
         return ListsProfile(profiles, activeNo)
             ? this.SnapshotAsV1(snapshot, userId, profiles, appended: null)
-            : this.SnapshotAsV1(snapshot, userId, profiles, (active, activeNo));
+            : this.SnapshotAsV1(snapshot, userId, profiles, (WithoutRules(active, RuleKeys(snapshot)), activeNo));
     }
 
     /// <inheritdoc />
@@ -106,7 +106,7 @@ public partial class PoracleTrackingProxy
 
         if (!ListsProfile(profiles, activeNo))
         {
-            this.CollectStoredRules(active, activeNo, rules);
+            this.CollectStoredRules(WithoutRules(active, [.. rules.Select(r => (r.Type, r.Uid))]), activeNo, rules);
         }
 
         return rules;
@@ -143,6 +143,80 @@ public partial class PoracleTrackingProxy
                 }
 
                 into.Add(new StoredRule(type, profileNo.Value, UidOf(rule), rule.Clone()));
+            }
+        }
+    }
+
+    /// <summary>
+    /// The <c>(type, uid)</c> of every rule a snapshot carries, keyed on the snapshot's own type: <c>incident</c>
+    /// stays <c>incident</c> even where the v1 shape folds it into <c>invasion</c>, because uids are per table.
+    /// </summary>
+    private static HashSet<(string Type, int Uid)> RuleKeys(JsonElement snapshot)
+    {
+        var keys = new HashSet<(string Type, int Uid)>();
+        foreach (var (type, rule) in RulesOf(snapshot))
+        {
+            keys.Add((type, UidOf(rule)));
+        }
+
+        return keys;
+    }
+
+    /// <summary>
+    /// The active-profile snapshot without the rules already collected from the all-profiles one. Since
+    /// jfberry/PoracleNG#331 that answer carries the active profile's rules too, <c>profile_no</c> and all;
+    /// older servers still need the second read, so it stays and adds only what is new. The key is the type
+    /// and the uid together, never the uid alone.
+    /// </summary>
+    private static JsonElement WithoutRules(JsonElement snapshot, HashSet<(string Type, int Uid)> collected)
+    {
+        if (collected.Count == 0
+            || snapshot.ValueKind != JsonValueKind.Object
+            || !snapshot.TryGetProperty("tracking", out var tracking)
+            || tracking.ValueKind != JsonValueKind.Object)
+        {
+            return snapshot;
+        }
+
+        var node = JsonNode.Parse(snapshot.GetRawText())!.AsObject();
+        var lists = node["tracking"]!.AsObject();
+        foreach (var (type, rules) in lists.ToList())
+        {
+            if (rules is not JsonArray array)
+            {
+                continue;
+            }
+
+            lists[type] = new JsonArray([.. array
+                .Where(r => r is not JsonObject rule
+                    || rule["uid"] is not JsonValue uid
+                    || !uid.TryGetValue<int>(out var value)
+                    || !collected.Contains((type, value)))
+                .Select(r => r?.DeepClone())]);
+        }
+
+        return JsonSerializer.SerializeToElement(node);
+    }
+
+    private static IEnumerable<(string Type, JsonElement Rule)> RulesOf(JsonElement snapshot)
+    {
+        if (snapshot.ValueKind != JsonValueKind.Object
+            || !snapshot.TryGetProperty("tracking", out var tracking)
+            || tracking.ValueKind != JsonValueKind.Object)
+        {
+            yield break;
+        }
+
+        foreach (var type in SnapshotTypes.Append("incident"))
+        {
+            if (!tracking.TryGetProperty(type, out var list) || list.ValueKind != JsonValueKind.Array)
+            {
+                continue;
+            }
+
+            foreach (var rule in list.EnumerateArray().Where(r => r.ValueKind == JsonValueKind.Object && UidOf(r) > 0))
+            {
+                yield return (type, rule);
             }
         }
     }

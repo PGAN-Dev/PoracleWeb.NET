@@ -54,7 +54,7 @@ single fire: `step` (whole hours, 1–23), `end_hours` and `end_mins`. `{"day":1
 [Active hours](backend.md#active-hours) for what is validated.
 
 !!! info "Managed by PoracleNG"
-    The `active_hours` column is part of Poracle's own schema (managed by PoracleNG) — no PoracleWeb.NET migration is needed. PoracleWeb.NET reads and writes this field through the `IPoracleHumanProxy` API, not via direct DB access.
+    The `active_hours` column is part of Poracle's own schema (managed by PoracleNG) — no PoracleWeb.NET migration is needed. PoracleWeb.NET reads and writes this field through the `IPoracleHumanProxy` API.
 
 #### Notable columns on the alarm tables
 

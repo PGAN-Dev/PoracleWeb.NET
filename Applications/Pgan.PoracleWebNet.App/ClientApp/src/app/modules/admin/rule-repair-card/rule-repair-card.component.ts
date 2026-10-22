@@ -83,6 +83,9 @@ const cap = <T>(items: T[]): CappedList<T> => ({ shown: items.slice(0, MAX_ROWS_
 export class RuleRepairCardComponent {
   private readonly dialog = inject(MatDialog);
   private readonly i18n = inject(TranslateService);
+  /** True from the Repair click until the apply request has answered, so a double-click cannot open two dialogs or send two applies. */
+  private repairing = false;
+
   private readonly service = inject(RuleRepairService);
 
   readonly status = signal<RuleRepairStatus>(IDLE);
@@ -166,6 +169,10 @@ export class RuleRepairCardComponent {
   }
 
   repair(): void {
+    if (this.repairing || this.busy()) {
+      return;
+    }
+    this.repairing = true;
     const count = this.status().repairableCount;
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
@@ -176,19 +183,30 @@ export class RuleRepairCardComponent {
     });
     ref.afterClosed().subscribe(result => {
       if (result) {
-        this.start(this.service.apply());
+        this.start(this.service.apply(), () => (this.repairing = false));
+      } else {
+        this.repairing = false;
       }
     });
+  }
+
+  /** Rows are keyed by their whole identity; the separator is a control character no id, type or number holds. */
+  rowKey(i: RuleRepairItem): string {
+    return [i.humanId, i.type, i.profileNo, i.uid].join('\u001f');
   }
 
   scan(): void {
     this.start(this.service.scan());
   }
 
-  private start(call: ReturnType<RuleRepairService['scan']>): void {
+  private start(call: ReturnType<RuleRepairService['scan']>, done?: () => void): void {
     this.requestFailed.set(false);
     call.subscribe({
-      error: () => this.requestFailed.set(true),
+      complete: () => done?.(),
+      error: () => {
+        this.requestFailed.set(true);
+        done?.();
+      },
       next: s => this.status.set(s),
     });
   }
