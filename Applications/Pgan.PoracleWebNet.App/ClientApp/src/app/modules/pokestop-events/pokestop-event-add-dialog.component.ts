@@ -38,8 +38,11 @@ import { POKESTOP_EVENTS } from '../../shared/utils/pokestop-events';
 export interface PokestopEventAddDialogData {
   /** The alarms the profile already has, so an event it already tracks cannot be picked twice. */
   events: PokestopEvent[];
-  /** The profile's areas, so a clashing rule with no scope of its own is summarised as the list shows it. */
-  profileAreas: string[];
+  /**
+   * The profile's areas, so a clashing rule with no scope of its own is summarised as the list shows it.
+   * Read when needed, not when the dialog opens: on a ?add=1 arrival they can answer after the list does.
+   */
+  profileAreas: () => string[];
 }
 
 @Component({
@@ -228,7 +231,7 @@ export class PokestopEventAddDialogComponent {
     const rule = this.existing.find(x => x.uid === uid);
     if (!rule) return null;
     const event = POKESTOP_EVENTS.find(e => e.displayType === rule.displayType);
-    return ruleSummary(event ? this.translate.instant(event.displayKey) : '', rule, this.data?.profileAreas ?? [], this.translate);
+    return ruleSummary(event ? this.translate.instant(event.displayKey) : '', rule, this.data?.profileAreas?.() ?? [], this.translate);
   }
 }
 

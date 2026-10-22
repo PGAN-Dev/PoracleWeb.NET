@@ -139,7 +139,9 @@
           <span class="strip-value">{{ w.conditionName }}</span>
           @for (type of w.boostedTypes; track type) {
             @let edge = boostedTypeEdge(type);
-            <span class="type-chip" [style.--type-color-light]="edge.light" [style.--type-color-dark]="edge.dark">{{ type }}</span>
+            <span class="type-chip" [style.--type-color-light]="edge.light" [style.--type-color-dark]="edge.dark">{{
+              boostedTypeLabel(type)
+            }}</span>
           }
           @if (weatherUpdatedAgo()) {
             <span class="weather-updated">{{ weatherUpdatedAgo() }}</span>
@@ -193,7 +195,9 @@
             @if (getAreaWeatherData(area); as aw) {
               <mat-icon
                 class="area-weather-icon"
-                [matTooltip]="aw.conditionName + ' — ' + aw.boostedTypes.join(', ') + ' ' + ('DASHBOARD.BOOSTED_SUFFIX' | translate)"
+                [matTooltip]="
+                  aw.conditionName + ' — ' + boostedTypeLabels(aw.boostedTypes) + ' ' + ('DASHBOARD.BOOSTED_SUFFIX' | translate)
+                "
                 aria-hidden="false"
                 [attr.aria-label]="aw.conditionName"
                 >{{ aw.icon }}</mat-icon

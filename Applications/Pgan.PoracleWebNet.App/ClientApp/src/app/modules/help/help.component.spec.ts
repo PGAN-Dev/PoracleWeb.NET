@@ -180,6 +180,18 @@ describe('HelpComponent admin section', () => {
     expect(fixture.nativeElement.querySelector('#section-admin')).toBeNull();
   });
 
+  // Colour is data or nothing: a section's icon names it, and a per-section hue said nothing while the
+  // darker ones fell to about 2:1 on the dark panel.
+  it('draws every section and contents icon in the neutral icon colour', () => {
+    fixture.detectChanges();
+    const icons = Array.from(
+      fixture.nativeElement.querySelectorAll('.section-icon, .section-icon mat-icon, .toc-item mat-icon') as NodeListOf<HTMLElement>,
+    );
+
+    expect(icons.length).toBeGreaterThan(0);
+    for (const icon of icons) expect(icon.style.color).toBe('');
+  });
+
   it('lists the admin guide for an admin', () => {
     isAdmin.set(true);
     fixture.detectChanges();

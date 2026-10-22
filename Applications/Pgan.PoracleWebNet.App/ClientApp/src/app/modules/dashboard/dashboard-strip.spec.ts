@@ -14,6 +14,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { DashboardService } from '../../core/services/dashboard.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { LocationService } from '../../core/services/location.service';
+import { MasterDataService } from '../../core/services/masterdata.service';
 import { Mute, MuteService } from '../../core/services/mute.service';
 import { ProfileService } from '../../core/services/profile.service';
 import { SettingsService } from '../../core/services/settings.service';
@@ -50,6 +51,7 @@ describe('DashboardComponent status strip and alarm summary', () => {
     mapUrl?: string;
     mutes?: Mute[];
     profiles?: Partial<Profile>[];
+    typeLabels?: Record<string, string>;
     weather?: WeatherData;
   }
 
@@ -107,6 +109,7 @@ describe('DashboardComponent status strip and alarm summary', () => {
           },
         },
         { provide: MuteService, useValue: muteService },
+        { provide: MasterDataService, useValue: { getTypeLabel: (type: string) => opts.typeLabels?.[type] ?? type } },
       ],
     });
 
@@ -276,6 +279,28 @@ describe('DashboardComponent status strip and alarm summary', () => {
       expect(pin.querySelector('img')!.getAttribute('src')).toBe('https://maps.example/pin.png');
       pin.click();
       expect(open).toHaveBeenCalled();
+    });
+  });
+
+  describe('weather', () => {
+    /** The boosted types come from the server in English; the chips show the display language. */
+    it('names the boosted types in the display language', () => {
+      const weather = {
+        boostedTypes: ['Grass', 'Fire'],
+        conditionName: 'Clear',
+        hasWarning: false,
+        icon: 'wb_sunny',
+      } as unknown as WeatherData;
+      const { el } = setup({ location: { latitude: 41.6, longitude: -83.5 }, typeLabels: { Fire: 'Feu', Grass: 'Plante' }, weather });
+
+      const chips = Array.from(el.querySelectorAll('.type-chip')).map(c => c.textContent?.trim());
+      expect(chips).toEqual(['Plante', 'Feu']);
+    });
+
+    it('names them the same way in the area weather tooltip', () => {
+      const { component } = setup({ typeLabels: { Fire: 'Feu', Grass: 'Plante' } });
+
+      expect(component.boostedTypeLabels(['Grass', 'Fire'])).toBe('Plante, Feu');
     });
   });
 

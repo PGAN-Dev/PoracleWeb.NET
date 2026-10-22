@@ -16,6 +16,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { DashboardService } from '../../core/services/dashboard.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { LocationService } from '../../core/services/location.service';
+import { MasterDataService } from '../../core/services/masterdata.service';
 import { MuteService } from '../../core/services/mute.service';
 import { ProfileService } from '../../core/services/profile.service';
 import { SettingsService } from '../../core/services/settings.service';
@@ -87,6 +88,7 @@ export class DashboardComponent implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly i18n = inject(I18nService);
   private readonly locationService = inject(LocationService);
+  private readonly masterData = inject(MasterDataService);
   private readonly profileService = inject(ProfileService);
   private readonly snackBar = inject(MatSnackBar);
 
@@ -412,6 +414,16 @@ export class DashboardComponent implements OnInit {
     return typeEdge(type) ?? { dark: '#9e9e9e', light: '#757575' };
   }
 
+  /** A boosted type in the display language; the weather answer names types in English. */
+  boostedTypeLabel(type: string): string {
+    return this.masterData.getTypeLabel(type);
+  }
+
+  /** The area weather tooltip's list of boosted types, in the display language. */
+  boostedTypeLabels(types: string[]): string {
+    return types.map(t => this.masterData.getTypeLabel(t)).join(', ');
+  }
+
   dismissTip(tip: Tip): void {
     const current = this.dismissedTips();
     this.dismissedTips.set([...current, tip.id]);
@@ -425,11 +437,6 @@ export class DashboardComponent implements OnInit {
   handleTipAction(tip: Tip): void {
     if (tip.id === 'no-location') {
       this.openLocationDialog();
-    } else if (tip.id === 'paused') {
-      this.authService
-        .toggleAlerts()
-        .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe(() => this.authService.loadCurrentUser());
     } else if (tip.route) {
       if (tip.queryParams) this.router.navigate([tip.route], { queryParams: tip.queryParams });
       else this.router.navigate([tip.route]);

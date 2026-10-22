@@ -179,6 +179,38 @@ describe('GeofenceSubmissionsComponent', () => {
 
   // ─── Basic Setup ─────────────────────────────────────────────────────────────
 
+  it('does not observe thumbnails after it is destroyed', () => {
+    jest.useFakeTimers();
+    try {
+      const fixture = setup();
+      fixture.detectChanges();
+      const observe = jest.spyOn(component as unknown as { observeMapContainers: () => void }, 'observeMapContainers');
+
+      fixture.destroy();
+      jest.runOnlyPendingTimers();
+
+      expect(observe).not.toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('observes the queue maps once the loaded rows render', () => {
+    jest.useFakeTimers();
+    try {
+      const fixture = setup();
+      const observe = jest.spyOn(component as unknown as { observeMapContainers: () => void }, 'observeMapContainers');
+      fixture.detectChanges();
+
+      jest.runOnlyPendingTimers();
+
+      expect(observe).toHaveBeenCalled();
+      fixture.destroy();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it('should create', () => {
     setup();
     expect(component).toBeTruthy();
@@ -501,6 +533,20 @@ describe('GeofenceSubmissionsComponent', () => {
         data: expect.objectContaining({ geofence: pendingGeofence, mode: 'approve' }),
       }),
     );
+  });
+
+  it.each(['Enter', ' '])('opens the details from the triage map with the %p key, as a button would', key => {
+    const fixture = setup();
+    fixture.detectChanges();
+    const open = jest.spyOn(component, 'openDetailDialog').mockImplementation(() => undefined);
+    const map = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('.triage-map')!;
+    const event = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key });
+
+    map.dispatchEvent(event);
+
+    expect(open).toHaveBeenCalledTimes(1);
+    if (key === ' ') expect(event.defaultPrevented).toBe(true);
+    fixture.destroy();
   });
 
   it('opens the review dialog on the side of the button pressed', () => {

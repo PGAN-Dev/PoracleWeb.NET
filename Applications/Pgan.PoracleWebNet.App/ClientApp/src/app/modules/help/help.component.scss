@@ -48,6 +48,7 @@
   transition: background-color 0.12s ease;
 
   mat-icon {
+    color: var(--mat-sys-on-surface-variant);
     font-size: 16px;
     width: 16px;
     height: 16px;
@@ -196,6 +197,7 @@
   justify-content: center;
   flex-shrink: 0;
   background: var(--mat-sys-surface-container-high, rgba(0, 0, 0, 0.05));
+  color: var(--mat-sys-on-surface-variant);
 
   mat-icon {
     font-size: 18px;

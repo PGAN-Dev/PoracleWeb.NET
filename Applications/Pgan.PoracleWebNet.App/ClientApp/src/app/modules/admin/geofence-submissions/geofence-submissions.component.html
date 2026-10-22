@@ -42,7 +42,8 @@
             [attr.data-geofence-id]="geofence.id"
             [attr.aria-label]="'ADMIN.VIEW_GEOFENCE_DETAILS' | translate"
             (click)="openDetailDialog(geofence)"
-            (keydown.enter)="openDetailDialog(geofence)">
+            (keydown.enter)="openDetailDialog(geofence)"
+            (keydown.space)="$event.preventDefault(); openDetailDialog(geofence)">
             @if (!geofence.polygon?.length) {
               <div class="map-thumbnail-empty">
                 <mat-icon aria-hidden="true">pentagon</mat-icon>

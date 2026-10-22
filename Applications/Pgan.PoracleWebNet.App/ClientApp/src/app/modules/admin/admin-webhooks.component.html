@@ -2,12 +2,13 @@
   <div class="page-header-text">
     <h1>{{ 'ADMIN.WEBHOOKS_TITLE' | translate }}</h1>
     <p class="page-description">{{ 'ADMIN.WEBHOOKS_DESC' | translate }}</p>
-    <p class="page-description" data-test="admins-note">{{ 'ADMIN.WEBHOOKS_ADMINS_NOTE' | translate }}</p>
   </div>
   <button mat-flat-button color="primary" (click)="openAddDialog()"><mat-icon>add</mat-icon> {{ 'ADMIN.ADD_WEBHOOK' | translate }}</button>
 </div>
 
 <div class="page-content">
+  <!-- Not a page description: phones hide those, and this is what explains an empty Delegates column. -->
+  <p class="admins-note" data-test="admins-note">{{ 'ADMIN.WEBHOOKS_ADMINS_NOTE' | translate }}</p>
   <div class="toolbar">
     <mat-form-field appearance="outline" class="search-field">
       <mat-label>{{ 'ADMIN.SEARCH_WEBHOOKS' | translate }}</mat-label>

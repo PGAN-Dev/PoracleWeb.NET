@@ -311,7 +311,7 @@ export class PokestopEventListComponent implements OnInit {
     this.dialog
       .open(PokestopEventAddDialogComponent, {
         width: '600px',
-        data: { events: this.events(), profileAreas: this.profileAreas() } satisfies PokestopEventAddDialogData,
+        data: { events: this.events(), profileAreas: this.profileAreas } satisfies PokestopEventAddDialogData,
         maxHeight: '90vh',
       })
       .afterClosed()

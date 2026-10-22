@@ -67,7 +67,7 @@
           <mat-expansion-panel-header>
             <mat-panel-title>
               <div class="section-header">
-                <div class="section-icon" [style.color]="section.iconColor">
+                <div class="section-icon">
                   <mat-icon>{{ section.icon }}</mat-icon>
                 </div>
                 <div class="section-title-block">
@@ -127,7 +127,7 @@
     <div class="toc-header">{{ 'HELP.TOC_HEADER' | translate }}</div>
     @for (section of sections(); track section.id) {
       <button class="toc-item" (click)="scrollToSection(section.id)">
-        <mat-icon [style.color]="section.iconColor">{{ section.icon }}</mat-icon>
+        <mat-icon>{{ section.icon }}</mat-icon>
         <span>{{ section.titleKey | translate }}</span>
       </button>
     }

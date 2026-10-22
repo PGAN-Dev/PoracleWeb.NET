@@ -83,6 +83,16 @@ describe('AdminWebhooksComponent delegates column', () => {
 
     expect(note?.textContent).toContain('ADMIN.WEBHOOKS_ADMINS_NOTE');
   });
+
+  // .page-description is hidden under 600px, and on a phone the column would then read "No delegate grants"
+  // on every hook with nothing saying admins still have access.
+  it('keeps that note out of the page description, which phones hide', () => {
+    const fixture = setup();
+    const note = (fixture.nativeElement as HTMLElement).querySelector('[data-test="admins-note"]');
+
+    expect(note?.closest('.page-description')).toBeNull();
+    expect(note?.classList.contains('page-description')).toBe(false);
+  });
 });
 
 /**

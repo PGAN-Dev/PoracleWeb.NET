@@ -159,3 +159,10 @@
 .text-muted {
   color: var(--text-hint, rgba(0, 0, 0, 0.6));
 }
+
+.admins-note {
+  margin: 0 0 12px;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 13px;
+  line-height: 1.5;
+}

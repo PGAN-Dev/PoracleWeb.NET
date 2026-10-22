@@ -86,6 +86,8 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
   private readonly referenceGeofences = signal<GeofenceData[]>([]);
   private readonly regions = signal<GeofenceRegion[]>([]);
   private readonly snackBar = inject(MatSnackBar);
+  /** The pending tick that re-observes the queue's maps; cleared on destroy so it can't run on a dead view. */
+  private thumbnailTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly userGeofenceService = inject(UserGeofenceService);
 
   /** Narrows the table of fences that are not waiting for review. */
@@ -147,7 +149,9 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
     // observe the new ones once Angular has rendered them.
     effect(() => {
       const queued = this.pendingGeofences();
-      setTimeout(() => {
+      if (this.thumbnailTimer !== null) clearTimeout(this.thumbnailTimer);
+      this.thumbnailTimer = setTimeout(() => {
+        this.thumbnailTimer = null;
         const queuedIds = new Set(queued.map(g => g.id));
         for (const [id, map] of this.mapInstances) {
           if (!queuedIds.has(id)) {
@@ -259,6 +263,7 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
   }
 
   ngOnDestroy(): void {
+    if (this.thumbnailTimer !== null) clearTimeout(this.thumbnailTimer);
     this.observer?.disconnect();
     this.mapInstances.forEach(map => map.remove());
     this.mapInstances.clear();
@@ -456,8 +461,8 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
         next: geofences => {
           this.allGeofences.set(geofences);
           this.loading.set(false);
-          // Re-observe after data loads
-          setTimeout(() => this.observeMapContainers(), 0);
+          // The queue effect re-observes the maps once the new rows render (and on its own timer, which
+          // destroy clears).
         },
       });
   }

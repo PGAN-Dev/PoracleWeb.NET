@@ -524,11 +524,24 @@ describe('PokestopEventListComponent', () => {
 
       component.openAddDialog();
 
-      expect(dialog.open).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({ data: { events: [base], profileAreas: ['terrigal'] } }),
-      );
+      const data = dialog.open.mock.calls[0][1].data;
+      expect(data.events).toEqual([base]);
+      expect(data.profileAreas()).toEqual(['terrigal']);
       expect(pokestopEventService.getAll).toHaveBeenCalledTimes(2);
+    });
+
+    /**
+     * On a ?add=1 arrival the dialog opens once the list has loaded, and the profile's areas may answer
+     * after that. The dialog reads them when it needs them, so a clash names "in my areas", not "anywhere".
+     */
+    it('hands the add dialog the profile areas as they are when it asks, not when it opened', () => {
+      setup([base]);
+      dialogReturns(false);
+
+      component.openAddDialog();
+      component.profileAreas.set(['terrigal']);
+
+      expect(dialog.open.mock.calls[0][1].data.profileAreas()).toEqual(['terrigal']);
     });
 
     it('opens the clashing rule for editing when the add dialog asks, without reloading', () => {
