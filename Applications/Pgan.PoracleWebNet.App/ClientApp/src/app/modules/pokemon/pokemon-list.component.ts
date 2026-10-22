@@ -365,7 +365,7 @@ export class PokemonListComponent implements OnInit {
       case 2500:
         return this.i18n.instant('POKEMON.LEAGUE_ULTRA');
       default:
-        return `${league}`;
+        return this.i18n.instant('POKEMON.LEAGUE_CUSTOM', { cp: league });
     }
   }
 

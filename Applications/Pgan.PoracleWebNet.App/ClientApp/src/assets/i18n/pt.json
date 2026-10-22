@@ -307,7 +307,7 @@
     "PVP_LITTLE_CUP_SHORT": "Liga Mini (500)",
     "PVP_GREAT_LEAGUE_SHORT": "Liga Super (1500)",
     "PVP_ULTRA_LEAGUE_SHORT": "Liga Ultra (2500)",
-    "PVP_LEAGUE_SUFFIX": "Liga",
+    "LEAGUE_CUSTOM": "Liga {{cp}} CP",
     "PVP_RANK_RANGE": "Ranking {{best}}-{{worst}}",
     "PVP_BEST_RANK_HINT": "ex. 1",
     "PVP_WORST_RANK_HINT": "ex. 100",
