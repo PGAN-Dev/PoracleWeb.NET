@@ -2237,6 +2237,7 @@
     "SCOPE_SAVED": "Ziel aktualisiert.",
     "SCOPE_SAVE_ERROR": "Das Ziel dieser Meldung konnte nicht geändert werden.",
     "SHEET_TITLE": "Wo soll dich diese Meldung erreichen?",
+    "MAP_LABEL": "Karte, wo dich dieser Alarm erreicht",
     "USE_THIS_POINT": "Diesen Punkt verwenden"
   },
   "QUIET": {

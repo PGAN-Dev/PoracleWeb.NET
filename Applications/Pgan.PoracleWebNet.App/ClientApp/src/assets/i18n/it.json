@@ -2237,7 +2237,8 @@
     "RADIUS_KM": "Raggio (km)",
     "RADIUS_RANGE": "Inserisci un raggio da {{min}} a {{max}} km.",
     "SAVE": "Imposta destinazione",
-    "SHEET_TITLE": "Dove deve raggiungerti questo avviso?"
+    "SHEET_TITLE": "Dove deve raggiungerti questo avviso?",
+    "MAP_LABEL": "Mappa di dove ti raggiunge questo avviso"
   },
   "QUIET": {
     "CARD_LABEL": "Silenzio",

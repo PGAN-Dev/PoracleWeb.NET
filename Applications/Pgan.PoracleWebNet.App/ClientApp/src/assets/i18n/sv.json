@@ -2237,6 +2237,7 @@
     "SCOPE_SAVED": "Uppdaterat.",
     "SCOPE_SAVE_ERROR": "Kunde inte uppdatera var aviseringen når dig.",
     "SHEET_TITLE": "Var ska aviseringen nå dig?",
+    "MAP_LABEL": "Karta över var den här aviseringen når dig",
     "USE_THIS_POINT": "Använd den här punkten"
   },
   "QUIET": {

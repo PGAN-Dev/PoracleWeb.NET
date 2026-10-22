@@ -2237,6 +2237,7 @@
     "SCOPE_SAVED": "Bestemming bijgewerkt.",
     "SCOPE_SAVE_ERROR": "Kon niet bijwerken waar die melding je bereikt.",
     "SHEET_TITLE": "Waar moet deze melding je bereiken?",
+    "MAP_LABEL": "Kaart van waar deze melding je bereikt",
     "USE_THIS_POINT": "Dit punt gebruiken"
   },
   "QUIET": {

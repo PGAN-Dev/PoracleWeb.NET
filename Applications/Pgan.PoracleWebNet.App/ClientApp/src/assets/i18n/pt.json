@@ -2237,6 +2237,7 @@
     "SCOPE_SAVED": "Destino atualizado.",
     "SCOPE_SAVE_ERROR": "Não foi possível atualizar onde esse alerta te chega.",
     "SHEET_TITLE": "Onde deve este alerta chegar-te?",
+    "MAP_LABEL": "Mapa de onde este alerta chega até si",
     "USE_THIS_POINT": "Usar este ponto"
   },
   "QUIET": {

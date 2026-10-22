@@ -2237,7 +2237,8 @@
     "RADIUS_KM": "Radius (km)",
     "RADIUS_RANGE": "Enter a radius from {{min}} to {{max}} km.",
     "SAVE": "Set where",
-    "SHEET_TITLE": "Where should this alert reach you?"
+    "SHEET_TITLE": "Where should this alert reach you?",
+    "MAP_LABEL": "Map of where this alert reaches you"
   },
   "QUIET": {
     "CARD_LABEL": "Quiet",

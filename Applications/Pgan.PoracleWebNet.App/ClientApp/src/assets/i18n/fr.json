@@ -2237,6 +2237,7 @@
     "SCOPE_SAVED": "Portée mise à jour.",
     "SCOPE_SAVE_ERROR": "Impossible de modifier la portée de cette alerte.",
     "SHEET_TITLE": "Où cette alerte doit-elle vous parvenir ?",
+    "MAP_LABEL": "Carte des endroits où cette alerte vous parvient",
     "USE_THIS_POINT": "Utiliser ce point"
   },
   "QUIET": {

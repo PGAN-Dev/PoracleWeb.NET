@@ -2237,6 +2237,7 @@
     "SCOPE_SAVED": "Opdateret.",
     "SCOPE_SAVE_ERROR": "Kunne ikke opdatere, hvor beskeden når dig.",
     "SHEET_TITLE": "Hvor skal beskeden nå dig?",
+    "MAP_LABEL": "Kort over, hvor denne alarm når dig",
     "USE_THIS_POINT": "Brug dette punkt"
   },
   "QUIET": {

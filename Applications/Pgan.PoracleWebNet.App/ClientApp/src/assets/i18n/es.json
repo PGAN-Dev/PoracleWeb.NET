@@ -2237,7 +2237,8 @@
     "RADIUS_KM": "Radio (km)",
     "RADIUS_RANGE": "Introduce un radio de {{min}} a {{max}} km.",
     "SAVE": "Guardar destino",
-    "SHEET_TITLE": "¿Dónde quieres recibir esta alerta?"
+    "SHEET_TITLE": "¿Dónde quieres recibir esta alerta?",
+    "MAP_LABEL": "Mapa de dónde te llega esta alerta"
   },
   "QUIET": {
     "CARD_LABEL": "Silencio",

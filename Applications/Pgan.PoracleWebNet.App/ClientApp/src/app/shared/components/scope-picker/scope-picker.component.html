@@ -85,3 +85,7 @@
     }
   </label>
 </mat-radio-group>
+
+@if (preview()) {
+  <app-scope-map [scope]="scope()" [profileAreas]="profileAreaNames()" />
+}

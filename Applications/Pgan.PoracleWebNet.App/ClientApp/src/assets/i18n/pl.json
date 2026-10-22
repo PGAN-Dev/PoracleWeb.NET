@@ -2329,6 +2329,7 @@
     "SCOPE_SAVED": "Zasięg zaktualizowany.",
     "SCOPE_SAVE_ERROR": "Nie udało się zmienić zasięgu tego alertu.",
     "SHEET_TITLE": "Gdzie ma cię zastać ten alert?",
+    "MAP_LABEL": "Mapa miejsc, w których dociera do ciebie ten alert",
     "USE_THIS_POINT": "Użyj tego punktu"
   },
   "QUIET": {

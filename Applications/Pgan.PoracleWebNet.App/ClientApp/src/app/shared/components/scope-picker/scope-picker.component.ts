@@ -17,6 +17,7 @@ import { UserGeofenceService } from '../../../core/services/user-geofence.servic
 import { AlarmScope, formatKm, MAX_RADIUS_KM, MIN_RADIUS_KM, radiusAcceptable, titleCaseArea } from '../../utils/alarm-scope';
 import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component';
 import { LocationDialogComponent } from '../location-dialog/location-dialog.component';
+import { ScopeMapComponent } from '../scope-map/scope-map.component';
 
 /**
  * What the picker offers, which is not quite what PoracleNG stores. "Near a point" covers both a
@@ -49,6 +50,7 @@ type PickerMode = 'areas' | 'inherit' | 'near';
     MatInputModule,
     MatRadioModule,
     MatSelectModule,
+    ScopeMapComponent,
     TranslatePipe,
   ],
   selector: 'app-scope-picker',
@@ -99,16 +101,25 @@ export class ScopePickerComponent implements OnInit {
   readonly pinMissing = computed(() => this.mode() === 'near' && !this.placeLabel() && !this.places.pin());
 
   /**
+   * Draws the scope on a small map under the options. On in the alarm dialogs' Delivery tab; the card's
+   * where sheet turns it off to stay a short sheet.
+   */
+  readonly preview = input(true);
+
+  /**
    * Areas the profile subscribes to, so the inherited option can say what it means. A host that has
    * them passes them; otherwise the picker uses the list it reads for its own area options, which is
    * the same list. Only the card's sheet used to pass them, so every dialog said "anywhere".
    */
   readonly profileAreas = input<string[]>([]);
 
-  readonly profileAreaSummary = computed(() => {
+  /** The profile's areas as stored, from the host when it passed them and from the picker's own read otherwise. */
+  readonly profileAreaNames = computed(() => {
     const passed = this.profileAreas();
-    return (passed.length > 0 ? passed : this.subscribedAreas()).map(titleCaseArea).join(', ');
+    return passed.length > 0 ? passed : this.subscribedAreas();
   });
+
+  readonly profileAreaSummary = computed(() => this.profileAreaNames().map(titleCaseArea).join(', '));
 
   /**
    * The radius the rule was stored with, when editing one. Production holds rules past 100 km, and an
