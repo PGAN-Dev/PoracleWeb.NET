@@ -377,6 +377,10 @@
 // Touch screens get 44px targets (WCAG 2.5.5, UI audit cross D10). A mouse keeps the compact size.
 // The chip grows to hold its two trailing buttons.
 @media (pointer: coarse) {
+  .mode-btn {
+    min-height: 44px;
+  }
+
   .selected-chips {
     --mat-chip-container-height: 44px;
   }

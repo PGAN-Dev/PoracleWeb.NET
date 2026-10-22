@@ -717,6 +717,33 @@ router-outlet + * {
   }
 }
 
+// Touch screens get 44px map controls (WCAG 2.5.5, UI audit cross D10); a mouse keeps Leaflet's 30px.
+// Only the zoom control: leaflet-draw's toolbar is a .leaflet-bar too, drawn from a 30px sprite sheet.
+// The attribution stays small text, but each link is a 24px block with room either side.
+@media (pointer: coarse) {
+  .leaflet-touch .leaflet-control-zoom a {
+    width: 44px;
+    height: 44px;
+    line-height: 44px;
+  }
+
+  .basemap-control__toggle {
+    width: 44px;
+    height: 44px;
+  }
+
+  .basemap-control__option {
+    min-height: 44px;
+  }
+
+  .leaflet-control-attribution a {
+    display: inline-block;
+    min-height: 24px;
+    line-height: 24px;
+    padding: 0 4px;
+  }
+}
+
 .basemap-control__warning {
   color: #b26a00;
   font-size: 11px;

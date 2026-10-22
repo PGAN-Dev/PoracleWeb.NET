@@ -173,6 +173,16 @@
   }
 }
 
+// On touch the marker's tap area grows to 44px through a pseudo-element, so the marker's box, and with it
+// the dot's anchor on the point, stays where it is. Leaflet's marker icon is already positioned.
+@media (pointer: coarse) {
+  :host ::ng-deep .place-marker::before {
+    content: '';
+    position: absolute;
+    inset: -12px 0;
+  }
+}
+
 :host-context(body.dark-theme) ::ng-deep .place-marker .place-marker__label {
   background: rgba(30, 30, 30, 0.92);
   color: #f3f4f6;
