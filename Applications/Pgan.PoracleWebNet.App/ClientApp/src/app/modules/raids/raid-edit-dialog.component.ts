@@ -128,7 +128,8 @@ export class RaidEditDialogComponent {
     }
     const raid = this.data.item as Raid;
     if (raid.pokemonId && raid.pokemonId !== 9000) {
-      return this.i18n.instant('RAIDS.RAID_BOSS_NUM', { id: raid.pokemonId });
+      // The boss's name, as the list card shows it; the raid list has already loaded the masterfile.
+      return this.masterData.getPokemonName(raid.pokemonId);
     }
     return this.levelLabelPipe.transform(raid.level) + ' ' + this.i18n.instant('RAIDS.RAID_SUFFIX');
   }

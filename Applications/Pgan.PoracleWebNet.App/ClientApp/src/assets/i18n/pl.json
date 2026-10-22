@@ -470,7 +470,6 @@
     "ALL_RAIDS": "Wszystkie rajdy",
     "ALL_LEVEL_RAIDS": "Wszystkie rajdy {{level}}",
     "RAID_SUFFIX": "Rajd",
-    "RAID_BOSS_NUM": "Boss rajdu #{{id}}",
     "POKEMON_SELECTED": "Wybrano {{count}} Pokemon",
     "CLEAN_TAG": "czyść",
     "CLEAN_TOOLTIP": "Automatycznie usuwane po wygaśnięciu",

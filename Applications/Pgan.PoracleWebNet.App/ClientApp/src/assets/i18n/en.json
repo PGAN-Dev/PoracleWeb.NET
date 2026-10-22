@@ -452,7 +452,6 @@
     "ALL_RAIDS": "All Raids",
     "ALL_LEVEL_RAIDS": "All {{level}} Raids",
     "RAID_SUFFIX": "Raid",
-    "RAID_BOSS_NUM": "Raid Boss #{{id}}",
     "POKEMON_SELECTED": "{{count}} Pokemon selected",
     "CLEAN_TAG": "clean",
     "CLEAN_TOOLTIP": "Auto-deletes after expiry",

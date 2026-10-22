@@ -452,7 +452,6 @@
     "ALL_RAIDS": "Alla Raids",
     "ALL_LEVEL_RAIDS": "Alla {{level}} Raids",
     "RAID_SUFFIX": "Raid",
-    "RAID_BOSS_NUM": "Raid-boss #{{id}}",
     "POKEMON_SELECTED": "{{count}} Pokemon valda",
     "CLEAN_TAG": "städning",
     "CLEAN_TOOLTIP": "Raderas automatiskt efter utgång",
