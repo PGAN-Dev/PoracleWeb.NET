@@ -2,8 +2,8 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
-import { provideTranslateService } from '@ngx-translate/core';
-import { map, of, throwError, timer } from 'rxjs';
+import { provideTranslateService, TranslateService } from '@ngx-translate/core';
+import { Subject, map, of, throwError, timer } from 'rxjs';
 
 import { RuleRepairCardComponent } from './rule-repair-card.component';
 import { RuleRepairItem, RuleRepairStatus } from '../../../core/models';
@@ -207,12 +207,41 @@ describe('RuleRepairCardComponent', () => {
 
   it('offers Repair after a scan with repairable rules, and asks first naming the count', () => {
     const fixture = setup(status({ phase: 'Scanned', repairable: [item(), item({ uid: 11 })] }), false);
+    const instant = jest.spyOn(TestBed.inject(TranslateService), 'instant');
     const repair = button(fixture.nativeElement, 'repair')!;
     expect(repair.disabled).toBe(false);
     repair.click();
     expect(dialog.open).toHaveBeenCalledTimes(1);
     expect(dialog.open.mock.calls[0][1].data.message).toContain('ADMIN.RULE_REPAIR.CONFIRM_MESSAGE');
+    expect(instant).toHaveBeenCalledWith('ADMIN.RULE_REPAIR.CONFIRM_MESSAGE', { count: 2 });
+    expect(instant).toHaveBeenCalledWith('ADMIN.RULE_REPAIR.CONFIRM_BUTTON', { count: 2 });
     expect(service.apply).not.toHaveBeenCalled();
+  });
+
+  it('opens one confirm dialog for a double-click on Repair', () => {
+    const closed = new Subject<boolean>();
+    const fixture = setup(status({ phase: 'Scanned', repairable: [item()] }));
+    dialog.open.mockReturnValue({ afterClosed: () => closed });
+    const repair = button(fixture.nativeElement, 'repair')!;
+    repair.click();
+    repair.click();
+    expect(dialog.open).toHaveBeenCalledTimes(1);
+
+    closed.next(false);
+    closed.complete();
+    repair.click();
+    expect(dialog.open).toHaveBeenCalledTimes(2);
+  });
+
+  it('sends one apply for a double-click while the request is in flight', () => {
+    const inFlight = new Subject<RuleRepairStatus>();
+    const fixture = setup(status({ phase: 'Scanned', repairable: [item()] }));
+    service.apply.mockReturnValue(inFlight);
+    const repair = button(fixture.nativeElement, 'repair')!;
+    repair.click();
+    repair.click();
+    expect(dialog.open).toHaveBeenCalledTimes(1);
+    expect(service.apply).toHaveBeenCalledTimes(1);
   });
 
   it('applies once the admin confirms', () => {
@@ -295,6 +324,7 @@ describe('RuleRepairCardComponent', () => {
     const fixture = setup(status({ error: 'PoracleNG could not be reached', phase: 'Failed', repairable: [item()] }));
     const el = fixture.nativeElement as HTMLElement;
     expect(el.textContent).toContain('ADMIN.RULE_REPAIR.SCAN_AGAIN_HINT');
+    expect(el.querySelector('[data-test="run-error"]')!.textContent).toContain('PoracleNG could not be reached');
     expect(el.textContent).not.toContain('grunt_type metal');
     expect(el.querySelector('table')).toBeNull();
     expect(button(el, 'repair')).toBeNull();

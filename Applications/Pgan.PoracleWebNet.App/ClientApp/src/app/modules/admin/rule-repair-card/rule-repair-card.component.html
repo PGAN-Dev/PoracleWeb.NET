@@ -19,7 +19,12 @@
     @if (status().phase === 'Failed') {
       <div class="repair-alert repair-alert-error" role="alert">
         <mat-icon>error</mat-icon>
-        <span>{{ 'ADMIN.RULE_REPAIR.RUN_FAILED' | translate }} {{ status().error }}</span>
+        <span>
+          {{ 'ADMIN.RULE_REPAIR.RUN_FAILED' | translate }}
+          @if (status().error) {
+            <span class="repair-detail" data-test="run-error">{{ status().error }}</span>
+          }
+        </span>
       </div>
       @if (staleAfterFailedApply()) {
         <p class="repair-note" data-test="scan-again">{{ 'ADMIN.RULE_REPAIR.SCAN_AGAIN_HINT' | translate }}</p>
@@ -63,7 +68,7 @@
         <div data-test="conflicts">
           <h3 class="repair-section">{{ 'ADMIN.RULE_REPAIR.RESULT_CONFLICTS' | translate: { count: conflicts().total } }}</h3>
           <ul class="repair-reasons">
-            @for (f of conflicts().shown; track f.humanId + f.type + f.profileNo + f.uid) {
+            @for (f of conflicts().shown; track rowKey(f)) {
               <li>
                 <code
                   >{{ f.humanId }} · {{ f.type }} #{{ f.uid }} · {{ 'ADMIN.RULE_REPAIR.COL_PROFILE' | translate }} {{ f.profileNo }}</code
@@ -83,7 +88,7 @@
         <div data-test="failed">
           <h3 class="repair-section">{{ 'ADMIN.RULE_REPAIR.RESULT_FAILED' | translate: { count: failed().total } }}</h3>
           <ul class="repair-reasons">
-            @for (f of failed().shown; track f.humanId + f.type + f.profileNo + f.uid) {
+            @for (f of failed().shown; track rowKey(f)) {
               <li>
                 <code
                   >{{ f.humanId }} · {{ f.type }} #{{ f.uid }} · {{ 'ADMIN.RULE_REPAIR.COL_PROFILE' | translate }} {{ f.profileNo }}</code
@@ -114,7 +119,7 @@
               </tr>
             </thead>
             <tbody>
-              @for (i of group.shown; track i.humanId + i.type + i.profileNo + i.uid) {
+              @for (i of group.shown; track rowKey(i)) {
                 <tr>
                   <td>{{ i.humanId }}</td>
                   <td>{{ i.type }} #{{ i.uid }}</td>
@@ -148,7 +153,7 @@
         @for (group of cannotEditGroups(); track group.reason) {
           <p class="repair-reason-head">{{ group.reason }} ({{ group.total }})</p>
           <ul class="repair-reasons">
-            @for (c of group.shown; track c.humanId + c.type + c.profileNo + c.uid) {
+            @for (c of group.shown; track rowKey(c)) {
               <li>
                 <code
                   >{{ c.humanId }} · {{ c.type }} #{{ c.uid }} · {{ 'ADMIN.RULE_REPAIR.COL_PROFILE' | translate }} {{ c.profileNo }}</code
