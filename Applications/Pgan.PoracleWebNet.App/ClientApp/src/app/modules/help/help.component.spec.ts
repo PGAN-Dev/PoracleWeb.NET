@@ -5,6 +5,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideTranslateService, TranslateService } from '@ngx-translate/core';
 
 import { HelpComponent } from './help.component';
+import { AuthService } from '../../core/services/auth.service';
 import { SettingsService } from '../../core/services/settings.service';
 import { ImageViewerDialogComponent } from '../../shared/components/image-viewer-dialog/image-viewer-dialog.component';
 
@@ -23,6 +24,7 @@ describe('HelpComponent screenshots', () => {
         provideTranslateService(),
         { provide: MatDialog, useValue: dialog },
         { provide: SettingsService, useValue: { supportUrl: signal(null) } },
+        { provide: AuthService, useValue: { isAdmin: signal(false) } },
       ],
       imports: [HelpComponent, NoopAnimationsModule],
     });
@@ -96,6 +98,7 @@ describe('HelpComponent footer', () => {
         provideTranslateService(),
         { provide: MatDialog, useValue: { open: jest.fn() } },
         { provide: SettingsService, useValue: { supportUrl } },
+        { provide: AuthService, useValue: { isAdmin: signal(false) } },
       ],
       imports: [HelpComponent, NoopAnimationsModule],
     });
@@ -129,5 +132,59 @@ describe('HelpComponent footer', () => {
     expect(footer().querySelector('a')).toBeNull();
     expect(footer().textContent).toContain('Contact the team that runs this site.');
     expect(footer().textContent).not.toMatch(/admin/i);
+  });
+});
+
+/**
+ * The admin guide describes pages a member cannot open, so it is listed (and searchable) for admins only.
+ * Every other section, the webhook one included, stays visible to everyone.
+ */
+describe('HelpComponent admin section', () => {
+  let isAdmin: WritableSignal<boolean>;
+  let fixture: ComponentFixture<HelpComponent>;
+
+  beforeEach(() => {
+    isAdmin = signal(false);
+
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        provideTranslateService(),
+        { provide: MatDialog, useValue: { open: jest.fn() } },
+        { provide: SettingsService, useValue: { supportUrl: signal(null) } },
+        { provide: AuthService, useValue: { isAdmin } },
+      ],
+      imports: [HelpComponent, NoopAnimationsModule],
+    });
+
+    const translate = TestBed.inject(TranslateService);
+    translate.setTranslation(
+      'en',
+      { HELP: { SECTION_ADMIN: 'For Admins', SECTION_FAQ: 'Frequently Asked Questions', SECTION_WEBHOOKS: 'Webhooks You Manage' } },
+      true,
+    );
+    translate.use('en');
+
+    fixture = TestBed.createComponent(HelpComponent);
+  });
+
+  const tocTitles = () =>
+    Array.from(fixture.nativeElement.querySelectorAll('.toc-item span') as NodeListOf<HTMLElement>).map(el => el.textContent?.trim());
+
+  it('leaves the admin guide out for a member but keeps the webhook and FAQ sections', () => {
+    fixture.detectChanges();
+
+    expect(tocTitles()).not.toContain('For Admins');
+    expect(tocTitles()).toContain('Webhooks You Manage');
+    expect(tocTitles()).toContain('Frequently Asked Questions');
+    expect(fixture.nativeElement.querySelector('#section-admin')).toBeNull();
+  });
+
+  it('lists the admin guide for an admin', () => {
+    isAdmin.set(true);
+    fixture.detectChanges();
+
+    expect(tocTitles()).toContain('For Admins');
+    expect(fixture.nativeElement.querySelector('#section-admin')).not.toBeNull();
   });
 });

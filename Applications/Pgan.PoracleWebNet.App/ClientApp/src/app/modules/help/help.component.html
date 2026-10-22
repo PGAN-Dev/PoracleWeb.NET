@@ -125,7 +125,7 @@
   <!-- Table of Contents sidebar (desktop, right side) -->
   <aside class="toc">
     <div class="toc-header">{{ 'HELP.TOC_HEADER' | translate }}</div>
-    @for (section of sections; track section.id) {
+    @for (section of sections(); track section.id) {
       <button class="toc-item" (click)="scrollToSection(section.id)">
         <mat-icon [style.color]="section.iconColor">{{ section.icon }}</mat-icon>
         <span>{{ section.titleKey | translate }}</span>

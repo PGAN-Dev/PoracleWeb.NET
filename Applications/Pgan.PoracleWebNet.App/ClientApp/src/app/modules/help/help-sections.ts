@@ -1,4 +1,6 @@
 export interface HelpSection {
+  /** Shown only to admins; everyone else neither sees the section nor finds it by search. */
+  adminOnly?: boolean;
   contentKey: string;
   icon: string;
   iconColor: string;
@@ -153,11 +155,28 @@ export const HELP_SECTIONS: HelpSection[] = [
     titleKey: 'HELP.SECTION_QUIET',
   },
   {
+    id: 'webhooks',
+    contentKey: 'HELP.CONTENT_WEBHOOKS',
+    icon: 'webhook',
+    iconColor: '#00897b',
+    subtitleKey: 'HELP.SECTION_WEBHOOKS_SUB',
+    titleKey: 'HELP.SECTION_WEBHOOKS',
+  },
+  {
     id: 'faq',
     contentKey: 'HELP.CONTENT_FAQ',
     icon: 'help_outline',
     iconColor: '#ff9800',
     subtitleKey: 'HELP.SECTION_FAQ_SUB',
     titleKey: 'HELP.SECTION_FAQ',
+  },
+  {
+    id: 'admin',
+    adminOnly: true,
+    contentKey: 'HELP.CONTENT_ADMIN',
+    icon: 'admin_panel_settings',
+    iconColor: '#546e7a',
+    subtitleKey: 'HELP.SECTION_ADMIN_SUB',
+    titleKey: 'HELP.SECTION_ADMIN',
   },
 ];
