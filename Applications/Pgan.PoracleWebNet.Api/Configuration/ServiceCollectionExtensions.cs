@@ -85,6 +85,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IPvpRankService, PvpRankService>();
         services.AddScoped<IQuickPickService, QuickPickService>();
         services.AddScoped<IUserGeofenceService, UserGeofenceService>();
+        services.AddScoped<IUserAreaPolicy, UserAreaPolicy>();
         services.AddScoped<IUserAreaWriter, UserAreaWriter>();
         services.AddScoped<ISiteSettingService, SiteSettingService>();
         services.AddScoped<ISummaryCapabilityService, SummaryCapabilityService>();
