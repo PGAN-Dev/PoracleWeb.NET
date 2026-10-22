@@ -41,6 +41,12 @@ export interface BasemapDefinition {
   maxZoom: number;
 
   /**
+   * The highest zoom the provider serves tiles for, when it is lower than {@link maxZoom}. Leaflet scales
+   * the last real tiles up beyond it, so the map keeps its zoom range instead of stopping early.
+   */
+  maxNativeZoom?: number;
+
+  /**
    * Send this provider the site's origin as a Referer.
    *
    * Off by default, because the app sets `Referrer-Policy: same-origin` so that a remote image host
@@ -174,9 +180,10 @@ export const BUILTIN_BASEMAPS: readonly BasemapDefinition[] = [
     attribution: ESRI_ATTRIBUTION,
     darkUrl: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
     label: 'Esri Gray Canvas',
-    // Esri stops serving the Canvas basemaps above 16. Leaflet clamps the map to the layer's maxZoom,
-    // so the effect is that this one cannot be zoomed as far in, not that it goes blank.
-    maxZoom: 16,
+    // Esri stops serving the Canvas basemaps above 16. Leaflet scales the zoom-16 tiles up beyond that,
+    // so this map, the dark-mode default, zooms as far in as OpenStreetMap does, just softer past 16.
+    maxNativeZoom: 16,
+    maxZoom: 19,
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
   },
   {

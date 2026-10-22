@@ -295,6 +295,20 @@ describe('BasemapService', () => {
     });
   });
 
+  describe('zoom range', () => {
+    it('lets Esri Gray Canvas zoom past its last tile level by scaling the zoom-16 tiles', () => {
+      siteSettings.set({ basemap_provider: 'esri-canvas' });
+      const layer = service.createLayer();
+      expect(layer.options.maxNativeZoom).toBe(16);
+      expect(layer.options.maxZoom).toBe(19);
+    });
+
+    it('leaves a provider that serves every level without a native cap', () => {
+      siteSettings.set({ basemap_provider: 'osm' });
+      expect(service.createLayer().options.maxNativeZoom).toBeUndefined();
+    });
+  });
+
   describe('dark theme', () => {
     it('serves the provider dark style when the theme is dark', async () => {
       siteSettings.set({ basemap_provider: 'carto-positron', basemap_key: 'abc123' });

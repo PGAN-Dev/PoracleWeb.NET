@@ -153,8 +153,8 @@ to Esri behind your back; set **Basemap Tile URL (Dark)** to give a custom basem
 who picked a basemap from the layers button gets what they picked in both themes, and the menu's
 **Site default** entry names what the dark theme is drawing.
 
-Esri Gray Canvas, and so the dark default, stops at zoom 16, which is further out than the location
-picker usually wants. The map simply won't zoom past it while that basemap is active.
+Esri Gray Canvas, and so the dark default, only has real tiles up to zoom 16. Past that the map keeps
+zooming to 19 by enlarging the zoom-16 tiles, so streets look softer when you zoom right in.
 
 A key unlocks every style in the same family, so a CARTO key gives you both CARTO entries. It never
 unlocks another vendor's: one key cannot be a CARTO key and a Stadia key at once, so the styles you

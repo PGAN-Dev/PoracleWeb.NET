@@ -591,10 +591,10 @@ a missing CARTO key on an install that had never mentioned CARTO. Change one, ch
 A fourth, `DARK_DEFAULT_BASEMAP_ID` (Esri dark gray, keyless), is what the dark theme draws for a viewer
 on the site default whose provider has no dark style. `siteDefault` stays theme-independent because the
 admin page reports it; `themedDefault` is what is drawn and what the picker's *Site default* entry names.
-Imagery (`keepInDark`) and a custom URL are never swapped. **Esri's Canvas basemaps stop at zoom 16**, and Leaflet
-clamps the map to the layer's `maxZoom`, so a dark-theme viewer on the site default can zoom only to 16 where OSM
-allowed 19 (a map attached with `{ maxZoom: 18 }` takes the smaller). That is the price of a keyless dark map; a viewer
-who needs to place a pin by a single stop can pick another basemap from the layers button.
+Imagery (`keepInDark`) and a custom URL are never swapped. **Esri's Canvas basemaps stop at zoom 16**, so the
+definition sets `maxNativeZoom: 16` with `maxZoom: 19`: Leaflet scales the zoom-16 tiles up past 16 instead of clamping
+the map, and a dark-theme viewer zooms as far as OSM allows (a map attached with `{ maxZoom: 18 }` still takes the smaller).
+Setting `maxZoom: 16` instead clamped the whole map, which made placing a pin by a single stop impossible in dark mode.
 
 **A viewer's own choice outranks the admin setting**, stored per browser. That is the feature, but it
 needs the escape: the picker's first entry is *Site default*, and the active mark follows the
