@@ -80,7 +80,7 @@ Saved delivery times appear as **amber pills** in the dialog (for example, "Mon-
     profile has **0,0 coordinates** (no location set), PoracleNG falls back to **UTC** and the
     summary will arrive at the wrong local time. A red warning appears in the dialog when a
     schedule is set but no pin is saved -- set your pin on the **Dashboard** or the
-    **Areas & Places** page to fix it.
+    **Areas & places** page to fix it.
 
 ### Validation rules
 

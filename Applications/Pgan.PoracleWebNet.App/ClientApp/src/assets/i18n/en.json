@@ -468,10 +468,10 @@
     "CONFIRM_DELETE_ALL_TITLE": "Delete all raid & egg alarms",
     "CONFIRM_DELETE_ALL_MSG": "Are you sure you want to delete ALL raid and egg alarms? This action cannot be undone.",
     "LEVEL": {
-      "RAID_1": "1 Star",
-      "RAID_2": "2 Star",
-      "RAID_3": "3 Star",
-      "RAID_4": "4 Star",
+      "RAID_1": "1 star",
+      "RAID_2": "2 star",
+      "RAID_3": "3 star",
+      "RAID_4": "4 star",
       "RAID_5": "Legendary",
       "RAID_6": "Mega",
       "RAID_7": "Mega Legendary",
@@ -795,10 +795,10 @@
     "SNACK_DELETED_ALL": "All Max battle alarms deleted",
     "SNACK_DELETED": "Max battle alarm deleted",
     "SNACK_UPDATED": "Max battle alarm updated",
-    "LEVEL_1": "1 Star",
-    "LEVEL_2": "2 Star",
-    "LEVEL_3": "3 Star",
-    "LEVEL_4": "4 Star",
+    "LEVEL_1": "1 star",
+    "LEVEL_2": "2 star",
+    "LEVEL_3": "3 star",
+    "LEVEL_4": "4 star",
     "LEVEL_5": "5 star (legendary)",
     "LEVEL_GMAX": "Gigantamax",
     "LEVEL_GMAX_LEGENDARY": "Legendary Gigantamax",
@@ -983,7 +983,7 @@
     "POKEMON_NEST": "{{name}} nest",
     "GYM_ACTIVITY": "Gym activity",
     "ANY_TEAM": "Any team",
-    "STAR_MAX_BATTLE": "{{stars}} Star Max battle",
+    "STAR_MAX_BATTLE": "{{stars}}-star max battle",
     "GIGANTAMAX": "Gigantamax",
     "LEGENDARY_GIGANTAMAX": "Legendary Gigantamax",
     "ANY_MAX_BATTLE": "Any Max battle",
@@ -1276,7 +1276,7 @@
         "DESCRIPTION": "Track all Mega and Primal raid bosses"
       },
       "RAID_5STAR": {
-        "NAME": "All 5-Star Raids",
+        "NAME": "All 5-star raids",
         "DESCRIPTION": "Track all legendary and mythical raid bosses"
       },
       "RAID_SHADOW": {
@@ -1284,7 +1284,7 @@
         "DESCRIPTION": "Track all shadow raid bosses"
       },
       "RAID_3STAR": {
-        "NAME": "All 3-Star Raids",
+        "NAME": "All 3-star raids",
         "DESCRIPTION": "Track all 3-star raid bosses"
       },
       "RAID_1STAR": {

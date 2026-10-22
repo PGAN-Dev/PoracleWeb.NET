@@ -180,7 +180,7 @@ area Koji serves and lets you take one off the menu without deleting it.
 
 A hidden area stops appearing in three places at once, because all three read the same flag:
 
-* **Areas & Places**, where users pick their subscriptions
+* **Areas & places**, where users pick their subscriptions
 * the **delivery scope picker** on an individual alarm
 * the bot's own **`!area`** list
 
@@ -198,7 +198,7 @@ flag this site did not set would not make them selectable.
     `userSelectable` (`resolveOverride` hands a rule's areas to `areaOverlap`, which compares names against
     the fences a spawn fell in), so a profile still carrying a hidden name keeps receiving its alerts.
 
-    It stays that way through later saves. The Areas & Places page sends back every name the profile
+    It stays that way through later saves. The Areas & places page sends back every name the profile
     already holds, including ones it no longer lists, and PoracleWeb.NET allows a name the profile already
     has before writing the list to PoracleNG as trusted. An alarm limited to the area keeps it too: the
     scope picker keeps the areas an alarm already carries, and the area check allows a name already on

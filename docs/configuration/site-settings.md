@@ -91,7 +91,7 @@ Toggle user-facing features on or off.
 | `disable_update_check` | Check for updates | boolean | Controls the version check against `api.github.com` and `raw.githubusercontent.com`, which runs when an admin opens the Versions card and is cached six hours afterwards. Two anonymous GETs, no identifiers and no payload. Like every `disable_` key the switch reads the positive way round: **Check for updates** on (key absent or `False`) runs the check; off (key `True`) stops it, and the Versions card still reports the running versions but can't say whether they're current. |
 | `disable_user_geofences` | Custom Geofences | boolean | Hides the My Geofences page and the admin review queue, and 403s the create, rename, import, submit, activate and deactivate endpoints. Delete is deliberately left open, so a user can still clear out a geofence they no longer want. Geofences that already exist keep being served in the [geofence feed](../features/custom-geofences/index.md) and keep matching. See [Admin operations](../features/custom-geofences/admin-operations.md). |
 | `enable_templates` | Templates | boolean | Allow users to choose notification message templates. |
-| `allowed_languages` | Allowed UI Languages | csv | Comma-separated language codes users can select (e.g., `en,de,fr`). Leave empty to show all 11 languages. Applies to the signed-out login page as well. English is always available. |
+| `allowed_languages` | Allowed UI languages | csv | Comma-separated language codes users can select (e.g., `en,de,fr`). Leave empty to show all 11 languages. Applies to the signed-out login page as well. English is always available. |
 
 Beneath that row the page reports Poracle's own configured locale, which is the language a
 first-time visitor lands on when neither a stored choice nor their browser can answer. It is read
@@ -355,7 +355,7 @@ URL is actually read from — the site setting was a duplicate that fed nothing.
 | `hidden_areas` | json | Area names taken off the menu, as a JSON array of lowercase strings. |
 
 Managed from **Admin → Areas** rather than edited by hand. A name listed here is served with
-`userSelectable: false` in the geofence feed, which removes it from Areas & Places, from the per-alarm
+`userSelectable: false` in the geofence feed, which removes it from Areas & places, from the per-alarm
 scope picker and from the bot's area list at once.
 
 It does not unsubscribe anyone already using the area. See
@@ -460,7 +460,7 @@ another system's configuration, present so the SPA can read them like any other 
 
 Both are read fresh from Poracle on one config call, cached five minutes, and **cannot be written**.
 `PUT /api/settings/poracle_locale` and `PUT /api/settings/poracle_alert_languages` answer 400, and the
-admin page renders the locale as a read-only line under Allowed UI Languages rather than as an editable
+admin page renders the locale as a read-only line under Allowed UI languages rather than as an editable
 box. The refusal matters more than it looks: a stored row would take precedence over the projected
 value, so a single accidental save would pin the language default permanently and stop the site
 tracking Poracle's configuration at all.

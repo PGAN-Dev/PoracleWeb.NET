@@ -178,10 +178,10 @@ Also note: Use API **v9** (not v10) — v10 is not supported on the `discordapp.
 
 ---
 
-## An area is missing from Areas & Places
+## An area is missing from Areas & places
 
 **Problem**: An area exists in Koji and alerts still fire from it, but nobody can find it on
-**Areas & Places** — admins included.
+**Areas & places** — admins included.
 
 **Solution**: Something is serving it as `userSelectable: false`, and
 `GET /api/areas/available` drops those for every caller. Two things can do that:
@@ -208,7 +208,7 @@ so rather than claiming success.
 
 **Solution**: Working as intended. Hiding controls the pickers, not matching. Poracle never consults
 `userSelectable` when deciding which fences a spawn fell in, so a profile still carrying the name keeps
-matching it, and it keeps carrying it: saving on **Areas & Places** sends back every area the profile
+matching it, and it keeps carrying it: saving on **Areas & places** sends back every area the profile
 already holds, hidden ones included, and an alarm limited to the area keeps it when edited. A user
 leaves a hidden area only by removing it themselves. If you need people off an area, tell them; see
 [Hiding an area from your users](features/custom-geofences/koji-and-regions.md#hiding-an-area-from-your-users).
@@ -275,7 +275,7 @@ UPDATE gym SET team = 4 WHERE team = 0;
 
 **Problem**: Auto-profile switches happen hours earlier or later than the configured active hours schedule.
 
-**Solution**: The profile has `0,0` coordinates, so PoracleNG's scheduler falls back to UTC instead of the user's local timezone. Set the pin on the affected profile via the Dashboard or the Areas & Places page. The Profiles page shows a red location warning banner on profiles that have no coordinates set.
+**Solution**: The profile has `0,0` coordinates, so PoracleNG's scheduler falls back to UTC instead of the user's local timezone. Set the pin on the affected profile via the Dashboard or the Areas & places page. The Profiles page shows a red location warning banner on profiles that have no coordinates set.
 
 ---
 
@@ -636,7 +636,7 @@ hide something without a word is configuration:
 | Pokéstop Events | Poracle's `general.disable_showcase = true`, or the `disable_showcase` site setting |
 | Quest summary delivery | Poracle's `tracking.quest_summary_enabled` not `true` |
 | The Pokemon edit-in-place toggle | Poracle's `tracking.pokemon_edit` not `true` |
-| Areas & Places, Profiles, Geofences and similar pages | Their `disable_*` site settings |
+| Areas & places, Profiles, Geofences and similar pages | Their `disable_*` site settings |
 
 The two `tracking.*` values are read from `GET /api/config/values` and cached for five minutes, and
 read as off when PoracleNG can't be asked.

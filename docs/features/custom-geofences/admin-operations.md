@@ -92,7 +92,7 @@ one without deleting it — staging fences, test polygons, a region you cover bu
 
 ![Admin → Areas filtered by a search, one area switched to hidden and the save bar showing](../../screenshots/admin-areas.png)
 
-A hidden area leaves **Areas & Places**, the per-alarm delivery scope picker and the bot's own area
+A hidden area leaves **Areas & places**, the per-alarm delivery scope picker and the bot's own area
 list together, because all three read the same flag. It does **not** unsubscribe anyone who already
 selected it, and their later saves keep it; see
 [Hiding an area from your users](koji-and-regions.md#hiding-an-area-from-your-users), and

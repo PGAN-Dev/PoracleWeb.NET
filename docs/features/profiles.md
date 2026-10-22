@@ -137,7 +137,7 @@ Amber pills show the activation times, grouped by day pattern ("Mon-Fri 9:00 AM"
 
 A red warning banner appears on a profile card when that profile has active hours configured but its coordinates are set to 0,0 (no location). This indicates the schedule may trigger at incorrect times because PoracleNG will use UTC instead of the user's local timezone.
 
-To fix this, set the profile's pin from the **Dashboard** or the **Areas & Places** page while that profile is active.
+To fix this, set the profile's pin from the **Dashboard** or the **Areas & places** page while that profile is active.
 
 ### Validation rules
 

@@ -33,10 +33,10 @@ A web application for managing Pokemon GO notification alarms through the [Porac
 | Per-alarm delivery scope | Aim one alert anywhere in your areas, near a place or a point on the map, or only in specific areas, including geofences you drew yourself |
 | Saved places | Name the points your alerts measure from, so one alert can watch your workplace while the rest follow your pin |
 | Quick picks | Admin-defined alarm templates users apply with one click |
-| Areas & Places | A Leaflet map for choosing areas, dropping your pin and naming the places your alerts measure from |
+| Areas & places | A Leaflet map for choosing areas, dropping your pin and naming the places your alerts measure from |
 | [Custom geofences](features/custom-geofences/index.md) | Draw your own polygons, served to the Poracle bot through a built-in feed, and submit one for review to make it a public area |
 | Geofence review | Admins approve or reject submitted geofences, with a Discord forum thread for each |
-| Hidden areas | Take a staging or test area off Areas & Places, the per-alarm scope picker and the bot's area list without deleting it, from Admin → Areas |
+| Hidden areas | Take a staging or test area off Areas & places, the per-alarm scope picker and the bot's area list without deleting it, from Admin → Areas |
 | [Profiles](features/profiles.md) | Several alarm profiles per user, with active hours that switch between them by day and time, duplication, and JSON backup and restore |
 | Notification preview | Live preview of DTS templates with Handlebars evaluation |
 | Dark and light mode | Theme toggle, remembered per browser, with accent colours for the toolbar and highlights; maps on the site default switch to a dark basemap in dark mode |
@@ -75,7 +75,7 @@ On a phone the sidebar becomes a menu and each add dialog fills the screen, with
 
 ![The Profiles page on a phone](screenshots/mobile-profiles.png)
 
-![Areas & Places on a phone](screenshots/mobile-areas.png)
+![Areas & places on a phone](screenshots/mobile-areas.png)
 
 ![My Geofences on a phone](screenshots/mobile-geofences.png)
 

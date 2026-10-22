@@ -95,17 +95,17 @@ Under the three answers the dialog draws what you picked on a small map: the cir
 
 ### Saved places
 
-A place is a named point ("home", "work", "the gym") that an alarm can measure from instead of your profile pin. They live on the **Areas & Places** page: the area map draws each one as a labelled violet dot beside the blue pin, and the **Pin and places** panel under the map is where you add, move and delete them. (`/places` still resolves; it redirects to `/areas`.)
+A place is a named point ("home", "work", "the gym") that an alarm can measure from instead of your profile pin. They live on the **Areas & places** page: the area map draws each one as a labelled violet dot beside the blue pin, and the **Pin and places** panel under the map is where you add, move and delete them. (`/places` still resolves; it redirects to `/areas`.)
 
-![Areas & Places with four areas selected on the map, one of them a drawn geofence](../screenshots/areas.png)
+![Areas & places with four areas selected on the map, one of them a drawn geofence](../screenshots/areas.png)
 
-![The List view of Areas & Places, with a search box above every area that can be selected](../screenshots/areas-bottom.png)
+![The List view of Areas & places, with a search box above every area that can be selected](../screenshots/areas-bottom.png)
 
 The pin is set from the **My pin** row of that panel, through a map picker with an address search; the search goes through PoracleNG's geocoder, and the `disable_nominatim` site setting hides it.
 
 ![The pin dialog with address search results listed under the search box](../screenshots/location-dialog.png)
 
-![The Pin and places panel on the Areas & Places page, with the pin row and two named places](../screenshots/places-section.png)
+![The Pin and places panel on the Areas & places page, with the pin row and two named places](../screenshots/places-section.png)
 
 Add one with **Add a place**: drop the marker, then name it. Names are yours to choose and are what an alarm's `override_location_label` refers to. Places are user-scoped, not profile-scoped.
 
@@ -770,7 +770,7 @@ The dashboard shows the current in-game weather conditions at the user's pin.
 It shows the in-game weather at the pin and in each of your selected areas, with the time the data was last refreshed, and refreshes in the background.
 
 !!! note "Pin required"
-    The weather display requires a saved pin to function. Users who have not set one will not see weather information on the dashboard. Set a pin on the **Areas & Places** page or through the onboarding wizard.
+    The weather display requires a saved pin to function. Users who have not set one will not see weather information on the dashboard. Set a pin on the **Areas & places** page or through the onboarding wizard.
 
 ## Quick Picks
 

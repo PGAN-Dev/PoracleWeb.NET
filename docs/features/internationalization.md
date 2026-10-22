@@ -121,7 +121,7 @@ Each language file uses namespaced keys organized by feature area:
 | `FORT_CHANGES` | Fort change alarm management |
 | `MAX_BATTLES` | Max battle alarm management |
 | `QUIET` | Quiet periods: chips, duration sheet and the dashboard's Quiet item |
-| `AREAS` | Areas & Places page |
+| `AREAS` | Areas & places page |
 | `PROFILES` | Profile management |
 | `GEOFENCES` | Custom geofences |
 | `CLEANING` | Clean mode settings |
