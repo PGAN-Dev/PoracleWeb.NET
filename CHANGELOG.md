@@ -42,6 +42,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Delete and other destructive buttons are red.** `color="warn"` did nothing under the Material 3 theme, so the bulk Delete on every alarm list was a filled blue button beside Select All, and card, profile, admin and geofence delete icons were the same grey as Edit. Every warn control now draws in the theme's error colour, in light and dark mode, and nothing else changes colour.
+- **Keyboard focus is visible on buttons, menu and nav items, tabs and chips.** Material's own focus ring is now on, white on the toolbar.
+- **Reduced motion also skips the stagger delays**, so list cards and admin rows appear at once instead of one after another.
+- **The impersonation banner is readable and says what it means.** Dark text on the amber bar (it was white at 2.15:1), and it now reads "Viewing as Jordan. Changes you make are saved to Jordan's alerts." in all eleven languages.
 - **A double-click on Repair no longer opens two confirm dialogs.** Repair is ignored while a confirmation is open or a repair is being sent.
 - **A failed rule repair shows its reason on its own line** under the message, instead of running it into the sentence.
 - **The French message for a radius change that would clash with another rule reads naturally.**

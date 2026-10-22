@@ -42,7 +42,7 @@
     "AVATAR_ALT": "Seu avatar"
   },
   "BANNER": {
-    "VIEWING_AS": "Visualizando como",
+    "VIEWING_AS": "Visualizando como {{name}}. As alterações que você fizer são salvas nos alarmes de {{name}}.",
     "EXIT_IMPERSONATION": "Voltar para sua conta",
     "DISABLED_ACCOUNT": "Sua conta foi <strong>desativada</strong> e Retomar não a reativa. Isso acontece se você sair do servidor do Discord ou perder um cargo obrigatório, e é liberado automaticamente quando você volta ao servidor ou recupera o cargo.",
     "DISABLED_ACCOUNT_INSPECTED": "Esta conta foi <strong>desativada</strong> por um administrador e não recebe notificações.",

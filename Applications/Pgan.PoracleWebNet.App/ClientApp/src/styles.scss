@@ -18,6 +18,66 @@ html {
       density: 0,
     )
   );
+
+  // Keyboard focus. Material sets `outline: none` on its buttons, list and nav items, tabs, menu items
+  // and chips, so the global `*:focus-visible` outline below never reached them and all that was left
+  // was a ~12% state layer, the same grey as hover. Strong focus indicators are Material's own fix: a
+  // 3px ring drawn by each component's `.mat-focus-indicator` on `:focus-visible`.
+  @include mat.strong-focus-indicators(
+    (
+      border-color: var(--mat-sys-primary),
+    )
+  );
+}
+
+// `color="warn"`. `mat.theme` emits system tokens only and ignores the `color` input, so every
+// destructive button rendered like a primary or neutral one. Material's documented answer is
+// `mat.color-variants-backwards-compatibility`, but that restores `mat-accent` and `mat-primary` too,
+// and checkboxes, radios, list options and FABs carry `mat-accent` by default: every one of them would
+// have turned cyan. So this applies the same per-component colour mixins for the warn variant only,
+// mapped to the error role. `use-system-variables` makes them emit `var(--mat-sys-error)` rather than
+// light-theme hex, so dark mode follows. M3 has no warn FAB, and none of ours asks for one.
+$_warn-variant-theme: mat.define-theme(
+  (
+    color: (
+      primary: mat.$azure-palette,
+      tertiary: mat.$cyan-palette,
+      use-system-variables: true,
+    ),
+  )
+);
+
+.mat-warn {
+  &.mat-mdc-button-base {
+    @include mat.button-color($_warn-variant-theme, $color-variant: error);
+    @include mat.icon-button-color($_warn-variant-theme, $color-variant: error);
+  }
+
+  &.mat-mdc-standard-chip {
+    @include mat.chips-color($_warn-variant-theme, $color-variant: error);
+  }
+
+  &.mat-mdc-slide-toggle {
+    @include mat.slide-toggle-color($_warn-variant-theme, $color-variant: error);
+  }
+
+  &.mat-mdc-checkbox {
+    @include mat.checkbox-color($_warn-variant-theme, $color-variant: error);
+  }
+
+  &.mat-icon {
+    @include mat.icon-color($_warn-variant-theme, $color-variant: error);
+  }
+}
+
+// On the toolbar the ring sits on the accent gradient, where primary blue disappears. White there, and
+// near-black when the gradient is light enough that the toolbar switches to dark ink.
+.app-toolbar {
+  --mat-focus-indicator-border-color: #fff;
+
+  &.toolbar-dark-ink {
+    --mat-focus-indicator-border-color: #212121;
+  }
 }
 
 // ─── Heading typography ─────────────────────────────────────────────
@@ -634,6 +694,10 @@ body.dark-theme .basemap-control__warning {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    // The staggered grids and admin lists set a delay per item (some inline), so without these each
+    // item still waited its turn before appearing. `!important` here beats a non-important inline style.
+    animation-delay: 0s !important;
+    transition-delay: 0s !important;
   }
 }
 

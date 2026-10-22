@@ -42,7 +42,7 @@
     "AVATAR_ALT": "Din avatar"
   },
   "BANNER": {
-    "VIEWING_AS": "Viser som",
+    "VIEWING_AS": "Viser som {{name}}. Ændringer, du laver, gemmes i alarmerne for {{name}}.",
     "EXIT_IMPERSONATION": "Tilbage til din konto",
     "DISABLED_ACCOUNT": "Din konto er blevet <strong>deaktiveret</strong>, og Genoptag slår den ikke til igen. Det sker, når du forlader Discord-serveren eller mister en påkrævet rolle, og det ophæves automatisk, når du melder dig ind igen eller får rollen tilbage.",
     "DISABLED_ACCOUNT_INSPECTED": "Denne konto er blevet <strong>deaktiveret</strong> af en administrator og modtager ikke notifikationer.",

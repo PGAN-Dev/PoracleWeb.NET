@@ -42,7 +42,7 @@
     "AVATAR_ALT": "Dein Avatar"
   },
   "BANNER": {
-    "VIEWING_AS": "Angezeigt als",
+    "VIEWING_AS": "Angezeigt als {{name}}. Deine Änderungen werden in den Alarmen von {{name}} gespeichert.",
     "EXIT_IMPERSONATION": "Zurück zu deinem Konto",
     "DISABLED_ACCOUNT": "Dein Konto wurde <strong>deaktiviert</strong>, und Fortsetzen schaltet es nicht wieder ein. Das passiert, wenn du den Discord-Server verlässt oder eine erforderliche Rolle verlierst, und es wird automatisch aufgehoben, sobald du wieder beitrittst oder die Rolle zurückbekommst.",
     "DISABLED_ACCOUNT_INSPECTED": "Dieses Konto wurde von einem Administrator <strong>deaktiviert</strong> und erhält keine Benachrichtigungen.",

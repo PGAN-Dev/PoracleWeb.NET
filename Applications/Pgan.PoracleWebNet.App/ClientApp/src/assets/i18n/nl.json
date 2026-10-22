@@ -42,7 +42,7 @@
     "AVATAR_ALT": "Je avatar"
   },
   "BANNER": {
-    "VIEWING_AS": "Bekijken als",
+    "VIEWING_AS": "Bekijken als {{name}}. Wijzigingen die je maakt, worden opgeslagen in de alarmen van {{name}}.",
     "EXIT_IMPERSONATION": "Terug naar je account",
     "DISABLED_ACCOUNT": "Je account is <strong>uitgeschakeld</strong> en Hervatten zet het niet weer aan. Dat gebeurt als je de Discord-server verlaat of een vereiste rol kwijtraakt, en het wordt vanzelf opgeheven zodra je weer lid wordt of de rol terugkrijgt.",
     "DISABLED_ACCOUNT_INSPECTED": "Dit account is door een beheerder <strong>uitgeschakeld</strong> en ontvangt geen meldingen.",

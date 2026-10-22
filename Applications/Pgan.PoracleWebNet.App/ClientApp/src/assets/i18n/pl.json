@@ -42,7 +42,7 @@
     "AVATAR_ALT": "Twój awatar"
   },
   "BANNER": {
-    "VIEWING_AS": "Przeglądasz jako",
+    "VIEWING_AS": "Przeglądasz jako {{name}}. Wprowadzane zmiany zapisują się w alarmach użytkownika {{name}}.",
     "EXIT_IMPERSONATION": "Powrót do swojego konta",
     "DISABLED_ACCOUNT": "Twoje konto zostało <strong>wyłączone</strong> i Wznów go nie włączy. Dzieje się tak, gdy opuścisz serwer Discord albo stracisz wymaganą rolę, a blokada znika sama, gdy wrócisz na serwer lub odzyskasz rolę.",
     "DISABLED_ACCOUNT_INSPECTED": "To konto zostało <strong>wyłączone</strong> przez administratora i nie otrzymuje powiadomień.",

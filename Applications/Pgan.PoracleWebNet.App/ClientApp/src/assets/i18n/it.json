@@ -42,7 +42,7 @@
     "AVATAR_ALT": "Il tuo avatar"
   },
   "BANNER": {
-    "VIEWING_AS": "Visualizzazione come",
+    "VIEWING_AS": "Visualizzazione come {{name}}. Le modifiche che fai vengono salvate negli allarmi di {{name}}.",
     "EXIT_IMPERSONATION": "Torna al tuo account",
     "DISABLED_ACCOUNT": "Il tuo account è stato <strong>disabilitato</strong> e Riprendi non lo riattiva. Succede se lasci il server Discord o perdi un ruolo richiesto, e si sblocca da solo quando rientri o riottieni il ruolo.",
     "DISABLED_ACCOUNT_INSPECTED": "Questo account è stato <strong>disattivato</strong> da un amministratore e non riceve notifiche.",
