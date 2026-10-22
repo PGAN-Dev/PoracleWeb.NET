@@ -108,9 +108,9 @@ export class FortChangeListComponent implements OnInit {
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        confirmText: this.i18n.instant('COMMON.DELETE'),
-        message: this.i18n.instant('ALARM.SELECTED_COUNT', { count: this.actionIds().length }),
-        title: this.i18n.instant('FORT_CHANGES.PAGE_TITLE'),
+        confirmText: this.i18n.instant('ALARM.DELETE_SELECTED', { count: this.actionIds().length }),
+        message: this.i18n.instant('ALARM.CONFIRM_BULK_DELETE_BODY'),
+        title: this.i18n.plural('ALARM.CONFIRM_BULK_DELETE_TITLE', this.actionIds().length),
         warn: true,
       } as ConfirmDialogData,
     });
@@ -330,8 +330,9 @@ export class FortChangeListComponent implements OnInit {
   }
 
   selectAll(): void {
-    // What is on screen: a search that hides a rule also keeps it out of Select All. See #642.
-    this.selectedIds.set(new Set(this.visibleFortChanges().map(i => i.uid)));
+    // Adds what is on screen: a search that hides a rule also keeps it out of Select All (#642), and a tick
+    // the search is hiding stays, so clearing the search brings it back.
+    this.selectedIds.set(new Set([...this.selectedIds(), ...this.visibleFortChanges().map(i => i.uid)]));
   }
 
   toggleSelect(uid: number): void {

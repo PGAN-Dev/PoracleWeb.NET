@@ -193,9 +193,9 @@ export class PokemonListComponent implements OnInit {
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        confirmText: this.i18n.instant('COMMON.DELETE_ALL'),
-        message: this.i18n.plural('ALARM.CONFIRM_BULK_DELETE_MSG', this.actionIds().length),
-        title: this.i18n.instant('POKEMON.CONFIRM_BULK_DELETE_TITLE'),
+        confirmText: this.i18n.instant('ALARM.DELETE_SELECTED', { count: this.actionIds().length }),
+        message: this.i18n.instant('ALARM.CONFIRM_BULK_DELETE_BODY'),
+        title: this.i18n.plural('ALARM.CONFIRM_BULK_DELETE_TITLE', this.actionIds().length),
         warn: true,
       } as ConfirmDialogData,
     });
@@ -529,8 +529,8 @@ export class PokemonListComponent implements OnInit {
   }
 
   selectAll(): void {
-    const ids = new Set(this.filteredMonsters().map(m => m.uid));
-    this.selectedIds.set(ids);
+    // Adds the cards on screen; a tick the search or a filter is hiding stays, as on the other nine lists.
+    this.selectedIds.set(new Set([...this.selectedIds(), ...this.filteredMonsters().map(m => m.uid)]));
   }
 
   sendTestAlert(monster: Monster): void {

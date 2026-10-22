@@ -167,9 +167,9 @@ export class RaidListComponent implements OnInit {
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        confirmText: this.i18n.instant('RAIDS.CONFIRM_DELETE_SELECTED'),
-        message: this.i18n.plural('ALARM.CONFIRM_BULK_DELETE_MSG', this.actionIds().length),
-        title: this.i18n.instant('RAIDS.CONFIRM_BULK_DELETE_TITLE'),
+        confirmText: this.i18n.instant('ALARM.DELETE_SELECTED', { count: this.actionIds().length }),
+        message: this.i18n.instant('ALARM.CONFIRM_BULK_DELETE_BODY'),
+        title: this.i18n.plural('ALARM.CONFIRM_BULK_DELETE_TITLE', this.actionIds().length),
         warn: true,
       } as ConfirmDialogData,
     });
@@ -496,8 +496,9 @@ export class RaidListComponent implements OnInit {
   selectAll(): void {
     // The visible tab only. Selecting both meant a user on the Raids tab pressed Select All, saw a
     // count that included eggs they could not see, and Delete took those too -- reported as a plain
-    // "deleted N alarms". Every other list scopes this to what is rendered. See #642.
-    const keys = new Set<string>();
+    // "deleted N alarms". Every other list scopes this to what is rendered. See #642. It adds to the
+    // selection rather than replacing it, so the other tab's ticks are still there when the user goes back.
+    const keys = new Set<string>(this.selectedIds());
     if (this.activeTab() === 0) {
       this.visibleRaids().forEach(r => keys.add(this.selectionKey('raid', r.uid)));
     } else {

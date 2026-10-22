@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { Type, signal } from '@angular/core';
@@ -130,6 +133,15 @@ describe('bulk actions act only on the selected cards on screen', () => {
       h.component.search.set('');
       expect([...h.component.actionIds()].sort()).toEqual([1, 2, 3]);
     });
+    it('select all adds the cards on screen to the selection, keeping a tick the search hides', () => {
+      const h = mount(LureListComponent, [[LureService, alarmService(rows)]]);
+      h.component.toggleSelect(1);
+      h.component.search.set('glacial');
+      h.component.selectAll();
+
+      h.component.search.set('');
+      expect([...h.component.actionIds()].sort()).toEqual([1, 2]);
+    });
   });
 
   describe('gyms', () => {
@@ -259,5 +271,39 @@ describe('bulk actions act only on the selected cards on screen', () => {
       expect(eggs.updateBulkDistance).toHaveBeenCalledWith([8, 7], 1000);
       expect(raids.updateBulkDistance).not.toHaveBeenCalled();
     });
+
+    it('select all on the Eggs tab keeps the raid ticked on the Raids tab', () => {
+      const { h } = mountRaids();
+      h.component.toggleSelect(h.component.selectionKey('raid', 7));
+      h.component.activeTab.set(1);
+      h.component.selectAll();
+      h.component.activeTab.set(0);
+
+      expect(h.component.actionIds()).toEqual(['raid:7']);
+    });
+  });
+});
+
+/** The other lists, by their source: Select all must add to the selection, never replace it. */
+describe('select all keeps the ticks it cannot see', () => {
+  const lists = [
+    'pokemon/pokemon',
+    'raids/raid',
+    'quests/quest',
+    'invasions/invasion',
+    'lures/lure',
+    'nests/nest',
+    'gyms/gym',
+    'fort-changes/fort-change',
+    'pokestop-events/pokestop-event',
+    'max-battles/max-battle',
+  ];
+
+  it.each(lists)('%s unions the visible cards into the current selection', list => {
+    const source = readFileSync(join(__dirname, `${list}-list.component.ts`), 'utf8');
+    const start = source.indexOf('  selectAll(): void {');
+    const body = source.slice(start, source.indexOf('\n  }\n', start));
+
+    expect(body).toContain('this.selectedIds()');
   });
 });

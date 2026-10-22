@@ -107,9 +107,9 @@ export class LureListComponent implements OnInit {
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        confirmText: this.i18n.instant('POKEMON.CONFIRM_BULK_DELETE_TITLE'),
-        message: this.i18n.plural('ALARM.CONFIRM_BULK_DELETE_MSG', this.actionIds().length),
-        title: this.i18n.instant('POKEMON.CONFIRM_BULK_DELETE_TITLE'),
+        confirmText: this.i18n.instant('ALARM.DELETE_SELECTED', { count: this.actionIds().length }),
+        message: this.i18n.instant('ALARM.CONFIRM_BULK_DELETE_BODY'),
+        title: this.i18n.plural('ALARM.CONFIRM_BULK_DELETE_TITLE', this.actionIds().length),
         warn: true,
       } as ConfirmDialogData,
     });
@@ -330,8 +330,9 @@ export class LureListComponent implements OnInit {
   }
 
   selectAll(): void {
-    // What is on screen: a search that hides a rule also keeps it out of Select All. See #642.
-    this.selectedIds.set(new Set(this.visibleLures().map(i => i.uid)));
+    // Adds what is on screen: a search that hides a rule also keeps it out of Select All (#642), and a tick
+    // the search is hiding stays, so clearing the search brings it back.
+    this.selectedIds.set(new Set([...this.selectedIds(), ...this.visibleLures().map(i => i.uid)]));
   }
 
   sendTestAlert(lure: Lure): void {
