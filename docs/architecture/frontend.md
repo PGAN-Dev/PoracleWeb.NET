@@ -146,9 +146,11 @@ Grid items fade in with 30ms stagger delay.
 
 ### Theming
 
-**Accent themes** — Toolbar gradient, sidenav active link, and UI accent colors are customizable via the user menu. Colors are applied as CSS custom properties on `document.body.style` to work across Angular's view encapsulation.
+The toolbar gradient, the sidenav's active link and the UI accent colours follow an accent theme picked from the user menu. The colours are applied as CSS custom properties on `document.body.style` so they reach across Angular's view encapsulation.
 
-**Dark/light mode** — CSS variables bridge Material tokens to component styles. Theme stored in `localStorage('poracle-theme')`.
+Dark and light mode bridge Material tokens to component styles through CSS variables, and the choice is stored in `localStorage('poracle-theme')`.
+
+![The dashboard in dark mode](../screenshots/dark-mode.png)
 
 ### Onboarding wizard
 Shows on the dashboard for new users until explicitly dismissed. Detects existing location/areas/alarms and marks steps as complete. Route-based actions (Choose Areas, Add Alarm) hide the overlay temporarily without setting the localStorage completion flag.

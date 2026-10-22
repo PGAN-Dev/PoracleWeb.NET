@@ -46,7 +46,7 @@ Two probes, cached for five minutes. The mechanics are in
 | Signal | Source | Answers |
 |---|---|---|
 | Version | `GET /health` | Whether this server is known to be older than the minimum. |
-| Published schema | `GET /openapi.json` | The two questions still open: whether `setAreas` takes `trusted`, and whether the invasion rule declares `grunt_type`. |
+| Published schema | `GET /openapi.json` | Which properties each `V2*Rule` declares, and the numeric bounds it publishes. The tracking proxy reads them so a property PoracleWeb.NET doesn't model is carried through an edit, and a value outside the server's own bound is refused before it's sent. |
 
 `PoracleServerProfile.IsSupported` is true when PoracleNG answered and its version is not below
 `MinimumSupported`. An unparseable version, or the `0.0.0` a locally built binary reports because its
@@ -68,9 +68,11 @@ about alarms. A missing key there means unsupported, PoracleNG's own contract fo
 | Translated grunt display names | Response field | A `/api/masterdata/grunts` entry carrying `grunt_type` and `short_name` |
 | Rule descriptions on alarm cards | Response field | Any v2 read |
 
-The published-schema questions (profile create returning its number, rename through `PATCH`, the admin human routes) come from `IPoracleV2SchemaService`, which reads the
-target instance's own `/openapi.json`. It is the schema-document sibling of `PoracleServerProfile`: one
-cached probe, typed questions, everything false when the document cannot be read.
+The flags `IPoracleV2SchemaService` used to answer (profile create returning its number, rename through
+`PATCH`, the admin human routes, trusted `setAreas`) went with 5.4.0, which carries all of them. The one
+flag left, `InvasionGruntType`, is still parsed but nothing reads it. What the schema still decides is the
+per-rule property list and bounds above, which the tracking proxy reads from `/openapi.json` itself and
+caches.
 
 `SummaryCapabilityService` and `PokemonEditCapabilityService` answer from Poracle's configuration, not
 from the version, because quest summary delivery and pokemon edit-in-place are deployment settings an
@@ -154,9 +156,8 @@ have checked first.
 
 Move `PoracleServerProfile.MinimumSupported`, then delete what only the old floor needed, as 5.4.0 did.
 Before deleting a fallback, ask whether it is there for the old version or for a server that answers
-differently today. The plaintext-404 handling on each v2 route was the first kind for humans and
-profiles, which is why it now throws, and is still the second kind for single-rule tracking edits until
-tracking moves to v2 entirely.
+differently today. The plaintext-404 handling on each v2 route was the first kind, which is why it now throws
+`PoracleUnsupportedException` everywhere rather than falling back.
 
 ## Things that look like they differ between versions and do not
 
