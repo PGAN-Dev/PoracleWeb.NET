@@ -14,6 +14,29 @@ switches on or off with the server's version.
     [upgrade guide](../getting-started/upgrading-to-poracleng-5-4.md) covers the order of steps and the
     rule repair to run afterwards.
 
+## Which PoracleNG to run
+
+PoracleNG doesn't publish tagged releases. Its `develop` branch is where its releases land and reports 5.4.0 from 21 October 2026. Its `main` branch, which is also what the `latest` image is built from, has stayed at 5.2.1 since 1 September 2026. Choose PoracleNG by branch or image tag, never by `latest`.
+
+| PoracleWeb.NET | PoracleNG | Status |
+|---|---|---|
+| This version | `develop` at commit `34421b82` (22 October 2026) or newer; image `ghcr.io/jfberry/poracleng:develop` | Required. Tested against `34421b82`. |
+| This version | 5.4.0 built before `34421b82` (21–22 October 2026) | Works, except that rules on a profile number with no profile row stay out of Profile Overview and the rule repair scan ([jfberry/PoracleNG#331](https://github.com/jfberry/PoracleNG/pull/331)). |
+| This version | `main` or `latest` (5.2.1), or anything older than 5.4.0 | Not supported. Startup logs an error, the Versions card says PoracleNG is too old, and most saves fail. |
+| 2.21.0 | 5.1.0 or newer, including `main`/`latest` (5.2.1) and `develop` (5.4.0) | Supported. Quiet periods, editing saved places and alarm edits through `/api/v2` need 5.2.0 or newer. Tested against 5.2.1 and against `develop` at `34421b82`. |
+| Earlier 2.x releases | 5.1.0 or newer | Supported up to 5.3.x. Not tested against 5.4.0; move to 2.21.0 first. |
+| Experimental shiny line, `2.21.0-shiny.1` (image `ghcr.io/pgan-dev/poracleweb.net-experimental:2.21.0-shiny.1`) | `feat/personal-shiny` ([jfberry/PoracleNG#255](https://github.com/jfberry/PoracleNG/pull/255)); image `ghcr.io/jfberry/poracleng:feat-personal-shiny` | Supported, with personal shiny alerts. On `develop` without that pull request it works with the shiny controls hidden. |
+
+The PoracleWeb.NET images: `ghcr.io/pgan-dev/poracleweb.net:<version>` for each release (and `latest` for the newest), `:beta` for PoracleWeb.NET's own `develop` branch, which follows the "This version" rows.
+
+Known differences between the combinations above:
+
+- This version can't create an invasion alarm limited to genderless grunts, and can't save an existing one, because PoracleNG's `/api/v2` has no genderless value for invasions. It says so and changes nothing.
+- 2.21.0 against a PoracleNG with personal shiny: adding an alarm next to a personal one that differs only in its radius is refused, because 2.21.0 doesn't know PoracleNG counts the personal flag as part of a rule. Nothing is overwritten.
+- 2.21.0: start PoracleNG before PoracleWeb.NET. If PoracleWeb.NET starts while PoracleNG isn't answering, quiet periods stay unavailable until PoracleWeb.NET restarts. This version doesn't have that problem.
+
+These results come from running PoracleWeb.NET's API test suite against each pairing on 22 October 2026, using the published images.
+
 ## Why 5.4.0
 
 PoracleNG 5.4.0 is the release that carries everything PoracleWeb.NET asked upstream for while working
