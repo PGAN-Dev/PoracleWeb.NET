@@ -83,7 +83,7 @@ PoracleNG accepts any positive integer as a raid/egg level, so the picker's `+ A
 
 ## Fort change and Max Battle services
 
-`FortChangeService` and `MaxBattleService` follow the same `IPoracleTrackingProxy` pattern as all other alarm services. They proxy CRUD operations through PoracleNG's tracking endpoints with no direct database access. Each has the standard three distance endpoints (`PUT /{uid}`, `PUT /distance`, `PUT /distance/bulk`).
+`FortChangeService` and `MaxBattleService` follow the same `IPoracleTrackingProxy` pattern as all other alarm services. They proxy CRUD operations through PoracleNG's tracking endpoints. Each has the standard three distance endpoints (`PUT /{uid}`, `PUT /distance`, `PUT /distance/bulk`).
 
 ## Invasion service
 
@@ -245,7 +245,7 @@ The Pokéstop event proxy (`PoracleIncidentProxy`) does the same for its own rou
 
 ## Location
 
-`LocationController` uses `IPoracleHumanProxy.SetLocationAsync()` to set the user's location. No direct DB access or transactions are needed -- PoracleNG handles the write and state reload atomically.
+`LocationController` uses `IPoracleHumanProxy.SetLocationAsync()` to set the user's location. PoracleNG handles the write and state reload atomically, so there's no transaction to manage here.
 
 ### Saved places
 
@@ -271,7 +271,7 @@ A label is what an alarm's `override_location_label` refers to. The whole contro
 | `UpstreamFeatureFlagService` | Scoped | Resolves Poracle's own per-type disable flags into `disable_*` keys, cached 5 min; fails open |
 
 !!! info "DashboardService uses the proxy"
-    `DashboardService` calls `IPoracleTrackingProxy.GetAllTrackingAsync()` to fetch all alarm types in a single API call, then counts each type from the response. No direct DB queries.
+    `DashboardService` calls `IPoracleTrackingProxy.GetAllTrackingAsync()` to fetch all alarm types in a single API call, then counts each type from the response.
 
 ## Profiles
 
