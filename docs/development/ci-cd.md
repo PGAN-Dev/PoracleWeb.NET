@@ -34,9 +34,9 @@ without that trigger a queued PR waits on checks that never run and times out.
 Runs on every push, PR and merge-queue entry for `main`, `develop` and `experimental/**`, as two
 independent jobs:
 
-1. **Backend (.NET)** — restore, `dotnet build --configuration Release`, `dotnet test`, and upload the
+1. Backend (.NET). Restore, `dotnet build --configuration Release`, `dotnet test`, and upload the
    `.trx` results as an artifact.
-2. **Frontend (Angular)** — `npm ci` on Node 22, then ESLint, the Prettier check, Jest (`npm test -- --ci`)
+2. Frontend (Angular). `npm ci` on Node 22, then ESLint, the Prettier check, Jest (`npm test -- --ci`)
    and a production `npm run build`.
 
 The frontend job pins npm 11 before installing. Node 22 ships npm 10.9.7, whose `npm ci` rejects
@@ -81,7 +81,7 @@ carries no pull request to read a title, label or diff from.
   `experimental/<name>` it reads `CHANGELOG-<name>.md` instead (any further `/` in the name written as
   `-`), since an experimental line leaves `CHANGELOG.md` exactly as `main` has it.
 - **Exempt** PR types (no entry required): titles prefixed `deps:`, `docs:`, `style:`, `chore:`, `ci:`, `test:`, or `build:`. Conventional-commit scopes and `!` are allowed, so `fix(icons)!:` is matched the same way.
-- **Escape hatch:** apply the `skip-changelog` label for a legitimate exception (re-runs automatically when the label is added). That label does not exist on the repository yet, so create it before you need it — you cannot apply one that has never been defined.
+- Escape hatch. Apply the `skip-changelog` label for a legitimate exception (re-runs automatically when the label is added). That label does not exist on the repository yet, so create it before you need it — you cannot apply one that has never been defined.
 - Fails with a clear message if a user-facing PR is missing its `[Unreleased]` entry, so it's caught **before** merge.
 
 !!! warning "Retitling a PR does not re-run the check"
