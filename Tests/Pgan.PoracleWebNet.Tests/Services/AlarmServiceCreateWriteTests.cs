@@ -79,7 +79,7 @@ public class AlarmServiceCreateWriteTests
     {
         this.RowUids("invasion", [11, 0, 12]);
         var sut = new InvasionService(
-            this._proxy.Object, this._gate.Object, Mock.Of<ILogger<InvasionService>>(), this._remapper.Object);
+            this._proxy.Object, this._gate.Object, Mock.Of<ILogger<InvasionService>>(), this._remapper.Object, Mock.Of<IPoracleIncidentProxy>());
 
         var created = (await sut.BulkCreateAsync(
             "u1",
@@ -226,7 +226,7 @@ public class AlarmServiceCreateWriteTests
             .CreateAsync("u1", new FortChange { FortType = "gym" })).Uid,
         "lure" => (await new LureService(this._proxy.Object, this._gate.Object, Mock.Of<ILogger<LureService>>(), this._remapper.Object)
             .CreateAsync("u1", new Lure { LureId = 501 })).Uid,
-        "invasion" => (await new InvasionService(this._proxy.Object, this._gate.Object, Mock.Of<ILogger<InvasionService>>(), this._remapper.Object)
+        "invasion" => (await new InvasionService(this._proxy.Object, this._gate.Object, Mock.Of<ILogger<InvasionService>>(), this._remapper.Object, Mock.Of<IPoracleIncidentProxy>())
             .CreateAsync("u1", new Invasion { GruntType = "water" })).Uid,
         _ => throw new ArgumentOutOfRangeException(nameof(type), type, "No fixture for this tracking type."),
     };

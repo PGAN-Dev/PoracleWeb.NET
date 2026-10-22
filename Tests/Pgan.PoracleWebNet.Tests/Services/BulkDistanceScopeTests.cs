@@ -144,8 +144,8 @@ public class BulkDistanceScopeTests
             new PokestopEvent { Uid = 2, DisplayType = PokestopEventTypes.Kecleon, OverrideAreas = ["aberdeen"] },
         ]);
         List<PokestopEvent>? sent = null;
-        proxy.Setup(p => p.CreateAsync("u1", It.IsAny<IEnumerable<PokestopEvent>>()))
-            .Callback<string, IEnumerable<PokestopEvent>>((_, rules) => sent = [.. rules])
+        proxy.Setup(p => p.CreateAsync("u1", It.IsAny<IEnumerable<PokestopEvent>>(), It.IsAny<bool>()))
+            .Callback<string, IEnumerable<PokestopEvent>, bool>((_, rules, _) => sent = [.. rules])
             .ReturnsAsync(new PokestopEventWriteResult([], [], []));
 
         var result = await new PokestopEventService(proxy.Object, this._featureGate.Object)
@@ -197,7 +197,7 @@ public class BulkDistanceScopeTests
         "egg" => new EggService(this._proxy, this._featureGate.Object, NullLogger<EggService>.Instance, this._remapper.Object),
         "quest" => new QuestService(
             this._proxy, this._featureGate.Object, NullLogger<QuestService>.Instance, this._remapper.Object),
-        "invasion" => new InvasionService(this._proxy, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._remapper.Object),
+        "invasion" => new InvasionService(this._proxy, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._remapper.Object, Mock.Of<IPoracleIncidentProxy>()),
         "lure" => new LureService(this._proxy, this._featureGate.Object, NullLogger<LureService>.Instance, this._remapper.Object),
         "nest" => new NestService(this._proxy, this._featureGate.Object, NullLogger<NestService>.Instance, this._remapper.Object),
         "gym" => new GymService(this._proxy, this._featureGate.Object, NullLogger<GymService>.Instance, this._remapper.Object),

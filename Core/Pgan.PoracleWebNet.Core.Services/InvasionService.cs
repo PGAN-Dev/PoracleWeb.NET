@@ -5,13 +5,14 @@ using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
-public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, ILogger<InvasionService> logger, ITrackedUidRemapper uidRemapper) : IInvasionService
+public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, ILogger<InvasionService> logger, ITrackedUidRemapper uidRemapper, IPoracleIncidentProxy incidentProxy) : IInvasionService
 {
     private const string TrackingType = "invasion";
     private readonly IPoracleTrackingProxy _proxy = proxy;
     private readonly IFeatureGate _featureGate = featureGate;
     private readonly ILogger<InvasionService> _logger = logger;
     private readonly ITrackedUidRemapper _uidRemapper = uidRemapper;
+    private readonly IPoracleIncidentProxy _incidentProxy = incidentProxy;
 
     /// <summary>
     /// Whether pokestop-event rows belong to the Pokestop Events page rather than this list.
@@ -80,6 +81,13 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
         model.Id = userId;
         RequireGruntType(model);
 
+        if (AsPokestopEvent(model) is { } pokestopEvent)
+        {
+            var uids = await IncidentCreateProtocol.CreateAsync(this._incidentProxy, userId, [pokestopEvent], single: true);
+            model.Uid = uids[0];
+            return model;
+        }
+
         var body = SerializeToElement(model);
 
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
@@ -97,6 +105,20 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Invasions);
         RequireGruntType(model);
         var oldUid = model.Uid;
+
+        if (AsPokestopEvent(model) is { } pokestopEvent)
+        {
+            var replaced = await this._incidentProxy.ReplaceAsync(userId, oldUid, pokestopEvent);
+            model.Uid = replaced.PrimaryUid ?? oldUid;
+            if (model.Uid != oldUid)
+            {
+                // A quick pick tracks the rule under the invasion type it applied it as.
+                await this._uidRemapper.RemapAsync(userId, TrackingType, oldUid, model.Uid);
+            }
+
+            return model;
+        }
+
         var body = SerializeToElement(model);
 
         // Carry forward anything the stored row holds that the model does not declare. See #730.
@@ -218,15 +240,75 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
             RequireGruntType(model);
         }
 
-        var body = SerializeToElement(modelList);
-        var result = await this._proxy.CreateAsync(TrackingType, userId, body);
+        // A quick pick can name a Pokestop event (an admin pick, or one saved before the events page), and
+        // v2's invasion route refuses those, so they are written to the incident route in their own batch.
+        var events = modelList
+            .Select(model => (model, rule: AsPokestopEvent(model)))
+            .Where(x => x.rule is not null)
+            .ToList();
+        var grunts = modelList.Where(m => !PokestopEventTypes.IsEventName(m.GruntType)).ToList();
 
-        for (var i = 0; i < modelList.Count && i < result.RowUids.Count; i++)
+        if (grunts.Count > 0)
         {
-            modelList[i].Uid = result.RowUids[i];
+            var result = await this._proxy.CreateAsync(TrackingType, userId, SerializeToElement(grunts));
+            for (var i = 0; i < grunts.Count && i < result.RowUids.Count; i++)
+            {
+                grunts[i].Uid = result.RowUids[i];
+            }
+        }
+
+        if (events.Count > 0)
+        {
+            var uids = await IncidentCreateProtocol.CreateAsync(
+                this._incidentProxy, userId, [.. events.Select(x => x.rule!)], single: false);
+            for (var i = 0; i < events.Count; i++)
+            {
+                events[i].model.Uid = uids[i];
+            }
         }
 
         return modelList;
+    }
+
+    /// <summary>
+    /// The Pokestop-event rule an invasion model names, or null when it names a Team Rocket grunt.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// kecleon, gold-stop and showcase share the invasion table, but v2's invasion route refuses them ("use
+    /// /incident"), so they are written as <c>incident</c> rules: the name becomes the event's
+    /// <c>display_type</c>, and distance, template, clean, mention and override scope are carried across.
+    /// </para>
+    /// <para>
+    /// An event has no gender. A gender other than any is refused rather than dropped, since the model would
+    /// otherwise be saved as something other than what was sent. No stored event rule carries one.
+    /// </para>
+    /// </remarks>
+    private static PokestopEvent? AsPokestopEvent(Invasion model)
+    {
+        if (PokestopEventTypes.DisplayTypeFor(model.GruntType) is not int displayType)
+        {
+            return null;
+        }
+
+        if (model.Gender != 0)
+        {
+            throw new AlarmValidationException(
+                $"PoracleNG can't store this alarm as it is: a Pokestop event ({model.GruntType}) has no gender. Nothing was changed.");
+        }
+
+        return new PokestopEvent
+        {
+            Uid = model.Uid,
+            Id = model.Id,
+            DisplayType = displayType,
+            Distance = model.Distance,
+            Template = model.Template,
+            Clean = model.Clean,
+            Ping = model.Ping,
+            OverrideLocationLabel = model.OverrideLocationLabel,
+            OverrideAreas = model.OverrideAreas,
+        };
     }
 
     /// <summary>
@@ -245,6 +327,8 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
 
     private static void RequireGruntType(Invasion model)
     {
+        model.GruntType = InvasionGruntTypes.Normalise(model.GruntType);
+
         // Deliberately NOT an allowlist. The live database holds grunt types this codebase does not model --
         // blanche, candela, spark, "npc 0" through "npc 10", "player team leader" -- so validating against
         // InvasionGruntTypes.All would have refused edits to alarms that work today. What is checked instead

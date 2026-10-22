@@ -58,4 +58,13 @@ public class PokestopEvent
     {
         get; set;
     }
+
+    /// <summary>
+    /// Text appended to the alert, typically a role or user mention. Carried through so a replace, which
+    /// is a full replace on v2, does not blank a mention set elsewhere.
+    /// </summary>
+    public string? Ping
+    {
+        get; set;
+    }
 }

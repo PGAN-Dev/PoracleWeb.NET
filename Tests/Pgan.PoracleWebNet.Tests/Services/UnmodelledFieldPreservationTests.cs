@@ -225,7 +225,7 @@ public class UnmodelledFieldPreservationTests
     public async Task EditKeepsUnmodelledFieldsOnInvasion()
     {
         var service = new InvasionService(
-            this._proxy.Object, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._remapper.Object);
+            this._proxy.Object, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._remapper.Object, Mock.Of<IPoracleIncidentProxy>());
 
         await service.UpdateAsync("u1", new Invasion { Uid = 7, GruntType = "blanche", Gender = 0, Distance = 1500 });
 
@@ -354,7 +354,7 @@ public class UnmodelledFieldPreservationTests
             NullLogger<QuestService>.Instance,
             this._remapper.Object),
         "invasion" => new InvasionService(
-            this._proxy.Object, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._remapper.Object),
+            this._proxy.Object, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._remapper.Object, Mock.Of<IPoracleIncidentProxy>()),
         "lure" => new LureService(
             this._proxy.Object, this._featureGate.Object, NullLogger<LureService>.Instance, this._remapper.Object),
         "nest" => new NestService(

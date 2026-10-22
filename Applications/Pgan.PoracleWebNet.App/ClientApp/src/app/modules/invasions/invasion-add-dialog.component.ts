@@ -93,7 +93,9 @@ export class InvasionAddDialogComponent implements OnInit {
     { gruntType: 'grass', invasionId: 10, key: 'grass', typeId: 12 },
     { gruntType: 'ground', invasionId: 11, key: 'ground', typeId: 5 },
     { gruntType: 'ice', invasionId: 12, key: 'ice', typeId: 15 },
-    { gruntType: 'metal', invasionId: 13, key: 'metal', typeId: 9 },
+    // Steel is `steel` in PoracleNG's grunt data; `metal` matched nothing and v2 refuses it. The key stays
+    // `metal` so the toggle id and its translation are unchanged.
+    { gruntType: 'steel', invasionId: 13, key: 'metal', typeId: 9 },
     { gruntType: 'normal', invasionId: 14, key: 'normal', typeId: 1 },
     { gruntType: 'poison', invasionId: 15, key: 'poison', typeId: 4 },
     { gruntType: 'psychic', invasionId: 16, key: 'psychic', typeId: 14 },

@@ -18,6 +18,7 @@ public class InvasionServiceTests
     private readonly Mock<IPoracleTrackingProxy> _proxy = new();
     private readonly Mock<IFeatureGate> _featureGate = new();
     private readonly Mock<ITrackedUidRemapper> _uidRemapper = new();
+    private readonly Mock<IPoracleIncidentProxy> _incident = new();
     private readonly InvasionService _sut;
 
     public InvasionServiceTests()
@@ -25,7 +26,7 @@ public class InvasionServiceTests
         this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
         // Default: a server that serves the Pokestop Events page, so event rows belong to it.
         this._featureGate.Setup(g => g.IsEnabledAsync(It.IsAny<string>())).ReturnsAsync(true);
-        this._sut = new InvasionService(this._proxy.Object, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._uidRemapper.Object);
+        this._sut = new InvasionService(this._proxy.Object, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._uidRemapper.Object, this._incident.Object);
         this._proxy.Setup(p => p.GetByUserAsync("invasion", It.IsAny<string>()))
             .ReturnsAsync(JsonSerializer.SerializeToElement(Array.Empty<object>()));
         this._proxy.Setup(p => p.DeleteByUidAsync("invasion", It.IsAny<string>(), It.IsAny<int>()))
@@ -437,5 +438,160 @@ public class InvasionServiceTests
 
         Assert.Equal(1, count);
         Assert.DoesNotContain("showcase", body!.Value.GetRawText(), StringComparison.Ordinal);
+    }
+
+    // ── Pokestop events written through the invasion service ────────────────
+    // v2's invasion route refuses kecleon, gold-stop and showcase ("use /incident"). The invasion add
+    // dialog still offers them where there is no Pokestop Events page, so they go to the incident route.
+
+    private void IncidentCreateAnswers(Func<bool, PokestopEventWriteResult> answer) =>
+        this._incident.Setup(p => p.CreateAsync("u1", It.IsAny<IEnumerable<PokestopEvent>>(), It.IsAny<bool>()))
+            .ReturnsAsync((string _, IEnumerable<PokestopEvent> _, bool dryRun) => answer(dryRun));
+
+    private static PokestopEvent Event(int uid, int displayType) => new() { Uid = uid, DisplayType = displayType };
+
+    [Fact]
+    public async Task InvasionCreateEventGruntGoesToIncident()
+    {
+        List<PokestopEvent>? committed = null;
+        this._incident.Setup(p => p.CreateAsync("u1", It.IsAny<IEnumerable<PokestopEvent>>(), It.IsAny<bool>()))
+            .Callback<string, IEnumerable<PokestopEvent>, bool>((_, rules, dryRun) =>
+            {
+                if (!dryRun)
+                {
+                    committed = [.. rules];
+                }
+            })
+            .ReturnsAsync((string _, IEnumerable<PokestopEvent> _, bool dryRun) => dryRun
+                ? new PokestopEventWriteResult([Event(0, PokestopEventTypes.Kecleon)], [], [])
+                : new PokestopEventWriteResult([Event(289, PokestopEventTypes.Kecleon)], [], []));
+
+        var result = await this._sut.CreateAsync("u1", new Invasion
+        {
+            GruntType = "Kecleon",
+            Distance = 0,
+            Template = "2",
+            Clean = 1,
+            OverrideAreas = ["my park"],
+        });
+
+        Assert.Equal(289, result.Uid);
+        var rule = Assert.Single(committed!);
+        Assert.Equal(PokestopEventTypes.Kecleon, rule.DisplayType);
+        Assert.Equal("2", rule.Template);
+        Assert.Equal(1, rule.Clean);
+        Assert.Equal(["my park"], rule.OverrideAreas!);
+        this._proxy.Verify(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task InvasionCreateEventGruntThatWouldTakeOverIsRefused()
+    {
+        this.IncidentCreateAnswers(_ => new PokestopEventWriteResult([], [Event(289, PokestopEventTypes.Showcase)], []));
+
+        var ex = await Assert.ThrowsAsync<TrackingConflictException>(
+            () => this._sut.CreateAsync("u1", new Invasion { GruntType = "showcase", Distance = 900 }));
+
+        Assert.Equal("Another alarm of this type already uses those settings. Edit or remove that one instead.", ex.Message);
+        this._incident.Verify(p => p.CreateAsync("u1", It.IsAny<IEnumerable<PokestopEvent>>(), false), Times.Never);
+    }
+
+    [Fact]
+    public async Task InvasionCreateEventGruntWithAGenderIsRefusedNotDropped()
+    {
+        var ex = await Assert.ThrowsAsync<AlarmValidationException>(
+            () => this._sut.CreateAsync("u1", new Invasion { GruntType = "kecleon", Gender = 1 }));
+
+        Assert.StartsWith("PoracleNG can't store this alarm as it is:", ex.Message, StringComparison.Ordinal);
+        this._incident.Verify(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<IEnumerable<PokestopEvent>>(), It.IsAny<bool>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task InvasionUpdateEventGruntGoesToIncidentReplace()
+    {
+        PokestopEvent? sent = null;
+        this._incident.Setup(p => p.ReplaceAsync("u1", 289, It.IsAny<PokestopEvent>()))
+            .Callback<string, int, PokestopEvent>((_, _, rule) => sent = rule)
+            .ReturnsAsync(new PokestopEventWriteResult([], [Event(291, PokestopEventTypes.GoldStop)], []));
+
+        var result = await this._sut.UpdateAsync("u1", new Invasion
+        {
+            Uid = 289,
+            GruntType = "gold-stop",
+            Distance = 750,
+            OverrideLocationLabel = "home",
+        });
+
+        Assert.Equal(291, result.Uid);
+        Assert.Equal(PokestopEventTypes.GoldStop, sent!.DisplayType);
+        Assert.Equal(750, sent.Distance);
+        Assert.Equal("home", sent.OverrideLocationLabel);
+        this._uidRemapper.Verify(r => r.RemapAsync("u1", "invasion", 289, 291), Times.Once);
+        this._proxy.Verify(p => p.UpdateByUidAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<JsonElement>()), Times.Never);
+        this._proxy.Verify(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task BulkCreateRoutesEventRowsToIncidentAndTheRestToInvasion()
+    {
+        this.IncidentCreateAnswers(dryRun => dryRun
+            ? new PokestopEventWriteResult([Event(0, PokestopEventTypes.Showcase)], [], [])
+            : new PokestopEventWriteResult([Event(300, PokestopEventTypes.Showcase)], [], []));
+        JsonElement? invasionBody = null;
+        this._proxy.Setup(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()))
+            .Callback<string, string, JsonElement>((_, _, b) => invasionBody = b)
+            .ReturnsAsync(new TrackingCreateResult([10, 11], 0, 0, 2) { RowUids = [10, 11] });
+
+        var results = (await this._sut.BulkCreateAsync("u1", [
+            new Invasion { GruntType = "water" },
+            new Invasion { GruntType = "showcase" },
+            new Invasion { GruntType = "fire" },
+        ])).ToList();
+
+        Assert.Equal([10, 300, 11], results.Select(r => r.Uid));
+        Assert.DoesNotContain("showcase", invasionBody!.Value.GetRawText(), StringComparison.Ordinal);
+    }
+
+    // ── metal is steel ──────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task CreateAsyncSendsMetalAsSteel()
+    {
+        JsonElement? body = null;
+        this._proxy.Setup(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()))
+            .Callback<string, string, JsonElement>((_, _, b) => body = b)
+            .ReturnsAsync(new TrackingCreateResult([1], 0, 0, 1) { RowUids = [1] });
+
+        await this._sut.CreateAsync("u1", new Invasion { GruntType = "metal", Gender = 2 });
+
+        Assert.Equal("steel", body!.Value.GetProperty("grunt_type").GetString());
+    }
+
+    [Fact]
+    public async Task UpdateAsyncRepairsALegacyMetalRuleToSteel()
+    {
+        // Stored rules still say metal. v2 refuses that name, so an edit that kept it would fail on a rule
+        // the user did not break; it is saved under the name the game data uses instead.
+        JsonElement? body = null;
+        this._proxy.Setup(p => p.UpdateByUidAsync("invasion", "u1", 4, It.IsAny<JsonElement>()))
+            .Callback<string, string, int, JsonElement>((_, _, _, b) => body = b)
+            .ReturnsAsync(new TrackingUpdateResult(4, true));
+
+        await this._sut.UpdateAsync("u1", new Invasion { Uid = 4, GruntType = "metal", Distance = 100 });
+
+        Assert.Equal("steel", body!.Value.GetProperty("grunt_type").GetString());
+    }
+
+    [Fact]
+    public async Task CreateAsyncLeavesOtherGruntNamesAlone()
+    {
+        JsonElement? body = null;
+        this._proxy.Setup(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()))
+            .Callback<string, string, JsonElement>((_, _, b) => body = b)
+            .ReturnsAsync(new TrackingCreateResult([1], 0, 0, 1) { RowUids = [1] });
+
+        await this._sut.CreateAsync("u1", new Invasion { GruntType = "npc_3" });
+
+        Assert.Equal("npc_3", body!.Value.GetProperty("grunt_type").GetString());
     }
 }

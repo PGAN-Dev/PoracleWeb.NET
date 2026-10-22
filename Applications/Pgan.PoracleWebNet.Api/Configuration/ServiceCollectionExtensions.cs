@@ -154,10 +154,8 @@ public static class ServiceCollectionExtensions
         services.AddHttpClient<IPoracleTrackingProxy, PoracleTrackingProxy>();
 
         // Pokestop events (upstream "incident") are v2-only, so they get their own proxy rather than a
-        // second wire shape inside the v1 one. Deliberately NOT wrapped in UserOwnedOverrideAreaProxy:
-        // that decorator speaks v1's stored-row JSON, so confining a pokestop-event alarm to a
-        // user-drawn geofence is refused by PoracleNG with its own message rather than being smuggled
-        // past. Giving it a v2 twin of that writer is what would change that.
+        // second wire shape inside the tracking one. Like the tracking proxy it authorises override areas
+        // through IUserAreaPolicy and then writes trusted, so a rule limited to a user's own fence saves.
         services.AddHttpClient<IPoracleIncidentProxy, PoracleIncidentProxy>();
 
         // Register HttpClient for PoracleNG human/profile proxy (replaces direct DB writes)

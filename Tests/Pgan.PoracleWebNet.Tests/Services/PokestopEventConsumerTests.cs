@@ -252,7 +252,7 @@ public class PokestopEventConsumerTests
     // and removes through InvasionService.DeleteAsync (single event uid tested above).
 
     private InvasionService CreateInvasions(Handler handler) =>
-        new(CreateProxy(handler), this._gate.Object, NullLogger<InvasionService>.Instance, Mock.Of<ITrackedUidRemapper>());
+        new(CreateProxy(handler), this._gate.Object, NullLogger<InvasionService>.Instance, Mock.Of<ITrackedUidRemapper>(), Mock.Of<IPoracleIncidentProxy>());
 
     private CleaningService CreateCleaning(Handler handler) =>
         new(CreateProxy(handler), this._gate.Object, Mock.Of<ITrackedUidRemapper>(), NullLogger<CleaningService>.Instance);

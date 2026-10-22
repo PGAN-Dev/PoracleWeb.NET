@@ -107,7 +107,7 @@ public class AlarmServiceV2UpdatePathTests
         this.AcceptV2("invasion", newUid: 312);
 
         var updated = await new InvasionService(
-                this._proxy.Object, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._remapper.Object)
+                this._proxy.Object, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._remapper.Object, Mock.Of<IPoracleIncidentProxy>())
             .UpdateAsync("u1", new Invasion { Uid = 311, GruntType = "water", Gender = 1, Distance = 800 });
 
         Assert.Equal(312, updated.Uid);
@@ -166,7 +166,7 @@ public class AlarmServiceV2UpdatePathTests
                 this._proxy.Object, this._featureGate.Object, NullLogger<LureService>.Instance, this._remapper.Object)
             .UpdateAsync("u1", new Lure { Uid = uid, LureId = 501 })).Uid,
         "invasion" => (await new InvasionService(
-                this._proxy.Object, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._remapper.Object)
+                this._proxy.Object, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._remapper.Object, Mock.Of<IPoracleIncidentProxy>())
             .UpdateAsync("u1", new Invasion { Uid = uid, GruntType = "water", Gender = 0 })).Uid,
         _ => throw new ArgumentOutOfRangeException(nameof(type), type, "No fixture for this tracking type."),
     };

@@ -161,7 +161,7 @@ public class TrackingFieldCoverageTests
                 this._remapper.Object)
             .CreateAsync("u1", new QuestCreate { Reward = 25, RewardType = 7 }.ToQuest()),
         "invasion" => new InvasionService(
-                this._proxy.Object, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._remapper.Object)
+                this._proxy.Object, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._remapper.Object, Mock.Of<IPoracleIncidentProxy>())
             .CreateAsync("u1", new InvasionCreate { GruntType = "blanche" }.ToInvasion()),
         "lure" => new LureService(
                 this._proxy.Object, this._featureGate.Object, NullLogger<LureService>.Instance, this._remapper.Object)
