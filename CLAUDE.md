@@ -132,6 +132,7 @@ Pgan.PoracleWebNet.slnx
   every `*Create`/`*Update` DTO, `BulkDistanceRequest` and `RejectInvalidDistance`. That is the physically
   impossible, not a product limit: production holds a rule at 10,000,000 m. `pokemon_id` stays uncapped.
 - **CleaningService** sends one v2 PATCH per type naming the uids and the clean bit to change, so the edit-in-place and summary bits a rule already holds survive the toggle. Pokestop event rules in the invasion table go to `incident`'s PATCH. A rule PoracleNG refuses keeps its old setting and is left out of the count; the service logs a warning naming it and the reason, since nothing on screen does.
+- **`GET /api/cleaning/status` grew a `counts` member** beside the per-type booleans: `{ pokemon: true, ..., counts: { pokemon: { clean, total }, ... } }`. Each boolean still means "every rule of this type is clean", so the old reading survives, but the response is no longer a `Dictionary<string, bool>`; a client that deserialised it as one breaks on `counts`. Additive on purpose: the page reads `counts` to show a partly clean type instead of reporting it as off, and treats a missing `counts` as the old server.
 
 ### Settings Architecture
 - Site settings are stored in typed columns in `poracle_web.site_settings` with categories (branding, features, alarms, admin, etc.) and typed values.
@@ -260,7 +261,7 @@ Two upstream behaviours PoracleWeb.NET still has to know about. Both verified di
 
 **PoracleNG's v1 profile update silently ignores `name`; the v2 PATCH honours it.** Rename is `PATCH /api/v2/humans/{id}/profiles/{n}` through `UpdateProfileAsync`, and `IProfileRepository.RenameAsync`, the direct write that used to cover the v1 gap, is deleted (#406, #837). Verified that PoracleNG serves the new name on its very next read, so nothing needs invalidating. The name reaches PoracleNG and nothing trims it after, so `ProfileController.Update` trims it first and sends the stored name when the incoming one is blank -- a blank name is "not renaming". **Rename sends only the `active_hours` the caller submitted**: it used to resend the stored schedule, and a profile whose stored schedule v2 would refuse (a day or hour out of range, left behind by an older server) then could not be renamed at all. A null `active_hours` is omitted, and v2 reads an omitted one as "leave unchanged".
 
-**`ProfileNameRules.Validate` is the one name rule**, used by create, rename, both duplicates and import: required, at most 255 characters, and no control characters, line or paragraph separators, or Unicode bidi controls (U+202E made "evil" display as "live"). It deliberately does not refuse every format character, because emoji sequences are joined with U+200D. Rename judges only a name that changes, so a legacy name cannot make an unrelated edit fail.
+**`ProfileNameRules.Validate` is the one name rule**, used by create, rename, both duplicates and import: required, at most 255 characters, and no control characters, line or paragraph separators, or Unicode bidi controls (U+202E made "evil" display as "live"). It deliberately does not refuse every format character, because emoji sequences are joined with U+200D. Rename judges only a name that changes, so a legacy name cannot make an unrelated edit fail. **Saved place labels share its character rule**: `PlaceLabelRules.Validate` (required, at most 64 characters, the `user_locations.label` column) refuses exactly what `ProfileNameRules.IsRefused` refuses, and the SPA's `hasRefusedNameCharacter` (`shared/utils/place-label.ts`) mirrors it so the prompt's Save stays off rather than drawing a 400. Change the one, change the other.
 
 **On the v2 PATCH, "no schedule" is sent as `[]`, not omitted.** v2 reads an omitted `active_hours` as "leave unchanged", so omitting an explicit `""` or `{}` kept the old schedule. A JSON null still means "not part of this edit" and is omitted. On create the two are equivalent and omission is kept.
 
@@ -349,6 +350,10 @@ User-facing documentation: `docs/features/webhooks.md`.
 - `auth-read` policy: 120 requests per 60s **per user**, or per IP without a token (current user, profile switch, public settings).
 - `test-alert` policy: 5 requests per 60s **per user**, or per IP without a token (test alert sends).
 - `mutes`, `geojson-import` and `scanner-search` are per user the same way; `geofence-feed-refresh` is per IP.
+- `tracking-usage`: 20 per 60s **per user**, shared by `GET /api/location/pin-usage` and `GET /api/location/place-usage`.
+  place-usage asks PoracleNG to describe every rule on the profile (tens of thousands on some accounts), so a loop is
+  stopped; a person checking several places in a row never reaches it, and a 429 only drops the pre-check to the plain
+  confirm (both URLs are in the error interceptor's silent list). `TrackingUsageRateLimitTests` holds both halves.
 - `UseRateLimiter` runs **after** `UseAuthentication`, deliberately: registered before it, the per-user key
   could not see the claim and every "per-user" policy silently fell back to the IP (#581).
 - **Important**: Never use global (non-partitioned) `AddFixedWindowLimiter` for auth -- multiple users sharing one bucket causes cascading login failures.
@@ -399,7 +404,7 @@ There used to be a second `/api/config/values` read of `general.disable_fort_upd
 
 ### Rule Repair (PoracleNG 5.4.0)
 
-`Admin > Settings > Rule repair` (`AdminRuleRepairController`, `RuleRepairJob`, `RuleRepairClassifier`, SPA `rule-repair-card`) finds stored rules 5.4.0's v2 reads differently: invasion `grunt_type` `metal` (now `steel`), raids with `pokemon_id` 0, and raids/max battles for any boss with level unconfirmed (v2 reports null). Rules v2 cannot express are listed as `CannotEdit` and never written.
+`Admin > Server settings > Rule repair` (`AdminRuleRepairController`, `RuleRepairJob`, `RuleRepairClassifier`, SPA `rule-repair-card`) finds stored rules 5.4.0's v2 reads differently: invasion `grunt_type` `metal` (now `steel`), raids with `pokemon_id` 0, and raids/max battles for any boss with level unconfirmed (v2 reports null). Rules v2 cannot express are listed as `CannotEdit` and never written.
 
 The scan reads every human through v2 and never writes. A repair is a uid-addressed `PUT /api/v2/humans/{id}/tracking/{type}/{uid}?silent=true&trusted=true&profile=N`, preceded by the same request with `dry_run=true`; it's written only when the dry run answers `updated`, and `unchanged` counts as already fine. A 409 leaves the rule alone and lists it with a "would duplicate another rule" reason: under `CannotEdit` when the scan's any-tier confirmation hits it, in `Applied.Conflicts` when apply does. Apply re-reads each human's rules and re-classifies, so a rule changed since the scan is judged as it is now. Trusted, because it restores what PoracleNG stored and must not go through `IUserAreaPolicy`. Just before each real PUT the stored v2 rule is logged at Information (`LogRepairWriting`), so a bad repair can be reversed from the log.
 
@@ -467,6 +472,51 @@ must not, so a future alarm type cannot quietly miss it.
 - **Controller validation**: The `type` path parameter is validated against a hardcoded set of valid alarm types before calling the service.
 - **Frontend**: `TestAlertService` (Angular, `core/services/test-alert.service.ts`) tracks per-UID cooldowns (15s) client-side and deduplicates in-flight requests. Displays success/error/cooldown feedback via snackbar. Test button appears in the card actions of the eight types that support it (not max battles, fort changes or Pokéstop events). `/api/test-alert` is in the error interceptor's silent list, so the service's own message is the only one shown and it has to cover every status (429, 404, 501's server reason, 502 with PoracleNG's reason as `TEST_ALERT.REFUSED`, the feature-disabled 403, anything else as `TEST_ALERT.FAILED`).
 - **A refused `/api/test` is a 502 carrying PoracleNG's reason.** `PoracleApiProxy.SendTestAlertAsync` reads the body of a non-2xx ("message delivery not configured - check Discord/Telegram token settings") and throws `PoracleRequestRefusedException` with status 502; `TestAlertController` passes on only that status (`when StatusCode == 502`). A refusal from reading the alarm or the human carries its own 400/404/409 and still answers the generic 500, so a 404 there never reads as "alarm not found".
+
+### Failure Messages: One Message, And The Server's Reason Only When It Is One
+
+The error interceptor toasts 0, 403, 404, 500, 502, 503 and 504 itself (`TOASTED_STATUSES`) for every URL
+outside `SILENT_URL_PATTERNS`. **`reportedByInterceptor(err)`** says whether that already happened, and a caller
+that would word the same failure again checks it: a single Add's inline refusal (`refusalOf`), a batch Add's
+toast (`finishAdd`, and the Pokéstop events dialog's own loop) and anything new. The user reads one message.
+
+**`serverReason(err)`** (`shared/utils/server-reason.ts`) returns the API's `{ error }` text for a **4xx only**.
+A 5xx body is usually the server's English ("PoracleNG could not be reached. Try again shortly.", "An unexpected
+error occurred."), and the caller's own key is translated. The exceptions are the few 5xx answers that carry a
+next step, and those call sites **opt in by exact status**, never by range:
+
+| Call site | Status | Why the sentence matters |
+|---|---|---|
+| Admin > Webhooks, add | 502 | #482 half-write: "Check the webhook list before trying again." A retry on the generic message can create a second row |
+| User geofences, approve / reject / delete | 502 | Koji refused; "the region may no longer exist" says what to reload |
+| `TestAlertService` | 502, 501 | reads `err.error.error` itself (silent URL), PoracleNG's reason for not delivering |
+
+`serverReason(err, { allow5xx: [502] })` is the form. A new endpoint that answers a 5xx with guidance must either
+answer a fitting 4xx/409 instead or add its call site here, with a spec that posts the real body; a 500 from the
+global handler and the 503 from `PoracleUnreachableExceptionFilter` stay translated. `failure-message-parity.spec.ts`
+pins the shape. **`createFailureText(err, i18n, fallbackKey)`** is the add and edit dialogs' wording: the server's
+reason, then the first message of an ASP.NET validation 400 (`{ errors: { Field: [...] } }`, which names the
+field), then "Too many changes at once" for a 429, then the fallback key. All ten edit dialogs use it with
+`ALARM.FAILED_UPDATE`.
+
+### Pin And Place Usage, Read Before A Destructive Action
+
+`GET /api/location/pin-usage` answers `{ alarms }`, the active profile's rules that measure from the pin (a radius
+above zero and no saved place), and the Areas page names that count before Clear pin. `GET /api/location/place-usage?label=`
+answers `{ alarms, rules }`, every rule aimed at a saved place, Pokéstop events included, with PoracleNG's
+description of each (`GetAllTrackingWithDescriptionsAsync`, `?include_descriptions=true`); the places section lists
+them instead of offering Delete, because PoracleNG refuses to delete a place that rules still point at (the delete's
+own 409 covers a rule added in between). Both sit under the controller's `disable_location` gate, both are in the
+error interceptor's silent list (a failed pre-check falls back to the plain confirm), and both share the per-user
+`tracking-usage` rate limit. Active profile only, as every tracking read is.
+
+### Admin Self-Protection
+
+An admin can neither block nor delete their **own** account: `AdminController.DisableUser` (#613) and `DeleteUser`
+answer 400 "You cannot block your own account." / "You cannot delete your own account." for the caller's id, and
+the Users page hides Block and Delete on the admin's own row (`isSelf`). Blocking takes the API away at once,
+including the call that would unblock it, and the purge cannot be undone. Other admins and members stay blockable
+and deletable; `AdminControllerTests` holds both halves.
 
 ### Gym Picker
 - `GymPickerComponent` is a shared autocomplete component (`shared/components/gym-picker/`) for selecting a gym by name. Used in gym, raid, and egg add/edit dialogs to populate `gym_id`.
@@ -541,7 +591,10 @@ a missing CARTO key on an install that had never mentioned CARTO. Change one, ch
 A fourth, `DARK_DEFAULT_BASEMAP_ID` (Esri dark gray, keyless), is what the dark theme draws for a viewer
 on the site default whose provider has no dark style. `siteDefault` stays theme-independent because the
 admin page reports it; `themedDefault` is what is drawn and what the picker's *Site default* entry names.
-Imagery (`keepInDark`) and a custom URL are never swapped.
+Imagery (`keepInDark`) and a custom URL are never swapped. **Esri's Canvas basemaps stop at zoom 16**, and Leaflet
+clamps the map to the layer's `maxZoom`, so a dark-theme viewer on the site default can zoom only to 16 where OSM
+allowed 19 (a map attached with `{ maxZoom: 18 }` takes the smaller). That is the price of a keyless dark map; a viewer
+who needs to place a pin by a single stop can pick another basemap from the layers button.
 
 **A viewer's own choice outranks the admin setting**, stored per browser. That is the feature, but it
 needs the escape: the picker's first entry is *Site default*, and the active mark follows the
@@ -574,6 +627,8 @@ the same basemap looks the same on both sites and a catalogue edit cannot drift 
 - `ActiveHoursEditorDialogComponent` is a shared dialog for editing profile schedule rules with day/time pickers and a weekly preview grid.
 - `ActiveHoursChipComponent` renders compact amber schedule pills summarizing active hours on profile cards.
 - `LocationWarningComponent` displays an inline warning when a profile has active hours but missing coordinates.
+- **`unsavedChangesGuard`** (`core/guards/unsaved-changes.guard.ts`) asks before an in-app navigation drops staged edits on Admin > Areas and Admin > Server settings (pages implement `HasUnsavedChanges`; a reload or tab close is the page's own `beforeunload`). It **steps aside for an ending session**: with no access token, or a navigation to `/login`, it returns true without asking, because `endSession` and `logout()` drop the token before they navigate and "Stay" would leave the user on a page whose every request 401s. Any new session-ending path must clear the token first, or navigate to `/login`.
+- **`PageTitleStrategy`** (`core/services/page-title.strategy.ts`, provided in `app.config.ts`) builds "Pokémon · {custom_title}". A route's `title` is an **i18n key**, not text, so it follows the display language; admin pages carry `data: { adminPage: true }` and read "Admin: Areas" so they aren't confused with the user's page. A route with no title, or a key with no translation, shows the site title alone.
 - `AlertDefaultsService` (`core/services/alert-defaults.service.ts`) persists the user's preferred default delivery scope for **new** alarms -- mode (`areas`/`distance`) and default radius (km, clamped 0.1-100) -- to `localStorage` (`poracle-default-alert-mode` / `poracle-default-alert-distance-km`), mirroring the theme/accent/language pattern. All nine add-alarm dialogs and the quick-pick apply dialog seed their `distanceMode`/`distanceKm` form controls from it; the `AlertDefaultsDialogComponent` (user menu -> Alert Defaults) edits it. Client-side only -- no backend/API change; existing alarms are unaffected.
 
 ### UI Patterns
@@ -784,7 +839,7 @@ PoracleWeb.NET no longer mirrors that rule. 5.4.0 (jfberry/PoracleNG#326) classi
 - a single row reported unchanged writes nothing and answers 200 with uid 0;
 - otherwise it commits, and if the commit reports a takeover anyway (a race), the other alarm is restored from the `previous` row in the answer and the Add is refused;
 - a batch (quick-pick apply, profile import) dry-runs each row alone, because PoracleNG classifies against stored rules only, and creates just the new ones. Identical rows and would-be takeovers are skipped and counted (`TakeoversSkipped`);
-- max battles get the same protection. 5.4.0 merges max battles on v2 creates, so a second alarm for the same boss that differs only by radius is now refused where it used to stack. An exact duplicate keeps "You already have an identical max battle alarm.".
+- max battles get the same protection. 5.4.0 merges max battles on v2 creates, so a second alarm for the same boss that differs only by radius is now refused where it used to stack. An exact duplicate keeps "You already have an identical max battle alarm.", and carries the stored rule's uid as `existingUid`: the dry run reports the duplicate under `unchanged` with that rule's uid, which `TrackingCreateResult.ExistingUid` passes on, so the dialog offers **Edit that one** as for the other types.
 
 Edits are one v2 PUT and PoracleNG answers 409 for one that would duplicate another rule or change exactly one updatable field of it; the proxy maps it to the same message. `PoracleIncidentProxy` runs the same protocol through `IncidentCreateProtocol`.
 
