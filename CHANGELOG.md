@@ -57,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The dashboard's New alarm menu and alarm counts list the types in the sidebar's order** (Max battles after Raids, not last).
 - **The geofence name rule under the field reads cleanly**: its list of allowed characters stays on one line and the "8 / 50" counter keeps its width.
 - **Stardust and PokéCoin quest cards show their reward picture** instead of a question mark, as do candy, mega energy, XL candy and experience rules for any Pokémon.
 - **A nest alarm for any Pokémon reads "All Pokémon" in your language with the same icon as the Pokémon list**, instead of "All Pokemon" beside a broken picture.

@@ -442,6 +442,24 @@ describe('DashboardComponent status strip and alarm summary', () => {
       expect(keys).not.toContain('quests');
     });
 
+    // Same order as the sidebar (app.ts NAV_ITEMS): max battles second-to-raids, not last.
+    it('lists the types in the sidebar’s order', () => {
+      const { component } = setup();
+
+      expect(component.newAlarmTypes().map(c => c.route)).toEqual([
+        '/pokemon',
+        '/raids',
+        '/max-battles',
+        '/quests',
+        '/invasions',
+        '/pokestop-events',
+        '/lures',
+        '/nests',
+        '/gyms',
+        '/fort-changes',
+      ]);
+    });
+
     it('opens the chosen list with its add dialog', () => {
       const { el, fixture, navigate } = setup();
       el.querySelector<HTMLButtonElement>('.new-alarm-btn')!.click();

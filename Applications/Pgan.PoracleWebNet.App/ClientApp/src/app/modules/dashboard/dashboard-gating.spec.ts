@@ -99,6 +99,7 @@ describe('DashboardComponent feature gating', () => {
     expect(newAlarm()).toEqual([
       'pokemon',
       'raids',
+      'maxBattles',
       'quests',
       'invasions',
       'pokestopEvents',
@@ -106,7 +107,6 @@ describe('DashboardComponent feature gating', () => {
       'nests',
       'gyms',
       'fortChanges',
-      'maxBattles',
     ]);
     expect(el.querySelector('.action-cleaning')).not.toBeNull();
     expect(tips()).toEqual(['no-location', 'no-areas', 'no-alarms']);

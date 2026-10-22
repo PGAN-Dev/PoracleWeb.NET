@@ -133,6 +133,7 @@ export class DashboardComponent implements OnInit {
 
   readonly counts = signal<DashboardCounts | null>(null);
 
+  /** In the sidebar's order (app.ts), so the New alarm menu and the counts list read the same way. */
   readonly cards: DashboardCard[] = [
     {
       disableKey: 'disable_mons',
@@ -154,6 +155,13 @@ export class DashboardComponent implements OnInit {
       key: 'eggs',
       label: 'DASHBOARD.CARD_EGGS',
       route: '/raids',
+    },
+    {
+      disableKey: 'disable_maxbattles',
+      icon: 'flash_on',
+      key: 'maxBattles',
+      label: 'DASHBOARD.CARD_MAX_BATTLES',
+      route: '/max-battles',
     },
     {
       disableKey: 'disable_quests',
@@ -203,13 +211,6 @@ export class DashboardComponent implements OnInit {
       key: 'fortChanges',
       label: 'DASHBOARD.CARD_FORT_CHANGES',
       route: '/fort-changes',
-    },
-    {
-      disableKey: 'disable_maxbattles',
-      icon: 'flash_on',
-      key: 'maxBattles',
-      label: 'DASHBOARD.CARD_MAX_BATTLES',
-      route: '/max-battles',
     },
   ];
 
