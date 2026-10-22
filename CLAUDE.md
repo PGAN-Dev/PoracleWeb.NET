@@ -772,7 +772,7 @@ otherwise                                  -> new insert
 
 PoracleWeb.NET no longer mirrors that rule. 5.4.0 (jfberry/PoracleNG#326) classifies a create before it writes, so `PoracleTrackingProxy.CreateAsync` posts `?dry_run=true` first:
 
-- a single row reported as an update is refused with `TrackingConflictException`: "Another alarm of this type already uses those settings. Edit or remove that one instead." (409 through the global filter);
+- a single row reported as an update is refused with `TrackingConflictException`: "Another alarm of this type already uses those settings. Edit or remove that one instead." (409 through the global filter). The exception's `ExistingUid` is the stored rule the dry run named (`updated[0].previous.uid`, else `updated[0].uid`), and the 409 body carries it as `existingUid` beside `trackingType`; the SPA's add dialogs keep a refused single Add open, name that rule through the list that opened them, and offer "Edit that one" (`shared/utils/add-outcome.ts`). A batch Add closes as before;
 - a single row reported unchanged writes nothing and answers 200 with uid 0;
 - otherwise it commits, and if the commit reports a takeover anyway (a race), the other alarm is restored from the `previous` row in the answer and the Add is refused;
 - a batch (quick-pick apply, profile import) dry-runs each row alone, because PoracleNG classifies against stored rules only, and creates just the new ones. Identical rows and would-be takeovers are skipped and counted (`TakeoversSkipped`);

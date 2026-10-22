@@ -83,6 +83,7 @@ public class PokestopEventServiceTests
             () => this._sut.CreateAsync("u1", Rule(0, PokestopEventTypes.Showcase, distance: 900)));
 
         Assert.Equal(TakeoverMessage, ex.Message);
+        Assert.Equal(732, ex.ExistingUid);
         this.VerifyNoCommit();
     }
 
@@ -170,6 +171,7 @@ public class PokestopEventServiceTests
             () => this._sut.CreateAsync("u1", Rule(0, PokestopEventTypes.Showcase, distance: 900)));
 
         Assert.Equal(TakeoverMessage, ex.Message);
+        Assert.Equal(732, ex.ExistingUid);
         this._proxy.Verify(p => p.ReplaceAsync("u1", 732, It.Is<PokestopEvent>(r => r.Distance == 500)), Times.Once);
     }
 

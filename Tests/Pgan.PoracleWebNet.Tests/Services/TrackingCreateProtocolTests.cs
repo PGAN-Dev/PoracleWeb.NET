@@ -94,7 +94,22 @@ public class TrackingCreateProtocolTests
 
         Assert.Equal(TakeoverMessage, ex.Message);
         Assert.Equal("pokemon", ex.TrackingType);
+        Assert.Equal(77, ex.ExistingUid);
         Assert.True(IsDryRun(Assert.Single(handler.Requests)));
+    }
+
+    [Fact]
+    public async Task SingleCreateTakeoverNamesTheStoredRuleFromPrevious()
+    {
+        // previous is the stored rule as it is now; its uid is the one the user would edit.
+        var handler = new Handler(_ => Reply.Ok(Envelope(
+            true,
+            updated: """[{"uid":0,"pokemon_id":25,"min_iv":95,"previous":{"uid":81,"pokemon_id":25,"min_iv":90}}]""")));
+
+        var ex = await Assert.ThrowsAsync<TrackingConflictException>(() => this.CreateSut(handler).CreateAsync(
+            "pokemon", "user1", Json("""{"pokemon_id":25,"min_iv":95}""")));
+
+        Assert.Equal(81, ex.ExistingUid);
     }
 
     [Fact]
@@ -147,6 +162,7 @@ public class TrackingCreateProtocolTests
             "pokemon", "user1", Json("""{"pokemon_id":25,"min_iv":95}""")));
 
         Assert.Equal(TakeoverMessage, ex.Message);
+        Assert.Equal(77, ex.ExistingUid);
         Assert.Equal(3, handler.Requests.Count);
 
         var restore = handler.Requests[2];
