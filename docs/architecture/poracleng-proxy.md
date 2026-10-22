@@ -62,7 +62,7 @@ skips it when the Pokéstop Events page is unavailable, so those rows stay visib
 
 Also proxied:
 
-- **Dashboard counts** -- `GET /api/tracking/all/{userId}` fetches all tracking in one call, counts extracted per type
+- **Dashboard counts** -- one read of the v2 tracking snapshot (`GET /api/v2/humans/{userId}/tracking`) fetches all tracking, counts extracted per type
 - **Cleaning (auto-clean toggle)** -- fetches alarms, modifies the `clean` field, POSTs back via the proxy
 - **Admin delete all alarms** -- fetches all UIDs per type, bulk deletes via the proxy
 - **Bulk distance update** -- fetches alarms, modifies `distance`, POSTs back via the proxy
@@ -137,7 +137,7 @@ Invasion writes through v2 as well, since #841, but behind a second gate the oth
 server carrying PoracleNG PR #217, and even there a rule goes to v1 unless that server's own grunt
 masterdata lists the name. That second condition is not a formality: 32 of 201 invasion rules in
 production carry a name v2 refuses (`kecleon`, `gold-stop` and `showcase`, which are Pokéstop events, and
-`metal`, which the game data calls `steel`), and all 32 are editable today because v1's read returns them
+`metal`, which the game data calls `steel`), and all 32 are editable today because the check sends their edits to v1
 where v2's does not.
 
 Pokéstop Events are the exception in the other direction: v2 is their only surface, so they have their
@@ -389,7 +389,7 @@ These operations lack dedicated PoracleNG endpoints and use fetch-modify-repost 
 |---|---|---|
 | Bulk distance update | Fetch all alarms, modify distance, POST back | Extra round-trip; scales linearly with alarm count |
 | Bulk clean toggle | Fetch all alarms, modify clean flag, POST back | Same as above |
-| Dashboard counts | Single `GET /api/tracking/all/{userId}` call | Returns full alarm payloads just to count them |
+| Dashboard counts | One read of the v2 tracking snapshot | Returns full alarm payloads just to count them |
 | Admin delete all alarms | Fetch UIDs per type, bulk delete each | Multiple API calls instead of one |
 
 See [PoracleNG Enhancement Requests](../poracleng-enhancement-requests.md) for the full gap analysis and proposed endpoints.

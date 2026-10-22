@@ -850,8 +850,8 @@ server carrying PoracleNG PR #217, and even there a rule goes to v1 unless that 
 masterdata lists the name. That second condition is not a formality: **32 of 201 invasion rules in
 production carry a name v2 refuses** — `kecleon`, `gold-stop` and `showcase`, which are Pokéstop events
 belonging to `/incident`, and `metal`, which the game data calls `steel` and which this application wrote
-itself from `InvasionGruntTypes`. All 32 are editable today because v1's read returns them where v2's does
-not, so without the check an edit would 422 on a rule the user did not break — the #835 shape.
+itself from `InvasionGruntTypes`. All 32 are editable today because the check sends their edits to v1, which stores
+whatever it is given; without it an edit would 422 on a rule the user did not break — the #835 shape.
 `InvasionGruntNameService` reads the accepted names from the server rather than shipping a table.
 
 So `TrackingV2Translator.Handles` is **no longer the single place that decides**: it answers whether a
@@ -1048,7 +1048,7 @@ and the SPA's `canEdit`/`pingSupported`/capability conditionals), `ProbePokestop
 geocoder call, `Poracle:TrackingApiVersion`, and every `PoracleV2Capabilities` flag except three.
 `InvasionGruntType` stays until tracking moves to v2 (`TrustedSetAreas` went with the area writes); `Read` also
 survives, set but never read. What stayed
-is anything still needed by a later sub-project (`IAlarmOverrideAreaWriter`, every tracking v1 read, create
+is anything still needed by a later sub-project (`IAlarmOverrideAreaWriter`, every tracking v1 create
 and bulk path with its plaintext-404 fallback, `pweb_settings`, `PoracleContext`) or covering a newer
 build or fork.
 
