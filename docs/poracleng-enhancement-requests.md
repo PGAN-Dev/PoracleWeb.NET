@@ -17,7 +17,7 @@ This document tracks PoracleNG API gaps that required workarounds in PoracleWeb.
 
 PoracleWeb.NET now proxies all alarm tracking writes through the PoracleNG REST API (see [PoracleNG API Proxy](architecture/poracleng-proxy.md)). This migration was prompted by a March 31, 2026 incident where a NULL `template` column written directly by PoracleWeb.NET crashed PoracleNG's state reload for 15 hours.
 
-The migration is complete for the ten alarm types that have a v1 tracking route. The eleventh, Pokéstop Events (`incident`), exists only on PoracleNG's `/api/v2` and never touches `IPoracleTrackingProxy` — its CRUD goes through `IPoracleIncidentProxy` instead. Some operations lack dedicated PoracleNG endpoints and use fetch-modify-repost workarounds that are less efficient. The gaps listed below are these operations.
+The migration is complete for all eleven alarm types, on `/api/v2`. Pokéstop Events (`incident`) never touch `IPoracleTrackingProxy`; their CRUD goes through `IPoracleIncidentProxy`. Some operations still lack dedicated PoracleNG endpoints and use workarounds that are less efficient. The gaps listed below are these operations.
 
 ---
 
@@ -29,7 +29,7 @@ The migration is complete for the ten alarm types that have a v1 tracking route.
 **Priority:** High  
 **Code refs:** Each alarm service's `UpdateDistanceByUserAsync` and `UpdateDistanceByUidsAsync` methods
 
-**Current behavior:** PoracleWeb.NET fetches all alarms of a type via the proxy, modifies the `distance` field in memory, and POSTs them back. Two variants:
+**Current behavior:** Adopted. PoracleWeb.NET sends one v2 PATCH per type naming the uids and the `distance`. Two variants:
 1. Update ALL alarms of a type for a user/profile
 2. Update specific alarms by UID list
 
@@ -49,8 +49,8 @@ Body: { "uids": [1, 2, 3], "distance": 500 }
 **Landed in 5.4.0** ([jfberry/PoracleNG#325](https://github.com/jfberry/PoracleNG/issues/325), via #328), together
 with bulk clean below, as a v2 partial update over a uid set: `PATCH .../tracking/{type}` with
 `{uids, set}`. It answers per-uid refusals (`invalid`, `conflict`) instead of failing the batch, which
-retires `DistanceRewrite.Build`'s area-scoped/place-scoped split once tracking moves to v2.
-**Not yet adopted**: the fetch-modify-POST above is still what runs.
+`DistanceRewrite.Build` still splits off the area-scoped and place-scoped rules before sending, to report them without a round trip; `conflict` comes back as `skippedConflict`.
+**Adopted** in PoracleWeb.NET with sub-project 3b.
 
 ---
 
@@ -60,7 +60,7 @@ retires `DistanceRewrite.Build`'s area-scoped/place-scoped split once tracking m
 **Priority:** High  
 **Code refs:** `CleaningService.cs`
 
-**Current behavior:** PoracleWeb.NET fetches all alarms of a type via the proxy, sets the auto-delete bit of each row's `clean` bitmask, and POSTs them back. The bit is set read-modify-write, so edit-in-place and summary bits set from the bot survive the toggle.
+**Current behavior:** Adopted. PoracleWeb.NET sends one v2 PATCH per type naming the uids and the clean bit, so edit-in-place and summary bits set from the bot survive the toggle.
 
 **What's needed:** A PoracleNG endpoint to batch-toggle the clean flag:
 ```

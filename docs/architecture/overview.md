@@ -41,7 +41,7 @@ graph TB
     subgraph Backend["ASP.NET Core API"]
         Controllers[Controllers<br/>30+ REST controllers]
         AlarmServices[Alarm Services<br/>MonsterService, RaidService, etc.]
-        TrackingProxy[IPoracleTrackingProxy<br/>v1 tracking + v2 edits for nine types]
+        TrackingProxy[IPoracleTrackingProxy<br/>v2 tracking, all eleven types]
         HumanProxy[IPoracleHumanProxy<br/>HTTP proxy to PoracleNG]
         V2Proxies["IPoracleMuteProxy / IPoracleIncidentProxy<br/>v2 only"]
         OtherServices[Other Services<br/>Geofences, Settings, QuickPicks]

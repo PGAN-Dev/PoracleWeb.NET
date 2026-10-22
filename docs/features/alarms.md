@@ -35,12 +35,9 @@ Each alarm type has a dedicated page accessible from the sidebar navigation. The
 
 Open an alarm's edit dialog from its card. Changing anything and saving replaces the rule upstream.
 
-Ten of the eleven types take a uid-addressed replace: the rule is swapped in one call rather than
+All eleven types take a uid-addressed replace: the rule is swapped in one call rather than
 deleted and re-created, so there is no window in which the alarm does not exist. Lure and max battle
-edits used to have exactly that window and no longer do. Invasion takes the same replace only where the
-server's newer API can report which grunt a rule targets (the server has to publish it, and know the rule's grunt name), and otherwise saves
-through the older API the way every other type does when the replace is unavailable: it writes the new
-rule, then removes the one it replaced.
+edits used to have exactly that window and no longer do.
 
 !!! note "An edit can give the alarm a new internal id"
     On PoracleNG 5.2.x the replace re-keys the row, so it comes back under a new `uid`. Builds carrying
@@ -219,8 +216,12 @@ Each alarm list page has a **select mode** toggle (checklist icon in the toolbar
     - **Update Distance** — Set a new distance for all selected alarms
     - **Delete** — Remove all selected alarms
 
-!!! tip "Bulk distance uses the PoracleNG API"
-    Bulk distance updates fetch all matching alarms from PoracleNG, modify the distance field, and POST them back. This ensures PoracleNG validates the data and triggers a state reload.
+!!! tip "Bulk distance changes only the distance"
+    A bulk distance update asks PoracleNG to change the distance on the selected alarms and nothing else, so every other setting on them stays as it is. PoracleNG checks each alarm separately: one it refuses doesn't stop the rest, and the confirmation says how many were skipped and why.
+
+    - Limited to areas: a radius doesn't apply to them, so they're left alone.
+    - Measured from a saved place: they need a radius, so a zero skips them.
+    - Skipped, would clash: at the new radius the alarm would be identical to another one you already have.
 
 ## Profiles
 

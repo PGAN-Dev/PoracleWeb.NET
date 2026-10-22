@@ -109,17 +109,21 @@ Pgan.PoracleWebNet.slnx
 ### Bulk Operations
 - Each alarm controller has three distance endpoints:
   - `PUT /{uid}` -- Update a single alarm (uses `*Update.ApplyUpdate(existing)` extension method for null-skip merge, then sends it to PoracleNG as a uid-addressed v2 PUT)
-  - `PUT /distance` -- Update ALL alarms' distance for the current user/profile (fetch-mutate-POST pattern)
-  - `PUT /distance/bulk` -- Update distance for specific UIDs (fetch-mutate-POST pattern)
-- Both distance endpoints **skip the alarms a radius cannot apply to** and answer
-  `{ updated, skippedAreaScoped: [uid], skippedPlaceScoped: [uid] }`: an alarm limited to areas cannot take
-  a radius above zero, and one measured from a saved place cannot take zero. PoracleNG refuses both, so
-  writing them failed the whole selection (and on max battles, which delete before re-creating, after the
-  delete). `DistanceRewrite.Build` does the split; the SPA's `distanceUpdateMessage` reports it.
+  - `PUT /distance` -- Update ALL alarms' distance for the current user/profile (one v2 PATCH per type)
+  - `PUT /distance/bulk` -- Update distance for specific UIDs (one v2 PATCH per type)
+- Both distance endpoints send `PATCH /api/v2/humans/{id}/tracking/{type}` with `{uids, set: {distance}}`
+  (Pokestop event rules held in the invasion table go to `incident`'s PATCH). Only the one setting travels,
+  so nothing else a rule holds is re-sent and every rule keeps its uid.
+- They answer `{ updated, skippedAreaScoped: [uid], skippedPlaceScoped: [uid], skippedConflict: [uid] }`.
+  An alarm limited to areas cannot take a radius above zero and one measured from a saved place cannot take
+  zero: `DistanceRewrite.Build` splits those off before sending, as PoracleNG would refuse them. PoracleNG
+  also answers per rule: `conflict` (the new radius would make the rule identical to another) lands in
+  `skippedConflict`, `invalid` is put down to the rule's scope, `not_found` is logged. One refused rule
+  never fails the rest. The SPA's `distanceUpdateMessage` reports all three.
 - Every radius is bounded at `AlarmDistance.MaxMetres` (20,037,509 m, half the Earth's circumference) on
   every `*Create`/`*Update` DTO, `BulkDistanceRequest` and `RejectInvalidDistance`. That is the physically
   impossible, not a product limit: production holds a rule at 10,000,000 m. `pokemon_id` stays uncapped.
-- **CleaningService** uses a fetch-mutate-POST workaround: fetches all alarms of a type, sets the `clean` flag on each, and POSTs them back. PoracleNG has no dedicated bulk-clean endpoint yet.
+- **CleaningService** sends one v2 PATCH per type naming the uids and the clean bit to change, so the edit-in-place and summary bits a rule already holds survive the toggle. Pokestop event rules in the invasion table go to `incident`'s PATCH.
 
 ### Settings Architecture
 - Site settings are stored in typed columns in `poracle_web.site_settings` with categories (branding, features, alarms, admin, etc.) and typed values.
@@ -669,7 +673,7 @@ Many Poracle DB columns are `NOT NULL` with empty-string defaults but EF Core ma
 The `ScannerDb` connection string is optional. If not configured, `IScannerService` is not registered and scanner endpoints return appropriate responses. The gym search endpoints (`GET /api/scanner/gyms?search=` and `GET /api/scanner/gyms/{id}`) gracefully return empty results when the scanner DB is unavailable, and the `GymPickerComponent` hides itself in the UI.
 
 ### Bulk Update Preserving Fields
-When updating alarms, the frontend sends `*Update` DTOs to `PUT /{uid}`. The controller uses `model.ApplyUpdate(existing)` (null-skip extension method) to merge only non-null fields onto the existing alarm, then `TrackingFieldPreserver` copies across any stored property the typed model lacks, and the proxy sends the row as one `PUT /api/v2/humans/{id}/tracking/{type}/{uid}`. That PUT is a full replace, so a field left out is reset to its default.
+When updating alarms, the frontend sends `*Update` DTOs to `PUT /{uid}`. The controller uses `model.ApplyUpdate(existing)` (null-skip extension method) to merge only non-null fields onto the existing alarm, then `TrackingFieldPreserver` copies across any stored property the typed model lacks, and the proxy sends the row as one `PUT /api/v2/humans/{id}/tracking/{type}/{uid}`. That PUT is a full replace, so a field left out is reset to its default. Bulk distance and cleaning are the opposite: a PATCH names the one setting to change and leaves everything else alone.
 
 ### Discord API Version for Geofence Notifications
 Use `discordapp.com/api/v9` (not v10) -- v10 is not supported on the `discordapp.com` domain. The `DiscordNotificationService` HttpClient is configured with base address `https://discordapp.com/api/v9/`.
@@ -764,9 +768,9 @@ PoracleWeb.NET no longer mirrors that rule. 5.4.0 (jfberry/PoracleNG#326) classi
 
 Edits are one v2 PUT and PoracleNG answers 409 for one that would duplicate another rule or change exactly one updatable field of it; the proxy maps it to the same message. `PoracleIncidentProxy` runs the same protocol through `IncidentCreateProtocol`.
 
-Deleted with the mirror: `EnsureNoMergeIntoAnotherAlarmAsync`, `ReconcileAsync`, the no-op-edit check and the max battle identical-alarm pre-check. `TrackingUpdateReconciler` keeps only `EnsureBatchDoesNotTakeOverOthersAsync` (with its `CountUpdatableDifferences`) and `EnsureBatchDoesNotCollapse`, which bulk distance runs because it still writes through v1. **Do not rebuild a client-side diff for creates or edits**: it will disagree with the server, which is what #521, #531, #553 and #561 were.
+Deleted with the mirror: `EnsureNoMergeIntoAnotherAlarmAsync`, `ReconcileAsync`, the no-op-edit check and the max battle identical-alarm pre-check. `TrackingUpdateReconciler` is gone too; its last two methods guarded the bulk distance batch, and PoracleNG now decides a PATCH's conflicts per rule and says which. **Do not rebuild a client-side diff for creates or edits**: it will disagree with the server, which is what #521, #531, #553 and #561 were.
 
-**"No override" has four spellings and they are one value.** Every dialog sends the unused half of a scope as an explicit empty (`overrideAreas: []`, `overrideLocationLabel: ""`), because null means "keep what is stored" on the write path; PoracleNG stores NULL and reads it back as `override_areas: null`. The batch guard bulk distance uses must treat them as equal, and area names compare lowercased but in order.
+**"No override" has four spellings and they are one value.** Every dialog sends the unused half of a scope as an explicit empty (`overrideAreas: []`, `overrideLocationLabel: ""`), because null means "keep what is stored" on the write path; PoracleNG stores NULL and reads it back as `override_areas: null`. Area names compare lowercased but in order.
 
 **Lure, invasion and Pokestop events take no refusal of their own.** Up to 5.1.0 their tables carried unique keys on `lure_id` and `(grunt_type, gender)`, which PoracleWeb.NET guarded; migration 8 dropped the keys and that code went with the old minimum. **Do not reintroduce a refusal on `lure_id` or on `(grunt_type, gender)` alone**: PoracleNG stores rules that differ only by area scope or place side by side, and a refusal would leave one uneditable (the #553 shape). `LureInvasionMergeGuardTests` holds the legitimate cases.
 
@@ -774,7 +778,7 @@ See #462, #463, #502, #531, #553, #561.
 
 ### `/api/v2` Writes: Creates, Edits, Deletes, And The uid Is Read Back Every Time
 
-**Every tracking create, edit, read and delete for all eleven types goes through `/api/v2`, with no v1 fallback.** The one v1 call left is `UpsertV1Async`, used only by bulk distance (`UpdateDistanceByUserAsync`, `UpdateDistanceByUidsAsync`) and the cleaning toggle, because v2 has no bulk write (305 uid-addressed PUTs at 7.8ms would replace one 20ms POST); a later release moves them to v2 PATCH. A route that answers gin's plaintext `404 page not found` raises `PoracleUnsupportedException("saving alarms", ...)`. A row the translator can't express is refused with `AlarmValidationException("PoracleNG can't store this alarm as it is: {reason}. Nothing was changed.")`, never sent to v1 and never trimmed.
+**Every tracking create, edit, read and delete for all eleven types goes through `/api/v2`, with no v1 fallback.** No v1 tracking call remains: bulk distance and the cleaning toggle use `PATCH /api/v2/humans/{id}/tracking/{type}` (see "Bulk Operations"), and `NoV1TrackingCallsTests` fails the build if a v1 tracking route reappears in a string literal. A route that answers gin's plaintext `404 page not found` raises `PoracleUnsupportedException("saving alarms", ...)`. A row the translator can't express is refused with `AlarmValidationException("PoracleNG can't store this alarm as it is: {reason}. Nothing was changed.")`, never sent to v1 and never trimmed.
 
 **Reads go through v2 (sub-project 3a, PoracleNG 5.4.0), translated back to the v1 row.** v2 answers `null`
 for a field at its wildcard where v1 answers the sentinel, and both the C# and TypeScript models are built on
@@ -836,7 +840,7 @@ stores the quick pick's, and those differ for exactly one type: `pokemon` agains
 translates it. Before it did, no Pokemon pick was ever remapped, and removing one after an edit left the
 alarm behind (present in v2.18.0, found by driving the API against 5.2.1).
 
-**Max battle edits are one PUT.** v1 could only delete and recreate, which left a window where the alarm existed nowhere; that path survives only in bulk distance. The v1 repair work (`ReconcileAsync`'s clean-up of the duplicate a v1 create leaves behind) went with the reconciler.
+**Max battle edits are one PUT.** v1 could only delete and recreate, which left a window where the alarm existed nowhere; and bulk distance no longer deletes either, since a PATCH changes the rule in place. The v1 repair work (`ReconcileAsync`'s clean-up of the duplicate a v1 create leaves behind) went with the reconciler.
 
 **One field table per type in `TrackingV2Translator`, never a shared one.** `V2PokemonRule` declares 28
 integer filters and `V2FortRule` declares one; every rule sets `additionalProperties: false`, so a leaked
@@ -867,7 +871,7 @@ deliberately absent from every add dialog: a single Add has no stored mention to
 one dialog of a pair and not the other -- carries an explicit `EDIT_ONLY` exception for `ping` on every
 type it was added to, with this reasoning, rather than being silently exempted.
 
-The v1 shape stays the single internal currency (`TrackingFieldPreserver`, `BulkUidRemap` and `QuickPickService` all build and compare it), and the translator is the only exit onto v2, which is what stops a v1-shaped row reaching a v2 body.
+The v1 shape stays the single internal currency (`TrackingFieldPreserver` and `QuickPickService` build and compare it), and the translator is the only exit onto v2, which is what stops a v1-shaped row reaching a v2 body.
 
 **Defaults are sent as absent.** A v2 rule stores nothing for a field at its wildcard, so the translator omits a property whose value equals the type's read default unless the schema's `Required` list names it. (This replaces "sentinels are sent verbatim", which was right while v1 diffed on what was stored.) A boss-specific raid or max battle (stored `level` 9000) is sent without `level`, which is why boss edits no longer depend on the older API: v2's `level` maximum is 90.
 
@@ -949,10 +953,8 @@ the v1 branch of every single-human call and its per-route "v2 absent" flags,
 `CostumeCapabilityService` (with `GET /api/quests/capability` and `GET /api/settings/costume-capability`
 and the SPA's `canEdit`/`pingSupported`/capability conditionals), `ProbePokestopEventsAsync`, the legacy
 geocoder call, `Poracle:TrackingApiVersion`, and every `PoracleV2Capabilities` flag except three.
-`InvasionGruntType` stays until bulk distance and cleaning move to v2 (`TrustedSetAreas` went with the area writes); `Read` also
-survives, set but never read. What stayed
-is anything still needed by a later sub-project (the v1 create bulk distance and the cleaning toggle use,
-`pweb_settings`, `PoracleContext`) or covering a newer build or fork.
+`InvasionGruntType` and `Read` survive too, set but never read (`TrustedSetAreas` went with the area writes). What stayed
+is anything still needed by a later sub-project (`pweb_settings`, `PoracleContext`) or covering a newer build or fork.
 
 **One rule decides version-gated features: `PoracleServerProfile.IsSupported`** — PoracleNG answered and
 is not known to be older than the minimum. It now decides little beyond whether the v2 tracking surface is
@@ -980,7 +982,7 @@ The PoracleNG REST API (`Poracle:ApiAddress`) must be running and reachable for 
 PoracleNG wraps its API responses in container objects. Human data is returned as `{"human": {...}}` and profile lists as `{"profile": [...]}`. The proxy classes (`PoracleHumanProxy`) must extract the inner object/array before deserializing to model types. Failing to unwrap causes deserialization to return null/empty results.
 
 ### uid:0 in Create Requests
-When creating new alarms, the model's `uid` defaults to `0`. A v2 rule body has no place for `uid`, `id`, `profile_no` or `description`, so the translator drops them and a create can't be mistaken for an update. The v1 create that bulk distance and cleaning still use (`UpsertV1Async`) keeps `PoracleJsonHelper.StripUidZero()` for the same reason.
+When creating new alarms, the model's `uid` defaults to `0`. A v2 rule body has no place for `uid`, `id`, `profile_no` or `description`, so the translator drops them and a create can't be mistaken for an update.
 
 ### PoracleNG active_hours String Types
 PoracleNG stores `hours` and `mins` fields in `active_hours` JSON entries inconsistently -- sometimes as numbers, sometimes as strings (e.g., `"hours": "8"` instead of `"hours": 8`). The frontend `parseActiveHours` utility applies `Number()` coercion when deserializing to ensure consistent numeric types. The backend `ValidateActiveHours` method in `ProfileController` accepts both `JsonValueKind.Number` and `JsonValueKind.String` (parsing strings via `int.TryParse`) for the same reason.

@@ -29,11 +29,10 @@ went in the first step, which covers humans, profiles, places, mutes and geocodi
 | The legacy geocoder call | Called the geocoder PoracleNG was configured with, as Nominatim, when PoracleNG had no `/api/geocode` routes |
 | `ProbePokestopEventsAsync` | Probed for the Pokéstop Events page on a server without it |
 | `Poracle:TrackingApiVersion` (`PORACLE_TRACKING_API_VERSION`) | Pinned the tracking surface for a fork whose version string lied. A leftover setting is ignored |
-| Eleven `PoracleV2Capabilities` flags | Each asked the server's `/openapi.json` whether one field or route existed. `TrustedSetAreas` went with the area writes; `InvasionGruntType` remains until tracking moves to v2 |
+| Eleven `PoracleV2Capabilities` flags | Each asked the server's `/openapi.json` whether one field or route existed. `TrustedSetAreas` went with the area writes |
 
-The v1 tracking API is **not** quite gone from this application. Only the bulk distance change and the
-cleaning toggle still write through it (`UpsertV1Async`), until a later release moves them to v2 PATCH.
-Alert reads, creates, edits and deletes are v2 with no fallback. User-drawn geofence names, including
+No call to the v1 tracking API is left in this application. Alert reads, creates, edits, deletes, bulk
+distance changes and the cleaning toggle are all v2 (the last two as a PATCH), with no fallback. User-drawn geofence names, including
 the ones an alert is limited to, reach PoracleNG through its `/api/v2` routes with the `trusted` flag,
 which 5.4.0 carries; nothing is written straight to PoracleNG's database.
 
@@ -85,8 +84,9 @@ but publishes them nowhere (`/api/masterdata/` offers only `monsters` and `grunt
 picker reads the same WatWowMap masterfile PoracleNG itself reads. The names are therefore English in
 every language, and a costume too new for that file shows as its number.
 
-`TrackingFieldPreserver` and `PoracleJsonHelper.RewriteRows` carry forward every stored field
-PoracleWeb.NET has no model for, so a field set with the bot survives a web edit whatever the server is.
+`TrackingFieldPreserver` carries forward every stored field PoracleWeb.NET has no model for on an edit,
+and bulk distance and cleaning send only the field they change, so a field set with the bot survives a web
+edit whatever the server is.
 
 Rule descriptions belong on this list too. A v2 tracking read takes `?include_descriptions=true` and
 returns a `description` on each rule, the same sentence PoracleNG's bot answers a `!pokemon` command

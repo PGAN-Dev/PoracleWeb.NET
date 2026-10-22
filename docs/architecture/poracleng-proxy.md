@@ -57,15 +57,12 @@ their own rows; **the invasion read the application uses does not**: the proxy f
 skips it when the Pokéstop Events page is unavailable, so those rows stay visible somewhere. See
 [Database](database.md#poraclecontext).
 
-!!! warning "MaxBattle: bulk distance still deletes and recreates"
-    PoracleNG's v1 maxbattle handler has no diff/dedup logic, so a bulk distance change (which still writes through v1) deletes and recreates, logging enough to recover if the second half fails. A single-rule edit is one v2 PUT, and a create runs the dry-run protocol like every other type.
-
 Also proxied:
 
 - **Dashboard counts** -- one read of the v2 tracking snapshot (`GET /api/v2/humans/{userId}/tracking`) fetches all tracking, counts extracted per type
-- **Cleaning (auto-clean toggle)** -- fetches alarms, modifies the `clean` field, POSTs back via the proxy
+- **Cleaning (auto-clean toggle)** -- one v2 PATCH per type naming the uids and the clean bit
 - **Admin delete all alarms** -- fetches all UIDs per type, bulk deletes via the proxy
-- **Bulk distance update** -- fetches alarms, modifies `distance`, POSTs back via the proxy
+- **Bulk distance update** -- one v2 PATCH per type naming the uids and the new `distance`; max battles included, which no longer delete and re-create
 
 ### Read-only calls that shape the UI
 
@@ -117,9 +114,8 @@ colliding edit comes back 409. The proxy acts on the answer:
 - Max battles get the same protection. 5.4.0 merges max battles on v2 creates, so an Add of the same
   boss differing only by radius is refused where v1 used to stack it.
 
-The only client-side check left is `TrackingUpdateReconciler.EnsureBatchDoesNotTakeOverOthersAsync` and
-`EnsureBatchDoesNotCollapse`, which bulk distance runs because it still writes through v1.
-`TrackingFieldPreserver` still merges the stored row into an edit, because a v2 PUT is a full replace;
+No client-side takeover check is left. Bulk distance sends a PATCH, and PoracleNG refuses a rule whose
+new radius would make it identical to another, naming it as a `conflict`. `TrackingFieldPreserver` still merges the stored row into an edit, because a v2 PUT is a full replace;
 see [Backend → Update pattern](backend.md#update-pattern).
 
 <a id="the-v2-pilot"></a>
@@ -127,9 +123,11 @@ see [Backend → Update pattern](backend.md#update-pattern).
 ## The v2 write path
 
 PoracleNG 5.2.0 added a second tracking surface at `/api/v2` and left v1 frozen. **Every read, create,
-edit and delete for all eleven types now goes through it.** The exception is bulk distance and the
-cleaning toggle, which have no v2 bulk write and still post through `UpsertV1Async` until a later release
-moves them to v2 PATCH. There is no v1 fallback for a create or an edit.
+edit and delete for all eleven types now goes through it.** Bulk distance and the cleaning
+toggle use v2's `PATCH /api/v2/humans/{id}/tracking/{type}` with `{uids, set}`: one request per type, the
+one setting named, every rule keeping its uid. PoracleNG answers per rule, so a rule it refuses
+(`conflict`, `invalid`, `not_found`) doesn't fail the rest; conflicts come back to the SPA as
+`skippedConflict`. No v1 tracking call remains.
 
 Pokéstop Events have their own proxy (`PoracleIncidentProxy`), whose only surface is v2. Invasion rules
 go to the invasion routes, except the event grunts (`kecleon`, `gold-stop`, `showcase`), which are saved
@@ -305,8 +303,8 @@ public interface IPoracleTrackingProxy
     Task<JsonElement> GetByUserAsync(string type, string userId);
     Task<TrackingCreateResult> CreateAsync(string type, string userId, JsonElement body);
     Task<TrackingCreateResult> CreateOnProfileAsync(string type, string userId, JsonElement body, int profileNo);
-    Task<TrackingCreateResult> UpsertV1Async(string type, string userId, JsonElement body); // bulk distance and cleaning only
     Task<TrackingUpdateResult> UpdateByUidAsync(string type, string userId, int uid, JsonElement body);
+    Task<TrackingPatchResult> PatchAsync(string type, string userId, IReadOnlyList<int> uids, TrackingPatchSet settings);
     Task DeleteByUidAsync(string type, string userId, int uid);
     Task BulkDeleteByUidsAsync(string type, string userId, IEnumerable<int> uids);
     Task<JsonElement> GetAllTrackingAsync(string userId);
@@ -363,12 +361,10 @@ No proxy code changes were needed to support active hours. PoracleNG's profile s
 
 ## Known gaps and workarounds
 
-These operations lack dedicated PoracleNG endpoints and use fetch-modify-repost workarounds:
+These operations lack dedicated PoracleNG endpoints and use workarounds:
 
 | Operation | Workaround | Impact |
 |---|---|---|
-| Bulk distance update | Fetch all alarms, modify distance, POST back | Extra round-trip; scales linearly with alarm count |
-| Bulk clean toggle | Fetch all alarms, modify clean flag, POST back | Same as above |
 | Dashboard counts | One read of the v2 tracking snapshot | Returns full alarm payloads just to count them |
 | Admin delete all alarms | Fetch UIDs per type, bulk delete each | Multiple API calls instead of one |
 
@@ -399,7 +395,7 @@ services.AddHttpClient<IPoracleIncidentProxy, PoracleIncidentProxy>();
 ```
 
 There are five Poracle proxies. `IPoracleTrackingProxy` and `IPoracleHumanProxy` each speak
-`/api/v2` only (bar the v1 create that bulk distance and cleaning still use); `IPoracleApiProxy`
+`/api/v2` only; `IPoracleApiProxy`
 covers read-only config and templates on v1; and two are v2-only, `IPoracleMuteProxy` at
 `/api/v2/humans/{id}/mutes` and `IPoracleIncidentProxy` at `/api/v2/humans/{id}/tracking/incident`.
 

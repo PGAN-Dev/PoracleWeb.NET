@@ -24,7 +24,7 @@ The Profiles page provides a consolidated view of all profiles and their alarms 
     them — so the number you click is the number of cards you get. Duplicates within a single profile
     count too: 30 copies of one Pokemon rule on one profile is 30 duplicates.
 
-!!! warning "Pokéstop Event rules are not here"
+!!! warning "Pokéstop Event rules sit among the invasion rows"
     Showcase, Kecleon and Gold Stop rules have no section of their own in the overview. They are listed
     among the invasion rows, with the event name as the grunt. **Export** folds them into the invasion
     list the same way, **Import** saves them back as Pokéstop Event rules, and **Duplicate** copies them
