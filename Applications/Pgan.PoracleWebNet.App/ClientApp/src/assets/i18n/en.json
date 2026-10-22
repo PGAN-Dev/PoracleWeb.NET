@@ -368,6 +368,7 @@
     "CLEAN_HINT_NEST": "Automatically deletes the notification when nests migrate",
     "CLEAN_HINT_GYM": "Automatically deletes the notification after gym activity changes",
     "CLEAN_HINT_MAX_BATTLE": "Automatically deletes the notification after the max battle ends",
+    "CLEAN_HINT_POKESTOP_EVENT": "Automatically deletes the notification after the event ends",
     "SAVING": "Saving...",
     "SAVE": "Save",
     "SAVE_ALARM": "Save Alarm",
@@ -538,8 +539,8 @@
     "CLEAN_TOOLTIP": "Auto-deletes after expiry",
     "SELECTION_COUNT": "{{count}} selected",
     "ANY_POKEMON_ENCOUNTER": "Any Pokémon Encounter",
-    "MEGA_ENERGY_SUFFIX": "Mega Energy",
-    "CANDY_SUFFIX": "Candy",
+    "MEGA_ENERGY_SUFFIX": "{{name}} Mega Energy",
+    "CANDY_SUFFIX": "{{name}} Candy",
     "STARDUST": "Stardust",
     "STARDUST_AMOUNT": "{{amount}} Stardust",
     "REWARD_POKEMON": "Pokémon",
@@ -1130,6 +1131,8 @@
     "RECOMMENDATION": "Recommended:",
     "RECOMMENDATION_TEXT": "Enable clean mode to keep your notifications tidy. Without it, expired alerts stay in your DMs forever and can't be bulk-deleted.",
     "NO_ALARMS_HINT": "No alarms configured",
+    "PARTIAL_ONE": "Clean mode is on for {{clean}} of {{count}} alarm",
+    "PARTIAL_OTHER": "Clean mode is on for {{clean}} of {{count}} alarms",
     "LABEL_EGGS": "Eggs",
     "POKEMON_DESC": "Auto-delete spawn notifications when the Pokémon despawns",
     "RAIDS_DESC": "Auto-delete raid notifications when the raid ends",
@@ -1741,7 +1744,8 @@
     "RATE_LIMITED": "Too many test alerts. Please wait a moment.",
     "NOT_FOUND": "Alarm not found — it may have been deleted.",
     "UNSUPPORTED": "Test alerts are not supported for this alarm type.",
-    "FAILED": "Failed to send test alert. Try again later."
+    "FAILED": "Failed to send test alert. Try again later.",
+    "REFUSED": "Poracle couldn't send the test alert: {{reason}}"
   },
   "COMMON": {
     "CANCEL": "Cancel",

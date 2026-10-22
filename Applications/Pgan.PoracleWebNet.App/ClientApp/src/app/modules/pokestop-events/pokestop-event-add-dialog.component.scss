@@ -33,8 +33,10 @@ mat-slide-toggle {
   gap: 8px;
   margin-bottom: 16px;
 }
-.include-empty-toggle {
-  margin-top: 8px;
+.already-tracked {
+  margin-left: 8px;
+  font-size: 12px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
 }
 .distance-radio-group {
   display: flex;

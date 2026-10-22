@@ -368,6 +368,7 @@
     "CLEAN_HINT_NEST": "Supprime automatiquement la notification quand les nids migrent",
     "CLEAN_HINT_GYM": "Supprime automatiquement la notification quand l'activité d'arène change",
     "CLEAN_HINT_MAX_BATTLE": "Supprime automatiquement la notification quand le combat max se termine",
+    "CLEAN_HINT_POKESTOP_EVENT": "Supprime automatiquement la notification quand l'événement se termine",
     "SAVING": "Enregistrement...",
     "SAVE": "Enregistrer",
     "SAVE_ALARM": "Enregistrer l'alarme",
@@ -538,8 +539,8 @@
     "CLEAN_TOOLTIP": "Suppression automatique après expiration",
     "SELECTION_COUNT": "Sélection : {{count}}",
     "ANY_POKEMON_ENCOUNTER": "Toute rencontre Pokemon",
-    "MEGA_ENERGY_SUFFIX": "Méga-Énergie",
-    "CANDY_SUFFIX": "Bonbon",
+    "MEGA_ENERGY_SUFFIX": "Méga-énergie {{name}}",
+    "CANDY_SUFFIX": "Bonbon {{name}}",
     "STARDUST": "Poussière d'étoile",
     "STARDUST_AMOUNT": "{{amount}} Poussière d'étoile",
     "REWARD_POKEMON": "Pokemon",
@@ -1130,6 +1131,8 @@
     "RECOMMENDATION": "Recommandé :",
     "RECOMMENDATION_TEXT": "Active le mode nettoyage pour garder tes notifications propres.",
     "NO_ALARMS_HINT": "Aucune alarme configurée",
+    "PARTIAL_ONE": "Nettoyage activé pour {{clean}} sur {{count}} alarme",
+    "PARTIAL_OTHER": "Nettoyage activé pour {{clean}} sur {{count}} alarmes",
     "LABEL_EGGS": "Œufs",
     "POKEMON_DESC": "Supprimer automatiquement les notifications de spawn quand le Pokemon disparaît",
     "RAIDS_DESC": "Supprimer automatiquement les notifications de raid quand le raid se termine",
@@ -1741,7 +1744,8 @@
     "RATE_LIMITED": "Trop d'alertes de test. Patientez un instant.",
     "NOT_FOUND": "Alerte introuvable : elle a peut-être été supprimée.",
     "UNSUPPORTED": "Les alertes de test ne sont pas disponibles pour ce type.",
-    "FAILED": "Impossible d'envoyer l'alerte de test. Réessayez plus tard."
+    "FAILED": "Impossible d'envoyer l'alerte de test. Réessayez plus tard.",
+    "REFUSED": "Poracle n'a pas pu envoyer l'alerte de test : {{reason}}"
   },
   "COMMON": {
     "CANCEL": "Annuler",

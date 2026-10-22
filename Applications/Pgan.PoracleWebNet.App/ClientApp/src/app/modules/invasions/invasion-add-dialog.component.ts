@@ -28,6 +28,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
 import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
 import { AddDialogData, AddRefusal, editExistingResult, ExistingRule, finishAdd, settle } from '../../shared/utils/add-outcome';
 import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
+import { swapToFallbackIcon } from '../../shared/utils/icon-fallback';
 
 interface GruntOption {
   color?: string;
@@ -98,13 +99,13 @@ export class InvasionAddDialogComponent implements OnInit {
     { gruntType: 'grass', invasionId: 10, key: 'grass', typeId: 12 },
     { gruntType: 'ground', invasionId: 11, key: 'ground', typeId: 5 },
     { gruntType: 'ice', invasionId: 12, key: 'ice', typeId: 15 },
-    // Steel is `steel` in PoracleNG's grunt data; `metal` matched nothing and v2 refuses it. The key stays
-    // `metal` so the toggle id and its translation are unchanged.
-    { gruntType: 'steel', invasionId: 13, key: 'metal', typeId: 9 },
     { gruntType: 'normal', invasionId: 14, key: 'normal', typeId: 1 },
     { gruntType: 'poison', invasionId: 15, key: 'poison', typeId: 4 },
     { gruntType: 'psychic', invasionId: 16, key: 'psychic', typeId: 14 },
     { gruntType: 'rock', invasionId: 17, key: 'rock', typeId: 6 },
+    // Steel is `steel` in PoracleNG's grunt data; `metal` matched nothing and v2 refuses it. The key stays
+    // `metal` so the toggle id and its translation are unchanged; it sits where its name, Steel, sorts.
+    { gruntType: 'steel', invasionId: 13, key: 'metal', typeId: 9 },
     { gruntType: 'water', invasionId: 18, key: 'water', typeId: 11 },
     { gender: 1, gruntType: 'mixed', invasionId: 4, key: 'mixed-male', typeId: 0 },
     { gender: 2, gruntType: 'mixed', invasionId: 5, key: 'mixed-female', typeId: 0 },
@@ -225,6 +226,11 @@ export class InvasionAddDialogComponent implements OnInit {
         }))
       : [];
     this.gruntOptions.set([...grunts, ...events]);
+  }
+
+  /** A pack without this grunt's artwork (Decoy is `invasion/46.png`) gets a generic figure, not a gap. */
+  onGruntIconError(event: Event): void {
+    swapToFallbackIcon(event);
   }
 
   save(): void {

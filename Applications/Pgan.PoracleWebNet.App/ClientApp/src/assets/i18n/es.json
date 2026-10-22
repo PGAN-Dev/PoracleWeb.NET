@@ -368,6 +368,7 @@
     "CLEAN_HINT_NEST": "Elimina automáticamente la notificación cuando los nidos migran",
     "CLEAN_HINT_GYM": "Elimina automáticamente la notificación cuando la actividad del gimnasio cambia",
     "CLEAN_HINT_MAX_BATTLE": "Elimina automáticamente la notificación cuando el combate max termina",
+    "CLEAN_HINT_POKESTOP_EVENT": "Elimina automáticamente la notificación cuando el evento termina",
     "SAVING": "Guardando...",
     "SAVE": "Guardar",
     "SAVE_ALARM": "Guardar alarma",
@@ -538,8 +539,8 @@
     "CLEAN_TOOLTIP": "Se elimina automáticamente tras expirar",
     "SELECTION_COUNT": "{{count}} seleccionados",
     "ANY_POKEMON_ENCOUNTER": "Cualquier encuentro Pokemon",
-    "MEGA_ENERGY_SUFFIX": "Megaenergía",
-    "CANDY_SUFFIX": "Caramelos",
+    "MEGA_ENERGY_SUFFIX": "Megaenergía de {{name}}",
+    "CANDY_SUFFIX": "Caramelo de {{name}}",
     "STARDUST": "Polvo estelar",
     "STARDUST_AMOUNT": "{{amount}} Polvo estelar",
     "REWARD_POKEMON": "Pokemon",
@@ -1130,6 +1131,8 @@
     "RECOMMENDATION": "Recomendado:",
     "RECOMMENDATION_TEXT": "Activa el modo limpieza para mantener tus notificaciones ordenadas.",
     "NO_ALARMS_HINT": "No hay alarmas configuradas",
+    "PARTIAL_ONE": "La limpieza está activada en {{clean}} de {{count}} alarma",
+    "PARTIAL_OTHER": "La limpieza está activada en {{clean}} de {{count}} alarmas",
     "LABEL_EGGS": "Huevos",
     "POKEMON_DESC": "Eliminar automáticamente las notificaciones de spawn cuando el Pokemon desaparece",
     "RAIDS_DESC": "Eliminar automáticamente las notificaciones de raid cuando el raid termina",
@@ -1741,7 +1744,8 @@
     "RATE_LIMITED": "Demasiadas alertas de prueba. Espera un momento.",
     "NOT_FOUND": "Alerta no encontrada: puede que se haya eliminado.",
     "UNSUPPORTED": "Las alertas de prueba no están disponibles para este tipo.",
-    "FAILED": "No se pudo enviar la alerta de prueba. Inténtalo más tarde."
+    "FAILED": "No se pudo enviar la alerta de prueba. Inténtalo más tarde.",
+    "REFUSED": "Poracle no pudo enviar la alerta de prueba: {{reason}}"
   },
   "COMMON": {
     "CANCEL": "Cancelar",

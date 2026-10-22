@@ -8,7 +8,7 @@
         <mat-icon>{{ getEventIcon() }}</mat-icon>
       </div>
     } @else if (getGruntIcon()) {
-      <img [src]="getGruntIcon()" class="grunt-img" alt="" />
+      <img [src]="getGruntIcon()" class="grunt-img" alt="" (error)="onGruntIconError($event)" />
     } @else {
       <mat-icon class="rocket-icon">security</mat-icon>
     }

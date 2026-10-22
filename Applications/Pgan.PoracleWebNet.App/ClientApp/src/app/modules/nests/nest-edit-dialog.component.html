@@ -4,7 +4,9 @@
     <img [src]="getPokemonImage()" [alt]="pokemonName" class="item-img" (error)="onImageError($event)" />
     <div>
       <h3>{{ pokemonName }}</h3>
-      <span class="item-subtitle">#{{ data.pokemonId }}</span>
+      @if (data.pokemonId > 0) {
+        <span class="item-subtitle">#{{ data.pokemonId }}</span>
+      }
     </div>
   </div>
 

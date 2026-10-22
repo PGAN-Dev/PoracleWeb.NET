@@ -91,6 +91,22 @@ public class TestAlertControllerTests : ControllerTestBase
         Assert.Equal(500, statusResult.StatusCode);
     }
 
+    [Fact]
+    public async Task SendTestAlertPassesOnWhyPoracleNgRefused()
+    {
+        // PoracleNG's reason ("message delivery not configured ...") is the only thing that tells the user
+        // retrying will not help; the generic 500 replaced it with "try again later". Alarms D16.
+        this._service.Setup(s => s.SendTestAlertAsync("123456789", "pokemon", 1))
+            .ThrowsAsync(new PoracleRequestRefusedException("message delivery not configured - check Discord/Telegram token settings", 502));
+
+        var result = await this._sut.SendTestAlert("pokemon", 1);
+
+        var status = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(502, status.StatusCode);
+        var error = status.Value!.GetType().GetProperty("error")!.GetValue(status.Value);
+        Assert.Equal("message delivery not configured - check Discord/Telegram token settings", error);
+    }
+
     [Theory]
     [InlineData("pokemon", DisableFeatureKeys.Pokemon)]
     [InlineData("raid", DisableFeatureKeys.Raids)]

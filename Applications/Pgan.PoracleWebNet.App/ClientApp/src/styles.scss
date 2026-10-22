@@ -503,6 +503,19 @@ router-outlet + * {
   padding: 16px 24px !important;
 }
 
+// Alarm dialog tabs bleed to the dialog's edges. Material caps a tab group at max-width: 100%, so
+// pulling it out by the content's 24px padding on each side left the header 48px short of the
+// right edge; lift the cap by the same amount. The phone rules above override all three.
+.alarm-tabs.mat-mdc-tab-group {
+  margin-left: -24px;
+  margin-right: -24px;
+  max-width: calc(100% + 48px);
+}
+
+.alarm-tabs .mat-mdc-tab-body-wrapper {
+  padding: 0 24px;
+}
+
 // Help screenshot viewer: the image is the dialog, so drop the surface chrome around it
 .image-viewer-panel .mat-mdc-dialog-surface {
   background: transparent;

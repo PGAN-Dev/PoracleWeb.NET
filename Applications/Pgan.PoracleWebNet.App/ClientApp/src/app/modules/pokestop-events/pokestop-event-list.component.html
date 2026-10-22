@@ -78,7 +78,9 @@
           </div>
           <div class="card-top-actions">
             @if (isAutoDelete(item.clean)) {
-              <span class="event-tag" [matTooltip]="'ALARM.CLEAN_HINT_INVASION' | translate">{{ 'ALARM.CLEAN_MODE' | translate }}</span>
+              <span class="event-tag" [matTooltip]="'ALARM.CLEAN_HINT_POKESTOP_EVENT' | translate">{{
+                'ALARM.CLEAN_MODE' | translate
+              }}</span>
             }
           </div>
         </div>

@@ -44,7 +44,11 @@ const ALL_OFF = {
  * neither the header button nor its own toggle should count it.
  */
 describe('CleaningComponent', () => {
-  const setup = (counts: Partial<DashboardCounts>, status: Partial<typeof ALL_OFF>, disabled: string[] = []) => {
+  const setup = (
+    counts: Partial<DashboardCounts>,
+    status: Partial<typeof ALL_OFF> & { counts?: Record<string, { clean: number; total: number }> },
+    disabled: string[] = [],
+  ) => {
     const settings = signal<Record<string, string>>(Object.fromEntries(disabled.map(k => [k, 'true'])));
     const cleaning = {
       getStatus: jest.fn(() => of({ ...ALL_OFF, ...status })),
@@ -118,6 +122,50 @@ describe('CleaningComponent', () => {
     expect(toggles[0].disabled).toBe(false);
     expect(toggles[1].disabled).toBe(false);
     expect(toggles[2].disabled).toBe(true);
+  });
+
+  // Alarms D10: one clean Pokémon rule among three read as plain "off".
+  describe('a type only partly clean', () => {
+    const partial = { raids: true, counts: { raids: { clean: 2, total: 2 }, monsters: { clean: 1, total: 3 } } };
+
+    it('says how many of its alarms are clean', () => {
+      const { fixture, row } = setup({ raids: 2, pokemon: 3 }, partial);
+
+      expect(row('monsters').enabled()).toBe(false);
+      expect(row('monsters').partial()).toEqual({ clean: 1, total: 3 });
+      const hints = (fixture.nativeElement as HTMLElement).querySelectorAll('.label-partial');
+      expect(hints.length).toBe(1);
+      expect(hints[0].textContent).toContain('CLEANING.PARTIAL');
+    });
+
+    it('marks no row partial when every rule or none is clean', () => {
+      const { row } = setup({ raids: 2, pokemon: 3 }, { counts: { raids: { clean: 2, total: 2 }, monsters: { clean: 0, total: 3 } } });
+
+      expect(row('monsters').partial()).toBeNull();
+      expect(row('raids').partial()).toBeNull();
+    });
+
+    it('reads a server without counts as before', () => {
+      const { row } = setup({ pokemon: 3 }, { monsters: false });
+
+      expect(row('monsters').partial()).toBeNull();
+    });
+
+    it('drops the partial note once the type is switched as a whole', () => {
+      const { component, row } = setup({ raids: 2, pokemon: 3 }, partial);
+
+      component.toggleClean(row('monsters'), true);
+
+      expect(row('monsters').partial()).toBeNull();
+    });
+
+    it('drops it after Enable All too', () => {
+      const { component, row } = setup({ raids: 2, pokemon: 3 }, partial);
+
+      component.toggleAll(true);
+
+      expect(row('monsters').partial()).toBeNull();
+    });
   });
 });
 

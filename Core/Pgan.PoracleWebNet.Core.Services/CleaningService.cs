@@ -21,19 +21,25 @@ public partial class CleaningService(
 
     public async Task<Dictionary<string, bool>> GetCleanStatusAsync(string userId, int profileNo)
     {
+        var counts = await this.GetCleanCountsAsync(userId, profileNo);
+        return counts.ToDictionary(kv => kv.Key, kv => kv.Value.IsAllClean());
+    }
+
+    public async Task<Dictionary<string, CleanCount>> GetCleanCountsAsync(string userId, int profileNo)
+    {
         var allTracking = await this._trackingProxy.GetAllTrackingAsync(userId);
 
-        return new Dictionary<string, bool>
+        return new Dictionary<string, CleanCount>
         {
-            ["monsters"] = AllClean(allTracking, "pokemon"),
-            ["raids"] = AllClean(allTracking, "raid"),
-            ["eggs"] = AllClean(allTracking, "egg"),
-            ["quests"] = AllClean(allTracking, "quest"),
-            ["invasions"] = AllClean(allTracking, "invasion", await this.OwnRowPredicateAsync("invasion")),
-            ["lures"] = AllClean(allTracking, "lure"),
-            ["nests"] = AllClean(allTracking, "nest"),
-            ["gyms"] = AllClean(allTracking, "gym"),
-            ["maxbattles"] = AllClean(allTracking, "maxbattle"),
+            ["monsters"] = CountClean(allTracking, "pokemon"),
+            ["raids"] = CountClean(allTracking, "raid"),
+            ["eggs"] = CountClean(allTracking, "egg"),
+            ["quests"] = CountClean(allTracking, "quest"),
+            ["invasions"] = CountClean(allTracking, "invasion", await this.OwnRowPredicateAsync("invasion")),
+            ["lures"] = CountClean(allTracking, "lure"),
+            ["nests"] = CountClean(allTracking, "nest"),
+            ["gyms"] = CountClean(allTracking, "gym"),
+            ["maxbattles"] = CountClean(allTracking, "maxbattle"),
         };
     }
 
@@ -156,17 +162,18 @@ public partial class CleaningService(
         row.TryGetProperty("grunt_type", out var gt) && gt.ValueKind == JsonValueKind.String ? gt.GetString() : null);
 
     /// <summary>
-    /// Checks whether all items in a tracking array have clean == true or clean == 1.
-    /// Returns false if the array is empty or missing.
+    /// Counts the rules in a tracking array, and those with the auto-delete bit set. A missing array is
+    /// zero of zero. A <c>clean</c> that is absent, null, false or not a number counts as not clean.
     /// </summary>
-    private static bool AllClean(JsonElement root, string key, Func<JsonElement, bool>? isOurs = null)
+    private static CleanCount CountClean(JsonElement root, string key, Func<JsonElement, bool>? isOurs = null)
     {
-        if (!root.TryGetProperty(key, out var arr) || arr.ValueKind != JsonValueKind.Array || arr.GetArrayLength() == 0)
+        if (!root.TryGetProperty(key, out var arr) || arr.ValueKind != JsonValueKind.Array)
         {
-            return false;
+            return new CleanCount(0, 0);
         }
 
-        var any = false;
+        var total = 0;
+        var clean = 0;
 
         foreach (var item in arr.EnumerateArray())
         {
@@ -175,34 +182,19 @@ public partial class CleaningService(
                 continue;
             }
 
-            any = true;
+            total++;
 
-            if (!item.TryGetProperty("clean", out var cleanVal))
+            if (item.ValueKind == JsonValueKind.Object
+                && item.TryGetProperty("clean", out var cleanVal)
+                && cleanVal.ValueKind == JsonValueKind.Number
+                && cleanVal.TryGetInt32(out var bits)
+                && CleanFlags.IsAutoDelete(bits))
             {
-                return false;
-            }
-
-            var isClean = cleanVal.ValueKind switch
-            {
-                JsonValueKind.True => true,
-                JsonValueKind.Number => CleanFlags.IsAutoDelete(cleanVal.GetInt32()),
-                JsonValueKind.Undefined => throw new NotImplementedException(),
-                JsonValueKind.Object => throw new NotImplementedException(),
-                JsonValueKind.Array => throw new NotImplementedException(),
-                JsonValueKind.String => throw new NotImplementedException(),
-                JsonValueKind.False => throw new NotImplementedException(),
-                JsonValueKind.Null => throw new NotImplementedException(),
-                _ => false,
-            };
-
-            if (!isClean)
-            {
-                return false;
+                clean++;
             }
         }
 
-        // An array holding nothing but somebody else's rows is the empty case, not the all-clean one.
-        return any;
+        return new CleanCount(clean, total);
     }
 
     // Warning: the count the user sees already leaves this rule out, so nothing on screen says it kept its old

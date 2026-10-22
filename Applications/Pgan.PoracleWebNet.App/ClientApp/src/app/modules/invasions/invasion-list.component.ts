@@ -38,6 +38,7 @@ import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/a
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { isAutoDelete as cleanIsAutoDelete } from '../../shared/utils/clean-flags';
 import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
+import { swapToFallbackIcon } from '../../shared/utils/icon-fallback';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -305,6 +306,11 @@ export class InvasionListComponent implements OnInit {
     this.loadProfileAreas();
     this.masterData.loadData().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
     this.loadInvasions();
+  }
+
+  /** A pack without this grunt's artwork (Decoy is `invasion/46.png`) gets a generic figure, not a gap. */
+  onGruntIconError(event: Event): void {
+    swapToFallbackIcon(event);
   }
 
   openAddDialog(): void {

@@ -42,6 +42,9 @@
             @if (!item.hasAlarms()) {
               <span class="label-hint">{{ 'CLEANING.NO_ALARMS_HINT' | translate }}</span>
             }
+            @if (item.partial(); as partial) {
+              <span class="label-partial">{{ 'CLEANING.PARTIAL' | translatePlural: partial.total : { clean: partial.clean } }}</span>
+            }
           </div>
         </div>
         <mat-slide-toggle

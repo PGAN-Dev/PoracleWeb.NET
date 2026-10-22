@@ -368,6 +368,7 @@
     "CLEAN_HINT_NEST": "Elimina automaticamente la notifica quando i nidi migrano",
     "CLEAN_HINT_GYM": "Elimina automaticamente la notifica dopo che l'attività della palestra cambia",
     "CLEAN_HINT_MAX_BATTLE": "Elimina automaticamente la notifica dopo che la battaglia max finisce",
+    "CLEAN_HINT_POKESTOP_EVENT": "Elimina automaticamente la notifica dopo che l'evento finisce",
     "SAVING": "Salvataggio...",
     "SAVE": "Salva",
     "SAVE_ALARM": "Salva Allarme",
@@ -538,8 +539,8 @@
     "CLEAN_TOOLTIP": "Eliminazione automatica dopo la scadenza",
     "SELECTION_COUNT": "{{count}} selezionati",
     "ANY_POKEMON_ENCOUNTER": "Qualsiasi incontro Pokemon",
-    "MEGA_ENERGY_SUFFIX": "Mega Energia",
-    "CANDY_SUFFIX": "Caramelle",
+    "MEGA_ENERGY_SUFFIX": "Mega Energia {{name}}",
+    "CANDY_SUFFIX": "Caramella {{name}}",
     "STARDUST": "Polvere di stelle",
     "STARDUST_AMOUNT": "{{amount}} Polvere di stelle",
     "REWARD_POKEMON": "Pokemon",
@@ -1130,6 +1131,8 @@
     "RECOMMENDATION": "Consigliato:",
     "RECOMMENDATION_TEXT": "Abilita la modalità pulizia per tenere le tue notifiche in ordine.",
     "NO_ALARMS_HINT": "Nessun allarme configurato",
+    "PARTIAL_ONE": "Pulizia attiva per {{clean}} di {{count}} allarme",
+    "PARTIAL_OTHER": "Pulizia attiva per {{clean}} di {{count}} allarmi",
     "LABEL_EGGS": "Uova",
     "POKEMON_DESC": "Elimina automaticamente le notifiche di spawn quando il Pokemon scompare",
     "RAIDS_DESC": "Elimina automaticamente le notifiche raid quando il raid finisce",
@@ -1741,7 +1744,8 @@
     "RATE_LIMITED": "Troppi avvisi di prova. Attendi un momento.",
     "NOT_FOUND": "Avviso non trovato: potrebbe essere stato eliminato.",
     "UNSUPPORTED": "Gli avvisi di prova non sono disponibili per questo tipo.",
-    "FAILED": "Impossibile inviare l'avviso di prova. Riprova più tardi."
+    "FAILED": "Impossibile inviare l'avviso di prova. Riprova più tardi.",
+    "REFUSED": "Poracle non è riuscito a inviare l'avviso di prova: {{reason}}"
   },
   "COMMON": {
     "CANCEL": "Annulla",

@@ -367,6 +367,7 @@
     "CLEAN_HINT_NEST": "Verwijdert de melding automatisch wanneer nesten roteren",
     "CLEAN_HINT_GYM": "Verwijdert de melding automatisch wanneer gymactiviteit verandert",
     "CLEAN_HINT_MAX_BATTLE": "Verwijdert de melding automatisch nadat het max gevecht eindigt",
+    "CLEAN_HINT_POKESTOP_EVENT": "Verwijdert de melding automatisch nadat het evenement eindigt",
     "SAVING": "Opslaan...",
     "SAVE": "Opslaan",
     "SAVE_ALARM": "Alarm Opslaan",
@@ -538,8 +539,8 @@
     "CLEAN_TOOLTIP": "Wordt automatisch verwijderd na afloop",
     "SELECTION_COUNT": "{{count}} geselecteerd",
     "ANY_POKEMON_ENCOUNTER": "Elke Pokemon Ontmoeting",
-    "MEGA_ENERGY_SUFFIX": "Mega Energie",
-    "CANDY_SUFFIX": "Snoep",
+    "MEGA_ENERGY_SUFFIX": "Mega-energie van {{name}}",
+    "CANDY_SUFFIX": "{{name}}-snoep",
     "STARDUST": "Sterrenstof",
     "STARDUST_AMOUNT": "{{amount}} sterrenstof",
     "REWARD_POKEMON": "Pokemon",
@@ -1130,6 +1131,8 @@
     "RECOMMENDATION": "Aanbevolen:",
     "RECOMMENDATION_TEXT": "Schakel opschoonmodus in om je meldingen netjes te houden.",
     "NO_ALARMS_HINT": "Geen alarmen geconfigureerd",
+    "PARTIAL_ONE": "Opschonen staat aan voor {{clean}} van {{count}} alarm",
+    "PARTIAL_OTHER": "Opschonen staat aan voor {{clean}} van {{count}} alarmen",
     "LABEL_EGGS": "Eieren",
     "POKEMON_DESC": "Verwijder spawnmeldingen automatisch wanneer de Pokemon verdwijnt",
     "RAIDS_DESC": "Verwijder raidmeldingen automatisch wanneer de raid eindigt",
@@ -1741,7 +1744,8 @@
     "RATE_LIMITED": "Te veel testmeldingen. Wacht even.",
     "NOT_FOUND": "Melding niet gevonden — mogelijk is deze verwijderd.",
     "UNSUPPORTED": "Testmeldingen zijn niet beschikbaar voor dit type.",
-    "FAILED": "Testmelding kon niet worden verzonden. Probeer het later."
+    "FAILED": "Testmelding kon niet worden verzonden. Probeer het later.",
+    "REFUSED": "Poracle kon de testmelding niet verzenden: {{reason}}"
   },
   "COMMON": {
     "CANCEL": "Annuleren",

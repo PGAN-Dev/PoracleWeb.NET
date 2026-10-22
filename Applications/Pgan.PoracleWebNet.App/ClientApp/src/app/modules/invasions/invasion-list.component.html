@@ -72,7 +72,7 @@
               <mat-icon>{{ getEventIcon(invasion.gruntType) }}</mat-icon>
             </div>
           } @else if (getGruntIcon(invasion.gruntType, invasion.gender)) {
-            <img [src]="getGruntIcon(invasion.gruntType, invasion.gender)" class="grunt-img" alt="" />
+            <img [src]="getGruntIcon(invasion.gruntType, invasion.gender)" class="grunt-img" alt="" (error)="onGruntIconError($event)" />
           } @else {
             <mat-icon class="rocket-icon">security</mat-icon>
           }

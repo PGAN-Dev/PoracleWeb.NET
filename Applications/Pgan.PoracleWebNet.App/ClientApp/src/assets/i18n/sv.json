@@ -368,6 +368,7 @@
     "CLEAN_HINT_NEST": "Raderar automatiskt notisen när nästen migrerar",
     "CLEAN_HINT_GYM": "Raderar automatiskt notisen när gym-aktiviteten ändras",
     "CLEAN_HINT_MAX_BATTLE": "Raderar automatiskt notisen när max-striden är slut",
+    "CLEAN_HINT_POKESTOP_EVENT": "Raderar automatiskt notisen när eventet är slut",
     "SAVING": "Sparar...",
     "SAVE": "Spara",
     "SAVE_ALARM": "Spara larm",
@@ -538,8 +539,8 @@
     "CLEAN_TOOLTIP": "Raderas automatiskt efter utgång",
     "SELECTION_COUNT": "{{count}} valda",
     "ANY_POKEMON_ENCOUNTER": "Alla Pokemon-möten",
-    "MEGA_ENERGY_SUFFIX": "Mega-energi",
-    "CANDY_SUFFIX": "Godis",
+    "MEGA_ENERGY_SUFFIX": "{{name}} Mega-energi",
+    "CANDY_SUFFIX": "{{name}}-godis",
     "STARDUST": "Stjärnstoft",
     "STARDUST_AMOUNT": "{{amount}} stjärnstoft",
     "REWARD_POKEMON": "Pokemon",
@@ -1130,6 +1131,8 @@
     "RECOMMENDATION": "Rekommenderat:",
     "RECOMMENDATION_TEXT": "Aktivera städningsläge för att hålla dina notiser städade. Utan det stannar utgångna larm i dina DMs för alltid och kan inte massraderas.",
     "NO_ALARMS_HINT": "Inga larm konfigurerade",
+    "PARTIAL_ONE": "Städning är på för {{clean}} av {{count}} larm",
+    "PARTIAL_OTHER": "Städning är på för {{clean}} av {{count}} larm",
     "LABEL_EGGS": "Ägg",
     "POKEMON_DESC": "Autoradera spawn-notiser när Pokemon försvinner",
     "RAIDS_DESC": "Autoradera raid-notiser när raiden är slut",
@@ -1741,7 +1744,8 @@
     "RATE_LIMITED": "För många testaviseringar. Vänta ett ögonblick.",
     "NOT_FOUND": "Aviseringen hittades inte — den kan ha tagits bort.",
     "UNSUPPORTED": "Testaviseringar stöds inte för den här typen.",
-    "FAILED": "Testaviseringen kunde inte skickas. Försök igen senare."
+    "FAILED": "Testaviseringen kunde inte skickas. Försök igen senare.",
+    "REFUSED": "Poracle kunde inte skicka testaviseringen: {{reason}}"
   },
   "COMMON": {
     "CANCEL": "Avbryt",

@@ -368,6 +368,7 @@
     "CLEAN_HINT_NEST": "Elimina automaticamente a notificação quando os ninhos migram",
     "CLEAN_HINT_GYM": "Elimina automaticamente a notificação quando a atividade do ginásio muda",
     "CLEAN_HINT_MAX_BATTLE": "Elimina automaticamente a notificação após a batalha max terminar",
+    "CLEAN_HINT_POKESTOP_EVENT": "Elimina automaticamente a notificação após o evento terminar",
     "SAVING": "A guardar...",
     "SAVE": "Guardar",
     "SAVE_ALARM": "Guardar Alarme",
@@ -538,8 +539,8 @@
     "CLEAN_TOOLTIP": "Eliminação automática após expiração",
     "SELECTION_COUNT": "{{count}} selecionados",
     "ANY_POKEMON_ENCOUNTER": "Qualquer Encontro Pokemon",
-    "MEGA_ENERGY_SUFFIX": "Mega Energia",
-    "CANDY_SUFFIX": "Doces",
+    "MEGA_ENERGY_SUFFIX": "Mega Energia de {{name}}",
+    "CANDY_SUFFIX": "Doce de {{name}}",
     "STARDUST": "Pó Estelar",
     "STARDUST_AMOUNT": "{{amount}} Pó Estelar",
     "REWARD_POKEMON": "Pokemon",
@@ -1130,6 +1131,8 @@
     "RECOMMENDATION": "Recomendado:",
     "RECOMMENDATION_TEXT": "Ativa o modo de limpeza para manter as tuas notificações organizadas.",
     "NO_ALARMS_HINT": "Nenhum alarme configurado",
+    "PARTIAL_ONE": "Limpeza ativa em {{clean}} de {{count}} alarme",
+    "PARTIAL_OTHER": "Limpeza ativa em {{clean}} de {{count}} alarmes",
     "LABEL_EGGS": "Ovos",
     "POKEMON_DESC": "Elimina automaticamente notificações de spawn quando o Pokemon desaparece",
     "RAIDS_DESC": "Elimina automaticamente notificações de raid quando o raid termina",
@@ -1741,7 +1744,8 @@
     "RATE_LIMITED": "Demasiados alertas de teste. Aguarda um momento.",
     "NOT_FOUND": "Alerta não encontrado — pode ter sido eliminado.",
     "UNSUPPORTED": "Os alertas de teste não estão disponíveis para este tipo.",
-    "FAILED": "Não foi possível enviar o alerta de teste. Tenta mais tarde."
+    "FAILED": "Não foi possível enviar o alerta de teste. Tenta mais tarde.",
+    "REFUSED": "O Poracle não conseguiu enviar o alerta de teste: {{reason}}"
   },
   "COMMON": {
     "CANCEL": "Cancelar",

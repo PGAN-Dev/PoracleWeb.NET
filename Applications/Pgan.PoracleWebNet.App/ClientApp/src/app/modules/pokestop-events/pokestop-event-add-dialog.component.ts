@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -63,6 +63,37 @@ export class PokestopEventAddDialogComponent {
   private readonly existing = this.data?.events ?? [];
   private readonly fb = inject(FormBuilder);
   private readonly i18n = inject(I18nService);
+  /**
+   * Seeded from the saved defaults so the Alert Defaults preference still reaches new alarms; the
+   * picker owns it from there.
+   */
+  readonly scope = signal<AlarmScope>(
+    this.alertDefaults.defaultMode() === 'areas'
+      ? { mode: 'profile' }
+      : {
+          distanceKm: this.alertDefaults.defaultDistanceKm(),
+          mode: this.alertDefaults.defaultPlaceLabel() ? 'place' : 'profile',
+          placeLabel: this.alertDefaults.defaultPlaceLabel(),
+        },
+  );
+
+  /**
+   * One checkbox per event, fanning out into one alarm each — the same shape as the invasion add
+   * dialog, and the reason this is multi-select rather than a dropdown. There is deliberately no
+   * "any event" option: `display_type` is required upstream and has no wildcard.
+   *
+   * An event counts as tracked only when a stored rule for it has the scope chosen below. PoracleNG
+   * stores the same event under a different area scope, place or radius as a separate rule, so
+   * blocking the event outright refused an Add the server would take.
+   */
+  private readonly optionsState = computed(() => {
+    const scope = scopeToFields(this.scope());
+    return POKESTOP_EVENTS.map(e => ({
+      ...e,
+      alreadyTracked: this.existing.some(x => x.displayType === e.displayType && sameScope(x, scope)),
+    }));
+  });
+
   private readonly pokestopEventService = inject(PokestopEventService);
 
   private readonly snackBar = inject(MatSnackBar);
@@ -81,16 +112,6 @@ export class PokestopEventAddDialogComponent {
     template: [''],
   });
 
-  /**
-   * One checkbox per event, fanning out into one alarm each — the same shape as the invasion add
-   * dialog, and the reason this is multi-select rather than a dropdown. There is deliberately no
-   * "any event" option: `display_type` is required upstream and has no wildcard.
-   */
-  readonly options = POKESTOP_EVENTS.map(e => ({
-    ...e,
-    alreadyTracked: this.existing.some(x => x.displayType === e.displayType),
-  }));
-
   /** False while the scope picker holds a radius it won't accept, which keeps Save off. */
   readonly radiusValid = signal(true);
 
@@ -99,29 +120,24 @@ export class PokestopEventAddDialogComponent {
 
   readonly saving = signal(false);
 
-  /**
-   * Seeded from the saved defaults so the Alert Defaults preference still reaches new alarms; the
-   * picker owns it from there.
-   */
-  readonly scope = signal<AlarmScope>(
-    this.alertDefaults.defaultMode() === 'areas'
-      ? { mode: 'profile' }
-      : {
-          distanceKm: this.alertDefaults.defaultDistanceKm(),
-          mode: this.alertDefaults.defaultPlaceLabel() ? 'place' : 'profile',
-          placeLabel: this.alertDefaults.defaultPlaceLabel(),
-        },
-  );
-
   constructor() {
     // Disabling has to happen on the control, not with [disabled] in the template. A reactive form
     // control drives the checkbox through its value accessor, and the accessor's setDisabledState --
     // called with the control's own enabled state -- runs after the input binding and puts the box
     // back. The box stayed tickable, and ticking it did nothing: chosen() filters alreadyTracked out,
     // so Save stayed disabled with nothing on screen saying why.
-    for (const option of this.options.filter(o => o.alreadyTracked)) {
-      this.form.controls[this.controlFor(option.name)].disable();
-    }
+    // The scope can change under the boxes, so the disabled state follows it.
+    effect(() => {
+      for (const option of this.options) {
+        const control = this.form.controls[this.controlFor(option.name)];
+        if (option.alreadyTracked) control.disable();
+        else control.enable();
+      }
+    });
+  }
+
+  get options() {
+    return this.optionsState();
   }
 
   controlFor(name: string): 'eventGoldStop' | 'eventKecleon' | 'eventShowcase' {
@@ -203,4 +219,19 @@ export class PokestopEventAddDialogComponent {
     const event = POKESTOP_EVENTS.find(e => e.displayType === rule.displayType);
     return ruleSummary(event ? this.translate.instant(event.displayKey) : '', rule, this.data?.profileAreas ?? [], this.translate);
   }
+}
+
+/**
+ * Whether a stored rule has the scope a save would send. "No override" has several spellings (null,
+ * [] and "" all mean none); area names compare lowercased but in order, as PoracleNG keeps them.
+ */
+function sameScope(rule: PokestopEvent, scope: { distance: number; overrideAreas: string[]; overrideLocationLabel: string }): boolean {
+  const areas = (rule.overrideAreas ?? []).map(a => a.toLowerCase());
+  const wanted = scope.overrideAreas.map(a => a.toLowerCase());
+  return (
+    (rule.distance ?? 0) === scope.distance &&
+    (rule.overrideLocationLabel ?? '') === scope.overrideLocationLabel &&
+    areas.length === wanted.length &&
+    areas.every((a, i) => a === wanted[i])
+  );
 }

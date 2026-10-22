@@ -367,6 +367,7 @@
     "CLEAN_HINT_NEST": "Löscht die Benachrichtigung automatisch, wenn Nester wechseln",
     "CLEAN_HINT_GYM": "Löscht die Benachrichtigung automatisch, wenn sich die Arena-Aktivität ändert",
     "CLEAN_HINT_MAX_BATTLE": "Löscht die Benachrichtigung automatisch, wenn der Max-Kampf endet",
+    "CLEAN_HINT_POKESTOP_EVENT": "Löscht die Benachrichtigung automatisch, wenn das Event endet",
     "SAVING": "Wird gespeichert...",
     "SAVE": "Speichern",
     "SAVE_ALARM": "Alarm speichern",
@@ -538,8 +539,8 @@
     "CLEAN_TOOLTIP": "Wird nach Ablauf automatisch gelöscht",
     "SELECTION_COUNT": "{{count}} ausgewählt",
     "ANY_POKEMON_ENCOUNTER": "Beliebige Pokemon-Begegnung",
-    "MEGA_ENERGY_SUFFIX": "Mega-Energie",
-    "CANDY_SUFFIX": "Bonbon",
+    "MEGA_ENERGY_SUFFIX": "Mega-Energie {{name}}",
+    "CANDY_SUFFIX": "{{name}}-Bonbon",
     "STARDUST": "Sternenstaub",
     "STARDUST_AMOUNT": "{{amount}} Sternenstaub",
     "REWARD_POKEMON": "Pokemon",
@@ -1130,6 +1131,8 @@
     "RECOMMENDATION": "Empfohlen:",
     "RECOMMENDATION_TEXT": "Aktiviere den Aufräummodus, um deine Benachrichtigungen ordentlich zu halten.",
     "NO_ALARMS_HINT": "Keine Alarme konfiguriert",
+    "PARTIAL_ONE": "Aufräumen ist für {{clean}} von {{count}} Alarm an",
+    "PARTIAL_OTHER": "Aufräumen ist für {{clean}} von {{count}} Alarmen an",
     "LABEL_EGGS": "Eier",
     "POKEMON_DESC": "Spawn-Benachrichtigungen automatisch löschen, wenn das Pokemon despawnt",
     "RAIDS_DESC": "Raid-Benachrichtigungen automatisch löschen, wenn der Raid endet",
@@ -1741,7 +1744,8 @@
     "RATE_LIMITED": "Zu viele Testmeldungen. Bitte warte einen Moment.",
     "NOT_FOUND": "Meldung nicht gefunden — sie wurde möglicherweise gelöscht.",
     "UNSUPPORTED": "Testmeldungen werden für diesen Meldungstyp nicht unterstützt.",
-    "FAILED": "Testmeldung konnte nicht gesendet werden. Versuche es später erneut."
+    "FAILED": "Testmeldung konnte nicht gesendet werden. Versuche es später erneut.",
+    "REFUSED": "Poracle konnte die Testmeldung nicht senden: {{reason}}"
   },
   "COMMON": {
     "CANCEL": "Abbrechen",

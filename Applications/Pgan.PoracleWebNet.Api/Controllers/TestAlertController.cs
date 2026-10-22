@@ -62,6 +62,16 @@ public partial class TestAlertController(
                 error = ex.Message
             });
         }
+        catch (PoracleRequestRefusedException ex)
+        {
+            // PoracleNG answered and said why it couldn't deliver. Pass the reason on, as the 501 does:
+            // "try again later" is wrong when the cause is configuration.
+            LogSendTestAlertFailed(this._logger, ex, type, uid, this.UserId);
+            return this.StatusCode(ex.StatusCode, new
+            {
+                error = ex.Message
+            });
+        }
         catch (OperationCanceledException ex)
         {
             LogSendTestAlertFailed(this._logger, ex, type, uid, this.UserId);

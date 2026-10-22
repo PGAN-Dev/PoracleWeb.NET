@@ -289,6 +289,67 @@ describe('PokestopEventAddDialogComponent', () => {
 
       expect(component.options.map(o => o.alreadyTracked)).toEqual([false, false, false]);
     });
+
+    // PoracleNG stores the same event under another scope as its own rule, so a rule elsewhere must
+    // not block this one (alarms D15).
+    describe('only in the scope chosen', () => {
+      const kecleonNearHome: PokestopEvent = {
+        id: 'u1',
+        overrideAreas: [],
+        overrideLocationLabel: 'Home',
+        uid: 5,
+        clean: 0,
+        displayType: KECLEON,
+        distance: 700,
+        eventName: 'kecleon',
+        profileNo: 0,
+        template: null,
+      };
+
+      it('leaves an event pickable when its stored rule has another scope', () => {
+        setup([kecleonNearHome]);
+
+        expect(component.options.map(o => o.alreadyTracked)).toEqual([false, false, false]);
+        expect(component.form.controls.eventKecleon.disabled).toBe(false);
+      });
+
+      it('posts the event in the new scope', async () => {
+        setup([kecleonNearHome]);
+        component.form.controls.eventKecleon.setValue(true);
+
+        await component.save();
+
+        expect(created()).toEqual([expect.objectContaining({ overrideLocationLabel: '', displayType: KECLEON, distance: 0 })]);
+      });
+
+      it('blocks the event once the scope chosen is the stored one, and frees it again after', () => {
+        setup([kecleonNearHome]);
+
+        component.scope.set({ distanceKm: 0.7, mode: 'place', placeLabel: 'Home' });
+        fixture.detectChanges();
+        expect(component.options[1].alreadyTracked).toBe(true);
+        expect(component.form.controls.eventKecleon.disabled).toBe(true);
+
+        component.scope.set({ mode: 'profile' });
+        fixture.detectChanges();
+        expect(component.options[1].alreadyTracked).toBe(false);
+        expect(component.form.controls.eventKecleon.disabled).toBe(false);
+      });
+
+      it('reads a stored null override as no override', () => {
+        setup([{ ...tracked, overrideAreas: null, overrideLocationLabel: null }]);
+
+        expect(component.options[0].alreadyTracked).toBe(true);
+      });
+
+      it('compares area names without regard to case', () => {
+        setup([{ ...tracked, overrideAreas: ['Downtown'] }]);
+        component.scope.set({ areas: ['downtown'], mode: 'areas' });
+        fixture.detectChanges();
+
+        expect(component.options[0].alreadyTracked).toBe(true);
+      });
+    });
   });
 
   describe('partial failure', () => {

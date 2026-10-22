@@ -61,8 +61,12 @@ export class TestAlertService {
           // gets and it has to cover every status -- including the feature-disabled 403 that used to
           // arrive as the interceptor's toast.
           const serverMessage = err?.error?.error;
-          const message =
-            err.status === 429
+          // 502: PoracleNG answered and said why it couldn't deliver ("message delivery not
+          // configured ..."), which tells the user a retry won't help. Shown with its reason, longer.
+          const refused = err.status === 502 && typeof serverMessage === 'string' && serverMessage.length > 0;
+          const message = refused
+            ? this.translate.instant('TEST_ALERT.REFUSED', { reason: serverMessage })
+            : err.status === 429
               ? this.translate.instant('TEST_ALERT.RATE_LIMITED')
               : err.status === 404
                 ? this.translate.instant('TEST_ALERT.NOT_FOUND')
@@ -71,7 +75,7 @@ export class TestAlertService {
                   : err.status === 403 && err?.error?.disableKey
                     ? this.translate.instant('ERROR.FEATURE_DISABLED')
                     : this.translate.instant('TEST_ALERT.FAILED');
-          this.snackBar.open(message, 'OK', { duration: 4000 });
+          this.snackBar.open(message, 'OK', { duration: refused ? 8000 : 4000 });
           // Start the cooldown on unsupported-type errors so the user can't spam-click
           // the button and waste rate-limit quota on a known no-op.
           if (err.status === 501) {

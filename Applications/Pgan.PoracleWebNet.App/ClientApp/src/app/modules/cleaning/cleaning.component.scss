@@ -127,6 +127,12 @@
   margin-top: 2px;
 }
 
+.label-partial {
+  font-size: 12px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.6));
+  margin-top: 2px;
+}
+
 @media (max-width: 600px) {
   .page-header {
     padding: 12px 16px;

@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -17,6 +17,7 @@ import { FortChange, FortChangeUpdate } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { FortChangeService } from '../../core/services/fort-change.service';
 import { I18nService } from '../../core/services/i18n.service';
+import { SettingsService } from '../../core/services/settings.service';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
@@ -51,6 +52,7 @@ export class FortChangeEditDialogComponent {
   private readonly fb = inject(FormBuilder);
   private readonly fortChangeService = inject(FortChangeService);
   private readonly i18n = inject(I18nService);
+  private readonly settings = inject(SettingsService);
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<FortChange>(MAT_DIALOG_DATA);
   readonly dialogRef = inject(MatDialogRef<FortChangeEditDialogComponent>);
@@ -82,6 +84,12 @@ export class FortChangeEditDialogComponent {
 
   /** The radius as stored, which an edit may keep even outside the picker's range. */
   readonly storedRadiusKm = metresToKm(this.data.distance);
+
+  /**
+   * Whether the template selector shows. Fort changes have no clean bit, so with templates off the
+   * "Message settings" heading would label nothing (the Mention field aside, on a webhook edit).
+   */
+  readonly templatesEnabled = computed(() => this.settings.siteSettings()['enable_templates']?.toLowerCase() === 'true');
 
   save(): void {
     this.saving.set(true);

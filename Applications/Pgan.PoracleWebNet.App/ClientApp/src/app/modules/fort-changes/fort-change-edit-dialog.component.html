@@ -44,7 +44,9 @@
       <div class="tab-content">
         <app-scope-picker [(scope)]="scope" [(radiusValid)]="radiusValid" [storedRadiusKm]="storedRadiusKm" />
 
-        <h4>{{ 'ALARM.MESSAGE_SETTINGS' | translate }}</h4>
+        @if (templatesEnabled() || isWebhook) {
+          <h4>{{ 'ALARM.MESSAGE_SETTINGS' | translate }}</h4>
+        }
 
         <app-template-selector
           [alarmType]="'fort-update'"

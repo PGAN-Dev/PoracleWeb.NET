@@ -68,7 +68,9 @@
             (error)="onImageError($event)" />
           <div class="item-info">
             <h3>{{ getPokemonName(nest.pokemonId) }}</h3>
-            <span class="pokemon-id">#{{ nest.pokemonId }}</span>
+            @if (nest.pokemonId > 0) {
+              <span class="pokemon-id">#{{ nest.pokemonId }}</span>
+            }
           </div>
           <div class="card-top-actions">
             @if (isAutoDelete(nest.clean)) {

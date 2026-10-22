@@ -136,6 +136,25 @@ describe('InvasionAddDialogComponent — track all (#416)', () => {
     expect(types).not.toContain('metal');
   });
 
+  // Alarms D18: Steel sat between Ice and Normal because its key is still `metal`.
+  it('lists the typed grunts in type-name order, Steel between Rock and Water', () => {
+    const keys = setup()
+      .rocketGrunts()
+      .map(g => g.key);
+
+    const typed = keys.slice(0, keys.indexOf('mixed-male'));
+    expect(typed.slice(-3)).toEqual(['rock', 'metal', 'water']);
+    expect(typed.indexOf('metal')).toBeGreaterThan(typed.indexOf('normal'));
+  });
+
+  it('keeps the leaders and Giovanni at the end, Giovanni last', () => {
+    const keys = setup()
+      .rocketGrunts()
+      .map(g => g.key);
+
+    expect(keys.slice(-4)).toEqual(['cliff', 'arlo', 'sierra', 'giovanni']);
+  });
+
   it('does nothing when nothing is selected', () => {
     const component = setup();
 

@@ -4,7 +4,6 @@ import { MatDialog, MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angu
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { catchError, finalize, of } from 'rxjs';
 
@@ -27,15 +26,7 @@ const COOLDOWN_MS = 15_000;
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    LocationWarningComponent,
-    MatButtonModule,
-    MatDialogModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
-    MatTooltipModule,
-    TranslatePipe,
-  ],
+  imports: [LocationWarningComponent, MatButtonModule, MatDialogModule, MatIconModule, MatProgressSpinnerModule, TranslatePipe],
   selector: 'app-summary-schedule-dialog',
   standalone: true,
   styleUrl: './summary-schedule-dialog.component.scss',

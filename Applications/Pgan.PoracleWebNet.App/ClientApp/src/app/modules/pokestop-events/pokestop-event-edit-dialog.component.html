@@ -28,10 +28,6 @@
       <div class="tab-content">
         <app-scope-picker [(scope)]="scope" [(radiusValid)]="radiusValid" [storedRadiusKm]="storedRadiusKm" />
 
-        <mat-slide-toggle [formControl]="form.controls.autoDelete" class="include-empty-toggle">
-          {{ 'ALARM.CLEAN_MODE' | translate }}
-        </mat-slide-toggle>
-
         <h4>{{ 'ALARM.MESSAGE_SETTINGS' | translate }}</h4>
 
         <app-template-selector
@@ -39,6 +35,9 @@
           [value]="form.controls.template.value ?? ''"
           (valueChange)="form.controls.template.setValue($event)">
         </app-template-selector>
+
+        <mat-slide-toggle [formControl]="form.controls.autoDelete"> {{ 'ALARM.CLEAN_MODE' | translate }} </mat-slide-toggle>
+        <p class="clean-hint">{{ 'ALARM.CLEAN_HINT_POKESTOP_EVENT' | translate }}</p>
       </div>
     </mat-tab>
   </mat-tab-group>

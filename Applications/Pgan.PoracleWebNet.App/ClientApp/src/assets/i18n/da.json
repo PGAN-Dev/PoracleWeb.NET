@@ -368,6 +368,7 @@
     "CLEAN_HINT_NEST": "Sletter automatisk notifikationen, når reder migrerer",
     "CLEAN_HINT_GYM": "Sletter automatisk notifikationen, når gym-aktiviteten ændres",
     "CLEAN_HINT_MAX_BATTLE": "Sletter automatisk notifikationen, når max-kampen slutter",
+    "CLEAN_HINT_POKESTOP_EVENT": "Sletter automatisk notifikationen, når begivenheden slutter",
     "SAVING": "Gemmer...",
     "SAVE": "Gem",
     "SAVE_ALARM": "Gem alarm",
@@ -538,8 +539,8 @@
     "CLEAN_TOOLTIP": "Slettes automatisk efter udløb",
     "SELECTION_COUNT": "{{count}} valgt",
     "ANY_POKEMON_ENCOUNTER": "Alle Pokemon-møder",
-    "MEGA_ENERGY_SUFFIX": "Mega-energi",
-    "CANDY_SUFFIX": "Slik",
+    "MEGA_ENERGY_SUFFIX": "{{name}} Mega-energi",
+    "CANDY_SUFFIX": "{{name}}-slik",
     "STARDUST": "Stjernestøv",
     "STARDUST_AMOUNT": "{{amount}} stjernestøv",
     "REWARD_POKEMON": "Pokemon",
@@ -1130,6 +1131,8 @@
     "RECOMMENDATION": "Anbefalet:",
     "RECOMMENDATION_TEXT": "Aktiver oprydningstilstand for at holde dine notifikationer ryddelige. Uden den forbliver udløbne alarmer i dine DMs for altid og kan ikke masseslettes.",
     "NO_ALARMS_HINT": "Ingen alarmer konfigureret",
+    "PARTIAL_ONE": "Oprydning er slået til for {{clean}} af {{count}} alarm",
+    "PARTIAL_OTHER": "Oprydning er slået til for {{clean}} af {{count}} alarmer",
     "LABEL_EGGS": "Æg",
     "POKEMON_DESC": "Autoslet spawn-notifikationer, når Pokemon forsvinder",
     "RAIDS_DESC": "Autoslet raid-notifikationer, når raidet slutter",
@@ -1741,7 +1744,8 @@
     "RATE_LIMITED": "For mange testbeskeder. Vent et øjeblik.",
     "NOT_FOUND": "Beskeden blev ikke fundet — den er måske slettet.",
     "UNSUPPORTED": "Testbeskeder understøttes ikke for denne type.",
-    "FAILED": "Testbeskeden kunne ikke sendes. Prøv igen senere."
+    "FAILED": "Testbeskeden kunne ikke sendes. Prøv igen senere.",
+    "REFUSED": "Poracle kunne ikke sende testbeskeden: {{reason}}"
   },
   "COMMON": {
     "CANCEL": "Annuller",

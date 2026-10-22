@@ -24,6 +24,7 @@ import { ScopePickerComponent } from '../../shared/components/scope-picker/scope
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-flags';
+import { swapToFallbackIcon } from '../../shared/utils/icon-fallback';
 
 @Component({
   imports: [
@@ -120,6 +121,11 @@ export class InvasionEditDialogComponent {
 
   getGruntIcon(): string {
     return this.icons.getPackUrl(getGruntIconPath(this.data.gruntType, this.selectedGender()));
+  }
+
+  /** A pack without this grunt's artwork (Decoy is `invasion/46.png`) gets a generic figure, not a gap. */
+  onGruntIconError(event: Event): void {
+    swapToFallbackIcon(event);
   }
 
   save(): void {

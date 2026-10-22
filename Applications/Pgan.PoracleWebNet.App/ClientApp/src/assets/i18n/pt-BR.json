@@ -368,6 +368,7 @@
     "CLEAN_HINT_NEST": "Exclui automaticamente a notificação quando os ninhos migram",
     "CLEAN_HINT_GYM": "Exclui automaticamente a notificação após mudança de atividade do ginásio",
     "CLEAN_HINT_MAX_BATTLE": "Exclui automaticamente a notificação após a batalha max acabar",
+    "CLEAN_HINT_POKESTOP_EVENT": "Exclui automaticamente a notificação após o evento acabar",
     "SAVING": "Salvando...",
     "SAVE": "Salvar",
     "SAVE_ALARM": "Salvar Alarme",
@@ -538,8 +539,8 @@
     "CLEAN_TOOLTIP": "Excluído automaticamente após expirar",
     "SELECTION_COUNT": "{{count}} selecionados",
     "ANY_POKEMON_ENCOUNTER": "Qualquer Encontro com Pokemon",
-    "MEGA_ENERGY_SUFFIX": "Mega Energia",
-    "CANDY_SUFFIX": "Doce",
+    "MEGA_ENERGY_SUFFIX": "Mega Energia de {{name}}",
+    "CANDY_SUFFIX": "Doce de {{name}}",
     "STARDUST": "Poeira Estelar",
     "STARDUST_AMOUNT": "{{amount}} Poeira Estelar",
     "REWARD_POKEMON": "Pokemon",
@@ -1130,6 +1131,8 @@
     "RECOMMENDATION": "Recomendado:",
     "RECOMMENDATION_TEXT": "Ative o modo de limpeza para manter suas notificações organizadas. Sem ele, alertas expirados ficam nas suas DMs para sempre e não podem ser excluídos em massa.",
     "NO_ALARMS_HINT": "Nenhum alarme configurado",
+    "PARTIAL_ONE": "Limpeza ativada em {{clean}} de {{count}} alarme",
+    "PARTIAL_OTHER": "Limpeza ativada em {{clean}} de {{count}} alarmes",
     "LABEL_EGGS": "Ovos",
     "POKEMON_DESC": "Excluir automaticamente notificações de spawn quando o Pokemon desaparecer",
     "RAIDS_DESC": "Excluir automaticamente notificações de raid quando a raid acabar",
@@ -1741,7 +1744,8 @@
     "RATE_LIMITED": "Muitos alertas de teste. Aguarde um momento.",
     "NOT_FOUND": "Alerta não encontrado — pode ter sido excluído.",
     "UNSUPPORTED": "Alertas de teste não estão disponíveis para este tipo.",
-    "FAILED": "Não foi possível enviar o alerta de teste. Tente mais tarde."
+    "FAILED": "Não foi possível enviar o alerta de teste. Tente mais tarde.",
+    "REFUSED": "O Poracle não conseguiu enviar o alerta de teste: {{reason}}"
   },
   "COMMON": {
     "CANCEL": "Cancelar",

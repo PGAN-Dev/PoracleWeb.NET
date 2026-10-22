@@ -36,9 +36,19 @@ mat-dialog-content {
   margin-bottom: 10px;
 }
 
+// "Send summary now" sits with the schedule it sends, so the action row keeps to three buttons.
+.send-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-top: 14px;
+}
+
 // Sets expectations for "Send summary now": it flushes only what PoracleNG has buffered.
 .send-hint {
-  margin: 14px 0 0;
+  flex: 1 1 200px;
+  margin: 0;
   font-size: 12px;
   line-height: 1.5;
   color: var(--text-hint, rgba(0, 0, 0, 0.38));

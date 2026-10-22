@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -17,6 +17,7 @@ import { AlertDefaultsService } from '../../core/services/alert-defaults.service
 import { AuthService } from '../../core/services/auth.service';
 import { FortChangeService } from '../../core/services/fort-change.service';
 import { I18nService } from '../../core/services/i18n.service';
+import { SettingsService } from '../../core/services/settings.service';
 import { AddRefusalComponent } from '../../shared/components/add-refusal/add-refusal.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
@@ -55,6 +56,7 @@ export class FortChangeAddDialogComponent {
   private readonly fb = inject(FormBuilder);
   private readonly fortChangeService = inject(FortChangeService);
   private readonly i18n = inject(I18nService);
+  private readonly settings = inject(SettingsService);
   private readonly snackBar = inject(MatSnackBar);
   readonly dialogRef = inject(MatDialogRef<FortChangeAddDialogComponent>);
   form = this.fb.group({
@@ -70,9 +72,9 @@ export class FortChangeAddDialogComponent {
   });
 
   readonly isWebhook = inject(AuthService).isImpersonating();
+
   /** False while the scope picker holds a radius it won't accept, which keeps Save off. */
   readonly radiusValid = signal(true);
-
   /** Why the last Add was refused; shown above the actions, cleared on the next save. */
   readonly refusal = signal<AddRefusal | null>(null);
 
@@ -91,6 +93,12 @@ export class FortChangeAddDialogComponent {
           placeLabel: this.alertDefaults.defaultPlaceLabel(),
         },
   );
+
+  /**
+   * Whether the template selector shows. Fort changes have no clean bit, so with templates off the
+   * "Message settings" heading would label nothing (the Mention field aside, on a webhook edit).
+   */
+  readonly templatesEnabled = computed(() => this.settings.siteSettings()['enable_templates']?.toLowerCase() === 'true');
 
   /** The refusal named a stored rule: close and let the list open that one for editing. */
   editExisting(rule: ExistingRule): void {

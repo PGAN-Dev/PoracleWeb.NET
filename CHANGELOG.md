@@ -64,6 +64,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Editing an alarm no longer rounds its radius to the nearest 100 m.** Saving any change to an alarm with a radius used to rewrite it (250 m became 300 m, 1234 m became 1200 m), and a pin radius under 50 m turned into "anywhere in my areas". The radius is now kept to the metre and shown with the decimals it needs.
 - **The bulk radius dialog says how many alarms it changes.** It was titled "Update All Distance" and said "all alarms of this type" while acting on the ones you ticked. It now reads "Change the radius of 3 alarms" with an "Update 3 alarms" button, uses the scope picker's words ("Anywhere in my areas", "Within a radius", your pin), and title-cases area names. It takes any radius above zero up to the API's own cap, since it edits existing alarms.
 - **Adding one alarm you already track exactly now says nothing changed.** It read "0 created, 1 already tracked", which hid that a setting you changed, such as Clean mode, wasn't saved; it now says "You already track this. Nothing was changed; edit that alarm to change its settings." Fort change and Pokéstop event Adds said "created" in this case and now say the same.
+- **Pokéstop event Add only blocks an event you already track in the scope you've chosen.** A Kecleon rule near Home used to make Kecleon un-tickable for "Anywhere in my areas", though PoracleNG stores the two as separate rules. "Already tracked" no longer runs into the event name.
+- **The Pokéstop event dialogs put Clean mode under Message settings and say what it does**, as every other alarm type does. Fort Changes no longer shows an empty "Message settings" heading when templates are off.
+- **The tabs in every alarm dialog reach the dialog's right edge** instead of stopping 48px short.
+- **A nest rule for all Pokémon no longer shows "#0".**
+- **Mega energy and candy quests name the Pokémon** ("Charizard Mega Energy") in the list title and edit dialog, in every language.
+- **A failed test alert says why when PoracleNG explains it** ("Poracle couldn't send the test alert: message delivery not configured ...") instead of telling you to try again later.
+- **The quest summary dialog offers Send now and Remove only when a schedule exists**, and its buttons no longer wrap onto a second line.
+- **The invasion Add dialog lists Steel between Rock and Water**, and a grunt whose picture the icon pack lacks (Decoy) shows a placeholder figure in the dialog, list and edit header instead of a gap or a broken image.
+- **Clean Mode says when only some of a type's alarms are cleaned** ("Clean mode is on for 1 of 3 alarms"), where it showed the type as plainly off. `GET /api/cleaning/status` keeps its per-type flags and adds `counts`.
 - **Delete webhook has its own icon** instead of the person icon Delete user uses.
 - **Opening an admin page without admin rights says "That page is for admins."** It used to send you to the dashboard with no word. Ending an impersonation still returns quietly.
 - **The French message for a radius change that would clash with another rule reads naturally.**
