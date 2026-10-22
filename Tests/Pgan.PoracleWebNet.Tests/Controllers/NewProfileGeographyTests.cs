@@ -208,7 +208,9 @@ public class NewProfileGeographyTests : ControllerTestBase
             var controller = new ProfileController(
                 this._profileService.Object, Mock.Of<IHumanService>(), proxy,
                 this._jwtService.Object, this._roleResolver.Object,
-                new UserAreaWriter(proxy, this._userGeofences.Object, Mock.Of<IPoracleTrackingProxy>(), NullLogger<UserAreaWriter>.Instance),
+                new UserAreaWriter(
+                    proxy, this._userGeofences.Object, Mock.Of<IPoracleTrackingProxy>(), NullLogger<UserAreaWriter>.Instance,
+                    new UserAreaPolicy(proxy, this._userGeofences.Object)),
                 NullLogger<ProfileController>.Instance);
             SetupUser(controller, UserId);
 

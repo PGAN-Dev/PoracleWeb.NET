@@ -80,7 +80,7 @@ public static class DisableFeatureKeys
     public const string Geocoding = "disable_nominatim";
 
     /// <summary>
-    /// Tracking-type string (as used in PoracleNG's <c>/api/tracking/{type}</c> URLs and
+    /// Tracking-type string (as used in PoracleNG's <c>/api/v2/humans/{id}/tracking/{type}</c> URLs and
     /// <c>ProfileOverviewService</c>'s alarm-type loop) → matching <c>disable_*</c> key.
     /// Lets <c>ProfileOverviewService</c>, <c>TestAlertController</c>, and any future
     /// proxy-level caller resolve the right gate without each maintaining its own copy.

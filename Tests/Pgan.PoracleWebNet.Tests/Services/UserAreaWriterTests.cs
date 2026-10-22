@@ -32,7 +32,8 @@ public class UserAreaWriterTests
     public UserAreaWriterTests()
     {
         this._sut = new UserAreaWriter(
-            this._proxy.Object, this._fences.Object, this._tracking.Object, this._log);
+            this._proxy.Object, this._fences.Object, this._tracking.Object, this._log,
+            new UserAreaPolicy(this._proxy.Object, this._fences.Object));
         this._proxy.Setup(p => p.GetAreaListAsync(Human)).ReturnsAsync([]);
         this._proxy.Setup(p => p.GetAvailableAreasAsync(Human)).ReturnsAsync([]);
         this._proxy.Setup(p => p.SetAreasTrustedAsync(Human, It.IsAny<IReadOnlyCollection<string>>())).ReturnsAsync([]);

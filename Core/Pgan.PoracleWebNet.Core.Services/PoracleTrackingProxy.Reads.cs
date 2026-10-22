@@ -12,7 +12,7 @@ namespace Pgan.PoracleWebNet.Core.Services;
 /// </summary>
 public partial class PoracleTrackingProxy
 {
-    /// <summary>The keys v1's <c>/api/tracking/all</c> answered, which is what every consumer indexes by.</summary>
+    /// <summary>The keys v1's all-tracking read answered, which is what every consumer indexes by.</summary>
     private static readonly string[] SnapshotTypes =
         ["egg", "fort", "gym", "invasion", "lure", "maxbattle", "nest", "pokemon", "quest", "raid"];
 

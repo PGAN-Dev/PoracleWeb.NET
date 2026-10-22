@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
@@ -9,22 +8,16 @@ namespace Pgan.PoracleWebNet.Core.Services;
 /// <summary>
 /// Manages the "clean" flag on tracking alarms via the PoracleNG REST API proxy.
 /// </summary>
-public class CleaningService(
+public partial class CleaningService(
     IPoracleTrackingProxy trackingProxy,
     IFeatureGate featureGate,
-    ITrackedUidRemapper uidRemapper,
+    IPoracleIncidentProxy incidentProxy,
     ILogger<CleaningService> logger) : ICleaningService
 {
     private readonly IPoracleTrackingProxy _trackingProxy = trackingProxy;
     private readonly IFeatureGate _featureGate = featureGate;
-    private readonly ITrackedUidRemapper _uidRemapper = uidRemapper;
+    private readonly IPoracleIncidentProxy _incidentProxy = incidentProxy;
     private readonly ILogger<CleaningService> _logger = logger;
-
-    /// <summary>
-    /// Tracking types whose PoracleNG create only ever inserts, so a re-POST duplicates rather than
-    /// updates. Everything else upserts on <c>uid</c>.
-    /// </summary>
-    private static readonly HashSet<string> InsertOnlyTypes = new(StringComparer.Ordinal) { "maxbattle" };
 
     public async Task<Dictionary<string, bool>> GetCleanStatusAsync(string userId, int profileNo)
     {
@@ -82,7 +75,8 @@ public class CleaningService(
     /// Gold Stop rules, set the auto-delete bit on them and POSTed them back through the invasion
     /// endpoint -- a write to rows that belong to the Pokestop Events page, from a switch that never
     /// mentions it. <see cref="InvasionService"/> and <c>DashboardService</c> both draw this line at the
-    /// same boundary; cleaning did not.
+    /// same boundary; cleaning did not. Where the event rules are this page's, they are patched through
+    /// <c>incident</c>, since v2's invasion route does not hold them.
     /// </remarks>
     /// <remarks>
     /// Conditional for the same reason as <see cref="InvasionService"/>: when the Pokestop Events
@@ -103,20 +97,15 @@ public class CleaningService(
     }
 
     /// <summary>
-    /// Workaround: PoracleNG has no bulk clean toggle endpoint. We fetch all alarms of the type,
-    /// set the clean field on each, and POST them back via CreateAsync (which upserts by UID).
-    /// This is expensive for users with many alarms but functional until a dedicated bulk clean
-    /// endpoint is added to PoracleNG. See: docs/poracleng-enhancement-requests.md#bulk-clean-toggle
-    ///
-    /// Known limitation: fetch-modify-POST is not atomic. Concurrent requests from the same user
-    /// could race, with the last POST winning. Acceptable because clean toggle is infrequent and
-    /// idempotent (setting clean=1 twice produces the same result).
+    /// Sets or clears the auto-delete bit on every rule of a type through one v2 <c>PATCH</c>, which names
+    /// <c>clean</c> and nothing else, so the edit-in-place and summary bits stay as stored (#292) and each rule
+    /// keeps its uid. Returns how many rules PoracleNG updated or found already set.
     /// </summary>
     private async Task<int> ToggleCleanAsync(string type, string userId, int clean)
     {
-        // Cleaning is implemented as a fetch-modify-POST that ultimately calls
-        // _trackingProxy.CreateAsync, bypassing the per-type alarm services and their feature gates.
-        // Without this guard a user could toggle the clean flag on an alarm type the admin disabled. (#236)
+        // Cleaning writes through the proxy directly, bypassing the per-type alarm services and their
+        // feature gates. Without this guard a user could toggle the clean flag on an alarm type the admin
+        // disabled. (#236)
         if (DisableFeatureKeys.ByTrackingType.TryGetValue(type, out var disableKey))
         {
             await this._featureGate.EnsureEnabledAsync(disableKey);
@@ -131,76 +120,40 @@ public class CleaningService(
 
         var isOurs = await this.OwnRowPredicateAsync(type);
         var ownRows = trackingJson.EnumerateArray().Where(isOurs).ToList();
+        var eventUids = type == "invasion" ? UidsOf(ownRows.Where(IsEventRow)) : [];
+        var ruleUids = UidsOf(ownRows).Where(uid => !eventUids.Contains(uid)).ToList();
 
-        if (ownRows.Count == 0)
+        var set = new TrackingPatchSet(Clean: CleanFlags.IsAutoDelete(clean));
+        var count = 0;
+
+        if (ruleUids.Count > 0)
         {
-            return 0;
+            count += this.Count(type, await this._trackingProxy.PatchAsync(type, userId, ruleUids, set));
         }
 
-        var count = ownRows.Count;
-        var updatedAlarms = new JsonArray();
-
-        foreach (var alarm in ownRows)
+        if (eventUids.Count > 0)
         {
-            var dict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(alarm.GetRawText())!;
-
-            // The clean toggle only owns the auto-delete bit (bit 1). Read-modify-write so any
-            // bot-set edit-in-place (bit 2) / summary (bit 4) bits survive the bulk toggle. (#292)
-            var existing = dict.TryGetValue("clean", out var c) && c.ValueKind == JsonValueKind.Number ? c.GetInt32() : 0;
-            dict["clean"] = JsonSerializer.SerializeToElement(CleanFlags.Preserve(existing, CleanFlags.AutoDelete, clean));
-            updatedAlarms.Add(JsonSerializer.SerializeToNode(dict));
+            count += this.Count("incident", await this._incidentProxy.PatchAsync(userId, eventUids, set));
         }
-
-        var body = JsonSerializer.SerializeToElement(updatedAlarms);
-
-        // PoracleNG's maxbattle create is insert-only -- it has no upsert path -- so re-POSTing the
-        // modified set inserted a full duplicate of every alarm and left the originals untouched.
-        // One click per duplicate set, unbounded. Free the rows first for that type only; the others
-        // upsert on uid and must not be deleted.
-        if (InsertOnlyTypes.Contains(type))
-        {
-            var uids = ownRows
-                .Where(a => a.TryGetProperty("uid", out var u) && u.ValueKind == JsonValueKind.Number)
-                .Select(a => a.GetProperty("uid").GetInt32())
-                .ToList();
-
-            await this._trackingProxy.BulkDeleteByUidsAsync(type, userId, uids);
-
-            try
-            {
-                await this._trackingProxy.CreateAsync(type, userId, body);
-            }
-            catch
-            {
-                // Put the originals back rather than leaving the user with no alarms at all.
-                await this._trackingProxy.CreateAsync(
-                    type, userId, JsonSerializer.SerializeToElement(ownRows));
-                throw;
-            }
-
-        // Every non-monster type comes back under a new uid, so any quick pick tracking these rows
-        // would be left pointing at dead uids -- Remove then deletes nothing and the next page load
-        // wipes the applied state. This was the one bulk-repost path that never got the remapper the
-        // distance endpoints already use. "clean" is the field being mutated, so it cannot take part
-        // in row identity. See #471.
-        await BulkUidRemap.ApplyAsync(
-            this._trackingProxy, type, userId, body, this._uidRemapper, this._logger, ["clean"]);
-
-            return count;
-        }
-
-        await this._trackingProxy.CreateAsync(type, userId, body);
-
-        // Every non-monster type comes back under a new uid, so any quick pick tracking these rows
-        // would be left pointing at dead uids -- Remove then deletes nothing and the next page load
-        // wipes the applied state. This was the one bulk-repost path that never got the remapper the
-        // distance endpoints already use. "clean" is the field being mutated, so it cannot take part
-        // in row identity. See #471.
-        await BulkUidRemap.ApplyAsync(
-            this._trackingProxy, type, userId, body, this._uidRemapper, this._logger, ["clean"]);
 
         return count;
     }
+
+    private int Count(string type, TrackingPatchResult result)
+    {
+        foreach (var refusal in result.Refused)
+        {
+            LogCleanRefused(this._logger, type, refusal.Uid, refusal.Reason, refusal.Detail);
+        }
+
+        return result.Updated.Count + result.Unchanged.Count;
+    }
+
+    private static List<int> UidsOf(IEnumerable<JsonElement> rows) =>
+        [.. rows.Select(PoracleJsonHelper.UidOf).OfType<int>().Where(uid => uid > 0)];
+
+    private static bool IsEventRow(JsonElement row) => PokestopEventTypes.IsEventName(
+        row.TryGetProperty("grunt_type", out var gt) && gt.ValueKind == JsonValueKind.String ? gt.GetString() : null);
 
     /// <summary>
     /// Checks whether all items in a tracking array have clean == true or clean == 1.
@@ -251,4 +204,11 @@ public class CleaningService(
         // An array holding nothing but somebody else's rows is the empty case, not the all-clean one.
         return any;
     }
+
+    // Warning: the count the user sees already leaves this rule out, so nothing on screen says it kept its old
+    // setting. This line is the only place that does.
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Clean toggle {Type}: PoracleNG refused uid={Uid} ({Reason}: {Detail}); it keeps its old setting.")]
+    private static partial void LogCleanRefused(ILogger logger, string type, int uid, string reason, string detail);
 }

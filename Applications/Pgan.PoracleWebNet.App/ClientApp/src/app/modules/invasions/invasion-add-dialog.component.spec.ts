@@ -116,6 +116,26 @@ describe('InvasionAddDialogComponent — track all (#416)', () => {
     expect(created.map(c => c.gruntType).sort()).toEqual(['fire', 'water']);
   });
 
+  it('saves the steel grunt as steel, the name PoracleNG knows, not metal', () => {
+    const component = setup();
+    component.toggleGrunt('metal');
+
+    component.save();
+
+    expect(created.map(c => c.gruntType)).toEqual(['steel']);
+  });
+
+  it('fans track all out over steel and never metal', () => {
+    const component = setup();
+    component.trackAll.set(true);
+
+    component.save();
+
+    const types = created.map(c => c.gruntType);
+    expect(types).toContain('steel');
+    expect(types).not.toContain('metal');
+  });
+
   it('does nothing when nothing is selected', () => {
     const component = setup();
 

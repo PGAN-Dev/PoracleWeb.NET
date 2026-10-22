@@ -125,15 +125,16 @@ public class RaidServiceTests
     }
 
     [Fact]
-    public async Task UpdateAsyncCallsProxy()
+    public async Task UpdateAsyncPutsByUid()
     {
         var raid = new Raid { Uid = 1 };
-        this._proxy.Setup(p => p.CreateAsync("raid", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([], 0, 1, 0));
+        this._proxy.Setup(p => p.UpdateByUidAsync("raid", "user1", 1, It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingUpdateResult(1, true));
 
         await this._sut.UpdateAsync("user1", raid);
 
-        this._proxy.Verify(p => p.CreateAsync("raid", "user1", It.IsAny<JsonElement>()), Times.Once);
+        this._proxy.Verify(p => p.UpdateByUidAsync("raid", "user1", 1, It.IsAny<JsonElement>()), Times.Once);
+        this._proxy.Verify(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
     }
 
     [Fact]
@@ -169,25 +170,6 @@ public class RaidServiceTests
         Assert.Equal(3, await this._sut.DeleteAllByUserAsync("u", 1));
     }
 
-    /// <summary>
-    /// Two rows that differ only by radius become the same alarm once both are set to the same radius,
-    /// and PoracleNG resolves that inside the batch -- so the user ends up with fewer alarms than they
-    /// selected, one still at its old radius, and a response claiming every one was updated. See #580.
-    /// </summary>
-    [Fact]
-    public async Task UpdateDistanceRefusesWhenTwoSelectedAlarmsWouldBecomeIdentical()
-    {
-        this._proxy.Setup(p => p.GetByUserAsync("raid", "u1")).ReturnsAsync(CreateJsonArray(
-            new { uid = 1, id = "u1", level = 5, distance = 500, template = "1" },
-            new { uid = 2, id = "u1", level = 5, distance = 900, template = "1" }));
-
-        await Assert.ThrowsAsync<TrackingConflictException>(
-            () => this._sut.UpdateDistanceByUidsAsync([1, 2], "u1", 700));
-
-        this._proxy.Verify(
-            p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
-    }
-
     [Fact]
     public async Task UpdateDistanceByUserAsyncReturnsCount()
     {
@@ -207,8 +189,8 @@ public class RaidServiceTests
                 template = "ZZsecond"
             });
         this._proxy.Setup(p => p.GetByUserAsync("raid", "u")).ReturnsAsync(json);
-        this._proxy.Setup(p => p.CreateAsync("raid", "u", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([], 0, 2, 0));
+        this._proxy.Setup(p => p.PatchAsync("raid", "u", It.IsAny<IReadOnlyList<int>>(), It.IsAny<TrackingPatchSet>()))
+            .ReturnsAsync((string _, string _, IReadOnlyList<int> uids, TrackingPatchSet _) => new TrackingPatchResult([.. uids], [], []));
 
         Assert.Equal(2, (await this._sut.UpdateDistanceByUserAsync("u", 1, 100)).Updated);
     }
@@ -291,126 +273,17 @@ public class RaidServiceTests
         return doc.RootElement.Clone();
     }
 
-    // --- Duplicate-on-edit ---
-    // PoracleNG dedups raid tracking by a natural key. When an edit changes a field in that key it INSERTS
-    // instead of upserting, leaving the pre-edit row behind as a second live alarm firing the old filter.
-
-    [Fact]
-    public async Task UpdateAsyncDeletesTheSupersededRowWhenPoracleNgInsertsInsteadOfUpdating()
-    {
-        var model = new Raid { Uid = 41 };
-        this._proxy.Setup(p => p.CreateAsync("raid", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([42], 0, 0, 1));
-        this._proxy.Setup(p => p.DeleteByUidAsync("raid", "user1", 41)).Returns(Task.CompletedTask);
-
-        var result = await this._sut.UpdateAsync("user1", model);
-
-        this._proxy.Verify(p => p.DeleteByUidAsync("raid", "user1", 41), Times.Once);
-        Assert.Equal(42, result.Uid);
-    }
-
     // A rotated uid orphans any quick pick that created the alarm: removal deletes by the stored uid,
     // finds nothing, reports success, and the alarm keeps firing. See #403.
 
     [Fact]
     public async Task UpdateAsyncRepointsQuickPickTrackedUidAtTheNewRow()
     {
-        this._proxy.Setup(p => p.CreateAsync("raid", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([42], 0, 0, 1));
+        this._proxy.Setup(p => p.UpdateByUidAsync("raid", "user1", 41, It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingUpdateResult(42, true));
 
         await this._sut.UpdateAsync("user1", new Raid { Uid = 41 });
 
         this._uidRemapper.Verify(r => r.RemapAsync("user1", "raid", 41, 42), Times.Once);
-    }
-
-    [Fact]
-    public async Task UpdateAsyncDoesNotRemapWhenTheUidSurvivesTheUpsert()
-    {
-        this._proxy.Setup(p => p.CreateAsync("raid", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([], 0, 1, 0));
-
-        await this._sut.UpdateAsync("user1", new Raid { Uid = 41 });
-
-        this._uidRemapper.Verify(
-            r => r.RemapAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task UpdateAsyncKeepsTheUidAndDeletesNothingWhenPoracleNgUpserts()
-    {
-        var model = new Raid { Uid = 41 };
-        this._proxy.Setup(p => p.CreateAsync("raid", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([], 0, 1, 0));
-
-        var result = await this._sut.UpdateAsync("user1", model);
-
-        this._proxy.Verify(p => p.DeleteByUidAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
-        Assert.Equal(41, result.Uid);
-    }
-
-    [Fact]
-    public async Task UpdateAsyncStillSucceedsWhenDeletingTheSupersededRowFails()
-    {
-        var model = new Raid { Uid = 41 };
-        this._proxy.Setup(p => p.CreateAsync("raid", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([42], 0, 0, 1));
-        this._proxy.Setup(p => p.DeleteByUidAsync("raid", "user1", 41))
-            .ThrowsAsync(new HttpRequestException("boom"));
-
-        // The inserted row already carries the user's settings, so the edit must not fail.
-        var result = await this._sut.UpdateAsync("user1", model);
-
-        Assert.Equal(42, result.Uid);
-    }
-
-    [Fact]
-    public async Task UpdateAsyncOnANewRecordDoesNotAttemptAStaleDelete()
-    {
-        var model = new Raid { Uid = 0 };
-        this._proxy.Setup(p => p.CreateAsync("raid", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([42], 0, 0, 1));
-
-        await this._sut.UpdateAsync("user1", model);
-
-        this._proxy.Verify(p => p.DeleteByUidAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
-    }
-
-    // PoracleNG re-keys a row on edit while reporting insert:0 / updates:1 and putting the new uid in
-    // newUids -- verified against it directly. The reconciler used to gate on Inserts > 0, so it
-    // returned the DEAD uid and skipped the remap. See #460, #464.
-
-    [Fact]
-    public async Task UpdateAsyncReportsTheNewUidWhenPoracleNgReKeysWithoutReportingAnInsert()
-    {
-        this._proxy.Setup(p => p.CreateAsync("raid", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([418], 0, 1, 0));
-
-        var result = await this._sut.UpdateAsync("user1", new Raid { Uid = 417 });
-
-        Assert.Equal(418, result.Uid);
-    }
-
-    [Fact]
-    public async Task UpdateAsyncRemapsQuickPickUidsWhenPoracleNgReKeysWithoutReportingAnInsert()
-    {
-        this._proxy.Setup(p => p.CreateAsync("raid", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([418], 0, 1, 0));
-
-        await this._sut.UpdateAsync("user1", new Raid { Uid = 417 });
-
-        this._uidRemapper.Verify(r => r.RemapAsync("user1", "raid", 417, 418), Times.Once);
-    }
-
-    [Fact]
-    public async Task UpdateAsyncStillLeavesTheUidAloneWhenPoracleNgReturnsNoNewUid()
-    {
-        this._proxy.Setup(p => p.CreateAsync("raid", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([], 0, 1, 0));
-
-        var result = await this._sut.UpdateAsync("user1", new Raid { Uid = 417 });
-
-        Assert.Equal(417, result.Uid);
-        this._uidRemapper.Verify(
-            r => r.RemapAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()), Times.Never);
     }
 }

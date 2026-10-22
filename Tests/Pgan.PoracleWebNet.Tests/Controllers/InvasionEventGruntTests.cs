@@ -84,7 +84,7 @@ public class InvasionEventGruntTests : ControllerTestBase
         gate.Setup(g => g.IsEnabledAsync(DisableFeatureKeys.PokestopEvents)).ReturnsAsync(eventsPage);
         var service = new InvasionService(
             new Mock<IPoracleTrackingProxy>().Object, gate.Object, NullLogger<InvasionService>.Instance,
-            new Mock<ITrackedUidRemapper>().Object);
+            new Mock<ITrackedUidRemapper>().Object, Mock.Of<IPoracleIncidentProxy>());
 
         Assert.Equal(expected, await service.BelongsToPokestopEventsAsync(grunt));
     }

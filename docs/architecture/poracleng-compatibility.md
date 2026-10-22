@@ -29,12 +29,12 @@ went in the first step, which covers humans, profiles, places, mutes and geocodi
 | The legacy geocoder call | Called the geocoder PoracleNG was configured with, as Nominatim, when PoracleNG had no `/api/geocode` routes |
 | `ProbePokestopEventsAsync` | Probed for the Pokéstop Events page on a server without it |
 | `Poracle:TrackingApiVersion` (`PORACLE_TRACKING_API_VERSION`) | Pinned the tracking surface for a fork whose version string lied. A leftover setting is ignored |
-| Eleven `PoracleV2Capabilities` flags | Each asked the server's `/openapi.json` whether one field or route existed. `TrustedSetAreas` went with the area writes; `InvasionGruntType` remains until tracking moves to v2 |
+| Eleven `PoracleV2Capabilities` flags | Each asked the server's `/openapi.json` whether one field or route existed. `TrustedSetAreas` went with the area writes |
 
-The v1 tracking API is **not** gone from this application. Tracking reads, creates and the bulk
-distance and clean writes still use it, and so does a plaintext-404 fallback on the single-rule edit
-routes. User-drawn geofence names reach PoracleNG through its `/api/v2` area routes with the `trusted` flag, which 5.4.0 carries; an alert's own area override is the one thing still written straight to the database.
-Both are later steps, and this page changes again when they land.
+No call to the v1 tracking API is left in this application. Alert reads, creates, edits, deletes, bulk
+distance changes and the cleaning toggle are all v2 (the last two as a PATCH), with no fallback. User-drawn geofence names, including
+the ones an alert is limited to, reach PoracleNG through its `/api/v2` routes with the `trusted` flag,
+which 5.4.0 carries; nothing is written straight to PoracleNG's database.
 
 ## How support is decided
 
@@ -60,20 +60,15 @@ about alarms. A missing key there means unsupported, PoracleNG's own contract fo
 | Feature | Signal | Needs |
 |---|---|---|
 | Alarm reads and deletes through `/api/v2` | A plaintext 404 only (no version gate) | A PoracleNG that serves the v2 routes. There is no v1 fallback: a route that answers gin's plaintext `404 page not found` raises `PoracleUnsupportedException`. Deletes of a rule outside the active profile are re-issued with `?profile=N`, since v2 only deletes on the active one |
-| Alarm edits through `/api/v2` | Version, then a plaintext 404 | A supported PoracleNG. A route that answers the plaintext 404 is remembered as absent for five minutes and the edit goes to v1, as does a row the translator declines |
+| Alarm creates and edits through `/api/v2` | A plaintext 404 only (no version gate) | A PoracleNG that serves the v2 routes, including `dry_run` on a create and 409 on a colliding edit. There is no v1 fallback: a plaintext 404 raises `PoracleUnsupportedException("saving alarms", ...)`, and a row the translator can't express is refused rather than sent elsewhere |
 | Pokéstop-event tracking (`incident`) | Poracle's own `general.disable_showcase` | Only `true` hides the page. Absent or unreadable leaves it on |
-| Invasion edits through `/api/v2` | Published schema, then game data | A `V2InvasionRule` declaring `grunt_type`, **and** that server's grunt masterdata listing the rule's own name |
 | Pokemon edit-in-place | Poracle's `tracking.pokemon_edit` config | The key `true`. Absent or unreadable hides the toggle |
 | Translated grunt display names | Response field | A `/api/masterdata/grunts` entry carrying `grunt_type` and `short_name` |
 | Rule descriptions on alarm cards | Response field | Any v2 read |
 
-The two rows answered from the published schema come from `IPoracleV2SchemaService`, which reads the
+The published-schema questions (profile create returning its number, rename through `PATCH`, the admin human routes) come from `IPoracleV2SchemaService`, which reads the
 target instance's own `/openapi.json`. It is the schema-document sibling of `PoracleServerProfile`: one
 cached probe, typed questions, everything false when the document cannot be read.
-
-Invasion needs a second question after the first, because a server carrying the field still refuses a
-`grunt_type` its grunt masterdata does not list. `InvasionGruntNameService` asks it, and fails closed to
-an empty set, which routes every invasion edit to v1.
 
 `SummaryCapabilityService` and `PokemonEditCapabilityService` answer from Poracle's configuration, not
 from the version, because quest summary delivery and pokemon edit-in-place are deployment settings an
@@ -89,8 +84,9 @@ but publishes them nowhere (`/api/masterdata/` offers only `monsters` and `grunt
 picker reads the same WatWowMap masterfile PoracleNG itself reads. The names are therefore English in
 every language, and a costume too new for that file shows as its number.
 
-`TrackingFieldPreserver` and `PoracleJsonHelper.RewriteRows` carry forward every stored field
-PoracleWeb.NET has no model for, so a field set with the bot survives a web edit whatever the server is.
+`TrackingFieldPreserver` carries forward every stored field PoracleWeb.NET has no model for on an edit,
+and bulk distance and cleaning send only the field they change, so a field set with the bot survives a web
+edit whatever the server is.
 
 Rule descriptions belong on this list too. A v2 tracking read takes `?include_descriptions=true` and
 returns a `description` on each rule, the same sentence PoracleNG's bot answers a `!pokemon` command

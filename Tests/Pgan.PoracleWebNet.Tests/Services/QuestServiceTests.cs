@@ -88,14 +88,16 @@ public class QuestServiceTests
     }
 
     [Fact]
-    public async Task UpdateAsyncDelegates()
+    public async Task UpdateAsyncPutsByUid()
     {
         var q = new Quest { Uid = 1 };
-        this._proxy.Setup(p => p.CreateAsync("quest", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([], 0, 1, 0));
+        this._proxy.Setup(p => p.UpdateByUidAsync("quest", "user1", 1, It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingUpdateResult(1, true));
 
         await this._sut.UpdateAsync("user1", q);
-        this._proxy.Verify(p => p.CreateAsync("quest", "user1", It.IsAny<JsonElement>()), Times.Once);
+
+        this._proxy.Verify(p => p.UpdateByUidAsync("quest", "user1", 1, It.IsAny<JsonElement>()), Times.Once);
+        this._proxy.Verify(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
     }
 
     [Fact]
@@ -135,8 +137,8 @@ public class QuestServiceTests
             template = "ZZrow1"
         });
         this._proxy.Setup(p => p.GetByUserAsync("quest", "u")).ReturnsAsync(json);
-        this._proxy.Setup(p => p.CreateAsync("quest", "u", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([], 0, 1, 0));
+        this._proxy.Setup(p => p.PatchAsync("quest", "u", It.IsAny<IReadOnlyList<int>>(), It.IsAny<TrackingPatchSet>()))
+            .ReturnsAsync((string _, string _, IReadOnlyList<int> uids, TrackingPatchSet _) => new TrackingPatchResult([.. uids], [], []));
 
         Assert.Equal(1, (await this._sut.UpdateDistanceByUserAsync("u", 1, 100)).Updated);
     }
@@ -223,63 +225,4 @@ public class QuestServiceTests
         using var doc = JsonDocument.Parse(jsonStr);
         return doc.RootElement.Clone();
     }
-
-    // --- Duplicate-on-edit ---
-    // PoracleNG dedups quest tracking by a natural key. When an edit changes a field in that key it INSERTS
-    // instead of upserting, leaving the pre-edit row behind as a second live alarm firing the old filter.
-
-    [Fact]
-    public async Task UpdateAsyncDeletesTheSupersededRowWhenPoracleNgInsertsInsteadOfUpdating()
-    {
-        var model = new Quest { Uid = 41 };
-        this._proxy.Setup(p => p.CreateAsync("quest", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([42], 0, 0, 1));
-        this._proxy.Setup(p => p.DeleteByUidAsync("quest", "user1", 41)).Returns(Task.CompletedTask);
-
-        var result = await this._sut.UpdateAsync("user1", model);
-
-        this._proxy.Verify(p => p.DeleteByUidAsync("quest", "user1", 41), Times.Once);
-        Assert.Equal(42, result.Uid);
-    }
-
-    [Fact]
-    public async Task UpdateAsyncKeepsTheUidAndDeletesNothingWhenPoracleNgUpserts()
-    {
-        var model = new Quest { Uid = 41 };
-        this._proxy.Setup(p => p.CreateAsync("quest", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([], 0, 1, 0));
-
-        var result = await this._sut.UpdateAsync("user1", model);
-
-        this._proxy.Verify(p => p.DeleteByUidAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
-        Assert.Equal(41, result.Uid);
-    }
-
-    [Fact]
-    public async Task UpdateAsyncStillSucceedsWhenDeletingTheSupersededRowFails()
-    {
-        var model = new Quest { Uid = 41 };
-        this._proxy.Setup(p => p.CreateAsync("quest", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([42], 0, 0, 1));
-        this._proxy.Setup(p => p.DeleteByUidAsync("quest", "user1", 41))
-            .ThrowsAsync(new HttpRequestException("boom"));
-
-        // The inserted row already carries the user's settings, so the edit must not fail.
-        var result = await this._sut.UpdateAsync("user1", model);
-
-        Assert.Equal(42, result.Uid);
-    }
-
-    [Fact]
-    public async Task UpdateAsyncOnANewRecordDoesNotAttemptAStaleDelete()
-    {
-        var model = new Quest { Uid = 0 };
-        this._proxy.Setup(p => p.CreateAsync("quest", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([42], 0, 0, 1));
-
-        await this._sut.UpdateAsync("user1", model);
-
-        this._proxy.Verify(p => p.DeleteByUidAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
-    }
-
 }

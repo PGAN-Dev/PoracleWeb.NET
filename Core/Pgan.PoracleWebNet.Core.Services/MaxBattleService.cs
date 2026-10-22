@@ -31,25 +31,17 @@ public partial class MaxBattleService(IPoracleTrackingProxy proxy, IFeatureGate 
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.MaxBattles);
         model.Id = userId;
 
-        // Max battles are insert-only upstream: PoracleNG dedups every other type and this one not at all,
-        // so pressing Add twice stacked identical alarms forever and the user got two of every
-        // notification, with no way to tell the rows apart in the list. An exact duplicate is refused
-        // rather than filed again. Alarms that differ in any field -- including radius -- still stack,
-        // because upstream has no key that would merge them. See #521.
-        // PoracleNG 5.4.0 tags clean/distance/template as updatable for max battles, but only v2 POST/PUT
-        // and the bot diff on them: v1 POST, which every write here uses, still always inserts, and v2 PUT
-        // answers 409 for a near-duplicate itself. So no merge guard is needed here; #1004 added one on the
-        // opposite assumption, refused Adds 5.4.0 stores separately, and was reverted. See #1003.
-        var siblings = await this.GetByUserAsync(userId, model.ProfileNo);
-        if (siblings.Any(x => IsSameAlarm(x, model)))
+        var body = SerializeToElement(model);
+        var result = await this._proxy.CreateAsync(TrackingType, userId, body);
+
+        // PoracleNG 5.4.0 answers an exact repeat as "already present" and writes nothing; say so in the
+        // words the SPA has always shown rather than returning an alarm that has no uid. See #521.
+        if (result.AlreadyPresent > 0 && result.Inserts == 0)
         {
             throw new TrackingConflictException(
                 TrackingType,
                 "You already have an identical max battle alarm.");
         }
-
-        var body = SerializeToElement(model);
-        var result = await this._proxy.CreateAsync(TrackingType, userId, body);
 
         if (result.NewUids.Count > 0)
         {
@@ -62,8 +54,6 @@ public partial class MaxBattleService(IPoracleTrackingProxy proxy, IFeatureGate 
     public async Task<MaxBattle> UpdateAsync(string userId, MaxBattle model)
     {
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.MaxBattles);
-        // MaxBattle is insert-only in PoracleNG (no dedup/upsert).
-        // Delete the old alarm first, then create a replacement.
         var oldUid = model.Uid;
         var body = SerializeToElement(model);
 
@@ -71,37 +61,8 @@ public partial class MaxBattleService(IPoracleTrackingProxy proxy, IFeatureGate 
         body = await TrackingFieldPreserver.PreserveStoredFieldsAsync(
             this._proxy, TrackingType, userId, model.Uid, body);
 
-        // Create refuses an exact duplicate (#521) and this path did not, so editing one max battle onto
-        // another's settings left two identical rows -- and it is checked BEFORE the delete, because the
-        // delete is what makes this path destructive. See #538.
-        var siblings = await this.GetByUserAsync(userId, model.ProfileNo);
-        if (siblings.Any(x => x.Uid != oldUid && IsSameAlarm(x, model)))
-        {
-            throw new TrackingConflictException(
-                TrackingType,
-                "You already have an identical max battle alarm.");
-        }
-
-        // /api/v2 replaces the rule in place, addressed by its uid, so this type stops being insert-only
-        // and the delete-then-create above it is skipped entirely -- with it, the window where the alarm
-        // exists nowhere.
-        if (await TrackingV2Replacement.TryApplyAsync(
-                this._proxy, TrackingType, userId, oldUid, body, this._uidRemapper) is { } v2Uid)
-        {
-            model.Uid = v2Uid;
-            return model;
-        }
-
-        await this._proxy.DeleteByUidAsync(TrackingType, userId, oldUid);
-        var result = await this._proxy.CreateAsync(TrackingType, userId, body);
-
-        if (result.NewUids.Count > 0)
-        {
-            model.Uid = (int)result.NewUids[0];
-        }
-
-        // Quick-pick applied state stores uids captured at apply time; follow the row. See #403.
-        await this._uidRemapper.RemapAsync(userId, TrackingType, oldUid, model.Uid);
+        model.Uid = await TrackingV2Replacement.ApplyAsync(
+            this._proxy, TrackingType, userId, oldUid, body, this._uidRemapper);
 
         return model;
     }
@@ -130,78 +91,25 @@ public partial class MaxBattleService(IPoracleTrackingProxy proxy, IFeatureGate 
     public async Task<DistanceUpdateResult> UpdateDistanceByUserAsync(string userId, int profileNo, int distance)
     {
         var json = await this._proxy.GetByUserAsync(TrackingType, userId);
-        // The stored rows are rewritten in place rather than round-tripped through the typed model,
-        // so fields PoracleWeb does not model survive the write-back. See #730.
-        var (body, skipped) = DistanceRewrite.Build(json, _ => true, distance);
-        var count = body.GetArrayLength();
 
-        if (count == 0)
-        {
-            return skipped;
-        }
-
-        // MaxBattle is insert-only — bulk delete then re-create with updated distance.
-        // If the re-create fails after delete, alarms are lost. Log for recovery.
-        var uids = body.EnumerateArray().Select(PoracleJsonHelper.UidOf).OfType<int>().ToList();
-        await this._proxy.BulkDeleteByUidsAsync(TrackingType, userId, uids);
-
-        try
-        {
-            await this._proxy.CreateAsync(TrackingType, userId, body);
-
-            // The rows were deleted and re-made, so every uid changed. Follow any quick pick that
-            // tracks them, pairing on content because the batch response is reordered. See #443.
-            await BulkUidRemap.ApplyAsync(
-                this._proxy, TrackingType, userId, body, this._uidRemapper, this._logger);
-        }
-        catch (Exception ex)
-        {
-            LogRecreateFailed(this._logger, ex,
-                count, userId, string.Join(", ", uids));
-            throw;
-        }
-
-        return skipped with { Updated = count };
+        // One v2 PATCH naming the uids and the radius: nothing else a rule holds is re-sent (#730), each keeps
+        // its uid, and PoracleNG refuses a rule that would collide with another rather than merging it.
+        return await DistanceRewrite.ApplyAsync(this._proxy, TrackingType, userId, json, _ => true, distance, this._logger);
     }
 
     public async Task<DistanceUpdateResult> UpdateDistanceByUidsAsync(List<int> uids, string userId, int distance)
     {
         var json = await this._proxy.GetByUserAsync(TrackingType, userId);
-        // The stored rows are rewritten in place rather than round-tripped through the typed model,
-        // so fields PoracleWeb does not model survive the write-back. See #730.
         var selected = new HashSet<int>(uids);
-        var (body, skipped) = DistanceRewrite.Build(
+
+        return await DistanceRewrite.ApplyAsync(
+            this._proxy,
+            TrackingType,
+            userId,
             json,
             row => PoracleJsonHelper.UidOf(row) is int rowUid && selected.Contains(rowUid),
-            distance);
-        var count = body.GetArrayLength();
-
-        if (count == 0)
-        {
-            return skipped;
-        }
-
-        // MaxBattle is insert-only — bulk delete then re-create with updated distance.
-        var matchingUids = body.EnumerateArray().Select(PoracleJsonHelper.UidOf).OfType<int>().ToList();
-        await this._proxy.BulkDeleteByUidsAsync(TrackingType, userId, matchingUids);
-
-        try
-        {
-            await this._proxy.CreateAsync(TrackingType, userId, body);
-
-            // The rows were deleted and re-made, so every uid changed. Follow any quick pick that
-            // tracks them, pairing on content because the batch response is reordered. See #443.
-            await BulkUidRemap.ApplyAsync(
-                this._proxy, TrackingType, userId, body, this._uidRemapper, this._logger);
-        }
-        catch (Exception ex)
-        {
-            LogRecreateFailed(this._logger, ex,
-                count, userId, string.Join(", ", matchingUids));
-            throw;
-        }
-
-        return skipped with { Updated = count };
+            distance,
+            this._logger);
     }
 
     public async Task<int> CountByUserAsync(string userId, int profileNo)
@@ -224,59 +132,17 @@ public partial class MaxBattleService(IPoracleTrackingProxy proxy, IFeatureGate 
         var body = SerializeToElement(modelList);
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
 
-        for (var i = 0; i < modelList.Count && i < result.NewUids.Count; i++)
+        for (var i = 0; i < modelList.Count && i < result.RowUids.Count; i++)
         {
-            modelList[i].Uid = (int)result.NewUids[i];
+            modelList[i].Uid = result.RowUids[i];
         }
 
         return modelList;
     }
-
-    /// <summary>
-    /// Whether two max battle alarms are the same alarm: every field a user can set, radius included.
-    /// </summary>
-    /// <remarks>
-    /// Deliberately strict. Upstream has no key that would merge two alarms differing by radius, so
-    /// refusing those would block something that does work. Only an exact repeat is refused. See #521.
-    /// </remarks>
-    private static bool IsSameAlarm(MaxBattle existing, MaxBattle candidate) =>
-        existing.PokemonId == candidate.PokemonId
-        && existing.Form == candidate.Form
-        && StoredLevel(existing) == StoredLevel(candidate)
-        && existing.Move == candidate.Move
-        && existing.Gmax == candidate.Gmax
-        && existing.Evolution == candidate.Evolution
-        && existing.Distance == candidate.Distance
-        && string.Equals(existing.StationId ?? string.Empty, candidate.StationId ?? string.Empty, StringComparison.OrdinalIgnoreCase)
-        && SameScope(existing, candidate);
-
-    /// <summary>
-    /// Whether two alarms are confined the same way. Upstream stores the same boss once area-scoped and
-    /// once unscoped as two rules (verified on 5.2.1), so ignoring the scope refused a legitimate Add. "No
-    /// override" has several spellings: the dialogs send <c>[]</c> and <c>""</c>, PoracleNG reads it back as
-    /// null and <c>""</c>. Area names are stored lowercased, in order.
-    /// </summary>
-    private static bool SameScope(MaxBattle existing, MaxBattle candidate) =>
-        string.Equals(existing.OverrideLocationLabel ?? string.Empty, candidate.OverrideLocationLabel ?? string.Empty, StringComparison.Ordinal)
-        && (existing.OverrideAreas ?? []).Select(a => a.ToLowerInvariant())
-            .SequenceEqual((candidate.OverrideAreas ?? []).Select(a => a.ToLowerInvariant()), StringComparer.Ordinal);
-
-    /// <summary>
-    /// The level PoracleNG will actually store: it forces 9000 unless the alarm tracks any boss.
-    /// </summary>
-    /// <remarks>
-    /// Comparing the submitted level instead made every duplicate look different, because the stored row
-    /// already carried the rewritten value. Mirrors trackingMaxbattle.go, which sets level = 9000 whenever
-    /// pokemon_id names a specific boss.
-    /// </remarks>
-    private static int StoredLevel(MaxBattle alarm) => alarm.PokemonId == 9000 ? alarm.Level : 9000;
 
     private static List<MaxBattle> DeserializeItems(JsonElement json) =>
         PoracleJsonHelper.DeserializeList<MaxBattle>(json);
 
     private static JsonElement SerializeToElement<T>(T value) =>
         PoracleJsonHelper.SerializeToElement(value);
-
-    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to re-create {Count} maxbattle alarms after bulk delete for user {UserId}. Alarms with UIDs [{Uids}] were deleted but not re-created")]
-    private static partial void LogRecreateFailed(ILogger logger, Exception ex, int count, string userId, string uids);
 }

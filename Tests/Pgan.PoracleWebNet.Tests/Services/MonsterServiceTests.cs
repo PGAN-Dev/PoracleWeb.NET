@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
@@ -21,7 +22,7 @@ public class MonsterServiceTests
     public MonsterServiceTests()
     {
         this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
-        this._sut = new MonsterService(this._proxy.Object, this._featureGate.Object, this._remapper.Object);
+        this._sut = new MonsterService(this._proxy.Object, this._featureGate.Object, this._remapper.Object, NullLogger<MonsterService>.Instance);
     }
 
     [Fact]
@@ -276,8 +277,8 @@ public class MonsterServiceTests
                 distance = 0
             });
         this._proxy.Setup(p => p.GetByUserAsync("pokemon", "user1")).ReturnsAsync(json);
-        this._proxy.Setup(p => p.CreateAsync("pokemon", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([], 0, 3, 0));
+        this._proxy.Setup(p => p.PatchAsync("pokemon", "user1", It.IsAny<IReadOnlyList<int>>(), It.IsAny<TrackingPatchSet>()))
+            .ReturnsAsync((string _, string _, IReadOnlyList<int> uids, TrackingPatchSet _) => new TrackingPatchResult([.. uids], [], []));
 
         var result = (await this._sut.UpdateDistanceByUserAsync("user1", 1, 500)).Updated;
 
@@ -315,7 +316,7 @@ public class MonsterServiceTests
             new() { PokemonId = 25 },
             new() { PokemonId = 150 },
         };
-        var createResult = new TrackingCreateResult([10, 11], 0, 0, 2);
+        var createResult = new TrackingCreateResult([10, 11], 0, 0, 2) { RowUids = [10, 11] };
         this._proxy.Setup(p => p.CreateAsync("pokemon", "user1", It.IsAny<JsonElement>()))
             .ReturnsAsync(createResult);
 
@@ -354,8 +355,8 @@ public class MonsterServiceTests
                 distance = 0
             });
         this._proxy.Setup(p => p.GetByUserAsync("pokemon", "user1")).ReturnsAsync(json);
-        this._proxy.Setup(p => p.CreateAsync("pokemon", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([], 0, 2, 0));
+        this._proxy.Setup(p => p.PatchAsync("pokemon", "user1", It.IsAny<IReadOnlyList<int>>(), It.IsAny<TrackingPatchSet>()))
+            .ReturnsAsync((string _, string _, IReadOnlyList<int> uids, TrackingPatchSet _) => new TrackingPatchResult([.. uids], [], []));
 
         var result = (await this._sut.UpdateDistanceByUidsAsync([1, 3], "user1", 500)).Updated;
 

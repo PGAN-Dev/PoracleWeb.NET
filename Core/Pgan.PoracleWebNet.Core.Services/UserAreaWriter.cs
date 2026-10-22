@@ -21,8 +21,10 @@ public partial class UserAreaWriter(
     IPoracleHumanProxy humanProxy,
     IUserGeofenceRepository geofences,
     IPoracleTrackingProxy trackingProxy,
-    ILogger<UserAreaWriter> logger) : IUserAreaWriter
+    ILogger<UserAreaWriter> logger,
+    IUserAreaPolicy policy) : IUserAreaWriter
 {
+    private readonly IUserAreaPolicy _policy = policy;
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly IUserGeofenceRepository _geofences = geofences;
     private readonly IPoracleTrackingProxy _trackingProxy = trackingProxy;
@@ -36,7 +38,7 @@ public partial class UserAreaWriter(
             .Distinct(StringComparer.Ordinal)
             .ToList();
 
-        var allowed = await this.AllowedKeysAsync(humanId);
+        var allowed = await this._policy.AllowedKeysAsync(humanId);
 
         var refused = names.Where(n => !allowed.Contains(Key(n))).ToList();
         if (refused.Count > 0)
@@ -62,7 +64,7 @@ public partial class UserAreaWriter(
             return [];
         }
 
-        var allowed = await this.AllowedKeysAsync(humanId);
+        var allowed = await this._policy.AllowedKeysAsync(humanId);
         var refused = names.Where(n => !allowed.Contains(Key(n))).ToList();
         if (refused.Count > 0)
         {
@@ -70,23 +72,6 @@ public partial class UserAreaWriter(
         }
 
         return names.Where(n => allowed.Contains(Key(n))).ToList();
-    }
-
-    /// <summary>
-    /// The names a human may subscribe to: PoracleNG's <c>userSelectable</c> areas for them, their own drawn
-    /// fences, and what the active profile already holds. Keyed as PoracleNG keys them.
-    /// </summary>
-    private async Task<HashSet<string>> AllowedKeysAsync(string humanId)
-    {
-        var held = await this._humanProxy.GetAreaListAsync(humanId);
-        var available = await this._humanProxy.GetAvailableAreasAsync(humanId);
-        var own = await this._geofences.GetByHumanIdAsync(humanId);
-
-        var allowed = new HashSet<string>(StringComparer.Ordinal);
-        allowed.UnionWith(available.Where(a => a.UserSelectable).Select(a => Key(a.Name)));
-        allowed.UnionWith(own.Select(g => Key(g.KojiName)));
-        allowed.UnionWith(held.Select(Key));
-        return allowed;
     }
 
     [LoggerMessage(
@@ -262,7 +247,7 @@ public partial class UserAreaWriter(
         Message = "Removing area '{Name}' for {HumanId}: {Type} alarms {Uids} were limited to it but no profile delete removed them; they now match across the profile's areas")]
     private static partial void LogWidenedAlarmsNotDeleted(ILogger logger, string humanId, string name, string type, string uids);
 
-    private static string Clean(string name) => name.Trim().ToLowerInvariant();
+    private static string Clean(string name) => UserAreaPolicy.Clean(name);
 
-    private static string Key(string name) => Clean(name).Replace('_', ' ');
+    private static string Key(string name) => UserAreaPolicy.Key(name);
 }

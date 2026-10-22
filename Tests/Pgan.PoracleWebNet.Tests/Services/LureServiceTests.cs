@@ -122,8 +122,8 @@ public class LureServiceTests
                 template = "ZZsecond"
             });
         this._proxy.Setup(p => p.GetByUserAsync("lure", "u")).ReturnsAsync(json);
-        this._proxy.Setup(p => p.CreateAsync("lure", "u", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([], 0, 2, 0));
+        this._proxy.Setup(p => p.PatchAsync("lure", "u", It.IsAny<IReadOnlyList<int>>(), It.IsAny<TrackingPatchSet>()))
+            .ReturnsAsync((string _, string _, IReadOnlyList<int> uids, TrackingPatchSet _) => new TrackingPatchResult([.. uids], [], []));
 
         Assert.Equal(2, (await this._sut.UpdateDistanceByUserAsync("u", 1, 300)).Updated);
     }
@@ -191,57 +191,6 @@ public class LureServiceTests
         return doc.RootElement.Clone();
     }
 
-    // --- Edit path ---
-    // PoracleNG 5.1.0 guarded lure with a unique natural key, so an edit once had to delete the row and
-    // re-create it. 5.4.0 is the minimum and migration 8 dropped the key: an edit that does not go through
-    // v2 is the create-carrying-a-uid every other type uses, followed by the reconciler.
-
-    [Fact]
-    public async Task UpdateAsyncCreatesFirstAndOnlyThenDropsTheSupersededRow()
-    {
-        var model = new Lure { Uid = 41, LureId = 501 };
-        var order = new List<string>();
-        this._proxy.Setup(p => p.GetByUserAsync("lure", "user1")).ReturnsAsync(ItemsJson(41));
-        this._proxy.Setup(p => p.CreateAsync("lure", "user1", It.IsAny<JsonElement>()))
-            .Callback(() => order.Add("create"))
-            .ReturnsAsync(new TrackingCreateResult([42], 0, 0, 1));
-        this._proxy.Setup(p => p.DeleteByUidAsync("lure", "user1", 41))
-            .Callback(() => order.Add("delete"))
-            .Returns(Task.CompletedTask);
-
-        var result = await this._sut.UpdateAsync("user1", model);
-
-        Assert.Equal(42, result.Uid);
-        Assert.Equal(["create", "delete"], order);
-    }
-
-    [Fact]
-    public async Task UpdateAsyncLeavesTheOriginalAloneWhenTheCreateFails()
-    {
-        // With no delete-first there is nothing to restore: the stored rule is untouched.
-        var model = new Lure { Uid = 41, LureId = 501 };
-        this._proxy.Setup(p => p.GetByUserAsync("lure", "user1")).ReturnsAsync(ItemsJson(41));
-        this._proxy.Setup(p => p.CreateAsync("lure", "user1", It.IsAny<JsonElement>()))
-            .ThrowsAsync(new HttpRequestException("upstream 500"));
-
-        await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.UpdateAsync("user1", model));
-
-        this._proxy.Verify(p => p.CreateAsync("lure", "user1", It.IsAny<JsonElement>()), Times.Once);
-        this._proxy.Verify(p => p.DeleteByUidAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task UpdateAsyncOnANewRecordDoesNotDeleteAnything()
-    {
-        var model = new Lure { Uid = 0, LureId = 501 };
-        this._proxy.Setup(p => p.CreateAsync("lure", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([44], 0, 0, 1));
-
-        await this._sut.UpdateAsync("user1", model);
-
-        this._proxy.Verify(p => p.DeleteByUidAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
-    }
-
     private static JsonElement ItemsJson(int uid) =>
         JsonSerializer.SerializeToElement(new[] { new { uid, id = "user1" } });
 
@@ -252,9 +201,8 @@ public class LureServiceTests
     {
         this._proxy.Setup(p => p.GetByUserAsync("lure", "user1"))
             .ReturnsAsync(CreateJsonArray(new { uid = 239, id = "user1", lure_id = 501, distance = 500 }));
-        this._proxy.Setup(p => p.DeleteByUidAsync("lure", "user1", 239)).Returns(Task.CompletedTask);
-        this._proxy.Setup(p => p.CreateAsync("lure", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([240], 0, 0, 1));
+        this._proxy.Setup(p => p.UpdateByUidAsync("lure", "user1", 239, It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingUpdateResult(240, true));
 
         var result = await this._sut.UpdateAsync("user1", new Lure { Uid = 239, LureId = 501, Distance = 600 });
 

@@ -12,8 +12,8 @@ namespace Pgan.PoracleWebNet.Core.Services;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The whole of PoracleWeb builds and compares alarm bodies in v1's shape — <see cref="TrackingFieldPreserver"/>,
-/// <see cref="TrackingUpdateReconciler"/>, <c>BulkUidRemap</c> and <c>QuickPickService</c> all do. Keeping
+/// The whole of PoracleWeb builds and compares alarm bodies in v1's shape — <see cref="TrackingFieldPreserver"/>
+/// and <c>QuickPickService</c> both do. Keeping
 /// that shape as the single internal currency and translating once, at the wire, is what stops a v1-shaped
 /// row leaking into a v2 request: every <c>V2*Rule</c> sets <c>additionalProperties: false</c>, so one stray
 /// <c>ping</c> is a 422 and the write fails outright. Verified live against 5.2.1.
@@ -22,7 +22,7 @@ namespace Pgan.PoracleWebNet.Core.Services;
 /// <b>One field table per type, never a shared one.</b> <c>V2PokemonRule</c> declares 28 integer filters and
 /// <c>V2FortRule</c> declares one; <c>V2FortRule</c> has no <c>clean</c>/<c>edit</c>/<c>summary</c> at all.
 /// A shared set would leak a field into a type that refuses it, and <c>additionalProperties: false</c> turns
-/// that into a 422 the fallback silently papers over — the failure nobody notices.
+/// that into a 422.
 /// </para>
 /// <para>
 /// Four kinds of field genuinely change shape. <c>clean</c> is a 3-bit mask on v1 and three booleans on v2;
@@ -33,19 +33,17 @@ namespace Pgan.PoracleWebNet.Core.Services;
 /// addressing and presentation rather than filter, and v2 has no place for them.
 /// </para>
 /// <para>
-/// <b>Sentinels are sent verbatim.</b> The migration guide says to omit them, but a v2 write carrying
-/// <c>level: 9000</c>, <c>costume: 9000</c>, <c>evolution: 9000</c> or <c>move: 9000</c> stores exactly what
-/// v1 stores — verified on 5.2.1 by writing a raid, an egg and a max battle through both surfaces and
-/// diffing the v1 read, which came back byte-identical but for the rotated uid. The v2 <em>response</em>
-/// reports them as null, which is what the guide describes; the row does not. Omitting them instead would
-/// leave <see cref="TrackingUpdateReconciler"/> comparing a stored 9000 against an absent field.
+/// <b>Defaults go out as absent.</b> A property holding the value a v2 read reports as null
+/// (<see cref="DefaultsFor"/>) is left out unless the type lists it in <c>Required</c>, because that is what
+/// v2 stores an absent property as, and v2 bounds some sentinels (<c>level</c> maximum 90), so echoing
+/// <c>level: 9000</c> on a by-boss raid would be a 422. Raid and max battle <c>level</c> is read against
+/// <c>pokemon_id</c>: 9000 is always omitted, and 90 when no boss is named.
 /// </para>
 /// <para>
 /// <b>The translator never widens or narrows what PoracleNG will accept.</b> Anything it cannot express
 /// faithfully — a property it does not know, an enum outside its range, an egg without a level — makes it
-/// answer false, and the caller sends the row to the frozen v1 surface instead. Refusing outright would
-/// mean a PoracleNG newer than this translator broke every edit; dropping the field silently would be #730
-/// all over again. Falling back does neither. The one exception is a property the target server's own
+/// answer false with the reason, and the caller refuses the write; dropping the field silently would be #730
+/// all over again. The one exception is a property the target server's own
 /// <c>/openapi.json</c> declares on the rule: that is sent verbatim, so a field the v2 read copied through
 /// (the PGAN fork's <c>personal_shiny</c>) survives the edit that follows.
 /// </para>
@@ -56,7 +54,7 @@ internal static class TrackingV2Translator
     /// Addressing and presentation. v2 carries none of it in the rule body, and reconstructs all of it
     /// itself: <c>uid</c>/<c>id</c>/<c>profile_no</c> come from the route, and <c>description</c> is a
     /// display string PoracleNG computes rather than a stored column. <c>ping</c> is NOT here — it is a
-    /// real column, capability-gated rather than unconditionally dropped, so it is handled in
+    /// real column, written whenever it is set, so it is handled in
     /// <see cref="TryWritePing"/>.
     /// </summary>
     private static readonly HashSet<string> Dropped = new(StringComparer.Ordinal)
@@ -70,7 +68,7 @@ internal static class TrackingV2Translator
     /// <summary>
     /// v2's invasion gender enum. Three values, not the shared four: <c>V2InvasionRule.gender</c> is
     /// <c>any|male|female</c> with no <c>genderless</c>, so a stored 3 has no v2 representation and the
-    /// row goes to v1 rather than being mapped to something that means a different thing.
+    /// row is refused rather than being mapped to something that means a different thing.
     /// </summary>
     /// <remarks>
     /// Latent rather than live: production holds 0, 1 and 2 only across 201 invasion rules. But
@@ -108,7 +106,7 @@ internal static class TrackingV2Translator
 
     /// <summary>
     /// Every field each <c>V2*Rule</c> declares, sorted into how it has to be written and read. A schema
-    /// field missing from its type's table would go to v1 forever without anyone noticing, which is why
+    /// field missing from its type's table would be silently unwritable, which is why
     /// <c>TrackingV2TypeTranslationTests</c> asserts the tables against the 5.4.0 schema fixture rather than
     /// against themselves, and <c>TrackingV2ReadTranslationTests</c> asserts every nullable property has a
     /// read default.
@@ -131,18 +129,6 @@ internal static class TrackingV2Translator
             },
 
             // v2 makes pokemon_id the one required field. A row without it could only ever 422.
-            // Verified against a live 5.2.1: creating a rule that omits each of these stores exactly
-            // the value listed, and PoracleNG's own differ answers "unchanged" when the two forms are
-            // re-posted against each other. size 0, pvp_ranking_best 0 and pvp_ranking_worst 0 are
-            // deliberately absent -- those are stored verbatim and come back as distinct rules, so
-            // omitting them would rewrite the filter rather than preserve it.
-            OmitWhenEquals = new Dictionary<string, int>(StringComparer.Ordinal)
-            {
-                ["size"] = -1,
-                ["rarity"] = -1,
-                ["min_iv"] = -1,
-            },
-
             Required = ["pokemon_id"],
 
             Defaults = ReadDefaults(
@@ -184,8 +170,7 @@ internal static class TrackingV2Translator
 
             // V2EggRule declares level required with minimum 1, and Egg.Level is a plain int defaulting to
             // 0. A profile import, a quick-pick apply or a cleaning write-back that never set one builds a
-            // body v2 answers 422 to — verified live on 5.2.1. Those rows go to v1, which stores level 0
-            // as it always has.
+            // body v2 answers 422 to — verified live on 5.2.1. Those rows are refused with the reason.
             Required = ["level"],
             PositiveIntegers = ["level"],
 
@@ -228,9 +213,6 @@ internal static class TrackingV2Translator
         },
         ["nest"] = new TypeSpec
         {
-            // Verified live: omitting pokemon_id stores 0, and the server calls the two forms unchanged.
-            OmitWhenEquals = new Dictionary<string, int>(StringComparer.Ordinal) { ["pokemon_id"] = 0 },
-
             Integers = ["distance", "form", "min_spawn_avg", "pokemon_id"],
 
             Defaults = ReadDefaults(cleanFlags: true, ("pokemon_id", 0), ("form", 0), ("min_spawn_avg", 0)),
@@ -249,7 +231,7 @@ internal static class TrackingV2Translator
             // grunt_type is the targeting field and the one every v2 read emits. type_id and grunt_id are
             // input conveniences that resolve to it; this application only ever holds the name, so it
             // sends the name and never the other two. Which names are acceptable is the server's own
-            // question -- see InvasionGruntNameService, and the gate in PoracleTrackingProxy that asks it.
+            // question: v2 answers 422 naming a grunt_type its masterdata does not list.
             Strings = ["grunt_type"],
             IntEnums = new Dictionary<string, string[]>(StringComparer.Ordinal)
             {
@@ -582,6 +564,11 @@ internal static class TrackingV2Translator
                     continue;
                 }
 
+                if (IsDefault(spec, row, property))
+                {
+                    continue;
+                }
+
                 if (!TryWriteProperty(writer, spec, serverBounds, serverDeclared, property, out unsupported))
                 {
                     return false;
@@ -593,6 +580,93 @@ internal static class TrackingV2Translator
 
         translated = JsonDocument.Parse(stream.ToArray()).RootElement.Clone();
         return true;
+    }
+
+    /// <summary>
+    /// Whether a property holds exactly the value a v2 read reports as null, so leaving it out stores the same
+    /// thing. A <c>Required</c> field is never omitted. Raid and max battle <c>level</c> follows the rule's
+    /// pokemon: 9000 is the by-boss placeholder v2 stores itself and bounds out (maximum 90), and 90 is the
+    /// any-tier wildcard when no boss is named.
+    /// </summary>
+    private static bool IsDefault(TypeSpec spec, JsonElement row, JsonProperty property)
+    {
+        // template is never omitted. Its read default "" cannot tell an empty template from the server's own
+        // default name: omitting it makes PoracleNG store that name ("1"), a v2 read reports it back as null,
+        // and ToV1Row turns that into "". The v1 upsert paths (bulk distance, cleaning) then send "" against
+        // a stored "1", PoracleNG counts template plus distance/clean as two updatable differences and INSERTS
+        // a second rule instead of updating. Sending the string we hold keeps the round trip matching. A null
+        // template means "not supplied" and is still omitted.
+        if ((property.Name == "template" && property.Value.ValueKind == JsonValueKind.String)
+            || Array.IndexOf(spec.Required, property.Name) >= 0)
+        {
+            return false;
+        }
+
+        if (spec.LevelFollowsPokemonId
+            && property.Name == "level"
+            && property.Value.ValueKind == JsonValueKind.Number
+            && property.Value.TryGetInt32(out var level))
+        {
+            if (level == LevelPlaceholder)
+            {
+                return true;
+            }
+
+            return level == AnyTier
+                && (!row.TryGetProperty("pokemon_id", out var boss)
+                    || boss.ValueKind == JsonValueKind.Null
+                    || (boss.ValueKind == JsonValueKind.Number && boss.TryGetInt32(out var id) && id == AnyId));
+        }
+
+        return spec.Defaults.TryGetValue(property.Name, out var fallback) && SameValue(fallback, property.Value);
+    }
+
+    /// <summary>
+    /// Compares a stored v1 value to a read default the way v2 does: numbers as numbers (a 0/1 column and a
+    /// boolean are the same flag), and an empty string and null as one.
+    /// </summary>
+    private static bool SameValue(JsonElement fallback, JsonElement value)
+    {
+        if (TryAsNumber(fallback, out var left) && TryAsNumber(value, out var right))
+        {
+            return left == right;
+        }
+
+        if (IsEmptyText(fallback) && IsEmptyText(value))
+        {
+            return true;
+        }
+
+        // change_types: an empty list is "[]" in v1's column and [] in a model.
+        if (fallback.ValueKind == JsonValueKind.String && fallback.GetString() == "[]" && value.ValueKind == JsonValueKind.Array)
+        {
+            return value.GetArrayLength() == 0;
+        }
+
+        return fallback.ValueKind == JsonValueKind.String
+            && value.ValueKind == JsonValueKind.String
+            && string.Equals(fallback.GetString(), value.GetString(), StringComparison.Ordinal);
+    }
+
+    private static bool IsEmptyText(JsonElement value) =>
+        value.ValueKind == JsonValueKind.Null
+        || (value.ValueKind == JsonValueKind.String && string.IsNullOrEmpty(value.GetString()));
+
+    private static bool TryAsNumber(JsonElement value, out double number)
+    {
+        number = 0;
+        switch (value.ValueKind)
+        {
+            case JsonValueKind.Number:
+                return value.TryGetDouble(out number);
+            case JsonValueKind.True:
+                number = 1;
+                return true;
+            case JsonValueKind.False:
+                return true;
+            default:
+                return false;
+        }
     }
 
     private static bool SatisfiesRequired(TypeSpec spec, JsonElement row, out string? unsupported)
@@ -688,7 +762,7 @@ internal static class TrackingV2Translator
             }
 
             // A field this build has never heard of and the server does not declare. Newer PoracleNG,
-            // older PoracleWeb — send the row to v1, which takes anything, rather than dropping the
+            // older PoracleWeb — refuse the row rather than dropping the
             // user's value.
             unsupported = $"unknown property {property.Name}";
             return false;
@@ -706,14 +780,8 @@ internal static class TrackingV2Translator
             && serverBounds.TryGetValue(property.Name, out var bound)
             && !bound.Contains(stored))
         {
-            // Omitting is safe only where v2's write default is this exact value, so the row is stored
-            // unchanged. Anywhere else, echoing it is a 422 and omitting it silently edits the user's
-            // filter, so the whole row goes to v1 -- which stores what it is given, as it always has.
-            if (spec.OmitWhenEquals.TryGetValue(property.Name, out var omittable) && omittable == stored)
-            {
-                return true;
-            }
-
+            // A value equal to the read default never gets here (IsDefault omits it). Anywhere else,
+            // echoing it is a 422 and omitting it silently edits the user's filter, so it is refused.
             unsupported = $"{property.Name} is {stored}, outside v2's {bound}";
             return false;
         }
@@ -878,8 +946,8 @@ internal static class TrackingV2Translator
 
     /// <summary>
     /// <c>fort</c> is the one type with no <c>clean</c> anywhere — no v2 field and no column. A zero is
-    /// nothing to carry and is dropped; anything else is a value v2 could not be told, so the row goes
-    /// to v1.
+    /// nothing to carry and is dropped; anything else is a value v2 could not be told, so the row is
+    /// refused.
     /// </summary>
     private static bool TryWriteAbsentClean(JsonElement value, out string? unsupported)
     {
@@ -1017,18 +1085,11 @@ internal static class TrackingV2Translator
         /// <summary>Whether this type has <c>clean</c>/<c>edit</c>/<c>summary</c> at all. Fort does not.</summary>
         public bool HasCleanFlags { get; init; } = true;
 
-        /// <summary>Fields that must be present and non-null, or the row goes to v1.</summary>
+        /// <summary>Fields that must be present and non-null, or the row is refused.</summary>
         public string[] Required { get; init; } = [];
 
         /// <summary>Required fields v2 also constrains to 1 or more.</summary>
         public HashSet<string> PositiveIntegers { get; init; } = new(StringComparer.Ordinal);
-
-        /// <summary>
-        /// Out-of-bounds values that may be omitted instead of refused, because v2's own write default
-        /// for that field is the identical value. Every entry is verified by calling the server; none
-        /// is inferred from reading PoracleNG's source.
-        /// </summary>
-        public Dictionary<string, int> OmitWhenEquals { get; init; } = new(StringComparer.Ordinal);
 
         /// <summary>
         /// Read side: the v1 value a null (or absent) property stands for, keyed by the v2 name. See

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
@@ -7,12 +8,14 @@ namespace Pgan.PoracleWebNet.Core.Services;
 public class MonsterService(
     IPoracleTrackingProxy proxy,
     IFeatureGate featureGate,
-    ITrackedUidRemapper uidRemapper) : IMonsterService
+    ITrackedUidRemapper uidRemapper,
+    ILogger<MonsterService> logger) : IMonsterService
 {
     private const string TrackingType = "pokemon";
     private readonly IPoracleTrackingProxy _proxy = proxy;
     private readonly IFeatureGate _featureGate = featureGate;
     private readonly ITrackedUidRemapper _uidRemapper = uidRemapper;
+    private readonly ILogger<MonsterService> _logger = logger;
 
     // profileNo is kept for interface compatibility only. PoracleNG scopes reads to the user's active
     // profile (humans.current_profile_no), and writes no longer carry profile_no at all — see
@@ -38,10 +41,6 @@ public class MonsterService(
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Pokemon);
         model.Id = userId;
 
-        // An Add that PoracleNG resolves into an update of an existing alarm takes that alarm over:
-        // 201 Created, and the user quietly loses the one they had. See #561.
-        await TrackingUpdateReconciler.EnsureNoMergeIntoAnotherAlarmAsync(
-            this._proxy, TrackingType, userId, 0, SerializeToElement(model));
         var body = SerializeToElement(model);
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
 
@@ -63,14 +62,6 @@ public class MonsterService(
         // out of the body is reset to its default rather than left alone -- verified live against 5.2.1,
         // where omitting min_iv wiped a stored 90.
         body = await TrackingFieldPreserver.PreserveStoredFieldsAsync(
-            this._proxy, TrackingType, userId, model.Uid, body);
-
-        // Pokemon is the one type with no collision guard on the v1 update path: PoracleNG updates it in
-        // place rather than merging, so this call early-returns for pokemon edits (#606). It stays because
-        // it is the guard for the create path in CreateAsync, and because deleting it here would make the
-        // two paths look different for no reason. On v2 the guard is upstream's: the uid-addressed PUT
-        // answers 409 rather than taking another rule over.
-        await TrackingUpdateReconciler.EnsureNoMergeIntoAnotherAlarmAsync(
             this._proxy, TrackingType, userId, model.Uid, body);
 
         var result = await this._proxy.UpdateByUidAsync(TrackingType, userId, model.Uid, body);
@@ -110,47 +101,28 @@ public class MonsterService(
         return uids.Count;
     }
 
-    // Fetch-modify-POST workaround: not atomic. Concurrent distance updates from the same user
-    // could race, but this is acceptable — the last write wins and distance is a single scalar.
-    // See: docs/poracleng-enhancement-requests.md#bulk-distance-update
     public async Task<DistanceUpdateResult> UpdateDistanceByUserAsync(string userId, int profileNo, int distance)
     {
         var json = await this._proxy.GetByUserAsync(TrackingType, userId);
 
-        // The stored rows are rewritten in place rather than round-tripped through the typed model,
-        // so fields PoracleWeb does not model survive the write-back. See #730.
-        var (body, skipped) = DistanceRewrite.Build(json, _ => true, distance);
-        var count = body.GetArrayLength();
-
-        if (count == 0)
-        {
-            return skipped;
-        }
-
-        await this._proxy.CreateAsync(TrackingType, userId, body);
-        return skipped with { Updated = count };
+        // One v2 PATCH naming the uids and the radius: nothing else a rule holds is re-sent (#730), each keeps
+        // its uid, and PoracleNG refuses a rule that would collide with another rather than merging it.
+        return await DistanceRewrite.ApplyAsync(this._proxy, TrackingType, userId, json, _ => true, distance, this._logger);
     }
 
     public async Task<DistanceUpdateResult> UpdateDistanceByUidsAsync(List<int> uids, string userId, int distance)
     {
         var json = await this._proxy.GetByUserAsync(TrackingType, userId);
-
-        // The stored rows are rewritten in place rather than round-tripped through the typed model,
-        // so fields PoracleWeb does not model survive the write-back. See #730.
         var selected = new HashSet<int>(uids);
-        var (body, skipped) = DistanceRewrite.Build(
+
+        return await DistanceRewrite.ApplyAsync(
+            this._proxy,
+            TrackingType,
+            userId,
             json,
             row => PoracleJsonHelper.UidOf(row) is int rowUid && selected.Contains(rowUid),
-            distance);
-        var count = body.GetArrayLength();
-
-        if (count == 0)
-        {
-            return skipped;
-        }
-
-        await this._proxy.CreateAsync(TrackingType, userId, body);
-        return skipped with { Updated = count };
+            distance,
+            this._logger);
     }
 
     public async Task<int> CountByUserAsync(string userId, int profileNo)
@@ -173,9 +145,9 @@ public class MonsterService(
         var body = SerializeToElement(modelList);
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
 
-        for (var i = 0; i < modelList.Count && i < result.NewUids.Count; i++)
+        for (var i = 0; i < modelList.Count && i < result.RowUids.Count; i++)
         {
-            modelList[i].Uid = (int)result.NewUids[i];
+            modelList[i].Uid = result.RowUids[i];
         }
 
         return modelList;

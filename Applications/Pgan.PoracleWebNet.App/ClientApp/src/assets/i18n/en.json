@@ -1958,6 +1958,7 @@
   "WHERE": {
     "DISTANCE_SKIPPED_AREAS": "Skipped {{count}} limited to areas: a radius doesn't apply to them.",
     "DISTANCE_SKIPPED_PLACE": "Skipped {{count}} measured from a saved place: they need a radius.",
+    "DISTANCE_SKIPPED_CONFLICT": "Skipped {{count}} that would clash with another rule.",
     "SET_PIN": "Set your pin",
     "PIN_MISSING_WARNING": "You have not set a pin yet, so this alert would have nothing to measure from.",
     "PLACES_EMPTY_TITLE": "No places yet",

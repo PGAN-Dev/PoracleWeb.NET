@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
@@ -10,13 +11,34 @@ public class CleaningServiceTests
 {
     private readonly Mock<IPoracleTrackingProxy> _proxy = new();
     private readonly Mock<IFeatureGate> _featureGate = new();
-    private readonly Mock<ITrackedUidRemapper> _uidRemapper = new();
+    private readonly Mock<IPoracleIncidentProxy> _incident = new();
+    private readonly List<(string Type, List<int> Uids, TrackingPatchSet Set)> _patched = [];
+    private readonly List<(List<int> Uids, TrackingPatchSet Set)> _incidentPatched = [];
     private readonly CleaningService _sut;
 
     public CleaningServiceTests()
     {
         this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
-        this._sut = new CleaningService(this._proxy.Object, this._featureGate.Object, this._uidRemapper.Object, Microsoft.Extensions.Logging.Abstractions.NullLogger<CleaningService>.Instance);
+        this._proxy
+            .Setup(p => p.PatchAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IReadOnlyList<int>>(), It.IsAny<TrackingPatchSet>()))
+            .ReturnsAsync((string type, string _, IReadOnlyList<int> uids, TrackingPatchSet set) =>
+            {
+                this._patched.Add((type, [.. uids], set));
+                return new TrackingPatchResult([.. uids], [], []);
+            });
+        this._incident
+            .Setup(p => p.PatchAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<int>>(), It.IsAny<TrackingPatchSet>()))
+            .ReturnsAsync((string _, IReadOnlyList<int> uids, TrackingPatchSet set) =>
+            {
+                this._incidentPatched.Add(([.. uids], set));
+                return new TrackingPatchResult([.. uids], [], []);
+            });
+        this._sut = new CleaningService(
+            this._proxy.Object,
+            this._featureGate.Object,
+            this._incident.Object,
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<CleaningService>.Instance);
     }
 
     [Fact]
@@ -49,8 +71,6 @@ public class CleaningServiceTests
                 clean = 0
             });
         this._proxy.Setup(p => p.GetByUserAsync("pokemon", "u1")).ReturnsAsync(json);
-        this._proxy.Setup(p => p.CreateAsync("pokemon", "u1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([], 0, 5, 0));
 
         Assert.Equal(5, await this._sut.ToggleCleanMonstersAsync("u1", 1, 1));
     }
@@ -75,8 +95,6 @@ public class CleaningServiceTests
                 clean = 1
             });
         this._proxy.Setup(p => p.GetByUserAsync("raid", "u1")).ReturnsAsync(json);
-        this._proxy.Setup(p => p.CreateAsync("raid", "u1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([], 0, 3, 0));
 
         Assert.Equal(3, await this._sut.ToggleCleanRaidsAsync("u1", 1, 0));
     }
@@ -94,8 +112,6 @@ public class CleaningServiceTests
             clean = 0
         });
         this._proxy.Setup(p => p.GetByUserAsync("egg", "u1")).ReturnsAsync(json);
-        this._proxy.Setup(p => p.CreateAsync("egg", "u1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([], 0, 2, 0));
 
         Assert.Equal(2, await this._sut.ToggleCleanEggsAsync("u1", 1, 1));
     }
@@ -125,8 +141,6 @@ public class CleaningServiceTests
                 clean = 0
             });
         this._proxy.Setup(p => p.GetByUserAsync("quest", "u1")).ReturnsAsync(json);
-        this._proxy.Setup(p => p.CreateAsync("quest", "u1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([], 0, 4, 0));
 
         Assert.Equal(4, await this._sut.ToggleCleanQuestsAsync("u1", 1, 1));
     }
@@ -166,8 +180,6 @@ public class CleaningServiceTests
                 clean = 1
             });
         this._proxy.Setup(p => p.GetByUserAsync("invasion", "u1")).ReturnsAsync(json);
-        this._proxy.Setup(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([], 0, 6, 0));
 
         Assert.Equal(6, await this._sut.ToggleCleanInvasionsAsync("u1", 1, 0));
     }
@@ -181,8 +193,6 @@ public class CleaningServiceTests
             clean = 0
         });
         this._proxy.Setup(p => p.GetByUserAsync("lure", "u1")).ReturnsAsync(json);
-        this._proxy.Setup(p => p.CreateAsync("lure", "u1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([], 0, 1, 0));
 
         Assert.Equal(1, await this._sut.ToggleCleanLuresAsync("u1", 1, 1));
     }
@@ -192,8 +202,6 @@ public class CleaningServiceTests
     {
         var json = CreateJsonArray([.. Enumerable.Range(1, 8).Select(i => (object)new { uid = i, clean = 0 })]);
         this._proxy.Setup(p => p.GetByUserAsync("nest", "u1")).ReturnsAsync(json);
-        this._proxy.Setup(p => p.CreateAsync("nest", "u1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([], 0, 8, 0));
 
         Assert.Equal(8, await this._sut.ToggleCleanNestsAsync("u1", 1, 1));
     }
@@ -203,8 +211,6 @@ public class CleaningServiceTests
     {
         var json = CreateJsonArray([.. Enumerable.Range(1, 9).Select(i => (object)new { uid = i, clean = 1 })]);
         this._proxy.Setup(p => p.GetByUserAsync("gym", "u1")).ReturnsAsync(json);
-        this._proxy.Setup(p => p.CreateAsync("gym", "u1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([], 0, 9, 0));
 
         Assert.Equal(9, await this._sut.ToggleCleanGymsAsync("u1", 1, 0));
     }
@@ -229,69 +235,86 @@ public class CleaningServiceTests
                 clean = 0
             });
         this._proxy.Setup(p => p.GetByUserAsync("maxbattle", "u1")).ReturnsAsync(json);
-        this._proxy.Setup(p => p.CreateAsync("maxbattle", "u1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([], 0, 3, 0));
 
         Assert.Equal(3, await this._sut.ToggleCleanMaxBattlesAsync("u1", 1, 1));
     }
 
-    [Fact]
-    public async Task ToggleCleanOnPreservesEditAndSummaryBits()
+    [Theory]
+    [InlineData(1, true)]
+    [InlineData(0, false)]
+    public async Task CleaningToggleIsOnePatchPerTypeKeepsOtherBits(int clean, bool expected)
     {
-        // clean=5 = auto-delete (bit 1) + summary (bit 4); clean=2 = edit-in-place only (bit 2).
-        // Toggling the clean flag ON must set bit 1 while leaving bot-set bits 2/4 intact. (#292)
-        var json = CreateJsonArray(
-            new
-            {
-                uid = 1,
-                clean = 5
-            },
-            new
-            {
-                uid = 2,
-                clean = 2
-            });
-        this._proxy.Setup(p => p.GetByUserAsync("pokemon", "u1")).ReturnsAsync(json);
+        // clean=5 = auto-delete (bit 1) + summary (bit 4); clean=2 = edit-in-place only (bit 2). The toggle owns
+        // bit 1 alone, so the PATCH names clean and nothing else: PoracleNG leaves every field it is not told
+        // about as stored, which is what keeps bot-set bits 2 and 4. (#292)
+        this._proxy.Setup(p => p.GetByUserAsync("pokemon", "u1")).ReturnsAsync(CreateJsonArray(
+            new { uid = 1, clean = 5 },
+            new { uid = 2, clean = 2 }));
 
-        JsonElement captured = default;
-        this._proxy.Setup(p => p.CreateAsync("pokemon", "u1", It.IsAny<JsonElement>()))
-            .Callback<string, string, JsonElement>((_, _, body) => captured = body.Clone())
-            .ReturnsAsync(new TrackingCreateResult([], 0, 2, 0));
+        Assert.Equal(2, await this._sut.ToggleCleanMonstersAsync("u1", 1, clean));
 
-        Assert.Equal(2, await this._sut.ToggleCleanMonstersAsync("u1", 1, 1));
-
-        var cleans = ExtractCleans(captured);
-        Assert.Equal(5, cleans[0]); // bit 1 already set, summary (4) preserved -> 5
-        Assert.Equal(3, cleans[1]); // edit (2) preserved, bit 1 added -> 3
+        var (type, uids, set) = Assert.Single(this._patched);
+        Assert.Equal("pokemon", type);
+        Assert.Equal([1, 2], uids);
+        Assert.Equal(new TrackingPatchSet(Clean: expected), set);
+        Assert.Null(set.Distance);
+        this._proxy.Verify(
+            p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+        this._proxy.Verify(
+            p => p.UpdateByUidAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<JsonElement>()),
+            Times.Never);
     }
 
     [Fact]
-    public async Task ToggleCleanOffPreservesEditAndSummaryBits()
+    public async Task CleaningToggleCountsUpdatedAndUnchangedButNotRefused()
     {
-        // Toggling OFF clears only bit 1; edit (2) / summary (4) bits must survive. (#292)
-        var json = CreateJsonArray(
-            new
-            {
-                uid = 1,
-                clean = 5
-            },
-            new
-            {
-                uid = 2,
-                clean = 2
-            });
-        this._proxy.Setup(p => p.GetByUserAsync("pokemon", "u1")).ReturnsAsync(json);
+        this._proxy.Setup(p => p.GetByUserAsync("raid", "u1")).ReturnsAsync(CreateJsonArray(
+            new { uid = 1, clean = 0 },
+            new { uid = 2, clean = 1 },
+            new { uid = 3, clean = 0 }));
+        this._proxy
+            .Setup(p => p.PatchAsync("raid", "u1", It.IsAny<IReadOnlyList<int>>(), It.IsAny<TrackingPatchSet>()))
+            .ReturnsAsync(new TrackingPatchResult(
+                [1], [2], [new PatchRefusal(3, PatchRefusalReasons.Conflict, "duplicate", 1)]));
 
-        JsonElement captured = default;
-        this._proxy.Setup(p => p.CreateAsync("pokemon", "u1", It.IsAny<JsonElement>()))
-            .Callback<string, string, JsonElement>((_, _, body) => captured = body.Clone())
-            .ReturnsAsync(new TrackingCreateResult([], 0, 2, 0));
+        Assert.Equal(2, await this._sut.ToggleCleanRaidsAsync("u1", 1, 1));
+    }
 
-        Assert.Equal(2, await this._sut.ToggleCleanMonstersAsync("u1", 1, 0));
+    [Fact]
+    public async Task CleaningToggleWarnsAboutEveryRuleItLeftAlone()
+    {
+        // The count already leaves a refused rule out, so the switch looks fine to the user. The log is the only
+        // place that says which rules kept their old setting and why.
+        this._proxy.Setup(p => p.GetByUserAsync("raid", "u1")).ReturnsAsync(CreateJsonArray(
+            new { uid = 1, clean = 0 },
+            new { uid = 3, clean = 0 }));
+        this._proxy
+            .Setup(p => p.PatchAsync("raid", "u1", It.IsAny<IReadOnlyList<int>>(), It.IsAny<TrackingPatchSet>()))
+            .ReturnsAsync(new TrackingPatchResult(
+                [1], [], [new PatchRefusal(3, PatchRefusalReasons.Invalid, "area not allowed", null)]));
+        var logger = new CapturingLogger();
+        var sut = new CleaningService(this._proxy.Object, this._featureGate.Object, this._incident.Object, logger);
 
-        var cleans = ExtractCleans(captured);
-        Assert.Equal(4, cleans[0]); // bit 1 cleared, summary (4) preserved -> 4
-        Assert.Equal(2, cleans[1]); // bit 1 already clear, edit (2) preserved -> 2
+        Assert.Equal(1, await sut.ToggleCleanRaidsAsync("u1", 1, 1));
+
+        var warning = Assert.Single(logger.Entries, e => e.Level == LogLevel.Warning);
+        Assert.Contains("uid=3", warning.Message, StringComparison.Ordinal);
+        Assert.Contains("invalid", warning.Message, StringComparison.Ordinal);
+        Assert.Contains("area not allowed", warning.Message, StringComparison.Ordinal);
+    }
+
+    private sealed class CapturingLogger : ILogger<CleaningService>
+    {
+        public List<(LogLevel Level, string Message)> Entries { get; } = [];
+
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) =>
+            this.Entries.Add((logLevel, formatter(state, exception)));
     }
 
     [Fact]
@@ -356,7 +379,7 @@ public class CleaningServiceTests
         this._proxy.Setup(p => p.GetByUserAsync("pokemon", "u1")).ReturnsAsync(json);
 
         Assert.Equal(0, await this._sut.ToggleCleanMonstersAsync("u1", 1, 1));
-        this._proxy.Verify(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+        Assert.Empty(this._patched);
     }
 
     [Fact]
@@ -399,18 +422,6 @@ public class CleaningServiceTests
         Assert.True(result["raids"]);     // single item is clean
         Assert.False(result["eggs"]);     // empty array
         Assert.True(result["maxbattles"]); // both are clean
-    }
-
-    private static List<int> ExtractCleans(JsonElement postedBody)
-    {
-        Assert.Equal(JsonValueKind.Array, postedBody.ValueKind);
-        var cleans = new List<int>();
-        foreach (var alarm in postedBody.EnumerateArray())
-        {
-            cleans.Add(alarm.GetProperty("clean").GetInt32());
-        }
-
-        return cleans;
     }
 
     private static JsonElement CreateJsonArray(params object[] items)
@@ -471,15 +482,15 @@ public class CleaningServiceTests
         // Must short-circuit before any proxy call — otherwise we'd flush a write to PoracleNG even
         // though the feature is disabled.
         this._proxy.Verify(p => p.GetByUserAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
-        this._proxy.Verify(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+        Assert.Empty(this._patched);
     }
 
     // --- Max Battles duplicated on every toggle (#402) ---
-    // PoracleNG's maxbattle create is insert-only, so the fetch-modify-POST inserted a full duplicate
-    // set per click and left the originals at clean=0. Unbounded growth.
+    // PoracleNG's v1 maxbattle create was insert-only, so the old fetch-modify-POST had to delete the rows
+    // first and restore them if the re-create failed. PATCH updates in place, so neither is needed.
 
     [Fact]
-    public async Task ToggleCleanMaxBattlesFreesTheRowsBeforeRecreatingThem()
+    public async Task ToggleCleanMaxBattlesPatchesInPlaceWithoutDeleting()
     {
         var json = JsonSerializer.SerializeToElement(new[]
         {
@@ -487,41 +498,20 @@ public class CleaningServiceTests
             new { uid = 83, id = "u1", clean = 0 },
         });
         this._proxy.Setup(p => p.GetByUserAsync("maxbattle", "u1")).ReturnsAsync(json);
-        this._proxy.Setup(p => p.BulkDeleteByUidsAsync("maxbattle", "u1", It.IsAny<IEnumerable<int>>())).Returns(Task.CompletedTask);
-        this._proxy.Setup(p => p.CreateAsync("maxbattle", "u1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([84, 85], 0, 0, 2));
 
         var count = await this._sut.ToggleCleanMaxBattlesAsync("u1", 1, 1);
 
         Assert.Equal(2, count);
-        this._proxy.Verify(p => p.BulkDeleteByUidsAsync("maxbattle", "u1",
-            It.Is<IEnumerable<int>>(u => u.OrderBy(x => x).SequenceEqual(new[] { 82, 83 }))), Times.Once);
-        this._proxy.Verify(p => p.CreateAsync("maxbattle", "u1", It.IsAny<JsonElement>()), Times.Once);
+        Assert.Equal([82, 83], Assert.Single(this._patched).Uids);
+        this._proxy.Verify(
+            p => p.BulkDeleteByUidsAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IEnumerable<int>>()), Times.Never);
     }
 
     [Fact]
-    public async Task ToggleCleanMaxBattlesRestoresTheOriginalsWhenRecreatingFails()
-    {
-        var json = JsonSerializer.SerializeToElement(new[] { new { uid = 82, id = "u1", clean = 0 } });
-        this._proxy.Setup(p => p.GetByUserAsync("maxbattle", "u1")).ReturnsAsync(json);
-        this._proxy.Setup(p => p.BulkDeleteByUidsAsync("maxbattle", "u1", It.IsAny<IEnumerable<int>>())).Returns(Task.CompletedTask);
-        this._proxy.SetupSequence(p => p.CreateAsync("maxbattle", "u1", It.IsAny<JsonElement>()))
-            .ThrowsAsync(new HttpRequestException("upstream"))
-            .ReturnsAsync(new TrackingCreateResult([86], 0, 0, 1));
-
-        await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.ToggleCleanMaxBattlesAsync("u1", 1, 1));
-
-        // Second create is the restore: a failed toggle must not leave the user with nothing.
-        this._proxy.Verify(p => p.CreateAsync("maxbattle", "u1", It.IsAny<JsonElement>()), Times.Exactly(2));
-    }
-
-    [Fact]
-    public async Task ToggleCleanMonstersStillUpsertsWithoutDeleting()
+    public async Task ToggleCleanMonstersNeverDeletes()
     {
         var json = JsonSerializer.SerializeToElement(new[] { new { uid = 5, id = "u1", clean = 0 } });
         this._proxy.Setup(p => p.GetByUserAsync("pokemon", "u1")).ReturnsAsync(json);
-        this._proxy.Setup(p => p.CreateAsync("pokemon", "u1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([], 0, 1, 0));
 
         await this._sut.ToggleCleanMonstersAsync("u1", 1, 1);
 
@@ -555,13 +545,9 @@ public class CleaningServiceTests
             new { uid = 2, clean = 0, grunt_type = "kecleon" },
             new { uid = 3, clean = 0, grunt_type = "showcase" }));
 
-        JsonElement sent = default;
-        this._proxy.Setup(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()))
-            .Callback<string, string, JsonElement>((_, _, body) => sent = body.Clone())
-            .ReturnsAsync(new TrackingCreateResult([], 0, 1, 0));
-
         Assert.Equal(1, await this._sut.ToggleCleanInvasionsAsync("u1", 1, 1));
-        Assert.Equal([1], sent.EnumerateArray().Select(r => r.GetProperty("uid").GetInt32()));
+        Assert.Equal([1], Assert.Single(this._patched).Uids);
+        Assert.Empty(this._incidentPatched);
     }
 
     /// <summary>
@@ -576,13 +562,15 @@ public class CleaningServiceTests
             new { uid = 1, clean = 0, grunt_type = "water" },
             new { uid = 2, clean = 0, grunt_type = "kecleon" }));
 
-        JsonElement sent = default;
-        this._proxy.Setup(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()))
-            .Callback<string, string, JsonElement>((_, _, body) => sent = body.Clone())
-            .ReturnsAsync(new TrackingCreateResult([], 0, 2, 0));
-
+        // v2's invasion route does not hold the event rules, so they go to incident.
         Assert.Equal(2, await this._sut.ToggleCleanInvasionsAsync("u1", 1, 1));
-        Assert.Equal([1, 2], sent.EnumerateArray().Select(r => r.GetProperty("uid").GetInt32()));
+        var (type, uids, set) = Assert.Single(this._patched);
+        Assert.Equal("invasion", type);
+        Assert.Equal([1], uids);
+        Assert.Equal(new TrackingPatchSet(Clean: true), set);
+        var (eventUids, eventSet) = Assert.Single(this._incidentPatched);
+        Assert.Equal([2], eventUids);
+        Assert.Equal(new TrackingPatchSet(Clean: true), eventSet);
     }
 
     [Fact]
@@ -593,7 +581,8 @@ public class CleaningServiceTests
             new { uid = 2, clean = 0, grunt_type = "kecleon" }));
 
         Assert.Equal(0, await this._sut.ToggleCleanInvasionsAsync("u1", 1, 1));
-        this._proxy.Verify(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()), Times.Never);
+        Assert.Empty(this._patched);
+        Assert.Empty(this._incidentPatched);
     }
 
     [Fact]

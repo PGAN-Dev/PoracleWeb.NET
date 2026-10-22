@@ -385,17 +385,10 @@ public class PoracleTrackingProxyV2ReadTests
             })
             .Build();
 
-        var profile = new Mock<IPoracleServerProfileService>();
-        profile
-            .Setup(p => p.GetAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new PoracleServerProfile { Version = "5.4.0", Reachable = true, CheckedAt = DateTimeOffset.UtcNow });
-
         return new PoracleTrackingProxy(
             new HttpClient(handler),
             config,
-            profile.Object,
-            PoracleTrackingProxyTests.V2Schema(),
-            PoracleTrackingProxyTests.GruntNames(),
+            PoracleTrackingProxyTests.AnyAreaPolicy(),
             new MemoryCache(new MemoryCacheOptions()),
             logger ?? Mock.Of<ILogger<PoracleTrackingProxy>>());
     }

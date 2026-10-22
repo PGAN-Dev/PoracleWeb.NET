@@ -23,6 +23,8 @@ export const GRUNT_TYPE_ID: Record<string, number> = {
   poison: 4,
   psychic: 14,
   rock: 6,
+  // New rules say steel; rules saved before PoracleWeb.NET used the game data's name still say metal.
+  steel: 9,
   water: 11,
 };
 
@@ -67,6 +69,7 @@ export const GENDERED_INVASION_ID: Record<string, { male: number; female: number
   poison: { female: 32, male: 33 },
   psychic: { female: 34, male: 35 },
   rock: { female: 36, male: 37 },
+  steel: { female: 28, male: 29 },
   water: { female: 38, male: 39 },
 };
 
@@ -112,6 +115,7 @@ export const GRUNT_DISPLAY_KEYS: Record<string, string> = {
   psychic: 'INVASIONS.GRUNT_TYPES.PSYCHIC',
   rock: 'INVASIONS.GRUNT_TYPES.ROCK',
   sierra: 'INVASIONS.GRUNT_TYPES.SIERRA',
+  steel: 'INVASIONS.GRUNT_TYPES.METAL',
   water: 'INVASIONS.GRUNT_TYPES.WATER',
 };
 
