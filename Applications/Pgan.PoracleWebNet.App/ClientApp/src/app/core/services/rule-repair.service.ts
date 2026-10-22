@@ -1,0 +1,45 @@
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { Observable, catchError, of, throwError } from 'rxjs';
+
+import { ConfigService } from './config.service';
+import { RuleRepairStatus } from '../models';
+
+/**
+ * The admin rule repair job. A 409 from scan or apply means a run is already going (or, for apply,
+ * nothing has been scanned); the body is the current status, so it is returned as an answer rather than
+ * thrown, and the card shows the state it describes.
+ */
+@Injectable({ providedIn: 'root' })
+export class RuleRepairService {
+  private readonly config = inject(ConfigService);
+  private readonly http = inject(HttpClient);
+
+  apply(): Observable<RuleRepairStatus> {
+    return this.post('apply');
+  }
+
+  getStatus(): Observable<RuleRepairStatus> {
+    return this.http.get<RuleRepairStatus>(this.url(''));
+  }
+
+  scan(): Observable<RuleRepairStatus> {
+    return this.post('scan');
+  }
+
+  private post(action: 'apply' | 'scan'): Observable<RuleRepairStatus> {
+    return this.http
+      .post<RuleRepairStatus>(this.url(`/${action}`), {})
+      .pipe(
+        catchError((err: unknown) =>
+          err instanceof HttpErrorResponse && err.status === 409 && err.error?.phase
+            ? of(err.error as RuleRepairStatus)
+            : throwError(() => err),
+        ),
+      );
+  }
+
+  private url(suffix: string): string {
+    return `${this.config.apiHost}/api/admin/rule-repair${suffix}`;
+  }
+}

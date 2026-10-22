@@ -15,6 +15,9 @@ const SILENT_URL_PATTERNS = [
   '/api/auth/providers',
   '/api/admin/users/avatars',
   '/api/settings',
+  // RuleRepairService turns the expected 409 (a run is already going) into the status it carries, and the
+  // card words every other failure itself.
+  '/api/admin/rule-repair',
   // MuteService owns its own messaging, including the benign 404 from resuming a quiet period that
   // had already lapsed -- the store expires entries itself, so that is the ordinary case.
   '/api/mutes',

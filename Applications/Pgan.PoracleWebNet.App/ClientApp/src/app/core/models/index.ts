@@ -828,3 +828,44 @@ export interface PokestopEvent {
 export type PokestopEventCreate = Omit<PokestopEvent, 'eventName' | 'id' | 'profileNo' | 'uid'>;
 
 export type PokestopEventUpdate = Partial<PokestopEventCreate>;
+
+export type RuleRepairKind = 'CannotEdit' | 'MaxBattleAnyBossLevel9000' | 'MetalGrunt' | 'RaidAnyBossLevel9000' | 'RaidPokemonZero';
+
+export type RuleRepairPhase = 'Applied' | 'Applying' | 'Failed' | 'Idle' | 'Scanned' | 'Scanning';
+
+export interface RuleRepairItem {
+  after: null | string;
+  before: string;
+  humanId: string;
+  kind: RuleRepairKind;
+  profileNo: number;
+  reason: null | string;
+  type: string;
+  uid: number;
+}
+
+export interface RuleRepairSkip {
+  humanId: string;
+  reason: string;
+}
+
+export interface RuleRepairApplyResult {
+  alreadyFine: number;
+  conflicts: number;
+  failed: RuleRepairItem[];
+  gone: number;
+  repaired: number;
+}
+
+export interface RuleRepairStatus {
+  applied: null | RuleRepairApplyResult;
+  cannotEdit: RuleRepairItem[];
+  error: null | string;
+  finishedAt: null | string;
+  humansDone: number;
+  humansTotal: number;
+  phase: RuleRepairPhase;
+  repairable: RuleRepairItem[];
+  skipped: RuleRepairSkip[];
+  startedAt: null | string;
+}

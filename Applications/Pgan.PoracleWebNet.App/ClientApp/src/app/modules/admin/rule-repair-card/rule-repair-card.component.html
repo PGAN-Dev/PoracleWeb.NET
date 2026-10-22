@@ -1,0 +1,132 @@
+<mat-card class="repair-card">
+  <mat-card-content>
+    <div class="repair-header">
+      <h2>{{ 'ADMIN.RULE_REPAIR.TITLE' | translate }}</h2>
+      <button mat-stroked-button data-test="scan" [disabled]="busy()" (click)="scan()">
+        <mat-icon>search</mat-icon>
+        {{ (status().phase === 'Idle' ? 'ADMIN.RULE_REPAIR.SCAN' : 'ADMIN.RULE_REPAIR.RESCAN') | translate }}
+      </button>
+    </div>
+    <p class="repair-desc">{{ 'ADMIN.RULE_REPAIR.DESC' | translate }}</p>
+
+    @if (requestFailed()) {
+      <div class="repair-alert repair-alert-error" role="alert">
+        <mat-icon>error</mat-icon>
+        <span>{{ 'ADMIN.RULE_REPAIR.REQUEST_FAILED' | translate }}</span>
+      </div>
+    }
+
+    @if (status().phase === 'Failed') {
+      <div class="repair-alert repair-alert-error" role="alert">
+        <mat-icon>error</mat-icon>
+        <span>{{ 'ADMIN.RULE_REPAIR.RUN_FAILED' | translate }} {{ status().error }}</span>
+      </div>
+    }
+
+    @if (busy()) {
+      <p class="repair-progress-text">
+        {{
+          (status().phase === 'Scanning' ? 'ADMIN.RULE_REPAIR.SCANNING' : 'ADMIN.RULE_REPAIR.APPLYING')
+            | translate: { done: status().humansDone, total: status().humansTotal }
+        }}
+      </p>
+      <mat-progress-bar mode="determinate" [value]="progress()"></mat-progress-bar>
+    }
+
+    @if (status().phase === 'Scanned') {
+      @if (status().repairable.length === 0) {
+        <p class="repair-note">{{ 'ADMIN.RULE_REPAIR.NOTHING' | translate }}</p>
+      } @else {
+        <p class="repair-note">{{ 'ADMIN.RULE_REPAIR.FOUND' | translate: { count: status().repairable.length } }}</p>
+      }
+    }
+
+    @if (status().phase === 'Applied' && status().applied; as result) {
+      <h3 class="repair-section">{{ 'ADMIN.RULE_REPAIR.RESULT_TITLE' | translate }}</h3>
+      <ul class="repair-result">
+        <li>{{ 'ADMIN.RULE_REPAIR.RESULT_REPAIRED' | translate: { count: result.repaired } }}</li>
+        <li>{{ 'ADMIN.RULE_REPAIR.RESULT_ALREADY_FINE' | translate: { count: result.alreadyFine } }}</li>
+        <li>{{ 'ADMIN.RULE_REPAIR.RESULT_CONFLICTS' | translate: { count: result.conflicts } }}</li>
+        <li>{{ 'ADMIN.RULE_REPAIR.RESULT_GONE' | translate: { count: result.gone } }}</li>
+        <li>{{ 'ADMIN.RULE_REPAIR.RESULT_FAILED' | translate: { count: result.failed.length } }}</li>
+      </ul>
+      @if (result.failed.length > 0) {
+        <ul class="repair-reasons">
+          @for (f of result.failed; track f.humanId + f.type + f.profileNo + f.uid) {
+            <li>
+              <code>{{ f.humanId }} · {{ f.type }} #{{ f.uid }}</code>
+              {{ f.reason }}
+            </li>
+          }
+        </ul>
+      }
+    } @else {
+      @for (group of groups(); track group.kind) {
+        <h3 class="repair-section">{{ group.labelKey | translate }} ({{ group.items.length }})</h3>
+        <div class="repair-table-wrap">
+          <table class="repair-table">
+            <thead>
+              <tr>
+                <th scope="col">{{ 'ADMIN.RULE_REPAIR.COL_USER' | translate }}</th>
+                <th scope="col">{{ 'ADMIN.RULE_REPAIR.COL_RULE' | translate }}</th>
+                <th scope="col">{{ 'ADMIN.RULE_REPAIR.COL_PROFILE' | translate }}</th>
+                <th scope="col">{{ 'ADMIN.RULE_REPAIR.COL_BEFORE' | translate }}</th>
+                <th scope="col">{{ 'ADMIN.RULE_REPAIR.COL_AFTER' | translate }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (i of group.shown; track i.humanId + i.type + i.profileNo + i.uid) {
+                <tr>
+                  <td>{{ i.humanId }}</td>
+                  <td>{{ i.type }} #{{ i.uid }}</td>
+                  <td>{{ i.profileNo }}</td>
+                  <td>{{ i.before }}</td>
+                  <td>{{ i.after }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        @if (group.items.length > group.shown.length) {
+          <p class="repair-more">{{ 'ADMIN.RULE_REPAIR.SHOWING' | translate: { shown: group.shown.length, total: group.items.length } }}</p>
+        }
+      }
+    }
+
+    @if (canRepair()) {
+      <div class="repair-actions">
+        <button mat-flat-button data-test="repair" [disabled]="busy()" (click)="repair()">
+          <mat-icon>build</mat-icon>
+          {{ 'ADMIN.RULE_REPAIR.REPAIR' | translate }}
+        </button>
+      </div>
+    }
+
+    @if ((status().phase === 'Scanned' || status().phase === 'Applied') && status().cannotEdit.length > 0) {
+      <h3 class="repair-section">{{ 'ADMIN.RULE_REPAIR.CANNOT_EDIT_TITLE' | translate }} ({{ status().cannotEdit.length }})</h3>
+      <p class="repair-note">{{ 'ADMIN.RULE_REPAIR.CANNOT_EDIT_DESC' | translate }}</p>
+      <ul class="repair-reasons">
+        @for (c of status().cannotEdit; track c.humanId + c.type + c.profileNo + c.uid) {
+          <li>
+            <code>{{ c.humanId }} · {{ c.type }} #{{ c.uid }} · {{ 'ADMIN.RULE_REPAIR.COL_PROFILE' | translate }} {{ c.profileNo }}</code>
+            {{ c.reason }}
+          </li>
+        }
+      </ul>
+    }
+
+    @if ((status().phase === 'Scanned' || status().phase === 'Applied') && status().skipped.length > 0) {
+      <details class="repair-skipped">
+        <summary>{{ 'ADMIN.RULE_REPAIR.SKIPPED' | translate: { count: status().skipped.length } }}</summary>
+        <ul class="repair-reasons">
+          @for (s of status().skipped; track s.humanId) {
+            <li>
+              <code>{{ s.humanId }}</code>
+              {{ s.reason }}
+            </li>
+          }
+        </ul>
+      </details>
+    }
+  </mat-card-content>
+</mat-card>
