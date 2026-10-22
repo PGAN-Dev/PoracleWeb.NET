@@ -844,7 +844,7 @@
     "SELECTION_SUMMARY_ONE": "{{count}} zone sélectionnée",
     "SELECTION_SUMMARY_OTHER": "{{count}} zones sélectionnées",
     "CLEAR_ALL": "Tout effacer",
-    "MAP_HINT": "Clique sur une zone sur la carte pour la basculer",
+    "MAP_HINT": "Sélectionne une zone sur la carte pour la basculer",
     "NO_GEOFENCE_DATA": "Aucune donnée de geofence disponible. Utilise la vue Liste pour sélectionner des zones.",
     "SEARCH_REGION": "Rechercher par région",
     "API_OFFLINE": "Les geofences de zone ne sont pas disponibles. L'API Poracle est peut-être hors ligne.",

@@ -165,7 +165,7 @@ export class DashboardComponent implements OnInit {
     },
     {
       disableKey: 'disable_quests',
-      icon: 'explore',
+      icon: 'assignment',
       key: 'quests',
       label: 'DASHBOARD.CARD_QUESTS',
       route: '/quests',
@@ -186,7 +186,7 @@ export class DashboardComponent implements OnInit {
     },
     {
       disableKey: 'disable_lures',
-      icon: 'location_on',
+      icon: 'place',
       key: 'lures',
       label: 'DASHBOARD.CARD_LURES',
       route: '/lures',

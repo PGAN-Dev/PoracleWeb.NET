@@ -44,6 +44,22 @@ type PickerMode = 'areas' | 'inherit' | 'near';
  * those states cannot be expressed. The radius is the one thing left to check, and the picker reports
  * it to its host through `radiusValid`.
  */
+/**
+ * One option per stored area. A drawn fence arrives from both the subscribed list and the caller's own
+ * fences; both rows carried the same value, so it showed twice and ticking one ticked both. The key is
+ * PoracleNG's: lowercase, trimmed, `_` equal to a space. The own entry wins, for its pencil mark and its
+ * stored name.
+ */
+function mergeAreas(areas: { name: string; own: boolean }[]): { name: string; own: boolean }[] {
+  const byKey = new Map<string, { name: string; own: boolean }>();
+  for (const area of areas) {
+    const key = area.name.trim().toLowerCase().replace(/_/g, ' ');
+    const have = byKey.get(key);
+    if (!have || (area.own && !have.own)) byKey.set(key, area);
+  }
+  return [...byKey.values()];
+}
+
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
@@ -199,7 +215,7 @@ export class ScopePickerComponent implements OnInit {
         const keep = new Set([...selected, ...(this.scope().areas ?? [])].map(name => name.toLowerCase()));
         const mine = available.filter(area => keep.has(area.name.toLowerCase()));
 
-        this.availableAreas.update(current => [...mine.map(a => ({ name: a.name, own: false })), ...current]);
+        this.availableAreas.update(current => mergeAreas([...mine.map(a => ({ name: a.name, own: false })), ...current]));
       },
     });
 
@@ -207,7 +223,7 @@ export class ScopePickerComponent implements OnInit {
       error: () => undefined,
       next: own => {
         this.areaNames.learn(own);
-        this.availableAreas.update(current => [...current, ...own.map(g => ({ name: g.kojiName, own: true }))]);
+        this.availableAreas.update(current => mergeAreas([...current, ...own.map(g => ({ name: g.kojiName, own: true }))]));
       },
     });
   }

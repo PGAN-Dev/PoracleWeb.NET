@@ -844,7 +844,7 @@
     "SELECTION_SUMMARY_ONE": "{{count}} area selezionata",
     "SELECTION_SUMMARY_OTHER": "{{count}} aree selezionate",
     "CLEAR_ALL": "Cancella tutto",
-    "MAP_HINT": "Clicca su un'area sulla mappa per attivarla o disattivarla",
+    "MAP_HINT": "Seleziona un'area sulla mappa per attivarla o disattivarla",
     "NO_GEOFENCE_DATA": "Nessun dato geofence disponibile. Usa la vista Lista per selezionare le aree.",
     "SEARCH_REGION": "Cerca per regione",
     "API_OFFLINE": "Le geofence delle aree non sono disponibili. L'API Poracle potrebbe essere offline.",

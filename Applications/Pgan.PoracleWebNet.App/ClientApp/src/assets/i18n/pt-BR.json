@@ -844,7 +844,7 @@
     "SELECTION_SUMMARY_ONE": "{{count}} área selecionada",
     "SELECTION_SUMMARY_OTHER": "{{count}} áreas selecionadas",
     "CLEAR_ALL": "Limpar tudo",
-    "MAP_HINT": "Clique em uma área no mapa para alterá-la",
+    "MAP_HINT": "Selecione uma área no mapa para alterá-la",
     "NO_GEOFENCE_DATA": "Nenhum dado de geofence disponível. Use a visualização em lista para selecionar áreas.",
     "SEARCH_REGION": "Buscar por região",
     "API_OFFLINE": "Geofences de área não estão disponíveis. A API do Poracle pode estar offline.",

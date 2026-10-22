@@ -844,7 +844,7 @@
     "SELECTION_SUMMARY_ONE": "{{count}} Gebiet ausgewählt",
     "SELECTION_SUMMARY_OTHER": "{{count}} Gebiete ausgewählt",
     "CLEAR_ALL": "Alle löschen",
-    "MAP_HINT": "Klicke auf ein Gebiet auf der Karte, um es umzuschalten",
+    "MAP_HINT": "Wähle ein Gebiet auf der Karte, um es umzuschalten",
     "NO_GEOFENCE_DATA": "Keine Geofence-Daten verfügbar. Verwende die Listenansicht, um Gebiete auszuwählen.",
     "SEARCH_REGION": "Nach Region suchen",
     "API_OFFLINE": "Gebiets-Geofences sind nicht verfügbar. Die Poracle API ist möglicherweise offline.",

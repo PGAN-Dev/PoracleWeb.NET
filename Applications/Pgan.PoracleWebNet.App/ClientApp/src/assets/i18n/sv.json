@@ -844,7 +844,7 @@
     "SELECTION_SUMMARY_ONE": "{{count}} område valt",
     "SELECTION_SUMMARY_OTHER": "{{count}} områden valda",
     "CLEAR_ALL": "Rensa allt",
-    "MAP_HINT": "Klicka på ett område på kartan för att växla det",
+    "MAP_HINT": "Välj ett område på kartan för att växla det",
     "NO_GEOFENCE_DATA": "Ingen geofence-data tillgänglig. Använd listvyn för att välja områden.",
     "SEARCH_REGION": "Sök efter region",
     "API_OFFLINE": "Områdes-geofences är inte tillgängliga. Poracle API kan vara offline.",

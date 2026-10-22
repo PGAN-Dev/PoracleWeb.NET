@@ -844,7 +844,7 @@
     "SELECTION_SUMMARY_ONE": "{{count}} area selected",
     "SELECTION_SUMMARY_OTHER": "{{count}} areas selected",
     "CLEAR_ALL": "Clear all",
-    "MAP_HINT": "Click an area on the map to toggle it",
+    "MAP_HINT": "Select an area on the map to toggle it",
     "NO_GEOFENCE_DATA": "No geofence data available. Use the List view to select areas.",
     "SEARCH_REGION": "Search by region",
     "API_OFFLINE": "Area geofences are not available. The Poracle API may be offline.",

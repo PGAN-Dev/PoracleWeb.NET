@@ -844,7 +844,7 @@
     "SELECTION_SUMMARY_ONE": "{{count}} zona seleccionada",
     "SELECTION_SUMMARY_OTHER": "{{count}} zonas seleccionadas",
     "CLEAR_ALL": "Borrar todo",
-    "MAP_HINT": "Haz clic en una zona del mapa para activarla o desactivarla",
+    "MAP_HINT": "Selecciona una zona del mapa para activarla o desactivarla",
     "NO_GEOFENCE_DATA": "No hay datos de geofence disponibles. Usa la vista de Lista para seleccionar zonas.",
     "SEARCH_REGION": "Buscar por región",
     "API_OFFLINE": "Las geofences de zona no están disponibles. La API de Poracle puede estar fuera de línea.",

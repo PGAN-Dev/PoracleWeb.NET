@@ -844,7 +844,7 @@
     "SELECTION_SUMMARY_ONE": "{{count}} gebied geselecteerd",
     "SELECTION_SUMMARY_OTHER": "{{count}} gebieden geselecteerd",
     "CLEAR_ALL": "Alles wissen",
-    "MAP_HINT": "Klik op een gebied op de kaart om het in- of uit te schakelen",
+    "MAP_HINT": "Selecteer een gebied op de kaart om het in- of uit te schakelen",
     "NO_GEOFENCE_DATA": "Geen geofence-gegevens beschikbaar. Gebruik de Lijstweergave om gebieden te selecteren.",
     "SEARCH_REGION": "Zoek op regio",
     "API_OFFLINE": "Gebied-geofences zijn niet beschikbaar. De Poracle API is mogelijk offline.",

@@ -116,6 +116,25 @@ describe('ScopePickerComponent', () => {
       expect(picker.availableAreas().map(a => a.name)).toEqual(['Bon Air - Robious']);
     });
 
+    it('lists a drawn fence once when both the subscribed and the own lists carry it', () => {
+      const picker = create({ areas: [], mode: 'areas' });
+      const http = TestBed.inject(HttpTestingController);
+
+      http.expectOne('http://test/api/areas/available').flush([
+        { name: 'ikea lot', group: 'g', userSelectable: false },
+        { name: 'Aliamanu', group: 'g', userSelectable: true },
+      ]);
+      http.expectOne('http://test/api/areas').flush(['ikea lot', 'aliamanu']);
+      http.expectOne('http://test/api/geofences/custom').flush([{ displayName: 'IKEA Lot', kojiName: 'ikea lot' }]);
+      http.match(() => true).forEach(r => r.flush([]));
+      fixture.detectChanges();
+
+      expect(picker.availableAreas()).toEqual([
+        { name: 'ikea lot', own: true },
+        { name: 'Aliamanu', own: false },
+      ]);
+    });
+
     it('offers nothing from the instance when the user subscribes to nothing', () => {
       const picker = answer({ areas: [], mode: 'areas' }, ['Mechanicsville', 'Aliamanu'], []);
 

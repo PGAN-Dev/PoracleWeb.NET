@@ -57,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **"Only in specific areas" listed every drawn geofence twice, and ticking one ticked both.** The picker now shows one entry per area. Two geofences that share a name (a second "Lake Eola Loop") are told apart by their number, "Lake Eola Loop (2)". The New alarm menu on the dashboard uses the same Quests and Lures icons as the sidebar, "Clear all" on Areas has its own icon, and the map hint reads "Select an area on the map" so it fits touch screens.
 - **The labels left in Title Case read in sentence case**, in English and in the translations that capitalised every word: "Select all", "Set location", "Use my location", "Lure types", "Track slot changes", "Min spawns/hour", "Any team", "Add webhook", "Import geofences", "Review geofence", "User geofences", the admin settings labels and more. Help and the docs quote the new labels.
 - **Every language spells Pokémon and Pokéstop with the accent**, as the game does; ten locales wrote "Pokemon" in the sidebar, the dialogs and Help.
 - **French names the PvP leagues as the game does**: Super Ligue and Hyper Ligue.

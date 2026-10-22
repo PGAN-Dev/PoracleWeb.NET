@@ -880,7 +880,7 @@
     "SELECTION_SUMMARY_MANY": "Wybrano {{count}} obszarów",
     "SELECTION_SUMMARY_OTHER": "Wybrano {{count}} obszarów",
     "CLEAR_ALL": "Wyczyść wszystko",
-    "MAP_HINT": "Kliknij obszar na mapie, aby go przełączyć",
+    "MAP_HINT": "Wybierz obszar na mapie, aby go przełączyć",
     "NO_GEOFENCE_DATA": "Brak danych geofence. Użyj widoku listy, aby wybrać obszary.",
     "SEARCH_REGION": "Szukaj po regionie",
     "API_OFFLINE": "Geofence obszarów nie są dostępne. API Poracle może być offline.",

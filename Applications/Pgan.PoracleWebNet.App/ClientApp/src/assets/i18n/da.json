@@ -844,7 +844,7 @@
     "SELECTION_SUMMARY_ONE": "{{count}} område valgt",
     "SELECTION_SUMMARY_OTHER": "{{count}} områder valgt",
     "CLEAR_ALL": "Ryd alt",
-    "MAP_HINT": "Klik på et område på kortet for at skifte det",
+    "MAP_HINT": "Vælg et område på kortet for at skifte det",
     "NO_GEOFENCE_DATA": "Ingen geofence-data tilgængelig. Brug listevisningen til at vælge områder.",
     "SEARCH_REGION": "Søg efter region",
     "API_OFFLINE": "Område-geofences er ikke tilgængelige. Poracle API er muligvis offline.",

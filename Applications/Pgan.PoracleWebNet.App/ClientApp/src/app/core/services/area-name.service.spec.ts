@@ -33,6 +33,13 @@ describe('AreaNameService', () => {
     expect(names.label('terrigal')).toBe('Terrigal');
   });
 
+  it('tells two fences with one display name apart', () => {
+    const names = setup(() => of([{ displayName: 'Lake Eola Loop', kojiName: 'lake eola loop' }, loop]));
+
+    expect(names.label('lake eola loop')).toBe('Lake Eola Loop');
+    expect(names.label('lake eola loop 2')).toBe('Lake Eola Loop (2)');
+  });
+
   it('follows a create and a rename without another read', () => {
     const names = setup(() => of([]));
     expect(names.label('lake eola')).toBe('Lake Eola');

@@ -1,4 +1,4 @@
-import { Injectable, Injector, effect, inject, signal } from '@angular/core';
+import { Injectable, Injector, computed, effect, inject, signal } from '@angular/core';
 
 import { AuthService } from './auth.service';
 import { UserGeofenceService } from './user-geofence.service';
@@ -29,6 +29,21 @@ export class AreaNameService {
   private reading = false;
   /** Bumped on a session change so a read that was in flight for the old account is dropped. */
   private session = 0;
+  /**
+   * What `loaded` reads as. Two fences can share a display name ("Lake Eola Loop" and its collision twin
+   * `lake eola loop 2`); the later one gets its key's number so they can be told apart.
+   */
+  private readonly shown = computed(() => {
+    const seen = new Map<string, number>();
+    const out = new Map<string, string>();
+    for (const [key, name] of [...this.loaded()].sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }))) {
+      const same = name.trim().toLowerCase();
+      const count = (seen.get(same) ?? 0) + 1;
+      seen.set(same, count);
+      out.set(key, count === 1 ? name : `${name} (${/(d+)$/.exec(key)?.[1] ?? count})`);
+    }
+    return out;
+  });
 
   constructor() {
     try {
@@ -49,7 +64,7 @@ export class AreaNameService {
   /** The name to show for a stored area name. */
   label(area: string): string {
     this.load();
-    return this.loaded().get(area.toLowerCase()) ?? titleCaseArea(area);
+    return this.shown().get(area.toLowerCase()) ?? titleCaseArea(area);
   }
 
   /** Feeds fences a host has already read or just saved, so they needn't be read again. */
