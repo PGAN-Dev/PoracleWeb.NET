@@ -10,7 +10,7 @@
   gap: 8px;
   padding: 8px 16px;
   // Near-black on amber, 7.5:1. White on this amber was 2.15:1 (axe color-contrast), on the one banner
-  // that tells an admin they are acting as somebody else (impersonation-banner-contrast.spec.ts).
+  // that tells an admin they are acting as somebody else (theme-a11y.spec.ts).
   background-color: #ff9800;
   color: #212121;
   --mat-focus-indicator-border-color: #212121;
