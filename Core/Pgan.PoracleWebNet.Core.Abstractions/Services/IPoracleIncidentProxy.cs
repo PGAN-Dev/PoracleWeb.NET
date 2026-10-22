@@ -39,12 +39,24 @@ public interface IPoracleIncidentProxy
     public Task<PokestopEventWriteResult> CreateAsync(string userId, IEnumerable<PokestopEvent> rules, bool dryRun = false);
 
     /// <summary>
+    /// <see cref="CreateAsync(string, IEnumerable{PokestopEvent}, bool)"/> on profile <paramref name="profileNo"/>
+    /// (<c>?profile=N</c>) rather than the active one. Only profile import uses it.
+    /// </summary>
+    public Task<PokestopEventWriteResult> CreateAsync(string userId, IEnumerable<PokestopEvent> rules, int profileNo, bool dryRun);
+
+    /// <summary>
     /// Full-replaces one rule. The engine is delete-then-insert, so on 5.2.x the replacement gets a NEW uid.
     /// Since jfberry/PoracleNG #303 the uid is kept, but a failed reassignment still returns a new one, so
     /// the result is always read. PoracleNG answers 409 when the replacement would duplicate another rule.
     /// Override areas are authorised as on a create, allowing the ones this rule already holds.
     /// </summary>
     public Task<PokestopEventWriteResult> ReplaceAsync(string userId, int uid, PokestopEvent rule);
+
+    /// <summary>
+    /// <see cref="ReplaceAsync(string, int, PokestopEvent)"/> on profile <paramref name="profileNo"/>: v2 finds a
+    /// uid on the addressed profile only, so a rule on a profile other than the active one is reached this way.
+    /// </summary>
+    public Task<PokestopEventWriteResult> ReplaceAsync(string userId, int uid, PokestopEvent rule, int profileNo);
 
     /// <summary>Deletes one rule by uid.</summary>
     public Task DeleteByUidAsync(string userId, int uid);

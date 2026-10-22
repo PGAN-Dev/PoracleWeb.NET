@@ -11,12 +11,13 @@ public class ProfileOverviewServiceTests
     private readonly Mock<IPoracleHumanProxy> _humanProxy = new();
     private readonly Mock<IPoracleTrackingProxy> _proxy = new();
     private readonly Mock<IFeatureGate> _featureGate = new();
+    private readonly Mock<IPoracleIncidentProxy> _incident = new();
     private readonly ProfileOverviewService _sut;
 
     public ProfileOverviewServiceTests()
     {
         this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
-        this._sut = new ProfileOverviewService(this._proxy.Object, this._humanProxy.Object, this._featureGate.Object);
+        this._sut = new ProfileOverviewService(this._proxy.Object, this._humanProxy.Object, this._featureGate.Object, this._incident.Object);
     }
 
     [Fact]
@@ -288,6 +289,90 @@ public class ProfileOverviewServiceTests
         Assert.Equal(DisableFeatureKeys.Invasions, ex.DisableKey);
         this._humanProxy.Verify(h => h.SwitchProfileAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
         this._proxy.Verify(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+    }
+
+    // ── Pokestop events and legacy grunt names in an import ─────────────────
+    // An export folds Pokestop events into the invasion array (as v1 held them), and older rules say metal.
+    // v2's invasion route refuses both, and a refusal there came after the earlier types were written.
+
+    [Fact]
+    public async Task ImportSendsEventGruntsToIncidentOnTheTargetProfileAndMetalAsSteel()
+    {
+        var alarms = CreateJsonObject(new
+        {
+            pokemon = new[] { new { pokemon_id = 1 } },
+            invasion = new object[]
+            {
+                new { uid = 289, grunt_type = "kecleon", gender = 0, distance = 500, template = "2", clean = 1 },
+                new { grunt_type = "metal", gender = 1 },
+            },
+        });
+        var bodies = new Dictionary<string, JsonElement>();
+        this._proxy
+            .Setup(p => p.CreateOnProfileAsync(It.IsAny<string>(), "u1", It.IsAny<JsonElement>(), 5))
+            .Callback<string, string, JsonElement, int>((t, _, b, _) => bodies[t] = b.Clone())
+            .ReturnsAsync((string _, string _, JsonElement b, int _) => new TrackingCreateResult([], 0, 0, b.GetArrayLength()));
+        List<PokestopEvent>? committed = null;
+        this._incident
+            .Setup(p => p.CreateAsync("u1", It.IsAny<IEnumerable<PokestopEvent>>(), 5, It.IsAny<bool>()))
+            .ReturnsAsync((string _, IEnumerable<PokestopEvent> rules, int _, bool dryRun) =>
+            {
+                List<PokestopEvent> list = [.. rules];
+                if (!dryRun)
+                {
+                    committed = list;
+                }
+
+                return new PokestopEventWriteResult(
+                    [.. list.Select(r => new PokestopEvent { Uid = dryRun ? 0 : 300, DisplayType = r.DisplayType })], [], []);
+            });
+
+        var created = await this._sut.ImportAlarmsAsync("u1", 5, alarms);
+
+        Assert.Equal(3, created);
+        var invasion = Assert.Single(bodies["invasion"].EnumerateArray());
+        Assert.Equal("steel", invasion.GetProperty("grunt_type").GetString());
+        Assert.DoesNotContain("kecleon", bodies["invasion"].GetRawText(), StringComparison.Ordinal);
+        var rule = Assert.Single(committed!);
+        Assert.Equal(PokestopEventTypes.Kecleon, rule.DisplayType);
+        Assert.Equal(500, rule.Distance);
+        Assert.Equal("2", rule.Template);
+        Assert.Equal(1, rule.Clean);
+        this._incident.Verify(
+            p => p.CreateAsync(It.IsAny<string>(), It.IsAny<IEnumerable<PokestopEvent>>(), It.IsAny<bool>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ImportOfOnlyEventGruntsMakesNoInvasionWrite()
+    {
+        var alarms = CreateJsonObject(new { invasion = new[] { new { grunt_type = "showcase", gender = 0 } } });
+        this._incident
+            .Setup(p => p.CreateAsync("u1", It.IsAny<IEnumerable<PokestopEvent>>(), 5, It.IsAny<bool>()))
+            .ReturnsAsync((string _, IEnumerable<PokestopEvent> rules, int _, bool dryRun) =>
+                new PokestopEventWriteResult([new PokestopEvent { Uid = dryRun ? 0 : 301, DisplayType = PokestopEventTypes.Showcase }], [], []));
+
+        Assert.Equal(1, await this._sut.ImportAlarmsAsync("u1", 5, alarms));
+        this._proxy.Verify(
+            p => p.CreateOnProfileAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ImportRefusesAnEventWithAGenderBeforeWritingAnything()
+    {
+        // The event row comes after pokemon in the file's write order; the refusal must still come first.
+        var alarms = CreateJsonObject(new
+        {
+            pokemon = new[] { new { pokemon_id = 1 } },
+            invasion = new[] { new { grunt_type = "gold-stop", gender = 2 } },
+        });
+
+        var ex = await Assert.ThrowsAsync<AlarmValidationException>(() => this._sut.ImportAlarmsAsync("u1", 5, alarms));
+
+        Assert.StartsWith("PoracleNG can't store this alarm as it is:", ex.Message, StringComparison.Ordinal);
+        this._proxy.Verify(
+            p => p.CreateOnProfileAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>(), It.IsAny<int>()), Times.Never);
+        this._incident.Verify(
+            p => p.CreateAsync(It.IsAny<string>(), It.IsAny<IEnumerable<PokestopEvent>>(), It.IsAny<int>(), It.IsAny<bool>()), Times.Never);
     }
 
     private static JsonElement CreateJsonObject(object obj)

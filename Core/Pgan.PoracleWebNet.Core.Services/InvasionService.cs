@@ -284,7 +284,7 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
     /// otherwise be saved as something other than what was sent. No stored event rule carries one.
     /// </para>
     /// </remarks>
-    private static PokestopEvent? AsPokestopEvent(Invasion model)
+    internal static PokestopEvent? AsPokestopEvent(Invasion model)
     {
         if (PokestopEventTypes.DisplayTypeFor(model.GruntType) is not int displayType)
         {

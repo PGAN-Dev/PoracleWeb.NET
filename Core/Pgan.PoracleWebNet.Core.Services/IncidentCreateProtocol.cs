@@ -28,17 +28,24 @@ internal static class IncidentCreateProtocol
 {
     /// <summary>Creates <paramref name="rules"/>.</summary>
     /// <param name="single">One rule the user asked for: a takeover is refused rather than skipped.</param>
+    /// <param name="profileNo">The profile to write to (<c>?profile=N</c>); null for the active one.</param>
     /// <returns>The uid each rule was created under, index for index; 0 where nothing was written.</returns>
     public static async Task<int[]> CreateAsync(
-        IPoracleIncidentProxy proxy, string userId, IReadOnlyList<PokestopEvent> rules, bool single)
+        IPoracleIncidentProxy proxy, string userId, IReadOnlyList<PokestopEvent> rules, bool single, int? profileNo = null)
     {
+        Task<PokestopEventWriteResult> Post(IEnumerable<PokestopEvent> batch, bool dryRun) =>
+            profileNo is { } no ? proxy.CreateAsync(userId, batch, no, dryRun) : proxy.CreateAsync(userId, batch, dryRun);
+
+        Task<PokestopEventWriteResult> Put(int uid, PokestopEvent rule) =>
+            profileNo is { } no ? proxy.ReplaceAsync(userId, uid, rule, no) : proxy.ReplaceAsync(userId, uid, rule);
+
         var uids = new int[rules.Count];
         if (rules.Count == 0)
         {
             return uids;
         }
 
-        var dry = await proxy.CreateAsync(userId, rules, dryRun: true);
+        var dry = await Post(rules, dryRun: true);
         List<int> keep;
 
         if (dry.Updated.Count == 0 && dry.Unchanged.Count == 0)
@@ -63,7 +70,7 @@ internal static class IncidentCreateProtocol
                 // One rule's batch answer already is its own classification.
                 var verdict = rules.Count == 1
                     ? VerdictOf(dry)
-                    : VerdictOf(await proxy.CreateAsync(userId, [rules[i]], dryRun: true));
+                    : VerdictOf(await Post([rules[i]], dryRun: true));
 
                 if (verdict == PoracleTrackingProxy.DryRunVerdict.Created)
                 {
@@ -77,14 +84,14 @@ internal static class IncidentCreateProtocol
             }
         }
 
-        var commit = await proxy.CreateAsync(userId, [.. keep.Select(i => rules[i])]);
+        var commit = await Post([.. keep.Select(i => rules[i])], dryRun: false);
 
         for (var u = 0; u < commit.Updated.Count; u++)
         {
             var previous = commit.Previous is { } all && u < all.Count ? all[u] : null;
             if (previous is not null && previous.Uid > 0)
             {
-                await proxy.ReplaceAsync(userId, previous.Uid, previous);
+                await Put(previous.Uid, previous);
             }
         }
 

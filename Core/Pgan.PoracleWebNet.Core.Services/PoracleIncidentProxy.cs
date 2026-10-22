@@ -33,22 +33,39 @@ public sealed partial class PoracleIncidentProxy(
         return ReadRules(root, "rules");
     }
 
-    public async Task<PokestopEventWriteResult> CreateAsync(string userId, IEnumerable<PokestopEvent> rules, bool dryRun = false)
+    public Task<PokestopEventWriteResult> CreateAsync(string userId, IEnumerable<PokestopEvent> rules, bool dryRun = false) =>
+        this.CreateCoreAsync(userId, rules, profileNo: null, dryRun);
+
+    public Task<PokestopEventWriteResult> CreateAsync(string userId, IEnumerable<PokestopEvent> rules, int profileNo, bool dryRun) =>
+        this.CreateCoreAsync(userId, rules, profileNo, dryRun);
+
+    public Task<PokestopEventWriteResult> ReplaceAsync(string userId, int uid, PokestopEvent rule) =>
+        this.ReplaceCoreAsync(userId, uid, rule, profileNo: null);
+
+    public Task<PokestopEventWriteResult> ReplaceAsync(string userId, int uid, PokestopEvent rule, int profileNo) =>
+        this.ReplaceCoreAsync(userId, uid, rule, profileNo);
+
+    private async Task<PokestopEventWriteResult> CreateCoreAsync(
+        string userId, IEnumerable<PokestopEvent> rules, int? profileNo, bool dryRun)
     {
         var list = rules.ToList();
         var trusted = await this.AuthoriseOverrideAreasAsync(userId, list, storedOnRule: null);
         var payload = "[" + string.Join(",", list.Select(RuleJson)) + "]";
-        var url = $"{this.Route(userId)}?silent=true{TrustedQuery(trusted)}{(dryRun ? "&dry_run=true" : string.Empty)}";
+        var url = $"{this.Route(userId)}?silent=true{ProfileQuery(profileNo)}{TrustedQuery(trusted)}"
+            + (dryRun ? "&dry_run=true" : string.Empty);
         var response = await this.SendAsync(HttpMethod.Post, url, payload, writeFeature: "saving alarms");
         return await ReadWriteResultAsync(response);
     }
 
-    public async Task<PokestopEventWriteResult> ReplaceAsync(string userId, int uid, PokestopEvent rule)
+    private async Task<PokestopEventWriteResult> ReplaceCoreAsync(string userId, int uid, PokestopEvent rule, int? profileNo)
     {
         var trusted = await this.AuthoriseOverrideAreasAsync(
-            userId, [rule], () => this.StoredOverrideAreasAsync(userId, uid));
+            userId, [rule], () => this.StoredOverrideAreasAsync(userId, uid, profileNo));
         var response = await this.SendAsync(
-            HttpMethod.Put, $"{this.Route(userId)}/{uid}?silent=true{TrustedQuery(trusted)}", RuleJson(rule), writeFeature: "saving alarms");
+            HttpMethod.Put,
+            $"{this.Route(userId)}/{uid}?silent=true{ProfileQuery(profileNo)}{TrustedQuery(trusted)}",
+            RuleJson(rule),
+            writeFeature: "saving alarms");
         return await ReadWriteResultAsync(response);
     }
 
@@ -107,14 +124,17 @@ public sealed partial class PoracleIncidentProxy(
     }
 
     /// <summary>The override areas the stored rule holds, read through v2's single-rule route.</summary>
-    private async Task<IReadOnlyCollection<string>> StoredOverrideAreasAsync(string userId, int uid)
+    private async Task<IReadOnlyCollection<string>> StoredOverrideAreasAsync(string userId, int uid, int? profileNo)
     {
-        var response = await this.SendAsync(HttpMethod.Get, $"{this.Route(userId)}/{uid}", body: null);
+        var query = profileNo is { } no ? $"?profile={no}" : string.Empty;
+        var response = await this.SendAsync(HttpMethod.Get, $"{this.Route(userId)}/{uid}{query}", body: null);
         var root = await ReadRootAsync(response);
         return [.. ReadRules(root, "rules").SelectMany(r => r.OverrideAreas ?? [])];
     }
 
     private static string TrustedQuery(bool trusted) => trusted ? "&trusted=true" : string.Empty;
+
+    private static string ProfileQuery(int? profileNo) => profileNo is { } no ? $"&profile={no}" : string.Empty;
 
     private string Route(string userId) =>
         $"{this._apiAddress}/api/v2/humans/{Uri.EscapeDataString(userId)}/tracking/incident";

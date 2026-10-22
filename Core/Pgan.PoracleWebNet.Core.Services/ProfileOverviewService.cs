@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
@@ -10,7 +11,8 @@ namespace Pgan.PoracleWebNet.Core.Services;
 public class ProfileOverviewService(
     IPoracleTrackingProxy trackingProxy,
     IPoracleHumanProxy humanProxy,
-    IFeatureGate featureGate) : IProfileOverviewService
+    IFeatureGate featureGate,
+    IPoracleIncidentProxy incidentProxy) : IProfileOverviewService
 {
     private static readonly string[] AlarmTypes =
         ["pokemon", "raid", "egg", "quest", "invasion", "lure", "nest", "gym", "maxbattle", "fort"];
@@ -18,6 +20,7 @@ public class ProfileOverviewService(
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly IPoracleTrackingProxy _trackingProxy = trackingProxy;
     private readonly IFeatureGate _featureGate = featureGate;
+    private readonly IPoracleIncidentProxy _incidentProxy = incidentProxy;
 
     public async Task<int> DuplicateProfileAsync(string userId, int sourceProfileNo, int newProfileNo)
     {
@@ -75,10 +78,45 @@ public class ProfileOverviewService(
         // worse than a refused one. See #548.
         EnsureAlarmsAreValid(alarms);
 
+        // Every row is prepared before the first write, so a row PoracleNG could not store is refused while
+        // nothing has been written yet rather than after the types ahead of it in AlarmTypes.
+        var (batches, events) = PrepareImport(alarms);
+
         // One v2 create per type, aimed at the target profile with ?profile=N. The user's active profile is
         // never switched, so there is nothing to restore if a write fails. A rule already on the target
         // exactly, or one that would take another rule over, is left out by PoracleNG and is not counted.
         var totalCreated = 0;
+        foreach (var (type, rows) in batches)
+        {
+            var body = JsonSerializer.SerializeToElement(rows);
+            var result = await this._trackingProxy.CreateOnProfileAsync(type, userId, body, targetProfileNo);
+            totalCreated += result.Inserts;
+        }
+
+        if (events.Count > 0)
+        {
+            var uids = await IncidentCreateProtocol.CreateAsync(
+                this._incidentProxy, userId, events, single: false, profileNo: targetProfileNo);
+            totalCreated += uids.Count(uid => uid > 0);
+        }
+
+        return totalCreated;
+    }
+
+    /// <summary>
+    /// The rows to write per type, in <see cref="AlarmTypes"/> order, and the Pokestop events the invasion
+    /// array carries.
+    /// </summary>
+    /// <remarks>
+    /// An export folds Pokestop events (kecleon, gold-stop, showcase) into the invasion array, as v1 held
+    /// them, and v2's invasion route refuses them; they are written to the incident route instead. A grunt
+    /// saved as <c>metal</c>, which v2 also refuses, is written as <c>steel</c>.
+    /// </remarks>
+    private static (List<(string Type, List<JsonElement> Rows)> Batches, List<PokestopEvent> Events) PrepareImport(JsonElement alarms)
+    {
+        var batches = new List<(string, List<JsonElement>)>();
+        var events = new List<PokestopEvent>();
+
         foreach (var type in AlarmTypes)
         {
             if (!alarms.TryGetProperty(type, out var alarmsArray) ||
@@ -101,22 +139,45 @@ public class ProfileOverviewService(
                         cleaned = PoracleJsonHelper.StripProperty(cleaned, owned);
                     }
                 }
+
+                if (type == "invasion" && cleaned.ValueKind == JsonValueKind.Object)
+                {
+                    var invasion = Deserialize<Invasion>(cleaned) ?? new Invasion();
+                    if (InvasionService.AsPokestopEvent(invasion) is { } pokestopEvent)
+                    {
+                        events.Add(pokestopEvent);
+                        continue;
+                    }
+
+                    cleaned = WithGruntType(cleaned, InvasionGruntTypes.Normalise(invasion.GruntType));
+                }
+
                 rows.Add(cleaned);
             }
 
-            if (rows.Count == 0)
+            if (rows.Count > 0)
             {
-                continue;
+                batches.Add((type, rows));
             }
-
-            var body = JsonSerializer.SerializeToElement(rows);
-            var result = await this._trackingProxy.CreateOnProfileAsync(type, userId, body, targetProfileNo);
-            totalCreated += result.Inserts;
         }
 
-        return totalCreated;
+        return (batches, events);
     }
 
+    private static JsonElement WithGruntType(JsonElement row, string? gruntType)
+    {
+        if (gruntType is null
+            || (row.TryGetProperty("grunt_type", out var stored)
+                && stored.ValueKind == JsonValueKind.String
+                && stored.GetString() == gruntType))
+        {
+            return row;
+        }
+
+        var node = JsonNode.Parse(row.GetRawText())!.AsObject();
+        node["grunt_type"] = gruntType;
+        return JsonSerializer.SerializeToElement(node);
+    }
 
     /// <summary>
     /// Runs each imported alarm through the same model rules a direct POST would.

@@ -167,6 +167,30 @@ public class PoracleIncidentProxyTests
     }
 
     [Fact]
+    public async Task ACreateOnATargetProfileNamesIt()
+    {
+        var handler = new Handler(new Reply(HttpStatusCode.OK, CreatedOk));
+
+        await CreateSut(handler).CreateAsync("u1", [new PokestopEvent { DisplayType = 9 }], 5, dryRun: true);
+
+        Assert.Equal($"{Route}?silent=true&profile=5&dry_run=true", Assert.Single(handler.Requests).Url);
+    }
+
+    [Fact]
+    public async Task AReplaceOnATargetProfileNamesItOnTheStoredReadAndThePut()
+    {
+        var handler = new Handler(
+            new Reply(HttpStatusCode.OK, """{"rules":[{"uid":740,"display_type":9,"override_areas":["old town"]}]}"""),
+            new Reply(HttpStatusCode.OK, """{"updated":[{"uid":740,"display_type":9}]}"""));
+        var sut = CreateSut(handler, RealPolicy(selectable: ["downtown"]));
+
+        await sut.ReplaceAsync("u1", 740, new PokestopEvent { DisplayType = 9, OverrideAreas = ["old town"] }, 5);
+
+        Assert.Equal($"{Route}/740?profile=5", handler.Requests[0].Url);
+        Assert.Equal($"{Route}/740?silent=true&profile=5&trusted=true", handler.Requests[1].Url);
+    }
+
+    [Fact]
     public async Task AnUpdatedRuleCarriesWhatItHeldBefore()
     {
         var handler = new Handler(new Reply(
