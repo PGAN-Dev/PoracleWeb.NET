@@ -15,47 +15,63 @@ A web application for managing Pokemon GO notification alarms through the [Porac
 
 | Layer | Technology |
 |---|---|
-| **Backend** | .NET 10, ASP.NET Core Web API, EF Core with MySQL (Oracle provider) |
-| **Frontend** | Angular 21, Angular Material 21 (Material Design 3), Leaflet maps |
-| **Auth** | Discord OAuth2, Telegram Bot Login, JWT bearer tokens |
-| **Testing** | Jest (frontend), xUnit (backend) |
-| **CI/CD** | GitHub Actions, Docker (ghcr.io) |
+| Backend | .NET 10, ASP.NET Core Web API, EF Core with MySQL (Oracle provider) |
+| Frontend | Angular 21, Angular Material 21 (Material Design 3), Leaflet maps |
+| Auth | Discord OAuth2, Telegram Bot Login, OIDC, JWT bearer tokens |
+| Testing | Jest (frontend), xUnit (backend) |
+| CI/CD | GitHub Actions, Docker (ghcr.io) |
 
 ## Features
 
-- **Alarm Management** — Create, edit, and delete filters for Pokemon, Raids, Eggs, Max Battles, Quests, Invasions, Pokéstop Events, Lures, Nests, Gyms, and Fort Changes
-- **Gym Picker** — Search and target specific gyms for team, raid, and egg alarms with photo thumbnails and area names (requires the scanner database)
-- **Pokemon Availability** — See which species are currently spawning when creating alarms (requires Golbat scanner)
-- **Bulk Operations** — Multi-select alarms with bulk delete and bulk distance update
-- **Alert Defaults** — Set where new alerts reach you by default: your areas, or a radius from your pin or a saved place
-- **Per-Alarm Delivery Scope** — Aim an individual alert anywhere in your areas, near a place or a point on the map, or only in specific areas — including geofences you drew yourself
-- **Saved Places** — Name the points your alerts measure from, so one alert can watch your workplace while the rest follow your pin
-- **Quick Picks** — Admin-defined alarm templates users can apply with one click
-- **Areas & Places** — Interactive Leaflet map for choosing geofence areas, dropping your pin, and naming the places your alerts measure from
-- **Custom Geofences** — Draw custom polygon geofences on a map, served to the Poracle bot via a built-in unified feed endpoint. Submit for admin review to promote to public areas.
-- **Geofence Admin Review** — Approve or reject user-submitted geofences with Discord forum integration
-- **Hide areas from users** — Take a staging or test area off Areas & Places, the per-alarm scope picker and the bot's area list without deleting it, from Admin → Areas
-- **Profile Switching** — Multiple alarm profiles per user
-- **Profile Active Hours** — Schedule automatic profile switching by day and time
-- **Discord Notification Preview** — Live preview of DTS templates with Handlebars evaluation
-- **Dark/Light Mode** — Theme toggle with localStorage persistence
-- **Accent Themes** — Customizable toolbar and UI accent colors (Pokemon, Raids, Mystic, Valor, Instinct)
-- **Responsive Design** — Full mobile support with fullscreen dialogs and collapsible sidebar
-- **Onboarding Wizard** — First-run setup guide for new users
-- **Keyboard Shortcuts** — ++question++ for help, ++bracket-left++ / ++bracket-right++ for sidebar collapse
-- **11 UI Languages** — Full interface translation (English, French, German, Spanish, Dutch, Italian, Portuguese, Brazilian Portuguese, Polish, Danish, Swedish). Pokemon names, types and forms follow the display language, translated by Poracle itself. What Poracle writes in your DMs is a separate choice, **Alert language**, in the user menu beside **Display language**
-- **Single Sign-On** — Discord and Telegram login, plus any OIDC provider ([setup](configuration/external-sso.md)), with optional [silent refresh and single logout](configuration/oidc-refresh-tokens.md)
-- **Admin Panel** — User management, webhook configuration, site settings, geofence submission review
-- **[Webhooks & Delegates](features/webhooks.md)** — Channel feeds managed as their own accounts, with named people allowed to manage one without being made an administrator
-- **Test Alerts** — Send a sample notification from an alarm card to preview exactly what your alerts look like (all types except Fort Changes, Max Battles and Pokéstop Events)
-- **Weather Display** — View current in-game weather at your pin and across all tracked areas on the dashboard (requires the scanner database)
-- **[Quiet Periods](features/quiet-periods.md)** — Silence one gym, area, species or Power Spot for a set time without touching the alarms themselves
-- **Pokéstop Events** — Track Showcases, Kecleon sightings and Gold Stops (governed by Poracle's own `general.disable_showcase`, not by a version check — a Poracle that does not publish that option does not get the page)
-- **Fort Change Tracking** — Get notified when pokestops or gyms are added, removed, renamed, relocated, re-described, or given a new image
-- **Max Battle (Dynamax) Alarms** — Track Dynamax and Gigantamax battles at Power Spots by level or specific Pokemon
-- **GeoJSON Import/Export** — Import and export custom geofences in standard GeoJSON format
-- **Profile Backup & Restore** — Export profiles as JSON backups and import them, including full alarm filter restoration
-- **Profile Duplication** — Clone any profile with all its alarms in one click
+| Feature | What it does |
+|---|---|
+| [Alarm management](features/alarms.md) | Create, edit and delete filters for Pokemon, Raids, Eggs, Max Battles, Quests, Invasions, Pokéstop Events, Lures, Nests, Gyms and Fort Changes |
+| Gym picker | Search for a gym by name, with photo thumbnails and area names, and aim a gym, raid or egg alarm at it (needs the scanner database) |
+| Pokemon availability | See which species are spawning now while you pick Pokemon for an alarm (needs Golbat) |
+| Bulk operations | Select several alarms to delete them or change their distance in one go |
+| Alert defaults | Set where new alerts reach you by default: your areas, or a radius from your pin or a saved place |
+| Per-alarm delivery scope | Aim one alert anywhere in your areas, near a place or a point on the map, or only in specific areas, including geofences you drew yourself |
+| Saved places | Name the points your alerts measure from, so one alert can watch your workplace while the rest follow your pin |
+| Quick picks | Admin-defined alarm templates users apply with one click |
+| Areas & Places | A Leaflet map for choosing areas, dropping your pin and naming the places your alerts measure from |
+| [Custom geofences](features/custom-geofences/index.md) | Draw your own polygons, served to the Poracle bot through a built-in feed, and submit one for review to make it a public area |
+| Geofence review | Admins approve or reject submitted geofences, with a Discord forum thread for each |
+| Hidden areas | Take a staging or test area off Areas & Places, the per-alarm scope picker and the bot's area list without deleting it, from Admin → Areas |
+| [Profiles](features/profiles.md) | Several alarm profiles per user, with active hours that switch between them by day and time, duplication, and JSON backup and restore |
+| Notification preview | Live preview of DTS templates with Handlebars evaluation |
+| Dark and light mode | Theme toggle, remembered per browser, with accent colours for the toolbar and highlights |
+| Responsive layout | On a phone the sidebar collapses into a menu and add and edit dialogs open full screen. Tablets in portrait keep the sidebar open |
+| Onboarding wizard | A first-run guide on the dashboard that walks a new user through their pin, areas and first alarm |
+| Keyboard shortcuts | ++question++ for help, ++bracket-left++ / ++bracket-right++ to collapse or expand the sidebar |
+| [11 UI languages](features/internationalization.md) | English, French, German, Spanish, Dutch, Italian, Portuguese, Brazilian Portuguese, Polish, Danish and Swedish. Pokemon names, types and forms follow the display language, translated by Poracle itself. What Poracle writes in your DMs is a separate choice, **Alert language**, beside **Display language** in the user menu |
+| Single sign-on | Discord and Telegram login, plus any OIDC provider ([setup](configuration/external-sso.md)), with optional [silent refresh and single logout](configuration/oidc-refresh-tokens.md) |
+| Admin panel | Users, webhooks, site settings, geofence review and hidden areas, plus a Versions card showing the running PoracleWeb.NET and PoracleNG builds and a [Rule repair](getting-started/upgrading-to-poracleng-5-4.md#run-the-rule-repair) card for rules PoracleNG 5.4.0 reads differently |
+| [Webhooks & delegates](features/webhooks.md) | Channel feeds managed as their own accounts, with named people allowed to manage one without being made an administrator |
+| Test alerts | Send a sample notification from an alarm card to see what the alert looks like (all types except Fort Changes, Max Battles and Pokéstop Events) |
+| Weather | Current in-game weather at your pin and across your areas, on the dashboard (needs the scanner database) |
+| [Quiet periods](features/quiet-periods.md) | Silence one gym, area, species or Power Spot for a set time without touching the alarms themselves |
+| Pokéstop events | Track Showcases, Kecleon sightings and Gold Stops. The page is there unless Poracle's own `general.disable_showcase` is `true` (or an admin switches it off) |
+| Fort changes | Get a DM when a Pokéstop or gym is added, removed, renamed, moved, re-described or given a new image |
+| Max battles | Track Dynamax and Gigantamax battles at Power Spots by level or by Pokemon |
+| GeoJSON import and export | Move custom geofences in and out in standard GeoJSON |
+
+![The dashboard: alarm counts by type, the active profile, selected areas and a quiet period](screenshots/dashboard.png)
+
+![The onboarding wizard's first step on an empty dashboard](screenshots/onboarding.png)
+
+On a phone the sidebar becomes a menu and each add dialog fills the screen, with Save pinned to the bottom:
+
+<div class="grid" markdown>
+
+![The dashboard on a 390-pixel-wide phone screen](screenshots/mobile-dashboard.png)
+
+![The Pokemon page on a phone](screenshots/mobile-pokemon.png)
+
+![The sidebar opened as a menu on a phone](screenshots/mobile-sidenav.png)
+
+![The Add Raid dialog filling a phone screen](screenshots/mobile-add-dialog.png)
+
+</div>
 
 ## Prerequisites
 
@@ -116,11 +132,7 @@ A web application for managing Pokemon GO notification alarms through the [Porac
 
 ## Community & Support
 
-There is **no Discord server** for PoracleWeb.NET at this time. All support, bug reports, feature requests, and community discussion happen directly on GitHub:
-
-- **[Issues](https://github.com/PGAN-Dev/PoracleWeb.NET/issues)** — bug reports and feature requests
-- **[Discussions](https://github.com/PGAN-Dev/PoracleWeb.NET/discussions)** — questions, ideas, and general conversation
-- **[Pull Requests](https://github.com/PGAN-Dev/PoracleWeb.NET/pulls)** — contributions welcome
+There is **no Discord server** for PoracleWeb.NET at this time. Support happens on GitHub: report bugs and request features in [Issues](https://github.com/PGAN-Dev/PoracleWeb.NET/issues), ask questions in [Discussions](https://github.com/PGAN-Dev/PoracleWeb.NET/discussions), and send contributions as [Pull Requests](https://github.com/PGAN-Dev/PoracleWeb.NET/pulls).
 
 ## Credits
 
@@ -129,6 +141,5 @@ PoracleWeb.NET stands on the shoulders of these projects and their authors:
 | Project | Author | Role |
 |---|---|---|
 | [PoracleJS](https://github.com/KartulUdus/PoracleJS) | KartulUdus | The original Poracle bot — the notification engine this UI manages |
-| [PoracleNG](https://github.com/jfberry/PoracleNG) | jfberry | Next-generation fork whose REST API powers all alarm tracking |
-| [PoracleWeb (PHP)](https://github.com/bbdoc/PoracleWeb) | bbdoc | The original PHP web interface that inspired this .NET rewrite |
+| [PoracleNG](https://github.com/jfberry/PoracleNG) | jfberry | Next-generation Poracle whose REST API powers all alarm tracking |
 | [Kōji](https://github.com/TurtIeSocks/Koji) | TurtIeSocks | Geofence management platform used for admin areas, region detection, and public geofence promotion |
