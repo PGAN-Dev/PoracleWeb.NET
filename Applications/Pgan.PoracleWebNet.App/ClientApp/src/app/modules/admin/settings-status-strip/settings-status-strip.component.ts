@@ -3,6 +3,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
+import { RuleRepairStatus } from '../../../core/models';
 import { ServerProfileCardComponent } from '../../../shared/components/server-profile-card/server-profile-card.component';
 import { RuleRepairCardComponent } from '../rule-repair-card/rule-repair-card.component';
 
@@ -32,16 +33,59 @@ export interface StatusPart {
   templateUrl: './settings-status-strip.component.html',
 })
 export class SettingsStatusStripComponent {
+  /** The outcome the admin collapsed the details on; a later outcome opens them again. */
+  private readonly dismissedAttention = signal<null | string>(null);
   private readonly i18n = inject(TranslateService);
+  private readonly openedByHand = signal(false);
+
   private readonly repairCard = viewChild.required(RuleRepairCardComponent);
+
   private readonly serverCard = viewChild.required(ServerProfileCardComponent);
 
-  readonly detailsOpen = signal(false);
+  /**
+   * Identifies a rule-repair outcome that needs a look: a run that failed, or a repair that left rules
+   * failed, unrepaired as duplicates, or users unread. While one is showing, the details open on their own,
+   * so the card with the lists is on screen; null otherwise.
+   */
+  readonly attentionKey = computed<null | string>(() => {
+    const s = this.repairCard().status();
+    if (s.phase === 'Failed') return `Failed:${s.finishedAt ?? ''}`;
+    if (s.phase === 'Applied' && this.applyProblems(s).length > 0) return `Applied:${s.finishedAt ?? ''}`;
+    return null;
+  });
+
+  readonly detailsOpen = computed(() => {
+    const key = this.attentionKey();
+    return this.openedByHand() || (key !== null && key !== this.dismissedAttention());
+  });
+
+  /**
+   * What a screen reader is told. Not the whole line: during a run the line changes on every poll, and
+   * announcing "checking users 3/40" each time drowns everything else. The rule state is announced when
+   * it settles.
+   */
+  readonly liveText = computed(() => (this.repairCard().busy() ? '' : this.rulesPart().text));
 
   readonly parts = computed<StatusPart[]>(() => [this.webPart(), this.poraclePart(), this.rulesPart()].filter(p => p !== null));
 
   toggleDetails(): void {
-    this.detailsOpen.update(open => !open);
+    if (this.detailsOpen()) {
+      this.openedByHand.set(false);
+      this.dismissedAttention.set(this.attentionKey());
+    } else {
+      this.openedByHand.set(true);
+    }
+  }
+
+  /** "failed: 2", "left alone as duplicates: 1", "users skipped: 3": what a finished repair did not do. */
+  private applyProblems(s: RuleRepairStatus): string[] {
+    const problems: string[] = [];
+    const failed = s.applied?.failed.length ?? 0;
+    const conflicts = s.applied?.conflicts.length ?? 0;
+    if (failed > 0) problems.push(this.t('ADMIN.STATUS_STRIP.PART_FAILED', { count: failed }));
+    if (conflicts > 0) problems.push(this.t('ADMIN.STATUS_STRIP.PART_CONFLICTS', { count: conflicts }));
+    if (s.skippedCount > 0) problems.push(this.t('ADMIN.STATUS_STRIP.PART_SKIPPED', { count: s.skippedCount }));
+    return problems;
   }
 
   private poraclePart(): null | StatusPart {
@@ -82,8 +126,13 @@ export class SettingsStatusStripComponent {
         return part('ADMIN.STATUS_STRIP.RULES_APPLYING', 'plain', { done: s.humansDone, total: s.humansTotal });
       case 'Failed':
         return part('ADMIN.STATUS_STRIP.RULES_FAILED', 'error');
-      case 'Applied':
-        return part('ADMIN.STATUS_STRIP.RULES_REPAIRED', 'plain');
+      case 'Applied': {
+        const repaired = s.applied?.repaired ?? 0;
+        const problems = this.applyProblems(s);
+        return problems.length
+          ? part('ADMIN.STATUS_STRIP.RULES_REPAIRED_WITH_PROBLEMS', 'warn', { count: repaired, problems: problems.join(', ') })
+          : part('ADMIN.STATUS_STRIP.RULES_REPAIRED', 'plain', { count: repaired });
+      }
       case 'Scanned':
         if (s.repairableCount > 0) return part('ADMIN.STATUS_STRIP.RULES_TO_REPAIR', 'warn', { count: s.repairableCount });
         // Users that could not be read may hold rules to repair, so this is never "nothing".

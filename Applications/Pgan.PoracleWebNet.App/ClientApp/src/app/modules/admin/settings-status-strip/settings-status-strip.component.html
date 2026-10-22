@@ -1,6 +1,6 @@
 <section class="status-strip" [attr.aria-label]="'ADMIN.STATUS_STRIP.LABEL' | translate">
   <div class="status-line">
-    <p class="status-parts" role="status" data-test="status-line">
+    <p class="status-parts" data-test="status-line">
       @for (part of parts(); track part.id; let last = $last) {
         <span
           class="status-part"
@@ -29,6 +29,8 @@
       <mat-icon iconPositionEnd>{{ detailsOpen() ? 'expand_less' : 'expand_more' }}</mat-icon>
     </button>
   </div>
+
+  <span class="visually-hidden" role="status" data-test="status-live">{{ liveText() }}</span>
 
   <!-- Mounted while hidden: the line above reads both cards, and a running scan keeps reporting. -->
   <div id="settings-status-details" class="status-details" data-test="status-details" [hidden]="!detailsOpen()">

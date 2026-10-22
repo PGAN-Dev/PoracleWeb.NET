@@ -67,7 +67,7 @@
 
     <!-- The same species picker players get in the add dialogs. One species, or any. -->
     @if (pokemonControl()) {
-      <div class="pokemon-pick" data-test="pokemon-pick">
+      <div class="pokemon-pick" data-test="pokemon-pick" [attr.data-control]="currentAlarmType === 'quest' ? 'reward' : 'pokemonId'">
         @for (k of [selectorKey()]; track k) {
           <app-pokemon-selector
             [initialIds]="pokemonInitialIds()"
@@ -92,12 +92,12 @@
           <div class="form-row">
             <mat-form-field appearance="outline">
               <mat-label>{{ 'POKEMON.LABEL_MIN_IV' | translate }}</mat-label>
-              <input matInput type="number" min="0" max="100" formControlName="minIv" />
+              <input matInput type="number" formControlName="minIv" />
               <span matTextSuffix>%</span>
             </mat-form-field>
             <mat-form-field appearance="outline">
               <mat-label>{{ 'POKEMON.LABEL_MAX_IV' | translate }}</mat-label>
-              <input matInput type="number" min="0" max="100" formControlName="maxIv" />
+              <input matInput type="number" formControlName="maxIv" />
               <span matTextSuffix>%</span>
             </mat-form-field>
           </div>
@@ -106,21 +106,21 @@
           <div class="form-row">
             <mat-form-field appearance="outline">
               <mat-label>{{ 'POKEMON.LABEL_MIN_CP' | translate }}</mat-label>
-              <input matInput type="number" min="0" formControlName="minCp" />
+              <input matInput type="number" formControlName="minCp" />
             </mat-form-field>
             <mat-form-field appearance="outline">
               <mat-label>{{ 'POKEMON.LABEL_MAX_CP' | translate }}</mat-label>
-              <input matInput type="number" min="0" formControlName="maxCp" />
+              <input matInput type="number" formControlName="maxCp" />
             </mat-form-field>
           </div>
           <div class="form-row">
             <mat-form-field appearance="outline">
               <mat-label>{{ 'POKEMON.LABEL_MIN_LEVEL' | translate }}</mat-label>
-              <input matInput type="number" min="0" formControlName="minLevel" />
+              <input matInput type="number" formControlName="minLevel" />
             </mat-form-field>
             <mat-form-field appearance="outline">
               <mat-label>{{ 'POKEMON.LABEL_MAX_LEVEL' | translate }}</mat-label>
-              <input matInput type="number" min="0" formControlName="maxLevel" />
+              <input matInput type="number" formControlName="maxLevel" />
             </mat-form-field>
           </div>
 
@@ -138,15 +138,15 @@
             <div class="form-row" data-test="pvp-ranks">
               <mat-form-field appearance="outline">
                 <mat-label>{{ 'POKEMON.PVP_BEST_RANK' | translate }}</mat-label>
-                <input matInput type="number" min="1" formControlName="pvpRankingBest" />
+                <input matInput type="number" formControlName="pvpRankingBest" />
               </mat-form-field>
               <mat-form-field appearance="outline">
                 <mat-label>{{ 'POKEMON.PVP_WORST_RANK' | translate }}</mat-label>
-                <input matInput type="number" min="1" formControlName="pvpRankingWorst" />
+                <input matInput type="number" formControlName="pvpRankingWorst" />
               </mat-form-field>
               <mat-form-field appearance="outline">
                 <mat-label>{{ 'POKEMON.PVP_MIN_CP' | translate }}</mat-label>
-                <input matInput type="number" min="0" formControlName="pvpRankingMinCp" />
+                <input matInput type="number" formControlName="pvpRankingMinCp" />
               </mat-form-field>
             </div>
           }
@@ -167,7 +167,7 @@
               </mat-form-field>
               <mat-form-field appearance="outline">
                 <mat-label>{{ 'POKEMON.LABEL_FORM' | translate }}</mat-label>
-                <input matInput type="number" min="0" formControlName="form" />
+                <input matInput type="number" formControlName="form" />
               </mat-form-field>
             </div>
             <div class="form-row">
@@ -196,11 +196,11 @@
             <div class="form-row">
               <mat-form-field appearance="outline">
                 <mat-label>{{ 'POKEMON.LABEL_MIN_WEIGHT' | translate }}</mat-label>
-                <input matInput type="number" min="0" formControlName="minWeight" />
+                <input matInput type="number" formControlName="minWeight" />
               </mat-form-field>
               <mat-form-field appearance="outline">
                 <mat-label>{{ 'POKEMON.LABEL_MAX_WEIGHT' | translate }}</mat-label>
-                <input matInput type="number" min="0" formControlName="maxWeight" />
+                <input matInput type="number" formControlName="maxWeight" />
               </mat-form-field>
             </div>
           </mat-expansion-panel>
@@ -223,7 +223,10 @@
               <input matInput type="number" formControlName="team" />
             </mat-form-field>
           </div>
-          <mat-slide-toggle [checked]="isOn(raidForm, 'exclusive')" (change)="setOn(raidForm, 'exclusive', $event.checked)">
+          <mat-slide-toggle
+            data-control="exclusive"
+            [checked]="isOn(raidForm, 'exclusive')"
+            (change)="setOn(raidForm, 'exclusive', $event.checked)">
             {{ 'QUICK_PICKS.FIELD_EXCLUSIVE' | translate }}
           </mat-slide-toggle>
         </form>
@@ -241,7 +244,10 @@
               <input matInput type="number" formControlName="team" />
             </mat-form-field>
           </div>
-          <mat-slide-toggle [checked]="isOn(eggForm, 'exclusive')" (change)="setOn(eggForm, 'exclusive', $event.checked)">
+          <mat-slide-toggle
+            data-control="exclusive"
+            [checked]="isOn(eggForm, 'exclusive')"
+            (change)="setOn(eggForm, 'exclusive', $event.checked)">
             {{ 'QUICK_PICKS.FIELD_EXCLUSIVE' | translate }}
           </mat-slide-toggle>
         </form>
@@ -254,12 +260,15 @@
               <mat-label>{{ 'QUICK_PICKS.FIELD_REWARD_TYPE' | translate }}</mat-label>
               <input matInput type="number" formControlName="rewardType" />
             </mat-form-field>
-            <mat-form-field appearance="outline">
-              <mat-label>{{ 'QUICK_PICKS.FIELD_REWARD' | translate }}</mat-label>
-              <input matInput type="number" formControlName="reward" />
-            </mat-form-field>
+            <!-- An encounter's reward is a species, picked above with the Pokémon picker. -->
+            @if (pokemonControl() === null) {
+              <mat-form-field appearance="outline">
+                <mat-label>{{ 'QUICK_PICKS.FIELD_REWARD' | translate }}</mat-label>
+                <input matInput type="number" formControlName="reward" />
+              </mat-form-field>
+            }
           </div>
-          <mat-slide-toggle [checked]="isOn(questForm, 'shiny')" (change)="setOn(questForm, 'shiny', $event.checked)">
+          <mat-slide-toggle data-control="shiny" [checked]="isOn(questForm, 'shiny')" (change)="setOn(questForm, 'shiny', $event.checked)">
             {{ 'QUICK_PICKS.FIELD_SHINY' | translate }}
           </mat-slide-toggle>
         </form>
@@ -297,7 +306,7 @@
         <form [formGroup]="nestForm">
           <mat-form-field appearance="outline">
             <mat-label>{{ 'NESTS.MIN_SPAWNS_HR' | translate }}</mat-label>
-            <input matInput type="number" min="0" formControlName="minSpawnAvg" />
+            <input matInput type="number" formControlName="minSpawnAvg" />
           </mat-form-field>
         </form>
       }
@@ -309,10 +318,16 @@
             <input matInput type="number" formControlName="team" />
           </mat-form-field>
           <div class="toggle-stack">
-            <mat-slide-toggle [checked]="isOn(gymForm, 'slotChanges')" (change)="setOn(gymForm, 'slotChanges', $event.checked)">
+            <mat-slide-toggle
+              data-control="slotChanges"
+              [checked]="isOn(gymForm, 'slotChanges')"
+              (change)="setOn(gymForm, 'slotChanges', $event.checked)">
               {{ 'GYMS.TRACK_SLOT_CHANGES' | translate }}
             </mat-slide-toggle>
-            <mat-slide-toggle [checked]="isOn(gymForm, 'battleChanges')" (change)="setOn(gymForm, 'battleChanges', $event.checked)">
+            <mat-slide-toggle
+              data-control="battleChanges"
+              [checked]="isOn(gymForm, 'battleChanges')"
+              (change)="setOn(gymForm, 'battleChanges', $event.checked)">
               {{ 'GYMS.TRACK_BATTLE_CHANGES' | translate }}
             </mat-slide-toggle>
           </div>
@@ -341,7 +356,10 @@
               <input matInput type="number" formControlName="evolution" />
             </mat-form-field>
           </div>
-          <mat-slide-toggle [checked]="isOn(maxBattleForm, 'gmax')" (change)="setOn(maxBattleForm, 'gmax', $event.checked)">
+          <mat-slide-toggle
+            data-control="gmax"
+            [checked]="isOn(maxBattleForm, 'gmax')"
+            (change)="setOn(maxBattleForm, 'gmax', $event.checked)">
             {{ 'MAX_BATTLES.GIGANTAMAX_ONLY' | translate }}
           </mat-slide-toggle>
         </form>

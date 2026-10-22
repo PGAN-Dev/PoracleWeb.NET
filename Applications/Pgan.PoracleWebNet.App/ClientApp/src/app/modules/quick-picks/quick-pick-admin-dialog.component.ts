@@ -1,4 +1,5 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -12,6 +13,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
+import { merge } from 'rxjs';
 
 import { quickPickAlarmTypeLabel } from './quick-pick-labels';
 import { QuickPickDefinition } from '../../core/models';
@@ -73,6 +75,9 @@ export const QUICK_PICK_ICONS = [
 /** The filter value that means "any Pokémon": 9000 for max battles, as the battle form stores it; 0 elsewhere. */
 const ANY_POKEMON: Record<string, number> = { maxbattle: 9000 };
 
+/** Quest reward type for a Pokémon encounter; its `reward` is the species id, as the quest add dialog stores it. */
+export const QUEST_REWARD_POKEMON = 7;
+
 /** Stored quick-pick categories are English strings, so the display label comes from this value-to-key map. */
 const CATEGORY_KEYS: Record<string, string> = {
   Raids: 'QUICK_PICKS.CATEGORY_RAIDS',
@@ -109,6 +114,7 @@ const CATEGORY_KEYS: Record<string, string> = {
 })
 export class QuickPickAdminDialogComponent implements OnInit {
   private readonly auth = inject(AuthService);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly fb = inject(FormBuilder);
   private readonly i18n = inject(I18nService);
   private readonly quickPickService = inject(QuickPickService);
@@ -189,8 +195,9 @@ export class QuickPickAdminDialogComponent implements OnInit {
     pokemonId: [0],
   });
 
+  // No pokemonId: the Quest model has none, so applying a pick drops it. An encounter quest names its
+  // species in `reward` (reward type 7), which is where the Pokémon picker writes for a quest.
   questForm = this.fb.group({
-    pokemonId: [0],
     reward: [0],
     rewardType: [0],
     shiny: [0],
@@ -209,6 +216,12 @@ export class QuickPickAdminDialogComponent implements OnInit {
   /** Bumped to rebuild the Pokémon selector, which has no way to clear a single pick from outside. */
   readonly selectorKey = signal(0);
 
+  /**
+   * Where this pick belongs: an edit keeps its own scope, a new one follows who is creating it.
+   */
+  /* Deciding purely from isAdmin meant an admin editing their *own* personal pick posted scope
+   * 'global', and SaveAdminPickAsync then republished it to every user and stripped its owner. The
+   * list's delete path already branched on scope; only save did not. See #631. */
   readonly targetScope = (): 'global' | 'user' =>
     this.isEdit ? (this.data?.scope === 'global' ? 'global' : 'user') : this.isAdmin ? 'global' : 'user';
 
@@ -270,6 +283,12 @@ export class QuickPickAdminDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // A species picked for one type is not the next type's, and an encounter quest's species is its
+    // reward: rebuild the selector so its text box shows what the new control holds.
+    merge(this.mainForm.controls.alarmType.valueChanges, this.questForm.controls.rewardType.valueChanges)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.selectorKey.update(k => k + 1));
+
     if (this.data?.filters) {
       const filters = this.data.filters;
       const form = this.getFilterForm(this.data.alarmType);
@@ -296,8 +315,15 @@ export class QuickPickAdminDialogComponent implements OnInit {
     this.mainForm.controls.icon.setValue(icon);
   }
 
-  /** The current type's Pokémon id control, for the types that filter by species. */
+  /**
+   * The control the Pokémon picker writes, or null where applying the pick reads no species. That is
+   * `pokemonId` for Pokémon, raids, nests and max battles, and for a quest the reward of an encounter
+   * (reward type 7); see QuickPickService's Apply* and Build* methods.
+   */
   pokemonControl() {
+    if (this.currentAlarmType === 'quest') {
+      return Number(this.questForm.controls.rewardType.value) === QUEST_REWARD_POKEMON ? this.questForm.controls.reward : null;
+    }
     return this.getFilterForm(this.currentAlarmType)?.get('pokemonId') ?? null;
   }
 
@@ -387,12 +413,6 @@ export class QuickPickAdminDialogComponent implements OnInit {
     });
   }
 
-  /**
-   * Where this pick belongs: an edit keeps its own scope, a new one follows who is creating it.
-   */
-  /* Deciding purely from isAdmin meant an admin editing their *own* personal pick posted scope
-   * 'global', and SaveAdminPickAsync then republished it to every user and stripped its owner. The
-   * list's delete path already branched on scope; only save did not. See #631. */
   /** Sets a 0/1 filter from its switch. */
   setOn(form: FormGroup, key: string, on: boolean): void {
     form.get(key)?.setValue(on ? 1 : 0);
