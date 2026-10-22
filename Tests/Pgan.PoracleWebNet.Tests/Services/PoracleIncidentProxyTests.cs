@@ -89,11 +89,26 @@ public class PoracleIncidentProxyTests
 
         var request = Assert.Single(handler.Requests);
         Assert.Equal(HttpMethod.Patch, request.Method);
-        Assert.Equal($"{Route}?silent=true", request.Url);
+        Assert.Equal($"{Route}?silent=true&trusted=true", request.Url);
         Assert.Equal("""{"uids":[1,2],"set":{"distance":750}}""", request.Body);
         Assert.Equal([1], result.Updated);
         Assert.Equal([2], result.Unchanged);
         Assert.Empty(result.Refused);
+    }
+
+    [Fact]
+    public async Task IncidentPatchOfARuleLimitedToTheUsersOwnFenceIsSentTrusted()
+    {
+        // PoracleNG re-validates the whole stored rule on a PATCH, and untrusted it refuses a user's own drawn
+        // fence as invalid. A PATCH cannot name an area, so there is nothing for the area policy to authorise.
+        var handler = new Handler(new Reply(
+            HttpStatusCode.OK, """{"dry_run":false,"updated":[{"uid":7,"display_type":9}],"unchanged":null,"refused":null}"""));
+        var policy = new Mock<IUserAreaPolicy>(MockBehavior.Strict);
+
+        var result = await CreateSut(handler, policy.Object).PatchAsync("u1", [7], new TrackingPatchSet(Clean: true));
+
+        Assert.Contains("trusted=true", Assert.Single(handler.Requests).Url, StringComparison.Ordinal);
+        Assert.Equal([7], result.Updated);
     }
 
     [Fact]
@@ -295,6 +310,42 @@ public class PoracleIncidentProxyTests
             () => CreateSut(handler).ReplaceAsync("u1", 5, new PokestopEvent { DisplayType = 9 }));
 
         Assert.Equal("Another alarm of this type already uses those settings. Edit or remove that one instead.", ex.Message);
+    }
+
+    [Fact]
+    public async Task AReplaceOfARuleThatIsGoneIsRuleNotFoundNotASignOut()
+    {
+        // An event edit racing a delete, or a scheduler profile switch, finds no rule. That is the rule gone,
+        // not the account: mapping it to AccountGoneException answered 401 and signed the user out.
+        var handler = new Handler(new Reply(
+            HttpStatusCode.NotFound,
+            """{"title":"Not Found","status":404,"detail":"incident rule 5 not found for this human"}""",
+            "application/problem+json"));
+
+        var ex = await Assert.ThrowsAsync<TrackingRuleNotFoundException>(
+            () => CreateSut(handler).ReplaceAsync("u1", 5, new PokestopEvent { DisplayType = 9 }));
+
+        Assert.Equal("incident", ex.TrackingType);
+        Assert.Contains("not found for this human", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task AReplaceForAHumanPoracleNgDoesNotHoldIsAccountGone()
+    {
+        var handler = new Handler(new Reply(
+            HttpStatusCode.NotFound, """{"title":"Not Found","status":404,"detail":"human not found"}""", "application/problem+json"));
+
+        await Assert.ThrowsAsync<AccountGoneException>(
+            () => CreateSut(handler).ReplaceAsync("u1", 5, new PokestopEvent { DisplayType = 9 }));
+    }
+
+    [Fact]
+    public async Task AReadForAHumanPoracleNgDoesNotHoldIsAccountGone()
+    {
+        var handler = new Handler(new Reply(
+            HttpStatusCode.NotFound, """{"title":"Not Found","status":404,"detail":"human not found"}""", "application/problem+json"));
+
+        await Assert.ThrowsAsync<AccountGoneException>(() => CreateSut(handler).GetByUserAsync("u1"));
     }
 
     private static UserAreaPolicy RealPolicy(string[] selectable)

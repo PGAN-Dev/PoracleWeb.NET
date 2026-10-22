@@ -108,9 +108,11 @@ public sealed partial class PoracleIncidentProxy(
             return TrackingPatchResult.None;
         }
 
+        // Always trusted, for the reason the tracking proxy's PatchAsync gives: PoracleNG re-validates the stored
+        // rule's areas, untrusted it refuses a user's own drawn fence, and a PATCH set cannot name a new area.
         var response = await this.SendAsync(
             HttpMethod.Patch,
-            $"{this.Route(userId)}?silent=true",
+            $"{this.Route(userId)}?silent=true{TrustedQuery(trusted: true)}",
             TrackingPatchWire.Body(uids, settings),
             writeFeature: "saving alarms");
         return TrackingPatchWire.Parse(await response.Content.ReadAsStringAsync());
@@ -353,8 +355,10 @@ public sealed partial class PoracleIncidentProxy(
 
         if (response.StatusCode == HttpStatusCode.NotFound)
         {
-            if (writeFeature is not null
-                && !PoracleProblemDetails.IsProblemJson(await response.Content.ReadAsStringAsync()))
+            var notFound = await response.Content.ReadAsStringAsync();
+            var problem = PoracleProblemDetails.IsProblemJson(notFound);
+
+            if (writeFeature is not null && !problem)
             {
                 // gin's plaintext "404 page not found": the route is absent, so this is not 5.4.0.
                 throw new PoracleUnsupportedException(writeFeature, RequiredVersion);
@@ -365,8 +369,14 @@ public sealed partial class PoracleIncidentProxy(
                 return response;
             }
 
-            // A 404 here means the human is gone -- the same
-            // dead-session case the v1 proxy maps. See #595.
+            // A problem+json 404 that is not about the human is about the rule: an edit racing a delete, or a
+            // scheduler profile switch moving the rule out of view. Signing the user out for that was wrong.
+            if (problem && !notFound.Contains("human not found", StringComparison.Ordinal))
+            {
+                throw new TrackingRuleNotFoundException("incident", PoracleProblemDetails.Describe(notFound));
+            }
+
+            // The human is gone: the same dead-session case the tracking proxy maps. See #595.
             throw new AccountGoneException();
         }
 

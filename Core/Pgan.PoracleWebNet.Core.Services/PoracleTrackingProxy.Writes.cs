@@ -59,8 +59,14 @@ public partial class PoracleTrackingProxy
         var bodyText = TrackingPatchWire.Body(uids, settings);
         LogPatchRequest(this._logger, type, userId, bodyText);
 
+        // Always trusted. PoracleNG re-validates the whole stored rule on a PATCH, and untrusted its area check
+        // allows only userSelectable fences, which a user's own drawn fence never is: every rule limited to one
+        // came back refused as invalid, so a clean toggle silently did nothing on it. Trusting the write grants
+        // nothing new, because a PATCH set has no override_areas: the only areas checked are the ones already
+        // stored on the rule, which the area policy allows anyway.
         var request = this.CreateRequest(
-            HttpMethod.Patch, $"{this._apiAddress}/api/v2/humans/{Encode(userId)}/tracking/{type}?silent=true");
+            HttpMethod.Patch,
+            $"{this._apiAddress}/api/v2/humans/{Encode(userId)}/tracking/{type}?silent=true{TrustedQuery(trusted: true)}");
         request.Content = new StringContent(bodyText, Encoding.UTF8, "application/json");
 
         var response = await this._httpClient.SendAsync(request);

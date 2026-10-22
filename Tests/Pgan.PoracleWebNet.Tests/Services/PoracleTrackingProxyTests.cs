@@ -62,7 +62,7 @@ public class PoracleTrackingProxyTests
 
         Assert.NotNull(handler.LastRequest);
         Assert.Equal(HttpMethod.Patch, handler.LastRequest.Method);
-        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/tracking/pokemon?silent=true", handler.LastRequest.RequestUri?.ToString());
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/tracking/pokemon?silent=true&trusted=true", handler.LastRequest.RequestUri?.ToString());
         Assert.Equal("""{"uids":[1,2],"set":{"distance":500}}""", handler.LastBody);
     }
 
@@ -88,8 +88,30 @@ public class PoracleTrackingProxyTests
         await sut.PatchAsync("gym", "http://host/hook", [3], new TrackingPatchSet(Distance: 0));
 
         Assert.Equal(
-            $"{ApiAddress}/api/v2/humans/http%3A%2F%2Fhost%2Fhook/tracking/gym?silent=true",
+            $"{ApiAddress}/api/v2/humans/http%3A%2F%2Fhost%2Fhook/tracking/gym?silent=true&trusted=true",
             handler.LastRequest?.RequestUri?.AbsoluteUri);
+    }
+
+    [Fact]
+    public async Task PatchOfARuleLimitedToTheUsersOwnFenceIsSentTrusted()
+    {
+        // PoracleNG re-validates the whole stored rule on a PATCH. Untrusted, its area check allows only
+        // userSelectable fences, and a user's own drawn fence never is one, so a clean toggle on a rule
+        // limited to it came back refused as invalid. A PATCH cannot name an area, so nothing is authorised
+        // here: the areas being re-checked are the ones already on the rule.
+        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, PatchOk);
+        var policy = new Mock<IUserAreaPolicy>(MockBehavior.Strict);
+        var sut = new PoracleTrackingProxy(
+            new HttpClient(handler),
+            CreateConfig(),
+            policy.Object,
+            new MemoryCache(new MemoryCacheOptions()),
+            Mock.Of<ILogger<PoracleTrackingProxy>>());
+
+        await sut.PatchAsync("pokemon", "user1", [7], new TrackingPatchSet(Clean: true));
+
+        Assert.Contains("trusted=true", handler.LastRequest?.RequestUri?.Query, StringComparison.Ordinal);
+        Assert.Equal("""{"uids":[7],"set":{"clean":true}}""", handler.LastBody);
     }
 
     [Fact]
