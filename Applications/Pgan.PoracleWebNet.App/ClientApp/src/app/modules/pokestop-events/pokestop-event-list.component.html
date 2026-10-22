@@ -4,12 +4,9 @@
     <p class="page-description">{{ 'POKESTOP_EVENTS.PAGE_DESC' | translate }}</p>
   </div>
   <div class="header-actions">
-    <button
-      mat-fab
-      (click)="openAddDialog()"
-      [attr.aria-label]="'POKESTOP_EVENTS.ADD_EVENT' | translate"
-      style="background: #03aeb6; color: #fff">
+    <button mat-flat-button class="page-primary-action" (click)="openAddDialog()">
       <mat-icon>add</mat-icon>
+      {{ 'ALARM.NEW_ALARM' | translate }}
     </button>
   </div>
 </div>

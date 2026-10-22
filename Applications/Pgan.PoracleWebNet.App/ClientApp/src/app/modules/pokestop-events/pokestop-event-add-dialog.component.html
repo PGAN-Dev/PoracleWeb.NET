@@ -59,7 +59,7 @@
 <app-add-refusal [refusal]="refusal()" (editExisting)="editExisting($event)" />
 <mat-dialog-actions align="end">
   <button mat-button (click)="dialogRef.close(false)">{{ 'ALARM.CANCEL' | translate }}</button>
-  <button mat-raised-button color="primary" (click)="save()" [disabled]="saving() || !hasSelection() || !radiusValid()">
+  <button mat-flat-button color="primary" (click)="save()" [disabled]="saving() || !hasSelection() || !radiusValid()">
     {{ saving() ? ('ALARM.SAVING' | translate) : ('ALARM.SAVE' | translate) }}
   </button>
 </mat-dialog-actions>

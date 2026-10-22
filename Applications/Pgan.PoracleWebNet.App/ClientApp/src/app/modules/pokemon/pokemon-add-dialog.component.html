@@ -343,7 +343,7 @@
 <app-add-refusal [refusal]="refusal()" (editExisting)="editExisting($event)" />
 <mat-dialog-actions align="end">
   <button mat-button (click)="dialogRef.close()">{{ 'ALARM.CANCEL' | translate }}</button>
-  <button mat-raised-button color="primary" (click)="save()" [disabled]="saving() || !isFormValid() || !radiusValid()">
+  <button mat-flat-button color="primary" (click)="save()" [disabled]="saving() || !isFormValid() || !radiusValid()">
     @if (saving()) {
       <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
     }

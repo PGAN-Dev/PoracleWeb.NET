@@ -31,7 +31,7 @@
         <mat-option value="blocked">{{ 'ADMIN.STATUS_BLOCKED' | translate }}</mat-option>
       </mat-select>
     </mat-form-field>
-    <button mat-raised-button color="primary" (click)="loadUsers()"><mat-icon>refresh</mat-icon> {{ 'ADMIN.REFRESH' | translate }}</button>
+    <button mat-stroked-button (click)="loadUsers()"><mat-icon>refresh</mat-icon> {{ 'ADMIN.REFRESH' | translate }}</button>
   </div>
 
   @if (usersLoading()) {

@@ -187,7 +187,6 @@
   width: 250px;
   transition: width 0.2s ease;
   border-right: 1px solid var(--mat-sys-outline-variant, rgba(0, 0, 0, 0.08));
-  background: linear-gradient(180deg, rgba(21, 101, 192, 0.03) 0%, rgba(0, 188, 212, 0.02) 50%, var(--mat-sys-surface, #fff) 100%);
   background-color: var(--mat-sys-surface, #fff);
   display: flex;
   flex-direction: column;
@@ -213,55 +212,17 @@
   }
 }
 
-body.dark-theme .app-sidenav {
-  background: linear-gradient(180deg, rgba(21, 101, 192, 0.06) 0%, rgba(0, 188, 212, 0.03) 50%, var(--mat-sys-surface, #1e1e1e) 100%);
-  background-color: var(--mat-sys-surface, #1e1e1e);
-}
-
 .app-content {
   padding: 0;
-  background: linear-gradient(180deg, rgba(21, 101, 192, 0.02) 0%, transparent 300px);
   position: relative;
-
-  &::after {
-    content: '';
-    position: fixed;
-    bottom: -60px;
-    right: -60px;
-    width: 420px;
-    height: 420px;
-    pointer-events: none;
-    z-index: 0;
-    opacity: 0.08;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3C!-- Pokeball --%3E%3Ccircle cx='100' cy='100' r='95' fill='none' stroke='%231565c0' stroke-width='5'/%3E%3Cpath d='M5 100 H80' stroke='%231565c0' stroke-width='5'/%3E%3Cpath d='M120 100 H195' stroke='%231565c0' stroke-width='5'/%3E%3Cpath d='M5 100 A95 95 0 0 1 195 100' fill='%231565c0'/%3E%3Ccircle cx='100' cy='100' r='30' fill='none' stroke='%231565c0' stroke-width='5'/%3E%3Ccircle cx='100' cy='100' r='15' fill='%231565c0'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-size: contain;
-  }
-}
-
-body.dark-theme .app-content::after {
-  opacity: 0.1;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Ccircle cx='100' cy='100' r='95' fill='none' stroke='%2390caf9' stroke-width='5'/%3E%3Cpath d='M5 100 H80' stroke='%2390caf9' stroke-width='5'/%3E%3Cpath d='M120 100 H195' stroke='%2390caf9' stroke-width='5'/%3E%3Cpath d='M5 100 A95 95 0 0 1 195 100' fill='%2390caf9'/%3E%3Ccircle cx='100' cy='100' r='30' fill='none' stroke='%2390caf9' stroke-width='5'/%3E%3Ccircle cx='100' cy='100' r='15' fill='%2390caf9'/%3E%3C/svg%3E");
-}
-
-@media (max-width: 599px) {
-  .app-content::after {
-    width: 250px;
-    height: 250px;
-    bottom: -30px;
-    right: -30px;
-    opacity: 0.05;
-  }
 }
 
 // ─── Nav items ────────────────────────────────────────────────
 
 .nav-group-label {
   padding: 16px 16px 4px;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
   color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.54));
 }
 

@@ -46,7 +46,7 @@
 
 <mat-dialog-actions align="end">
   <button mat-button (click)="dialogRef.close(null)">{{ 'COMMON.CANCEL' | translate }}</button>
-  <button mat-raised-button color="primary" [disabled]="!isValid" (click)="apply()">
+  <button mat-flat-button color="primary" [disabled]="!isValid" (click)="apply()">
     {{ 'DIALOG.DISTANCE_APPLY' | translatePlural: count }}
   </button>
 </mat-dialog-actions>

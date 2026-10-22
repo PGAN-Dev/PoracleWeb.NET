@@ -15,8 +15,9 @@
         </button>
       </mat-menu>
     }
-    <button mat-fab class="fab-quest" (click)="openAddDialog()" [attr.aria-label]="'QUESTS.ADD_QUEST' | translate">
+    <button mat-flat-button class="page-primary-action" (click)="openAddDialog()">
       <mat-icon>add</mat-icon>
+      {{ 'ALARM.NEW_ALARM' | translate }}
     </button>
   </div>
 </div>

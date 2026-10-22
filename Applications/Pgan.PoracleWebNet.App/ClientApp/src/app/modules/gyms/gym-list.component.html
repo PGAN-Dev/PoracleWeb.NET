@@ -4,8 +4,9 @@
     <p class="page-description">{{ 'GYMS.PAGE_DESC' | translate }}</p>
   </div>
   <div class="header-actions">
-    <button mat-fab (click)="openAddDialog()" [attr.aria-label]="'GYMS.ADD_GYM' | translate" style="background: #00bcd4; color: #fff">
+    <button mat-flat-button class="page-primary-action" (click)="openAddDialog()">
       <mat-icon>add</mat-icon>
+      {{ 'ALARM.NEW_ALARM' | translate }}
     </button>
   </div>
 </div>

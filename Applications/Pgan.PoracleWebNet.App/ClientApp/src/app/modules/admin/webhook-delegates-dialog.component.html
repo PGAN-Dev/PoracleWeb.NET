@@ -64,7 +64,7 @@
           <mat-hint>{{ 'ADMIN.DELEGATE_PICK_HINT' | translate }}</mat-hint>
         }
       </mat-form-field>
-      <button mat-raised-button color="primary" [disabled]="!pickedUserId" (click)="addDelegateFromSearch()">
+      <button mat-flat-button color="primary" [disabled]="!pickedUserId" (click)="addDelegateFromSearch()">
         <mat-icon>person_add</mat-icon> {{ 'COMMON.ADD' | translate }}
       </button>
     </div>

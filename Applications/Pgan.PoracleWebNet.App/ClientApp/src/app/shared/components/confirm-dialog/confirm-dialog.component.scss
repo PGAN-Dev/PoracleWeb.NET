@@ -2,19 +2,20 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #d32f2f;
+  color: var(--mat-sys-error);
 }
 .title-icon {
   vertical-align: middle;
 }
 .warn-icon {
-  color: #d32f2f;
+  color: var(--mat-sys-error);
 }
+// The thing about to go, set apart on the dialog's own surface (#fafafa was a white slab in dark mode).
 .item-description {
   font-weight: 500;
   padding: 8px 12px;
-  background: #fafafa;
-  border-left: 3px solid #d32f2f;
+  background: var(--mat-sys-surface-container-high);
+  border-left: 3px solid var(--mat-sys-error);
   border-radius: 0 4px 4px 0;
   margin: 8px 0;
 }

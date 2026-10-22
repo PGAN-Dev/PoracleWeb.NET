@@ -1,62 +1,9 @@
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: 16px 24px;
-  gap: 16px;
-  background: linear-gradient(135deg, rgba(76, 175, 80, 0.08) 0%, rgba(76, 175, 80, 0.02) 100%);
-  position: relative;
-  overflow: hidden;
-
-  &::after {
-    content: '';
-    position: absolute;
-    right: -20px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    background: radial-gradient(
-      circle,
-      rgba(76, 175, 80, 0.12) 0%,
-      rgba(76, 175, 80, 0.06) 45%,
-      transparent 46%,
-      transparent 52%,
-      rgba(76, 175, 80, 0.04) 53%,
-      transparent 54%
-    );
-  }
-}
-.page-header-text {
-  flex: 1;
-  min-width: 0;
-}
-.page-header h1 {
-  margin: 0;
-  font-size: 24px;
-  font-weight: 400;
-}
-.page-description {
-  margin: 4px 0 0;
-  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
-  font-size: 13px;
-  line-height: 1.5;
-  border-left: 3px solid #1976d2;
-  padding-left: 12px;
-}
 .page-description .inline-icon {
   font-size: 14px;
   width: 14px;
   height: 14px;
   vertical-align: middle;
 }
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .quick-filters {
   display: flex;
   gap: 8px;

@@ -620,7 +620,7 @@
           <mat-icon>undo</mat-icon>
           {{ 'ADMIN_SETTINGS.DISCARD_CHANGES' | translate }}
         </button>
-        <button mat-raised-button color="primary" type="button" (click)="saveAllModified()" [disabled]="bulkSaving()">
+        <button mat-flat-button color="primary" type="button" (click)="saveAllModified()" [disabled]="bulkSaving()">
           @if (bulkSaving()) {
             <mat-spinner diameter="18" class="inline-spinner"></mat-spinner>
           } @else {

@@ -83,7 +83,7 @@
 <app-add-refusal [refusal]="refusal()" />
 <mat-dialog-actions align="end">
   <button mat-button (click)="dialogRef.close()" [disabled]="applying()">{{ 'COMMON.CANCEL' | translate }}</button>
-  <button mat-raised-button color="primary" (click)="apply()" [disabled]="applying() || !radiusValid()">
+  <button mat-flat-button color="primary" (click)="apply()" [disabled]="applying() || !radiusValid()">
     @if (applying()) {
       <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
     }

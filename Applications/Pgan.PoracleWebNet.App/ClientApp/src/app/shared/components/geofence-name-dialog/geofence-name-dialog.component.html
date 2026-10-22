@@ -50,5 +50,5 @@
 
 <mat-dialog-actions align="end">
   <button mat-button (click)="dialogRef.close(null)">{{ 'COMMON.CANCEL' | translate }}</button>
-  <button mat-raised-button color="primary" [disabled]="!isValid" (click)="save()">{{ 'COMMON.SAVE' | translate }}</button>
+  <button mat-flat-button color="primary" [disabled]="!isValid" (click)="save()">{{ 'COMMON.SAVE' | translate }}</button>
 </mat-dialog-actions>

@@ -1,6 +1,6 @@
 <div class="page-header">
   <div class="page-header-text">
-    <h1><mat-icon class="header-icon">compare_arrows</mat-icon> {{ 'PROFILES.PAGE_TITLE' | translate }}</h1>
+    <h1>{{ 'PROFILES.PAGE_TITLE' | translate }}</h1>
     <p class="page-description">
       {{ 'PROFILES.PAGE_DESC' | translate }}
     </p>
@@ -10,13 +10,9 @@
       <mat-icon>upload</mat-icon> {{ 'PROFILES.IMPORT' | translate }}
     </button>
     <input #fileInput type="file" accept=".json" hidden (change)="importProfile($event)" />
-    <button
-      mat-fab
-      color="primary"
-      (click)="openAddProfileDialog()"
-      [matTooltip]="'PROFILES.ADD_TOOLTIP' | translate"
-      [attr.aria-label]="'PROFILES.ADD_TOOLTIP' | translate">
+    <button mat-flat-button class="page-primary-action" (click)="openAddProfileDialog()">
       <mat-icon>add</mat-icon>
+      {{ 'PROFILES.NEW_PROFILE' | translate }}
     </button>
   </div>
 </div>
@@ -248,12 +244,9 @@
                 </div>
                 <div class="alarm-grid">
                   @for (alarm of group.alarmsByType.get(type.key)!; track alarm.uid) {
-                    <mat-card
-                      class="alarm-card"
-                      [class.duplicate-card]="isDuplicate(alarm, type.key)"
-                      [style.border-left-color]="type.color">
-                      <div class="card-top" [style.border-top-color]="type.color">
-                        <div class="type-icon-wrap" [style.background]="type.color + '18'" [style.color]="type.color">
+                    <mat-card class="alarm-card" [class.duplicate-card]="isDuplicate(alarm, type.key)">
+                      <div class="card-top">
+                        <div class="type-icon-wrap" [style.color]="type.color">
                           @if (getAlarmImage(alarm, type.key); as imgUrl) {
                             <img
                               [src]="imgUrl"
@@ -273,7 +266,7 @@
                         <div class="card-top-actions">
                           @if (isAutoDelete(alarm.clean ?? 0)) {
                             <span class="clean-tag" [matTooltip]="'POKEMON.CLEAN_TAG_TOOLTIP' | translate">{{
-                              'POKEMON.CLEAN_TAG' | translate
+                              'ALARM.STATUS_CLEAN' | translate
                             }}</span>
                           }
                           @if (isDuplicate(alarm, type.key)) {
@@ -316,14 +309,15 @@
                           }
                           <!-- Raid/Egg pills -->
                           @if (type.key === 'raid' || type.key === 'egg') {
-                            @if (alarm.level) {
+                            <!-- 9000 is PoracleNG's "every tier", a stored wildcard rather than a level. -->
+                            @if (alarm.level && alarm.level !== 9000) {
                               <span class="filter-pill level-pill">L{{ alarm.level }}</span>
                             }
                             @if (alarm.exclusive === 1) {
                               <span class="filter-pill exclusive-pill">EX</span>
                             }
-                            @if ((alarm.team ?? 0) > 0) {
-                              <span class="filter-pill team-pill">{{ 'PROFILES.TEAM_NUM' | translate: { team: alarm.team } }}</span>
+                            @if (teamKey(alarm.team); as key) {
+                              <span class="filter-pill team-pill">{{ key | translate }}</span>
                             }
                           }
                           <!-- Quest pills -->

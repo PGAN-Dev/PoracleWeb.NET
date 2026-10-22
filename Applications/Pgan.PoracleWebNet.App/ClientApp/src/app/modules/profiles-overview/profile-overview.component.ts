@@ -670,7 +670,6 @@ export class ProfileOverviewComponent implements OnInit {
     return this.activeProfileNo() === profileNo;
   }
 
-  /** True when the auto-delete bit (clean bit 1) is set, ignoring the edit-in-place / summary bits. */
   isAutoDelete(clean: number): boolean {
     return (clean & 1) !== 0;
   }
@@ -739,6 +738,12 @@ export class ProfileOverviewComponent implements OnInit {
           this.loadAll();
         },
       });
+  }
+
+  /** True when the auto-delete bit (clean bit 1) is set, ignoring the edit-in-place / summary bits. */
+  /** A team's name key; null for harmony (0), any team (4) and anything unknown, which carry no filter worth a pill. */
+  teamKey(team: unknown): null | string {
+    return ({ 1: 'RAIDS.TEAM_MYSTIC', 2: 'RAIDS.TEAM_VALOR', 3: 'RAIDS.TEAM_INSTINCT' } as Record<number, string>)[Number(team)] ?? null;
   }
 
   toggleDuplicatesFilter(): void {

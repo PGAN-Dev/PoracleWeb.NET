@@ -3,7 +3,7 @@
     <h1>{{ 'GEOFENCES.PAGE_TITLE' | translate }}</h1>
     <p class="page-description">{{ 'GEOFENCES.PAGE_DESC' | translate }}</p>
   </div>
-  <div class="page-header-actions">
+  <div class="header-actions">
     <div class="geojson-actions">
       <button mat-stroked-button (click)="exportGeoJson()" [matTooltip]="'GEOFENCES.EXPORT_TOOLTIP' | translate">
         <mat-icon>download</mat-icon>
@@ -19,10 +19,8 @@
       </button>
     </div>
     <button
-      mat-fab
-      extended
-      color="primary"
-      class="draw-fab"
+      mat-flat-button
+      class="page-primary-action draw-fab"
       (click)="toggleDrawMode()"
       [disabled]="hasReachedLimit() && !drawMode()"
       [matTooltip]="'GEOFENCES.DRAW_TOOLTIP' | translate">
@@ -97,7 +95,6 @@
     <div class="geofence-grid">
       @for (geofence of customGeofences(); track geofence.id) {
         <div class="geofence-card">
-          <div class="geofence-card-accent"></div>
           <div class="geofence-card-body">
             <div class="geofence-card-header">
               <mat-icon class="geofence-card-icon">pentagon</mat-icon>

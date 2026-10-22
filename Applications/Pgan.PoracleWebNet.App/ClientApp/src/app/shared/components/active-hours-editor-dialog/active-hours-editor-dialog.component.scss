@@ -27,8 +27,6 @@ mat-dialog-content {
   display: block;
   font-size: 12px;
   font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
   color: var(--text-secondary, rgba(0, 0, 0, 0.54));
   margin-bottom: 8px;
 }
@@ -101,10 +99,8 @@ mat-dialog-content {
 
 .group-caption {
   margin: 0 0 2px 2px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
   color: var(--text-hint, rgba(0, 0, 0, 0.5));
 }
 

@@ -20,7 +20,7 @@
 </mat-dialog-content>
 <mat-dialog-actions align="end">
   <button mat-button (click)="dialogRef.close()">{{ 'COMMON.CANCEL' | translate }}</button>
-  <button mat-raised-button color="primary" (click)="save()" [disabled]="saving() || !profileName.trim() || hasNameConflict()">
+  <button mat-flat-button color="primary" (click)="save()" [disabled]="saving() || !profileName.trim() || hasNameConflict()">
     <mat-icon>add</mat-icon> {{ 'PROFILES.CREATE' | translate }}
   </button>
 </mat-dialog-actions>

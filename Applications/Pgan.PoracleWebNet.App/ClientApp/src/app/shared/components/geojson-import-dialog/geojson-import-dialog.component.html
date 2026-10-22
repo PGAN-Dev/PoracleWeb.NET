@@ -187,12 +187,12 @@
   }
   @if (step() === 'preview') {
     <button mat-button (click)="goBack()" [disabled]="importing()">{{ 'GEOJSON_IMPORT.BACK' | translate }}</button>
-    <button mat-raised-button color="primary" (click)="startImport()" [disabled]="importing() || selectedValidCount() === 0 || hasErrors">
+    <button mat-flat-button color="primary" (click)="startImport()" [disabled]="importing() || selectedValidCount() === 0 || hasErrors">
       <mat-icon>upload</mat-icon>
       {{ 'GEOJSON_IMPORT.IMPORT_BTN' | translatePlural: selectedValidCount() }}
     </button>
   }
   @if (step() === 'results') {
-    <button mat-raised-button color="primary" (click)="closeWithResult()">{{ 'GEOJSON_IMPORT.DONE' | translate }}</button>
+    <button mat-flat-button color="primary" (click)="closeWithResult()">{{ 'GEOJSON_IMPORT.DONE' | translate }}</button>
   }
 </mat-dialog-actions>

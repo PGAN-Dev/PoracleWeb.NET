@@ -4,12 +4,9 @@
     <p class="page-description">{{ 'FORT_CHANGES.PAGE_DESC' | translate }}</p>
   </div>
   <div class="header-actions">
-    <button
-      mat-fab
-      (click)="openAddDialog()"
-      [attr.aria-label]="'FORT_CHANGES.ADD_FORT_CHANGE' | translate"
-      style="background: #795548; color: #fff">
+    <button mat-flat-button class="page-primary-action" (click)="openAddDialog()">
       <mat-icon>add</mat-icon>
+      {{ 'ALARM.NEW_ALARM' | translate }}
     </button>
   </div>
 </div>

@@ -39,14 +39,14 @@
 </mat-dialog-content>
 <mat-dialog-actions align="end">
   @if (data.infoOnly) {
-    <button mat-raised-button color="primary" (click)="dialogRef.close(false)">
+    <button mat-flat-button color="primary" (click)="dialogRef.close(false)">
       {{ data.confirmText || ('COMMON.CLOSE' | translate) }}
     </button>
   } @else {
     <button mat-button (click)="onCancel()">
       {{ data.cancelText || ('DIALOG.CANCEL' | translate) }}
     </button>
-    <button mat-raised-button [color]="data.warn ? 'warn' : 'primary'" (click)="onConfirm()" [disabled]="promptProblem !== null">
+    <button mat-flat-button [color]="data.warn ? 'warn' : 'primary'" (click)="onConfirm()" [disabled]="promptProblem !== null">
       @if (data.warn) {
         <mat-icon>delete</mat-icon>
       }

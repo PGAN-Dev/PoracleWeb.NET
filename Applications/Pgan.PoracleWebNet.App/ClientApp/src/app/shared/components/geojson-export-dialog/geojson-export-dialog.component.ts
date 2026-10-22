@@ -102,7 +102,7 @@ export interface GeoJsonExportDialogResult {
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-button (click)="dialogRef.close(null)">{{ 'COMMON.CANCEL' | translate }}</button>
-      <button mat-raised-button color="primary" [disabled]="selectedCount() === 0" (click)="export()">
+      <button mat-flat-button color="primary" [disabled]="selectedCount() === 0" (click)="export()">
         <mat-icon>download</mat-icon>
         {{ 'GEOJSON_EXPORT.EXPORT_BTN' | translatePlural: selectedCount() }}
       </button>

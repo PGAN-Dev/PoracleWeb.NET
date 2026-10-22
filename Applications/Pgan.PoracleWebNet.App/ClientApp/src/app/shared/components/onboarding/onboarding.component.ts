@@ -97,14 +97,25 @@ const ALARM_ROUTES: { disableKey: string; route: string }[] = [
         opacity: 0.5;
       }
       .step.active {
-        background: rgba(25, 118, 210, 0.04);
+        background: var(--mat-sys-surface-container-high, rgba(0, 0, 0, 0.04));
         opacity: 1;
       }
       .step.completed {
         opacity: 0.8;
       }
+      /* Green 800 on the light card, green 300 on the dark one: done is state, and it reads in both. */
+      .step.completed:not(.active) .step-content p,
+      .step.completed mat-icon,
+      .dot.completed {
+        --done: #2e7d32;
+      }
+      :host-context(.dark-theme) .step.completed:not(.active) .step-content p,
+      :host-context(.dark-theme) .step.completed mat-icon,
+      :host-context(.dark-theme) .dot.completed {
+        --done: #81c784;
+      }
       .step.completed:not(.active) .step-content p {
-        color: #2e7d32;
+        color: var(--done);
       }
       .step-indicator {
         flex-shrink: 0;
@@ -126,12 +137,11 @@ const ALARM_ROUTES: { disableKey: string; route: string }[] = [
         font-size: 14px;
       }
       .step.active .step-number {
-        border-color: #1976d2;
-        color: #1976d2;
-        background: rgba(25, 118, 210, 0.08);
+        border-color: var(--mat-sys-primary);
+        color: var(--mat-sys-primary);
       }
       .step.completed mat-icon {
-        color: #4caf50;
+        color: var(--done);
       }
       .step-content h3 {
         margin: 0 0 4px;
@@ -167,16 +177,13 @@ const ALARM_ROUTES: { disableKey: string; route: string }[] = [
         height: 8px;
         border-radius: 50%;
         background: var(--skeleton-bg, rgba(0, 0, 0, 0.12));
-        transition:
-          background 0.2s,
-          transform 0.2s;
+        transition: background 0.2s;
       }
       .dot.active {
-        background: #1976d2;
-        transform: scale(1.2);
+        background: var(--mat-sys-primary);
       }
       .dot.completed {
-        background: #4caf50;
+        background: var(--done);
       }
       @media (max-width: 599px) {
         .onboarding-card {

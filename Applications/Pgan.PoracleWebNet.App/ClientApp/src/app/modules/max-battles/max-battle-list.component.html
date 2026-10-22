@@ -4,13 +4,9 @@
     <p class="page-description">{{ 'MAX_BATTLES.PAGE_DESC' | translate }}</p>
   </div>
   <div class="header-actions">
-    <button
-      mat-fab
-      (click)="openAddDialog()"
-      [attr.aria-label]="'MAX_BATTLES.ADD_MAX_BATTLE' | translate"
-      [style.background-color]="'#d500f9'"
-      [style.color]="'white'">
+    <button mat-flat-button class="page-primary-action" (click)="openAddDialog()">
       <mat-icon>add</mat-icon>
+      {{ 'ALARM.NEW_ALARM' | translate }}
     </button>
   </div>
 </div>

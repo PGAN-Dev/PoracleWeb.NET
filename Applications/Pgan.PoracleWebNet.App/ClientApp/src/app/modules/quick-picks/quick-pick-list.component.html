@@ -15,13 +15,9 @@
       <mat-menu #adminMenu="matMenu">
         <button mat-menu-item (click)="onReseed()"><mat-icon>restart_alt</mat-icon> {{ 'QUICK_PICKS.RESET_DEFAULTS' | translate }}</button>
       </mat-menu>
-      <button
-        mat-fab
-        (click)="onAddNew()"
-        [attr.aria-label]="'QUICK_PICKS.CREATE' | translate"
-        [style.background-color]="'#ff6f00'"
-        [style.color]="'white'">
+      <button mat-flat-button class="page-primary-action" (click)="onAddNew()">
         <mat-icon>add</mat-icon>
+        {{ 'QUICK_PICKS.NEW_QUICK_PICK' | translate }}
       </button>
     }
   </div>
@@ -62,8 +58,8 @@
       <div class="alarm-grid">
         @for (pick of group.items; track pick.definition.id) {
           <mat-card class="alarm-card" [class.applied-card]="pick.appliedState">
-            <div class="card-top" [style.border-top-color]="alarmTypeColors[pick.definition.alarmType] || '#666'">
-              <div class="pick-icon-wrap" [style.background-color]="alarmTypeColors[pick.definition.alarmType] || '#666'">
+            <div class="card-top">
+              <div class="pick-icon-wrap" [style.color]="alarmTypeColors[pick.definition.alarmType] || null">
                 <mat-icon>{{ pick.definition.icon }}</mat-icon>
               </div>
               <div class="pick-info">
@@ -78,8 +74,7 @@
                 <span class="pick-description">{{ pickDescription(pick.definition) }}</span>
               </div>
               <div class="card-top-actions">
-                @let typeChip = alarmTypeChip(pick.definition.alarmType);
-                <span class="alarm-type-chip" [style.background-color]="typeChip.background" [style.color]="typeChip.color">
+                <span class="alarm-type-chip">
                   {{ alarmTypeLabel(pick.definition.alarmType) }}
                 </span>
               </div>
@@ -119,11 +114,7 @@
                   {{ 'QUICK_PICKS.REMOVE' | translate }}
                 </button>
               } @else {
-                <button
-                  mat-flat-button
-                  (click)="onApply(pick)"
-                  [style.background-color]="alarmTypeChip(pick.definition.alarmType).background"
-                  [style.color]="alarmTypeChip(pick.definition.alarmType).color">
+                <button mat-stroked-button (click)="onApply(pick)">
                   <mat-icon>add</mat-icon>
                   {{ 'QUICK_PICKS.APPLY' | translate }}
                 </button>

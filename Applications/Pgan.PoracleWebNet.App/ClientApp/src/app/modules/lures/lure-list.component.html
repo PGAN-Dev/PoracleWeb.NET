@@ -4,8 +4,9 @@
     <p class="page-description">{{ 'LURES.PAGE_DESC' | translate }}</p>
   </div>
   <div class="header-actions">
-    <button mat-fab (click)="openAddDialog()" [attr.aria-label]="'LURES.ADD_LURE' | translate" style="background: #e91e63; color: #fff">
+    <button mat-flat-button class="page-primary-action" (click)="openAddDialog()">
       <mat-icon>add</mat-icon>
+      {{ 'ALARM.NEW_ALARM' | translate }}
     </button>
   </div>
 </div>

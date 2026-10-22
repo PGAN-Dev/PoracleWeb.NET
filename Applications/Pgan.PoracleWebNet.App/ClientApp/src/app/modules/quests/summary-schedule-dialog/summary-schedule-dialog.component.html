@@ -18,8 +18,8 @@
       <section class="schedule-panel" aria-live="polite">
         <span class="section-label">{{ 'QUESTS.SUMMARY_SCHEDULE_ALERT_LABEL' | translate }}</span>
         <div class="pill-grid">
-          @for (pill of pills(); track pill.label; let i = $index) {
-            <span class="pill" [style.animation-delay.ms]="i * 30">
+          @for (pill of pills(); track pill.label) {
+            <span class="pill">
               <mat-icon class="pill-icon">schedule</mat-icon>
               {{ pill.label }}
             </span>

@@ -56,7 +56,7 @@
 <app-add-refusal [refusal]="refusal()" (editExisting)="editExisting($event)" />
 <mat-dialog-actions align="end">
   <button mat-button (click)="dialogRef.close(false)">{{ 'COMMON.CANCEL' | translate }}</button>
-  <button mat-raised-button color="primary" (click)="save()" [disabled]="saving() || selectedLureIds().length === 0 || !radiusValid()">
+  <button mat-flat-button color="primary" (click)="save()" [disabled]="saving() || selectedLureIds().length === 0 || !radiusValid()">
     {{ saving() ? ('COMMON.SAVING' | translate) : ('COMMON.SAVE' | translate) }}
   </button>
 </mat-dialog-actions>
