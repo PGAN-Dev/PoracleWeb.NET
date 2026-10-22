@@ -33,6 +33,10 @@ const SILENT_URL_PATTERNS = [
   // to a plainer confirm when the read fails, so a toast would report a failure nobody needs to act on.
   '/api/location/pin-usage',
   '/api/location/place-usage',
+  // The pin card's static map and the weather row. Both callers draw nothing when the read fails, and a
+  // 404 on the first read after a restart toasted "not found" over an Areas page that worked.
+  '/api/location/staticmap',
+  '/api/location/weather',
 ];
 
 /** The token a request carried, from the header authInterceptor (or the refresh retry) attached. */
