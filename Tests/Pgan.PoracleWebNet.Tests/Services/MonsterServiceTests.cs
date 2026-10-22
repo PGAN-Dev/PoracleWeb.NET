@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
@@ -21,7 +22,7 @@ public class MonsterServiceTests
     public MonsterServiceTests()
     {
         this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
-        this._sut = new MonsterService(this._proxy.Object, this._featureGate.Object, this._remapper.Object);
+        this._sut = new MonsterService(this._proxy.Object, this._featureGate.Object, this._remapper.Object, NullLogger<MonsterService>.Instance);
     }
 
     [Fact]

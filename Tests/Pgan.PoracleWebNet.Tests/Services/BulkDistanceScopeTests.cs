@@ -142,20 +142,21 @@ public class BulkDistanceScopeTests
     }
 
     [Fact]
-    public async Task BulkDistanceInvalidRefusalIsReportedByTheRowsScope()
+    public async Task BulkDistanceInvalidRefusalTheScopeCannotExplainIsAConflict()
     {
-        // At zero the area-scoped row is sent; should PoracleNG still find it invalid, it is reported as
-        // area-scoped. An invalid refusal on a row with no override has no scope to blame and is reported as
-        // a conflict rather than dropped.
+        // At zero the area-scoped row is sent, because zero is the radius it holds. Its scope therefore cannot
+        // be why PoracleNG found it invalid, and calling it "limited to areas" would tell the user something
+        // false. Before PATCH was sent trusted, that is exactly how a rule limited to the user's own fence came
+        // back. Every invalid refusal of a row that was sent is a conflict, with a warning in the log.
         this._refusals[1] = new PatchRefusal(1, PatchRefusalReasons.Invalid, "bad", null);
         this._refusals[2] = new PatchRefusal(2, PatchRefusalReasons.Invalid, "bad", null);
 
         var result = await UpdateSelected(this.ServiceFor("raid"), [1, 2, 3], 0);
 
         Assert.Equal(0, result.Updated);
-        Assert.Equal([2], result.SkippedAreaScoped);
+        Assert.Empty(result.SkippedAreaScoped);
         Assert.Equal([3], result.SkippedPlaceScoped);
-        Assert.Equal([1], result.SkippedConflict);
+        Assert.Equal([1, 2], result.SkippedConflict);
     }
 
     [Fact]
@@ -278,7 +279,7 @@ public class BulkDistanceScopeTests
             new PokestopEvent { Uid = 2, DisplayType = PokestopEventTypes.Kecleon, OverrideAreas = ["aberdeen"] },
         ]);
 
-        var result = await new PokestopEventService(this._incident.Object, this._featureGate.Object)
+        var result = await new PokestopEventService(this._incident.Object, this._featureGate.Object, NullLogger<PokestopEventService>.Instance)
             .UpdateDistanceByUidsAsync([1, 2], "u1", 750);
 
         var (uids, set) = Assert.Single(this._incidentPatched);
@@ -300,7 +301,7 @@ public class BulkDistanceScopeTests
         ]);
         this._refusals[2] = new PatchRefusal(2, PatchRefusalReasons.Conflict, "duplicate", 1);
 
-        var result = await new PokestopEventService(this._incident.Object, this._featureGate.Object)
+        var result = await new PokestopEventService(this._incident.Object, this._featureGate.Object, NullLogger<PokestopEventService>.Instance)
             .UpdateDistanceByUserAsync("u1", 0, 750);
 
         Assert.Equal(1, result.Updated);
@@ -346,7 +347,7 @@ public class BulkDistanceScopeTests
 
     private object ServiceFor(string trackingType) => trackingType switch
     {
-        "pokemon" => new MonsterService(this._proxy, this._featureGate.Object, this._remapper.Object),
+        "pokemon" => new MonsterService(this._proxy, this._featureGate.Object, this._remapper.Object, NullLogger<MonsterService>.Instance),
         "raid" => new RaidService(
             this._proxy, this._featureGate.Object, NullLogger<RaidService>.Instance, this._remapper.Object),
         "egg" => new EggService(this._proxy, this._featureGate.Object, NullLogger<EggService>.Instance, this._remapper.Object),

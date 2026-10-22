@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
@@ -23,10 +23,12 @@ namespace Pgan.PoracleWebNet.Core.Services;
 /// 733 to 735. Callers must refetch rather than patch a list in place.
 /// </para>
 /// </remarks>
-public class PokestopEventService(IPoracleIncidentProxy proxy, IFeatureGate featureGate) : IPokestopEventService
+public class PokestopEventService(
+    IPoracleIncidentProxy proxy, IFeatureGate featureGate, ILogger<PokestopEventService> logger) : IPokestopEventService
 {
     private readonly IPoracleIncidentProxy _proxy = proxy;
     private readonly IFeatureGate _featureGate = featureGate;
+    private readonly ILogger<PokestopEventService> _logger = logger;
 
     public async Task<IEnumerable<PokestopEvent>> GetByUserAsync(string userId, int profileNo) =>
         await this._proxy.GetByUserAsync(userId);
@@ -145,11 +147,11 @@ public class PokestopEventService(IPoracleIncidentProxy proxy, IFeatureGate feat
 
         if (plan.Writable.Count == 0)
         {
-            return DistanceRewrite.Report(plan, TrackingTypeName, [], NullLogger.Instance);
+            return DistanceRewrite.Report(plan, TrackingTypeName, [], this._logger);
         }
 
         var result = await this._proxy.PatchAsync(userId, plan.WritableUids, new TrackingPatchSet(Distance: distance));
-        return DistanceRewrite.Report(plan, TrackingTypeName, [result], NullLogger.Instance);
+        return DistanceRewrite.Report(plan, TrackingTypeName, [result], this._logger);
     }
 
     private const string TrackingTypeName = "incident";

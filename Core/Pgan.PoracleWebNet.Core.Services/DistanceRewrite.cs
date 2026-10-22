@@ -29,8 +29,12 @@ internal static partial class DistanceRewrite
     /// <summary>One stored rule's uid and the scope that decides whether a radius can apply to it.</summary>
     public readonly record struct RowScope(int Uid, bool HasAreas, bool HasPlace);
 
-    /// <summary>The selected rules split by scope: the ones to send, and the ones skipped and why.</summary>
+    /// <summary>
+    /// The selected rules split by scope for <paramref name="Distance"/>: the ones to send, and the ones skipped
+    /// and why.
+    /// </summary>
     public sealed record DistancePlan(
+        int Distance,
         IReadOnlyList<RowScope> Writable,
         IReadOnlyList<int> AreaScoped,
         IReadOnlyList<int> PlaceScoped)
@@ -101,7 +105,7 @@ internal static partial class DistanceRewrite
             }
         }
 
-        return new DistancePlan(writable, areaScoped, placeScoped);
+        return new DistancePlan(distance, writable, areaScoped, placeScoped);
     }
 
     /// <summary>
@@ -109,9 +113,10 @@ internal static partial class DistanceRewrite
     /// refusals are reported by reason.
     /// </summary>
     /// <remarks>
-    /// <c>invalid</c> is put down to the rule's scope when it has one, since that is what PoracleNG validates a
-    /// radius against; one with neither scope has no reason to give the user, so it is logged and reported
-    /// with the conflicts rather than dropped. <c>not_found</c> is a rule gone between the read and the write:
+    /// <c>invalid</c> is put down to the rule's scope only when the scope explains it, which for a rule that was
+    /// sent it never should: <see cref="Plan"/> sent it because its scope takes this radius. Anything else has no
+    /// reason to give the user, so it is logged and reported with the conflicts rather than dropped or labelled
+    /// with a scope that is not the cause. <c>not_found</c> is a rule gone between the read and the write:
     /// logged, not reported.
     /// </remarks>
     public static DistanceUpdateResult Report(
@@ -135,11 +140,11 @@ internal static partial class DistanceRewrite
                         conflict.Add(refusal.Uid);
                         break;
 
-                    case PatchRefusalReasons.Invalid when scopes.TryGetValue(refusal.Uid, out var scope) && scope.HasAreas:
+                    case PatchRefusalReasons.Invalid when ScopeConflictOf(scopes, refusal.Uid, plan.Distance) == ScopeConflict.AreaScoped:
                         areaScoped.Add(refusal.Uid);
                         break;
 
-                    case PatchRefusalReasons.Invalid when scopes.TryGetValue(refusal.Uid, out var scope) && scope.HasPlace:
+                    case PatchRefusalReasons.Invalid when ScopeConflictOf(scopes, refusal.Uid, plan.Distance) == ScopeConflict.PlaceScoped:
                         placeScoped.Add(refusal.Uid);
                         break;
 
@@ -157,6 +162,9 @@ internal static partial class DistanceRewrite
 
         return new DistanceUpdateResult(updated, areaScoped, placeScoped, conflict);
     }
+
+    private static ScopeConflict ScopeConflictOf(Dictionary<int, RowScope> scopes, int uid, int distance) =>
+        scopes.TryGetValue(uid, out var scope) ? ConflictOf(scope.HasAreas, scope.HasPlace, distance) : ScopeConflict.None;
 
     /// <summary>Why a radius cannot be applied to an alarm with this scope, if it cannot.</summary>
     public static ScopeConflict ConflictOf(bool hasAreas, bool hasPlace, int distance) =>
@@ -219,6 +227,6 @@ internal static partial class DistanceRewrite
 
     [LoggerMessage(
         Level = LogLevel.Warning,
-        Message = "Bulk distance {Type}: PoracleNG refused uid={Uid} as {Reason} ({Detail}) with no scope to account for it; reported as a conflict.")]
+        Message = "Bulk distance {Type}: PoracleNG refused uid={Uid} as {Reason} ({Detail}) and its scope does not account for it; reported as a conflict.")]
     private static partial void LogRefusalUnexplained(ILogger logger, string type, int uid, string reason, string detail);
 }

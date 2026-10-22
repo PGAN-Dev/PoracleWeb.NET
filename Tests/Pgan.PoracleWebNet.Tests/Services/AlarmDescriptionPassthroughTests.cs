@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
@@ -30,7 +31,7 @@ public class AlarmDescriptionPassthroughTests
     public AlarmDescriptionPassthroughTests()
     {
         this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
-        this._monsters = new MonsterService(this._proxy.Object, this._featureGate.Object, this._remapper.Object);
+        this._monsters = new MonsterService(this._proxy.Object, this._featureGate.Object, this._remapper.Object, NullLogger<MonsterService>.Instance);
     }
 
     private static JsonElement StoredRow(int uid, string? description) => JsonSerializer.SerializeToElement(

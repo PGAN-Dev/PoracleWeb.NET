@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
@@ -277,6 +278,43 @@ public class CleaningServiceTests
                 [1], [2], [new PatchRefusal(3, PatchRefusalReasons.Conflict, "duplicate", 1)]));
 
         Assert.Equal(2, await this._sut.ToggleCleanRaidsAsync("u1", 1, 1));
+    }
+
+    [Fact]
+    public async Task CleaningToggleWarnsAboutEveryRuleItLeftAlone()
+    {
+        // The count already leaves a refused rule out, so the switch looks fine to the user. The log is the only
+        // place that says which rules kept their old setting and why.
+        this._proxy.Setup(p => p.GetByUserAsync("raid", "u1")).ReturnsAsync(CreateJsonArray(
+            new { uid = 1, clean = 0 },
+            new { uid = 3, clean = 0 }));
+        this._proxy
+            .Setup(p => p.PatchAsync("raid", "u1", It.IsAny<IReadOnlyList<int>>(), It.IsAny<TrackingPatchSet>()))
+            .ReturnsAsync(new TrackingPatchResult(
+                [1], [], [new PatchRefusal(3, PatchRefusalReasons.Invalid, "area not allowed", null)]));
+        var logger = new CapturingLogger();
+        var sut = new CleaningService(this._proxy.Object, this._featureGate.Object, this._incident.Object, logger);
+
+        Assert.Equal(1, await sut.ToggleCleanRaidsAsync("u1", 1, 1));
+
+        var warning = Assert.Single(logger.Entries, e => e.Level == LogLevel.Warning);
+        Assert.Contains("uid=3", warning.Message, StringComparison.Ordinal);
+        Assert.Contains("invalid", warning.Message, StringComparison.Ordinal);
+        Assert.Contains("area not allowed", warning.Message, StringComparison.Ordinal);
+    }
+
+    private sealed class CapturingLogger : ILogger<CleaningService>
+    {
+        public List<(LogLevel Level, string Message)> Entries { get; } = [];
+
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) =>
+            this.Entries.Add((logLevel, formatter(state, exception)));
     }
 
     [Fact]

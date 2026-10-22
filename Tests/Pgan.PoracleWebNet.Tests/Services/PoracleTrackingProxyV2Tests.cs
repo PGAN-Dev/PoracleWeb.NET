@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
@@ -993,7 +994,7 @@ public class PoracleTrackingProxyV2Tests
         var quickPicks = new QuickPickService(
             Mock.Of<IQuickPickDefinitionRepository>(),
             applied.Object,
-            new MonsterService(proxy, Mock.Of<IFeatureGate>(), Mock.Of<ITrackedUidRemapper>()),
+            new MonsterService(proxy, Mock.Of<IFeatureGate>(), Mock.Of<ITrackedUidRemapper>(), NullLogger<MonsterService>.Instance),
             Mock.Of<IRaidService>(),
             Mock.Of<IEggService>(),
             Mock.Of<IQuestService>(),

@@ -137,7 +137,7 @@ public class AlarmServiceV2UpdatePathTests
 
     private async Task<int> UpdateAsync(string type, int uid) => type switch
     {
-        "pokemon" => (await new MonsterService(this._proxy.Object, this._featureGate.Object, this._remapper.Object)
+        "pokemon" => (await new MonsterService(this._proxy.Object, this._featureGate.Object, this._remapper.Object, NullLogger<MonsterService>.Instance)
             .UpdateAsync("u1", new Monster { Uid = uid, PokemonId = 25 })).Uid,
         "raid" => (await new RaidService(
                 this._proxy.Object, this._featureGate.Object, NullLogger<RaidService>.Instance,

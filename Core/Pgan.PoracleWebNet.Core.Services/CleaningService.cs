@@ -205,8 +205,10 @@ public partial class CleaningService(
         return any;
     }
 
+    // Warning: the count the user sees already leaves this rule out, so nothing on screen says it kept its old
+    // setting. This line is the only place that does.
     [LoggerMessage(
-        Level = LogLevel.Information,
-        Message = "Clean toggle {Type}: PoracleNG left uid={Uid} alone ({Reason}: {Detail}).")]
+        Level = LogLevel.Warning,
+        Message = "Clean toggle {Type}: PoracleNG refused uid={Uid} ({Reason}: {Detail}); it keeps its old setting.")]
     private static partial void LogCleanRefused(ILogger logger, string type, int uid, string reason, string detail);
 }

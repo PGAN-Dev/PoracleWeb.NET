@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
@@ -8,12 +8,14 @@ namespace Pgan.PoracleWebNet.Core.Services;
 public class MonsterService(
     IPoracleTrackingProxy proxy,
     IFeatureGate featureGate,
-    ITrackedUidRemapper uidRemapper) : IMonsterService
+    ITrackedUidRemapper uidRemapper,
+    ILogger<MonsterService> logger) : IMonsterService
 {
     private const string TrackingType = "pokemon";
     private readonly IPoracleTrackingProxy _proxy = proxy;
     private readonly IFeatureGate _featureGate = featureGate;
     private readonly ITrackedUidRemapper _uidRemapper = uidRemapper;
+    private readonly ILogger<MonsterService> _logger = logger;
 
     // profileNo is kept for interface compatibility only. PoracleNG scopes reads to the user's active
     // profile (humans.current_profile_no), and writes no longer carry profile_no at all — see
@@ -105,7 +107,7 @@ public class MonsterService(
 
         // One v2 PATCH naming the uids and the radius: nothing else a rule holds is re-sent (#730), each keeps
         // its uid, and PoracleNG refuses a rule that would collide with another rather than merging it.
-        return await DistanceRewrite.ApplyAsync(this._proxy, TrackingType, userId, json, _ => true, distance, NullLogger.Instance);
+        return await DistanceRewrite.ApplyAsync(this._proxy, TrackingType, userId, json, _ => true, distance, this._logger);
     }
 
     public async Task<DistanceUpdateResult> UpdateDistanceByUidsAsync(List<int> uids, string userId, int distance)
@@ -120,7 +122,7 @@ public class MonsterService(
             json,
             row => PoracleJsonHelper.UidOf(row) is int rowUid && selected.Contains(rowUid),
             distance,
-            NullLogger.Instance);
+            this._logger);
     }
 
     public async Task<int> CountByUserAsync(string userId, int profileNo)

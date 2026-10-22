@@ -30,7 +30,8 @@ public class CostumeWriteTests
             .ReturnsAsync(new TrackingCreateResult([1], 0, 0, 1));
     }
 
-    private MonsterService Monsters() => new(this._proxy.Object, this._gate.Object, this._remapper.Object);
+    private MonsterService Monsters() =>
+        new(this._proxy.Object, this._gate.Object, this._remapper.Object, NullLogger<MonsterService>.Instance);
 
     private RaidService Raids() =>
         new(this._proxy.Object, this._gate.Object, NullLogger<RaidService>.Instance, this._remapper.Object);

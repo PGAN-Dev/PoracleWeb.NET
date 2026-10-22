@@ -5,6 +5,7 @@ using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Core.Services;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Pgan.PoracleWebNet.Tests.Services;
 
@@ -67,7 +68,7 @@ public class AlarmServiceCreateWriteTests
     public async Task BulkCreateUsesRowUidsForMonsters()
     {
         this.RowUids("pokemon", [11, 0, 12]);
-        var sut = new MonsterService(this._proxy.Object, this._gate.Object, this._remapper.Object);
+        var sut = new MonsterService(this._proxy.Object, this._gate.Object, this._remapper.Object, NullLogger<MonsterService>.Instance);
 
         var created = (await sut.BulkCreateAsync(
             "u1", [new Monster { PokemonId = 1 }, new Monster { PokemonId = 2 }, new Monster { PokemonId = 3 }])).ToList();
@@ -209,7 +210,7 @@ public class AlarmServiceCreateWriteTests
 
     private async Task<int> CreateAsync(string type) => type switch
     {
-        "pokemon" => (await new MonsterService(this._proxy.Object, this._gate.Object, this._remapper.Object)
+        "pokemon" => (await new MonsterService(this._proxy.Object, this._gate.Object, this._remapper.Object, NullLogger<MonsterService>.Instance)
             .CreateAsync("u1", new Monster { PokemonId = 25 })).Uid,
         "raid" => (await new RaidService(this._proxy.Object, this._gate.Object, Mock.Of<ILogger<RaidService>>(), this._remapper.Object)
             .CreateAsync("u1", new Raid { PokemonId = 150 })).Uid,

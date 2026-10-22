@@ -32,11 +32,17 @@ public sealed partial class NoV1TrackingCallsTests
     {
         var root = FindSolutionRoot();
 
-        var offenders = ScannedProjects
+        var files = ScannedProjects
             .Select(p => Path.Combine(root, p.Replace('/', Path.DirectorySeparatorChar)))
             .Where(Directory.Exists)
             .SelectMany(dir => Directory.EnumerateFiles(dir, "*.cs", SearchOption.AllDirectories))
             .Where(f => !IsBuildOutput(f, root))
+            .ToList();
+
+        // A moved or renamed project would otherwise leave nothing to scan, and an empty scan passes.
+        Assert.Contains(files, f => f.EndsWith("PoracleTrackingProxy.Writes.cs", StringComparison.Ordinal));
+
+        var offenders = files
             .SelectMany(f => File.ReadLines(f)
                 .Select((line, i) => (line, number: i + 1))
                 .Where(x => !x.line.TrimStart().StartsWith("//", StringComparison.Ordinal) && V1Route.IsMatch(x.line))

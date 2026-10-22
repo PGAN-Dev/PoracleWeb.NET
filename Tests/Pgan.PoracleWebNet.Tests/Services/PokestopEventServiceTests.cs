@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
@@ -27,7 +28,7 @@ public class PokestopEventServiceTests
     {
         this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
         this._proxy.Setup(p => p.GetByUserAsync(It.IsAny<string>())).ReturnsAsync([]);
-        this._sut = new PokestopEventService(this._proxy.Object, this._featureGate.Object);
+        this._sut = new PokestopEventService(this._proxy.Object, this._featureGate.Object, NullLogger<PokestopEventService>.Instance);
     }
 
     private static PokestopEvent Rule(int uid, int displayType, int distance = 100) => new()

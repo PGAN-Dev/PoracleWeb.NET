@@ -78,8 +78,10 @@ public class ProfileOverviewService(
         // worse than a refused one. See #548.
         EnsureAlarmsAreValid(alarms);
 
-        // Every row is prepared before the first write, so a row PoracleNG could not store is refused while
-        // nothing has been written yet rather than after the types ahead of it in AlarmTypes.
+        // Every row is prepared before the first write. Translation to each type's v2 rule happens later,
+        // inside the proxy, one type per create: a row v2 can't express refuses its own type's write, and the
+        // types ahead of it in AlarmTypes are already written by then. The controller deletes the new profile
+        // on that refusal, which takes those rules with it, so a refused import leaves nothing behind.
         var (batches, events) = PrepareImport(alarms);
 
         // One v2 create per type, aimed at the target profile with ?profile=N. The user's active profile is
