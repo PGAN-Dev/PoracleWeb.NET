@@ -481,7 +481,7 @@ export class ProfileOverviewComponent implements OnInit {
       case 'gym': {
         const team = alarm.team ?? 0;
         if (alarm.slot_changes || alarm.battle_changes) return this.i18n.instant('PROFILES.GYM_ACTIVITY');
-        if (team === 0) return this.i18n.instant('PROFILES.ANY_TEAM');
+        if (team === 0 || team === 4) return this.i18n.instant('PROFILES.ANY_TEAM');
         return this.getTeamName(team);
       }
       case 'maxbattle': {

@@ -85,6 +85,8 @@ export class GymEditDialogComponent {
         return this.i18n.instant('GYMS.TEAM_VALOR');
       case 3:
         return this.i18n.instant('GYMS.TEAM_INSTINCT');
+      case 4:
+        return this.i18n.instant('RAIDS.TEAM_ANY');
       default:
         return this.i18n.instant('GYMS.TEAM_UNKNOWN', { id: team });
     }
