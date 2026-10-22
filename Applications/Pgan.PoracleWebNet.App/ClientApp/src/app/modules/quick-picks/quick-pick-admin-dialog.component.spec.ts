@@ -87,6 +87,43 @@ describe('QuickPickAdminDialogComponent', () => {
 
       expect(savedDefinition().filters['clean']).toBe(5);
     });
+
+    // Saving a built-in without touching it wrote every form default into it (maxCp 9000, maxLevel 55,
+    // pvpRankingWorst 4096 and the rest), so a later change to a default could never reach a pick that
+    // had only been opened and saved.
+    const hundo: QuickPickDefinition = { ...nundo, id: 'hundo', name: '100% IV Pokemon', filters: { maxIv: 100, minIv: 100 } };
+    const xxs: QuickPickDefinition = { ...nundo, id: 'xxs', name: 'XXS Pokemon', category: 'Size', filters: { maxSize: 1, size: 1 } };
+    const raid5: QuickPickDefinition = { ...nundo, id: 'raid-5star', name: 'All 5-Star Raids', alarmType: 'raid', filters: { level: 5 } };
+
+    it.each([
+      ['hundo', hundo],
+      ['xxs', xxs],
+      ['raid-5star', raid5],
+    ])('sends back exactly the stored filters when %s is saved unchanged', (_id, pick) => {
+      setup(pick);
+
+      component.save();
+
+      expect(savedDefinition().filters).toEqual(pick.filters);
+    });
+
+    it('adds only the key the admin changed', () => {
+      setup(hundo);
+      component.monsterForm.patchValue({ maxCp: 3000 });
+
+      component.save();
+
+      expect(savedDefinition().filters).toEqual({ maxCp: 3000, maxIv: 100, minIv: 100 });
+    });
+
+    it('still writes a stored key the admin changed back to its default', () => {
+      setup(xxs);
+      component.monsterForm.patchValue({ maxSize: 5 });
+
+      component.save();
+
+      expect(savedDefinition().filters).toEqual({ maxSize: 5, size: 1 });
+    });
   });
 
   describe('changing the alarm type', () => {

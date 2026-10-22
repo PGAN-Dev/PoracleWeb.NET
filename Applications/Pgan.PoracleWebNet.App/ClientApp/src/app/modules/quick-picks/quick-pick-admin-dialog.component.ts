@@ -116,16 +116,20 @@ export class QuickPickAdminDialogComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly fb = inject(FormBuilder);
+  /** The filter form's values before the stored filters were loaded, so save can tell a default from a change. */
+  private formDefaults: Record<string, unknown> | null = null;
   private readonly i18n = inject(I18nService);
   private readonly quickPickService = inject(QuickPickService);
   private readonly snackBar = inject(MatSnackBar);
   readonly alarmTypes = ['monster', 'raid', 'egg', 'quest', 'invasion', 'lure', 'nest', 'gym', 'maxbattle'];
   readonly categories = ['Common', 'PvP', 'Size', 'Raids', 'Quests', 'Invasions', 'Max Battles', 'Custom'];
+
   readonly data = inject<QuickPickDefinition | null>(MAT_DIALOG_DATA, {
     optional: true,
   });
 
   readonly dialogRef = inject(MatDialogRef<QuickPickAdminDialogComponent>);
+
   eggForm = this.fb.group({
     exclusive: [0],
     level: [5],
@@ -289,6 +293,8 @@ export class QuickPickAdminDialogComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.selectorKey.update(k => k + 1));
 
+    if (this.data) this.formDefaults = this.getFilterForm(this.data.alarmType)?.getRawValue() ?? null;
+
     if (this.data?.filters) {
       const filters = this.data.filters;
       const form = this.getFilterForm(this.data.alarmType);
@@ -385,6 +391,14 @@ export class QuickPickAdminDialogComponent implements OnInit {
         // controls default to 0 meaning "not set" -- writing them out would put an explicit minIv,
         // pokemonId and pvpRankingLeague of 0 on every newly created pick.
         if (value === 0 && !(key in stored)) {
+          return;
+        }
+
+        // Editing a pick of the same type writes only what is stored plus what the admin changed. Every
+        // other control still holds its default, and writing those out (maxCp 9000, maxLevel 55,
+        // pvpRankingWorst 4096...) changed a built-in that was only opened and saved, and froze today's
+        // defaults into it.
+        if (sameType && this.formDefaults && !(key in stored) && value === this.formDefaults[key]) {
           return;
         }
 
