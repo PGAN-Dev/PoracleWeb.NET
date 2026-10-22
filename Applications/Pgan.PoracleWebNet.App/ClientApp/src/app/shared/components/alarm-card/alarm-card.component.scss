@@ -1,0 +1,248 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+// One quiet surface for every rule. The edge is the only colour a card carries, and only when it is
+// data (team, tier, primary type). Nothing lifts or moves on hover, because nothing happened.
+.rule-card {
+  border: 1px solid var(--card-border, rgb(0 0 0 / 12%));
+  border-radius: 12px;
+  box-shadow: none;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  padding: 12px 8px 4px 16px;
+}
+
+.rule-card-edged {
+  border-left: 4px solid var(--rule-edge-light);
+  padding-left: 13px;
+}
+
+:host-context(.dark-theme) .rule-card-edged {
+  border-left-color: var(--rule-edge-dark);
+}
+
+.rule-card-selected {
+  outline: 2px solid var(--mat-sys-primary, #1976d2);
+  outline-offset: -1px;
+}
+
+.rule-head {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  padding-right: 4px;
+}
+
+.rule-check {
+  align-self: center;
+  margin: -8px -8px -8px -12px;
+}
+
+.rule-media {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  height: 56px;
+  justify-content: center;
+  width: 56px;
+
+  &:empty {
+    display: none;
+  }
+}
+
+// The subject keeps at least 8rem, so the checkbox, sprite and status in select mode on a phone can no
+// longer squeeze a name until it breaks mid-word ("Dragonit e"); the status chips wrap among themselves
+// instead. Past 8rem a word breaks only when it is longer than the line, so a long gym name or a German
+// compound still wraps inside the card rather than overflowing it.
+.rule-subject {
+  align-self: center;
+  flex: 1 1 auto;
+  min-width: min(8rem, 100%);
+}
+
+.rule-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.rule-status {
+  align-items: center;
+  display: flex;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-end;
+  max-width: 55%;
+
+  &:empty {
+    display: none;
+  }
+}
+
+.rule-foot {
+  align-items: center;
+  display: flex;
+  gap: 4px;
+  margin-top: auto;
+}
+
+.rule-scope {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.rule-actions {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+}
+
+.rule-details[hidden] {
+  display: none;
+}
+
+.rule-details {
+  border-top: 1px solid var(--card-border, rgb(0 0 0 / 12%));
+  color: var(--mat-sys-on-surface-variant, rgb(0 0 0 / 64%));
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  margin: 0 8px 8px 0;
+  overflow-wrap: anywhere;
+  padding-top: 8px;
+}
+
+// ─── Parts the lists project ───────────────────────────────────────────────────
+// Projected content keeps its own component's encapsulation, so the shared vocabulary is styled from
+// here, scoped under the card.
+
+:host ::ng-deep {
+  .rule-sprite {
+    height: 56px;
+    object-fit: contain;
+    width: 56px;
+  }
+
+  // A subject with no sprite (all Pokémon, a fort, an event without art): a neutral disc and a glyph.
+  .rule-icon {
+    align-items: center;
+    background: var(--mat-sys-surface-container-highest, rgb(0 0 0 / 6%));
+    border-radius: 50%;
+    color: var(--mat-sys-on-surface-variant, rgb(0 0 0 / 64%));
+    display: flex;
+    height: 48px;
+    justify-content: center;
+    width: 48px;
+
+    mat-icon {
+      font-size: 28px;
+      height: 28px;
+      width: 28px;
+    }
+  }
+
+  .rule-subtitle {
+    align-items: center;
+    color: var(--mat-sys-on-surface-variant, rgb(0 0 0 / 64%));
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+    gap: 2px 8px;
+    line-height: 1.4;
+    margin-top: 2px;
+    min-width: 0;
+
+    mat-icon {
+      font-size: 16px;
+      height: 16px;
+      width: 16px;
+    }
+  }
+
+  .rule-subtitle-part {
+    align-items: center;
+    display: inline-flex;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  // One line of filters, each the value and nothing else: "IV 90-100%", "L30-55", "XXL".
+  .rule-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 6px;
+
+    &:empty {
+      display: none;
+    }
+  }
+
+  .rule-pill {
+    align-items: center;
+    background: var(--mat-sys-surface-container-highest, rgb(0 0 0 / 6%));
+    border-radius: 6px;
+    color: var(--mat-sys-on-surface, rgb(0 0 0 / 87%));
+    display: inline-flex;
+    font-size: 0.75rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+    gap: 2px;
+    line-height: 1.5;
+    padding: 1px 8px;
+  }
+
+  // A status, in sentence case beside its icon. Neutral on purpose: the words carry it.
+  .rule-tag {
+    align-items: center;
+    border: 1px solid var(--mat-sys-outline-variant, rgb(0 0 0 / 20%));
+    border-radius: 999px;
+    color: var(--mat-sys-on-surface-variant, rgb(0 0 0 / 64%));
+    display: inline-flex;
+    font-size: 0.75rem;
+    font-weight: 500;
+    gap: 4px;
+    line-height: 1.5;
+    padding: 1px 8px 1px 6px;
+    white-space: nowrap;
+
+    mat-icon {
+      font-size: 14px;
+      height: 14px;
+      width: 14px;
+    }
+  }
+
+  .rule-scope app-where-chip {
+    display: flex;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .test-alert-btn:disabled {
+    opacity: 0.4;
+  }
+
+  .spin {
+    animation: rule-card-spin 1s linear infinite;
+  }
+}
+
+@keyframes rule-card-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}

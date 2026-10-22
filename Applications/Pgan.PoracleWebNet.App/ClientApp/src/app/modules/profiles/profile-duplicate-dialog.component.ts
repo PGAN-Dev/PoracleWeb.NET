@@ -12,6 +12,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { Profile } from '../../core/models';
 import { I18nService } from '../../core/services/i18n.service';
 import { ProfileService } from '../../core/services/profile.service';
+import { serverReason } from '../../shared/utils/server-reason';
 
 @Component({
   imports: [
@@ -46,13 +47,17 @@ export class ProfileDuplicateDialogComponent {
 
     this.duplicating.set(true);
     this.profileService.duplicate(this.data.profileNo, name).subscribe({
-      error: () => {
+      error: err => {
         this.duplicating.set(false);
-        this.snackBar.open(this.i18n.instant('PROFILES.SNACK_FAILED_DUPLICATE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+        // The API says why it refused (a name with text-direction characters, say); show that.
+        const reason = serverReason(err);
+        this.snackBar.open(reason ?? this.i18n.instant('PROFILES.SNACK_FAILED_DUPLICATE'), this.i18n.instant('TOAST.OK'), {
+          duration: reason ? 6000 : 3000,
+        });
       },
       next: profile => {
         this.duplicating.set(false);
-        this.snackBar.open(this.i18n.instant('PROFILES.SNACK_DUPLICATED', { count: 'all' }), this.i18n.instant('TOAST.OK'), {
+        this.snackBar.open(this.i18n.instant('PROFILES.SNACK_DUPLICATED_ALL'), this.i18n.instant('TOAST.OK'), {
           duration: 3000,
         });
         this.dialogRef.close(profile);

@@ -16,8 +16,8 @@
     <!-- Tab 1: Settings -->
     <mat-tab>
       <ng-template mat-tab-label>
-        <mat-icon>tune</mat-icon>
-        <span class="tab-label">{{ 'QUESTS.TAB_SETTINGS' | translate }}</span>
+        <mat-icon>explore</mat-icon>
+        <span class="tab-label">{{ 'NAV.QUESTS' | translate }}</span>
       </ng-template>
       <div class="tab-content">
         <p class="read-only-info">
@@ -48,7 +48,7 @@
         <span class="tab-label">{{ 'ALARM.TAB_DELIVERY' | translate }}</span>
       </ng-template>
       <div class="tab-content">
-        <app-scope-picker [(scope)]="scope" />
+        <app-scope-picker [(scope)]="scope" [(radiusValid)]="radiusValid" [storedRadiusKm]="storedRadiusKm" />
 
         <h4>{{ 'ALARM.MESSAGE_SETTINGS' | translate }}</h4>
 
@@ -57,16 +57,19 @@
           [value]="form.controls.template.value ?? ''"
           (valueChange)="form.controls.template.setValue($event)">
         </app-template-selector>
-
-        <mat-slide-toggle [formControl]="form.controls.clean"> {{ 'ALARM.CLEAN_MODE' | translate }} </mat-slide-toggle>
-        <p class="clean-hint">{{ 'ALARM.CLEAN_HINT_QUEST' | translate }}</p>
-
-        <mat-slide-toggle [formControl]="form.controls.summary"> {{ 'QUESTS.SUMMARY_MODE' | translate }} </mat-slide-toggle>
-        <p class="clean-hint">{{ 'QUESTS.SUMMARY_HINT' | translate }}</p>
-        @if (!summaryService.enabled()) {
-          <p class="clean-hint">{{ 'QUESTS.SUMMARY_DISABLED_HINT' | translate }}</p>
-        }
-
+        <div class="message-row">
+          <div class="message-option">
+            <mat-slide-toggle [formControl]="form.controls.clean"> {{ 'ALARM.CLEAN_MODE' | translate }} </mat-slide-toggle>
+            <p class="clean-hint">{{ 'ALARM.CLEAN_HINT_QUEST' | translate }}</p>
+          </div>
+          <div class="message-option">
+            <mat-slide-toggle [formControl]="form.controls.summary"> {{ 'QUESTS.SUMMARY_MODE' | translate }} </mat-slide-toggle>
+            <p class="clean-hint">{{ 'QUESTS.SUMMARY_HINT' | translate }}</p>
+            @if (!summaryService.enabled()) {
+              <p class="clean-hint">{{ 'QUESTS.SUMMARY_DISABLED_HINT' | translate }}</p>
+            }
+          </div>
+        </div>
         @if (isWebhook) {
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>{{ 'ALARM.MENTION_LABEL' | translate }}</mat-label>
@@ -81,7 +84,7 @@
 
 <mat-dialog-actions align="end">
   <button mat-button (click)="dialogRef.close(false)">{{ 'ALARM.CANCEL' | translate }}</button>
-  <button mat-raised-button color="primary" (click)="save()" [disabled]="saving()">
+  <button mat-flat-button color="primary" (click)="save()" [disabled]="saving() || !radiusValid()">
     {{ saving() ? ('ALARM.SAVING' | translate) : ('ALARM.SAVE' | translate) }}
   </button>
 </mat-dialog-actions>

@@ -455,7 +455,16 @@ public class PoracleApiProxy(
         var json = JsonSerializer.Serialize(request, JsonOptions);
         httpRequest.Content = new StringContent(json, Encoding.UTF8, "application/json");
         var response = await this._httpClient.SendAsync(httpRequest);
-        response.EnsureSuccessStatusCode();
+        if (!response.IsSuccessStatusCode)
+        {
+            // PoracleNG says why ("message delivery not configured - check Discord/Telegram token
+            // settings"), and that reason is the only thing telling the user a retry won't help. 502:
+            // the failure is PoracleNG's, not the caller's request.
+            var body = await response.Content.ReadAsStringAsync();
+            throw new PoracleRequestRefusedException(
+                PoracleProblemDetails.Describe(body, "no reason given"),
+                (int)HttpStatusCode.BadGateway);
+        }
     }
 
     public async Task<string?> GetGeofencesGeoJsonAsync()

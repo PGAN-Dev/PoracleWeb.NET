@@ -101,6 +101,12 @@ public sealed record RuleRepairStatus(
     /// <summary>The state before anything has run.</summary>
     public static RuleRepairStatus Idle { get; } = new(RuleRepairPhase.Idle, 0, 0, null, null, [], [], [], null, null);
 
+    /// <summary>
+    /// The name of each human the three lists mention, by id, from the human list the scan read. A human
+    /// with no name is left out, so the card falls back to the id. Null in a <see cref="Summary"/>.
+    /// </summary>
+    public IReadOnlyDictionary<string, string>? HumanNames { get; init; }
+
     // Set only by Summary(), whose lists are empty; a full status counts its own lists.
     private int? RepairableCountKept { get; init; }
 
@@ -126,6 +132,7 @@ public sealed record RuleRepairStatus(
         Repairable = [],
         CannotEdit = [],
         Skipped = [],
+        HumanNames = null,
         RepairableCountKept = this.RepairableCount,
         CannotEditCountKept = this.CannotEditCount,
         SkippedCountKept = this.SkippedCount,

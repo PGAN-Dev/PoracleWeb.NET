@@ -56,7 +56,10 @@ internal static class IncidentCreateProtocol
         {
             if (dry.Updated.Count > 0)
             {
-                throw new TrackingConflictException(TrackingType, PoracleTrackingProxy.TakeoverMessage);
+                throw new TrackingConflictException(TrackingType, PoracleTrackingProxy.TakeoverMessage)
+                {
+                    ExistingUid = ConflictingUidOf(dry),
+                };
             }
 
             // An identical rule is already stored; nothing is written.
@@ -102,7 +105,10 @@ internal static class IncidentCreateProtocol
 
         if (single && commit.Updated.Count > 0)
         {
-            throw new TrackingConflictException(TrackingType, PoracleTrackingProxy.TakeoverMessage);
+            throw new TrackingConflictException(TrackingType, PoracleTrackingProxy.TakeoverMessage)
+            {
+                ExistingUid = ConflictingUidOf(commit),
+            };
         }
 
         // Paired on the event rather than on position: PoracleNG reorders its answer. Each created rule is
@@ -119,6 +125,18 @@ internal static class IncidentCreateProtocol
         }
 
         return uids;
+    }
+
+    /// <summary>
+    /// The stored rule the first would-be takeover names: its <c>previous</c> state when PoracleNG reported
+    /// one, else the updated rule itself. Null when neither carries a uid.
+    /// </summary>
+    private static int? ConflictingUidOf(PokestopEventWriteResult result)
+    {
+        var uid = result.Previous is { Count: > 0 } previous && previous[0] is { Uid: > 0 } stored
+            ? stored.Uid
+            : result.Updated.Count > 0 ? result.Updated[0].Uid : 0;
+        return uid > 0 ? uid : null;
     }
 
     /// <summary>

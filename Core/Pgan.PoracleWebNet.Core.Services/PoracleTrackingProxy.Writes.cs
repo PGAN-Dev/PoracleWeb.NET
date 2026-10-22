@@ -134,11 +134,12 @@ public partial class PoracleTrackingProxy
         {
             if (dry.Updated.Count > 0)
             {
-                throw new TrackingConflictException(type, TakeoverMessage);
+                throw new TrackingConflictException(type, TakeoverMessage) { ExistingUid = ConflictingUidOf(dry.Updated[0]) };
             }
 
             // An identical rule is already stored; nothing is written.
-            return new TrackingCreateResult([], 1, 0, 0, [0]);
+            var existing = UidOf(dry.Unchanged[0]);
+            return new TrackingCreateResult([], 1, 0, 0, [0]) { ExistingUid = existing > 0 ? existing : null };
         }
         else if (dry.Created.Count == 0)
         {
@@ -194,7 +195,7 @@ public partial class PoracleTrackingProxy
 
         if (single && commit.Updated.Count > 0)
         {
-            throw new TrackingConflictException(type, TakeoverMessage);
+            throw new TrackingConflictException(type, TakeoverMessage) { ExistingUid = ConflictingUidOf(commit.Updated[0]) };
         }
 
         var created = commit.Created.Select(UidOf).ToList();
@@ -539,6 +540,23 @@ public partial class PoracleTrackingProxy
 
     private static PoracleAmbiguousAnswerException AmbiguousReplaceAnswer(string type, int uid, string payload) =>
         new($"PoracleNG answered the {type} rule {uid} replace with neither an updated nor an unchanged rule: {(payload.Length > 200 ? payload[..200] : payload)}");
+
+    /// <summary>
+    /// The stored rule a would-be takeover names: <c>previous</c> is that rule as it stands, so its uid is
+    /// the one to edit; the updated entry's own uid is the fallback. Null when neither carries one.
+    /// </summary>
+    internal static int? ConflictingUidOf(JsonElement updated)
+    {
+        var uid = updated.TryGetProperty("previous", out var previous) && previous.ValueKind == JsonValueKind.Object
+            ? UidOf(previous)
+            : 0;
+        if (uid <= 0)
+        {
+            uid = UidOf(updated);
+        }
+
+        return uid > 0 ? uid : null;
+    }
 
     private static string TrustedQuery(bool trusted) => trusted ? "&trusted=true" : string.Empty;
 

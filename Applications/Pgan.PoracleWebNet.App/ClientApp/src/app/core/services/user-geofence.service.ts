@@ -41,6 +41,14 @@ export class UserGeofenceService {
     });
   }
 
+  /**
+   * The same list, read for display names only. A marker the error interceptor stays quiet for: a chip
+   * falls back to the stored name, so a failure here is not worth a "server error" over a page that rendered.
+   */
+  getCustomGeofenceNames(): Observable<UserGeofence[]> {
+    return this.http.get<UserGeofence[]>(`${this.config.apiHost}/api/geofences/custom?names=1`);
+  }
+
   getCustomGeofences(): Observable<UserGeofence[]> {
     return this.http.get<UserGeofence[]>(`${this.config.apiHost}/api/geofences/custom`);
   }

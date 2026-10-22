@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Http;
 using Pgan.PoracleWebNet.Api.Configuration;
 
@@ -13,12 +14,13 @@ namespace Pgan.PoracleWebNet.Tests.Configuration;
 public class SecurityHeadersTests
 {
     /// <summary>
-    /// The CSP exactly as it was written inline in Program.cs before being extracted into
-    /// <see cref="SecurityHeaders"/>. Guards the extraction against a typo in the
-    /// concatenated string.
+    /// The CSP written out in one piece. Guards the concatenated string in
+    /// <see cref="SecurityHeaders"/> against a typo. connect-src carries the basemap tile hosts
+    /// because the browser revalidates a stale cached tile in the background
+    /// (stale-while-revalidate) and checks that request against connect-src, not img-src.
     /// </summary>
     private const string OriginalCsp =
-        "default-src 'self'; script-src 'self' 'unsafe-hashes' 'sha256-MhtPZXr7+LpJUY5qtMutB+qWfQtMaPccfe7QXtCcEYc=' https://telegram.org; style-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://raw.githubusercontent.com; frame-src https://oauth.telegram.org";
+        "default-src 'self'; script-src 'self' 'unsafe-hashes' 'sha256-MhtPZXr7+LpJUY5qtMutB+qWfQtMaPccfe7QXtCcEYc=' https://telegram.org; style-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://raw.githubusercontent.com https://tile.openstreetmap.org https://server.arcgisonline.com https://*.basemaps.cartocdn.com https://tiles.stadiamaps.com; frame-src https://oauth.telegram.org";
 
     [Fact]
     public void Apply_SetsReferrerPolicy_ToSameOrigin()
@@ -91,6 +93,59 @@ public class SecurityHeadersTests
         SecurityHeaders.Apply(headers);
 
         Assert.Equal("same-origin", headers["Referrer-Policy"]);
+    }
+
+    /// <summary>
+    /// Every tile host in the SPA's basemap catalogue must be in connect-src. OpenStreetMap
+    /// answers with stale-while-revalidate, and Chromium checks the background revalidation of a
+    /// cached tile against connect-src: without the host the console fills with "Refused to
+    /// connect" on every map page. img-src stays as it was.
+    /// </summary>
+    [Fact]
+    public void ConnectSrc_AllowsEveryBasemapCatalogueTileHost()
+    {
+        var catalogue = File.ReadAllText(Path.Combine(
+            RepoRoot(), "Applications", "Pgan.PoracleWebNet.App", "ClientApp", "src", "app", "shared", "utils", "basemaps.ts"));
+        var hosts = Regex.Matches(catalogue, @"(?:url|darkUrl):\s*'https://([^/']+)/")
+            .Select(m => m.Groups[1].Value.Replace("{s}.", "*.", StringComparison.Ordinal))
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        Assert.NotEmpty(hosts);
+
+        var connectSrc = SecurityHeaders.ContentSecurityPolicy
+            .Split(';', StringSplitOptions.TrimEntries)
+            .Single(d => d.StartsWith("connect-src ", StringComparison.Ordinal))
+            .Split(' ');
+
+        foreach (var host in hosts)
+        {
+            Assert.Contains("https://" + host, connectSrc);
+        }
+    }
+
+    /// <summary>
+    /// The tile hosts went into connect-src, not into a wider img-src: images were already open to
+    /// any https host and must stay exactly that.
+    /// </summary>
+    [Fact]
+    public void ImgSrc_IsUnchanged()
+    {
+        var imgSrc = SecurityHeaders.ContentSecurityPolicy
+            .Split(';', StringSplitOptions.TrimEntries)
+            .Single(d => d.StartsWith("img-src ", StringComparison.Ordinal));
+
+        Assert.Equal("img-src 'self' data: https:", imgSrc);
+    }
+
+    private static string RepoRoot()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "CLAUDE.md")))
+        {
+            dir = dir.Parent;
+        }
+
+        return dir?.FullName ?? throw new InvalidOperationException("Could not locate the repository root.");
     }
 
     [Fact]

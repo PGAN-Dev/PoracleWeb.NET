@@ -470,6 +470,8 @@ export interface ReverseGeocodingResult {
 // ─── Geofence ─────────────────────────────────────────────────────────────────
 
 export interface GeofenceData {
+  /** The caller's own drawn fence only: the name they gave it. `name` is its stored key ("lake eola loop 2"). */
+  displayName?: string;
   id: number;
   name: string;
   path: [number, number][];
@@ -744,6 +746,21 @@ export interface SavedPlace {
   longitude: number;
 }
 
+/** One alarm aimed at a saved place, as `GET /api/location/place-usage` lists it. */
+export interface PlaceUsageRule {
+  /** PoracleNG's one-line summary of the rule, when it sent one. */
+  description: null | string;
+  /** PoracleNG's tracking type; a Pokéstop event is `incident`. */
+  type: string;
+  uid: number;
+}
+
+/** The alarms aimed at one saved place: what stops it being deleted. */
+export interface PlaceUsage {
+  alarms: number;
+  rules: PlaceUsageRule[];
+}
+
 /** Everywhere a user's alarms can be anchored: the profile pin, plus whatever they have named. */
 export interface SavedPlaces {
   /** The profile pin every alarm falls back to. Absent when the user has never set a location. */
@@ -861,6 +878,8 @@ export interface RuleRepairStatus {
   cannotEditCount: number;
   error: null | string;
   finishedAt: null | string;
+  /** The name of each user the lists mention, by id; absent for a user with no name, and in a summary. */
+  humanNames?: null | Record<string, string>;
   humansDone: number;
   humansTotal: number;
   phase: RuleRepairPhase;

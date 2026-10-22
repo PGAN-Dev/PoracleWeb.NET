@@ -2,7 +2,7 @@
 
 A web application for managing Pokemon GO notification alarms through the [PoracleNG](https://github.com/jfberry/PoracleNG) bot. Users authenticate via Discord OAuth2 or Telegram and configure personalized alert filters (Pokemon, Raids and Eggs, Max Battles, Quests, Invasions, Pokéstop Events, Lures, Nests, Gyms, Fort Changes) through a browser-based UI.
 
-> **PoracleNG 5.4.0 or newer is required.** All alarm management, profile handling, and user operations are proxied through PoracleNG's REST API. PoracleWeb.NET still starts against an older PoracleNG, but it logs an error at startup and shows the mismatch on the Versions card under Admin > Settings, and the calls that need a 5.4.0 route fail. Upgrade PoracleNG first. Why 5.4.0, and what it replaced, is in [PoracleNG Version Compatibility](https://pgan-dev.github.io/PoracleWeb.NET/architecture/poracleng-compatibility/).
+> **PoracleNG 5.4.0 or newer is required.** All alarm management, profile handling, and user operations are proxied through PoracleNG's REST API. PoracleWeb.NET still starts against an older PoracleNG, but it logs an error at startup and shows the mismatch on the Versions card under Admin > Server settings, and the calls that need a 5.4.0 route fail. Upgrade PoracleNG first. Why 5.4.0, and what it replaced, is in [PoracleNG Version Compatibility](https://pgan-dev.github.io/PoracleWeb.NET/architecture/poracleng-compatibility/).
 >
 > [PoracleJS](https://github.com/KartulUdus/PoracleJS) is not a tested or supported configuration — some operations that rely on PoracleNG-specific endpoints will not work.
 
@@ -10,19 +10,17 @@ A web application for managing Pokemon GO notification alarms through the [Porac
 
 ## Tech Stack
 
-- **Backend**: .NET 10 / ASP.NET Core Web API, EF Core with MySQL (Oracle provider)
-- **Frontend**: Angular 21, Angular Material 21 (Material Design 3), Leaflet maps
-- **Auth**: Discord OAuth2, Telegram Bot Login, JWT bearer tokens
-- **Testing**: Jest (frontend), xUnit (backend)
-- **CI/CD**: GitHub Actions, Docker (ghcr.io)
+| Layer | Technology |
+|---|---|
+| Backend | .NET 10 / ASP.NET Core Web API, EF Core with MySQL (Oracle provider) |
+| Frontend | Angular 21, Angular Material 21 (Material Design 3), Leaflet maps |
+| Auth | Discord OAuth2, Telegram Bot Login, OIDC, JWT bearer tokens |
+| Testing | Jest (frontend), xUnit (backend) |
+| CI/CD | GitHub Actions, Docker (ghcr.io) |
 
 ## Community & Support
 
-There is **no Discord server** for PoracleWeb.NET at this time. All support, bug reports, feature requests, and community discussion happen directly on GitHub:
-
-- **[Issues](https://github.com/PGAN-Dev/PoracleWeb.NET/issues)** — bug reports and feature requests
-- **[Discussions](https://github.com/PGAN-Dev/PoracleWeb.NET/discussions)** — questions, ideas, and general conversation
-- **[Pull Requests](https://github.com/PGAN-Dev/PoracleWeb.NET/pulls)** — contributions welcome
+There is **no Discord server** for PoracleWeb.NET at this time. Support happens on GitHub: report bugs and request features in [Issues](https://github.com/PGAN-Dev/PoracleWeb.NET/issues), ask questions in [Discussions](https://github.com/PGAN-Dev/PoracleWeb.NET/discussions), and send contributions as [Pull Requests](https://github.com/PGAN-Dev/PoracleWeb.NET/pulls).
 
 ## Quick Start (Docker)
 
@@ -47,24 +45,25 @@ See the [Quick Start guide](https://pgan-dev.github.io/PoracleWeb.NET/getting-st
 
 ## Features
 
-- **Alarm Management** — Pokemon, Raids and Eggs, Max Battles, Quests, Invasions, Pokéstop Events, Lures, Nests, Gyms, Fort Changes
-- **Gym Picker** — Search and target specific gyms for team change, raid, and egg alarms
-- **Bulk Operations** — Multi-select with bulk delete and distance update
-- **Per-Alarm Delivery Scope** — Aim each alert anywhere in your areas, at only specific areas, or within a radius of your pin or a saved place
-- **Saved Places** — Name the points your alerts measure from, so an alarm doesn't have to follow your profile pin
-- **Test Alerts** — Send yourself a sample notification for an alarm to check its filters and template (every type except Fort Changes, Max Battles and Pokéstop Events)
-- **Quiet Periods** — Silence one gym, area, species or Power Spot for a set time, without touching the alarms themselves
-- **Alert Defaults** — Choose where new alerts default to reaching you: your areas, or a radius from your pin or a saved place
-- **Custom Geofences** — Draw polygons, auto-served to the Poracle bot via unified feed
-- **Geofence Admin Review** — Approve/reject with Discord forum integration
-- **Quick Picks** — One-click alarm templates
-- **Profile Switching** — Multiple alarm profiles per user
-- **Profile Active Hours** — Schedule automatic profile switching by day and time
-- **DTS Preview** — Live Discord notification template preview
-- **Dark/Light Mode** — Theme toggle with accent color customization
-- **11 UI Languages** — the interface, plus Pokemon names, types and forms, which follow the display language. What Poracle writes in your DMs is a separate choice, **Alert language**, sitting beside **Display language** in the user menu
-- **Single Sign-On** — Discord and Telegram login, plus any OIDC provider, with optional silent refresh and single logout
-- **Admin Panel** — User management, webhooks, settings, geofence review, and a Versions card showing the running PoracleWeb and PoracleNG builds. Opening that card runs an anonymous GitHub check, cached six hours, switched off with the **Do not check for updates** (`disable_update_check`) site setting
+| Feature | What it does |
+|---|---|
+| Alarm management | Pokemon, Raids and Eggs, Max Battles, Quests, Invasions, Pokéstop Events, Lures, Nests, Gyms, Fort Changes |
+| Gym picker | Search for a gym by name and aim a gym, raid or egg alarm at it |
+| Bulk operations | Select several alarms to delete them or change their radius in one go; on a phone the bar stays pinned to the bottom of the screen |
+| Per-alarm delivery scope | Aim each alert anywhere in your areas, at only specific areas, or within a radius of your pin or a saved place |
+| Saved places | Name the points your alerts measure from, so an alarm doesn't have to follow your profile pin |
+| Test alerts | Send yourself a sample notification for an alarm to check its filters and template (every type except Fort Changes, Max Battles and Pokéstop Events) |
+| Quiet periods | Silence one gym, area, species or Power Spot for a set time, without touching the alarms themselves |
+| Alert defaults | Choose where new alerts default to reaching you: your areas, or a radius from your pin or a saved place |
+| Custom geofences | Draw polygons, served to the Poracle bot through a unified feed |
+| Geofence review | Admins approve or reject submitted geofences, with a Discord forum thread for each |
+| Quick picks | One-click alarm templates |
+| Profiles | Several alarm profiles per user, with active hours that switch between them by day and time |
+| DTS preview | Live preview of the Discord notification template |
+| Dark and light mode | Theme toggle with accent colours; maps on the site default switch to a dark basemap in dark mode |
+| 11 UI languages | The interface, plus Pokemon names, types and forms, which follow the display language. What Poracle writes in your DMs is a separate choice, **Alert language**, beside **Display language** in the user menu |
+| Single sign-on | Discord and Telegram login, plus any OIDC provider, with optional silent refresh and single logout |
+| Admin panel | Users, webhooks, site settings, geofence review, hidden areas, a status line on the settings page that opens a Versions card showing the running PoracleWeb.NET and PoracleNG builds, and a Rule repair card for rules PoracleNG 5.4.0 reads differently. The Versions card runs an anonymous GitHub check, cached six hours, which the `disable_update_check` site setting switches off |
 
 ## Documentation
 
@@ -154,16 +153,18 @@ Cutting a release means merging `develop` into `main` and publishing a GitHub re
 
 ## CI/CD
 
-- **ci.yml** — Builds backend, runs tests, builds frontend, runs lint/prettier/jest
-- **docker-publish.yml** — Builds and publishes Docker image to [`ghcr.io/pgan-dev/poracleweb.net`](https://github.com/PGAN-Dev/PoracleWeb.NET/pkgs/container/poracleweb.net) (`:latest` on a full release, `:beta` on `develop`; prereleases are skipped)
-- **docker-preview.yml** — Builds `:pr-<number>` images on PRs labeled `preview` (not for PRs into `experimental/*`)
-- **docker-prune.yml** — Nightly cleanup of stale `pr-*` and `develop-<sha>` tags
-- **pr-labeler.yml** — Auto-labels PRs from branch prefix / PR title for release-note grouping
-- **changelog.yml** — Checks that a PR adds an entry under `## [Unreleased]` in CHANGELOG.md
-- **release-changelog.yml** — On a published full release, opens a PR promoting `[Unreleased]` to the new version section
-- **sync-experimental.yml** — After a full release, opens a merge PR from `main` into each `experimental/*` branch that is behind
-- **docs.yml** — Builds the MkDocs site and deploys it to GitHub Pages
-- **auto-merge-deps.yml** — Enables auto-merge on low-risk Dependabot bumps (patches, curated groups, Actions minors); majors wait for review
+| Workflow | What it does |
+|---|---|
+| `ci.yml` | Builds the backend, runs its tests, builds the frontend, runs lint, Prettier and Jest |
+| `docker-publish.yml` | Builds and publishes the Docker image to [`ghcr.io/pgan-dev/poracleweb.net`](https://github.com/PGAN-Dev/PoracleWeb.NET/pkgs/container/poracleweb.net) (`:latest` on a full release, `:beta` on `develop`; prereleases are skipped) |
+| `docker-preview.yml` | Builds `:pr-<number>` images on PRs labelled `preview` (not for PRs into `experimental/*`) |
+| `docker-prune.yml` | Nightly cleanup of stale `pr-*` and `develop-<sha>` tags |
+| `pr-labeler.yml` | Labels PRs from the branch prefix or PR title for release-note grouping |
+| `changelog.yml` | Checks that a PR adds an entry under `## [Unreleased]` in CHANGELOG.md |
+| `release-changelog.yml` | On a published full release, opens a PR promoting `[Unreleased]` to the new version section |
+| `sync-experimental.yml` | After a full release, opens a merge PR from `main` into each `experimental/*` branch that is behind |
+| `docs.yml` | Builds the MkDocs site and deploys it to GitHub Pages |
+| `auto-merge-deps.yml` | Enables auto-merge on low-risk Dependabot bumps (patches, curated groups, Actions minors); majors wait for review |
 
 `.github/release.yml` is a config file, not a workflow: it groups PRs by label when GitHub generates
 release notes.
@@ -172,7 +173,8 @@ release notes.
 
 PoracleWeb.NET stands on the shoulders of these projects and their authors:
 
-- **[PoracleJS](https://github.com/KartulUdus/PoracleJS)** by KartulUdus — the original Poracle bot (alarm management in this app uses PoracleNG's REST API)
-- **[PoracleNG](https://github.com/jfberry/PoracleNG)** by jfberry — next-generation fork whose REST API powers all alarm tracking
-- **[PoracleWeb (PHP)](https://github.com/bbdoc/PoracleWeb)** by bbdoc — the original PHP web interface that inspired this .NET rewrite
-- **[Kōji](https://github.com/TurtIeSocks/Koji)** by TurtIeSocks — geofence management platform used for admin areas, region detection, and public geofence promotion
+| Project | Author | Role |
+|---|---|---|
+| [PoracleJS](https://github.com/KartulUdus/PoracleJS) | KartulUdus | The original Poracle bot |
+| [PoracleNG](https://github.com/jfberry/PoracleNG) | jfberry | Next-generation Poracle whose REST API powers all alarm tracking |
+| [Kōji](https://github.com/TurtIeSocks/Koji) | TurtIeSocks | Geofence management platform used for admin areas, region detection and public geofence promotion |

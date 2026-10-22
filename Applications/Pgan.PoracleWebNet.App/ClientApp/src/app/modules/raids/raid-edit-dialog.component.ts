@@ -24,7 +24,8 @@ import { RsvpToggleComponent } from '../../shared/components/rsvp-toggle/rsvp-to
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { LevelLabelPipe } from '../../shared/pipes/level-label.pipe';
-import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
+import { createFailureText } from '../../shared/utils/add-outcome';
+import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, EDIT, isAutoDelete } from '../../shared/utils/clean-flags';
 import { ANY_COSTUME, costumeHintKey } from '../../shared/utils/costumes';
 
@@ -85,12 +86,18 @@ export class RaidEditDialogComponent {
 
   readonly isWebhook = inject(AuthService).isImpersonating();
 
+  /** False while the scope picker holds a radius it won't accept, which keeps Save off. */
+  readonly radiusValid = signal(true);
+
   saving = signal(false);
 
   /** The alarm's current scope, read back into the shared picker. */
   readonly scope = signal<AlarmScope>(scopeOf(this.data.item.overrideLocationLabel, this.data.item.overrideAreas, this.data.item.distance));
 
   selectedGymId = signal<string | null>(this.data.item.gymId);
+
+  /** The radius as stored, which an edit may keep even outside the picker's range. */
+  readonly storedRadiusKm = metresToKm(this.data.item.distance);
   /** The hint under the costume select, which changes with the selection. */
   costumeHint(): string {
     return costumeHintKey(this.form.controls.costume.value ?? ANY_COSTUME, this.costumeNamesAvailable());
@@ -128,7 +135,8 @@ export class RaidEditDialogComponent {
     }
     const raid = this.data.item as Raid;
     if (raid.pokemonId && raid.pokemonId !== 9000) {
-      return this.i18n.instant('RAIDS.RAID_BOSS_NUM', { id: raid.pokemonId });
+      // The boss's name, as the list card shows it; the raid list has already loaded the masterfile.
+      return this.masterData.getPokemonName(raid.pokemonId);
     }
     return this.levelLabelPipe.transform(raid.level) + ' ' + this.i18n.instant('RAIDS.RAID_SUFFIX');
   }
@@ -170,8 +178,8 @@ export class RaidEditDialogComponent {
       this.raidService.update(this.data.item.uid, update).subscribe({
         // The server names what is wrong -- which alarm already uses these settings, which
         // field a file got wrong. A fixed string threw that away. See #567, #568.
-        error: (err: { error?: { error?: string } }) => {
-          this.snackBar.open(err?.error?.error ?? this.i18n.instant('RAIDS.SNACK_FAILED_UPDATE'), this.i18n.instant('TOAST.OK'), {
+        error: (err: unknown) => {
+          this.snackBar.open(createFailureText(err, this.i18n, 'ALARM.FAILED_UPDATE'), this.i18n.instant('TOAST.OK'), {
             duration: 6000,
           });
           this.saving.set(false);
@@ -199,8 +207,8 @@ export class RaidEditDialogComponent {
       this.eggService.update(this.data.item.uid, update).subscribe({
         // The server names what is wrong -- which alarm already uses these settings, which
         // field a file got wrong. A fixed string threw that away. See #567, #568.
-        error: (err: { error?: { error?: string } }) => {
-          this.snackBar.open(err?.error?.error ?? this.i18n.instant('RAIDS.SNACK_FAILED_UPDATE'), this.i18n.instant('TOAST.OK'), {
+        error: (err: unknown) => {
+          this.snackBar.open(createFailureText(err, this.i18n, 'ALARM.FAILED_UPDATE'), this.i18n.instant('TOAST.OK'), {
             duration: 6000,
           });
           this.saving.set(false);

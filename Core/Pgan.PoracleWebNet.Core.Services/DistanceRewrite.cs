@@ -215,10 +215,7 @@ internal static partial class DistanceRewrite
         return areas.ValueKind == JsonValueKind.Array && areas.GetArrayLength() > 0;
     }
 
-    private static bool HasPlace(JsonElement row) =>
-        row.TryGetProperty("override_location_label", out var label)
-        && label.ValueKind == JsonValueKind.String
-        && !string.IsNullOrWhiteSpace(label.GetString());
+    private static bool HasPlace(JsonElement row) => PlaceUsage.HasPlace(row);
 
     [LoggerMessage(
         Level = LogLevel.Information,

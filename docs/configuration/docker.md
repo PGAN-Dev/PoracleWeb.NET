@@ -39,17 +39,21 @@ services:
 
 Inside your own network, the PoracleWeb.NET container must be able to reach:
 
-- **PoracleNG API** (`Poracle:ApiAddress`) -- all alarm tracking writes are proxied through this endpoint. If the containers are on the same Docker network, use the service name (e.g., `http://poracleng:3030`). If on different hosts, use the host IP/domain.
-- **MySQL** -- for `humans`/`profiles` tables and the `poracle_web` database.
-- **Golbat API** (`Golbat:ApiAddress`) -- optional. When configured, enables Pokemon availability indicators.
-- **Scanner database** (`ConnectionStrings:ScannerDb`) -- optional. Backs the gym picker in the raid/gym/egg dialogs and the dashboard weather panel. Without it both are simply absent.
-- **Koji** (`Koji:ApiAddress`) -- required for admin geofences and region lookups. A user can still draw and use a private [custom geofence](../features/custom-geofences/index.md) without it: if Koji is unreachable the feed still serves user geofences from the local database, but approving one to a public area, and the region auto-detection on the draw page, both need Koji.
+| Service | Why |
+|---|---|
+| PoracleNG API (`Poracle:ApiAddress`) | Every human, profile, area and alarm call goes through it. On the same Docker network, use the service name (e.g. `http://poracleng:3030`); otherwise the host IP or domain |
+| MySQL | The `poracle_web` database. PoracleWeb.NET doesn't connect to Poracle's |
+| Golbat API (`Golbat:ApiAddress`) | Optional. Turns on the Pokemon availability indicators |
+| Scanner database (`ConnectionStrings:ScannerDb`) | Optional. Backs the gym picker in the raid, gym and egg dialogs and the dashboard weather panel; without it both are absent |
+| Koji (`Koji:ApiAddress`) | Admin geofences and region lookups (see below) |
+
+Koji is required for admin geofences and region lookups. A user can still draw and use a private [custom geofence](../features/custom-geofences/index.md) without it: if Koji is unreachable the feed still serves user geofences from the local database, but approving one to a public area, and the region auto-detection on the draw page, both need Koji.
 
 Outbound to the internet:
 
-- **`discordapp.com` and `cdn.discordapp.com`** -- Discord OAuth sign-in, role lookups, avatars, and the geofence review forum posts. Unavoidable if Discord login is enabled.
-- **`raw.githubusercontent.com`** (Masterfile-Generator) -- the game master data behind the move and item pickers, fetched on the first request after a cold start and cached in memory. Pokemon names, types and forms come from Poracle instead, so they are translated and need no outbound call; this remains their fallback when Poracle cannot serve them. Not switchable; without it the pickers fall back to whatever is already cached. The browser makes no request of its own here -- everything is proxied through the API.
-- **`api.github.com` and `raw.githubusercontent.com`** -- the version check behind the Versions card on **Admin > Settings**. Two anonymous GETs, made when an admin opens the card and cached six hours afterwards, nothing sent. On a locked-down egress policy it fails silently and the card cannot tell you whether an update exists. Turn it off with the `disable_update_check` site setting.
+- `discordapp.com` and `cdn.discordapp.com`, for Discord OAuth sign-in, role lookups, avatars, and the geofence review forum posts. Unavoidable if Discord login is enabled.
+- `raw.githubusercontent.com` (Masterfile-Generator), for the game master data behind the move and item pickers, fetched on the first request after a cold start and cached in memory. Pokemon names, types and forms come from Poracle instead, so they are translated and need no outbound call; this remains their fallback when Poracle cannot serve them. Not switchable; without it the pickers fall back to whatever is already cached. The browser makes no request of its own here -- everything is proxied through the API.
+- `api.github.com` and `raw.githubusercontent.com`, for the version check behind the Versions card on **Admin > Server settings**. Two anonymous GETs, made when an admin opens the card and cached six hours afterwards, nothing sent. On a locked-down egress policy it fails silently and the card cannot tell you whether an update exists. Turn it off with the `disable_update_check` site setting.
 
 ## Volume mounts
 

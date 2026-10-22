@@ -4,7 +4,9 @@
     <img [src]="getPokemonImage()" [alt]="pokemonName" class="item-img" (error)="onImageError($event)" />
     <div>
       <h3>{{ pokemonName }}</h3>
-      <span class="item-subtitle">#{{ data.pokemonId }}</span>
+      @if (data.pokemonId > 0) {
+        <span class="item-subtitle">#{{ data.pokemonId }}</span>
+      }
     </div>
   </div>
 
@@ -12,8 +14,8 @@
     <!-- Tab 1: Settings -->
     <mat-tab>
       <ng-template mat-tab-label>
-        <mat-icon>tune</mat-icon>
-        <span class="tab-label">{{ 'RAIDS.TAB_SETTINGS' | translate }}</span>
+        <mat-icon>park</mat-icon>
+        <span class="tab-label">{{ 'NAV.NESTS' | translate }}</span>
       </ng-template>
       <div class="tab-content">
         <mat-form-field appearance="outline" class="full-width">
@@ -27,10 +29,10 @@
     <mat-tab>
       <ng-template mat-tab-label>
         <mat-icon>notifications</mat-icon>
-        <span class="tab-label">{{ 'POKEMON.TAB_DELIVERY' | translate }}</span>
+        <span class="tab-label">{{ 'ALARM.TAB_DELIVERY' | translate }}</span>
       </ng-template>
       <div class="tab-content">
-        <app-scope-picker [(scope)]="scope" />
+        <app-scope-picker [(scope)]="scope" [(radiusValid)]="radiusValid" [storedRadiusKm]="storedRadiusKm" />
 
         <h4>{{ 'ALARM.MESSAGE_SETTINGS' | translate }}</h4>
 
@@ -39,10 +41,12 @@
           [value]="form.controls.template.value ?? ''"
           (valueChange)="form.controls.template.setValue($event)">
         </app-template-selector>
-
-        <mat-slide-toggle [formControl]="form.controls.clean"> {{ 'ALARM.CLEAN_MODE' | translate }} </mat-slide-toggle>
-        <p class="clean-hint">{{ 'ALARM.CLEAN_HINT_NEST' | translate }}</p>
-
+        <div class="message-row">
+          <div class="message-option">
+            <mat-slide-toggle [formControl]="form.controls.clean"> {{ 'ALARM.CLEAN_MODE' | translate }} </mat-slide-toggle>
+            <p class="clean-hint">{{ 'ALARM.CLEAN_HINT_NEST' | translate }}</p>
+          </div>
+        </div>
         @if (isWebhook) {
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>{{ 'ALARM.MENTION_LABEL' | translate }}</mat-label>
@@ -57,7 +61,7 @@
 
 <mat-dialog-actions align="end">
   <button mat-button (click)="dialogRef.close(false)">{{ 'COMMON.CANCEL' | translate }}</button>
-  <button mat-raised-button color="primary" (click)="save()" [disabled]="saving()">
+  <button mat-flat-button color="primary" (click)="save()" [disabled]="saving() || !radiusValid()">
     {{ saving() ? ('COMMON.SAVING' | translate) : ('COMMON.SAVE' | translate) }}
   </button>
 </mat-dialog-actions>

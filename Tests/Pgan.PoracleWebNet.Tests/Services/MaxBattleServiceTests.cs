@@ -91,6 +91,23 @@ public class MaxBattleServiceTests
     }
 
     /// <summary>
+    /// The refusal names the stored rule PoracleNG matched, so the add dialog can offer "Edit that one" as
+    /// it does for every other type.
+    /// </summary>
+    [Fact]
+    public async Task CreateAsyncNamesTheIdenticalRuleItRefused()
+    {
+        this._proxy.Setup(p => p.CreateAsync("maxbattle", "user1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([], 1, 0, 0) { RowUids = [0], ExistingUid = 42 });
+
+        var ex = await Assert.ThrowsAsync<TrackingConflictException>(
+            () => this._sut.CreateAsync("user1", new MaxBattle { PokemonId = 150, Distance = 500, Level = 3 }));
+
+        Assert.Equal(42, ex.ExistingUid);
+        Assert.Equal("maxbattle", ex.TrackingType);
+    }
+
+    /// <summary>
     /// The service reads no siblings: PoracleNG decides what is a duplicate, and a create it reports as new
     /// (the same boss at another radius, for one) comes back with its uid rather than being refused.
     /// </summary>

@@ -5,7 +5,7 @@
     <mat-tab>
       <ng-template mat-tab-label>
         <mat-icon>place</mat-icon>
-        <span class="tab-label">{{ 'LURES.TAB_LURES' | translate }}</span>
+        <span class="tab-label">{{ 'NAV.LURES' | translate }}</span>
       </ng-template>
       <div class="tab-content">
         <h4>{{ 'LURES.LURE_TYPES' | translate }}</h4>
@@ -21,7 +21,7 @@
           }
         </div>
         @if (selectedLureIds().length > 0) {
-          <p class="selection-count">{{ 'LURES.TYPES_SELECTED' | translate: { count: selectedLureIds().length } }}</p>
+          <p class="selection-count">{{ 'LURES.TYPES_SELECTED' | translatePlural: selectedLureIds().length }}</p>
         }
       </div>
     </mat-tab>
@@ -30,26 +30,33 @@
     <mat-tab>
       <ng-template mat-tab-label>
         <mat-icon>notifications</mat-icon>
-        <span class="tab-label">{{ 'POKEMON.TAB_DELIVERY' | translate }}</span>
+        <span class="tab-label">{{ 'ALARM.TAB_DELIVERY' | translate }}</span>
       </ng-template>
       <div class="tab-content">
-        <app-scope-picker [(scope)]="scope" />
+        <app-scope-picker [(scope)]="scope" [(radiusValid)]="radiusValid" />
         <h4>{{ 'ALARM.MESSAGE_SETTINGS' | translate }}</h4>
         <app-template-selector
           [alarmType]="'lure'"
           [value]="form.controls.template.value ?? ''"
           (valueChange)="form.controls.template.setValue($event)"></app-template-selector>
-        <mat-slide-toggle [formControl]="form.controls.clean"> {{ 'ALARM.CLEAN_MODE' | translate }} </mat-slide-toggle>
-        <p class="clean-hint">{{ 'ALARM.CLEAN_HINT_LURE' | translate }}</p>
-        <mat-slide-toggle [formControl]="form.controls.editInPlace"> {{ 'LURES.EDIT_MODE' | translate }} </mat-slide-toggle>
-        <p class="clean-hint">{{ 'LURES.EDIT_HINT' | translate }}</p>
+        <div class="message-row">
+          <div class="message-option">
+            <mat-slide-toggle [formControl]="form.controls.clean"> {{ 'ALARM.CLEAN_MODE' | translate }} </mat-slide-toggle>
+            <p class="clean-hint">{{ 'ALARM.CLEAN_HINT_LURE' | translate }}</p>
+          </div>
+          <div class="message-option">
+            <mat-slide-toggle [formControl]="form.controls.editInPlace"> {{ 'LURES.EDIT_MODE' | translate }} </mat-slide-toggle>
+            <p class="clean-hint">{{ 'LURES.EDIT_HINT' | translate }}</p>
+          </div>
+        </div>
       </div>
     </mat-tab>
   </mat-tab-group>
 </mat-dialog-content>
+<app-add-refusal [refusal]="refusal()" (editExisting)="editExisting($event)" />
 <mat-dialog-actions align="end">
   <button mat-button (click)="dialogRef.close(false)">{{ 'COMMON.CANCEL' | translate }}</button>
-  <button mat-raised-button color="primary" (click)="save()" [disabled]="saving() || selectedLureIds().length === 0">
+  <button mat-flat-button color="primary" (click)="save()" [disabled]="saving() || selectedLureIds().length === 0 || !radiusValid()">
     {{ saving() ? ('COMMON.SAVING' | translate) : ('COMMON.SAVE' | translate) }}
   </button>
 </mat-dialog-actions>

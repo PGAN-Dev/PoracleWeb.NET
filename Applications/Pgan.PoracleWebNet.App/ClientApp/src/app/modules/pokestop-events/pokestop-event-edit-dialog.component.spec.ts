@@ -55,7 +55,7 @@ describe('PokestopEventEditDialogComponent', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: ConfigService, useValue: { apiHost: 'http://test-api' } },
-        { provide: I18nService, useValue: { instant: (k: string) => k } },
+        { provide: I18nService, useValue: { instant: (k: string) => k, plural: (k: string) => k } },
         { provide: MAT_DIALOG_DATA, useValue: { ...base, ...event } },
         { provide: MatDialogRef, useValue: dialogRef },
         { provide: PokestopEventService, useValue: pokestopEventService },
@@ -265,13 +265,27 @@ describe('PokestopEventEditDialogComponent', () => {
       expect(component.saving()).toBe(false);
     });
 
+    it('names the field a validation 400 refused, as the add dialog does', () => {
+      setup();
+      pokestopEventService.update.mockReturnValue(
+        throwError(() => ({
+          error: { errors: { Distance: ['Distance is too large.'] }, title: 'One or more validation errors occurred.' },
+          status: 400,
+        })),
+      );
+
+      component.save();
+
+      expect(snackBar.open).toHaveBeenCalledWith('Distance is too large.', 'COMMON.OK', expect.anything());
+    });
+
     it('falls back to its own message when the server gave no reason', () => {
       setup();
       pokestopEventService.update.mockReturnValue(throwError(() => new Error('network')));
 
       component.save();
 
-      expect(snackBar.open).toHaveBeenCalledWith('POKESTOP_EVENTS.UPDATE_FAILED', 'COMMON.OK', expect.anything());
+      expect(snackBar.open).toHaveBeenCalledWith('ALARM.FAILED_UPDATE', 'COMMON.OK', expect.anything());
     });
   });
 });

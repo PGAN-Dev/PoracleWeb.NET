@@ -61,9 +61,10 @@ describe('RaidEditDialogComponent', () => {
           useValue: {
             costumesAvailable: () => true,
             getCostumes: () => [{ id: 85, name: 'Halloween 2025' }],
+            getPokemonName: (id: number) => (id === 150 ? 'Mewtwo' : `Pokemon #${id}`),
           },
         },
-        { provide: I18nService, useValue: { instant: (k: string) => k } },
+        { provide: I18nService, useValue: { instant: (k: string) => k, plural: (k: string) => k } },
         { provide: AuthService, useValue: { isImpersonating: () => webhookSession } },
       ],
       imports: [RaidEditDialogComponent],
@@ -79,6 +80,13 @@ describe('RaidEditDialogComponent', () => {
   function sentRaid(): RaidUpdate {
     return raidService.update.mock.calls[0][1] as RaidUpdate;
   }
+
+  // The list names the boss; the dialog header used to say "Raid Boss #150" (UI audit D2).
+  it('titles a boss rule with the boss name, as the list does', () => {
+    setup({ item: BASE_RAID });
+
+    expect(component.getTitle()).toBe('Mewtwo');
+  });
 
   it('offers the costume filter on a rule with a specific boss', () => {
     setup({ item: { ...BASE_RAID, costume: 85 } });

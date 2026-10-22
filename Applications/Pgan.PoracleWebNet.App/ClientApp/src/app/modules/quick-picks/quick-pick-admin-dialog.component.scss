@@ -28,3 +28,81 @@
   display: inline-block;
   margin-right: 8px;
 }
+
+.form-row.align-center {
+  align-items: center;
+}
+
+.sort-field {
+  flex: 0 1 160px;
+}
+
+h4 {
+  margin: 12px 0 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.6));
+}
+
+.field-hint {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--text-hint, rgba(0, 0, 0, 0.6));
+}
+
+.pokemon-pick {
+  margin-bottom: 8px;
+}
+
+.toggle-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.more-filters {
+  margin-top: 12px;
+}
+
+// ─── Icon picker ───────────────────────────────────
+.icon-picker {
+  margin: 0 0 16px;
+  padding: 0;
+  border: none;
+
+  legend {
+    margin-bottom: 8px;
+    padding: 0;
+    font-size: 13px;
+    color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.6));
+  }
+}
+
+.icon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+  gap: 4px;
+}
+
+.icon-choice {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.6));
+  cursor: pointer;
+
+  &:hover {
+    background: var(--hover-overlay, rgba(0, 0, 0, 0.04));
+  }
+
+  &.selected {
+    border-color: var(--mat-sys-primary, #1976d2);
+    background: var(--mat-sys-primary-container, rgba(25, 118, 210, 0.12));
+    color: var(--mat-sys-on-primary-container, #0d47a1);
+  }
+}

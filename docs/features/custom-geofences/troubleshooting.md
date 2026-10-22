@@ -10,8 +10,7 @@ Common problems operators hit, what causes them, and how to fix them. Each entry
 
 **Fix — pick one:**
 
-- **You want regions:** create parent geofences in Koji and nest your public areas under them. Step-by-step in [Setting up regions](koji-and-regions.md#setting-up-regions-the-operator-how-to).
-- **You don't want regions:** nothing to do. Current builds make the region **optional** — the picker hides itself when there are no regions, and users can save a geofence without one.
+If you want regions, create parent geofences in Koji and nest your public areas under them; [Setting up regions](koji-and-regions.md#setting-up-regions-the-operator-how-to) has the steps. If you don't, there's nothing to do. The region is optional: the picker hides itself when there are no regions, and users can save a geofence without one.
 
 ## A user's private geofence isn't sending notifications
 
@@ -27,14 +26,33 @@ Work down this list:
 
 **Symptom:** a user draws a geofence and sees "Saved, but it couldn't be switched on yet. Use the toggle to retry." The geofence is on the map, with the toggle off.
 
-**Cause:** the geofence was saved, but PoracleNG didn't accept its name on the user's profile. Usually PoracleNG was unreachable or slow to reload its geofences at that moment.
+**Cause:** the geofence was saved, but PoracleNG didn't accept its name on the user's profile. Usually PoracleNG was unreachable or slow to reload its geofences at that moment. The order of the steps is what makes this possible:
+
+```mermaid
+sequenceDiagram
+    participant SPA
+    participant API as PoracleWeb.NET
+    participant NG as PoracleNG
+    SPA->>API: POST /api/geofences/custom
+    API->>API: save the user_geofences row
+    API->>NG: GET /api/geofence/reload
+    NG->>API: GET /api/geofence-feed (now with the new fence)
+    API->>NG: GET .../areas, then POST .../areas with trusted
+    alt name accepted
+        API-->>SPA: 201, active on the current profile
+    else reload failed or name rejected
+        API-->>SPA: 201 with activationFailed
+    end
+```
+
+The `...` is `/api/v2/humans/{id}`. PoracleNG's trusted area write refuses a name it hasn't loaded, so the reload has to come first; posting the name first left every new fence inactive (#937). A reload can answer ok while PoracleNG keeps its old list because it couldn't reach the feed, which is why a rejected name is reported rather than assumed away. With `disable_areas` on, the fence is created inactive and nothing is attempted.
 
 **Fix:** have the user flip the toggle on the Geofences page. It retries once on its own. If it still fails, it answers a conflict error; check that PoracleNG is up and that it reads the combined feed (see the list above), then try again.
 
 ## Public (approved) geofences aren't showing up
 
 1. **Wait up to 5 minutes, or force a refresh.** PoracleWeb.NET caches the Koji public list for 5 minutes. An approval clears that cache immediately, but a change made **directly in the Koji UI** won't be picked up until the cache expires — or until you call [`POST /api/geofence-feed/refresh`](koji-and-regions.md#forcing-a-refresh-after-a-change-in-koji).
-2. **Check the Koji connection.** Wrong `KOJI_API_ADDRESS`, a bad `KOJI_BEARER_TOKEN`, or the wrong `KOJI_PROJECT_NAME` means PoracleWeb.NET can't read the public list. Remember the token is read **at startup** — restart after changing it.
+2. Check the Koji connection.** Wrong `KOJI_API_ADDRESS`, a bad `KOJI_BEARER_TOKEN`, or the wrong `KOJI_PROJECT_NAME` means PoracleWeb.NET can't read the public list. Remember the token is read **at startup. Restart after changing it.
 3. **Is it actually in the project?** A geofence must belong to your `KOJI_PROJECT_ID` to appear. Parent/region geofences are intentionally excluded (they're folders, not selectable areas).
 
 ## Koji is down — what happens?
@@ -83,17 +101,10 @@ Deleting an approved geofence in PoracleWeb.NET removes it from the **project** 
 
 ## How the combined feed works (background)
 
-So you understand why the bot only needs one URL: PoracleWeb.NET exposes **`/api/geofence-feed`**, which merges two sources into one list for PoracleNG.
+So you understand why the bot only needs one URL: PoracleWeb.NET exposes **`/api/geofence-feed`**, which merges two sources into one list for PoracleNG. The diagram is on the [overview page](index.md#how-poracleng-gets-its-geofences-and-why-not-straight-from-koji).
 
-```mermaid
-flowchart LR
-    Koji[(Koji<br/>public areas)] -->|cached 5 min| Feed
-    DB[(PoracleWeb.NET DB<br/>private user geofences)] --> Feed
-    Feed["/api/geofence-feed<br/>combined list"] -->|single URL| PJS[PoracleNG]
-```
-
-- **Public** entries come from Koji, marked visible/selectable.
-- **Private** entries come from PoracleWeb.NET's database, marked hidden/non-selectable (so the bot ignores them in pickers and DMs).
+- Public entries come from Koji, marked visible and selectable.
+- Private entries come from PoracleWeb.NET's database, marked hidden and non-selectable, so the bot leaves them out of pickers and DMs.
 - Region/parent geofences are filtered out (they're folders, not areas).
 - Malformed polygons are skipped rather than served, so one bad shape can't break the feed for everyone.
 - Either half can fail on its own and the other is still served; only a double failure returns an error (see [Koji is down](#koji-is-down-what-happens)).

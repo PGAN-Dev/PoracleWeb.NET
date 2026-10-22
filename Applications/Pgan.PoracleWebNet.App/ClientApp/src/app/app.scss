@@ -9,8 +9,11 @@
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
+  // Near-black on amber, 7.5:1. White on this amber was 2.15:1 (axe color-contrast), on the one banner
+  // that tells an admin they are acting as somebody else (theme-a11y.spec.ts).
   background-color: #ff9800;
-  color: #fff;
+  color: #212121;
+  --mat-focus-indicator-border-color: #212121;
   font-size: 14px;
   z-index: 1001;
   position: sticky;
@@ -72,6 +75,36 @@
       margin-left: 0;
     }
   }
+}
+
+// Off-screen until focused, then over the toolbar's top-left corner.
+.skip-link {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 1100;
+  padding: 10px 16px;
+  border-radius: 8px;
+  background: var(--mat-sys-surface, #fff);
+  color: var(--mat-sys-on-surface, #1c1b1f);
+  font-weight: 500;
+  text-decoration: none;
+  transform: translateY(-200%);
+
+  &:focus {
+    transform: none;
+  }
+}
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+// The skip link's target. Focus lands here to move the reading position, not to mark a control.
+#main-content:focus {
+  outline: none;
 }
 
 .app-toolbar {
@@ -154,7 +187,6 @@
   width: 250px;
   transition: width 0.2s ease;
   border-right: 1px solid var(--mat-sys-outline-variant, rgba(0, 0, 0, 0.08));
-  background: linear-gradient(180deg, rgba(21, 101, 192, 0.03) 0%, rgba(0, 188, 212, 0.02) 50%, var(--mat-sys-surface, #fff) 100%);
   background-color: var(--mat-sys-surface, #fff);
   display: flex;
   flex-direction: column;
@@ -180,55 +212,17 @@
   }
 }
 
-body.dark-theme .app-sidenav {
-  background: linear-gradient(180deg, rgba(21, 101, 192, 0.06) 0%, rgba(0, 188, 212, 0.03) 50%, var(--mat-sys-surface, #1e1e1e) 100%);
-  background-color: var(--mat-sys-surface, #1e1e1e);
-}
-
 .app-content {
   padding: 0;
-  background: linear-gradient(180deg, rgba(21, 101, 192, 0.02) 0%, transparent 300px);
   position: relative;
-
-  &::after {
-    content: '';
-    position: fixed;
-    bottom: -60px;
-    right: -60px;
-    width: 420px;
-    height: 420px;
-    pointer-events: none;
-    z-index: 0;
-    opacity: 0.08;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3C!-- Pokeball --%3E%3Ccircle cx='100' cy='100' r='95' fill='none' stroke='%231565c0' stroke-width='5'/%3E%3Cpath d='M5 100 H80' stroke='%231565c0' stroke-width='5'/%3E%3Cpath d='M120 100 H195' stroke='%231565c0' stroke-width='5'/%3E%3Cpath d='M5 100 A95 95 0 0 1 195 100' fill='%231565c0'/%3E%3Ccircle cx='100' cy='100' r='30' fill='none' stroke='%231565c0' stroke-width='5'/%3E%3Ccircle cx='100' cy='100' r='15' fill='%231565c0'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-size: contain;
-  }
-}
-
-body.dark-theme .app-content::after {
-  opacity: 0.1;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Ccircle cx='100' cy='100' r='95' fill='none' stroke='%2390caf9' stroke-width='5'/%3E%3Cpath d='M5 100 H80' stroke='%2390caf9' stroke-width='5'/%3E%3Cpath d='M120 100 H195' stroke='%2390caf9' stroke-width='5'/%3E%3Cpath d='M5 100 A95 95 0 0 1 195 100' fill='%2390caf9'/%3E%3Ccircle cx='100' cy='100' r='30' fill='none' stroke='%2390caf9' stroke-width='5'/%3E%3Ccircle cx='100' cy='100' r='15' fill='%2390caf9'/%3E%3C/svg%3E");
-}
-
-@media (max-width: 599px) {
-  .app-content::after {
-    width: 250px;
-    height: 250px;
-    bottom: -30px;
-    right: -30px;
-    opacity: 0.05;
-  }
 }
 
 // ─── Nav items ────────────────────────────────────────────────
 
 .nav-group-label {
   padding: 16px 16px 4px;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
   color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.54));
 }
 
@@ -402,9 +396,10 @@ body.dark-theme .app-content::after {
   min-width: 320px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 
-  h3 {
+  h2 {
     margin: 0 0 16px;
     font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 1.17em;
     font-weight: 600;
   }
 }

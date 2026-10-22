@@ -1,8 +1,9 @@
 import { ComponentRef } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideTranslateService } from '@ngx-translate/core';
+import { provideTranslateService, TranslateService } from '@ngx-translate/core';
 
 import { WhereChipComponent } from './where-chip.component';
+import { AreaNameService } from '../../../core/services/area-name.service';
 
 describe('WhereChipComponent', () => {
   let fixture: ComponentFixture<WhereChipComponent>;
@@ -57,5 +58,25 @@ describe('WhereChipComponent', () => {
 
     expect(chip.label()).toBe('WHERE.ONLY_IN');
     expect(chip.icon()).toBe('map');
+  });
+
+  describe('area names on an areas scope', () => {
+    function areasChip(areas: string[]): WhereChipComponent {
+      const chip = create({ overrideAreas: areas });
+      TestBed.inject(TranslateService).setTranslation('en', { WHERE: { ONLY_IN: 'Only in {{areas}}' } });
+      TestBed.inject(TranslateService).use('en');
+      return chip;
+    }
+
+    it('says a drawn fence by the name its owner gave it, not its stored key', () => {
+      const chip = areasChip(['lake eola loop 2', 'terrigal']);
+      TestBed.inject(AreaNameService).learn([{ displayName: 'Lake Eola Loop', kojiName: 'lake eola loop 2' }]);
+
+      expect(chip.label()).toBe('Only in Lake Eola Loop, Terrigal');
+    });
+
+    it('still title-cases an area that is not a drawn fence', () => {
+      expect(areasChip(['lake eola loop 2']).label()).toBe('Only in Lake Eola Loop 2');
+    });
   });
 });

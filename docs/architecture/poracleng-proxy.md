@@ -1,6 +1,6 @@
 # PoracleNG API Proxy
 
-All alarm tracking operations (create, read, update, delete) are proxied through the PoracleNG REST API instead of writing directly to the Poracle MySQL database. This ensures PoracleNG applies field defaults, deduplication, and immediate state reload on every mutation.
+All alarm tracking operations (create, read, update, delete) are proxied through PoracleNG's REST API instead of writing to Poracle's MySQL database. PoracleNG then owns duplicate detection, validation and the state reload after every change.
 
 !!! warning "PoracleNG 5.4.0 or newer"
     `PoracleServerProfile.MinimumSupported` is 5.4.0. Against anything older PoracleWeb.NET still runs, but the [server capability probe](backend.md#server-capability-probe) logs an error at startup and warns an admin, and the human, profile, area, place and mute calls answer with a message naming the version they need. See [Version compatibility](poracleng-compatibility.md).
@@ -9,7 +9,7 @@ All alarm tracking operations (create, read, update, delete) are proxied through
 
 On March 31, 2026, a NULL `template` column written directly by PoracleWeb.NET crashed PoracleNG's state reload for 15 hours. PoracleNG's Go SQL scanner cannot handle `NULL` in the `template` column of the `monsters` table, causing the entire state reload to fail. All users received stale alarm state and unwanted DM floods until PoracleNG was manually restarted.
 
-Direct database writes bypass PoracleNG's `cleanRow()` function, which applies proper defaults for every field (template defaults to the config's `defaultTemplateName`, ping defaults to `""`, etc.). By proxying all writes through PoracleNG's API, we eliminate this entire class of data integrity bugs.
+Direct database writes bypassed everything PoracleNG does on its own write path, including filling an absent `template` with the configured default. Going through the API removes that class of bug. It doesn't make PoracleWeb.NET's own defaults irrelevant: PoracleNG fills only fields that are absent, and the `*Create` models send every field they declare (see [Backend → Monster filter defaults](backend.md#monster-filter-defaults)).
 
 ## Request flow
 
@@ -26,7 +26,7 @@ Alarm Services  (MonsterService, RaidService, etc.)
 IPoracleTrackingProxy  (PoracleTrackingProxy)
     |  HTTP + X-Poracle-Secret header
     v
-PoracleNG REST API  (/api/tracking/*, /api/v2/humans/*)
+PoracleNG REST API  (/api/v2/humans/{id}/tracking/*)
     |
     v
 MySQL (Poracle DB)  +  State Reload
@@ -53,16 +53,19 @@ There is an eleventh tracking type, Pokéstop Events (`incident`), and it is **n
 has no v1 route at all, so it goes through its own `IPoracleIncidentProxy` against
 `/api/v2/humans/{id}/tracking/incident`. Its rows live in the same `invasion` table as invasion rows,
 told apart only by `grunt_type` carrying an event name. PoracleNG's two v2 endpoints each filter to
-their own rows; **the invasion read the application uses does not**: the proxy folds the incident rules into the invasion list as v1 did, so `InvasionService` still partitions — and
-skips it when the Pokéstop Events page is unavailable, so those rows stay visible somewhere. See
+their own rows. The invasion read the application uses folds the `incident` rules back into the invasion
+list, the way v1 returned them, and `InvasionService` splits them out again. When the Pokéstop Events page
+is switched off it doesn't, so those rules stay visible on the invasion page. See
 [Database](database.md).
 
 Also proxied:
 
-- **Dashboard counts** -- one read of the v2 tracking snapshot (`GET /api/v2/humans/{userId}/tracking`) fetches all tracking, counts extracted per type
-- **Cleaning (auto-clean toggle)** -- one v2 PATCH per type naming the uids and the clean bit
-- **Admin delete all alarms** -- fetches all UIDs per type, bulk deletes via the proxy
-- **Bulk distance update** -- one v2 PATCH per type naming the uids and the new `distance`; max battles included, which no longer delete and re-create
+| Operation | How |
+|---|---|
+| Dashboard counts | One read of the v2 tracking snapshot (`GET /api/v2/humans/{userId}/tracking`), counted per type |
+| Cleaning toggle | One v2 `PATCH` per type naming the uids and the clean bit |
+| Admin delete of all alarms | Reads the uids per type and bulk-deletes them through the proxy |
+| Bulk distance | One v2 `PATCH` per type naming the uids and the new `distance`. Max battles included; they're no longer deleted and re-created |
 
 ### Read-only calls that shape the UI
 
@@ -109,10 +112,41 @@ colliding edit comes back 409. The proxy acts on the answer:
 - Anything else commits. If the commit itself reports a takeover (another request got there between
   the dry run and the write), the other alarm is restored from the `previous` PoracleNG returns and the
   Add is refused.
-- A batch (quick picks, profile import) dry-runs each row alone, because PoracleNG classifies against
-  stored rules only, and creates just the new ones. Identical rows and would-be takeovers are skipped.
+- A batch (quick picks, profile import) is dry-run whole first. If every row is new it commits; if none
+  is, it writes nothing. Only a mixed answer dry-runs each row alone, because PoracleNG classifies the
+  batch against stored rules and can't say which row was which. Then only the new rows are created, and
+  identical rows and would-be takeovers are skipped.
 - Max battles get the same protection. 5.4.0 merges max battles on v2 creates, so an Add of the same
   boss differing only by radius is refused where v1 used to stack it.
+
+```mermaid
+sequenceDiagram
+    participant SPA
+    participant API as PoracleWeb.NET
+    participant NG as PoracleNG
+    SPA->>API: POST /api/{type}
+    API->>API: translate to a V2 rule, refuse if it can't be expressed
+    API->>API: IUserAreaPolicy checks override_areas, sets trusted
+    API->>NG: POST .../tracking/{type}?silent=true&dry_run=true
+    NG-->>API: created, updated, unchanged
+    alt updated, it would take over another rule
+        API-->>SPA: 409 takeover message
+    else unchanged
+        API-->>SPA: 200, uid 0, nothing written
+    else created
+        API->>NG: the same POST without dry_run
+        NG-->>API: created, or updated with previous
+        opt a race turned it into a takeover
+            API->>NG: PUT .../tracking/{type}/{uid}?trusted=true restores previous
+            API-->>SPA: 409
+        end
+        API-->>SPA: 201 with the uid
+    end
+```
+
+The `...` is `/api/v2/humans/{id}`. Pokemon has one quirk here: an Add that differs from an existing
+rule only in its clean setting comes back as already tracked (200, uid 0) and changes nothing, so a
+clean-only change has to be made by editing that rule.
 
 No client-side takeover check is left. Bulk distance sends a PATCH, and PoracleNG refuses a rule whose
 new radius would make it clash with another, naming it as a `conflict`. `TrackingFieldPreserver` still merges the stored row into an edit, because a v2 PUT is a full replace;
@@ -314,24 +348,26 @@ public interface IPoracleTrackingProxy
     Task BulkDeleteByUidsAsync(string type, string userId, IEnumerable<int> uids);
     Task<JsonElement> GetAllTrackingAsync(string userId);
     Task<JsonElement> GetAllTrackingAllProfilesAsync(string userId);
+    Task<IReadOnlyList<StoredRule>> GetStoredRulesAsync(string userId);
+    Task<StoredRuleReplaceOutcome> ReplaceStoredRuleAsync(string type, string userId, int uid, int profileNo, JsonElement v1Row, bool dryRun);
+    Task<IReadOnlyList<int>> BulkDeleteByUidsOnProfileAsync(string type, string userId, IReadOnlyList<int> uids, int profileNo);
     Task ReloadStateAsync();
 }
 ```
 
 Key design points:
 
-- **`JsonElement` throughout** -- alarm data flows as raw JSON. Services deserialize with `JsonNamingPolicy.SnakeCaseLower` to map between C# PascalCase models and PoracleNG's snake_case JSON.
-- **`?silent=true`** on create, update **and delete** -- suppresses PoracleNG's DM confirmation. Without it on the delete routes, clearing a list DMed the user one filter dump per row removed: a bulk delete, a cleaning reset and an admin delete-all could each produce dozens.
-- **`X-Poracle-Secret` header** -- authenticates requests to the PoracleNG API. Configured via `Poracle:ApiSecret`.
-- **One update entry point.** `UpdateByUidAsync` is a v2 PUT and nothing else; every service calls it through `TrackingV2Replacement.ApplyAsync`, which also follows a moved uid. It returns the uid the rule now lives under, which may differ from the one that went in. See [The v2 write path](#the-v2-write-path).
-- **`CreateOnProfileAsync`** is `CreateAsync` with `?profile=N`. Only profile import uses it, so it writes to the target profile without switching the active one. Writes never send `profile_no`, `uid`, `id` or `description` in a rule body.
-- **`uid:0` stripped on create** -- `PoracleJsonHelper.SerializeToElement()` removes `"uid":0` from request bodies. PoracleNG treats `uid=0` as an update target instead of a new insert; omitting `uid` tells PoracleNG to create a new row.
-- **`profile_no` stripped on every alarm write** -- the same helper removes it. PoracleNG takes a submitted
-  `profile_no` at face value on the pokemon type (creating a row on a profile that may not exist) while
-  scoping every read to `current_profile_no`. Since the JWT claim can be stale, stamping it onto writes
-  stranded alarms that were invisible and undeletable. Omitting it files each alarm under the live active
-  profile.
-- **URL-encoding for user IDs** -- Both `PoracleTrackingProxy` and `PoracleHumanProxy` use `Uri.EscapeDataString()` on user IDs in URL paths. Webhook IDs are full URLs containing slashes that would break routing without encoding.
+| Point | Detail |
+|---|---|
+| `JsonElement` throughout | Alarm data flows as raw JSON. Services deserialize with `JsonNamingPolicy.SnakeCaseLower` to map C# PascalCase models to PoracleNG's snake_case |
+| `?silent=true` on create, update and delete | Suppresses PoracleNG's DM confirmation. Without it on the delete routes, clearing a list DMed the user one filter dump per row removed, so a bulk delete, a cleaning reset or an admin delete-all could each send dozens |
+| `X-Poracle-Secret` header | Authenticates every request, from `Poracle:ApiSecret` |
+| One update entry point | `UpdateByUidAsync` is a v2 PUT and nothing else. Every service calls it through `TrackingV2Replacement.ApplyAsync`, which follows a moved uid. It returns the uid the rule now lives under, which may differ from the one that went in. See [The v2 write path](#the-v2-write-path) |
+| `CreateOnProfileAsync` | `CreateAsync` with `?profile=N`. Only profile import uses it, so it writes to the target profile without switching the active one |
+| `GetStoredRulesAsync`, `ReplaceStoredRuleAsync` | Serve the rule repair: every rule on every profile exactly as v2 returns it, and a trusted PUT on the rule's own profile (`?profile=N`, optionally `&dry_run=true`) that skips the area policy because it restores what PoracleNG already holds |
+| `BulkDeleteByUidsOnProfileAsync` | Deletes on a named profile, for a geofence delete that takes the alarms limited to it |
+| `uid`, `profile_no`, `id`, `description` never sent | `PoracleJsonHelper.SerializeToElement()` strips `"uid":0` and `profile_no`, and the translator drops all four from every rule body. `profile_no` matters most: PoracleNG takes a submitted one at face value while scoping reads to `current_profile_no`, and a stale JWT claim stamped onto writes stranded alarms that were invisible and undeletable. Without it each alarm is filed under the live active profile |
+| URL-encoded user ids | `PoracleTrackingProxy` and `PoracleHumanProxy` pass user ids through `Uri.EscapeDataString()`. A webhook id is a full URL whose slashes would otherwise break routing |
 
 ## snake_case JSON serialization
 
@@ -352,17 +388,19 @@ All alarm services use `PoracleJsonHelper.SerializeToElement()` for serializatio
 
 PoracleNG wraps certain responses in container objects:
 
-- **Human responses**: `GET /api/humans/one/{id}` returns `{ "human": { ... }, "status": "ok" }`, and `GET /api/v2/humans/{id}` returns the same wrapper without the `status`. `PoracleHumanProxy.GetHumanAsync()` unwraps the `"human"` property either way.
-- **Profile responses**: `GET /api/profiles/{id}` returns a JSON array or object depending on the endpoint.
-- **Tracking responses**: `GET /api/tracking/{type}/{id}` returns an array of alarm objects.
+| Response | Shape |
+|---|---|
+| Human | `GET /api/v2/humans/{id}` returns `{ "human": { ... } }`; `PoracleHumanProxy.GetHumanAsync()` unwraps it |
+| Profiles | `GET /api/v2/humans/{id}/profiles` returns `{ "profiles": [...] }`, restated in v1's `{ "profile": [...] }` shape for `ProfileService` |
+| Tracking | `GET /api/v2/humans/{id}/tracking/{type}` returns the rules under a named envelope, and `GET /api/v2/humans/{id}/tracking` a snapshot keyed by type. The proxy restates both as v1 rows |
 
 When adding new proxy methods, check the actual PoracleNG response shape and unwrap accordingly.
 
-## Active hours pass-through
+## Active hours translation
 
-The `active_hours` field is a JSON-encoded string stored in the `profiles` table. It passes through the proxy with no special handling — `IPoracleHumanProxy` uses raw `JsonElement` pass-through for profile payloads, so `active_hours` is included automatically in GET responses and accepted in create/update request bodies.
+`active_hours` is stored as a JSON string on the profile, and the SPA and `ProfileController` work with that string. v2 takes the entry array instead, under `additionalProperties: false`, so `PoracleHumanProxy.V2ProfileBody` parses the string and sends the array, and the profile list translates the array back to a string on the way in. A schedule v2 would refuse is answered with an error rather than sent. "No schedule" goes out as `[]`, because v2 reads an omitted `active_hours` as "leave it as it is".
 
-No proxy code changes were needed to support active hours. PoracleNG's profile scheduler evaluates these rules at notification time — PoracleWeb.NET only manages the data (validation, display, editing).
+PoracleNG's profile scheduler evaluates these rules; PoracleWeb.NET validates, displays and edits them.
 
 ## Known gaps and workarounds
 
@@ -377,16 +415,14 @@ See [PoracleNG Enhancement Requests](../poracleng-enhancement-requests.md) for t
 
 ## How to add a new alarm type
 
-1. Create a new service class following the pattern in `MonsterService.cs`:
-    - Inject `IPoracleTrackingProxy`
-    - Define the `TrackingType` constant (must match PoracleNG's tracking type name)
-    - Define `SnakeCaseOptions` for JSON serialization
-    - Implement `GetByUserAsync`, `CreateAsync`, `UpdateAsync`, `DeleteAsync`, etc.
-2. Add the type key to `PoracleTrackingProxy.ResolveResponseKey()` if the response property name differs from the type name.
-3. Register the service in `ServiceCollectionExtensions.cs`.
-4. Create the corresponding controller under `Controllers/`.
+1. Add a service following `MonsterService.cs`: inject `IPoracleTrackingProxy` and `IFeatureGate`, define the `TrackingType` constant (PoracleNG's tracking type name), call `EnsureEnabledAsync` at the top of `CreateAsync`, `BulkCreateAsync` and `UpdateAsync`, and send edits through `TrackingV2Replacement.ApplyAsync`.
+2. Add the type's field table to `TrackingV2Translator.Specs`, listing exactly the properties its `V2*Rule` declares, and its read defaults (what `DefaultsFor` returns for a null). `TrackingV2TypeTranslationTests` checks the table against the schema in both directions.
+3. Add the `*Create` and `*Update` DTOs with validation attributes and defaults that match what the column stores for "no filter" (see [Backend → Monster filter defaults](backend.md#monster-filter-defaults)), and their `AlarmMappingExtensions`.
+4. Add a `DisableFeatureKeys` constant and its `ByTrackingType` entry, then the controller under `Controllers/` with `[RequireFeatureEnabled(...)]` and `[TypeFilter(typeof(PoracleUnreachableExceptionFilter))]` on the class.
+5. Register the service in `ServiceCollectionExtensions.cs`.
+6. In the SPA, add the route with a `disabledFeatureGuard`, the nav item with the same `disableKey`, and the toggle in the admin settings. Add the key to `SettingsMigrationService` too.
 
-No repository or entity is needed for alarm types -- the proxy handles all database interaction through PoracleNG.
+No repository or entity is needed for an alarm type. PoracleNG stores the rules.
 
 ## Registration
 
@@ -394,15 +430,16 @@ No repository or entity is needed for alarm types -- the proxy handles all datab
 // In ServiceCollectionExtensions.cs
 services.AddHttpClient<IPoracleTrackingProxy, PoracleTrackingProxy>();
 
-services.AddHttpClient<IPoracleHumanProxy, PoracleHumanProxy>();
-services.AddHttpClient<IPoracleMuteProxy, PoracleMuteProxy>();
 services.AddHttpClient<IPoracleIncidentProxy, PoracleIncidentProxy>();
+services.AddHttpClient<IPoracleHumanProxy, PoracleHumanProxy>();
+services.AddHttpClient<IPoracleSummaryProxy, PoracleSummaryProxy>();
+services.AddHttpClient<IPoracleMuteProxy, PoracleMuteProxy>();
+services.AddHttpClient<IPoracleApiProxy, PoracleApiProxy>();
 ```
 
-There are five Poracle proxies. `IPoracleTrackingProxy` and `IPoracleHumanProxy` each speak
-`/api/v2` only; `IPoracleApiProxy`
-covers read-only config and templates on v1; and two are v2-only, `IPoracleMuteProxy` at
-`/api/v2/humans/{id}/mutes` and `IPoracleIncidentProxy` at `/api/v2/humans/{id}/tracking/incident`.
+There are six Poracle proxies. Tracking, incident, human and mute speak `/api/v2`. Summary covers the
+quest summary schedule. `IPoracleApiProxy` covers everything else: config and config values, templates,
+masterdata, geofence maps, hashes and reload, test alerts, and geocoding through `/api/geocode`.
 
 The `HttpClient` instances are managed by the .NET HTTP client factory, providing connection pooling and DNS rotation.
 

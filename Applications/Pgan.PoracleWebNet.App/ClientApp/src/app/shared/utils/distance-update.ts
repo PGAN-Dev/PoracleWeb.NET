@@ -1,6 +1,8 @@
 /** Anything that translates a key: the lists hold I18nService, which wraps TranslateService. */
 export interface Translator {
   instant(key: string, params?: Record<string, unknown>): string;
+  /** A counted message, by the display language's plural rules (I18nService.plural). */
+  plural(base: string, count: number, params?: Record<string, unknown>): string;
 }
 
 /**
@@ -44,9 +46,9 @@ export function distanceUpdateMessage(result: DistanceUpdateResult | null | unde
   const place = result?.skippedPlaceScoped?.length ?? 0;
   const conflict = result?.skippedConflict?.length ?? 0;
 
-  if (areas > 0) clauses.push(translate.instant('WHERE.DISTANCE_SKIPPED_AREAS', { count: areas }));
-  if (place > 0) clauses.push(translate.instant('WHERE.DISTANCE_SKIPPED_PLACE', { count: place }));
-  if (conflict > 0) clauses.push(translate.instant('WHERE.DISTANCE_SKIPPED_CONFLICT', { count: conflict }));
+  if (areas > 0) clauses.push(translate.plural('WHERE.DISTANCE_SKIPPED_AREAS', areas));
+  if (place > 0) clauses.push(translate.plural('WHERE.DISTANCE_SKIPPED_PLACE', place));
+  if (conflict > 0) clauses.push(translate.plural('WHERE.DISTANCE_SKIPPED_CONFLICT', conflict));
   if (clauses.length === 0) return success;
 
   // The success lines are written to stand alone and carry no full stop; two sentences run together

@@ -24,7 +24,8 @@ import { MonsterService } from '../../core/services/monster.service';
 import { PoracleConfigService } from '../../core/services/poracle-config.service';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
-import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
+import { createFailureText } from '../../shared/utils/add-outcome';
+import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, EDIT, compose, isAutoDelete, isEdit, preserve } from '../../shared/utils/clean-flags';
 import { ANY_COSTUME, costumeHintKey } from '../../shared/utils/costumes';
 import { minTimeLabel, minTimeOptions } from '../../shared/utils/min-time';
@@ -123,6 +124,9 @@ export class PokemonEditDialogComponent implements OnInit {
 
   readonly pvpCaps = computed(() => this.poracleConfig.serverConfig().pvpCaps);
 
+  /** False while the scope picker holds a radius it won't accept, which keeps Save off. */
+  readonly radiusValid = signal(true);
+
   saving = signal(false);
 
   /** The alarm's current scope, read back into the shared picker. */
@@ -132,6 +136,9 @@ export class PokemonEditDialogComponent implements OnInit {
 
   /** Minior's stats are rerolled on catch, so its IV, CP and level filters never match. See `utils/minior.ts`. */
   readonly showMiniorNote = this.data.pokemonId === MINIOR_POKEMON_ID;
+
+  /** The radius as stored, which an edit may keep even outside the picker's range. */
+  readonly storedRadiusKm = metresToKm(this.data.distance);
 
   /** The hint under the costume select, which changes with the selection. */
   costumeHint(): string {
@@ -225,8 +232,8 @@ export class PokemonEditDialogComponent implements OnInit {
       // The server explains exactly what is wrong with a filter it refuses -- which min/max pair is
       // inverted, say. That message never reached anyone: this handler showed a fixed string, so a
       // transposed pair produced "failed" with no clue which field to fix. See #496.
-      error: (err: { error?: { error?: string } }) => {
-        const message = err?.error?.error ?? this.i18n.instant('POKEMON.SNACK_FAILED_UPDATE');
+      error: (err: unknown) => {
+        const message = createFailureText(err, this.i18n, 'ALARM.FAILED_UPDATE');
         this.snackBar.open(message, this.i18n.instant('COMMON.OK'), { duration: 6000 });
         this.saving.set(false);
       },

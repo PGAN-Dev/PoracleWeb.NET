@@ -3,6 +3,7 @@ import { combineDistanceResults, distanceUpdateMessage, skippedAny, Translator }
 describe('distance-update', () => {
   const translate: Translator = {
     instant: (key: string, params?: Record<string, unknown>) => (params ? `${key}(${JSON.stringify(params)})` : key),
+    plural: (base: string, count: number) => `${base}(${JSON.stringify({ count })})`,
   };
 
   describe('distanceUpdateMessage', () => {

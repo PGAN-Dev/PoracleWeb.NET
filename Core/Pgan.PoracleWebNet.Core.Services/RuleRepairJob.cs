@@ -210,6 +210,14 @@ public sealed partial class RuleRepairJob(IServiceScopeFactory scopes, ILogger<R
             var cannotEdit = results.SelectMany(r => r.CannotEdit).OrderBy(i => i, ItemOrder.Instance).ToList();
             var skipped = results.Where(r => r.Skip is not null).Select(r => r.Skip!).OrderBy(s => s.HumanId, StringComparer.Ordinal).ToList();
 
+            // The rows would otherwise name a user by Discord id alone; the list just read has their names.
+            var listed = repairable.Select(i => i.HumanId).Concat(cannotEdit.Select(i => i.HumanId)).Concat(skipped.Select(s => s.HumanId))
+                .ToHashSet(StringComparer.Ordinal);
+            var names = humans
+                .Where(h => !string.IsNullOrEmpty(h.Id) && listed.Contains(h.Id) && !string.IsNullOrWhiteSpace(h.Name))
+                .GroupBy(h => h.Id, StringComparer.Ordinal)
+                .ToDictionary(g => g.Key, g => g.First().Name!, StringComparer.Ordinal);
+
             this.Update(s => s with
             {
                 Phase = RuleRepairPhase.Scanned,
@@ -217,6 +225,7 @@ public sealed partial class RuleRepairJob(IServiceScopeFactory scopes, ILogger<R
                 Repairable = repairable,
                 CannotEdit = cannotEdit,
                 Skipped = skipped,
+                HumanNames = names,
             });
 
             LogScanned(this._logger, ids.Count, repairable.Count, cannotEdit.Count, skipped.Count);

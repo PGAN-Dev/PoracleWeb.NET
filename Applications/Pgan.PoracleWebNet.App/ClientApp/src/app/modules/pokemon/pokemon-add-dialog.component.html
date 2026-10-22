@@ -5,7 +5,7 @@
     <mat-tab>
       <ng-template mat-tab-label>
         <mat-icon>catching_pokemon</mat-icon>
-        <span class="tab-label">{{ 'POKEMON.TAB_POKEMON' | translate }}</span>
+        <span class="tab-label">{{ 'NAV.POKEMON' | translate }}</span>
       </ng-template>
       <div class="tab-content">
         <app-pokemon-selector [multi]="true" [ivFilters]="true" (selectionChange)="onPokemonSelected($event)" />
@@ -71,7 +71,7 @@
         </div>
 
         <h4>{{ 'POKEMON.FILTER_STATS' | translate }}</h4>
-        <div class="form-row triple">
+        <div class="form-row">
           <mat-form-field appearance="outline">
             <mat-label>{{ 'POKEMON.LABEL_MIN_ATK' | translate }}</mat-label>
             <input matInput type="number" min="0" max="15" [formControl]="filtersForm.controls.atk" />
@@ -80,6 +80,15 @@
             }
           </mat-form-field>
           <mat-form-field appearance="outline">
+            <mat-label>{{ 'POKEMON.LABEL_MAX_ATK' | translate }}</mat-label>
+            <input matInput type="number" min="0" max="15" [formControl]="filtersForm.controls.maxAtk" />
+            @if (filtersForm.controls.maxAtk.invalid) {
+              <mat-error>0-15</mat-error>
+            }
+          </mat-form-field>
+        </div>
+        <div class="form-row">
+          <mat-form-field appearance="outline">
             <mat-label>{{ 'POKEMON.LABEL_MIN_DEF' | translate }}</mat-label>
             <input matInput type="number" min="0" max="15" [formControl]="filtersForm.controls.def" />
             @if (filtersForm.controls.def.invalid) {
@@ -87,25 +96,18 @@
             }
           </mat-form-field>
           <mat-form-field appearance="outline">
-            <mat-label>{{ 'POKEMON.LABEL_MIN_STA' | translate }}</mat-label>
-            <input matInput type="number" min="0" max="15" [formControl]="filtersForm.controls.sta" />
-            @if (filtersForm.controls.sta.invalid) {
+            <mat-label>{{ 'POKEMON.LABEL_MAX_DEF' | translate }}</mat-label>
+            <input matInput type="number" min="0" max="15" [formControl]="filtersForm.controls.maxDef" />
+            @if (filtersForm.controls.maxDef.invalid) {
               <mat-error>0-15</mat-error>
             }
           </mat-form-field>
         </div>
-        <div class="form-row triple">
+        <div class="form-row">
           <mat-form-field appearance="outline">
-            <mat-label>{{ 'POKEMON.LABEL_MAX_ATK' | translate }}</mat-label>
-            <input matInput type="number" min="0" max="15" [formControl]="filtersForm.controls.maxAtk" />
-            @if (filtersForm.controls.maxAtk.invalid) {
-              <mat-error>0-15</mat-error>
-            }
-          </mat-form-field>
-          <mat-form-field appearance="outline">
-            <mat-label>{{ 'POKEMON.LABEL_MAX_DEF' | translate }}</mat-label>
-            <input matInput type="number" min="0" max="15" [formControl]="filtersForm.controls.maxDef" />
-            @if (filtersForm.controls.maxDef.invalid) {
+            <mat-label>{{ 'POKEMON.LABEL_MIN_STA' | translate }}</mat-label>
+            <input matInput type="number" min="0" max="15" [formControl]="filtersForm.controls.sta" />
+            @if (filtersForm.controls.sta.invalid) {
               <mat-error>0-15</mat-error>
             }
           </mat-form-field>
@@ -310,10 +312,10 @@
     <mat-tab>
       <ng-template mat-tab-label>
         <mat-icon>notifications</mat-icon>
-        <span class="tab-label">{{ 'POKEMON.TAB_DELIVERY' | translate }}</span>
+        <span class="tab-label">{{ 'ALARM.TAB_DELIVERY' | translate }}</span>
       </ng-template>
       <div class="tab-content">
-        <app-scope-picker [(scope)]="scope" />
+        <app-scope-picker [(scope)]="scope" [(radiusValid)]="radiusValid" />
 
         <h4>{{ 'ALARM.MESSAGE_SETTINGS' | translate }}</h4>
 
@@ -321,25 +323,30 @@
           [alarmType]="'monster'"
           [value]="notifForm.controls.template.value ?? ''"
           (valueChange)="notifForm.controls.template.setValue($event)"></app-template-selector>
-
-        <mat-slide-toggle [formControl]="notifForm.controls.clean"> {{ 'ALARM.CLEAN_MODE' | translate }} </mat-slide-toggle>
-        <p class="clean-hint">{{ 'ALARM.CLEAN_HINT_POKEMON' | translate }}</p>
-
-        @if (editSupported()) {
-          <mat-slide-toggle [formControl]="notifForm.controls.editInPlace"> {{ 'POKEMON.EDIT_MODE' | translate }} </mat-slide-toggle>
-          <p class="clean-hint">{{ 'POKEMON.EDIT_HINT' | translate }}</p>
-        }
+        <div class="message-row">
+          <div class="message-option">
+            <mat-slide-toggle [formControl]="notifForm.controls.clean"> {{ 'ALARM.CLEAN_MODE' | translate }} </mat-slide-toggle>
+            <p class="clean-hint">{{ 'ALARM.CLEAN_HINT_POKEMON' | translate }}</p>
+          </div>
+          @if (editSupported()) {
+            <div class="message-option">
+              <mat-slide-toggle [formControl]="notifForm.controls.editInPlace"> {{ 'POKEMON.EDIT_MODE' | translate }} </mat-slide-toggle>
+              <p class="clean-hint">{{ 'POKEMON.EDIT_HINT' | translate }}</p>
+            </div>
+          }
+        </div>
       </div>
     </mat-tab>
   </mat-tab-group>
 </mat-dialog-content>
 
+<app-add-refusal [refusal]="refusal()" (editExisting)="editExisting($event)" />
 <mat-dialog-actions align="end">
   <button mat-button (click)="dialogRef.close()">{{ 'ALARM.CANCEL' | translate }}</button>
-  <button mat-raised-button color="primary" (click)="save()" [disabled]="saving() || !isFormValid()">
+  <button mat-flat-button color="primary" (click)="save()" [disabled]="saving() || !isFormValid() || !radiusValid()">
     @if (saving()) {
       <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
     }
-    {{ saving() ? ('ALARM.SAVING' | translate) : ('ALARM.SAVE_ALARM' | translate) }}
+    {{ saving() ? ('ALARM.SAVING' | translate) : ('ALARM.SAVE' | translate) }}
   </button>
 </mat-dialog-actions>

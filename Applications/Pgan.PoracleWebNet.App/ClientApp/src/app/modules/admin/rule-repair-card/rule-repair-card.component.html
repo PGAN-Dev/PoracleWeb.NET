@@ -8,6 +8,9 @@
       </button>
     </div>
     <p class="repair-desc">{{ 'ADMIN.RULE_REPAIR.DESC' | translate }}</p>
+    @if (lastRun(); as when) {
+      <p class="repair-last-run" data-test="last-run">{{ when }}</p>
+    }
 
     @if (requestFailed()) {
       <div class="repair-alert repair-alert-error" role="alert">
@@ -71,7 +74,8 @@
             @for (f of conflicts().shown; track rowKey(f)) {
               <li>
                 <code
-                  >{{ f.humanId }} · {{ f.type }} #{{ f.uid }} · {{ 'ADMIN.RULE_REPAIR.COL_PROFILE' | translate }} {{ f.profileNo }}</code
+                  >{{ humanLabel(f.humanId) }} · {{ f.type }} #{{ f.uid }} · {{ 'ADMIN.RULE_REPAIR.COL_PROFILE' | translate }}
+                  {{ f.profileNo }}</code
                 >
                 {{ f.reason }}
               </li>
@@ -91,7 +95,8 @@
             @for (f of failed().shown; track rowKey(f)) {
               <li>
                 <code
-                  >{{ f.humanId }} · {{ f.type }} #{{ f.uid }} · {{ 'ADMIN.RULE_REPAIR.COL_PROFILE' | translate }} {{ f.profileNo }}</code
+                  >{{ humanLabel(f.humanId) }} · {{ f.type }} #{{ f.uid }} · {{ 'ADMIN.RULE_REPAIR.COL_PROFILE' | translate }}
+                  {{ f.profileNo }}</code
                 >
                 {{ f.reason }}
               </li>
@@ -121,7 +126,7 @@
             <tbody>
               @for (i of group.shown; track rowKey(i)) {
                 <tr>
-                  <td>{{ i.humanId }}</td>
+                  <td>{{ humanLabel(i.humanId) }}</td>
                   <td>{{ i.type }} #{{ i.uid }}</td>
                   <td>{{ i.profileNo }}</td>
                   <td>{{ i.before }}</td>
@@ -156,7 +161,8 @@
             @for (c of group.shown; track rowKey(c)) {
               <li>
                 <code
-                  >{{ c.humanId }} · {{ c.type }} #{{ c.uid }} · {{ 'ADMIN.RULE_REPAIR.COL_PROFILE' | translate }} {{ c.profileNo }}</code
+                  >{{ humanLabel(c.humanId) }} · {{ c.type }} #{{ c.uid }} · {{ 'ADMIN.RULE_REPAIR.COL_PROFILE' | translate }}
+                  {{ c.profileNo }}</code
                 >
               </li>
             }
@@ -175,7 +181,7 @@
         <ul class="repair-reasons">
           @for (s of skipped().shown; track s.humanId) {
             <li>
-              <code>{{ s.humanId }}</code>
+              <code>{{ humanLabel(s.humanId) }}</code>
               {{ s.reason }}
             </li>
           }

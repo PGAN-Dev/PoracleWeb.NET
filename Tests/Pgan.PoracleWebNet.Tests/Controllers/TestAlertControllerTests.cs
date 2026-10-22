@@ -91,6 +91,39 @@ public class TestAlertControllerTests : ControllerTestBase
         Assert.Equal(500, statusResult.StatusCode);
     }
 
+    [Fact]
+    public async Task SendTestAlertPassesOnWhyPoracleNgRefused()
+    {
+        // PoracleNG's reason ("message delivery not configured ...") is the only thing that tells the user
+        // retrying will not help; the generic 500 replaced it with "try again later". Alarms D16.
+        this._service.Setup(s => s.SendTestAlertAsync("123456789", "pokemon", 1))
+            .ThrowsAsync(new PoracleRequestRefusedException("message delivery not configured - check Discord/Telegram token settings", 502));
+
+        var result = await this._sut.SendTestAlert("pokemon", 1);
+
+        var status = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(502, status.StatusCode);
+        var error = status.Value!.GetType().GetProperty("error")!.GetValue(status.Value);
+        Assert.Equal("message delivery not configured - check Discord/Telegram token settings", error);
+    }
+
+    [Theory]
+    [InlineData(400)]
+    [InlineData(404)]
+    [InlineData(409)]
+    public async Task SendTestAlertKeepsTheGeneric500ForARefusedAlarmOrHumanRead(int status)
+    {
+        // Only the /api/test refusal (502) is PoracleNG explaining a failed delivery. A refusal from reading
+        // the alarm or the human is not, and must not reach the SPA as "alarm not found" or the like.
+        this._service.Setup(s => s.SendTestAlertAsync("123456789", "pokemon", 1))
+            .ThrowsAsync(new PoracleRequestRefusedException("Profile not found", status));
+
+        var result = await this._sut.SendTestAlert("pokemon", 1);
+
+        var objectResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(500, objectResult.StatusCode);
+    }
+
     [Theory]
     [InlineData("pokemon", DisableFeatureKeys.Pokemon)]
     [InlineData("raid", DisableFeatureKeys.Raids)]

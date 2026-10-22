@@ -9,12 +9,27 @@
   @if (data.itemDescription) {
     <p class="item-description">{{ data.itemDescription }}</p>
   }
+  @if (data.items?.length) {
+    <ul class="item-list">
+      @for (item of data.items; track $index) {
+        <li>{{ item }}</li>
+      }
+    </ul>
+  }
   @if (data.promptField) {
     <mat-form-field appearance="outline" style="width: 100%; margin-top: 8px">
       <mat-label>{{ data.promptField.label }}</mat-label>
-      <input matInput [(ngModel)]="promptValue" />
-      @if (hasPromptConflict) {
-        <mat-error>{{ 'DIALOG.PROMPT_CONFLICT' | translate }}</mat-error>
+      <input
+        matInput
+        [(ngModel)]="promptValue"
+        (ngModelChange)="promptTouched = true"
+        [attr.maxlength]="data.promptField.maxLength ?? null"
+        [errorStateMatcher]="promptErrorMatcher" />
+      @if (data.promptField.maxLength) {
+        <mat-hint align="end">{{ promptValue.length }} / {{ data.promptField.maxLength }}</mat-hint>
+      }
+      @if (promptProblemShown; as problem) {
+        <mat-error>{{ problem | translate: { max: data.promptField.maxLength } }}</mat-error>
       }
     </mat-form-field>
   }
@@ -23,13 +38,19 @@
   }
 </mat-dialog-content>
 <mat-dialog-actions align="end">
-  <button mat-button (click)="onCancel()">
-    {{ data.cancelText || ('DIALOG.CANCEL' | translate) }}
-  </button>
-  <button mat-raised-button [color]="data.warn ? 'warn' : 'primary'" (click)="onConfirm()" [disabled]="hasPromptConflict">
-    @if (data.warn) {
-      <mat-icon>delete</mat-icon>
-    }
-    {{ data.confirmText || ('DIALOG.CONFIRM' | translate) }}
-  </button>
+  @if (data.infoOnly) {
+    <button mat-flat-button color="primary" (click)="dialogRef.close(false)">
+      {{ data.confirmText || ('COMMON.CLOSE' | translate) }}
+    </button>
+  } @else {
+    <button mat-button (click)="onCancel()">
+      {{ data.cancelText || ('DIALOG.CANCEL' | translate) }}
+    </button>
+    <button mat-flat-button [color]="data.warn ? 'warn' : 'primary'" (click)="onConfirm()" [disabled]="promptProblem !== null">
+      @if (data.warn) {
+        <mat-icon>delete</mat-icon>
+      }
+      {{ data.confirmText || ('DIALOG.CONFIRM' | translate) }}
+    </button>
+  }
 </mat-dialog-actions>

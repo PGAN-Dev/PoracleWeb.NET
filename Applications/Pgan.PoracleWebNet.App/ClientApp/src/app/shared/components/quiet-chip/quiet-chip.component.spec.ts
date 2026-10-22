@@ -128,6 +128,19 @@ describe('QuietChipComponent', () => {
       expect(fixture.nativeElement.querySelector('.quiet-chip-label')).toBeNull();
     });
 
+    /** With no label the icon is all a screen reader had, so the button was announced as "button". */
+    it('names the label-less control inside a chip', () => {
+      buildAs('trailing');
+
+      expect(fixture.nativeElement.querySelector('button').getAttribute('aria-label')).toBe('QUIET.TOOLTIP_ACTION');
+    });
+
+    it('leaves a labelled control to its visible label', () => {
+      buildAs('chip');
+
+      expect(fixture.nativeElement.querySelector('button').getAttribute('aria-label')).toBeNull();
+    });
+
     it('shows the countdown inside a chip once the subject is quiet', () => {
       mutes.remainingFor.mockReturnValue(2820);
       buildAs('trailing');

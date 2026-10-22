@@ -4,44 +4,32 @@
     <p class="page-description">{{ 'GYMS.PAGE_DESC' | translate }}</p>
   </div>
   <div class="header-actions">
-    <button mat-fab (click)="openAddDialog()" [attr.aria-label]="'GYMS.ADD_GYM' | translate" style="background: #00bcd4; color: #fff">
+    <button mat-flat-button class="page-primary-action" (click)="openAddDialog()">
       <mat-icon>add</mat-icon>
+      {{ 'ALARM.NEW_ALARM' | translate }}
     </button>
   </div>
 </div>
 @if (!loading() && gyms().length > 0) {
-  <div class="filter-bar">
-    <span class="result-count">{{ 'ALARM.ALARMS_COUNT' | translate: { count: gyms().length } }}</span>
-    <div class="bulk-spacer"></div>
-    <button
-      mat-icon-button
-      (click)="toggleSelectMode()"
-      [class.select-mode-active]="selectMode()"
-      matTooltip="{{ selectMode() ? ('ALARM.EXIT_SELECT_MODE' | translate) : ('ALARM.SELECT_MULTIPLE' | translate) }}"
-      [attr.aria-label]="selectMode() ? ('ALARM.EXIT_SELECT_MODE' | translate) : ('ALARM.SELECT_MULTIPLE' | translate)">
-      <mat-icon>{{ selectMode() ? 'close' : 'checklist' }}</mat-icon>
-    </button>
-  </div>
+  <app-alarm-list-toolbar
+    searchPlaceholder="GYMS.SEARCH_PLACEHOLDER"
+    [(search)]="search"
+    [(sort)]="sortBy"
+    [sortOptions]="sortOptions"
+    [total]="gyms().length"
+    [shown]="visibleGyms().length"
+    [selectMode]="selectMode()"
+    (selectModeToggle)="toggleSelectMode()" />
 }
 
 @if (selectMode()) {
-  <div class="bulk-toolbar">
-    @if (selectedIds().size > 0) {
-      <span class="bulk-count">{{ 'ALARM.SELECTED_COUNT' | translate: { count: selectedIds().size } }}</span>
-    }
-    <button mat-stroked-button (click)="selectAll()"><mat-icon>select_all</mat-icon> {{ 'ALARM.SELECT_ALL' | translate }}</button>
-    @if (selectedIds().size > 0) {
-      <button mat-stroked-button (click)="deselectAll()">{{ 'ALARM.DESELECT_ALL' | translate }}</button>
-    }
-    <div class="bulk-spacer"></div>
-    <button mat-stroked-button (click)="bulkUpdateDistance()" [disabled]="selectedIds().size === 0">
-      <mat-icon>straighten</mat-icon> {{ 'ALARM.UPDATE_DISTANCE' | translate }}
-    </button>
-
-    <button mat-flat-button color="warn" (click)="bulkDelete()" [disabled]="selectedIds().size === 0">
-      <mat-icon>delete</mat-icon> {{ 'ALARM.DELETE' | translate }}
-    </button>
-  </div>
+  <app-bulk-action-bar
+    [count]="actionIds().length"
+    [anySelected]="selectedIds().size > 0"
+    (selectAll)="selectAll()"
+    (deselectAll)="deselectAll()"
+    (changeRadius)="bulkUpdateDistance()"
+    (deleteSelected)="bulkDelete()" />
 }
 
 @if (loading()) {
@@ -51,62 +39,55 @@
   </div>
 } @else {
   <div class="alarm-grid">
-    @for (gym of gyms(); track gym.uid) {
-      <mat-card class="alarm-card" [class.card-selected]="selectMode() && selectedIds().has(gym.uid)">
-        @if (selectMode()) {
-          <mat-checkbox
-            [checked]="selectedIds().has(gym.uid)"
-            (change)="toggleSelect(gym.uid)"
-            (click)="$event.stopPropagation()"
-            class="card-checkbox"></mat-checkbox>
+    @for (gym of visibleGyms(); track gym.uid) {
+      <app-alarm-card
+        [edge]="teamEdge(gym.team)"
+        [summary]="gym.description"
+        [selectable]="selectMode()"
+        [selected]="selectedIds().has(gym.uid)"
+        [selectLabel]="'ALARM.SELECT_ONE' | translate: { name: getTeamName(gym.team) }"
+        (selectedToggle)="toggleSelect(gym.uid)">
+        <img ruleMedia class="rule-sprite" [src]="getGymIcon(gym.team)" alt="" (error)="$any($event.target).style.display = 'none'" />
+        <span ruleTitle>{{ getTeamName(gym.team) }}</span>
+        @if (gym.gymId && gymNames()[gym.gymId]) {
+          <div ruleSubtitle class="rule-subtitle">
+            <span class="rule-subtitle-part"><mat-icon>place</mat-icon>{{ gymNames()[gym.gymId] }}</span>
+          </div>
         }
-        <div class="card-top" [style.border-top-color]="getTeamColor(gym.team)">
-          <img [src]="getGymIcon(gym.team)" class="gym-img" alt="" (error)="$any($event.target).style.display = 'none'" />
-          <div class="item-info">
-            <h3>{{ getTeamName(gym.team) }}</h3>
-            @if (gym.gymId && gymNames()[gym.gymId]) {
-              <span class="gym-target"><mat-icon>place</mat-icon> {{ gymNames()[gym.gymId] }}</span>
-            }
-            <div class="change-indicators">
-              @if (gym.slotChanges === 1) {
-                <span class="change-badge" matTooltip="{{ 'GYMS.TRACK_SLOT_CHANGES' | translate }}"
-                  ><mat-icon>swap_vert</mat-icon> {{ 'GYMS.TRACK_SLOT_CHANGES' | translate }}</span
-                >
-              }
-            </div>
-          </div>
-          <div class="card-top-actions">
-            @if (isAutoDelete(gym.clean)) {
-              <span class="clean-tag" matTooltip="{{ 'ALARM.CLEAN_HINT_GYM' | translate }}">{{ 'ALARM.CLEAN_TAG' | translate }}</span>
-            }
-          </div>
-        </div>
-        <mat-card-content>
-          <div class="distance-chip-row">
-            <app-where-chip
-              [distance]="gym.distance"
-              [overrideAreas]="gym.overrideAreas"
-              [overrideLocationLabel]="gym.overrideLocationLabel"
-              [profileAreas]="profileAreas()"
-              (click)="editScope(gym); $event.stopPropagation()" />
-          </div>
-          <app-rule-summary [text]="gym.description" />
-        </mat-card-content>
-        <mat-card-actions align="end">
+        <ng-container ruleStatus>
+          @if (isAutoDelete(gym.clean)) {
+            <span class="rule-tag" [matTooltip]="'ALARM.CLEAN_HINT_GYM' | translate"
+              ><mat-icon>auto_delete</mat-icon>{{ 'ALARM.STATUS_CLEAN' | translate }}</span
+            >
+          }
           @if (gym.gymId; as gymId) {
             <app-quiet-chip scope="gym" [value]="gymId" [subject]="gymNames()[gymId]" />
           }
-
+        </ng-container>
+        <div ruleFilters class="rule-pills">
+          @if (gym.slotChanges === 1) {
+            <span class="rule-pill" [matTooltip]="'GYMS.TRACK_SLOT_CHANGES' | translate">{{ 'GYMS.SLOT_CHANGES_PILL' | translate }}</span>
+          }
+          @if (gym.battleChanges === 1) {
+            <span class="rule-pill" [matTooltip]="'GYMS.TRACK_BATTLE_CHANGES' | translate">{{
+              'GYMS.BATTLE_CHANGES_PILL' | translate
+            }}</span>
+          }
+        </div>
+        <app-where-chip
+          ruleScope
+          [distance]="gym.distance"
+          [overrideAreas]="gym.overrideAreas"
+          [overrideLocationLabel]="gym.overrideLocationLabel"
+          [profileAreas]="profileAreas()"
+          (click)="editScope(gym); $event.stopPropagation()" />
+        <ng-container ruleActions>
           <button
             mat-icon-button
             (click)="sendTestAlert(gym)"
             [disabled]="testAlertService.isSending('gym', gym.uid) || testAlertService.isCoolingDown('gym', gym.uid)"
-            [matTooltip]="
-              testAlertService.isCoolingDown('gym', gym.uid) ? ('ALARM.TEST_COOLDOWN' | translate) : ('ALARM.TEST_SEND' | translate)
-            "
-            [attr.aria-label]="
-              testAlertService.isCoolingDown('gym', gym.uid) ? ('ALARM.TEST_COOLDOWN' | translate) : ('ALARM.TEST_SEND' | translate)
-            "
+            [matTooltip]="(testAlertService.isCoolingDown('gym', gym.uid) ? 'ALARM.TEST_COOLDOWN' : 'ALARM.TEST_SEND') | translate"
+            [attr.aria-label]="(testAlertService.isCoolingDown('gym', gym.uid) ? 'ALARM.TEST_COOLDOWN' : 'ALARM.TEST_SEND') | translate"
             class="test-alert-btn">
             @if (testAlertService.isSending('gym', gym.uid)) {
               <mat-icon class="spin">sync</mat-icon>
@@ -114,7 +95,6 @@
               <mat-icon>send</mat-icon>
             }
           </button>
-
           <button
             mat-icon-button
             (click)="editGym(gym)"
@@ -122,7 +102,6 @@
             [attr.aria-label]="'COMMON.EDIT' | translate">
             <mat-icon>edit</mat-icon>
           </button>
-
           <button
             mat-icon-button
             (click)="deleteGym(gym)"
@@ -131,26 +110,12 @@
             color="warn">
             <mat-icon>delete</mat-icon>
           </button>
-        </mat-card-actions>
-      </mat-card>
+        </ng-container>
+      </app-alarm-card>
     } @empty {
-      <div class="empty-state">
-        <svg viewBox="0 0 80 100" width="58" height="72" class="empty-icon">
-          <polygon
-            points="40,8 56,35 50,35 58,60 48,60 55,90 25,90 32,60 22,60 30,35 24,35"
-            fill="#00bcd4"
-            opacity="0.12"
-            stroke="#00bcd4"
-            stroke-width="2.5" />
-          <circle cx="40" cy="50" r="10" fill="none" stroke="#00bcd4" stroke-width="3" opacity="0.5" />
-          <circle cx="40" cy="50" r="4" fill="#00bcd4" opacity="0.4" />
-        </svg>
-        <h2 class="empty-title">{{ 'GYMS.EMPTY_TITLE' | translate }}</h2>
-        <p class="empty-subtitle">{{ 'GYMS.EMPTY_SUBTITLE' | translate }}</p>
-        <button mat-flat-button (click)="openAddDialog()" style="background: #00bcd4; color: #212121">
-          <mat-icon>add</mat-icon> {{ 'GYMS.ADD_GYM' | translate }}
-        </button>
-      </div>
+      @if (gyms().length === 0) {
+        <app-alarm-empty-state icon="fitness_center" titleKey="GYMS.EMPTY_TITLE" bodyKey="GYMS.EMPTY_SUBTITLE" (add)="openAddDialog()" />
+      }
     }
   </div>
 }

@@ -55,6 +55,10 @@ describe('IconService', () => {
       expect(service.getGymUrl(1)).toBe(`${DEFAULT_BASE}/gym/1.png`);
     });
 
+    it('draws the neutral gym for team 4 (any team), which has no icon of its own', () => {
+      expect(service.getGymUrl(4)).toBe(`${DEFAULT_BASE}/gym/0.png`);
+    });
+
     it('should return raid egg URL', () => {
       expect(service.getRaidEggUrl(5)).toBe(`${DEFAULT_BASE}/raid/egg/5.png`);
     });

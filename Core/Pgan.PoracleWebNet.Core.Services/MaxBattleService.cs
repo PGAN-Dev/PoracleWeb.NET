@@ -40,7 +40,10 @@ public partial class MaxBattleService(IPoracleTrackingProxy proxy, IFeatureGate 
         {
             throw new TrackingConflictException(
                 TrackingType,
-                "You already have an identical max battle alarm.");
+                "You already have an identical max battle alarm.")
+            {
+                ExistingUid = result.ExistingUid,
+            };
         }
 
         if (result.NewUids.Count > 0)

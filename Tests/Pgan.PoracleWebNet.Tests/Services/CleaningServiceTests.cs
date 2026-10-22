@@ -614,4 +614,63 @@ public class CleaningServiceTests
 
         Assert.False((await this._sut.GetCleanStatusAsync("u1", 1))["invasions"]);
     }
+
+    // Alarms D10: one clean rule among several read as "off", with nothing to say part of the type was on.
+    [Fact]
+    public async Task GetCleanCountsAsyncCountsCleanRulesPerType()
+    {
+        var json = JsonSerializer.SerializeToElement(new
+        {
+            pokemon = new object[] { new { uid = 1, clean = 1 }, new { uid = 2, clean = 0 }, new { uid = 3, clean = 0 } },
+            raid = new object[] { new { uid = 1, clean = 5 } },
+            egg = Array.Empty<object>(),
+            maxbattle = new object[] { new { uid = 1, clean = 2 }, new { uid = 2, clean = 1 } },
+        });
+        this._proxy.Setup(p => p.GetAllTrackingAsync("u1")).ReturnsAsync(json);
+
+        var counts = await this._sut.GetCleanCountsAsync("u1", 1);
+
+        Assert.Equal(new CleanCount(1, 3), counts["monsters"]);
+        Assert.Equal(new CleanCount(1, 1), counts["raids"]);
+        Assert.Equal(new CleanCount(0, 0), counts["eggs"]);
+        Assert.Equal(new CleanCount(0, 0), counts["quests"]); // absent from the snapshot
+        Assert.Equal(new CleanCount(1, 2), counts["maxbattles"]); // edit-in-place alone is not auto-delete
+    }
+
+    [Fact]
+    public async Task GetCleanCountsAsyncLeavesPokestopEventRowsOutOfInvasions()
+    {
+        this._featureGate.Setup(g => g.IsEnabledAsync(DisableFeatureKeys.PokestopEvents)).ReturnsAsync(true);
+        var json = JsonSerializer.SerializeToElement(new
+        {
+            invasion = new object[]
+            {
+                new { uid = 1, clean = 1, grunt_type = "water" },
+                new { uid = 2, clean = 0, grunt_type = "fire" },
+                new { uid = 3, clean = 1, grunt_type = "showcase" },
+            },
+        });
+        this._proxy.Setup(p => p.GetAllTrackingAsync("u1")).ReturnsAsync(json);
+
+        Assert.Equal(new CleanCount(1, 2), (await this._sut.GetCleanCountsAsync("u1", 1))["invasions"]);
+    }
+
+    [Fact]
+    public async Task GetCleanCountsAsyncCountsBooleanTrueAsCleanAndFalseNullOrStringAsNotRatherThanThrowing()
+    {
+        var json = JsonSerializer.SerializeToElement(new
+        {
+            pokemon = new object[] { new { uid = 1, clean = true } },
+            raid = new object?[] { new { uid = 1, clean = false }, new { uid = 2, clean = (int?)null }, new { uid = 3, clean = "1" } },
+        });
+        this._proxy.Setup(p => p.GetAllTrackingAsync("u1")).ReturnsAsync(json);
+
+        var counts = await this._sut.GetCleanCountsAsync("u1", 1);
+        var status = await this._sut.GetCleanStatusAsync("u1", 1);
+
+        Assert.Equal(new CleanCount(1, 1), counts["monsters"]);
+        Assert.True(status["monsters"]);
+        Assert.Equal(new CleanCount(0, 3), counts["raids"]);
+        Assert.False(status["raids"]);
+    }
 }

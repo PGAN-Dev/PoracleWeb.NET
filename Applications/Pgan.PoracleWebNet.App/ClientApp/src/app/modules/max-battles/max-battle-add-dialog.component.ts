@@ -2,7 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -13,7 +13,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { TranslatePipe } from '@ngx-translate/core';
-import { catchError, forkJoin, of } from 'rxjs';
+import { forkJoin } from 'rxjs';
 
 import { MaxBattleCreate } from '../../core/models';
 import { AlertDefaultsService } from '../../core/services/alert-defaults.service';
@@ -21,9 +21,11 @@ import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { MaxBattleService } from '../../core/services/max-battle.service';
 import { ScannerService } from '../../core/services/scanner.service';
+import { AddRefusalComponent } from '../../shared/components/add-refusal/add-refusal.component';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { AddDialogData, AddRefusal, editExistingResult, ExistingRule, finishAdd, settle } from '../../shared/utils/add-outcome';
 import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 import { compose } from '../../shared/utils/clean-flags';
 
@@ -36,6 +38,7 @@ interface MaxBattleLevel {
 
 @Component({
   imports: [
+    AddRefusalComponent,
     ReactiveFormsModule,
     MatDialogModule,
     MatButtonModule,
@@ -62,12 +65,14 @@ interface MaxBattleLevel {
 export class MaxBattleAddDialogComponent {
   private readonly alertDefaults = inject(AlertDefaultsService);
 
-  private readonly fb = inject(FormBuilder);
+  private readonly data = inject<AddDialogData | null>(MAT_DIALOG_DATA, { optional: true });
 
+  private readonly fb = inject(FormBuilder);
   private readonly i18n = inject(I18nService);
   private readonly maxBattleService = inject(MaxBattleService);
   private readonly scannerService = inject(ScannerService);
   private readonly snackBar = inject(MatSnackBar);
+
   commonForm = this.fb.group({
     clean: [false],
     form: [0],
@@ -76,7 +81,6 @@ export class MaxBattleAddDialogComponent {
   });
 
   readonly dialogRef = inject(MatDialogRef<MaxBattleAddDialogComponent>);
-
   readonly isWebhook = inject(AuthService).isImpersonating();
 
   /** PoracleNG max battle levels: 1-5 = Dynamax, 7 = Gigantamax, 8 = Legendary Gigantamax */
@@ -91,6 +95,12 @@ export class MaxBattleAddDialogComponent {
   ];
 
   maxBattlePokemonIds = signal<number[] | null>(null);
+
+  /** False while the scope picker holds a radius it won't accept, which keeps Save off. */
+  readonly radiusValid = signal(true);
+
+  /** Why the last single Add was refused; shown above the actions, cleared on the next save. */
+  readonly refusal = signal<AddRefusal | null>(null);
 
   saving = signal(false);
 
@@ -109,8 +119,8 @@ export class MaxBattleAddDialogComponent {
   );
 
   selectedLevels = signal<number[]>([]);
-  selectedPokemonIds = signal<number[]>([]);
 
+  selectedPokemonIds = signal<number[]>([]);
   tabIndex = 0;
 
   constructor() {
@@ -126,6 +136,11 @@ export class MaxBattleAddDialogComponent {
     return this.selectedPokemonIds().length > 0;
   }
 
+  /** The refusal named a stored rule: close and let the list open that one for editing. */
+  editExisting(rule: ExistingRule): void {
+    this.dialogRef.close(editExistingResult(rule));
+  }
+
   onPokemonSelected(ids: number[]): void {
     this.selectedPokemonIds.set(ids);
   }
@@ -133,6 +148,7 @@ export class MaxBattleAddDialogComponent {
   save(): void {
     if (!this.canSave()) return;
     this.saving.set(true);
+    this.refusal.set(null);
     const common = this.commonForm.getRawValue();
     const scope = scopeToFields(this.scope());
 
@@ -179,42 +195,18 @@ export class MaxBattleAddDialogComponent {
       }
     }
 
-    // forkJoin fails fast, so one refused alarm aborted the whole batch: the creates that had already
-    // succeeded were never reported, the dialog stayed open and the list never reloaded. Each request
-    // settles on its own now, and the toast says how many landed. See #577.
-    forkJoin(creates.map(c => c.pipe(catchError((err: { error?: { error?: string } }) => of({ failed: err }))))).subscribe({
-      // The server names what is wrong -- which alarm already uses these settings, which
-      // field a file got wrong. A fixed string threw that away. See #567, #568.
-      // Each create settles on its own, so a refused one no longer hides the ones that landed.
-      // The first refusal's message is shown, because it names what is in the way. See #577.
-      next: (results: ({ uid?: number } | { failed: { error?: { error?: string } } })[]) => {
-        const refused = results.filter((r): r is { failed: { error?: { error?: string } } } => 'failed' in r);
-        // Three outcomes, not two: refused (409), already tracked (200 with no uid), and created. The
-        // pokemon dialog has split these since #495; the rest reported duplicates as creations. See #605.
-        const landed = results.filter((r): r is { uid?: number } => !('failed' in r));
-        const created = landed.filter(r => (r.uid ?? 0) > 0).length;
-        const duplicates = landed.length - created;
-        this.saving.set(false);
-
-        if (refused.length > 0) {
-          this.snackBar.open(
-            refused[0].failed?.error?.error ?? this.i18n.instant('MAX_BATTLES.CREATE_FAILED'),
-            this.i18n.instant('COMMON.OK'),
-            {
-              duration: 6000,
-            },
-          );
-        } else {
-          const message =
-            duplicates > 0
-              ? this.i18n.instant('ALARM.SNACK_CREATED_WITH_DUPLICATES', { count: created, duplicates })
-              : this.i18n.instant('MAX_BATTLES.CREATE_SUCCESS', { count: created });
-          this.snackBar.open(message, this.i18n.instant('COMMON.OK'), { duration: 4000 });
-        }
-
-        // Close either way: whatever was created is real, and the list must reload to show it.
-        this.dialogRef.close(true);
-      },
+    // Each create settles on its own, so one refusal cannot hide the ones that landed (#577). A single
+    // refused Add keeps the dialog open with the reason inline; see finishAdd.
+    forkJoin(creates.map(c => settle(c))).subscribe(results => {
+      this.saving.set(false);
+      finishAdd(results, {
+        dialogRef: this.dialogRef,
+        failedKey: 'ALARM.FAILED_CREATE',
+        i18n: this.i18n,
+        lookup: this.data?.existingRule,
+        refusal: this.refusal,
+        snackBar: this.snackBar,
+      });
     });
   }
 

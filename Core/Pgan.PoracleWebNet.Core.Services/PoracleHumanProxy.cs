@@ -879,7 +879,7 @@ public partial class PoracleHumanProxy(
     {
         // Ours, not PoracleNG's. v1 reported the overflow as "Data too long for column 'label'" inside a
         // 200 and v2 answers 500 {"detail":"database error"} -- both verified live, and neither is
-        // something to show a person who typed a long name. humans_locations.label is varchar(64).
+        // something to show a person who typed a long name. user_locations.label is varchar(64).
         if (place.Label is { Length: > 64 })
         {
             return "That name is too long. Use 64 characters or fewer.";

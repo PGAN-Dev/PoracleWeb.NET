@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
+import { ErrorStateMatcher } from '@angular/material/core';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -9,11 +10,14 @@ import { MatInputModule } from '@angular/material/input';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { GeofenceRegion } from '../../../core/models';
+import { GEOFENCE_NAME_PATTERN } from '../../utils/geofence.utils';
 import { RegionOption, RegionSelectorComponent } from '../region-selector/region-selector.component';
 
 export interface GeofenceNameDialogData {
   detectedRegion: { id: number; name: string; displayName: string } | null;
   regions: GeofenceRegion[];
+  /** Renaming an existing fence rather than naming a new one; only the title differs. */
+  rename?: boolean;
 }
 
 export interface GeofenceNameDialogResult {
@@ -56,7 +60,10 @@ export class GeofenceNameDialogComponent {
 
   readonly manualSelect = signal(!this.data.detectedRegion);
 
-  readonly namePattern = /^[a-zA-Z0-9 \-'.()&]+$/;
+  /** In the error state whenever the name breaks the rule, touched or not, so the reason shows at once. */
+  readonly nameErrors: ErrorStateMatcher = { isErrorState: () => this.isWhitespaceOnly || this.hasInvalidChars };
+
+  readonly namePattern = GEOFENCE_NAME_PATTERN;
 
   selectedRegionId: number | null = this.data.detectedRegion?.id ?? null;
 
@@ -69,6 +76,10 @@ export class GeofenceNameDialogComponent {
     // Region is optional: a private geofence does not need a Koji region. The region/parent is only
     // used when an admin later promotes the geofence to a public Koji area. See issue #314.
     return name.length > 0 && name.length <= 50 && !this.hasInvalidChars;
+  }
+
+  get isWhitespaceOnly(): boolean {
+    return this.displayName.length > 0 && this.displayName.trim().length === 0;
   }
 
   onChangeRegion(): void {

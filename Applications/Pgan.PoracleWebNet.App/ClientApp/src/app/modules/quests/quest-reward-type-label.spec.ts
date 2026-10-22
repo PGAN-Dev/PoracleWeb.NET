@@ -40,7 +40,7 @@ describe('QuestListComponent reward type label', () => {
 
   /** Every reward type the add dialog can create: Pokemon, item, stardust, candy, pokecoins, mega energy. */
   it.each([
-    [7, 'Pokemon'],
+    [7, 'Pokémon'],
     [2, 'Item'],
     [3, 'Stardust'],
     [4, 'Candy'],
@@ -52,6 +52,6 @@ describe('QuestListComponent reward type label', () => {
 
   /** A type only the bot can create still says which type it is, rather than trailing off. */
   it('names an unknown reward type by number', () => {
-    expect(component.getRewardTypeLabel(1)).toBe('Quest Type: 1');
+    expect(component.getRewardTypeLabel(1)).toBe('Quest type: 1');
   });
 });

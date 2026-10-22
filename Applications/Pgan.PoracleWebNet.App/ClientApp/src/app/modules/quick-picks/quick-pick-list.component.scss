@@ -1,37 +1,3 @@
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: 16px 24px;
-  gap: 16px;
-}
-
-.page-header-text {
-  flex: 1;
-  min-width: 0;
-}
-
-.page-header h1 {
-  margin: 0;
-  font-size: 24px;
-  font-weight: 400;
-}
-
-.page-description {
-  margin: 4px 0 0;
-  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
-  font-size: 13px;
-  line-height: 1.5;
-  border-left: 3px solid #ff6f00;
-  padding-left: 12px;
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .category-filter-bar {
   display: flex;
   align-items: center;
@@ -55,15 +21,13 @@
 }
 
 .category-chip:hover {
-  background: color-mix(in srgb, #ff6f00 10%, transparent);
-  border-color: #ff6f00;
+  background: var(--hover-overlay, rgba(0, 0, 0, 0.04));
 }
 
-// #ff6f00 carried white at 2.8:1; this is the same orange taken just far enough to reach 4.5:1.
 .category-chip.category-active {
-  background: #c25400;
-  color: #fff;
-  border-color: #c25400;
+  background: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+  border-color: transparent;
 }
 
 .loading-container {
@@ -90,8 +54,6 @@
   color: var(--text-secondary, rgba(0, 0, 0, 0.64));
   margin: 0 0 12px;
   padding: 0 24px 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
   border-bottom: 1px solid var(--divider, rgba(0, 0, 0, 0.08));
 }
 
@@ -102,23 +64,13 @@
   padding: 0 24px 32px;
 }
 
+// A quiet surface like the rule cards: no coloured edge, no lift on hover. "Applied" is said in words
+// under the title, so it needs no edge either.
 .alarm-card {
   position: relative;
   border: 1px solid var(--card-border, rgba(0, 0, 0, 0.12));
   border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-  transition:
-    transform 0.2s,
-    box-shadow 0.2s;
-}
-
-.alarm-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-}
-
-.alarm-card.applied-card {
-  border-left: 4px solid #4caf50;
+  box-shadow: none !important;
 }
 
 .card-top {
@@ -126,7 +78,6 @@
   align-items: center;
   gap: 12px;
   padding: 16px 16px 8px;
-  border-top: 4px solid #ff6f00;
 }
 
 .card-top-actions {
@@ -144,9 +95,9 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  background: var(--mat-sys-surface-container-high, rgba(0, 0, 0, 0.04));
 
   mat-icon {
-    color: #fff;
     font-size: 24px;
   }
 }
@@ -182,12 +133,12 @@
 
 .alarm-type-chip {
   display: inline-block;
-  padding: 2px 10px;
-  border-radius: 12px;
-  font-size: 11px;
+  padding: 1px 8px;
+  border: 1px solid var(--mat-sys-outline-variant, rgba(0, 0, 0, 0.2));
+  border-radius: 999px;
+  font-size: 12px;
   font-weight: 500;
-  color: #fff;
-  text-transform: capitalize;
+  color: var(--mat-sys-on-surface-variant);
   line-height: 18px;
 }
 
@@ -196,7 +147,8 @@
   align-items: center;
   gap: 6px;
   padding: 8px 0 4px;
-  color: #4caf50;
+  // Green 800 on the light card, green 300 on the dark one; #4caf50 was 2.7:1.
+  color: #2e7d32;
   font-size: 13px;
   font-weight: 500;
 
@@ -246,10 +198,6 @@
 }
 
 @media (max-width: 600px) {
-  .page-header {
-    padding: 12px 16px;
-  }
-
   .alarm-grid {
     grid-template-columns: 1fr;
     padding: 0 16px 16px;
@@ -258,4 +206,8 @@
   .category-filter-bar {
     padding: 0 16px 8px;
   }
+}
+
+:host-context(.dark-theme) .applied-info {
+  color: #81c784;
 }

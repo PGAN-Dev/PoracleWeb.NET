@@ -19,15 +19,12 @@ Area writes for user geofences (Areas save, create, toggle, delete, rename, appr
     grunt name — the same discriminator PoracleNG's own `isEventGruntType` uses to split its two v2
     endpoints.
 
-    **v1 applies no such filter**, so a Showcase rule created through `/api/v2/.../tracking/incident`
-    comes straight back out of `GET /api/tracking/invasion/{id}`, verified against 5.2.1 and 5.4.0.
-    `InvasionService` therefore does the partition itself — but only when the Pokéstop Events page
-    exists. Where it does not (Poracle reports `disable_showcase = true`), the event rows stay in the
-    invasion list, because filtering them out of the only page that can show them would leave alarms
-    that fire and cannot be deleted.
-
-!!! warning "MySQL provider"
-    This project uses `MySql.EntityFrameworkCore` (Oracle's official provider), **not** Pomelo (`Pomelo.EntityFrameworkCore.MySql`), which is incompatible with EF Core 10. Connection setup uses `options.UseMySQL(connectionString)` (capital SQL).
+    v1's invasion read returned both kinds, and the application was built on that list. The tracking
+    proxy now reads `incident` through v2 and folds those rules into the invasion list itself, and
+    `InvasionService` splits them out again, but only when the Pokéstop Events page exists. Where it
+    doesn't (Poracle reports `disable_showcase = true`, or an admin has switched the page off), the
+    event rules stay in the invasion list, because filtering them out of the only page that can show
+    them would leave alarms that fire and can't be deleted.
 
 #### Notable columns in `profiles`
 
@@ -65,7 +62,7 @@ Per-alarm delivery scope rests on two columns, present on all ten tables (`monst
 | `override_location_label` | string, nullable | Saved-place label the alarm measures its radius from, instead of the profile pin. A label that no longer exists is not an error — PoracleNG falls through to the pin, so deleting a place widens its alarms rather than breaking them. |
 | `override_areas` | JSON array, nullable | Areas the alarm is confined to, lowercase with spaces. Replaces the profile's area list outright rather than intersecting with it. **NULL when unset, never `[]`** — `parseOverrideAreas` reads an empty value back as no override, while `[]` is a list that matches nothing. |
 
-The two are mutually exclusive, areas cannot coexist with a radius, and a place requires one. PoracleNG refuses all three combinations, and so does PoracleWeb before the write (see [Backend](backend.md#per-alarm-areas)).
+The two are mutually exclusive, areas cannot coexist with a radius, and a place requires one. PoracleNG refuses all three combinations, and so does PoracleWeb.NET before the write (see [Backend](backend.md#per-alarm-areas)).
 
 Two more columns on `monsters` alone, also 5.1.0:
 
@@ -98,6 +95,9 @@ PoracleNG stores saved places here, keyed by (human, label). PoracleWeb.NET read
 
 A separate EF Core context for **application-owned data**.
 
+!!! warning "MySQL provider"
+    This project uses `MySql.EntityFrameworkCore` (Oracle's official provider), **not** Pomelo (`Pomelo.EntityFrameworkCore.MySql`), which is incompatible with EF Core 10. Connection setup uses `options.UseMySQL(connectionString)` (capital SQL).
+
 - Connection string: `ConnectionStrings:PoracleWebDb`
 - Database: `poracle_web`
 - Schema managed by **EF Core migrations** (`Database.MigrateAsync()` on startup)
@@ -118,11 +118,11 @@ A separate EF Core context for **application-owned data**.
 
 ### ScannerContext (optional)
 
-Connects to a Golbat scanner database for nest, Pokemon, and gym data.
+Connects to a Golbat scanner database. `ScannerService` reads it directly, with no repository in between.
 
 - Connection string: `ConnectionStrings:ScannerDb`
 - If not configured, `IScannerService` is not registered and scanner endpoints return appropriate responses
-- Contains entity mappings for the scanner `gym` table (see [Scanner entities](#scanner-entities) below)
+- Maps four scanner tables: `gym` (the gym picker, see [Scanner entities](#scanner-entities) below), `pokestop` (active quests), `station` (the Pokemon seen in max battles, for the max battle picker) and `weather` (the dashboard weather)
 
 ## EF Core migrations
 
@@ -184,7 +184,7 @@ The `gym_id` column on alarm entities (`raid`, `egg`, `gym`) uses NULL vs non-NU
 - `gym_id = NULL` — general alarm, matches **all** gyms
 - `gym_id = '<id>'` — gym-specific alarm, matches only the gym with that ID
 
-An empty string (`''`) is **not** a valid value. It would be treated as a specific gym filter that matches nothing, silently breaking the alarm. PoracleNG handles this normalization on its side for alarm writes.
+The column is nullable with a NULL default. PoracleNG's matcher treats any non-NULL value as "only this gym", so a stored empty string (`''`) matches nothing. Writes through the API can't produce one: PoracleNG stores an empty `gym_id` as NULL, and the v2 read reports a general alarm's `gym_id` as null. Rows that hold `''` were written straight to the database by older releases; see [Troubleshooting](../troubleshooting.md#gym-raid-or-egg-alarms-never-fire).
 
 ## Site settings table
 
@@ -265,7 +265,12 @@ The `user_geofences` table stores user-drawn polygon geofences:
 | `polygon_json` | text | Array of lat/lng coordinates |
 | `status` | string | `active`, `pending_review`, `approved`, `rejected` |
 | `group_name` | string | Region/group name |
-| `review_notes` | string | Admin notes on approval/rejection |
-| `discord_thread_id` | string | Discord forum thread ID |
+| `parent_id` | int | Koji id of the region the fence was drawn in |
+| `submitted_at` | datetime, nullable | When it was submitted for review |
+| `reviewed_by` | string, nullable | The admin who approved or rejected it |
+| `reviewed_at` | datetime, nullable | When it was reviewed |
+| `review_notes` | string, nullable | Admin notes on approval/rejection |
+| `promoted_name` | string, nullable | The public area name it was promoted to in Koji, once approved |
+| `discord_thread_id` | string, nullable | Discord forum thread ID |
 | `created_at` | datetime | Creation timestamp |
 | `updated_at` | datetime | Last update timestamp |

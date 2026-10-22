@@ -14,7 +14,7 @@ You'll configure everything in a single `.env` file at the project root and run 
 | **Discord App** | [discord.com/developers](https://discord.com/developers/applications) | OAuth2 for user login |
 
 !!! warning "Why the PoracleNG version matters"
-    PoracleWeb.NET is written against PoracleNG 5.4.0 and later and calls its `/api/v2` routes without a fallback. On an older server it still starts and logs an error, but profile, area, place and quiet-period calls fail with a message naming the version they need. The version it found is on **Admin → Settings**. Upgrade PoracleNG before PoracleWeb.NET.
+    PoracleWeb.NET is written against PoracleNG 5.4.0 and later and calls its `/api/v2` routes without a fallback. On an older server it still starts and logs an error, but profile, area, place and quiet-period calls fail with a message naming the version they need. The version it found is on **Admin → Server settings**. Upgrade PoracleNG before PoracleWeb.NET.
 
 !!! tip "Runtime vs SDK"
     You only need the **ASP.NET Core Runtime** to run a pre-built release. The **.NET SDK** is only needed if you want to build from source.

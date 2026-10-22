@@ -7,7 +7,7 @@
     @if (areas().length > 0) {
       <mat-chip-set class="area-chips">
         @for (area of areas(); track area) {
-          <mat-chip highlighted color="primary">{{ area }}</mat-chip>
+          <mat-chip highlighted color="primary">{{ titleCase(area) }}</mat-chip>
         }
       </mat-chip-set>
     } @else {

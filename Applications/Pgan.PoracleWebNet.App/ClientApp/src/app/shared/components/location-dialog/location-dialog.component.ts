@@ -2,6 +2,7 @@ import { afterNextRender, Component, ElementRef, inject, OnDestroy, OnInit, sign
 import { FormsModule } from '@angular/forms';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
+import { ErrorStateMatcher } from '@angular/material/core';
 import { MatDialogModule, MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -19,11 +20,14 @@ import { BasemapService } from '../../../core/services/basemap.service';
 import { I18nService } from '../../../core/services/i18n.service';
 import { LocationService } from '../../../core/services/location.service';
 import { SettingsService } from '../../../core/services/settings.service';
+import { serverReason } from '../../utils/server-reason';
 
 /** Extra options for {@link LocationDialogComponent}. */
 export interface LocationDialogData {
   /** Close with the chosen coordinates instead of saving them as the profile pin. */
   pickOnly?: boolean;
+  /** Overrides the title, so a dialog moving a saved place can say which place it is moving. */
+  title?: string;
 }
 
 @Component({
@@ -66,7 +70,6 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
 
   private readonly search$ = new Subject<string>();
   private readonly settingsService = inject(SettingsService);
-  private skipNextReverse = false;
 
   private readonly snackBar = inject(MatSnackBar);
   /**
@@ -83,9 +86,14 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
    */
   readonly geocodingDisabled = this.settingsService.isDisabled('disable_nominatim');
   latitude = this.data?.latitude ?? 0;
-  readonly locating = signal(false);
+  /** Shows the coordinate's own error as soon as it is wrong, not only after the field loses focus. */
+  readonly latitudeMatcher: ErrorStateMatcher = { isErrorState: () => this.latitudeError() !== null };
 
+  readonly locating = signal(false);
   longitude = this.data?.longitude ?? 0;
+  readonly longitudeMatcher: ErrorStateMatcher = { isErrorState: () => this.longitudeError() !== null };
+  /** True once a finished search came back empty, until the user types again. */
+  readonly noMatches = signal(false);
   readonly resolvedAddress = signal<string>('');
   readonly saving = signal(false);
   readonly searching = signal(false);
@@ -111,15 +119,20 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
     return value?.displayName ?? '';
   }
 
-  /** Street address, or the place's own name when it has no street (a city, a named POI). */
+  /**
+   * The landmark's own name when the geocoder returns one ("Toledo Zoo"), otherwise the street address,
+   * then the city. Leading with the street listed the zoo as "Lodge Avenue, Toledo", so nothing on the
+   * option said it was the zoo.
+   */
   getAddressPrimary(result: GeocodingResult): string {
     const parts: string[] = [];
-    if (result.streetNumber && result.streetName) {
-      parts.push(`${result.streetNumber} ${result.streetName}`);
-    } else if (result.streetName) {
-      parts.push(result.streetName);
-    } else if (result.name) {
-      parts.push(result.name);
+    const landmark = landmarkName(result);
+    if (landmark) {
+      parts.push(landmark);
+    } else {
+      const street = streetLine(result);
+      if (street) parts.push(street);
+      else if (result.name) parts.push(result.name);
     }
 
     const city = result.city || '';
@@ -128,9 +141,13 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
     return parts.join(', ') || result.displayName?.split(',')[0] || 'Unknown';
   }
 
-  /** State, postcode and country -- the detail `getAddressPrimary` leaves out. */
+  /** The street (when a landmark took the first line), then state, postcode and country. */
   getAddressSecondary(result: GeocodingResult): string {
     const parts: string[] = [];
+    if (landmarkName(result)) {
+      const street = streetLine(result);
+      if (street) parts.push(street);
+    }
     if (result.state) parts.push(result.state);
     if (result.zipcode) parts.push(result.zipcode);
     if (result.country && result.country !== 'United States') parts.push(result.country);
@@ -149,15 +166,23 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
     return 'place';
   }
 
+  /**
+   * A cleared number input hands the model `null`, which `isNaN` waved through (`isNaN(null)` is false
+   * and `null >= -90` is true): Save stayed live, Leaflet threw on the map update and the server answered
+   * 400 behind a generic toast. `Number.isFinite` refuses null, empty and NaN alike.
+   */
   isValid(): boolean {
-    return (
-      !isNaN(this.latitude) &&
-      !isNaN(this.longitude) &&
-      this.latitude >= -90 &&
-      this.latitude <= 90 &&
-      this.longitude >= -180 &&
-      this.longitude <= 180
-    );
+    return this.latitudeError() === null && this.longitudeError() === null;
+  }
+
+  /** The translation key for what is wrong with the latitude, or null when it is usable. */
+  latitudeError(): null | string {
+    return inRange(this.latitude, 90) ? null : 'DIALOG.LOCATION_LATITUDE_RANGE';
+  }
+
+  /** The translation key for what is wrong with the longitude, or null when it is usable. */
+  longitudeError(): null | string {
+    return inRange(this.longitude, 180) ? null : 'DIALOG.LOCATION_LONGITUDE_RANGE';
   }
 
   ngOnDestroy(): void {
@@ -186,6 +211,7 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
       .subscribe(results => {
         this.searching.set(false);
         this.searchResults.set(results);
+        this.noMatches.set(results.length === 0);
       });
   }
 
@@ -202,7 +228,22 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
    * anything. Only typed text is a query.
    */
   onSearchChange(value: GeocodingResult | string | null): void {
-    if (typeof value === 'string') this.search$.next(value);
+    if (typeof value === 'string') {
+      this.noMatches.set(false);
+      this.search$.next(value);
+    }
+  }
+
+  /**
+   * A point chosen on the map. Always looks the new point up: a flag set when a search result was picked
+   * used to swallow this lookup, so the dialog kept the search result's address under a pin that had
+   * moved away from it.
+   */
+  pickPoint(lat: number, lng: number): void {
+    this.latitude = parseFloat(lat.toFixed(6));
+    this.longitude = parseFloat(lng.toFixed(6));
+    this.updateMarker();
+    this.reverseGeocodeCurrentCoords();
   }
 
   save(): void {
@@ -217,9 +258,11 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
 
     this.saving.set(true);
     this.locationService.setLocation(loc).subscribe({
-      error: () => {
+      error: err => {
         this.saving.set(false);
-        this.snackBar.open(this.i18n.instant('DIALOG.LOCATION_SAVE_ERROR'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
+        this.snackBar.open(serverReason(err) ?? this.i18n.instant('DIALOG.LOCATION_SAVE_ERROR'), this.i18n.instant('COMMON.OK'), {
+          duration: 4000,
+        });
       },
       next: () => {
         this.saving.set(false);
@@ -235,8 +278,13 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
     this.searchQuery = result.displayName;
     this.resolvedAddress.set(result.displayName);
     this.searchResults.set([]);
-    this.skipNextReverse = true;
+    this.noMatches.set(false);
     this.updateMap();
+  }
+
+  /** The caller's own title, else the picker's or the pin's. A translation key unless the caller passed one. */
+  title(): string {
+    return this.data?.title || (this.data?.pickOnly ? 'DIALOG.LOCATION_PICK_TITLE' : 'DIALOG.LOCATION_TITLE');
   }
 
   useMyLocation(): void {
@@ -292,22 +340,13 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
       this.marker = this.createMarker(lat, lng);
     }
 
-    this.map.on('click', (e: L.LeafletMouseEvent) => {
-      this.latitude = parseFloat(e.latlng.lat.toFixed(6));
-      this.longitude = parseFloat(e.latlng.lng.toFixed(6));
-      this.updateMarker();
-      this.reverseGeocodeCurrentCoords();
-    });
+    this.map.on('click', (e: L.LeafletMouseEvent) => this.pickPoint(e.latlng.lat, e.latlng.lng));
 
     // Fix map sizing in dialog
     setTimeout(() => this.map?.invalidateSize(), 100);
   }
 
   private reverseGeocodeCurrentCoords(): void {
-    if (this.skipNextReverse) {
-      this.skipNextReverse = false;
-      return;
-    }
     if (!this.isValid() || (this.latitude === 0 && this.longitude === 0)) return;
 
     this.locationService.reverseGeocode(this.latitude, this.longitude).subscribe(result => {
@@ -337,4 +376,23 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
       this.marker = this.createMarker(lat, lng);
     }
   }
+}
+
+/** A coordinate is usable when it is a real number within plus or minus `limit`. */
+function inRange(value: unknown, limit: number): boolean {
+  return typeof value === 'number' && Number.isFinite(value) && value >= -limit && value <= limit;
+}
+
+function streetLine(result: GeocodingResult): string {
+  if (result.streetNumber && result.streetName) return `${result.streetNumber} ${result.streetName}`;
+  return result.streetName ?? '';
+}
+
+/** A name that is the place's own rather than the street or city again ("Toledo Zoo", not "Lodge Avenue"). */
+function landmarkName(result: GeocodingResult): string {
+  const name = result.name?.trim();
+  if (!name) return '';
+  const lower = name.toLowerCase();
+  const repeats = [result.streetName, streetLine(result), result.city].some(v => v?.trim().toLowerCase() === lower);
+  return repeats ? '' : name;
 }

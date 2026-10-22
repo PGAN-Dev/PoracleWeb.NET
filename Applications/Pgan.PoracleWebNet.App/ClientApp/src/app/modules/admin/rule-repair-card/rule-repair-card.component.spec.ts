@@ -373,6 +373,24 @@ describe('RuleRepairCardComponent', () => {
     expect(text).toContain('ADMIN.RULE_REPAIR.KIND_RAID_ANY_BOSS');
   });
 
+  // A bare Discord id said nothing to an admin. The scan's own human list names each user it lists.
+  it('names each user beside their id, and shows the id alone for a user with no name', () => {
+    const fixture = setup(
+      status({
+        cannotEdit: [item({ after: null, humanId: 'bob', kind: 'CannotEdit', reason: 'Level 9 is not a raid tier.', type: 'egg' })],
+        humanNames: { alice: 'Alice' },
+        phase: 'Scanned',
+        repairable: [item()],
+        skipped: [{ humanId: 'carol', reason: 'PoracleNG answered 502' }],
+      }),
+    );
+    const text = (fixture.nativeElement as HTMLElement).textContent as string;
+    expect(text).toContain('Alice (alice)');
+    expect(text).toContain('bob');
+    expect(text).not.toContain('undefined');
+    expect(fixture.componentInstance.humanLabel('carol')).toBe('carol');
+  });
+
   it('lists the rules that cannot be edited with their reasons', () => {
     const fixture = setup(
       status({
@@ -425,5 +443,63 @@ describe('RuleRepairCardComponent', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('ADMIN.RULE_REPAIR.REQUEST_FAILED');
     expect(button(fixture.nativeElement, 'scan')!.disabled).toBe(false);
+  });
+  describe('when the last run finished', () => {
+    const finished = '2026-10-22T12:00:00Z';
+
+    const withEnglish = (fixture: ReturnType<typeof setup>) => {
+      const translate = TestBed.inject(TranslateService);
+      translate.setTranslation('en', {
+        ADMIN: { RULE_REPAIR: { REPAIRED_AGO: 'Repaired {{when}}', SCANNED_AGO: 'Scanned {{when}}' } },
+      });
+      translate.use('en');
+      fixture.componentInstance.refreshClock();
+      fixture.detectChanges();
+      return fixture.nativeElement.querySelector('[data-test="last-run"]')?.textContent?.trim();
+    };
+
+    it('says how long ago the scan ran, so a remembered result does not read as fresh', () => {
+      jest.setSystemTime(new Date('2026-10-22T12:03:00Z'));
+      const fixture = setup(status({ finishedAt: finished, phase: 'Scanned' }));
+
+      expect(withEnglish(fixture)).toBe('Scanned 3 minutes ago');
+    });
+
+    it('says how long ago a repair ran', () => {
+      jest.setSystemTime(new Date('2026-10-22T14:00:00Z'));
+      const fixture = setup(
+        status({ applied: { alreadyFine: 0, conflicts: [], failed: [], gone: 0, repaired: 1 }, finishedAt: finished, phase: 'Applied' }),
+      );
+
+      expect(withEnglish(fixture)).toBe('Repaired 2 hours ago');
+    });
+
+    it('keeps counting while the page stays open', () => {
+      jest.setSystemTime(new Date('2026-10-22T12:00:10Z'));
+      const fixture = setup(status({ finishedAt: finished, phase: 'Scanned' }));
+      expect(withEnglish(fixture)).toBe('Scanned now');
+
+      jest.advanceTimersByTime(5 * 60 * 1000);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('[data-test="last-run"]').textContent.trim()).toBe('Scanned 5 minutes ago');
+    });
+
+    it('follows a language switch without waiting for the next tick', () => {
+      jest.setSystemTime(new Date('2026-10-22T12:03:00Z'));
+      const fixture = setup(status({ finishedAt: finished, phase: 'Scanned' }));
+      withEnglish(fixture);
+
+      const translate = TestBed.inject(TranslateService);
+      translate.setTranslation('de', { ADMIN: { RULE_REPAIR: { SCANNED_AGO: 'Geprüft {{when}}' } } });
+      translate.use('de');
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('[data-test="last-run"]').textContent.trim()).toBe('Geprüft vor 3 Minuten');
+    });
+
+    it('says nothing before any run, or while one is going', () => {
+      expect(setup(status()).nativeElement.querySelector('[data-test="last-run"]')).toBeNull();
+      expect(setup(status({ finishedAt: finished, phase: 'Scanning' })).nativeElement.querySelector('[data-test="last-run"]')).toBeNull();
+    });
   });
 });

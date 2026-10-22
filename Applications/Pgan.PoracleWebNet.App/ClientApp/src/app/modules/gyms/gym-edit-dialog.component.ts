@@ -19,7 +19,8 @@ import { IconService } from '../../core/services/icon.service';
 import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
-import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
+import { createFailureText } from '../../shared/utils/add-outcome';
+import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-flags';
 
 @Component({
@@ -65,11 +66,17 @@ export class GymEditDialogComponent {
 
   readonly isWebhook = inject(AuthService).isImpersonating();
 
+  /** False while the scope picker holds a radius it won't accept, which keeps Save off. */
+  readonly radiusValid = signal(true);
+
   saving = signal(false);
 
   /** The alarm's current scope, read back into the shared picker. */
   readonly scope = signal<AlarmScope>(scopeOf(this.data.overrideLocationLabel, this.data.overrideAreas, this.data.distance));
+
   selectedGymId = signal<string | null>(this.data.gymId);
+  /** The radius as stored, which an edit may keep even outside the picker's range. */
+  readonly storedRadiusKm = metresToKm(this.data.distance);
 
   getGymIcon(): string {
     return this.icons.getGymUrl(this.data.team);
@@ -85,6 +92,8 @@ export class GymEditDialogComponent {
         return this.i18n.instant('GYMS.TEAM_VALOR');
       case 3:
         return this.i18n.instant('GYMS.TEAM_INSTINCT');
+      case 4:
+        return this.i18n.instant('RAIDS.TEAM_ANY');
       default:
         return this.i18n.instant('GYMS.TEAM_UNKNOWN', { id: team });
     }
@@ -110,8 +119,8 @@ export class GymEditDialogComponent {
       .subscribe({
         // The server names what is wrong -- which alarm already uses these settings, which
         // field a file got wrong. A fixed string threw that away. See #567, #568.
-        error: (err: { error?: { error?: string } }) => {
-          this.snackBar.open(err?.error?.error ?? this.i18n.instant('GYMS.SNACK_FAILED_UPDATE'), this.i18n.instant('COMMON.OK'), {
+        error: (err: unknown) => {
+          this.snackBar.open(createFailureText(err, this.i18n, 'ALARM.FAILED_UPDATE'), this.i18n.instant('COMMON.OK'), {
             duration: 6000,
           });
           this.saving.set(false);

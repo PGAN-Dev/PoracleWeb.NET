@@ -1,15 +1,14 @@
 <div class="login-page">
-  <div class="login-bg-pattern"></div>
   <div class="login-container">
     <div class="login-brand">
       <div class="brand-icon">
-        <svg viewBox="0 0 100 100" width="56" height="56" class="pokeball-logo">
-          <circle cx="50" cy="50" r="48" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="4" />
-          <path d="M2 50 H38" stroke="rgba(255,255,255,0.9)" stroke-width="4" />
-          <path d="M62 50 H98" stroke="rgba(255,255,255,0.9)" stroke-width="4" />
-          <path d="M2 50 A48 48 0 0 1 98 50" fill="rgba(255,255,255,0.3)" />
-          <circle cx="50" cy="50" r="16" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="4" />
-          <circle cx="50" cy="50" r="8" fill="rgba(255,255,255,0.9)" />
+        <svg viewBox="0 0 100 100" width="48" height="48" class="brand-mark" aria-hidden="true">
+          <circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" stroke-width="6" />
+          <path d="M4 50 H36" stroke="currentColor" stroke-width="6" />
+          <path d="M64 50 H96" stroke="currentColor" stroke-width="6" />
+          <path d="M4 50 A46 46 0 0 1 96 50" fill="currentColor" opacity="0.3" />
+          <circle cx="50" cy="50" r="14" fill="none" stroke="currentColor" stroke-width="6" />
+          <circle cx="50" cy="50" r="7" fill="currentColor" />
         </svg>
       </div>
       <h1 class="brand-title">{{ siteTitle() || ('AUTH.SITE_TITLE_DEFAULT' | translate) }}</h1>

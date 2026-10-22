@@ -1,8 +1,12 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatTabGroup } from '@angular/material/tabs';
+import { By } from '@angular/platform-browser';
+import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
@@ -12,6 +16,7 @@ import { FortChange, FortChangeUpdate } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { FortChangeService } from '../../core/services/fort-change.service';
 import { I18nService } from '../../core/services/i18n.service';
+import { SettingsService } from '../../core/services/settings.service';
 
 /**
  * The change type list is rebuilt from checkboxes on every save, so anything the dialog cannot draw is
@@ -47,7 +52,7 @@ describe('FortChangeEditDialogComponent', () => {
         { provide: MAT_DIALOG_DATA, useValue: { ...base, ...fort } },
         { provide: MatDialogRef, useValue: { close: jest.fn() } },
         { provide: FortChangeService, useValue: fortChangeService },
-        { provide: I18nService, useValue: { instant: (k: string) => k } },
+        { provide: I18nService, useValue: { instant: (k: string) => k, plural: (k: string) => k } },
         { provide: AuthService, useValue: { isImpersonating: () => webhookSession, user: () => ({ type: 'discord:user' }) } },
       ],
       imports: [FortChangeEditDialogComponent],
@@ -115,5 +120,77 @@ describe('FortChangeEditDialogComponent', () => {
       setup({ changeTypes: ['name'] });
       expect(TestBed.createComponent(FortChangeEditDialogComponent).componentInstance.isWebhook).toBe(false);
     });
+  });
+});
+
+/**
+ * Fort changes have no clean bit, so the "Message settings" heading labels only the template selector
+ * (and, on a webhook, the Mention field). With templates off it labelled nothing (alarms D7).
+ */
+describe('FortChangeEditDialogComponent message settings heading', () => {
+  async function deliveryTab(templates: boolean, webhook: boolean): Promise<HTMLElement> {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        provideTranslateService(),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideNoopAnimations(),
+        {
+          provide: MAT_DIALOG_DATA,
+          useValue: {
+            id: 'u1',
+            uid: 9,
+            changeTypes: [],
+            distance: 0,
+            fortType: 'everything',
+            includeEmpty: false,
+            profileNo: 0,
+            template: null,
+          },
+        },
+        { provide: MatDialogRef, useValue: { close: jest.fn() } },
+        { provide: FortChangeService, useValue: { update: jest.fn() } },
+        { provide: I18nService, useValue: { instant: (k: string) => k, plural: (k: string) => k } },
+        { provide: AuthService, useValue: { isImpersonating: () => webhook, user: () => ({ type: 'discord:user' }) } },
+        {
+          provide: SettingsService,
+          useValue: {
+            isDisabled: () => false,
+            siteSettings: signal<Record<string, string>>(templates ? { enable_templates: 'true' } : {}),
+          },
+        },
+      ],
+      imports: [FortChangeEditDialogComponent],
+    });
+    TestBed.overrideComponent(FortChangeEditDialogComponent, {
+      add: { providers: [{ provide: MatSnackBar, useValue: { open: jest.fn() } }] },
+    });
+
+    const fixture = TestBed.createComponent(FortChangeEditDialogComponent);
+    fixture.detectChanges();
+    fixture.debugElement.query(By.directive(MatTabGroup)).componentInstance.selectedIndex = 1;
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    // Guard against a vacuous pass: the Delivery tab must actually be on screen.
+    expect(el.querySelector('app-scope-picker')).not.toBeNull();
+    return el;
+  }
+
+  const headings = (el: HTMLElement) => Array.from(el.querySelectorAll('h4')).map(h => h.textContent?.trim());
+
+  it('leaves the heading out when there is nothing under it', async () => {
+    expect(headings(await deliveryTab(false, false))).not.toContain('ALARM.MESSAGE_SETTINGS');
+  });
+
+  it('keeps it over the template selector', async () => {
+    expect(headings(await deliveryTab(true, false))).toContain('ALARM.MESSAGE_SETTINGS');
+  });
+
+  it('keeps it over the Mention field on a webhook', async () => {
+    expect(headings(await deliveryTab(false, true))).toContain('ALARM.MESSAGE_SETTINGS');
   });
 });

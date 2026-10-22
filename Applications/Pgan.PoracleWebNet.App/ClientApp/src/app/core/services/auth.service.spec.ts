@@ -411,7 +411,7 @@ describe('AuthService', () => {
       expect(localStorage.getItem('poracle_token')).toBe('admin-jwt');
       expect(localStorage.getItem('poracle_admin_token')).toBeNull();
       expect(service.isImpersonating()).toBe(false);
-      expect(router.navigate).toHaveBeenCalledWith(['/admin']);
+      expect(router.navigate).toHaveBeenCalledWith(['/admin'], { state: { adminReturn: true } });
     });
 
     it('logs out when there is no admin token to go back to', async () => {
@@ -553,7 +553,7 @@ describe('AuthService', () => {
 
       expect(await promise).toBe(true);
       expect(service.user()?.username).toBe('AdminUser');
-      expect(router.navigate).toHaveBeenCalledWith(['/admin']);
+      expect(router.navigate).toHaveBeenCalledWith(['/admin'], { state: { adminReturn: true } });
     });
 
     it('keeps the signed-in shell while "Sign out everywhere" leaves for the provider', () => {

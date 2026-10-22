@@ -308,6 +308,20 @@ builder.Services.AddRateLimiter(options =>
                 QueueLimit = 0,
                 AutoReplenishment = true,
             }));
+    // The pin-usage and place-usage reads behind Clear pin and Delete place. place-usage asks PoracleNG to
+    // describe every rule on the profile, which is tens of thousands on some accounts, so a loop is stopped.
+    // A person checking several places in a row never comes near it, and a 429 there only drops the
+    // pre-check to the plain confirm.
+    options.AddPolicy("tracking-usage", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            UserOrIpPartitionKey(httpContext),
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 20,
+                Window = TimeSpan.FromSeconds(60),
+                QueueLimit = 0,
+                AutoReplenishment = true,
+            }));
     options.AddPolicy("geofence-feed-refresh", httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
             IpPartitionKey(httpContext),

@@ -22,8 +22,10 @@ import { InvasionService } from '../../core/services/invasion.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
-import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
+import { createFailureText } from '../../shared/utils/add-outcome';
+import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-flags';
+import { swapToFallbackIcon } from '../../shared/utils/icon-fallback';
 
 @Component({
   imports: [
@@ -73,10 +75,16 @@ export class InvasionEditDialogComponent {
   readonly isEvent = isEventType(this.data.gruntType);
   readonly isWebhook = inject(AuthService).isImpersonating();
 
+  /** False while the scope picker holds a radius it won't accept, which keeps Save off. */
+  readonly radiusValid = signal(true);
   saving = signal(false);
+
   /** The alarm's current scope, read back into the shared picker. */
   readonly scope = signal<AlarmScope>(scopeOf(this.data.overrideLocationLabel, this.data.overrideAreas, this.data.distance));
+
   readonly selectedGender = toSignal(this.form.controls.gender.valueChanges, { initialValue: this.data.gender });
+  /** The radius as stored, which an edit may keep even outside the picker's range. */
+  readonly storedRadiusKm = metresToKm(this.data.distance);
 
   getDisplayName(): string {
     return getGruntDisplayName(
@@ -116,6 +124,11 @@ export class InvasionEditDialogComponent {
     return this.icons.getPackUrl(getGruntIconPath(this.data.gruntType, this.selectedGender()));
   }
 
+  /** A pack without this grunt's artwork (Decoy is `invasion/46.png`) gets a generic figure, not a gap. */
+  onGruntIconError(event: Event): void {
+    swapToFallbackIcon(event);
+  }
+
   save(): void {
     this.saving.set(true);
     const v = this.form.getRawValue();
@@ -137,8 +150,8 @@ export class InvasionEditDialogComponent {
       .subscribe({
         // The server names what is wrong -- which alarm already uses these settings, which
         // field a file got wrong. A fixed string threw that away. See #567, #568.
-        error: (err: { error?: { error?: string } }) => {
-          this.snackBar.open(err?.error?.error ?? this.i18n.instant('INVASIONS.SNACK_FAILED_UPDATE'), this.i18n.instant('TOAST.OK'), {
+        error: (err: unknown) => {
+          this.snackBar.open(createFailureText(err, this.i18n, 'ALARM.FAILED_UPDATE'), this.i18n.instant('TOAST.OK'), {
             duration: 6000,
           });
           this.saving.set(false);

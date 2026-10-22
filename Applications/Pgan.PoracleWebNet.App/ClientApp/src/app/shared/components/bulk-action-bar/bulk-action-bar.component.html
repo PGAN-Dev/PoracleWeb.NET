@@ -1,0 +1,37 @@
+<div class="bulk-toolbar">
+  <div class="bulk-selection">
+    <span class="bulk-count">{{ 'ALARM.SELECTED_COUNT' | translate: { count: count() } }}</span>
+    <!-- Read aloud once the count settles: as a live region itself, the count announced every tick. -->
+    <span class="visually-hidden" role="status">
+      @if (announced() !== null) {
+        {{ 'ALARM.SELECTED_COUNT' | translate: { count: announced() } }}
+      }
+    </span>
+    <button mat-button type="button" (click)="selectAll.emit()">{{ 'ALARM.SELECT_ALL' | translate }}</button>
+    @if (anySelected()) {
+      <button mat-button type="button" (click)="deselectAll.emit()">{{ 'ALARM.DESELECT_ALL' | translate }}</button>
+    }
+  </div>
+
+  <div class="bulk-actions">
+    <button matButton="tonal" type="button" (click)="changeRadius.emit()" [disabled]="count() === 0">
+      <mat-icon>straighten</mat-icon>
+      {{ 'ALARM.UPDATE_DISTANCE' | translate }}
+    </button>
+    <button
+      mat-flat-button
+      color="warn"
+      type="button"
+      class="bulk-delete"
+      (click)="deleteSelected.emit()"
+      [disabled]="count() === 0"
+      [attr.aria-label]="count() > 0 ? ('ALARM.DELETE_SELECTED_LABEL' | translatePlural: count()) : null">
+      <mat-icon>delete</mat-icon>
+      @if (count() > 0) {
+        {{ 'ALARM.DELETE_SELECTED' | translate: { count: count() } }}
+      } @else {
+        {{ 'ALARM.DELETE' | translate }}
+      }
+    </button>
+  </div>
+</div>

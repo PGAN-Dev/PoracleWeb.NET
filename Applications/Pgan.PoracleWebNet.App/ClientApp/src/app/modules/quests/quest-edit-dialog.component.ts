@@ -20,8 +20,10 @@ import { QuestService } from '../../core/services/quest.service';
 import { SummaryScheduleService } from '../../core/services/summary-schedule.service';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
-import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
+import { createFailureText } from '../../shared/utils/add-outcome';
+import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, compose, isAutoDelete, isSummary, preserve, SUMMARY } from '../../shared/utils/clean-flags';
+import { questRewardIcon } from '../../shared/utils/quest-reward-icon';
 
 /** Item, candy and mega energy: the three PoracleNG compares `amount` against. */
 const QUANTITY_REWARD_TYPES = new Set([2, 4, 12]);
@@ -99,10 +101,16 @@ export class QuestEditDialogComponent {
 
   readonly isWebhook = inject(AuthService).isImpersonating();
 
+  /** False while the scope picker holds a radius it won't accept, which keeps Save off. */
+  readonly radiusValid = signal(true);
+
   saving = signal(false);
 
   /** The alarm's current scope, read back into the shared picker. */
   readonly scope = signal<AlarmScope>(scopeOf(this.data.overrideLocationLabel, this.data.overrideAreas, this.data.distance));
+
+  /** The radius as stored, which an edit may keep even outside the picker's range. */
+  readonly storedRadiusKm = metresToKm(this.data.distance);
 
   readonly summaryService = inject(SummaryScheduleService);
 
@@ -114,17 +122,7 @@ export class QuestEditDialogComponent {
   }
 
   getImage(): string {
-    const pid = this.questPokemonId;
-    if ((this.data.rewardType === 7 || this.data.rewardType === 12 || this.data.rewardType === 4) && pid > 0) {
-      return this.iconService.getPokemonUrl(pid);
-    }
-    if (this.data.rewardType === 7 && pid === 0) {
-      return '';
-    }
-    if (this.data.rewardType === 2 && this.data.reward > 0) {
-      return this.iconService.getItemUrl(this.data.reward);
-    }
-    return this.iconService.getRewardUrl('quest', this.data.rewardType);
+    return questRewardIcon(this.data, this.iconService);
   }
 
   getRewardTypeLabel(): string {
@@ -206,8 +204,8 @@ export class QuestEditDialogComponent {
     this.questService.update(this.data.uid, update).subscribe({
       // The server names what is wrong -- which alarm already uses these settings, which
       // field a file got wrong. A fixed string threw that away. See #567, #568.
-      error: (err: { error?: { error?: string } }) => {
-        this.snackBar.open(err?.error?.error ?? this.i18n.instant('QUESTS.SNACK_FAILED_UPDATE'), this.i18n.instant('TOAST.OK'), {
+      error: (err: unknown) => {
+        this.snackBar.open(createFailureText(err, this.i18n, 'ALARM.FAILED_UPDATE'), this.i18n.instant('TOAST.OK'), {
           duration: 6000,
         });
         this.saving.set(false);

@@ -1,0 +1,16 @@
+@if (refusal(); as r) {
+  <div class="add-refusal" role="alert">
+    <mat-icon class="add-refusal__icon" aria-hidden="true">error_outline</mat-icon>
+    <div class="add-refusal__text">
+      <p class="add-refusal__message">{{ r.message }}</p>
+      @if (r.existing; as existing) {
+        <p class="add-refusal__existing">{{ 'ALARM.REFUSAL_COVERED_BY' | translate: { summary: existing.summary } }}</p>
+      }
+    </div>
+    @if (r.existing; as existing) {
+      <button mat-button type="button" class="add-refusal__edit" (click)="editExisting.emit(existing)">
+        {{ 'ALARM.REFUSAL_EDIT_EXISTING' | translate }}
+      </button>
+    }
+  </div>
+}

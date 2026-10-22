@@ -123,6 +123,30 @@ public class RuleRepairJobTests
         this._tracking.Verify(t => t.ReplaceStoredRuleAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<JsonElement>(), It.IsAny<bool>()), Times.Never);
     }
 
+    /// <summary>
+    /// The rows named a user by Discord id alone. The human list the scan already reads carries names, so
+    /// the status maps each id in its lists to one; nobody outside the lists, and nobody without a name.
+    /// </summary>
+    [Fact]
+    public async Task ScanNamesTheHumansItLists()
+    {
+        this._humans
+            .Setup(h => h.ListHumansAsync(null, null))
+            .ReturnsAsync([
+                new Human { Id = "alice", Name = "Alice" },
+                new Human { Id = "bob", Name = "" },
+                new Human { Id = "carol", Name = "Carol" },
+            ]);
+        this.Rules("alice", Rule("invasion", 1, 10, """{"grunt_type":"metal","gender":"any"}"""));
+        this.Rules("bob", Rule("egg", 0, 20, """{"level":0}"""));
+        this.Rules("carol");
+
+        var status = await this.ScanAsync();
+
+        Assert.Equal(new Dictionary<string, string> { ["alice"] = "Alice" }, status.HumanNames);
+        Assert.Null(status.Summary().HumanNames);
+    }
+
     [Fact]
     public async Task ScanWithNothingToRepairIsAnEmptyScan()
     {

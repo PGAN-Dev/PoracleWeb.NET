@@ -13,19 +13,24 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { TranslatePipe } from '@ngx-translate/core';
 
+import { quickPickDescription, quickPickName } from './quick-pick-labels';
 import { QuickPickApplyRequest, QuickPickSummary } from '../../core/models';
 import { AlertDefaultsService } from '../../core/services/alert-defaults.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { QuickPickService } from '../../core/services/quick-pick.service';
+import { AddRefusalComponent } from '../../shared/components/add-refusal/add-refusal.component';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
+import { AddRefusal, createFailureText, refusalOf } from '../../shared/utils/add-outcome';
 import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, preserve } from '../../shared/utils/clean-flags';
 
 @Component({
   imports: [
+    AddRefusalComponent,
     ReactiveFormsModule,
     MatDialogModule,
     MatButtonModule,
@@ -39,6 +44,7 @@ import { AUTO_DELETE, preserve } from '../../shared/utils/clean-flags';
     MatTabsModule,
     MatProgressSpinnerModule,
     TranslatePipe,
+    TranslatePluralPipe,
     PokemonSelectorComponent,
     TemplateSelectorComponent,
     ScopePickerComponent,
@@ -69,6 +75,7 @@ export class QuickPickApplyDialogComponent {
   readonly dialogRef = inject(MatDialogRef<QuickPickApplyDialogComponent>);
 
   readonly excludedPokemonIds = signal<number[]>(this.data.appliedState?.excludePokemonIds ?? []);
+
   readonly excludeEnabled = signal((this.data.appliedState?.excludePokemonIds?.length ?? 0) > 0);
   readonly showExclusions =
     this.data.definition.alarmType === 'monster' &&
@@ -83,6 +90,17 @@ export class QuickPickApplyDialogComponent {
   });
 
   readonly isReapply = !!this.data.appliedState;
+
+  readonly pickDescription = quickPickDescription(this.data.definition, this.i18n);
+
+  /** The built-in pick's name and description in the display language; see quick-pick-labels.ts. */
+  readonly pickName = quickPickName(this.data.definition, this.i18n);
+
+  /** False while the scope picker holds a radius it won't accept, which keeps Save off. */
+  readonly radiusValid = signal(true);
+
+  /** Why the last apply was refused, shown above the actions; cleared on the next attempt. */
+  readonly refusal = signal<AddRefusal | null>(null);
 
   /**
    * Seeded from the saved defaults, then owned by the picker. A quick pick creates real alarms, so it
@@ -103,10 +121,11 @@ export class QuickPickApplyDialogComponent {
 
   apply(): void {
     this.applying.set(true);
+    this.refusal.set(null);
     this.dialogRef.disableClose = true;
 
     if (this.willTrackIndividually()) {
-      this.applyStatus.set(this.i18n.instant('QUICK_PICKS.APPLY_STATUS_CREATING', { count: this.individualAlarmCount() }));
+      this.applyStatus.set(this.i18n.plural('QUICK_PICKS.APPLY_STATUS_CREATING', this.individualAlarmCount()));
     } else {
       this.applyStatus.set(this.i18n.instant('QUICK_PICKS.APPLY_STATUS_APPLYING'));
     }
@@ -135,17 +154,17 @@ export class QuickPickApplyDialogComponent {
     obs.subscribe({
       // The server says what to do -- remove the pick first, or fix the filter it will not accept. A fixed
       // string left the user with a dead end. See #587.
-      error: (err: { error?: { error?: string } }) => {
-        this.snackBar.open(err?.error?.error ?? this.i18n.instant('QUICK_PICKS.SNACK_FAILED_APPLY'), this.i18n.instant('TOAST.OK'), {
-          duration: 6000,
-        });
+      // Shown inline rather than toasted: the dialog stays open with the user's choices, and a takeover
+      // refusal ("another alarm already uses those settings") stays readable while they decide.
+      error: (err: unknown) => {
+        this.refusal.set(refusalOf(err, createFailureText(err, this.i18n, 'QUICK_PICKS.SNACK_FAILED_APPLY')));
         this.applying.set(false);
         this.applyStatus.set('');
         this.dialogRef.disableClose = false;
       },
       next: state => {
         const count = state.trackedUids?.length ?? 0;
-        this.snackBar.open(this.i18n.instant('QUICK_PICKS.SNACK_APPLIED', { count }), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+        this.snackBar.open(this.i18n.plural('QUICK_PICKS.SNACK_APPLIED', count), this.i18n.instant('TOAST.OK'), { duration: 3000 });
         this.dialogRef.close(true);
       },
     });

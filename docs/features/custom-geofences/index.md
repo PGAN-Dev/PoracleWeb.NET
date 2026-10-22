@@ -8,6 +8,8 @@ You do not need to read the code to use this guide. Where something is a value y
 
 Your users can draw their own polygons on a map ("**custom geofences**") to get Pokémon GO notifications only inside those shapes. By default each drawn geofence is **private** — it works only for the user who drew it. If a user thinks their area is useful to everyone, they can submit it; an **admin** reviews it and can **promote** it into a public area that everyone can pick. Public areas live in **Koji**; private ones live inside PoracleWeb.NET.
 
+![My Geofences with two drawn geofences, one active and one pending review](../../screenshots/geofences.png)
+
 ```mermaid
 flowchart TD
     A[A user draws a shape] --> B[It is PRIVATE — only theirs<br/>works immediately]
@@ -37,16 +39,17 @@ The full breakdown is in [Troubleshooting → How the combined feed works](troub
 
 ## Creating, switching on and deleting
 
+![The name dialog after drawing a shape, with the region already detected](../../screenshots/geofence-name-dialog.png)
+
 PoracleWeb.NET never writes a user's area list itself. Creating, switching on or off, renaming and deleting a geofence all go through PoracleNG's own API (5.4.0 or later), and PoracleNG updates every profile it affects.
 
 **Saved, but not switched on.** A new geofence is saved first and switched on second. If the second step fails, the geofence still exists and the user sees "Saved, but it couldn't be switched on yet. Use the toggle to retry." Flipping the toggle on the Geofences page tries again. See [Troubleshooting](troubleshooting.md#a-geofence-saved-but-not-switched-on).
 
 **Deleting.** Deleting a geofence takes its name off every profile of the user. An alarm that was limited to that geofence alone would then have no area left and start matching the whole of the profile's areas, so the delete checks first. If no alarm is affected, it is the usual "are you sure". If some are, the dialog says how many ("3 alarms are limited to this fence.") and asks:
 
-- **Delete those alarms too** (the default). The alarms limited to this geofence are deleted on every profile, Pokéstop event alarms included.
-- **Keep them, using my profile's areas.** The alarms stay and match the areas on their profile instead.
+**Delete those alarms too**, the default, deletes the alarms limited to this geofence on every profile, Pokéstop event alarms included. **Keep them, using my profile's areas** leaves them in place, matching the areas on their profile instead.
 
-![The delete dialog for a geofence with three alarms limited to it, offering to delete those alarms too or keep them](../../screenshots/geofence-delete-choice.png)
+![The delete dialog for a geofence with one alarm limited to it, offering to delete those alarms too or keep them](../../screenshots/geofence-delete-choice.png)
 
 If PoracleNG can't remove the name, nothing is deleted: the geofence stays and the user can try again. Admins see the same question under Admin > Geofences, worded around the owner's alarms. Deleting a user account deletes the alarms along with the geofences.
 
@@ -54,7 +57,11 @@ If PoracleNG can't remove the name, nothing is deleted: the geofence stays and t
 
 This is a user feature, not an admin one. The **My Geofences** page carries **Export** and **Import** buttons above the map, and every signed-in user sees both.
 
+![The export dialog with two geofences ticked](../../screenshots/geofences-export-dialog.png)
+
 **Export** opens a list of that user's geofences with everything ticked. Whatever is still ticked comes down as `geofences.geojson` — a `FeatureCollection` holding one `Polygon` per geofence, each carrying its name and its region name in `properties`.
+
+![The import preview listing the shapes found in a file, each with a name and region to confirm](../../screenshots/geofences-import-dialog.png)
 
 **Import** takes a `.geojson` or `.json` file, dropped onto the dialog or picked through a file browser. There is no paste box, so a user who has a snippet on their clipboard has to save it to a file first. The file is parsed in the browser and every shape in it is listed for the user to check, rename and assign a region to before anything is written. A feature with no `name` property is not discarded: it is listed as "Imported 1", "Imported 2" and so on, and can be renamed in place. The region is guessed by testing the shape's centre against your Koji regions, and when nothing matches the user has to pick one before that shape will import.
 

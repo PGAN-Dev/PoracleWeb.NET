@@ -9,13 +9,15 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
 
-import { QuickPickSummary } from '../../core/models';
+import { quickPickAlarmTypeLabel, quickPickDescription, quickPickName } from './quick-pick-labels';
+import { QuickPickDefinition, QuickPickSummary } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { QuickPickService } from '../../core/services/quick-pick.service';
 import { SettingsService } from '../../core/services/settings.service';
 import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
-import { ChipColors, readableChip } from '../../shared/utils/contrast';
+import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
+import { serverReason } from '../../shared/utils/server-reason';
 
 /** Site setting marking that the built-in presets have been seeded once. See #634, #662. */
 const SEEDED_KEY = 'quick_picks_seeded';
@@ -44,6 +46,7 @@ const CATEGORY_KEYS: Record<string, string> = {
     MatSnackBarModule,
     MatTooltipModule,
     TranslatePipe,
+    TranslatePluralPipe,
   ],
   selector: 'app-quick-pick-list',
   standalone: true,
@@ -103,9 +106,9 @@ export class QuickPickListComponent implements OnInit {
 
   readonly removing = signal<string | null>(null);
 
-  /** An alarm type's colour as a filled chip or button whose label stays readable. See readableChip. */
-  alarmTypeChip(alarmType: string): ChipColors {
-    return readableChip(this.alarmTypeColors[alarmType] || '#666');
+  /** The translated alarm type ("Pokemon", not the stored "monster"). */
+  alarmTypeLabel(alarmType: string): string {
+    return quickPickAlarmTypeLabel(alarmType, this.i18n);
   }
 
   /** Display label for a stored category. Unmapped values render as stored. */
@@ -167,10 +170,7 @@ export class QuickPickListComponent implements OnInit {
 
   onApply(pick: QuickPickSummary): void {
     import('./quick-pick-apply-dialog.component').then(m => {
-      const ref = this.dialog.open(m.QuickPickApplyDialogComponent, {
-        width: '560px',
-        data: pick,
-      });
+      const ref = this.dialog.open(m.QuickPickApplyDialogComponent, { width: '560px', autoFocus: 'first-heading', data: pick });
       ref.afterClosed().subscribe(result => {
         if (result) this.loadPicks();
       });
@@ -180,7 +180,7 @@ export class QuickPickListComponent implements OnInit {
   onDelete(pick: QuickPickSummary): void {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        message: this.i18n.instant('QUICK_PICKS.CONFIRM_DELETE_MSG', { name: pick.definition.name }),
+        message: this.i18n.instant('QUICK_PICKS.CONFIRM_DELETE_MSG', { name: this.pickName(pick.definition) }),
         title: this.i18n.instant('QUICK_PICKS.CONFIRM_DELETE_TITLE'),
       },
     });
@@ -191,8 +191,10 @@ export class QuickPickListComponent implements OnInit {
           ? this.quickPickService.deleteAdmin(pick.definition.id)
           : this.quickPickService.deleteUser(pick.definition.id);
       obs.subscribe({
-        error: () =>
-          this.snackBar.open(this.i18n.instant('QUICK_PICKS.SNACK_FAILED_DELETE'), this.i18n.instant('TOAST.OK'), { duration: 3000 }),
+        error: (err: unknown) =>
+          this.snackBar.open(serverReason(err) ?? this.i18n.instant('QUICK_PICKS.SNACK_FAILED_DELETE'), this.i18n.instant('TOAST.OK'), {
+            duration: 3000,
+          }),
         next: () => {
           this.snackBar.open(this.i18n.instant('QUICK_PICKS.SNACK_DELETED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           this.loadPicks();
@@ -217,20 +219,25 @@ export class QuickPickListComponent implements OnInit {
     const count = pick.appliedState?.trackedUids?.length ?? 0;
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        message: this.i18n.instant('QUICK_PICKS.CONFIRM_REMOVE_MSG', { name: pick.definition.name, count }),
+        // The button names the action, as every other confirm does; "Confirm" said nothing about deleting alarms.
+        confirmText: this.i18n.instant('QUICK_PICKS.REMOVE'),
+        message: this.i18n.plural('QUICK_PICKS.CONFIRM_REMOVE_MSG', count, { name: this.pickName(pick.definition) }),
         title: this.i18n.instant('QUICK_PICKS.CONFIRM_REMOVE_TITLE'),
+        warn: true,
       },
     });
     ref.afterClosed().subscribe(confirmed => {
       if (!confirmed) return;
       this.removing.set(pick.definition.id);
       this.quickPickService.remove(pick.definition.id).subscribe({
-        error: () => {
-          this.snackBar.open(this.i18n.instant('QUICK_PICKS.SNACK_FAILED_REMOVE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+        error: (err: unknown) => {
+          this.snackBar.open(serverReason(err) ?? this.i18n.instant('QUICK_PICKS.SNACK_FAILED_REMOVE'), this.i18n.instant('TOAST.OK'), {
+            duration: 3000,
+          });
           this.removing.set(null);
         },
         next: () => {
-          this.snackBar.open(this.i18n.instant('QUICK_PICKS.SNACK_REMOVED', { count }), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+          this.snackBar.open(this.i18n.plural('QUICK_PICKS.SNACK_REMOVED', count), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           this.removing.set(null);
           this.loadPicks();
         },
@@ -249,8 +256,10 @@ export class QuickPickListComponent implements OnInit {
       if (!confirmed) return;
       this.loading.set(true);
       this.quickPickService.seed().subscribe({
-        error: () => {
-          this.snackBar.open(this.i18n.instant('QUICK_PICKS.SNACK_FAILED_RESET'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+        error: (err: unknown) => {
+          this.snackBar.open(serverReason(err) ?? this.i18n.instant('QUICK_PICKS.SNACK_FAILED_RESET'), this.i18n.instant('TOAST.OK'), {
+            duration: 3000,
+          });
           this.loading.set(false);
         },
         next: () => {
@@ -259,6 +268,15 @@ export class QuickPickListComponent implements OnInit {
         },
       });
     });
+  }
+
+  pickDescription(definition: QuickPickDefinition): string {
+    return quickPickDescription(definition, this.i18n);
+  }
+
+  /** A built-in pick's name in the display language, or the stored name for anything an admin or user wrote. */
+  pickName(definition: QuickPickDefinition): string {
+    return quickPickName(definition, this.i18n);
   }
 
   selectCategory(cat: string): void {

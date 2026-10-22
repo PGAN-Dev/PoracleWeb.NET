@@ -421,6 +421,33 @@ public class AdminControllerTests : ControllerTestBase
         this._userPurgeService.Verify(s => s.PurgeAsync("u1"), Times.Once);
     }
 
+    [Fact]
+    public async Task DeleteUserRefusesToDeleteTheCallersOwnAccount()
+    {
+        // The same shape as #613's self-block: the purge takes the admin's own account, alarms and
+        // grants with it, and nothing on the site can give them back.
+        SetupUser(this._sut, userId: "u1", isAdmin: true);
+
+        var result = await this._sut.DeleteUser("u1");
+
+        var bad = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Contains("own account", System.Text.Json.JsonSerializer.Serialize(bad.Value), StringComparison.Ordinal);
+        this._userPurgeService.Verify(s => s.PurgeAsync(It.IsAny<string>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData("admin2")]
+    [InlineData("u2")]
+    public async Task DeleteUserStillDeletesOtherAdminsAndUsers(string target)
+    {
+        SetupUser(this._sut, userId: "admin1", isAdmin: true);
+        this._userPurgeService.Setup(s => s.PurgeAsync(target)).ReturnsAsync(true);
+
+        Assert.IsType<NoContentResult>(await this._sut.DeleteUser(target));
+
+        this._userPurgeService.Verify(s => s.PurgeAsync(target), Times.Once);
+    }
+
     /// <summary>
     /// The purge removes grants in both directions, and a delegate named in PoracleJS by the webhook's
     /// NAME appears in no table this site can enumerate -- so every cached role answer is dropped, not a

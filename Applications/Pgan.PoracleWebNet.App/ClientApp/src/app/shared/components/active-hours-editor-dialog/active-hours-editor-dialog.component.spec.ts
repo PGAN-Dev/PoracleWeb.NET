@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { provideTranslateService } from '@ngx-translate/core';
+import { provideTranslateService, TranslateService } from '@ngx-translate/core';
 
 import { ActiveHoursEditorDialogComponent, ActiveHoursEditorData } from './active-hours-editor-dialog.component';
 import { ActiveHourEntry } from '../../../core/models/active-hours.models';
@@ -277,6 +277,24 @@ describe('ActiveHoursEditorDialogComponent', () => {
 
       expect(fieldLabels()).toEqual(['PROFILES.ACTIVE_HOURS_HOUR', 'PROFILES.ACTIVE_HOURS_MINUTE']);
       expect(captions()).toEqual([]);
+    });
+  });
+
+  describe('clock follows the display language (UI audit D3)', () => {
+    it('labels hours and the preview axis on a 12-hour clock in English', () => {
+      setup({ activeHours: [{ day: 1, hours: 9, mins: 0 }], profileName: 'Default' });
+      TestBed.inject(TranslateService).use('en');
+      expect(component.formatHour(18)).toBe('6 PM');
+      expect(component.axisLabels()).toEqual(['12 AM', '6 AM', '12 PM', '6 PM', '12 AM']);
+    });
+
+    it('drops AM/PM for a 24-hour language', () => {
+      setup({ activeHours: [{ day: 1, hours: 9, mins: 0 }], profileName: 'Default' });
+      const translate = TestBed.inject(TranslateService);
+      translate.setTranslation('de', {});
+      translate.use('de');
+      expect(component.axisLabels()).toEqual(['0:00', '6:00', '12:00', '18:00', '0:00']);
+      expect(component.formatHour(18)).not.toMatch(/AM|PM/);
     });
   });
 });

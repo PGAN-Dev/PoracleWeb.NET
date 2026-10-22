@@ -135,6 +135,12 @@ public interface IPoracleTrackingProxy
     public Task<JsonElement> GetAllTrackingAsync(string userId);
 
     /// <summary>
+    /// <see cref="GetAllTrackingAsync"/> with PoracleNG's one-line <c>description</c> on every rule. Costs
+    /// PoracleNG a render per rule, so only for reads that show rules to a person (the place-delete check).
+    /// </summary>
+    public Task<JsonElement> GetAllTrackingWithDescriptionsAsync(string userId);
+
+    /// <summary>
     /// Fetches all tracking rules across all profiles for a user, read through v2's snapshot with
     /// <c>?all_profiles=true</c>.
     /// </summary>
@@ -179,6 +185,12 @@ public record TrackingCreateResult(
     /// already present. On a create that means the alarm was NOT created by this call.
     /// </summary>
     public bool InsertedNothing => this.Inserts == 0;
+
+    /// <summary>
+    /// The stored rule a single create matched exactly, when PoracleNG named it (its dry run reports the
+    /// duplicate under <c>unchanged</c> with that rule's uid). Null for a batch, or when nothing matched.
+    /// </summary>
+    public int? ExistingUid { get; init; }
 
     /// <summary>The submission duplicated an existing row exactly, so nothing was named or written.</summary>
     public bool WasRejectedAsDuplicate => this.AlreadyPresent > 0 && this.Inserts == 0 && this.NewUids.Count == 0;

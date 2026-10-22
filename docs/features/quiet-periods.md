@@ -30,10 +30,10 @@ Four scopes are offered:
 
 | Scope | Where the chip is | What it silences |
 |---|---|---|
-| **Gym** | Gym cards, and raid and egg cards that target a specific gym | Everything at that gym |
-| **Species** | Pokemon cards and nest cards | That Pokemon, from any rule |
-| **Area** | Both halves of the Areas page — the selected-area chips and the area list rows | Everything inside that area |
-| **Station** | Max Battle cards that target a specific station | Everything at that Power Spot |
+| Gym | Gym cards, and raid and egg cards that target a specific gym | Everything at that gym |
+| Species | Pokemon cards and nest cards | That Pokemon, from any rule |
+| Area | Both halves of the Areas page — the selected-area chips and the area list rows | Everything inside that area |
+| Station | Max Battle cards that target a specific station | Everything at that Power Spot |
 
 A chip only appears where there is an identifier to quiet. A gym alarm set to "any gym" has no gym
 id, so it gets no chip; the same for a Max Battle rule with no station. Quests, invasions, lures and
@@ -55,7 +55,7 @@ PoracleNG 5.4.0 fixes this ([jfberry/PoracleNG#328](https://github.com/jfberry/P
 a rule quiet period records the rule's type as well as its number. The list shows a bot-set rule quiet
 period as, for example, "raid 60", and lifting it sends the type back.
 
-**Pokestop** quiets one stop. Nothing in PoracleWeb.NET names a stop: neither the lure model nor the
+**Pokéstop** quiets one stop. Nothing in PoracleWeb.NET names a stop: neither the lure model nor the
 invasion model carries a fort id.
 
 **Everything** quiets the account. That is what Pause Alerts already does.
@@ -81,14 +81,17 @@ stacks — picking 4 hours on a subject with 20 minutes left leaves it quiet for
     Switching profile does not lift them. A gym you quieted while on your Home profile is still quiet
     on your Work profile.
 
-## The dashboard card
+## On the dashboard
 
-While anything is quiet, a **Quiet** card appears on the dashboard reading something like "3 quiet,
-next back in 47m". It is absent the rest of the time rather than sitting there empty.
+While anything is quiet, a **Quiet** item joins the status strip at the top of the dashboard, reading
+something like "3 quiet, next back in 47m". It is absent the rest of the time rather than sitting there
+empty. An area that is quiet also shows its time left on its chip under the area map.
 
 Opening it lists every active quiet period, including the three scopes only the bot can create, each
 with a **Resume** button, plus **Resume everything**. This is the place to look when alerts have gone
 missing and no chip you can find explains it.
+
+![The dashboard's Quiet item opened, listing a quiet area and a quiet species, each with a countdown and a Resume button](../screenshots/quiet-list.png)
 
 ## Requirements
 
@@ -96,9 +99,10 @@ missing and no chip you can find explains it.
     The mute endpoints exist on every supported release, so nothing asks the server whether it can do
     this before the chips appear. While PoracleNG is unreachable, `GET /api/mutes` answers 503 and the
     page shows one error toast saying so; the chips draw nothing, rather than claiming nothing is quiet.
-    A server below 5.4.0 is told apart at startup, not here: the Versions card on **Admin → Settings**
+    A server below 5.4.0 is told apart at startup, not here: the Versions card on **Admin → Server settings**
     says it is too old.
-There is **no site setting that turns quiet periods off.** Nothing on **Admin → Settings** governs
+
+There is **no site setting that turns quiet periods off.** Nothing on **Admin → Server settings** governs
 them; availability is entirely a question of which PoracleNG is running.
 
 ## Impersonation

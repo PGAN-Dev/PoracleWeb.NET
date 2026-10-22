@@ -102,6 +102,7 @@ describe('OnboardingComponent', () => {
     const { el } = setup({ disabled: ['disable_mons'], hasAreas: true, hasLocation: true });
     const link = el.querySelector<HTMLAnchorElement>('.step.active a');
 
-    expect(link?.getAttribute('href')).toBe('/raids');
+    // With no alarms yet the step says "Add Alarm", so it asks the list to open its add dialog.
+    expect(link?.getAttribute('href')).toBe('/raids?add=1');
   });
 });

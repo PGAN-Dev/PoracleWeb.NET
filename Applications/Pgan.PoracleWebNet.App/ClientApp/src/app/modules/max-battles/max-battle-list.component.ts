@@ -1,47 +1,54 @@
-import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 
 import { MaxBattleAddDialogComponent } from './max-battle-add-dialog.component';
 import { MaxBattleEditDialogComponent, MaxBattleEditDialogData } from './max-battle-edit-dialog.component';
 import { MaxBattle } from '../../core/models';
+import { AreaNameService } from '../../core/services/area-name.service';
 import { AreaService } from '../../core/services/area.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MaxBattleService } from '../../core/services/max-battle.service';
-import { AlarmInfoComponent } from '../../shared/components/alarm-info/alarm-info.component';
+import { AlarmCardComponent } from '../../shared/components/alarm-card/alarm-card.component';
+import { AlarmEmptyStateComponent } from '../../shared/components/alarm-empty-state/alarm-empty-state.component';
+import { AlarmListToolbarComponent, AlarmSortOption } from '../../shared/components/alarm-list-toolbar/alarm-list-toolbar.component';
+import { BulkActionBarComponent } from '../../shared/components/bulk-action-bar/bulk-action-bar.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
 import { QuietChipComponent } from '../../shared/components/quiet-chip/quiet-chip.component';
-import { RuleSummaryComponent } from '../../shared/components/rule-summary/rule-summary.component';
-import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
+import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
+import { WhereSheetComponent, WhereSheetData, whereSheetConfig } from '../../shared/components/where-sheet/where-sheet.component';
+import { addOnArrival } from '../../shared/utils/add-on-arrival';
+import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
+import { byNumber, byText, queryAlarms, visibleSelection } from '../../shared/utils/alarm-list-query';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
+import { serverReason } from '../../shared/utils/server-reason';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    AlarmEmptyStateComponent,
+    WhereChipComponent,
+    AlarmListToolbarComponent,
+    BulkActionBarComponent,
+    AlarmCardComponent,
     QuietChipComponent,
-    MatCardModule,
     MatButtonModule,
     MatIconModule,
-    MatCheckboxModule,
     MatDialogModule,
     MatTooltipModule,
     MatSnackBarModule,
-    RuleSummaryComponent,
     TranslatePipe,
-    AlarmInfoComponent,
   ],
   selector: 'app-max-battle-list',
   standalone: true,
@@ -49,6 +56,7 @@ import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../s
   templateUrl: './max-battle-list.component.html',
 })
 export class MaxBattleListComponent implements OnInit {
+  private readonly areaNames = inject(AreaNameService);
   private readonly areaService = inject(AreaService);
 
   private readonly destroyRef = inject(DestroyRef);
@@ -59,28 +67,64 @@ export class MaxBattleListComponent implements OnInit {
   private readonly masterData = inject(MasterDataService);
   private readonly maxBattleService = inject(MaxBattleService);
   private readonly snackBar = inject(MatSnackBar);
+  /** `?add=1` from the dashboard or onboarding opens the add dialog once. */
+  private readonly takeAddRequest = addOnArrival();
+  private readonly translate = inject(TranslateService);
+
+  readonly selectedIds = signal(new Set<number>());
+  readonly maxBattles = signal<MaxBattle[]>([]);
+  readonly search = signal('');
+  /** "default" keeps the stable order the list loads in (see orderAlarms), so nothing moves once names load. */
+  readonly sortBy = signal('default');
+  /** The rules the search leaves, in the chosen order; ties keep their stable order. See alarm-list-query. */
+  readonly visibleMaxBattles = computed(() => {
+    const sorts: Record<string, (m: MaxBattle, b: MaxBattle) => number> = {
+      name: byText(m => this.getTitle(m)),
+      newest: byNumber(m => -m.uid),
+      tier: byNumber(m => m.level),
+    };
+    return queryAlarms(
+      this.maxBattles(),
+      this.search(),
+      m => [this.getTitle(m), m.level === 9000 ? null : this.getLevelLabel(m.level), m.move === 9000 ? null : this.getMoveName(m.move)],
+      sorts[this.sortBy()] ?? null,
+    );
+  });
+
+  /** The selected rules still on screen: bulk Delete and Change radius never reach a card the search has hidden. */
+  readonly actionIds = computed(() =>
+    visibleSelection(
+      this.selectedIds(),
+      this.visibleMaxBattles().map(item => item.uid),
+    ),
+  );
 
   readonly loading = signal(true);
-  readonly maxBattles = signal<MaxBattle[]>([]);
   /** Only used to word the inherited scope honestly; empty produces the more cautious wording. */
   readonly profileAreas = signal<string[]>([]);
-  readonly selectedIds = signal(new Set<number>());
   readonly selectMode = signal(false);
 
   readonly skeletonCards = Array.from({ length: 6 });
 
+  readonly sortOptions: AlarmSortOption[] = [
+    { label: 'ALARM.SORT_DEFAULT', value: 'default' },
+    { label: 'ALARM.SORT_NAME', value: 'name' },
+    { label: 'ALARM.SORT_TIER', value: 'tier' },
+    { label: 'ALARM.SORT_NEWEST', value: 'newest' },
+  ];
+
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        confirmText: this.i18n.instant('COMMON.DELETE'),
-        message: this.i18n.instant('ALARM.SELECTED_COUNT', { count: this.selectedIds().size }),
-        title: this.i18n.instant('MAX_BATTLES.PAGE_TITLE'),
+        confirmText: this.i18n.instant('ALARM.DELETE_SELECTED', { count: this.actionIds().length }),
+        message: this.i18n.instant('ALARM.CONFIRM_BULK_DELETE_BODY'),
+        title: this.i18n.plural('ALARM.CONFIRM_BULK_DELETE_TITLE', this.actionIds().length),
         warn: true,
       } as ConfirmDialogData,
     });
     const result = await firstValueFrom(ref.afterClosed());
     if (result) {
-      const ids = [...this.selectedIds()];
+      const ids = this.actionIds();
       // Settled one at a time. A stale uid -- the row re-keyed by an edit, or removed in another tab --
       // threw out of the loop, so the deletes that had already happened went unreported and the list
       // never reloaded: the user saw nothing at all. See #603.
@@ -96,17 +140,17 @@ export class MaxBattleListComponent implements OnInit {
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadData();
-      this.snackBar.open(this.i18n.instant('MAX_BATTLES.SNACK_BULK_DELETED', { count: deleted }), this.i18n.instant('COMMON.OK'), {
+      this.snackBar.open(this.i18n.plural('ALARM.SNACK_BULK_DELETED', deleted), this.i18n.instant('COMMON.OK'), {
         duration: 3000,
       });
     }
   }
 
   async bulkUpdateDistance(): Promise<void> {
-    const ref = this.dialog.open(DistanceDialogComponent, { width: '440px' });
+    const ref = this.dialog.open(DistanceDialogComponent, { width: '440px', data: { count: this.actionIds().length } });
     const distance = await firstValueFrom(ref.afterClosed());
     if (distance !== null && distance !== undefined) {
-      const ids = [...this.selectedIds()];
+      const ids = this.actionIds();
       // The server refuses a radius that would take over an alarm the user did not select, and names
       // the one in the way. Unguarded, that rejection cleared nothing, reloaded nothing and showed
       // nothing -- indistinguishable from a successful no-op. See #641.
@@ -114,8 +158,7 @@ export class MaxBattleListComponent implements OnInit {
       try {
         result = await firstValueFrom(this.maxBattleService.updateBulkDistance(ids, distance));
       } catch (err) {
-        const message = (err as { error?: { error?: string } })?.error?.error;
-        this.snackBar.open(message ?? this.i18n.instant('MAX_BATTLES.SNACK_FAILED_DISTANCE'), this.i18n.instant('TOAST.OK'), {
+        this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.FAILED_DISTANCE'), this.i18n.instant('TOAST.OK'), {
           duration: 5000,
         });
         return;
@@ -124,11 +167,7 @@ export class MaxBattleListComponent implements OnInit {
       this.selectMode.set(false);
       this.loadData();
       this.snackBar.open(
-        distanceUpdateMessage(
-          result,
-          this.i18n.instant('MAX_BATTLES.SNACK_BULK_DISTANCE', { count: result?.updated ?? ids.length }),
-          this.i18n,
-        ),
+        distanceUpdateMessage(result, this.i18n.plural('ALARM.SNACK_BULK_DISTANCE', result?.updated ?? ids.length), this.i18n),
         this.i18n.instant('COMMON.OK'),
         {
           duration: skippedAny(result) ? 6000 : 3000,
@@ -149,8 +188,10 @@ export class MaxBattleListComponent implements OnInit {
     ref.afterClosed().subscribe(confirmed => {
       if (confirmed) {
         this.maxBattleService.deleteAll().subscribe({
-          error: () => {
-            this.snackBar.open(this.i18n.instant('MAX_BATTLES.SNACK_FAILED_DELETE'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
+          error: (err: unknown) => {
+            this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.FAILED_DELETE_ALL'), this.i18n.instant('COMMON.OK'), {
+              duration: 3000,
+            });
           },
           next: () => {
             this.snackBar.open(this.i18n.instant('MAX_BATTLES.SNACK_DELETED_ALL'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
@@ -173,8 +214,10 @@ export class MaxBattleListComponent implements OnInit {
     ref.afterClosed().subscribe(confirmed => {
       if (confirmed) {
         this.maxBattleService.delete(maxBattle.uid).subscribe({
-          error: () => {
-            this.snackBar.open(this.i18n.instant('MAX_BATTLES.SNACK_FAILED_DELETE'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
+          error: (err: unknown) => {
+            this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.FAILED_DELETE'), this.i18n.instant('COMMON.OK'), {
+              duration: 3000,
+            });
           },
           next: () => {
             this.snackBar.open(this.i18n.instant('MAX_BATTLES.SNACK_DELETED'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
@@ -192,6 +235,7 @@ export class MaxBattleListComponent implements OnInit {
   editMaxBattle(maxBattle: MaxBattle): void {
     const ref = this.dialog.open(MaxBattleEditDialogComponent, {
       width: '600px',
+      autoFocus: 'first-heading',
       data: { item: maxBattle } as MaxBattleEditDialogData,
     });
     ref.afterClosed().subscribe(result => {
@@ -207,13 +251,16 @@ export class MaxBattleListComponent implements OnInit {
     };
 
     this.dialog
-      .open(WhereSheetComponent, { width: '520px', autoFocus: false, data })
+      .open(WhereSheetComponent, whereSheetConfig(data))
       .afterClosed()
       .subscribe((scope?: AlarmScope) => {
         if (!scope) return;
 
         this.maxBattleService.update(item.uid, scopeToFields(scope)).subscribe({
-          error: () => this.snackBar.open(this.i18n.instant('WHERE.SCOPE_SAVE_ERROR'), this.i18n.instant('COMMON.OK'), { duration: 4000 }),
+          error: (err: unknown) =>
+            this.snackBar.open(serverReason(err) ?? this.i18n.instant('WHERE.SCOPE_SAVE_ERROR'), this.i18n.instant('COMMON.OK'), {
+              duration: 4000,
+            }),
           next: () => {
             this.snackBar.open(this.i18n.instant('WHERE.SCOPE_SAVED'), this.i18n.instant('COMMON.OK'), { duration: 2500 });
             this.loadData();
@@ -231,27 +278,6 @@ export class MaxBattleListComponent implements OnInit {
       return this.iconService.getPokemonUrl(maxBattle.pokemonId);
     }
     return '';
-  }
-
-  getLevelColor(level: number): string {
-    switch (level) {
-      case 1:
-        return '#78909c';
-      case 2:
-        return '#FF9800';
-      case 3:
-        return '#F44336';
-      case 4:
-        return '#9C27B0';
-      case 5:
-        return '#ffd600';
-      case 7:
-        return '#e040fb';
-      case 8:
-        return '#aa00ff';
-      default:
-        return '#d500f9';
-    }
   }
 
   /** PoracleNG max battle level labels */
@@ -318,6 +344,7 @@ export class MaxBattleListComponent implements OnInit {
     this.loadProfileAreas();
     this.masterData.loadData().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
     this.loadData();
+    if (this.takeAddRequest()) this.openAddDialog();
   }
 
   onImageError(event: Event): void {
@@ -325,16 +352,21 @@ export class MaxBattleListComponent implements OnInit {
   }
 
   openAddDialog(): void {
-    const ref = this.dialog.open(MaxBattleAddDialogComponent, { width: '600px' });
+    const ref = this.dialog.open(MaxBattleAddDialogComponent, {
+      width: '600px',
+      autoFocus: 'first-heading',
+      data: { existingRule: (uid, type) => this.describeExisting(uid, type) } satisfies AddDialogData,
+    });
     ref.afterClosed().subscribe(result => {
-      if (result) this.loadData();
+      if (isEditExisting(result)) this.openExisting(result.editExisting.uid, result.editExisting.trackingType);
+      else if (result) this.loadData();
     });
   }
 
   selectAll(): void {
-    const ids = new Set<number>();
-    this.maxBattles().forEach(m => ids.add(m.uid));
-    this.selectedIds.set(ids);
+    // Adds what is on screen: a search that hides a rule also keeps it out of Select All (#642), and a tick
+    // the search is hiding stays, so clearing the search brings it back.
+    this.selectedIds.set(new Set([...this.selectedIds(), ...this.visibleMaxBattles().map(i => i.uid)]));
   }
 
   toggleSelect(uid: number): void {
@@ -354,7 +386,22 @@ export class MaxBattleListComponent implements OnInit {
     }
   }
 
+  /** Names one of this list's rules for an add dialog's refusal, or null when the list holds no such rule. */
+  private describeExisting(uid: number, trackingType: null | string): null | string {
+    if (trackingType !== null && trackingType !== 'maxbattle') return null;
+    const maxBattle = this.maxBattles().find(m => m.uid === uid);
+    return maxBattle
+      ? ruleSummary(this.getTitle(maxBattle), maxBattle, this.profileAreas(), this.translate, area => this.areaNames.label(area))
+      : null;
+  }
+
   private loadProfileAreas(): void {
     this.areaService.getSelected().subscribe({ error: () => undefined, next: areas => this.profileAreas.set(areas) });
+  }
+
+  /** An add dialog was refused because of this rule and the user chose to edit it instead. */
+  private openExisting(uid: number, _trackingType: null | string): void {
+    const maxBattle = this.maxBattles().find(m => m.uid === uid);
+    if (maxBattle) this.editMaxBattle(maxBattle);
   }
 }
