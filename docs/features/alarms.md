@@ -548,7 +548,7 @@ Invasion alarms filter by grunt type and gender. A few things happen to the grun
 - Kecleon, Gold Stop and Showcase are Pokéstop events, so picking one here saves a [Pokéstop event rule](#pokestop-event-alarms) instead.
 - PoracleNG stores a spaced name such as `player team leader` as `player_team_leader`.
 
-Two catch-all rules, every grunt and every boss encounter, lose a gender limit the next time they're saved, because PoracleNG's v2 read doesn't report a gender on them ([jfberry/PoracleNG#331](https://github.com/jfberry/PoracleNG/pull/331), not yet merged, fixes the read). The web dialogs don't create that combination; it comes from the bot.
+Two catch-all rules, every grunt and every boss encounter, lost a gender limit the next time they were saved on PoracleNG builds before 22 October 2026, whose v2 read didn't report a gender on them; [jfberry/PoracleNG#331](https://github.com/jfberry/PoracleNG/pull/331) fixed the read, so a current build keeps it. The web dialogs don't create that combination; it comes from the bot.
 
 ## Pokéstop Event alarms
 
