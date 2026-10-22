@@ -225,6 +225,22 @@ public class PoracleTrackingProxyV2ReadTests
         Assert.Equal("All alarms", ex.Feature);
     }
 
+    /// <summary>
+    /// The place-usage list names each rule by PoracleNG's description. Without the query string every
+    /// row would read "Pokémon #uid".
+    /// </summary>
+    [Fact]
+    public async Task TheSnapshotWithDescriptionsAsksForThem()
+    {
+        var handler = new Router().On("/tracking", """{"tracking":{"pokemon":[{"uid":5,"pokemon_id":25,"description":"Pikachu"}]}}""");
+
+        var all = await CreateSut(handler).GetAllTrackingWithDescriptionsAsync("user1");
+
+        var sent = Assert.Single(handler.Requests);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/tracking?include_descriptions=true", sent.Url);
+        Assert.Equal("Pikachu", all.GetProperty("pokemon")[0].GetProperty("description").GetString());
+    }
+
     // ── GetAllTrackingAllProfilesAsync ───────────────────────────
 
     private const string AllProfiles = """

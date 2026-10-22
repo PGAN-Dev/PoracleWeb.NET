@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Pgan.PoracleWebNet.Api.Filters;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 
@@ -360,6 +361,7 @@ public class LocationController(
     /// zero and no saved place. Clearing the pin stops every one of them matching, so the SPA names the
     /// count before it asks to clear. A rule aimed at a saved place keeps its anchor and is not counted.
     /// </summary>
+    [EnableRateLimiting("tracking-usage")]
     [HttpGet("pin-usage")]
     public async Task<IActionResult> GetPinUsage([FromServices] IPoracleTrackingProxy trackingProxy)
     {
@@ -372,6 +374,7 @@ public class LocationController(
     /// PoracleNG refuses to delete a place while any exist, so the SPA reads this before it offers Delete
     /// and lists them instead. The delete's own 409 still covers a rule added in between.
     /// </summary>
+    [EnableRateLimiting("tracking-usage")]
     [HttpGet("place-usage")]
     public async Task<IActionResult> GetPlaceUsage(
         [FromQuery] string? label, [FromServices] IPoracleTrackingProxy trackingProxy)
