@@ -9,7 +9,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, take } from 'rxjs';
 
 import {
   AreaDefinition,
@@ -48,6 +48,7 @@ import {
 import { RegionOption } from '../../shared/components/region-selector/region-selector.component';
 import { detectRegion } from '../../shared/utils/geo.utils';
 import { pinOrNull } from '../../shared/utils/location.utils';
+import { serverReason } from '../../shared/utils/server-reason';
 
 const MAX_CUSTOM_GEOFENCES = 10;
 
@@ -151,8 +152,8 @@ export class GeofenceListComponent implements OnInit {
     let impact: GeofenceDeleteImpact;
     try {
       impact = await firstValueFrom(this.userGeofenceService.getDeleteImpact(geofence.id));
-    } catch {
-      this.snackBar.open(this.i18n.instant('GEOFENCES.SNACK_FAILED_DELETE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+    } catch (err) {
+      this.failed(err, 'GEOFENCES.SNACK_FAILED_DELETE');
       return;
     }
 
@@ -184,8 +185,7 @@ export class GeofenceListComponent implements OnInit {
       .deleteGeofence(geofence.id, alarms)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        error: () =>
-          this.snackBar.open(this.i18n.instant('GEOFENCES.SNACK_FAILED_DELETE'), this.i18n.instant('TOAST.OK'), { duration: 3000 }),
+        error: err => this.failed(err, 'GEOFENCES.SNACK_FAILED_DELETE'),
         next: () => {
           this.customGeofences.update(list => list.filter(g => g.id !== geofence.id));
           this.activeAreas.update(areas => areas.filter(a => a !== geofence.kojiName));
@@ -198,6 +198,7 @@ export class GeofenceListComponent implements OnInit {
     const ref = this.dialog.open(GeofenceNameDialogComponent, {
       width: '440px',
       data: {
+        rename: true,
         detectedRegion: null,
         regions: this.geofenceRegions(),
       } as GeofenceNameDialogData,
@@ -228,9 +229,10 @@ export class GeofenceListComponent implements OnInit {
         })
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe({
-          error: () => {
+          error: err => {
             this.savingGeofence.set(false);
-            this.snackBar.open(this.i18n.instant('GEOFENCES.SNACK_FAILED_UPDATE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+            // A 409 says nothing was changed and to try again; that beats "Failed to update geofence".
+            this.failed(err, 'GEOFENCES.SNACK_FAILED_UPDATE');
           },
           next: updated => {
             this.savingGeofence.set(false);
@@ -304,9 +306,9 @@ export class GeofenceListComponent implements OnInit {
         })
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe({
-          error: () => {
+          error: err => {
             this.savingGeofence.set(false);
-            this.snackBar.open(this.i18n.instant('GEOFENCES.SNACK_FAILED_CREATE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+            this.failed(err, 'GEOFENCES.SNACK_FAILED_CREATE');
           },
           next: created => {
             this.savingGeofence.set(false);
@@ -346,12 +348,17 @@ export class GeofenceListComponent implements OnInit {
       } as GeoJsonImportDialogData,
     });
 
-    ref.afterClosed().subscribe((result: GeoJsonImportResult | null) => {
-      if (result && result.created.length > 0) {
-        this.loadCustomGeofences();
-        this.loadActiveAreas();
-        this.snackBar.open(this.i18n.plural('GEOFENCES.SNACK_IMPORTED', result.created.length), this.i18n.instant('TOAST.OK'), {
-          duration: 3000,
+    // Only Done hands the result back. Esc or a click outside closes with nothing, though the fences on
+    // the results step were already created, so read the result off the dialog itself. Closed while the
+    // request was still running, the request carries on and the list refreshes when it settles.
+    const dialog = ref.componentInstance;
+    ref.afterClosed().subscribe((closedWith: GeoJsonImportResult | null | undefined) => {
+      const result = closedWith ?? dialog?.importResult() ?? null;
+      if (result) {
+        this.afterImport(result);
+      } else if (dialog?.importing()) {
+        dialog.settled.pipe(take(1), takeUntilDestroyed(this.destroyRef)).subscribe(settled => {
+          if (settled) this.afterImport(settled);
         });
       }
     });
@@ -371,8 +378,7 @@ export class GeofenceListComponent implements OnInit {
         .submitForReview(geofence.kojiName)
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe({
-          error: () =>
-            this.snackBar.open(this.i18n.instant('GEOFENCES.SNACK_FAILED_SUBMIT'), this.i18n.instant('TOAST.OK'), { duration: 3000 }),
+          error: err => this.failed(err, 'GEOFENCES.SNACK_FAILED_SUBMIT'),
           next: updated => {
             this.customGeofences.update(list => list.map(g => (g.id === geofence.id ? updated : g)));
             this.snackBar.open(this.i18n.instant('GEOFENCES.SNACK_SUBMITTED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
@@ -405,18 +411,15 @@ export class GeofenceListComponent implements OnInit {
     }
 
     action$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      error: () => {
+      error: err => {
         // Revert on error
         if (active) {
           this.activeAreas.update(areas => [...areas, geofence.kojiName]);
         } else {
           this.activeAreas.update(areas => areas.filter(a => a !== geofence.kojiName));
         }
-        this.snackBar.open(
-          this.i18n.instant(active ? 'GEOFENCES.SNACK_FAILED_DEACTIVATE' : 'GEOFENCES.SNACK_FAILED_ACTIVATE'),
-          this.i18n.instant('TOAST.OK'),
-          { duration: 3000 },
-        );
+        // The server's 409 says the fence couldn't be switched on yet and to try again.
+        this.failed(err, active ? 'GEOFENCES.SNACK_FAILED_DEACTIVATE' : 'GEOFENCES.SNACK_FAILED_ACTIVATE');
       },
       next: () => {
         this.snackBar.open(
@@ -427,6 +430,15 @@ export class GeofenceListComponent implements OnInit {
           },
         );
       },
+    });
+  }
+
+  private afterImport(result: GeoJsonImportResult): void {
+    if (result.created.length === 0) return;
+    this.loadCustomGeofences();
+    this.loadActiveAreas();
+    this.snackBar.open(this.i18n.plural('GEOFENCES.SNACK_IMPORTED', result.created.length), this.i18n.instant('TOAST.OK'), {
+      duration: 3000,
     });
   }
 
@@ -457,6 +469,12 @@ export class GeofenceListComponent implements OnInit {
     this.snackBar.open(this.i18n.plural('GEOFENCES.SNACK_EXPORTED', features.length), this.i18n.instant('TOAST.OK'), {
       duration: 3000,
     });
+  }
+
+  /** The reason the API gave, or this page's own words when it gave none. */
+  private failed(err: unknown, fallbackKey: string): void {
+    const reason = serverReason(err);
+    this.snackBar.open(reason ?? this.i18n.instant(fallbackKey), this.i18n.instant('TOAST.OK'), { duration: reason ? 6000 : 3000 });
   }
 
   private loadActiveAreas(): void {

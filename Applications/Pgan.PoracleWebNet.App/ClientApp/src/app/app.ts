@@ -1,4 +1,5 @@
 /* eslint-disable @angular-eslint/component-class-suffix */
+import { A11yModule } from '@angular/cdk/a11y';
 import { Component, inject, signal, computed, effect, HostListener, OnInit } from '@angular/core';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatButtonModule } from '@angular/material/button';
@@ -19,7 +20,7 @@ import { AlertLanguageService } from './core/services/alert-language.service';
 import { AuthService } from './core/services/auth.service';
 import { DashboardService } from './core/services/dashboard.service';
 import { I18nService } from './core/services/i18n.service';
-import { SettingsService } from './core/services/settings.service';
+import { DEFAULT_SITE_TITLE, SettingsService } from './core/services/settings.service';
 import { AlertDefaultsDialogComponent } from './shared/components/alert-defaults-dialog/alert-defaults-dialog.component';
 
 interface NavItem {
@@ -37,6 +38,7 @@ interface NavItem {
 
 @Component({
   imports: [
+    A11yModule,
     RouterOutlet,
     RouterLink,
     RouterLinkActive,
@@ -90,15 +92,9 @@ export class App implements OnInit {
 
   private readonly snackBar = inject(MatSnackBar);
 
-  protected readonly siteTitle = computed(() => this.settingsService.siteSettings()['custom_title'] || 'DM Alerts');
-
-  private readonly titleEffect = effect(() => {
-    document.title = this.siteTitle();
-  });
-
   protected readonly accentTheme = signal(localStorage.getItem('poracle-accent') || '');
-  protected readonly auth = inject(AuthService);
 
+  protected readonly auth = inject(AuthService);
   protected readonly navItems: NavItem[] = [
     { group: 'alarms', icon: 'dashboard', iconColor: '#1976d2', label: 'NAV.DASHBOARD', route: '/dashboard' },
     { group: 'alarms', icon: 'bolt', iconColor: '#ff6f00', label: 'NAV.QUICK_PICKS', route: '/quick-picks' },
@@ -269,8 +265,8 @@ export class App implements OnInit {
   protected readonly darkMode = signal(localStorage.getItem('poracle-theme') === 'dark');
 
   protected readonly headerLogoUrl = computed(() => this.settingsService.siteSettings()['header_logo_url'] || '');
-  protected readonly hideHeaderLogo = computed(() => this.settingsService.isDisabled('hide_header_logo'));
 
+  protected readonly hideHeaderLogo = computed(() => this.settingsService.isDisabled('hide_header_logo'));
   protected readonly i18n = inject(I18nService);
 
   /**
@@ -291,6 +287,9 @@ export class App implements OnInit {
   protected readonly sidenavCollapsed = signal(localStorage.getItem('poracle-sidenav-collapsed') === 'true');
 
   protected readonly sidenavOpened = signal(!this.isMobile());
+
+  // document.title is PageTitleStrategy's: "<page> · <site title>".
+  protected readonly siteTitle = computed(() => this.settingsService.siteSettings()['custom_title'] || DEFAULT_SITE_TITLE);
 
   /** Whether the active SSO provider supports single logout ("Sign out everywhere"). */
   protected readonly ssoLogoutAvailable = signal(false);
@@ -384,7 +383,10 @@ export class App implements OnInit {
 
     // Determine whether the active SSO provider supports single logout (end-session),
     // which gates the "Sign out everywhere" menu item.
+    // A failure (a 429 under load, say) leaves "Sign out everywhere" off; without an error handler it
+    // surfaced as an uncaught error in the console.
     this.auth.getProviders().subscribe({
+      error: () => this.ssoLogoutAvailable.set(false),
       next: providers => this.ssoLogoutAvailable.set(providers.oidc?.endSession === true),
     });
   }
@@ -456,6 +458,15 @@ export class App implements OnInit {
     this.accentTheme.set(theme);
     localStorage.setItem('poracle-accent', theme);
     this.applyAccentTheme();
+  }
+
+  /**
+   * The skip link's target. An in-page `#main-content` href resolves against `<base href="/">`, so the
+   * browser would load the site root; focus moves here instead and the URL is left alone.
+   */
+  skipToContent(event: Event): void {
+    event.preventDefault();
+    document.getElementById('main-content')?.focus();
   }
 
   async stopImpersonating(): Promise<void> {

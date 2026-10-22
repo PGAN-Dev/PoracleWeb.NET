@@ -33,6 +33,7 @@ import { RsvpPillComponent } from '../../shared/components/rsvp-pill/rsvp-pill.c
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData, whereSheetConfig } from '../../shared/components/where-sheet/where-sheet.component';
 import { LevelLabelPipe } from '../../shared/pipes/level-label.pipe';
+import { addOnArrival } from '../../shared/utils/add-on-arrival';
 import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
 import { byNumber, byText, queryAlarms, visibleSelection } from '../../shared/utils/alarm-list-query';
 import { orderAlarms } from '../../shared/utils/alarm-order';
@@ -80,6 +81,8 @@ export class RaidListComponent implements OnInit {
   private readonly raidService = inject(RaidService);
   private readonly scannerService = inject(ScannerService);
   private readonly snackBar = inject(MatSnackBar);
+  /** `?add=1` from the dashboard or onboarding opens the add dialog once. */
+  private readonly takeAddRequest = addOnArrival();
   private readonly translate = inject(TranslateService);
   /** Which tab is in front: 0 raids, 1 eggs. Bulk actions are scoped to it. See #642. */
   readonly activeTab = signal(0);
@@ -471,6 +474,7 @@ export class RaidListComponent implements OnInit {
     this.masterData.loadData().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
     this.raidLevelService.load();
     this.loadData();
+    if (this.takeAddRequest()) this.openAddDialog();
   }
 
   onImageError(event: Event): void {

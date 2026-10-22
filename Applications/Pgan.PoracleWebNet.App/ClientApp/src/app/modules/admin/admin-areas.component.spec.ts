@@ -90,3 +90,42 @@ describe('AdminAreasComponent unsaved changes', () => {
     expect(dirty.defaultPrevented).toBe(true);
   });
 });
+
+/** 1,235 rows each said "Hidden" beside an off switch. The word belongs over the column, once. */
+describe('AdminAreasComponent column header', () => {
+  const render = () => {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        provideTranslateService(),
+        {
+          provide: AdminAreaService,
+          useValue: { setHidden: jest.fn(), getAreas: () => of({ areas: [area('north'), area('south', true)], orphaned: [] }) },
+        },
+        { provide: MatSnackBar, useValue: { open: jest.fn() } },
+      ],
+      imports: [AdminAreasComponent, NoopAnimationsModule],
+    });
+    const fixture = TestBed.createComponent(AdminAreasComponent);
+    fixture.detectChanges();
+    return fixture.nativeElement as HTMLElement;
+  };
+
+  it('labels the switch column once, in a header row', () => {
+    const el = render();
+
+    expect(el.querySelectorAll('[data-test="rows-head"]')).toHaveLength(1);
+    expect(el.querySelector('[data-test="rows-head"]')?.textContent).toContain('ADMIN_AREAS.HIDE');
+  });
+
+  it('puts no label beside each switch, and keeps each one named for screen readers', () => {
+    const toggles = Array.from(render().querySelectorAll('mat-slide-toggle'));
+
+    expect(toggles).toHaveLength(2);
+    for (const toggle of toggles) {
+      expect(toggle.textContent?.trim()).toBe('');
+      // The input, not the host attribute: MatSlideToggle names its inner switch from the input only.
+      expect(toggle.querySelector('button[role="switch"]')?.getAttribute('aria-label')).toBe('ADMIN_AREAS.HIDE_ARIA');
+    }
+  });
+});

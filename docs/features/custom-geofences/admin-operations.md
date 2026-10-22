@@ -4,19 +4,13 @@ This page is the day-to-day admin reference: where to review submissions, how to
 
 ## The User Geofences screen
 
-Admins get a **User Geofences** screen in the admin section of the sidebar. It lists every user geofence with its status, owner, region, point count, and timestamps. Three view modes:
+Admins get a **User Geofences** screen in the admin section of the sidebar. It opens on the review queue: every submission waiting for review, oldest first, one wide row each. The map takes the left of the row (click it for the full detail view), and the right says who submitted it, how many points and how many km² it covers, its region ("No region" when it has none), when it was submitted, and the public area its centre already falls inside, if any. **Reject…** and **Approve** open the review on that side.
 
-| View | Best for |
-|---|---|
-| Card | Visual review — each card shows a small map thumbnail, grouped by region. |
-| List | A compact, region-grouped table. |
-| Table | A flat, sortable table with every column (sort by name, status, owner, region, points, dates). |
-
-Geofences with no region land in a **"No Region"** group, so nothing is hidden just because it lacks a region. Use the status tabs to focus; most of the time you'll want **Pending** to see what's waiting on you.
+Below the queue, every other geofence (active, approved and rejected) is in one sortable table: name, status, owner, region, points, created and submitted dates, and reviewer. Filter it by status. A rejected geofence keeps a Review button there, so a mistaken rejection can be reconsidered.
 
 ## Reviewing a submission
 
-Open a submission to see its shape on a map, who submitted it, and how many points it has. **Approve** promotes it to a public Koji area, with a cleaner public name and optionally a region; [Private geofences & promotion](private-and-promotion.md#step-3a-approve-the-actual-promotion) has the full effect. **Reject** declines it with a short reason, and the geofence stays private for its owner.
+The queue row already shows the shape, the owner and the point count. **Approve** promotes it to a public Koji area, with a cleaner public name and optionally a region; [Private geofences & promotion](private-and-promotion.md#step-3a-approve-the-actual-promotion) has the full effect. **Reject** declines it with a short reason, and the geofence stays private for its owner.
 
 ![The review dialog for a pending geofence, in Approve mode, with the public name and region fields](../../screenshots/admin-geofence-review.png)
 

@@ -28,7 +28,7 @@ One setting is gone: `PORACLE_TRACKING_API_VERSION` (`Poracle:TrackingApiVersion
 
 ## Run the rule repair
 
-After PoracleNG is on 5.4.0, open **Admin > Settings** and find the **Rule repair** card. It looks for stored rules that 5.4.0 reads differently from the way they were saved, and fixes the ones whose meaning is clear.
+After PoracleNG is on 5.4.0, open **Server settings** in the Admin section and press **Details** on the status line under the search to show the **Rule repair** card. It looks for stored rules that 5.4.0 reads differently from the way they were saved, and fixes the ones whose meaning is clear.
 
 Press **Scan** first. The scan reads every user's rules and writes nothing; you can run it as often as you like. It reports these kinds:
 
@@ -104,6 +104,6 @@ The one-time copy of settings, webhook delegates and quick picks out of `pweb_se
 2. Upgrade PoracleNG to 5.4.0 and confirm it's running.
 3. Update PoracleWeb.NET (`./scripts/docker.sh update` for Docker installs).
 4. Check the Versions card under **Admin > Settings** shows no warning that PoracleNG is too old.
-5. Scan, review, then Repair on the Rule repair card.
+5. Scan, review, then Repair on the Rule repair card (under **Details** on Server settings).
 
 See [PoracleNG Version Compatibility](../architecture/poracleng-compatibility.md) for what changed in the integration and why.

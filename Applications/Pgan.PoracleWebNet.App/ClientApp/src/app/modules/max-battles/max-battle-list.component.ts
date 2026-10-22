@@ -25,6 +25,7 @@ import { DistanceDialogComponent } from '../../shared/components/distance-dialog
 import { QuietChipComponent } from '../../shared/components/quiet-chip/quiet-chip.component';
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData, whereSheetConfig } from '../../shared/components/where-sheet/where-sheet.component';
+import { addOnArrival } from '../../shared/utils/add-on-arrival';
 import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
 import { byNumber, byText, queryAlarms, visibleSelection } from '../../shared/utils/alarm-list-query';
 import { orderAlarms } from '../../shared/utils/alarm-order';
@@ -64,6 +65,8 @@ export class MaxBattleListComponent implements OnInit {
   private readonly masterData = inject(MasterDataService);
   private readonly maxBattleService = inject(MaxBattleService);
   private readonly snackBar = inject(MatSnackBar);
+  /** `?add=1` from the dashboard or onboarding opens the add dialog once. */
+  private readonly takeAddRequest = addOnArrival();
   private readonly translate = inject(TranslateService);
 
   readonly selectedIds = signal(new Set<number>());
@@ -338,6 +341,7 @@ export class MaxBattleListComponent implements OnInit {
     this.loadProfileAreas();
     this.masterData.loadData().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
     this.loadData();
+    if (this.takeAddRequest()) this.openAddDialog();
   }
 
   onImageError(event: Event): void {

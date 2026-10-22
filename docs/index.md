@@ -57,9 +57,9 @@ A web application for managing Pokemon GO notification alarms through the [Porac
 
 ![The sign-in page with the Sign in with Discord button](screenshots/login.png)
 
-![The dashboard: pin, active areas, two quiet periods, the active profile and the weather at the pin](screenshots/dashboard.png)
+![The dashboard: the status strip with the active profile, alerts on, two quiet periods, the pin, the areas and the weather, above the area map](screenshots/dashboard.png)
 
-![Further down the dashboard: Quick Actions and one alarm-count card per alarm type](screenshots/dashboard-bottom.png)
+![Further down the dashboard: your alarm counts by type and the Not tracking line](screenshots/dashboard-bottom.png)
 
 ![The onboarding wizard's first step on an empty dashboard](screenshots/onboarding.png)
 

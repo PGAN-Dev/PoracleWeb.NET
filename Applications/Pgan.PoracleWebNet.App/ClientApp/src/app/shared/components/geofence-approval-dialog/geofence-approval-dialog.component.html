@@ -10,7 +10,7 @@
     </div>
     <div class="summary-row">
       <span class="summary-label">{{ 'ADMIN.APPROVAL_GROUP' | translate }}</span>
-      <span class="summary-value">{{ data.geofence.groupName }}</span>
+      <span class="summary-value">{{ data.geofence.groupName || ('ADMIN.NO_REGION' | translate) }}</span>
     </div>
     @if (data.geofence.submittedAt) {
       <div class="summary-row">

@@ -28,6 +28,7 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/componen
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData, whereSheetConfig } from '../../shared/components/where-sheet/where-sheet.component';
+import { addOnArrival } from '../../shared/utils/add-on-arrival';
 import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
 import { byNumber, byText, queryAlarms, visibleSelection } from '../../shared/utils/alarm-list-query';
 import { orderAlarms } from '../../shared/utils/alarm-order';
@@ -72,6 +73,8 @@ export class QuestListComponent implements OnInit {
   private readonly masterData = inject(MasterDataService);
   private readonly questService = inject(QuestService);
   private readonly snackBar = inject(MatSnackBar);
+  /** `?add=1` from the dashboard or onboarding opens the add dialog once. */
+  private readonly takeAddRequest = addOnArrival();
   private readonly translate = inject(TranslateService);
   readonly selectedIds = signal(new Set<number>());
   readonly quests = signal<Quest[]>([]);
@@ -364,6 +367,7 @@ export class QuestListComponent implements OnInit {
       .subscribe(() => {
         this.loadQuests();
       });
+    if (this.takeAddRequest()) this.openAddDialog();
   }
 
   onImageError(event: Event): void {

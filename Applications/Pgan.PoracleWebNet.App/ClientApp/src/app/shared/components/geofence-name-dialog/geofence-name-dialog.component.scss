@@ -5,6 +5,9 @@ mat-dialog-content {
 .full-width {
   width: 100%;
 }
+.name-error {
+  color: var(--mat-sys-error, #b3261e);
+}
 .region-section {
   margin-top: 16px;
 }

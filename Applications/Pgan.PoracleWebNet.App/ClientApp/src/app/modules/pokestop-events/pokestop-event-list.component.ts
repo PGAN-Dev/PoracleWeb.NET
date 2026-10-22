@@ -25,6 +25,7 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/componen
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData, whereSheetConfig } from '../../shared/components/where-sheet/where-sheet.component';
+import { addOnArrival } from '../../shared/utils/add-on-arrival';
 import { isEditExisting } from '../../shared/utils/add-outcome';
 import { byNumber, byText, queryAlarms, visibleSelection } from '../../shared/utils/alarm-list-query';
 import { orderAlarms } from '../../shared/utils/alarm-order';
@@ -64,6 +65,8 @@ export class PokestopEventListComponent implements OnInit {
   private readonly icons = inject(IconService);
   private readonly pokestopEventService = inject(PokestopEventService);
   private readonly snackBar = inject(MatSnackBar);
+  /** `?add=1` from the dashboard or onboarding opens the add dialog once. */
+  private readonly takeAddRequest = addOnArrival();
 
   readonly selectedIds = signal(new Set<number>());
   readonly events = signal<PokestopEvent[]>([]);
@@ -278,23 +281,30 @@ export class PokestopEventListComponent implements OnInit {
     return isAutoDelete(clean);
   }
 
-  loadItems(): void {
+  /** `then` runs once the list has answered, loaded or not. */
+  loadItems(then?: () => void): void {
     this.loading.set(true);
     this.pokestopEventService
       .getAll()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        error: () => this.loading.set(false),
+        error: () => {
+          this.loading.set(false);
+          then?.();
+        },
         next: items => {
           this.events.set(orderAlarms(items, e => [e.displayType]));
           this.loading.set(false);
+          then?.();
         },
       });
   }
 
   ngOnInit(): void {
     this.loadProfileAreas();
-    this.loadItems();
+    // Unlike the other nine, this dialog is handed the list itself (to mark events already tracked and
+    // name a clash), so on arrival it waits for the list rather than opening on an empty one.
+    this.loadItems(this.takeAddRequest() ? () => this.openAddDialog() : undefined);
   }
 
   openAddDialog(): void {

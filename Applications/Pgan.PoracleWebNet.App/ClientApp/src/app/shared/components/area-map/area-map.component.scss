@@ -124,3 +124,56 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   pointer-events: none;
 }
+
+// ─── Areas and markers inside the Leaflet panes ──────────
+// Leaflet builds these outside the component's view, so they are reached through ::ng-deep.
+// Selected and unselected areas take one style in both themes (AREA_STYLE_SELECTED / _UNSELECTED): the
+// tiles under them are the same light basemap either way, and a lighter dark-theme outline measured weaker
+// against them. The paths carry `area-selected` / `area-unselected` for any later dark basemap to key on.
+
+// A named place: a dot on the point and its label beside it, so the map says which place is which
+// without a hover. Distinct from the pin (a blue dot with a dashed 5 km ring).
+:host ::ng-deep .place-marker {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: max-content;
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  .place-marker__dot {
+    flex: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #7c3aed;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+  }
+
+  .place-marker__label {
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 1px 6px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 18px;
+    background: rgba(255, 255, 255, 0.92);
+    color: #1f2937;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #1976d2;
+    outline-offset: 2px;
+  }
+}
+
+:host-context(body.dark-theme) ::ng-deep .place-marker .place-marker__label {
+  background: rgba(30, 30, 30, 0.92);
+  color: #f3f4f6;
+}

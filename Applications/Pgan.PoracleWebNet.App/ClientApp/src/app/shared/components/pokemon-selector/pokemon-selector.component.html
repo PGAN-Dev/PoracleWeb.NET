@@ -159,7 +159,7 @@
           <img matChipAvatar [src]="getPokemonImage(pokemon.id)" [alt]="pokemon.name" class="chip-avatar" (error)="onImageError($event)" />
         }
         {{ formatPokemonName(pokemon) }}
-        <button matChipRemove>
+        <button matChipRemove [attr.aria-label]="'COMMON.REMOVE_NAMED' | translate: { name: formatPokemonName(pokemon) }">
           <mat-icon>cancel</mat-icon>
         </button>
       </mat-chip>

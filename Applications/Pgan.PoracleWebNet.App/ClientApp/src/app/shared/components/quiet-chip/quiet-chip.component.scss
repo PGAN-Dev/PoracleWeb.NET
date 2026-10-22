@@ -81,3 +81,13 @@
 :host-context(.dark-theme) .quiet-chip-trailing:not(.quiet-chip-on):hover {
   background: rgb(255 255 255 / 14%);
 }
+
+// Touch screens get 44px targets (WCAG 2.5.5, UI audit cross D10). A mouse keeps the compact size.
+// Only the Areas chips use the trailing form, and they grow to 44px on touch screens too.
+@media (pointer: coarse) {
+  .quiet-chip-trailing,
+  .quiet-chip-trailing:not(.quiet-chip-on) {
+    height: 44px;
+    min-width: 44px;
+  }
+}

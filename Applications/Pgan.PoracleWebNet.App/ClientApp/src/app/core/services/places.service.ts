@@ -1,12 +1,12 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { Observable, tap, throwError } from 'rxjs';
+import { Observable, catchError, of, tap, throwError } from 'rxjs';
 
 import { ConfigService } from './config.service';
 import { LocationFeatureDisabledError } from './location.service';
 import { SettingsService } from './settings.service';
 import { pinOrNull } from '../../shared/utils/location.utils';
-import { SavedPlace, SavedPlaces } from '../models';
+import { PlaceUsage, SavedPlace, SavedPlaces } from '../models';
 
 /**
  * The places a user can point an alarm at.
@@ -61,5 +61,17 @@ export class PlacesService {
       .pipe(
         tap(() => this.places.update(current => (current ? { ...current, named: current.named.filter(p => p.label !== label) } : current))),
       );
+  }
+
+  /**
+   * The alarms aimed at a place, read before offering Delete, or null when that cannot be read. A failure
+   * is the caller's cue to fall back to the plain confirm, so it answers null rather than an error, and the
+   * error interceptor keeps this URL silent: a pre-check that fails must not toast.
+   */
+  usage(label: string): Observable<null | PlaceUsage> {
+    if (this.settings.isDisabled('disable_location')) return of(null);
+    return this.http
+      .get<PlaceUsage>(`${this.config.apiHost}/api/location/place-usage`, { params: { label } })
+      .pipe(catchError(() => of(null)));
   }
 }

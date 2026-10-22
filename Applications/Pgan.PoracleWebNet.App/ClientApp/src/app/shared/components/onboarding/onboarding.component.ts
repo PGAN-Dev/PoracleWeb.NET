@@ -11,7 +11,8 @@ import { firstValueFrom, forkJoin, catchError, of } from 'rxjs';
 import { AreaService } from '../../../core/services/area.service';
 import { DashboardService } from '../../../core/services/dashboard.service';
 import { LocationService } from '../../../core/services/location.service';
-import { SettingsService } from '../../../core/services/settings.service';
+import { DEFAULT_SITE_TITLE, SettingsService } from '../../../core/services/settings.service';
+import { ADD_ON_ARRIVAL } from '../../utils/add-on-arrival';
 import { LocationDialogComponent } from '../location-dialog/location-dialog.component';
 
 type OnboardingStepId = 'location' | 'areas' | 'alarm';
@@ -219,7 +220,12 @@ const ALARM_ROUTES: { disableKey: string; route: string }[] = [
                         {{ (areasSet() ? 'ONBOARDING.STEP_AREAS_EDIT' : 'ONBOARDING.STEP_AREAS_CHOOSE') | translate }}
                       </a>
                     } @else if (step.id === 'alarm') {
-                      <a mat-flat-button color="primary" [routerLink]="step.route" (click)="navigateAway()">
+                      <a
+                        mat-flat-button
+                        color="primary"
+                        [routerLink]="step.route"
+                        [queryParams]="alarmsExist() ? null : addOnArrival"
+                        (click)="navigateAway()">
                         <mat-icon>add_alert</mat-icon>
                         {{ (alarmsExist() ? 'ONBOARDING.STEP_ALARM_MANAGE' : 'ONBOARDING.STEP_ALARM_ADD') | translate }}
                       </a>
@@ -261,6 +267,9 @@ export class OnboardingComponent implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly locationService = inject(LocationService);
   private readonly settingsService = inject(SettingsService);
+
+  /** "Add Alarm" opens the list's add dialog; "Manage Alarms" just goes there. */
+  protected readonly addOnArrival = ADD_ON_ARRIVAL;
 
   alarmsExist = signal(false);
   /**
@@ -312,7 +321,7 @@ export class OnboardingComponent implements OnInit {
   locationSet = signal(false);
   navigatedAway = output<void>();
 
-  siteTitle = computed(() => this.settingsService.siteSettings()['custom_title'] || 'DM Alerts');
+  siteTitle = computed(() => this.settingsService.siteSettings()['custom_title'] || DEFAULT_SITE_TITLE);
 
   dismiss() {
     localStorage.setItem('poracle-onboarding-complete', 'true');

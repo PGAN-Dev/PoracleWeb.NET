@@ -2,7 +2,9 @@
   <mat-chip-set>
     <mat-chip highlighted color="primary" (removed)="clearSelection()">
       {{ selected.shortLabel || selected.label }}
-      <button matChipRemove><mat-icon>cancel</mat-icon></button>
+      <button matChipRemove [attr.aria-label]="'COMMON.REMOVE_NAMED' | translate: { name: selected.shortLabel || selected.label }">
+        <mat-icon>cancel</mat-icon>
+      </button>
     </mat-chip>
   </mat-chip-set>
 } @else {

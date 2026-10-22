@@ -341,3 +341,11 @@
 .bulk-suggestion-chip:hover {
   background: rgba(25, 118, 210, 0.08);
 }
+
+// Touch screens get 44px targets (WCAG 2.5.5, UI audit cross D10). A mouse keeps the compact size.
+@media (pointer: coarse) {
+  .gen-chip {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}

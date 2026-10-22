@@ -26,6 +26,7 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/componen
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData, whereSheetConfig } from '../../shared/components/where-sheet/where-sheet.component';
+import { addOnArrival } from '../../shared/utils/add-on-arrival';
 import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
 import { byNumber, byText, queryAlarms, visibleSelection } from '../../shared/utils/alarm-list-query';
 import { orderAlarms } from '../../shared/utils/alarm-order';
@@ -65,6 +66,8 @@ export class LureListComponent implements OnInit {
   private readonly icons = inject(IconService);
   private readonly lureService = inject(LureService);
   private readonly snackBar = inject(MatSnackBar);
+  /** `?add=1` from the dashboard or onboarding opens the add dialog once. */
+  private readonly takeAddRequest = addOnArrival();
   private readonly translate = inject(TranslateService);
   readonly selectedIds = signal(new Set<number>());
   readonly lures = signal<Lure[]>([]);
@@ -309,6 +312,7 @@ export class LureListComponent implements OnInit {
   ngOnInit(): void {
     this.loadProfileAreas();
     this.loadLures();
+    if (this.takeAddRequest()) this.openAddDialog();
   }
 
   openAddDialog(): void {

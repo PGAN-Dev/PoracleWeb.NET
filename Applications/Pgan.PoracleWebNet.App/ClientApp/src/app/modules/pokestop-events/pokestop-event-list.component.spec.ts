@@ -3,9 +3,9 @@ import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { provideRouter } from '@angular/router';
+import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
-import { Observable, of, throwError } from 'rxjs';
+import { Observable, Subject, of, throwError } from 'rxjs';
 
 import { PokestopEventListComponent } from './pokestop-event-list.component';
 import { PokestopEvent } from '../../core/models';
@@ -54,7 +54,7 @@ describe('PokestopEventListComponent', () => {
     dialog.open.mockReturnValue({ afterClosed: () => of(value) });
   }
 
-  function setup(items: PokestopEvent[] | Observable<PokestopEvent[]>, areas: string[] = []): void {
+  function setup(items: PokestopEvent[] | Observable<PokestopEvent[]>, areas: string[] = [], query: Record<string, string> = {}): void {
     dialog = { open: jest.fn().mockReturnValue({ afterClosed: () => of(undefined) }) };
     snackBar = { open: jest.fn() };
     pokestopEventService = {
@@ -90,9 +90,11 @@ describe('PokestopEventListComponent', () => {
         providers: [
           { provide: MatDialog, useValue: dialog },
           { provide: MatSnackBar, useValue: snackBar },
+          { provide: ActivatedRoute, useValue: { snapshot: { queryParamMap: convertToParamMap(query) } } },
         ],
       },
     });
+    jest.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
 
     fixture = TestBed.createComponent(PokestopEventListComponent);
     component = fixture.componentInstance;
@@ -577,6 +579,40 @@ describe('PokestopEventListComponent', () => {
       component.editScope(base);
 
       expect(pokestopEventService.update).not.toHaveBeenCalled();
+    });
+  });
+  /**
+   * `?add=1` from the dashboard. This dialog marks events already tracked and names a clash from the list
+   * it is handed, so it must not open on the empty list of a page that is still loading.
+   */
+  describe('opened from ?add=1', () => {
+    it('waits for the first load and hands the dialog the loaded events', () => {
+      const load = new Subject<PokestopEvent[]>();
+      setup(load, [], { add: '1' });
+
+      expect(dialog.open).not.toHaveBeenCalled();
+
+      load.next([base]);
+      load.complete();
+
+      expect(dialog.open).toHaveBeenCalledTimes(1);
+      expect(dialog.open.mock.calls[0][1].data.events).toEqual([base]);
+    });
+
+    it('still opens when the load fails, so the user can add', () => {
+      setup(
+        throwError(() => new Error('down')),
+        [],
+        { add: '1' },
+      );
+
+      expect(dialog.open).toHaveBeenCalledTimes(1);
+    });
+
+    it('opens nothing on a plain visit', () => {
+      setup([base]);
+
+      expect(dialog.open).not.toHaveBeenCalled();
     });
   });
 });

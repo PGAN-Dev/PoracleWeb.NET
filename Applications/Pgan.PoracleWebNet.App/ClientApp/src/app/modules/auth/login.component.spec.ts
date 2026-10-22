@@ -333,6 +333,37 @@ describe('LoginComponent', () => {
       expect(component['error']()).toBe('AUTH.ERR_TELEGRAM_DISABLED');
     });
 
+    // UI audit D16: /login#error=weird_code printed "weird_code".
+    it('shows a generic message, not the raw code, for an error it does not know', () => {
+      window.location.hash = '#error=constructor';
+      setup();
+      fixture.detectChanges();
+      expect(component['error']()).toBe('AUTH.ERR_UNKNOWN');
+      expect(fixture.nativeElement.textContent).not.toContain('constructor');
+    });
+
+    it('still names every code the API sends', () => {
+      const codes: Record<string, string> = {
+        oidc_disabled: 'AUTH.ERR_OIDC_DISABLED',
+        oidc_no_identity: 'AUTH.ERR_OIDC_NO_IDENTITY',
+        oidc_token_exchange_failed: 'AUTH.ERR_OIDC_TOKEN_EXCHANGE',
+        oidc_userinfo_failed: 'AUTH.ERR_OIDC_USERINFO',
+        discord_user_fetch_failed: 'AUTH.ERR_DISCORD_FETCH',
+        missing_code: 'AUTH.ERR_MISSING_CODE',
+        missing_required_role: 'AUTH.ERR_MISSING_ROLE',
+        not_in_guild: 'AUTH.ERR_NOT_IN_GUILD',
+        role_check_failed: 'AUTH.ERR_ROLE_CHECK_FAILED',
+        token_exchange_failed: 'AUTH.ERR_TOKEN_EXCHANGE',
+        user_not_registered: 'AUTH.ERR_NOT_REGISTERED',
+      };
+      for (const [code, key] of Object.entries(codes)) {
+        window.location.hash = `#error=${code}`;
+        setup();
+        fixture.detectChanges();
+        expect(component['error']()).toBe(key);
+      }
+    });
+
     /**
      * AuthService.handleTokenFromCallback sends a disabled account here instead of the dashboard, with
      * the reason and the support link in the fragment -- the one place that explanation reaches someone

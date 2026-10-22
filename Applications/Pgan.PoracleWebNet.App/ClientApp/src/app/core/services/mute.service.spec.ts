@@ -88,6 +88,18 @@ describe('MuteService', () => {
     expect(service.isQuiet('area', 'aberdeen')).toBe(true);
   });
 
+  it('matches an area held with underscores to the mute stored under its own name', () => {
+    seed([aMute({ scope: 'area', value: 'West End' })]);
+
+    expect(service.isQuiet('area', 'west_end')).toBe(true);
+  });
+
+  it('keeps underscores significant outside the area scope', () => {
+    seed([aMute({ scope: 'gym', value: 'a_b' })]);
+
+    expect(service.isQuiet('gym', 'a b')).toBe(false);
+  });
+
   it('drops a quiet period once its expiry has passed', () => {
     seed([aMute({ expiresAt: nowSecs() - 1 })]);
 

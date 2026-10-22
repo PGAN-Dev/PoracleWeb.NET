@@ -4,6 +4,8 @@ using Pgan.PoracleWebNet.Api.Filters;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 
 using Pgan.PoracleWebNet.Core.Models;
+using Pgan.PoracleWebNet.Core.Models.Helpers;
+using Pgan.PoracleWebNet.Core.Services;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
@@ -330,19 +332,58 @@ public class LocationController(
     /// Saves a place an alarm can be anchored to.
     /// </summary>
     /// <remarks>
-    /// PoracleNG reports a rejected label inside a 200 because its endpoint answers per row, so the
-    /// refusal is unwrapped here and returned as a 400 the SPA can show against the field.
+    /// A refusal, ours or PoracleNG's, is returned as a 400 <c>{ error }</c> the SPA can show as it is.
+    /// The label rule (<see cref="PlaceLabelRules"/>) runs here rather than as model attributes, because an
+    /// attribute's refusal arrives as a validation-problem body the SPA could not read, and it judges this new
+    /// label only: moving and deleting address the stored label, so a place saved before the rule stays usable.
     /// </remarks>
     [HttpPost("places")]
     public async Task<IActionResult> AddPlace(
         [FromBody] SavedPlace place)
     {
+        if (PlaceLabelRules.Validate(place.Label) is { } invalid)
+        {
+            return this.BadRequest(new { error = invalid });
+        }
+
+        place.Label = place.Label.Trim();
         var refusal = await this._humanProxy.AddPlaceAsync(this.UserId, place);
 
         // Answers the same shape as the GET and the PUT; the SPA replaces its places signal from it.
         return refusal is null
             ? this.Ok(await this.PlacesAsync())
             : this.BadRequest(new { error = refusal });
+    }
+
+    /// <summary>
+    /// How many of the active profile's alarms measure their radius from the profile pin: a radius above
+    /// zero and no saved place. Clearing the pin stops every one of them matching, so the SPA names the
+    /// count before it asks to clear. A rule aimed at a saved place keeps its anchor and is not counted.
+    /// </summary>
+    [HttpGet("pin-usage")]
+    public async Task<IActionResult> GetPinUsage([FromServices] IPoracleTrackingProxy trackingProxy)
+    {
+        var snapshot = await trackingProxy.GetAllTrackingAsync(this.UserId);
+        return this.Ok(new { alarms = PlaceUsage.CountMeasuredFromPin(snapshot) });
+    }
+
+    /// <summary>
+    /// The active profile's alarms aimed at a saved place, every type included (Pokéstop events too).
+    /// PoracleNG refuses to delete a place while any exist, so the SPA reads this before it offers Delete
+    /// and lists them instead. The delete's own 409 still covers a rule added in between.
+    /// </summary>
+    [HttpGet("place-usage")]
+    public async Task<IActionResult> GetPlaceUsage(
+        [FromQuery] string? label, [FromServices] IPoracleTrackingProxy trackingProxy)
+    {
+        if (string.IsNullOrWhiteSpace(label))
+        {
+            return this.BadRequest(new { error = "Name the place to check." });
+        }
+
+        var snapshot = await trackingProxy.GetAllTrackingWithDescriptionsAsync(this.UserId);
+        var rules = PlaceUsage.RulesAimedAt(snapshot, label);
+        return this.Ok(new { alarms = rules.Count, rules });
     }
 
     /// <summary>

@@ -5,6 +5,9 @@ import { Observable, catchError, forkJoin, map, of, tap } from 'rxjs';
 import { ConfigService } from './config.service';
 import { DiscordServerConfig, OidcServerConfig, SiteSetting, TelegramServerConfig } from '../models';
 
+/** The site title when an operator has set no `custom_title`: the toolbar's, and the tab title's suffix. */
+export const DEFAULT_SITE_TITLE = 'DM Alerts';
+
 @Injectable({ providedIn: 'root' })
 export class SettingsService {
   private readonly config = inject(ConfigService);

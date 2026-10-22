@@ -218,7 +218,7 @@ adding the chip to a tenth surface or dropping it from one of the six fails the 
 
 ### Places section
 
-`PlacesSectionComponent` (`shared/components/places-section/`) renders the user's named places as a section of the Areas & Places page, directly under the card holding the pin. The pin is not repeated in the grid, since the card above it is the pin. Adding a place borrows `LocationDialogComponent` as a coordinate picker rather than growing a second map, then asks for the name separately.
+`PlacesSectionComponent` (`shared/components/places-section/`) lists the user's named places inside the Areas & Places page's **Pin and places** panel, directly under the row holding the pin. The page is map first: `AreaMapComponent` draws the pin and every named place as markers (its `places` input), and clicking one opens the panel. The pin is not repeated in the list, since the row above it is the pin. Adding a place borrows `LocationDialogComponent` as a coordinate picker rather than growing a second map, then asks for the name separately.
 
 ### Server profile card
 

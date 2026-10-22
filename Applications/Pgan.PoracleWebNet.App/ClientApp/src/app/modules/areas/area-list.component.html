@@ -10,134 +10,77 @@
     <mat-spinner diameter="48"></mat-spinner>
   </div>
 } @else {
+  <!--
+    Map first: the map is the control, so it opens the page. What is selected sits directly under it, and
+    the pin and places, which the map already draws as markers, are managed in a panel below.
+  -->
   <div class="areas-page">
-    <!-- Explainer: Two methods side by side -->
-    <div class="method-cards" [class.single]="!locationEnabled()">
-      <div class="method-card method-areas" [class.method-active]="selectedAreas().length > 0">
-        <div class="method-header">
-          <mat-icon class="method-icon">map</mat-icon>
-          <div>
-            <h3>{{ 'AREAS.METHOD_AREAS' | translate }}</h3>
-            <span class="method-status">
-              @if (selectedAreas().length > 0) {
-                {{ 'AREAS.METHOD_AREAS_ACTIVE' | translatePlural: selectedAreas().length }}
-              } @else {
-                {{ 'AREAS.METHOD_NOT_CONFIGURED' | translate }}
-              }
-            </span>
-          </div>
-        </div>
-        <p class="method-description">
-          {{ 'AREAS.METHOD_AREAS_DESC' | translate }}
-        </p>
-        <p class="method-example">
-          <mat-icon>lightbulb</mat-icon>
-          {{ 'AREAS.METHOD_AREAS_TIP' | translate }}
-        </p>
-      </div>
+    <!--
+      The selected areas as chips. Under the map in Map view; above the checklist in List view, so they
+      stay near the top instead of after a long list.
+    -->
+    <ng-template #selectedChips>
+      @if (selectedAreas().length > 0) {
+        <section class="selected-bar" [attr.aria-label]="'AREAS.SELECTION_SUMMARY' | translatePlural: selectedAreas().length">
+          <mat-chip-set class="selected-chips">
+            @for (area of selectedAreas(); track area) {
+              <mat-chip highlighted color="primary" (removed)="removeAreaDirect(area)">
+                {{ areaDisplayName(area) }}
+                <!--
+                  A second trailing affordance beside remove. Anyone who works from the chips rather than
+                  the checklist would otherwise have no sight of what is quiet.
 
-      @if (locationEnabled()) {
-        <div class="method-card method-location" [class.method-active]="!!location()">
-          <div class="method-header">
-            <mat-icon class="method-icon">my_location</mat-icon>
-            <div>
-              <h3>{{ 'AREAS.METHOD_LOCATION' | translate }}</h3>
-              <span class="method-status">
-                @if (location(); as loc) {
-                  @if (locationAddress()) {
-                    {{ locationAddress() | slice: 0 : 50 }}
-                  } @else {
-                    {{ loc.latitude.toFixed(4) }}, {{ loc.longitude.toFixed(4) }}
-                  }
-                } @else {
-                  {{ 'AREAS.METHOD_LOCATION_NOT_SET' | translate }}
+                  value is the STORED name, which is what Poracle keys a quiet period on; subject is the
+                  published name, which is what the reader is shown. They differ in case and must not be
+                  collapsed into one.
+                -->
+                @if (isSaved(area)) {
+                  <app-quiet-chip appearance="trailing" scope="area" [value]="area" [subject]="areaDisplayName(area)" />
                 }
-              </span>
-            </div>
-            <div class="method-actions">
-              @if (location()) {
-                <button mat-button color="warn" (click)="clearLocation()">
-                  <mat-icon>location_off</mat-icon> {{ 'AREAS.CLEAR_LOCATION' | translate }}
+                <button matChipRemove [attr.aria-label]="'COMMON.REMOVE_NAMED' | translate: { name: areaDisplayName(area) }">
+                  <mat-icon>cancel</mat-icon>
                 </button>
-              }
-              <button mat-stroked-button (click)="openLocationDialog()">
-                <mat-icon>edit_location</mat-icon>
-                {{ location() ? ('AREAS.CHANGE_LOCATION' | translate) : ('AREAS.SET_LOCATION' | translate) }}
-              </button>
-            </div>
-          </div>
-          <p class="method-description">
-            {{ 'AREAS.METHOD_LOCATION_DESC' | translate }}
-          </p>
-          <p class="method-example">
-            <mat-icon>lightbulb</mat-icon>
-            {{ 'AREAS.METHOD_LOCATION_TIP' | translate }}
-          </p>
-        </div>
+              </mat-chip>
+            }
+          </mat-chip-set>
+        </section>
       }
-    </div>
+    </ng-template>
 
-    @if (locationEnabled()) {
-      <div class="method-note">
-        <mat-icon>info</mat-icon>
-        <span>{{ 'AREAS.METHOD_NOTE' | translate }}</span>
-      </div>
-
-      <app-places-section />
-    }
-
-    <!-- Area Selection Section -->
-    <h2 class="section-title">
-      <mat-icon>map</mat-icon>
-      {{ 'AREAS.SELECT_AREAS' | translate }}
-    </h2>
-
-    <!-- Mode Toggle -->
     <div class="mode-bar">
-      <div class="mode-toggle">
+      <div class="mode-toggle" role="group" [attr.aria-label]="'AREAS.VIEW_MODE' | translate">
         <button
           class="mode-btn"
           [class.mode-active]="viewMode() === 'map'"
+          [attr.aria-pressed]="viewMode() === 'map'"
           (click)="viewMode.set('map')"
           [disabled]="geofenceData().length === 0">
           <mat-icon>public</mat-icon>
           {{ 'AREAS.MAP_VIEW' | translate }}
         </button>
-        <button class="mode-btn" [class.mode-active]="viewMode() === 'list'" (click)="viewMode.set('list')">
+        <button
+          class="mode-btn"
+          [class.mode-active]="viewMode() === 'list'"
+          [attr.aria-pressed]="viewMode() === 'list'"
+          (click)="viewMode.set('list')">
           <mat-icon>list</mat-icon>
           {{ 'AREAS.LIST_VIEW' | translate }}
         </button>
       </div>
-      <span class="selection-summary">{{ 'AREAS.SELECTION_SUMMARY' | translatePlural: selectedAreas().length }}</span>
+      <!-- What PoracleNG holds, not the ticks: an area ticked and not yet saved is not active. -->
+      <span class="areas-status">
+        @if (savedAreas().length > 0) {
+          {{ 'AREAS.METHOD_AREAS_ACTIVE' | translatePlural: savedAreas().length }}
+        } @else {
+          {{ 'AREAS.NO_AREAS_ACTIVE' | translate }}
+        }
+      </span>
       @if (selectedAreas().length > 0) {
-        <button mat-button color="warn" (click)="clearAllAreas()">
-          <mat-icon>delete_sweep</mat-icon> {{ 'AREAS.CLEAR_ALL' | translate }}
+        <button mat-button class="clear-all" (click)="clearAllAreas()">
+          <mat-icon>deselect</mat-icon> {{ 'AREAS.CLEAR_ALL' | translate }}
         </button>
       }
     </div>
-
-    <!-- Selected Areas Chips -->
-    @if (selectedAreas().length > 0) {
-      <div class="selected-bar">
-        <mat-chip-set class="selected-chips">
-          @for (area of selectedAreas(); track area) {
-            <mat-chip highlighted color="primary" (removed)="removeAreaDirect(area)">
-              {{ areaDisplayName(area) }}
-              <!--
-                A second trailing affordance beside remove. Anyone who works from the chips rather than
-                the checklist would otherwise have no sight of what is quiet.
-
-                value is the STORED name, which is what Poracle keys a quiet period on; subject is the
-                published name, which is what the reader is shown. They differ in case and must not be
-                collapsed into one.
-              -->
-              <app-quiet-chip appearance="trailing" scope="area" [value]="area" [subject]="areaDisplayName(area)" />
-              <button matChipRemove><mat-icon>cancel</mat-icon></button>
-            </mat-chip>
-          }
-        </mat-chip-set>
-      </div>
-    }
 
     <!-- Map View -->
     @if (viewMode() === 'map') {
@@ -147,8 +90,10 @@
             [geofence]="geofenceData()"
             [selectedAreas]="selectedAreas()"
             [userLocation]="userLocationForMap()"
+            [places]="mapPlaces()"
             [groupMapping]="groupMapping()"
-            (areaClicked)="onMapAreaClicked($event)"></app-area-map>
+            (areaClicked)="onMapAreaClicked($event)"
+            (placeClicked)="openPinPanel()"></app-area-map>
         </div>
         <p class="map-hint">{{ 'AREAS.MAP_HINT' | translate }}</p>
       } @else {
@@ -159,8 +104,13 @@
       }
     }
 
+    @if (viewMode() === 'map') {
+      <ng-container [ngTemplateOutlet]="selectedChips" />
+    }
+
     <!-- List View -->
     @if (viewMode() === 'list') {
+      <ng-container [ngTemplateOutlet]="selectedChips" />
       <div class="list-view">
         <app-region-selector
           [regions]="groupOptions()"
@@ -207,8 +157,8 @@
                 @if (hasMultipleGroups() && !activeGroup()) {
                   <span class="area-row-group">{{ area.group }}</span>
                 }
-                <!-- Only a subscribed area has alerts to quiet. -->
-                @if (area.selected) {
+                <!-- Only a subscribed area has alerts to quiet: ticked is not subscribed until it is saved. -->
+                @if (area.selected && isSaved(area.name)) {
                   <span class="area-row-quiet" (click)="$event.stopPropagation()">
                     <app-quiet-chip appearance="chip" scope="area" [value]="area.name" [subject]="area.name" />
                   </span>
@@ -222,7 +172,64 @@
       </div>
     }
 
-    <!-- Floating Save Bar -->
+    <!--
+      The pin and the named places. `disable_location` 403s every route behind both, so with it on the
+      panel is absent, and neither is read.
+    -->
+    @if (locationEnabled()) {
+      <mat-expansion-panel
+        #pinPanel
+        class="pin-places"
+        [expanded]="pinPanelOpen()"
+        (opened)="pinPanelOpen.set(true)"
+        (closed)="pinPanelOpen.set(false)">
+        <mat-expansion-panel-header>
+          <mat-panel-title>
+            <mat-icon class="pin-places-icon">my_location</mat-icon>
+            {{ 'AREAS.PIN_AND_PLACES' | translate }}
+          </mat-panel-title>
+          <mat-panel-description class="pin-places-summary">
+            <span>{{ location() ? ('AREAS.PIN_SET' | translate) : ('AREAS.METHOD_LOCATION_NOT_SET' | translate) }}</span>
+            <span aria-hidden="true">·</span>
+            <span>{{ 'AREAS.PLACES_COUNT' | translatePlural: places.named().length }}</span>
+          </mat-panel-description>
+        </mat-expansion-panel-header>
+
+        <div class="pin-row method-location">
+          <span class="pin-dot" aria-hidden="true"></span>
+          <div class="pin-text">
+            <h2 class="pin-title">{{ 'AREAS.METHOD_LOCATION' | translate }}</h2>
+            <span class="method-status">
+              @if (location(); as loc) {
+                @if (locationAddress()) {
+                  {{ locationAddress() | slice: 0 : 80 }}
+                } @else {
+                  {{ loc.latitude.toFixed(4) }}, {{ loc.longitude.toFixed(4) }}
+                }
+              } @else {
+                {{ 'AREAS.METHOD_LOCATION_NOT_SET' | translate }}
+              }
+            </span>
+          </div>
+          <div class="method-actions">
+            @if (location()) {
+              <button mat-button color="warn" [disabled]="clearingPin()" (click)="clearLocation()">
+                <mat-icon>location_off</mat-icon> {{ 'AREAS.CLEAR_LOCATION' | translate }}
+              </button>
+            }
+            <button mat-stroked-button (click)="openLocationDialog()">
+              <mat-icon>edit_location</mat-icon>
+              {{ location() ? ('AREAS.CHANGE_LOCATION' | translate) : ('AREAS.SET_LOCATION' | translate) }}
+            </button>
+          </div>
+        </div>
+        <p class="method-description">{{ 'AREAS.METHOD_LOCATION_DESC' | translate }} {{ 'AREAS.METHOD_NOTE' | translate }}</p>
+
+        <app-places-section />
+      </mat-expansion-panel>
+    }
+
+    <!-- Save bar: the content column only, in the surface colour; the count says what Save will store. -->
     @if (hasChanges()) {
       <div class="save-bar">
         @if (selectionUnknown()) {
@@ -231,7 +238,7 @@
           <span class="save-info">{{ 'AREAS.SELECTION_SUMMARY' | translatePlural: selectedAreas().length }}</span>
         }
         <button mat-button (click)="cancelChanges()">{{ 'AREAS.CANCEL_CHANGES' | translate }}</button>
-        <button mat-raised-button color="primary" (click)="saveAreas()" [disabled]="saving() || selectionUnknown()">
+        <button mat-flat-button color="primary" (click)="saveAreas()" [disabled]="saving() || selectionUnknown()">
           @if (saving()) {
             <mat-spinner diameter="18" class="inline-spinner"></mat-spinner>
           } @else {

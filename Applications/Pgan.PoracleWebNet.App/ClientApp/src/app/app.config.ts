@@ -2,7 +2,7 @@ import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { MatPaginatorIntl } from '@angular/material/paginator';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
-import { provideRouter } from '@angular/router';
+import { TitleStrategy, provideRouter } from '@angular/router';
 import { provideTranslateService, TranslateLoader } from '@ngx-translate/core';
 import { TranslateHttpLoader, provideTranslateHttpLoader } from '@ngx-translate/http-loader';
 
@@ -11,6 +11,7 @@ import { TranslatedPaginatorIntl } from './core/i18n/translated-paginator-intl';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { errorInterceptor } from './core/interceptors/error.interceptor';
 import { oidcRefreshInterceptor } from './core/interceptors/oidc-refresh.interceptor';
+import { PageTitleStrategy } from './core/services/page-title.strategy';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -19,6 +20,8 @@ export const appConfig: ApplicationConfig = {
     { provide: MatPaginatorIntl, useClass: TranslatedPaginatorIntl },
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
+    // "Pokémon · <site title>" per route instead of the site title everywhere. See PageTitleStrategy.
+    { provide: TitleStrategy, useClass: PageTitleStrategy },
     // oidcRefreshInterceptor sits closest to the backend so it catches a 401 (and can silently
     // refresh + retry) before errorInterceptor redirects to the login page.
     provideHttpClient(withInterceptors([authInterceptor, errorInterceptor, oidcRefreshInterceptor])),

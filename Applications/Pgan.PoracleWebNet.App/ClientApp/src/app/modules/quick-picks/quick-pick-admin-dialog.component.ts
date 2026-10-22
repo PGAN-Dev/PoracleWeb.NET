@@ -1,7 +1,9 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MatExpansionModule } from '@angular/material/expansion';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -9,13 +11,16 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
+import { merge } from 'rxjs';
 
 import { quickPickAlarmTypeLabel } from './quick-pick-labels';
 import { QuickPickDefinition } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { QuickPickService } from '../../core/services/quick-pick.service';
+import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
 
 /**
  * Filter keys that belong to no particular alarm type, and so survive a type change.
@@ -29,6 +34,49 @@ import { QuickPickService } from '../../core/services/quick-pick.service';
  * a user's ping target and template on a type change. See #671, #674.
  */
 const TYPE_AGNOSTIC_FILTER_KEYS = new Set(['clean', 'distance', 'ping', 'template']);
+
+/**
+ * Icons an admin can give a pick: the built-in picks' own, plus a few that fit other presets. A stored
+ * icon outside this list is still offered, first, so editing a pick never changes its icon by itself.
+ */
+export const QUICK_PICK_ICONS = [
+  'bolt',
+  'star',
+  'stars',
+  'star_half',
+  'star_border',
+  'military_tech',
+  'emoji_events',
+  'trending_up',
+  'catching_pokemon',
+  'shield',
+  'egg',
+  'flash_on',
+  'assignment',
+  'warning',
+  'supervisor_account',
+  'place',
+  'park',
+  'fitness_center',
+  'water_drop',
+  'ac_unit',
+  'eco',
+  'diamond',
+  'auto_awesome',
+  'local_fire_department',
+  'open_in_full',
+  'close_fullscreen',
+  'exposure_zero',
+  'favorite',
+  'celebration',
+  'pets',
+];
+
+/** The filter value that means "any Pokémon": 9000 for max battles, as the battle form stores it; 0 elsewhere. */
+const ANY_POKEMON: Record<string, number> = { maxbattle: 9000 };
+
+/** Quest reward type for a Pokémon encounter; its `reward` is the species id, as the quest add dialog stores it. */
+export const QUEST_REWARD_POKEMON = 7;
 
 /** Stored quick-pick categories are English strings, so the display label comes from this value-to-key map. */
 const CATEGORY_KEYS: Record<string, string> = {
@@ -47,6 +95,7 @@ const CATEGORY_KEYS: Record<string, string> = {
     ReactiveFormsModule,
     MatDialogModule,
     MatButtonModule,
+    MatExpansionModule,
     MatFormFieldModule,
     MatInputModule,
     MatIconModule,
@@ -54,6 +103,8 @@ const CATEGORY_KEYS: Record<string, string> = {
     MatSlideToggleModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
+    MatTooltipModule,
+    PokemonSelectorComponent,
     TranslatePipe,
   ],
   selector: 'app-quick-pick-admin-dialog',
@@ -63,6 +114,7 @@ const CATEGORY_KEYS: Record<string, string> = {
 })
 export class QuickPickAdminDialogComponent implements OnInit {
   private readonly auth = inject(AuthService);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly fb = inject(FormBuilder);
   private readonly i18n = inject(I18nService);
   private readonly quickPickService = inject(QuickPickService);
@@ -143,8 +195,9 @@ export class QuickPickAdminDialogComponent implements OnInit {
     pokemonId: [0],
   });
 
+  // No pokemonId: the Quest model has none, so applying a pick drops it. An encounter quest names its
+  // species in `reward` (reward type 7), which is where the Pokémon picker writes for a quest.
   questForm = this.fb.group({
-    pokemonId: [0],
     reward: [0],
     rewardType: [0],
     shiny: [0],
@@ -159,6 +212,9 @@ export class QuickPickAdminDialogComponent implements OnInit {
   });
 
   readonly saving = signal(false);
+
+  /** Bumped to rebuild the Pokémon selector, which has no way to clear a single pick from outside. */
+  readonly selectorKey = signal(0);
 
   /**
    * Where this pick belongs: an edit keeps its own scope, a new one follows who is creating it.
@@ -177,6 +233,11 @@ export class QuickPickAdminDialogComponent implements OnInit {
   /** The translated alarm type for the type picker; the stored value stays 'monster', 'raid' and so on. */
   alarmTypeLabel(alarmType: string): string {
     return quickPickAlarmTypeLabel(alarmType, this.i18n);
+  }
+
+  /** The stored value that means "any Pokémon" for the current type. */
+  anyPokemonValue(type: string = this.currentAlarmType): number {
+    return ANY_POKEMON[type] ?? 0;
   }
 
   /** Display label for a stored category. Unmapped values render as stored. */
@@ -210,7 +271,24 @@ export class QuickPickAdminDialogComponent implements OnInit {
     }
   }
 
+  /** The icons to offer: the stored one first when it is not one of ours, so an edit keeps it. */
+  iconChoices(): string[] {
+    const current = this.mainForm.controls.icon.value ?? '';
+    return current && !QUICK_PICK_ICONS.includes(current) ? [current, ...QUICK_PICK_ICONS] : QUICK_PICK_ICONS;
+  }
+
+  /** Whether a 0/1 filter is on. The stored shape stays a number; only the control is a switch. */
+  isOn(form: FormGroup, key: string): boolean {
+    return Number(form.get(key)?.value) === 1;
+  }
+
   ngOnInit(): void {
+    // A species picked for one type is not the next type's, and an encounter quest's species is its
+    // reward: rebuild the selector so its text box shows what the new control holds.
+    merge(this.mainForm.controls.alarmType.valueChanges, this.questForm.controls.rewardType.valueChanges)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.selectorKey.update(k => k + 1));
+
     if (this.data?.filters) {
       const filters = this.data.filters;
       const form = this.getFilterForm(this.data.alarmType);
@@ -223,6 +301,42 @@ export class QuickPickAdminDialogComponent implements OnInit {
         });
       }
     }
+  }
+
+  onPokemonPicked(ids: number[]): void {
+    const control = this.pokemonControl();
+    if (!control) return;
+    const id = ids[ids.length - 1];
+    // The selector's own "All Pokémon" entry is id 0, which a max battle stores as 9000.
+    control.setValue(id === undefined || id === 0 ? this.anyPokemonValue() : id);
+  }
+
+  pickIcon(icon: string): void {
+    this.mainForm.controls.icon.setValue(icon);
+  }
+
+  /**
+   * The control the Pokémon picker writes, or null where applying the pick reads no species. That is
+   * `pokemonId` for Pokémon, raids, nests and max battles, and for a quest the reward of an encounter
+   * (reward type 7); see QuickPickService's Apply* and Build* methods.
+   */
+  pokemonControl() {
+    if (this.currentAlarmType === 'quest') {
+      return Number(this.questForm.controls.rewardType.value) === QUEST_REWARD_POKEMON ? this.questForm.controls.reward : null;
+    }
+    return this.getFilterForm(this.currentAlarmType)?.get('pokemonId') ?? null;
+  }
+
+  /** The stored species as the selector's starting pick; empty when the pick matches any Pokémon. */
+  pokemonInitialIds(): number[] {
+    const id = Number(this.pokemonControl()?.value ?? 0);
+    return id && id !== this.anyPokemonValue() ? [id] : [];
+  }
+
+  /** Back to any Pokémon, and a fresh selector so its text box does not keep the old name. */
+  resetPokemon(): void {
+    this.pokemonControl()?.setValue(this.anyPokemonValue());
+    this.selectorKey.update(k => k + 1);
   }
 
   save(): void {
@@ -297,5 +411,10 @@ export class QuickPickAdminDialogComponent implements OnInit {
         this.dialogRef.close(true);
       },
     });
+  }
+
+  /** Sets a 0/1 filter from its switch. */
+  setOn(form: FormGroup, key: string, on: boolean): void {
+    form.get(key)?.setValue(on ? 1 : 0);
   }
 }

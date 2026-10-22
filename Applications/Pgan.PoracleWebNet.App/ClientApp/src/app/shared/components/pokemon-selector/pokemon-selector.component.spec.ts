@@ -15,7 +15,7 @@ describe('PokemonSelectorComponent', () => {
 
   let fixture: ComponentFixture<PokemonSelectorComponent>;
 
-  function setup(ivFilters: boolean) {
+  function setup(ivFilters: boolean, opts: { initialIds?: number[]; multi?: boolean } = {}) {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
@@ -35,8 +35,9 @@ describe('PokemonSelectorComponent', () => {
     });
 
     fixture = TestBed.createComponent(PokemonSelectorComponent);
-    fixture.componentRef.setInput('multi', true);
+    fixture.componentRef.setInput('multi', opts.multi ?? true);
     fixture.componentRef.setInput('ivFilters', ivFilters);
+    if (opts.initialIds) fixture.componentRef.setInput('initialIds', opts.initialIds);
     fixture.detectChanges();
   }
 
@@ -135,5 +136,22 @@ describe('PokemonSelectorComponent', () => {
     pick(MINIOR);
 
     expect(note()).toBeNull();
+  });
+
+  describe('initialIds', () => {
+    it('shows a stored single pick as chosen, without emitting it', () => {
+      setup(false, { initialIds: [52], multi: false });
+      const emitted = jest.fn();
+      fixture.componentInstance.selectionChange.subscribe(emitted);
+
+      expect(fixture.componentInstance.selectedPokemon()).toEqual([MEOWTH]);
+      expect(fixture.componentInstance.searchControl.value).toContain('Meowth');
+      expect(emitted).not.toHaveBeenCalled();
+    });
+
+    it('leaves the selector empty when no ids are given, as every existing caller does', () => {
+      setup(false);
+      expect(fixture.componentInstance.selectedPokemon()).toEqual([]);
+    });
   });
 });

@@ -3,11 +3,8 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: 20px 24px;
+  padding: 20px 24px 8px;
   gap: 16px;
-  background: linear-gradient(135deg, rgba(255, 152, 0, 0.06) 0%, rgba(255, 152, 0, 0.02) 100%);
-  border-radius: 12px;
-  margin-bottom: 16px;
 }
 
 .page-header-text {
@@ -26,27 +23,54 @@
   color: var(--text-secondary, rgba(0, 0, 0, 0.54));
   font-size: 13px;
   line-height: 1.5;
-  border-left: 3px solid #ff9800;
-  padding-left: 12px;
 }
 
 .page-content {
   padding: 0 24px 24px;
 }
 
-// ─── Toolbar ────────────────────────────────────────
-.toolbar {
+// ─── Sections ───────────────────────────────────────
+.section-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 16px 0 12px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.section-count {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  font-variant-numeric: tabular-nums;
+}
+
+.queue-empty {
+  margin: 0 0 8px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  font-size: 14px;
+}
+
+.others {
+  margin-top: 32px;
+}
+
+.others-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: 8px 16px;
+  margin-bottom: 12px;
+
+  .section-title {
+    margin: 0;
+  }
 }
 
-// A button-toggle group is an inline-flex row whose buttons never wrap their labels, so five
-// "Pending (12)" tabs are ~500px wide whatever box they sit in. Scroll the row inside its box rather
-// than let it push the page sideways on a phone.
+// A button-toggle group is an inline-flex row whose buttons never wrap their labels. Scroll the row
+// inside its box rather than let it push the page sideways on a phone.
 .filter-tabs {
   flex: 0 1 auto;
   min-width: 0;
@@ -59,156 +83,97 @@
   }
 }
 
-.view-toggle {
-  flex-shrink: 0;
-
-  mat-icon {
-    font-size: 20px;
-    width: 20px;
-    height: 20px;
-  }
-}
-
-// ─── Region Panel ───────────────────────────────────
-.region-panel {
-  margin-bottom: 12px;
-  border-radius: 12px !important;
-  overflow: hidden;
-  background: var(--card-bg, #fff);
-
-  &:last-child {
-    margin-bottom: 0;
-  }
-
-  // Override expansion panel styling
-  :host ::ng-deep .mat-expansion-panel-body {
-    padding: 0 16px 16px;
-  }
-}
-
-.region-icon {
-  font-size: 20px;
-  width: 20px;
-  height: 20px;
-  margin-right: 8px;
-  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
-}
-
-.region-name {
-  font-weight: 500;
-  font-size: 15px;
-}
-
-.region-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 22px;
-  height: 22px;
-  padding: 0 6px;
-  margin-left: 8px;
-  border-radius: 11px;
-  background: var(--accent-color, #ff9800);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 1;
-}
-
-// ─── Submissions Grid ───────────────────────────────
-.submissions-grid {
+// ─── Triage row: map left, decision right ───────────
+// The question an admin answers here is "does this shape make sense on the map", so the map gets the room.
+.triage-row {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 16px;
-}
-
-// ─── Submission Card ────────────────────────────────
-.submission-card {
-  position: relative;
+  grid-template-columns: minmax(0, 360px) minmax(0, 1fr);
+  gap: 0;
+  margin-bottom: 16px;
   border: 1px solid var(--card-border, rgba(0, 0, 0, 0.12));
   border-radius: 12px;
   overflow: hidden;
   background: var(--card-bg, #fff);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-  transition:
-    transform 0.2s,
-    box-shadow 0.2s;
-  animation: fadeInUp 0.3s ease-out both;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-  }
 }
 
-.submission-card-accent {
-  height: 4px;
-  background: #9e9e9e;
-
-  &.accent-pending {
-    background: #ff9800;
-  }
-  &.accent-active {
-    background: #2196f3;
-  }
-  &.accent-approved {
-    background: #4caf50;
-  }
-  &.accent-rejected {
-    background: #f44336;
-  }
+.triage-map,
+.map-thumbnail.triage-map {
+  height: 100%;
+  min-height: 240px;
 }
 
-.submission-card-body {
-  padding: 16px;
-}
-
-.submission-card-header {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  margin-bottom: 12px;
-}
-
-.submission-card-icon {
-  color: #ff9800;
-  font-size: 22px;
-  width: 22px;
-  height: 22px;
-  flex-shrink: 0;
-  margin-top: 1px;
-}
-
-.submission-card-info {
-  flex: 1;
-  min-width: 0;
+.triage-body {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 8px;
+  min-width: 0;
+  padding: 16px 20px;
 }
 
-.submission-card-name {
-  font-size: 15px;
+.triage-name {
+  margin: 0;
+  font-size: 18px;
   font-weight: 500;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
-.submission-card-group {
-  font-size: 12px;
+.triage-owner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
   color: var(--text-secondary, rgba(0, 0, 0, 0.54));
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.submission-card-owner {
-  font-size: 12px;
-  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.triage-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 24px;
+  margin: 4px 0 0;
+  font-size: 13px;
+
+  div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  dt {
+    color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+    font-size: 12px;
+  }
+
+  dd {
+    margin: 0;
+  }
+}
+
+.triage-overlap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 13px;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  }
+}
+
+.triage-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 8px;
+}
+
+.triage-actions-spacer {
+  flex: 1;
 }
 
 // ─── Avatar ─────────────────────────────────────────
@@ -262,15 +227,11 @@
   overflow: hidden;
   cursor: pointer;
   position: relative;
-  background: var(--card-bg, #f5f5f5);
-  transition: filter 0.2s;
+  background: var(--skeleton-bg, #f5f5f5);
 
-  &:hover {
-    filter: brightness(1.03);
-
-    .map-thumbnail-expand {
-      opacity: 1;
-    }
+  &:hover .map-thumbnail-expand,
+  &:focus-visible .map-thumbnail-expand {
+    opacity: 1;
   }
 
   // Leaflet container fills thumbnail
@@ -324,13 +285,12 @@
 }
 
 // ─── Skeleton Loading ───────────────────────────────
-.skeleton-card {
+.skeleton-row {
   pointer-events: none;
 }
 
 .skeleton-map-placeholder {
   width: 100%;
-  height: 160px;
   background: var(--skeleton-bg, #e0e0e0);
 }
 
@@ -372,78 +332,43 @@
   animation: shimmer 1.5s ease-in-out infinite;
 }
 
-// ─── Staggered Fade-in Animation ────────────────────
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 // ─── Status Chip ────────────────────────────────────
+// Status is data, so it keeps its colour; each pair is tuned for its own theme.
 .status-chip {
   display: inline-block;
   padding: 2px 10px;
   border-radius: 12px;
   font-size: 12px;
   font-weight: 500;
-  flex-shrink: 0;
   white-space: nowrap;
 }
 
-.status-pending {
-  background: #fff3e0;
-  color: #bf360c;
-}
 .status-active {
   background: #e3f2fd;
-  color: #1565c0;
+  color: #0d47a1;
 }
 .status-approved {
   background: #e8f5e9;
-  color: #2e7d32;
+  color: #1b5e20;
 }
 .status-rejected {
   background: #ffebee;
-  color: #c62828;
+  color: #b71c1c;
 }
 
-// ─── Meta ───────────────────────────────────────────
-.submission-card-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.meta-item {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
-
-  mat-icon {
-    font-size: 16px;
-    width: 16px;
-    height: 16px;
-    color: var(--text-hint, rgba(0, 0, 0, 0.38));
+:host-context(.dark-theme) {
+  .status-active {
+    background: rgba(100, 181, 246, 0.16);
+    color: #90caf9;
   }
-
-  .avatar-xs {
-    margin-right: 0;
+  .status-approved {
+    background: rgba(129, 199, 132, 0.16);
+    color: #a5d6a7;
   }
-}
-
-// ─── Actions ────────────────────────────────────────
-.submission-card-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
+  .status-rejected {
+    background: rgba(229, 115, 115, 0.16);
+    color: #ef9a9a;
+  }
 }
 
 // ─── List View ──────────────────────────────────────
@@ -484,7 +409,6 @@
 }
 
 .list-row {
-  animation: fadeInUp 0.3s ease-out both;
   transition: background-color 0.15s;
 
   &:hover {
@@ -492,26 +416,31 @@
   }
 }
 
-.list-name-cell {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.list-geofence-icon {
-  color: #ff9800;
-  font-size: 18px;
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-}
-
 .list-name-text {
+  display: block;
   font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 200px;
+  max-width: 240px;
+}
+
+.list-sub {
+  display: block;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.text-muted {
+  color: var(--text-hint, rgba(0, 0, 0, 0.6));
 }
 
 .list-owner-cell {
@@ -591,37 +520,37 @@
 }
 
 // ─── Responsive ─────────────────────────────────────
-@media (max-width: 599px) {
+@media (max-width: 719px) {
   .page-header {
-    padding: 16px;
+    padding: 16px 16px 8px;
   }
 
   .page-content {
     padding: 0 16px 16px;
   }
 
-  .toolbar {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .view-toggle {
-    align-self: flex-end;
-  }
-
-  .submissions-grid {
+  .triage-row {
     grid-template-columns: 1fr;
   }
 
-  .map-thumbnail {
-    height: 120px;
+  .triage-map,
+  .map-thumbnail.triage-map {
+    height: 200px;
+    min-height: 0;
   }
 
-  .skeleton-map-placeholder {
-    height: 120px;
+  .triage-body {
+    padding: 12px 16px 16px;
   }
 
-  .list-name-text {
-    max-width: 120px;
+  .list-name-text,
+  .list-sub {
+    max-width: 140px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shimmer {
+    animation: none;
   }
 }

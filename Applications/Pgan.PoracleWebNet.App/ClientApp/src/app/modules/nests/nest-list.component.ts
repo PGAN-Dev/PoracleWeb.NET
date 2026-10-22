@@ -29,6 +29,7 @@ import { QuietChipComponent } from '../../shared/components/quiet-chip/quiet-chi
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData, whereSheetConfig } from '../../shared/components/where-sheet/where-sheet.component';
 import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
+import { addOnArrival } from '../../shared/utils/add-on-arrival';
 import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
 import { byNumber, byText, queryAlarms, visibleSelection } from '../../shared/utils/alarm-list-query';
 import { orderAlarms } from '../../shared/utils/alarm-order';
@@ -63,15 +64,17 @@ import { serverReason } from '../../shared/utils/server-reason';
 })
 export class NestListComponent implements OnInit {
   private readonly areaService = inject(AreaService);
-
   private readonly destroyRef = inject(DestroyRef);
 
   private readonly dialog = inject(MatDialog);
+
   private readonly i18n = inject(I18nService);
   private readonly iconService = inject(IconService);
   private readonly masterData = inject(MasterDataService);
   private readonly nestService = inject(NestService);
   private readonly snackBar = inject(MatSnackBar);
+  /** `?add=1` from the dashboard or onboarding opens the add dialog once. */
+  private readonly takeAddRequest = addOnArrival();
   private readonly translate = inject(TranslateService);
   readonly selectedIds = signal(new Set<number>());
   readonly nests = signal<Nest[]>([]);
@@ -299,6 +302,7 @@ export class NestListComponent implements OnInit {
     this.loadProfileAreas();
     this.masterData.loadData().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
     this.loadNests();
+    if (this.takeAddRequest()) this.openAddDialog();
   }
 
   onImageError(event: Event): void {

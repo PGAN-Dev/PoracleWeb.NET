@@ -32,6 +32,7 @@ import { DistanceDialogComponent } from '../../shared/components/distance-dialog
 import { QuietChipComponent } from '../../shared/components/quiet-chip/quiet-chip.component';
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData, whereSheetConfig } from '../../shared/components/where-sheet/where-sheet.component';
+import { addOnArrival } from '../../shared/utils/add-on-arrival';
 import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
 import { matchesSearch, visibleSelection } from '../../shared/utils/alarm-list-query';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
@@ -82,6 +83,8 @@ export class PokemonListComponent implements OnInit {
   private readonly masterData = inject(MasterDataService);
   private readonly monsterService = inject(MonsterService);
   private readonly snackBar = inject(MatSnackBar);
+  /** `?add=1` from the dashboard or onboarding opens the add dialog once. */
+  private readonly takeAddRequest = addOnArrival();
   private readonly translate = inject(TranslateService);
   readonly activeFilter = signal<string | null>(null);
 
@@ -500,6 +503,7 @@ export class PokemonListComponent implements OnInit {
       .getSelected()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({ error: () => undefined, next: areas => this.profileAreas.set(areas) });
+    if (this.takeAddRequest()) this.openAddDialog();
   }
 
   onImageError(event: Event, pokemonId: number): void {

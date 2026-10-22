@@ -28,6 +28,7 @@ import { DistanceDialogComponent } from '../../shared/components/distance-dialog
 import { QuietChipComponent } from '../../shared/components/quiet-chip/quiet-chip.component';
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData, whereSheetConfig } from '../../shared/components/where-sheet/where-sheet.component';
+import { addOnArrival } from '../../shared/utils/add-on-arrival';
 import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
 import { byNumber, byText, queryAlarms, visibleSelection } from '../../shared/utils/alarm-list-query';
 import { orderAlarms } from '../../shared/utils/alarm-order';
@@ -70,6 +71,8 @@ export class GymListComponent implements OnInit {
   private readonly icons = inject(IconService);
   private readonly scannerService = inject(ScannerService);
   private readonly snackBar = inject(MatSnackBar);
+  /** `?add=1` from the dashboard or onboarding opens the add dialog once. */
+  private readonly takeAddRequest = addOnArrival();
   private readonly translate = inject(TranslateService);
   readonly selectedIds = signal(new Set<number>());
   readonly gymNames = signal<Record<string, string>>({});
@@ -318,6 +321,7 @@ export class GymListComponent implements OnInit {
   ngOnInit(): void {
     this.loadProfileAreas();
     this.loadGyms();
+    if (this.takeAddRequest()) this.openAddDialog();
   }
 
   openAddDialog(): void {
