@@ -138,7 +138,7 @@ This was a v1 problem. PoracleNG's v1 create read `uid=0` as an update target, a
 
 ## PoracleNG is older than 5.4.0
 
-**Symptoms**: the Versions card under **Admin > Settings** reports a PoracleNG version below 5.4.0. Alarm, profile, area or place calls fail with a message like "This PoracleNG does not support listing areas. It requires PoracleNG 5.4.0." The app itself still starts, and logs an error naming the mismatch.
+**Symptoms**: the Versions card under **Admin > Server settings** reports a PoracleNG version below 5.4.0. Alarm, profile, area or place calls fail with a message like "This PoracleNG does not support listing areas. It requires PoracleNG 5.4.0." The app itself still starts, and logs an error naming the mismatch.
 
 **Fix**: upgrade PoracleNG to 5.4.0 or newer, then reload the page. Nothing in PoracleWeb.NET needs changing. See [Upgrading to PoracleNG 5.4.0](getting-started/upgrading-to-poracleng-5-4.md).
 
@@ -316,7 +316,7 @@ basemap that is not the one configured.
 **Causes and fixes**:
 
 1. `API KEY REQUIRED` across the tiles. A CARTO or Stadia basemap is being requested without a
-   key. Set **Basemap API Key** in **Admin > Settings > Maps**. Takes effect on the next page load,
+   key. Set **Basemap API Key** in **Admin > Server settings > Maps**. Takes effect on the next page load,
    no restart.
 
 2. Still watermarked after setting a key. The key is wrong, not missing. The site can detect an
@@ -584,7 +584,7 @@ Configure the end-session URL, leave `enable_oidc_slo` unset (or `true`), and re
 
 ## An alarm type has disappeared and its admin toggle will not switch on
 
-**Symptom**: A type is gone from the sidebar and the dashboard, its page redirects away, and on **Admin > Settings** its toggle is off, greyed out and refuses to move.
+**Symptom**: A type is gone from the sidebar and the dashboard, its page redirects away, and on **Admin > Server settings** its toggle is off, greyed out and refuses to move.
 
 **Cause**: Poracle has that type disabled in its own config. Its processor drops the webhook and its bot refuses the command, so alarms of that type could never fire — this site honours that rather than offering a feature the server will not deliver. Rules users already had are not deleted; they lie dormant and come back if the type is switched on again.
 
@@ -618,7 +618,7 @@ curl -s -H "X-Poracle-Secret: $SECRET"   http://poracle-host:3030/api/config/val
 curl -s -H "Authorization: Bearer $JWT"   https://your-site/api/settings/upstream-disabled
 ```
 
-An empty array on the first call, with the type still locked, means the local `disable_*` site setting is the one doing it — that one is yours to change on **Admin > Settings**. The page names which side it came from, so you should not have to run either command to find out.
+An empty array on the first call, with the type still locked, means the local `disable_*` site setting is the one doing it — that one is yours to change on **Admin > Server settings**. The page names which side it came from, so you should not have to run either command to find out.
 
 ---
 
@@ -632,7 +632,7 @@ hide something without a word is configuration:
 
 | Missing | Hidden by |
 |---|---|
-| An alarm type's page and sidebar item | Its `disable_*` site setting on **Admin > Settings**, or the type in Poracle's own `disabledHooks` (see the section above) |
+| An alarm type's page and sidebar item | Its `disable_*` site setting on **Admin > Server settings**, or the type in Poracle's own `disabledHooks` (see the section above) |
 | Pokéstop Events | Poracle's `general.disable_showcase = true`, or the `disable_showcase` site setting |
 | Quest summary delivery | Poracle's `tracking.quest_summary_enabled` not `true` |
 | The Pokemon edit-in-place toggle | Poracle's `tracking.pokemon_edit` not `true` |
@@ -641,7 +641,7 @@ hide something without a word is configuration:
 The two `tracking.*` values are read from `GET /api/config/values` and cached for five minutes, and
 read as off when PoracleNG can't be asked.
 
-**Fix**: check the setting on **Admin > Settings**, then Poracle's `config.toml`. The Versions card on
+**Fix**: check the setting on **Admin > Server settings**, then Poracle's `config.toml`. The Versions card on
 the same page shows which PoracleNG the deployment is talking to; below 5.4.0 these features fail with a
 message naming the version rather than hiding.
 

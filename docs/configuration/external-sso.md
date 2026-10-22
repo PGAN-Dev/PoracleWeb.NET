@@ -83,7 +83,7 @@ sequenceDiagram
    provider's `sub` claim already holds the Poracle id — `OIDC_IDENTITY_CLAIM`. Restart PoracleWeb.NET
    so the server config takes effect.
 
-3. **Switch the sign-in mode to SSO.** In **Admin → Settings → Authentication**, flip the
+3. **Switch the sign-in mode to SSO.** In **Admin → Server settings → Authentication**, flip the
    **Local ⇄ SSO** segmented switch to **SSO**. This is the runtime opt-in (`enable_oidc=true`) and
    is gated on OIDC being fully configured plus a confirmation dialog. See
    [Auth mode](#auth-mode-local-vs-sso) below.

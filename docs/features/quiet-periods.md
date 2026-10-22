@@ -99,10 +99,10 @@ missing and no chip you can find explains it.
     The mute endpoints exist on every supported release, so nothing asks the server whether it can do
     this before the chips appear. While PoracleNG is unreachable, `GET /api/mutes` answers 503 and the
     page shows one error toast saying so; the chips draw nothing, rather than claiming nothing is quiet.
-    A server below 5.4.0 is told apart at startup, not here: the Versions card on **Admin → Settings**
+    A server below 5.4.0 is told apart at startup, not here: the Versions card on **Admin → Server settings**
     says it is too old.
 
-There is **no site setting that turns quiet periods off.** Nothing on **Admin → Settings** governs
+There is **no site setting that turns quiet periods off.** Nothing on **Admin → Server settings** governs
 them; availability is entirely a question of which PoracleNG is running.
 
 ## Impersonation

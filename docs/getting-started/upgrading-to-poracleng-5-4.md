@@ -2,7 +2,7 @@
 
 This release of PoracleWeb.NET needs PoracleNG 5.4.0 or newer. Upgrade PoracleNG first, then PoracleWeb.NET, then run the rule repair once.
 
-PoracleWeb.NET still starts against an older PoracleNG, but it logs an error, the Versions card under **Admin > Settings** warns that PoracleNG is too old, and calls to routes the older server lacks fail with a message naming the version they need.
+PoracleWeb.NET still starts against an older PoracleNG, but it logs an error, the Versions card under **Admin > Server settings** warns that PoracleNG is too old, and calls to routes the older server lacks fail with a message naming the version they need.
 
 ## What users will notice
 
@@ -103,7 +103,7 @@ The one-time copy of settings, webhook delegates and quick picks out of `pweb_se
 1. Back up both databases.
 2. Upgrade PoracleNG to 5.4.0 and confirm it's running.
 3. Update PoracleWeb.NET (`./scripts/docker.sh update` for Docker installs).
-4. Check the Versions card under **Admin > Settings** shows no warning that PoracleNG is too old.
+4. Check the Versions card under **Admin > Server settings** shows no warning that PoracleNG is too old.
 5. Scan, review, then Repair on the Rule repair card (under **Details** on Server settings).
 
 See [PoracleNG Version Compatibility](../architecture/poracleng-compatibility.md) for what changed in the integration and why.

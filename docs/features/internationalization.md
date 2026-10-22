@@ -75,7 +75,7 @@ English is always available regardless of the `allowed_languages` setting. The r
 
 ![The Allowed UI Languages field, with a line beneath it reading "Default language for new users: en, taken from Poracle's own configuration."](../screenshots/admin-language-default.png)
 
-Set this in **Admin → Settings** under the **Features** category. Directly beneath it, the page reports Poracle's own configured locale as a read-only line — the default a new visitor lands on, per the order above. It is Poracle's to set, not this site's: it is read from Poracle's configuration on every load and cannot be edited or overridden here.
+Set this in **Admin → Server settings** under the **Features** category. Directly beneath it, the page reports Poracle's own configured locale as a read-only line — the default a new visitor lands on, per the order above. It is Poracle's to set, not this site's: it is read from Poracle's configuration on every load and cannot be edited or overridden here.
 
 ## Translation File Structure
 

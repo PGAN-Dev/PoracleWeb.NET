@@ -1,13 +1,13 @@
 # Site Settings
 
-Site settings are admin-configurable runtime settings stored in the `poracle_web.site_settings` database table. Unlike [appsettings.json configuration](reference.md) which requires a restart, site settings are changed at runtime via the **Admin > Settings** page and take effect immediately.
+Site settings are admin-configurable runtime settings stored in the `poracle_web.site_settings` database table. Unlike [appsettings.json configuration](reference.md) which requires a restart, site settings are changed at runtime via the **Admin > Server settings** page and take effect immediately.
 
 !!! info "First-time setup"
     On startup PoracleWeb.NET writes one row, `custom_title` (`PoracleWeb.NET`), if it's missing, and never overwrites a value you've set. Every other setting has no row until an admin saves it. The server reads a missing row as that setting's default: a missing `disable_*` key leaves the feature on, and `enable_discord` and `enable_telegram` count as on unless they're stored as `false`.
 
 ## How it works
 
-Settings live in the `poracle_web.site_settings` table (`category`, `key`, `value`, `value_type`), and **Admin > Settings** edits them in groups. A change takes effect immediately, with no restart. Booleans are stored as the strings `"True"` and `"False"`.
+Settings live in the `poracle_web.site_settings` table (`category`, `key`, `value`, `value_type`), and **Admin > Server settings** edits them in groups. A change takes effect immediately, with no restart. Booleans are stored as the strings `"True"` and `"False"`.
 
 Keys beginning `disable_` store the *disabled* state, but the admin page shows them as positive switches: the switch is on when the feature is available. The value is inverted on read and write, so the tables below describe the key, not the switch. Some settings only appear when another is on; `allowed_role_ids`, for example, shows once `enable_roles` is enabled.
 
@@ -15,9 +15,9 @@ Keys beginning `disable_` store the *disabled* state, but the admin page shows t
 
 ## Admin settings cards
 
-A status line under the search on **Admin > Settings** sums up two cards ("PoracleWeb.NET 2.30 · PoracleNG 5.4.0 · Rules: nothing to repair") and turns amber or red when one needs a look; **Details** opens them. The Versions card reports the running PoracleWeb.NET and PoracleNG versions and whether PoracleNG meets the minimum. The Rule repair card scans for stored alarms that PoracleNG 5.4.0 reads differently (invasions saved as `metal`, raids saved with Pokémon 0, raids and max battles for any boss saved as Pokémon 9000) and repairs them on request, and lists the rules 5.4.0 won't save at all under "Cannot be edited", to fix by hand. Nothing is written before you press Repair. See [Upgrading to PoracleNG 5.4.0](../getting-started/upgrading-to-poracleng-5-4.md#run-the-rule-repair).
+A status line under the search on **Admin > Server settings** sums up two cards ("PoracleWeb.NET 2.30 · PoracleNG 5.4.0 · Rules: nothing to repair") and turns amber or red when one needs a look; **Details** opens them. The Versions card reports the running PoracleWeb.NET and PoracleNG versions and whether PoracleNG meets the minimum. The Rule repair card scans for stored alarms that PoracleNG 5.4.0 reads differently (invasions saved as `metal`, raids saved with Pokémon 0, raids and max battles for any boss saved as Pokémon 9000) and repairs them on request, and lists the rules 5.4.0 won't save at all under "Cannot be edited", to fix by hand. Nothing is written before you press Repair. See [Upgrading to PoracleNG 5.4.0](../getting-started/upgrading-to-poracleng-5-4.md#run-the-rule-repair).
 
-![Admin > Settings with the Versions card and the Rule repair card above the settings groups](../screenshots/admin-settings-versions.png)
+![Admin > Server settings with the Versions card and the Rule repair card above the settings groups](../screenshots/admin-settings-versions.png)
 
 ## Branding
 

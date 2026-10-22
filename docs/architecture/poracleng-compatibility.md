@@ -6,7 +6,7 @@ switches on or off with the server's version.
 !!! warning "5.4.0 is the minimum"
     PoracleWeb.NET still starts against an older PoracleNG, because refusing to start would take the
     whole site down over something an operator can fix in minutes. It logs an error at startup and the
-    Versions card on **Admin → Settings** says the server is too old. Beyond that it makes no allowance:
+    Versions card on **Admin → Server settings** says the server is too old. Beyond that it makes no allowance:
     it calls PoracleNG's `/api/v2` routes for humans, profiles, areas, places and mutes with no v1
     fallback, and a route that doesn't exist answers with a message naming the version it needs.
 

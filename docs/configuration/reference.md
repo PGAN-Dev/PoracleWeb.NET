@@ -169,7 +169,7 @@ Required if anything terminates TLS in front of PoracleWeb.NET. See [Behind a re
     `Poracle:ApiAddress` must point to a running PoracleNG instance that is reachable from the PoracleWeb.NET container. All alarm tracking, human/profile management, location, area operations, and active hours management are proxied through this API. If PoracleNG is unreachable, alarm operations fail entirely and user management (registration, login, location, areas, profile switch, active hours) also fails. The `Poracle:ApiSecret` must match the `server.apiSecret` value in PoracleNG's config.
 
 !!! info "Minimum PoracleNG is 5.4.0"
-    Against anything older the app still starts, but logs an error at startup and flags the version on **Admin → Settings**, and calls that need a 5.4.0 route fail with a message naming the version. Upgrade PoracleNG before upgrading PoracleWeb.NET. A leftover `PORACLE_TRACKING_API_VERSION` is ignored. See [Version compatibility](../architecture/poracleng-compatibility.md).
+    Against anything older the app still starts, but logs an error at startup and flags the version on **Admin → Server settings**, and calls that need a 5.4.0 route fail with a message naming the version. Upgrade PoracleNG before upgrading PoracleWeb.NET. A leftover `PORACLE_TRACKING_API_VERSION` is ignored. See [Version compatibility](../architecture/poracleng-compatibility.md).
 
 !!! note "Secrets"
     `appsettings.Development.json` is gitignored and holds all connection strings, JWT secret, Discord/Telegram credentials, and Poracle API address/secret. Never commit secrets to the repository.

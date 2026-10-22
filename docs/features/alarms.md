@@ -624,7 +624,7 @@ import saves them back as event rules, and a duplicate copies them with everythi
     other upstream flag this fails open: a Poracle outage must not switch off an alarm type that works.
 
     Operators can also switch the type off here, independently of Poracle, with the **`disable_showcase`**
-    site setting under **Admin → Settings → Alarms**.
+    site setting under **Admin → Server settings → Alarms**.
 
 ## Delivery & message modes
 
