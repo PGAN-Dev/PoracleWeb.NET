@@ -27,14 +27,14 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { IconRepoDialogComponent, IconRepoDialogData } from './icon-repo-dialog/icon-repo-dialog.component';
-import { RuleRepairCardComponent } from './rule-repair-card/rule-repair-card.component';
+import { SettingsStatusStripComponent } from './settings-status-strip/settings-status-strip.component';
 import { HasUnsavedChanges } from '../../core/guards/unsaved-changes.guard';
 import { DiscordServerConfig, OidcServerConfig, SiteSetting, TelegramServerConfig } from '../../core/models';
 import { BasemapService } from '../../core/services/basemap.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { SettingsService } from '../../core/services/settings.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
-import { ServerProfileCardComponent } from '../../shared/components/server-profile-card/server-profile-card.component';
+import { ALARM_TYPE_STYLE, AlarmTypeStyle } from '../../shared/utils/alarm-type-style';
 import { BUILTIN_BASEMAPS, CUSTOM_BASEMAP_ID, basemapNeedsKey, resolveBasemapProviderId } from '../../shared/utils/basemaps';
 import {
   DEFAULT_ICON_REPOS,
@@ -97,7 +97,6 @@ const BASEMAP_PROVIDER_OPTIONS: SettingOption[] = [
 ];
 
 interface SettingGroup {
-  color: string;
   icon: string;
   labelKey: string;
   settings: SettingMeta[];
@@ -151,7 +150,6 @@ const RETIRED_KEYS = [
 
 export const SETTING_GROUPS: SettingGroup[] = [
   {
-    color: '#0088cc',
     icon: 'send',
     labelKey: 'ADMIN_SETTINGS.GROUP_TELEGRAM',
     settings: [
@@ -170,7 +168,6 @@ export const SETTING_GROUPS: SettingGroup[] = [
     ],
   },
   {
-    color: '#5865F2',
     icon: 'forum',
     labelKey: 'ADMIN_SETTINGS.GROUP_DISCORD',
     settings: [
@@ -183,7 +180,6 @@ export const SETTING_GROUPS: SettingGroup[] = [
     ],
   },
   {
-    color: '#1976d2',
     icon: 'palette',
     labelKey: 'ADMIN_SETTINGS.GROUP_BRANDING',
     settings: [
@@ -232,7 +228,6 @@ export const SETTING_GROUPS: SettingGroup[] = [
     ],
   },
   {
-    color: '#ff9800',
     icon: 'notifications',
     labelKey: 'ADMIN_SETTINGS.GROUP_ALARM_TYPES',
     settings: [
@@ -299,7 +294,6 @@ export const SETTING_GROUPS: SettingGroup[] = [
     ],
   },
   {
-    color: '#4caf50',
     icon: 'tune',
     labelKey: 'ADMIN_SETTINGS.GROUP_FEATURES',
     settings: [
@@ -354,7 +348,6 @@ export const SETTING_GROUPS: SettingGroup[] = [
     ],
   },
   {
-    color: '#2e7d32',
     icon: 'map',
     labelKey: 'ADMIN_SETTINGS.GROUP_MAPS',
     settings: [
@@ -405,7 +398,6 @@ export const SETTING_GROUPS: SettingGroup[] = [
     ],
   },
   {
-    color: '#f44336',
     icon: 'admin_panel_settings',
     labelKey: 'ADMIN_SETTINGS.GROUP_ADMINISTRATION',
     settings: [
@@ -425,7 +417,6 @@ export const SETTING_GROUPS: SettingGroup[] = [
     ],
   },
   {
-    color: '#7b1fa2',
     icon: 'bar_chart',
     labelKey: 'ADMIN_SETTINGS.GROUP_ANALYTICS_LINKS',
     settings: [
@@ -461,8 +452,7 @@ export const SETTING_GROUPS: SettingGroup[] = [
     MatSlideToggleModule,
     MatDividerModule,
     MatTooltipModule,
-    RuleRepairCardComponent,
-    ServerProfileCardComponent,
+    SettingsStatusStripComponent,
     TranslatePipe,
   ],
   selector: 'app-admin-settings',
@@ -690,6 +680,11 @@ export class AdminSettingsComponent implements OnInit, HasUnsavedChanges {
         const at = existing ? repos.findIndex(r => r.base === existing.base) : -1;
         this.setRepoList(at >= 0 ? repos.map((r, i) => (i === at ? result : r)) : [...repos, result]);
       });
+  }
+
+  /** An alarm-type switch wears its nav item's icon and colour; every other row has none. */
+  alarmTypeStyle(key: string): AlarmTypeStyle | null {
+    return ALARM_TYPE_STYLE[key] ?? null;
   }
 
   discardAllModified(): void {

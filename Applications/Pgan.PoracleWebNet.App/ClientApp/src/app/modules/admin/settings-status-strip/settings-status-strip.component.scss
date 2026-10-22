@@ -1,0 +1,69 @@
+.status-strip {
+  margin: 0 0 16px;
+}
+
+.status-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  padding: 8px 8px 8px 16px;
+  border: 1px solid var(--card-border, rgba(0, 0, 0, 0.12));
+  border-radius: 8px;
+  background: var(--card-bg, #fff);
+}
+
+.status-parts {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.status-part {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.status-sep {
+  color: var(--text-hint, rgba(0, 0, 0, 0.6));
+}
+
+.status-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+}
+
+// Colour only where it means something: amber for "look at this", red for "this will not work".
+.tone-warn {
+  color: #8a4b00;
+}
+
+.tone-error {
+  color: #b71c1c;
+}
+
+:host-context(.dark-theme) {
+  .tone-warn {
+    color: #ffcc80;
+  }
+
+  .tone-error {
+    color: #ef9a9a;
+  }
+}
+
+.status-toggle {
+  flex-shrink: 0;
+}
+
+.status-details {
+  margin-top: 12px;
+}

@@ -14,6 +14,8 @@ import { RegionOption, RegionSelectorComponent } from '../region-selector/region
 
 export interface GeofenceApprovalDialogData {
   geofence: UserGeofence;
+  /** Which side the dialog opens on: the review queue's Approve and Reject buttons each open their own. */
+  mode?: 'approve' | 'reject';
   regions: GeofenceRegion[];
 }
 
@@ -67,7 +69,7 @@ export class GeofenceApprovalDialogComponent {
   // from, so promotion just keeps whatever the submission had (issue #314).
   readonly hasRegions = this.regionOptions.length > 0;
 
-  mode: 'approve' | 'reject' = 'approve';
+  mode: 'approve' | 'reject' = this.data.mode ?? 'approve';
 
   promotedName = '';
   reviewNotes = '';

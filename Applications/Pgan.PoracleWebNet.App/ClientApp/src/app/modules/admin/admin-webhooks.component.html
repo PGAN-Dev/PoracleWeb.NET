@@ -2,6 +2,7 @@
   <div class="page-header-text">
     <h1>{{ 'ADMIN.WEBHOOKS_TITLE' | translate }}</h1>
     <p class="page-description">{{ 'ADMIN.WEBHOOKS_DESC' | translate }}</p>
+    <p class="page-description" data-test="admins-note">{{ 'ADMIN.WEBHOOKS_ADMINS_NOTE' | translate }}</p>
   </div>
   <button mat-raised-button color="primary" (click)="openAddDialog()">
     <mat-icon>add</mat-icon> {{ 'ADMIN.ADD_WEBHOOK' | translate }}
@@ -101,6 +102,8 @@
                     <mat-icon class="delegate-lock">lock</mat-icon>
                   }
                 </div>
+              } @empty {
+                <span class="text-muted" data-test="no-delegates">—</span>
               }
             </div>
           </td>

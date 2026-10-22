@@ -6,7 +6,7 @@ import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
 
-import { QuickPickAdminDialogComponent } from './quick-pick-admin-dialog.component';
+import { QUICK_PICK_ICONS, QuickPickAdminDialogComponent } from './quick-pick-admin-dialog.component';
 import { QuickPickDefinition } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { ConfigService } from '../../core/services/config.service';
@@ -41,6 +41,7 @@ describe('QuickPickAdminDialogComponent', () => {
     const fixture = TestBed.createComponent(QuickPickAdminDialogComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
+    return fixture;
   }
 
   function savedDefinition(): QuickPickDefinition {
@@ -179,6 +180,88 @@ describe('QuickPickAdminDialogComponent', () => {
       component.save();
 
       expect(quickPickService.saveAdmin).toHaveBeenCalled();
+    });
+  });
+
+  describe('built in the product vocabulary', () => {
+    const pick = (over: Partial<QuickPickDefinition>): QuickPickDefinition => ({
+      id: 'p',
+      name: 'P',
+      alarmType: 'monster',
+      category: 'Common',
+      description: '',
+      enabled: true,
+      filters: {},
+      icon: 'bolt',
+      scope: 'global',
+      sortOrder: 0,
+      ...over,
+    });
+
+    it('offers icons to pick rather than a box to type a ligature into', () => {
+      const fixture = setup(null);
+      const choices = (fixture.nativeElement as HTMLElement).querySelectorAll('[data-test="icon-choice"]');
+
+      expect(choices.length).toBe(QUICK_PICK_ICONS.length);
+      (choices[1] as HTMLButtonElement).click();
+      expect(component.mainForm.controls.icon.value).toBe(QUICK_PICK_ICONS[1]);
+    });
+
+    it('keeps a stored icon that is not in the list, offered first and selected', () => {
+      const fixture = setup(pick({ icon: 'pokeball' }));
+      const first = (fixture.nativeElement as HTMLElement).querySelector('[data-test="icon-choice"]')!;
+
+      expect(component.iconChoices()[0]).toBe('pokeball');
+      expect(first.getAttribute('aria-checked')).toBe('true');
+      component.save();
+      expect(savedDefinition().icon).toBe('pokeball');
+    });
+
+    it('stores the species picked in the Pokémon selector', () => {
+      setup(null);
+      component.mainForm.patchValue({ name: 'Pikachu', alarmType: 'monster' });
+
+      component.onPokemonPicked([25]);
+      component.save();
+
+      expect(savedDefinition().filters['pokemonId']).toBe(25);
+    });
+
+    it('treats the selector’s All Pokémon as any, which a max battle stores as 9000', () => {
+      setup(pick({ alarmType: 'maxbattle', filters: { pokemonId: 150 } }));
+      expect(component.pokemonInitialIds()).toEqual([150]);
+
+      component.onPokemonPicked([0]);
+      expect(component.maxBattleForm.controls.pokemonId.value).toBe(9000);
+      expect(component.pokemonInitialIds()).toEqual([]);
+    });
+
+    it('resets a stored species back to any Pokémon', () => {
+      setup(pick({ filters: { pokemonId: 25 } }));
+
+      component.resetPokemon();
+      component.save();
+
+      expect(savedDefinition().filters['pokemonId']).toBe(0);
+    });
+
+    it('stores a switch as the 0/1 the filter has always held', () => {
+      setup(pick({ alarmType: 'raid', filters: {} }));
+
+      component.setOn(component.raidForm, 'exclusive', true);
+      component.save();
+      expect(savedDefinition().filters['exclusive']).toBe(1);
+      expect(component.isOn(component.raidForm, 'exclusive')).toBe(true);
+    });
+
+    it('shows the PvP rank fields only once a league is chosen', () => {
+      const fixture = setup(null);
+      const el = fixture.nativeElement as HTMLElement;
+      expect(el.querySelector('[data-test="pvp-ranks"]')).toBeNull();
+
+      component.monsterForm.patchValue({ pvpRankingLeague: 1500 });
+      fixture.detectChanges();
+      expect(el.querySelector('[data-test="pvp-ranks"]')).toBeTruthy();
     });
   });
 });

@@ -36,6 +36,11 @@
     }
 
     <div class="rows">
+      <!-- One "Hidden" over the column, rather than the word beside each of a thousand switches. -->
+      <div class="row row-head" aria-hidden="true" data-test="rows-head">
+        <span class="row-main">{{ 'ADMIN_AREAS.COLUMN_AREA' | translate }}</span>
+        <span class="row-head-hidden">{{ 'ADMIN_AREAS.HIDE' | translate }}</span>
+      </div>
       @for (area of visible(); track area.name) {
         <div class="row" [class.row-hidden]="isHidden(area)">
           <div class="row-main">
@@ -53,9 +58,7 @@
             [disabled]="area.hiddenInKoji"
             [checked]="isHidden(area)"
             (change)="toggle(area, $event.checked)"
-            [attr.aria-label]="'ADMIN_AREAS.HIDE_ARIA' | translate: { name: area.name }">
-            {{ 'ADMIN_AREAS.HIDE' | translate }}
-          </mat-slide-toggle>
+            [aria-label]="'ADMIN_AREAS.HIDE_ARIA' | translate: { name: area.name }"></mat-slide-toggle>
         </div>
       } @empty {
         <p class="empty">{{ 'ADMIN_AREAS.NO_MATCHES' | translate }}</p>

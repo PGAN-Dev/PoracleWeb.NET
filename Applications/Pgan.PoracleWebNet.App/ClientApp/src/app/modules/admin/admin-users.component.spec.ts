@@ -70,9 +70,16 @@ describe('AdminUsersComponent', () => {
 
   afterEach(() => TestBed.resetTestingModule());
 
+  /** Opens the row's menu and reads what it offers, by visible label. */
   function actionLabels(fixture: ReturnType<typeof setup>['fixture'], rowIndex: number): string[] {
     const rows = (fixture.nativeElement as HTMLElement).querySelectorAll('tr.mat-mdc-row');
-    return Array.from(rows[rowIndex].querySelectorAll('.action-buttons button')).map(b => b.getAttribute('aria-label') ?? '');
+    (rows[rowIndex].querySelector('[data-test="row-menu"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const labels = Array.from(document.querySelectorAll('.mat-mdc-menu-panel [mat-menu-item]')).map(
+      b => b.querySelector('.mat-mdc-menu-item-text')?.textContent?.trim() ?? '',
+    );
+    document.querySelector('.cdk-overlay-container')?.replaceChildren();
+    return labels;
   }
 
   /** The server refuses both for the caller's own id (#613 for block); offering them just produced an error. */
@@ -93,6 +100,36 @@ describe('AdminUsersComponent', () => {
       expect(labels).toContain('ADMIN.BLOCK_USER');
       expect(labels).toContain('ADMIN.DELETE_USER');
     }
+  });
+
+  it('keeps View on the row and names every other action in the row menu', () => {
+    const { fixture } = setup();
+
+    const row = (fixture.nativeElement as HTMLElement).querySelectorAll('tr.mat-mdc-row')[2];
+    const inline = Array.from(row.querySelectorAll('.action-buttons > button')).map(b => b.getAttribute('data-test'));
+    expect(inline).toEqual(['view-as', 'row-menu']);
+    expect(row.querySelector('[data-test="row-menu"]')?.getAttribute('aria-label')).toBe('ADMIN.MORE_ACTIONS_FOR');
+
+    expect(actionLabels(fixture, 2)).toEqual(['ADMIN.STOP_ALERTS', 'ADMIN.BLOCK_USER', 'ADMIN.DELETE_ALL_ALARMS', 'ADMIN.DELETE_USER']);
+  });
+
+  it('offers Start alerts and Unblock where they apply', () => {
+    const { adminService, fixture } = setup();
+    adminService.getUsers.mockReturnValue(of([me, row('u3', { adminDisable: 1, enabled: 0 })]));
+    fixture.componentInstance.loadUsers();
+    fixture.detectChanges();
+
+    expect(actionLabels(fixture, 1)).toEqual(['ADMIN.START_ALERTS', 'ADMIN.UNBLOCK_USER', 'ADMIN.DELETE_ALL_ALARMS', 'ADMIN.DELETE_USER']);
+  });
+
+  it('views as the user straight from the row', () => {
+    const { component, fixture } = setup();
+    const spy = jest.spyOn(component, 'impersonate').mockImplementation(() => undefined);
+
+    const row = (fixture.nativeElement as HTMLElement).querySelectorAll('tr.mat-mdc-row')[2];
+    (row.querySelector('[data-test="view-as"]') as HTMLButtonElement).click();
+
+    expect(spy).toHaveBeenCalledWith(member);
   });
 
   it('shows profile 0 as 0, not 1', () => {

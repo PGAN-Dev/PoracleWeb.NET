@@ -336,11 +336,15 @@ export class AdminWebhooksComponent implements OnInit {
     return user?.name ? `${user.name} (${userId})` : userId;
   }
 
+  /**
+   * The real grants on a webhook: Poracle config delegates and the ones added here. Global admins can
+   * manage every webhook, which the page header says once; listing them on every row buried the grants
+   * someone actually made under the same avatars on every hook.
+   */
   getDelegateUserIds(webhookId: string): string[] {
     const db = this.webhookDelegates()[webhookId] ?? [];
-    const admins = this.poracleAdmins();
     const configDelegates = this.porocleDelegates()[webhookId] ?? [];
-    return [...new Set([...admins, ...configDelegates, ...db])];
+    return [...new Set([...configDelegates, ...db])];
   }
 
   isLockedDelegate(webhookId: string, userId: string): boolean {
