@@ -38,6 +38,19 @@ function shouldSilence(url: string): boolean {
   return SILENT_URL_PATTERNS.some(pattern => url.includes(pattern));
 }
 
+/** The statuses the interceptor toasts on its own (outside the 401 path), whatever the caller does next. */
+const TOASTED_STATUSES = new Set([0, 403, 404, 500, 502, 503, 504]);
+
+/**
+ * True when the interceptor has already told the user about this failure. A caller that would word the
+ * same failure again (an add dialog's inline note, say) checks this so the user reads one message, not two.
+ */
+export function reportedByInterceptor(err: unknown): boolean {
+  const failure = err as { status?: unknown; url?: unknown } | null | undefined;
+  if (typeof failure?.status !== 'number' || !TOASTED_STATUSES.has(failure.status)) return false;
+  return typeof failure.url !== 'string' || !shouldSilence(failure.url);
+}
+
 /** Routes where 401s should NOT trigger a redirect to /login (e.g. OAuth callback, login page itself). */
 function isAuthCallbackRoute(): boolean {
   return (
@@ -114,7 +127,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       // every locale. This interceptor used a parallel ERROR.* table carrying verbatim English in all
       // ten locales, so a German user saw an English toast for the same status. See #425.
       // Don't show toasts for silent endpoints
-      if (!silent) {
+      if (!silent && TOASTED_STATUSES.has(error.status)) {
         switch (error.status) {
           case 403:
             // The backend tags "feature disabled" 403s by including a `disableKey` in the body

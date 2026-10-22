@@ -67,6 +67,24 @@ describe('add-outcome', () => {
       expect(refusal()?.message).toBe('POKEMON.SNACK_FAILED_CREATE');
     });
 
+    /**
+     * The error interceptor already toasts these statuses. An inline note on top of that said the same
+     * thing twice; the dialog stays open with the user's settings and the toast is the one message.
+     */
+    it.each([0, 403, 404, 500, 502, 503, 504])('keeps a single Add open without an inline note for a %i the toast reports', status => {
+      finish([{ failed: { error: { error: 'PoracleNG could not be reached.' }, status } }]);
+
+      expect(dialogRef.close).not.toHaveBeenCalled();
+      expect(snackBar.open).not.toHaveBeenCalled();
+      expect(refusal()).toBeNull();
+    });
+
+    it.each([400, 409, 422])('still shows a %i refusal inline, which no toast reports', status => {
+      finish([{ failed: { error: { error: 'Another alarm of this type already uses those settings.' }, status } }]);
+
+      expect(refusal()?.message).toBe('Another alarm of this type already uses those settings.');
+    });
+
     it('closes a successful single Add', () => {
       finish([{ uid: 501 }]);
 
@@ -112,8 +130,8 @@ describe('add-outcome', () => {
     it('ignores an existingUid that is not a positive number', () => {
       const lookup = jest.fn().mockReturnValue('x');
 
-      expect(refusalOf({ error: { existingUid: '77', error: 'no' } }, 'fallback', lookup).existing).toBeNull();
-      expect(refusalOf({ error: { existingUid: 0, error: 'no' } }, 'fallback', lookup).existing).toBeNull();
+      expect(refusalOf({ error: { existingUid: '77', error: 'no' } }, 'fallback', lookup)?.existing).toBeNull();
+      expect(refusalOf({ error: { existingUid: 0, error: 'no' } }, 'fallback', lookup)?.existing).toBeNull();
       expect(lookup).not.toHaveBeenCalled();
     });
   });

@@ -6,6 +6,7 @@ import { catchError, Observable, of } from 'rxjs';
 
 import { describeScope, scopeOf } from './alarm-scope';
 import { serverReason } from './server-reason';
+import { reportedByInterceptor } from '../../core/interceptors/error.interceptor';
 import { I18nService } from '../../core/services/i18n.service';
 
 /** A create the API refused, kept beside the ones that landed so one refusal cannot hide the rest (#577). */
@@ -82,8 +83,13 @@ export function isFailed(result: SettledCreate): result is FailedCreate {
 /**
  * Turns a refused create into what the dialog shows: the server's reason (or `fallback`), and the stored
  * rule it collided with when the 409 named one (`existingUid`) and `lookup` can describe it.
+ *
+ * Null when the error interceptor has already toasted the failure (a 5xx, a dropped connection, a 403 or
+ * 404): the dialog still stays open with the user's settings, and the toast is the one message they read.
  */
-export function refusalOf(err: unknown, fallback: string, lookup?: ExistingRuleLookup | null): AddRefusal {
+export function refusalOf(err: unknown, fallback: string, lookup?: ExistingRuleLookup | null): AddRefusal | null {
+  if (reportedByInterceptor(err)) return null;
+
   const body = (err as { error?: { existingUid?: unknown; trackingType?: unknown } } | null | undefined)?.error;
   const uid = typeof body?.existingUid === 'number' && body.existingUid > 0 ? body.existingUid : null;
   const trackingType = typeof body?.trackingType === 'string' ? body.trackingType : null;
