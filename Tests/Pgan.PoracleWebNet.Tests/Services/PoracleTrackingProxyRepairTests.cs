@@ -90,7 +90,7 @@ public class PoracleTrackingProxyRepairTests
     {
         // jfberry/PoracleNG#331: all_profiles also returns rules on a profile with no profiles row, the active one
         // included, each carrying profile_no. The second read still runs for servers without it, and must not add
-        // the same rules again. uids are per table, so incident 5 and pokemon 5 are different rules.
+        // the same rules again.
         var handler = new Router()
             .On("/tracking", """
                 {"human":{"id":"user1","current_profile_no":1},"profiles":[],
@@ -105,6 +105,26 @@ public class PoracleTrackingProxyRepairTests
 
         Assert.Equal(2, handler.Requests.Count);
         Assert.Equal([("pokemon", 1, 5), ("incident", 1, 5)], rules.Select(r => (r.Type, r.ProfileNo, r.Uid)));
+    }
+
+    [Fact]
+    public async Task StoredRulesKeepAnActiveRuleSharingAUidWithAnotherTypeAlreadyCollected()
+    {
+        // uids are per table, so the key is the type and the uid together: pokemon 5 on profile 0 says nothing
+        // about incident 5 on the active profile, which has no row.
+        var handler = new Router()
+            .On("/tracking", """
+                {"human":{"id":"user1","current_profile_no":1},
+                 "tracking":{"incident":[{"uid":5,"display_type":7}]}}
+                """)
+            .On("all_profiles=true", """
+                {"human":{"id":"user1","current_profile_no":1},"profiles":[{"profile_no":0}],
+                 "tracking":{"pokemon":[{"uid":5,"profile_no":0,"pokemon_id":25}]}}
+                """);
+
+        var rules = await CreateSut(handler).GetStoredRulesAsync("user1");
+
+        Assert.Equal([("pokemon", 0, 5), ("incident", 1, 5)], rules.Select(r => (r.Type, r.ProfileNo, r.Uid)));
     }
 
     [Fact]
