@@ -538,6 +538,11 @@ could say), `FALLBACK_BASEMAP_ID` (the chosen provider cannot be drawn). #871 ha
 #868 changed the fallback and left the default stale: the map drew OSM while the admin page reported
 a missing CARTO key on an install that had never mentioned CARTO. Change one, check the other two.
 
+A fourth, `DARK_DEFAULT_BASEMAP_ID` (Esri dark gray, keyless), is what the dark theme draws for a viewer
+on the site default whose provider has no dark style. `siteDefault` stays theme-independent because the
+admin page reports it; `themedDefault` is what is drawn and what the picker's *Site default* entry names.
+Imagery (`keepInDark`) and a custom URL are never swapped.
+
 **A viewer's own choice outranks the admin setting**, stored per browser. That is the feature, but it
 needs the escape: the picker's first entry is *Site default*, and the active mark follows the
 viewer's choice rather than what is drawn, so an override reads as one. Without it an admin who

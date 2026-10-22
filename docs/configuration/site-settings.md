@@ -145,9 +145,16 @@ rather than three chances to get it wrong.
 | `carto-voyager` | CARTO Voyager | yes | yes (Dark Matter) | 20 |
 | `stadia-smooth` | Stadia Alidade Smooth | yes | yes | 20 |
 
-A provider with no dark variant reuses its light tiles when the theme is dark. Esri Gray Canvas stops
-at zoom 16, which is further out than the location picker usually wants — the map simply will not
-zoom past it while that basemap is active.
+In the dark theme, a viewer on the site default gets a dark map. A provider with its own dark variant
+draws that (CARTO Dark Matter for both CARTO entries). One without (OpenStreetMap, Esri Streets) is
+swapped for Esri's dark gray, the dark half of Esri Gray Canvas, which needs no key. Two are left as they
+are: Esri World Imagery, which is photographs, and a custom tile URL, since your viewers shouldn't be sent
+to Esri behind your back; set **Basemap Tile URL (Dark)** to give a custom basemap a dark style. A viewer
+who picked a basemap from the layers button gets what they picked in both themes, and the menu's
+**Site default** entry names what the dark theme is drawing.
+
+Esri Gray Canvas, and so the dark default, stops at zoom 16, which is further out than the location
+picker usually wants. The map simply won't zoom past it while that basemap is active.
 
 A key unlocks every style in the same family, so a CARTO key gives you both CARTO entries. It never
 unlocks another vendor's: one key cannot be a CARTO key and a Stadia key at once, so the styles you

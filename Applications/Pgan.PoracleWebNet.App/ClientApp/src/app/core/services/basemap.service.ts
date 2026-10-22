@@ -7,6 +7,7 @@ import {
   BUILTIN_BASEMAPS,
   BasemapDefinition,
   CUSTOM_BASEMAP_ID,
+  DARK_DEFAULT_BASEMAP_ID,
   DEFAULT_CUSTOM_BASEMAP_LABEL,
   FALLBACK_BASEMAP_ID,
   MAX_BASEMAP_NAME_LENGTH,
@@ -152,9 +153,21 @@ export class BasemapService {
     );
   });
 
+  /**
+   * What a viewer on the site default sees in the current theme: {@link siteDefault}, or in the dark theme
+   * {@link DARK_DEFAULT_BASEMAP_ID} when the site default has no dark style. Satellite imagery and a custom
+   * tile URL are drawn as they are (see the constant). Kept apart from `siteDefault`, which the admin page
+   * reports and which describes the configuration whatever theme the admin happens to be using.
+   */
+  readonly themedDefault = computed<BasemapDefinition>(() => {
+    const base = this.siteDefault();
+    if (!this.darkTheme() || base.darkUrl || base.keepInDark || base.id === CUSTOM_BASEMAP_ID) return base;
+    return this.available().find(b => b.id === DARK_DEFAULT_BASEMAP_ID) ?? findBasemap(DARK_DEFAULT_BASEMAP_ID)!;
+  });
+
   /** The definition every attached map is currently drawing: the viewer's choice, or the site's. */
   readonly active = computed<BasemapDefinition>(() => {
-    return this.available().find(b => b.id === this.selectedId()) ?? this.siteDefault();
+    return this.available().find(b => b.id === this.selectedId()) ?? this.themedDefault();
   });
 
   /**
@@ -204,7 +217,7 @@ export class BasemapService {
         lang: this.i18n.currentLang(),
         options: this.available(),
         selected: this.selectedId(),
-        siteDefault: this.siteDefault(),
+        siteDefault: this.themedDefault(),
       };
 
       for (const attachment of this.attachments) {
@@ -281,7 +294,7 @@ export class BasemapService {
         lang: this.i18n.currentLang(),
         options: this.available(),
         selected: this.selectedId(),
-        siteDefault: this.siteDefault(),
+        siteDefault: this.themedDefault(),
       });
       return container;
     };

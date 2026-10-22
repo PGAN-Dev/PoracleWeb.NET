@@ -23,6 +23,13 @@ export interface BasemapDefinition {
   id: string;
 
   /**
+   * Draw this one as it is in the dark theme, even with no dark style. Only satellite imagery: a
+   * photograph has no light or dark version, so swapping it for {@link DARK_DEFAULT_BASEMAP_ID} would
+   * replace what the admin chose to show rather than darken it.
+   */
+  keepInDark?: boolean;
+
+  /**
    * Providers sharing a key family are unlocked by the same `basemap_key`, so an admin who supplies a
    * CARTO key gets every CARTO style rather than only the one they nominated. Absent means keyless.
    */
@@ -95,6 +102,22 @@ export const KEYED_DEFAULT_BASEMAP_ID = 'carto-positron';
  */
 export const FALLBACK_BASEMAP_ID = 'osm';
 
+/**
+ * What the dark theme draws for a site default that has no dark style of its own: Esri's World Dark Gray,
+ * the dark half of Esri Gray Canvas.
+ *
+ * Dark mode used to keep every map on light tiles, a bright slab in a dark interface. This is the fourth
+ * default and has to agree with the other three: it is keyless, like {@link FALLBACK_BASEMAP_ID}, so it can
+ * always be drawn, and it sends no referrer. A keyed default ({@link KEYED_DEFAULT_BASEMAP_ID}, CARTO) and
+ * every other keyed style carry their own dark style (CARTO Dark Matter, Stadia's smooth dark), so they
+ * never reach this. It applies only while a viewer is on the site default: a viewer's own choice is drawn
+ * as chosen. A custom tile URL is left alone too, since an admin who runs their own tiles has not agreed to
+ * send their viewers to Esri; `basemap_url_dark` is how such a site gets a dark map.
+ *
+ * Esri stops serving it above zoom 16, so the dark default cannot zoom as far in as OpenStreetMap.
+ */
+export const DARK_DEFAULT_BASEMAP_ID = 'esri-canvas';
+
 export const BUILTIN_BASEMAPS: readonly BasemapDefinition[] = [
   {
     id: 'osm',
@@ -159,6 +182,7 @@ export const BUILTIN_BASEMAPS: readonly BasemapDefinition[] = [
   {
     id: 'esri-imagery',
     attribution: ESRI_ATTRIBUTION,
+    keepInDark: true,
     label: 'Esri World Imagery',
     maxZoom: 19,
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
