@@ -192,7 +192,7 @@ export class RuleRepairCardComponent {
 
   /** Rows are keyed by their whole identity; the separator is a control character no id, type or number holds. */
   rowKey(i: RuleRepairItem): string {
-    return [i.humanId, i.type, i.profileNo, i.uid].join('');
+    return [i.humanId, i.type, i.profileNo, i.uid].join('\u001f');
   }
 
   scan(): void {

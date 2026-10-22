@@ -233,6 +233,25 @@ describe('RuleRepairCardComponent', () => {
     expect(dialog.open).toHaveBeenCalledTimes(2);
   });
 
+  it('offers Repair again once an apply has answered', () => {
+    const fixture = setup(status({ phase: 'Scanned', repairable: [item()] }));
+    service.apply.mockReturnValue(of(status({ phase: 'Scanned', repairable: [item()] })));
+    const repair = button(fixture.nativeElement, 'repair')!;
+    repair.click();
+    repair.click();
+    expect(service.apply).toHaveBeenCalledTimes(2);
+  });
+
+  it('offers Repair again after an apply fails', () => {
+    const fixture = setup(status({ phase: 'Scanned', repairable: [item()] }));
+    service.apply.mockReturnValue(throwError(() => new Error('down')));
+    const repair = button(fixture.nativeElement, 'repair')!;
+    repair.click();
+    expect(fixture.componentInstance.requestFailed()).toBe(true);
+    repair.click();
+    expect(service.apply).toHaveBeenCalledTimes(2);
+  });
+
   it('sends one apply for a double-click while the request is in flight', () => {
     const inFlight = new Subject<RuleRepairStatus>();
     const fixture = setup(status({ phase: 'Scanned', repairable: [item()] }));
