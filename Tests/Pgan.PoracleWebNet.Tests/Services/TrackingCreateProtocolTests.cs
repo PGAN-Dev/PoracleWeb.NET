@@ -284,6 +284,25 @@ public class TrackingCreateProtocolTests
     }
 
     [Fact]
+    public async Task SingleCreateMadeIdenticalBeforeTheCommitIsAlreadyPresentWithoutAWarning()
+    {
+        // The dry run said new; by the commit another write had stored the same rule. Nothing was created and
+        // the one kept row is accounted for, so there is nothing to pair and nothing to warn about.
+        var handler = new Handler(sent => IsDryRun(sent)
+            ? Reply.Ok(Envelope(true, created: """[{"uid":0,"pokemon_id":25}]"""))
+            : Reply.Ok(Envelope(false, unchanged: """[{"uid":77,"pokemon_id":25}]""")));
+        var logger = new CapturingLogger();
+
+        var result = await this.CreateSut(handler, logger).CreateAsync("pokemon", "user1", Json("""{"pokemon_id":25}"""));
+
+        Assert.Equal(2, handler.Requests.Count);
+        Assert.Equal(1, result.AlreadyPresent);
+        Assert.Equal([0], result.RowUids);
+        Assert.Empty(result.NewUids);
+        Assert.DoesNotContain(logger.Entries, e => e.Level >= LogLevel.Warning);
+    }
+
+    [Fact]
     public async Task ProfileNoGoesInQueryNotBody()
     {
         var handler = new Handler(sent => IsDryRun(sent)
@@ -368,6 +387,48 @@ public class TrackingCreateProtocolTests
             p => p.EnsureOverrideAreasAllowedAsync(
                 "user1", It.Is<IReadOnlyCollection<string>>(names => names.Count == 1 && names.Contains("my park")), null),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task ABlankOverrideAreaNameDoesNotRideTheTrustedWrite()
+    {
+        this._policy
+            .Setup(p => p.EnsureOverrideAreasAllowedAsync("user1", It.IsAny<IReadOnlyCollection<string>>(), null))
+            .Returns(Task.CompletedTask);
+        var handler = new Handler(sent => IsDryRun(sent)
+            ? Reply.Ok(Envelope(true, created: """[{"uid":0}]"""))
+            : Reply.Ok(Envelope(false, created: """[{"uid":6}]""")));
+
+        await this.CreateSut(handler).CreateAsync(
+            "pokemon", "user1", Json("""{"pokemon_id":25,"distance":0,"override_areas":["my park","  ",""]}"""));
+
+        Assert.Equal($"{Base}?silent=true&trusted=true", handler.Requests[1].Url);
+        foreach (var request in handler.Requests)
+        {
+            using var body = JsonDocument.Parse(request.Body!);
+            var areas = body.RootElement[0].GetProperty("override_areas").EnumerateArray().Select(a => a.GetString()).ToList();
+            Assert.Equal(["my park"], areas);
+        }
+
+        this._policy.Verify(
+            p => p.EnsureOverrideAreasAllowedAsync(
+                "user1", It.Is<IReadOnlyCollection<string>>(names => names.Count == 1 && names.Contains("my park")), null),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task OnlyBlankOverrideAreaNamesAreNoAreasAtAll()
+    {
+        var handler = new Handler(sent => IsDryRun(sent)
+            ? Reply.Ok(Envelope(true, created: """[{"uid":0}]"""))
+            : Reply.Ok(Envelope(false, created: """[{"uid":6}]""")));
+
+        await this.CreateSut(handler).CreateAsync(
+            "pokemon", "user1", Json("""{"pokemon_id":25,"distance":500,"override_areas":[" "]}"""));
+
+        Assert.All(handler.Requests, r => Assert.DoesNotContain("trusted", r.Url, StringComparison.Ordinal));
+        Assert.All(handler.Requests, r => Assert.DoesNotContain("\" \"", r.Body!, StringComparison.Ordinal));
+        this._policy.VerifyNoOtherCalls();
     }
 
     [Fact]

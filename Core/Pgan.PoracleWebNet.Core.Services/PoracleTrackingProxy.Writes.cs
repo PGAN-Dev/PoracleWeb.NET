@@ -35,6 +35,7 @@ public partial class PoracleTrackingProxy
     {
         // uid 0 is an insert, which v2's uid-addressed PUT cannot express.
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(uid);
+        body = OverrideScope.WithoutBlankAreas(body);
 
         var translated = await this.TranslateAllAsync(type, [body]);
         var trusted = await this.AuthoriseOverrideAreasAsync(
@@ -107,6 +108,7 @@ public partial class PoracleTrackingProxy
     {
         var single = body.ValueKind != JsonValueKind.Array;
         List<JsonElement> rows = single ? [body] : [.. body.EnumerateArray()];
+        rows = [.. rows.Select(OverrideScope.WithoutBlankAreas)];
         if (rows.Count == 0)
         {
             return new TrackingCreateResult([], 0, 0, 0, []);
@@ -203,8 +205,10 @@ public partial class PoracleTrackingProxy
                 rowUids[keep[k]] = created[k];
             }
         }
-        else
+        else if (created.Count > 0 || commit.Unchanged.Count + commit.Updated.Count != keep.Count)
         {
+            // Nothing created and every kept row accounted for (a single create that a concurrent write made
+            // identical, say) leaves nothing to pair, so there is nothing to warn about.
             LogCreateUnpaired(this._logger, type, userId, keep.Count, created.Count);
         }
 

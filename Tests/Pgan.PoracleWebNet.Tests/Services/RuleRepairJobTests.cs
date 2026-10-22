@@ -308,8 +308,47 @@ public class RuleRepairJobTests
 
         Assert.Equal(RuleRepairPhase.Failed, status.Phase);
         Assert.Contains("a bug", status.Error, StringComparison.Ordinal);
+        Assert.Contains("while processing user alice", status.Error, StringComparison.Ordinal);
         Assert.Empty(status.Skipped);
     }
+
+    [Fact]
+    public async Task AnUnexpectedErrorOnAWebhookNamesItWithoutItsUrl()
+    {
+        const string webhook = "https://discord.com/api/webhooks/123/secret-token";
+        this.Humans(webhook);
+        this._tracking.Setup(t => t.GetStoredRulesAsync(webhook)).ThrowsAsync(new InvalidOperationException("a bug"));
+
+        var status = await this.ScanAsync();
+
+        Assert.Equal(RuleRepairPhase.Failed, status.Phase);
+        Assert.Contains("while processing a webhook", status.Error, StringComparison.Ordinal);
+        Assert.DoesNotContain("secret-token", status.Error, StringComparison.Ordinal);
+        Assert.DoesNotContain("discord.com", status.Error, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ApplyFailedByAnUnexpectedErrorNamesTheHuman()
+    {
+        this.Humans("alice");
+        this.Rules("alice", Rule("invasion", 1, 10, """{"grunt_type":"metal"}"""));
+        await this.ScanAsync();
+        this._tracking
+            .Setup(t => t.ReplaceStoredRuleAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<JsonElement>(), It.IsAny<bool>()))
+            .ThrowsAsync(new InvalidOperationException("a bug"));
+
+        var status = await this.ApplyAsync();
+
+        Assert.Equal(RuleRepairPhase.Failed, status.Phase);
+        Assert.Contains("a bug (while processing user alice)", status.Error, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("123456789", "user 123456789")]
+    [InlineData("http://host:4000/hook", "a webhook")]
+    [InlineData("https://discord.com/api/webhooks/1/x", "a webhook")]
+    public void HumanLabelNeverPrintsAWebhookUrl(string id, string expected) =>
+        Assert.Equal(expected, RuleRepairJob.HumanLabel(id));
 
     [Fact]
     public async Task ScanFailsWhenNoHumanCouldBeReached()

@@ -106,7 +106,13 @@ public partial class PoracleTrackingProxy
 
         if (!ListsProfile(profiles, activeNo))
         {
-            this.CollectStoredRules(active, activeNo, rules);
+            // Since jfberry/PoracleNG#331 the all-profiles snapshot already carries these rules too, profile_no
+            // and all. Older servers still need this read, so keep it and add only what is not collected yet.
+            // uids are per table: the key is the type and the uid together.
+            var seen = rules.Select(r => (r.Type, r.Uid)).ToHashSet();
+            var fromActive = new List<StoredRule>();
+            this.CollectStoredRules(active, activeNo, fromActive);
+            rules.AddRange(fromActive.Where(r => seen.Add((r.Type, r.Uid))));
         }
 
         return rules;

@@ -59,6 +59,9 @@ public sealed partial class PoracleIncidentProxy(
 
     private async Task<PokestopEventWriteResult> ReplaceCoreAsync(string userId, int uid, PokestopEvent rule, int? profileNo)
     {
+        // uid 0 is an insert, which v2's uid-addressed PUT cannot express.
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(uid);
+
         var trusted = await this.AuthoriseOverrideAreasAsync(
             userId, [rule], () => this.StoredOverrideAreasAsync(userId, uid, profileNo));
         var response = await this.SendAsync(
@@ -182,6 +185,13 @@ public sealed partial class PoracleIncidentProxy(
             writer.WriteStartArray();
             foreach (var area in rule.OverrideAreas ?? [])
             {
+                // A blank name names no fence and is never put to the area policy, so it does not ride a
+                // trusted write either.
+                if (string.IsNullOrWhiteSpace(area))
+                {
+                    continue;
+                }
+
                 writer.WriteStringValue(area);
             }
 

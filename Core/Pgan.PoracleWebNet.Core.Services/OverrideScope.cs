@@ -52,6 +52,51 @@ internal static class OverrideScope
         }
     }
 
+    /// <summary>
+    /// The row without blank <c>override_areas</c> names. A blank name names no fence, so the area policy never
+    /// sees it, and it must not ride along on a write that the policy's approval sends <c>trusted</c>.
+    /// </summary>
+    public static JsonElement WithoutBlankAreas(JsonElement row)
+    {
+        if (row.ValueKind != JsonValueKind.Object
+            || !row.TryGetProperty("override_areas", out var areas)
+            || areas.ValueKind != JsonValueKind.Array
+            || !areas.EnumerateArray().Any(a => a.ValueKind == JsonValueKind.String && string.IsNullOrWhiteSpace(a.GetString())))
+        {
+            return row;
+        }
+
+        using var stream = new MemoryStream();
+        using (var writer = new Utf8JsonWriter(stream))
+        {
+            writer.WriteStartObject();
+            foreach (var prop in row.EnumerateObject())
+            {
+                if (!prop.NameEquals("override_areas"))
+                {
+                    prop.WriteTo(writer);
+                    continue;
+                }
+
+                writer.WritePropertyName(prop.Name);
+                writer.WriteStartArray();
+                foreach (var area in prop.Value.EnumerateArray())
+                {
+                    if (area.ValueKind != JsonValueKind.String || !string.IsNullOrWhiteSpace(area.GetString()))
+                    {
+                        area.WriteTo(writer);
+                    }
+                }
+
+                writer.WriteEndArray();
+            }
+
+            writer.WriteEndObject();
+        }
+
+        return JsonDocument.Parse(stream.ToArray()).RootElement.Clone();
+    }
+
     /// <summary>The row's <c>override_areas</c> names; empty when it has none, or null.</summary>
     public static IReadOnlyList<string> AreasOf(JsonElement row) =>
         row.ValueKind == JsonValueKind.Object

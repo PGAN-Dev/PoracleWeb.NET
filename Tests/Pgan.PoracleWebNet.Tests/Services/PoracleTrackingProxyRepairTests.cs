@@ -86,6 +86,49 @@ public class PoracleTrackingProxyRepairTests
     }
 
     [Fact]
+    public async Task StoredRulesDoNotDuplicateActiveProfileRulesTheSnapshotAlreadyCarries()
+    {
+        // jfberry/PoracleNG#331: all_profiles also returns rules on a profile with no profiles row, the active one
+        // included, each carrying profile_no. The second read still runs for servers without it, and must not add
+        // the same rules again. uids are per table, so incident 5 and pokemon 5 are different rules.
+        var handler = new Router()
+            .On("/tracking", """
+                {"human":{"id":"user1","current_profile_no":1},"profiles":[],
+                 "tracking":{"pokemon":[{"uid":5,"pokemon_id":25}],"incident":[{"uid":5,"display_type":7}]}}
+                """)
+            .On("all_profiles=true", """
+                {"human":{"id":"user1","current_profile_no":1},"profiles":[],
+                 "tracking":{"pokemon":[{"uid":5,"profile_no":1,"pokemon_id":25}],"incident":[{"uid":5,"profile_no":1,"display_type":7}]}}
+                """);
+
+        var rules = await CreateSut(handler).GetStoredRulesAsync("user1");
+
+        Assert.Equal(2, handler.Requests.Count);
+        Assert.Equal([("pokemon", 1, 5), ("incident", 1, 5)], rules.Select(r => (r.Type, r.ProfileNo, r.Uid)));
+    }
+
+    [Fact]
+    public async Task StoredRulesReadNothingMoreWhenTheActiveProfileIsListedOnlyByTheSecondRead()
+    {
+        // The first snapshot names an active profile with no row; by the second read the scheduler has moved the
+        // human to one that has a row, whose rules the first snapshot already carried.
+        var handler = new Router()
+            .On("/tracking", """
+                {"human":{"id":"user1","current_profile_no":2},"profiles":[],
+                 "tracking":{"pokemon":[{"uid":6,"pokemon_id":26}]}}
+                """)
+            .On("all_profiles=true", """
+                {"human":{"id":"user1","current_profile_no":3},"profiles":[{"profile_no":2}],
+                 "tracking":{"pokemon":[{"uid":6,"profile_no":2,"pokemon_id":26}]}}
+                """);
+
+        var rules = await CreateSut(handler).GetStoredRulesAsync("user1");
+
+        Assert.Equal(2, handler.Requests.Count);
+        Assert.Equal([("pokemon", 2, 6)], rules.Select(r => (r.Type, r.ProfileNo, r.Uid)));
+    }
+
+    [Fact]
     public async Task StoredRulesDoNotDuplicateAProfileTheListNames()
     {
         var handler = new Router().On("/tracking", AllProfiles);

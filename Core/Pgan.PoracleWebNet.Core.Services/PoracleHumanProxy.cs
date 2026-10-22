@@ -136,12 +136,13 @@ public partial class PoracleHumanProxy(
     /// </summary>
     /// <remarks>
     /// v1 answers <c>{"message":"User not found"}</c>; the v2 surface and the tracking routes say
-    /// "human not found". Anything else at 404 names a profile, a place or a route.
+    /// "human not found" (huma's <c>Error404NotFound("human not found")</c>, matched exactly as every other proxy
+    /// matches it). Anything else at 404 names a profile, a place or a route.
     /// </remarks>
     private static bool NamesAMissingAccount(string? payload) =>
         payload is not null
         && (payload.Contains("user not found", StringComparison.OrdinalIgnoreCase)
-            || payload.Contains("human not found", StringComparison.OrdinalIgnoreCase));
+            || payload.Contains("human not found", StringComparison.Ordinal));
 
     public async Task<JsonElement?> GetHumanAsync(string userId)
     {
