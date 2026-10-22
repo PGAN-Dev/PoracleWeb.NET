@@ -12,8 +12,6 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 /// </summary>
 public class TrackingV2WriteDefaultsTests
 {
-    private static readonly string[] AllTypes = ["pokemon", "raid", "egg", "quest", "gym", "maxbattle", "nest", "lure", "invasion", "fort"];
-
     [Theory]
     [InlineData("raid")]
     [InlineData("maxbattle")]
@@ -54,6 +52,19 @@ public class TrackingV2WriteDefaultsTests
     {
         // Stored as 90 by v2, which is the any-tier wildcard.
         Assert.False(Translate(type, """{"pokemon_id":9000,"level":9000}""").TryGetProperty("level", out _));
+    }
+
+    [Theory]
+    [InlineData("raid")]
+    [InlineData("maxbattle")]
+    public void Level9000WithNoPokemonIdOmitsLevelAndStaysInsideTheSchema(string type)
+    {
+        // No pokemon named and no tier: v2 bounds level at 90, so echoing 9000 would be a 422.
+        var body = Translate(type, """{"level":9000,"distance":0}""");
+
+        Assert.False(body.TryGetProperty("level", out _));
+        Assert.False(body.TryGetProperty("pokemon_id", out _));
+        AssertValidAgainstSchema(type, body);
     }
 
     [Theory]
@@ -168,20 +179,27 @@ public class TrackingV2WriteDefaultsTests
     }
 
     [Theory]
-    [InlineData("pokemon")]
-    [InlineData("raid")]
-    [InlineData("egg")]
-    [InlineData("quest")]
-    [InlineData("gym")]
-    [InlineData("maxbattle")]
-    [InlineData("nest")]
-    [InlineData("lure")]
-    [InlineData("invasion")]
-    [InlineData("fort")]
-    public void EveryTypeHasADefaultsTableTheWriteSideUses(string type)
+    [MemberData(nameof(TypeRows))]
+    public void ARuleReadWithEveryFilterNullWritesBackWithEveryFilterAbsent(string type, string row)
     {
-        Assert.Contains(type, AllTypes);
+        // The read side fills each null with the v1 value DefaultsFor names; the write side has to recognise
+        // every one of those values as "absent" again. A default the two sides disagree on would be written
+        // back as a filter the user never set. template is the one deliberate exception: an empty one is
+        // sent (AnEmptyTemplateIsStillSentSoTheV1RoundTripMatches).
+        var v2Rule = Translate(type, row);
+        var v1Row = TrackingV2Translator.ToV1Row(type, v2Rule, "user1");
+
+        var body = Translate(type, v1Row.GetRawText());
+
+        var stated = v2Rule.EnumerateObject().Select(p => p.Name).ToHashSet(StringComparer.Ordinal);
+        var leaked = body.EnumerateObject()
+            .Where(p => !stated.Contains(p.Name) && p.Name != "template" && TrackingV2Translator.DefaultsFor(type).ContainsKey(p.Name))
+            .Select(p => $"{p.Name}={p.Value.GetRawText()}")
+            .ToList();
+
         Assert.NotEmpty(TrackingV2Translator.DefaultsFor(type));
+        Assert.True(leaked.Count == 0, $"{type} wrote back a default as a value: {string.Join(", ", leaked)}");
+        AssertValidAgainstSchema(type, body);
     }
 
     [Theory]
@@ -225,7 +243,10 @@ public class TrackingV2WriteDefaultsTests
         return translated;
     }
 
-    /// <summary>The body names only properties the rule declares and carries every one it requires.</summary>
+    /// <summary>
+    /// The body names only properties the rule declares, carries every one it requires, and keeps every
+    /// integer inside the bounds the schema states.
+    /// </summary>
     private static void AssertValidAgainstSchema(string type, JsonElement body)
     {
         using var doc = JsonDocument.Parse(File.ReadAllText(Fixture()));
@@ -236,9 +257,27 @@ public class TrackingV2WriteDefaultsTests
             ? req.EnumerateArray().Select(r => r.GetString()!).ToList()
             : [];
 
+        var properties = schema.GetProperty("properties");
         foreach (var property in body.EnumerateObject())
         {
             Assert.Contains(property.Name, declared);
+
+            if (property.Value.ValueKind != JsonValueKind.Number)
+            {
+                continue;
+            }
+
+            var value = property.Value.GetDouble();
+            var bounds = properties.GetProperty(property.Name);
+            if (bounds.TryGetProperty("minimum", out var min))
+            {
+                Assert.True(value >= min.GetDouble(), $"V2{type}Rule.{property.Name} = {value} is below its minimum {min}");
+            }
+
+            if (bounds.TryGetProperty("maximum", out var max))
+            {
+                Assert.True(value <= max.GetDouble(), $"V2{type}Rule.{property.Name} = {value} is above its maximum {max}");
+            }
         }
 
         foreach (var name in required)

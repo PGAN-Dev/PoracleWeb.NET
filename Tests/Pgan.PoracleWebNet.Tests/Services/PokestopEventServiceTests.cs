@@ -104,6 +104,30 @@ public class PokestopEventServiceTests
     }
 
     [Fact]
+    public async Task CreateAsyncSendsItsPingAndPlaceLabelOnTheDryRunAndTheCommit()
+    {
+        var sent = new List<PokestopEvent>();
+        this.CreateAnswers(
+            rules => { sent.AddRange(rules); return Created(Rule(0, PokestopEventTypes.Showcase)); },
+            rules => { sent.AddRange(rules); return Created(Rule(735, PokestopEventTypes.Showcase)); });
+        var model = Rule(0, PokestopEventTypes.Showcase, distance: 500);
+        model.Ping = "<@&1>";
+        model.OverrideLocationLabel = "home";
+
+        var result = await this._sut.CreateAsync("u1", model);
+
+        Assert.Equal(735, result.Uid);
+        Assert.Equal(2, sent.Count);
+        Assert.All(sent, rule =>
+        {
+            Assert.Equal("<@&1>", rule.Ping);
+            Assert.Equal("home", rule.OverrideLocationLabel);
+        });
+        Assert.Equal("<@&1>", result.Ping);
+        Assert.Equal("home", result.OverrideLocationLabel);
+    }
+
+    [Fact]
     public async Task CreateAsyncAllowsADifferentEventAlongsideAnExistingOne()
     {
         this.CreateAnswers(_ => Created(Rule(0, PokestopEventTypes.Kecleon)), _ => Created(Rule(734, PokestopEventTypes.Kecleon)));

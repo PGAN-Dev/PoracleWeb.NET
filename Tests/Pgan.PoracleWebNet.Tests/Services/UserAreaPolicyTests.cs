@@ -113,8 +113,21 @@ public class UserAreaPolicyTests
     {
         this.Selectable("Old Town");
 
-        await this._sut.EnsureOverrideAreasAllowedAsync(Human, ["  OLD_TOWN "], null);
+        var exception = await Record.ExceptionAsync(
+            () => this._sut.EnsureOverrideAreasAllowedAsync(Human, ["  OLD_TOWN "], null));
+
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public void Key_FoldsCaseUnderscoresAndPadding()
+    {
         Assert.Equal("old town", UserAreaPolicy.Key(" Old_Town "));
+    }
+
+    [Fact]
+    public void Clean_LowercasesAndTrimsButKeepsUnderscores()
+    {
         Assert.Equal("old_town", UserAreaPolicy.Clean(" Old_Town "));
     }
 

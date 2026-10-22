@@ -103,6 +103,7 @@ public class MaxBattleServiceTests
         var result = await this._sut.CreateAsync("user1", new MaxBattle { PokemonId = 150, Distance = 900, Level = 3 });
 
         Assert.Equal(6, result.Uid);
+        this._proxy.Verify(p => p.GetByUserAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
     /// <summary>
@@ -131,7 +132,6 @@ public class MaxBattleServiceTests
     public async Task CreateAsyncSetsUserId()
     {
         var maxBattle = new MaxBattle { PokemonId = 9000, Gmax = 1, StationId = "station123", Level = 3 };
-        this._proxy.Setup(p => p.GetByUserAsync("maxbattle", "user1")).ReturnsAsync(CreateJsonArray());
         this._proxy.Setup(p => p.CreateAsync("maxbattle", "user1", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([1], 0, 0, 1));
 

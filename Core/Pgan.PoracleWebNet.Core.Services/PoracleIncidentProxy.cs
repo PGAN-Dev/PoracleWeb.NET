@@ -358,8 +358,8 @@ public sealed partial class PoracleIncidentProxy(
 
         if (response.StatusCode == HttpStatusCode.Conflict)
         {
-            // v2 refuses a replacement that would exactly duplicate another rule. To the user that is the
-            // same thing as a takeover: another alarm already holds those settings.
+            // v2 refuses a replacement that would duplicate another rule, exactly or one updatable field away.
+            // To the user that is the same thing as a takeover: another alarm already holds those settings.
             throw new TrackingConflictException("incident", PoracleTrackingProxy.TakeoverMessage);
         }
 
