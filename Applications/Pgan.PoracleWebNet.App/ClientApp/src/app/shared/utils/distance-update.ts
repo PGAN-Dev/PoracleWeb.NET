@@ -9,10 +9,13 @@ export interface Translator {
  * `updated` counts the alarms that took the new radius. The two skip lists name the selected alarms the
  * server left alone because a radius cannot apply to their scope: one limited to areas cannot take a
  * radius above zero, and one measured from a saved place cannot take zero. PoracleNG refuses both, so
- * sending them failed the whole selection; the server now skips them and says so.
+ * sending them failed the whole selection; the server now skips them and says so. `skippedConflict` names
+ * the rules whose new radius would make them identical to another rule of the same user, which PoracleNG
+ * refuses; the rest of the selection is still updated.
  */
 export interface DistanceUpdateResult {
   skippedAreaScoped?: number[];
+  skippedConflict?: number[];
   skippedPlaceScoped?: number[];
   updated: number;
 }
@@ -22,10 +25,11 @@ export function combineDistanceResults(...results: (DistanceUpdateResult | null 
   return results.reduce<Required<DistanceUpdateResult>>(
     (total, result) => ({
       skippedAreaScoped: [...total.skippedAreaScoped, ...(result?.skippedAreaScoped ?? [])],
+      skippedConflict: [...total.skippedConflict, ...(result?.skippedConflict ?? [])],
       skippedPlaceScoped: [...total.skippedPlaceScoped, ...(result?.skippedPlaceScoped ?? [])],
       updated: total.updated + (result?.updated ?? 0),
     }),
-    { skippedAreaScoped: [], skippedPlaceScoped: [], updated: 0 },
+    { skippedAreaScoped: [], skippedConflict: [], skippedPlaceScoped: [], updated: 0 },
   );
 }
 
@@ -37,9 +41,11 @@ export function distanceUpdateMessage(result: DistanceUpdateResult | null | unde
   const clauses: string[] = [];
   const areas = result?.skippedAreaScoped?.length ?? 0;
   const place = result?.skippedPlaceScoped?.length ?? 0;
+  const conflict = result?.skippedConflict?.length ?? 0;
 
   if (areas > 0) clauses.push(translate.instant('WHERE.DISTANCE_SKIPPED_AREAS', { count: areas }));
   if (place > 0) clauses.push(translate.instant('WHERE.DISTANCE_SKIPPED_PLACE', { count: place }));
+  if (conflict > 0) clauses.push(translate.instant('WHERE.DISTANCE_SKIPPED_CONFLICT', { count: conflict }));
   if (clauses.length === 0) return success;
 
   // The success lines are written to stand alone and carry no full stop; two sentences run together
@@ -50,5 +56,5 @@ export function distanceUpdateMessage(result: DistanceUpdateResult | null | unde
 
 /** True when the server left some of the selection alone, so the snack stays up long enough to read. */
 export function skippedAny(result: DistanceUpdateResult | null | undefined): boolean {
-  return (result?.skippedAreaScoped?.length ?? 0) + (result?.skippedPlaceScoped?.length ?? 0) > 0;
+  return (result?.skippedAreaScoped?.length ?? 0) + (result?.skippedPlaceScoped?.length ?? 0) + (result?.skippedConflict?.length ?? 0) > 0;
 }
