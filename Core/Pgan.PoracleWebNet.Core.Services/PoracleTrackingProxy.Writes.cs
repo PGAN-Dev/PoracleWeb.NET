@@ -514,10 +514,27 @@ public partial class PoracleTrackingProxy
         }
 
         LogV2UpdateResponse(this._logger, type, uid, userId, payload);
-        return WriteEnvelope.Parse(payload).Verdict == DryRunVerdict.Unchanged
-            ? StoredRuleReplaceOutcome.Unchanged
-            : StoredRuleReplaceOutcome.Updated;
+
+        // Only an explicit answer counts. An empty or unreadable 200 must not read as "go ahead and write".
+        WriteEnvelope envelope;
+        try
+        {
+            envelope = WriteEnvelope.Parse(payload);
+        }
+        catch (JsonException)
+        {
+            throw AmbiguousReplaceAnswer(type, uid, payload);
+        }
+
+        // A replace never creates; a created rule beside the answer means this is not the answer we asked for.
+        return envelope.Created.Count > 0 ? throw AmbiguousReplaceAnswer(type, uid, payload)
+            : envelope.Updated.Count > 0 ? StoredRuleReplaceOutcome.Updated
+            : envelope.Unchanged.Count > 0 ? StoredRuleReplaceOutcome.Unchanged
+            : throw AmbiguousReplaceAnswer(type, uid, payload);
     }
+
+    private static InvalidOperationException AmbiguousReplaceAnswer(string type, int uid, string payload) =>
+        new($"PoracleNG answered the {type} rule {uid} replace with neither an updated nor an unchanged rule: {(payload.Length > 200 ? payload[..200] : payload)}");
 
     private static string TrustedQuery(bool trusted) => trusted ? "&trusted=true" : string.Empty;
 

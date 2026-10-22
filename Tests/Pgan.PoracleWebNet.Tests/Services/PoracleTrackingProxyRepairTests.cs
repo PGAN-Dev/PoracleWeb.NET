@@ -143,6 +143,36 @@ public class PoracleTrackingProxyRepairTests
             () => Run(HttpStatusCode.NotFound, "404 page not found", "text/plain"));
     }
 
+    [Theory]
+    [InlineData("{}")]
+    [InlineData("""{"updated":null,"unchanged":null}""")]
+    [InlineData("""{"created":[{"uid":0}],"updated":null,"unchanged":null}""")]
+    [InlineData("""{"created":[{"uid":0}],"unchanged":[{"uid":12}]}""")]
+    [InlineData("[]")]
+    [InlineData("not json")]
+    public async Task ReplaceStoredRuleNeverTreatsAnAmbiguousAnswerAsUpdated(string answer)
+    {
+        var handler = new Router().On("/tracking/raid/12", answer);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => CreateSut(handler).ReplaceStoredRuleAsync("raid", "user1", 12, 3, Row(RaidRow), dryRun: true));
+
+        Assert.Contains("raid rule 12", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task StoredRulesSkipAnAllProfilesRuleWithNoProfileNo()
+    {
+        var handler = new Router().On("/tracking", """
+            {"human":{"current_profile_no":1},"profiles":[{"profile_no":1}],
+             "tracking":{"pokemon":[{"uid":5,"pokemon_id":25},{"uid":6,"profile_no":1,"pokemon_id":26}]}}
+            """);
+
+        var rules = await CreateSut(handler).GetStoredRulesAsync("user1");
+
+        Assert.Equal(6, Assert.Single(rules).Uid);
+    }
+
     [Fact]
     public async Task ReplaceStoredRuleRefusesAnUntranslatableRowBeforeAnyRequest()
     {

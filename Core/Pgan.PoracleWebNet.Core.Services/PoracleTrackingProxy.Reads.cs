@@ -93,7 +93,7 @@ public partial class PoracleTrackingProxy
         var current = CurrentProfileNo(snapshot);
 
         var rules = new List<StoredRule>();
-        CollectStoredRules(snapshot, stampProfileNo: null, fallbackProfileNo: current ?? 0, rules);
+        this.CollectStoredRules(snapshot, stampProfileNo: null, rules);
 
         if (current is not null && ListsProfile(profiles, current.Value))
         {
@@ -105,13 +105,13 @@ public partial class PoracleTrackingProxy
 
         if (!ListsProfile(profiles, activeNo))
         {
-            CollectStoredRules(active, activeNo, activeNo, rules);
+            this.CollectStoredRules(active, activeNo, rules);
         }
 
         return rules;
     }
 
-    private static void CollectStoredRules(JsonElement snapshot, int? stampProfileNo, int fallbackProfileNo, List<StoredRule> into)
+    private void CollectStoredRules(JsonElement snapshot, int? stampProfileNo, List<StoredRule> into)
     {
         if (snapshot.ValueKind != JsonValueKind.Object
             || !snapshot.TryGetProperty("tracking", out var tracking)
@@ -132,9 +132,16 @@ public partial class PoracleTrackingProxy
                 var profileNo = stampProfileNo
                     ?? (rule.TryGetProperty("profile_no", out var no) && no.ValueKind == JsonValueKind.Number && no.TryGetInt32(out var found)
                         ? found
-                        : fallbackProfileNo);
+                        : (int?)null);
 
-                into.Add(new StoredRule(type, profileNo, UidOf(rule), rule.Clone()));
+                if (profileNo is null)
+                {
+                    // A repair would PUT to a profile we only guessed at.
+                    LogRuleWithoutProfile(this._logger, type, UidOf(rule));
+                    continue;
+                }
+
+                into.Add(new StoredRule(type, profileNo.Value, UidOf(rule), rule.Clone()));
             }
         }
     }
@@ -329,6 +336,11 @@ public partial class PoracleTrackingProxy
 
         return rows;
     }
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Left out {Type} rule uid={Uid} from the stored-rule read: it names no profile_no.")]
+    private static partial void LogRuleWithoutProfile(ILogger logger, string type, int uid);
 
     [LoggerMessage(
         Level = LogLevel.Warning,
