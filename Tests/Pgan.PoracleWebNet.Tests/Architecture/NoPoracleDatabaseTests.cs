@@ -26,6 +26,9 @@ public sealed class NoPoracleDatabaseTests
         new(@"ConnectionStrings__PoracleDb", RegexOptions.Compiled),
         new(@"""PoracleDb""\s*:", RegexOptions.Compiled),
         new("(MapEnvVar|ComposeConnectionString)\\s*\\([^)]*\"DB_HOST\"", RegexOptions.Compiled),
+        new("\"pweb_settings\"", RegexOptions.Compiled),
+        new(@"GetEnvironmentVariable\s*\(\s*""DB_(HOST|PORT|NAME|USER|PASSWORD)""", RegexOptions.Compiled),
+        new(@"\[Table\s*\(\s*""(humans|profiles)""", RegexOptions.Compiled),
     ];
 
     // The single place allowed to name the retired connection string: the line that detects a leftover one.
@@ -85,6 +88,11 @@ public sealed class NoPoracleDatabaseTests
     [InlineData("Environment.SetEnvironmentVariable(\"ConnectionStrings__PoracleDb\", x);")]
     [InlineData("MapEnvVar(\"DB_HOST\", \"Whatever\");")]
     [InlineData("ComposeConnectionString(\"X\", \"DB_HOST\", \"DB_PORT\");")]
+    [InlineData("var t = \"pweb_settings\";")]
+    [InlineData("Environment.GetEnvironmentVariable(\"DB_HOST\")")]
+    [InlineData("Environment.GetEnvironmentVariable(\"DB_PASSWORD\")")]
+    [InlineData("[Table(\"humans\")]")]
+    [InlineData("[Table(\"profiles\")]")]
     public void TheMatcherFindsEachForbiddenForm(string planted) =>
         Assert.True(Matches(planted), $"The matcher missed: {planted}");
 
@@ -109,6 +117,8 @@ public sealed class NoPoracleDatabaseTests
     [Theory]
     [InlineData("ComposeConnectionString(\"PoracleWebDb\", \"WEB_DB_HOST\", \"WEB_DB_PORT\");")]
     [InlineData("var context = typeof(PoracleWebContext);")]
+    [InlineData("Environment.GetEnvironmentVariable(\"WEB_DB_HOST\")")]
+    [InlineData("[Table(\"user_geofences\")]")]
     [InlineData("DB_* settings are no longer used by PoracleWeb.NET and can be removed.")]
     public void TheMatcherLeavesTheWebDatabaseAlone(string line) =>
         Assert.False(Matches(line), $"The matcher flagged: {line}");
