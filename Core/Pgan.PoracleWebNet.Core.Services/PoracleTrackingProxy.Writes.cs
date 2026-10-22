@@ -138,7 +138,8 @@ public partial class PoracleTrackingProxy
             }
 
             // An identical rule is already stored; nothing is written.
-            return new TrackingCreateResult([], 1, 0, 0, [0]);
+            var existing = UidOf(dry.Unchanged[0]);
+            return new TrackingCreateResult([], 1, 0, 0, [0]) { ExistingUid = existing > 0 ? existing : null };
         }
         else if (dry.Created.Count == 0)
         {

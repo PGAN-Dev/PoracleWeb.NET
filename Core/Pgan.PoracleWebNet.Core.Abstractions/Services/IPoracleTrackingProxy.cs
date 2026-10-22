@@ -186,6 +186,12 @@ public record TrackingCreateResult(
     /// </summary>
     public bool InsertedNothing => this.Inserts == 0;
 
+    /// <summary>
+    /// The stored rule a single create matched exactly, when PoracleNG named it (its dry run reports the
+    /// duplicate under <c>unchanged</c> with that rule's uid). Null for a batch, or when nothing matched.
+    /// </summary>
+    public int? ExistingUid { get; init; }
+
     /// <summary>The submission duplicated an existing row exactly, so nothing was named or written.</summary>
     public bool WasRejectedAsDuplicate => this.AlreadyPresent > 0 && this.Inserts == 0 && this.NewUids.Count == 0;
 }

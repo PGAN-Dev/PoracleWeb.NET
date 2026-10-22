@@ -125,6 +125,8 @@ public class TrackingCreateProtocolTests
         Assert.Empty(result.NewUids);
         Assert.Equal(0, result.Inserts);
         Assert.True(result.WasRejectedAsDuplicate);
+        // The stored rule the Add matched, so a type that refuses an exact repeat can name it.
+        Assert.Equal(77, result.ExistingUid);
     }
 
     [Fact]
