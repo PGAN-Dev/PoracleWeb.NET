@@ -184,6 +184,39 @@ public class TrackingV2WriteDefaultsTests
         Assert.NotEmpty(TrackingV2Translator.DefaultsFor(type));
     }
 
+    [Theory]
+    [MemberData(nameof(TypeRows))]
+    public void AnEmptyTemplateIsStillSentSoTheV1RoundTripMatches(string type, string row)
+    {
+        var withTemplate = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(row)!;
+        withTemplate["template"] = JsonSerializer.SerializeToElement(string.Empty);
+
+        var body = Translate(type, JsonSerializer.Serialize(withTemplate));
+
+        Assert.Equal(string.Empty, body.GetProperty("template").GetString());
+    }
+
+    [Fact]
+    public void ANullTemplateIsStillOmitted()
+    {
+        Assert.False(Translate("raid", """{"pokemon_id":150,"template":null}""").TryGetProperty("template", out _));
+    }
+
+    public static TheoryData<string, string> TypeRows() =>
+        new()
+        {
+            { "pokemon", """{"pokemon_id":25}""" },
+            { "raid", """{"pokemon_id":150}""" },
+            { "egg", """{"level":5}""" },
+            { "quest", """{"reward_type":7}""" },
+            { "gym", """{"team":4}""" },
+            { "maxbattle", """{"pokemon_id":150}""" },
+            { "nest", """{"pokemon_id":25}""" },
+            { "lure", """{"lure_id":501}""" },
+            { "invasion", """{"grunt_type":"water"}""" },
+            { "fort", """{"include_empty":0}""" },
+        };
+
     private static JsonElement Row(string json) => JsonDocument.Parse(json).RootElement.Clone();
 
     private static JsonElement Translate(string type, string row)

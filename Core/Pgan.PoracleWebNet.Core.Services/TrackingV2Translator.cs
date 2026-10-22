@@ -590,7 +590,14 @@ internal static class TrackingV2Translator
     /// </summary>
     private static bool IsDefault(TypeSpec spec, JsonElement row, JsonProperty property)
     {
-        if (Array.IndexOf(spec.Required, property.Name) >= 0)
+        // template is never omitted. Its read default "" cannot tell an empty template from the server's own
+        // default name: omitting it makes PoracleNG store that name ("1"), a v2 read reports it back as null,
+        // and ToV1Row turns that into "". The v1 upsert paths (bulk distance, cleaning) then send "" against
+        // a stored "1", PoracleNG counts template plus distance/clean as two updatable differences and INSERTS
+        // a second rule instead of updating. Sending the string we hold keeps the round trip matching. A null
+        // template means "not supplied" and is still omitted.
+        if ((property.Name == "template" && property.Value.ValueKind == JsonValueKind.String)
+            || Array.IndexOf(spec.Required, property.Name) >= 0)
         {
             return false;
         }
