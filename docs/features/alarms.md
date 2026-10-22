@@ -230,7 +230,7 @@ Users can maintain multiple alarm profiles. Only one profile is active at a time
 
 ### Cross-Profile Overview
 
-The Profiles page uses PoracleNG's `GET /api/tracking/allProfiles/{id}?includeDescriptions=true` endpoint to fetch all alarms across all profiles in a single call. Alarms are grouped by profile (expandable accordion panels) and by type within each profile.
+The Profiles page uses PoracleNG's v2 tracking snapshot (`GET /api/v2/humans/{id}/tracking?all_profiles=true&include_descriptions=true`) to fetch all alarms across all profiles in a single call. Alarms are grouped by profile (expandable accordion panels) and by type within each profile.
 
 ### Duplicating a profile
 

@@ -1,12 +1,14 @@
 using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
 /// <summary>
-/// Rewrites a v1-shaped tracking row into the body <c>/api/v2</c> will accept, for the nine types
-/// PoracleWeb writes through that surface.
+/// Rewrites a v1-shaped tracking row into the body <c>/api/v2</c> will accept, for the ten types
+/// PoracleWeb.NET writes through that surface, and (<see cref="ToV1Row"/>) a rule a v2 read returns back
+/// into the v1 row, from the same field tables so the two directions cannot drift.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -43,7 +45,9 @@ namespace Pgan.PoracleWebNet.Core.Services;
 /// faithfully — a property it does not know, an enum outside its range, an egg without a level — makes it
 /// answer false, and the caller sends the row to the frozen v1 surface instead. Refusing outright would
 /// mean a PoracleNG newer than this translator broke every edit; dropping the field silently would be #730
-/// all over again. Falling back does neither.
+/// all over again. Falling back does neither. The one exception is a property the target server's own
+/// <c>/openapi.json</c> declares on the rule: that is sent verbatim, so a field the v2 read copied through
+/// (the PGAN fork's <c>personal_shiny</c>) survives the edit that follows.
 /// </para>
 /// </remarks>
 internal static class TrackingV2Translator
@@ -80,6 +84,19 @@ internal static class TrackingV2Translator
     /// <summary>v2's RSVP enum: index is the v1 integer.</summary>
     private static readonly string[] RsvpChanges = ["none", "rsvp", "rsvp_only"];
 
+    /// <summary>The project-wide "any" sentinel PoracleNG stores and v2 reports as null (<c>wcAnyID</c>).</summary>
+    private const int AnyId = 9000;
+
+    /// <summary>
+    /// The raid and max battle level stored on a by-pokemon rule (<c>wcLevelPlaceholder</c>). v2 reports it
+    /// as null, and also reports <see cref="AnyTier"/> as null; which one a null means depends on whether
+    /// the rule names a pokemon.
+    /// </summary>
+    private const int LevelPlaceholder = 9000;
+
+    /// <summary>The raid and max battle level stored on a by-level rule with no tier (<c>wcLevelAny</c>).</summary>
+    private const int AnyTier = 90;
+
     /// <summary>The four leagues <c>V2PokemonRule</c> permits. 0 means "no PVP filter".</summary>
     private static readonly HashSet<int> Leagues = [0, 500, 1500, 2500];
 
@@ -90,10 +107,11 @@ internal static class TrackingV2Translator
     };
 
     /// <summary>
-    /// Every field each <c>V2*Rule</c> declares, taken from 5.2.1's <c>openapi.golden.json</c>, sorted into
-    /// how it has to be written. A schema field missing from its type's table would go to v1 forever
-    /// without anyone noticing, which is why <c>TrackingV2TypeTranslationTests</c> asserts the tables against
-    /// the schema rather than against themselves.
+    /// Every field each <c>V2*Rule</c> declares, sorted into how it has to be written and read. A schema
+    /// field missing from its type's table would go to v1 forever without anyone noticing, which is why
+    /// <c>TrackingV2TypeTranslationTests</c> asserts the tables against the 5.4.0 schema fixture rather than
+    /// against themselves, and <c>TrackingV2ReadTranslationTests</c> asserts every nullable property has a
+    /// read default.
     /// </summary>
     private static readonly Dictionary<string, TypeSpec> Specs = new(StringComparer.Ordinal)
     {
@@ -126,6 +144,15 @@ internal static class TrackingV2Translator
             },
 
             Required = ["pokemon_id"],
+
+            Defaults = ReadDefaults(
+                cleanFlags: true,
+                ("pokemon_id", 0), ("form", 0), ("costume", 9000), ("min_iv", -1), ("max_iv", 100), ("min_cp", 0),
+                ("max_cp", 9000), ("min_level", 0), ("max_level", 55), ("atk", 0), ("def", 0), ("sta", 0),
+                ("max_atk", 15), ("max_def", 15), ("max_sta", 15), ("gender", 0), ("min_weight", 0),
+                ("max_weight", 9000000), ("min_time", 0), ("rarity", -1), ("max_rarity", 6), ("size", -1),
+                ("max_size", 5), ("pvp_ranking_league", 0), ("pvp_ranking_best", 1), ("pvp_ranking_worst", 4096),
+                ("pvp_ranking_min_cp", 0), ("pvp_ranking_cap", 0), ("pvp_ranking_evolution", 0)),
         },
         ["raid"] = new TypeSpec
         {
@@ -137,6 +164,12 @@ internal static class TrackingV2Translator
                 ["team"] = Teams,
                 ["rsvp_changes"] = RsvpChanges,
             },
+
+            Defaults = ReadDefaults(
+                cleanFlags: true,
+                ("pokemon_id", AnyId), ("form", 0), ("costume", AnyId), ("level", LevelPlaceholder), ("team", 4),
+                ("exclusive", 0), ("move", AnyId), ("evolution", AnyId), ("gym_id", null), ("rsvp_changes", 0)),
+            LevelFollowsPokemonId = true,
         },
         ["egg"] = new TypeSpec
         {
@@ -155,12 +188,19 @@ internal static class TrackingV2Translator
             // as it always has.
             Required = ["level"],
             PositiveIntegers = ["level"],
+
+            // level is required on V2EggRule and always read back, so it has no default.
+            Defaults = ReadDefaults(
+                cleanFlags: true,
+                ("team", 4), ("exclusive", 0), ("gym_id", null), ("rsvp_changes", 0)),
         },
         ["quest"] = new TypeSpec
         {
             Integers = ["amount", "distance", "form", "reward", "reward_type"],
             Booleans = ["shiny"],
             Required = ["reward_type"],
+
+            Defaults = ReadDefaults(cleanFlags: true, ("reward", 0), ("form", 0), ("shiny", 0), ("amount", 0)),
         },
         ["gym"] = new TypeSpec
         {
@@ -169,12 +209,22 @@ internal static class TrackingV2Translator
             Booleans = ["battle_changes", "slot_changes"],
             IntEnums = new Dictionary<string, string[]>(StringComparer.Ordinal) { ["team"] = Teams },
             Required = ["team"],
+
+            Defaults = ReadDefaults(
+                cleanFlags: true,
+                ("slot_changes", 0), ("battle_changes", 0), ("gym_id", null)),
         },
         ["maxbattle"] = new TypeSpec
         {
             Integers = ["distance", "evolution", "form", "level", "move", "pokemon_id"],
             Strings = ["station_id"],
             Booleans = ["gmax"],
+
+            Defaults = ReadDefaults(
+                cleanFlags: true,
+                ("pokemon_id", AnyId), ("form", 0), ("level", LevelPlaceholder), ("move", AnyId), ("gmax", 0),
+                ("evolution", AnyId), ("station_id", null)),
+            LevelFollowsPokemonId = true,
         },
         ["nest"] = new TypeSpec
         {
@@ -182,11 +232,15 @@ internal static class TrackingV2Translator
             OmitWhenEquals = new Dictionary<string, int>(StringComparer.Ordinal) { ["pokemon_id"] = 0 },
 
             Integers = ["distance", "form", "min_spawn_avg", "pokemon_id"],
+
+            Defaults = ReadDefaults(cleanFlags: true, ("pokemon_id", 0), ("form", 0), ("min_spawn_avg", 0)),
         },
         ["lure"] = new TypeSpec
         {
             Integers = ["distance", "lure_id"],
             Required = ["lure_id"],
+
+            Defaults = ReadDefaults(cleanFlags: true),
         },
         ["invasion"] = new TypeSpec
         {
@@ -207,6 +261,10 @@ internal static class TrackingV2Translator
             // gender". Posting {"grunt_type":"water","gender":"male"} to a running build stores gender 1,
             // so grunt_type's description is the correct one.
             Required = ["grunt_type"],
+
+            // grunt_type is emitted on every read, so it has no default. gender is null both at "any" and
+            // on the everything/boss catch-alls, which carry no gender in v2 even where the row stores one.
+            Defaults = ReadDefaults(cleanFlags: true, ("gender", 0)),
         },
 
         ["fort"] = new TypeSpec
@@ -227,11 +285,234 @@ internal static class TrackingV2Translator
             // required here even though the schema does not require it — a fort body without one is not
             // something this translator can send faithfully.
             Required = ["include_empty"],
+
+            // Read side: PoracleNG reports include_empty as null when it is TRUE (wcFortIncludeEmpty), so a
+            // null here is a stored 1 -- the opposite of v1's write default, and verified on the 5.4.0 bed.
+            // fort_type's wildcard is the "everything" catch-all, and change_types "[]" means any change.
+            Defaults = ReadDefaults(
+                cleanFlags: false,
+                ("fort_type", "everything"), ("include_empty", 1), ("change_types", "[]")),
+        },
+    };
+
+    /// <summary>
+    /// Types PoracleWeb.NET reads through v2 but never writes through <see cref="TryTranslate"/>.
+    /// <c>incident</c> has its own proxy (<c>PoracleIncidentProxy</c>) for writes, so it must not make
+    /// <see cref="Handles"/> answer true.
+    /// </summary>
+    private static readonly Dictionary<string, TypeSpec> ReadOnlySpecs = new(StringComparer.Ordinal)
+    {
+        ["incident"] = new TypeSpec
+        {
+            Integers = ["display_type", "distance"],
+            Required = ["display_type"],
+            Defaults = ReadDefaults(cleanFlags: true),
         },
     };
 
     /// <summary>The tracking types this build has a v2 field table for.</summary>
     public static bool Handles(string type) => Specs.ContainsKey(type);
+
+    /// <summary>
+    /// The v1 value each nullable property of a type's <c>V2*Rule</c> stands for when a v2 read reports it
+    /// as null, keyed by the v2 property name. <c>clean</c>, <c>edit</c> and <c>summary</c> map to
+    /// <c>false</c>: they fold into the one v1 <c>clean</c> mask, where false contributes no bit.
+    /// </summary>
+    /// <remarks>
+    /// Taken from PoracleNG's own wildcard constants (<c>processor/internal/api/v2_wildcards.go</c>) and its
+    /// per-type <c>*RowToRule</c> read projections, not from the <c>*Create</c> initialisers: a wrong value
+    /// here is read, carried forward by <see cref="TrackingFieldPreserver"/>, and written back on the next
+    /// edit. Raid and max battle <c>level</c> is listed as the by-pokemon placeholder;
+    /// <see cref="ToV1Row"/> reads a null level on a by-level rule as the any-tier wildcard instead.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">The type has no v2 table.</exception>
+    internal static IReadOnlyDictionary<string, JsonElement> DefaultsFor(string type) => ReadSpec(type).Defaults;
+
+    /// <summary>
+    /// Turns one rule from a v2 read back into the v1 row every caller in PoracleWeb.NET consumes: enum
+    /// names to their integers, booleans to 0/1 columns, <c>clean</c>/<c>edit</c>/<c>summary</c> to the
+    /// bitmask, <c>change_types</c> to its JSON string, and every null (or absent) filter to the value
+    /// PoracleNG stores for it. <c>uid</c>, <c>profile_no</c> and <c>description</c> are kept when present,
+    /// and <c>id</c> is <paramref name="humanId"/>.
+    /// </summary>
+    /// <remarks>
+    /// A property this build does not model is copied through verbatim, never dropped: the PGAN fork's
+    /// <c>personal_shiny</c>/<c>personal_background</c> and anything a newer PoracleNG adds have to survive
+    /// the read so the edit that follows can carry them.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">
+    /// The type has no v2 table, or a modelled property holds a value this build cannot read: an enum name
+    /// it does not know, most likely from a newer PoracleNG. Guessing an integer for it would be written
+    /// back as the user's filter.
+    /// </exception>
+    internal static JsonElement ToV1Row(string type, JsonElement v2Rule, string humanId)
+    {
+        var spec = ReadSpec(type);
+
+        if (v2Rule.ValueKind != JsonValueKind.Object)
+        {
+            throw new InvalidOperationException($"A v2 {type} rule must be a JSON object, not {v2Rule.ValueKind}.");
+        }
+
+        var row = new JsonObject();
+        var mask = 0;
+
+        foreach (var property in v2Rule.EnumerateObject())
+        {
+            var name = property.Name;
+
+            switch (name)
+            {
+                case "id":
+                    // Never sent by v2; the row's owner is the human the read was for.
+                    continue;
+
+                case "clean" when spec.HasCleanFlags:
+                    mask |= ReadFlag(type, property, CleanFlags.AutoDelete);
+                    continue;
+
+                case "edit" when spec.HasCleanFlags:
+                    mask |= ReadFlag(type, property, CleanFlags.Edit);
+                    continue;
+
+                case "summary" when spec.HasCleanFlags:
+                    mask |= ReadFlag(type, property, CleanFlags.Summary);
+                    continue;
+            }
+
+            if (property.Value.ValueKind == JsonValueKind.Null && spec.Defaults.TryGetValue(name, out var fallback))
+            {
+                row[name] = JsonNode.Parse(fallback.GetRawText());
+                continue;
+            }
+
+            row[name] = ReadValue(type, spec, property);
+        }
+
+        foreach (var (name, fallback) in spec.Defaults)
+        {
+            if (name is "clean" or "edit" or "summary" || row.ContainsKey(name))
+            {
+                continue;
+            }
+
+            row[name] = JsonNode.Parse(fallback.GetRawText());
+        }
+
+        if (spec.LevelFollowsPokemonId && IsNullOrAbsent(v2Rule, "level") && IsNullOrAbsent(v2Rule, "pokemon_id"))
+        {
+            // v2 nulls both 9000 (by-pokemon placeholder) and 90 (by-level, any tier). With no pokemon named
+            // the rule is by level, so the null is the any-tier wildcard. PoracleNG's raidLevelOrNull.
+            row["level"] = AnyTier;
+        }
+
+        if (spec.HasCleanFlags)
+        {
+            row["clean"] = mask;
+        }
+
+        row["id"] = humanId;
+
+        return JsonSerializer.SerializeToElement(row);
+    }
+
+    private static TypeSpec ReadSpec(string type) =>
+        Specs.TryGetValue(type, out var spec) || ReadOnlySpecs.TryGetValue(type, out spec)
+            ? spec
+            : throw new InvalidOperationException($"No v2 field table for tracking type '{type}'.");
+
+    private static bool IsNullOrAbsent(JsonElement rule, string name) =>
+        !rule.TryGetProperty(name, out var value) || value.ValueKind == JsonValueKind.Null;
+
+    private static int ReadFlag(string type, JsonProperty property, int bit) =>
+        property.Value.ValueKind switch
+        {
+            JsonValueKind.True => bit,
+            JsonValueKind.False or JsonValueKind.Null => 0,
+            _ => throw new InvalidOperationException(
+                $"v2 {type} rule: {property.Name} is {property.Value.ValueKind}, not a boolean."),
+        };
+
+    /// <summary>One property of a v2 rule that is not at its default, in its v1 shape. The inverse of <see cref="TryWriteProperty"/>.</summary>
+    private static JsonNode? ReadValue(string type, TypeSpec spec, JsonProperty property)
+    {
+        var name = property.Name;
+        var value = property.Value;
+
+        if (value.ValueKind == JsonValueKind.Null)
+        {
+            return null;
+        }
+
+        if (spec.IntEnums.TryGetValue(name, out var names))
+        {
+            var index = value.ValueKind == JsonValueKind.String ? Array.IndexOf(names, value.GetString()) : -1;
+            return index >= 0
+                ? index
+                : throw new InvalidOperationException(
+                    $"v2 {type} rule: {name} is {value.GetRawText()}, not one of {string.Join(", ", names)}.");
+        }
+
+        if (spec.AllowedStrings.TryGetValue(name, out var allowed))
+        {
+            return value.ValueKind == JsonValueKind.String && allowed.Contains(value.GetString()!)
+                ? value.GetString()
+                : throw new InvalidOperationException(
+                    $"v2 {type} rule: {name} is {value.GetRawText()}, not one of {string.Join(", ", allowed.Order(StringComparer.Ordinal))}.");
+        }
+
+        if (spec.Booleans.Contains(name))
+        {
+            return value.ValueKind switch
+            {
+                JsonValueKind.True => 1,
+                JsonValueKind.False => 0,
+                _ => throw new InvalidOperationException($"v2 {type} rule: {name} is {value.ValueKind}, not a boolean."),
+            };
+        }
+
+        if (spec.StringArrays.Contains(name))
+        {
+            // v1 holds the column as a JSON string, written compactly the way PoracleNG's json.Marshal does.
+            return value.ValueKind switch
+            {
+                JsonValueKind.Array => JsonNode.Parse(value.GetRawText())!.ToJsonString(),
+                JsonValueKind.String => value.GetString(),
+                _ => throw new InvalidOperationException($"v2 {type} rule: {name} is {value.ValueKind}, not an array."),
+            };
+        }
+
+        // Integers, free strings, override_areas, uid/profile_no/description, and anything this build does
+        // not model: verbatim.
+        return JsonNode.Parse(value.GetRawText());
+    }
+
+    private static Dictionary<string, JsonElement> ReadDefaults(bool cleanFlags, params (string Name, object? Value)[] entries)
+    {
+        var defaults = new Dictionary<string, JsonElement>(StringComparer.Ordinal)
+        {
+            // Every V2*Rule declares these. v2 reports an empty string as null, and an empty area list as null.
+            ["distance"] = JsonSerializer.SerializeToElement(0),
+            ["template"] = JsonSerializer.SerializeToElement(string.Empty),
+            ["ping"] = JsonSerializer.SerializeToElement(string.Empty),
+            ["override_location_label"] = JsonSerializer.SerializeToElement(string.Empty),
+            ["override_areas"] = JsonSerializer.SerializeToElement<object?>(null),
+        };
+
+        if (cleanFlags)
+        {
+            defaults["clean"] = JsonSerializer.SerializeToElement(false);
+            defaults["edit"] = JsonSerializer.SerializeToElement(false);
+            defaults["summary"] = JsonSerializer.SerializeToElement(false);
+        }
+
+        foreach (var (name, value) in entries)
+        {
+            defaults[name] = JsonSerializer.SerializeToElement(value);
+        }
+
+        return defaults;
+    }
 
     /// <summary>
     /// Translates one v1-shaped row. Returns false — leaving <paramref name="translated"/> untouched —
@@ -245,6 +526,27 @@ internal static class TrackingV2Translator
         string type,
         JsonElement row,
         IReadOnlyDictionary<string, Bound>? serverBounds,
+        out JsonElement translated,
+        out string? unsupported) =>
+        TryTranslate(type, row, serverBounds, serverDeclared: null, out translated, out unsupported);
+
+    /// <summary>
+    /// <see cref="TryTranslate(string, JsonElement, IReadOnlyDictionary{string, Bound}?, out JsonElement, out string?)"/>,
+    /// carrying through any property this build does not model that the server's own <c>V2*Rule</c> for
+    /// <paramref name="type"/> declares.
+    /// </summary>
+    /// <param name="serverDeclared">
+    /// Every property name the target server's <c>/openapi.json</c> declares on this type's rule schema, or
+    /// null when that could not be read. A property outside the field table is sent verbatim only when it is
+    /// in this set: that is how the PGAN fork's <c>personal_shiny</c>/<c>personal_background</c>, which the
+    /// v2 read copies through, survive an edit. Undeclared, it would be a 422 under
+    /// <c>additionalProperties: false</c>, so the row still declines.
+    /// </param>
+    public static bool TryTranslate(
+        string type,
+        JsonElement row,
+        IReadOnlyDictionary<string, Bound>? serverBounds,
+        IReadOnlySet<string>? serverDeclared,
         out JsonElement translated,
         out string? unsupported)
     {
@@ -280,7 +582,7 @@ internal static class TrackingV2Translator
                     continue;
                 }
 
-                if (!TryWriteProperty(writer, spec, serverBounds, property, out unsupported))
+                if (!TryWriteProperty(writer, spec, serverBounds, serverDeclared, property, out unsupported))
                 {
                     return false;
                 }
@@ -320,6 +622,7 @@ internal static class TrackingV2Translator
         Utf8JsonWriter writer,
         TypeSpec spec,
         IReadOnlyDictionary<string, Bound>? serverBounds,
+        IReadOnlySet<string>? serverDeclared,
         JsonProperty property,
         out string? unsupported)
     {
@@ -375,8 +678,18 @@ internal static class TrackingV2Translator
 
         if (!spec.Integers.Contains(property.Name))
         {
-            // A field this build has never heard of. Newer PoracleNG, older PoracleWeb — send the
-            // row to v1, which takes anything, rather than dropping the user's value.
+            if (serverDeclared is not null && serverDeclared.Contains(property.Name))
+            {
+                // Not modelled here, but this server's own rule schema declares it: the read copied it
+                // through in the server's shape, so it goes back the same way. The PGAN fork's
+                // personal_shiny/personal_background, and whatever a newer PoracleNG adds.
+                property.WriteTo(writer);
+                return true;
+            }
+
+            // A field this build has never heard of and the server does not declare. Newer PoracleNG,
+            // older PoracleWeb — send the row to v1, which takes anything, rather than dropping the
+            // user's value.
             unsupported = $"unknown property {property.Name}";
             return false;
         }
@@ -716,5 +1029,17 @@ internal static class TrackingV2Translator
         /// is inferred from reading PoracleNG's source.
         /// </summary>
         public Dictionary<string, int> OmitWhenEquals { get; init; } = new(StringComparer.Ordinal);
+
+        /// <summary>
+        /// Read side: the v1 value a null (or absent) property stands for, keyed by the v2 name. See
+        /// <see cref="DefaultsFor"/>.
+        /// </summary>
+        public required Dictionary<string, JsonElement> Defaults { get; init; }
+
+        /// <summary>
+        /// Raid and max battle: a null <c>level</c> is the by-pokemon placeholder when the rule names a
+        /// pokemon, and the any-tier wildcard when it does not.
+        /// </summary>
+        public bool LevelFollowsPokemonId { get; init; }
     }
 }

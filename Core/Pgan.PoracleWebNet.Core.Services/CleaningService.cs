@@ -76,8 +76,9 @@ public class CleaningService(
     /// Which rows of a tracking type this page owns.
     /// </summary>
     /// <remarks>
-    /// Invasion and incident rules share one table, and PoracleWeb reads invasions over v1, which does
-    /// not partition them. So a clean toggle over "invasion" swept up the user's Kecleon, Showcase and
+    /// Invasion and incident rules share one table, and the invasion read folds the Pokestop event rules
+    /// back in (<c>PoracleTrackingProxy</c> reads v2's incident list and restates it in v1's form), so the list
+    /// does not partition them. A clean toggle over "invasion" swept up the user's Kecleon, Showcase and
     /// Gold Stop rules, set the auto-delete bit on them and POSTed them back through the invasion
     /// endpoint -- a write to rows that belong to the Pokestop Events page, from a switch that never
     /// mentions it. <see cref="InvasionService"/> and <c>DashboardService</c> both draw this line at the

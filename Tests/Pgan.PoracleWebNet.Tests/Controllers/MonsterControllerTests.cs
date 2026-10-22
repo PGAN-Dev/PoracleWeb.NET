@@ -123,6 +123,7 @@ public class MonsterControllerTests : ControllerTestBase
         var result = await this._sut.Delete(999);
 
         Assert.IsType<NotFoundResult>(result);
+        this._service.Verify(s => s.DeleteAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
     }
 
     [Fact]

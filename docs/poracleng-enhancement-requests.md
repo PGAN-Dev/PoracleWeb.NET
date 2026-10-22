@@ -91,7 +91,7 @@ GET /api/tracking/counts/{id}
 Response: { "pokemon": 537, "raid": 27, "egg": 17, "quest": 38, ... }
 ```
 
-**Workaround without enhancement:** Single `GET /api/tracking/all/{id}` call returns full payloads for all types. Works but returns complete alarm objects just to count them.
+**Workaround without enhancement:** One read of the v2 tracking snapshot (`GET /api/v2/humans/{id}/tracking`) returns full payloads for all types. Works but returns complete alarm objects just to count them.
 
 ---
 
@@ -335,7 +335,7 @@ v2 -- behind a second gate the other types do not have, because `grunt_type` exi
 the fix and even there only for names that server's grunt masterdata lists. That second condition is not a
 formality: 32 of 201 invasion rules in production carry a name v2 refuses (`kecleon`, `gold-stop` and
 `showcase`, which are Pokestop events, and `metal`, which the game data calls `steel`), and all 32 are
-editable today because v1's read returns them where v2's does not. `InvasionGruntNameService` reads the
+editable today because the check sends their edits to v1. `InvasionGruntNameService` reads the
 accepted names from the server rather than shipping a table.
 
 Two things the schema does not say, both established by calling a running build: it contradicts itself on
@@ -526,9 +526,9 @@ adapted to in PoracleWeb.NET #969 and #970.
 | Bulk clean toggle | High | Fetch all, modify, POST back | Landed in 5.4.0 ([#325](https://github.com/jfberry/PoracleNG/issues/325)). **Not yet adopted** |
 | Create silently updates a different rule; maxbattle never dedups | High | Client-side `DiffTracking` mirror (`EnsureNoMergeIntoAnotherAlarmAsync`), max battle identical-alarm check | Landed in 5.4.0 ([#326](https://github.com/jfberry/PoracleNG/issues/326), answered as `POST ?dry_run=true` plus `previous`). **Not yet adopted**; the mirror goes with tracking's move to v2 |
 | Tracking mutes match uid alone | Medium | `scope=tracking` not offered | Landed in 5.4.0 ([#323](https://github.com/jfberry/PoracleNG/issues/323)): a rule mute carries its `tracking_type`. Listed and lifted here; creating one is a separate decision |
-| v2 stored wildcards prose-only | Medium | Tracking reads stay on v1 (#860) | **Declined** ([#324](https://github.com/jfberry/PoracleNG/issues/324)): v2 keeps `null` as the wildcard. `TrackingV2Translator` will map `null` to this application's own defaults when tracking reads move to v2 |
+| v2 stored wildcards prose-only | Medium | Tracking reads map `null` to our defaults | **Declined** ([#324](https://github.com/jfberry/PoracleNG/issues/324)): v2 keeps `null` as the wildcard. `TrackingV2Translator.ToV1Row` maps `null` to this application's own defaults, and tracking reads now go through v2 |
 | Trusted setAreas | High | v2 trusted `setAreas` for every user-geofence area write, behind PoracleWeb.NET's own allowed-name check (the dual writer is deleted) | 5.4.0 carries every piece: `trusted` ([#230](https://github.com/jfberry/PoracleNG/pull/230)), delete across profiles with `dry_run` ([#253](https://github.com/jfberry/PoracleNG/issues/253), [#252](https://github.com/jfberry/PoracleNG/issues/252)), rename across profiles ([#259](https://github.com/jfberry/PoracleNG/issues/259)), `exemptFromAreaSecurity` ([#243](https://github.com/jfberry/PoracleNG/issues/243)). **Adopted** |
-| Dashboard counts | Medium | Single `GET /api/tracking/all` call | Open, returns full payloads |
+| Dashboard counts | Medium | One read of the v2 tracking snapshot | Open, returns full payloads |
 | Admin delete all alarms | Medium | Fetch UIDs per type, bulk delete each | Open |
 | Admin list / delete human | Medium | None | **Adopted**, in [#839](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/839)/[#936](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/936), once [#229](https://github.com/jfberry/PoracleNG/issues/229) reported the fields the admin grid needs. `HumanRepository` is deleted |
 | v2 pokemon catch-all unwritable | Medium | `pokemon_id = 0` rules take the v1 write path | [#227](https://github.com/jfberry/PoracleNG/issues/227): `minimum: 1` refuses a rule PoracleNG itself stores. Our half of it -- writing `pvp_ranking_best = 0` -- fixed in PoracleWeb.NET #895 |

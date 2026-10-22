@@ -85,82 +85,6 @@ public class PoracleTrackingProxyTests
     }
 
     // ──────────────────────────────────────────────────────────────
-    // GetByUserAsync
-    // ──────────────────────────────────────────────────────────────
-
-    [Fact]
-    public async Task GetByUserAsyncExtractsArrayByTypeKey()
-    {
-        var responseBody = /*lang=json,strict*/ """{"pokemon":[{"uid":1},{"uid":2}]}""";
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, responseBody);
-        var sut = CreateSut(handler);
-
-        var result = await sut.GetByUserAsync("pokemon", "user1");
-
-        Assert.Equal(JsonValueKind.Array, result.ValueKind);
-        Assert.Equal(2, result.GetArrayLength());
-        Assert.Equal(1, result[0].GetProperty("uid").GetInt32());
-    }
-
-    [Fact]
-    public async Task GetByUserAsyncReturnsEmptyArrayWhenKeyMissing()
-    {
-        var responseBody = /*lang=json,strict*/ """{"other":[{"uid":1}]}""";
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, responseBody);
-        var sut = CreateSut(handler);
-
-        var result = await sut.GetByUserAsync("pokemon", "user1");
-
-        Assert.Equal(JsonValueKind.Array, result.ValueKind);
-        Assert.Equal(0, result.GetArrayLength());
-    }
-
-    [Fact]
-    public async Task GetByUserAsyncCallsCorrectUrl()
-    {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, /*lang=json,strict*/ """{"raid":[]}""");
-        var sut = CreateSut(handler);
-
-        await sut.GetByUserAsync("raid", "user42");
-
-        Assert.NotNull(handler.LastRequest);
-        Assert.Equal(HttpMethod.Get, handler.LastRequest.Method);
-        Assert.Equal($"{ApiAddress}/api/tracking/raid/user42", handler.LastRequest.RequestUri?.ToString());
-    }
-
-    [Fact]
-    public async Task GetByUserAsyncThrowsOnNon2xx()
-    {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.InternalServerError, "{}");
-        var sut = CreateSut(handler);
-
-        await Assert.ThrowsAsync<HttpRequestException>(() => sut.GetByUserAsync("pokemon", "user1"));
-    }
-
-    [Theory]
-    [InlineData("pokemon", "pokemon")]
-    [InlineData("raid", "raid")]
-    [InlineData("egg", "egg")]
-    [InlineData("quest", "quest")]
-    [InlineData("invasion", "invasion")]
-    [InlineData("lure", "lure")]
-    [InlineData("nest", "nest")]
-    [InlineData("gym", "gym")]
-    [InlineData("fort", "fort")]
-    [InlineData("maxbattle", "maxbattle")]
-    [InlineData("unknown_type", "unknown_type")]
-    public async Task GetByUserAsyncResolvesCorrectResponseKey(string type, string expectedKey)
-    {
-        var responseBody = $$"""{"{{expectedKey}}":[{"uid":99}]}""";
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, responseBody);
-        var sut = CreateSut(handler);
-
-        var result = await sut.GetByUserAsync(type, "user1");
-
-        Assert.Equal(1, result.GetArrayLength());
-    }
-
-    // ──────────────────────────────────────────────────────────────
     // CreateAsync
     // ──────────────────────────────────────────────────────────────
 
@@ -296,125 +220,7 @@ public class PoracleTrackingProxyTests
         Assert.Contains("min_iv", ex.Message, StringComparison.Ordinal);
     }
 
-    // ──────────────────────────────────────────────────────────────
-    // DeleteByUidAsync
-    // ──────────────────────────────────────────────────────────────
-
-    [Fact]
-    public async Task DeleteByUidAsyncCallsCorrectUrl()
-    {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, "{}");
-        var sut = CreateSut(handler);
-
-        await sut.DeleteByUidAsync("raid", "user1", 42);
-
-        Assert.NotNull(handler.LastRequest);
-        Assert.Equal(HttpMethod.Delete, handler.LastRequest.Method);
-        Assert.Equal($"{ApiAddress}/api/tracking/raid/user1/byUid/42?silent=true", handler.LastRequest.RequestUri?.ToString());
-    }
-
-    [Fact]
-    public async Task DeleteByUidAsyncHandles404Gracefully()
-    {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.NotFound, "{}");
-        var sut = CreateSut(handler);
-
-        // Should not throw
-        await sut.DeleteByUidAsync("raid", "user1", 999);
-    }
-
-    [Fact]
-    public async Task DeleteByUidAsyncThrowsOnOtherErrors()
-    {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.InternalServerError, "{}");
-        var sut = CreateSut(handler);
-
-        await Assert.ThrowsAsync<HttpRequestException>(() => sut.DeleteByUidAsync("raid", "user1", 42));
-    }
-
-    // ──────────────────────────────────────────────────────────────
-    // BulkDeleteByUidsAsync
-    // ──────────────────────────────────────────────────────────────
-
-    [Fact]
-    public async Task BulkDeleteByUidsAsyncSendsUidArray()
-    {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, "{}");
-        var sut = CreateSut(handler);
-
-        await sut.BulkDeleteByUidsAsync("pokemon", "user1", [1, 2, 3]);
-
-        Assert.NotNull(handler.LastRequest);
-        Assert.Equal(HttpMethod.Post, handler.LastRequest.Method);
-        Assert.Equal($"{ApiAddress}/api/tracking/pokemon/user1/delete?silent=true", handler.LastRequest.RequestUri?.ToString());
-
-        var sentBody = await handler.LastRequest.Content!.ReadAsStringAsync();
-        var uids = JsonSerializer.Deserialize<List<long>>(sentBody);
-        Assert.Equal(3, uids!.Count);
-        Assert.Contains(1L, uids);
-        Assert.Contains(2L, uids);
-        Assert.Contains(3L, uids);
-    }
-
-    [Fact]
-    public async Task BulkDeleteByUidsAsyncSkipsRequestWhenEmpty()
-    {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, "{}");
-        var sut = CreateSut(handler);
-
-        await sut.BulkDeleteByUidsAsync("pokemon", "user1", []);
-
-        Assert.Null(handler.LastRequest);
-    }
-
-    [Fact]
-    public async Task BulkDeleteByUidsAsyncThrowsOnNon2xx()
-    {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.InternalServerError, "{}");
-        var sut = CreateSut(handler);
-
-        await Assert.ThrowsAsync<HttpRequestException>(() => sut.BulkDeleteByUidsAsync("pokemon", "user1", [1]));
-    }
-
-    // ──────────────────────────────────────────────────────────────
-    // GetAllTrackingAsync
-    // ──────────────────────────────────────────────────────────────
-
-    [Fact]
-    public async Task GetAllTrackingAsyncReturnsFullResponse()
-    {
-        var responseBody = /*lang=json,strict*/ """{"pokemon":[{"uid":1}],"raid":[{"uid":2}]}""";
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, responseBody);
-        var sut = CreateSut(handler);
-
-        var result = await sut.GetAllTrackingAsync("user1");
-
-        Assert.Equal(JsonValueKind.Object, result.ValueKind);
-        Assert.True(result.TryGetProperty("pokemon", out _));
-        Assert.True(result.TryGetProperty("raid", out _));
-    }
-
-    [Fact]
-    public async Task GetAllTrackingAsyncCallsCorrectUrl()
-    {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, "{}");
-        var sut = CreateSut(handler);
-
-        await sut.GetAllTrackingAsync("user99");
-
-        Assert.NotNull(handler.LastRequest);
-        Assert.Equal(HttpMethod.Get, handler.LastRequest.Method);
-        Assert.Equal($"{ApiAddress}/api/tracking/all/user99", handler.LastRequest.RequestUri?.ToString());
-    }
-
-    [Fact]
-    public async Task GetAllTrackingAsyncThrowsOnNon2xx()
-    {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.InternalServerError, "{}");
-        var sut = CreateSut(handler);
-
-        await Assert.ThrowsAsync<HttpRequestException>(() => sut.GetAllTrackingAsync("user1"));
-    }
+    // Deletes are v2-only; PoracleTrackingProxyV2Tests covers them.
 
     // ──────────────────────────────────────────────────────────────
     // ReloadStateAsync
@@ -449,7 +255,7 @@ public class PoracleTrackingProxyTests
     [Fact]
     public async Task AllRequestsIncludePoracleSecretHeader()
     {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, /*lang=json,strict*/ """{"pokemon":[]}""");
+        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, /*lang=json,strict*/ """{"rules":[]}""");
         var sut = CreateSut(handler);
 
         await sut.GetByUserAsync("pokemon", "user1");
@@ -462,7 +268,7 @@ public class PoracleTrackingProxyTests
     [Fact]
     public async Task AllRequestsOmitSecretHeaderWhenEmpty()
     {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, /*lang=json,strict*/ """{"pokemon":[]}""");
+        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, /*lang=json,strict*/ """{"rules":[]}""");
         var sut = CreateSut(handler, CreateConfigNoSecret());
 
         await sut.GetByUserAsync("pokemon", "user1");

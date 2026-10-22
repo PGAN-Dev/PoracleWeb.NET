@@ -18,11 +18,10 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Invasion and incident rows share the <c>invasion</c> table, and PoracleWeb reads invasions over
-    /// v1, which applies no filter — verified against 5.2.1, a Showcase rule created through
-    /// <c>/api/v2/.../tracking/incident</c> comes straight back out of
-    /// <c>GET /api/tracking/invasion/{id}</c>. So this list has to do the partition PoracleNG does for
-    /// the v2 endpoints.
+    /// Invasion and incident rows share the <c>invasion</c> table. v2's invasion routes leave the
+    /// event rules out, but the proxy reads the incident list too and folds those rules back into the
+    /// invasion list in v1's form (as v1 itself returned them), so this list has to do the partition
+    /// PoracleNG does for the v2 endpoints.
     /// </para>
     /// <para>
     /// <strong>Conditional, and that is the whole point.</strong> When the Pokestop Events surface is

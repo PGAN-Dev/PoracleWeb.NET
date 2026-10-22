@@ -4,7 +4,7 @@ using Pgan.PoracleWebNet.Core.Services;
 namespace Pgan.PoracleWebNet.Tests.Services;
 
 /// <summary>
-/// The nine per-type field tables <see cref="TrackingV2Translator"/> carries, checked against the schema
+/// The ten per-type field tables <see cref="TrackingV2Translator"/> carries, checked against the schema
 /// they were derived from and against the rows PoracleNG actually stores.
 /// </summary>
 /// <remarks>
@@ -15,67 +15,26 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 /// that reads the schema rather than the translator.
 /// </para>
 /// <para>
-/// <c>V2Schema</c> is the property list of each <c>V2*Rule</c> in 5.2.1's
-/// <c>processor/internal/api/testdata/openapi.golden.json</c>, and <c>V1Row</c> is a full row of the
-/// matching v1 tracking columns. Both were confirmed against the live 5.2.1 instance rather than read from
-/// the Go source, per CLAUDE.md.
+/// <c>V2Schema</c> is the property list of each <c>V2*Rule</c>, read from the PoracleNG 5.4.0
+/// <c>/openapi.json</c> fixture (<c>Fixtures/poracleng-openapi-5.4.0.json</c>) rather than typed out, so a
+/// schema change shows up here the day the fixture is refreshed. <c>V1Row</c> is a full row of the matching
+/// v1 tracking columns, confirmed against a live instance rather than read from the Go source, per CLAUDE.md.
 /// </para>
 /// </remarks>
 public class TrackingV2TypeTranslationTests
 {
-    /// <summary>Every property each <c>V2*Rule</c> declares, from 5.2.1's openapi.golden.json.</summary>
-    private static readonly Dictionary<string, string[]> V2Schema = new(StringComparer.Ordinal)
+    /// <summary>Every property each <c>V2*Rule</c> declares, from the 5.4.0 openapi fixture.</summary>
+    private static readonly string[] V2SchemaTypes = ["pokemon", "raid", "egg", "quest", "gym", "maxbattle", "nest", "lure", "invasion", "fort"];
+    private static readonly Dictionary<string, string[]> V2Schema = LoadV2Schema();
+
+    /// <summary>
+    /// Schema properties no v1 column feeds. <c>V2InvasionRule</c>'s <c>type_id</c>, <c>grunt_id</c>,
+    /// <c>everything</c> and <c>boss</c> are input conveniences that resolve to a <c>grunt_type</c>; this
+    /// application only ever holds the name, so it sends <c>grunt_type</c> and never the other four.
+    /// </summary>
+    private static readonly Dictionary<string, string[]> NoV1Source = new(StringComparer.Ordinal)
     {
-        ["pokemon"] =
-        [
-            "atk", "clean", "costume", "def", "distance", "edit", "form", "gender", "max_atk", "max_cp",
-            "max_def", "max_iv", "max_level", "max_rarity", "max_size", "max_sta", "max_weight", "min_cp",
-            "min_iv", "min_level", "min_time", "min_weight", "override_areas", "override_location_label",
-            "pokemon_id", "pvp_ranking_best", "pvp_ranking_cap", "pvp_ranking_evolution",
-            "pvp_ranking_league", "pvp_ranking_min_cp", "pvp_ranking_worst", "rarity", "size", "sta",
-            "summary", "template",
-        ],
-        ["raid"] =
-        [
-            "clean", "costume", "distance", "edit", "evolution", "exclusive", "form", "gym_id", "level",
-            "move", "override_areas", "override_location_label", "pokemon_id", "rsvp_changes", "summary",
-            "team", "template",
-        ],
-        ["egg"] =
-        [
-            "clean", "distance", "edit", "exclusive", "gym_id", "level", "override_areas",
-            "override_location_label", "rsvp_changes", "summary", "team", "template",
-        ],
-        ["quest"] =
-        [
-            "amount", "clean", "distance", "edit", "form", "override_areas", "override_location_label",
-            "reward", "reward_type", "shiny", "summary", "template",
-        ],
-        ["gym"] =
-        [
-            "battle_changes", "clean", "distance", "edit", "gym_id", "override_areas",
-            "override_location_label", "slot_changes", "summary", "team", "template",
-        ],
-        ["maxbattle"] =
-        [
-            "clean", "distance", "edit", "evolution", "form", "gmax", "level", "move", "override_areas",
-            "override_location_label", "pokemon_id", "station_id", "summary", "template",
-        ],
-        ["nest"] =
-        [
-            "clean", "distance", "edit", "form", "min_spawn_avg", "override_areas",
-            "override_location_label", "pokemon_id", "summary", "template",
-        ],
-        ["lure"] =
-        [
-            "clean", "distance", "edit", "lure_id", "override_areas", "override_location_label", "summary",
-            "template",
-        ],
-        ["fort"] =
-        [
-            "change_types", "distance", "fort_type", "include_empty", "override_areas",
-            "override_location_label", "template",
-        ],
+        ["invasion"] = ["boss", "everything", "grunt_id", "type_id"],
     };
 
     /// <summary>
@@ -94,7 +53,7 @@ public class TrackingV2TypeTranslationTests
     private static readonly Dictionary<string, string> V1Row = new(StringComparer.Ordinal)
     {
         ["pokemon"] = """
-            {"uid":36486,"id":"user1","profile_no":1,"ping":"","description":"**Pikachu**","clean":3,
+            {"uid":36486,"id":"user1","profile_no":1,"ping":"<@&1>","description":"**Pikachu**","clean":3,
              "distance":1000,"template":"1","pokemon_id":25,"form":0,"costume":9000,"min_iv":90,
              "max_iv":100,"min_cp":0,"max_cp":9000,"min_level":0,"max_level":55,"atk":0,"def":0,"sta":0,
              "max_atk":15,"max_def":15,"max_sta":15,"gender":2,"min_weight":0,"max_weight":9000000,
@@ -103,44 +62,49 @@ public class TrackingV2TypeTranslationTests
              "pvp_ranking_evolution":0,"override_location_label":"","override_areas":null}
             """,
         ["raid"] = """
-            {"uid":414,"id":"user1","profile_no":1,"ping":"","clean":0,"distance":0,"template":"1",
+            {"uid":414,"id":"user1","profile_no":1,"ping":"<@&1>","clean":0,"distance":0,"template":"1",
              "team":4,"pokemon_id":9000,"form":0,"costume":9000,"level":5,"exclusive":0,"move":9000,
              "evolution":9000,"gym_id":null,"rsvp_changes":0,"override_location_label":"",
              "override_areas":null,"description":"**Mewtwo**"}
             """,
         ["egg"] = """
-            {"uid":178,"id":"user1","profile_no":1,"ping":"","clean":0,"distance":0,"template":"1",
+            {"uid":178,"id":"user1","profile_no":1,"ping":"<@&1>","clean":0,"distance":0,"template":"1",
              "team":4,"level":5,"exclusive":0,"gym_id":null,"rsvp_changes":0,
              "override_location_label":"","override_areas":null,"description":"**Level 5 eggs**"}
             """,
         ["quest"] = """
-            {"uid":900,"id":"user1","profile_no":1,"ping":"","clean":0,"distance":0,"template":"1",
+            {"uid":900,"id":"user1","profile_no":1,"ping":"<@&1>","clean":0,"distance":0,"template":"1",
              "reward_type":7,"reward":25,"form":0,"shiny":0,"amount":1,"override_location_label":"",
              "override_areas":null,"description":"**Pikachu**"}
             """,
         ["gym"] = """
-            {"uid":150,"id":"user1","profile_no":1,"ping":"","clean":0,"distance":0,"template":"1",
+            {"uid":150,"id":"user1","profile_no":1,"ping":"<@&1>","clean":0,"distance":0,"template":"1",
              "team":4,"slot_changes":1,"battle_changes":0,"gym_id":"","override_location_label":"",
              "override_areas":null,"description":"**All team's gyms**"}
             """,
         ["maxbattle"] = """
-            {"uid":91,"id":"user1","profile_no":1,"ping":"","clean":0,"distance":0,"template":"1",
+            {"uid":91,"id":"user1","profile_no":1,"ping":"<@&1>","clean":0,"distance":0,"template":"1",
              "pokemon_id":9000,"form":0,"level":5,"move":9000,"gmax":0,"evolution":9000,
              "station_id":null,"override_location_label":"","override_areas":null,
              "description":"**Mewtwo**"}
             """,
         ["nest"] = """
-            {"uid":965,"id":"user1","profile_no":1,"ping":"","clean":0,"distance":0,"template":"1",
+            {"uid":965,"id":"user1","profile_no":1,"ping":"<@&1>","clean":0,"distance":0,"template":"1",
              "pokemon_id":25,"min_spawn_avg":1,"form":0,"override_location_label":"",
              "override_areas":null,"description":"**Pikachu**"}
             """,
         ["lure"] = """
-            {"uid":266,"id":"user1","profile_no":1,"ping":"","clean":0,"distance":0,"template":"1",
+            {"uid":266,"id":"user1","profile_no":1,"ping":"<@&1>","clean":0,"distance":0,"template":"1",
              "lure_id":501,"override_location_label":"","override_areas":null,
              "description":"Lure type: **Normal Lure**"}
             """,
+        ["invasion"] = """
+            {"uid":407,"id":"user1","profile_no":1,"ping":"<@&1>","clean":5,"distance":500,"template":"1",
+             "gender":2,"grunt_type":"water","override_location_label":"","override_areas":null,
+             "description":"Grunt type: **Water** | gender: female"}
+            """,
         ["fort"] = """
-            {"uid":63,"id":"user1","profile_no":1,"ping":"","distance":0,"template":"1","fort_type":"gym",
+            {"uid":63,"id":"user1","profile_no":1,"ping":"<@&1>","distance":0,"template":"1","fort_type":"gym",
              "include_empty":0,"change_types":"[\"name\"]","override_location_label":"",
              "override_areas":null,"description":"Fort updates: **gym**"}
             """,
@@ -149,7 +113,7 @@ public class TrackingV2TypeTranslationTests
     public static TheoryData<string> V2Types()
     {
         var data = new TheoryData<string>();
-        foreach (var type in V2Schema.Keys)
+        foreach (var type in V1Row.Keys)
         {
             data.Add(type);
         }
@@ -190,7 +154,8 @@ public class TrackingV2TypeTranslationTests
         TrackingV2Translator.TryTranslate(type, Row(V1Row[type]), ServerDoesNotBoundAnything, out var translated, out _);
 
         var written = translated.EnumerateObject().Select(p => p.Name).ToHashSet(StringComparer.Ordinal);
-        var missing = V2Schema[type].Where(name => !written.Contains(name)).ToList();
+        var noSource = NoV1Source.GetValueOrDefault(type, []);
+        var missing = V2Schema[type].Where(name => !written.Contains(name) && !noSource.Contains(name)).ToList();
 
         Assert.True(missing.Count == 0, $"The {type} table does not write: {string.Join(", ", missing)}");
     }
@@ -458,6 +423,37 @@ public class TrackingV2TypeTranslationTests
     private const IReadOnlyDictionary<string, TrackingV2Translator.Bound>? ServerDoesNotBoundAnything = null;
 
     private static JsonElement Row(string json) => JsonDocument.Parse(json).RootElement.Clone();
+
+    [Fact]
+    public void TheSchemaListsAreReadFromTheFixtureAndCarryWhat540Added()
+    {
+        // ping arrived on every V2*Rule with jfberry/PoracleNG#249, summary with the clean split. A schema
+        // list typed out by hand from 5.2.1 had neither, so it could not catch a table that leaked or missed them.
+        foreach (var type in V1Row.Keys)
+        {
+            Assert.Contains("ping", V2Schema[type]);
+        }
+
+        Assert.Contains("summary", V2Schema["pokemon"]);
+        Assert.DoesNotContain("summary", V2Schema["fort"]);
+        Assert.Contains("grunt_type", V2Schema["invasion"]);
+    }
+
+    private static Dictionary<string, string[]> LoadV2Schema()
+    {
+        using var doc = JsonDocument.Parse(File.ReadAllText(Fixture()));
+        var schemas = doc.RootElement.GetProperty("components").GetProperty("schemas");
+
+        return V2SchemaTypes
+            .ToDictionary(
+                type => type,
+                type => schemas.GetProperty(TrackingV2ReadTranslationTests.SchemaName(type)).GetProperty("properties")
+                    .EnumerateObject().Select(p => p.Name).Order(StringComparer.Ordinal).ToArray(),
+                StringComparer.Ordinal);
+    }
+
+    private static string Fixture([System.Runtime.CompilerServices.CallerFilePath] string? here = null) =>
+        Path.Combine(Path.GetDirectoryName(here)!, "..", "Fixtures", "poracleng-openapi-5.4.0.json");
 
     private static JsonElement Translate(string type, string row)
     {
