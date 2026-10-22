@@ -20,10 +20,11 @@ import { PokestopEventService } from '../../core/services/pokestop-event.service
 import { AlarmCardComponent } from '../../shared/components/alarm-card/alarm-card.component';
 import { AlarmEmptyStateComponent } from '../../shared/components/alarm-empty-state/alarm-empty-state.component';
 import { AlarmListToolbarComponent, AlarmSortOption } from '../../shared/components/alarm-list-toolbar/alarm-list-toolbar.component';
+import { BulkActionBarComponent } from '../../shared/components/bulk-action-bar/bulk-action-bar.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
-import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
+import { WhereSheetComponent, WhereSheetData, whereSheetConfig } from '../../shared/components/where-sheet/where-sheet.component';
 import { isEditExisting } from '../../shared/utils/add-outcome';
 import { byNumber, byText, queryAlarms, visibleSelection } from '../../shared/utils/alarm-list-query';
 import { orderAlarms } from '../../shared/utils/alarm-order';
@@ -38,6 +39,7 @@ import { serverReason } from '../../shared/utils/server-reason';
   imports: [
     AlarmEmptyStateComponent,
     AlarmListToolbarComponent,
+    BulkActionBarComponent,
     AlarmCardComponent,
     MatButtonModule,
     MatIconModule,
@@ -231,7 +233,7 @@ export class PokestopEventListComponent implements OnInit {
     };
 
     this.dialog
-      .open(WhereSheetComponent, { width: '520px', autoFocus: false, data })
+      .open(WhereSheetComponent, whereSheetConfig(data))
       .afterClosed()
       .subscribe((scope?: AlarmScope) => {
         if (!scope) return;

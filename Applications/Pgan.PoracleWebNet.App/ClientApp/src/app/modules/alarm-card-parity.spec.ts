@@ -74,7 +74,8 @@ describe('every alarm list uses the shared rule card and toolbar', () => {
     const html = read(template);
     const ts = read(template.replace('.html', '.ts'));
 
-    expect(html).toContain("'ALARM.SELECTED_COUNT' | translate: { count: actionIds().length }");
+    expect(html).toContain('<app-bulk-action-bar');
+    expect(html).toContain('[count]="actionIds().length"');
     expect(ts).toMatch(/readonly actionIds = computed\(\s*\(\) =>\s*visibleSelection\(\s*this\.selectedIds\(\)/);
     expect(ts).not.toContain('[...this.selectedIds()]');
     expect(ts).not.toContain('this.selectedIds().size');

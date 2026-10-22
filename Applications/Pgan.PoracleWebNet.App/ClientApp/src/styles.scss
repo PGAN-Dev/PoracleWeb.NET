@@ -468,6 +468,52 @@ router-outlet + * {
   }
 }
 
+// ─── Phone bottom sheet ───────────────────────────────────────────
+// A dialog opened with the `phone-bottom-sheet` panel class (the "where" sheet) is a few rows tall, so on
+// a phone it rises from the bottom at its own height instead of taking the whole screen, and the card it
+// changes stays in view above it. Overrides the fullscreen rules above, which every other dialog keeps.
+
+@media (max-width: 599px) {
+  .cdk-global-overlay-wrapper:has(> .phone-bottom-sheet) {
+    align-items: flex-end !important;
+  }
+
+  .cdk-overlay-pane.phone-bottom-sheet {
+    height: auto !important;
+    max-height: 90dvh !important;
+  }
+
+  .phone-bottom-sheet mat-dialog-container .mat-mdc-dialog-surface,
+  .phone-bottom-sheet mat-dialog-container .mdc-dialog__container,
+  .phone-bottom-sheet mat-dialog-container .mdc-dialog__surface {
+    height: auto !important;
+    max-height: 90dvh !important;
+  }
+
+  .phone-bottom-sheet mat-dialog-container .mat-mdc-dialog-surface {
+    border-radius: 28px 28px 0 0 !important;
+  }
+
+  .phone-bottom-sheet .mat-mdc-dialog-content {
+    flex: 0 1 auto !important;
+  }
+
+  // It starts at the bottom, so the title needs no room for the status bar.
+  .phone-bottom-sheet .mat-mdc-dialog-title {
+    padding-top: 20px !important;
+  }
+}
+
+// ─── Bulk bar clearance ───────────────────────────────────────────
+// On a phone the bulk bar is pinned to the bottom of the screen (bulk-action-bar.component.scss), so the
+// page gets room below its last card while the bar is showing.
+
+@media (max-width: 599px) {
+  .app-content main:has(app-bulk-action-bar) {
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 128px);
+  }
+}
+
 // ─── Fullscreen map ───────────────────────────────────────────────
 .map-container:fullscreen {
   background: var(--mat-sys-surface, #fff);

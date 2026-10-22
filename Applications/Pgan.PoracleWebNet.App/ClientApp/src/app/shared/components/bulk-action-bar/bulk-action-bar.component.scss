@@ -1,0 +1,64 @@
+.bulk-toolbar {
+  align-items: center;
+  background: var(--mat-sys-surface-container, #f3f3f6);
+  border-bottom: 1px solid var(--divider, rgb(0 0 0 / 8%));
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-bottom: 16px;
+  padding: 8px 24px;
+}
+
+.bulk-selection {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.bulk-count {
+  color: var(--mat-sys-on-surface, #1c1b1f);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  margin-right: 8px;
+  white-space: nowrap;
+}
+
+.bulk-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+// On a phone the bar leaves the flow and sits at the bottom of the screen, so it stays in reach while
+// the player scrolls through the cards they are ticking. The page makes room for it (styles.scss), so
+// the last card is never hidden underneath.
+@media (max-width: 599px) {
+  .bulk-toolbar {
+    align-items: stretch;
+    background: var(--mat-sys-surface-container-high, #ececef);
+    border-bottom: 0;
+    border-radius: 16px 16px 0 0;
+    border-top: 1px solid var(--mat-sys-outline-variant, rgb(0 0 0 / 12%));
+    bottom: 0;
+    box-shadow: 0 -2px 12px rgb(0 0 0 / 24%);
+    flex-direction: column;
+    gap: 4px;
+    left: 0;
+    margin: 0;
+    padding: 8px 16px calc(env(safe-area-inset-bottom, 0px) + 12px);
+    position: fixed;
+    right: 0;
+    z-index: 20;
+  }
+
+  .bulk-actions {
+    margin-left: 0;
+
+    button {
+      flex: 1 1 0;
+      min-width: 0;
+    }
+  }
+}

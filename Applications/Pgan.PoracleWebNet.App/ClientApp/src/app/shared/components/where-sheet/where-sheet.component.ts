@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogConfig, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { AlarmScope } from '../../utils/alarm-scope';
@@ -10,6 +10,20 @@ export interface WhereSheetData {
   /** Areas the profile subscribes to, so the inherited option can say what it means. */
   profileAreas: string[];
   scope: AlarmScope;
+}
+
+/**
+ * Panel class for a dialog that a phone shows as a bottom sheet sized to its content, rather than the
+ * full-screen treatment every other dialog gets there (styles.scss, "Phone bottom sheet").
+ */
+export const PHONE_BOTTOM_SHEET = 'phone-bottom-sheet';
+
+/**
+ * How every list opens the sheet. On a phone it rises from the bottom at its own height, so the card
+ * being changed stays in view above it; full screen spent the whole display on three radio rows.
+ */
+export function whereSheetConfig(data: WhereSheetData): MatDialogConfig<WhereSheetData> {
+  return { width: '520px', autoFocus: false, data, panelClass: PHONE_BOTTOM_SHEET };
 }
 
 /**

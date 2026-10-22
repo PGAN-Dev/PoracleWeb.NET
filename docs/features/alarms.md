@@ -233,8 +233,10 @@ Invasions sort on grunt type and gender the same way.
 Each alarm list page has a **select mode** toggle (checklist icon in the toolbar):
 
 1. Toggle select mode on
-2. Check individual alarms or use **Select All**
-3. Use the bulk toolbar: **Change radius** sets a new radius (anything above zero, up to the API's cap of half the Earth's circumference), or no radius, on the selected alarms, and **Delete** removes them. The radius dialog names how many alarms you selected.
+2. Check individual alarms or use **Select all**
+3. Use the bulk toolbar: **Change radius** sets a new radius (anything above zero, up to the API's cap of half the Earth's circumference), or no radius, on the selected alarms, and **Delete** removes them. The radius dialog names how many alarms you selected, and the Delete button does too ("Delete 4").
+
+Delete is the one red, filled button in the bar, and Change radius sits beside it in a quieter tone, so the two can't be mistaken for each other. On a phone the bar is pinned to the bottom of the screen, so it stays in reach while you scroll and tick cards.
 
 ![The Pokemon page in select mode, three cards checked and the bulk toolbar showing Select All, Update Distance and Delete](../screenshots/bulk-select.png)
 

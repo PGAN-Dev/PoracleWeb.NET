@@ -336,3 +336,71 @@ describe('App stop impersonating', () => {
     expect(getCounts).toHaveBeenCalledTimes(1);
   });
 });
+
+/**
+ * Tablets in portrait (820px) kept the permanent 250px sidenav, which left one narrow column of cards,
+ * and showed two controls for the one menu: the toolbar's hamburger and the sidenav's collapse chevron.
+ * Up to 1024px the sidenav now slides over the page like a phone's and the hamburger is the only control.
+ */
+describe('App sidenav by width', () => {
+  const realWidth = window.innerWidth;
+
+  const setWidth = (width: number) => Object.defineProperty(window, 'innerWidth', { configurable: true, value: width, writable: true });
+
+  const build = (width: number) => {
+    setWidth(width);
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideNoopAnimations(),
+        provideRouter([]),
+        provideTranslateService(),
+        { provide: SettingsService, useValue: { isDisabled: () => false, loadOnce: () => of([]), siteSettings: signal({}) } },
+        { provide: AuthService, useValue: { hasManagedWebhooks: () => false, isAdmin: () => false } },
+        { provide: DashboardService, useValue: { getCounts: () => of({}) } },
+        { provide: I18nService, useValue: { init: jest.fn() } },
+      ],
+    });
+    const app = TestBed.runInInjectionContext(() => new App()) as unknown as {
+      isMobile: () => boolean;
+      onResize: () => void;
+      sidenavOpened: () => boolean;
+    };
+    return app;
+  };
+
+  afterEach(() => setWidth(realWidth));
+
+  it.each([390, 820, 1024])('slides the sidenav over the page at %ipx, closed until asked for', width => {
+    const app = build(width);
+
+    expect(app.isMobile()).toBe(true);
+    expect(app.sidenavOpened()).toBe(false);
+  });
+
+  it.each([1025, 1440])('keeps the side-by-side sidenav at %ipx', width => {
+    const app = build(width);
+
+    expect(app.isMobile()).toBe(false);
+    expect(app.sidenavOpened()).toBe(true);
+  });
+
+  it('switches to the overlay when a window is narrowed to tablet width', () => {
+    const app = build(1440);
+
+    setWidth(820);
+    app.onResize();
+
+    expect(app.isMobile()).toBe(true);
+    expect(app.sidenavOpened()).toBe(false);
+  });
+
+  it('shows the collapse chevron only beside the side-by-side sidenav', () => {
+    const html = fs.readFileSync(path.join(__dirname, 'app.html'), 'utf8');
+
+    expect(html).toMatch(/@if \(!isMobile\(\)\) \{\s*<div class="sidenav-collapse-toggle">/);
+    expect(html).toContain(`[mode]="isMobile() ? 'over' : 'side'"`);
+  });
+});

@@ -22,23 +22,13 @@
 }
 
 @if (selectMode()) {
-  <div class="bulk-toolbar">
-    @if (actionIds().length > 0) {
-      <span class="bulk-count">{{ 'ALARM.SELECTED_COUNT' | translate: { count: actionIds().length } }}</span>
-    }
-    <button mat-stroked-button (click)="selectAll()"><mat-icon>select_all</mat-icon> {{ 'ALARM.SELECT_ALL' | translate }}</button>
-    @if (selectedIds().size > 0) {
-      <button mat-stroked-button (click)="deselectAll()">{{ 'ALARM.DESELECT_ALL' | translate }}</button>
-    }
-    <div class="bulk-spacer"></div>
-    <button mat-stroked-button (click)="bulkUpdateDistance()" [disabled]="actionIds().length === 0">
-      <mat-icon>straighten</mat-icon> {{ 'ALARM.UPDATE_DISTANCE' | translate }}
-    </button>
-
-    <button mat-flat-button color="warn" (click)="bulkDelete()" [disabled]="actionIds().length === 0">
-      <mat-icon>delete</mat-icon> {{ 'ALARM.DELETE' | translate }}
-    </button>
-  </div>
+  <app-bulk-action-bar
+    [count]="actionIds().length"
+    [anySelected]="selectedIds().size > 0"
+    (selectAll)="selectAll()"
+    (deselectAll)="deselectAll()"
+    (changeRadius)="bulkUpdateDistance()"
+    (deleteSelected)="bulkDelete()" />
 }
 
 @if (loading()) {

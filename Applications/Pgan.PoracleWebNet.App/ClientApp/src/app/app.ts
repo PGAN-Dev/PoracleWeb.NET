@@ -273,7 +273,12 @@ export class App implements OnInit {
 
   protected readonly i18n = inject(I18nService);
 
-  protected readonly isMobile = signal(window.innerWidth < 768);
+  /**
+   * True when the sidenav slides over the page (`mode="over"`) and the toolbar's hamburger is the only nav
+   * control. Phones and tablets up to {@link OVERLAY_NAV_MAX_WIDTH}: a tablet in portrait kept the
+   * permanent sidenav and was left one narrow column of cards beside it.
+   */
+  protected readonly isMobile = signal(usesOverlayNav(window.innerWidth));
 
   protected readonly settingsNavItems = computed(() =>
     this.navItems.filter(
@@ -436,7 +441,7 @@ export class App implements OnInit {
 
   @HostListener('window:resize')
   onResize(): void {
-    const mobile = window.innerWidth < 768;
+    const mobile = usesOverlayNav(window.innerWidth);
     this.isMobile.set(mobile);
     if (mobile) {
       this.sidenavOpened.set(false);
@@ -506,4 +511,11 @@ export class App implements OnInit {
     document.body.classList.toggle('light-theme', !this.darkMode());
     localStorage.setItem('poracle-theme', scheme);
   }
+}
+
+/** Widest viewport, in CSS pixels, that gets the overlay sidenav. 1024 covers tablets in portrait. */
+export const OVERLAY_NAV_MAX_WIDTH = 1024;
+
+function usesOverlayNav(width: number): boolean {
+  return width <= OVERLAY_NAV_MAX_WIDTH;
 }

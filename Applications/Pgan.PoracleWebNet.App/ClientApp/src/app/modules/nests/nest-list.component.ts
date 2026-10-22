@@ -22,11 +22,12 @@ import { TestAlertService } from '../../core/services/test-alert.service';
 import { AlarmCardComponent } from '../../shared/components/alarm-card/alarm-card.component';
 import { AlarmEmptyStateComponent } from '../../shared/components/alarm-empty-state/alarm-empty-state.component';
 import { AlarmListToolbarComponent, AlarmSortOption } from '../../shared/components/alarm-list-toolbar/alarm-list-toolbar.component';
+import { BulkActionBarComponent } from '../../shared/components/bulk-action-bar/bulk-action-bar.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
 import { QuietChipComponent } from '../../shared/components/quiet-chip/quiet-chip.component';
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
-import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
+import { WhereSheetComponent, WhereSheetData, whereSheetConfig } from '../../shared/components/where-sheet/where-sheet.component';
 import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
 import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
 import { byNumber, byText, queryAlarms, visibleSelection } from '../../shared/utils/alarm-list-query';
@@ -41,6 +42,7 @@ import { serverReason } from '../../shared/utils/server-reason';
   imports: [
     AlarmEmptyStateComponent,
     AlarmListToolbarComponent,
+    BulkActionBarComponent,
     AlarmCardComponent,
     QuietChipComponent,
     MatButtonModule,
@@ -244,7 +246,7 @@ export class NestListComponent implements OnInit {
     };
 
     this.dialog
-      .open(WhereSheetComponent, { width: '520px', autoFocus: false, data })
+      .open(WhereSheetComponent, whereSheetConfig(data))
       .afterClosed()
       .subscribe((scope?: AlarmScope) => {
         if (!scope) return;
