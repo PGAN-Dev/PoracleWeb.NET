@@ -26,7 +26,8 @@
     "SETTINGS": "Indstillinger",
     "USER_GEOFENCES": "Bruger-geofences",
     "MY_WEBHOOKS": "Mine webhooks",
-    "ADMIN_AREAS": "Områder"
+    "ADMIN_AREAS": "Områder",
+    "ADMIN_PAGE_TITLE": "Admin: {{page}}"
   },
   "TOOLBAR": {
     "SUBTITLE": "Konfiguration af DM-alarmer",
@@ -110,7 +111,6 @@
     "MANAGE_PROFILES": "Administrer profiler",
     "DEFAULT_PROFILE": "Standard",
     "WEATHER": "Vejr",
-    "NO_WEATHER_DATA": "Ingen data",
     "WEATHER_WARNING": "Alvorlig vejradvarsel",
     "WEATHER_JUST_NOW": "Lige nu",
     "WEATHER_1_MIN_AGO": "1 min siden",

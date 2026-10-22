@@ -141,12 +141,14 @@ export const routes: Routes = [
   },
   {
     canActivate: [authGuard, adminGuard],
+    data: { adminPage: true },
     loadComponent: () => import('./modules/admin/admin-users.component').then(m => m.AdminUsersComponent),
     path: 'admin/users',
     title: 'NAV.USERS',
   },
   {
     canActivate: [authGuard, adminGuard],
+    data: { adminPage: true },
     loadComponent: () => import('./modules/admin/admin-webhooks.component').then(m => m.AdminWebhooksComponent),
     path: 'admin/webhooks',
     title: 'NAV.WEBHOOKS',
@@ -154,6 +156,7 @@ export const routes: Routes = [
   {
     canActivate: [authGuard, adminGuard],
     canDeactivate: [unsavedChangesGuard],
+    data: { adminPage: true },
     loadComponent: () => import('./modules/admin/admin-areas.component').then(m => m.AdminAreasComponent),
     path: 'admin/areas',
     title: 'NAV.ADMIN_AREAS',
@@ -161,12 +164,14 @@ export const routes: Routes = [
   {
     canActivate: [authGuard, adminGuard],
     canDeactivate: [unsavedChangesGuard],
+    data: { adminPage: true },
     loadComponent: () => import('./modules/admin/admin-settings.component').then(m => m.AdminSettingsComponent),
     path: 'admin/settings',
     title: 'NAV.SETTINGS',
   },
   {
     canActivate: [authGuard, adminGuard, disabledFeatureGuard('disable_user_geofences')],
+    data: { adminPage: true },
     loadComponent: () =>
       import('./modules/admin/geofence-submissions/geofence-submissions.component').then(m => m.GeofenceSubmissionsComponent),
     path: 'admin/geofence-submissions',

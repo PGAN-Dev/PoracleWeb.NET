@@ -27,7 +27,9 @@ describe('add-on-arrival parity', () => {
     const body = ngOnInit.slice(0, ngOnInit.indexOf('\n  }\n'));
 
     expect(source).toContain('private readonly takeAddRequest = addOnArrival();');
-    expect(body).toContain('if (this.takeAddRequest()) this.openAddDialog();');
+    // Pokéstop events hands the dialog the loaded list, so it opens after the first load instead.
+    const deferred = 'this.loadItems(this.takeAddRequest() ? () => this.openAddDialog() : undefined);';
+    expect(body.includes('if (this.takeAddRequest()) this.openAddDialog();') || body.includes(deferred)).toBe(true);
   });
 
   it('covers every alarm route the dashboard and onboarding can send it to', () => {

@@ -6,7 +6,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { Router, provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
-import { of } from 'rxjs';
+import { Observable, Subject, of } from 'rxjs';
 
 import { DashboardComponent } from './dashboard.component';
 import { DashboardCounts, Profile, WeatherData } from '../../core/models';
@@ -42,7 +42,7 @@ describe('DashboardComponent shell', () => {
     profiles?: Partial<Profile>[];
     resynced?: boolean;
     user?: Record<string, unknown>;
-    weather?: WeatherData | null;
+    weather?: WeatherData | null | Observable<WeatherData | null>;
   }
 
   const setup = (opts: Options = {}) => {
@@ -58,7 +58,7 @@ describe('DashboardComponent shell', () => {
     const location = {
       getLocation: jest.fn(() => of(opts.location ?? { latitude: 0, longitude: 0 })),
       getStaticMapUrl: jest.fn(() => of(null)),
-      getWeather: jest.fn(() => of(opts.weather ?? null)),
+      getWeather: jest.fn(() => (opts.weather instanceof Observable ? opts.weather : of(opts.weather ?? null))),
       reverseGeocode: jest.fn(() => of(null)),
     };
 
@@ -141,6 +141,20 @@ describe('DashboardComponent shell', () => {
   });
 
   describe('weather card (U9)', () => {
+    // A skeleton that then vanished on "no weather" made the status row jump; nothing is drawn until
+    // there is weather to draw.
+    it('reserves no slot while the weather is loading', () => {
+      const pending = new Subject<WeatherData | null>();
+      const { el, fixture } = setup({ location: { latitude: 41.6539, longitude: -83.5379 }, weather: pending });
+
+      expect(el.querySelector('.weather-card')).toBeNull();
+
+      pending.next({ boostedTypes: [], conditionName: 'Clear', hasWarning: false, icon: 'wb_sunny' } as unknown as WeatherData);
+      fixture.detectChanges();
+
+      expect(el.querySelector('.weather-card')?.textContent).toContain('Clear');
+    });
+
     it('is absent when the server has no weather for the pin', () => {
       const { el } = setup({ location: { latitude: 41.6539, longitude: -83.5379 }, weather: null });
 

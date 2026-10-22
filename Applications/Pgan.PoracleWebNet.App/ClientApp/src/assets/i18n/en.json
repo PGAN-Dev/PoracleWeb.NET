@@ -26,7 +26,8 @@
     "SETTINGS": "Settings",
     "USER_GEOFENCES": "User Geofences",
     "MY_WEBHOOKS": "My Webhooks",
-    "ADMIN_AREAS": "Areas"
+    "ADMIN_AREAS": "Areas",
+    "ADMIN_PAGE_TITLE": "Admin: {{page}}"
   },
   "TOOLBAR": {
     "SUBTITLE": "DM Alerts Configuration",
@@ -110,7 +111,6 @@
     "MANAGE_PROFILES": "Manage Profiles",
     "DEFAULT_PROFILE": "Default",
     "WEATHER": "Weather",
-    "NO_WEATHER_DATA": "No data",
     "WEATHER_WARNING": "Severe weather warning",
     "WEATHER_JUST_NOW": "Just now",
     "WEATHER_1_MIN_AGO": "1 min ago",

@@ -146,18 +146,10 @@
         <mat-icon class="status-arrow">chevron_right</mat-icon>
       </mat-card>
     }
-    <!-- Weather Card: only while there is weather, or it is on its way. -->
+    <!-- Weather Card: only once there is weather. -->
     @if (showWeather()) {
       <mat-card class="status-card weather-card">
-        @if (weatherLoading()) {
-          <div class="status-icon-wrap weather-icon skeleton-icon">
-            <div class="skeleton-circle"></div>
-          </div>
-          <div class="status-info">
-            <span class="status-label">{{ 'DASHBOARD.WEATHER' | translate }}</span>
-            <div class="skeleton-line-sm"></div>
-          </div>
-        } @else if (weather(); as w) {
+        @if (weather(); as w) {
           <div class="status-icon-wrap weather-icon" [class.weather-warning]="w.hasWarning">
             <mat-icon>{{ w.icon }}</mat-icon>
             @if (w.hasWarning) {

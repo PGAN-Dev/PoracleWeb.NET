@@ -1,14 +1,17 @@
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { Title } from '@angular/platform-browser';
-import { RouterStateSnapshot, TitleStrategy } from '@angular/router';
+import { ActivatedRouteSnapshot, RouterStateSnapshot, TitleStrategy } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
 import { map, of, switchMap } from 'rxjs';
 
-import { SettingsService } from './settings.service';
+import { DEFAULT_SITE_TITLE, SettingsService } from './settings.service';
 
-/** The toolbar's fallback too, when an operator has set no `custom_title`. */
-export const DEFAULT_SITE_TITLE = 'DM Alerts';
+interface PageTitle {
+  /** `data: { adminPage: true }`: "Admin: Areas", so it isn't read as the user's Areas & Places. */
+  admin: boolean;
+  key: string | undefined;
+}
 
 /**
  * "Pokémon · DM Alerts". Every route used to carry the site title alone, so browser tabs, history and a
@@ -20,11 +23,18 @@ export const DEFAULT_SITE_TITLE = 'DM Alerts';
  */
 @Injectable({ providedIn: 'root' })
 export class PageTitleStrategy extends TitleStrategy {
-  private readonly pageKey = signal<string | undefined>(undefined);
+  private readonly page = signal<PageTitle>({ admin: false, key: undefined });
   private readonly translate = inject(TranslateService);
   private readonly pageName = toSignal(
-    toObservable(this.pageKey).pipe(
-      switchMap(key => (key ? this.translate.stream(key).pipe(map(text => (text === key ? '' : String(text)))) : of(''))),
+    toObservable(this.page).pipe(
+      switchMap(({ admin, key }) => {
+        if (!key) return of('');
+        const name$ = this.translate.stream(key).pipe(map(text => (text === key ? '' : String(text))));
+        if (!admin) return name$;
+        return name$.pipe(
+          switchMap(page => (page ? this.translate.stream('NAV.ADMIN_PAGE_TITLE', { page }).pipe(map(text => String(text))) : of(''))),
+        );
+      }),
     ),
     { initialValue: '' },
   );
@@ -42,6 +52,8 @@ export class PageTitleStrategy extends TitleStrategy {
   });
 
   override updateTitle(snapshot: RouterStateSnapshot): void {
-    this.pageKey.set(this.buildTitle(snapshot));
+    let route: ActivatedRouteSnapshot = snapshot.root;
+    while (route.firstChild) route = route.firstChild;
+    this.page.set({ admin: route.data['adminPage'] === true, key: this.buildTitle(snapshot) });
   }
 }

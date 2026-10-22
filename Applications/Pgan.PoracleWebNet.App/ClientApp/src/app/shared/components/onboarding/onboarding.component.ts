@@ -11,7 +11,7 @@ import { firstValueFrom, forkJoin, catchError, of } from 'rxjs';
 import { AreaService } from '../../../core/services/area.service';
 import { DashboardService } from '../../../core/services/dashboard.service';
 import { LocationService } from '../../../core/services/location.service';
-import { SettingsService } from '../../../core/services/settings.service';
+import { DEFAULT_SITE_TITLE, SettingsService } from '../../../core/services/settings.service';
 import { ADD_ON_ARRIVAL } from '../../utils/add-on-arrival';
 import { LocationDialogComponent } from '../location-dialog/location-dialog.component';
 
@@ -321,7 +321,7 @@ export class OnboardingComponent implements OnInit {
   locationSet = signal(false);
   navigatedAway = output<void>();
 
-  siteTitle = computed(() => this.settingsService.siteSettings()['custom_title'] || 'DM Alerts');
+  siteTitle = computed(() => this.settingsService.siteSettings()['custom_title'] || DEFAULT_SITE_TITLE);
 
   dismiss() {
     localStorage.setItem('poracle-onboarding-complete', 'true');

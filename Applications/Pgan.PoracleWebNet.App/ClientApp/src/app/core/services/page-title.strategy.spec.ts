@@ -20,6 +20,7 @@ describe('PageTitleStrategy', () => {
         provideRouter([
           { component: BlankComponent, path: 'pokemon', title: 'NAV.POKEMON' },
           { component: BlankComponent, path: 'untitled' },
+          { component: BlankComponent, data: { adminPage: true }, path: 'admin/areas', title: 'NAV.ADMIN_AREAS' },
         ]),
         provideTranslateService(),
         { provide: SettingsService, useValue: { siteSettings } },
@@ -27,8 +28,8 @@ describe('PageTitleStrategy', () => {
       ],
     });
     const translate = TestBed.inject(TranslateService);
-    translate.setTranslation('en', { NAV: { POKEMON: 'Pokémon' } });
-    translate.setTranslation('de', { NAV: { POKEMON: 'Pokémon (de)' } });
+    translate.setTranslation('en', { NAV: { ADMIN_AREAS: 'Areas', ADMIN_PAGE_TITLE: 'Admin: {{page}}', POKEMON: 'Pokémon' } });
+    translate.setTranslation('de', { NAV: { ADMIN_AREAS: 'Gebiete', ADMIN_PAGE_TITLE: 'Admin: {{page}} (de)', POKEMON: 'Pokémon (de)' } });
     translate.use('en');
     const router = TestBed.inject(Router);
     const title = TestBed.inject(Title);
@@ -76,6 +77,30 @@ describe('PageTitleStrategy', () => {
     const { go } = await setup({ custom_title: 'PoGO Alerts' });
 
     expect(await go('/untitled')).toBe('PoGO Alerts');
+  });
+
+  // "Areas" on its own read the same as the user's Areas & Places tab.
+  it('marks an admin page as admin', async () => {
+    const { go } = await setup();
+
+    expect(await go('/admin/areas')).toBe('Admin: Areas · DM Alerts');
+  });
+
+  it('translates the admin prefix with the page', async () => {
+    const { go, translate } = await setup();
+    await go('/admin/areas');
+
+    translate.use('de');
+    TestBed.tick();
+
+    expect(TestBed.inject(Title).getTitle()).toBe('Admin: Gebiete (de) · DM Alerts');
+  });
+
+  it('marks every admin route, and only those', () => {
+    const marked = routes.filter(r => r.data?.['adminPage']).map(r => r.path);
+    const admin = routes.filter(r => r.path?.startsWith('admin/') && r.loadComponent).map(r => r.path);
+
+    expect(marked).toEqual(admin);
   });
 
   it('gives every signed-in page a title', () => {

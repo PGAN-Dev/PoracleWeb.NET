@@ -221,25 +221,6 @@
   line-height: 1.5;
   text-transform: uppercase;
 }
-.skeleton-icon {
-  background: var(--skeleton-bg, rgba(0, 0, 0, 0.06));
-}
-.skeleton-circle {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: var(--skeleton-bg, rgba(0, 0, 0, 0.1));
-  animation: pulse 1.5s infinite;
-}
-.skeleton-line-sm {
-  height: 16px;
-  width: 80px;
-  background: var(--skeleton-bg, rgba(0, 0, 0, 0.08));
-  border-radius: 4px;
-  margin-top: 4px;
-  animation: pulse 1.5s infinite;
-}
-
 /* Areas Detail */
 .areas-detail-card {
   margin-bottom: 20px;

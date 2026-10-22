@@ -26,7 +26,8 @@
     "SETTINGS": "Instellingen",
     "USER_GEOFENCES": "Gebruiker Geofences",
     "MY_WEBHOOKS": "Mijn Webhooks",
-    "ADMIN_AREAS": "Gebieden"
+    "ADMIN_AREAS": "Gebieden",
+    "ADMIN_PAGE_TITLE": "Beheer: {{page}}"
   },
   "TOOLBAR": {
     "SUBTITLE": "DM Meldingen Configuratie",
@@ -110,7 +111,6 @@
     "MANAGE_PROFILES": "Profielen Beheren",
     "DEFAULT_PROFILE": "Standaard",
     "WEATHER": "Weer",
-    "NO_WEATHER_DATA": "Geen gegevens",
     "WEATHER_WARNING": "Ernstige weerwaarschuwing",
     "WEATHER_JUST_NOW": "Zojuist",
     "WEATHER_1_MIN_AGO": "1 min geleden",

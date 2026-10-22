@@ -249,24 +249,30 @@ export class PokestopEventListComponent implements OnInit {
     return isAutoDelete(clean);
   }
 
-  loadItems(): void {
+  /** `then` runs once the list has answered, loaded or not. */
+  loadItems(then?: () => void): void {
     this.loading.set(true);
     this.pokestopEventService
       .getAll()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        error: () => this.loading.set(false),
+        error: () => {
+          this.loading.set(false);
+          then?.();
+        },
         next: items => {
           this.events.set(orderAlarms(items, e => [e.displayType]));
           this.loading.set(false);
+          then?.();
         },
       });
   }
 
   ngOnInit(): void {
     this.loadProfileAreas();
-    this.loadItems();
-    if (this.takeAddRequest()) this.openAddDialog();
+    // Unlike the other nine, this dialog is handed the list itself (to mark events already tracked and
+    // name a clash), so on arrival it waits for the list rather than opening on an empty one.
+    this.loadItems(this.takeAddRequest() ? () => this.openAddDialog() : undefined);
   }
 
   openAddDialog(): void {

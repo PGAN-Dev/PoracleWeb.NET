@@ -26,7 +26,8 @@
     "SETTINGS": "Impostazioni",
     "USER_GEOFENCES": "Geofence Utenti",
     "MY_WEBHOOKS": "I Miei Webhooks",
-    "ADMIN_AREAS": "Aree"
+    "ADMIN_AREAS": "Aree",
+    "ADMIN_PAGE_TITLE": "Amministrazione: {{page}}"
   },
   "TOOLBAR": {
     "SUBTITLE": "Configurazione Avvisi DM",
@@ -110,7 +111,6 @@
     "MANAGE_PROFILES": "Gestisci Profili",
     "DEFAULT_PROFILE": "Predefinito",
     "WEATHER": "Meteo",
-    "NO_WEATHER_DATA": "Nessun dato",
     "WEATHER_WARNING": "Allerta meteo grave",
     "WEATHER_JUST_NOW": "Adesso",
     "WEATHER_1_MIN_AGO": "1 min fa",

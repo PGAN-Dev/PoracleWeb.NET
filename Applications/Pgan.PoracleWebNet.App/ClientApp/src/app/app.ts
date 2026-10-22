@@ -20,8 +20,7 @@ import { AlertLanguageService } from './core/services/alert-language.service';
 import { AuthService } from './core/services/auth.service';
 import { DashboardService } from './core/services/dashboard.service';
 import { I18nService } from './core/services/i18n.service';
-import { DEFAULT_SITE_TITLE } from './core/services/page-title.strategy';
-import { SettingsService } from './core/services/settings.service';
+import { DEFAULT_SITE_TITLE, SettingsService } from './core/services/settings.service';
 import { AlertDefaultsDialogComponent } from './shared/components/alert-defaults-dialog/alert-defaults-dialog.component';
 
 interface NavItem {

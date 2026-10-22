@@ -26,7 +26,8 @@
     "SETTINGS": "Inställningar",
     "USER_GEOFENCES": "Användar-geofences",
     "MY_WEBHOOKS": "Mina webhooks",
-    "ADMIN_AREAS": "Områden"
+    "ADMIN_AREAS": "Områden",
+    "ADMIN_PAGE_TITLE": "Admin: {{page}}"
   },
   "TOOLBAR": {
     "SUBTITLE": "Konfiguration av DM-larm",
@@ -110,7 +111,6 @@
     "MANAGE_PROFILES": "Hantera profiler",
     "DEFAULT_PROFILE": "Standard",
     "WEATHER": "Väder",
-    "NO_WEATHER_DATA": "Ingen data",
     "WEATHER_WARNING": "Allvarlig vädervarning",
     "WEATHER_JUST_NOW": "Just nu",
     "WEATHER_1_MIN_AGO": "1 min sedan",

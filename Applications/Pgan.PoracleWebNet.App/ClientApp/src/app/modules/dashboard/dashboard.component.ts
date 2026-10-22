@@ -337,13 +337,11 @@ export class DashboardComponent implements OnInit {
 
   readonly weather = signal<WeatherData | null>(null);
 
-  readonly weatherLoading = signal(false);
-
   /**
-   * The weather card answers a question only when there is weather to show. With none for the pin it
-   * read "No data" and took a quarter of the status row.
+   * The weather card is drawn only once there is weather. With none for the pin it read "No data" and
+   * took a quarter of the status row; a loading skeleton that then vanished made the row jump.
    */
-  readonly showWeather = computed(() => this.userLocation() && (this.weatherLoading() || this.weather() !== null));
+  readonly showWeather = computed(() => this.userLocation() && this.weather() !== null);
 
   readonly skeletonItems = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
@@ -626,13 +624,11 @@ export class DashboardComponent implements OnInit {
   }
 
   private loadWeather(): void {
-    this.weatherLoading.set(true);
     this.locationService
       .getWeather()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(w => {
         this.weather.set(w);
-        this.weatherLoading.set(false);
       });
   }
 
