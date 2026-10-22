@@ -55,7 +55,7 @@ PoracleNG 5.4.0 fixes this ([jfberry/PoracleNG#328](https://github.com/jfberry/P
 a rule quiet period records the rule's type as well as its number. The list shows a bot-set rule quiet
 period as, for example, "raid 60", and lifting it sends the type back.
 
-**Pokestop** quiets one stop. Nothing in PoracleWeb.NET names a stop: neither the lure model nor the
+**Pokéstop** quiets one stop. Nothing in PoracleWeb.NET names a stop: neither the lure model nor the
 invasion model carries a fort id.
 
 **Everything** quiets the account. That is what Pause Alerts already does.

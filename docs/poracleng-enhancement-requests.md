@@ -334,7 +334,7 @@ a read emits exactly the field the rule is stored as.
 
 **Here: adopted**, first in PoracleWeb.NET #894 behind a second gate on the server's grunt masterdata,
 because 32 of 201 invasion rules in production carried a name v2 refused (`kecleon`, `gold-stop` and
-`showcase`, which are Pokestop events, and `metal`, which the game data calls `steel`). With 5.4.0 every
+`showcase`, which are Pokéstop events, and `metal`, which the game data calls `steel`). With 5.4.0 every
 invasion read and write is v2 and the gate and `InvasionGruntNameService` are gone: the event names are
 saved through the incident routes, and `metal` is rewritten to `steel` before it's sent (the
 [rule repair](getting-started/upgrading-to-poracleng-5-4.md#run-the-rule-repair) fixes the stored ones).

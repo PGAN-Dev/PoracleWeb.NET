@@ -610,7 +610,7 @@ Configure the end-session URL, leave `enable_oidc_slo` unset (or `true`), and re
 # What Poracle reports as disabled
 curl -s -H "X-Poracle-Secret: $SECRET"   http://poracle-host:3030/api/config/poracleWeb | jq .disabledHooks
 
-# Pokestop Events travels separately. `false` means available, `null` means
+# Pokéstop Events travels separately. `false` means available, `null` means
 # the server did not report the option.
 curl -s -H "X-Poracle-Secret: $SECRET"   http://poracle-host:3030/api/config/values | jq .values.general.disable_showcase
 
