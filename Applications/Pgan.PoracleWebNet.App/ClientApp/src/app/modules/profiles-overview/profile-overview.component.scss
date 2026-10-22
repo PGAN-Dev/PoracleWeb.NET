@@ -285,8 +285,14 @@
   }
 }
 // Lets the profile name below shrink and ellipsise inside the header instead of pushing it wider.
+// Material grows the description twice as fast as the title, which squeezed the name to nothing on a
+// phone. The title takes the free space; the alarm count keeps only what it needs.
 .profile-panel mat-panel-title {
   min-width: 0;
+  flex: 1 1 auto;
+}
+.profile-panel mat-panel-description {
+  flex: 0 0 auto;
 }
 .panel-title-row {
   display: flex;
@@ -331,6 +337,8 @@
   font-size: 12px;
   font-weight: 500;
   margin-left: 8px;
+  flex-shrink: 0;
+  white-space: nowrap;
 
   mat-icon {
     font-size: 16px;
