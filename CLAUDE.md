@@ -400,6 +400,16 @@ There used to be a second `/api/config/values` read of `general.disable_fort_upd
 
 **Caching:** `SiteSettingService.GetByKeyAsync` is wrapped in `IMemoryCache` with a 5-min TTL and explicit invalidation on writes. Without this, gate checks would add ~10 MySQL roundtrips per dashboard load. There's a documented TOCTOU window (slow read overlapping a write can leak a stale value for up to the TTL) — acceptable for admin-rare toggles.
 
+### Rule Repair (PoracleNG 5.4.0)
+
+`Admin > Settings > Rule repair` (`AdminRuleRepairController`, `RuleRepairJob`, `RuleRepairClassifier`, SPA `rule-repair-card`) finds stored rules 5.4.0's v2 reads differently: invasion `grunt_type` `metal` (now `steel`), raids with `pokemon_id` 0, and raids/max battles for any boss with level unconfirmed (v2 reports null). Rules v2 cannot express are listed as `CannotEdit` and never written.
+
+The scan reads every human through v2 and never writes. A repair is a uid-addressed `PUT /api/v2/humans/{id}/tracking/{type}/{uid}?silent=true&trusted=true&profile=N`, preceded by the same request with `dry_run=true`; it's written only when the dry run answers `updated`, and `unchanged` counts as already fine. A 409 leaves the rule alone and lists it with a "would duplicate another rule" reason: under `CannotEdit` when the scan's any-tier confirmation hits it, in `Applied.Conflicts` when apply does. Apply re-reads each human's rules and re-classifies, so a rule changed since the scan is judged as it is now. Trusted, because it restores what PoracleNG stored and must not go through `IUserAreaPolicy`. Just before each real PUT the stored v2 rule is logged at Information (`LogRepairWriting`), so a bad repair can be reversed from the log.
+
+One job at a time per process (a second start answers 409 with the current state), admin-only and refused while impersonating, and the start is logged with the admin's id. State lives in memory, so a restart mid-run loses it; scanning again is safe. A run stops after five requests in a row that got no response or a 502/503/504, or when PoracleNG is too old. A scan that skipped every human fails, whatever the reasons, naming the most common one: an empty list there would read as "nothing to repair". The card never says "nothing" while any user was skipped.
+
+The full status can run to thousands of rows, so the card polls `GET /api/admin/rule-repair?summary=true` (lists empty, `repairableCount`/`cannotEditCount`/`skippedCount` kept) while a run is going and reads the full status once when it ends. The card caps every list at 100 rows per group. User docs: `docs/getting-started/upgrading-to-poracleng-5-4.md`.
+
 ### Quiet Periods (PoracleNG Mutes)
 
 A quiet period is a time-boxed `(scope, value)` mute on a human, over PoracleNG's `/api/v2/humans/{id}/mutes`.
@@ -1279,6 +1289,10 @@ dotnet ef migrations script \
 | GymSearchResult Model | `Core/Pgan.PoracleWebNet.Core.Models/GymSearchResult.cs` |
 | Test Alert Controller | `Applications/Pgan.PoracleWebNet.Api/Controllers/TestAlertController.cs` |
 | ITestAlertService | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/ITestAlertService.cs` |
+| Rule Repair Controller | `Applications/Pgan.PoracleWebNet.Api/Controllers/AdminRuleRepairController.cs` |
+| RuleRepairJob / RuleRepairClassifier | `Core/Pgan.PoracleWebNet.Core.Services/RuleRepairJob.cs`, `RuleRepairClassifier.cs` |
+| Rule Repair models | `Core/Pgan.PoracleWebNet.Core.Models/RuleRepair.cs` |
+| Rule Repair card / service (frontend) | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/modules/admin/rule-repair-card/`, `core/services/rule-repair.service.ts` |
 | Mute Controller | `Applications/Pgan.PoracleWebNet.Api/Controllers/MuteController.cs` |
 | IPoracleMuteProxy | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/IPoracleMuteProxy.cs` |
 | PoracleMuteProxy | `Core/Pgan.PoracleWebNet.Core.Services/PoracleMuteProxy.cs` |

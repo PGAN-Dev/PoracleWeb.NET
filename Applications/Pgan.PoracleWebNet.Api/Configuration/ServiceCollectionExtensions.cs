@@ -161,6 +161,10 @@ public static class ServiceCollectionExtensions
         // Register HttpClient for PoracleNG human/profile proxy (replaces direct DB writes)
         services.AddHttpClient<IPoracleHumanProxy, PoracleHumanProxy>();
 
+        // Rule repair for PoracleNG 5.4.0: a singleton, so one scan or apply runs per process. Each run
+        // takes its own scope per human from IServiceScopeFactory, never a request's.
+        services.AddSingleton<IRuleRepairJob, RuleRepairJob>();
+
         // Register HttpClient for PoracleNG summary schedule proxy (quest summary delivery)
         services.AddHttpClient<IPoracleSummaryProxy, PoracleSummaryProxy>();
 

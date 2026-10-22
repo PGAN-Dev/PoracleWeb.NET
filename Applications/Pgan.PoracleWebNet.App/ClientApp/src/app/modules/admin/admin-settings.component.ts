@@ -27,6 +27,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { IconRepoDialogComponent, IconRepoDialogData } from './icon-repo-dialog/icon-repo-dialog.component';
+import { RuleRepairCardComponent } from './rule-repair-card/rule-repair-card.component';
 import { DiscordServerConfig, OidcServerConfig, PwebSetting, SiteSetting, TelegramServerConfig } from '../../core/models';
 import { BasemapService } from '../../core/services/basemap.service';
 import { I18nService } from '../../core/services/i18n.service';
@@ -454,6 +455,7 @@ export const SETTING_GROUPS: SettingGroup[] = [
     MatSlideToggleModule,
     MatDividerModule,
     MatTooltipModule,
+    RuleRepairCardComponent,
     ServerProfileCardComponent,
     TranslatePipe,
   ],

@@ -828,3 +828,52 @@ export interface PokestopEvent {
 export type PokestopEventCreate = Omit<PokestopEvent, 'eventName' | 'id' | 'profileNo' | 'uid'>;
 
 export type PokestopEventUpdate = Partial<PokestopEventCreate>;
+
+export type RuleRepairKind = 'CannotEdit' | 'MaxBattleAnyBossLevel9000' | 'MetalGrunt' | 'RaidAnyBossLevel9000' | 'RaidPokemonZero';
+
+export type RuleRepairPhase = 'Applied' | 'Applying' | 'Failed' | 'Idle' | 'Scanned' | 'Scanning';
+
+export interface RuleRepairItem {
+  after: null | string;
+  before: string;
+  humanId: string;
+  kind: RuleRepairKind;
+  profileNo: number;
+  reason: null | string;
+  type: string;
+  uid: number;
+}
+
+export interface RuleRepairSkip {
+  humanId: string;
+  reason: string;
+}
+
+export interface RuleRepairApplyResult {
+  alreadyFine: number;
+  /** Rules left alone because the repair would duplicate another rule; `reason` says so. */
+  conflicts: RuleRepairItem[];
+  failed: RuleRepairItem[];
+  gone: number;
+  repaired: number;
+}
+
+/**
+ * The rule repair job's state. A summary (`?summary=true`, what the card polls while a run is going) has
+ * the three lists empty; the counts are always there.
+ */
+export interface RuleRepairStatus {
+  applied: null | RuleRepairApplyResult;
+  cannotEdit: RuleRepairItem[];
+  cannotEditCount: number;
+  error: null | string;
+  finishedAt: null | string;
+  humansDone: number;
+  humansTotal: number;
+  phase: RuleRepairPhase;
+  repairable: RuleRepairItem[];
+  repairableCount: number;
+  skipped: RuleRepairSkip[];
+  skippedCount: number;
+  startedAt: null | string;
+}

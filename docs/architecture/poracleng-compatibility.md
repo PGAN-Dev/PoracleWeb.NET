@@ -10,7 +10,9 @@ switches on or off with the server's version.
     it calls PoracleNG's `/api/v2` routes for humans, profiles, areas, places and mutes with no v1
     fallback, and a route that doesn't exist answers with a message naming the version it needs.
 
-    Upgrade PoracleNG before taking a PoracleWeb.NET release that requires a newer one.
+    Upgrade PoracleNG before taking a PoracleWeb.NET release that requires a newer one. The
+    [upgrade guide](../getting-started/upgrading-to-poracleng-5-4.md) covers the order of steps and the
+    rule repair to run afterwards.
 
 ## Why 5.4.0
 

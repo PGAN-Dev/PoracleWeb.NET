@@ -16,6 +16,10 @@ Site settings are admin-configurable runtime settings stored in the `poracle_web
 
 ---
 
+## Admin settings cards
+
+Two cards sit above the settings groups on **Admin > Settings**. The Versions card reports the running PoracleWeb.NET and PoracleNG versions and whether PoracleNG meets the minimum. The Rule repair card scans for stored alarms that PoracleNG 5.4.0 reads differently (a `metal` grunt, raids and max battles saved with an undefined boss) and repairs them on request; nothing is written before you press Repair. See [Upgrading to PoracleNG 5.4.0](../getting-started/upgrading-to-poracleng-5-4.md#run-the-rule-repair).
+
 ## Branding
 
 Customize the appearance and navigation of your PoracleWeb.NET instance.

@@ -87,6 +87,22 @@ public interface IPoracleTrackingProxy
         string type, string userId, int uid, System.Text.Json.JsonElement body);
 
     /// <summary>
+    /// Every stored rule of the human on every profile, exactly as <c>/api/v2</c> returns it (no translation,
+    /// <c>incident</c> kept apart). A profile PoracleNG does not list is read from the active-profile snapshot.
+    /// </summary>
+    public Task<IReadOnlyList<Pgan.PoracleWebNet.Core.Models.StoredRule>> GetStoredRulesAsync(string userId);
+
+    /// <summary>
+    /// Replaces one stored rule on its own profile, <c>trusted</c> and without consulting the area policy: it
+    /// restores what PoracleNG already holds. <paramref name="dryRun"/> asks what would change and writes nothing.
+    /// </summary>
+    /// <exception cref="Pgan.PoracleWebNet.Core.Models.PoracleAmbiguousAnswerException">
+    /// PoracleNG answered with neither an updated nor an unchanged rule.
+    /// </exception>
+    public Task<Pgan.PoracleWebNet.Core.Models.StoredRuleReplaceOutcome> ReplaceStoredRuleAsync(
+        string type, string userId, int uid, int profileNo, System.Text.Json.JsonElement v1Row, bool dryRun);
+
+    /// <summary>
     /// Deletes a single tracking alarm by UID on the active profile. Maps to
     /// <c>DELETE /api/v2/humans/{id}/tracking/{type}/{uid}?silent=true</c>; a rule PoracleNG does not hold is
     /// treated as already gone. For <c>invasion</c>, a uid the invasion route does not hold is tried as an

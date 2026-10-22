@@ -76,6 +76,7 @@ nav:
       - Standalone Setup (no Docker): getting-started/standalone-setup.md
       - Development Setup: getting-started/development-setup.md
       - Discord OAuth2: getting-started/discord-oauth.md
+      - Upgrading to PoracleNG 5.4.0: getting-started/upgrading-to-poracleng-5-4.md
   - Configuration:
       - Reference: configuration/reference.md
       - Site Settings: configuration/site-settings.md

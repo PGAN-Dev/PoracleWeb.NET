@@ -79,6 +79,74 @@ public partial class PoracleTrackingProxy
             : this.SnapshotAsV1(snapshot, userId, profiles, (active, activeNo));
     }
 
+    /// <inheritdoc />
+    /// <remarks>
+    /// The same snapshot and the same gap as <see cref="GetAllTrackingAllProfilesAsync"/> (a human whose active
+    /// profile has no <c>profiles</c> row is missing from <c>all_profiles</c>), but the rules come back as v2
+    /// sent them, <c>incident</c> included as its own type. Without descriptions: nothing reads them here, and
+    /// rendering one for every rule of every human is work PoracleNG need not do during a scan.
+    /// </remarks>
+    public async Task<IReadOnlyList<StoredRule>> GetStoredRulesAsync(string userId)
+    {
+        var snapshot = await this.ReadSnapshotAsync(userId, "?all_profiles=true", "All alarms");
+
+        var profiles = ProfilesOf(snapshot);
+        var current = CurrentProfileNo(snapshot);
+
+        var rules = new List<StoredRule>();
+        this.CollectStoredRules(snapshot, stampProfileNo: null, rules);
+
+        if (current is not null && ListsProfile(profiles, current.Value))
+        {
+            return rules;
+        }
+
+        var active = await this.ReadSnapshotAsync(userId, string.Empty, "All alarms");
+        var activeNo = CurrentProfileNo(active) ?? current ?? 0;
+
+        if (!ListsProfile(profiles, activeNo))
+        {
+            this.CollectStoredRules(active, activeNo, rules);
+        }
+
+        return rules;
+    }
+
+    private void CollectStoredRules(JsonElement snapshot, int? stampProfileNo, List<StoredRule> into)
+    {
+        if (snapshot.ValueKind != JsonValueKind.Object
+            || !snapshot.TryGetProperty("tracking", out var tracking)
+            || tracking.ValueKind != JsonValueKind.Object)
+        {
+            return;
+        }
+
+        foreach (var type in SnapshotTypes.Append("incident"))
+        {
+            if (!tracking.TryGetProperty(type, out var list) || list.ValueKind != JsonValueKind.Array)
+            {
+                continue;
+            }
+
+            foreach (var rule in list.EnumerateArray().Where(r => r.ValueKind == JsonValueKind.Object))
+            {
+                var profileNo = stampProfileNo
+                    ?? (rule.TryGetProperty("profile_no", out var no) && no.ValueKind == JsonValueKind.Number && no.TryGetInt32(out var found)
+                        ? found
+                        : (int?)null);
+
+                if (profileNo is null)
+                {
+                    // A repair would PUT to a profile we only guessed at.
+                    LogRuleWithoutProfile(this._logger, type, UidOf(rule));
+                    continue;
+                }
+
+                into.Add(new StoredRule(type, profileNo.Value, UidOf(rule), rule.Clone()));
+            }
+        }
+    }
+
     private static JsonElement ProfilesOf(JsonElement snapshot) =>
         snapshot.ValueKind == JsonValueKind.Object
         && snapshot.TryGetProperty("profiles", out var profiles)
@@ -269,6 +337,11 @@ public partial class PoracleTrackingProxy
 
         return rows;
     }
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Left out {Type} rule uid={Uid} from the stored-rule read: it names no profile_no.")]
+    private static partial void LogRuleWithoutProfile(ILogger logger, string type, int uid);
 
     [LoggerMessage(
         Level = LogLevel.Warning,
