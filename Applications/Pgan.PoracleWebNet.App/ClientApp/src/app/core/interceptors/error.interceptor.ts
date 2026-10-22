@@ -29,6 +29,9 @@ const SILENT_URL_PATTERNS = [
   // Polygons only shade the map in an alarm dialog's Delivery tab (and the dashboard's overview); every
   // reader falls back to drawing nothing, so a failure is not worth a "server error" over an unsaved form.
   '/api/areas/geofence',
+  // The display-name read behind every scope chip (UserGeofenceService.getCustomGeofenceNames). Chips fall
+  // back to the stored name; the geofence page's own read of this path stays loud.
+  '/api/geofences/custom?names=1',
   // Pre-checks before a destructive action (clearing the pin, deleting a place). Their callers fall back
   // to a plainer confirm when the read fails, so a toast would report a failure nobody needs to act on.
   '/api/location/pin-usage',

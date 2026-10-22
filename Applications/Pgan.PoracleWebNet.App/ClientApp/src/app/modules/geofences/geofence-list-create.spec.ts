@@ -11,6 +11,7 @@ import { of } from 'rxjs';
 
 import { GeofenceListComponent } from './geofence-list.component';
 import { UserGeofence } from '../../core/models';
+import { AreaNameService } from '../../core/services/area-name.service';
 import { AreaService } from '../../core/services/area.service';
 import { LocationService } from '../../core/services/location.service';
 import { SettingsService } from '../../core/services/settings.service';
@@ -84,5 +85,13 @@ describe('GeofenceListComponent create flow', () => {
     expect(component.activeAreas()).toContain('park');
     expect(snackOpen).toHaveBeenCalledTimes(1);
     expect(snackOpen.mock.calls[0][0]).toBe('GEOFENCES.SNACK_CREATED');
+  });
+
+  it('tells the chips the new fence own name', () => {
+    const { component } = setup({ displayName: 'Lake Eola Loop', kojiName: 'lake eola loop 2' });
+
+    component.onDrawComplete(polygon);
+
+    expect(TestBed.inject(AreaNameService).label('lake eola loop 2')).toBe('Lake Eola Loop');
   });
 });

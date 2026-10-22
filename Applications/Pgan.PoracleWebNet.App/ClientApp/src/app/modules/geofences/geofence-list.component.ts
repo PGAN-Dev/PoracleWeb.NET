@@ -20,6 +20,7 @@ import {
   GeofenceRegion,
   UserGeofence,
 } from '../../core/models';
+import { AreaNameService } from '../../core/services/area-name.service';
 import { AreaService } from '../../core/services/area.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { LocationService } from '../../core/services/location.service';
@@ -72,6 +73,7 @@ const MAX_CUSTOM_GEOFENCES = 10;
   templateUrl: './geofence-list.component.html',
 })
 export class GeofenceListComponent implements OnInit {
+  private readonly areaNames = inject(AreaNameService);
   private readonly areaService = inject(AreaService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
@@ -188,6 +190,7 @@ export class GeofenceListComponent implements OnInit {
         error: err => this.failed(err, 'GEOFENCES.SNACK_FAILED_DELETE'),
         next: () => {
           this.customGeofences.update(list => list.filter(g => g.id !== geofence.id));
+          this.areaNames.forget(geofence.kojiName);
           this.activeAreas.update(areas => areas.filter(a => a !== geofence.kojiName));
           this.snackBar.open(this.i18n.instant('GEOFENCES.SNACK_DELETED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
         },
@@ -237,6 +240,8 @@ export class GeofenceListComponent implements OnInit {
           next: updated => {
             this.savingGeofence.set(false);
             this.customGeofences.update(list => list.map(g => (g.id === updated.id ? updated : g)));
+            this.areaNames.forget(geofence.kojiName);
+            this.areaNames.learn([updated]);
             // The subscription moved with the rename on the server, but this list still held the OLD name,
             // so the card flipped to "Inactive" for a geofence that is very much still on. Same lie as
             // #543, inverted. See #558.
@@ -313,6 +318,7 @@ export class GeofenceListComponent implements OnInit {
           next: created => {
             this.savingGeofence.set(false);
             this.customGeofences.update(list => [...list, created]);
+            this.areaNames.learn([created]);
             if (created.activationFailed) {
               // Saved but not switched on: leave the toggle off so the user can retry with it.
               this.snackBar.open(this.i18n.instant('GEOFENCES.SNACK_SAVED_NOT_ACTIVE'), this.i18n.instant('TOAST.OK'), { duration: 6000 });
@@ -381,6 +387,7 @@ export class GeofenceListComponent implements OnInit {
           error: err => this.failed(err, 'GEOFENCES.SNACK_FAILED_SUBMIT'),
           next: updated => {
             this.customGeofences.update(list => list.map(g => (g.id === geofence.id ? updated : g)));
+            this.areaNames.learn([updated]);
             this.snackBar.open(this.i18n.instant('GEOFENCES.SNACK_SUBMITTED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           },
         });
@@ -507,6 +514,7 @@ export class GeofenceListComponent implements OnInit {
         error: () => this.customGeofencesLoading.set(false),
         next: geofences => {
           this.customGeofences.set(geofences);
+          this.areaNames.learn(geofences);
           this.customGeofencesLoading.set(false);
         },
       });
