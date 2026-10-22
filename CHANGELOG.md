@@ -57,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The dashboard names the weather in your language**, as it already did the boosted types ("Windig", not "Windy").
 - **A missing pin map or weather reading no longer shows "The requested resource was not found."** The dashboard and Areas page already draw nothing in their place.
 - **A place that's in use lists its alarms in plain words.** Deleting a saved place that alarms still point at used to list PoracleNG's raw summary, asterisks and every filter included; each line now reads like "Pokémon: Pikachu · Within 1 km of Work".
 - **Map controls are easier to tap on a phone.** On a touch screen the zoom and basemap buttons, the Areas Map/List switch and the place markers take a 44px tap, and the map credits' links are spaced apart.

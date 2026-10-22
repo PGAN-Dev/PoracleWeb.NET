@@ -136,7 +136,7 @@
             }
           </span>
           <span class="strip-label">{{ 'DASHBOARD.WEATHER' | translate }}</span>
-          <span class="strip-value">{{ w.conditionName }}</span>
+          <span class="strip-value">{{ weatherConditionLabel(w) }}</span>
           @for (type of w.boostedTypes; track type) {
             @let edge = boostedTypeEdge(type);
             <span class="type-chip" [style.--type-color-light]="edge.light" [style.--type-color-dark]="edge.dark">{{
@@ -196,10 +196,10 @@
               <mat-icon
                 class="area-weather-icon"
                 [matTooltip]="
-                  aw.conditionName + ' — ' + boostedTypeLabels(aw.boostedTypes) + ' ' + ('DASHBOARD.BOOSTED_SUFFIX' | translate)
+                  weatherConditionLabel(aw) + ' — ' + boostedTypeLabels(aw.boostedTypes) + ' ' + ('DASHBOARD.BOOSTED_SUFFIX' | translate)
                 "
                 aria-hidden="false"
-                [attr.aria-label]="aw.conditionName"
+                [attr.aria-label]="weatherConditionLabel(aw)"
                 >{{ aw.icon }}</mat-icon
               >
             }

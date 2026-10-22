@@ -45,6 +45,9 @@ const IDLE_PREVIEW = 3;
 /** How many area names the strip spells out before "+N". */
 const AREA_PREVIEW = 2;
 
+/** The game's weather conditions (`gameplay_condition`) that have a DASHBOARD.WEATHER_CONDITION_n key; 0 is unknown. */
+const WEATHER_CONDITIONS = new Set([0, 1, 2, 3, 4, 5, 6, 7]);
+
 interface Tip {
   action: string;
   icon: string;
@@ -417,6 +420,16 @@ export class DashboardComponent implements OnInit {
   /** A boosted type in the display language; the weather answer names types in English. */
   boostedTypeLabel(type: string): string {
     return this.masterData.getTypeLabel(type);
+  }
+
+  /**
+   * The weather condition in the display language, by its game number; the server names it in English
+   * ("Windy"). A number with no translation keeps the server's name.
+   */
+  weatherConditionLabel(weather: Pick<WeatherData, 'condition' | 'conditionName'>): string {
+    return WEATHER_CONDITIONS.has(weather.condition)
+      ? this.i18n.instant(`DASHBOARD.WEATHER_CONDITION_${weather.condition}`)
+      : weather.conditionName;
   }
 
   /** The area weather tooltip's list of boosted types, in the display language. */

@@ -297,6 +297,22 @@ describe('DashboardComponent status strip and alarm summary', () => {
       expect(chips).toEqual(['Plante', 'Feu']);
     });
 
+    /** The condition comes from the server in English too ("Windy"); the strip and tooltip translate it by its number. */
+    it('names the condition in the display language', () => {
+      const weather = { boostedTypes: [], condition: 5, conditionName: 'Windy', hasWarning: false, icon: 'air' } as unknown as WeatherData;
+      const { component, el } = setup({ location: { latitude: 41.6, longitude: -83.5 }, weather });
+
+      expect(el.querySelector('.strip-weather .strip-value')?.textContent?.trim()).toBe('DASHBOARD.WEATHER_CONDITION_5');
+      expect(component.weatherConditionLabel(weather)).toBe('DASHBOARD.WEATHER_CONDITION_5');
+    });
+
+    it('keeps the server’s name for a condition it has no translation for', () => {
+      const weather = { boostedTypes: [], condition: 42, conditionName: 'Hail', hasWarning: false, icon: 'help' } as unknown as WeatherData;
+      const { component } = setup({ location: { latitude: 41.6, longitude: -83.5 }, weather });
+
+      expect(component.weatherConditionLabel(weather)).toBe('Hail');
+    });
+
     it('names them the same way in the area weather tooltip', () => {
       const { component } = setup({ typeLabels: { Fire: 'Feu', Grass: 'Plante' } });
 
