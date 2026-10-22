@@ -178,20 +178,31 @@ Shows on the dashboard for new users until explicitly dismissed. Detects existin
 
 `ScopePickerComponent` (`shared/components/scope-picker/`) is the one control for an alarm's delivery scope, wherever the question is asked. Three mutually exclusive options — inherit the profile's areas, a radius from a point or saved place, or only specific areas — modelled as a radio group because PoracleNG refuses every combination of them, so a state that would need validating cannot be expressed. It is rendered inline by every alarm add and edit dialog and by the quick-pick apply dialog. It previously existed as two copies, a two-option radio in the dialogs and a three-option sheet on the card, which drifted apart within a day and left no way to set a per-alarm area override before the alarm existed.
 
-`WhereChipComponent` (`shared/components/where-chip/`) states the answer on the alarm card as a sentence fragment — "Anywhere I get alerts", "Anywhere in my areas", "Within 2 km of Home", "Only in Terrigal, Erina" — and is the way into the sheet. It is rendered by seven of the ten list templates (pokemon, gyms, invasions, lures, nests, fort changes, Pokéstop events); raid, quest and max-battle cards do not carry it yet. An `editable` input turns it into a plain statement where there is nothing to open, which is how `AlarmInfoComponent` uses it.
+`WhereChipComponent` (`shared/components/where-chip/`) states the answer on the alarm card as a sentence fragment — "Anywhere I get alerts", "Anywhere in my areas", "Within 2 km of Home", "Only in Terrigal, Erina" — and is the way into the sheet. All ten list templates put it in the card's footer. An `editable` input turns it into a plain statement where there is nothing to open.
 
 `WhereSheetComponent` (`shared/components/where-sheet/`) is a dialog shell around the scope picker and nothing else, for changing scope from a card where there is no form to put the control in.
 
-### Rule summary
+### Rule card and list toolbar
 
-`RuleSummaryComponent` (`shared/components/rule-summary/`) renders the rule as one readable sentence on
-the card, from the `description` PoracleNG returns beside each rule — the same sentence its bot answers a
-`!pokemon` command with. It is on eight of the ten list templates, covering nine tracking types since the
-raid list holds both raids and eggs. Fort changes and Pokéstop events do not carry it.
+`AlarmCardComponent` (`shared/components/alarm-card/`) is the one card all ten alarm lists draw. The list
+projects the parts by attribute (`ruleMedia`, `ruleTitle`, `ruleSubtitle`, `ruleStatus`, `ruleFilters`,
+`ruleScope`, `ruleActions`) and the card lays them out the same way everywhere: subject and status on top,
+one line of filters, scope chip and actions on one row. The shared pieces of vocabulary (`.rule-pill`,
+`.rule-tag`, `.rule-subtitle`, `.rule-sprite`, `.rule-icon`) are styled by the card. Its `edge` input takes
+a team, tier or primary-type colour from `shared/utils/rule-colours.ts`, the only place those colours are
+defined; each is a light/dark pair held at 3:1 against the card in both themes (`rule-colours.spec.ts`).
+`alarm-card-parity.spec.ts` pins every list to the card and says which ones carry an edge.
 
-It renders nothing when there is nothing worth rendering: no description, and the card is exactly what it was before. It also renders nothing when the alert language
-and the display language disagree, since Poracle localises this sentence with the alert language while
-the pills above it follow the display language.
+The card also owns the rule summary: the `description` PoracleNG returns beside each rule, the same sentence
+its bot answers a `!pokemon` command with, behind a Details toggle. It offers no toggle when there is no
+description, or when the alert language and the display language disagree, since Poracle localises the
+sentence with the alert language while the card follows the display language. Fort changes (a raw JSON
+array upstream) and Pokéstop events (no description) do not pass one.
+
+`AlarmListToolbarComponent` (`shared/components/alarm-list-toolbar/`) is the bar above every list: search,
+count, sort menu and the select-mode toggle, plus a "no matches" line with the way back. Each list decides
+what a search matches and what each sort means through `shared/utils/alarm-list-query.ts`, whose sort is
+stable, so the default order (`orderAlarms`) survives ties and an edited card does not move.
 
 ### Quiet periods
 

@@ -1,8 +1,6 @@
-import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
@@ -28,13 +26,14 @@ import { IconService } from '../../core/services/icon.service';
 import { InvasionService } from '../../core/services/invasion.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { TestAlertService } from '../../core/services/test-alert.service';
+import { AlarmCardComponent } from '../../shared/components/alarm-card/alarm-card.component';
+import { AlarmListToolbarComponent, AlarmSortOption } from '../../shared/components/alarm-list-toolbar/alarm-list-toolbar.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
-import { RuleSummaryComponent } from '../../shared/components/rule-summary/rule-summary.component';
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
-import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
 import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
+import { byNumber, byText, queryAlarms } from '../../shared/utils/alarm-list-query';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { isAutoDelete as cleanIsAutoDelete } from '../../shared/utils/clean-flags';
 import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
@@ -43,18 +42,16 @@ import { swapToFallbackIcon } from '../../shared/utils/icon-fallback';
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    MatCardModule,
+    AlarmListToolbarComponent,
+    AlarmCardComponent,
     MatButtonModule,
-    MatCheckboxModule,
     MatIconModule,
     MatMenuModule,
     MatDialogModule,
     MatTooltipModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
-    RuleSummaryComponent,
     TranslatePipe,
-    TranslatePluralPipe,
     WhereChipComponent,
   ],
   selector: 'app-invasion-list',
@@ -78,10 +75,33 @@ export class InvasionListComponent implements OnInit {
   readonly loading = signal(true);
   /** Only used to word the inherited scope honestly; empty produces the more cautious wording. */
   readonly profileAreas = signal<string[]>([]);
+  readonly search = signal('');
   readonly selectedIds = signal(new Set<number>());
+
   readonly selectMode = signal(false);
+  /** "default" keeps the stable order the list loads in (see orderAlarms), so nothing moves once names load. */
+  readonly sortBy = signal('default');
+  readonly sortOptions: AlarmSortOption[] = [
+    { label: 'ALARM.SORT_DEFAULT', value: 'default' },
+    { label: 'ALARM.SORT_NAME', value: 'name' },
+    { label: 'ALARM.SORT_NEWEST', value: 'newest' },
+  ];
 
   readonly testAlertService = inject(TestAlertService);
+
+  /** The rules the search leaves, in the chosen order; ties keep their stable order. See alarm-list-query. */
+  readonly visibleInvasions = computed(() => {
+    const sorts: Record<string, (i: Invasion, b: Invasion) => number> = {
+      name: byText(i => this.getDisplayName(i.gruntType, i.gender)),
+      newest: byNumber(i => -i.uid),
+    };
+    return queryAlarms(
+      this.invasions(),
+      this.search(),
+      i => [this.getDisplayName(i.gruntType, i.gender), i.gruntType],
+      sorts[this.sortBy()] ?? null,
+    );
+  });
 
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
@@ -243,11 +263,6 @@ export class InvasionListComponent implements OnInit {
     return meters >= 1000 ? `${(meters / 1000).toFixed(1)} km` : `${meters} m`;
   }
 
-  getCardAccent(gruntType: string | null): string | null {
-    const info = EVENT_TYPE_INFO[gruntType ?? ''];
-    return info ? info.color : null;
-  }
-
   getDisplayName(gruntType: string | null, gender?: number): string {
     return getGruntDisplayName(
       gruntType,
@@ -328,8 +343,8 @@ export class InvasionListComponent implements OnInit {
   }
 
   selectAll(): void {
-    const ids = new Set(this.invasions().map(i => i.uid));
-    this.selectedIds.set(ids);
+    // What is on screen: a search that hides a rule also keeps it out of Select All. See #642.
+    this.selectedIds.set(new Set(this.visibleInvasions().map(i => i.uid)));
   }
 
   sendTestAlert(invasion: Invasion): void {

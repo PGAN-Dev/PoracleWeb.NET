@@ -1,8 +1,6 @@
-import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
@@ -24,37 +22,37 @@ import { RaidLevelService } from '../../core/services/raid-level.service';
 import { RaidService } from '../../core/services/raid.service';
 import { ScannerService } from '../../core/services/scanner.service';
 import { TestAlertService } from '../../core/services/test-alert.service';
-import { AlarmInfoComponent } from '../../shared/components/alarm-info/alarm-info.component';
+import { AlarmCardComponent } from '../../shared/components/alarm-card/alarm-card.component';
+import { AlarmListToolbarComponent, AlarmSortOption } from '../../shared/components/alarm-list-toolbar/alarm-list-toolbar.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
 import { QuietChipComponent } from '../../shared/components/quiet-chip/quiet-chip.component';
 import { RsvpPillComponent } from '../../shared/components/rsvp-pill/rsvp-pill.component';
-import { RuleSummaryComponent } from '../../shared/components/rule-summary/rule-summary.component';
+import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
 import { LevelLabelPipe } from '../../shared/pipes/level-label.pipe';
-import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
 import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
+import { byNumber, byText, queryAlarms } from '../../shared/utils/alarm-list-query';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { NO_COSTUME } from '../../shared/utils/costumes';
 import { combineDistanceResults, distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
+import { teamEdge, tierEdge } from '../../shared/utils/rule-colours';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    AlarmCardComponent,
+    AlarmListToolbarComponent,
     QuietChipComponent,
-    MatCardModule,
     MatButtonModule,
     MatIconModule,
-    MatCheckboxModule,
     MatDialogModule,
     MatTooltipModule,
     MatSnackBarModule,
     MatTabsModule,
-    RuleSummaryComponent,
     TranslatePipe,
-    TranslatePluralPipe,
-    AlarmInfoComponent,
+    WhereChipComponent,
     RsvpPillComponent,
     LevelLabelPipe,
   ],
@@ -88,15 +86,60 @@ export class RaidListComponent implements OnInit {
   readonly profileAreas = signal<string[]>([]);
 
   readonly raids = signal<Raid[]>([]);
+  readonly search = signal('');
   // Keyed "raid:12" / "egg:12", not by the bare uid. Raid and egg uids come from separate
   // auto-increment sequences and do collide; with one set of integers covering both grids, ticking
   // one card ticked the other, and the bulk actions sent both to the raid endpoint -- deleting or
   // resizing the raid twice and leaving the egg alone. See #540.
   readonly selectedIds = signal(new Set<string>());
+
   readonly selectMode = signal(false);
   readonly skeletonCards = Array.from({ length: 6 });
+  /** "default" keeps the stable order the list loads in (see orderAlarms), so nothing moves once names load. */
+  readonly sortBy = signal('default');
+
+  readonly sortOptions: AlarmSortOption[] = [
+    { label: 'ALARM.SORT_DEFAULT', value: 'default' },
+    { label: 'ALARM.SORT_NAME', value: 'name' },
+    { label: 'ALARM.SORT_TIER', value: 'tier' },
+    { label: 'ALARM.SORT_NEWEST', value: 'newest' },
+  ];
+
+  /** Raid cards take the team as their edge, egg cards the tier's egg colour. */
+  readonly teamEdge = teamEdge;
 
   readonly testAlertService = inject(TestAlertService);
+
+  readonly tierEdge = tierEdge;
+  /** The eggs the search leaves. An egg's name is its tier, so "name" orders them by tier too. */
+  readonly visibleEggs = computed(() => {
+    const sorts: Record<string, (a: Egg, b: Egg) => number> = {
+      name: byNumber(e => e.level),
+      newest: byNumber(e => -e.uid),
+      tier: byNumber(e => e.level),
+    };
+    return queryAlarms(
+      this.eggs(),
+      this.search(),
+      e => [`${this.getRaidLevelName(e.level)} ${this.i18n.instant('RAIDS.EGG_SUFFIX')}`, this.gymNames()[e.gymId ?? '']],
+      sorts[this.sortBy()] ?? null,
+    );
+  });
+
+  /** The raids the search leaves, in the chosen order; ties keep their stable order. */
+  readonly visibleRaids = computed(() => {
+    const sorts: Record<string, (a: Raid, b: Raid) => number> = {
+      name: byText(r => this.getRaidTitle(r)),
+      newest: byNumber(r => -r.uid),
+      tier: byNumber(r => r.level),
+    };
+    return queryAlarms(
+      this.raids(),
+      this.search(),
+      r => [this.getRaidTitle(r), r.level === 9000 ? null : this.getRaidLevelName(r.level), this.gymNames()[r.gymId ?? '']],
+      sorts[this.sortBy()] ?? null,
+    );
+  });
 
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
@@ -321,25 +364,6 @@ export class RaidListComponent implements OnInit {
     return this.iconService.getGymUrl(icon);
   }
 
-  getLevelColor(level: number): string {
-    switch (level) {
-      case 1:
-        return '#FF9800';
-      case 2:
-        return '#FF9800';
-      case 3:
-        return '#F44336';
-      case 4:
-        return '#F44336';
-      case 5:
-        return '#9C27B0';
-      case 6:
-        return '#4A148C';
-      default:
-        return '#9E9E9E';
-    }
-  }
-
   getLevelStars(level: number): number[] {
     // Stars are only meaningful for the literal "N Star Raid" tier (levels 1-5
     // per the WatWowMap masterfile). Levels 6+ (Mega, Mega Legendary, Ultra
@@ -377,19 +401,6 @@ export class RaidListComponent implements OnInit {
     return raid.level === 9000
       ? this.i18n.instant('RAIDS.ALL_RAIDS')
       : this.i18n.instant('RAIDS.ALL_LEVEL_RAIDS', { level: this.getRaidLevelName(raid.level) });
-  }
-
-  getTeamColor(team: number): string {
-    switch (team) {
-      case 1:
-        return '#2196F3';
-      case 2:
-        return '#F44336';
-      case 3:
-        return '#FFEB3B';
-      default:
-        return 'inherit';
-    }
   }
 
   getTeamName(team: number): string {
@@ -456,9 +467,9 @@ export class RaidListComponent implements OnInit {
     // "deleted N alarms". Every other list scopes this to what is rendered. See #642.
     const keys = new Set<string>();
     if (this.activeTab() === 0) {
-      this.raids().forEach(r => keys.add(this.selectionKey('raid', r.uid)));
+      this.visibleRaids().forEach(r => keys.add(this.selectionKey('raid', r.uid)));
     } else {
-      this.eggs().forEach(e => keys.add(this.selectionKey('egg', e.uid)));
+      this.visibleEggs().forEach(e => keys.add(this.selectionKey('egg', e.uid)));
     }
     this.selectedIds.set(keys);
   }

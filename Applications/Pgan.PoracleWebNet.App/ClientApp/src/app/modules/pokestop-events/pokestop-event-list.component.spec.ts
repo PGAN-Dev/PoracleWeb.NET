@@ -100,7 +100,7 @@ describe('PokestopEventListComponent', () => {
   }
 
   function cardTitles(): string[] {
-    return Array.from(fixture.nativeElement.querySelectorAll('.alarm-card .item-info h3')).map(h => (h as HTMLElement).textContent!.trim());
+    return Array.from(fixture.nativeElement.querySelectorAll('.alarm-card .rule-title')).map(h => (h as HTMLElement).textContent!.trim());
   }
 
   describe('rendering', () => {
@@ -166,7 +166,53 @@ describe('PokestopEventListComponent', () => {
         { ...base, uid: 2, clean: 1, displayType: KECLEON },
       ]);
 
-      expect(fixture.nativeElement.querySelectorAll('.event-tag')).toHaveLength(1);
+      expect(fixture.nativeElement.querySelectorAll('.alarm-card .rule-tag')).toHaveLength(1);
+    });
+  });
+
+  describe('search and sort', () => {
+    const three = (): PokestopEvent[] => [
+      { ...base, uid: 1, displayType: GOLD_STOP, eventName: 'gold-stop' },
+      { ...base, uid: 3, displayType: SHOWCASE },
+      { ...base, uid: 2, displayType: KECLEON, eventName: 'kecleon' },
+    ];
+
+    it('shows only the rules whose name matches, ignoring case', () => {
+      setup(three());
+      component.search.set('kecl');
+      fixture.detectChanges();
+
+      expect(cardTitles()).toEqual(['INVASIONS.EVENT_TYPES.KECLEON']);
+    });
+
+    it('says nothing matches, and keeps the "no rules yet" state for a profile that has none', () => {
+      setup(three());
+      component.search.set('nothing like this');
+      fixture.detectChanges();
+      const el = fixture.nativeElement as HTMLElement;
+
+      expect(el.querySelectorAll('.alarm-card')).toHaveLength(0);
+      expect(el.querySelector('.no-matches')).toBeTruthy();
+      expect(el.querySelector('.empty-state')).toBeNull();
+    });
+
+    it('orders newest first on request, and back to the stable order after', () => {
+      setup(three());
+      component.sortBy.set('newest');
+      fixture.detectChanges();
+      expect(component.visibleEvents().map(e => e.uid)).toEqual([3, 2, 1]);
+
+      component.sortBy.set('default');
+      fixture.detectChanges();
+      expect(component.visibleEvents().map(e => e.uid)).toEqual([1, 2, 3]);
+    });
+
+    it('selects only what the search leaves on screen', () => {
+      setup(three());
+      component.search.set('showcase');
+      component.selectAll();
+
+      expect([...component.selectedIds()]).toEqual([3]);
     });
   });
 

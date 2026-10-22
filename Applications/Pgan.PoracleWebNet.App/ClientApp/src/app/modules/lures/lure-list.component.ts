@@ -1,8 +1,6 @@
-import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
@@ -20,33 +18,31 @@ import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { LureService } from '../../core/services/lure.service';
 import { TestAlertService } from '../../core/services/test-alert.service';
+import { AlarmCardComponent } from '../../shared/components/alarm-card/alarm-card.component';
+import { AlarmListToolbarComponent, AlarmSortOption } from '../../shared/components/alarm-list-toolbar/alarm-list-toolbar.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
-import { RuleSummaryComponent } from '../../shared/components/rule-summary/rule-summary.component';
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
-import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
 import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
+import { byNumber, byText, queryAlarms } from '../../shared/utils/alarm-list-query';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
-import { readableTextOn } from '../../shared/utils/contrast';
 import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    MatCardModule,
+    AlarmListToolbarComponent,
+    AlarmCardComponent,
     MatButtonModule,
-    MatCheckboxModule,
     MatIconModule,
     MatMenuModule,
     MatDialogModule,
     MatTooltipModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
-    RuleSummaryComponent,
     TranslatePipe,
-    TranslatePluralPipe,
     WhereChipComponent,
   ],
   selector: 'app-lure-list',
@@ -69,10 +65,28 @@ export class LureListComponent implements OnInit {
   readonly lures = signal<Lure[]>([]);
   /** Only used to word the inherited scope honestly; empty produces the more cautious wording. */
   readonly profileAreas = signal<string[]>([]);
+  readonly search = signal('');
   readonly selectedIds = signal(new Set<number>());
+
   readonly selectMode = signal(false);
+  /** "default" keeps the stable order the list loads in (see orderAlarms), so nothing moves once names load. */
+  readonly sortBy = signal('default');
+  readonly sortOptions: AlarmSortOption[] = [
+    { label: 'ALARM.SORT_DEFAULT', value: 'default' },
+    { label: 'ALARM.SORT_NAME', value: 'name' },
+    { label: 'ALARM.SORT_NEWEST', value: 'newest' },
+  ];
 
   readonly testAlertService = inject(TestAlertService);
+
+  /** The rules the search leaves, in the chosen order; ties keep their stable order. See alarm-list-query. */
+  readonly visibleLures = computed(() => {
+    const sorts: Record<string, (l: Lure, b: Lure) => number> = {
+      name: byText(l => this.getLureName(l.lureId)),
+      newest: byNumber(l => -l.uid),
+    };
+    return queryAlarms(this.lures(), this.search(), l => [this.getLureName(l.lureId)], sorts[this.sortBy()] ?? null);
+  });
 
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
@@ -226,32 +240,8 @@ export class LureListComponent implements OnInit {
     return meters >= 1000 ? `${(meters / 1000).toFixed(1)} km` : `${meters} m`;
   }
 
-  getLureColor(id: number): string {
-    switch (id) {
-      case 501:
-        return '#FF9800';
-      case 502:
-        return '#03A9F4';
-      case 503:
-        return '#4CAF50';
-      case 504:
-        return '#9E9E9E';
-      case 505:
-        return '#2196F3';
-      case 506:
-        return '#FFC107';
-      default:
-        return '#9E9E9E';
-    }
-  }
-
   getLureIcon(lureId: number): string {
     return this.icons.getItemUrl(lureId);
-  }
-
-  /** The lure colour as text on the light card; see readableTextOn. The dark theme uses the colour itself. */
-  getLureInk(id: number): string {
-    return readableTextOn(this.getLureColor(id));
   }
 
   getLureName(id: number): string {
@@ -317,8 +307,8 @@ export class LureListComponent implements OnInit {
   }
 
   selectAll(): void {
-    const ids = new Set(this.lures().map(i => i.uid));
-    this.selectedIds.set(ids);
+    // What is on screen: a search that hides a rule also keeps it out of Select All. See #642.
+    this.selectedIds.set(new Set(this.visibleLures().map(i => i.uid)));
   }
 
   sendTestAlert(lure: Lure): void {

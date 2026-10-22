@@ -1,10 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal, computed } from '@angular/core';
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
-import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
-import { MatCardModule } from '@angular/material/card';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -26,14 +23,15 @@ import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MonsterService } from '../../core/services/monster.service';
 import { TestAlertService } from '../../core/services/test-alert.service';
+import { AlarmCardComponent } from '../../shared/components/alarm-card/alarm-card.component';
+import { AlarmListToolbarComponent, AlarmSortOption } from '../../shared/components/alarm-list-toolbar/alarm-list-toolbar.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
 import { QuietChipComponent } from '../../shared/components/quiet-chip/quiet-chip.component';
-import { RuleSummaryComponent } from '../../shared/components/rule-summary/rule-summary.component';
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
-import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
 import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
+import { matchesSearch } from '../../shared/utils/alarm-list-query';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { isAutoDelete as cleanIsAutoDelete, isEdit as cleanIsEdit } from '../../shared/utils/clean-flags';
 import { readableChip } from '../../shared/utils/contrast';
@@ -41,16 +39,16 @@ import { NO_COSTUME } from '../../shared/utils/costumes';
 import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
 import { minTimePillLabel } from '../../shared/utils/min-time';
 import { hasLevelFilter } from '../../shared/utils/pokemon-level';
+import { RuleEdge, speciesEdge } from '../../shared/utils/rule-colours';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    AlarmCardComponent,
+    AlarmListToolbarComponent,
     QuietChipComponent,
-    ReactiveFormsModule,
-    MatCardModule,
     MatButtonModule,
     MatButtonToggleModule,
-    MatCheckboxModule,
     MatIconModule,
     MatMenuModule,
     MatDialogModule,
@@ -60,9 +58,7 @@ import { hasLevelFilter } from '../../shared/utils/pokemon-level';
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
-    RuleSummaryComponent,
     TranslatePipe,
-    TranslatePluralPipe,
     WhereChipComponent,
   ],
   selector: 'app-pokemon-list',
@@ -80,21 +76,20 @@ export class PokemonListComponent implements OnInit {
   private readonly iconService = inject(IconService);
   private readonly masterData = inject(MasterDataService);
   private readonly monsterService = inject(MonsterService);
-  // Search & quick filters
-  readonly searchControl = new FormControl('');
-  private readonly searchValue = toSignal(this.searchControl.valueChanges, { initialValue: '' });
   private readonly snackBar = inject(MatSnackBar);
   private readonly translate = inject(TranslateService);
   readonly activeFilter = signal<string | null>(null);
 
   readonly activeGen = signal<{ label: string; min: number; max: number } | null>(null);
   readonly monsters = signal<Monster[]>([]);
-  readonly sortBy = signal<'name' | 'id' | 'evolution' | 'generation'>('name');
+  // Search & quick filters
+  readonly search = signal('');
+  readonly sortBy = signal<string>('name');
 
   readonly filteredMonsters = computed(() => {
     const gen = this.activeGen();
     const sort = this.sortBy();
-    const search = (this.searchValue() ?? '').toLowerCase();
+    const search = this.search();
     const filter = this.activeFilter();
     let list = this.monsters();
 
@@ -107,12 +102,8 @@ export class PokemonListComponent implements OnInit {
     }
 
     // Search filter
-    if (search) {
-      list = list.filter(m => {
-        const name = this.getPokemonName(m.pokemonId).toLowerCase();
-        const id = String(m.pokemonId);
-        return name.includes(search) || id.includes(search);
-      });
+    if (search.trim()) {
+      list = list.filter(m => matchesSearch(search, this.getPokemonName(m.pokemonId), m.pokemonId));
     }
 
     // Quick filters
@@ -174,6 +165,13 @@ export class PokemonListComponent implements OnInit {
   readonly selectMode = signal(false);
 
   readonly skeletonCards = Array.from({ length: 8 });
+
+  readonly sortOptions: AlarmSortOption[] = [
+    { label: 'POKEMON.SORT_NAME', value: 'name' },
+    { label: 'POKEMON.SORT_ID', value: 'id' },
+    { label: 'POKEMON.SORT_GENERATION', value: 'generation' },
+    { label: 'POKEMON.SORT_EVOLUTION', value: 'evolution' },
+  ];
 
   readonly testAlertService = inject(TestAlertService);
   async bulkDelete(): Promise<void> {
@@ -240,6 +238,12 @@ export class PokemonListComponent implements OnInit {
     }
   }
 
+  /** The toolbar's way back from a search or filter that left nothing on screen. */
+  clearFilters(): void {
+    this.activeFilter.set(null);
+    this.activeGen.set(null);
+  }
+
   deleteAll(): void {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
@@ -294,6 +298,11 @@ export class PokemonListComponent implements OnInit {
 
   deselectAll(): void {
     this.selectedIds.set(new Set());
+  }
+
+  /** A single-species rule takes its primary type's colour; "all Pokémon" has none. */
+  edgeFor(monster: Monster): null | RuleEdge {
+    return monster.pokemonId > 0 ? speciesEdge(this.masterData.getPokemonTypes(monster.pokemonId)) : null;
   }
 
   editMonster(monster: Monster): void {
@@ -351,6 +360,13 @@ export class PokemonListComponent implements OnInit {
     }
   }
 
+  /** The gender pill: the sign for male and female, the word for genderless. */
+  getGenderPillText(gender: number): string {
+    if (gender === 1) return '\u2642';
+    if (gender === 2) return '\u2640';
+    return this.i18n.instant('POKEMON.GENDER_GENDERLESS');
+  }
+
   getIvDisplay(minIv: number, maxIv: number): string {
     if (minIv === -1) return this.i18n.instant('POKEMON.NO_IV_FILTER');
     return `${minIv}-${maxIv}%`;
@@ -400,20 +416,6 @@ export class PokemonListComponent implements OnInit {
       return this.getSizeLabel(monster.size);
     }
     return `${this.getSizeLabel(monster.size)}-${this.getSizeLabel(monster.maxSize)}`;
-  }
-
-  getTypeColor(pokemonId: number): string {
-    // Color by generation range
-    if (pokemonId === 0) return '#9E9E9E';
-    if (pokemonId <= 151) return '#4CAF50'; // Gen 1
-    if (pokemonId <= 251) return '#FFD600'; // Gen 2
-    if (pokemonId <= 386) return '#2196F3'; // Gen 3
-    if (pokemonId <= 493) return '#9C27B0'; // Gen 4
-    if (pokemonId <= 649) return '#FF5722'; // Gen 5
-    if (pokemonId <= 721) return '#E91E63'; // Gen 6
-    if (pokemonId <= 809) return '#00BCD4'; // Gen 7
-    if (pokemonId <= 905) return '#795548'; // Gen 8
-    return '#607D8B'; // Gen 9+
   }
 
   /** True when the auto-delete bit (clean bit 1) is set, ignoring the edit-in-place / summary bits. */

@@ -14,18 +14,15 @@
   </div>
 </div>
 @if (!loading() && fortChanges().length > 0) {
-  <div class="filter-bar">
-    <span class="result-count">{{ 'ALARM.ALARMS_COUNT' | translatePlural: fortChanges().length }}</span>
-    <div class="bulk-spacer"></div>
-    <button
-      mat-icon-button
-      (click)="toggleSelectMode()"
-      [class.select-mode-active]="selectMode()"
-      [matTooltip]="(selectMode() ? 'ALARM.EXIT_SELECT_MODE' : 'ALARM.SELECT_MULTIPLE') | translate"
-      [attr.aria-label]="(selectMode() ? 'ALARM.EXIT_SELECT_MODE' : 'ALARM.SELECT_MULTIPLE') | translate">
-      <mat-icon>{{ selectMode() ? 'close' : 'checklist' }}</mat-icon>
-    </button>
-  </div>
+  <app-alarm-list-toolbar
+    searchPlaceholder="FORT_CHANGES.SEARCH_PLACEHOLDER"
+    [(search)]="search"
+    [(sort)]="sortBy"
+    [sortOptions]="sortOptions"
+    [total]="fortChanges().length"
+    [shown]="visibleFortChanges().length"
+    [selectMode]="selectMode()"
+    (selectModeToggle)="toggleSelectMode()" />
 }
 
 @if (selectMode()) {
@@ -55,50 +52,36 @@
   </div>
 } @else {
   <div class="alarm-grid">
-    @for (item of fortChanges(); track item.uid) {
-      <mat-card class="alarm-card" [class.card-selected]="selectMode() && selectedIds().has(item.uid)">
-        @if (selectMode()) {
-          <mat-checkbox
-            [checked]="selectedIds().has(item.uid)"
-            (change)="toggleSelect(item.uid)"
-            (click)="$event.stopPropagation()"
-            class="card-checkbox"></mat-checkbox>
-        }
-        <div class="card-top" [style.border-top-color]="'#795548'">
-          <div class="fort-icon-wrap">
-            <mat-icon class="fort-icon">{{
-              item.fortType === 'pokestop' ? 'location_on' : item.fortType === 'gym' ? 'fitness_center' : 'domain'
-            }}</mat-icon>
-          </div>
-          <div class="item-info">
-            <h3>{{ formatFortType(item.fortType) }}</h3>
-            <span class="fort-subtitle">{{ 'FORT_CHANGES.TRACKING_SUBTITLE' | translate }}</span>
-          </div>
-          <div class="card-top-actions">
-            @if (item.includeEmpty === 1) {
-              <span class="include-empty-tag" [matTooltip]="'FORT_CHANGES.INCLUDE_EMPTY' | translate">{{
-                'FORT_CHANGES.INCLUDE_EMPTY_TAG' | translate
-              }}</span>
-            }
-          </div>
+    @for (item of visibleFortChanges(); track item.uid) {
+      <app-alarm-card
+        [selectable]="selectMode()"
+        [selected]="selectedIds().has(item.uid)"
+        [selectLabel]="'ALARM.SELECT_ONE' | translate: { name: formatFortType(item.fortType) }"
+        (selectedToggle)="toggleSelect(item.uid)">
+        <div ruleMedia class="rule-icon">
+          <mat-icon>{{ item.fortType === 'pokestop' ? 'location_on' : item.fortType === 'gym' ? 'fitness_center' : 'domain' }}</mat-icon>
         </div>
-        <mat-card-content>
-          <div class="stat-grid">
-            <div class="stat">
-              <span class="stat-label">{{ 'FORT_CHANGES.CHANGE_TYPES_LABEL' | translate }}</span>
-              <span class="stat-value">{{ formatChangeTypes(item.changeTypes) }}</span>
-            </div>
-          </div>
-          <div class="distance-chip-row">
-            <app-where-chip
-              [distance]="item.distance"
-              [overrideAreas]="item.overrideAreas"
-              [overrideLocationLabel]="item.overrideLocationLabel"
-              [profileAreas]="profileAreas()"
-              (click)="editScope(item); $event.stopPropagation()" />
-          </div>
-        </mat-card-content>
-        <mat-card-actions align="end">
+        <span ruleTitle>{{ formatFortType(item.fortType) }}</span>
+        <ng-container ruleStatus>
+          @if (item.includeEmpty === 1) {
+            <span class="rule-tag" [matTooltip]="'FORT_CHANGES.INCLUDE_EMPTY' | translate">{{
+              'FORT_CHANGES.INCLUDE_EMPTY_TAG' | translate
+            }}</span>
+          }
+        </ng-container>
+        <div ruleFilters class="rule-pills">
+          @for (label of changeTypeLabels(item.changeTypes); track label) {
+            <span class="rule-pill">{{ label }}</span>
+          }
+        </div>
+        <app-where-chip
+          ruleScope
+          [distance]="item.distance"
+          [overrideAreas]="item.overrideAreas"
+          [overrideLocationLabel]="item.overrideLocationLabel"
+          [profileAreas]="profileAreas()"
+          (click)="editScope(item); $event.stopPropagation()" />
+        <ng-container ruleActions>
           <button
             mat-icon-button
             (click)="editItem(item)"
@@ -106,7 +89,6 @@
             [attr.aria-label]="'COMMON.EDIT' | translate">
             <mat-icon>edit</mat-icon>
           </button>
-
           <button
             mat-icon-button
             (click)="deleteItem(item)"
@@ -115,17 +97,19 @@
             color="warn">
             <mat-icon>delete</mat-icon>
           </button>
-        </mat-card-actions>
-      </mat-card>
+        </ng-container>
+      </app-alarm-card>
     } @empty {
-      <div class="empty-state">
-        <mat-icon class="empty-icon-large">domain</mat-icon>
-        <h2 class="empty-title">{{ 'FORT_CHANGES.EMPTY_TITLE' | translate }}</h2>
-        <p class="empty-subtitle">{{ 'FORT_CHANGES.EMPTY_SUBTITLE' | translate }}</p>
-        <button mat-flat-button (click)="openAddDialog()" style="background: #795548; color: #fff">
-          <mat-icon>add</mat-icon> {{ 'FORT_CHANGES.ADD_FORT_CHANGE' | translate }}
-        </button>
-      </div>
+      @if (fortChanges().length === 0) {
+        <div class="empty-state">
+          <mat-icon class="empty-icon-large">domain</mat-icon>
+          <h2 class="empty-title">{{ 'FORT_CHANGES.EMPTY_TITLE' | translate }}</h2>
+          <p class="empty-subtitle">{{ 'FORT_CHANGES.EMPTY_SUBTITLE' | translate }}</p>
+          <button mat-flat-button (click)="openAddDialog()" style="background: #795548; color: #fff">
+            <mat-icon>add</mat-icon> {{ 'FORT_CHANGES.ADD_FORT_CHANGE' | translate }}
+          </button>
+        </div>
+      }
     }
   </div>
 }

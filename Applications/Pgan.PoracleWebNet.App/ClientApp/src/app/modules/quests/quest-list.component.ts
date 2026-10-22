@@ -1,8 +1,6 @@
-import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
@@ -22,33 +20,31 @@ import { MasterDataService } from '../../core/services/masterdata.service';
 import { QuestService } from '../../core/services/quest.service';
 import { SummaryScheduleService } from '../../core/services/summary-schedule.service';
 import { TestAlertService } from '../../core/services/test-alert.service';
-import { AlarmInfoComponent } from '../../shared/components/alarm-info/alarm-info.component';
+import { AlarmCardComponent } from '../../shared/components/alarm-card/alarm-card.component';
+import { AlarmListToolbarComponent, AlarmSortOption } from '../../shared/components/alarm-list-toolbar/alarm-list-toolbar.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
-import { RuleSummaryComponent } from '../../shared/components/rule-summary/rule-summary.component';
+import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
-import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
 import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
+import { byNumber, byText, queryAlarms } from '../../shared/utils/alarm-list-query';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
-import { ChipColors, readableChip } from '../../shared/utils/contrast';
 import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    MatCardModule,
+    WhereChipComponent,
+    AlarmListToolbarComponent,
+    AlarmCardComponent,
     MatButtonModule,
-    MatCheckboxModule,
     MatIconModule,
     MatMenuModule,
     MatDialogModule,
     MatTooltipModule,
     MatSnackBarModule,
-    RuleSummaryComponent,
     TranslatePipe,
-    TranslatePluralPipe,
-    AlarmInfoComponent,
   ],
   selector: 'app-quest-list',
   standalone: true,
@@ -76,13 +72,38 @@ export class QuestListComponent implements OnInit {
   /** Only used to word the inherited scope honestly; empty produces the more cautious wording. */
   readonly profileAreas = signal<string[]>([]);
   readonly quests = signal<Quest[]>([]);
+  readonly search = signal('');
   readonly selectedIds = signal(new Set<number>());
+
   readonly selectMode = signal(false);
-
   readonly skeletonCards = Array.from({ length: 6 });
-  readonly summaryService = inject(SummaryScheduleService);
+  /** "default" keeps the stable order the list loads in (see orderAlarms), so nothing moves once names load. */
+  readonly sortBy = signal('default');
 
+  readonly sortOptions: AlarmSortOption[] = [
+    { label: 'ALARM.SORT_DEFAULT', value: 'default' },
+    { label: 'ALARM.SORT_NAME', value: 'name' },
+    { label: 'ALARM.SORT_REWARD_TYPE', value: 'reward' },
+    { label: 'ALARM.SORT_NEWEST', value: 'newest' },
+  ];
+
+  readonly summaryService = inject(SummaryScheduleService);
   readonly testAlertService = inject(TestAlertService);
+
+  /** The rules the search leaves, in the chosen order; ties keep their stable order. See alarm-list-query. */
+  readonly visibleQuests = computed(() => {
+    const sorts: Record<string, (q: Quest, b: Quest) => number> = {
+      name: byText(q => this.getQuestTitle(q)),
+      newest: byNumber(q => -q.uid),
+      reward: byNumber(q => q.rewardType),
+    };
+    return queryAlarms(
+      this.quests(),
+      this.search(),
+      q => [this.getQuestTitle(q), this.getRewardTypeLabel(q.rewardType)],
+      sorts[this.sortBy()] ?? null,
+    );
+  });
 
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
@@ -269,33 +290,6 @@ export class QuestListComponent implements OnInit {
     return quest.amount > 1 ? this.i18n.instant('QUESTS.AMOUNT_PREFIX', { count: quest.amount, reward }) : reward;
   }
 
-  /** The reward colour as a filled badge whose label stays readable. See readableChip. */
-  getRewardChip(rewardType: number): ChipColors {
-    return readableChip(this.getRewardColor(rewardType));
-  }
-
-  getRewardColor(rewardType: number): string {
-    switch (rewardType) {
-      case 7:
-        return '#4CAF50';
-      case 2:
-        return '#2196F3';
-      case 12:
-        return '#9C27B0';
-      case 4:
-        return '#FF9800';
-      // Stardust used to fall through to the grey "unknown reward" colour, which is what every other
-      // type it does not recognise gets.
-      case 3:
-        return '#FBC02D';
-      // Pokecoins get their own gold rather than the grey fallback, for the same reason stardust did.
-      case 8:
-        return '#FFB300';
-      default:
-        return '#9E9E9E';
-    }
-  }
-
   getRewardTypeLabel(rewardType: number): string {
     switch (rewardType) {
       case 7:
@@ -382,8 +376,8 @@ export class QuestListComponent implements OnInit {
   }
 
   selectAll(): void {
-    const ids = new Set(this.quests().map(i => i.uid));
-    this.selectedIds.set(ids);
+    // What is on screen: a search that hides a rule also keeps it out of Select All. See #642.
+    this.selectedIds.set(new Set(this.visibleQuests().map(i => i.uid)));
   }
 
   sendTestAlert(quest: Quest): void {

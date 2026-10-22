@@ -1,8 +1,6 @@
-import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
@@ -21,14 +19,16 @@ import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { NestService } from '../../core/services/nest.service';
 import { TestAlertService } from '../../core/services/test-alert.service';
+import { AlarmCardComponent } from '../../shared/components/alarm-card/alarm-card.component';
+import { AlarmListToolbarComponent, AlarmSortOption } from '../../shared/components/alarm-list-toolbar/alarm-list-toolbar.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
 import { QuietChipComponent } from '../../shared/components/quiet-chip/quiet-chip.component';
-import { RuleSummaryComponent } from '../../shared/components/rule-summary/rule-summary.component';
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
 import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
 import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
+import { byNumber, byText, queryAlarms } from '../../shared/utils/alarm-list-query';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { isAutoDelete as cleanIsAutoDelete } from '../../shared/utils/clean-flags';
@@ -37,17 +37,16 @@ import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../s
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    AlarmListToolbarComponent,
+    AlarmCardComponent,
     QuietChipComponent,
-    MatCardModule,
     MatButtonModule,
-    MatCheckboxModule,
     MatIconModule,
     MatMenuModule,
     MatDialogModule,
     MatTooltipModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
-    RuleSummaryComponent,
     TranslatePipe,
     TranslatePluralPipe,
     WhereChipComponent,
@@ -73,10 +72,30 @@ export class NestListComponent implements OnInit {
   readonly nests = signal<Nest[]>([]);
   /** Only used to word the inherited scope honestly; empty produces the more cautious wording. */
   readonly profileAreas = signal<string[]>([]);
+  readonly search = signal('');
   readonly selectedIds = signal(new Set<number>());
+
   readonly selectMode = signal(false);
+  /** "default" keeps the stable order the list loads in (see orderAlarms), so nothing moves once names load. */
+  readonly sortBy = signal('default');
+  readonly sortOptions: AlarmSortOption[] = [
+    { label: 'ALARM.SORT_DEFAULT', value: 'default' },
+    { label: 'ALARM.SORT_NAME', value: 'name' },
+    { label: 'POKEMON.SORT_ID', value: 'id' },
+    { label: 'ALARM.SORT_NEWEST', value: 'newest' },
+  ];
 
   readonly testAlertService = inject(TestAlertService);
+
+  /** The rules the search leaves, in the chosen order; ties keep their stable order. See alarm-list-query. */
+  readonly visibleNests = computed(() => {
+    const sorts: Record<string, (n: Nest, b: Nest) => number> = {
+      id: byNumber(n => n.pokemonId),
+      name: byText(n => this.getPokemonName(n.pokemonId)),
+      newest: byNumber(n => -n.uid),
+    };
+    return queryAlarms(this.nests(), this.search(), n => [this.getPokemonName(n.pokemonId), n.pokemonId], sorts[this.sortBy()] ?? null);
+  });
 
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
@@ -282,8 +301,8 @@ export class NestListComponent implements OnInit {
   }
 
   selectAll(): void {
-    const ids = new Set(this.nests().map(i => i.uid));
-    this.selectedIds.set(ids);
+    // What is on screen: a search that hides a rule also keeps it out of Select All. See #642.
+    this.selectedIds.set(new Set(this.visibleNests().map(i => i.uid)));
   }
 
   sendTestAlert(nest: Nest): void {

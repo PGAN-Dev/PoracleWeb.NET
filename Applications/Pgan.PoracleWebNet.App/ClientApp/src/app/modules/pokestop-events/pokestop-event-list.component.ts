@@ -1,8 +1,6 @@
-import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
@@ -19,12 +17,14 @@ import { AreaService } from '../../core/services/area.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { PokestopEventService } from '../../core/services/pokestop-event.service';
+import { AlarmCardComponent } from '../../shared/components/alarm-card/alarm-card.component';
+import { AlarmListToolbarComponent, AlarmSortOption } from '../../shared/components/alarm-list-toolbar/alarm-list-toolbar.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
-import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
 import { isEditExisting } from '../../shared/utils/add-outcome';
+import { byNumber, byText, queryAlarms } from '../../shared/utils/alarm-list-query';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { isAutoDelete } from '../../shared/utils/clean-flags';
@@ -34,9 +34,9 @@ import { pokestopEventInfo } from '../../shared/utils/pokestop-events';
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    MatCardModule,
+    AlarmListToolbarComponent,
+    AlarmCardComponent,
     MatButtonModule,
-    MatCheckboxModule,
     MatIconModule,
     MatMenuModule,
     MatDialogModule,
@@ -44,7 +44,6 @@ import { pokestopEventInfo } from '../../shared/utils/pokestop-events';
     MatSnackBarModule,
     MatProgressSpinnerModule,
     TranslatePipe,
-    TranslatePluralPipe,
     WhereChipComponent,
   ],
   selector: 'app-pokestop-event-list',
@@ -65,8 +64,26 @@ export class PokestopEventListComponent implements OnInit {
   readonly loading = signal(true);
   /** Only used to word the inherited scope honestly; empty produces the more cautious wording. */
   readonly profileAreas = signal<string[]>([]);
+  readonly search = signal('');
   readonly selectedIds = signal(new Set<number>());
+
   readonly selectMode = signal(false);
+  /** "default" keeps the stable order the list loads in (see orderAlarms), so nothing moves once names load. */
+  readonly sortBy = signal('default');
+  readonly sortOptions: AlarmSortOption[] = [
+    { label: 'ALARM.SORT_DEFAULT', value: 'default' },
+    { label: 'ALARM.SORT_NAME', value: 'name' },
+    { label: 'ALARM.SORT_NEWEST', value: 'newest' },
+  ];
+
+  /** The rules the search leaves, in the chosen order; ties keep their stable order. See alarm-list-query. */
+  readonly visibleEvents = computed(() => {
+    const sorts: Record<string, (e: PokestopEvent, b: PokestopEvent) => number> = {
+      name: byText(e => this.eventLabel(e)),
+      newest: byNumber(e => -e.uid),
+    };
+    return queryAlarms(this.events(), this.search(), e => [this.eventLabel(e)], sorts[this.sortBy()] ?? null);
+  });
 
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
@@ -280,7 +297,8 @@ export class PokestopEventListComponent implements OnInit {
   }
 
   selectAll(): void {
-    this.selectedIds.set(new Set(this.events().map(i => i.uid)));
+    // What is on screen: a search that hides a rule also keeps it out of Select All. See #642.
+    this.selectedIds.set(new Set(this.visibleEvents().map(i => i.uid)));
   }
 
   toggleSelect(uid: number): void {

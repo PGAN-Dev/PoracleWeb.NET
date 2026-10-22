@@ -179,31 +179,39 @@ To turn it on, set `GOLBAT_API_ADDRESS` (the Golbat API's URL, for example `http
 
 ![Pokemon alarm list with filter pills and scope chips](../screenshots/pokemon.png)
 
-Alarms are displayed as a card grid. Each card shows:
+Alarms are displayed as a card grid, and every alarm type uses the same card:
 
-- the Pokemon sprite or the raid, quest or lure icon
-- filter pills for the active filters (IV, CP, level, PVP, gender, size, minimum time left)
-- the scope chip, saying where the alert reaches you; click it to [change the scope from the card](#changing-scope-from-a-card)
-- the template name
+- the subject large at the top: the Pokémon sprite, raid boss or egg, quest reward, grunt, lure, team or event, with its name
+- on the right of the subject, the rule's status: clean, edit in place, daily summary, RSVP, and on the types that name a subject a [quiet chip](quiet-periods.md)
+- one line of filters, each just the value ("IV 90-100%", "L30-55", "XXL", "Valor")
 - on gym, raid and egg cards, the name of the targeted gym when one was picked
-- the [rule summary](#what-this-rule-does-in-poracles-words)
-- edit and delete actions, and on the types that name a subject, a [quiet chip](quiet-periods.md)
+- the scope chip, saying where the alert reaches you, beside the test, edit and delete actions; click the chip to [change the scope from the card](#changing-scope-from-a-card)
+- a **Details** control that opens the [rule summary](#what-this-rule-does-in-poracles-words)
+
+Colour on a card means something or isn't there. Gym and raid cards take the team as their left
+edge (Mystic blue, Valor red, Instinct yellow, grey for any team), egg cards the colour of the tier's
+egg, and a single-species Pokémon card its primary type. Every other card has no coloured edge.
+
+Every list has the same bar above the grid: a search box (by name, boss, tier, gym, reward, grunt,
+lure, move or change, depending on the type), the count, a sort menu and the select-mode toggle. When
+a search leaves nothing on screen the page says so and offers to clear it, and **Select all** selects
+only the cards the search left. The Pokémon list keeps its own quick filters and generation chips in
+the same bar.
 
 ### What this rule does, in Poracle's words
 
-Under a hairline below the filter pills, each card carries the sentence PoracleNG itself uses to
-describe that rule. It states things the pills leave out — attack and defence floors, weight, the PVP
-CP cap — at the cost of restating some of what they already show. Long summaries are clamped to two
-lines with an expand control.
+Behind **Details** on each card is the sentence PoracleNG itself uses to describe that rule. It states
+things the filters leave out (attack and defence floors, weight, the PVP CP cap) at the cost of
+restating some of what they already show.
 
-Nine surfaces carry it: Pokemon, raids (both raid and egg cards), quests, invasions, lures, nests,
+Nine surfaces carry it: Pokémon, raids (both raid and egg cards), quests, invasions, lures, nests,
 gyms and Max Battles. Fort Changes does not, because upstream renders a raw JSON array there rather
-than a sentence. Pokéstop Events has no line either.
+than a sentence. Pokéstop Events has no sentence either.
 
 The sentence follows your **Alert language**, not your display language, because Poracle writes it.
-When the two differ the line is hidden entirely rather than putting one language's prose under another
-language's chips. It is also absent when Poracle sends no description, in which case the card is
-exactly what it was before. Nothing extra is fetched for it — the field was already on the response.
+When the two differ the Details control is hidden rather than putting one language's prose under
+another language's filters. It is also absent when Poracle sends no description. Nothing extra is
+fetched for it: the field was already on the response.
 
 ### Card order
 
@@ -215,7 +223,9 @@ even in the rare case where an [edit gives the rule a new id](#editing-alarms).
 
 The keys are the raw fields — dex number rather than species name, reward type rather than reward name
 — so the grid does not re-order itself once the master data arrives, and the order does not change with
-the display language. The Pokemon list already sorted itself on its own controls and is unchanged.
+the display language. That order is **Default** in each list's sort menu; sorting by name,
+tier, reward type, Pokédex number or newest first is one click away, and ties keep the default order.
+The Pokémon list sorts by name by default, as it always has.
 Invasions are not sorted this way yet, so in that rare case an edited invasion card can still move to the
 end of the grid.
 

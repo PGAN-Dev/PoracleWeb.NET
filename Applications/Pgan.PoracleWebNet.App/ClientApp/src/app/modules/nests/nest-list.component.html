@@ -10,18 +10,15 @@
   </div>
 </div>
 @if (!loading() && nests().length > 0) {
-  <div class="filter-bar">
-    <span class="result-count">{{ 'ALARM.ALARMS_COUNT' | translatePlural: nests().length }}</span>
-    <div class="bulk-spacer"></div>
-    <button
-      mat-icon-button
-      (click)="toggleSelectMode()"
-      [class.select-mode-active]="selectMode()"
-      matTooltip="{{ selectMode() ? ('ALARM.EXIT_SELECT_MODE' | translate) : ('ALARM.SELECT_MULTIPLE' | translate) }}"
-      [attr.aria-label]="selectMode() ? ('ALARM.EXIT_SELECT_MODE' | translate) : ('ALARM.SELECT_MULTIPLE' | translate)">
-      <mat-icon>{{ selectMode() ? 'close' : 'checklist' }}</mat-icon>
-    </button>
-  </div>
+  <app-alarm-list-toolbar
+    searchPlaceholder="NESTS.SEARCH_PLACEHOLDER"
+    [(search)]="search"
+    [(sort)]="sortBy"
+    [sortOptions]="sortOptions"
+    [total]="nests().length"
+    [shown]="visibleNests().length"
+    [selectMode]="selectMode()"
+    (selectModeToggle)="toggleSelectMode()" />
 }
 
 @if (selectMode()) {
@@ -51,65 +48,52 @@
   </div>
 } @else {
   <div class="alarm-grid">
-    @for (nest of nests(); track nest.uid) {
-      <mat-card class="alarm-card" [class.card-selected]="selectMode() && selectedIds().has(nest.uid)">
-        @if (selectMode()) {
-          <mat-checkbox
-            [checked]="selectedIds().has(nest.uid)"
-            (change)="toggleSelect(nest.uid)"
-            (click)="$event.stopPropagation()"
-            class="card-checkbox"></mat-checkbox>
+    @for (nest of visibleNests(); track nest.uid) {
+      <app-alarm-card
+        [summary]="nest.description"
+        [selectable]="selectMode()"
+        [selected]="selectedIds().has(nest.uid)"
+        [selectLabel]="'ALARM.SELECT_ONE' | translate: { name: getPokemonName(nest.pokemonId) }"
+        (selectedToggle)="toggleSelect(nest.uid)">
+        <img
+          ruleMedia
+          class="rule-sprite"
+          [src]="getPokemonImage(nest.pokemonId)"
+          [alt]="getPokemonName(nest.pokemonId)"
+          (error)="onImageError($event)" />
+        <span ruleTitle>{{ getPokemonName(nest.pokemonId) }}</span>
+        @if (nest.pokemonId > 0) {
+          <div ruleSubtitle class="rule-subtitle">#{{ nest.pokemonId }}</div>
         }
-        <div class="card-top" [style.border-top-color]="'#8BC34A'">
-          <img
-            [src]="getPokemonImage(nest.pokemonId)"
-            [alt]="getPokemonName(nest.pokemonId)"
-            class="item-img"
-            (error)="onImageError($event)" />
-          <div class="item-info">
-            <h3>{{ getPokemonName(nest.pokemonId) }}</h3>
-            @if (nest.pokemonId > 0) {
-              <span class="pokemon-id">#{{ nest.pokemonId }}</span>
-            }
-          </div>
-          <div class="card-top-actions">
-            @if (isAutoDelete(nest.clean)) {
-              <span class="clean-tag" matTooltip="{{ 'ALARM.CLEAN_HINT_NEST' | translate }}">{{ 'ALARM.CLEAN_TAG' | translate }}</span>
-            }
-          </div>
-        </div>
-        <mat-card-content>
-          <div class="stat-grid">
-            <div class="stat">
-              <span class="stat-label">{{ 'NESTS.MIN_SPAWNS_HR' | translate }}</span
-              ><span class="stat-value">{{ nest.minSpawnAvg }}</span>
-            </div>
-          </div>
-          <div class="distance-chip-row">
-            <app-where-chip
-              [distance]="nest.distance"
-              [overrideAreas]="nest.overrideAreas"
-              [overrideLocationLabel]="nest.overrideLocationLabel"
-              [profileAreas]="profileAreas()"
-              (click)="editScope(nest); $event.stopPropagation()" />
-          </div>
-          <app-rule-summary [text]="nest.description" />
-        </mat-card-content>
-        <mat-card-actions align="end">
+        <ng-container ruleStatus>
+          @if (isAutoDelete(nest.clean)) {
+            <span class="rule-tag" [matTooltip]="'ALARM.CLEAN_HINT_NEST' | translate"
+              ><mat-icon>auto_delete</mat-icon>{{ 'ALARM.STATUS_CLEAN' | translate }}</span
+            >
+          }
           @if (nest.pokemonId > 0) {
             <app-quiet-chip scope="pokemon" [value]="nest.pokemonId.toString()" [subject]="getPokemonName(nest.pokemonId)" />
           }
-
+        </ng-container>
+        <div ruleFilters class="rule-pills">
+          @if (nest.minSpawnAvg > 0) {
+            <span class="rule-pill">{{ 'NESTS.SPAWNS_PILL' | translatePlural: nest.minSpawnAvg }}</span>
+          }
+        </div>
+        <app-where-chip
+          ruleScope
+          [distance]="nest.distance"
+          [overrideAreas]="nest.overrideAreas"
+          [overrideLocationLabel]="nest.overrideLocationLabel"
+          [profileAreas]="profileAreas()"
+          (click)="editScope(nest); $event.stopPropagation()" />
+        <ng-container ruleActions>
           <button
             mat-icon-button
             (click)="sendTestAlert(nest)"
             [disabled]="testAlertService.isSending('nest', nest.uid) || testAlertService.isCoolingDown('nest', nest.uid)"
-            [matTooltip]="
-              testAlertService.isCoolingDown('nest', nest.uid) ? ('ALARM.TEST_COOLDOWN' | translate) : ('ALARM.TEST_SEND' | translate)
-            "
-            [attr.aria-label]="
-              testAlertService.isCoolingDown('nest', nest.uid) ? ('ALARM.TEST_COOLDOWN' | translate) : ('ALARM.TEST_SEND' | translate)
-            "
+            [matTooltip]="(testAlertService.isCoolingDown('nest', nest.uid) ? 'ALARM.TEST_COOLDOWN' : 'ALARM.TEST_SEND') | translate"
+            [attr.aria-label]="(testAlertService.isCoolingDown('nest', nest.uid) ? 'ALARM.TEST_COOLDOWN' : 'ALARM.TEST_SEND') | translate"
             class="test-alert-btn">
             @if (testAlertService.isSending('nest', nest.uid)) {
               <mat-icon class="spin">sync</mat-icon>
@@ -117,7 +101,6 @@
               <mat-icon>send</mat-icon>
             }
           </button>
-
           <button
             mat-icon-button
             (click)="editNest(nest)"
@@ -125,7 +108,6 @@
             [attr.aria-label]="'COMMON.EDIT' | translate">
             <mat-icon>edit</mat-icon>
           </button>
-
           <button
             mat-icon-button
             (click)="deleteNest(nest)"
@@ -134,41 +116,43 @@
             color="warn">
             <mat-icon>delete</mat-icon>
           </button>
-        </mat-card-actions>
-      </mat-card>
+        </ng-container>
+      </app-alarm-card>
     } @empty {
-      <div class="empty-state">
-        <svg viewBox="0 0 100 100" width="72" height="72" class="empty-icon">
-          <path d="M15 80 Q30 60 50 65 Q70 60 85 80" fill="none" stroke="#8bc34a" stroke-width="4" stroke-linecap="round" />
-          <path d="M10 85 Q30 65 50 70 Q70 65 90 85" fill="#8bc34a" opacity="0.1" stroke="#8bc34a" stroke-width="3" />
-          <ellipse
-            cx="38"
-            cy="52"
-            rx="12"
-            ry="16"
-            fill="#8bc34a"
-            opacity="0.15"
-            stroke="#8bc34a"
-            stroke-width="2.5"
-            transform="rotate(-8 38 52)" />
-          <ellipse
-            cx="58"
-            cy="50"
-            rx="11"
-            ry="15"
-            fill="#8bc34a"
-            opacity="0.15"
-            stroke="#8bc34a"
-            stroke-width="2.5"
-            transform="rotate(10 58 50)" />
-          <ellipse cx="48" cy="48" rx="12" ry="16" fill="#8bc34a" opacity="0.2" stroke="#8bc34a" stroke-width="2.5" />
-        </svg>
-        <h2 class="empty-title">{{ 'NESTS.EMPTY_TITLE' | translate }}</h2>
-        <p class="empty-subtitle">{{ 'NESTS.EMPTY_SUBTITLE' | translate }}</p>
-        <button mat-flat-button (click)="openAddDialog()" style="background: #8bc34a; color: #212121">
-          <mat-icon>add</mat-icon> {{ 'NESTS.ADD_NEST' | translate }}
-        </button>
-      </div>
+      @if (nests().length === 0) {
+        <div class="empty-state">
+          <svg viewBox="0 0 100 100" width="72" height="72" class="empty-icon">
+            <path d="M15 80 Q30 60 50 65 Q70 60 85 80" fill="none" stroke="#8bc34a" stroke-width="4" stroke-linecap="round" />
+            <path d="M10 85 Q30 65 50 70 Q70 65 90 85" fill="#8bc34a" opacity="0.1" stroke="#8bc34a" stroke-width="3" />
+            <ellipse
+              cx="38"
+              cy="52"
+              rx="12"
+              ry="16"
+              fill="#8bc34a"
+              opacity="0.15"
+              stroke="#8bc34a"
+              stroke-width="2.5"
+              transform="rotate(-8 38 52)" />
+            <ellipse
+              cx="58"
+              cy="50"
+              rx="11"
+              ry="15"
+              fill="#8bc34a"
+              opacity="0.15"
+              stroke="#8bc34a"
+              stroke-width="2.5"
+              transform="rotate(10 58 50)" />
+            <ellipse cx="48" cy="48" rx="12" ry="16" fill="#8bc34a" opacity="0.2" stroke="#8bc34a" stroke-width="2.5" />
+          </svg>
+          <h2 class="empty-title">{{ 'NESTS.EMPTY_TITLE' | translate }}</h2>
+          <p class="empty-subtitle">{{ 'NESTS.EMPTY_SUBTITLE' | translate }}</p>
+          <button mat-flat-button (click)="openAddDialog()" style="background: #8bc34a; color: #212121">
+            <mat-icon>add</mat-icon> {{ 'NESTS.ADD_NEST' | translate }}
+          </button>
+        </div>
+      }
     }
   </div>
 }

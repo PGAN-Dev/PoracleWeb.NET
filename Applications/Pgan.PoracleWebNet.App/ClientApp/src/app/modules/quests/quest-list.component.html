@@ -22,18 +22,15 @@
 </div>
 
 @if (!loading() && quests().length > 0) {
-  <div class="filter-bar">
-    <span class="result-count">{{ 'ALARM.ALARMS_COUNT' | translatePlural: quests().length }}</span>
-    <div class="bulk-spacer"></div>
-    <button
-      mat-icon-button
-      (click)="toggleSelectMode()"
-      [class.select-mode-active]="selectMode()"
-      [matTooltip]="(selectMode() ? 'ALARM.EXIT_SELECT_MODE' : 'ALARM.SELECT_MULTIPLE') | translate"
-      [attr.aria-label]="(selectMode() ? 'ALARM.EXIT_SELECT_MODE' : 'ALARM.SELECT_MULTIPLE') | translate">
-      <mat-icon>{{ selectMode() ? 'close' : 'checklist' }}</mat-icon>
-    </button>
-  </div>
+  <app-alarm-list-toolbar
+    searchPlaceholder="QUESTS.SEARCH_PLACEHOLDER"
+    [(search)]="search"
+    [(sort)]="sortBy"
+    [sortOptions]="sortOptions"
+    [total]="quests().length"
+    [shown]="visibleQuests().length"
+    [selectMode]="selectMode()"
+    (selectModeToggle)="toggleSelectMode()" />
 }
 
 @if (selectMode()) {
@@ -75,50 +72,40 @@
   </div>
 } @else {
   <div class="alarm-grid">
-    @for (quest of quests(); track quest.uid) {
-      <mat-card class="alarm-card" [class.card-selected]="selectMode() && selectedIds().has(quest.uid)">
-        @if (selectMode()) {
-          <mat-checkbox
-            [checked]="selectedIds().has(quest.uid)"
-            (change)="toggleSelect(quest.uid)"
-            (click)="$event.stopPropagation()"
-            class="card-checkbox"></mat-checkbox>
+    @for (quest of visibleQuests(); track quest.uid) {
+      <app-alarm-card
+        [summary]="quest.description"
+        [selectable]="selectMode()"
+        [selected]="selectedIds().has(quest.uid)"
+        [selectLabel]="'ALARM.SELECT_ONE' | translate: { name: getQuestTitle(quest) }"
+        (selectedToggle)="toggleSelect(quest.uid)">
+        @if (getQuestImage(quest)) {
+          <img ruleMedia class="rule-sprite" [src]="getQuestImage(quest)" [alt]="getQuestTitle(quest)" (error)="onImgFallback($event)" />
+        } @else {
+          <div ruleMedia class="rule-icon"><mat-icon>catching_pokemon</mat-icon></div>
         }
-        <div class="card-top" [style.border-top-color]="getRewardColor(quest.rewardType)">
-          @if (getQuestImage(quest)) {
-            <img [src]="getQuestImage(quest)" [alt]="getQuestTitle(quest)" class="item-img" (error)="onImgFallback($event)" />
-          } @else {
-            <mat-icon class="quest-fallback-icon">catching_pokemon</mat-icon>
+        <span ruleTitle>{{ getQuestTitle(quest) }}</span>
+        <div ruleSubtitle class="rule-subtitle">{{ getRewardTypeLabel(quest.rewardType) }}</div>
+        <ng-container ruleStatus>
+          @if (isAutoDelete(quest.clean)) {
+            <span class="rule-tag" [matTooltip]="'QUESTS.CLEAN_TOOLTIP' | translate"
+              ><mat-icon>auto_delete</mat-icon>{{ 'ALARM.STATUS_CLEAN' | translate }}</span
+            >
           }
-          <div class="item-info">
-            <h3>{{ getQuestTitle(quest) }}</h3>
-            @let rewardChip = getRewardChip(quest.rewardType);
-            <span class="reward-badge" [style.background]="rewardChip.background" [style.color]="rewardChip.color">
-              {{ getRewardTypeLabel(quest.rewardType) }}
-            </span>
-          </div>
-          <div class="card-top-actions">
-            @if (isAutoDelete(quest.clean)) {
-              <span class="clean-tag" [matTooltip]="'QUESTS.CLEAN_TOOLTIP' | translate">{{ 'QUESTS.CLEAN_TAG' | translate }}</span>
-            }
-            @if (isSummary(quest.clean)) {
-              <span class="summary-tag" [matTooltip]="'QUESTS.SUMMARY_HINT' | translate">{{ 'QUESTS.SUMMARY_BADGE' | translate }}</span>
-            }
-          </div>
-        </div>
-        <mat-card-content>
-          <app-alarm-info
-            [clean]="quest.clean"
-            [distance]="quest.distance"
-            [overrideAreas]="quest.overrideAreas"
-            [overrideLocationLabel]="quest.overrideLocationLabel"
-            [profileAreas]="profileAreas()"
-            [template]="quest.template"
-            [editable]="true"
-            (click)="editScope(quest); $event.stopPropagation()" />
-          <app-rule-summary [text]="quest.description" />
-        </mat-card-content>
-        <mat-card-actions align="end">
+          @if (isSummary(quest.clean)) {
+            <span class="rule-tag" [matTooltip]="'QUESTS.SUMMARY_HINT' | translate"
+              ><mat-icon>summarize</mat-icon>{{ 'QUESTS.SUMMARY_BADGE' | translate }}</span
+            >
+          }
+        </ng-container>
+        <app-where-chip
+          ruleScope
+          [distance]="quest.distance"
+          [overrideAreas]="quest.overrideAreas"
+          [overrideLocationLabel]="quest.overrideLocationLabel"
+          [profileAreas]="profileAreas()"
+          (click)="editScope(quest); $event.stopPropagation()" />
+        <ng-container ruleActions>
           <button
             mat-icon-button
             (click)="sendTestAlert(quest)"
@@ -132,7 +119,6 @@
               <mat-icon>send</mat-icon>
             }
           </button>
-
           <button
             mat-icon-button
             (click)="editQuest(quest)"
@@ -140,7 +126,6 @@
             [attr.aria-label]="'COMMON.EDIT' | translate">
             <mat-icon>edit</mat-icon>
           </button>
-
           <button
             mat-icon-button
             (click)="deleteQuest(quest)"
@@ -149,30 +134,32 @@
             color="warn">
             <mat-icon>delete</mat-icon>
           </button>
-        </mat-card-actions>
-      </mat-card>
+        </ng-container>
+      </app-alarm-card>
     } @empty {
-      <div class="empty-state">
-        <svg class="empty-illustration" width="120" height="120" viewBox="0 0 120 120" fill="none">
-          <!-- Pokestop pole -->
-          <line x1="60" y1="115" x2="60" y2="60" stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity="0.15" />
-          <!-- Disc / top piece -->
-          <ellipse cx="60" cy="48" rx="30" ry="12" stroke="currentColor" stroke-width="3" opacity="0.15" />
-          <ellipse cx="60" cy="44" rx="30" ry="12" fill="currentColor" opacity="0.06" />
-          <!-- Center circle -->
-          <circle cx="60" cy="46" r="8" stroke="currentColor" stroke-width="2" opacity="0.15" />
-          <circle cx="60" cy="46" r="4" fill="currentColor" opacity="0.1" />
-          <!-- Sparkles -->
-          <line x1="28" y1="30" x2="24" y2="26" stroke="currentColor" stroke-width="2" opacity="0.1" />
-          <line x1="92" y1="30" x2="96" y2="26" stroke="currentColor" stroke-width="2" opacity="0.1" />
-          <line x1="60" y1="22" x2="60" y2="16" stroke="currentColor" stroke-width="2" opacity="0.1" />
-        </svg>
-        <h2 class="empty-title">{{ 'QUESTS.EMPTY_TITLE' | translate }}</h2>
-        <p class="empty-subtitle">{{ 'QUESTS.EMPTY_SUBTITLE' | translate }}</p>
-        <button mat-flat-button class="cta-quest" (click)="openAddDialog()">
-          <mat-icon>add</mat-icon> {{ 'QUESTS.ADD_QUEST' | translate }}
-        </button>
-      </div>
+      @if (quests().length === 0) {
+        <div class="empty-state">
+          <svg class="empty-illustration" width="120" height="120" viewBox="0 0 120 120" fill="none">
+            <!-- Pokestop pole -->
+            <line x1="60" y1="115" x2="60" y2="60" stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity="0.15" />
+            <!-- Disc / top piece -->
+            <ellipse cx="60" cy="48" rx="30" ry="12" stroke="currentColor" stroke-width="3" opacity="0.15" />
+            <ellipse cx="60" cy="44" rx="30" ry="12" fill="currentColor" opacity="0.06" />
+            <!-- Center circle -->
+            <circle cx="60" cy="46" r="8" stroke="currentColor" stroke-width="2" opacity="0.15" />
+            <circle cx="60" cy="46" r="4" fill="currentColor" opacity="0.1" />
+            <!-- Sparkles -->
+            <line x1="28" y1="30" x2="24" y2="26" stroke="currentColor" stroke-width="2" opacity="0.1" />
+            <line x1="92" y1="30" x2="96" y2="26" stroke="currentColor" stroke-width="2" opacity="0.1" />
+            <line x1="60" y1="22" x2="60" y2="16" stroke="currentColor" stroke-width="2" opacity="0.1" />
+          </svg>
+          <h2 class="empty-title">{{ 'QUESTS.EMPTY_TITLE' | translate }}</h2>
+          <p class="empty-subtitle">{{ 'QUESTS.EMPTY_SUBTITLE' | translate }}</p>
+          <button mat-flat-button class="cta-quest" (click)="openAddDialog()">
+            <mat-icon>add</mat-icon> {{ 'QUESTS.ADD_QUEST' | translate }}
+          </button>
+        </div>
+      }
     }
   </div>
 }

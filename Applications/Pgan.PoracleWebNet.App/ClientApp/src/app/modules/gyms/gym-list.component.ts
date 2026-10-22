@@ -1,8 +1,6 @@
-import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
@@ -21,34 +19,34 @@ import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { ScannerService } from '../../core/services/scanner.service';
 import { TestAlertService } from '../../core/services/test-alert.service';
+import { AlarmCardComponent } from '../../shared/components/alarm-card/alarm-card.component';
+import { AlarmListToolbarComponent, AlarmSortOption } from '../../shared/components/alarm-list-toolbar/alarm-list-toolbar.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
 import { QuietChipComponent } from '../../shared/components/quiet-chip/quiet-chip.component';
-import { RuleSummaryComponent } from '../../shared/components/rule-summary/rule-summary.component';
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
-import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
 import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
+import { byNumber, byText, queryAlarms } from '../../shared/utils/alarm-list-query';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
+import { teamEdge } from '../../shared/utils/rule-colours';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    AlarmListToolbarComponent,
+    AlarmCardComponent,
     QuietChipComponent,
-    MatCardModule,
     MatButtonModule,
-    MatCheckboxModule,
     MatIconModule,
     MatMenuModule,
     MatDialogModule,
     MatTooltipModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
-    RuleSummaryComponent,
     TranslatePipe,
-    TranslatePluralPipe,
     WhereChipComponent,
   ],
   selector: 'app-gym-list',
@@ -73,10 +71,36 @@ export class GymListComponent implements OnInit {
   readonly loading = signal(true);
   /** Only used to word the inherited scope honestly; empty produces the more cautious wording. */
   readonly profileAreas = signal<string[]>([]);
+  readonly search = signal('');
   readonly selectedIds = signal(new Set<number>());
+
   readonly selectMode = signal(false);
+  /** "default" keeps the stable order the list loads in (see orderAlarms), so nothing moves once names load. */
+  readonly sortBy = signal('default');
+  readonly sortOptions: AlarmSortOption[] = [
+    { label: 'ALARM.SORT_DEFAULT', value: 'default' },
+    { label: 'ALARM.SORT_NAME', value: 'name' },
+    { label: 'ALARM.SORT_NEWEST', value: 'newest' },
+  ];
+
+  /** The team's colour as the card's edge: Mystic blue, Valor red, Instinct yellow, grey for any. */
+  readonly teamEdge = teamEdge;
 
   readonly testAlertService = inject(TestAlertService);
+
+  /** The rules the search leaves, in the chosen order; ties keep their stable order. See alarm-list-query. */
+  readonly visibleGyms = computed(() => {
+    const sorts: Record<string, (g: Gym, b: Gym) => number> = {
+      name: byText(g => `${this.getTeamName(g.team)} ${this.gymNames()[g.gymId ?? ''] ?? ''}`),
+      newest: byNumber(g => -g.uid),
+    };
+    return queryAlarms(
+      this.gyms(),
+      this.search(),
+      g => [this.getTeamName(g.team), this.gymNames()[g.gymId ?? '']],
+      sorts[this.sortBy()] ?? null,
+    );
+  });
 
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
@@ -234,21 +258,6 @@ export class GymListComponent implements OnInit {
     return this.icons.getGymUrl(team);
   }
 
-  getTeamColor(team: number): string {
-    switch (team) {
-      case 0:
-        return '#9E9E9E';
-      case 1:
-        return '#2196F3';
-      case 2:
-        return '#F44336';
-      case 3:
-        return '#FFC107';
-      default:
-        return '#9E9E9E';
-    }
-  }
-
   getTeamName(team: number): string {
     switch (team) {
       case 0:
@@ -307,8 +316,8 @@ export class GymListComponent implements OnInit {
   }
 
   selectAll(): void {
-    const ids = new Set(this.gyms().map(i => i.uid));
-    this.selectedIds.set(ids);
+    // What is on screen: a search that hides a rule also keeps it out of Select All. See #642.
+    this.selectedIds.set(new Set(this.visibleGyms().map(i => i.uid)));
   }
 
   sendTestAlert(gym: Gym): void {

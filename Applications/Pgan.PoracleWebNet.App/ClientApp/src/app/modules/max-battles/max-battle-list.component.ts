@@ -1,8 +1,6 @@
-import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
@@ -18,14 +16,15 @@ import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MaxBattleService } from '../../core/services/max-battle.service';
-import { AlarmInfoComponent } from '../../shared/components/alarm-info/alarm-info.component';
+import { AlarmCardComponent } from '../../shared/components/alarm-card/alarm-card.component';
+import { AlarmListToolbarComponent, AlarmSortOption } from '../../shared/components/alarm-list-toolbar/alarm-list-toolbar.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
 import { QuietChipComponent } from '../../shared/components/quiet-chip/quiet-chip.component';
-import { RuleSummaryComponent } from '../../shared/components/rule-summary/rule-summary.component';
+import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
-import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
 import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
+import { byNumber, byText, queryAlarms } from '../../shared/utils/alarm-list-query';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
@@ -33,18 +32,16 @@ import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../s
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    WhereChipComponent,
+    AlarmListToolbarComponent,
+    AlarmCardComponent,
     QuietChipComponent,
-    MatCardModule,
     MatButtonModule,
     MatIconModule,
-    MatCheckboxModule,
     MatDialogModule,
     MatTooltipModule,
     MatSnackBarModule,
-    RuleSummaryComponent,
     TranslatePipe,
-    TranslatePluralPipe,
-    AlarmInfoComponent,
   ],
   selector: 'app-max-battle-list',
   standalone: true,
@@ -68,10 +65,35 @@ export class MaxBattleListComponent implements OnInit {
   readonly maxBattles = signal<MaxBattle[]>([]);
   /** Only used to word the inherited scope honestly; empty produces the more cautious wording. */
   readonly profileAreas = signal<string[]>([]);
+  readonly search = signal('');
   readonly selectedIds = signal(new Set<number>());
-  readonly selectMode = signal(false);
 
+  readonly selectMode = signal(false);
   readonly skeletonCards = Array.from({ length: 6 });
+  /** "default" keeps the stable order the list loads in (see orderAlarms), so nothing moves once names load. */
+  readonly sortBy = signal('default');
+
+  readonly sortOptions: AlarmSortOption[] = [
+    { label: 'ALARM.SORT_DEFAULT', value: 'default' },
+    { label: 'ALARM.SORT_NAME', value: 'name' },
+    { label: 'ALARM.SORT_TIER', value: 'tier' },
+    { label: 'ALARM.SORT_NEWEST', value: 'newest' },
+  ];
+
+  /** The rules the search leaves, in the chosen order; ties keep their stable order. See alarm-list-query. */
+  readonly visibleMaxBattles = computed(() => {
+    const sorts: Record<string, (m: MaxBattle, b: MaxBattle) => number> = {
+      name: byText(m => this.getTitle(m)),
+      newest: byNumber(m => -m.uid),
+      tier: byNumber(m => m.level),
+    };
+    return queryAlarms(
+      this.maxBattles(),
+      this.search(),
+      m => [this.getTitle(m), m.level === 9000 ? null : this.getLevelLabel(m.level), m.move === 9000 ? null : this.getMoveName(m.move)],
+      sorts[this.sortBy()] ?? null,
+    );
+  });
 
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
@@ -233,27 +255,6 @@ export class MaxBattleListComponent implements OnInit {
     return '';
   }
 
-  getLevelColor(level: number): string {
-    switch (level) {
-      case 1:
-        return '#78909c';
-      case 2:
-        return '#FF9800';
-      case 3:
-        return '#F44336';
-      case 4:
-        return '#9C27B0';
-      case 5:
-        return '#ffd600';
-      case 7:
-        return '#e040fb';
-      case 8:
-        return '#aa00ff';
-      default:
-        return '#d500f9';
-    }
-  }
-
   /** PoracleNG max battle level labels */
   getLevelLabel(level: number): string {
     switch (level) {
@@ -336,9 +337,8 @@ export class MaxBattleListComponent implements OnInit {
   }
 
   selectAll(): void {
-    const ids = new Set<number>();
-    this.maxBattles().forEach(m => ids.add(m.uid));
-    this.selectedIds.set(ids);
+    // What is on screen: a search that hides a rule also keeps it out of Select All. See #642.
+    this.selectedIds.set(new Set(this.visibleMaxBattles().map(i => i.uid)));
   }
 
   toggleSelect(uid: number): void {

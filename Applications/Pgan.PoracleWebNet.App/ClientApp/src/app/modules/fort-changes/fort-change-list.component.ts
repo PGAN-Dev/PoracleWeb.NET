@@ -1,8 +1,6 @@
-import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
@@ -18,12 +16,14 @@ import { FortChange } from '../../core/models';
 import { AreaService } from '../../core/services/area.service';
 import { FortChangeService } from '../../core/services/fort-change.service';
 import { I18nService } from '../../core/services/i18n.service';
+import { AlarmCardComponent } from '../../shared/components/alarm-card/alarm-card.component';
+import { AlarmListToolbarComponent, AlarmSortOption } from '../../shared/components/alarm-list-toolbar/alarm-list-toolbar.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
-import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
 import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
+import { byNumber, byText, queryAlarms } from '../../shared/utils/alarm-list-query';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
@@ -31,9 +31,9 @@ import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../s
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    MatCardModule,
+    AlarmListToolbarComponent,
+    AlarmCardComponent,
     MatButtonModule,
-    MatCheckboxModule,
     MatIconModule,
     MatMenuModule,
     MatDialogModule,
@@ -41,7 +41,6 @@ import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../s
     MatSnackBarModule,
     MatProgressSpinnerModule,
     TranslatePipe,
-    TranslatePluralPipe,
     WhereChipComponent,
   ],
   selector: 'app-fort-change-list',
@@ -63,9 +62,32 @@ export class FortChangeListComponent implements OnInit {
   readonly loading = signal(true);
   /** Only used to word the inherited scope honestly; empty produces the more cautious wording. */
   readonly profileAreas = signal<string[]>([]);
+  readonly search = signal('');
+
   readonly selectedIds = signal(new Set<number>());
 
   readonly selectMode = signal(false);
+  /** "default" keeps the stable order the list loads in (see orderAlarms), so nothing moves once names load. */
+  readonly sortBy = signal('default');
+  readonly sortOptions: AlarmSortOption[] = [
+    { label: 'ALARM.SORT_DEFAULT', value: 'default' },
+    { label: 'ALARM.SORT_NAME', value: 'name' },
+    { label: 'ALARM.SORT_NEWEST', value: 'newest' },
+  ];
+
+  /** The rules the search leaves, in the chosen order; ties keep their stable order. See alarm-list-query. */
+  readonly visibleFortChanges = computed(() => {
+    const sorts: Record<string, (f: FortChange, b: FortChange) => number> = {
+      name: byText(f => this.formatFortType(f.fortType)),
+      newest: byNumber(f => -f.uid),
+    };
+    return queryAlarms(
+      this.fortChanges(),
+      this.search(),
+      f => [this.formatFortType(f.fortType), ...this.changeTypeLabels(f.changeTypes)],
+      sorts[this.sortBy()] ?? null,
+    );
+  });
 
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
@@ -129,6 +151,27 @@ export class FortChangeListComponent implements OnInit {
         },
       );
     }
+  }
+
+  /** One label per change type the rule watches, or "all changes" when it names none. */
+  changeTypeLabels(types: string[]): string[] {
+    if (!types || types.length === 0) return [this.i18n.instant('FORT_CHANGES.ALL_CHANGES')];
+    return types.map(t => {
+      switch (t) {
+        case 'name':
+          return this.i18n.instant('FORT_CHANGES.LABEL_NAME');
+        case 'location':
+          return this.i18n.instant('FORT_CHANGES.LABEL_LOCATION');
+        case 'image_url':
+          return this.i18n.instant('FORT_CHANGES.LABEL_IMAGE');
+        case 'removal':
+          return this.i18n.instant('FORT_CHANGES.LABEL_REMOVAL');
+        case 'new':
+          return this.i18n.instant('FORT_CHANGES.LABEL_NEW');
+        default:
+          return t;
+      }
+    });
   }
 
   deleteAll(): void {
@@ -215,28 +258,6 @@ export class FortChangeListComponent implements OnInit {
       });
   }
 
-  formatChangeTypes(types: string[]): string {
-    if (!types || types.length === 0) return this.i18n.instant('FORT_CHANGES.ALL_CHANGES');
-    return types
-      .map(t => {
-        switch (t) {
-          case 'name':
-            return this.i18n.instant('FORT_CHANGES.LABEL_NAME');
-          case 'location':
-            return this.i18n.instant('FORT_CHANGES.LABEL_LOCATION');
-          case 'image_url':
-            return this.i18n.instant('FORT_CHANGES.LABEL_IMAGE');
-          case 'removal':
-            return this.i18n.instant('FORT_CHANGES.LABEL_REMOVAL');
-          case 'new':
-            return this.i18n.instant('FORT_CHANGES.LABEL_NEW');
-          default:
-            return t;
-        }
-      })
-      .join(', ');
-  }
-
   formatDistance(meters: number): string {
     return meters >= 1000 ? `${(meters / 1000).toFixed(1)} km` : `${meters} m`;
   }
@@ -286,8 +307,8 @@ export class FortChangeListComponent implements OnInit {
   }
 
   selectAll(): void {
-    const ids = new Set(this.fortChanges().map(i => i.uid));
-    this.selectedIds.set(ids);
+    // What is on screen: a search that hides a rule also keeps it out of Select All. See #642.
+    this.selectedIds.set(new Set(this.visibleFortChanges().map(i => i.uid)));
   }
 
   toggleSelect(uid: number): void {
