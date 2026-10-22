@@ -1,0 +1,50 @@
+<mat-card
+  class="rule-card"
+  [class.rule-card-edged]="edge() !== null"
+  [class.rule-card-selected]="selectable() && selected()"
+  [style.--rule-edge-light]="edge()?.light"
+  [style.--rule-edge-dark]="edge()?.dark">
+  <div class="rule-head">
+    @if (selectable()) {
+      <mat-checkbox
+        class="rule-check"
+        [checked]="selected()"
+        [aria-label]="selectLabel()"
+        (change)="selectedToggle.emit()"
+        (click)="$event.stopPropagation()" />
+    }
+    <div class="rule-media"><ng-content select="[ruleMedia]" /></div>
+    <div class="rule-subject">
+      <h2 class="rule-title"><ng-content select="[ruleTitle]" /></h2>
+      <ng-content select="[ruleSubtitle]" />
+    </div>
+    <div class="rule-status"><ng-content select="[ruleStatus]" /></div>
+  </div>
+
+  <ng-content select="[ruleFilters]" />
+  <ng-content />
+
+  <div class="rule-foot">
+    <div class="rule-scope"><ng-content select="[ruleScope]" /></div>
+    <div class="rule-actions">
+      <ng-content select="[ruleActions]" />
+      @if (hasDetails()) {
+        <button
+          mat-icon-button
+          type="button"
+          class="rule-details-toggle"
+          [attr.aria-expanded]="detailsOpen()"
+          [attr.aria-controls]="detailsId"
+          [attr.aria-label]="(detailsOpen() ? 'ALARM.HIDE_DETAILS' : 'ALARM.DETAILS') | translate"
+          [matTooltip]="(detailsOpen() ? 'ALARM.HIDE_DETAILS' : 'ALARM.DETAILS') | translate"
+          (click)="toggleDetails(); $event.stopPropagation()">
+          <mat-icon>{{ detailsOpen() ? 'expand_less' : 'expand_more' }}</mat-icon>
+        </button>
+      }
+    </div>
+  </div>
+
+  @if (hasDetails()) {
+    <p class="rule-details" [id]="detailsId" [hidden]="!detailsOpen()">{{ cleanedSummary() }}</p>
+  }
+</mat-card>

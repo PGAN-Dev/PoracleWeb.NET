@@ -9,10 +9,12 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
 
-import { CleaningService, CleanAlarmType } from '../../core/services/cleaning.service';
+import { CleaningService, CleanAlarmType, CleanCount } from '../../core/services/cleaning.service';
 import { DashboardService } from '../../core/services/dashboard.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { SettingsService } from '../../core/services/settings.service';
+import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
+import { serverReason } from '../../shared/utils/server-reason';
 
 interface CleaningItem {
   color: string;
@@ -26,6 +28,8 @@ interface CleaningItem {
   hasAlarms: ReturnType<typeof signal<boolean>>;
   icon: string;
   labelKey: string;
+  /** Set when some but not all of the type's alarms are clean, which the toggle alone reads as off. */
+  partial: ReturnType<typeof signal<CleanCount | null>>;
   type: CleanAlarmType;
 }
 
@@ -46,6 +50,7 @@ const DASHBOARD_COUNT_KEYS: Record<string, string> = {
     MatProgressSpinnerModule,
     MatTooltipModule,
     TranslatePipe,
+    TranslatePluralPipe,
   ],
   selector: 'app-cleaning',
   standalone: true,
@@ -69,6 +74,7 @@ export class CleaningComponent implements OnInit {
       hasAlarms: signal(false),
       icon: 'catching_pokemon',
       labelKey: 'NAV.POKEMON',
+      partial: signal<CleanCount | null>(null),
       type: 'monsters',
     },
     {
@@ -79,6 +85,7 @@ export class CleaningComponent implements OnInit {
       hasAlarms: signal(false),
       icon: 'shield',
       labelKey: 'NAV.RAIDS',
+      partial: signal<CleanCount | null>(null),
       type: 'raids',
     },
     {
@@ -89,6 +96,7 @@ export class CleaningComponent implements OnInit {
       hasAlarms: signal(false),
       icon: 'egg',
       labelKey: 'CLEANING.LABEL_EGGS',
+      partial: signal<CleanCount | null>(null),
       type: 'eggs',
     },
     {
@@ -99,6 +107,7 @@ export class CleaningComponent implements OnInit {
       hasAlarms: signal(false),
       icon: 'assignment',
       labelKey: 'NAV.QUESTS',
+      partial: signal<CleanCount | null>(null),
       type: 'quests',
     },
     {
@@ -109,6 +118,7 @@ export class CleaningComponent implements OnInit {
       hasAlarms: signal(false),
       icon: 'warning',
       labelKey: 'NAV.INVASIONS',
+      partial: signal<CleanCount | null>(null),
       type: 'invasions',
     },
     {
@@ -119,6 +129,7 @@ export class CleaningComponent implements OnInit {
       hasAlarms: signal(false),
       icon: 'place',
       labelKey: 'NAV.LURES',
+      partial: signal<CleanCount | null>(null),
       type: 'lures',
     },
     {
@@ -129,6 +140,7 @@ export class CleaningComponent implements OnInit {
       hasAlarms: signal(false),
       icon: 'park',
       labelKey: 'NAV.NESTS',
+      partial: signal<CleanCount | null>(null),
       type: 'nests',
     },
     {
@@ -139,6 +151,7 @@ export class CleaningComponent implements OnInit {
       hasAlarms: signal(false),
       icon: 'fitness_center',
       labelKey: 'NAV.GYMS',
+      partial: signal<CleanCount | null>(null),
       type: 'gyms',
     },
     {
@@ -149,6 +162,7 @@ export class CleaningComponent implements OnInit {
       hasAlarms: signal(false),
       icon: 'flash_on',
       labelKey: 'NAV.MAX_BATTLES',
+      partial: signal<CleanCount | null>(null),
       type: 'maxbattles',
     },
   ];
@@ -184,23 +198,25 @@ export class CleaningComponent implements OnInit {
       .toggleAll(enabled)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        error: () => {
+        error: (err: unknown) => {
           this.toggling.set(false);
-          this.snackBar.open(this.i18n.instant('CLEANING.SNACK_FAILED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+          this.snackBar.open(serverReason(err) ?? this.i18n.instant('CLEANING.SNACK_FAILED'), this.i18n.instant('TOAST.OK'), {
+            duration: 3000,
+          });
         },
         next: result => {
           // Only the rows the server wrote. An empty type has nothing to flip, and a disabled one was
           // skipped, so marking either on showed a state a reload would take back.
           for (const item of this.applicableItems()) {
             item.enabled.set(enabled);
+            item.partial.set(null);
           }
           this.toggling.set(false);
+          this.readStatus();
           const action = this.i18n.instant(enabled ? 'CLEANING.ENABLED' : 'CLEANING.DISABLED');
-          this.snackBar.open(
-            this.i18n.instant('CLEANING.SNACK_TOGGLE_ALL', { action, count: result.updated }),
-            this.i18n.instant('TOAST.OK'),
-            { duration: 3000 },
-          );
+          this.snackBar.open(this.i18n.plural('CLEANING.SNACK_TOGGLE_ALL', result.updated, { action }), this.i18n.instant('TOAST.OK'), {
+            duration: 3000,
+          });
         },
       });
   }
@@ -211,17 +227,21 @@ export class CleaningComponent implements OnInit {
       .toggleClean(item.type, enabled)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        error: () => {
+        error: (err: unknown) => {
           this.toggling.set(false);
-          this.snackBar.open(this.i18n.instant('CLEANING.SNACK_FAILED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+          this.snackBar.open(serverReason(err) ?? this.i18n.instant('CLEANING.SNACK_FAILED'), this.i18n.instant('TOAST.OK'), {
+            duration: 3000,
+          });
         },
         next: result => {
           item.enabled.set(enabled);
+          item.partial.set(null);
           this.toggling.set(false);
+          this.readStatus();
           const action = this.i18n.instant(enabled ? 'CLEANING.ENABLED' : 'CLEANING.DISABLED');
           const type = this.i18n.instant(item.labelKey);
           this.snackBar.open(
-            this.i18n.instant('CLEANING.SNACK_TOGGLE_TYPE', { action, count: result.updated, type }),
+            this.i18n.plural('CLEANING.SNACK_TOGGLE_TYPE', result.updated, { action, type }),
             this.i18n.instant('TOAST.OK'),
             { duration: 3000 },
           );
@@ -246,6 +266,14 @@ export class CleaningComponent implements OnInit {
         },
       });
 
+    this.readStatus();
+  }
+
+  /**
+   * Reads which types are clean. Run again after every toggle: PoracleNG can refuse some rules, which keep
+   * their old setting, so assuming the whole type moved could hide a type that is still only partly clean.
+   */
+  private readStatus(): void {
     this.cleaningService
       .getStatus()
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -253,9 +281,12 @@ export class CleaningComponent implements OnInit {
         error: () => this.loading.set(false),
         next: status => {
           for (const item of this.cleaningItems) {
-            if (status[item.type] !== undefined) {
-              item.enabled.set(status[item.type]);
+            const flag = status[item.type];
+            if (typeof flag === 'boolean') {
+              item.enabled.set(flag);
             }
+            const count = status.counts?.[item.type];
+            item.partial.set(count && count.clean > 0 && count.clean < count.total ? count : null);
           }
           this.loading.set(false);
         },

@@ -3,8 +3,8 @@ using Pgan.PoracleWebNet.Core.Abstractions.Services;
 namespace Pgan.PoracleWebNet.Api.Services;
 
 /// <summary>
-/// Background service that runs once on startup to migrate data from the old
-/// pweb_settings KV table to the new structured tables in the PoracleWeb database.
+/// Background service that runs once on startup to seed default site settings and repair stored
+/// ones in the PoracleWeb database.
 /// </summary>
 public partial class SettingsMigrationStartupService(
     IServiceScopeFactory scopeFactory,
@@ -19,7 +19,6 @@ public partial class SettingsMigrationStartupService(
         {
             using var scope = scopeFactory.CreateScope();
             var migrationService = scope.ServiceProvider.GetRequiredService<ISettingsMigrationService>();
-            await migrationService.MigrateAsync();
             await migrationService.SeedDefaultsAsync();
             LogMigrationCompleted(logger);
         }
@@ -29,9 +28,9 @@ public partial class SettingsMigrationStartupService(
         }
     }
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Settings migration completed successfully.")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Default settings seeding completed successfully.")]
     private static partial void LogMigrationCompleted(ILogger logger);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Settings migration failed. The application will continue with existing data.")]
+    [LoggerMessage(Level = LogLevel.Error, Message = "Default settings seeding failed. The application will continue with existing data.")]
     private static partial void LogMigrationFailed(ILogger logger, Exception ex);
 }

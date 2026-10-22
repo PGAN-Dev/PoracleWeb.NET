@@ -5,32 +5,31 @@ using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
-public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, ILogger<InvasionService> logger, ITrackedUidRemapper uidRemapper, INaturalKeyCapabilityService naturalKeys) : IInvasionService
+public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, ILogger<InvasionService> logger, ITrackedUidRemapper uidRemapper, IPoracleIncidentProxy incidentProxy) : IInvasionService
 {
     private const string TrackingType = "invasion";
     private readonly IPoracleTrackingProxy _proxy = proxy;
     private readonly IFeatureGate _featureGate = featureGate;
     private readonly ILogger<InvasionService> _logger = logger;
     private readonly ITrackedUidRemapper _uidRemapper = uidRemapper;
-    private readonly INaturalKeyCapabilityService _naturalKeys = naturalKeys;
+    private readonly IPoracleIncidentProxy _incidentProxy = incidentProxy;
 
     /// <summary>
     /// Whether pokestop-event rows belong to the Pokestop Events page rather than this list.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Invasion and incident rows share the <c>invasion</c> table, and PoracleWeb reads invasions over
-    /// v1, which applies no filter — verified against 5.2.1, a Showcase rule created through
-    /// <c>/api/v2/.../tracking/incident</c> comes straight back out of
-    /// <c>GET /api/tracking/invasion/{id}</c>. So this list has to do the partition PoracleNG does for
-    /// the v2 endpoints.
+    /// Invasion and incident rows share the <c>invasion</c> table. v2's invasion routes leave the
+    /// event rules out, but the proxy reads the incident list too and folds those rules back into the
+    /// invasion list in v1's form (as v1 itself returned them), so this list has to do the partition
+    /// PoracleNG does for the v2 endpoints.
     /// </para>
     /// <para>
     /// <strong>Conditional, and that is the whole point.</strong> When the Pokestop Events surface is
-    /// unavailable — an older PoracleNG, or an operator who set <c>disable_showcase</c> — the page that
+    /// unavailable — an operator who set <c>disable_showcase</c>, or a PoracleNG that could not be asked — the page that
     /// would hold these rows does not exist, and filtering them out here would leave alarms that fire
-    /// and cannot be seen or deleted. Event rows are creatable from the invasion add dialog on 5.1.0
-    /// today, so this is not hypothetical.
+    /// and cannot be seen or deleted. Event rows are creatable from the invasion add dialog wherever the
+    /// page is off, so this is not hypothetical.
     /// </para>
     /// </remarks>
     private Task<bool> EventsLiveElsewhereAsync() =>
@@ -82,33 +81,15 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
         model.Id = userId;
         RequireGruntType(model);
 
+        if (AsPokestopEvent(model) is { } pokestopEvent)
+        {
+            var uids = await IncidentCreateProtocol.CreateAsync(this._incidentProxy, userId, [pokestopEvent], single: true);
+            model.Uid = uids[0];
+            return model;
+        }
+
         var body = SerializeToElement(model);
 
-        if (await this._naturalKeys.IsEnforcedAsync(TrackingType))
-        {
-            // Up to PoracleNG 5.1.0 the table carries a unique key on (id, profile_no, gender, grunt_type),
-            // case-insensitive at the database, so creating "Water" alongside an existing "water" -- or the
-            // same pair with any other difference -- hit a duplicate-key error and came back as a 500.
-            // See #500.
-            var siblings = await this.GetByUserAsync(userId, model.ProfileNo);
-            if (siblings.Any(x => x.Gender == model.Gender
-                && string.Equals(x.GruntType, model.GruntType, StringComparison.OrdinalIgnoreCase)))
-            {
-                throw new TrackingConflictException(
-                    TrackingType,
-                    "You already have an invasion alarm for that grunt type and gender. Edit or remove that one instead.");
-            }
-        }
-        else
-        {
-            // Migration 8 (5.2.x) dropped that key. PoracleNG now stores a second rule for one grunt type
-            // and gender beside an area-scoped twin, a place-measured one, one two updatable fields away,
-            // or one spelled in another case, so the only Add refused is the one it would resolve into an
-            // existing rule: the guard the other seven types use. It reads the raw rows rather than this
-            // page's list, because PoracleNG diffs against pokestop-event rows in the same table too.
-            await TrackingUpdateReconciler.EnsureNoMergeIntoAnotherAlarmAsync(
-                this._proxy, TrackingType, userId, 0, body);
-        }
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
 
         if (result.NewUids.Count > 0)
@@ -124,25 +105,18 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Invasions);
         RequireGruntType(model);
         var oldUid = model.Uid;
-        var keyEnforced = await this._naturalKeys.IsEnforcedAsync(TrackingType);
 
-        // Where the table still carries the natural unique key (5.1.0), PoracleNG's create has no upsert
-        // path, so changing a field outside that key collides (Error 1062) and returns 500; the row is
-        // replaced instead, below. Refuse a collision BEFORE the delete: editing one onto a
-        // (gender, grunt_type) pair another alarm already holds made the replace merge into that alarm -
-        // this one deleted, the other one silently overwritten. Changing the gender dropdown is enough
-        // to trigger it. See #462.
-        if (keyEnforced && oldUid > 0)
+        if (AsPokestopEvent(model) is { } pokestopEvent)
         {
-            var siblings = await this.GetByUserAsync(userId, model.ProfileNo);
-            if (siblings.Any(x => x.Uid != oldUid
-                && x.Gender == model.Gender
-                && string.Equals(x.GruntType, model.GruntType, StringComparison.OrdinalIgnoreCase)))
+            var replaced = await this._incidentProxy.ReplaceAsync(userId, oldUid, pokestopEvent);
+            model.Uid = replaced.PrimaryUid ?? oldUid;
+            if (model.Uid != oldUid)
             {
-                throw new TrackingConflictException(
-                    TrackingType,
-                    "You already have an invasion alarm for that grunt type and gender. Edit or remove that one instead.");
+                // A quick pick tracks the rule under the invasion type it applied it as.
+                await this._uidRemapper.RemapAsync(userId, TrackingType, oldUid, model.Uid);
             }
+
+            return model;
         }
 
         var body = SerializeToElement(model);
@@ -151,52 +125,8 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
         body = await TrackingFieldPreserver.PreserveStoredFieldsAsync(
             this._proxy, TrackingType, userId, oldUid, body);
 
-        if (!keyEnforced)
-        {
-            // Without the key an invasion is an ordinary type: refuse only the edit PoracleNG would merge
-            // into a different rule, as the other seven do. Refusing on the pair alone would leave a rule
-            // with an area-scoped twin uneditable, the #553 shape.
-            await TrackingUpdateReconciler.EnsureNoMergeIntoAnotherAlarmAsync(
-                this._proxy, TrackingType, userId, oldUid, body);
-        }
-
-        // /api/v2's PUT is addressed by uid and replaces the row rather than inserting beside it, so the
-        // natural key is never in contention and the delete-create-restore below is not needed -- the
-        // same reason lure moved. #841 taught the proxy to send invasion there, behind two gates this
-        // type alone has (the server declares grunt_type, and its own grunt masterdata lists the name),
-        // but this call was never made, so every invasion edit still took the v1 path. When either gate
-        // says no -- metal, kecleon, gold-stop, showcase, a stored gender 3, a 5.2.1 or 5.1.0 server --
-        // the proxy answers null and the v1 path below runs: the shared upsert where the key is gone,
-        // the natural-key replace where it is not.
-        if (await TrackingV2Replacement.TryApplyAsync(
-                this._proxy, TrackingType, userId, oldUid, body, this._uidRemapper) is { } v2Uid)
-        {
-            model.Uid = v2Uid;
-            return model;
-        }
-
-        if (!keyEnforced)
-        {
-            // Nothing to free, so no delete-first and no window in which the alarm exists nowhere: the
-            // create carrying the uid is resolved by PoracleNG's diff like any other type's, and the
-            // reconciler drops the superseded row when one was inserted.
-            var result = await this._proxy.CreateAsync(TrackingType, userId, body);
-            model.Uid = await TrackingUpdateReconciler.ReconcileAsync(
-                this._proxy, TrackingType, userId, oldUid, result, this._logger, body, this._uidRemapper);
-            return model;
-        }
-
-        var original = oldUid > 0 ? await this.GetByUidAsync(userId, oldUid) : null;
-
-        model.Uid = await NaturalKeyTrackingUpdate.ReplaceAsync(
-            this._proxy,
-            TrackingType,
-            userId,
-            oldUid,
-            original is null ? null : SerializeToElement(original),
-            body,
-            this._logger,
-            this._uidRemapper);
+        model.Uid = await TrackingV2Replacement.ApplyAsync(
+            this._proxy, TrackingType, userId, oldUid, body, this._uidRemapper);
 
         return model;
     }
@@ -224,74 +154,54 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
     public async Task<DistanceUpdateResult> UpdateDistanceByUserAsync(string userId, int profileNo, int distance)
     {
         var json = await this._proxy.GetByUserAsync(TrackingType, userId);
-        var isOurs = await this.OwnRowPredicateAsync();
-        // The stored rows are rewritten in place rather than round-tripped through the typed model,
-        // so fields PoracleWeb does not model survive the write-back. See #730.
-        var (body, skipped) = DistanceRewrite.Build(json, isOurs, distance);
-        var count = body.GetArrayLength();
-
-        if (count == 0)
-        {
-            return skipped;
-        }
-        // Two selected rows that differed only by radius become the same alarm once both are set to
-        // the same one, and PoracleNG resolves that inside the batch -- fewer alarms than selected,
-        // one left at its old radius, and a response claiming all were updated. See #580.
-        TrackingUpdateReconciler.EnsureBatchDoesNotCollapse(body, TrackingType);
-
-        // And against the rows NOT selected: at the new radius a selected row can differ from an
-        // unselected sibling by exactly one updatable field, and PoracleNG then rewrites the SIBLING
-        // -- an alarm the user never touched -- while the selected one keeps its old radius and the
-        // response claims it was updated. See #598.
-        await TrackingUpdateReconciler.EnsureBatchDoesNotTakeOverOthersAsync(
-            this._proxy, TrackingType, userId, body);
-
-        await this._proxy.CreateAsync(TrackingType, userId, body);
-        // PoracleNG rewrites every row, so the uids change. Follow any quick-pick that
-        // tracks them, pairing on content because the batch response is reordered. See #443.
-        await BulkUidRemap.ApplyAsync(
-            this._proxy, TrackingType, userId, body, this._uidRemapper, this._logger);
-
-        return skipped with { Updated = count };
+        return await this.PatchDistanceAsync(userId, json, await this.OwnRowPredicateAsync(), distance);
     }
 
     public async Task<DistanceUpdateResult> UpdateDistanceByUidsAsync(List<int> uids, string userId, int distance)
     {
         var json = await this._proxy.GetByUserAsync(TrackingType, userId);
-        // The stored rows are rewritten in place rather than round-tripped through the typed model,
-        // so fields PoracleWeb does not model survive the write-back. See #730.
         var selected = new HashSet<int>(uids);
         var isOurs = await this.OwnRowPredicateAsync();
-        var (body, skipped) = DistanceRewrite.Build(
+
+        return await this.PatchDistanceAsync(
+            userId,
             json,
             row => isOurs(row) && PoracleJsonHelper.UidOf(row) is int rowUid && selected.Contains(rowUid),
             distance);
-        var count = body.GetArrayLength();
-
-        if (count == 0)
-        {
-            return skipped;
-        }
-        // Two selected rows that differed only by radius become the same alarm once both are set to
-        // the same one, and PoracleNG resolves that inside the batch -- fewer alarms than selected,
-        // one left at its old radius, and a response claiming all were updated. See #580.
-        TrackingUpdateReconciler.EnsureBatchDoesNotCollapse(body, TrackingType);
-
-        // And against the rows NOT selected: at the new radius a selected row can differ from an
-        // unselected sibling by exactly one updatable field, and PoracleNG then rewrites the SIBLING
-        // -- an alarm the user never touched -- while the selected one keeps its old radius and the
-        // response claims it was updated. See #598.
-        await TrackingUpdateReconciler.EnsureBatchDoesNotTakeOverOthersAsync(
-            this._proxy, TrackingType, userId, body);
-
-        await this._proxy.CreateAsync(TrackingType, userId, body);
-        // PoracleNG rewrites every row, so the uids change. Follow any quick-pick that
-        // tracks them, pairing on content because the batch response is reordered. See #443.
-        await BulkUidRemap.ApplyAsync(
-            this._proxy, TrackingType, userId, body, this._uidRemapper, this._logger);
-
-        return skipped with { Updated = count };
     }
+
+    /// <summary>
+    /// One v2 PATCH per route: the invasion rules to <c>invasion</c>, and any Pokestop event rules this list
+    /// holds (only where there is no Pokestop Events page, see <see cref="OwnRowPredicateAsync"/>) to
+    /// <c>incident</c>, since v2's invasion route does not hold them.
+    /// </summary>
+    private async Task<DistanceUpdateResult> PatchDistanceAsync(
+        string userId, JsonElement json, Func<JsonElement, bool> include, int distance)
+    {
+        var plan = DistanceRewrite.Plan(DistanceRewrite.ScopesOf(json, include), distance);
+        var eventUids = DistanceRewrite.ScopesOf(json, row => include(row) && IsEventRow(row))
+            .Select(r => r.Uid)
+            .ToHashSet();
+        var invasionUids = plan.WritableUids.Where(uid => !eventUids.Contains(uid)).ToList();
+        var incidentUids = plan.WritableUids.Where(eventUids.Contains).ToList();
+        var set = new TrackingPatchSet(Distance: distance);
+        var results = new List<TrackingPatchResult>();
+
+        if (invasionUids.Count > 0)
+        {
+            results.Add(await this._proxy.PatchAsync(TrackingType, userId, invasionUids, set));
+        }
+
+        if (incidentUids.Count > 0)
+        {
+            results.Add(await this._incidentProxy.PatchAsync(userId, incidentUids, set));
+        }
+
+        return DistanceRewrite.Report(plan, TrackingType, results, this._logger);
+    }
+
+    private static bool IsEventRow(JsonElement row) => PokestopEventTypes.IsEventName(
+        row.TryGetProperty("grunt_type", out var gt) && gt.ValueKind == JsonValueKind.String ? gt.GetString() : null);
 
     public async Task<int> CountByUserAsync(string userId, int profileNo)
     {
@@ -310,15 +220,75 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
             RequireGruntType(model);
         }
 
-        var body = SerializeToElement(modelList);
-        var result = await this._proxy.CreateAsync(TrackingType, userId, body);
+        // A quick pick can name a Pokestop event (an admin pick, or one saved before the events page), and
+        // v2's invasion route refuses those, so they are written to the incident route in their own batch.
+        var events = modelList
+            .Select(model => (model, rule: AsPokestopEvent(model)))
+            .Where(x => x.rule is not null)
+            .ToList();
+        var grunts = modelList.Where(m => !PokestopEventTypes.IsEventName(m.GruntType)).ToList();
 
-        for (var i = 0; i < modelList.Count && i < result.NewUids.Count; i++)
+        if (grunts.Count > 0)
         {
-            modelList[i].Uid = (int)result.NewUids[i];
+            var result = await this._proxy.CreateAsync(TrackingType, userId, SerializeToElement(grunts));
+            for (var i = 0; i < grunts.Count && i < result.RowUids.Count; i++)
+            {
+                grunts[i].Uid = result.RowUids[i];
+            }
+        }
+
+        if (events.Count > 0)
+        {
+            var uids = await IncidentCreateProtocol.CreateAsync(
+                this._incidentProxy, userId, [.. events.Select(x => x.rule!)], single: false);
+            for (var i = 0; i < events.Count; i++)
+            {
+                events[i].model.Uid = uids[i];
+            }
         }
 
         return modelList;
+    }
+
+    /// <summary>
+    /// The Pokestop-event rule an invasion model names, or null when it names a Team Rocket grunt.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// kecleon, gold-stop and showcase share the invasion table, but v2's invasion route refuses them ("use
+    /// /incident"), so they are written as <c>incident</c> rules: the name becomes the event's
+    /// <c>display_type</c>, and distance, template, clean, mention and override scope are carried across.
+    /// </para>
+    /// <para>
+    /// An event has no gender. A gender other than any is refused rather than dropped, since the model would
+    /// otherwise be saved as something other than what was sent. No stored event rule carries one.
+    /// </para>
+    /// </remarks>
+    internal static PokestopEvent? AsPokestopEvent(Invasion model)
+    {
+        if (PokestopEventTypes.DisplayTypeFor(model.GruntType) is not int displayType)
+        {
+            return null;
+        }
+
+        if (model.Gender != 0)
+        {
+            throw new AlarmValidationException(
+                $"PoracleNG can't store this alarm as it is: a Pokestop event ({model.GruntType}) has no gender. Nothing was changed.");
+        }
+
+        return new PokestopEvent
+        {
+            Uid = model.Uid,
+            Id = model.Id,
+            DisplayType = displayType,
+            Distance = model.Distance,
+            Template = model.Template,
+            Clean = model.Clean,
+            Ping = model.Ping,
+            OverrideLocationLabel = model.OverrideLocationLabel,
+            OverrideAreas = model.OverrideAreas,
+        };
     }
 
     /// <summary>
@@ -337,6 +307,8 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
 
     private static void RequireGruntType(Invasion model)
     {
+        model.GruntType = InvasionGruntTypes.Normalise(model.GruntType);
+
         // Deliberately NOT an allowlist. The live database holds grunt types this codebase does not model --
         // blanche, candela, spark, "npc 0" through "npc 10", "player team leader" -- so validating against
         // InvasionGruntTypes.All would have refused edits to alarms that work today. What is checked instead

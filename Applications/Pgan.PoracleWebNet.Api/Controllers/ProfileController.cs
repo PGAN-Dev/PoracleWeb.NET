@@ -16,18 +16,18 @@ public class ProfileController(
     IProfileService profileService,
     IHumanService humanService,
     IPoracleHumanProxy humanProxy,
-    IProfileRepository profileRepository,
     IJwtService jwtService,
     IUserRoleResolver roleResolver,
-    IUserGeofenceRepository userGeofenceRepository) : BaseApiController
+    IUserAreaWriter areaWriter,
+    ILogger<ProfileController> logger) : BaseApiController
 {
     private readonly IProfileService _profileService = profileService;
     private readonly IHumanService _humanService = humanService;
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
-    private readonly IProfileRepository _profileRepository = profileRepository;
     private readonly IJwtService _jwtService = jwtService;
     private readonly IUserRoleResolver _roleResolver = roleResolver;
-    private readonly IUserGeofenceRepository _userGeofenceRepository = userGeofenceRepository;
+    private readonly IUserAreaWriter _areaWriter = areaWriter;
+    private readonly ILogger<ProfileController> _logger = logger;
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
@@ -45,12 +45,12 @@ public class ProfileController(
     }
 
     /// <summary>
-    /// Drops any private geofence name from a submitted area list that the caller does not own.
+    /// Drops any name from a submitted area list that the caller may not subscribe to.
     /// </summary>
     /// <remarks>
-    /// Public and admin areas are anyone's to select, so they pass through. What does not is another
-    /// user's private fence: PoracleNG's setAreas intersects against userSelectable fences and would
-    /// have stripped it, but this path writes the profile row directly. See #647.
+    /// Another user's private fence, a non-selectable admin fence and an out-of-community fence all fall
+    /// outside <see cref="IUserAreaWriter.FilterAllowedAsync"/>. The new profile's areas are written
+    /// trusted, so this is the only check. See #647.
     /// </remarks>
     private async Task<string> RemoveAreasTheCallerMayNotSelectAsync(string? area)
     {
@@ -76,19 +76,11 @@ public class ProfileController(
             return "[]";
         }
 
-        // Approved fences are excluded: approval promotes them to public Koji areas that anyone may
-        // select, and when no promotedName was supplied the public area's name IS the KojiName -- so
-        // denying it silently dropped a legitimate public area from the new profile. Only another
-        // user's still-private fence is refused. See #658.
-        var privateNames = (await this._userGeofenceRepository.GetAllAsync())
-            .Where(g => !string.Equals(g.HumanId, this.UserId, StringComparison.OrdinalIgnoreCase))
-            .Where(g => !string.Equals(g.Status, "approved", StringComparison.OrdinalIgnoreCase))
-            .Select(g => g.KojiName)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        var allowed = requested
-            .Where(name => !string.IsNullOrWhiteSpace(name) && !privateNames.Contains(name))
-            .ToList();
+        // The same rule a save applies: PoracleNG's selectable areas for this user, their own fences, and
+        // what their active profile already holds. The geography write below is trusted, so anything not
+        // allowed here would otherwise reach a fence area_security or userSelectable=false is meant to deny.
+        var allowed = await this._areaWriter.FilterAllowedAsync(
+            this.UserId, requested.Where(name => !string.IsNullOrWhiteSpace(name)).ToList());
 
         return JsonSerializer.Serialize(allowed);
     }
@@ -142,53 +134,31 @@ public class ProfileController(
             return this.BadRequest(new { error = ex.Message });
         }
 
-        // PoracleNG assigns the lowest free number, not max+1, so the number cannot be predicted for a
-        // user who has ever deleted a non-last profile. Ask what it chose. See #407.
-        var before = (await this._profileService.GetByUserAsync(this.UserId)).ToList();
+        // Trimmed here: the add stores the name that stays, and the geography write below carries none.
+        var name = profile.Name.Trim();
 
         var body = JsonSerializer.SerializeToElement(new
         {
-            name = profile.Name,
+            name,
             area = requestedAreas,
             latitude = profile.Latitude,
             longitude = profile.Longitude,
             active_hours = profile.ActiveHours
         });
-        var assignedNo = await this._humanProxy.AddProfileAsync(this.UserId, body);
 
-        var after = (await this._profileService.GetByUserAsync(this.UserId)).ToList();
-        var createdNo = assignedNo ?? ProfileNumbering.ResolveCreated(before, after, profile.Name);
-        if (createdNo is null)
-        {
-            return this.StatusCode(StatusCodes.Status502BadGateway, new
-            {
-                error = "The profile was not created."
-            });
-        }
+        // PoracleNG assigns the lowest free number, not max+1, and reports it; AddProfileAsync throws when
+        // it does not. See #407.
+        var createdNo = await this._humanProxy.AddProfileAsync(this.UserId, body);
 
         // addProfile ignores area, latitude and longitude, so a new profile came up carrying whatever the
         // ACTIVE profile had -- every area subscription the user held, and a location that also drives the
-        // active-hours timezone. Duplicate and import already write the geography directly after creating;
-        // create needs the same. Empty unless the request asked for something. See #563.
-        try
-        {
-            await this._profileRepository.UpdateAsync(new Profile
-            {
-                Id = this.UserId,
-                ProfileNo = createdNo.Value,
-                Name = profile.Name.Trim(),
-                Area = requestedAreas,
-                Latitude = profile.Latitude,
-                Longitude = profile.Longitude,
-            });
-        }
-        catch (InvalidOperationException)
-        {
-            // The row is not visible yet in some PoracleNG timings. The profile exists either way, and a
-            // wrong area list is fixable from the Areas page; a failed create is not.
-        }
+        // active-hours timezone. Duplicate and import already write the geography after creating; create
+        // needs the same. Empty unless the request asked for something. See #563. Through PoracleNG's v2
+        // ?profile= writes (#993).
+        await NewProfileGeography.WriteOrRollBackAsync(
+            this._humanProxy, this._logger, this.UserId, createdNo, requestedAreas, profile.Latitude, profile.Longitude);
 
-        var result = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, createdNo.Value);
+        var result = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, createdNo);
         return this.CreatedAtAction(nameof(GetAll), result);
     }
 
@@ -201,7 +171,7 @@ public class ProfileController(
             return this.NotFound();
         }
 
-        // Blank means "not renaming", as it always has on the direct-write path below. Only a name that
+        // Blank means "not renaming". Only a name that
         // actually changes is judged: one stored before a rule existed must not fail every later edit of
         // the profile, and the active-hours editor resubmits the name it was given.
         var newName = string.IsNullOrWhiteSpace(profile.Name) ? null : profile.Name.Trim();
@@ -223,34 +193,17 @@ public class ProfileController(
             return this.BadRequest(validationError);
         }
 
-        // Trimmed, and the stored name when none was given. On a server whose PATCH takes the name the
-        // direct write below is skipped, so this is what gets stored: untrimmed it kept the padding, and a
-        // blank one blanked the name.
+        // Trimmed, and the stored name when none was given: the PATCH stores exactly what it is sent, so
+        // untrimmed it kept the padding and a blank one blanked the name. The stored schedule is not
+        // resent: a null active_hours is omitted and v2 leaves the schedule unchanged, so a profile whose
+        // stored schedule v2 would refuse can still be renamed.
         var body = JsonSerializer.SerializeToElement(new
         {
             profile_no = profileNo,
             name = newName ?? existing.Name,
-            active_hours = profile.ActiveHours ?? existing.ActiveHours
+            active_hours = profile.ActiveHours
         });
-        var nameApplied = await this._humanProxy.UpdateProfileAsync(this.UserId, body);
-
-        // A released PoracleNG's update handler answers ok and silently drops the name, while honouring
-        // active_hours on the very same request -- so rename has to be written directly. The response used
-        // to be re-read and returned as a 200 carrying the OLD name, and the SPA built a success toast from
-        // it. See #406.
-        //
-        // PoracleNG PR #217 gives V2UpdateProfileBody a name, and the proxy says so by answering true: on
-        // such a server the rename has already happened and this direct write is skipped. See #837.
-        if (!nameApplied
-            && !string.IsNullOrEmpty(newName)
-            && !string.Equals(newName, existing.Name, StringComparison.Ordinal))
-        {
-            var renamed = await this._profileRepository.RenameAsync(this.UserId, profileNo, newName);
-            if (!renamed)
-            {
-                return this.NotFound();
-            }
-        }
+        await this._humanProxy.UpdateProfileAsync(this.UserId, body);
 
         var result = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, profileNo);
         return this.Ok(result);
@@ -308,11 +261,6 @@ public class ProfileController(
             return this.NotFound();
         }
 
-        // See #407: PoracleNG picks the number, so create first and then ask which one it used. Copying
-        // to a predicted max+1 wrote the alarms to a profile_no with no profile row, and those orphans
-        // later attached themselves to whatever profile was eventually created at that number.
-        var before = (await this._profileService.GetByUserAsync(this.UserId)).ToList();
-
         var body = JsonSerializer.SerializeToElement(new
         {
             name = request.Name.Trim(),
@@ -321,52 +269,28 @@ public class ProfileController(
             longitude = sourceProfile.Longitude,
             active_hours = sourceProfile.ActiveHours
         });
-        var assignedNo = await this._humanProxy.AddProfileAsync(this.UserId, body);
-
-        var after = (await this._profileService.GetByUserAsync(this.UserId)).ToList();
-        var resolved = assignedNo ?? ProfileNumbering.ResolveCreated(before, after, request.Name.Trim());
-        if (resolved is null)
-        {
-            return this.StatusCode(StatusCodes.Status502BadGateway, new
-            {
-                error = "The profile was not created."
-            });
-        }
-
-        var newProfileNo = resolved.Value;
+        // See #407: PoracleNG picks the number and reports it. Copying to a predicted max+1 wrote the
+        // alarms to a profile_no with no profile row.
+        var newProfileNo = await this._humanProxy.AddProfileAsync(this.UserId, body);
 
         // PoracleNG's addProfile ignores area, latitude and longitude while honouring active_hours
         // from the same payload, so a duplicate silently inherited the ACTIVE profile's geography
         // instead of the source's: the right alarms over the wrong map, and a location that also
-        // feeds the active-hours timezone. Write them directly, the same way rename has to (#406).
-        // See #466.
+        // feeds the active-hours timezone. See #466. Through PoracleNG's v2 ?profile= writes (#993).
+        // Geography and the alarm copy share one rollback: a failure of either removes the new profile.
         try
         {
-            await this._profileRepository.UpdateAsync(new Profile
-            {
-                Id = this.UserId,
-                ProfileNo = newProfileNo,
-                Name = request.Name.Trim(),
-                Area = sourceProfile.Area ?? "[]",
-                Latitude = sourceProfile.Latitude,
-                Longitude = sourceProfile.Longitude,
-            });
-        }
-        catch (InvalidOperationException)
-        {
-            // The row is not there yet in some PoracleNG timings; the profile still exists and the
-            // alarms still copy, so this must not fail the duplicate.
-        }
+            await NewProfileGeography.WriteAsync(
+                this._humanProxy, this.UserId, newProfileNo, sourceProfile.Area ?? "[]",
+                sourceProfile.Latitude, sourceProfile.Longitude);
 
-        // Copy all alarms from source to new profile; clean up on failure
-        try
-        {
+            // Copy all alarms from source to new profile
             await this._profileService.CopyAsync(this.UserId, request.FromProfileNo, newProfileNo);
         }
         catch
         {
             // Roll back the empty profile so the user doesn't end up with a shell
-            await this._humanProxy.DeleteProfileAsync(this.UserId, newProfileNo);
+            await NewProfileGeography.RollBackAsync(this._humanProxy, this._logger, this.UserId, newProfileNo);
             throw;
         }
 

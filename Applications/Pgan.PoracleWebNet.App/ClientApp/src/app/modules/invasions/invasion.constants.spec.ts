@@ -101,6 +101,21 @@ describe('invasion.constants', () => {
     });
   });
 
+  describe('steel, and the legacy metal name', () => {
+    // New rules are saved as steel; rules saved before that still say metal. Both must render.
+    it('labels both with the steel translation', () => {
+      expect(getGruntDisplayKey('steel')).toBe('INVASIONS.GRUNT_TYPES.METAL');
+      expect(getGruntDisplayKey('metal')).toBe('INVASIONS.GRUNT_TYPES.METAL');
+    });
+
+    it('draws both with the steel type icon, and the gendered grunt when a gender is set', () => {
+      expect(getGruntIconPath('steel')).toBe('type/9.png');
+      expect(getGruntIconPath('metal')).toBe('type/9.png');
+      expect(getGruntIconPath('steel', 1)).toBe('invasion/29.png');
+      expect(getGruntIconPath('steel', 2)).toBe('invasion/28.png');
+    });
+  });
+
   describe('getGruntDisplayKey', () => {
     it('returns EVERYTHING key for null/empty input', () => {
       expect(getGruntDisplayKey(null)).toBe('INVASIONS.GRUNT_TYPES.EVERYTHING');

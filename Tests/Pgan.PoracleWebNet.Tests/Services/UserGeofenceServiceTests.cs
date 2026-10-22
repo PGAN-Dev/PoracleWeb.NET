@@ -16,7 +16,7 @@ public class UserGeofenceServiceTests
     private readonly Mock<IPoracleApiProxy> _poracleApiProxy = new();
     private readonly Mock<IPoracleHumanProxy> _humanProxy = new();
     private readonly Mock<IHumanService> _humanService = new();
-    private readonly Mock<IUserAreaDualWriter> _areaWriter = new();
+    private readonly Mock<IUserAreaWriter> _userAreaWriter = new();
     private readonly Mock<IDiscordNotificationService> _discordNotificationService = new();
     private readonly Mock<IFeatureGate> _featureGate = new();
     private readonly IConfiguration _configuration = new ConfigurationBuilder().Build();
@@ -27,6 +27,9 @@ public class UserGeofenceServiceTests
     {
         // Features are on unless a test says otherwise.
         this._featureGate.Setup(g => g.IsEnabledAsync(It.IsAny<string>())).ReturnsAsync(true);
+        this._userAreaWriter.Setup(w => w.AddToActiveProfileAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
+        this._userAreaWriter.Setup(w => w.RemoveFromActiveProfileAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
+        this._userAreaWriter.Setup(w => w.RenameEverywhereAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
 
         this._sut = new UserGeofenceService(
             this._repository.Object,
@@ -34,7 +37,7 @@ public class UserGeofenceServiceTests
             this._poracleApiProxy.Object,
             this._humanProxy.Object,
             this._humanService.Object,
-            this._areaWriter.Object,
+            this._userAreaWriter.Object,
             this._discordNotificationService.Object,
             this._featureGate.Object,
             this._configuration,
@@ -97,8 +100,8 @@ public class UserGeofenceServiceTests
             Polygon = [[37.66, -77.60], [37.67, -77.60], [37.67, -77.59]],
         });
 
-        this._areaWriter.Verify(
-            w => w.AddAreaToActiveProfileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        this._userAreaWriter.Verify(
+            w => w.AddToActiveProfileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
         // The geofence itself is not the gated feature -- it still gets created, just inactive.
         this._repository.Verify(r => r.CreateAsync(It.IsAny<UserGeofence>()), Times.Once);
     }
@@ -181,65 +184,25 @@ public class UserGeofenceServiceTests
     }
 
     [Fact]
-    public async Task CreateAsyncDelegatesAreaAddToAtomicWriter()
+    public async Task CreateAsyncAddsTheAreaThroughTheV2Writer()
     {
-        var model = new UserGeofenceCreate
-        {
-            DisplayName = "Park",
-            Polygon = [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]
-        };
-        this._repository.Setup(r => r.GetCountByHumanIdAsync("u1")).ReturnsAsync(0);
-        this._repository.Setup(r => r.CreateAsync(It.IsAny<UserGeofence>()))
-            .ReturnsAsync((UserGeofence g) => g);
+        this.SetUpCreate();
 
-        await this._sut.CreateAsync("u1", 1, model);
+        var result = await this._sut.CreateAsync("u1", 1, ParkModel());
 
-        // The service must delegate the dual-write to the atomic IUserAreaDualWriter —
-        // going through IPoracleHumanProxy.SetAreasAsync would let PoracleNG strip the
-        // geofence because the feed serves it with userSelectable=false.
-        this._areaWriter.Verify(w => w.AddAreaToActiveProfileAsync("u1", "park"), Times.Once);
-        this._humanProxy.Verify(p => p.SetAreasAsync(It.IsAny<string>(), It.IsAny<string[]>()), Times.Never);
+        // Not SetAreasAsync (PoracleNG would strip the userSelectable=false fence).
+        this._userAreaWriter.Verify(w => w.AddToActiveProfileAsync("u1", "park"), Times.Once);
+        Assert.False(result.ActivationFailed);
     }
 
     [Fact]
-    public async Task CreateAsyncPrefersTrustedSetAreasWhenAvailable()
+    public async Task CreateAsyncReloadsOnceBecauseTheTrustedWriteReloadsItself()
     {
-        // #838: once PoracleNG's v2 trusted setAreas is usable, it replaces the atomic writer rather
-        // than being added alongside it -- a non-null answer from the proxy means the write already
-        // happened, so the dual writer must not also run and double-write.
-        var model = new UserGeofenceCreate
-        {
-            DisplayName = "Park",
-            Polygon = [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]
-        };
-        this._repository.Setup(r => r.GetCountByHumanIdAsync("u1")).ReturnsAsync(0);
-        this._repository.Setup(r => r.CreateAsync(It.IsAny<UserGeofence>()))
-            .ReturnsAsync((UserGeofence g) => g);
-        this._humanProxy
-            .Setup(p => p.AddAreaToActiveProfileTrustedAsync("u1", "park"))
-            .ReturnsAsync(true);
+        this.SetUpCreate();
 
-        await this._sut.CreateAsync("u1", 1, model);
+        await this._sut.CreateAsync("u1", 1, ParkModel());
 
-        this._humanProxy.Verify(p => p.AddAreaToActiveProfileTrustedAsync("u1", "park"), Times.Once);
-        this._areaWriter.Verify(
-            w => w.AddAreaToActiveProfileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task CreateAsyncCallsReloadGeofencesAsync()
-    {
-        var model = new UserGeofenceCreate { DisplayName = "Test", Polygon = [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]] };
-        this._repository.Setup(r => r.GetCountByHumanIdAsync("u1")).ReturnsAsync(0);
-        this._repository.Setup(r => r.CreateAsync(It.IsAny<UserGeofence>()))
-            .ReturnsAsync((UserGeofence g) => g);
-        this._humanProxy.Setup(p => p.GetHumanAsync("u1")).ReturnsAsync(MakeHumanJson("u1", "[]"));
-
-        await this._sut.CreateAsync("u1", 1, model);
-
-        // Before the area add so PoracleNG knows the fence, and again after the direct-DB write
-        // (the default mocks take the dual-writer path) so it sees the changed area.
-        this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Exactly(2));
+        this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Once);
     }
 
     private void SetUpCreate()
@@ -256,77 +219,70 @@ public class UserGeofenceServiceTests
     };
 
     [Fact]
-    public async Task CreateReloadsGeofencesBeforeAddingTheAreaOnTheTrustedPath()
+    public async Task CreateReloadsGeofencesBeforeAddingTheArea()
     {
-        // PoracleNG's trusted setAreas rejects a name it has not loaded, and it only learns of a brand-new
-        // fence from the reload. Reloading after the add left every new fence inactive on a server offering
-        // trusted setAreas, with the proxy logging the rejection and the dual-writer fallback never running.
+        // The v2 trusted write rejects a name PoracleNG has not loaded, and it only learns of a brand-new
+        // fence from the reload (#937).
         this.SetUpCreate();
         var calls = new List<string>();
         this._poracleApiProxy.Setup(p => p.ReloadGeofencesAsync())
             .Callback(() => calls.Add("reload")).Returns(Task.CompletedTask);
-        this._humanProxy.Setup(p => p.AddAreaToActiveProfileTrustedAsync("u1", "park"))
-            .Callback(() => calls.Add("trusted-add")).ReturnsAsync(true);
+        this._userAreaWriter.Setup(w => w.AddToActiveProfileAsync("u1", "park"))
+            .Callback(() => calls.Add("add")).ReturnsAsync(true);
 
         await this._sut.CreateAsync("u1", 1, ParkModel());
 
-        Assert.Equal(["reload", "trusted-add"], calls);
-        this._areaWriter.Verify(
-            w => w.AddAreaToActiveProfileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        Assert.Equal(["reload", "add"], calls);
     }
 
     [Fact]
-    public async Task CreateStillUsesTheDualWriterWhenTrustedIsUnavailable()
+    public async Task CreateKeepsTheFenceAndFlagsActivationFailedWhenTheAddIsRejected()
     {
-        // Released PoracleNG has no trusted setAreas: the direct-DB write runs, and PoracleNG needs a
-        // reload after it to see the changed area, so the reload is made on both sides of the write.
         this.SetUpCreate();
-        var calls = new List<string>();
-        this._poracleApiProxy.Setup(p => p.ReloadGeofencesAsync())
-            .Callback(() => calls.Add("reload")).Returns(Task.CompletedTask);
-        this._humanProxy.Setup(p => p.AddAreaToActiveProfileTrustedAsync("u1", "park"))
-            .Callback(() => calls.Add("trusted-add")).ReturnsAsync((bool?)null);
-        this._areaWriter.Setup(w => w.AddAreaToActiveProfileAsync("u1", "park"))
-            .Callback(() => calls.Add("dual-writer")).ReturnsAsync(true);
+        this._userAreaWriter.Setup(w => w.AddToActiveProfileAsync("u1", "park")).ReturnsAsync(false);
 
-        await this._sut.CreateAsync("u1", 1, ParkModel());
+        var result = await this._sut.CreateAsync("u1", 1, ParkModel());
 
-        Assert.Equal(["reload", "trusted-add", "dual-writer", "reload"], calls);
+        Assert.True(result.ActivationFailed);
+        this._repository.Verify(r => r.CreateAsync(It.IsAny<UserGeofence>()), Times.Once);
+        this._repository.Verify(r => r.DeleteAsync(It.IsAny<int>()), Times.Never);
     }
 
     [Fact]
-    public async Task CreateFallsBackToTheDualWriterAndReloadsAfterWhenTrustedRejectsTheFence()
+    public async Task CreateFlagsActivationFailedWithoutTryingTheAddWhenTheReloadFailed()
     {
-        // A reload that answered ok does not prove PoracleNG fetched our feed. If it still did not know
-        // the fence, the proxy answers null after the rejection and the direct write must follow.
-        this.SetUpCreate();
-        var calls = new List<string>();
-        this._poracleApiProxy.Setup(p => p.ReloadGeofencesAsync())
-            .Callback(() => calls.Add("reload")).Returns(Task.CompletedTask);
-        this._humanProxy.Setup(p => p.AddAreaToActiveProfileTrustedAsync("u1", "park"))
-            .Callback(() => calls.Add("trusted-add")).ReturnsAsync((bool?)null);
-        this._areaWriter.Setup(w => w.AddAreaToActiveProfileAsync("u1", "park"))
-            .Callback(() => calls.Add("dual-writer")).ReturnsAsync(true);
-
-        await this._sut.CreateAsync("u1", 1, ParkModel());
-
-        Assert.Equal(["reload", "trusted-add", "dual-writer", "reload"], calls);
-    }
-
-    [Fact]
-    public async Task CreateUsesTheDualWriterWhenTheReloadBeforeTheAddFailed()
-    {
-        // Without that reload PoracleNG does not know the fence, so a trusted add would be rejected
-        // and silently leave it inactive. The direct-DB write does not depend on PoracleNG's list.
+        // PoracleNG would reject a name it has not loaded, so the add is not attempted.
         this.SetUpCreate();
         this._poracleApiProxy.Setup(p => p.ReloadGeofencesAsync()).ThrowsAsync(new HttpRequestException("down"));
-        this._humanProxy.Setup(p => p.AddAreaToActiveProfileTrustedAsync("u1", "park")).ReturnsAsync(true);
 
-        await this._sut.CreateAsync("u1", 1, ParkModel());
+        var result = await this._sut.CreateAsync("u1", 1, ParkModel());
 
-        this._humanProxy.Verify(
-            p => p.AddAreaToActiveProfileTrustedAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
-        this._areaWriter.Verify(w => w.AddAreaToActiveProfileAsync("u1", "park"), Times.Once);
+        Assert.True(result.ActivationFailed);
+        this._userAreaWriter.Verify(
+            w => w.AddToActiveProfileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateKeepsTheFenceWhenTheWriterThrows()
+    {
+        this.SetUpCreate();
+        this._userAreaWriter.Setup(w => w.AddToActiveProfileAsync("u1", "park"))
+            .ThrowsAsync(new HttpRequestException("down"));
+
+        var result = await this._sut.CreateAsync("u1", 1, ParkModel());
+
+        Assert.True(result.ActivationFailed);
+    }
+
+    [Fact]
+    public async Task CreateWithAreasDisabledIsNotReportedAsAFailedActivation()
+    {
+        this.SetUpCreate();
+        this._featureGate.Setup(g => g.IsEnabledAsync(DisableFeatureKeys.Areas)).ReturnsAsync(false);
+
+        var result = await this._sut.CreateAsync("u1", 1, ParkModel());
+
+        Assert.False(result.ActivationFailed);
     }
 
     [Fact]
@@ -391,18 +347,83 @@ public class UserGeofenceServiceTests
     // --- DeleteAsync ---
 
     [Fact]
-    public async Task DeleteAsyncDelegatesRemoveAllToAtomicWriterAndDeletesRecord()
+    public async Task DeleteAsyncRemovesTheNameThroughPoracleThenCleansKojiThenDeletesTheRowThenReloads()
+    {
+        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown", Status = "approved", PromotedName = "Downtown Official" };
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
+        var order = new List<string>();
+        this._userAreaWriter.Setup(w => w.RemoveEverywhereAsync("u1", "downtown official", true))
+            .Callback(() => order.Add("remove")).Returns(Task.CompletedTask);
+        this._kojiService.Setup(k => k.RemoveGeofenceFromProjectAsync("Downtown Official"))
+            .Callback(() => order.Add("koji")).Returns(Task.CompletedTask);
+        this._repository.Setup(r => r.DeleteAsync(1)).Callback(() => order.Add("row")).Returns(Task.CompletedTask);
+        this._poracleApiProxy.Setup(p => p.ReloadGeofencesAsync()).Callback(() => order.Add("reload")).Returns(Task.CompletedTask);
+
+        await this._sut.DeleteAsync("u1", 1, 1, deleteWidenedAlarms: true);
+
+        Assert.Equal(["remove", "koji", "row", "reload"], order);
+    }
+
+    [Fact]
+    public async Task DeleteAsyncPassesKeepThrough()
     {
         var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown" };
         this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
 
-        await this._sut.DeleteAsync("u1", 1, 1);
+        await this._sut.DeleteAsync("u1", 1, 1, deleteWidenedAlarms: false);
 
-        // Atomic cross-profile removal goes through the writer, never the proxy.
-        this._areaWriter.Verify(w => w.RemoveAreaFromAllProfilesAsync("u1", "downtown"), Times.Once);
-        this._humanProxy.Verify(p => p.SetAreasAsync(It.IsAny<string>(), It.IsAny<string[]>()), Times.Never);
+        this._userAreaWriter.Verify(w => w.RemoveEverywhereAsync("u1", "downtown", false), Times.Once);
         this._repository.Verify(r => r.DeleteAsync(1), Times.Once);
-        this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Once);
+    }
+
+    /// <summary>
+    /// The row is the only record of the fence's name. Deleting it after PoracleNG failed to remove the name
+    /// would leave every profile subscribed to an area nothing serves, with no way to clean it up.
+    /// </summary>
+    [Fact]
+    public async Task DeleteAsyncKeepsTheRowWhenPoracleCannotRemoveTheName()
+    {
+        // Promoted, so a Koji copy exists: it must survive too, or the retry finds a fence Koji no longer has.
+        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown", Status = "approved", PromotedName = "Downtown Official" };
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
+        this._userAreaWriter.Setup(w => w.RemoveEverywhereAsync("u1", "downtown official", true))
+            .ThrowsAsync(new HttpRequestException("poracle down"));
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.DeleteAsync("u1", 1, 1, deleteWidenedAlarms: true));
+
+        this._kojiService.Verify(k => k.RemoveGeofenceFromProjectAsync(It.IsAny<string>()), Times.Never);
+        this._repository.Verify(r => r.DeleteAsync(It.IsAny<int>()), Times.Never);
+        this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task GetDeleteImpactAsyncPreviewsTheOwnersName()
+    {
+        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown" };
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
+        var impact = new AreaDeleteImpact(new Dictionary<string, int> { ["pokemon"] = 2 }, 2);
+        this._userAreaWriter.Setup(w => w.PreviewRemovalAsync("u1", "downtown")).ReturnsAsync(impact);
+
+        Assert.Same(impact, await this._sut.GetDeleteImpactAsync("u1", 1));
+        this._userAreaWriter.Verify(w => w.RemoveEverywhereAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GetDeleteImpactAsyncRefusesAnotherUsersFence()
+    {
+        var geofence = new UserGeofence { Id = 1, HumanId = "other_user", KojiName = "downtown" };
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => this._sut.GetDeleteImpactAsync("u1", 1));
+        this._userAreaWriter.Verify(w => w.PreviewRemovalAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GetDeleteImpactAsyncThrowsWhenGeofenceNotFound()
+    {
+        this._repository.Setup(r => r.GetByIdAsync(99)).ReturnsAsync((UserGeofence?)null);
+
+        await Assert.ThrowsAsync<GeofenceNotFoundException>(() => this._sut.GetDeleteImpactAsync("u1", 99));
     }
 
     [Fact]
@@ -411,7 +432,8 @@ public class UserGeofenceServiceTests
         var geofence = new UserGeofence { Id = 1, HumanId = "other_user", KojiName = "pweb_other_user_downtown" };
         this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
 
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => this._sut.DeleteAsync("u1", 1, 1));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => this._sut.DeleteAsync("u1", 1, 1, true));
+        this._userAreaWriter.Verify(w => w.RemoveEverywhereAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
     }
 
     [Fact]
@@ -419,7 +441,7 @@ public class UserGeofenceServiceTests
     {
         this._repository.Setup(r => r.GetByIdAsync(99)).ReturnsAsync((UserGeofence?)null);
 
-        await Assert.ThrowsAsync<GeofenceNotFoundException>(() => this._sut.DeleteAsync("u1", 1, 99));
+        await Assert.ThrowsAsync<GeofenceNotFoundException>(() => this._sut.DeleteAsync("u1", 1, 99, true));
     }
 
     // --- SubmitForReviewAsync ---
@@ -627,14 +649,14 @@ public class UserGeofenceServiceTests
     {
         // The bug this guards: Koji's __name is also Poracle's matching key, and humans.area/profiles.area
         // must hold the identical string -- Poracle matches case-sensitively. A promoted name reaching Koji
-        // verbatim while RenameAreaInAllProfilesAsync lowercased its own copy left the two diverged, so the
+        // verbatim while the rename lowercased its own copy left the two diverged, so the
         // owner's subscription silently stopped matching anything Poracle served for that area.
         this.SeedPendingGeofence();
 
         await this._sut.ApproveSubmissionAsync("admin1", 1, "New Downtown");
 
         this._kojiService.Verify(k => k.SaveGeofenceAsync("new downtown", "Downtown", "City", 5, It.IsAny<double[][]>(), true), Times.Once);
-        this._areaWriter.Verify(w => w.RenameAreaInAllProfilesAsync("u1", "downtown", "new downtown"), Times.Once);
+        this._userAreaWriter.Verify(w => w.RenameEverywhereAsync("u1", "downtown", "new downtown"), Times.Once);
     }
 
     // This used to assert that approve calls SetAreasAsync with a swapped list. That WAS the bug:
@@ -669,7 +691,7 @@ public class UserGeofenceServiceTests
 
         await this._sut.ApproveSubmissionAsync("admin1", 1, "New Downtown");
 
-        this._areaWriter.Verify(w => w.RenameAreaInAllProfilesAsync("u1", "downtown", "new downtown"), Times.Once);
+        this._userAreaWriter.Verify(w => w.RenameEverywhereAsync("u1", "downtown", "new downtown"), Times.Once);
     }
 
     [Fact]
@@ -679,7 +701,6 @@ public class UserGeofenceServiceTests
 
         await this._sut.ApproveSubmissionAsync("admin1", 1, "New Downtown");
 
-        this._humanProxy.Verify(p => p.SetAreasAsync(It.IsAny<string>(), It.IsAny<string[]>()), Times.Never);
     }
 
     [Fact]
@@ -689,9 +710,8 @@ public class UserGeofenceServiceTests
 
         await this._sut.ApproveSubmissionAsync("admin1", 1, null);
 
-        this._areaWriter.Verify(
-            w => w.RenameAreaInAllProfilesAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
-        this._humanProxy.Verify(p => p.SetAreasAsync(It.IsAny<string>(), It.IsAny<string[]>()), Times.Never);
+        this._userAreaWriter.Verify(
+            w => w.RenameEverywhereAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
@@ -700,15 +720,110 @@ public class UserGeofenceServiceTests
         // The fence is already public in Koji by this point, so the approval stands; the owner losing
         // their subscription is logged rather than rolled back into a failed approve.
         this.SeedPendingGeofence();
-        this._areaWriter
-            .Setup(w => w.RenameAreaInAllProfilesAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .ThrowsAsync(new InvalidOperationException("db down"));
+        this._userAreaWriter
+            .Setup(w => w.RenameEverywhereAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ThrowsAsync(new InvalidOperationException("down"));
 
         var result = await this._sut.ApproveSubmissionAsync("admin1", 1, "New Downtown");
 
         Assert.Equal("approved", result.Status);
+        Assert.False(result.OwnerAreasRenamed);
     }
 
+    [Fact]
+    public async Task ApproveSubmissionAsyncReportsOwnerAreasRenamedFalseWhenTheRenameIsRefused()
+    {
+        this.SeedPendingGeofence();
+        this._userAreaWriter
+            .Setup(w => w.RenameEverywhereAsync("u1", "downtown", "new downtown")).ReturnsAsync(false);
+
+        var result = await this._sut.ApproveSubmissionAsync("admin1", 1, "New Downtown");
+
+        Assert.Equal("approved", result.Status);
+        Assert.False(result.OwnerAreasRenamed);
+    }
+
+    [Fact]
+    public async Task ApproveSubmissionAsyncReportsOwnerAreasRenamedTrueWhenTheRenameLands()
+    {
+        this.SeedPendingGeofence();
+        this._userAreaWriter
+            .Setup(w => w.RenameEverywhereAsync("u1", "downtown", "new downtown")).ReturnsAsync(true);
+
+        var result = await this._sut.ApproveSubmissionAsync("admin1", 1, "New Downtown");
+
+        Assert.True(result.OwnerAreasRenamed);
+    }
+
+    [Fact]
+    public async Task ApproveSubmissionAsyncReloadsAfterTheKojiSaveAndBeforeTheRename()
+    {
+        this.SeedPendingGeofence();
+        var order = new List<string>();
+        this._kojiService
+            .Setup(k => k.SaveGeofenceAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<double[][]>(), It.IsAny<bool>()))
+            .Callback(() => order.Add("koji")).Returns(Task.CompletedTask);
+        this._kojiService.Setup(k => k.InvalidateAdminGeofenceCache()).Callback(() => order.Add("invalidate"));
+        this._poracleApiProxy.Setup(p => p.ReloadGeofencesAsync()).Callback(() => order.Add("reload")).Returns(Task.CompletedTask);
+        this._userAreaWriter
+            .Setup(w => w.RenameEverywhereAsync("u1", "downtown", "new downtown"))
+            .Callback(() => order.Add("rename")).ReturnsAsync(true);
+
+        await this._sut.ApproveSubmissionAsync("admin1", 1, "New Downtown");
+
+        var firstReload = order.IndexOf("reload");
+        Assert.True(order.IndexOf("koji") < order.IndexOf("invalidate"));
+        Assert.True(order.IndexOf("invalidate") < firstReload);
+        Assert.True(firstReload < order.IndexOf("rename"));
+    }
+
+    [Fact]
+    public async Task ApproveSubmissionAsyncSkipsTheRenameWhenTheReloadFailed()
+    {
+        this.SeedPendingGeofence();
+        this._poracleApiProxy.Setup(p => p.ReloadGeofencesAsync()).ThrowsAsync(new HttpRequestException("down"));
+
+        var result = await this._sut.ApproveSubmissionAsync("admin1", 1, "New Downtown");
+
+        Assert.Equal("approved", result.Status);
+        Assert.False(result.OwnerAreasRenamed);
+        this._userAreaWriter.Verify(
+            w => w.RenameEverywhereAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RenameAsyncRenamesTheAreaEverywhereAfterTheRowUpdate()
+    {
+        var order = new List<string>();
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(new UserGeofence
+        {
+            Id = 1, HumanId = "u1", KojiName = "downtown", DisplayName = "Downtown", Status = "active",
+        });
+        this._repository.Setup(r => r.UpdateAsync(It.IsAny<UserGeofence>()))
+            .Callback(() => order.Add("update")).ReturnsAsync((UserGeofence g) => g);
+        this._poracleApiProxy.Setup(p => p.ReloadGeofencesAsync()).Callback(() => order.Add("reload")).Returns(Task.CompletedTask);
+        this._userAreaWriter.Setup(w => w.RenameEverywhereAsync("u1", "downtown", "uptown"))
+            .Callback(() => order.Add("rename")).ReturnsAsync(true);
+
+        await this._sut.RenameAsync("u1", 1, "Uptown", null, null);
+
+        Assert.Equal(["update", "reload", "rename"], order);
+    }
+
+    [Fact]
+    public async Task RenameAsyncDoesNotRenameWhenOnlyTheCasingChanges()
+    {
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(new UserGeofence
+        {
+            Id = 1, HumanId = "u1", KojiName = "downtown", DisplayName = "downtown", Status = "active",
+        });
+        this._repository.Setup(r => r.UpdateAsync(It.IsAny<UserGeofence>())).ReturnsAsync((UserGeofence g) => g);
+
+        await this._sut.RenameAsync("u1", 1, "Downtown", null, null);
+
+        this._userAreaWriter.Verify(
+            w => w.RenameEverywhereAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
     [Fact]
     public async Task ApproveSubmissionAsyncThrowsWhenPromotedNameHasInvalidChars() => await Assert.ThrowsAsync<InvalidOperationException>(
             () => this._sut.ApproveSubmissionAsync("admin1", 1, "test<script>"));
@@ -862,10 +977,122 @@ public class UserGeofenceServiceTests
         this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
         this._humanProxy.Setup(p => p.GetHumanAsync("u1")).ReturnsAsync(MakeHumanJson("u1", "[\"downtown\"]"));
 
-        await this._sut.AdminDeleteAsync("admin1", 1);
+        await this._sut.AdminDeleteAsync("admin1", 1, true);
 
+        this._userAreaWriter.Verify(w => w.RemoveEverywhereAsync("u1", "downtown", true), Times.Once);
         this._repository.Verify(r => r.DeleteAsync(1), Times.Once);
         this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task AdminDeleteAsyncPassesKeepThrough()
+    {
+        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown", Status = "active" };
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
+
+        await this._sut.AdminDeleteAsync("admin1", 1, false);
+
+        this._userAreaWriter.Verify(w => w.RemoveEverywhereAsync("u1", "downtown", false), Times.Once);
+    }
+
+    /// <summary>
+    /// This used to log the failure and delete the row anyway, which left the owner's profiles holding a
+    /// name nothing would ever clean up.
+    /// </summary>
+    [Fact]
+    public async Task AdminDeleteAsyncKeepsTheRowWhenPoracleCannotRemoveTheName()
+    {
+        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown", Status = "approved", PromotedName = "Downtown Official" };
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
+        this._userAreaWriter.Setup(w => w.RemoveEverywhereAsync("u1", "downtown official", true))
+            .ThrowsAsync(new HttpRequestException("poracle down"));
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.AdminDeleteAsync("admin1", 1, true));
+
+        this._kojiService.Verify(k => k.RemoveGeofenceFromProjectAsync(It.IsAny<string>()), Times.Never);
+        this._repository.Verify(r => r.DeleteAsync(It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task AdminDeleteAsyncRemovesTheNameBeforeCleaningKoji()
+    {
+        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown", Status = "approved", PromotedName = "Downtown Official" };
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
+        var order = new List<string>();
+        this._userAreaWriter.Setup(w => w.RemoveEverywhereAsync("u1", "downtown official", true))
+            .Callback(() => order.Add("remove")).Returns(Task.CompletedTask);
+        this._kojiService.Setup(k => k.RemoveGeofenceFromProjectAsync("Downtown Official"))
+            .Callback(() => order.Add("koji")).Returns(Task.CompletedTask);
+        this._repository.Setup(r => r.DeleteAsync(1)).Callback(() => order.Add("row")).Returns(Task.CompletedTask);
+
+        await this._sut.AdminDeleteAsync("admin1", 1, true);
+
+        Assert.Equal(["remove", "koji", "row"], order);
+    }
+
+    // --- RemoveFencesOfDeletedAccountAsync (purge leftovers) ---
+
+    [Fact]
+    public async Task RemoveFencesOfDeletedAccountAsyncCleansKojiDeletesRowsAndReloadsOnce()
+    {
+        this._repository.Setup(r => r.GetByHumanIdAsync("u1")).ReturnsAsync(
+        [
+            new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown", Status = "approved", PromotedName = "Downtown Official" },
+            new UserGeofence { Id = 2, HumanId = "u1", KojiName = "park", Status = "active" },
+        ]);
+
+        await this._sut.RemoveFencesOfDeletedAccountAsync("u1");
+
+        this._kojiService.Verify(k => k.RemoveGeofenceFromProjectAsync("Downtown Official"), Times.Once);
+        this._kojiService.Verify(k => k.RemoveGeofenceFromProjectAsync("park"), Times.Never);
+        this._repository.Verify(r => r.DeleteAsync(1), Times.Once);
+        this._repository.Verify(r => r.DeleteAsync(2), Times.Once);
+        this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Once);
+        // The account is gone, so there are no area lists to touch.
+        this._userAreaWriter.Verify(w => w.RemoveEverywhereAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RemoveFencesOfDeletedAccountAsyncWithNothingLeftDoesNotReload()
+    {
+        this._repository.Setup(r => r.GetByHumanIdAsync("u1")).ReturnsAsync([]);
+
+        await this._sut.RemoveFencesOfDeletedAccountAsync("u1");
+
+        this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Never);
+    }
+
+    /// <summary>An owner PoracleNG no longer has holds no areas, so there is nothing to clean and the row goes.</summary>
+    [Fact]
+    public async Task AdminDeleteAsyncDeletesTheRowWhenTheOwnerIsGoneFromPoracle()
+    {
+        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown", Status = "active" };
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
+        this._userAreaWriter.Setup(w => w.RemoveEverywhereAsync("u1", "downtown", true))
+            .ThrowsAsync(new AccountGoneException());
+
+        await this._sut.AdminDeleteAsync("admin1", 1, true);
+
+        this._repository.Verify(r => r.DeleteAsync(1), Times.Once);
+    }
+
+    [Fact]
+    public async Task AdminGetDeleteImpactAsyncPreviewsForTheOwner()
+    {
+        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown", Status = "active" };
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
+        var impact = new AreaDeleteImpact(new Dictionary<string, int>(), 0);
+        this._userAreaWriter.Setup(w => w.PreviewRemovalAsync("u1", "downtown")).ReturnsAsync(impact);
+
+        Assert.Same(impact, await this._sut.AdminGetDeleteImpactAsync(1));
+    }
+
+    [Fact]
+    public async Task AdminGetDeleteImpactAsyncThrowsWhenNotFound()
+    {
+        this._repository.Setup(r => r.GetByIdAsync(99)).ReturnsAsync((UserGeofence?)null);
+
+        await Assert.ThrowsAsync<GeofenceNotFoundException>(() => this._sut.AdminGetDeleteImpactAsync(99));
     }
 
     [Fact]
@@ -875,7 +1102,7 @@ public class UserGeofenceServiceTests
         this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
         this._humanProxy.Setup(p => p.GetHumanAsync("u1")).ReturnsAsync(MakeHumanJson("u1", "[\"downtown official\"]"));
 
-        await this._sut.AdminDeleteAsync("admin1", 1);
+        await this._sut.AdminDeleteAsync("admin1", 1, true);
 
         this._kojiService.Verify(k => k.RemoveGeofenceFromProjectAsync("Downtown Official"), Times.Once);
     }
@@ -887,7 +1114,7 @@ public class UserGeofenceServiceTests
         this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
         this._humanProxy.Setup(p => p.GetHumanAsync("u1")).ReturnsAsync(MakeHumanJson("u1", "[\"downtown\"]"));
 
-        await this._sut.AdminDeleteAsync("admin1", 1);
+        await this._sut.AdminDeleteAsync("admin1", 1, true);
 
         this._kojiService.Verify(k => k.RemoveGeofenceFromProjectAsync(It.IsAny<string>()), Times.Never);
     }
@@ -897,7 +1124,7 @@ public class UserGeofenceServiceTests
     {
         this._repository.Setup(r => r.GetByIdAsync(99)).ReturnsAsync((UserGeofence?)null);
 
-        await Assert.ThrowsAsync<GeofenceNotFoundException>(() => this._sut.AdminDeleteAsync("admin1", 99));
+        await Assert.ThrowsAsync<GeofenceNotFoundException>(() => this._sut.AdminDeleteAsync("admin1", 99, true));
     }
 
     // --- GetAllAsync ---
@@ -1257,55 +1484,70 @@ public class UserGeofenceServiceTests
 
     // --- AddToProfileAsync ---
 
-    [Fact]
-    public async Task AddToProfileAsyncDelegatesToAtomicWriterAndTriggersReload()
+    private UserGeofence SeedOwned()
     {
-        // Regression guard for #163: the toggle must actually persist. Before #88 the toggle
-        // wrote directly to humans.area. The proxy migration in #88 routed it through
-        // PoracleNG's setAreas, which silently strips every fence with userSelectable=false —
-        // the default for user geofences — so the toggle appeared to succeed but never
-        // actually persisted. We restored the direct-DB path through IUserAreaDualWriter.
         var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown" };
         this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
+        return geofence;
+    }
+
+    [Fact]
+    public async Task AddToProfileAsyncWritesThroughTheV2WriterAndReloads()
+    {
+        this.SeedOwned();
 
         await this._sut.AddToProfileAsync("u1", 1, 1);
 
-        this._areaWriter.Verify(w => w.AddAreaToActiveProfileAsync("u1", "downtown"), Times.Once);
-        this._humanProxy.Verify(p => p.SetAreasAsync(It.IsAny<string>(), It.IsAny<string[]>()), Times.Never);
-        // Direct-DB writes bypass PoracleNG's internal reloadState, so we must trigger one
-        // ourselves. Without this, the toggle would only take effect on the next organic
-        // PoracleNG state reload (potentially minutes).
+        this._userAreaWriter.Verify(w => w.AddToActiveProfileAsync("u1", "downtown"), Times.Once);
         this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Once);
     }
 
     [Fact]
-    public async Task AddToProfileAsyncPrefersTrustedSetAreasWhenAvailable()
+    public async Task AddToProfileAsyncReloadsAndRetriesOnceWhenTheFirstAddIsRejected()
     {
-        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown" };
-        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
-        this._humanProxy
-            .Setup(p => p.AddAreaToActiveProfileTrustedAsync("u1", "downtown"))
-            .ReturnsAsync(true);
+        this.SeedOwned();
+        var calls = new List<string>();
+        this._userAreaWriter.SetupSequence(w => w.AddToActiveProfileAsync("u1", "downtown"))
+            .Returns(() => { calls.Add("add"); return Task.FromResult(false); })
+            .Returns(() => { calls.Add("add"); return Task.FromResult(true); });
+        this._poracleApiProxy.Setup(p => p.ReloadGeofencesAsync())
+            .Callback(() => calls.Add("reload")).Returns(Task.CompletedTask);
 
         await this._sut.AddToProfileAsync("u1", 1, 1);
 
-        this._areaWriter.Verify(
-            w => w.AddAreaToActiveProfileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
-        // The trusted call also triggers PoracleNG's own reload, but the manual one stays
-        // unconditional -- harmless there, load-bearing on the fallback.
-        this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Once);
+        Assert.Equal(["add", "reload", "add", "reload"], calls);
     }
 
     [Fact]
-    public async Task AddToProfileAsyncPropagatesWriterExceptionsAsNotFound()
+    public async Task AddToProfileAsyncThrowsWhenPoracleKeepsRejectingTheName()
     {
-        // The writer throws InvalidOperationException if humans row doesn't exist
-        // (TOCTOU: user deleted mid-request). It must propagate so the controller returns 404
-        // instead of a misleading 204 "success".
-        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown" };
-        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
-        this._areaWriter
-            .Setup(w => w.AddAreaToActiveProfileAsync("u1", "downtown"))
+        this.SeedOwned();
+        this._userAreaWriter.Setup(w => w.AddToActiveProfileAsync("u1", "downtown")).ReturnsAsync(false);
+        this._humanProxy.Setup(p => p.GetAreaListAsync("u1")).ReturnsAsync(["aberdeen"]);
+
+        await Assert.ThrowsAsync<GeofenceActivationFailedException>(
+            () => this._sut.AddToProfileAsync("u1", 1, 1));
+    }
+
+    [Fact]
+    public async Task AddToProfileAsyncIsIdempotentWhenTheNameIsAlreadyOnTheProfile()
+    {
+        // The writer answers false for "already there" too; that is a successful activate, not a failure.
+        this.SeedOwned();
+        this._userAreaWriter.Setup(w => w.AddToActiveProfileAsync("u1", "downtown")).ReturnsAsync(false);
+        this._humanProxy.Setup(p => p.GetAreaListAsync("u1")).ReturnsAsync(["Downtown"]);
+
+        await this._sut.AddToProfileAsync("u1", 1, 1);
+    }
+
+    [Fact]
+    public async Task AddToProfileAsyncPropagatesWriterExceptions()
+    {
+        // A missing human (deleted mid-request) must propagate so the controller does not answer a
+        // misleading 204.
+        this.SeedOwned();
+        this._userAreaWriter
+            .Setup(w => w.AddToActiveProfileAsync("u1", "downtown"))
             .ThrowsAsync(new InvalidOperationException("Human with id u1 not found."));
 
         await Assert.ThrowsAsync<InvalidOperationException>(
@@ -1330,40 +1572,35 @@ public class UserGeofenceServiceTests
         await Assert.ThrowsAsync<UnauthorizedAccessException>(
             () => this._sut.AddToProfileAsync("u1", 1, 1));
         // Writer must not be touched when ownership check fails.
-        this._areaWriter.Verify(
-            w => w.AddAreaToActiveProfileAsync(It.IsAny<string>(), It.IsAny<string>()),
+        this._userAreaWriter.Verify(
+            w => w.AddToActiveProfileAsync(It.IsAny<string>(), It.IsAny<string>()),
             Times.Never);
     }
 
     // --- RemoveFromProfileAsync ---
 
     [Fact]
-    public async Task RemoveFromProfileAsyncDelegatesToAtomicWriterAndTriggersReload()
+    public async Task RemoveFromProfileAsyncWritesThroughTheV2WriterAndReloads()
     {
-        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown" };
-        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
+        this.SeedOwned();
+        var calls = new List<string>();
+        this._userAreaWriter.Setup(w => w.RemoveFromActiveProfileAsync("u1", "downtown"))
+            .Callback(() => calls.Add("remove")).ReturnsAsync(true);
+        this._poracleApiProxy.Setup(p => p.ReloadGeofencesAsync())
+            .Callback(() => calls.Add("reload")).Returns(Task.CompletedTask);
 
         await this._sut.RemoveFromProfileAsync("u1", 1, 1);
 
-        this._areaWriter.Verify(w => w.RemoveAreaFromActiveProfileAsync("u1", "downtown"), Times.Once);
-        this._humanProxy.Verify(p => p.SetAreasAsync(It.IsAny<string>(), It.IsAny<string[]>()), Times.Never);
-        this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Once);
+        Assert.Equal(["remove", "reload"], calls);
     }
 
     [Fact]
-    public async Task RemoveFromProfileAsyncPrefersTrustedSetAreasWhenAvailable()
+    public async Task RemoveFromProfileAsyncSucceedsWhenTheNameWasNotOnTheProfile()
     {
-        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown" };
-        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
-        this._humanProxy
-            .Setup(p => p.RemoveAreaFromActiveProfileTrustedAsync("u1", "downtown"))
-            .ReturnsAsync(true);
+        this.SeedOwned();
+        this._userAreaWriter.Setup(w => w.RemoveFromActiveProfileAsync("u1", "downtown")).ReturnsAsync(false);
 
         await this._sut.RemoveFromProfileAsync("u1", 1, 1);
-
-        this._areaWriter.Verify(
-            w => w.RemoveAreaFromActiveProfileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
-        this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Once);
     }
 
     [Fact]
@@ -1374,110 +1611,8 @@ public class UserGeofenceServiceTests
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(
             () => this._sut.RemoveFromProfileAsync("u1", 1, 1));
-        this._areaWriter.Verify(
-            w => w.RemoveAreaFromActiveProfileAsync(It.IsAny<string>(), It.IsAny<string>()),
-            Times.Never);
-    }
-
-    // --- PreserveOwnedAreasInHumanAsync ---
-
-    [Fact]
-    public async Task PreserveOwnedAreasInHumanAsyncFiltersCandidatesToUserOwnedAndBulkWrites()
-    {
-        // Scenario: user saves the Areas page with a mix of admin areas and their own custom
-        // geofences. PoracleNG's setAreas strips the user geofences; this method re-adds only
-        // the names the user actually owns, and does it in a single bulk writer call so the
-        // whole merge costs one DB round-trip regardless of how many geofences the user has.
-        var owned = new List<UserGeofence>
-        {
-            new() { Id = 1, HumanId = "u1", KojiName = "my park" },
-            new() { Id = 2, HumanId = "u1", KojiName = "my square" },
-        };
-        this._repository.Setup(r => r.GetByHumanIdAsync("u1")).ReturnsAsync(owned);
-
-        string[] candidates = ["downtown", "my park", "my square", "not-owned-area"];
-        var restored = await this._sut.PreserveOwnedAreasInHumanAsync("u1", candidates);
-
-        // Only "my park" and "my square" are owned — downtown is an admin area, "not-owned-area"
-        // is noise. Both get returned and passed to the bulk writer.
-        Assert.Equal(2, restored.Count);
-        Assert.Contains("my park", restored);
-        Assert.Contains("my square", restored);
-        Assert.DoesNotContain("downtown", restored);
-        Assert.DoesNotContain("not-owned-area", restored);
-
-        // The bulk writer must be called ONCE with exactly the owned subset — no per-name loop.
-        this._areaWriter.Verify(
-            w => w.AddAreasToActiveProfileAsync(
-                "u1",
-                It.Is<IReadOnlyCollection<string>>(c =>
-                    c.Count == 2 && c.Contains("my park") && c.Contains("my square"))),
-            Times.Once);
-        // Reload must fire so PoracleNG picks up the merged state.
-        this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Once);
-    }
-
-    [Fact]
-    public async Task PreserveOwnedAreasInHumanAsyncPrefersTrustedSetAreasWhenAvailable()
-    {
-        var owned = new List<UserGeofence> { new() { Id = 1, HumanId = "u1", KojiName = "my park" } };
-        this._repository.Setup(r => r.GetByHumanIdAsync("u1")).ReturnsAsync(owned);
-        this._humanProxy
-            .Setup(p => p.AddAreasToActiveProfileTrustedAsync(
-                "u1", It.Is<IReadOnlyCollection<string>>(c => c.Single() == "my park")))
-            .ReturnsAsync(true);
-
-        await this._sut.PreserveOwnedAreasInHumanAsync("u1", ["my park"]);
-
-        this._areaWriter.Verify(
-            w => w.AddAreasToActiveProfileAsync(
-                It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>()),
-            Times.Never);
-        this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Once);
-    }
-
-    [Fact]
-    public async Task PreserveOwnedAreasInHumanAsyncSkipsWriterAndReloadWhenNothingToRestore()
-    {
-        // If no candidates match owned geofences, the direct-DB path is a no-op and we
-        // should NOT trigger a reload — PoracleNG already reloaded after the caller's
-        // own setAreas call and a second reload would be wasted work.
-        var owned = new List<UserGeofence>
-        {
-            new() { Id = 1, HumanId = "u1", KojiName = "my park" },
-        };
-        this._repository.Setup(r => r.GetByHumanIdAsync("u1")).ReturnsAsync(owned);
-
-        var restored = await this._sut.PreserveOwnedAreasInHumanAsync("u1", ["downtown", "central"]);
-
-        Assert.Empty(restored);
-        this._areaWriter.Verify(
-            w => w.AddAreasToActiveProfileAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>()),
-            Times.Never);
-        this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Never);
-    }
-
-    [Fact]
-    public async Task PreserveOwnedAreasInHumanAsyncReturnsEmptyWhenNoCandidates()
-    {
-        var restored = await this._sut.PreserveOwnedAreasInHumanAsync("u1", []);
-        Assert.Empty(restored);
-        this._repository.Verify(r => r.GetByHumanIdAsync(It.IsAny<string>()), Times.Never);
-        this._areaWriter.Verify(
-            w => w.AddAreasToActiveProfileAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>()),
-            Times.Never);
-    }
-
-    [Fact]
-    public async Task PreserveOwnedAreasInHumanAsyncReturnsEmptyWhenUserOwnsNothing()
-    {
-        this._repository.Setup(r => r.GetByHumanIdAsync("u1")).ReturnsAsync([]);
-
-        var restored = await this._sut.PreserveOwnedAreasInHumanAsync("u1", ["downtown"]);
-
-        Assert.Empty(restored);
-        this._areaWriter.Verify(
-            w => w.AddAreasToActiveProfileAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>()),
+        this._userAreaWriter.Verify(
+            w => w.RemoveFromActiveProfileAsync(It.IsAny<string>(), It.IsAny<string>()),
             Times.Never);
     }
 
@@ -1536,7 +1671,7 @@ public class UserGeofenceServiceTests
         // The orphan case: status is no longer "approved" but the fence is still public in Koji.
         this.SeedGeofence("rejected", promotedName: "Downtown Official");
 
-        await this._sut.AdminDeleteAsync("admin1", 7);
+        await this._sut.AdminDeleteAsync("admin1", 7, true);
 
         this._kojiService.Verify(k => k.RemoveGeofenceFromProjectAsync("Downtown Official"), Times.Once);
     }
@@ -1548,9 +1683,9 @@ public class UserGeofenceServiceTests
         // left them subscribed to a fence that no longer exists.
         this.SeedGeofence("rejected", promotedName: "Downtown Official");
 
-        await this._sut.AdminDeleteAsync("admin1", 7);
+        await this._sut.AdminDeleteAsync("admin1", 7, true);
 
-        this._areaWriter.Verify(w => w.RemoveAreaFromAllProfilesAsync("u1", "downtown official"), Times.Once);
+        this._userAreaWriter.Verify(w => w.RemoveEverywhereAsync("u1", "downtown official", true), Times.Once);
     }
 
     [Fact]
@@ -1558,10 +1693,10 @@ public class UserGeofenceServiceTests
     {
         this.SeedGeofence("active");
 
-        await this._sut.AdminDeleteAsync("admin1", 7);
+        await this._sut.AdminDeleteAsync("admin1", 7, true);
 
         this._kojiService.Verify(k => k.RemoveGeofenceFromProjectAsync(It.IsAny<string>()), Times.Never);
-        this._areaWriter.Verify(w => w.RemoveAreaFromAllProfilesAsync("u1", "downtown"), Times.Once);
+        this._userAreaWriter.Verify(w => w.RemoveEverywhereAsync("u1", "downtown", true), Times.Once);
     }
 
     [Fact]
@@ -1570,10 +1705,23 @@ public class UserGeofenceServiceTests
         // The owner's own delete had the identical hole.
         this.SeedGeofence("approved", promotedName: "Downtown Official");
 
-        await this._sut.DeleteAsync("u1", 1, 7);
+        await this._sut.DeleteAsync("u1", 1, 7, true);
 
         this._kojiService.Verify(k => k.RemoveGeofenceFromProjectAsync("Downtown Official"), Times.Once);
-        this._areaWriter.Verify(w => w.RemoveAreaFromAllProfilesAsync("u1", "downtown official"), Times.Once);
+        this._userAreaWriter.Verify(w => w.RemoveEverywhereAsync("u1", "downtown official", true), Times.Once);
+    }
+
+    /// <summary>The preview must ask about the name the delete will remove, or its count is for another fence.</summary>
+    [Fact]
+    public async Task GetDeleteImpactAsyncUsesThePromotedName()
+    {
+        this.SeedGeofence("approved", promotedName: "Downtown Official");
+        this._userAreaWriter.Setup(w => w.PreviewRemovalAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(new AreaDeleteImpact(new Dictionary<string, int>(), 0));
+
+        await this._sut.GetDeleteImpactAsync("u1", 7);
+
+        this._userAreaWriter.Verify(w => w.PreviewRemovalAsync("u1", "downtown official"), Times.Once);
     }
 
     [Fact]
@@ -1584,7 +1732,7 @@ public class UserGeofenceServiceTests
             .Setup(k => k.RemoveGeofenceFromProjectAsync(It.IsAny<string>()))
             .ThrowsAsync(new HttpRequestException("koji down"));
 
-        await this._sut.DeleteAsync("u1", 1, 7);
+        await this._sut.DeleteAsync("u1", 1, 7, true);
 
         this._repository.Verify(r => r.DeleteAsync(7), Times.Once);
     }
@@ -1687,8 +1835,8 @@ public class UserGeofenceServiceTests
             () => this._sut.ApproveSubmissionAsync("admin1", 7, null));
 
         this._repository.Verify(r => r.UpdateAsync(It.IsAny<UserGeofence>()), Times.Never);
-        this._areaWriter.Verify(
-            w => w.RenameAreaInAllProfilesAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        this._userAreaWriter.Verify(
+            w => w.RenameEverywhereAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
     // ── Koji failures during approve (#422) ─────────────────────────────────────
@@ -1885,5 +2033,98 @@ public class UserGeofenceServiceTests
 
         Assert.Equal(7, saved?.ParentId);
         Assert.Equal("South", saved?.GroupName);
+    }
+
+    private UserGeofence SeedRenameable(string kojiName = "downtown")
+    {
+        var geofence = new UserGeofence
+        {
+            Id = 1, HumanId = "u1", KojiName = kojiName, DisplayName = "Downtown", GroupName = "North", ParentId = 42, Status = "active",
+        };
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
+        this._repository.Setup(r => r.UpdateAsync(It.IsAny<UserGeofence>())).ReturnsAsync((UserGeofence g) => g);
+        return geofence;
+    }
+
+    [Fact]
+    public async Task RenameAsyncRestoresTheRowAndThrowsWhenTheReloadFails()
+    {
+        this.SeedRenameable();
+        var saves = new List<(string, string, string?, int)>();
+        this._repository.Setup(r => r.UpdateAsync(It.IsAny<UserGeofence>()))
+            .Callback<UserGeofence>(g => saves.Add((g.DisplayName, g.KojiName, g.GroupName, g.ParentId)))
+            .ReturnsAsync((UserGeofence g) => g);
+        this._poracleApiProxy.Setup(p => p.ReloadGeofencesAsync()).ThrowsAsync(new HttpRequestException("down"));
+
+        await Assert.ThrowsAsync<GeofenceRenameFailedException>(() => this._sut.RenameAsync("u1", 1, "Uptown", "South", 7));
+
+        Assert.Equal(("Uptown", "uptown", "South", 7), saves[0]);
+        Assert.Equal(("Downtown", "downtown", "North", 42), saves[^1]);
+        this._userAreaWriter.Verify(
+            w => w.RenameEverywhereAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RenameAsyncRestoresTheRowAndThrowsWhenThePoracleRenameIsRefused()
+    {
+        this.SeedRenameable();
+        var saves = new List<(string, string, string?, int)>();
+        this._repository.Setup(r => r.UpdateAsync(It.IsAny<UserGeofence>()))
+            .Callback<UserGeofence>(g => saves.Add((g.DisplayName, g.KojiName, g.GroupName, g.ParentId)))
+            .ReturnsAsync((UserGeofence g) => g);
+        this._userAreaWriter.Setup(w => w.RenameEverywhereAsync("u1", "downtown", "uptown")).ReturnsAsync(false);
+
+        await Assert.ThrowsAsync<GeofenceRenameFailedException>(() => this._sut.RenameAsync("u1", 1, "Uptown", "South", 7));
+
+        Assert.Equal(("Downtown", "downtown", "North", 42), saves[^1]);
+        this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.AtLeast(2));
+    }
+
+    [Fact]
+    public async Task RenameAsyncDoesNotRollBackWhenTheRenameCallItselfThrows()
+    {
+        this.SeedRenameable();
+        this._userAreaWriter.Setup(w => w.RenameEverywhereAsync("u1", "downtown", "uptown"))
+            .ThrowsAsync(new HttpRequestException("timeout"));
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.RenameAsync("u1", 1, "Uptown", null, null));
+
+        this._repository.Verify(r => r.UpdateAsync(It.IsAny<UserGeofence>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task RenameAsyncSkipsTheRenameWhenTheCleanedNamesMatchAMixedCaseLegacyRow()
+    {
+        this.SeedRenameable("Downtown");
+
+        await this._sut.RenameAsync("u1", 1, " downtown ", null, null);
+
+        this._userAreaWriter.Verify(
+            w => w.RenameEverywhereAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ApproveSubmissionAsyncRetriesTheRenameOnceAndReportsTrueWhenTheRetryLands()
+    {
+        this.SeedPendingGeofence();
+        this._userAreaWriter.SetupSequence(w => w.RenameEverywhereAsync("u1", "downtown", "new downtown"))
+            .ReturnsAsync(false).ReturnsAsync(true);
+
+        var result = await this._sut.ApproveSubmissionAsync("admin1", 1, "New Downtown");
+
+        Assert.True(result.OwnerAreasRenamed);
+        this._userAreaWriter.Verify(w => w.RenameEverywhereAsync("u1", "downtown", "new downtown"), Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task ApproveSubmissionAsyncTriesTheRenameExactlyTwiceBeforeGivingUp()
+    {
+        this.SeedPendingGeofence();
+        this._userAreaWriter.Setup(w => w.RenameEverywhereAsync("u1", "downtown", "new downtown")).ReturnsAsync(false);
+
+        var result = await this._sut.ApproveSubmissionAsync("admin1", 1, "New Downtown");
+
+        Assert.False(result.OwnerAreasRenamed);
+        this._userAreaWriter.Verify(w => w.RenameEverywhereAsync("u1", "downtown", "new downtown"), Times.Exactly(2));
     }
 }

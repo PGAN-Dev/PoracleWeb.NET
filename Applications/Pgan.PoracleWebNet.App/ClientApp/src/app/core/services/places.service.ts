@@ -1,12 +1,12 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { Observable, tap, throwError } from 'rxjs';
+import { Observable, catchError, of, tap, throwError } from 'rxjs';
 
 import { ConfigService } from './config.service';
 import { LocationFeatureDisabledError } from './location.service';
 import { SettingsService } from './settings.service';
 import { pinOrNull } from '../../shared/utils/location.utils';
-import { SavedPlace, SavedPlaces } from '../models';
+import { PlaceUsage, SavedPlace, SavedPlaces } from '../models';
 
 /**
  * The places a user can point an alarm at.
@@ -20,13 +20,6 @@ export class PlacesService {
   private readonly http = inject(HttpClient);
   private readonly places = signal<null | SavedPlaces>(null);
   private readonly settings = inject(SettingsService);
-
-  /**
-   * Whether this Poracle server can move a place without deleting it first. Needs PoracleNG 5.2.0;
-   * before it, a place an alarm referenced could not be moved at all, because the delete answers 409
-   * while anything still points at it. False until {@link load} has run.
-   */
-  readonly canEdit = computed(() => this.places()?.canEdit === true);
 
   /** Named places only. Empty until {@link load} has run. */
   readonly named = computed(() => this.places()?.named ?? []);
@@ -50,8 +43,7 @@ export class PlacesService {
   }
 
   /**
-   * Moves a place, keeping its label so every alarm pointing at it follows. Answers 501 on a server
-   * without the endpoint, which is why {@link canEdit} gates the control that calls this.
+   * Moves a place, keeping its label so every alarm pointing at it follows.
    */
   move(label: string, latitude: number, longitude: number): Observable<SavedPlaces> {
     return this.http
@@ -69,5 +61,17 @@ export class PlacesService {
       .pipe(
         tap(() => this.places.update(current => (current ? { ...current, named: current.named.filter(p => p.label !== label) } : current))),
       );
+  }
+
+  /**
+   * The alarms aimed at a place, read before offering Delete, or null when that cannot be read. A failure
+   * is the caller's cue to fall back to the plain confirm, so it answers null rather than an error, and the
+   * error interceptor keeps this URL silent: a pre-check that fails must not toast.
+   */
+  usage(label: string): Observable<null | PlaceUsage> {
+    if (this.settings.isDisabled('disable_location')) return of(null);
+    return this.http
+      .get<PlaceUsage>(`${this.config.apiHost}/api/location/place-usage`, { params: { label } })
+      .pipe(catchError(() => of(null)));
   }
 }

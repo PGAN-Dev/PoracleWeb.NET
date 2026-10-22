@@ -71,12 +71,19 @@ public class PoracleMuteProxy(HttpClient httpClient, IConfiguration configuratio
     }
 
     public async Task<IReadOnlyList<Mute>> DeleteAsync(
-        string userId, string scope, string? value, CancellationToken cancellationToken = default)
+        string userId, string scope, string? value, string? trackingType, CancellationToken cancellationToken = default)
     {
         var query = $"?scope={Uri.EscapeDataString(scope)}";
         if (!string.IsNullOrEmpty(value))
         {
             query += $"&value={Uri.EscapeDataString(value)}";
+        }
+
+        // Only a server carrying jfberry/PoracleNG#328 §6 reports a type, and only that server knows the
+        // parameter, so it goes out exactly when the list handed one back.
+        if (!string.IsNullOrEmpty(trackingType))
+        {
+            query += $"&tracking_type={Uri.EscapeDataString(trackingType)}";
         }
 
         using var response = await this.SendAsync(HttpMethod.Delete, MutePath(userId) + query, null, cancellationToken);
@@ -138,6 +145,9 @@ public class PoracleMuteProxy(HttpClient httpClient, IConfiguration configuratio
             : string.Empty,
         Value = element.TryGetProperty("value", out var value) && value.ValueKind == JsonValueKind.String
             ? value.GetString()
+            : null,
+        TrackingType = element.TryGetProperty("tracking_type", out var trackingType) && trackingType.ValueKind == JsonValueKind.String
+            ? trackingType.GetString()
             : null,
         ExpiresAt = element.TryGetProperty("expires_at", out var expires) && expires.ValueKind == JsonValueKind.Number
             ? expires.GetInt64()

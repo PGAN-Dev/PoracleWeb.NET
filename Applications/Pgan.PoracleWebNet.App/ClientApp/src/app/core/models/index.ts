@@ -404,13 +404,6 @@ export interface PoracleServerConfig {
   pvpFilterMaxRank: number;
   pvpFilterUltraMinCp: number;
   pvpLittleLeagueAllowed: boolean;
-  /**
-   * Whether the connected PoracleNG's /api/v2 genuinely stores a webhook mention (`ping`) rather than
-   * blanking it -- jfberry/PoracleNG#249, not yet in a tagged release. False on every released server.
-   * Gates the "Mention" delivery control in every alarm dialog: hidden rather than offered as a no-op,
-   * same reasoning as the Pokemon edit-in-place toggle.
-   */
-  pingSupported: boolean;
 }
 
 export interface AreaDefinition {
@@ -477,6 +470,8 @@ export interface ReverseGeocodingResult {
 // ─── Geofence ─────────────────────────────────────────────────────────────────
 
 export interface GeofenceData {
+  /** The caller's own drawn fence only: the name they gave it. `name` is its stored key ("lake eola loop 2"). */
+  displayName?: string;
   id: number;
   name: string;
   path: [number, number][];
@@ -488,13 +483,6 @@ export interface AreaSelection {
   group: string;
   name: string;
   selected: boolean;
-}
-
-// ─── PwebSetting ──────────────────────────────────────────────────────────────
-
-export interface PwebSetting {
-  setting: string;
-  value: string | null;
 }
 
 // ─── SiteSetting ──────────────────────────────────────────────────────────────
@@ -563,12 +551,16 @@ export interface WebhookDelegate {
 // ─── User Geofence ───────────────────────────────────────────────────────────
 
 export interface UserGeofence {
+  /** Create response only: saved, but could not be switched on for the active profile. */
+  activationFailed?: boolean;
   createdAt: string;
   displayName: string;
   groupName: string;
   humanId: string;
   id: number;
   kojiName: string;
+  /** Approve response only: false when Koji has the fence but the owner's areas still hold the old name. */
+  ownerAreasRenamed?: boolean | null;
   ownerAvatarUrl?: string;
   ownerName?: string;
   parentId: number;
@@ -583,6 +575,15 @@ export interface UserGeofence {
   status: 'active' | 'pending_review' | 'approved' | 'rejected';
   submittedAt?: string;
   updatedAt: string;
+}
+
+/** What `?alarms=` tells a fence delete to do with alarms limited to that fence alone. */
+export type GeofenceAlarmsChoice = 'delete' | 'keep';
+
+/** Alarms limited to one fence alone, per PoracleNG tracking type. Deleting the fence would widen them. */
+export interface GeofenceDeleteImpact {
+  total: number;
+  widened: Record<string, number>;
 }
 
 export interface UserGeofenceCreate {
@@ -745,13 +746,23 @@ export interface SavedPlace {
   longitude: number;
 }
 
+/** One alarm aimed at a saved place, as `GET /api/location/place-usage` lists it. */
+export interface PlaceUsageRule {
+  /** PoracleNG's one-line summary of the rule, when it sent one. */
+  description: null | string;
+  /** PoracleNG's tracking type; a Pokéstop event is `incident`. */
+  type: string;
+  uid: number;
+}
+
+/** The alarms aimed at one saved place: what stops it being deleted. */
+export interface PlaceUsage {
+  alarms: number;
+  rules: PlaceUsageRule[];
+}
+
 /** Everywhere a user's alarms can be anchored: the profile pin, plus whatever they have named. */
 export interface SavedPlaces {
-  /**
-   * Whether this Poracle server can move a place without deleting it first. Absent on an older
-   * PoracleWeb.NET API, and treated as false, because the edit is what would 404.
-   */
-  canEdit?: boolean;
   /** The profile pin every alarm falls back to. Absent when the user has never set a location. */
   default?: null | SavedPlace;
   named: SavedPlace[];
@@ -776,10 +787,6 @@ export interface AlarmScope {
 
 // ─── PoracleNG server profile ──────────────────────────────────────────────────
 
-/**
- * What PoracleWeb knows about the PoracleNG it is pointed at. Read from that server's `/health` plus
- * its applied migration number; used to say when the server is too old for features this build ships.
- */
 /** How a running component compares to what has been published. */
 export type UpdateState = 'Behind' | 'PreRelease' | 'Unknown' | 'UpToDate';
 
@@ -789,6 +796,10 @@ export interface UpdateStatus {
   state: UpdateState;
 }
 
+/**
+ * What PoracleWeb knows about the PoracleNG it is pointed at, read from that server's `/health`; used to
+ * say when the server is older than the minimum this build supports.
+ */
 export interface PoracleServerProfile {
   /** True only when the version is known and older than `minimumSupported`. */
   belowMinimum: boolean;
@@ -796,11 +807,9 @@ export interface PoracleServerProfile {
   capabilities: Record<string, boolean>;
   checkedAt: string;
   minimumSupported: string;
-  /** Applied migration number, or null when it could not be read. */
   /** Whether the Poracle server is behind its own latest release. */
   poracleUpdate: UpdateStatus;
   reachable: boolean;
-  schemaVersion: null | number;
   version: null | string;
   /** This site's own build. */
   web: { buildDate: null | string; revision: null | string; version: null | string };
@@ -829,3 +838,54 @@ export interface PokestopEvent {
 export type PokestopEventCreate = Omit<PokestopEvent, 'eventName' | 'id' | 'profileNo' | 'uid'>;
 
 export type PokestopEventUpdate = Partial<PokestopEventCreate>;
+
+export type RuleRepairKind = 'CannotEdit' | 'MaxBattleAnyBossLevel9000' | 'MetalGrunt' | 'RaidAnyBossLevel9000' | 'RaidPokemonZero';
+
+export type RuleRepairPhase = 'Applied' | 'Applying' | 'Failed' | 'Idle' | 'Scanned' | 'Scanning';
+
+export interface RuleRepairItem {
+  after: null | string;
+  before: string;
+  humanId: string;
+  kind: RuleRepairKind;
+  profileNo: number;
+  reason: null | string;
+  type: string;
+  uid: number;
+}
+
+export interface RuleRepairSkip {
+  humanId: string;
+  reason: string;
+}
+
+export interface RuleRepairApplyResult {
+  alreadyFine: number;
+  /** Rules left alone because the repair would duplicate another rule; `reason` says so. */
+  conflicts: RuleRepairItem[];
+  failed: RuleRepairItem[];
+  gone: number;
+  repaired: number;
+}
+
+/**
+ * The rule repair job's state. A summary (`?summary=true`, what the card polls while a run is going) has
+ * the three lists empty; the counts are always there.
+ */
+export interface RuleRepairStatus {
+  applied: null | RuleRepairApplyResult;
+  cannotEdit: RuleRepairItem[];
+  cannotEditCount: number;
+  error: null | string;
+  finishedAt: null | string;
+  /** The name of each user the lists mention, by id; absent for a user with no name, and in a summary. */
+  humanNames?: null | Record<string, string>;
+  humansDone: number;
+  humansTotal: number;
+  phase: RuleRepairPhase;
+  repairable: RuleRepairItem[];
+  repairableCount: number;
+  skipped: RuleRepairSkip[];
+  skippedCount: number;
+  startedAt: null | string;
+}

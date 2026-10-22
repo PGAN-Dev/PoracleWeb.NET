@@ -16,11 +16,6 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddPoracleServices(this IServiceCollection services, IConfiguration configuration)
     {
-        // Register DbContext with Oracle MySQL provider
-        var connectionString = configuration.GetConnectionString("PoracleDb");
-        services.AddDbContext<PoracleContext>(options =>
-            options.UseMySQL(connectionString!));
-
         // Register PoracleWebContext for the poracle_web database (owned by this app)
         var webConnectionString = configuration.GetConnectionString("PoracleWebDb");
         services.AddDbContext<PoracleWebContext>(options =>
@@ -50,15 +45,11 @@ public static class ServiceCollectionExtensions
             .SetApplicationName("Pgan.PoracleWebNet.Api");
 
         // Register Repositories
-        services.AddScoped<IHumanRepository, HumanRepository>();
-        services.AddScoped<IProfileRepository, ProfileRepository>();
-        services.AddScoped<IPwebSettingRepository, PwebSettingRepository>();
         services.AddScoped<IUserGeofenceRepository, UserGeofenceRepository>();
         services.AddScoped<ISiteSettingRepository, SiteSettingRepository>();
         services.AddScoped<IWebhookDelegateRepository, WebhookDelegateRepository>();
         services.AddScoped<IQuickPickDefinitionRepository, QuickPickDefinitionRepository>();
         services.AddScoped<IQuickPickAppliedStateRepository, QuickPickAppliedStateRepository>();
-        services.AddScoped<IUserAreaDualWriter, UserAreaDualWriter>();
         services.AddScoped<IOidcSessionRepository, OidcSessionRepository>();
 
         // Register Services
@@ -81,23 +72,17 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IProfileService, ProfileService>();
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<ICleaningService, CleaningService>();
-        services.AddScoped<IPwebSettingService, PwebSettingService>();
         services.AddSingleton<IMasterDataService, MasterDataService>();
         services.AddSingleton<IRaidLevelService, RaidLevelService>();
         services.AddSingleton<IPvpRankService, PvpRankService>();
         services.AddScoped<IQuickPickService, QuickPickService>();
         services.AddScoped<IUserGeofenceService, UserGeofenceService>();
+        services.AddScoped<IUserAreaPolicy, UserAreaPolicy>();
+        services.AddScoped<IUserAreaWriter, UserAreaWriter>();
         services.AddScoped<ISiteSettingService, SiteSettingService>();
         services.AddScoped<ISummaryCapabilityService, SummaryCapabilityService>();
-        services.AddScoped<IQuestPokecoinCapabilityService, QuestPokecoinCapabilityService>();
         services.AddScoped<IPokemonEditCapabilityService, PokemonEditCapabilityService>();
-        services.AddScoped<IMuteCapabilityService, MuteCapabilityService>();
-        services.AddScoped<IPlaceUpdateCapabilityService, PlaceUpdateCapabilityService>();
-        services.AddScoped<INaturalKeyCapabilityService, NaturalKeyCapabilityService>();
-        services.AddScoped<IInvasionGruntNameService, InvasionGruntNameService>();
-        services.AddScoped<ICostumeCapabilityService, CostumeCapabilityService>();
         services.AddScoped<IUpstreamFeatureFlagService, UpstreamFeatureFlagService>();
-        services.AddScoped<IAreaSecurityPolicyService, AreaSecurityPolicyService>();
         services.AddScoped<IFeatureGate, FeatureGate>();
         services.AddScoped<IWebhookDelegateService, WebhookDelegateService>();
         services.AddScoped<ISettingsMigrationService, SettingsMigrationService>();
@@ -132,11 +117,6 @@ public static class ServiceCollectionExtensions
         // Register HttpClient for Poracle API (config, geofences, templates — read-only proxy)
         services.AddHttpClient<IPoracleApiProxy, PoracleApiProxy>();
 
-        // Which PoracleNG this is, and what it can store. /health is unauthenticated, so this needs no
-        // secret and still answers when the API key is wrong -- a state that otherwise looks exactly
-        // like the server being down.
-        services.AddScoped<IPoracleSchemaVersionReader, PoracleSchemaVersionReader>();
-
         // The one outbound call PoracleWeb makes. Anonymous, cached for six hours, and switchable off
         // with disable_update_check for deployments that do not want egress at all.
         services.AddHttpClient<IUpdateCheckService, UpdateCheckService>(client =>
@@ -146,6 +126,8 @@ public static class ServiceCollectionExtensions
             client.DefaultRequestHeaders.UserAgent.ParseAdd("PoracleWeb.NET");
         });
 
+        // Which PoracleNG this is. /health is unauthenticated, so this needs no secret and still answers
+        // when the API key is wrong -- a state that otherwise looks exactly like the server being down.
         services.AddHttpClient<IPoracleServerProfileService, PoracleServerProfileService>(client =>
         {
             // A diagnostic must not hold a request open: an unreachable server should answer
@@ -160,27 +142,21 @@ public static class ServiceCollectionExtensions
             client.Timeout = TimeSpan.FromSeconds(15);
         });
 
-        // Register HttpClient for PoracleNG tracking proxy (alarm CRUD — replaces direct DB writes)
-        // Registered as the concrete type, then decorated: UserOwnedOverrideAreaProxy is what the rest
-        // of the app resolves as IPoracleTrackingProxy. It lets an alarm confine itself to a geofence the
-        // user drew, which PoracleNG's tracking write refuses outright because those fences are served
-        // userSelectable=false. HACK: trusted-set-areas.
-        services.AddHttpClient<PoracleTrackingProxy>();
-        services.AddScoped<IPoracleTrackingProxy>(sp => new UserOwnedOverrideAreaProxy(
-            sp.GetRequiredService<PoracleTrackingProxy>(),
-            sp.GetRequiredService<IUserGeofenceRepository>(),
-            sp.GetRequiredService<IUserAreaDualWriter>(),
-            sp.GetRequiredService<ILogger<UserOwnedOverrideAreaProxy>>()));
+        // Register HttpClient for PoracleNG tracking proxy (every alarm read and write, including bulk
+        // distance and cleaning, through /api/v2)
+        services.AddHttpClient<IPoracleTrackingProxy, PoracleTrackingProxy>();
 
         // Pokestop events (upstream "incident") are v2-only, so they get their own proxy rather than a
-        // second wire shape inside the v1 one. Deliberately NOT wrapped in UserOwnedOverrideAreaProxy:
-        // that decorator speaks v1's stored-row JSON, so confining a pokestop-event alarm to a
-        // user-drawn geofence is refused by PoracleNG with its own message rather than being smuggled
-        // past. HACK: trusted-set-areas would need a v2 twin to change that.
+        // second wire shape inside the tracking one. Like the tracking proxy it authorises override areas
+        // through IUserAreaPolicy and then writes trusted, so a rule limited to a user's own fence saves.
         services.AddHttpClient<IPoracleIncidentProxy, PoracleIncidentProxy>();
 
         // Register HttpClient for PoracleNG human/profile proxy (replaces direct DB writes)
         services.AddHttpClient<IPoracleHumanProxy, PoracleHumanProxy>();
+
+        // Rule repair for PoracleNG 5.4.0: a singleton, so one scan or apply runs per process. Each run
+        // takes its own scope per human from IServiceScopeFactory, never a request's.
+        services.AddSingleton<IRuleRepairJob, RuleRepairJob>();
 
         // Register HttpClient for PoracleNG summary schedule proxy (quest summary delivery)
         services.AddHttpClient<IPoracleSummaryProxy, PoracleSummaryProxy>();

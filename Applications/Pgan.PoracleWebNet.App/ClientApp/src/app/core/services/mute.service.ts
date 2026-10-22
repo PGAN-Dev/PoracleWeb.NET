@@ -17,16 +17,24 @@ export interface Mute {
   expiresAt: number;
   remainingSecs: number;
   scope: MuteScope;
+  /**
+   * For a `tracking` mute, the type of the rule it silences (`raid`, `pokemon`, ...): rule uids are
+   * numbered per table, so the uid alone does not say which rule. Null everywhere else, and on every
+   * server older than jfberry/PoracleNG#328 §6. A lift sends it back exactly when it is present.
+   */
+  trackingType?: null | string;
   value: null | string;
 }
 
 interface MutesResponse {
-  capable: boolean;
   mutes: Mute[];
 }
 
 /** The durations the quiet sheet offers, in minutes. 60 is PoracleNG's own default. */
 export const QUIET_DURATIONS = [15, 30, 60, 240, 480, 1440];
+
+/** Statuses that mean PoracleNG could not be reached: 0 is no response, the rest are gateway failures. */
+const UNREACHABLE_STATUSES = new Set([0, 502, 503, 504]);
 
 /** How long a fetched list is treated as current, in ms. */
 const STALE_AFTER_MS = 20_000;
@@ -41,13 +49,13 @@ const STALE_AFTER_MS = 20_000;
  */
 @Injectable({ providedIn: 'root' })
 export class MuteService {
-  /** False on a PoracleNG older than 5.2.0, where the whole surface stays hidden. */
-  private readonly capableSignal = signal(false);
   private readonly config = inject(ConfigService);
   private readonly http = inject(HttpClient);
   private lastLoadedAt = 0;
-
   private readonly loadedSignal = signal(false);
+
+  /** Set by the first unreachable read of a streak, cleared by the next successful one. */
+  private loadFailureToasted = false;
   private readonly mutesSignal = signal<Mute[]>([]);
   /** Advances once a second while anything is quiet; the countdowns read it. */
   private readonly nowSignal = signal(Date.now());
@@ -57,7 +65,6 @@ export class MuteService {
 
   private readonly tokenStore = inject(TokenStoreService);
   private readonly translate = inject(TranslateService);
-  readonly capable = this.capableSignal.asReadonly();
 
   /** Active mutes, with anything whose countdown has run out dropped as the clock passes it. */
   readonly mutes = computed(() => {
@@ -121,9 +128,12 @@ export class MuteService {
     return label === key ? `${minutes} min` : label;
   }
 
-  /** The stored entry for a subject, whose `value` is the one a delete has to send back. */
-  find(scope: MuteScope, value: null | string): Mute | undefined {
-    return this.mutes().find(mute => mute.scope === scope && sameValue(mute.value, value));
+  /**
+   * The stored entry for a subject, whose `value` is the one a delete has to send back. A tracking type,
+   * when given, has to match too: raid rule 60 and pokemon rule 60 are two mutes.
+   */
+  find(scope: MuteScope, value: null | string, trackingType: null | string = null): Mute | undefined {
+    return this.mutes().find(mute => sameMute(mute, scope, value, trackingType));
   }
 
   isQuiet(scope: MuteScope, value: null | string): boolean {
@@ -134,18 +144,26 @@ export class MuteService {
    * Refetches the list. Cheap and called often on purpose: the store is upstream's memory, so a deploy
    * between two page views can empty it without anything telling us.
    */
-  load(): Observable<boolean> {
+  load(): Observable<void> {
     return this.http.get<MutesResponse>(`${this.config.apiHost}/api/mutes`).pipe(
       tap(response => {
         this.apply(response);
         this.lastLoadedAt = Date.now();
+        this.loadFailureToasted = false;
       }),
-      map(response => response.capable),
-      catchError(() => {
-        // A failed read must not blank a list the user is looking at, and must not claim the server
-        // cannot do this. Leave what we have; the next load will correct it.
+      map(() => undefined),
+      catchError((err: { status?: number }) => {
+        // A failed read must not blank a list the user is looking at. Leave what we have; the next load
+        // will correct it. /api/mutes is on the error interceptor's silent list, so say so here: a chip
+        // that quietly shows nothing quiet while PoracleNG is down is worse than an error.
         this.loadedSignal.set(true);
-        return of(this.capableSignal());
+        // Only an unreachable PoracleNG warrants it (0 is no response at all), and once per failing
+        // streak: a 429 or 401 is not "unreachable", and refocusing the tab must not repeat the toast.
+        if (UNREACHABLE_STATUSES.has(err?.status ?? -1) && !this.loadFailureToasted) {
+          this.loadFailureToasted = true;
+          this.toast(this.translate.instant('QUIET.TOAST_LOAD_FAILED'));
+        }
+        return of(undefined);
       }),
     );
   }
@@ -202,29 +220,37 @@ export class MuteService {
   /**
    * Lifts one quiet period. Sends back the value the SERVER holds rather than the caller's, because the
    * upstream delete is an exact string match against a canonicalised area name.
+   *
+   * `trackingType` is the same rule for a bot-made `tracking` mute (jfberry/PoracleNG#328 §6): pass the
+   * type the list reported, and it goes out only when there is one, so a server that never reports a
+   * type never sees the parameter.
    */
-  resume(scope: MuteScope, value: null | string): Observable<void> {
-    const stored = this.find(scope, value);
+  resume(scope: MuteScope, value: null | string, trackingType: null | string = null): Observable<void> {
+    const stored = this.find(scope, value, trackingType);
     const serverValue = stored ? stored.value : value;
+    const serverType = stored ? (stored.trackingType ?? null) : trackingType;
     const params: Record<string, string> = { scope };
     if (serverValue !== null && serverValue !== undefined) {
       params['value'] = serverValue;
     }
+    if (serverType) {
+      params['trackingType'] = serverType;
+    }
 
     return this.http.delete<{ deleted: Mute[] }>(`${this.config.apiHost}/api/mutes`, { params }).pipe(
       tap(() => {
-        this.remove(scope, serverValue);
+        this.remove(scope, serverValue, serverType);
         this.toast(this.translate.instant('QUIET.TOAST_RESUMED'));
       }),
       map(() => undefined),
-      catchError((err: { status: number }) => {
+      catchError((err: { error?: { error?: string }; status: number }) => {
         // 404 means it had already lapsed — the store expires entries itself. The user asked for it to
         // be gone and it is, so drop it locally and say nothing.
         if (err.status === 404) {
-          this.remove(scope, serverValue);
+          this.remove(scope, serverValue, serverType);
           return of(undefined);
         }
-        this.toast(this.translate.instant('QUIET.TOAST_FAILED'));
+        this.toast(this.failureMessage(err));
         throw err;
       }),
     );
@@ -247,7 +273,6 @@ export class MuteService {
   }
 
   private apply(response: MutesResponse): void {
-    this.capableSignal.set(response.capable);
     this.mutesSignal.set(response.mutes ?? []);
     this.loadedSignal.set(true);
     this.syncTicker();
@@ -269,8 +294,8 @@ export class MuteService {
     this.stopTicking();
   }
 
-  private remove(scope: MuteScope, value: null | string): void {
-    this.mutesSignal.set(this.mutesSignal().filter(mute => !(mute.scope === scope && sameValue(mute.value, value))));
+  private remove(scope: MuteScope, value: null | string, trackingType: null | string = null): void {
+    this.mutesSignal.set(this.mutesSignal().filter(mute => !sameMute(mute, scope, value, trackingType)));
     this.syncTicker();
   }
 
@@ -302,11 +327,33 @@ export class MuteService {
   }
 
   private upsert(mute: Mute): void {
-    const rest = this.mutesSignal().filter(existing => !(existing.scope === mute.scope && sameValue(existing.value, mute.value)));
+    const rest = this.mutesSignal().filter(existing => !sameMute(existing, mute.scope, mute.value, mute.trackingType ?? null));
     this.mutesSignal.set([...rest, mute]);
     this.nowSignal.set(Date.now());
     this.syncTicker();
   }
+}
+
+/**
+ * Whether a stored mute is the one a (scope, value, trackingType) triple names. A null type matches any
+ * type, which is what a server without typed tracking mutes needs and what the four scopes this app
+ * creates always pass.
+ */
+function sameMute(mute: Mute, scope: MuteScope, value: null | string, trackingType: null | string): boolean {
+  if (mute.scope !== scope) return false;
+  if (scope === 'area' ? !sameArea(mute.value, value) : !sameValue(mute.value, value)) return false;
+  return !trackingType || (mute.trackingType ?? null) === trackingType;
+}
+
+/**
+ * Compares two area names the way PoracleNG keys them (`NormalizeAreaKey`): case-insensitive, trimmed,
+ * `_` equal to a space. A profile can hold `west_end` for the fence "West End", and its quiet chip has to
+ * find the mute PoracleNG stores under the fence's own name.
+ */
+function sameArea(a: null | string | undefined, b: null | string | undefined): boolean {
+  const key = (v: string) => v.trim().toLowerCase().replace(/_/g, ' ');
+  if (a === null || a === undefined || b === null || b === undefined) return sameValue(a, b);
+  return key(a) === key(b);
 }
 
 /**

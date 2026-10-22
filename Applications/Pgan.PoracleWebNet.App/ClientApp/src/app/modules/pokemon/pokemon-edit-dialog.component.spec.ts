@@ -1,6 +1,6 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideTranslateService } from '@ngx-translate/core';
@@ -14,7 +14,6 @@ import { I18nService } from '../../core/services/i18n.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MonsterService } from '../../core/services/monster.service';
 import { PoracleConfigService } from '../../core/services/poracle-config.service';
-import { SettingsService } from '../../core/services/settings.service';
 
 /**
  * The edit dialog is where filters go to die: it is written second, drifts from the add dialog, and a
@@ -22,10 +21,13 @@ import { SettingsService } from '../../core/services/settings.service';
  * PoracleNG 5.1.0 added, including a time value the bot can set and the presets do not contain.
  */
 describe('PokemonEditDialogComponent', () => {
+  let webhookSession = false;
   let component: PokemonEditDialogComponent;
   let monsterService: { editSupported: jest.Mock; update: jest.Mock };
 
-  function setup(monster: Partial<Monster>, costumeSupported = true) {
+  let fixture: ComponentFixture<PokemonEditDialogComponent>;
+
+  function setup(monster: Partial<Monster>) {
     monsterService = { editSupported: jest.fn().mockReturnValue(true), update: jest.fn().mockReturnValue(of({})) };
 
     TestBed.resetTestingModule();
@@ -48,13 +50,12 @@ describe('PokemonEditDialogComponent', () => {
             getPokemonName: () => 'Meowth',
           },
         },
-        { provide: I18nService, useValue: { instant: (k: string) => k } },
-        { provide: SettingsService, useValue: { supportsCostume: () => costumeSupported } },
+        { provide: I18nService, useValue: { instant: (k: string) => k, plural: (k: string) => k } },
         {
           provide: PoracleConfigService,
           useValue: { load: () => of({ defaultPvpCap: 0 }), serverConfig: () => ({ pvpCaps: [] }) },
         },
-        { provide: AuthService, useValue: { isImpersonating: () => false, user: () => ({ type: 'discord:user' }) } },
+        { provide: AuthService, useValue: { isImpersonating: () => webhookSession, user: () => ({ type: 'discord:user' }) } },
       ],
       imports: [PokemonEditDialogComponent],
     });
@@ -63,7 +64,8 @@ describe('PokemonEditDialogComponent', () => {
       add: { providers: [{ provide: MatSnackBar, useValue: { open: jest.fn() } }] },
     });
 
-    component = TestBed.createComponent(PokemonEditDialogComponent).componentInstance;
+    fixture = TestBed.createComponent(PokemonEditDialogComponent);
+    component = fixture.componentInstance;
   }
 
   function sent(): MonsterUpdate {
@@ -167,26 +169,14 @@ describe('PokemonEditDialogComponent', () => {
     expect(sent().costume).toBe(0);
   });
 
-  /**
-   * The gate. A Poracle without monsters.costume takes the field, answers 200 and drops it, so an
-   * offered control would leave a rule that reads "Halloween 2025" and matches every spawn. Everything
-   * else about the dialog is unchanged, and the wildcard still goes out -- which is what an old
-   * Poracle stores for an absent key anyway.
-   */
-  it('hides the costume filter when Poracle does not have the column', () => {
-    setup({}, false);
-
-    expect(component.showCostume()).toBe(false);
-
-    component.save();
-
-    expect(sent().costume).toBe(9000);
-  });
-
-  it('offers the costume filter when Poracle has the column', () => {
+  // PoracleNG 5.4.0 stores a costume on every rule, so the control renders with the standard mocks and
+  // nothing telling the dialog the server supports it.
+  it('renders the costume filter without any server capability', () => {
     setup({ costume: 85 });
+    component.ngOnInit();
+    fixture.detectChanges();
 
-    expect(component.showCostume()).toBe(true);
+    expect(fixture.nativeElement.textContent).toContain('POKEMON.LABEL_COSTUME');
   });
 
   it('keeps the mega mode of a PVP rule it did not change', () => {
@@ -225,6 +215,22 @@ describe('PokemonEditDialogComponent', () => {
       component.form.controls.editInPlace.setValue(false);
       component.save();
       expect(sent().clean).toBe(1);
+    });
+  });
+
+  describe('Mention field', () => {
+    // The dialog's only condition for the Mention field is the impersonation snapshot: PoracleNG 5.4.0
+    // always stores a ping, so there is no server-config dependency left to consult.
+    it('is offered on a webhook alarm', () => {
+      webhookSession = true;
+      setup({ minIv: -1 });
+      expect(TestBed.createComponent(PokemonEditDialogComponent).componentInstance.isWebhook).toBe(true);
+    });
+
+    it('is hidden on a personal alarm', () => {
+      webhookSession = false;
+      setup({ minIv: -1 });
+      expect(TestBed.createComponent(PokemonEditDialogComponent).componentInstance.isWebhook).toBe(false);
     });
   });
 });

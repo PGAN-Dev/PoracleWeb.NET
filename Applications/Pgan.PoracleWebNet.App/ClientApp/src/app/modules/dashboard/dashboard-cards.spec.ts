@@ -79,6 +79,7 @@ describe('DashboardComponent cards', () => {
       'pokemon',
       'raids',
       'eggs',
+      'maxBattles',
       'quests',
       'invasions',
       'pokestopEvents',
@@ -86,7 +87,6 @@ describe('DashboardComponent cards', () => {
       'nests',
       'gyms',
       'fortChanges',
-      'maxBattles',
     ]);
   });
 

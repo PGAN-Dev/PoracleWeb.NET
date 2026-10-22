@@ -20,8 +20,8 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 /// </para>
 /// <para>
 /// Where a bound does apply, a field is omitted only if v2's own write default is the identical value,
-/// so the row stores what it already holds. Everywhere else the row goes to v1. Verified against a live
-/// 5.2.1: omitting <c>size</c> stores -1 while sending 0 stores 0, and the server reports the two as
+/// so the row stores what it already holds. Everywhere else the write is refused: there is no v1 left to
+/// fall back to. Verified against a live 5.2.1: omitting <c>size</c> stores -1 while sending 0 stores 0, and the server reports the two as
 /// different rules, so <c>size 0</c> is refused rather than dropped.
 /// </para>
 /// </remarks>
@@ -60,31 +60,34 @@ public class TrackingV2BoundsTests
             { "pokemon", "pvp_ranking_worst", 0, false },
             { "pokemon", "pokemon_id", 0, false },
             { "raid", "pokemon_id", 0, false },
-            // level is refused rather than omitted for a different reason from the rest: the by-level
-            // write default is 90, which matches every tier, so dropping it would turn a rule for one
-            // boss into a rule for every raid in range. PoracleNG writes the 9000 itself whenever
-            // pokemon_id names a specific boss.
-            { "raid", "level", 9000, false },
-            { "maxbattle", "level", 9000, false },
+            // level 9000 is the by-boss placeholder. PoracleNG writes it itself whenever pokemon_id names
+            // a specific boss, and v2 bounds level at 90, so it is omitted like any other default.
+            { "raid", "level", 9000, true },
+            { "maxbattle", "level", 9000, true },
         };
 
     /// <summary>
     /// The test this design exists to satisfy, and the one whose absence made the first attempt a
     /// regression. Every value in <see cref="ProductionRows"/> is accepted by the 5.2.1 these instances
-    /// run, which declares one bound in total. Against such a server nothing may be refused and nothing
-    /// may be omitted: the request goes out exactly as it does today.
+    /// run, which declares one bound in total. Against such a server nothing may be refused: a value equal
+    /// to its read default goes out as absent, which stores the same thing, and every other one is sent.
     /// </summary>
     [Theory]
     [MemberData(nameof(ProductionRows))]
     public void NothingIsRefusedByAServerThatDeclaresNoBounds(string type, string field, int stored, bool omittable)
     {
-        _ = omittable;
-
         Assert.True(
             TrackingV2Translator.TryTranslate(type, With(type, field, stored), null, out var body, out var unsupported),
             $"{type}.{field}={stored} must still reach v2 on a server that does not bound it: {unsupported}");
 
-        Assert.Equal(stored, body.GetProperty(field).GetInt32());
+        if (omittable)
+        {
+            Assert.False(body.TryGetProperty(field, out _), $"{type}.{field}={stored} is the read default and should be absent");
+        }
+        else
+        {
+            Assert.Equal(stored, body.GetProperty(field).GetInt32());
+        }
     }
 
     [Theory]
@@ -101,7 +104,7 @@ public class TrackingV2BoundsTests
         }
         else
         {
-            Assert.False(translated, $"{type}.{field}={stored} must go to v1, because omitting it would change what is stored");
+            Assert.False(translated, $"{type}.{field}={stored} must be refused, because omitting it would change what is stored");
             Assert.NotNull(unsupported);
         }
     }
@@ -148,7 +151,14 @@ public class TrackingV2BoundsTests
                 Assert.True(
                     TrackingV2Translator.TryTranslate(type, With(type, field, inside), bounds, out var body, out var unsupported),
                     $"{type}.{field}={inside} is inside {bound} and must not be refused: {unsupported}");
-                Assert.True(body.TryGetProperty(field, out _), $"{type}.{field}={inside} is legitimate and was dropped");
+                var isDefault = TrackingV2Translator.DefaultsFor(type).TryGetValue(field, out var fallback)
+                    && fallback.ValueKind == JsonValueKind.Number
+                    && fallback.GetInt32() == inside;
+
+                // Equal to the read default, it is rightly absent (and required fields are never omitted).
+                Assert.True(
+                    body.TryGetProperty(field, out _) || isDefault,
+                    $"{type}.{field}={inside} is legitimate and was dropped");
             }
         }
     }

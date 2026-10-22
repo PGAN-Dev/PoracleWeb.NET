@@ -99,6 +99,25 @@ describe('AreaService', () => {
     });
   });
 
+  describe('getGeofencePolygonsShared', () => {
+    it('reads the feed once for every dialog that asks within five minutes', () => {
+      service.getGeofencePolygonsShared().subscribe();
+      service.getGeofencePolygonsShared().subscribe();
+
+      httpMock.expectOne(`${API}/api/areas/geofence`).flush({ geofence: [] });
+    });
+
+    it('keeps no failed read, so the next dialog asks again', () => {
+      let first: unknown;
+      service.getGeofencePolygonsShared().subscribe(p => (first = p));
+      httpMock.expectOne(`${API}/api/areas/geofence`).flush(null, { status: 503, statusText: 'Unavailable' });
+      expect(first).toEqual([]);
+
+      service.getGeofencePolygonsShared().subscribe();
+      httpMock.expectOne(`${API}/api/areas/geofence`).flush({ geofence: [] });
+    });
+  });
+
   describe('getMapUrl', () => {
     it('should fetch map URL and cache it', () => {
       service.getMapUrl('downtown').subscribe(url => {

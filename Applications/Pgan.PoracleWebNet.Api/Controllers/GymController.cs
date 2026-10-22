@@ -8,6 +8,7 @@ namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/gyms")]
 [RequireFeatureEnabled(DisableFeatureKeys.Gyms)]
+[TypeFilter(typeof(PoracleUnreachableExceptionFilter))]
 public class GymController(IGymService gymService) : BaseApiController
 {
     private readonly IGymService _gymService = gymService;

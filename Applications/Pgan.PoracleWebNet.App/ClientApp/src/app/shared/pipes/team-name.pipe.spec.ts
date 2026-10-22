@@ -30,8 +30,13 @@ describe('TeamNamePipe', () => {
     expect(pipe.transform(3)).toBe('GYMS.TEAM_INSTINCT');
   });
 
+  // 4 is "any team" -- the API's default for a gym rule -- and used to fall through to "Team 4".
+  it('names team 4 as any team, as raids and eggs do', () => {
+    expect(pipe.transform(4)).toBe('RAIDS.TEAM_ANY');
+  });
+
   it('should return translated fallback for unknown team values', () => {
-    expect(pipe.transform(4)).toBe('GYMS.TEAM_UNKNOWN');
+    expect(pipe.transform(5)).toBe('GYMS.TEAM_UNKNOWN');
     expect(pipe.transform(-1)).toBe('GYMS.TEAM_UNKNOWN');
   });
 });

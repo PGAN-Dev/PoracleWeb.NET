@@ -11,7 +11,8 @@ import { firstValueFrom, forkJoin, catchError, of } from 'rxjs';
 import { AreaService } from '../../../core/services/area.service';
 import { DashboardService } from '../../../core/services/dashboard.service';
 import { LocationService } from '../../../core/services/location.service';
-import { SettingsService } from '../../../core/services/settings.service';
+import { DEFAULT_SITE_TITLE, SettingsService } from '../../../core/services/settings.service';
+import { ADD_ON_ARRIVAL } from '../../utils/add-on-arrival';
 import { LocationDialogComponent } from '../location-dialog/location-dialog.component';
 
 type OnboardingStepId = 'location' | 'areas' | 'alarm';
@@ -96,14 +97,25 @@ const ALARM_ROUTES: { disableKey: string; route: string }[] = [
         opacity: 0.5;
       }
       .step.active {
-        background: rgba(25, 118, 210, 0.04);
+        background: var(--mat-sys-surface-container-high, rgba(0, 0, 0, 0.04));
         opacity: 1;
       }
       .step.completed {
         opacity: 0.8;
       }
+      /* Green 800 on the light card, green 300 on the dark one: done is state, and it reads in both. */
+      .step.completed:not(.active) .step-content p,
+      .step.completed mat-icon,
+      .dot.completed {
+        --done: #2e7d32;
+      }
+      :host-context(.dark-theme) .step.completed:not(.active) .step-content p,
+      :host-context(.dark-theme) .step.completed mat-icon,
+      :host-context(.dark-theme) .dot.completed {
+        --done: #81c784;
+      }
       .step.completed:not(.active) .step-content p {
-        color: #2e7d32;
+        color: var(--done);
       }
       .step-indicator {
         flex-shrink: 0;
@@ -125,12 +137,11 @@ const ALARM_ROUTES: { disableKey: string; route: string }[] = [
         font-size: 14px;
       }
       .step.active .step-number {
-        border-color: #1976d2;
-        color: #1976d2;
-        background: rgba(25, 118, 210, 0.08);
+        border-color: var(--mat-sys-primary);
+        color: var(--mat-sys-primary);
       }
       .step.completed mat-icon {
-        color: #4caf50;
+        color: var(--done);
       }
       .step-content h3 {
         margin: 0 0 4px;
@@ -166,16 +177,13 @@ const ALARM_ROUTES: { disableKey: string; route: string }[] = [
         height: 8px;
         border-radius: 50%;
         background: var(--skeleton-bg, rgba(0, 0, 0, 0.12));
-        transition:
-          background 0.2s,
-          transform 0.2s;
+        transition: background 0.2s;
       }
       .dot.active {
-        background: #1976d2;
-        transform: scale(1.2);
+        background: var(--mat-sys-primary);
       }
       .dot.completed {
-        background: #4caf50;
+        background: var(--done);
       }
       @media (max-width: 599px) {
         .onboarding-card {
@@ -219,7 +227,12 @@ const ALARM_ROUTES: { disableKey: string; route: string }[] = [
                         {{ (areasSet() ? 'ONBOARDING.STEP_AREAS_EDIT' : 'ONBOARDING.STEP_AREAS_CHOOSE') | translate }}
                       </a>
                     } @else if (step.id === 'alarm') {
-                      <a mat-flat-button color="primary" [routerLink]="step.route" (click)="navigateAway()">
+                      <a
+                        mat-flat-button
+                        color="primary"
+                        [routerLink]="step.route"
+                        [queryParams]="alarmsExist() ? null : addOnArrival"
+                        (click)="navigateAway()">
                         <mat-icon>add_alert</mat-icon>
                         {{ (alarmsExist() ? 'ONBOARDING.STEP_ALARM_MANAGE' : 'ONBOARDING.STEP_ALARM_ADD') | translate }}
                       </a>
@@ -261,6 +274,9 @@ export class OnboardingComponent implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly locationService = inject(LocationService);
   private readonly settingsService = inject(SettingsService);
+
+  /** "Add Alarm" opens the list's add dialog; "Manage Alarms" just goes there. */
+  protected readonly addOnArrival = ADD_ON_ARRIVAL;
 
   alarmsExist = signal(false);
   /**
@@ -312,7 +328,7 @@ export class OnboardingComponent implements OnInit {
   locationSet = signal(false);
   navigatedAway = output<void>();
 
-  siteTitle = computed(() => this.settingsService.siteSettings()['custom_title'] || 'DM Alerts');
+  siteTitle = computed(() => this.settingsService.siteSettings()['custom_title'] || DEFAULT_SITE_TITLE);
 
   dismiss() {
     localStorage.setItem('poracle-onboarding-complete', 'true');

@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -16,13 +16,14 @@ import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
-import { PoracleConfigService } from '../../core/services/poracle-config.service';
 import { QuestService } from '../../core/services/quest.service';
 import { SummaryScheduleService } from '../../core/services/summary-schedule.service';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
-import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
+import { createFailureText } from '../../shared/utils/add-outcome';
+import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, compose, isAutoDelete, isSummary, preserve, SUMMARY } from '../../shared/utils/clean-flags';
+import { questRewardIcon } from '../../shared/utils/quest-reward-icon';
 
 /** Item, candy and mega energy: the three PoracleNG compares `amount` against. */
 const QUANTITY_REWARD_TYPES = new Set([2, 4, 12]);
@@ -66,7 +67,7 @@ const REWARD_SLOT_TYPES = new Set([STARDUST, POKECOINS]);
   styleUrl: './quest-edit-dialog.component.scss',
   templateUrl: './quest-edit-dialog.component.html',
 })
-export class QuestEditDialogComponent implements OnInit {
+export class QuestEditDialogComponent {
   private static readonly FALLBACK =
     "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23999'%3E%3Cpath d='M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z'/%3E%3C/svg%3E";
 
@@ -74,7 +75,6 @@ export class QuestEditDialogComponent implements OnInit {
   private readonly i18n = inject(I18nService);
   private readonly iconService = inject(IconService);
   private readonly masterData = inject(MasterDataService);
-  private readonly poracleConfig = inject(PoracleConfigService);
   private readonly questService = inject(QuestService);
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<Quest>(MAT_DIALOG_DATA);
@@ -86,7 +86,7 @@ export class QuestEditDialogComponent implements OnInit {
     // changing which reward it is about, so unlike the reward itself they are editable here.
     amount: [this.data.amount ?? 0],
     clean: [isAutoDelete(this.data.clean)],
-    // Always present even when the control is hidden -- see pingSupported below -- so a mention
+    // Always present even when the Mention control is hidden (not a webhook alarm) -- so a mention
     // round-trips unchanged through a save this dialog makes for an unrelated field.
     ping: [this.data.ping ?? '', [Validators.maxLength(255)]],
     stardust: [REWARD_SLOT_TYPES.has(this.data.rewardType) ? (this.data.reward ?? 0) : 0],
@@ -101,13 +101,16 @@ export class QuestEditDialogComponent implements OnInit {
 
   readonly isWebhook = inject(AuthService).isImpersonating();
 
-  /** Whether to show the Mention control at all -- see pokemon-edit-dialog's pingSupported for why. */
-  readonly pingSupported = computed(() => this.poracleConfig.serverConfig().pingSupported);
+  /** False while the scope picker holds a radius it won't accept, which keeps Save off. */
+  readonly radiusValid = signal(true);
 
   saving = signal(false);
 
   /** The alarm's current scope, read back into the shared picker. */
   readonly scope = signal<AlarmScope>(scopeOf(this.data.overrideLocationLabel, this.data.overrideAreas, this.data.distance));
+
+  /** The radius as stored, which an edit may keep even outside the picker's range. */
+  readonly storedRadiusKm = metresToKm(this.data.distance);
 
   readonly summaryService = inject(SummaryScheduleService);
 
@@ -119,17 +122,7 @@ export class QuestEditDialogComponent implements OnInit {
   }
 
   getImage(): string {
-    const pid = this.questPokemonId;
-    if ((this.data.rewardType === 7 || this.data.rewardType === 12 || this.data.rewardType === 4) && pid > 0) {
-      return this.iconService.getPokemonUrl(pid);
-    }
-    if (this.data.rewardType === 7 && pid === 0) {
-      return '';
-    }
-    if (this.data.rewardType === 2 && this.data.reward > 0) {
-      return this.iconService.getItemUrl(this.data.reward);
-    }
-    return this.iconService.getRewardUrl('quest', this.data.rewardType);
+    return questRewardIcon(this.data, this.iconService);
   }
 
   getRewardTypeLabel(): string {
@@ -181,10 +174,6 @@ export class QuestEditDialogComponent implements OnInit {
     return this.getRewardTypeLabel();
   }
 
-  ngOnInit(): void {
-    this.poracleConfig.load().subscribe();
-  }
-
   onImageError(event: Event): void {
     (event.target as HTMLImageElement).style.display = 'none';
   }
@@ -215,8 +204,8 @@ export class QuestEditDialogComponent implements OnInit {
     this.questService.update(this.data.uid, update).subscribe({
       // The server names what is wrong -- which alarm already uses these settings, which
       // field a file got wrong. A fixed string threw that away. See #567, #568.
-      error: (err: { error?: { error?: string } }) => {
-        this.snackBar.open(err?.error?.error ?? this.i18n.instant('QUESTS.SNACK_FAILED_UPDATE'), this.i18n.instant('TOAST.OK'), {
+      error: (err: unknown) => {
+        this.snackBar.open(createFailureText(err, this.i18n, 'ALARM.FAILED_UPDATE'), this.i18n.instant('TOAST.OK'), {
           duration: 6000,
         });
         this.saving.set(false);

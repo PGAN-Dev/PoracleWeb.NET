@@ -5,6 +5,10 @@ repo_url: https://github.com/PGAN-Dev/PoracleWeb.NET
 repo_name: PGAN-Dev/PoracleWeb.NET
 edit_uri: edit/main/docs/
 
+# Implementation plans and design specs live beside the docs for history; they aren't user documentation.
+exclude_docs: |
+  superpowers/
+
 theme:
   name: material
   palette:
@@ -76,6 +80,7 @@ nav:
       - Standalone Setup (no Docker): getting-started/standalone-setup.md
       - Development Setup: getting-started/development-setup.md
       - Discord OAuth2: getting-started/discord-oauth.md
+      - Upgrading to PoracleNG 5.4.0: getting-started/upgrading-to-poracleng-5-4.md
   - Configuration:
       - Reference: configuration/reference.md
       - Site Settings: configuration/site-settings.md
@@ -108,8 +113,9 @@ nav:
       - CI/CD: development/ci-cd.md
       - Code Style: development/code-style.md
   - Troubleshooting: troubleshooting.md
-  - PoracleNG Enhancement Requests: poracleng-enhancement-requests.md
-  - PoracleNG v2 API Review: poracleng-v2-review.md
+  - Upstream history:
+      - PoracleNG Enhancement Requests: poracleng-enhancement-requests.md
+      - PoracleNG v2 API Review: poracleng-v2-review.md
 
 extra:
   social:

@@ -1,9 +1,16 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { ConfigService } from './config.service';
-import { GeoJsonImportResult, GeofenceRegion, UserGeofence, UserGeofenceCreate } from '../models';
+import {
+  GeoJsonImportResult,
+  GeofenceAlarmsChoice,
+  GeofenceDeleteImpact,
+  GeofenceRegion,
+  UserGeofence,
+  UserGeofenceCreate,
+} from '../models';
 
 @Injectable({ providedIn: 'root' })
 export class UserGeofenceService {
@@ -22,8 +29,10 @@ export class UserGeofenceService {
     return this.http.post<void>(`${this.config.apiHost}/api/geofences/custom/${id}/deactivate`, {});
   }
 
-  deleteGeofence(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.config.apiHost}/api/geofences/custom/${id}`);
+  /** `alarms` decides what happens to alarms limited to this fence alone. The server requires it and answers 400 without one. */
+  deleteGeofence(id: number, alarms: GeofenceAlarmsChoice): Observable<void> {
+    const params = new HttpParams().set('alarms', alarms);
+    return this.http.delete<void>(`${this.config.apiHost}/api/geofences/custom/${id}`, { params });
   }
 
   exportGeoJson(): Observable<Blob> {
@@ -32,8 +41,21 @@ export class UserGeofenceService {
     });
   }
 
+  /**
+   * The same list, read for display names only. A marker the error interceptor stays quiet for: a chip
+   * falls back to the stored name, so a failure here is not worth a "server error" over a page that rendered.
+   */
+  getCustomGeofenceNames(): Observable<UserGeofence[]> {
+    return this.http.get<UserGeofence[]>(`${this.config.apiHost}/api/geofences/custom?names=1`);
+  }
+
   getCustomGeofences(): Observable<UserGeofence[]> {
     return this.http.get<UserGeofence[]>(`${this.config.apiHost}/api/geofences/custom`);
+  }
+
+  /** How many alarms would widen if this fence were deleted. Writes nothing. */
+  getDeleteImpact(id: number): Observable<GeofenceDeleteImpact> {
+    return this.http.get<GeofenceDeleteImpact>(`${this.config.apiHost}/api/geofences/custom/${id}/delete-impact`);
   }
 
   getRegions(): Observable<GeofenceRegion[]> {

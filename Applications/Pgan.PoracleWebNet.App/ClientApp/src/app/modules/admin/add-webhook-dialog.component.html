@@ -22,7 +22,7 @@
 </mat-dialog-content>
 <mat-dialog-actions align="end">
   <button mat-button (click)="dialogRef.close(null)">{{ 'COMMON.CANCEL' | translate }}</button>
-  <button mat-raised-button color="primary" [disabled]="form.invalid" (click)="submit()">
+  <button mat-flat-button color="primary" [disabled]="form.invalid" (click)="submit()">
     <mat-icon>add</mat-icon> {{ 'ADMIN.ADD_WEBHOOK' | translate }}
   </button>
 </mat-dialog-actions>

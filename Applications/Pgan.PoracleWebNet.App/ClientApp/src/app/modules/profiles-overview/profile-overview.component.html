@@ -1,6 +1,6 @@
 <div class="page-header">
   <div class="page-header-text">
-    <h1><mat-icon class="header-icon">compare_arrows</mat-icon> {{ 'PROFILES.PAGE_TITLE' | translate }}</h1>
+    <h1>{{ 'PROFILES.PAGE_TITLE' | translate }}</h1>
     <p class="page-description">
       {{ 'PROFILES.PAGE_DESC' | translate }}
     </p>
@@ -10,13 +10,9 @@
       <mat-icon>upload</mat-icon> {{ 'PROFILES.IMPORT' | translate }}
     </button>
     <input #fileInput type="file" accept=".json" hidden (change)="importProfile($event)" />
-    <button
-      mat-fab
-      color="primary"
-      (click)="openAddProfileDialog()"
-      [matTooltip]="'PROFILES.ADD_TOOLTIP' | translate"
-      [attr.aria-label]="'PROFILES.ADD_TOOLTIP' | translate">
+    <button mat-flat-button class="page-primary-action" (click)="openAddProfileDialog()">
       <mat-icon>add</mat-icon>
+      {{ 'PROFILES.NEW_PROFILE' | translate }}
     </button>
   </div>
 </div>
@@ -163,14 +159,14 @@
                   <path d="M4 50h92" stroke="currentColor" stroke-width="6" />
                   <circle cx="50" cy="50" r="14" fill="currentColor" opacity="0.2" stroke="currentColor" stroke-width="5" />
                 </svg>
-                <span class="profile-name">{{ group.profile.name }}</span>
+                <span class="profile-name" [attr.title]="group.profile.name">{{ group.profile.name }}</span>
                 @if (isActiveProfile(group.profile.profile_no)) {
                   <span class="active-badge"><mat-icon>check_circle</mat-icon> {{ 'PROFILES.ACTIVE_BADGE' | translate }}</span>
                 }
               </div>
             </mat-panel-title>
             <mat-panel-description>
-              <span class="alarm-count-badge"> {{ 'ALARM.ALARMS_COUNT' | translate: { count: group.totalAlarms } }} </span>
+              <span class="alarm-count-badge"> {{ 'ALARM.ALARMS_COUNT' | translatePlural: group.totalAlarms }} </span>
             </mat-panel-description>
           </mat-expansion-panel-header>
 
@@ -248,12 +244,9 @@
                 </div>
                 <div class="alarm-grid">
                   @for (alarm of group.alarmsByType.get(type.key)!; track alarm.uid) {
-                    <mat-card
-                      class="alarm-card"
-                      [class.duplicate-card]="isDuplicate(alarm, type.key)"
-                      [style.border-left-color]="type.color">
-                      <div class="card-top" [style.border-top-color]="type.color">
-                        <div class="type-icon-wrap" [style.background]="type.color + '18'" [style.color]="type.color">
+                    <mat-card class="alarm-card" [class.duplicate-card]="isDuplicate(alarm, type.key)">
+                      <div class="card-top">
+                        <div class="type-icon-wrap" [style.color]="type.color">
                           @if (getAlarmImage(alarm, type.key); as imgUrl) {
                             <img
                               [src]="imgUrl"
@@ -273,7 +266,7 @@
                         <div class="card-top-actions">
                           @if (isAutoDelete(alarm.clean ?? 0)) {
                             <span class="clean-tag" [matTooltip]="'POKEMON.CLEAN_TAG_TOOLTIP' | translate">{{
-                              'POKEMON.CLEAN_TAG' | translate
+                              'ALARM.STATUS_CLEAN' | translate
                             }}</span>
                           }
                           @if (isDuplicate(alarm, type.key)) {
@@ -316,14 +309,15 @@
                           }
                           <!-- Raid/Egg pills -->
                           @if (type.key === 'raid' || type.key === 'egg') {
-                            @if (alarm.level) {
+                            <!-- 9000 is PoracleNG's "every tier", a stored wildcard rather than a level. -->
+                            @if (alarm.level && alarm.level !== 9000) {
                               <span class="filter-pill level-pill">L{{ alarm.level }}</span>
                             }
                             @if (alarm.exclusive === 1) {
                               <span class="filter-pill exclusive-pill">EX</span>
                             }
-                            @if ((alarm.team ?? 0) > 0) {
-                              <span class="filter-pill team-pill">{{ 'PROFILES.TEAM_NUM' | translate: { team: alarm.team } }}</span>
+                            @if (teamKey(alarm.team); as key) {
+                              <span class="filter-pill team-pill">{{ key | translate }}</span>
                             }
                           }
                           <!-- Quest pills -->

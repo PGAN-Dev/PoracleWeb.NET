@@ -34,7 +34,7 @@ describe('InvasionAddDialogComponent — track all (#416)', () => {
         { provide: ConfigService, useValue: { apiHost: 'http://test-api' } },
         { provide: MatDialogRef, useValue: { close: jest.fn() } },
         { provide: MatSnackBar, useValue: { open: jest.fn() } },
-        { provide: I18nService, useValue: { instant: (k: string) => k } },
+        { provide: I18nService, useValue: { instant: (k: string) => k, plural: (k: string) => k } },
         { provide: AuthService, useValue: { isImpersonating: () => false } },
         { provide: MasterDataService, useValue: { getPokemon: () => of([]) } },
         {
@@ -114,6 +114,45 @@ describe('InvasionAddDialogComponent — track all (#416)', () => {
     component.save();
 
     expect(created.map(c => c.gruntType).sort()).toEqual(['fire', 'water']);
+  });
+
+  it('saves the steel grunt as steel, the name PoracleNG knows, not metal', () => {
+    const component = setup();
+    component.toggleGrunt('metal');
+
+    component.save();
+
+    expect(created.map(c => c.gruntType)).toEqual(['steel']);
+  });
+
+  it('fans track all out over steel and never metal', () => {
+    const component = setup();
+    component.trackAll.set(true);
+
+    component.save();
+
+    const types = created.map(c => c.gruntType);
+    expect(types).toContain('steel');
+    expect(types).not.toContain('metal');
+  });
+
+  // Alarms D18: Steel sat between Ice and Normal because its key is still `metal`.
+  it('lists the typed grunts in type-name order, Steel between Rock and Water', () => {
+    const keys = setup()
+      .rocketGrunts()
+      .map(g => g.key);
+
+    const typed = keys.slice(0, keys.indexOf('mixed-male'));
+    expect(typed.slice(-3)).toEqual(['rock', 'metal', 'water']);
+    expect(typed.indexOf('metal')).toBeGreaterThan(typed.indexOf('normal'));
+  });
+
+  it('keeps the leaders and Giovanni at the end, Giovanni last', () => {
+    const keys = setup()
+      .rocketGrunts()
+      .map(g => g.key);
+
+    expect(keys.slice(-4)).toEqual(['cliff', 'arlo', 'sierra', 'giovanni']);
   });
 
   it('does nothing when nothing is selected', () => {

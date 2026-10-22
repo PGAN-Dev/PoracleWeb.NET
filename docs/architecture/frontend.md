@@ -29,7 +29,7 @@ src/app/
 │   ├── gyms/            Gym alarm management
 │   ├── fort-changes/    Fort change alarm management
 │   ├── max-battles/     Max Battle (Dynamax) alarm management
-│   ├── pokestop-events/ Pokéstop Event alarm management (PoracleNG 5.2.0+)
+│   ├── pokestop-events/ Pokéstop Event alarm management
 │   ├── areas/           Areas, the home pin, and saved places on one page
 │   ├── geofences/       Custom geofence drawing
 │   ├── profiles-overview/  Profile cards, the routed /profiles page
@@ -43,7 +43,7 @@ src/app/
     └── utils/           Utility functions (geo.utils, alarm-scope, etc.)
 ```
 
-`/places` is a redirect to `/areas` — places were folded into the Areas & Places page, beside the pin they belong with. `/admin` redirects to `/admin/users`.
+`/places` is a redirect to `/areas` — places were folded into the Areas & places page, beside the pin they belong with. `/admin` redirects to `/admin/users`.
 
 ## Services
 
@@ -64,8 +64,9 @@ The `GymSearchResult` interface defines the shape: `id`, `name`, `url`, `lat`, `
 
 `MuteService` (`core/services/mute.service.ts`) holds the user's quiet periods as a live signal, read
 from and written to `/api/mutes`. The list response carries `capable` alongside the rules, so one call
-answers both whether this PoracleNG has the mute store (5.2.0 and later) and what is currently muted.
-When it does not, the quiet surface is not rendered at all.
+answers both whether this PoracleNG has the mute store (every supported release does; an unreachable or
+too-old server does not) and what is currently muted. When it does not, the quiet surface is not
+rendered at all.
 
 Two things about the upstream store shape the service. Mutes are keyed by `(scope, value)` with no id,
 so that pair is the key here too. And the store lives in the processor's memory, so a restart wipes it
@@ -76,7 +77,7 @@ ticks rather than resolving to a clock time. PoracleNG holds seven scopes; the S
 ### PokestopEventService
 
 `PokestopEventService` (`core/services/pokestop-event.service.ts`) backs the Pokéstop Events module.
-Same v2-only constraint as mutes: on an older PoracleNG the page is not reachable.
+The type is v2-only, and the page exists only where Poracle's config carries `general.disable_showcase = false`; elsewhere it is not reachable.
 
 ### ProfileService — active hours
 
@@ -93,7 +94,7 @@ The `active-hours.models.ts` file (`core/models/`) defines the `ActiveHoursEntry
 - `load()` / `add(place)` / `move(label, lat, lon)` — each sets the signal from the response
 - `remove(label)` — answers **409** with `referencingRules` when alarms still point at the place; the caller should name them rather than reporting a bare failure
 
-A `canEdit` computed comes from the same response and gates the move control: the route behind it is v2-only, so on PoracleNG 5.1.0 there is no way to move a place and the pencil is not rendered. See [Version compatibility](poracleng-compatibility.md#what-depends-on-the-server-version).
+There is no `canEdit` flag: the move control is always rendered, because every supported PoracleNG has the route, and a failed move shows an error. See [Version compatibility](poracleng-compatibility.md#what-still-depends-on-the-server).
 
 ### AlertLanguageService
 
@@ -132,22 +133,30 @@ The `PokemonSelectorComponent` injects this service and calls `load()` in `ngOnI
 ## UI patterns
 
 ### Alarm lists
-Card grid with filter pills showing IV/CP/Level/PVP/Gender at a glance. All alarm types (including Fort Changes and Max Battles) follow this same card grid pattern with type-specific filter pills.
+All ten alarm types use the shared rule card and list toolbar described under [Rule card and list toolbar](#rule-card-and-list-toolbar): neutral filter pills, a status slot, the scope chip and a Details toggle for PoracleNG's own summary.
 
 ### Bulk operations
-Select mode toggle (checklist icon) on each alarm list. Bulk toolbar provides Select All, Update Distance, and Delete actions.
+Select mode toggle (checklist icon) on each alarm list. Its count is read to screen readers only once it has stopped changing. The bulk bar is one shared component, `shared/components/bulk-action-bar/`: the count of selected cards on screen (`actionIds`), Select all / Deselect all as text buttons, a tonal Change radius, and a filled warn "Delete N". Below 600px it is fixed to the bottom of the screen and `styles.scss` pads `main` while it shows. `bulk-action-bar.component.spec.ts` pins all ten lists to it.
 
 ### Loading states
 Animated skeleton card placeholders on Pokemon, Raids, and Quests pages.
 
-### Animations
-Grid items fade in with 30ms stagger delay.
+### Page header and design rules
+Every page uses the one `.page-header` in `styles.scss`: the title, one line on what the page is for, and the page's one primary action, a filled, labelled `mat-flat-button.page-primary-action` placed last ("New alarm" on the ten alarm lists, "New profile" on Profiles). Pages don't restyle the header and nothing uses a FAB. Body text is Atkinson Hyperlegible Next, titles Plus Jakarta Sans, with tabular figures throughout. Labels are sentence case with no ALL-CAPS eyebrows, colour carries data (team, tier, type, state) and nothing decorative, and nothing moves unless the user did something: there are no staggered entrances or hover lifts. `design-foundations.spec.ts` checks all of this.
 
 ### Theming
 
-**Accent themes** — Toolbar gradient, sidenav active link, and UI accent colors are customizable via the user menu. Colors are applied as CSS custom properties on `document.body.style` to work across Angular's view encapsulation.
+The toolbar gradient, the sidenav's active link and the UI accent colours follow an accent theme picked from the user menu. The colours are applied as CSS custom properties on `document.body.style` so they reach across Angular's view encapsulation.
 
-**Dark/light mode** — CSS variables bridge Material tokens to component styles. Theme stored in `localStorage('poracle-theme')`.
+Dark and light mode bridge Material tokens to component styles through CSS variables, and the choice is stored in `localStorage('poracle-theme')`.
+
+![The dashboard in dark mode](../screenshots/dark-mode.png)
+
+![The toolbar with the default accent](../screenshots/toolbar-theme.png)
+
+![The user menu, with Accent theme, Display language and Alert language](../screenshots/user-menu.png)
+
+![The sidebar on the Pokémon page](../screenshots/sidenav.png)
 
 ### Onboarding wizard
 Shows on the dashboard for new users until explicitly dismissed. Detects existing location/areas/alarms and marks steps as complete. Route-based actions (Choose Areas, Add Alarm) hide the overlay temporarily without setting the localStorage completion flag.
@@ -169,21 +178,31 @@ Shows on the dashboard for new users until explicitly dismissed. Detects existin
 
 `ScopePickerComponent` (`shared/components/scope-picker/`) is the one control for an alarm's delivery scope, wherever the question is asked. Three mutually exclusive options — inherit the profile's areas, a radius from a point or saved place, or only specific areas — modelled as a radio group because PoracleNG refuses every combination of them, so a state that would need validating cannot be expressed. It is rendered inline by every alarm add and edit dialog and by the quick-pick apply dialog. It previously existed as two copies, a two-option radio in the dialogs and a three-option sheet on the card, which drifted apart within a day and left no way to set a per-alarm area override before the alarm existed.
 
-`WhereChipComponent` (`shared/components/where-chip/`) states the answer on the alarm card as a sentence fragment — "Anywhere I get alerts", "Anywhere in my areas", "Within 2 km of Home", "Only in Terrigal, Erina" — and is the way into the sheet. It is rendered by seven of the ten list templates (pokemon, gyms, invasions, lures, nests, fort changes, Pokéstop events); raid, quest and max-battle cards do not carry it yet. An `editable` input turns it into a plain statement where there is nothing to open, which is how `AlarmInfoComponent` uses it.
+`WhereChipComponent` (`shared/components/where-chip/`) states the answer on the alarm card as a sentence fragment — "Anywhere I get alerts", "Anywhere in my areas", "Within 2 km of Home", "Only in Terrigal, Erina" — and is the way into the sheet. All ten list templates put it in the card's footer. An `editable` input turns it into a plain statement where there is nothing to open.
 
 `WhereSheetComponent` (`shared/components/where-sheet/`) is a dialog shell around the scope picker and nothing else, for changing scope from a card where there is no form to put the control in.
 
-### Rule summary
+### Rule card and list toolbar
 
-`RuleSummaryComponent` (`shared/components/rule-summary/`) renders the rule as one readable sentence on
-the card, from the `description` PoracleNG returns beside each rule — the same sentence its bot answers a
-`!pokemon` command with. It is on eight of the ten list templates, covering nine tracking types since the
-raid list holds both raids and eggs. Fort changes and Pokéstop events do not carry it.
+`AlarmCardComponent` (`shared/components/alarm-card/`) is the one card all ten alarm lists draw. The list
+projects the parts by attribute (`ruleMedia`, `ruleTitle`, `ruleSubtitle`, `ruleStatus`, `ruleFilters`,
+`ruleScope`, `ruleActions`) and the card lays them out the same way everywhere: subject and status on top,
+one line of filters, scope chip and actions on one row. The shared pieces of vocabulary (`.rule-pill`,
+`.rule-tag`, `.rule-subtitle`, `.rule-sprite`, `.rule-icon`) are styled by the card. Its `edge` input takes
+a team, tier or primary-type colour from `shared/utils/rule-colours.ts`, the only place those colours are
+defined; each is a light/dark pair held at 3:1 against the card in both themes (`rule-colours.spec.ts`).
+`alarm-card-parity.spec.ts` pins every list to the card and says which ones carry an edge.
 
-It renders nothing when there is nothing worth rendering: no description, or a Poracle too old to
-produce one, and the card is exactly what it was before. It also renders nothing when the alert language
-and the display language disagree, since Poracle localises this sentence with the alert language while
-the pills above it follow the display language.
+The card also owns the rule summary: the `description` PoracleNG returns beside each rule, the same sentence
+its bot answers a `!pokemon` command with, behind a Details toggle. It offers no toggle when there is no
+description, or when the alert language and the display language disagree, since Poracle localises the
+sentence with the alert language while the card follows the display language. Fort changes (a raw JSON
+array upstream) and Pokéstop events (no description) do not pass one.
+
+`AlarmListToolbarComponent` (`shared/components/alarm-list-toolbar/`) is the bar above every list: search,
+count, sort menu and the select-mode toggle, plus a "no matches" line with the way back. Each list decides
+what a search matches and what each sort means through `shared/utils/alarm-list-query.ts`, whose sort is
+stable, so the default order (`orderAlarms`) survives ties and an edited card does not move.
 
 ### Quiet periods
 
@@ -199,7 +218,7 @@ adding the chip to a tenth surface or dropping it from one of the six fails the 
 
 ### Places section
 
-`PlacesSectionComponent` (`shared/components/places-section/`) renders the user's named places as a section of the Areas & Places page, directly under the card holding the pin. The pin is not repeated in the grid, since the card above it is the pin. Adding a place borrows `LocationDialogComponent` as a coordinate picker rather than growing a second map, then asks for the name separately.
+`PlacesSectionComponent` (`shared/components/places-section/`) lists the user's named places inside the Areas & places page's **Pin and places** panel, directly under the row holding the pin. The page is map first: `AreaMapComponent` draws the pin and every named place as markers (its `places` input), and clicking one opens the panel. The pin is not repeated in the list, since the row above it is the pin. Adding a place borrows `LocationDialogComponent` as a coordinate picker rather than growing a second map, then asks for the name separately.
 
 ### Server profile card
 

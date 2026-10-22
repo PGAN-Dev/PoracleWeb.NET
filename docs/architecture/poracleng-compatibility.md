@@ -1,224 +1,207 @@
 # PoracleNG Version Compatibility
 
-PoracleWeb.NET works against any PoracleNG from 5.1.0 upwards, and switches on the extra features of a
-newer one when it finds them. There is nothing to configure.
+PoracleWeb.NET requires **PoracleNG 5.4.0 or newer**. There is nothing to configure, and no feature
+switches on or off with the server's version.
 
-The line that matters is **5.1.0 versus 5.2.0 and newer**. There was briefly a second question — whether
-you were running PoracleNG's released `main` or its `develop` — and there no longer is: develop merged
-and shipped. Anything written in terms of branches is out of date, including earlier drafts of
-this page.
+!!! warning "5.4.0 is the minimum"
+    PoracleWeb.NET still starts against an older PoracleNG, because refusing to start would take the
+    whole site down over something an operator can fix in minutes. It logs an error at startup and the
+    Versions card on **Admin → Server settings** says the server is too old. Beyond that it makes no allowance:
+    it calls PoracleNG's `/api/v2` routes for humans, profiles, areas, places and mutes with no v1
+    fallback, and a route that doesn't exist answers with a message naming the version it needs.
 
-Every gate in this build compares against **5.2.0**, not against what production happens to run. 5.2.1 is
-simply the first released build carrying those features, so a check written as `>= 5.2.1` would refuse a
-5.2.0 server that can serve the request. `PoracleServerProfile.FirstWithV2Tracking`,
-`MuteCapabilityService.MinimumVersion`, `PlaceUpdateCapabilityService.MinimumVersion` and
-`QuestPokecoinCapabilityService.MinimumVersion` are all
-`new Version(5, 2, 0)`.
+    Upgrade PoracleNG before taking a PoracleWeb.NET release that requires a newer one. The
+    [upgrade guide](../getting-started/upgrading-to-poracleng-5-4.md) covers the order of steps and the
+    rule repair to run afterwards.
 
-Version support still matters, and always will, because self-hosters upgrade on their own schedule. The
-PGAN production instance moved to 5.2.1 on 2026-08-24 (migrations 5 through 8 applied cleanly); a server
-somewhere is still on 5.1.0, and one is on something older than that.
+## Which PoracleNG to run
 
-!!! warning "5.1.0 is the minimum"
-    Below it, per-alarm delivery scope, the PVP mega evolution filter and the minimum time-left filter
-    write columns that do not exist, so those three controls save without complaint and change nothing.
-    PoracleWeb.NET logs an error at startup and shows the version on **Admin → Settings**.
+PoracleNG doesn't publish tagged releases. Its `develop` branch is where its releases land and reports 5.4.0 from 21 October 2026. Its `main` branch, which is also what the `latest` image is built from, has stayed at 5.2.1 since 1 September 2026. Choose PoracleNG by branch or image tag, never by `latest`.
 
-## The v2 migration does not raise the floor
+| PoracleWeb.NET | PoracleNG | Status |
+|---|---|---|
+| This version | `develop` at commit `34421b82` (22 October 2026) or newer; image `ghcr.io/jfberry/poracleng:develop` | Required. Tested against `34421b82`. |
+| This version | 5.4.0 built before `34421b82` (21–22 October 2026) | Works, except that rules on a profile number with no profile row stay out of Profile Overview and the rule repair scan ([jfberry/PoracleNG#331](https://github.com/jfberry/PoracleNG/pull/331)). |
+| This version | `main` or `latest` (5.2.1), or anything older than 5.4.0 | Not supported. Startup logs an error, the Versions card says PoracleNG is too old, and most saves fail. |
+| 2.21.0 | 5.1.0 or newer, including `main`/`latest` (5.2.1) and `develop` (5.4.0) | Supported. Quiet periods, editing saved places and alarm edits through `/api/v2` need 5.2.0 or newer. Tested against 5.2.1 and against `develop` at `34421b82`. |
+| Earlier 2.x releases | 5.1.0 or newer | Supported up to 5.3.x. Not tested against 5.4.0; move to 2.21.0 first. |
+| Experimental shiny line, `2.21.0-shiny.1` (image `ghcr.io/pgan-dev/poracleweb.net-experimental:2.21.0-shiny.1`) | `feat/personal-shiny` ([jfberry/PoracleNG#255](https://github.com/jfberry/PoracleNG/pull/255)); image `ghcr.io/jfberry/poracleng:feat-personal-shiny` | Supported, with personal shiny alerts. On `develop` without that pull request it works with the shiny controls hidden. |
 
-Moving to PoracleNG's `/api/v2` surface was the obvious moment to make 5.2.0 a hard minimum and delete
-the v1 code paths. It was considered and refused, so here is the reasoning in one place rather than
-scattered through commit messages.
+The PoracleWeb.NET images: `ghcr.io/pgan-dev/poracleweb.net:<version>` for each release (and `latest` for the newest), `:beta` for PoracleWeb.NET's own `develop` branch, which follows the "This version" rows.
 
-Dropping v1 would cost a self-hoster on 5.1.0 their Areas page, their saved places, the location pin,
-delegated-webhook resolution and all alarm editing. That is the application, not a feature.
+Known differences between the combinations above:
 
-What it would buy is smaller than it looks. Most of the movable v2 operations are renames with no
-behaviour change at all. The genuine gains — the lure edit no longer having to delete and recreate the
-row, an upstream 409 refusing an alarm collision instead of PoracleWeb reconstructing it from a 200 —
-are workaround *removals*, and the fallback keeps them: the v2 path skips the workaround, the v1 path
-keeps it. Nothing user-visible is unlocked by deleting v1.
+- This version can't create an invasion alarm limited to genderless grunts, and can't save an existing one, because PoracleNG's `/api/v2` has no genderless value for invasions. It says so and changes nothing.
+- 2.21.0 against a PoracleNG with personal shiny: adding an alarm next to a personal one that differs only in its radius is refused, because 2.21.0 doesn't know PoracleNG counts the personal flag as part of a rule. Nothing is overwritten.
+- 2.21.0: start PoracleNG before PoracleWeb.NET. If PoracleWeb.NET starts while PoracleNG isn't answering, quiet periods stay unavailable until PoracleWeb.NET restarts. This version doesn't have that problem.
 
-Two things follow. Reads deliberately stay on v1, including the tempting full snapshot at
-`GET /api/v2/humans/{id}/tracking`; the moment reads move, the internal currency stops being v1-shaped
-and the fallback stops being free. And an operation that genuinely has no v1 equivalent —
-`PUT /v2/humans/{id}/locations/{label}` is the only one — gets a capability gate and degrades to the
-old flow, the pattern `MuteCapabilityService` already sets, rather than forcing a floor for one feature.
+These results come from running PoracleWeb.NET's API test suite against each pairing on 22 October 2026, using the published images.
 
-Two v2 surfaces cannot serve PoracleWeb.NET at all yet: invasion, whose reads omit the targeting field
-for a named grunt, and bulk distance, which has no batch write. So v1 has to stay in the codebase
-regardless. Revisit the floor when upstream closes both — see
-[the v2 findings](../poracleng-enhancement-requests.md#v2-findings-for-an-upstream-report).
+## Why 5.4.0
+
+PoracleNG 5.4.0 is the release that carries everything PoracleWeb.NET asked upstream for while working
+out how to stop reading and writing PoracleNG's database (jfberry/PoracleNG#328; the requests are listed
+under [Upstream history](../poracleng-enhancement-requests.md)). Supporting an older server meant keeping
+each workaround beside the code that replaced it, so the fallbacks were deleted instead of gated. What
+went in the first step, which covers humans, profiles, places, mutes and geocoding:
+
+| Removed | What it did on an older PoracleNG |
+|---|---|
+| `HumanRepository`, `ProfileRepository` | Listed and deleted humans, renamed profiles and wrote a new profile's areas and location straight into PoracleNG's tables. Admin list and delete now use `GET /api/v2/humans` and `DELETE /api/v2/humans/{id}`; rename and new-profile geography use the v2 profile, area and location routes |
+| `ProfileNumbering` (list, create, re-list, diff) | Worked out which number PoracleNG gave a new profile, because the create answered `{"status":"ok"}` and nothing else. The create now returns it |
+| The v1 branch of every single-human call | `/api/humans/...` and `/api/profiles/...` fallbacks behind a cached "v2 is absent" flag |
+| `MuteCapabilityService`, `PlaceUpdateCapabilityService`, `QuestPokecoinCapabilityService`, `CostumeCapabilityService` | Asked whether the server could do the thing before the SPA showed the control. Quiet periods, moving a saved place, Pokécoin quest rewards and costume filters are always offered |
+| The legacy geocoder call | Called the geocoder PoracleNG was configured with, as Nominatim, when PoracleNG had no `/api/geocode` routes |
+| `ProbePokestopEventsAsync` | Probed for the Pokéstop Events page on a server without it |
+| `Poracle:TrackingApiVersion` (`PORACLE_TRACKING_API_VERSION`) | Pinned the tracking surface for a fork whose version string lied. A leftover setting is ignored |
+| Eleven `PoracleV2Capabilities` flags | Each asked the server's `/openapi.json` whether one field or route existed. `TrustedSetAreas` went with the area writes |
+
+No call to the v1 tracking API is left in this application. Alert reads, creates, edits, deletes, bulk
+distance changes and the cleaning toggle are all v2 (the last two as a PATCH), with no fallback. User-drawn geofence names, including
+the ones an alert is limited to, reach PoracleNG through its `/api/v2` routes with the `trusted` flag,
+which 5.4.0 carries; nothing is written straight to PoracleNG's database.
 
 ## How support is decided
 
-Three signals, probed together and cached for five minutes. The mechanics are in
-[Backend Patterns](backend.md#server-capability-probe); what follows is how to choose between them.
+Two probes, cached for five minutes. The mechanics are in
+[Backend Patterns](backend.md#server-capability-probe).
 
 | Signal | Source | Answers |
 |---|---|---|
-| Migration number | `schema_migrations` in the Poracle database | Whether a column exists. |
-| Version | `GET /health` | Which release line. |
-| Capability map | `GET /health` → `capabilities` | Whether a bot or template-editor feature is compiled in. A missing key means unsupported — PoracleNG's own contract for the map. |
+| Version | `GET /health` | Whether this server is known to be older than the minimum. |
+| Published schema | `GET /openapi.json` | Which properties each `V2*Rule` declares, and the numeric bounds it publishes. The tracking proxy reads them so a property PoracleWeb.NET doesn't model is carried through an edit, and a value outside the server's own bound is refused before it's sent. |
 
-**Every gate fails closed.** An unreachable server, an unread migration number and an unparseable
-version all resolve to unsupported. Hiding a control that would have worked is a nuisance; showing one
-that writes a column the server does not have is the silent failure this exists to prevent.
+`PoracleServerProfile.IsSupported` is true when PoracleNG answered and its version is not below
+`MinimumSupported`. An unparseable version, or the `0.0.0` a locally built binary reports because its
+build flags were never injected, counts as current: a build of today's source is newer than 5.4.0, and
+hiding features from it on a guess helps nobody. An unreachable server is not supported.
 
-### Prefer the migration number
+`GET /health` also carries a capability map, which covers bot and template-editor features and nothing
+about alarms. A missing key there means unsupported, PoracleNG's own contract for the map, so reaching for
+`Supports()` to answer an alarm question quietly answers false forever.
 
-Where a column is what actually matters, gate on the schema and not on the release number. A version
-string is a claim about a release line, not about this database, and the two come apart routinely:
-self-hosters cherry-pick single commits, forks carry one feature and not another, and a locally built
-binary reports `0.0.0` because the build flags were never injected. `PoracleServerProfile` already
-treats `0.0.0` as unknown rather than ancient for that reason.
-
-Gate on the version only when there is nothing better to gate on. Pokecoin quest rewards are the honest
-example: PoracleNG widened an allowlist on `reward_type`. No column arrived, no migration ran, no
-capability key appeared. The version is the only thing that changed, so the version is what decides.
-
-## What depends on the server version
+## What still depends on the server
 
 | Feature | Signal | Needs |
 |---|---|---|
-| Costume filter on pokemon alarms | Migration | PoracleNG database migration 6 |
-| Costume filter on raid alarms | Migration | PoracleNG database migration 7 |
-| Pokéstop-event tracking (`incident`) | Poracle's own `general.disable_showcase` | A server that publishes that config key, and so carries the v2 `incident` route. 5.1.0 has neither |
-| Mutes | Version | PoracleNG 5.2.0 |
-| Pokecoin quest rewards (`reward_type: 8`) | Version | PoracleNG 5.2.0 |
-| Alarm edits through `/api/v2` (nine types) | Version | PoracleNG 5.2.0, or `Poracle:TrackingApiVersion=v2` |
-| Alarm deletes through `/api/v2` (all ten) | Version | PoracleNG 5.2.0, or `Poracle:TrackingApiVersion=v2`. Falls back to v1 for a rule outside the active profile, which v2 refuses and v1 deletes |
-| Invasion edits through `/api/v2` | Published schema, then game data | A `V2InvasionRule` declaring `grunt_type`, **and** that server's grunt masterdata listing the rule's own name |
-| Profile create reporting its number | Published schema | A create response whose body declares `profile_no` |
-| Profile rename through `PATCH` | Published schema | A `V2UpdateProfileBody` declaring `name` |
+| Alarm reads and deletes through `/api/v2` | A plaintext 404 only (no version gate) | A PoracleNG that serves the v2 routes. There is no v1 fallback: a route that answers gin's plaintext `404 page not found` raises `PoracleUnsupportedException`. Deletes of a rule outside the active profile are re-issued with `?profile=N`, since v2 only deletes on the active one |
+| Alarm creates and edits through `/api/v2` | A plaintext 404 only (no version gate) | A PoracleNG that serves the v2 routes, including `dry_run` on a create and 409 on a colliding edit. There is no v1 fallback: a plaintext 404 raises `PoracleUnsupportedException("saving alarms", ...)`, and a row the translator can't express is refused rather than sent elsewhere |
+| Pokéstop-event tracking (`incident`) | Poracle's own `general.disable_showcase` | Only `true` hides the page. Absent or unreadable leaves it on |
+| Pokemon edit-in-place | Poracle's `tracking.pokemon_edit` config | The key `true`. Absent or unreadable hides the toggle |
 | Translated grunt display names | Response field | A `/api/masterdata/grunts` entry carrying `grunt_type` and `short_name` |
-| Moving a saved place | Version | PoracleNG 5.2.0 |
-| Rule descriptions on alarm cards | Response field | v1 `allProfiles`, or any v2 read |
+| Rule descriptions on alarm cards | Response field | Any v2 read |
 
-Moving a saved place is the only one of these with no older equivalent to fall back to — v1 has no
-update route for a saved location at all, and its delete answers 409 while an alarm still references
-the label. So it is gated rather than degraded: on 5.1.0 the pencil is absent and the delete-and-re-add
-flow is what it has always been.
+The flags `IPoracleV2SchemaService` used to answer (profile create returning its number, rename through
+`PATCH`, the admin human routes, trusted `setAreas`) went with 5.4.0, which carries all of them. The one
+flag left, `InvasionGruntType`, is still parsed but nothing reads it. What the schema still decides is the
+per-rule property list and bounds above, which the tracking proxy reads from `/openapi.json` itself and
+caches.
 
-The last four gate on **what the server publishes about itself** rather than on a release number, which
-`IPoracleV2SchemaService` answers by reading the target instance's own `/openapi.json`. It is the
-schema-document sibling of `PoracleServerProfile`: one cached probe, several typed questions, everything
-false when the document cannot be read. Version could not serve these — the branch carrying them reports
-`5.3.0`, no release carries it, which release it lands in is not knowable from here, and a fork that
-cherry-picks one fix reports whatever it likes.
+`SummaryCapabilityService` and `PokemonEditCapabilityService` answer from Poracle's configuration, not
+from the version, because quest summary delivery and pokemon edit-in-place are deployment settings an
+operator can switch off on a server that supports them. Pokéstop Events are decided by
+`UpstreamFeatureFlagService` for the same reason, with `disable_showcase`.
 
-Invasion needs a second question after the first, because a server carrying the field still refuses a
-`grunt_type` its grunt masterdata does not list. `InvasionGruntNameService` asks it, and fails closed to an
-empty set — which routes every invasion write to v1, where they all went before.
-
-Most of the rest carry their own small capability service — `MuteCapabilityService`,
-`QuestPokecoinCapabilityService`, `PlaceUpdateCapabilityService` and `CostumeCapabilityService` — all
-the same shape over `IPoracleServerProfileService`: one method, one question, no cache of its own, since
-the profile service already caches for five minutes and exposes `Invalidate()`. `SummaryCapabilityService`
-is the same shape over a different source, since quest summary delivery is a deployment setting rather
-than a server capability, and Pokéstop Events are decided by `UpstreamFeatureFlagService` because
-`disable_showcase` is a Poracle config flag an operator can also switch off on a server that supports it.
-
-There is deliberately no central registry: a registry was written and abandoned, because the per-feature
+There is deliberately no central registry. A registry was written and abandoned, because the per-feature
 shape already existed and two mechanisms answering one question is how one of them ends up being the one
 nobody updates.
 
 Costume names are the awkward one. PoracleNG loads them into its game data under `costume_{id}` keys
-but publishes them nowhere -- `/api/masterdata/` offers only `monsters` and `grunts` -- so the costume
+but publishes them nowhere (`/api/masterdata/` offers only `monsters` and `grunts`), so the costume
 picker reads the same WatWowMap masterfile PoracleNG itself reads. The names are therefore English in
 every language, and a costume too new for that file shows as its number.
 
-Costume values set elsewhere are already safe at every version. `TrackingFieldPreserver` and
-`PoracleJsonHelper.RewriteRows` carry forward every stored field PoracleWeb.NET has no model for, so a
-costume set with the bot survives a web edit on a server that has the column.
+`TrackingFieldPreserver` carries forward every stored field PoracleWeb.NET has no model for on an edit,
+and bulk distance and cleaning send only the field they change, so a field set with the bot survives a web
+edit whatever the server is.
 
 Rule descriptions belong on this list too. A v2 tracking read takes `?include_descriptions=true` and
-returns a `description` on each rule -- the same sentence PoracleNG's bot answers a `!pokemon` command
+returns a `description` on each rule, the same sentence PoracleNG's bot answers a `!pokemon` command
 with. It is easy to conclude otherwise: `description` is not on the named `V2PokemonRule` request
 schema, and the response envelope that carries it is an inline object under `rules.items` rather than a
 named component, so a search of `components/schemas` finds nothing. Resolve
 `V2ListOutput...Body.properties.rules.items` before believing a field is absent.
 
-The v1 `allProfiles` endpoint accepts the same `includeDescriptions` flag, so this one has a path on
-both versions.
-
-Reading and deleting an existing rule is **never** gated, only creating one. A rule can already exist —
-set with the bot, or left behind by a downgrade — and a row nobody can see is a row nobody can delete.
+Reading and deleting an existing rule is **never** gated, only creating one. A rule can already exist
+(set with the bot, or left behind by a downgrade), and a row nobody can see is a row nobody can delete.
 
 ## When a request cannot be served
 
-`PoracleUnsupportedException` carries a plain feature name and what the server would need, in words. The
-global `PoracleUnsupportedExceptionFilter` turns it into **409 Conflict**:
+On a server below 5.4.0 a human, profile, area, place or geocode route answers gin's plaintext
+`404 page not found`. Telling that apart from a real "not found" is the whole job:
+`PoracleProblemDetails.IsProblemJson` says whether the body is PoracleNG's own answer. A problem+json 404
+keeps its meaning (no such human, no such profile, nothing at this coordinate). A plaintext one throws
+`PoracleUnsupportedException(feature, "PoracleNG 5.4.0")`, and the global
+`PoracleUnsupportedExceptionFilter` turns it into **409 Conflict**:
 
 ```json
 {
-  "error": "This PoracleNG does not support costume filters. It requires PoracleNG database migration 6.",
-  "feature": "costume filters",
-  "requires": "PoracleNG database migration 6"
+  "error": "This PoracleNG does not support listing areas. It requires PoracleNG 5.4.0.",
+  "feature": "listing areas",
+  "requires": "PoracleNG 5.4.0"
 }
 ```
 
 409 rather than 403 on purpose. The 403 branch belongs to `disable_*` site settings and keys off a
 `disableKey` in the body; borrowing it would put an operator's switch and a version shortfall behind the
 same toast, and the version shortfall has the one detail worth reading in it. 409 has no interceptor
-branch, so it falls through to the caller, which shows the message beside the control that caused it —
-the same route `TrackingConflictExceptionFilter` already takes.
+branch, so it falls through to the caller, which shows the message beside the control that caused it
+(the same route `TrackingConflictExceptionFilter` takes). Address search is the exception: its caller
+swallows the 409, so on a too-old server the search just returns nothing.
 
-**Nothing throws it yet.** Every gate so far hides its control before a request can be made, which is
-the preferred outcome. The two paths that still have to refuse something do it their own way: a costume
-write to a server without the column throws `AlarmValidationException` and answers 400 beside the field,
-and moving a saved place on a server without the v2 route answers 501 with a sentence naming the
-workaround. Use the 409 for a service-layer guard that has no field to point at.
+A separate filter, `PoracleUnreachableExceptionFilter`, answers **503** with a message when PoracleNG
+cannot be reached at all. It is applied to the mute and location controllers and to all eleven alarm controllers, where a failed read
+used to look like an empty answer: a quiet-period chip claiming nothing is quiet, or a places list that
+said the user had none.
 
-Throw it from the service layer, not from a controller. Quick-pick apply, profile duplicate and profile
-import all reach the alarm services without passing an action that could have checked first.
+Throw `PoracleUnsupportedException` from the service layer, not from a controller. Quick-pick apply,
+profile duplicate and profile import all reach the alarm services without passing an action that could
+have checked first.
 
-## Adding a version-gated feature
+## Adding a feature that needs a newer PoracleNG
 
-1. **Pick the narrowest signal that predicts it**, per the rule above. Migration number if a column is
-   involved, capability key if PoracleNG publishes one, version only as a last resort.
-2. **Write a small per-feature service over `IPoracleServerProfileService`**, shaped like
-   `ISummaryCapabilityService`: one method, one question, answering false when it cannot tell. There is
-   no capability registry and there should not be one — a registry turns every feature into a key
-   lookup against a table nobody reads, and the interesting part of each gate is the sentence
-   explaining which signal was chosen and why.
+1. **Raise the minimum, or gate on what the server publishes.** A feature every supported server has
+   needs no gate. One that only some do goes through `IPoracleV2SchemaService`: add a typed question,
+   read it from the target's `/openapi.json`, answer false when the document cannot be read. Don't add a
+   version compare; the minimum is the only version PoracleWeb.NET checks.
+2. **Write a small per-feature service** if the SPA needs to ask, shaped like
+   `ISummaryCapabilityService`: one method, one question, answering false when it cannot tell.
 3. **Guard the service write path**, on create, update and bulk alike, and throw
    `PoracleUnsupportedException(feature, requires)` with words the user can act on.
 4. **Give the SPA a way to ask.** `GET /api/admin/server-profile` is admin-only, so it cannot be the
-   answer for a user-facing control. Ordinary authenticated endpoints answer instead:
-   `GET /api/summary-schedules/capability`, `GET /api/settings/costume-capability` and
-   `GET /api/quests/capability` each answer on their own. `GET /api/mutes` and
-   `GET /api/location/places` are the pattern to copy — both fold the capability into the list response
-   rather than answering separately, because the caller needs the list anyway and two calls would have
-   been two calls every time.
+   answer for a user-facing control. An ordinary authenticated endpoint answers instead, like
+   `GET /api/summary-schedules/capability`.
 5. **Prefer hiding the control to disabling it with an explanation.** There is nothing the user can do
    about their operator's PoracleNG version.
 6. **Add a row to the table above.**
+
+## Raising the minimum again
+
+Move `PoracleServerProfile.MinimumSupported`, then delete what only the old floor needed, as 5.4.0 did.
+Before deleting a fallback, ask whether it is there for the old version or for a server that answers
+differently today. The plaintext-404 handling on each v2 route was the first kind, which is why it now throws
+`PoracleUnsupportedException` everywhere rather than falling back.
 
 ## Things that look like they differ between versions and do not
 
 These are the ones most likely to send you writing a check that buys nothing.
 
-**The v1 API is frozen, and unchanged on 5.2.1.** Its release notes describe RFC 9457
-`application/problem+json` error bodies and 422 status codes, and those are real — on `/api/v2` only.
-Verified by calling both surfaces on the same 5.2.1 server: a v1 tracking POST for a user that does not
-exist answers `{"message":"User not found","status":"error"}`, byte-identical to 5.1.0, while a
-malformed v2 path parameter answers 422 with `Content-Type: application/problem+json` and an `errors`
-array. Assuming the new shapes applied everywhere cost a wrongly framed issue and pull request.
-
-Because v1 did not move, every read, every create and both distance endpoints stay on it. What speaks v2
-is single-rule edits for nine of the ten v1 tracking types (invasion stays behind), mutes, and Pokéstop
-events — and each reads errors through `PoracleProblemDetails`, which handles both dialects. See
+**The v1 API is frozen.** Its release notes describe RFC 9457 `application/problem+json` error bodies and
+422 status codes, and those are real, on `/api/v2` only. A v1 tracking POST for a user that does not
+exist answers `{"message":"User not found","status":"error"}`; a malformed v2 path parameter answers 422
+with `Content-Type: application/problem+json` and an `errors` array. Assuming the new shapes applied
+everywhere cost a wrongly framed issue and pull request. Each proxy reads errors through
+`PoracleProblemDetails`, which handles both dialects. See
 [PoracleNG API Proxy](poracleng-proxy.md#the-v2-write-path).
 
-**Do not take `active_hours` day numbering from PoracleNG's OpenAPI schema.** `V2ActiveHourEntry.day` is
-declared `minimum: 0, maximum: 6` and described as "0=Sunday … 6=Saturday". The scheduler uses ISO
-weekdays, Monday 1 through Sunday 7 (`isoDow` in `processor/cmd/processor/profiles.go`). The schema
-therefore rejects Sunday and accepts a meaningless 0. PoracleWeb.NET validates 1 to 7, which is correct;
-`ProfileController.ValidateActiveHours` is the place that would be wrong if somebody "fixed" it against
-the document.
+**Do not take `active_hours` day numbering from PoracleNG's OpenAPI schema.** On older builds
+`V2ActiveHourEntry.day` was declared `minimum: 0, maximum: 6` and described as "0=Sunday … 6=Saturday".
+The scheduler uses ISO weekdays, Monday 1 through Sunday 7 (`isoDow` in
+`processor/cmd/processor/profiles.go`), and PoracleWeb.NET validates 1 to 7.
+`ProfileController.ValidateActiveHours` is the place that would be wrong if somebody "fixed" it against a
+stale document.
 
-**The `/health` capability map is not where alarm features appear.** Between 5.1.0 and 5.2.1 it gained
-exactly one key, `derivedDtsTypes`, and says nothing about costume, incidents or mutes. It covers bot and
-template-editor features; the migration number is what covers columns. Reaching for `Supports()` when
-`HasSchema()` is the question will quietly answer false forever.
+**The `/health` capability map is not where alarm features appear.** It covers bot and template-editor
+features (`buttons`, `snapshots`, `autocreate`, `tomlDts`, `costume`, `customMaps` and the like) and says
+nothing about incidents or mutes. Reaching for `Supports()` for an alarm feature will quietly answer false
+forever.

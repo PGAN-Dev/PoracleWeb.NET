@@ -73,7 +73,7 @@ describe('a burst of 401s', () => {
 
     expect(localStorage.getItem('poracle_token')).toBe('own-token');
     expect(router.navigate).toHaveBeenCalledTimes(1);
-    expect(router.navigate).toHaveBeenCalledWith(['/admin']);
+    expect(router.navigate).toHaveBeenCalledWith(['/admin'], { state: { adminReturn: true } });
     expect(toast.error).toHaveBeenCalledTimes(1);
     expect(toast.error).toHaveBeenCalledWith('HTTP_ERROR.INSPECTION_ENDED');
   });

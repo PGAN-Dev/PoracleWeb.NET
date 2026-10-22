@@ -7,6 +7,7 @@ import { AlertLanguageService } from './alert-language.service';
 import { ConfigService } from './config.service';
 import { SettingsService } from './settings.service';
 import { TokenStoreService } from './token-store.service';
+import { ADMIN_RETURN_STATE } from '../guards/admin-return';
 import { UserInfo, LoginResponse, TelegramConfig, AuthProviders } from '../models';
 
 const TOKEN_KEY = 'poracle_token';
@@ -141,7 +142,8 @@ export class AuthService {
     // Load site settings now that we have a valid token — the initial loadOnce()
     // in App.ngOnInit() fires before the token is stored, so settings (including
     // custom_title) fail silently and never reload.
-    this.settingsService.loadOnce().subscribe();
+    // A failure (a 429 under load, say) leaves the defaults in place; the next page load retries.
+    this.settingsService.loadOnce().subscribe({ error: () => undefined });
     // Same reason, for the same reason: App.ngOnInit skips this while signed out (#775), so without
     // it here a login completed inside one page session would never reconcile the alert language.
     this.alertLanguage.load();
@@ -273,7 +275,7 @@ export class AuthService {
     localStorage.removeItem(ADMIN_TOKEN_KEY);
     this._isImpersonating.set(false);
     await this.loadCurrentUser();
-    this.router.navigate(['/admin']);
+    this.router.navigate(['/admin'], { state: ADMIN_RETURN_STATE });
     return true;
   }
 

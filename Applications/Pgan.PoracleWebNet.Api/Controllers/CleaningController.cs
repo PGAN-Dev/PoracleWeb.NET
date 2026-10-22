@@ -13,7 +13,16 @@ public class CleaningController(ICleaningService cleaningService, IFeatureGate f
     [HttpGet("status")]
     public async Task<IActionResult> GetStatus()
     {
-        var status = await this._cleaningService.GetCleanStatusAsync(this.UserId, this.ProfileNo);
+        // One boolean per type, true only when every rule is clean, as before; plus "counts", added so
+        // the page can show a type that is partly clean instead of reading it as off.
+        var counts = await this._cleaningService.GetCleanCountsAsync(this.UserId, this.ProfileNo);
+        var status = new Dictionary<string, object>();
+        foreach (var (type, count) in counts)
+        {
+            status[type] = count.IsAllClean();
+        }
+
+        status["counts"] = counts;
         return this.Ok(status);
     }
 

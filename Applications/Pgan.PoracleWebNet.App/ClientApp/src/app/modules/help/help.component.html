@@ -19,8 +19,8 @@
     @if (!searchQuery()) {
       <div class="quick-start">
         <button class="quick-card" (click)="scrollToSection('getting-started')">
-          <div class="quick-card-icon" style="background: rgba(25, 118, 210, 0.1)">
-            <mat-icon style="color: #1976d2">rocket_launch</mat-icon>
+          <div class="quick-card-icon">
+            <mat-icon>rocket_launch</mat-icon>
           </div>
           <div class="quick-card-text">
             <strong>{{ 'HELP.QUICK_NEW' | translate }}</strong>
@@ -29,8 +29,8 @@
           <mat-icon class="quick-card-arrow">chevron_right</mat-icon>
         </button>
         <button class="quick-card" (click)="scrollToSection('pokemon')">
-          <div class="quick-card-icon" style="background: rgba(76, 175, 80, 0.1)">
-            <mat-icon style="color: #4caf50">catching_pokemon</mat-icon>
+          <div class="quick-card-icon">
+            <mat-icon>catching_pokemon</mat-icon>
           </div>
           <div class="quick-card-text">
             <strong>{{ 'HELP.QUICK_ALARM' | translate }}</strong>
@@ -39,8 +39,8 @@
           <mat-icon class="quick-card-arrow">chevron_right</mat-icon>
         </button>
         <button class="quick-card" (click)="scrollToSection('faq')">
-          <div class="quick-card-icon" style="background: rgba(255, 152, 0, 0.1)">
-            <mat-icon style="color: #ff9800">help_outline</mat-icon>
+          <div class="quick-card-icon">
+            <mat-icon>help_outline</mat-icon>
           </div>
           <div class="quick-card-text">
             <strong>{{ 'HELP.QUICK_TROUBLE' | translate }}</strong>
@@ -67,7 +67,7 @@
           <mat-expansion-panel-header>
             <mat-panel-title>
               <div class="section-header">
-                <div class="section-icon" [style.background-color]="section.iconColor">
+                <div class="section-icon">
                   <mat-icon>{{ section.icon }}</mat-icon>
                 </div>
                 <div class="section-title-block">
@@ -125,9 +125,9 @@
   <!-- Table of Contents sidebar (desktop, right side) -->
   <aside class="toc">
     <div class="toc-header">{{ 'HELP.TOC_HEADER' | translate }}</div>
-    @for (section of sections; track section.id) {
+    @for (section of sections(); track section.id) {
       <button class="toc-item" (click)="scrollToSection(section.id)">
-        <mat-icon [style.color]="section.iconColor">{{ section.icon }}</mat-icon>
+        <mat-icon>{{ section.icon }}</mat-icon>
         <span>{{ section.titleKey | translate }}</span>
       </button>
     }

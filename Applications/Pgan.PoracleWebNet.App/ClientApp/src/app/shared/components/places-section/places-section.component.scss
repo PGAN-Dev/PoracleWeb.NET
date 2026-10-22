@@ -1,3 +1,19 @@
+// The places part of the "Pin and places" panel on Areas & Places. Rows rather than cards: the map above
+// already shows where each place is, so a row only has to name it and offer Move and Delete.
+.places-header {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-top: 8px;
+}
+
+.places-title {
+  font-size: 15px;
+  font-weight: 500;
+  margin: 0;
+}
+
 .section-action {
   margin-left: auto;
 }
@@ -5,109 +21,71 @@
 .section-description {
   color: var(--text-secondary, rgb(0 0 0 / 54%));
   font-size: 13px;
-  margin: -8px 24px 12px;
+  line-height: 1.5;
+  margin: 4px 0 8px;
 }
 
-.place-grid {
-  display: grid;
-  gap: 16px;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  padding: 0 24px;
-}
-
-.place-card {
-  background: var(--card-bg, #fff);
+.place-list {
   border: 1px solid var(--card-border, rgb(0 0 0 / 12%));
   border-radius: 12px;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 6%);
+  list-style: none;
+  margin: 0;
   overflow: hidden;
-  position: relative;
-  transition:
-    transform 0.2s,
-    box-shadow 0.2s;
+  padding: 0;
+}
 
-  &:hover {
-    box-shadow: 0 4px 12px rgb(0 0 0 / 10%);
-    transform: translateY(-2px);
+.place-row {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  min-height: 48px;
+  padding: 4px 4px 4px 16px;
+
+  & + & {
+    border-top: 1px solid var(--divider, rgb(0 0 0 / 6%));
   }
 }
 
-.place-card-accent {
-  background: #e91e63;
-  height: 4px;
+// The violet the map draws a place in (area-map.component.scss, .place-marker__dot).
+.place-dot {
+  background: #7c3aed;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 40%);
+  flex: none;
+  height: 12px;
+  width: 12px;
 }
 
-.place-card-body {
-  padding: 16px 16px 12px;
-}
-
-.place-card-header {
-  align-items: flex-start;
-  display: flex;
-  gap: 10px;
-}
-
-.place-card-icon {
-  color: #e91e63;
-  flex-shrink: 0;
-  font-size: 22px;
-  height: 22px;
-  margin-top: 1px;
-  width: 22px;
-}
-
-.place-card-info {
+.place-info {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 2px;
   min-width: 0;
 }
 
-.place-card-name {
-  font-size: 15px;
+.place-name {
+  font-size: 14px;
   font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.place-card-coords {
+.place-coords {
   color: var(--text-secondary, rgb(0 0 0 / 54%));
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
 
-.place-card-footer {
-  border-top: 1px solid var(--divider, rgb(0 0 0 / 6%));
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 10px;
-  padding-top: 4px;
-}
-
 .place-empty-state {
-  align-items: center;
-  background: var(--card-bg, rgb(0 0 0 / 1%));
-  border: 2px dashed var(--card-border, rgb(0 0 0 / 12%));
+  border: 1px dashed var(--card-border, rgb(0 0 0 / 12%));
   border-radius: 12px;
-  display: flex;
-  flex-direction: column;
-  margin: 16px 24px 0;
-  padding: 32px 24px;
-  text-align: center;
-}
-
-.place-empty-icon {
-  color: var(--text-secondary, rgb(0 0 0 / 38%));
-  font-size: 40px;
-  height: 40px;
-  margin-bottom: 8px;
-  width: 40px;
+  padding: 16px;
 }
 
 .place-empty-title {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
   margin: 0 0 4px;
 }
@@ -115,52 +93,19 @@
 .place-empty-subtitle {
   color: var(--text-secondary, rgb(0 0 0 / 54%));
   font-size: 13px;
-  margin: 0 0 16px;
-  max-width: 40ch;
+  margin: 0;
 }
 
-.skeleton-place-card {
-  animation: pulse 1.5s ease-in-out infinite;
-  background: var(--card-bg, #fff);
-  border: 1px solid var(--card-border, rgb(0 0 0 / 12%));
-  border-radius: 12px;
-  border-top: 4px solid var(--skeleton-bg, rgb(0 0 0 / 8%));
-  padding: 14px 16px;
-}
-
-.skeleton-place-header {
-  align-items: center;
-  display: flex;
-  gap: 10px;
-}
-
-.skeleton-place-icon {
+.skeleton-place-dot {
   background: var(--skeleton-bg, rgb(0 0 0 / 8%));
   border-radius: 50%;
-  height: 22px;
-  width: 22px;
-}
-
-.skeleton-place-lines {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 8px;
+  flex: none;
+  height: 12px;
+  width: 12px;
 }
 
 .skeleton-line {
   background: var(--skeleton-bg, rgb(0 0 0 / 8%));
   border-radius: 6px;
   height: 12px;
-}
-
-@media (max-width: 599px) {
-  .place-grid {
-    grid-template-columns: 1fr;
-    padding: 0 16px;
-  }
-
-  .place-empty-state {
-    margin: 16px;
-  }
 }

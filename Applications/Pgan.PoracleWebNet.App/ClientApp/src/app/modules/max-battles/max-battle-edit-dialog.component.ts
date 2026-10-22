@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -18,10 +18,10 @@ import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MaxBattleService } from '../../core/services/max-battle.service';
-import { PoracleConfigService } from '../../core/services/poracle-config.service';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
-import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
+import { createFailureText } from '../../shared/utils/add-outcome';
+import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-flags';
 
 export interface MaxBattleEditDialogData {
@@ -68,13 +68,12 @@ const LEVEL_OPTION_KEYS: { gmax: boolean; i18nKey: string; value: number }[] = [
   styleUrl: './max-battle-edit-dialog.component.scss',
   templateUrl: './max-battle-edit-dialog.component.html',
 })
-export class MaxBattleEditDialogComponent implements OnInit {
+export class MaxBattleEditDialogComponent {
   private readonly fb = inject(FormBuilder);
   private readonly i18n = inject(I18nService);
   private readonly iconService = inject(IconService);
   private readonly masterData = inject(MasterDataService);
   private readonly maxBattleService = inject(MaxBattleService);
-  private readonly poracleConfig = inject(PoracleConfigService);
   private readonly snackBar = inject(MatSnackBar);
 
   readonly data = inject<MaxBattleEditDialogData>(MAT_DIALOG_DATA);
@@ -84,7 +83,7 @@ export class MaxBattleEditDialogComponent implements OnInit {
     clean: [isAutoDelete(this.data.item.clean)],
     gmax: [this.data.item.gmax === 1],
     level: [this.data.item.level],
-    // Always present even when the control is hidden -- see pingSupported below -- so a mention
+    // Always present even when the Mention control is hidden (not a webhook alarm) -- so a mention
     // round-trips unchanged through a save this dialog makes for an unrelated field.
     ping: [this.data.item.ping ?? '', [Validators.maxLength(255)]],
     template: [this.data.item.template ?? ''],
@@ -99,13 +98,16 @@ export class MaxBattleEditDialogComponent implements OnInit {
     value: k.value,
   }));
 
-  /** Whether to show the Mention control at all -- see pokemon-edit-dialog's pingSupported for why. */
-  readonly pingSupported = computed(() => this.poracleConfig.serverConfig().pingSupported);
+  /** False while the scope picker holds a radius it won't accept, which keeps Save off. */
+  readonly radiusValid = signal(true);
 
   saving = signal(false);
 
   /** The alarm's current scope, read back into the shared picker. */
   readonly scope = signal<AlarmScope>(scopeOf(this.data.item.overrideLocationLabel, this.data.item.overrideAreas, this.data.item.distance));
+
+  /** The radius as stored, which an edit may keep even outside the picker's range. */
+  readonly storedRadiusKm = metresToKm(this.data.item.distance);
 
   getImage(): string {
     const item = this.data.item;
@@ -132,10 +134,6 @@ export class MaxBattleEditDialogComponent implements OnInit {
 
   isGmax(): boolean {
     return this.data.item.gmax === 1 || this.data.item.level === 7 || this.data.item.level === 8;
-  }
-
-  ngOnInit(): void {
-    this.poracleConfig.load().subscribe();
   }
 
   onImageError(event: Event): void {
@@ -176,8 +174,8 @@ export class MaxBattleEditDialogComponent implements OnInit {
     this.maxBattleService.update(this.data.item.uid, update).subscribe({
       // The server names what is wrong -- which alarm already uses these settings, which
       // field a file got wrong. A fixed string threw that away. See #567, #568.
-      error: (err: { error?: { error?: string } }) => {
-        this.snackBar.open(err?.error?.error ?? this.i18n.instant('MAX_BATTLES.SNACK_FAILED_UPDATE'), this.i18n.instant('COMMON.OK'), {
+      error: (err: unknown) => {
+        this.snackBar.open(createFailureText(err, this.i18n, 'ALARM.FAILED_UPDATE'), this.i18n.instant('COMMON.OK'), {
           duration: 6000,
         });
         this.saving.set(false);

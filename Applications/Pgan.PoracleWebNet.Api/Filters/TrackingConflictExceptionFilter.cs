@@ -11,6 +11,8 @@ namespace Pgan.PoracleWebNet.Api.Filters;
 /// Registered globally so every alarm controller reports a collision the same way. Without it the
 /// services' <see cref="TrackingConflictException"/> would surface as an opaque 500 - and before the
 /// exception existed at all, the collision was reported as success. See #462 and #463.
+/// <c>existingUid</c> names the stored rule in the way when PoracleNG reported it, so a single Add can say
+/// which alarm already covers it and offer to edit that one.
 /// </remarks>
 public sealed class TrackingConflictExceptionFilter : IActionFilter
 {
@@ -29,6 +31,7 @@ public sealed class TrackingConflictExceptionFilter : IActionFilter
         {
             error = ex.Message,
             trackingType = ex.TrackingType,
+            existingUid = ex.ExistingUid,
         });
         context.ExceptionHandled = true;
     }

@@ -6,29 +6,25 @@
     </p>
   </div>
   <div class="header-actions">
-    <button
-      mat-fab
-      (click)="openAddDialog()"
-      [attr.aria-label]="'POKEMON.ADD_POKEMON' | translate"
-      [style.background-color]="'#4caf50'"
-      [style.color]="'white'">
+    <button mat-flat-button class="page-primary-action" (click)="openAddDialog()">
       <mat-icon>add</mat-icon>
+      {{ 'ALARM.NEW_ALARM' | translate }}
     </button>
   </div>
 </div>
 
 @if (!loading() && monsters().length > 0) {
-  <div class="filter-bar" [class.sticky]="monsters().length > 6">
-    <mat-form-field class="search-field" appearance="outline" subscriptSizing="dynamic">
-      <mat-icon matPrefix>search</mat-icon>
-      <input matInput [placeholder]="'POKEMON.SEARCH_PLACEHOLDER' | translate" [formControl]="searchControl" />
-      @if (searchControl.value) {
-        <button matSuffix mat-icon-button (click)="searchControl.reset()" [attr.aria-label]="'COMMON.CLEAR_SEARCH' | translate">
-          <mat-icon>close</mat-icon>
-        </button>
-      }
-    </mat-form-field>
-
+  <app-alarm-list-toolbar
+    searchPlaceholder="POKEMON.SEARCH_PLACEHOLDER"
+    [(search)]="search"
+    [(sort)]="sortBy"
+    [sortOptions]="sortOptions"
+    [total]="monsters().length"
+    [shown]="filteredMonsters().length"
+    [hasFilters]="activeFilter() !== null || activeGen() !== null"
+    [selectMode]="selectMode()"
+    (selectModeToggle)="toggleSelectMode()"
+    (cleared)="clearFilters()">
     <div class="quick-filters">
       <button mat-stroked-button [class.filter-active]="activeFilter() === 'highiv'" (click)="toggleFilter('highiv')">
         <mat-icon>stars</mat-icon> {{ 'POKEMON.FILTER_HIGH_IV' | translate }}
@@ -40,21 +36,7 @@
         <mat-icon>straighten</mat-icon> {{ 'POKEMON.FILTER_DISTANCE' | translate }}
       </button>
     </div>
-
-    <div class="filter-meta">
-      <span class="result-count">{{
-        'POKEMON.RESULT_COUNT' | translate: { filtered: filteredMonsters().length, total: monsters().length }
-      }}</span>
-      <button
-        mat-icon-button
-        (click)="toggleSelectMode()"
-        [class.select-mode-active]="selectMode()"
-        [matTooltip]="selectMode() ? ('ALARM.EXIT_SELECT_MODE' | translate) : ('ALARM.SELECT_MULTIPLE' | translate)"
-        [attr.aria-label]="selectMode() ? ('ALARM.EXIT_SELECT_MODE' | translate) : ('ALARM.SELECT_MULTIPLE' | translate)">
-        <mat-icon>{{ selectMode() ? 'close' : 'checklist' }}</mat-icon>
-      </button>
-    </div>
-  </div>
+  </app-alarm-list-toolbar>
 
   <div class="gen-filter-bar">
     <button class="gen-chip" [class.gen-active]="activeGen() === null" (click)="activeGen.set(null)">
@@ -72,39 +54,16 @@
         G{{ gen.label }}
       </button>
     }
-    <span class="filter-spacer"></span>
-    <mat-form-field appearance="outline" class="sort-field">
-      <mat-icon matPrefix>sort</mat-icon>
-      <mat-select [value]="sortBy()" (valueChange)="sortBy.set($event)">
-        <mat-option value="name">{{ 'POKEMON.SORT_NAME' | translate }}</mat-option>
-        <mat-option value="id">{{ 'POKEMON.SORT_ID' | translate }}</mat-option>
-        <mat-option value="generation">{{ 'POKEMON.SORT_GENERATION' | translate }}</mat-option>
-        <mat-option value="evolution">{{ 'POKEMON.SORT_EVOLUTION' | translate }}</mat-option>
-      </mat-select>
-    </mat-form-field>
-    @if (activeGen()) {
-      <span class="gen-count">{{ 'ALARM.ALARMS_COUNT' | translate: { count: filteredMonsters().length } }}</span>
-    }
   </div>
 
   @if (selectMode()) {
-    <div class="bulk-toolbar">
-      @if (selectedIds().size > 0) {
-        <span class="bulk-count">{{ 'ALARM.SELECTED_COUNT' | translate: { count: selectedIds().size } }}</span>
-      }
-      <button mat-stroked-button (click)="selectAll()"><mat-icon>select_all</mat-icon> {{ 'ALARM.SELECT_ALL' | translate }}</button>
-      @if (selectedIds().size > 0) {
-        <button mat-stroked-button (click)="deselectAll()">{{ 'ALARM.DESELECT_ALL' | translate }}</button>
-      }
-      <div class="bulk-spacer"></div>
-      <button mat-stroked-button (click)="bulkUpdateDistance()" [disabled]="selectedIds().size === 0">
-        <mat-icon>straighten</mat-icon> {{ 'ALARM.UPDATE_DISTANCE' | translate }}
-      </button>
-
-      <button mat-flat-button color="warn" (click)="bulkDelete()" [disabled]="selectedIds().size === 0">
-        <mat-icon>delete</mat-icon> {{ 'ALARM.DELETE' | translate }}
-      </button>
-    </div>
+    <app-bulk-action-bar
+      [count]="actionIds().length"
+      [anySelected]="selectedIds().size > 0"
+      (selectAll)="selectAll()"
+      (deselectAll)="deselectAll()"
+      (changeRadius)="bulkUpdateDistance()"
+      (deleteSelected)="bulkDelete()" />
   }
 }
 
@@ -132,131 +91,103 @@
 } @else {
   <div class="alarm-grid">
     @for (monster of filteredMonsters(); track monster.uid) {
-      <mat-card
-        class="alarm-card"
-        [class.all-pokemon-card]="monster.pokemonId === 0"
-        [style.border-left-color]="getTypeColor(monster.pokemonId)"
-        [class.card-selected]="selectMode() && selectedIds().has(monster.uid)">
-        @if (selectMode()) {
-          <mat-checkbox
-            [checked]="selectedIds().has(monster.uid)"
-            (change)="toggleSelect(monster.uid)"
-            (click)="$event.stopPropagation()"
-            class="card-checkbox">
-          </mat-checkbox>
+      <app-alarm-card
+        [edge]="edgeFor(monster)"
+        [summary]="monster.description"
+        [selectable]="selectMode()"
+        [selected]="selectedIds().has(monster.uid)"
+        [selectLabel]="'ALARM.SELECT_ONE' | translate: { name: getPokemonName(monster.pokemonId) }"
+        (selectedToggle)="toggleSelect(monster.uid)">
+        @if (monster.pokemonId === 0) {
+          <div ruleMedia class="rule-icon"><mat-icon>select_all</mat-icon></div>
+        } @else {
+          <img
+            ruleMedia
+            class="rule-sprite"
+            [src]="getPokemonImage(monster.pokemonId, monster.form)"
+            [alt]="getPokemonName(monster.pokemonId)"
+            (error)="onImageError($event, monster.pokemonId)" />
         }
-        <div class="card-top" [style.border-top-color]="getTypeColor(monster.pokemonId)">
-          @if (monster.pokemonId === 0) {
-            <div class="all-pokemon-icon">
-              <mat-icon>select_all</mat-icon>
-            </div>
-          } @else {
-            <img
-              [src]="getPokemonImage(monster.pokemonId, monster.form)"
-              [alt]="getPokemonName(monster.pokemonId)"
-              class="pokemon-img"
-              (error)="onImageError($event, monster.pokemonId)" />
-          }
-          <div class="pokemon-info">
-            <h3>{{ getPokemonName(monster.pokemonId) }}</h3>
-            @if (monster.pokemonId > 0) {
-              <span class="pokemon-id">#{{ monster.pokemonId }}</span>
-            }
+        <span ruleTitle>{{ getPokemonName(monster.pokemonId) }}</span>
+        @if (monster.pokemonId > 0) {
+          <div ruleSubtitle class="rule-subtitle">
+            <span>#{{ monster.pokemonId }}</span>
             @if (monster.form > 0) {
-              <span class="form-badge">{{ 'POKEMON.FORM_BADGE' | translate: { id: monster.form } }}</span>
+              <span>{{ 'POKEMON.FORM_BADGE' | translate: { id: monster.form } }}</span>
             }
           </div>
-          <div class="card-top-actions">
-            @if (isAutoDelete(monster.clean)) {
-              <span class="clean-tag" [matTooltip]="'POKEMON.CLEAN_TAG_TOOLTIP' | translate">{{ 'POKEMON.CLEAN_TAG' | translate }}</span>
-            }
-            @if (isEdit(monster.clean)) {
-              <span class="edit-tag" [matTooltip]="'POKEMON.EDIT_HINT' | translate">{{ 'POKEMON.EDIT_BADGE' | translate }}</span>
-            }
-          </div>
-        </div>
-        <mat-card-content>
-          <div class="filter-pills">
-            @if (monster.minIv !== -1 && (monster.minIv !== 0 || monster.maxIv !== 100)) {
-              <span class="filter-pill iv-pill">IV {{ monster.minIv }}-{{ monster.maxIv }}%</span>
-            }
-            @if (monster.minIv === -1) {
-              <span class="filter-pill iv-pill iv-disabled">{{ 'POKEMON.NO_IV_FILTER' | translate }}</span>
-            }
-            @if (monster.minCp > 0 || monster.maxCp < 9000) {
-              <span class="filter-pill cp-pill">CP {{ monster.minCp }}-{{ monster.maxCp }}</span>
-            }
-            @if (hasLevelFilter(monster)) {
-              <span class="filter-pill level-pill">L{{ monster.minLevel }}-{{ monster.maxLevel }}</span>
-            }
-            @if (monster.pvpRankingLeague > 0) {
-              <span class="filter-pill pvp-pill"
-                >PVP
-                {{
-                  monster.pvpRankingLeague === 1500
-                    ? ('POKEMON.PVP_GL' | translate)
-                    : monster.pvpRankingLeague === 2500
-                      ? ('POKEMON.PVP_UL' | translate)
-                      : monster.pvpRankingLeague === 500
-                        ? ('POKEMON.PVP_LC' | translate)
-                        : ('POKEMON.PVP_ML' | translate)
-                }}</span
-              >
-            }
-            @if (monster.gender > 0) {
-              <span class="filter-pill gender-pill">{{
-                monster.gender === 1 ? '\u2642' : monster.gender === 2 ? '\u2640' : ('POKEMON.GENDER_GENDERLESS' | translate)
-              }}</span>
-            }
-            @if (monster.costume !== 9000) {
-              <span class="filter-pill costume-pill">{{ getCostumePillText(monster.costume) }}</span>
-            }
-            @if (monster.size > 0 || monster.maxSize < 5) {
-              <span class="filter-pill size-pill">{{ getSizePillText(monster) }}</span>
-            }
-            @if (monster.minTime > 0) {
-              <span class="filter-pill time-pill">{{ minTimeText(monster.minTime) | translate: minTimeParams(monster.minTime) }}</span>
-            }
-          </div>
-          <div class="distance-chip-row">
-            <app-where-chip
-              [distance]="monster.distance"
-              [overrideAreas]="monster.overrideAreas"
-              [overrideLocationLabel]="monster.overrideLocationLabel"
-              [profileAreas]="profileAreas()"
-              (click)="editScope(monster); $event.stopPropagation()" />
-          </div>
-          @if (monster.pvpRankingLeague > 0) {
-            <div class="pvp-row">
-              <span class="pvp-badge">
-                <mat-icon>emoji_events</mat-icon>
-                {{ getLeagueName(monster.pvpRankingLeague) }} {{ 'POKEMON.PVP_LEAGUE_SUFFIX' | translate }}
-                @if (monster.pvpRankingEvolution) {
-                  <span class="pvp-evo-suffix">· {{ megaLabel(monster.pvpRankingEvolution) | translate }}</span>
-                }
-              </span>
-              <span class="pvp-rank">{{
-                'POKEMON.PVP_RANK_RANGE' | translate: { best: monster.pvpRankingBest, worst: monster.pvpRankingWorst }
-              }}</span>
-            </div>
+        }
+        <ng-container ruleStatus>
+          @if (isAutoDelete(monster.clean)) {
+            <span class="rule-tag" [matTooltip]="'POKEMON.CLEAN_TAG_TOOLTIP' | translate"
+              ><mat-icon>auto_delete</mat-icon>{{ 'ALARM.STATUS_CLEAN' | translate }}</span
+            >
           }
-          <app-rule-summary [text]="monster.description" />
-        </mat-card-content>
-        <mat-card-actions align="end">
+          @if (isEdit(monster.clean)) {
+            <span class="rule-tag" [matTooltip]="'POKEMON.EDIT_HINT' | translate"
+              ><mat-icon>edit_note</mat-icon>{{ 'ALARM.STATUS_EDIT' | translate }}</span
+            >
+          }
           <!-- Species, not this one rule: quieting Pikachu quiets every Pikachu alert for an hour. -->
           @if (monster.pokemonId > 0) {
             <app-quiet-chip scope="pokemon" [value]="monster.pokemonId.toString()" [subject]="getPokemonName(monster.pokemonId)" />
           }
-
+        </ng-container>
+        <div ruleFilters class="rule-pills">
+          @if (monster.minIv !== -1 && (monster.minIv !== 0 || monster.maxIv !== 100)) {
+            <span class="rule-pill">IV {{ monster.minIv }}-{{ monster.maxIv }}%</span>
+          }
+          @if (monster.minIv === -1) {
+            <span class="rule-pill">{{ 'POKEMON.NO_IV_FILTER' | translate }}</span>
+          }
+          @if (monster.minCp > 0 || monster.maxCp < 9000) {
+            <span class="rule-pill">CP {{ monster.minCp }}-{{ monster.maxCp }}</span>
+          }
+          @if (hasLevelFilter(monster)) {
+            <span class="rule-pill">L{{ monster.minLevel }}-{{ monster.maxLevel }}</span>
+          }
+          @if (monster.gender > 0) {
+            <span class="rule-pill">{{ getGenderPillText(monster.gender) }}</span>
+          }
+          @if (monster.costume !== 9000) {
+            <span class="rule-pill">{{ getCostumePillText(monster.costume) }}</span>
+          }
+          @if (monster.size > 0 || monster.maxSize < 5) {
+            <span class="rule-pill">{{ getSizePillText(monster) }}</span>
+          }
+          @if (monster.minTime > 0) {
+            <span class="rule-pill">{{ minTimeText(monster.minTime) | translate: minTimeParams(monster.minTime) }}</span>
+          }
+        </div>
+        @if (monster.pvpRankingLeague > 0) {
+          <div class="pvp-row">
+            <span class="pvp-badge">
+              <mat-icon>emoji_events</mat-icon>
+              {{ getLeagueName(monster.pvpRankingLeague) }}
+              @if (monster.pvpRankingEvolution) {
+                <span class="pvp-evo-suffix">· {{ megaLabel(monster.pvpRankingEvolution) | translate }}</span>
+              }
+            </span>
+            <span class="pvp-rank">{{
+              'POKEMON.PVP_RANK_RANGE' | translate: { best: monster.pvpRankingBest, worst: monster.pvpRankingWorst }
+            }}</span>
+          </div>
+        }
+        <app-where-chip
+          ruleScope
+          [distance]="monster.distance"
+          [overrideAreas]="monster.overrideAreas"
+          [overrideLocationLabel]="monster.overrideLocationLabel"
+          [profileAreas]="profileAreas()"
+          (click)="editScope(monster); $event.stopPropagation()" />
+        <ng-container ruleActions>
           <button
             mat-icon-button
             (click)="sendTestAlert(monster)"
             [disabled]="testAlertService.isSending('pokemon', monster.uid) || testAlertService.isCoolingDown('pokemon', monster.uid)"
-            [matTooltip]="
-              testAlertService.isCoolingDown('pokemon', monster.uid) ? ('ALARM.TEST_COOLDOWN' | translate) : ('ALARM.TEST_SEND' | translate)
-            "
+            [matTooltip]="(testAlertService.isCoolingDown('pokemon', monster.uid) ? 'ALARM.TEST_COOLDOWN' : 'ALARM.TEST_SEND') | translate"
             [attr.aria-label]="
-              testAlertService.isCoolingDown('pokemon', monster.uid) ? ('ALARM.TEST_COOLDOWN' | translate) : ('ALARM.TEST_SEND' | translate)
+              (testAlertService.isCoolingDown('pokemon', monster.uid) ? 'ALARM.TEST_COOLDOWN' : 'ALARM.TEST_SEND') | translate
             "
             class="test-alert-btn">
             @if (testAlertService.isSending('pokemon', monster.uid)) {
@@ -265,7 +196,6 @@
               <mat-icon>send</mat-icon>
             }
           </button>
-
           <button
             mat-icon-button
             (click)="editMonster(monster)"
@@ -273,7 +203,6 @@
             [attr.aria-label]="'COMMON.EDIT' | translate">
             <mat-icon>edit</mat-icon>
           </button>
-
           <button
             mat-icon-button
             (click)="deleteMonster(monster)"
@@ -282,25 +211,16 @@
             color="warn">
             <mat-icon>delete</mat-icon>
           </button>
-        </mat-card-actions>
-      </mat-card>
+        </ng-container>
+      </app-alarm-card>
     } @empty {
-      <div class="empty-state">
-        <svg class="empty-illustration" width="120" height="120" viewBox="0 0 120 120" fill="none">
-          <circle cx="60" cy="60" r="56" stroke="currentColor" stroke-width="3" opacity="0.15" />
-          <path d="M4 60h112" stroke="currentColor" stroke-width="3" opacity="0.15" />
-          <circle cx="60" cy="60" r="14" stroke="currentColor" stroke-width="3" opacity="0.15" />
-          <circle cx="60" cy="60" r="8" fill="currentColor" opacity="0.08" />
-          <text x="85" y="30" font-size="18" fill="currentColor" opacity="0.2" font-weight="600">Z</text>
-          <text x="95" y="22" font-size="14" fill="currentColor" opacity="0.15" font-weight="600">z</text>
-          <text x="102" y="16" font-size="10" fill="currentColor" opacity="0.1" font-weight="600">z</text>
-        </svg>
-        <h2 class="empty-title">{{ 'POKEMON.EMPTY_TITLE' | translate }}</h2>
-        <p class="empty-subtitle">{{ 'POKEMON.EMPTY_SUBTITLE' | translate }}</p>
-        <button mat-flat-button style="background-color: #38823b; color: white" (click)="openAddDialog()">
-          <mat-icon>add</mat-icon> {{ 'POKEMON.ADD_POKEMON' | translate }}
-        </button>
-      </div>
+      @if (monsters().length === 0) {
+        <app-alarm-empty-state
+          icon="catching_pokemon"
+          titleKey="POKEMON.EMPTY_TITLE"
+          bodyKey="POKEMON.EMPTY_SUBTITLE"
+          (add)="openAddDialog()" />
+      }
     }
   </div>
 }

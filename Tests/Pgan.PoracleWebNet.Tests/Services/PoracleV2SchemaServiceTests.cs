@@ -9,17 +9,13 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The two fixtures are real documents, trimmed to the parts the parser reads: one from a production
-/// 5.2.1, one from a build of PoracleNG's <c>develop</c> at <c>634fe044</c> (PR #217) running on the
-/// dev-01 test bed, with <c>V2PokemonRule.ping</c> added from a later live capture against
-/// <c>poracle-ng-dev</c> once it carried PR #249 -- the "next" fixture is "develop, trimmed as it is
-/// seen over time", not a single frozen commit. A hand-written document would assert this code's own
-/// idea of the shape, which is the failure CLAUDE.md records under "Tests: assert what must still work".
+/// The fixture is a real document, PoracleNG 5.4.0's own <c>/openapi.json</c>, trimmed to the parts the
+/// parser reads. A hand-written document would assert this code's own idea of the shape, which is the
+/// failure CLAUDE.md records under "Tests: assert what must still work".
 /// </para>
 /// <para>
-/// Both halves matter. The 5.2.1 fixture is the no-change case — every capability false, every caller
-/// keeping its workaround — and it is the one that fails if a probe is written so loosely it matches
-/// anything.
+/// The no-change half is the inline documents below: a probe written so loosely that it matches anything
+/// would answer true for them.
 /// </para>
 /// </remarks>
 public class PoracleV2SchemaServiceTests
@@ -32,64 +28,21 @@ public class PoracleV2SchemaServiceTests
         File.ReadAllText(Path.Combine(Path.GetDirectoryName(here)!, "..", "Fixtures", $"poracleng-openapi-{name}.json"));
 
     [Fact]
-    public void AReleasedPoracleCarriesNoneOfThem()
+    public void ADocumentThatDeclaresNeitherPropertyCarriesNeitherCapability()
     {
-        var capabilities = PoracleV2SchemaService.Parse(Fixture("5.2.1"));
+        var capabilities = PoracleV2SchemaService.Parse("""{"components":{"schemas":{"V2SetAreasBody":{"properties":{"areas":{}}},"V2InvasionRule":{"properties":{"type_id":{}}}}},"paths":{}}""");
 
         Assert.True(capabilities.Read);
-        Assert.False(capabilities.TrustedSetAreas);
-        Assert.False(capabilities.ProfileRename);
-        Assert.False(capabilities.ProfileCreateReturnsNumber);
-        Assert.False(capabilities.AdminHumanRoutes);
         Assert.False(capabilities.InvasionGruntType);
-        Assert.False(capabilities.TrackingPing);
-        Assert.False(capabilities.V2LocationLatitudeLongitude);
     }
 
     [Fact]
-    public void TheDevelopBranchCarriesAllOfThem()
+    public void TheMinimumSupportedReleaseCarriesAllOfThem()
     {
-        var capabilities = PoracleV2SchemaService.Parse(Fixture("next"));
+        var capabilities = PoracleV2SchemaService.Parse(Fixture("5.4.0"));
 
         Assert.True(capabilities.Read);
-        Assert.True(capabilities.TrustedSetAreas);
-        Assert.True(capabilities.ProfileRename);
-        Assert.True(capabilities.ProfileCreateReturnsNumber);
-        Assert.True(capabilities.AdminHumanRoutes);
         Assert.True(capabilities.InvasionGruntType);
-        Assert.True(capabilities.TrackingPing);
-        Assert.True(capabilities.V2LocationLatitudeLongitude);
-    }
-
-    [Fact]
-    public void TheDevelopBranchNamesLocationsLatitudeLongitude()
-    {
-        // jfberry/PoracleNG#303 renamed lat/lon on the three location bodies. The fixture is the
-        // schemas as a #303 build serves them.
-        Assert.True(PoracleV2SchemaService.Parse(Fixture("next")).V2LocationLatitudeLongitude);
-    }
-
-    [Fact]
-    public void AReleasedPoracleNamesThemLatLon()
-    {
-        Assert.False(PoracleV2SchemaService.Parse(Fixture("5.2.1")).V2LocationLatitudeLongitude);
-    }
-
-    [Fact]
-    public void AnUnreadableSchemaSendsLatLon()
-    {
-        Assert.False(PoracleV2SchemaService.Parse("not json at all").V2LocationLatitudeLongitude);
-        Assert.False(PoracleV2SchemaService.Parse(null).V2LocationLatitudeLongitude);
-    }
-
-    [Fact]
-    public void BothCoordinatesMustBeRenamedNotJustOne()
-    {
-        const string half = """
-            {"components":{"schemas":{"V2LocationBody":{"properties":{"latitude":{},"lon":{}}}}}}
-            """;
-
-        Assert.False(PoracleV2SchemaService.Parse(half).V2LocationLatitudeLongitude);
     }
 
     [Theory]
@@ -106,13 +59,7 @@ public class PoracleV2SchemaServiceTests
     {
         var capabilities = PoracleV2SchemaService.Parse(document);
 
-        Assert.False(capabilities.TrustedSetAreas);
-        Assert.False(capabilities.ProfileRename);
-        Assert.False(capabilities.ProfileCreateReturnsNumber);
-        Assert.False(capabilities.AdminHumanRoutes);
         Assert.False(capabilities.InvasionGruntType);
-        Assert.False(capabilities.TrackingPing);
-        Assert.False(capabilities.V2LocationLatitudeLongitude);
     }
 
     [Fact]
@@ -126,72 +73,11 @@ public class PoracleV2SchemaServiceTests
     }
 
     [Fact]
-    public void AdminHumanRoutesNeedsBothTheListAndTheDelete()
+    public void TheFixtureIsTheMinimumReleasesOwnDocument()
     {
-        // Reporting them separately would invite a half-migration that keeps IHumanRepository — and with
-        // it PoracleContext — alive for the one method that did not move.
-        const string listOnly = """
-            {"paths":{"/v2/humans":{"get":{}},"/v2/humans/{id}":{"get":{}}},
-             "components":{"schemas":{}}}
-            """;
-        const string deleteOnly = """
-            {"paths":{"/v2/humans":{"post":{}},"/v2/humans/{id}":{"get":{},"delete":{}}},
-             "components":{"schemas":{}}}
-            """;
-        const string both = """
-            {"paths":{"/v2/humans":{"get":{},"post":{}},"/v2/humans/{id}":{"get":{},"delete":{}}},
-             "components":{"schemas":{"V2HumanSummary":{"properties":{"last_checked":{"type":"string"}}}}}}
-            """;
+        // Cheap guard against the fixture being regenerated from the wrong instance.
+        using var minimum = JsonDocument.Parse(Fixture("5.4.0"));
 
-        Assert.False(PoracleV2SchemaService.Parse(listOnly).AdminHumanRoutes);
-        Assert.False(PoracleV2SchemaService.Parse(deleteOnly).AdminHumanRoutes);
-        Assert.True(PoracleV2SchemaService.Parse(both).AdminHumanRoutes);
-    }
-
-    [Fact]
-    public void AdminHumanRoutesNeedsTheThreeHashFieldsNotJustTheRoutes()
-    {
-        // The routes existed from PR #217 on; #230 added last_checked/disabled_date/notes, which the
-        // admin grid actually reads. A server with the routes but the pre-#230 summary shape must not
-        // report this as available -- it is not meaningfully different from having no route at all.
-        const string preHash230 = """
-            {"paths":{"/v2/humans":{"get":{}},"/v2/humans/{id}":{"get":{},"delete":{}}},
-             "components":{"schemas":{"V2HumanSummary":{"properties":{"id":{"type":"string"}}}}}}
-            """;
-
-        Assert.False(PoracleV2SchemaService.Parse(preHash230).AdminHumanRoutes);
-    }
-
-    [Fact]
-    public void ProfileCreateIsReadByWhatTheBodyCarriesNotByWhatItIsCalled()
-    {
-        // Testing for "the response is not StatusOKOutputBody" would make an upstream rename read as the
-        // capability arriving, and a false positive here means reading a number out of a body that does
-        // not carry one. So the question is whether the referenced schema declares profile_no.
-        const string renamedButStillEmpty = """
-            {"paths":{"/v2/humans/{id}/profiles":{"post":{"responses":{"200":{"content":
-              {"application/json":{"schema":{"$ref":"#/components/schemas/SomethingElse"}}}}}}}},
-             "components":{"schemas":{"SomethingElse":{"properties":{"status":{"type":"string"}}}}}}
-            """;
-        const string carriesTheNumber = """
-            {"paths":{"/v2/humans/{id}/profiles":{"post":{"responses":{"200":{"content":
-              {"application/json":{"schema":{"$ref":"#/components/schemas/Whatever"}}}}}}}},
-             "components":{"schemas":{"Whatever":{"properties":{"profile_no":{"type":"integer"}}}}}}
-            """;
-
-        Assert.False(PoracleV2SchemaService.Parse(renamedButStillEmpty).ProfileCreateReturnsNumber);
-        Assert.True(PoracleV2SchemaService.Parse(carriesTheNumber).ProfileCreateReturnsNumber);
-    }
-
-    [Fact]
-    public void TheFixturesAreRealDocumentsAndNotEachOther()
-    {
-        // Cheap guard against a fixture being regenerated from the wrong instance, which would make the
-        // no-change half of this suite silently assert nothing.
-        using var released = JsonDocument.Parse(Fixture("5.2.1"));
-        using var next = JsonDocument.Parse(Fixture("next"));
-
-        Assert.Equal("5.2.1", released.RootElement.GetProperty("info").GetProperty("version").GetString());
-        Assert.Equal("5.3.0", next.RootElement.GetProperty("info").GetProperty("version").GetString());
+        Assert.Equal("5.4.0", minimum.RootElement.GetProperty("info").GetProperty("version").GetString());
     }
 }

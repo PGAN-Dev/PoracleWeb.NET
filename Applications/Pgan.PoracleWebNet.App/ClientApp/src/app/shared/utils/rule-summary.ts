@@ -33,18 +33,3 @@ export function cleanRuleSummary(raw: null | string | undefined): string {
       .trim()
   );
 }
-
-/**
- * Above this many characters the two-line clamp will engage at the grid's minimum card width, so the
- * line earns an expand control; below it, an affordance would point at nothing.
- *
- * A string length rather than a DOM measurement on purpose: the Pokemon page routinely renders several
- * hundred cards, and measuring each one costs a layout pass per card to answer a question worth one
- * comparison. Roughly 95 characters fit in two lines at the 300px minimum card width, so the threshold
- * sits just under that and errs towards offering the control on a line that only just fits.
- */
-export const RULE_SUMMARY_CLAMP_THRESHOLD = 90;
-
-export function ruleSummaryNeedsExpanding(cleaned: string): boolean {
-  return cleaned.length > RULE_SUMMARY_CLAMP_THRESHOLD;
-}

@@ -2,7 +2,7 @@
 
 PoracleWeb.NET can delegate **login** to a generic external OAuth2 / OpenID Connect
 provider, so users sign in with your own identity provider instead of (or alongside)
-Discord and Telegram. This page is the comprehensive, provider-agnostic guide to
+Discord and Telegram. This page is the provider-agnostic guide to
 configuring that login flow.
 
 !!! info "Provider-agnostic — PogoAlerts is just the reference"
@@ -13,12 +13,12 @@ configuring that login flow.
     **any** compliant provider: Keycloak, Authentik, Auth0, Google, Azure AD / Entra, Okta, and more.
 
 You can **ignore OIDC entirely** — it is off by default and the sign-in page stays in **Local**
-mode (Discord / Telegram). Turn it on only when you want to point PoracleWeb at a provider.
+mode (Discord / Telegram). Turn it on only when you want to point PoracleWeb.NET at a provider.
 
 !!! warning "The one inherent constraint"
     The identity claim returned by your provider's userinfo endpoint **must resolve to an existing
     Poracle `human` id** — i.e. a Discord or Telegram id that already exists in your Poracle
-    database. PoracleWeb does not provision new users from SSO; it authenticates *existing* Poracle
+    database. PoracleWeb.NET does not provision new users from SSO; it authenticates *existing* Poracle
     users through your provider. If the claim doesn't match a registered `human`, login fails with
     [`user_not_registered`](#error-codes). Set `OIDC_IDENTITY_CLAIM` to the userinfo claim that
     carries that id (it falls back to the standard `sub` claim when the configured claim is absent).
@@ -35,7 +35,7 @@ The flow is the standard OAuth2 authorization-code grant (with PKCE by default):
 ```mermaid
 sequenceDiagram
   participant B as Browser
-  participant P as PoracleWeb API
+  participant P as PoracleWeb.NET API
   participant I as Provider (IdP)
   B->>P: GET /api/auth/oidc/login
   P->>B: 302 to provider authorize (state cookie, PKCE S256)
@@ -51,16 +51,16 @@ sequenceDiagram
   P->>B: 302 /auth/oidc/callback#token=JWT
 ```
 
-- **CSRF**: a random `state` value is stored in an `HttpOnly` cookie and verified on callback.
-- **PKCE**: when `OIDC_USE_PKCE=true` (default), a code verifier is stored in an `HttpOnly`
+- CSRF. A random `state` value is stored in an `HttpOnly` cookie and verified on callback.
+- PKCE. When `OIDC_USE_PKCE=true` (default), a code verifier is stored in an `HttpOnly`
   cookie and only the S256 challenge is sent to the provider.
-- **Redirect URI**: PoracleWeb always uses `{your-host}/api/auth/oidc/callback`. Register exactly
+- Redirect URI. PoracleWeb.NET always uses `{your-host}/api/auth/oidc/callback`. Register exactly
   this URI at your provider. `{your-host}` comes from the incoming request unless `PUBLIC_URL` is
   set, in which case it is that value — worth setting behind a reverse proxy, where the app
   otherwise sees plain HTTP and sends an `http://` redirect URI the provider will refuse.
-- **Identity resolution**: the configured identity claim (falling back to `sub`) is looked up
+- Identity resolution. The configured identity claim (falling back to `sub`) is looked up
   against the Poracle `human` table. The provider authenticates; Poracle authorizes.
-- **JWT type claim**: successful logins mint PoracleWeb's internal JWT with the `type` claim set
+- JWT type claim. Successful logins mint PoracleWeb.NET's internal JWT with the `type` claim set
   to `OIDC_IDENTITY_TYPE` (default `discord:user`), so admin/role resolution treats the passed-through
   Discord id consistently with a direct Discord login.
 
@@ -80,10 +80,10 @@ sequenceDiagram
 
 2. **Configure the `OIDC_*` variables** in your `.env` (see the [reference table](#login-configuration-reference)).
    At minimum you need the three endpoint URLs, the client id, the client secret, and — unless your
-   provider's `sub` claim already holds the Poracle id — `OIDC_IDENTITY_CLAIM`. Restart PoracleWeb
+   provider's `sub` claim already holds the Poracle id — `OIDC_IDENTITY_CLAIM`. Restart PoracleWeb.NET
    so the server config takes effect.
 
-3. **Switch the sign-in mode to SSO.** In **Admin → Settings → Authentication**, flip the
+3. **Switch the sign-in mode to SSO.** In **Admin → Server settings → Authentication**, flip the
    **Local ⇄ SSO** segmented switch to **SSO**. This is the runtime opt-in (`enable_oidc=true`) and
    is gated on OIDC being fully configured plus a confirmation dialog. See
    [Auth mode](#auth-mode-local-vs-sso) below.
@@ -177,7 +177,7 @@ Single logout requires **both**:
 1. `OIDC_END_SESSION_URL` configured, **and**
 2. the runtime toggle `enable_oidc_slo` not set to `false` (absent = **on** once the URL is wired).
 
-If either is missing, logout falls back to **local-only** — PoracleWeb clears its own session but the
+If either is missing, logout falls back to **local-only** — PoracleWeb.NET clears its own session but the
 provider session survives.
 
 ---
@@ -297,8 +297,8 @@ identity claim from the matrix above. Google needs `?access_type=offline` append
 
 ## Next: silent session renewal
 
-By default PoracleWeb mints a short-lived internal JWT and discards the provider's tokens at login.
-To keep sessions alive in the background and propagate provider-side disable/logout to PoracleWeb,
+By default PoracleWeb.NET mints a short-lived internal JWT and discards the provider's tokens at login.
+To keep sessions alive in the background and propagate provider-side disable/logout to PoracleWeb.NET,
 enable refresh-token consumption:
 
 ➡️ **[OIDC Refresh Tokens](oidc-refresh-tokens.md)** — opt-in silent renewal, revocation propagation,

@@ -13,7 +13,8 @@ public class DashboardService(IPoracleTrackingProxy trackingProxy, IFeatureGate 
     {
         var allTracking = await this._trackingProxy.GetAllTrackingAsync(userId);
 
-        // The all-tracking snapshot is v1, so its "invasion" array carries pokestop-event rows too.
+        // The proxy folds v2's incident rules into the snapshot's "invasion" array, as v1 held them, so
+        // that array carries pokestop-event rows too.
         // Split them the same way the two lists do, and on the same condition: when the Pokestop
         // Events page is unavailable those rows are still shown under Invasions, so the card has to
         // agree with the page it links to. See InvasionService.EventsLiveElsewhereAsync.

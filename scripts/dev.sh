@@ -144,10 +144,10 @@ cmd_build() {
 cmd_db_create() {
   load_env
 
-  local host="${WEB_DB_HOST:-${DB_HOST:-localhost}}"
-  local port="${WEB_DB_PORT:-${DB_PORT:-3306}}"
-  local user="${WEB_DB_USER:-${DB_USER:-root}}"
-  local pass="${WEB_DB_PASSWORD:-${DB_PASSWORD:-}}"
+  local host="${WEB_DB_HOST:-localhost}"
+  local port="${WEB_DB_PORT:-3306}"
+  local user="${WEB_DB_USER:-root}"
+  local pass="${WEB_DB_PASSWORD:-}"
   local name="${WEB_DB_NAME:-poracle_web}"
 
   echo -e "${CYAN}Creating database '${name}' on ${host}:${port}...${RESET}"

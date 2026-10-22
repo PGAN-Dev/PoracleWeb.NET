@@ -15,6 +15,7 @@ namespace Pgan.PoracleWebNet.Api.Controllers;
 /// </remarks>
 [Route("api/pokestop-events")]
 [RequireFeatureEnabled(DisableFeatureKeys.PokestopEvents)]
+[TypeFilter(typeof(PoracleUnreachableExceptionFilter))]
 public class PokestopEventController(IPokestopEventService pokestopEventService) : BaseApiController
 {
     private readonly IPokestopEventService _pokestopEventService = pokestopEventService;

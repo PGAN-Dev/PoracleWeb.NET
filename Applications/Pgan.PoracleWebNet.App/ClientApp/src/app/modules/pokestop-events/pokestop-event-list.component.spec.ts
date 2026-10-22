@@ -3,9 +3,9 @@ import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { provideRouter } from '@angular/router';
+import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
-import { Observable, of, throwError } from 'rxjs';
+import { Observable, Subject, of, throwError } from 'rxjs';
 
 import { PokestopEventListComponent } from './pokestop-event-list.component';
 import { PokestopEvent } from '../../core/models';
@@ -54,7 +54,7 @@ describe('PokestopEventListComponent', () => {
     dialog.open.mockReturnValue({ afterClosed: () => of(value) });
   }
 
-  function setup(items: PokestopEvent[] | Observable<PokestopEvent[]>, areas: string[] = []): void {
+  function setup(items: PokestopEvent[] | Observable<PokestopEvent[]>, areas: string[] = [], query: Record<string, string> = {}): void {
     dialog = { open: jest.fn().mockReturnValue({ afterClosed: () => of(undefined) }) };
     snackBar = { open: jest.fn() };
     pokestopEventService = {
@@ -73,7 +73,7 @@ describe('PokestopEventListComponent', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: ConfigService, useValue: { apiHost: 'http://test-api' } },
-        { provide: I18nService, useValue: { instant: (k: string) => k } },
+        { provide: I18nService, useValue: { instant: (k: string) => k, plural: (k: string) => k } },
         { provide: MatDialog, useValue: dialog },
         { provide: MatSnackBar, useValue: snackBar },
         { provide: AreaService, useValue: { getSelected: () => of(areas) } },
@@ -90,9 +90,11 @@ describe('PokestopEventListComponent', () => {
         providers: [
           { provide: MatDialog, useValue: dialog },
           { provide: MatSnackBar, useValue: snackBar },
+          { provide: ActivatedRoute, useValue: { snapshot: { queryParamMap: convertToParamMap(query) } } },
         ],
       },
     });
+    jest.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
 
     fixture = TestBed.createComponent(PokestopEventListComponent);
     component = fixture.componentInstance;
@@ -100,7 +102,7 @@ describe('PokestopEventListComponent', () => {
   }
 
   function cardTitles(): string[] {
-    return Array.from(fixture.nativeElement.querySelectorAll('.alarm-card .item-info h3')).map(h => (h as HTMLElement).textContent!.trim());
+    return Array.from(fixture.nativeElement.querySelectorAll('.alarm-card .rule-title')).map(h => (h as HTMLElement).textContent!.trim());
   }
 
   describe('rendering', () => {
@@ -166,7 +168,124 @@ describe('PokestopEventListComponent', () => {
         { ...base, uid: 2, clean: 1, displayType: KECLEON },
       ]);
 
-      expect(fixture.nativeElement.querySelectorAll('.event-tag')).toHaveLength(1);
+      expect(fixture.nativeElement.querySelectorAll('.alarm-card .rule-tag')).toHaveLength(1);
+    });
+  });
+
+  describe('search and sort', () => {
+    const three = (): PokestopEvent[] => [
+      { ...base, uid: 1, displayType: GOLD_STOP, eventName: 'gold-stop' },
+      { ...base, uid: 3, displayType: SHOWCASE },
+      { ...base, uid: 2, displayType: KECLEON, eventName: 'kecleon' },
+    ];
+
+    it('shows only the rules whose name matches, ignoring case', () => {
+      setup(three());
+      component.search.set('kecl');
+      fixture.detectChanges();
+
+      expect(cardTitles()).toEqual(['INVASIONS.EVENT_TYPES.KECLEON']);
+    });
+
+    it('says nothing matches, and keeps the "no rules yet" state for a profile that has none', () => {
+      setup(three());
+      component.search.set('nothing like this');
+      fixture.detectChanges();
+      const el = fixture.nativeElement as HTMLElement;
+
+      expect(el.querySelectorAll('.alarm-card')).toHaveLength(0);
+      expect(el.querySelector('.no-matches')).toBeTruthy();
+      expect(el.querySelector('.empty-state')).toBeNull();
+    });
+
+    it('orders newest first on request, and back to the stable order after', () => {
+      setup(three());
+      component.sortBy.set('newest');
+      fixture.detectChanges();
+      expect(component.visibleEvents().map(e => e.uid)).toEqual([3, 2, 1]);
+
+      component.sortBy.set('default');
+      fixture.detectChanges();
+      expect(component.visibleEvents().map(e => e.uid)).toEqual([1, 2, 3]);
+    });
+
+    it('selects only what the search leaves on screen', () => {
+      setup(three());
+      component.search.set('showcase');
+      component.selectAll();
+
+      expect([...component.selectedIds()]).toEqual([3]);
+    });
+  });
+
+  describe('bulk actions and the search', () => {
+    const three = (): PokestopEvent[] => [
+      { ...base, uid: 1, displayType: GOLD_STOP, eventName: 'gold-stop' },
+      { ...base, uid: 3, displayType: SHOWCASE },
+      { ...base, uid: 2, displayType: KECLEON, eventName: 'kecleon' },
+    ];
+
+    it('deletes only the selected rules the search left on screen', async () => {
+      setup(three());
+      component.selectAll();
+      component.search.set('kecl');
+      fixture.detectChanges();
+      dialogReturns(true);
+
+      await component.bulkDelete();
+
+      expect(pokestopEventService.delete).toHaveBeenCalledTimes(1);
+      expect(pokestopEventService.delete).toHaveBeenCalledWith(2);
+    });
+
+    it('changes the radius on the visible selection only, and names that count', async () => {
+      setup(three());
+      component.selectAll();
+      component.search.set('kecl');
+      fixture.detectChanges();
+      dialogReturns(500);
+
+      await component.bulkUpdateDistance();
+
+      expect(dialog.open.mock.calls[0][1].data).toEqual({ count: 1 });
+      expect(pokestopEventService.updateBulkDistance).toHaveBeenCalledWith([2], 500);
+    });
+
+    it('counts the visible selection in the bulk bar, and the whole selection again once the search is cleared', () => {
+      setup(three());
+      component.toggleSelectMode();
+      component.selectAll();
+      component.search.set('kecl');
+      fixture.detectChanges();
+
+      expect(component.actionIds()).toEqual([2]);
+
+      component.search.set('');
+      fixture.detectChanges();
+
+      expect([...component.actionIds()].sort()).toEqual([1, 2, 3]);
+    });
+  });
+
+  describe('a delete that fails', () => {
+    it("shows the server's reason for a refusal", () => {
+      setup([base]);
+      dialogReturns(true);
+      pokestopEventService.delete.mockReturnValue(throwError(() => ({ error: { error: 'That alarm is no longer yours.' }, status: 404 })));
+
+      component.deleteItem(base);
+
+      expect(snackBar.open).toHaveBeenCalledWith('That alarm is no longer yours.', 'COMMON.OK', expect.anything());
+    });
+
+    it('says what to do next, in the reader’s language, when the server failed rather than refused', () => {
+      setup([base]);
+      dialogReturns(true);
+      pokestopEventService.delete.mockReturnValue(throwError(() => ({ error: { error: 'PoracleNG could not be reached.' }, status: 503 })));
+
+      component.deleteItem(base);
+
+      expect(snackBar.open).toHaveBeenCalledWith('ALARM.FAILED_DELETE', 'COMMON.OK', expect.anything());
     });
   });
 
@@ -274,7 +393,7 @@ describe('PokestopEventListComponent', () => {
       await component.bulkDelete();
 
       expect(pokestopEventService.delete).toHaveBeenCalledTimes(2);
-      expect(snackBar.open).toHaveBeenCalledWith('POKESTOP_EVENTS.SNACK_BULK_DELETED', 'COMMON.OK', expect.anything());
+      expect(snackBar.open).toHaveBeenCalledWith('ALARM.SNACK_BULK_DELETED', 'COMMON.OK', expect.anything());
     });
 
     it('deletes nothing when the confirmation is dismissed', async () => {
@@ -330,7 +449,7 @@ describe('PokestopEventListComponent', () => {
       await component.bulkUpdateDistance();
 
       expect(snackBar.open).toHaveBeenCalledWith(
-        'POKESTOP_EVENTS.SNACK_BULK_DISTANCE. WHERE.DISTANCE_SKIPPED_AREAS',
+        'ALARM.SNACK_BULK_DISTANCE. WHERE.DISTANCE_SKIPPED_AREAS',
         'COMMON.OK',
         expect.objectContaining({ duration: 6000 }),
       );
@@ -398,14 +517,45 @@ describe('PokestopEventListComponent', () => {
       expect(pokestopEventService.getAll).toHaveBeenCalledTimes(2);
     });
 
-    it('reloads after the add dialog reports a write, and hands it the rules already tracked', () => {
+    it("reloads after the add dialog reports a write, and hands it the rules already tracked and the profile's areas", () => {
       setup([base]);
       dialogReturns(true);
+      component.profileAreas.set(['terrigal']);
 
       component.openAddDialog();
 
-      expect(dialog.open).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ data: [base] }));
+      const data = dialog.open.mock.calls[0][1].data;
+      expect(data.events).toEqual([base]);
+      expect(data.profileAreas()).toEqual(['terrigal']);
       expect(pokestopEventService.getAll).toHaveBeenCalledTimes(2);
+    });
+
+    /**
+     * On a ?add=1 arrival the dialog opens once the list has loaded, and the profile's areas may answer
+     * after that. The dialog reads them when it needs them, so a clash names "in my areas", not "anywhere".
+     */
+    it('hands the add dialog the profile areas as they are when it asks, not when it opened', () => {
+      setup([base]);
+      dialogReturns(false);
+
+      component.openAddDialog();
+      component.profileAreas.set(['terrigal']);
+
+      expect(dialog.open.mock.calls[0][1].data.profileAreas()).toEqual(['terrigal']);
+    });
+
+    it('opens the clashing rule for editing when the add dialog asks, without reloading', () => {
+      const other = { ...base, uid: 5, displayType: KECLEON, eventName: 'kecleon' };
+      setup([base, other]);
+      dialog.open
+        .mockReturnValueOnce({ afterClosed: () => of({ editExisting: { uid: 5, trackingType: 'incident' } }) })
+        .mockReturnValue({ afterClosed: () => of(undefined) });
+
+      component.openAddDialog();
+
+      expect(dialog.open).toHaveBeenCalledTimes(2);
+      expect(dialog.open).toHaveBeenLastCalledWith(expect.anything(), expect.objectContaining({ data: other }));
+      expect(pokestopEventService.getAll).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -442,6 +592,40 @@ describe('PokestopEventListComponent', () => {
       component.editScope(base);
 
       expect(pokestopEventService.update).not.toHaveBeenCalled();
+    });
+  });
+  /**
+   * `?add=1` from the dashboard. This dialog marks events already tracked and names a clash from the list
+   * it is handed, so it must not open on the empty list of a page that is still loading.
+   */
+  describe('opened from ?add=1', () => {
+    it('waits for the first load and hands the dialog the loaded events', () => {
+      const load = new Subject<PokestopEvent[]>();
+      setup(load, [], { add: '1' });
+
+      expect(dialog.open).not.toHaveBeenCalled();
+
+      load.next([base]);
+      load.complete();
+
+      expect(dialog.open).toHaveBeenCalledTimes(1);
+      expect(dialog.open.mock.calls[0][1].data.events).toEqual([base]);
+    });
+
+    it('still opens when the load fails, so the user can add', () => {
+      setup(
+        throwError(() => new Error('down')),
+        [],
+        { add: '1' },
+      );
+
+      expect(dialog.open).toHaveBeenCalledTimes(1);
+    });
+
+    it('opens nothing on a plain visit', () => {
+      setup([base]);
+
+      expect(dialog.open).not.toHaveBeenCalled();
     });
   });
 });

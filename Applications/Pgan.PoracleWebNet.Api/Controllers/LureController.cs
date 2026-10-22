@@ -8,6 +8,7 @@ namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/lures")]
 [RequireFeatureEnabled(DisableFeatureKeys.Lures)]
+[TypeFilter(typeof(PoracleUnreachableExceptionFilter))]
 public class LureController(ILureService lureService) : BaseApiController
 {
     private readonly ILureService _lureService = lureService;

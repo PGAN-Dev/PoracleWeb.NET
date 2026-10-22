@@ -1,7 +1,10 @@
 import {
   activeHoursFires,
   compressDayRange,
+  formatAxisHour,
+  formatHourOption,
   formatRuleLabel,
+  formatTime,
   formatTime12h,
   groupActiveHours,
   parseActiveHours,
@@ -216,18 +219,72 @@ describe('range entries (issue #808)', () => {
   });
 
   it('should label an hourly range', () => {
-    const label = formatRuleLabel(
-      { days: [1], endHours: 17, endMins: 0, hours: 9, mins: 0, step: 1 },
-      (k, p) => `${k}|${p?.['days']}|${p?.['start']}|${p?.['end']}`,
+    const label = formatRuleLabel({ days: [1], endHours: 17, endMins: 0, hours: 9, mins: 0, step: 1 }, (k, p) =>
+      p ? `${k}|${p['days']}|${p['start']}|${p['end']}` : k,
     );
     expect(label).toBe('PROFILES.ACTIVE_HOURS_RANGE_HOURLY|Mon|9:00 AM|5:00 PM');
   });
 
   it('should label a stepped range', () => {
-    const label = formatRuleLabel(
-      { days: [1], endHours: 17, endMins: 0, hours: 9, mins: 0, step: 2 },
-      (k, p) => `${k}|${p?.['days']}|${p?.['start']}|${p?.['end']}|${p?.['step']}`,
+    const label = formatRuleLabel({ days: [1], endHours: 17, endMins: 0, hours: 9, mins: 0, step: 2 }, (k, p) =>
+      p ? `${k}|${p['days']}|${p['start']}|${p['end']}|${p['step']}` : k,
     );
     expect(label).toBe('PROFILES.ACTIVE_HOURS_RANGE_EVERY|Mon|9:00 AM|5:00 PM|2');
+  });
+});
+
+describe('display-language formatting (UI audit D3)', () => {
+  const german: Record<string, string> = {
+    'PROFILES.ACTIVE_HOURS_DAY_MON': 'Mo',
+    'PROFILES.ACTIVE_HOURS_DAY_SAT': 'Sa',
+    'PROFILES.ACTIVE_HOURS_DAY_TUE': 'Di',
+    'PROFILES.ACTIVE_HOURS_DAY_WED': 'Mi',
+    'PROFILES.ACTIVE_HOURS_EVERY_DAY': 'Jeden Tag',
+    'PROFILES.ACTIVE_HOURS_RANGE_HOURLY': '{{days}} {{start}}–{{end}}, stündlich',
+    'PROFILES.ACTIVE_HOURS_WEEKDAYS': 'Wochentage',
+    'PROFILES.ACTIVE_HOURS_WEEKENDS': 'Wochenende',
+  };
+  const de = (key: string, params?: Record<string, unknown>) =>
+    (german[key] ?? key).replace(/\{\{(\w+)\}\}/g, (_, name: string) => String(params?.[name] ?? ''));
+
+  it('keeps the 12-hour clock for English', () => {
+    expect(formatTime(9, 0, 'en')).toBe('9:00 AM');
+    expect(formatTime(17, 30, 'en')).toBe('5:30 PM');
+    expect(formatTime(0, 0, 'en')).toBe(formatTime12h(0, 0));
+  });
+
+  it('uses a 24-hour clock where the language does', () => {
+    expect(formatTime(17, 30, 'de')).toBe('17:30');
+    expect(formatTime(0, 5, 'pl')).toBe('0:05');
+    expect(formatTime(21, 0, 'fr')).toBe('21:00');
+    expect(formatTime(9, 15, 'da')).toBe('9.15');
+  });
+
+  it('falls back to English for a language tag Intl rejects', () => {
+    expect(formatTime(9, 0, 'not a tag!')).toBe('9:00 AM');
+  });
+
+  it('formats hour-picker options and axis ticks on the same clock', () => {
+    expect(formatHourOption(18, 'en')).toBe('6 PM');
+    expect(formatHourOption(18, 'de')).not.toMatch(/PM/);
+    expect(formatAxisHour(0, 'en')).toBe('12 AM');
+    expect(formatAxisHour(18, 'de')).toBe('18:00');
+    expect(formatAxisHour(6, 'pl')).toBe('6:00');
+  });
+
+  it('translates day names and presets', () => {
+    expect(compressDayRange([1, 2, 3, 4, 5], de)).toBe('Wochentage');
+    expect(compressDayRange([6, 7], de)).toBe('Wochenende');
+    expect(compressDayRange([1, 2, 3, 4, 5, 6, 7], de)).toBe('Jeden Tag');
+    expect(compressDayRange([1, 2, 3, 6], de)).toBe('Mo-Mi, Sa');
+  });
+
+  it('falls back to the English word for a key the translator does not know', () => {
+    expect(compressDayRange([4], de)).toBe('Thu');
+  });
+
+  it('labels a German rule without AM/PM or English words', () => {
+    expect(formatRuleLabel({ days: [6, 7], hours: 9, mins: 30, step: 0 }, de, 'de')).toBe('Wochenende 9:30');
+    expect(formatRuleLabel({ days: [1], endHours: 17, endMins: 0, hours: 9, mins: 0, step: 1 }, de, 'de')).toBe('Mo 9:00–17:00, stündlich');
   });
 });

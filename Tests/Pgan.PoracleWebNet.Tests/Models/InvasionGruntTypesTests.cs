@@ -45,6 +45,44 @@ public class InvasionGruntTypesTests
         Assert.DoesNotContain("showcase", InvasionGruntTypes.All);
     }
 
+    /// <summary>
+    /// The steel grunt was saved as <c>metal</c>, a name the game data does not have: on v1 it matched no
+    /// invasion, and v2 refuses it outright. The "All Invasions" fan-out must send the name PoracleNG knows.
+    /// </summary>
+    [Fact]
+    public void AllInvasionsFanOutHasNoMetalHasSteel()
+    {
+        Assert.DoesNotContain("metal", InvasionGruntTypes.All);
+        Assert.Contains("steel", InvasionGruntTypes.All);
+    }
+
+    /// <summary>
+    /// The <c>grunt_type</c> values the PoracleNG 5.4.0 bed (dev-01 :3046) lists at
+    /// <c>GET /api/masterdata/grunts</c>, read on 2026-10-21. The 5.4.0 OpenAPI document declares
+    /// <c>grunt_type</c> as a free string and points at that route instead of carrying an enum.
+    /// </summary>
+    private static readonly string[] BedGruntTypes =
+    [
+        "arlo", "blanche", "bug", "candela", "cliff", "dark", "darkness", "decoy", "dragon", "electric",
+        "explorer", "fairy", "fighting", "fire", "flying", "ghost", "giovanni", "grass", "ground", "gruntb",
+        "ice", "mixed", "normal", "npc_0", "npc_1", "npc_10", "npc_11", "npc_12", "npc_13", "npc_14",
+        "npc_15", "npc_16", "npc_17", "npc_18", "npc_19", "npc_2", "npc_20", "npc_3", "npc_4", "npc_5",
+        "npc_6", "npc_7", "npc_8", "npc_9", "npc_blanche", "npc_candela", "npc_spark", "player_team_leader",
+        "poison", "psychic", "rock", "sierra", "spark", "steel", "traveler", "unset", "water", "willow",
+        "willowb",
+    ];
+
+    /// <summary>v2's catch-alls, which the grunt list does not carry (the <c>V2InvasionRule.grunt_type</c> description).</summary>
+    private static readonly string[] CatchAlls = ["everything", "boss"];
+
+    [Fact]
+    public void EveryFannedOutNameIsOnePoracleNgAccepts()
+    {
+        var accepted = BedGruntTypes.Concat(CatchAlls).ToHashSet(StringComparer.Ordinal);
+
+        Assert.All(InvasionGruntTypes.All, name => Assert.Contains(name, accepted));
+    }
+
     [Fact]
     public void MatchesTheAngularDialogList()
     {

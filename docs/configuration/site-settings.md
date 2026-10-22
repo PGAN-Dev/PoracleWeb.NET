@@ -1,20 +1,23 @@
 # Site Settings
 
-Site settings are admin-configurable runtime settings stored in the `poracle_web.site_settings` database table. Unlike [appsettings.json configuration](reference.md) which requires a restart, site settings are changed at runtime via the **Admin > Settings** page and take effect immediately.
+Site settings are admin-configurable runtime settings stored in the `poracle_web.site_settings` database table. Unlike [appsettings.json configuration](reference.md) which requires a restart, site settings are changed at runtime via the **Admin > Server settings** page and take effect immediately.
 
 !!! info "First-time setup"
-    On first startup after upgrade, the `SettingsMigrationStartupService` automatically migrates any existing data from the deprecated `pweb_settings` key-value store to the structured `site_settings` table. This is idempotent and safe to run multiple times.
+    On startup PoracleWeb.NET writes one row, `custom_title` (`PoracleWeb.NET`), if it's missing, and never overwrites a value you've set. Every other setting has no row until an admin saves it. The server reads a missing row as that setting's default: a missing `disable_*` key leaves the feature on, and `enable_discord` and `enable_telegram` count as on unless they're stored as `false`.
 
 ## How it works
 
-- Settings are stored in the `poracle_web.site_settings` table with columns: `category`, `key`, `value`, and `value_type`.
-- The admin panel at **Admin > Settings** provides a grouped UI for editing all settings.
-- Changes take effect immediately — no app restart is needed.
-- Boolean settings use `"True"` / `"False"` string values.
-- Keys beginning `disable_` store the *disabled* state, but the admin UI shows them as positive switches — the toggle is on when the feature is available. The stored value is inverted on read and write, so what the API and the tables below describe is the key, not the switch.
-- Some settings have conditional visibility (e.g., `allowed_role_ids` only appears when `enable_roles` is enabled).
+Settings live in the `poracle_web.site_settings` table (`category`, `key`, `value`, `value_type`), and **Admin > Server settings** edits them in groups. A change takes effect immediately, with no restart. Booleans are stored as the strings `"True"` and `"False"`.
+
+Keys beginning `disable_` store the *disabled* state, but the admin page shows them as positive switches: the switch is on when the feature is available. The value is inverted on read and write, so the tables below describe the key, not the switch. Some settings only appear when another is on; `allowed_role_ids`, for example, shows once `enable_roles` is enabled.
 
 ---
+
+## Admin settings cards
+
+A status line under the search on **Admin > Server settings** sums up two cards ("PoracleWeb.NET 2.30 · PoracleNG 5.4.0 · Rules: nothing to repair") and turns amber or red when one needs a look; **Details** opens them. The Versions card reports the running PoracleWeb.NET and PoracleNG versions and whether PoracleNG meets the minimum. The Rule repair card scans for stored alarms that PoracleNG 5.4.0 reads differently (invasions saved as `metal`, raids saved with Pokémon 0, raids and max battles for any boss saved as Pokémon 9000) and repairs them on request, and lists the rules 5.4.0 won't save at all under "Cannot be edited", to fix by hand. Nothing is written before you press Repair. See [Upgrading to PoracleNG 5.4.0](../getting-started/upgrading-to-poracleng-5-4.md#run-the-rule-repair).
+
+![Admin > Server settings with the status line's details open, showing the Versions card and the Rule repair card above the settings groups](../screenshots/admin-settings-versions.png)
 
 ## Branding
 
@@ -35,7 +38,7 @@ Customize the appearance and navigation of your PoracleWeb.NET instance.
 - **Browser cache.** Browsers cache favicons aggressively and often ignore normal reloads. After changing `favicon_url`, users must clear their browser cache or hard-refresh (<kbd>Ctrl</kbd>+<kbd>F5</kbd> / <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd>) to see the new icon. Mobile browsers may require removing and re-adding any home-screen bookmark.
 - **Content Security Policy.** If the instance is served behind a reverse proxy or CDN that adds a CSP header, the favicon URL's origin must be allowed by the `img-src` directive. When the fetch is blocked, the browser silently falls back to the bundled default — the preview in the admin UI will show the error state to help diagnose this.
 - **Supported formats.** `.ico`, `.png`, and `.svg` are reliably supported by current browsers. Avoid animated GIFs — support is inconsistent.
-- **Hosting.** Any HTTPS URL works. If you want to serve the favicon alongside PoracleWeb itself, drop the file into the container's `wwwroot/` and reference it by relative path (e.g. `my-favicon.png`).
+- **Hosting.** Any HTTPS URL works. If you want to serve the favicon alongside PoracleWeb.NET itself, drop the file into the container's `wwwroot/` and reference it by relative path (e.g. `my-favicon.png`).
 
 ---
 
@@ -52,12 +55,12 @@ Control which alarm categories are available to users. Disabling a type hides it
 | `disable_lures` | Lures | boolean | Hide lure alarms from all users. The page, the sidebar item and the API all go; rules already stored stay dormant and return if you switch it back on. |
 | `disable_nests` | Nests | boolean | Hide nest alarms from all users. The page, the sidebar item and the API all go; rules already stored stay dormant and return if you switch it back on. |
 | `disable_gyms` | Gyms | boolean | Hide gym alarms from all users. The page, the sidebar item and the API all go; rules already stored stay dormant and return if you switch it back on. |
-| `disable_fort_changes` | Fort Changes | boolean | Hide fort-change alarms from all users. The page, the sidebar item and the API all go; rules already stored stay dormant and return if you switch it back on. |
-| `disable_maxbattles` | Max Battles | boolean | Hide max-battle alarms from all users. The page, the sidebar item and the API all go; rules already stored stay dormant and return if you switch it back on. |
-| `disable_showcase` | Pokéstop Events | boolean | Hide Showcase, Kecleon and Gold Stop alarms from all users. The page, the sidebar item and the API all go; rules already stored stay dormant and return if you switch it back on. PoracleNG's own `[general] disable_showcase` also forces this off, and a PoracleNG older than 5.2.0 cannot serve the page at all — in either case the three events remain available from the invasion add dialog. |
+| `disable_fort_changes` | Fort changes | boolean | Hide fort-change alarms from all users. The page, the sidebar item and the API all go; rules already stored stay dormant and return if you switch it back on. |
+| `disable_maxbattles` | Max battles | boolean | Hide max-battle alarms from all users. The page, the sidebar item and the API all go; rules already stored stay dormant and return if you switch it back on. |
+| `disable_showcase` | Pokéstop events (Showcase, Kecleon, Gold Stop) | boolean | Hide Showcase, Kecleon and Gold Stop alarms from all users. The page, the sidebar item and the API all go; rules already stored stay dormant and return if you switch it back on. PoracleNG's own `[general] disable_showcase = true` also forces this off. Absent or unreadable, it leaves the page on. While the page is off, the three events stay available from the invasion add dialog. |
 
 !!! info "A disabled type disappears completely"
-    The sidebar item, the dashboard card and the page all go, and every endpoint for that type answers
+    The sidebar item, the dashboard count, the **New alarm** menu entry and the page all go, and every endpoint for that type answers
     403 — reads, writes and deletes alike. Admins are not exempt.
 
     Rules a user already had are **not deleted**. They stay in Poracle's database, dormant: a disabled
@@ -84,17 +87,17 @@ Toggle user-facing features on or off.
 | `disable_areas` | Areas | boolean | Prevent users from managing their area subscriptions. |
 | `disable_profiles` | Profiles | boolean | Prevent users from creating and switching alarm profiles. |
 | `disable_location` | Location | boolean | Gates the whole location API, not just the pin. Users cannot set their pin, and saved places, static and distance map images, and the weather lookups on the dashboard all stop with it. Since "Near a place" delivery scope measures from a saved place or the pin, alarms already using it keep working but nothing new can be pointed at a place. |
-| `disable_nominatim` | Geocoding | boolean | Stops all outbound geocoding. The address search and reverse lookup return 403, and the location dialog hides its search box. Users can still set a pin by coordinates or on the map. Turn this on if you do not want your instance making requests to a third-party geocoder. |
-| `disable_update_check` | Do not check for updates | boolean | Stops the version check against `api.github.com` and `raw.githubusercontent.com`, which runs when an admin opens the Versions card and is cached six hours afterwards. Two anonymous GETs, no identifiers and no payload. With it on, the Versions card on **Admin > Settings** still reports the running versions but cannot say whether they are current. |
+| `disable_nominatim` | Geocoding | boolean | Stops address search and reverse lookup. Both go to PoracleNG's `/api/geocode` routes, which call whichever geocoder PoracleNG is configured for; with this on they answer 403 and the location dialog hides its search box. Users can still set a pin by coordinates or on the map. The key keeps its old name, though Nominatim is no longer called directly. |
+| `disable_update_check` | Check for updates | boolean | Controls the version check against `api.github.com` and `raw.githubusercontent.com`, which runs when an admin opens the Versions card and is cached six hours afterwards. Two anonymous GETs, no identifiers and no payload. Like every `disable_` key the switch reads the positive way round: **Check for updates** on (key absent or `False`) runs the check; off (key `True`) stops it, and the Versions card still reports the running versions but can't say whether they're current. |
 | `disable_user_geofences` | Custom Geofences | boolean | Hides the My Geofences page and the admin review queue, and 403s the create, rename, import, submit, activate and deactivate endpoints. Delete is deliberately left open, so a user can still clear out a geofence they no longer want. Geofences that already exist keep being served in the [geofence feed](../features/custom-geofences/index.md) and keep matching. See [Admin operations](../features/custom-geofences/admin-operations.md). |
 | `enable_templates` | Templates | boolean | Allow users to choose notification message templates. |
-| `allowed_languages` | Allowed UI Languages | csv | Comma-separated language codes users can select (e.g., `en,de,fr`). Leave empty to show all 11 languages. Applies to the signed-out login page as well. English is always available. |
+| `allowed_languages` | Allowed UI languages | csv | Comma-separated language codes users can select (e.g., `en,de,fr`). Leave empty to show all 11 languages. Applies to the signed-out login page as well. English is always available. |
 
 Beneath that row the page reports Poracle's own configured locale, which is the language a
 first-time visitor lands on when neither a stored choice nor their browser can answer. It is read
 from Poracle and cannot be set here — see [Values that are not settings](#values-that-are-not-settings).
 
-![The Allowed UI Languages field, with a line beneath it reading "Default language for new users: en, taken from Poracle's own configuration."](../screenshots/admin-language-default.png)
+![The Allowed UI languages field, with a line beneath it reading "Default language for new users: en, taken from Poracle's own configuration."](../screenshots/admin-language-default.png)
 
 ---
 
@@ -126,7 +129,7 @@ the fields that do not apply — so the section never shows you a box with no be
 | Provider | What to fill in |
 |---|---|
 | OpenStreetMap, Esri Streets, Esri Gray Canvas, Esri World Imagery | Nothing. They are keyless and carry their own URL, attribution and zoom limit. |
-| CARTO Positron, CARTO Voyager, Stadia Alidade Smooth | **Basemap API Key**, and nothing else. |
+| CARTO Positron, CARTO Voyager, Stadia Alidade Smooth | **Basemap API key**, and nothing else. |
 | Custom tile URL | **Name**, **Tile URL**, optionally a **dark** URL, and **Attribution**. The key field appears only if your URL contains `{key}`. |
 
 Picking a name sets the URL, the attribution and the zoom limit together, so there is one decision
@@ -142,9 +145,16 @@ rather than three chances to get it wrong.
 | `carto-voyager` | CARTO Voyager | yes | yes (Dark Matter) | 20 |
 | `stadia-smooth` | Stadia Alidade Smooth | yes | yes | 20 |
 
-A provider with no dark variant reuses its light tiles when the theme is dark. Esri Gray Canvas stops
-at zoom 16, which is further out than the location picker usually wants — the map simply will not
-zoom past it while that basemap is active.
+In the dark theme, a viewer on the site default gets a dark map. A provider with its own dark variant
+draws that (CARTO Dark Matter for both CARTO entries). One without (OpenStreetMap, Esri Streets) is
+swapped for Esri's dark gray, the dark half of Esri Gray Canvas, which needs no key. Two are left as they
+are: Esri World Imagery, which is photographs, and a custom tile URL, since your viewers shouldn't be sent
+to Esri behind your back; set **Basemap tile URL (dark)** to give a custom basemap a dark style. A viewer
+who picked a basemap from the layers button gets what they picked in both themes, and the menu's
+**Site default** entry names what the dark theme is drawing.
+
+Esri Gray Canvas, and so the dark default, only has real tiles up to zoom 16. Past that the map keeps
+zooming to 19 by enlarging the zoom-16 tiles, so streets look softer when you zoom right in.
 
 A key unlocks every style in the same family, so a CARTO key gives you both CARTO entries. It never
 unlocks another vendor's: one key cannot be a CARTO key and a Stadia key at once, so the styles you
@@ -182,7 +192,7 @@ cause it:
   returns working tiles with `API KEY REQUIRED` drawn into the image, so nothing logs and no health
   check notices ([#842](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/842)). Rather than serve
   that, the site does not request it.
-- **The provider cannot be resolved at all** — `custom` with a blank or malformed tile URL, which is
+- **The provider cannot be resolved at all.** That's `custom` with a blank or malformed tile URL, which is
   what picking it and saving before filling the field leaves behind, or a provider id this build does
   not know after a downgrade.
 
@@ -345,7 +355,7 @@ URL is actually read from — the site setting was a duplicate that fed nothing.
 | `hidden_areas` | json | Area names taken off the menu, as a JSON array of lowercase strings. |
 
 Managed from **Admin → Areas** rather than edited by hand. A name listed here is served with
-`userSelectable: false` in the geofence feed, which removes it from Areas & Places, from the per-alarm
+`userSelectable: false` in the geofence feed, which removes it from Areas & places, from the per-alarm
 scope picker and from the bot's area list at once.
 
 It does not unsubscribe anyone already using the area. See
@@ -387,10 +397,12 @@ still has one, nothing reads it.
 
 The picker starts with four packs, all in the [UICONS](https://github.com/UIcons/UIcons) format:
 
-- **Nileplumb (Home)** — Pokémon HOME style
-- **Nileplumb (Shuffle)** — Pokémon Shuffle style
-- **Jms412 (Home)** — Alternative HOME style, and what an unconfigured install uses
-- **Jms412 (Pokedex)** — Pokédex style
+| Pack | Style |
+|---|---|
+| Nileplumb (Home) | Pokémon HOME |
+| Nileplumb (Shuffle) | Pokémon Shuffle |
+| Jms412 (Home) | An alternative HOME style, and what an unconfigured install uses |
+| Jms412 (Pokedex) | Pokédex |
 
 **The list is editable.** *Add pack* takes a name and the URL of a pack's UICONS folder — the one with
 `pokemon/`, `gym/` and `type/` inside it — and each entry has a pencil and a bin. Your own pack on your
@@ -433,7 +445,7 @@ the UI layer instead. Neither is visible to non-admins.
 
 | Key | Category | Description |
 |---|---|---|
-| `migration_completed` | system | Sentinel flag indicating that the one-time data migration from `pweb_settings` to structured tables has completed. Set automatically by `SettingsMigrationStartupService`. |
+| `migration_completed` | system | Left by older versions to mark the one-time copy out of `pweb_settings`. Nothing writes or reads it now, and it can stay. |
 | `quick_picks_seeded` | admin | Sentinel flag indicating that the built-in quick picks have been created once. Written by `POST /api/quick-picks/seed` after a successful seed, and backfilled at startup for installations that already hold global picks. Without it an admin who deliberately deletes every preset gets them all back on their next visit. Admin-readable via the API (the SPA guard needs it) but hidden from the settings UI. |
 
 ## Values that are not settings
@@ -448,7 +460,7 @@ another system's configuration, present so the SPA can read them like any other 
 
 Both are read fresh from Poracle on one config call, cached five minutes, and **cannot be written**.
 `PUT /api/settings/poracle_locale` and `PUT /api/settings/poracle_alert_languages` answer 400, and the
-admin page renders the locale as a read-only line under Allowed UI Languages rather than as an editable
+admin page renders the locale as a read-only line under Allowed UI languages rather than as an editable
 box. The refusal matters more than it looks: a stored row would take precedence over the projected
 value, so a single accidental save would pin the language default permanently and stop the site
 tracking Poracle's configuration at all.
@@ -473,7 +485,7 @@ UI groups but **are** readable by admins through the API. Prefer configuring the
 | `scan_dbhost`, `scan_dbport`, `scan_dbname`, `scan_dbuser`, `scan_dbpass` | other | Scanner database host, port, name, user and password. Prefer `ConnectionStrings:ScannerDb` in [appsettings](reference.md). |
 | `cf_id`, `cf_secret` | other | Cloudflare Access service token used by some PoracleJS deployments. |
 
-Neither the scanner keys nor the Cloudflare pair appear in `SettingsMigrationService.CategoryMap`, so rows migrated from `pweb_settings` land in the catch-all `other` category.
+Neither the scanner keys nor the Cloudflare pair has a named category, so rows carried over from `pweb_settings` by earlier versions sit in the catch-all `other` category.
 
 `GET /api/settings` decides what a non-admin sees with an **allowlist**, not a denylist: the exact keys
 in `SettingsController.UserVisibleKeys` plus anything beginning `basemap_`, `disable_`, `enable_` or

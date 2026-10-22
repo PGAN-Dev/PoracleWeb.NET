@@ -32,389 +32,165 @@ public class PoracleTrackingProxyTests
         })
         .Build();
 
-    /// <summary>
-    /// A server profile reporting nothing, so <c>SupportsV2Tracking</c> is false and every write in this
-    /// fixture goes to the v1 surface -- which is the point: v1 must stay byte-identical.
-    /// </summary>
-    private static PoracleTrackingProxy CreateSut(
-        MockHttpMessageHandler handler,
-        IConfiguration? config = null,
-        IPoracleServerProfileService? serverProfile = null)
+    private static PoracleTrackingProxy CreateSut(MockHttpMessageHandler handler, IConfiguration? config = null)
     {
         var client = new HttpClient(handler);
         return new PoracleTrackingProxy(
             client,
             config ?? CreateConfig(),
-            serverProfile ?? UnknownServerProfile(),
-            V2Schema(),
-            GruntNames(),
+            AnyAreaPolicy(),
             new MemoryCache(new MemoryCacheOptions()),
             Mock.Of<ILogger<PoracleTrackingProxy>>());
     }
 
-    /// <summary>
-    /// A schema probe and a grunt list answering what a released PoracleNG answers: no grunt_type on the
-    /// v2 invasion rule, and therefore no reason to consult the names at all. That keeps every existing
-    /// test on the path it was written for.
-    /// </summary>
-    internal static IPoracleV2SchemaService V2Schema(PoracleV2Capabilities? capabilities = null)
-    {
-        var schema = new Mock<IPoracleV2SchemaService>();
-        schema.Setup(s => s.GetAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(capabilities ?? PoracleV2Capabilities.None);
-
-        return schema.Object;
-    }
-
-    internal static IInvasionGruntNameService GruntNames(params string[] names)
-    {
-        var service = new Mock<IInvasionGruntNameService>();
-        service.Setup(s => s.GetAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync((IReadOnlySet<string>)new HashSet<string>(names, StringComparer.OrdinalIgnoreCase));
-
-        return service.Object;
-    }
-
-    private static IPoracleServerProfileService UnknownServerProfile()
-    {
-        var profile = new Mock<IPoracleServerProfileService>();
-        profile
-            .Setup(p => p.GetAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(PoracleServerProfile.Unknown(DateTimeOffset.UtcNow));
-        return profile.Object;
-    }
+    /// <summary>An area policy that allows every name, for suites that are not about override areas.</summary>
+    internal static IUserAreaPolicy AnyAreaPolicy() => Mock.Of<IUserAreaPolicy>();
 
     // ──────────────────────────────────────────────────────────────
-    // GetByUserAsync
+    // PatchAsync (v2 PATCH; bulk distance and cleaning)
     // ──────────────────────────────────────────────────────────────
 
-    [Fact]
-    public async Task GetByUserAsyncExtractsArrayByTypeKey()
-    {
-        var responseBody = /*lang=json,strict*/ """{"pokemon":[{"uid":1},{"uid":2}]}""";
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, responseBody);
-        var sut = CreateSut(handler);
-
-        var result = await sut.GetByUserAsync("pokemon", "user1");
-
-        Assert.Equal(JsonValueKind.Array, result.ValueKind);
-        Assert.Equal(2, result.GetArrayLength());
-        Assert.Equal(1, result[0].GetProperty("uid").GetInt32());
-    }
+    private const string PatchOk = /*lang=json,strict*/ """{"dry_run":false,"updated":[],"unchanged":[],"refused":null}""";
 
     [Fact]
-    public async Task GetByUserAsyncReturnsEmptyArrayWhenKeyMissing()
+    public async Task PatchSendsUidsAndOnlyTheNamedSettings()
     {
-        var responseBody = /*lang=json,strict*/ """{"other":[{"uid":1}]}""";
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, responseBody);
+        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, PatchOk);
         var sut = CreateSut(handler);
 
-        var result = await sut.GetByUserAsync("pokemon", "user1");
-
-        Assert.Equal(JsonValueKind.Array, result.ValueKind);
-        Assert.Equal(0, result.GetArrayLength());
-    }
-
-    [Fact]
-    public async Task GetByUserAsyncCallsCorrectUrl()
-    {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, /*lang=json,strict*/ """{"raid":[]}""");
-        var sut = CreateSut(handler);
-
-        await sut.GetByUserAsync("raid", "user42");
+        await sut.PatchAsync("pokemon", "user1", [1, 2], new TrackingPatchSet(Distance: 500));
 
         Assert.NotNull(handler.LastRequest);
-        Assert.Equal(HttpMethod.Get, handler.LastRequest.Method);
-        Assert.Equal($"{ApiAddress}/api/tracking/raid/user42", handler.LastRequest.RequestUri?.ToString());
+        Assert.Equal(HttpMethod.Patch, handler.LastRequest.Method);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/tracking/pokemon?silent=true&trusted=true", handler.LastRequest.RequestUri?.ToString());
+        Assert.Equal("""{"uids":[1,2],"set":{"distance":500}}""", handler.LastBody);
     }
 
     [Fact]
-    public async Task GetByUserAsyncThrowsOnNon2xx()
+    public async Task PatchForACleanToggleSendsOnlyTheCleanBit()
     {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.InternalServerError, "{}");
+        // Fields the set does not name are left as stored upstream, which is how the edit and summary bits
+        // survive the toggle.
+        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, PatchOk);
         var sut = CreateSut(handler);
 
-        await Assert.ThrowsAsync<HttpRequestException>(() => sut.GetByUserAsync("pokemon", "user1"));
-    }
+        await sut.PatchAsync("raid", "user1", [3], new TrackingPatchSet(Clean: false));
 
-    [Theory]
-    [InlineData("pokemon", "pokemon")]
-    [InlineData("raid", "raid")]
-    [InlineData("egg", "egg")]
-    [InlineData("quest", "quest")]
-    [InlineData("invasion", "invasion")]
-    [InlineData("lure", "lure")]
-    [InlineData("nest", "nest")]
-    [InlineData("gym", "gym")]
-    [InlineData("fort", "fort")]
-    [InlineData("maxbattle", "maxbattle")]
-    [InlineData("unknown_type", "unknown_type")]
-    public async Task GetByUserAsyncResolvesCorrectResponseKey(string type, string expectedKey)
-    {
-        var responseBody = $$"""{"{{expectedKey}}":[{"uid":99}]}""";
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, responseBody);
-        var sut = CreateSut(handler);
-
-        var result = await sut.GetByUserAsync(type, "user1");
-
-        Assert.Equal(1, result.GetArrayLength());
-    }
-
-    // ──────────────────────────────────────────────────────────────
-    // CreateAsync
-    // ──────────────────────────────────────────────────────────────
-
-    [Fact]
-    public async Task CreateAsyncSendsCorrectUrlWithSilentParam()
-    {
-        var responseBody = /*lang=json,strict*/ """{"newUids":[10,11],"alreadyPresent":0,"updates":0,"insert":2}""";
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, responseBody);
-        var sut = CreateSut(handler);
-
-        var body = JsonDocument.Parse("""[{"pokemon_id":25}]""").RootElement;
-        await sut.CreateAsync("pokemon", "user1", body);
-
-        Assert.NotNull(handler.LastRequest);
-        Assert.Equal(HttpMethod.Post, handler.LastRequest.Method);
-        Assert.Equal($"{ApiAddress}/api/tracking/pokemon/user1?silent=true", handler.LastRequest.RequestUri?.ToString());
+        Assert.Equal("""{"uids":[3],"set":{"clean":false}}""", handler.LastBody);
     }
 
     [Fact]
-    public async Task CreateAsyncSendsJsonBody()
+    public async Task PatchEncodesAWebhookId()
     {
-        var responseBody = /*lang=json,strict*/ """{"newUids":[],"alreadyPresent":1,"updates":0,"insert":0}""";
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, responseBody);
+        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, PatchOk);
         var sut = CreateSut(handler);
 
-        var body = JsonDocument.Parse("""[{"pokemon_id":25,"min_iv":90}]""").RootElement;
-        await sut.CreateAsync("pokemon", "user1", body);
+        await sut.PatchAsync("gym", "http://host/hook", [3], new TrackingPatchSet(Distance: 0));
 
-        Assert.NotNull(handler.LastRequest?.Content);
-        var sentBody = await handler.LastRequest.Content.ReadAsStringAsync();
-        Assert.Contains("pokemon_id", sentBody);
+        Assert.Equal(
+            $"{ApiAddress}/api/v2/humans/http%3A%2F%2Fhost%2Fhook/tracking/gym?silent=true&trusted=true",
+            handler.LastRequest?.RequestUri?.AbsoluteUri);
     }
 
     [Fact]
-    public async Task CreateAsyncParsesNewUids()
+    public async Task PatchOfARuleLimitedToTheUsersOwnFenceIsSentTrusted()
     {
-        var responseBody = /*lang=json,strict*/ """{"newUids":[100,200,300],"alreadyPresent":1,"updates":2,"insert":3}""";
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, responseBody);
-        var sut = CreateSut(handler);
+        // PoracleNG re-validates the whole stored rule on a PATCH. Untrusted, its area check allows only
+        // userSelectable fences, and a user's own drawn fence never is one, so a clean toggle on a rule
+        // limited to it came back refused as invalid. A PATCH cannot name an area, so nothing is authorised
+        // here: the areas being re-checked are the ones already on the rule.
+        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, PatchOk);
+        var policy = new Mock<IUserAreaPolicy>(MockBehavior.Strict);
+        var sut = new PoracleTrackingProxy(
+            new HttpClient(handler),
+            CreateConfig(),
+            policy.Object,
+            new MemoryCache(new MemoryCacheOptions()),
+            Mock.Of<ILogger<PoracleTrackingProxy>>());
 
-        var body = JsonDocument.Parse("{}").RootElement;
-        var result = await sut.CreateAsync("pokemon", "user1", body);
+        await sut.PatchAsync("pokemon", "user1", [7], new TrackingPatchSet(Clean: true));
 
-        Assert.Equal(3, result.NewUids.Count);
-        Assert.Equal(100L, result.NewUids[0]);
-        Assert.Equal(200L, result.NewUids[1]);
-        Assert.Equal(300L, result.NewUids[2]);
-        Assert.Equal(1, result.AlreadyPresent);
-        Assert.Equal(2, result.Updates);
-        Assert.Equal(3, result.Inserts);
+        Assert.Contains("trusted=true", handler.LastRequest?.RequestUri?.Query, StringComparison.Ordinal);
+        Assert.Equal("""{"uids":[7],"set":{"clean":true}}""", handler.LastBody);
     }
 
     [Fact]
-    public async Task CreateAsyncHandlesResponseWithoutOptionalFields()
+    public async Task PatchMapsRefusals()
     {
-        var responseBody = /*lang=json,strict*/ """{"newUids":[5]}""";
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, responseBody);
+        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, /*lang=json,strict*/ """
+            {"dry_run":false,
+             "updated":[{"uid":1,"distance":500,"previous":{"uid":1,"distance":100}}],
+             "unchanged":[{"uid":2,"distance":500}],
+             "refused":[
+               {"uid":3,"reason":"conflict","detail":"would duplicate rule 9","conflicts_with":9},
+               {"uid":4,"reason":"invalid","detail":"an area-scoped rule cannot take a radius"},
+               {"uid":5,"reason":"not_found","detail":"no such rule"}]}
+            """);
         var sut = CreateSut(handler);
 
-        var body = JsonDocument.Parse("{}").RootElement;
-        var result = await sut.CreateAsync("pokemon", "user1", body);
+        var result = await sut.PatchAsync("pokemon", "user1", [1, 2, 3, 4, 5], new TrackingPatchSet(Distance: 500));
 
-        Assert.Single(result.NewUids);
-        Assert.Equal(5L, result.NewUids[0]);
-        Assert.Equal(0, result.AlreadyPresent);
-        Assert.Equal(0, result.Updates);
-        Assert.Equal(0, result.Inserts);
+        Assert.Equal([1], result.Updated);
+        Assert.Equal([2], result.Unchanged);
+        Assert.Equal(
+            [
+                new PatchRefusal(3, PatchRefusalReasons.Conflict, "would duplicate rule 9", 9),
+                new PatchRefusal(4, PatchRefusalReasons.Invalid, "an area-scoped rule cannot take a radius", null),
+                new PatchRefusal(5, PatchRefusalReasons.NotFound, "no such rule", null),
+            ],
+            result.Refused);
     }
 
     [Fact]
-    public async Task CreateAsyncThrowsOnNon2xx()
+    public async Task PatchPlaintext404IsUnsupported()
     {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.InternalServerError, "{}");
+        var handler = new MockHttpMessageHandler(HttpStatusCode.NotFound, "404 page not found");
         var sut = CreateSut(handler);
 
-        var body = JsonDocument.Parse("{}").RootElement;
-        await Assert.ThrowsAsync<HttpRequestException>(() => sut.CreateAsync("pokemon", "user1", body));
+        var ex = await Assert.ThrowsAsync<PoracleUnsupportedException>(
+            () => sut.PatchAsync("pokemon", "user1", [1], new TrackingPatchSet(Distance: 500)));
+
+        Assert.Equal("PoracleNG 5.4.0", ex.Requires);
     }
 
-    /// <summary>
-    /// A 400 is the caller's problem. It used to throw HttpRequestException, which the global handler
-    /// flattened into 500 "An unexpected error occurred", so the user was told the server broke instead of
-    /// what was wrong with their input. See #539.
-    /// </summary>
     [Fact]
-    public async Task CreateAsyncSurfacesPoracleNgsOwnExplanationForABadRequest()
+    public async Task PatchForAHumanPoracleNgDoesNotHoldIsAccountGone()
     {
         var handler = new MockHttpMessageHandler(
-            HttpStatusCode.BadRequest,
-            /*lang=json,strict*/ "{\"message\":\"Invalid level (must be specified if no pokemon_id)\"}");
+            HttpStatusCode.NotFound, /*lang=json,strict*/ """{"title":"Not Found","status":404,"detail":"human not found"}""");
         var sut = CreateSut(handler);
 
-        var body = JsonDocument.Parse("{}").RootElement;
-
-        var ex = await Assert.ThrowsAsync<AlarmValidationException>(
-            () => sut.CreateAsync("raid", "user1", body));
-        Assert.Contains("Invalid level", ex.Message, StringComparison.Ordinal);
+        await Assert.ThrowsAsync<AccountGoneException>(
+            () => sut.PatchAsync("pokemon", "user1", [1], new TrackingPatchSet(Distance: 500)));
     }
 
-    /// <summary>
-    /// PoracleNG 5.2.1 moved several validation 400s to 422 when it adopted RFC 9457. Matching only 400
-    /// sent every one of them through EnsureSuccessStatusCode instead, which is the exact path #539 fixed:
-    /// the user is told the server broke rather than what was wrong with their alarm.
-    /// </summary>
     [Fact]
-    public async Task CreateAsyncSurfacesPoracleNgsOwnExplanationForAnUnprocessableEntity()
+    public async Task PatchRefusedAsAWholeIsAValidationError()
     {
         var handler = new MockHttpMessageHandler(
             HttpStatusCode.UnprocessableEntity,
-            /*lang=json,strict*/ """{"title":"Unprocessable Entity","status":422,"detail":"unknown display_type"}""");
+            /*lang=json,strict*/ """{"title":"Unprocessable Entity","status":422,"detail":"edit is not supported for gym"}""");
         var sut = CreateSut(handler);
-
-        var body = JsonDocument.Parse("{}").RootElement;
 
         var ex = await Assert.ThrowsAsync<AlarmValidationException>(
-            () => sut.CreateAsync("invasion", "user1", body));
-        Assert.Contains("unknown display_type", ex.Message, StringComparison.Ordinal);
-    }
+            () => sut.PatchAsync("gym", "user1", [1], new TrackingPatchSet(Clean: true)));
 
-    /// <summary>The field-level detail problem+json carries reaches the user, not just the summary.</summary>
-    [Fact]
-    public async Task CreateAsyncSurfacesTheFieldThatWasRefused()
-    {
-        var handler = new MockHttpMessageHandler(
-            HttpStatusCode.UnprocessableEntity,
-            /*lang=json,strict*/ """{"detail":"validation failed","errors":[{"message":"expected number <= 100","location":"body.min_iv"}]}""");
-        var sut = CreateSut(handler);
-
-        var body = JsonDocument.Parse("{}").RootElement;
-
-        var ex = await Assert.ThrowsAsync<AlarmValidationException>(
-            () => sut.CreateAsync("pokemon", "user1", body));
-        Assert.Contains("min_iv", ex.Message, StringComparison.Ordinal);
-    }
-
-    // ──────────────────────────────────────────────────────────────
-    // DeleteByUidAsync
-    // ──────────────────────────────────────────────────────────────
-
-    [Fact]
-    public async Task DeleteByUidAsyncCallsCorrectUrl()
-    {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, "{}");
-        var sut = CreateSut(handler);
-
-        await sut.DeleteByUidAsync("raid", "user1", 42);
-
-        Assert.NotNull(handler.LastRequest);
-        Assert.Equal(HttpMethod.Delete, handler.LastRequest.Method);
-        Assert.Equal($"{ApiAddress}/api/tracking/raid/user1/byUid/42?silent=true", handler.LastRequest.RequestUri?.ToString());
+        Assert.Contains("edit is not supported for gym", ex.Message);
     }
 
     [Fact]
-    public async Task DeleteByUidAsyncHandles404Gracefully()
+    public async Task PatchWithNoUidsSendsNothing()
     {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.NotFound, "{}");
+        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, PatchOk);
         var sut = CreateSut(handler);
 
-        // Should not throw
-        await sut.DeleteByUidAsync("raid", "user1", 999);
-    }
-
-    [Fact]
-    public async Task DeleteByUidAsyncThrowsOnOtherErrors()
-    {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.InternalServerError, "{}");
-        var sut = CreateSut(handler);
-
-        await Assert.ThrowsAsync<HttpRequestException>(() => sut.DeleteByUidAsync("raid", "user1", 42));
-    }
-
-    // ──────────────────────────────────────────────────────────────
-    // BulkDeleteByUidsAsync
-    // ──────────────────────────────────────────────────────────────
-
-    [Fact]
-    public async Task BulkDeleteByUidsAsyncSendsUidArray()
-    {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, "{}");
-        var sut = CreateSut(handler);
-
-        await sut.BulkDeleteByUidsAsync("pokemon", "user1", [1, 2, 3]);
-
-        Assert.NotNull(handler.LastRequest);
-        Assert.Equal(HttpMethod.Post, handler.LastRequest.Method);
-        Assert.Equal($"{ApiAddress}/api/tracking/pokemon/user1/delete?silent=true", handler.LastRequest.RequestUri?.ToString());
-
-        var sentBody = await handler.LastRequest.Content!.ReadAsStringAsync();
-        var uids = JsonSerializer.Deserialize<List<long>>(sentBody);
-        Assert.Equal(3, uids!.Count);
-        Assert.Contains(1L, uids);
-        Assert.Contains(2L, uids);
-        Assert.Contains(3L, uids);
-    }
-
-    [Fact]
-    public async Task BulkDeleteByUidsAsyncSkipsRequestWhenEmpty()
-    {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, "{}");
-        var sut = CreateSut(handler);
-
-        await sut.BulkDeleteByUidsAsync("pokemon", "user1", []);
+        var result = await sut.PatchAsync("pokemon", "user1", [], new TrackingPatchSet(Distance: 500));
 
         Assert.Null(handler.LastRequest);
+        Assert.Empty(result.Updated);
     }
 
-    [Fact]
-    public async Task BulkDeleteByUidsAsyncThrowsOnNon2xx()
-    {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.InternalServerError, "{}");
-        var sut = CreateSut(handler);
-
-        await Assert.ThrowsAsync<HttpRequestException>(() => sut.BulkDeleteByUidsAsync("pokemon", "user1", [1]));
-    }
-
-    // ──────────────────────────────────────────────────────────────
-    // GetAllTrackingAsync
-    // ──────────────────────────────────────────────────────────────
-
-    [Fact]
-    public async Task GetAllTrackingAsyncReturnsFullResponse()
-    {
-        var responseBody = /*lang=json,strict*/ """{"pokemon":[{"uid":1}],"raid":[{"uid":2}]}""";
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, responseBody);
-        var sut = CreateSut(handler);
-
-        var result = await sut.GetAllTrackingAsync("user1");
-
-        Assert.Equal(JsonValueKind.Object, result.ValueKind);
-        Assert.True(result.TryGetProperty("pokemon", out _));
-        Assert.True(result.TryGetProperty("raid", out _));
-    }
-
-    [Fact]
-    public async Task GetAllTrackingAsyncCallsCorrectUrl()
-    {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, "{}");
-        var sut = CreateSut(handler);
-
-        await sut.GetAllTrackingAsync("user99");
-
-        Assert.NotNull(handler.LastRequest);
-        Assert.Equal(HttpMethod.Get, handler.LastRequest.Method);
-        Assert.Equal($"{ApiAddress}/api/tracking/all/user99", handler.LastRequest.RequestUri?.ToString());
-    }
-
-    [Fact]
-    public async Task GetAllTrackingAsyncThrowsOnNon2xx()
-    {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.InternalServerError, "{}");
-        var sut = CreateSut(handler);
-
-        await Assert.ThrowsAsync<HttpRequestException>(() => sut.GetAllTrackingAsync("user1"));
-    }
+    // Deletes are v2-only; PoracleTrackingProxyV2Tests covers them.
 
     // ──────────────────────────────────────────────────────────────
     // ReloadStateAsync
@@ -449,7 +225,7 @@ public class PoracleTrackingProxyTests
     [Fact]
     public async Task AllRequestsIncludePoracleSecretHeader()
     {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, /*lang=json,strict*/ """{"pokemon":[]}""");
+        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, /*lang=json,strict*/ """{"rules":[]}""");
         var sut = CreateSut(handler);
 
         await sut.GetByUserAsync("pokemon", "user1");
@@ -462,7 +238,7 @@ public class PoracleTrackingProxyTests
     [Fact]
     public async Task AllRequestsOmitSecretHeaderWhenEmpty()
     {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, /*lang=json,strict*/ """{"pokemon":[]}""");
+        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, /*lang=json,strict*/ """{"rules":[]}""");
         var sut = CreateSut(handler, CreateConfigNoSecret());
 
         await sut.GetByUserAsync("pokemon", "user1");
@@ -472,14 +248,12 @@ public class PoracleTrackingProxyTests
     }
 
     [Fact]
-    public async Task CreateAsyncIncludesPoracleSecretHeader()
+    public async Task PatchIncludesPoracleSecretHeader()
     {
-        var responseBody = /*lang=json,strict*/ """{"newUids":[1]}""";
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, responseBody);
+        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, PatchOk);
         var sut = CreateSut(handler);
 
-        var body = JsonDocument.Parse("{}").RootElement;
-        await sut.CreateAsync("pokemon", "user1", body);
+        await sut.PatchAsync("pokemon", "user1", [1], new TrackingPatchSet(Distance: 1));
 
         Assert.NotNull(handler.LastRequest);
         Assert.True(handler.LastRequest.Headers.Contains("X-Poracle-Secret"));
@@ -532,13 +306,19 @@ public class PoracleTrackingProxyTests
             get; private set;
         }
 
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        public string? LastBody
+        {
+            get; private set;
+        }
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             this.LastRequest = request;
-            return Task.FromResult(new HttpResponseMessage(statusCode)
+            this.LastBody = request.Content is null ? null : await request.Content.ReadAsStringAsync(cancellationToken);
+            return new HttpResponseMessage(statusCode)
             {
                 Content = new StringContent(responseBody, Encoding.UTF8, "application/json")
-            });
+            };
         }
     }
 }

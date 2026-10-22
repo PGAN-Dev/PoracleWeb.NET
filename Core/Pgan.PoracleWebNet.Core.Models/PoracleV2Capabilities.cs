@@ -31,55 +31,6 @@ public sealed class PoracleV2Capabilities
     public static readonly PoracleV2Capabilities None = new();
 
     /// <summary>
-    /// <c>V2SetAreasBody</c> carries <c>trusted</c>, so a client holding the API secret can select a
-    /// fence that is not <c>userSelectable</c>.
-    /// </summary>
-    /// <remarks>
-    /// The keystone. Without it every user-drawn geofence name sent to <c>setAreas</c> is silently
-    /// dropped, which is the entire reason <c>IUserAreaDualWriter</c> and the
-    /// <c>HACK: trusted-set-areas</c> sites exist. See #838.
-    /// </remarks>
-    public bool TrustedSetAreas
-    {
-        get; init;
-    }
-
-    /// <summary>
-    /// <c>V2UpdateProfileBody</c> carries <c>name</c>, so a profile can be renamed through the API
-    /// instead of by writing <c>profiles.name</c> directly. See #837.
-    /// </summary>
-    public bool ProfileRename
-    {
-        get; init;
-    }
-
-    /// <summary>
-    /// Creating a profile answers with the number it was assigned, rather than a bare
-    /// <c>{"status":"ok"}</c>. See #836.
-    /// </summary>
-    /// <remarks>
-    /// PoracleNG assigns the lowest free number, so the caller cannot predict it. Without this the only
-    /// way to learn it is to snapshot the profile list, create, re-read and diff.
-    /// </remarks>
-    public bool ProfileCreateReturnsNumber
-    {
-        get; init;
-    }
-
-    /// <summary>
-    /// <c>GET /v2/humans</c> lists humans and <c>DELETE /v2/humans/{id}</c> purges one, which together
-    /// are the last three things keeping <c>IHumanRepository</c> alive. See #839.
-    /// </summary>
-    /// <remarks>
-    /// Both, deliberately. The list alone does not let the repository go, and reporting them separately
-    /// would invite a half-migration that keeps the Poracle-DB dependency for the remaining method.
-    /// </remarks>
-    public bool AdminHumanRoutes
-    {
-        get; init;
-    }
-
-    /// <summary>
     /// <c>V2InvasionRule</c> carries <c>grunt_type</c>, so an invasion rule names the grunt it targets
     /// on the way in and on the way out. See #841.
     /// </summary>
@@ -88,39 +39,6 @@ public sealed class PoracleV2Capabilities
     /// <c>everything</c> — none of which can express the grunt names production holds.
     /// </remarks>
     public bool InvasionGruntType
-    {
-        get; init;
-    }
-
-    /// <summary>
-    /// <c>V2PokemonRule</c> carries <c>ping</c>, and a v2 write of it is genuinely stored rather than
-    /// blanked. See jfberry/PoracleNG#249.
-    /// </summary>
-    /// <remarks>
-    /// Before #249, every <c>V2*Rule</c> had no field for <c>ping</c> at all and the handlers stored
-    /// <c>Ping: ""</c> unconditionally on a v2 write -- silently erasing a role or user mention that was
-    /// the entire point of the alert. Checked against <c>V2PokemonRule</c> only, as the one type verified
-    /// live, standing in for all eleven the way <see cref="InvasionGruntType"/> stands in for one PR
-    /// landing as a whole -- #249 touches the same shared <c>translateV2*</c> functions for every type,
-    /// not pokemon's alone.
-    /// </remarks>
-    public bool TrackingPing
-    {
-        get; init;
-    }
-
-    /// <summary>
-    /// The three location request bodies (<c>V2LocationBody</c>, <c>V2AddLocationBody</c>,
-    /// <c>V2UpdateLocationBody</c>) name the coordinates <c>latitude</c> and <c>longitude</c>
-    /// (jfberry/PoracleNG#303, unreleased). Every released PoracleNG names them <c>lat</c> and <c>lon</c>.
-    /// </summary>
-    /// <remarks>
-    /// The bodies are <c>additionalProperties:false</c>, so one body cannot carry both spellings, and a
-    /// 422 from the wrong one is not a missing route: <c>TryV2Async</c> does not fall back to v1 on it.
-    /// Read from <c>V2LocationBody</c> alone, which stands in for all three the way #303 changed them
-    /// together; false when the document cannot be read, which is the released names.
-    /// </remarks>
-    public bool V2LocationLatitudeLongitude
     {
         get; init;
     }

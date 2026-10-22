@@ -7,19 +7,28 @@ namespace Pgan.PoracleWebNet.Api.Services;
 /// Says once, at startup, which PoracleNG this is talking to — and complains if it is too old.
 /// </summary>
 /// <remarks>
-/// Every feature that needs 5.1.0 fails the same quiet way against an older server: the column does not
-/// exist, PoracleNG's decoder drops the field, the write returns 200 and the filter does nothing. That
-/// is indistinguishable from a bug in PoracleWeb unless somebody says the version out loud, so this
-/// does, on every boot.
+/// <para>
+/// It complains and carries on. Refusing to start would take the whole site down over something an
+/// operator can fix in minutes, and most of the site still works against an older PoracleNG; what does
+/// not fails in ways that look like a bug in PoracleWeb.NET unless somebody says the version out loud.
+/// So this does, on every boot, and the Versions card on the admin settings page says it again.
+/// </para>
+/// <para>
+/// An unparseable version, or the <c>0.0.0</c> a locally built binary reports, is assumed current and
+/// logged as such rather than complained about.
+/// </para>
 /// </remarks>
 public partial class PoracleCompatibilityStartupService(
     IServiceScopeFactory scopeFactory,
     ILogger<PoracleCompatibilityStartupService> logger) : BackgroundService
 {
+    /// <summary>How long to wait after startup before checking. Production keeps the default; tests set zero.</summary>
+    public TimeSpan StartupDelay { get; init; } = TimeSpan.FromSeconds(5);
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         // After the migration service, whose delay this matches; nothing here blocks startup.
-        await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+        await Task.Delay(this.StartupDelay, stoppingToken);
 
         try
         {
@@ -39,10 +48,14 @@ public partial class PoracleCompatibilityStartupService(
                 return;
             }
 
+            if (profile.ParsedVersion is null)
+            {
+                LogVersionUnknown(logger, profile.Version ?? "none", PoracleServerProfile.MinimumSupported.ToString());
+            }
+
             LogConnected(
                 logger,
                 profile.Version ?? "unknown",
-                profile.SchemaVersion?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "unknown",
                 profile.Capabilities.Count == 0 ? "none reported" : string.Join(", ", profile.Capabilities.Where(c => c.Value).Select(c => c.Key)));
         }
         catch (Exception ex)
@@ -55,16 +68,24 @@ public partial class PoracleCompatibilityStartupService(
     [LoggerMessage(
         EventId = 6110,
         Level = LogLevel.Information,
-        Message = "Connected to PoracleNG {Version} (schema {SchemaVersion}). Capabilities: {Capabilities}.")]
-    private static partial void LogConnected(ILogger logger, string version, string schemaVersion, string capabilities);
+        Message = "Connected to PoracleNG {Version}. Capabilities: {Capabilities}.")]
+    private static partial void LogConnected(ILogger logger, string version, string capabilities);
 
     [LoggerMessage(
         EventId = 6111,
         Level = LogLevel.Error,
-        Message = "PoracleNG is {Version}, and this build of PoracleWeb needs {Minimum} or newer. Per-alarm delivery "
-            + "scope, the PVP mega evolution filter and the minimum time filter write columns that do not exist on "
-            + "{Version}: those controls will appear to save and change nothing. Upgrade PoracleNG.")]
+        Message = "PoracleNG is {Version}, which this build of PoracleWeb.NET does not support: it needs {Minimum} or "
+            + "newer. PoracleWeb.NET will keep running, but it calls PoracleNG routes that older "
+            + "releases do not have, so alerts, profiles, quiet periods and Pokestop Events can fail with a server error "
+            + "or be hidden. Upgrade PoracleNG.")]
     private static partial void LogTooOld(ILogger logger, string version, string minimum);
+
+    [LoggerMessage(
+        EventId = 6114,
+        Level = LogLevel.Warning,
+        Message = "PoracleNG reported version '{Version}', which is not a release number (a locally built binary reports "
+            + "0.0.0). PoracleWeb.NET is assuming it is {Minimum} or newer; if it is older, upgrade it.")]
+    private static partial void LogVersionUnknown(ILogger logger, string version, string minimum);
 
     [LoggerMessage(
         EventId = 6112,

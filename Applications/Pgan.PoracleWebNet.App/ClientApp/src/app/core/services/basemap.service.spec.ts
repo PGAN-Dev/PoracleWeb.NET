@@ -1,11 +1,17 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { provideTranslateService } from '@ngx-translate/core';
+import { provideTranslateService, TranslateService } from '@ngx-translate/core';
 import * as L from 'leaflet';
 
 import { BasemapService } from './basemap.service';
 import { SettingsService } from './settings.service';
-import { BUILTIN_BASEMAPS } from '../../shared/utils/basemaps';
+import {
+  BUILTIN_BASEMAPS,
+  DARK_DEFAULT_BASEMAP_ID,
+  DEFAULT_BASEMAP_ID,
+  findBasemap,
+  KEYED_DEFAULT_BASEMAP_ID,
+} from '../../shared/utils/basemaps';
 
 describe('BasemapService', () => {
   let service: BasemapService;
@@ -289,6 +295,20 @@ describe('BasemapService', () => {
     });
   });
 
+  describe('zoom range', () => {
+    it('lets Esri Gray Canvas zoom past its last tile level by scaling the zoom-16 tiles', () => {
+      siteSettings.set({ basemap_provider: 'esri-canvas' });
+      const layer = service.createLayer();
+      expect(layer.options.maxNativeZoom).toBe(16);
+      expect(layer.options.maxZoom).toBe(19);
+    });
+
+    it('leaves a provider that serves every level without a native cap', () => {
+      siteSettings.set({ basemap_provider: 'osm' });
+      expect(service.createLayer().options.maxNativeZoom).toBeUndefined();
+    });
+  });
+
   describe('dark theme', () => {
     it('serves the provider dark style when the theme is dark', async () => {
       siteSettings.set({ basemap_provider: 'carto-positron', basemap_key: 'abc123' });
@@ -316,6 +336,107 @@ describe('BasemapService', () => {
       await setTheme(true);
 
       expect(service.tileUrl()).toContain('/dark_all/');
+    });
+  });
+
+  /**
+   * Dark mode used to leave every map on light tiles: a bright slab in a dark interface, worst outdoors at
+   * night. A site default with no dark style of its own now draws a dark basemap in the dark theme, while a
+   * viewer's own choice is drawn as chosen.
+   */
+  describe('dark theme default', () => {
+    const DARK_GRAY = 'World_Dark_Gray_Base';
+
+    it('draws a dark basemap on an install that configured nothing', async () => {
+      await setTheme(true);
+
+      expect(service.tileUrl()).toContain(DARK_GRAY);
+      expect(service.active().id).toBe(DARK_DEFAULT_BASEMAP_ID);
+    });
+
+    it('still draws OpenStreetMap in the light theme', async () => {
+      await setTheme(false);
+
+      expect(service.tileUrl()).toContain('tile.openstreetmap.org');
+    });
+
+    it('darkens a light-only provider the admin chose', async () => {
+      siteSettings.set({ basemap_provider: 'esri-street' });
+      await setTheme(true);
+
+      expect(service.tileUrl()).toContain(DARK_GRAY);
+    });
+
+    it("draws CARTO Dark Matter for a keyed CARTO site, which is CARTO's own dark style", async () => {
+      siteSettings.set({ basemap_key: 'abc123' });
+      await setTheme(true);
+
+      expect(service.tileUrl()).toContain('/dark_all/');
+      expect(service.active().id).toBe('carto-positron');
+    });
+
+    it('draws Dark Matter for every CARTO style the admin can pick, Voyager included', async () => {
+      siteSettings.set({ basemap_provider: 'carto-voyager', basemap_key: 'abc123' });
+      await setTheme(true);
+
+      expect(service.tileUrl()).toContain('/dark_all/');
+      expect(service.tileUrl()).not.toContain(DARK_GRAY);
+    });
+
+    // A key left behind under a keyless provider says nothing about whose key it is (one field serves
+    // CARTO and Stadia, and the admin page hides it), and a CARTO tile asked for with someone else's key
+    // answers 200 with "API KEY REQUIRED" drawn into it. So it does not switch the dark default to CARTO.
+    it('keeps the keyless dark default under a keyless provider, whatever key is left in the settings', async () => {
+      siteSettings.set({ basemap_provider: 'esri-street', basemap_key: 'abc123' });
+      await setTheme(true);
+
+      expect(service.tileUrl()).toContain(DARK_GRAY);
+      expect(service.tileUrl()).not.toContain('cartocdn');
+    });
+
+    it('darkens the keyless fallback too, and still reports the missing key', async () => {
+      siteSettings.set({ basemap_provider: 'carto-positron' });
+      await setTheme(true);
+
+      expect(service.tileUrl()).toContain(DARK_GRAY);
+      expect(service.tileUrl()).not.toContain('cartocdn');
+      expect(service.fallbackReason()).toBe('missing-key');
+    });
+
+    it("draws a viewer's own light choice as chosen", async () => {
+      service.select('osm');
+      await setTheme(true);
+
+      expect(service.tileUrl()).toContain('tile.openstreetmap.org');
+    });
+
+    it('leaves satellite imagery alone, which has no light or dark', async () => {
+      siteSettings.set({ basemap_provider: 'esri-imagery' });
+      await setTheme(true);
+
+      expect(service.tileUrl()).toContain('World_Imagery');
+    });
+
+    it("leaves an admin's own tile server alone, rather than sending its viewers to Esri", async () => {
+      siteSettings.set({ basemap_url: 'https://tiles.example.org/{z}/{x}/{y}.png' });
+      await setTheme(true);
+
+      expect(service.tileUrl()).toBe('https://tiles.example.org/{z}/{x}/{y}.png');
+    });
+
+    it('keeps the configured site default theme-independent, which is what the admin page reports', async () => {
+      await setTheme(true);
+
+      expect(service.siteDefault().id).toBe(DEFAULT_BASEMAP_ID);
+    });
+
+    it('is keyless and has a dark style, so it can always be drawn', () => {
+      const dark = findBasemap(DARK_DEFAULT_BASEMAP_ID);
+
+      expect(dark?.keyFamily).toBeUndefined();
+      expect(dark?.darkUrl).toContain(DARK_GRAY);
+      // The keyed default already has a dark style of its own (CARTO Dark Matter), so it never needs this.
+      expect(findBasemap(KEYED_DEFAULT_BASEMAP_ID)?.darkUrl).toContain('/dark_all/');
     });
   });
 
@@ -390,6 +511,29 @@ describe('BasemapService', () => {
       TestBed.flushEffects();
 
       expect(tileUrls(map).some(u => u.includes('/dark_all/'))).toBe(true);
+      map.remove();
+    });
+
+    it('moves an open map onto the dark default when the theme turns dark', async () => {
+      const map = makeMap();
+      service.attach(map);
+
+      await setTheme(true);
+      TestBed.flushEffects();
+
+      expect(tileUrls(map)).toEqual([expect.stringContaining('World_Dark_Gray_Base')]);
+      map.remove();
+    });
+
+    it('names the basemap the site default draws in the dark theme, in the picker', async () => {
+      const translate = TestBed.inject(TranslateService);
+      translate.setTranslation('en', { BASEMAP: { SITE_DEFAULT: 'Site default ({{provider}})' } });
+      translate.use('en');
+      await setTheme(true);
+      const map = makeMap();
+      service.attach(map, { picker: true });
+
+      expect(map.getContainer().querySelector('.basemap-control__option')?.textContent).toContain('Esri Gray Canvas');
       map.remove();
     });
 

@@ -25,7 +25,7 @@ namespace Pgan.PoracleWebNet.Core.Models;
 public sealed class PoracleUnsupportedException : Exception
 {
     /// <param name="feature">What the user was trying to use, in their words, e.g. <c>costume filters</c>.</param>
-    /// <param name="requires">What the server would need, in words, e.g. <c>PoracleNG 5.2.1 or newer</c>.</param>
+    /// <param name="requires">What the server would need, in words, e.g. <c>PoracleNG 5.4.0</c>.</param>
     public PoracleUnsupportedException(string feature, string requires)
         : base($"This PoracleNG does not support {feature}. It requires {requires}.")
     {

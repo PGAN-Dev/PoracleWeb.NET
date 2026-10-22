@@ -4,7 +4,6 @@ using Moq;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Core.Services;
-using Pgan.PoracleWebNet.Tests.TestDoubles;
 
 namespace Pgan.PoracleWebNet.Tests.Services;
 
@@ -14,9 +13,7 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 /// <remarks>
 /// <para>
 /// The uid-addressed PUT is a genuine full replace, so every repair the v1 path wraps around its create
-/// has to be skipped as a unit: the reconcile of a stray insert, lure's delete-to-free-the-natural-key,
-/// max battle's delete-then-recreate. Running any of them against a write that already landed would be
-/// worse than not moving the type at all.
+/// needs no repair around it: no reconcile of a stray insert, no delete-then-recreate for max battle.
 /// </para>
 /// <para>
 /// The other half is the uid. v2's engine is delete-then-insert, so on 5.2.x the replacement arrives under
@@ -43,17 +40,19 @@ public class AlarmServiceV2UpdatePathTests
     }
 
     public static TheoryData<string> MovedTypes() =>
-        ["raid", "egg", "quest", "nest", "gym", "maxbattle", "fort", "lure", "invasion"];
+        ["pokemon", "raid", "egg", "quest", "nest", "gym", "maxbattle", "fort", "lure", "invasion"];
 
     [Theory]
     [MemberData(nameof(MovedTypes))]
-    public async Task AV2ReplaceSkipsTheWholeV1RepairPath(string type)
+    public async Task UpdateMakesOnePutNoPost(string type)
     {
         this.AcceptV2(type, newUid: 991);
 
         Assert.Equal(991, await this.UpdateAsync(type, uid: 990));
 
-        // No create, so no reconcile. No delete, so no window where the alarm exists nowhere.
+        // Exactly one uid-addressed PUT, no POST, and no delete, so no window where the alarm exists nowhere.
+        this._proxy.Verify(
+            p => p.UpdateByUidAsync(type, "u1", 990, It.IsAny<JsonElement>()), Times.Once);
         this._proxy.Verify(
             p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
         this._proxy.Verify(
@@ -85,37 +84,15 @@ public class AlarmServiceV2UpdatePathTests
             Times.Never);
     }
 
-    [Theory]
-    [MemberData(nameof(MovedTypes))]
-    public async Task DecliningV2LeavesTheV1PathExactlyAsItWas(string type)
-    {
-        // The legitimate-case half. A 5.1.0 server, an operator pinned to v1, or a row v2 cannot carry
-        // faithfully all answer null -- and the type has to write exactly what it wrote before.
-        this._proxy
-            .Setup(p => p.TryReplaceV2Async(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<JsonElement>()))
-            .ReturnsAsync((TrackingUpdateResult?)null);
-        this._proxy
-            .Setup(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([991], 0, 0, 1));
-
-        await this.UpdateAsync(type, uid: 990);
-
-        this._proxy.Verify(
-            p => p.CreateAsync(type, "u1", It.IsAny<JsonElement>()), Times.AtLeastOnce);
-    }
-
     [Fact]
-    public async Task LureNoLongerDeletesItsRowToFreeTheNaturalKey()
+    public async Task ALureEditReplacesTheRuleThroughV2WithoutDeletingIt()
     {
-        // The single biggest reason to move this type. PoracleNG's v1 create has no upsert path for
-        // lure_tracking(id, profile_no, lure_id), so editing a lure's distance had to delete the row,
-        // re-create it, and restore the original if that failed. Verified live on 5.2.1: the v2 PUT
-        // replaced lure 266 in place as 267, where the v1 create-carrying-a-uid inserted 264 alongside
-        // 263 and left both.
+        // Verified live on 5.2.1: the v2 PUT replaced lure 266 in place as 267, where the v1
+        // create-carrying-a-uid inserted 264 alongside 263 and left both for the reconciler.
         this.AcceptV2("lure", newUid: 267);
 
         var updated = await new LureService(
-                this._proxy.Object, this._featureGate.Object, NullLogger<LureService>.Instance, this._remapper.Object, NaturalKeyStub.Enforced)
+                this._proxy.Object, this._featureGate.Object, NullLogger<LureService>.Instance, this._remapper.Object)
             .UpdateAsync("u1", new Lure { Uid = 266, LureId = 501, Distance = 5000 });
 
         Assert.Equal(267, updated.Uid);
@@ -123,14 +100,14 @@ public class AlarmServiceV2UpdatePathTests
     }
 
     [Fact]
-    public async Task InvasionNoLongerDeletesItsRowToFreeTheNaturalKey()
+    public async Task AnInvasionEditReplacesTheRuleThroughV2WithoutDeletingIt()
     {
         // #841 moved invasion to v2 in the proxy, and the service never called it: UpdateAsync went
-        // straight to NaturalKeyTrackingUpdate, which deletes the row and re-creates it through v1.
+        // straight to a delete-and-recreate through v1 that PoracleNG 5.1.0's unique key needed.
         this.AcceptV2("invasion", newUid: 312);
 
         var updated = await new InvasionService(
-                this._proxy.Object, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._remapper.Object, NaturalKeyStub.Enforced)
+                this._proxy.Object, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._remapper.Object, Mock.Of<IPoracleIncidentProxy>())
             .UpdateAsync("u1", new Invasion { Uid = 311, GruntType = "water", Gender = 1, Distance = 800 });
 
         Assert.Equal(312, updated.Uid);
@@ -139,28 +116,7 @@ public class AlarmServiceV2UpdatePathTests
     }
 
     [Fact]
-    public async Task InvasionKeepsItsOwnCollisionGuardAheadOfV2()
-    {
-        // The natural-key check stays in front: v2's 409 covers only an exact duplicate, and editing one
-        // alarm onto another's grunt type and gender is not one.
-        this.AcceptV2("invasion", newUid: 312);
-        this._proxy
-            .Setup(p => p.GetByUserAsync("invasion", "u1"))
-            .ReturnsAsync(JsonDocument.Parse(
-                """[{"uid":311,"id":"u1","grunt_type":"water","gender":0},{"uid":320,"id":"u1","grunt_type":"Fire","gender":0}]""")
-                .RootElement.Clone());
-
-        await Assert.ThrowsAsync<TrackingConflictException>(() => new InvasionService(
-                this._proxy.Object, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._remapper.Object, NaturalKeyStub.Enforced)
-            .UpdateAsync("u1", new Invasion { Uid = 311, GruntType = "fire", Gender = 0 }));
-
-        this._proxy.Verify(
-            p => p.TryReplaceV2Async(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<JsonElement>()),
-            Times.Never);
-    }
-
-    [Fact]
-    public async Task MaxBattleStopsBeingInsertOnly()
+    public async Task MaxBattleUpdateNoDeleteThenCreate()
     {
         // Its v1 path deletes the row and creates a replacement, so a failed create leaves the user with
         // no alarm at all. The v2 PUT has no such window.
@@ -176,20 +132,22 @@ public class AlarmServiceV2UpdatePathTests
 
     private void AcceptV2(string type, int newUid) =>
         this._proxy
-            .Setup(p => p.TryReplaceV2Async(type, It.IsAny<string>(), It.IsAny<int>(), It.IsAny<JsonElement>()))
+            .Setup(p => p.UpdateByUidAsync(type, It.IsAny<string>(), It.IsAny<int>(), It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingUpdateResult(newUid, true));
 
     private async Task<int> UpdateAsync(string type, int uid) => type switch
     {
+        "pokemon" => (await new MonsterService(this._proxy.Object, this._featureGate.Object, this._remapper.Object, NullLogger<MonsterService>.Instance)
+            .UpdateAsync("u1", new Monster { Uid = uid, PokemonId = 25 })).Uid,
         "raid" => (await new RaidService(
                 this._proxy.Object, this._featureGate.Object, NullLogger<RaidService>.Instance,
-                this._remapper.Object, CostumeCapabilityDoubles.Supported())
+                this._remapper.Object)
             .UpdateAsync("u1", new Raid { Uid = uid, PokemonId = 150 })).Uid,
         "egg" => (await new EggService(
                 this._proxy.Object, this._featureGate.Object, NullLogger<EggService>.Instance, this._remapper.Object)
             .UpdateAsync("u1", new Egg { Uid = uid, Level = 5 })).Uid,
         "quest" => (await new QuestService(
-                this._proxy.Object, this._featureGate.Object, PokecoinCapabilityStub.Supported,
+                this._proxy.Object, this._featureGate.Object,
                 NullLogger<QuestService>.Instance, this._remapper.Object)
             .UpdateAsync("u1", new Quest { Uid = uid, RewardType = 7, Reward = 25 })).Uid,
         "nest" => (await new NestService(
@@ -205,10 +163,10 @@ public class AlarmServiceV2UpdatePathTests
                 this._proxy.Object, this._featureGate.Object, NullLogger<FortChangeService>.Instance, this._remapper.Object)
             .UpdateAsync("u1", new FortChange { Uid = uid, FortType = "gym" })).Uid,
         "lure" => (await new LureService(
-                this._proxy.Object, this._featureGate.Object, NullLogger<LureService>.Instance, this._remapper.Object, NaturalKeyStub.Enforced)
+                this._proxy.Object, this._featureGate.Object, NullLogger<LureService>.Instance, this._remapper.Object)
             .UpdateAsync("u1", new Lure { Uid = uid, LureId = 501 })).Uid,
         "invasion" => (await new InvasionService(
-                this._proxy.Object, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._remapper.Object, NaturalKeyStub.Enforced)
+                this._proxy.Object, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._remapper.Object, Mock.Of<IPoracleIncidentProxy>())
             .UpdateAsync("u1", new Invasion { Uid = uid, GruntType = "water", Gender = 0 })).Uid,
         _ => throw new ArgumentOutOfRangeException(nameof(type), type, "No fixture for this tracking type."),
     };

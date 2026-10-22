@@ -91,7 +91,6 @@ MapEnvVar("AUTH_FORCE_LOCAL", "Auth__ForceLocal");
 MapEnvVar("PORACLE_API_ADDRESS", "Poracle__ApiAddress");
 MapEnvVar("PORACLE_API_SECRET", "Poracle__ApiSecret");
 MapEnvVar("PORACLE_ADMIN_IDS", "Poracle__AdminIds");
-MapEnvVar("PORACLE_TRACKING_API_VERSION", "Poracle__TrackingApiVersion");
 MapEnvVar("KOJI_API_ADDRESS", "Koji__ApiAddress");
 MapEnvVar("KOJI_BEARER_TOKEN", "Koji__BearerToken");
 MapEnvVar("KOJI_PROJECT_ID", "Koji__ProjectId");
@@ -102,9 +101,8 @@ MapEnvVar("CORS_ORIGIN", "Cors__AllowedOrigins__0");
 MapEnvVar("PUBLIC_URL", "PublicUrl");
 MapEnvVar("SCANNER_DB_CONNECTION", "ConnectionStrings__ScannerDb");
 
-// Auto-compose MySQL connection strings from short env vars (DB_HOST, DB_PORT, etc.)
+// Auto-compose the PoracleWeb database connection string from short env vars (WEB_DB_HOST, etc.)
 // so the same .env works for both Docker Compose and standalone mode.
-ComposeConnectionString("PoracleDb", "DB_HOST", "DB_PORT", "DB_NAME", "DB_USER", "DB_PASSWORD", "poracle");
 ComposeConnectionString("PoracleWebDb", "WEB_DB_HOST", "WEB_DB_PORT", "WEB_DB_NAME", "WEB_DB_USER", "WEB_DB_PASSWORD", "poracle_web");
 
 // Auto-infer TELEGRAM_ENABLED=true when bot credentials are both set but Enabled was not
@@ -155,10 +153,13 @@ if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ASPNETCORE_URLS")))
 }
 
 // Startup config validation — fail fast if critical settings are missing
-var poracleDb = builder.Configuration.GetConnectionString("PoracleDb");
-if (string.IsNullOrWhiteSpace(poracleDb))
+// PoracleWeb.NET no longer connects to Poracle's database. An install that still sets the old DB_* variables
+// or a Poracle connection string keeps starting; it is told once, after the host is built, that they are dead.
+var legacyPoracleDbSettings = LegacyPoracleDbSettings.AreSet(builder.Configuration);
+
+if (string.IsNullOrWhiteSpace(builder.Configuration.GetConnectionString("PoracleWebDb")))
 {
-    throw new InvalidOperationException("Configuration 'ConnectionStrings:PoracleDb' is required but was not provided.");
+    throw new InvalidOperationException("Configuration 'ConnectionStrings:PoracleWebDb' is required but was not provided.");
 }
 
 var jwtSecret = builder.Configuration["Jwt:Secret"];
@@ -188,6 +189,7 @@ builder.Services.AddControllers(options =>
     options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.SummaryBackendUnavailableExceptionFilter>();
     options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.TrackingConflictExceptionFilter>();
     options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.AlarmValidationExceptionFilter>();
+    options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.AreaNotPermittedExceptionFilter>();
     options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.PoracleRequestRefusedExceptionFilter>();
     options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.TrackingRuleNotFoundExceptionFilter>();
     options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.AccountGoneExceptionFilter>();
@@ -306,6 +308,20 @@ builder.Services.AddRateLimiter(options =>
                 QueueLimit = 0,
                 AutoReplenishment = true,
             }));
+    // The pin-usage and place-usage reads behind Clear pin and Delete place. place-usage asks PoracleNG to
+    // describe every rule on the profile, which is tens of thousands on some accounts, so a loop is stopped.
+    // A person checking several places in a row never comes near it, and a 429 there only drops the
+    // pre-check to the plain confirm.
+    options.AddPolicy("tracking-usage", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            UserOrIpPartitionKey(httpContext),
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 20,
+                Window = TimeSpan.FromSeconds(60),
+                QueueLimit = 0,
+                AutoReplenishment = true,
+            }));
     options.AddPolicy("geofence-feed-refresh", httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
             IpPartitionKey(httpContext),
@@ -381,21 +397,9 @@ if (!Pgan.PoracleWebNet.Api.Configuration.DataDirectoryCheck.IsWritable(dataDire
     StartupLog.LogDataDirectoryNotWritable(app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Startup"), dataDirectory);
 }
 
-// Ensure pweb_settings.value can hold JSON blobs (quick pick definitions/applied states)
-using (var scope = app.Services.CreateScope())
+if (legacyPoracleDbSettings)
 {
-    var db = scope.ServiceProvider.GetRequiredService<Pgan.PoracleWebNet.Data.PoracleContext>();
-    try
-    {
-        await db.Database.ExecuteSqlRawAsync(
-            "ALTER TABLE pweb_settings MODIFY COLUMN `value` LONGTEXT NULL");
-    }
-    catch (Exception ex)
-    {
-        var startupLogger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>()
-            .CreateLogger("Startup");
-        StartupLog.LogPwebSettingsAlterFailed(startupLogger, ex);
-    }
+    StartupLog.LogLegacyPoracleDbSettings(app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Startup"));
 }
 
 // Apply pending EF Core migrations for the PoracleWeb database
@@ -605,7 +609,7 @@ static void MapEnvVar(string shortName, string configName, string? defaultValue 
     }
 }
 
-// Composes a MySQL connection string from individual DB_HOST/DB_PORT/etc. env vars
+// Composes a MySQL connection string from individual WEB_DB_HOST/WEB_DB_PORT/etc. env vars
 // when the full ConnectionStrings__* env var is not already set.
 static void ComposeConnectionString(string name, string hostVar, string portVar, string dbVar, string userVar, string passVar, string defaultDb)
 {
@@ -636,12 +640,25 @@ internal static partial class StartupLog
         "In Docker this is usually a bind-mounted ./data that Docker created as root: run 'sudo chown -R 999:999 ./data' on the host, then restart the container.")]
     public static partial void LogDataDirectoryNotWritable(ILogger logger, string dataDirectory);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Could not alter pweb_settings.value column (may already be LONGTEXT).")]
-    public static partial void LogPwebSettingsAlterFailed(ILogger logger, Exception ex);
+    [LoggerMessage(Level = LogLevel.Information, Message = "DB_* settings are no longer used by PoracleWeb.NET and can be removed.")]
+    public static partial void LogLegacyPoracleDbSettings(ILogger logger);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Could not ensure PoracleWeb database tables exist.")]
     public static partial void LogPoracleWebDbEnsureCreatedFailed(ILogger logger, Exception ex);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Unhandled exception occurred.")]
     public static partial void LogUnhandledException(ILogger logger, Exception ex);
+}
+
+internal static class LegacyPoracleDbSettings
+{
+    private static readonly string[] Variables = ["DB_HOST", "DB_PORT", "DB_NAME", "DB_USER", "DB_PASSWORD"]; // legacy-db-setting-detection
+
+    // The one deliberate mention of the retired connection string, so an install still carrying it is told.
+    // NoPoracleDatabaseTests allows exactly this marker, in this file only.
+    private const string ConnectionName = "PoracleDb"; // legacy-db-setting-detection
+
+    internal static bool AreSet(IConfiguration configuration) =>
+        Variables.Any(v => !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(v)))
+        || !string.IsNullOrWhiteSpace(configuration.GetConnectionString(ConnectionName));
 }

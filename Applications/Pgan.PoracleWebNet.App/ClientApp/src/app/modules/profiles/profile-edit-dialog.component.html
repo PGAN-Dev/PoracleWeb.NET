@@ -24,7 +24,7 @@
 </mat-dialog-content>
 <mat-dialog-actions align="end">
   <button mat-button (click)="dialogRef.close()">{{ 'COMMON.CANCEL' | translate }}</button>
-  <button mat-raised-button color="primary" (click)="save()" [disabled]="saving() || !profileName.trim()">
+  <button mat-flat-button color="primary" (click)="save()" [disabled]="saving() || !profileName.trim()">
     <mat-icon>save</mat-icon> {{ 'COMMON.SAVE' | translate }}
   </button>
 </mat-dialog-actions>

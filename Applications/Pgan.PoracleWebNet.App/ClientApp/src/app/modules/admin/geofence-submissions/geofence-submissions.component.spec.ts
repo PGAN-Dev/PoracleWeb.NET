@@ -13,6 +13,8 @@ import { AdminGeofenceService } from '../../../core/services/admin-geofence.serv
 import { AreaService } from '../../../core/services/area.service';
 import { ConfigService } from '../../../core/services/config.service';
 import { UserGeofenceService } from '../../../core/services/user-geofence.service';
+import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { GeofenceDeleteDialogComponent } from '../../../shared/components/geofence-delete-dialog/geofence-delete-dialog.component';
 
 // Mock IntersectionObserver for jsdom
 global.IntersectionObserver = jest.fn().mockImplementation(() => ({
@@ -126,6 +128,7 @@ describe('GeofenceSubmissionsComponent', () => {
       adminDelete: jest.fn().mockReturnValue(of(null)),
       approveSubmission: jest.fn().mockReturnValue(of(mockGeofences[0])),
       getAll: jest.fn().mockReturnValue(of(geofences)),
+      getDeleteImpact: jest.fn().mockReturnValue(of({ widened: {}, total: 0 })),
       getSubmissions: jest.fn().mockReturnValue(of(geofences.filter(g => g.status === 'pending_review'))),
       rejectSubmission: jest.fn().mockReturnValue(of(mockGeofences[0])),
     };
@@ -176,6 +179,38 @@ describe('GeofenceSubmissionsComponent', () => {
 
   // ─── Basic Setup ─────────────────────────────────────────────────────────────
 
+  it('does not observe thumbnails after it is destroyed', () => {
+    jest.useFakeTimers();
+    try {
+      const fixture = setup();
+      fixture.detectChanges();
+      const observe = jest.spyOn(component as unknown as { observeMapContainers: () => void }, 'observeMapContainers');
+
+      fixture.destroy();
+      jest.runOnlyPendingTimers();
+
+      expect(observe).not.toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('observes the queue maps once the loaded rows render', () => {
+    jest.useFakeTimers();
+    try {
+      const fixture = setup();
+      const observe = jest.spyOn(component as unknown as { observeMapContainers: () => void }, 'observeMapContainers');
+      fixture.detectChanges();
+
+      jest.runOnlyPendingTimers();
+
+      expect(observe).toHaveBeenCalled();
+      fixture.destroy();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it('should create', () => {
     setup();
     expect(component).toBeTruthy();
@@ -202,22 +237,31 @@ describe('GeofenceSubmissionsComponent', () => {
 
   // ─── Status Filtering ───────────────────────────────────────────────────────
 
-  it('should show all geofences when filter is "all"', () => {
+  it('lists every fence but the pending ones in the table when the filter is "all"', () => {
     setup();
     component.ngOnInit();
     component.activeFilter.set('all');
 
-    expect(component.filteredGeofences()).toHaveLength(4);
+    const filtered = component.filteredGeofences();
+    expect(filtered).toHaveLength(3);
+    expect(filtered.some(g => g.status === 'pending_review')).toBe(false);
   });
 
-  it('should filter by pending_review status', () => {
+  it('puts pending submissions in the review queue', () => {
     setup();
     component.ngOnInit();
-    component.activeFilter.set('pending_review');
 
-    const filtered = component.filteredGeofences();
-    expect(filtered).toHaveLength(1);
-    expect(filtered[0].status).toBe('pending_review');
+    const queue = component.pendingGeofences();
+    expect(queue).toHaveLength(1);
+    expect(queue[0].status).toBe('pending_review');
+  });
+
+  it('orders the queue oldest submission first', () => {
+    const older: UserGeofence = { ...mockGeofences[0], id: 9, displayName: 'Older', submittedAt: '2026-03-01T00:00:00Z' };
+    setup([mockGeofences[0], older]);
+    component.ngOnInit();
+
+    expect(component.pendingGeofences().map(g => g.id)).toEqual([9, 1]);
   });
 
   it('should filter by active status', () => {
@@ -258,6 +302,7 @@ describe('GeofenceSubmissionsComponent', () => {
 
     const counts = component.statusCounts();
     expect(counts.all).toBe(4);
+    expect(counts.others).toBe(3);
     expect(counts.pending_review).toBe(1);
     expect(counts.active).toBe(1);
     expect(counts.approved).toBe(1);
@@ -485,9 +530,36 @@ describe('GeofenceSubmissionsComponent', () => {
     expect(mockDialog.open).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        data: expect.objectContaining({ geofence: pendingGeofence }),
+        data: expect.objectContaining({ geofence: pendingGeofence, mode: 'approve' }),
       }),
     );
+  });
+
+  it.each(['Enter', ' '])('opens the details from the triage map with the %p key, as a button would', key => {
+    const fixture = setup();
+    fixture.detectChanges();
+    const open = jest.spyOn(component, 'openDetailDialog').mockImplementation(() => undefined);
+    const map = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('.triage-map')!;
+    const event = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key });
+
+    map.dispatchEvent(event);
+
+    expect(open).toHaveBeenCalledTimes(1);
+    if (key === ' ') expect(event.defaultPrevented).toBe(true);
+    fixture.destroy();
+  });
+
+  it('opens the review dialog on the side of the button pressed', () => {
+    const fixture = setup();
+    component.ngOnInit();
+    fixture.detectChanges();
+
+    const row = (fixture.nativeElement as HTMLElement).querySelector('[data-test="triage-row"]')!;
+    (row.querySelector('[data-test="reject"]') as HTMLButtonElement).click();
+    expect(mockDialog.open.mock.calls[0][1].data.mode).toBe('reject');
+
+    (row.querySelector('[data-test="approve"]') as HTMLButtonElement).click();
+    expect(mockDialog.open.mock.calls[1][1].data.mode).toBe('approve');
   });
 
   // ─── Admin Delete ────────────────────────────────────────────────────────────
@@ -510,7 +582,104 @@ describe('GeofenceSubmissionsComponent', () => {
     const geofence = component.allGeofences()[0];
     await component.adminDelete(geofence);
 
-    expect(adminGeofenceService.adminDelete).toHaveBeenCalledWith(geofence.id);
+    expect(adminGeofenceService.adminDelete).toHaveBeenCalledWith(geofence.id, 'keep');
+    expect(mockDialog.open.mock.calls[0][0]).toBe(ConfirmDialogComponent);
+  });
+
+  it('should ask about widened alarms and delete them by default', async () => {
+    setup();
+    component.ngOnInit();
+    adminGeofenceService.getDeleteImpact!.mockReturnValue(of({ widened: { quest: 2 }, total: 2 }));
+    mockDialog.open.mockReturnValue({ afterClosed: () => of('delete') });
+
+    const geofence = component.allGeofences()[0];
+    await component.adminDelete(geofence);
+
+    expect(adminGeofenceService.getDeleteImpact).toHaveBeenCalledWith(geofence.id);
+    expect(mockDialog.open).toHaveBeenCalledTimes(1);
+    expect(mockDialog.open.mock.calls[0][0]).toBe(GeofenceDeleteDialogComponent);
+    expect(mockDialog.open.mock.calls[0][1].data).toEqual({ name: geofence.displayName, count: 2, owner: geofence.ownerName });
+    expect(adminGeofenceService.adminDelete).toHaveBeenCalledWith(geofence.id, 'delete');
+  });
+
+  it('should send keep when the admin keeps the alarms', async () => {
+    setup();
+    component.ngOnInit();
+    adminGeofenceService.getDeleteImpact!.mockReturnValue(of({ widened: { quest: 2 }, total: 2 }));
+    mockDialog.open.mockReturnValue({ afterClosed: () => of('keep') });
+
+    const geofence = component.allGeofences()[0];
+    await component.adminDelete(geofence);
+
+    expect(adminGeofenceService.adminDelete).toHaveBeenCalledWith(geofence.id, 'keep');
+  });
+
+  it('should not delete when the widened-alarms choice is cancelled', async () => {
+    setup();
+    component.ngOnInit();
+    adminGeofenceService.getDeleteImpact!.mockReturnValue(of({ widened: { quest: 2 }, total: 2 }));
+    mockDialog.open.mockReturnValue({ afterClosed: () => of(null) });
+
+    await component.adminDelete(component.allGeofences()[0]);
+
+    expect(adminGeofenceService.adminDelete).not.toHaveBeenCalled();
+  });
+
+  it('should not delete when the impact cannot be read', async () => {
+    setup();
+    component.ngOnInit();
+    adminGeofenceService.getDeleteImpact!.mockReturnValue(throwError(() => new Error('503')));
+
+    await component.adminDelete(component.allGeofences()[0]);
+
+    expect(mockDialog.open).not.toHaveBeenCalled();
+    expect(adminGeofenceService.adminDelete).not.toHaveBeenCalled();
+    expect(mockSnackBar.open).toHaveBeenCalledWith('ADMIN.SNACK_FAILED_DELETE_GEOFENCE', 'TOAST.OK', { duration: 4000 });
+  });
+
+  // Koji refusing an approve, reject or delete answers 502 with a reason that names the likely cause (the
+  // region may no longer exist); a generic "Failed to approve" sent the admin nowhere.
+  const kojiRefusal = {
+    error: { error: 'The geofence server rejected the request. It may be unavailable, or the region may no longer exist.' },
+    status: 502,
+  };
+
+  it('shows the Koji reason when a delete is refused with 502', async () => {
+    setup();
+    component.ngOnInit();
+    mockDialog.open.mockReturnValue({ afterClosed: () => of(true) });
+    adminGeofenceService.adminDelete!.mockReturnValue(throwError(() => kojiRefusal));
+
+    await component.adminDelete(component.allGeofences()[0]);
+
+    expect(mockSnackBar.open).toHaveBeenCalledWith(kojiRefusal.error.error, 'TOAST.OK', { duration: 4000 });
+  });
+
+  it('keeps the translated delete message for a 503 PoracleNG outage', async () => {
+    setup();
+    component.ngOnInit();
+    adminGeofenceService.getDeleteImpact!.mockReturnValue(
+      throwError(() => ({ error: { error: 'PoracleNG could not be reached. Try again shortly.' }, status: 503 })),
+    );
+
+    await component.adminDelete(component.allGeofences()[0]);
+
+    expect(mockSnackBar.open).toHaveBeenCalledWith('ADMIN.SNACK_FAILED_DELETE_GEOFENCE', 'TOAST.OK', { duration: 4000 });
+  });
+
+  it.each([
+    ['approve', 'approveSubmission', { action: 'approve', groupName: 'g', parentId: 1, promotedName: 'p' }],
+    ['reject', 'rejectSubmission', { action: 'reject', reviewNotes: 'no' }],
+  ] as const)('shows the Koji reason when %s is refused with 502', (mode, method, result) => {
+    setup();
+    component.ngOnInit();
+    mockDialog.open.mockReturnValue({ afterClosed: () => of(result) });
+    (adminGeofenceService[method] as jest.Mock).mockReturnValue(throwError(() => kojiRefusal));
+    const pending = component.allGeofences().find(g => g.status === 'pending_review')!;
+
+    component.openReviewDialog(pending, mode);
+
+    expect(mockSnackBar.open).toHaveBeenCalledWith(kojiRefusal.error.error, 'TOAST.OK', { duration: 4000 });
   });
 
   it('should not delete when dialog is cancelled', async () => {
@@ -538,6 +707,17 @@ describe('GeofenceSubmissionsComponent', () => {
     expect(component.allGeofences().find(g => g.id === geofence.id)).toBeUndefined();
   });
 
+  it("shows the server's reason when it refuses the delete", async () => {
+    setup();
+    component.ngOnInit();
+    mockDialog.open.mockReturnValue({ afterClosed: () => of(true) });
+    adminGeofenceService.adminDelete!.mockReturnValue(throwError(() => ({ error: { error: 'Owner not found.' }, status: 409 })));
+
+    await component.adminDelete(component.allGeofences()[0]);
+
+    expect(mockSnackBar.open).toHaveBeenCalledWith('Owner not found.', 'TOAST.OK', { duration: 4000 });
+  });
+
   it('should show snackbar on delete error', async () => {
     setup();
     component.ngOnInit();
@@ -547,7 +727,7 @@ describe('GeofenceSubmissionsComponent', () => {
     const geofence = component.allGeofences()[0];
     await component.adminDelete(geofence);
 
-    expect(mockSnackBar.open).toHaveBeenCalledWith('ADMIN.SNACK_FAILED_DELETE_GEOFENCE', 'TOAST.OK', { duration: 3000 });
+    expect(mockSnackBar.open).toHaveBeenCalledWith('ADMIN.SNACK_FAILED_DELETE_GEOFENCE', 'TOAST.OK', { duration: 4000 });
   });
 
   // ─── Geofence Reference Polygons ────────────────────────────────────────────
@@ -561,41 +741,57 @@ describe('GeofenceSubmissionsComponent', () => {
 
   // ─── Template Rendering (DOM) ────────────────────────────────────────────────
 
-  it('should render status filter toggle buttons', () => {
+  it('renders the table filter without a Pending option, since pending fences are in the queue', () => {
     const fixture = setup();
     component.ngOnInit();
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    const toggleGroup = compiled.querySelector('mat-button-toggle-group');
-    expect(toggleGroup).toBeTruthy();
-
-    const filterToggles = compiled.querySelectorAll('.filter-tabs mat-button-toggle');
-    expect(filterToggles.length).toBe(5); // all, pending_review, active, approved, rejected
+    const filterToggles = Array.from(compiled.querySelectorAll('.filter-tabs mat-button-toggle'));
+    expect(filterToggles.length).toBe(4); // all, active, approved, rejected
+    expect(filterToggles.some(t => t.textContent?.includes('ADMIN.GEO_STATUS_PENDING'))).toBe(false);
   });
 
-  it('should render geofence cards after loading', () => {
+  it('renders the queue above the table, one wide row per pending submission', () => {
     const fixture = setup();
     component.ngOnInit();
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    const cards = compiled.querySelectorAll('.submission-card');
-    expect(cards.length).toBe(4);
+    const queue = compiled.querySelector('[data-test="review-queue"]')!;
+    const others = compiled.querySelector('[data-test="other-fences"]')!;
+    expect(queue.compareDocumentPosition(others) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    const rows = queue.querySelectorAll('[data-test="triage-row"]');
+    expect(rows.length).toBe(1);
+    expect(rows[0].querySelector('.map-thumbnail[data-geofence-id="1"]')).toBeTruthy();
+    expect(rows[0].textContent).toContain('Downtown Park');
+    expect(rows[0].querySelector('[data-test="approve"]')).toBeTruthy();
+    expect(rows[0].querySelector('[data-test="reject"]')).toBeTruthy();
+
+    expect(others.querySelectorAll('tbody tr').length).toBe(3);
   });
 
-  it('should display owner name in card when ownerName is available', () => {
-    const fixture = setup();
+  it('says so when nothing is waiting, and still shows the other fences', () => {
+    const fixture = setup(mockGeofences.filter(g => g.status !== 'pending_review'));
     component.ngOnInit();
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    const ownerSpans = compiled.querySelectorAll('.submission-card-owner');
-    const ownerTexts = Array.from(ownerSpans).map(s => s.textContent);
-    expect(ownerTexts.some(t => t?.includes('UserOne'))).toBe(true);
+    expect(compiled.querySelector('[data-test="queue-empty"]')?.textContent).toContain('ADMIN.NO_PENDING_SUBMISSIONS');
+    expect(compiled.querySelectorAll('[data-test="other-fences"] tbody tr').length).toBe(3);
   });
 
-  it('should fall back to humanId in card when ownerName is not available', () => {
+  it('names the owner in the queue row', () => {
+    const fixture = setup();
+    component.ngOnInit();
+    fixture.detectChanges();
+
+    const owner = (fixture.nativeElement as HTMLElement).querySelector('.triage-owner-name');
+    expect(owner).toBeTruthy();
+  });
+
+  it('falls back to humanId in the table when ownerName is not available', () => {
     const noNameGeofences: UserGeofence[] = [
       {
         id: 50,
@@ -615,75 +811,58 @@ describe('GeofenceSubmissionsComponent', () => {
     component.ngOnInit();
     fixture.detectChanges();
 
-    const compiled = fixture.nativeElement as HTMLElement;
-    const ownerSpan = compiled.querySelector('.submission-card-owner');
+    const ownerSpan = (fixture.nativeElement as HTMLElement).querySelector('.list-owner-name');
     expect(ownerSpan?.textContent).toContain('777');
   });
 
-  it('should display group name in cards', () => {
-    const fixture = setup();
+  it('shows the region, or "No region" when there is none', () => {
+    const fixture = setup([...mockGeofences, { ...mockGeofences[1], id: 60, groupName: '' }]);
     component.ngOnInit();
     fixture.detectChanges();
 
-    const compiled = fixture.nativeElement as HTMLElement;
-    const groupSpans = compiled.querySelectorAll('.submission-card-group');
-    const groupTexts = Array.from(groupSpans).map(s => s.textContent);
-    expect(groupTexts.some(t => t?.includes('west end'))).toBe(true);
+    const regions = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('td.col-region')).map(td => td.textContent?.trim());
+    expect(regions).toContain('west end');
+    expect(regions).toContain('ADMIN.NO_REGION');
   });
 
-  it('should show reviewer info in card meta for reviewed geofences', () => {
-    const fixture = setup();
-    component.ngOnInit();
-    component.activeFilter.set('approved');
-    fixture.detectChanges();
-
-    const compiled = fixture.nativeElement as HTMLElement;
-    const metaItems = compiled.querySelectorAll('.meta-item');
-    const reviewerItem = Array.from(metaItems).find(el => el.textContent?.includes('ADMIN.REVIEWED_BY'));
-    expect(reviewerItem).toBeTruthy();
-    expect(reviewerItem?.textContent).toContain('AdminReviewer');
-  });
-
-  it('should show review notes in card meta for reviewed geofences', () => {
+  it('shows the reviewer and review notes in the table', () => {
     const fixture = setup();
     component.ngOnInit();
     component.activeFilter.set('rejected');
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    const metaItems = compiled.querySelectorAll('.meta-item');
-    const notesItem = Array.from(metaItems).find(el => el.textContent?.includes('Overlaps existing zone'));
-    expect(notesItem).toBeTruthy();
+    expect(compiled.querySelector('.list-reviewer-name')?.textContent).toContain('AdminReviewer');
+    expect(compiled.querySelector('.list-notes')?.textContent).toContain('Overlaps existing zone');
   });
 
   it('offers Review for pending and rejected submissions, matching what the API accepts', () => {
     // ApprovableStatuses is { pending_review, rejected } -- an admin reconsidering a rejection is the
     // intended case, and gating on pending_review alone made a mistaken rejection irreversible from the
-    // SPA. See #649.
+    // SPA. See #649. Pending ones are decided in the queue; a rejected one keeps Review in the table.
     const fixture = setup();
     component.ngOnInit();
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    const reviewButtons = compiled.querySelectorAll('button[color="primary"]');
-    expect(reviewButtons).toHaveLength(2);
+    expect(compiled.querySelectorAll('[data-test="triage-row"] [data-test="approve"]')).toHaveLength(1);
+    expect(compiled.querySelectorAll('[data-test="other-fences"] [data-test="review"]')).toHaveLength(1);
     expect(component.canReview({ status: 'pending_review' })).toBe(true);
     expect(component.canReview({ status: 'rejected' })).toBe(true);
     expect(component.canReview({ status: 'approved' })).toBe(false);
     expect(component.canReview({ status: 'active' })).toBe(false);
   });
 
-  it('should show empty state when no geofences match the filter', () => {
+  it('should show empty state when there are no geofences at all', () => {
     const fixture = setup([]);
     component.ngOnInit();
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    const emptyState = compiled.querySelector('.empty-state');
-    expect(emptyState).toBeTruthy();
+    expect(compiled.querySelector('.empty-state')).toBeTruthy();
   });
 
-  it('should show skeleton cards while loading', () => {
+  it('should show skeleton rows while loading', () => {
     // Use NEVER to prevent getAll from completing, keeping loading=true
     const { NEVER } = require('rxjs');
     const fixture = setup();
@@ -692,8 +871,7 @@ describe('GeofenceSubmissionsComponent', () => {
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    const skeletons = compiled.querySelectorAll('.skeleton-card');
-    expect(skeletons.length).toBe(3);
+    expect(compiled.querySelectorAll('.skeleton-row').length).toBe(2);
   });
 
   it('should display promoted name for approved geofences', () => {
@@ -717,10 +895,64 @@ describe('GeofenceSubmissionsComponent', () => {
     component.ngOnInit();
     fixture.detectChanges();
 
-    const compiled = fixture.nativeElement as HTMLElement;
-    const metaItems = compiled.querySelectorAll('.meta-item');
-    const promotedItem = Array.from(metaItems).find(el => el.textContent?.includes('ADMIN.PROMOTED_AS'));
-    expect(promotedItem).toBeTruthy();
-    expect(promotedItem?.textContent).toContain('Official Park Area');
+    const sub = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('.list-sub')).find(el =>
+      el.textContent?.includes('ADMIN.PROMOTED_AS'),
+    );
+    expect(sub?.textContent).toContain('Official Park Area');
+  });
+
+  describe('overlap with a public area', () => {
+    const square = (lat: number, lng: number, d: number): [number, number][] => [
+      [lat, lng],
+      [lat + d, lng],
+      [lat + d, lng + d],
+      [lat, lng + d],
+    ];
+
+    it('names the public area the centre of the submission falls inside', () => {
+      setup();
+      areaService.getGeofencePolygons.mockReturnValue(of([{ id: 7, name: 'Downtown', path: square(39.9, -74.2, 0.5) }]));
+      component.ngOnInit();
+
+      expect(component.overlaps().get(1)).toBe('Downtown');
+    });
+
+    it('names nothing when the centre is outside every public area, or inside only the fence itself', () => {
+      setup();
+      areaService.getGeofencePolygons.mockReturnValue(
+        of([
+          { id: 7, name: 'Elsewhere', path: square(10, 10, 0.5) },
+          { id: 8, name: 'pweb_111_downtown_park', path: square(39.9, -74.2, 0.5) },
+        ]),
+      );
+      component.ngOnInit();
+
+      expect(component.overlaps().has(1)).toBe(false);
+    });
+  });
+
+  describe('approval and the owner areas', () => {
+    function approveWith(response: Partial<UserGeofence>): void {
+      setup();
+      component.ngOnInit();
+      const pending = component.allGeofences().find(g => g.status === 'pending_review')!;
+      adminGeofenceService['approveSubmission'].mockReturnValue(of({ ...pending, ...response, status: 'approved' }));
+      mockDialog.open.mockReturnValue({ afterClosed: () => of({ action: 'approve', promotedName: 'Official' }) });
+      component.openReviewDialog(pending);
+    }
+
+    it('warns the admin when the owner areas were not moved', () => {
+      approveWith({ ownerAreasRenamed: false });
+
+      expect(mockSnackBar.open).toHaveBeenCalledWith('ADMIN.SNACK_APPROVED_AREAS_NOT_MOVED', 'TOAST.OK', { duration: 8000 });
+      expect(mockSnackBar.open).not.toHaveBeenCalledWith('ADMIN.SNACK_APPROVED', expect.anything(), expect.anything());
+    });
+
+    it.each([true, null, undefined])('shows the plain approval when ownerAreasRenamed is %s', renamed => {
+      approveWith({ ownerAreasRenamed: renamed });
+
+      expect(mockSnackBar.open).toHaveBeenCalledWith('ADMIN.SNACK_APPROVED', 'TOAST.OK', { duration: 3000 });
+      expect(mockSnackBar.open).not.toHaveBeenCalledWith('ADMIN.SNACK_APPROVED_AREAS_NOT_MOVED', expect.anything(), expect.anything());
+    });
   });
 });

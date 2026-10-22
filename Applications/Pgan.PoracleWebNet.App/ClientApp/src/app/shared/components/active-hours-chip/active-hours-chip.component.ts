@@ -32,7 +32,7 @@ export class ActiveHoursChipComponent {
    */
   readonly pills = computed(() =>
     this.groups().map(g => ({
-      label: formatRuleLabel(g, (key, params) => this.translate.instant(key, params)),
+      label: formatRuleLabel(g, (key, params) => this.translate.instant(key, params), this.translate.currentLang() ?? 'en'),
     })),
   );
 

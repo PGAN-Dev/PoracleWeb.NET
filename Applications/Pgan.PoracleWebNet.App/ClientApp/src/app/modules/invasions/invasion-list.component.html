@@ -4,45 +4,33 @@
     <p class="page-description">{{ 'INVASIONS.PAGE_DESC' | translate }}</p>
   </div>
   <div class="header-actions">
-    <button mat-fab class="fab-invasion" (click)="openAddDialog()" [attr.aria-label]="'INVASIONS.ADD_INVASION' | translate">
+    <button mat-flat-button class="page-primary-action" (click)="openAddDialog()">
       <mat-icon>add</mat-icon>
+      {{ 'ALARM.NEW_ALARM' | translate }}
     </button>
   </div>
 </div>
 
 @if (!loading() && invasions().length > 0) {
-  <div class="filter-bar">
-    <span class="result-count">{{ 'ALARM.ALARMS_COUNT' | translate: { count: invasions().length } }}</span>
-    <div class="bulk-spacer"></div>
-    <button
-      mat-icon-button
-      (click)="toggleSelectMode()"
-      [class.select-mode-active]="selectMode()"
-      [matTooltip]="(selectMode() ? 'ALARM.EXIT_SELECT_MODE' : 'ALARM.SELECT_MULTIPLE') | translate"
-      [attr.aria-label]="(selectMode() ? 'ALARM.EXIT_SELECT_MODE' : 'ALARM.SELECT_MULTIPLE') | translate">
-      <mat-icon>{{ selectMode() ? 'close' : 'checklist' }}</mat-icon>
-    </button>
-  </div>
+  <app-alarm-list-toolbar
+    searchPlaceholder="INVASIONS.SEARCH_PLACEHOLDER"
+    [(search)]="search"
+    [(sort)]="sortBy"
+    [sortOptions]="sortOptions"
+    [total]="invasions().length"
+    [shown]="visibleInvasions().length"
+    [selectMode]="selectMode()"
+    (selectModeToggle)="toggleSelectMode()" />
 }
 
 @if (selectMode()) {
-  <div class="bulk-toolbar">
-    @if (selectedIds().size > 0) {
-      <span class="bulk-count">{{ 'ALARM.SELECTED_COUNT' | translate: { count: selectedIds().size } }}</span>
-    }
-    <button mat-stroked-button (click)="selectAll()"><mat-icon>select_all</mat-icon> {{ 'ALARM.SELECT_ALL' | translate }}</button>
-    @if (selectedIds().size > 0) {
-      <button mat-stroked-button (click)="deselectAll()">{{ 'ALARM.DESELECT_ALL' | translate }}</button>
-    }
-    <div class="bulk-spacer"></div>
-    <button mat-stroked-button (click)="bulkUpdateDistance()" [disabled]="selectedIds().size === 0">
-      <mat-icon>straighten</mat-icon> {{ 'ALARM.UPDATE_DISTANCE' | translate }}
-    </button>
-
-    <button mat-flat-button color="warn" (click)="bulkDelete()" [disabled]="selectedIds().size === 0">
-      <mat-icon>delete</mat-icon> {{ 'ALARM.DELETE' | translate }}
-    </button>
-  </div>
+  <app-bulk-action-bar
+    [count]="actionIds().length"
+    [anySelected]="selectedIds().size > 0"
+    (selectAll)="selectAll()"
+    (deselectAll)="deselectAll()"
+    (changeRadius)="bulkUpdateDistance()"
+    (deleteSelected)="bulkDelete()" />
 }
 
 @if (loading()) {
@@ -52,64 +40,58 @@
   </div>
 } @else {
   <div class="alarm-grid">
-    @for (invasion of invasions(); track invasion.uid) {
-      <mat-card
-        class="alarm-card"
-        [class.card-selected]="selectMode() && selectedIds().has(invasion.uid)"
-        [style.border-left-color]="getCardAccent(invasion.gruntType)">
-        @if (selectMode()) {
-          <mat-checkbox
-            [checked]="selectedIds().has(invasion.uid)"
-            (change)="toggleSelect(invasion.uid)"
-            (click)="$event.stopPropagation()"
-            class="card-checkbox"></mat-checkbox>
+    @for (invasion of visibleInvasions(); track invasion.uid) {
+      <app-alarm-card
+        [summary]="invasion.description"
+        [selectable]="selectMode()"
+        [selected]="selectedIds().has(invasion.uid)"
+        [selectLabel]="'ALARM.SELECT_ONE' | translate: { name: getDisplayName(invasion.gruntType, invasion.gender) }"
+        (selectedToggle)="toggleSelect(invasion.uid)">
+        @if (isEventType(invasion.gruntType) && getEventImgUrl(invasion.gruntType)) {
+          <img ruleMedia class="rule-sprite" [src]="getEventImgUrl(invasion.gruntType)" alt="" />
+        } @else if (isEventType(invasion.gruntType)) {
+          <div ruleMedia class="rule-icon">
+            <mat-icon [style.color]="getEventColor(invasion.gruntType)">{{ getEventIcon(invasion.gruntType) }}</mat-icon>
+          </div>
+        } @else if (getGruntIcon(invasion.gruntType, invasion.gender)) {
+          <img
+            ruleMedia
+            class="rule-sprite"
+            [src]="getGruntIcon(invasion.gruntType, invasion.gender)"
+            alt=""
+            (error)="onGruntIconError($event)" />
+        } @else {
+          <div ruleMedia class="rule-icon"><mat-icon>security</mat-icon></div>
         }
-        <div class="card-top" [style.border-top-color]="getCardAccent(invasion.gruntType)">
-          @if (isEventType(invasion.gruntType) && getEventImgUrl(invasion.gruntType)) {
-            <img [src]="getEventImgUrl(invasion.gruntType)" class="grunt-img" alt="" />
-          } @else if (isEventType(invasion.gruntType)) {
-            <div class="event-icon-circle" [style.background]="getEventColor(invasion.gruntType)">
-              <mat-icon>{{ getEventIcon(invasion.gruntType) }}</mat-icon>
-            </div>
-          } @else if (getGruntIcon(invasion.gruntType, invasion.gender)) {
-            <img [src]="getGruntIcon(invasion.gruntType, invasion.gender)" class="grunt-img" alt="" />
-          } @else {
-            <mat-icon class="rocket-icon">security</mat-icon>
+        <span ruleTitle>{{ getDisplayName(invasion.gruntType, invasion.gender) }}</span>
+        @if (isEventType(invasion.gruntType)) {
+          <div ruleSubtitle class="rule-subtitle">{{ 'INVASIONS.POKESTOP_EVENT' | translate }}</div>
+        } @else if (!hideGenderLabel(invasion.gruntType)) {
+          <div ruleSubtitle class="rule-subtitle">
+            @if (invasion.gender === 1) {
+              <span class="rule-subtitle-part"><mat-icon>male</mat-icon>{{ 'INVASIONS.GENDER_MALE' | translate }}</span>
+            } @else if (invasion.gender === 2) {
+              <span class="rule-subtitle-part"><mat-icon>female</mat-icon>{{ 'INVASIONS.GENDER_FEMALE' | translate }}</span>
+            } @else {
+              <span>{{ 'INVASIONS.GENDER_ANY_LABEL' | translate }}</span>
+            }
+          </div>
+        }
+        <ng-container ruleStatus>
+          @if (isAutoDelete(invasion.clean)) {
+            <span class="rule-tag" [matTooltip]="'INVASIONS.CLEAN_TOOLTIP' | translate"
+              ><mat-icon>auto_delete</mat-icon>{{ 'ALARM.STATUS_CLEAN' | translate }}</span
+            >
           }
-          <div class="item-info">
-            <h3>{{ getDisplayName(invasion.gruntType, invasion.gender) }}</h3>
-            @if (isEventType(invasion.gruntType)) {
-              <span class="event-label">{{ 'INVASIONS.POKESTOP_EVENT' | translate }}</span>
-            } @else if (!hideGenderLabel(invasion.gruntType)) {
-              <span class="gender-label">
-                @if (invasion.gender === 1) {
-                  <mat-icon class="gender-icon male">male</mat-icon> {{ 'INVASIONS.GENDER_MALE' | translate }}
-                } @else if (invasion.gender === 2) {
-                  <mat-icon class="gender-icon female">female</mat-icon> {{ 'INVASIONS.GENDER_FEMALE' | translate }}
-                } @else {
-                  {{ 'INVASIONS.GENDER_ANY_LABEL' | translate }}
-                }
-              </span>
-            }
-          </div>
-          <div class="card-top-actions">
-            @if (isAutoDelete(invasion.clean)) {
-              <span class="clean-tag" [matTooltip]="'INVASIONS.CLEAN_TOOLTIP' | translate">{{ 'INVASIONS.CLEAN_TAG' | translate }}</span>
-            }
-          </div>
-        </div>
-        <mat-card-content>
-          <div class="distance-chip-row">
-            <app-where-chip
-              [distance]="invasion.distance"
-              [overrideAreas]="invasion.overrideAreas"
-              [overrideLocationLabel]="invasion.overrideLocationLabel"
-              [profileAreas]="profileAreas()"
-              (click)="editScope(invasion); $event.stopPropagation()" />
-          </div>
-          <app-rule-summary [text]="invasion.description" />
-        </mat-card-content>
-        <mat-card-actions align="end">
+        </ng-container>
+        <app-where-chip
+          ruleScope
+          [distance]="invasion.distance"
+          [overrideAreas]="invasion.overrideAreas"
+          [overrideLocationLabel]="invasion.overrideLocationLabel"
+          [profileAreas]="profileAreas()"
+          (click)="editScope(invasion); $event.stopPropagation()" />
+        <ng-container ruleActions>
           <button
             mat-icon-button
             (click)="sendTestAlert(invasion)"
@@ -127,7 +109,6 @@
               <mat-icon>send</mat-icon>
             }
           </button>
-
           <button
             mat-icon-button
             (click)="editInvasion(invasion)"
@@ -135,7 +116,6 @@
             [attr.aria-label]="'COMMON.EDIT' | translate">
             <mat-icon>edit</mat-icon>
           </button>
-
           <button
             mat-icon-button
             (click)="deleteInvasion(invasion)"
@@ -144,25 +124,12 @@
             color="warn">
             <mat-icon>delete</mat-icon>
           </button>
-        </mat-card-actions>
-      </mat-card>
+        </ng-container>
+      </app-alarm-card>
     } @empty {
-      <div class="empty-state">
-        <svg viewBox="0 0 80 100" width="58" height="72" class="empty-icon">
-          <ellipse cx="40" cy="32" rx="28" ry="26" fill="#607d8b" opacity="0.12" stroke="#607d8b" stroke-width="3" />
-          <text x="40" y="40" text-anchor="middle" font-size="24" font-weight="bold" fill="#607d8b" opacity="0.6" font-family="serif">
-            R
-          </text>
-          <line x1="28" y1="56" x2="40" y2="68" stroke="#607d8b" stroke-width="2.5" />
-          <line x1="52" y1="56" x2="40" y2="68" stroke="#607d8b" stroke-width="2.5" />
-          <rect x="32" y="68" width="16" height="12" rx="3" fill="#607d8b" opacity="0.2" stroke="#607d8b" stroke-width="2" />
-        </svg>
-        <h2 class="empty-title">{{ 'INVASIONS.EMPTY_TITLE' | translate }}</h2>
-        <p class="empty-subtitle">{{ 'INVASIONS.EMPTY_SUBTITLE' | translate }}</p>
-        <button mat-flat-button class="cta-invasion" (click)="openAddDialog()">
-          <mat-icon>add</mat-icon> {{ 'INVASIONS.ADD_INVASION' | translate }}
-        </button>
-      </div>
+      @if (invasions().length === 0) {
+        <app-alarm-empty-state icon="warning" titleKey="INVASIONS.EMPTY_TITLE" bodyKey="INVASIONS.EMPTY_SUBTITLE" (add)="openAddDialog()" />
+      }
     }
   </div>
 }
