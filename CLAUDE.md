@@ -966,7 +966,7 @@ the v1 branch of every single-human call and its per-route "v2 absent" flags,
 and the SPA's `canEdit`/`pingSupported`/capability conditionals), `ProbePokestopEventsAsync`, the legacy
 geocoder call, `Poracle:TrackingApiVersion`, and every `PoracleV2Capabilities` flag except three.
 `InvasionGruntType` and `Read` survive too, set but never read (`TrustedSetAreas` went with the area writes). What stayed
-is anything covering a newer build or fork. `PoracleContext`, `pweb_settings` and the `DB_*` bridge went in the release after (PoracleWeb.NET no longer connects to Poracle's database).
+is anything covering a newer build or fork. `PoracleContext`, `pweb_settings` and the `DB_*` bridge went in the same release (PoracleWeb.NET no longer connects to Poracle's database).
 
 **One rule decides version-gated features: `PoracleServerProfile.IsSupported`** — PoracleNG answered and
 is not known to be older than the minimum. It now decides little beyond whether the v2 tracking surface is

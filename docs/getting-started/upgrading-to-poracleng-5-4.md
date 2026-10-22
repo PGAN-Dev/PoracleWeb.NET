@@ -45,7 +45,7 @@ PoracleWeb.NET no longer connects to PoracleNG's database. The `DB_HOST`, `DB_PO
 
 The old `pweb_settings` table in PoracleNG's database isn't read any more, and PoracleWeb.NET never alters or drops it. An admin can drop it once they've confirmed the upgrade went well.
 
-The one-time copy of settings, webhook delegates and quick picks out of `pweb_settings` is gone with it. An install older than 0.6.0 has to start any 2.x release once before upgrading to this one, so that copy has run. Anything else has already done it.
+The one-time copy of settings, webhook delegates and quick picks out of `pweb_settings` is gone with it. An install older than 0.6.0 has to start any 2.x release once before upgrading to this one, so that copy has run. Anything else has already done it. A new install starts from the default settings and doesn't read any rows another tool left in `pweb_settings`.
 
 ## Order of steps
 
