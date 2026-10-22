@@ -117,7 +117,9 @@ body {
   color: var(--mat-sys-on-surface);
   font: var(--mat-sys-body-medium);
   // Every figure in tabular widths, so a column of IV, CP, level and counts lines up. After `font`, which
-  // resets it.
+  // resets it. Atkinson Hyperlegible Next as Google Fonts serves it carries `tnum` (measured: "111", "888"
+  // and "000" are all 30.34px at 16px with this on, 19.5/29.5/31.1px without); the Roboto subset it falls
+  // back to does not, which matters only while the web font loads.
   font-variant-numeric: tabular-nums;
 
   margin: 0;

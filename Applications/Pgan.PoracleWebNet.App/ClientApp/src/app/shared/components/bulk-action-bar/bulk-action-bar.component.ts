@@ -9,6 +9,12 @@ import { TranslatePluralPipe } from '../../pipes/translate-plural.pipe';
 export const BULK_COUNT_SETTLE_MS = 700;
 
 /**
+ * How long the live region stays empty before it repeats a count it already holds. A live region is only
+ * read when its text changes, so settling back on the announced count would otherwise say nothing.
+ */
+export const BULK_COUNT_REANNOUNCE_MS = 100;
+
+/**
  * The bar an alarm list shows in select mode: how many are selected, Select all / Deselect all, and the
  * two things a selection can do.
  *
@@ -69,7 +75,15 @@ export class BulkActionBarComponent {
     this.clearTimer();
     this.timer = setTimeout(() => {
       this.timer = null;
-      this.announced.set(count);
+      if (this.announced() !== count) {
+        this.announced.set(count);
+        return;
+      }
+      this.announced.set(null);
+      this.timer = setTimeout(() => {
+        this.timer = null;
+        this.announced.set(count);
+      }, BULK_COUNT_REANNOUNCE_MS);
     }, BULK_COUNT_SETTLE_MS);
   }
 }

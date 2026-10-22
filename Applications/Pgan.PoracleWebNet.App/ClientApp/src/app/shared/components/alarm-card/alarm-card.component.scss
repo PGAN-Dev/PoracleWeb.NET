@@ -56,12 +56,14 @@
   }
 }
 
-// The subject never gets narrower than its longest word. With `min-width: 0` and `overflow-wrap: anywhere`
-// the checkbox, sprite and status in select mode on a phone squeezed it until the name broke mid-word
-// ("Dragonit e"); now the status chips wrap among themselves instead.
+// The subject keeps at least 8rem, so the checkbox, sprite and status in select mode on a phone can no
+// longer squeeze a name until it breaks mid-word ("Dragonit e"); the status chips wrap among themselves
+// instead. Past 8rem a word breaks only when it is longer than the line, so a long gym name or a German
+// compound still wraps inside the card rather than overflowing it.
 .rule-subject {
   align-self: center;
   flex: 1 1 auto;
+  min-width: min(8rem, 100%);
 }
 
 .rule-title {
@@ -69,7 +71,7 @@
   font-weight: 600;
   line-height: 1.3;
   margin: 0;
-  overflow-wrap: break-word;
+  overflow-wrap: anywhere;
 }
 
 .rule-status {

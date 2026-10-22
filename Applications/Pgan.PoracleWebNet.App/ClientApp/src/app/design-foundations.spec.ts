@@ -125,8 +125,50 @@ describe('page header', () => {
     expect(html).toContain(`{{ '${key}' | translate }}`);
   });
 
+  it('uses the shared structure wherever a page draws a header: title and purpose inside .page-header-text, at the top level', () => {
+    const templates = filesUnder(join(app, 'modules'), '.html').filter(path => read(path).includes('class="page-header"'));
+    expect(templates.length).toBeGreaterThan(20);
+    const offenders = templates.filter(path => {
+      const html = read(path);
+      const header = html.slice(html.indexOf('<div class="page-header">'));
+      const opensWithText = /^<div class="page-header">\s*<div class="page-header-text">\s*<h1>/.test(header);
+      // The header sits at the top of the page, not inside a padded wrapper that indents it a second time.
+      const atTopLevel = /(^|\n)<div class="page-header">/.test(html);
+      return !opensWithText || !atTopLevel;
+    });
+    expect(offenders.map(path => relative(src, path))).toEqual([]);
+  });
+
   it('has no FAB left on any page', () => {
     const offenders = filesUnder(join(app, 'modules'), '.html').filter(path => /\bmat-(mini-)?fab\b/.test(read(path)));
     expect(offenders.map(path => relative(src, path))).toEqual([]);
+  });
+});
+
+describe('English casing', () => {
+  const en = JSON.parse(read(join(src, 'assets', 'i18n', 'en.json'))) as Record<string, Record<string, unknown>>;
+  /** Names that keep their capital wherever they sit: the game's own words and the site's. */
+  const PROPER = new Set(['Pokémon', 'Pokéstop', 'Mega', 'Max', 'Giovanni', 'Rocket', 'GO', 'PoracleWeb.NET', 'PoracleNG']);
+
+  const titleCased = (value: string) =>
+    value
+      .split(/\s+/)
+      .slice(1)
+      .some(word => /^[A-Z][a-z]/.test(word) && !PROPER.has(word.replace(/[^\p{L}.]/gu, '')));
+
+  it('keeps nav labels, dashboard counts and page titles in sentence case', () => {
+    const labels: [string, unknown][] = [
+      ...Object.entries(en['NAV']).map(([key, value]): [string, unknown] => [`NAV.${key}`, value]),
+      ...Object.entries(en['DASHBOARD'])
+        .filter(([key]) => key.startsWith('CARD_'))
+        .map(([key, value]): [string, unknown] => [`DASHBOARD.${key}`, value]),
+      ...Object.entries(en)
+        .filter(([, section]) => typeof section === 'object' && typeof section['PAGE_TITLE'] === 'string')
+        .map(([key, section]): [string, unknown] => [`${key}.PAGE_TITLE`, section['PAGE_TITLE']]),
+    ];
+    const offenders = labels
+      .filter(([, value]) => typeof value === 'string' && titleCased(value))
+      .map(([key, value]) => `${key}: ${value}`);
+    expect(offenders).toEqual([]);
   });
 });

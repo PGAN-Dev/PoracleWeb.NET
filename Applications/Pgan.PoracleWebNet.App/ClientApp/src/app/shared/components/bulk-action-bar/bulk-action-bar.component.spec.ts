@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideTranslateService, TranslateService } from '@ngx-translate/core';
 
-import { BULK_COUNT_SETTLE_MS, BulkActionBarComponent } from './bulk-action-bar.component';
+import { BULK_COUNT_REANNOUNCE_MS, BULK_COUNT_SETTLE_MS, BulkActionBarComponent } from './bulk-action-bar.component';
 
 describe('BulkActionBarComponent', () => {
   let fixture: ComponentFixture<BulkActionBarComponent>;
@@ -112,6 +112,31 @@ describe('BulkActionBarComponent', () => {
       jest.advanceTimersByTime(BULK_COUNT_SETTLE_MS);
       fixture.detectChanges();
 
+      expect(live()?.textContent?.trim()).toBe('3 selected');
+    });
+
+    it('announces a return to the count it announced last, 3 then 4 then back to 3', () => {
+      render(3);
+      jest.advanceTimersByTime(BULK_COUNT_SETTLE_MS);
+      render(4);
+      jest.advanceTimersByTime(BULK_COUNT_SETTLE_MS);
+      fixture.detectChanges();
+      expect(live()?.textContent?.trim()).toBe('4 selected');
+
+      render(3);
+      jest.advanceTimersByTime(BULK_COUNT_SETTLE_MS);
+      fixture.detectChanges();
+      expect(live()?.textContent?.trim()).toBe('3 selected');
+
+      // Settling on the value already in the live region empties it for a moment, so the same words are
+      // read again rather than left unchanged.
+      render(4);
+      render(3);
+      jest.advanceTimersByTime(BULK_COUNT_SETTLE_MS);
+      fixture.detectChanges();
+      expect(live()?.textContent?.trim()).toBe('');
+      jest.advanceTimersByTime(BULK_COUNT_REANNOUNCE_MS);
+      fixture.detectChanges();
       expect(live()?.textContent?.trim()).toBe('3 selected');
     });
 

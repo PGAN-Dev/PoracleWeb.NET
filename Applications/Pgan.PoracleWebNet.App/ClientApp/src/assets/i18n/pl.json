@@ -1615,7 +1615,7 @@
     "NO_USERS_YET": "Brak zarejestrowanych użytkowników.",
     "CONFIRM_DELETE_ALARMS": "Czy na pewno chcesz usunąć WSZYSTKIE alarmy dla \"{{name}}\"? Tej akcji nie można cofnąć.",
     "CONFIRM_DELETE_USER": "Trwale usunąć \"{{name}}\"? Alarmy, narysowane geofence, delegacje webhooków i szybkie wybory zostaną usunięte razem z kontem. Tego nie można cofnąć.",
-    "SNACK_FAILED_IMPERSONATE": "Nie udało się podszywać pod użytkownika. Spróbuj ponownie za chwilę.",
+    "SNACK_FAILED_IMPERSONATE": "Nie udało się otworzyć tego konta. Spróbuj ponownie za chwilę.",
     "SNACK_FAILED_LOAD_USERS": "Nie udało się załadować użytkowników. Odśwież stronę.",
     "WEBHOOKS_TITLE": "Webhooki",
     "WEBHOOKS_DESC": "Zarządzaj zarejestrowanymi miejscami docelowymi webhooków.",

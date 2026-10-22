@@ -1,13 +1,7 @@
+// The header above is the shared one; this is the body under it, aligned with the header's 24px gutter.
 .page {
-  padding: 24px;
-  padding-bottom: 96px;
+  padding: 12px 24px 96px;
   max-width: 900px;
-}
-
-.page-subtitle {
-  margin: 0 0 20px;
-  color: var(--text-secondary, rgba(0, 0, 0, 0.6));
-  font-size: 13px;
 }
 
 .notice {
@@ -151,4 +145,10 @@
   border: 1px solid var(--card-border, rgba(0, 0, 0, 0.12));
   box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.06);
   font-size: 13px;
+}
+
+@media (max-width: 599px) {
+  .page {
+    padding: 8px 16px 96px;
+  }
 }
