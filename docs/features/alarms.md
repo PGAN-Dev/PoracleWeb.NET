@@ -78,6 +78,8 @@ If you choose "Near a point" without ever having set a pin, the picker says so a
 
 Under the three answers the dialog draws what you picked on a small map: the circle at the typed radius around the pin or place (drawn even when the radius is out of range, so a typo of 500 km is obvious), the chosen areas shaded, or the profile's areas for "Anywhere in my areas". Nothing is drawn when there is nothing to show yet, and under `disable_location` the near-a-point map is not drawn at all, since the pin and places are never read.
 
+![The Delivery tab of the Add Pokémon dialog with Near a point chosen, measured from the pin at 2 km, and the map under it drawing that circle over Orlando](../screenshots/delivery-map.png)
+
 !!! note "Your own geofences work here"
     PoracleWeb.NET serves user-drawn geofences with `userSelectable: false` to keep them out of the bot's `!area` picker, so PoracleNG would normally refuse them in `override_areas`. PoracleWeb.NET checks each name itself (selectable for you, one of your own drawn geofences, on your active profile, or already on the alarm you're editing) and then asks PoracleNG to save the alarm with those names trusted. A geofence you drew can scope one alarm whether or not your profile subscribes to it, and nothing is written to PoracleNG's database directly. See [Custom geofences](custom-geofences/key-concepts.md).
 
@@ -761,7 +763,7 @@ The server allows 5 test alerts per 60 seconds per user (per IP address only for
 
 The dashboard shows the current in-game weather conditions at the user's pin.
 
-![Weather section on the dashboard](../screenshots/dashboard-weather.png)
+![The dashboard's status strip, its last row showing the weather at the pin, Windy, with the Dragon, Flying and Psychic types it boosts](../screenshots/dashboard-weather.png)
 
 ### Features
 
