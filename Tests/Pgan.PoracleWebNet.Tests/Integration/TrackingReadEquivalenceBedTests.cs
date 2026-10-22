@@ -23,12 +23,12 @@ namespace Pgan.PoracleWebNet.Tests.Integration;
 /// <item><c>PWEB_BED_PORACLE</c> — PoracleNG base address, e.g. <c>http://localhost:13046</c> over an SSH tunnel.</item>
 /// <item><c>PWEB_BED_SECRET</c> — its <c>X-Poracle-Secret</c>. Never committed.</item>
 /// <item><c>PWEB_BED_HUMANS</c> — a file of human ids, one per line.</item>
-/// <item><c>PWEB_BED_REPORT</c> — where to write the per-type counts and every difference (ids redacted).</item>
+/// <item><c>PWEB_BED_REPORT</c> — where to write the per-type counts and every difference (ids redacted); defaults to bed-equivalence-report.txt in the temp directory.</item>
 /// </list>
 /// <para>
 /// Differences are allowed only where the v2 read is known to lose information: legacy zeros
 /// (<c>pvp_ranking_best</c> 0, <c>pvp_ranking_worst</c> 0, <c>size</c> 0), <c>""</c> against null for
-/// <c>gym_id</c>/<c>station_id</c>, invasion gender on <c>everything</c> and boss rules, the edit bit on
+/// <c>gym_id</c>/<c>station_id</c>, invasion gender on the <c>everything</c> and <c>boss</c> catch-alls, the edit bit on
 /// types whose message is never edited, the raid/max battle 9000/9000 any-tier rule read as level 90,
 /// Pokestop event gender, and <c>profile_no</c> absent from an active-profile read.
 /// </para>
@@ -41,7 +41,7 @@ public class TrackingReadEquivalenceBedTests
 
     private static readonly HashSet<string> EditBitDroppedTypes = ["gym", "quest", "nest", "maxbattle", "invasion"];
 
-    private static readonly HashSet<string> BossGrunts = ["everything", "giovanni", "arlo", "cliff", "sierra", "boss", "leader"];
+    private static readonly HashSet<string> BossGrunts = ["everything", "boss"];
 
     [BedFact]
     public async Task V2ReadsRestateV1ForEveryHumanOnTheBed()
@@ -52,7 +52,7 @@ public class TrackingReadEquivalenceBedTests
         var humans = File.ReadAllLines(Environment.GetEnvironmentVariable("PWEB_BED_HUMANS")
             ?? throw new InvalidOperationException("PWEB_BED_HUMANS is not set."))
             .Select(l => l.Trim()).Where(l => l.Length > 0).ToList();
-        var reportPath = Environment.GetEnvironmentVariable("PWEB_BED_REPORT") ?? "bed-equivalence-report.txt";
+        var reportPath = Environment.GetEnvironmentVariable("PWEB_BED_REPORT") ?? Path.Combine(Path.GetTempPath(), "bed-equivalence-report.txt");
 
         using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
         var proxy = CreateProxy(http, address, secret);

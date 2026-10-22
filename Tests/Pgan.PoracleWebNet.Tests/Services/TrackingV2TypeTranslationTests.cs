@@ -24,6 +24,7 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 public class TrackingV2TypeTranslationTests
 {
     /// <summary>Every property each <c>V2*Rule</c> declares, from the 5.4.0 openapi fixture.</summary>
+    private static readonly string[] V2SchemaTypes = ["pokemon", "raid", "egg", "quest", "gym", "maxbattle", "nest", "lure", "invasion", "fort"];
     private static readonly Dictionary<string, string[]> V2Schema = LoadV2Schema();
 
     /// <summary>
@@ -443,7 +444,7 @@ public class TrackingV2TypeTranslationTests
         using var doc = JsonDocument.Parse(File.ReadAllText(Fixture()));
         var schemas = doc.RootElement.GetProperty("components").GetProperty("schemas");
 
-        return new[] { "pokemon", "raid", "egg", "quest", "gym", "maxbattle", "nest", "lure", "invasion", "fort" }
+        return V2SchemaTypes
             .ToDictionary(
                 type => type,
                 type => schemas.GetProperty(TrackingV2ReadTranslationTests.SchemaName(type)).GetProperty("properties")
