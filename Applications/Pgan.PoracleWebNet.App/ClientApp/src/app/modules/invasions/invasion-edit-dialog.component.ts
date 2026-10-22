@@ -25,6 +25,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
 import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-flags';
 import { swapToFallbackIcon } from '../../shared/utils/icon-fallback';
+import { serverReason } from '../../shared/utils/server-reason';
 
 @Component({
   imports: [
@@ -149,8 +150,8 @@ export class InvasionEditDialogComponent {
       .subscribe({
         // The server names what is wrong -- which alarm already uses these settings, which
         // field a file got wrong. A fixed string threw that away. See #567, #568.
-        error: (err: { error?: { error?: string } }) => {
-          this.snackBar.open(err?.error?.error ?? this.i18n.instant('INVASIONS.SNACK_FAILED_UPDATE'), this.i18n.instant('TOAST.OK'), {
+        error: (err: unknown) => {
+          this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.FAILED_UPDATE'), this.i18n.instant('TOAST.OK'), {
             duration: 6000,
           });
           this.saving.set(false);

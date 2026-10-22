@@ -23,7 +23,7 @@ describe('add-outcome', () => {
   function finish(results: SettledCreate[], lookup?: (uid: number, type: null | string) => null | string): void {
     finishAdd(results, {
       dialogRef: dialogRef as unknown as MatDialogRef<unknown>,
-      failedKey: 'POKEMON.SNACK_FAILED_CREATE',
+      failedKey: 'ALARM.FAILED_CREATE',
       i18n,
       lookup,
       refusal,
@@ -64,7 +64,7 @@ describe('add-outcome', () => {
     it('falls back to the dialog message when the server gave no reason', () => {
       finish([{ failed: new Error('network') }]);
 
-      expect(refusal()?.message).toBe('POKEMON.SNACK_FAILED_CREATE');
+      expect(refusal()?.message).toBe('ALARM.FAILED_CREATE');
     });
 
     /**

@@ -138,27 +138,7 @@
       </app-alarm-card>
     } @empty {
       @if (quests().length === 0) {
-        <div class="empty-state">
-          <svg class="empty-illustration" width="120" height="120" viewBox="0 0 120 120" fill="none">
-            <!-- Pokestop pole -->
-            <line x1="60" y1="115" x2="60" y2="60" stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity="0.15" />
-            <!-- Disc / top piece -->
-            <ellipse cx="60" cy="48" rx="30" ry="12" stroke="currentColor" stroke-width="3" opacity="0.15" />
-            <ellipse cx="60" cy="44" rx="30" ry="12" fill="currentColor" opacity="0.06" />
-            <!-- Center circle -->
-            <circle cx="60" cy="46" r="8" stroke="currentColor" stroke-width="2" opacity="0.15" />
-            <circle cx="60" cy="46" r="4" fill="currentColor" opacity="0.1" />
-            <!-- Sparkles -->
-            <line x1="28" y1="30" x2="24" y2="26" stroke="currentColor" stroke-width="2" opacity="0.1" />
-            <line x1="92" y1="30" x2="96" y2="26" stroke="currentColor" stroke-width="2" opacity="0.1" />
-            <line x1="60" y1="22" x2="60" y2="16" stroke="currentColor" stroke-width="2" opacity="0.1" />
-          </svg>
-          <h2 class="empty-title">{{ 'QUESTS.EMPTY_TITLE' | translate }}</h2>
-          <p class="empty-subtitle">{{ 'QUESTS.EMPTY_SUBTITLE' | translate }}</p>
-          <button mat-flat-button class="cta-quest" (click)="openAddDialog()">
-            <mat-icon>add</mat-icon> {{ 'QUESTS.ADD_QUEST' | translate }}
-          </button>
-        </div>
+        <app-alarm-empty-state icon="explore" titleKey="QUESTS.EMPTY_TITLE" bodyKey="QUESTS.EMPTY_SUBTITLE" (add)="openAddDialog()" />
       }
     }
   </div>

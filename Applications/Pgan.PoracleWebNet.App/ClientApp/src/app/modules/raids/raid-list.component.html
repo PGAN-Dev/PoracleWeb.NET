@@ -165,30 +165,11 @@
           </app-alarm-card>
         } @empty {
           @if (raids().length === 0) {
-            <div class="empty-state">
-              <svg class="empty-illustration" width="120" height="120" viewBox="0 0 120 120" fill="none">
-                <ellipse cx="60" cy="65" rx="38" ry="46" stroke="currentColor" stroke-width="3" opacity="0.15" />
-                <path
-                  d="M22 55 Q38 68 60 52 Q82 68 98 55"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="3"
-                  stroke-linecap="round"
-                  opacity="0.15" />
-                <circle cx="60" cy="38" r="5" fill="currentColor" opacity="0.1" />
-                <circle cx="48" cy="30" r="3" fill="currentColor" opacity="0.08" />
-                <circle cx="72" cy="33" r="4" fill="currentColor" opacity="0.08" />
-                <!-- Radiating lines -->
-                <line x1="60" y1="12" x2="60" y2="4" stroke="currentColor" stroke-width="2" opacity="0.12" />
-                <line x1="78" y1="16" x2="84" y2="10" stroke="currentColor" stroke-width="2" opacity="0.1" />
-                <line x1="42" y1="16" x2="36" y2="10" stroke="currentColor" stroke-width="2" opacity="0.1" />
-              </svg>
-              <h2 class="empty-title">{{ 'RAIDS.EMPTY_RAIDS_TITLE' | translate }}</h2>
-              <p class="empty-subtitle">{{ 'RAIDS.EMPTY_RAIDS_SUBTITLE' | translate }}</p>
-              <button mat-flat-button style="background-color: #d73b30; color: white" (click)="openAddDialog()">
-                <mat-icon>add</mat-icon> {{ 'RAIDS.ADD_RAID' | translate }}
-              </button>
-            </div>
+            <app-alarm-empty-state
+              icon="shield"
+              titleKey="RAIDS.EMPTY_RAIDS_TITLE"
+              bodyKey="RAIDS.EMPTY_RAIDS_SUBTITLE"
+              (add)="openAddDialog()" />
           } @else if (visibleEggs().length > 0) {
             <!-- The search matched only the other tab, so the toolbar's own "no matches" line is not shown. -->
             <p class="tab-no-matches">{{ 'ALARM.NO_MATCHES' | translate }}</p>
@@ -289,29 +270,11 @@
           </app-alarm-card>
         } @empty {
           @if (eggs().length === 0) {
-            <div class="empty-state">
-              <svg class="empty-illustration" width="120" height="120" viewBox="0 0 120 120" fill="none">
-                <ellipse cx="60" cy="65" rx="38" ry="46" stroke="currentColor" stroke-width="3" opacity="0.15" />
-                <path
-                  d="M22 55 Q38 68 60 52 Q82 68 98 55"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="3"
-                  stroke-linecap="round"
-                  opacity="0.15" />
-                <circle cx="60" cy="38" r="5" fill="currentColor" opacity="0.1" />
-                <circle cx="48" cy="30" r="3" fill="currentColor" opacity="0.08" />
-                <circle cx="72" cy="33" r="4" fill="currentColor" opacity="0.08" />
-                <line x1="60" y1="12" x2="60" y2="4" stroke="currentColor" stroke-width="2" opacity="0.12" />
-                <line x1="78" y1="16" x2="84" y2="10" stroke="currentColor" stroke-width="2" opacity="0.1" />
-                <line x1="42" y1="16" x2="36" y2="10" stroke="currentColor" stroke-width="2" opacity="0.1" />
-              </svg>
-              <h2 class="empty-title">{{ 'RAIDS.EMPTY_EGGS_TITLE' | translate }}</h2>
-              <p class="empty-subtitle">{{ 'RAIDS.EMPTY_EGGS_SUBTITLE' | translate }}</p>
-              <button mat-flat-button style="background-color: #d73b30; color: white" (click)="openAddDialog()">
-                <mat-icon>add</mat-icon> {{ 'RAIDS.ADD_EGG' | translate }}
-              </button>
-            </div>
+            <app-alarm-empty-state
+              icon="egg"
+              titleKey="RAIDS.EMPTY_EGGS_TITLE"
+              bodyKey="RAIDS.EMPTY_EGGS_SUBTITLE"
+              (add)="openAddDialog()" />
           } @else if (visibleRaids().length > 0) {
             <!-- The search matched only the other tab, so the toolbar's own "no matches" line is not shown. -->
             <p class="tab-no-matches">{{ 'ALARM.NO_MATCHES' | translate }}</p>

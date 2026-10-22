@@ -271,7 +271,7 @@ describe('PokestopEventEditDialogComponent', () => {
 
       component.save();
 
-      expect(snackBar.open).toHaveBeenCalledWith('POKESTOP_EVENTS.UPDATE_FAILED', 'COMMON.OK', expect.anything());
+      expect(snackBar.open).toHaveBeenCalledWith('ALARM.FAILED_UPDATE', 'COMMON.OK', expect.anything());
     });
   });
 });

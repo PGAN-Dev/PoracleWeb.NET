@@ -20,6 +20,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
 import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-flags';
 import { POKESTOP_EVENTS } from '../../shared/utils/pokestop-events';
+import { serverReason } from '../../shared/utils/server-reason';
 
 @Component({
   imports: [
@@ -89,8 +90,8 @@ export class PokestopEventEditDialogComponent {
       .subscribe({
         // The server names what is in the way -- which alarm already holds that event, or which
         // event this Poracle has no game data for. A fixed string would throw that away.
-        error: (err: { error?: { error?: string } }) => {
-          this.snackBar.open(err?.error?.error ?? this.i18n.instant('POKESTOP_EVENTS.UPDATE_FAILED'), this.i18n.instant('COMMON.OK'), {
+        error: (err: unknown) => {
+          this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.FAILED_UPDATE'), this.i18n.instant('COMMON.OK'), {
             duration: 6000,
           });
           this.saving.set(false);

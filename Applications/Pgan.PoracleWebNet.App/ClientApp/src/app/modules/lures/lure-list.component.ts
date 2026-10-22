@@ -19,6 +19,7 @@ import { IconService } from '../../core/services/icon.service';
 import { LureService } from '../../core/services/lure.service';
 import { TestAlertService } from '../../core/services/test-alert.service';
 import { AlarmCardComponent } from '../../shared/components/alarm-card/alarm-card.component';
+import { AlarmEmptyStateComponent } from '../../shared/components/alarm-empty-state/alarm-empty-state.component';
 import { AlarmListToolbarComponent, AlarmSortOption } from '../../shared/components/alarm-list-toolbar/alarm-list-toolbar.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
@@ -29,10 +30,12 @@ import { byNumber, byText, queryAlarms, visibleSelection } from '../../shared/ut
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
+import { serverReason } from '../../shared/utils/server-reason';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    AlarmEmptyStateComponent,
     AlarmListToolbarComponent,
     AlarmCardComponent,
     MatButtonModule,
@@ -141,8 +144,7 @@ export class LureListComponent implements OnInit {
       try {
         result = await firstValueFrom(this.lureService.updateBulkDistance(uids, distance));
       } catch (err) {
-        const message = (err as { error?: { error?: string } })?.error?.error;
-        this.snackBar.open(message ?? this.i18n.instant('LURES.SNACK_FAILED_DISTANCE'), this.i18n.instant('TOAST.OK'), {
+        this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.FAILED_DISTANCE'), this.i18n.instant('TOAST.OK'), {
           duration: 5000,
         });
         return;
@@ -174,8 +176,10 @@ export class LureListComponent implements OnInit {
       .subscribe(c => {
         if (c)
           this.lureService.deleteAll().subscribe({
-            error: () =>
-              this.snackBar.open(this.i18n.instant('LURES.SNACK_FAILED_DELETE'), this.i18n.instant('COMMON.OK'), { duration: 3000 }),
+            error: (err: unknown) =>
+              this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.FAILED_DELETE_ALL'), this.i18n.instant('COMMON.OK'), {
+                duration: 3000,
+              }),
             next: () => {
               this.snackBar.open(this.i18n.instant('LURES.SNACK_DELETED'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
               this.loadLures();
@@ -198,8 +202,10 @@ export class LureListComponent implements OnInit {
       .subscribe(c => {
         if (c)
           this.lureService.delete(lure.uid).subscribe({
-            error: () =>
-              this.snackBar.open(this.i18n.instant('LURES.SNACK_FAILED_DELETE'), this.i18n.instant('COMMON.OK'), { duration: 3000 }),
+            error: (err: unknown) =>
+              this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.FAILED_DELETE'), this.i18n.instant('COMMON.OK'), {
+                duration: 3000,
+              }),
             next: () => {
               this.snackBar.open(this.i18n.instant('LURES.SNACK_DELETED'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
               this.loadLures();
@@ -235,7 +241,10 @@ export class LureListComponent implements OnInit {
         if (!scope) return;
 
         this.lureService.update(item.uid, scopeToFields(scope)).subscribe({
-          error: () => this.snackBar.open(this.i18n.instant('WHERE.SCOPE_SAVE_ERROR'), this.i18n.instant('COMMON.OK'), { duration: 4000 }),
+          error: (err: unknown) =>
+            this.snackBar.open(serverReason(err) ?? this.i18n.instant('WHERE.SCOPE_SAVE_ERROR'), this.i18n.instant('COMMON.OK'), {
+              duration: 4000,
+            }),
           next: () => {
             this.snackBar.open(this.i18n.instant('WHERE.SCOPE_SAVED'), this.i18n.instant('COMMON.OK'), { duration: 2500 });
             this.loadLures();

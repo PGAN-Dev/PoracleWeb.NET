@@ -229,22 +229,11 @@
       </app-alarm-card>
     } @empty {
       @if (monsters().length === 0) {
-        <div class="empty-state">
-          <svg class="empty-illustration" width="120" height="120" viewBox="0 0 120 120" fill="none">
-            <circle cx="60" cy="60" r="56" stroke="currentColor" stroke-width="3" opacity="0.15" />
-            <path d="M4 60h112" stroke="currentColor" stroke-width="3" opacity="0.15" />
-            <circle cx="60" cy="60" r="14" stroke="currentColor" stroke-width="3" opacity="0.15" />
-            <circle cx="60" cy="60" r="8" fill="currentColor" opacity="0.08" />
-            <text x="85" y="30" font-size="18" fill="currentColor" opacity="0.2" font-weight="600">Z</text>
-            <text x="95" y="22" font-size="14" fill="currentColor" opacity="0.15" font-weight="600">z</text>
-            <text x="102" y="16" font-size="10" fill="currentColor" opacity="0.1" font-weight="600">z</text>
-          </svg>
-          <h2 class="empty-title">{{ 'POKEMON.EMPTY_TITLE' | translate }}</h2>
-          <p class="empty-subtitle">{{ 'POKEMON.EMPTY_SUBTITLE' | translate }}</p>
-          <button mat-flat-button style="background-color: #38823b; color: white" (click)="openAddDialog()">
-            <mat-icon>add</mat-icon> {{ 'POKEMON.ADD_POKEMON' | translate }}
-          </button>
-        </div>
+        <app-alarm-empty-state
+          icon="catching_pokemon"
+          titleKey="POKEMON.EMPTY_TITLE"
+          bodyKey="POKEMON.EMPTY_SUBTITLE"
+          (add)="openAddDialog()" />
       }
     }
   </div>

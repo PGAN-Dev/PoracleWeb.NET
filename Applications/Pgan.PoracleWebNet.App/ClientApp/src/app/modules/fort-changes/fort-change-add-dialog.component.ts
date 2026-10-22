@@ -21,7 +21,7 @@ import { SettingsService } from '../../core/services/settings.service';
 import { AddRefusalComponent } from '../../shared/components/add-refusal/add-refusal.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
-import { AddDialogData, AddRefusal, editExistingResult, ExistingRule, refusalOf } from '../../shared/utils/add-outcome';
+import { AddDialogData, AddRefusal, editExistingResult, ExistingRule, refusalOf, reportCreated } from '../../shared/utils/add-outcome';
 import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 
 @Component({
@@ -133,17 +133,13 @@ export class FortChangeAddDialogComponent {
         // field a file got wrong. A fixed string threw that away (#567, #568). Nothing was created, so
         // the dialog stays open with the reason inline and the user's settings kept.
         error: (err: unknown) => {
-          this.refusal.set(refusalOf(err, this.i18n.instant('FORT_CHANGES.CREATE_FAILED'), this.data?.existingRule));
+          this.refusal.set(refusalOf(err, this.i18n.instant('ALARM.FAILED_CREATE'), this.data?.existingRule));
           this.saving.set(false);
         },
         next: created => {
           // uid 0: PoracleNG found this exact rule already stored and left it as it was.
           const unchanged = (created?.uid ?? 0) <= 0;
-          this.snackBar.open(
-            this.i18n.instant(unchanged ? 'ALARM.ALREADY_TRACKED_ONE' : 'FORT_CHANGES.CREATE_SUCCESS'),
-            this.i18n.instant('COMMON.OK'),
-            { duration: unchanged ? 6000 : 3000 },
-          );
+          reportCreated(unchanged ? 0 : 1, unchanged ? 1 : 0, this.i18n, this.snackBar);
           this.dialogRef.close(true);
         },
       });

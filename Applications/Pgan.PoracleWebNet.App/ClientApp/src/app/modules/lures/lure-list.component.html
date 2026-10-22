@@ -109,22 +109,7 @@
       </app-alarm-card>
     } @empty {
       @if (lures().length === 0) {
-        <div class="empty-state">
-          <svg viewBox="0 0 80 100" width="58" height="72" class="empty-icon">
-            <rect x="32" y="8" width="16" height="50" rx="4" fill="#e91e63" opacity="0.15" stroke="#e91e63" stroke-width="3" />
-            <circle cx="40" cy="18" r="4" fill="#e91e63" opacity="0.4" />
-            <line x1="40" y1="58" x2="40" y2="80" stroke="#e91e63" stroke-width="3" stroke-linecap="round" />
-            <circle cx="40" cy="85" r="5" fill="#e91e63" opacity="0.3" stroke="#e91e63" stroke-width="2" />
-            <line x1="22" y1="30" x2="32" y2="34" stroke="#e91e63" stroke-width="2" opacity="0.4" />
-            <line x1="58" y1="26" x2="48" y2="30" stroke="#e91e63" stroke-width="2" opacity="0.4" />
-            <line x1="20" y1="44" x2="32" y2="42" stroke="#e91e63" stroke-width="2" opacity="0.3" />
-          </svg>
-          <h2 class="empty-title">{{ 'LURES.EMPTY_TITLE' | translate }}</h2>
-          <p class="empty-subtitle">{{ 'LURES.EMPTY_SUBTITLE' | translate }}</p>
-          <button mat-flat-button (click)="openAddDialog()" style="background: #e01d5f; color: #fff">
-            <mat-icon>add</mat-icon> {{ 'LURES.ADD_LURE' | translate }}
-          </button>
-        </div>
+        <app-alarm-empty-state icon="place" titleKey="LURES.EMPTY_TITLE" bodyKey="LURES.EMPTY_SUBTITLE" (add)="openAddDialog()" />
       }
     }
   </div>

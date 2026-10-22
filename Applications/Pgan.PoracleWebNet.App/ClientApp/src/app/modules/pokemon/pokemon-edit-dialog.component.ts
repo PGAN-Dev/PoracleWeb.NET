@@ -29,6 +29,7 @@ import { AUTO_DELETE, EDIT, compose, isAutoDelete, isEdit, preserve } from '../.
 import { ANY_COSTUME, costumeHintKey } from '../../shared/utils/costumes';
 import { minTimeLabel, minTimeOptions } from '../../shared/utils/min-time';
 import { MINIOR_POKEMON_ID } from '../../shared/utils/minior';
+import { serverReason } from '../../shared/utils/server-reason';
 
 @Component({
   imports: [
@@ -231,8 +232,8 @@ export class PokemonEditDialogComponent implements OnInit {
       // The server explains exactly what is wrong with a filter it refuses -- which min/max pair is
       // inverted, say. That message never reached anyone: this handler showed a fixed string, so a
       // transposed pair produced "failed" with no clue which field to fix. See #496.
-      error: (err: { error?: { error?: string } }) => {
-        const message = err?.error?.error ?? this.i18n.instant('POKEMON.SNACK_FAILED_UPDATE');
+      error: (err: unknown) => {
+        const message = serverReason(err) ?? this.i18n.instant('ALARM.FAILED_UPDATE');
         this.snackBar.open(message, this.i18n.instant('COMMON.OK'), { duration: 6000 });
         this.saving.set(false);
       },

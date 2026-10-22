@@ -18,6 +18,7 @@ import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { PokestopEventService } from '../../core/services/pokestop-event.service';
 import { AlarmCardComponent } from '../../shared/components/alarm-card/alarm-card.component';
+import { AlarmEmptyStateComponent } from '../../shared/components/alarm-empty-state/alarm-empty-state.component';
 import { AlarmListToolbarComponent, AlarmSortOption } from '../../shared/components/alarm-list-toolbar/alarm-list-toolbar.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
@@ -30,10 +31,12 @@ import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-sco
 import { isAutoDelete } from '../../shared/utils/clean-flags';
 import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
 import { pokestopEventInfo } from '../../shared/utils/pokestop-events';
+import { serverReason } from '../../shared/utils/server-reason';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    AlarmEmptyStateComponent,
     AlarmListToolbarComponent,
     AlarmCardComponent,
     MatButtonModule,
@@ -136,8 +139,7 @@ export class PokestopEventListComponent implements OnInit {
     try {
       result = await firstValueFrom(this.pokestopEventService.updateBulkDistance(uids, distance));
     } catch (err) {
-      const message = (err as { error?: { error?: string } })?.error?.error;
-      this.snackBar.open(message ?? this.i18n.instant('POKESTOP_EVENTS.SNACK_FAILED_DISTANCE'), this.i18n.instant('TOAST.OK'), {
+      this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.FAILED_DISTANCE'), this.i18n.instant('TOAST.OK'), {
         duration: 5000,
       });
       return;
@@ -168,8 +170,8 @@ export class PokestopEventListComponent implements OnInit {
       .subscribe(c => {
         if (c)
           this.pokestopEventService.deleteAll().subscribe({
-            error: () =>
-              this.snackBar.open(this.i18n.instant('POKESTOP_EVENTS.SNACK_FAILED_DELETE'), this.i18n.instant('COMMON.OK'), {
+            error: (err: unknown) =>
+              this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.FAILED_DELETE_ALL'), this.i18n.instant('COMMON.OK'), {
                 duration: 3000,
               }),
             next: () => {
@@ -196,8 +198,8 @@ export class PokestopEventListComponent implements OnInit {
       .subscribe(c => {
         if (c)
           this.pokestopEventService.delete(item.uid).subscribe({
-            error: () =>
-              this.snackBar.open(this.i18n.instant('POKESTOP_EVENTS.SNACK_FAILED_DELETE'), this.i18n.instant('COMMON.OK'), {
+            error: (err: unknown) =>
+              this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.FAILED_DELETE'), this.i18n.instant('COMMON.OK'), {
                 duration: 3000,
               }),
             next: () => {
@@ -235,7 +237,10 @@ export class PokestopEventListComponent implements OnInit {
         if (!scope) return;
 
         this.pokestopEventService.update(item.uid, scopeToFields(scope)).subscribe({
-          error: () => this.snackBar.open(this.i18n.instant('WHERE.SCOPE_SAVE_ERROR'), this.i18n.instant('COMMON.OK'), { duration: 4000 }),
+          error: (err: unknown) =>
+            this.snackBar.open(serverReason(err) ?? this.i18n.instant('WHERE.SCOPE_SAVE_ERROR'), this.i18n.instant('COMMON.OK'), {
+              duration: 4000,
+            }),
           next: () => {
             this.snackBar.open(this.i18n.instant('WHERE.SCOPE_SAVED'), this.i18n.instant('COMMON.OK'), { duration: 2500 });
             this.loadItems();

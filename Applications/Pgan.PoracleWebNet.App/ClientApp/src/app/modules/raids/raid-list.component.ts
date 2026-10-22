@@ -23,6 +23,7 @@ import { RaidService } from '../../core/services/raid.service';
 import { ScannerService } from '../../core/services/scanner.service';
 import { TestAlertService } from '../../core/services/test-alert.service';
 import { AlarmCardComponent } from '../../shared/components/alarm-card/alarm-card.component';
+import { AlarmEmptyStateComponent } from '../../shared/components/alarm-empty-state/alarm-empty-state.component';
 import { AlarmListToolbarComponent, AlarmSortOption } from '../../shared/components/alarm-list-toolbar/alarm-list-toolbar.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
@@ -38,10 +39,12 @@ import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-sco
 import { NO_COSTUME } from '../../shared/utils/costumes';
 import { combineDistanceResults, distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
 import { teamEdge, tierEdge } from '../../shared/utils/rule-colours';
+import { serverReason } from '../../shared/utils/server-reason';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    AlarmEmptyStateComponent,
     AlarmCardComponent,
     AlarmListToolbarComponent,
     QuietChipComponent,
@@ -210,8 +213,7 @@ export class RaidListComponent implements OnInit {
         if (selectedRaidUids.length > 0) raids = await firstValueFrom(this.raidService.updateBulkDistance(selectedRaidUids, distance));
         if (selectedEggUids.length > 0) eggs = await firstValueFrom(this.eggService.updateBulkDistance(selectedEggUids, distance));
       } catch (err) {
-        const message = (err as { error?: { error?: string } })?.error?.error;
-        this.snackBar.open(message ?? this.i18n.instant('RAIDS.SNACK_FAILED_DISTANCE'), this.i18n.instant('TOAST.OK'), {
+        this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.FAILED_DISTANCE'), this.i18n.instant('TOAST.OK'), {
           duration: 5000,
         });
         return;
@@ -242,8 +244,10 @@ export class RaidListComponent implements OnInit {
     ref.afterClosed().subscribe(confirmed => {
       if (confirmed) {
         forkJoin([this.raidService.deleteAll(), this.eggService.deleteAll()]).subscribe({
-          error: () => {
-            this.snackBar.open(this.i18n.instant('RAIDS.SNACK_FAILED_DELETE_ALL'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+          error: (err: unknown) => {
+            this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.FAILED_DELETE_ALL'), this.i18n.instant('TOAST.OK'), {
+              duration: 3000,
+            });
           },
           next: () => {
             this.snackBar.open(this.i18n.instant('RAIDS.SNACK_DELETED_ALL'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
@@ -266,8 +270,10 @@ export class RaidListComponent implements OnInit {
     ref.afterClosed().subscribe(confirmed => {
       if (confirmed) {
         this.eggService.delete(egg.uid).subscribe({
-          error: () => {
-            this.snackBar.open(this.i18n.instant('RAIDS.SNACK_FAILED_DELETE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+          error: (err: unknown) => {
+            this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.FAILED_DELETE'), this.i18n.instant('TOAST.OK'), {
+              duration: 3000,
+            });
           },
           next: () => {
             this.snackBar.open(this.i18n.instant('RAIDS.SNACK_EGG_DELETED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
@@ -290,8 +296,10 @@ export class RaidListComponent implements OnInit {
     ref.afterClosed().subscribe(confirmed => {
       if (confirmed) {
         this.raidService.delete(raid.uid).subscribe({
-          error: () => {
-            this.snackBar.open(this.i18n.instant('RAIDS.SNACK_FAILED_DELETE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+          error: (err: unknown) => {
+            this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.FAILED_DELETE'), this.i18n.instant('TOAST.OK'), {
+              duration: 3000,
+            });
           },
           next: () => {
             this.snackBar.open(this.i18n.instant('RAIDS.SNACK_DELETED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
@@ -346,7 +354,10 @@ export class RaidListComponent implements OnInit {
 
         const service = type === 'egg' ? this.eggService : this.raidService;
         service.update(item.uid, scopeToFields(scope)).subscribe({
-          error: () => this.snackBar.open(this.i18n.instant('WHERE.SCOPE_SAVE_ERROR'), this.i18n.instant('COMMON.OK'), { duration: 4000 }),
+          error: (err: unknown) =>
+            this.snackBar.open(serverReason(err) ?? this.i18n.instant('WHERE.SCOPE_SAVE_ERROR'), this.i18n.instant('COMMON.OK'), {
+              duration: 4000,
+            }),
           next: () => {
             this.snackBar.open(this.i18n.instant('WHERE.SCOPE_SAVED'), this.i18n.instant('COMMON.OK'), { duration: 2500 });
             this.loadData();

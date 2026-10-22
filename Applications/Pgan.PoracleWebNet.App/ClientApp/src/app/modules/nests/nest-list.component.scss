@@ -45,30 +45,6 @@
   gap: 16px;
   padding: 0 24px 24px;
 }
-.empty-state {
-  grid-column: 1 / -1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 80px 24px;
-  text-align: center;
-}
-.empty-icon {
-  margin-bottom: 16px;
-  opacity: 0.8;
-}
-.empty-title {
-  font-size: 20px;
-  font-weight: 500;
-  margin: 0 0 8px;
-}
-.empty-subtitle {
-  font-size: 14px;
-  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
-  margin: 0 0 24px;
-  max-width: 400px;
-}
 .bulk-spacer {
   flex: 1;
 }

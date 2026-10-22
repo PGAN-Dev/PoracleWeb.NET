@@ -14,6 +14,7 @@ import { DashboardService } from '../../core/services/dashboard.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { SettingsService } from '../../core/services/settings.service';
 import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
+import { serverReason } from '../../shared/utils/server-reason';
 
 interface CleaningItem {
   color: string;
@@ -197,9 +198,11 @@ export class CleaningComponent implements OnInit {
       .toggleAll(enabled)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        error: () => {
+        error: (err: unknown) => {
           this.toggling.set(false);
-          this.snackBar.open(this.i18n.instant('CLEANING.SNACK_FAILED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+          this.snackBar.open(serverReason(err) ?? this.i18n.instant('CLEANING.SNACK_FAILED'), this.i18n.instant('TOAST.OK'), {
+            duration: 3000,
+          });
         },
         next: result => {
           // Only the rows the server wrote. An empty type has nothing to flip, and a disabled one was
@@ -224,9 +227,11 @@ export class CleaningComponent implements OnInit {
       .toggleClean(item.type, enabled)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        error: () => {
+        error: (err: unknown) => {
           this.toggling.set(false);
-          this.snackBar.open(this.i18n.instant('CLEANING.SNACK_FAILED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+          this.snackBar.open(serverReason(err) ?? this.i18n.instant('CLEANING.SNACK_FAILED'), this.i18n.instant('TOAST.OK'), {
+            duration: 3000,
+          });
         },
         next: result => {
           item.enabled.set(enabled);

@@ -135,17 +135,28 @@ export function finishAdd(results: SettledCreate[], options: FinishAddOptions): 
 
   if (refused.length > 0) {
     snackBar.open(serverReason(refused[0].failed) ?? i18n.instant(failedKey), i18n.instant('COMMON.OK'), { duration: 6000 });
-  } else if (results.length === 1 && duplicates === 1) {
-    // PoracleNG left the stored rule exactly as it was. "0 created, 1 already tracked" read as success
-    // while a setting the user changed (Clean mode, say) was dropped.
-    snackBar.open(i18n.instant('ALARM.ALREADY_TRACKED_ONE'), i18n.instant('COMMON.OK'), { duration: 6000 });
   } else {
-    const message =
-      duplicates > 0
-        ? i18n.instant('ALARM.SNACK_CREATED_WITH_DUPLICATES', { count: created, duplicates })
-        : i18n.plural('ALARM.SNACK_CREATED', created);
-    snackBar.open(message, i18n.instant('COMMON.OK'), { duration: 4000 });
+    reportCreated(created, duplicates, i18n, snackBar);
   }
 
   dialogRef.close(true);
+}
+
+/**
+ * The one snack every add dialog shows once its creates have landed: "3 alarms created", "1 created,
+ * 2 already tracked", or, for a single Add PoracleNG found stored exactly, that nothing was changed.
+ * Lures, fort changes and Pokéstop events each used to word it their own way.
+ */
+export function reportCreated(created: number, duplicates: number, i18n: I18nService, snackBar: MatSnackBar): void {
+  if (created === 0 && duplicates === 1) {
+    // PoracleNG left the stored rule exactly as it was. "0 created, 1 already tracked" read as success
+    // while a setting the user changed (Clean mode, say) was dropped.
+    snackBar.open(i18n.instant('ALARM.ALREADY_TRACKED_ONE'), i18n.instant('COMMON.OK'), { duration: 6000 });
+    return;
+  }
+  const message =
+    duplicates > 0
+      ? i18n.instant('ALARM.SNACK_CREATED_WITH_DUPLICATES', { count: created, duplicates })
+      : i18n.plural('ALARM.SNACK_CREATED', created);
+  snackBar.open(message, i18n.instant('COMMON.OK'), { duration: 4000 });
 }

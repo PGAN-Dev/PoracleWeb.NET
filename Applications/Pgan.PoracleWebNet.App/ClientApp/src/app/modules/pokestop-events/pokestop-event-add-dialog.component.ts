@@ -20,10 +20,11 @@ import { PokestopEventService } from '../../core/services/pokestop-event.service
 import { AddRefusalComponent } from '../../shared/components/add-refusal/add-refusal.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
-import { AddRefusal, editExistingResult, ExistingRule, refusalOf, ruleSummary } from '../../shared/utils/add-outcome';
+import { AddRefusal, editExistingResult, ExistingRule, refusalOf, reportCreated, ruleSummary } from '../../shared/utils/add-outcome';
 import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE } from '../../shared/utils/clean-flags';
 import { POKESTOP_EVENTS } from '../../shared/utils/pokestop-events';
+import { serverReason } from '../../shared/utils/server-reason';
 
 /** What the list passes when it opens the dialog. */
 export interface PokestopEventAddDialogData {
@@ -185,11 +186,10 @@ export class PokestopEventAddDialogComponent {
         this.saving.set(false);
         if (single) {
           // Nothing was created, so keep the dialog and the user's choices, and say why inline.
-          this.refusal.set(refusalOf(err, this.i18n.instant('POKESTOP_EVENTS.CREATE_FAILED'), (uid, type) => this.describe(uid, type)));
+          this.refusal.set(refusalOf(err, this.i18n.instant('ALARM.FAILED_CREATE'), (uid, type) => this.describe(uid, type)));
           return;
         }
-        const message = (err as { error?: { error?: string } })?.error?.error;
-        this.snackBar.open(message ?? this.i18n.instant('POKESTOP_EVENTS.CREATE_FAILED'), this.i18n.instant('COMMON.OK'), {
+        this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.FAILED_CREATE'), this.i18n.instant('COMMON.OK'), {
           duration: 6000,
         });
         // Whatever was written before the failure still exists, so close and reload rather than
@@ -200,9 +200,7 @@ export class PokestopEventAddDialogComponent {
     }
 
     // A single event PoracleNG found already stored exactly was left as it is; saying "created" hid that.
-    const message =
-      single && unchanged === 1 ? this.i18n.instant('ALARM.ALREADY_TRACKED_ONE') : this.i18n.instant('POKESTOP_EVENTS.CREATE_SUCCESS');
-    this.snackBar.open(message, this.i18n.instant('COMMON.OK'), { duration: single && unchanged === 1 ? 6000 : 3000 });
+    reportCreated(created, unchanged, this.i18n, this.snackBar);
     this.dialogRef.close(true);
   }
 

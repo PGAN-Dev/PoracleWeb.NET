@@ -21,6 +21,7 @@ import { SettingsService } from '../../core/services/settings.service';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
+import { serverReason } from '../../shared/utils/server-reason';
 
 /** The change types this dialog has a checkbox for. Anything else is carried through untouched. */
 const KNOWN_CHANGE_TYPES = new Set(['name', 'location', 'image_url', 'removal', 'new', 'description']);
@@ -124,8 +125,8 @@ export class FortChangeEditDialogComponent {
       .subscribe({
         // The server names what is wrong -- which alarm already uses these settings, which
         // field a file got wrong. A fixed string threw that away. See #567, #568.
-        error: (err: { error?: { error?: string } }) => {
-          this.snackBar.open(err?.error?.error ?? this.i18n.instant('FORT_CHANGES.UPDATE_FAILED'), this.i18n.instant('COMMON.OK'), {
+        error: (err: unknown) => {
+          this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.FAILED_UPDATE'), this.i18n.instant('COMMON.OK'), {
             duration: 6000,
           });
           this.saving.set(false);

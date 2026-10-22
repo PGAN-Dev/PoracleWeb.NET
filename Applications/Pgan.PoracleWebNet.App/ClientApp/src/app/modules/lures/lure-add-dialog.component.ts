@@ -142,7 +142,7 @@ export class LureAddDialogComponent {
       this.saving.set(false);
       finishAdd(results, {
         dialogRef: this.dialogRef,
-        failedKey: 'LURES.SNACK_FAILED_CREATE',
+        failedKey: 'ALARM.FAILED_CREATE',
         i18n: this.i18n,
         lookup: this.data?.existingRule,
         refusal: this.refusal,

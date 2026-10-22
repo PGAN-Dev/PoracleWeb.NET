@@ -27,6 +27,7 @@ import { InvasionService } from '../../core/services/invasion.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { TestAlertService } from '../../core/services/test-alert.service';
 import { AlarmCardComponent } from '../../shared/components/alarm-card/alarm-card.component';
+import { AlarmEmptyStateComponent } from '../../shared/components/alarm-empty-state/alarm-empty-state.component';
 import { AlarmListToolbarComponent, AlarmSortOption } from '../../shared/components/alarm-list-toolbar/alarm-list-toolbar.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
@@ -39,10 +40,12 @@ import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-sco
 import { isAutoDelete as cleanIsAutoDelete } from '../../shared/utils/clean-flags';
 import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
 import { swapToFallbackIcon } from '../../shared/utils/icon-fallback';
+import { serverReason } from '../../shared/utils/server-reason';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    AlarmEmptyStateComponent,
     AlarmListToolbarComponent,
     AlarmCardComponent,
     MatButtonModule,
@@ -157,8 +160,7 @@ export class InvasionListComponent implements OnInit {
       try {
         result = await firstValueFrom(this.invasionService.updateBulkDistance(uids, distance));
       } catch (err) {
-        const message = (err as { error?: { error?: string } })?.error?.error;
-        this.snackBar.open(message ?? this.i18n.instant('INVASIONS.SNACK_FAILED_DISTANCE'), this.i18n.instant('TOAST.OK'), {
+        this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.FAILED_DISTANCE'), this.i18n.instant('TOAST.OK'), {
           duration: 5000,
         });
         return;
@@ -190,8 +192,10 @@ export class InvasionListComponent implements OnInit {
       .subscribe(c => {
         if (c)
           this.invasionService.deleteAll().subscribe({
-            error: () =>
-              this.snackBar.open(this.i18n.instant('INVASIONS.SNACK_FAILED_DELETE_ALL'), this.i18n.instant('TOAST.OK'), { duration: 3000 }),
+            error: (err: unknown) =>
+              this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.FAILED_DELETE_ALL'), this.i18n.instant('TOAST.OK'), {
+                duration: 3000,
+              }),
             next: () => {
               this.snackBar.open(this.i18n.instant('INVASIONS.SNACK_DELETED_ALL'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
               this.loadInvasions();
@@ -222,8 +226,10 @@ export class InvasionListComponent implements OnInit {
       .subscribe(c => {
         if (c)
           this.invasionService.delete(invasion.uid).subscribe({
-            error: () =>
-              this.snackBar.open(this.i18n.instant('INVASIONS.SNACK_FAILED_DELETE'), this.i18n.instant('TOAST.OK'), { duration: 3000 }),
+            error: (err: unknown) =>
+              this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.FAILED_DELETE'), this.i18n.instant('TOAST.OK'), {
+                duration: 3000,
+              }),
             next: () => {
               this.snackBar.open(this.i18n.instant('INVASIONS.SNACK_DELETED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
               this.loadInvasions();
@@ -259,7 +265,10 @@ export class InvasionListComponent implements OnInit {
         if (!scope) return;
 
         this.invasionService.update(item.uid, scopeToFields(scope)).subscribe({
-          error: () => this.snackBar.open(this.i18n.instant('WHERE.SCOPE_SAVE_ERROR'), this.i18n.instant('COMMON.OK'), { duration: 4000 }),
+          error: (err: unknown) =>
+            this.snackBar.open(serverReason(err) ?? this.i18n.instant('WHERE.SCOPE_SAVE_ERROR'), this.i18n.instant('COMMON.OK'), {
+              duration: 4000,
+            }),
           next: () => {
             this.snackBar.open(this.i18n.instant('WHERE.SCOPE_SAVED'), this.i18n.instant('COMMON.OK'), { duration: 2500 });
             this.loadInvasions();

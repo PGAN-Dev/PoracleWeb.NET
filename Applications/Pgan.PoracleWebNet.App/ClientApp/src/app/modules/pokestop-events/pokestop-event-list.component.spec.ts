@@ -265,6 +265,28 @@ describe('PokestopEventListComponent', () => {
     });
   });
 
+  describe('a delete that fails', () => {
+    it("shows the server's reason for a refusal", () => {
+      setup([base]);
+      dialogReturns(true);
+      pokestopEventService.delete.mockReturnValue(throwError(() => ({ error: { error: 'That alarm is no longer yours.' }, status: 404 })));
+
+      component.deleteItem(base);
+
+      expect(snackBar.open).toHaveBeenCalledWith('That alarm is no longer yours.', 'COMMON.OK', expect.anything());
+    });
+
+    it('says what to do next, in the reader’s language, when the server failed rather than refused', () => {
+      setup([base]);
+      dialogReturns(true);
+      pokestopEventService.delete.mockReturnValue(throwError(() => ({ error: { error: 'PoracleNG could not be reached.' }, status: 503 })));
+
+      component.deleteItem(base);
+
+      expect(snackBar.open).toHaveBeenCalledWith('ALARM.FAILED_DELETE', 'COMMON.OK', expect.anything());
+    });
+  });
+
   describe('event identity', () => {
     it('names an event this build has no entry for by what PoracleNG stored', () => {
       setup([{ ...base, displayType: 99, eventName: 'something-new' }]);

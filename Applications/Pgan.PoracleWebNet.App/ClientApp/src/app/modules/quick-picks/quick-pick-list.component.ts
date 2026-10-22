@@ -18,6 +18,7 @@ import { SettingsService } from '../../core/services/settings.service';
 import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
 import { ChipColors, readableChip } from '../../shared/utils/contrast';
+import { serverReason } from '../../shared/utils/server-reason';
 
 /** Site setting marking that the built-in presets have been seeded once. See #634, #662. */
 const SEEDED_KEY = 'quick_picks_seeded';
@@ -199,8 +200,10 @@ export class QuickPickListComponent implements OnInit {
           ? this.quickPickService.deleteAdmin(pick.definition.id)
           : this.quickPickService.deleteUser(pick.definition.id);
       obs.subscribe({
-        error: () =>
-          this.snackBar.open(this.i18n.instant('QUICK_PICKS.SNACK_FAILED_DELETE'), this.i18n.instant('TOAST.OK'), { duration: 3000 }),
+        error: (err: unknown) =>
+          this.snackBar.open(serverReason(err) ?? this.i18n.instant('QUICK_PICKS.SNACK_FAILED_DELETE'), this.i18n.instant('TOAST.OK'), {
+            duration: 3000,
+          }),
         next: () => {
           this.snackBar.open(this.i18n.instant('QUICK_PICKS.SNACK_DELETED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           this.loadPicks();
@@ -233,8 +236,10 @@ export class QuickPickListComponent implements OnInit {
       if (!confirmed) return;
       this.removing.set(pick.definition.id);
       this.quickPickService.remove(pick.definition.id).subscribe({
-        error: () => {
-          this.snackBar.open(this.i18n.instant('QUICK_PICKS.SNACK_FAILED_REMOVE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+        error: (err: unknown) => {
+          this.snackBar.open(serverReason(err) ?? this.i18n.instant('QUICK_PICKS.SNACK_FAILED_REMOVE'), this.i18n.instant('TOAST.OK'), {
+            duration: 3000,
+          });
           this.removing.set(null);
         },
         next: () => {
@@ -257,8 +262,10 @@ export class QuickPickListComponent implements OnInit {
       if (!confirmed) return;
       this.loading.set(true);
       this.quickPickService.seed().subscribe({
-        error: () => {
-          this.snackBar.open(this.i18n.instant('QUICK_PICKS.SNACK_FAILED_RESET'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+        error: (err: unknown) => {
+          this.snackBar.open(serverReason(err) ?? this.i18n.instant('QUICK_PICKS.SNACK_FAILED_RESET'), this.i18n.instant('TOAST.OK'), {
+            duration: 3000,
+          });
           this.loading.set(false);
         },
         next: () => {

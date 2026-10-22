@@ -34,34 +34,6 @@
   gap: 16px;
   padding: 0 24px 24px;
 }
-.empty-state {
-  grid-column: 1 / -1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 80px 24px;
-  text-align: center;
-}
-.empty-illustration {
-  color: var(--text-hint, rgba(0, 0, 0, 0.38));
-  margin-bottom: 8px;
-}
-.empty-title {
-  font-size: 20px;
-  font-weight: 500;
-  margin: 0 0 8px;
-}
-.empty-subtitle {
-  font-size: 14px;
-  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
-  margin: 0 0 24px;
-  max-width: 400px;
-}
-.cta-quest {
-  background: #9c27b0 !important;
-  color: white !important;
-}
 .fab-quest {
   background: #9c27b0 !important;
   color: white !important;

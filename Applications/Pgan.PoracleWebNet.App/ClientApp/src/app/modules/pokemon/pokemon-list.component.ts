@@ -24,6 +24,7 @@ import { MasterDataService } from '../../core/services/masterdata.service';
 import { MonsterService } from '../../core/services/monster.service';
 import { TestAlertService } from '../../core/services/test-alert.service';
 import { AlarmCardComponent } from '../../shared/components/alarm-card/alarm-card.component';
+import { AlarmEmptyStateComponent } from '../../shared/components/alarm-empty-state/alarm-empty-state.component';
 import { AlarmListToolbarComponent, AlarmSortOption } from '../../shared/components/alarm-list-toolbar/alarm-list-toolbar.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
@@ -40,10 +41,12 @@ import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../s
 import { minTimePillLabel } from '../../shared/utils/min-time';
 import { hasLevelFilter } from '../../shared/utils/pokemon-level';
 import { RuleEdge, speciesEdge } from '../../shared/utils/rule-colours';
+import { serverReason } from '../../shared/utils/server-reason';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    AlarmEmptyStateComponent,
     AlarmCardComponent,
     AlarmListToolbarComponent,
     QuietChipComponent,
@@ -227,8 +230,7 @@ export class PokemonListComponent implements OnInit {
       try {
         result = await firstValueFrom(this.monsterService.updateBulkDistance(uids, distance));
       } catch (err) {
-        const message = (err as { error?: { error?: string } })?.error?.error;
-        this.snackBar.open(message ?? this.i18n.instant('POKEMON.SNACK_FAILED_DISTANCE'), this.i18n.instant('TOAST.OK'), {
+        this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.FAILED_DISTANCE'), this.i18n.instant('TOAST.OK'), {
           duration: 5000,
         });
         return;
@@ -264,8 +266,8 @@ export class PokemonListComponent implements OnInit {
     ref.afterClosed().subscribe(confirmed => {
       if (confirmed) {
         this.monsterService.deleteAll().subscribe({
-          error: () => {
-            this.snackBar.open(this.i18n.instant('POKEMON.SNACK_FAILED_DELETE_ALL'), this.i18n.instant('COMMON.OK'), {
+          error: (err: unknown) => {
+            this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.FAILED_DELETE_ALL'), this.i18n.instant('COMMON.OK'), {
               duration: 3000,
             });
           },
@@ -292,8 +294,10 @@ export class PokemonListComponent implements OnInit {
     ref.afterClosed().subscribe(confirmed => {
       if (confirmed) {
         this.monsterService.delete(monster.uid).subscribe({
-          error: () => {
-            this.snackBar.open(this.i18n.instant('POKEMON.SNACK_FAILED_DELETE'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
+          error: (err: unknown) => {
+            this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.FAILED_DELETE'), this.i18n.instant('COMMON.OK'), {
+              duration: 3000,
+            });
           },
           next: () => {
             this.snackBar.open(this.i18n.instant('POKEMON.SNACK_DELETED'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
@@ -553,7 +557,10 @@ export class PokemonListComponent implements OnInit {
     const fields = scopeToFields(scope);
 
     this.monsterService.update(monster.uid, fields).subscribe({
-      error: () => this.snackBar.open(this.i18n.instant('WHERE.SCOPE_SAVE_ERROR'), this.i18n.instant('COMMON.OK'), { duration: 4000 }),
+      error: (err: unknown) =>
+        this.snackBar.open(serverReason(err) ?? this.i18n.instant('WHERE.SCOPE_SAVE_ERROR'), this.i18n.instant('COMMON.OK'), {
+          duration: 4000,
+        }),
       next: () => {
         this.snackBar.open(this.i18n.instant('WHERE.SCOPE_SAVED'), this.i18n.instant('COMMON.OK'), { duration: 2500 });
         this.loadMonsters();

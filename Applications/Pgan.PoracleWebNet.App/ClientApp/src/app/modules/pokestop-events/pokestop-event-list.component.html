@@ -100,14 +100,11 @@
       </app-alarm-card>
     } @empty {
       @if (events().length === 0) {
-        <div class="empty-state">
-          <mat-icon class="empty-icon-large">celebration</mat-icon>
-          <h2 class="empty-title">{{ 'POKESTOP_EVENTS.EMPTY_TITLE' | translate }}</h2>
-          <p class="empty-subtitle">{{ 'POKESTOP_EVENTS.EMPTY_SUBTITLE' | translate }}</p>
-          <button mat-flat-button (click)="openAddDialog()" style="background: #028187; color: #fff">
-            <mat-icon>add</mat-icon> {{ 'POKESTOP_EVENTS.ADD_EVENT' | translate }}
-          </button>
-        </div>
+        <app-alarm-empty-state
+          icon="celebration"
+          titleKey="POKESTOP_EVENTS.EMPTY_TITLE"
+          bodyKey="POKESTOP_EVENTS.EMPTY_SUBTITLE"
+          (add)="openAddDialog()" />
       }
     }
   </div>

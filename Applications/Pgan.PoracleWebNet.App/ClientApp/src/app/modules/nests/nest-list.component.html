@@ -120,38 +120,7 @@
       </app-alarm-card>
     } @empty {
       @if (nests().length === 0) {
-        <div class="empty-state">
-          <svg viewBox="0 0 100 100" width="72" height="72" class="empty-icon">
-            <path d="M15 80 Q30 60 50 65 Q70 60 85 80" fill="none" stroke="#8bc34a" stroke-width="4" stroke-linecap="round" />
-            <path d="M10 85 Q30 65 50 70 Q70 65 90 85" fill="#8bc34a" opacity="0.1" stroke="#8bc34a" stroke-width="3" />
-            <ellipse
-              cx="38"
-              cy="52"
-              rx="12"
-              ry="16"
-              fill="#8bc34a"
-              opacity="0.15"
-              stroke="#8bc34a"
-              stroke-width="2.5"
-              transform="rotate(-8 38 52)" />
-            <ellipse
-              cx="58"
-              cy="50"
-              rx="11"
-              ry="15"
-              fill="#8bc34a"
-              opacity="0.15"
-              stroke="#8bc34a"
-              stroke-width="2.5"
-              transform="rotate(10 58 50)" />
-            <ellipse cx="48" cy="48" rx="12" ry="16" fill="#8bc34a" opacity="0.2" stroke="#8bc34a" stroke-width="2.5" />
-          </svg>
-          <h2 class="empty-title">{{ 'NESTS.EMPTY_TITLE' | translate }}</h2>
-          <p class="empty-subtitle">{{ 'NESTS.EMPTY_SUBTITLE' | translate }}</p>
-          <button mat-flat-button (click)="openAddDialog()" style="background: #8bc34a; color: #212121">
-            <mat-icon>add</mat-icon> {{ 'NESTS.ADD_NEST' | translate }}
-          </button>
-        </div>
+        <app-alarm-empty-state icon="park" titleKey="NESTS.EMPTY_TITLE" bodyKey="NESTS.EMPTY_SUBTITLE" (add)="openAddDialog()" />
       }
     }
   </div>

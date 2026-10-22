@@ -22,6 +22,7 @@ import { ScopePickerComponent } from '../../shared/components/scope-picker/scope
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-flags';
+import { serverReason } from '../../shared/utils/server-reason';
 
 export interface MaxBattleEditDialogData {
   item: MaxBattle;
@@ -173,8 +174,8 @@ export class MaxBattleEditDialogComponent {
     this.maxBattleService.update(this.data.item.uid, update).subscribe({
       // The server names what is wrong -- which alarm already uses these settings, which
       // field a file got wrong. A fixed string threw that away. See #567, #568.
-      error: (err: { error?: { error?: string } }) => {
-        this.snackBar.open(err?.error?.error ?? this.i18n.instant('MAX_BATTLES.SNACK_FAILED_UPDATE'), this.i18n.instant('COMMON.OK'), {
+      error: (err: unknown) => {
+        this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.FAILED_UPDATE'), this.i18n.instant('COMMON.OK'), {
           duration: 6000,
         });
         this.saving.set(false);

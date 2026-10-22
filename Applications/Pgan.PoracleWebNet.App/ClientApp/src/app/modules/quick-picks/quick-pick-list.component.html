@@ -49,11 +49,10 @@
   <div class="empty-state">
     <mat-icon class="empty-icon">bolt</mat-icon>
     <h2 class="empty-title">{{ 'QUICK_PICKS.EMPTY_TITLE' | translate }}</h2>
-    <p class="empty-subtitle">{{ 'QUICK_PICKS.EMPTY_SUBTITLE' | translate }}</p>
+    <!-- A member can't add one, so the next step is to wait for an admin; an admin's is to make the first. -->
+    <p class="empty-subtitle">{{ (isAdmin() ? 'QUICK_PICKS.EMPTY_SUBTITLE_ADMIN' : 'QUICK_PICKS.EMPTY_SUBTITLE') | translate }}</p>
     @if (isAdmin()) {
-      <button mat-flat-button style="background-color: #c25400; color: white" (click)="onAddNew()">
-        <mat-icon>add</mat-icon> {{ 'QUICK_PICKS.CREATE' | translate }}
-      </button>
+      <button mat-flat-button (click)="onAddNew()"><mat-icon>add</mat-icon> {{ 'QUICK_PICKS.CREATE' | translate }}</button>
     }
   </div>
 } @else {

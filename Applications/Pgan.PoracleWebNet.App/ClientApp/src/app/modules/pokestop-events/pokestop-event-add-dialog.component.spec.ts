@@ -352,6 +352,30 @@ describe('PokestopEventAddDialogComponent', () => {
     });
   });
 
+  describe('the create snack', () => {
+    it('counts what was created in the shape every add dialog uses', async () => {
+      setup();
+      pokestopEventService.create.mockReturnValue(of({ uid: 5 } as PokestopEvent));
+      component.form.controls.eventShowcase.setValue(true);
+      component.form.controls.eventKecleon.setValue(true);
+
+      await component.save();
+
+      expect(snackBar.open).toHaveBeenCalledWith('ALARM.SNACK_CREATED', 'COMMON.OK', expect.anything());
+    });
+
+    it('says how many were already tracked beside the ones created', async () => {
+      setup();
+      pokestopEventService.create.mockReturnValueOnce(of({ uid: 5 } as PokestopEvent)).mockReturnValueOnce(of({ uid: 0 } as PokestopEvent));
+      component.form.controls.eventShowcase.setValue(true);
+      component.form.controls.eventKecleon.setValue(true);
+
+      await component.save();
+
+      expect(snackBar.open).toHaveBeenCalledWith('ALARM.SNACK_CREATED_WITH_DUPLICATES', 'COMMON.OK', expect.anything());
+    });
+  });
+
   describe('partial failure', () => {
     it('stops at the first refusal, reports what the server said, and closes on what was written', async () => {
       setup();
@@ -390,7 +414,7 @@ describe('PokestopEventAddDialogComponent', () => {
 
       await component.save();
 
-      expect(snackBar.open).toHaveBeenCalledWith('POKESTOP_EVENTS.CREATE_FAILED', 'COMMON.OK', expect.anything());
+      expect(snackBar.open).toHaveBeenCalledWith('ALARM.FAILED_CREATE', 'COMMON.OK', expect.anything());
     });
   });
 
@@ -432,7 +456,7 @@ describe('PokestopEventAddDialogComponent', () => {
 
       await component.save();
 
-      expect(component.refusal()?.message).toBe('POKESTOP_EVENTS.CREATE_FAILED');
+      expect(component.refusal()?.message).toBe('ALARM.FAILED_CREATE');
       expect(dialogRef.close).not.toHaveBeenCalled();
     });
 
@@ -490,7 +514,7 @@ describe('PokestopEventAddDialogComponent', () => {
 
       await component.save();
       expect(component.refusal()).toBeNull();
-      expect(snackBar.open).toHaveBeenCalledWith('POKESTOP_EVENTS.CREATE_SUCCESS', 'COMMON.OK', expect.anything());
+      expect(snackBar.open).toHaveBeenCalledWith('ALARM.SNACK_CREATED', 'COMMON.OK', expect.anything());
       expect(dialogRef.close).toHaveBeenCalledWith(true);
     });
 
