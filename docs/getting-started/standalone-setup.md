@@ -9,7 +9,7 @@ You'll configure everything in a single `.env` file at the project root and run 
 | Requirement | Install | Think of it as... |
 |---|---|---|
 | **.NET 10 Runtime** | [dotnet.microsoft.com/download](https://dotnet.microsoft.com/download/dotnet/10.0) | Like installing Node.js or Go |
-| **MySQL / MariaDB** | Your existing Poracle database server | Same DB your Poracle bot uses |
+| **MySQL / MariaDB** | Any MySQL or MariaDB server | Holds the `poracle_web` database PoracleWeb.NET creates its tables in |
 | **PoracleNG 5.4.0+** | Already running with REST API enabled | The bot this app talks to |
 | **Discord App** | [discord.com/developers](https://discord.com/developers/applications) | OAuth2 for user login |
 
@@ -86,14 +86,7 @@ Or create `.env` from scratch:
 # Port — the port PoracleWeb.NET listens on (like PORT in Express/Gin)
 PORT=8082
 
-# Database — your existing Poracle MySQL/MariaDB instance
-DB_HOST=localhost
-DB_PORT=3306
-DB_NAME=poracle
-DB_USER=root
-DB_PASSWORD=your_db_password
-
-# PoracleWeb.NET database — a separate DB for PoracleWeb.NET's own data
+# PoracleWeb.NET database — its own data, and the only database it connects to
 WEB_DB_HOST=localhost
 WEB_DB_PORT=3306
 WEB_DB_NAME=poracle_web
@@ -122,18 +115,18 @@ CORS_ORIGIN=http://localhost:8082
     Docker Compose reads `.env` natively. For standalone mode, the app loads `.env` from the working directory on startup — same file, same format, no extra tools. Variables already set in your environment take precedence over `.env` values.
 
 !!! tip "Same `.env` works everywhere"
-    The app automatically translates short env var names (`DB_HOST`, `JWT_SECRET`, `DISCORD_CLIENT_ID`, etc.) into the format .NET expects. The same `.env` file works for both Docker and standalone mode — no need to write full connection strings manually.
+    The app automatically translates short env var names (`WEB_DB_HOST`, `JWT_SECRET`, `DISCORD_CLIENT_ID`, etc.) into the format .NET expects. The same `.env` file works for both Docker and standalone mode — no need to write full connection strings manually.
 
 ### Create the PoracleWeb.NET database
 
-PoracleWeb.NET needs its own database (separate from the Poracle bot database). Tables are created automatically on first start.
+PoracleWeb.NET needs its own database. Tables are created automatically on first start.
 
 ```sql
 CREATE DATABASE poracle_web CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 ```
 
 !!! note
-    This database is separate from your Poracle database. PoracleWeb.NET never modifies the Poracle DB schema.
+    PoracleWeb.NET doesn't connect to Poracle's database. It reaches Poracle only through PoracleNG's API.
 
 ## 3. Run
 
@@ -290,8 +283,8 @@ PUBLIC_URL=https://poracle.example.com
 
 ## Troubleshooting
 
-**"Configuration 'ConnectionStrings:PoracleDb' is required"**
-: The app can't find your database connection string. Make sure `.env` has the `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, and `DB_PASSWORD` variables set. The app auto-composes them into a full connection string.
+**"Configuration 'ConnectionStrings:PoracleWebDb' is required"**
+: The app can't find your database connection string. Make sure `.env` has the `WEB_DB_HOST`, `WEB_DB_PORT`, `WEB_DB_NAME`, `WEB_DB_USER`, and `WEB_DB_PASSWORD` variables set. The app auto-composes them into a full connection string.
 
 **"Could not ensure PoracleWeb.NET database tables exist"**
 : The `poracle_web` database doesn't exist or the connection string is wrong. Create it with the SQL command above.

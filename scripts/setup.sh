@@ -98,35 +98,22 @@ else
 fi
 
 # Step 4: Database
-header "4. Poracle database"
-info "  Your existing Poracle MySQL/MariaDB instance."
-DB_HOST=$(ask DB_HOST "Host" "localhost")
-DB_PORT=$(ask DB_PORT "Port" "3306")
-DB_NAME=$(ask DB_NAME "Database name" "poracle")
-DB_USER=$(ask DB_USER "User" "root")
-DB_PASSWORD=$(ask DB_PASSWORD "Password" "")
-set_env "DB_HOST" "$DB_HOST"
-set_env "DB_PORT" "$DB_PORT"
-set_env "DB_NAME" "$DB_NAME"
-set_env "DB_USER" "$DB_USER"
-set_env "DB_PASSWORD" "$DB_PASSWORD"
-
-header "5. PoracleWeb.NET database"
+header "4. PoracleWeb.NET database"
 info "  A separate database for PoracleWeb.NET's own data."
-info "  Uses the same server by default — only change if different."
-WEB_DB_HOST=$(ask WEB_DB_HOST "Host" "$DB_HOST")
-WEB_DB_PORT=$(ask WEB_DB_PORT "Port" "$DB_PORT")
+info "  Setup can create it for you at the end."
+WEB_DB_HOST=$(ask WEB_DB_HOST "Host" "localhost")
+WEB_DB_PORT=$(ask WEB_DB_PORT "Port" "3306")
 WEB_DB_NAME=$(ask WEB_DB_NAME "Database name" "poracle_web")
-WEB_DB_USER=$(ask WEB_DB_USER "User" "$DB_USER")
-WEB_DB_PASSWORD=$(ask WEB_DB_PASSWORD "Password" "$DB_PASSWORD")
+WEB_DB_USER=$(ask WEB_DB_USER "User" "root")
+WEB_DB_PASSWORD=$(ask WEB_DB_PASSWORD "Password" "")
 set_env "WEB_DB_HOST" "$WEB_DB_HOST"
 set_env "WEB_DB_PORT" "$WEB_DB_PORT"
 set_env "WEB_DB_NAME" "$WEB_DB_NAME"
 set_env "WEB_DB_USER" "$WEB_DB_USER"
 set_env "WEB_DB_PASSWORD" "$WEB_DB_PASSWORD"
 
-# Step 6: Discord
-header "6. Discord OAuth2"
+# Step 5: Discord
+header "5. Discord OAuth2"
 info "  Create an app at https://discord.com/developers/applications"
 info "  Set redirect URI: http://your-host:${PORT}/api/auth/discord/callback"
 DISCORD_CLIENT_ID=$(ask DISCORD_CLIENT_ID "Client ID" "")
@@ -136,15 +123,15 @@ set_env "DISCORD_CLIENT_ID" "$DISCORD_CLIENT_ID"
 set_env "DISCORD_CLIENT_SECRET" "$DISCORD_CLIENT_SECRET"
 set_env "DISCORD_BOT_TOKEN" "$DISCORD_BOT_TOKEN"
 
-# Step 6b: CORS origin (required in non-Development)
-header "6b. CORS origin"
+# Step 5b: CORS origin (required in non-Development)
+header "5b. CORS origin"
 info "  The URL you'll access PoracleWeb.NET from (required in production)."
 info "  For local Docker: http://localhost:${PORT}"
 CORS_ORIGIN=$(ask CORS_ORIGIN "Origin URL" "http://localhost:${PORT}")
 set_env "CORS_ORIGIN" "$CORS_ORIGIN"
 
-# Step 7: Poracle API
-header "7. Poracle API"
+# Step 6: Poracle API
+header "6. Poracle API"
 info "  Your running PoracleNG instance."
 PORACLE_API_ADDRESS=$(ask PORACLE_API_ADDRESS "API address" "http://localhost:3030")
 PORACLE_API_SECRET=$(ask PORACLE_API_SECRET "API secret (must match PoracleNG server.apiSecret)" "")
@@ -153,8 +140,8 @@ set_env "PORACLE_API_ADDRESS" "$PORACLE_API_ADDRESS"
 set_env "PORACLE_API_SECRET" "$PORACLE_API_SECRET"
 set_env "PORACLE_ADMIN_IDS" "$PORACLE_ADMIN_IDS"
 
-# Step 8: Optionally create poracle_web database
-header "8. Create poracle_web database"
+# Step 7: Optionally create poracle_web database
+header "7. Create poracle_web database"
 echo -n "  Create the poracle_web database now? (requires mysql CLI) [y/N]: "
 read -r CREATE_DB
 if [[ "$CREATE_DB" =~ ^[Yy] ]]; then

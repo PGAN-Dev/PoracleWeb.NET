@@ -39,9 +39,13 @@ You can run the repair again at any time. A rule that has been repaired no longe
 
 PoracleNG's v2 read of all of a user's profiles skips rules whose `profile_no` has no matching row in the profiles table ([jfberry/PoracleNG#330](https://github.com/jfberry/PoracleNG/issues/330)). Such rules never fire, because PoracleNG matches alerts against profiles that exist. They're also invisible to PoracleWeb.NET and to the scan above, so they won't appear in any list and the repair can't reach them. This comes from PoracleNG and has to be fixed there; until it is, there's nothing to do from the web interface.
 
-## The database settings are still required
+## The database settings can go
 
-Keep the `DB_*` settings in your `.env`. At startup PoracleWeb.NET still reads the old `pweb_settings` table in PoracleNG's database to carry any remaining settings, webhook delegates and quick picks into its own database, and it widens that table's `value` column first. Nothing else reads or writes PoracleNG's tables. A later release will drop this and the settings with it.
+PoracleWeb.NET no longer connects to PoracleNG's database. The `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` and `DB_PASSWORD` settings in your `.env` (and `ConnectionStrings__PoracleDb`, if you set it directly) are unused, and you can remove them. While any of them is still set, startup logs one line: `DB_* settings are no longer used by PoracleWeb.NET and can be removed.` Nothing else changes, and `WEB_DB_*` stays.
+
+The old `pweb_settings` table in PoracleNG's database isn't read any more, and PoracleWeb.NET never alters or drops it. An admin can drop it once they've confirmed the upgrade went well.
+
+The one-time copy of settings, webhook delegates and quick picks out of `pweb_settings` is gone with it. An install older than 0.6.0 has to start any 2.x release once before upgrading to this one, so that copy has run. Anything else has already done it.
 
 ## Order of steps
 

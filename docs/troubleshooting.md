@@ -70,7 +70,7 @@ Then recreate the container: `docker compose up -d --force-recreate`. For revers
 4. Verify `Poracle:ApiSecret` matches PoracleNG's `server.apiSecret` config value
 
 !!! danger "All operations go through PoracleNG"
-    Unlike previous versions where PoracleWeb.NET wrote directly to MySQL, all alarm tracking, user registration, location setting, area management, and profile switching now require a running PoracleNG instance. If PoracleNG is down, users cannot create/edit/delete/view alarms, register, set their location, update areas, or switch profiles. Only admin bulk operations (list all users, delete user) use direct DB access.
+    Unlike previous versions where PoracleWeb.NET wrote directly to MySQL, all alarm tracking, user registration, location setting, area management, and profile switching now require a running PoracleNG instance. If PoracleNG is down, users cannot create/edit/delete/view alarms, register, set their location, update areas, or switch profiles. This includes the admin user list and user deletion, which use PoracleNG's `/api/v2` routes.
 
 ---
 
@@ -138,11 +138,11 @@ produce this — every alarm write goes through the PoracleNG API, which fills t
 
 ---
 
-## NULL string constraint violations
+## PoracleNG is older than 5.4.0
 
-**Problem**: MySQL errors like `Column 'X' cannot be null` when saving entities.
+**Symptoms**: the Versions card under **Admin > Settings** reports a PoracleNG version below 5.4.0. Alarm, profile, area or place calls fail with a message like "This PoracleNG does not support listing areas. It requires PoracleNG 5.4.0." The app itself still starts, and logs an error naming the mismatch.
 
-**Solution**: For alarm entities, this should no longer occur since writes go through the PoracleNG API (which handles NULL defaults). For non-alarm entities (`humans`, `profiles`), repositories handle null normalization as needed. Many Poracle DB columns are `NOT NULL` with empty-string defaults, but EF Core maps them as `string?`.
+**Fix**: upgrade PoracleNG to 5.4.0 or newer, then reload the page. Nothing in PoracleWeb.NET needs changing. See [Upgrading to PoracleNG 5.4.0](getting-started/upgrading-to-poracleng-5-4.md).
 
 ---
 

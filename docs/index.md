@@ -61,7 +61,7 @@ A web application for managing Pokemon GO notification alarms through the [Porac
 
 | Requirement | Version | Purpose |
 |---|---|---|
-| MySQL or MariaDB | Whatever your Poracle installation runs | The Poracle database from your existing Poracle installation, plus a second `poracle_web` database this application creates its own tables in |
+| MySQL or MariaDB | Whatever your Poracle installation runs | A `poracle_web` database this application creates its own tables in. PoracleWeb.NET doesn't connect to Poracle's database |
 | Poracle | [PoracleNG](https://github.com/jfberry/PoracleNG) 5.4.0 or newer | Running instance with REST API enabled. All alarm, profile, and user operations are proxied through PoracleNG's REST API. PoracleJS is not a tested configuration. |
 | Discord App | — | OAuth2 application for user authentication |
 | Koji | — | Geofence server. Supplies the admin areas in the unified geofence feed and receives user geofences an admin approves. Drawing a private geofence still works while Koji is unreachable |

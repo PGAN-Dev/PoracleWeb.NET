@@ -45,11 +45,10 @@ graph TB
         HumanProxy[IPoracleHumanProxy<br/>HTTP proxy to PoracleNG]
         V2Proxies["IPoracleMuteProxy / IPoracleIncidentProxy<br/>v2 only"]
         OtherServices[Other Services<br/>Geofences, Settings, QuickPicks]
-        Repositories[Repositories<br/>Admin bulk ops, PoracleWeb DB]
+        Repositories[Repositories<br/>PoracleWeb DB]
     end
 
     subgraph Data
-        PoracleDB[(Poracle DB<br/>MySQL)]
         WebDB[(PoracleWeb DB<br/>MySQL)]
         ScannerDB[(Scanner DB<br/>Golbat · Optional)]
     end
@@ -71,9 +70,7 @@ graph TB
     V2Proxies -->|HttpClient<br/>X-Poracle-Secret| PoracleNG
     TrackingProxy -->|HttpClient<br/>X-Poracle-Secret| PoracleNG
     HumanProxy -->|HttpClient<br/>X-Poracle-Secret| PoracleNG
-    PoracleNG --> PoracleDB
     OtherServices --> Repositories
-    Repositories --> PoracleDB
     Repositories --> WebDB
     Repositories --> ScannerDB
     OtherServices -->|HttpClient| Koji
@@ -83,15 +80,15 @@ graph TB
 ```
 
 !!! info "All operations go through PoracleNG"
-    Alarm tracking CRUD for ten of the eleven types (including Fort Change and Max Battle) is proxied via `IPoracleTrackingProxy`; Pokéstop Events go through `IPoracleIncidentProxy` instead, because that type exists only on PoracleNG's `/api/v2`. Single-user human/profile operations (reads, creates, location, areas, profile switch) are proxied via `IPoracleHumanProxy`. Humans, profiles, areas (including user-drawn geofence names) and the admin user list and delete all go through PoracleNG's `/api/v2`. Poracle's own database is touched in one place only: the deprecated `pweb_settings` table, which `SettingsMigrationService` reads once and which gets one `ALTER TABLE` at startup so its old rows can hold JSON. The `poracle_web` database is PoracleWeb.NET's own. No alarm entity is mapped at all — `PoracleContext` carries three: `humans`, `profiles` and the deprecated `pweb_settings`. See [Backend](backend.md#areas). Optional integrations include Pokemon availability from the Golbat API and weather from the optional scanner database via `IScannerService`. See [PoracleNG API Proxy](poracleng-proxy.md) for details.
+    Alarm tracking CRUD for ten of the eleven types (including Fort Change and Max Battle) is proxied via `IPoracleTrackingProxy`; Pokéstop Events go through `IPoracleIncidentProxy` instead, because that type exists only on PoracleNG's `/api/v2`. Single-user human/profile operations (reads, creates, location, areas, profile switch) are proxied via `IPoracleHumanProxy`. Humans, profiles, areas (including user-drawn geofence names) and the admin user list and delete all go through PoracleNG's `/api/v2`. PoracleWeb.NET has no connection to Poracle's database at all. The `poracle_web` database is its own. See [Backend](backend.md#areas). Optional integrations include Pokemon availability from the Golbat API and weather from the optional scanner database via `IScannerService`. See [PoracleNG API Proxy](poracleng-proxy.md) for details.
 
 ## Key design decisions
 
 ### Operations proxied through PoracleNG
-All alarm tracking writes (create, update, delete) and single-user human/profile operations go through the PoracleNG REST API, not directly to the database. PoracleNG applies field defaults (`cleanRow()`), detects duplicates, keeps `humans.area` and `profiles.area` in step, and triggers immediate state reload. This eliminates data integrity bugs caused by missing defaults or stale state. Profile duplication, from either `POST /api/profile-overview/duplicate/{n}` or `POST /api/profiles/duplicate`, uses PoracleNG's copy endpoint; import writes each alarm straight to the new profile with `?profile=N`. The eleven supported alarm types are Pokemon, Raids, Eggs, Quests, Invasions, Lures, Nests, Gyms, Fort Changes, Max Battles and Pokéstop Events. PoracleNG 5.4.0 is the minimum; see [Version compatibility](poracleng-compatibility.md). Test alerts are sent via PoracleNG's `POST /api/test` endpoint, which formats and delivers a mock notification to the user. See [PoracleNG API Proxy](poracleng-proxy.md).
+All alarm tracking writes (create, update, delete) and single-user human/profile operations go through the PoracleNG REST API, not to Poracle's database. PoracleNG applies field defaults (`cleanRow()`), detects duplicates, keeps `humans.area` and `profiles.area` in step, and triggers immediate state reload. This eliminates data integrity bugs caused by missing defaults or stale state. Profile duplication, from either `POST /api/profile-overview/duplicate/{n}` or `POST /api/profiles/duplicate`, uses PoracleNG's copy endpoint; import writes each alarm straight to the new profile with `?profile=N`. The eleven supported alarm types are Pokemon, Raids, Eggs, Quests, Invasions, Lures, Nests, Gyms, Fort Changes, Max Battles and Pokéstop Events. PoracleNG 5.4.0 is the minimum; see [Version compatibility](poracleng-compatibility.md). Test alerts are sent via PoracleNG's `POST /api/test` endpoint, which formats and delivers a mock notification to the user. See [PoracleNG API Proxy](poracleng-proxy.md).
 
 ### Separate databases
-PoracleWeb.NET does **not** modify the Poracle DB schema. The Poracle database is managed by PoracleNG. Application-owned data (user geofences, site settings, webhook delegates, quick pick definitions) lives in a separate `poracle_web` database managed by EF Core migrations.
+PoracleWeb.NET doesn't connect to Poracle's database, which PoracleNG manages. Application-owned data (user geofences, site settings, webhook delegates, quick pick definitions) lives in a separate `poracle_web` database managed by EF Core migrations.
 
 ### Unified geofence feed
 PoracleWeb.NET acts as the single geofence source for PoracleNG. It fetches admin geofences from Koji, merges them with user-drawn geofences, and serves everything via one endpoint (`GET /api/geofence-feed`). No custom code needed in PoracleNG or Koji. User geofences support GeoJSON import/export for interoperability with external mapping tools.

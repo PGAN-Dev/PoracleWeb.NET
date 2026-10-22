@@ -3,7 +3,7 @@
 All configuration can be provided via environment variables or `appsettings.json`. The same `.env` file works for both Docker and standalone mode.
 
 !!! tip "Short env var names"
-    The `.env` file uses friendly short names (`DB_HOST`, `JWT_SECRET`, `DISCORD_CLIENT_ID`, etc.). The app automatically translates these to .NET's configuration format at startup. You can use either the short names or the `__`-delimited names shown in the table below.
+    The `.env` file uses friendly short names (`WEB_DB_HOST`, `JWT_SECRET`, `DISCORD_CLIENT_ID`, etc.). The app automatically translates these to .NET's configuration format at startup. You can use either the short names or the `__`-delimited names shown in the table below.
 
 ## Server
 
@@ -16,7 +16,7 @@ All configuration can be provided via environment variables or `appsettings.json
 
 | Setting | `.env` name | `.NET` env variable | Description |
 |---|---|---|---|
-| Database | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | `ConnectionStrings__PoracleDb` | MySQL connection to Poracle database. Short vars are auto-composed into a connection string. |
+| Database | `WEB_DB_HOST`, `WEB_DB_PORT`, `WEB_DB_NAME`, `WEB_DB_USER`, `WEB_DB_PASSWORD` | `ConnectionStrings__PoracleWebDb` | MySQL connection to PoracleWeb.NET's own database. See [Databases](#databases). |
 | JWT Secret | `JWT_SECRET` | `Jwt__Secret` | JWT signing key (minimum 32 characters) |
 | Discord Client ID | `DISCORD_CLIENT_ID` | `Discord__ClientId` | Discord OAuth2 application client ID |
 | Discord Client Secret | `DISCORD_CLIENT_SECRET` | `Discord__ClientSecret` | Discord OAuth2 application client secret |
@@ -79,6 +79,8 @@ Optional, opt-in. Enables silent server-side session renewal and provider-side r
 | Token Auth Method | `OIDC_TOKEN_AUTH_METHOD` | `Oidc__TokenEndpointAuthMethod` | `client_secret_post` | How client credentials are presented at the token endpoint: `client_secret_post` (form body) or `client_secret_basic` (HTTP Basic header). |
 
 ### Databases
+
+PoracleWeb.NET connects to one database of its own. It doesn't connect to Poracle's database at all; everything Poracle owns goes through PoracleNG's API. Older installs can delete `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` and `DB_PASSWORD` from `.env`: they're ignored, and the app logs a one-line notice at startup while any of them is set.
 
 | Setting | `.env` name | `.NET` env variable | Description |
 |---|---|---|---|
@@ -149,7 +151,7 @@ Required if anything terminates TLS in front of PoracleWeb.NET. See [Behind a re
 | `appsettings.json` | Default values. You rarely need to edit this. |
 | `appsettings.Development.json` | Local development overrides (gitignored) |
 | `docker-compose.yml` | Local copy of `docker-compose.yml.example` (gitignored). Uses `env_file: .env` to load all configuration — no per-key `environment:` entries are needed. Edit only to change ports, volumes, or image tags. |
-| `poracle_web.site_settings` table | Runtime admin-configurable settings (migrated from deprecated `pweb_settings`) |
+| `poracle_web.site_settings` table | Runtime admin-configurable settings (PoracleWeb.NET's own settings store) |
 
 !!! warning "PoracleNG must be reachable"
     `Poracle:ApiAddress` must point to a running PoracleNG instance that is reachable from the PoracleWeb.NET container. All alarm tracking, human/profile management, location, area operations, and active hours management are proxied through this API. If PoracleNG is unreachable, alarm operations fail entirely and user management (registration, login, location, areas, profile switch, active hours) also fails. The `Poracle:ApiSecret` must match the `server.apiSecret` value in PoracleNG's config.

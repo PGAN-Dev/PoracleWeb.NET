@@ -42,16 +42,9 @@ Open `.env` in any editor and fill in the values below. Lines starting with `#` 
 # Port — the port you'll access PoracleWeb.NET on (http://your-server:8082)
 PORT=8082
 
-# Database — your existing Poracle MySQL/MariaDB instance
-DB_HOST=localhost           # IP or hostname of your database server
-DB_PORT=3306                # MySQL port
-DB_NAME=poracle             # Your Poracle database name
-DB_USER=root
-DB_PASSWORD=your_db_password
-
-# PoracleWeb.NET database — a separate database for PoracleWeb.NET's own data
+# PoracleWeb.NET database — PoracleWeb.NET's own data, and the only database it connects to
 # Create this database first (see step 3 below), tables are auto-created
-WEB_DB_HOST=localhost
+WEB_DB_HOST=localhost           # IP or hostname of your database server
 WEB_DB_PORT=3306
 WEB_DB_NAME=poracle_web
 WEB_DB_USER=root
@@ -151,7 +144,7 @@ CREATE DATABASE poracle_web CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 ```
 
 !!! note
-    This database is separate from your Poracle database. PoracleWeb.NET never modifies the Poracle DB schema.
+    PoracleWeb.NET doesn't connect to Poracle's database. It reaches Poracle only through PoracleNG's API.
 
 ## 4. Start
 
@@ -253,7 +246,7 @@ The app will now be available at `http://your-server:9090`. Remember to update y
 : A tile provider is refusing the request and drawing the refusal into the image — it still returns success, so nothing appears in the logs. A fresh install needs no map configuration at all; if you have set one, see [Maps](../configuration/site-settings.md#maps) and [Troubleshooting](../troubleshooting.md#maps-are-watermarked-blocked-blank-or-ignoring-the-setting).
 
 **Can't connect to database**
-: If your database is on the host machine (not in Docker), set `DB_HOST=host.docker.internal` in `.env`. The default in `.env.example` is `localhost` (for standalone use); Docker users connecting to the host must change this.
+: If your database is on the host machine (not in Docker), set `WEB_DB_HOST=host.docker.internal` in `.env`. The default in `.env.example` is `localhost` (for standalone use); Docker users connecting to the host must change this.
 
 **Poracle API errors / alarms don't save**
 : `PORACLE_API_ADDRESS` must be reachable from inside the container. If Poracle runs on the host, use `http://host.docker.internal:3030`. If it's on another machine, use that machine's IP.

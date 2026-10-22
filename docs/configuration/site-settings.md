@@ -3,7 +3,7 @@
 Site settings are admin-configurable runtime settings stored in the `poracle_web.site_settings` database table. Unlike [appsettings.json configuration](reference.md) which requires a restart, site settings are changed at runtime via the **Admin > Settings** page and take effect immediately.
 
 !!! info "First-time setup"
-    On first startup after upgrade, the `SettingsMigrationStartupService` automatically migrates any existing data from the deprecated `pweb_settings` key-value store to the structured `site_settings` table. This is idempotent and safe to run multiple times.
+    On startup PoracleWeb.NET adds any default setting that's missing from `site_settings`. It never overwrites a value you've set, so running it again changes nothing.
 
 ## How it works
 
@@ -437,7 +437,7 @@ the UI layer instead. Neither is visible to non-admins.
 
 | Key | Category | Description |
 |---|---|---|
-| `migration_completed` | system | Sentinel flag indicating that the one-time data migration from `pweb_settings` to structured tables has completed. Set automatically by `SettingsMigrationStartupService`. |
+| `migration_completed` | system | Left by older versions to mark the one-time copy out of `pweb_settings`. Nothing writes or reads it now, and it can stay. |
 | `quick_picks_seeded` | admin | Sentinel flag indicating that the built-in quick picks have been created once. Written by `POST /api/quick-picks/seed` after a successful seed, and backfilled at startup for installations that already hold global picks. Without it an admin who deliberately deletes every preset gets them all back on their next visit. Admin-readable via the API (the SPA guard needs it) but hidden from the settings UI. |
 
 ## Values that are not settings
@@ -477,7 +477,7 @@ UI groups but **are** readable by admins through the API. Prefer configuring the
 | `scan_dbhost`, `scan_dbport`, `scan_dbname`, `scan_dbuser`, `scan_dbpass` | other | Scanner database host, port, name, user and password. Prefer `ConnectionStrings:ScannerDb` in [appsettings](reference.md). |
 | `cf_id`, `cf_secret` | other | Cloudflare Access service token used by some PoracleJS deployments. |
 
-Neither the scanner keys nor the Cloudflare pair appear in `SettingsMigrationService.CategoryMap`, so rows migrated from `pweb_settings` land in the catch-all `other` category.
+Neither the scanner keys nor the Cloudflare pair has a named category, so rows carried over from `pweb_settings` by earlier versions sit in the catch-all `other` category.
 
 `GET /api/settings` decides what a non-admin sees with an **allowlist**, not a denylist: the exact keys
 in `SettingsController.UserVisibleKeys` plus anything beginning `basemap_`, `disable_`, `enable_` or

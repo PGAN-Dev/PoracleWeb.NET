@@ -55,7 +55,7 @@ has no v1 route at all, so it goes through its own `IPoracleIncidentProxy` again
 told apart only by `grunt_type` carrying an event name. PoracleNG's two v2 endpoints each filter to
 their own rows; **the invasion read the application uses does not**: the proxy folds the incident rules into the invasion list as v1 did, so `InvasionService` still partitions — and
 skips it when the Pokéstop Events page is unavailable, so those rows stay visible somewhere. See
-[Database](database.md#poraclecontext).
+[Database](database.md).
 
 Also proxied:
 
@@ -246,15 +246,16 @@ plaintext 404 from a route 5.4.0 added; a problem+json 404 keeps its ordinary me
 When PoracleNG cannot be reached at all, `PoracleUnreachableExceptionFilter` answers 503 with a message on
 the mute and location controllers and all eleven alarm controllers.
 
-## What stays on direct database access
+## What PoracleWeb.NET reads from a database
+
+None of it is Poracle's.
 
 | Operation | Reason |
 |---|---|
-| Deprecated `pweb_settings` KV table (`PwebSettingRepository`, plus one `ALTER TABLE ... MODIFY COLUMN value LONGTEXT NULL` at startup) | Legacy rows PoracleNG never knew about, kept alive only so `SettingsMigrationService` can copy them into `poracle_web` |
 | `poracle_web` database (geofences, settings, webhook delegates, quick picks) | Application-owned data, not managed by PoracleNG |
 | Scanner database (gym search, weather) | Read-only, separate database |
 
-No alarm table is written directly. Per-alarm `override_areas` go through PoracleNG with `?trusted=true` after `IUserAreaPolicy` has authorised them (see [Backend → Areas](backend.md#areas)). This table and the one in [Database](database.md#poraclecontext) describe the same set.
+No Poracle table is read or written directly. Per-alarm `override_areas` go through PoracleNG with `?trusted=true` after `IUserAreaPolicy` has authorised them (see [Backend → Areas](backend.md#areas)). The [Database](database.md) page describes the same set.
 
 !!! note "Every human and profile operation is proxied"
     `HumanService` and `ProfileService` read and write a single human through `IPoracleHumanProxy` with **no DB fallback**, and so do the admin-bulk operations: the full user list, the webhook list, the batch read that resolves geofence owners' names, and user deletion use `GET /api/v2/humans` (with `?type=` and `?id=a,b,c`) and `DELETE /api/v2/humans/{id}`. `HumanRepository` and `ProfileRepository` no longer exist. The existence check the purge runs first reads the proxy too: its human read answers null only for a 404 and throws for anything else, the same contract as `GetAdminRolesAsync`, so an unreachable PoracleNG is not reported to the admin as "already gone" ([#994](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/994)).

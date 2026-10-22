@@ -1,22 +1,16 @@
 # Database
 
-PoracleWeb.NET uses two separate MySQL databases and optionally connects to a third scanner database.
+PoracleWeb.NET owns one MySQL database, `poracle_web`, and optionally reads a second, scanner database. It does not connect to Poracle's database. Everything Poracle stores (users, profiles, alarms, saved places) is reached through PoracleNG's REST API.
 
 ## Database contexts
 
-### PoracleContext
+### Poracle's data (not connected)
 
-The primary EF Core context connecting to the existing **Poracle database** managed by PoracleNG.
+PoracleNG keeps users, profiles and alarms in its own database. PoracleWeb.NET has no connection string for it and no `DbContext` mapping it, so a direct write to an alarm table isn't possible from this application. The older `DB_*` variables are ignored (see [Configuration](../configuration/reference.md#databases)).
 
-- Connection string: `ConnectionStrings:PoracleDb`
-- Contains: `humans` and `profiles` (no longer read or written directly), ten alarm tables, and the deprecated `pweb_settings` KV table. `PoracleContext` maps **three** entities — `humans`, `profiles` and `pweb_settings`. There are deliberately no alarm entities, and nothing writes an alarm table. PoracleWeb.NET no longer reads PoracleNG's `schema_migrations` or `information_schema`; both went with the first minimum raise, to 5.2.1 (#1001), and are not coming back. Mapping the tables again would put a direct alarm write one `DbSet` away, which is what the 2.0 migration existed to prevent
-- **Limited direct access** — Alarm tracking is proxied through `IPoracleTrackingProxy`, and human/profile operations go through `IPoracleHumanProxy`. The only direct access left is:
+The rest of this section describes what PoracleNG stores, because the shapes explain what the API returns. Treat it as a reference to PoracleNG's schema, not as something PoracleWeb.NET reads.
 
-| Direct access | What and why |
-|---|---|
-| `pweb_settings` | `PwebSettingRepository` still reads the deprecated KV table for the one-time settings migration, and startup runs one `ALTER TABLE pweb_settings MODIFY COLUMN value LONGTEXT NULL` so the old rows can hold JSON. Both exist only to feed `SettingsMigrationService` |
-
-User-geofence area writes (Areas save, create, toggle, delete, rename, approval) do not appear here: they go through PoracleNG's `/api/v2` area routes, so `humans.area` and `profiles.area` are never written from this application.
+Area writes for user geofences (Areas save, create, toggle, delete, rename, approval) go through PoracleNG's `/api/v2` area routes. Saved places live in PoracleNG too, keyed by (human, label), and are written only through `IPoracleHumanProxy`.
 
 !!! note "Eleven tracking types, ten alarm tables"
     Ten is the table count and it is right. The eleventh type, Pokéstop Events (`incident`), stores its
@@ -98,7 +92,7 @@ any more. See [Version compatibility](poracleng-compatibility.md#how-support-is-
 
 #### `user_locations`
 
-Saved places live here, keyed by (human, label), and are written only through `IPoracleHumanProxy` — PoracleWeb.NET makes no direct read or write to this table. See [Backend](backend.md#saved-places).
+PoracleNG stores saved places here, keyed by (human, label). PoracleWeb.NET reads and writes them only through `IPoracleHumanProxy`. See [Backend](backend.md#saved-places).
 
 ### PoracleWebContext
 
@@ -107,7 +101,7 @@ A separate EF Core context for **application-owned data**.
 - Connection string: `ConnectionStrings:PoracleWebDb`
 - Database: `poracle_web`
 - Schema managed by **EF Core migrations** (`Database.MigrateAsync()` on startup)
-- Does **not** modify the Poracle DB schema
+- PoracleWeb.NET's only database; Poracle's is never touched
 - Contains:
 
 | Table | Purpose |
@@ -183,13 +177,6 @@ DTO model in `Core.Models` used by scanner gym search endpoints. Projected from 
 
 ## Entity conventions
 
-### NULL string columns
-
-!!! info "Alarm entities no longer written directly"
-    Alarm tracking writes go through the PoracleNG API proxy, which handles NULL defaults via `cleanRow()`. The generic `BaseRepository` and its `EnsureNotNullDefaults()` method have been removed. Remaining direct-DB repositories (`HumanRepository` for admin ops, `poracle_web`-owned tables) handle null normalization as needed.
-
-Many Poracle DB columns are `NOT NULL` with empty-string defaults, but EF Core maps them as `string?`. For the few remaining direct-DB writes (admin human operations), repositories handle null-to-empty-string normalization as needed.
-
 ### gym_id semantics
 
 The `gym_id` column on alarm entities (`raid`, `egg`, `gym`) uses NULL vs non-NULL to distinguish general alarms from gym-specific alarms:
@@ -201,23 +188,25 @@ An empty string (`''`) is **not** a valid value. It would be treated as a specif
 
 ## Site settings table
 
-The `site_settings` table replaces the deprecated `pweb_settings` key-value store. Settings are typed and categorized:
+The `site_settings` table holds the admin-configurable settings. They're typed and categorized:
 
 | Column | Type | Description |
 |---|---|---|
 | `id` | int (PK) | Auto-increment ID |
-| `category` | varchar(50) | Setting group — `branding`, `features`, `alarms`, `icons`, `admin`, `api`, `discord`, `oidc`, `telegram`, `maps`, `commands`, `analytics`, `debug`, plus `system` for the migration sentinel. `SettingsMigrationService.CategoryMap` is the list |
+| `category` | varchar(50) | Setting group — `branding`, `features`, `alarms`, `icons`, `admin`, `api`, `discord`, `oidc`, `telegram`, `maps`, `commands`, `analytics`, `debug`, plus `system` for a legacy sentinel older versions wrote |
 | `key` | varchar(100) | Unique setting key (e.g., `custom_title`, `disable_mons`) |
 | `value` | text | Setting value |
 | `value_type` | varchar(20) | Type hint: `string`, `boolean`, `url`, `csv` |
 
-### Data migration
+### Defaults
 
-On first startup, `SettingsMigrationStartupService` automatically migrates data from the old `pweb_settings` table (Poracle DB) to the new structured tables. This is idempotent — a `migration_completed` sentinel prevents re-running.
+At startup `SettingsMigrationService.SeedDefaultsAsync` inserts any missing default setting and repoints the retired icon packs. It only adds rows that don't exist, so running it again changes nothing.
+
+The `pweb_settings` table that early versions kept in Poracle's database is no longer read, and the app never alters or drops it. An admin can drop it.
 
 ## Webhook delegates table
 
-Relational table replacing the `webhook_delegates:{id}` key pattern:
+Relational table for webhook delegation:
 
 | Column | Type | Description |
 |---|---|---|
