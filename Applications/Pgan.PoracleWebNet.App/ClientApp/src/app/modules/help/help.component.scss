@@ -350,12 +350,18 @@
   margin: 8px 0 12px;
 }
 
+// Drawn like the alarm card's .rule-pill. The samples arrive through [innerHTML], whose sanitizer strips
+// their inline style, so this class is all they get.
 ::ng-deep .pill-sample {
+  background: var(--mat-sys-surface-container-highest, rgb(0 0 0 / 6%));
+  color: var(--mat-sys-on-surface, rgb(0 0 0 / 87%));
   display: inline-block;
-  padding: 3px 10px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
+  padding: 1px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  line-height: 1.5;
 }
 
 // ─── Mode comparison cards (Delivery section) ───────────────

@@ -57,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The sample filter pills in Help look like the pills on the alarm cards** (grey, rounded, in both themes) instead of bold text.
 - **Saving a quick pick in the editor without changing it leaves it as it was.** Opening a built-in such as "100% IV Pokémon" and pressing Save used to write every default (max CP 9000, max level 55, PvP rank 4096 and more) into it. A save now keeps the stored filters and adds only what was changed.
 - **Map pages no longer log "Refused to connect" for map tiles.** The browser refreshes a cached OpenStreetMap or Esri tile in the background, and the site's security policy blocked that refresh. The built-in tile hosts are now allowed for it; images were already allowed.
 - **Help and the template picker name the PvP leagues as the Pokémon dialog does** (Little Cup, not Little League, in every language), the docs point to **Admin > Server settings** as the menu now reads, and the Pokémon list screenshot's description names **New alarm** in all eleven languages.

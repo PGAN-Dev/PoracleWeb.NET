@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { signal, WritableSignal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
@@ -198,5 +201,29 @@ describe('HelpComponent admin section', () => {
 
     expect(tocTitles()).toContain('For Admins');
     expect(fixture.nativeElement.querySelector('#section-admin')).not.toBeNull();
+  });
+});
+
+/**
+ * The Help page's sample filter pills arrive through [innerHTML], and Angular's sanitizer strips their
+ * inline `style`, so the class has to draw the pill itself. Without a background they read as bold text,
+ * not as the grey pills on the alarm cards they explain.
+ */
+describe('HelpComponent pill samples', () => {
+  const css = (file: string): string => readFileSync(join(__dirname, file), 'utf8');
+  const rule = (source: string, selector: string): string => {
+    const start = source.indexOf(`${selector} {`);
+    if (start < 0) throw new Error(`no ${selector} rule`);
+    return source.slice(start, source.indexOf('}', start));
+  };
+
+  it('draws the pill with the alarm card pill’s own background and text colour', () => {
+    const sample = rule(css('help.component.scss'), '.pill-sample');
+    const card = rule(css('../../shared/components/alarm-card/alarm-card.component.scss'), '.rule-pill');
+    const declared = (block: string, prop: string): string | undefined =>
+      new RegExp(String.raw`(?:^|\n)\s*${prop}:\s*([^;]+);`).exec(block)?.[1];
+
+    expect(declared(sample, 'background')).toBe(declared(card, 'background'));
+    expect(declared(sample, 'color')).toBe(declared(card, 'color'));
   });
 });
