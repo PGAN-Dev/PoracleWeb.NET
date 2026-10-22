@@ -41,3 +41,12 @@ export function queryAlarms<T>(
   const shown = list.filter(item => matchesSearch(query, ...fields(item)));
   return compare ? shown.sort(compare) : shown;
 }
+
+/**
+ * The selected keys that are still on screen, in screen order. Bulk Delete and Change radius act on this,
+ * never on the raw selection, so a rule the search has hidden is never deleted or resized unseen. The
+ * selection itself is kept, so clearing the search brings the hidden ticks back.
+ */
+export function visibleSelection<K>(selected: ReadonlySet<K>, visible: Iterable<K>): K[] {
+  return [...visible].filter(key => selected.has(key));
+}

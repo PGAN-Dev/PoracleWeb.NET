@@ -1,4 +1,4 @@
-import { byText, matchesSearch, queryAlarms, searchKey } from './alarm-list-query';
+import { byText, matchesSearch, queryAlarms, searchKey, visibleSelection } from './alarm-list-query';
 
 describe('alarm list search and sort', () => {
   it('matches without case or accents, so "pokestop" finds a Pokéstop event', () => {
@@ -56,5 +56,11 @@ describe('alarm list search and sort', () => {
     const list = [{ uid: 3 }, { uid: 1 }];
 
     expect(queryAlarms(list, '', () => [], null).map(x => x.uid)).toEqual([3, 1]);
+  });
+
+  it('acts only on the selected rules still on screen, in screen order', () => {
+    expect(visibleSelection(new Set([1, 2, 3, 4]), [4, 2, 9])).toEqual([4, 2]);
+    expect(visibleSelection(new Set<number>(), [1, 2])).toEqual([]);
+    expect(visibleSelection(new Set(['raid:1', 'egg:1']), ['egg:1'])).toEqual(['egg:1']);
   });
 });

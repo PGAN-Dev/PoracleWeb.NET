@@ -24,7 +24,7 @@ import { QuietChipComponent } from '../../shared/components/quiet-chip/quiet-chi
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
 import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
-import { byNumber, byText, queryAlarms } from '../../shared/utils/alarm-list-query';
+import { byNumber, byText, queryAlarms, visibleSelection } from '../../shared/utils/alarm-list-query';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
@@ -61,25 +61,11 @@ export class MaxBattleListComponent implements OnInit {
   private readonly snackBar = inject(MatSnackBar);
   private readonly translate = inject(TranslateService);
 
-  readonly loading = signal(true);
-  readonly maxBattles = signal<MaxBattle[]>([]);
-  /** Only used to word the inherited scope honestly; empty produces the more cautious wording. */
-  readonly profileAreas = signal<string[]>([]);
-  readonly search = signal('');
   readonly selectedIds = signal(new Set<number>());
-
-  readonly selectMode = signal(false);
-  readonly skeletonCards = Array.from({ length: 6 });
+  readonly maxBattles = signal<MaxBattle[]>([]);
+  readonly search = signal('');
   /** "default" keeps the stable order the list loads in (see orderAlarms), so nothing moves once names load. */
   readonly sortBy = signal('default');
-
-  readonly sortOptions: AlarmSortOption[] = [
-    { label: 'ALARM.SORT_DEFAULT', value: 'default' },
-    { label: 'ALARM.SORT_NAME', value: 'name' },
-    { label: 'ALARM.SORT_TIER', value: 'tier' },
-    { label: 'ALARM.SORT_NEWEST', value: 'newest' },
-  ];
-
   /** The rules the search leaves, in the chosen order; ties keep their stable order. See alarm-list-query. */
   readonly visibleMaxBattles = computed(() => {
     const sorts: Record<string, (m: MaxBattle, b: MaxBattle) => number> = {
@@ -95,18 +81,40 @@ export class MaxBattleListComponent implements OnInit {
     );
   });
 
+  /** The selected rules still on screen: bulk Delete and Change radius never reach a card the search has hidden. */
+  readonly actionIds = computed(() =>
+    visibleSelection(
+      this.selectedIds(),
+      this.visibleMaxBattles().map(item => item.uid),
+    ),
+  );
+
+  readonly loading = signal(true);
+  /** Only used to word the inherited scope honestly; empty produces the more cautious wording. */
+  readonly profileAreas = signal<string[]>([]);
+  readonly selectMode = signal(false);
+
+  readonly skeletonCards = Array.from({ length: 6 });
+
+  readonly sortOptions: AlarmSortOption[] = [
+    { label: 'ALARM.SORT_DEFAULT', value: 'default' },
+    { label: 'ALARM.SORT_NAME', value: 'name' },
+    { label: 'ALARM.SORT_TIER', value: 'tier' },
+    { label: 'ALARM.SORT_NEWEST', value: 'newest' },
+  ];
+
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
         confirmText: this.i18n.instant('COMMON.DELETE'),
-        message: this.i18n.instant('ALARM.SELECTED_COUNT', { count: this.selectedIds().size }),
+        message: this.i18n.instant('ALARM.SELECTED_COUNT', { count: this.actionIds().length }),
         title: this.i18n.instant('MAX_BATTLES.PAGE_TITLE'),
         warn: true,
       } as ConfirmDialogData,
     });
     const result = await firstValueFrom(ref.afterClosed());
     if (result) {
-      const ids = [...this.selectedIds()];
+      const ids = this.actionIds();
       // Settled one at a time. A stale uid -- the row re-keyed by an edit, or removed in another tab --
       // threw out of the loop, so the deletes that had already happened went unreported and the list
       // never reloaded: the user saw nothing at all. See #603.
@@ -129,10 +137,10 @@ export class MaxBattleListComponent implements OnInit {
   }
 
   async bulkUpdateDistance(): Promise<void> {
-    const ref = this.dialog.open(DistanceDialogComponent, { width: '440px', data: { count: this.selectedIds().size } });
+    const ref = this.dialog.open(DistanceDialogComponent, { width: '440px', data: { count: this.actionIds().length } });
     const distance = await firstValueFrom(ref.afterClosed());
     if (distance !== null && distance !== undefined) {
-      const ids = [...this.selectedIds()];
+      const ids = this.actionIds();
       // The server refuses a radius that would take over an alarm the user did not select, and names
       // the one in the way. Unguarded, that rejection cleared nothing, reloaded nothing and showed
       // nothing -- indistinguishable from a successful no-op. See #641.

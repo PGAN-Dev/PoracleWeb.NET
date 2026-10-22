@@ -21,7 +21,7 @@ invocation, so anything after `--` goes to Jest. Around 127 spec files cover:
 - Pokemon availability (`pokemon-availability.service.spec.ts`)
 - Quiet periods (`quiet-chip.component.spec.ts`, `quiet-sheet.component.spec.ts`, `quiet-list-sheet.component.spec.ts`, and `quiet-surface-parity.spec.ts`, which pins the six list templates that carry the chip and the four that must not)
 - Pokéstop Events (`pokestop-event-add-dialog.component.spec.ts`, `pokestop-event-edit-dialog.component.spec.ts`, `pokestop-event-list.component.spec.ts`)
-- Rule summaries (`rule-summary.component.spec.ts`, `rule-summary.spec.ts`)
+- Alarm cards and list toolbar (`alarm-card.component.spec.ts`, `alarm-card-parity.spec.ts`, which pins all ten lists to the shared card and toolbar, `rule-colours.spec.ts`, `alarm-list-query.spec.ts`, `rule-summary.spec.ts`)
 - Version-gated controls (`quest-add-dialog.pokecoins.spec.ts`)
 
 ## Backend tests (xUnit)

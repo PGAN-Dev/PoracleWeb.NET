@@ -216,6 +216,55 @@ describe('PokestopEventListComponent', () => {
     });
   });
 
+  describe('bulk actions and the search', () => {
+    const three = (): PokestopEvent[] => [
+      { ...base, uid: 1, displayType: GOLD_STOP, eventName: 'gold-stop' },
+      { ...base, uid: 3, displayType: SHOWCASE },
+      { ...base, uid: 2, displayType: KECLEON, eventName: 'kecleon' },
+    ];
+
+    it('deletes only the selected rules the search left on screen', async () => {
+      setup(three());
+      component.selectAll();
+      component.search.set('kecl');
+      fixture.detectChanges();
+      dialogReturns(true);
+
+      await component.bulkDelete();
+
+      expect(pokestopEventService.delete).toHaveBeenCalledTimes(1);
+      expect(pokestopEventService.delete).toHaveBeenCalledWith(2);
+    });
+
+    it('changes the radius on the visible selection only, and names that count', async () => {
+      setup(three());
+      component.selectAll();
+      component.search.set('kecl');
+      fixture.detectChanges();
+      dialogReturns(500);
+
+      await component.bulkUpdateDistance();
+
+      expect(dialog.open.mock.calls[0][1].data).toEqual({ count: 1 });
+      expect(pokestopEventService.updateBulkDistance).toHaveBeenCalledWith([2], 500);
+    });
+
+    it('counts the visible selection in the bulk bar, and the whole selection again once the search is cleared', () => {
+      setup(three());
+      component.toggleSelectMode();
+      component.selectAll();
+      component.search.set('kecl');
+      fixture.detectChanges();
+
+      expect(component.actionIds()).toEqual([2]);
+
+      component.search.set('');
+      fixture.detectChanges();
+
+      expect([...component.actionIds()].sort()).toEqual([1, 2, 3]);
+    });
+  });
+
   describe('event identity', () => {
     it('names an event this build has no entry for by what PoracleNG stored', () => {
       setup([{ ...base, displayType: 99, eventName: 'something-new' }]);

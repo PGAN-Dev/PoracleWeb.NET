@@ -32,7 +32,7 @@ import { WhereChipComponent } from '../../shared/components/where-chip/where-chi
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
 import { LevelLabelPipe } from '../../shared/pipes/level-label.pipe';
 import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
-import { byNumber, byText, queryAlarms } from '../../shared/utils/alarm-list-query';
+import { byNumber, byText, queryAlarms, visibleSelection } from '../../shared/utils/alarm-list-query';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { NO_COSTUME } from '../../shared/utils/costumes';
@@ -76,41 +76,18 @@ export class RaidListComponent implements OnInit {
   private readonly scannerService = inject(ScannerService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly translate = inject(TranslateService);
-  /** Which tab is in front: 0 raids, 1 eggs. Bulk actions are scoped to it. See #642. */
-  readonly activeTab = signal(0);
-
-  readonly eggs = signal<Egg[]>([]);
-  readonly gymNames = signal<Record<string, string>>({});
-  readonly loading = signal(true);
-  /** Only used to word the inherited scope honestly; empty produces the more cautious wording. */
-  readonly profileAreas = signal<string[]>([]);
-
-  readonly raids = signal<Raid[]>([]);
-  readonly search = signal('');
   // Keyed "raid:12" / "egg:12", not by the bare uid. Raid and egg uids come from separate
   // auto-increment sequences and do collide; with one set of integers covering both grids, ticking
   // one card ticked the other, and the bulk actions sent both to the raid endpoint -- deleting or
   // resizing the raid twice and leaving the egg alone. See #540.
   readonly selectedIds = signal(new Set<string>());
 
-  readonly selectMode = signal(false);
-  readonly skeletonCards = Array.from({ length: 6 });
+  readonly eggs = signal<Egg[]>([]);
+  readonly gymNames = signal<Record<string, string>>({});
+  readonly search = signal('');
   /** "default" keeps the stable order the list loads in (see orderAlarms), so nothing moves once names load. */
   readonly sortBy = signal('default');
 
-  readonly sortOptions: AlarmSortOption[] = [
-    { label: 'ALARM.SORT_DEFAULT', value: 'default' },
-    { label: 'ALARM.SORT_NAME', value: 'name' },
-    { label: 'ALARM.SORT_TIER', value: 'tier' },
-    { label: 'ALARM.SORT_NEWEST', value: 'newest' },
-  ];
-
-  /** Raid cards take the team as their edge, egg cards the tier's egg colour. */
-  readonly teamEdge = teamEdge;
-
-  readonly testAlertService = inject(TestAlertService);
-
-  readonly tierEdge = tierEdge;
   /** The eggs the search leaves. An egg's name is its tier, so "name" orders them by tier too. */
   readonly visibleEggs = computed(() => {
     const sorts: Record<string, (a: Egg, b: Egg) => number> = {
@@ -126,6 +103,7 @@ export class RaidListComponent implements OnInit {
     );
   });
 
+  readonly raids = signal<Raid[]>([]);
   /** The raids the search leaves, in the chosen order; ties keep their stable order. */
   readonly visibleRaids = computed(() => {
     const sorts: Record<string, (a: Raid, b: Raid) => number> = {
@@ -141,18 +119,49 @@ export class RaidListComponent implements OnInit {
     );
   });
 
+  /** The selected rules still on screen: bulk Delete and Change radius never reach a card the search has hidden. */
+  readonly actionIds = computed(() =>
+    visibleSelection(this.selectedIds(), [
+      ...this.visibleRaids().map(r => this.selectionKey('raid', r.uid)),
+      ...this.visibleEggs().map(e => this.selectionKey('egg', e.uid)),
+    ]),
+  );
+
+  /** Which tab is in front: 0 raids, 1 eggs. Bulk actions are scoped to it. See #642. */
+  readonly activeTab = signal(0);
+  readonly loading = signal(true);
+  /** Only used to word the inherited scope honestly; empty produces the more cautious wording. */
+  readonly profileAreas = signal<string[]>([]);
+
+  readonly selectMode = signal(false);
+
+  readonly skeletonCards = Array.from({ length: 6 });
+
+  readonly sortOptions: AlarmSortOption[] = [
+    { label: 'ALARM.SORT_DEFAULT', value: 'default' },
+    { label: 'ALARM.SORT_NAME', value: 'name' },
+    { label: 'ALARM.SORT_TIER', value: 'tier' },
+    { label: 'ALARM.SORT_NEWEST', value: 'newest' },
+  ];
+
+  /** Raid cards take the team as their edge, egg cards the tier's egg colour. */
+  readonly teamEdge = teamEdge;
+  readonly testAlertService = inject(TestAlertService);
+
+  readonly tierEdge = tierEdge;
+
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
         confirmText: this.i18n.instant('RAIDS.CONFIRM_DELETE_SELECTED'),
-        message: this.i18n.plural('ALARM.CONFIRM_BULK_DELETE_MSG', this.selectedIds().size),
+        message: this.i18n.plural('ALARM.CONFIRM_BULK_DELETE_MSG', this.actionIds().length),
         title: this.i18n.instant('RAIDS.CONFIRM_BULK_DELETE_TITLE'),
         warn: true,
       } as ConfirmDialogData,
     });
     const result = await firstValueFrom(ref.afterClosed());
     if (result) {
-      const keys = [...this.selectedIds()];
+      const keys = this.actionIds();
       let deleted = 0;
       for (const uid of this.uidsOfKind(keys, 'raid')) {
         try {
@@ -180,10 +189,10 @@ export class RaidListComponent implements OnInit {
   }
 
   async bulkUpdateDistance(): Promise<void> {
-    const ref = this.dialog.open(DistanceDialogComponent, { width: '440px', data: { count: this.selectedIds().size } });
+    const ref = this.dialog.open(DistanceDialogComponent, { width: '440px', data: { count: this.actionIds().length } });
     const distance = await firstValueFrom(ref.afterClosed());
     if (distance !== null && distance !== undefined) {
-      const keys = [...this.selectedIds()];
+      const keys = this.actionIds();
       const selectedRaidUids = this.uidsOfKind(keys, 'raid');
       const selectedEggUids = this.uidsOfKind(keys, 'egg');
       // The server refuses a radius that would take over an alarm the user did not select, and names

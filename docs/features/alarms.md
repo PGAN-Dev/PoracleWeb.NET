@@ -215,7 +215,7 @@ fetched for it: the field was already on the response.
 
 ### Card order
 
-Raids, eggs, quests, lures, nests, gyms, max battles, fort changes and Pokéstop Events each sort their
+Raids, eggs, quests, invasions, lures, nests, gyms, max battles, fort changes and Pokéstop Events each sort their
 grid on what the card is titled by: Pokemon and level for raids and max battles, level for eggs, reward
 for quests, lure type, species for nests, team for gyms, change type for fort changes, event type for
 Pokéstop Events. An edited card therefore stays where it was instead of jumping to the end of the grid,
@@ -226,8 +226,7 @@ The keys are the raw fields — dex number rather than species name, reward type
 the display language. That order is **Default** in each list's sort menu; sorting by name,
 tier, reward type, Pokédex number or newest first is one click away, and ties keep the default order.
 The Pokémon list sorts by name by default, as it always has.
-Invasions are not sorted this way yet, so in that rare case an edited invasion card can still move to the
-end of the grid.
+Invasions sort on grunt type and gender the same way.
 
 ## Bulk operations
 

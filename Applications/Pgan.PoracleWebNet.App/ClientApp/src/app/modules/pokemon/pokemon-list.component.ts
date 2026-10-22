@@ -31,7 +31,7 @@ import { QuietChipComponent } from '../../shared/components/quiet-chip/quiet-chi
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
 import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
-import { matchesSearch } from '../../shared/utils/alarm-list-query';
+import { matchesSearch, visibleSelection } from '../../shared/utils/alarm-list-query';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { isAutoDelete as cleanIsAutoDelete, isEdit as cleanIsEdit } from '../../shared/utils/clean-flags';
 import { readableChip } from '../../shared/utils/contrast';
@@ -143,6 +143,16 @@ export class PokemonListComponent implements OnInit {
     return [...allPokemon, ...specific];
   });
 
+  readonly selectedIds = signal(new Set<number>());
+
+  /** The selected rules still on screen: bulk Delete and Change radius never reach a card the search has hidden. */
+  readonly actionIds = computed(() =>
+    visibleSelection(
+      this.selectedIds(),
+      this.filteredMonsters().map(item => item.uid),
+    ),
+  );
+
   readonly generations = [
     { color: '#4CAF50', label: '1', max: 151, min: 1 },
     { color: '#FFD600', label: '2', max: 251, min: 152 },
@@ -158,8 +168,6 @@ export class PokemonListComponent implements OnInit {
   readonly loading = signal(true);
 
   readonly profileAreas = signal<string[]>([]);
-
-  readonly selectedIds = signal(new Set<number>());
 
   // Bulk operations
   readonly selectMode = signal(false);
@@ -178,14 +186,14 @@ export class PokemonListComponent implements OnInit {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
         confirmText: this.i18n.instant('COMMON.DELETE_ALL'),
-        message: this.i18n.plural('ALARM.CONFIRM_BULK_DELETE_MSG', this.selectedIds().size),
+        message: this.i18n.plural('ALARM.CONFIRM_BULK_DELETE_MSG', this.actionIds().length),
         title: this.i18n.instant('POKEMON.CONFIRM_BULK_DELETE_TITLE'),
         warn: true,
       } as ConfirmDialogData,
     });
     const result = await firstValueFrom(ref.afterClosed());
     if (result) {
-      const ids = [...this.selectedIds()];
+      const ids = this.actionIds();
       // Settled one at a time. A stale uid -- the row re-keyed by an edit, or removed in another tab --
       // threw out of the loop, so the deletes that had already happened went unreported and the list
       // never reloaded: the user saw nothing at all. See #603.
@@ -208,10 +216,10 @@ export class PokemonListComponent implements OnInit {
   }
 
   async bulkUpdateDistance(): Promise<void> {
-    const ref = this.dialog.open(DistanceDialogComponent, { width: '440px', data: { count: this.selectedIds().size } });
+    const ref = this.dialog.open(DistanceDialogComponent, { width: '440px', data: { count: this.actionIds().length } });
     const distance = await firstValueFrom(ref.afterClosed());
     if (distance !== null && distance !== undefined) {
-      const uids = [...this.selectedIds()];
+      const uids = this.actionIds();
       // The server refuses a radius that would take over an alarm the user did not select, and names
       // the one in the way. Unguarded, that rejection cleared nothing, reloaded nothing and showed
       // nothing -- indistinguishable from a successful no-op. See #641.
@@ -300,7 +308,10 @@ export class PokemonListComponent implements OnInit {
     this.selectedIds.set(new Set());
   }
 
-  /** A single-species rule takes its primary type's colour; "all Pokémon" has none. */
+  /**
+   * A single-species rule takes the species' primary type colour (the base form's: a regional form with
+   * another type keeps the base colour); "all Pokémon" has none.
+   */
   edgeFor(monster: Monster): null | RuleEdge {
     return monster.pokemonId > 0 ? speciesEdge(this.masterData.getPokemonTypes(monster.pokemonId)) : null;
   }

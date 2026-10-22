@@ -24,7 +24,7 @@ import { DistanceDialogComponent } from '../../shared/components/distance-dialog
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
 import { isEditExisting } from '../../shared/utils/add-outcome';
-import { byNumber, byText, queryAlarms } from '../../shared/utils/alarm-list-query';
+import { byNumber, byText, queryAlarms, visibleSelection } from '../../shared/utils/alarm-list-query';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { isAutoDelete } from '../../shared/utils/clean-flags';
@@ -60,22 +60,11 @@ export class PokestopEventListComponent implements OnInit {
   private readonly pokestopEventService = inject(PokestopEventService);
   private readonly snackBar = inject(MatSnackBar);
 
-  readonly events = signal<PokestopEvent[]>([]);
-  readonly loading = signal(true);
-  /** Only used to word the inherited scope honestly; empty produces the more cautious wording. */
-  readonly profileAreas = signal<string[]>([]);
-  readonly search = signal('');
   readonly selectedIds = signal(new Set<number>());
-
-  readonly selectMode = signal(false);
+  readonly events = signal<PokestopEvent[]>([]);
+  readonly search = signal('');
   /** "default" keeps the stable order the list loads in (see orderAlarms), so nothing moves once names load. */
   readonly sortBy = signal('default');
-  readonly sortOptions: AlarmSortOption[] = [
-    { label: 'ALARM.SORT_DEFAULT', value: 'default' },
-    { label: 'ALARM.SORT_NAME', value: 'name' },
-    { label: 'ALARM.SORT_NEWEST', value: 'newest' },
-  ];
-
   /** The rules the search leaves, in the chosen order; ties keep their stable order. See alarm-list-query. */
   readonly visibleEvents = computed(() => {
     const sorts: Record<string, (e: PokestopEvent, b: PokestopEvent) => number> = {
@@ -85,11 +74,30 @@ export class PokestopEventListComponent implements OnInit {
     return queryAlarms(this.events(), this.search(), e => [this.eventLabel(e)], sorts[this.sortBy()] ?? null);
   });
 
+  /** The selected rules still on screen: bulk Delete and Change radius never reach a card the search has hidden. */
+  readonly actionIds = computed(() =>
+    visibleSelection(
+      this.selectedIds(),
+      this.visibleEvents().map(item => item.uid),
+    ),
+  );
+
+  readonly loading = signal(true);
+  /** Only used to word the inherited scope honestly; empty produces the more cautious wording. */
+  readonly profileAreas = signal<string[]>([]);
+  readonly selectMode = signal(false);
+
+  readonly sortOptions: AlarmSortOption[] = [
+    { label: 'ALARM.SORT_DEFAULT', value: 'default' },
+    { label: 'ALARM.SORT_NAME', value: 'name' },
+    { label: 'ALARM.SORT_NEWEST', value: 'newest' },
+  ];
+
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
         confirmText: this.i18n.instant('COMMON.DELETE'),
-        message: this.i18n.instant('ALARM.SELECTED_COUNT', { count: this.selectedIds().size }),
+        message: this.i18n.instant('ALARM.SELECTED_COUNT', { count: this.actionIds().length }),
         title: this.i18n.instant('POKESTOP_EVENTS.PAGE_TITLE'),
         warn: true,
       } as ConfirmDialogData,
@@ -100,7 +108,7 @@ export class PokestopEventListComponent implements OnInit {
     // Settled one at a time: a stale uid -- and every write here re-keys the row -- must not throw
     // out of the loop and leave deletes that already happened unreported. See #603.
     let deleted = 0;
-    for (const uid of [...this.selectedIds()]) {
+    for (const uid of this.actionIds()) {
       try {
         await firstValueFrom(this.pokestopEventService.delete(uid));
         deleted++;
@@ -117,11 +125,11 @@ export class PokestopEventListComponent implements OnInit {
   }
 
   async bulkUpdateDistance(): Promise<void> {
-    const ref = this.dialog.open(DistanceDialogComponent, { width: '440px', data: { count: this.selectedIds().size } });
+    const ref = this.dialog.open(DistanceDialogComponent, { width: '440px', data: { count: this.actionIds().length } });
     const distance = await firstValueFrom(ref.afterClosed());
     if (distance === null || distance === undefined) return;
 
-    const uids = [...this.selectedIds()];
+    const uids = this.actionIds();
     // A rejection that cleared nothing and reloaded nothing is indistinguishable from a successful
     // no-op, so say what the server said. See #641.
     let result: DistanceUpdateResult | undefined;

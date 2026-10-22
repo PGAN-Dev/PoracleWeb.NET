@@ -118,13 +118,16 @@ describe('AlarmCardComponent', () => {
       host.summary.set(LIVE_POKEMON);
       fixture.detectChanges();
 
-      expect(el.querySelector('.rule-details')).toBeNull();
+      // Rendered but hidden, so aria-controls always names an element that exists.
+      expect((el.querySelector('.rule-details') as HTMLElement).hidden).toBe(true);
+      expect(toggle(el)?.getAttribute('aria-controls')).toBe(el.querySelector('.rule-details')?.id);
       expect(toggle(el)?.getAttribute('aria-expanded')).toBe('false');
 
       toggle(el)?.click();
       fixture.detectChanges();
 
-      const details = el.querySelector('.rule-details');
+      const details = el.querySelector('.rule-details') as HTMLElement;
+      expect(details.hidden).toBe(false);
       expect(toggle(el)?.getAttribute('aria-expanded')).toBe('true');
       expect(toggle(el)?.getAttribute('aria-controls')).toBe(details?.id);
       expect(details?.textContent).toContain('Bulbasaur | distance: 5000m');
@@ -132,7 +135,7 @@ describe('AlarmCardComponent', () => {
 
       toggle(el)?.click();
       fixture.detectChanges();
-      expect(el.querySelector('.rule-details')).toBeNull();
+      expect((el.querySelector('.rule-details') as HTMLElement).hidden).toBe(true);
     });
 
     it('offers no control when PoracleNG sent nothing, or only blanks', () => {

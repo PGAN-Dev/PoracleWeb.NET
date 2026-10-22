@@ -37,7 +37,7 @@ describe('the scope picker radius check is wired into every host', () => {
   });
 });
 
-/** The bulk radius dialog names the selection it acts on, so every list that opens it says how many. */
+/** The bulk radius dialog names the selection it acts on (the selected cards still on screen), so every list says how many. */
 describe('every list tells the bulk radius dialog how many alarms are selected', () => {
   const read = (relative: string) => readFileSync(join(__dirname, relative), 'utf8');
 
@@ -51,6 +51,6 @@ describe('every list tells the bulk radius dialog how many alarms are selected',
   });
 
   it.each(LISTS)('%s passes the selection count', list => {
-    expect(read(list)).toMatch(/this\.dialog\.open\(DistanceDialogComponent, \{[^}]*data: \{ count: this\.selectedIds\(\)\.size \}/);
+    expect(read(list)).toMatch(/this\.dialog\.open\(DistanceDialogComponent, \{[^}]*data: \{ count: this\.actionIds\(\)\.length \}/);
   });
 });

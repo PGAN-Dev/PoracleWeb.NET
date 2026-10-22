@@ -39,7 +39,8 @@
 }
 
 .sort-field {
-  width: 184px;
+  // Fits the longest sort label in every locale ("Belønningstype", "Neueste zuerst", "Od najnowszych").
+  width: 212px;
 
   mat-icon {
     color: var(--mat-sys-on-surface-variant, rgb(0 0 0 / 64%));
@@ -87,6 +88,6 @@
   }
 
   .sort-field {
-    width: 148px;
+    width: 204px;
   }
 }

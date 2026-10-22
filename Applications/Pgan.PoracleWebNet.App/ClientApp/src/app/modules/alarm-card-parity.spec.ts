@@ -65,4 +65,18 @@ describe('every alarm list uses the shared rule card and toolbar', () => {
       expect(html.split('[summary]=').length - 1).toBe(cards);
     }
   });
+
+  /**
+   * The search can hide selected cards. Bulk Delete and Change radius act on the selected cards still on
+   * screen (`actionIds`), and the bulk bar counts those, so nothing is deleted or resized unseen.
+   */
+  it.each(LISTS)('%s acts in bulk on the visible selection only', template => {
+    const html = read(template);
+    const ts = read(template.replace('.html', '.ts'));
+
+    expect(html).toContain("'ALARM.SELECTED_COUNT' | translate: { count: actionIds().length }");
+    expect(ts).toMatch(/readonly actionIds = computed\(\s*\(\) =>\s*visibleSelection\(\s*this\.selectedIds\(\)/);
+    expect(ts).not.toContain('[...this.selectedIds()]');
+    expect(ts).not.toContain('this.selectedIds().size');
+  });
 });

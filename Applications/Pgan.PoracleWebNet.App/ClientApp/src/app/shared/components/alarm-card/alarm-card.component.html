@@ -44,7 +44,7 @@
     </div>
   </div>
 
-  @if (hasDetails() && detailsOpen()) {
-    <p class="rule-details" [id]="detailsId">{{ cleanedSummary() }}</p>
+  @if (hasDetails()) {
+    <p class="rule-details" [id]="detailsId" [hidden]="!detailsOpen()">{{ cleanedSummary() }}</p>
   }
 </mat-card>

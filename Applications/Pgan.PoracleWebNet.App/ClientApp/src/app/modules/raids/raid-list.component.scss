@@ -149,3 +149,9 @@
   font-size: 14px;
   color: #1976d2;
 }
+
+.tab-no-matches {
+  color: var(--mat-sys-on-surface-variant, rgb(0 0 0 / 64%));
+  grid-column: 1 / -1;
+  margin: 8px 0;
+}
