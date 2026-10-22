@@ -31,10 +31,11 @@ went in the first step, which covers humans, profiles, places, mutes and geocodi
 | `Poracle:TrackingApiVersion` (`PORACLE_TRACKING_API_VERSION`) | Pinned the tracking surface for a fork whose version string lied. A leftover setting is ignored |
 | Eleven `PoracleV2Capabilities` flags | Each asked the server's `/openapi.json` whether one field or route existed. `TrustedSetAreas` went with the area writes; `InvasionGruntType` remains until tracking moves to v2 |
 
-The v1 tracking API is **not** gone from this application. Tracking reads, creates and the bulk
-distance and clean writes still use it, and so does a plaintext-404 fallback on the single-rule edit
-routes. User-drawn geofence names reach PoracleNG through its `/api/v2` area routes with the `trusted` flag, which 5.4.0 carries; an alert's own area override is the one thing still written straight to the database.
-Both are later steps, and this page changes again when they land.
+The v1 tracking API is **not** quite gone from this application. Only the bulk distance change and the
+cleaning toggle still write through it (`UpsertV1Async`), until a later release moves them to v2 PATCH.
+Alert reads, creates, edits and deletes are v2 with no fallback. User-drawn geofence names, including
+the ones an alert is limited to, reach PoracleNG through its `/api/v2` routes with the `trusted` flag,
+which 5.4.0 carries; nothing is written straight to PoracleNG's database.
 
 ## How support is decided
 

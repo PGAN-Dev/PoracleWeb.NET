@@ -442,9 +442,9 @@ Max Battle levels follow the PoracleNG `util.json` definitions:
 PoracleNG's older maxbattle handler has **no diff/dedup logic** — every POST creates a new row — so an
 edit had to delete the old alarm by uid and insert the replacement, with a window in between where the
 alarm did not exist. PoracleNG's uid-addressed replace closes that window;
-`MaxBattleService.UpdateAsync()` takes it when it is available and falls back to delete-then-create
-when it is not. Either way an edit that would land on another max battle's settings is refused before
-anything is deleted.
+`MaxBattleService.UpdateAsync()` uses it, so an edit is one write. Only a bulk distance change still
+deletes and re-creates. An edit that would land on another max battle's settings is refused by PoracleNG
+with a 409 before anything changes.
 
 ### Scanner-based Pokemon filter
 
@@ -527,8 +527,9 @@ rules, because then that switch is the only control you have over them.
 ### What this type does not do
 
 - **No test alert.** There is no mock payload builder for events, so no card carries the test button.
-- **Not in the cross-profile overview, export or import.** Pokéstop Event rules are absent from all
-  three, so a profile export does not carry them and an import will not recreate them.
+- **No separate section in the cross-profile overview.** Event rules appear there as invasion rows
+  whose grunt is the event name. A profile export folds them into the invasion list the same way, and an
+  import saves them back as event rules.
 
 !!! warning "Needs `disable_showcase = false`"
     The page appears only when Poracle's configuration carries an explicit `general.disable_showcase =

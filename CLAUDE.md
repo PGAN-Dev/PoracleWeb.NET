@@ -873,9 +873,9 @@ The v1 shape stays the single internal currency (`TrackingFieldPreserver`, `Bulk
 
 Three per-type traps, all verified live and each a 422 if ignored:
 
-- **egg `level` is required with minimum 1**, and `Egg.Level` is a plain int defaulting to 0. Profile
-  import, quick-pick apply and the cleaning fetch-mutate-POST all build eggs without one; the
-  translator refuses those on a create or edit, and cleaning (v1) is unaffected.
+- **egg `level` is required with minimum 1**, and `Egg.Level` is a plain int defaulting to 0. A
+  quick-pick definition or import file that omits the level is refused by the translator rather than
+  sent to v1; cleaning (v1) is unaffected.
 - **fort has no `clean`, `edit` or `summary`** — no v2 field and no column. A shared clean helper applied
   blindly is a 422.
 - **fort `include_empty` defaults to TRUE on v2 and FALSE on v1.** A PUT that omitted it flipped a stored
