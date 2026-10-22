@@ -1288,7 +1288,144 @@
     "CATEGORY_CUSTOM": "Własne",
     "ADMIN_ACTIONS": "Akcje administratora",
     "REAPPLY_TOOLTIP": "Zaktualizuj ustawienia dostarczania i zastosuj ponownie",
-    "REMOVE_TOOLTIP": "Usuń alarmy utworzone przez tę pozycję"
+    "REMOVE_TOOLTIP": "Usuń alarmy utworzone przez tę pozycję",
+    "ALARM_TYPES": {
+      "MONSTER": "Pokemon",
+      "RAID": "Rajd",
+      "EGG": "Jajko",
+      "QUEST": "Zadanie",
+      "INVASION": "Inwazja",
+      "LURE": "Przynęta",
+      "NEST": "Gniazdo",
+      "GYM": "Arena",
+      "MAXBATTLE": "Bitwa Max"
+    },
+    "BUILT_IN": {
+      "HUNDO": {
+        "NAME": "Pokemon 100% IV",
+        "DESCRIPTION": "Wszystkie dzikie Pokemony z idealnymi IV"
+      },
+      "NUNDO": {
+        "NAME": "Pokemon 0% IV",
+        "DESCRIPTION": "Wszystkie dzikie Pokemony z 0% IV"
+      },
+      "HIGH_IV": {
+        "NAME": "Pokemon 90%+ IV",
+        "DESCRIPTION": "Wszystkie Pokemony z IV 90% lub wyższym"
+      },
+      "HIGH_LEVEL": {
+        "NAME": "Pokemon poziom 30+",
+        "DESCRIPTION": "Wszystkie dzikie Pokemony na wysokim poziomie (wzmocnione pogodą)"
+      },
+      "HIGH_CP": {
+        "NAME": "Pokemon 3000+ CP",
+        "DESCRIPTION": "Silne dzikie Pokemony do obrony aren"
+      },
+      "PVP_GREAT_1": {
+        "NAME": "PvP Wielka Liga ranga 1",
+        "DESCRIPTION": "Pokemony z rangą 1 w Wielkiej Lidze (1500 CP)"
+      },
+      "PVP_GREAT_10": {
+        "NAME": "PvP Wielka Liga top 10",
+        "DESCRIPTION": "Pokemony z top 10 Wielkiej Ligi"
+      },
+      "PVP_ULTRA_1": {
+        "NAME": "PvP Ultra Liga ranga 1",
+        "DESCRIPTION": "Pokemony z rangą 1 w Ultra Lidze (2500 CP)"
+      },
+      "PVP_ULTRA_10": {
+        "NAME": "PvP Ultra Liga top 10",
+        "DESCRIPTION": "Pokemony z top 10 Ultra Ligi"
+      },
+      "PVP_LITTLE_1": {
+        "NAME": "PvP Mała Liga ranga 1",
+        "DESCRIPTION": "Pokemony z rangą 1 w Małej Lidze (500 CP)"
+      },
+      "XXL": {
+        "NAME": "Pokemony XXL",
+        "DESCRIPTION": "Wszystkie ogromne Pokemony do medalu XXL"
+      },
+      "XXS": {
+        "NAME": "Pokemony XXS",
+        "DESCRIPTION": "Wszystkie maleńkie Pokemony do medalu XXS"
+      },
+      "RAID_MEGA": {
+        "NAME": "Wszystkie rajdy Mega",
+        "DESCRIPTION": "Wszyscy bossowie rajdów Mega i Pierwotni"
+      },
+      "RAID_5STAR": {
+        "NAME": "Wszystkie rajdy 5-gwiazdkowe",
+        "DESCRIPTION": "Wszyscy legendarni i mityczni bossowie rajdów"
+      },
+      "RAID_SHADOW": {
+        "NAME": "Wszystkie rajdy Shadow",
+        "DESCRIPTION": "Wszyscy bossowie rajdów Shadow"
+      },
+      "RAID_3STAR": {
+        "NAME": "Wszystkie rajdy 3-gwiazdkowe",
+        "DESCRIPTION": "Wszyscy bossowie rajdów 3-gwiazdkowych"
+      },
+      "RAID_1STAR": {
+        "NAME": "Wszystkie rajdy 1-gwiazdkowe",
+        "DESCRIPTION": "Wszyscy bossowie rajdów 1-gwiazdkowych"
+      },
+      "RAID_EX": {
+        "NAME": "Rajdy z kwalifikacją EX",
+        "DESCRIPTION": "Rajdy na arenach kwalifikujących się do rajdów EX"
+      },
+      "EGG_5STAR": {
+        "NAME": "Jajka 5-gwiazdkowe",
+        "DESCRIPTION": "Legendarne jajka rajdowe"
+      },
+      "EGG_MEGA": {
+        "NAME": "Jajka Mega",
+        "DESCRIPTION": "Jajka rajdów Mega"
+      },
+      "QUEST_STARDUST": {
+        "NAME": "Zadania z pyłem gwiezdnym",
+        "DESCRIPTION": "Badania terenowe z pyłem gwiezdnym w nagrodę"
+      },
+      "QUEST_POKEMON": {
+        "NAME": "Zadania ze spotkaniem",
+        "DESCRIPTION": "Badania terenowe ze spotkaniem z Pokemonem w nagrodę"
+      },
+      "QUEST_RARE_CANDY": {
+        "NAME": "Zadania z rzadkim cukierkiem",
+        "DESCRIPTION": "Badania terenowe z rzadkimi cukierkami w nagrodę"
+      },
+      "ALL_INVASIONS": {
+        "NAME": "Wszystkie inwazje",
+        "DESCRIPTION": "Wszyscy szeregowi i liderzy Team GO Rocket"
+      },
+      "INVASION_LEADER": {
+        "NAME": "Liderzy Rocket",
+        "DESCRIPTION": "Spotkania z Sierrą, Cliffem i Arlo"
+      },
+      "INVASION_GIOVANNI": {
+        "NAME": "Giovanni",
+        "DESCRIPTION": "Spotkania z bossem Giovannim"
+      },
+      "LURE_GLACIAL": {
+        "NAME": "Przynęty lodowe",
+        "DESCRIPTION": "Moduły przynęty lodowej na PokéStopach"
+      },
+      "LURE_MAGNETIC": {
+        "NAME": "Przynęty magnetyczne",
+        "DESCRIPTION": "Moduły przynęty magnetycznej na PokéStopach"
+      },
+      "LURE_MOSSY": {
+        "NAME": "Przynęty mchowe",
+        "DESCRIPTION": "Moduły przynęty mchowej na PokéStopach"
+      },
+      "LURE_RAINY": {
+        "NAME": "Przynęty deszczowe",
+        "DESCRIPTION": "Moduły przynęty deszczowej na PokéStopach"
+      },
+      "LURE_GOLDEN": {
+        "NAME": "Przynęty złote",
+        "DESCRIPTION": "Moduły złotej przynęty na PokéStopach"
+      }
+    }
   },
   "HELP": {
     "PAGE_TITLE": "Pomoc i przewodnik",

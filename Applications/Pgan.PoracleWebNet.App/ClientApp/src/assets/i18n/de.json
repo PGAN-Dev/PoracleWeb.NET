@@ -1228,7 +1228,144 @@
     "CATEGORY_QUESTS": "Quests",
     "CATEGORY_INVASIONS": "Invasionen",
     "CATEGORY_MAX_BATTLES": "Max-Kämpfe",
-    "CATEGORY_CUSTOM": "Eigene"
+    "CATEGORY_CUSTOM": "Eigene",
+    "ALARM_TYPES": {
+      "MONSTER": "Pokemon",
+      "RAID": "Raid",
+      "EGG": "Ei",
+      "QUEST": "Quest",
+      "INVASION": "Invasion",
+      "LURE": "Lockmodul",
+      "NEST": "Nest",
+      "GYM": "Arena",
+      "MAXBATTLE": "Max-Kampf"
+    },
+    "BUILT_IN": {
+      "HUNDO": {
+        "NAME": "100 % IV Pokemon",
+        "DESCRIPTION": "Alle wilden Pokemon mit perfekten IVs"
+      },
+      "NUNDO": {
+        "NAME": "0 % IV Pokemon",
+        "DESCRIPTION": "Alle wilden Pokemon mit 0 % IV"
+      },
+      "HIGH_IV": {
+        "NAME": "90 %+ IV Pokemon",
+        "DESCRIPTION": "Alle Pokemon mit 90 % IV oder mehr"
+      },
+      "HIGH_LEVEL": {
+        "NAME": "Level 30+ Pokemon",
+        "DESCRIPTION": "Alle wilden Pokemon mit hohem Level (wetterverstärkt)"
+      },
+      "HIGH_CP": {
+        "NAME": "3000+ CP Pokemon",
+        "DESCRIPTION": "Starke wilde Pokemon zur Arenaverteidigung"
+      },
+      "PVP_GREAT_1": {
+        "NAME": "PvP Superliga Rang 1",
+        "DESCRIPTION": "Pokemon auf Rang 1 der Superliga (1500 CP)"
+      },
+      "PVP_GREAT_10": {
+        "NAME": "PvP Superliga Top 10",
+        "DESCRIPTION": "Pokemon unter den Top 10 der Superliga"
+      },
+      "PVP_ULTRA_1": {
+        "NAME": "PvP Hyperliga Rang 1",
+        "DESCRIPTION": "Pokemon auf Rang 1 der Hyperliga (2500 CP)"
+      },
+      "PVP_ULTRA_10": {
+        "NAME": "PvP Hyperliga Top 10",
+        "DESCRIPTION": "Pokemon unter den Top 10 der Hyperliga"
+      },
+      "PVP_LITTLE_1": {
+        "NAME": "PvP Mini-Liga Rang 1",
+        "DESCRIPTION": "Pokemon auf Rang 1 der Mini-Liga (500 CP)"
+      },
+      "XXL": {
+        "NAME": "XXL-Pokemon",
+        "DESCRIPTION": "Alle riesigen Pokemon für die XXL-Medaille"
+      },
+      "XXS": {
+        "NAME": "XXS-Pokemon",
+        "DESCRIPTION": "Alle winzigen Pokemon für die XXS-Medaille"
+      },
+      "RAID_MEGA": {
+        "NAME": "Alle Mega-Raids",
+        "DESCRIPTION": "Alle Mega- und Proto-Raidbosse"
+      },
+      "RAID_5STAR": {
+        "NAME": "Alle 5-Sterne-Raids",
+        "DESCRIPTION": "Alle legendären und mysteriösen Raidbosse"
+      },
+      "RAID_SHADOW": {
+        "NAME": "Alle Crypto-Raids",
+        "DESCRIPTION": "Alle Crypto-Raidbosse"
+      },
+      "RAID_3STAR": {
+        "NAME": "Alle 3-Sterne-Raids",
+        "DESCRIPTION": "Alle 3-Sterne-Raidbosse"
+      },
+      "RAID_1STAR": {
+        "NAME": "Alle 1-Stern-Raids",
+        "DESCRIPTION": "Alle 1-Stern-Raidbosse"
+      },
+      "RAID_EX": {
+        "NAME": "EX-Raid-Arenen",
+        "DESCRIPTION": "Raids in Arenen, die für EX-Raids infrage kommen"
+      },
+      "EGG_5STAR": {
+        "NAME": "5-Sterne-Eier",
+        "DESCRIPTION": "Legendäre Raid-Eier"
+      },
+      "EGG_MEGA": {
+        "NAME": "Mega-Eier",
+        "DESCRIPTION": "Mega-Raid-Eier"
+      },
+      "QUEST_STARDUST": {
+        "NAME": "Sternenstaub-Quests",
+        "DESCRIPTION": "Feldforschungen mit Sternenstaub als Belohnung"
+      },
+      "QUEST_POKEMON": {
+        "NAME": "Pokemon-Begegnungs-Quests",
+        "DESCRIPTION": "Feldforschungen mit einer Pokemon-Begegnung als Belohnung"
+      },
+      "QUEST_RARE_CANDY": {
+        "NAME": "Sonderbonbon-Quests",
+        "DESCRIPTION": "Feldforschungen mit Sonderbonbons als Belohnung"
+      },
+      "ALL_INVASIONS": {
+        "NAME": "Alle Invasionen",
+        "DESCRIPTION": "Alle Rüpel und Anführer von Team GO Rocket"
+      },
+      "INVASION_LEADER": {
+        "NAME": "Rocket-Anführer",
+        "DESCRIPTION": "Begegnungen mit Sierra, Cliff und Arlo"
+      },
+      "INVASION_GIOVANNI": {
+        "NAME": "Giovanni",
+        "DESCRIPTION": "Begegnungen mit Boss Giovanni"
+      },
+      "LURE_GLACIAL": {
+        "NAME": "Gletscher-Lockmodule",
+        "DESCRIPTION": "Gletscher-Lockmodule an PokéStops"
+      },
+      "LURE_MAGNETIC": {
+        "NAME": "Magnetische Lockmodule",
+        "DESCRIPTION": "Magnetische Lockmodule an PokéStops"
+      },
+      "LURE_MOSSY": {
+        "NAME": "Moosige Lockmodule",
+        "DESCRIPTION": "Moosige Lockmodule an PokéStops"
+      },
+      "LURE_RAINY": {
+        "NAME": "Regnerische Lockmodule",
+        "DESCRIPTION": "Regnerische Lockmodule an PokéStops"
+      },
+      "LURE_GOLDEN": {
+        "NAME": "Goldene Lockmodule",
+        "DESCRIPTION": "Goldene Lockmodule an PokéStops"
+      }
+    }
   },
   "HELP": {
     "PAGE_TITLE": "Hilfe & Benutzerhandbuch",

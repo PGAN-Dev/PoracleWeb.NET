@@ -9,7 +9,8 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
 
-import { QuickPickSummary } from '../../core/models';
+import { quickPickAlarmTypeLabel, quickPickDescription, quickPickName } from './quick-pick-labels';
+import { QuickPickDefinition, QuickPickSummary } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { QuickPickService } from '../../core/services/quick-pick.service';
@@ -110,6 +111,11 @@ export class QuickPickListComponent implements OnInit {
     return readableChip(this.alarmTypeColors[alarmType] || '#666');
   }
 
+  /** The translated alarm type ("Pokemon", not the stored "monster"). */
+  alarmTypeLabel(alarmType: string): string {
+    return quickPickAlarmTypeLabel(alarmType, this.i18n);
+  }
+
   /** Display label for a stored category. Unmapped values render as stored. */
   categoryLabel(category: string): string {
     const key = CATEGORY_KEYS[category];
@@ -182,7 +188,7 @@ export class QuickPickListComponent implements OnInit {
   onDelete(pick: QuickPickSummary): void {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        message: this.i18n.instant('QUICK_PICKS.CONFIRM_DELETE_MSG', { name: pick.definition.name }),
+        message: this.i18n.instant('QUICK_PICKS.CONFIRM_DELETE_MSG', { name: this.pickName(pick.definition) }),
         title: this.i18n.instant('QUICK_PICKS.CONFIRM_DELETE_TITLE'),
       },
     });
@@ -219,7 +225,7 @@ export class QuickPickListComponent implements OnInit {
     const count = pick.appliedState?.trackedUids?.length ?? 0;
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        message: this.i18n.plural('QUICK_PICKS.CONFIRM_REMOVE_MSG', count, { name: pick.definition.name }),
+        message: this.i18n.plural('QUICK_PICKS.CONFIRM_REMOVE_MSG', count, { name: this.pickName(pick.definition) }),
         title: this.i18n.instant('QUICK_PICKS.CONFIRM_REMOVE_TITLE'),
       },
     });
@@ -261,6 +267,15 @@ export class QuickPickListComponent implements OnInit {
         },
       });
     });
+  }
+
+  pickDescription(definition: QuickPickDefinition): string {
+    return quickPickDescription(definition, this.i18n);
+  }
+
+  /** A built-in pick's name in the display language, or the stored name for anything an admin or user wrote. */
+  pickName(definition: QuickPickDefinition): string {
+    return quickPickName(definition, this.i18n);
   }
 
   selectCategory(cat: string): void {

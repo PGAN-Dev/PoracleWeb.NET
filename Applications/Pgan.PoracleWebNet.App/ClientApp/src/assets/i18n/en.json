@@ -1228,7 +1228,144 @@
     "CATEGORY_QUESTS": "Quests",
     "CATEGORY_INVASIONS": "Invasions",
     "CATEGORY_MAX_BATTLES": "Max Battles",
-    "CATEGORY_CUSTOM": "Custom"
+    "CATEGORY_CUSTOM": "Custom",
+    "ALARM_TYPES": {
+      "MONSTER": "Pokemon",
+      "RAID": "Raid",
+      "EGG": "Egg",
+      "QUEST": "Quest",
+      "INVASION": "Invasion",
+      "LURE": "Lure",
+      "NEST": "Nest",
+      "GYM": "Gym",
+      "MAXBATTLE": "Max Battle"
+    },
+    "BUILT_IN": {
+      "HUNDO": {
+        "NAME": "100% IV Pokemon",
+        "DESCRIPTION": "Track all perfect IV wild spawns"
+      },
+      "NUNDO": {
+        "NAME": "0% IV Pokemon",
+        "DESCRIPTION": "Track all zero IV wild spawns"
+      },
+      "HIGH_IV": {
+        "NAME": "90%+ IV Pokemon",
+        "DESCRIPTION": "Track all Pokemon with 90% IV or higher"
+      },
+      "HIGH_LEVEL": {
+        "NAME": "Level 30+ Pokemon",
+        "DESCRIPTION": "Track all high-level wild spawns (weather boosted)"
+      },
+      "HIGH_CP": {
+        "NAME": "3000+ CP Pokemon",
+        "DESCRIPTION": "Track strong wild spawns for gym defense"
+      },
+      "PVP_GREAT_1": {
+        "NAME": "PvP Great Rank 1",
+        "DESCRIPTION": "Track rank 1 Pokemon for Great League (1500 CP)"
+      },
+      "PVP_GREAT_10": {
+        "NAME": "PvP Great Top 10",
+        "DESCRIPTION": "Track top 10 ranked Pokemon for Great League"
+      },
+      "PVP_ULTRA_1": {
+        "NAME": "PvP Ultra Rank 1",
+        "DESCRIPTION": "Track rank 1 Pokemon for Ultra League (2500 CP)"
+      },
+      "PVP_ULTRA_10": {
+        "NAME": "PvP Ultra Top 10",
+        "DESCRIPTION": "Track top 10 ranked Pokemon for Ultra League"
+      },
+      "PVP_LITTLE_1": {
+        "NAME": "PvP Little Rank 1",
+        "DESCRIPTION": "Track rank 1 Pokemon for Little Cup (500 CP)"
+      },
+      "XXL": {
+        "NAME": "XXL Pokemon",
+        "DESCRIPTION": "Track all jumbo sized Pokemon for the XXL medal"
+      },
+      "XXS": {
+        "NAME": "XXS Pokemon",
+        "DESCRIPTION": "Track all tiny Pokemon for the XXS medal"
+      },
+      "RAID_MEGA": {
+        "NAME": "All Mega Raids",
+        "DESCRIPTION": "Track all Mega and Primal raid bosses"
+      },
+      "RAID_5STAR": {
+        "NAME": "All 5-Star Raids",
+        "DESCRIPTION": "Track all legendary and mythical raid bosses"
+      },
+      "RAID_SHADOW": {
+        "NAME": "All Shadow Raids",
+        "DESCRIPTION": "Track all shadow raid bosses"
+      },
+      "RAID_3STAR": {
+        "NAME": "All 3-Star Raids",
+        "DESCRIPTION": "Track all 3-star raid bosses"
+      },
+      "RAID_1STAR": {
+        "NAME": "All 1-Star Raids",
+        "DESCRIPTION": "Track all 1-star raid bosses"
+      },
+      "RAID_EX": {
+        "NAME": "EX Eligible Raids",
+        "DESCRIPTION": "Track raids at EX-eligible gyms"
+      },
+      "EGG_5STAR": {
+        "NAME": "5-Star Eggs",
+        "DESCRIPTION": "Track legendary raid eggs"
+      },
+      "EGG_MEGA": {
+        "NAME": "Mega Eggs",
+        "DESCRIPTION": "Track Mega raid eggs"
+      },
+      "QUEST_STARDUST": {
+        "NAME": "Stardust Quests",
+        "DESCRIPTION": "Track field research rewarding stardust"
+      },
+      "QUEST_POKEMON": {
+        "NAME": "Pokemon Encounter Quests",
+        "DESCRIPTION": "Track field research rewarding Pokemon encounters"
+      },
+      "QUEST_RARE_CANDY": {
+        "NAME": "Rare Candy Quests",
+        "DESCRIPTION": "Track field research rewarding rare candy"
+      },
+      "ALL_INVASIONS": {
+        "NAME": "All Invasions",
+        "DESCRIPTION": "Track all Team Rocket grunt and leader invasions"
+      },
+      "INVASION_LEADER": {
+        "NAME": "Rocket Leaders",
+        "DESCRIPTION": "Track Sierra, Cliff, and Arlo encounters"
+      },
+      "INVASION_GIOVANNI": {
+        "NAME": "Giovanni",
+        "DESCRIPTION": "Track Giovanni boss encounters"
+      },
+      "LURE_GLACIAL": {
+        "NAME": "Glacial Lures",
+        "DESCRIPTION": "Track Glacial Lure Modules at PokeStops"
+      },
+      "LURE_MAGNETIC": {
+        "NAME": "Magnetic Lures",
+        "DESCRIPTION": "Track Magnetic Lure Modules at PokeStops"
+      },
+      "LURE_MOSSY": {
+        "NAME": "Mossy Lures",
+        "DESCRIPTION": "Track Mossy Lure Modules at PokeStops"
+      },
+      "LURE_RAINY": {
+        "NAME": "Rainy Lures",
+        "DESCRIPTION": "Track Rainy Lure Modules at PokeStops"
+      },
+      "LURE_GOLDEN": {
+        "NAME": "Golden Lures",
+        "DESCRIPTION": "Track Golden Lure Modules at PokeStops"
+      }
+    }
   },
   "HELP": {
     "PAGE_TITLE": "Help & User Guide",

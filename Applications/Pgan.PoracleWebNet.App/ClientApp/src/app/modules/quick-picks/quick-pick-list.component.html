@@ -69,19 +69,19 @@
               </div>
               <div class="pick-info">
                 <h3>
-                  {{ pick.definition.name }}
+                  {{ pickName(pick.definition) }}
                   @if (pick.definition.scope === 'global') {
                     <mat-icon class="scope-icon" [matTooltip]="'QUICK_PICKS.ADMIN_PRESET' | translate">lock</mat-icon>
                   } @else {
                     <mat-icon class="scope-icon" [matTooltip]="'QUICK_PICKS.PERSONAL_PRESET' | translate">person</mat-icon>
                   }
                 </h3>
-                <span class="pick-description">{{ pick.definition.description }}</span>
+                <span class="pick-description">{{ pickDescription(pick.definition) }}</span>
               </div>
               <div class="card-top-actions">
                 @let typeChip = alarmTypeChip(pick.definition.alarmType);
                 <span class="alarm-type-chip" [style.background-color]="typeChip.background" [style.color]="typeChip.color">
-                  {{ pick.definition.alarmType }}
+                  {{ alarmTypeLabel(pick.definition.alarmType) }}
                 </span>
               </div>
             </div>

@@ -11,6 +11,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { TranslatePipe } from '@ngx-translate/core';
 
+import { quickPickAlarmTypeLabel } from './quick-pick-labels';
 import { QuickPickDefinition } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
@@ -173,6 +174,11 @@ export class QuickPickAdminDialogComponent implements OnInit {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  /** The translated alarm type for the type picker; the stored value stays 'monster', 'raid' and so on. */
+  alarmTypeLabel(alarmType: string): string {
+    return quickPickAlarmTypeLabel(alarmType, this.i18n);
+  }
+
   /** Display label for a stored category. Unmapped values render as stored. */
   categoryLabel(category: string): string {
     const key = CATEGORY_KEYS[category];

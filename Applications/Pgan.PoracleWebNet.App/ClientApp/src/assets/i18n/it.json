@@ -1228,7 +1228,144 @@
     "CATEGORY_QUESTS": "Missioni",
     "CATEGORY_INVASIONS": "Invasioni",
     "CATEGORY_MAX_BATTLES": "Battaglie Max",
-    "CATEGORY_CUSTOM": "Personalizzate"
+    "CATEGORY_CUSTOM": "Personalizzate",
+    "ALARM_TYPES": {
+      "MONSTER": "Pokemon",
+      "RAID": "Raid",
+      "EGG": "Uovo",
+      "QUEST": "Missione",
+      "INVASION": "Invasione",
+      "LURE": "Esca",
+      "NEST": "Nido",
+      "GYM": "Palestra",
+      "MAXBATTLE": "Battaglia Max"
+    },
+    "BUILT_IN": {
+      "HUNDO": {
+        "NAME": "Pokemon 100% IV",
+        "DESCRIPTION": "Tutti i Pokemon selvatici con IV perfetti"
+      },
+      "NUNDO": {
+        "NAME": "Pokemon 0% IV",
+        "DESCRIPTION": "Tutti i Pokemon selvatici con IV a zero"
+      },
+      "HIGH_IV": {
+        "NAME": "Pokemon 90%+ IV",
+        "DESCRIPTION": "Tutti i Pokemon con IV del 90% o più"
+      },
+      "HIGH_LEVEL": {
+        "NAME": "Pokemon livello 30+",
+        "DESCRIPTION": "Tutti i Pokemon selvatici di livello alto (potenziati dal meteo)"
+      },
+      "HIGH_CP": {
+        "NAME": "Pokemon 3000+ CP",
+        "DESCRIPTION": "Pokemon selvatici forti per difendere le palestre"
+      },
+      "PVP_GREAT_1": {
+        "NAME": "PvP Super Lega rango 1",
+        "DESCRIPTION": "Pokemon di rango 1 in Super Lega (1500 CP)"
+      },
+      "PVP_GREAT_10": {
+        "NAME": "PvP Super Lega top 10",
+        "DESCRIPTION": "Pokemon nella top 10 della Super Lega"
+      },
+      "PVP_ULTRA_1": {
+        "NAME": "PvP Ultra Lega rango 1",
+        "DESCRIPTION": "Pokemon di rango 1 in Ultra Lega (2500 CP)"
+      },
+      "PVP_ULTRA_10": {
+        "NAME": "PvP Ultra Lega top 10",
+        "DESCRIPTION": "Pokemon nella top 10 della Ultra Lega"
+      },
+      "PVP_LITTLE_1": {
+        "NAME": "PvP Lega Minor rango 1",
+        "DESCRIPTION": "Pokemon di rango 1 in Lega Minor (500 CP)"
+      },
+      "XXL": {
+        "NAME": "Pokemon XXL",
+        "DESCRIPTION": "Tutti i Pokemon giganti per la medaglia XXL"
+      },
+      "XXS": {
+        "NAME": "Pokemon XXS",
+        "DESCRIPTION": "Tutti i Pokemon minuscoli per la medaglia XXS"
+      },
+      "RAID_MEGA": {
+        "NAME": "Tutti i raid Mega",
+        "DESCRIPTION": "Tutti i boss dei raid Mega e Archeo"
+      },
+      "RAID_5STAR": {
+        "NAME": "Tutti i raid 5 stelle",
+        "DESCRIPTION": "Tutti i boss dei raid leggendari e misteriosi"
+      },
+      "RAID_SHADOW": {
+        "NAME": "Tutti i raid Ombra",
+        "DESCRIPTION": "Tutti i boss dei raid Ombra"
+      },
+      "RAID_3STAR": {
+        "NAME": "Tutti i raid 3 stelle",
+        "DESCRIPTION": "Tutti i boss dei raid 3 stelle"
+      },
+      "RAID_1STAR": {
+        "NAME": "Tutti i raid 1 stella",
+        "DESCRIPTION": "Tutti i boss dei raid 1 stella"
+      },
+      "RAID_EX": {
+        "NAME": "Raid idonei EX",
+        "DESCRIPTION": "Raid nelle palestre idonee ai raid EX"
+      },
+      "EGG_5STAR": {
+        "NAME": "Uova 5 stelle",
+        "DESCRIPTION": "Uova dei raid leggendari"
+      },
+      "EGG_MEGA": {
+        "NAME": "Uova Mega",
+        "DESCRIPTION": "Uova dei raid Mega"
+      },
+      "QUEST_STARDUST": {
+        "NAME": "Missioni polvere di stelle",
+        "DESCRIPTION": "Ricerche sul campo che danno polvere di stelle"
+      },
+      "QUEST_POKEMON": {
+        "NAME": "Missioni incontro Pokemon",
+        "DESCRIPTION": "Ricerche sul campo che danno un incontro con un Pokemon"
+      },
+      "QUEST_RARE_CANDY": {
+        "NAME": "Missioni caramella rara",
+        "DESCRIPTION": "Ricerche sul campo che danno caramelle rare"
+      },
+      "ALL_INVASIONS": {
+        "NAME": "Tutte le invasioni",
+        "DESCRIPTION": "Tutte le reclute e i leader del Team GO Rocket"
+      },
+      "INVASION_LEADER": {
+        "NAME": "Leader Rocket",
+        "DESCRIPTION": "Incontri con Sierra, Cliff e Arlo"
+      },
+      "INVASION_GIOVANNI": {
+        "NAME": "Giovanni",
+        "DESCRIPTION": "Incontri con il boss Giovanni"
+      },
+      "LURE_GLACIAL": {
+        "NAME": "Esche Glaciali",
+        "DESCRIPTION": "Moduli Esca Glaciale nei PokéStop"
+      },
+      "LURE_MAGNETIC": {
+        "NAME": "Esche Magnetiche",
+        "DESCRIPTION": "Moduli Esca Magnetico nei PokéStop"
+      },
+      "LURE_MOSSY": {
+        "NAME": "Esche Muschiate",
+        "DESCRIPTION": "Moduli Esca Muschiato nei PokéStop"
+      },
+      "LURE_RAINY": {
+        "NAME": "Esche Piovose",
+        "DESCRIPTION": "Moduli Esca Piovoso nei PokéStop"
+      },
+      "LURE_GOLDEN": {
+        "NAME": "Esche Dorate",
+        "DESCRIPTION": "Moduli Esca Dorato nei PokéStop"
+      }
+    }
   },
   "HELP": {
     "PAGE_TITLE": "Aiuto e Guida Utente",

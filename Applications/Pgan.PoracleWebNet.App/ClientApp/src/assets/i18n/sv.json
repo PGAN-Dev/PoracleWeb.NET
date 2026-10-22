@@ -1228,7 +1228,144 @@
     "CATEGORY_CUSTOM": "Egna",
     "ADMIN_ACTIONS": "Admin-åtgärder",
     "REAPPLY_TOOLTIP": "Uppdatera leveransinställningar och tillämpa igen",
-    "REMOVE_TOOLTIP": "Ta bort larm skapade av detta val"
+    "REMOVE_TOOLTIP": "Ta bort larm skapade av detta val",
+    "ALARM_TYPES": {
+      "MONSTER": "Pokemon",
+      "RAID": "Raid",
+      "EGG": "Ägg",
+      "QUEST": "Uppdrag",
+      "INVASION": "Invasion",
+      "LURE": "Lockmodul",
+      "NEST": "Näste",
+      "GYM": "Gym",
+      "MAXBATTLE": "Max-strid"
+    },
+    "BUILT_IN": {
+      "HUNDO": {
+        "NAME": "100 % IV Pokemon",
+        "DESCRIPTION": "Alla vilda Pokemon med perfekta IV"
+      },
+      "NUNDO": {
+        "NAME": "0 % IV Pokemon",
+        "DESCRIPTION": "Alla vilda Pokemon med 0 % IV"
+      },
+      "HIGH_IV": {
+        "NAME": "90 %+ IV Pokemon",
+        "DESCRIPTION": "Alla Pokemon med 90 % IV eller mer"
+      },
+      "HIGH_LEVEL": {
+        "NAME": "Nivå 30+ Pokemon",
+        "DESCRIPTION": "Alla vilda Pokemon på hög nivå (väderförstärkta)"
+      },
+      "HIGH_CP": {
+        "NAME": "3000+ CP Pokemon",
+        "DESCRIPTION": "Starka vilda Pokemon för att försvara gym"
+      },
+      "PVP_GREAT_1": {
+        "NAME": "PvP Stor liga rank 1",
+        "DESCRIPTION": "Pokemon med rank 1 i Stor liga (1500 CP)"
+      },
+      "PVP_GREAT_10": {
+        "NAME": "PvP Stor liga topp 10",
+        "DESCRIPTION": "Pokemon på topp 10 i Stor liga"
+      },
+      "PVP_ULTRA_1": {
+        "NAME": "PvP Ultraliga rank 1",
+        "DESCRIPTION": "Pokemon med rank 1 i Ultraliga (2500 CP)"
+      },
+      "PVP_ULTRA_10": {
+        "NAME": "PvP Ultraliga topp 10",
+        "DESCRIPTION": "Pokemon på topp 10 i Ultraliga"
+      },
+      "PVP_LITTLE_1": {
+        "NAME": "PvP Liten liga rank 1",
+        "DESCRIPTION": "Pokemon med rank 1 i Liten liga (500 CP)"
+      },
+      "XXL": {
+        "NAME": "XXL-Pokemon",
+        "DESCRIPTION": "Alla jättestora Pokemon för XXL-medaljen"
+      },
+      "XXS": {
+        "NAME": "XXS-Pokemon",
+        "DESCRIPTION": "Alla pyttesmå Pokemon för XXS-medaljen"
+      },
+      "RAID_MEGA": {
+        "NAME": "Alla Mega-raider",
+        "DESCRIPTION": "Alla Mega- och Primal-raidbossar"
+      },
+      "RAID_5STAR": {
+        "NAME": "Alla 5-stjärniga raider",
+        "DESCRIPTION": "Alla legendariska och mytiska raidbossar"
+      },
+      "RAID_SHADOW": {
+        "NAME": "Alla Shadow-raider",
+        "DESCRIPTION": "Alla Shadow-raidbossar"
+      },
+      "RAID_3STAR": {
+        "NAME": "Alla 3-stjärniga raider",
+        "DESCRIPTION": "Alla 3-stjärniga raidbossar"
+      },
+      "RAID_1STAR": {
+        "NAME": "Alla 1-stjärniga raider",
+        "DESCRIPTION": "Alla 1-stjärniga raidbossar"
+      },
+      "RAID_EX": {
+        "NAME": "EX-berättigade raider",
+        "DESCRIPTION": "Raider på gym som kan få EX-raider"
+      },
+      "EGG_5STAR": {
+        "NAME": "5-stjärniga ägg",
+        "DESCRIPTION": "Legendariska raidägg"
+      },
+      "EGG_MEGA": {
+        "NAME": "Mega-ägg",
+        "DESCRIPTION": "Mega-raidägg"
+      },
+      "QUEST_STARDUST": {
+        "NAME": "Stardust-uppdrag",
+        "DESCRIPTION": "Field research som belönar med stardust"
+      },
+      "QUEST_POKEMON": {
+        "NAME": "Pokemon-möte-uppdrag",
+        "DESCRIPTION": "Field research som belönar med ett Pokemon-möte"
+      },
+      "QUEST_RARE_CANDY": {
+        "NAME": "Rare Candy-uppdrag",
+        "DESCRIPTION": "Field research som belönar med Rare Candy"
+      },
+      "ALL_INVASIONS": {
+        "NAME": "Alla invasioner",
+        "DESCRIPTION": "Alla grunts och ledare i Team GO Rocket"
+      },
+      "INVASION_LEADER": {
+        "NAME": "Rocket-ledare",
+        "DESCRIPTION": "Möten med Sierra, Cliff och Arlo"
+      },
+      "INVASION_GIOVANNI": {
+        "NAME": "Giovanni",
+        "DESCRIPTION": "Möten med bossen Giovanni"
+      },
+      "LURE_GLACIAL": {
+        "NAME": "Glaciala lockmoduler",
+        "DESCRIPTION": "Glaciala lockmoduler vid PokéStops"
+      },
+      "LURE_MAGNETIC": {
+        "NAME": "Magnetiska lockmoduler",
+        "DESCRIPTION": "Magnetiska lockmoduler vid PokéStops"
+      },
+      "LURE_MOSSY": {
+        "NAME": "Mossiga lockmoduler",
+        "DESCRIPTION": "Mossiga lockmoduler vid PokéStops"
+      },
+      "LURE_RAINY": {
+        "NAME": "Regniga lockmoduler",
+        "DESCRIPTION": "Regniga lockmoduler vid PokéStops"
+      },
+      "LURE_GOLDEN": {
+        "NAME": "Gyllene lockmoduler",
+        "DESCRIPTION": "Gyllene lockmoduler vid PokéStops"
+      }
+    }
   },
   "HELP": {
     "PAGE_TITLE": "Hjälp och användarguide",

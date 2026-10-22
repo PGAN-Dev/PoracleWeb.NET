@@ -34,7 +34,7 @@
         <mat-label>{{ 'QUICK_PICKS.FIELD_ALARM_TYPE' | translate }}</mat-label>
         <mat-select formControlName="alarmType">
           @for (type of alarmTypes; track type) {
-            <mat-option [value]="type">{{ type }}</mat-option>
+            <mat-option [value]="type">{{ alarmTypeLabel(type) }}</mat-option>
           }
         </mat-select>
       </mat-form-field>

@@ -1,10 +1,10 @@
 <h2 mat-dialog-title>
   <mat-icon class="title-icon">{{ data.definition.icon }}</mat-icon>
-  {{ (isReapply ? 'QUICK_PICKS.REAPPLY' : 'QUICK_PICKS.APPLY') | translate }}: {{ data.definition.name }}
+  {{ (isReapply ? 'QUICK_PICKS.REAPPLY' : 'QUICK_PICKS.APPLY') | translate }}: {{ pickName }}
 </h2>
 
 <mat-dialog-content>
-  <p class="pick-description">{{ data.definition.description }}</p>
+  <p class="pick-description">{{ pickDescription }}</p>
 
   <mat-tab-group animationDuration="200ms" class="alarm-tabs">
     <!-- Tab 1: Options -->

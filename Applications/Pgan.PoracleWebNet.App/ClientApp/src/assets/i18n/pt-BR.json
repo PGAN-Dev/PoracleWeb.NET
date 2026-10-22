@@ -1228,7 +1228,144 @@
     "CATEGORY_CUSTOM": "Personalizado",
     "ADMIN_ACTIONS": "Ações de admin",
     "REAPPLY_TOOLTIP": "Atualizar configurações de entrega e reaplicar",
-    "REMOVE_TOOLTIP": "Remover alarmes criados por esta seleção"
+    "REMOVE_TOOLTIP": "Remover alarmes criados por esta seleção",
+    "ALARM_TYPES": {
+      "MONSTER": "Pokemon",
+      "RAID": "Raid",
+      "EGG": "Ovo",
+      "QUEST": "Quest",
+      "INVASION": "Invasão",
+      "LURE": "Isca",
+      "NEST": "Ninho",
+      "GYM": "Ginásio",
+      "MAXBATTLE": "Batalha Max"
+    },
+    "BUILT_IN": {
+      "HUNDO": {
+        "NAME": "Pokemon 100% IV",
+        "DESCRIPTION": "Todos os Pokemon selvagens com IV perfeitos"
+      },
+      "NUNDO": {
+        "NAME": "Pokemon 0% IV",
+        "DESCRIPTION": "Todos os Pokemon selvagens com 0% IV"
+      },
+      "HIGH_IV": {
+        "NAME": "Pokemon 90%+ IV",
+        "DESCRIPTION": "Todos os Pokemon com 90% IV ou mais"
+      },
+      "HIGH_LEVEL": {
+        "NAME": "Pokemon nível 30+",
+        "DESCRIPTION": "Todos os Pokemon selvagens de nível alto (com bônus de clima)"
+      },
+      "HIGH_CP": {
+        "NAME": "Pokemon 3000+ CP",
+        "DESCRIPTION": "Pokemon selvagens fortes para defender ginásios"
+      },
+      "PVP_GREAT_1": {
+        "NAME": "PvP Liga Super rank 1",
+        "DESCRIPTION": "Pokemon de rank 1 na Liga Super (1500 CP)"
+      },
+      "PVP_GREAT_10": {
+        "NAME": "PvP Liga Super top 10",
+        "DESCRIPTION": "Pokemon do top 10 da Liga Super"
+      },
+      "PVP_ULTRA_1": {
+        "NAME": "PvP Liga Ultra rank 1",
+        "DESCRIPTION": "Pokemon de rank 1 na Liga Ultra (2500 CP)"
+      },
+      "PVP_ULTRA_10": {
+        "NAME": "PvP Liga Ultra top 10",
+        "DESCRIPTION": "Pokemon do top 10 da Liga Ultra"
+      },
+      "PVP_LITTLE_1": {
+        "NAME": "PvP Liga Mini rank 1",
+        "DESCRIPTION": "Pokemon de rank 1 na Liga Mini (500 CP)"
+      },
+      "XXL": {
+        "NAME": "Pokemon XXL",
+        "DESCRIPTION": "Todos os Pokemon enormes para a medalha XXL"
+      },
+      "XXS": {
+        "NAME": "Pokemon XXS",
+        "DESCRIPTION": "Todos os Pokemon minúsculos para a medalha XXS"
+      },
+      "RAID_MEGA": {
+        "NAME": "Todas as reides Mega",
+        "DESCRIPTION": "Todos os chefes de reide Mega e Primitivos"
+      },
+      "RAID_5STAR": {
+        "NAME": "Todas as reides de 5 estrelas",
+        "DESCRIPTION": "Todos os chefes de reide lendários e míticos"
+      },
+      "RAID_SHADOW": {
+        "NAME": "Todas as reides Sombrosas",
+        "DESCRIPTION": "Todos os chefes de reide Sombrosos"
+      },
+      "RAID_3STAR": {
+        "NAME": "Todas as reides de 3 estrelas",
+        "DESCRIPTION": "Todos os chefes de reide de 3 estrelas"
+      },
+      "RAID_1STAR": {
+        "NAME": "Todas as reides de 1 estrela",
+        "DESCRIPTION": "Todos os chefes de reide de 1 estrela"
+      },
+      "RAID_EX": {
+        "NAME": "Reides elegíveis para EX",
+        "DESCRIPTION": "Reides em ginásios elegíveis para reides EX"
+      },
+      "EGG_5STAR": {
+        "NAME": "Ovos de 5 estrelas",
+        "DESCRIPTION": "Ovos de reide lendários"
+      },
+      "EGG_MEGA": {
+        "NAME": "Ovos Mega",
+        "DESCRIPTION": "Ovos de reide Mega"
+      },
+      "QUEST_STARDUST": {
+        "NAME": "Missões de poeira estelar",
+        "DESCRIPTION": "Pesquisas de campo que dão poeira estelar"
+      },
+      "QUEST_POKEMON": {
+        "NAME": "Missões de encontro",
+        "DESCRIPTION": "Pesquisas de campo que dão um encontro com um Pokemon"
+      },
+      "QUEST_RARE_CANDY": {
+        "NAME": "Missões de doce raro",
+        "DESCRIPTION": "Pesquisas de campo que dão doces raros"
+      },
+      "ALL_INVASIONS": {
+        "NAME": "Todas as invasões",
+        "DESCRIPTION": "Todos os recrutas e líderes da Equipe GO Rocket"
+      },
+      "INVASION_LEADER": {
+        "NAME": "Líderes Rocket",
+        "DESCRIPTION": "Encontros com Sierra, Cliff e Arlo"
+      },
+      "INVASION_GIOVANNI": {
+        "NAME": "Giovanni",
+        "DESCRIPTION": "Encontros com o chefe Giovanni"
+      },
+      "LURE_GLACIAL": {
+        "NAME": "Iscas Glaciais",
+        "DESCRIPTION": "Módulos Isca Glacial em PokéStops"
+      },
+      "LURE_MAGNETIC": {
+        "NAME": "Iscas Magnéticas",
+        "DESCRIPTION": "Módulos Isca Magnética em PokéStops"
+      },
+      "LURE_MOSSY": {
+        "NAME": "Iscas Musgosas",
+        "DESCRIPTION": "Módulos Isca Musgosa em PokéStops"
+      },
+      "LURE_RAINY": {
+        "NAME": "Iscas Chuvosas",
+        "DESCRIPTION": "Módulos Isca Chuvosa em PokéStops"
+      },
+      "LURE_GOLDEN": {
+        "NAME": "Iscas Douradas",
+        "DESCRIPTION": "Módulos Isca Dourada em PokéStops"
+      }
+    }
   },
   "HELP": {
     "PAGE_TITLE": "Ajuda e Guia do Usuário",

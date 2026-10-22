@@ -1228,7 +1228,144 @@
     "CATEGORY_QUESTS": "Quests",
     "CATEGORY_INVASIONS": "Invasies",
     "CATEGORY_MAX_BATTLES": "Max Gevechten",
-    "CATEGORY_CUSTOM": "Eigen"
+    "CATEGORY_CUSTOM": "Eigen",
+    "ALARM_TYPES": {
+      "MONSTER": "Pokemon",
+      "RAID": "Raid",
+      "EGG": "Ei",
+      "QUEST": "Quest",
+      "INVASION": "Invasie",
+      "LURE": "Lokmiddel",
+      "NEST": "Nest",
+      "GYM": "Gym",
+      "MAXBATTLE": "Max Gevecht"
+    },
+    "BUILT_IN": {
+      "HUNDO": {
+        "NAME": "100% IV Pokemon",
+        "DESCRIPTION": "Alle wilde Pokemon met perfecte IV"
+      },
+      "NUNDO": {
+        "NAME": "0% IV Pokemon",
+        "DESCRIPTION": "Alle wilde Pokemon met 0% IV"
+      },
+      "HIGH_IV": {
+        "NAME": "90%+ IV Pokemon",
+        "DESCRIPTION": "Alle Pokemon met 90% IV of meer"
+      },
+      "HIGH_LEVEL": {
+        "NAME": "Level 30+ Pokemon",
+        "DESCRIPTION": "Alle wilde Pokemon van hoog level (weerboost)"
+      },
+      "HIGH_CP": {
+        "NAME": "3000+ CP Pokemon",
+        "DESCRIPTION": "Sterke wilde Pokemon om gyms te verdedigen"
+      },
+      "PVP_GREAT_1": {
+        "NAME": "PvP Great rang 1",
+        "DESCRIPTION": "Pokemon met rang 1 in de Great League (1500 CP)"
+      },
+      "PVP_GREAT_10": {
+        "NAME": "PvP Great top 10",
+        "DESCRIPTION": "Pokemon in de top 10 van de Great League"
+      },
+      "PVP_ULTRA_1": {
+        "NAME": "PvP Ultra rang 1",
+        "DESCRIPTION": "Pokemon met rang 1 in de Ultra League (2500 CP)"
+      },
+      "PVP_ULTRA_10": {
+        "NAME": "PvP Ultra top 10",
+        "DESCRIPTION": "Pokemon in de top 10 van de Ultra League"
+      },
+      "PVP_LITTLE_1": {
+        "NAME": "PvP Little rang 1",
+        "DESCRIPTION": "Pokemon met rang 1 in de Little Cup (500 CP)"
+      },
+      "XXL": {
+        "NAME": "XXL Pokemon",
+        "DESCRIPTION": "Alle enorme Pokemon voor de XXL-medaille"
+      },
+      "XXS": {
+        "NAME": "XXS Pokemon",
+        "DESCRIPTION": "Alle piepkleine Pokemon voor de XXS-medaille"
+      },
+      "RAID_MEGA": {
+        "NAME": "Alle Mega-raids",
+        "DESCRIPTION": "Alle Mega- en Primal-raidbazen"
+      },
+      "RAID_5STAR": {
+        "NAME": "Alle 5-sterrenraids",
+        "DESCRIPTION": "Alle legendarische en mythische raidbazen"
+      },
+      "RAID_SHADOW": {
+        "NAME": "Alle Shadow-raids",
+        "DESCRIPTION": "Alle Shadow-raidbazen"
+      },
+      "RAID_3STAR": {
+        "NAME": "Alle 3-sterrenraids",
+        "DESCRIPTION": "Alle 3-sterrenraidbazen"
+      },
+      "RAID_1STAR": {
+        "NAME": "Alle 1-sterraids",
+        "DESCRIPTION": "Alle 1-sterraidbazen"
+      },
+      "RAID_EX": {
+        "NAME": "EX-geschikte raids",
+        "DESCRIPTION": "Raids bij gyms die geschikt zijn voor EX-raids"
+      },
+      "EGG_5STAR": {
+        "NAME": "5-sterreneieren",
+        "DESCRIPTION": "Legendarische raideieren"
+      },
+      "EGG_MEGA": {
+        "NAME": "Mega-eieren",
+        "DESCRIPTION": "Mega-raideieren"
+      },
+      "QUEST_STARDUST": {
+        "NAME": "Stardust-quests",
+        "DESCRIPTION": "Field research met stardust als beloning"
+      },
+      "QUEST_POKEMON": {
+        "NAME": "Pokemon-ontmoetingsquests",
+        "DESCRIPTION": "Field research met een Pokemon-ontmoeting als beloning"
+      },
+      "QUEST_RARE_CANDY": {
+        "NAME": "Rare Candy-quests",
+        "DESCRIPTION": "Field research met Rare Candy als beloning"
+      },
+      "ALL_INVASIONS": {
+        "NAME": "Alle invasies",
+        "DESCRIPTION": "Alle grunts en leiders van Team GO Rocket"
+      },
+      "INVASION_LEADER": {
+        "NAME": "Rocket-leiders",
+        "DESCRIPTION": "Ontmoetingen met Sierra, Cliff en Arlo"
+      },
+      "INVASION_GIOVANNI": {
+        "NAME": "Giovanni",
+        "DESCRIPTION": "Ontmoetingen met baas Giovanni"
+      },
+      "LURE_GLACIAL": {
+        "NAME": "Glaciale lokmiddelen",
+        "DESCRIPTION": "Glaciale Lure Modules bij PokéStops"
+      },
+      "LURE_MAGNETIC": {
+        "NAME": "Magnetische lokmiddelen",
+        "DESCRIPTION": "Magnetische Lure Modules bij PokéStops"
+      },
+      "LURE_MOSSY": {
+        "NAME": "Bemoste lokmiddelen",
+        "DESCRIPTION": "Bemoste Lure Modules bij PokéStops"
+      },
+      "LURE_RAINY": {
+        "NAME": "Regenachtige lokmiddelen",
+        "DESCRIPTION": "Regenachtige Lure Modules bij PokéStops"
+      },
+      "LURE_GOLDEN": {
+        "NAME": "Gouden lokmiddelen",
+        "DESCRIPTION": "Gouden Lure Modules bij PokéStops"
+      }
+    }
   },
   "HELP": {
     "PAGE_TITLE": "Hulp & Gebruikershandleiding",

@@ -1228,7 +1228,144 @@
     "CATEGORY_CUSTOM": "Personnalisés",
     "ADMIN_ACTIONS": "Actions admin",
     "REAPPLY_TOOLTIP": "Mettre à jour les paramètres de livraison et réappliquer",
-    "REMOVE_TOOLTIP": "Supprimer les alarmes créées par cette sélection"
+    "REMOVE_TOOLTIP": "Supprimer les alarmes créées par cette sélection",
+    "ALARM_TYPES": {
+      "MONSTER": "Pokemon",
+      "RAID": "Raid",
+      "EGG": "Œuf",
+      "QUEST": "Quête",
+      "INVASION": "Invasion",
+      "LURE": "Leurre",
+      "NEST": "Nid",
+      "GYM": "Arène",
+      "MAXBATTLE": "Combat Max"
+    },
+    "BUILT_IN": {
+      "HUNDO": {
+        "NAME": "Pokemon 100 % IV",
+        "DESCRIPTION": "Tous les Pokemon sauvages aux IV parfaits"
+      },
+      "NUNDO": {
+        "NAME": "Pokemon 0 % IV",
+        "DESCRIPTION": "Tous les Pokemon sauvages à 0 % IV"
+      },
+      "HIGH_IV": {
+        "NAME": "Pokemon 90 %+ IV",
+        "DESCRIPTION": "Tous les Pokemon à 90 % IV ou plus"
+      },
+      "HIGH_LEVEL": {
+        "NAME": "Pokemon niveau 30+",
+        "DESCRIPTION": "Tous les Pokemon sauvages de haut niveau (boostés par la météo)"
+      },
+      "HIGH_CP": {
+        "NAME": "Pokemon 3000+ CP",
+        "DESCRIPTION": "Pokemon sauvages puissants pour défendre les arènes"
+      },
+      "PVP_GREAT_1": {
+        "NAME": "PvP Ligue Super rang 1",
+        "DESCRIPTION": "Pokemon de rang 1 en Ligue Super (1500 CP)"
+      },
+      "PVP_GREAT_10": {
+        "NAME": "PvP Ligue Super top 10",
+        "DESCRIPTION": "Pokemon du top 10 en Ligue Super"
+      },
+      "PVP_ULTRA_1": {
+        "NAME": "PvP Ligue Hyper rang 1",
+        "DESCRIPTION": "Pokemon de rang 1 en Ligue Hyper (2500 CP)"
+      },
+      "PVP_ULTRA_10": {
+        "NAME": "PvP Ligue Hyper top 10",
+        "DESCRIPTION": "Pokemon du top 10 en Ligue Hyper"
+      },
+      "PVP_LITTLE_1": {
+        "NAME": "PvP Petite Ligue rang 1",
+        "DESCRIPTION": "Pokemon de rang 1 en Petite Ligue (500 CP)"
+      },
+      "XXL": {
+        "NAME": "Pokemon XXL",
+        "DESCRIPTION": "Tous les Pokemon géants pour la médaille XXL"
+      },
+      "XXS": {
+        "NAME": "Pokemon XXS",
+        "DESCRIPTION": "Tous les Pokemon minuscules pour la médaille XXS"
+      },
+      "RAID_MEGA": {
+        "NAME": "Tous les raids Méga",
+        "DESCRIPTION": "Tous les boss de raid Méga et Primo"
+      },
+      "RAID_5STAR": {
+        "NAME": "Tous les raids 5 étoiles",
+        "DESCRIPTION": "Tous les boss de raid légendaires et fabuleux"
+      },
+      "RAID_SHADOW": {
+        "NAME": "Tous les raids Obscurs",
+        "DESCRIPTION": "Tous les boss de raid Obscurs"
+      },
+      "RAID_3STAR": {
+        "NAME": "Tous les raids 3 étoiles",
+        "DESCRIPTION": "Tous les boss de raid 3 étoiles"
+      },
+      "RAID_1STAR": {
+        "NAME": "Tous les raids 1 étoile",
+        "DESCRIPTION": "Tous les boss de raid 1 étoile"
+      },
+      "RAID_EX": {
+        "NAME": "Raids éligibles EX",
+        "DESCRIPTION": "Raids dans les arènes éligibles aux raids EX"
+      },
+      "EGG_5STAR": {
+        "NAME": "Œufs 5 étoiles",
+        "DESCRIPTION": "Œufs de raid légendaires"
+      },
+      "EGG_MEGA": {
+        "NAME": "Œufs Méga",
+        "DESCRIPTION": "Œufs de raid Méga"
+      },
+      "QUEST_STARDUST": {
+        "NAME": "Quêtes Poussière Étoile",
+        "DESCRIPTION": "Études de terrain qui rapportent de la Poussière Étoile"
+      },
+      "QUEST_POKEMON": {
+        "NAME": "Quêtes de rencontre",
+        "DESCRIPTION": "Études de terrain qui rapportent une rencontre avec un Pokemon"
+      },
+      "QUEST_RARE_CANDY": {
+        "NAME": "Quêtes Super Bonbon",
+        "DESCRIPTION": "Études de terrain qui rapportent des Super Bonbons"
+      },
+      "ALL_INVASIONS": {
+        "NAME": "Toutes les invasions",
+        "DESCRIPTION": "Tous les sbires et chefs de la Team GO Rocket"
+      },
+      "INVASION_LEADER": {
+        "NAME": "Chefs Rocket",
+        "DESCRIPTION": "Rencontres avec Sierra, Cliff et Arlo"
+      },
+      "INVASION_GIOVANNI": {
+        "NAME": "Giovanni",
+        "DESCRIPTION": "Rencontres avec le boss Giovanni"
+      },
+      "LURE_GLACIAL": {
+        "NAME": "Leurres Glaciaires",
+        "DESCRIPTION": "Modules Leurre Glaciaire sur les PokéStops"
+      },
+      "LURE_MAGNETIC": {
+        "NAME": "Leurres Magnétiques",
+        "DESCRIPTION": "Modules Leurre Magnétique sur les PokéStops"
+      },
+      "LURE_MOSSY": {
+        "NAME": "Leurres Moussus",
+        "DESCRIPTION": "Modules Leurre Moussu sur les PokéStops"
+      },
+      "LURE_RAINY": {
+        "NAME": "Leurres Pluvieux",
+        "DESCRIPTION": "Modules Leurre Pluvieux sur les PokéStops"
+      },
+      "LURE_GOLDEN": {
+        "NAME": "Leurres Dorés",
+        "DESCRIPTION": "Modules Leurre Doré sur les PokéStops"
+      }
+    }
   },
   "HELP": {
     "PAGE_TITLE": "Aide et guide utilisateur",

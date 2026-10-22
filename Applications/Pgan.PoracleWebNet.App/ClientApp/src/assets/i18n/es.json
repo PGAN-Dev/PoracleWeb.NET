@@ -1228,7 +1228,144 @@
     "CATEGORY_QUESTS": "Misiones",
     "CATEGORY_INVASIONS": "Invasiones",
     "CATEGORY_MAX_BATTLES": "Combates Max",
-    "CATEGORY_CUSTOM": "Personalizados"
+    "CATEGORY_CUSTOM": "Personalizados",
+    "ALARM_TYPES": {
+      "MONSTER": "Pokemon",
+      "RAID": "Raid",
+      "EGG": "Huevo",
+      "QUEST": "Misión",
+      "INVASION": "Invasión",
+      "LURE": "Señuelo",
+      "NEST": "Nido",
+      "GYM": "Gimnasio",
+      "MAXBATTLE": "Combate Max"
+    },
+    "BUILT_IN": {
+      "HUNDO": {
+        "NAME": "Pokemon 100 % IV",
+        "DESCRIPTION": "Todos los Pokemon salvajes con IV perfectos"
+      },
+      "NUNDO": {
+        "NAME": "Pokemon 0 % IV",
+        "DESCRIPTION": "Todos los Pokemon salvajes con 0 % IV"
+      },
+      "HIGH_IV": {
+        "NAME": "Pokemon 90 %+ IV",
+        "DESCRIPTION": "Todos los Pokemon con 90 % IV o más"
+      },
+      "HIGH_LEVEL": {
+        "NAME": "Pokemon nivel 30+",
+        "DESCRIPTION": "Todos los Pokemon salvajes de nivel alto (potenciados por el clima)"
+      },
+      "HIGH_CP": {
+        "NAME": "Pokemon 3000+ CP",
+        "DESCRIPTION": "Pokemon salvajes fuertes para defender gimnasios"
+      },
+      "PVP_GREAT_1": {
+        "NAME": "PvP Liga Super rango 1",
+        "DESCRIPTION": "Pokemon de rango 1 en la Liga Super (1500 CP)"
+      },
+      "PVP_GREAT_10": {
+        "NAME": "PvP Liga Super top 10",
+        "DESCRIPTION": "Pokemon del top 10 en la Liga Super"
+      },
+      "PVP_ULTRA_1": {
+        "NAME": "PvP Liga Ultra rango 1",
+        "DESCRIPTION": "Pokemon de rango 1 en la Liga Ultra (2500 CP)"
+      },
+      "PVP_ULTRA_10": {
+        "NAME": "PvP Liga Ultra top 10",
+        "DESCRIPTION": "Pokemon del top 10 en la Liga Ultra"
+      },
+      "PVP_LITTLE_1": {
+        "NAME": "PvP Liga Ínfima rango 1",
+        "DESCRIPTION": "Pokemon de rango 1 en la Liga Ínfima (500 CP)"
+      },
+      "XXL": {
+        "NAME": "Pokemon XXL",
+        "DESCRIPTION": "Todos los Pokemon enormes para la medalla XXL"
+      },
+      "XXS": {
+        "NAME": "Pokemon XXS",
+        "DESCRIPTION": "Todos los Pokemon diminutos para la medalla XXS"
+      },
+      "RAID_MEGA": {
+        "NAME": "Todas las incursiones Mega",
+        "DESCRIPTION": "Todos los jefes de incursión Mega y Primigenios"
+      },
+      "RAID_5STAR": {
+        "NAME": "Todas las incursiones de 5 estrellas",
+        "DESCRIPTION": "Todos los jefes de incursión legendarios y singulares"
+      },
+      "RAID_SHADOW": {
+        "NAME": "Todas las incursiones oscuras",
+        "DESCRIPTION": "Todos los jefes de incursión oscuros"
+      },
+      "RAID_3STAR": {
+        "NAME": "Todas las incursiones de 3 estrellas",
+        "DESCRIPTION": "Todos los jefes de incursión de 3 estrellas"
+      },
+      "RAID_1STAR": {
+        "NAME": "Todas las incursiones de 1 estrella",
+        "DESCRIPTION": "Todos los jefes de incursión de 1 estrella"
+      },
+      "RAID_EX": {
+        "NAME": "Incursiones aptas para EX",
+        "DESCRIPTION": "Incursiones en gimnasios aptos para incursiones EX"
+      },
+      "EGG_5STAR": {
+        "NAME": "Huevos de 5 estrellas",
+        "DESCRIPTION": "Huevos de incursión legendarios"
+      },
+      "EGG_MEGA": {
+        "NAME": "Huevos Mega",
+        "DESCRIPTION": "Huevos de incursión Mega"
+      },
+      "QUEST_STARDUST": {
+        "NAME": "Misiones de polvoestelar",
+        "DESCRIPTION": "Investigaciones de campo que dan polvoestelar"
+      },
+      "QUEST_POKEMON": {
+        "NAME": "Misiones de encuentro",
+        "DESCRIPTION": "Investigaciones de campo que dan un encuentro con un Pokemon"
+      },
+      "QUEST_RARE_CANDY": {
+        "NAME": "Misiones de caramelo raro",
+        "DESCRIPTION": "Investigaciones de campo que dan caramelos raros"
+      },
+      "ALL_INVASIONS": {
+        "NAME": "Todas las invasiones",
+        "DESCRIPTION": "Todos los soldados y líderes del Team GO Rocket"
+      },
+      "INVASION_LEADER": {
+        "NAME": "Líderes Rocket",
+        "DESCRIPTION": "Encuentros con Sierra, Cliff y Arlo"
+      },
+      "INVASION_GIOVANNI": {
+        "NAME": "Giovanni",
+        "DESCRIPTION": "Encuentros con el jefe Giovanni"
+      },
+      "LURE_GLACIAL": {
+        "NAME": "Cebos glaciales",
+        "DESCRIPTION": "Módulos Cebo Glacial en PokéParadas"
+      },
+      "LURE_MAGNETIC": {
+        "NAME": "Cebos magnéticos",
+        "DESCRIPTION": "Módulos Cebo Magnético en PokéParadas"
+      },
+      "LURE_MOSSY": {
+        "NAME": "Cebos musgosos",
+        "DESCRIPTION": "Módulos Cebo Musgo en PokéParadas"
+      },
+      "LURE_RAINY": {
+        "NAME": "Cebos lluviosos",
+        "DESCRIPTION": "Módulos Cebo Lluvioso en PokéParadas"
+      },
+      "LURE_GOLDEN": {
+        "NAME": "Cebos dorados",
+        "DESCRIPTION": "Módulos Cebo Dorado en PokéParadas"
+      }
+    }
   },
   "HELP": {
     "PAGE_TITLE": "Ayuda y guía de usuario",

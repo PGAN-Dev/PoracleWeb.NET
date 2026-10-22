@@ -13,6 +13,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { TranslatePipe } from '@ngx-translate/core';
 
+import { quickPickDescription, quickPickName } from './quick-pick-labels';
 import { QuickPickApplyRequest, QuickPickSummary } from '../../core/models';
 import { AlertDefaultsService } from '../../core/services/alert-defaults.service';
 import { I18nService } from '../../core/services/i18n.service';
@@ -72,6 +73,7 @@ export class QuickPickApplyDialogComponent {
 
   readonly excludedPokemonIds = signal<number[]>(this.data.appliedState?.excludePokemonIds ?? []);
   readonly excludeEnabled = signal((this.data.appliedState?.excludePokemonIds?.length ?? 0) > 0);
+
   readonly showExclusions =
     this.data.definition.alarmType === 'monster' &&
     (this.data.definition.filters['pokemonId'] === 0 ||
@@ -85,6 +87,11 @@ export class QuickPickApplyDialogComponent {
   });
 
   readonly isReapply = !!this.data.appliedState;
+
+  readonly pickDescription = quickPickDescription(this.data.definition, this.i18n);
+
+  /** The built-in pick's name and description in the display language; see quick-pick-labels.ts. */
+  readonly pickName = quickPickName(this.data.definition, this.i18n);
 
   /**
    * Seeded from the saved defaults, then owned by the picker. A quick pick creates real alarms, so it

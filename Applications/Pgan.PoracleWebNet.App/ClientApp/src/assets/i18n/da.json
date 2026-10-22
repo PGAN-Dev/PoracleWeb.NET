@@ -1228,7 +1228,144 @@
     "CATEGORY_CUSTOM": "Egne",
     "ADMIN_ACTIONS": "Admin-handlinger",
     "REAPPLY_TOOLTIP": "Opdater leveringsindstillinger og anvend igen",
-    "REMOVE_TOOLTIP": "Fjern alarmer oprettet af dette valg"
+    "REMOVE_TOOLTIP": "Fjern alarmer oprettet af dette valg",
+    "ALARM_TYPES": {
+      "MONSTER": "Pokemon",
+      "RAID": "Raid",
+      "EGG": "Æg",
+      "QUEST": "Quest",
+      "INVASION": "Invasion",
+      "LURE": "Lokkemodul",
+      "NEST": "Rede",
+      "GYM": "Gym",
+      "MAXBATTLE": "Max-kamp"
+    },
+    "BUILT_IN": {
+      "HUNDO": {
+        "NAME": "100% IV Pokemon",
+        "DESCRIPTION": "Alle vilde Pokemon med perfekte IV"
+      },
+      "NUNDO": {
+        "NAME": "0% IV Pokemon",
+        "DESCRIPTION": "Alle vilde Pokemon med 0% IV"
+      },
+      "HIGH_IV": {
+        "NAME": "90%+ IV Pokemon",
+        "DESCRIPTION": "Alle Pokemon med 90% IV eller mere"
+      },
+      "HIGH_LEVEL": {
+        "NAME": "Level 30+ Pokemon",
+        "DESCRIPTION": "Alle vilde Pokemon på højt level (vejrforstærket)"
+      },
+      "HIGH_CP": {
+        "NAME": "3000+ CP Pokemon",
+        "DESCRIPTION": "Stærke vilde Pokemon til at forsvare gyms"
+      },
+      "PVP_GREAT_1": {
+        "NAME": "PvP Stor Liga rang 1",
+        "DESCRIPTION": "Pokemon med rang 1 i Stor Liga (1500 CP)"
+      },
+      "PVP_GREAT_10": {
+        "NAME": "PvP Stor Liga top 10",
+        "DESCRIPTION": "Pokemon i top 10 i Stor Liga"
+      },
+      "PVP_ULTRA_1": {
+        "NAME": "PvP Ultra Liga rang 1",
+        "DESCRIPTION": "Pokemon med rang 1 i Ultra Liga (2500 CP)"
+      },
+      "PVP_ULTRA_10": {
+        "NAME": "PvP Ultra Liga top 10",
+        "DESCRIPTION": "Pokemon i top 10 i Ultra Liga"
+      },
+      "PVP_LITTLE_1": {
+        "NAME": "PvP Lille Liga rang 1",
+        "DESCRIPTION": "Pokemon med rang 1 i Lille Liga (500 CP)"
+      },
+      "XXL": {
+        "NAME": "XXL-Pokemon",
+        "DESCRIPTION": "Alle kæmpestore Pokemon til XXL-medaljen"
+      },
+      "XXS": {
+        "NAME": "XXS-Pokemon",
+        "DESCRIPTION": "Alle bittesmå Pokemon til XXS-medaljen"
+      },
+      "RAID_MEGA": {
+        "NAME": "Alle Mega-raids",
+        "DESCRIPTION": "Alle Mega- og Primal-raidbosser"
+      },
+      "RAID_5STAR": {
+        "NAME": "Alle 5-stjernede raids",
+        "DESCRIPTION": "Alle legendariske og mytiske raidbosser"
+      },
+      "RAID_SHADOW": {
+        "NAME": "Alle Shadow-raids",
+        "DESCRIPTION": "Alle Shadow-raidbosser"
+      },
+      "RAID_3STAR": {
+        "NAME": "Alle 3-stjernede raids",
+        "DESCRIPTION": "Alle 3-stjernede raidbosser"
+      },
+      "RAID_1STAR": {
+        "NAME": "Alle 1-stjernede raids",
+        "DESCRIPTION": "Alle 1-stjernede raidbosser"
+      },
+      "RAID_EX": {
+        "NAME": "EX-egnede raids",
+        "DESCRIPTION": "Raids ved gyms, der kan få EX-raids"
+      },
+      "EGG_5STAR": {
+        "NAME": "5-stjernede æg",
+        "DESCRIPTION": "Legendariske raid-æg"
+      },
+      "EGG_MEGA": {
+        "NAME": "Mega-æg",
+        "DESCRIPTION": "Mega-raid-æg"
+      },
+      "QUEST_STARDUST": {
+        "NAME": "Stardust-quests",
+        "DESCRIPTION": "Field research med stardust som belønning"
+      },
+      "QUEST_POKEMON": {
+        "NAME": "Pokemon-møde-quests",
+        "DESCRIPTION": "Field research med et Pokemon-møde som belønning"
+      },
+      "QUEST_RARE_CANDY": {
+        "NAME": "Rare Candy-quests",
+        "DESCRIPTION": "Field research med Rare Candy som belønning"
+      },
+      "ALL_INVASIONS": {
+        "NAME": "Alle invasioner",
+        "DESCRIPTION": "Alle grunts og ledere fra Team GO Rocket"
+      },
+      "INVASION_LEADER": {
+        "NAME": "Rocket-ledere",
+        "DESCRIPTION": "Møder med Sierra, Cliff og Arlo"
+      },
+      "INVASION_GIOVANNI": {
+        "NAME": "Giovanni",
+        "DESCRIPTION": "Møder med bossen Giovanni"
+      },
+      "LURE_GLACIAL": {
+        "NAME": "Gletsjer-lokkemoduler",
+        "DESCRIPTION": "Gletsjer-lokkemoduler ved PokéStops"
+      },
+      "LURE_MAGNETIC": {
+        "NAME": "Magnetiske lokkemoduler",
+        "DESCRIPTION": "Magnetiske lokkemoduler ved PokéStops"
+      },
+      "LURE_MOSSY": {
+        "NAME": "Mosgroede lokkemoduler",
+        "DESCRIPTION": "Mosgroede lokkemoduler ved PokéStops"
+      },
+      "LURE_RAINY": {
+        "NAME": "Regnfulde lokkemoduler",
+        "DESCRIPTION": "Regnfulde lokkemoduler ved PokéStops"
+      },
+      "LURE_GOLDEN": {
+        "NAME": "Gyldne lokkemoduler",
+        "DESCRIPTION": "Gyldne lokkemoduler ved PokéStops"
+      }
+    }
   },
   "HELP": {
     "PAGE_TITLE": "Hjælp og brugervejledning",
