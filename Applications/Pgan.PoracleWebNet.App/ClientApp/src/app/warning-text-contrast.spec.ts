@@ -40,6 +40,16 @@ describe('amber warning text reads at 4.5:1', () => {
     expect(contrastRatio(colorIn(help, '\n.lang-fallback-chip {'), '#fff0e0')).toBeGreaterThanOrEqual(4.5);
   });
 
+  // The "read only" badge beside Server settings' server config: #5865f2 on its own blurple tint read
+  // 3.35-4.07:1 (light) and 2.83-3.74:1 (dark) at 10px. Found by axe on the fixed bed once the hint passed.
+  it.each(['#eef0fe', '#e4e5f6', '#ddd9f0'])('Server settings read-only badge, light, on %s', background => {
+    expect(contrastRatio(colorIn(settings, '\n.server-config-badge {'), background)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it.each(['#242533', '#302f43', '#191a28'])('Server settings read-only badge, dark, on %s', background => {
+    expect(contrastRatio(colorIn(settings, ':host-context(.dark-theme) .server-config-badge {'), background)).toBeGreaterThanOrEqual(4.5);
+  });
+
   it('Versions card amber alert, light', () => {
     expect(contrastRatio(colorIn(serverCard, '\n.server-alert-warn {'), '#fff8e1')).toBeGreaterThanOrEqual(4.5);
   });

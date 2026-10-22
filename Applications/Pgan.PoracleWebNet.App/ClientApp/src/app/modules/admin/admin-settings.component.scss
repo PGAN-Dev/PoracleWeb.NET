@@ -294,8 +294,12 @@
   padding: 2px 8px;
   border-radius: 10px;
   background: rgba(88, 101, 242, 0.1);
-  color: #5865f2;
+  // #5865f2 read 3.35-4.07:1 here at 10px; see warning-text-contrast.spec.ts.
+  color: #4752c4;
   cursor: help;
+}
+:host-context(.dark-theme) .server-config-badge {
+  color: #a5adff;
 }
 .server-config-rows {
   display: flex;
