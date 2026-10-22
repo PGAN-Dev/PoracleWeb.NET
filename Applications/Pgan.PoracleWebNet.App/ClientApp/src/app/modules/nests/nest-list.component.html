@@ -46,12 +46,16 @@
         [selected]="selectedIds().has(nest.uid)"
         [selectLabel]="'ALARM.SELECT_ONE' | translate: { name: getPokemonName(nest.pokemonId) }"
         (selectedToggle)="toggleSelect(nest.uid)">
-        <img
-          ruleMedia
-          class="rule-sprite"
-          [src]="getPokemonImage(nest.pokemonId)"
-          [alt]="getPokemonName(nest.pokemonId)"
-          (error)="onImageError($event)" />
+        @if (nest.pokemonId === 0) {
+          <div ruleMedia class="rule-icon"><mat-icon>select_all</mat-icon></div>
+        } @else {
+          <img
+            ruleMedia
+            class="rule-sprite"
+            [src]="getPokemonImage(nest.pokemonId)"
+            [alt]="getPokemonName(nest.pokemonId)"
+            (error)="onImageError($event)" />
+        }
         <span ruleTitle>{{ getPokemonName(nest.pokemonId) }}</span>
         @if (nest.pokemonId > 0) {
           <div ruleSubtitle class="rule-subtitle">#{{ nest.pokemonId }}</div>

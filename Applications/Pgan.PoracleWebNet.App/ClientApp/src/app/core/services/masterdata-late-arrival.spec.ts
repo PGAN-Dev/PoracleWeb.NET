@@ -11,7 +11,7 @@ import { MasterDataService } from './masterdata.service';
  * Masterdata almost never wins the race against the first render: every alarm list paints its cards
  * from the alarm rows, which come back first, and resolves each species name through
  * `MasterDataService`. If the maps are not reactive, that first paint is also the last one and the
- * cards keep the `Pokemon #1` fallback until something else happens to redraw them -- which is what
+ * cards keep the `Pokémon #1` fallback until something else happens to redraw them -- which is what
  * a route change does, and why the names look right on the second visit.
  *
  * Every test here flushes the responses *after* the first read, because seeding the service first
@@ -61,7 +61,7 @@ describe('MasterDataService — data arriving after first render', () => {
     const fixture = TestBed.createComponent(MasterDataHostComponent);
     service.loadData().subscribe();
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('h3').textContent).toBe('Pokemon #1');
+    expect(fixture.nativeElement.querySelector('h3').textContent).toBe('Pokémon #1');
 
     flushMasterData();
     fixture.detectChanges();
@@ -82,7 +82,7 @@ describe('MasterDataService — data arriving after first render', () => {
     httpMock.match(req => req.url === `${API}/api/masterdata/monsters`);
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('h3').textContent).toBe('Pokemon #1');
+    expect(fixture.nativeElement.querySelector('h3').textContent).toBe('Pokémon #1');
   });
 
   it('re-resolves item and move names read before the load finished', () => {
