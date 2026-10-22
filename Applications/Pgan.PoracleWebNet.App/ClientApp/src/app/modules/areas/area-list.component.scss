@@ -37,7 +37,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 0 24px 80px;
+  padding: 0 24px 24px;
 }
 
 // ─── Method Cards (Areas vs Location explainer) ──────
@@ -295,6 +295,7 @@
 // Matches My Geofences: same size, same framing, same margins. The picker was letting the child
 // decide its own height, which left a map too small to pick an area out of.
 .map-container {
+  isolation: isolate;
   border: 1px solid var(--card-border, rgba(0, 0, 0, 0.12));
   border-radius: 12px;
   height: 70vh;
@@ -494,39 +495,34 @@
   max-width: 400px;
 }
 
-// ─── Floating Save Bar ───────────────────────────────
+// ─── Save Bar ─────────────────────────────────────────
+// Sticky inside the page rather than fixed to the viewport: fixed at left 0 it sat under the 250px
+// sidenav, which hid its own "N areas selected" on every desktop, and white-on-green left Cancel at about
+// 2:1. Here it spans the content column only and uses the card surface, so both read normally.
 .save-bar {
-  position: fixed;
+  position: sticky;
   bottom: 0;
-  left: 0;
-  right: 0;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 12px;
-  padding: 14px 24px;
-  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
-  background: #4caf50;
-  color: #fff;
-  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.2);
-  z-index: 100;
-  animation: slideUp 0.25s ease-out;
-}
-
-@keyframes slideUp {
-  from {
-    transform: translateY(100%);
-  }
-  to {
-    transform: translateY(0);
-  }
+  margin-top: 8px;
+  padding: 12px 16px;
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+  border-radius: 12px 12px 0 0;
+  background: var(--card-bg, var(--mat-sys-surface-container, #fff));
+  border: 1px solid var(--card-border, rgba(0, 0, 0, 0.12));
+  border-bottom: none;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.12);
 }
 
 .save-info {
   margin-right: auto;
   font-size: 14px;
   font-weight: 500;
-  color: #fff;
+  color: var(--mat-sys-on-surface, inherit);
 }
 
 .inline-spinner {
@@ -541,7 +537,7 @@
   }
 
   .areas-page {
-    padding: 0 16px 80px;
+    padding: 0 16px 16px;
   }
 
   .location-bar {
@@ -558,10 +554,5 @@
 
   .method-header {
     flex-wrap: wrap;
-  }
-
-  .save-bar {
-    padding: 12px 16px;
-    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
   }
 }

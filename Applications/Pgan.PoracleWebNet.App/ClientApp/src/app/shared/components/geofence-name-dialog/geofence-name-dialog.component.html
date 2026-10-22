@@ -1,15 +1,16 @@
-<h2 mat-dialog-title>{{ 'GEOFENCES.NAME_DIALOG_TITLE' | translate }}</h2>
+<h2 mat-dialog-title>{{ (data.rename ? 'GEOFENCES.RENAME_DIALOG_TITLE' : 'GEOFENCES.NAME_DIALOG_TITLE') | translate }}</h2>
 <mat-dialog-content>
   <mat-form-field appearance="outline" class="full-width">
     <mat-label>{{ 'GEOFENCES.NAME_LABEL' | translate }}</mat-label>
     <input matInput [(ngModel)]="displayName" maxlength="50" [placeholder]="'GEOFENCES.NAME_PLACEHOLDER' | translate" required />
+    <!--
+      A hint, not a mat-error: an untouched input never shows its errors, so Save went grey with nothing
+      on screen to say why. The rule is always visible and turns into the error when the name breaks it.
+    -->
+    <mat-hint class="name-rule" [class.name-error]="isWhitespaceOnly || hasInvalidChars" aria-live="polite">
+      {{ (isWhitespaceOnly ? 'GEOFENCES.NAME_WHITESPACE_ERROR' : 'GEOFENCES.NAME_RULE_HINT') | translate }}
+    </mat-hint>
     <mat-hint align="end">{{ displayName.length }} / 50</mat-hint>
-    @if (displayName.length > 0 && displayName.trim().length === 0) {
-      <mat-error>{{ 'GEOFENCES.NAME_WHITESPACE_ERROR' | translate }}</mat-error>
-    }
-    @if (hasInvalidChars) {
-      <mat-error>{{ 'GEOFENCES.NAME_INVALID_CHARS_ERROR' | translate }}</mat-error>
-    }
   </mat-form-field>
 
   @if (hasRegions) {

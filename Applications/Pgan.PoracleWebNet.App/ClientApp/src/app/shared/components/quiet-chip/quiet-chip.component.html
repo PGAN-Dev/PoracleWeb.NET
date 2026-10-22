@@ -9,6 +9,7 @@
     [class.quiet-chip-on]="isQuiet()"
     [class.quiet-chip-trailing]="appearance() === 'trailing'"
     [matTooltip]="tooltip()"
+    [attr.aria-label]="appearance() === 'trailing' && !isQuiet() ? tooltip() : null"
     (click)="open($event)">
     <mat-icon class="quiet-chip-icon">notifications_paused</mat-icon>
     @if (appearance() !== 'trailing' || isQuiet()) {

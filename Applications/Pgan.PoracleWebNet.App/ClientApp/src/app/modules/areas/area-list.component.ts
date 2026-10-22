@@ -85,13 +85,19 @@ export class AreaListComponent implements OnInit {
   private readonly locationService = inject(LocationService);
   private readonly rawGeofenceData = signal<GeofenceData[]>([]);
 
-  // Saved state (what's in the DB)
-  private savedSelection: string[] = [];
-
+  /**
+   * What PoracleNG holds for the active profile, as last read or saved. The Areas card and the quiet chips
+   * speak about this, not about the ticks: an area ticked and not yet saved is not active, and has no
+   * alerts to quiet.
+   */
+  readonly savedAreas = signal<string[]>([]);
+  private readonly savedAreaKeys = computed(() => new Set(this.savedAreas().map(a => a.toLowerCase())));
   private readonly settingsService = inject(SettingsService);
   private readonly snackBar = inject(MatSnackBar);
+
   /** Label for areas Koji reports with no group. Doubles as the key the group filter matches on. */
   private readonly ungroupedLabel = this.i18n.instant('AREAS.GROUP_UNGROUPED');
+
   readonly activeGroup = signal<string | null>(null);
 
   readonly areas = signal<AreaItem[]>([]);
@@ -147,7 +153,7 @@ export class AreaListComponent implements OnInit {
 
   readonly hasChanges = computed(() => {
     const current = [...this.selectedAreas()].sort();
-    const saved = [...this.savedSelection].sort();
+    const saved = [...this.savedAreas()].sort();
     if (current.length !== saved.length) return true;
     return current.some((v, i) => v !== saved[i]);
   });
@@ -221,11 +227,11 @@ export class AreaListComponent implements OnInit {
   }
 
   cancelChanges(): void {
-    const savedSet = new Set(this.savedSelection.map(s => s.toLowerCase()));
+    const savedSet = this.savedAreaKeys();
     for (const a of this.areas()) {
       a.selected = savedSet.has(a.name.toLowerCase());
     }
-    this.selectedAreas.set([...this.savedSelection]);
+    this.selectedAreas.set([...this.savedAreas()]);
   }
 
   clearAllAreas(): void {
@@ -275,6 +281,11 @@ export class AreaListComponent implements OnInit {
   deselectAllVisible(): void {
     for (const a of this.visibleAreas()) a.selected = false;
     this.syncSelectedFromAreas();
+  }
+
+  /** Whether the area is subscribed on the server, rather than only ticked on this page. */
+  isSaved(name: string): boolean {
+    return this.savedAreaKeys().has(name.toLowerCase());
   }
 
   ngOnInit(): void {
@@ -346,7 +357,7 @@ export class AreaListComponent implements OnInit {
           this.snackBar.open(this.i18n.instant('AREAS.SNACK_FAILED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
         },
         next: () => {
-          this.savedSelection = [...selected];
+          this.savedAreas.set([...selected]);
           this.selectedAreas.set(selected);
           this.saving.set(false);
           this.snackBar.open(this.i18n.instant('AREAS.SNACK_UPDATED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
@@ -423,7 +434,7 @@ export class AreaListComponent implements OnInit {
         },
         next: areas => {
           this.selectionUnknown.set(false);
-          this.savedSelection = [...areas];
+          this.savedAreas.set([...areas]);
           this.selectedAreas.set(areas);
           check();
         },

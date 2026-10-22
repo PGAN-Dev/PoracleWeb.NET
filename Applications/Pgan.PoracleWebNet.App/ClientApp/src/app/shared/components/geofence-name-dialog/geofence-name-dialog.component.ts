@@ -14,6 +14,8 @@ import { RegionOption, RegionSelectorComponent } from '../region-selector/region
 export interface GeofenceNameDialogData {
   detectedRegion: { id: number; name: string; displayName: string } | null;
   regions: GeofenceRegion[];
+  /** Renaming an existing fence rather than naming a new one; only the title differs. */
+  rename?: boolean;
 }
 
 export interface GeofenceNameDialogResult {
@@ -69,6 +71,10 @@ export class GeofenceNameDialogComponent {
     // Region is optional: a private geofence does not need a Koji region. The region/parent is only
     // used when an admin later promotes the geofence to a public Koji area. See issue #314.
     return name.length > 0 && name.length <= 50 && !this.hasInvalidChars;
+  }
+
+  get isWhitespaceOnly(): boolean {
+    return this.displayName.length > 0 && this.displayName.trim().length === 0;
   }
 
   onChangeRegion(): void {

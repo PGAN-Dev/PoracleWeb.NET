@@ -41,6 +41,13 @@
         </div>
       </div>
 
+      @if (skippedCount() > 0) {
+        <div class="warning-banner skipped-banner">
+          <mat-icon>info</mat-icon>
+          <span>{{ 'GEOJSON_IMPORT.SKIPPED_NOT_POLYGON' | translatePlural: skippedCount() }}</span>
+        </div>
+      }
+
       @if (wouldExceedLimit) {
         <div class="warning-banner">
           <mat-icon>warning</mat-icon>

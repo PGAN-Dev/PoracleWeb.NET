@@ -196,6 +196,64 @@ describe('GeofenceNameDialogComponent', () => {
     });
   });
 
+  /**
+   * Save went grey for "<script>", "Lake Eola Loop!!" and a name of spaces, with nothing on screen to say
+   * why: the errors were mat-errors, which an untouched input never shows. The rule is now always visible
+   * and turns into the error the moment the name breaks it.
+   */
+  describe('says why Save is disabled', () => {
+    const render = (name: string, rename = false) => {
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          provideTranslateService(),
+          { provide: MAT_DIALOG_DATA, useValue: { rename, detectedRegion: null, regions: [] } as GeofenceNameDialogData },
+          { provide: MatDialogRef, useValue: { close: jest.fn() } },
+        ],
+        imports: [GeofenceNameDialogComponent],
+      });
+      const fixture = TestBed.createComponent(GeofenceNameDialogComponent);
+      fixture.componentInstance.displayName = name;
+      fixture.detectChanges();
+      const el = fixture.nativeElement as HTMLElement;
+      return { el, rule: el.querySelector('.name-rule') as HTMLElement };
+    };
+
+    it('shows the allowed characters before anything is typed', () => {
+      const { rule } = render('');
+
+      expect(rule.textContent?.trim()).toBe('GEOFENCES.NAME_RULE_HINT');
+      expect(rule.classList.contains('name-error')).toBe(false);
+    });
+
+    it('turns the rule into the error for a character it does not allow', () => {
+      for (const name of ['<script>', 'Lake Eola Loop!!']) {
+        const { rule } = render(name);
+
+        expect(rule.textContent?.trim()).toBe('GEOFENCES.NAME_RULE_HINT');
+        expect(rule.classList.contains('name-error')).toBe(true);
+      }
+    });
+
+    it('says a name of spaces is not a name', () => {
+      const { rule } = render('   ');
+
+      expect(rule.textContent?.trim()).toBe('GEOFENCES.NAME_WHITESPACE_ERROR');
+      expect(rule.classList.contains('name-error')).toBe(true);
+    });
+
+    it('leaves a name the rule allows unflagged', () => {
+      const { rule } = render("Lake Eola Loop (North) & Co's");
+
+      expect(rule.classList.contains('name-error')).toBe(false);
+    });
+
+    it('titles itself for what it is doing', () => {
+      expect(render('').el.querySelector('[mat-dialog-title]')?.textContent?.trim()).toBe('GEOFENCES.NAME_DIALOG_TITLE');
+      expect(render('Park', true).el.querySelector('[mat-dialog-title]')?.textContent?.trim()).toBe('GEOFENCES.RENAME_DIALOG_TITLE');
+    });
+  });
+
   describe('onRegionPicked', () => {
     beforeEach(() => {
       setup({

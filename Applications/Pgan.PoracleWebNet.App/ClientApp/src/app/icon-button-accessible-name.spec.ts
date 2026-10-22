@@ -11,7 +11,8 @@ import { join, relative } from 'path';
  * no component spec mounts. An extended FAB has a visible text label and is exempt.
  */
 const APP_DIR = __dirname;
-const ICON_BUTTON = /\b(mat-icon-button|mat-fab|mat-mini-fab|matIconButton|matFab|matMiniFab)\b/;
+// matChipRemove is the trailing x on a chip: an icon and nothing else, so it needs a name like any other.
+const ICON_BUTTON = /\b(mat-icon-button|mat-fab|mat-mini-fab|matIconButton|matFab|matMiniFab|matChipRemove)\b/;
 const HAS_NAME = /\baria-label(ledby)?\b/;
 
 function templates(dir: string): string[] {
