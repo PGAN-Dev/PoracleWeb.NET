@@ -71,30 +71,86 @@ public class ProfileOverviewServiceTests
         this._humanProxy.Verify(h => h.SwitchProfileAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
     }
 
+    /// <summary>
+    /// Replaces ImportAlarmsAsyncRestoresProfileOnError, which asserted the switch-and-restore around the
+    /// per-alarm create. Import now writes to the target profile with ?profile=N, so the active profile is
+    /// never moved and there is nothing to restore; a failure still reaches the caller.
+    /// </summary>
     [Fact]
-    public async Task ImportAlarmsAsyncRestoresProfileOnError()
+    public async Task ImportNeverSwitchesProfile()
     {
-        var humanJson = CreateJsonObject(new
-        {
-            current_profile_no = 3
-        });
-        this._humanProxy.Setup(h => h.GetHumanAsync("u1")).ReturnsAsync(humanJson);
-        this._humanProxy.Setup(h => h.SwitchProfileAsync("u1", 5)).Returns(Task.CompletedTask);
-
-        var alarms = CreateJsonObject(new
-        {
-            pokemon = new[] { new { pokemon_id = 1 } }
-        });
-
+        var alarms = CreateJsonObject(new { pokemon = new[] { new { pokemon_id = 1 } } });
         this._proxy
-            .Setup(p => p.CreateAsync("pokemon", "u1", It.IsAny<JsonElement>()))
+            .Setup(p => p.CreateOnProfileAsync("pokemon", "u1", It.IsAny<JsonElement>(), 5))
             .ThrowsAsync(new HttpRequestException("API error"));
 
-        await Assert.ThrowsAsync<HttpRequestException>(() =>
-            this._sut.ImportAlarmsAsync("u1", 5, alarms));
+        await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.ImportAlarmsAsync("u1", 5, alarms));
 
-        // Verify profile was restored to original (3)
-        this._humanProxy.Verify(h => h.SwitchProfileAsync("u1", 3), Times.Once);
+        this._humanProxy.Verify(h => h.SwitchProfileAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+        this._humanProxy.Verify(h => h.GetHumanAsync(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ImportOneCreatePerTypeWithTargetProfile()
+    {
+        var alarms = CreateJsonObject(new
+        {
+            pokemon = new object[] { new { uid = 9, profile_no = 7, id = "x", pokemon_id = 1 }, new { pokemon_id = 2 } },
+            raid = new[] { new { pokemon_id = 386 } },
+        });
+        var bodies = new Dictionary<string, JsonElement>();
+        this._proxy
+            .Setup(p => p.CreateOnProfileAsync(It.IsAny<string>(), "u1", It.IsAny<JsonElement>(), 5))
+            .Callback<string, string, JsonElement, int>((t, _, b, _) => bodies[t] = b.Clone())
+            .ReturnsAsync((string _, string _, JsonElement b, int _) =>
+                new TrackingCreateResult([], 0, 0, b.GetArrayLength()));
+
+        var created = await this._sut.ImportAlarmsAsync("u1", 5, alarms);
+
+        Assert.Equal(3, created);
+        Assert.Equal(["pokemon", "raid"], bodies.Keys.OrderBy(k => k).ToArray());
+        this._proxy.Verify(
+            p => p.CreateOnProfileAsync(It.IsAny<string>(), "u1", It.IsAny<JsonElement>(), 5), Times.Exactly(2));
+        this._proxy.Verify(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+
+        Assert.Equal(JsonValueKind.Array, bodies["pokemon"].ValueKind);
+        Assert.Equal(2, bodies["pokemon"].GetArrayLength());
+        foreach (var row in bodies["pokemon"].EnumerateArray())
+        {
+            Assert.False(row.TryGetProperty("uid", out _));
+            Assert.False(row.TryGetProperty("profile_no", out _));
+            Assert.False(row.TryGetProperty("id", out _));
+        }
+    }
+
+    [Fact]
+    public async Task ImportIdenticalRulesOnTargetAreNotCounted()
+    {
+        var alarms = CreateJsonObject(new { pokemon = new[] { new { pokemon_id = 1 }, new { pokemon_id = 2 }, new { pokemon_id = 3 } } });
+        this._proxy
+            .Setup(p => p.CreateOnProfileAsync("pokemon", "u1", It.IsAny<JsonElement>(), 5))
+            .ReturnsAsync(new TrackingCreateResult([100], 1, 0, 1, null, 1));
+
+        var created = await this._sut.ImportAlarmsAsync("u1", 5, alarms);
+
+        Assert.Equal(1, created);
+    }
+
+    [Fact]
+    public async Task ImportStillRefusesInvalidFileBeforeAnyWrite()
+    {
+        var alarms = CreateJsonObject(new
+        {
+            raid = new[] { new { pokemon_id = 386 } },
+            pokemon = new[] { new { pokemon_id = 1, distance = -77 } },
+        });
+
+        await Assert.ThrowsAsync<AlarmValidationException>(() => this._sut.ImportAlarmsAsync("u1", 5, alarms));
+
+        this._proxy.Verify(
+            p => p.CreateOnProfileAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>(), It.IsAny<int>()),
+            Times.Never);
+        this._humanProxy.Verify(h => h.SwitchProfileAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
     }
 
     [Fact]

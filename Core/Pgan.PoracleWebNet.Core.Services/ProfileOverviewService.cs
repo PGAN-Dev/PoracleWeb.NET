@@ -69,51 +69,49 @@ public class ProfileOverviewService(
         // types through and 403 mid-loop on a disabled one, leaving the new profile half-populated. (#236)
         await this.EnsureNoDisabledTypesAsync(alarms, _ => true);
 
-        var humanJson = await this._humanProxy.GetHumanAsync(userId);
-        var originalProfileNo = humanJson?.GetIntProp("current_profile_no") ?? 1;
-
-        // Checked before anything is written, and before the profile switch: this is the one write path
-        // that never ran the alarm models' own rules, so a hand-edited backup could persist a distance of
-        // -77, an IV window of -999 to 500 or a clean value of 99 -- every one of which the matching POST
-        // refuses with a 400. A partial import is worse than a refused one. See #548.
+        // Checked before anything is written: this is the one write path that never ran the alarm models' own
+        // rules, so a hand-edited backup could persist a distance of -77, an IV window of -999 to 500 or a
+        // clean value of 99 -- every one of which the matching POST refuses with a 400. A partial import is
+        // worse than a refused one. See #548.
         EnsureAlarmsAreValid(alarms);
 
-        await this._humanProxy.SwitchProfileAsync(userId, targetProfileNo);
-
+        // One v2 create per type, aimed at the target profile with ?profile=N. The user's active profile is
+        // never switched, so there is nothing to restore if a write fails. A rule already on the target
+        // exactly, or one that would take another rule over, is left out by PoracleNG and is not counted.
         var totalCreated = 0;
-        try
+        foreach (var type in AlarmTypes)
         {
-            foreach (var type in AlarmTypes)
+            if (!alarms.TryGetProperty(type, out var alarmsArray) ||
+                alarmsArray.ValueKind != JsonValueKind.Array)
             {
-                if (!alarms.TryGetProperty(type, out var alarmsArray) ||
-                    alarmsArray.ValueKind != JsonValueKind.Array)
-                {
-                    continue;
-                }
-
-                foreach (var alarm in alarmsArray.EnumerateArray())
-                {
-                    // The file decides none of these. PoracleNG takes a submitted profile_no at face
-                    // value (#411), so an alarm carrying profile_no: 7 landed on profile 7 instead of
-                    // the profile just created -- an orphan that a future profile 7 would inherit. id
-                    // is stripped for the same reason: it names the owner, and the URL already does
-                    // that. uid is stripped because a hand-edited backup may still carry one. See #465.
-                    var cleaned = alarm;
-                    foreach (var owned in ImportIgnoredFields)
-                    {
-                        if (cleaned.TryGetProperty(owned, out _))
-                        {
-                            cleaned = PoracleJsonHelper.StripProperty(cleaned, owned);
-                        }
-                    }
-                    await this._trackingProxy.CreateAsync(type, userId, cleaned);
-                    totalCreated++;
-                }
+                continue;
             }
-        }
-        finally
-        {
-            await this._humanProxy.SwitchProfileAsync(userId, originalProfileNo);
+
+            var rows = new List<JsonElement>();
+            foreach (var alarm in alarmsArray.EnumerateArray())
+            {
+                // The file decides none of these. They name the owner and the profile, which are fixed by
+                // who is importing and where: a backup carrying profile_no: 7 must not land on profile 7
+                // (#411), id names the owner, and a hand-edited backup may still carry a uid. See #465.
+                var cleaned = alarm;
+                foreach (var owned in ImportIgnoredFields)
+                {
+                    if (cleaned.TryGetProperty(owned, out _))
+                    {
+                        cleaned = PoracleJsonHelper.StripProperty(cleaned, owned);
+                    }
+                }
+                rows.Add(cleaned);
+            }
+
+            if (rows.Count == 0)
+            {
+                continue;
+            }
+
+            var body = JsonSerializer.SerializeToElement(rows);
+            var result = await this._trackingProxy.CreateOnProfileAsync(type, userId, body, targetProfileNo);
+            totalCreated += result.Inserts;
         }
 
         return totalCreated;
