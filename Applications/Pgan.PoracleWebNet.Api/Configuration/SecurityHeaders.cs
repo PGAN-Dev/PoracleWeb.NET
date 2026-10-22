@@ -26,10 +26,19 @@ public static class SecurityHeaders
     /// </remarks>
     public const string ReferrerPolicy = "same-origin";
 
+    /// <remarks>
+    /// connect-src names the basemap catalogue's tile hosts (<c>shared/utils/basemaps.ts</c>). The
+    /// SPA loads tiles as images, but OpenStreetMap answers with <c>stale-while-revalidate</c>, and
+    /// Chromium checks the background revalidation of a stale cached tile against connect-src rather
+    /// than img-src. Without the hosts every map page logs "Refused to connect". A custom tile URL an
+    /// admin configures isn't listed; its revalidations are refused the same way and the cached tile
+    /// is still drawn. <c>SecurityHeadersTests</c> fails if a catalogue host is missing here.
+    /// </remarks>
     public const string ContentSecurityPolicy =
         "default-src 'self'; script-src 'self' 'unsafe-hashes' 'sha256-MhtPZXr7+LpJUY5qtMutB+qWfQtMaPccfe7QXtCcEYc=' https://telegram.org; "
         + "style-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; "
-        + "connect-src 'self' https://raw.githubusercontent.com; frame-src https://oauth.telegram.org";
+        + "connect-src 'self' https://raw.githubusercontent.com https://tile.openstreetmap.org https://server.arcgisonline.com "
+        + "https://*.basemaps.cartocdn.com https://tiles.stadiamaps.com; frame-src https://oauth.telegram.org";
 
     /// <summary>
     /// Stamps the security headers onto an outgoing response.
