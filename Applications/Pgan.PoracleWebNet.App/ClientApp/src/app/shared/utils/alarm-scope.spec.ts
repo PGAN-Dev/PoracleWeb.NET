@@ -2,9 +2,13 @@ import { TranslateService } from '@ngx-translate/core';
 
 import {
   describeScope,
+  formatDistance,
+  formatKm,
   formatAreaList,
   kmToMetres,
   metresToKm,
+  MAX_RADIUS_METRES,
+  bulkRadiusAcceptable,
   radiusAcceptable,
   scopeOf,
   scopeToFields,
@@ -33,13 +37,13 @@ describe('alarm-scope', () => {
     });
 
     it('reads no overrides and no radius as inherited', () => {
-      expect(scopeOf(null, null, 0)).toEqual({ distanceKm: 0, mode: 'profile' });
+      expect(scopeOf(null, null, 0)).toEqual({ mode: 'profile' });
     });
 
     it('treats an empty area list as inherited rather than as an empty restriction', () => {
       // An alarm restricted to no areas would match nothing. PoracleNG stores the cleared state as an
       // empty column, so this has to read back as "no override".
-      expect(scopeOf(null, [], 0)).toEqual({ distanceKm: 0, mode: 'profile' });
+      expect(scopeOf(null, [], 0)).toEqual({ mode: 'profile' });
     });
 
     it('prefers areas when a row somehow carries both', () => {
@@ -99,9 +103,34 @@ describe('alarm-scope', () => {
     });
   });
 
-  it('rounds metres to a tenth of a km and back', () => {
-    expect(metresToKm(2450)).toBe(2.5);
-    expect(kmToMetres(2.5)).toBe(2500);
+  /**
+   * Rounding to a tenth of a km rewrote every stored radius on the next save of any field: 250 m became
+   * 300 m, and a pin radius under 50 m became 0, which reads as "anywhere in my areas".
+   */
+  it.each([40, 30, 250, 1234, 2450, 500000])('carries %i m to km and back exactly', metres => {
+    expect(kmToMetres(metresToKm(metres))).toBe(metres);
+  });
+
+  it('quotes a bound in the display language', () => {
+    expect(formatKm(0.1, 'de')).toBe('0,1');
+    expect(formatKm(0.1, 'en')).toBe('0.1');
+    expect(formatKm(20037.509, 'en')).toBe('20,037.509');
+  });
+
+  it('keeps a pin radius under 50 m a radius', () => {
+    expect(scopeOf(null, null, 40)).toEqual({ distanceKm: 0.04, mode: 'profile' });
+  });
+
+  it('converts a typed radius to whole metres without snapping to 100 m', () => {
+    expect(kmToMetres(1.234)).toBe(1234);
+    expect(kmToMetres(0.25)).toBe(250);
+  });
+
+  it('shows a radius with as many decimals as it holds, up to metres', () => {
+    expect(formatDistance(0.04)).toBe('0.04');
+    expect(formatDistance(1.234)).toBe('1.234');
+    expect(formatDistance(2)).toBe('2');
+    expect(formatDistance(2.5)).toBe('2.5');
   });
 
   it('leaves an already-capitalised name alone', () => {
@@ -139,6 +168,22 @@ describe('alarm-scope', () => {
 
     it('never treats a stored zero as a radius to keep', () => {
       expect(radiusAcceptable(0, 0)).toBe(false);
+    });
+  });
+
+  /** The bulk dialog edits existing rules, so it takes what the server takes: above 0, up to AlarmDistance.MaxMetres. */
+  describe('bulkRadiusAcceptable', () => {
+    it('accepts a radius far past 100 km, up to half the Earth', () => {
+      expect(bulkRadiusAcceptable(10000)).toBe(true);
+      expect(bulkRadiusAcceptable(MAX_RADIUS_METRES / 1000)).toBe(true);
+      expect(bulkRadiusAcceptable(0.001)).toBe(true);
+    });
+
+    it('refuses zero, what rounds to zero metres, past the server cap, and an empty field', () => {
+      expect(bulkRadiusAcceptable(0)).toBe(false);
+      expect(bulkRadiusAcceptable(0.0004)).toBe(false);
+      expect(bulkRadiusAcceptable(MAX_RADIUS_METRES / 1000 + 0.001)).toBe(false);
+      expect(bulkRadiusAcceptable(null)).toBe(false);
     });
   });
 });

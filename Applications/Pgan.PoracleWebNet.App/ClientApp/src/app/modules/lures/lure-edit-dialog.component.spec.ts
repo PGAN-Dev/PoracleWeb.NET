@@ -174,4 +174,23 @@ describe('LureEditDialogComponent', () => {
       expect(update.clean).toBe(1);
     });
   });
+
+  /** Rounding to a tenth of a km rewrote a stored radius whenever any other field was saved. */
+  describe('a stored radius survives an edit to another field', () => {
+    it.each([
+      ['a 40 m pin radius', { overrideLocationLabel: '', distance: 40 }],
+      ['a 30 m place radius', { overrideLocationLabel: 'work', distance: 30 }],
+      ['a 250 m pin radius', { overrideLocationLabel: '', distance: 250 }],
+      ['a 1234 m pin radius', { overrideLocationLabel: '', distance: 1234 }],
+    ])('%s', (_name, stored) => {
+      setup({ ...baseLure, ...stored });
+
+      component.form.controls.clean.setValue(true);
+      component.save();
+
+      const update = lureService.update.mock.calls[0][1] as LureUpdate;
+      expect(update.distance).toBe(stored.distance);
+      expect(update.overrideLocationLabel).toBe(stored.overrideLocationLabel);
+    });
+  });
 });

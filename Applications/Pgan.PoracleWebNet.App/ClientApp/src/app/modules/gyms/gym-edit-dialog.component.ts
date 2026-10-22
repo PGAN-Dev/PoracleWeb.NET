@@ -65,12 +65,12 @@ export class GymEditDialogComponent {
 
   readonly isWebhook = inject(AuthService).isImpersonating();
 
-  /** The alarm's current scope, read back into the shared picker. */
   /** False while the scope picker holds a radius it won't accept, which keeps Save off. */
   readonly radiusValid = signal(true);
 
   saving = signal(false);
 
+  /** The alarm's current scope, read back into the shared picker. */
   readonly scope = signal<AlarmScope>(scopeOf(this.data.overrideLocationLabel, this.data.overrideAreas, this.data.distance));
 
   selectedGymId = signal<string | null>(this.data.gymId);

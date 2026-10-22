@@ -70,4 +70,16 @@ describe('WhereSheetComponent', () => {
     fixture.detectChanges();
     expect(saveDisabled()).toBe(true);
   });
+
+  it.each([
+    [{ distanceKm: 0.04, mode: 'profile' as const }],
+    [{ distanceKm: 0.03, mode: 'place' as const, placeLabel: 'work' }],
+    [{ distanceKm: 1.234, mode: 'profile' as const }],
+  ])('saves a stored radius under 0.1 km or off the 100 m grid as it was: %j', scope => {
+    const sheet = create({ profileAreas: [], scope });
+
+    expect(saveDisabled()).toBe(false);
+    sheet.save();
+    expect(dialogRef.close).toHaveBeenCalledWith(scope);
+  });
 });

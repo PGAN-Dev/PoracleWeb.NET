@@ -14,7 +14,7 @@ import { catchError, forkJoin, of } from 'rxjs';
 import { AreaService } from '../../../core/services/area.service';
 import { PlacesService } from '../../../core/services/places.service';
 import { UserGeofenceService } from '../../../core/services/user-geofence.service';
-import { AlarmScope, MAX_RADIUS_KM, MIN_RADIUS_KM, radiusAcceptable, titleCaseArea } from '../../utils/alarm-scope';
+import { AlarmScope, formatKm, MAX_RADIUS_KM, MIN_RADIUS_KM, radiusAcceptable, titleCaseArea } from '../../utils/alarm-scope';
 import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component';
 import { LocationDialogComponent } from '../location-dialog/location-dialog.component';
 
@@ -148,7 +148,9 @@ export class ScopePickerComponent implements OnInit {
     const initial = this.scope();
     this.mode.set(initialMode(initial));
     this.placeLabel.set(initial.placeLabel ?? '');
-    this.distanceKm.set(initial.distanceKm || 1);
+    // `??`, not `||`: a stored 0 (an emptied field, or a place rule with no radius) stays 0 and is refused,
+    // where `||` quietly made it 1 km.
+    this.distanceKm.set(initial.distanceKm ?? 1);
     this.selectedAreas.set(initial.areas ?? []);
 
     // Only mirror outward after seeding, or the write-back races the seed.
@@ -204,6 +206,12 @@ export class ScopePickerComponent implements OnInit {
       .subscribe((point?: { latitude: number; longitude: number }) => {
         if (point) this.namePlace(point);
       });
+  }
+
+  /** The bounds in the display language's number format ("0,1" in German). */
+  protected radiusRange(): { max: string; min: string } {
+    const lang = this.translate.getCurrentLang() ?? 'en';
+    return { max: formatKm(MAX_RADIUS_KM, lang), min: formatKm(MIN_RADIUS_KM, lang) };
   }
 
   /**
@@ -265,9 +273,13 @@ export class ScopePickerComponent implements OnInit {
   }
 }
 
-/** A stored scope back into the picker's three options. A pin radius lands on "near", not "inherit". */
+/**
+ * A stored scope back into the picker's three options. A profile scope carrying a radius, any radius,
+ * lands on "near": scopeOf leaves distanceKm out when there is none, so 0 here is an emptied field that
+ * must come back refused rather than as "anywhere in my areas".
+ */
 function initialMode(scope: AlarmScope): PickerMode {
   if (scope.mode === 'areas') return 'areas';
   if (scope.mode === 'place') return 'near';
-  return (scope.distanceKm ?? 0) > 0 ? 'near' : 'inherit';
+  return scope.distanceKm === undefined ? 'inherit' : 'near';
 }

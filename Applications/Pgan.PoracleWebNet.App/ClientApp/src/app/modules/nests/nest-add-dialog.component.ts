@@ -66,10 +66,6 @@ export class NestAddDialogComponent {
 
   readonly isWebhook = inject(AuthService).isImpersonating();
 
-  /**
-   * Seeded from the saved defaults so the Alert Defaults preference still reaches new alarms; the
-   * picker owns it from there.
-   */
   /** False while the scope picker holds a radius it won't accept, which keeps Save off. */
   readonly radiusValid = signal(true);
 
@@ -78,6 +74,10 @@ export class NestAddDialogComponent {
 
   saving = signal(false);
 
+  /**
+   * Seeded from the saved defaults so the Alert Defaults preference still reaches new alarms; the
+   * picker owns it from there.
+   */
   readonly scope = signal<AlarmScope>(
     this.alertDefaults.defaultMode() === 'areas'
       ? { mode: 'profile' }

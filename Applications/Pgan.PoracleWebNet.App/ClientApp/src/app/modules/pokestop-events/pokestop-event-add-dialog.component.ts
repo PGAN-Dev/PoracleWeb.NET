@@ -91,10 +91,6 @@ export class PokestopEventAddDialogComponent {
     alreadyTracked: this.existing.some(x => x.displayType === e.displayType),
   }));
 
-  /**
-   * Seeded from the saved defaults so the Alert Defaults preference still reaches new alarms; the
-   * picker owns it from there.
-   */
   /** False while the scope picker holds a radius it won't accept, which keeps Save off. */
   readonly radiusValid = signal(true);
 
@@ -103,6 +99,10 @@ export class PokestopEventAddDialogComponent {
 
   readonly saving = signal(false);
 
+  /**
+   * Seeded from the saved defaults so the Alert Defaults preference still reaches new alarms; the
+   * picker owns it from there.
+   */
   readonly scope = signal<AlarmScope>(
     this.alertDefaults.defaultMode() === 'areas'
       ? { mode: 'profile' }

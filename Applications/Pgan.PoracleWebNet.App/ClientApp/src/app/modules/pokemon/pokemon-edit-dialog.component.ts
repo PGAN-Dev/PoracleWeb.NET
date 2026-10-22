@@ -123,12 +123,12 @@ export class PokemonEditDialogComponent implements OnInit {
 
   readonly pvpCaps = computed(() => this.poracleConfig.serverConfig().pvpCaps);
 
-  /** The alarm's current scope, read back into the shared picker. */
   /** False while the scope picker holds a radius it won't accept, which keeps Save off. */
   readonly radiusValid = signal(true);
 
   saving = signal(false);
 
+  /** The alarm's current scope, read back into the shared picker. */
   readonly scope = signal<AlarmScope>(scopeOf(this.data.overrideLocationLabel, this.data.overrideAreas, this.data.distance));
 
   readonly showCapPicker = computed(() => this.pvpCaps().length > 1);

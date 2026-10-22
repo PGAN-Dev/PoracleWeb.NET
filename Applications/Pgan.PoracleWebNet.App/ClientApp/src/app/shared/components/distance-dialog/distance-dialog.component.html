@@ -30,12 +30,12 @@
         matInput
         type="number"
         [(ngModel)]="distanceKm"
-        [min]="radiusMin"
+        min="0.001"
         [max]="radiusMax"
         step="0.1"
         [errorStateMatcher]="radiusErrorMatcher" />
       @if (!isValid) {
-        <mat-error>{{ 'WHERE.RADIUS_RANGE' | translate: { max: radiusMax, min: radiusMin } }}</mat-error>
+        <mat-error>{{ 'DIALOG.DISTANCE_RANGE' | translate: radiusRange() }}</mat-error>
       }
       <span matSuffix>{{ 'ALARM.DISTANCE_SUFFIX' | translate }}</span>
     </mat-form-field>

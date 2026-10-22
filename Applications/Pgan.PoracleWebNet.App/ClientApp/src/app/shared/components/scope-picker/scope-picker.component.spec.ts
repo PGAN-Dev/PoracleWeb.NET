@@ -236,4 +236,39 @@ describe('ScopePickerComponent', () => {
       expect(detail()).toBe('WHERE.PROFILE_ANYWHERE');
     });
   });
+
+  /** A small stored radius is shown and kept as it is; the 0.1 km floor is for a radius someone types. */
+  describe('a radius under 0.1 km', () => {
+    it('opens a 40 m pin rule on "near a point" with its radius, and lets it stand', () => {
+      const picker = create({ distanceKm: 0.04, mode: 'profile' }, { storedRadiusKm: 0.04 });
+
+      expect(picker.mode()).toBe('near');
+      expect(picker.distanceKm()).toBe(0.04);
+      expect(picker.radiusValid()).toBe(true);
+      expect(picker.scope()).toEqual({ distanceKm: 0.04, mode: 'profile' });
+    });
+
+    it('keeps a 30 m place radius instead of seeding 1 km', () => {
+      const picker = create({ distanceKm: 0.03, mode: 'place', placeLabel: 'work' }, { storedRadiusKm: 0.03 });
+
+      expect(picker.scope()).toEqual({ distanceKm: 0.03, mode: 'place', placeLabel: 'work' });
+    });
+
+    it('refuses the same small radius when the user types it', () => {
+      const picker = create({ distanceKm: 2, mode: 'profile' }, { storedRadiusKm: 2 });
+
+      picker.distanceKm.set(0.05);
+      fixture.detectChanges();
+
+      expect(picker.radiusValid()).toBe(false);
+    });
+  });
+
+  it('reopens an emptied radius as "near a point" still refused, not as a different choice', () => {
+    // A tab switch destroys and rebuilds the picker from the scope it last emitted.
+    const picker = create({ distanceKm: 0, mode: 'profile' });
+
+    expect(picker.mode()).toBe('near');
+    expect(picker.radiusValid()).toBe(false);
+  });
 });

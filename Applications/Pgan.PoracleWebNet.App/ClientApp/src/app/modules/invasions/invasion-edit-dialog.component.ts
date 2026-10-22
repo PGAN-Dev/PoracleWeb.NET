@@ -73,11 +73,11 @@ export class InvasionEditDialogComponent {
   readonly isEvent = isEventType(this.data.gruntType);
   readonly isWebhook = inject(AuthService).isImpersonating();
 
-  /** The alarm's current scope, read back into the shared picker. */
   /** False while the scope picker holds a radius it won't accept, which keeps Save off. */
   readonly radiusValid = signal(true);
   saving = signal(false);
 
+  /** The alarm's current scope, read back into the shared picker. */
   readonly scope = signal<AlarmScope>(scopeOf(this.data.overrideLocationLabel, this.data.overrideAreas, this.data.distance));
 
   readonly selectedGender = toSignal(this.form.controls.gender.valueChanges, { initialValue: this.data.gender });

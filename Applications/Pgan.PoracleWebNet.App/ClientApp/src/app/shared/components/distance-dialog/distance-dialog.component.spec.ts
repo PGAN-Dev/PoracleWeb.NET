@@ -119,10 +119,10 @@ describe('DistanceDialogComponent', () => {
 
   /** The same range the alarm dialogs offer, so a bulk change can't store what a single edit refuses. */
   describe('the radius it accepts', () => {
-    it('refuses zero, past 100 km and an empty field', () => {
+    it('refuses zero, a negative, past the server cap and an empty field', () => {
       component.mode.set('distance');
 
-      for (const km of [0, -5, 100.5, 500, null]) {
+      for (const km of [0, -5, 0.0004, 20037.51, null]) {
         component.distanceKm = km;
         expect(component.isValid).toBe(false);
         component.apply();
@@ -131,16 +131,19 @@ describe('DistanceDialogComponent', () => {
       expect(dialogRef.close).not.toHaveBeenCalled();
     });
 
-    it('accepts both ends of the range', () => {
+    /** Bulk edits existing rules, and production holds rules at 10,000 km: no screen may lose that. */
+    it('accepts what the server accepts, far past 100 km', () => {
       component.mode.set('distance');
 
-      component.distanceKm = 0.1;
+      component.distanceKm = 0.04;
       expect(component.isValid).toBe(true);
-      component.distanceKm = 100;
+      component.distanceKm = 10000;
+      expect(component.isValid).toBe(true);
+      component.distanceKm = 20037.509;
       expect(component.isValid).toBe(true);
       component.apply();
 
-      expect(dialogRef.close).toHaveBeenCalledWith(100000);
+      expect(dialogRef.close).toHaveBeenCalledWith(20037509);
     });
 
     it('ignores the field when switching the alarms to their areas', () => {

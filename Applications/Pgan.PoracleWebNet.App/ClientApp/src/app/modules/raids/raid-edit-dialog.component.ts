@@ -85,12 +85,12 @@ export class RaidEditDialogComponent {
 
   readonly isWebhook = inject(AuthService).isImpersonating();
 
-  /** The alarm's current scope, read back into the shared picker. */
   /** False while the scope picker holds a radius it won't accept, which keeps Save off. */
   readonly radiusValid = signal(true);
 
   saving = signal(false);
 
+  /** The alarm's current scope, read back into the shared picker. */
   readonly scope = signal<AlarmScope>(scopeOf(this.data.item.overrideLocationLabel, this.data.item.overrideAreas, this.data.item.distance));
 
   selectedGymId = signal<string | null>(this.data.item.gymId);

@@ -49,7 +49,7 @@
             [ngModel]="distanceKm()"
             (ngModelChange)="distanceKm.set($event)" />
           @if (radiusError()) {
-            <mat-error>{{ 'WHERE.RADIUS_RANGE' | translate: { max: radiusMax, min: radiusMin } }}</mat-error>
+            <mat-error>{{ 'WHERE.RADIUS_RANGE' | translate: radiusRange() }}</mat-error>
           }
         </mat-form-field>
       </div>

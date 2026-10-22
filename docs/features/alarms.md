@@ -72,7 +72,7 @@ The three are exclusive rather than combinable, because PoracleNG refuses every 
 
 Under the hood the picker writes three fields. "Anywhere in my areas" clears both overrides and sends `distance = 0`. "Near a point" sends the radius in metres, plus `override_location_label` when a saved place is chosen and nothing when the pin is. "Only in specific areas" sends `override_areas` and forces `distance` to 0. Both overrides are always sent explicitly, including empty, because a null means "leave what's stored" on the write path. Without that you could set an override and never take it off.
 
-The radius runs from 0.1 to 100 km. Outside that the field says so and Save stays off. An alarm already stored with a larger radius (the API itself allows up to half the Earth's circumference) can still be edited and saved as long as its radius is left as it is; only a changed radius is held to the range.
+A radius you type runs from 0.1 to 100 km. Outside that the field says so and Save stays off. An alarm already stored with a radius outside that range (the API itself allows up to half the Earth's circumference) keeps it, to the metre, through an edit that leaves the radius alone; only a changed radius is held to the range. To set a radius past 100 km on existing alarms, use the bulk **Change radius**.
 
 If you choose "Near a point" without ever having set a pin, the picker says so and offers a **Set your pin** button in place, rather than saving an alarm that measures from 0,0.
 
@@ -225,7 +225,7 @@ Each alarm list page has a **select mode** toggle (checklist icon in the toolbar
 
 1. Toggle select mode on
 2. Check individual alarms or use **Select All**
-3. Use the bulk toolbar: **Change radius** sets a new radius (0.1 to 100 km), or no radius, on the selected alarms, and **Delete** removes them. The radius dialog names how many alarms you selected.
+3. Use the bulk toolbar: **Change radius** sets a new radius (anything above zero, up to the API's cap of half the Earth's circumference), or no radius, on the selected alarms, and **Delete** removes them. The radius dialog names how many alarms you selected.
 
 ![The Pokemon page in select mode, three cards checked and the bulk toolbar showing Select All, Update Distance and Delete](../screenshots/bulk-select.png)
 
