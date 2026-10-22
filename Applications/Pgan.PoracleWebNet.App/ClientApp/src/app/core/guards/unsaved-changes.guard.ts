@@ -5,6 +5,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { from, map, switchMap } from 'rxjs';
 
 import type { ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
+import { TokenStoreService } from '../services/token-store.service';
 
 /** A page that stages edits behind a Save button, and can say whether any are still unsaved. */
 export interface HasUnsavedChanges {
@@ -17,9 +18,17 @@ export interface HasUnsavedChanges {
  *
  * A clean page, and one just saved, leaves without a prompt: the question is only asked when the page
  * itself reports something unsaved. A browser reload or tab close is the page's own `beforeunload`.
+ *
+ * Nor does a session that is ending. The 401 path (`TokenStoreService.endSession`) and `logout()` both
+ * drop the access token before they navigate to /login, so with no token there is nothing a save could
+ * reach, and "Stay" would leave the user on a page whose every request 401s. The token is the signal
+ * because it is what every ending path shares, whatever route it heads for; the /login target is a
+ * second check for any future path that navigates first and clears after.
  */
-export const unsavedChangesGuard: CanDeactivateFn<HasUnsavedChanges> = component => {
+export const unsavedChangesGuard: CanDeactivateFn<HasUnsavedChanges> = (component, _route, _state, nextState) => {
   if (!component?.hasUnsavedChanges?.()) return true;
+  if (!inject(TokenStoreService).getAccessToken()?.trim()) return true;
+  if (isLoginUrl(nextState?.url)) return true;
 
   const i18n = inject(TranslateService);
   const data: ConfirmDialogData = {
@@ -37,3 +46,7 @@ export const unsavedChangesGuard: CanDeactivateFn<HasUnsavedChanges> = component
     map(confirmed => confirmed === true),
   );
 };
+
+function isLoginUrl(url: string | undefined): boolean {
+  return !!url && /^\/login(?:[/?#]|$)/.test(url);
+}

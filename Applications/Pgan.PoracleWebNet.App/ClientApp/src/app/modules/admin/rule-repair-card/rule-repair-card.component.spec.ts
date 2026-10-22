@@ -466,6 +466,19 @@ describe('RuleRepairCardComponent', () => {
       expect(fixture.nativeElement.querySelector('[data-test="last-run"]').textContent.trim()).toBe('Scanned 5 minutes ago');
     });
 
+    it('follows a language switch without waiting for the next tick', () => {
+      jest.setSystemTime(new Date('2026-10-22T12:03:00Z'));
+      const fixture = setup(status({ finishedAt: finished, phase: 'Scanned' }));
+      withEnglish(fixture);
+
+      const translate = TestBed.inject(TranslateService);
+      translate.setTranslation('de', { ADMIN: { RULE_REPAIR: { SCANNED_AGO: 'Geprüft {{when}}' } } });
+      translate.use('de');
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('[data-test="last-run"]').textContent.trim()).toBe('Geprüft vor 3 Minuten');
+    });
+
     it('says nothing before any run, or while one is going', () => {
       expect(setup(status()).nativeElement.querySelector('[data-test="last-run"]')).toBeNull();
       expect(setup(status({ finishedAt: finished, phase: 'Scanning' })).nativeElement.querySelector('[data-test="last-run"]')).toBeNull();

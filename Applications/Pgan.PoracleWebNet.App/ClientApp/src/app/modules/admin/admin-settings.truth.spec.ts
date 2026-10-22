@@ -113,6 +113,17 @@ describe('AdminSettingsComponent shows what the server enforces', () => {
       expect(sut.hasUnsavedChanges()).toBe(true);
     });
 
+    it('reports staged edits from the controls that are not switches or boxes', () => {
+      // The icon pack list and the sign-in mode stage through the same map as every row.
+      const repos = create({}).componentInstance;
+      repos.restoreDefaultRepos();
+      expect(repos.hasUnsavedChanges()).toBe(true);
+
+      const mode = create({ enable_oidc: 'True' }).componentInstance;
+      mode.setAuthMode('local');
+      expect(mode.hasUnsavedChanges()).toBe(true);
+    });
+
     it('reports none once the change is saved', () => {
       const sut = create({}).componentInstance;
       sut.onTextChange('custom_title', 'Mine');
