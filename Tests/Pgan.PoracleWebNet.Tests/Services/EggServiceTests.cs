@@ -220,34 +220,4 @@ public class EggServiceTests
         using var doc = JsonDocument.Parse(jsonStr);
         return doc.RootElement.Clone();
     }
-
-    // --- Duplicate-on-edit ---
-    // PoracleNG dedups egg tracking by a natural key. When an edit changes a field in that key it INSERTS
-    // instead of upserting, leaving the pre-edit row behind as a second live alarm firing the old filter.
-
-    [Fact]
-    public async Task UpdateAsyncKeepsTheUidAndDeletesNothingWhenPoracleNgUpserts()
-    {
-        var model = new Egg { Uid = 41 };
-        this._proxy.Setup(p => p.CreateAsync("egg", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([], 0, 1, 0));
-
-        var result = await this._sut.UpdateAsync("user1", model);
-
-        this._proxy.Verify(p => p.DeleteByUidAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
-        Assert.Equal(41, result.Uid);
-    }
-
-    [Fact]
-    public async Task UpdateAsyncOnANewRecordDoesNotAttemptAStaleDelete()
-    {
-        var model = new Egg { Uid = 0 };
-        this._proxy.Setup(p => p.CreateAsync("egg", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([42], 0, 0, 1));
-
-        await this._sut.UpdateAsync("user1", model);
-
-        this._proxy.Verify(p => p.DeleteByUidAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
-    }
-
 }

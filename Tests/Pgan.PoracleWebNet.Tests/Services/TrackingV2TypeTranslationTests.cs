@@ -46,9 +46,9 @@ public class TrackingV2TypeTranslationTests
     /// These rows exist to prove every schema field is written, so each one has to be a row v2 will
     /// actually accept. Three values moved when the bound tables landed: pokemon <c>rarity</c> and
     /// <c>size</c> were 0, and raid/maxbattle were by-boss rows holding <c>level</c> 9000. All three are
-    /// real stored values and all three are outside v2's declared range, so they now go to v1 and cannot
-    /// carry a field-coverage assertion. They are asserted in <see cref="TrackingV2BoundsTests"/>
-    /// instead, against the production counts that found them.
+    /// real stored values and all three are outside v2's declared range, so a server enforcing it refuses
+    /// them and they cannot carry a field-coverage assertion. They are asserted in
+    /// <see cref="TrackingV2BoundsTests"/> instead, against the production counts that found them.
     /// </remarks>
     private static readonly Dictionary<string, string> V1Row = new(StringComparer.Ordinal)
     {
@@ -266,11 +266,11 @@ public class TrackingV2TypeTranslationTests
     // ──────────────────────────────────────────────────────────────
 
     [Fact]
-    public void AnEggWithoutALevelGoesToV1RatherThanBeingRefused()
+    public void AnEggWithoutALevelIsRefused()
     {
-        // V2EggRule declares level required with minimum 1 and Egg.Level is a plain int defaulting to 0,
-        // so profile import, quick-pick apply and the cleaning fetch-mutate-POST all build eggs v2 answers
-        // 422 to -- verified live. v1 has stored level 0 for years and keeps doing so.
+        // V2EggRule declares level required with minimum 1 and Egg.Level is a plain int defaulting to 0, so an
+        // egg built without one is a 422 from v2 -- verified live. There is no v1 write left to send it to, so
+        // the translator declines and the write is refused before anything is sent.
         Assert.False(
             TrackingV2Translator.TryTranslate("egg", Row("""{"level":0,"team":4}"""), ServerDoesNotBoundAnything, out _, out var unsupported));
         Assert.Contains("level", unsupported, StringComparison.Ordinal);
@@ -284,7 +284,7 @@ public class TrackingV2TypeTranslationTests
     [InlineData("quest", """{"distance":0}""", """{"reward_type":7}""")]
     [InlineData("gym", """{"distance":0}""", """{"team":4}""")]
     [InlineData("pokemon", """{"distance":0}""", """{"pokemon_id":25}""")]
-    public void ARowMissingWhatV2RequiresGoesToV1AndAnOrdinaryOneDoesNot(
+    public void ARowMissingWhatV2RequiresIsRefusedAndAnOrdinaryOneIsNot(
         string type, string without, string with)
     {
         Assert.False(TrackingV2Translator.TryTranslate(type, Row(without), ServerDoesNotBoundAnything, out _, out _));
@@ -401,7 +401,7 @@ public class TrackingV2TypeTranslationTests
     }
 
     [Fact]
-    public void AGenderlessInvasionGoesToV1BecauseV2HasNoWordForIt()
+    public void AGenderlessInvasionIsRefusedBecauseV2HasNoWordForIt()
     {
         // V2InvasionRule.gender is any|male|female. InvasionCreate.Gender is [Range(0, 3)], so 3 is
         // expressible here; mapping it to any of the three would mean something the user did not ask for.

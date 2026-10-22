@@ -191,23 +191,6 @@ public class LureServiceTests
         return doc.RootElement.Clone();
     }
 
-    // --- Edit path ---
-    // PoracleNG 5.1.0 guarded lure with a unique natural key, so an edit once had to delete the row and
-    // re-create it. 5.4.0 is the minimum and migration 8 dropped the key: an edit that does not go through
-    // v2 is the create-carrying-a-uid every other type uses, followed by the reconciler.
-
-    [Fact]
-    public async Task UpdateAsyncOnANewRecordDoesNotDeleteAnything()
-    {
-        var model = new Lure { Uid = 0, LureId = 501 };
-        this._proxy.Setup(p => p.CreateAsync("lure", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([44], 0, 0, 1));
-
-        await this._sut.UpdateAsync("user1", model);
-
-        this._proxy.Verify(p => p.DeleteByUidAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
-    }
-
     private static JsonElement ItemsJson(int uid) =>
         JsonSerializer.SerializeToElement(new[] { new { uid, id = "user1" } });
 

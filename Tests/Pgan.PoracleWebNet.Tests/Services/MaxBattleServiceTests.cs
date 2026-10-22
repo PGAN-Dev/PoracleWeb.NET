@@ -91,20 +91,12 @@ public class MaxBattleServiceTests
     }
 
     /// <summary>
-    /// Upstream has no key that would merge two alarms differing by radius, so refusing those would block
-    /// something that genuinely works.
+    /// The service reads no siblings: PoracleNG decides what is a duplicate, and a create it reports as new
+    /// (the same boss at another radius, for one) comes back with its uid rather than being refused.
     /// </summary>
     [Fact]
-    public async Task CreateAsyncStillAllowsTheSameBossAtADifferentRadius()
+    public async Task CreateAsyncReturnsTheUidOfARuleCreatedBesideAnother()
     {
-        this._proxy.Setup(p => p.GetByUserAsync("maxbattle", "user1")).ReturnsAsync(CreateJsonArray(new
-        {
-            uid = 5,
-            id = "user1",
-            pokemon_id = 150,
-            distance = 500,
-            level = 3,
-        }));
         this._proxy.Setup(p => p.CreateAsync("maxbattle", "user1", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([6], 0, 0, 1));
 
@@ -114,15 +106,12 @@ public class MaxBattleServiceTests
     }
 
     /// <summary>
-    /// PoracleNG stores an unscoped max battle beside an area-scoped one with the same boss as two rules
-    /// (verified on 5.2.1: uids 166 and 167), so the duplicate check must not call them the same alarm.
+    /// An explicitly empty scope is sent as it is, and PoracleNG's insert (it stores an unscoped max battle
+    /// beside an area-scoped twin as two rules, verified on 5.2.1) is taken at its word.
     /// </summary>
     [Fact]
-    public async Task CreateAsyncAllowsTheSameBossBesideAnAreaScopedTwin()
+    public async Task CreateAsyncWithAnEmptyScopeReturnsTheUidPoracleNgCreated()
     {
-        this._proxy.Setup(p => p.GetByUserAsync("maxbattle", "user1")).ReturnsAsync(JsonDocument.Parse(
-            """[{"uid":5,"id":"user1","pokemon_id":150,"distance":0,"level":9000,"override_areas":["aberdeen"],"override_location_label":""}]""")
-            .RootElement.Clone());
         this._proxy.Setup(p => p.CreateAsync("maxbattle", "user1", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([6], 0, 0, 1));
 
@@ -373,9 +362,8 @@ public class MaxBattleServiceTests
         return doc.RootElement.Clone();
     }
 
-    // On the v1 path (no v2 route, so a server older than 5.2.0) MaxBattle is insert-only upstream, so an
-    // edit is delete-then-create and rotates the uid, which orphans any quick pick that created the
-    // alarm. A v2-routed edit keeps the uid since jfberry/PoracleNG #303. See #403.
+    // An edit is one v2 PUT. A server that still rotates the uid on a PUT (before jfberry/PoracleNG #303)
+    // reports the new one, and any quick pick that created the alarm follows it. See #403.
     [Fact]
     public async Task UpdateAsyncRepointsQuickPickTrackedUidAtTheReplacementRow()
     {
