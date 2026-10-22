@@ -359,10 +359,7 @@ The check was not weak, it never ran: `validateOverrideFields` gates on `oc.perm
 is built from `deps.AreaLogic`, and `processor/cmd/processor/main.go` never sets `AreaLogic` -- still true
 on `main` today. Dead code on every tracking write, v1 and v2, all eleven types.
 
-**Here:** `UserOwnedOverrideAreaProxy` sends PoracleNG the filtered list and writes the full list to the row
-afterwards, which stores the right value whether or not validation runs. The fix makes v1 tracking writes
-reject an unpermitted `override_areas` too, so the class's premise becomes true again the moment a build
-carrying #217 ships. Keep it.
+**Here:** adopted. `IUserAreaPolicy` authorises the names and the tracking write is sent `?trusted=true`, so PoracleNG stores the list; the decorator and its direct column write are deleted.
 
 ### `language` validation depends on configuration the client cannot read
 
@@ -457,14 +454,7 @@ omitted from the request. There has never been a write surface, on any PoracleNG
 preserves a role or user mention through an edit made from this site. Every such edit, for any reason, on
 any server, has been silently deleting the mention.
 
-**Here:** v2 carries `ping` on every rule, so an edit that goes through v2 keeps a mention. v1 still
-blanks it, so `PoracleTrackingProxy.TryReplaceV2Async` refuses the whole edit with
-`AlarmValidationException` (`RefuseIfV1WouldDropPing`) whenever it is about to answer "use v1" for a row
-holding a non-empty `ping`, whatever the reason for the fallback. This is the one gap in this document
-where the workaround is refusal rather than a `HACK`: there is no safe write to fall back to. The
-`TrackingPing` capability flag that used to gate it is deleted, and the Mention field in the edit dialogs
-no longer asks the server whether `ping` is supported. Creates that carry a ping (quick-pick apply,
-import, duplicate) still go to v1 and lose it; moving creates to v2 fixes that. PoracleWeb.NET #956 (the
+**Here:** v2 carries `ping` on every rule and every create and edit now goes through v2, so a mention survives an edit. The refusal PoracleWeb.NET used to apply when an edit would fall back to v1 is deleted with the fallback. Creates still don't offer a Mention field: the edit dialogs do. PoracleWeb.NET #956 (the
 first fix) and #957 (a UX bug it surfaced: the Mention placeholder was realistic enough to be mistaken
 for a stored value).
 
@@ -497,10 +487,7 @@ rotating the `uid` on every edit and orphaning anything holding the old one -- q
 tracks uids. `ITrackedUidRemapper` moves that state across, so the rotation is handled rather than merely
 known about.
 
-**Here, still:** `LureService` and `InvasionService` both try the v2 PUT first and only fall back to
-delete-then-create when that write is declined. Invasion's v2 path is gated on the server's grunt
-masterdata accepting the stored name (see #209 above), so a rule v2 would refuse still pays the uid
-rotation to avoid a collision that, on a 5.2.1-migrated database, can no longer happen.
+**Here:** gone. Lure and invasion edits are one v2 PUT, so the delete-then-create and its uid rotation no longer exist.
 
 Pokemon rotated too, for a different reason: on 5.2.x its edits went through
 `PUT /api/v2/humans/{id}/tracking/pokemon/{uid}`, whose engine is delete-then-insert. It used to be the one
@@ -524,7 +511,7 @@ adapted to in PoracleWeb.NET #969 and #970.
 |-----|----------|-------------------|--------|
 | Bulk distance update | High | Fetch all, modify, POST back | Landed in 5.4.0 ([#325](https://github.com/jfberry/PoracleNG/issues/325)): `PATCH .../tracking/{type}` `{uids,set}`. **Not yet adopted** |
 | Bulk clean toggle | High | Fetch all, modify, POST back | Landed in 5.4.0 ([#325](https://github.com/jfberry/PoracleNG/issues/325)). **Not yet adopted** |
-| Create silently updates a different rule; maxbattle never dedups | High | Client-side `DiffTracking` mirror (`EnsureNoMergeIntoAnotherAlarmAsync`), max battle identical-alarm check | Landed in 5.4.0 ([#326](https://github.com/jfberry/PoracleNG/issues/326), answered as `POST ?dry_run=true` plus `previous`). **Not yet adopted**; the mirror goes with tracking's move to v2 |
+| Create silently updates a different rule; maxbattle never dedups | High | Client-side `DiffTracking` mirror, max battle identical-alarm check | Landed in 5.4.0 ([#326](https://github.com/jfberry/PoracleNG/issues/326), answered as `POST ?dry_run=true` plus `previous`). **Adopted**; the mirror is deleted and creates and edits go through v2 |
 | Tracking mutes match uid alone | Medium | `scope=tracking` not offered | Landed in 5.4.0 ([#323](https://github.com/jfberry/PoracleNG/issues/323)): a rule mute carries its `tracking_type`. Listed and lifted here; creating one is a separate decision |
 | v2 stored wildcards prose-only | Medium | Tracking reads map `null` to our defaults | **Declined** ([#324](https://github.com/jfberry/PoracleNG/issues/324)): v2 keeps `null` as the wildcard. `TrackingV2Translator.ToV1Row` maps `null` to this application's own defaults, and tracking reads now go through v2 |
 | Trusted setAreas | High | v2 trusted `setAreas` for every user-geofence area write, behind PoracleWeb.NET's own allowed-name check (the dual writer is deleted) | 5.4.0 carries every piece: `trusted` ([#230](https://github.com/jfberry/PoracleNG/pull/230)), delete across profiles with `dry_run` ([#253](https://github.com/jfberry/PoracleNG/issues/253), [#252](https://github.com/jfberry/PoracleNG/issues/252)), rename across profiles ([#259](https://github.com/jfberry/PoracleNG/issues/259)), `exemptFromAreaSecurity` ([#243](https://github.com/jfberry/PoracleNG/issues/243)). **Adopted** |
@@ -540,4 +527,4 @@ adapted to in PoracleWeb.NET #969 and #970.
 | available_languages not readable | -- | None needed | **Adopted** on 5.2.1 ([#194](https://github.com/jfberry/PoracleNG/issues/194)) |
 | disabledHooks omits fort | Low | None | Fixed in 5.2.1 ([#195](https://github.com/jfberry/PoracleNG/issues/195)); the second config call for older servers is deleted |
 | Natural-key create collision | -- | Delete-then-create (`NaturalKeyTrackingUpdate`) | Keys dropped by 5.2.1 migration 8 |
-| ping blanked on every write surface | High | Refuse an edit that would fall back to v1 while the row holds a mention | **Partially adopted.** [jfberry/PoracleNG#249](https://github.com/jfberry/PoracleNG/pull/249) (in 5.4.0) fixes v2; v1 still blanks it, so PoracleWeb.NET #956 refuses rather than silently destroying the mention |
+| ping blanked on every write surface | High | Refuse an edit that would fall back to v1 while the row holds a mention | **Adopted.** [jfberry/PoracleNG#249](https://github.com/jfberry/PoracleNG/pull/249) (in 5.4.0) fixes v2, and with no v1 edit path left the refusal is gone |

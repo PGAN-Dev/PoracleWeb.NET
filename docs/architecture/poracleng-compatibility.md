@@ -60,20 +60,15 @@ about alarms. A missing key there means unsupported, PoracleNG's own contract fo
 | Feature | Signal | Needs |
 |---|---|---|
 | Alarm reads and deletes through `/api/v2` | A plaintext 404 only (no version gate) | A PoracleNG that serves the v2 routes. There is no v1 fallback: a route that answers gin's plaintext `404 page not found` raises `PoracleUnsupportedException`. Deletes of a rule outside the active profile are re-issued with `?profile=N`, since v2 only deletes on the active one |
-| Alarm edits through `/api/v2` | Version, then a plaintext 404 | A supported PoracleNG. A route that answers the plaintext 404 is remembered as absent for five minutes and the edit goes to v1, as does a row the translator declines |
+| Alarm creates and edits through `/api/v2` | A plaintext 404 only (no version gate) | A PoracleNG that serves the v2 routes, including `dry_run` on a create and 409 on a colliding edit. There is no v1 fallback: a plaintext 404 raises `PoracleUnsupportedException("saving alarms", ...)`, and a row the translator can't express is refused rather than sent elsewhere |
 | Pokéstop-event tracking (`incident`) | Poracle's own `general.disable_showcase` | Only `true` hides the page. Absent or unreadable leaves it on |
-| Invasion edits through `/api/v2` | Published schema, then game data | A `V2InvasionRule` declaring `grunt_type`, **and** that server's grunt masterdata listing the rule's own name |
 | Pokemon edit-in-place | Poracle's `tracking.pokemon_edit` config | The key `true`. Absent or unreadable hides the toggle |
 | Translated grunt display names | Response field | A `/api/masterdata/grunts` entry carrying `grunt_type` and `short_name` |
 | Rule descriptions on alarm cards | Response field | Any v2 read |
 
-The two rows answered from the published schema come from `IPoracleV2SchemaService`, which reads the
+The published-schema questions (profile create returning its number, rename through `PATCH`, the admin human routes) come from `IPoracleV2SchemaService`, which reads the
 target instance's own `/openapi.json`. It is the schema-document sibling of `PoracleServerProfile`: one
 cached probe, typed questions, everything false when the document cannot be read.
-
-Invasion needs a second question after the first, because a server carrying the field still refuses a
-`grunt_type` its grunt masterdata does not list. `InvasionGruntNameService` asks it, and fails closed to
-an empty set, which routes every invasion edit to v1.
 
 `SummaryCapabilityService` and `PokemonEditCapabilityService` answer from Poracle's configuration, not
 from the version, because quest summary delivery and pokemon edit-in-place are deployment settings an

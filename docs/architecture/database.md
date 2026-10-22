@@ -9,15 +9,14 @@ PoracleWeb.NET uses two separate MySQL databases and optionally connects to a th
 The primary EF Core context connecting to the existing **Poracle database** managed by PoracleNG.
 
 - Connection string: `ConnectionStrings:PoracleDb`
-- Contains: `humans` and `profiles` (no longer read or written directly), ten alarm tables, and the deprecated `pweb_settings` KV table. `PoracleContext` maps **three** entities — `humans`, `profiles` and `pweb_settings`. There are deliberately no alarm entities: the one place that still reaches an alarm table (`IAlarmOverrideAreaWriter.SetAlarmOverrideAreasAsync`) uses raw SQL over a table name from a fixed map. PoracleWeb.NET no longer reads PoracleNG's `schema_migrations` or `information_schema`; both went with the first minimum raise, to 5.2.1 (#1001), and are not coming back. Mapping the tables again would put a direct alarm write one `DbSet` away, which is what the 2.0 migration existed to prevent
-- **Limited direct access** — Alarm tracking is proxied through `IPoracleTrackingProxy`, and single-user human/profile operations go through `IPoracleHumanProxy`. Direct access is confined to:
+- Contains: `humans` and `profiles` (no longer read or written directly), ten alarm tables, and the deprecated `pweb_settings` KV table. `PoracleContext` maps **three** entities — `humans`, `profiles` and `pweb_settings`. There are deliberately no alarm entities, and nothing writes an alarm table. PoracleWeb.NET no longer reads PoracleNG's `schema_migrations` or `information_schema`; both went with the first minimum raise, to 5.2.1 (#1001), and are not coming back. Mapping the tables again would put a direct alarm write one `DbSet` away, which is what the 2.0 migration existed to prevent
+- **Limited direct access** — Alarm tracking is proxied through `IPoracleTrackingProxy`, and human/profile operations go through `IPoracleHumanProxy`. The only direct access left is:
 
 | Direct access | What and why |
 |---|---|
-| Alarm `override_areas` | `IAlarmOverrideAreaWriter.SetAlarmOverrideAreasAsync` writes this one column on the ten alarm tables. It is the only alarm-table write PoracleWeb.NET makes; everything else about a row goes through the proxy |
 | `pweb_settings` | `PwebSettingRepository` still reads the deprecated KV table for the one-time settings migration, and startup runs one `ALTER TABLE pweb_settings MODIFY COLUMN value LONGTEXT NULL` so the old rows can hold JSON. Both exist only to feed `SettingsMigrationService` |
 
-User-geofence area writes (Areas save, create, toggle, delete, rename, approval) do not appear here: they go through PoracleNG's `/api/v2` area routes, so `humans.area` and `profiles.area` are never written from this application. The `override_areas` write is tagged `HACK: trusted-set-areas` in code and explained in [Backend](backend.md#areas).
+User-geofence area writes (Areas save, create, toggle, delete, rename, approval) do not appear here: they go through PoracleNG's `/api/v2` area routes, so `humans.area` and `profiles.area` are never written from this application.
 
 !!! note "Eleven tracking types, ten alarm tables"
     Ten is the table count and it is right. The eleventh type, Pokéstop Events (`incident`), stores its

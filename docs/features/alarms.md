@@ -76,7 +76,10 @@ Under the hood the picker writes three fields. "Anywhere in my areas" clears bot
 If you choose "Near a point" without ever having set a pin, the picker says so and offers a **Set your pin** button in place, rather than saving an alarm that measures from 0,0.
 
 !!! note "Your own geofences work here"
-    PoracleWeb serves user-drawn geofences with `userSelectable: false` to keep them out of the bot's `!area` picker, and PoracleNG rejects those names when they arrive in `override_areas`. PoracleWeb sends only the names PoracleNG will accept and writes the rest into the alarm row directly, so a geofence you drew can scope one alarm whether or not your profile subscribes to it. See [Custom geofences](custom-geofences/key-concepts.md).
+    PoracleWeb serves user-drawn geofences with `userSelectable: false` to keep them out of the bot's `!area` picker, so PoracleNG would normally refuse them in `override_areas`. PoracleWeb.NET checks each name itself (selectable for you, one of your own drawn geofences, on your active profile, or already on the alarm you're editing) and then asks PoracleNG to save the alarm with those names trusted. A geofence you drew can scope one alarm whether or not your profile subscribes to it, and nothing is written to PoracleNG's database directly. See [Custom geofences](custom-geofences/key-concepts.md).
+
+!!! note "An Add that would replace another alarm is refused"
+    PoracleNG treats an alarm that differs from one you already have in a single setting (the distance, the template or the clean flag) as an update of that alarm, not a new one. Before saving, PoracleWeb.NET asks PoracleNG what an Add would do. If it would take another alarm over, you get "Another alarm of this type already uses those settings. Edit or remove that one instead." and nothing changes. If the alarm already exists exactly, nothing is written. Editing an alarm into a copy of another one is refused the same way. Max battles follow the same rule, so a second alarm for the same boss that differs only by radius is refused where it used to stack.
 
 ### Saved places
 
@@ -240,7 +243,7 @@ The **Duplicate** button on each profile panel creates a new profile with all al
 2. Enter a name for the new profile (pre-filled as `"<source name> (Copy)"`)
 3. Click **Duplicate**
 
-The new profile inherits the source profile's areas, location, and all alarm filters. If the alarm copy step fails, the empty profile is automatically rolled back (deleted) so the user never ends up with a shell profile.
+The new profile inherits the source profile's areas, location, and all alarm filters. Your active profile does not change while it copies. If the alarm copy step fails, the empty profile is automatically rolled back (deleted) so the user never ends up with a shell profile.
 
 !!! tip "Duplicate vs. Create"
     Use **Duplicate** when you want to start with an existing set of alarms and tweak them. Use **Create** when you want a blank profile.
@@ -248,7 +251,7 @@ The new profile inherits the source profile's areas, location, and all alarm fil
 ### Profile Backup & Restore
 
 - **Export**: Per-profile JSON backup containing all alarm filters, stripped of internal fields (`uid`, `id`, `profile_no`). File format: `{ version: 1, exportedAt, profileName, alarms: { pokemon: [...], raid: [...], ... } }`
-- **Import**: Upload a backup file to create a new profile with all alarms restored. Profile names are auto-deduplicated if a matching name already exists.
+- **Import**: Upload a backup file to create a new profile with all alarms restored. The alarms are written straight to the new profile, so your active profile stays as it was, and every alarm is checked before the first one is saved. Invasion rows that are really Pokéstop events (Kecleon, Gold Stop, Showcase) are saved as event rules, and a grunt saved as `metal` is imported as `steel`. Profile names are auto-deduplicated if a matching name already exists.
 
 ### Profile Name Uniqueness
 
@@ -524,9 +527,6 @@ rules, because then that switch is the only control you have over them.
 ### What this type does not do
 
 - **No test alert.** There is no mock payload builder for events, so no card carries the test button.
-- **No user-drawn geofence in the scope picker.** The override that lets an alarm point at a geofence
-  you drew yourself exists only on the v1 tracking path, and this type is v2-only. Admin areas, a
-  radius and a saved place all work.
 - **Not in the cross-profile overview, export or import.** Pokéstop Event rules are absent from all
   three, so a profile export does not carry them and an import will not recreate them.
 
