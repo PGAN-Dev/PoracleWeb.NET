@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, signal, untracked } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
@@ -71,6 +72,13 @@ export class QuietListSheetComponent {
       untracked(() => this.resolveGymNames(mutes));
     });
     this.mutes.refresh(true);
+    // Species names come from the masterfile, which the alarm pages load and the dashboard does not.
+    // Without this a Pokemon quiet opened from the dashboard read "Pokemon #25". getPokemonName reads a
+    // signal, so the rows recompute when the load lands.
+    this.masterData
+      .loadData()
+      .pipe(takeUntilDestroyed(inject(DestroyRef)))
+      .subscribe();
   }
 
   resume(row: QuietRow): void {

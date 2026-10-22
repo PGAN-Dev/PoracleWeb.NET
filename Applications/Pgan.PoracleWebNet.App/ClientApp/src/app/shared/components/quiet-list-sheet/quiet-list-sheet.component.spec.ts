@@ -15,9 +15,11 @@ describe('QuietListSheetComponent', () => {
   const resumeAll = jest.fn(() => of(undefined));
   const getGymById = jest.fn(() => of(null));
   let list = signal<Mute[]>([]);
+  let names = signal(new Map<number, string>());
 
   const build = (mutes: Mute[]) => {
     list = signal(mutes);
+    names = signal(new Map<number, string>());
 
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
@@ -34,7 +36,17 @@ describe('QuietListSheetComponent', () => {
             resumeAll,
           },
         },
-        { provide: MasterDataService, useValue: { getPokemonName: jest.fn(() => 'Pikachu') } },
+        {
+          // Names exist only once the masterfile has loaded, which nothing else on the dashboard triggers.
+          provide: MasterDataService,
+          useValue: {
+            getPokemonName: (id: number) => names().get(id) ?? `Pokemon #${id}`,
+            loadData: jest.fn(() => {
+              names.set(new Map([[25, 'Pikachu']]));
+              return of(true);
+            }),
+          },
+        },
         { provide: ScannerService, useValue: { getGymById } },
       ],
       imports: [QuietListSheetComponent],
