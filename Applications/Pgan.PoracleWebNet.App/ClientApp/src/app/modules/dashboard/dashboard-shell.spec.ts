@@ -33,7 +33,7 @@ const NO_ALARMS: DashboardCounts = {
   quests: 0,
 };
 
-/** The dashboard defects from the UI audit: resync wording, the 0,0 pin, the weather card, keyboard reach. */
+/** The dashboard defects from the UI audit: resync wording, the 0,0 pin, the weather, keyboard reach. */
 describe('DashboardComponent shell', () => {
   afterEach(() => jest.restoreAllMocks());
 
@@ -124,104 +124,105 @@ describe('DashboardComponent shell', () => {
     });
   });
 
-  describe('location card (flows D14)', () => {
-    it('reads as not set on a 0,0 profile', () => {
+  describe('pin (flows D14)', () => {
+    it('asks for a pin on a 0,0 profile instead of printing 0.0000', () => {
       const { el } = setup({ location: { latitude: 0, longitude: 0 } });
-      const card = el.querySelector('.location-card-full')!;
+      const pin = el.querySelector('.strip-pin')!;
 
-      expect(card.textContent).toContain('DASHBOARD.LOCATION_NOT_SET');
-      expect(card.textContent).not.toContain('0.0000');
+      expect(pin.textContent).toContain('DASHBOARD.LOCATION_NOT_SET');
+      expect(pin.textContent).not.toContain('0.0000');
     });
 
     it('still shows coordinates for a real pin', () => {
       const { el } = setup({ location: { latitude: 41.6539, longitude: -83.5379 } });
 
-      expect(el.querySelector('.location-card-full')!.textContent).toContain('41.6539, -83.5379');
+      expect(el.querySelector('.strip-pin')!.textContent).toContain('41.6539, -83.5379');
     });
   });
 
-  describe('weather card (U9)', () => {
+  describe('weather (U9)', () => {
     // A skeleton that then vanished on "no weather" made the status row jump; nothing is drawn until
     // there is weather to draw.
     it('reserves no slot while the weather is loading', () => {
       const pending = new Subject<WeatherData | null>();
       const { el, fixture } = setup({ location: { latitude: 41.6539, longitude: -83.5379 }, weather: pending });
 
-      expect(el.querySelector('.weather-card')).toBeNull();
+      expect(el.querySelector('.strip-weather')).toBeNull();
 
       pending.next({ boostedTypes: [], conditionName: 'Clear', hasWarning: false, icon: 'wb_sunny' } as unknown as WeatherData);
       fixture.detectChanges();
 
-      expect(el.querySelector('.weather-card')?.textContent).toContain('Clear');
+      expect(el.querySelector('.strip-weather')?.textContent).toContain('Clear');
     });
 
     it('is absent when the server has no weather for the pin', () => {
       const { el } = setup({ location: { latitude: 41.6539, longitude: -83.5379 }, weather: null });
 
-      expect(el.querySelector('.weather-card')).toBeNull();
+      expect(el.querySelector('.strip-weather')).toBeNull();
     });
 
     it('is shown when there is weather', () => {
       const weather = { boostedTypes: [], conditionName: 'Clear', hasWarning: false, icon: 'wb_sunny' } as unknown as WeatherData;
       const { el } = setup({ location: { latitude: 41.6539, longitude: -83.5379 }, weather });
 
-      expect(el.querySelector('.weather-card')?.textContent).toContain('Clear');
+      expect(el.querySelector('.strip-weather')?.textContent).toContain('Clear');
     });
   });
 
   describe('keyboard reach (U12)', () => {
-    it('makes every clickable status card a focusable button', () => {
+    // Native buttons take Enter and Space themselves; the old role="button" cards had to wire both.
+    it('makes every strip item that does something a native button', () => {
       const { el } = setup({ location: { latitude: 41.6539, longitude: -83.5379 } });
-      const cards = [...el.querySelectorAll<HTMLElement>('.status-card:not(.weather-card)')];
+      const items = [...el.querySelectorAll<HTMLElement>('.status-strip .strip-item:not(.strip-alerts):not(.strip-weather)')];
 
-      expect(cards.length).toBeGreaterThan(0);
-      for (const card of cards) {
-        expect(card.getAttribute('role')).toBe('button');
-        expect(card.getAttribute('tabindex')).toBe('0');
+      expect(items.length).toBeGreaterThanOrEqual(3);
+      for (const item of items) {
+        expect(item.tagName).toBe('BUTTON');
       }
     });
 
-    it('opens the areas page on Enter and on Space', () => {
+    it('opens the areas page from the areas item', () => {
       const { el } = setup();
       const navigate = jest.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
-      const card = el.querySelector<HTMLElement>('.areas-card')!;
 
-      card.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
-      card.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
+      el.querySelector<HTMLButtonElement>('.strip-areas')!.click();
 
-      expect(navigate).toHaveBeenCalledTimes(2);
       expect(navigate).toHaveBeenCalledWith(['/areas']);
     });
 
-    it('leaves the weather card out of the tab order, since it does nothing', () => {
+    it('leaves the weather and the alert state out of the tab order, since they do nothing', () => {
       const weather = { boostedTypes: [], conditionName: 'Clear', hasWarning: false, icon: 'wb_sunny' } as unknown as WeatherData;
       const { el } = setup({ location: { latitude: 41.6539, longitude: -83.5379 }, weather });
 
-      expect(el.querySelector('.weather-card')!.hasAttribute('tabindex')).toBe(false);
+      for (const selector of ['.strip-weather', '.strip-alerts']) {
+        const item = el.querySelector(selector)!;
+        expect(item.tagName).toBe('SPAN');
+        expect(item.hasAttribute('tabindex')).toBe(false);
+      }
     });
   });
 
-  describe('quick actions (U1)', () => {
-    it('asks the list to open its add dialog for the three Add actions', () => {
-      const { el } = setup();
+  describe('new alarm (U1)', () => {
+    it('asks the list to open its add dialog', () => {
+      const { fixture } = setup();
       const navigate = jest.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
-      const buttons = [...el.querySelectorAll<HTMLButtonElement>('.quick-actions .action-btn')];
+      const component = fixture.componentInstance;
 
-      buttons.forEach(b => b.click());
+      for (const key of ['pokemon', 'raids', 'quests'] as const) {
+        component.startNewAlarm(component.cards.find(c => c.key === key)!);
+      }
 
       expect(navigate).toHaveBeenCalledWith(['/pokemon'], { queryParams: { [ADD_QUERY_PARAM]: 1 } });
       expect(navigate).toHaveBeenCalledWith(['/raids'], { queryParams: { [ADD_QUERY_PARAM]: 1 } });
       expect(navigate).toHaveBeenCalledWith(['/quests'], { queryParams: { [ADD_QUERY_PARAM]: 1 } });
     });
 
-    it('leaves Manage Areas and Cleaning as plain navigation', () => {
+    it('leaves Cleaning as plain navigation', () => {
       const { el } = setup();
       const navigate = jest.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
 
-      el.querySelector<HTMLButtonElement>('.quick-actions .action-areas')!.click();
-      el.querySelector<HTMLButtonElement>('.quick-actions .action-cleaning')!.click();
+      el.querySelector<HTMLButtonElement>('.action-cleaning')!.click();
 
-      expect(navigate).toHaveBeenCalledWith(['/areas']);
       expect(navigate).toHaveBeenCalledWith(['/cleaning']);
     });
   });

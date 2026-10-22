@@ -81,16 +81,17 @@ stacks — picking 4 hours on a subject with 20 minutes left leaves it quiet for
     Switching profile does not lift them. A gym you quieted while on your Home profile is still quiet
     on your Work profile.
 
-## The dashboard card
+## On the dashboard
 
-While anything is quiet, a **Quiet** card appears on the dashboard reading something like "3 quiet,
-next back in 47m". It is absent the rest of the time rather than sitting there empty.
+While anything is quiet, a **Quiet** item joins the status strip at the top of the dashboard, reading
+something like "3 quiet, next back in 47m". It is absent the rest of the time rather than sitting there
+empty. An area that is quiet also shows its time left on its chip under the area map.
 
 Opening it lists every active quiet period, including the three scopes only the bot can create, each
 with a **Resume** button, plus **Resume everything**. This is the place to look when alerts have gone
 missing and no chip you can find explains it.
 
-![The dashboard's Quiet card opened, listing a quiet area and a quiet species, each with a countdown and a Resume button](../screenshots/quiet-list.png)
+![The dashboard's Quiet item opened, listing a quiet area and a quiet species, each with a countdown and a Resume button](../screenshots/quiet-list.png)
 
 ## Requirements
 
