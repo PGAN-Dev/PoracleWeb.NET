@@ -72,8 +72,8 @@ cleaning toggle keep it, and duplicating a profile copies it.
 ## Viewing as another account
 
 The same session switch is open to admins for any account. **Admin → Users** lists everyone Poracle
-knows, with actions to stop or start their alerts, block them, delete their alarms or the account, and
-**View as this user**.
+knows. **View** on a row opens the site as that account, and the row's menu stops or starts their
+alerts, blocks them, or deletes their alarms or the account.
 
 ![Admin → Users filtered to test accounts, with the row actions](../screenshots/admin-users.png)
 

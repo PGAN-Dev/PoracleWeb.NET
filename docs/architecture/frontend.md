@@ -133,7 +133,7 @@ The `PokemonSelectorComponent` injects this service and calls `load()` in `ngOnI
 ## UI patterns
 
 ### Alarm lists
-Card grid with filter pills showing IV/CP/Level/PVP/Gender at a glance. All alarm types (including Fort Changes and Max Battles) follow this same card grid pattern with type-specific filter pills.
+All ten alarm types use the shared rule card and list toolbar described under [Rule card and list toolbar](#rule-card-and-list-toolbar): neutral filter pills, a status slot, the scope chip and a Details toggle for PoracleNG's own summary.
 
 ### Bulk operations
 Select mode toggle (checklist icon) on each alarm list. Its count is read to screen readers only once it has stopped changing. The bulk bar is one shared component, `shared/components/bulk-action-bar/`: the count of selected cards on screen (`actionIds`), Select all / Deselect all as text buttons, a tonal Change radius, and a filled warn "Delete N". Below 600px it is fixed to the bottom of the screen and `styles.scss` pads `main` while it shows. `bulk-action-bar.component.spec.ts` pins all ten lists to it.
@@ -154,7 +154,7 @@ Dark and light mode bridge Material tokens to component styles through CSS varia
 
 ![The toolbar with the default accent](../screenshots/toolbar-theme.png)
 
-![The user menu, with Accent Theme, Display language and Alert language](../screenshots/user-menu.png)
+![The user menu, with Accent theme, Display language and Alert language](../screenshots/user-menu.png)
 
 ![The sidebar on the Pokémon page](../screenshots/sidenav.png)
 

@@ -26,11 +26,11 @@ If PoracleNG doesn't answer, every alarm endpoint answers 503 ("PoracleNG could 
 
 Each alarm type has a dedicated page accessible from the sidebar navigation. The creation flow:
 
-1. Click the **+** (add) button
-2. Select the Pokemon/raid/quest target using the selector dialog
+1. Press **New alarm** at the top right of the list (the Dashboard's **New alarm** menu opens the same dialog for any type)
+2. Pick the target on the first tab, which is named after the type. The Pokemon picker leads with a search box; **Add by type or generation** opens the generation and type buttons, and **Add multiple** takes a pasted list of names
 3. Configure filter options (IV range, CP range, level, etc.)
-4. On the **Delivery** tab, answer "Where should this alert reach you?" — see [Where an alert reaches you](#where-an-alert-reaches-you)
-5. Optionally select a **template** for notification formatting
+4. On the **Delivery** tab, answer "Where should this alert reach you?" — see [Where an alert reaches you](#where-an-alert-reaches-you). A small map under the answer draws the radius or the areas you picked
+5. Under **Message** on the same tab, optionally pick a **template**, and set clean mode and the other message switches
 6. Save the alarm
 
 ## Editing alarms
@@ -76,15 +76,17 @@ A radius you type runs from 0.1 to 100 km. Outside that the field says so and Sa
 
 If you choose "Near a point" without ever having set a pin, the picker says so and offers a **Set your pin** button in place, rather than saving an alarm that measures from 0,0.
 
+Under the three answers the dialog draws what you picked on a small map: the circle at the typed radius around the pin or place (drawn even when the radius is out of range, so a typo of 500 km is obvious), the chosen areas shaded, or the profile's areas for "Anywhere in my areas". Nothing is drawn when there is nothing to show yet, and under `disable_location` the near-a-point map is not drawn at all, since the pin and places are never read.
+
 !!! note "Your own geofences work here"
     PoracleWeb.NET serves user-drawn geofences with `userSelectable: false` to keep them out of the bot's `!area` picker, so PoracleNG would normally refuse them in `override_areas`. PoracleWeb.NET checks each name itself (selectable for you, one of your own drawn geofences, on your active profile, or already on the alarm you're editing) and then asks PoracleNG to save the alarm with those names trusted. A geofence you drew can scope one alarm whether or not your profile subscribes to it, and nothing is written to PoracleNG's database directly. See [Custom geofences](custom-geofences/key-concepts.md).
 
 !!! note "An Add that would replace another alarm is refused"
-    PoracleNG treats an alarm that differs from one you already have in a single setting (the distance, the template or the clean flag) as an update of that alarm, not a new one. Before saving, PoracleWeb.NET asks PoracleNG what an Add would do. If it would take another alarm over, you get "Another alarm of this type already uses those settings. Edit or remove that one instead." and nothing changes. If the alarm already exists exactly, nothing is written. Editing an alarm into a copy of another one is refused the same way. Max battles follow the same rule, so a second alarm for the same boss that differs only by radius is refused where it used to stack.
+    PoracleNG treats an alarm that differs from one you already have in a single setting (the distance, the template or the clean flag) as an update of that alarm, not a new one. Before saving, PoracleWeb.NET asks PoracleNG what an Add would do. If it would take another alarm over, nothing changes and a single Add keeps its dialog open with your settings: a line above the buttons reads "Already covered by:" and the alarm it collided with, and **Edit that one** opens that alarm's edit dialog instead. When the server names no rule, the line gives its reason alone. Adding several at once closes as before, skips the clashes and reports the first reason. If the alarm already exists exactly, nothing is written. Editing an alarm into a copy of another one is refused the same way. Max battles follow the same rule, so a second alarm for the same boss that differs only by radius is refused where it used to stack.
 
     Pokemon is the exception for the clean setting. An Add that matches an existing Pokemon rule in everything but Clean mode comes back as "already tracked" and the stored rule keeps its old setting. To change Clean mode on a Pokemon rule, edit it.
 
-    ![The snackbar refusing an Add: "Another alarm of this type already uses those settings. Edit or remove that one instead."](../screenshots/takeover-refused.png)
+    ![A refused Add with the dialog still open, the "Already covered by" line naming the existing alarm and an Edit that one button](../screenshots/takeover-refused.png)
 
 !!! note "An alarm PoracleNG can't store is refused whole"
     A few shapes have no v2 representation: an egg without a level (old quick picks and import files can carry one), an invasion limited to gender 3, a PVP league other than 500, 1500 or 2500. Saving one fails with "PoracleNG can't store this alarm as it is: ... Nothing was changed." naming the field, rather than dropping the part PoracleNG can't hold.
@@ -101,24 +103,24 @@ The pin is set from the **My pin** row of that panel, through a map picker with 
 
 ![The pin dialog with address search results listed under the search box](../screenshots/location-dialog.png)
 
-![Places section on the Areas & Places page](../screenshots/places-section.png)
+![The Pin and places panel on the Areas & Places page, with the pin row and two named places](../screenshots/places-section.png)
 
 Add one with **Add a place**: drop the marker, then name it. Names are yours to choose and are what an alarm's `override_location_label` refers to. Places are user-scoped, not profile-scoped.
 
 A name you already have is refused, and so is one longer than 64 characters — the column will not hold
 it. Both come back with the reason against the field rather than as a server error.
 
-To move one, use the pencil beside the bin on its card. It reopens the same map picker
+To move one, use the move button beside the bin on its row. It reopens the same map picker
 adding one does, and the label is untouched, so every alarm aimed at that place follows it. There is
 no naming step, because the label is what the alarms point at and changing it is a different act.
 
 !!! note "Moving needs a reachable PoracleNG"
-    Every supported PoracleNG (5.4.0 and later) has the endpoint, so the pencil is always there. If
+    Every supported PoracleNG (5.4.0 and later) has the endpoint, so the move button is always there. If
     PoracleNG is unreachable the move fails with an error. Without the endpoint the only route would be
     delete-and-re-add, which is refused while any alarm still points at the place, so those alarms
     would have to be repointed first.
 
-Deleting a place that alarms still point at is refused. `DELETE /api/location/places/{label}` answers 409 with a `referencingRules` list, and the UI names the alarms so you know what to repoint first.
+Deleting a place that alarms still point at is refused. Before any dialog opens, the bin reads `GET /api/location/place-usage?label=` (the active profile's rules aimed at that label, each with PoracleNG's own one-line description). If some are, an information dialog titled "*place* is in use" lists them (up to eight, then "and N more") with only a Close button; if none are, the ordinary delete confirm appears; if the read fails, a cautious confirm appears instead. `DELETE /api/location/places/{label}` still answers 409 with a `referencingRules` list for a rule added in between, and the snackbar names those alarms.
 
 The API is four endpoints on `LocationController`, all gated by `disable_location`:
 
@@ -131,7 +133,7 @@ The API is four endpoints on `LocationController`, all gated by `disable_locatio
 
 ### Changing scope from a card
 
-Every alarm card carries a scope chip reading the alarm's answer back to you: "Anywhere I get alerts" when the profile has no areas selected, otherwise "Anywhere in my areas", "Within 2 km of Home", "Only in Terrigal, Erina". Clicking it opens the same picker in a small dialog, so one alarm's scope can be changed without opening its edit dialog.
+Every alarm card carries a scope chip reading the alarm's answer back to you: "Anywhere I get alerts" when the profile has no areas selected, otherwise "Anywhere in my areas", "Within 2 km of Home", "Only in Terrigal, Erina". Clicking it opens the same picker in a small dialog (on a phone, a sheet from the bottom of the screen), so one alarm's scope can be changed without opening its edit dialog.
 
 ![Scope chip on an alarm card](../screenshots/where-chip.png)
 
@@ -139,7 +141,7 @@ Every alarm card carries a scope chip reading the alarm's answer back to you: "A
 
 By default, every new alarm opens pre-set to **Areas** (geofence-based — the alarm sends `distance = 0`). If you usually track by radius, you can change that default so new alarms open on **Distance** with a radius you choose, instead of switching the location mode and re-typing a distance on every add.
 
-Open the **user menu** (your avatar, top-right) and select **Alert Defaults**:
+Open the **user menu** (your avatar, top-right) and select **Alert defaults**:
 
 | Setting | What it does |
 |---|---|
@@ -167,7 +169,7 @@ When a [Golbat scanner](../configuration/reference.md#golbat-api) is configured,
 
 ### What the user sees
 
-A **Live > Spawning** toggle below the Gen and Type filter rows narrows the list to species spawning now. Small green dots mark available Pokemon in both the autocomplete dropdown and the tile grid, and unavailable ones get a muted grey dot. While any filter (Gen, Type or Spawning) is active, spawning species sort to the top, and a "X species active" label counts them.
+**Add by type or generation** under the picker's search box opens the Gen, Type and **Live > Spawning** rows; the Spawning chip narrows the list to species spawning now. Small green dots mark available Pokemon in both the autocomplete dropdown and the tile grid, and unavailable ones get a muted grey dot. While any filter (Gen, Type or Spawning) is active, spawning species sort to the top, and a "X species active" label counts them.
 
 ### Feature gating
 
@@ -238,9 +240,9 @@ Each alarm list page has a **select mode** toggle (checklist icon in the toolbar
 
 Delete is the one red, filled button in the bar, and Change radius sits beside it in a quieter tone, so the two can't be mistaken for each other. On a phone the bar is pinned to the bottom of the screen, so it stays in reach while you scroll and tick cards.
 
-![The Pokemon page in select mode, three cards checked and the bulk toolbar showing Select All, Update Distance and Delete](../screenshots/bulk-select.png)
+![The Pokemon page in select mode, three cards checked and the bulk bar showing 3 selected, Select all, Change radius and Delete 3](../screenshots/bulk-select.png)
 
-![The bulk distance dialog with Set Distance at 5 km](../screenshots/bulk-distance-dialog.png)
+![The bulk radius dialog, titled Change the radius of 3 alarms, with Within a radius set to 5 km](../screenshots/bulk-distance-dialog.png)
 
 ![Select mode on a phone, three alarms selected and the bulk toolbar showing](../screenshots/mobile-bulk-toolbar.png){ width="320" }
 
@@ -342,7 +344,7 @@ The default maximum level is **55** (not 40 or 50), matching Poracle's support f
 
 ### Minimum time left
 
-Under **More Filters**, **Minimum Time Left** skips spawns that will despawn before you could reach them. The field is a select rather than a free number, offering Any, 1, 2, 5, 10, 15 and 20 minutes. PoracleNG stores seconds (`min_time`), and a free field invited two silent failures: typing `5` meaning minutes asks for five seconds, and a value longer than a spawn lives mutes the alarm with no error. A value set from the bot that isn't one of the presets is kept and offered in the list rather than being overwritten on the next save.
+Under **More Filters**, **Time left** skips spawns that will despawn before you could reach them. The field is a select rather than a free number, offering Any, 1, 2, 5, 10, 15 and 20 minutes. PoracleNG stores seconds (`min_time`), and a free field invited two silent failures: typing `5` meaning minutes asks for five seconds, and a value longer than a spawn lives mutes the alarm with no error. A value set from the bot that isn't one of the presets is kept and offered in the list rather than being overwritten on the next save.
 
 When set, the card shows a "5 min left" pill alongside the IV and CP pills.
 
@@ -580,8 +582,10 @@ Showcases, Kecleon sightings and Gold Stops are the eleventh alarm type, on its 
 
 ![Add Pokéstop event alarm dialog showing the Showcase, Kecleon and Gold Stop checkboxes](../screenshots/pokestop-events-add-dialog.png)
 
-The add dialog has two tabs. **Settings** holds three checkboxes, one per event; an event you already
-track is unticked, disabled and labelled "Already tracked", so you can't create a duplicate. **Delivery** is the usual
+The add dialog has two tabs. The first, **Pokéstop events**, holds three checkboxes, one per event; an event you
+already track with the Delivery choice currently picked is unticked, disabled and labelled "Already tracked for this
+Delivery choice", so you can't create a duplicate. Change the Delivery choice and the same event can be ticked
+again, because a rule with another scope is a separate rule. **Delivery** is the usual
 [scope picker](#where-an-alert-reaches-you), auto-delete toggle and template selector.
 
 Ticking more than one event creates one rule per event, not one rule covering several. The edit dialog

@@ -60,7 +60,7 @@ Control which alarm categories are available to users. Disabling a type hides it
 | `disable_showcase` | Pokéstop Events (Showcase, Kecleon, Gold Stop) | boolean | Hide Showcase, Kecleon and Gold Stop alarms from all users. The page, the sidebar item and the API all go; rules already stored stay dormant and return if you switch it back on. PoracleNG's own `[general] disable_showcase = true` also forces this off. Absent or unreadable, it leaves the page on. While the page is off, the three events stay available from the invasion add dialog. |
 
 !!! info "A disabled type disappears completely"
-    The sidebar item, the dashboard card and the page all go, and every endpoint for that type answers
+    The sidebar item, the dashboard count, the **New alarm** menu entry and the page all go, and every endpoint for that type answers
     403 — reads, writes and deletes alike. Admins are not exempt.
 
     Rules a user already had are **not deleted**. They stay in Poracle's database, dormant: a disabled

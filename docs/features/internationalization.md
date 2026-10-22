@@ -89,7 +89,7 @@ Each language file uses namespaced keys organized by feature area:
     "RAIDS": "Raids"
   },
   "MENU": {
-    "PAUSE_ALERTS": "Pause Alerts",
+    "PAUSE_ALERTS": "Pause alerts",
     "LOGOUT": "Logout"
   },
   "DASHBOARD": {
@@ -120,7 +120,7 @@ Each language file uses namespaced keys organized by feature area:
 | `GYMS` | Gym alarm management |
 | `FORT_CHANGES` | Fort change alarm management |
 | `MAX_BATTLES` | Max battle alarm management |
-| `QUIET` | Quiet periods: chips, duration sheet and dashboard card |
+| `QUIET` | Quiet periods: chips, duration sheet and the dashboard's Quiet item |
 | `AREAS` | Areas & Places page |
 | `PROFILES` | Profile management |
 | `GEOFENCES` | Custom geofences |
@@ -133,7 +133,7 @@ Each language file uses namespaced keys organized by feature area:
 | `DIALOG` | Shared dialog components |
 | `TEST_ALERT` | Test alert feedback |
 | `WHERE` | Per-alarm delivery scope and saved places |
-| `ALERT_DEFAULTS` | Alert Defaults dialog |
+| `ALERT_DEFAULTS` | Alert defaults dialog |
 | `ALARM_INFO` | Shared alarm summary component |
 | `ACTIVE_HOURS_CHIP` | Profile schedule pills |
 | `LOCATION_WARNING` | Missing-coordinates warning banner |

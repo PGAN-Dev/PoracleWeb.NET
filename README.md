@@ -49,7 +49,7 @@ See the [Quick Start guide](https://pgan-dev.github.io/PoracleWeb.NET/getting-st
 |---|---|
 | Alarm management | Pokemon, Raids and Eggs, Max Battles, Quests, Invasions, Pokéstop Events, Lures, Nests, Gyms, Fort Changes |
 | Gym picker | Search for a gym by name and aim a gym, raid or egg alarm at it |
-| Bulk operations | Select several alarms to delete them or change their distance in one go |
+| Bulk operations | Select several alarms to delete them or change their radius in one go; on a phone the bar stays pinned to the bottom of the screen |
 | Per-alarm delivery scope | Aim each alert anywhere in your areas, at only specific areas, or within a radius of your pin or a saved place |
 | Saved places | Name the points your alerts measure from, so an alarm doesn't have to follow your profile pin |
 | Test alerts | Send yourself a sample notification for an alarm to check its filters and template (every type except Fort Changes, Max Battles and Pokéstop Events) |
@@ -60,10 +60,10 @@ See the [Quick Start guide](https://pgan-dev.github.io/PoracleWeb.NET/getting-st
 | Quick picks | One-click alarm templates |
 | Profiles | Several alarm profiles per user, with active hours that switch between them by day and time |
 | DTS preview | Live preview of the Discord notification template |
-| Dark and light mode | Theme toggle with accent colours |
+| Dark and light mode | Theme toggle with accent colours; maps on the site default switch to a dark basemap in dark mode |
 | 11 UI languages | The interface, plus Pokemon names, types and forms, which follow the display language. What Poracle writes in your DMs is a separate choice, **Alert language**, beside **Display language** in the user menu |
 | Single sign-on | Discord and Telegram login, plus any OIDC provider, with optional silent refresh and single logout |
-| Admin panel | Users, webhooks, site settings, geofence review, hidden areas, a Versions card showing the running PoracleWeb.NET and PoracleNG builds, and a Rule repair card for rules PoracleNG 5.4.0 reads differently. The Versions card runs an anonymous GitHub check, cached six hours, which the `disable_update_check` site setting switches off |
+| Admin panel | Users, webhooks, site settings, geofence review, hidden areas, a status line on the settings page that opens a Versions card showing the running PoracleWeb.NET and PoracleNG builds, and a Rule repair card for rules PoracleNG 5.4.0 reads differently. The Versions card runs an anonymous GitHub check, cached six hours, which the `disable_update_check` site setting switches off |
 
 ## Documentation
 

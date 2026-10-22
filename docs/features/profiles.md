@@ -10,7 +10,7 @@ The Profiles page provides a consolidated view of all profiles and their alarms 
 
 A stats bar at the top counts alarms per type across all profiles. The search bar filters every profile's alarms by name, Pokemon or other attributes, and ten type chips (Pokemon, Raids, Eggs, Max Battles, Quests, Invasions, Lures, Nests, Gyms and Fort Changes) narrow the view. Each profile is an expandable panel with its alarms grouped by type.
 
-A rule that matches another rule of the same type is highlighted with an orange border, so redundant filters stand out. Hovering the tag names the other profiles carrying it, or says the duplicates all sit on this one.
+A rule that matches another rule of the same type carries an orange copy tag, so redundant filters stand out. Hovering the tag names the other profiles carrying it, or says the duplicates all sit on this one.
 
 !!! tip
     Use the search bar and type filters together to quickly find a specific alarm across all your profiles. For example, search for "Gible" with the Pokemon filter chip active to see which profiles are tracking it.
@@ -30,7 +30,7 @@ A rule that matches another rule of the same type is highlighted with an orange 
 
 ## Creating & Switching Profiles
 
-Tap **+** to create a profile. The dialog takes up to 32 characters and flags a name you already use; the server itself accepts up to 255 and doesn't insist on unique names. **Switch** makes a profile the active one, marked with a green badge. The pencil renames a profile, and the bin deletes one, except the active profile, which can't be deleted.
+Press **New profile** at the top right to create one. The dialog takes up to 32 characters and flags a name you already use; the server itself accepts up to 255 and doesn't insist on unique names. **Switch** makes a profile the active one, marked with a green badge. The pencil renames a profile, and the bin deletes one, except the active profile, which can't be deleted.
 
 Each profile maintains its own independent:
 

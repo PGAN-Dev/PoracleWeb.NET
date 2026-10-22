@@ -28,7 +28,7 @@ A web application for managing Pokemon GO notification alarms through the [Porac
 | [Alarm management](features/alarms.md) | Create, edit and delete filters for Pokemon, Raids, Eggs, Max Battles, Quests, Invasions, Pokéstop Events, Lures, Nests, Gyms and Fort Changes |
 | Gym picker | Search for a gym by name, with photo thumbnails and area names, and aim a gym, raid or egg alarm at it (needs the scanner database) |
 | Pokemon availability | See which species are spawning now while you pick Pokemon for an alarm (needs Golbat) |
-| Bulk operations | Select several alarms to delete them or change their distance in one go |
+| Bulk operations | Select several alarms to delete them or change their radius in one go; on a phone the bar stays pinned to the bottom of the screen |
 | Alert defaults | Set where new alerts reach you by default: your areas, or a radius from your pin or a saved place |
 | Per-alarm delivery scope | Aim one alert anywhere in your areas, near a place or a point on the map, or only in specific areas, including geofences you drew yourself |
 | Saved places | Name the points your alerts measure from, so one alert can watch your workplace while the rest follow your pin |
@@ -39,13 +39,13 @@ A web application for managing Pokemon GO notification alarms through the [Porac
 | Hidden areas | Take a staging or test area off Areas & Places, the per-alarm scope picker and the bot's area list without deleting it, from Admin → Areas |
 | [Profiles](features/profiles.md) | Several alarm profiles per user, with active hours that switch between them by day and time, duplication, and JSON backup and restore |
 | Notification preview | Live preview of DTS templates with Handlebars evaluation |
-| Dark and light mode | Theme toggle, remembered per browser, with accent colours for the toolbar and highlights |
+| Dark and light mode | Theme toggle, remembered per browser, with accent colours for the toolbar and highlights; maps on the site default switch to a dark basemap in dark mode |
 | Responsive layout | On a phone the sidebar collapses into a menu and add and edit dialogs open full screen. Tablets in portrait keep the sidebar open |
 | Onboarding wizard | A first-run guide on the dashboard that walks a new user through their pin, areas and first alarm |
 | Keyboard shortcuts | ++question++ for help, ++bracket-left++ / ++bracket-right++ to collapse or expand the sidebar |
 | [11 UI languages](features/internationalization.md) | English, French, German, Spanish, Dutch, Italian, Portuguese, Brazilian Portuguese, Polish, Danish and Swedish. Pokemon names, types and forms follow the display language, translated by Poracle itself. What Poracle writes in your DMs is a separate choice, **Alert language**, beside **Display language** in the user menu |
 | Single sign-on | Discord and Telegram login, plus any OIDC provider ([setup](configuration/external-sso.md)), with optional [silent refresh and single logout](configuration/oidc-refresh-tokens.md) |
-| Admin panel | Users, webhooks, site settings, geofence review and hidden areas, plus a Versions card showing the running PoracleWeb.NET and PoracleNG builds and a [Rule repair](getting-started/upgrading-to-poracleng-5-4.md#run-the-rule-repair) card for rules PoracleNG 5.4.0 reads differently |
+| Admin panel | Users, webhooks, site settings, geofence review and hidden areas, plus a status line on the settings page that opens a Versions card showing the running PoracleWeb.NET and PoracleNG builds and a [Rule repair](getting-started/upgrading-to-poracleng-5-4.md#run-the-rule-repair) card for rules PoracleNG 5.4.0 reads differently |
 | [Webhooks & delegates](features/webhooks.md) | Channel feeds managed as their own accounts, with named people allowed to manage one without being made an administrator |
 | Test alerts | Send a sample notification from an alarm card to see what the alert looks like (all types except Fort Changes, Max Battles and Pokéstop Events) |
 | Weather | Current in-game weather at your pin and across your areas, on the dashboard (needs the scanner database) |

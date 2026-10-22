@@ -627,7 +627,7 @@ An empty array on the first call, with the type still locked, means the local `d
 **Symptom**: A page or control the docs mention isn't there, with no error, toast or empty state.
 
 **Cause**: Every supported PoracleNG (5.4.0 and later) has the quiet chip, Pokécoin quest rewards, the
-costume filter and the pencil that moves a saved place, so PoracleWeb.NET always offers them. What can
+costume filter and the button that moves a saved place, so PoracleWeb.NET always offers them. What can
 hide something without a word is configuration:
 
 | Missing | Hidden by |
