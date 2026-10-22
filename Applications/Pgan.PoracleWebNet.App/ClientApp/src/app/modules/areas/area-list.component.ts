@@ -27,6 +27,7 @@ import { QuietChipComponent } from '../../shared/components/quiet-chip/quiet-chi
 import { RegionOption, RegionSelectorComponent } from '../../shared/components/region-selector/region-selector.component';
 import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
 import { hasPin, pinOrNull } from '../../shared/utils/location.utils';
+import { serverReason } from '../../shared/utils/server-reason';
 
 interface AreaItem {
   group: string;
@@ -352,9 +353,12 @@ export class AreaListComponent implements OnInit {
       .update(selected)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        error: () => {
+        error: err => {
           this.saving.set(false);
-          this.snackBar.open(this.i18n.instant('AREAS.SNACK_FAILED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+          const message = this.saveRefusal(err);
+          this.snackBar.open(message ?? this.i18n.instant('AREAS.SNACK_FAILED'), this.i18n.instant('TOAST.OK'), {
+            duration: message ? 6000 : 3000,
+          });
         },
         next: () => {
           this.savedAreas.set([...selected]);
@@ -499,6 +503,20 @@ export class AreaListComponent implements OnInit {
       .subscribe(result => {
         if (result?.displayName) this.locationAddress.set(result.displayName);
       });
+  }
+
+  /**
+   * Why a save was refused, when the server said. PUT /api/areas answers 400 `{ error, areas }` naming each
+   * area this user may not select, and saves nothing; the names are shown as published, in the user's
+   * language.
+   */
+  private saveRefusal(err: unknown): null | string {
+    const refused = (err as { error?: { areas?: unknown } } | null)?.error?.areas;
+    if (Array.isArray(refused) && refused.length > 0) {
+      const names = refused.filter((a): a is string => typeof a === 'string').map(a => this.areaDisplayName(a));
+      return this.i18n.instant('AREAS.SNACK_NOT_PERMITTED', { names: names.join(', ') });
+    }
+    return serverReason(err);
   }
 
   private syncSelectedFromAreas(): void {

@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
+import { ErrorStateMatcher } from '@angular/material/core';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -57,6 +58,9 @@ export class GeofenceNameDialogComponent {
   readonly hasRegions = this.regionOptions.length > 0;
 
   readonly manualSelect = signal(!this.data.detectedRegion);
+
+  /** In the error state whenever the name breaks the rule, touched or not, so the reason shows at once. */
+  readonly nameErrors: ErrorStateMatcher = { isErrorState: () => this.isWhitespaceOnly || this.hasInvalidChars };
 
   readonly namePattern = /^[a-zA-Z0-9 \-'.()&]+$/;
 

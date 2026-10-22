@@ -202,7 +202,7 @@ describe('GeofenceNameDialogComponent', () => {
    * and turns into the error the moment the name breaks it.
    */
   describe('says why Save is disabled', () => {
-    const render = (name: string, rename = false) => {
+    const render = async (name: string, rename = false) => {
       TestBed.resetTestingModule();
       TestBed.configureTestingModule({
         providers: [
@@ -215,42 +215,54 @@ describe('GeofenceNameDialogComponent', () => {
       const fixture = TestBed.createComponent(GeofenceNameDialogComponent);
       fixture.componentInstance.displayName = name;
       fixture.detectChanges();
+      // ngModel writes the input's value a tick later, and matInput judges aria-invalid from that value.
+      await fixture.whenStable();
+      fixture.detectChanges();
       const el = fixture.nativeElement as HTMLElement;
-      return { el, rule: el.querySelector('.name-rule') as HTMLElement };
+      return { el, input: el.querySelector('input') as HTMLInputElement, rule: el.querySelector('.name-rule') as HTMLElement };
     };
 
-    it('shows the allowed characters before anything is typed', () => {
-      const { rule } = render('');
+    it('shows the allowed characters before anything is typed', async () => {
+      const { rule } = await render('');
 
       expect(rule.textContent?.trim()).toBe('GEOFENCES.NAME_RULE_HINT');
       expect(rule.classList.contains('name-error')).toBe(false);
     });
 
-    it('turns the rule into the error for a character it does not allow', () => {
-      for (const name of ['<script>', 'Lake Eola Loop!!']) {
-        const { rule } = render(name);
+    /**
+     * The server takes ASCII A-Z only, so an accented letter is refused like any other character. The
+     * hint says so, and the error is new text with aria-invalid, not the same words turned red.
+     */
+    it('turns the rule into an announced error for a character it does not allow', async () => {
+      for (const name of ['<script>', 'Lake Eola Loop!!', 'Café', 'Müllerpark', 'Söder']) {
+        const { input, rule } = await render(name);
 
-        expect(rule.textContent?.trim()).toBe('GEOFENCES.NAME_RULE_HINT');
+        expect(rule.textContent?.trim()).toBe('GEOFENCES.NAME_RULE_ERROR');
         expect(rule.classList.contains('name-error')).toBe(true);
+        expect(input.getAttribute('aria-invalid')).toBe('true');
       }
     });
 
-    it('says a name of spaces is not a name', () => {
-      const { rule } = render('   ');
+    it('says a name of spaces is not a name', async () => {
+      const { rule } = await render('   ');
 
       expect(rule.textContent?.trim()).toBe('GEOFENCES.NAME_WHITESPACE_ERROR');
       expect(rule.classList.contains('name-error')).toBe(true);
     });
 
-    it('leaves a name the rule allows unflagged', () => {
-      const { rule } = render("Lake Eola Loop (North) & Co's");
+    it('leaves a name the rule allows unflagged', async () => {
+      const { input, rule } = await render("Lake Eola Loop (North) & Co's. 2");
 
+      expect(rule.textContent?.trim()).toBe('GEOFENCES.NAME_RULE_HINT');
       expect(rule.classList.contains('name-error')).toBe(false);
+      expect(input.getAttribute('aria-invalid')).not.toBe('true');
     });
 
-    it('titles itself for what it is doing', () => {
-      expect(render('').el.querySelector('[mat-dialog-title]')?.textContent?.trim()).toBe('GEOFENCES.NAME_DIALOG_TITLE');
-      expect(render('Park', true).el.querySelector('[mat-dialog-title]')?.textContent?.trim()).toBe('GEOFENCES.RENAME_DIALOG_TITLE');
+    it('titles itself for what it is doing', async () => {
+      expect((await render('')).el.querySelector('[mat-dialog-title]')?.textContent?.trim()).toBe('GEOFENCES.NAME_DIALOG_TITLE');
+      expect((await render('Park', true)).el.querySelector('[mat-dialog-title]')?.textContent?.trim()).toBe(
+        'GEOFENCES.RENAME_DIALOG_TITLE',
+      );
     });
   });
 

@@ -7,7 +7,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideTranslateService } from '@ngx-translate/core';
 import * as L from 'leaflet';
-import { of, throwError } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 
 import { GeofenceListComponent } from './geofence-list.component';
 import { GeoJsonImportResult, UserGeofence } from '../../core/models';
@@ -99,6 +99,16 @@ describe('GeofenceListComponent feedback', () => {
       expect(snackOpen.mock.calls[0][0]).toBe(reason);
     });
 
+    it('keeps its own translated words when PoracleNG could not be reached', () => {
+      const { component, snackOpen } = setup({
+        renameGeofence: jest.fn(() => refused(503, { error: 'PoracleNG could not be reached. Try again shortly.' })),
+      });
+
+      component.editGeofence(fence);
+
+      expect(snackOpen.mock.calls[0][0]).toBe('GEOFENCES.SNACK_FAILED_UPDATE');
+    });
+
     it('opens the rename as a rename', () => {
       const { component, open } = setup();
 
@@ -127,6 +137,36 @@ describe('GeofenceListComponent feedback', () => {
 
       expect(service.getCustomGeofences).toHaveBeenCalledTimes(1);
       expect(areas.getSelected).toHaveBeenCalledTimes(1);
+    });
+
+    /** Esc while the request is still out: the fences arrive after the dialog has gone. */
+    it('reloads once an import closed mid-request settles', () => {
+      const settled = new Subject<GeoJsonImportResult | null>();
+      const { component, service } = setup(
+        {},
+        { afterClosed: () => of(undefined), componentInstance: { importing: () => true, importResult: () => null, settled } },
+      );
+      service.getCustomGeofences.mockClear();
+
+      component.openImportDialog();
+      expect(service.getCustomGeofences).not.toHaveBeenCalled();
+
+      settled.next(result);
+      expect(service.getCustomGeofences).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not reload when an import closed mid-request fails', () => {
+      const settled = new Subject<GeoJsonImportResult | null>();
+      const { component, service } = setup(
+        {},
+        { afterClosed: () => of(undefined), componentInstance: { importing: () => true, importResult: () => null, settled } },
+      );
+      service.getCustomGeofences.mockClear();
+
+      component.openImportDialog();
+      settled.next(null);
+
+      expect(service.getCustomGeofences).not.toHaveBeenCalled();
     });
 
     it('does not reload when the dialog closed before anything was imported', () => {

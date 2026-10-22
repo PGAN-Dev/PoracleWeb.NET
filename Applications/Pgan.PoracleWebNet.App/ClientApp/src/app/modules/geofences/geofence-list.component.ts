@@ -9,7 +9,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, take } from 'rxjs';
 
 import {
   AreaDefinition,
@@ -349,15 +349,16 @@ export class GeofenceListComponent implements OnInit {
     });
 
     // Only Done hands the result back. Esc or a click outside closes with nothing, though the fences on
-    // the results step were already created, so read the result off the dialog itself.
+    // the results step were already created, so read the result off the dialog itself. Closed while the
+    // request was still running, the request carries on and the list refreshes when it settles.
     const dialog = ref.componentInstance;
     ref.afterClosed().subscribe((closedWith: GeoJsonImportResult | null | undefined) => {
       const result = closedWith ?? dialog?.importResult() ?? null;
-      if (result && result.created.length > 0) {
-        this.loadCustomGeofences();
-        this.loadActiveAreas();
-        this.snackBar.open(this.i18n.plural('GEOFENCES.SNACK_IMPORTED', result.created.length), this.i18n.instant('TOAST.OK'), {
-          duration: 3000,
+      if (result) {
+        this.afterImport(result);
+      } else if (dialog?.importing()) {
+        dialog.settled.pipe(take(1), takeUntilDestroyed(this.destroyRef)).subscribe(settled => {
+          if (settled) this.afterImport(settled);
         });
       }
     });
@@ -429,6 +430,15 @@ export class GeofenceListComponent implements OnInit {
           },
         );
       },
+    });
+  }
+
+  private afterImport(result: GeoJsonImportResult): void {
+    if (result.created.length === 0) return;
+    this.loadCustomGeofences();
+    this.loadActiveAreas();
+    this.snackBar.open(this.i18n.plural('GEOFENCES.SNACK_IMPORTED', result.created.length), this.i18n.instant('TOAST.OK'), {
+      duration: 3000,
     });
   }
 

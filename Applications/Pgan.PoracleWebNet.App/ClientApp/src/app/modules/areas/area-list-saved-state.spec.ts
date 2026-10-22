@@ -1,4 +1,4 @@
-import { provideHttpClient } from '@angular/common/http';
+import { HttpErrorResponse, provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { computed, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
@@ -6,7 +6,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideTranslateService, TranslateService } from '@ngx-translate/core';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 
 import { AreaListComponent } from './area-list.component';
 import { AreaService } from '../../core/services/area.service';
@@ -63,6 +63,8 @@ describe('AreaListComponent saved and unsaved selections', () => {
       AREAS: {
         METHOD_AREAS_ACTIVE_ONE: '{{count}} area active',
         METHOD_AREAS_ACTIVE_OTHER: '{{count}} areas active',
+        SNACK_FAILED: 'Failed to update areas',
+        SNACK_NOT_PERMITTED: 'Not saved. These areas aren’t available to you: {{names}}',
       },
       COMMON: { REMOVE_NAMED: 'Remove {{name}}' },
     });
@@ -121,5 +123,36 @@ describe('AreaListComponent saved and unsaved selections', () => {
 
     const remove = el.querySelector('.selected-chips button[matChipRemove]');
     expect(remove?.getAttribute('aria-label')).toBe('Remove Downtown');
+  });
+
+  /**
+   * PUT /api/areas answers 400 `{ error, areas }` naming each area the user may not select, and nothing is
+   * saved. "Failed to update areas" left them to guess which.
+   */
+  describe('a refused save', () => {
+    const save = (failure: HttpErrorResponse) => {
+      const ctx = setup();
+      const areas = TestBed.inject(AreaService) as unknown as { update: jest.Mock };
+      areas.update = jest.fn(() => throwError(() => failure));
+      const snackOpen = jest.spyOn(ctx.fixture.debugElement.injector.get(MatSnackBar), 'open');
+      ctx.component.toggleAreaDirect(ctx.uptown());
+      ctx.component.saveAreas();
+      return { ...ctx, snackOpen };
+    };
+
+    it('names the areas the server would not take, by their published names', () => {
+      const { component, snackOpen } = save(
+        new HttpErrorResponse({ error: { areas: ['uptown'], error: 'These areas are not available to you: uptown' }, status: 400 }),
+      );
+
+      expect(snackOpen.mock.calls[0][0]).toBe('Not saved. These areas aren’t available to you: Uptown');
+      expect(component.savedAreas()).toEqual(['downtown']);
+    });
+
+    it('keeps its own words for a failure that names nothing', () => {
+      const { snackOpen } = save(new HttpErrorResponse({ error: { error: 'PoracleNG could not be reached.' }, status: 503 }));
+
+      expect(snackOpen.mock.calls[0][0]).toBe('Failed to update areas');
+    });
   });
 });
