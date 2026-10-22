@@ -89,6 +89,10 @@ public class UnmodelledFieldPreservationTests
             .Callback<string, string, JsonElement>((_, _, body) => this._sent.Add(body.Clone()))
             .ReturnsAsync(new TrackingCreateResult([7], 0, 0, 1));
         this._proxy
+            .Setup(p => p.UpsertV1Async(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()))
+            .Callback<string, string, JsonElement>((_, _, body) => this._sent.Add(body.Clone()))
+            .ReturnsAsync(new TrackingCreateResult([7], 0, 0, 1));
+        this._proxy
             .Setup(p => p.UpdateByUidAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<JsonElement>()))
             .Callback<string, string, int, JsonElement>((_, _, _, body) => this._sent.Add(body.Clone()))

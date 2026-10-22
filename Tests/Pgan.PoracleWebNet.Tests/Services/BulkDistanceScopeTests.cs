@@ -1,7 +1,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Core.Services;
@@ -14,7 +13,7 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 /// <remarks>
 /// <para>
 /// An alarm limited to areas cannot also carry a radius, and one measured from a saved place cannot
-/// drop to zero -- PoracleNG refuses both, and so does <see cref="UserOwnedOverrideAreaProxy"/> before
+/// drop to zero -- PoracleNG refuses both, and so does <see cref="OverrideScope"/> before
 /// it. The bulk paths rewrote every selected row, so one area-scoped alarm in the selection failed the
 /// whole batch with 400 "An alarm limited to areas cannot also have a radius" and nothing changed.
 /// Worse, max battles delete their rows before re-creating them, so the refusal landed after the delete.
@@ -55,20 +54,21 @@ public class BulkDistanceScopeTests
             .Setup(p => p.GetByUserAsync(It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(() => JsonDocument.Parse(StoredRows).RootElement.Clone());
         this._inner
-            .Setup(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()))
-            .Callback<string, string, JsonElement>((_, _, body) => this._sent.Add(body.Clone()))
+            .Setup(p => p.UpsertV1Async(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()))
+            .Callback<string, string, JsonElement>((_, _, body) =>
+            {
+                // The check the real UpsertV1Async makes, so a row it would refuse fails the test the way
+                // it failed live.
+                OverrideScope.EnsureCoherent(body);
+                this._sent.Add(body.Clone());
+            })
             .ReturnsAsync(new TrackingCreateResult([], 0, 1, 0));
         this._inner
             .Setup(p => p.BulkDeleteByUidsAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IEnumerable<int>>()))
             .Callback<string, string, IEnumerable<int>>((_, _, uids) => this._deleted.Add([.. uids]))
             .Returns(Task.CompletedTask);
 
-        // Through the real decorator, so a row it would refuse fails the test the way it failed live.
-        var geofences = new Mock<IUserGeofenceRepository>();
-        geofences.Setup(g => g.GetByHumanIdAsync(It.IsAny<string>())).ReturnsAsync([]);
-        this._proxy = new UserOwnedOverrideAreaProxy(
-            this._inner.Object, geofences.Object, Mock.Of<IAlarmOverrideAreaWriter>(),
-            NullLogger<UserOwnedOverrideAreaProxy>.Instance);
+        this._proxy = this._inner.Object;
     }
 
     public static TheoryData<string> AllTrackingTypes() =>

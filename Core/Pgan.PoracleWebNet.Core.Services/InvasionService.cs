@@ -187,7 +187,7 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
         await TrackingUpdateReconciler.EnsureBatchDoesNotTakeOverOthersAsync(
             this._proxy, TrackingType, userId, body);
 
-        await this._proxy.CreateAsync(TrackingType, userId, body);
+        await this._proxy.UpsertV1Async(TrackingType, userId, body);
         // PoracleNG rewrites every row, so the uids change. Follow any quick-pick that
         // tracks them, pairing on content because the batch response is reordered. See #443.
         await BulkUidRemap.ApplyAsync(
@@ -225,7 +225,7 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
         await TrackingUpdateReconciler.EnsureBatchDoesNotTakeOverOthersAsync(
             this._proxy, TrackingType, userId, body);
 
-        await this._proxy.CreateAsync(TrackingType, userId, body);
+        await this._proxy.UpsertV1Async(TrackingType, userId, body);
         // PoracleNG rewrites every row, so the uids change. Follow any quick-pick that
         // tracks them, pairing on content because the batch response is reordered. See #443.
         await BulkUidRemap.ApplyAsync(

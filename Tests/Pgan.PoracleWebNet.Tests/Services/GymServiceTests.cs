@@ -159,7 +159,7 @@ public class GymServiceTests
                 template = "ZZrow5"
             });
         this._proxy.Setup(p => p.GetByUserAsync("gym", "u")).ReturnsAsync(json);
-        this._proxy.Setup(p => p.CreateAsync("gym", "u", It.IsAny<JsonElement>()))
+        this._proxy.Setup(p => p.UpsertV1Async("gym", "u", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([], 0, 5, 0));
 
         Assert.Equal(5, (await this._sut.UpdateDistanceByUserAsync("u", 1, 250)).Updated);

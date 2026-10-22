@@ -40,10 +40,8 @@ internal static class TrackingV2Replacement
         JsonElement body,
         ITrackedUidRemapper uidRemapper)
     {
-        if (await proxy.TryReplaceV2Async(trackingType, userId, oldUid, body) is not { } replaced)
-        {
-            return null;
-        }
+        // Every edit is a v2 replace now; the nullable answer stays until the services drop their v1 tails.
+        var replaced = await proxy.UpdateByUidAsync(trackingType, userId, oldUid, body);
 
         var newUid = replaced.Uid > 0 ? replaced.Uid : oldUid;
 

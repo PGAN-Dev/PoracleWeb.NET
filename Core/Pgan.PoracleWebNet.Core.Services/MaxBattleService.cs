@@ -147,7 +147,7 @@ public partial class MaxBattleService(IPoracleTrackingProxy proxy, IFeatureGate 
 
         try
         {
-            await this._proxy.CreateAsync(TrackingType, userId, body);
+            await this._proxy.UpsertV1Async(TrackingType, userId, body);
 
             // The rows were deleted and re-made, so every uid changed. Follow any quick pick that
             // tracks them, pairing on content because the batch response is reordered. See #443.
@@ -187,7 +187,7 @@ public partial class MaxBattleService(IPoracleTrackingProxy proxy, IFeatureGate 
 
         try
         {
-            await this._proxy.CreateAsync(TrackingType, userId, body);
+            await this._proxy.UpsertV1Async(TrackingType, userId, body);
 
             // The rows were deleted and re-made, so every uid changed. Follow any quick pick that
             // tracks them, pairing on content because the batch response is reordered. See #443.

@@ -49,7 +49,7 @@ public class CleaningServiceTests
                 clean = 0
             });
         this._proxy.Setup(p => p.GetByUserAsync("pokemon", "u1")).ReturnsAsync(json);
-        this._proxy.Setup(p => p.CreateAsync("pokemon", "u1", It.IsAny<JsonElement>()))
+        this._proxy.Setup(p => p.UpsertV1Async("pokemon", "u1", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([], 0, 5, 0));
 
         Assert.Equal(5, await this._sut.ToggleCleanMonstersAsync("u1", 1, 1));
@@ -75,7 +75,7 @@ public class CleaningServiceTests
                 clean = 1
             });
         this._proxy.Setup(p => p.GetByUserAsync("raid", "u1")).ReturnsAsync(json);
-        this._proxy.Setup(p => p.CreateAsync("raid", "u1", It.IsAny<JsonElement>()))
+        this._proxy.Setup(p => p.UpsertV1Async("raid", "u1", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([], 0, 3, 0));
 
         Assert.Equal(3, await this._sut.ToggleCleanRaidsAsync("u1", 1, 0));
@@ -94,7 +94,7 @@ public class CleaningServiceTests
             clean = 0
         });
         this._proxy.Setup(p => p.GetByUserAsync("egg", "u1")).ReturnsAsync(json);
-        this._proxy.Setup(p => p.CreateAsync("egg", "u1", It.IsAny<JsonElement>()))
+        this._proxy.Setup(p => p.UpsertV1Async("egg", "u1", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([], 0, 2, 0));
 
         Assert.Equal(2, await this._sut.ToggleCleanEggsAsync("u1", 1, 1));
@@ -125,7 +125,7 @@ public class CleaningServiceTests
                 clean = 0
             });
         this._proxy.Setup(p => p.GetByUserAsync("quest", "u1")).ReturnsAsync(json);
-        this._proxy.Setup(p => p.CreateAsync("quest", "u1", It.IsAny<JsonElement>()))
+        this._proxy.Setup(p => p.UpsertV1Async("quest", "u1", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([], 0, 4, 0));
 
         Assert.Equal(4, await this._sut.ToggleCleanQuestsAsync("u1", 1, 1));
@@ -166,7 +166,7 @@ public class CleaningServiceTests
                 clean = 1
             });
         this._proxy.Setup(p => p.GetByUserAsync("invasion", "u1")).ReturnsAsync(json);
-        this._proxy.Setup(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()))
+        this._proxy.Setup(p => p.UpsertV1Async("invasion", "u1", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([], 0, 6, 0));
 
         Assert.Equal(6, await this._sut.ToggleCleanInvasionsAsync("u1", 1, 0));
@@ -181,7 +181,7 @@ public class CleaningServiceTests
             clean = 0
         });
         this._proxy.Setup(p => p.GetByUserAsync("lure", "u1")).ReturnsAsync(json);
-        this._proxy.Setup(p => p.CreateAsync("lure", "u1", It.IsAny<JsonElement>()))
+        this._proxy.Setup(p => p.UpsertV1Async("lure", "u1", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([], 0, 1, 0));
 
         Assert.Equal(1, await this._sut.ToggleCleanLuresAsync("u1", 1, 1));
@@ -192,7 +192,7 @@ public class CleaningServiceTests
     {
         var json = CreateJsonArray([.. Enumerable.Range(1, 8).Select(i => (object)new { uid = i, clean = 0 })]);
         this._proxy.Setup(p => p.GetByUserAsync("nest", "u1")).ReturnsAsync(json);
-        this._proxy.Setup(p => p.CreateAsync("nest", "u1", It.IsAny<JsonElement>()))
+        this._proxy.Setup(p => p.UpsertV1Async("nest", "u1", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([], 0, 8, 0));
 
         Assert.Equal(8, await this._sut.ToggleCleanNestsAsync("u1", 1, 1));
@@ -203,7 +203,7 @@ public class CleaningServiceTests
     {
         var json = CreateJsonArray([.. Enumerable.Range(1, 9).Select(i => (object)new { uid = i, clean = 1 })]);
         this._proxy.Setup(p => p.GetByUserAsync("gym", "u1")).ReturnsAsync(json);
-        this._proxy.Setup(p => p.CreateAsync("gym", "u1", It.IsAny<JsonElement>()))
+        this._proxy.Setup(p => p.UpsertV1Async("gym", "u1", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([], 0, 9, 0));
 
         Assert.Equal(9, await this._sut.ToggleCleanGymsAsync("u1", 1, 0));
@@ -229,7 +229,7 @@ public class CleaningServiceTests
                 clean = 0
             });
         this._proxy.Setup(p => p.GetByUserAsync("maxbattle", "u1")).ReturnsAsync(json);
-        this._proxy.Setup(p => p.CreateAsync("maxbattle", "u1", It.IsAny<JsonElement>()))
+        this._proxy.Setup(p => p.UpsertV1Async("maxbattle", "u1", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([], 0, 3, 0));
 
         Assert.Equal(3, await this._sut.ToggleCleanMaxBattlesAsync("u1", 1, 1));
@@ -254,7 +254,7 @@ public class CleaningServiceTests
         this._proxy.Setup(p => p.GetByUserAsync("pokemon", "u1")).ReturnsAsync(json);
 
         JsonElement captured = default;
-        this._proxy.Setup(p => p.CreateAsync("pokemon", "u1", It.IsAny<JsonElement>()))
+        this._proxy.Setup(p => p.UpsertV1Async("pokemon", "u1", It.IsAny<JsonElement>()))
             .Callback<string, string, JsonElement>((_, _, body) => captured = body.Clone())
             .ReturnsAsync(new TrackingCreateResult([], 0, 2, 0));
 
@@ -283,7 +283,7 @@ public class CleaningServiceTests
         this._proxy.Setup(p => p.GetByUserAsync("pokemon", "u1")).ReturnsAsync(json);
 
         JsonElement captured = default;
-        this._proxy.Setup(p => p.CreateAsync("pokemon", "u1", It.IsAny<JsonElement>()))
+        this._proxy.Setup(p => p.UpsertV1Async("pokemon", "u1", It.IsAny<JsonElement>()))
             .Callback<string, string, JsonElement>((_, _, body) => captured = body.Clone())
             .ReturnsAsync(new TrackingCreateResult([], 0, 2, 0));
 
@@ -356,7 +356,7 @@ public class CleaningServiceTests
         this._proxy.Setup(p => p.GetByUserAsync("pokemon", "u1")).ReturnsAsync(json);
 
         Assert.Equal(0, await this._sut.ToggleCleanMonstersAsync("u1", 1, 1));
-        this._proxy.Verify(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+        this._proxy.Verify(p => p.UpsertV1Async(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
     }
 
     [Fact]
@@ -471,7 +471,7 @@ public class CleaningServiceTests
         // Must short-circuit before any proxy call — otherwise we'd flush a write to PoracleNG even
         // though the feature is disabled.
         this._proxy.Verify(p => p.GetByUserAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
-        this._proxy.Verify(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+        this._proxy.Verify(p => p.UpsertV1Async(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
     }
 
     // --- Max Battles duplicated on every toggle (#402) ---
@@ -488,7 +488,7 @@ public class CleaningServiceTests
         });
         this._proxy.Setup(p => p.GetByUserAsync("maxbattle", "u1")).ReturnsAsync(json);
         this._proxy.Setup(p => p.BulkDeleteByUidsAsync("maxbattle", "u1", It.IsAny<IEnumerable<int>>())).Returns(Task.CompletedTask);
-        this._proxy.Setup(p => p.CreateAsync("maxbattle", "u1", It.IsAny<JsonElement>()))
+        this._proxy.Setup(p => p.UpsertV1Async("maxbattle", "u1", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([84, 85], 0, 0, 2));
 
         var count = await this._sut.ToggleCleanMaxBattlesAsync("u1", 1, 1);
@@ -496,7 +496,7 @@ public class CleaningServiceTests
         Assert.Equal(2, count);
         this._proxy.Verify(p => p.BulkDeleteByUidsAsync("maxbattle", "u1",
             It.Is<IEnumerable<int>>(u => u.OrderBy(x => x).SequenceEqual(new[] { 82, 83 }))), Times.Once);
-        this._proxy.Verify(p => p.CreateAsync("maxbattle", "u1", It.IsAny<JsonElement>()), Times.Once);
+        this._proxy.Verify(p => p.UpsertV1Async("maxbattle", "u1", It.IsAny<JsonElement>()), Times.Once);
     }
 
     [Fact]
@@ -505,14 +505,14 @@ public class CleaningServiceTests
         var json = JsonSerializer.SerializeToElement(new[] { new { uid = 82, id = "u1", clean = 0 } });
         this._proxy.Setup(p => p.GetByUserAsync("maxbattle", "u1")).ReturnsAsync(json);
         this._proxy.Setup(p => p.BulkDeleteByUidsAsync("maxbattle", "u1", It.IsAny<IEnumerable<int>>())).Returns(Task.CompletedTask);
-        this._proxy.SetupSequence(p => p.CreateAsync("maxbattle", "u1", It.IsAny<JsonElement>()))
+        this._proxy.SetupSequence(p => p.UpsertV1Async("maxbattle", "u1", It.IsAny<JsonElement>()))
             .ThrowsAsync(new HttpRequestException("upstream"))
             .ReturnsAsync(new TrackingCreateResult([86], 0, 0, 1));
 
         await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.ToggleCleanMaxBattlesAsync("u1", 1, 1));
 
         // Second create is the restore: a failed toggle must not leave the user with nothing.
-        this._proxy.Verify(p => p.CreateAsync("maxbattle", "u1", It.IsAny<JsonElement>()), Times.Exactly(2));
+        this._proxy.Verify(p => p.UpsertV1Async("maxbattle", "u1", It.IsAny<JsonElement>()), Times.Exactly(2));
     }
 
     [Fact]
@@ -520,7 +520,7 @@ public class CleaningServiceTests
     {
         var json = JsonSerializer.SerializeToElement(new[] { new { uid = 5, id = "u1", clean = 0 } });
         this._proxy.Setup(p => p.GetByUserAsync("pokemon", "u1")).ReturnsAsync(json);
-        this._proxy.Setup(p => p.CreateAsync("pokemon", "u1", It.IsAny<JsonElement>()))
+        this._proxy.Setup(p => p.UpsertV1Async("pokemon", "u1", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([], 0, 1, 0));
 
         await this._sut.ToggleCleanMonstersAsync("u1", 1, 1);
@@ -556,7 +556,7 @@ public class CleaningServiceTests
             new { uid = 3, clean = 0, grunt_type = "showcase" }));
 
         JsonElement sent = default;
-        this._proxy.Setup(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()))
+        this._proxy.Setup(p => p.UpsertV1Async("invasion", "u1", It.IsAny<JsonElement>()))
             .Callback<string, string, JsonElement>((_, _, body) => sent = body.Clone())
             .ReturnsAsync(new TrackingCreateResult([], 0, 1, 0));
 
@@ -577,7 +577,7 @@ public class CleaningServiceTests
             new { uid = 2, clean = 0, grunt_type = "kecleon" }));
 
         JsonElement sent = default;
-        this._proxy.Setup(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()))
+        this._proxy.Setup(p => p.UpsertV1Async("invasion", "u1", It.IsAny<JsonElement>()))
             .Callback<string, string, JsonElement>((_, _, body) => sent = body.Clone())
             .ReturnsAsync(new TrackingCreateResult([], 0, 2, 0));
 
@@ -593,7 +593,7 @@ public class CleaningServiceTests
             new { uid = 2, clean = 0, grunt_type = "kecleon" }));
 
         Assert.Equal(0, await this._sut.ToggleCleanInvasionsAsync("u1", 1, 1));
-        this._proxy.Verify(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()), Times.Never);
+        this._proxy.Verify(p => p.UpsertV1Async("invasion", "u1", It.IsAny<JsonElement>()), Times.Never);
     }
 
     [Fact]

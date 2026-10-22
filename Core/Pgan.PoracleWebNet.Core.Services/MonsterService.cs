@@ -127,7 +127,7 @@ public class MonsterService(
             return skipped;
         }
 
-        await this._proxy.CreateAsync(TrackingType, userId, body);
+        await this._proxy.UpsertV1Async(TrackingType, userId, body);
         return skipped with { Updated = count };
     }
 
@@ -149,7 +149,7 @@ public class MonsterService(
             return skipped;
         }
 
-        await this._proxy.CreateAsync(TrackingType, userId, body);
+        await this._proxy.UpsertV1Async(TrackingType, userId, body);
         return skipped with { Updated = count };
     }
 

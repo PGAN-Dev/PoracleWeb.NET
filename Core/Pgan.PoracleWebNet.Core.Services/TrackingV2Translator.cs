@@ -231,7 +231,7 @@ internal static class TrackingV2Translator
             // grunt_type is the targeting field and the one every v2 read emits. type_id and grunt_id are
             // input conveniences that resolve to it; this application only ever holds the name, so it
             // sends the name and never the other two. Which names are acceptable is the server's own
-            // question -- see InvasionGruntNameService, and the gate in PoracleTrackingProxy that asks it.
+            // question: v2 answers 422 naming a grunt_type its masterdata does not list.
             Strings = ["grunt_type"],
             IntEnums = new Dictionary<string, string[]>(StringComparer.Ordinal)
             {

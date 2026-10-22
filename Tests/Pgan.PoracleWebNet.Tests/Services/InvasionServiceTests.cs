@@ -167,7 +167,7 @@ public class InvasionServiceTests
                 template = "ZZrow4"
             });
         this._proxy.Setup(p => p.GetByUserAsync("invasion", "u")).ReturnsAsync(json);
-        this._proxy.Setup(p => p.CreateAsync("invasion", "u", It.IsAny<JsonElement>()))
+        this._proxy.Setup(p => p.UpsertV1Async("invasion", "u", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([], 0, 4, 0));
 
         Assert.Equal(4, (await this._sut.UpdateDistanceByUserAsync("u", 1, 50)).Updated);
@@ -444,7 +444,7 @@ public class InvasionServiceTests
     {
         this.MixedTable();
         JsonElement? body = null;
-        this._proxy.Setup(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()))
+        this._proxy.Setup(p => p.UpsertV1Async("invasion", "u1", It.IsAny<JsonElement>()))
             .Callback<string, string, JsonElement>((_, _, b) => body = b)
             .ReturnsAsync(new TrackingCreateResult([], 0, 2, 0));
 
@@ -462,7 +462,7 @@ public class InvasionServiceTests
     {
         this.MixedTable();
         JsonElement? body = null;
-        this._proxy.Setup(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()))
+        this._proxy.Setup(p => p.UpsertV1Async("invasion", "u1", It.IsAny<JsonElement>()))
             .Callback<string, string, JsonElement>((_, _, b) => body = b)
             .ReturnsAsync(new TrackingCreateResult([], 0, 1, 0));
 

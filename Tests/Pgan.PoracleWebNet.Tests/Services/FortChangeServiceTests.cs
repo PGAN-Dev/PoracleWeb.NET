@@ -190,7 +190,7 @@ public class FortChangeServiceTests
                 template = "ZZrow2"
             });
         this._proxy.Setup(p => p.GetByUserAsync("fort", "u1")).ReturnsAsync(json);
-        this._proxy.Setup(p => p.CreateAsync("fort", "u1", It.IsAny<JsonElement>()))
+        this._proxy.Setup(p => p.UpsertV1Async("fort", "u1", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([], 0, 2, 0));
         Assert.Equal(2, (await this._sut.UpdateDistanceByUserAsync("u1", 1, 5000)).Updated);
     }

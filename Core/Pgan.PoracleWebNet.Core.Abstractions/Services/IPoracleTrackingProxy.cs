@@ -16,52 +16,62 @@ public interface IPoracleTrackingProxy
     public Task<JsonElement> GetByUserAsync(string type, string userId);
 
     /// <summary>
-    /// Creates one or more tracking alarms. PoracleNG applies cleanRow defaults,
-    /// detects duplicates, and triggers state reload.
-    /// Maps to POST /api/tracking/{type}/{userId}?silent=true
-    /// Returns the list of created/updated UIDs.
-    /// </summary>
-    public Task<TrackingCreateResult> CreateAsync(string type, string userId, JsonElement body);
-
-    /// <summary>
-    /// Replaces one existing tracking alarm, addressed by its uid.
+    /// Creates one or more tracking rules through <c>POST /api/v2/humans/{id}/tracking/{type}?silent=true</c>.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <paramref name="body"/> is a single v1-shaped alarm object — the same shape every alarm service
-    /// already builds, and the same shape <c>TrackingFieldPreserver</c> and <c>TrackingUpdateReconciler</c>
-    /// compare. Which PoracleNG surface it is written through is the proxy's business, not the caller's.
+    /// <paramref name="body"/> is one v1-shaped row (an object) or several (an array). Every row is translated
+    /// and its scope checked before anything is sent; a row v2 cannot be told faithfully is refused, never sent
+    /// to v1. A row naming override areas is authorised by <see cref="IUserAreaPolicy"/> and the write is then
+    /// sent with <c>trusted=true</c>.
     /// </para>
     /// <para>
-    /// On PoracleNG 5.2.0 and later this is <c>PUT /api/v2/humans/{id}/tracking/{type}/{uid}</c>: scoped by
-    /// (human, uid), 404 when the uid is not theirs, 409 when the replacement would duplicate another rule,
-    /// and, because the engine is delete-then-insert, a NEW uid on the way back on 5.2.x. Since
-    /// jfberry/PoracleNG #303 the uid is kept, but a failed reassignment still returns a new one, so the
-    /// response is always read. On anything older it is the v1 create-carrying-a-uid that PoracleWeb has always sent, byte for byte.
+    /// v2's POST still merges a row one updatable field away from a stored rule into that rule, so a dry run
+    /// goes first. A single row that would take another rule over is refused with
+    /// <see cref="Pgan.PoracleWebNet.Core.Models.TrackingConflictException"/>; one already stored exactly is
+    /// reported in <see cref="TrackingCreateResult.AlreadyPresent"/> and nothing is written. In a batch, only
+    /// the rows the dry run reports as new are written, and the rest are counted.
+    /// </para>
+    /// </remarks>
+    public Task<TrackingCreateResult> CreateAsync(string type, string userId, JsonElement body);
+
+    /// <summary>
+    /// <see cref="CreateAsync"/> onto a profile other than the active one, named by <c>&amp;profile=N</c>.
+    /// </summary>
+    /// <remarks>
+    /// An overload rather than an optional parameter: Moq setups are expression trees, which cannot use
+    /// optional arguments (CS0854), so an optional parameter would break every existing setup of
+    /// <see cref="CreateAsync"/>.
+    /// </remarks>
+    public Task<TrackingCreateResult> CreateOnProfileAsync(string type, string userId, JsonElement body, int profileNo);
+
+    /// <summary>
+    /// v1; bulk distance and cleaning only, until sub-project 3c.
+    /// </summary>
+    /// <remarks>
+    /// <c>POST /api/tracking/{type}/{userId}?silent=true</c> with rows that carry their stored uids, which
+    /// PoracleNG upserts in place. Returns PoracleNG's <c>{ newUids, alreadyPresent, updates, insert }</c>.
+    /// </remarks>
+    public Task<TrackingCreateResult> UpsertV1Async(string type, string userId, JsonElement body);
+
+    /// <summary>
+    /// Replaces one existing tracking rule, addressed by its uid, through
+    /// <c>PUT /api/v2/humans/{id}/tracking/{type}/{uid}?silent=true</c>. Nothing here writes through v1.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <paramref name="body"/> is a single v1-shaped alarm object, the same shape every alarm service already
+    /// builds. A row v2 cannot be told faithfully is refused before anything is sent. Override areas are
+    /// authorised as on a create, except that names the stored rule already holds are allowed.
+    /// </para>
+    /// <para>
+    /// 404 when the uid is not this human's; 409, reported as the takeover refusal, when the replacement would
+    /// duplicate another rule. Since jfberry/PoracleNG #303 the uid is kept, but a failed reassignment still
+    /// returns a new one, so the response is always read.
     /// </para>
     /// </remarks>
     /// <returns>The uid the rule now lives under, which may differ from <paramref name="uid"/>.</returns>
     public Task<Pgan.PoracleWebNet.Core.Models.TrackingUpdateResult> UpdateByUidAsync(
-        string type, string userId, int uid, System.Text.Json.JsonElement body);
-
-    /// <summary>
-    /// Full-replaces one existing tracking alarm through <c>/api/v2</c>, or answers null when that surface
-    /// cannot be used for this write.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// Null is the ordinary answer, not a fault: the type has no v2 field table, the operator pinned v1,
-    /// the server does not carry the route, or the row holds something v2 could not be told faithfully
-    /// (see <c>TrackingV2Translator</c>). The caller then takes its own v1 path, which is why this is
-    /// separate from <see cref="UpdateByUidAsync"/> — every alarm service wraps its v1 update in guards
-    /// and repairs that the v2 PUT makes unnecessary, and those have to be skipped as a unit rather than
-    /// run against a write that already happened.
-    /// </para>
-    /// <para>
-    /// <paramref name="body"/> is the same single v1-shaped alarm object every other write takes.
-    /// </para>
-    /// </remarks>
-    public Task<Pgan.PoracleWebNet.Core.Models.TrackingUpdateResult?> TryReplaceV2Async(
         string type, string userId, int uid, System.Text.Json.JsonElement body);
 
     /// <summary>
@@ -110,18 +120,30 @@ public interface IPoracleTrackingProxy
 }
 
 /// <summary>
-/// Result from PoracleNG's tracking create endpoint.
-/// </summary>
-/// <summary>
 /// PoracleNG's answer to a tracking create. It reports exactly what it did; PoracleWeb used to read
 /// almost none of it, which is the shared root of #459, #462, #463, #468 and #469.
 /// </summary>
+/// <param name="NewUids">The uids PoracleNG created.</param>
+/// <param name="AlreadyPresent">Rows already stored exactly, so not written.</param>
+/// <param name="Updates">Rows that updated a stored rule. Always 0 from a v2 create, which never lets a row take one over.</param>
+/// <param name="Inserts">How many rules were created.</param>
+/// <param name="RowUids">
+/// One entry per submitted row, in submission order: the uid created for it, or 0 when nothing was created for
+/// that row (already present, skipped as a takeover, or the commit could not be paired back to it). Empty from
+/// <see cref="IPoracleTrackingProxy.UpsertV1Async"/>, whose answer cannot be paired with its rows.
+/// </param>
+/// <param name="TakeoversSkipped">Rows of a batch left out because they would have taken another rule over.</param>
 public record TrackingCreateResult(
     List<long> NewUids,
     int AlreadyPresent,
     int Updates,
-    int Inserts)
+    int Inserts,
+    IReadOnlyList<int>? RowUids = null,
+    int TakeoversSkipped = 0)
 {
+    /// <inheritdoc cref="TrackingCreateResult" path="/param[@name='RowUids']"/>
+    public IReadOnlyList<int> RowUids { get; init; } = RowUids ?? [];
+
     /// <summary>The uid the row now lives under, or <c>null</c> when PoracleNG named none.</summary>
     public int? PrimaryUid => this.NewUids.Count > 0 ? (int)this.NewUids[0] : null;
 

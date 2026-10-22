@@ -122,7 +122,7 @@ public class LureServiceTests
                 template = "ZZsecond"
             });
         this._proxy.Setup(p => p.GetByUserAsync("lure", "u")).ReturnsAsync(json);
-        this._proxy.Setup(p => p.CreateAsync("lure", "u", It.IsAny<JsonElement>()))
+        this._proxy.Setup(p => p.UpsertV1Async("lure", "u", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([], 0, 2, 0));
 
         Assert.Equal(2, (await this._sut.UpdateDistanceByUserAsync("u", 1, 300)).Updated);

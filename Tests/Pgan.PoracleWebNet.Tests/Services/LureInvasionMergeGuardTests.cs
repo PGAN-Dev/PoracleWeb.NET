@@ -242,24 +242,6 @@ public class LureInvasionMergeGuardTests
         Assert.Equal(["create", "delete"], order);
     }
 
-    [Theory]
-    [MemberData(nameof(GruntNamesV2Refuses))]
-    public async Task AnInvasionEditForAGruntNameV2RefusesSucceedsThroughV1(string gruntType)
-    {
-        // The proxy answers null for these names (TryReplaceV2Async declines), so the edit must land on
-        // the shared v1 upsert -- not fail, and not delete the rule first.
-        var body = "{\"gruntType\":\"" + gruntType + "\",\"gender\":0,\"distance\":1000,\"clean\":0," + NoOverride + "}";
-        var self = StoredTwinOf("invasion", body, uid: 60, distance: 1000);
-        this.Store("invasion", self);
-        var order = this.RecordWrites("invasion", newUid: 61);
-
-        var updated = await this.UpdateAsync("invasion", self, distance: 2000);
-
-        Assert.Equal(61, updated);
-        Assert.Equal(["create", "delete"], order);
-        this._proxy.Verify(p => p.TryReplaceV2Async("invasion", "u1", 60, It.IsAny<JsonElement>()), Times.Once);
-    }
-
     // ── pokestop events (v2 incident, stored in the invasion table) ───────────
 
     private readonly Mock<IPoracleIncidentProxy> _incidents = new();

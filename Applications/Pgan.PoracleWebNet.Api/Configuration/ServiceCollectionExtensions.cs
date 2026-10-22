@@ -56,7 +56,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IWebhookDelegateRepository, WebhookDelegateRepository>();
         services.AddScoped<IQuickPickDefinitionRepository, QuickPickDefinitionRepository>();
         services.AddScoped<IQuickPickAppliedStateRepository, QuickPickAppliedStateRepository>();
-        services.AddScoped<IAlarmOverrideAreaWriter, AlarmOverrideAreaWriter>();
         services.AddScoped<IOidcSessionRepository, OidcSessionRepository>();
 
         // Register Services
@@ -90,7 +89,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISiteSettingService, SiteSettingService>();
         services.AddScoped<ISummaryCapabilityService, SummaryCapabilityService>();
         services.AddScoped<IPokemonEditCapabilityService, PokemonEditCapabilityService>();
-        services.AddScoped<IInvasionGruntNameService, InvasionGruntNameService>();
         services.AddScoped<IUpstreamFeatureFlagService, UpstreamFeatureFlagService>();
         services.AddScoped<IFeatureGate, FeatureGate>();
         services.AddScoped<IWebhookDelegateService, WebhookDelegateService>();
@@ -151,17 +149,9 @@ public static class ServiceCollectionExtensions
             client.Timeout = TimeSpan.FromSeconds(15);
         });
 
-        // Register HttpClient for PoracleNG tracking proxy (alarm CRUD — replaces direct DB writes)
-        // Registered as the concrete type, then decorated: UserOwnedOverrideAreaProxy is what the rest
-        // of the app resolves as IPoracleTrackingProxy. It lets an alarm confine itself to a geofence the
-        // user drew, which PoracleNG's tracking write refuses outright because those fences are served
-        // userSelectable=false. HACK: trusted-set-areas.
-        services.AddHttpClient<PoracleTrackingProxy>();
-        services.AddScoped<IPoracleTrackingProxy>(sp => new UserOwnedOverrideAreaProxy(
-            sp.GetRequiredService<PoracleTrackingProxy>(),
-            sp.GetRequiredService<IUserGeofenceRepository>(),
-            sp.GetRequiredService<IAlarmOverrideAreaWriter>(),
-            sp.GetRequiredService<ILogger<UserOwnedOverrideAreaProxy>>()));
+        // Register HttpClient for PoracleNG tracking proxy (alarm CRUD, all through /api/v2 but for the
+        // bulk distance and cleaning upserts)
+        services.AddHttpClient<IPoracleTrackingProxy, PoracleTrackingProxy>();
 
         // Pokestop events (upstream "incident") are v2-only, so they get their own proxy rather than a
         // second wire shape inside the v1 one. Deliberately NOT wrapped in UserOwnedOverrideAreaProxy:

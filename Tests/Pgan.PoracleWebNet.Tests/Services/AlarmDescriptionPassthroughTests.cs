@@ -58,6 +58,10 @@ public class AlarmDescriptionPassthroughTests
             .Setup(p => p.CreateAsync("pokemon", "user1", It.IsAny<JsonElement>()))
             .Callback<string, string, JsonElement>((_, _, body) => slot[0] = body.Clone())
             .ReturnsAsync(new TrackingCreateResult([], 0, 0, 0));
+        this._proxy
+            .Setup(p => p.UpsertV1Async("pokemon", "user1", It.IsAny<JsonElement>()))
+            .Callback<string, string, JsonElement>((_, _, body) => slot[0] = body.Clone())
+            .ReturnsAsync(new TrackingCreateResult([], 0, 0, 0));
         return slot;
     }
 

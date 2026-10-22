@@ -9,7 +9,7 @@ namespace Pgan.PoracleWebNet.Core.Services;
 /// </summary>
 /// <remarks>
 /// <para>
-/// PoracleNG refuses two scope combinations, and <see cref="UserOwnedOverrideAreaProxy"/> refuses them
+/// PoracleNG refuses two scope combinations, and <see cref="OverrideScope"/> refuses them
 /// again before the write: an alarm limited to areas that also carries a radius, and one measured from a
 /// saved place that carries none. Rewriting every selected row therefore failed the whole selection the
 /// moment it held one area-scoped alarm -- 400 "An alarm limited to areas cannot also have a radius",

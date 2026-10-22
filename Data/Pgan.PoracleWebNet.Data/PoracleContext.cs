@@ -8,8 +8,7 @@ namespace Pgan.PoracleWebNet.Data;
 /// </summary>
 /// <remarks>
 /// There are deliberately no alarm entities here. Every tracking write goes through PoracleNG so that
-/// its dedup, defaults and state reload run; the one place that still reaches the alarm tables directly
-/// (<c>IAlarmOverrideAreaWriter</c>) does so with raw SQL over a validated table name, not through EF. Mapping
+/// its dedup, defaults and state reload run, and nothing reaches the alarm tables directly. Mapping
 /// the tables again would make a direct alarm write one <c>DbSet</c> away, which is the thing the 2.0
 /// migration existed to prevent.
 /// </remarks>

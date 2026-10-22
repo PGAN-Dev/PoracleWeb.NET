@@ -109,17 +109,10 @@ public class TrackingReadEquivalenceBedTests
             })
             .Build();
 
-        var profile = new Mock<IPoracleServerProfileService>();
-        profile
-            .Setup(p => p.GetAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new PoracleServerProfile { Version = "5.4.0", Reachable = true, CheckedAt = DateTimeOffset.UtcNow });
-
         return new PoracleTrackingProxy(
             http,
             config,
-            profile.Object,
-            Mock.Of<IPoracleV2SchemaService>(),
-            Mock.Of<IInvasionGruntNameService>(),
+            Mock.Of<IUserAreaPolicy>(),
             new MemoryCache(new MemoryCacheOptions()),
             NullLogger<PoracleTrackingProxy>.Instance);
     }

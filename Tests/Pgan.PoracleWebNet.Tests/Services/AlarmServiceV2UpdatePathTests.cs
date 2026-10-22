@@ -83,25 +83,6 @@ public class AlarmServiceV2UpdatePathTests
             Times.Never);
     }
 
-    [Theory]
-    [MemberData(nameof(MovedTypes))]
-    public async Task DecliningV2LeavesTheV1PathExactlyAsItWas(string type)
-    {
-        // The legitimate-case half. A 5.1.0 server, an operator pinned to v1, or a row v2 cannot carry
-        // faithfully all answer null -- and the type has to write exactly what it wrote before.
-        this._proxy
-            .Setup(p => p.TryReplaceV2Async(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<JsonElement>()))
-            .ReturnsAsync((TrackingUpdateResult?)null);
-        this._proxy
-            .Setup(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([991], 0, 0, 1));
-
-        await this.UpdateAsync(type, uid: 990);
-
-        this._proxy.Verify(
-            p => p.CreateAsync(type, "u1", It.IsAny<JsonElement>()), Times.AtLeastOnce);
-    }
-
     [Fact]
     public async Task ALureEditReplacesTheRuleThroughV2WithoutDeletingIt()
     {
@@ -151,7 +132,7 @@ public class AlarmServiceV2UpdatePathTests
             .UpdateAsync("u1", new Invasion { Uid = 311, GruntType = "fire", Gender = 0, Distance = 1000, Template = "1", OverrideAreas = [], OverrideLocationLabel = "" }));
 
         this._proxy.Verify(
-            p => p.TryReplaceV2Async(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<JsonElement>()),
+            p => p.UpdateByUidAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<JsonElement>()),
             Times.Never);
     }
 
@@ -172,7 +153,7 @@ public class AlarmServiceV2UpdatePathTests
 
     private void AcceptV2(string type, int newUid) =>
         this._proxy
-            .Setup(p => p.TryReplaceV2Async(type, It.IsAny<string>(), It.IsAny<int>(), It.IsAny<JsonElement>()))
+            .Setup(p => p.UpdateByUidAsync(type, It.IsAny<string>(), It.IsAny<int>(), It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingUpdateResult(newUid, true));
 
     private async Task<int> UpdateAsync(string type, int uid) => type switch

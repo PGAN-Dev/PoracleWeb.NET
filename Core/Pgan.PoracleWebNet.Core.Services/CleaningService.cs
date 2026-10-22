@@ -115,7 +115,7 @@ public class CleaningService(
     private async Task<int> ToggleCleanAsync(string type, string userId, int clean)
     {
         // Cleaning is implemented as a fetch-modify-POST that ultimately calls
-        // _trackingProxy.CreateAsync, bypassing the per-type alarm services and their feature gates.
+        // _trackingProxy.UpsertV1Async, bypassing the per-type alarm services and their feature gates.
         // Without this guard a user could toggle the clean flag on an alarm type the admin disabled. (#236)
         if (DisableFeatureKeys.ByTrackingType.TryGetValue(type, out var disableKey))
         {
@@ -168,12 +168,12 @@ public class CleaningService(
 
             try
             {
-                await this._trackingProxy.CreateAsync(type, userId, body);
+                await this._trackingProxy.UpsertV1Async(type, userId, body);
             }
             catch
             {
                 // Put the originals back rather than leaving the user with no alarms at all.
-                await this._trackingProxy.CreateAsync(
+                await this._trackingProxy.UpsertV1Async(
                     type, userId, JsonSerializer.SerializeToElement(ownRows));
                 throw;
             }
@@ -189,7 +189,7 @@ public class CleaningService(
             return count;
         }
 
-        await this._trackingProxy.CreateAsync(type, userId, body);
+        await this._trackingProxy.UpsertV1Async(type, userId, body);
 
         // Every non-monster type comes back under a new uid, so any quick pick tracking these rows
         // would be left pointing at dead uids -- Remove then deletes nothing and the next page load

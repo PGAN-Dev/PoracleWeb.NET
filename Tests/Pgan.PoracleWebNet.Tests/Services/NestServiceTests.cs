@@ -135,7 +135,7 @@ public class NestServiceTests
                 template = "ZZrow3"
             });
         this._proxy.Setup(p => p.GetByUserAsync("nest", "u")).ReturnsAsync(json);
-        this._proxy.Setup(p => p.CreateAsync("nest", "u", It.IsAny<JsonElement>()))
+        this._proxy.Setup(p => p.UpsertV1Async("nest", "u", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([], 0, 3, 0));
 
         Assert.Equal(3, (await this._sut.UpdateDistanceByUserAsync("u", 1, 100)).Updated);

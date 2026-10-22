@@ -135,7 +135,7 @@ public class QuestServiceTests
             template = "ZZrow1"
         });
         this._proxy.Setup(p => p.GetByUserAsync("quest", "u")).ReturnsAsync(json);
-        this._proxy.Setup(p => p.CreateAsync("quest", "u", It.IsAny<JsonElement>()))
+        this._proxy.Setup(p => p.UpsertV1Async("quest", "u", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([], 0, 1, 0));
 
         Assert.Equal(1, (await this._sut.UpdateDistanceByUserAsync("u", 1, 100)).Updated);

@@ -185,7 +185,7 @@ public class RaidServiceTests
             () => this._sut.UpdateDistanceByUidsAsync([1, 2], "u1", 700));
 
         this._proxy.Verify(
-            p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+            p => p.UpsertV1Async(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
     }
 
     [Fact]
@@ -207,7 +207,7 @@ public class RaidServiceTests
                 template = "ZZsecond"
             });
         this._proxy.Setup(p => p.GetByUserAsync("raid", "u")).ReturnsAsync(json);
-        this._proxy.Setup(p => p.CreateAsync("raid", "u", It.IsAny<JsonElement>()))
+        this._proxy.Setup(p => p.UpsertV1Async("raid", "u", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([], 0, 2, 0));
 
         Assert.Equal(2, (await this._sut.UpdateDistanceByUserAsync("u", 1, 100)).Updated);
