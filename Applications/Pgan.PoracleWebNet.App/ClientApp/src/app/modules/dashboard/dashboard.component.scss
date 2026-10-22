@@ -405,6 +405,14 @@ button.strip-item:focus-visible {
   font-weight: 600;
   cursor: pointer;
 }
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
 .not-tracking-more:focus-visible {
   outline: 2px solid var(--mat-sys-primary);
   outline-offset: 2px;

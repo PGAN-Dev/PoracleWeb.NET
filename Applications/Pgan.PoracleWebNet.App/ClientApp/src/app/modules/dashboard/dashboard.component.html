@@ -128,6 +128,7 @@
             @if (w.hasWarning) {
               <mat-icon
                 class="weather-warn-badge"
+                aria-hidden="false"
                 [matTooltip]="'DASHBOARD.WEATHER_WARNING' | translate"
                 [attr.aria-label]="'DASHBOARD.WEATHER_WARNING' | translate"
                 >crisis_alert</mat-icon
@@ -187,17 +188,18 @@
       <ul class="area-chips">
         @for (area of selectedAreas(); track area) {
           <li class="area-chip">
-            <span>{{ area }}</span>
+            <span>{{ areaLabel(area) }}</span>
             @if (getAreaWeatherData(area); as aw) {
               <mat-icon
                 class="area-weather-icon"
                 [matTooltip]="aw.conditionName + ' — ' + aw.boostedTypes.join(', ') + ' ' + ('DASHBOARD.BOOSTED_SUFFIX' | translate)"
+                aria-hidden="false"
                 [attr.aria-label]="aw.conditionName"
                 >{{ aw.icon }}</mat-icon
               >
             }
             @if (areaQuietCountdown(area); as left) {
-              <span class="area-quiet" [matTooltip]="'QUIET.TOOLTIP_QUIET' | translate: { subject: area, countdown: left }">
+              <span class="area-quiet" [matTooltip]="'QUIET.TOOLTIP_QUIET' | translate: { subject: areaLabel(area), countdown: left }">
                 <mat-icon aria-hidden="true">notifications_paused</mat-icon>{{ left }}
               </span>
             }
@@ -243,13 +245,13 @@
         <p class="not-tracking">
           <span>{{ 'DASHBOARD.NOT_TRACKING' | translate: { types: idleNames() } }}</span>
           @if (idleTypes().length > idlePreviewSize) {
-            <button
-              type="button"
-              class="not-tracking-more"
-              [attr.aria-expanded]="showAllIdle()"
-              [attr.aria-label]="(showAllIdle() ? 'DASHBOARD.SHOW_FEWER' : 'DASHBOARD.SHOW_ALL_TYPES') | translate"
-              (click)="toggleIdle()">
-              {{ showAllIdle() ? ('DASHBOARD.SHOW_FEWER' | translate) : ('DASHBOARD.MORE' | translate: { count: idleHidden() }) }}
+            <button type="button" class="not-tracking-more" [attr.aria-expanded]="showAllIdle()" (click)="toggleIdle()">
+              @if (showAllIdle()) {
+                {{ 'DASHBOARD.SHOW_FEWER' | translate }}
+              } @else {
+                {{ 'DASHBOARD.MORE' | translate: { count: idleHidden() } }}
+                <span class="visually-hidden">{{ 'DASHBOARD.SHOW_ALL_TYPES' | translate }}</span>
+              }
             </button>
           }
         </p>

@@ -93,6 +93,12 @@ export class DashboardComponent implements OnInit {
     Water: '#2196F3',
   };
 
+  readonly geofencePolygons = signal<GeofenceData[]>([]);
+  /**
+   * Stored area names are lowercase, because Poracle matches case-sensitively; the fence keeps its own
+   * casing, which is what the Areas page shows. Display only: mutes and links keep the stored name.
+   */
+  private readonly areaNamesByLower = computed(() => new Map(this.geofencePolygons().map(g => [g.name.toLowerCase(), g.name])));
   private readonly areaService = inject(AreaService);
   private readonly authService = inject(AuthService);
   private readonly dashboardService = inject(DashboardService);
@@ -102,7 +108,9 @@ export class DashboardComponent implements OnInit {
   private readonly locationService = inject(LocationService);
   private readonly profileService = inject(ProfileService);
   private readonly snackBar = inject(MatSnackBar);
+
   readonly profileNo = computed(() => this.authService.user()?.profileNo ?? 1);
+
   readonly profiles = signal<Profile[]>([]);
 
   readonly profileName = computed(() => {
@@ -131,6 +139,7 @@ export class DashboardComponent implements OnInit {
   });
 
   private readonly router = inject(Router);
+
   private readonly settingsService = inject(SettingsService);
 
   readonly counts = signal<DashboardCounts | null>(null);
@@ -243,22 +252,26 @@ export class DashboardComponent implements OnInit {
   readonly selectedAreas = signal<string[]>([]);
 
   readonly areaMore = computed(() => Math.max(0, this.selectedAreas().length - AREA_PREVIEW));
-
   /** "aberdeen, toledo" and how many more: the strip names areas, the chips under the map list them all. */
-  readonly areaPreview = computed(() => this.selectedAreas().slice(0, AREA_PREVIEW).join(', '));
+  readonly areaPreview = computed(() =>
+    this.selectedAreas()
+      .slice(0, AREA_PREVIEW)
+      .map(area => this.areaLabel(area))
+      .join(', '),
+  );
+
   // The dashboard used to load every one of these regardless, so with any of the three switches on it
   // opened with an error toast for a feature the user had not touched -- and kept rendering buttons that
   // bounced straight back with the same toast. A disabled feature is simply absent here. See #516.
   readonly areasEnabled = computed(() => !this.settingsService.isDisabled('disable_areas'));
   readonly areaWeather = signal<Record<string, WeatherData>>({});
+
   readonly dismissedTips = signal<string[]>(JSON.parse(sessionStorage.getItem('dismissed-tips') || '[]'));
 
   readonly locationEnabled = computed(() => !this.settingsService.isDisabled('disable_location'));
 
   /** Street addresses for the pin. `disable_nominatim` 403s the lookup, and so does `disable_location`. */
   readonly geocodingEnabled = computed(() => this.locationEnabled() && !this.settingsService.isDisabled('disable_nominatim'));
-
-  readonly geofencePolygons = signal<GeofenceData[]>([]);
 
   /** Enabled types with nothing tracked. Empty until the counts arrive. */
   readonly idleTypes = computed(() => {
@@ -273,12 +286,16 @@ export class DashboardComponent implements OnInit {
   readonly idlePreview = computed(() => (this.showAllIdle() ? this.idleTypes() : this.idleTypes().slice(0, IDLE_PREVIEW)));
   readonly idleHidden = computed(() => this.idleTypes().length - this.idlePreview().length);
 
-  /** "Eggs, Invasions, Lures": the folded line's names, in the display language. */
-  readonly idleNames = computed(() =>
-    this.idlePreview()
+  /**
+   * "Eggs, Invasions, Lures": the folded line's names, in the display language. `instant` is not a
+   * signal, so the language is read here to recompute on a switch rather than when the counts next change.
+   */
+  readonly idleNames = computed(() => {
+    this.i18n.currentLang();
+    return this.idlePreview()
       .map(card => this.i18n.instant(card.label))
-      .join(', '),
-  );
+      .join(', ');
+  });
 
   /** Read by the template to decide whether there is anything to unfold. */
   readonly idlePreviewSize = IDLE_PREVIEW;
@@ -305,6 +322,7 @@ export class DashboardComponent implements OnInit {
    * expiry is the one the user is waiting on.
    */
   protected readonly quietSummary = computed(() => {
+    this.i18n.currentLang(); // recompute on a language switch; instant() is not a signal
     const count = this.mutes.mutes().length;
     const soonest = this.mutes.soonestExpiry();
     const remaining = soonest === null ? 0 : Math.max(0, soonest - Math.floor(Date.now() / 1000));
@@ -334,6 +352,7 @@ export class DashboardComponent implements OnInit {
   readonly skeletonItems = [1, 2, 3];
 
   readonly tips = computed(() => {
+    this.i18n.currentLang(); // recompute on a language switch; instant() is not a signal
     const tips: Tip[] = [];
 
     // Each tip leads somewhere, so each follows the switch for where it leads. A tip for a disabled
@@ -378,22 +397,8 @@ export class DashboardComponent implements OnInit {
     return tips.filter(t => !this.dismissedTips().includes(t.id));
   });
 
-  readonly totalAlarms = computed(() => {
-    const c = this.counts();
-    if (!c) return 0;
-    return (
-      (c.pokemon ?? 0) +
-      (c.raids ?? 0) +
-      (c.eggs ?? 0) +
-      (c.quests ?? 0) +
-      (c.invasions ?? 0) +
-      (c.lures ?? 0) +
-      (c.nests ?? 0) +
-      (c.gyms ?? 0) +
-      (c.fortChanges ?? 0) +
-      (c.maxBattles ?? 0)
-    );
-  });
+  /** The total of what the row shows: a switched-off type's stored alarms are dormant and not listed. */
+  readonly totalAlarms = computed(() => this.activeTypes().reduce((sum, t) => sum + t.count, 0));
 
   readonly username = computed(() => this.authService.user()?.username ?? 'Trainer');
 
@@ -412,6 +417,10 @@ export class DashboardComponent implements OnInit {
    * How long an area on the chips has left of its quiet period, or null. Matched case-insensitively:
    * PoracleNG hands back the fence's own casing and area names are stored lowercase here.
    */
+  areaLabel(area: string): string {
+    return this.areaNamesByLower().get(area.toLowerCase()) ?? area;
+  }
+
   areaQuietCountdown(area: string): null | string {
     const remaining = this.mutes.remainingFor('area', area);
     return remaining === null ? null : this.mutes.countdownLabel(remaining);

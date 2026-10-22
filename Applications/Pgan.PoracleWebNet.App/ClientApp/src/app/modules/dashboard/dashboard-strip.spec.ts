@@ -8,10 +8,11 @@ import { provideTranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
 
 import { DashboardComponent } from './dashboard.component';
-import { DashboardCounts, GeofenceData, Profile } from '../../core/models';
+import { DashboardCounts, GeofenceData, Profile, WeatherData } from '../../core/models';
 import { AreaService } from '../../core/services/area.service';
 import { AuthService } from '../../core/services/auth.service';
 import { DashboardService } from '../../core/services/dashboard.service';
+import { I18nService } from '../../core/services/i18n.service';
 import { LocationService } from '../../core/services/location.service';
 import { Mute, MuteService } from '../../core/services/mute.service';
 import { ProfileService } from '../../core/services/profile.service';
@@ -46,8 +47,10 @@ describe('DashboardComponent status strip and alarm summary', () => {
     enabled?: boolean;
     geofences?: GeofenceData[];
     location?: { latitude: number; longitude: number };
+    mapUrl?: string;
     mutes?: Mute[];
     profiles?: Partial<Profile>[];
+    weather?: WeatherData;
   }
 
   const setup = (opts: Options = {}) => {
@@ -98,8 +101,8 @@ describe('DashboardComponent status strip and alarm summary', () => {
           useValue: {
             getAreaWeather: () => of([]),
             getLocation: () => of(opts.location ?? { latitude: 0, longitude: 0 }),
-            getStaticMapUrl: () => of(null),
-            getWeather: () => of(null),
+            getStaticMapUrl: () => of(opts.mapUrl ? { url: opts.mapUrl } : null),
+            getWeather: () => of(opts.weather ?? null),
             reverseGeocode: () => of(null),
           },
         },
@@ -221,6 +224,80 @@ describe('DashboardComponent status strip and alarm summary', () => {
       expect(chips[0].querySelector('.area-quiet')?.textContent).toContain('10m');
       expect(chips[1].querySelector('.area-quiet')).toBeNull();
     });
+
+    // Stored names are lowercase because Poracle matches case-sensitively; the fence keeps its own casing,
+    // which is what the Areas page shows.
+    it('shows each area with its fence casing, as the Areas page does', () => {
+      const { el } = setup({
+        areas: ['aberdeen', 'toledo', 'perrysburg'],
+        geofences: [fence('Aberdeen'), fence('Toledo'), fence('Perrysburg')],
+      });
+
+      expect([...el.querySelectorAll('.area-chip > span:first-child')].map(c => c.textContent!.trim())).toEqual([
+        'Aberdeen',
+        'Toledo',
+        'Perrysburg',
+      ]);
+      expect(el.querySelector('.strip-areas')!.textContent).toContain('Aberdeen, Toledo');
+    });
+
+    it('keeps the stored name for an area with no fence to read the casing from', () => {
+      const { el } = setup({ areas: ['my drawn fence'], geofences: [] });
+
+      expect(el.querySelector('.area-chip')!.textContent).toContain('my drawn fence');
+    });
+
+    it('still finds a quiet area by its stored name when it is shown with the fence casing', () => {
+      const now = Math.floor(Date.now() / 1000);
+      const { el } = setup({
+        areas: ['aberdeen'],
+        geofences: [fence('Aberdeen')],
+        mutes: [{ expiresAt: now + 600, remainingSecs: 600, scope: 'area', value: 'Aberdeen' }],
+      });
+
+      expect(el.querySelector('.area-quiet')?.textContent).toContain('10m');
+    });
+
+    // A mock that answered the geofence list in the wrong shape once hid the map on desktop; this pins
+    // that polygons in the shape AreaService returns put the map on the page, linked to Areas.
+    it('draws the coverage map, linked to the Areas page, once there are polygons', () => {
+      const { el } = setup({ areas: ['aberdeen'], geofences: [fence('Aberdeen')] });
+      const link = el.querySelector('a.coverage-map');
+
+      expect(link?.getAttribute('href')).toBe('/areas');
+    });
+
+    it('falls back to the pin map, opening the pin dialog, when no areas are chosen', () => {
+      const { component, el } = setup({ location: { latitude: 41.6, longitude: -83.5 }, mapUrl: 'https://maps.example/pin.png' });
+      const open = jest.spyOn(component, 'openLocationDialog').mockImplementation(() => undefined);
+      const pin = el.querySelector<HTMLButtonElement>('.coverage-pin')!;
+
+      expect(el.querySelector('a.coverage-map')).toBeNull();
+      expect(pin.querySelector('img')!.getAttribute('src')).toBe('https://maps.example/pin.png');
+      pin.click();
+      expect(open).toHaveBeenCalled();
+    });
+  });
+
+  describe('accessibility', () => {
+    it('announces a severe weather warning', () => {
+      const weather = { boostedTypes: [], conditionName: 'Storm', hasWarning: true, icon: 'thunderstorm' } as unknown as WeatherData;
+      const { el } = setup({ location: { latitude: 41.6, longitude: -83.5 }, weather });
+      const badge = el.querySelector('.weather-warn-badge')!;
+
+      expect(badge.getAttribute('aria-hidden')).toBe('false');
+      expect(badge.getAttribute('aria-label')).toBe('DASHBOARD.WEATHER_WARNING');
+    });
+
+    // WCAG 2.5.3: the accessible name has to contain the visible "+5", or "click plus 5" finds nothing.
+    it('names the +N button with its visible text', () => {
+      const { el } = setup({ counts: { pokemon: 4 } });
+      const more = el.querySelector<HTMLButtonElement>('.not-tracking-more')!;
+
+      expect(more.hasAttribute('aria-label')).toBe(false);
+      expect(more.textContent).toContain('DASHBOARD.MORE');
+      expect(more.textContent).toContain('DASHBOARD.SHOW_ALL_TYPES');
+    });
   });
 
   describe('alarm summary', () => {
@@ -261,6 +338,25 @@ describe('DashboardComponent status strip and alarm summary', () => {
       const idle = component.idlePreview().map(c => c.key);
       expect(idle).not.toContain('pokemon');
       expect(idle).toHaveLength(10);
+    });
+
+    it('renames the "Not tracking" types when the display language changes', () => {
+      const { component } = setup({ counts: { pokemon: 4 } });
+      const i18n = TestBed.inject(I18nService);
+      jest.spyOn(i18n, 'instant').mockImplementation((key: string) => `de:${key}`);
+      // Still the names from the first render: nothing told the line the language moved.
+      expect(component.idleNames()).not.toContain('de:');
+
+      i18n.currentLang.set('de');
+
+      expect(component.idleNames()).toContain('de:DASHBOARD.CARD_RAIDS');
+    });
+
+    // The row leaves out a switched-off type, so the total must too, or it reads more than the pills add up to.
+    it('counts only the types it shows in the total', () => {
+      const { component } = setup({ counts: { lures: 3, pokemon: 4 }, disabled: ['disable_lures'] });
+
+      expect(component.totalAlarms()).toBe(4);
     });
 
     it('has no "Not tracking" line when every type has alarms', () => {
