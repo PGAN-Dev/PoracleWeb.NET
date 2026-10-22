@@ -3,10 +3,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable, catchError, forkJoin, map, of, tap } from 'rxjs';
 
 import { ConfigService } from './config.service';
-import { DiscordServerConfig, OidcServerConfig, PwebSetting, SiteSetting, TelegramServerConfig } from '../models';
-
-/** Union of old and new setting response shapes */
-type AnySettingItem = PwebSetting | SiteSetting;
+import { DiscordServerConfig, OidcServerConfig, SiteSetting, TelegramServerConfig } from '../models';
 
 @Injectable({ providedIn: 'root' })
 export class SettingsService {
@@ -32,11 +29,11 @@ export class SettingsService {
    */
   readonly upstreamDisabled = signal<readonly string[]>([]);
 
-  getAll(): Observable<AnySettingItem[]> {
+  getAll(): Observable<SiteSetting[]> {
     // Fetched together so a nav item never renders for a type the server will 403. A failure here is
     // not fatal: the settings still load and the server-side gate remains the real enforcement point.
     return forkJoin({
-      settings: this.http.get<AnySettingItem[]>(`${this.config.apiHost}/api/settings`),
+      settings: this.http.get<SiteSetting[]>(`${this.config.apiHost}/api/settings`),
       upstream: this.http.get<string[]>(`${this.config.apiHost}/api/settings/upstream-disabled`).pipe(catchError(() => of([]))),
     }).pipe(
       tap(({ settings, upstream }) => {
@@ -78,7 +75,7 @@ export class SettingsService {
   }
 
   /** Load settings once (idempotent) */
-  loadOnce(): Observable<AnySettingItem[]> {
+  loadOnce(): Observable<SiteSetting[]> {
     if (this.loaded)
       return new Observable(sub => {
         sub.next([]);
@@ -88,8 +85,8 @@ export class SettingsService {
   }
 
   /** Load public settings (no auth required) — safe to call from login page */
-  loadPublic(): Observable<AnySettingItem[]> {
-    return this.http.get<AnySettingItem[]>(`${this.config.apiHost}/api/settings/public`).pipe(
+  loadPublic(): Observable<SiteSetting[]> {
+    return this.http.get<SiteSetting[]>(`${this.config.apiHost}/api/settings/public`).pipe(
       tap(settings => {
         const current = this.siteSettings();
         const map: Record<string, string> = { ...current, ...this.normalize(settings) };
@@ -98,19 +95,18 @@ export class SettingsService {
     );
   }
 
-  /** Normalize a mixed array of PwebSetting / SiteSetting into a key→value map */
-  normalize(items: AnySettingItem[]): Record<string, string> {
+  /** Normalize an array of SiteSetting into a key→value map */
+  normalize(items: SiteSetting[]): Record<string, string> {
     const map: Record<string, string> = {};
     for (const item of items) {
-      const key = 'key' in item ? item.key : item.setting;
-      if (key) map[key] = item.value ?? '';
+      if (item.key) map[item.key] = item.value ?? '';
     }
     return map;
   }
 
-  update(key: string, value: string, category?: string): Observable<AnySettingItem> {
+  update(key: string, value: string, category?: string): Observable<SiteSetting> {
     return this.http
-      .put<AnySettingItem>(`${this.config.apiHost}/api/settings/${encodeURIComponent(key)}`, {
+      .put<SiteSetting>(`${this.config.apiHost}/api/settings/${encodeURIComponent(key)}`, {
         category,
         key,
         value,

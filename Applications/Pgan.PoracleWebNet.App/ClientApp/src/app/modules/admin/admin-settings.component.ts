@@ -28,7 +28,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 
 import { IconRepoDialogComponent, IconRepoDialogData } from './icon-repo-dialog/icon-repo-dialog.component';
 import { RuleRepairCardComponent } from './rule-repair-card/rule-repair-card.component';
-import { DiscordServerConfig, OidcServerConfig, PwebSetting, SiteSetting, TelegramServerConfig } from '../../core/models';
+import { DiscordServerConfig, OidcServerConfig, SiteSetting, TelegramServerConfig } from '../../core/models';
 import { BasemapService } from '../../core/services/basemap.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { SettingsService } from '../../core/services/settings.service';
@@ -46,12 +46,10 @@ import {
   serializeIconRepos,
 } from '../../shared/utils/icon-repos';
 
-/** Union type for backward compatibility during migration */
-type AnySettingItem = PwebSetting | SiteSetting;
+type AnySettingItem = SiteSetting;
 
-/** Extract the key from either setting shape */
 function settingKey(item: AnySettingItem): string {
-  return 'key' in item ? item.key : item.setting;
+  return item.key;
 }
 
 interface SettingOption {
