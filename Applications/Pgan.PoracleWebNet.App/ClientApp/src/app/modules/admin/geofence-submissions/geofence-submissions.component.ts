@@ -1,4 +1,4 @@
-import { DatePipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import {
   AfterViewInit,
   ChangeDetectionStrategy,
@@ -17,7 +17,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { MatExpansionModule } from '@angular/material/expansion';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -42,26 +41,22 @@ import {
   GeofenceDeleteDialogData,
 } from '../../../shared/components/geofence-delete-dialog/geofence-delete-dialog.component';
 import { GeofenceDetailDialogComponent } from '../../../shared/components/geofence-detail-dialog/geofence-detail-dialog.component';
+import { pointInPolygon, polygonAreaSqKm, polygonCentroid } from '../../../shared/utils/geo.utils';
 import { GEOFENCE_STATUS_COLORS } from '../../../shared/utils/geofence.utils';
 
-export type ViewMode = 'card' | 'list' | 'table';
+/** The statuses the table below the review queue can be narrowed to. Pending fences live in the queue. */
+export type OtherFilter = 'active' | 'all' | 'approved' | 'rejected';
 export type SortField = 'name' | 'status' | 'owner' | 'region' | 'points' | 'created' | 'submitted';
 export type SortDirection = 'asc' | 'desc';
-
-export interface RegionGroup {
-  count: number;
-  geofences: UserGeofence[];
-  name: string;
-}
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     DatePipe,
+    DecimalPipe,
     MatButtonModule,
     MatButtonToggleModule,
     MatDialogModule,
-    MatExpansionModule,
     MatIconModule,
     MatSnackBarModule,
     MatTooltipModule,
@@ -89,48 +84,41 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
   private readonly snackBar = inject(MatSnackBar);
   private readonly userGeofenceService = inject(UserGeofenceService);
 
-  readonly activeFilter = signal<string>('all');
+  /** Narrows the table of fences that are not waiting for review. */
+  readonly activeFilter = signal<OtherFilter>('all');
   readonly allGeofences = signal<UserGeofence[]>([]);
+
+  /** Everything but the queue, narrowed by {@link activeFilter} and sorted by the table header. */
   readonly filteredGeofences = computed(() => {
     const filter = this.activeFilter();
-    const all = this.allGeofences();
-    const filtered = filter === 'all' ? all : all.filter(g => g.status === filter);
-    return this.applySorting(filtered);
+    const others = this.allGeofences().filter(g => g.status !== 'pending_review');
+    return this.applySorting(filter === 'all' ? others : others.filter(g => g.status === filter));
   });
 
   readonly loading = signal(true);
 
-  readonly regionGroups = computed<RegionGroup[]>(() => {
-    const geofences = this.filteredGeofences();
-    const groupMap = new Map<string, UserGeofence[]>();
+  /** The review queue: oldest submission first, because it has waited longest. */
+  readonly pendingGeofences = computed(() =>
+    this.allGeofences()
+      .filter(g => g.status === 'pending_review')
+      .sort((a, b) => (a.submittedAt ?? a.createdAt ?? '').localeCompare(b.submittedAt ?? b.createdAt ?? '')),
+  );
 
-    for (const g of geofences) {
-      const key = g.groupName?.trim() || '';
-      if (!groupMap.has(key)) {
-        groupMap.set(key, []);
-      }
-      groupMap.get(key)!.push(g);
+  /**
+   * The public area each queued fence's centre falls inside, if any: the same test the Discord review post
+   * makes (`FindContainingPublicAreaAsync`), so the page and the post name the same overlap.
+   */
+  readonly overlaps = computed(() => {
+    const reference = this.referenceGeofences();
+    const result = new Map<number, string>();
+    for (const g of this.pendingGeofences()) {
+      if (!g.polygon?.length) continue;
+      const centre = polygonCentroid(g.polygon);
+      const own = [g.kojiName, g.promotedName].filter(Boolean).map(n => n!.toLowerCase());
+      const hit = reference.find(r => r.path?.length > 2 && !own.includes(r.name.toLowerCase()) && pointInPolygon(centre, r.path));
+      if (hit) result.set(g.id, hit.name);
     }
-
-    const groups: RegionGroup[] = [];
-    const noRegionKey = '';
-
-    for (const [key, items] of groupMap) {
-      if (key !== noRegionKey) {
-        groups.push({ name: key, count: items.length, geofences: items });
-      }
-    }
-
-    // Sort alphabetically
-    groups.sort((a, b) => a.name.localeCompare(b.name));
-
-    // "No Region" last
-    const noRegionItems = groupMap.get(noRegionKey);
-    if (noRegionItems?.length) {
-      groups.push({ name: this.i18n.instant('ADMIN.NO_REGION'), count: noRegionItems.length, geofences: noRegionItems });
-    }
-
-    return groups;
+    return result;
   });
 
   readonly sortDirection = signal<SortDirection>('asc');
@@ -139,36 +127,26 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
 
   readonly statusCounts = computed(() => {
     const all = this.allGeofences();
+    const pending = all.filter(g => g.status === 'pending_review').length;
     return {
       active: all.filter(g => g.status === 'active').length,
       all: all.length,
       approved: all.filter(g => g.status === 'approved').length,
-      pending_review: all.filter(g => g.status === 'pending_review').length,
+      others: all.length - pending,
+      pending_review: pending,
       rejected: all.filter(g => g.status === 'rejected').length,
     };
   });
 
-  readonly viewMode = signal<ViewMode>('card');
-
   constructor() {
-    // When the filtered list or view mode changes, destroy orphaned maps and re-observe
+    // Maps are drawn only for the queue. When it changes, destroy the maps of rows that left it and
+    // observe the new ones once Angular has rendered them.
     effect(() => {
-      const visible = this.filteredGeofences();
-      const mode = this.viewMode();
-      // Allow Angular to render the new DOM first
+      const queued = this.pendingGeofences();
       setTimeout(() => {
-        if (mode !== 'card') {
-          // List and table views have no map containers — destroy all maps so they can be re-created
-          for (const [id, map] of this.mapInstances) {
-            map.remove();
-            this.mapInstances.delete(id);
-          }
-          return;
-        }
-        const visibleIds = new Set(visible.map(g => g.id));
-        // Destroy maps for cards no longer in the DOM
+        const queuedIds = new Set(queued.map(g => g.id));
         for (const [id, map] of this.mapInstances) {
-          if (!visibleIds.has(id)) {
+          if (!queuedIds.has(id)) {
             map.remove();
             this.mapInstances.delete(id);
           }
@@ -232,6 +210,11 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
       });
   }
 
+  /** Square kilometres, from the polygon; null when there is none to measure. */
+  areaSqKm(geofence: UserGeofence): null | number {
+    return geofence.polygon && geofence.polygon.length > 2 ? polygonAreaSqKm(geofence.polygon) : null;
+  }
+
   /**
    * Whether the Review action applies, matching what the API will accept.
    */
@@ -293,10 +276,11 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
     });
   }
 
-  openReviewDialog(geofence: UserGeofence): void {
+  /** `mode` opens the dialog on Approve or Reject, matching the button the admin pressed. */
+  openReviewDialog(geofence: UserGeofence, mode: 'approve' | 'reject' = 'approve'): void {
     const ref = this.dialog.open(GeofenceApprovalDialogComponent, {
       width: '480px',
-      data: { geofence, regions: this.regions() } as GeofenceApprovalDialogData,
+      data: { geofence, mode, regions: this.regions() } as GeofenceApprovalDialogData,
     });
 
     ref

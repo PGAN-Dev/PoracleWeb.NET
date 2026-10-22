@@ -2,11 +2,9 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: 20px 24px;
+  padding: 20px 24px 8px;
   gap: 16px;
-  background: linear-gradient(135deg, rgba(69, 90, 100, 0.06) 0%, rgba(0, 137, 123, 0.04) 100%);
-  border-radius: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
 }
 .page-header-text {
   flex: 1;
@@ -22,8 +20,6 @@
   color: var(--text-secondary, rgba(0, 0, 0, 0.54));
   font-size: 13px;
   line-height: 1.5;
-  border-left: 3px solid #1976d2;
-  padding-left: 12px;
 }
 .page-content {
   padding: 0 24px 24px;
@@ -182,4 +178,7 @@
   table {
     min-width: 700px;
   }
+}
+.text-muted {
+  color: var(--text-hint, rgba(0, 0, 0, 0.6));
 }

@@ -2,11 +2,9 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 24px;
+  padding: 20px 24px 8px;
   gap: 16px;
-  background: linear-gradient(135deg, rgba(69, 90, 100, 0.06) 0%, rgba(0, 137, 123, 0.04) 100%);
-  border-radius: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
 }
 .page-header-text {
   flex: 1;
@@ -21,8 +19,6 @@
   margin: 4px 0 0;
   color: var(--text-secondary, rgba(0, 0, 0, 0.54));
   font-size: 13px;
-  border-left: 3px solid #1976d2;
-  padding-left: 12px;
 }
 .page-content {
   padding: 0 24px 80px;
@@ -51,14 +47,11 @@
   font-size: 18px;
   width: 18px;
   height: 18px;
-  opacity: 0.85;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.6));
 }
 .section-label {
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  color: var(--text-secondary, rgba(0, 0, 0, 0.6));
+  font-size: 15px;
+  font-weight: 500;
 }
 .section-gap {
   height: 16px;
@@ -78,6 +71,12 @@
 .setting-row.modified {
   background: rgba(25, 118, 210, 0.08);
   border-left: 3px solid rgba(25, 118, 210, 0.4);
+}
+.setting-type-icon {
+  flex-shrink: 0;
+  font-size: 22px;
+  width: 22px;
+  height: 22px;
 }
 .setting-info {
   flex: 1;
@@ -184,7 +183,6 @@
   color: var(--text-hint, rgba(0, 0, 0, 0.5));
   font-size: 10px;
   font-weight: 400;
-  text-transform: uppercase;
   letter-spacing: 0.4px;
 }
 .repo-list-actions {
@@ -305,15 +303,11 @@
 .server-config-title {
   font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
   color: var(--text-hint, rgba(0, 0, 0, 0.45));
 }
 .server-config-badge {
   font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
   padding: 2px 8px;
   border-radius: 10px;
   background: rgba(88, 101, 242, 0.1);
@@ -480,8 +474,8 @@
 // ─── Collapsible section header ─────────────────────────────────────────────
 .section-header-toggle {
   width: 100%;
+  color: inherit;
   border: none;
-  border-left: 4px solid transparent;
   text-align: left;
   cursor: pointer;
   font: inherit;
@@ -556,23 +550,8 @@
 }
 
 // ─── Staggered section entrance ─────────────────────────────────────────────
-.fade-in-up {
-  animation: fade-in-up 0.3s ease-out both;
-}
-
-@keyframes fade-in-up {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
 
 @media (prefers-reduced-motion: reduce) {
-  .fade-in-up,
   .settings-actionbar {
     animation: none;
   }

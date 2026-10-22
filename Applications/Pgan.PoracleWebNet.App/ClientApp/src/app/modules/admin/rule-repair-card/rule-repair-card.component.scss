@@ -73,8 +73,6 @@
   font-size: 13px;
   font-weight: 600;
   color: var(--text-secondary, rgba(0, 0, 0, 0.54));
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
 .repair-table-wrap {
@@ -136,4 +134,16 @@
 .repair-last-run {
   margin-top: 0;
   font-size: 12px;
+}
+
+:host-context(.dark-theme) {
+  .repair-alert-error {
+    background: rgba(229, 115, 115, 0.16);
+    color: #ef9a9a;
+  }
+
+  .repair-alert-warn {
+    background: rgba(255, 183, 77, 0.16);
+    color: #ffcc80;
+  }
 }

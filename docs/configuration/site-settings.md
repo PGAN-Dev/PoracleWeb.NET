@@ -15,7 +15,7 @@ Keys beginning `disable_` store the *disabled* state, but the admin page shows t
 
 ## Admin settings cards
 
-Two cards sit above the settings groups on **Admin > Settings**. The Versions card reports the running PoracleWeb.NET and PoracleNG versions and whether PoracleNG meets the minimum. The Rule repair card scans for stored alarms that PoracleNG 5.4.0 reads differently (invasions saved as `metal`, raids saved with Pokémon 0, raids and max battles for any boss saved as Pokémon 9000) and repairs them on request, and lists the rules 5.4.0 won't save at all under "Cannot be edited", to fix by hand. Nothing is written before you press Repair. See [Upgrading to PoracleNG 5.4.0](../getting-started/upgrading-to-poracleng-5-4.md#run-the-rule-repair).
+A status line under the search on **Admin > Settings** sums up two cards ("PoracleWeb.NET 2.30 · PoracleNG 5.4.0 · Rules: nothing to repair") and turns amber or red when one needs a look; **Details** opens them. The Versions card reports the running PoracleWeb.NET and PoracleNG versions and whether PoracleNG meets the minimum. The Rule repair card scans for stored alarms that PoracleNG 5.4.0 reads differently (invasions saved as `metal`, raids saved with Pokémon 0, raids and max battles for any boss saved as Pokémon 9000) and repairs them on request, and lists the rules 5.4.0 won't save at all under "Cannot be edited", to fix by hand. Nothing is written before you press Repair. See [Upgrading to PoracleNG 5.4.0](../getting-started/upgrading-to-poracleng-5-4.md#run-the-rule-repair).
 
 ![Admin > Settings with the Versions card and the Rule repair card above the settings groups](../screenshots/admin-settings-versions.png)
 
