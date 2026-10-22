@@ -76,15 +76,18 @@ export class RaidListComponent implements OnInit {
   private readonly scannerService = inject(ScannerService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly translate = inject(TranslateService);
+  /** Which tab is in front: 0 raids, 1 eggs. Bulk actions are scoped to it. See #642. */
+  readonly activeTab = signal(0);
+
   // Keyed "raid:12" / "egg:12", not by the bare uid. Raid and egg uids come from separate
   // auto-increment sequences and do collide; with one set of integers covering both grids, ticking
   // one card ticked the other, and the bulk actions sent both to the raid endpoint -- deleting or
   // resizing the raid twice and leaving the egg alone. See #540.
   readonly selectedIds = signal(new Set<string>());
-
   readonly eggs = signal<Egg[]>([]);
   readonly gymNames = signal<Record<string, string>>({});
   readonly search = signal('');
+
   /** "default" keeps the stable order the list loads in (see orderAlarms), so nothing moves once names load. */
   readonly sortBy = signal('default');
 
@@ -104,6 +107,7 @@ export class RaidListComponent implements OnInit {
   });
 
   readonly raids = signal<Raid[]>([]);
+
   /** The raids the search leaves, in the chosen order; ties keep their stable order. */
   readonly visibleRaids = computed(() => {
     const sorts: Record<string, (a: Raid, b: Raid) => number> = {
@@ -119,16 +123,18 @@ export class RaidListComponent implements OnInit {
     );
   });
 
-  /** The selected rules still on screen: bulk Delete and Change radius never reach a card the search has hidden. */
+  /** The selected rules on screen, on the tab in front: bulk Delete and Change radius reach nothing hidden. */
   readonly actionIds = computed(() =>
-    visibleSelection(this.selectedIds(), [
-      ...this.visibleRaids().map(r => this.selectionKey('raid', r.uid)),
-      ...this.visibleEggs().map(e => this.selectionKey('egg', e.uid)),
-    ]),
+    visibleSelection(
+      this.selectedIds(),
+      // Only the tab in front: a raid ticked before switching to Eggs is off screen, so it is neither
+      // counted nor acted on there. The selection survives, so switching back brings it back.
+      this.activeTab() === 0
+        ? this.visibleRaids().map(r => this.selectionKey('raid', r.uid))
+        : this.visibleEggs().map(e => this.selectionKey('egg', e.uid)),
+    ),
   );
 
-  /** Which tab is in front: 0 raids, 1 eggs. Bulk actions are scoped to it. See #642. */
-  readonly activeTab = signal(0);
   readonly loading = signal(true);
   /** Only used to word the inherited scope honestly; empty produces the more cautious wording. */
   readonly profileAreas = signal<string[]>([]);
