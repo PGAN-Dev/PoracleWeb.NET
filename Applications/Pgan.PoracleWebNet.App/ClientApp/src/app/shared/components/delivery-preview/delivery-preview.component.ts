@@ -8,6 +8,7 @@ import { catchError, of } from 'rxjs';
 
 import { AreaService } from '../../../core/services/area.service';
 import { LocationService } from '../../../core/services/location.service';
+import { titleCaseArea } from '../../utils/alarm-scope';
 
 @Component({
   imports: [RouterLink, MatChipsModule, MatIconModule, MatProgressSpinnerModule, TranslatePipe],
@@ -63,5 +64,10 @@ export class DeliveryPreviewComponent implements OnChanges {
           });
       }
     }
+  }
+
+  /** Area names are stored lowercase; the scope picker shows them title-cased, and so does this. */
+  protected titleCase(area: string): string {
+    return titleCaseArea(area);
   }
 }

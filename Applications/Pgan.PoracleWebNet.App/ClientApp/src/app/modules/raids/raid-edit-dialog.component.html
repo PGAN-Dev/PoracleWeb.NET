@@ -67,7 +67,7 @@
         <span class="tab-label">{{ 'RAIDS.TAB_DELIVERY' | translate }}</span>
       </ng-template>
       <div class="tab-content">
-        <app-scope-picker [(scope)]="scope" />
+        <app-scope-picker [(scope)]="scope" [(radiusValid)]="radiusValid" [storedRadiusKm]="storedRadiusKm" />
 
         <h4>{{ 'ALARM.MESSAGE_SETTINGS' | translate }}</h4>
 
@@ -94,7 +94,7 @@
 
 <mat-dialog-actions align="end">
   <button mat-button (click)="dialogRef.close(false)">{{ 'ALARM.CANCEL' | translate }}</button>
-  <button mat-raised-button color="primary" (click)="save()" [disabled]="saving()">
+  <button mat-raised-button color="primary" (click)="save()" [disabled]="saving() || !radiusValid()">
     {{ (saving() ? 'ALARM.SAVING' : 'ALARM.SAVE') | translate }}
   </button>
 </mat-dialog-actions>

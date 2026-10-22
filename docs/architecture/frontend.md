@@ -136,7 +136,7 @@ The `PokemonSelectorComponent` injects this service and calls `load()` in `ngOnI
 Card grid with filter pills showing IV/CP/Level/PVP/Gender at a glance. All alarm types (including Fort Changes and Max Battles) follow this same card grid pattern with type-specific filter pills.
 
 ### Bulk operations
-Select mode toggle (checklist icon) on each alarm list. Bulk toolbar provides Select All, Update Distance, and Delete actions.
+Select mode toggle (checklist icon) on each alarm list. Bulk toolbar provides Select All, Change radius, and Delete actions.
 
 ### Loading states
 Animated skeleton card placeholders on Pokemon, Raids, and Quests pages.

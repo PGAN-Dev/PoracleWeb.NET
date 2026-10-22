@@ -1,6 +1,15 @@
 import { TranslateService } from '@ngx-translate/core';
 
-import { describeScope, formatAreaList, kmToMetres, metresToKm, scopeOf, scopeToFields, titleCaseArea } from './alarm-scope';
+import {
+  describeScope,
+  formatAreaList,
+  kmToMetres,
+  metresToKm,
+  radiusAcceptable,
+  scopeOf,
+  scopeToFields,
+  titleCaseArea,
+} from './alarm-scope';
 
 /** Echoes the key and interpolation so assertions read against the shape, not a translation. */
 const translate = {
@@ -97,5 +106,39 @@ describe('alarm-scope', () => {
 
   it('leaves an already-capitalised name alone', () => {
     expect(titleCaseArea('Avoca Beach')).toBe('Avoca Beach');
+  });
+
+  /**
+   * The dialogs offer 0.1 to 100 km. The server's own cap is half the Earth's circumference, and
+   * production holds rules far past 100 km, so an edit that leaves such a radius alone must still save.
+   */
+  describe('radiusAcceptable', () => {
+    it('accepts the ends of the range and the values between', () => {
+      expect(radiusAcceptable(0.1)).toBe(true);
+      expect(radiusAcceptable(1)).toBe(true);
+      expect(radiusAcceptable(100)).toBe(true);
+    });
+
+    it('refuses zero, a negative, past 100 km and an empty field', () => {
+      expect(radiusAcceptable(0)).toBe(false);
+      expect(radiusAcceptable(-5)).toBe(false);
+      expect(radiusAcceptable(100.1)).toBe(false);
+      expect(radiusAcceptable(500)).toBe(false);
+      expect(radiusAcceptable(null)).toBe(false);
+      expect(radiusAcceptable(Number.NaN)).toBe(false);
+    });
+
+    it('accepts a stored radius outside the range when it is left as it is', () => {
+      expect(radiusAcceptable(500, 500)).toBe(true);
+      expect(radiusAcceptable(10000, 10000)).toBe(true);
+    });
+
+    it('refuses a new value outside the range even when the stored one was outside it too', () => {
+      expect(radiusAcceptable(600, 500)).toBe(false);
+    });
+
+    it('never treats a stored zero as a radius to keep', () => {
+      expect(radiusAcceptable(0, 0)).toBe(false);
+    });
   });
 });

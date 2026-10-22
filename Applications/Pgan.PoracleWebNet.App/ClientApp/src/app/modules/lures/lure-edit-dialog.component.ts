@@ -18,7 +18,7 @@ import { IconService } from '../../core/services/icon.service';
 import { LureService } from '../../core/services/lure.service';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
-import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
+import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, compose, EDIT, isAutoDelete, isEdit, preserve } from '../../shared/utils/clean-flags';
 
 @Component({
@@ -62,10 +62,16 @@ export class LureEditDialogComponent {
 
   readonly isWebhook = inject(AuthService).isImpersonating();
 
+  /** The alarm's current scope, read back into the shared picker. */
+  /** False while the scope picker holds a radius it won't accept, which keeps Save off. */
+  readonly radiusValid = signal(true);
+
   saving = signal(false);
 
-  /** The alarm's current scope, read back into the shared picker. */
   readonly scope = signal<AlarmScope>(scopeOf(this.data.overrideLocationLabel, this.data.overrideAreas, this.data.distance));
+
+  /** The radius as stored, which an edit may keep even outside the picker's range. */
+  readonly storedRadiusKm = metresToKm(this.data.distance);
 
   getLureIcon(): string {
     return this.icons.getItemUrl(this.data.lureId);

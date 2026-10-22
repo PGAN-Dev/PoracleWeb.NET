@@ -108,7 +108,7 @@ export class LureListComponent implements OnInit {
   }
 
   async bulkUpdateDistance(): Promise<void> {
-    const ref = this.dialog.open(DistanceDialogComponent, { width: '440px' });
+    const ref = this.dialog.open(DistanceDialogComponent, { width: '440px', data: { count: this.selectedIds().size } });
     const distance = await firstValueFrom(ref.afterClosed());
     if (distance !== null && distance !== undefined) {
       const uids = [...this.selectedIds()];

@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, Injector, OnInit, computed, effect, inject, input, model, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { ErrorStateMatcher } from '@angular/material/core';
 import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -8,12 +9,12 @@ import { MatInputModule } from '@angular/material/input';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatSelectModule } from '@angular/material/select';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
-import { forkJoin } from 'rxjs';
+import { catchError, forkJoin, of } from 'rxjs';
 
 import { AreaService } from '../../../core/services/area.service';
 import { PlacesService } from '../../../core/services/places.service';
 import { UserGeofenceService } from '../../../core/services/user-geofence.service';
-import { AlarmScope, titleCaseArea } from '../../utils/alarm-scope';
+import { AlarmScope, MAX_RADIUS_KM, MIN_RADIUS_KM, radiusAcceptable, titleCaseArea } from '../../utils/alarm-scope';
 import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component';
 import { LocationDialogComponent } from '../location-dialog/location-dialog.component';
 
@@ -35,7 +36,8 @@ type PickerMode = 'areas' | 'inherit' | 'near';
  *
  * The three options are a radio group because PoracleNG treats them as mutually exclusive: a place
  * with areas, areas with a radius, or a place without one are all refused. Modelled as a choice,
- * those states cannot be expressed, so there is nothing to validate and no error copy to write.
+ * those states cannot be expressed. The radius is the one thing left to check, and the picker reports
+ * it to its host through `radiusValid`.
  */
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -59,6 +61,9 @@ export class ScopePickerComponent implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly geofenceService = inject(UserGeofenceService);
   private readonly injector = inject(Injector);
+  /** The profile's areas as read here, for the inherited option's summary. */
+  private readonly subscribedAreas = signal<string[]>([]);
+
   private readonly translate = inject(TranslateService);
 
   /**
@@ -73,7 +78,8 @@ export class ScopePickerComponent implements OnInit {
    */
   readonly availableAreas = signal<{ name: string; own: boolean }[]>([]);
 
-  readonly distanceKm = signal<number>(1);
+  /** Null while the field is empty: a number input bound with ngModel reports an empty value as null. */
+  readonly distanceKm = signal<null | number>(1);
 
   /** The dialog puts the same question in its title bar, so it suppresses the inline one. */
   readonly hideHeading = input(false);
@@ -92,10 +98,42 @@ export class ScopePickerComponent implements OnInit {
    */
   readonly pinMissing = computed(() => this.mode() === 'near' && !this.placeLabel() && !this.places.pin());
 
-  /** Areas the profile subscribes to, so the inherited option can say what it means. */
+  /**
+   * Areas the profile subscribes to, so the inherited option can say what it means. A host that has
+   * them passes them; otherwise the picker uses the list it reads for its own area options, which is
+   * the same list. Only the card's sheet used to pass them, so every dialog said "anywhere".
+   */
   readonly profileAreas = input<string[]>([]);
 
-  readonly profileAreaSummary = computed(() => this.profileAreas().map(titleCaseArea).join(', '));
+  readonly profileAreaSummary = computed(() => {
+    const passed = this.profileAreas();
+    return (passed.length > 0 ? passed : this.subscribedAreas()).map(titleCaseArea).join(', ');
+  });
+
+  /**
+   * The radius the rule was stored with, when editing one. Production holds rules past 100 km, and an
+   * edit that leaves such a radius alone has to save; only a changed radius is held to the range.
+   */
+  readonly storedRadiusKm = input<null | number>(null);
+
+  /**
+   * True when the radius field holds something the dialog won't save. Only "near" measures by it; the
+   * other two options keep whatever the field last held and never send it.
+   */
+  readonly radiusError = computed(() => this.mode() === 'near' && !radiusAcceptable(this.distanceKm(), this.storedRadiusKm()));
+  /** Shows the field's error from the same rule that turns Save off, rather than from the browser's min/max. */
+  protected readonly radiusErrorMatcher: ErrorStateMatcher = { isErrorState: () => this.radiusError() };
+
+  protected readonly radiusMax = MAX_RADIUS_KM;
+
+  protected readonly radiusMin = MIN_RADIUS_KM;
+
+  /**
+   * Two-way so the host can keep Save off while the radius is out of range. It is derived from the
+   * scope the host already holds plus the stored radius, so it comes out the same when a tab switch
+   * destroys and rebuilds the picker.
+   */
+  readonly radiusValid = model(true);
 
   /** The alarm's scope. Two-way, so a host can seed it and read it back without an event dance. */
   readonly scope = model<AlarmScope>({ distanceKm: 1, mode: 'profile' });
@@ -115,6 +153,7 @@ export class ScopePickerComponent implements OnInit {
 
     // Only mirror outward after seeding, or the write-back races the seed.
     effect(() => this.scope.set(this.currentScope()), { injector: this.injector });
+    effect(() => this.radiusValid.set(!this.radiusError()), { injector: this.injector });
 
     this.places.load().subscribe({ error: () => undefined });
 
@@ -127,12 +166,13 @@ export class ScopePickerComponent implements OnInit {
     // Anything the rule ALREADY carries stays on offer even when it is no longer subscribed, or the
     // option backing it disappears and the area drops off the rule silently on the next save. One rule
     // in production is in exactly that state.
+    // Each half fails on its own, so a failed instance list can't take the profile summary with it.
     forkJoin({
-      available: this.areaService.getAvailable(),
-      selected: this.areaService.getSelected(),
+      available: this.areaService.getAvailable().pipe(catchError(() => of([]))),
+      selected: this.areaService.getSelected().pipe(catchError(() => of<string[]>([]))),
     }).subscribe({
-      error: () => undefined,
       next: ({ available, selected }) => {
+        this.subscribedAreas.set(selected);
         const keep = new Set([...selected, ...(this.scope().areas ?? [])].map(name => name.toLowerCase()));
         const mine = available.filter(area => keep.has(area.name.toLowerCase()));
 
@@ -190,8 +230,8 @@ export class ScopePickerComponent implements OnInit {
         return { areas: this.selectedAreas(), mode: 'areas' };
       case 'near':
         return this.placeLabel()
-          ? { distanceKm: this.distanceKm(), mode: 'place', placeLabel: this.placeLabel() }
-          : { distanceKm: this.distanceKm(), mode: 'profile' };
+          ? { distanceKm: this.distanceKm() ?? 0, mode: 'place', placeLabel: this.placeLabel() }
+          : { distanceKm: this.distanceKm() ?? 0, mode: 'profile' };
       default:
         return { mode: 'profile' };
     }

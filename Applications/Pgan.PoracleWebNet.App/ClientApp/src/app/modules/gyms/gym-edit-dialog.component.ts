@@ -19,7 +19,7 @@ import { IconService } from '../../core/services/icon.service';
 import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
-import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
+import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-flags';
 
 @Component({
@@ -65,11 +65,17 @@ export class GymEditDialogComponent {
 
   readonly isWebhook = inject(AuthService).isImpersonating();
 
+  /** The alarm's current scope, read back into the shared picker. */
+  /** False while the scope picker holds a radius it won't accept, which keeps Save off. */
+  readonly radiusValid = signal(true);
+
   saving = signal(false);
 
-  /** The alarm's current scope, read back into the shared picker. */
   readonly scope = signal<AlarmScope>(scopeOf(this.data.overrideLocationLabel, this.data.overrideAreas, this.data.distance));
+
   selectedGymId = signal<string | null>(this.data.gymId);
+  /** The radius as stored, which an edit may keep even outside the picker's range. */
+  readonly storedRadiusKm = metresToKm(this.data.distance);
 
   getGymIcon(): string {
     return this.icons.getGymUrl(this.data.team);

@@ -398,13 +398,17 @@ describe('PokestopEventListComponent', () => {
       expect(pokestopEventService.getAll).toHaveBeenCalledTimes(2);
     });
 
-    it('reloads after the add dialog reports a write, and hands it the rules already tracked', () => {
+    it("reloads after the add dialog reports a write, and hands it the rules already tracked and the profile's areas", () => {
       setup([base]);
       dialogReturns(true);
+      component.profileAreas.set(['terrigal']);
 
       component.openAddDialog();
 
-      expect(dialog.open).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ data: [base] }));
+      expect(dialog.open).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ data: { events: [base], profileAreas: ['terrigal'] } }),
+      );
       expect(pokestopEventService.getAll).toHaveBeenCalledTimes(2);
     });
 

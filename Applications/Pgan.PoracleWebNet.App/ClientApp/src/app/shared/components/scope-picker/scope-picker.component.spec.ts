@@ -12,7 +12,7 @@ describe('ScopePickerComponent', () => {
   let fixture: ComponentFixture<ScopePickerComponent>;
   let ref: ComponentRef<ScopePickerComponent>;
 
-  function create(scope: AlarmScope): ScopePickerComponent {
+  function create(scope: AlarmScope, inputs: Record<string, unknown> = {}): ScopePickerComponent {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
@@ -26,6 +26,7 @@ describe('ScopePickerComponent', () => {
     fixture = TestBed.createComponent(ScopePickerComponent);
     ref = fixture.componentRef;
     ref.setInput('scope', scope);
+    for (const [name, value] of Object.entries(inputs)) ref.setInput(name, value);
     fixture.detectChanges();
     return fixture.componentInstance;
   }
@@ -119,6 +120,120 @@ describe('ScopePickerComponent', () => {
       const picker = answer({ areas: [], mode: 'areas' }, ['Mechanicsville', 'Aliamanu'], []);
 
       expect(picker.availableAreas().filter(a => !a.own)).toEqual([]);
+    });
+  });
+
+  /**
+   * The radius field used to be checked by the browser alone: 500 outlined it red with no message, Save
+   * stayed enabled, and the alarm was stored at 500 km. The picker now says what is wrong and tells the
+   * host, which keeps Save off while it is.
+   */
+  describe('the radius it accepts', () => {
+    function errorText(): string {
+      return (fixture.nativeElement as HTMLElement).querySelector('mat-error')?.textContent?.trim() ?? '';
+    }
+
+    it('refuses a radius past 100 km, says so, and tells the host', () => {
+      const picker = create({ distanceKm: 1, mode: 'profile' });
+
+      picker.distanceKm.set(500);
+      fixture.detectChanges();
+
+      expect(picker.radiusValid()).toBe(false);
+      expect(errorText()).toBe('WHERE.RADIUS_RANGE');
+    });
+
+    it('refuses zero and an empty field', () => {
+      const picker = create({ distanceKm: 1, mode: 'profile' });
+
+      picker.distanceKm.set(0);
+      fixture.detectChanges();
+      expect(picker.radiusValid()).toBe(false);
+
+      picker.distanceKm.set(null);
+      fixture.detectChanges();
+      expect(picker.radiusValid()).toBe(false);
+    });
+
+    it('accepts a radius inside the range, from a place too', () => {
+      const picker = create({ distanceKm: 100, mode: 'place', placeLabel: 'work' });
+
+      expect(picker.radiusValid()).toBe(true);
+      expect(errorText()).toBe('');
+    });
+
+    it('leaves a stored radius past 100 km alone until it is changed', () => {
+      const picker = create({ distanceKm: 500, mode: 'profile' }, { storedRadiusKm: 500 });
+
+      expect(picker.radiusValid()).toBe(true);
+      expect(errorText()).toBe('');
+
+      picker.distanceKm.set(600);
+      fixture.detectChanges();
+      expect(picker.radiusValid()).toBe(false);
+    });
+
+    it('ignores the radius field when the alarm is not measured by one', () => {
+      const picker = create({ distanceKm: 500, mode: 'profile' });
+
+      picker.mode.set('areas');
+      fixture.detectChanges();
+      expect(picker.radiusValid()).toBe(true);
+
+      picker.mode.set('inherit');
+      fixture.detectChanges();
+      expect(picker.radiusValid()).toBe(true);
+    });
+  });
+
+  /**
+   * Only the card's sheet passed the profile's areas, so every dialog said "Anywhere I get alerts" under
+   * "Anywhere in my areas" even for a profile with three. The picker already reads them for its area
+   * list, so it summarises them itself.
+   */
+  describe('the inherited option', () => {
+    function detail(): string {
+      return (fixture.nativeElement as HTMLElement).querySelector('.scope-option-detail')?.textContent?.trim() ?? '';
+    }
+
+    it('names the profile areas it read itself, title-cased', () => {
+      create({ mode: 'profile' });
+      const http = TestBed.inject(HttpTestingController);
+
+      http.expectOne('http://test/api/areas/available').flush([]);
+      http.expectOne('http://test/api/areas').flush(['downtown orlando', 'kissimmee']);
+      http.match(() => true).forEach(r => r.flush([]));
+      fixture.detectChanges();
+
+      expect(detail()).toBe('Downtown Orlando, Kissimmee');
+    });
+
+    it('still names them when the instance area list fails to load', () => {
+      create({ mode: 'profile' });
+      const http = TestBed.inject(HttpTestingController);
+
+      http.expectOne('http://test/api/areas/available').flush('boom', { status: 500, statusText: 'Server Error' });
+      http.expectOne('http://test/api/areas').flush(['kissimmee']);
+      http.match(() => true).forEach(r => r.flush([]));
+      fixture.detectChanges();
+
+      expect(detail()).toBe('Kissimmee');
+    });
+
+    it('prefers the areas the host passed', () => {
+      create({ mode: 'profile' }, { profileAreas: ['avoca beach'] });
+
+      expect(detail()).toBe('Avoca Beach');
+    });
+
+    it('falls back to "anywhere" for a profile with no areas', () => {
+      create({ mode: 'profile' });
+      const http = TestBed.inject(HttpTestingController);
+
+      http.match(() => true).forEach(r => r.flush([]));
+      fixture.detectChanges();
+
+      expect(detail()).toBe('WHERE.PROFILE_ANYWHERE');
     });
   });
 });

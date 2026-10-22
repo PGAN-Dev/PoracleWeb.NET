@@ -19,7 +19,7 @@ import { FortChangeService } from '../../core/services/fort-change.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
-import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
+import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 
 /** The change types this dialog has a checkbox for. Anything else is carried through untouched. */
 const KNOWN_CHANGE_TYPES = new Set(['name', 'location', 'image_url', 'removal', 'new', 'description']);
@@ -72,10 +72,16 @@ export class FortChangeEditDialogComponent {
 
   readonly isWebhook = inject(AuthService).isImpersonating();
 
+  /** The alarm's current scope, read back into the shared picker. */
+  /** False while the scope picker holds a radius it won't accept, which keeps Save off. */
+  readonly radiusValid = signal(true);
+
   saving = signal(false);
 
-  /** The alarm's current scope, read back into the shared picker. */
   readonly scope = signal<AlarmScope>(scopeOf(this.data.overrideLocationLabel, this.data.overrideAreas, this.data.distance));
+
+  /** The radius as stored, which an edit may keep even outside the picker's range. */
+  readonly storedRadiusKm = metresToKm(this.data.distance);
 
   save(): void {
     this.saving.set(true);

@@ -24,7 +24,7 @@ import { RsvpToggleComponent } from '../../shared/components/rsvp-toggle/rsvp-to
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { LevelLabelPipe } from '../../shared/pipes/level-label.pipe';
-import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
+import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, EDIT, isAutoDelete } from '../../shared/utils/clean-flags';
 import { ANY_COSTUME, costumeHintKey } from '../../shared/utils/costumes';
 
@@ -85,12 +85,18 @@ export class RaidEditDialogComponent {
 
   readonly isWebhook = inject(AuthService).isImpersonating();
 
+  /** The alarm's current scope, read back into the shared picker. */
+  /** False while the scope picker holds a radius it won't accept, which keeps Save off. */
+  readonly radiusValid = signal(true);
+
   saving = signal(false);
 
-  /** The alarm's current scope, read back into the shared picker. */
   readonly scope = signal<AlarmScope>(scopeOf(this.data.item.overrideLocationLabel, this.data.item.overrideAreas, this.data.item.distance));
 
   selectedGymId = signal<string | null>(this.data.item.gymId);
+
+  /** The radius as stored, which an edit may keep even outside the picker's range. */
+  readonly storedRadiusKm = metresToKm(this.data.item.distance);
   /** The hint under the costume select, which changes with the selection. */
   costumeHint(): string {
     return costumeHintKey(this.form.controls.costume.value ?? ANY_COSTUME, this.costumeNamesAvailable());

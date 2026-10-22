@@ -34,7 +34,7 @@ describe('PokestopEventAddDialogComponent', () => {
 
   const defaults = { defaultDistanceKm: () => 1, defaultMode: () => 'areas', defaultPlaceLabel: () => '' };
 
-  function setup(existing: PokestopEvent[] = [], alertDefaults: unknown = defaults): void {
+  function setup(existing: PokestopEvent[] = [], alertDefaults: unknown = defaults, profileAreas: string[] = []): void {
     dialogRef = { close: jest.fn() };
     snackBar = { open: jest.fn() };
     pokestopEventService = { create: jest.fn().mockReturnValue(of({} as PokestopEvent)) };
@@ -48,7 +48,7 @@ describe('PokestopEventAddDialogComponent', () => {
         provideHttpClientTesting(),
         { provide: ConfigService, useValue: { apiHost: 'http://test-api' } },
         { provide: I18nService, useValue: { instant: (k: string) => k, plural: (k: string) => k } },
-        { provide: MAT_DIALOG_DATA, useValue: existing },
+        { provide: MAT_DIALOG_DATA, useValue: { events: existing, profileAreas } },
         { provide: MatDialogRef, useValue: dialogRef },
         { provide: AlertDefaultsService, useValue: alertDefaults },
         { provide: PokestopEventService, useValue: pokestopEventService },
@@ -390,6 +390,18 @@ describe('PokestopEventAddDialogComponent', () => {
       expect(existing?.summary).toContain('INVASIONS.EVENT_TYPES.SHOWCASE');
       component.editExisting(existing!);
       expect(dialogRef.close).toHaveBeenCalledWith({ editExisting: { uid: 732, trackingType: 'incident' } });
+    });
+
+    it("summarises an inherited rule by the profile's areas, as the other lists do", async () => {
+      setup([{ ...stored, distance: 0 }], defaults, ['downtown orlando']);
+      pokestopEventService.create.mockReturnValue(
+        throwError(() => ({ error: { existingUid: 732, error: 'taken', trackingType: 'incident' } })),
+      );
+      component.form.controls.eventKecleon.setValue(true);
+
+      await component.save();
+
+      expect(component.refusal()?.existing?.summary).toContain('WHERE.PROFILE_AREAS');
     });
 
     it('offers no edit when the reported rule is not one the list holds', async () => {

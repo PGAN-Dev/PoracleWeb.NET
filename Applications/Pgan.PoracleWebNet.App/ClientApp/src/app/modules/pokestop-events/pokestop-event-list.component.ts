@@ -12,7 +12,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 
-import { PokestopEventAddDialogComponent } from './pokestop-event-add-dialog.component';
+import { PokestopEventAddDialogComponent, PokestopEventAddDialogData } from './pokestop-event-add-dialog.component';
 import { PokestopEventEditDialogComponent } from './pokestop-event-edit-dialog.component';
 import { PokestopEvent } from '../../core/models';
 import { AreaService } from '../../core/services/area.service';
@@ -100,7 +100,7 @@ export class PokestopEventListComponent implements OnInit {
   }
 
   async bulkUpdateDistance(): Promise<void> {
-    const ref = this.dialog.open(DistanceDialogComponent, { width: '440px' });
+    const ref = this.dialog.open(DistanceDialogComponent, { width: '440px', data: { count: this.selectedIds().size } });
     const distance = await firstValueFrom(ref.afterClosed());
     if (distance === null || distance === undefined) return;
 
@@ -267,7 +267,11 @@ export class PokestopEventListComponent implements OnInit {
 
   openAddDialog(): void {
     this.dialog
-      .open(PokestopEventAddDialogComponent, { width: '600px', data: this.events(), maxHeight: '90vh' })
+      .open(PokestopEventAddDialogComponent, {
+        width: '600px',
+        data: { events: this.events(), profileAreas: this.profileAreas() } satisfies PokestopEventAddDialogData,
+        maxHeight: '90vh',
+      })
       .afterClosed()
       .subscribe(r => {
         if (isEditExisting(r)) this.openExisting(r.editExisting.uid, r.editExisting.trackingType);

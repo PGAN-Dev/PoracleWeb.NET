@@ -96,13 +96,16 @@ export class QuickPickApplyDialogComponent {
   /** The built-in pick's name and description in the display language; see quick-pick-labels.ts. */
   readonly pickName = quickPickName(this.data.definition, this.i18n);
 
-  /** Why the last apply was refused, shown above the actions; cleared on the next attempt. */
-  readonly refusal = signal<AddRefusal | null>(null);
-
   /**
    * Seeded from the saved defaults, then owned by the picker. A quick pick creates real alarms, so it
    * asks the same question in the same shape as the add dialogs do.
    */
+  /** False while the scope picker holds a radius it won't accept, which keeps Save off. */
+  readonly radiusValid = signal(true);
+
+  /** Why the last apply was refused, shown above the actions; cleared on the next attempt. */
+  readonly refusal = signal<AddRefusal | null>(null);
+
   readonly scope = signal<AlarmScope>(
     this.alertDefaults.defaultMode() === 'areas'
       ? { mode: 'profile' }

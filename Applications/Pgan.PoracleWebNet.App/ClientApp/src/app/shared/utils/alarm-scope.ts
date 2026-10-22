@@ -108,6 +108,26 @@ export function formatDistance(km: number): string {
   return Number.isInteger(km) ? `${km}` : `${km.toFixed(1)}`;
 }
 
+/**
+ * The radius range the alarm dialogs offer. It's the input's range, not a product limit: the API takes
+ * anything up to half the Earth's circumference (`AlarmDistance.MaxMetres`), and production holds rules
+ * far past 100 km.
+ */
+export const MIN_RADIUS_KM = 0.1;
+export const MAX_RADIUS_KM = 100;
+
+/**
+ * Whether a radius typed into a dialog may be saved. A stored radius outside the range is accepted while
+ * it is left unchanged, so an edit to some other field of such a rule still saves. A stored zero is no
+ * radius at all, so it earns no exemption.
+ */
+export function radiusAcceptable(km: null | number | undefined, storedKm?: null | number): boolean {
+  if (km === null || km === undefined || !Number.isFinite(km)) return false;
+  if (storedKm !== null && storedKm !== undefined && storedKm > 0 && km === storedKm) return true;
+
+  return km >= MIN_RADIUS_KM && km <= MAX_RADIUS_KM;
+}
+
 export function metresToKm(metres: number): number {
   return Math.round((metres / 1000) * 10) / 10;
 }

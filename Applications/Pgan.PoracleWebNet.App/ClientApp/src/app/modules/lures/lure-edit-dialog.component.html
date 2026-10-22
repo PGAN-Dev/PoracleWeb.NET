@@ -28,7 +28,7 @@
         <span class="tab-label">{{ 'POKEMON.TAB_DELIVERY' | translate }}</span>
       </ng-template>
       <div class="tab-content">
-        <app-scope-picker [(scope)]="scope" />
+        <app-scope-picker [(scope)]="scope" [(radiusValid)]="radiusValid" [storedRadiusKm]="storedRadiusKm" />
 
         <h4>{{ 'ALARM.MESSAGE_SETTINGS' | translate }}</h4>
 
@@ -58,7 +58,7 @@
 
 <mat-dialog-actions align="end">
   <button mat-button (click)="dialogRef.close(false)">{{ 'COMMON.CANCEL' | translate }}</button>
-  <button mat-raised-button color="primary" (click)="save()" [disabled]="saving()">
+  <button mat-raised-button color="primary" (click)="save()" [disabled]="saving() || !radiusValid()">
     {{ saving() ? ('COMMON.SAVING' | translate) : ('COMMON.SAVE' | translate) }}
   </button>
 </mat-dialog-actions>

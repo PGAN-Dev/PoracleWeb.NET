@@ -54,7 +54,7 @@
         <span class="tab-label">{{ 'QUICK_PICKS.TAB_DELIVERY' | translate }}</span>
       </ng-template>
       <div class="tab-content">
-        <app-scope-picker [(scope)]="scope" />
+        <app-scope-picker [(scope)]="scope" [(radiusValid)]="radiusValid" />
 
         <h4>{{ 'ALARM.MESSAGE_SETTINGS' | translate }}</h4>
         <app-template-selector
@@ -80,7 +80,7 @@
 <app-add-refusal [refusal]="refusal()" />
 <mat-dialog-actions align="end">
   <button mat-button (click)="dialogRef.close()" [disabled]="applying()">{{ 'COMMON.CANCEL' | translate }}</button>
-  <button mat-raised-button color="primary" (click)="apply()" [disabled]="applying()">
+  <button mat-raised-button color="primary" (click)="apply()" [disabled]="applying() || !radiusValid()">
     @if (applying()) {
       <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
     }

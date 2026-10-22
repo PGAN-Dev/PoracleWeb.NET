@@ -1,4 +1,4 @@
-<h2 mat-dialog-title>{{ 'DIALOG.DISTANCE_TITLE' | translate }}</h2>
+<h2 mat-dialog-title>{{ 'DIALOG.DISTANCE_TITLE' | translatePlural: count }}</h2>
 <mat-dialog-content>
   <p class="dialog-desc">{{ 'DIALOG.DISTANCE_DESC' | translate }}</p>
 
@@ -26,18 +26,27 @@
   @if (mode() === 'distance') {
     <mat-form-field appearance="outline" class="full-width">
       <mat-label>{{ 'ALARM.DISTANCE_LABEL' | translate }}</mat-label>
-      <input matInput type="number" [(ngModel)]="distanceKm" min="0.1" step="0.1" />
+      <input
+        matInput
+        type="number"
+        [(ngModel)]="distanceKm"
+        [min]="radiusMin"
+        [max]="radiusMax"
+        step="0.1"
+        [errorStateMatcher]="radiusErrorMatcher" />
       @if (!isValid) {
-        <mat-error>{{ 'DIALOG.DISTANCE_MUST_BE_POSITIVE' | translate }}</mat-error>
+        <mat-error>{{ 'WHERE.RADIUS_RANGE' | translate: { max: radiusMax, min: radiusMin } }}</mat-error>
       }
       <span matSuffix>{{ 'ALARM.DISTANCE_SUFFIX' | translate }}</span>
     </mat-form-field>
   }
 
-  <app-delivery-preview [mode]="mode()" [distanceKm]="mode() === 'distance' ? distanceKm : 0"> </app-delivery-preview>
+  <app-delivery-preview [mode]="mode()" [distanceKm]="mode() === 'distance' && isValid ? (distanceKm ?? 0) : 0"> </app-delivery-preview>
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
   <button mat-button (click)="dialogRef.close(null)">{{ 'COMMON.CANCEL' | translate }}</button>
-  <button mat-raised-button color="primary" [disabled]="!isValid" (click)="apply()">{{ 'DIALOG.DISTANCE_UPDATE_ALL' | translate }}</button>
+  <button mat-raised-button color="primary" [disabled]="!isValid" (click)="apply()">
+    {{ 'DIALOG.DISTANCE_APPLY' | translatePlural: count }}
+  </button>
 </mat-dialog-actions>

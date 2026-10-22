@@ -24,7 +24,7 @@ import { MonsterService } from '../../core/services/monster.service';
 import { PoracleConfigService } from '../../core/services/poracle-config.service';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
-import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
+import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, EDIT, compose, isAutoDelete, isEdit, preserve } from '../../shared/utils/clean-flags';
 import { ANY_COSTUME, costumeHintKey } from '../../shared/utils/costumes';
 import { minTimeLabel, minTimeOptions } from '../../shared/utils/min-time';
@@ -123,15 +123,21 @@ export class PokemonEditDialogComponent implements OnInit {
 
   readonly pvpCaps = computed(() => this.poracleConfig.serverConfig().pvpCaps);
 
+  /** The alarm's current scope, read back into the shared picker. */
+  /** False while the scope picker holds a radius it won't accept, which keeps Save off. */
+  readonly radiusValid = signal(true);
+
   saving = signal(false);
 
-  /** The alarm's current scope, read back into the shared picker. */
   readonly scope = signal<AlarmScope>(scopeOf(this.data.overrideLocationLabel, this.data.overrideAreas, this.data.distance));
 
   readonly showCapPicker = computed(() => this.pvpCaps().length > 1);
 
   /** Minior's stats are rerolled on catch, so its IV, CP and level filters never match. See `utils/minior.ts`. */
   readonly showMiniorNote = this.data.pokemonId === MINIOR_POKEMON_ID;
+
+  /** The radius as stored, which an edit may keep even outside the picker's range. */
+  readonly storedRadiusKm = metresToKm(this.data.distance);
 
   /** The hint under the costume select, which changes with the selection. */
   costumeHint(): string {

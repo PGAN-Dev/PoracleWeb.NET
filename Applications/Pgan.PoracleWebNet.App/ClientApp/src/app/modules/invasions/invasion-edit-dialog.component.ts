@@ -22,7 +22,7 @@ import { InvasionService } from '../../core/services/invasion.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
-import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
+import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-flags';
 
 @Component({
@@ -73,10 +73,16 @@ export class InvasionEditDialogComponent {
   readonly isEvent = isEventType(this.data.gruntType);
   readonly isWebhook = inject(AuthService).isImpersonating();
 
-  saving = signal(false);
   /** The alarm's current scope, read back into the shared picker. */
+  /** False while the scope picker holds a radius it won't accept, which keeps Save off. */
+  readonly radiusValid = signal(true);
+  saving = signal(false);
+
   readonly scope = signal<AlarmScope>(scopeOf(this.data.overrideLocationLabel, this.data.overrideAreas, this.data.distance));
+
   readonly selectedGender = toSignal(this.form.controls.gender.valueChanges, { initialValue: this.data.gender });
+  /** The radius as stored, which an edit may keep even outside the picker's range. */
+  readonly storedRadiusKm = metresToKm(this.data.distance);
 
   getDisplayName(): string {
     return getGruntDisplayName(

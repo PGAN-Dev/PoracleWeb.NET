@@ -39,7 +39,18 @@
 
         <mat-form-field appearance="outline" class="scope-distance">
           <mat-label>{{ 'WHERE.RADIUS_KM' | translate }}</mat-label>
-          <input matInput type="number" min="0.1" max="100" step="0.1" [ngModel]="distanceKm()" (ngModelChange)="distanceKm.set($event)" />
+          <input
+            matInput
+            type="number"
+            step="0.1"
+            [min]="radiusMin"
+            [max]="radiusMax"
+            [errorStateMatcher]="radiusErrorMatcher"
+            [ngModel]="distanceKm()"
+            (ngModelChange)="distanceKm.set($event)" />
+          @if (radiusError()) {
+            <mat-error>{{ 'WHERE.RADIUS_RANGE' | translate: { max: radiusMax, min: radiusMin } }}</mat-error>
+          }
         </mat-form-field>
       </div>
 

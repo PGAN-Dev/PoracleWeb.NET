@@ -93,7 +93,7 @@
         <span class="tab-label">{{ 'ALARM.TAB_DELIVERY' | translate }}</span>
       </ng-template>
       <div class="tab-content">
-        <app-scope-picker [(scope)]="scope" />
+        <app-scope-picker [(scope)]="scope" [(radiusValid)]="radiusValid" />
 
         <h4>{{ 'ALARM.COMMON_SETTINGS' | translate }}</h4>
 
@@ -119,7 +119,7 @@
 <app-add-refusal [refusal]="refusal()" (editExisting)="editExisting($event)" />
 <mat-dialog-actions align="end">
   <button mat-button (click)="dialogRef.close(false)">{{ 'ALARM.CANCEL' | translate }}</button>
-  <button mat-raised-button color="primary" (click)="save()" [disabled]="saving() || !canSave()">
+  <button mat-raised-button color="primary" (click)="save()" [disabled]="saving() || !canSave() || !radiusValid()">
     {{ saving() ? ('ALARM.SAVING' | translate) : ('ALARM.SAVE' | translate) }}
   </button>
 </mat-dialog-actions>

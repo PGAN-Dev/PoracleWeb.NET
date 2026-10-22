@@ -26,7 +26,7 @@
         <span class="tab-label">{{ 'POKEMON.TAB_DELIVERY' | translate }}</span>
       </ng-template>
       <div class="tab-content">
-        <app-scope-picker [(scope)]="scope" />
+        <app-scope-picker [(scope)]="scope" [(radiusValid)]="radiusValid" />
         <h4>{{ 'ALARM.MESSAGE_SETTINGS' | translate }}</h4>
         <app-template-selector
           [alarmType]="'nest'"
@@ -41,7 +41,7 @@
 <app-add-refusal [refusal]="refusal()" (editExisting)="editExisting($event)" />
 <mat-dialog-actions align="end">
   <button mat-button (click)="dialogRef.close(false)">{{ 'COMMON.CANCEL' | translate }}</button>
-  <button mat-raised-button color="primary" (click)="save()" [disabled]="saving() || selectedPokemonIds().length === 0">
+  <button mat-raised-button color="primary" (click)="save()" [disabled]="saving() || selectedPokemonIds().length === 0 || !radiusValid()">
     {{ saving() ? ('COMMON.SAVING' | translate) : ('COMMON.SAVE' | translate) }}
   </button>
 </mat-dialog-actions>

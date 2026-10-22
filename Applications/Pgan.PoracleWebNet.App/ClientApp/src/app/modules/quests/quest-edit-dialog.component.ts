@@ -20,7 +20,7 @@ import { QuestService } from '../../core/services/quest.service';
 import { SummaryScheduleService } from '../../core/services/summary-schedule.service';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
-import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
+import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, compose, isAutoDelete, isSummary, preserve, SUMMARY } from '../../shared/utils/clean-flags';
 
 /** Item, candy and mega energy: the three PoracleNG compares `amount` against. */
@@ -99,10 +99,16 @@ export class QuestEditDialogComponent {
 
   readonly isWebhook = inject(AuthService).isImpersonating();
 
+  /** The alarm's current scope, read back into the shared picker. */
+  /** False while the scope picker holds a radius it won't accept, which keeps Save off. */
+  readonly radiusValid = signal(true);
+
   saving = signal(false);
 
-  /** The alarm's current scope, read back into the shared picker. */
   readonly scope = signal<AlarmScope>(scopeOf(this.data.overrideLocationLabel, this.data.overrideAreas, this.data.distance));
+
+  /** The radius as stored, which an edit may keep even outside the picker's range. */
+  readonly storedRadiusKm = metresToKm(this.data.distance);
 
   readonly summaryService = inject(SummaryScheduleService);
 

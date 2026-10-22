@@ -31,9 +31,16 @@ export class WhereSheetComponent {
   readonly data = inject<WhereSheetData>(MAT_DIALOG_DATA);
   readonly dialogRef = inject<MatDialogRef<WhereSheetComponent, AlarmScope>>(MatDialogRef);
 
+  /** False while the picker holds a radius it won't accept, which keeps Save off. */
+  readonly radiusValid = signal(true);
+
   readonly scope = signal<AlarmScope>(this.data.scope);
 
+  /** The radius the alarm has now, which the sheet may keep even outside the picker's range. */
+  readonly storedRadiusKm = this.data.scope.mode === 'areas' ? null : (this.data.scope.distanceKm ?? null);
+
   save(): void {
+    if (!this.radiusValid()) return;
     this.dialogRef.close(this.scope());
   }
 }

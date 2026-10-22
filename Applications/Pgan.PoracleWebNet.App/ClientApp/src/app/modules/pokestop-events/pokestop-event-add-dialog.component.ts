@@ -25,6 +25,14 @@ import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE } from '../../shared/utils/clean-flags';
 import { POKESTOP_EVENTS } from '../../shared/utils/pokestop-events';
 
+/** What the list passes when it opens the dialog. */
+export interface PokestopEventAddDialogData {
+  /** The alarms the profile already has, so an event it already tracks cannot be picked twice. */
+  events: PokestopEvent[];
+  /** The profile's areas, so a clashing rule with no scope of its own is summarised as the list shows it. */
+  profileAreas: string[];
+}
+
 @Component({
   imports: [
     AddRefusalComponent,
@@ -50,8 +58,9 @@ import { POKESTOP_EVENTS } from '../../shared/utils/pokestop-events';
 })
 export class PokestopEventAddDialogComponent {
   private readonly alertDefaults = inject(AlertDefaultsService);
+  private readonly data = inject<null | PokestopEventAddDialogData>(MAT_DIALOG_DATA, { optional: true });
   /** The alarms the profile already has, so an event it already tracks cannot be picked twice. */
-  private readonly existing = inject<PokestopEvent[] | null>(MAT_DIALOG_DATA, { optional: true }) ?? [];
+  private readonly existing = this.data?.events ?? [];
   private readonly fb = inject(FormBuilder);
   private readonly i18n = inject(I18nService);
   private readonly pokestopEventService = inject(PokestopEventService);
@@ -82,15 +91,18 @@ export class PokestopEventAddDialogComponent {
     alreadyTracked: this.existing.some(x => x.displayType === e.displayType),
   }));
 
+  /**
+   * Seeded from the saved defaults so the Alert Defaults preference still reaches new alarms; the
+   * picker owns it from there.
+   */
+  /** False while the scope picker holds a radius it won't accept, which keeps Save off. */
+  readonly radiusValid = signal(true);
+
   /** Why the last single Add was refused; shown above the actions, cleared on the next save. */
   readonly refusal = signal<AddRefusal | null>(null);
 
   readonly saving = signal(false);
 
-  /**
-   * Seeded from the saved defaults so the Alert Defaults preference still reaches new alarms; the
-   * picker owns it from there.
-   */
   readonly scope = signal<AlarmScope>(
     this.alertDefaults.defaultMode() === 'areas'
       ? { mode: 'profile' }
@@ -189,6 +201,6 @@ export class PokestopEventAddDialogComponent {
     const rule = this.existing.find(x => x.uid === uid);
     if (!rule) return null;
     const event = POKESTOP_EVENTS.find(e => e.displayType === rule.displayType);
-    return ruleSummary(event ? this.translate.instant(event.displayKey) : '', rule, [], this.translate);
+    return ruleSummary(event ? this.translate.instant(event.displayKey) : '', rule, this.data?.profileAreas ?? [], this.translate);
   }
 }
