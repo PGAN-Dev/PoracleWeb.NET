@@ -322,7 +322,7 @@ boss. Three kinds of answer, and the sentinels are not the ones used elsewhere o
 Note that `0` means "uncostumed" here, where on most other filters `0` means "any". The wildcard is
 `9000`, matching the raid and move sentinels rather than the size filter's `-1`.
 
-On raids the control appears on the **By Boss** tab of the add dialog only, and in the edit dialog only
+On raids the control appears on the **By boss** tab of the add dialog only, and in the edit dialog only
 for a rule that names a boss. A by-level raid rule is always "any costume": PoracleNG forces the boss
 to the wildcard on those, so there is no species for a costume to belong to. Eggs have no costume
 column at all.
@@ -346,7 +346,7 @@ The default maximum level is **55** (not 40 or 50), matching Poracle's support f
 
 ### Minimum time left
 
-Under **More Filters**, **Time left** skips spawns that will despawn before you could reach them. The field is a select rather than a free number, offering Any, 1, 2, 5, 10, 15 and 20 minutes. PoracleNG stores seconds (`min_time`), and a free field invited two silent failures: typing `5` meaning minutes asks for five seconds, and a value longer than a spawn lives mutes the alarm with no error. A value set from the bot that isn't one of the presets is kept and offered in the list rather than being overwritten on the next save.
+Under **More filters**, **Time left** skips spawns that will despawn before you could reach them. The field is a select rather than a free number, offering Any, 1, 2, 5, 10, 15 and 20 minutes. PoracleNG stores seconds (`min_time`), and a free field invited two silent failures: typing `5` meaning minutes asks for five seconds, and a value longer than a spawn lives mutes the alarm with no error. A value set from the bot that isn't one of the presets is kept and offered in the list rather than being overwritten on the next save.
 
 When set, the card shows a "5 min left" pill alongside the IV and CP pills.
 
@@ -368,7 +368,7 @@ The raid and egg pickers share the `<app-level-selector>` chip component. The vo
 
 **Egg picker.** Multi-select. Only the five Star tiers (1–5) are surfaced — Pokémon GO has no Mega/Shadow/Primal eggs.
 
-**The "By Boss" tab has no level picker.** PoracleNG forces `level` to the wildcard 9000 for any raid
+**The "By boss" tab has no level picker.** PoracleNG forces `level` to the wildcard 9000 for any raid
 alarm carrying a specific `pokemon_id` (`trackingRaid.go`), so a level chosen alongside a boss could never
 survive the request. The tab used to show a picker whose value was always discarded; it was removed in
 v2.14.0. Track a boss to be alerted at whatever level it appears.
@@ -420,7 +420,7 @@ beneath it:
 | Stardust | `3` | Nothing; the amount is the whole rule | `reward` |
 | PokéCoins | `8` | Nothing; the amount is the whole rule | `reward` |
 
-**Minimum Amount** is the fewest of the reward the quest has to give; `0` means any. It only applies where a reward comes in a quantity: items, candy and mega energy. A Pokemon encounter has nothing to count.
+**Minimum amount** is the fewest of the reward the quest has to give; `0` means any. It only applies where a reward comes in a quantity: items, candy and mega energy. A Pokemon encounter has nothing to count.
 
 Stardust and PokéCoins work differently from the rest, and identically to each other. There is nothing to pick — Poracle matches on the amount alone — so each offers a single number field, and PoracleNG reads the floor from `reward` rather than `amount`. On both, `amount` stays `0`.
 
@@ -484,7 +484,7 @@ Fort change alarms are proxied through PoracleNG using tracking type `"fort"`. T
 
 ## Max Battle alarm filters
 
-Max Battle (Dynamax) alarms track battles at Power Spot stations. There are two tracking modes: **By Level** tracks any Pokemon at the tiers you pick, one alarm per level, and **By Pokemon** tracks the Pokemon you pick at every level.
+Max Battle (Dynamax) alarms track battles at Power Spot stations. There are two tracking modes: **By level** tracks any Pokemon at the tiers you pick, one alarm per level, and **By Pokemon** tracks the Pokemon you pick at every level.
 
 ![The Max Battles page](../screenshots/max-battles.png)
 

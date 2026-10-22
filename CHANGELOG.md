@@ -57,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The labels left in Title Case read in sentence case**, in English and in the translations that capitalised every word: "Select all", "Set location", "Use my location", "Lure types", "Track slot changes", "Min spawns/hour", "Any team", "Add webhook", "Import geofences", "Review geofence", "User geofences", the admin settings labels and more. Help and the docs quote the new labels.
 - **Every language spells Pokémon and Pokéstop with the accent**, as the game does; ten locales wrote "Pokemon" in the sidebar, the dialogs and Help.
 - **French names the PvP leagues as the game does**: Super Ligue and Hyper Ligue.
 - **Rule repair names the user beside their Discord id** ("Alice (123456789)"), from the user list the scan already reads.

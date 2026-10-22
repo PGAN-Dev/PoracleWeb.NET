@@ -316,7 +316,7 @@ basemap that is not the one configured.
 **Causes and fixes**:
 
 1. `API KEY REQUIRED` across the tiles. A CARTO or Stadia basemap is being requested without a
-   key. Set **Basemap API Key** in **Admin > Server settings > Maps**. Takes effect on the next page load,
+   key. Set **Basemap API key** in **Admin > Server settings > Maps**. Takes effect on the next page load,
    no restart.
 
 2. Still watermarked after setting a key. The key is wrong, not missing. The site can detect an

@@ -9,7 +9,7 @@ this site.
 
 ## Creating a webhook
 
-**Admin → Webhooks → Add Webhook**, with a display name and the Discord webhook URL. The URL is the
+**Admin → Webhooks → Add webhook**, with a display name and the Discord webhook URL. The URL is the
 account id, so it must be unique; an existing one is refused rather than merged. If Poracle rejects
 the account, the half-written record is removed, so a failure means nothing was created and a retry
 is safe.
@@ -46,7 +46,7 @@ from somewhere this site does not write.
 
 ## What a delegate can do
 
-**Settings → My Webhooks** lists the webhooks they manage. **Manage Alarms** switches the session to
+**Settings → My Webhooks** lists the webhooks they manage. **Manage alarms** switches the session to
 that webhook: from there they see the site as it does, and can set up alarms, areas, profiles, its
 pin, and send test alerts. A banner names the account being viewed, and the button on it returns them
 to their own.

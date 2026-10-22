@@ -55,9 +55,9 @@ Control which alarm categories are available to users. Disabling a type hides it
 | `disable_lures` | Lures | boolean | Hide lure alarms from all users. The page, the sidebar item and the API all go; rules already stored stay dormant and return if you switch it back on. |
 | `disable_nests` | Nests | boolean | Hide nest alarms from all users. The page, the sidebar item and the API all go; rules already stored stay dormant and return if you switch it back on. |
 | `disable_gyms` | Gyms | boolean | Hide gym alarms from all users. The page, the sidebar item and the API all go; rules already stored stay dormant and return if you switch it back on. |
-| `disable_fort_changes` | Fort Changes | boolean | Hide fort-change alarms from all users. The page, the sidebar item and the API all go; rules already stored stay dormant and return if you switch it back on. |
-| `disable_maxbattles` | Max Battles | boolean | Hide max-battle alarms from all users. The page, the sidebar item and the API all go; rules already stored stay dormant and return if you switch it back on. |
-| `disable_showcase` | Pokéstop Events (Showcase, Kecleon, Gold Stop) | boolean | Hide Showcase, Kecleon and Gold Stop alarms from all users. The page, the sidebar item and the API all go; rules already stored stay dormant and return if you switch it back on. PoracleNG's own `[general] disable_showcase = true` also forces this off. Absent or unreadable, it leaves the page on. While the page is off, the three events stay available from the invasion add dialog. |
+| `disable_fort_changes` | Fort changes | boolean | Hide fort-change alarms from all users. The page, the sidebar item and the API all go; rules already stored stay dormant and return if you switch it back on. |
+| `disable_maxbattles` | Max battles | boolean | Hide max-battle alarms from all users. The page, the sidebar item and the API all go; rules already stored stay dormant and return if you switch it back on. |
+| `disable_showcase` | Pokéstop events (Showcase, Kecleon, Gold Stop) | boolean | Hide Showcase, Kecleon and Gold Stop alarms from all users. The page, the sidebar item and the API all go; rules already stored stay dormant and return if you switch it back on. PoracleNG's own `[general] disable_showcase = true` also forces this off. Absent or unreadable, it leaves the page on. While the page is off, the three events stay available from the invasion add dialog. |
 
 !!! info "A disabled type disappears completely"
     The sidebar item, the dashboard count, the **New alarm** menu entry and the page all go, and every endpoint for that type answers
@@ -129,7 +129,7 @@ the fields that do not apply — so the section never shows you a box with no be
 | Provider | What to fill in |
 |---|---|
 | OpenStreetMap, Esri Streets, Esri Gray Canvas, Esri World Imagery | Nothing. They are keyless and carry their own URL, attribution and zoom limit. |
-| CARTO Positron, CARTO Voyager, Stadia Alidade Smooth | **Basemap API Key**, and nothing else. |
+| CARTO Positron, CARTO Voyager, Stadia Alidade Smooth | **Basemap API key**, and nothing else. |
 | Custom tile URL | **Name**, **Tile URL**, optionally a **dark** URL, and **Attribution**. The key field appears only if your URL contains `{key}`. |
 
 Picking a name sets the URL, the attribution and the zoom limit together, so there is one decision
@@ -149,7 +149,7 @@ In the dark theme, a viewer on the site default gets a dark map. A provider with
 draws that (CARTO Dark Matter for both CARTO entries). One without (OpenStreetMap, Esri Streets) is
 swapped for Esri's dark gray, the dark half of Esri Gray Canvas, which needs no key. Two are left as they
 are: Esri World Imagery, which is photographs, and a custom tile URL, since your viewers shouldn't be sent
-to Esri behind your back; set **Basemap Tile URL (Dark)** to give a custom basemap a dark style. A viewer
+to Esri behind your back; set **Basemap tile URL (dark)** to give a custom basemap a dark style. A viewer
 who picked a basemap from the layers button gets what they picked in both themes, and the menu's
 **Site default** entry names what the dark theme is drawing.
 
