@@ -97,7 +97,7 @@ export function validationReason(err: unknown): string | null {
 }
 
 /**
- * What a create failure says when the server gave no reason of its own. It only reaches the screen for
+ * What a create or edit failure says when the server gave no reason of its own. It only reaches the screen for
  * statuses the interceptor doesn't toast (a 400 or 409 without text, a 422, 429, 501), so the next step
  * is about the settings, or for a 429 about waiting, never the connection.
  */
@@ -160,7 +160,12 @@ export function finishAdd(results: SettledCreate[], options: FinishAddOptions): 
   const duplicates = landed.length - created;
 
   if (refused.length > 0) {
-    snackBar.open(createFailureText(refused[0].failed, i18n, failedKey), i18n.instant('COMMON.OK'), { duration: 6000 });
+    // A row the interceptor already toasted (an outage, a dropped connection) keeps that one message; the
+    // settings-oriented fallback would send the user to their filters for a server failure.
+    const unreported = refused.find(r => !reportedByInterceptor(r.failed));
+    if (unreported) {
+      snackBar.open(createFailureText(unreported.failed, i18n, failedKey), i18n.instant('COMMON.OK'), { duration: 6000 });
+    }
   } else {
     reportCreated(created, duplicates, i18n, snackBar);
   }

@@ -265,6 +265,20 @@ describe('PokestopEventEditDialogComponent', () => {
       expect(component.saving()).toBe(false);
     });
 
+    it('names the field a validation 400 refused, as the add dialog does', () => {
+      setup();
+      pokestopEventService.update.mockReturnValue(
+        throwError(() => ({
+          error: { errors: { Distance: ['Distance is too large.'] }, title: 'One or more validation errors occurred.' },
+          status: 400,
+        })),
+      );
+
+      component.save();
+
+      expect(snackBar.open).toHaveBeenCalledWith('Distance is too large.', 'COMMON.OK', expect.anything());
+    });
+
     it('falls back to its own message when the server gave no reason', () => {
       setup();
       pokestopEventService.update.mockReturnValue(throwError(() => new Error('network')));

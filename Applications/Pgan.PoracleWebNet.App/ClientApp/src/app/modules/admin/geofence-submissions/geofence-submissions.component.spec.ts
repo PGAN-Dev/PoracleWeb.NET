@@ -591,6 +591,51 @@ describe('GeofenceSubmissionsComponent', () => {
     expect(mockSnackBar.open).toHaveBeenCalledWith('ADMIN.SNACK_FAILED_DELETE_GEOFENCE', 'TOAST.OK', { duration: 4000 });
   });
 
+  // Koji refusing an approve, reject or delete answers 502 with a reason that names the likely cause (the
+  // region may no longer exist); a generic "Failed to approve" sent the admin nowhere.
+  const kojiRefusal = {
+    error: { error: 'The geofence server rejected the request. It may be unavailable, or the region may no longer exist.' },
+    status: 502,
+  };
+
+  it('shows the Koji reason when a delete is refused with 502', async () => {
+    setup();
+    component.ngOnInit();
+    mockDialog.open.mockReturnValue({ afterClosed: () => of(true) });
+    adminGeofenceService.adminDelete!.mockReturnValue(throwError(() => kojiRefusal));
+
+    await component.adminDelete(component.allGeofences()[0]);
+
+    expect(mockSnackBar.open).toHaveBeenCalledWith(kojiRefusal.error.error, 'TOAST.OK', { duration: 4000 });
+  });
+
+  it('keeps the translated delete message for a 503 PoracleNG outage', async () => {
+    setup();
+    component.ngOnInit();
+    adminGeofenceService.getDeleteImpact!.mockReturnValue(
+      throwError(() => ({ error: { error: 'PoracleNG could not be reached. Try again shortly.' }, status: 503 })),
+    );
+
+    await component.adminDelete(component.allGeofences()[0]);
+
+    expect(mockSnackBar.open).toHaveBeenCalledWith('ADMIN.SNACK_FAILED_DELETE_GEOFENCE', 'TOAST.OK', { duration: 4000 });
+  });
+
+  it.each([
+    ['approve', 'approveSubmission', { action: 'approve', groupName: 'g', parentId: 1, promotedName: 'p' }],
+    ['reject', 'rejectSubmission', { action: 'reject', reviewNotes: 'no' }],
+  ] as const)('shows the Koji reason when %s is refused with 502', (mode, method, result) => {
+    setup();
+    component.ngOnInit();
+    mockDialog.open.mockReturnValue({ afterClosed: () => of(result) });
+    (adminGeofenceService[method] as jest.Mock).mockReturnValue(throwError(() => kojiRefusal));
+    const pending = component.allGeofences().find(g => g.status === 'pending_review')!;
+
+    component.openReviewDialog(pending, mode);
+
+    expect(mockSnackBar.open).toHaveBeenCalledWith(kojiRefusal.error.error, 'TOAST.OK', { duration: 4000 });
+  });
+
   it('should not delete when dialog is cancelled', async () => {
     setup();
     component.ngOnInit();

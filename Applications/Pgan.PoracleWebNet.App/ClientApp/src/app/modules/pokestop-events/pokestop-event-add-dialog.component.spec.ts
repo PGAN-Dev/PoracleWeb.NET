@@ -395,6 +395,20 @@ describe('PokestopEventAddDialogComponent', () => {
       expect(component.saving()).toBe(false);
     });
 
+    it('leaves the interceptor toast as the one message when a later write fails on a 503', async () => {
+      setup();
+      pokestopEventService.create
+        .mockReturnValueOnce(of({ uid: 5 } as PokestopEvent))
+        .mockReturnValueOnce(throwError(() => ({ error: { error: 'PoracleNG could not be reached.' }, status: 503 })));
+      component.form.controls.eventShowcase.setValue(true);
+      component.form.controls.eventKecleon.setValue(true);
+
+      await component.save();
+
+      expect(snackBar.open).not.toHaveBeenCalled();
+      expect(dialogRef.close).toHaveBeenCalledWith(true);
+    });
+
     it('closes with false when the very first write of several failed', async () => {
       setup();
       pokestopEventService.create.mockReturnValue(throwError(() => ({ error: { error: 'nope' } })));

@@ -431,7 +431,9 @@ export class AdminWebhooksComponent implements OnInit {
           .pipe(takeUntilDestroyed(this.destroyRef))
           .subscribe({
             error: err => {
-              const msg = serverReason(err) ?? this.i18n.instant('ADMIN.SNACK_FAILED_ADD_WEBHOOK');
+              // 502 is the #482 half-write answer ("Check the webhook list before trying again"), which must
+              // reach the admin: a retry on the generic message can create a second row.
+              const msg = serverReason(err, { allow5xx: [502] }) ?? this.i18n.instant('ADMIN.SNACK_FAILED_ADD_WEBHOOK');
               this.snackBar.open(msg, this.i18n.instant('TOAST.OK'), { duration: 4000 });
             },
             next: () => {

@@ -13,6 +13,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 
+import { reportedByInterceptor } from '../../core/interceptors/error.interceptor';
 import { PokestopEvent } from '../../core/models';
 import { AlertDefaultsService } from '../../core/services/alert-defaults.service';
 import { I18nService } from '../../core/services/i18n.service';
@@ -198,9 +199,12 @@ export class PokestopEventAddDialogComponent {
           );
           return;
         }
-        this.snackBar.open(createFailureText(err, this.i18n, 'ALARM.FAILED_CREATE'), this.i18n.instant('COMMON.OK'), {
-          duration: 6000,
-        });
+        // The interceptor has already toasted an outage; a second, settings-oriented message would replace it.
+        if (!reportedByInterceptor(err)) {
+          this.snackBar.open(createFailureText(err, this.i18n, 'ALARM.FAILED_CREATE'), this.i18n.instant('COMMON.OK'), {
+            duration: 6000,
+          });
+        }
         // Whatever was written before the failure still exists, so close and reload rather than
         // leaving the list showing a state that is already out of date.
         this.dialogRef.close(created + unchanged > 0);

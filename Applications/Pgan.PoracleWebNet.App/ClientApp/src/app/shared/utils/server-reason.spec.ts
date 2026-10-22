@@ -28,3 +28,33 @@ describe('serverReason', () => {
     expect(serverReason({ error: { error: 'PoracleNG could not be reached. Try again shortly.' }, status })).toBeNull();
   });
 });
+
+/**
+ * A few 5xx answers are the API's own sentence with a next step in it, not an outage: the #482 webhook
+ * half-write ("Check the webhook list before trying again") and Koji refusing an approve, reject or delete
+ * ("the region may no longer exist"). Those call sites opt in for exactly the status they expect.
+ */
+describe('serverReason with an opted-in 5xx', () => {
+  const halfWrite = {
+    error: {
+      error:
+        'Poracle rejected the webhook, and could not be asked whether part of it was saved. Check the webhook list before trying again.',
+    },
+    status: 502,
+  };
+
+  it('returns the reason for a status the caller allows', () => {
+    expect(serverReason(halfWrite, { allow5xx: [502] })).toBe(halfWrite.error.error);
+  });
+
+  it('still drops a 5xx the caller did not name, so an outage keeps the translated message', () => {
+    expect(
+      serverReason({ error: { error: 'PoracleNG could not be reached. Try again shortly.' }, status: 503 }, { allow5xx: [502] }),
+    ).toBeNull();
+    expect(serverReason({ error: { error: 'An unexpected error occurred.' }, status: 500 }, { allow5xx: [502] })).toBeNull();
+  });
+
+  it('keeps reading 4xx reasons', () => {
+    expect(serverReason({ error: { error: 'Webhook already exists.' }, status: 409 }, { allow5xx: [502] })).toBe('Webhook already exists.');
+  });
+});

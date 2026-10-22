@@ -45,6 +45,9 @@ import { pointInPolygon, polygonAreaSqKm, polygonCentroid } from '../../../share
 import { GEOFENCE_STATUS_COLORS } from '../../../shared/utils/geofence.utils';
 import { serverReason } from '../../../shared/utils/server-reason';
 
+/** Koji refusing an approve, reject or delete is a 502 whose reason names the likely cause (a deleted region). */
+const KOJI_REFUSAL = { allow5xx: [502] } as const;
+
 /** The statuses the table below the review queue can be narrowed to. Pending fences live in the queue. */
 export type OtherFilter = 'active' | 'all' | 'approved' | 'rejected';
 export type SortField = 'name' | 'status' | 'owner' | 'region' | 'points' | 'created' | 'submitted';
@@ -162,9 +165,13 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
     const name = geofence.displayName;
     const owner = geofence.ownerName ?? geofence.humanId;
     const failed = (err?: unknown) =>
-      this.snackBar.open(serverReason(err) ?? this.i18n.instant('ADMIN.SNACK_FAILED_DELETE_GEOFENCE'), this.i18n.instant('TOAST.OK'), {
-        duration: 4000,
-      });
+      this.snackBar.open(
+        serverReason(err, KOJI_REFUSAL) ?? this.i18n.instant('ADMIN.SNACK_FAILED_DELETE_GEOFENCE'),
+        this.i18n.instant('TOAST.OK'),
+        {
+          duration: 4000,
+        },
+      );
 
     let impact: GeofenceDeleteImpact;
     try {
@@ -302,9 +309,13 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe({
               error: err =>
-                this.snackBar.open(serverReason(err) ?? this.i18n.instant('ADMIN.SNACK_FAILED_APPROVE'), this.i18n.instant('TOAST.OK'), {
-                  duration: 4000,
-                }),
+                this.snackBar.open(
+                  serverReason(err, KOJI_REFUSAL) ?? this.i18n.instant('ADMIN.SNACK_FAILED_APPROVE'),
+                  this.i18n.instant('TOAST.OK'),
+                  {
+                    duration: 4000,
+                  },
+                ),
               next: updated => {
                 this.allGeofences.update(list => list.map(g => (g.id === geofence.id ? updated : g)));
                 // Koji has the fence but the owner's areas still hold the old name. Say so, or the owner
@@ -328,9 +339,13 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe({
               error: err =>
-                this.snackBar.open(serverReason(err) ?? this.i18n.instant('ADMIN.SNACK_FAILED_REJECT'), this.i18n.instant('TOAST.OK'), {
-                  duration: 4000,
-                }),
+                this.snackBar.open(
+                  serverReason(err, KOJI_REFUSAL) ?? this.i18n.instant('ADMIN.SNACK_FAILED_REJECT'),
+                  this.i18n.instant('TOAST.OK'),
+                  {
+                    duration: 4000,
+                  },
+                ),
               next: updated => {
                 this.allGeofences.update(list => list.map(g => (g.id === geofence.id ? updated : g)));
                 this.snackBar.open(

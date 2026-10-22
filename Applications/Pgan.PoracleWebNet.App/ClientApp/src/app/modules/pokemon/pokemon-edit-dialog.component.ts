@@ -24,12 +24,12 @@ import { MonsterService } from '../../core/services/monster.service';
 import { PoracleConfigService } from '../../core/services/poracle-config.service';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { createFailureText } from '../../shared/utils/add-outcome';
 import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, EDIT, compose, isAutoDelete, isEdit, preserve } from '../../shared/utils/clean-flags';
 import { ANY_COSTUME, costumeHintKey } from '../../shared/utils/costumes';
 import { minTimeLabel, minTimeOptions } from '../../shared/utils/min-time';
 import { MINIOR_POKEMON_ID } from '../../shared/utils/minior';
-import { serverReason } from '../../shared/utils/server-reason';
 
 @Component({
   imports: [
@@ -233,7 +233,7 @@ export class PokemonEditDialogComponent implements OnInit {
       // inverted, say. That message never reached anyone: this handler showed a fixed string, so a
       // transposed pair produced "failed" with no clue which field to fix. See #496.
       error: (err: unknown) => {
-        const message = serverReason(err) ?? this.i18n.instant('ALARM.FAILED_UPDATE');
+        const message = createFailureText(err, this.i18n, 'ALARM.FAILED_UPDATE');
         this.snackBar.open(message, this.i18n.instant('COMMON.OK'), { duration: 6000 });
         this.saving.set(false);
       },

@@ -133,6 +133,24 @@ describe('add-outcome', () => {
       expect(dialogRef.close).toHaveBeenCalledWith(true);
     });
 
+    /**
+     * A batch row that failed on a 5xx was already toasted by the interceptor ("Server error"). Following it
+     * with "Check the settings and try again" sent the user to their filters for an outage.
+     */
+    it.each([0, 500, 503])('leaves the interceptor toast alone when a batch row failed on a %i', status => {
+      finish([{ uid: 501 }, { failed: { error: { error: 'PoracleNG could not be reached.' }, status } }]);
+
+      expect(snackBar.open).not.toHaveBeenCalled();
+      expect(dialogRef.close).toHaveBeenCalledWith(true);
+    });
+
+    it('still toasts a refusal no toast reported when another row in the batch failed on a 5xx', () => {
+      finish([{ failed: { error: null, status: 503 } }, { failed: takeover(77) }]);
+
+      expect(snackBar.open).toHaveBeenCalledTimes(1);
+      expect(snackBar.open).toHaveBeenCalledWith('Another alarm of this type already uses those settings.', 'COMMON.OK', expect.anything());
+    });
+
     it('closes a batch that was refused entirely, as before', () => {
       finish([{ failed: takeover() }, { failed: takeover() }]);
 

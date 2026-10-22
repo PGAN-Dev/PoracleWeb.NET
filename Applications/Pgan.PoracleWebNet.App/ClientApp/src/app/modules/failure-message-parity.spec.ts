@@ -43,6 +43,19 @@ describe('alarm failure messages', () => {
       expect(source.slice(Math.max(0, use.index - 21), use.index)).toBe('serverReason(err) ?? ');
     }
   });
+
+  /**
+   * An edit model binding refuses (a field out of its range) answers `{ errors: { Field: [...] } }` with no
+   * `error`. The add dialogs name that field through `createFailureText`; the edit dialogs said "Try again
+   * in a moment", which can't help.
+   */
+  it.each(files.filter(([file]) => file.endsWith('edit-dialog.component.ts')))(
+    '%s names the refused field the way the add dialog does',
+    (_file, source) => {
+      expect(source).toContain("createFailureText(err, this.i18n, 'ALARM.FAILED_UPDATE')");
+      expect(source).not.toContain("serverReason(err) ?? this.i18n.instant('ALARM.FAILED_UPDATE')");
+    },
+  );
 });
 
 /**
@@ -65,7 +78,9 @@ describe('other failure messages', () => {
   ])("%s puts the server's reason ahead of %s", (file, key) => {
     const source = read(file);
 
-    expect(source).toContain(`serverReason(err) ?? this.i18n.instant('${key}')`);
+    // A call site may opt one 5xx in (`serverReason(err, { allow5xx: [502] })`) where that answer carries a next step.
+    const call = String.raw`serverReason\(err(, [^)]+)?\) \?\? this\.i18n\.instant\('` + key.replace('.', String.raw`\.`) + String.raw`'\)`;
+    expect(source).toMatch(new RegExp(call));
     expect(source).not.toMatch(/\?\.error\?\.error/);
   });
 

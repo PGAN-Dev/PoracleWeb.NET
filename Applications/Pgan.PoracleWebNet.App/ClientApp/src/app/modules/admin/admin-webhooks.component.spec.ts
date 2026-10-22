@@ -4,7 +4,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideTranslateService } from '@ngx-translate/core';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 
 import { AdminWebhooksComponent } from './admin-webhooks.component';
 import { AdminUser } from '../../core/models';
@@ -82,5 +82,61 @@ describe('AdminWebhooksComponent delegates column', () => {
     const note = (fixture.nativeElement as HTMLElement).querySelector('[data-test="admins-note"]');
 
     expect(note?.textContent).toContain('ADMIN.WEBHOOKS_ADMINS_NOTE');
+  });
+});
+
+/**
+ * #482: when PoracleNG refuses a webhook and the existence probe fails too, the API answers 502 telling the
+ * admin to check the list before retrying, because a retry can sit a second row beside a half-written one.
+ * That sentence has to reach the admin, not "Check the URL and try again".
+ */
+describe('AdminWebhooksComponent add failure', () => {
+  function setup(error: unknown) {
+    const snack = { open: jest.fn() };
+    const adminService = {
+      createWebhook: jest.fn(() => throwError(() => error)),
+      getAllWebhookDelegates: jest.fn(() => of({})),
+      getPoracleAdmins: jest.fn(() => of([])),
+      getPorocleDelegates: jest.fn(() => of({})),
+      getUsers: jest.fn(() => of([])),
+    };
+    TestBed.configureTestingModule({
+      providers: [
+        provideTranslateService(),
+        { provide: AdminService, useValue: adminService },
+        { provide: AuthService, useValue: { impersonate: jest.fn(), user: signal({ id: 'admin1', isAdmin: true }) } },
+      ],
+      imports: [AdminWebhooksComponent, NoopAnimationsModule],
+    });
+    TestBed.overrideProvider(MatSnackBar, { useValue: snack });
+    TestBed.overrideProvider(MatDialog, {
+      useValue: { open: jest.fn(() => ({ afterClosed: () => of({ name: 'Hook', url: 'https://discord.com/api/webhooks/1/x' }) })) },
+    });
+    const fixture = TestBed.createComponent(AdminWebhooksComponent);
+    fixture.detectChanges();
+    fixture.componentInstance.openAddDialog();
+    return snack;
+  }
+
+  afterEach(() => TestBed.resetTestingModule());
+
+  it('shows the half-write warning the 502 carries', () => {
+    const warning =
+      'Poracle rejected the webhook, and could not be asked whether part of it was saved. Check the webhook list before trying again.';
+    const snack = setup({ error: { error: warning }, status: 502 });
+
+    expect(snack.open).toHaveBeenCalledWith(warning, 'TOAST.OK', { duration: 4000 });
+  });
+
+  it('shows "Nothing was created." when the API could confirm it', () => {
+    const snack = setup({ error: { error: 'Poracle rejected the webhook. Nothing was created.' }, status: 502 });
+
+    expect(snack.open).toHaveBeenCalledWith('Poracle rejected the webhook. Nothing was created.', 'TOAST.OK', { duration: 4000 });
+  });
+
+  it('keeps its own translated message for a server error that says nothing useful', () => {
+    const snack = setup({ error: { error: 'An unexpected error occurred.' }, status: 500 });
+
+    expect(snack.open).toHaveBeenCalledWith('ADMIN.SNACK_FAILED_ADD_WEBHOOK', 'TOAST.OK', { duration: 4000 });
   });
 });

@@ -19,9 +19,9 @@ import { MasterDataService } from '../../core/services/masterdata.service';
 import { NestService } from '../../core/services/nest.service';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { createFailureText } from '../../shared/utils/add-outcome';
 import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-flags';
-import { serverReason } from '../../shared/utils/server-reason';
 
 @Component({
   imports: [
@@ -104,7 +104,7 @@ export class NestEditDialogComponent {
         // The server names what is wrong -- which alarm already uses these settings, which
         // field a file got wrong. A fixed string threw that away. See #567, #568.
         error: (err: unknown) => {
-          this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.FAILED_UPDATE'), this.i18n.instant('COMMON.OK'), {
+          this.snackBar.open(createFailureText(err, this.i18n, 'ALARM.FAILED_UPDATE'), this.i18n.instant('COMMON.OK'), {
             duration: 6000,
           });
           this.saving.set(false);

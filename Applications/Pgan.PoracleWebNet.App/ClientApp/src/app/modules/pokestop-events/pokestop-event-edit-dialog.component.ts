@@ -17,10 +17,10 @@ import { I18nService } from '../../core/services/i18n.service';
 import { PokestopEventService } from '../../core/services/pokestop-event.service';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { createFailureText } from '../../shared/utils/add-outcome';
 import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-flags';
 import { POKESTOP_EVENTS } from '../../shared/utils/pokestop-events';
-import { serverReason } from '../../shared/utils/server-reason';
 
 @Component({
   imports: [
@@ -91,7 +91,7 @@ export class PokestopEventEditDialogComponent {
         // The server names what is in the way -- which alarm already holds that event, or which
         // event this Poracle has no game data for. A fixed string would throw that away.
         error: (err: unknown) => {
-          this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.FAILED_UPDATE'), this.i18n.instant('COMMON.OK'), {
+          this.snackBar.open(createFailureText(err, this.i18n, 'ALARM.FAILED_UPDATE'), this.i18n.instant('COMMON.OK'), {
             duration: 6000,
           });
           this.saving.set(false);

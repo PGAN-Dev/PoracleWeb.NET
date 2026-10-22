@@ -20,9 +20,9 @@ import { QuestService } from '../../core/services/quest.service';
 import { SummaryScheduleService } from '../../core/services/summary-schedule.service';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { createFailureText } from '../../shared/utils/add-outcome';
 import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, compose, isAutoDelete, isSummary, preserve, SUMMARY } from '../../shared/utils/clean-flags';
-import { serverReason } from '../../shared/utils/server-reason';
 
 /** Item, candy and mega energy: the three PoracleNG compares `amount` against. */
 const QUANTITY_REWARD_TYPES = new Set([2, 4, 12]);
@@ -214,7 +214,7 @@ export class QuestEditDialogComponent {
       // The server names what is wrong -- which alarm already uses these settings, which
       // field a file got wrong. A fixed string threw that away. See #567, #568.
       error: (err: unknown) => {
-        this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.FAILED_UPDATE'), this.i18n.instant('TOAST.OK'), {
+        this.snackBar.open(createFailureText(err, this.i18n, 'ALARM.FAILED_UPDATE'), this.i18n.instant('TOAST.OK'), {
           duration: 6000,
         });
         this.saving.set(false);
