@@ -1490,6 +1490,7 @@
     "SIGN_UP_DESC": "Don't have an account? Sign up to get started."
   },
   "ERROR": {
+    "ADMIN_ONLY": "That page is for admins.",
     "FEATURE_DISABLED": "This feature has been disabled by the administrator."
   },
   "ADMIN": {
@@ -1562,7 +1563,7 @@
     "TRY_ADJUSTING_FILTERS": "Try adjusting your filters.",
     "NO_USERS_YET": "No users registered yet.",
     "CONFIRM_DELETE_ALARMS": "Are you sure you want to delete ALL alarms for \"{{name}}\"? This action cannot be undone.",
-    "CONFIRM_DELETE_USER": "Are you sure you want to permanently delete \"{{name}}\"?",
+    "CONFIRM_DELETE_USER": "Permanently delete \"{{name}}\"? Their alarms, drawn geofences, webhook delegate grants and quick picks go with the account. This can't be undone.",
     "SNACK_FAILED_IMPERSONATE": "Failed to impersonate user",
     "SNACK_FAILED_LOAD_USERS": "Failed to load users",
     "WEBHOOKS_TITLE": "Webhooks",
@@ -1582,7 +1583,7 @@
     "DELETE_WEBHOOK": "Delete webhook",
     "NO_WEBHOOKS": "No webhooks found",
     "NO_WEBHOOKS_YET": "No webhooks registered.",
-    "CONFIRM_DELETE_WEBHOOK": "Are you sure you want to permanently delete \"{{name}}\"?",
+    "CONFIRM_DELETE_WEBHOOK": "Permanently delete \"{{name}}\"? Its alarms and delegate grants go with it. This can't be undone.",
     "SNACK_FAILED_DELETE_WEBHOOK": "Failed to delete webhook",
     "SNACK_WEBHOOK_DELETED": "\"{{name}}\" deleted",
     "SNACK_URL_COPIED": "URL copied to clipboard",
@@ -1599,6 +1600,7 @@
     "CONFIG_DELEGATE_TOOLTIP": "Delegate from Poracle config (read-only)",
     "REMOVE_DELEGATE": "Remove delegate",
     "SEARCH_USER_LABEL": "Search user by name or ID",
+    "DELEGATE_PICK_HINT": "Pick a user from the list.",
     "SEARCH_USER_PLACEHOLDER": "Name or Discord user ID...",
     "WEBHOOK_NAME": "Name",
     "WEBHOOK_NAME_PLACEHOLDER": "e.g. #pogo-alerts",
@@ -1606,7 +1608,7 @@
     "WEBHOOK_URL": "Webhook URL",
     "WEBHOOK_URL_PLACEHOLDER": "https://discord.com/api/webhooks/...",
     "WEBHOOK_URL_REQUIRED": "URL is required",
-    "WEBHOOK_URL_INVALID": "Must be a valid https:// URL",
+    "WEBHOOK_URL_INVALID": "Must start with http:// or https://",
     "MY_WEBHOOKS_TITLE": "My Webhooks",
     "MY_WEBHOOKS_DESC": "Webhooks you are delegated to manage.",
     "NO_WEBHOOKS_ASSIGNED": "No webhooks assigned",

@@ -22,6 +22,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DiscordAvatarComponent } from '../../shared/components/discord-avatar/discord-avatar.component';
+import { serverReason } from '../../shared/utils/server-reason';
 
 type StatusFilter = 'all' | 'active' | 'stopped' | 'blocked';
 
@@ -133,9 +134,7 @@ export class AdminUsersComponent implements OnInit {
     ref.afterClosed().subscribe(confirmed => {
       if (confirmed) {
         this.adminService.deleteUserAlarms(user.id).subscribe({
-          error: () => {
-            this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_ALARMS'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
-          },
+          error: err => this.showFailure(err, 'ADMIN.SNACK_FAILED_ALARMS'),
           next: result => {
             this.snackBar.open(
               this.i18n.instant('ADMIN.SNACK_ALARMS_DELETED', { name, count: result.deleted }),
@@ -162,9 +161,7 @@ export class AdminUsersComponent implements OnInit {
     ref.afterClosed().subscribe(confirmed => {
       if (confirmed) {
         this.adminService.deleteUser(user.id).subscribe({
-          error: () => {
-            this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_DELETE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
-          },
+          error: err => this.showFailure(err, 'ADMIN.SNACK_FAILED_DELETE'),
           next: () => {
             this.allUsers.update(users => users.filter(u => u.id !== user.id));
             this.snackBar.open(this.i18n.instant('ADMIN.SNACK_DELETED', { name }), this.i18n.instant('TOAST.OK'), { duration: 3000 });
@@ -195,13 +192,20 @@ export class AdminUsersComponent implements OnInit {
       .impersonateUser(user.id)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        error: () => {
-          this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_IMPERSONATE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
-        },
+        error: err => this.showFailure(err, 'ADMIN.SNACK_FAILED_IMPERSONATE'),
         next: res => {
           this.auth.impersonate(res.token);
         },
       });
+  }
+
+  /**
+   * Whether this row is the signed-in admin's own account. The API refuses to block (#613) or delete it,
+   * so the row does not offer either. Admin pages are unreachable while impersonating, so this is the
+   * admin's real id.
+   */
+  isSelf(user: AdminUser): boolean {
+    return user.id === this.auth.user()?.id;
   }
 
   loadUsers(): void {
@@ -267,9 +271,7 @@ export class AdminUsersComponent implements OnInit {
       .pauseUser(user.id)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        error: () => {
-          this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_STOP'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
-        },
+        error: err => this.showFailure(err, 'ADMIN.SNACK_FAILED_STOP'),
         next: updated => {
           this.allUsers.update(users => users.map(u => (u.id === user.id ? { ...u, enabled: updated.enabled } : u)));
           this.snackBar.open(this.i18n.instant('ADMIN.SNACK_STOPPED', { name: user.name || user.id }), this.i18n.instant('TOAST.OK'), {
@@ -284,9 +286,7 @@ export class AdminUsersComponent implements OnInit {
       .resumeUser(user.id)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        error: () => {
-          this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_START'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
-        },
+        error: err => this.showFailure(err, 'ADMIN.SNACK_FAILED_START'),
         next: updated => {
           this.allUsers.update(users => users.map(u => (u.id === user.id ? { ...u, enabled: updated.enabled } : u)));
           this.snackBar.open(this.i18n.instant('ADMIN.SNACK_STARTED', { name: user.name || user.id }), this.i18n.instant('TOAST.OK'), {
@@ -300,9 +300,7 @@ export class AdminUsersComponent implements OnInit {
     const action$ = enable ? this.adminService.enableUser(user.id) : this.adminService.disableUser(user.id);
 
     action$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      error: () => {
-        this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_BLOCK'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
-      },
+      error: err => this.showFailure(err, 'ADMIN.SNACK_FAILED_BLOCK'),
       next: updated => {
         this.allUsers.update(users => users.map(u => (u.id === user.id ? { ...u, adminDisable: updated.adminDisable } : u)));
         const name = user.name || user.id;
@@ -324,11 +322,16 @@ export class AdminUsersComponent implements OnInit {
       case 'enabled':
         return user.adminDisable === 1 ? 2 : user.enabled === 0 ? 1 : 0;
       case 'profileNo':
-        return user.currentProfileNo || 1;
+        return user.currentProfileNo ?? 1;
       case 'disabledSince':
         return user.disabledDate ? new Date(user.disabledDate).getTime() : 0;
       default:
         return '';
     }
+  }
+
+  /** The server's own reason when it gave one ("You cannot block your own account."), else the generic message. */
+  private showFailure(err: unknown, fallbackKey: string): void {
+    this.snackBar.open(serverReason(err) ?? this.i18n.instant(fallbackKey), this.i18n.instant('TOAST.OK'), { duration: 4000 });
   }
 }

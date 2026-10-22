@@ -24,6 +24,7 @@ import { AdminService } from '../../core/services/admin.service';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
+import { serverReason } from '../../shared/utils/server-reason';
 
 // ─── Add Webhook Dialog ───────────────────────────────────────────────────────
 
@@ -90,14 +91,25 @@ export class WebhookDelegatesDialogComponent implements OnInit {
   readonly loading = signal(true);
   searchText = '';
 
+  /**
+   * The user the field names, once it names one: an option picked from the list fills in its id. Free
+   * text ("Sam") used to be sent as an id and came back as a 400 behind a generic toast.
+   */
+  get pickedUserId(): string | null {
+    const text = this.searchText.trim();
+    return this.users.find(u => u.id === text)?.id ?? null;
+  }
+
   private get users(): AdminUser[] {
     return this.data.allUsers.filter(u => u.type !== 'webhook');
   }
 
   addDelegate(userId: string): void {
     this.adminService.addWebhookDelegate(this.data.webhook.id, userId).subscribe({
-      error: () =>
-        this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_ADD_DELEGATE'), this.i18n.instant('TOAST.OK'), { duration: 3000 }),
+      error: err =>
+        this.snackBar.open(serverReason(err) ?? this.i18n.instant('ADMIN.SNACK_FAILED_ADD_DELEGATE'), this.i18n.instant('TOAST.OK'), {
+          duration: 4000,
+        }),
       next: d => {
         this.delegates.set(d);
         this.searchText = '';
@@ -106,8 +118,11 @@ export class WebhookDelegatesDialogComponent implements OnInit {
     });
   }
 
-  addDelegateFromSearch(): void {
-    const uid = this.searchText.trim();
+  addDelegateFromSearch(event?: Event): void {
+    // Enter on a highlighted option is the autocomplete's: it selects the option (which adds it) and
+    // marks the key handled, so adding here as well would send the request twice.
+    if (event?.defaultPrevented) return;
+    const uid = this.pickedUserId;
     if (!uid) return;
     this.addDelegate(uid);
   }
@@ -151,8 +166,10 @@ export class WebhookDelegatesDialogComponent implements OnInit {
 
   removeDelegate(userId: string): void {
     this.adminService.removeWebhookDelegate(this.data.webhook.id, userId).subscribe({
-      error: () =>
-        this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_REMOVE_DELEGATE'), this.i18n.instant('TOAST.OK'), { duration: 3000 }),
+      error: err =>
+        this.snackBar.open(serverReason(err) ?? this.i18n.instant('ADMIN.SNACK_FAILED_REMOVE_DELEGATE'), this.i18n.instant('TOAST.OK'), {
+          duration: 4000,
+        }),
       next: d => this.delegates.set(d),
     });
   }
@@ -271,9 +288,7 @@ export class AdminWebhooksComponent implements OnInit {
     ref.afterClosed().subscribe(confirmed => {
       if (confirmed) {
         this.adminService.deleteUserAlarms(user.id).subscribe({
-          error: () => {
-            this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_ALARMS'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
-          },
+          error: err => this.showFailure(err, 'ADMIN.SNACK_FAILED_ALARMS'),
           next: result => {
             this.snackBar.open(
               this.i18n.instant('ADMIN.SNACK_ALARMS_DELETED', { name, count: result.deleted }),
@@ -300,9 +315,7 @@ export class AdminWebhooksComponent implements OnInit {
     ref.afterClosed().subscribe(confirmed => {
       if (confirmed) {
         this.adminService.deleteUser(user.id).subscribe({
-          error: () => {
-            this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_DELETE_WEBHOOK'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
-          },
+          error: err => this.showFailure(err, 'ADMIN.SNACK_FAILED_DELETE_WEBHOOK'),
           next: () => {
             this.allUsers.update(users => users.filter(u => u.id !== user.id));
             this.snackBar.open(this.i18n.instant('ADMIN.SNACK_WEBHOOK_DELETED', { name }), this.i18n.instant('TOAST.OK'), {
@@ -454,9 +467,7 @@ export class AdminWebhooksComponent implements OnInit {
       .pauseUser(user.id)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        error: () => {
-          this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_STOP'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
-        },
+        error: err => this.showFailure(err, 'ADMIN.SNACK_FAILED_STOP'),
         next: updated => {
           this.allUsers.update(users => users.map(u => (u.id === user.id ? { ...u, enabled: updated.enabled } : u)));
           this.snackBar.open(this.i18n.instant('ADMIN.SNACK_STOPPED', { name: user.name || user.id }), this.i18n.instant('TOAST.OK'), {
@@ -471,9 +482,7 @@ export class AdminWebhooksComponent implements OnInit {
       .resumeUser(user.id)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        error: () => {
-          this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_START'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
-        },
+        error: err => this.showFailure(err, 'ADMIN.SNACK_FAILED_START'),
         next: updated => {
           this.allUsers.update(users => users.map(u => (u.id === user.id ? { ...u, enabled: updated.enabled } : u)));
           this.snackBar.open(this.i18n.instant('ADMIN.SNACK_STARTED', { name: user.name || user.id }), this.i18n.instant('TOAST.OK'), {
@@ -487,9 +496,7 @@ export class AdminWebhooksComponent implements OnInit {
     const action$ = unblock ? this.adminService.enableUser(user.id) : this.adminService.disableUser(user.id);
 
     action$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      error: () => {
-        this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_BLOCK'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
-      },
+      error: err => this.showFailure(err, 'ADMIN.SNACK_FAILED_BLOCK'),
       next: updated => {
         this.allUsers.update(users => users.map(u => (u.id === user.id ? { ...u, adminDisable: updated.adminDisable } : u)));
         const name = user.name || user.id;
@@ -510,5 +517,10 @@ export class AdminWebhooksComponent implements OnInit {
     } catch {
       return url.length > 40 ? url.slice(0, 37) + '…' : url;
     }
+  }
+
+  /** The server's own reason when it gave one, else the generic message. */
+  private showFailure(err: unknown, fallbackKey: string): void {
+    this.snackBar.open(serverReason(err) ?? this.i18n.instant(fallbackKey), this.i18n.instant('TOAST.OK'), { duration: 4000 });
   }
 }

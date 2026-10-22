@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
 import { catchError, throwError } from 'rxjs';
 
+import { ADMIN_RETURN_STATE } from '../guards/admin-return';
 import { ToastService } from '../services/toast.service';
 import { TokenStoreService } from '../services/token-store.service';
 
@@ -89,7 +90,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         // navigation the admin can see happen.
         if (tokenStore.tryRestoreAdminSession()) {
           sayTranslated('HTTP_ERROR.INSPECTION_ENDED');
-          router.navigate(['/admin']);
+          router.navigate(['/admin'], { state: ADMIN_RETURN_STATE });
           return throwError(() => error);
         }
 

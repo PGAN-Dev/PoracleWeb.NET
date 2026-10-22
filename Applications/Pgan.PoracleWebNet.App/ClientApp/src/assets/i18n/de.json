@@ -1490,6 +1490,7 @@
     "SIGN_IN_AGAIN": "Erneut anmelden"
   },
   "ERROR": {
+    "ADMIN_ONLY": "Diese Seite ist nur für Admins.",
     "FEATURE_DISABLED": "Diese Funktion wurde vom Administrator deaktiviert."
   },
   "ADMIN": {
@@ -1561,7 +1562,7 @@
     "TRY_ADJUSTING_FILTERS": "Versuche deine Filter anzupassen.",
     "NO_USERS_YET": "Noch keine Benutzer registriert.",
     "CONFIRM_DELETE_ALARMS": "Möchtest du wirklich ALLE Alarme für \"{{name}}\" löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
-    "CONFIRM_DELETE_USER": "Möchtest du \"{{name}}\" wirklich endgültig löschen?",
+    "CONFIRM_DELETE_USER": "\"{{name}}\" endgültig löschen? Alarme, gezeichnete Geofences, Webhook-Delegierungen und Schnellauswahlen werden mit dem Konto gelöscht. Das kann nicht rückgängig gemacht werden.",
     "SNACK_FAILED_IMPERSONATE": "Benutzeridentität konnte nicht angenommen werden",
     "SNACK_FAILED_LOAD_USERS": "Benutzer konnten nicht geladen werden",
     "WEBHOOKS_TITLE": "Webhooks",
@@ -1581,7 +1582,7 @@
     "DELETE_WEBHOOK": "Webhook löschen",
     "NO_WEBHOOKS": "Keine Webhooks gefunden",
     "NO_WEBHOOKS_YET": "Keine Webhooks registriert.",
-    "CONFIRM_DELETE_WEBHOOK": "Möchtest du \"{{name}}\" wirklich endgültig löschen?",
+    "CONFIRM_DELETE_WEBHOOK": "\"{{name}}\" endgültig löschen? Seine Alarme und Delegierungen werden mit gelöscht. Das kann nicht rückgängig gemacht werden.",
     "SNACK_FAILED_DELETE_WEBHOOK": "Webhook konnte nicht gelöscht werden",
     "SNACK_WEBHOOK_DELETED": "\"{{name}}\" gelöscht",
     "SNACK_URL_COPIED": "URL in Zwischenablage kopiert",
@@ -1598,6 +1599,7 @@
     "CONFIG_DELEGATE_TOOLTIP": "Delegierter aus Poracle-Konfiguration (nur lesen)",
     "REMOVE_DELEGATE": "Delegierten entfernen",
     "SEARCH_USER_LABEL": "Benutzer nach Name oder ID suchen",
+    "DELEGATE_PICK_HINT": "Wähle einen Benutzer aus der Liste.",
     "SEARCH_USER_PLACEHOLDER": "Name oder Discord-Benutzer-ID...",
     "WEBHOOK_NAME": "Name",
     "WEBHOOK_NAME_PLACEHOLDER": "z.B. #pogo-alarme",
@@ -1605,7 +1607,7 @@
     "WEBHOOK_URL": "Webhook-URL",
     "WEBHOOK_URL_PLACEHOLDER": "https://discord.com/api/webhooks/...",
     "WEBHOOK_URL_REQUIRED": "URL ist erforderlich",
-    "WEBHOOK_URL_INVALID": "Muss eine gültige https://-URL sein",
+    "WEBHOOK_URL_INVALID": "Muss mit http:// oder https:// beginnen",
     "MY_WEBHOOKS_TITLE": "Meine Webhooks",
     "MY_WEBHOOKS_DESC": "Webhooks, die du als Delegierter verwalten darfst.",
     "NO_WEBHOOKS_ASSIGNED": "Keine Webhooks zugewiesen",

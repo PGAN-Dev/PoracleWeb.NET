@@ -52,6 +52,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The Rule repair card says when the last scan or repair ran** ("Scanned 3 minutes ago"), since a result from an earlier visit looked like a fresh one.
 - **A double-click on Repair no longer opens two confirm dialogs.** Repair is ignored while a confirmation is open or a repair is being sent.
 - **A failed rule repair shows its reason on its own line** under the message, instead of running it into the sentence.
+- **An admin can no longer delete their own account.** The API refuses it as it already refused blocking yourself, and the Users list offers neither Block nor Delete on your own row. Other admins and users can still be blocked and deleted.
+- **Admin Users and Webhooks show the server's reason when an action fails** (block, pause, delete, delete alarms, view as user), instead of a generic "Failed to ..." toast.
+- **The delete-user and delete-webhook dialogs say what goes with the account**: alarms, drawn geofences, delegate grants and quick picks for a user; alarms and delegate grants for a webhook.
+- **The webhook delegate dialog adds only a user picked from the list.** Typing a name and pressing Add used to send the name as a user id and fail with a generic toast; Add now waits for a pick, and a refusal shows the server's reason.
+- **The Users list shows profile 0 as 0**, not 1.
+- **The Add webhook dialog's URL message matches what it accepts** ("Must start with http:// or https://"); it said https only while accepting http, as the server does.
+- **Delete webhook has its own icon** instead of the person icon Delete user uses.
+- **Opening an admin page without admin rights says "That page is for admins."** It used to send you to the dashboard with no word. Ending an impersonation still returns quietly.
 - **The French message for a radius change that would clash with another rule reads naturally.**
 - **The rule repair scan no longer counts a rule twice** on a PoracleNG that includes rules from profiles with no saved profile entry.
 - **Profile Overview no longer lists the active profile's alarms twice** on a PoracleNG that includes rules from profiles with no saved profile entry.

@@ -1490,6 +1490,7 @@
     "SIGN_IN_AGAIN": "Opnieuw aanmelden"
   },
   "ERROR": {
+    "ADMIN_ONLY": "Die pagina is alleen voor beheerders.",
     "FEATURE_DISABLED": "Deze functie is uitgeschakeld door de beheerder."
   },
   "ADMIN": {
@@ -1561,7 +1562,7 @@
     "TRY_ADJUSTING_FILTERS": "Probeer je filters aan te passen.",
     "NO_USERS_YET": "Nog geen gebruikers geregistreerd.",
     "CONFIRM_DELETE_ALARMS": "Weet je zeker dat je ALLE alarmen voor \"{{name}}\" wilt verwijderen? Dit kan niet ongedaan worden gemaakt.",
-    "CONFIRM_DELETE_USER": "Weet je zeker dat je \"{{name}}\" permanent wilt verwijderen?",
+    "CONFIRM_DELETE_USER": "\"{{name}}\" permanent verwijderen? Alarmen, getekende geofences, webhook-delegaties en snelkeuzes worden met het account verwijderd. Dit kan niet ongedaan worden gemaakt.",
     "SNACK_FAILED_IMPERSONATE": "Imitatie van gebruiker mislukt",
     "SNACK_FAILED_LOAD_USERS": "Gebruikers laden mislukt",
     "WEBHOOKS_TITLE": "Webhooks",
@@ -1581,7 +1582,7 @@
     "DELETE_WEBHOOK": "Webhook verwijderen",
     "NO_WEBHOOKS": "Geen webhooks gevonden",
     "NO_WEBHOOKS_YET": "Geen webhooks geregistreerd.",
-    "CONFIRM_DELETE_WEBHOOK": "Weet je zeker dat je \"{{name}}\" permanent wilt verwijderen?",
+    "CONFIRM_DELETE_WEBHOOK": "\"{{name}}\" permanent verwijderen? De alarmen en delegaties worden mee verwijderd. Dit kan niet ongedaan worden gemaakt.",
     "SNACK_FAILED_DELETE_WEBHOOK": "Webhook verwijderen mislukt",
     "SNACK_WEBHOOK_DELETED": "\"{{name}}\" verwijderd",
     "SNACK_URL_COPIED": "URL gekopieerd naar klembord",
@@ -1598,6 +1599,7 @@
     "CONFIG_DELEGATE_TOOLTIP": "Gedelegeerde uit Poracle config (alleen-lezen)",
     "REMOVE_DELEGATE": "Gedelegeerde verwijderen",
     "SEARCH_USER_LABEL": "Gebruiker zoeken op naam of ID",
+    "DELEGATE_PICK_HINT": "Kies een gebruiker uit de lijst.",
     "SEARCH_USER_PLACEHOLDER": "Naam of Discord gebruikers-ID...",
     "WEBHOOK_NAME": "Naam",
     "WEBHOOK_NAME_PLACEHOLDER": "bijv. #pogo-alerts",
@@ -1605,7 +1607,7 @@
     "WEBHOOK_URL": "Webhook URL",
     "WEBHOOK_URL_PLACEHOLDER": "https://discord.com/api/webhooks/...",
     "WEBHOOK_URL_REQUIRED": "URL is verplicht",
-    "WEBHOOK_URL_INVALID": "Moet een geldige https:// URL zijn",
+    "WEBHOOK_URL_INVALID": "Moet beginnen met http:// of https://",
     "MY_WEBHOOKS_TITLE": "Mijn Webhooks",
     "MY_WEBHOOKS_DESC": "Webhooks waarvoor je gedelegeerde bent.",
     "NO_WEBHOOKS_ASSIGNED": "Geen webhooks toegewezen",

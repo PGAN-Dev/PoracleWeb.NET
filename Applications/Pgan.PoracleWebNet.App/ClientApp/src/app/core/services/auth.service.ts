@@ -7,6 +7,7 @@ import { AlertLanguageService } from './alert-language.service';
 import { ConfigService } from './config.service';
 import { SettingsService } from './settings.service';
 import { TokenStoreService } from './token-store.service';
+import { ADMIN_RETURN_STATE } from '../guards/admin-return';
 import { UserInfo, LoginResponse, TelegramConfig, AuthProviders } from '../models';
 
 const TOKEN_KEY = 'poracle_token';
@@ -273,7 +274,7 @@ export class AuthService {
     localStorage.removeItem(ADMIN_TOKEN_KEY);
     this._isImpersonating.set(false);
     await this.loadCurrentUser();
-    this.router.navigate(['/admin']);
+    this.router.navigate(['/admin'], { state: ADMIN_RETURN_STATE });
     return true;
   }
 

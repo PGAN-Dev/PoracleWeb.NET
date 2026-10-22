@@ -1490,6 +1490,7 @@
     "SIGN_IN_AGAIN": "Entrar novamente"
   },
   "ERROR": {
+    "ADMIN_ONLY": "Essa página é só para administradores.",
     "FEATURE_DISABLED": "Este recurso foi desativado pelo administrador."
   },
   "ADMIN": {
@@ -1561,7 +1562,7 @@
     "TRY_ADJUSTING_FILTERS": "Tente ajustar seus filtros.",
     "NO_USERS_YET": "Nenhum usuário registrado ainda.",
     "CONFIRM_DELETE_ALARMS": "Tem certeza que deseja excluir TODOS os alarmes de \"{{name}}\"? Esta ação não pode ser desfeita.",
-    "CONFIRM_DELETE_USER": "Tem certeza que deseja excluir \"{{name}}\" permanentemente?",
+    "CONFIRM_DELETE_USER": "Excluir \"{{name}}\" permanentemente? Os alarmes, geofences desenhadas, delegações de webhooks e seleções rápidas são excluídos junto com a conta. Não dá para desfazer.",
     "SNACK_FAILED_IMPERSONATE": "Falha ao personificar usuário",
     "SNACK_FAILED_LOAD_USERS": "Falha ao carregar usuários",
     "WEBHOOKS_TITLE": "Webhooks",
@@ -1581,7 +1582,7 @@
     "DELETE_WEBHOOK": "Excluir webhook",
     "NO_WEBHOOKS": "Nenhum webhook encontrado",
     "NO_WEBHOOKS_YET": "Nenhum webhook registrado.",
-    "CONFIRM_DELETE_WEBHOOK": "Tem certeza que deseja excluir \"{{name}}\" permanentemente?",
+    "CONFIRM_DELETE_WEBHOOK": "Excluir \"{{name}}\" permanentemente? Os alarmes e as delegações são excluídos junto. Não dá para desfazer.",
     "SNACK_FAILED_DELETE_WEBHOOK": "Falha ao excluir webhook",
     "SNACK_WEBHOOK_DELETED": "\"{{name}}\" excluído",
     "SNACK_URL_COPIED": "URL copiada para a área de transferência",
@@ -1598,6 +1599,7 @@
     "CONFIG_DELEGATE_TOOLTIP": "Delegado da configuração Poracle (somente leitura)",
     "REMOVE_DELEGATE": "Remover delegado",
     "SEARCH_USER_LABEL": "Buscar usuário por nome ou ID",
+    "DELEGATE_PICK_HINT": "Escolha um usuário da lista.",
     "SEARCH_USER_PLACEHOLDER": "Nome ou ID de usuário Discord...",
     "WEBHOOK_NAME": "Nome",
     "WEBHOOK_NAME_PLACEHOLDER": "ex: #pogo-alertas",
@@ -1605,7 +1607,7 @@
     "WEBHOOK_URL": "URL do Webhook",
     "WEBHOOK_URL_PLACEHOLDER": "https://discord.com/api/webhooks/...",
     "WEBHOOK_URL_REQUIRED": "URL é obrigatória",
-    "WEBHOOK_URL_INVALID": "Deve ser uma URL https:// válida",
+    "WEBHOOK_URL_INVALID": "Deve começar com http:// ou https://",
     "MY_WEBHOOKS_TITLE": "Meus Webhooks",
     "MY_WEBHOOKS_DESC": "Webhooks que você está delegado para gerenciar.",
     "NO_WEBHOOKS_ASSIGNED": "Nenhum webhook atribuído",

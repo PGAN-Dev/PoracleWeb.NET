@@ -1490,6 +1490,7 @@
     "SIGN_IN_AGAIN": "Log ind igen"
   },
   "ERROR": {
+    "ADMIN_ONLY": "Den side er kun for administratorer.",
     "FEATURE_DISABLED": "Denne funktion er deaktiveret af administratoren."
   },
   "ADMIN": {
@@ -1561,7 +1562,7 @@
     "TRY_ADJUSTING_FILTERS": "Prøv at justere dine filtre.",
     "NO_USERS_YET": "Ingen brugere registreret endnu.",
     "CONFIRM_DELETE_ALARMS": "Er du sikker på, at du vil slette ALLE alarmer for \"{{name}}\"? Denne handling kan ikke fortrydes.",
-    "CONFIRM_DELETE_USER": "Er du sikker på, at du vil slette \"{{name}}\" permanent?",
+    "CONFIRM_DELETE_USER": "Slet \"{{name}}\" permanent? Brugerens alarmer, tegnede geofences, webhook-delegeringer og hurtigvalg slettes med kontoen. Det kan ikke fortrydes.",
     "SNACK_FAILED_IMPERSONATE": "Kunne ikke efterligne bruger",
     "SNACK_FAILED_LOAD_USERS": "Kunne ikke indlæse brugere",
     "WEBHOOKS_TITLE": "Webhooks",
@@ -1581,7 +1582,7 @@
     "DELETE_WEBHOOK": "Slet webhook",
     "NO_WEBHOOKS": "Ingen webhooks fundet",
     "NO_WEBHOOKS_YET": "Ingen webhooks registreret.",
-    "CONFIRM_DELETE_WEBHOOK": "Er du sikker på, at du vil slette \"{{name}}\" permanent?",
+    "CONFIRM_DELETE_WEBHOOK": "Slet \"{{name}}\" permanent? Dens alarmer og delegeringer slettes med den. Det kan ikke fortrydes.",
     "SNACK_FAILED_DELETE_WEBHOOK": "Kunne ikke slette webhook",
     "SNACK_WEBHOOK_DELETED": "\"{{name}}\" slettet",
     "SNACK_URL_COPIED": "URL kopieret til udklipsholder",
@@ -1598,6 +1599,7 @@
     "CONFIG_DELEGATE_TOOLTIP": "Delegeret fra Poracle-konfiguration (skrivebeskyttet)",
     "REMOVE_DELEGATE": "Fjern delegeret",
     "SEARCH_USER_LABEL": "Søg bruger efter navn eller ID",
+    "DELEGATE_PICK_HINT": "Vælg en bruger fra listen.",
     "SEARCH_USER_PLACEHOLDER": "Navn eller Discord-bruger-ID...",
     "WEBHOOK_NAME": "Navn",
     "WEBHOOK_NAME_PLACEHOLDER": "f.eks. #pogo-alarmer",
@@ -1605,7 +1607,7 @@
     "WEBHOOK_URL": "Webhook-URL",
     "WEBHOOK_URL_PLACEHOLDER": "https://discord.com/api/webhooks/...",
     "WEBHOOK_URL_REQUIRED": "URL er påkrævet",
-    "WEBHOOK_URL_INVALID": "Skal være en gyldig https:// URL",
+    "WEBHOOK_URL_INVALID": "Skal starte med http:// eller https://",
     "MY_WEBHOOKS_TITLE": "Mine webhooks",
     "MY_WEBHOOKS_DESC": "Webhooks du er delegeret til at administrere.",
     "NO_WEBHOOKS_ASSIGNED": "Ingen webhooks tildelt",

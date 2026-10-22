@@ -1490,6 +1490,7 @@
     "SIGN_IN_AGAIN": "Logga in igen"
   },
   "ERROR": {
+    "ADMIN_ONLY": "Den sidan är bara för administratörer.",
     "FEATURE_DISABLED": "Den här funktionen har inaktiverats av administratören."
   },
   "ADMIN": {
@@ -1561,7 +1562,7 @@
     "TRY_ADJUSTING_FILTERS": "Försök justera dina filter.",
     "NO_USERS_YET": "Inga användare registrerade ännu.",
     "CONFIRM_DELETE_ALARMS": "Är du säker på att du vill radera ALLA larm för \"{{name}}\"? Denna åtgärd kan inte ångras.",
-    "CONFIRM_DELETE_USER": "Är du säker på att du vill radera \"{{name}}\" permanent?",
+    "CONFIRM_DELETE_USER": "Radera \"{{name}}\" permanent? Larm, ritade geofences, webhook-delegeringar och snabbval raderas med kontot. Det går inte att ångra.",
     "SNACK_FAILED_IMPERSONATE": "Kunde inte imitera användare",
     "SNACK_FAILED_LOAD_USERS": "Kunde inte ladda användare",
     "WEBHOOKS_TITLE": "Webhooks",
@@ -1581,7 +1582,7 @@
     "DELETE_WEBHOOK": "Radera webhook",
     "NO_WEBHOOKS": "Inga webhooks hittades",
     "NO_WEBHOOKS_YET": "Inga webhooks registrerade.",
-    "CONFIRM_DELETE_WEBHOOK": "Är du säker på att du vill radera \"{{name}}\" permanent?",
+    "CONFIRM_DELETE_WEBHOOK": "Radera \"{{name}}\" permanent? Dess larm och delegeringar raderas med den. Det går inte att ångra.",
     "SNACK_FAILED_DELETE_WEBHOOK": "Kunde inte radera webhook",
     "SNACK_WEBHOOK_DELETED": "\"{{name}}\" raderad",
     "SNACK_URL_COPIED": "URL kopierad till urklipp",
@@ -1598,6 +1599,7 @@
     "CONFIG_DELEGATE_TOOLTIP": "Delegat från Poracle-konfiguration (skrivskyddad)",
     "REMOVE_DELEGATE": "Ta bort delegat",
     "SEARCH_USER_LABEL": "Sök användare efter namn eller ID",
+    "DELEGATE_PICK_HINT": "Välj en användare i listan.",
     "SEARCH_USER_PLACEHOLDER": "Namn eller Discord-användar-ID...",
     "WEBHOOK_NAME": "Namn",
     "WEBHOOK_NAME_PLACEHOLDER": "t.ex. #pogo-larm",
@@ -1605,7 +1607,7 @@
     "WEBHOOK_URL": "Webhook-URL",
     "WEBHOOK_URL_PLACEHOLDER": "https://discord.com/api/webhooks/...",
     "WEBHOOK_URL_REQUIRED": "URL krävs",
-    "WEBHOOK_URL_INVALID": "Måste vara en giltig https:// URL",
+    "WEBHOOK_URL_INVALID": "Måste börja med http:// eller https://",
     "MY_WEBHOOKS_TITLE": "Mina webhooks",
     "MY_WEBHOOKS_DESC": "Webhooks du är delegerad att hantera.",
     "NO_WEBHOOKS_ASSIGNED": "Inga webhooks tilldelade",

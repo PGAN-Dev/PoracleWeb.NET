@@ -42,7 +42,7 @@
           matInput
           [(ngModel)]="searchText"
           (ngModelChange)="onSearchChange($event)"
-          (keydown.enter)="addDelegateFromSearch()"
+          (keydown.enter)="addDelegateFromSearch($event)"
           [matAutocomplete]="userAuto"
           [placeholder]="'ADMIN.SEARCH_USER_PLACEHOLDER' | translate" />
         <mat-autocomplete #userAuto="matAutocomplete" (optionSelected)="onUserSelected($event.option.value)">
@@ -60,8 +60,11 @@
             </mat-option>
           }
         </mat-autocomplete>
+        @if (searchText.trim() && !pickedUserId) {
+          <mat-hint>{{ 'ADMIN.DELEGATE_PICK_HINT' | translate }}</mat-hint>
+        }
       </mat-form-field>
-      <button mat-raised-button color="primary" [disabled]="!searchText.trim()" (click)="addDelegateFromSearch()">
+      <button mat-raised-button color="primary" [disabled]="!pickedUserId" (click)="addDelegateFromSearch()">
         <mat-icon>person_add</mat-icon> {{ 'COMMON.ADD' | translate }}
       </button>
     </div>

@@ -1490,6 +1490,7 @@
     "SIGN_IN_AGAIN": "Se reconnecter"
   },
   "ERROR": {
+    "ADMIN_ONLY": "Cette page est réservée aux administrateurs.",
     "FEATURE_DISABLED": "Cette fonctionnalité a été désactivée par l’administrateur."
   },
   "ADMIN": {
@@ -1561,7 +1562,7 @@
     "TRY_ADJUSTING_FILTERS": "Essaie d'ajuster tes filtres.",
     "NO_USERS_YET": "Aucun utilisateur inscrit pour le moment.",
     "CONFIRM_DELETE_ALARMS": "Es-tu sûr de vouloir supprimer TOUTES les alarmes de \"{{name}}\" ? Cette action est irréversible.",
-    "CONFIRM_DELETE_USER": "Es-tu sûr de vouloir supprimer définitivement \"{{name}}\" ?",
+    "CONFIRM_DELETE_USER": "Supprimer définitivement \"{{name}}\" ? Ses alarmes, geofences dessinées, délégations de webhooks et sélections rapides sont supprimées avec le compte. Cette action est irréversible.",
     "SNACK_FAILED_IMPERSONATE": "Échec de l'usurpation d'identité",
     "SNACK_FAILED_LOAD_USERS": "Échec du chargement des utilisateurs",
     "WEBHOOKS_TITLE": "Webhooks",
@@ -1581,7 +1582,7 @@
     "DELETE_WEBHOOK": "Supprimer le webhook",
     "NO_WEBHOOKS": "Aucun webhook trouvé",
     "NO_WEBHOOKS_YET": "Aucun webhook enregistré.",
-    "CONFIRM_DELETE_WEBHOOK": "Es-tu sûr de vouloir supprimer définitivement \"{{name}}\" ?",
+    "CONFIRM_DELETE_WEBHOOK": "Supprimer définitivement \"{{name}}\" ? Ses alarmes et ses délégations sont supprimées avec lui. Cette action est irréversible.",
     "SNACK_FAILED_DELETE_WEBHOOK": "Échec de la suppression du webhook",
     "SNACK_WEBHOOK_DELETED": "\"{{name}}\" supprimé",
     "SNACK_URL_COPIED": "URL copiée dans le presse-papiers",
@@ -1598,6 +1599,7 @@
     "CONFIG_DELEGATE_TOOLTIP": "Délégué depuis la configuration Poracle (lecture seule)",
     "REMOVE_DELEGATE": "Supprimer le délégué",
     "SEARCH_USER_LABEL": "Rechercher un utilisateur par nom ou ID",
+    "DELEGATE_PICK_HINT": "Choisis un utilisateur dans la liste.",
     "SEARCH_USER_PLACEHOLDER": "Nom ou ID utilisateur Discord...",
     "WEBHOOK_NAME": "Nom",
     "WEBHOOK_NAME_PLACEHOLDER": "ex. #pogo-alertes",
@@ -1605,7 +1607,7 @@
     "WEBHOOK_URL": "URL du Webhook",
     "WEBHOOK_URL_PLACEHOLDER": "https://discord.com/api/webhooks/...",
     "WEBHOOK_URL_REQUIRED": "L'URL est requise",
-    "WEBHOOK_URL_INVALID": "Doit être une URL https:// valide",
+    "WEBHOOK_URL_INVALID": "Doit commencer par http:// ou https://",
     "MY_WEBHOOKS_TITLE": "Mes Webhooks",
     "MY_WEBHOOKS_DESC": "Webhooks que tu es délégué à gérer.",
     "NO_WEBHOOKS_ASSIGNED": "Aucun webhook assigné",

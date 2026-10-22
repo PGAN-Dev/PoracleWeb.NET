@@ -77,7 +77,7 @@ describe('errorInterceptor', () => {
 
     expect(localStorage.getItem('poracle_token')).toBe('admin-token');
     expect(localStorage.getItem('poracle_admin_token')).toBeNull();
-    expect(router.navigate).toHaveBeenCalledWith(['/admin']);
+    expect(router.navigate).toHaveBeenCalledWith(['/admin'], { state: { adminReturn: true } });
     expect(toast.error).toHaveBeenCalledWith('HTTP_ERROR.INSPECTION_ENDED');
     expect(toast.error).not.toHaveBeenCalledWith('HTTP_ERROR.UNAUTHORIZED');
   });
