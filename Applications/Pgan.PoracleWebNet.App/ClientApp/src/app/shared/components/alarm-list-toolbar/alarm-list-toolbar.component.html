@@ -1,0 +1,58 @@
+<div class="list-toolbar" [class.sticky]="total() > 6">
+  <mat-form-field class="search-field" appearance="outline" subscriptSizing="dynamic">
+    <mat-icon matPrefix>search</mat-icon>
+    <input
+      matInput
+      type="search"
+      [placeholder]="searchPlaceholder() | translate"
+      [attr.aria-label]="searchPlaceholder() | translate"
+      [value]="search()"
+      (input)="onSearch($event)" />
+    @if (search()) {
+      <button matSuffix mat-icon-button type="button" (click)="search.set('')" [attr.aria-label]="'COMMON.CLEAR_SEARCH' | translate">
+        <mat-icon>close</mat-icon>
+      </button>
+    }
+  </mat-form-field>
+
+  <ng-content />
+
+  <div class="toolbar-meta">
+    <span class="result-count" role="status">
+      @if (shown() === total()) {
+        {{ 'ALARM.ALARMS_COUNT' | translatePlural: total() }}
+      } @else {
+        {{ 'ALARM.RESULT_COUNT' | translatePlural: total() : { filtered: shown(), total: total() } }}
+      }
+    </span>
+    @if (sortOptions().length > 1) {
+      <mat-form-field appearance="outline" class="sort-field" subscriptSizing="dynamic">
+        <mat-icon matPrefix>sort</mat-icon>
+        <mat-select [value]="sort()" (valueChange)="sort.set($event)" [aria-label]="'ALARM.SORT_BY' | translate">
+          @for (option of sortOptions(); track option.value) {
+            <mat-option [value]="option.value">{{ option.label | translate }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    }
+    <button
+      mat-icon-button
+      type="button"
+      (click)="selectModeToggle.emit()"
+      [class.select-mode-active]="selectMode()"
+      [attr.aria-pressed]="selectMode()"
+      [matTooltip]="(selectMode() ? 'ALARM.EXIT_SELECT_MODE' : 'ALARM.SELECT_MULTIPLE') | translate"
+      [attr.aria-label]="(selectMode() ? 'ALARM.EXIT_SELECT_MODE' : 'ALARM.SELECT_MULTIPLE') | translate">
+      <mat-icon>{{ selectMode() ? 'close' : 'checklist' }}</mat-icon>
+    </button>
+  </div>
+</div>
+
+@if (total() > 0 && shown() === 0) {
+  <div class="no-matches">
+    <p>{{ 'ALARM.NO_MATCHES' | translate }}</p>
+    <button mat-stroked-button type="button" (click)="clear()">
+      {{ (hasFilters() ? 'ALARM.CLEAR_FILTERS' : 'COMMON.CLEAR_SEARCH') | translate }}
+    </button>
+  </div>
+}
