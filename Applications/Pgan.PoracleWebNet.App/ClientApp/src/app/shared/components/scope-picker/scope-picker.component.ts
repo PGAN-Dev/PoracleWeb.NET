@@ -7,6 +7,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatSelectModule } from '@angular/material/select';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { forkJoin } from 'rxjs';
 
@@ -14,6 +15,8 @@ import { AreaService } from '../../../core/services/area.service';
 import { PlacesService } from '../../../core/services/places.service';
 import { UserGeofenceService } from '../../../core/services/user-geofence.service';
 import { AlarmScope, titleCaseArea } from '../../utils/alarm-scope';
+import { PLACE_NAME_PROMPT } from '../../utils/place-label';
+import { serverReason } from '../../utils/server-reason';
 import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component';
 import { LocationDialogComponent } from '../location-dialog/location-dialog.component';
 
@@ -59,6 +62,7 @@ export class ScopePickerComponent implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly geofenceService = inject(UserGeofenceService);
   private readonly injector = inject(Injector);
+  private readonly snackBar = inject(MatSnackBar);
   private readonly translate = inject(TranslateService);
 
   /**
@@ -205,6 +209,7 @@ export class ScopePickerComponent implements OnInit {
           confirmText: this.translate.instant('COMMON.SAVE'),
           message: this.translate.instant('WHERE.NAME_PLACE_MESSAGE'),
           promptField: {
+            ...PLACE_NAME_PROMPT,
             existingNames: this.places.named().map(p => p.label),
             label: this.translate.instant('WHERE.PLACE_NAME'),
             value: '',
@@ -217,7 +222,11 @@ export class ScopePickerComponent implements OnInit {
         if (!label) return;
 
         this.places.add({ label, latitude: point.latitude, longitude: point.longitude }).subscribe({
-          error: () => undefined,
+          // Swallowing this left the alarm aimed at nothing with no word about why.
+          error: err =>
+            this.snackBar.open(serverReason(err) ?? this.translate.instant('WHERE.PLACE_SAVE_ERROR'), this.translate.instant('COMMON.OK'), {
+              duration: 6000,
+            }),
           // Select it straight away: the only reason to make a place here is to use it here.
           next: () => this.placeLabel.set(label),
         });

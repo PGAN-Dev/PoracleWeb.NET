@@ -11,6 +11,8 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { translatePlural } from '../../../core/i18n/plural';
 import { Location, SavedPlace } from '../../../core/models';
 import { PlacesService } from '../../../core/services/places.service';
+import { describeReferencingRule, PLACE_NAME_PROMPT } from '../../utils/place-label';
+import { serverReason } from '../../utils/server-reason';
 import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component';
 import { LocationDialogComponent } from '../location-dialog/location-dialog.component';
 
@@ -78,7 +80,12 @@ export class PlacesSectionComponent implements OnInit {
   /** Moves a place to a new point, keeping its label so every alarm pointing at it follows. */
   movePlace(place: SavedPlace): void {
     const picker = this.dialog.open(LocationDialogComponent, {
-      data: { latitude: place.latitude, longitude: place.longitude, pickOnly: true },
+      data: {
+        latitude: place.latitude,
+        longitude: place.longitude,
+        pickOnly: true,
+        title: this.translate.instant('WHERE.PLACE_MOVE_NAMED', { place: place.label }),
+      },
     });
 
     picker.afterClosed().subscribe((point?: Location) => {
@@ -112,17 +119,18 @@ export class PlacesSectionComponent implements OnInit {
       error: (err: HttpErrorResponse) => {
         this.busy.set(false);
 
-        // 409 carries the alarms still pointing at the place. Naming them is the difference between
-        // "could not delete" and knowing what to repoint first.
+        // 409 carries the alarms still pointing at the place. Naming them, not just counting them, is the
+        // difference between "could not delete" and knowing what to repoint first.
         const rules: string[] = err.status === 409 ? (err.error?.referencingRules ?? []) : [];
         this.snackBar.open(
           rules.length > 0
             ? translatePlural(this.translate, this.translate.getCurrentLang() ?? 'en', 'WHERE.PLACE_IN_USE', rules.length, {
                 place: place.label,
+                rules: this.listRules(rules),
               })
-            : this.translate.instant('WHERE.PLACE_DELETE_ERROR'),
+            : (serverReason(err) ?? this.translate.instant('WHERE.PLACE_DELETE_ERROR')),
           this.translate.instant('COMMON.OK'),
-          { duration: 6000 },
+          { duration: rules.length > 0 ? 12000 : 6000 },
         );
       },
       next: () => {
@@ -134,6 +142,14 @@ export class PlacesSectionComponent implements OnInit {
     });
   }
 
+  /** The first few alarms in the way, then "and N more", so a long list still fits a snackbar. */
+  private listRules(rules: string[]): string {
+    const shown = rules.slice(0, 5).map(rule => describeReferencingRule(rule, key => this.translate.instant(key)));
+    return rules.length > shown.length
+      ? this.translate.instant('WHERE.AREA_LIST_MORE', { areas: shown.join(', '), count: rules.length - shown.length })
+      : shown.join(', ');
+  }
+
   private nameAndSave(point: Location): void {
     // ConfirmDialog's promptField already does the name-with-duplicate-check, so this reuses it rather
     // than adding a third dialog that asks for a single string.
@@ -143,6 +159,7 @@ export class PlacesSectionComponent implements OnInit {
         confirmText: this.translate.instant('COMMON.SAVE'),
         message: this.translate.instant('WHERE.NAME_PLACE_MESSAGE'),
         promptField: {
+          ...PLACE_NAME_PROMPT,
           existingNames: this.places.named().map(p => p.label),
           label: this.translate.instant('WHERE.PLACE_NAME'),
           value: '',
@@ -158,9 +175,9 @@ export class PlacesSectionComponent implements OnInit {
       this.places.add({ label, latitude: point.latitude, longitude: point.longitude }).subscribe({
         error: (err: HttpErrorResponse) => {
           this.busy.set(false);
-          // PoracleNG reports a rejected label inside its own response, so the API turns it into a 400
-          // with the reason. Showing that beats a generic failure: it is usually "you already have one".
-          this.snackBar.open(err.error?.error ?? this.translate.instant('WHERE.PLACE_SAVE_ERROR'), this.translate.instant('COMMON.OK'), {
+          // The API answers a refused label (its own rule, or PoracleNG's duplicate) with a 400 carrying the
+          // reason. Showing that beats a generic failure.
+          this.snackBar.open(serverReason(err) ?? this.translate.instant('WHERE.PLACE_SAVE_ERROR'), this.translate.instant('COMMON.OK'), {
             duration: 6000,
           });
         },

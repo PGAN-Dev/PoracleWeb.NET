@@ -3,6 +3,7 @@ using Moq;
 using Pgan.PoracleWebNet.Api.Controllers;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
+using Pgan.PoracleWebNet.Core.Models.Helpers;
 
 namespace Pgan.PoracleWebNet.Tests.Controllers;
 
@@ -110,6 +111,78 @@ public class LocationControllerTests : ControllerTestBase
             await this._sut.AddPlace(new SavedPlace { Label = "work", Latitude = 1, Longitude = 2 }));
 
         Assert.Null(ok.Value?.GetType().GetProperty("canEdit"));
+    }
+
+    [Theory]
+    [InlineData("Gym\u202Eevil")]
+    [InlineData("Line\nbreak")]
+    [InlineData("   ")]
+    [InlineData("")]
+    public async Task AddPlaceRefusesALabelThePlaceRuleRefusesWithItsReason(string label)
+    {
+        var result = await this._sut.AddPlace(new SavedPlace { Label = label, Latitude = 1, Longitude = 2 });
+
+        var bad = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal(PlaceLabelRules.Validate(label), bad.Value?.GetType().GetProperty("error")?.GetValue(bad.Value));
+        this._humanProxy.Verify(p => p.AddPlaceAsync(It.IsAny<string>(), It.IsAny<SavedPlace>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task AddPlaceTrimsTheLabelItSaves()
+    {
+        this._humanProxy
+            .Setup(p => p.AddPlaceAsync("123456789", It.IsAny<SavedPlace>()))
+            .ReturnsAsync((string?)null);
+        this._humanProxy.Setup(p => p.GetPlacesAsync("123456789")).ReturnsAsync(new SavedPlaces());
+
+        Assert.IsType<OkObjectResult>(
+            await this._sut.AddPlace(new SavedPlace { Label = "  Parents' house  ", Latitude = 1, Longitude = 2 }));
+
+        this._humanProxy.Verify(p => p.AddPlaceAsync("123456789", It.Is<SavedPlace>(s => s.Label == "Parents' house")), Times.Once);
+    }
+
+    /// <summary>
+    /// The rule judges new labels only. A label stored before it (the audit left "Gym" + U+202E + "evil"
+    /// on a test account) must still be movable and deletable, or the user could never get rid of it.
+    /// </summary>
+    [Fact]
+    public async Task ALabelStoredBeforeTheRuleCanStillBeMovedAndDeleted()
+    {
+        const string legacy = "Gym\u202Eevil";
+        this._humanProxy.Setup(p => p.UpdatePlaceAsync("123456789", legacy, 1, 2)).Returns(Task.CompletedTask);
+        this._humanProxy.Setup(p => p.DeletePlaceAsync("123456789", legacy)).Returns(Task.CompletedTask);
+        this._humanProxy.Setup(p => p.GetPlacesAsync("123456789")).ReturnsAsync(new SavedPlaces());
+
+        Assert.IsType<OkObjectResult>(
+            await this._sut.UpdatePlace(legacy, new LocationController.PlaceMoveRequest { Latitude = 1, Longitude = 2 }));
+        Assert.IsType<NoContentResult>(await this._sut.DeletePlace(legacy));
+    }
+
+    // --- PinUsage ---
+
+    [Fact]
+    public async Task PinUsageCountsRadiusAlarmsThatMeasureFromThePin()
+    {
+        // Counted: a radius with no place. Not counted: a radius from a saved place (it keeps its anchor),
+        // a rule limited to areas, and a rule with no radius. Every type in the snapshot is read.
+        var snapshot = System.Text.Json.JsonDocument.Parse("""
+            {
+              "pokemon": [
+                { "uid": 1, "distance": 500, "override_location_label": "" },
+                { "uid": 2, "distance": 500, "override_location_label": "Work" },
+                { "uid": 3, "distance": 0, "override_areas": ["downtown"] },
+                { "uid": 4, "distance": 0 }
+              ],
+              "raid": [ { "uid": 5, "distance": 1000 } ],
+              "profile": { "name": "not an array" }
+            }
+            """).RootElement;
+        var tracking = new Mock<IPoracleTrackingProxy>();
+        tracking.Setup(t => t.GetAllTrackingAsync("123456789")).ReturnsAsync(snapshot);
+
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetPinUsage(tracking.Object));
+
+        Assert.Equal(2, ok.Value?.GetType().GetProperty("alarms")?.GetValue(ok.Value));
     }
 
     [Fact]

@@ -12,6 +12,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { TranslatePipe } from '@ngx-translate/core';
+import { switchMap } from 'rxjs';
 
 import { AreaDefinition, GeofenceData, Location } from '../../core/models';
 import { AreaService } from '../../core/services/area.service';
@@ -19,6 +20,7 @@ import { I18nService } from '../../core/services/i18n.service';
 import { LocationService } from '../../core/services/location.service';
 import { SettingsService } from '../../core/services/settings.service';
 import { AreaMapComponent } from '../../shared/components/area-map/area-map.component';
+import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { LocationDialogComponent } from '../../shared/components/location-dialog/location-dialog.component';
 import { PlacesSectionComponent } from '../../shared/components/places-section/places-section.component';
 import { QuietChipComponent } from '../../shared/components/quiet-chip/quiet-chip.component';
@@ -229,19 +231,35 @@ export class AreaListComponent implements OnInit {
     this.syncSelectedFromAreas();
   }
 
+  /**
+   * Asks before clearing, naming how many alarms measure their radius from the pin: clearing stops every
+   * one of them matching, and there is no undo. A count that cannot be read still asks, without a number.
+   */
   clearLocation(): void {
     this.locationService
-      .setLocation({ latitude: 0, longitude: 0 })
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        error: () =>
-          this.snackBar.open(this.i18n.instant('AREAS.SNACK_LOCATION_FAILED'), this.i18n.instant('TOAST.OK'), { duration: 3000 }),
-        next: () => {
-          this.location.set(null);
-          this.locationAddress.set('');
-          this.locationMapUrl.set('');
-          this.snackBar.open(this.i18n.instant('AREAS.SNACK_LOCATION_CLEARED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
-        },
+      .getPinUsage()
+      .pipe(
+        switchMap(count =>
+          this.dialog
+            .open(ConfirmDialogComponent, {
+              data: {
+                confirmText: this.i18n.instant('AREAS.CLEAR_LOCATION'),
+                message:
+                  count === null
+                    ? this.i18n.instant('AREAS.CLEAR_PIN_CONFIRM_UNKNOWN')
+                    : count === 0
+                      ? this.i18n.instant('AREAS.CLEAR_PIN_CONFIRM_NONE')
+                      : this.i18n.plural('AREAS.CLEAR_PIN_CONFIRM', count),
+                title: this.i18n.instant('AREAS.CLEAR_PIN_TITLE'),
+                warn: true,
+              } satisfies ConfirmDialogData,
+            })
+            .afterClosed(),
+        ),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(confirmed => {
+        if (confirmed) this.clearPin();
       });
   }
 
@@ -354,6 +372,22 @@ export class AreaListComponent implements OnInit {
         }))
         .sort((a, b) => a.name.localeCompare(b.name)),
     );
+  }
+
+  private clearPin(): void {
+    this.locationService
+      .setLocation({ latitude: 0, longitude: 0 })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        error: () =>
+          this.snackBar.open(this.i18n.instant('AREAS.SNACK_LOCATION_FAILED'), this.i18n.instant('TOAST.OK'), { duration: 3000 }),
+        next: () => {
+          this.location.set(null);
+          this.locationAddress.set('');
+          this.locationMapUrl.set('');
+          this.snackBar.open(this.i18n.instant('AREAS.SNACK_LOCATION_CLEARED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+        },
+      });
   }
 
   private loadData(): void {

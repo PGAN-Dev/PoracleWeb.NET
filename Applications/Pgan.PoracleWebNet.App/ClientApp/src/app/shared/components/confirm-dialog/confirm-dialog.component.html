@@ -12,9 +12,17 @@
   @if (data.promptField) {
     <mat-form-field appearance="outline" style="width: 100%; margin-top: 8px">
       <mat-label>{{ data.promptField.label }}</mat-label>
-      <input matInput [(ngModel)]="promptValue" />
-      @if (hasPromptConflict) {
-        <mat-error>{{ 'DIALOG.PROMPT_CONFLICT' | translate }}</mat-error>
+      <input
+        matInput
+        [(ngModel)]="promptValue"
+        (ngModelChange)="promptTouched = true"
+        [attr.maxlength]="data.promptField.maxLength ?? null"
+        [errorStateMatcher]="promptErrorMatcher" />
+      @if (data.promptField.maxLength) {
+        <mat-hint align="end">{{ promptValue.length }} / {{ data.promptField.maxLength }}</mat-hint>
+      }
+      @if (promptProblemShown; as problem) {
+        <mat-error>{{ problem | translate: { max: data.promptField.maxLength } }}</mat-error>
       }
     </mat-form-field>
   }
@@ -26,7 +34,7 @@
   <button mat-button (click)="onCancel()">
     {{ data.cancelText || ('DIALOG.CANCEL' | translate) }}
   </button>
-  <button mat-raised-button [color]="data.warn ? 'warn' : 'primary'" (click)="onConfirm()" [disabled]="hasPromptConflict">
+  <button mat-raised-button [color]="data.warn ? 'warn' : 'primary'" (click)="onConfirm()" [disabled]="promptProblem !== null">
     @if (data.warn) {
       <mat-icon>delete</mat-icon>
     }

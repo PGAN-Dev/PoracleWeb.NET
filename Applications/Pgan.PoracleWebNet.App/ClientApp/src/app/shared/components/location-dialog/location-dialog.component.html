@@ -1,4 +1,4 @@
-<h2 mat-dialog-title>{{ (data?.pickOnly ? 'DIALOG.LOCATION_PICK_TITLE' : 'DIALOG.LOCATION_TITLE') | translate }}</h2>
+<h2 mat-dialog-title>{{ data?.title || (title() | translate) }}</h2>
 @if (saving()) {
   <mat-progress-bar mode="indeterminate"></mat-progress-bar>
 }
@@ -37,6 +37,10 @@
           <mat-option disabled>
             <span class="autocomplete-option">{{ 'DIALOG.LOCATION_SEARCHING' | translate }}</span>
           </mat-option>
+        } @else if (noMatches()) {
+          <mat-option disabled>
+            <span class="autocomplete-option">{{ 'DIALOG.LOCATION_NO_MATCHES' | translate }}</span>
+          </mat-option>
         }
       </mat-autocomplete>
     </mat-form-field>
@@ -46,11 +50,29 @@
   <div class="location-form">
     <mat-form-field appearance="outline">
       <mat-label>{{ 'DIALOG.LOCATION_LATITUDE' | translate }}</mat-label>
-      <input matInput type="number" [(ngModel)]="latitude" step="0.000001" (change)="onCoordsChanged()" />
+      <input
+        matInput
+        type="number"
+        [(ngModel)]="latitude"
+        step="0.000001"
+        [errorStateMatcher]="latitudeMatcher"
+        (change)="onCoordsChanged()" />
+      @if (latitudeError(); as error) {
+        <mat-error>{{ error | translate }}</mat-error>
+      }
     </mat-form-field>
     <mat-form-field appearance="outline">
       <mat-label>{{ 'DIALOG.LOCATION_LONGITUDE' | translate }}</mat-label>
-      <input matInput type="number" [(ngModel)]="longitude" step="0.000001" (change)="onCoordsChanged()" />
+      <input
+        matInput
+        type="number"
+        [(ngModel)]="longitude"
+        step="0.000001"
+        [errorStateMatcher]="longitudeMatcher"
+        (change)="onCoordsChanged()" />
+      @if (longitudeError(); as error) {
+        <mat-error>{{ error | translate }}</mat-error>
+      }
     </mat-form-field>
   </div>
 

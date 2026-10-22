@@ -3,7 +3,7 @@ import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { provideTranslateService } from '@ngx-translate/core';
+import { provideTranslateService, TranslateService } from '@ngx-translate/core';
 import { of, throwError } from 'rxjs';
 
 import { PlacesSectionComponent } from './places-section.component';
@@ -160,7 +160,7 @@ describe('PlacesSectionComponent', () => {
     component.movePlace({ label: 'work', latitude: 1, longitude: 2 });
 
     expect(dialog.open).toHaveBeenCalledWith(expect.anything(), {
-      data: { latitude: 1, longitude: 2, pickOnly: true },
+      data: { latitude: 1, longitude: 2, pickOnly: true, title: 'WHERE.PLACE_MOVE_NAMED' },
     });
     expect(places.move).toHaveBeenCalledWith('work', 9.5, 8.5);
     expect(snackBar.open).toHaveBeenCalledWith('WHERE.PLACE_MOVED', expect.anything(), expect.anything());
@@ -173,6 +173,73 @@ describe('PlacesSectionComponent', () => {
     component.movePlace({ label: 'work', latitude: 1, longitude: 2 });
 
     expect(places.move).not.toHaveBeenCalled();
+  });
+
+  it('asks for the name under the API rules: 64 characters, no hidden characters, a place-worded duplicate note', () => {
+    const component = create();
+    queueDialogResults({ latitude: 10, longitude: 20 }, false);
+
+    component.addPlace();
+
+    expect(dialog.open.mock.calls[1][1].data.promptField).toMatchObject({
+      refuseHiddenCharacters: true,
+      conflictKey: 'WHERE.PLACE_NAME_CONFLICT',
+      maxLength: 64,
+    });
+  });
+
+  it('shows the reason the server gave when it refuses a name', () => {
+    const component = create();
+    queueDialogResults({ latitude: 10, longitude: 20 }, 'gym');
+    places.add.mockReturnValue(
+      throwError(() => new HttpErrorResponse({ error: { error: 'That name is too long. Use 64 characters or fewer.' }, status: 400 })),
+    );
+
+    component.addPlace();
+
+    expect(snackBar.open).toHaveBeenCalledWith('That name is too long. Use 64 characters or fewer.', expect.anything(), expect.anything());
+  });
+
+  it('falls back to its own message when the refusal carries no reason', () => {
+    const component = create();
+    queueDialogResults({ latitude: 10, longitude: 20 }, 'gym');
+    places.add.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 500 })));
+
+    component.addPlace();
+
+    expect(snackBar.open).toHaveBeenCalledWith('WHERE.PLACE_SAVE_ERROR', expect.anything(), expect.anything());
+  });
+
+  it('names the place it is moving in the picker title', () => {
+    const component = create();
+    queueDialogResults(undefined);
+
+    component.movePlace({ label: 'work', latitude: 1, longitude: 2 });
+
+    expect(dialog.open.mock.calls[0][1].data.title).toBe('WHERE.PLACE_MOVE_NAMED');
+  });
+
+  it('warns before a delete that a place still in use is refused, rather than promising a fallback', () => {
+    const component = create();
+    queueDialogResults(false);
+
+    component.confirmRemove({ label: 'work', latitude: 1, longitude: 2 });
+
+    expect(dialog.open.mock.calls[0][1].data.message).toBe('WHERE.PLACE_DELETE_CONFIRM');
+  });
+
+  it('lists the alarms in the way when a delete is refused', () => {
+    const component = create();
+    const translate = TestBed.inject(TranslateService);
+    const instant = jest.spyOn(translate, 'instant');
+    places.remove.mockReturnValue(
+      throwError(() => new HttpErrorResponse({ error: { referencingRules: ['pokemon 37337', 'raid 9'] }, status: 409 })),
+    );
+
+    component.removePlace({ label: 'work', latitude: 1, longitude: 2 });
+
+    const call = instant.mock.calls.find(([key, params]) => key === 'WHERE.PLACE_IN_USE_OTHER' && params);
+    expect(call?.[1]).toMatchObject({ count: 2, place: 'work', rules: 'NAV.POKEMON #37337, NAV.RAIDS #9' });
   });
 
   it('reports a failed move rather than leaving the card looking changed', () => {

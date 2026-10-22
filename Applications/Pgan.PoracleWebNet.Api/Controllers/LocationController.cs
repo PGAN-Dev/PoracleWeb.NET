@@ -1,9 +1,11 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Pgan.PoracleWebNet.Api.Filters;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 
 using Pgan.PoracleWebNet.Core.Models;
+using Pgan.PoracleWebNet.Core.Models.Helpers;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
@@ -330,19 +332,76 @@ public class LocationController(
     /// Saves a place an alarm can be anchored to.
     /// </summary>
     /// <remarks>
-    /// PoracleNG reports a rejected label inside a 200 because its endpoint answers per row, so the
-    /// refusal is unwrapped here and returned as a 400 the SPA can show against the field.
+    /// A refusal, ours or PoracleNG's, is returned as a 400 <c>{ error }</c> the SPA can show as it is.
+    /// The label rule (<see cref="PlaceLabelRules"/>) runs here rather than as model attributes, because an
+    /// attribute's refusal arrives as a validation-problem body the SPA could not read, and it judges this new
+    /// label only: moving and deleting address the stored label, so a place saved before the rule stays usable.
     /// </remarks>
     [HttpPost("places")]
     public async Task<IActionResult> AddPlace(
         [FromBody] SavedPlace place)
     {
+        if (PlaceLabelRules.Validate(place.Label) is { } invalid)
+        {
+            return this.BadRequest(new { error = invalid });
+        }
+
+        place.Label = place.Label.Trim();
         var refusal = await this._humanProxy.AddPlaceAsync(this.UserId, place);
 
         // Answers the same shape as the GET and the PUT; the SPA replaces its places signal from it.
         return refusal is null
             ? this.Ok(await this.PlacesAsync())
             : this.BadRequest(new { error = refusal });
+    }
+
+    /// <summary>
+    /// How many of the active profile's alarms measure their radius from the profile pin: a radius above
+    /// zero and no saved place. Clearing the pin stops every one of them matching, so the SPA names the
+    /// count before it asks to clear. A rule aimed at a saved place keeps its anchor and is not counted.
+    /// </summary>
+    [HttpGet("pin-usage")]
+    public async Task<IActionResult> GetPinUsage([FromServices] IPoracleTrackingProxy trackingProxy)
+    {
+        var snapshot = await trackingProxy.GetAllTrackingAsync(this.UserId);
+        return this.Ok(new { alarms = CountMeasuredFromPin(snapshot) });
+    }
+
+    internal static int CountMeasuredFromPin(JsonElement snapshot)
+    {
+        if (snapshot.ValueKind != JsonValueKind.Object)
+        {
+            return 0;
+        }
+
+        var count = 0;
+        foreach (var type in snapshot.EnumerateObject())
+        {
+            if (type.Value.ValueKind != JsonValueKind.Array)
+            {
+                continue;
+            }
+
+            foreach (var row in type.Value.EnumerateArray())
+            {
+                var radius = row.ValueKind == JsonValueKind.Object
+                    && row.TryGetProperty("distance", out var d)
+                    && d.ValueKind == JsonValueKind.Number
+                    && d.TryGetDouble(out var metres)
+                    && metres > 0;
+                var hasPlace = radius
+                    && row.TryGetProperty("override_location_label", out var label)
+                    && label.ValueKind == JsonValueKind.String
+                    && !string.IsNullOrWhiteSpace(label.GetString());
+
+                if (radius && !hasPlace)
+                {
+                    count++;
+                }
+            }
+        }
+
+        return count;
     }
 
     /// <summary>
