@@ -24,7 +24,7 @@ import { PokemonSelectorComponent } from '../../shared/components/pokemon-select
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
-import { AddRefusal, refusalOf } from '../../shared/utils/add-outcome';
+import { AddRefusal, createFailureText, refusalOf } from '../../shared/utils/add-outcome';
 import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, preserve } from '../../shared/utils/clean-flags';
 
@@ -157,7 +157,7 @@ export class QuickPickApplyDialogComponent {
       // Shown inline rather than toasted: the dialog stays open with the user's choices, and a takeover
       // refusal ("another alarm already uses those settings") stays readable while they decide.
       error: (err: unknown) => {
-        this.refusal.set(refusalOf(err, this.i18n.instant('QUICK_PICKS.SNACK_FAILED_APPLY')));
+        this.refusal.set(refusalOf(err, createFailureText(err, this.i18n, 'QUICK_PICKS.SNACK_FAILED_APPLY')));
         this.applying.set(false);
         this.applyStatus.set('');
         this.dialogRef.disableClose = false;

@@ -26,6 +26,9 @@ const SILENT_URL_PATTERNS = [
   // the interceptor also toasting, the two snackbars raced and a failed test read "An unexpected server
   // error occurred" instead of saying the test alert failed.
   '/api/test-alert',
+  // Polygons only shade the map in an alarm dialog's Delivery tab (and the dashboard's overview); every
+  // reader falls back to drawing nothing, so a failure is not worth a "server error" over an unsaved form.
+  '/api/areas/geofence',
 ];
 
 /** The token a request carried, from the header authInterceptor (or the refresh retry) attached. */

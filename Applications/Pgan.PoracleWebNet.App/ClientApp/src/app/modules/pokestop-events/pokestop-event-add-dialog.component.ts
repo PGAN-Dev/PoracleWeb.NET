@@ -20,11 +20,18 @@ import { PokestopEventService } from '../../core/services/pokestop-event.service
 import { AddRefusalComponent } from '../../shared/components/add-refusal/add-refusal.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
-import { AddRefusal, editExistingResult, ExistingRule, refusalOf, reportCreated, ruleSummary } from '../../shared/utils/add-outcome';
+import {
+  AddRefusal,
+  editExistingResult,
+  ExistingRule,
+  createFailureText,
+  refusalOf,
+  reportCreated,
+  ruleSummary,
+} from '../../shared/utils/add-outcome';
 import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE } from '../../shared/utils/clean-flags';
 import { POKESTOP_EVENTS } from '../../shared/utils/pokestop-events';
-import { serverReason } from '../../shared/utils/server-reason';
 
 /** What the list passes when it opens the dialog. */
 export interface PokestopEventAddDialogData {
@@ -186,10 +193,12 @@ export class PokestopEventAddDialogComponent {
         this.saving.set(false);
         if (single) {
           // Nothing was created, so keep the dialog and the user's choices, and say why inline.
-          this.refusal.set(refusalOf(err, this.i18n.instant('ALARM.FAILED_CREATE'), (uid, type) => this.describe(uid, type)));
+          this.refusal.set(
+            refusalOf(err, createFailureText(err, this.i18n, 'ALARM.FAILED_CREATE'), (uid, type) => this.describe(uid, type)),
+          );
           return;
         }
-        this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.FAILED_CREATE'), this.i18n.instant('COMMON.OK'), {
+        this.snackBar.open(createFailureText(err, this.i18n, 'ALARM.FAILED_CREATE'), this.i18n.instant('COMMON.OK'), {
           duration: 6000,
         });
         // Whatever was written before the failure still exists, so close and reload rather than

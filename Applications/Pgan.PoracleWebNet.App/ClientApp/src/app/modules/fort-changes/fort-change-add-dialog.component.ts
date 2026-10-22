@@ -21,7 +21,15 @@ import { SettingsService } from '../../core/services/settings.service';
 import { AddRefusalComponent } from '../../shared/components/add-refusal/add-refusal.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
-import { AddDialogData, AddRefusal, editExistingResult, ExistingRule, refusalOf, reportCreated } from '../../shared/utils/add-outcome';
+import {
+  AddDialogData,
+  AddRefusal,
+  editExistingResult,
+  ExistingRule,
+  createFailureText,
+  refusalOf,
+  reportCreated,
+} from '../../shared/utils/add-outcome';
 import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 
 @Component({
@@ -133,7 +141,7 @@ export class FortChangeAddDialogComponent {
         // field a file got wrong. A fixed string threw that away (#567, #568). Nothing was created, so
         // the dialog stays open with the reason inline and the user's settings kept.
         error: (err: unknown) => {
-          this.refusal.set(refusalOf(err, this.i18n.instant('ALARM.FAILED_CREATE'), this.data?.existingRule));
+          this.refusal.set(refusalOf(err, createFailureText(err, this.i18n, 'ALARM.FAILED_CREATE'), this.data?.existingRule));
           this.saving.set(false);
         },
         next: created => {

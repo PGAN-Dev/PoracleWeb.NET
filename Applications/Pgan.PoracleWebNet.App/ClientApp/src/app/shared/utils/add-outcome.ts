@@ -81,6 +81,32 @@ export function isFailed(result: SettledCreate): result is FailedCreate {
 }
 
 /**
+ * The first message of an ASP.NET validation 400 (`{ errors: { Field: ["..."] } }`), or null. Model binding
+ * answers in that shape when a field is out of range, and it names the field, which a fixed line can't.
+ */
+export function validationReason(err: unknown): string | null {
+  const failure = err as { error?: { errors?: unknown }; status?: unknown } | null | undefined;
+  if (typeof failure?.status === 'number' && failure.status >= 500) return null;
+  const errors = failure?.error?.errors;
+  if (!errors || typeof errors !== 'object') return null;
+  for (const messages of Object.values(errors as Record<string, unknown>)) {
+    const first = Array.isArray(messages) ? messages.find(m => typeof m === 'string' && m.trim()) : null;
+    if (typeof first === 'string') return first;
+  }
+  return null;
+}
+
+/**
+ * What a create failure says when the server gave no reason of its own. It only reaches the screen for
+ * statuses the interceptor doesn't toast (a 400 or 409 without text, a 422, 429, 501), so the next step
+ * is about the settings, or for a 429 about waiting, never the connection.
+ */
+export function createFailureText(err: unknown, i18n: I18nService, fallbackKey: string): string {
+  const status = (err as { status?: unknown } | null | undefined)?.status;
+  return serverReason(err) ?? validationReason(err) ?? i18n.instant(status === 429 ? 'ALARM.FAILED_TOO_MANY' : fallbackKey);
+}
+
+/**
  * Turns a refused create into what the dialog shows: the server's reason (or `fallback`), and the stored
  * rule it collided with when the 409 named one (`existingUid`) and `lookup` can describe it.
  *
@@ -97,7 +123,7 @@ export function refusalOf(err: unknown, fallback: string, lookup?: ExistingRuleL
 
   return {
     existing: uid !== null && summary ? { uid, summary, trackingType } : null,
-    message: serverReason(err) ?? fallback,
+    message: serverReason(err) ?? validationReason(err) ?? fallback,
   };
 }
 
@@ -124,7 +150,7 @@ export function finishAdd(results: SettledCreate[], options: FinishAddOptions): 
   const refused = results.filter(isFailed);
 
   if (results.length === 1 && refused.length === 1) {
-    refusal.set(refusalOf(refused[0].failed, i18n.instant(failedKey), lookup));
+    refusal.set(refusalOf(refused[0].failed, createFailureText(refused[0].failed, i18n, failedKey), lookup));
     return;
   }
 
@@ -134,7 +160,7 @@ export function finishAdd(results: SettledCreate[], options: FinishAddOptions): 
   const duplicates = landed.length - created;
 
   if (refused.length > 0) {
-    snackBar.open(serverReason(refused[0].failed) ?? i18n.instant(failedKey), i18n.instant('COMMON.OK'), { duration: 6000 });
+    snackBar.open(createFailureText(refused[0].failed, i18n, failedKey), i18n.instant('COMMON.OK'), { duration: 6000 });
   } else {
     reportCreated(created, duplicates, i18n, snackBar);
   }

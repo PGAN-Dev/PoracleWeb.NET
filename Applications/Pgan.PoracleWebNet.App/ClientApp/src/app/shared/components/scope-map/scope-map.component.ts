@@ -11,6 +11,7 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TranslatePipe } from '@ngx-translate/core';
 import * as L from 'leaflet';
 
@@ -47,10 +48,12 @@ import { PlacesService } from '../../../core/services/places.service';
 export class ScopeMapComponent {
   private readonly areaService = inject(AreaService);
   private bounds: L.LatLngBounds | null = null;
+  private readonly destroyRef = inject(DestroyRef);
   private readonly places = inject(PlacesService);
   /** The profile's areas, for "Anywhere in my areas". */
   readonly profileAreas = input<string[]>([]);
   readonly scope = input.required<AlarmScope>();
+
   /** What to draw, before asking whether the polygons for it have arrived. */
   private readonly drawing = computed<ScopeDrawing>(() =>
     scopeDrawing(this.scope(), this.places.pin(), this.places.named(), this.profileAreas()),
@@ -82,7 +85,10 @@ export class ScopeMapComponent {
     effect(() => {
       if (this.drawing().areas.length === 0 || this.polygonsRequested) return;
       this.polygonsRequested = true;
-      this.areaService.getGeofencePolygonsShared().subscribe(polygons => this.polygons.set(polygons));
+      this.areaService
+        .getGeofencePolygonsShared()
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe(polygons => this.polygons.set(polygons));
     });
 
     effect(() => {
@@ -98,7 +104,7 @@ export class ScopeMapComponent {
       this.draw(shapes.circle, shapes.fences);
     });
 
-    inject(DestroyRef).onDestroy(() => this.teardown());
+    this.destroyRef.onDestroy(() => this.teardown());
   }
 
   private createMap(container: HTMLDivElement): void {
@@ -174,6 +180,8 @@ export class ScopeMapComponent {
   }
 
   private fit(attempt = 0): void {
+    // One chain of retries at a time: a redraw during the tab's slide-in starts over rather than stacking.
+    if (attempt === 0) clearTimeout(this.retry);
     if (!this.map || !this.bounds) return;
     // Leaflet caches the size it measured when the map was made, which inside a tab still sliding in is
     // often 0x0, and the tab's slide moves the container without resizing it, so no observer fires again.

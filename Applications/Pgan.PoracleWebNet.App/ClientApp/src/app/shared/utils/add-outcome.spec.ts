@@ -61,6 +61,31 @@ describe('add-outcome', () => {
       expect(refusal()?.existing).toBeNull();
     });
 
+    it('shows the first validation message of an ASP.NET 400', () => {
+      finish([
+        {
+          failed: {
+            error: { errors: { MinIv: ['MinIv must be between 0 and 100.'] }, title: 'One or more validation errors occurred.' },
+            status: 400,
+          },
+        },
+      ]);
+
+      expect(refusal()?.message).toBe('MinIv must be between 0 and 100.');
+    });
+
+    it('says to wait on a 429, which is not a problem with the settings', () => {
+      finish([{ failed: { error: null, status: 429 } }]);
+
+      expect(refusal()?.message).toBe('ALARM.FAILED_TOO_MANY');
+    });
+
+    it('toasts the same words for a refused row in a batch', () => {
+      finish([{ uid: 501 }, { failed: { error: { errors: { Distance: ['Distance is too large.'] } }, status: 400 } }]);
+
+      expect(snackBar.open).toHaveBeenCalledWith('Distance is too large.', 'COMMON.OK', expect.anything());
+    });
+
     it('falls back to the dialog message when the server gave no reason', () => {
       finish([{ failed: new Error('network') }]);
 

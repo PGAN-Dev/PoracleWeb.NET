@@ -176,6 +176,22 @@ describe('errorInterceptor', () => {
   });
 
   describe('silent endpoints', () => {
+    it('does not toast a failed area polygon read over an unsaved alarm dialog', () => {
+      http.get('/api/areas/geofence').subscribe({ error: () => {} });
+
+      httpMock.expectOne('/api/areas/geofence').flush(null, { status: 503, statusText: 'Unavailable' });
+
+      expect(toast.error).not.toHaveBeenCalled();
+    });
+
+    it('still toasts a failed read of the area list itself', () => {
+      http.get('/api/areas').subscribe({ error: () => {} });
+
+      httpMock.expectOne('/api/areas').flush(null, { status: 503, statusText: 'Unavailable' });
+
+      expect(toast.error).toHaveBeenCalledTimes(1);
+    });
+
     it('should NOT show toast for /api/config errors', () => {
       http.get('/api/config/templates').subscribe({ error: () => {} });
 

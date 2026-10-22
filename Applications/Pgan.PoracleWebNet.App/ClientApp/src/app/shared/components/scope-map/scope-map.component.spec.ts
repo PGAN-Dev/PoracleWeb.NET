@@ -1,6 +1,7 @@
 import { computed, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideTranslateService } from '@ngx-translate/core';
+import * as L from 'leaflet';
 import { of } from 'rxjs';
 
 import { ScopeMapComponent } from './scope-map.component';
@@ -82,5 +83,54 @@ describe('ScopeMapComponent', () => {
     create({ areas: ['nowhere'], mode: 'areas' }, null);
 
     expect(map()).toBeNull();
+  });
+
+  /**
+   * Inside a dialog tab the container is 0x0 for a moment, and Leaflet won't re-measure a map without a
+   * view. The map waits for a size, then fits, and gives up after two seconds rather than polling forever.
+   */
+  describe('fitting once the tab has a size', () => {
+    const sized = (el: Element, width: number, height: number) => {
+      Object.defineProperty(el, 'clientWidth', { configurable: true, value: width });
+      Object.defineProperty(el, 'clientHeight', { configurable: true, value: height });
+    };
+
+    afterEach(() => {
+      jest.useRealTimers();
+      jest.restoreAllMocks();
+    });
+
+    it('fits the circle as soon as the container has a size', () => {
+      jest.useFakeTimers();
+      const fitBounds = jest.spyOn(L.Map.prototype, 'fitBounds');
+      create({ distanceKm: 2, mode: 'profile' }, { label: '', latitude: 57.15, longitude: -2.1 });
+      expect(fitBounds).not.toHaveBeenCalled();
+
+      sized(map()!, 500, 180);
+      jest.advanceTimersByTime(100);
+
+      expect(fitBounds).toHaveBeenCalledTimes(1);
+    });
+
+    it('stops waiting after twenty tries when the container never gets one', () => {
+      jest.useFakeTimers();
+      create({ distanceKm: 2, mode: 'profile' }, { label: '', latitude: 57.15, longitude: -2.1 });
+
+      jest.advanceTimersByTime(5000);
+
+      expect(jest.getTimerCount()).toBe(0);
+    });
+
+    it('runs one chain of retries however often it redraws', () => {
+      jest.useFakeTimers();
+      create({ distanceKm: 2, mode: 'profile' }, { label: '', latitude: 57.15, longitude: -2.1 });
+
+      fixture.componentRef.setInput('scope', { distanceKm: 3, mode: 'profile' });
+      fixture.detectChanges();
+      fixture.componentRef.setInput('scope', { distanceKm: 4, mode: 'profile' });
+      fixture.detectChanges();
+
+      expect(jest.getTimerCount()).toBe(1);
+    });
   });
 });

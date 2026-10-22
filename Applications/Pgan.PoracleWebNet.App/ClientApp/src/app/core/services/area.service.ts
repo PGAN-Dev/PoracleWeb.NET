@@ -35,7 +35,16 @@ export class AreaService {
   getGeofencePolygonsShared(): Observable<GeofenceData[]> {
     const now = Date.now();
     if (!this.polygons || now - this.polygons.at > 5 * 60_000) {
-      this.polygons = { at: now, request: this.getGeofencePolygons().pipe(shareReplay(1)) };
+      const request = this.http.get<{ status: string; geofence: GeofenceData[] }>(`${this.config.apiHost}/api/areas/geofence`).pipe(
+        map(res => res.geofence || []),
+        // A failed read isn't kept: the next dialog asks again rather than shading nothing for five minutes.
+        catchError(() => {
+          if (this.polygons?.request === request) this.polygons = null;
+          return of<GeofenceData[]>([]);
+        }),
+        shareReplay(1),
+      );
+      this.polygons = { at: now, request };
     }
     return this.polygons.request;
   }
