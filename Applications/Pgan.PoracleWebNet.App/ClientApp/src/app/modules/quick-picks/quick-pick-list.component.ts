@@ -170,7 +170,7 @@ export class QuickPickListComponent implements OnInit {
 
   onApply(pick: QuickPickSummary): void {
     import('./quick-pick-apply-dialog.component').then(m => {
-      const ref = this.dialog.open(m.QuickPickApplyDialogComponent, { autoFocus: 'first-heading', width: '560px', data: pick });
+      const ref = this.dialog.open(m.QuickPickApplyDialogComponent, { width: '560px', autoFocus: 'first-heading', data: pick });
       ref.afterClosed().subscribe(result => {
         if (result) this.loadPicks();
       });

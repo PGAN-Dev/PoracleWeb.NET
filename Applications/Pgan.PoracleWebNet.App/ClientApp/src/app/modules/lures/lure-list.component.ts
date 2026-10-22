@@ -225,7 +225,7 @@ export class LureListComponent implements OnInit {
 
   editLure(lure: Lure): void {
     this.dialog
-      .open(LureEditDialogComponent, { autoFocus: 'first-heading', width: '600px', data: lure, maxHeight: '90vh' })
+      .open(LureEditDialogComponent, { width: '600px', autoFocus: 'first-heading', data: lure, maxHeight: '90vh' })
       .afterClosed()
       .subscribe(r => {
         if (r) this.loadLures();
@@ -318,8 +318,8 @@ export class LureListComponent implements OnInit {
   openAddDialog(): void {
     this.dialog
       .open(LureAddDialogComponent, {
-        autoFocus: 'first-heading',
         width: '600px',
+        autoFocus: 'first-heading',
         data: { existingRule: (uid, type) => this.describeExisting(uid, type) } satisfies AddDialogData,
         maxHeight: '90vh',
       })

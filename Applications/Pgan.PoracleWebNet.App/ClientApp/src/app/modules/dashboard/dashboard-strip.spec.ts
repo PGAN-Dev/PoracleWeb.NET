@@ -287,7 +287,7 @@ describe('DashboardComponent status strip and alarm summary', () => {
       const { component } = setup({
         areas: ['lake eola loop 2', 'downtown orlando'],
         geofences: [
-          { displayName: 'Lake Eola Loop', id: 7, name: 'lake eola loop 2', path: [] },
+          { id: 7, name: 'lake eola loop 2', displayName: 'Lake Eola Loop', path: [] },
           { id: 1, name: 'Downtown Orlando', path: [] },
         ],
         location: { latitude: 41.6, longitude: -83.5 },

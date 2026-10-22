@@ -89,7 +89,7 @@ describe('AreaListComponent area display names', () => {
    * list carries the name its owner gave it, and the chips show that.
    */
   it('shows the name the user gave their own drawn fence', () => {
-    polygons = [{ displayName: 'Lake Eola Loop', id: 7, name: 'lake eola loop 2', path: [] }];
+    polygons = [{ id: 7, name: 'lake eola loop 2', displayName: 'Lake Eola Loop', path: [] }];
     const fixture = TestBed.createComponent(AreaListComponent);
     fixture.componentInstance.ngOnInit();
 

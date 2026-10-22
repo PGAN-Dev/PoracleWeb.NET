@@ -321,8 +321,8 @@ export class RaidListComponent implements OnInit {
 
   editEgg(egg: Egg): void {
     const ref = this.dialog.open(RaidEditDialogComponent, {
-      autoFocus: 'first-heading',
       width: '600px',
+      autoFocus: 'first-heading',
       data: { item: egg, type: 'egg' } as RaidEditDialogData,
       maxHeight: '90vh',
     });
@@ -333,8 +333,8 @@ export class RaidListComponent implements OnInit {
 
   editRaid(raid: Raid): void {
     const ref = this.dialog.open(RaidEditDialogComponent, {
-      autoFocus: 'first-heading',
       width: '600px',
+      autoFocus: 'first-heading',
       data: { item: raid, type: 'raid' } as RaidEditDialogData,
       maxHeight: '90vh',
     });
@@ -485,8 +485,8 @@ export class RaidListComponent implements OnInit {
 
   openAddDialog(): void {
     const ref = this.dialog.open(RaidAddDialogComponent, {
-      autoFocus: 'first-heading',
       width: '600px',
+      autoFocus: 'first-heading',
       data: { existingRule: (uid, type) => this.describeExisting(uid, type) } satisfies AddDialogData,
       maxHeight: '90vh',
     });

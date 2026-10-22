@@ -221,7 +221,7 @@ export class PokestopEventListComponent implements OnInit {
 
   editItem(item: PokestopEvent): void {
     this.dialog
-      .open(PokestopEventEditDialogComponent, { autoFocus: 'first-heading', width: '600px', data: item, maxHeight: '90vh' })
+      .open(PokestopEventEditDialogComponent, { width: '600px', autoFocus: 'first-heading', data: item, maxHeight: '90vh' })
       .afterClosed()
       .subscribe(r => {
         if (r) this.loadItems();
@@ -310,8 +310,8 @@ export class PokestopEventListComponent implements OnInit {
   openAddDialog(): void {
     this.dialog
       .open(PokestopEventAddDialogComponent, {
-        autoFocus: 'first-heading',
         width: '600px',
+        autoFocus: 'first-heading',
         data: { events: this.events(), profileAreas: this.profileAreas } satisfies PokestopEventAddDialogData,
         maxHeight: '90vh',
       })

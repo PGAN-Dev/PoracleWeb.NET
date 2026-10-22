@@ -239,7 +239,7 @@ export class GymListComponent implements OnInit {
 
   editGym(gym: Gym): void {
     this.dialog
-      .open(GymEditDialogComponent, { autoFocus: 'first-heading', width: '600px', data: gym, maxHeight: '90vh' })
+      .open(GymEditDialogComponent, { width: '600px', autoFocus: 'first-heading', data: gym, maxHeight: '90vh' })
       .afterClosed()
       .subscribe(r => {
         if (r) this.loadGyms();
@@ -327,8 +327,8 @@ export class GymListComponent implements OnInit {
   openAddDialog(): void {
     this.dialog
       .open(GymAddDialogComponent, {
-        autoFocus: 'first-heading',
         width: '600px',
+        autoFocus: 'first-heading',
         data: { existingRule: (uid, type) => this.describeExisting(uid, type) } satisfies AddDialogData,
         maxHeight: '90vh',
       })

@@ -234,7 +234,7 @@ export class NestListComponent implements OnInit {
 
   editNest(nest: Nest): void {
     this.dialog
-      .open(NestEditDialogComponent, { autoFocus: 'first-heading', width: '600px', data: nest, maxHeight: '90vh' })
+      .open(NestEditDialogComponent, { width: '600px', autoFocus: 'first-heading', data: nest, maxHeight: '90vh' })
       .afterClosed()
       .subscribe(r => {
         if (r) this.loadNests();
@@ -312,8 +312,8 @@ export class NestListComponent implements OnInit {
   openAddDialog(): void {
     this.dialog
       .open(NestAddDialogComponent, {
-        autoFocus: 'first-heading',
         width: '600px',
+        autoFocus: 'first-heading',
         data: { existingRule: (uid, type) => this.describeExisting(uid, type) } satisfies AddDialogData,
         maxHeight: '90vh',
       })
