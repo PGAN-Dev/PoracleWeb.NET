@@ -79,6 +79,66 @@ public partial class PoracleTrackingProxy
             : this.SnapshotAsV1(snapshot, userId, profiles, (active, activeNo));
     }
 
+    /// <inheritdoc />
+    /// <remarks>
+    /// The same snapshot and the same gap as <see cref="GetAllTrackingAllProfilesAsync"/> (a human whose active
+    /// profile has no <c>profiles</c> row is missing from <c>all_profiles</c>), but the rules come back as v2
+    /// sent them, <c>incident</c> included as its own type.
+    /// </remarks>
+    public async Task<IReadOnlyList<StoredRule>> GetStoredRulesAsync(string userId)
+    {
+        var snapshot = await this.ReadSnapshotAsync(userId, "?all_profiles=true&include_descriptions=true", "All alarms");
+
+        var profiles = ProfilesOf(snapshot);
+        var current = CurrentProfileNo(snapshot);
+
+        var rules = new List<StoredRule>();
+        CollectStoredRules(snapshot, stampProfileNo: null, fallbackProfileNo: current ?? 0, rules);
+
+        if (current is not null && ListsProfile(profiles, current.Value))
+        {
+            return rules;
+        }
+
+        var active = await this.ReadSnapshotAsync(userId, "?include_descriptions=true", "All alarms");
+        var activeNo = CurrentProfileNo(active) ?? current ?? 0;
+
+        if (!ListsProfile(profiles, activeNo))
+        {
+            CollectStoredRules(active, activeNo, activeNo, rules);
+        }
+
+        return rules;
+    }
+
+    private static void CollectStoredRules(JsonElement snapshot, int? stampProfileNo, int fallbackProfileNo, List<StoredRule> into)
+    {
+        if (snapshot.ValueKind != JsonValueKind.Object
+            || !snapshot.TryGetProperty("tracking", out var tracking)
+            || tracking.ValueKind != JsonValueKind.Object)
+        {
+            return;
+        }
+
+        foreach (var type in SnapshotTypes.Append("incident"))
+        {
+            if (!tracking.TryGetProperty(type, out var list) || list.ValueKind != JsonValueKind.Array)
+            {
+                continue;
+            }
+
+            foreach (var rule in list.EnumerateArray().Where(r => r.ValueKind == JsonValueKind.Object))
+            {
+                var profileNo = stampProfileNo
+                    ?? (rule.TryGetProperty("profile_no", out var no) && no.ValueKind == JsonValueKind.Number && no.TryGetInt32(out var found)
+                        ? found
+                        : fallbackProfileNo);
+
+                into.Add(new StoredRule(type, profileNo, UidOf(rule), rule.Clone()));
+            }
+        }
+    }
+
     private static JsonElement ProfilesOf(JsonElement snapshot) =>
         snapshot.ValueKind == JsonValueKind.Object
         && snapshot.TryGetProperty("profiles", out var profiles)

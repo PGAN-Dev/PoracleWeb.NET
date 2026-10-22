@@ -467,6 +467,58 @@ public partial class PoracleTrackingProxy
         return new TrackingUpdateResult(UidFromV2Envelope(payload) ?? uid, true);
     }
 
+    /// <inheritdoc />
+    /// <remarks>
+    /// Always trusted and never run through <see cref="IUserAreaPolicy"/>: the row came from PoracleNG, so the
+    /// areas on it are ones it already stored, the way the takeover restore sends them. A dry run reports what
+    /// the replace would do and writes nothing.
+    /// </remarks>
+    public async Task<StoredRuleReplaceOutcome> ReplaceStoredRuleAsync(
+        string type, string userId, int uid, int profileNo, JsonElement v1Row, bool dryRun)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(uid);
+
+        var (bounds, declared) = await this.ServerRuleSchemaAsync(type);
+        if (!TrackingV2Translator.TryTranslate(type, v1Row, bounds, declared, out var rule, out var unsupported))
+        {
+            throw new AlarmValidationException(
+                $"PoracleNG can't store this alarm as it is: {unsupported ?? "unknown"}. Nothing was changed.");
+        }
+
+        var bodyText = rule.GetRawText();
+        LogV2UpdateRequest(this._logger, type, uid, userId, bodyText);
+
+        var request = this.CreateRequest(
+            HttpMethod.Put,
+            $"{this._apiAddress}/api/v2/humans/{Encode(userId)}/tracking/{type}/{uid}"
+            + $"?silent=true&trusted=true&profile={profileNo}{(dryRun ? "&dry_run=true" : string.Empty)}");
+        request.Content = new StringContent(bodyText, Encoding.UTF8, "application/json");
+
+        var response = await this._httpClient.SendAsync(request);
+        var payload = await response.Content.ReadAsStringAsync();
+
+        if (!response.IsSuccessStatusCode)
+        {
+            try
+            {
+                ThrowForFailedWrite(response, type, payload);
+            }
+            catch (TrackingConflictException)
+            {
+                return StoredRuleReplaceOutcome.Conflict;
+            }
+            catch (TrackingRuleNotFoundException)
+            {
+                return StoredRuleReplaceOutcome.NotFound;
+            }
+        }
+
+        LogV2UpdateResponse(this._logger, type, uid, userId, payload);
+        return WriteEnvelope.Parse(payload).Verdict == DryRunVerdict.Unchanged
+            ? StoredRuleReplaceOutcome.Unchanged
+            : StoredRuleReplaceOutcome.Updated;
+    }
+
     private static string TrustedQuery(bool trusted) => trusted ? "&trusted=true" : string.Empty;
 
     /// <summary>Turns a failed v2 create or replace into the exception the rest of the app understands.</summary>
