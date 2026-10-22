@@ -1814,6 +1814,7 @@
   "POKEMON_SELECTOR": {
     "GEN": "Gen",
     "TYPE": "Type",
+    "ADD_BY_TYPE_OR_GEN": "Toevoegen op type of generatie",
     "LIVE": "Live",
     "SPAWNING": "Spawnt",
     "SPECIES_ACTIVE": "{{count}} soorten actief",

@@ -75,6 +75,61 @@ describe('PokemonSelectorComponent', () => {
     expect(note()).toBeNull();
   });
 
+  describe('search first, bulk pickers behind "Add by type or generation"', () => {
+    const root = () => fixture.nativeElement as HTMLElement;
+    const toggle = () => root().querySelector<HTMLButtonElement>('.bulk-pickers-toggle');
+
+    it('puts the search field before everything else and hides the generation chips', () => {
+      setup(true);
+
+      const first = root().firstElementChild;
+      expect(first?.tagName.toLowerCase()).toBe('mat-form-field');
+      expect(first?.querySelector('input')).not.toBeNull();
+      expect(root().querySelector('.gen-chip')).toBeNull();
+      expect(toggle()?.getAttribute('aria-expanded')).toBe('false');
+    });
+
+    it('shows the generation chips once the expander is opened', () => {
+      setup(true);
+
+      toggle()!.click();
+      fixture.detectChanges();
+
+      expect(root().querySelectorAll('.gen-chip').length).toBe(9);
+      expect(toggle()?.getAttribute('aria-expanded')).toBe('true');
+    });
+
+    it('closing the pickers drops their filter, so the tile grid does not outlive the chips that made it', () => {
+      setup(true);
+      toggle()!.click();
+      fixture.detectChanges();
+      root().querySelector<HTMLButtonElement>('.gen-chip')!.click();
+      fixture.detectChanges();
+      expect(root().querySelector('.tile-grid')).not.toBeNull();
+
+      toggle()!.click();
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.activeGen()).toBeNull();
+      expect(root().querySelector('.tile-grid')).toBeNull();
+    });
+
+    it('keeps what was picked from the tiles after the pickers close', () => {
+      setup(true);
+      toggle()!.click();
+      fixture.detectChanges();
+      root().querySelector<HTMLButtonElement>('.gen-chip')!.click();
+      fixture.detectChanges();
+      root().querySelector<HTMLButtonElement>('.pokemon-tile')!.click();
+      fixture.detectChanges();
+
+      toggle()!.click();
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.selectedIds().has(MEOWTH.id)).toBe(true);
+    });
+  });
+
   it('says nothing in pickers whose alerts have no IV filters (raids, nests, quests)', () => {
     setup(false);
     pick(MINIOR);

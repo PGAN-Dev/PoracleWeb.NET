@@ -1884,6 +1884,7 @@
   "POKEMON_SELECTOR": {
     "GEN": "Gen",
     "TYPE": "Typ",
+    "ADD_BY_TYPE_OR_GEN": "Dodaj według typu lub generacji",
     "LIVE": "Na żywo",
     "SPAWNING": "Spawnuje",
     "SPECIES_ACTIVE": "Aktywne gatunki: {{count}}",

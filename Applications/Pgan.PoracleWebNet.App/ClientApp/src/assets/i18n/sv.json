@@ -1814,6 +1814,7 @@
   "POKEMON_SELECTOR": {
     "GEN": "Gen",
     "TYPE": "Typ",
+    "ADD_BY_TYPE_OR_GEN": "Lägg till efter typ eller generation",
     "LIVE": "Live",
     "SPAWNING": "Spawnar",
     "SPECIES_ACTIVE": "{{count}} arter aktiva",

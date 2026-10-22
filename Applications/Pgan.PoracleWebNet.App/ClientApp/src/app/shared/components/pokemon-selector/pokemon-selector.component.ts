@@ -15,6 +15,9 @@ import { PokemonAvailabilityService } from '../../../core/services/pokemon-avail
 import { includesMinior } from '../../utils/minior';
 import { BulkMatchResult, BulkMatchSuggestion, matchPokemonBulkText } from '../../utils/pokemon-bulk-match';
 
+/** Distinct ids for each picker's expander, since a quest dialog holds three selectors at once. */
+let nextPickersId = 0;
+
 interface GenRange {
   label: string;
   max: number;
@@ -124,6 +127,14 @@ export class PokemonSelectorComponent implements OnInit {
    */
   ivFilters = input(false);
 
+  /**
+   * The generation, type and live chips sit behind "Add by type or generation". Search is what almost
+   * everyone opens the dialog for, and 27 chips used to stand between them and the field.
+   */
+  readonly pickersId = `pokemon-pickers-${nextPickersId++}`;
+
+  readonly pickersOpen = signal(false);
+
   searchControl = new FormControl('');
 
   selectionChange = output<number[]>();
@@ -228,6 +239,19 @@ export class PokemonSelectorComponent implements OnInit {
     this.activeGen.update(current => (current === gen ? null : gen));
     this.searchControl.setValue('');
     this.searchText.set('');
+  }
+
+  /**
+   * Closing the pickers drops whatever they were filtering by. Otherwise the tile grid they produced would
+   * stay on screen with the chips that explain it hidden. What was picked from the tiles stays picked.
+   */
+  togglePickers(): void {
+    if (this.pickersOpen()) {
+      this.activeGen.set(null);
+      this.activeType.set(null);
+      this.filterSpawning.set(false);
+    }
+    this.pickersOpen.update(open => !open);
   }
 
   toggleSpawning(): void {
