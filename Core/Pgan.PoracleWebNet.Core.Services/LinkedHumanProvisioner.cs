@@ -16,6 +16,7 @@ public partial class LinkedHumanProvisioner(
     ILogger<LinkedHumanProvisioner> logger) : ILinkedHumanProvisioner
 {
     private const string Refused = "Nothing was linked.";
+    private const string PlaceholderName = "placeholder";
 
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly IHumanService _humans = humans;
@@ -35,7 +36,6 @@ public partial class LinkedHumanProvisioner(
             ["type"] = type,
             ["latitude"] = source.Latitude,
             ["longitude"] = source.Longitude,
-            ["area"] = AreaListJson.Parse(source.Area),
             ["community"] = AreaListJson.Parse(source.CommunityMembership),
         };
         if (!string.IsNullOrWhiteSpace(source.Language))
@@ -43,10 +43,13 @@ public partial class LinkedHumanProvisioner(
             body["language"] = source.Language;
         }
 
-        var active = sourceProfiles.Find(p => p.No == source.CurrentProfileNo);
-        if (!string.IsNullOrWhiteSpace(active?.Name))
+        // Profile numbers must agree across the pair, so the create's default profile (number 1) is
+        // named for the source's profile 1; areas are written afterwards through the trusted per-profile
+        // write, because an untrusted filter on create can drop a drawn fence.
+        var first = sourceProfiles.Find(p => p.No == 1);
+        if (!string.IsNullOrWhiteSpace(first?.Name))
         {
-            body["profile_name"] = active.Name;
+            body["profile_name"] = first.Name;
         }
 
         try
@@ -62,7 +65,7 @@ public partial class LinkedHumanProvisioner(
 
         try
         {
-            await this.CopyProfilesAndPlacesAsync(sourceHumanId, newId, active, sourceProfiles);
+            await this.CopyProfilesAndPlacesAsync(source, newId, sourceProfiles);
         }
         catch (Exception ex)
         {
@@ -77,33 +80,87 @@ public partial class LinkedHumanProvisioner(
     private static string TypeOf(LinkSide side) =>
         side == LinkSide.Discord ? AccountLinkKeys.DiscordUserType : AccountLinkKeys.TelegramUserType;
 
-    private async Task CopyProfilesAndPlacesAsync(string sourceId, string newId, ProfileRow? active, List<ProfileRow> sourceProfiles)
+    /// <summary>
+    /// Makes mirror profile N a copy of source profile N for every N. PoracleNG gives a new profile the
+    /// lowest free number and says which, so the numbers are walked upward; a gap in the source is filled
+    /// with a placeholder that is deleted once the real profiles exist. Any number other than the expected
+    /// one is a failure, since later moves and drift checks compare profile numbers.
+    /// </summary>
+    private async Task CopyProfilesAndPlacesAsync(Human source, string newId, List<ProfileRow> sourceProfiles)
     {
-        // The source's active profile is what the human-level fields describe, so it maps onto the new
-        // human's own default profile; the rest are created beside it.
         var created = await this.ReadProfilesAsync(newId);
         var defaultNo = created.Count > 0 ? created.Min(p => p.No) : 1;
-        if (active is not null && !string.IsNullOrWhiteSpace(active.ActiveHours) && active.ActiveHours != "[]")
+        if (defaultNo != 1)
         {
-            await this._humanProxy.UpdateProfileAsync(newId, JsonSerializer.SerializeToElement(new
-            {
-                profile_no = defaultNo,
-                name = active.Name,
-                active_hours = active.ActiveHours,
-            }));
+            throw new InvalidOperationException($"The new human's default profile is {defaultNo}, not 1.");
         }
 
-        foreach (var profile in sourceProfiles.Where(p => active is null || p.No != active.No).OrderBy(p => p.No))
+        var placeholders = new List<int>();
+        var byNo = sourceProfiles.GroupBy(p => p.No).ToDictionary(g => g.Key, g => g.First());
+        var highest = byNo.Count > 0 ? byNo.Keys.Max() : 1;
+
+        if (byNo.Count == 0)
         {
-            var no = await this._humanProxy.AddProfileAsync(newId, JsonSerializer.SerializeToElement(new
-            {
-                name = profile.Name,
-                active_hours = profile.ActiveHours,
-            }));
-            await this._humanProxy.SetProfileGeographyAsync(newId, no, AreaListJson.Parse(profile.Area), profile.Latitude, profile.Longitude);
+            // No profile rows to copy: the human's own fields describe its one profile.
+            await this._humanProxy.SetProfileGeographyAsync(newId, 1, AreaListJson.Parse(source.Area), source.Latitude, source.Longitude);
         }
 
-        var places = await this._humanProxy.GetPlacesAsync(sourceId);
+        for (var n = 1; n <= highest; n++)
+        {
+            byNo.TryGetValue(n, out var row);
+            if (n == 1)
+            {
+                if (row is null)
+                {
+                    placeholders.Add(1);
+                    continue;
+                }
+
+                if (!string.IsNullOrWhiteSpace(row.ActiveHours) && row.ActiveHours != "[]")
+                {
+                    await this._humanProxy.UpdateProfileAsync(newId, JsonSerializer.SerializeToElement(new
+                    {
+                        profile_no = 1,
+                        name = row.Name,
+                        active_hours = row.ActiveHours,
+                    }));
+                }
+            }
+            else
+            {
+                var assigned = await this._humanProxy.AddProfileAsync(newId, row is null
+                    ? JsonSerializer.SerializeToElement(new { name = PlaceholderName })
+                    : JsonSerializer.SerializeToElement(new { name = row.Name, active_hours = row.ActiveHours }));
+                if (assigned != n)
+                {
+                    throw new InvalidOperationException($"PoracleNG numbered a copied profile {assigned}, expected {n}.");
+                }
+
+                if (row is null)
+                {
+                    placeholders.Add(n);
+                    continue;
+                }
+            }
+
+            await this._humanProxy.SetProfileGeographyAsync(newId, n, AreaListJson.Parse(row!.Area), row.Latitude, row.Longitude);
+        }
+
+        if (byNo.Count > 0)
+        {
+            var target = byNo.ContainsKey(source.CurrentProfileNo) ? source.CurrentProfileNo : byNo.Keys.Min();
+            if (target != 1)
+            {
+                await this._humanProxy.SwitchProfileAsync(newId, target);
+            }
+        }
+
+        foreach (var number in placeholders)
+        {
+            await this._humanProxy.DeleteProfileAsync(newId, number);
+        }
+
+        var places = await this._humanProxy.GetPlacesAsync(source.Id);
         foreach (var place in places.Named)
         {
             var refusal = await this._humanProxy.AddPlaceAsync(newId, place);

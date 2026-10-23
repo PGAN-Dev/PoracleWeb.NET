@@ -44,11 +44,12 @@ public partial class UserPurgeService(
         await this.TryAsync("geofences", () => this.PurgeGeofencesAsync(userId));
         await this.TryAsync("webhook delegates", () => this._webhookDelegateRepository.RemoveAllForIdAsync(userId));
         await this.TryAsync("quick picks", () => this.PurgeQuickPicksAsync(userId));
-        await this.TryAsync("account link", () => this.PurgeLinkAsync(userId));
 
         var deleted = await this._humanService.DeleteUserAsync(userId);
         if (deleted)
         {
+            // Only once the human is gone: a failed delete leaves the account, and so its link, in place.
+            await this.TryAsync("account link", () => this.PurgeLinkAsync(userId));
             await this.TryAsync("leftover geofences", () => this._geofenceService.RemoveFencesOfDeletedAccountAsync(userId));
         }
 

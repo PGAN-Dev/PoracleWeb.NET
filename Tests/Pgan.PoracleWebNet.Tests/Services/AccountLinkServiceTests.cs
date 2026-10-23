@@ -119,6 +119,65 @@ public class AccountLinkServiceTests
     }
 
     [Fact]
+    public async Task Link_ZeroTelegramId_BadId()
+    {
+        this.Human(Discord, AccountLinkKeys.DiscordUserType);
+
+        var ex = await Refused(this._sut.LinkAsync(Discord, LinkSide.Telegram, "00000000000000000000", "x"));
+
+        Assert.Equal(LinkRefusalCode.BadId, ex.Code);
+    }
+
+    [Theory]
+    [InlineData("0123")]
+    [InlineData("0")]
+    public async Task Link_LeadingZero_BadId(string id)
+    {
+        this.Human(Discord, AccountLinkKeys.DiscordUserType);
+
+        var ex = await Refused(this._sut.LinkAsync(Discord, LinkSide.Telegram, id, "x"));
+
+        Assert.Equal(LinkRefusalCode.BadId, ex.Code);
+    }
+
+    [Fact]
+    public async Task Link_IdWithInteriorZeros_Accepted()
+    {
+        this.Human(Discord, AccountLinkKeys.DiscordUserType);
+        this.Human("200000010", AccountLinkKeys.TelegramUserType);
+
+        var link = await this._sut.LinkAsync(Discord, LinkSide.Telegram, "200000010", "x");
+
+        Assert.Equal("200000010", link.TelegramId);
+    }
+
+    [Fact]
+    public async Task Link_SaveFailsAfterProvisioning_RollsBackAndRethrows()
+    {
+        this.Human(Discord, AccountLinkKeys.DiscordUserType);
+        this.Missing(Telegram);
+        this._settings.Setup(s => s.GetBoolAsync(AccountLinkKeys.RegisterMissing)).ReturnsAsync(true);
+        this._links.Setup(r => r.AddAsync(It.IsAny<AccountLink>())).ThrowsAsync(new InvalidOperationException("db down"));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => this._sut.LinkAsync(Discord, LinkSide.Telegram, Telegram, "Old Town"));
+
+        this._provisioner.Verify(p => p.RollBackAsync(Telegram, LinkSide.Telegram, "Old Town"), Times.Once);
+    }
+
+    [Fact]
+    public async Task Link_InvalidationThrowing_NeverRollsBackASavedLink()
+    {
+        this.Human(Discord, AccountLinkKeys.DiscordUserType);
+        this.Missing(Telegram);
+        this._settings.Setup(s => s.GetBoolAsync(AccountLinkKeys.RegisterMissing)).ReturnsAsync(true);
+        this._linked.Setup(l => l.Invalidate(It.IsAny<string>())).Throws(new InvalidOperationException("cache"));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => this._sut.LinkAsync(Discord, LinkSide.Telegram, Telegram, "Old Town"));
+
+        this._provisioner.Verify(p => p.RollBackAsync(It.IsAny<string>(), It.IsAny<LinkSide>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
     public async Task Link_ExistingOtherIsGroup_TypeMismatch()
     {
         this.Human(Discord, AccountLinkKeys.DiscordUserType);

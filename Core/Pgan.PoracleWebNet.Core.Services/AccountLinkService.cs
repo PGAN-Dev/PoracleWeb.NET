@@ -60,11 +60,10 @@ public partial class AccountLinkService(
         var now = DateTime.UtcNow;
         var discordId = newSide == LinkSide.Discord ? newId : callerHumanId;
         var telegramId = newSide == LinkSide.Telegram ? newId : callerHumanId;
+        AccountLink link;
         try
         {
-            var link = await this._links.AddAsync(new AccountLink(0, discordId, telegramId, callerSide.Value, now, now, now));
-            this.InvalidateBoth(discordId, telegramId);
-            return link;
+            link = await this._links.AddAsync(new AccountLink(0, discordId, telegramId, callerSide.Value, now, now, now));
         }
         catch (AccountLinkConflictException)
         {
@@ -80,6 +79,10 @@ public partial class AccountLinkService(
             await this.TryRollBackAsync(newId, newSide, newName);
             throw;
         }
+
+        // Outside the try: the row is saved by now, so nothing that fails here may delete the mirror.
+        this.InvalidateBoth(discordId, telegramId);
+        return link;
     }
 
     public async Task<bool> UnlinkAsync(string humanId)
@@ -124,13 +127,13 @@ public partial class AccountLinkService(
 
     private static bool IsValidId(LinkSide side, string id)
     {
-        if (id.Length is 0 or > 20 || !id.All(char.IsAsciiDigit))
+        if (id.Length is 0 or > 20 || id[0] == '0' || !id.All(char.IsAsciiDigit))
         {
             return false;
         }
 
-        return side == LinkSide.Discord
-            || (long.TryParse(id, NumberStyles.None, CultureInfo.InvariantCulture, out var n) && n > 0);
+        // No leading zero, so a Telegram id is positive by construction; it only has to fit a long.
+        return side == LinkSide.Discord || long.TryParse(id, NumberStyles.None, CultureInfo.InvariantCulture, out _);
     }
 
     // Invalidate finds a partner only through a cached link, so both ids are named.

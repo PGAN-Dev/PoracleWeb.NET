@@ -70,6 +70,31 @@ public class UserPurgeServiceTests
     }
 
     [Fact]
+    public async Task Purge_HumanDeleteFails_LeavesLinkIntact()
+    {
+        this._humanService.Setup(s => s.DeleteUserAsync("u1")).ReturnsAsync(false);
+        this._accountLinks.Setup(r => r.GetByHumanIdAsync("u1"))
+            .ReturnsAsync(new AccountLink(3, "100000000000000001", "200000001", LinkSide.Discord, null, null, DateTime.UtcNow));
+
+        Assert.False(await this._sut.PurgeAsync("u1"));
+
+        this._accountLinks.Verify(r => r.RemoveByHumanIdAsync(It.IsAny<string>()), Times.Never);
+        this._linkedAccount.Verify(l => l.Invalidate(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Purge_HumanDeleteThrows_LeavesLinkIntact()
+    {
+        this._humanService.Setup(s => s.DeleteUserAsync("u1")).ThrowsAsync(new HttpRequestException("down"));
+        this._accountLinks.Setup(r => r.GetByHumanIdAsync("u1"))
+            .ReturnsAsync(new AccountLink(3, "100000000000000001", "200000001", LinkSide.Discord, null, null, DateTime.UtcNow));
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.PurgeAsync("u1"));
+
+        this._accountLinks.Verify(r => r.RemoveByHumanIdAsync(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
     public async Task Purge_UnlinkedUser_ChangesNoLinkState()
     {
         this._accountLinks.Setup(r => r.GetByHumanIdAsync("u1")).ReturnsAsync((AccountLink?)null);
