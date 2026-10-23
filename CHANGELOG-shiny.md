@@ -8,6 +8,10 @@ This line is unofficial and unsupported by PoracleWeb.NET releases. Report probl
 
 ## [Unreleased]
 
+### Changed
+
+- **Rebased onto PoracleWeb.NET 3.0.1.** It brings that release's security fix: an impersonation session is re-checked on every request again, so a revoked delegate loses access promptly and a newly granted one is no longer refused until a restart (#1039). It also brings the region and group picker headings fix (#1030), and the rule repair scan now judges rules against the fields the server declares (#1021). The PoracleNG this line needs is unchanged. See [CHANGELOG.md](CHANGELOG.md) for details.
+
 ## [3.0.0-shiny.1] - 2026-10-22
 
 Based on PoracleWeb.NET 3.0.0. Needs PoracleNG `feat/personal-shiny` ([jfberry/PoracleNG#255](https://github.com/jfberry/PoracleNG/pull/255)) rebased on 5.4.0, tested against the `ghcr.io/jfberry/poracleng:feat-personal-shiny` image built on 22 October 2026. Earlier `feat/personal-shiny` builds, and PoracleNG `main`, are not supported.

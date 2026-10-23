@@ -1,8 +1,8 @@
 @if (selectedOption(); as selected) {
   <mat-chip-set>
     <mat-chip highlighted color="primary" (removed)="clearSelection()">
-      {{ selected.shortLabel || selected.label }}
-      <button matChipRemove [attr.aria-label]="'COMMON.REMOVE_NAMED' | translate: { name: selected.shortLabel || selected.label }">
+      {{ selected.label }}
+      <button matChipRemove [attr.aria-label]="'COMMON.REMOVE_NAMED' | translate: { name: selected.label }">
         <mat-icon>cancel</mat-icon>
       </button>
     </mat-chip>
@@ -24,19 +24,32 @@
     }
     <mat-autocomplete #regionAuto="matAutocomplete" (optionSelected)="onOptionSelected($event.option.value)">
       <mat-option [value]="{ label: '' }">{{ 'REGION_SELECTOR.ALL_REGIONS' | translate }}</mat-option>
-      @for (group of filteredGroups(); track group.label) {
-        <mat-optgroup [label]="group.label">
-          @for (region of group.regions; track region.label) {
-            <mat-option [value]="region">
-              {{ region.shortLabel || region.label }}
-              @if (showCounts() && region.totalCount !== undefined) {
-                <span class="region-count">({{ region.selectedCount ?? 0 }}/{{ region.totalCount }})</span>
-              } @else if (region.count !== undefined) {
-                <span class="region-count">({{ region.count }})</span>
+      @for (group of filteredGroups(); track group.key) {
+        @if (group.heading) {
+          <mat-optgroup [label]="group.heading">
+            @for (item of group.items; track item.option.label) {
+              <mat-option [value]="item.option">
+                {{ item.text }}
+                @if (showCounts() && item.option.totalCount !== undefined) {
+                  <span class="region-count">({{ item.option.selectedCount ?? 0 }}/{{ item.option.totalCount }})</span>
+                } @else if (item.option.count !== undefined) {
+                  <span class="region-count">({{ item.option.count }})</span>
+                }
+              </mat-option>
+            }
+          </mat-optgroup>
+        } @else {
+          @for (item of group.items; track item.option.label) {
+            <mat-option [value]="item.option">
+              {{ item.text }}
+              @if (showCounts() && item.option.totalCount !== undefined) {
+                <span class="region-count">({{ item.option.selectedCount ?? 0 }}/{{ item.option.totalCount }})</span>
+              } @else if (item.option.count !== undefined) {
+                <span class="region-count">({{ item.option.count }})</span>
               }
             </mat-option>
           }
-        </mat-optgroup>
+        }
       }
     </mat-autocomplete>
   </mat-form-field>

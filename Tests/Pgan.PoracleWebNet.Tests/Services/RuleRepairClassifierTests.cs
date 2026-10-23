@@ -213,4 +213,34 @@ public class RuleRepairClassifierTests
         Assert.Equal(RuleRepairKind.CannotEdit, result?.Item.Kind);
         Assert.Null(result!.RepairedV1Row);
     }
+
+    // A field the server's own schema declares is one an edit sends back, so the rule is editable and the
+    // scan has nothing to say about it. Every personal shiny rule was listed as uneditable without this.
+    [Fact]
+    public void FieldTheServerDeclaresIsNotReportedAsUneditable()
+    {
+        var stored = Rule("pokemon", """{"pokemon_id":25,"personal_shiny":true}""");
+
+        Assert.Null(RuleRepairClassifier.Classify(stored, "user1", new HashSet<string> { "personal_shiny", "personal_background" }));
+    }
+
+    [Fact]
+    public void FieldTheServerDoesNotDeclareIsStillReported()
+    {
+        var stored = Rule("pokemon", """{"pokemon_id":25,"personal_shiny":true}""");
+
+        Assert.Equal(RuleRepairKind.CannotEdit, RuleRepairClassifier.Classify(stored, "user1", new HashSet<string> { "ping" })?.Item.Kind);
+        Assert.Equal(RuleRepairKind.CannotEdit, Classify("pokemon", """{"pokemon_id":25,"personal_shiny":true}""")?.Item.Kind);
+    }
+
+    [Fact]
+    public void DeclaredFieldOnARepairableRuleStillRepairs()
+    {
+        var stored = Rule("invasion", """{"grunt_type":"metal","future_flag":true}""");
+
+        var result = RuleRepairClassifier.Classify(stored, "user1", new HashSet<string> { "future_flag" });
+
+        Assert.Equal(RuleRepairKind.MetalGrunt, result?.Item.Kind);
+        Assert.True(result!.RepairedV1Row!.Value.GetProperty("future_flag").GetBoolean());
+    }
 }

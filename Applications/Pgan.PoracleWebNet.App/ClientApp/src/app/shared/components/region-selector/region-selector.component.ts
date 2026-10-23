@@ -13,13 +13,70 @@ export interface RegionOption {
   id?: number;
   label: string;
   selectedCount?: number;
-  shortLabel?: string;
   totalCount?: number;
+  /** The caller's bucket for areas with no group: never folded under a heading, and listed last. */
+  ungrouped?: boolean;
 }
 
+/** One option as drawn: under a heading it shows only the part after the heading. */
+export interface RegionItem {
+  option: RegionOption;
+  text: string;
+}
+
+/** A heading over two or more options, or (heading null) a single option drawn on its own. */
 export interface RegionGroup {
-  label: string;
-  regions: RegionOption[];
+  heading: null | string;
+  items: RegionItem[];
+  key: string;
+}
+
+const SEPARATOR = ' - ';
+
+function prefixOf(option: RegionOption): null | string {
+  if (option.ungrouped) return null;
+  const cut = option.label.lastIndexOf(SEPARATOR);
+  if (cut <= 0 || !option.label.slice(cut + SEPARATOR.length).trim()) return null;
+  return option.label.slice(0, cut);
+}
+
+/**
+ * Builds the picker's headings from the names themselves. "US - VA - Richmond" and "US - VA - Norfolk" share
+ * "US - VA", so they sit under it as "Richmond" and "Norfolk". A heading is drawn only when it covers two or
+ * more options: a name with no " - ", or the only one under its prefix, is listed on its own with its full
+ * name. Headings used to be the first two parts of every name, so a plain group name became a heading over
+ * itself (#1029).
+ */
+export function groupRegions(options: RegionOption[]): RegionGroup[] {
+  const byPrefix = new Map<string, RegionOption[]>();
+  for (const option of options) {
+    const prefix = prefixOf(option);
+    if (prefix === null) continue;
+    if (!byPrefix.has(prefix)) byPrefix.set(prefix, []);
+    byPrefix.get(prefix)!.push(option);
+  }
+
+  const groups: (RegionGroup & { last: boolean })[] = [];
+  for (const [prefix, members] of byPrefix) {
+    if (members.length < 2) continue;
+    groups.push({
+      heading: prefix,
+      items: members
+        .map(option => ({ option, text: option.label.slice(prefix.length + SEPARATOR.length) }))
+        .sort((a, b) => a.text.localeCompare(b.text)),
+      key: `heading:${prefix}`,
+      last: false,
+    });
+  }
+  for (const option of options) {
+    const prefix = prefixOf(option);
+    if (prefix !== null && byPrefix.get(prefix)!.length >= 2) continue;
+    groups.push({ heading: null, items: [{ option, text: option.label }], key: `option:${option.label}`, last: !!option.ungrouped });
+  }
+
+  return groups
+    .sort((a, b) => Number(a.last) - Number(b.last) || (a.heading ?? a.items[0].text).localeCompare(b.heading ?? b.items[0].text))
+    .map(({ last: _last, ...group }) => group);
 }
 
 @Component({
@@ -58,7 +115,7 @@ export class RegionSelectorComponent {
       return;
     }
 
-    const match = available.find(r => r.id === wanted || r.label === wanted || r.shortLabel === wanted);
+    const match = available.find(r => r.id === wanted || r.label === wanted);
     if (match && this.selectedOption()?.id !== match.id) {
       this.selectedOption.set(match);
     }
@@ -69,20 +126,7 @@ export class RegionSelectorComponent {
   readonly filteredGroups = computed((): RegionGroup[] => {
     const search = this.searchText().toLowerCase();
     const all = this.regions();
-    const filtered = search
-      ? all.filter(r => r.label.toLowerCase().includes(search) || (r.shortLabel?.toLowerCase().includes(search) ?? false))
-      : all;
-
-    // Group by country-state prefix (first 2 parts of "US - VA - Richmond")
-    const groupMap = new Map<string, RegionOption[]>();
-    for (const region of filtered) {
-      const parts = region.label.split(' - ');
-      const groupKey = parts.length >= 2 ? parts.slice(0, 2).join(' - ') : parts[0] || 'Other';
-      if (!groupMap.has(groupKey)) groupMap.set(groupKey, []);
-      groupMap.get(groupKey)!.push(region);
-    }
-
-    return [...groupMap.entries()].map(([label, regions]) => ({ label, regions })).sort((a, b) => a.label.localeCompare(b.label));
+    return groupRegions(search ? all.filter(r => r.label.toLowerCase().includes(search)) : all);
   });
 
   readonly label = input('Select Region');
@@ -100,7 +144,7 @@ export class RegionSelectorComponent {
   }
 
   displayFn(option: RegionOption): string {
-    return option?.shortLabel ?? option?.label ?? '';
+    return option?.label ?? '';
   }
 
   onClearInput(): void {

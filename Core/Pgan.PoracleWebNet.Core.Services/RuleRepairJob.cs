@@ -241,6 +241,22 @@ public sealed partial class RuleRepairJob(IServiceScopeFactory scopes, ILogger<R
     }
 
     /// <summary>
+    /// What the server declares for <paramref name="type"/>, read once per human. The proxy caches the schema
+    /// document itself, so this only saves the awaits.
+    /// </summary>
+    private static async Task<IReadOnlySet<string>?> DeclaredAsync(
+        IPoracleTrackingProxy tracking, Dictionary<string, IReadOnlySet<string>?> declared, string type)
+    {
+        if (!declared.TryGetValue(type, out var properties))
+        {
+            properties = await tracking.GetDeclaredRulePropertiesAsync(type);
+            declared[type] = properties;
+        }
+
+        return properties;
+    }
+
+    /// <summary>
     /// Reads one human's rules and classifies them, confirming any-tier candidates with a dry run. A failure
     /// that is about this human skips the human as a whole, so a half-read account never reports a partial
     /// list as if it were complete. Anything else propagates and fails the run.
@@ -254,10 +270,11 @@ public sealed partial class RuleRepairJob(IServiceScopeFactory scopes, ILogger<R
         {
             using var scope = this._scopes.CreateScope();
             var tracking = scope.ServiceProvider.GetRequiredService<IPoracleTrackingProxy>();
+            var declared = new Dictionary<string, IReadOnlySet<string>?>(StringComparer.Ordinal);
 
             foreach (var rule in await this.CallAsync(() => tracking.GetStoredRulesAsync(humanId), abort))
             {
-                var candidate = RuleRepairClassifier.Classify(rule, humanId);
+                var candidate = RuleRepairClassifier.Classify(rule, humanId, await DeclaredAsync(tracking, declared, rule.Type));
                 if (candidate is null)
                 {
                     continue;
@@ -382,6 +399,7 @@ public sealed partial class RuleRepairJob(IServiceScopeFactory scopes, ILogger<R
         var tally = new ApplyTally();
         using var scope = this._scopes.CreateScope();
         var tracking = scope.ServiceProvider.GetRequiredService<IPoracleTrackingProxy>();
+        var declared = new Dictionary<string, IReadOnlySet<string>?>(StringComparer.Ordinal);
 
         Dictionary<(string Type, int ProfileNo, int Uid), StoredRule> stored;
         try
@@ -412,7 +430,7 @@ public sealed partial class RuleRepairJob(IServiceScopeFactory scopes, ILogger<R
                 continue;
             }
 
-            var fresh = RuleRepairClassifier.Classify(rule, humanId);
+            var fresh = RuleRepairClassifier.Classify(rule, humanId, await DeclaredAsync(tracking, declared, rule.Type));
             if (fresh is null || fresh.Item.Kind != item.Kind || fresh.RepairedV1Row is not { } row)
             {
                 tally.AlreadyFine++;

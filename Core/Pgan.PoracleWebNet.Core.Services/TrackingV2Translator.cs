@@ -45,7 +45,7 @@ namespace Pgan.PoracleWebNet.Core.Services;
 /// answer false with the reason, and the caller refuses the write; dropping the field silently would be #730
 /// all over again. The one exception is a property the target server's own
 /// <c>/openapi.json</c> declares on the rule: that is sent verbatim, so a field the v2 read copied through
-/// (the PGAN fork's <c>personal_shiny</c>) survives the edit that follows.
+/// (a personal-shiny PoracleNG's <c>personal_shiny</c>) survives the edit that follows.
 /// </para>
 /// </remarks>
 internal static class TrackingV2Translator
@@ -542,7 +542,7 @@ internal static class TrackingV2Translator
     /// <param name="serverDeclared">
     /// Every property name the target server's <c>/openapi.json</c> declares on this type's rule schema, or
     /// null when that could not be read. A property outside the field table is sent verbatim only when it is
-    /// in this set: that is how the PGAN fork's <c>personal_shiny</c>/<c>personal_background</c>, which the
+    /// in this set: that is how a personal-shiny PoracleNG's <c>personal_shiny</c>/<c>personal_background</c>, which the
     /// v2 read copies through, survive an edit. Undeclared, it would be a 422 under
     /// <c>additionalProperties: false</c>, so the row still declines.
     /// </param>
@@ -780,7 +780,7 @@ internal static class TrackingV2Translator
             if (serverDeclared is not null && serverDeclared.Contains(property.Name))
             {
                 // Not modelled here, but this server's own rule schema declares it: the read copied it
-                // through in the server's shape, so it goes back the same way. The PGAN fork's
+                // through in the server's shape, so it goes back the same way. A personal-shiny PoracleNG's
                 // personal_shiny/personal_background, and whatever a newer PoracleNG adds.
                 property.WriteTo(writer);
                 return true;
