@@ -304,10 +304,10 @@ public class UserRoleResolverTests
 
     /// <summary>
     /// The directory as PoracleNG would list it: two webhooks, a channel, a thread whose name collides with
-    /// a grant, and a Telegram channel.
+    /// a grant, and a Telegram channel. Passing rows replaces that list.
     /// </summary>
-    private void ArrangeDirectory() =>
-        this._directory.Setup(d => d.GetAsync()).ReturnsAsync(
+    private void ArrangeDirectory(params Human[] rows) =>
+        this._directory.Setup(d => d.GetAsync()).ReturnsAsync(rows.Length > 0 ? rows :
         [
             new Human { Id = TeamHarmonyRares, Name = "teamharmonyrares", Type = HumanKind.Webhook },
             new Human { Id = "https://discordapp.com/api/webhooks/863186778525925396/other", Name = "100iv", Type = HumanKind.Webhook },
@@ -426,6 +426,57 @@ public class UserRoleResolverTests
     public async Task ANameNeverResolvesToAThread()
     {
         this.ArrangeDelegate(["thread-only"]);
+
+        var roles = await this.CreateSut().ResolveAsync("u1");
+
+        Assert.Null(roles.ManagedDestinations);
+        Assert.True(roles.Resolved);
+    }
+
+    /// <summary>
+    /// Upstream's name lookup has no ORDER BY, so which row a shared name picks there is arbitrary. Here
+    /// it is fixed: a webhook wins, because every grant written before #1025 meant a webhook.
+    /// </summary>
+    [Fact]
+    public async Task AWebhookWinsANameSharedWithAChannel()
+    {
+        this.ArrangeDelegate(["shared"]);
+        this.ArrangeDirectory(
+            new Human { Id = RaidChannel, Name = "shared", Type = HumanKind.DiscordChannel },
+            new Human { Id = TeamHarmonyRares, Name = "shared", Type = HumanKind.Webhook });
+
+        var roles = await this.CreateSut().ResolveAsync("u1");
+
+        Assert.Equal([TeamHarmonyRares], roles.ManagedDestinations);
+    }
+
+    /// <summary>
+    /// With no webhook to prefer, two channels sharing a name leave nothing to choose between. Picking one
+    /// would hand over whichever PoracleNG happened to list first, so the grant is dropped.
+    /// </summary>
+    [Fact]
+    public async Task ANameSharedByTwoChannelsResolvesToNeither()
+    {
+        this.ArrangeDelegate(["shared"]);
+        this.ArrangeDirectory(
+            new Human { Id = RaidChannel, Name = "shared", Type = HumanKind.DiscordChannel },
+            new Human { Id = TelegramChannel, Name = "shared", Type = HumanKind.TelegramChannel });
+
+        var roles = await this.CreateSut().ResolveAsync("u1");
+
+        Assert.Null(roles.ManagedDestinations);
+        Assert.True(roles.Resolved);
+    }
+
+    /// <summary>
+    /// The directory asks for destination types only, but a server that ignores <c>?type=</c> would hand
+    /// back people too. A person is never a delegation target, whatever a grant says.
+    /// </summary>
+    [Fact]
+    public async Task APersonRowFromTheDirectoryIsNeverGranted()
+    {
+        this.ArrangeDelegate([], localGrants: ["123456789012345678"]);
+        this.ArrangeDirectory(new Human { Id = "123456789012345678", Name = "someone", Type = "discord:user" });
 
         var roles = await this.CreateSut().ResolveAsync("u1");
 

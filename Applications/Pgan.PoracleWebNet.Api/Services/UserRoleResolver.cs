@@ -266,8 +266,10 @@ public sealed partial class UserRoleResolver(
     /// <para>
     /// Ids match any destination in the directory. Names match only the types upstream resolves by name
     /// (<see cref="HumanKind.NameAddressable"/>), so a thread or topic that shares a name with a webhook
-    /// is never what the grant meant. Grants in <paramref name="byIdOnly"/> came from a list of ids and are
-    /// never read as names. See #1025.
+    /// is never what the grant meant. A name shared across types goes to the webhook; shared by two or more
+    /// other destinations and no webhook, it is dropped as ambiguous. Grants in <paramref name="byIdOnly"/>
+    /// came from a list of ids and are never read as names. Rows that are not one of the six destination
+    /// types are ignored outright. See #1025.
     /// </para>
     /// <para>
     /// A grant naming nothing is dropped rather than carried. It could never match a human row
@@ -289,25 +291,54 @@ public sealed partial class UserRoleResolver(
             return ([.. managed.Union(byIdOnly, StringComparer.OrdinalIgnoreCase)], false);
         }
 
-        var byName = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        // Upstream's name lookup has no ORDER BY, so which row a shared name lands on there is arbitrary.
+        // Here it is fixed: a webhook wins, since every grant written before #1025 meant one. Without a
+        // webhook, a name shared by two or more other destinations names none of them.
+        var webhookByName = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var otherByName = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
         var byId = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var destination in destinations)
+
+        // The directory asks for destination types only; this keeps a person out even if a server ignores
+        // the filter and lists everyone.
+        foreach (var destination in destinations.Where(d => HumanKind.IsKnownDestination(d.Type)))
         {
             byId[destination.Id] = destination.Id;
-            if (!string.IsNullOrWhiteSpace(destination.Name)
-                && destination.Type is { } type
-                && HumanKind.NameAddressable.Contains(type))
+            if (string.IsNullOrWhiteSpace(destination.Name) || !HumanKind.NameAddressable.Contains(destination.Type!))
             {
-                byName.TryAdd(destination.Name, destination.Id);
+                continue;
+            }
+
+            if (string.Equals(destination.Type, HumanKind.Webhook, StringComparison.OrdinalIgnoreCase))
+            {
+                webhookByName.TryAdd(destination.Name, destination.Id);
+            }
+            else if (otherByName.TryGetValue(destination.Name, out var ids))
+            {
+                ids.Add(destination.Id);
+            }
+            else
+            {
+                otherByName[destination.Name] = [destination.Id];
             }
         }
 
         var canonical = new HashSet<string>(StringComparer.Ordinal);
         foreach (var grant in managed)
         {
-            if (byId.TryGetValue(grant, out var id) || byName.TryGetValue(grant, out id))
+            if (byId.TryGetValue(grant, out var id) || webhookByName.TryGetValue(grant, out id))
             {
                 canonical.Add(id);
+            }
+            else if (otherByName.TryGetValue(grant, out var named))
+            {
+                if (named.Count == 1)
+                {
+                    canonical.Add(named[0]);
+                }
+                else
+                {
+                    LogAmbiguousGrant(this._logger, grant, named.Count);
+                }
             }
             else
             {
@@ -385,4 +416,8 @@ public sealed partial class UserRoleResolver(
     [LoggerMessage(Level = LogLevel.Information,
         Message = "Delegated grant {Grant} names no registered destination; ignoring it.")]
     private static partial void LogUnresolvedGrant(ILogger logger, string grant);
+
+    [LoggerMessage(Level = LogLevel.Information,
+        Message = "Delegated grant {Grant} names {Count} destinations and no webhook; ignoring it as ambiguous.")]
+    private static partial void LogAmbiguousGrant(ILogger logger, string grant, int count);
 }
