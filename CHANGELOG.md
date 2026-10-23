@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Rule repair no longer lists editable rules as "cannot edit".** The scan judged each rule without the fields PoracleNG's own schema declares, so a rule carrying a field PoracleWeb.NET doesn't model, such as a personal shiny flag on a PoracleNG that has them, was reported as one that needs fixing by hand. Editing those rules always worked. The scan and the repair now check against what the server declares; a field it doesn't declare is still reported.
+
 ## [3.0.0] - 2026-10-22
 
 ### Added
