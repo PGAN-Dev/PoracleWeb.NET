@@ -48,6 +48,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUserGeofenceRepository, UserGeofenceRepository>();
         services.AddScoped<ISiteSettingRepository, SiteSettingRepository>();
         services.AddScoped<IWebhookDelegateRepository, WebhookDelegateRepository>();
+        services.AddScoped<IAccountLinkRepository, AccountLinkRepository>();
         services.AddScoped<IQuickPickDefinitionRepository, QuickPickDefinitionRepository>();
         services.AddScoped<IQuickPickAppliedStateRepository, QuickPickAppliedStateRepository>();
         services.AddScoped<IOidcSessionRepository, OidcSessionRepository>();
