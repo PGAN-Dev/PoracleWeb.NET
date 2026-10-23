@@ -5,6 +5,7 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
+import { AuthService } from '../../../core/services/auth.service';
 import { MasterDataService } from '../../../core/services/masterdata.service';
 import { Mute, MuteService } from '../../../core/services/mute.service';
 import { ScannerService } from '../../../core/services/scanner.service';
@@ -51,6 +52,12 @@ export class QuietListSheetComponent {
   private readonly translate = inject(TranslateService);
 
   protected readonly mutes = inject(MuteService);
+
+  /**
+   * True while impersonating. MuteController refuses writes then, so the list is shown without its
+   * Resume buttons: an admin can still see why the account is getting nothing.
+   */
+  readonly readOnly = inject(AuthService).isImpersonating;
 
   readonly rows = computed<QuietRow[]>(() =>
     this.mutes.mutes().map(mute => ({

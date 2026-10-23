@@ -4,6 +4,7 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { TranslatePipe } from '@ngx-translate/core';
 
+import { AuthService } from '../../../core/services/auth.service';
 import { MuteScope, MuteService, QUIET_DURATIONS } from '../../../core/services/mute.service';
 
 export interface QuietSheetData {
@@ -38,9 +39,11 @@ export class QuietSheetComponent {
   private readonly mutes = inject(MuteService);
   readonly data = inject<QuietSheetData>(MAT_DIALOG_DATA);
   readonly dialogRef = inject<MatDialogRef<QuietSheetComponent, QuietSheetResult>>(MatDialogRef);
-
   readonly durations = QUIET_DURATIONS;
+
   readonly minutes = signal(this.data.currentMinutes ?? 60);
+  /** MuteController refuses writes while impersonating, so the sheet offers none then. */
+  readonly readOnly = inject(AuthService).isImpersonating;
 
   confirm(): void {
     this.dialogRef.close({ minutes: this.minutes(), type: 'quiet' });

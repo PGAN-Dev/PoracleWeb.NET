@@ -5,6 +5,7 @@ import { provideTranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
 
 import { QuietListSheetComponent } from './quiet-list-sheet.component';
+import { AuthService } from '../../../core/services/auth.service';
 import { MasterDataService } from '../../../core/services/masterdata.service';
 import { Mute, MuteService } from '../../../core/services/mute.service';
 import { ScannerService } from '../../../core/services/scanner.service';
@@ -14,6 +15,7 @@ describe('QuietListSheetComponent', () => {
   const resume = jest.fn(() => of(undefined));
   const resumeAll = jest.fn(() => of(undefined));
   const getGymById = jest.fn(() => of(null));
+  const impersonating = signal(false);
   let list = signal<Mute[]>([]);
   let names = signal(new Map<number, string>());
 
@@ -26,6 +28,7 @@ describe('QuietListSheetComponent', () => {
       providers: [
         provideTranslateService(),
         { provide: MatDialogRef, useValue: { close: jest.fn() } },
+        { provide: AuthService, useValue: { isImpersonating: impersonating } },
         {
           provide: MuteService,
           useValue: {
@@ -68,6 +71,7 @@ describe('QuietListSheetComponent', () => {
     resume.mockClear();
     resumeAll.mockClear();
     getGymById.mockClear();
+    impersonating.set(false);
   });
 
   /** An empty screen is an invitation, and the second line says where to go. */
@@ -155,5 +159,38 @@ describe('QuietListSheetComponent', () => {
 
     build([aMute(), aMute({ scope: 'area', value: 'Aberdeen' })]);
     expect(fixture.nativeElement.textContent).toContain('QUIET.RESUME_ALL');
+  });
+  it('offers resume on each row when signed in as yourself', () => {
+    build([aMute(), aMute({ scope: 'area', value: 'Aberdeen' })]);
+
+    expect(fixture.nativeElement.querySelectorAll('.quiet-row button')).toHaveLength(2);
+  });
+
+  /** MuteController refuses writes while impersonating; the list stays so an admin can see why. */
+  describe('while impersonating', () => {
+    beforeEach(() => impersonating.set(true));
+
+    it('lists every quiet period but offers no way to lift one', () => {
+      build([aMute(), aMute({ scope: 'area', value: 'Aberdeen' })]);
+
+      expect(fixture.nativeElement.querySelectorAll('.quiet-row')).toHaveLength(2);
+      expect(fixture.nativeElement.querySelectorAll('.quiet-row button')).toHaveLength(0);
+      expect(fixture.nativeElement.textContent).not.toContain('QUIET.RESUME_ALL');
+      expect(fixture.nativeElement.textContent).toContain('QUIET.READ_ONLY_IMPERSONATING');
+    });
+
+    it('does not say it is read-only when there is nothing to lift', () => {
+      build([]);
+
+      expect(fixture.nativeElement.textContent).not.toContain('QUIET.READ_ONLY_IMPERSONATING');
+    });
+
+    /** The hint says to quiet something from its card, which this session can't do. */
+    it('does not invite a quiet period when the list is empty', () => {
+      build([]);
+
+      expect(fixture.nativeElement.textContent).toContain('QUIET.EMPTY_TITLE');
+      expect(fixture.nativeElement.textContent).not.toContain('QUIET.EMPTY_HINT');
+    });
   });
 });

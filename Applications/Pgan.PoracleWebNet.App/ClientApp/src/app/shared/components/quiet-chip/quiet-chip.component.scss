@@ -15,6 +15,17 @@
   padding: 0.25rem 0.6rem;
 }
 
+// Impersonating: a countdown to read, not a control to press.
+.quiet-chip-readonly {
+  cursor: default;
+
+  // Focusable so the keyboard can reach the tooltip, which names the subject and the time left.
+  &:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+  }
+}
+
 // The same amber the active-hours chip uses for "scheduled, and temporary".
 .quiet-chip-on {
   background: #fef3c7;
