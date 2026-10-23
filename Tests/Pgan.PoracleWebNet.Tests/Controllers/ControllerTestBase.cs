@@ -6,6 +6,15 @@ namespace Pgan.PoracleWebNet.Tests.Controllers;
 
 public abstract class ControllerTestBase
 {
+    /// <summary>The router a caller with no link gets: every call passes straight through to the service.</summary>
+    protected static Pgan.PoracleWebNet.Core.Services.LinkedAlarmRouter UnlinkedRouter()
+    {
+        var linked = new Moq.Mock<Pgan.PoracleWebNet.Core.Abstractions.Services.ILinkedAccount>();
+        linked.Setup(l => l.ResolveAsync(Moq.It.IsAny<string>()))
+            .Returns((string id) => Task.FromResult(Pgan.PoracleWebNet.Core.Models.LinkedPair.Single(id)));
+        return new Pgan.PoracleWebNet.Core.Services.LinkedAlarmRouter(linked.Object);
+    }
+
     protected static void SetupUser(ControllerBase controller, string userId = "123456789", int profileNo = 1, bool isAdmin = false, string username = "TestUser", string[]? managedWebhooks = null, string? impersonatedBy = null)
     {
         var claims = new List<Claim>

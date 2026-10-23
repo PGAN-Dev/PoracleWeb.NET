@@ -70,6 +70,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMaxBattleService, MaxBattleService>();
         services.AddScoped<IHumanService, HumanService>();
         services.AddScoped<ILinkedAccount, LinkedAccount>();
+        services.AddScoped<LinkedAlarmRouter>();
         services.AddScoped<IUserPurgeService, UserPurgeService>();
         services.AddScoped<IProfileService, ProfileService>();
         services.AddScoped<IDashboardService, DashboardService>();

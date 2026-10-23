@@ -13,7 +13,7 @@ public class InvasionControllerTests : ControllerTestBase
 
     public InvasionControllerTests()
     {
-        this._sut = new InvasionController(this._service.Object);
+        this._sut = new InvasionController(this._service.Object, UnlinkedRouter());
         SetupUser(this._sut);
     }
 

@@ -3,27 +3,29 @@ using Pgan.PoracleWebNet.Api.Filters;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Mappings;
 using Pgan.PoracleWebNet.Core.Models;
+using Pgan.PoracleWebNet.Core.Services;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/raids")]
 [RequireFeatureEnabled(DisableFeatureKeys.Raids)]
 [TypeFilter(typeof(PoracleUnreachableExceptionFilter))]
-public class RaidController(IRaidService raidService) : BaseApiController
+public class RaidController(IRaidService raidService, LinkedAlarmRouter router) : BaseApiController
 {
     private readonly IRaidService _raidService = raidService;
+    private readonly LinkedAlarmRouter _router = router;
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var raids = await this._raidService.GetByUserAsync(this.UserId, this.ProfileNo);
+        var raids = await this._router.ListAsync(this._raidService, this.UserId, this.ProfileNo);
         return this.Ok(raids);
     }
 
     [HttpGet("{uid:int}")]
     public async Task<IActionResult> GetByUid(int uid)
     {
-        var raid = await this._raidService.GetByUidAsync(this.UserId, uid);
+        var raid = (await this._router.FindAsync(this._raidService, this.UserId, uid))?.Model;
         if (raid == null)
         {
             return this.NotFound();
@@ -39,7 +41,9 @@ public class RaidController(IRaidService raidService) : BaseApiController
         // Deliberately not stamped from the JWT claim: writes no longer carry profile_no, so
         // PoracleNG files the alarm under the live current_profile_no. Echoing a possibly-stale
         // claim back would assert a profile the row was never written to. See #411.
-        var result = await this._raidService.CreateAsync(this.UserId, raid);
+        var target = await this._router.CreateTargetAsync(this.UserId, model.Destination);
+        var result = await this._raidService.CreateAsync(target, raid);
+        this._router.StampCreated(result, target);
 
         // PoracleNG assigns no uid when the submission duplicates an alarm the user already has, so
         // nothing was created. Answering 201 with a Location of /0 advertised a resource that 404s.
@@ -57,11 +61,13 @@ public class RaidController(IRaidService raidService) : BaseApiController
     [HttpPut("{uid:int}")]
     public async Task<IActionResult> Update(int uid, [FromBody] RaidUpdate model)
     {
-        var existing = await this._raidService.GetByUidAsync(this.UserId, uid);
-        if (existing == null)
+        var found = await this._router.FindAsync(this._raidService, this.UserId, uid);
+        if (found is null)
         {
             return this.NotFound();
         }
+
+        var (existing, ownerId) = found.Value;
 
         // Nothing to write means nothing to send: see LeavesAlarmUnchanged.
         if (LeavesAlarmUnchanged(existing, () =>
@@ -73,27 +79,30 @@ public class RaidController(IRaidService raidService) : BaseApiController
             return this.Ok(existing);
         }
 
-        var result = await this._raidService.UpdateAsync(this.UserId, existing);
+        var result = await this._raidService.UpdateAsync(ownerId, existing);
+        this._router.Stamp(result, ownerId);
         return this.Ok(result);
     }
 
     [HttpDelete("{uid:int}")]
     public async Task<IActionResult> Delete(int uid)
     {
-        var existing = await this._raidService.GetByUidAsync(this.UserId, uid);
-        if (existing == null)
+        var found = await this._router.FindAsync(this._raidService, this.UserId, uid);
+        if (found is null)
         {
             return this.NotFound();
         }
 
-        await this._raidService.DeleteAsync(this.UserId, uid);
+        var ownerId = found.Value.OwnerId;
+
+        await this._raidService.DeleteAsync(ownerId, uid);
         return this.NoContent();
     }
 
     [HttpDelete]
     public async Task<IActionResult> DeleteAll()
     {
-        var count = await this._raidService.DeleteAllByUserAsync(this.UserId, this.ProfileNo);
+        var count = await this._router.DeleteAllAsync(this._raidService, this.UserId, this.ProfileNo);
         return this.Ok(new
         {
             deleted = count
@@ -103,7 +112,7 @@ public class RaidController(IRaidService raidService) : BaseApiController
     [HttpPut("distance/bulk")]
     public async Task<IActionResult> UpdateBulkDistance([FromBody] BulkDistanceRequest request)
     {
-        var result = await this._raidService.UpdateDistanceByUidsAsync(request.Uids, this.UserId, request.Distance);
+        var result = await this._router.UpdateDistanceByUidsAsync(this._raidService, this.UserId, request.Uids, request.Distance);
         return this.DistanceUpdated(result);
     }
 
@@ -116,7 +125,7 @@ public class RaidController(IRaidService raidService) : BaseApiController
             return invalid;
         }
 
-        var result = await this._raidService.UpdateDistanceByUserAsync(this.UserId, this.ProfileNo, distance);
+        var result = await this._router.UpdateDistanceAllAsync(this._raidService, this.UserId, this.ProfileNo, distance);
         return this.DistanceUpdated(result);
     }
 }

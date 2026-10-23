@@ -68,4 +68,11 @@ public class FortChangeUpdate
     {
         get; set;
     }
+
+    /// <summary>"discord" or "telegram": which of a linked pair's humans takes the alarm. Ignored when unlinked.</summary>
+    [StringLength(16)]
+    public string? Destination
+    {
+        get; set;
+    }
 }
