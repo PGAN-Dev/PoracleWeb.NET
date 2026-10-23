@@ -18,6 +18,7 @@ function user(id: string, name: string, type = 'discord:user'): AdminUser {
     currentProfileNo: 1,
     disabledDate: null,
     enabled: 1,
+    kind: type === 'discord:user' ? 'person' : 'destination',
     language: null,
     lastChecked: null,
     notes: null,

@@ -293,6 +293,8 @@ export interface AdminUser {
   disabledDate: string | null;
   enabled: number;
   id: string;
+  /** Stamped by the API from `type`: a person signs in, a destination is a webhook, channel, group, thread or topic. */
+  kind: 'destination' | 'person';
   language: string | null;
   lastChecked: string | null;
   name: string | null;

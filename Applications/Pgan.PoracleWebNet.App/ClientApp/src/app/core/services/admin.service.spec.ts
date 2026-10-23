@@ -31,6 +31,7 @@ describe('AdminService', () => {
     currentProfileNo: 1,
     disabledDate: null,
     enabled: 1,
+    kind: 'person',
     language: 'en',
     lastChecked: null,
     notes: null,

@@ -51,7 +51,8 @@ public class AdminControllerTests : ControllerTestBase
     {
         this._humanService.Setup(s => s.GetByIdAsync(webhookId))
             .ReturnsAsync(new Human { Id = webhookId, Type = "webhook" });
-        this._humanService.Setup(s => s.ExistsAsync(userId)).ReturnsAsync(true);
+        this._humanService.Setup(s => s.GetByIdAsync(userId))
+            .ReturnsAsync(new Human { Id = userId, Type = "discord:user" });
     }
 
     // --- GetUserAvatars (#395) ---
@@ -133,6 +134,26 @@ public class AdminControllerTests : ControllerTestBase
 
         var result = await this._sut.GetAllUsers();
         Assert.IsType<OkObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task GetAllUsersStampsEachRowsKind()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this._humanService.Setup(s => s.GetAllAsync()).ReturnsAsync(
+        [
+            new() { Id = "a", Type = "discord:user" },
+            new() { Id = "b", Type = "webhook" },
+            new() { Id = "c", Type = "telegram:group" },
+            new() { Id = "d", Type = "x:unknown" },
+            new() { Id = "e", Type = null }
+        ]);
+
+        var result = await this._sut.GetAllUsers();
+
+        var rows = Assert.IsAssignableFrom<IEnumerable<object>>(Assert.IsType<OkObjectResult>(result).Value);
+        var kinds = rows.Select(r => (string?)r.GetType().GetProperty("Kind")?.GetValue(r)).ToArray();
+        Assert.Equal(["person", "destination", "destination", "destination", "person"], kinds);
     }
 
     // --- GetUser ---
@@ -722,13 +743,41 @@ public class AdminControllerTests : ControllerTestBase
         SetupUser(this._sut, isAdmin: true);
         this._humanService.Setup(s => s.GetByIdAsync("wh1"))
             .ReturnsAsync(new Human { Id = "wh1", Type = "webhook" });
-        this._humanService.Setup(s => s.ExistsAsync("ghost")).ReturnsAsync(false);
+        this._humanService.Setup(s => s.GetByIdAsync("ghost")).ReturnsAsync((Human?)null);
 
         var result = await this._sut.AddWebhookDelegate(new AdminController.WebhookDelegateRequest("wh1", "ghost"));
 
         Assert.IsType<BadRequestObjectResult>(result);
         this._webhookDelegateService.Verify(
             s => s.AddDelegateAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task AddWebhookDelegateRefusesAChannelAsGrantee()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this.GivenWebhookAndUserExist();
+        this._humanService.Setup(s => s.GetByIdAsync("u2"))
+            .ReturnsAsync(new Human { Id = "u2", Type = "discord:channel" });
+
+        var result = await this._sut.AddWebhookDelegate(new AdminController.WebhookDelegateRequest("wh1", "u2"));
+
+        var bad = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal("userId does not name a person.", bad.Value?.GetType().GetProperty("error")?.GetValue(bad.Value));
+        this._webhookDelegateService.Verify(
+            s => s.AddDelegateAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task AddWebhookDelegateStillGrantsADiscordUser()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this.GivenWebhookAndUserExist();
+        this._webhookDelegateService.Setup(s => s.AddDelegateAsync("wh1", "u2")).ReturnsAsync(["u2"]);
+
+        var result = await this._sut.AddWebhookDelegate(new AdminController.WebhookDelegateRequest("wh1", "u2"));
+
+        Assert.IsType<OkObjectResult>(result);
     }
 
     [Fact]

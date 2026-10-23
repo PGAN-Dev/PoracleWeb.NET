@@ -20,6 +20,7 @@ function row(id: string, overrides: Partial<AdminUser> = {}): AdminUser {
     currentProfileNo: 1,
     disabledDate: null,
     enabled: 1,
+    kind: 'person',
     language: null,
     lastChecked: null,
     notes: null,
