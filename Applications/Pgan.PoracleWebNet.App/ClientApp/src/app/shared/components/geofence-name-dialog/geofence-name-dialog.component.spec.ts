@@ -295,8 +295,8 @@ describe('GeofenceNameDialogComponent', () => {
 
     it('should map regions to RegionOption format', () => {
       expect(component.regionOptions).toHaveLength(2);
-      expect(component.regionOptions[0]).toEqual({ id: 1, label: 'Downtown', shortLabel: 'Downtown' });
-      expect(component.regionOptions[1]).toEqual({ id: 2, label: 'Suburbs', shortLabel: 'Suburbs' });
+      expect(component.regionOptions[0]).toEqual({ id: 1, label: 'Downtown' });
+      expect(component.regionOptions[1]).toEqual({ id: 2, label: 'Suburbs' });
     });
   });
 });
