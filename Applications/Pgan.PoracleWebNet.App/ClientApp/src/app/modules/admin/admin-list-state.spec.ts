@@ -71,6 +71,31 @@ describe('AdminListState', () => {
     expect(new AdminListState(rows, 'p_', sortValue).typesPresent()).toEqual(['telegram:group', 'webhook']);
   });
 
+  // The last telegram group was deleted, or the remembered choice came from another session: filtering
+  // on a type nobody has left an empty list with no chip selected to explain it.
+  it('ignores a remembered type that no row carries any more', () => {
+    sessionStorage.setItem('p_type', 'telegram:group');
+    const rows = signal([row('a', { type: 'webhook' }), row('b', { type: 'discord:channel' })]);
+    const s = new AdminListState(rows, 'p_', sortValue);
+
+    expect(s.activeType()).toBe('all');
+    expect(s.filtered().map(r => r.id)).toEqual(['a', 'b']);
+
+    // Not wiped, though: rows arrive empty before the first load, and the choice must survive that.
+    rows.set([...rows(), row('c', { type: 'telegram:group' })]);
+    expect(s.activeType()).toBe('telegram:group');
+    expect(s.filtered().map(r => r.id)).toEqual(['c']);
+  });
+
+  it('resetPage goes to the first page and remembers it', () => {
+    const s = new AdminListState(signal([row('a')]), 'p_', sortValue);
+    s.setPage(3, 10);
+    s.resetPage();
+    expect(s.pageIndex()).toBe(0);
+    expect(sessionStorage.getItem('p_pageIndex')).toBe('0');
+    expect(s.pageSize()).toBe(10);
+  });
+
   it('filters by status, sorts and pages', () => {
     const rows = signal([row('b', { enabled: 0 }), row('a'), row('c', { adminDisable: 1 })]);
     const s = new AdminListState(rows, 'p_', sortValue);

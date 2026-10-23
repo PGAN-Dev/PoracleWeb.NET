@@ -30,7 +30,7 @@ describe('DestinationDelegatesDialogComponent', () => {
   const webhook = user('https://example.com/hook', 'Hook', 'webhook');
   const sam = user('222', 'Sam');
 
-  function setup() {
+  function setup(allUsers: AdminUser[] = [webhook, sam]) {
     const adminService = {
       addWebhookDelegate: jest.fn(() => of(['222'])),
       getWebhookDelegates: jest.fn(() => of([] as string[])),
@@ -43,7 +43,7 @@ describe('DestinationDelegatesDialogComponent', () => {
         provideTranslateService(),
         { provide: AdminService, useValue: adminService },
         { provide: MatDialogRef, useValue: { close: jest.fn() } },
-        { provide: MAT_DIALOG_DATA, useValue: { allUsers: [webhook, sam], poracleAdmins: [], porocleDelegates: [], webhook } },
+        { provide: MAT_DIALOG_DATA, useValue: { allUsers, poracleAdmins: [], porocleDelegates: [], webhook } },
       ],
       imports: [DestinationDelegatesDialogComponent, NoopAnimationsModule],
     });
@@ -55,6 +55,22 @@ describe('DestinationDelegatesDialogComponent', () => {
   }
 
   afterEach(() => TestBed.resetTestingModule());
+
+  // A channel or an unknown type is not somebody who can sign in, so granting it a destination grants nobody.
+  it('offers only people as delegates', () => {
+    const { component } = setup([
+      webhook,
+      sam,
+      user('-1001234567890', 'Sam group', 'telegram:group'),
+      user('333', 'Sam channel', 'discord:channel'),
+      user('444', 'Sam odd', 'x:unknown'),
+      { ...user('555', 'Sam legacy'), type: null },
+    ]);
+
+    component.onSearchChange('sam');
+
+    expect(component.filteredUsers().map(u => u.id)).toEqual(['222', '555']);
+  });
 
   /** "Sam" was sent as a user id and refused with a 400 behind a generic toast. */
   it('does not send free text as a user id', () => {

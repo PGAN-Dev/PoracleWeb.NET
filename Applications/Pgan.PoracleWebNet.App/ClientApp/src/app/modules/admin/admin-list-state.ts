@@ -44,6 +44,8 @@ function readInt(key: string, fallback: number): number {
  * fix to any of them reaches both pages. `storagePrefix` keeps each page's paging and type choice apart.
  */
 export class AdminListState<T extends AdminUser> {
+  /** The type actually filtered on: `typeFilter`, or 'all' when no row carries that type. */
+  readonly activeType: Signal<string>;
   readonly filtered: Signal<T[]>;
   readonly page: Signal<T[]>;
   readonly pageIndex: WritableSignal<number>;
@@ -74,10 +76,17 @@ export class AdminListState<T extends AdminUser> {
 
     this.typesPresent = computed(() => [...new Set(rows().map(r => (r.type ?? '').trim().toLowerCase()))].filter(t => t.length > 0).sort());
 
+    // A remembered type no row carries any more filters to 'all' rather than to an empty list. The stored
+    // choice is left alone: rows are empty until the first load, and that must not wipe it.
+    this.activeType = computed(() => {
+      const kind = this.typeFilter();
+      return kind !== 'all' && this.typesPresent().includes(kind) ? kind : 'all';
+    });
+
     this.filtered = computed(() => {
       const term = this.searchTerm().toLowerCase().trim();
       const status = this.statusFilter();
-      const kind = this.typeFilter();
+      const kind = this.activeType();
       let list = rows();
 
       if (term) {
@@ -120,6 +129,11 @@ export class AdminListState<T extends AdminUser> {
       const start = this.pageIndex() * this.pageSize();
       return this.filtered().slice(start, start + this.pageSize());
     });
+  }
+
+  /** Back to the first page, remembered, after anything that changes which rows match. */
+  resetPage(): void {
+    this.setPage(0, this.pageSize());
   }
 
   /** Records the paginator's position and remembers it for the session. */
