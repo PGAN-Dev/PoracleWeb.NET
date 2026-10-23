@@ -92,7 +92,7 @@ interface RegionEntry {
   areaCount: number;
   groups: string[];
   label: string;
-  shortLabel: string;
+  ungrouped: boolean;
 }
 
 /**
@@ -180,7 +180,7 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     return this.regions().map(r => ({
       count: r.areaCount,
       label: r.label,
-      shortLabel: r.shortLabel,
+      ungrouped: r.ungrouped,
     }));
   });
 
@@ -417,15 +417,15 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   }
 
   private buildRegions(): void {
-    // Group names follow pattern "US - State - City" (3 parts) or "KOR - City" (2 parts)
-    // Region = full group name (all 3 parts for US, all 2 parts for KOR/AUS)
+    // One region per group name. The picker builds its own headings from the names (#1029).
+    const ungroupedLabel = this.i18n.instant('AREAS.GROUP_UNGROUPED');
     const regionMap = new Map<string, Set<string>>();
     const areaCountMap = new Map<string, number>();
 
     // Only include regions that have geofence polygons available to this user
     for (const fence of this.geofence) {
       const group = this.groupMapping.get(fence.name) || '';
-      const regionKey = group || 'Other';
+      const regionKey = group || ungroupedLabel;
 
       if (!regionMap.has(regionKey)) {
         regionMap.set(regionKey, new Set());
@@ -437,13 +437,11 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
 
     const regions: RegionEntry[] = [];
     regionMap.forEach((groups, label) => {
-      const parts = label.split(' - ');
-      const shortLabel = parts.length >= 3 ? parts.slice(2).join(' - ') : parts.length >= 2 ? parts[1] : label;
       regions.push({
         areaCount: areaCountMap.get(label) || 0,
         groups: [...groups],
         label,
-        shortLabel,
+        ungrouped: groups.has(''),
       });
     });
 

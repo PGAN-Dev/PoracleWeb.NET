@@ -1452,6 +1452,7 @@
     "FOOTER": "Verwalte Alarme für Pokémon, Raids, Quests und mehr",
     "AUTH_FAILED": "Authentifizierung fehlgeschlagen",
     "BACK_TO_LOGIN": "Zurück zur Anmeldung",
+    "ERR_DESTINATION_ACCOUNT": "Diese Anmeldung gehört zu einem Kanal oder Webhook in Poracle, nicht zu einer Person. Melde dich mit deinem eigenen Konto an.",
     "ERR_DISCORD_DISABLED": "Die Discord-Anmeldung ist derzeit deaktiviert.",
     "ERR_DISCORD_FETCH": "Dein Discord-Profil konnte nicht abgerufen werden. Bitte versuche es erneut.",
     "ERR_MISSING_CODE": "Die Discord-Anmeldung wurde abgebrochen oder ist fehlgeschlagen.",

@@ -51,7 +51,6 @@ export class GeofenceNameDialogComponent {
   readonly regionOptions: RegionOption[] = this.data.regions.map(r => ({
     id: r.id,
     label: r.displayName,
-    shortLabel: r.displayName,
   }));
 
   // When Koji defines no regions (a flat project), there is nothing to pick — hide the region UI

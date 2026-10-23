@@ -38,6 +38,7 @@ export class AuthService {
    * travels here rather than through the normal settings fetch because that read is signed-in only
    * (`SettingsController.UserVisibleKeys`), and the one person who needs it here is not. See #911.
    */
+  private readonly _destinationRefused = signal(false);
   private readonly _disabledAccountInfo = signal<{ supportUrl: string | null } | null>(null);
   private readonly _isImpersonating = signal(!!localStorage.getItem(ADMIN_TOKEN_KEY));
   private readonly _profileResynced = signal(false);
@@ -139,6 +140,14 @@ export class AuthService {
       return;
     }
 
+    // A channel or webhook row is not a person. The API refuses it with its own code, so the login page
+    // can say why rather than leave a dead token to 401 on the dashboard. See #1025.
+    if (this._destinationRefused()) {
+      this.clearSession();
+      window.location.href = '/login#error=destination_account';
+      return;
+    }
+
     // Load site settings now that we have a valid token — the initial loadOnce()
     // in App.ngOnInit() fires before the token is stored, so settings (including
     // custom_title) fail silently and never reload.
@@ -185,6 +194,7 @@ export class AuthService {
             // that fallback had just restored, one line after it was written. See #706, #616.
             this.currentUser.set(null);
             this._disabledAccountInfo.set(err.error?.code === 'account_disabled' ? { supportUrl: err.error?.supportUrl ?? null } : null);
+            this._destinationRefused.set(err.error?.code === 'destination_account');
           }
           this.userLoaded$.next(null);
           resolve(null);
