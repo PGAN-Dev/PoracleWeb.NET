@@ -6,9 +6,11 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDialog, MatDialogModule, MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { MatDividerModule } from '@angular/material/divider';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatRadioModule } from '@angular/material/radio';
@@ -29,6 +31,33 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/componen
 import { DESTINATION_KINDS, isKnownKind, isPersonType, kindIcon, kindLabelKey, takesDelegates } from '../../shared/utils/human-kind';
 import { relativeTime } from '../../shared/utils/relative-time';
 import { serverReason } from '../../shared/utils/server-reason';
+
+/**
+ * A webhook URL with its secret token cut off: the host and, for a Discord-style URL, the webhook number.
+ * Anything after that number, and the whole path of any other URL, is dropped rather than shortened,
+ * since the token is usually the last segment. The full URL stays reachable only through Copy ID.
+ */
+export function shortWebhookUrl(url: string): string {
+  let parsed: URL;
+  try {
+    parsed = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(url) ? url : `https://${url}`);
+  } catch {
+    return '…';
+  }
+  if (!parsed.host || /\s/.test(url)) return '…';
+  const segments = parsed.pathname.split('/').filter(Boolean);
+  const hooks = segments.findIndex(s => s.toLowerCase() === 'webhooks');
+  if (hooks >= 0 && /^\d+$/.test(segments[hooks + 1] ?? '')) {
+    return `${parsed.host}/${segments.slice(0, hooks + 2).join('/')}…`;
+  }
+  return segments.length ? `${parsed.host}/…` : parsed.host;
+}
+
+/** What to call a row in a message: its name, else its id, except that a webhook id is a secret and is shortened. */
+export function destinationName(row: AdminUser): string {
+  if (row.name) return row.name;
+  return (row.type ?? '').trim().toLowerCase() === 'webhook' ? shortWebhookUrl(row.id) : row.id;
+}
 
 // ─── Add Destination Dialog ───────────────────────────────────────────────────────
 
@@ -65,7 +94,9 @@ const KIND_GROUPS: readonly (readonly string[])[] = [
 /**
  * Asks what kind of destination first, then for the id that kind is addressed by: a URL for a webhook, a
  * snowflake for a Discord channel or thread, a negative chat id for Telegram, and for a topic the chat id
- * and the topic number, joined as `chat:topic`. Closes with the create request. See #1025.
+ * and the topic number, joined as `chat:topic`. Saves the destination itself and closes with the request
+ * only once the server has accepted it: a refusal keeps everything typed and shows the reason on the id
+ * field (the chat field for a topic), where it can be corrected. See #1025.
  */
 @Component({
   imports: [
@@ -75,6 +106,7 @@ const KIND_GROUPS: readonly (readonly string[])[] = [
     MatFormFieldModule,
     MatInputModule,
     MatIconModule,
+    MatProgressSpinnerModule,
     MatRadioModule,
     TranslatePipe,
   ],
@@ -84,8 +116,10 @@ const KIND_GROUPS: readonly (readonly string[])[] = [
   templateUrl: './add-destination-dialog.component.html',
 })
 export class AddDestinationDialogComponent {
+  private readonly adminService = inject(AdminService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly fb = inject(FormBuilder);
+  private readonly i18n = inject(I18nService);
   readonly dialogRef = inject(MatDialogRef<AddDestinationDialogComponent>);
 
   readonly form = this.fb.nonNullable.group({
@@ -101,9 +135,15 @@ export class AddDestinationDialogComponent {
   readonly kindGroups = KIND_GROUPS;
   readonly kindIcon = kindIcon;
   readonly kindLabelKey = kindLabelKey;
+  readonly saving = signal(false);
 
   constructor() {
-    this.form.controls.kind.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(kind => this.onKindChange(kind));
+    const { chatId, kind, topicId } = this.form.controls;
+    kind.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(k => this.onKindChange(k));
+    // A topic's refusal sits on the chat field but is about the pair, so editing the topic number lifts it too.
+    topicId.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      if (chatId.hasError('server')) chatId.updateValueAndValidity();
+    });
   }
 
   /** The request the dialog closes with, or null while the form is incomplete. */
@@ -116,8 +156,46 @@ export class AddDestinationDialogComponent {
   }
 
   submit(): void {
+    if (this.saving()) return;
     const req = this.request();
-    if (req) this.dialogRef.close(req);
+    if (!req) return;
+
+    this.saving.set(true);
+    this.dialogRef.disableClose = true;
+    this.adminService
+      .createDestination(req)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        error: err => {
+          this.saving.set(false);
+          this.dialogRef.disableClose = false;
+          // Any edit re-runs the field's validators, which drops this error, so a corrected id can be sent.
+          const field = req.type === 'telegram:topic' ? this.form.controls.chatId : this.form.controls.id;
+          field.setErrors({ ...field.errors, server: this.failureMessage(err) });
+          field.markAsTouched();
+        },
+        next: () => this.dialogRef.close(req),
+      });
+  }
+
+  /**
+   * What to tell the admin when a create fails. A 409 names the row already holding the id, so an admin who
+   * pasted the wrong channel can tell it from one they added earlier; the server leaves the name and type
+   * out when it could not read that row, and then its own sentence is shown. A person holding the id is
+   * labelled as one, not as "Other". 502 is the #482 half-write
+   * answer ("Check the destination list before trying again"), which must reach the admin: a retry on the
+   * generic message can create a second row.
+   */
+  private failureMessage(err: unknown): string {
+    const failure = err as { error?: { name?: unknown; type?: unknown }; status?: unknown } | null | undefined;
+    const holder = failure?.error;
+    // The name is the signal that the server read the holder; a person's type can legitimately be null.
+    if (failure?.status === 409 && typeof holder?.name === 'string' && (typeof holder.type === 'string' || holder.type == null)) {
+      const type = typeof holder.type === 'string' ? holder.type : null;
+      const typeKey = isPersonType(type) ? 'ADMIN.TYPE_PERSON' : kindLabelKey(type);
+      return this.i18n.instant('ADMIN.DESTINATION_EXISTS', { name: holder.name, type: this.i18n.instant(typeKey) });
+    }
+    return serverReason(err, { allow5xx: [502] }) ?? this.i18n.instant('ADMIN.SNACK_FAILED_ADD_DESTINATION');
   }
 
   /** The name is kept; every id field is cleared, since an id for one kind is never right for another. */
@@ -146,7 +224,6 @@ export class AddDestinationDialogComponent {
 
 interface DelegatesDialogData {
   allUsers: AdminUser[];
-  poracleAdmins: string[];
   porocleDelegates: string[];
   webhook: AdminUser;
 }
@@ -181,6 +258,7 @@ export class DestinationDelegatesDialogComponent implements OnInit {
   readonly filteredUsers = signal<AdminUser[]>([]);
   readonly loading = signal(true);
   searchText = '';
+  readonly webhookName = destinationName(this.data.webhook);
 
   /**
    * The user the field names, once it names one: an option picked from the list fills in its id. Free
@@ -282,6 +360,8 @@ export class DestinationDelegatesDialogComponent implements OnInit {
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatDialogModule,
+    MatDividerModule,
+    MatMenuModule,
     MatTooltipModule,
     MatPaginatorModule,
     MatSortModule,
@@ -313,6 +393,8 @@ export class AdminDestinationsComponent implements OnInit {
   readonly columns = ['name', 'type', 'id', 'enabled', 'disabledSince', 'delegates', 'actions'];
 
   readonly isKnownKind = isKnownKind;
+  /** The id of the destination just added, so the table can turn to its page and mark it. */
+  readonly justAdded = signal<string | null>(null);
   readonly kindIcon = kindIcon;
   readonly kindLabelKey = kindLabelKey;
   readonly list = new AdminListState(this.destinations, 'admin_destinations_', (row, column) => this.getSortValue(row, column));
@@ -333,7 +415,7 @@ export class AdminDestinationsComponent implements OnInit {
   }
 
   deleteAlarms(user: AdminUser): void {
-    const name = user.name || user.id;
+    const name = this.rowName(user);
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
         confirmText: this.i18n.instant('COMMON.DELETE_ALL'),
@@ -360,9 +442,16 @@ export class AdminDestinationsComponent implements OnInit {
   }
 
   deleteDestination(user: AdminUser): void {
-    const name = user.name || user.id;
+    const name = this.rowName(user);
     let message = this.i18n.instant('ADMIN.CONFIRM_DELETE_DESTINATION', { name });
-    if (!this.isWebhook(user)) message += ' ' + this.i18n.instant('ADMIN.DELETE_DESTINATION_NOTE');
+    // Deleting the row never touches the channel or group it posts into; say which one that is.
+    if (!this.isWebhook(user)) {
+      message +=
+        ' ' +
+        (isKnownKind(user.type)
+          ? this.i18n.instant('ADMIN.DELETE_DESTINATION_KIND_NOTE', { kind: this.i18n.instant(kindLabelKey(user.type)) })
+          : this.i18n.instant('ADMIN.DELETE_DESTINATION_NOTE'));
+    }
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
         confirmText: this.i18n.instant('ADMIN.DELETE_DESTINATION'),
@@ -450,6 +539,7 @@ export class AdminDestinationsComponent implements OnInit {
           this.poracleAdmins.set(poracleAdmins);
           this.porocleDelegates.set(porocleDelegates);
           this.usersLoading.set(false);
+          this.revealJustAdded();
         },
       });
   }
@@ -505,25 +595,18 @@ export class AdminDestinationsComponent implements OnInit {
     this.list.resetPage();
   }
 
+  /** The dialog saves the destination itself and closes with it only once the server has accepted it. */
   openAddDialog(): void {
     const ref = this.dialog.open<AddDestinationDialogComponent, unknown, CreateDestinationRequest | null>(AddDestinationDialogComponent, {
       width: '520px',
     });
-    ref.afterClosed().subscribe(result => {
-      if (result) {
-        this.adminService
-          .createDestination(result)
-          .pipe(takeUntilDestroyed(this.destroyRef))
-          .subscribe({
-            error: err => this.snackBar.open(this.addFailureMessage(err), this.i18n.instant('TOAST.OK'), { duration: 4000 }),
-            next: () => {
-              this.snackBar.open(this.i18n.instant('ADMIN.SNACK_DESTINATION_ADDED', { name: result.name }), this.i18n.instant('TOAST.OK'), {
-                duration: 3000,
-              });
-              this.loadUsers();
-            },
-          });
-      }
+    ref.afterClosed().subscribe(created => {
+      if (!created) return;
+      this.justAdded.set(created.id);
+      this.snackBar.open(this.i18n.instant('ADMIN.SNACK_DESTINATION_ADDED', { name: created.name }), this.i18n.instant('TOAST.OK'), {
+        duration: 3000,
+      });
+      this.loadUsers();
     });
   }
 
@@ -532,7 +615,6 @@ export class AdminDestinationsComponent implements OnInit {
       width: '520px',
       data: {
         allUsers: this.allUsers(),
-        poracleAdmins: this.poracleAdmins(),
         porocleDelegates: this.porocleDelegates()[webhook.id] ?? [],
         webhook,
       } satisfies DelegatesDialogData,
@@ -558,7 +640,7 @@ export class AdminDestinationsComponent implements OnInit {
         error: err => this.showFailure(err, 'ADMIN.SNACK_FAILED_STOP'),
         next: updated => {
           this.allUsers.update(users => users.map(u => (u.id === user.id ? { ...u, enabled: updated.enabled } : u)));
-          this.snackBar.open(this.i18n.instant('ADMIN.SNACK_STOPPED', { name: user.name || user.id }), this.i18n.instant('TOAST.OK'), {
+          this.snackBar.open(this.i18n.instant('ADMIN.SNACK_STOPPED', { name: this.rowName(user) }), this.i18n.instant('TOAST.OK'), {
             duration: 3000,
           });
         },
@@ -578,11 +660,16 @@ export class AdminDestinationsComponent implements OnInit {
         error: err => this.showFailure(err, 'ADMIN.SNACK_FAILED_START'),
         next: updated => {
           this.allUsers.update(users => users.map(u => (u.id === user.id ? { ...u, enabled: updated.enabled } : u)));
-          this.snackBar.open(this.i18n.instant('ADMIN.SNACK_STARTED', { name: user.name || user.id }), this.i18n.instant('TOAST.OK'), {
+          this.snackBar.open(this.i18n.instant('ADMIN.SNACK_STARTED', { name: this.rowName(user) }), this.i18n.instant('TOAST.OK'), {
             duration: 3000,
           });
         },
       });
+  }
+
+  /** A row's name for messages and labels, never a webhook's token. */
+  rowName(row: AdminUser): string {
+    return destinationName(row);
   }
 
   toggleBlock(user: AdminUser, unblock: boolean): void {
@@ -592,9 +679,10 @@ export class AdminDestinationsComponent implements OnInit {
       error: err => this.showFailure(err, 'ADMIN.SNACK_FAILED_BLOCK'),
       next: updated => {
         this.allUsers.update(users => users.map(u => (u.id === user.id ? { ...u, adminDisable: updated.adminDisable } : u)));
-        const name = user.name || user.id;
+        // Users' "User blocked" named nobody, and a destination is not a user.
+        const name = this.rowName(user);
         this.snackBar.open(
-          this.i18n.instant(unblock ? 'ADMIN.SNACK_UNBLOCKED' : 'ADMIN.SNACK_BLOCKED', { name }),
+          this.i18n.instant(unblock ? 'ADMIN.SNACK_DESTINATION_UNBLOCKED' : 'ADMIN.SNACK_DESTINATION_BLOCKED', { name }),
           this.i18n.instant('TOAST.OK'),
           { duration: 3000 },
         );
@@ -602,34 +690,9 @@ export class AdminDestinationsComponent implements OnInit {
     });
   }
 
+  /** The ID cell for a webhook. This used to keep the last 20 characters, which is exactly the token. */
   truncateUrl(url: string): string {
-    try {
-      const u = new URL(url);
-      const path = u.pathname.length > 24 ? '…' + u.pathname.slice(-20) : u.pathname;
-      return `${u.hostname}${path}`;
-    } catch {
-      return url.length > 40 ? url.slice(0, 37) + '…' : url;
-    }
-  }
-
-  /**
-   * What to tell the admin when a create fails. A 409 names the row already holding the id, so an admin who
-   * pasted the wrong channel can tell it from one they added earlier; the server leaves the name and type
-   * out when it could not read that row, and then its own sentence is shown. A person holding the id is
-   * labelled as one, not as "Other". 502 is the #482 half-write
-   * answer ("Check the destination list before trying again"), which must reach the admin: a retry on the
-   * generic message can create a second row.
-   */
-  private addFailureMessage(err: unknown): string {
-    const failure = err as { error?: { name?: unknown; type?: unknown }; status?: unknown } | null | undefined;
-    const holder = failure?.error;
-    // The name is the signal that the server read the holder; a person's type can legitimately be null.
-    if (failure?.status === 409 && typeof holder?.name === 'string' && (typeof holder.type === 'string' || holder.type == null)) {
-      const type = typeof holder.type === 'string' ? holder.type : null;
-      const typeKey = isPersonType(type) ? 'ADMIN.TYPE_PERSON' : kindLabelKey(type);
-      return this.i18n.instant('ADMIN.DESTINATION_EXISTS', { name: holder.name, type: this.i18n.instant(typeKey) });
-    }
-    return serverReason(err, { allow5xx: [502] }) ?? this.i18n.instant('ADMIN.SNACK_FAILED_ADD_DESTINATION');
+    return shortWebhookUrl(url);
   }
 
   private getSortValue(row: AdminUser, column: string): string | number {
@@ -647,6 +710,14 @@ export class AdminDestinationsComponent implements OnInit {
       default:
         return '';
     }
+  }
+
+  /** Turns to the page holding the destination just added. A search or filter that hides it is left alone. */
+  private revealJustAdded(): void {
+    const added = this.justAdded();
+    if (!added) return;
+    const index = this.list.filtered().findIndex(row => row.id === added);
+    if (index >= 0) this.list.setPage(Math.floor(index / this.list.pageSize()), this.list.pageSize());
   }
 
   /** The server's own reason when it gave one, else the generic message. */

@@ -70,8 +70,9 @@
   min-width: 0;
 }
 
+// Wide enough that the "Topic number" label is not clipped beside the chat field.
 .topic-field {
-  flex: 1 1 0;
+  flex: 2 1 0;
   min-width: 0;
 }
 
@@ -80,10 +81,10 @@
   padding-top: 16px;
 }
 
-.id-hint {
-  color: var(--mat-sys-on-surface-variant);
-  font: var(--mat-sys-body-small);
-  margin: -4px 0 4px;
+.saving-spinner {
+  display: inline-block;
+  margin-right: 8px;
+  vertical-align: middle;
 }
 
 .unchecked-note {
@@ -111,5 +112,22 @@
 @media (max-width: 599px) {
   .destination-form {
     min-width: 0;
+  }
+
+  // Side by side, a phone leaves the topic field too narrow for its label. Stacked, each gets the full width.
+  .topic-row {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .chat-field,
+  .topic-field {
+    flex: none;
+    width: 100%;
+  }
+
+  .topic-colon {
+    display: none;
   }
 }

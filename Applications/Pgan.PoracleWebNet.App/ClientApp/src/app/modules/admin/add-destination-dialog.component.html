@@ -1,6 +1,7 @@
 <h2 mat-dialog-title>{{ 'ADMIN.ADD_DESTINATION' | translate }}</h2>
 <mat-dialog-content>
-  <form [formGroup]="form" class="destination-form" (ngSubmit)="submit()">
+  <!-- Add sits in mat-dialog-actions, outside this form, and is tied to it by id, so Enter in a field submits. -->
+  <form id="add-destination-form" [formGroup]="form" class="destination-form" (ngSubmit)="submit()">
     <fieldset class="kind-picker">
       <legend id="kind-legend">{{ 'ADMIN.WHAT_KIND' | translate }}</legend>
       <mat-radio-group formControlName="kind" aria-labelledby="kind-legend" class="kind-groups">
@@ -19,7 +20,7 @@
       </mat-radio-group>
     </fieldset>
 
-    <mat-form-field appearance="outline" class="full-width">
+    <mat-form-field appearance="outline" class="full-width" subscriptSizing="dynamic">
       <mat-label>{{ 'ADMIN.DESTINATION_NAME' | translate }}</mat-label>
       <input matInput formControlName="name" [placeholder]="'ADMIN.DESTINATION_NAME_PLACEHOLDER' | translate" />
       @if (form.controls.name.hasError('required') && form.controls.name.touched) {
@@ -31,18 +32,22 @@
       @case ('') {}
       @case ('telegram:topic') {
         <div class="topic-row">
-          <mat-form-field appearance="outline" class="chat-field" data-test="chat-field">
+          <mat-form-field appearance="outline" class="chat-field" data-test="chat-field" subscriptSizing="dynamic">
             <mat-label>{{ 'ADMIN.ID_TELEGRAM_CHAT' | translate }}</mat-label>
             <input matInput formControlName="chatId" inputmode="numeric" autocomplete="off" placeholder="-1001234567890" />
+            <mat-hint>{{ 'ADMIN.ID_TELEGRAM_TOPIC_HINT' | translate }}</mat-hint>
             @if (form.controls.chatId.hasError('required') && form.controls.chatId.touched) {
               <mat-error>{{ 'ADMIN.ID_REQUIRED' | translate }}</mat-error>
             }
             @if (form.controls.chatId.hasError('negativeChat')) {
               <mat-error>{{ 'ADMIN.ID_NEGATIVE_CHAT' | translate }}</mat-error>
             }
+            @if (form.controls.chatId.getError('server'); as reason) {
+              <mat-error>{{ reason }}</mat-error>
+            }
           </mat-form-field>
           <span class="topic-colon" aria-hidden="true">:</span>
-          <mat-form-field appearance="outline" class="topic-field" data-test="topic-field">
+          <mat-form-field appearance="outline" class="topic-field" data-test="topic-field" subscriptSizing="dynamic">
             <mat-label>{{ 'ADMIN.ID_TELEGRAM_TOPIC' | translate }}</mat-label>
             <input matInput formControlName="topicId" inputmode="numeric" autocomplete="off" placeholder="42" />
             @if (form.controls.topicId.hasError('required') && form.controls.topicId.touched) {
@@ -53,19 +58,18 @@
             }
           </mat-form-field>
         </div>
-        <p class="id-hint">{{ 'ADMIN.ID_TELEGRAM_TOPIC_HINT' | translate }}</p>
       }
       @default {
-        <mat-form-field appearance="outline" class="full-width" data-test="id-field">
+        <mat-form-field appearance="outline" class="full-width" data-test="id-field" subscriptSizing="dynamic">
           @switch (kind()) {
             @case ('webhook') {
               <mat-label>{{ 'ADMIN.WEBHOOK_URL' | translate }}</mat-label>
             }
             @case ('discord:channel') {
-              <mat-label>{{ 'ADMIN.ID_DISCORD' | translate }}</mat-label>
+              <mat-label>{{ 'ADMIN.ID_DISCORD_CHANNEL' | translate }}</mat-label>
             }
             @case ('discord:thread') {
-              <mat-label>{{ 'ADMIN.ID_DISCORD' | translate }}</mat-label>
+              <mat-label>{{ 'ADMIN.ID_DISCORD_THREAD' | translate }}</mat-label>
             }
             @default {
               <mat-label>{{ 'ADMIN.ID_TELEGRAM_CHAT' | translate }}</mat-label>
@@ -83,6 +87,11 @@
                   ? '1100000000000000001'
                   : '-1001234567890'
             " />
+          @if (kind().startsWith('discord:')) {
+            <mat-hint>{{ 'ADMIN.ID_DISCORD_HINT' | translate }}</mat-hint>
+          } @else if (kind() !== 'webhook') {
+            <mat-hint>{{ 'ADMIN.ID_TELEGRAM_CHAT_HINT' | translate }}</mat-hint>
+          }
           @if (form.controls.id.hasError('required') && form.controls.id.touched) {
             <mat-error>{{ (kind() === 'webhook' ? 'ADMIN.WEBHOOK_URL_REQUIRED' : 'ADMIN.ID_REQUIRED') | translate }}</mat-error>
           }
@@ -95,21 +104,19 @@
           @if (form.controls.id.hasError('negativeChat')) {
             <mat-error>{{ 'ADMIN.ID_NEGATIVE_CHAT' | translate }}</mat-error>
           }
+          @if (form.controls.id.getError('server'); as reason) {
+            <mat-error>{{ reason }}</mat-error>
+          }
         </mat-form-field>
-        @if (kind().startsWith('discord:')) {
-          <p class="id-hint">{{ 'ADMIN.ID_DISCORD_HINT' | translate }}</p>
-        } @else if (kind() !== 'webhook') {
-          <p class="id-hint">{{ 'ADMIN.ID_TELEGRAM_CHAT_HINT' | translate }}</p>
-        }
       }
     }
 
     @if (kind()) {
       <p class="unchecked-note">
         <mat-icon aria-hidden="true">info</mat-icon>
-        <span>{{ 'ADMIN.ID_UNCHECKED_NOTE' | translate }}</span>
+        <span>{{ (kind() === 'webhook' ? 'ADMIN.ID_UNCHECKED_NOTE_URL' : 'ADMIN.ID_UNCHECKED_NOTE') | translate }}</span>
       </p>
-      <mat-form-field appearance="outline" class="full-width">
+      <mat-form-field appearance="outline" class="full-width" subscriptSizing="dynamic">
         <mat-label>{{ 'ADMIN.DESTINATION_NOTE_LABEL' | translate }}</mat-label>
         <input matInput formControlName="notes" autocomplete="off" />
       </mat-form-field>
@@ -117,8 +124,13 @@
   </form>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
-  <button mat-button (click)="dialogRef.close(null)">{{ 'COMMON.CANCEL' | translate }}</button>
-  <button mat-flat-button color="primary" [disabled]="form.invalid" (click)="submit()">
-    <mat-icon>add</mat-icon> {{ 'ADMIN.ADD_DESTINATION' | translate }}
+  <button mat-button type="button" [disabled]="saving()" (click)="dialogRef.close(null)">{{ 'COMMON.CANCEL' | translate }}</button>
+  <button mat-flat-button color="primary" type="submit" form="add-destination-form" [disabled]="form.invalid || saving()">
+    @if (saving()) {
+      <mat-progress-spinner mode="indeterminate" diameter="18" class="saving-spinner" aria-hidden="true" />
+    } @else {
+      <mat-icon>add</mat-icon>
+    }
+    {{ 'ADMIN.ADD_DESTINATION' | translate }}
   </button>
 </mat-dialog-actions>
