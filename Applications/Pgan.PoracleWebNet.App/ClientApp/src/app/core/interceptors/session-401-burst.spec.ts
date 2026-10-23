@@ -69,14 +69,14 @@ describe('a burst of 401s', () => {
     // they started on; the session records where it began so the way back is the way in.
     localStorage.setItem('poracle_token', 'webhook-token');
     localStorage.setItem('poracle_admin_token', 'own-token');
-    tokenStore.setImpersonationReturn('/my-webhooks');
+    tokenStore.setImpersonationReturn('/my-destinations');
 
     const reqs = sendPageLoad(['/api/monsters', '/api/raids', '/api/quests', '/api/dashboard/counts', '/api/mutes']);
     reqs.forEach(unauthorized);
 
     expect(localStorage.getItem('poracle_token')).toBe('own-token');
     expect(router.navigate).toHaveBeenCalledTimes(1);
-    expect(router.navigate).toHaveBeenCalledWith(['/my-webhooks'], { state: { adminReturn: true } });
+    expect(router.navigate).toHaveBeenCalledWith(['/my-destinations'], { state: { adminReturn: true } });
     expect(toast.error).toHaveBeenCalledTimes(1);
     expect(toast.error).toHaveBeenCalledWith('HTTP_ERROR.INSPECTION_ENDED');
   });

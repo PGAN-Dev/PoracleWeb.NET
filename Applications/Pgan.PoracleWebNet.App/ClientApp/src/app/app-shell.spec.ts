@@ -84,7 +84,7 @@ describe('App bootstrap under rate limiting', () => {
           provide: AuthService,
           useValue: {
             getProviders: () => throwError(() => tooMany),
-            hasManagedWebhooks: () => false,
+            hasManagedDestinations: () => false,
             isAdmin: () => false,
             isAuthenticated: () => true,
           },

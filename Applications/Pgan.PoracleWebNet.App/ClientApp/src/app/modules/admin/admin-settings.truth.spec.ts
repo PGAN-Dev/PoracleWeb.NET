@@ -73,6 +73,14 @@ describe('AdminSettingsComponent shows what the server enforces', () => {
     expect(sut.featureEnabled(meta('enable_roles'))).toBe(false);
   });
 
+  it('delegation_poracle_channels is off when unset', () => {
+    // UserRoleResolver reads an absent row as off, so the switch must too, or it promises access nobody has.
+    expect(create({}).componentInstance.featureEnabled(meta('delegation_poracle_channels'))).toBe(false);
+    expect(create({ delegation_poracle_channels: 'True' }).componentInstance.featureEnabled(meta('delegation_poracle_channels'))).toBe(
+      true,
+    );
+  });
+
   it('still reads an absent disable_* switch as the feature on', () => {
     expect(create({}).componentInstance.featureEnabled(meta('disable_mons'))).toBe(true);
   });

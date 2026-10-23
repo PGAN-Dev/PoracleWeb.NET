@@ -28,7 +28,7 @@ public interface IImpersonationAuthority
 /// <para>
 /// So the question the minting endpoints ask is asked again on every request, from the same source they
 /// ask it of: <see cref="IUserRoleResolver"/>. An admin may impersonate anyone; anyone else only a webhook
-/// in their resolved <c>ManagedWebhooks</c>. The resolver caches for a minute and grant, revoke and delete
+/// in their resolved <c>ManagedDestinations</c>. The resolver caches for a minute and grant, revoke and delete
 /// invalidate it, so revocation lands on the next request after an admin acts and within a minute of a
 /// change made in PoracleJS's own config.
 /// </para>
@@ -79,7 +79,7 @@ public sealed partial class ImpersonationAuthority(
         }
 
         if (roles.IsAdmin
-            || (roles.ManagedWebhooks ?? []).Contains(target, StringComparer.OrdinalIgnoreCase))
+            || (roles.ManagedDestinations ?? []).Contains(target, StringComparer.OrdinalIgnoreCase))
         {
             return true;
         }

@@ -3,23 +3,27 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Pgan.PoracleWebNet.Api.Configuration;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
+using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Api.Services;
 
 /// <summary>
-/// A user's admin status and the webhooks they may administer, resolved from live sources.
+/// A user's admin status and the destinations they may administer, resolved from live sources.
 /// </summary>
 /// <param name="IsAdmin">Whether the user is an admin. Meaningless when <paramref name="Resolved"/> is false.</param>
-/// <param name="ManagedWebhooks">Webhooks the user may administer, or null.</param>
+/// <param name="ManagedDestinations">
+/// The <c>humans.id</c> of every destination (webhook, channel, thread, group or topic) the user may
+/// administer, or null.
+/// </param>
 /// <param name="Resolved">
 /// False when a source we needed was unreachable. Callers that stamp roles onto a token must treat
 /// this as "do not change the claim" rather than as "not an admin" -- a PoracleNG blip during a
 /// profile switch otherwise stripped admin for the rest of the session. See #656.
 /// </param>
-public readonly record struct UserRoles(bool IsAdmin, string[]? ManagedWebhooks, bool Resolved = true);
+public readonly record struct UserRoles(bool IsAdmin, string[]? ManagedDestinations, bool Resolved = true);
 
 /// <summary>
-/// Resolves admin status and delegated webhooks from the configured admin list, Poracle's config,
+/// Resolves admin status and delegated destinations from the configured admin list, Poracle's config,
 /// PoracleNG's <c>getAdministrationRoles</c>, and PoracleWeb's own delegate table.
 /// </summary>
 public interface IUserRoleResolver
@@ -43,7 +47,7 @@ public interface IUserRoleResolver
 /// then copied verbatim through every token re-issue, so revoking someone's admin rights never took
 /// effect while they kept switching profile (#624); and the admin endpoints that resolve delegated
 /// webhooks live went to the local table alone, so a delegate configured in PoracleJS could see the
-/// My Webhooks nav item and get an empty page and a 403 (#626).
+/// My Destinations nav item and get an empty page and a 403 (#626).
 /// <para>
 /// Results are cached for a minute. Both PoracleNG calls are network round-trips and the resolver now
 /// sits on paths that are not login, so an uncached implementation would put two HTTP requests on
@@ -54,7 +58,8 @@ public sealed partial class UserRoleResolver(
     IPoracleApiProxy poracleApiProxy,
     IPoracleHumanProxy poracleHumanProxy,
     IWebhookDelegateService webhookDelegateService,
-    IHumanService humanService,
+    IDestinationDirectory destinationDirectory,
+    ISiteSettingService siteSettingService,
     IOptions<PoracleSettings> poracleSettings,
     IMemoryCache cache,
     ILogger<UserRoleResolver> logger) : IUserRoleResolver
@@ -67,7 +72,18 @@ public sealed partial class UserRoleResolver(
     private readonly IPoracleHumanProxy _poracleHumanProxy = poracleHumanProxy;
     private readonly PoracleSettings _poracleSettings = poracleSettings.Value;
     private readonly IWebhookDelegateService _webhookDelegateService = webhookDelegateService;
-    private readonly IHumanService _humanService = humanService;
+    private readonly IDestinationDirectory _destinationDirectory = destinationDirectory;
+    private readonly ISiteSettingService _siteSettingService = siteSettingService;
+
+    /// <summary>
+    /// Site setting that lets PoracleNG's channel admin lists grant delegation. Absent means off.
+    /// </summary>
+    /// <remarks>
+    /// <c>admin.discord.channels</c> and <c>admin.telegram.channels</c> list what a user may administer in
+    /// the bot, which an operator may not mean as "may manage this destination's alarms here". So they
+    /// count only when the operator opts in. See #1025.
+    /// </remarks>
+    public const string PoracleChannelsSettingKey = "delegation_poracle_channels";
 
     public async Task<UserRoles> ResolveAsync(string userId)
     {
@@ -92,7 +108,7 @@ public sealed partial class UserRoleResolver(
     /// <remarks>
     /// Granting or revoking a delegate took up to the full minute to land, because the admin dialog wrote
     /// the table and left the cached answer where it was. Both sides of the grant are dropped: the
-    /// delegate, whose <c>ManagedWebhooks</c> changed, and the webhook, in case anything is keyed by it.
+    /// delegate, whose <c>ManagedDestinations</c> changed, and the webhook, in case anything is keyed by it.
     /// </remarks>
     public void Invalidate(params string[] userIds)
     {
@@ -164,8 +180,11 @@ public sealed partial class UserRoleResolver(
             configReadable = false;
         }
 
-        // Ask PoracleNG once for the delegated webhooks, Discord guild roles included.
+        // Ask PoracleNG once for the delegated destinations, Discord guild roles included. Grants in
+        // `managed` may name a destination by id or by name; `managedById` holds channel ids, which
+        // PoracleNG reports as ids and which must never be read as a name.
         var managed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var managedById = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         try
         {
@@ -175,24 +194,27 @@ public sealed partial class UserRoleResolver(
                 using var doc = JsonDocument.Parse(rolesJson);
                 var root = doc.RootElement;
 
-                // admin.discord.webhooks is the authoritative delegate webhook list.
+                // admin.discord.webhooks is the authoritative delegate list, keyed by id or by name.
                 //
                 // Two isAdmin branches used to sit here, one at the root and one under admin.discord.
                 // Neither has ever fired: both API versions build this body from the same
                 // adminRolesResult, whose only fields are channels, webhooks and users, and v2's schema
                 // is additionalProperties:false so an isAdmin could not appear even by accident.
                 // Admin status is resolved above, from the configured ids and Poracle's own config.
-                if (root.TryGetProperty("admin", out var adminEl) &&
-                    adminEl.TryGetProperty("discord", out var discordEl) &&
-                    discordEl.TryGetProperty("webhooks", out var webhooks) &&
-                    webhooks.ValueKind == JsonValueKind.Array)
+                // `users: true` is not read either: administering people is not delegation here.
+                if (root.TryGetProperty("admin", out var adminEl) && adminEl.ValueKind == JsonValueKind.Object)
                 {
-                    foreach (var wh in webhooks.EnumerateArray())
+                    var discordEl = adminEl.TryGetProperty("discord", out var d) ? d : default;
+                    var telegramEl = adminEl.TryGetProperty("telegram", out var t) ? t : default;
+
+                    AddStrings(discordEl, "webhooks", managed);
+
+                    var channelIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    AddStrings(discordEl, "channels", channelIds);
+                    AddStrings(telegramEl, "channels", channelIds);
+                    if (channelIds.Count > 0 && await this.PoracleChannelsCountAsync())
                     {
-                        if (wh.GetString() is { } id)
-                        {
-                            managed.Add(id);
-                        }
+                        managedById.UnionWith(channelIds);
                     }
                 }
             }
@@ -203,7 +225,7 @@ public sealed partial class UserRoleResolver(
             rolesReadable = false;
         }
 
-        // Also merge our own webhook delegate service layer
+        // Also merge our own delegate table. It stores ids, and since #1025 any destination's id.
         try
         {
             var managedWebhookIds = await this._webhookDelegateService.GetManagedWebhookIdsAsync(userId);
@@ -221,12 +243,12 @@ public sealed partial class UserRoleResolver(
             delegatesReadable = false;
         }
 
-        if (managed.Count == 0)
+        if (managed.Count == 0 && managedById.Count == 0)
         {
             return new UserRoles(false, null, configReadable && rolesReadable && delegatesReadable);
         }
 
-        var (canonical, humansReadable) = await this.CanonicaliseAsync(managed);
+        var (canonical, humansReadable) = await this.CanonicaliseAsync(managed, managedById);
 
         return new UserRoles(false, canonical.Length > 0 ? canonical : null,
             configReadable && rolesReadable && delegatesReadable && humansReadable);
@@ -237,55 +259,142 @@ public sealed partial class UserRoleResolver(
     /// </summary>
     /// <remarks>
     /// PoracleNG hands back whatever key the operator wrote in <c>[[discord.webhook_admins]] target</c>,
-    /// and upstream that key is the webhook's NAME -- the bot resolves it with <c>LookupWebhookByName</c>
-    /// and authorises with <c>CanAdminWebhook(cfg, userID, nameOverride)</c>. Both consumers here compare
-    /// the strings to <c>humans.id</c>, a webhook URL, so a name-keyed delegate got a nav item off a
-    /// non-empty list, an empty My Webhooks table, and a 403 from impersonate. See #797.
+    /// and upstream that key may be a NAME -- the bot resolves it with <c>LookupWebhookByName</c> and
+    /// authorises with <c>CanAdminWebhook(cfg, userID, nameOverride)</c>. Both consumers here compare the
+    /// strings to <c>humans.id</c>, so a name-keyed delegate got a nav item off a non-empty list, an empty
+    /// My Destinations table, and a 403 from impersonate. See #797.
     /// <para>
-    /// A grant naming no webhook at all is dropped rather than carried. It could never match a human row
+    /// Ids match any destination in the directory. Names match only the types upstream resolves by name
+    /// (<see cref="HumanKind.NameAddressable"/>), so a thread or topic that shares a name with a webhook
+    /// is never what the grant meant. A name shared across types goes to the webhook; shared by two or more
+    /// other destinations and no webhook, it is dropped as ambiguous. Grants in <paramref name="byIdOnly"/>
+    /// came from a list of ids and are never read as names. Rows that are not one of the six destination
+    /// types are ignored outright. See #1025.
+    /// </para>
+    /// <para>
+    /// A grant naming nothing is dropped rather than carried. It could never match a human row
     /// downstream, and carrying it renders a nav item onto a page that has nothing to show. When the
-    /// lookup itself fails the raw set is kept and the answer is marked unresolved, so a database blip
-    /// does not strip a legitimate delegate for the cache TTL (#667).
+    /// lookup itself fails the raw set is kept and the answer is marked unresolved, so an outage does not
+    /// strip a legitimate delegate for the cache TTL (#667).
     /// </para>
     /// </remarks>
-    private async Task<(string[] Canonical, bool Readable)> CanonicaliseAsync(HashSet<string> managed)
+    private async Task<(string[] Canonical, bool Readable)> CanonicaliseAsync(HashSet<string> managed, HashSet<string> byIdOnly)
     {
-        IEnumerable<Core.Models.Human> webhooks;
+        IReadOnlyList<Human> destinations;
         try
         {
-            webhooks = await this._humanService.GetWebhooksAsync();
+            destinations = await this._destinationDirectory.GetAsync();
         }
         catch (Exception ex)
         {
-            LogWebhookLookupFailed(this._logger, ex);
-            return ([.. managed], false);
+            LogDestinationLookupFailed(this._logger, ex);
+            return ([.. managed.Union(byIdOnly, StringComparer.OrdinalIgnoreCase)], false);
         }
 
-        var byName = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        // Upstream's name lookup has no ORDER BY, so which row a shared name lands on there is arbitrary.
+        // Here it is fixed: a webhook wins, since every grant written before #1025 meant one. Without a
+        // webhook, a name shared by two or more other destinations names none of them.
+        var webhookByName = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var otherByName = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
         var byId = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var webhook in webhooks)
+
+        // The directory asks for destination types only; this keeps a person out even if a server ignores
+        // the filter and lists everyone.
+        foreach (var destination in destinations.Where(d => HumanKind.IsKnownDestination(d.Type)))
         {
-            byId[webhook.Id] = webhook.Id;
-            if (!string.IsNullOrWhiteSpace(webhook.Name))
+            byId[destination.Id] = destination.Id;
+            if (string.IsNullOrWhiteSpace(destination.Name) || !HumanKind.NameAddressable.Contains(destination.Type!))
             {
-                byName.TryAdd(webhook.Name, webhook.Id);
+                continue;
+            }
+
+            if (string.Equals(destination.Type, HumanKind.Webhook, StringComparison.OrdinalIgnoreCase))
+            {
+                webhookByName.TryAdd(destination.Name, destination.Id);
+            }
+            else if (otherByName.TryGetValue(destination.Name, out var ids))
+            {
+                ids.Add(destination.Id);
+            }
+            else
+            {
+                otherByName[destination.Name] = [destination.Id];
             }
         }
 
         var canonical = new HashSet<string>(StringComparer.Ordinal);
         foreach (var grant in managed)
         {
-            if (byId.TryGetValue(grant, out var id) || byName.TryGetValue(grant, out id))
+            if (byId.TryGetValue(grant, out var id) || webhookByName.TryGetValue(grant, out id))
+            {
+                canonical.Add(id);
+            }
+            else if (otherByName.TryGetValue(grant, out var named))
+            {
+                if (named.Count == 1)
+                {
+                    canonical.Add(named[0]);
+                }
+                else
+                {
+                    LogAmbiguousGrant(this._logger, grant, named.Count);
+                }
+            }
+            else
+            {
+                LogUnresolvedGrant(this._logger, grant);
+            }
+        }
+
+        foreach (var grant in byIdOnly)
+        {
+            if (byId.TryGetValue(grant, out var id))
             {
                 canonical.Add(id);
             }
             else
             {
-                LogUnresolvedWebhookGrant(this._logger, grant);
+                LogUnresolvedGrant(this._logger, grant);
             }
         }
 
         return ([.. canonical], true);
+    }
+
+    /// <summary>
+    /// Whether the operator opted in to <see cref="PoracleChannelsSettingKey"/>. An unreadable setting
+    /// counts as the default, off, and does not mark the answer unresolved: the opt-in only widens access,
+    /// so failing closed withholds nothing a default install would have granted.
+    /// </summary>
+    private async Task<bool> PoracleChannelsCountAsync()
+    {
+        try
+        {
+            return await this._siteSettingService.GetBoolAsync(PoracleChannelsSettingKey);
+        }
+        catch (Exception ex)
+        {
+            LogChannelSettingReadFailed(this._logger, ex);
+            return false;
+        }
+    }
+
+    private static void AddStrings(JsonElement parent, string property, HashSet<string> into)
+    {
+        if (parent.ValueKind != JsonValueKind.Object
+            || !parent.TryGetProperty(property, out var array)
+            || array.ValueKind != JsonValueKind.Array)
+        {
+            return;
+        }
+
+        foreach (var item in array.EnumerateArray())
+        {
+            if (item.ValueKind == JsonValueKind.String && item.GetString() is { Length: > 0 } value)
+            {
+                into.Add(value);
+            }
+        }
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch Poracle config for admin check for {UserId}.")]
@@ -297,10 +406,18 @@ public sealed partial class UserRoleResolver(
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch webhook delegates for {UserId}.")]
     private static partial void LogPwebDelegatesFetchFailed(ILogger logger, Exception ex, string userId);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to look up webhooks while resolving delegated grants.")]
-    private static partial void LogWebhookLookupFailed(ILogger logger, Exception ex);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to look up destinations while resolving delegated grants.")]
+    private static partial void LogDestinationLookupFailed(ILogger logger, Exception ex);
+
+    [LoggerMessage(Level = LogLevel.Warning,
+        Message = "Could not read the delegation_poracle_channels setting; treating Poracle's channel lists as off.")]
+    private static partial void LogChannelSettingReadFailed(ILogger logger, Exception ex);
 
     [LoggerMessage(Level = LogLevel.Information,
-        Message = "Delegated webhook grant {Grant} names neither a webhook id nor a webhook name; ignoring it.")]
-    private static partial void LogUnresolvedWebhookGrant(ILogger logger, string grant);
+        Message = "Delegated grant {Grant} names no registered destination; ignoring it.")]
+    private static partial void LogUnresolvedGrant(ILogger logger, string grant);
+
+    [LoggerMessage(Level = LogLevel.Information,
+        Message = "Delegated grant {Grant} names {Count} destinations and no webhook; ignoring it as ambiguous.")]
+    private static partial void LogAmbiguousGrant(ILogger logger, string grant, int count);
 }

@@ -1,4 +1,4 @@
-import { MENTION_CAPABLE, isPersonType, kindIcon, kindLabelKey, mentionCapable } from './human-kind';
+import { DESTINATION_KINDS, MENTION_CAPABLE, isPersonType, kindIcon, kindLabelKey, mentionCapable, takesDelegates } from './human-kind';
 
 describe('human-kind', () => {
   it('labels every known type and falls back to Other', () => {
@@ -44,6 +44,16 @@ describe('human-kind', () => {
     }
     for (const type of ['webhook', 'discord:channel', 'telegram:group', 'x:unknown']) {
       expect(isPersonType(type)).toBe(false);
+    }
+  });
+
+  it('takes delegates on the six destination kinds, in any case, and nothing else', () => {
+    for (const kind of DESTINATION_KINDS) {
+      expect(takesDelegates(kind)).toBe(true);
+      expect(takesDelegates(kind.toUpperCase())).toBe(true);
+    }
+    for (const other of ['x:unknown', 'discord:user', '', null, undefined, ' webhook']) {
+      expect(takesDelegates(other)).toBe(false);
     }
   });
 });

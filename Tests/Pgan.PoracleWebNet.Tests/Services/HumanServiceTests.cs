@@ -29,14 +29,6 @@ public class HumanServiceTests
     }
 
     [Fact]
-    public async Task GetWebhooksAsyncAsksTheProxyForWebhooks()
-    {
-        this._humanProxy.Setup(p => p.ListHumansAsync("webhook", null)).ReturnsAsync([new() { Id = "w1" }]);
-
-        Assert.Single(await this._sut.GetWebhooksAsync());
-    }
-
-    [Fact]
     public async Task GetByIdsAsyncAsksTheProxyForThoseIds()
     {
         this._humanProxy.Setup(p => p.ListHumansAsync(null, It.Is<IReadOnlyCollection<string>>(c => c.SequenceEqual(new[] { "u1", "u2" }))))
@@ -59,7 +51,6 @@ public class HumanServiceTests
             .ThrowsAsync(new HttpRequestException("fail"));
 
         await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.GetAllAsync());
-        await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.GetWebhooksAsync());
         await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.GetByIdsAsync(["u1"]));
     }
 

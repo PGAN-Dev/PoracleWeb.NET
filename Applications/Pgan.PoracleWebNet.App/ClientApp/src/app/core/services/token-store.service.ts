@@ -203,7 +203,7 @@ export class TokenStoreService {
    * forgets it, so the next session starts clean.
    */
   /* Every exit used to go to /admin. A delegate cannot open /admin, so a delegate whose session ended
-   * was sent there and bounced on to /dashboard, two hops from My Webhooks. See #1025. */
+   * was sent there and bounced on to /dashboard, two hops from My Destinations. See #1025. */
   takeImpersonationReturn(): string {
     const route = localStorage.getItem(RETURN_KEY);
     localStorage.removeItem(RETURN_KEY);

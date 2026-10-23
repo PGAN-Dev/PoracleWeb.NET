@@ -316,15 +316,27 @@ describe('AdminDestinationsComponent list', () => {
     expect(root.textContent).toContain('PGAN / Raids');
   });
 
-  it('shows managers only on webhook rows', () => {
-    const { menuOf, rowFor } = setup();
+  it('shows managers on every destination row', () => {
+    const { rowFor } = setup();
 
     const managers = (name: string) => rowFor(name).querySelector('.delegate-avatars');
-    expect(menuOf('Raid hook').tests).toContain('manage-delegates');
-    expect(managers('Raid hook')).toBeTruthy();
-    for (const name of ['raids', 'North group', 'Typo row']) {
-      expect(menuOf(name).tests).not.toContain('manage-delegates');
-      expect(managers(name)).toBeNull();
+    for (const name of ['Raid hook', 'raids', 'North group', 'Typo row']) {
+      expect(managers(name)).toBeTruthy();
+    }
+    expect(rowFor('raids').querySelector('[data-test="no-delegates"]')).toBeTruthy();
+  });
+
+  it('offers to manage delegates only on the six kinds a grant can name', () => {
+    // The server refuses a grant on an unknown type, so the button would open a dialog whose every save
+    // fails. A topic is one of the six and keeps it, as does a type stored in another case.
+    const topic = human('-1001234567890:42', { name: 'Topic row', type: 'telegram:topic' });
+    const shouty = human('1100000000000000002', { name: 'Shouty row', type: 'Discord:Thread' });
+    const { menuOf, rowFor } = setup([hook, channel, group, odd, topic, shouty]);
+
+    const manage = (name: string) => menuOf(name).tests.includes('manage-delegates');
+    expect(manage('Typo row')).toBe(false);
+    for (const name of ['Raid hook', 'raids', 'North group', 'Topic row', 'Shouty row']) {
+      expect(manage(name)).toBe(true);
     }
   });
 
@@ -348,6 +360,7 @@ describe('AdminDestinationsComponent list', () => {
     expect(menuOf('North group').labels).toEqual([
       'ADMIN.BLOCK_DESTINATION',
       'ADMIN.STOP_ALERTS',
+      'ADMIN.MANAGE_DELEGATES',
       'ADMIN.DELETE_ALL_ALARMS',
       'ADMIN.DELETE_DESTINATION',
     ]);
@@ -377,6 +390,7 @@ describe('AdminDestinationsComponent list', () => {
     expect(menuOf('Quiet group').labels).toEqual([
       'ADMIN.UNBLOCK_DESTINATION',
       'ADMIN.START_ALERTS',
+      'ADMIN.MANAGE_DELEGATES',
       'ADMIN.DELETE_ALL_ALARMS',
       'ADMIN.DELETE_DESTINATION',
     ]);

@@ -22,6 +22,7 @@ public partial class AdminController(
     IOptions<PoracleSettings> poracleSettings,
     IJwtService jwtService,
     IUserRoleResolver roleResolver,
+    IDestinationDirectory destinationDirectory,
     ILogger<AdminController> logger) : BaseApiController
 {
     private readonly IHumanService _humanService = humanService;
@@ -36,6 +37,7 @@ public partial class AdminController(
     private readonly PoracleSettings _poracleSettings = poracleSettings.Value;
     private readonly IJwtService _jwtService = jwtService;
     private readonly IUserRoleResolver _roleResolver = roleResolver;
+    private readonly IDestinationDirectory _destinationDirectory = destinationDirectory;
     private readonly ILogger<AdminController> _logger = logger;
 
     /// <summary>Caps one avatar batch. The admin user list is the only caller and batches per viewport.</summary>
@@ -72,16 +74,19 @@ public partial class AdminController(
     }
 
     /// <summary>
-    /// The webhooks a delegate manages.
+    /// The destinations a delegate manages: webhooks, channels, threads, groups and topics.
     /// </summary>
     /// <remarks>
-    /// /my-webhooks renders only when the session carries managedWebhooks, which happens only for
+    /// Served on /my-destinations, and still on /my-webhooks so a SPA cached from before the page was
+    /// renamed keeps loading until it reloads.
+    /// The page renders only when the session carries managedDestinations, which happens only for
     /// NON-admins -- and it loaded its rows from the admin user list, which rejects exactly those people.
     /// The only users who could see the page were the only users the endpoint refused: a 403, an empty
     /// table and a failure toast. Scoped to the caller's own grants instead. See #564.
     /// </remarks>
+    [HttpGet("my-destinations")]
     [HttpGet("my-webhooks")]
-    public async Task<IActionResult> GetManagedWebhooks()
+    public async Task<IActionResult> GetManagedDestinations()
     {
         // Resolved live rather than read from the JWT claim. The claim is minted at login and lives 24
         // hours, so revoking a delegate left them managing the webhook until they happened to sign in
@@ -94,7 +99,7 @@ public partial class AdminController(
         // in [[discord.webhook_admins]], and upstream that key is the webhook's NAME. Matched case-
         // insensitively for the same reason the resolver's set is: nothing guarantees an operator typed the
         // URL in the case the humans row stores it. See #797.
-        var managed = (await this._roleResolver.ResolveAsync(this.UserId)).ManagedWebhooks ?? [];
+        var managed = (await this._roleResolver.ResolveAsync(this.UserId)).ManagedDestinations ?? [];
         if (managed.Length == 0)
         {
             return this.Ok(Array.Empty<object>());
@@ -103,7 +108,9 @@ public partial class AdminController(
         var humans = await this._humanService.GetAllAsync();
 
         var webhooks = humans
-            .Where(h => managed.Contains(h.Id, StringComparer.OrdinalIgnoreCase))
+            // Known kinds only: a degraded resolve hands back raw grants, and a row impersonate would refuse
+            // must not be listed as one the caller can open (#1025).
+            .Where(h => managed.Contains(h.Id, StringComparer.OrdinalIgnoreCase) && HumanKind.IsKnownDestination(h.Type))
             .Select(h => new
             {
                 h.Id,
@@ -203,6 +210,7 @@ public partial class AdminController(
         // minute later. Without it the filter kept serving the value it had already cached, which
         // is how the first live check of this fix appeared to fail. See #609.
         this._cache.Remove($"blocked:{id}");
+        this._destinationDirectory.Invalidate();
 
         // Re-fetch to return the updated state
         return this.Ok(await this.ReReadAsync(id, human));
@@ -259,6 +267,7 @@ public partial class AdminController(
         // minute later. Without it the filter kept serving the value it had already cached, which
         // is how the first live check of this fix appeared to fail. See #609.
         this._cache.Remove($"blocked:{id}");
+        this._destinationDirectory.Invalidate();
 
         // Re-fetch to return the updated state
         return this.Ok(await this.ReReadAsync(id, human));
@@ -433,11 +442,20 @@ public partial class AdminController(
         try
         {
             var created = await this._humanService.CreateAsync(human);
+
+            // The directory is cached a minute, and a destination just created should be grantable now. Role
+            // answers go too: a grant naming this id was dropped as matching no row, and that answer is cached.
+            this._destinationDirectory.Invalidate();
+            this._roleResolver.InvalidateAll();
             LogDestinationCreated(this._logger, this.UserId, human.Type, human.Id);
             return this.Ok(created);
         }
         catch (HttpRequestException)
         {
+            // Dropped before anything else: the create may have written a row and the rollback below may
+            // remove one, so whichever branch answers, the cached directory can no longer be trusted.
+            this._destinationDirectory.Invalidate();
+
             // PoracleNG commits the human and can still fail on the rest of its create, leaving a row the
             // admin was told was never written -- and a retry that answers 409 for a webhook the UI does
             // not show. Undo the half-write so the reported failure is the truth. See #482.
@@ -715,10 +733,14 @@ public partial class AdminController(
         // Neither id was checked against anything, so a typo created a grant over a webhook that does not
         // exist, for a user who does not exist, and the admin delegates view then listed it as real. A
         // grant is only meaningful between two accounts that exist. See #514.
+        //
+        // Any destination takes delegates, not only webhooks (#1025). HumanKind.Destinations is the list that
+        // grants power: a type that is merely not a person (an operator's typo) is listed on Destinations
+        // but cannot be delegated.
         var webhook = await this._humanService.GetByIdAsync(request.WebhookId);
-        if (webhook is null || !string.Equals(webhook.Type, "webhook", StringComparison.OrdinalIgnoreCase))
+        if (webhook is null || !HumanKind.IsKnownDestination(webhook.Type))
         {
-            return this.BadRequest(new { error = "webhookId does not name an existing webhook." });
+            return this.BadRequest(new { error = "webhookId does not name a destination." });
         }
 
         var grantee = await this._humanService.GetByIdAsync(request.UserId);
@@ -738,8 +760,10 @@ public partial class AdminController(
         var delegates = await this._webhookDelegateService.AddDelegateAsync(request.WebhookId, request.UserId);
 
         // The role cache would otherwise hold the old answer for up to a minute, so a new delegate saw no
-        // nav item and a revoked one kept impersonating. Drop both sides of the grant.
+        // nav item and a revoked one kept impersonating. Drop both sides of the grant. The directory goes too,
+        // so a destination created outside this site within its minute is canonicalised rather than dropped.
         this._roleResolver.Invalidate(request.UserId, request.WebhookId);
+        this._destinationDirectory.Invalidate();
         return this.Ok(delegates);
     }
 
@@ -767,7 +791,7 @@ public partial class AdminController(
         // Allow admins or delegates who manage this specific webhook. Resolved live rather than read from
         // the JWT claim: the claim is minted at login and lives 24 hours, so a revoked delegate could keep
         // impersonating the webhook until they next signed in. See #601.
-        // Same union as the claim and as my-webhooks, so a PoracleJS-configured delegate is not refused
+        // Same union as the claim and as my-destinations, so a PoracleJS-configured delegate is not refused
         // by an endpoint the nav item just offered them. See #626.
         // No hop from inside an impersonation session. The SPA stashes the caller's own token in a single
         // poracle_admin_token slot, so a second hop overwrites it with the first impersonated one and
@@ -780,7 +804,7 @@ public partial class AdminController(
         }
 
         var isDelegate = !this.IsAdmin
-            && ((await this._roleResolver.ResolveAsync(this.UserId)).ManagedWebhooks ?? [])
+            && ((await this._roleResolver.ResolveAsync(this.UserId)).ManagedDestinations ?? [])
                 .Contains(request.UserId, StringComparer.OrdinalIgnoreCase);
         if (!this.IsAdmin && !isDelegate)
         {
@@ -791,6 +815,15 @@ public partial class AdminController(
         if (human is null)
         {
             return this.NotFound();
+        }
+
+        // A delegate reaches destinations only, judged by the live row's type rather than by the grant: a
+        // local grant outlives a type change, and an id in PoracleNG's lists can name a person. Without this
+        // a delegate whose grant named a person signed in as them. Unknown types are refused too, since only
+        // the six in HumanKind.Destinations grant anything. Admins inspect any account. See #1025.
+        if (!this.IsAdmin && !HumanKind.IsKnownDestination(human.Type))
+        {
+            return this.Forbid();
         }
 
         var avatarUrl = Services.AvatarCacheService.GetAvatarOrDefault(request.UserId, human.Type);
@@ -847,6 +880,7 @@ public partial class AdminController(
         // The purge removed grants in both directions, and a delegate PoracleJS names by the webhook's NAME
         // is in no table that could say who else just lost access -- so every cached answer goes.
         this._roleResolver.InvalidateAll();
+        this._destinationDirectory.Invalidate();
 
         LogUserDeleted(this._logger, this.UserId, id);
         return this.NoContent();

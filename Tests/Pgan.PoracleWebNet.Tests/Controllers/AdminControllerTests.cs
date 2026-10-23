@@ -20,6 +20,7 @@ public class AdminControllerTests : ControllerTestBase
     private readonly Mock<IWebhookDelegateService> _webhookDelegateService = new();
     private readonly Mock<IJwtService> _jwtService = new();
     private readonly Mock<Pgan.PoracleWebNet.Api.Services.IUserRoleResolver> _roleResolver = new();
+    private readonly Mock<Pgan.PoracleWebNet.Api.Services.IDestinationDirectory> _directory = new();
     private readonly Mock<IPoracleServerProfileService> _serverProfile = new();
     private readonly Mock<IUpdateCheckService> _updateCheck = new();
     private readonly Mock<ILogger<AdminController>> _logger = new();
@@ -43,6 +44,7 @@ public class AdminControllerTests : ControllerTestBase
             poracleSettings,
             this._jwtService.Object,
             this._roleResolver.Object,
+            this._directory.Object,
             this._logger.Object);
     }
 
@@ -410,6 +412,89 @@ public class AdminControllerTests : ControllerTestBase
     private static string? ErrorOf(object? value) =>
         value?.GetType().GetProperty("error")?.GetValue(value) as string;
 
+    /// <summary>The six kinds that grant power, read from the one list that defines them.</summary>
+    public static TheoryData<string> EveryDestinationKind
+    {
+        get
+        {
+            var data = new TheoryData<string>();
+            foreach (var kind in HumanKind.Destinations)
+            {
+                data.Add(kind);
+            }
+
+            return data;
+        }
+    }
+
+    /// <summary>
+    /// The directory is cached a minute. A create that fails may still have written the row (PoracleNG
+    /// commits the human first), and a rollback removes one, so every failure branch has to drop the cache:
+    /// otherwise the grant picker offers a row that is gone, or hides one that is there.
+    /// </summary>
+    [Theory]
+    [InlineData("discord:channel", "raids", false)] // our half-write, rolled back
+    [InlineData("discord:channel", "someone else's", false)] // another request's row, left alone
+    [InlineData(null, null, false)] // nothing written
+    [InlineData(null, null, true)] // could not be asked
+    public async Task AFailedCreateDropsTheCachedDirectoryOnEveryBranch(string? foundType, string? foundName, bool readFails)
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this._humanService.Setup(s => s.ExistsAsync("123456789012345678")).ReturnsAsync(false);
+        if (readFails)
+        {
+            this._humanService.Setup(s => s.GetByIdAsync("123456789012345678"))
+                .ThrowsAsync(new HttpRequestException("503", null, System.Net.HttpStatusCode.ServiceUnavailable));
+        }
+        else
+        {
+            this._humanService.Setup(s => s.GetByIdAsync("123456789012345678")).ReturnsAsync(
+                foundType is null ? null : new Human { Id = "123456789012345678", Name = foundName, Type = foundType });
+        }
+
+        this._humanService.Setup(s => s.CreateAsync(It.IsAny<Human>())).ThrowsAsync(new HttpRequestException("boom"));
+        this._userPurgeService.Setup(p => p.PurgeAsync("123456789012345678")).ReturnsAsync(true);
+
+        var result = await this._sut.CreateDestination(
+            new AdminController.CreateDestinationRequest("discord:channel", "123456789012345678", "raids", null));
+
+        Assert.Equal(Microsoft.AspNetCore.Http.StatusCodes.Status502BadGateway, Assert.IsType<ObjectResult>(result).StatusCode);
+        this._directory.Verify(d => d.Invalidate(), Times.AtLeastOnce);
+    }
+
+    /// <summary>
+    /// A grant PoracleNG reports by name for an id that did not exist yet was dropped by the resolver, and that
+    /// answer is cached; a new destination has to drop it too, or the grant stays invisible for a minute.
+    /// </summary>
+    [Fact]
+    public async Task CreatingADestinationRefreshesRoleAnswers()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this._humanService.Setup(s => s.ExistsAsync("123456789012345678")).ReturnsAsync(false);
+        this._humanService.Setup(s => s.CreateAsync(It.IsAny<Human>())).ReturnsAsync((Human h) => h);
+
+        var result = await this._sut.CreateDestination(
+            new AdminController.CreateDestinationRequest("discord:channel", "123456789012345678", "raids", null));
+
+        Assert.IsType<OkObjectResult>(result);
+        this._roleResolver.Verify(r => r.InvalidateAll(), Times.Once);
+    }
+
+    /// <summary>The directory is cached a minute; a new destination has to be grantable straight away.</summary>
+    [Fact]
+    public async Task CreatingADestinationRefreshesTheDirectory()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this._humanService.Setup(s => s.ExistsAsync("123456789012345678")).ReturnsAsync(false);
+        this._humanService.Setup(s => s.CreateAsync(It.IsAny<Human>())).ReturnsAsync((Human h) => h);
+
+        var result = await this._sut.CreateDestination(
+            new AdminController.CreateDestinationRequest("discord:channel", "123456789012345678", "raids", null));
+
+        Assert.IsType<OkObjectResult>(result);
+        this._directory.Verify(d => d.Invalidate(), Times.Once);
+    }
+
     [Fact]
     public async Task CreateDestinationCreatesADiscordChannel()
     {
@@ -704,6 +789,33 @@ public class AdminControllerTests : ControllerTestBase
         this._roleResolver.Verify(r => r.InvalidateAll(), Times.Once);
     }
 
+    /// <summary>
+    /// The destination directory is cached a minute. Deleting, blocking or unblocking an account drops it,
+    /// so a grant check never answers from a list that still holds a deleted destination.
+    /// </summary>
+    [Fact]
+    public async Task DeleteUserRefreshesTheDirectory()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this._userPurgeService.Setup(s => s.PurgeAsync("u1")).ReturnsAsync(true);
+
+        await this._sut.DeleteUser("u1");
+
+        this._directory.Verify(d => d.Invalidate(), Times.Once);
+    }
+
+    [Fact]
+    public async Task BlockAndUnblockRefreshTheDirectory()
+    {
+        SetupUser(this._sut, userId: "admin", isAdmin: true);
+        this._humanService.Setup(s => s.GetByIdAsync("u1")).ReturnsAsync(new Human { Id = "u1" });
+
+        await this._sut.DisableUser("u1");
+        await this._sut.EnableUser("u1");
+
+        this._directory.Verify(d => d.Invalidate(), Times.Exactly(2));
+    }
+
     [Fact]
     public async Task AddWebhookDelegateTakesEffectWithoutWaitingOutTheRoleCache()
     {
@@ -789,12 +901,90 @@ public class AdminControllerTests : ControllerTestBase
     [Fact]
     public async Task ImpersonateByIdRefusesADelegateWhoseGrantWasRevoked()
     {
+        // The claim still names u1; the live answer no longer does. Arranged explicitly: an unset mock
+        // answers default(UserRoles), which would pass this test whatever the controller read.
         SetupUser(this._sut, isAdmin: false, managedWebhooks: ["u1"]);
-        this._webhookDelegateService.Setup(s => s.GetManagedWebhookIdsAsync("123456789"))
-            .ReturnsAsync([]);
+        this._roleResolver.Setup(r => r.ResolveAsync("123456789"))
+            .ReturnsAsync(new Pgan.PoracleWebNet.Api.Services.UserRoles(false, null));
+        this._humanService.Setup(s => s.GetByIdAsync("u1"))
+            .ReturnsAsync(new Human { Id = "u1", Name = "WH", Type = "webhook", Enabled = 1, AdminDisable = 0, CurrentProfileNo = 1 });
 
         Assert.IsType<ForbidResult>(
             await this._sut.ImpersonateById(new AdminController.ImpersonateRequest("u1")));
+        this._jwtService.Verify(j => j.GenerateImpersonationToken(It.IsAny<UserInfo>(), It.IsAny<string>()), Times.Never);
+    }
+
+    /// <summary>
+    /// A grant can only ever reach a destination. If the row behind a granted id is a person -- a local
+    /// grant written before the type changed, or a PoracleNG list that names a user -- a delegate would
+    /// otherwise sign in as that person. The type is read from the live row, not from the grant. See #1025.
+    /// </summary>
+    [Theory]
+    [InlineData("discord:user")]
+    [InlineData("telegram:user")]
+    [InlineData(null)]
+    [InlineData("")]
+    public async Task ImpersonateByIdRefusesADelegateWhoseTargetIsAPerson(string? type)
+    {
+        SetupUser(this._sut, isAdmin: false);
+        this._roleResolver.Setup(r => r.ResolveAsync("123456789"))
+            .ReturnsAsync(new Pgan.PoracleWebNet.Api.Services.UserRoles(false, ["555"]));
+        this._humanService.Setup(s => s.GetByIdAsync("555"))
+            .ReturnsAsync(new Human { Id = "555", Name = "Someone", Type = type, Enabled = 1, CurrentProfileNo = 1 });
+
+        Assert.IsType<ForbidResult>(await this._sut.ImpersonateById(new AdminController.ImpersonateRequest("555")));
+        this._jwtService.Verify(j => j.GenerateImpersonationToken(It.IsAny<UserInfo>(), It.IsAny<string>()), Times.Never);
+    }
+
+    /// <summary>Review Focus 1: an unknown type is listed on Destinations but grants no power, this one included.</summary>
+    [Fact]
+    public async Task ImpersonateByIdRefusesADelegateWhoseTargetHasAnUnknownType()
+    {
+        SetupUser(this._sut, isAdmin: false);
+        this._roleResolver.Setup(r => r.ResolveAsync("123456789"))
+            .ReturnsAsync(new Pgan.PoracleWebNet.Api.Services.UserRoles(false, ["typo"]));
+        this._humanService.Setup(s => s.GetByIdAsync("typo"))
+            .ReturnsAsync(new Human { Id = "typo", Name = "Typo", Type = "x:unknown", Enabled = 1, CurrentProfileNo = 1 });
+
+        Assert.IsType<ForbidResult>(await this._sut.ImpersonateById(new AdminController.ImpersonateRequest("typo")));
+    }
+
+    [Theory]
+    [InlineData("discord:channel")]
+    [InlineData("DISCORD:CHANNEL")]
+    [InlineData("discord:thread")]
+    [InlineData("telegram:channel")]
+    [InlineData("telegram:group")]
+    [InlineData("telegram:topic")]
+    [InlineData("webhook")]
+    public async Task ImpersonateByIdLetsADelegateManageAChannel(string type)
+    {
+        SetupUser(this._sut, isAdmin: false);
+        this._roleResolver.Setup(r => r.ResolveAsync("123456789"))
+            .ReturnsAsync(new Pgan.PoracleWebNet.Api.Services.UserRoles(false, ["1100000000000000001"]));
+        this._humanService.Setup(s => s.GetByIdAsync("1100000000000000001"))
+            .ReturnsAsync(new Human { Id = "1100000000000000001", Name = "raids", Type = type, Enabled = 1, CurrentProfileNo = 1 });
+
+        Assert.IsType<OkObjectResult>(
+            await this._sut.ImpersonateById(new AdminController.ImpersonateRequest("1100000000000000001")));
+        this._jwtService.Verify(
+            j => j.GenerateImpersonationToken(It.Is<UserInfo>(u => u.Id == "1100000000000000001"), "123456789"), Times.Once);
+    }
+
+    /// <summary>
+    /// The legitimate case beside the refusals: the type check is for delegates. An admin inspects people
+    /// through this endpoint too, and any type at all.
+    /// </summary>
+    [Theory]
+    [InlineData("discord:user")]
+    [InlineData("x:unknown")]
+    public async Task ImpersonateByIdStillLetsAnAdminInspectAnyAccount(string type)
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this._humanService.Setup(s => s.GetByIdAsync("555"))
+            .ReturnsAsync(new Human { Id = "555", Name = "Someone", Type = type, Enabled = 1, CurrentProfileNo = 1 });
+
+        Assert.IsType<OkObjectResult>(await this._sut.ImpersonateById(new AdminController.ImpersonateRequest("555")));
     }
 
     [Fact]
@@ -823,7 +1013,24 @@ public class AdminControllerTests : ControllerTestBase
         Assert.IsType<ForbidResult>(await this._sut.ImpersonateById(new AdminController.ImpersonateRequest("u1")));
     }
 
-    // --- GetManagedWebhooks (#797) ---
+    /// <summary>
+    /// The page moved to /my-destinations. /my-webhooks stays as an alias so a SPA still cached from
+    /// before the rename keeps loading its rows until the next reload.
+    /// </summary>
+    [Fact]
+    public void GetManagedDestinationsAnswersOnBothRoutes()
+    {
+        var templates = typeof(AdminController).GetMethod(nameof(AdminController.GetManagedDestinations))!
+            .GetCustomAttributes(typeof(HttpGetAttribute), false)
+            .Cast<HttpGetAttribute>()
+            .Select(a => a.Template)
+            .ToArray();
+
+        Assert.Contains("my-destinations", templates);
+        Assert.Contains("my-webhooks", templates);
+    }
+
+    // --- GetManagedDestinations (#797) ---
 
     /// <summary>
     /// The grant PoracleNG reports is the webhook's NAME, and this page matches on humans.id. The
@@ -831,7 +1038,7 @@ public class AdminControllerTests : ControllerTestBase
     /// used to get the nav item and an empty table. See #797.
     /// </summary>
     [Fact]
-    public async Task GetManagedWebhooksListsTheWebhookADelegateWasGrantedByName()
+    public async Task GetManagedDestinationsListsTheWebhookADelegateWasGrantedByName()
     {
         SetupUser(this._sut, isAdmin: false);
         this._roleResolver.Setup(r => r.ResolveAsync("123456789"))
@@ -842,20 +1049,43 @@ public class AdminControllerTests : ControllerTestBase
             new Human { Id = "http://wh.example/b", Name = "100iv", Type = "webhook" },
         ]);
 
-        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetManagedWebhooks());
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetManagedDestinations());
 
         var rows = Assert.IsAssignableFrom<IEnumerable<object>>(ok.Value);
         Assert.Single(rows);
     }
 
+    /// <summary>
+    /// A degraded resolve can hand back raw grant strings. A row whose type is not one of the six destination
+    /// kinds would be listed here and then refused by impersonate, so it is not listed.
+    /// </summary>
     [Fact]
-    public async Task GetManagedWebhooksReturnsNothingWhenTheCallerHasNoGrants()
+    public async Task GetManagedDestinationsListsOnlyKnownDestinationKinds()
+    {
+        SetupUser(this._sut, isAdmin: false);
+        this._roleResolver.Setup(r => r.ResolveAsync("123456789"))
+            .ReturnsAsync(new Pgan.PoracleWebNet.Api.Services.UserRoles(false, ["http://wh.example/a", "42", "777"]));
+        this._humanService.Setup(s => s.GetAllAsync()).ReturnsAsync(
+        [
+            new Human { Id = "http://wh.example/a", Name = "rares", Type = "webhook" },
+            new Human { Id = "42", Name = "Typo row", Type = "x:unknown" },
+            new Human { Id = "777", Name = "Sam", Type = "discord:user" },
+        ]);
+
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetManagedDestinations());
+
+        var row = Assert.Single(Assert.IsAssignableFrom<IEnumerable<object>>(ok.Value));
+        Assert.Equal("http://wh.example/a", row.GetType().GetProperty("Id")?.GetValue(row));
+    }
+
+    [Fact]
+    public async Task GetManagedDestinationsReturnsNothingWhenTheCallerHasNoGrants()
     {
         SetupUser(this._sut, isAdmin: false);
         this._roleResolver.Setup(r => r.ResolveAsync("123456789"))
             .ReturnsAsync(new Pgan.PoracleWebNet.Api.Services.UserRoles(false, null));
 
-        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetManagedWebhooks());
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetManagedDestinations());
 
         Assert.Empty(Assert.IsAssignableFrom<IEnumerable<object>>(ok.Value));
         this._humanService.Verify(s => s.GetAllAsync(), Times.Never);
@@ -943,9 +1173,9 @@ public class AdminControllerTests : ControllerTestBase
             s => s.AddDelegateAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
-    /// <summary>A grant may only name a webhook, not an ordinary user account.</summary>
+    /// <summary>A grant names a destination. A person is not one, so nobody can be delegated another person.</summary>
     [Fact]
-    public async Task AddWebhookDelegateRejectsAnIdThatIsNotAWebhook()
+    public async Task AddWebhookDelegateRefusesAPersonAsTarget()
     {
         SetupUser(this._sut, isAdmin: true);
         this._humanService.Setup(s => s.GetByIdAsync("someone"))
@@ -953,7 +1183,47 @@ public class AdminControllerTests : ControllerTestBase
 
         var result = await this._sut.AddWebhookDelegate(new AdminController.WebhookDelegateRequest("someone", "u2"));
 
-        Assert.IsType<BadRequestObjectResult>(result);
+        var bad = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal("webhookId does not name a destination.", ErrorOf(bad.Value));
+        this._webhookDelegateService.Verify(
+            s => s.AddDelegateAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    /// <summary>Every kind in HumanKind.Destinations takes delegates now, not only webhooks. See #1025.</summary>
+    [Theory]
+    [MemberData(nameof(EveryDestinationKind))]
+    public async Task AddWebhookDelegateGrantsEveryDestinationKind(string type)
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this.GivenWebhookAndUserExist(webhookId: "123456789012345678");
+        this._humanService.Setup(s => s.GetByIdAsync("123456789012345678"))
+            .ReturnsAsync(new Human { Id = "123456789012345678", Type = type });
+        this._webhookDelegateService.Setup(s => s.AddDelegateAsync("123456789012345678", "u2")).ReturnsAsync(["u2"]);
+
+        var result = await this._sut.AddWebhookDelegate(new AdminController.WebhookDelegateRequest("123456789012345678", "u2"));
+
+        Assert.IsType<OkObjectResult>(result);
+        this._webhookDelegateService.Verify(s => s.AddDelegateAsync("123456789012345678", "u2"), Times.Once);
+    }
+
+    /// <summary>
+    /// A type that isn't a person but isn't a known destination either (an operator's typo) is listed on
+    /// Destinations, but it grants nothing: only HumanKind.Destinations does.
+    /// </summary>
+    [Fact]
+    public async Task AddWebhookDelegateRefusesAnUnknownType()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this.GivenWebhookAndUserExist(webhookId: "typo");
+        this._humanService.Setup(s => s.GetByIdAsync("typo"))
+            .ReturnsAsync(new Human { Id = "typo", Type = "x:unknown" });
+
+        var result = await this._sut.AddWebhookDelegate(new AdminController.WebhookDelegateRequest("typo", "u2"));
+
+        var bad = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal("webhookId does not name a destination.", ErrorOf(bad.Value));
+        this._webhookDelegateService.Verify(
+            s => s.AddDelegateAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
@@ -1012,6 +1282,23 @@ public class AdminControllerTests : ControllerTestBase
 
         Assert.IsType<OkObjectResult>(result);
         this._webhookDelegateService.Verify(s => s.AddDelegateAsync("wh1", "u2"), Times.Once);
+    }
+
+    /// <summary>
+    /// The directory the resolver canonicalises grants against is cached a minute, so a destination created
+    /// outside this site in that minute would be granted here and still not resolve. Granting drops it.
+    /// </summary>
+    [Fact]
+    public async Task AddWebhookDelegateRefreshesTheDirectory()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this.GivenWebhookAndUserExist();
+        this._webhookDelegateService.Setup(s => s.AddDelegateAsync("wh1", "u2")).ReturnsAsync(["u2"]);
+
+        Assert.IsType<OkObjectResult>(
+            await this._sut.AddWebhookDelegate(new AdminController.WebhookDelegateRequest("wh1", "u2")));
+
+        this._directory.Verify(d => d.Invalidate(), Times.Once);
     }
 
     [Fact]

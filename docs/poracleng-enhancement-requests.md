@@ -393,12 +393,12 @@ Every human route was single-`{id}`: `GET /api/humans`, `GET /api/v2/humans` and
 all answered 404.
 
 **Here: adopted**, in PoracleWeb.NET #839/#936 first as a fallback, and now with no fallback. The list, the
-webhook list, the batch read that resolves geofence owners' names and the delete all go through
+batch read that resolves geofence owners' names and the delete all go through
 `/api/v2/humans`, and `HumanRepository` is deleted. The list item carries seven fields (`admin_disable`,
 `current_profile_no`, `enabled`, `id`, `language`, `name`, `type`) and the admin grid also renders
 `disabled_date` and `notes`; [#229](https://github.com/jfberry/PoracleNG/issues/229) (closed, merged via
 [PR #230](https://github.com/jfberry/PoracleNG/pull/230)) added them, and confirms `type=webhook` is the
-exact stored value `GetWebhooksAsync` filters on. The existence check behind the purge reads the proxy
+exact stored value for a webhook (`HumanKind.Webhook`). The existence check behind the purge reads the proxy
 too, which answers null only for a 404 and throws for anything else, so an outage is no longer reported
 as "already gone" ([#994](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/994)).
 

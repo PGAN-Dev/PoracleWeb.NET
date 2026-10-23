@@ -27,9 +27,6 @@ public class HumanService(
     public async Task<IEnumerable<Human>> GetAllAsync() =>
         await this._humanProxy.ListHumansAsync();
 
-    public async Task<IEnumerable<Human>> GetWebhooksAsync() =>
-        await this._humanProxy.ListHumansAsync(type: "webhook");
-
     public async Task<IEnumerable<Human>> GetByIdsAsync(IEnumerable<string> ids)
     {
         var idList = ids as IReadOnlyCollection<string> ?? ids.ToList();

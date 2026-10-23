@@ -38,10 +38,12 @@ interface NavItemShape {
 describe('App nav filtering (#236)', () => {
   let settingsSignal: WritableSignal<Record<string, string>>;
   let isAdminSignal: WritableSignal<boolean>;
+  let delegateSignal: WritableSignal<boolean>;
 
-  const setup = (siteSettings: Record<string, string>, isAdmin: boolean) => {
+  const setup = (siteSettings: Record<string, string>, isAdmin: boolean, delegate = false) => {
     settingsSignal = signal(siteSettings);
     isAdminSignal = signal(isAdmin);
+    delegateSignal = signal(delegate);
 
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
@@ -62,7 +64,7 @@ describe('App nav filtering (#236)', () => {
         {
           provide: AuthService,
           useValue: {
-            hasManagedWebhooks: () => false,
+            hasManagedDestinations: () => delegateSignal(),
             isAdmin: () => isAdminSignal(),
             loadCurrentUser: jest.fn(),
             logout: jest.fn(),
@@ -159,6 +161,14 @@ describe('App nav filtering (#236)', () => {
     const app = setup({ disable_areas: 'false' }, false);
     expect(settingsRoutes(app)).toContain('/areas');
   });
+
+  it('shows the Destinations group only to a delegate with grants', () => {
+    const destinationRoutes = (app: App): string[] =>
+      (app as unknown as { destinationNavItems: () => NavItemShape[] }).destinationNavItems().map(i => i.route);
+
+    expect(destinationRoutes(setup({}, false, true))).toEqual(['/my-destinations']);
+    expect(destinationRoutes(setup({}, false, false))).toEqual([]);
+  });
 });
 
 /**
@@ -195,7 +205,7 @@ describe('App bootstrap language defaults (#770)', () => {
           provide: AuthService,
           useValue: {
             getProviders: () => of({}),
-            hasManagedWebhooks: () => false,
+            hasManagedDestinations: () => false,
             isAdmin: () => false,
             isAuthenticated: () => opts.authenticated,
             loadCurrentUser: jest.fn(),
@@ -305,7 +315,7 @@ describe('App stop impersonating', () => {
         {
           provide: AuthService,
           useValue: {
-            hasManagedWebhooks: () => false,
+            hasManagedDestinations: () => false,
             isAdmin: () => false,
             stopImpersonating: jest.fn(() => Promise.resolve(restored)),
           },
@@ -354,7 +364,7 @@ describe('App impersonation banner', () => {
         {
           provide: AuthService,
           useValue: {
-            hasManagedWebhooks: () => false,
+            hasManagedDestinations: () => false,
             isAdmin: () => false,
             isImpersonating: () => true,
             user: signal({ username: '#raid-alerts', type }),
@@ -412,7 +422,7 @@ describe('App sidenav by width', () => {
         provideRouter([]),
         provideTranslateService(),
         { provide: SettingsService, useValue: { isDisabled: () => false, loadOnce: () => of([]), siteSettings: signal({}) } },
-        { provide: AuthService, useValue: { hasManagedWebhooks: () => false, isAdmin: () => false } },
+        { provide: AuthService, useValue: { hasManagedDestinations: () => false, isAdmin: () => false } },
         { provide: DashboardService, useValue: { getCounts: () => of({}) } },
         { provide: I18nService, useValue: { init: jest.fn() } },
       ],

@@ -39,30 +39,10 @@ import { AdminService, CreateDestinationRequest } from '../../core/services/admi
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
-import { DESTINATION_KINDS, isKnownKind, isPersonType, kindIcon, kindLabelKey } from '../../shared/utils/human-kind';
+import { DESTINATION_KINDS, isKnownKind, isPersonType, kindIcon, kindLabelKey, takesDelegates } from '../../shared/utils/human-kind';
 import { relativeTime } from '../../shared/utils/relative-time';
 import { serverReason } from '../../shared/utils/server-reason';
-
-/**
- * A webhook URL with its secret token cut off: the host and, for a Discord-style URL, the webhook number.
- * Anything after that number, and the whole path of any other URL, is dropped rather than shortened,
- * since the token is usually the last segment. The full URL stays reachable only through Copy ID.
- */
-export function shortWebhookUrl(url: string): string {
-  let parsed: URL;
-  try {
-    parsed = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(url) ? url : `https://${url}`);
-  } catch {
-    return '…';
-  }
-  if (!parsed.host || /\s/.test(url)) return '…';
-  const segments = parsed.pathname.split('/').filter(Boolean);
-  const hooks = segments.findIndex(s => s.toLowerCase() === 'webhooks');
-  if (hooks >= 0 && /^\d+$/.test(segments[hooks + 1] ?? '')) {
-    return `${parsed.host}/${segments.slice(0, hooks + 2).join('/')}…`;
-  }
-  return segments.length ? `${parsed.host}/…` : parsed.host;
-}
+import { shortWebhookUrl } from '../../shared/utils/webhook-url';
 
 /** What to call a row in a message: its name, else its id, except that a webhook id is a secret and is shortened. */
 export function destinationName(row: AdminUser): string {
@@ -410,8 +390,9 @@ export class AdminDestinationsComponent implements OnInit {
   readonly justAdded = signal<string | null>(null);
   readonly kindIcon = kindIcon;
   readonly kindLabelKey = kindLabelKey;
-
   readonly list = new AdminListState(this.destinations, 'admin_destinations_', (row, column) => this.getSortValue(row, column));
+
+  readonly takesDelegates = takesDelegates;
 
   readonly usersLoading = signal(true);
 
@@ -526,7 +507,7 @@ export class AdminDestinationsComponent implements OnInit {
     return (this.porocleDelegates()[webhookId] ?? []).includes(userId);
   }
 
-  /** Grants and the delegates dialog are webhook-only on the server until delegation widens (#1025 part 6). */
+  /** A webhook id is a URL, shown shortened, and deleting one removes the account itself. */
   isWebhook(row: AdminUser): boolean {
     return (row.type ?? '').trim().toLowerCase() === 'webhook';
   }
@@ -543,7 +524,7 @@ export class AdminDestinationsComponent implements OnInit {
       .subscribe({
         error: () => {
           this.usersLoading.set(false);
-          this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_LOAD_WEBHOOKS'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_LOAD_DESTINATIONS'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
         },
         next: ({ delegates, poracleAdmins, porocleDelegates, users }) => {
           this.allUsers.set(users);
@@ -562,9 +543,13 @@ export class AdminDestinationsComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         error: err =>
-          this.snackBar.open(serverReason(err) ?? this.i18n.instant('ADMIN.SNACK_FAILED_SWITCH_WEBHOOK'), this.i18n.instant('TOAST.OK'), {
-            duration: 4000,
-          }),
+          this.snackBar.open(
+            serverReason(err) ?? this.i18n.instant('ADMIN.SNACK_FAILED_SWITCH_DESTINATION'),
+            this.i18n.instant('TOAST.OK'),
+            {
+              duration: 4000,
+            },
+          ),
         next: res => this.auth.impersonate(res.token, '/admin/destinations'),
       });
   }

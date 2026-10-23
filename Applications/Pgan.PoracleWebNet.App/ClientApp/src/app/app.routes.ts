@@ -180,9 +180,10 @@ export const routes: Routes = [
   },
   {
     canActivate: [authGuard],
-    loadComponent: () => import('./modules/admin/my-webhooks.component').then(m => m.MyWebhooksComponent),
-    path: 'my-webhooks',
-    title: 'NAV.MY_WEBHOOKS',
+    loadComponent: () => import('./modules/admin/my-destinations.component').then(m => m.MyDestinationsComponent),
+    path: 'my-destinations',
+    title: 'NAV.MY_DESTINATIONS',
   },
+  { path: 'my-webhooks', pathMatch: 'full', redirectTo: 'my-destinations' },
   { path: '**', redirectTo: 'dashboard' },
 ];

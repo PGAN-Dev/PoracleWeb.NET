@@ -39,7 +39,7 @@ describe('AuthService', () => {
     avatarUrl: 'https://example.com/avatar.png',
     enabled: true,
     isAdmin: false,
-    managedWebhooks: [],
+    managedDestinations: [],
     profileName: 'Default',
     profileNo: 1,
     type: 'discord:user',
@@ -372,20 +372,20 @@ describe('AuthService', () => {
       expect(service.isAdmin()).toBe(true);
     });
 
-    it('hasManagedWebhooks should reflect webhook list', async () => {
-      expect(service.hasManagedWebhooks()).toBe(false);
+    it('hasManagedDestinations should reflect the destination list', async () => {
+      expect(service.hasManagedDestinations()).toBe(false);
 
-      const userWithWebhooks = { ...mockUser, managedWebhooks: ['hook1'] };
+      const delegate = { ...mockUser, managedDestinations: ['hook1', '1234567890'] };
       const promise = service.loadCurrentUser();
-      httpMock.expectOne(`${API}/api/auth/me`).flush(userWithWebhooks);
+      httpMock.expectOne(`${API}/api/auth/me`).flush(delegate);
       await promise;
 
-      expect(service.hasManagedWebhooks()).toBe(true);
-      expect(service.managedWebhooks()).toEqual(['hook1']);
+      expect(service.hasManagedDestinations()).toBe(true);
+      expect(service.managedDestinations()).toEqual(['hook1', '1234567890']);
     });
 
-    it('managedWebhooks should return empty array when user has no webhooks', () => {
-      expect(service.managedWebhooks()).toEqual([]);
+    it('managedDestinations should return empty array when user manages nothing', () => {
+      expect(service.managedDestinations()).toEqual([]);
     });
   });
 
@@ -432,14 +432,14 @@ describe('AuthService', () => {
 
     it('returns a delegate to the page they started from', async () => {
       localStorage.setItem('poracle_token', 'own-jwt');
-      service.impersonate('webhook-jwt', '/my-webhooks');
+      service.impersonate('webhook-jwt', '/my-destinations');
       httpMock.expectOne(`${API}/api/auth/me`).flush(mockUser);
 
       const promise = service.stopImpersonating();
       httpMock.expectOne(`${API}/api/auth/me`).flush(mockUser);
       await promise;
 
-      expect(router.navigate).toHaveBeenLastCalledWith(['/my-webhooks'], { state: { adminReturn: true } });
+      expect(router.navigate).toHaveBeenLastCalledWith(['/my-destinations'], { state: { adminReturn: true } });
       expect(localStorage.getItem('poracle_impersonation_return')).toBeNull();
     });
 

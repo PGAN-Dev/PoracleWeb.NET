@@ -29,9 +29,8 @@ public static partial class HumanKind
     public const string TelegramTopic = "telegram:topic";
 
     /// <summary>
-    /// The six types that create, grant targets and delegate impersonation will be limited to as the later
-    /// parts of #1025 land; nothing reads this set yet. An unknown non-user type is listed as a destination
-    /// but is not in it, so it will be on none of those powers.
+    /// The six types that create, grant targets and delegate impersonation are limited to. An unknown
+    /// non-user type is listed as a destination but is not in it, so it has none of those powers. See #1025.
     /// </summary>
     public static IReadOnlySet<string> Destinations { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {

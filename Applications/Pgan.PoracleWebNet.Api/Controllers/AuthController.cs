@@ -256,7 +256,7 @@ public partial class AuthController(
             Enabled = human.Enabled == 1 && human.AdminDisable == 0,
             ProfileNo = human.CurrentProfileNo,
             AvatarUrl = avatarUrl,
-            ManagedWebhooks = managedWebhooks
+            ManagedDestinations = managedWebhooks
         };
 
         // Cache avatar for admin panel use
@@ -665,7 +665,7 @@ public partial class AuthController(
             Enabled = human.Enabled == 1 && human.AdminDisable == 0,
             ProfileNo = human.CurrentProfileNo,
             AvatarUrl = photoUrl,
-            ManagedWebhooks = managedWebhooks
+            ManagedDestinations = managedWebhooks
         };
 
         var jwt = this._jwtService.GenerateToken(userInfo);
@@ -880,7 +880,7 @@ public partial class AuthController(
         var adminDisable = human.AdminDisable == 1;
         var enabled = human.Enabled == 1 && human.AdminDisable == 0;
         var dbProfileNo = human.CurrentProfileNo;
-        var managedWebhooks = await this.ResolveManagedWebhooksAsync();
+        var managedWebhooks = await this.ResolveManagedDestinationsAsync();
 
         var userInfo = new UserInfo
         {
@@ -892,7 +892,7 @@ public partial class AuthController(
             Enabled = enabled,
             ProfileNo = dbProfileNo,
             AvatarUrl = this.User.FindFirstValue("avatarUrl"),
-            ManagedWebhooks = managedWebhooks,
+            ManagedDestinations = managedWebhooks,
             ProfileName = await this.ActiveProfileNameAsync(dbProfileNo),
         };
 
@@ -973,7 +973,7 @@ public partial class AuthController(
     /// <remarks>
     /// <para>
     /// The claim is minted at login and lives 24 hours, so a delegate granted access today could not
-    /// reach <c>/my-webhooks</c> until their token happened to refresh — while the page itself and
+    /// reach <c>/my-destinations</c> until their token happened to refresh — while the page itself and
     /// <c>POST /api/admin/impersonate</c> would already have let them in, both having moved to live
     /// resolution in #601 and #626. This response drives whether the nav item renders at all, so it was
     /// the last consumer of the claim and the one that decided whether the others were reachable.
@@ -986,7 +986,7 @@ public partial class AuthController(
     /// </para>
     /// <para>
     /// An impersonation session resolves live like any other. <c>this.UserId</c> names the impersonated
-    /// account, which is exactly what <c>GET /api/admin/my-webhooks</c> and <c>POST /api/admin/impersonate</c>
+    /// account, which is exactly what <c>GET /api/admin/my-destinations</c> and <c>POST /api/admin/impersonate</c>
     /// already answer for, so short-circuiting to a claim the impersonation token never carries hid a nav
     /// item whose page would have worked. This is not the #663 trap: that one re-elevated ADMIN rights the
     /// impersonation token deliberately drops, and <c>isAdmin</c> still comes from the claim. Chaining a
@@ -998,12 +998,12 @@ public partial class AuthController(
     /// Both real checks (the list and the impersonation grant) resolve live and fail closed.
     /// </para>
     /// </remarks>
-    private async Task<string[]?> ResolveManagedWebhooksAsync()
+    private async Task<string[]?> ResolveManagedDestinationsAsync()
     {
-        var claimed = this.ManagedWebhooks;
+        var claimed = this.ManagedDestinations;
 
         var roles = await this._roleResolver.ResolveAsync(this.UserId);
-        var resolved = roles.ManagedWebhooks ?? [];
+        var resolved = roles.ManagedDestinations ?? [];
 
         if (roles.Resolved)
         {
@@ -1028,7 +1028,7 @@ public partial class AuthController(
     private async Task<(bool isAdmin, string[]? managedWebhooks)> GetRolesAsync(string userId)
     {
         var roles = await this._roleResolver.ResolveAsync(userId);
-        return (roles.IsAdmin, roles.ManagedWebhooks);
+        return (roles.IsAdmin, roles.ManagedDestinations);
     }
 
     /// <summary>
@@ -1285,7 +1285,7 @@ public partial class AuthController(
             Enabled = human.Enabled == 1 && human.AdminDisable == 0,
             ProfileNo = human.CurrentProfileNo,
             AvatarUrl = avatarUrl,
-            ManagedWebhooks = managedWebhooks
+            ManagedDestinations = managedWebhooks
         };
 
         return (userInfo, null);

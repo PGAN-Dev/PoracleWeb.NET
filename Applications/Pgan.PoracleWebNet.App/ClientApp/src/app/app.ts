@@ -30,7 +30,7 @@ interface NavItem {
   delegateOnly?: boolean;
   /** Site setting key that disables this item when set to 'True' */
   disableKey?: string;
-  group: 'alarms' | 'settings' | 'admin' | 'webhooks' | 'support';
+  group: 'alarms' | 'settings' | 'admin' | 'destinations' | 'support';
   icon: string;
   iconColor?: string;
   label: string;
@@ -223,7 +223,14 @@ export class App implements OnInit {
       label: 'NAV.USER_GEOFENCES',
       route: '/admin/geofence-submissions',
     },
-    { delegateOnly: true, group: 'webhooks', icon: 'campaign', iconColor: '#00897b', label: 'NAV.MY_WEBHOOKS', route: '/my-webhooks' },
+    {
+      delegateOnly: true,
+      group: 'destinations',
+      icon: 'campaign',
+      iconColor: '#00897b',
+      label: 'NAV.MY_DESTINATIONS',
+      route: '/my-destinations',
+    },
   ];
 
   protected readonly adminNavItems = computed(() =>
@@ -264,6 +271,10 @@ export class App implements OnInit {
   });
 
   protected readonly darkMode = signal(localStorage.getItem('poracle-theme') === 'dark');
+
+  protected readonly destinationNavItems = computed(() =>
+    this.navItems.filter(item => item.group === 'destinations' && (!item.delegateOnly || this.auth.hasManagedDestinations())),
+  );
 
   protected readonly headerLogoUrl = computed(() => this.settingsService.siteSettings()['header_logo_url'] || '');
 
@@ -318,10 +329,6 @@ export class App implements OnInit {
     }
     return this.darkMode() ? 'linear-gradient(135deg, #0d47a1 0%, #1a237e 100%)' : 'linear-gradient(135deg, #1565c0 0%, #0d47a1 100%)';
   });
-
-  protected readonly webhookNavItems = computed(() =>
-    this.navItems.filter(item => item.group === 'webhooks' && (!item.delegateOnly || this.auth.hasManagedWebhooks())),
-  );
 
   constructor() {
     this.applyTheme();
