@@ -11,6 +11,7 @@ using Pgan.PoracleWebNet.Api.Services;
 using Pgan.PoracleWebNet.Api.Services.Oidc;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
+using Pgan.PoracleWebNet.Core.Services;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
@@ -572,46 +573,26 @@ public partial class AuthController(
         // The enable_telegram site setting (admin runtime toggle) is checked after authentication
         // so that admins can still log in even when Telegram is disabled for regular users.
 
-        // Validate auth_date is not older than 86400 seconds (24 hours)
-        if (telegramData.TryGetValue("auth_date", out var authDateStr) &&
-            long.TryParse(authDateStr, out var authDateUnix))
+        // Same check the account-link endpoint uses, with sign-in's 24-hour window.
+        var widget = TelegramWidgetVerifier.Verify(telegramData, this._telegramSettings.BotToken,
+            TelegramWidgetVerifier.SignInMaxAge, DateTimeOffset.UtcNow);
+        if (!widget.Valid)
         {
-            var authDate = DateTimeOffset.FromUnixTimeSeconds(authDateUnix);
-            if (DateTimeOffset.UtcNow - authDate > TimeSpan.FromSeconds(86400))
+            return widget.Failure switch
             {
-                return this.Unauthorized(new
+                "missing_fields" => this.BadRequest(new
+                {
+                    error = "Missing or invalid auth_date."
+                }),
+                "expired" => this.Unauthorized(new
                 {
                     error = "Telegram authentication data has expired."
-                });
-            }
-        }
-        else
-        {
-            return this.BadRequest(new
-            {
-                error = "Missing or invalid auth_date."
-            });
-        }
-
-        // Validate HMAC-SHA256
-        var botToken = this._telegramSettings.BotToken;
-
-        var dataCheckString = string.Join("\n",
-            telegramData
-                .Where(kvp => kvp.Key != "hash")
-                .OrderBy(kvp => kvp.Key)
-                .Select(kvp => $"{kvp.Key}={kvp.Value}"));
-        var secretKey = SHA256.HashData(Encoding.UTF8.GetBytes(botToken));
-
-        using var hmac = new HMACSHA256(secretKey);
-        var computedHash = Convert.ToHexStringLower(hmac.ComputeHash(Encoding.UTF8.GetBytes(dataCheckString)));
-
-        if (computedHash != hash)
-        {
-            return this.Unauthorized(new
-            {
-                error = "Invalid Telegram authentication data."
-            });
+                }),
+                _ => this.Unauthorized(new
+                {
+                    error = "Invalid Telegram authentication data."
+                })
+            };
         }
 
         var username = telegramData.GetValueOrDefault("username",
