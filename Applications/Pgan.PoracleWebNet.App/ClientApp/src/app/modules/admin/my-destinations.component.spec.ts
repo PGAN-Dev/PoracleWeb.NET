@@ -3,6 +3,8 @@ import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatTooltip } from '@angular/material/tooltip';
+import { By } from '@angular/platform-browser';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideTranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
@@ -124,5 +126,74 @@ describe('MyDestinationsComponent', () => {
   it('marks the ID column so it can drop away on a phone', () => {
     const { fixture } = setup();
     expect(fixture.nativeElement.querySelector('td.col-id')).not.toBeNull();
+  });
+
+  // The ID cell's tooltip carried the whole webhook URL, token and all. Destinations already hid it.
+  it('never shows a webhook token, on screen or in a tooltip', () => {
+    const token = 'SecretTokenAbc123xyz';
+    const hook = { ...rows[0], id: `https://discord.com/api/webhooks/1234567890/${token}` } as AdminUser;
+    const channel = mixed[1];
+    const { fixture } = setup({ destinations: [hook, channel] });
+
+    expect((fixture.nativeElement as HTMLElement).innerHTML).not.toContain(token);
+    const tooltips = fixture.debugElement.queryAll(By.directive(MatTooltip)).map(d => d.injector.get(MatTooltip).message);
+    expect(tooltips.some(m => m.includes(token))).toBe(false);
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('discord.com/api/webhooks/1234567890…');
+    // A channel id is no secret, and stays whole.
+    expect(tooltips).toContain(channel.id);
+  });
+
+  /**
+   * At 390px the table needed 402px of a 358px column: Manage alarms ran off the screen and names broke
+   * every few letters. A phone gets one item per destination instead, the same data stacked.
+   */
+  it('lists each destination as a phone-sized item with its kind, status and its own Manage alarms', () => {
+    const { fixture } = setup({ destinations: mixed.slice(0, 2) });
+    const items = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('[data-test="destination-item"]'));
+
+    expect(items).toHaveLength(2);
+    expect(items[0].querySelector('.item-name')?.textContent?.trim()).toBe('teamharmonyrares');
+    expect(items[0].querySelector('.kind-label')?.textContent?.trim()).toBe('ADMIN.TYPE_WEBHOOK');
+    expect(items[0].querySelector('.status-chip')).not.toBeNull();
+    expect(items[1].querySelector('.kind-label')?.textContent?.trim()).toBe('ADMIN.TYPE_DISCORD_CHANNEL');
+    expect(items[1].querySelector('button.manage-btn')).not.toBeNull();
+  });
+
+  /**
+   * The list loaded while managing belongs to the managed destination, which has none. Going back used
+   * to leave "No destinations assigned" on screen until a reload, telling a delegate he had nothing.
+   */
+  it('reloads the caller’s own destinations when the managed session ends', async () => {
+    const { adminService, auth, fixture } = setup({ destinations: [], impersonating: true });
+    adminService.getManagedDestinations.mockReturnValue(of(mixed));
+    (auth as unknown as { stopImpersonating: jest.Mock }).stopImpersonating = jest.fn(async () => {
+      auth.isImpersonating.set(false);
+      return true;
+    });
+
+    ((fixture.nativeElement as HTMLElement).querySelector('[data-test="exit-managing"]') as HTMLButtonElement).click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(adminService.getManagedDestinations).toHaveBeenCalledTimes(2);
+    expect((fixture.nativeElement as HTMLElement).querySelectorAll('[data-test="destination-item"]')).toHaveLength(4);
+    expect((fixture.nativeElement as HTMLElement).querySelector('.empty-state')).toBeNull();
+  });
+
+  it('reloads when the session ends from the banner too', () => {
+    const { adminService, auth, fixture } = setup({ destinations: [], impersonating: true });
+    adminService.getManagedDestinations.mockReturnValue(of(mixed));
+
+    auth.isImpersonating.set(false);
+    fixture.detectChanges();
+
+    expect(adminService.getManagedDestinations).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not reload while nothing changes', () => {
+    const { adminService, fixture } = setup();
+    fixture.detectChanges();
+
+    expect(adminService.getManagedDestinations).toHaveBeenCalledTimes(1);
   });
 });

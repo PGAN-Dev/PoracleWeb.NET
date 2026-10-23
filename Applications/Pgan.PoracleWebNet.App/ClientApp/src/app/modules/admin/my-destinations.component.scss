@@ -102,27 +102,42 @@
 .manage-btn {
   min-height: 40px;
 }
-// A phone has no room for the ID column; the name, kind, status and the one action stay.
+// The phone list: one item per destination, name and kind on the first line, status and the action below.
+.destination-list {
+  display: none;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.destination-item {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--mat-sys-outline-variant, rgba(0, 0, 0, 0.12));
+}
+.item-head,
+.item-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.item-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+// The table needs more width than a phone has (402px in 358px at 390), so a phone gets the list instead.
 @media (max-width: 600px) {
   .page-content {
     padding: 0 16px 24px;
   }
-  .col-id {
+  .table-container {
     display: none;
   }
-  .destinations-table th.mat-mdc-header-cell,
-  .destinations-table td.mat-mdc-cell {
-    padding: 0 8px;
-  }
-  .destinations-table td.mat-mdc-cell:first-child,
-  .destinations-table th.mat-mdc-header-cell:first-child {
-    padding-left: 0;
-  }
-  .destinations-table td.mat-mdc-cell:last-child,
-  .destinations-table th.mat-mdc-header-cell:last-child {
-    padding-right: 0;
-  }
-  .destinations-table .mat-mdc-cell:nth-child(1) {
-    word-break: break-word;
+  .destination-list {
+    display: block;
   }
 }

@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
+import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, effect, inject, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -15,6 +16,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { isKnownKind, kindIcon, kindLabelKey } from '../../shared/utils/human-kind';
 import { serverReason } from '../../shared/utils/server-reason';
+import { shortWebhookUrl } from '../../shared/utils/webhook-url';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -26,6 +28,7 @@ import { serverReason } from '../../shared/utils/server-reason';
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatTooltipModule,
+    NgTemplateOutlet,
     TranslatePipe,
   ],
   selector: 'app-my-destinations',
@@ -49,8 +52,28 @@ export class MyDestinationsComponent implements OnInit {
   readonly kindLabelKey = kindLabelKey;
   readonly loading = signal(true);
 
+  constructor() {
+    // The list loaded inside a managed session is the managed destination's, which has none. When the
+    // session ends, from the note here or the banner, the caller's own list has to be fetched again.
+    let wasManaging = untracked(this.isImpersonating);
+    effect(() => {
+      const managing = this.isImpersonating();
+      if (wasManaging && !managing) untracked(() => this.load());
+      wasManaging = managing;
+    });
+  }
+
   exitManaging(): void {
     void this.auth.stopImpersonating();
+  }
+
+  /** A webhook id is a URL with a secret token in it, so only its host and hook number are shown. */
+  idLabel(row: AdminUser): string {
+    return this.isWebhook(row) ? shortWebhookUrl(row.id) : row.id;
+  }
+
+  isWebhook(row: AdminUser): boolean {
+    return (row.type ?? '').trim().toLowerCase() === 'webhook';
   }
 
   manageAlarms(destination: AdminUser): void {
@@ -79,6 +102,11 @@ export class MyDestinationsComponent implements OnInit {
    * The second filter could only ever subtract from an already-authorised set.
    */
   ngOnInit(): void {
+    this.load();
+  }
+
+  private load(): void {
+    this.loading.set(true);
     this.adminService
       .getManagedDestinations()
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -92,15 +120,5 @@ export class MyDestinationsComponent implements OnInit {
           this.loading.set(false);
         },
       });
-  }
-
-  truncateUrl(url: string): string {
-    try {
-      const u = new URL(url);
-      const path = u.pathname.length > 24 ? '…' + u.pathname.slice(-20) : u.pathname;
-      return `${u.hostname}${path}`;
-    } catch {
-      return url.length > 40 ? url.slice(0, 37) + '…' : url;
-    }
   }
 }
