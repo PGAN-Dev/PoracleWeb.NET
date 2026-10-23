@@ -61,7 +61,7 @@ PoracleWeb.NET on `develop`:
 - `UserRoleResolver` reads `admin.discord.webhooks` only and canonicalises grants against `HumanService.GetWebhooksAsync()` (`ListHumansAsync(type: "webhook")`), dropping everything else.
 - `ImpersonationAuthority` re-authorises on `IsAdmin || ManagedWebhooks.Contains(target)`, type-blind.
 - No login path (Discord callback, Telegram verify, OIDC callback, OIDC refresh) checks the row's type.
-- The Mention field shows on `isWebhook`, which is `AuthService.isImpersonating()`, in ten edit dialogs. `pingSupported` no longer exists (5.4.0 sub-project 1).
+- The Mention field shows on `isWebhook`, which is `AuthService.isImpersonating()`, in nine edit dialogs (pokestop events has no Mention). `pingSupported` no longer exists (5.4.0 sub-project 1).
 - `GetHumanAsync` throws on anything but 404 (#994), so existence checks no longer read an outage as "absent".
 - `webhook_delegates.webhook_id` is 500 characters. Channel and topic ids fit; no migration.
 
@@ -96,11 +96,11 @@ Frontend:
 
 - `admin/destinations` replaces `admin/webhooks` (redirect kept). Nav label "Destinations", icon `campaign`.
 - Users shows `kind === 'person'` rows. Its description links to Destinations.
-- Destinations shows `kind === 'destination'` rows: name with notes beneath (upstream writes "Guild / Category" there), a Type column with glyph and label (`webhook`, `tag` for Discord, `send` for Telegram, `help_outline` plus the raw string for unknown), ID with copy, status, Disabled since, Managers, actions.
+- Destinations shows `kind === 'destination'` rows: name with notes beneath (upstream writes "Guild / Category" there), a Type column with glyph and label (`webhook`, `tag` for Discord, `send` for Telegram, `help_outline` plus the raw string for unknown), ID with copy, status, Disabled since, Managers (webhook rows only until step 6 widens grant targets), actions.
 - Type filter chips appear only for kinds present. Search covers name, id and notes. Paging and the filter persist under `admin_destinations_*`, separate from Users.
 - Row actions are identical for every kind: Manage alarms (`POST /api/admin/impersonate`), view alarms, block, delete, delegates. A channel's Block tooltip says Poracle also blocks channels it can no longer find. Delete says the Discord or Telegram channel itself isn't touched.
 - The delegate picker offers `kind === 'person'` rows only.
-- One shared list component backs both pages, parameterised by `kind`, so a fix to one reaches the other. Both keep one fetch of the full list; the delegates column needs people.
+- Both pages share one list state (search, status and type filters, sort, paging), so a filter or paging fix reaches both. Their columns and actions differ too much for one template. Both keep one fetch of the full list; the delegates column needs people.
 
 Backend: `POST webhook-delegates` refuses a grantee that isn't `IsPerson`. All six prod grantees are `discord:user`.
 
@@ -121,7 +121,7 @@ CHANGELOG `[Unreleased]`, added per PR as each lands: Fixed (channels and groups
 | telegram:channel, telegram:group | chat id | anything but a negative integer |
 | telegram:topic | chat id and topic id, two fields | chat not negative, or topic not positive; stored as `chatId:topicId` |
 
-All kinds refuse a blank name or id and control characters. Pre-check 409 names the existing row's type and name. Rollback as in step 1. `HumanService` sends `notes` on create. `POST /api/admin/webhooks` stays and calls the same code.
+All kinds refuse a blank name or id and control characters. Pre-check 409 names the existing row's type and name. Rollback as in step 1. `HumanService` sends `notes` on create, only if the 5.4.0 `V2CreateHumanBody` declares it (an undeclared field is a 422). `POST /api/admin/webhooks` stays and calls the same code.
 
 The Add dialog asks "What kind?" first, then shows that kind's id field with its own label, placeholder and validation. Switching kind keeps the name and clears the id. A line under the id says Poracle doesn't check it exists and the bot needs permission to post there. 409, 502 and 503 answers render translated, never raw.
 
@@ -129,10 +129,10 @@ Gate: before merge, create each of the six kinds on the dev-01 5.4.0 bed through
 
 ### 5. Managing a destination's alarms
 
-- Mention shows when `isImpersonating() && mentionCapable(user().type)`, in all ten edit dialogs. Hidden on Telegram, where a mention is literal text. The form control stays, so a stored mention round-trips. `alarm-dialog-parity.spec.ts`'s `EDIT_ONLY` entry for `ping` stays.
+- Mention shows when `isImpersonating() && mentionCapable(user().type)`, in all nine edit dialogs. Hidden on Telegram, where a mention is literal text. The form control stays, so a stored mention round-trips. `alarm-dialog-parity.spec.ts`'s `EDIT_ONLY` entry for `ping` stays.
 - The impersonation banner names the kind ("Managing Discord channel #raids").
 - Exit returns to where the session started: Destinations for an admin, My Destinations for a delegate. Today it always goes to `/admin`, which bounces a delegate to the dashboard. `auth.service.ts` and the sibling in `error.interceptor.ts` change together.
-- The test-alert confirm says the alert posts in the channel or group.
+- The test-alert success message says the alert posts in the channel or group, not "Check your DMs". There is no confirm dialog.
 
 The type comes from the impersonation token's `type` claim, which is the target row's type.
 
@@ -184,7 +184,7 @@ Frontend (Jest):
 
 - Partition specs for Users and Destinations (neither page has a spec today): rows of each `kind` land on exactly one page. A backend test pins that the case list's types are stamped as expected, so the two halves meet at `kind`.
 - Add dialog branching per kind, including the two topic fields.
-- Mention gate per type in all ten edit dialogs.
+- Mention gate per type in all nine edit dialogs.
 - Exit-to-origin for admin and delegate, in `auth.service` and the interceptor.
 - `locale-parity.spec.ts` across the 11 locales, and the route redirects.
 
