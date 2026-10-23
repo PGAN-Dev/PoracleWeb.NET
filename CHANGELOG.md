@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **A failed webhook create no longer deletes a row another request wrote.** When PoracleNG rejected a create, the rollback removed whatever sat at that id. If a second request had created the same webhook in the meantime, its row was deleted. The rollback now removes the row only when its type and name match what this request tried to write, and goes through the full purge so delegate grants are cleaned up too. Otherwise it answers 502 and changes nothing (#1028).
+
 ## [3.0.1] - 2026-10-23
 
 ### Fixed

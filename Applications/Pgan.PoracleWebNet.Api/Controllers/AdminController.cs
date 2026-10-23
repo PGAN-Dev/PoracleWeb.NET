@@ -339,28 +339,38 @@ public partial class AdminController(
             });
         }
 
-        var exists = await this._humanService.ExistsAsync(request.Url);
-        if (exists)
-        {
-            return this.Conflict(new
-            {
-                error = "A webhook with this URL already exists."
-            });
-        }
-
         var human = new Human
         {
             Id = request.Url,
             Name = request.Name,
-            Type = "webhook",
+            Type = HumanKind.Webhook,
             Enabled = 1,
             AdminDisable = 0,
         };
 
+        return await this.CreateHumanAsync(human, "A webhook with this URL already exists.");
+    }
+
+    /// <summary>
+    /// Creates a human row through PoracleNG. A create that fails is only rolled back when the row found
+    /// at the id is the one this request tried to write: another request may have created the same id
+    /// between the pre-check and the failure, and that row is not ours to delete (#1028).
+    /// </summary>
+    private async Task<IActionResult> CreateHumanAsync(Human human, string conflictError)
+    {
+        var exists = await this._humanService.ExistsAsync(human.Id);
+        if (exists)
+        {
+            return this.Conflict(new
+            {
+                error = conflictError
+            });
+        }
+
         try
         {
             var created = await this._humanService.CreateAsync(human);
-            LogWebhookCreated(this._logger, this.UserId, request.Url);
+            LogWebhookCreated(this._logger, this.UserId, human.Id);
             return this.Ok(created);
         }
         catch (HttpRequestException)
@@ -370,16 +380,29 @@ public partial class AdminController(
             // not show. Undo the half-write so the reported failure is the truth. See #482.
             try
             {
-                if (await this._humanService.ExistsAsync(request.Url))
+                var found = await this._humanService.GetByIdAsync(human.Id);
+                if (found is not null)
                 {
-                    await this._humanService.DeleteUserAsync(request.Url);
+                    if (string.Equals(found.Type, human.Type, StringComparison.OrdinalIgnoreCase)
+                        && string.Equals(found.Name, human.Name, StringComparison.Ordinal))
+                    {
+                        // PurgeAsync, not DeleteUserAsync, so any delegate grants on the row go with it.
+                        await this._userPurgeService.PurgeAsync(human.Id);
+                    }
+                    else
+                    {
+                        return this.StatusCode(StatusCodes.Status502BadGateway, new
+                        {
+                            error = "Poracle rejected it, and a record with this id already exists. Nothing was changed.",
+                        });
+                    }
                 }
             }
             catch (HttpRequestException)
             {
-                // The existence read throws on a failed answer since #994, where it used to answer "no" and
-                // skip the cleanup silently. Either way nothing can say whether a half-write is there, so
-                // the admin is told that rather than "nothing was created".
+                // The read throws on a failed answer since #994, where it used to answer "no" and skip the
+                // cleanup silently. Either way nothing can say whether a half-write is there, so the admin
+                // is told that rather than "nothing was created".
                 return this.StatusCode(StatusCodes.Status502BadGateway, new
                 {
                     error = "Poracle rejected the webhook, and could not be asked whether part of it was saved. Check the webhook list before trying again.",
