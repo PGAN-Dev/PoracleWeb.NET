@@ -22,6 +22,10 @@ const SILENT_URL_PATTERNS = [
   // MuteService owns its own messaging, including the benign 404 from resuming a quiet period that
   // had already lapsed -- the store expires entries itself, so that is the ordinary case.
   '/api/mutes',
+  // LinkedAccountService and its page word every outcome themselves, and a refusal carries a code the
+  // page translates. The admin list is read quietly: a failed read only leaves the Users chips off.
+  '/api/account-link',
+  '/api/admin/account-links',
   // TestAlertService words every outcome itself (429, 404, 501's server reason, feature disabled). With
   // the interceptor also toasting, the two snackbars raced and a failed test read "An unexpected server
   // error occurred" instead of saying the test alert failed.

@@ -8,10 +8,11 @@ import { provideTranslateService } from '@ngx-translate/core';
 import { of, throwError } from 'rxjs';
 
 import { AdminUsersComponent } from './admin-users.component';
-import { AdminUser } from '../../core/models';
+import { AccountLink, AdminUser } from '../../core/models';
 import { AdminService } from '../../core/services/admin.service';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
+import { SettingsService } from '../../core/services/settings.service';
 
 function row(id: string, overrides: Partial<AdminUser> = {}): AdminUser {
   return {
@@ -36,13 +37,15 @@ describe('AdminUsersComponent', () => {
   const otherAdmin = row('admin2', { name: 'Other Admin' });
   const member = row('u2', { name: 'Sam', currentProfileNo: 0 });
 
-  function setup(confirm = true) {
+  function setup(confirm = true, options: { links?: AccountLink[]; linkingDisabled?: boolean } = {}) {
     const adminService = {
       deleteUser: jest.fn(() => of(undefined)),
       deleteUserAlarms: jest.fn(() => of({ deleted: 0 })),
       disableUser: jest.fn(() => of({ ...member, adminDisable: 1 })),
       enableUser: jest.fn(() => of(member)),
+      getAccountLinks: jest.fn(() => of(options.links ?? [])),
       getUsers: jest.fn(() => of([me, otherAdmin, member])),
+      unlinkAccounts: jest.fn(() => of(undefined)),
     };
     const snackBar = { open: jest.fn() };
     const dialog = { open: jest.fn(() => ({ afterClosed: () => of(confirm) })) };
@@ -52,6 +55,7 @@ describe('AdminUsersComponent', () => {
         provideRouter([]),
         provideTranslateService(),
         { provide: AdminService, useValue: adminService },
+        { provide: SettingsService, useValue: { isDisabled: () => options.linkingDisabled ?? false } },
         { provide: AuthService, useValue: { impersonate: jest.fn(), user: signal({ id: 'admin1', isAdmin: true }) } },
       ],
       imports: [AdminUsersComponent, NoopAnimationsModule],
@@ -134,6 +138,48 @@ describe('AdminUsersComponent', () => {
     (row.querySelector('[data-test="view-as"]') as HTMLButtonElement).click();
 
     expect(spy).toHaveBeenCalledWith(member);
+  });
+
+  describe('linked accounts', () => {
+    const link = (discordId: string, telegramId: string): AccountLink => ({
+      id: 1,
+      createdAt: '2026-10-01T00:00:00Z',
+      defaultDestination: 'discord',
+      discordId,
+      discordVerifiedAt: null,
+      telegramId,
+      telegramVerifiedAt: null,
+    });
+    const text = (fixture: ReturnType<typeof setup>['fixture'], i: number) =>
+      (fixture.nativeElement as HTMLElement).querySelectorAll('tr.mat-mdc-row')[i].textContent ?? '';
+
+    it('shows the chip on linked rows only, naming the other platform', () => {
+      const telegramMember = row('200000001', { name: 'Riley', type: 'telegram:user' });
+      const { adminService, fixture } = setup(true, { links: [link('u2', '200000001')] });
+      adminService.getUsers.mockReturnValue(of([me, member, telegramMember]));
+      fixture.componentInstance.loadUsers();
+      fixture.detectChanges();
+      expect(text(fixture, 0)).not.toContain('ADMIN.LINKED_TO_');
+      expect(text(fixture, 1)).toContain('ADMIN.LINKED_TO_TELEGRAM');
+      expect(text(fixture, 2)).toContain('ADMIN.LINKED_TO_DISCORD');
+    });
+
+    it('offers Unlink accounts on a linked row and not on an unlinked one', () => {
+      const { fixture } = setup(true, { links: [link('u2', '200000001')] });
+      expect(actionLabels(fixture, 2)).toContain('ADMIN.UNLINK_ACCOUNTS');
+      expect(actionLabels(fixture, 0)).not.toContain('ADMIN.UNLINK_ACCOUNTS');
+    });
+
+    it('unlinks by the row id after confirmation', () => {
+      const { adminService, component } = setup(true, { links: [link('u2', '200000001')] });
+      component.unlinkAccounts(member);
+      expect(adminService.unlinkAccounts).toHaveBeenCalledWith('u2');
+    });
+
+    it('does not ask for links while account linking is switched off', () => {
+      const { adminService } = setup(true, { linkingDisabled: true });
+      expect(adminService.getAccountLinks).not.toHaveBeenCalled();
+    });
   });
 
   // A legacy OIDC or Telegram row can carry no type at all, and it is still a person.

@@ -132,3 +132,12 @@
     outline-offset: 2px;
   }
 }
+
+.link-chip {
+  align-self: flex-start;
+  padding: 0 8px;
+  border: 1px solid var(--mat-sys-outline-variant, rgba(0, 0, 0, 0.2));
+  border-radius: 8px;
+  color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.6));
+  font-size: 0.75rem;
+}

@@ -20,10 +20,11 @@ import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { AdminListState, StatusFilter, notesLabel } from './admin-list-state';
-import { AdminUser } from '../../core/models';
+import { AccountLink, AdminUser } from '../../core/models';
 import { AdminService } from '../../core/services/admin.service';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
+import { SettingsService } from '../../core/services/settings.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DiscordAvatarComponent } from '../../shared/components/discord-avatar/discord-avatar.component';
 import { relativeTime } from '../../shared/utils/relative-time';
@@ -64,11 +65,13 @@ export class AdminUsersComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
   private readonly i18n = inject(I18nService);
-
+  private readonly links = signal<AccountLink[]>([]);
   // Everyone who is a person, so this tab and the Destinations tab together account for every
   // account. A Telegram user is a person too: filtering to discord* once left them in neither list,
   // and every admin action here is list-driven. See #632 and #1025.
   private readonly people = computed(() => this.allUsers().filter(u => u.kind === 'person'));
+
+  private readonly settings = inject(SettingsService);
 
   private readonly snackBar = inject(MatSnackBar);
 
@@ -169,7 +172,17 @@ export class AdminUsersComponent implements OnInit {
     return user.id === this.auth.user()?.id;
   }
 
+  /** The other platform of the link this row is in, or null when it is in none. */
+  linkedTo(user: AdminUser): 'discord' | 'telegram' | null {
+    const type = user.type ?? '';
+    const links = this.links();
+    if (type.startsWith('discord') && links.some(l => l.discordId === user.id)) return 'telegram';
+    if (type.startsWith('telegram') && links.some(l => l.telegramId === user.id)) return 'discord';
+    return null;
+  }
+
   loadUsers(): void {
+    this.loadLinks();
     this.usersLoading.set(true);
     this.adminService
       .getUsers()
@@ -261,6 +274,35 @@ export class AdminUsersComponent implements OnInit {
     });
   }
 
+  /** Cuts the row's link after a confirm. Both accounts stay, and no alert moves. */
+  unlinkAccounts(user: AdminUser): void {
+    const name = user.name || user.id;
+    const ref = this.dialog.open(ConfirmDialogComponent, {
+      data: {
+        confirmText: this.i18n.instant('ADMIN.UNLINK_ACCOUNTS'),
+        message: this.i18n.instant('ADMIN.CONFIRM_UNLINK', { name }),
+        title: this.i18n.instant('ADMIN.UNLINK_ACCOUNTS'),
+        warn: true,
+      } as ConfirmDialogData,
+    });
+    ref
+      .afterClosed()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(confirmed => {
+        if (!confirmed) return;
+        this.adminService
+          .unlinkAccounts(user.id)
+          .pipe(takeUntilDestroyed(this.destroyRef))
+          .subscribe({
+            error: err => this.showFailure(err, 'ADMIN.SNACK_FAILED_UNLINK'),
+            next: () => {
+              this.loadLinks();
+              this.snackBar.open(this.i18n.instant('ADMIN.SNACK_UNLINKED', { name }), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+            },
+          });
+      });
+  }
+
   private getSortValue(user: AdminUser, column: string): string | number {
     switch (column) {
       case 'id':
@@ -276,6 +318,18 @@ export class AdminUsersComponent implements OnInit {
       default:
         return '';
     }
+  }
+
+  /** Switched off, the route 403s, so it is not asked. A failed read leaves the chips off rather than the page broken. */
+  private loadLinks(): void {
+    if (this.settings.isDisabled('disable_account_linking')) {
+      this.links.set([]);
+      return;
+    }
+    this.adminService
+      .getAccountLinks()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({ error: () => this.links.set([]), next: links => this.links.set(links) });
   }
 
   /** The server's own reason when it gave one ("You cannot block your own account."), else the generic message. */
