@@ -509,6 +509,25 @@ public class UserRoleResolverTests
     }
 
     /// <summary>
+    /// The directory joins six per-type list calls, so a server that ignores <c>?type=</c> repeats every row
+    /// six times. The same webhook listed again is still one webhook, and its name must still resolve.
+    /// </summary>
+    [Fact]
+    public async Task AWebhookListedRepeatedlyStillResolvesByName()
+    {
+        this.ArrangeDelegate(["teamharmonyrares", "raid-alerts"]);
+        var webhook = new Human { Id = TeamHarmonyRares, Name = "teamharmonyrares", Type = HumanKind.Webhook };
+        var channel = new Human { Id = RaidChannel, Name = "raid-alerts", Type = HumanKind.DiscordChannel };
+        this.ArrangeDirectory([.. Enumerable.Repeat(webhook, 6), .. Enumerable.Repeat(channel, 6)]);
+
+        var roles = await this.CreateSut().ResolveAsync("u1");
+
+        Assert.Equal(
+            new[] { RaidChannel, TeamHarmonyRares }.Order(StringComparer.Ordinal),
+            (roles.ManagedDestinations ?? []).Order(StringComparer.Ordinal));
+    }
+
+    /// <summary>
     /// A channel does not break the tie: the grant meant a webhook, and there are two of them.
     /// </summary>
     [Fact]

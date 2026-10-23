@@ -296,8 +296,10 @@ public sealed partial class UserRoleResolver(
         // Here it is fixed: a webhook wins, since every grant written before #1025 meant one. A name shared
         // by two or more webhooks, or by two or more other destinations and no webhook, names none of them:
         // picking one would hand over whichever row PoracleNG happened to list first (#1038).
-        var webhookByName = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
-        var otherByName = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+        // Ids are a set, not a list: a server that ignores the type filter repeats every row, and the same
+        // destination listed twice is still one destination.
+        var webhookByName = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+        var otherByName = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
         var byId = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         // The directory asks for destination types only; this keeps a person out even if a server ignores
@@ -319,7 +321,7 @@ public sealed partial class UserRoleResolver(
             }
             else
             {
-                byName[destination.Name] = [destination.Id];
+                byName[destination.Name] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { destination.Id };
             }
         }
 
@@ -334,7 +336,7 @@ public sealed partial class UserRoleResolver(
             {
                 if (named.Count == 1)
                 {
-                    canonical.Add(named[0]);
+                    canonical.Add(named.First());
                 }
                 else
                 {
