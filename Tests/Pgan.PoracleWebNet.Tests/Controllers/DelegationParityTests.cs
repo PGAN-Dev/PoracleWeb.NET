@@ -119,6 +119,7 @@ public class DelegationParityTests : ControllerTestBase
             new ConfigurationBuilder().Build(),
             new Mock<IAccountLinkService>().Object,
             new Microsoft.AspNetCore.DataProtection.EphemeralDataProtectionProvider(),
+            new Mock<IHttpClientFactory>().Object,
             new Mock<ILogger<AuthController>>().Object);
         SetupUser(sut, userId: Delegate);
         return sut;

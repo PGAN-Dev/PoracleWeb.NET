@@ -48,18 +48,18 @@ public class AccountLinkController(
             return this.Forbid();
         }
 
-        if (string.IsNullOrEmpty(this._discordSettings.ClientId) || await IsOff(this._siteSettings, "enable_discord"))
+        if (string.IsNullOrEmpty(this._discordSettings.ClientId) || await this._siteSettings.IsSwitchedOffAsync("enable_discord"))
         {
             return Refused(LinkRefusalCode.NotPermitted, "Discord sign-in is not available on this site.");
         }
 
         var selfOrigin = this._publicOrigin ?? $"{this.Request.Scheme}://{this.Request.Host}";
-        var url = DiscordAuthorizeRequest.Build(this.HttpContext, this._discordSettings, selfOrigin, this._allowedOrigins, out _);
+        var url = DiscordAuthorizeRequest.Build(this.HttpContext, this._discordSettings, selfOrigin, this._allowedOrigins, out _, out var state);
 
         // Who is linking, sealed, so the callback can act for them without a session token.
         this.Response.Cookies.Append(
             AccountLinkTicket.CookieName,
-            AccountLinkTicket.Seal(this._dataProtection, this.UserId, DateTimeOffset.UtcNow),
+            AccountLinkTicket.Seal(this._dataProtection, this.UserId, state, DateTimeOffset.UtcNow),
             DiscordAuthorizeRequest.CookieOptions(this.Request));
 
         return this.Ok(new { url });
@@ -73,7 +73,7 @@ public class AccountLinkController(
             return this.Forbid();
         }
 
-        if (!this._telegramSettings.Enabled || await IsOff(this._siteSettings, "enable_telegram"))
+        if (!this._telegramSettings.Enabled || await this._siteSettings.IsSwitchedOffAsync("enable_telegram"))
         {
             return Refused(LinkRefusalCode.NotPermitted, "Telegram sign-in is not available on this site.");
         }
@@ -158,9 +158,6 @@ public class AccountLinkController(
         PauseReason.Stopped => "stopped",
         _ => throw new ArgumentOutOfRangeException(nameof(reason)),
     };
-
-    private static async Task<bool> IsOff(ISiteSettingService settings, string key) =>
-        string.Equals(await settings.GetValueAsync(key), "false", StringComparison.OrdinalIgnoreCase);
 
     private static ObjectResult Refused(LinkRefusalCode code, string message) =>
         new(new { error = message, code = LinkRefusalException.Wire(code) })

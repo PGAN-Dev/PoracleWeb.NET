@@ -87,6 +87,10 @@ public class AccountLinkControllerTests
         Assert.Contains("redirect_uri=" + Uri.EscapeDataString("https://alerts.example.net/api/auth/discord/callback"), url, StringComparison.Ordinal);
         var link = Cookie(sut, "oauth_link")!;
         Assert.NotNull(link);
+        var sealedValue = Uri.UnescapeDataString(link["oauth_link=".Length..].Split(';')[0]);
+        var ticket = Pgan.PoracleWebNet.Api.Services.AccountLinkTicket.Open(this._protection, sealedValue, DateTimeOffset.UtcNow);
+        Assert.Equal(DiscordId, ticket!.HumanId);
+        Assert.Equal(state, ticket.State);
         Assert.Contains("httponly", link, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("samesite=lax", link, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("max-age=600", link, StringComparison.OrdinalIgnoreCase);

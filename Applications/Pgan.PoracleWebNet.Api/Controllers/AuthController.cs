@@ -36,6 +36,7 @@ public partial class AuthController(
     IConfiguration configuration,
     IAccountLinkService accountLinkService,
     IDataProtectionProvider dataProtection,
+    IHttpClientFactory httpClientFactory,
     ILogger<AuthController> logger) : BaseApiController
 {
     private const string EnableDiscordKey = "enable_discord";
@@ -67,6 +68,7 @@ public partial class AuthController(
     private readonly string? _publicOrigin = PublicOrigin.NormalizeOrNull(configuration["PublicUrl"]);
     private readonly IAccountLinkService _accountLinkService = accountLinkService;
     private readonly IDataProtectionProvider _dataProtection = dataProtection;
+    private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
     private readonly ILogger<AuthController> _logger = logger;
 
     /// <summary>
@@ -108,7 +110,10 @@ public partial class AuthController(
 
         // The URL, state and origin cookies come from one builder shared with account linking.
         var redirectUrl = DiscordAuthorizeRequest.Build(
-            this.HttpContext, this._discordSettings, this.SelfOrigin(), this._allowedOrigins, out var callbackUri);
+            this.HttpContext, this._discordSettings, this.SelfOrigin(), this._allowedOrigins, out var callbackUri, out _);
+
+        // A sign-in must never inherit a link ticket left behind by an abandoned link.
+        this.Response.Cookies.Delete(AccountLinkTicket.CookieName);
         this.WarnIfProxySchemeIgnored(callbackUri);
 
         return this.Redirect(redirectUrl);
@@ -125,6 +130,10 @@ public partial class AuthController(
         var savedState = this.Request.Cookies["oauth_state"];
         this.Response.Cookies.Delete("oauth_state");
 
+        // Whatever happens next, the link ticket is spent.
+        var linkCookie = this.Request.Cookies[AccountLinkTicket.CookieName];
+        this.Response.Cookies.Delete(AccountLinkTicket.CookieName);
+
         if (string.IsNullOrEmpty(state) || string.IsNullOrEmpty(savedState) || state != savedState)
         {
             return this.BadRequest(new
@@ -133,28 +142,33 @@ public partial class AuthController(
             });
         }
 
-        // A link started from the account page carries a sealed oauth_link cookie. Without one this is
-        // an ordinary sign-in and nothing below the next block changes.
-        var linkCookie = this.Request.Cookies[AccountLinkTicket.CookieName];
+        // A link started from the account page carries a sealed oauth_link cookie bound to the state of
+        // the flow that issued it. A ticket for another flow (an abandoned link) is ignored: this is
+        // an ordinary sign-in and nothing below changes.
         string? linkingHumanId = null;
         if (linkCookie is not null)
         {
-            this.Response.Cookies.Delete(AccountLinkTicket.CookieName);
-            linkingHumanId = AccountLinkTicket.Open(this._dataProtection, linkCookie, DateTimeOffset.UtcNow);
-            if (linkingHumanId is null)
+            var ticket = AccountLinkTicket.Open(this._dataProtection, linkCookie, DateTimeOffset.UtcNow);
+            if (ticket is null)
             {
                 return this.Redirect(LinkErrorUrl(frontendUrl, LinkRefusalCode.Expired));
+            }
+
+            if (string.Equals(ticket.State, state, StringComparison.Ordinal))
+            {
+                linkingHumanId = ticket.HumanId;
             }
         }
 
         if (string.IsNullOrEmpty(code))
         {
+            // Discord sends ?error=access_denied, with no code, when the person cancels.
             return linkingHumanId is null
                 ? this.Redirect($"{frontendUrl}/login#error=missing_code")
-                : this.Redirect(LinkErrorUrl(frontendUrl, LinkRefusalCode.Expired));
+                : this.Redirect(LinkErrorUrl(frontendUrl, LinkRefusalCode.LinkCancelled));
         }
 
-        using var httpClient = new HttpClient();
+        using var httpClient = this._httpClientFactory.CreateClient();
 
         // Exchange code for access token
         var tokenRequest = new FormUrlEncodedContent(new Dictionary<string, string>
@@ -174,7 +188,7 @@ public partial class AuthController(
             LogDiscordTokenExchangeFailed(this._logger, tokenResponse.StatusCode, errorBody);
             return linkingHumanId is null
                 ? this.Redirect($"{frontendUrl}/login#error=token_exchange_failed")
-                : this.Redirect($"{frontendUrl}/linked-accounts#link_error=link_failed");
+                : this.Redirect(LinkErrorUrl(frontendUrl, LinkRefusalCode.LinkFailed));
         }
 
         var tokenJson = await tokenResponse.Content.ReadFromJsonAsync<JsonElement>();
@@ -189,7 +203,7 @@ public partial class AuthController(
         {
             return linkingHumanId is null
                 ? this.Redirect($"{frontendUrl}/login#error=discord_user_fetch_failed")
-                : this.Redirect($"{frontendUrl}/linked-accounts#link_error=link_failed");
+                : this.Redirect(LinkErrorUrl(frontendUrl, LinkRefusalCode.LinkFailed));
         }
 
         var discordUser = await userResponse.Content.ReadFromJsonAsync<JsonElement>();
@@ -271,8 +285,7 @@ public partial class AuthController(
     /// </summary>
     internal async Task<IActionResult> CompleteLinkAsync(string frontendUrl, string callerHumanId, string discordId, string username)
     {
-        var discordSetting = await this._siteSettingService.GetValueAsync(EnableDiscordKey);
-        if (string.Equals(discordSetting, "false", StringComparison.OrdinalIgnoreCase)
+        if (await this._siteSettingService.IsSwitchedOffAsync(EnableDiscordKey)
             || await this.CheckRoleAccessAsync(discordId) is not null)
         {
             return this.Redirect(LinkErrorUrl(frontendUrl, LinkRefusalCode.NotPermitted));

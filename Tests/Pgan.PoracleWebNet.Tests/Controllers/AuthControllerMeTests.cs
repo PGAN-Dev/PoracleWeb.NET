@@ -48,6 +48,7 @@ public class AuthControllerMeTests : ControllerTestBase
             config,
             new Mock<IAccountLinkService>().Object,
             new Microsoft.AspNetCore.DataProtection.EphemeralDataProtectionProvider(),
+            new Mock<IHttpClientFactory>().Object,
             new Mock<ILogger<AuthController>>().Object);
     }
 

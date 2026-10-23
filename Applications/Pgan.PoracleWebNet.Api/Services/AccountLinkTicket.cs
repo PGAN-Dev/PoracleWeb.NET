@@ -13,12 +13,15 @@ internal static class AccountLinkTicket
     public const string Purpose = "AccountLink.v1";
     public static readonly TimeSpan Lifetime = TimeSpan.FromMinutes(10);
 
-    private sealed record Payload(string HumanId, DateTimeOffset Expires);
+    private sealed record Payload(string HumanId, string State, DateTimeOffset Expires);
 
-    public static string Seal(IDataProtectionProvider provider, string humanId, DateTimeOffset now) =>
-        provider.CreateProtector(Purpose).Protect(JsonSerializer.Serialize(new Payload(humanId, now + Lifetime)));
+    /// <summary>Who is linking, and the OAuth <c>state</c> of the flow that issued the ticket.</summary>
+    public sealed record Opened(string HumanId, string State);
 
-    public static string? Open(IDataProtectionProvider provider, string? sealedValue, DateTimeOffset now)
+    public static string Seal(IDataProtectionProvider provider, string humanId, string state, DateTimeOffset now) =>
+        provider.CreateProtector(Purpose).Protect(JsonSerializer.Serialize(new Payload(humanId, state, now + Lifetime)));
+
+    public static Opened? Open(IDataProtectionProvider provider, string? sealedValue, DateTimeOffset now)
     {
         if (string.IsNullOrEmpty(sealedValue))
         {
@@ -28,7 +31,7 @@ internal static class AccountLinkTicket
         try
         {
             var payload = JsonSerializer.Deserialize<Payload>(provider.CreateProtector(Purpose).Unprotect(sealedValue));
-            return payload is { HumanId.Length: > 0 } && payload.Expires > now ? payload.HumanId : null;
+            return payload is { HumanId.Length: > 0, State.Length: > 0 } && payload.Expires > now ? new Opened(payload.HumanId, payload.State) : null;
         }
         catch (Exception ex) when (ex is System.Security.Cryptography.CryptographicException or JsonException)
         {

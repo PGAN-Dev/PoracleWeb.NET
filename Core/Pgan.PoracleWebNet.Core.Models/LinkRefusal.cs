@@ -9,6 +9,8 @@ public enum LinkRefusalCode
     Expired,
     NotPermitted,
     ProvisionFailed,
+    LinkFailed,
+    LinkCancelled,
 }
 
 /// <summary>A link was refused. <see cref="WireCode"/> is the machine-readable code the SPA reads.</summary>
@@ -27,6 +29,8 @@ public class LinkRefusalException(LinkRefusalCode code, string message, Exceptio
         LinkRefusalCode.Expired => "link_expired",
         LinkRefusalCode.NotPermitted => "link_not_permitted",
         LinkRefusalCode.ProvisionFailed => "link_provision_failed",
+        LinkRefusalCode.LinkFailed => "link_failed",
+        LinkRefusalCode.LinkCancelled => "link_cancelled",
         _ => throw new ArgumentOutOfRangeException(nameof(code)),
     };
 }

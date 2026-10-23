@@ -19,9 +19,9 @@ internal static class DiscordAuthorizeRequest
     };
 
     /// <summary>Sets <c>oauth_state</c> and <c>oauth_origin</c> and returns the URL to send the browser to.</summary>
-    public static string Build(HttpContext http, DiscordSettings settings, string selfOrigin, string[] allowedOrigins, out string callbackUri)
+    public static string Build(HttpContext http, DiscordSettings settings, string selfOrigin, string[] allowedOrigins, out string callbackUri, out string state)
     {
-        var state = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+        state = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
         var cookieOptions = CookieOptions(http.Request);
         http.Response.Cookies.Append("oauth_state", state, cookieOptions);
 
