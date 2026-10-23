@@ -61,7 +61,7 @@ record is removed, so a failure means nothing was created and a retry is safe.
 The same page can pause, resume, block, delete the account's alarms, delete the account outright, and
 open its alarms directly (see [what a delegate can do](#what-a-delegate-can-do)).
 
-![Admin → Destinations filtered to one example.com webhook, with its row actions](../screenshots/admin-webhooks.png)
+![Admin → Destinations listing one of each kind (webhook, Discord channel and thread, Telegram channel, group and topic) with type chips, delegates and row actions](../screenshots/admin-destinations.png)
 
 Deleting a webhook takes everything it owned with it, delegate grants included. Recreating the same
 URL later starts clean rather than adopting the old grants.
@@ -103,7 +103,7 @@ to My Destinations. A session that ends because the grant was revoked lands ther
 The page used to be **My Webhooks** at `/my-webhooks`. That address redirects, so old bookmarks still
 work.
 
-![My Webhooks for a delegate, listing one webhook with its Manage Alarms button](../screenshots/my-webhooks.png)
+![My Destinations for a delegate, listing a Telegram group, a Discord channel and a webhook, each with a Manage alarms button](../screenshots/my-destinations.png)
 
 A delegate **cannot** create or delete destinations, grant delegation to anyone else, or reach any
 admin page. Their access is exactly the destinations granted to them and nothing more, re-checked on
