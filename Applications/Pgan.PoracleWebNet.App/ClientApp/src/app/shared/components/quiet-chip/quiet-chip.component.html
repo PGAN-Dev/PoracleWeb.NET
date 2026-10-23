@@ -5,6 +5,7 @@
       class="quiet-chip quiet-chip-on quiet-chip-readonly"
       [class.quiet-chip-trailing]="appearance() === 'trailing'"
       [matTooltip]="tooltip()"
+      tabindex="0"
       (click)="$event.stopPropagation()">
       <mat-icon class="quiet-chip-icon">notifications_paused</mat-icon>
       <span class="quiet-chip-label">{{ label() }}</span>

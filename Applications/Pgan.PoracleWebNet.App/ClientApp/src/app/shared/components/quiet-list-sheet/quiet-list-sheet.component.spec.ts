@@ -184,5 +184,13 @@ describe('QuietListSheetComponent', () => {
 
       expect(fixture.nativeElement.textContent).not.toContain('QUIET.READ_ONLY_IMPERSONATING');
     });
+
+    /** The hint says to quiet something from its card, which this session can't do. */
+    it('does not invite a quiet period when the list is empty', () => {
+      build([]);
+
+      expect(fixture.nativeElement.textContent).toContain('QUIET.EMPTY_TITLE');
+      expect(fixture.nativeElement.textContent).not.toContain('QUIET.EMPTY_HINT');
+    });
   });
 });

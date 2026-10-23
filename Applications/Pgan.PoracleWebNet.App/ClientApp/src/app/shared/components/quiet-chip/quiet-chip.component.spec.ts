@@ -236,6 +236,17 @@ describe('QuietChipComponent', () => {
       expect(fixture.nativeElement.querySelector('button')).toBeNull();
     });
 
+    /** The tooltip names the subject and the time left, so a keyboard user has to be able to reach it. */
+    it('lets the keyboard reach the read-only countdown without making it a button', () => {
+      mutes.remainingFor.mockReturnValue(2820);
+      buildAs('chip');
+      const pill = fixture.nativeElement.querySelector('.quiet-chip-on') as HTMLElement;
+
+      expect(pill.tagName).toBe('SPAN');
+      expect(pill.getAttribute('tabindex')).toBe('0');
+      expect(pill.getAttribute('role')).toBeNull();
+    });
+
     it('opens no sheet when the countdown is pressed', () => {
       mutes.remainingFor.mockReturnValue(2820);
       buildAs('chip');

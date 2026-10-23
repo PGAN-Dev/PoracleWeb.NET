@@ -16,7 +16,9 @@
     <div class="quiet-empty">
       <mat-icon>notifications_active</mat-icon>
       <p class="quiet-empty-title">{{ 'QUIET.EMPTY_TITLE' | translate }}</p>
-      <p class="quiet-empty-hint">{{ 'QUIET.EMPTY_HINT' | translate }}</p>
+      @if (!readOnly()) {
+        <p class="quiet-empty-hint">{{ 'QUIET.EMPTY_HINT' | translate }}</p>
+      }
     </div>
   }
 
