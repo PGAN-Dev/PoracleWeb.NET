@@ -23,12 +23,26 @@ namespace Pgan.PoracleWebNet.Api.Filters;
 /// then names the destination being managed, and refusing on its block meant an admin or delegate could
 /// not open a blocked destination to unblock or clean it up, while a blocked impersonator was never checked
 /// at all. This matches <c>/api/auth/me</c>, which already exempts an impersonated disabled account (#706).
+/// Under impersonation the <c>/api/auth</c> exemption narrows to reads and signing out, so a blocked
+/// impersonator cannot pause or resume the destination's alerts.
 /// </para>
 /// See #609 and #1038.
 /// </remarks>
 public sealed class BlockedAccountFilter(IHumanService humanService, IMemoryCache cache) : IAsyncActionFilter
 {
     private static readonly TimeSpan CacheFor = TimeSpan.FromMinutes(1);
+
+    /// <summary>
+    /// The writes under <c>/api/auth</c> an impersonation session may still send while its impersonator is
+    /// blocked: signing out and looking after the impersonator's own refresh token. None acts on the
+    /// destination. Going back to the admin's own token happens in the SPA, with no request.
+    /// </summary>
+    private static readonly HashSet<string> SessionWrites = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "/api/auth/logout",
+        "/api/auth/oidc/refresh",
+        "/api/auth/oidc/refresh/revoke",
+    };
 
     private readonly IHumanService _humanService = humanService;
     private readonly IMemoryCache _cache = cache;
@@ -44,7 +58,7 @@ public sealed class BlockedAccountFilter(IHumanService humanService, IMemoryCach
         var path = context.HttpContext.Request.Path.Value ?? string.Empty;
 
         if (string.IsNullOrEmpty(userId)
-            || path.StartsWith("/api/auth", StringComparison.OrdinalIgnoreCase))
+            || IsExemptAuthRequest(path, context.HttpContext.Request.Method, impersonating: !string.IsNullOrEmpty(impersonatedBy)))
         {
             await next();
             return;
@@ -64,6 +78,30 @@ public sealed class BlockedAccountFilter(IHumanService humanService, IMemoryCach
         }
 
         await next();
+    }
+
+    /// <remarks>
+    /// An ordinary session keeps the whole <c>/api/auth</c> exemption: that is how a blocked member signs out
+    /// and how <c>/api/auth/me</c> tells the SPA it has been blocked. An impersonation session keeps only the
+    /// reads and <see cref="SessionWrites"/>, because <c>POST /api/auth/alerts/toggle</c> pauses or resumes the
+    /// destination being managed, and a blocked impersonator must not change it (#1038).
+    /// </remarks>
+    private static bool IsExemptAuthRequest(string path, string method, bool impersonating)
+    {
+        if (!path.StartsWith("/api/auth", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        if (!impersonating)
+        {
+            return true;
+        }
+
+        return HttpMethods.IsGet(method)
+            || HttpMethods.IsHead(method)
+            || HttpMethods.IsOptions(method)
+            || SessionWrites.Contains(path.TrimEnd('/'));
     }
 
     private async Task<bool> IsBlockedAsync(string userId)

@@ -34,7 +34,7 @@ public class BlockedAccountFilterTests
     }
 
     private async Task<(bool NextCalled, IActionResult? Result)> RunAsync(string userId, string? impersonatedBy,
-        bool isAdmin = false, string path = "/api/monsters")
+        bool isAdmin = false, string path = "/api/monsters", string method = "GET")
     {
         var claims = new List<Claim> { new("userId", userId), new("isAdmin", isAdmin ? "true" : "false") };
         if (impersonatedBy is not null)
@@ -44,6 +44,7 @@ public class BlockedAccountFilterTests
 
         var http = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(claims, "TestAuth")) };
         http.Request.Path = path;
+        http.Request.Method = method;
         var actionContext = new ActionContext(http, new RouteData(), new ActionDescriptor());
         var context = new ActionExecutingContext(actionContext, [], new Dictionary<string, object?>(), controller: new object());
 
@@ -128,6 +129,48 @@ public class BlockedAccountFilterTests
         this.Blocked(Delegate);
 
         AssertAllowed(await this.RunAsync(Webhook, impersonatedBy: Delegate, path: "/api/auth/me"));
+    }
+
+    [Fact]
+    public async Task ABlockedImpersonatorCannotToggleTheDestinationsAlerts()
+    {
+        // POST /api/auth/alerts/toggle pauses or resumes this.UserId, the destination being managed. The
+        // blanket /api/auth exemption let a blocked delegate keep that one write. See #1038.
+        this.Blocked(Delegate);
+
+        AssertForbidden(await this.RunAsync(Webhook, impersonatedBy: Delegate, path: "/api/auth/alerts/toggle", method: "POST"));
+    }
+
+    [Theory]
+    [InlineData("GET", "/api/auth/me")]
+    [InlineData("GET", "/api/auth/providers")]
+    [InlineData("GET", "/api/auth/oidc/logout")]
+    [InlineData("POST", "/api/auth/logout")]
+    [InlineData("POST", "/api/auth/oidc/refresh")]
+    [InlineData("POST", "/api/auth/oidc/refresh/revoke")]
+    public async Task ABlockedImpersonatorCanStillReadAndEndTheSession(string method, string path)
+    {
+        this.Blocked(Delegate);
+
+        AssertAllowed(await this.RunAsync(Webhook, impersonatedBy: Delegate, path: path, method: method));
+    }
+
+    [Fact]
+    public async Task AnUnblockedImpersonatorCanToggleTheDestinationsAlerts()
+    {
+        this.Blocked(Webhook);
+
+        AssertAllowed(await this.RunAsync(Webhook, impersonatedBy: Delegate, path: "/api/auth/alerts/toggle", method: "POST"));
+    }
+
+    [Fact]
+    public async Task AnOrdinarySessionKeepsTheWholeAuthExemption()
+    {
+        // Unchanged: a blocked member's own toggle is refused inside AuthController, which answers in the
+        // shape the SPA expects; the filter stays out of /api/auth for them.
+        this.Blocked(Member);
+
+        AssertAllowed(await this.RunAsync(Member, impersonatedBy: null, path: "/api/auth/alerts/toggle", method: "POST"));
     }
 
     [Fact]
