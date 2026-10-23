@@ -938,10 +938,11 @@ Shape differences, all handled once at the wire:
 
 Plus `uid`, `id`, `profile_no` and `description`, which v2 has no place for and refuses outright; a target profile goes in `?profile=N`, and only profile import uses it (`CreateOnProfileAsync`), so it writes to the target profile without switching the active one. `ping` is a real field on all eleven types since jfberry/PoracleNG#249 (5.4.0), so `TrackingV2Translator` always carries it and a role or user mention survives an edit. The refusal that used to stop an edit falling back to v1 (which blanks the mention) is deleted with the fallback.
 
-**The frontend exposes `ping` as a "Mention" field, edit dialogs only.** The field is shown when
-`isWebhook` is true (the dialog's existing `AuthService.isImpersonating()` snapshot) and for nothing else:
-`GET /api/config` no longer reports `PingSupported`. A personal DM alarm has nobody else to notify, so the field would be
-presentation-only noise there. It is
+**The frontend exposes `ping` as a "Mention" field, edit dialogs only.** Each edit dialog computes
+`showMention = isImpersonating() && mentionCapable(user().type)`, so the field appears while managing a
+webhook, a Discord channel or a Discord thread and nowhere else: not on Telegram destinations, which have no
+mention, and not on people. `GET /api/config` no longer reports `PingSupported`. A personal DM alarm has
+nobody else to notify, so the field would be presentation-only noise there. It is
 deliberately absent from every add dialog: a single Add has no stored mention to protect, and quick-pick apply and profile import create from a template. `alarm-dialog-parity.spec.ts` -- the test that catches a control shipped in
 one dialog of a pair and not the other -- carries an explicit `EDIT_ONLY` exception for `ping` on every
 type it was added to, with this reasoning, rather than being silently exempted.
