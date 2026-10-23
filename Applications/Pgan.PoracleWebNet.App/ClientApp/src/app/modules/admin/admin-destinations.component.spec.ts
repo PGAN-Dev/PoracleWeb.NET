@@ -255,17 +255,16 @@ describe('AdminDestinationsComponent list', () => {
     expect(root.textContent).toContain('PGAN / Raids');
   });
 
-  it('shows managers only on webhook rows', () => {
+  it('shows managers on every destination row', () => {
     const { rowFor } = setup();
 
     const manage = (name: string) => rowFor(name).querySelector('[data-test="manage-delegates"]');
     const managers = (name: string) => rowFor(name).querySelector('.delegate-avatars');
-    expect(manage('Raid hook')).toBeTruthy();
-    expect(managers('Raid hook')).toBeTruthy();
-    for (const name of ['raids', 'North group', 'Typo row']) {
-      expect(manage(name)).toBeNull();
-      expect(managers(name)).toBeNull();
+    for (const name of ['Raid hook', 'raids', 'North group', 'Typo row']) {
+      expect(manage(name)).toBeTruthy();
+      expect(managers(name)).toBeTruthy();
     }
+    expect(rowFor('raids').querySelector('[data-test="no-delegates"]')).toBeTruthy();
   });
 
   it('shortens a webhook URL, shows any other id whole, and copies either', () => {

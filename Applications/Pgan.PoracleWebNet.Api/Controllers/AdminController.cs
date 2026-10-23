@@ -22,6 +22,7 @@ public partial class AdminController(
     IOptions<PoracleSettings> poracleSettings,
     IJwtService jwtService,
     IUserRoleResolver roleResolver,
+    IDestinationDirectory destinationDirectory,
     ILogger<AdminController> logger) : BaseApiController
 {
     private readonly IHumanService _humanService = humanService;
@@ -36,6 +37,7 @@ public partial class AdminController(
     private readonly PoracleSettings _poracleSettings = poracleSettings.Value;
     private readonly IJwtService _jwtService = jwtService;
     private readonly IUserRoleResolver _roleResolver = roleResolver;
+    private readonly IDestinationDirectory _destinationDirectory = destinationDirectory;
     private readonly ILogger<AdminController> _logger = logger;
 
     /// <summary>Caps one avatar batch. The admin user list is the only caller and batches per viewport.</summary>
@@ -203,6 +205,7 @@ public partial class AdminController(
         // minute later. Without it the filter kept serving the value it had already cached, which
         // is how the first live check of this fix appeared to fail. See #609.
         this._cache.Remove($"blocked:{id}");
+        this._destinationDirectory.Invalidate();
 
         // Re-fetch to return the updated state
         return this.Ok(await this.ReReadAsync(id, human));
@@ -259,6 +262,7 @@ public partial class AdminController(
         // minute later. Without it the filter kept serving the value it had already cached, which
         // is how the first live check of this fix appeared to fail. See #609.
         this._cache.Remove($"blocked:{id}");
+        this._destinationDirectory.Invalidate();
 
         // Re-fetch to return the updated state
         return this.Ok(await this.ReReadAsync(id, human));
@@ -432,6 +436,9 @@ public partial class AdminController(
         try
         {
             var created = await this._humanService.CreateAsync(human);
+
+            // The directory is cached a minute, and a destination just created should be grantable now.
+            this._destinationDirectory.Invalidate();
             LogDestinationCreated(this._logger, this.UserId, human.Type, human.Id);
             return this.Ok(created);
         }
@@ -714,10 +721,14 @@ public partial class AdminController(
         // Neither id was checked against anything, so a typo created a grant over a webhook that does not
         // exist, for a user who does not exist, and the admin delegates view then listed it as real. A
         // grant is only meaningful between two accounts that exist. See #514.
+        //
+        // Any destination takes delegates, not only webhooks (#1025). HumanKind.Destinations is the list that
+        // grants power: a type that is merely not a person (an operator's typo) is listed on Destinations
+        // but cannot be delegated.
         var webhook = await this._humanService.GetByIdAsync(request.WebhookId);
-        if (webhook is null || !string.Equals(webhook.Type, "webhook", StringComparison.OrdinalIgnoreCase))
+        if (webhook is null || !HumanKind.IsKnownDestination(webhook.Type))
         {
-            return this.BadRequest(new { error = "webhookId does not name an existing webhook." });
+            return this.BadRequest(new { error = "webhookId does not name a destination." });
         }
 
         var grantee = await this._humanService.GetByIdAsync(request.UserId);
@@ -846,6 +857,7 @@ public partial class AdminController(
         // The purge removed grants in both directions, and a delegate PoracleJS names by the webhook's NAME
         // is in no table that could say who else just lost access -- so every cached answer goes.
         this._roleResolver.InvalidateAll();
+        this._destinationDirectory.Invalidate();
 
         LogUserDeleted(this._logger, this.UserId, id);
         return this.NoContent();

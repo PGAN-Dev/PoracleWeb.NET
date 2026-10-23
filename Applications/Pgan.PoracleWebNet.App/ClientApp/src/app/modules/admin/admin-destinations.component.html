@@ -143,37 +143,33 @@
         <ng-container matColumnDef="delegates">
           <th mat-header-cell *matHeaderCellDef>{{ 'ADMIN.COLUMN_DELEGATES' | translate }}</th>
           <td mat-cell *matCellDef="let row">
-            @if (isWebhook(row)) {
-              <div class="delegate-avatars">
-                @for (uid of getDelegateUserIds(row.id); track uid) {
-                  <div
-                    class="delegate-avatar-wrap"
-                    [matTooltip]="
-                      getDelegateName(uid) +
-                      (isPoracleAdmin(uid)
-                        ? ' (' + ('ADMIN.GLOBAL_ADMIN' | translate) + ')'
-                        : isPorocleDelegateForWebhook(row.id, uid)
-                          ? ' (' + ('ADMIN.CONFIG_DELEGATE' | translate) + ')'
-                          : '')
-                    ">
-                    @if (getDelegateAvatarUrl(uid)) {
-                      <img class="delegate-avatar" [src]="getDelegateAvatarUrl(uid)!" alt="" />
-                    } @else {
-                      <div class="delegate-avatar delegate-avatar-fallback">
-                        <mat-icon>account_circle</mat-icon>
-                      </div>
-                    }
-                    @if (isLockedDelegate(row.id, uid)) {
-                      <mat-icon class="delegate-lock">lock</mat-icon>
-                    }
-                  </div>
-                } @empty {
-                  <span class="text-muted" data-test="no-delegates">{{ 'ADMIN.NO_DELEGATE_GRANTS' | translate }}</span>
-                }
-              </div>
-            } @else {
-              <span class="text-muted">—</span>
-            }
+            <div class="delegate-avatars">
+              @for (uid of getDelegateUserIds(row.id); track uid) {
+                <div
+                  class="delegate-avatar-wrap"
+                  [matTooltip]="
+                    getDelegateName(uid) +
+                    (isPoracleAdmin(uid)
+                      ? ' (' + ('ADMIN.GLOBAL_ADMIN' | translate) + ')'
+                      : isPorocleDelegateForWebhook(row.id, uid)
+                        ? ' (' + ('ADMIN.CONFIG_DELEGATE' | translate) + ')'
+                        : '')
+                  ">
+                  @if (getDelegateAvatarUrl(uid)) {
+                    <img class="delegate-avatar" [src]="getDelegateAvatarUrl(uid)!" alt="" />
+                  } @else {
+                    <div class="delegate-avatar delegate-avatar-fallback">
+                      <mat-icon>account_circle</mat-icon>
+                    </div>
+                  }
+                  @if (isLockedDelegate(row.id, uid)) {
+                    <mat-icon class="delegate-lock">lock</mat-icon>
+                  }
+                </div>
+              } @empty {
+                <span class="text-muted" data-test="no-delegates">{{ 'ADMIN.NO_DELEGATE_GRANTS' | translate }}</span>
+              }
+            </div>
           </td>
         </ng-container>
 
@@ -225,16 +221,14 @@
                 [attr.aria-label]="'ADMIN.MANAGE_ALARMS' | translate">
                 <mat-icon>tune</mat-icon>
               </button>
-              @if (isWebhook(row)) {
-                <button
-                  mat-icon-button
-                  data-test="manage-delegates"
-                  (click)="openDelegatesDialog(row)"
-                  [matTooltip]="'ADMIN.MANAGE_DELEGATES' | translate"
-                  [attr.aria-label]="'ADMIN.MANAGE_DELEGATES' | translate">
-                  <mat-icon>group_add</mat-icon>
-                </button>
-              }
+              <button
+                mat-icon-button
+                data-test="manage-delegates"
+                (click)="openDelegatesDialog(row)"
+                [matTooltip]="'ADMIN.MANAGE_DELEGATES' | translate"
+                [attr.aria-label]="'ADMIN.MANAGE_DELEGATES' | translate">
+                <mat-icon>group_add</mat-icon>
+              </button>
               <button
                 mat-icon-button
                 color="warn"

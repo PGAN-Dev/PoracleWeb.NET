@@ -424,7 +424,7 @@ export class AdminDestinationsComponent implements OnInit {
     return (this.porocleDelegates()[webhookId] ?? []).includes(userId);
   }
 
-  /** Grants and the delegates dialog are webhook-only on the server until delegation widens (#1025 part 6). */
+  /** A webhook id is a URL, shown shortened, and deleting one removes the account itself. */
   isWebhook(row: AdminUser): boolean {
     return (row.type ?? '').trim().toLowerCase() === 'webhook';
   }

@@ -20,6 +20,7 @@ public class AdminControllerTests : ControllerTestBase
     private readonly Mock<IWebhookDelegateService> _webhookDelegateService = new();
     private readonly Mock<IJwtService> _jwtService = new();
     private readonly Mock<Pgan.PoracleWebNet.Api.Services.IUserRoleResolver> _roleResolver = new();
+    private readonly Mock<Pgan.PoracleWebNet.Api.Services.IDestinationDirectory> _directory = new();
     private readonly Mock<IPoracleServerProfileService> _serverProfile = new();
     private readonly Mock<IUpdateCheckService> _updateCheck = new();
     private readonly Mock<ILogger<AdminController>> _logger = new();
@@ -43,6 +44,7 @@ public class AdminControllerTests : ControllerTestBase
             poracleSettings,
             this._jwtService.Object,
             this._roleResolver.Object,
+            this._directory.Object,
             this._logger.Object);
     }
 
@@ -410,6 +412,21 @@ public class AdminControllerTests : ControllerTestBase
     private static string? ErrorOf(object? value) =>
         value?.GetType().GetProperty("error")?.GetValue(value) as string;
 
+    /// <summary>The directory is cached a minute; a new destination has to be grantable straight away.</summary>
+    [Fact]
+    public async Task CreatingADestinationRefreshesTheDirectory()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this._humanService.Setup(s => s.ExistsAsync("123456789012345678")).ReturnsAsync(false);
+        this._humanService.Setup(s => s.CreateAsync(It.IsAny<Human>())).ReturnsAsync((Human h) => h);
+
+        var result = await this._sut.CreateDestination(
+            new AdminController.CreateDestinationRequest("discord:channel", "123456789012345678", "raids", null));
+
+        Assert.IsType<OkObjectResult>(result);
+        this._directory.Verify(d => d.Invalidate(), Times.Once);
+    }
+
     [Fact]
     public async Task CreateDestinationCreatesADiscordChannel()
     {
@@ -681,6 +698,33 @@ public class AdminControllerTests : ControllerTestBase
         this._roleResolver.Verify(r => r.InvalidateAll(), Times.Once);
     }
 
+    /// <summary>
+    /// The destination directory is cached a minute. Deleting, blocking or unblocking an account drops it,
+    /// so a grant check never answers from a list that still holds a deleted destination.
+    /// </summary>
+    [Fact]
+    public async Task DeleteUserRefreshesTheDirectory()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this._userPurgeService.Setup(s => s.PurgeAsync("u1")).ReturnsAsync(true);
+
+        await this._sut.DeleteUser("u1");
+
+        this._directory.Verify(d => d.Invalidate(), Times.Once);
+    }
+
+    [Fact]
+    public async Task BlockAndUnblockRefreshTheDirectory()
+    {
+        SetupUser(this._sut, userId: "admin", isAdmin: true);
+        this._humanService.Setup(s => s.GetByIdAsync("u1")).ReturnsAsync(new Human { Id = "u1" });
+
+        await this._sut.DisableUser("u1");
+        await this._sut.EnableUser("u1");
+
+        this._directory.Verify(d => d.Invalidate(), Times.Exactly(2));
+    }
+
     [Fact]
     public async Task AddWebhookDelegateTakesEffectWithoutWaitingOutTheRoleCache()
     {
@@ -920,9 +964,9 @@ public class AdminControllerTests : ControllerTestBase
             s => s.AddDelegateAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
-    /// <summary>A grant may only name a webhook, not an ordinary user account.</summary>
+    /// <summary>A grant names a destination. A person is not one, so nobody can be delegated another person.</summary>
     [Fact]
-    public async Task AddWebhookDelegateRejectsAnIdThatIsNotAWebhook()
+    public async Task AddWebhookDelegateRefusesAPersonAsTarget()
     {
         SetupUser(this._sut, isAdmin: true);
         this._humanService.Setup(s => s.GetByIdAsync("someone"))
@@ -930,7 +974,46 @@ public class AdminControllerTests : ControllerTestBase
 
         var result = await this._sut.AddWebhookDelegate(new AdminController.WebhookDelegateRequest("someone", "u2"));
 
-        Assert.IsType<BadRequestObjectResult>(result);
+        var bad = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal("webhookId does not name a destination.", ErrorOf(bad.Value));
+        this._webhookDelegateService.Verify(
+            s => s.AddDelegateAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    /// <summary>Every kind in HumanKind.Destinations takes delegates now, not only webhooks. See #1025.</summary>
+    [Fact]
+    public async Task AddWebhookDelegateGrantsADiscordChannel()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this.GivenWebhookAndUserExist(webhookId: "123456789012345678");
+        this._humanService.Setup(s => s.GetByIdAsync("123456789012345678"))
+            .ReturnsAsync(new Human { Id = "123456789012345678", Type = "discord:channel" });
+        this._webhookDelegateService.Setup(s => s.AddDelegateAsync("123456789012345678", "u2")).ReturnsAsync(["u2"]);
+
+        var result = await this._sut.AddWebhookDelegate(new AdminController.WebhookDelegateRequest("123456789012345678", "u2"));
+
+        Assert.IsType<OkObjectResult>(result);
+        this._webhookDelegateService.Verify(s => s.AddDelegateAsync("123456789012345678", "u2"), Times.Once);
+    }
+
+    /// <summary>
+    /// A type that isn't a person but isn't a known destination either (an operator's typo) is listed on
+    /// Destinations, but it grants nothing: only HumanKind.Destinations does.
+    /// </summary>
+    [Fact]
+    public async Task AddWebhookDelegateRefusesAnUnknownType()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this.GivenWebhookAndUserExist(webhookId: "typo");
+        this._humanService.Setup(s => s.GetByIdAsync("typo"))
+            .ReturnsAsync(new Human { Id = "typo", Type = "x:unknown" });
+
+        var result = await this._sut.AddWebhookDelegate(new AdminController.WebhookDelegateRequest("typo", "u2"));
+
+        var bad = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal("webhookId does not name a destination.", ErrorOf(bad.Value));
+        this._webhookDelegateService.Verify(
+            s => s.AddDelegateAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
