@@ -215,7 +215,7 @@ public class RuleRepairClassifierTests
     }
 
     // A field the server's own schema declares is one an edit sends back, so the rule is editable and the
-    // scan has nothing to say about it. Production listed 1,111 personal shiny rules as uneditable without this.
+    // scan has nothing to say about it. Every personal shiny rule was listed as uneditable without this.
     [Fact]
     public void FieldTheServerDeclaresIsNotReportedAsUneditable()
     {

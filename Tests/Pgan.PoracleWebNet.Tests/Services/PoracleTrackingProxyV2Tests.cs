@@ -1113,8 +1113,8 @@ public class PoracleTrackingProxyV2Tests
 
     // ---- carrying what the read kept but this build does not model -----------------------------------
     //
-    // The v2 read copies an unmodelled property through verbatim (the PGAN fork's personal_shiny and
-    // personal_background, 1,111 production rules), TrackingFieldPreserver carries it onto the edit, and
+    // The v2 read copies an unmodelled property through verbatim (a personal-shiny PoracleNG's personal_shiny and
+    // personal_background), TrackingFieldPreserver carries it onto the edit, and
     // the write must then send it back. It may, exactly when the server's own /openapi.json declares that
     // property on the type's V2*Rule: every rule is additionalProperties:false, so a property the server
     // does not declare is still a row v2 cannot be told faithfully.
