@@ -25,6 +25,8 @@ public class UserPurgeServiceTests
     private readonly Mock<IQuickPickDefinitionRepository> _quickPicks = new();
     private readonly Mock<IQuickPickAppliedStateRepository> _appliedStates = new();
     private readonly Mock<IHumanService> _humanService = new();
+    private readonly Mock<IAccountLinkRepository> _accountLinks = new();
+    private readonly Mock<ILinkedAccount> _linkedAccount = new();
     private readonly UserPurgeService _sut;
 
     public UserPurgeServiceTests()
@@ -44,7 +46,39 @@ public class UserPurgeServiceTests
         this._quickPicks.Object,
         this._appliedStates.Object,
         humanService,
+        this._accountLinks.Object,
+        this._linkedAccount.Object,
         NullLogger<UserPurgeService>.Instance);
+
+    [Theory]
+    [InlineData("100000000000000001")]
+    [InlineData("200000001")]
+    public async Task Purge_LinkedId_RemovesLinkAndInvalidatesBothIds(string purged)
+    {
+        this._humanService.Setup(s => s.ExistsAsync(purged)).ReturnsAsync(true);
+        this._humanService.Setup(s => s.DeleteUserAsync(purged)).ReturnsAsync(true);
+        this._geofences.Setup(r => r.GetByHumanIdAsync(purged)).ReturnsAsync([]);
+        this._quickPicks.Setup(r => r.GetByOwnerAsync(purged)).ReturnsAsync([]);
+        this._accountLinks.Setup(r => r.GetByHumanIdAsync(purged))
+            .ReturnsAsync(new AccountLink(3, "100000000000000001", "200000001", LinkSide.Discord, null, null, DateTime.UtcNow));
+
+        Assert.True(await this._sut.PurgeAsync(purged));
+
+        this._accountLinks.Verify(r => r.RemoveByHumanIdAsync(purged), Times.Once);
+        this._linkedAccount.Verify(l => l.Invalidate("100000000000000001"), Times.Once);
+        this._linkedAccount.Verify(l => l.Invalidate("200000001"), Times.Once);
+    }
+
+    [Fact]
+    public async Task Purge_UnlinkedUser_ChangesNoLinkState()
+    {
+        this._accountLinks.Setup(r => r.GetByHumanIdAsync("u1")).ReturnsAsync((AccountLink?)null);
+
+        Assert.True(await this._sut.PurgeAsync("u1"));
+
+        this._accountLinks.Verify(r => r.RemoveByHumanIdAsync(It.IsAny<string>()), Times.Never);
+        this._linkedAccount.Verify(l => l.Invalidate(It.IsAny<string>()), Times.Never);
+    }
 
     [Fact]
     public async Task PurgeRemovesEverythingTheAccountOwns()
