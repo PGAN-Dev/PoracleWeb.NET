@@ -1,0 +1,2471 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Web application for managing Poracle Pokemon GO notification alarms">
+      
+      
+      
+        <link rel="canonical" href="https://pgan-dev.github.io/PoracleWeb.NET/architecture/poracleng-compatibility/">
+      
+      
+        <link rel="prev" href="../poracleng-proxy/">
+      
+      
+        <link rel="next" href="../backend/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>PoracleNG Version Compatibility - PoracleWeb.NET</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="cyan">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#poracleng-version-compatibility" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="PoracleWeb.NET" class="md-header__button md-logo" aria-label="PoracleWeb.NET" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            PoracleWeb.NET
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              PoracleNG Version Compatibility
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="cyan"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="blue" data-md-color-accent="cyan"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/PGAN-Dev/PoracleWeb.NET" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    PGAN-Dev/PoracleWeb.NET
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/quick-start/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../configuration/reference/" class="md-tabs__link">
+          
+  
+  
+  Configuration
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../overview/" class="md-tabs__link">
+          
+  
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../features/alarms/" class="md-tabs__link">
+          
+  
+  
+  Features
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../development/testing/" class="md-tabs__link">
+          
+  
+  
+  Development
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../troubleshooting/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Troubleshooting
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../poracleng-enhancement-requests/" class="md-tabs__link">
+          
+  
+  
+  Upstream history
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="PoracleWeb.NET" class="md-nav__button md-logo" aria-label="PoracleWeb.NET" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    PoracleWeb.NET
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/PGAN-Dev/PoracleWeb.NET" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    PGAN-Dev/PoracleWeb.NET
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/quick-start/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start (Docker)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/standalone-setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Standalone Setup (no Docker)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/development-setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/discord-oauth/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Discord OAuth2
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/upgrading-to-poracleng-5-4/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Upgrading to PoracleNG 5.4.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Configuration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/site-settings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Site Settings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/external-sso/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    External SSO (OIDC)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/oidc-refresh-tokens/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OIDC Refresh Tokens
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker Compose
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../poracleng-proxy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PoracleNG API Proxy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PoracleNG Version Compatibility
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PoracleNG Version Compatibility
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#which-poracleng-to-run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Which PoracleNG to run
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-540" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why 5.4.0
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-support-is-decided" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How support is decided
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-still-depends-on-the-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What still depends on the server
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#when-a-request-cannot-be-served" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When a request cannot be served
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adding-a-feature-that-needs-a-newer-poracleng" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding a feature that needs a newer PoracleNG
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#raising-the-minimum-again" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Raising the minimum again
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#things-that-look-like-they-differ-between-versions-and-do-not" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Things that look like they differ between versions and do not
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../backend/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend Patterns
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../frontend/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Frontend Patterns
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../database/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Features
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Features
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/alarms/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Alarm Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/quiet-periods/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quiet Periods
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/profiles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Profiles
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/quest-summary-schedules/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quest Summary Delivery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/webhooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Destinations & Delegates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_6" id="__nav_5_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Custom Geofences
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Custom Geofences
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/custom-geofences/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/custom-geofences/key-concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Key Concepts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/custom-geofences/koji-and-regions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Koji & Regions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/custom-geofences/private-and-promotion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Private Geofences & Promotion
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/custom-geofences/admin-operations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Admin Operations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/custom-geofences/troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/internationalization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Internationalization (i18n)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/ci-cd/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CI/CD
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/code-style/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code Style
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Upstream history
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Upstream history
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../poracleng-enhancement-requests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PoracleNG Enhancement Requests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../poracleng-v2-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PoracleNG v2 API Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#which-poracleng-to-run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Which PoracleNG to run
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-540" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why 5.4.0
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-support-is-decided" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How support is decided
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-still-depends-on-the-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What still depends on the server
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#when-a-request-cannot-be-served" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When a request cannot be served
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adding-a-feature-that-needs-a-newer-poracleng" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding a feature that needs a newer PoracleNG
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#raising-the-minimum-again" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Raising the minimum again
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#things-that-look-like-they-differ-between-versions-and-do-not" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Things that look like they differ between versions and do not
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="poracleng-version-compatibility">PoracleNG Version Compatibility<a class="headerlink" href="#poracleng-version-compatibility" title="Permanent link">&para;</a></h1>
+<p>PoracleWeb.NET requires <strong>PoracleNG 5.4.0 or newer</strong>. There is nothing to configure, and no feature
+switches on or off with the server's version.</p>
+<div class="admonition warning">
+<p class="admonition-title">5.4.0 is the minimum</p>
+<p>PoracleWeb.NET still starts against an older PoracleNG, because refusing to start would take the
+whole site down over something an operator can fix in minutes. It logs an error at startup and the
+Versions card on <strong>Admin → Server settings</strong> says the server is too old. Beyond that it makes no allowance:
+it calls PoracleNG's <code>/api/v2</code> routes for humans, profiles, areas, places and mutes with no v1
+fallback, and a route that doesn't exist answers with a message naming the version it needs.</p>
+<p>Upgrade PoracleNG before taking a PoracleWeb.NET release that requires a newer one. The
+<a href="../../getting-started/upgrading-to-poracleng-5-4/">upgrade guide</a> covers the order of steps and the
+rule repair to run afterwards.</p>
+</div>
+<h2 id="which-poracleng-to-run">Which PoracleNG to run<a class="headerlink" href="#which-poracleng-to-run" title="Permanent link">&para;</a></h2>
+<p>PoracleNG doesn't publish tagged releases. Its <code>develop</code> branch is where its releases land and reports 5.4.0 from 21 October 2026. Its <code>main</code> branch, which is also what the <code>latest</code> image is built from, has stayed at 5.2.1 since 1 September 2026. Choose PoracleNG by branch or image tag, never by <code>latest</code>.</p>
+<table>
+<thead>
+<tr>
+<th>PoracleWeb.NET</th>
+<th>PoracleNG</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>This version</td>
+<td><code>develop</code> at commit <code>34421b82</code> (22 October 2026) or newer; image <code>ghcr.io/jfberry/poracleng:develop</code></td>
+<td>Required. Tested against <code>34421b82</code>.</td>
+</tr>
+<tr>
+<td>This version</td>
+<td>5.4.0 built before <code>34421b82</code> (21–22 October 2026)</td>
+<td>Works, except that rules on a profile number with no profile row stay out of Profile Overview and the rule repair scan (<a href="https://github.com/jfberry/PoracleNG/pull/331">jfberry/PoracleNG#331</a>).</td>
+</tr>
+<tr>
+<td>This version</td>
+<td><code>main</code> or <code>latest</code> (5.2.1), or anything older than 5.4.0</td>
+<td>Not supported. Startup logs an error, the Versions card says PoracleNG is too old, and most saves fail.</td>
+</tr>
+<tr>
+<td>2.21.0</td>
+<td>5.1.0 or newer, including <code>main</code>/<code>latest</code> (5.2.1) and <code>develop</code> (5.4.0)</td>
+<td>Supported. Quiet periods, editing saved places and alarm edits through <code>/api/v2</code> need 5.2.0 or newer. Tested against 5.2.1 and against <code>develop</code> at <code>34421b82</code>.</td>
+</tr>
+<tr>
+<td>Earlier 2.x releases</td>
+<td>5.1.0 or newer</td>
+<td>Supported up to 5.3.x. Not tested against 5.4.0; move to 2.21.0 first.</td>
+</tr>
+<tr>
+<td>Experimental shiny line, <code>2.21.0-shiny.1</code> (image <code>ghcr.io/pgan-dev/poracleweb.net-experimental:2.21.0-shiny.1</code>)</td>
+<td><code>feat/personal-shiny</code> (<a href="https://github.com/jfberry/PoracleNG/pull/255">jfberry/PoracleNG#255</a>); image <code>ghcr.io/jfberry/poracleng:feat-personal-shiny</code></td>
+<td>Supported, with personal shiny alerts. On <code>develop</code> without that pull request it works with the shiny controls hidden.</td>
+</tr>
+</tbody>
+</table>
+<p>The PoracleWeb.NET images: <code>ghcr.io/pgan-dev/poracleweb.net:&lt;version&gt;</code> for each release (and <code>latest</code> for the newest), <code>:beta</code> for PoracleWeb.NET's own <code>develop</code> branch, which follows the "This version" rows.</p>
+<p>Known differences between the combinations above:</p>
+<ul>
+<li>This version can't create an invasion alarm limited to genderless grunts, and can't save an existing one, because PoracleNG's <code>/api/v2</code> has no genderless value for invasions. It says so and changes nothing.</li>
+<li>2.21.0 against a PoracleNG with personal shiny: adding an alarm next to a personal one that differs only in its radius is refused, because 2.21.0 doesn't know PoracleNG counts the personal flag as part of a rule. Nothing is overwritten.</li>
+<li>2.21.0: start PoracleNG before PoracleWeb.NET. If PoracleWeb.NET starts while PoracleNG isn't answering, quiet periods stay unavailable until PoracleWeb.NET restarts. This version doesn't have that problem.</li>
+</ul>
+<p>These results come from running PoracleWeb.NET's API test suite against each pairing on 22 October 2026, using the published images.</p>
+<h2 id="why-540">Why 5.4.0<a class="headerlink" href="#why-540" title="Permanent link">&para;</a></h2>
+<p>PoracleNG 5.4.0 is the release that carries everything PoracleWeb.NET asked upstream for while working
+out how to stop reading and writing PoracleNG's database (jfberry/PoracleNG#328; the requests are listed
+under <a href="../../poracleng-enhancement-requests/">Upstream history</a>). Supporting an older server meant keeping
+each workaround beside the code that replaced it, so the fallbacks were deleted instead of gated. What
+went in the first step, which covers humans, profiles, places, mutes and geocoding:</p>
+<table>
+<thead>
+<tr>
+<th>Removed</th>
+<th>What it did on an older PoracleNG</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>HumanRepository</code>, <code>ProfileRepository</code></td>
+<td>Listed and deleted humans, renamed profiles and wrote a new profile's areas and location straight into PoracleNG's tables. Admin list and delete now use <code>GET /api/v2/humans</code> and <code>DELETE /api/v2/humans/{id}</code>; rename and new-profile geography use the v2 profile, area and location routes</td>
+</tr>
+<tr>
+<td><code>ProfileNumbering</code> (list, create, re-list, diff)</td>
+<td>Worked out which number PoracleNG gave a new profile, because the create answered <code>{"status":"ok"}</code> and nothing else. The create now returns it</td>
+</tr>
+<tr>
+<td>The v1 branch of every single-human call</td>
+<td><code>/api/humans/...</code> and <code>/api/profiles/...</code> fallbacks behind a cached "v2 is absent" flag</td>
+</tr>
+<tr>
+<td><code>MuteCapabilityService</code>, <code>PlaceUpdateCapabilityService</code>, <code>QuestPokecoinCapabilityService</code>, <code>CostumeCapabilityService</code></td>
+<td>Asked whether the server could do the thing before the SPA showed the control. Quiet periods, moving a saved place, Pokécoin quest rewards and costume filters are always offered</td>
+</tr>
+<tr>
+<td>The legacy geocoder call</td>
+<td>Called the geocoder PoracleNG was configured with, as Nominatim, when PoracleNG had no <code>/api/geocode</code> routes</td>
+</tr>
+<tr>
+<td><code>ProbePokestopEventsAsync</code></td>
+<td>Probed for the Pokéstop Events page on a server without it</td>
+</tr>
+<tr>
+<td><code>Poracle:TrackingApiVersion</code> (<code>PORACLE_TRACKING_API_VERSION</code>)</td>
+<td>Pinned the tracking surface for a fork whose version string lied. A leftover setting is ignored</td>
+</tr>
+<tr>
+<td>Eleven <code>PoracleV2Capabilities</code> flags</td>
+<td>Each asked the server's <code>/openapi.json</code> whether one field or route existed. <code>TrustedSetAreas</code> went with the area writes</td>
+</tr>
+</tbody>
+</table>
+<p>No call to the v1 tracking API is left in this application. Alert reads, creates, edits, deletes, bulk
+distance changes and the cleaning toggle are all v2 (the last two as a PATCH), with no fallback. User-drawn geofence names, including
+the ones an alert is limited to, reach PoracleNG through its <code>/api/v2</code> routes with the <code>trusted</code> flag,
+which 5.4.0 carries; nothing is written straight to PoracleNG's database.</p>
+<h2 id="how-support-is-decided">How support is decided<a class="headerlink" href="#how-support-is-decided" title="Permanent link">&para;</a></h2>
+<p>Two probes, cached for five minutes. The mechanics are in
+<a href="../backend/#server-capability-probe">Backend Patterns</a>.</p>
+<table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>Source</th>
+<th>Answers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Version</td>
+<td><code>GET /health</code></td>
+<td>Whether this server is known to be older than the minimum.</td>
+</tr>
+<tr>
+<td>Published schema</td>
+<td><code>GET /openapi.json</code></td>
+<td>Which properties each <code>V2*Rule</code> declares, and the numeric bounds it publishes. The tracking proxy reads them so a property PoracleWeb.NET doesn't model is carried through an edit, and a value outside the server's own bound is refused before it's sent.</td>
+</tr>
+</tbody>
+</table>
+<p><code>PoracleServerProfile.IsSupported</code> is true when PoracleNG answered and its version is not below
+<code>MinimumSupported</code>. An unparseable version, or the <code>0.0.0</code> a locally built binary reports because its
+build flags were never injected, counts as current: a build of today's source is newer than 5.4.0, and
+hiding features from it on a guess helps nobody. An unreachable server is not supported.</p>
+<p><code>GET /health</code> also carries a capability map, which covers bot and template-editor features and nothing
+about alarms. A missing key there means unsupported, PoracleNG's own contract for the map, so reaching for
+<code>Supports()</code> to answer an alarm question quietly answers false forever.</p>
+<h2 id="what-still-depends-on-the-server">What still depends on the server<a class="headerlink" href="#what-still-depends-on-the-server" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Signal</th>
+<th>Needs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Alarm reads and deletes through <code>/api/v2</code></td>
+<td>A plaintext 404 only (no version gate)</td>
+<td>A PoracleNG that serves the v2 routes. There is no v1 fallback: a route that answers gin's plaintext <code>404 page not found</code> raises <code>PoracleUnsupportedException</code>. Deletes of a rule outside the active profile are re-issued with <code>?profile=N</code>, since v2 only deletes on the active one</td>
+</tr>
+<tr>
+<td>Alarm creates and edits through <code>/api/v2</code></td>
+<td>A plaintext 404 only (no version gate)</td>
+<td>A PoracleNG that serves the v2 routes, including <code>dry_run</code> on a create and 409 on a colliding edit. There is no v1 fallback: a plaintext 404 raises <code>PoracleUnsupportedException("saving alarms", ...)</code>, and a row the translator can't express is refused rather than sent elsewhere</td>
+</tr>
+<tr>
+<td>Pokéstop-event tracking (<code>incident</code>)</td>
+<td>Poracle's own <code>general.disable_showcase</code></td>
+<td>Only <code>true</code> hides the page. Absent or unreadable leaves it on</td>
+</tr>
+<tr>
+<td>Pokemon edit-in-place</td>
+<td>Poracle's <code>tracking.pokemon_edit</code> config</td>
+<td>The key <code>true</code>. Absent or unreadable hides the toggle</td>
+</tr>
+<tr>
+<td>Translated grunt display names</td>
+<td>Response field</td>
+<td>A <code>/api/masterdata/grunts</code> entry carrying <code>grunt_type</code> and <code>short_name</code></td>
+</tr>
+<tr>
+<td>Rule descriptions on alarm cards</td>
+<td>Response field</td>
+<td>Any v2 read</td>
+</tr>
+</tbody>
+</table>
+<p>The flags <code>IPoracleV2SchemaService</code> used to answer (profile create returning its number, rename through
+<code>PATCH</code>, the admin human routes, trusted <code>setAreas</code>) went with 5.4.0, which carries all of them. The one
+flag left, <code>InvasionGruntType</code>, is still parsed but nothing reads it. What the schema still decides is the
+per-rule property list and bounds above, which the tracking proxy reads from <code>/openapi.json</code> itself and
+caches.</p>
+<p><code>SummaryCapabilityService</code> and <code>PokemonEditCapabilityService</code> answer from Poracle's configuration, not
+from the version, because quest summary delivery and pokemon edit-in-place are deployment settings an
+operator can switch off on a server that supports them. Pokéstop Events are decided by
+<code>UpstreamFeatureFlagService</code> for the same reason, with <code>disable_showcase</code>.</p>
+<p>There is deliberately no central registry. A registry was written and abandoned, because the per-feature
+shape already existed and two mechanisms answering one question is how one of them ends up being the one
+nobody updates.</p>
+<p>Costume names are the awkward one. PoracleNG loads them into its game data under <code>costume_{id}</code> keys
+but publishes them nowhere (<code>/api/masterdata/</code> offers only <code>monsters</code> and <code>grunts</code>), so the costume
+picker reads the same WatWowMap masterfile PoracleNG itself reads. The names are therefore English in
+every language, and a costume too new for that file shows as its number.</p>
+<p><code>TrackingFieldPreserver</code> carries forward every stored field PoracleWeb.NET has no model for on an edit,
+and bulk distance and cleaning send only the field they change, so a field set with the bot survives a web
+edit whatever the server is.</p>
+<p>Rule descriptions belong on this list too. A v2 tracking read takes <code>?include_descriptions=true</code> and
+returns a <code>description</code> on each rule, the same sentence PoracleNG's bot answers a <code>!pokemon</code> command
+with. It is easy to conclude otherwise: <code>description</code> is not on the named <code>V2PokemonRule</code> request
+schema, and the response envelope that carries it is an inline object under <code>rules.items</code> rather than a
+named component, so a search of <code>components/schemas</code> finds nothing. Resolve
+<code>V2ListOutput...Body.properties.rules.items</code> before believing a field is absent.</p>
+<p>Reading and deleting an existing rule is <strong>never</strong> gated, only creating one. A rule can already exist
+(set with the bot, or left behind by a downgrade), and a row nobody can see is a row nobody can delete.</p>
+<h2 id="when-a-request-cannot-be-served">When a request cannot be served<a class="headerlink" href="#when-a-request-cannot-be-served" title="Permanent link">&para;</a></h2>
+<p>On a server below 5.4.0 a human, profile, area, place or geocode route answers gin's plaintext
+<code>404 page not found</code>. Telling that apart from a real "not found" is the whole job:
+<code>PoracleProblemDetails.IsProblemJson</code> says whether the body is PoracleNG's own answer. A problem+json 404
+keeps its meaning (no such human, no such profile, nothing at this coordinate). A plaintext one throws
+<code>PoracleUnsupportedException(feature, "PoracleNG 5.4.0")</code>, and the global
+<code>PoracleUnsupportedExceptionFilter</code> turns it into <strong>409 Conflict</strong>:</p>
+<div class="highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="p">{</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">"error"</span><span class="p">:</span><span class="w"> </span><span class="s2">"This PoracleNG does not support listing areas. It requires PoracleNG 5.4.0."</span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">"feature"</span><span class="p">:</span><span class="w"> </span><span class="s2">"listing areas"</span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="nt">"requires"</span><span class="p">:</span><span class="w"> </span><span class="s2">"PoracleNG 5.4.0"</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>409 rather than 403 on purpose. The 403 branch belongs to <code>disable_*</code> site settings and keys off a
+<code>disableKey</code> in the body; borrowing it would put an operator's switch and a version shortfall behind the
+same toast, and the version shortfall has the one detail worth reading in it. 409 has no interceptor
+branch, so it falls through to the caller, which shows the message beside the control that caused it
+(the same route <code>TrackingConflictExceptionFilter</code> takes). Address search is the exception: its caller
+swallows the 409, so on a too-old server the search just returns nothing.</p>
+<p>A separate filter, <code>PoracleUnreachableExceptionFilter</code>, answers <strong>503</strong> with a message when PoracleNG
+cannot be reached at all. It is applied to the mute and location controllers and to all eleven alarm controllers, where a failed read
+used to look like an empty answer: a quiet-period chip claiming nothing is quiet, or a places list that
+said the user had none.</p>
+<p>Throw <code>PoracleUnsupportedException</code> from the service layer, not from a controller. Quick-pick apply,
+profile duplicate and profile import all reach the alarm services without passing an action that could
+have checked first.</p>
+<h2 id="adding-a-feature-that-needs-a-newer-poracleng">Adding a feature that needs a newer PoracleNG<a class="headerlink" href="#adding-a-feature-that-needs-a-newer-poracleng" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>Raise the minimum, or gate on what the server publishes.</strong> A feature every supported server has
+   needs no gate. One that only some do goes through <code>IPoracleV2SchemaService</code>: add a typed question,
+   read it from the target's <code>/openapi.json</code>, answer false when the document cannot be read. Don't add a
+   version compare; the minimum is the only version PoracleWeb.NET checks.</li>
+<li><strong>Write a small per-feature service</strong> if the SPA needs to ask, shaped like
+   <code>ISummaryCapabilityService</code>: one method, one question, answering false when it cannot tell.</li>
+<li><strong>Guard the service write path</strong>, on create, update and bulk alike, and throw
+   <code>PoracleUnsupportedException(feature, requires)</code> with words the user can act on.</li>
+<li><strong>Give the SPA a way to ask.</strong> <code>GET /api/admin/server-profile</code> is admin-only, so it cannot be the
+   answer for a user-facing control. An ordinary authenticated endpoint answers instead, like
+   <code>GET /api/summary-schedules/capability</code>.</li>
+<li><strong>Prefer hiding the control to disabling it with an explanation.</strong> There is nothing the user can do
+   about their operator's PoracleNG version.</li>
+<li><strong>Add a row to the table above.</strong></li>
+</ol>
+<h2 id="raising-the-minimum-again">Raising the minimum again<a class="headerlink" href="#raising-the-minimum-again" title="Permanent link">&para;</a></h2>
+<p>Move <code>PoracleServerProfile.MinimumSupported</code>, then delete what only the old floor needed, as 5.4.0 did.
+Before deleting a fallback, ask whether it is there for the old version or for a server that answers
+differently today. The plaintext-404 handling on each v2 route was the first kind, which is why it now throws
+<code>PoracleUnsupportedException</code> everywhere rather than falling back.</p>
+<h2 id="things-that-look-like-they-differ-between-versions-and-do-not">Things that look like they differ between versions and do not<a class="headerlink" href="#things-that-look-like-they-differ-between-versions-and-do-not" title="Permanent link">&para;</a></h2>
+<p>These are the ones most likely to send you writing a check that buys nothing.</p>
+<p><strong>The v1 API is frozen.</strong> Its release notes describe RFC 9457 <code>application/problem+json</code> error bodies and
+422 status codes, and those are real, on <code>/api/v2</code> only. A v1 tracking POST for a user that does not
+exist answers <code>{"message":"User not found","status":"error"}</code>; a malformed v2 path parameter answers 422
+with <code>Content-Type: application/problem+json</code> and an <code>errors</code> array. Assuming the new shapes applied
+everywhere cost a wrongly framed issue and pull request. Each proxy reads errors through
+<code>PoracleProblemDetails</code>, which handles both dialects. See
+<a href="../poracleng-proxy/#the-v2-write-path">PoracleNG API Proxy</a>.</p>
+<p><strong>Do not take <code>active_hours</code> day numbering from PoracleNG's OpenAPI schema.</strong> On older builds
+<code>V2ActiveHourEntry.day</code> was declared <code>minimum: 0, maximum: 6</code> and described as "0=Sunday … 6=Saturday".
+The scheduler uses ISO weekdays, Monday 1 through Sunday 7 (<code>isoDow</code> in
+<code>processor/cmd/processor/profiles.go</code>), and PoracleWeb.NET validates 1 to 7.
+<code>ProfileController.ValidateActiveHours</code> is the place that would be wrong if somebody "fixed" it against a
+stale document.</p>
+<p><strong>The <code>/health</code> capability map is not where alarm features appear.</strong> It covers bot and template-editor
+features (<code>buttons</code>, <code>snapshots</code>, <code>autocreate</code>, <code>tomlDts</code>, <code>costume</code>, <code>customMaps</code> and the like) and says
+nothing about incidents or mutes. Reaching for <code>Supports()</code> for an alarm feature will quietly answer false
+forever.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/PGAN-Dev/PoracleWeb.NET" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
