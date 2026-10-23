@@ -73,7 +73,7 @@ from somewhere this site does not write.
 
 ## What a delegate can do
 
-**Settings → My Webhooks** lists the webhooks they manage. **Manage alarms** switches the session to
+**Settings → My Webhooks** lists the webhooks they manage (for now it covers webhooks only, not the other kinds of destination). **Manage alarms** switches the session to
 that webhook: from there they see the site as it does, and can set up alarms, areas, profiles, its
 pin, and send test alerts. A banner names the account being viewed, and the button on it returns them
 to their own.

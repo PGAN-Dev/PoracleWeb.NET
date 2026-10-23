@@ -104,14 +104,16 @@ empty, whitespace or ends `:user` (case-insensitive); everything else is a desti
 and three sets.
 
 `HumanKind.Destinations` is exactly `webhook`, `discord:channel`, `discord:thread`, `telegram:channel`,
-`telegram:group`, `telegram:topic`, and **it alone grants power**: create, grant target, delegate impersonation. An
-unknown non-user type is listed as a destination and is on none of those. `MentionCapable` (webhook, Discord channel,
+`telegram:group`, `telegram:topic`. It is the allowlist that create, grant targets and delegate impersonation will check
+as the later parts of #1025 land; **nothing reads it yet** (only `IsPerson` and `KindOf` are used), and the grant target is
+still webhook-only. An unknown non-user type is listed as a destination and will be on none of those powers. `MentionCapable` (webhook, Discord channel,
 Discord thread) says where a `ping` makes sense; `NameAddressable` says which types PoracleNG resolves by name.
 
 `GET /api/admin/users` stamps `kind` on every row. Admin > Users shows the people, Admin > Destinations the rest, split
 client-side on that field (`shared/utils/human-kind.ts`); the two pages share their list state in `admin-list-state.ts`.
-The delegate grant refuses a grantee that isn't a person (400). The `webhook_delegates.webhook_id` column holds a
-destination id, which for a non-webhook is a channel or group id rather than a URL; the column name predates this.
+The delegate grant refuses a grantee that isn't a person (400). Once delegation widens beyond webhooks, the
+`webhook_delegates.webhook_id` column will hold a destination id, a channel or group id rather than a URL; today it
+holds webhook URLs only, and the column name predates the change.
 
 ### Repository Layer
 - Repositories remain for **non-alarm** data only: all PoracleWeb-owned tables (`SiteSettingRepository`, `WebhookDelegateRepository`, `UserGeofenceRepository`, `QuickPickDefinitionRepository`, `QuickPickAppliedStateRepository`). There is no human or profile repository: every human and profile read and write, admin bulk included, goes through `IPoracleHumanProxy` (5.4.0's `/api/v2`).
