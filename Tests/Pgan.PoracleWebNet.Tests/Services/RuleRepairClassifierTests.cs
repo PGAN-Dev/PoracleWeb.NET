@@ -221,7 +221,7 @@ public class RuleRepairClassifierTests
     {
         var stored = Rule("pokemon", """{"pokemon_id":25,"personal_shiny":true}""");
 
-        Assert.Null(RuleRepairClassifier.Classify(stored, "user1", new HashSet<string> { "personal_shiny" }));
+        Assert.Null(RuleRepairClassifier.Classify(stored, "user1", new HashSet<string> { "personal_shiny", "personal_background" }));
     }
 
     [Fact]

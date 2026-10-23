@@ -132,7 +132,7 @@ public class RuleRepairJobTests
     {
         this._tracking
             .Setup(t => t.GetDeclaredRulePropertiesAsync("pokemon"))
-            .ReturnsAsync(new HashSet<string> { "personal_shiny" });
+            .ReturnsAsync(new HashSet<string> { "personal_shiny", "personal_background" });
         this._tracking
             .Setup(t => t.GetDeclaredRulePropertiesAsync("invasion"))
             .ReturnsAsync(new HashSet<string> { "future_flag" });
