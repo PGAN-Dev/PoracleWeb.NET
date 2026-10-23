@@ -1,3 +1,4 @@
+using Pgan.PoracleWebNet.Tests.Helpers;
 using Pgan.PoracleWebNet.Core.Models;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
@@ -25,6 +26,7 @@ public class AreaControllerTests : ControllerTestBase
             this._proxy.Object,
             this._userGeofenceService.Object,
             this._areaWriter.Object,
+            PairTestSupport.UnlinkedWriter(),
             this._logger.Object);
         // Default: the writer keeps everything it is given.
         this._areaWriter

@@ -1,3 +1,4 @@
+using Pgan.PoracleWebNet.Tests.Helpers;
 using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
@@ -106,6 +107,7 @@ public class DelegationParityTests : ControllerTestBase
             new Mock<IProfileService>().Object,
             this._poracleApi.Object,
             this._humanProxy.Object,
+            PairTestSupport.UnlinkedWriter(),
             this._siteSettings.Object,
             this._delegates.Object,
             this._jwt.Object,

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Pgan.PoracleWebNet.Api.Filters;
+using Pgan.PoracleWebNet.Api.Services;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
@@ -83,8 +84,8 @@ public partial class AdminGeofenceController(IUserGeofenceService userGeofenceSe
 
         try
         {
-            await this._userGeofenceService.AdminDeleteAsync(this.UserId, id, deleteWidened);
-            return this.NoContent();
+            var warning = await this._userGeofenceService.AdminDeleteAsync(this.UserId, id, deleteWidened);
+            return warning is null ? this.NoContent() : this.Ok(PairResponse.With(null, warning));
         }
         catch (KojiOperationException ex)
         {

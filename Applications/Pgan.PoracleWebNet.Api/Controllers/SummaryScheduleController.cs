@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Pgan.PoracleWebNet.Api.Filters;
+using Pgan.PoracleWebNet.Api.Services;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
@@ -22,7 +23,8 @@ namespace Pgan.PoracleWebNet.Api.Controllers;
 [RequireFeatureEnabled(DisableFeatureKeys.Quests)]
 public class SummaryScheduleController(
     IPoracleSummaryProxy summaryProxy,
-    ISummaryCapabilityService capability) : BaseApiController
+    ISummaryCapabilityService capability,
+    IPairedHumanWriter pairWriter) : BaseApiController
 {
     // Case-insensitive on purpose (deliberate upgrade over TestAlertController's case-sensitive set).
     private static readonly HashSet<string> ValidAlertTypes = new(StringComparer.OrdinalIgnoreCase)
@@ -32,6 +34,7 @@ public class SummaryScheduleController(
 
     private readonly IPoracleSummaryProxy _summaryProxy = summaryProxy;
     private readonly ISummaryCapabilityService _capability = capability;
+    private readonly IPairedHumanWriter _pairWriter = pairWriter;
 
     /// <summary>
     /// Returns whether quest summary delivery is enabled on this server, as a 200-body boolean sourced
@@ -127,8 +130,8 @@ public class SummaryScheduleController(
         }
 
         var activeHours = string.IsNullOrWhiteSpace(request.ActiveHours) ? "[]" : request.ActiveHours;
-        await this._summaryProxy.SetScheduleAsync(this.UserId, alertType, activeHours);
-        return this.NoContent();
+        var written = await this._pairWriter.WriteAsync(this.UserId, id => this._summaryProxy.SetScheduleAsync(id, alertType, activeHours));
+        return written.Warning is null ? this.NoContent() : this.Ok(PairResponse.With(null, written.Warning));
     }
 
     /// <summary>Removes the schedule for one alert type. Idempotent — succeeds even when absent.</summary>
@@ -149,8 +152,8 @@ public class SummaryScheduleController(
         // a read-modify-write client would then wipe it.
         alertType = alertType.ToLowerInvariant();
 
-        await this._summaryProxy.DeleteScheduleAsync(this.UserId, alertType);
-        return this.NoContent();
+        var written = await this._pairWriter.WriteAsync(this.UserId, id => this._summaryProxy.DeleteScheduleAsync(id, alertType));
+        return written.Warning is null ? this.NoContent() : this.Ok(PairResponse.With(null, written.Warning));
     }
 
     /// <summary>

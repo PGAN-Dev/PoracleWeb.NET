@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Pgan.PoracleWebNet.Api.Filters;
+using Pgan.PoracleWebNet.Api.Services;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
@@ -26,9 +27,10 @@ namespace Pgan.PoracleWebNet.Api.Controllers;
 [Route("api/mutes")]
 [EnableRateLimiting("mutes")]
 [TypeFilter(typeof(PoracleUnreachableExceptionFilter))]
-public class MuteController(IPoracleMuteProxy muteProxy) : BaseApiController
+public class MuteController(IPoracleMuteProxy muteProxy, IPairedHumanWriter pairWriter) : BaseApiController
 {
     private readonly IPoracleMuteProxy _muteProxy = muteProxy;
+    private readonly IPairedHumanWriter _pairWriter = pairWriter;
 
     /// <summary>
     /// The caller's active quiet periods. Reads stay open during impersonation so an admin can answer
@@ -86,14 +88,16 @@ public class MuteController(IPoracleMuteProxy muteProxy) : BaseApiController
 
         try
         {
-            var (mute, replaced) = await this._muteProxy.CreateAsync(
-                this.UserId, scope, request.Value.Trim(), duration, cancellationToken);
+            // Quiet periods are per human, so a linked pair gets one on each.
+            var written = await this._pairWriter.WriteAsync(this.UserId, id =>
+                this._muteProxy.CreateAsync(id, scope, request.Value.Trim(), duration, cancellationToken));
+            var (mute, replaced) = written.Primary;
 
-            return this.Ok(new
+            return this.Ok(PairResponse.With(new
             {
                 mute,
                 replaced
-            });
+            }, written.Warning));
         }
         catch (MuteRejectedException ex)
         {
@@ -144,12 +148,12 @@ public class MuteController(IPoracleMuteProxy muteProxy) : BaseApiController
                 });
             }
 
-            var removedAll = await this._muteProxy.DeleteAllAsync(this.UserId, cancellationToken);
+            var clearedAll = await this._pairWriter.WriteAsync(this.UserId, id => this._muteProxy.DeleteAllAsync(id, cancellationToken));
 
-            return this.Ok(new
+            return this.Ok(PairResponse.With(new
             {
-                deleted = removedAll
-            });
+                deleted = clearedAll.Primary
+            }, clearedAll.Warning));
         }
 
         // Deletes accept every scope the server can hold, not just the four this app creates: a mute
@@ -181,13 +185,30 @@ public class MuteController(IPoracleMuteProxy muteProxy) : BaseApiController
 
         try
         {
-            var deleted = await this._muteProxy.DeleteAsync(
-                this.UserId, scope, scope == MuteScopes.Everything ? null : value, trackingType, cancellationToken);
-
-            return this.Ok(new
+            // The other human of a linked pair is sent the value its own LIST returned: upstream
+            // canonicalises an area's casing per human and matches the delete string exactly. Nothing
+            // matching there means nothing to lift.
+            var lifted = await this._pairWriter.WriteAsync<IReadOnlyList<Mute>>(this.UserId, async id =>
             {
-                deleted
+                if (id == this.UserId)
+                {
+                    return await this._muteProxy.DeleteAsync(id, scope, scope == MuteScopes.Everything ? null : value, trackingType, cancellationToken);
+                }
+
+                var theirs = await this._muteProxy.ListAsync(id, cancellationToken);
+                var match = theirs.FirstOrDefault(m =>
+                    string.Equals(m.Scope, scope, StringComparison.Ordinal)
+                    && (scope == MuteScopes.Everything || string.Equals(m.Value, value, StringComparison.OrdinalIgnoreCase))
+                    && (trackingType is null || string.Equals(m.TrackingType, trackingType, StringComparison.OrdinalIgnoreCase)));
+                return match is null
+                    ? []
+                    : await this._muteProxy.DeleteAsync(id, scope, scope == MuteScopes.Everything ? null : match.Value, match.TrackingType, cancellationToken);
             });
+
+            return this.Ok(PairResponse.With(new
+            {
+                deleted = lifted.Primary
+            }, lifted.Warning));
         }
         catch (MuteRejectedException ex)
         {

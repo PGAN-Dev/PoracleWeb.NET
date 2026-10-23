@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Mvc;
 using Pgan.PoracleWebNet.Api.Filters;
+using Pgan.PoracleWebNet.Api.Services;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 
 using Pgan.PoracleWebNet.Core.Models;
@@ -24,12 +25,14 @@ public partial class AreaController(
     IPoracleApiProxy poracleApiProxy,
     IUserGeofenceService userGeofenceService,
     IUserAreaWriter areaWriter,
+    IPairedHumanWriter pairWriter,
     ILogger<AreaController> logger) : BaseApiController
 {
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
     private readonly IUserGeofenceService _userGeofenceService = userGeofenceService;
     private readonly IUserAreaWriter _areaWriter = areaWriter;
+    private readonly IPairedHumanWriter _pairWriter = pairWriter;
     private readonly ILogger<AreaController> _logger = logger;
 
     [HttpGet]
@@ -190,7 +193,9 @@ public partial class AreaController(
         // One trusted write for the whole list. PoracleWeb.NET authorises the names first (a trusted write
         // skips PoracleNG's own filter), so a fence the user may not have is refused with a 400 naming it
         // by AreaNotPermittedExceptionFilter, and a name PoracleNG has no fence for is dropped, not an error.
-        var saved = await this._areaWriter.SaveSelectionAsync(this.UserId, normalizedAreas);
+        // A linked pair gets the same list on both humans; the other one authorises the names for itself.
+        var written = await this._pairWriter.WriteAsync(this.UserId, id => this._areaWriter.SaveSelectionAsync(id, normalizedAreas));
+        var saved = written.Primary;
 
         // Read back rather than echo. PoracleNG silently drops any name whose fence is not
         // userSelectable, so returning the submitted list asserted subscriptions the user does not have
@@ -209,10 +214,10 @@ public partial class AreaController(
 
         if (stored is not null && stored.Value.TryGetProperty("area", out _))
         {
-            return this.Ok(ParseAreaJson(PoracleAreaJson.ReadAreaListJson(stored.Value)));
+            return this.Ok(PairResponse.With(ParseAreaJson(PoracleAreaJson.ReadAreaListJson(stored.Value)), written.Warning, "areas"));
         }
 
-        return this.Ok(saved.Stored.ToArray());
+        return this.Ok(PairResponse.With(saved.Stored.ToArray(), written.Warning, "areas"));
     }
 
     [HttpGet("geofence")]

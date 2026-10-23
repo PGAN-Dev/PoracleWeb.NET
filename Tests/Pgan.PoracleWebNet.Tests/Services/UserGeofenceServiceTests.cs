@@ -1,3 +1,4 @@
+using Pgan.PoracleWebNet.Tests.Helpers;
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -38,6 +39,8 @@ public class UserGeofenceServiceTests
             this._humanProxy.Object,
             this._humanService.Object,
             this._userAreaWriter.Object,
+            PairTestSupport.Unlinked().Object,
+            PairTestSupport.UnlinkedWriter(),
             this._discordNotificationService.Object,
             this._featureGate.Object,
             this._configuration,

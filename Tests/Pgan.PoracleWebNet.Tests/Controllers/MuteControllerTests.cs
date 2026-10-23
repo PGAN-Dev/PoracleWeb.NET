@@ -1,3 +1,4 @@
+using Pgan.PoracleWebNet.Tests.Helpers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
@@ -16,7 +17,7 @@ public class MuteControllerTests : ControllerTestBase
 
     public MuteControllerTests()
     {
-        this._sut = new MuteController(this._proxy.Object);
+        this._sut = new MuteController(this._proxy.Object, PairTestSupport.UnlinkedWriter());
         SetupUser(this._sut, userId: UserId);
     }
 

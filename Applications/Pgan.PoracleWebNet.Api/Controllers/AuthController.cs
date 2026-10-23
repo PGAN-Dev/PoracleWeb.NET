@@ -22,6 +22,7 @@ public partial class AuthController(
     IProfileService profileService,
     IPoracleApiProxy poracleApiProxy,
     IPoracleHumanProxy humanProxy,
+    IPairedHumanWriter pairWriter,
     ISiteSettingService siteSettingService,
     IWebhookDelegateService webhookDelegateService,
     IJwtService jwtService,
@@ -48,6 +49,7 @@ public partial class AuthController(
 
     private readonly IHumanService _humanService = humanService;
     private readonly IProfileService _profileService = profileService;
+    private readonly IPairedHumanWriter _pairWriter = pairWriter;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly ISiteSettingService _siteSettingService = siteSettingService;
@@ -925,20 +927,16 @@ public partial class AuthController(
             });
         }
 
+        // The new state follows the signed-in side; a linked pair's other human is set to the same one.
         var newEnabled = human.Enabled != 1;
-        if (newEnabled)
-        {
-            await this._humanProxy.StartAsync(this.UserId);
-        }
-        else
-        {
-            await this._humanProxy.StopAsync(this.UserId);
-        }
+        var written = await this._pairWriter.WriteAsync(this.UserId, id => newEnabled
+            ? this._humanProxy.StartAsync(id)
+            : this._humanProxy.StopAsync(id));
 
-        return this.Ok(new
+        return this.Ok(PairResponse.With(new
         {
             enabled = newEnabled
-        });
+        }, written.Warning));
     }
 
     [EnableRateLimiting("auth-read")]

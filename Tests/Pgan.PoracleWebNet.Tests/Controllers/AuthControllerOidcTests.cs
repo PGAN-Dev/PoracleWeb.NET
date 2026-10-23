@@ -1,3 +1,4 @@
+using Pgan.PoracleWebNet.Tests.Helpers;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -103,6 +104,7 @@ public class AuthControllerOidcTests : ControllerTestBase
             this._humanService.Object, new Mock<IProfileService>().Object,
             new Mock<IPoracleApiProxy>().Object,
             new Mock<IPoracleHumanProxy>().Object,
+            PairTestSupport.UnlinkedWriter(),
             this._siteSettingService.Object,
             new Mock<IWebhookDelegateService>().Object,
             this._jwtService.Object,

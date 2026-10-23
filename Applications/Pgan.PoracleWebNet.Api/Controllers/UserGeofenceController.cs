@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Pgan.PoracleWebNet.Api.Filters;
+using Pgan.PoracleWebNet.Api.Services;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
@@ -133,8 +134,8 @@ public partial class UserGeofenceController(
 
         try
         {
-            await this._userGeofenceService.DeleteAsync(this.UserId, this.ProfileNo, id, deleteWidened);
-            return this.NoContent();
+            var warning = await this._userGeofenceService.DeleteAsync(this.UserId, this.ProfileNo, id, deleteWidened);
+            return warning is null ? this.NoContent() : this.Ok(PairResponse.With(null, warning));
         }
         catch (InvalidOperationException ex)
         {
@@ -233,8 +234,8 @@ public partial class UserGeofenceController(
     {
         try
         {
-            await this._userGeofenceService.AddToProfileAsync(this.UserId, this.ProfileNo, id);
-            return this.NoContent();
+            var warning = await this._userGeofenceService.AddToProfileAsync(this.UserId, this.ProfileNo, id);
+            return warning is null ? this.NoContent() : this.Ok(PairResponse.With(null, warning));
         }
         catch (GeofenceActivationFailedException ex)
         {
@@ -267,8 +268,8 @@ public partial class UserGeofenceController(
     {
         try
         {
-            await this._userGeofenceService.RemoveFromProfileAsync(this.UserId, this.ProfileNo, id);
-            return this.NoContent();
+            var warning = await this._userGeofenceService.RemoveFromProfileAsync(this.UserId, this.ProfileNo, id);
+            return warning is null ? this.NoContent() : this.Ok(PairResponse.With(null, warning));
         }
         catch (InvalidOperationException ex)
         {

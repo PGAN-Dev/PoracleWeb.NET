@@ -89,6 +89,16 @@ public class UserGeofence
     }
 
     /// <summary>
+    /// Set on create only, and only for a linked pair whose other human did not take the activation.
+    /// Serialised as <c>pairWarning: { side, reason }</c>; absent otherwise.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public PairWarningBody? PairWarning
+    {
+        get; set;
+    }
+
+    /// <summary>
     /// Set on approval only: whether the owner's subscriptions were moved to the promoted name. Null when
     /// no rename was needed. False means Koji has the fence but the owner still holds the old name.
     /// </summary>
