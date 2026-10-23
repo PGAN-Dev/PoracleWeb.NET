@@ -78,4 +78,17 @@ public abstract class BaseApiController : ControllerBase
 
     /// <summary>Checks that <paramref name="ownerId"/> matches the authenticated user. Returns true when NOT owned (i.e. should return 404).</summary>
     protected bool NotOwnedByCurrentUser(string? ownerId) => !string.Equals(ownerId, this.UserId, StringComparison.Ordinal);
+
+    /// <summary>
+    /// The answer to an update that asked to move its alarm to the other side of a linked pair. The body is
+    /// always the <see cref="MoveOutcome"/>: a clean move and a move whose source could not be deleted are
+    /// both 200 (the alert now exists on the target, and the outcome says which), a collision is 409 and a
+    /// refused preflight is 400. Nothing was written in either of those two.
+    /// </summary>
+    protected IActionResult MoveResult(MoveOutcome outcome) => outcome.Status switch
+    {
+        MoveStatus.Conflict => this.StatusCode(StatusCodes.Status409Conflict, outcome),
+        MoveStatus.Refused => this.BadRequest(outcome),
+        _ => this.Ok(outcome),
+    };
 }

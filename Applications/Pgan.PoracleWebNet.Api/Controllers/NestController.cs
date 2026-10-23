@@ -69,6 +69,12 @@ public class NestController(INestService nestService, LinkedAlarmRouter router) 
 
         var (existing, ownerId) = found.Value;
 
+        if (await this._router.MoveTargetAsync(this.UserId, model.Destination, ownerId) is { } moveTo)
+        {
+            model.ApplyUpdate(existing);
+            return this.MoveResult(await this._router.MoveAsync(this._nestService, "nest", this.UserId, existing, ownerId, moveTo));
+        }
+
         // Nothing to write means nothing to send: see LeavesAlarmUnchanged.
         if (LeavesAlarmUnchanged(existing, () =>
         {

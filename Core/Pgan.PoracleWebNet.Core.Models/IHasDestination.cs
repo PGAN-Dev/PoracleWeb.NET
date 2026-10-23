@@ -25,4 +25,22 @@ public interface IHasDestination
     {
         get; set;
     }
+
+    /// <summary>The profile the rule lives on; a move needs it to match the target human's active profile.</summary>
+    public int ProfileNo
+    {
+        get;
+    }
+
+    /// <summary>The saved place the rule measures from, which must also exist on a move's target human.</summary>
+    public string? OverrideLocationLabel
+    {
+        get;
+    }
+
+    /// <summary>Areas the rule is limited to, which a move's target human must be allowed to name.</summary>
+    public List<string>? OverrideAreas
+    {
+        get;
+    }
 }

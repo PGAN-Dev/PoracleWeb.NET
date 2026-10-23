@@ -73,6 +73,12 @@ public class InvasionController(IInvasionService invasionService, LinkedAlarmRou
 
         var (existing, ownerId) = found.Value;
 
+        if (await this._router.MoveTargetAsync(this.UserId, model.Destination, ownerId) is { } moveTo)
+        {
+            model.ApplyUpdate(existing);
+            return this.MoveResult(await this._router.MoveAsync(this._invasionService, "invasion", this.UserId, existing, ownerId, moveTo));
+        }
+
         // Nothing to write means nothing to send: see LeavesAlarmUnchanged.
         if (LeavesAlarmUnchanged(existing, () =>
         {

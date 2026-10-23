@@ -41,7 +41,7 @@ public class PokestopEventUpdate
         get; set;
     }
 
-    /// <summary>Reserved for moving an alarm between linked sides (Task 9); nothing reads it on an update yet.</summary>
+    /// <summary>The side this alarm should live on. The other side moves it there (create first, then delete); the same side is an ordinary edit.</summary>
     [StringLength(16)]
     public string? Destination
     {

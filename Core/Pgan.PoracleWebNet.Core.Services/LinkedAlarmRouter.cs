@@ -9,9 +9,10 @@ namespace Pgan.PoracleWebNet.Core.Services;
 /// humans' alarms as one list, and a write goes to whichever human owns the alarm.
 /// </summary>
 /// <remarks>Scoped: it remembers the pair it resolved so <see cref="IsPaused"/> needs no second read.</remarks>
-public class LinkedAlarmRouter(ILinkedAccount linked)
+public class LinkedAlarmRouter(ILinkedAccount linked, AlarmMover? mover = null)
 {
     private readonly ILinkedAccount _linked = linked;
+    private readonly AlarmMover? _mover = mover;
     private LinkedPair? _pair;
 
     public async Task<IReadOnlyList<TModel>> ListAsync<TModel>(IAlarmService<TModel> svc, string userId, int profileNo)
@@ -170,6 +171,34 @@ public class LinkedAlarmRouter(ILinkedAccount linked)
 
         return target.HumanId;
     }
+
+    /// <summary>
+    /// The side an update asks to move its alarm to, or null for an ordinary edit: no destination, the alarm's
+    /// own side, or a caller with no link.
+    /// </summary>
+    /// <exception cref="AlarmDestinationException">The destination is neither discord nor telegram.</exception>
+    public async Task<LinkSide?> MoveTargetAsync(string userId, string? destination, string ownerId)
+    {
+        var pair = await this.ResolveAsync(userId);
+        if (!pair.IsLinked || destination is null)
+        {
+            return null;
+        }
+
+        if (!AccountLinkKeys.TryParse(destination, out var side))
+        {
+            throw new AlarmDestinationException(400, "Destination must be discord or telegram.");
+        }
+
+        return pair.SideOf(ownerId) == side ? null : side;
+    }
+
+    /// <summary>Moves an updated alarm to the other human of the pair. See <see cref="AlarmMover"/>.</summary>
+    public Task<MoveOutcome> MoveAsync<TModel>(
+        IAlarmService<TModel> svc, string trackingType, string userId, TModel model, string ownerId, LinkSide target)
+        where TModel : class, IHasDestination =>
+        (this._mover ?? throw new InvalidOperationException("No AlarmMover is registered."))
+            .MoveAsync(svc, trackingType, userId, model, ownerId, target);
 
     /// <summary>True when the human is one side of the resolved pair and that side is paused. Always false when unlinked.</summary>
     public bool IsPaused(string humanId)
