@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Quiet controls are hidden while you view another account or manage a destination.** The server refuses quiet-period changes there, so pressing Quiet or Resume only ever produced an error. A running quiet period still shows its countdown on cards, area chips and the Dashboard list, read-only, so an admin can still see why alerts have stopped (#1038).
+- **Help says where a destination's test alert goes.** Destinations you manage now states that a test alert posts into the destination, not to your DMs, in all eleven languages (#1038).
+
 ## [3.1.0] - 2026-10-23
 
 ### Added

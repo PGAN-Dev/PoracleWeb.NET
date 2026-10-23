@@ -96,7 +96,8 @@ from somewhere this site does not write.
 **My Destinations**, under **Destinations** in the sidebar, lists every destination they manage with
 its kind, so a Telegram group and a webhook of the same name can't be confused. **Manage alarms**
 switches the session to that destination: from there they see the site as it does, and can set up
-alarms, areas, profiles, its pin, and send test alerts. A banner names what they're managing
+alarms, areas, profiles, its pin, and send test alerts. A test alert posts into the destination, not to
+the delegate's DMs. A banner names what they're managing
 ("Managing Discord channel #raid-alerts"), and the button on it returns them to their own account and
 to My Destinations. A session that ends because the grant was revoked lands there too.
 
@@ -133,7 +134,8 @@ alerts, blocks them, or deletes their alarms or the account.
 
 While viewing, a banner reads "Viewing as" and the account's name, with **Back to your account** to
 return. Quiet-period writes are refused in that session, so an admin checking why someone gets nothing
-can't silence them by accident.
+can't silence them by accident. The quiet controls are hidden there for the same reason; a running
+quiet period still shows its countdown.
 
 ![The dashboard while an admin views another account, with the Viewing as banner across the top](../screenshots/admin-impersonation-banner.png)
 

@@ -7,7 +7,9 @@
         <span class="quiet-row-subject">{{ row.subject }}</span>
         <span class="quiet-row-meta">{{ row.scopeLabel }} &middot; {{ row.countdown }}</span>
       </div>
-      <button mat-button (click)="resume(row)">{{ 'QUIET.RESUME' | translate }}</button>
+      @if (!readOnly()) {
+        <button mat-button (click)="resume(row)">{{ 'QUIET.RESUME' | translate }}</button>
+      }
     </div>
   } @empty {
     <!-- An empty screen is an invitation, and the second line says where to go. -->
@@ -18,13 +20,17 @@
     </div>
   }
 
+  @if (rows().length > 0 && readOnly()) {
+    <p class="quiet-volatility">{{ 'QUIET.READ_ONLY_IMPERSONATING' | translate }}</p>
+  }
+
   @if (rows().length > 0) {
     <p class="quiet-volatility">{{ 'QUIET.VOLATILITY_NOTE' | translate }}</p>
   }
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  @if (rows().length > 1) {
+  @if (rows().length > 1 && !readOnly()) {
     <button mat-button (click)="resumeAll()">{{ 'QUIET.RESUME_ALL' | translate }}</button>
   }
   <button mat-flat-button mat-dialog-close>{{ 'COMMON.CLOSE' | translate }}</button>

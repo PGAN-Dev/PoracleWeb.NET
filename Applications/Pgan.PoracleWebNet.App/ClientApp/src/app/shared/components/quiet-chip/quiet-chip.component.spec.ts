@@ -1,9 +1,11 @@
+import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { TranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
 
 import { QuietChipComponent } from './quiet-chip.component';
+import { AuthService } from '../../../core/services/auth.service';
 import { Mute, MuteService } from '../../../core/services/mute.service';
 
 describe('QuietChipComponent', () => {
@@ -18,6 +20,7 @@ describe('QuietChipComponent', () => {
   };
   const dialogRef = { afterClosed: jest.fn(() => of(undefined)) };
   const dialog = { open: jest.fn(() => dialogRef) };
+  const impersonating = signal(false);
 
   const build = (scope = 'gym', value = 'abc123', subject = '') => {
     fixture = TestBed.createComponent(QuietChipComponent);
@@ -48,12 +51,14 @@ describe('QuietChipComponent', () => {
     };
     dialogRef.afterClosed.mockReturnValue(of(undefined));
     dialog.open.mockClear();
+    impersonating.set(false);
 
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
         { provide: MuteService, useValue: mutes },
         { provide: MatDialog, useValue: dialog },
+        { provide: AuthService, useValue: { isImpersonating: impersonating } },
         { provide: TranslateService, useValue: { instant: jest.fn((key: string) => key) } },
       ],
       imports: [QuietChipComponent],
@@ -206,5 +211,38 @@ describe('QuietChipComponent', () => {
     build().open(event);
 
     expect(event.stopPropagation).toHaveBeenCalled();
+  });
+  /**
+   * MuteController refuses every write while impersonating, because the account in view is somebody
+   * else's. Offering the control there only ever produced an error, so it is not offered; a quiet
+   * period still shows, so an admin can see why that account is getting nothing.
+   */
+  describe('while impersonating', () => {
+    beforeEach(() => impersonating.set(true));
+
+    it.each(['chip', 'icon', 'trailing'] as const)('offers no %s control for a subject that is not quiet', appearance => {
+      buildAs(appearance);
+
+      expect(fixture.nativeElement.querySelector('button')).toBeNull();
+      expect(fixture.nativeElement.querySelector('.quiet-chip')).toBeNull();
+    });
+
+    it.each(['chip', 'icon', 'trailing'] as const)('still shows the %s countdown, read-only', appearance => {
+      mutes.remainingFor.mockReturnValue(2820);
+      buildAs(appearance);
+
+      expect(fixture.nativeElement.querySelector('.quiet-chip-on')).not.toBeNull();
+      expect(fixture.nativeElement.querySelector('.quiet-chip-label').textContent).toContain('QUIET.CHIP_QUIET');
+      expect(fixture.nativeElement.querySelector('button')).toBeNull();
+    });
+
+    it('opens no sheet when the countdown is pressed', () => {
+      mutes.remainingFor.mockReturnValue(2820);
+      buildAs('chip');
+      fixture.nativeElement.querySelector('.quiet-chip-on').click();
+      fixture.componentInstance.open();
+
+      expect(dialog.open).not.toHaveBeenCalled();
+    });
   });
 });
