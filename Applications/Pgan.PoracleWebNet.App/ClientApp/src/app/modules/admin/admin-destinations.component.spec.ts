@@ -167,6 +167,60 @@ describe('AdminDestinationsComponent add', () => {
     const marked = (fixture.nativeElement as HTMLElement).querySelector('tr.just-added');
     expect(marked?.textContent).toContain('New raids');
   });
+
+  describe('scrolling the new row into view', () => {
+    const before = Array.from({ length: 30 }, (_, i) =>
+      human(`11000000000000000${String(i).padStart(2, '0')}`, { type: 'discord:channel' }),
+    );
+    const after = [...before, human(created.id, { name: created.name, type: 'discord:channel' })];
+    let scrolled: { row: Element; options: ScrollIntoViewOptions | undefined }[];
+    const originalScroll = Element.prototype.scrollIntoView;
+    const originalMatchMedia = window.matchMedia;
+
+    beforeEach(() => {
+      scrolled = [];
+      Element.prototype.scrollIntoView = function (this: Element, options?: boolean | ScrollIntoViewOptions) {
+        scrolled.push({ options: options as ScrollIntoViewOptions, row: this });
+      };
+    });
+
+    afterEach(() => {
+      Element.prototype.scrollIntoView = originalScroll;
+      window.matchMedia = originalMatchMedia;
+    });
+
+    function prefersReducedMotion(reduce: boolean): void {
+      window.matchMedia = jest.fn((query: string) => ({ matches: reduce && query.includes('reduce') }) as MediaQueryList);
+    }
+
+    // At 1440x900 a 25-row page put the highlighted row below the fold, so the admin saw a snackbar and nothing else.
+    it('scrolls the highlighted row into view, smoothly', () => {
+      prefersReducedMotion(false);
+      const { fixture } = setup(created, [before, after]);
+      fixture.detectChanges();
+
+      expect(scrolled).toHaveLength(1);
+      expect(scrolled[0].row.textContent).toContain('New raids');
+      expect(scrolled[0].options).toEqual({ behavior: 'smooth', block: 'nearest' });
+    });
+
+    it('jumps rather than glides when the viewer asks for reduced motion', () => {
+      prefersReducedMotion(true);
+      const { fixture } = setup(created, [before, after]);
+      fixture.detectChanges();
+
+      expect(scrolled).toHaveLength(1);
+      expect(scrolled[0].options).toEqual({ behavior: 'auto', block: 'nearest' });
+    });
+
+    it('scrolls nothing when the dialog is cancelled', () => {
+      prefersReducedMotion(false);
+      const { fixture } = setup(null, [before]);
+      fixture.detectChanges();
+
+      expect(scrolled).toHaveLength(0);
+    });
+  });
 });
 
 describe('AdminDestinationsComponent list', () => {
