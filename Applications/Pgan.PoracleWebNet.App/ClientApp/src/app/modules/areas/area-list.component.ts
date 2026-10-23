@@ -169,6 +169,7 @@ export class AreaListComponent implements OnInit {
       label: g.name,
       selectedCount: g.selectedCount,
       totalCount: g.totalCount,
+      ungrouped: g.name === this.ungroupedLabel,
     }));
   });
 

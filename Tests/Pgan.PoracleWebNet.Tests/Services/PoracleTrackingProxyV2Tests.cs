@@ -1174,7 +1174,7 @@ public class PoracleTrackingProxyV2Tests
     // edit, and the write must then send it back. It may, exactly when the server's own /openapi.json declares
     // that property on the type's V2*Rule: every rule is additionalProperties:false, so a property the server
     // does not declare is still a row v2 cannot be told faithfully. Upstream's tests used personal_shiny as the
-    // unmodelled example; this fork models it on pokemon (folded into personal), so the generic tests use a
+    // unmodelled example; this build models it on pokemon (folded into personal), so the generic tests use a
     // neutral future_flag and the personal one follows them.
 
     private const string FutureFieldRead = """

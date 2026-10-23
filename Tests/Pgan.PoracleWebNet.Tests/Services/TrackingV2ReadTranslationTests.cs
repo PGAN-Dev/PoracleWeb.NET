@@ -508,7 +508,7 @@ public class TrackingV2ReadTranslationTests
     public void AnUnknownPropertyIsCopiedThroughUnchanged(string type)
     {
         // Any field a newer PoracleNG adds. (Upstream's version of this test used personal_shiny as the
-        // example; this fork models that one on pokemon, see the personal tests below.)
+        // example; this build models that one on pokemon, see the personal tests below.)
         var row = Read(type, """{"uid":1,"future_flag":true,"future_object":{"a":[1,2]},"newer":null}""");
 
         Assert.True(row.GetProperty("future_flag").GetBoolean());

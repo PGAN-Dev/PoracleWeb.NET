@@ -133,6 +133,20 @@ flowchart LR
 - Users can still draw private geofences and use them — the region picker simply hides itself when there are no regions (this fixes the empty-dropdown problem; see [Troubleshooting](troubleshooting.md#the-region-dropdown-is-empty-or-only-shows-all)).
 - When an admin promotes a geofence, they can leave the region unset, and it becomes an ungrouped public area. You can always organize it into a region later in Koji.
 
+### How region names are grouped in the pickers
+
+The region and group pickers (Areas, the map's "Jump to region", the draw and approval dialogs) build their headings from the names, split on ` - `. Names that share everything before their last part are listed under that shared part, showing only the last part:
+
+```
+US - VA                 from  US - VA - Richmond
+  Norfolk                     US - VA - Norfolk
+  Richmond
+```
+
+A heading appears only when it covers two or more names. A name with no ` - `, or the only one with its prefix, is listed on its own under its full name, so `Downtown`, `Eastside` and `US - HI - Oahu` each get one line. Search matches the whole name, so typing `VA` finds Richmond. Areas with no group are listed last as "Ungrouped".
+
+So name regions `Country - State - City` (or `State - City`) if you want them nested, and plain names if you don't. Both work. On the Areas page the picker is hidden when there is only one group to choose from.
+
 ## Koji geofence properties (and how they're used)
 
 When PoracleWeb.NET promotes a geofence to a public area, it writes a set of **properties** onto the Koji geofence. If you create or edit geofences **directly in Koji**, these are the same properties that matter — and getting `userSelectable` / `displayInMatches` wrong is the usual cause of a private area leaking into the bot, or a public area never showing up.
