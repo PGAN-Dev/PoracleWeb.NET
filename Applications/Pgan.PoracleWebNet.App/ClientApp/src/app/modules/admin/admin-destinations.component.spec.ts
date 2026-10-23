@@ -133,16 +133,16 @@ describe('AdminDestinationsComponent add failure', () => {
 
   it('shows the half-write warning the 502 carries', () => {
     const warning =
-      'Poracle rejected the webhook, and could not be asked whether part of it was saved. Check the webhook list before trying again.';
+      'Poracle rejected the destination, and could not be asked whether part of it was saved. Check the destination list before trying again.';
     const snack = setup({ error: { error: warning }, status: 502 });
 
     expect(snack.open).toHaveBeenCalledWith(warning, 'TOAST.OK', { duration: 4000 });
   });
 
   it('shows "Nothing was created." when the API could confirm it', () => {
-    const snack = setup({ error: { error: 'Poracle rejected the webhook. Nothing was created.' }, status: 502 });
+    const snack = setup({ error: { error: 'Poracle rejected the destination. Nothing was created.' }, status: 502 });
 
-    expect(snack.open).toHaveBeenCalledWith('Poracle rejected the webhook. Nothing was created.', 'TOAST.OK', { duration: 4000 });
+    expect(snack.open).toHaveBeenCalledWith('Poracle rejected the destination. Nothing was created.', 'TOAST.OK', { duration: 4000 });
   });
 
   it('keeps its own translated message for a server error that says nothing useful', () => {
