@@ -7,9 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Admin > Webhooks is now Admin > Destinations, and lists Discord channels and threads and Telegram channels, groups and topics with their type.** These accounts are where alerts are posted rather than people who sign in, so they have their own page, with search and a filter by type. Admin > Users links across to it. Webhooks work as before, including delegates.
+
 ### Fixed
 
 - **A failed webhook create no longer deletes a row another request wrote.** When PoracleNG rejected a create, the rollback removed whatever sat at that id. If a second request had created the same webhook in the meantime, its row was deleted. The rollback now removes the row only when its type and name match what this request tried to write, and goes through the full purge so delegate grants are cleaned up too. Otherwise it answers 502 and changes nothing (#1028).
+- **Channels and groups are no longer listed as users.** A Discord channel or Telegram group in Poracle's table showed up under Admin > Users, where it could be blocked or opened as if it were a person. The Users page now lists people only, and delegates can only be granted to people. (#1025)
 
 ### Security
 

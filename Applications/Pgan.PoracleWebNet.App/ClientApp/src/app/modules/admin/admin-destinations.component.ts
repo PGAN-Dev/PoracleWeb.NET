@@ -6,9 +6,11 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDialog, MatDialogModule, MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { MatDividerModule } from '@angular/material/divider';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
@@ -19,25 +21,55 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
 import { forkJoin } from 'rxjs';
 
+import { AdminListState, StatusFilter, notesLabel } from './admin-list-state';
 import { AdminUser } from '../../core/models';
 import { AdminService } from '../../core/services/admin.service';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
+import { isKnownKind, kindIcon, kindLabelKey } from '../../shared/utils/human-kind';
+import { relativeTime } from '../../shared/utils/relative-time';
 import { serverReason } from '../../shared/utils/server-reason';
 
-// ─── Add Webhook Dialog ───────────────────────────────────────────────────────
+/**
+ * A webhook URL with its secret token cut off: the host and, for a Discord-style URL, the webhook number.
+ * Anything after that number, and the whole path of any other URL, is dropped rather than shortened,
+ * since the token is usually the last segment. The full URL stays reachable only through Copy ID.
+ */
+export function shortWebhookUrl(url: string): string {
+  let parsed: URL;
+  try {
+    parsed = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(url) ? url : `https://${url}`);
+  } catch {
+    return '…';
+  }
+  if (!parsed.host || /\s/.test(url)) return '…';
+  const segments = parsed.pathname.split('/').filter(Boolean);
+  const hooks = segments.findIndex(s => s.toLowerCase() === 'webhooks');
+  if (hooks >= 0 && /^\d+$/.test(segments[hooks + 1] ?? '')) {
+    return `${parsed.host}/${segments.slice(0, hooks + 2).join('/')}…`;
+  }
+  return segments.length ? `${parsed.host}/…` : parsed.host;
+}
+
+/** What to call a row in a message: its name, else its id, except that a webhook id is a secret and is shortened. */
+export function destinationName(row: AdminUser): string {
+  if (row.name) return row.name;
+  return (row.type ?? '').trim().toLowerCase() === 'webhook' ? shortWebhookUrl(row.id) : row.id;
+}
+
+// ─── Add Destination Dialog ───────────────────────────────────────────────────────
 
 @Component({
   imports: [ReactiveFormsModule, MatDialogModule, MatButtonModule, MatFormFieldModule, MatInputModule, MatIconModule, TranslatePipe],
-  selector: 'app-add-webhook-dialog',
+  selector: 'app-add-destination-dialog',
   standalone: true,
-  styleUrl: './add-webhook-dialog.component.scss',
-  templateUrl: './add-webhook-dialog.component.html',
+  styleUrl: './add-destination-dialog.component.scss',
+  templateUrl: './add-destination-dialog.component.html',
 })
-export class AddWebhookDialogComponent {
+export class AddDestinationDialogComponent {
   private readonly fb = inject(FormBuilder);
-  readonly dialogRef = inject(MatDialogRef<AddWebhookDialogComponent>);
+  readonly dialogRef = inject(MatDialogRef<AddDestinationDialogComponent>);
 
   readonly form = this.fb.group({
     name: ['', Validators.required],
@@ -51,11 +83,10 @@ export class AddWebhookDialogComponent {
   }
 }
 
-// ─── Webhook Delegates Dialog ─────────────────────────────────────────────────
+// ─── Destination Delegates Dialog ─────────────────────────────────────────────────
 
 interface DelegatesDialogData {
   allUsers: AdminUser[];
-  poracleAdmins: string[];
   porocleDelegates: string[];
   webhook: AdminUser;
 }
@@ -74,22 +105,23 @@ interface DelegatesDialogData {
     MatTooltipModule,
     TranslatePipe,
   ],
-  selector: 'app-webhook-delegates-dialog',
+  selector: 'app-destination-delegates-dialog',
   standalone: true,
-  styleUrl: './webhook-delegates-dialog.component.scss',
-  templateUrl: './webhook-delegates-dialog.component.html',
+  styleUrl: './destination-delegates-dialog.component.scss',
+  templateUrl: './destination-delegates-dialog.component.html',
 })
-export class WebhookDelegatesDialogComponent implements OnInit {
+export class DestinationDelegatesDialogComponent implements OnInit {
   private readonly adminService = inject(AdminService);
   private readonly i18n = inject(I18nService);
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<DelegatesDialogData>(MAT_DIALOG_DATA);
   readonly delegates = signal<string[]>([]);
 
-  readonly dialogRef = inject(MatDialogRef<WebhookDelegatesDialogComponent>);
+  readonly dialogRef = inject(MatDialogRef<DestinationDelegatesDialogComponent>);
   readonly filteredUsers = signal<AdminUser[]>([]);
   readonly loading = signal(true);
   searchText = '';
+  readonly webhookName = destinationName(this.data.webhook);
 
   /**
    * The user the field names, once it names one: an option picked from the list fills in its id. Free
@@ -100,8 +132,9 @@ export class WebhookDelegatesDialogComponent implements OnInit {
     return this.users.find(u => u.id === text)?.id ?? null;
   }
 
+  /** People only: a channel, a group or an unknown type is nobody who could sign in and use the grant. */
   private get users(): AdminUser[] {
-    return this.data.allUsers.filter(u => u.type !== 'webhook');
+    return this.data.allUsers.filter(u => u.kind === 'person');
   }
 
   addDelegate(userId: string): void {
@@ -175,9 +208,7 @@ export class WebhookDelegatesDialogComponent implements OnInit {
   }
 }
 
-// ─── Webhooks Page ────────────────────────────────────────────────────────────
-
-type StatusFilter = 'all' | 'active' | 'stopped' | 'blocked';
+// ─── Destinations Page ────────────────────────────────────────────────────────────
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -192,6 +223,8 @@ type StatusFilter = 'all' | 'active' | 'stopped' | 'blocked';
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatDialogModule,
+    MatDividerModule,
+    MatMenuModule,
     MatTooltipModule,
     MatPaginatorModule,
     MatSortModule,
@@ -199,83 +232,50 @@ type StatusFilter = 'all' | 'active' | 'stopped' | 'blocked';
     MatChipsModule,
     TranslatePipe,
   ],
-  selector: 'app-admin-webhooks',
+  selector: 'app-admin-destinations',
   standalone: true,
-  styleUrl: './admin-webhooks.component.scss',
-  templateUrl: './admin-webhooks.component.html',
+  styleUrl: './admin-destinations.component.scss',
+  templateUrl: './admin-destinations.component.html',
 })
-export class AdminWebhooksComponent implements OnInit {
+export class AdminDestinationsComponent implements OnInit {
   private readonly adminService = inject(AdminService);
   private readonly allUsers = signal<AdminUser[]>([]);
   private readonly auth = inject(AuthService);
+  // Every row the server calls a destination, unknown types included, so this page and Users together
+  // account for every account. See #1025.
+  private readonly destinations = computed(() => this.allUsers().filter(u => u.kind === 'destination'));
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
-  private readonly i18n = inject(I18nService);
 
+  private readonly i18n = inject(I18nService);
   private readonly poracleAdmins = signal<string[]>([]);
   private readonly porocleDelegates = signal<Record<string, string[]>>({});
   private readonly snackBar = inject(MatSnackBar);
   private readonly webhookDelegates = signal<Record<string, string[]>>({});
-  private readonly webhookUsers = computed(() => this.allUsers().filter(u => u.type === 'webhook'));
 
-  readonly searchTerm = signal('');
-  readonly sortActive = signal('');
-  readonly sortDirection = signal<'asc' | 'desc' | ''>('');
-  readonly statusFilter = signal<StatusFilter>('all');
-  readonly filteredWebhooks = computed(() => {
-    const term = this.searchTerm().toLowerCase().trim();
-    const status = this.statusFilter();
-    let users = this.webhookUsers();
+  readonly columns = ['name', 'type', 'id', 'enabled', 'disabledSince', 'delegates', 'actions'];
 
-    if (term) {
-      users = users.filter(u => u.id.toLowerCase().includes(term) || (u.name || '').toLowerCase().includes(term));
-    }
+  readonly isKnownKind = isKnownKind;
+  readonly kindIcon = kindIcon;
+  readonly kindLabelKey = kindLabelKey;
 
-    if (status !== 'all') {
-      users = users.filter(u => {
-        if (status === 'blocked') return u.adminDisable === 1;
-        if (status === 'stopped') return u.adminDisable !== 1 && u.enabled === 0;
-        if (status === 'active') return u.adminDisable !== 1 && u.enabled !== 0;
-        return true;
-      });
-    }
-
-    const active = this.sortActive();
-    const direction = this.sortDirection();
-    if (!active || !direction) return users;
-
-    return [...users].sort((a, b) => {
-      const dir = direction === 'asc' ? 1 : -1;
-      const valA =
-        active === 'id' ? a.id : active === 'name' ? (a.name || '').toLowerCase() : a.adminDisable === 1 ? 2 : a.enabled === 0 ? 1 : 0;
-      const valB =
-        active === 'id' ? b.id : active === 'name' ? (b.name || '').toLowerCase() : b.adminDisable === 1 ? 2 : b.enabled === 0 ? 1 : 0;
-      if (valA < valB) return -1 * dir;
-      if (valA > valB) return 1 * dir;
-      return 0;
-    });
-  });
-
-  readonly pageIndex = signal(0);
-  readonly pageSize = signal(25);
-
-  readonly paginatedWebhooks = computed(() => {
-    const start = this.pageIndex() * this.pageSize();
-    return this.filteredWebhooks().slice(start, start + this.pageSize());
-  });
+  readonly list = new AdminListState(this.destinations, 'admin_destinations_', (row, column) => this.getSortValue(row, column));
 
   readonly usersLoading = signal(true);
 
-  readonly webhookColumns = ['name', 'id', 'enabled', 'delegates', 'actions'];
+  /** The Block button's tooltip: a channel or group can be blocked by Poracle too, which is worth knowing here. */
+  blockTooltipKey(row: AdminUser): string {
+    return this.isWebhook(row) ? 'ADMIN.BLOCK_DESTINATION' : 'ADMIN.BLOCKED_CHANNEL_TOOLTIP';
+  }
 
-  copyUrl(url: string): void {
-    navigator.clipboard.writeText(url).then(() => {
-      this.snackBar.open(this.i18n.instant('ADMIN.SNACK_URL_COPIED'), undefined, { duration: 2000 });
+  copyId(id: string): void {
+    navigator.clipboard.writeText(id).then(() => {
+      this.snackBar.open(this.i18n.instant('ADMIN.SNACK_ID_COPIED'), undefined, { duration: 2000 });
     });
   }
 
   deleteAlarms(user: AdminUser): void {
-    const name = user.name || user.id;
+    const name = this.rowName(user);
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
         confirmText: this.i18n.instant('COMMON.DELETE_ALL'),
@@ -301,13 +301,22 @@ export class AdminWebhooksComponent implements OnInit {
     });
   }
 
-  deleteWebhook(user: AdminUser): void {
-    const name = user.name || user.id;
+  deleteDestination(user: AdminUser): void {
+    const name = this.rowName(user);
+    let message = this.i18n.instant('ADMIN.CONFIRM_DELETE_DESTINATION', { name });
+    // Deleting the row never touches the channel or group it posts into; say which one that is.
+    if (!this.isWebhook(user)) {
+      message +=
+        ' ' +
+        (isKnownKind(user.type)
+          ? this.i18n.instant('ADMIN.DELETE_DESTINATION_KIND_NOTE', { kind: this.i18n.instant(kindLabelKey(user.type)) })
+          : this.i18n.instant('ADMIN.DELETE_DESTINATION_NOTE'));
+    }
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        confirmText: this.i18n.instant('ADMIN.DELETE_WEBHOOK'),
-        message: this.i18n.instant('ADMIN.CONFIRM_DELETE_WEBHOOK', { name }),
-        title: this.i18n.instant('ADMIN.DELETE_WEBHOOK'),
+        confirmText: this.i18n.instant('ADMIN.DELETE_DESTINATION'),
+        message,
+        title: this.i18n.instant('ADMIN.DELETE_DESTINATION'),
         warn: true,
       } as ConfirmDialogData,
     });
@@ -315,16 +324,21 @@ export class AdminWebhooksComponent implements OnInit {
     ref.afterClosed().subscribe(confirmed => {
       if (confirmed) {
         this.adminService.deleteUser(user.id).subscribe({
-          error: err => this.showFailure(err, 'ADMIN.SNACK_FAILED_DELETE_WEBHOOK'),
+          error: err => this.showFailure(err, 'ADMIN.SNACK_FAILED_DELETE_DESTINATION'),
           next: () => {
             this.allUsers.update(users => users.filter(u => u.id !== user.id));
-            this.snackBar.open(this.i18n.instant('ADMIN.SNACK_WEBHOOK_DELETED', { name }), this.i18n.instant('TOAST.OK'), {
+            this.snackBar.open(this.i18n.instant('ADMIN.SNACK_DESTINATION_DELETED', { name }), this.i18n.instant('TOAST.OK'), {
               duration: 3000,
             });
           },
         });
       }
     });
+  }
+
+  formatDate(dateStr: string): string {
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? '' : d.toLocaleString();
   }
 
   getDelegateAvatarUrl(userId: string): string | null {
@@ -358,6 +372,11 @@ export class AdminWebhooksComponent implements OnInit {
 
   isPorocleDelegateForWebhook(webhookId: string, userId: string): boolean {
     return (this.porocleDelegates()[webhookId] ?? []).includes(userId);
+  }
+
+  /** Grants and the delegates dialog are webhook-only on the server until delegation widens (#1025 part 6). */
+  isWebhook(row: AdminUser): boolean {
+    return (row.type ?? '').trim().toLowerCase() === 'webhook';
   }
 
   loadUsers(): void {
@@ -401,29 +420,38 @@ export class AdminWebhooksComponent implements OnInit {
     this.loadUsers();
   }
 
+  notesLabel(notes: string | null): string | null {
+    return notesLabel(notes);
+  }
+
   onPageChange(event: PageEvent): void {
-    this.pageIndex.set(event.pageIndex);
-    this.pageSize.set(event.pageSize);
+    this.list.setPage(event.pageIndex, event.pageSize);
   }
 
   onSearchChange(term: string): void {
-    this.searchTerm.set(term);
-    this.pageIndex.set(0);
+    this.list.searchTerm.set(term);
+    this.list.resetPage();
   }
 
   onSortChange(sort: Sort): void {
-    this.sortActive.set(sort.active);
-    this.sortDirection.set(sort.direction);
-    this.pageIndex.set(0);
+    this.list.sortActive.set(sort.active);
+    this.list.sortDirection.set(sort.direction);
+    this.list.resetPage();
   }
 
   onStatusFilterChange(status: StatusFilter): void {
-    this.statusFilter.set(status);
-    this.pageIndex.set(0);
+    this.list.statusFilter.set(status);
+    this.list.resetPage();
+  }
+
+  onTypeFilterChange(type: string | null | undefined): void {
+    // A listbox chip clicked a second time deselects to undefined; that means "all", not nothing.
+    this.list.typeFilter.set(type || 'all');
+    this.list.resetPage();
   }
 
   openAddDialog(): void {
-    const ref = this.dialog.open(AddWebhookDialogComponent, { width: '480px' });
+    const ref = this.dialog.open(AddDestinationDialogComponent, { width: '480px' });
     ref.afterClosed().subscribe(result => {
       if (result) {
         this.adminService
@@ -433,11 +461,11 @@ export class AdminWebhooksComponent implements OnInit {
             error: err => {
               // 502 is the #482 half-write answer ("Check the webhook list before trying again"), which must
               // reach the admin: a retry on the generic message can create a second row.
-              const msg = serverReason(err, { allow5xx: [502] }) ?? this.i18n.instant('ADMIN.SNACK_FAILED_ADD_WEBHOOK');
+              const msg = serverReason(err, { allow5xx: [502] }) ?? this.i18n.instant('ADMIN.SNACK_FAILED_ADD_DESTINATION');
               this.snackBar.open(msg, this.i18n.instant('TOAST.OK'), { duration: 4000 });
             },
             next: () => {
-              this.snackBar.open(this.i18n.instant('ADMIN.SNACK_WEBHOOK_ADDED', { name: result.name }), this.i18n.instant('TOAST.OK'), {
+              this.snackBar.open(this.i18n.instant('ADMIN.SNACK_DESTINATION_ADDED', { name: result.name }), this.i18n.instant('TOAST.OK'), {
                 duration: 3000,
               });
               this.loadUsers();
@@ -448,11 +476,10 @@ export class AdminWebhooksComponent implements OnInit {
   }
 
   openDelegatesDialog(webhook: AdminUser): void {
-    const ref = this.dialog.open(WebhookDelegatesDialogComponent, {
+    const ref = this.dialog.open(DestinationDelegatesDialogComponent, {
       width: '520px',
       data: {
         allUsers: this.allUsers(),
-        poracleAdmins: this.poracleAdmins(),
         porocleDelegates: this.porocleDelegates()[webhook.id] ?? [],
         webhook,
       } satisfies DelegatesDialogData,
@@ -478,11 +505,16 @@ export class AdminWebhooksComponent implements OnInit {
         error: err => this.showFailure(err, 'ADMIN.SNACK_FAILED_STOP'),
         next: updated => {
           this.allUsers.update(users => users.map(u => (u.id === user.id ? { ...u, enabled: updated.enabled } : u)));
-          this.snackBar.open(this.i18n.instant('ADMIN.SNACK_STOPPED', { name: user.name || user.id }), this.i18n.instant('TOAST.OK'), {
+          this.snackBar.open(this.i18n.instant('ADMIN.SNACK_STOPPED', { name: this.rowName(user) }), this.i18n.instant('TOAST.OK'), {
             duration: 3000,
           });
         },
       });
+  }
+
+  relativeDate(dateStr: string): string {
+    const then = new Date(dateStr).getTime();
+    return isNaN(then) ? '—' : relativeTime(then, Date.now(), this.i18n.currentLang());
   }
 
   resumeWebhook(user: AdminUser): void {
@@ -493,11 +525,16 @@ export class AdminWebhooksComponent implements OnInit {
         error: err => this.showFailure(err, 'ADMIN.SNACK_FAILED_START'),
         next: updated => {
           this.allUsers.update(users => users.map(u => (u.id === user.id ? { ...u, enabled: updated.enabled } : u)));
-          this.snackBar.open(this.i18n.instant('ADMIN.SNACK_STARTED', { name: user.name || user.id }), this.i18n.instant('TOAST.OK'), {
+          this.snackBar.open(this.i18n.instant('ADMIN.SNACK_STARTED', { name: this.rowName(user) }), this.i18n.instant('TOAST.OK'), {
             duration: 3000,
           });
         },
       });
+  }
+
+  /** A row's name for messages and labels, never a webhook's token. */
+  rowName(row: AdminUser): string {
+    return destinationName(row);
   }
 
   toggleBlock(user: AdminUser, unblock: boolean): void {
@@ -507,9 +544,10 @@ export class AdminWebhooksComponent implements OnInit {
       error: err => this.showFailure(err, 'ADMIN.SNACK_FAILED_BLOCK'),
       next: updated => {
         this.allUsers.update(users => users.map(u => (u.id === user.id ? { ...u, adminDisable: updated.adminDisable } : u)));
-        const name = user.name || user.id;
+        // Users' "User blocked" named nobody, and a destination is not a user.
+        const name = this.rowName(user);
         this.snackBar.open(
-          this.i18n.instant(unblock ? 'ADMIN.SNACK_UNBLOCKED' : 'ADMIN.SNACK_BLOCKED', { name }),
+          this.i18n.instant(unblock ? 'ADMIN.SNACK_DESTINATION_UNBLOCKED' : 'ADMIN.SNACK_DESTINATION_BLOCKED', { name }),
           this.i18n.instant('TOAST.OK'),
           { duration: 3000 },
         );
@@ -517,13 +555,25 @@ export class AdminWebhooksComponent implements OnInit {
     });
   }
 
+  /** The ID cell for a webhook. This used to keep the last 20 characters, which is exactly the token. */
   truncateUrl(url: string): string {
-    try {
-      const u = new URL(url);
-      const path = u.pathname.length > 24 ? '…' + u.pathname.slice(-20) : u.pathname;
-      return `${u.hostname}${path}`;
-    } catch {
-      return url.length > 40 ? url.slice(0, 37) + '…' : url;
+    return shortWebhookUrl(url);
+  }
+
+  private getSortValue(row: AdminUser, column: string): string | number {
+    switch (column) {
+      case 'id':
+        return row.id;
+      case 'name':
+        return (row.name || '').toLowerCase();
+      case 'type':
+        return (row.type ?? '').trim().toLowerCase();
+      case 'enabled':
+        return row.adminDisable === 1 ? 2 : row.enabled === 0 ? 1 : 0;
+      case 'disabledSince':
+        return row.disabledDate ? new Date(row.disabledDate).getTime() : 0;
+      default:
+        return '';
     }
   }
 

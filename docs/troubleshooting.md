@@ -665,7 +665,7 @@ beside the control rather than bouncing you to the dashboard.
 
 ## A delegate cannot see "My Webhooks"
 
-**Symptom**: You granted someone a webhook on **Admin > Webhooks**, and they report no *My Webhooks*
+**Symptom**: You granted someone a webhook on **Admin > Destinations**, and they report no *My Webhooks*
 item in the sidebar.
 
 **Checks, in order**:
@@ -686,4 +686,4 @@ item in the sidebar.
 
 **Note**: before v2.17 the item came from a claim stamped into the sign-in token, so a new delegate
 waited up to 24 hours or had to sign out and back in. If you are running an older build, that is the
-explanation — see [Webhooks & Delegates](features/webhooks.md).
+explanation — see [Destinations & Delegates](features/webhooks.md).
