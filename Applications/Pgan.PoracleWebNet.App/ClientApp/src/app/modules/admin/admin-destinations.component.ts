@@ -1,4 +1,15 @@
-import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal, computed } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  DestroyRef,
+  ElementRef,
+  Injector,
+  afterNextRender,
+  inject,
+  signal,
+  computed,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AbstractControl, FormBuilder, FormsModule, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
@@ -363,8 +374,10 @@ export class AdminDestinationsComponent implements OnInit {
   private readonly destinations = computed(() => this.allUsers().filter(u => u.kind === 'destination'));
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   private readonly i18n = inject(I18nService);
+  private readonly injector = inject(Injector);
   private readonly poracleAdmins = signal<string[]>([]);
   private readonly porocleDelegates = signal<Record<string, string[]>>({});
   private readonly snackBar = inject(MatSnackBar);
@@ -692,12 +705,24 @@ export class AdminDestinationsComponent implements OnInit {
     }
   }
 
-  /** Turns to the page holding the destination just added. A search or filter that hides it is left alone. */
+  /**
+   * Turns to the page holding the destination just added and scrolls its row into view, since a full page
+   * runs past the fold. A search or filter that hides it is left alone. No glide for reduced motion.
+   */
   private revealJustAdded(): void {
     const added = this.justAdded();
     if (!added) return;
     const index = this.list.filtered().findIndex(row => row.id === added);
-    if (index >= 0) this.list.setPage(Math.floor(index / this.list.pageSize()), this.list.pageSize());
+    if (index < 0) return;
+    this.list.setPage(Math.floor(index / this.list.pageSize()), this.list.pageSize());
+    afterNextRender(
+      () => {
+        const row = this.host.nativeElement.querySelector('tr.just-added');
+        const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+        row?.scrollIntoView?.({ behavior: reduce ? 'auto' : 'smooth', block: 'nearest' });
+      },
+      { injector: this.injector },
+    );
   }
 
   /** The server's own reason when it gave one, else the generic message. */
