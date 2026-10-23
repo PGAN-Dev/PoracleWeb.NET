@@ -55,6 +55,7 @@ public class AuthControllerLinkCallbackTests
             new Mock<IProfileService>().Object,
             new Mock<IPoracleApiProxy>().Object,
             new Mock<IPoracleHumanProxy>().Object,
+            Pgan.PoracleWebNet.Tests.Helpers.PairTestSupport.UnlinkedWriter(),
             this._settings.Object,
             new Mock<IWebhookDelegateService>().Object,
             new Mock<IJwtService>().Object,

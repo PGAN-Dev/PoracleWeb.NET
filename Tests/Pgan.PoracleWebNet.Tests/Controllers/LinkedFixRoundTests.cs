@@ -111,7 +111,9 @@ public class LinkedFixRoundTests : ControllerTestBase
             new Mock<IWebhookDelegateService>().Object, new Mock<IJwtService>().Object,
             new Mock<IUserRoleResolver>().Object, new Mock<IOidcClient>().Object, new Mock<IOidcSessionService>().Object,
             Options.Create(new DiscordSettings()), Options.Create(new TelegramSettings()), Options.Create(new OidcSettings()),
-            Options.Create(new PoracleSettings()), new ConfigurationBuilder().Build(), NullLogger<AuthController>.Instance);
+            Options.Create(new PoracleSettings()), new ConfigurationBuilder().Build(),
+            new Mock<IAccountLinkService>().Object, new Microsoft.AspNetCore.DataProtection.EphemeralDataProtectionProvider(),
+            new Mock<IHttpClientFactory>().Object, NullLogger<AuthController>.Instance);
         SetupUser(sut, Discord);
         return sut;
     }
