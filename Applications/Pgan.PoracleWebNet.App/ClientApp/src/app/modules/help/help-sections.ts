@@ -136,6 +136,13 @@ export const HELP_SECTIONS: HelpSection[] = [
     titleKey: 'HELP.SECTION_QUIET',
   },
   {
+    id: 'linked-accounts',
+    contentKey: 'HELP.CONTENT_LINKED',
+    icon: 'link',
+    subtitleKey: 'HELP.SECTION_LINKED_SUB',
+    titleKey: 'HELP.SECTION_LINKED',
+  },
+  {
     id: 'webhooks',
     contentKey: 'HELP.CONTENT_WEBHOOKS',
     icon: 'webhook',

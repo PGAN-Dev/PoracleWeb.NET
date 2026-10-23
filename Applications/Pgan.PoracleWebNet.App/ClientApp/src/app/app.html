@@ -132,6 +132,12 @@
           <mat-icon>tune</mat-icon>
           <span>{{ 'MENU.ALERT_DEFAULTS' | translate }}</span>
         </button>
+        @if (!isFeatureDisabled('disable_account_linking') && !auth.isImpersonating()) {
+          <button mat-menu-item routerLink="/linked-accounts">
+            <mat-icon>link</mat-icon>
+            <span>{{ 'MENU.LINKED_ACCOUNTS' | translate }}</span>
+          </button>
+        }
         <button mat-menu-item [matMenuTriggerFor]="accentMenu">
           <mat-icon>palette</mat-icon>
           <span>{{ 'MENU.ACCENT_THEME' | translate }}</span>

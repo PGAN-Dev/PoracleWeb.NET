@@ -87,6 +87,8 @@ describe('App bootstrap under rate limiting', () => {
             hasManagedDestinations: () => false,
             isAdmin: () => false,
             isAuthenticated: () => true,
+            isImpersonating: signal(false),
+            user: signal(null),
           },
         },
         {

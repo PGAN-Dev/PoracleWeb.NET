@@ -891,3 +891,34 @@ export interface RuleRepairStatus {
   skippedCount: number;
   startedAt: null | string;
 }
+
+// ─── Linked accounts ───────────────────────────────────────────────────────────
+
+export type LinkSide = 'discord' | 'telegram';
+
+/** Why a linked side is not delivering. `not_registered` means the person has not registered with that bot yet. */
+export type LinkPause = 'admin_disabled' | 'none' | 'not_registered' | 'stopped';
+
+export interface AccountLink {
+  createdAt: string;
+  defaultDestination: LinkSide;
+  discordId: string;
+  discordVerifiedAt: null | string;
+  id: number;
+  telegramId: string;
+  telegramVerifiedAt: null | string;
+}
+
+export interface LinkSideStatus {
+  exists: boolean;
+  pause: LinkPause;
+  side: LinkSide;
+}
+
+/** `GET /api/account-link/status`. Unlinked, the server answers `{ linked: false }` and nothing else. */
+export interface LinkStatus {
+  defaultDestination?: LinkSide | null;
+  link?: AccountLink;
+  linked: boolean;
+  sides?: LinkSideStatus[];
+}

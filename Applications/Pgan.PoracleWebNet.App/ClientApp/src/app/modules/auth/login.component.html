@@ -60,7 +60,7 @@
             }
 
             @if (telegramVisible()) {
-              <div #telegramContainer class="telegram-widget"></div>
+              <app-telegram-login-button [botUsername]="telegramBotUsername()" (authenticated)="handleTelegramAuth($event)" />
               @if (!telegramActive()) {
                 <p class="provider-disabled-hint">{{ 'AUTH.PROVIDER_DISABLED_HINT' | translate }}</p>
               }
