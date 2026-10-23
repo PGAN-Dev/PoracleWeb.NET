@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- **A channel or webhook can no longer sign in as a person, and the login page says why.** A Poracle row whose type isn't a person's (a Discord channel or thread, a Telegram group, channel or topic, a webhook) is refused at Discord, OIDC and Telegram sign-in and on `/api/auth/me`, so a Telegram group id or a channel id can't open a session. The login page shows "This sign-in belongs to a channel or webhook in Poracle, not a person. Sign in with your own account." in all eleven languages. People whose type is blank or `discord:user` and `telegram:user` still sign in.
+
 ### Fixed
 
 - **Rule repair no longer lists editable rules as "cannot edit".** The scan judged each rule without the fields PoracleNG's own schema declares, so a rule carrying a field PoracleWeb.NET doesn't model, such as a personal shiny flag on a PoracleNG that has them, was reported as one that needs fixing by hand. Editing those rules always worked. The scan and the repair now check against what the server declares; a field it doesn't declare is still reported.

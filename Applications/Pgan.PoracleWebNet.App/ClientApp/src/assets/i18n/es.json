@@ -1453,6 +1453,7 @@
     "FOOTER": "Gestiona alarmas para Pokémon, raids, misiones y más",
     "AUTH_FAILED": "Error de autenticación",
     "BACK_TO_LOGIN": "Volver al inicio de sesión",
+    "ERR_DESTINATION_ACCOUNT": "Este inicio de sesión pertenece a un canal o webhook de Poracle, no a una persona. Inicia sesión con tu propia cuenta.",
     "ERR_DISCORD_DISABLED": "El inicio de sesión con Discord está desactivado.",
     "ERR_DISCORD_FETCH": "No se pudo obtener tu perfil de Discord. Inténtalo de nuevo.",
     "ERR_MISSING_CODE": "El inicio de sesión con Discord se canceló o falló.",

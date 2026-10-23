@@ -1522,6 +1522,7 @@
     "FOOTER": "Zarządzaj alarmami dla Pokémon, rajdów, zadań i więcej",
     "AUTH_FAILED": "Uwierzytelnianie nieudane",
     "BACK_TO_LOGIN": "Powrót do logowania",
+    "ERR_DESTINATION_ACCOUNT": "To logowanie należy do kanału lub webhooka w Poracle, a nie do osoby. Zaloguj się na własne konto.",
     "ERR_DISCORD_DISABLED": "Logowanie przez Discord jest obecnie wyłączone.",
     "ERR_DISCORD_FETCH": "Nie udało się pobrać twojego profilu Discord. Spróbuj ponownie.",
     "ERR_MISSING_CODE": "Logowanie przez Discord zostało anulowane lub się nie powiodło.",
