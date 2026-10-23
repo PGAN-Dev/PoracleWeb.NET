@@ -54,7 +54,7 @@ export class MyWebhooksComponent implements OnInit {
           this.snackBar.open(serverReason(err) ?? this.i18n.instant('ADMIN.SNACK_FAILED_SWITCH_WEBHOOK'), this.i18n.instant('TOAST.OK'), {
             duration: 4000,
           }),
-        next: res => this.auth.impersonate(res.token),
+        next: res => this.auth.impersonate(res.token, '/my-webhooks'),
       });
   }
 

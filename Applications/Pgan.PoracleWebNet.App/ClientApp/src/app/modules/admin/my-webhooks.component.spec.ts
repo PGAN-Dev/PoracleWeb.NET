@@ -55,6 +55,16 @@ describe('MyWebhooksComponent', () => {
     expect(component.webhooks()).toEqual(rows);
   });
 
+  it('records My Webhooks as the way back out of the session', () => {
+    // A delegate has no /admin; the session's exit has to come back here.
+    const { adminService, auth, component } = setup();
+    adminService.impersonateById.mockReturnValue(of({ token: 'webhook-jwt' }));
+
+    component.manageAlarms(rows[0]);
+
+    expect(auth.impersonate).toHaveBeenCalledWith('webhook-jwt', '/my-webhooks');
+  });
+
   it('asks for the rows even when the client has no copy of the grant list', () => {
     const { adminService } = setup({ managedWebhooks: [] });
 

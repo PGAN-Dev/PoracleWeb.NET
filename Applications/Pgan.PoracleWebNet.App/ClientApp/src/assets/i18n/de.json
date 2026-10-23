@@ -45,6 +45,7 @@
   },
   "BANNER": {
     "VIEWING_AS": "Angezeigt als {{name}}. Deine Änderungen werden in den Alarmen von {{name}} gespeichert.",
+    "MANAGING_KIND": "Du verwaltest {{kind}} {{name}}. Deine Änderungen werden in den Alarmen dieses Ziels gespeichert.",
     "EXIT_IMPERSONATION": "Zurück zu deinem Konto",
     "DISABLED_ACCOUNT": "Dein Konto wurde <strong>deaktiviert</strong>, und Fortsetzen schaltet es nicht wieder ein. Das passiert, wenn du den Discord-Server verlässt oder eine erforderliche Rolle verlierst, und es wird automatisch aufgehoben, sobald du wieder beitrittst oder die Rolle zurückbekommst.",
     "DISABLED_ACCOUNT_INSPECTED": "Dieses Konto wurde von einem Administrator <strong>deaktiviert</strong> und erhält keine Benachrichtigungen.",
@@ -1766,6 +1767,7 @@
   },
   "TEST_ALERT": {
     "SUCCESS": "Testalarm gesendet! Überprüfe deine DMs.",
+    "SUCCESS_DESTINATION": "Testalarm gesendet. Er erscheint in {{name}}.",
     "ERROR_RATE_LIMIT": "Zu viele Testalarme. Bitte warte einen Moment.",
     "ERROR_NOT_FOUND": "Alarm nicht gefunden — er wurde möglicherweise gelöscht.",
     "RATE_LIMITED": "Zu viele Testmeldungen. Bitte warte einen Moment.",

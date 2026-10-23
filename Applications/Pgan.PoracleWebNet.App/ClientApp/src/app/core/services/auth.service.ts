@@ -150,8 +150,12 @@ export class AuthService {
     this.router.navigate(['/dashboard']);
   }
 
-  /** Switch to impersonated user token, saving the admin token for later. */
-  impersonate(token: string): void {
+  /**
+   * Switch to impersonated user token, saving the admin token for later. `returnTo` is the page leaving
+   * the session goes back to.
+   */
+  impersonate(token: string, returnTo: string): void {
+    this.tokenStore.setImpersonationReturn(returnTo);
     const adminToken = localStorage.getItem(TOKEN_KEY);
     if (adminToken) {
       localStorage.setItem(ADMIN_TOKEN_KEY, adminToken);
@@ -275,7 +279,7 @@ export class AuthService {
     localStorage.removeItem(ADMIN_TOKEN_KEY);
     this._isImpersonating.set(false);
     await this.loadCurrentUser();
-    this.router.navigate(['/admin'], { state: ADMIN_RETURN_STATE });
+    this.router.navigate([this.tokenStore.takeImpersonationReturn()], { state: ADMIN_RETURN_STATE });
     return true;
   }
 

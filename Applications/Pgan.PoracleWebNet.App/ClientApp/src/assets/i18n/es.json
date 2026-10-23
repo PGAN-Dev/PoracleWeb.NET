@@ -45,6 +45,7 @@
   },
   "BANNER": {
     "VIEWING_AS": "Viendo como {{name}}. Los cambios que hagas se guardan en las alarmas de {{name}}.",
+    "MANAGING_KIND": "Gestionando {{kind}} {{name}}. Los cambios que hagas se guardan en sus alarmas.",
     "EXIT_IMPERSONATION": "Volver a tu cuenta",
     "DISABLED_ACCOUNT": "Tu cuenta ha sido <strong>desactivada</strong> y Reanudar no la vuelve a activar. Esto pasa si sales del servidor de Discord o pierdes un rol necesario, y se levanta solo al volver a unirte o recuperar el rol.",
     "DISABLED_ACCOUNT_INSPECTED": "Esta cuenta ha sido <strong>desactivada</strong> por un administrador y no recibe notificaciones.",
@@ -1766,6 +1767,7 @@
   },
   "TEST_ALERT": {
     "SUCCESS": "¡Alerta de prueba enviada! Revisa tus DMs.",
+    "SUCCESS_DESTINATION": "Alerta de prueba enviada. Se publica en {{name}}.",
     "ERROR_RATE_LIMIT": "Demasiadas alertas de prueba. Espera un momento.",
     "ERROR_NOT_FOUND": "Alarma no encontrada — puede haber sido eliminada.",
     "RATE_LIMITED": "Demasiadas alertas de prueba. Espera un momento.",

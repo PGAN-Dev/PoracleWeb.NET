@@ -337,6 +337,50 @@ describe('App stop impersonating', () => {
   });
 });
 
+describe('App impersonation banner', () => {
+  const setup = (type: string | null) => {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideNoopAnimations(),
+        provideRouter([]),
+        provideTranslateService(),
+        {
+          provide: SettingsService,
+          useValue: { isDisabled: () => false, loadOnce: () => of([]), siteSettings: signal({}) },
+        },
+        {
+          provide: AuthService,
+          useValue: {
+            hasManagedWebhooks: () => false,
+            isAdmin: () => false,
+            isImpersonating: () => true,
+            user: signal({ username: '#raid-alerts', type }),
+          },
+        },
+        { provide: DashboardService, useValue: { getCounts: () => of({}) } },
+        { provide: I18nService, useValue: { init: jest.fn() } },
+      ],
+    });
+    const app = TestBed.runInInjectionContext(() => new App());
+    return (app as unknown as { managedKindKey: () => string | null }).managedKindKey();
+  };
+
+  it('names a Discord channel in the banner', () => {
+    expect(setup('discord:channel')).toBe('ADMIN.TYPE_DISCORD_CHANNEL');
+    const html = fs.readFileSync(path.join(__dirname, 'app.html'), 'utf8');
+    expect(html).toContain("'BANNER.MANAGING_KIND' | translate");
+  });
+
+  it('keeps "Viewing as" for a person, including one with no type at all', () => {
+    expect(setup('discord:user')).toBeNull();
+    expect(setup(null)).toBeNull();
+    expect(setup('')).toBeNull();
+  });
+});
+
 /**
  * Tablets in portrait (820px) kept the permanent 250px sidenav, which left one narrow column of cards,
  * and showed two controls for the one menu: the toolbar's hamburger and the sidenav's collapse chevron.

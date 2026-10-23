@@ -20,6 +20,15 @@ function normalise(type: string | null | undefined): string {
   return (type ?? '').trim().toLowerCase();
 }
 
+/**
+ * Whether the type names a person: missing, blank, or ending `:user`. The server's `HumanKind.IsPerson`
+ * holds the same rule and is the one that grants anything; this only picks wording.
+ */
+export function isPersonType(type: string | null | undefined): boolean {
+  const t = normalise(type);
+  return t === '' || t.endsWith(':user');
+}
+
 /** Whether a mention can reach this destination type. */
 export function mentionCapable(type: string | null | undefined): boolean {
   return MENTION_CAPABLE.has(normalise(type));

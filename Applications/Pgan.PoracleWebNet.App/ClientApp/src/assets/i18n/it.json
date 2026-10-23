@@ -45,6 +45,7 @@
   },
   "BANNER": {
     "VIEWING_AS": "Visualizzazione come {{name}}. Le modifiche che fai vengono salvate negli allarmi di {{name}}.",
+    "MANAGING_KIND": "Gestione di {{kind}} {{name}}. Le modifiche che fai vengono salvate nei suoi allarmi.",
     "EXIT_IMPERSONATION": "Torna al tuo account",
     "DISABLED_ACCOUNT": "Il tuo account è stato <strong>disabilitato</strong> e Riprendi non lo riattiva. Succede se lasci il server Discord o perdi un ruolo richiesto, e si sblocca da solo quando rientri o riottieni il ruolo.",
     "DISABLED_ACCOUNT_INSPECTED": "Questo account è stato <strong>disattivato</strong> da un amministratore e non riceve notifiche.",
@@ -1766,6 +1767,7 @@
   },
   "TEST_ALERT": {
     "SUCCESS": "Avviso di prova inviato! Controlla i tuoi DM.",
+    "SUCCESS_DESTINATION": "Avviso di test inviato. Viene pubblicato in {{name}}.",
     "ERROR_RATE_LIMIT": "Troppi avvisi di prova. Attendi un momento.",
     "ERROR_NOT_FOUND": "Allarme non trovato — potrebbe essere stato eliminato.",
     "RATE_LIMITED": "Troppi avvisi di prova. Attendi un momento.",
