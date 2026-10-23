@@ -90,7 +90,7 @@ public partial class UserGeofenceController(
         }
         catch (InvalidOperationException ex)
         {
-            LogCreateGeofenceFailed(this._logger, ex, this.UserId);
+            LogCreateGeofenceFailed(this._logger, ex, LogSafe.Id(this.UserId));
             return this.BadRequest(new
             {
                 error = ex.Message
@@ -145,7 +145,7 @@ public partial class UserGeofenceController(
         }
         catch (UnauthorizedAccessException ex)
         {
-            LogDeleteGeofenceUnauthorized(this._logger, ex, this.UserId, id);
+            LogDeleteGeofenceUnauthorized(this._logger, ex, LogSafe.Id(this.UserId), id);
             return this.Forbid();
         }
     }
@@ -171,7 +171,7 @@ public partial class UserGeofenceController(
         }
         catch (UnauthorizedAccessException ex)
         {
-            LogDeleteGeofenceUnauthorized(this._logger, ex, this.UserId, id);
+            LogDeleteGeofenceUnauthorized(this._logger, ex, LogSafe.Id(this.UserId), id);
             return this.Forbid();
         }
     }
@@ -219,7 +219,7 @@ public partial class UserGeofenceController(
         }
         catch (UnauthorizedAccessException ex)
         {
-            LogSubmitGeofenceUnauthorized(this._logger, ex, this.UserId, kojiName);
+            LogSubmitGeofenceUnauthorized(this._logger, ex, LogSafe.Id(this.UserId), kojiName);
             return this.Forbid();
         }
     }
@@ -253,7 +253,7 @@ public partial class UserGeofenceController(
         }
         catch (UnauthorizedAccessException ex)
         {
-            LogActivateGeofenceUnauthorized(this._logger, ex, this.UserId, id);
+            LogActivateGeofenceUnauthorized(this._logger, ex, LogSafe.Id(this.UserId), id);
             return this.Forbid();
         }
     }
@@ -279,7 +279,7 @@ public partial class UserGeofenceController(
         }
         catch (UnauthorizedAccessException ex)
         {
-            LogDeactivateGeofenceUnauthorized(this._logger, ex, this.UserId, id);
+            LogDeactivateGeofenceUnauthorized(this._logger, ex, LogSafe.Id(this.UserId), id);
             return this.Forbid();
         }
     }
@@ -311,7 +311,7 @@ public partial class UserGeofenceController(
         }
         catch (Exception ex) when (ex is not OperationCanceledException and not TaskCanceledException)
         {
-            LogExportGeoJsonFailed(this._logger, ex, this.UserId);
+            LogExportGeoJsonFailed(this._logger, ex, LogSafe.Id(this.UserId));
             return this.StatusCode(500, new
             {
                 error = "Failed to export geofences"
@@ -370,7 +370,7 @@ public partial class UserGeofenceController(
         }
         catch (Exception ex)
         {
-            LogImportGeoJsonFailed(this._logger, ex, this.UserId);
+            LogImportGeoJsonFailed(this._logger, ex, LogSafe.Id(this.UserId));
             return this.StatusCode(500, new
             {
                 error = "Failed to import geofences"

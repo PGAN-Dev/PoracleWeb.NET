@@ -58,7 +58,7 @@ public partial class PoracleTrackingProxy
         }
 
         var bodyText = TrackingPatchWire.Body(uids, settings);
-        LogPatchRequest(this._logger, type, userId, bodyText);
+        LogPatchRequest(this._logger, type, LogSafe.Id(userId), bodyText);
 
         // Always trusted. PoracleNG re-validates the whole stored rule on a PATCH, and untrusted its area check
         // allows only userSelectable fences, which a user's own drawn fence never is: every rule limited to one
@@ -78,7 +78,7 @@ public partial class PoracleTrackingProxy
             ThrowForFailedWrite(response, type, payload);
         }
 
-        LogPatchResponse(this._logger, type, userId, payload);
+        LogPatchResponse(this._logger, type, LogSafe.Id(userId), payload);
         return TrackingPatchWire.Parse(payload);
     }
 
@@ -146,7 +146,7 @@ public partial class PoracleTrackingProxy
             // Nothing in the batch is new, so nothing would be written and no row needs telling apart. Each row
             // lands in exactly one bucket, so the buckets are the counts. Re-applying a large quick pick used to
             // ask about every row alone here: one POST per row.
-            LogCreateSummary(this._logger, type, userId, rows.Count, 0, dry.Unchanged.Count, dry.Updated.Count);
+            LogCreateSummary(this._logger, type, LogSafe.Id(userId), rows.Count, 0, dry.Unchanged.Count, dry.Updated.Count);
             return new TrackingCreateResult([], dry.Unchanged.Count, 0, 0, rowUids, dry.Updated.Count);
         }
         else
@@ -167,7 +167,7 @@ public partial class PoracleTrackingProxy
 
                     case DryRunVerdict.Updated:
                         takeovers++;
-                        LogTakeoverSkipped(this._logger, type, userId, i);
+                        LogTakeoverSkipped(this._logger, type, LogSafe.Id(userId), i);
                         break;
 
                     default:
@@ -178,7 +178,7 @@ public partial class PoracleTrackingProxy
 
             if (keep.Count == 0)
             {
-                LogCreateSummary(this._logger, type, userId, rows.Count, 0, alreadyPresent, takeovers);
+                LogCreateSummary(this._logger, type, LogSafe.Id(userId), rows.Count, 0, alreadyPresent, takeovers);
                 return new TrackingCreateResult([], alreadyPresent, 0, 0, rowUids, takeovers);
             }
         }
@@ -190,7 +190,7 @@ public partial class PoracleTrackingProxy
         {
             await this.RestorePreviousAsync(type, userId, takenOver);
             takeovers++;
-            LogTakeoverSkipped(this._logger, type, userId, -1);
+            LogTakeoverSkipped(this._logger, type, LogSafe.Id(userId), -1);
         }
 
         if (single && commit.Updated.Count > 0)
@@ -210,10 +210,10 @@ public partial class PoracleTrackingProxy
         {
             // Nothing created and every kept row accounted for (a single create that a concurrent write made
             // identical, say) leaves nothing to pair, so there is nothing to warn about.
-            LogCreateUnpaired(this._logger, type, userId, keep.Count, created.Count);
+            LogCreateUnpaired(this._logger, type, LogSafe.Id(userId), keep.Count, created.Count);
         }
 
-        LogCreateSummary(this._logger, type, userId, rows.Count, created.Count, alreadyPresent, takeovers);
+        LogCreateSummary(this._logger, type, LogSafe.Id(userId), rows.Count, created.Count, alreadyPresent, takeovers);
         return new TrackingCreateResult(
             [.. created.Select(uid => (long)uid)], alreadyPresent, 0, created.Count, rowUids, takeovers);
     }
@@ -294,7 +294,9 @@ public partial class PoracleTrackingProxy
     private async Task<WriteEnvelope> PostRulesAsync(string type, string userId, string url, List<JsonElement> rules)
     {
         var bodyText = JsonSerializer.Serialize(rules);
-        LogV2CreateRequest(this._logger, type, userId, url, bodyText);
+        // The URL carries the human id, which for a webhook is its token. See #1038.
+        LogV2CreateRequest(this._logger, type, LogSafe.Id(userId),
+            url.Replace(Encode(userId), LogSafe.Id(userId), StringComparison.Ordinal), bodyText);
 
         var request = this.CreateRequest(HttpMethod.Post, url);
         request.Content = new StringContent(bodyText, Encoding.UTF8, "application/json");
@@ -307,7 +309,7 @@ public partial class PoracleTrackingProxy
             ThrowForFailedWrite(response, type, payload);
         }
 
-        LogV2CreateResponse(this._logger, type, userId, payload);
+        LogV2CreateResponse(this._logger, type, LogSafe.Id(userId), payload);
         return WriteEnvelope.Parse(payload);
     }
 
@@ -320,7 +322,7 @@ public partial class PoracleTrackingProxy
         var uid = UidOf(takenOver);
         if (!takenOver.TryGetProperty("previous", out var previous) || previous.ValueKind != JsonValueKind.Object)
         {
-            LogRestoreImpossible(this._logger, type, uid, userId, "no previous state was reported", takenOver.GetRawText());
+            LogRestoreImpossible(this._logger, type, uid, LogSafe.Id(userId), "no previous state was reported", takenOver.GetRawText());
             return;
         }
 
@@ -336,20 +338,20 @@ public partial class PoracleTrackingProxy
         }
         catch (InvalidOperationException ex)
         {
-            LogRestoreImpossible(this._logger, type, uid, userId, ex.Message, previous.GetRawText());
+            LogRestoreImpossible(this._logger, type, uid, LogSafe.Id(userId), ex.Message, previous.GetRawText());
             return;
         }
 
         if (uid <= 0)
         {
-            LogRestoreImpossible(this._logger, type, uid, userId, "no uid was reported", previous.GetRawText());
+            LogRestoreImpossible(this._logger, type, uid, LogSafe.Id(userId), "no uid was reported", previous.GetRawText());
             return;
         }
 
         var (bounds, declared) = await this.ServerRuleSchemaAsync(type);
         if (!TrackingV2Translator.TryTranslate(type, row, bounds, declared, out var rule, out var unsupported))
         {
-            LogRestoreImpossible(this._logger, type, uid, userId, unsupported ?? "unknown", previous.GetRawText());
+            LogRestoreImpossible(this._logger, type, uid, LogSafe.Id(userId), unsupported ?? "unknown", previous.GetRawText());
             return;
         }
 
@@ -456,7 +458,7 @@ public partial class PoracleTrackingProxy
         string type, string userId, int uid, JsonElement body, bool trusted)
     {
         var bodyText = body.GetRawText();
-        LogV2UpdateRequest(this._logger, type, uid, userId, bodyText);
+        LogV2UpdateRequest(this._logger, type, uid, LogSafe.Id(userId), bodyText);
 
         var request = this.CreateRequest(
             HttpMethod.Put,
@@ -471,7 +473,7 @@ public partial class PoracleTrackingProxy
             ThrowForFailedWrite(response, type, payload);
         }
 
-        LogV2UpdateResponse(this._logger, type, uid, userId, payload);
+        LogV2UpdateResponse(this._logger, type, uid, LogSafe.Id(userId), payload);
         return new TrackingUpdateResult(UidFromV2Envelope(payload) ?? uid, true);
     }
 
@@ -494,7 +496,7 @@ public partial class PoracleTrackingProxy
         }
 
         var bodyText = rule.GetRawText();
-        LogV2UpdateRequest(this._logger, type, uid, userId, bodyText);
+        LogV2UpdateRequest(this._logger, type, uid, LogSafe.Id(userId), bodyText);
 
         var request = this.CreateRequest(
             HttpMethod.Put,
@@ -521,7 +523,7 @@ public partial class PoracleTrackingProxy
             }
         }
 
-        LogV2UpdateResponse(this._logger, type, uid, userId, payload);
+        LogV2UpdateResponse(this._logger, type, uid, LogSafe.Id(userId), payload);
 
         // Only an explicit answer counts. An empty or unreadable 200 must not read as "go ahead and write".
         WriteEnvelope envelope;

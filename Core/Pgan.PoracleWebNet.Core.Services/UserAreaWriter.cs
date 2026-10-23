@@ -68,7 +68,7 @@ public partial class UserAreaWriter(
         var refused = names.Where(n => !allowed.Contains(Key(n))).ToList();
         if (refused.Count > 0)
         {
-            LogNamesDropped(this._logger, humanId, string.Join(", ", refused));
+            LogNamesDropped(this._logger, LogSafe.Id(humanId), string.Join(", ", refused));
         }
 
         return names.Where(n => allowed.Contains(Key(n))).ToList();
@@ -152,7 +152,7 @@ public partial class UserAreaWriter(
 
                     if (remaining.Count > 0)
                     {
-                        LogWidenedAlarmsNotDeleted(this._logger, humanId, clean, type, string.Join(", ", remaining));
+                        LogWidenedAlarmsNotDeleted(this._logger, LogSafe.Id(humanId), clean, type, string.Join(", ", remaining));
                     }
                 }
             }
@@ -174,7 +174,7 @@ public partial class UserAreaWriter(
         }
         catch (PoracleRequestRefusedException ex)
         {
-            LogRenameRefused(this._logger, ex, humanId, Clean(from), Clean(to));
+            LogRenameRefused(this._logger, ex, LogSafe.Id(humanId), Clean(from), Clean(to));
             return false;
         }
     }

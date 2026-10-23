@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **An admin or delegate can open a blocked destination again.** Under impersonation the block check read the destination being managed rather than the person managing it, so every call against a blocked webhook or channel answered 403 and it could not be unblocked or cleaned up from its own page. The check now reads the impersonator: a blocked admin or delegate is refused, and a blocked destination can still be managed. A blocked admin or delegate also can no longer pause or resume the destination's alerts, which the sign-in routes had let through; they can still sign out. Ordinary sign-ins are checked as before (#1038).
+- **A delegate grant naming two webhooks that share a name now grants neither.** It used to grant whichever of the two Poracle listed first, which nobody chose. A grant by URL, or by a name only one webhook carries, works as before, and a webhook still wins a name it shares with a channel. Production held no duplicate webhook name when this changed; the grant is logged as ambiguous if one appears (#1038).
+
+### Security
+
+- **Logs no longer contain webhook tokens.** A webhook's id in Poracle is its URL, and a Discord webhook URL carries the token that lets anyone post to the channel. Every log line that names a user, an admin, an impersonation target, a delegate or a grant printed it whole, from delegate grants and impersonation to destination creation and the v2 tracking request logs. They now print the host and path up to the webhook's numeric id with the token masked (`https://discord.com/api/webhooks/123/***`); any other URL keeps only its host and first path segment. Discord and Telegram ids are logged as before. .NET's own HttpClient logging, which printed the full request path for every call to PoracleNG (a webhook's path carries its URL), now records warnings only: the shipped `appsettings.json` sets `System.Net.Http.HttpClient` to `Warning`, so keep it there if you override logging. Logs written before this release still hold the tokens, so rotate any webhook whose logs may have been shared (#1038).
+
 ## [3.1.0] - 2026-10-23
 
 ### Added

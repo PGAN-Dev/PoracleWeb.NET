@@ -68,7 +68,7 @@ public partial class TestAlertController(
             // refusal as 502). Pass the reason on, as the 501 does: "try again later" is wrong when the cause
             // is configuration. A refusal from the alarm or human read carries its own status and falls
             // through to the generic 500 below, as it always did.
-            LogSendTestAlertFailed(this._logger, ex, type, uid, this.UserId);
+            LogSendTestAlertFailed(this._logger, ex, type, uid, LogSafe.Id(this.UserId));
             return this.StatusCode(ex.StatusCode, new
             {
                 error = ex.Message
@@ -76,7 +76,7 @@ public partial class TestAlertController(
         }
         catch (OperationCanceledException ex)
         {
-            LogSendTestAlertFailed(this._logger, ex, type, uid, this.UserId);
+            LogSendTestAlertFailed(this._logger, ex, type, uid, LogSafe.Id(this.UserId));
             return this.BadRequest(new
             {
                 error = "Test alert request was canceled"
@@ -84,7 +84,7 @@ public partial class TestAlertController(
         }
         catch (Exception ex)
         {
-            LogSendTestAlertFailed(this._logger, ex, type, uid, this.UserId);
+            LogSendTestAlertFailed(this._logger, ex, type, uid, LogSafe.Id(this.UserId));
             return this.StatusCode(500, new
             {
                 error = "Failed to send test alert"

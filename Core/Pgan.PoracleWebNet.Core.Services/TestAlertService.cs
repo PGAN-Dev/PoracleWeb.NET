@@ -80,7 +80,7 @@ public partial class TestAlertService(
             Webhook = build.Webhook,
         };
 
-        LogSendingTestAlert(this._logger, alarmType, build.WireType, uid, userId);
+        LogSendingTestAlert(this._logger, alarmType, build.WireType, uid, LogSafe.Id(userId));
         await this._apiProxy.SendTestAlertAsync(request);
     }
 
