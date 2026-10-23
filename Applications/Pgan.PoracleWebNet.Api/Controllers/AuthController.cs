@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
@@ -33,6 +34,8 @@ public partial class AuthController(
     IOptions<OidcSettings> oidcSettings,
     IOptions<PoracleSettings> poracleSettings,
     IConfiguration configuration,
+    IAccountLinkService accountLinkService,
+    IDataProtectionProvider dataProtection,
     ILogger<AuthController> logger) : BaseApiController
 {
     private const string EnableDiscordKey = "enable_discord";
@@ -62,6 +65,8 @@ public partial class AuthController(
     private readonly PoracleSettings _poracleSettings = poracleSettings.Value;
     private readonly string[] _allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
     private readonly string? _publicOrigin = PublicOrigin.NormalizeOrNull(configuration["PublicUrl"]);
+    private readonly IAccountLinkService _accountLinkService = accountLinkService;
+    private readonly IDataProtectionProvider _dataProtection = dataProtection;
     private readonly ILogger<AuthController> _logger = logger;
 
     /// <summary>
@@ -101,49 +106,10 @@ public partial class AuthController(
         // No early gate here — admins must be able to log in even when Discord is disabled.
         // The enable_discord check is enforced in DiscordCallback() after we know whether the user is an admin.
 
-        // Generate a random state value for CSRF protection
-        var state = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
-
-        var isHttps = string.Equals(this.Request.Scheme, "https", StringComparison.OrdinalIgnoreCase);
-        var cookieOptions = new CookieOptions
-        {
-            HttpOnly = true,
-            Secure = isHttps,
-            SameSite = SameSiteMode.Lax,
-            MaxAge = TimeSpan.FromMinutes(10)
-        };
-
-        this.Response.Cookies.Append("oauth_state", state, cookieOptions);
-
-        // Save the frontend origin so we know where to redirect after the callback.
-        // Validate against configured CORS origins to prevent open redirect token theft.
-        var selfOrigin = this.SelfOrigin();
-        var origin = selfOrigin;
-
-        var referer = this.Request.Headers.Referer.FirstOrDefault();
-        if (!string.IsNullOrEmpty(referer) && Uri.TryCreate(referer, UriKind.Absolute, out var refererUri))
-        {
-            var refererOrigin = $"{refererUri.Scheme}://{refererUri.Authority}";
-            if (this._allowedOrigins.Length > 0
-                ? this._allowedOrigins.Any(o => string.Equals(o, refererOrigin, StringComparison.OrdinalIgnoreCase))
-                : string.Equals(refererOrigin, selfOrigin, StringComparison.OrdinalIgnoreCase))
-            {
-                origin = refererOrigin;
-            }
-        }
-
-        this.Response.Cookies.Append("oauth_origin", origin, cookieOptions);
-
-        // Redirect URI points to the API itself, not the Angular app
-        var callbackUri = $"{selfOrigin}/api/auth/discord/callback";
+        // The URL, state and origin cookies come from one builder shared with account linking.
+        var redirectUrl = DiscordAuthorizeRequest.Build(
+            this.HttpContext, this._discordSettings, this.SelfOrigin(), this._allowedOrigins, out var callbackUri);
         this.WarnIfProxySchemeIgnored(callbackUri);
-        var redirectUrl = "https://discordapp.com/api/oauth2/authorize" +
-            $"?client_id={this._discordSettings.ClientId}" +
-            $"&redirect_uri={Uri.EscapeDataString(callbackUri)}" +
-            "&response_type=code" +
-            "&scope=identify" +
-            "&prompt=none" +
-            $"&state={Uri.EscapeDataString(state)}";
 
         return this.Redirect(redirectUrl);
     }
@@ -167,9 +133,25 @@ public partial class AuthController(
             });
         }
 
+        // A link started from the account page carries a sealed oauth_link cookie. Without one this is
+        // an ordinary sign-in and nothing below the next block changes.
+        var linkCookie = this.Request.Cookies[AccountLinkTicket.CookieName];
+        string? linkingHumanId = null;
+        if (linkCookie is not null)
+        {
+            this.Response.Cookies.Delete(AccountLinkTicket.CookieName);
+            linkingHumanId = AccountLinkTicket.Open(this._dataProtection, linkCookie, DateTimeOffset.UtcNow);
+            if (linkingHumanId is null)
+            {
+                return this.Redirect(LinkErrorUrl(frontendUrl, LinkRefusalCode.Expired));
+            }
+        }
+
         if (string.IsNullOrEmpty(code))
         {
-            return this.Redirect($"{frontendUrl}/login#error=missing_code");
+            return linkingHumanId is null
+                ? this.Redirect($"{frontendUrl}/login#error=missing_code")
+                : this.Redirect(LinkErrorUrl(frontendUrl, LinkRefusalCode.Expired));
         }
 
         using var httpClient = new HttpClient();
@@ -190,7 +172,9 @@ public partial class AuthController(
         {
             var errorBody = await tokenResponse.Content.ReadAsStringAsync();
             LogDiscordTokenExchangeFailed(this._logger, tokenResponse.StatusCode, errorBody);
-            return this.Redirect($"{frontendUrl}/login#error=token_exchange_failed");
+            return linkingHumanId is null
+                ? this.Redirect($"{frontendUrl}/login#error=token_exchange_failed")
+                : this.Redirect($"{frontendUrl}/linked-accounts#link_error=link_failed");
         }
 
         var tokenJson = await tokenResponse.Content.ReadFromJsonAsync<JsonElement>();
@@ -203,7 +187,9 @@ public partial class AuthController(
         var userResponse = await httpClient.GetAsync("https://discordapp.com/api/users/@me");
         if (!userResponse.IsSuccessStatusCode)
         {
-            return this.Redirect($"{frontendUrl}/login#error=discord_user_fetch_failed");
+            return linkingHumanId is null
+                ? this.Redirect($"{frontendUrl}/login#error=discord_user_fetch_failed")
+                : this.Redirect($"{frontendUrl}/linked-accounts#link_error=link_failed");
         }
 
         var discordUser = await userResponse.Content.ReadFromJsonAsync<JsonElement>();
@@ -213,6 +199,12 @@ public partial class AuthController(
         var avatarUrl = avatar != null
             ? $"https://cdn.discordapp.com/avatars/{discordId}/{avatar}.png"
             : null;
+
+        if (linkingHumanId is not null)
+        {
+            // Never a sign-in: no human lookup, no token.
+            return await this.CompleteLinkAsync(frontendUrl, linkingHumanId, discordId, username);
+        }
 
         // Look up user in DB
         var human = await this._humanService.GetByIdAsync(discordId);
@@ -272,6 +264,34 @@ public partial class AuthController(
         // Redirect browser to Angular with token in URL fragment to avoid server-side leakage
         return this.Redirect($"{frontendUrl}/auth/discord/callback#token={jwt}");
     }
+
+    /// <summary>
+    /// The link branch of the Discord callback: the identity is verified, so apply the same
+    /// <c>enable_discord</c> and role checks a Discord sign-in would, then link and send the browser back.
+    /// </summary>
+    internal async Task<IActionResult> CompleteLinkAsync(string frontendUrl, string callerHumanId, string discordId, string username)
+    {
+        var discordSetting = await this._siteSettingService.GetValueAsync(EnableDiscordKey);
+        if (string.Equals(discordSetting, "false", StringComparison.OrdinalIgnoreCase)
+            || await this.CheckRoleAccessAsync(discordId) is not null)
+        {
+            return this.Redirect(LinkErrorUrl(frontendUrl, LinkRefusalCode.NotPermitted));
+        }
+
+        try
+        {
+            await this._accountLinkService.LinkAsync(callerHumanId, LinkSide.Discord, discordId, username);
+        }
+        catch (LinkRefusalException ex)
+        {
+            return this.Redirect(LinkErrorUrl(frontendUrl, ex.Code));
+        }
+
+        return this.Redirect($"{frontendUrl}/linked-accounts#linked=discord");
+    }
+
+    private static string LinkErrorUrl(string frontendUrl, LinkRefusalCode code) =>
+        $"{frontendUrl}/linked-accounts#link_error={LinkRefusalException.Wire(code)}";
 
     [AllowAnonymous]
     [HttpGet("oidc/login")]

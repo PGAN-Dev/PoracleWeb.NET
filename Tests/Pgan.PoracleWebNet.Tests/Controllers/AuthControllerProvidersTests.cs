@@ -35,6 +35,8 @@ public class AuthControllerProvidersTests : ControllerTestBase
             Options.Create(oidc ?? new OidcSettings()),
             Options.Create(new PoracleSettings()),
             config ?? this._config,
+            new Mock<IAccountLinkService>().Object,
+            new Microsoft.AspNetCore.DataProtection.EphemeralDataProtectionProvider(),
             new Mock<ILogger<AuthController>>().Object);
 
     private static IConfiguration ConfigWith(string key, string value) =>

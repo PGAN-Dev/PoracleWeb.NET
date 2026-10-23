@@ -114,6 +114,8 @@ public class AuthControllerOidcTests : ControllerTestBase
             Options.Create(settings),
             Options.Create(new PoracleSettings()),
             new ConfigurationBuilder().Build(),
+            new Mock<IAccountLinkService>().Object,
+            new Microsoft.AspNetCore.DataProtection.EphemeralDataProtectionProvider(),
             new Mock<ILogger<AuthController>>().Object)
         {
             ControllerContext = new ControllerContext { HttpContext = http },
