@@ -2011,6 +2011,8 @@
     "PORACLE_LOCALE_HINT": "Standardsprog for nye brugere: {{locale}}, hentet fra Poracles egen konfiguration. Den, der vælger et sprog, eller hvis browser beder om et, som dette site har, får det i stedet.",
     "ENABLE_ROLES_LABEL": "Aktiver rollebaseret adgang",
     "ENABLE_ROLES_DESC": "Tillad kun brugere med specifikke Discord-roller at logge ind. Kræver Bot-token og Guild-ID.",
+    "DELEGATION_PORACLE_CHANNELS_LABEL": "Følg Poracles kanaladministratorer",
+    "DELEGATION_PORACLE_CHANNELS_DESC": "Lad alle, som PoracleNG angiver som kanaladministrator, også administrere den kanal her. Serverdækkende poster omfatter kun kanaler, der er registreret på dette site. Hvis PoracleNG ikke kan læse Discord-kanalerne i øjeblikket, kan listen, den rapporterer, være kortere, indtil den kan.",
     "ALLOWED_ROLE_IDS_LABEL": "Tilladte rolle-ID'er",
     "ALLOWED_ROLE_IDS_DESC": "Kommaseparerede Discord-rolle-ID'er, f.eks. 123456789,987654321. En bruger skal have mindst én af disse roller for at kunne logge ind. Lad stå tomt for at tillade alle.",
     "REGISTER_COMMAND_LABEL": "Registreringskommando",

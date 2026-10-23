@@ -1994,6 +1994,8 @@
     "PORACLE_LOCALE_HINT": "Idioma predeterminado para usuarios nuevos: {{locale}}, tomado de la configuración de Poracle. Quien elija un idioma, o cuyo navegador pida uno disponible en este sitio, recibe ese en su lugar.",
     "ENABLE_ROLES_LABEL": "Activar acceso basado en roles",
     "ENABLE_ROLES_DESC": "Permitir iniciar sesión solo a usuarios con roles de Discord específicos. Requiere Bot Token y Guild ID.",
+    "DELEGATION_PORACLE_CHANNELS_LABEL": "Seguir a los administradores de canal de Poracle",
+    "DELEGATION_PORACLE_CHANNELS_DESC": "Permite que cualquiera que PoracleNG indique como administrador de un canal también gestione ese canal aquí. Las entradas de todo el servidor solo cubren los canales registrados en este sitio. Si PoracleNG no puede leer los canales de Discord en ese momento, la lista que devuelve puede ser más corta hasta que pueda.",
     "ALLOWED_ROLE_IDS_LABEL": "IDs de roles permitidos",
     "ALLOWED_ROLE_IDS_DESC": "IDs de roles de Discord separados por comas, p. ej. 123456789,987654321. Un usuario necesita al menos uno de estos roles para iniciar sesión. Deja en blanco para permitir todos.",
     "REGISTER_COMMAND_LABEL": "Comando de registro",

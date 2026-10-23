@@ -26,7 +26,7 @@ import { AdminService, CreateDestinationRequest } from '../../core/services/admi
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
-import { DESTINATION_KINDS, isKnownKind, kindIcon, kindLabelKey } from '../../shared/utils/human-kind';
+import { DESTINATION_KINDS, isKnownKind, kindIcon, kindLabelKey, takesDelegates } from '../../shared/utils/human-kind';
 import { relativeTime } from '../../shared/utils/relative-time';
 import { serverReason } from '../../shared/utils/server-reason';
 
@@ -315,8 +315,9 @@ export class AdminDestinationsComponent implements OnInit {
   readonly isKnownKind = isKnownKind;
   readonly kindIcon = kindIcon;
   readonly kindLabelKey = kindLabelKey;
-
   readonly list = new AdminListState(this.destinations, 'admin_destinations_', (row, column) => this.getSortValue(row, column));
+
+  readonly takesDelegates = takesDelegates;
 
   readonly usersLoading = signal(true);
 

@@ -2002,6 +2002,8 @@
     "PORACLE_LOCALE_HINT": "Standardsprache für neue Benutzer: {{locale}}, aus Poracles eigener Konfiguration. Wer eine Sprache wählt oder dessen Browser eine hier vorhandene anfordert, erhält stattdessen diese.",
     "ENABLE_ROLES_LABEL": "Rollenbasierte Zugriffskontrolle aktivieren",
     "ENABLE_ROLES_DESC": "Nur Benutzer mit bestimmten Discord-Rollen dürfen sich anmelden. Erfordert Bot-Token und Guild-ID.",
+    "DELEGATION_PORACLE_CHANNELS_LABEL": "Kanal-Admins aus Poracle übernehmen",
+    "DELEGATION_PORACLE_CHANNELS_DESC": "Jeder, den PoracleNG als Kanal-Admin führt, kann diesen Kanal auch hier verwalten. Serverweite Einträge gelten nur für Kanäle, die auf dieser Seite registriert sind. Kann PoracleNG die Discord-Kanäle gerade nicht lesen, kann die gemeldete Liste kürzer ausfallen, bis es wieder geht.",
     "ALLOWED_ROLE_IDS_LABEL": "Zulässige Rollen-IDs",
     "ALLOWED_ROLE_IDS_DESC": "Kommagetrennte Discord-Rollen-IDs, z. B. 123456789,987654321. Ein Benutzer benötigt mindestens eine dieser Rollen, um sich anzumelden. Leer lassen, um alle zuzulassen.",
     "REGISTER_COMMAND_LABEL": "Registrierungsbefehl",

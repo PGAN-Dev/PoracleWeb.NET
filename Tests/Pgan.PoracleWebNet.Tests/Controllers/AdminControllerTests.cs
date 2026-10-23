@@ -412,6 +412,56 @@ public class AdminControllerTests : ControllerTestBase
     private static string? ErrorOf(object? value) =>
         value?.GetType().GetProperty("error")?.GetValue(value) as string;
 
+    /// <summary>The six kinds that grant power, read from the one list that defines them.</summary>
+    public static TheoryData<string> EveryDestinationKind
+    {
+        get
+        {
+            var data = new TheoryData<string>();
+            foreach (var kind in HumanKind.Destinations)
+            {
+                data.Add(kind);
+            }
+
+            return data;
+        }
+    }
+
+    /// <summary>
+    /// The directory is cached a minute. A create that fails may still have written the row (PoracleNG
+    /// commits the human first), and a rollback removes one, so every failure branch has to drop the cache:
+    /// otherwise the grant picker offers a row that is gone, or hides one that is there.
+    /// </summary>
+    [Theory]
+    [InlineData("discord:channel", "raids", false)] // our half-write, rolled back
+    [InlineData("discord:channel", "someone else's", false)] // another request's row, left alone
+    [InlineData(null, null, false)] // nothing written
+    [InlineData(null, null, true)] // could not be asked
+    public async Task AFailedCreateDropsTheCachedDirectoryOnEveryBranch(string? foundType, string? foundName, bool readFails)
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this._humanService.Setup(s => s.ExistsAsync("123456789012345678")).ReturnsAsync(false);
+        if (readFails)
+        {
+            this._humanService.Setup(s => s.GetByIdAsync("123456789012345678"))
+                .ThrowsAsync(new HttpRequestException("503", null, System.Net.HttpStatusCode.ServiceUnavailable));
+        }
+        else
+        {
+            this._humanService.Setup(s => s.GetByIdAsync("123456789012345678")).ReturnsAsync(
+                foundType is null ? null : new Human { Id = "123456789012345678", Name = foundName, Type = foundType });
+        }
+
+        this._humanService.Setup(s => s.CreateAsync(It.IsAny<Human>())).ThrowsAsync(new HttpRequestException("boom"));
+        this._userPurgeService.Setup(p => p.PurgeAsync("123456789012345678")).ReturnsAsync(true);
+
+        var result = await this._sut.CreateDestination(
+            new AdminController.CreateDestinationRequest("discord:channel", "123456789012345678", "raids", null));
+
+        Assert.Equal(Microsoft.AspNetCore.Http.StatusCodes.Status502BadGateway, Assert.IsType<ObjectResult>(result).StatusCode);
+        this._directory.Verify(d => d.Invalidate(), Times.AtLeastOnce);
+    }
+
     /// <summary>The directory is cached a minute; a new destination has to be grantable straight away.</summary>
     [Fact]
     public async Task CreatingADestinationRefreshesTheDirectory()
@@ -810,12 +860,90 @@ public class AdminControllerTests : ControllerTestBase
     [Fact]
     public async Task ImpersonateByIdRefusesADelegateWhoseGrantWasRevoked()
     {
+        // The claim still names u1; the live answer no longer does. Arranged explicitly: an unset mock
+        // answers default(UserRoles), which would pass this test whatever the controller read.
         SetupUser(this._sut, isAdmin: false, managedWebhooks: ["u1"]);
-        this._webhookDelegateService.Setup(s => s.GetManagedWebhookIdsAsync("123456789"))
-            .ReturnsAsync([]);
+        this._roleResolver.Setup(r => r.ResolveAsync("123456789"))
+            .ReturnsAsync(new Pgan.PoracleWebNet.Api.Services.UserRoles(false, null));
+        this._humanService.Setup(s => s.GetByIdAsync("u1"))
+            .ReturnsAsync(new Human { Id = "u1", Name = "WH", Type = "webhook", Enabled = 1, AdminDisable = 0, CurrentProfileNo = 1 });
 
         Assert.IsType<ForbidResult>(
             await this._sut.ImpersonateById(new AdminController.ImpersonateRequest("u1")));
+        this._jwtService.Verify(j => j.GenerateImpersonationToken(It.IsAny<UserInfo>(), It.IsAny<string>()), Times.Never);
+    }
+
+    /// <summary>
+    /// A grant can only ever reach a destination. If the row behind a granted id is a person -- a local
+    /// grant written before the type changed, or a PoracleNG list that names a user -- a delegate would
+    /// otherwise sign in as that person. The type is read from the live row, not from the grant. See #1025.
+    /// </summary>
+    [Theory]
+    [InlineData("discord:user")]
+    [InlineData("telegram:user")]
+    [InlineData(null)]
+    [InlineData("")]
+    public async Task ImpersonateByIdRefusesADelegateWhoseTargetIsAPerson(string? type)
+    {
+        SetupUser(this._sut, isAdmin: false);
+        this._roleResolver.Setup(r => r.ResolveAsync("123456789"))
+            .ReturnsAsync(new Pgan.PoracleWebNet.Api.Services.UserRoles(false, ["555"]));
+        this._humanService.Setup(s => s.GetByIdAsync("555"))
+            .ReturnsAsync(new Human { Id = "555", Name = "Someone", Type = type, Enabled = 1, CurrentProfileNo = 1 });
+
+        Assert.IsType<ForbidResult>(await this._sut.ImpersonateById(new AdminController.ImpersonateRequest("555")));
+        this._jwtService.Verify(j => j.GenerateImpersonationToken(It.IsAny<UserInfo>(), It.IsAny<string>()), Times.Never);
+    }
+
+    /// <summary>Review Focus 1: an unknown type is listed on Destinations but grants no power, this one included.</summary>
+    [Fact]
+    public async Task ImpersonateByIdRefusesADelegateWhoseTargetHasAnUnknownType()
+    {
+        SetupUser(this._sut, isAdmin: false);
+        this._roleResolver.Setup(r => r.ResolveAsync("123456789"))
+            .ReturnsAsync(new Pgan.PoracleWebNet.Api.Services.UserRoles(false, ["typo"]));
+        this._humanService.Setup(s => s.GetByIdAsync("typo"))
+            .ReturnsAsync(new Human { Id = "typo", Name = "Typo", Type = "x:unknown", Enabled = 1, CurrentProfileNo = 1 });
+
+        Assert.IsType<ForbidResult>(await this._sut.ImpersonateById(new AdminController.ImpersonateRequest("typo")));
+    }
+
+    [Theory]
+    [InlineData("discord:channel")]
+    [InlineData("DISCORD:CHANNEL")]
+    [InlineData("discord:thread")]
+    [InlineData("telegram:channel")]
+    [InlineData("telegram:group")]
+    [InlineData("telegram:topic")]
+    [InlineData("webhook")]
+    public async Task ImpersonateByIdLetsADelegateManageAChannel(string type)
+    {
+        SetupUser(this._sut, isAdmin: false);
+        this._roleResolver.Setup(r => r.ResolveAsync("123456789"))
+            .ReturnsAsync(new Pgan.PoracleWebNet.Api.Services.UserRoles(false, ["1100000000000000001"]));
+        this._humanService.Setup(s => s.GetByIdAsync("1100000000000000001"))
+            .ReturnsAsync(new Human { Id = "1100000000000000001", Name = "raids", Type = type, Enabled = 1, CurrentProfileNo = 1 });
+
+        Assert.IsType<OkObjectResult>(
+            await this._sut.ImpersonateById(new AdminController.ImpersonateRequest("1100000000000000001")));
+        this._jwtService.Verify(
+            j => j.GenerateImpersonationToken(It.Is<UserInfo>(u => u.Id == "1100000000000000001"), "123456789"), Times.Once);
+    }
+
+    /// <summary>
+    /// The legitimate case beside the refusals: the type check is for delegates. An admin inspects people
+    /// through this endpoint too, and any type at all.
+    /// </summary>
+    [Theory]
+    [InlineData("discord:user")]
+    [InlineData("x:unknown")]
+    public async Task ImpersonateByIdStillLetsAnAdminInspectAnyAccount(string type)
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this._humanService.Setup(s => s.GetByIdAsync("555"))
+            .ReturnsAsync(new Human { Id = "555", Name = "Someone", Type = type, Enabled = 1, CurrentProfileNo = 1 });
+
+        Assert.IsType<OkObjectResult>(await this._sut.ImpersonateById(new AdminController.ImpersonateRequest("555")));
     }
 
     [Fact]
@@ -981,13 +1109,14 @@ public class AdminControllerTests : ControllerTestBase
     }
 
     /// <summary>Every kind in HumanKind.Destinations takes delegates now, not only webhooks. See #1025.</summary>
-    [Fact]
-    public async Task AddWebhookDelegateGrantsADiscordChannel()
+    [Theory]
+    [MemberData(nameof(EveryDestinationKind))]
+    public async Task AddWebhookDelegateGrantsEveryDestinationKind(string type)
     {
         SetupUser(this._sut, isAdmin: true);
         this.GivenWebhookAndUserExist(webhookId: "123456789012345678");
         this._humanService.Setup(s => s.GetByIdAsync("123456789012345678"))
-            .ReturnsAsync(new Human { Id = "123456789012345678", Type = "discord:channel" });
+            .ReturnsAsync(new Human { Id = "123456789012345678", Type = type });
         this._webhookDelegateService.Setup(s => s.AddDelegateAsync("123456789012345678", "u2")).ReturnsAsync(["u2"]);
 
         var result = await this._sut.AddWebhookDelegate(new AdminController.WebhookDelegateRequest("123456789012345678", "u2"));

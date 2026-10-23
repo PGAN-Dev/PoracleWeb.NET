@@ -49,6 +49,14 @@ export function isKnownKind(type: string | null | undefined): boolean {
   return LABEL_KEYS.has(normalise(type));
 }
 
+/**
+ * Whether a grant can name this type: one of `DESTINATION_KINDS`, ignoring case. Mirrors the server's
+ * `HumanKind.IsKnownDestination`, which compares without trimming, so this does not trim either.
+ */
+export function takesDelegates(type: string | null | undefined): boolean {
+  return DESTINATION_KINDS.includes((type ?? '').toLowerCase());
+}
+
 /** The translation key naming a known type; anything else is `ADMIN.TYPE_OTHER`. */
 export function kindLabelKey(type: string | null): string {
   return LABEL_KEYS.get(normalise(type)) ?? 'ADMIN.TYPE_OTHER';

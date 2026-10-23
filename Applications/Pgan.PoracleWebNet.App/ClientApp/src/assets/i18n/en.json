@@ -1994,6 +1994,8 @@
     "PORACLE_LOCALE_HINT": "Default language for new users: {{locale}}, taken from Poracle's own configuration. Anyone who picks a language, or whose browser asks for one this site has, gets that instead.",
     "ENABLE_ROLES_LABEL": "Enable role-based access",
     "ENABLE_ROLES_DESC": "Only allow users with specific Discord roles to log in. Requires Bot Token and Guild ID.",
+    "DELEGATION_PORACLE_CHANNELS_LABEL": "Follow Poracle's channel admins",
+    "DELEGATION_PORACLE_CHANNELS_DESC": "Let anyone PoracleNG names as a channel admin manage that channel here too. Guild-wide entries cover only channels registered on this site. If PoracleNG can't read the Discord channels at that moment, the list it reports can be shorter until it can.",
     "ALLOWED_ROLE_IDS_LABEL": "Allowed role IDs",
     "ALLOWED_ROLE_IDS_DESC": "Comma-separated Discord role IDs, e.g. 123456789,987654321. A user needs at least one of these roles to log in. Leave empty to allow all.",
     "REGISTER_COMMAND_LABEL": "Register command",

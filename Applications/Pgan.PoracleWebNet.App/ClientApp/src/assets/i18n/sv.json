@@ -2003,6 +2003,8 @@
     "PORACLE_LOCALE_HINT": "Standardspråk för nya användare: {{locale}}, hämtat från Poracles egen konfiguration. Den som väljer ett språk, eller vars webbläsare ber om ett som den här webbplatsen har, får det i stället.",
     "ENABLE_ROLES_LABEL": "Aktivera rollbaserad åtkomst",
     "ENABLE_ROLES_DESC": "Tillåt endast användare med specifika Discord-roller att logga in. Kräver Bot Token och Guild ID.",
+    "DELEGATION_PORACLE_CHANNELS_LABEL": "Följ Poracles kanaladministratörer",
+    "DELEGATION_PORACLE_CHANNELS_DESC": "Låt alla som PoracleNG anger som kanaladministratör hantera den kanalen här också. Serveromfattande poster gäller bara kanaler som är registrerade på den här webbplatsen. Om PoracleNG inte kan läsa Discord-kanalerna just då kan listan den rapporterar vara kortare tills det går.",
     "ALLOWED_ROLE_IDS_LABEL": "Tillåtna roll-ID:n",
     "ALLOWED_ROLE_IDS_DESC": "Kommaseparerade Discord-roll-ID:n, t.ex. 123456789,987654321. En användare behöver minst en av dessa roller för att logga in. Lämna tomt för att tillåta alla.",
     "REGISTER_COMMAND_LABEL": "Registreringskommando",

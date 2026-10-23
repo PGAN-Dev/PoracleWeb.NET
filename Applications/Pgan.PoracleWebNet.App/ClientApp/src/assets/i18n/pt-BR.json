@@ -2002,6 +2002,8 @@
     "PORACLE_LOCALE_HINT": "Idioma padrão para novos usuários: {{locale}}, obtido da configuração do próprio Poracle. Quem escolher um idioma, ou cujo navegador peça um que este site tenha, recebe esse.",
     "ENABLE_ROLES_LABEL": "Ativar acesso baseado em funções",
     "ENABLE_ROLES_DESC": "Permitir apenas o login de usuários com funções Discord específicas. Requer Bot Token e Guild ID.",
+    "DELEGATION_PORACLE_CHANNELS_LABEL": "Seguir os administradores de canal do Poracle",
+    "DELEGATION_PORACLE_CHANNELS_DESC": "Permitir que qualquer pessoa que o PoracleNG indique como administradora de um canal também gerencie esse canal aqui. As entradas para o servidor inteiro abrangem apenas os canais cadastrados neste site. Se o PoracleNG não conseguir ler os canais do Discord naquele momento, a lista que ele retorna pode ser menor até conseguir.",
     "ALLOWED_ROLE_IDS_LABEL": "IDs de funções permitidas",
     "ALLOWED_ROLE_IDS_DESC": "IDs de funções Discord separados por vírgulas, ex.: 123456789,987654321. Um usuário precisa de pelo menos uma dessas funções para fazer login. Deixe em branco para permitir todos.",
     "REGISTER_COMMAND_LABEL": "Comando de registro",

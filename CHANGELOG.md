@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Admin > Destinations creates webhooks, Discord channels and threads, and Telegram channels, groups and topics.** Add destination asks what kind it is first, then for the id that kind uses: a URL for a webhook, the channel or thread id for Discord, the negative chat id for Telegram, and for a topic the chat id and topic number, saved as `-1001234567890:42`. An id that can't be real (letters in a Discord id, a positive Telegram chat id) is refused before it's sent, and an optional note can go with it. An id already in Poracle is refused with the name and kind of the account holding it. Nothing checks that the channel exists, so paste the id rather than typing it. [Adding a destination](docs/features/webhooks.md#adding-a-destination) lists where to find each kind's id (#1025).
+- **Admin > Settings > Administration has "Follow Poracle's channel admins".** Off by default. Turned on, anyone PoracleNG lists as admin of a Discord or Telegram channel can manage that channel here too, as long as the channel is registered on this site. Saving it takes effect straight away rather than after the one-minute role cache (#1025).
 
 ### Changed
 
@@ -26,6 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 
 - **A channel or webhook can no longer sign in as a person, and the login page says why.** A Poracle row whose type isn't a person's (a Discord channel or thread, a Telegram group, channel or topic, a webhook) is refused at Discord, OIDC and Telegram sign-in and on `/api/auth/me`, so a Telegram group id or a channel id can't open a session. The login page shows "This sign-in belongs to a channel or webhook in Poracle, not a person. Sign in with your own account." in all eleven languages. People whose type is blank or `discord:user` and `telegram:user` still sign in.
+- **A delegate can manage destinations only.** Opening an account as a delegate now checks the account's live type, so a grant whose id belongs to a person, or to a type PoracleWeb.NET doesn't know, is refused instead of opening that account. Admins can still open any account. The Destinations page offers Manage delegates only on the six kinds a grant can name (#1025).
+- **Test alerts are limited per person, not per account managed.** A delegate opening several destinations used to get five test alerts a minute on each; they now share one allowance with the delegate's own session (#1025).
 
 ## [3.0.0] - 2026-10-22
 

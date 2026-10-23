@@ -221,14 +221,17 @@
                 [attr.aria-label]="'ADMIN.MANAGE_ALARMS' | translate">
                 <mat-icon>tune</mat-icon>
               </button>
-              <button
-                mat-icon-button
-                data-test="manage-delegates"
-                (click)="openDelegatesDialog(row)"
-                [matTooltip]="'ADMIN.MANAGE_DELEGATES' | translate"
-                [attr.aria-label]="'ADMIN.MANAGE_DELEGATES' | translate">
-                <mat-icon>group_add</mat-icon>
-              </button>
+              <!-- Only the six kinds a grant can name: the server refuses one on an unknown type. -->
+              @if (takesDelegates(row.type)) {
+                <button
+                  mat-icon-button
+                  data-test="manage-delegates"
+                  (click)="openDelegatesDialog(row)"
+                  [matTooltip]="'ADMIN.MANAGE_DELEGATES' | translate"
+                  [attr.aria-label]="'ADMIN.MANAGE_DELEGATES' | translate">
+                  <mat-icon>group_add</mat-icon>
+                </button>
+              }
               <button
                 mat-icon-button
                 color="warn"

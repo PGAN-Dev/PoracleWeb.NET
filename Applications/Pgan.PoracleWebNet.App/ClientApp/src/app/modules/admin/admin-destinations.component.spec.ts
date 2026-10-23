@@ -258,13 +258,25 @@ describe('AdminDestinationsComponent list', () => {
   it('shows managers on every destination row', () => {
     const { rowFor } = setup();
 
-    const manage = (name: string) => rowFor(name).querySelector('[data-test="manage-delegates"]');
     const managers = (name: string) => rowFor(name).querySelector('.delegate-avatars');
     for (const name of ['Raid hook', 'raids', 'North group', 'Typo row']) {
-      expect(manage(name)).toBeTruthy();
       expect(managers(name)).toBeTruthy();
     }
     expect(rowFor('raids').querySelector('[data-test="no-delegates"]')).toBeTruthy();
+  });
+
+  it('offers to manage delegates only on the six kinds a grant can name', () => {
+    // The server refuses a grant on an unknown type, so the button would open a dialog whose every save
+    // fails. A topic is one of the six and keeps it, as does a type stored in another case.
+    const topic = human('-1001234567890:42', { name: 'Topic row', type: 'telegram:topic' });
+    const shouty = human('1100000000000000002', { name: 'Shouty row', type: 'Discord:Thread' });
+    const { rowFor } = setup([hook, channel, group, odd, topic, shouty]);
+
+    const manage = (name: string) => rowFor(name).querySelector('[data-test="manage-delegates"]');
+    expect(manage('Typo row')).toBeNull();
+    for (const name of ['Raid hook', 'raids', 'North group', 'Topic row', 'Shouty row']) {
+      expect(manage(name)).toBeTruthy();
+    }
   });
 
   it('shortens a webhook URL, shows any other id whole, and copies either', () => {

@@ -1994,6 +1994,8 @@
     "PORACLE_LOCALE_HINT": "Lingua predefinita per i nuovi utenti: {{locale}}, presa dalla configurazione di Poracle. Chi sceglie una lingua, o il cui browser ne richiede una presente qui, ottiene invece quella.",
     "ENABLE_ROLES_LABEL": "Abilita accesso basato sui ruoli",
     "ENABLE_ROLES_DESC": "Consenti l'accesso solo agli utenti con specifici ruoli Discord. Richiede Bot Token e Guild ID.",
+    "DELEGATION_PORACLE_CHANNELS_LABEL": "Segui gli admin dei canali di Poracle",
+    "DELEGATION_PORACLE_CHANNELS_DESC": "Consenti a chiunque PoracleNG indichi come admin di un canale di gestire quel canale anche qui. Le voci valide per tutto il server coprono solo i canali registrati su questo sito. Se in quel momento PoracleNG non riesce a leggere i canali Discord, l'elenco che restituisce può essere più corto finché non ci riesce.",
     "ALLOWED_ROLE_IDS_LABEL": "ID ruoli consentiti",
     "ALLOWED_ROLE_IDS_DESC": "ID ruoli Discord separati da virgole, es. 123456789,987654321. Un utente deve avere almeno uno di questi ruoli per accedere. Lascia vuoto per consentirli tutti.",
     "REGISTER_COMMAND_LABEL": "Comando di registrazione",

@@ -444,6 +444,10 @@ public partial class AdminController(
         }
         catch (HttpRequestException)
         {
+            // Dropped before anything else: the create may have written a row and the rollback below may
+            // remove one, so whichever branch answers, the cached directory can no longer be trusted.
+            this._destinationDirectory.Invalidate();
+
             // PoracleNG commits the human and can still fail on the rest of its create, leaving a row the
             // admin was told was never written -- and a retry that answers 409 for a webhook the UI does
             // not show. Undo the half-write so the reported failure is the truth. See #482.
@@ -801,6 +805,15 @@ public partial class AdminController(
         if (human is null)
         {
             return this.NotFound();
+        }
+
+        // A delegate reaches destinations only, judged by the live row's type rather than by the grant: a
+        // local grant outlives a type change, and an id in PoracleNG's lists can name a person. Without this
+        // a delegate whose grant named a person signed in as them. Unknown types are refused too, since only
+        // the six in HumanKind.Destinations grant anything. Admins inspect any account. See #1025.
+        if (!this.IsAdmin && !HumanKind.IsKnownDestination(human.Type))
+        {
+            return this.Forbid();
         }
 
         var avatarUrl = Services.AvatarCacheService.GetAvatarOrDefault(request.UserId, human.Type);

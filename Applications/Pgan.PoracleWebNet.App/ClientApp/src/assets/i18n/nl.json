@@ -2003,6 +2003,8 @@
     "PORACLE_LOCALE_HINT": "Standaardtaal voor nieuwe gebruikers: {{locale}}, uit de configuratie van Poracle zelf. Wie een taal kiest, of van wie de browser er een vraagt die deze site heeft, krijgt die in plaats daarvan.",
     "ENABLE_ROLES_LABEL": "Op rollen gebaseerde toegang inschakelen",
     "ENABLE_ROLES_DESC": "Laat alleen gebruikers met specifieke Discord-rollen inloggen. Vereist Bot Token en Guild ID.",
+    "DELEGATION_PORACLE_CHANNELS_LABEL": "Kanaalbeheerders van Poracle volgen",
+    "DELEGATION_PORACLE_CHANNELS_DESC": "Laat iedereen die PoracleNG als kanaalbeheerder noemt dat kanaal ook hier beheren. Serverbrede vermeldingen gelden alleen voor kanalen die op deze site zijn geregistreerd. Als PoracleNG de Discord-kanalen op dat moment niet kan lezen, kan de lijst die het teruggeeft korter zijn totdat dat weer lukt.",
     "ALLOWED_ROLE_IDS_LABEL": "Toegestane rol-ID's",
     "ALLOWED_ROLE_IDS_DESC": "Door komma's gescheiden Discord-rol-ID's, bijv. 123456789,987654321. Een gebruiker heeft minstens één van deze rollen nodig om in te loggen. Laat leeg om alle toe te staan.",
     "REGISTER_COMMAND_LABEL": "Registratiecommando",

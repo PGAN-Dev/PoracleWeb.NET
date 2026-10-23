@@ -2003,6 +2003,8 @@
     "PORACLE_LOCALE_HINT": "Langue par défaut des nouveaux utilisateurs : {{locale}}, issue de la configuration de Poracle. Quiconque choisit une langue, ou dont le navigateur en demande une présente sur ce site, obtient celle-là.",
     "ENABLE_ROLES_LABEL": "Activer le contrôle d'accès par rôle",
     "ENABLE_ROLES_DESC": "Autoriser uniquement les utilisateurs avec des rôles Discord spécifiques à se connecter. Nécessite un Bot Token et un Guild ID.",
+    "DELEGATION_PORACLE_CHANNELS_LABEL": "Suivre les admins de salon de Poracle",
+    "DELEGATION_PORACLE_CHANNELS_DESC": "Permet à toute personne que PoracleNG désigne comme admin d'un salon de gérer aussi ce salon ici. Les entrées valables pour tout le serveur ne couvrent que les salons enregistrés sur ce site. Si PoracleNG ne peut pas lire les salons Discord à ce moment-là, la liste qu'il renvoie peut être plus courte jusqu'à ce qu'il y parvienne.",
     "ALLOWED_ROLE_IDS_LABEL": "IDs de rôles autorisés",
     "ALLOWED_ROLE_IDS_DESC": "IDs de rôles Discord séparés par des virgules, par ex. 123456789,987654321. Un utilisateur doit avoir au moins un de ces rôles pour se connecter. Laissez vide pour autoriser tous.",
     "REGISTER_COMMAND_LABEL": "Commande d'enregistrement",
