@@ -342,12 +342,33 @@ describe('LoginComponent', () => {
       expect(fixture.nativeElement.textContent).not.toContain('constructor');
     });
 
+    it('shows the destination refusal from a Telegram 403', () => {
+      setup();
+      (TestBed.inject(AuthService).loginWithTelegram as jest.Mock).mockReturnValue(
+        throwError(() => ({ error: { code: 'destination_account' }, status: 403 })),
+      );
+      fixture.detectChanges();
+      component['handleTelegramAuth']({ id: '1' });
+      expect(component['error']()).toBe('AUTH.ERR_DESTINATION_ACCOUNT');
+    });
+
+    it('keeps the generic Telegram message for any other failure', () => {
+      setup();
+      (TestBed.inject(AuthService).loginWithTelegram as jest.Mock).mockReturnValue(
+        throwError(() => ({ error: { error: 'bad hash' }, status: 401 })),
+      );
+      fixture.detectChanges();
+      component['handleTelegramAuth']({ id: '1' });
+      expect(component['error']()).toBe('AUTH.ERR_TELEGRAM_FAILED');
+    });
+
     it('still names every code the API sends', () => {
       const codes: Record<string, string> = {
         oidc_disabled: 'AUTH.ERR_OIDC_DISABLED',
         oidc_no_identity: 'AUTH.ERR_OIDC_NO_IDENTITY',
         oidc_token_exchange_failed: 'AUTH.ERR_OIDC_TOKEN_EXCHANGE',
         oidc_userinfo_failed: 'AUTH.ERR_OIDC_USERINFO',
+        destination_account: 'AUTH.ERR_DESTINATION_ACCOUNT',
         discord_user_fetch_failed: 'AUTH.ERR_DISCORD_FETCH',
         missing_code: 'AUTH.ERR_MISSING_CODE',
         missing_required_role: 'AUTH.ERR_MISSING_ROLE',

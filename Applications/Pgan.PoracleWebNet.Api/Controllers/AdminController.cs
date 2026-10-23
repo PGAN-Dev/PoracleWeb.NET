@@ -326,43 +326,114 @@ public partial class AdminController(
     }
 
     [HttpPost("webhooks")]
-    public async Task<IActionResult> CreateWebhook([FromBody] CreateWebhookRequest request)
+    public Task<IActionResult> CreateWebhook([FromBody] CreateWebhookRequest request) =>
+        this.CreateDestinationAsync(HumanKind.Webhook, request.Url, request.Name, null, "A webhook with this URL already exists.");
+
+    /// <summary>
+    /// Creates a webhook, Discord channel or thread, or Telegram channel, group or topic as a Poracle human.
+    /// Only the six types in <see cref="HumanKind.Destinations"/> are accepted: a person is created by
+    /// signing in, and an unknown type is an operator's typo. See #1025.
+    /// </summary>
+    [HttpPost("destinations")]
+    public Task<IActionResult> CreateDestination([FromBody] CreateDestinationRequest request) =>
+        this.CreateDestinationAsync(request.Type, request.Id, request.Name, request.Notes, "A destination with this id already exists.");
+
+    private async Task<IActionResult> CreateDestinationAsync(string? type, string? id, string? name, string? notes, string conflictError)
     {
         if (!this.IsAdmin)
         {
             return this.Forbid();
         }
 
-        if (string.IsNullOrWhiteSpace(request.Url) || string.IsNullOrWhiteSpace(request.Name))
+        // An impersonation token carries isAdmin = false today, so this is belt and braces: a create made
+        // from inside a session would be filed against the account being inspected.
+        if (this.IsImpersonating)
+        {
+            return this.Forbid();
+        }
+
+        if (!HumanKind.IsKnownDestination(type))
         {
             return this.BadRequest(new
             {
-                error = "Name and URL are required."
+                error = $"Type must be one of: {string.Join(", ", HumanKind.Destinations.Order(StringComparer.Ordinal))}.",
             });
         }
 
-        var exists = await this._humanService.ExistsAsync(request.Url);
-        if (exists)
+        id = id?.Trim();
+        name = name?.Trim();
+        if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(name))
         {
-            return this.Conflict(new
+            return this.BadRequest(new
             {
-                error = "A webhook with this URL already exists."
+                error = "A name and an id are required.",
+            });
+        }
+
+        if (name.Any(char.IsControl))
+        {
+            return this.BadRequest(new
+            {
+                error = "The name cannot contain control characters.",
+            });
+        }
+
+        var idError = HumanKind.ValidateNewId(type!, id);
+        if (idError is not null)
+        {
+            return this.BadRequest(new
+            {
+                error = idError,
             });
         }
 
         var human = new Human
         {
-            Id = request.Url,
-            Name = request.Name,
-            Type = "webhook",
+            Id = id,
+            Name = name,
+            Type = type!.ToLowerInvariant(),
             Enabled = 1,
             AdminDisable = 0,
+            Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim(),
         };
+
+        return await this.CreateHumanAsync(human, conflictError);
+    }
+
+    /// <summary>
+    /// Creates a human row through PoracleNG. A create that fails is only rolled back when the row found
+    /// at the id is the one this request tried to write: another request may have created the same id
+    /// between the pre-check and the failure, and that row is not ours to delete (#1028).
+    /// </summary>
+    private async Task<IActionResult> CreateHumanAsync(Human human, string conflictError)
+    {
+        var exists = await this._humanService.ExistsAsync(human.Id);
+        if (exists)
+        {
+            // Name what is already there, so an admin who meant a different channel can tell it apart from
+            // one they created earlier. A failed read still answers the 409, just without the detail: any
+            // failure, since a timeout surfaces as TaskCanceledException and would otherwise be a 500.
+            Human? existing = null;
+            try
+            {
+                existing = await this._humanService.GetByIdAsync(human.Id);
+            }
+            catch (Exception)
+            {
+            }
+
+            return this.Conflict(new
+            {
+                error = conflictError,
+                type = existing?.Type,
+                name = existing?.Name,
+            });
+        }
 
         try
         {
             var created = await this._humanService.CreateAsync(human);
-            LogWebhookCreated(this._logger, this.UserId, request.Url);
+            LogDestinationCreated(this._logger, this.UserId, human.Type, human.Id);
             return this.Ok(created);
         }
         catch (HttpRequestException)
@@ -372,30 +443,45 @@ public partial class AdminController(
             // not show. Undo the half-write so the reported failure is the truth. See #482.
             try
             {
-                if (await this._humanService.ExistsAsync(request.Url))
+                var found = await this._humanService.GetByIdAsync(human.Id);
+                if (found is not null)
                 {
-                    await this._humanService.DeleteUserAsync(request.Url);
+                    if (string.Equals(found.Type, human.Type, StringComparison.OrdinalIgnoreCase)
+                        && string.Equals(found.Name, human.Name, StringComparison.Ordinal))
+                    {
+                        // PurgeAsync, not DeleteUserAsync, so any delegate grants on the row go with it.
+                        await this._userPurgeService.PurgeAsync(human.Id);
+                    }
+                    else
+                    {
+                        return this.StatusCode(StatusCodes.Status502BadGateway, new
+                        {
+                            error = "Poracle rejected it, and a record with this id already exists. Nothing was changed.",
+                        });
+                    }
                 }
             }
             catch (HttpRequestException)
             {
-                // The existence read throws on a failed answer since #994, where it used to answer "no" and
-                // skip the cleanup silently. Either way nothing can say whether a half-write is there, so
-                // the admin is told that rather than "nothing was created".
+                // The read throws on a failed answer since #994, where it used to answer "no" and skip the
+                // cleanup silently. Either way nothing can say whether a half-write is there, so the admin
+                // is told that rather than "nothing was created".
                 return this.StatusCode(StatusCodes.Status502BadGateway, new
                 {
-                    error = "Poracle rejected the webhook, and could not be asked whether part of it was saved. Check the webhook list before trying again.",
+                    error = "Poracle rejected the destination, and could not be asked whether part of it was saved. Check the destination list before trying again.",
                 });
             }
 
             return this.StatusCode(StatusCodes.Status502BadGateway, new
             {
-                error = "Poracle rejected the webhook. Nothing was created.",
+                error = "Poracle rejected the destination. Nothing was created.",
             });
         }
     }
 
     public record CreateWebhookRequest(string Name, string Url);
+
+    public record CreateDestinationRequest(string Type, string Id, string Name, string? Notes);
 
     /// <summary>
     /// Which PoracleNG this instance is talking to, and whether that is new enough.
@@ -803,8 +889,8 @@ public partial class AdminController(
         });
     }
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Admin {AdminId} created webhook {WebhookId}")]
-    private static partial void LogWebhookCreated(ILogger logger, string adminId, string webhookId);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Admin {AdminId} created {DestinationType} destination {DestinationId}")]
+    private static partial void LogDestinationCreated(ILogger logger, string adminId, string? destinationType, string destinationId);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch Poracle config for admin list.")]
     private static partial void LogPoracleConfigFetchFailed(ILogger logger, Exception exception);

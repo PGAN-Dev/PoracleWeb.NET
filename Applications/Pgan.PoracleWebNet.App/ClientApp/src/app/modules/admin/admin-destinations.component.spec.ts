@@ -4,7 +4,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideTranslateService, TranslateService } from '@ngx-translate/core';
-import { of, throwError } from 'rxjs';
+import { of } from 'rxjs';
 
 import { AdminDestinationsComponent } from './admin-destinations.component';
 import { AdminUser } from '../../core/models';
@@ -100,19 +100,21 @@ describe('AdminDestinationsComponent delegates column', () => {
 });
 
 /**
- * #482: when PoracleNG refuses a webhook and the existence probe fails too, the API answers 502 telling the
- * admin to check the list before retrying, because a retry can sit a second row beside a half-written one.
- * That sentence has to reach the admin, not "Check the URL and try again".
+ * The Add dialog saves the destination itself and closes only on success, so a refusal keeps the admin's
+ * input (its reasons are tested on the dialog). The page announces the new row, reloads, and shows it.
  */
-describe('AdminDestinationsComponent add failure', () => {
-  function setup(error: unknown) {
+describe('AdminDestinationsComponent add', () => {
+  const created = { id: '1200000000000000009', name: 'New raids', type: 'discord:channel' };
+
+  function setup(closedWith: unknown, rows: AdminUser[][] = [[]]) {
     const snack = { open: jest.fn() };
+    let load = 0;
     const adminService = {
-      createWebhook: jest.fn(() => throwError(() => error)),
+      createDestination: jest.fn(() => of(undefined)),
       getAllWebhookDelegates: jest.fn(() => of({})),
       getPoracleAdmins: jest.fn(() => of([])),
       getPorocleDelegates: jest.fn(() => of({})),
-      getUsers: jest.fn(() => of([])),
+      getUsers: jest.fn(() => of(rows[Math.min(load++, rows.length - 1)])),
     };
     TestBed.configureTestingModule({
       providers: [
@@ -123,35 +125,101 @@ describe('AdminDestinationsComponent add failure', () => {
       imports: [AdminDestinationsComponent, NoopAnimationsModule],
     });
     TestBed.overrideProvider(MatSnackBar, { useValue: snack });
-    TestBed.overrideProvider(MatDialog, {
-      useValue: { open: jest.fn(() => ({ afterClosed: () => of({ name: 'Hook', url: 'https://discord.com/api/webhooks/1/x' }) })) },
-    });
+    TestBed.overrideProvider(MatDialog, { useValue: { open: jest.fn(() => ({ afterClosed: () => of(closedWith) })) } });
+    const translate = TestBed.inject(TranslateService);
+    translate.setTranslation('en', { ADMIN: { SNACK_DESTINATION_ADDED: 'Destination "{{name}}" added' }, TOAST: { OK: 'OK' } });
+    translate.use('en');
     const fixture = TestBed.createComponent(AdminDestinationsComponent);
     fixture.detectChanges();
     fixture.componentInstance.openAddDialog();
-    return snack;
+    fixture.detectChanges();
+    return { adminService, component: fixture.componentInstance, fixture, snack };
   }
 
-  afterEach(() => TestBed.resetTestingModule());
-
-  it('shows the half-write warning the 502 carries', () => {
-    const warning =
-      'Poracle rejected the webhook, and could not be asked whether part of it was saved. Check the webhook list before trying again.';
-    const snack = setup({ error: { error: warning }, status: 502 });
-
-    expect(snack.open).toHaveBeenCalledWith(warning, 'TOAST.OK', { duration: 4000 });
+  afterEach(() => {
+    TestBed.resetTestingModule();
+    sessionStorage.clear();
   });
 
-  it('shows "Nothing was created." when the API could confirm it', () => {
-    const snack = setup({ error: { error: 'Poracle rejected the webhook. Nothing was created.' }, status: 502 });
+  it('announces the new destination and reloads, leaving the save to the dialog', () => {
+    const { adminService, snack } = setup(created);
 
-    expect(snack.open).toHaveBeenCalledWith('Poracle rejected the webhook. Nothing was created.', 'TOAST.OK', { duration: 4000 });
+    expect(adminService.createDestination).not.toHaveBeenCalled();
+    expect(snack.open).toHaveBeenCalledWith('Destination "New raids" added', 'OK', { duration: 3000 });
+    expect(adminService.getUsers).toHaveBeenCalledTimes(2);
   });
 
-  it('keeps its own translated message for a server error that says nothing useful', () => {
-    const snack = setup({ error: { error: 'An unexpected error occurred.' }, status: 500 });
+  it('does nothing when the dialog is cancelled', () => {
+    const { adminService, snack } = setup(null);
 
-    expect(snack.open).toHaveBeenCalledWith('ADMIN.SNACK_FAILED_ADD_DESTINATION', 'TOAST.OK', { duration: 4000 });
+    expect(snack.open).not.toHaveBeenCalled();
+    expect(adminService.getUsers).toHaveBeenCalledTimes(1);
+  });
+
+  it('turns to the page holding the new row and marks it', () => {
+    const before = Array.from({ length: 30 }, (_, i) =>
+      human(`11000000000000000${String(i).padStart(2, '0')}`, { type: 'discord:channel' }),
+    );
+    const after = [...before, human(created.id, { name: created.name, type: 'discord:channel' })];
+    const { component, fixture } = setup(created, [before, after]);
+
+    expect(component.list.pageIndex()).toBe(1);
+    const marked = (fixture.nativeElement as HTMLElement).querySelector('tr.just-added');
+    expect(marked?.textContent).toContain('New raids');
+  });
+
+  describe('scrolling the new row into view', () => {
+    const before = Array.from({ length: 30 }, (_, i) =>
+      human(`11000000000000000${String(i).padStart(2, '0')}`, { type: 'discord:channel' }),
+    );
+    const after = [...before, human(created.id, { name: created.name, type: 'discord:channel' })];
+    let scrolled: { row: Element; options: ScrollIntoViewOptions | undefined }[];
+    const originalScroll = Element.prototype.scrollIntoView;
+    const originalMatchMedia = window.matchMedia;
+
+    beforeEach(() => {
+      scrolled = [];
+      Element.prototype.scrollIntoView = function (this: Element, options?: boolean | ScrollIntoViewOptions) {
+        scrolled.push({ options: options as ScrollIntoViewOptions, row: this });
+      };
+    });
+
+    afterEach(() => {
+      Element.prototype.scrollIntoView = originalScroll;
+      window.matchMedia = originalMatchMedia;
+    });
+
+    function prefersReducedMotion(reduce: boolean): void {
+      window.matchMedia = jest.fn((query: string) => ({ matches: reduce && query.includes('reduce') }) as MediaQueryList);
+    }
+
+    // At 1440x900 a 25-row page put the highlighted row below the fold, so the admin saw a snackbar and nothing else.
+    it('scrolls the highlighted row into view, smoothly', () => {
+      prefersReducedMotion(false);
+      const { fixture } = setup(created, [before, after]);
+      fixture.detectChanges();
+
+      expect(scrolled).toHaveLength(1);
+      expect(scrolled[0].row.textContent).toContain('New raids');
+      expect(scrolled[0].options).toEqual({ behavior: 'smooth', block: 'center' });
+    });
+
+    it('jumps rather than glides when the viewer asks for reduced motion', () => {
+      prefersReducedMotion(true);
+      const { fixture } = setup(created, [before, after]);
+      fixture.detectChanges();
+
+      expect(scrolled).toHaveLength(1);
+      expect(scrolled[0].options).toEqual({ behavior: 'auto', block: 'center' });
+    });
+
+    it('scrolls nothing when the dialog is cancelled', () => {
+      prefersReducedMotion(false);
+      const { fixture } = setup(null, [before]);
+      fixture.detectChanges();
+
+      expect(scrolled).toHaveLength(0);
+    });
   });
 });
 

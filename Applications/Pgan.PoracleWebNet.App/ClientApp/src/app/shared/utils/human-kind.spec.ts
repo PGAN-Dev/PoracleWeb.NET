@@ -38,16 +38,12 @@ describe('human-kind', () => {
     expect(mentionCapable(undefined)).toBe(false);
   });
 
-  it('treats a missing, blank or :user type as a person and anything else as a destination', () => {
-    expect(isPersonType(null)).toBe(true);
-    expect(isPersonType(undefined)).toBe(true);
-    expect(isPersonType('')).toBe(true);
-    expect(isPersonType('  ')).toBe(true);
-    expect(isPersonType('discord:user')).toBe(true);
-    expect(isPersonType('Telegram:User')).toBe(true);
-
-    expect(isPersonType('webhook')).toBe(false);
-    expect(isPersonType('discord:channel')).toBe(false);
-    expect(isPersonType('x:unknown')).toBe(false);
+  it('recognises a person the way the server does: no type, or one ending :user', () => {
+    for (const type of [null, undefined, '', '  ', 'discord:user', 'telegram:user', 'Discord:User', 'Telegram:User']) {
+      expect(isPersonType(type)).toBe(true);
+    }
+    for (const type of ['webhook', 'discord:channel', 'telegram:group', 'x:unknown']) {
+      expect(isPersonType(type)).toBe(false);
+    }
   });
 });
