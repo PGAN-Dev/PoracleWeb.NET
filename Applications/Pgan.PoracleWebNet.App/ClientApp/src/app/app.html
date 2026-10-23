@@ -4,11 +4,16 @@
 }
 @if (auth.isImpersonating()) {
   <div class="impersonation-banner">
-    <mat-icon>visibility</mat-icon>
-    <span>{{ 'BANNER.VIEWING_AS' | translate: { name: auth.user()?.username } }}</span>
-    <button mat-raised-button (click)="stopImpersonating()">
+    <mat-icon class="banner-icon">visibility</mat-icon>
+    @if (managedKindKey(); as kindKey) {
+      <span class="banner-text">{{ kindKey | translate: { name: auth.user()?.username } }}</span>
+    } @else {
+      <span class="banner-text">{{ 'BANNER.VIEWING_AS' | translate: { name: auth.user()?.username } }}</span>
+    }
+    <button mat-raised-button class="banner-exit" (click)="stopImpersonating()">
       <mat-icon>arrow_back</mat-icon>
-      {{ 'BANNER.EXIT_IMPERSONATION' | translate }}
+      <span class="exit-full">{{ 'BANNER.EXIT_IMPERSONATION' | translate }}</span>
+      <span class="exit-short">{{ 'BANNER.EXIT_SHORT' | translate }}</span>
     </button>
   </div>
 }
@@ -292,14 +297,14 @@
             }
           }
 
-          @if (!auth.isAdmin() && webhookNavItems().length > 0) {
+          @if (!auth.isAdmin() && destinationNavItems().length > 0) {
             <mat-divider class="nav-divider"></mat-divider>
 
-            <!-- Webhooks Section (for delegates) -->
+            <!-- Destinations Section (for delegates) -->
             @if (!sidenavCollapsed() || overlayNav()) {
-              <div class="nav-group-label">{{ 'NAV.GROUP_WEBHOOKS' | translate }}</div>
+              <div class="nav-group-label">{{ 'NAV.GROUP_DESTINATIONS' | translate }}</div>
             }
-            @for (item of webhookNavItems(); track item.route) {
+            @for (item of destinationNavItems(); track item.route) {
               <a
                 mat-list-item
                 [routerLink]="item.route"

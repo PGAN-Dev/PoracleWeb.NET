@@ -1,0 +1,123 @@
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>{{ 'ADMIN.MY_DESTINATIONS_TITLE' | translate }}</h1>
+    <p class="page-description">{{ 'ADMIN.MY_DESTINATIONS_DESC' | translate }}</p>
+  </div>
+</div>
+
+<div class="page-content">
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+  } @else if (isImpersonating()) {
+    <div class="empty-state" data-test="managing-note">
+      <mat-icon class="empty-icon">campaign</mat-icon>
+      <p>{{ 'ADMIN.MY_DESTINATIONS_MANAGING' | translate }}</p>
+      <button mat-flat-button color="primary" class="exit-btn" data-test="exit-managing" (click)="exitManaging()">
+        {{ 'BANNER.EXIT_IMPERSONATION' | translate }}
+      </button>
+    </div>
+  } @else if (destinations().length === 0) {
+    <div class="empty-state">
+      <mat-icon class="empty-icon">campaign</mat-icon>
+      <h2>{{ 'ADMIN.NO_DESTINATIONS_ASSIGNED' | translate }}</h2>
+      <p>{{ 'ADMIN.NO_DESTINATIONS_ASSIGNED_DESC' | translate }}</p>
+    </div>
+  } @else {
+    <div class="table-container">
+      <table mat-table [dataSource]="destinations()" class="destinations-table">
+        <ng-container matColumnDef="name">
+          <th mat-header-cell *matHeaderCellDef>{{ 'ADMIN.COLUMN_NAME' | translate }}</th>
+          <td mat-cell *matCellDef="let wh">{{ wh.name || ('ADMIN.UNNAMED' | translate) }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="type">
+          <th mat-header-cell *matHeaderCellDef>{{ 'ADMIN.COLUMN_TYPE' | translate }}</th>
+          <td mat-cell *matCellDef="let row">
+            <ng-container *ngTemplateOutlet="kindTpl; context: { $implicit: row }" />
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="url">
+          <th mat-header-cell *matHeaderCellDef class="col-id">{{ 'ADMIN.COLUMN_ID' | translate }}</th>
+          <td mat-cell *matCellDef="let wh" class="col-id">
+            <!-- A webhook id is a URL with a secret token in it: host and hook number only, and no tooltip. -->
+            @if (isWebhook(wh)) {
+              <span class="destination-id">{{ idLabel(wh) }}</span>
+            } @else {
+              <span class="destination-id" [matTooltip]="wh.id">{{ wh.id }}</span>
+            }
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>{{ 'ADMIN.COLUMN_STATUS' | translate }}</th>
+          <td mat-cell *matCellDef="let wh">
+            <ng-container *ngTemplateOutlet="statusTpl; context: { $implicit: wh }" />
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef>{{ 'ADMIN.COLUMN_ACTIONS' | translate }}</th>
+          <td mat-cell *matCellDef="let wh">
+            <ng-container *ngTemplateOutlet="manageTpl; context: { $implicit: wh }" />
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="columns"></tr>
+        <tr mat-row *matRowDef="let row; columns: columns"></tr>
+      </table>
+    </div>
+
+    <!-- A phone gets one item per destination: the table needed more width than a phone has. -->
+    <ul class="destination-list" [attr.aria-label]="'ADMIN.MY_DESTINATIONS_TITLE' | translate">
+      @for (wh of destinations(); track wh.id) {
+        <li class="destination-item" data-test="destination-item">
+          <div class="item-head">
+            <span class="item-name">{{ wh.name || ('ADMIN.UNNAMED' | translate) }}</span>
+            <ng-container *ngTemplateOutlet="kindTpl; context: { $implicit: wh }" />
+          </div>
+          <div class="item-foot">
+            <ng-container *ngTemplateOutlet="statusTpl; context: { $implicit: wh }" />
+            <ng-container *ngTemplateOutlet="manageTpl; context: { $implicit: wh }" />
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</div>
+
+<ng-template #kindTpl let-row>
+  @let icon = kindIcon(row.type);
+  @let known = isKnownKind(row.type);
+  <!-- An unknown type shows its raw string, as on Destinations, so an operator's typo stays visible. -->
+  <span [class]="'kind kind-' + icon" [matTooltip]="known ? '' : ('ADMIN.TYPE_OTHER' | translate)">
+    <span class="kind-glyph" aria-hidden="true"
+      ><mat-icon>{{ icon }}</mat-icon></span
+    >
+    <span class="kind-label">{{ known ? (kindLabelKey(row.type) | translate) : row.type }}</span>
+  </span>
+</ng-template>
+
+<ng-template #statusTpl let-wh>
+  @if (wh.adminDisable === 1) {
+    <span class="status-chip status-disabled">{{ 'ADMIN.STATUS_BLOCKED' | translate }}</span>
+  } @else if (wh.enabled === 0) {
+    <span class="status-chip status-paused">{{ 'ADMIN.STATUS_STOPPED' | translate }}</span>
+  } @else {
+    <span class="status-chip status-active">{{ 'ADMIN.STATUS_ACTIVE' | translate }}</span>
+  }
+</ng-template>
+
+<ng-template #manageTpl let-wh>
+  <button
+    mat-flat-button
+    class="manage-btn"
+    color="primary"
+    [disabled]="isImpersonating()"
+    (click)="manageAlarms(wh)"
+    [matTooltip]="(isImpersonating() ? 'ADMIN.MANAGE_ALARMS_IMPERSONATING' : 'ADMIN.MANAGE_ALARMS_TOOLTIP') | translate">
+    <mat-icon>tune</mat-icon> {{ 'ADMIN.MANAGE_ALARMS' | translate }}
+  </button>
+</ng-template>

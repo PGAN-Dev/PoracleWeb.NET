@@ -126,9 +126,9 @@ public sealed class JwtService(IOptions<JwtSettings> jwtSettings) : IJwtService
             claims.Add(new Claim("avatarUrl", user.AvatarUrl));
         }
 
-        if (user.ManagedWebhooks is { Length: > 0 })
+        if (user.ManagedDestinations is { Length: > 0 })
         {
-            claims.Add(new Claim("managedWebhooks", string.Join(',', user.ManagedWebhooks)));
+            claims.Add(new Claim("managedWebhooks", string.Join(',', user.ManagedDestinations)));
         }
 
         return claims;

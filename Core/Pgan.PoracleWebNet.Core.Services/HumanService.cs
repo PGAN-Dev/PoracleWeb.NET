@@ -27,9 +27,6 @@ public class HumanService(
     public async Task<IEnumerable<Human>> GetAllAsync() =>
         await this._humanProxy.ListHumansAsync();
 
-    public async Task<IEnumerable<Human>> GetWebhooksAsync() =>
-        await this._humanProxy.ListHumansAsync(type: "webhook");
-
     public async Task<IEnumerable<Human>> GetByIdsAsync(IEnumerable<string> ids)
     {
         var idList = ids as IReadOnlyCollection<string> ?? ids.ToList();
@@ -124,6 +121,11 @@ public class HumanService(
         Notes = json.GetStringPropOrNull("notes"),
     };
 
+    private static readonly JsonSerializerOptions CreateBodyOptions = new()
+    {
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
+    };
+
     private static JsonElement SerializeHumanForCreate(Human human)
     {
         var json = JsonSerializer.Serialize(new
@@ -136,7 +138,10 @@ public class HumanService(
             // of type bool", so webhook creation could never succeed.
             enabled = human.Enabled != 0,
             admin_disable = human.AdminDisable != 0,
-        });
+            // Declared on V2CreateHumanBody as of 5.4.0. Null is left out rather than sent, so a human with
+            // no notes keeps PoracleNG's default. See #1025.
+            notes = human.Notes,
+        }, CreateBodyOptions);
 
         using var doc = JsonDocument.Parse(json);
         return doc.RootElement.Clone();

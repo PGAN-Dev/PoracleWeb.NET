@@ -16,17 +16,18 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 
+import { AdminListState, StatusFilter, notesLabel } from './admin-list-state';
 import { AdminUser } from '../../core/models';
 import { AdminService } from '../../core/services/admin.service';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DiscordAvatarComponent } from '../../shared/components/discord-avatar/discord-avatar.component';
+import { relativeTime } from '../../shared/utils/relative-time';
 import { serverReason } from '../../shared/utils/server-reason';
-
-type StatusFilter = 'all' | 'active' | 'stopped' | 'blocked';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -49,6 +50,7 @@ type StatusFilter = 'all' | 'active' | 'stopped' | 'blocked';
     MatSelectModule,
     TranslatePipe,
     DiscordAvatarComponent,
+    RouterLink,
   ],
   selector: 'app-admin-users',
   standalone: true,
@@ -61,64 +63,24 @@ export class AdminUsersComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
-  // Everything that is not a webhook, so this tab and the Webhooks tab together account for every
-  // account. Filtering to discord* meant a Telegram user appeared in neither list, and every admin
-  // action here is list-driven -- so they could not be blocked, paused, purged or impersonated at all.
-  // See #632.
-  private readonly discordUsers = computed(() => this.allUsers().filter(u => u.type !== 'webhook'));
-
   private readonly i18n = inject(I18nService);
+
+  // Everyone who is a person, so this tab and the Destinations tab together account for every
+  // account. A Telegram user is a person too: filtering to discord* once left them in neither list,
+  // and every admin action here is list-driven. See #632 and #1025.
+  private readonly people = computed(() => this.allUsers().filter(u => u.kind === 'person'));
 
   private readonly snackBar = inject(MatSnackBar);
 
-  readonly searchTerm = signal('');
-  readonly sortActive = signal('');
-  readonly sortDirection = signal<'asc' | 'desc' | ''>('');
-  readonly statusFilter = signal<StatusFilter>('all');
-  readonly filteredUsers = computed(() => {
-    const term = this.searchTerm().toLowerCase().trim();
-    const status = this.statusFilter();
-    let users = this.discordUsers();
-
-    if (term) {
-      users = users.filter(
-        u =>
-          u.id.toLowerCase().includes(term) ||
-          (u.name || '').toLowerCase().includes(term) ||
-          (this.notesLabel(u.notes) || '').toLowerCase().includes(term),
-      );
-    }
-
-    if (status !== 'all') {
-      users = users.filter(u => {
-        if (status === 'blocked') return u.adminDisable === 1;
-        if (status === 'stopped') return u.adminDisable !== 1 && u.enabled === 0;
-        if (status === 'active') return u.adminDisable !== 1 && u.enabled !== 0;
-        return true;
-      });
-    }
-
-    const active = this.sortActive();
-    const direction = this.sortDirection();
-    if (!active || !direction) return users;
-
-    return [...users].sort((a, b) => {
-      const dir = direction === 'asc' ? 1 : -1;
-      const valA = this.getSortValue(a, active);
-      const valB = this.getSortValue(b, active);
-      if (valA < valB) return -1 * dir;
-      if (valA > valB) return 1 * dir;
-      return 0;
-    });
-  });
-
-  readonly pageIndex = signal(parseInt(sessionStorage.getItem('admin_pageIndex') || '0', 10));
-  readonly pageSize = signal(parseInt(sessionStorage.getItem('admin_pageSize') || '25', 10));
-
-  readonly paginatedUsers = computed(() => {
-    const start = this.pageIndex() * this.pageSize();
-    return this.filteredUsers().slice(start, start + this.pageSize());
-  });
+  readonly list = new AdminListState(this.people, 'admin_', (user, column) => this.getSortValue(user, column));
+  readonly filteredUsers = this.list.filtered;
+  readonly pageIndex = this.list.pageIndex;
+  readonly pageSize = this.list.pageSize;
+  readonly paginatedUsers = this.list.page;
+  readonly searchTerm = this.list.searchTerm;
+  readonly sortActive = this.list.sortActive;
+  readonly sortDirection = this.list.sortDirection;
+  readonly statusFilter = this.list.statusFilter;
 
   readonly userColumns = ['name', 'id', 'enabled', 'disabledSince', 'profileNo', 'actions'];
 
@@ -180,15 +142,10 @@ export class AdminUsersComponent implements OnInit {
     return isNaN(d.getTime()) ? '' : d.toLocaleString();
   }
 
+  /** In the display language, as Destinations does; this used to build "2mo ago" in English on every page. */
   getRelativeDate(dateStr: string): string {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return '—';
-    const days = Math.floor((Date.now() - d.getTime()) / 86400000);
-    if (days === 0) return 'Today';
-    if (days === 1) return 'Yesterday';
-    if (days < 30) return `${days}d ago`;
-    if (days < 365) return `${Math.floor(days / 30)}mo ago`;
-    return `${Math.floor(days / 365)}y ago`;
+    const then = new Date(dateStr).getTime();
+    return isNaN(then) ? '—' : relativeTime(then, Date.now(), this.i18n.currentLang());
   }
 
   impersonate(user: AdminUser): void {
@@ -198,7 +155,7 @@ export class AdminUsersComponent implements OnInit {
       .subscribe({
         error: err => this.showFailure(err, 'ADMIN.SNACK_FAILED_IMPERSONATE'),
         next: res => {
-          this.auth.impersonate(res.token);
+          this.auth.impersonate(res.token, '/admin/users');
         },
       });
   }
@@ -233,41 +190,28 @@ export class AdminUsersComponent implements OnInit {
     this.loadUsers();
   }
 
-  /**
-   * Normalizes the Poracle `notes` value for display. PoracleJS/NG can leave a quoted-empty
-   * sentinel (`""`) or whitespace in the column for users that aren't channels — those should
-   * render nothing. Strips a single layer of surrounding quotes so a JSON-quoted note shows clean.
-   */
   notesLabel(notes: string | null): string | null {
-    if (!notes) return null;
-    let s = notes.trim();
-    if (s.length >= 2 && ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'")))) {
-      s = s.slice(1, -1).trim();
-    }
-    return s.length > 0 ? s : null;
+    return notesLabel(notes);
   }
 
   onPageChange(event: PageEvent): void {
-    this.pageIndex.set(event.pageIndex);
-    this.pageSize.set(event.pageSize);
-    sessionStorage.setItem('admin_pageIndex', String(event.pageIndex));
-    sessionStorage.setItem('admin_pageSize', String(event.pageSize));
+    this.list.setPage(event.pageIndex, event.pageSize);
   }
 
   onSearchChange(term: string): void {
     this.searchTerm.set(term);
-    this.pageIndex.set(0);
+    this.list.resetPage();
   }
 
   onSortChange(sort: Sort): void {
     this.sortActive.set(sort.active);
     this.sortDirection.set(sort.direction);
-    this.pageIndex.set(0);
+    this.list.resetPage();
   }
 
   onStatusFilterChange(status: StatusFilter): void {
     this.statusFilter.set(status);
-    this.pageIndex.set(0);
+    this.list.resetPage();
   }
 
   pauseUser(user: AdminUser): void {

@@ -38,10 +38,12 @@ interface NavItemShape {
 describe('App nav filtering (#236)', () => {
   let settingsSignal: WritableSignal<Record<string, string>>;
   let isAdminSignal: WritableSignal<boolean>;
+  let delegateSignal: WritableSignal<boolean>;
 
-  const setup = (siteSettings: Record<string, string>, isAdmin: boolean) => {
+  const setup = (siteSettings: Record<string, string>, isAdmin: boolean, delegate = false) => {
     settingsSignal = signal(siteSettings);
     isAdminSignal = signal(isAdmin);
+    delegateSignal = signal(delegate);
 
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
@@ -62,7 +64,7 @@ describe('App nav filtering (#236)', () => {
         {
           provide: AuthService,
           useValue: {
-            hasManagedWebhooks: () => false,
+            hasManagedDestinations: () => delegateSignal(),
             isAdmin: () => isAdminSignal(),
             loadCurrentUser: jest.fn(),
             logout: jest.fn(),
@@ -159,6 +161,14 @@ describe('App nav filtering (#236)', () => {
     const app = setup({ disable_areas: 'false' }, false);
     expect(settingsRoutes(app)).toContain('/areas');
   });
+
+  it('shows the Destinations group only to a delegate with grants', () => {
+    const destinationRoutes = (app: App): string[] =>
+      (app as unknown as { destinationNavItems: () => NavItemShape[] }).destinationNavItems().map(i => i.route);
+
+    expect(destinationRoutes(setup({}, false, true))).toEqual(['/my-destinations']);
+    expect(destinationRoutes(setup({}, false, false))).toEqual([]);
+  });
 });
 
 /**
@@ -195,7 +205,7 @@ describe('App bootstrap language defaults (#770)', () => {
           provide: AuthService,
           useValue: {
             getProviders: () => of({}),
-            hasManagedWebhooks: () => false,
+            hasManagedDestinations: () => false,
             isAdmin: () => false,
             isAuthenticated: () => opts.authenticated,
             loadCurrentUser: jest.fn(),
@@ -305,7 +315,7 @@ describe('App stop impersonating', () => {
         {
           provide: AuthService,
           useValue: {
-            hasManagedWebhooks: () => false,
+            hasManagedDestinations: () => false,
             isAdmin: () => false,
             stopImpersonating: jest.fn(() => Promise.resolve(restored)),
           },
@@ -337,6 +347,60 @@ describe('App stop impersonating', () => {
   });
 });
 
+describe('App impersonation banner', () => {
+  const setup = (type: string | null) => {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideNoopAnimations(),
+        provideRouter([]),
+        provideTranslateService(),
+        {
+          provide: SettingsService,
+          useValue: { isDisabled: () => false, loadOnce: () => of([]), siteSettings: signal({}) },
+        },
+        {
+          provide: AuthService,
+          useValue: {
+            hasManagedDestinations: () => false,
+            isAdmin: () => false,
+            isImpersonating: () => true,
+            user: signal({ username: '#raid-alerts', type }),
+          },
+        },
+        { provide: DashboardService, useValue: { getCounts: () => of({}) } },
+        { provide: I18nService, useValue: { init: jest.fn() } },
+      ],
+    });
+    const app = TestBed.runInInjectionContext(() => new App());
+    return (app as unknown as { managedKindKey: () => string | null }).managedKindKey();
+  };
+
+  it('names a Discord channel in the banner', () => {
+    expect(setup('discord:channel')).toBe('BANNER.MANAGING_DISCORD_CHANNEL');
+    const html = fs.readFileSync(path.join(__dirname, 'app.html'), 'utf8');
+    expect(html).toContain("'BANNER.EXIT_SHORT' | translate");
+    expect(html).not.toContain('BANNER.MANAGING_KIND');
+  });
+
+  it('falls back to "Viewing as" for a type it cannot name, rather than calling it Other', () => {
+    expect(setup('x:unknown')).toBeNull();
+  });
+
+  it('still names every known kind', () => {
+    expect(setup('webhook')).toBe('BANNER.MANAGING_WEBHOOK');
+    expect(setup('telegram:topic')).toBe('BANNER.MANAGING_TELEGRAM_TOPIC');
+  });
+
+  it('keeps "Viewing as" for a person, including one with no type at all', () => {
+    expect(setup('discord:user')).toBeNull();
+    expect(setup(null)).toBeNull();
+    expect(setup('')).toBeNull();
+  });
+});
+
 /**
  * Tablets in portrait (820px) kept the permanent 250px sidenav, which left one narrow column of cards,
  * and showed two controls for the one menu: the toolbar's hamburger and the sidenav's collapse chevron.
@@ -358,7 +422,7 @@ describe('App sidenav by width', () => {
         provideRouter([]),
         provideTranslateService(),
         { provide: SettingsService, useValue: { isDisabled: () => false, loadOnce: () => of([]), siteSettings: signal({}) } },
-        { provide: AuthService, useValue: { hasManagedWebhooks: () => false, isAdmin: () => false } },
+        { provide: AuthService, useValue: { hasManagedDestinations: () => false, isAdmin: () => false } },
         { provide: DashboardService, useValue: { getCounts: () => of({}) } },
         { provide: I18nService, useValue: { init: jest.fn() } },
       ],

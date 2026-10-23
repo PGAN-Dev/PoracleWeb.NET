@@ -31,6 +31,7 @@ describe('AdminService', () => {
     currentProfileNo: 1,
     disabledDate: null,
     enabled: 1,
+    kind: 'person',
     language: 'en',
     lastChecked: null,
     notes: null,
@@ -164,12 +165,13 @@ describe('AdminService', () => {
     httpMock.expectOne(`${API}/api/admin/poracle-admins`).flush(['admin1', 'admin2']);
   });
 
-  it('should create a webhook', () => {
-    service.createWebhook('my-hook', 'https://example.com').subscribe();
+  it('createDestination posts to /api/admin/destinations', () => {
+    const body = { id: '-1001234567890:42', name: 'Raids topic', notes: 'PGAN', type: 'telegram:topic' };
+    service.createDestination(body).subscribe();
 
-    const req = httpMock.expectOne(`${API}/api/admin/webhooks`);
+    const req = httpMock.expectOne(`${API}/api/admin/destinations`);
     expect(req.request.method).toBe('POST');
-    expect(req.request.body).toEqual({ name: 'my-hook', url: 'https://example.com' });
+    expect(req.request.body).toEqual(body);
     req.flush(null);
   });
 

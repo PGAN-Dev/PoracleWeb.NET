@@ -22,6 +22,7 @@ import { DashboardService } from './core/services/dashboard.service';
 import { I18nService } from './core/services/i18n.service';
 import { DEFAULT_SITE_TITLE, SettingsService } from './core/services/settings.service';
 import { AlertDefaultsDialogComponent } from './shared/components/alert-defaults-dialog/alert-defaults-dialog.component';
+import { isKnownKind, kindLabelKey } from './shared/utils/human-kind';
 
 interface NavItem {
   adminOnly?: boolean;
@@ -29,7 +30,7 @@ interface NavItem {
   delegateOnly?: boolean;
   /** Site setting key that disables this item when set to 'True' */
   disableKey?: string;
-  group: 'alarms' | 'settings' | 'admin' | 'webhooks' | 'support';
+  group: 'alarms' | 'settings' | 'admin' | 'destinations' | 'support';
   icon: string;
   iconColor?: string;
   label: string;
@@ -210,7 +211,7 @@ export class App implements OnInit {
     { group: 'settings', icon: 'cleaning_services', iconColor: '#795548', label: 'NAV.CLEANING', route: '/cleaning' },
     { group: 'support', icon: 'help', iconColor: '#673ab7', label: 'NAV.HELP', route: '/help' },
     { adminOnly: true, group: 'admin', icon: 'people', iconColor: '#455a64', label: 'NAV.USERS', route: '/admin/users' },
-    { adminOnly: true, group: 'admin', icon: 'webhook', iconColor: '#00897b', label: 'NAV.WEBHOOKS', route: '/admin/webhooks' },
+    { adminOnly: true, group: 'admin', icon: 'campaign', iconColor: '#00897b', label: 'NAV.DESTINATIONS', route: '/admin/destinations' },
     { adminOnly: true, group: 'admin', icon: 'layers', iconColor: '#ef6c00', label: 'NAV.ADMIN_AREAS', route: '/admin/areas' },
     { adminOnly: true, group: 'admin', icon: 'settings', iconColor: '#546e7a', label: 'NAV.SETTINGS', route: '/admin/settings' },
     {
@@ -222,7 +223,14 @@ export class App implements OnInit {
       label: 'NAV.USER_GEOFENCES',
       route: '/admin/geofence-submissions',
     },
-    { delegateOnly: true, group: 'webhooks', icon: 'webhook', iconColor: '#00897b', label: 'NAV.MY_WEBHOOKS', route: '/my-webhooks' },
+    {
+      delegateOnly: true,
+      group: 'destinations',
+      icon: 'campaign',
+      iconColor: '#00897b',
+      label: 'NAV.MY_DESTINATIONS',
+      route: '/my-destinations',
+    },
   ];
 
   protected readonly adminNavItems = computed(() =>
@@ -264,10 +272,22 @@ export class App implements OnInit {
 
   protected readonly darkMode = signal(localStorage.getItem('poracle-theme') === 'dark');
 
+  protected readonly destinationNavItems = computed(() =>
+    this.navItems.filter(item => item.group === 'destinations' && (!item.delegateOnly || this.auth.hasManagedDestinations())),
+  );
+
   protected readonly headerLogoUrl = computed(() => this.settingsService.siteSettings()['header_logo_url'] || '');
 
   protected readonly hideHeaderLogo = computed(() => this.settingsService.isDisabled('hide_header_logo'));
   protected readonly i18n = inject(I18nService);
+  /**
+   * While managing a destination, the banner sentence key for its kind (a whole sentence per kind, so grammar can differ by language). Null for a person and for a type the
+   * app cannot name, so the banner says "Viewing as" rather than "Managing Other".
+   */
+  protected readonly managedKindKey = computed(() => {
+    const type = this.auth.user()?.type;
+    return isKnownKind(type) ? kindLabelKey(type ?? null).replace('ADMIN.TYPE_', 'BANNER.MANAGING_') : null;
+  });
 
   /**
    * True when the sidenav slides over the page (`mode="over"`) and the toolbar's hamburger is the only nav
@@ -309,10 +329,6 @@ export class App implements OnInit {
     }
     return this.darkMode() ? 'linear-gradient(135deg, #0d47a1 0%, #1a237e 100%)' : 'linear-gradient(135deg, #1565c0 0%, #0d47a1 100%)';
   });
-
-  protected readonly webhookNavItems = computed(() =>
-    this.navItems.filter(item => item.group === 'webhooks' && (!item.delegateOnly || this.auth.hasManagedWebhooks())),
-  );
 
   constructor() {
     this.applyTheme();

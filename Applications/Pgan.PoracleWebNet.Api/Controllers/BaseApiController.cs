@@ -28,7 +28,7 @@ public abstract class BaseApiController : ControllerBase
     /// </remarks>
     protected bool IsImpersonating => this.User.FindFirst("impersonatedBy") is not null;
     protected string Username => this.User.FindFirstValue("username") ?? string.Empty;
-    protected string[] ManagedWebhooks => this.User.FindFirstValue("managedWebhooks")
+    protected string[] ManagedDestinations => this.User.FindFirstValue("managedWebhooks")
         ?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? [];
 
     /// <summary>

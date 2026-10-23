@@ -663,27 +663,32 @@ beside the control rather than bouncing you to the dashboard.
 
 ---
 
-## A delegate cannot see "My Webhooks"
+## A delegate cannot see "My Destinations"
 
-**Symptom**: You granted someone a webhook on **Admin > Webhooks**, and they report no *My Webhooks*
-item in the sidebar.
+**Symptom**: You granted someone a destination on **Admin > Destinations**, and they report no *My
+Destinations* item in the sidebar.
 
 **Checks, in order**:
 
-1. **Did the grant land?** Reopen the webhook's delegates dialog. A removable chip with their name
+1. **Did the grant land?** Reopen the destination's delegates dialog. A removable chip with their name
    means it exists. A grant naming an account that does not exist is refused rather than stored, so an
    absent chip usually means they had never signed in when you added them — they must register with
    the Poracle bot and sign in once before they can be granted.
 
 2. **Give it a minute.** Delegation is resolved live but cached for about a minute per person.
 
-3. **Are they an administrator?** Admins can manage any webhook and are never listed as a delegate of
-   a particular one, so they never see the item — it is for delegates only.
+3. **Are they an administrator?** Admins can manage any destination and are never listed as a delegate
+   of a particular one, so they never see the item. It is for delegates only.
 
 4. **Are you thinking of the bot?** `discord.webhook_admins` in Poracle's config grants access through
    the Discord bot, not here. The reverse also holds: a row added here grants nothing to the bot. A
    Poracle-side grant *does* work here, but not the other way round.
 
+5. **Expecting a PoracleNG channel admin?** Someone PoracleNG lists in `[[discord.delegated_admins]]` or
+   `[[telegram.delegated_admins]]` appears only when **Admin → Settings → Administration → Follow
+   Poracle's channel admins** (`delegation_poracle_channels`) is on, and only for channels registered as
+   destinations on this site. It is off by default.
+
 **Note**: before v2.17 the item came from a claim stamped into the sign-in token, so a new delegate
 waited up to 24 hours or had to sign out and back in. If you are running an older build, that is the
-explanation — see [Webhooks & Delegates](features/webhooks.md).
+explanation — see [Destinations & Delegates](features/webhooks.md).

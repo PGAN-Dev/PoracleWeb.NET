@@ -5,6 +5,14 @@ import { Observable } from 'rxjs';
 import { ConfigService } from './config.service';
 import { AdminUser, Human, PoracleServerProfile } from '../models';
 
+/** The body of `POST /api/admin/destinations`. `type` is one of the six destination types in `human-kind.ts`. */
+export interface CreateDestinationRequest {
+  id: string;
+  name: string;
+  notes?: string;
+  type: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AdminService {
   private readonly config = inject(ConfigService);
@@ -17,8 +25,9 @@ export class AdminService {
     });
   }
 
-  createWebhook(name: string, url: string): Observable<void> {
-    return this.http.post<void>(`${this.config.apiHost}/api/admin/webhooks`, { name, url });
+  /** Creates a webhook, Discord channel or thread, or Telegram channel, group or topic. See #1025. */
+  createDestination(req: CreateDestinationRequest): Observable<void> {
+    return this.http.post<void>(`${this.config.apiHost}/api/admin/destinations`, req);
   }
 
   deleteUser(userId: string): Observable<void> {
@@ -46,11 +55,11 @@ export class AdminService {
   }
 
   /**
-   * The webhooks the signed-in delegate manages. /my-webhooks used to call getUsers(), which is
+   * The destinations the signed-in delegate manages. The page used to call getUsers(), which is
    * admin-only — so the one page built for delegates 403'd for every delegate. See #564.
    */
-  getManagedWebhooks(): Observable<AdminUser[]> {
-    return this.http.get<AdminUser[]>(`${this.config.apiHost}/api/admin/my-webhooks`);
+  getManagedDestinations(): Observable<AdminUser[]> {
+    return this.http.get<AdminUser[]>(`${this.config.apiHost}/api/admin/my-destinations`);
   }
 
   getPoracleAdmins(): Observable<string[]> {

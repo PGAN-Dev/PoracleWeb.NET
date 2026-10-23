@@ -107,7 +107,7 @@ them; availability is entirely a question of which PoracleNG is running.
 
 ## Impersonation
 
-An admin viewing another account, or a delegate managing a webhook, can **read** quiet periods but
+An admin viewing another account, or a delegate managing a destination, can **read** quiet periods but
 cannot set or lift one. The write endpoints answer 403.
 
 Reads stay open on purpose: "why is this person getting nothing" is exactly the question an admin

@@ -38,7 +38,7 @@ describe('serverReason with an opted-in 5xx', () => {
   const halfWrite = {
     error: {
       error:
-        'Poracle rejected the webhook, and could not be asked whether part of it was saved. Check the webhook list before trying again.',
+        'Poracle rejected the destination, and could not be asked whether part of it was saved. Check the destination list before trying again.',
     },
     status: 502,
   };

@@ -82,6 +82,18 @@ describe('errorInterceptor', () => {
     expect(toast.error).not.toHaveBeenCalledWith('HTTP_ERROR.UNAUTHORIZED');
   });
 
+  it('returns an ended inspection to the page it started from', () => {
+    localStorage.setItem('poracle_token', 'impersonation-token');
+    localStorage.setItem('poracle_admin_token', 'admin-token');
+    localStorage.setItem('poracle_impersonation_return', '/admin/destinations');
+
+    http.get('/api/dashboard').subscribe({ error: () => {} });
+    httpMock.expectOne('/api/dashboard').flush(null, { status: 401, statusText: 'Unauthorized' });
+
+    expect(router.navigate).toHaveBeenCalledWith(['/admin/destinations'], { state: { adminReturn: true } });
+    expect(localStorage.getItem('poracle_impersonation_return')).toBeNull();
+  });
+
   it('falls back only once, so a dead admin token still ends the session', () => {
     // The fallback consumes the stash, so the #616 guarantee still lands: the second 401 finds nothing
     // to restore and clears everything. Without that it would loop, or strand a session that cannot work.

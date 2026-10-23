@@ -28,6 +28,7 @@ import { createFailureText } from '../../shared/utils/add-outcome';
 import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, EDIT, compose, isAutoDelete, isEdit, preserve } from '../../shared/utils/clean-flags';
 import { ANY_COSTUME, costumeHintKey } from '../../shared/utils/costumes';
+import { mentionCapable } from '../../shared/utils/human-kind';
 import { minTimeLabel, minTimeOptions } from '../../shared/utils/min-time';
 import { MINIOR_POKEMON_ID } from '../../shared/utils/minior';
 
@@ -56,6 +57,7 @@ import { MINIOR_POKEMON_ID } from '../../shared/utils/minior';
   templateUrl: './pokemon-edit-dialog.component.html',
 })
 export class PokemonEditDialogComponent implements OnInit {
+  private readonly auth = inject(AuthService);
   private readonly fb = inject(FormBuilder);
   private readonly i18n = inject(I18nService);
   private readonly iconService = inject(IconService);
@@ -118,8 +120,6 @@ export class PokemonEditDialogComponent implements OnInit {
     template: [this.data.template ?? ''],
   });
 
-  readonly isWebhook = inject(AuthService).isImpersonating();
-
   pokemonName = this.data.pokemonId === 0 ? this.i18n.instant('POKEMON.ALL_POKEMON') : this.masterData.getPokemonName(this.data.pokemonId);
 
   readonly pvpCaps = computed(() => this.poracleConfig.serverConfig().pvpCaps);
@@ -133,6 +133,8 @@ export class PokemonEditDialogComponent implements OnInit {
   readonly scope = signal<AlarmScope>(scopeOf(this.data.overrideLocationLabel, this.data.overrideAreas, this.data.distance));
 
   readonly showCapPicker = computed(() => this.pvpCaps().length > 1);
+
+  readonly showMention = this.auth.isImpersonating() && mentionCapable(this.auth.user()?.type);
 
   /** Minior's stats are rerolled on catch, so its IV, CP and level filters never match. See `utils/minior.ts`. */
   readonly showMiniorNote = this.data.pokemonId === MINIOR_POKEMON_ID;

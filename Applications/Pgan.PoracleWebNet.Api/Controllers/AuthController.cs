@@ -220,6 +220,12 @@ public partial class AuthController(
             return this.Redirect($"{frontendUrl}/login#error=user_not_registered");
         }
 
+        if (!HumanKind.IsPerson(human.Type))
+        {
+            LogDestinationLoginRefused(this._logger, "Discord");
+            return this.Redirect($"{frontendUrl}/login#error=destination_account");
+        }
+
         // Role-based access: check Discord guild roles if enabled
         var (isAdmin, managedWebhooks) = await this.GetRolesAsync(discordId);
         if (!isAdmin)
@@ -250,7 +256,7 @@ public partial class AuthController(
             Enabled = human.Enabled == 1 && human.AdminDisable == 0,
             ProfileNo = human.CurrentProfileNo,
             AvatarUrl = avatarUrl,
-            ManagedWebhooks = managedWebhooks
+            ManagedDestinations = managedWebhooks
         };
 
         // Cache avatar for admin panel use
@@ -622,6 +628,16 @@ public partial class AuthController(
             });
         }
 
+        if (!HumanKind.IsPerson(human.Type))
+        {
+            LogDestinationLoginRefused(this._logger, "Telegram");
+            return this.StatusCode(403, new
+            {
+                error = "This id is a channel or webhook in Poracle, not a person.",
+                code = "destination_account",
+            });
+        }
+
         var (isAdmin, managedWebhooks) = await this.GetRolesAsync(telegramId);
 
         // Enforce enable_telegram site setting for non-admin users.
@@ -649,7 +665,7 @@ public partial class AuthController(
             Enabled = human.Enabled == 1 && human.AdminDisable == 0,
             ProfileNo = human.CurrentProfileNo,
             AvatarUrl = photoUrl,
-            ManagedWebhooks = managedWebhooks
+            ManagedDestinations = managedWebhooks
         };
 
         var jwt = this._jwtService.GenerateToken(userInfo);
@@ -817,6 +833,19 @@ public partial class AuthController(
             return this.Unauthorized(new { error = "This account no longer exists." });
         }
 
+        // A token for a channel or webhook row cannot be a person's session. Not while impersonating:
+        // this 401 would end the admin's own session, and inspecting a destination is what impersonation
+        // is for. See #1025.
+        if (!this.IsImpersonating && !HumanKind.IsPerson(human.Type))
+        {
+            LogDestinationLoginRefused(this._logger, "Session");
+            return this.Unauthorized(new
+            {
+                error = "This id is a channel or webhook in Poracle, not a person.",
+                code = "destination_account",
+            });
+        }
+
         // Blocking a user stopped Poracle delivering to them and did nothing else: no filter, controller or
         // service looked at admin_disable, so an existing token kept full read/write access for the rest of
         // its 24-hour life, and a fresh login minted another one. The SPA signs out on 401, so answering
@@ -851,7 +880,7 @@ public partial class AuthController(
         var adminDisable = human.AdminDisable == 1;
         var enabled = human.Enabled == 1 && human.AdminDisable == 0;
         var dbProfileNo = human.CurrentProfileNo;
-        var managedWebhooks = await this.ResolveManagedWebhooksAsync();
+        var managedWebhooks = await this.ResolveManagedDestinationsAsync();
 
         var userInfo = new UserInfo
         {
@@ -863,7 +892,7 @@ public partial class AuthController(
             Enabled = enabled,
             ProfileNo = dbProfileNo,
             AvatarUrl = this.User.FindFirstValue("avatarUrl"),
-            ManagedWebhooks = managedWebhooks,
+            ManagedDestinations = managedWebhooks,
             ProfileName = await this.ActiveProfileNameAsync(dbProfileNo),
         };
 
@@ -944,7 +973,7 @@ public partial class AuthController(
     /// <remarks>
     /// <para>
     /// The claim is minted at login and lives 24 hours, so a delegate granted access today could not
-    /// reach <c>/my-webhooks</c> until their token happened to refresh — while the page itself and
+    /// reach <c>/my-destinations</c> until their token happened to refresh — while the page itself and
     /// <c>POST /api/admin/impersonate</c> would already have let them in, both having moved to live
     /// resolution in #601 and #626. This response drives whether the nav item renders at all, so it was
     /// the last consumer of the claim and the one that decided whether the others were reachable.
@@ -957,7 +986,7 @@ public partial class AuthController(
     /// </para>
     /// <para>
     /// An impersonation session resolves live like any other. <c>this.UserId</c> names the impersonated
-    /// account, which is exactly what <c>GET /api/admin/my-webhooks</c> and <c>POST /api/admin/impersonate</c>
+    /// account, which is exactly what <c>GET /api/admin/my-destinations</c> and <c>POST /api/admin/impersonate</c>
     /// already answer for, so short-circuiting to a claim the impersonation token never carries hid a nav
     /// item whose page would have worked. This is not the #663 trap: that one re-elevated ADMIN rights the
     /// impersonation token deliberately drops, and <c>isAdmin</c> still comes from the claim. Chaining a
@@ -969,12 +998,12 @@ public partial class AuthController(
     /// Both real checks (the list and the impersonation grant) resolve live and fail closed.
     /// </para>
     /// </remarks>
-    private async Task<string[]?> ResolveManagedWebhooksAsync()
+    private async Task<string[]?> ResolveManagedDestinationsAsync()
     {
-        var claimed = this.ManagedWebhooks;
+        var claimed = this.ManagedDestinations;
 
         var roles = await this._roleResolver.ResolveAsync(this.UserId);
-        var resolved = roles.ManagedWebhooks ?? [];
+        var resolved = roles.ManagedDestinations ?? [];
 
         if (roles.Resolved)
         {
@@ -999,7 +1028,7 @@ public partial class AuthController(
     private async Task<(bool isAdmin, string[]? managedWebhooks)> GetRolesAsync(string userId)
     {
         var roles = await this._roleResolver.ResolveAsync(userId);
-        return (roles.IsAdmin, roles.ManagedWebhooks);
+        return (roles.IsAdmin, roles.ManagedDestinations);
     }
 
     /// <summary>
@@ -1220,6 +1249,12 @@ public partial class AuthController(
             return (null, "user_not_registered");
         }
 
+        if (!HumanKind.IsPerson(human.Type))
+        {
+            LogDestinationLoginRefused(this._logger, "OIDC");
+            return (null, "destination_account");
+        }
+
         var (isAdmin, managedWebhooks) = await this.GetRolesAsync(identity);
         if (!isAdmin)
         {
@@ -1250,7 +1285,7 @@ public partial class AuthController(
             Enabled = human.Enabled == 1 && human.AdminDisable == 0,
             ProfileNo = human.CurrentProfileNo,
             AvatarUrl = avatarUrl,
-            ManagedWebhooks = managedWebhooks
+            ManagedDestinations = managedWebhooks
         };
 
         return (userInfo, null);
@@ -1345,6 +1380,9 @@ public partial class AuthController(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Auth attempt blocked: {Method} login is disabled by site setting.")]
     private static partial void LogAuthMethodDisabled(ILogger logger, string method);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Auth attempt refused: {Method} identity is a channel or webhook row, not a person.")]
+    private static partial void LogDestinationLoginRefused(ILogger logger, string method);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Profile resync for {UserId}: JWT had profile {JwtProfileNo}, DB has {DbProfileNo}. Issuing refreshed token.")]
     private static partial void LogProfileResync(ILogger logger, string userId, int jwtProfileNo, int dbProfileNo);
