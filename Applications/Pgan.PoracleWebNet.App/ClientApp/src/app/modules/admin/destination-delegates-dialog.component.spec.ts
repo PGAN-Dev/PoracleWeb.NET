@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { provideTranslateService } from '@ngx-translate/core';
+import { provideTranslateService, TranslateService } from '@ngx-translate/core';
 import { of, throwError } from 'rxjs';
 
 import { AddDestinationDialogComponent, DestinationDelegatesDialogComponent } from './admin-destinations.component';
@@ -137,6 +137,65 @@ describe('DestinationDelegatesDialogComponent', () => {
     component.onUserSelected('222');
 
     expect(snackBar.open).toHaveBeenCalledWith('Already a delegate.', expect.anything(), expect.anything());
+  });
+});
+
+/**
+ * #1025 QA: the remove button sat at tabindex -1 inside a presentational chip set, so nobody on a keyboard
+ * could take a grant away. And the dialog listed every admin as a locked chip while the page beside it said
+ * admins are not listed, because they manage every destination without a grant.
+ */
+describe('DestinationDelegatesDialogComponent chips', () => {
+  const webhook = user('https://example.com/hook', 'Hook', 'webhook');
+
+  function setup() {
+    TestBed.configureTestingModule({
+      providers: [
+        provideTranslateService(),
+        {
+          provide: AdminService,
+          useValue: { getWebhookDelegates: jest.fn(() => of(['222'])), removeWebhookDelegate: jest.fn(() => of([] as string[])) },
+        },
+        { provide: MatDialogRef, useValue: { close: jest.fn() } },
+        {
+          provide: MAT_DIALOG_DATA,
+          useValue: {
+            allUsers: [webhook, user('222', 'Sam'), user('admin1', 'Ada Admin'), user('333', 'Riley')],
+            porocleDelegates: ['333'],
+            webhook,
+          },
+        },
+      ],
+      imports: [DestinationDelegatesDialogComponent, NoopAnimationsModule],
+    });
+    TestBed.overrideProvider(MatSnackBar, { useValue: { open: jest.fn() } });
+    const translate = TestBed.inject(TranslateService);
+    translate.setTranslation('en', { ADMIN: { REMOVE_DELEGATE_NAMED: 'Remove {{name}}' } });
+    translate.use('en');
+    const fixture = TestBed.createComponent(DestinationDelegatesDialogComponent);
+    fixture.detectChanges();
+    return { fixture, root: fixture.nativeElement as HTMLElement };
+  }
+
+  afterEach(() => TestBed.resetTestingModule());
+
+  it('puts each grant in a grid row whose remove button is a named grid cell', () => {
+    const { root } = setup();
+
+    const grid = root.querySelector('[role="grid"]');
+    expect(grid).toBeTruthy();
+    const remove = grid!.querySelector('[data-test="remove-delegate"]')!;
+    expect(remove.getAttribute('aria-label')).toBe('Remove Sam (222)');
+    // The grid's key manager moves focus between cells, so tabindex -1 on the button is roving, not unreachable.
+    expect(remove.closest('[role="gridcell"]')?.closest('[role="row"]')?.closest('[role="grid"]')).toBe(grid);
+  });
+
+  it('lists config grants, locked, and leaves out admins, who need no grant', () => {
+    const { root } = setup();
+
+    expect(root.textContent).toContain('Riley (333)');
+    expect(root.textContent).not.toContain('Ada Admin');
+    expect(root.querySelectorAll('[data-test="remove-delegate"]')).toHaveLength(1);
   });
 });
 
