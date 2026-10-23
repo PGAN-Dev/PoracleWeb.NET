@@ -118,6 +118,21 @@
   display: block;
   margin: -4px 0 16px;
 }
+// Eight types wrapped to four rows on a phone and pushed the table off the first screen. One row that
+// scrolls instead; arrow keys still move through it, and focusing a chip scrolls it into view. The
+// padding keeps each chip's focus ring inside the scroll box rather than clipped by it.
+@media (max-width: 599px) {
+  .type-chips ::ng-deep .mdc-evolution-chip-set__chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 4px 2px;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+  }
+  .type-chips ::ng-deep .mat-mdc-chip {
+    flex-shrink: 0;
+  }
+}
 .status-chip {
   display: inline-block;
   padding: 2px 10px;

@@ -1,40 +1,39 @@
 <h2 mat-dialog-title>{{ 'ADMIN.MANAGE_DELEGATES_TITLE' | translate }} — {{ webhookName }}</h2>
 <mat-dialog-content>
-  <p class="hint">{{ 'ADMIN.DELEGATES_HINT' | translate }}</p>
+  <p class="hint">{{ 'ADMIN.DELEGATES_HINT' | translate }} {{ 'ADMIN.DESTINATIONS_ADMINS_NOTE' | translate }}</p>
   @if (loading()) {
     <mat-spinner diameter="32"></mat-spinner>
   } @else {
-    <mat-chip-set class="delegates-chips">
-      @for (uid of data.poracleAdmins; track uid) {
-        <mat-chip class="admin-chip" [matTooltip]="'ADMIN.GLOBAL_ADMIN_TOOLTIP' | translate">
-          @if (getAvatarUrl(uid)) {
-            <img matChipAvatar [src]="getAvatarUrl(uid)!" [alt]="getDisplayName(uid)" />
-          }
-          {{ getDisplayName(uid) }}
-          <mat-icon matChipTrailingIcon class="admin-lock-icon">lock</mat-icon>
-        </mat-chip>
-      }
-      @for (uid of data.porocleDelegates; track uid) {
-        <mat-chip class="admin-chip" [matTooltip]="'ADMIN.CONFIG_DELEGATE_TOOLTIP' | translate">
-          @if (getAvatarUrl(uid)) {
-            <img matChipAvatar [src]="getAvatarUrl(uid)!" [alt]="getDisplayName(uid)" />
-          }
-          {{ getDisplayName(uid) }}
-          <mat-icon matChipTrailingIcon class="admin-lock-icon">lock</mat-icon>
-        </mat-chip>
-      }
-      @for (uid of delegates(); track uid) {
-        <mat-chip (removed)="removeDelegate(uid)">
-          @if (getAvatarUrl(uid)) {
-            <img matChipAvatar [src]="getAvatarUrl(uid)!" [alt]="getDisplayName(uid)" />
-          }
-          {{ getDisplayName(uid) }}
-          <button matChipRemove [attr.aria-label]="'ADMIN.REMOVE_DELEGATE' | translate">
-            <mat-icon>cancel</mat-icon>
-          </button>
-        </mat-chip>
-      }
-    </mat-chip-set>
+    <!-- A grid, not a presentational set: each grant is a row and its remove button a cell the arrow keys reach.
+         Admins are not listed; they manage every destination without a grant, as the page says. -->
+    @if (data.porocleDelegates.length || delegates().length) {
+      <mat-chip-grid class="delegates-chips" [attr.aria-label]="'ADMIN.COLUMN_DELEGATES' | translate">
+        @for (uid of data.porocleDelegates; track uid) {
+          <mat-chip-row class="admin-chip" [matTooltip]="'ADMIN.CONFIG_DELEGATE_TOOLTIP' | translate">
+            @if (getAvatarUrl(uid)) {
+              <img matChipAvatar [src]="getAvatarUrl(uid)!" alt="" />
+            }
+            {{ getDisplayName(uid) }}
+            <mat-icon matChipTrailingIcon class="admin-lock-icon">lock</mat-icon>
+          </mat-chip-row>
+        }
+        @for (uid of delegates(); track uid) {
+          <mat-chip-row (removed)="removeDelegate(uid)">
+            @if (getAvatarUrl(uid)) {
+              <img matChipAvatar [src]="getAvatarUrl(uid)!" alt="" />
+            }
+            {{ getDisplayName(uid) }}
+            <button
+              matChipRemove
+              type="button"
+              data-test="remove-delegate"
+              [attr.aria-label]="'ADMIN.REMOVE_DELEGATE_NAMED' | translate: { name: getDisplayName(uid) }">
+              <mat-icon>cancel</mat-icon>
+            </button>
+          </mat-chip-row>
+        }
+      </mat-chip-grid>
+    }
     <div class="add-row">
       <mat-form-field appearance="outline" class="user-id-field">
         <mat-label>{{ 'ADMIN.SEARCH_USER_LABEL' | translate }}</mat-label>

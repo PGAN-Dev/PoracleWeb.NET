@@ -87,7 +87,6 @@ export class AddDestinationDialogComponent {
 
 interface DelegatesDialogData {
   allUsers: AdminUser[];
-  poracleAdmins: string[];
   porocleDelegates: string[];
   webhook: AdminUser;
 }
@@ -481,7 +480,6 @@ export class AdminDestinationsComponent implements OnInit {
       width: '520px',
       data: {
         allUsers: this.allUsers(),
-        poracleAdmins: this.poracleAdmins(),
         porocleDelegates: this.porocleDelegates()[webhook.id] ?? [],
         webhook,
       } satisfies DelegatesDialogData,

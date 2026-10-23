@@ -289,6 +289,20 @@ describe('AdminDestinationsComponent list', () => {
     expect(manage).toHaveBeenCalledWith(hook);
   });
 
+  // Polish needs the neuter for "miejsce docelowe", so the badges cannot share Users' masculine keys.
+  it('labels status with its own keys, not the ones Users shares', () => {
+    const { rowFor } = setup([
+      human('-1', { name: 'On group', type: 'telegram:group' }),
+      human('-2', { name: 'Paused group', enabled: 0, type: 'telegram:group' }),
+      human('-3', { name: 'Shut group', adminDisable: 1, type: 'telegram:group' }),
+    ]);
+
+    const status = (name: string) => rowFor(name).querySelector('.mat-column-enabled')?.textContent?.trim();
+    expect(status('On group')).toBe('ADMIN.DESTINATION_STATUS_ACTIVE');
+    expect(status('Paused group')).toBe('ADMIN.DESTINATION_STATUS_STOPPED');
+    expect(status('Shut group')).toBe('ADMIN.DESTINATION_STATUS_BLOCKED');
+  });
+
   it('offers Unblock and Start alerts where they apply', () => {
     const { menuOf } = setup([human('-100', { name: 'Quiet group', adminDisable: 1, enabled: 0, type: 'telegram:group' })]);
 

@@ -11,6 +11,7 @@ import { AdminUsersComponent } from './admin-users.component';
 import { AdminUser } from '../../core/models';
 import { AdminService } from '../../core/services/admin.service';
 import { AuthService } from '../../core/services/auth.service';
+import { I18nService } from '../../core/services/i18n.service';
 
 function row(id: string, overrides: Partial<AdminUser> = {}): AdminUser {
   return {
@@ -162,6 +163,16 @@ describe('AdminUsersComponent', () => {
     expect(link?.textContent).toContain('ADMIN.USERS_DESTINATIONS_LINK');
     // Phones hide .page-description, so the link must not live inside it.
     expect(link?.closest('.page-description')).toBeNull();
+  });
+
+  // "2mo ago" in English on a German page (#1025 QA).
+  it('says how long ago an account was disabled in the display language', () => {
+    const { component } = setup();
+    TestBed.inject(I18nService).currentLang.set('de');
+
+    const sixtyDaysAgo = new Date(Date.now() - 60 * 86400000).toISOString();
+    expect(component.getRelativeDate(sixtyDaysAgo)).toBe('vor 60 Tagen');
+    expect(component.getRelativeDate('not a date')).toBe('—');
   });
 
   it('shows profile 0 as 0, not 1', () => {
