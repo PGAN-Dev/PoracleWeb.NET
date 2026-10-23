@@ -4,7 +4,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideTranslateService, TranslateService } from '@ngx-translate/core';
-import { of, throwError } from 'rxjs';
+import { of } from 'rxjs';
 
 import { AdminDestinationsComponent } from './admin-destinations.component';
 import { AdminUser } from '../../core/models';
@@ -100,19 +100,21 @@ describe('AdminDestinationsComponent delegates column', () => {
 });
 
 /**
- * #482: when PoracleNG refuses a webhook and the existence probe fails too, the API answers 502 telling the
- * admin to check the list before retrying, because a retry can sit a second row beside a half-written one.
- * That sentence has to reach the admin, not "Check the URL and try again".
+ * The Add dialog saves the destination itself and closes only on success, so a refusal keeps the admin's
+ * input (its reasons are tested on the dialog). The page announces the new row, reloads, and shows it.
  */
-describe('AdminDestinationsComponent add failure', () => {
-  function setup(error: unknown, translations?: Record<string, unknown>) {
+describe('AdminDestinationsComponent add', () => {
+  const created = { id: '1200000000000000009', name: 'New raids', type: 'discord:channel' };
+
+  function setup(closedWith: unknown, rows: AdminUser[][] = [[]]) {
     const snack = { open: jest.fn() };
+    let load = 0;
     const adminService = {
-      createDestination: jest.fn(() => throwError(() => error)),
+      createDestination: jest.fn(() => of(undefined)),
       getAllWebhookDelegates: jest.fn(() => of({})),
       getPoracleAdmins: jest.fn(() => of([])),
       getPorocleDelegates: jest.fn(() => of({})),
-      getUsers: jest.fn(() => of([])),
+      getUsers: jest.fn(() => of(rows[Math.min(load++, rows.length - 1)])),
     };
     TestBed.configureTestingModule({
       providers: [
@@ -123,75 +125,47 @@ describe('AdminDestinationsComponent add failure', () => {
       imports: [AdminDestinationsComponent, NoopAnimationsModule],
     });
     TestBed.overrideProvider(MatSnackBar, { useValue: snack });
-    TestBed.overrideProvider(MatDialog, {
-      useValue: {
-        open: jest.fn(() => ({ afterClosed: () => of({ id: 'https://discord.com/api/webhooks/1/x', name: 'Hook', type: 'webhook' }) })),
-      },
-    });
-    if (translations) {
-      const translate = TestBed.inject(TranslateService);
-      translate.setTranslation('en', translations);
-      translate.use('en');
-    }
+    TestBed.overrideProvider(MatDialog, { useValue: { open: jest.fn(() => ({ afterClosed: () => of(closedWith) })) } });
+    const translate = TestBed.inject(TranslateService);
+    translate.setTranslation('en', { ADMIN: { SNACK_DESTINATION_ADDED: 'Destination "{{name}}" added' }, TOAST: { OK: 'OK' } });
+    translate.use('en');
     const fixture = TestBed.createComponent(AdminDestinationsComponent);
     fixture.detectChanges();
     fixture.componentInstance.openAddDialog();
-    return snack;
+    fixture.detectChanges();
+    return { adminService, component: fixture.componentInstance, fixture, snack };
   }
 
-  afterEach(() => TestBed.resetTestingModule());
-
-  it('shows the half-write warning the 502 carries', () => {
-    const warning =
-      'Poracle rejected the destination, and could not be asked whether part of it was saved. Check the destination list before trying again.';
-    const snack = setup({ error: { error: warning }, status: 502 });
-
-    expect(snack.open).toHaveBeenCalledWith(warning, 'TOAST.OK', { duration: 4000 });
+  afterEach(() => {
+    TestBed.resetTestingModule();
+    sessionStorage.clear();
   });
 
-  it('shows "Nothing was created." when the API could confirm it', () => {
-    const snack = setup({ error: { error: 'Poracle rejected the destination. Nothing was created.' }, status: 502 });
+  it('announces the new destination and reloads, leaving the save to the dialog', () => {
+    const { adminService, snack } = setup(created);
 
-    expect(snack.open).toHaveBeenCalledWith('Poracle rejected the destination. Nothing was created.', 'TOAST.OK', { duration: 4000 });
+    expect(adminService.createDestination).not.toHaveBeenCalled();
+    expect(snack.open).toHaveBeenCalledWith('Destination "New raids" added', 'OK', { duration: 3000 });
+    expect(adminService.getUsers).toHaveBeenCalledTimes(2);
   });
 
-  it('keeps its own translated message for a server error that says nothing useful', () => {
-    const snack = setup({ error: { error: 'An unexpected error occurred.' }, status: 500 });
+  it('does nothing when the dialog is cancelled', () => {
+    const { adminService, snack } = setup(null);
 
-    expect(snack.open).toHaveBeenCalledWith('ADMIN.SNACK_FAILED_ADD_DESTINATION', 'TOAST.OK', { duration: 4000 });
+    expect(snack.open).not.toHaveBeenCalled();
+    expect(adminService.getUsers).toHaveBeenCalledTimes(1);
   });
 
-  it('shows who already holds the id on a 409', () => {
-    const snack = setup(
-      { error: { name: 'raids', error: 'A destination with this id already exists.', type: 'discord:channel' }, status: 409 },
-      { ADMIN: { DESTINATION_EXISTS: 'Already in Poracle as "{{name}}" ({{type}}).', TYPE_DISCORD_CHANNEL: 'Discord channel' } },
+  it('turns to the page holding the new row and marks it', () => {
+    const before = Array.from({ length: 30 }, (_, i) =>
+      human(`11000000000000000${String(i).padStart(2, '0')}`, { type: 'discord:channel' }),
     );
+    const after = [...before, human(created.id, { name: created.name, type: 'discord:channel' })];
+    const { component, fixture } = setup(created, [before, after]);
 
-    expect(snack.open).toHaveBeenCalledWith('Already in Poracle as "raids" (Discord channel).', 'TOAST.OK', { duration: 4000 });
-  });
-
-  it.each([['discord:user'], ['telegram:user'], [null], ['']])('calls a %p holder a person’s account on a 409', type => {
-    const snack = setup(
-      { error: { name: 'Sam', error: 'A destination with this id already exists.', type }, status: 409 },
-      { ADMIN: { DESTINATION_EXISTS: 'Already in Poracle as "{{name}}" ({{type}}).', TYPE_PERSON: 'a person’s account' } },
-    );
-
-    expect(snack.open).toHaveBeenCalledWith('Already in Poracle as "Sam" (a person’s account).', 'TOAST.OK', { duration: 4000 });
-  });
-
-  it('still calls an unknown non-person type Other on a 409', () => {
-    const snack = setup(
-      { error: { name: 'Typo row', error: 'A destination with this id already exists.', type: 'x:unknown' }, status: 409 },
-      { ADMIN: { DESTINATION_EXISTS: 'Already in Poracle as "{{name}}" ({{type}}).', TYPE_OTHER: 'Other' } },
-    );
-
-    expect(snack.open).toHaveBeenCalledWith('Already in Poracle as "Typo row" (Other).', 'TOAST.OK', { duration: 4000 });
-  });
-
-  it('falls back to the server’s sentence on a 409 that could not name the holder', () => {
-    const snack = setup({ error: { name: null, error: 'A destination with this id already exists.', type: null }, status: 409 });
-
-    expect(snack.open).toHaveBeenCalledWith('A destination with this id already exists.', 'TOAST.OK', { duration: 4000 });
+    expect(component.list.pageIndex()).toBe(1);
+    const marked = (fixture.nativeElement as HTMLElement).querySelector('tr.just-added');
+    expect(marked?.textContent).toContain('New raids');
   });
 });
 
