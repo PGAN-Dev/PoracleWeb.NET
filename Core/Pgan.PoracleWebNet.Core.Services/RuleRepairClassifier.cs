@@ -19,7 +19,12 @@ internal static class RuleRepairClassifier
 {
     private const int ByLevel = 9000;
 
-    public static RuleRepairCandidate? Classify(StoredRule rule, string humanId)
+    /// <param name="serverDeclared">
+    /// The rule properties this server's own <c>/openapi.json</c> declares for the type. An edit sends a property
+    /// the field tables don't model back when the server declares it, so the rule is only uneditable when it
+    /// carries one the server doesn't. Null (no schema) judges by the field tables alone.
+    /// </param>
+    public static RuleRepairCandidate? Classify(StoredRule rule, string humanId, IReadOnlySet<string>? serverDeclared = null)
     {
         // Pokestop events have their own route and no v1 translation; they are not part of this repair.
         if (string.Equals(rule.Type, "incident", StringComparison.Ordinal))
@@ -37,7 +42,7 @@ internal static class RuleRepairClassifier
             return CannotEdit(rule, humanId, ex.Message);
         }
 
-        if (!TrackingV2Translator.TryTranslate(rule.Type, row, serverBounds: null, serverDeclared: null, out _, out var unsupported))
+        if (!TrackingV2Translator.TryTranslate(rule.Type, row, serverBounds: null, serverDeclared, out _, out var unsupported))
         {
             return CannotEdit(rule, humanId, unsupported ?? "v2 cannot express this rule");
         }

@@ -124,6 +124,37 @@ public class RuleRepairJobTests
     }
 
     /// <summary>
+    /// A field the server's own schema declares travels back on an edit, so a rule carrying one is editable.
+    /// The scan used to judge rules without that list, and reported every personal shiny rule as uneditable.
+    /// </summary>
+    [Fact]
+    public async Task ScanAndApplyJudgeRulesAgainstWhatTheServerDeclares()
+    {
+        this._tracking
+            .Setup(t => t.GetDeclaredRulePropertiesAsync("pokemon"))
+            .ReturnsAsync(new HashSet<string> { "personal_shiny" });
+        this._tracking
+            .Setup(t => t.GetDeclaredRulePropertiesAsync("invasion"))
+            .ReturnsAsync(new HashSet<string> { "future_flag" });
+        this.Humans("alice");
+        this.Rules("alice",
+            Rule("pokemon", 1, 30, """{"pokemon_id":25,"personal_shiny":true}"""),
+            Rule("pokemon", 1, 31, """{"pokemon_id":26,"undeclared_flag":true}"""),
+            Rule("invasion", 1, 32, """{"grunt_type":"metal","future_flag":true}"""));
+
+        var status = await this.ScanAsync();
+
+        Assert.Equal(32, Assert.Single(status.Repairable).Uid);
+        Assert.Equal(31, Assert.Single(status.CannotEdit).Uid);
+
+        var applied = await this.ApplyAsync();
+
+        Assert.Equal(1, applied.Applied!.Repaired);
+        var write = Assert.Single(this._writes);
+        Assert.True(write.Row.GetProperty("future_flag").GetBoolean());
+    }
+
+    /// <summary>
     /// The rows named a user by Discord id alone. The human list the scan already reads carries names, so
     /// the status maps each id in its lists to one; nobody outside the lists, and nobody without a name.
     /// </summary>

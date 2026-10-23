@@ -93,6 +93,12 @@ public interface IPoracleTrackingProxy
     public Task<IReadOnlyList<Pgan.PoracleWebNet.Core.Models.StoredRule>> GetStoredRulesAsync(string userId);
 
     /// <summary>
+    /// The rule properties this server's own <c>/openapi.json</c> declares for <paramref name="type"/>, the same set
+    /// an edit sends an unmodelled property back on. Null when the document can't be read.
+    /// </summary>
+    public Task<IReadOnlySet<string>?> GetDeclaredRulePropertiesAsync(string type);
+
+    /// <summary>
     /// Replaces one stored rule on its own profile, <c>trusted</c> and without consulting the area policy: it
     /// restores what PoracleNG already holds. <paramref name="dryRun"/> asks what would change and writes nothing.
     /// </summary>
