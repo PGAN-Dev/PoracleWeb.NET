@@ -19,11 +19,14 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
 import { forkJoin } from 'rxjs';
 
+import { AdminListState, StatusFilter, notesLabel } from './admin-list-state';
 import { AdminUser } from '../../core/models';
 import { AdminService } from '../../core/services/admin.service';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
+import { isKnownKind, kindIcon, kindLabelKey } from '../../shared/utils/human-kind';
+import { relativeTime } from '../../shared/utils/relative-time';
 import { serverReason } from '../../shared/utils/server-reason';
 
 // ─── Add Destination Dialog ───────────────────────────────────────────────────────
@@ -100,8 +103,9 @@ export class DestinationDelegatesDialogComponent implements OnInit {
     return this.users.find(u => u.id === text)?.id ?? null;
   }
 
+  /** People only: a channel, a group or an unknown type is nobody who could sign in and use the grant. */
   private get users(): AdminUser[] {
-    return this.data.allUsers.filter(u => u.type !== 'webhook');
+    return this.data.allUsers.filter(u => u.kind === 'person');
   }
 
   addDelegate(userId: string): void {
@@ -177,8 +181,6 @@ export class DestinationDelegatesDialogComponent implements OnInit {
 
 // ─── Destinations Page ────────────────────────────────────────────────────────────
 
-type StatusFilter = 'all' | 'active' | 'stopped' | 'blocked';
-
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
@@ -208,68 +210,35 @@ export class AdminDestinationsComponent implements OnInit {
   private readonly adminService = inject(AdminService);
   private readonly allUsers = signal<AdminUser[]>([]);
   private readonly auth = inject(AuthService);
+  // Every row the server calls a destination, unknown types included, so this page and Users together
+  // account for every account. See #1025.
+  private readonly destinations = computed(() => this.allUsers().filter(u => u.kind === 'destination'));
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
-  private readonly i18n = inject(I18nService);
 
+  private readonly i18n = inject(I18nService);
   private readonly poracleAdmins = signal<string[]>([]);
   private readonly porocleDelegates = signal<Record<string, string[]>>({});
   private readonly snackBar = inject(MatSnackBar);
   private readonly webhookDelegates = signal<Record<string, string[]>>({});
-  private readonly webhookUsers = computed(() => this.allUsers().filter(u => u.type === 'webhook'));
 
-  readonly searchTerm = signal('');
-  readonly sortActive = signal('');
-  readonly sortDirection = signal<'asc' | 'desc' | ''>('');
-  readonly statusFilter = signal<StatusFilter>('all');
-  readonly filteredWebhooks = computed(() => {
-    const term = this.searchTerm().toLowerCase().trim();
-    const status = this.statusFilter();
-    let users = this.webhookUsers();
+  readonly columns = ['name', 'type', 'id', 'enabled', 'disabledSince', 'delegates', 'actions'];
 
-    if (term) {
-      users = users.filter(u => u.id.toLowerCase().includes(term) || (u.name || '').toLowerCase().includes(term));
-    }
+  readonly isKnownKind = isKnownKind;
+  readonly kindIcon = kindIcon;
+  readonly kindLabelKey = kindLabelKey;
 
-    if (status !== 'all') {
-      users = users.filter(u => {
-        if (status === 'blocked') return u.adminDisable === 1;
-        if (status === 'stopped') return u.adminDisable !== 1 && u.enabled === 0;
-        if (status === 'active') return u.adminDisable !== 1 && u.enabled !== 0;
-        return true;
-      });
-    }
-
-    const active = this.sortActive();
-    const direction = this.sortDirection();
-    if (!active || !direction) return users;
-
-    return [...users].sort((a, b) => {
-      const dir = direction === 'asc' ? 1 : -1;
-      const valA =
-        active === 'id' ? a.id : active === 'name' ? (a.name || '').toLowerCase() : a.adminDisable === 1 ? 2 : a.enabled === 0 ? 1 : 0;
-      const valB =
-        active === 'id' ? b.id : active === 'name' ? (b.name || '').toLowerCase() : b.adminDisable === 1 ? 2 : b.enabled === 0 ? 1 : 0;
-      if (valA < valB) return -1 * dir;
-      if (valA > valB) return 1 * dir;
-      return 0;
-    });
-  });
-
-  readonly pageIndex = signal(0);
-  readonly pageSize = signal(25);
-
-  readonly paginatedWebhooks = computed(() => {
-    const start = this.pageIndex() * this.pageSize();
-    return this.filteredWebhooks().slice(start, start + this.pageSize());
-  });
+  readonly list = new AdminListState(this.destinations, 'admin_destinations_', (row, column) => this.getSortValue(row, column));
 
   readonly usersLoading = signal(true);
 
-  readonly webhookColumns = ['name', 'id', 'enabled', 'delegates', 'actions'];
+  /** The Block button's tooltip: a channel or group can be blocked by Poracle too, which is worth knowing here. */
+  blockTooltipKey(row: AdminUser): string {
+    return this.isWebhook(row) ? 'ADMIN.BLOCK_DESTINATION' : 'ADMIN.BLOCKED_CHANNEL_TOOLTIP';
+  }
 
-  copyUrl(url: string): void {
-    navigator.clipboard.writeText(url).then(() => {
+  copyId(id: string): void {
+    navigator.clipboard.writeText(id).then(() => {
       this.snackBar.open(this.i18n.instant('ADMIN.SNACK_ID_COPIED'), undefined, { duration: 2000 });
     });
   }
@@ -301,12 +270,14 @@ export class AdminDestinationsComponent implements OnInit {
     });
   }
 
-  deleteWebhook(user: AdminUser): void {
+  deleteDestination(user: AdminUser): void {
     const name = user.name || user.id;
+    let message = this.i18n.instant('ADMIN.CONFIRM_DELETE_DESTINATION', { name });
+    if (!this.isWebhook(user)) message += ' ' + this.i18n.instant('ADMIN.DELETE_DESTINATION_NOTE');
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
         confirmText: this.i18n.instant('ADMIN.DELETE_DESTINATION'),
-        message: this.i18n.instant('ADMIN.CONFIRM_DELETE_DESTINATION', { name }),
+        message,
         title: this.i18n.instant('ADMIN.DELETE_DESTINATION'),
         warn: true,
       } as ConfirmDialogData,
@@ -325,6 +296,11 @@ export class AdminDestinationsComponent implements OnInit {
         });
       }
     });
+  }
+
+  formatDate(dateStr: string): string {
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? '' : d.toLocaleString();
   }
 
   getDelegateAvatarUrl(userId: string): string | null {
@@ -358,6 +334,11 @@ export class AdminDestinationsComponent implements OnInit {
 
   isPorocleDelegateForWebhook(webhookId: string, userId: string): boolean {
     return (this.porocleDelegates()[webhookId] ?? []).includes(userId);
+  }
+
+  /** Grants and the delegates dialog are webhook-only on the server until delegation widens (#1025 part 6). */
+  isWebhook(row: AdminUser): boolean {
+    return (row.type ?? '').trim().toLowerCase() === 'webhook';
   }
 
   loadUsers(): void {
@@ -401,25 +382,34 @@ export class AdminDestinationsComponent implements OnInit {
     this.loadUsers();
   }
 
+  notesLabel(notes: string | null): string | null {
+    return notesLabel(notes);
+  }
+
   onPageChange(event: PageEvent): void {
-    this.pageIndex.set(event.pageIndex);
-    this.pageSize.set(event.pageSize);
+    this.list.setPage(event.pageIndex, event.pageSize);
   }
 
   onSearchChange(term: string): void {
-    this.searchTerm.set(term);
-    this.pageIndex.set(0);
+    this.list.searchTerm.set(term);
+    this.list.resetPage();
   }
 
   onSortChange(sort: Sort): void {
-    this.sortActive.set(sort.active);
-    this.sortDirection.set(sort.direction);
-    this.pageIndex.set(0);
+    this.list.sortActive.set(sort.active);
+    this.list.sortDirection.set(sort.direction);
+    this.list.resetPage();
   }
 
   onStatusFilterChange(status: StatusFilter): void {
-    this.statusFilter.set(status);
-    this.pageIndex.set(0);
+    this.list.statusFilter.set(status);
+    this.list.resetPage();
+  }
+
+  onTypeFilterChange(type: string | null | undefined): void {
+    // A listbox chip clicked a second time deselects to undefined; that means "all", not nothing.
+    this.list.typeFilter.set(type || 'all');
+    this.list.resetPage();
   }
 
   openAddDialog(): void {
@@ -485,6 +475,11 @@ export class AdminDestinationsComponent implements OnInit {
       });
   }
 
+  relativeDate(dateStr: string): string {
+    const then = new Date(dateStr).getTime();
+    return isNaN(then) ? '—' : relativeTime(then, Date.now(), this.i18n.currentLang());
+  }
+
   resumeWebhook(user: AdminUser): void {
     this.adminService
       .resumeUser(user.id)
@@ -524,6 +519,23 @@ export class AdminDestinationsComponent implements OnInit {
       return `${u.hostname}${path}`;
     } catch {
       return url.length > 40 ? url.slice(0, 37) + '…' : url;
+    }
+  }
+
+  private getSortValue(row: AdminUser, column: string): string | number {
+    switch (column) {
+      case 'id':
+        return row.id;
+      case 'name':
+        return (row.name || '').toLowerCase();
+      case 'type':
+        return (row.type ?? '').trim().toLowerCase();
+      case 'enabled':
+        return row.adminDisable === 1 ? 2 : row.enabled === 0 ? 1 : 0;
+      case 'disabledSince':
+        return row.disabledDate ? new Date(row.disabledDate).getTime() : 0;
+      default:
+        return '';
     }
   }
 

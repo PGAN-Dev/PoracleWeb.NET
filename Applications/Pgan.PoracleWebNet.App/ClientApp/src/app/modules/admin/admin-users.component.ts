@@ -16,6 +16,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { AdminListState, StatusFilter, notesLabel } from './admin-list-state';
@@ -48,6 +49,7 @@ import { serverReason } from '../../shared/utils/server-reason';
     MatSelectModule,
     TranslatePipe,
     DiscordAvatarComponent,
+    RouterLink,
   ],
   selector: 'app-admin-users',
   standalone: true,
@@ -202,18 +204,18 @@ export class AdminUsersComponent implements OnInit {
 
   onSearchChange(term: string): void {
     this.searchTerm.set(term);
-    this.pageIndex.set(0);
+    this.list.resetPage();
   }
 
   onSortChange(sort: Sort): void {
     this.sortActive.set(sort.active);
     this.sortDirection.set(sort.direction);
-    this.pageIndex.set(0);
+    this.list.resetPage();
   }
 
   onStatusFilterChange(status: StatusFilter): void {
     this.statusFilter.set(status);
-    this.pageIndex.set(0);
+    this.list.resetPage();
   }
 
   pauseUser(user: AdminUser): void {

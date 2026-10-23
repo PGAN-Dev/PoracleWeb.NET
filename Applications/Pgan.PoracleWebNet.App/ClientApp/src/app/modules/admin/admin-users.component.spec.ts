@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import { of, throwError } from 'rxjs';
 
@@ -47,6 +48,7 @@ describe('AdminUsersComponent', () => {
 
     TestBed.configureTestingModule({
       providers: [
+        provideRouter([]),
         provideTranslateService(),
         { provide: AdminService, useValue: adminService },
         { provide: AuthService, useValue: { impersonate: jest.fn(), user: signal({ id: 'admin1', isAdmin: true }) } },
@@ -131,6 +133,33 @@ describe('AdminUsersComponent', () => {
     (row.querySelector('[data-test="view-as"]') as HTMLButtonElement).click();
 
     expect(spy).toHaveBeenCalledWith(member);
+  });
+
+  // A legacy OIDC or Telegram row can carry no type at all, and it is still a person.
+  it('lists people only, including a null type', () => {
+    const { adminService, component, fixture } = setup();
+    adminService.getUsers.mockReturnValue(
+      of([
+        me,
+        row('legacy', { type: null }),
+        row('https://hook/a', { kind: 'destination', type: 'webhook' }),
+        row('-1001234567890', { kind: 'destination', type: 'telegram:group' }),
+        row('999', { kind: 'destination', type: 'x:unknown' }),
+      ]),
+    );
+    component.loadUsers();
+    fixture.detectChanges();
+
+    expect(component.filteredUsers().map(u => u.id)).toEqual(['admin1', 'legacy']);
+    expect((fixture.nativeElement as HTMLElement).querySelectorAll('tr.mat-mdc-row')).toHaveLength(2);
+  });
+
+  it('points at Destinations from its description', () => {
+    const { fixture } = setup();
+
+    const link = (fixture.nativeElement as HTMLElement).querySelector('[data-test="destinations-link"]');
+    expect(link?.getAttribute('href')).toBe('/admin/destinations');
+    expect(link?.textContent).toContain('ADMIN.USERS_DESTINATIONS_LINK');
   });
 
   it('shows profile 0 as 0, not 1', () => {
