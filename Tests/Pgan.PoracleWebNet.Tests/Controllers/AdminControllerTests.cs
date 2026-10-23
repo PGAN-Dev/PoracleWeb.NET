@@ -462,6 +462,24 @@ public class AdminControllerTests : ControllerTestBase
         this._directory.Verify(d => d.Invalidate(), Times.AtLeastOnce);
     }
 
+    /// <summary>
+    /// A grant PoracleNG reports by name for an id that did not exist yet was dropped by the resolver, and that
+    /// answer is cached; a new destination has to drop it too, or the grant stays invisible for a minute.
+    /// </summary>
+    [Fact]
+    public async Task CreatingADestinationRefreshesRoleAnswers()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this._humanService.Setup(s => s.ExistsAsync("123456789012345678")).ReturnsAsync(false);
+        this._humanService.Setup(s => s.CreateAsync(It.IsAny<Human>())).ReturnsAsync((Human h) => h);
+
+        var result = await this._sut.CreateDestination(
+            new AdminController.CreateDestinationRequest("discord:channel", "123456789012345678", "raids", null));
+
+        Assert.IsType<OkObjectResult>(result);
+        this._roleResolver.Verify(r => r.InvalidateAll(), Times.Once);
+    }
+
     /// <summary>The directory is cached a minute; a new destination has to be grantable straight away.</summary>
     [Fact]
     public async Task CreatingADestinationRefreshesTheDirectory()
@@ -1037,6 +1055,29 @@ public class AdminControllerTests : ControllerTestBase
         Assert.Single(rows);
     }
 
+    /// <summary>
+    /// A degraded resolve can hand back raw grant strings. A row whose type is not one of the six destination
+    /// kinds would be listed here and then refused by impersonate, so it is not listed.
+    /// </summary>
+    [Fact]
+    public async Task GetManagedDestinationsListsOnlyKnownDestinationKinds()
+    {
+        SetupUser(this._sut, isAdmin: false);
+        this._roleResolver.Setup(r => r.ResolveAsync("123456789"))
+            .ReturnsAsync(new Pgan.PoracleWebNet.Api.Services.UserRoles(false, ["http://wh.example/a", "42", "777"]));
+        this._humanService.Setup(s => s.GetAllAsync()).ReturnsAsync(
+        [
+            new Human { Id = "http://wh.example/a", Name = "rares", Type = "webhook" },
+            new Human { Id = "42", Name = "Typo row", Type = "x:unknown" },
+            new Human { Id = "777", Name = "Sam", Type = "discord:user" },
+        ]);
+
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetManagedDestinations());
+
+        var row = Assert.Single(Assert.IsAssignableFrom<IEnumerable<object>>(ok.Value));
+        Assert.Equal("http://wh.example/a", row.GetType().GetProperty("Id")?.GetValue(row));
+    }
+
     [Fact]
     public async Task GetManagedDestinationsReturnsNothingWhenTheCallerHasNoGrants()
     {
@@ -1241,6 +1282,23 @@ public class AdminControllerTests : ControllerTestBase
 
         Assert.IsType<OkObjectResult>(result);
         this._webhookDelegateService.Verify(s => s.AddDelegateAsync("wh1", "u2"), Times.Once);
+    }
+
+    /// <summary>
+    /// The directory the resolver canonicalises grants against is cached a minute, so a destination created
+    /// outside this site in that minute would be granted here and still not resolve. Granting drops it.
+    /// </summary>
+    [Fact]
+    public async Task AddWebhookDelegateRefreshesTheDirectory()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this.GivenWebhookAndUserExist();
+        this._webhookDelegateService.Setup(s => s.AddDelegateAsync("wh1", "u2")).ReturnsAsync(["u2"]);
+
+        Assert.IsType<OkObjectResult>(
+            await this._sut.AddWebhookDelegate(new AdminController.WebhookDelegateRequest("wh1", "u2")));
+
+        this._directory.Verify(d => d.Invalidate(), Times.Once);
     }
 
     [Fact]

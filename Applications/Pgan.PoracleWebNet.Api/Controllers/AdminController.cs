@@ -108,7 +108,9 @@ public partial class AdminController(
         var humans = await this._humanService.GetAllAsync();
 
         var webhooks = humans
-            .Where(h => managed.Contains(h.Id, StringComparer.OrdinalIgnoreCase))
+            // Known kinds only: a degraded resolve hands back raw grants, and a row impersonate would refuse
+            // must not be listed as one the caller can open (#1025).
+            .Where(h => managed.Contains(h.Id, StringComparer.OrdinalIgnoreCase) && HumanKind.IsKnownDestination(h.Type))
             .Select(h => new
             {
                 h.Id,
@@ -441,8 +443,10 @@ public partial class AdminController(
         {
             var created = await this._humanService.CreateAsync(human);
 
-            // The directory is cached a minute, and a destination just created should be grantable now.
+            // The directory is cached a minute, and a destination just created should be grantable now. Role
+            // answers go too: a grant naming this id was dropped as matching no row, and that answer is cached.
             this._destinationDirectory.Invalidate();
+            this._roleResolver.InvalidateAll();
             LogDestinationCreated(this._logger, this.UserId, human.Type, human.Id);
             return this.Ok(created);
         }
@@ -756,8 +760,10 @@ public partial class AdminController(
         var delegates = await this._webhookDelegateService.AddDelegateAsync(request.WebhookId, request.UserId);
 
         // The role cache would otherwise hold the old answer for up to a minute, so a new delegate saw no
-        // nav item and a revoked one kept impersonating. Drop both sides of the grant.
+        // nav item and a revoked one kept impersonating. Drop both sides of the grant. The directory goes too,
+        // so a destination created outside this site within its minute is canonicalised rather than dropped.
         this._roleResolver.Invalidate(request.UserId, request.WebhookId);
+        this._destinationDirectory.Invalidate();
         return this.Ok(delegates);
     }
 
