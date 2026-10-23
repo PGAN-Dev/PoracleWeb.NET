@@ -115,7 +115,7 @@ public class PokestopEventController(IPokestopEventService pokestopEventService,
     [HttpPut("distance/bulk")]
     public async Task<IActionResult> UpdateBulkDistance([FromBody] BulkDistanceRequest request)
     {
-        var result = await this._router.UpdateDistanceByUidsAsync(this._pokestopEventService, this.UserId, request.Uids, request.Distance);
+        var result = await this._router.UpdateDistanceByUidsAsync(this._pokestopEventService, this.UserId, this.ProfileNo, request.Uids, request.Distance);
         return this.DistanceUpdated(result);
     }
 

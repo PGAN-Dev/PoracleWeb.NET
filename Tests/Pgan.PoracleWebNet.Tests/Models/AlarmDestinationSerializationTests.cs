@@ -15,6 +15,16 @@ public class AlarmDestinationSerializationTests
     }
 
     [Fact]
+    public void UnlinkedNest_SerialisesByteForByteAsBefore()
+    {
+        // Fixed from the Nest model as it stood before Destination existed (the change adds two members and
+        // removes none), so a stray default on either new member would change this string.
+        var json = JsonSerializer.Serialize(new Nest(), JsonSerializerOptions.Web);
+
+        Assert.Equal("{\"uid\":0,\"id\":\"\",\"ping\":null,\"distance\":0,\"pokemonId\":0,\"minSpawnAvg\":0,\"form\":0,\"clean\":0,\"template\":null,\"profileNo\":0,\"overrideLocationLabel\":null,\"overrideAreas\":null,\"description\":null}", json);
+    }
+
+    [Fact]
     public void LinkedMonster_SerialisesItsDestination()
     {
         var json = JsonSerializer.Serialize(new Monster { Uid = 4, Destination = "telegram", PausedDestination = true }, JsonSerializerOptions.Web);

@@ -103,12 +103,12 @@ public class LinkedAlarmRouterTests
     public async Task UpdateDistanceByUids_GroupsByOwner()
     {
         this.Linked();
-        this._svc.Setup(s => s.GetByUidAsync(Discord, 1)).ReturnsAsync(new Monster { Uid = 1 });
-        this._svc.Setup(s => s.GetByUidAsync(Telegram, 2)).ReturnsAsync(new Monster { Uid = 2 });
+        this._svc.Setup(s => s.GetByUserAsync(Discord, 1)).ReturnsAsync([new Monster { Uid = 1 }]);
+        this._svc.Setup(s => s.GetByUserAsync(Telegram, 1)).ReturnsAsync([new Monster { Uid = 2 }]);
         this._svc.Setup(s => s.UpdateDistanceByUidsAsync(It.IsAny<List<int>>(), Discord, 500)).ReturnsAsync(new DistanceUpdateResult(1, [], [], []));
         this._svc.Setup(s => s.UpdateDistanceByUidsAsync(It.IsAny<List<int>>(), Telegram, 500)).ReturnsAsync(new DistanceUpdateResult(1, [2], [], [7]));
 
-        var result = await this._sut.UpdateDistanceByUidsAsync(this._svc.Object, Discord, [1, 2], 500);
+        var result = await this._sut.UpdateDistanceByUidsAsync(this._svc.Object, Discord, 1, [1, 2], 500);
 
         Assert.Equal(2, result.Updated);
         Assert.Equal([2], result.SkippedAreaScoped);
@@ -118,13 +118,31 @@ public class LinkedAlarmRouterTests
     }
 
     [Fact]
+    public async Task UpdateDistanceByUids_ReadsEachHumansListOnce()
+    {
+        this.Linked();
+        this._svc.Setup(s => s.GetByUserAsync(Discord, 1)).ReturnsAsync([new Monster { Uid = 1 }, new Monster { Uid = 3 }, new Monster { Uid = 5 }]);
+        this._svc.Setup(s => s.GetByUserAsync(Telegram, 1)).ReturnsAsync([new Monster { Uid = 2 }, new Monster { Uid = 4 }]);
+        this._svc.Setup(s => s.UpdateDistanceByUidsAsync(It.IsAny<List<int>>(), It.IsAny<string>(), 500)).ReturnsAsync(new DistanceUpdateResult(1, [], []));
+
+        await this._sut.UpdateDistanceByUidsAsync(this._svc.Object, Discord, 1, [1, 2, 3, 4, 5, 99], 500);
+
+        this._svc.Verify(s => s.GetByUserAsync(Discord, 1), Times.Once);
+        this._svc.Verify(s => s.GetByUserAsync(Telegram, 1), Times.Once);
+        this._svc.Verify(s => s.GetByUidAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+        // uid 99 belongs to neither human and goes to the caller, who skips it as an unlinked caller would
+        this._svc.Verify(s => s.UpdateDistanceByUidsAsync(It.Is<List<int>>(l => l.SequenceEqual(new[] { 1, 3, 5, 99 })), Discord, 500), Times.Once);
+        this._svc.Verify(s => s.UpdateDistanceByUidsAsync(It.Is<List<int>>(l => l.SequenceEqual(new[] { 2, 4 })), Telegram, 500), Times.Once);
+    }
+
+    [Fact]
     public async Task UpdateDistanceByUids_Unlinked_PassesTheListStraightThrough()
     {
         this.Unlinked();
         var uids = new List<int> { 1, 2 };
         this._svc.Setup(s => s.UpdateDistanceByUidsAsync(uids, Discord, 5)).ReturnsAsync(new DistanceUpdateResult(2, [], []));
 
-        var result = await this._sut.UpdateDistanceByUidsAsync(this._svc.Object, Discord, uids, 5);
+        var result = await this._sut.UpdateDistanceByUidsAsync(this._svc.Object, Discord, 1, uids, 5);
 
         Assert.Equal(2, result.Updated);
         this._svc.Verify(s => s.GetByUidAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);

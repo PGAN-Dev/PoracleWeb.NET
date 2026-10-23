@@ -112,7 +112,7 @@ public class NestController(INestService nestService, LinkedAlarmRouter router) 
     [HttpPut("distance/bulk")]
     public async Task<IActionResult> UpdateBulkDistance([FromBody] BulkDistanceRequest request)
     {
-        var result = await this._router.UpdateDistanceByUidsAsync(this._nestService, this.UserId, request.Uids, request.Distance);
+        var result = await this._router.UpdateDistanceByUidsAsync(this._nestService, this.UserId, this.ProfileNo, request.Uids, request.Distance);
         return this.DistanceUpdated(result);
     }
 

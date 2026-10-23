@@ -121,7 +121,7 @@ public class InvasionController(IInvasionService invasionService, LinkedAlarmRou
     [HttpPut("distance/bulk")]
     public async Task<IActionResult> UpdateBulkDistance([FromBody] BulkDistanceRequest request)
     {
-        var result = await this._router.UpdateDistanceByUidsAsync(this._invasionService, this.UserId, request.Uids, request.Distance);
+        var result = await this._router.UpdateDistanceByUidsAsync(this._invasionService, this.UserId, this.ProfileNo, request.Uids, request.Distance);
         return this.DistanceUpdated(result);
     }
 

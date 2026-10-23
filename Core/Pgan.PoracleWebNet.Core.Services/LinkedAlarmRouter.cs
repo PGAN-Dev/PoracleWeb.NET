@@ -101,7 +101,7 @@ public class LinkedAlarmRouter(ILinkedAccount linked)
     /// service skips it exactly as it does for an unlinked caller.
     /// </summary>
     public async Task<DistanceUpdateResult> UpdateDistanceByUidsAsync<TModel>(
-        IAlarmService<TModel> svc, string userId, List<int> uids, int distance)
+        IAlarmService<TModel> svc, string userId, int profileNo, List<int> uids, int distance)
         where TModel : class, IHasDestination
     {
         var pair = await this.ResolveAsync(userId);
@@ -110,11 +110,20 @@ public class LinkedAlarmRouter(ILinkedAccount linked)
             return await svc.UpdateDistanceByUidsAsync(uids, userId, distance);
         }
 
+        // One list read per human, not one per uid: a service's GetByUidAsync reads the whole list itself.
+        var ownerOf = new Dictionary<int, string>();
+        foreach (var humanId in pair.ExistingHumanIds)
+        {
+            foreach (var model in await svc.GetByUserAsync(humanId, profileNo))
+            {
+                ownerOf.TryAdd(model.Uid, humanId);
+            }
+        }
+
         var byOwner = new Dictionary<string, List<int>>(StringComparer.Ordinal);
         foreach (var uid in uids)
         {
-            var found = await this.FindAsync(svc, userId, uid);
-            var owner = found?.OwnerId ?? userId;
+            var owner = ownerOf.GetValueOrDefault(uid, userId);
             if (!byOwner.TryGetValue(owner, out var group))
             {
                 byOwner[owner] = group = [];

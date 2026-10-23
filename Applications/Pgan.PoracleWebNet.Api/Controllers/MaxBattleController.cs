@@ -112,7 +112,7 @@ public class MaxBattleController(IMaxBattleService maxBattleService, LinkedAlarm
     [HttpPut("distance/bulk")]
     public async Task<IActionResult> UpdateBulkDistance([FromBody] BulkDistanceRequest request)
     {
-        var result = await this._router.UpdateDistanceByUidsAsync(this._maxBattleService, this.UserId, request.Uids, request.Distance);
+        var result = await this._router.UpdateDistanceByUidsAsync(this._maxBattleService, this.UserId, this.ProfileNo, request.Uids, request.Distance);
         return this.DistanceUpdated(result);
     }
 

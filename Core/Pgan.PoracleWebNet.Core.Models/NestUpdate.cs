@@ -55,7 +55,7 @@ public class NestUpdate
         get; set;
     }
 
-    /// <summary>"discord" or "telegram": which of a linked pair's humans takes the alarm. Ignored when unlinked.</summary>
+    /// <summary>Reserved for moving an alarm between linked sides (Task 9); nothing reads it on an update yet.</summary>
     [StringLength(16)]
     public string? Destination
     {
