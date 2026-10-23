@@ -1449,6 +1449,7 @@
     "FOOTER": "Beheer alarmen voor Pokémon, raids, quests en meer",
     "AUTH_FAILED": "Authenticatie mislukt",
     "BACK_TO_LOGIN": "Terug naar inloggen",
+    "ERR_DESTINATION_ACCOUNT": "Deze login hoort bij een kanaal of webhook in Poracle, niet bij een persoon. Log in met je eigen account.",
     "ERR_DISCORD_DISABLED": "Inloggen met Discord is momenteel uitgeschakeld.",
     "ERR_DISCORD_FETCH": "Je Discord-profiel kon niet worden opgehaald. Probeer het opnieuw.",
     "ERR_MISSING_CODE": "Het inloggen met Discord is geannuleerd of mislukt.",

@@ -208,6 +208,44 @@ public class AuthControllerMeTests : ControllerTestBase
         Assert.Null(GetProp(result.Value, "supportUrl"));
     }
 
+    /// <summary>
+    /// A token minted for a channel or webhook row (an older build, or a hand-made one) must not keep a
+    /// session alive. See #1025.
+    /// </summary>
+    [Fact]
+    public async Task MeRefusesASessionOnADestinationRow()
+    {
+        SetupUser(this._sut);
+        this._humanService.Setup(h => h.GetByIdAsync(It.IsAny<string>()))
+            .ReturnsAsync(new Human { Id = "123456789", Type = "discord:channel", Enabled = 1 });
+
+        var result = Assert.IsType<UnauthorizedObjectResult>(await this._sut.Me());
+
+        Assert.Equal("destination_account", GetProp(result.Value, "code"));
+    }
+
+    /// <summary>Legacy people have no type at all; they must keep signing in.</summary>
+    [Fact]
+    public async Task MeAcceptsANullType()
+    {
+        SetupUser(this._sut);
+        this._humanService.Setup(h => h.GetByIdAsync(It.IsAny<string>()))
+            .ReturnsAsync(new Human { Id = "123456789", Type = null, Enabled = 1 });
+
+        Assert.IsType<OkObjectResult>(await this._sut.Me());
+    }
+
+    /// <summary>The 401 would end the admin's own session; inspecting a channel is the point of impersonation.</summary>
+    [Fact]
+    public async Task MeKeepsAnImpersonationOfAChannel()
+    {
+        SetupImpersonatingUser(this._sut);
+        this._humanService.Setup(h => h.GetByIdAsync(It.IsAny<string>()))
+            .ReturnsAsync(new Human { Id = "123456789", Type = "discord:channel", Enabled = 1 });
+
+        Assert.IsType<OkObjectResult>(await this._sut.Me());
+    }
+
     private static object? GetProp(object? value, string name) => value?.GetType().GetProperty(name)?.GetValue(value);
 
     /// <summary>

@@ -1453,6 +1453,7 @@
     "FOOTER": "Manage alarms for Pokémon, raids, quests, and more",
     "AUTH_FAILED": "Authentication failed",
     "BACK_TO_LOGIN": "Back to login",
+    "ERR_DESTINATION_ACCOUNT": "This sign-in belongs to a channel or webhook in Poracle, not a person. Sign in with your own account.",
     "ERR_DISCORD_DISABLED": "Discord login is currently disabled.",
     "ERR_DISCORD_FETCH": "Could not retrieve your Discord profile. Please try again.",
     "ERR_MISSING_CODE": "Discord authentication was cancelled or failed.",
