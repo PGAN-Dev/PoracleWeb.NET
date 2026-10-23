@@ -79,6 +79,13 @@ public static class DisableFeatureKeys
     public const string Geocoding = "disable_nominatim";
 
     /// <summary>
+    /// Disables linked Discord and Telegram accounts. Not an alarm type. With it on, every caller is
+    /// answered as if unlinked (their own human alone) and the link endpoints refuse. Stored links are
+    /// kept, so switching it back off restores them.
+    /// </summary>
+    public const string AccountLinking = "disable_account_linking";
+
+    /// <summary>
     /// Tracking-type string (as used in PoracleNG's <c>/api/v2/humans/{id}/tracking/{type}</c> URLs and
     /// <c>ProfileOverviewService</c>'s alarm-type loop) → matching <c>disable_*</c> key.
     /// Lets <c>ProfileOverviewService</c>, <c>TestAlertController</c>, and any future
