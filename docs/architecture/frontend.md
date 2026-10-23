@@ -37,7 +37,7 @@ src/app/
 │   ├── cleaning/        Alarm cleanup tools
 │   ├── quick-picks/     Quick pick alarm templates
 │   ├── help/            In-app help page
-│   └── admin/           Admin panel (users, webhooks, settings, geofence submissions)
+│   └── admin/           Admin panel (users, destinations, settings, geofence submissions)
 └── shared/
     ├── components/      Reusable UI components
     └── utils/           Utility functions (geo.utils, alarm-scope, etc.)

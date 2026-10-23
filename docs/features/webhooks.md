@@ -1,11 +1,37 @@
-# Webhooks and Delegates
+# Destinations and delegates
 
-A **webhook** here is a Poracle account whose id is a Discord webhook URL. It holds alarms exactly as
-a person does — profiles, areas, a pin, filters — and Poracle posts its alerts to that URL instead of
-into a DM. Communities use one per feed: a raids channel, a hundo channel, a nests channel.
+A **destination** is a Poracle account that alerts are posted into rather than sent to a person. It
+holds alarms exactly as a person does (profiles, areas, a pin, filters), but nobody signs in as it.
+The commonest kind is a **webhook**: an account whose id is a Discord webhook URL. Communities use one
+per feed: a raids channel, a hundo channel, a nests channel.
 
 A **delegate** is a person allowed to manage one of those accounts without being an administrator of
 this site.
+
+## People and destinations
+
+Poracle keeps people and destinations in one table, told apart by a type. **Admin → Users** lists the
+people. **Admin → Destinations** lists everything else, so a Discord channel or a Telegram group never
+shows up as a user you could block or impersonate by mistake. The Users page links across to
+Destinations.
+
+| Kind | Poracle type | Listed under |
+|---|---|---|
+| Person | `discord:user`, `telegram:user`, or no type at all (older accounts) | Users |
+| Webhook | `webhook` | Destinations |
+| Discord channel | `discord:channel` | Destinations |
+| Discord thread | `discord:thread` | Destinations |
+| Telegram channel | `telegram:channel` | Destinations |
+| Telegram group | `telegram:group` | Destinations |
+| Telegram topic | `telegram:topic` | Destinations |
+
+Anything else Poracle holds with a type that isn't a person also lands on Destinations, shown with
+its raw type, rather than on neither page. That covers an operator's typo or a type added later. Only
+webhook rows take delegates.
+
+The Destinations page has a search box and a filter by type (the chips appear only when more than one
+type is present), plus the usual status filter. Each row has a button that copies its id, which for a
+webhook is the whole URL even though the page shows it shortened.
 
 ## Adding a destination
 
@@ -35,16 +61,17 @@ record is removed, so a failure means nothing was created and a retry is safe.
 The same page can pause, resume, block, delete the account's alarms, delete the account outright, and
 open its alarms directly (see [what a delegate can do](#what-a-delegate-can-do)).
 
-![Admin → Webhooks filtered to one example.com webhook, with its row actions](../screenshots/admin-webhooks.png)
+![Admin → Destinations filtered to one example.com webhook, with its row actions](../screenshots/admin-webhooks.png)
 
 Deleting a webhook takes everything it owned with it, delegate grants included. Recreating the same
 URL later starts clean rather than adopting the old grants.
 
 ## Adding a delegate
 
-**Admin → Webhooks →** the group-add icon on the webhook's row.
+**Admin → Destinations →** the group-add icon on the webhook's row. Only webhooks take delegates.
 
-Both accounts have to exist first. The person must have registered with the Poracle bot and signed in
+Both accounts have to exist first, and the delegate has to be a person: a channel or group can't sign
+in, so a grant to one is refused. The person must have registered with the Poracle bot and signed in
 at least once, so there is an account to grant; a grant naming an account that does not exist is
 refused rather than stored.
 
@@ -64,7 +91,7 @@ from somewhere this site does not write.
 
 ## What a delegate can do
 
-**Settings → My Webhooks** lists the webhooks they manage. **Manage alarms** switches the session to
+**Settings → My Webhooks** lists the webhooks they manage (for now it covers webhooks only, not the other kinds of destination). **Manage alarms** switches the session to
 that webhook: from there they see the site as it does, and can set up alarms, areas, profiles, its
 pin, and send test alerts. A banner names the account being viewed, and the button on it returns them
 to their own.
@@ -89,7 +116,7 @@ cleaning toggle keep it, and duplicating a profile copies it.
 
 ## Viewing as another account
 
-The same session switch is open to admins for any account. **Admin → Users** lists everyone Poracle
+The same session switch is open to admins for any account. **Admin → Users** lists every person Poracle
 knows. **View** on a row opens the site as that account, and the row's menu stops or starts their
 alerts, blocks them, or deletes their alarms or the account.
 

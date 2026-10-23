@@ -1000,6 +1000,21 @@ public class AdminControllerTests : ControllerTestBase
     }
 
     [Fact]
+    public async Task AddWebhookDelegateAcceptsAGranteeWithNoTypeAsAPerson()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this.GivenWebhookAndUserExist();
+        this._humanService.Setup(s => s.GetByIdAsync("u2"))
+            .ReturnsAsync(new Human { Id = "u2", Type = null });
+        this._webhookDelegateService.Setup(s => s.AddDelegateAsync("wh1", "u2")).ReturnsAsync(["u2"]);
+
+        var result = await this._sut.AddWebhookDelegate(new AdminController.WebhookDelegateRequest("wh1", "u2"));
+
+        Assert.IsType<OkObjectResult>(result);
+        this._webhookDelegateService.Verify(s => s.AddDelegateAsync("wh1", "u2"), Times.Once);
+    }
+
+    [Fact]
     public async Task AddWebhookDelegateAddsNewDelegate()
     {
         SetupUser(this._sut, isAdmin: true);

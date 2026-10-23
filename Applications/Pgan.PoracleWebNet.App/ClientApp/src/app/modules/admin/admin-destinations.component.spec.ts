@@ -1,4 +1,4 @@
-import { signal } from '@angular/core';
+import { ApplicationRef, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -296,7 +296,18 @@ describe('AdminDestinationsComponent list', () => {
     const copy = jest.spyOn(component, 'copyId').mockImplementation(() => undefined);
     (rowFor('North group').querySelector('[data-test="copy-id"]') as HTMLButtonElement).click();
     expect(copy).toHaveBeenCalledWith(group.id);
-    expect(rowFor('North group').querySelector('[data-test="copy-id"]')?.getAttribute('aria-label')).toBe('ADMIN.COPY_ID');
+    expect(rowFor('North group').querySelector('[data-test="copy-id"]')?.getAttribute('aria-label')).toBe('ADMIN.COPY_ID_FOR');
+  });
+
+  it('names each copy button after its row, falling back to the id when unnamed', () => {
+    const { rowFor } = setup();
+    TestBed.inject(TranslateService).setTranslation('en', { ADMIN: { COPY_ID_FOR: 'Copy ID of {{name}}' } });
+    TestBed.inject(TranslateService).use('en');
+
+    const label = (name: string) => rowFor(name).querySelector('[data-test="copy-id"]')?.getAttribute('aria-label');
+    TestBed.inject(ApplicationRef).tick();
+    expect(label('North group')).toBe('Copy ID of North group');
+    expect(label('Raid hook')).toBe('Copy ID of Raid hook');
   });
 
   it('goes back to the first page when the type or status filter changes', () => {
