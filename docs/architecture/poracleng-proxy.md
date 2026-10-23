@@ -235,7 +235,8 @@ changed.")`. Dropping the field silently would be the #730 field-loss bug again.
 `ping` is a real column on every type and v2 declares it on every rule (jfberry/PoracleNG#249, in
 5.4.0), so a role or user mention survives an edit. The earlier refusal for an edit that would have
 dropped it went with the v1 path it protected against. The SPA shows the Mention field in edit dialogs
-for webhooks and nowhere else.
+while managing a webhook, a Discord channel or a Discord thread, and nowhere else: not on Telegram
+destinations, which have no mention, and not on people.
 
 ### Choosing the surface
 
