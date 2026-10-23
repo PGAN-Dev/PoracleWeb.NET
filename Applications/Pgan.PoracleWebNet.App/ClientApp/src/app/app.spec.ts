@@ -374,6 +374,15 @@ describe('App impersonation banner', () => {
     expect(html).toContain("'BANNER.MANAGING_KIND' | translate");
   });
 
+  it('falls back to "Viewing as" for a type it cannot name, rather than calling it Other', () => {
+    expect(setup('x:unknown')).toBeNull();
+  });
+
+  it('still names every known kind', () => {
+    expect(setup('webhook')).toBe('ADMIN.TYPE_WEBHOOK');
+    expect(setup('telegram:topic')).toBe('ADMIN.TYPE_TELEGRAM_TOPIC');
+  });
+
   it('keeps "Viewing as" for a person, including one with no type at all', () => {
     expect(setup('discord:user')).toBeNull();
     expect(setup(null)).toBeNull();

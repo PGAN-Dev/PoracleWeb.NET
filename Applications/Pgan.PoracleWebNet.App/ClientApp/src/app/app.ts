@@ -22,7 +22,7 @@ import { DashboardService } from './core/services/dashboard.service';
 import { I18nService } from './core/services/i18n.service';
 import { DEFAULT_SITE_TITLE, SettingsService } from './core/services/settings.service';
 import { AlertDefaultsDialogComponent } from './shared/components/alert-defaults-dialog/alert-defaults-dialog.component';
-import { isPersonType, kindLabelKey } from './shared/utils/human-kind';
+import { isKnownKind, kindLabelKey } from './shared/utils/human-kind';
 
 interface NavItem {
   adminOnly?: boolean;
@@ -269,10 +269,13 @@ export class App implements OnInit {
 
   protected readonly hideHeaderLogo = computed(() => this.settingsService.isDisabled('hide_header_logo'));
   protected readonly i18n = inject(I18nService);
-  /** While managing a destination, the translation key naming its kind; null for a person. */
+  /**
+   * While managing a destination, the translation key naming its kind. Null for a person and for a type the
+   * app cannot name, so the banner says "Viewing as" rather than "Managing Other".
+   */
   protected readonly managedKindKey = computed(() => {
     const type = this.auth.user()?.type;
-    return isPersonType(type) ? null : kindLabelKey(type ?? null);
+    return isKnownKind(type) ? kindLabelKey(type ?? null) : null;
   });
 
   /**
