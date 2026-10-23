@@ -6,7 +6,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideTranslateService } from '@ngx-translate/core';
 import { of, throwError } from 'rxjs';
 
-import { AdminWebhooksComponent } from './admin-webhooks.component';
+import { AdminDestinationsComponent } from './admin-destinations.component';
 import { AdminUser } from '../../core/models';
 import { AdminService } from '../../core/services/admin.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -33,7 +33,7 @@ function human(id: string, overrides: Partial<AdminUser> = {}): AdminUser {
  * Every global admin can manage every webhook. Listing them as delegates on each row put the same five
  * locked avatars on a hook nobody had been granted, and the real grants got lost among them.
  */
-describe('AdminWebhooksComponent delegates column', () => {
+describe('AdminDestinationsComponent delegates column', () => {
   const hookA = human('https://hook/a', { name: 'Hook A', type: 'webhook' });
   const hookB = human('https://hook/b', { name: 'Hook B', type: 'webhook' });
 
@@ -50,11 +50,11 @@ describe('AdminWebhooksComponent delegates column', () => {
         { provide: AdminService, useValue: adminService },
         { provide: AuthService, useValue: { impersonate: jest.fn(), user: signal({ id: 'admin1', isAdmin: true }) } },
       ],
-      imports: [AdminWebhooksComponent, NoopAnimationsModule],
+      imports: [AdminDestinationsComponent, NoopAnimationsModule],
     });
     TestBed.overrideProvider(MatSnackBar, { useValue: { open: jest.fn() } });
     TestBed.overrideProvider(MatDialog, { useValue: { open: jest.fn() } });
-    const fixture = TestBed.createComponent(AdminWebhooksComponent);
+    const fixture = TestBed.createComponent(AdminDestinationsComponent);
     fixture.detectChanges();
     return fixture;
   }
@@ -82,7 +82,7 @@ describe('AdminWebhooksComponent delegates column', () => {
     const fixture = setup();
     const note = (fixture.nativeElement as HTMLElement).querySelector('[data-test="admins-note"]');
 
-    expect(note?.textContent).toContain('ADMIN.WEBHOOKS_ADMINS_NOTE');
+    expect(note?.textContent).toContain('ADMIN.DESTINATIONS_ADMINS_NOTE');
   });
 
   // .page-description is hidden under 600px, and on a phone the column would then read "No delegate grants"
@@ -101,7 +101,7 @@ describe('AdminWebhooksComponent delegates column', () => {
  * admin to check the list before retrying, because a retry can sit a second row beside a half-written one.
  * That sentence has to reach the admin, not "Check the URL and try again".
  */
-describe('AdminWebhooksComponent add failure', () => {
+describe('AdminDestinationsComponent add failure', () => {
   function setup(error: unknown) {
     const snack = { open: jest.fn() };
     const adminService = {
@@ -117,13 +117,13 @@ describe('AdminWebhooksComponent add failure', () => {
         { provide: AdminService, useValue: adminService },
         { provide: AuthService, useValue: { impersonate: jest.fn(), user: signal({ id: 'admin1', isAdmin: true }) } },
       ],
-      imports: [AdminWebhooksComponent, NoopAnimationsModule],
+      imports: [AdminDestinationsComponent, NoopAnimationsModule],
     });
     TestBed.overrideProvider(MatSnackBar, { useValue: snack });
     TestBed.overrideProvider(MatDialog, {
       useValue: { open: jest.fn(() => ({ afterClosed: () => of({ name: 'Hook', url: 'https://discord.com/api/webhooks/1/x' }) })) },
     });
-    const fixture = TestBed.createComponent(AdminWebhooksComponent);
+    const fixture = TestBed.createComponent(AdminDestinationsComponent);
     fixture.detectChanges();
     fixture.componentInstance.openAddDialog();
     return snack;
@@ -148,6 +148,6 @@ describe('AdminWebhooksComponent add failure', () => {
   it('keeps its own translated message for a server error that says nothing useful', () => {
     const snack = setup({ error: { error: 'An unexpected error occurred.' }, status: 500 });
 
-    expect(snack.open).toHaveBeenCalledWith('ADMIN.SNACK_FAILED_ADD_WEBHOOK', 'TOAST.OK', { duration: 4000 });
+    expect(snack.open).toHaveBeenCalledWith('ADMIN.SNACK_FAILED_ADD_DESTINATION', 'TOAST.OK', { duration: 4000 });
   });
 });

@@ -26,18 +26,18 @@ import { I18nService } from '../../core/services/i18n.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { serverReason } from '../../shared/utils/server-reason';
 
-// ─── Add Webhook Dialog ───────────────────────────────────────────────────────
+// ─── Add Destination Dialog ───────────────────────────────────────────────────────
 
 @Component({
   imports: [ReactiveFormsModule, MatDialogModule, MatButtonModule, MatFormFieldModule, MatInputModule, MatIconModule, TranslatePipe],
-  selector: 'app-add-webhook-dialog',
+  selector: 'app-add-destination-dialog',
   standalone: true,
-  styleUrl: './add-webhook-dialog.component.scss',
-  templateUrl: './add-webhook-dialog.component.html',
+  styleUrl: './add-destination-dialog.component.scss',
+  templateUrl: './add-destination-dialog.component.html',
 })
-export class AddWebhookDialogComponent {
+export class AddDestinationDialogComponent {
   private readonly fb = inject(FormBuilder);
-  readonly dialogRef = inject(MatDialogRef<AddWebhookDialogComponent>);
+  readonly dialogRef = inject(MatDialogRef<AddDestinationDialogComponent>);
 
   readonly form = this.fb.group({
     name: ['', Validators.required],
@@ -51,7 +51,7 @@ export class AddWebhookDialogComponent {
   }
 }
 
-// ─── Webhook Delegates Dialog ─────────────────────────────────────────────────
+// ─── Destination Delegates Dialog ─────────────────────────────────────────────────
 
 interface DelegatesDialogData {
   allUsers: AdminUser[];
@@ -74,19 +74,19 @@ interface DelegatesDialogData {
     MatTooltipModule,
     TranslatePipe,
   ],
-  selector: 'app-webhook-delegates-dialog',
+  selector: 'app-destination-delegates-dialog',
   standalone: true,
-  styleUrl: './webhook-delegates-dialog.component.scss',
-  templateUrl: './webhook-delegates-dialog.component.html',
+  styleUrl: './destination-delegates-dialog.component.scss',
+  templateUrl: './destination-delegates-dialog.component.html',
 })
-export class WebhookDelegatesDialogComponent implements OnInit {
+export class DestinationDelegatesDialogComponent implements OnInit {
   private readonly adminService = inject(AdminService);
   private readonly i18n = inject(I18nService);
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<DelegatesDialogData>(MAT_DIALOG_DATA);
   readonly delegates = signal<string[]>([]);
 
-  readonly dialogRef = inject(MatDialogRef<WebhookDelegatesDialogComponent>);
+  readonly dialogRef = inject(MatDialogRef<DestinationDelegatesDialogComponent>);
   readonly filteredUsers = signal<AdminUser[]>([]);
   readonly loading = signal(true);
   searchText = '';
@@ -175,7 +175,7 @@ export class WebhookDelegatesDialogComponent implements OnInit {
   }
 }
 
-// ─── Webhooks Page ────────────────────────────────────────────────────────────
+// ─── Destinations Page ────────────────────────────────────────────────────────────
 
 type StatusFilter = 'all' | 'active' | 'stopped' | 'blocked';
 
@@ -199,12 +199,12 @@ type StatusFilter = 'all' | 'active' | 'stopped' | 'blocked';
     MatChipsModule,
     TranslatePipe,
   ],
-  selector: 'app-admin-webhooks',
+  selector: 'app-admin-destinations',
   standalone: true,
-  styleUrl: './admin-webhooks.component.scss',
-  templateUrl: './admin-webhooks.component.html',
+  styleUrl: './admin-destinations.component.scss',
+  templateUrl: './admin-destinations.component.html',
 })
-export class AdminWebhooksComponent implements OnInit {
+export class AdminDestinationsComponent implements OnInit {
   private readonly adminService = inject(AdminService);
   private readonly allUsers = signal<AdminUser[]>([]);
   private readonly auth = inject(AuthService);
@@ -270,7 +270,7 @@ export class AdminWebhooksComponent implements OnInit {
 
   copyUrl(url: string): void {
     navigator.clipboard.writeText(url).then(() => {
-      this.snackBar.open(this.i18n.instant('ADMIN.SNACK_URL_COPIED'), undefined, { duration: 2000 });
+      this.snackBar.open(this.i18n.instant('ADMIN.SNACK_ID_COPIED'), undefined, { duration: 2000 });
     });
   }
 
@@ -305,9 +305,9 @@ export class AdminWebhooksComponent implements OnInit {
     const name = user.name || user.id;
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        confirmText: this.i18n.instant('ADMIN.DELETE_WEBHOOK'),
-        message: this.i18n.instant('ADMIN.CONFIRM_DELETE_WEBHOOK', { name }),
-        title: this.i18n.instant('ADMIN.DELETE_WEBHOOK'),
+        confirmText: this.i18n.instant('ADMIN.DELETE_DESTINATION'),
+        message: this.i18n.instant('ADMIN.CONFIRM_DELETE_DESTINATION', { name }),
+        title: this.i18n.instant('ADMIN.DELETE_DESTINATION'),
         warn: true,
       } as ConfirmDialogData,
     });
@@ -315,10 +315,10 @@ export class AdminWebhooksComponent implements OnInit {
     ref.afterClosed().subscribe(confirmed => {
       if (confirmed) {
         this.adminService.deleteUser(user.id).subscribe({
-          error: err => this.showFailure(err, 'ADMIN.SNACK_FAILED_DELETE_WEBHOOK'),
+          error: err => this.showFailure(err, 'ADMIN.SNACK_FAILED_DELETE_DESTINATION'),
           next: () => {
             this.allUsers.update(users => users.filter(u => u.id !== user.id));
-            this.snackBar.open(this.i18n.instant('ADMIN.SNACK_WEBHOOK_DELETED', { name }), this.i18n.instant('TOAST.OK'), {
+            this.snackBar.open(this.i18n.instant('ADMIN.SNACK_DESTINATION_DELETED', { name }), this.i18n.instant('TOAST.OK'), {
               duration: 3000,
             });
           },
@@ -423,7 +423,7 @@ export class AdminWebhooksComponent implements OnInit {
   }
 
   openAddDialog(): void {
-    const ref = this.dialog.open(AddWebhookDialogComponent, { width: '480px' });
+    const ref = this.dialog.open(AddDestinationDialogComponent, { width: '480px' });
     ref.afterClosed().subscribe(result => {
       if (result) {
         this.adminService
@@ -433,11 +433,11 @@ export class AdminWebhooksComponent implements OnInit {
             error: err => {
               // 502 is the #482 half-write answer ("Check the webhook list before trying again"), which must
               // reach the admin: a retry on the generic message can create a second row.
-              const msg = serverReason(err, { allow5xx: [502] }) ?? this.i18n.instant('ADMIN.SNACK_FAILED_ADD_WEBHOOK');
+              const msg = serverReason(err, { allow5xx: [502] }) ?? this.i18n.instant('ADMIN.SNACK_FAILED_ADD_DESTINATION');
               this.snackBar.open(msg, this.i18n.instant('TOAST.OK'), { duration: 4000 });
             },
             next: () => {
-              this.snackBar.open(this.i18n.instant('ADMIN.SNACK_WEBHOOK_ADDED', { name: result.name }), this.i18n.instant('TOAST.OK'), {
+              this.snackBar.open(this.i18n.instant('ADMIN.SNACK_DESTINATION_ADDED', { name: result.name }), this.i18n.instant('TOAST.OK'), {
                 duration: 3000,
               });
               this.loadUsers();
@@ -448,7 +448,7 @@ export class AdminWebhooksComponent implements OnInit {
   }
 
   openDelegatesDialog(webhook: AdminUser): void {
-    const ref = this.dialog.open(WebhookDelegatesDialogComponent, {
+    const ref = this.dialog.open(DestinationDelegatesDialogComponent, {
       width: '520px',
       data: {
         allUsers: this.allUsers(),

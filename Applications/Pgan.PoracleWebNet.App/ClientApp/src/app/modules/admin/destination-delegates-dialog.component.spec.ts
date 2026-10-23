@@ -5,7 +5,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideTranslateService } from '@ngx-translate/core';
 import { of, throwError } from 'rxjs';
 
-import { AddWebhookDialogComponent, WebhookDelegatesDialogComponent } from './admin-webhooks.component';
+import { AddDestinationDialogComponent, DestinationDelegatesDialogComponent } from './admin-destinations.component';
 import { AdminUser } from '../../core/models';
 import { AdminService } from '../../core/services/admin.service';
 
@@ -26,7 +26,7 @@ function user(id: string, name: string, type = 'discord:user'): AdminUser {
   };
 }
 
-describe('WebhookDelegatesDialogComponent', () => {
+describe('DestinationDelegatesDialogComponent', () => {
   const webhook = user('https://example.com/hook', 'Hook', 'webhook');
   const sam = user('222', 'Sam');
 
@@ -45,11 +45,11 @@ describe('WebhookDelegatesDialogComponent', () => {
         { provide: MatDialogRef, useValue: { close: jest.fn() } },
         { provide: MAT_DIALOG_DATA, useValue: { allUsers: [webhook, sam], poracleAdmins: [], porocleDelegates: [], webhook } },
       ],
-      imports: [WebhookDelegatesDialogComponent, NoopAnimationsModule],
+      imports: [DestinationDelegatesDialogComponent, NoopAnimationsModule],
     });
     TestBed.overrideProvider(MatSnackBar, { useValue: snackBar });
 
-    const fixture = TestBed.createComponent(WebhookDelegatesDialogComponent);
+    const fixture = TestBed.createComponent(DestinationDelegatesDialogComponent);
     fixture.detectChanges();
     return { adminService, component: fixture.componentInstance, fixture, snackBar };
   }
@@ -124,13 +124,13 @@ describe('WebhookDelegatesDialogComponent', () => {
   });
 });
 
-describe('AddWebhookDialogComponent', () => {
+describe('AddDestinationDialogComponent', () => {
   function setup() {
     TestBed.configureTestingModule({
       providers: [provideTranslateService(), { provide: MatDialogRef, useValue: { close: jest.fn() } }],
-      imports: [AddWebhookDialogComponent, NoopAnimationsModule],
+      imports: [AddDestinationDialogComponent, NoopAnimationsModule],
     });
-    return TestBed.createComponent(AddWebhookDialogComponent).componentInstance;
+    return TestBed.createComponent(AddDestinationDialogComponent).componentInstance;
   }
 
   afterEach(() => TestBed.resetTestingModule());

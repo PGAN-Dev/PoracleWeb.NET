@@ -1,23 +1,25 @@
 <div class="page-header">
   <div class="page-header-text">
-    <h1>{{ 'ADMIN.WEBHOOKS_TITLE' | translate }}</h1>
-    <p class="page-description">{{ 'ADMIN.WEBHOOKS_DESC' | translate }}</p>
+    <h1>{{ 'ADMIN.DESTINATIONS_TITLE' | translate }}</h1>
+    <p class="page-description">{{ 'ADMIN.DESTINATIONS_DESC' | translate }}</p>
   </div>
-  <button mat-flat-button color="primary" (click)="openAddDialog()"><mat-icon>add</mat-icon> {{ 'ADMIN.ADD_WEBHOOK' | translate }}</button>
+  <button mat-flat-button color="primary" (click)="openAddDialog()">
+    <mat-icon>add</mat-icon> {{ 'ADMIN.ADD_DESTINATION' | translate }}
+  </button>
 </div>
 
 <div class="page-content">
   <!-- Not a page description: phones hide those, and this is what explains an empty Delegates column. -->
-  <p class="admins-note" data-test="admins-note">{{ 'ADMIN.WEBHOOKS_ADMINS_NOTE' | translate }}</p>
+  <p class="admins-note" data-test="admins-note">{{ 'ADMIN.DESTINATIONS_ADMINS_NOTE' | translate }}</p>
   <div class="toolbar">
     <mat-form-field appearance="outline" class="search-field">
-      <mat-label>{{ 'ADMIN.SEARCH_WEBHOOKS' | translate }}</mat-label>
+      <mat-label>{{ 'ADMIN.SEARCH_DESTINATIONS' | translate }}</mat-label>
       <mat-icon matPrefix>search</mat-icon>
       <input
         matInput
         [ngModel]="searchTerm()"
         (ngModelChange)="onSearchChange($event)"
-        [placeholder]="'ADMIN.FILTER_WEBHOOK_PLACEHOLDER' | translate" />
+        [placeholder]="'ADMIN.FILTER_DESTINATION_PLACEHOLDER' | translate" />
       @if (searchTerm()) {
         <button matSuffix mat-icon-button (click)="onSearchChange('')" [attr.aria-label]="'COMMON.CLEAR_SEARCH' | translate">
           <mat-icon>clear</mat-icon>
@@ -49,7 +51,7 @@
         </ng-container>
 
         <ng-container matColumnDef="id">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'ADMIN.COLUMN_URL' | translate }}</th>
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'ADMIN.COLUMN_ID' | translate }}</th>
           <td mat-cell *matCellDef="let wh">
             <span
               class="webhook-url"
@@ -117,8 +119,8 @@
                   mat-icon-button
                   color="warn"
                   (click)="toggleBlock(wh, false)"
-                  [matTooltip]="'ADMIN.BLOCK_WEBHOOK' | translate"
-                  [attr.aria-label]="'ADMIN.BLOCK_WEBHOOK' | translate">
+                  [matTooltip]="'ADMIN.BLOCK_DESTINATION' | translate"
+                  [attr.aria-label]="'ADMIN.BLOCK_DESTINATION' | translate">
                   <mat-icon>block</mat-icon>
                 </button>
               } @else {
@@ -126,8 +128,8 @@
                   mat-icon-button
                   color="primary"
                   (click)="toggleBlock(wh, true)"
-                  [matTooltip]="'ADMIN.UNBLOCK_WEBHOOK' | translate"
-                  [attr.aria-label]="'ADMIN.UNBLOCK_WEBHOOK' | translate">
+                  [matTooltip]="'ADMIN.UNBLOCK_DESTINATION' | translate"
+                  [attr.aria-label]="'ADMIN.UNBLOCK_DESTINATION' | translate">
                   <mat-icon>check_circle</mat-icon>
                 </button>
               }
@@ -175,8 +177,8 @@
                 mat-icon-button
                 color="warn"
                 (click)="deleteWebhook(wh)"
-                [matTooltip]="'ADMIN.DELETE_WEBHOOK' | translate"
-                [attr.aria-label]="'ADMIN.DELETE_WEBHOOK' | translate">
+                [matTooltip]="'ADMIN.DELETE_DESTINATION' | translate"
+                [attr.aria-label]="'ADMIN.DELETE_DESTINATION' | translate">
                 <mat-icon>delete_forever</mat-icon>
               </button>
             </div>
@@ -191,10 +193,12 @@
     @if (filteredWebhooks().length === 0) {
       <div class="empty-state">
         <mat-icon class="empty-icon">webhook</mat-icon>
-        <h2>{{ 'ADMIN.NO_WEBHOOKS' | translate }}</h2>
+        <h2>{{ 'ADMIN.NO_DESTINATIONS' | translate }}</h2>
         <p>
           {{
-            searchTerm() || statusFilter() !== 'all' ? ('ADMIN.TRY_ADJUSTING_FILTERS' | translate) : ('ADMIN.NO_WEBHOOKS_YET' | translate)
+            searchTerm() || statusFilter() !== 'all'
+              ? ('ADMIN.TRY_ADJUSTING_FILTERS' | translate)
+              : ('ADMIN.NO_DESTINATIONS_YET' | translate)
           }}
         </p>
       </div>
