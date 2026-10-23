@@ -44,7 +44,7 @@
       <div class="tab-content">
         <app-scope-picker [(scope)]="scope" [(radiusValid)]="radiusValid" [storedRadiusKm]="storedRadiusKm" />
 
-        @if (templatesEnabled() || isWebhook) {
+        @if (templatesEnabled() || showMention) {
           <h4>{{ 'ALARM.MESSAGE_SETTINGS' | translate }}</h4>
         }
 
@@ -54,7 +54,7 @@
           (valueChange)="form.controls.template.setValue($event)">
         </app-template-selector>
 
-        @if (isWebhook) {
+        @if (showMention) {
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>{{ 'ALARM.MENTION_LABEL' | translate }}</mat-label>
             <input matInput [formControl]="form.controls.ping" maxlength="255" />

@@ -22,6 +22,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
 import { createFailureText } from '../../shared/utils/add-outcome';
 import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-flags';
+import { mentionCapable } from '../../shared/utils/human-kind';
 
 @Component({
   imports: [
@@ -45,6 +46,7 @@ import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-fl
   templateUrl: './nest-edit-dialog.component.html',
 })
 export class NestEditDialogComponent {
+  private readonly auth = inject(AuthService);
   private readonly fb = inject(FormBuilder);
   private readonly i18n = inject(I18nService);
   private readonly iconService = inject(IconService);
@@ -63,16 +65,16 @@ export class NestEditDialogComponent {
     template: [this.data.template ?? ''],
   });
 
-  readonly isWebhook = inject(AuthService).isImpersonating();
-
   pokemonName = this.masterData.getPokemonName(this.data.pokemonId);
 
   /** False while the scope picker holds a radius it won't accept, which keeps Save off. */
   readonly radiusValid = signal(true);
-  saving = signal(false);
 
+  saving = signal(false);
   /** The alarm's current scope, read back into the shared picker. */
   readonly scope = signal<AlarmScope>(scopeOf(this.data.overrideLocationLabel, this.data.overrideAreas, this.data.distance));
+
+  readonly showMention = this.auth.isImpersonating() && mentionCapable(this.auth.user()?.type);
 
   /** The radius as stored, which an edit may keep even outside the picker's range. */
   readonly storedRadiusKm = metresToKm(this.data.distance);

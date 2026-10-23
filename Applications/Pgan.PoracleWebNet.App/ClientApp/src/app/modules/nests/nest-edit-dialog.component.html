@@ -47,7 +47,7 @@
             <p class="clean-hint">{{ 'ALARM.CLEAN_HINT_NEST' | translate }}</p>
           </div>
         </div>
-        @if (isWebhook) {
+        @if (showMention) {
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>{{ 'ALARM.MENTION_LABEL' | translate }}</mat-label>
             <input matInput [formControl]="form.controls.ping" maxlength="255" />

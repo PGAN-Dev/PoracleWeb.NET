@@ -15,6 +15,7 @@ import { QuestService } from '../../core/services/quest.service';
 
 describe('QuestEditDialogComponent', () => {
   let webhookSession = false;
+  let sessionType = 'webhook';
   let component: QuestEditDialogComponent;
   let dialogRef: { close: jest.Mock };
   let questService: { update: jest.Mock };
@@ -49,7 +50,7 @@ describe('QuestEditDialogComponent', () => {
         { provide: MAT_DIALOG_DATA, useValue: data },
         { provide: MatDialogRef, useValue: dialogRef },
         { provide: QuestService, useValue: questService },
-        { provide: AuthService, useValue: { isImpersonating: () => webhookSession, user: () => ({ type: 'discord:user' }) } },
+        { provide: AuthService, useValue: { isImpersonating: () => webhookSession, user: () => ({ type: sessionType }) } },
         {
           provide: MasterDataService,
           useValue: { getItemName: () => 'Item', getPokemonName: () => 'Pikachu', loadData: () => of(void 0) },
@@ -209,14 +210,30 @@ describe('QuestEditDialogComponent', () => {
     // always stores a ping, so there is no server-config dependency left to consult.
     it('is offered on a webhook alarm', () => {
       webhookSession = true;
+      sessionType = 'webhook';
       setup({ ...baseQuest });
-      expect(TestBed.createComponent(QuestEditDialogComponent).componentInstance.isWebhook).toBe(true);
+      expect(TestBed.createComponent(QuestEditDialogComponent).componentInstance.showMention).toBe(true);
+    });
+
+    it('is offered while managing a Discord channel', () => {
+      webhookSession = true;
+      sessionType = 'discord:channel';
+      setup({ ...baseQuest });
+      expect(TestBed.createComponent(QuestEditDialogComponent).componentInstance.showMention).toBe(true);
+    });
+
+    it('is hidden while managing a Telegram group', () => {
+      webhookSession = true;
+      sessionType = 'telegram:group';
+      setup({ ...baseQuest });
+      expect(TestBed.createComponent(QuestEditDialogComponent).componentInstance.showMention).toBe(false);
     });
 
     it('is hidden on a personal alarm', () => {
       webhookSession = false;
+      sessionType = 'discord:user';
       setup({ ...baseQuest });
-      expect(TestBed.createComponent(QuestEditDialogComponent).componentInstance.isWebhook).toBe(false);
+      expect(TestBed.createComponent(QuestEditDialogComponent).componentInstance.showMention).toBe(false);
     });
   });
 });

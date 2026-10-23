@@ -14,6 +14,7 @@ import { LureService } from '../../core/services/lure.service';
 
 describe('LureEditDialogComponent', () => {
   let webhookSession = false;
+  let sessionType = 'webhook';
   let component: LureEditDialogComponent;
   let dialogRef: { close: jest.Mock };
   let lureService: { update: jest.Mock };
@@ -45,7 +46,7 @@ describe('LureEditDialogComponent', () => {
         { provide: MAT_DIALOG_DATA, useValue: data },
         { provide: MatDialogRef, useValue: dialogRef },
         { provide: LureService, useValue: lureService },
-        { provide: AuthService, useValue: { isImpersonating: () => webhookSession, user: () => ({ type: 'discord:user' }) } },
+        { provide: AuthService, useValue: { isImpersonating: () => webhookSession, user: () => ({ type: sessionType }) } },
       ],
       imports: [LureEditDialogComponent],
     });
@@ -144,14 +145,30 @@ describe('LureEditDialogComponent', () => {
     // always stores a ping, so there is no server-config dependency left to consult.
     it('is offered on a webhook alarm', () => {
       webhookSession = true;
+      sessionType = 'webhook';
       setup({ ...baseLure });
-      expect(TestBed.createComponent(LureEditDialogComponent).componentInstance.isWebhook).toBe(true);
+      expect(TestBed.createComponent(LureEditDialogComponent).componentInstance.showMention).toBe(true);
+    });
+
+    it('is offered while managing a Discord channel', () => {
+      webhookSession = true;
+      sessionType = 'discord:channel';
+      setup({ ...baseLure });
+      expect(TestBed.createComponent(LureEditDialogComponent).componentInstance.showMention).toBe(true);
+    });
+
+    it('is hidden while managing a Telegram group', () => {
+      webhookSession = true;
+      sessionType = 'telegram:group';
+      setup({ ...baseLure });
+      expect(TestBed.createComponent(LureEditDialogComponent).componentInstance.showMention).toBe(false);
     });
 
     it('is hidden on a personal alarm', () => {
       webhookSession = false;
+      sessionType = 'discord:user';
       setup({ ...baseLure });
-      expect(TestBed.createComponent(LureEditDialogComponent).componentInstance.isWebhook).toBe(false);
+      expect(TestBed.createComponent(LureEditDialogComponent).componentInstance.showMention).toBe(false);
     });
   });
 

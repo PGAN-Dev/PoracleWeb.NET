@@ -23,6 +23,7 @@ import { MaxBattleService } from '../../core/services/max-battle.service';
  */
 describe('MaxBattleEditDialogComponent — filter preservation (#412)', () => {
   let webhookSession = false;
+  let sessionType = 'webhook';
   const ANY = 9000;
 
   /** Charizard, filtered to a specific move and evolution. */
@@ -59,7 +60,7 @@ describe('MaxBattleEditDialogComponent — filter preservation (#412)', () => {
         { provide: I18nService, useValue: { instant: (k: string) => k, plural: (k: string) => k } },
         { provide: IconService, useValue: { getPokemonUrl: () => '' } },
         { provide: MasterDataService, useValue: { getPokemonName: () => 'Charizard' } },
-        { provide: AuthService, useValue: { isImpersonating: () => webhookSession } },
+        { provide: AuthService, useValue: { isImpersonating: () => webhookSession, user: () => ({ type: sessionType }) } },
         {
           provide: MaxBattleService,
           useValue: {
@@ -120,14 +121,30 @@ describe('MaxBattleEditDialogComponent — filter preservation (#412)', () => {
     // always stores a ping, so there is no server-config dependency left to consult.
     it('is offered on a webhook alarm', () => {
       webhookSession = true;
+      sessionType = 'webhook';
       setup();
-      expect(TestBed.createComponent(MaxBattleEditDialogComponent).componentInstance.isWebhook).toBe(true);
+      expect(TestBed.createComponent(MaxBattleEditDialogComponent).componentInstance.showMention).toBe(true);
+    });
+
+    it('is offered while managing a Discord channel', () => {
+      webhookSession = true;
+      sessionType = 'discord:channel';
+      setup();
+      expect(TestBed.createComponent(MaxBattleEditDialogComponent).componentInstance.showMention).toBe(true);
+    });
+
+    it('is hidden while managing a Telegram group', () => {
+      webhookSession = true;
+      sessionType = 'telegram:group';
+      setup();
+      expect(TestBed.createComponent(MaxBattleEditDialogComponent).componentInstance.showMention).toBe(false);
     });
 
     it('is hidden on a personal alarm', () => {
       webhookSession = false;
+      sessionType = 'discord:user';
       setup();
-      expect(TestBed.createComponent(MaxBattleEditDialogComponent).componentInstance.isWebhook).toBe(false);
+      expect(TestBed.createComponent(MaxBattleEditDialogComponent).componentInstance.showMention).toBe(false);
     });
   });
 });
