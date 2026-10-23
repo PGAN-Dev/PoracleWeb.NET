@@ -444,6 +444,9 @@ public partial class PoracleTrackingProxy
             schemas.Declared.TryGetValue(type, out var declared) ? declared : null);
     }
 
+    public async Task<IReadOnlySet<string>?> GetDeclaredRulePropertiesAsync(string type) =>
+        (await this.ServerRuleSchemaAsync(type)).Declared;
+
     private sealed record ServerRuleSchemas(
         IReadOnlyDictionary<string, IReadOnlyDictionary<string, TrackingV2Translator.Bound>> Bounds,
         IReadOnlyDictionary<string, IReadOnlySet<string>> Declared);

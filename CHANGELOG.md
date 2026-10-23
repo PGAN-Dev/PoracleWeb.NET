@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Rule repair no longer lists editable rules as "cannot edit".** The scan judged each rule without the fields PoracleNG's own schema declares, so a rule carrying a field PoracleWeb.NET doesn't model, such as a personal shiny flag on a PoracleNG that has them, was reported as one that needs fixing by hand. Editing those rules always worked. The scan and the repair now check against what the server declares; a field it doesn't declare is still reported.
+- **Region and group pickers no longer repeat a name as its own heading.** Headings came from the first two parts of every name split on " - ", so a plain group name such as `Downtown` was drawn as a heading over itself, and a state with one city got a heading over one line. A heading now appears only over two or more names that share everything before their last part, and other names are listed on their own under their full name. Search still matches the whole name, the map's picker says "Ungrouped" like the list instead of "Other", and the Areas page hides the picker when there is only one group to choose from (#1029).
+
+### Security
+
+- **A revoked delegate loses their impersonation session promptly, and a newly granted one keeps theirs.** The check that re-authorises an impersonation session on every request could hold on to one answer for good when the role lookup answered quickly, so a delegate whose grant had been revoked kept managing the webhook, and a delegate granted afterwards was refused, until the app restarted. Each check now asks again: a grant removed in the admin dialog takes effect on the next request, and one removed from PoracleJS's config within the role lookup's one-minute cache.
+
 ## [3.0.0] - 2026-10-22
 
 ### Added
@@ -204,7 +213,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Editing any alarm with a role or user mention set used to silently erase it — on every PoracleNG version released to date.** The write path has always claimed that an edit this site can't send through `/api/v2` "falls back to the older surface, which keeps it." That was never actually checked against what PoracleNG does with the write, only that the outgoing request carried the right value, and it was wrong: verified live, against both a stock jfberry/PoracleNG `develop` build and a private fork on the same commit, that the older surface blanks a mention unconditionally — present, changed, or even left untouched, create or update. Every edit to a webhook alarm with a mention, for any reason, on any server released so far, has been quietly deleting it. Saving now refuses outright instead, with a plain explanation, rather than going through with an edit that would destroy something the dialog never even showed. The one real fix is upstream (jfberry/PoracleNG#249, see the Added entry above) — once a server carries it, the same edit goes through `/api/v2` instead and the mention survives for real.
+- **Editing any alarm with a role or user mention set used to silently erase it — on every PoracleNG version released to date.** The write path has always claimed that an edit this site can't send through `/api/v2` "falls back to the older surface, which keeps it." That was never actually checked against what PoracleNG does with the write, only that the outgoing request carried the right value, and it was wrong: verified live, against both a stock jfberry/PoracleNG `develop` build and a second build of the same commit, that the older surface blanks a mention unconditionally — present, changed, or even left untouched, create or update. Every edit to a webhook alarm with a mention, for any reason, on any server released so far, has been quietly deleting it. Saving now refuses outright instead, with a plain explanation, rather than going through with an edit that would destroy something the dialog never even showed. The one real fix is upstream (jfberry/PoracleNG#249, see the Added entry above) — once a server carries it, the same edit goes through `/api/v2` instead and the mention survives for real.
 
 ### Dependencies
 - Bump jest-preset-angular ([#944](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/944))

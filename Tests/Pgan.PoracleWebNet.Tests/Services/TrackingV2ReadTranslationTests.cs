@@ -507,7 +507,7 @@ public class TrackingV2ReadTranslationTests
     [MemberData(nameof(AllV2Types))]
     public void AnUnknownPropertyIsCopiedThroughUnchanged(string type)
     {
-        // The PGAN fork's personal_shiny / personal_background, or any field a newer PoracleNG adds.
+        // A personal-shiny PoracleNG's personal_shiny / personal_background, or any field a newer PoracleNG adds.
         var row = Read(type, """{"uid":1,"personal_shiny":true,"personal_background":{"a":[1,2]},"newer":null}""");
 
         Assert.True(row.GetProperty("personal_shiny").GetBoolean());

@@ -27,7 +27,7 @@
 - **`change_types`:** the array becomes a JSON string.
 - **Identity fields:** `uid`, and `profile_no` when present, are kept. `id` is set to the human id passed in. `description` is kept when present.
 - **`null` → the default** in the table below.
-- **Any property not in the type's table is copied through verbatim.** That covers future upstream fields and the PGAN fork's `personal_shiny` / `personal_background` (1,111 production rules). The write side must keep sending these back; it already copies unknown properties only where the field table allows, so add the carry-through to the write side too, gated on the server's own `/openapi.json` declaring the property (it declines today, which 3b removes).
+- **Any property not in the type's table is copied through verbatim.** That covers future upstream fields and a personal-shiny PoracleNG's `personal_shiny` / `personal_background`. The write side must keep sending these back; it already copies unknown properties only where the field table allows, so add the carry-through to the write side too, gated on the server's own `/openapi.json` declaring the property (it declines today, which 3b removes).
 
 ### Null → default table (the `*Create` initialisers are ours; where they and the column default differ, the column default wins, per CLAUDE.md "Monster Filter Defaults Are Ours")
 
