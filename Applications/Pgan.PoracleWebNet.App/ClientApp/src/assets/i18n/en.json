@@ -2412,6 +2412,8 @@
     "ERR_LINK_NOT_PERMITTED": "That account isn't allowed to sign in to this site, so it can't be linked.",
     "ERR_LINK_PROVISION_FAILED": "Couldn't set up the other account. Nothing was linked.",
     "ERR_LINK_FAILED": "Couldn't link the accounts. Nothing was changed.",
-    "ERR_LINK_CANCELLED": "You cancelled the link. Nothing was changed."
+    "ERR_LINK_CANCELLED": "You cancelled the link. Nothing was changed.",
+    "LOAD_FAILED": "Couldn't load your linked accounts.",
+    "RETRY": "Try again"
   }
 }

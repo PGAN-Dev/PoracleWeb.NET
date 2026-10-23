@@ -32,19 +32,23 @@ export class LinkedAccountService {
   readonly status = this.statusSignal.asReadonly();
 
   constructor() {
+    // Reads the settings signals too: on a reload the user arrives while settings are still loading, and
+    // `disable_account_linking` would read as off. Nothing is asked until they are in, and a later change
+    // to the switch is picked up.
     effect(() => {
       const user = this.auth.user();
+      const allowed = this.allowed();
       untracked(() => {
-        if (user) {
-          void this.refresh();
-        } else {
+        if (!user) {
           this.statusSignal.set(null);
+        } else if (allowed) {
+          void this.refresh();
         }
       });
     });
 
     const onFocus = (): void => {
-      if (!this.tokenStore.getAccessToken() || this.disabled()) return;
+      if (!this.tokenStore.getAccessToken() || !this.allowed()) return;
       if (Date.now() - this.lastRefreshAt < FOCUS_REFRESH_MIN_GAP_MS) return;
       void this.refresh();
     };
@@ -66,7 +70,7 @@ export class LinkedAccountService {
 
   /** Reads the status. A failed read keeps what is shown: the page words its own errors. */
   async refresh(): Promise<void> {
-    if (this.disabled()) return;
+    if (!this.allowed()) return;
     this.lastRefreshAt = Date.now();
     try {
       this.statusSignal.set(await firstValueFrom(this.http.get<LinkStatus>(`${this.config.apiHost}/api/account-link/status`)));
@@ -93,7 +97,8 @@ export class LinkedAccountService {
     await this.refresh();
   }
 
-  private disabled(): boolean {
-    return this.settings.isDisabled('disable_account_linking') || this.auth.isImpersonating();
+  /** Settings are in, linking is on, and nobody is being viewed as. Anything else would be a request the server refuses. */
+  private allowed(): boolean {
+    return this.settings.settingsLoaded() && !this.settings.isDisabled('disable_account_linking') && !this.auth.isImpersonating();
   }
 }

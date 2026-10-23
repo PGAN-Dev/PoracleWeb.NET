@@ -39,11 +39,13 @@ describe('App nav filtering (#236)', () => {
   let settingsSignal: WritableSignal<Record<string, string>>;
   let isAdminSignal: WritableSignal<boolean>;
   let delegateSignal: WritableSignal<boolean>;
+  let impersonatingSignal: WritableSignal<boolean>;
 
   const setup = (siteSettings: Record<string, string>, isAdmin: boolean, delegate = false) => {
     settingsSignal = signal(siteSettings);
     isAdminSignal = signal(isAdmin);
     delegateSignal = signal(delegate);
+    impersonatingSignal = signal(false);
 
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
@@ -66,10 +68,12 @@ describe('App nav filtering (#236)', () => {
           useValue: {
             hasManagedDestinations: () => delegateSignal(),
             isAdmin: () => isAdminSignal(),
+            isImpersonating: impersonatingSignal,
             loadCurrentUser: jest.fn(),
             logout: jest.fn(),
             stopImpersonating: jest.fn(),
             toggleAlerts: () => of(null),
+            user: signal(null),
           },
         },
         {
@@ -160,6 +164,24 @@ describe('App nav filtering (#236)', () => {
   it('treats setting value "false" as enabled', () => {
     const app = setup({ disable_areas: 'false' }, false);
     expect(settingsRoutes(app)).toContain('/areas');
+  });
+
+  describe('Linked accounts user-menu item', () => {
+    const shown = (app: App): boolean => (app as unknown as { showLinkedAccountsItem: () => boolean }).showLinkedAccountsItem();
+
+    it('shows when linking is on and nobody is being impersonated', () => {
+      expect(shown(setup({}, false))).toBe(true);
+    });
+
+    it('disappears when disable_account_linking is True', () => {
+      expect(shown(setup({ disable_account_linking: 'True' }, false))).toBe(false);
+    });
+
+    it('disappears while impersonating', () => {
+      const app = setup({}, false);
+      impersonatingSignal.set(true);
+      expect(shown(app)).toBe(false);
+    });
   });
 
   it('shows the Destinations group only to a delegate with grants', () => {

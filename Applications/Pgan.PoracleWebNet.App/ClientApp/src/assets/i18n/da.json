@@ -2412,6 +2412,8 @@
     "ERR_LINK_NOT_PERMITTED": "Den konto må ikke logge ind på denne side, så den kan ikke kædes sammen.",
     "ERR_LINK_PROVISION_FAILED": "Den anden konto kunne ikke oprettes. Intet blev kædet sammen.",
     "ERR_LINK_FAILED": "Kontoene kunne ikke kædes sammen. Intet blev ændret.",
-    "ERR_LINK_CANCELLED": "Du annullerede sammenkædningen. Intet blev ændret."
+    "ERR_LINK_CANCELLED": "Du annullerede sammenkædningen. Intet blev ændret.",
+    "LOAD_FAILED": "Dine sammenkædede konti kunne ikke indlæses.",
+    "RETRY": "Prøv igen"
   }
 }

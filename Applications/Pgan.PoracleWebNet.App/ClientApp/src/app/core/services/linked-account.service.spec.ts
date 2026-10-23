@@ -17,7 +17,9 @@ describe('LinkedAccountService', () => {
   let http: HttpTestingController;
   let service: LinkedAccountService;
   let user: ReturnType<typeof signal<unknown>>;
-  let disabled: boolean;
+  let settingsLoaded: ReturnType<typeof signal<boolean>>;
+  let siteSettings: ReturnType<typeof signal<Record<string, string>>>;
+  let impersonating: ReturnType<typeof signal<boolean>>;
   let token: string | null;
   let now: number;
 
@@ -36,7 +38,9 @@ describe('LinkedAccountService', () => {
 
   beforeEach(() => {
     user = signal<unknown>(null);
-    disabled = false;
+    settingsLoaded = signal(true);
+    siteSettings = signal<Record<string, string>>({});
+    impersonating = signal(false);
     token = 'jwt';
     now = 1_000_000;
     jest.spyOn(Date, 'now').mockImplementation(() => now);
@@ -45,8 +49,15 @@ describe('LinkedAccountService', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: ConfigService, useValue: { apiHost: API } },
-        { provide: AuthService, useValue: { isImpersonating: signal(false), user } },
-        { provide: SettingsService, useValue: { isDisabled: () => disabled } },
+        { provide: AuthService, useValue: { isImpersonating: impersonating, user } },
+        {
+          provide: SettingsService,
+          useValue: {
+            isDisabled: (key: string) => siteSettings()[key]?.toLowerCase() === 'true',
+            settingsLoaded,
+            siteSettings,
+          },
+        },
         { provide: TokenStoreService, useValue: { getAccessToken: () => token } },
       ],
     });
@@ -87,7 +98,7 @@ describe('LinkedAccountService', () => {
     token = null;
     window.dispatchEvent(new Event('focus'));
     token = 'jwt';
-    disabled = true;
+    siteSettings.set({ disable_account_linking: 'True' });
     now += 120_000;
     window.dispatchEvent(new Event('focus'));
     http.expectNone(STATUS);
@@ -102,6 +113,30 @@ describe('LinkedAccountService', () => {
     user.set(null);
     TestBed.tick();
     expect(service.status()).toBeNull();
+  });
+
+  it('asks nothing until site settings have loaded, and nothing if they switch linking off', () => {
+    settingsLoaded.set(false);
+    siteSettings.set({});
+    user.set({ id: '200000001' });
+    TestBed.tick();
+    http.expectNone(STATUS);
+
+    settingsLoaded.set(true);
+    siteSettings.set({ disable_account_linking: 'True' });
+    TestBed.tick();
+    http.expectNone(STATUS);
+
+    siteSettings.set({});
+    TestBed.tick();
+    http.expectOne(STATUS).flush(linked);
+  });
+
+  it('asks nothing while impersonating', () => {
+    impersonating.set(true);
+    user.set({ id: '200000001' });
+    TestBed.tick();
+    http.expectNone(STATUS);
   });
 
   it('starts a Discord link with cookies and navigates to the returned URL', async () => {

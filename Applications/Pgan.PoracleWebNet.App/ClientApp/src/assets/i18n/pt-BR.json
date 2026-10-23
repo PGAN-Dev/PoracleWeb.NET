@@ -2412,6 +2412,8 @@
     "ERR_LINK_NOT_PERMITTED": "Essa conta não pode entrar neste site, então não pode ser vinculada.",
     "ERR_LINK_PROVISION_FAILED": "Não foi possível configurar a outra conta. Nada foi vinculado.",
     "ERR_LINK_FAILED": "Não foi possível vincular as contas. Nada foi alterado.",
-    "ERR_LINK_CANCELLED": "Você cancelou a vinculação. Nada foi alterado."
+    "ERR_LINK_CANCELLED": "Você cancelou a vinculação. Nada foi alterado.",
+    "LOAD_FAILED": "Não foi possível carregar suas contas vinculadas.",
+    "RETRY": "Tentar de novo"
   }
 }

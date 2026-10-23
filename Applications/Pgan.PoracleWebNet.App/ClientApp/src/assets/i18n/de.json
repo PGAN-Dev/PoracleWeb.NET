@@ -2412,6 +2412,8 @@
     "ERR_LINK_NOT_PERMITTED": "Dieses Konto darf sich auf dieser Seite nicht anmelden und kann daher nicht verknüpft werden.",
     "ERR_LINK_PROVISION_FAILED": "Das andere Konto konnte nicht eingerichtet werden. Es wurde nichts verknüpft.",
     "ERR_LINK_FAILED": "Die Konten konnten nicht verknüpft werden. Es wurde nichts geändert.",
-    "ERR_LINK_CANCELLED": "Du hast die Verknüpfung abgebrochen. Es wurde nichts geändert."
+    "ERR_LINK_CANCELLED": "Du hast die Verknüpfung abgebrochen. Es wurde nichts geändert.",
+    "LOAD_FAILED": "Deine verknüpften Konten konnten nicht geladen werden.",
+    "RETRY": "Erneut versuchen"
   }
 }

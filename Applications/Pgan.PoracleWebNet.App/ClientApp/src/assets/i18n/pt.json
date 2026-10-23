@@ -2412,6 +2412,8 @@
     "ERR_LINK_NOT_PERMITTED": "Essa conta não pode iniciar sessão neste site, por isso não pode ser associada.",
     "ERR_LINK_PROVISION_FAILED": "Não foi possível configurar a outra conta. Nada foi associado.",
     "ERR_LINK_FAILED": "Não foi possível associar as contas. Nada foi alterado.",
-    "ERR_LINK_CANCELLED": "Cancelaste a associação. Nada foi alterado."
+    "ERR_LINK_CANCELLED": "Cancelaste a associação. Nada foi alterado.",
+    "LOAD_FAILED": "Não foi possível carregar as tuas contas associadas.",
+    "RETRY": "Tentar de novo"
   }
 }

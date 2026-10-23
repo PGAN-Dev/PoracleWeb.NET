@@ -2412,6 +2412,8 @@
     "ERR_LINK_NOT_PERMITTED": "Ce compte n’a pas le droit de se connecter à ce site, il ne peut donc pas être lié.",
     "ERR_LINK_PROVISION_FAILED": "Impossible de configurer l’autre compte. Rien n’a été lié.",
     "ERR_LINK_FAILED": "Impossible de lier les comptes. Rien n’a été modifié.",
-    "ERR_LINK_CANCELLED": "Vous avez annulé la liaison. Rien n’a été modifié."
+    "ERR_LINK_CANCELLED": "Vous avez annulé la liaison. Rien n’a été modifié.",
+    "LOAD_FAILED": "Impossible de charger vos comptes liés.",
+    "RETRY": "Réessayer"
   }
 }

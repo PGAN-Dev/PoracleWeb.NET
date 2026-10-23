@@ -2412,6 +2412,8 @@
     "ERR_LINK_NOT_PERMITTED": "Dat account mag niet inloggen op deze site en kan dus niet worden gekoppeld.",
     "ERR_LINK_PROVISION_FAILED": "Het andere account kon niet worden ingesteld. Er is niets gekoppeld.",
     "ERR_LINK_FAILED": "De accounts konden niet worden gekoppeld. Er is niets gewijzigd.",
-    "ERR_LINK_CANCELLED": "Je hebt het koppelen geannuleerd. Er is niets gewijzigd."
+    "ERR_LINK_CANCELLED": "Je hebt het koppelen geannuleerd. Er is niets gewijzigd.",
+    "LOAD_FAILED": "Je gekoppelde accounts konden niet worden geladen.",
+    "RETRY": "Opnieuw proberen"
   }
 }

@@ -2516,6 +2516,8 @@
     "ERR_LINK_NOT_PERMITTED": "To konto nie może logować się na tej stronie, więc nie można go połączyć.",
     "ERR_LINK_PROVISION_FAILED": "Nie udało się skonfigurować drugiego konta. Nic nie zostało połączone.",
     "ERR_LINK_FAILED": "Nie udało się połączyć kont. Nic nie zostało zmienione.",
-    "ERR_LINK_CANCELLED": "Anulowano łączenie. Nic nie zostało zmienione."
+    "ERR_LINK_CANCELLED": "Anulowano łączenie. Nic nie zostało zmienione.",
+    "LOAD_FAILED": "Nie udało się wczytać połączonych kont.",
+    "RETRY": "Spróbuj ponownie"
   }
 }

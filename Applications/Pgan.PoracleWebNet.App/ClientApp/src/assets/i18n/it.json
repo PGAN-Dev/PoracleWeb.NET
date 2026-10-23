@@ -2412,6 +2412,8 @@
     "ERR_LINK_NOT_PERMITTED": "Quell’account non può accedere a questo sito, quindi non può essere collegato.",
     "ERR_LINK_PROVISION_FAILED": "Impossibile configurare l’altro account. Non è stato collegato nulla.",
     "ERR_LINK_FAILED": "Impossibile collegare gli account. Non è stato modificato nulla.",
-    "ERR_LINK_CANCELLED": "Hai annullato il collegamento. Non è stato modificato nulla."
+    "ERR_LINK_CANCELLED": "Hai annullato il collegamento. Non è stato modificato nulla.",
+    "LOAD_FAILED": "Impossibile caricare i tuoi account collegati.",
+    "RETRY": "Riprova"
   }
 }

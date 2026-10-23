@@ -58,3 +58,10 @@
   max-width: 800px;
   margin-top: 24px;
 }
+
+.load-failed {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}

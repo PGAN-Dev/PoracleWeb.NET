@@ -29,10 +29,10 @@ describe('LinkedAccountsComponent', () => {
   };
   const snackBar = { open: jest.fn() };
 
-  function setup(options: { discord?: boolean; support?: string | null; telegram?: boolean; type?: string } = {}) {
+  function setup(options: { discord?: boolean; impersonating?: boolean; support?: string | null; telegram?: boolean; type?: string } = {}) {
     const auth = {
       getProviders: jest.fn(() => of(providers(options.discord ?? true, options.telegram ?? true))),
-      getTelegramConfig: jest.fn(() => of({ botUsername: 'old_town_bot', enabled: options.telegram ?? true })),
+      isImpersonating: signal(options.impersonating ?? false),
       user: signal({ id: '100000000000000001', type: options.type ?? 'telegram:user' }),
     };
     TestBed.configureTestingModule({
@@ -105,6 +105,22 @@ describe('LinkedAccountsComponent', () => {
     expect(window.location.hash).toBe('');
   });
 
+  it('shows a load-failed state with Retry, not Link, when the status could not be read', async () => {
+    status.set(null);
+    const { fixture } = setup({ type: 'telegram:user' });
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(q(fixture, '[data-test="load-failed"]')).toBeTruthy();
+    expect(q(fixture, '[data-test="link-discord"]')).toBeNull();
+    (q(fixture, '[data-test="retry"]') as HTMLButtonElement).click();
+    expect(linkedAccounts.refresh).toHaveBeenCalledTimes(2);
+  });
+
+  it('offers no Link while impersonating', () => {
+    const { fixture } = setup({ impersonating: true, type: 'telegram:user' });
+    expect(q(fixture, '[data-test="link-discord"]')).toBeNull();
+  });
+
   describe('linked', () => {
     const both: LinkStatus = {
       sides: [
@@ -114,6 +130,13 @@ describe('LinkedAccountsComponent', () => {
       defaultDestination: 'discord',
       linked: true,
     };
+
+    it('hides Unlink and the default choice while impersonating', () => {
+      status.set(both);
+      const { fixture } = setup({ impersonating: true });
+      expect(q(fixture, '[data-test="unlink"]')).toBeNull();
+      expect(q(fixture, '[data-test="default-destination"]')).toBeNull();
+    });
 
     it('shows each side and its state', () => {
       status.set(both);

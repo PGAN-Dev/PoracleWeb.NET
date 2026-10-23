@@ -285,16 +285,22 @@ export class AdminUsersComponent implements OnInit {
         warn: true,
       } as ConfirmDialogData,
     });
-    ref.afterClosed().subscribe(confirmed => {
-      if (!confirmed) return;
-      this.adminService.unlinkAccounts(user.id).subscribe({
-        error: err => this.showFailure(err, 'ADMIN.SNACK_FAILED_UNLINK'),
-        next: () => {
-          this.loadLinks();
-          this.snackBar.open(this.i18n.instant('ADMIN.SNACK_UNLINKED', { name }), this.i18n.instant('TOAST.OK'), { duration: 3000 });
-        },
+    ref
+      .afterClosed()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(confirmed => {
+        if (!confirmed) return;
+        this.adminService
+          .unlinkAccounts(user.id)
+          .pipe(takeUntilDestroyed(this.destroyRef))
+          .subscribe({
+            error: err => this.showFailure(err, 'ADMIN.SNACK_FAILED_UNLINK'),
+            next: () => {
+              this.loadLinks();
+              this.snackBar.open(this.i18n.instant('ADMIN.SNACK_UNLINKED', { name }), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+            },
+          });
       });
-    });
   }
 
   private getSortValue(user: AdminUser, column: string): string | number {

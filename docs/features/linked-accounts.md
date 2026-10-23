@@ -27,8 +27,10 @@ The page says why, in your language. The reasons:
 | The account's id isn't valid | The id Discord or Telegram sent can't be an account id |
 | The account already exists as something else | That id is registered here as a channel, group or similar, not a person |
 | Already linked to another account | Unlink it from the other account first |
-| The sign-in took too long | Telegram logins are good for ten minutes, a Discord link for ten minutes from pressing Link; start again |
+| The sign-in took too long | A Telegram login is good for ten minutes after you approve it, and a Discord link for ten minutes after you press Link Discord. Start again |
 | Not allowed to sign in | The account fails this site's own sign-in rules, such as a required Discord role |
+| You cancelled the link | You backed out of the Discord approval. Nothing was changed |
+| Couldn't link the accounts | Something went wrong that none of the above covers, or the link was lost part way. Nothing was changed; try again |
 | Couldn't set up the other account | The site tried to create the other account and couldn't. Nothing was linked |
 
 ## Each side's state

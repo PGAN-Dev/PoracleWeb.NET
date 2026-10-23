@@ -86,7 +86,11 @@ export class LinkedAccountsComponent implements OnInit {
   protected readonly discordAvailable = signal(false);
   protected readonly isLinked = computed(() => this.linked.status()?.linked === true);
 
+  /** True once the first status read has finished, so a read that failed is told apart from one still going. */
   protected readonly loaded = signal(false);
+
+  /** Linking, unlinking and the default are refused while viewing as someone else, so they are not offered. */
+  protected readonly readOnly = this.auth.isImpersonating;
 
   /** The translation key of the refusal to show, from a failed link or the Discord callback's fragment. */
   protected readonly refusal = signal<null | string>(null);
@@ -94,7 +98,7 @@ export class LinkedAccountsComponent implements OnInit {
   /** Offering where new alerts go only makes sense once there are two places to send them. */
   protected readonly showDefault = computed(() => {
     const sides = this.linked.status()?.sides ?? [];
-    return this.isLinked() && sides.length === 2 && sides.every(s => s.exists);
+    return this.isLinked() && !this.readOnly() && sides.length === 2 && sides.every(s => s.exists);
   });
 
   protected readonly supportUrl = this.settings.supportUrl;
@@ -104,7 +108,7 @@ export class LinkedAccountsComponent implements OnInit {
   protected readonly telegramAvailable = computed(() => this.telegramBot() !== '');
 
   protected canLink(side: LinkSide): boolean {
-    if (this.isLinked() || side === this.ownSide()) return false;
+    if (this.readOnly() || this.isLinked() || side === this.ownSide()) return false;
     return side === 'discord' ? this.discordAvailable() : this.telegramAvailable();
   }
 
@@ -135,6 +139,10 @@ export class LinkedAccountsComponent implements OnInit {
       await this.linked.linkTelegram(data);
       this.snackBar.open(this.i18n.instant('LINKED.SNACK_LINKED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
     });
+  }
+
+  protected async retry(): Promise<void> {
+    await this.linked.refresh();
   }
 
   protected startDiscord(): Promise<void> {

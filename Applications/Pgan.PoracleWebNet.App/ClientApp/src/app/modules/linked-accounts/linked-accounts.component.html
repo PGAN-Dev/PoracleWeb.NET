@@ -13,90 +13,97 @@
     </p>
   }
 
-  <div class="side-grid">
-    @for (card of cards(); track card.side) {
-      <mat-card class="side-card" [attr.data-test]="'card-' + card.side">
-        <mat-card-header>
-          <mat-card-title>{{ (card.side === 'discord' ? 'LINKED.SIDE_DISCORD' : 'LINKED.SIDE_TELEGRAM') | translate }}</mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          <p class="state state-{{ card.state }}" [attr.data-test]="'state-' + card.side">
-            @switch (card.state) {
-              @case ('active') {
-                {{ 'LINKED.STATE_ACTIVE' | translate }}
-              }
-              @case ('waiting') {
-                {{ 'LINKED.STATE_WAITING' | translate }}
-              }
-              @case ('stopped') {
-                {{ 'LINKED.STATE_STOPPED' | translate }}
-              }
-              @case ('paused-admin') {
-                {{ 'LINKED.STATE_PAUSED_ADMIN' | translate }}
-              }
-              @case ('this-account') {
-                {{ 'LINKED.STATE_THIS_ACCOUNT' | translate }}
-              }
-              @default {
-                {{ 'LINKED.STATE_NOT_LINKED' | translate }}
-              }
-            }
-          </p>
-
-          @if (card.state === 'waiting' && card.side === 'telegram') {
-            <p class="hint" data-test="hint-telegram">
-              {{ (telegramBot() ? 'LINKED.HINT_TELEGRAM_BOT' : 'LINKED.HINT_TELEGRAM') | translate: { bot: telegramBot() } }}
-            </p>
-          }
-          @if (card.state === 'waiting' && card.side === 'discord') {
-            <p class="hint" data-test="hint-discord">
-              {{ 'LINKED.HINT_DISCORD' | translate }}
-              @if (supportUrl(); as url) {
-                <a [href]="url" target="_blank" rel="noopener noreferrer" data-test="support-link">{{
-                  'LINKED.SUPPORT_LINK' | translate
-                }}</a>
+  @if (linked.status()) {
+    <div class="side-grid">
+      @for (card of cards(); track card.side) {
+        <mat-card class="side-card" [attr.data-test]="'card-' + card.side">
+          <mat-card-header>
+            <mat-card-title>{{ (card.side === 'discord' ? 'LINKED.SIDE_DISCORD' : 'LINKED.SIDE_TELEGRAM') | translate }}</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <p class="state state-{{ card.state }}" [attr.data-test]="'state-' + card.side">
+              @switch (card.state) {
+                @case ('active') {
+                  {{ 'LINKED.STATE_ACTIVE' | translate }}
+                }
+                @case ('waiting') {
+                  {{ 'LINKED.STATE_WAITING' | translate }}
+                }
+                @case ('stopped') {
+                  {{ 'LINKED.STATE_STOPPED' | translate }}
+                }
+                @case ('paused-admin') {
+                  {{ 'LINKED.STATE_PAUSED_ADMIN' | translate }}
+                }
+                @case ('this-account') {
+                  {{ 'LINKED.STATE_THIS_ACCOUNT' | translate }}
+                }
+                @default {
+                  {{ 'LINKED.STATE_NOT_LINKED' | translate }}
+                }
               }
             </p>
-          }
-          @if (card.state === 'stopped') {
-            <p class="hint">{{ 'LINKED.HINT_STOPPED' | translate }}</p>
-          }
-          @if (card.state === 'paused-admin') {
-            <p class="hint">{{ 'LINKED.HINT_PAUSED_ADMIN' | translate }}</p>
-          }
 
-          @if (canLink(card.side)) {
-            @if (card.side === 'discord') {
-              <button mat-stroked-button type="button" data-test="link-discord" [disabled]="busy()" (click)="startDiscord()">
-                {{ 'LINKED.LINK_DISCORD' | translate }}
-              </button>
-            } @else {
-              <p class="hint">{{ 'LINKED.LINK_TELEGRAM_HINT' | translate }}</p>
-              <app-telegram-login-button [botUsername]="telegramBot()" (authenticated)="onTelegramWidget($event)" />
+            @if (card.state === 'waiting' && card.side === 'telegram') {
+              <p class="hint" data-test="hint-telegram">
+                {{ (telegramBot() ? 'LINKED.HINT_TELEGRAM_BOT' : 'LINKED.HINT_TELEGRAM') | translate: { bot: telegramBot() } }}
+              </p>
             }
-          }
-        </mat-card-content>
-      </mat-card>
+            @if (card.state === 'waiting' && card.side === 'discord') {
+              <p class="hint" data-test="hint-discord">
+                {{ 'LINKED.HINT_DISCORD' | translate }}
+                @if (supportUrl(); as url) {
+                  <a [href]="url" target="_blank" rel="noopener noreferrer" data-test="support-link">{{
+                    'LINKED.SUPPORT_LINK' | translate
+                  }}</a>
+                }
+              </p>
+            }
+            @if (card.state === 'stopped') {
+              <p class="hint">{{ 'LINKED.HINT_STOPPED' | translate }}</p>
+            }
+            @if (card.state === 'paused-admin') {
+              <p class="hint">{{ 'LINKED.HINT_PAUSED_ADMIN' | translate }}</p>
+            }
+
+            @if (canLink(card.side)) {
+              @if (card.side === 'discord') {
+                <button mat-stroked-button type="button" data-test="link-discord" [disabled]="busy()" (click)="startDiscord()">
+                  {{ 'LINKED.LINK_DISCORD' | translate }}
+                </button>
+              } @else {
+                <p class="hint">{{ 'LINKED.LINK_TELEGRAM_HINT' | translate }}</p>
+                <app-telegram-login-button [botUsername]="telegramBot()" (authenticated)="onTelegramWidget($event)" />
+              }
+            }
+          </mat-card-content>
+        </mat-card>
+      }
+    </div>
+
+    @if (showDefault()) {
+      <section class="default-destination" data-test="default-destination">
+        <h2 id="default-heading">{{ 'LINKED.NEW_ALERTS_GO_TO' | translate }}</h2>
+        <mat-radio-group aria-labelledby="default-heading" [value]="defaultDestination()" (change)="chooseDefault($event)">
+          <mat-radio-button value="discord" [disabled]="busy()">{{ 'LINKED.SIDE_DISCORD' | translate }}</mat-radio-button>
+          <mat-radio-button value="telegram" [disabled]="busy()">{{ 'LINKED.SIDE_TELEGRAM' | translate }}</mat-radio-button>
+        </mat-radio-group>
+        <p class="hint">{{ 'LINKED.DEFAULT_HINT' | translate }}</p>
+      </section>
     }
-  </div>
 
-  @if (showDefault()) {
-    <section class="default-destination" data-test="default-destination">
-      <h2 id="default-heading">{{ 'LINKED.NEW_ALERTS_GO_TO' | translate }}</h2>
-      <mat-radio-group aria-labelledby="default-heading" [value]="defaultDestination()" (change)="chooseDefault($event)">
-        <mat-radio-button value="discord" [disabled]="busy()">{{ 'LINKED.SIDE_DISCORD' | translate }}</mat-radio-button>
-        <mat-radio-button value="telegram" [disabled]="busy()">{{ 'LINKED.SIDE_TELEGRAM' | translate }}</mat-radio-button>
-      </mat-radio-group>
-      <p class="hint">{{ 'LINKED.DEFAULT_HINT' | translate }}</p>
-    </section>
-  }
-
-  @if (isLinked()) {
-    <div class="unlink-row">
-      <button mat-stroked-button type="button" data-test="unlink" [disabled]="busy()" (click)="unlink()">
-        {{ 'LINKED.UNLINK' | translate }}
-      </button>
-      <p class="hint">{{ 'LINKED.UNLINK_HINT' | translate }}</p>
+    @if (isLinked() && !readOnly()) {
+      <div class="unlink-row">
+        <button mat-stroked-button type="button" data-test="unlink" [disabled]="busy()" (click)="unlink()">
+          {{ 'LINKED.UNLINK' | translate }}
+        </button>
+        <p class="hint">{{ 'LINKED.UNLINK_HINT' | translate }}</p>
+      </div>
+    }
+  } @else if (loaded()) {
+    <div class="load-failed" data-test="load-failed">
+      <p>{{ 'LINKED.LOAD_FAILED' | translate }}</p>
+      <button mat-stroked-button type="button" data-test="retry" (click)="retry()">{{ 'LINKED.RETRY' | translate }}</button>
     </div>
   }
 </div>

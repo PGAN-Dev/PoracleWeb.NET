@@ -2412,6 +2412,8 @@
     "ERR_LINK_NOT_PERMITTED": "Det kontot får inte logga in på den här sajten, så det kan inte länkas.",
     "ERR_LINK_PROVISION_FAILED": "Det andra kontot kunde inte skapas. Inget länkades.",
     "ERR_LINK_FAILED": "Kontona kunde inte länkas. Inget ändrades.",
-    "ERR_LINK_CANCELLED": "Du avbröt länkningen. Inget ändrades."
+    "ERR_LINK_CANCELLED": "Du avbröt länkningen. Inget ändrades.",
+    "LOAD_FAILED": "Dina länkade konton kunde inte läsas in.",
+    "RETRY": "Försök igen"
   }
 }
