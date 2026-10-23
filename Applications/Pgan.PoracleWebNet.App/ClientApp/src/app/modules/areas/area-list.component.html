@@ -112,12 +112,15 @@
     @if (viewMode() === 'list') {
       <ng-container [ngTemplateOutlet]="selectedChips" />
       <div class="list-view">
-        <app-region-selector
-          [regions]="groupOptions()"
-          [label]="'AREAS.SEARCH_REGION' | translate"
-          [placeholder]="'GEOFENCES.SEARCH_REGIONS' | translate"
-          [showCounts]="true"
-          (regionSelected)="onGroupFilterSelected($event)"></app-region-selector>
+        <!-- A filter with one choice filters nothing: an instance with no groups, or one, gets no picker. -->
+        @if (hasMultipleGroups()) {
+          <app-region-selector
+            [regions]="groupOptions()"
+            [label]="'AREAS.SEARCH_REGION' | translate"
+            [placeholder]="'GEOFENCES.SEARCH_REGIONS' | translate"
+            [showCounts]="true"
+            (regionSelected)="onGroupFilterSelected($event)"></app-region-selector>
+        }
 
         @if (availableAreas().length === 0) {
           <div class="api-offline-notice">

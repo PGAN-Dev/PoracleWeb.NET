@@ -196,6 +196,7 @@ export class LoginComponent implements OnInit {
         oidc_no_identity: 'AUTH.ERR_OIDC_NO_IDENTITY',
         oidc_token_exchange_failed: 'AUTH.ERR_OIDC_TOKEN_EXCHANGE',
         oidc_userinfo_failed: 'AUTH.ERR_OIDC_USERINFO',
+        destination_account: 'AUTH.ERR_DESTINATION_ACCOUNT',
         discord_disabled: 'AUTH.ERR_DISCORD_DISABLED',
         discord_user_fetch_failed: 'AUTH.ERR_DISCORD_FETCH',
         missing_code: 'AUTH.ERR_MISSING_CODE',
@@ -261,9 +262,9 @@ export class LoginComponent implements OnInit {
       .loginWithTelegram(telegramData)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        error: () => {
+        error: err => {
           this.loading.set(false);
-          this.error.set('AUTH.ERR_TELEGRAM_FAILED');
+          this.error.set(err?.error?.code === 'destination_account' ? 'AUTH.ERR_DESTINATION_ACCOUNT' : 'AUTH.ERR_TELEGRAM_FAILED');
         },
         next: () => this.router.navigate(['/dashboard']),
       });

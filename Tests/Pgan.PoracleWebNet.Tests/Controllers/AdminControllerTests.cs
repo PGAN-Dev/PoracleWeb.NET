@@ -351,8 +351,8 @@ public class AdminControllerTests : ControllerTestBase
     public async Task CreateWebhookStillAnswers502WhenTheCleanupCannotReachPoracle()
     {
         SetupUser(this._sut, isAdmin: true);
-        this._humanService.SetupSequence(s => s.ExistsAsync("http://test"))
-            .ReturnsAsync(false)
+        this._humanService.Setup(s => s.ExistsAsync("http://test")).ReturnsAsync(false);
+        this._humanService.Setup(s => s.GetByIdAsync("http://test"))
             .ThrowsAsync(new HttpRequestException("503", null, System.Net.HttpStatusCode.ServiceUnavailable));
         this._humanService.Setup(s => s.CreateAsync(It.IsAny<Human>())).ThrowsAsync(new HttpRequestException("boom"));
 
@@ -365,6 +365,7 @@ public class AdminControllerTests : ControllerTestBase
             objectResult.Value?.GetType().GetProperty("error")?.GetValue(objectResult.Value) as string ?? string.Empty,
             StringComparison.Ordinal);
         this._humanService.Verify(s => s.DeleteUserAsync(It.IsAny<string>()), Times.Never);
+        this._userPurgeService.Verify(p => p.PurgeAsync(It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
@@ -372,15 +373,36 @@ public class AdminControllerTests : ControllerTestBase
     {
         // The legitimate case beside the one above: Poracle answers, the row is there, so it goes. See #482.
         SetupUser(this._sut, isAdmin: true);
-        this._humanService.SetupSequence(s => s.ExistsAsync("http://test"))
-            .ReturnsAsync(false)
-            .ReturnsAsync(true);
+        this._humanService.Setup(s => s.ExistsAsync("http://test")).ReturnsAsync(false);
+        this._humanService.Setup(s => s.GetByIdAsync("http://test"))
+            .ReturnsAsync(new Human { Id = "http://test", Name = "Test", Type = "webhook" });
+        this._userPurgeService.Setup(p => p.PurgeAsync("http://test")).ReturnsAsync(true);
         this._humanService.Setup(s => s.CreateAsync(It.IsAny<Human>())).ThrowsAsync(new HttpRequestException("boom"));
 
         var result = await this._sut.CreateWebhook(new AdminController.CreateWebhookRequest("Test", "http://test"));
 
         Assert.Equal(Microsoft.AspNetCore.Http.StatusCodes.Status502BadGateway, Assert.IsType<ObjectResult>(result).StatusCode);
-        this._humanService.Verify(s => s.DeleteUserAsync("http://test"), Times.Once);
+        this._userPurgeService.Verify(p => p.PurgeAsync("http://test"), Times.Once);
+    }
+
+    /// <summary>
+    /// A create that fails while another request wrote the same id must leave that row alone. The rollback
+    /// used to delete whatever it found at the id (#1028).
+    /// </summary>
+    [Fact]
+    public async Task CreateWebhookLeavesARowAnotherRequestWrote()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this._humanService.SetupSequence(s => s.ExistsAsync("http://test")).ReturnsAsync(false).ReturnsAsync(true);
+        this._humanService.Setup(s => s.GetByIdAsync("http://test"))
+            .ReturnsAsync(new Human { Id = "http://test", Name = "Someone else", Type = "webhook" });
+        this._humanService.Setup(s => s.CreateAsync(It.IsAny<Human>())).ThrowsAsync(new HttpRequestException("boom"));
+
+        var result = await this._sut.CreateWebhook(new AdminController.CreateWebhookRequest("Test", "http://test"));
+
+        Assert.Equal(Microsoft.AspNetCore.Http.StatusCodes.Status502BadGateway, Assert.IsType<ObjectResult>(result).StatusCode);
+        this._userPurgeService.Verify(p => p.PurgeAsync(It.IsAny<string>()), Times.Never);
+        this._humanService.Verify(s => s.DeleteUserAsync(It.IsAny<string>()), Times.Never);
     }
 
     /// <summary>

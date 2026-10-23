@@ -61,7 +61,26 @@ public sealed partial class ImpersonationRoleProbe(
             return Unresolved;
         }
 
-        var resolve = this._inFlight.GetOrAdd(userId, this.StartResolve);
+        // The entry is stored before any work starts, and only the caller whose entry was stored starts it.
+        // Starting the work inside GetOrAdd's factory let a quick answer finish, and remove nothing, before
+        // its task had been stored; that finished task then stayed in flight and answered every later check.
+        var attempt = new TaskCompletionSource<UserRoles>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var resolve = this._inFlight.GetOrAdd(userId, attempt.Task);
+        if (resolve == attempt.Task)
+        {
+            try
+            {
+                this.StartResolve(userId, attempt);
+            }
+            catch (Exception ex)
+            {
+                // Nothing will ever complete this entry, so back it out rather than leave every concurrent
+                // and later check waiting on it; this check, and any sharing it, read the failure as unresolved.
+                LogResolveFailed(this._logger, ex, userId);
+                this._inFlight.TryRemove(new KeyValuePair<string, Task<UserRoles>>(userId, attempt.Task));
+                attempt.TrySetResult(Unresolved);
+            }
+        }
 
         using var budget = new CancellationTokenSource();
         var finished = await Task.WhenAny(resolve, Task.Delay(this.Budget, this._time, budget.Token));
@@ -84,31 +103,33 @@ public sealed partial class ImpersonationRoleProbe(
 
     private void Quiet(string userId) => this._quietUntil[userId] = this._time.GetUtcNow() + this.QuietFor;
 
-    private Task<UserRoles> StartResolve(string userId) => Task.Run(async () =>
+    private void StartResolve(string userId, TaskCompletionSource<UserRoles> attempt) => _ = Task.Run(async () =>
     {
+        var roles = Unresolved;
         try
         {
             await using var scope = this._scopes.CreateAsyncScope();
-            var roles = await scope.ServiceProvider.GetRequiredService<IUserRoleResolver>().ResolveAsync(userId);
+            roles = await scope.ServiceProvider.GetRequiredService<IUserRoleResolver>().ResolveAsync(userId);
 
             // The sources answered, so stop keeping sessions on the strength of an outage.
             if (roles.Resolved)
             {
                 this._quietUntil.TryRemove(userId, out _);
             }
-
-            return roles;
         }
         catch (Exception ex)
         {
             // The resolver catches its own sources; this is the scope or the container failing, which is
             // no more a "no" than a source that did not answer.
             LogResolveFailed(this._logger, ex, userId);
-            return Unresolved;
         }
         finally
         {
-            this._inFlight.TryRemove(userId, out _);
+            // Out of flight before anyone sees the answer, so the next check asks again rather than reading
+            // this one. Removing by value as well as key means a resolve that finishes late cannot take out
+            // the entry of one started after it.
+            this._inFlight.TryRemove(new KeyValuePair<string, Task<UserRoles>>(userId, attempt.Task));
+            attempt.TrySetResult(roles);
         }
     });
 

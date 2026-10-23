@@ -1453,6 +1453,7 @@
     "FOOTER": "Gestisci allarmi per Pokémon, raid, missioni e altro",
     "AUTH_FAILED": "Autenticazione fallita",
     "BACK_TO_LOGIN": "Torna all'Accesso",
+    "ERR_DESTINATION_ACCOUNT": "Questo accesso appartiene a un canale o a un webhook di Poracle, non a una persona. Accedi con il tuo account personale.",
     "ERR_DISCORD_DISABLED": "L'accesso con Discord è attualmente disattivato.",
     "ERR_DISCORD_FETCH": "Impossibile recuperare il tuo profilo Discord. Riprova.",
     "ERR_MISSING_CODE": "L'accesso con Discord è stato annullato o non è riuscito.",
