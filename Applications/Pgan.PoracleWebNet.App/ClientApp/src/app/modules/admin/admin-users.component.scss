@@ -113,4 +113,18 @@
   margin: 0 0 12px;
   font-size: 13px;
   line-height: 1.5;
+
+  // The app's inline-link look (the dashboard's tip actions), not the browser's default blue.
+  a {
+    color: var(--mat-sys-primary);
+    font-weight: 600;
+    text-decoration: none;
+  }
+  a:hover {
+    text-decoration: underline;
+  }
+  a:focus-visible {
+    outline: 2px solid var(--mat-sys-primary);
+    outline-offset: 2px;
+  }
 }
