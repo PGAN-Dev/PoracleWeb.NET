@@ -973,7 +973,7 @@ public partial class AuthController(
     /// <remarks>
     /// <para>
     /// The claim is minted at login and lives 24 hours, so a delegate granted access today could not
-    /// reach <c>/my-webhooks</c> until their token happened to refresh — while the page itself and
+    /// reach <c>/my-destinations</c> until their token happened to refresh — while the page itself and
     /// <c>POST /api/admin/impersonate</c> would already have let them in, both having moved to live
     /// resolution in #601 and #626. This response drives whether the nav item renders at all, so it was
     /// the last consumer of the claim and the one that decided whether the others were reachable.

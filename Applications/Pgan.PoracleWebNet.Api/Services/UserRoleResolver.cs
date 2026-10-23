@@ -47,7 +47,7 @@ public interface IUserRoleResolver
 /// then copied verbatim through every token re-issue, so revoking someone's admin rights never took
 /// effect while they kept switching profile (#624); and the admin endpoints that resolve delegated
 /// webhooks live went to the local table alone, so a delegate configured in PoracleJS could see the
-/// My Webhooks nav item and get an empty page and a 403 (#626).
+/// My Destinations nav item and get an empty page and a 403 (#626).
 /// <para>
 /// Results are cached for a minute. Both PoracleNG calls are network round-trips and the resolver now
 /// sits on paths that are not login, so an uncached implementation would put two HTTP requests on
@@ -262,7 +262,7 @@ public sealed partial class UserRoleResolver(
     /// and upstream that key may be a NAME -- the bot resolves it with <c>LookupWebhookByName</c> and
     /// authorises with <c>CanAdminWebhook(cfg, userID, nameOverride)</c>. Both consumers here compare the
     /// strings to <c>humans.id</c>, so a name-keyed delegate got a nav item off a non-empty list, an empty
-    /// My Webhooks table, and a 403 from impersonate. See #797.
+    /// My Destinations table, and a 403 from impersonate. See #797.
     /// <para>
     /// Ids match any destination in the directory. Names match only the types upstream resolves by name
     /// (<see cref="HumanKind.NameAddressable"/>), so a thread or topic that shares a name with a webhook
