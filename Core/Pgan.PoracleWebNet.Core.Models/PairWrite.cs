@@ -15,3 +15,24 @@ public sealed record PairWarningBody(string Side, string Reason);
 /// <see cref="Warning"/> only when that second write failed.
 /// </summary>
 public sealed record PairWriteResult<T>(T Primary, T? Other, PairWarning? Warning);
+
+/// <summary>
+/// The other human of a pair was left alone on purpose (its profile has drifted, say). The message is written
+/// for the person and is carried to the client as the warning's reason.
+/// </summary>
+public sealed class PairWriteRefusedException : Exception
+{
+    public PairWriteRefusedException(string reason)
+        : base(reason)
+    {
+    }
+
+    public PairWriteRefusedException()
+    {
+    }
+
+    public PairWriteRefusedException(string reason, Exception innerException)
+        : base(reason, innerException)
+    {
+    }
+}

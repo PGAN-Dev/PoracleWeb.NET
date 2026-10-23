@@ -1,3 +1,4 @@
+using System.Runtime.ExceptionServices;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Pgan.PoracleWebNet.Api.Filters;
@@ -114,7 +115,7 @@ public partial class ProfileOverviewController(
             : null;
         var newToken = this._jwtService.GenerateTokenWithReplacedProfile(this.User, this.ProfileNo, resolvedAdmin);
 
-        return this.Ok(PairResponse.With(new
+        return this.Ok(this.Paired(new
         {
             alarmsCopied,
             newProfileNo,
@@ -216,6 +217,11 @@ public partial class ProfileOverviewController(
         // never chose for it. Restore what the file actually declared. See #522.
         try
         {
+            // The alarms were imported onto the alarm human's profile, so a geography failure THERE fails the
+            // whole import (it is rolled back below) even when that human is the second write and the writer
+            // would have turned it into a warning: reporting success over a profile that still carries the
+            // active profile's map would deliver alerts nobody chose.
+            ExceptionDispatchInfo? alarmHumanFailure = null;
             var geography = await this._pairWriter.WriteAsync(this.UserId, async id =>
             {
                 if (!created.TryGetValue(id, out var no))
@@ -227,8 +233,15 @@ public partial class ProfileOverviewController(
                 {
                     await NewProfileGeography.WriteAsync(this._humanProxy, id, no, "[]", 0.0, 0.0);
                 }
-                catch
+                catch (Exception ex)
                 {
+                    if (string.Equals(id, alarmHuman, StringComparison.Ordinal))
+                    {
+                        // Rolled back with the rest by the outer catch.
+                        alarmHumanFailure = ExceptionDispatchInfo.Capture(ex);
+                        throw;
+                    }
+
                     // The other human's profile alone is rolled back here; a failure on the signed-in side
                     // reaches the outer catch, which removes every profile this import made.
                     if (!string.Equals(id, this.UserId, StringComparison.Ordinal))
@@ -239,6 +252,7 @@ public partial class ProfileOverviewController(
                     throw;
                 }
             });
+            alarmHumanFailure?.Throw();
             warning ??= geography.Warning;
         }
         catch
@@ -264,7 +278,7 @@ public partial class ProfileOverviewController(
             : null;
         var newToken = this._jwtService.GenerateTokenWithReplacedProfile(this.User, this.ProfileNo, resolvedAdmin);
 
-        return this.Ok(PairResponse.With(new
+        return this.Ok(this.Paired(new
         {
             alarmsCopied,
             newProfileNo,

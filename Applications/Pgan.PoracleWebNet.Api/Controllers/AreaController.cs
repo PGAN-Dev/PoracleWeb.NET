@@ -214,10 +214,10 @@ public partial class AreaController(
 
         if (stored is not null && stored.Value.TryGetProperty("area", out _))
         {
-            return this.Ok(PairResponse.With(ParseAreaJson(PoracleAreaJson.ReadAreaListJson(stored.Value)), written.Warning, "areas"));
+            return this.Ok(this.Paired(ParseAreaJson(PoracleAreaJson.ReadAreaListJson(stored.Value)), written.Warning));
         }
 
-        return this.Ok(PairResponse.With(saved.Stored.ToArray(), written.Warning, "areas"));
+        return this.Ok(this.Paired(saved.Stored.ToArray(), written.Warning));
     }
 
     [HttpGet("geofence")]

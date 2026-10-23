@@ -77,7 +77,7 @@ public class PairedHumanWriterTests
         Assert.True(result.Primary);
         Assert.NotNull(result.Warning);
         Assert.Equal(LinkSide.Telegram, result.Warning!.Side);
-        Assert.Equal("PoracleNG said no", result.Warning.Reason);
+        Assert.Equal("Couldn't reach Poracle for telegram.", result.Warning.Reason);
         Assert.Equal("telegram", result.Warning.ToBody().Side);
     }
 
@@ -123,5 +123,27 @@ public class PairedHumanWriterTests
         });
 
         Assert.Equal([PairTestSupport.DiscordId, PairTestSupport.TelegramId], calls);
+    }
+
+    [Fact]
+    public async Task SecondFails_HttpFailureReasonNeverNamesAHostOrPort()
+    {
+        var sut = PairTestSupport.Writer(PairTestSupport.Linked(PairTestSupport.Pair(PairTestSupport.DiscordId)));
+
+        var result = await sut.WriteAsync(PairTestSupport.DiscordId, id =>
+            id == PairTestSupport.TelegramId ? throw new HttpRequestException("connect to 10.100.3.178:3030 refused") : Task.CompletedTask);
+
+        Assert.Equal("Couldn't reach Poracle for telegram.", result.Warning!.Reason);
+    }
+
+    [Fact]
+    public async Task SecondFails_PoracleRefusalDetailIsPassedOn()
+    {
+        var sut = PairTestSupport.Writer(PairTestSupport.Linked(PairTestSupport.Pair(PairTestSupport.DiscordId)));
+
+        var result = await sut.WriteAsync(PairTestSupport.DiscordId, id =>
+            id == PairTestSupport.TelegramId ? throw new PoracleRequestRefusedException("no such place") : Task.CompletedTask);
+
+        Assert.Equal("no such place", result.Warning!.Reason);
     }
 }

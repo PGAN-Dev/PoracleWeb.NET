@@ -131,7 +131,7 @@ public class SummaryScheduleController(
 
         var activeHours = string.IsNullOrWhiteSpace(request.ActiveHours) ? "[]" : request.ActiveHours;
         var written = await this._pairWriter.WriteAsync(this.UserId, id => this._summaryProxy.SetScheduleAsync(id, alertType, activeHours));
-        return written.Warning is null ? this.NoContent() : this.Ok(PairResponse.With(null, written.Warning));
+        return this.NoContentPaired(written.Warning);
     }
 
     /// <summary>Removes the schedule for one alert type. Idempotent — succeeds even when absent.</summary>
@@ -153,7 +153,7 @@ public class SummaryScheduleController(
         alertType = alertType.ToLowerInvariant();
 
         var written = await this._pairWriter.WriteAsync(this.UserId, id => this._summaryProxy.DeleteScheduleAsync(id, alertType));
-        return written.Warning is null ? this.NoContent() : this.Ok(PairResponse.With(null, written.Warning));
+        return this.NoContentPaired(written.Warning);
     }
 
     /// <summary>

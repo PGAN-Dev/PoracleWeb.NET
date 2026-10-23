@@ -31,7 +31,7 @@ public sealed partial class PairedHumanWriter(ILinkedAccount linkedAccount, ILog
         {
             var side = pair.SideOf(other) ?? LinkSide.Telegram;
             LogOtherSideFailed(this._logger, ex, other, side);
-            return new PairWriteResult<T>(primary, default, new PairWarning(side, ex.Message));
+            return new PairWriteResult<T>(primary, default, new PairWarning(side, ReasonFor(ex, side)));
         }
     }
 
@@ -41,6 +41,22 @@ public sealed partial class PairedHumanWriter(ILinkedAccount linkedAccount, ILog
             await write(id);
             return true;
         });
+
+    /// <summary>
+    /// What the client may be told. Only a refusal that carries a sentence written for people is passed on
+    /// (PoracleNG's own detail, or one of ours); anything else, an <see cref="HttpRequestException"/> naming a
+    /// host and port included, becomes a fixed line, and the exception goes to the log.
+    /// </summary>
+    private static string ReasonFor(Exception ex, LinkSide side) =>
+        ex is PoracleRequestRefusedException or PairWriteRefusedException && !string.IsNullOrWhiteSpace(ex.Message)
+            ? ex.Message
+            : $"Couldn't reach Poracle for {AccountLinkKeys.Wire(side)}.";
+
+    public async Task<PairSide?> FindSideAsync(string userId, string humanId)
+    {
+        var pair = await this._linkedAccount.ResolveAsync(userId);
+        return pair.Discord?.HumanId == humanId ? pair.Discord : pair.Telegram?.HumanId == humanId ? pair.Telegram : null;
+    }
 
     public async Task<LinkSide?> SideOfAsync(string userId, string humanId) =>
         (await this._linkedAccount.ResolveAsync(userId)).SideOf(humanId);

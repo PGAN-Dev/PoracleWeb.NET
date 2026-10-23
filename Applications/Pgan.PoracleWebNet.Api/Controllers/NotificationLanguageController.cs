@@ -68,7 +68,7 @@ public class NotificationLanguageController(IHumanService humanService, IPairedH
             storedLanguage = null;
         }
 
-        return this.Ok(PairResponse.With(new
+        return this.Ok(this.Paired(new
         {
             language = storedLanguage ?? request.Language
         }, written.Warning));

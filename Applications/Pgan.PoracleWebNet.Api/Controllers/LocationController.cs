@@ -75,7 +75,7 @@ public class LocationController(
         // A linked pair gets the same write on both of its humans.
         var written = await this._pairWriter.WriteAsync(this.UserId, id => this._humanProxy.SetLocationAsync(id, latitude, longitude));
 
-        return this.Ok(PairResponse.With(new
+        return this.Ok(this.Paired(new
         {
             latitude,
             longitude
@@ -314,7 +314,7 @@ public class LocationController(
 
         var written = await this._pairWriter.WriteAsync(this.UserId, id => this._humanProxy.UpdatePlaceAsync(id, label, latitude, longitude));
 
-        return this.Ok(PairResponse.With(await this.PlacesAsync(), written.Warning));
+        return this.Ok(this.Paired(await this.PlacesAsync(), written.Warning));
     }
 
     /// <summary>New coordinates for a saved place. The label is the path segment and does not change.</summary>
@@ -372,7 +372,7 @@ public class LocationController(
         }
 
         // Answers the same shape as the GET and the PUT; the SPA replaces its places signal from it.
-        return this.Ok(PairResponse.With(await this.PlacesAsync(), written.Warning));
+        return this.Ok(this.Paired(await this.PlacesAsync(), written.Warning));
     }
 
     private sealed class PlaceRefusedException(string reason) : Exception(reason);
@@ -428,8 +428,6 @@ public class LocationController(
             return this.Conflict(new { error = ex.Message, referencingRules = ex.ReferencingRules });
         }
 
-        return written.Warning is null
-            ? this.NoContent()
-            : this.Ok(PairResponse.With(null, written.Warning));
+        return this.NoContentPaired(written.Warning);
     }
 }

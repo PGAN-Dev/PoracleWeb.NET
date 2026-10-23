@@ -1,31 +1,35 @@
 using System.Text.Json;
-using System.Text.Json.Nodes;
+using Microsoft.AspNetCore.Mvc;
 using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Api.Services;
 
 /// <summary>
-/// Adds <c>pairWarning: { side, reason }</c> to a response, and only when the other side of a linked pair did
-/// not take the write. With no warning the body is returned as it was, so an unlinked person's response is
-/// byte for byte today's.
+/// Reports that the other side of a linked pair did not take a write. The warning travels only as the
+/// <c>X-Pair-Warning</c> response header, JSON <c>{"side":"telegram","reason":"..."}</c>; a body is never
+/// reshaped, so a warned response has exactly the body, and the status, of an unwarned one.
 /// </summary>
 public static class PairResponse
 {
+    public const string HeaderName = "X-Pair-Warning";
+
     private static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web);
 
-    /// <param name="body">The response body, or null when the action answers no content.</param>
-    /// <param name="warning">The writer's warning, if any.</param>
-    /// <param name="arrayKey">Where a bare array body goes when a warning has to ride along with it.</param>
-    public static object? With(object? body, PairWarning? warning, string arrayKey = "items")
+    /// <summary>Sets the header when there is a warning and returns <paramref name="body"/> as it was.</summary>
+    public static T Paired<T>(this ControllerBase controller, T body, PairWarning? warning)
     {
-        if (warning is null)
+        if (warning is not null)
         {
-            return body;
+            controller.Response.Headers[HeaderName] = JsonSerializer.Serialize(warning.ToBody(), Options);
         }
 
-        var node = body is null ? new JsonObject() : JsonSerializer.SerializeToNode(body, Options);
-        var result = node as JsonObject ?? new JsonObject { [arrayKey] = node };
-        result["pairWarning"] = JsonSerializer.SerializeToNode(warning.ToBody(), Options);
-        return result;
+        return body;
+    }
+
+    /// <summary>204, with the warning header when there is one.</summary>
+    public static IActionResult NoContentPaired(this ControllerBase controller, PairWarning? warning)
+    {
+        controller.Paired(0, warning);
+        return controller.NoContent();
     }
 }

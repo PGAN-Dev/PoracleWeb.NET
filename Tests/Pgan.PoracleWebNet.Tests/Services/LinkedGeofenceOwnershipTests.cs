@@ -131,11 +131,10 @@ public class LinkedGeofenceOwnershipTests
         var fences = new Mock<IUserGeofenceRepository>();
         fences.Setup(r => r.GetByHumanIdAsync(Discord)).ReturnsAsync([]);
         fences.Setup(r => r.GetByHumanIdAsync(Telegram)).ReturnsAsync([new UserGeofence { HumanId = Telegram, KojiName = "Old Town Loop" }]);
-        var links = new Mock<IAccountLinkRepository>();
-        links.Setup(l => l.GetByHumanIdAsync(Discord)).ReturnsAsync(PairTestSupport.Pair(Discord).Link);
 
-        var linked = new UserAreaPolicy(human.Object, fences.Object, links.Object, this._gate.Object);
-        var unlinked = new UserAreaPolicy(human.Object, fences.Object, Mock.Of<IAccountLinkRepository>(), this._gate.Object);
+        var linked = new UserAreaPolicy(human.Object, fences.Object, new Lazy<ILinkedAccount>(() => PairTestSupport.Linked(PairTestSupport.Pair(Discord)).Object));
+        // Linking switched off (or no link): ILinkedAccount answers the single human, and so does the policy.
+        var unlinked = new UserAreaPolicy(human.Object, fences.Object, new Lazy<ILinkedAccount>(() => PairTestSupport.Unlinked().Object));
 
         Assert.Contains("old town loop", await linked.AllowedKeysAsync(Discord));
         Assert.DoesNotContain("old town loop", await unlinked.AllowedKeysAsync(Discord));
@@ -247,7 +246,7 @@ public class LinkedGeofenceOwnershipTests
 
         var renamed = await this.Sut(Pair(Discord)).RenameAsync(Discord, 1, "Uptown", null, null);
 
-        Assert.Equal("telegram", renamed.PairWarning!.Side);
+        Assert.Equal(LinkSide.Telegram, renamed.PairWarning!.Side);
         Assert.Equal("uptown", renamed.KojiName);
     }
 
@@ -259,6 +258,8 @@ public class LinkedGeofenceOwnershipTests
         this._areaWriter.Setup(w => w.RenameEverywhereAsync(Discord, "downtown", "uptown")).ReturnsAsync(false);
 
         await Assert.ThrowsAsync<GeofenceRenameFailedException>(() => this.Sut(Pair(Discord)).RenameAsync(Discord, 1, "Uptown", null, null));
+
+        this._areaWriter.Verify(w => w.RenameEverywhereAsync(Telegram, It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
@@ -272,5 +273,41 @@ public class LinkedGeofenceOwnershipTests
 
         Assert.Null(renamed.PairWarning);
         this._areaWriter.Verify(w => w.RenameEverywhereAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task AdminDelete_OwnerGoneFromPoracle_StillCleansTheOtherHuman()
+    {
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(new UserGeofence { Id = 1, HumanId = Discord, KojiName = "riverside" });
+        this._areaWriter.Setup(w => w.RemoveEverywhereAsync(Discord, "riverside", true)).ThrowsAsync(new AccountGoneException());
+
+        await this.Sut(Pair(Discord)).AdminDeleteAsync("admin-1", 1, deleteWidenedAlarms: true);
+
+        this._areaWriter.Verify(w => w.RemoveEverywhereAsync(Telegram, "riverside", true), Times.Once);
+        this._repository.Verify(r => r.DeleteAsync(1), Times.Once);
+    }
+
+    [Fact]
+    public async Task AdminDelete_Unlinked_OwnerGone_StillDeletesTheRow()
+    {
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(new UserGeofence { Id = 1, HumanId = Discord, KojiName = "riverside" });
+        this._areaWriter.Setup(w => w.RemoveEverywhereAsync(Discord, "riverside", true)).ThrowsAsync(new AccountGoneException());
+
+        var warning = await this.Sut(PairTestSupport.Unlinked()).AdminDeleteAsync("admin-1", 1, deleteWidenedAlarms: true);
+
+        Assert.Null(warning);
+        this._repository.Verify(r => r.DeleteAsync(1), Times.Once);
+    }
+
+    [Fact]
+    public async Task AdminDelete_OtherHumanFailing_IsAWarning()
+    {
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(new UserGeofence { Id = 1, HumanId = Discord, KojiName = "riverside" });
+        this._areaWriter.Setup(w => w.RemoveEverywhereAsync(Telegram, "riverside", true)).ThrowsAsync(new HttpRequestException("10.0.0.5:3030"));
+
+        var warning = await this.Sut(Pair(Discord)).AdminDeleteAsync("admin-1", 1, deleteWidenedAlarms: true);
+
+        Assert.Equal(LinkSide.Telegram, warning!.Side);
+        Assert.DoesNotContain("10.0.0.5", warning.Reason);
     }
 }

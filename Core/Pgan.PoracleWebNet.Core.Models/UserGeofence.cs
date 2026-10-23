@@ -89,11 +89,12 @@ public class UserGeofence
     }
 
     /// <summary>
-    /// Set on create only, and only for a linked pair whose other human did not take the activation.
-    /// Serialised as <c>pairWarning: { side, reason }</c>; absent otherwise.
+    /// Set by create, rename and approval when a linked pair's other human did not take the write. Never
+    /// serialised: the controller lifts it into the <c>X-Pair-Warning</c> response header, so the body is the
+    /// same with or without it.
     /// </summary>
-    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-    public PairWarningBody? PairWarning
+    [System.Text.Json.Serialization.JsonIgnore]
+    public PairWarning? PairWarning
     {
         get; set;
     }

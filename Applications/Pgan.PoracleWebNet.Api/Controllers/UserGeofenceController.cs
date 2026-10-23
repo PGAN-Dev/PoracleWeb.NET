@@ -51,7 +51,7 @@ public partial class UserGeofenceController(
         {
             var updated = await this._userGeofenceService.RenameAsync(
                 this.UserId, id, request.DisplayName, request.GroupName, request.ParentId);
-            return this.Ok(updated);
+            return this.Ok(this.Paired(updated, updated.PairWarning));
         }
         catch (GeofenceNotFoundException)
         {
@@ -87,7 +87,7 @@ public partial class UserGeofenceController(
         try
         {
             var result = await this._userGeofenceService.CreateAsync(this.UserId, this.ProfileNo, model);
-            return this.CreatedAtAction(nameof(GetCustomGeofences), result);
+            return this.CreatedAtAction(nameof(GetCustomGeofences), this.Paired(result, result.PairWarning));
         }
         catch (InvalidOperationException ex)
         {
@@ -135,7 +135,7 @@ public partial class UserGeofenceController(
         try
         {
             var warning = await this._userGeofenceService.DeleteAsync(this.UserId, this.ProfileNo, id, deleteWidened);
-            return warning is null ? this.NoContent() : this.Ok(PairResponse.With(null, warning));
+            return this.NoContentPaired(warning);
         }
         catch (InvalidOperationException ex)
         {
@@ -235,7 +235,7 @@ public partial class UserGeofenceController(
         try
         {
             var warning = await this._userGeofenceService.AddToProfileAsync(this.UserId, this.ProfileNo, id);
-            return warning is null ? this.NoContent() : this.Ok(PairResponse.With(null, warning));
+            return this.NoContentPaired(warning);
         }
         catch (GeofenceActivationFailedException ex)
         {
@@ -269,7 +269,7 @@ public partial class UserGeofenceController(
         try
         {
             var warning = await this._userGeofenceService.RemoveFromProfileAsync(this.UserId, this.ProfileNo, id);
-            return warning is null ? this.NoContent() : this.Ok(PairResponse.With(null, warning));
+            return this.NoContentPaired(warning);
         }
         catch (InvalidOperationException ex)
         {

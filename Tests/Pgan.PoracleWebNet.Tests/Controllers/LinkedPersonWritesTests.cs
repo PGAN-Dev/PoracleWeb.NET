@@ -19,6 +19,7 @@ public class LinkedPersonWritesTests : ControllerTestBase
     private readonly Mock<IPoracleHumanProxy> _humanProxy = new();
     private readonly Mock<IHumanService> _humanService = new();
     private readonly Mock<IProfileService> _profileService = new();
+    private string? _sutResponseHeader;
 
     private LocationController Location(Mock<ILinkedAccount> linked)
     {
@@ -52,13 +53,16 @@ public class LinkedPersonWritesTests : ControllerTestBase
         this._humanProxy.Setup(p => p.SetLocationAsync(Telegram, It.IsAny<double>(), It.IsAny<double>()))
             .ThrowsAsync(new HttpRequestException("PoracleNG could not be reached"));
 
-        var result = await this.Location(PairTestSupport.Linked(PairTestSupport.Pair(Discord)))
-            .UpdateLocation(new LocationController.LocationUpdateRequest { Latitude = 51.5, Longitude = -0.12 });
+        var sut = this.Location(PairTestSupport.Linked(PairTestSupport.Pair(Discord)));
+        var result = await sut.UpdateLocation(new LocationController.LocationUpdateRequest { Latitude = 51.5, Longitude = -0.12 });
+        this._sutResponseHeader = sut.Response.Headers["X-Pair-Warning"].ToString();
 
         var body = JsonDocument.Parse(Json(result)).RootElement;
         Assert.Equal(51.5, body.GetProperty("latitude").GetDouble());
-        Assert.Equal("telegram", body.GetProperty("pairWarning").GetProperty("side").GetString());
-        Assert.Contains("could not be reached", body.GetProperty("pairWarning").GetProperty("reason").GetString());
+        Assert.False(body.TryGetProperty("pairWarning", out _));
+        var header = JsonDocument.Parse(this._sutResponseHeader!).RootElement;
+        Assert.Equal("telegram", header.GetProperty("side").GetString());
+        Assert.Equal("Couldn't reach Poracle for telegram.", header.GetProperty("reason").GetString());
     }
 
     [Fact]
@@ -94,8 +98,8 @@ public class LinkedPersonWritesTests : ControllerTestBase
         var result = await sut.Create(new Profile { Name = "Work" });
 
         var created = Assert.IsType<CreatedAtActionResult>(result);
-        var body = JsonDocument.Parse(JsonSerializer.Serialize(created.Value)).RootElement;
-        Assert.Equal("profiles out of step", body.GetProperty("pairWarning").GetProperty("reason").GetString());
+        Assert.False(JsonDocument.Parse(JsonSerializer.Serialize(created.Value)).RootElement.TryGetProperty("pairWarning", out _));
+        Assert.Contains("profiles out of step", sut.Response.Headers["X-Pair-Warning"].ToString());
         this._humanProxy.Verify(p => p.DeleteProfileAsync(Telegram, 2), Times.Once);
         this._humanProxy.Verify(p => p.DeleteProfileAsync(Discord, It.IsAny<int>()), Times.Never);
     }

@@ -171,7 +171,7 @@ public partial class UserGeofenceService(
             // PoracleNG. The user owns this fence (just created above), which authorises the name.
             var (activated, warning) = fenceKnownToPoracle ? await this.TryAddToActiveProfileAsync(humanId, kojiName) : (false, null);
             geofence.ActivationFailed = !activated;
-            geofence.PairWarning = warning?.ToBody();
+            geofence.PairWarning = warning;
         }
 
         // Set polygon on result from input
@@ -327,7 +327,7 @@ public partial class UserGeofenceService(
         // points until a reload. Carry both across, exactly as the listing does. See #559, #566.
         updated.Polygon = geofence.Polygon ?? ParsePolygonSafe(updated.PolygonJson, updated.KojiName);
         updated.PointCount = updated.Polygon?.Length ?? 0;
-        updated.PairWarning = renameWarning?.ToBody();
+        updated.PairWarning = renameWarning;
         return updated;
     }
 
@@ -338,10 +338,23 @@ public partial class UserGeofenceService(
     private async Task<(bool Renamed, PairWarning? Warning)> RenameAcrossPairAsync(string userId, string from, string to)
     {
         string? refusedOn = null;
+        var signedInRenamed = false;
         var written = await this._pairWriter.WriteAsync(userId, async id =>
         {
+            var isSignedIn = string.Equals(id, userId, StringComparison.Ordinal);
+            if (!isSignedIn && !signedInRenamed)
+            {
+                // The signed-in side refused, so the caller is about to put the row back. Renaming the other
+                // human's areas now would strand them under a name nothing serves.
+                return false;
+            }
+
             var renamed = await this._userAreaWriter.RenameEverywhereAsync(id, from, to);
-            if (!renamed && !string.Equals(id, userId, StringComparison.Ordinal))
+            if (isSignedIn)
+            {
+                signedInRenamed = renamed;
+            }
+            else if (!renamed)
             {
                 refusedOn = id;
             }
@@ -553,16 +566,21 @@ public partial class UserGeofenceService(
         // logged and the row deleted anyway, stranding the name in the owner's lists; now it stops the delete
         // before Koji or the row is touched. An owner PoracleNG no longer has holds no areas, so that one case
         // goes ahead.
-        PairWarning? warning = null;
-        try
+        // Each human of the owner's pair is cleaned on its own: one gone from PoracleNG holds no areas, and
+        // must not stop the other from being cleaned.
+        var areaName = PublicAreaName(geofence).ToLowerInvariant();
+        var removed = await this._pairWriter.WriteAsync(geofence.HumanId, async id =>
         {
-            warning = await this.RemoveAcrossPairAsync(
-                geofence.HumanId, PublicAreaName(geofence).ToLowerInvariant(), deleteWidenedAlarms);
-        }
-        catch (AccountGoneException)
-        {
-            LogAreaOwnerGone(this._logger, geofence.KojiName, geofence.HumanId);
-        }
+            try
+            {
+                await this._userAreaWriter.RemoveEverywhereAsync(id, areaName, deleteWidenedAlarms);
+            }
+            catch (AccountGoneException)
+            {
+                LogAreaOwnerGone(this._logger, geofence.KojiName, id);
+            }
+        });
+        var warning = removed.Warning;
 
         await this.RemoveFromKojiIfPromotedAsync(geofence);
 
@@ -947,7 +965,7 @@ public partial class UserGeofenceService(
 
         await this.EnrichWithDetailsAsync([updated]);
         updated.OwnerAreasRenamed = ownerAreasRenamed;
-        updated.PairWarning = approvalWarning?.ToBody();
+        updated.PairWarning = approvalWarning;
         return updated;
     }
 

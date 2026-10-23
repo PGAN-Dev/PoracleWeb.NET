@@ -170,7 +170,25 @@ public class ProfileController(
             this._pairWriter, this._humanProxy, this._logger, this.UserId, written);
 
         var result = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, createdNo);
-        return this.CreatedAtAction(nameof(GetAll), PairResponse.With(result, warning));
+        return this.CreatedAtAction(nameof(GetAll), this.Paired(result, warning));
+    }
+
+    /// <summary>
+    /// Profile numbers are per human, so the other human's profile at this number is the same profile only if it
+    /// has the caller's profile's name (read before the edit). A drifted pair is left alone, and said so.
+    /// </summary>
+    private async Task EnsureSameProfileAsync(string humanId, int profileNo, string? expectedName)
+    {
+        if (string.Equals(humanId, this.UserId, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        var theirs = await this._profileService.GetByUserAndProfileNoAsync(humanId, profileNo);
+        if (theirs is null || !string.Equals(theirs.Name?.Trim(), expectedName?.Trim(), StringComparison.OrdinalIgnoreCase))
+        {
+            throw new PairWriteRefusedException(PairedNewProfile.OutOfStepReason);
+        }
     }
 
     [HttpPut("{profileNo:int}")]
@@ -214,10 +232,14 @@ public class ProfileController(
             name = newName ?? existing.Name,
             active_hours = profile.ActiveHours
         });
-        var written = await this._pairWriter.WriteAsync(this.UserId, id => this._humanProxy.UpdateProfileAsync(id, body));
+        var written = await this._pairWriter.WriteAsync(this.UserId, async id =>
+        {
+            await this.EnsureSameProfileAsync(id, profileNo, existing.Name);
+            await this._humanProxy.UpdateProfileAsync(id, body);
+        });
 
         var result = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, profileNo);
-        return this.Ok(PairResponse.With(result, written.Warning));
+        return this.Ok(this.Paired(result, written.Warning));
     }
 
     [HttpPut("switch/{profileNo:int}")]
@@ -249,7 +271,7 @@ public class ProfileController(
             : null;
         var newToken = this._jwtService.GenerateTokenWithReplacedProfile(this.User, profileNo, resolvedAdmin);
 
-        return this.Ok(PairResponse.With(new
+        return this.Ok(this.Paired(new
         {
             profile,
             token = newToken
@@ -316,7 +338,7 @@ public class ProfileController(
             this._pairWriter, this._humanProxy, this._logger, this.UserId, written);
 
         var result = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, newProfileNo);
-        return this.CreatedAtAction(nameof(GetAll), PairResponse.With(result, warning));
+        return this.CreatedAtAction(nameof(GetAll), this.Paired(result, warning));
     }
 
     [HttpDelete("{profileNo:int}")]
@@ -330,11 +352,13 @@ public class ProfileController(
 
         // PoracleNG cascade-deletes alarms scoped to (id, profile_no) and
         // reassigns humans.current_profile_no if the active profile is deleted.
-        var written = await this._pairWriter.WriteAsync(this.UserId, id => this._humanProxy.DeleteProfileAsync(id, profileNo));
+        var written = await this._pairWriter.WriteAsync(this.UserId, async id =>
+        {
+            await this.EnsureSameProfileAsync(id, profileNo, existing.Name);
+            await this._humanProxy.DeleteProfileAsync(id, profileNo);
+        });
 
-        return written.Warning is null
-            ? this.NoContent()
-            : this.Ok(PairResponse.With(null, written.Warning));
+        return this.NoContentPaired(written.Warning);
     }
 }
 

@@ -12,13 +12,11 @@ namespace Pgan.PoracleWebNet.Core.Services;
 public class UserAreaPolicy(
     IPoracleHumanProxy humanProxy,
     IUserGeofenceRepository geofences,
-    IAccountLinkRepository? links = null,
-    IFeatureGate? featureGate = null) : IUserAreaPolicy
+    Lazy<ILinkedAccount>? linkedAccount = null) : IUserAreaPolicy
 {
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly IUserGeofenceRepository _geofences = geofences;
-    private readonly IAccountLinkRepository? _links = links;
-    private readonly IFeatureGate? _featureGate = featureGate;
+    private readonly Lazy<ILinkedAccount>? _linkedAccount = linkedAccount;
 
     public async Task<IReadOnlySet<string>> AllowedKeysAsync(string humanId)
     {
@@ -39,19 +37,19 @@ public class UserAreaPolicy(
 
     /// <summary>
     /// The ids whose drawn fences count as this human's own: itself and, for a linked pair, the other id.
-    /// Read from the link table directly rather than through <c>ILinkedAccount</c>, which reads humans, and the
-    /// tracking proxy that depends on this policy sits behind that.
+    /// The same answer <see cref="ILinkedAccount"/> gives everywhere else (linking switched off, no link, and a
+    /// side with no human all included). It is resolved lazily: <c>ILinkedAccount</c> reads humans, and the
+    /// tracking proxy that depends on this policy sits behind that, so a constructor dependency would be a cycle.
     /// </summary>
     private async Task<IReadOnlyList<string>> OwnerIdsAsync(string humanId)
     {
-        if (this._links is null
-            || (this._featureGate is not null && !await this._featureGate.IsEnabledAsync(DisableFeatureKeys.AccountLinking)))
+        if (this._linkedAccount is null)
         {
             return [humanId];
         }
 
-        var link = await this._links.GetByHumanIdAsync(humanId);
-        return link is null ? [humanId] : [humanId, string.Equals(link.DiscordId, humanId, StringComparison.Ordinal) ? link.TelegramId : link.DiscordId];
+        var pair = await this._linkedAccount.Value.ResolveAsync(humanId);
+        return pair.ExistingHumanIds.Contains(humanId, StringComparer.Ordinal) ? pair.ExistingHumanIds : [humanId, .. pair.ExistingHumanIds];
     }
 
     public async Task EnsureOverrideAreasAllowedAsync(

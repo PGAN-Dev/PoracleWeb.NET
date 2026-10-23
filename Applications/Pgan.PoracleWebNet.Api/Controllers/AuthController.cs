@@ -929,11 +929,26 @@ public partial class AuthController(
 
         // The new state follows the signed-in side; a linked pair's other human is set to the same one.
         var newEnabled = human.Enabled != 1;
-        var written = await this._pairWriter.WriteAsync(this.UserId, id => newEnabled
-            ? this._humanProxy.StartAsync(id)
-            : this._humanProxy.StopAsync(id));
+        // Stop reaches both. Start reaches the other side only when nothing paused it: an operator's block or a
+        // stop the person made there is not PoracleWeb.NET's to undo.
+        var written = await this._pairWriter.WriteAsync(this.UserId, async id =>
+        {
+            if (!newEnabled)
+            {
+                await this._humanProxy.StopAsync(id);
+                return;
+            }
 
-        return this.Ok(PairResponse.With(new
+            if (!string.Equals(id, this.UserId, StringComparison.Ordinal)
+                && await this._pairWriter.FindSideAsync(this.UserId, id) is { Pause: not PauseReason.None })
+            {
+                return;
+            }
+
+            await this._humanProxy.StartAsync(id);
+        });
+
+        return this.Ok(this.Paired(new
         {
             enabled = newEnabled
         }, written.Warning));

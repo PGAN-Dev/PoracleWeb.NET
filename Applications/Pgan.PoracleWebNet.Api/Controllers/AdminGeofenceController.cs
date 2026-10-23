@@ -85,7 +85,7 @@ public partial class AdminGeofenceController(IUserGeofenceService userGeofenceSe
         try
         {
             var warning = await this._userGeofenceService.AdminDeleteAsync(this.UserId, id, deleteWidened);
-            return warning is null ? this.NoContent() : this.Ok(PairResponse.With(null, warning));
+            return this.NoContentPaired(warning);
         }
         catch (KojiOperationException ex)
         {
@@ -157,7 +157,7 @@ public partial class AdminGeofenceController(IUserGeofenceService userGeofenceSe
             // The SPA swaps the list row for this response, so it needs the same avatars the list
             // projection adds -- without them the card fell back to raw snowflakes. See #618.
             AddAvatars(result);
-            return this.Ok(result);
+            return this.Ok(this.Paired(result, result.PairWarning));
         }
         catch (KojiOperationException ex)
         {

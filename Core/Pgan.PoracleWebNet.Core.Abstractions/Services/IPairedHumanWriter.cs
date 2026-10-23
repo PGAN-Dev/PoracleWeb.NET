@@ -17,6 +17,9 @@ public interface IPairedHumanWriter
 
     public Task<PairWriteResult<bool>> WriteAsync(string userId, Func<string, Task> write);
 
+    /// <summary>The resolved side (existence and pause state) a human id is on in the signed-in person's link, or null.</summary>
+    public Task<PairSide?> FindSideAsync(string userId, string humanId);
+
     /// <summary>Which side of the signed-in person's link a human id is, or null when unlinked or not in it.</summary>
     public Task<LinkSide?> SideOfAsync(string userId, string humanId);
 }

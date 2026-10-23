@@ -93,7 +93,7 @@ public class MuteController(IPoracleMuteProxy muteProxy, IPairedHumanWriter pair
                 this._muteProxy.CreateAsync(id, scope, request.Value.Trim(), duration, cancellationToken));
             var (mute, replaced) = written.Primary;
 
-            return this.Ok(PairResponse.With(new
+            return this.Ok(this.Paired(new
             {
                 mute,
                 replaced
@@ -150,7 +150,7 @@ public class MuteController(IPoracleMuteProxy muteProxy, IPairedHumanWriter pair
 
             var clearedAll = await this._pairWriter.WriteAsync(this.UserId, id => this._muteProxy.DeleteAllAsync(id, cancellationToken));
 
-            return this.Ok(PairResponse.With(new
+            return this.Ok(this.Paired(new
             {
                 deleted = clearedAll.Primary
             }, clearedAll.Warning));
@@ -205,7 +205,7 @@ public class MuteController(IPoracleMuteProxy muteProxy, IPairedHumanWriter pair
                     : await this._muteProxy.DeleteAsync(id, scope, scope == MuteScopes.Everything ? null : match.Value, match.TrackingType, cancellationToken);
             });
 
-            return this.Ok(PairResponse.With(new
+            return this.Ok(this.Paired(new
             {
                 deleted = lifted.Primary
             }, lifted.Warning));
