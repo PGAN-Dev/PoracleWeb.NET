@@ -85,6 +85,10 @@ public class AuthControllerOidcTests : ControllerTestBase
 
         Assert.IsType<UnauthorizedObjectResult>(result);
         this._oidcSessions.Verify(s => s.AbortRotationAsync(ticket, "account_inactive"), Times.Once);
+        this._oidcSessions.Verify(
+            s => s.CompleteRotationAsync(It.IsAny<OidcRotationTicket>(), It.IsAny<string>()), Times.Never);
+        this._jwtService.Verify(j => j.GenerateToken(It.IsAny<UserInfo>()), Times.Never);
+        this._jwtService.Verify(j => j.GenerateToken(It.IsAny<UserInfo>(), It.IsAny<int>()), Times.Never);
     }
 
     private AuthController Build(OidcSettings settings, bool callbackCookies)
