@@ -502,6 +502,11 @@ public sealed partial class RuleRepairJob(IServiceScopeFactory scopes, ILogger<R
     /// How a human is named in a failure the admin page shows. A webhook's id is its URL, which carries its
     /// token, so it is never printed.
     /// </summary>
+    /// <remarks>
+    /// Log lines use <see cref="LogSafe.Id"/> instead, which keeps the webhook's numeric id so two webhooks can
+    /// be told apart. This label hides the whole URL because it reaches the admin page as text. Both exist to
+    /// keep the token out; when one changes, check the other (#1038).
+    /// </remarks>
     internal static string HumanLabel(string humanId) =>
         Uri.TryCreate(humanId, UriKind.Absolute, out var uri) && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
             ? "a webhook"

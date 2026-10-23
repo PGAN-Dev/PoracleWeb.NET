@@ -43,10 +43,22 @@ public class LogSafeTests
     }
 
     [Theory]
+    [InlineData("  https://discord.com/api/webhooks/123456/supersecret  ", "https://discord.com/api/webhooks/123456/***")]
+    [InlineData("	http://example.net/hook/supersecret", "http://example.net/hook/***")]
+    [InlineData("discord.com/api/webhooks/123456/supersecret", "https://discord.com/api/webhooks/123456/***")]
+    [InlineData("discordapp.com/api/webhooks/123456/supersecret", "https://discordapp.com/api/webhooks/123456/***")]
+    public void PaddedOrSchemelessWebhookUrlsAreStillMasked(string id, string expected)
+    {
+        Assert.Equal(expected, LogSafe.Id(id));
+    }
+
+    [Theory]
     [InlineData("123456789012345678")]
     [InlineData("-1001234567890")]
     [InlineData("-1001234567890:42")]
     [InlineData("some-name")]
+    [InlineData(" padded name ")]
+    [InlineData("raid alerts / webhooks")]
     [InlineData("")]
     public void NonUrlIdsAreUnchanged(string id)
     {

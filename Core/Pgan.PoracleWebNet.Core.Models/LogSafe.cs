@@ -20,7 +20,9 @@ public static class LogSafe
     /// A Discord webhook URL keeps its path up to the webhook's numeric id, which is not a secret and is
     /// what tells two webhooks apart in a log. Any other http(s) URL keeps its host, and its first path
     /// segment when more follow, since there is no telling where another service puts its secret. User
-    /// info, query and fragment are always dropped. Discord and Telegram ids, topic ids (<c>chat:topic</c>) and names pass through.
+    /// info, query and fragment are always dropped. Surrounding whitespace is ignored, and a scheme-less path
+    /// containing <c>/webhooks/</c> is read as https. Discord and Telegram ids, topic ids (<c>chat:topic</c>)
+    /// and names pass through unchanged.
     /// </remarks>
     public static string Id(string? id)
     {
@@ -29,14 +31,24 @@ public static class LogSafe
             return "(none)";
         }
 
-        var looksLikeUrl = id.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
-            || id.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
-        if (!looksLikeUrl)
+        // Poracle stores webhook ids as http(s) URLs, but a log argument can arrive padded, or as a
+        // scheme-less webhook path copied out of a config file; both still carry the token.
+        var candidate = id.Trim();
+        var hasScheme = candidate.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+            || candidate.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
+        if (!hasScheme)
         {
-            return id;
+            var schemelessWebhook = candidate.Contains("/webhooks/", StringComparison.OrdinalIgnoreCase)
+                && !candidate.Any(char.IsWhiteSpace);
+            if (!schemelessWebhook)
+            {
+                return id;
+            }
+
+            candidate = "https://" + candidate;
         }
 
-        if (!Uri.TryCreate(id, UriKind.Absolute, out var uri) || string.IsNullOrEmpty(uri.Host))
+        if (!Uri.TryCreate(candidate, UriKind.Absolute, out var uri) || string.IsNullOrEmpty(uri.Host))
         {
             return Mask;
         }
