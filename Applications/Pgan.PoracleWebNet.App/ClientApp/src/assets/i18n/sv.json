@@ -1449,6 +1449,7 @@
     "FOOTER": "Hantera larm för Pokémon, raids, quests och mer",
     "AUTH_FAILED": "Autentisering misslyckades",
     "BACK_TO_LOGIN": "Tillbaka till inloggning",
+    "ERR_DESTINATION_ACCOUNT": "Den här inloggningen tillhör en kanal eller webhook i Poracle, inte en person. Logga in med ditt eget konto.",
     "ERR_DISCORD_DISABLED": "Inloggning med Discord är för närvarande avstängd.",
     "ERR_DISCORD_FETCH": "Din Discord-profil kunde inte hämtas. Försök igen.",
     "ERR_MISSING_CODE": "Inloggningen med Discord avbröts eller misslyckades.",

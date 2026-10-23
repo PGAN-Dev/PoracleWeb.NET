@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **A failed webhook create no longer deletes a row another request wrote.** When PoracleNG rejected a create, the rollback removed whatever sat at that id. If a second request had created the same webhook in the meantime, its row was deleted. The rollback now removes the row only when its type and name match what this request tried to write, and goes through the full purge so delegate grants are cleaned up too. Otherwise it answers 502 and changes nothing (#1028).
 
+### Security
+
+- **A channel or webhook can no longer sign in as a person, and the login page says why.** A Poracle row whose type isn't a person's (a Discord channel or thread, a Telegram group, channel or topic, a webhook) is refused at Discord, OIDC and Telegram sign-in and on `/api/auth/me`, so a Telegram group id or a channel id can't open a session. The login page shows "This sign-in belongs to a channel or webhook in Poracle, not a person. Sign in with your own account." in all eleven languages. People whose type is blank or `discord:user` and `telegram:user` still sign in.
+
 ## [3.0.1] - 2026-10-23
 
 ### Fixed

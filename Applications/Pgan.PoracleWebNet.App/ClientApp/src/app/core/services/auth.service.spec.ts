@@ -196,6 +196,22 @@ describe('AuthService', () => {
       expect(router.navigate).not.toHaveBeenCalled();
     });
 
+    it('sends a destination row back to login with its reason', async () => {
+      const promise = service.handleTokenFromCallback('new-token');
+
+      httpMock
+        .expectOne(`${API}/api/auth/me`)
+        .flush(
+          { code: 'destination_account', error: 'This id is a channel or webhook in Poracle, not a person.' },
+          { status: 401, statusText: 'Unauthorized' },
+        );
+      await promise;
+
+      expect(localStorage.getItem('poracle_token')).toBeNull();
+      expect(router.navigate).not.toHaveBeenCalled();
+      httpMock.expectNone(`${API}/api/settings`);
+    });
+
     it('still goes to the dashboard for a 401 with no disabled-account code', async () => {
       const promise = service.handleTokenFromCallback('new-token');
 

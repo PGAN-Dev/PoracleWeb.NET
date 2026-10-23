@@ -1452,6 +1452,7 @@
     "FOOTER": "Administrer alarmer for Pokémon, raids, quests og mere",
     "AUTH_FAILED": "Godkendelse mislykkedes",
     "BACK_TO_LOGIN": "Tilbage til login",
+    "ERR_DESTINATION_ACCOUNT": "Dette login tilhører en kanal eller webhook i Poracle, ikke en person. Log ind med din egen konto.",
     "ERR_DISCORD_DISABLED": "Login med Discord er slået fra lige nu.",
     "ERR_DISCORD_FETCH": "Din Discord-profil kunne ikke hentes. Prøv igen.",
     "ERR_MISSING_CODE": "Login med Discord blev annulleret eller mislykkedes.",
