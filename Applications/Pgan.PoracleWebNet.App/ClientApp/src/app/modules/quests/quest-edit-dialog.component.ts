@@ -23,6 +23,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
 import { createFailureText } from '../../shared/utils/add-outcome';
 import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, compose, isAutoDelete, isSummary, preserve, SUMMARY } from '../../shared/utils/clean-flags';
+import { mentionCapable } from '../../shared/utils/human-kind';
 import { questRewardIcon } from '../../shared/utils/quest-reward-icon';
 
 /** Item, candy and mega energy: the three PoracleNG compares `amount` against. */
@@ -71,6 +72,7 @@ export class QuestEditDialogComponent {
   private static readonly FALLBACK =
     "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23999'%3E%3Cpath d='M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z'/%3E%3C/svg%3E";
 
+  private readonly auth = inject(AuthService);
   private readonly fb = inject(FormBuilder);
   private readonly i18n = inject(I18nService);
   private readonly iconService = inject(IconService);
@@ -99,8 +101,6 @@ export class QuestEditDialogComponent {
 
   readonly isPokecoins = this.data.rewardType === POKECOINS;
 
-  readonly isWebhook = inject(AuthService).isImpersonating();
-
   /** False while the scope picker holds a radius it won't accept, which keeps Save off. */
   readonly radiusValid = signal(true);
 
@@ -108,6 +108,8 @@ export class QuestEditDialogComponent {
 
   /** The alarm's current scope, read back into the shared picker. */
   readonly scope = signal<AlarmScope>(scopeOf(this.data.overrideLocationLabel, this.data.overrideAreas, this.data.distance));
+
+  readonly showMention = this.auth.isImpersonating() && mentionCapable(this.auth.user()?.type);
 
   /** The radius as stored, which an edit may keep even outside the picker's range. */
   readonly storedRadiusKm = metresToKm(this.data.distance);

@@ -1,19 +1,26 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { signal, WritableSignal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslateService } from '@ngx-translate/core';
 
+import { AuthService } from './auth.service';
 import { ConfigService } from './config.service';
 import { TestAlertService } from './test-alert.service';
+import { UserInfo } from '../models';
 
 describe('TestAlertService', () => {
   let service: TestAlertService;
   let httpMock: HttpTestingController;
   let snackBar: jest.Mocked<MatSnackBar>;
+  let translate: { instant: jest.Mock };
+  let auth: { isImpersonating: WritableSignal<boolean>; user: WritableSignal<Partial<UserInfo> | null> };
   const API = 'http://test-api';
 
   beforeEach(() => {
+    translate = { instant: jest.fn((key: string) => key) };
+    auth = { isImpersonating: signal(false), user: signal(null) };
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
@@ -21,7 +28,8 @@ describe('TestAlertService', () => {
         provideHttpClientTesting(),
         { provide: ConfigService, useValue: { apiHost: API } },
         { provide: MatSnackBar, useValue: { open: jest.fn() } },
-        { provide: TranslateService, useValue: { instant: jest.fn((key: string) => key) } },
+        { provide: TranslateService, useValue: translate },
+        { provide: AuthService, useValue: auth },
       ],
     });
     service = TestBed.inject(TestAlertService);
@@ -48,6 +56,28 @@ describe('TestAlertService', () => {
 
     const req = httpMock.expectOne(`${API}/api/test-alert/raid/7`);
     req.flush({ message: 'sent', status: 'ok' });
+
+    expect(snackBar.open).toHaveBeenCalledWith('TEST_ALERT.SUCCESS', 'OK', { duration: 4000 });
+  });
+
+  it("says where a destination's test alert went", () => {
+    // Managing a channel, "Check your DMs" sends the admin to look in the wrong place.
+    auth.isImpersonating.set(true);
+    auth.user.set({ username: '#raid-alerts', type: 'discord:channel' });
+
+    service.sendTestAlert('raid', 7);
+    httpMock.expectOne(`${API}/api/test-alert/raid/7`).flush({ message: 'sent', status: 'ok' });
+
+    expect(translate.instant).toHaveBeenCalledWith('TEST_ALERT.SUCCESS_DESTINATION', { name: '#raid-alerts' });
+    expect(snackBar.open).toHaveBeenCalledWith('TEST_ALERT.SUCCESS_DESTINATION', 'OK', { duration: 4000 });
+  });
+
+  it('still says DMs while inspecting a person', () => {
+    auth.isImpersonating.set(true);
+    auth.user.set({ username: 'Ash', type: 'discord:user' });
+
+    service.sendTestAlert('raid', 8);
+    httpMock.expectOne(`${API}/api/test-alert/raid/8`).flush({ message: 'sent', status: 'ok' });
 
     expect(snackBar.open).toHaveBeenCalledWith('TEST_ALERT.SUCCESS', 'OK', { duration: 4000 });
   });

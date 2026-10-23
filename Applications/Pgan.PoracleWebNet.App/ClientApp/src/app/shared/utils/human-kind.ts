@@ -30,6 +30,15 @@ function normalise(type: string | null | undefined): string {
   return (type ?? '').trim().toLowerCase();
 }
 
+/**
+ * Whether the type names a person: missing, blank, or ending `:user`. The server's `HumanKind.IsPerson`
+ * holds the same rule and is the one that grants anything; this only picks wording.
+ */
+export function isPersonType(type: string | null | undefined): boolean {
+  const t = normalise(type);
+  return t === '' || t.endsWith(':user');
+}
+
 /** Whether a mention can reach this destination type. */
 export function mentionCapable(type: string | null | undefined): boolean {
   return MENTION_CAPABLE.has(normalise(type));
@@ -38,15 +47,6 @@ export function mentionCapable(type: string | null | undefined): boolean {
 /** Whether this is one of the six destination types the app knows by name. */
 export function isKnownKind(type: string | null | undefined): boolean {
   return LABEL_KEYS.has(normalise(type));
-}
-
-/**
- * Mirrors the server's `HumanKind.IsPerson` (no type, or one ending `:user`) for labelling only: a 409 can name
- * a person already holding the id, and "Other" would misdescribe them. Never use it to grant anything.
- */
-export function isPersonType(type: string | null | undefined): boolean {
-  const t = normalise(type);
-  return t === '' || t.endsWith(':user');
 }
 
 /** The translation key naming a known type; anything else is `ADMIN.TYPE_OTHER`. */

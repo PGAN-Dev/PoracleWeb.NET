@@ -392,7 +392,7 @@ describe('AuthService', () => {
   describe('impersonate', () => {
     it('should save admin token, set impersonation token, and navigate', () => {
       localStorage.setItem('poracle_token', 'admin-jwt');
-      service.impersonate('user-jwt');
+      service.impersonate('user-jwt', '/admin/users');
 
       expect(localStorage.getItem('poracle_admin_token')).toBe('admin-jwt');
       expect(localStorage.getItem('poracle_token')).toBe('user-jwt');
@@ -403,7 +403,7 @@ describe('AuthService', () => {
     });
 
     it('should handle impersonate when no admin token exists', () => {
-      service.impersonate('user-jwt');
+      service.impersonate('user-jwt', '/admin/users');
 
       expect(localStorage.getItem('poracle_admin_token')).toBeNull();
       expect(localStorage.getItem('poracle_token')).toBe('user-jwt');
@@ -427,6 +427,31 @@ describe('AuthService', () => {
       expect(localStorage.getItem('poracle_token')).toBe('admin-jwt');
       expect(localStorage.getItem('poracle_admin_token')).toBeNull();
       expect(service.isImpersonating()).toBe(false);
+      expect(router.navigate).toHaveBeenCalledWith(['/admin'], { state: { adminReturn: true } });
+    });
+
+    it('returns a delegate to the page they started from', async () => {
+      localStorage.setItem('poracle_token', 'own-jwt');
+      service.impersonate('webhook-jwt', '/my-webhooks');
+      httpMock.expectOne(`${API}/api/auth/me`).flush(mockUser);
+
+      const promise = service.stopImpersonating();
+      httpMock.expectOne(`${API}/api/auth/me`).flush(mockUser);
+      await promise;
+
+      expect(router.navigate).toHaveBeenLastCalledWith(['/my-webhooks'], { state: { adminReturn: true } });
+      expect(localStorage.getItem('poracle_impersonation_return')).toBeNull();
+    });
+
+    it('falls back to /admin when nothing was recorded', async () => {
+      // A session started before the return route existed has none stored.
+      localStorage.setItem('poracle_admin_token', 'admin-jwt');
+      localStorage.setItem('poracle_token', 'impersonated-jwt');
+
+      const promise = service.stopImpersonating();
+      httpMock.expectOne(`${API}/api/auth/me`).flush(mockAdminUser);
+      await promise;
+
       expect(router.navigate).toHaveBeenCalledWith(['/admin'], { state: { adminReturn: true } });
     });
 
@@ -514,7 +539,7 @@ describe('AuthService', () => {
       const tokenStore = TestBed.inject(TokenStoreService);
       localStorage.setItem('poracle_token', 'impersonation-jwt');
       localStorage.setItem('poracle_admin_token', 'admin-jwt');
-      service.impersonate('impersonation-jwt');
+      service.impersonate('impersonation-jwt', '/admin/users');
       httpMock.expectOne(`${API}/api/auth/me`).flush(mockUser);
       expect(service.isImpersonating()).toBe(true);
 

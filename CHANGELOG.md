@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Admin > Webhooks is now Admin > Destinations, and lists Discord channels and threads and Telegram channels, groups and topics with their type.** These accounts are where alerts are posted rather than people who sign in, so they have their own page, with search and a filter by type. Admin > Users links across to it. Webhooks work as before, including delegates.
+- **Mention shows only on webhooks and Discord destinations.** A role or user mention can't reach a person's DMs or a Telegram chat, so the field is gone from those edit dialogs.
+- **Managing a destination says what it is, and leaving returns you to the page you started from.** The banner reads "Managing Discord channel #raid-alerts" instead of "Viewing as", and a destination's test alert says where it posts instead of "Check your DMs". Exit goes back to Admin > Users, Admin > Destinations or My Webhooks, whichever the session began on. A delegate whose session ended on its own used to land on Admin, which they can't open, and then on the dashboard.
 
 ### Fixed
 

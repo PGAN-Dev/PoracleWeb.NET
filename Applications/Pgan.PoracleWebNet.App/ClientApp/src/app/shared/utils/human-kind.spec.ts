@@ -39,7 +39,7 @@ describe('human-kind', () => {
   });
 
   it('recognises a person the way the server does: no type, or one ending :user', () => {
-    for (const type of [null, undefined, '', '  ', 'discord:user', 'telegram:user', 'Discord:User']) {
+    for (const type of [null, undefined, '', '  ', 'discord:user', 'telegram:user', 'Discord:User', 'Telegram:User']) {
       expect(isPersonType(type)).toBe(true);
     }
     for (const type of ['webhook', 'discord:channel', 'telegram:group', 'x:unknown']) {

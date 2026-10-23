@@ -117,7 +117,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         // navigation the admin can see happen.
         if (tokenStore.tryRestoreAdminSession()) {
           sayTranslated('HTTP_ERROR.INSPECTION_ENDED');
-          router.navigate(['/admin'], { state: ADMIN_RETURN_STATE });
+          router.navigate([tokenStore.takeImpersonationReturn()], { state: ADMIN_RETURN_STATE });
           return throwError(() => error);
         }
 

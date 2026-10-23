@@ -18,6 +18,7 @@ import { RaidService } from '../../core/services/raid.service';
 /** Costume is offered only where it can mean something: a raid rule with a specific boss. See #804. */
 describe('RaidEditDialogComponent', () => {
   let webhookSession = false;
+  let sessionType = 'webhook';
   let component: RaidEditDialogComponent;
   let eggService: { update: jest.Mock };
   let raidService: { update: jest.Mock };
@@ -65,7 +66,7 @@ describe('RaidEditDialogComponent', () => {
           },
         },
         { provide: I18nService, useValue: { instant: (k: string) => k, plural: (k: string) => k } },
-        { provide: AuthService, useValue: { isImpersonating: () => webhookSession } },
+        { provide: AuthService, useValue: { isImpersonating: () => webhookSession, user: () => ({ type: sessionType }) } },
       ],
       imports: [RaidEditDialogComponent],
     });
@@ -173,14 +174,30 @@ describe('RaidEditDialogComponent', () => {
     // always stores a ping, so there is no server-config dependency left to consult.
     it('is offered on a webhook alarm', () => {
       webhookSession = true;
+      sessionType = 'webhook';
       setup({ item: { ...BASE_RAID } });
-      expect(TestBed.createComponent(RaidEditDialogComponent).componentInstance.isWebhook).toBe(true);
+      expect(TestBed.createComponent(RaidEditDialogComponent).componentInstance.showMention).toBe(true);
+    });
+
+    it('is offered while managing a Discord channel', () => {
+      webhookSession = true;
+      sessionType = 'discord:channel';
+      setup({ item: { ...BASE_RAID } });
+      expect(TestBed.createComponent(RaidEditDialogComponent).componentInstance.showMention).toBe(true);
+    });
+
+    it('is hidden while managing a Telegram group', () => {
+      webhookSession = true;
+      sessionType = 'telegram:group';
+      setup({ item: { ...BASE_RAID } });
+      expect(TestBed.createComponent(RaidEditDialogComponent).componentInstance.showMention).toBe(false);
     });
 
     it('is hidden on a personal alarm', () => {
       webhookSession = false;
+      sessionType = 'discord:user';
       setup({ item: { ...BASE_RAID } });
-      expect(TestBed.createComponent(RaidEditDialogComponent).componentInstance.isWebhook).toBe(false);
+      expect(TestBed.createComponent(RaidEditDialogComponent).componentInstance.showMention).toBe(false);
     });
   });
 });

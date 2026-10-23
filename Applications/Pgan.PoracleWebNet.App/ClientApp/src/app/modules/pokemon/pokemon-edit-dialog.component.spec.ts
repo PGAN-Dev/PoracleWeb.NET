@@ -22,6 +22,7 @@ import { PoracleConfigService } from '../../core/services/poracle-config.service
  */
 describe('PokemonEditDialogComponent', () => {
   let webhookSession = false;
+  let sessionType = 'webhook';
   let component: PokemonEditDialogComponent;
   let monsterService: { editSupported: jest.Mock; update: jest.Mock };
 
@@ -55,7 +56,7 @@ describe('PokemonEditDialogComponent', () => {
           provide: PoracleConfigService,
           useValue: { load: () => of({ defaultPvpCap: 0 }), serverConfig: () => ({ pvpCaps: [] }) },
         },
-        { provide: AuthService, useValue: { isImpersonating: () => webhookSession, user: () => ({ type: 'discord:user' }) } },
+        { provide: AuthService, useValue: { isImpersonating: () => webhookSession, user: () => ({ type: sessionType }) } },
       ],
       imports: [PokemonEditDialogComponent],
     });
@@ -223,14 +224,30 @@ describe('PokemonEditDialogComponent', () => {
     // always stores a ping, so there is no server-config dependency left to consult.
     it('is offered on a webhook alarm', () => {
       webhookSession = true;
+      sessionType = 'webhook';
       setup({ minIv: -1 });
-      expect(TestBed.createComponent(PokemonEditDialogComponent).componentInstance.isWebhook).toBe(true);
+      expect(TestBed.createComponent(PokemonEditDialogComponent).componentInstance.showMention).toBe(true);
+    });
+
+    it('is offered while managing a Discord channel', () => {
+      webhookSession = true;
+      sessionType = 'discord:channel';
+      setup({ minIv: -1 });
+      expect(TestBed.createComponent(PokemonEditDialogComponent).componentInstance.showMention).toBe(true);
+    });
+
+    it('is hidden while managing a Telegram group', () => {
+      webhookSession = true;
+      sessionType = 'telegram:group';
+      setup({ minIv: -1 });
+      expect(TestBed.createComponent(PokemonEditDialogComponent).componentInstance.showMention).toBe(false);
     });
 
     it('is hidden on a personal alarm', () => {
       webhookSession = false;
+      sessionType = 'discord:user';
       setup({ minIv: -1 });
-      expect(TestBed.createComponent(PokemonEditDialogComponent).componentInstance.isWebhook).toBe(false);
+      expect(TestBed.createComponent(PokemonEditDialogComponent).componentInstance.showMention).toBe(false);
     });
   });
 });
