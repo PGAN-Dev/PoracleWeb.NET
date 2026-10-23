@@ -411,13 +411,14 @@ public partial class AdminController(
         if (exists)
         {
             // Name what is already there, so an admin who meant a different channel can tell it apart from
-            // one they created earlier. A failed read still answers the 409, just without the detail.
+            // one they created earlier. A failed read still answers the 409, just without the detail: any
+            // failure, since a timeout surfaces as TaskCanceledException and would otherwise be a 500.
             Human? existing = null;
             try
             {
                 existing = await this._humanService.GetByIdAsync(human.Id);
             }
-            catch (HttpRequestException)
+            catch (Exception)
             {
             }
 
