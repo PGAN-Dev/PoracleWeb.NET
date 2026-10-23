@@ -78,7 +78,13 @@ describe('App bootstrap under rate limiting', () => {
         provideTranslateService(),
         {
           provide: SettingsService,
-          useValue: { isDisabled: () => false, loadOnce: () => of([]), loadPublic: () => of([]), siteSettings: signal({}) },
+          useValue: {
+            isDisabled: () => false,
+            loadOnce: () => of([]),
+            loadPublic: () => of([]),
+            settingsLoaded: signal(false),
+            siteSettings: signal({}),
+          },
         },
         {
           provide: AuthService,
@@ -87,6 +93,8 @@ describe('App bootstrap under rate limiting', () => {
             hasManagedDestinations: () => false,
             isAdmin: () => false,
             isAuthenticated: () => true,
+            isImpersonating: signal(false),
+            user: signal(null),
           },
         },
         {

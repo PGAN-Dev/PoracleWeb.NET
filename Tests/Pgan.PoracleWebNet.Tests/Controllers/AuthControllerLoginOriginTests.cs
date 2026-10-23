@@ -114,6 +114,9 @@ public class AuthControllerLoginOriginTests
             Options.Create(new OidcSettings()),
             Options.Create(new PoracleSettings()),
             new ConfigurationBuilder().AddInMemoryCollection(settings).Build(),
+            new Mock<IAccountLinkService>().Object,
+            new Microsoft.AspNetCore.DataProtection.EphemeralDataProtectionProvider(),
+            new Mock<IHttpClientFactory>().Object,
             new Mock<ILogger<AuthController>>().Object);
 
         var httpContext = new DefaultHttpContext();

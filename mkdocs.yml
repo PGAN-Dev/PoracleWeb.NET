@@ -96,6 +96,7 @@ nav:
       - Database: architecture/database.md
   - Features:
       - Alarm Management: features/alarms.md
+      - Linked Accounts: features/linked-accounts.md
       - Quiet Periods: features/quiet-periods.md
       - Profiles: features/profiles.md
       - Quest Summary Delivery: features/quest-summary-schedules.md

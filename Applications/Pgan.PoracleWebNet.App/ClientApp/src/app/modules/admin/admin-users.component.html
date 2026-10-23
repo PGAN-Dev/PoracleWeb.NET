@@ -64,6 +64,11 @@
               </app-discord-avatar>
               <div class="user-name-text">
                 <span>{{ user.name || ('ADMIN.UNNAMED' | translate) }}</span>
+                @if (linkedTo(user); as other) {
+                  <span class="link-chip" data-test="linked-chip">{{
+                    (other === 'telegram' ? 'ADMIN.LINKED_TO_TELEGRAM' : 'ADMIN.LINKED_TO_DISCORD') | translate
+                  }}</span>
+                }
                 @let notes = notesLabel(user.notes);
                 @if (notes) {
                   <span class="user-notes" [matTooltip]="notes">{{ notes }}</span>
@@ -155,6 +160,12 @@
                       <span>{{ 'ADMIN.UNBLOCK_USER' | translate }}</span>
                     </button>
                   }
+                }
+                @if (linkedTo(user)) {
+                  <button mat-menu-item type="button" (click)="unlinkAccounts(user)">
+                    <mat-icon>link_off</mat-icon>
+                    <span>{{ 'ADMIN.UNLINK_ACCOUNTS' | translate }}</span>
+                  </button>
                 }
                 <mat-divider></mat-divider>
                 <button mat-menu-item type="button" class="menu-item-destructive" (click)="deleteAlarms(user)">

@@ -74,6 +74,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<QuickPickUidTransfer>();
         services.AddScoped<AlarmMover>();
         services.AddScoped<AlarmMoveDispatcher>();
+        services.AddScoped<ILinkedHumanProvisioner, LinkedHumanProvisioner>();
+        services.AddScoped<IAccountLinkService, AccountLinkService>();
         services.AddScoped<IUserPurgeService, UserPurgeService>();
         services.AddScoped<IProfileService, ProfileService>();
         services.AddScoped<IDashboardService, DashboardService>();

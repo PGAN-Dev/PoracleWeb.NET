@@ -12,6 +12,8 @@ public partial class UserPurgeService(
     IQuickPickDefinitionRepository quickPickRepository,
     IQuickPickAppliedStateRepository appliedStateRepository,
     IHumanService humanService,
+    IAccountLinkRepository accountLinkRepository,
+    ILinkedAccount linkedAccount,
     ILogger<UserPurgeService> logger) : IUserPurgeService
 {
     private readonly IUserGeofenceRepository _geofenceRepository = geofenceRepository;
@@ -20,6 +22,8 @@ public partial class UserPurgeService(
     private readonly IQuickPickDefinitionRepository _quickPickRepository = quickPickRepository;
     private readonly IQuickPickAppliedStateRepository _appliedStateRepository = appliedStateRepository;
     private readonly IHumanService _humanService = humanService;
+    private readonly IAccountLinkRepository _accountLinkRepository = accountLinkRepository;
+    private readonly ILinkedAccount _linkedAccount = linkedAccount;
     private readonly ILogger<UserPurgeService> _logger = logger;
 
     public async Task<bool> PurgeAsync(string userId)
@@ -44,6 +48,8 @@ public partial class UserPurgeService(
         var deleted = await this._humanService.DeleteUserAsync(userId);
         if (deleted)
         {
+            // Only once the human is gone: a failed delete leaves the account, and so its link, in place.
+            await this.TryAsync("account link", () => this.PurgeLinkAsync(userId));
             await this.TryAsync("leftover geofences", () => this._geofenceService.RemoveFencesOfDeletedAccountAsync(userId));
         }
 
@@ -71,6 +77,24 @@ public partial class UserPurgeService(
                 $"geofence {geofence.Id}",
                 () => this._geofenceService.AdminDeleteAsync(userId, geofence.Id, deleteWidenedAlarms: true));
         }
+    }
+
+    /// <summary>
+    /// Removes the link holding this id. The link is read first because the partner's id is only known
+    /// from it, and both ids are invalidated: <see cref="ILinkedAccount.Invalidate"/> finds a partner only
+    /// through a cached link, which the removal is about to make stale.
+    /// </summary>
+    private async Task PurgeLinkAsync(string userId)
+    {
+        var link = await this._accountLinkRepository.GetByHumanIdAsync(userId);
+        if (link is null)
+        {
+            return;
+        }
+
+        await this._accountLinkRepository.RemoveByHumanIdAsync(userId);
+        this._linkedAccount.Invalidate(link.DiscordId);
+        this._linkedAccount.Invalidate(link.TelegramId);
     }
 
     private async Task PurgeQuickPicksAsync(string userId)

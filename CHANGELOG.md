@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Linked accounts: pair a Discord account with a Telegram account.** A new **Linked accounts** page in the user menu links the account you signed in with to the other platform (Link Discord from a Telegram session, the Telegram button from a Discord session), shows each side as active, waiting to register, stopped or paused by an admin, unlinks, and sets where new alerts go. A refused link says why in all eleven languages. Nothing is copied or moved by linking, and unlinking deletes nothing. Admin > Users shows a "Linked to Telegram" or "Linked to Discord" chip on linked accounts with an **Unlink accounts** action. Two new settings under Admin > Settings > Features: **Linked accounts** (`disable_account_linking`) switches the feature off and **Register the other account when linking** (`link_register_missing`, off by default) creates the missing account instead of waiting for the person to register. [Linked accounts](docs/features/linked-accounts.md) covers both.
+
 ## [3.1.0] - 2026-10-23
 
 ### Added

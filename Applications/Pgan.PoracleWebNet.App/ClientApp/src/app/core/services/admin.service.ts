@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { ConfigService } from './config.service';
-import { AdminUser, Human, PoracleServerProfile } from '../models';
+import { AccountLink, AdminUser, Human, PoracleServerProfile } from '../models';
 
 /** The body of `POST /api/admin/destinations`. `type` is one of the six destination types in `human-kind.ts`. */
 export interface CreateDestinationRequest {
@@ -48,6 +48,11 @@ export class AdminService {
 
   fetchAvatars(userIds: string[]): Observable<Record<string, string>> {
     return this.http.post<Record<string, string>>(`${this.config.apiHost}/api/admin/users/avatars`, userIds);
+  }
+
+  /** Every Discord-Telegram link. Admin only, and 403 while account linking is switched off. */
+  getAccountLinks(): Observable<AccountLink[]> {
+    return this.http.get<AccountLink[]>(`${this.config.apiHost}/api/admin/account-links`);
   }
 
   getAllWebhookDelegates(): Observable<Record<string, string[]>> {
@@ -112,5 +117,10 @@ export class AdminService {
 
   resumeUser(userId: string): Observable<Human> {
     return this.http.put<Human>(`${this.config.apiHost}/api/admin/users/resume`, {}, { params: { id: userId } });
+  }
+
+  /** Cuts the link either of its accounts is in. No alert moves. */
+  unlinkAccounts(humanId: string): Observable<void> {
+    return this.http.delete<void>(`${this.config.apiHost}/api/admin/account-links/${encodeURIComponent(humanId)}`);
   }
 }

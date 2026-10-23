@@ -298,6 +298,18 @@ export const SETTING_GROUPS: SettingGroup[] = [
     labelKey: 'ADMIN_SETTINGS.GROUP_FEATURES',
     settings: [
       {
+        descriptionKey: 'ADMIN_SETTINGS.DISABLE_ACCOUNT_LINKING_DESC',
+        key: 'disable_account_linking',
+        labelKey: 'ADMIN_SETTINGS.DISABLE_ACCOUNT_LINKING_LABEL',
+        type: 'boolean',
+      },
+      {
+        descriptionKey: 'ADMIN_SETTINGS.LINK_REGISTER_MISSING_DESC',
+        key: 'link_register_missing',
+        labelKey: 'ADMIN_SETTINGS.LINK_REGISTER_MISSING_LABEL',
+        type: 'boolean',
+      },
+      {
         descriptionKey: 'ADMIN_SETTINGS.DISABLE_AREAS_DESC',
         key: 'disable_areas',
         labelKey: 'ADMIN_SETTINGS.DISABLE_AREAS_LABEL',

@@ -233,3 +233,14 @@ describe('delegation_poracle_channels', () => {
     });
   });
 });
+
+describe('account linking settings', () => {
+  const features = SETTING_GROUPS.find(group => group.labelKey === 'ADMIN_SETTINGS.GROUP_FEATURES');
+
+  it.each(['disable_account_linking', 'link_register_missing'])('lists %s under features as a boolean with label and description', key => {
+    const setting = features?.settings.find(s => s.key === key);
+    expect(setting?.type).toBe('boolean');
+    expect(setting?.labelKey).toBeTruthy();
+    expect(setting?.descriptionKey).toBeTruthy();
+  });
+});

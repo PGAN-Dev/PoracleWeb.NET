@@ -20,6 +20,7 @@ import { AlertLanguageService } from './core/services/alert-language.service';
 import { AuthService } from './core/services/auth.service';
 import { DashboardService } from './core/services/dashboard.service';
 import { I18nService } from './core/services/i18n.service';
+import { LinkedAccountService } from './core/services/linked-account.service';
 import { DEFAULT_SITE_TITLE, SettingsService } from './core/services/settings.service';
 import { AlertDefaultsDialogComponent } from './shared/components/alert-defaults-dialog/alert-defaults-dialog.component';
 import { isKnownKind, kindLabelKey } from './shared/utils/human-kind';
@@ -96,6 +97,7 @@ export class App implements OnInit {
   protected readonly accentTheme = signal(localStorage.getItem('poracle-accent') || '');
 
   protected readonly auth = inject(AuthService);
+
   protected readonly navItems: NavItem[] = [
     { group: 'alarms', icon: 'dashboard', iconColor: '#1976d2', label: 'NAV.DASHBOARD', route: '/dashboard' },
     { group: 'alarms', icon: 'bolt', iconColor: '#ff6f00', label: 'NAV.QUICK_PICKS', route: '/quick-picks' },
@@ -279,7 +281,12 @@ export class App implements OnInit {
   protected readonly headerLogoUrl = computed(() => this.settingsService.siteSettings()['header_logo_url'] || '');
 
   protected readonly hideHeaderLogo = computed(() => this.settingsService.isDisabled('hide_header_logo'));
+
   protected readonly i18n = inject(I18nService);
+
+  /** Held here so it exists from sign-in on: it reads the link status when a user arrives and on window focus. */
+  protected readonly linkedAccounts = inject(LinkedAccountService);
+
   /**
    * While managing a destination, the banner sentence key for its kind (a whole sentence per kind, so grammar can differ by language). Null for a person and for a type the
    * app cannot name, so the banner says "Viewing as" rather than "Managing Other".
@@ -300,6 +307,11 @@ export class App implements OnInit {
     this.navItems.filter(
       item => item.group === 'settings' && (!item.adminOnly || this.auth.isAdmin()) && !this.isFeatureDisabled(item.disableKey),
     ),
+  );
+
+  /** The user-menu entry. Linking is refused while viewing as someone else, so it is not offered then either. */
+  protected readonly showLinkedAccountsItem = computed(
+    () => !this.settingsService.isDisabled('disable_account_linking') && !this.auth.isImpersonating(),
   );
 
   protected readonly showShortcutHelp = signal(false);

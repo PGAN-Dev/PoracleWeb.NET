@@ -14,6 +14,9 @@ export class SettingsService {
   private readonly http = inject(HttpClient);
 
   private loaded = false;
+
+  /** True once the settings (and Poracle's own flags) have been read, so a `disable_*` check is trustworthy. */
+  readonly settingsLoaded = signal(false);
   /** Cached site settings as key→value map, loaded once at app init */
   readonly siteSettings = signal<Record<string, string>>({});
 
@@ -43,6 +46,7 @@ export class SettingsService {
         this.siteSettings.set(this.normalize(settings));
         this.upstreamDisabled.set(upstream);
         this.loaded = true;
+        this.settingsLoaded.set(true);
       }),
       map(({ settings }) => settings),
     );
