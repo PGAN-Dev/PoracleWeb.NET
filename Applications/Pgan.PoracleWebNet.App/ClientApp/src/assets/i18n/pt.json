@@ -45,6 +45,7 @@
   },
   "BANNER": {
     "VIEWING_AS": "A ver como {{name}}. As alterações que fizeres são guardadas nos alarmes de {{name}}.",
+    "MANAGING_KIND": "A gerir {{kind}} {{name}}. As alterações que fizeres são guardadas nos respetivos alarmes.",
     "EXIT_IMPERSONATION": "Voltar à tua conta",
     "DISABLED_ACCOUNT": "A tua conta foi <strong>desativada</strong> e o Retomar não a volta a ativar. Isto acontece se saíres do servidor do Discord ou perderes um cargo obrigatório, e é levantado automaticamente quando voltares a entrar ou recuperares o cargo.",
     "DISABLED_ACCOUNT_INSPECTED": "Esta conta foi <strong>desativada</strong> por um administrador e não recebe notificações.",
@@ -1782,6 +1783,7 @@
   },
   "TEST_ALERT": {
     "SUCCESS": "Alerta de teste enviado! Verifica os teus DMs.",
+    "SUCCESS_DESTINATION": "Alerta de teste enviado. É publicado em {{name}}.",
     "ERROR_RATE_LIMIT": "Demasiados alertas de teste. Aguarda um momento.",
     "ERROR_NOT_FOUND": "Alarme não encontrado — pode ter sido eliminado.",
     "RATE_LIMITED": "Demasiados alertas de teste. Aguarda um momento.",

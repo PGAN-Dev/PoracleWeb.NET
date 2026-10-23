@@ -22,6 +22,7 @@ import { ScopePickerComponent } from '../../shared/components/scope-picker/scope
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { createFailureText } from '../../shared/utils/add-outcome';
 import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
+import { mentionCapable } from '../../shared/utils/human-kind';
 
 /** The change types this dialog has a checkbox for. Anything else is carried through untouched. */
 const KNOWN_CHANGE_TYPES = new Set(['name', 'location', 'image_url', 'removal', 'new', 'description']);
@@ -50,6 +51,7 @@ const KNOWN_CHANGE_TYPES = new Set(['name', 'location', 'image_url', 'removal', 
   templateUrl: './fort-change-edit-dialog.component.html',
 })
 export class FortChangeEditDialogComponent {
+  private readonly auth = inject(AuthService);
   private readonly fb = inject(FormBuilder);
   private readonly fortChangeService = inject(FortChangeService);
   private readonly i18n = inject(I18nService);
@@ -73,8 +75,6 @@ export class FortChangeEditDialogComponent {
     template: [this.data.template ?? ''],
   });
 
-  readonly isWebhook = inject(AuthService).isImpersonating();
-
   /** False while the scope picker holds a radius it won't accept, which keeps Save off. */
   readonly radiusValid = signal(true);
 
@@ -82,6 +82,8 @@ export class FortChangeEditDialogComponent {
 
   /** The alarm's current scope, read back into the shared picker. */
   readonly scope = signal<AlarmScope>(scopeOf(this.data.overrideLocationLabel, this.data.overrideAreas, this.data.distance));
+
+  readonly showMention = this.auth.isImpersonating() && mentionCapable(this.auth.user()?.type);
 
   /** The radius as stored, which an edit may keep even outside the picker's range. */
   readonly storedRadiusKm = metresToKm(this.data.distance);

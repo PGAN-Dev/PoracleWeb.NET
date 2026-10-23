@@ -45,6 +45,7 @@
   },
   "BANNER": {
     "VIEWING_AS": "Viewing as {{name}}. Changes you make are saved to {{name}}'s alerts.",
+    "MANAGING_KIND": "Managing {{kind}} {{name}}. Changes you make are saved to its alerts.",
     "EXIT_IMPERSONATION": "Back to your account",
     "DISABLED_ACCOUNT": "Your account has been <strong>disabled</strong>, and Resume won't turn it back on. Leaving the Discord server or losing a required role does this, and rejoining or getting the role back lifts it automatically.",
     "DISABLED_ACCOUNT_INSPECTED": "This account has been <strong>disabled</strong> by an administrator and is not receiving notifications.",
@@ -1782,6 +1783,7 @@
   },
   "TEST_ALERT": {
     "SUCCESS": "Test alert sent! Check your DMs.",
+    "SUCCESS_DESTINATION": "Test alert sent. It posts in {{name}}.",
     "ERROR_RATE_LIMIT": "Too many test alerts. Please wait a moment.",
     "ERROR_NOT_FOUND": "Alarm not found — it may have been deleted.",
     "RATE_LIMITED": "Too many test alerts. Please wait a moment.",

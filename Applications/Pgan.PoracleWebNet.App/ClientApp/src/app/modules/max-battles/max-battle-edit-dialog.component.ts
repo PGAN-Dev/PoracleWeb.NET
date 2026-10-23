@@ -23,6 +23,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
 import { createFailureText } from '../../shared/utils/add-outcome';
 import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-flags';
+import { mentionCapable } from '../../shared/utils/human-kind';
 
 export interface MaxBattleEditDialogData {
   item: MaxBattle;
@@ -69,6 +70,7 @@ const LEVEL_OPTION_KEYS: { gmax: boolean; i18nKey: string; value: number }[] = [
   templateUrl: './max-battle-edit-dialog.component.html',
 })
 export class MaxBattleEditDialogComponent {
+  private readonly auth = inject(AuthService);
   private readonly fb = inject(FormBuilder);
   private readonly i18n = inject(I18nService);
   private readonly iconService = inject(IconService);
@@ -91,7 +93,6 @@ export class MaxBattleEditDialogComponent {
 
   readonly isLevelBased = this.data.item.pokemonId === 9000;
 
-  readonly isWebhook = inject(AuthService).isImpersonating();
   readonly levelOptions: MaxBattleLevelOption[] = LEVEL_OPTION_KEYS.map(k => ({
     gmax: k.gmax,
     label: this.i18n.instant(k.i18nKey),
@@ -105,6 +106,8 @@ export class MaxBattleEditDialogComponent {
 
   /** The alarm's current scope, read back into the shared picker. */
   readonly scope = signal<AlarmScope>(scopeOf(this.data.item.overrideLocationLabel, this.data.item.overrideAreas, this.data.item.distance));
+
+  readonly showMention = this.auth.isImpersonating() && mentionCapable(this.auth.user()?.type);
 
   /** The radius as stored, which an edit may keep even outside the picker's range. */
   readonly storedRadiusKm = metresToKm(this.data.item.distance);

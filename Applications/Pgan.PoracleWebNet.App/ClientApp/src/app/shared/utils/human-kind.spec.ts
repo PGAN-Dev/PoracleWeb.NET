@@ -1,4 +1,4 @@
-import { MENTION_CAPABLE, kindIcon, kindLabelKey, mentionCapable } from './human-kind';
+import { MENTION_CAPABLE, isPersonType, kindIcon, kindLabelKey, mentionCapable } from './human-kind';
 
 describe('human-kind', () => {
   it('labels every known type and falls back to Other', () => {
@@ -36,5 +36,18 @@ describe('human-kind', () => {
     expect(mentionCapable('x:unknown')).toBe(false);
     expect(mentionCapable(null)).toBe(false);
     expect(mentionCapable(undefined)).toBe(false);
+  });
+
+  it('treats a missing, blank or :user type as a person and anything else as a destination', () => {
+    expect(isPersonType(null)).toBe(true);
+    expect(isPersonType(undefined)).toBe(true);
+    expect(isPersonType('')).toBe(true);
+    expect(isPersonType('  ')).toBe(true);
+    expect(isPersonType('discord:user')).toBe(true);
+    expect(isPersonType('Telegram:User')).toBe(true);
+
+    expect(isPersonType('webhook')).toBe(false);
+    expect(isPersonType('discord:channel')).toBe(false);
+    expect(isPersonType('x:unknown')).toBe(false);
   });
 });

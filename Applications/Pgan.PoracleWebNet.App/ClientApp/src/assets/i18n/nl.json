@@ -45,6 +45,7 @@
   },
   "BANNER": {
     "VIEWING_AS": "Bekijken als {{name}}. Wijzigingen die je maakt, worden opgeslagen in de alarmen van {{name}}.",
+    "MANAGING_KIND": "Beheer van {{kind}} {{name}}. Wijzigingen die je maakt, worden opgeslagen in de alarmen ervan.",
     "EXIT_IMPERSONATION": "Terug naar je account",
     "DISABLED_ACCOUNT": "Je account is <strong>uitgeschakeld</strong> en Hervatten zet het niet weer aan. Dat gebeurt als je de Discord-server verlaat of een vereiste rol kwijtraakt, en het wordt vanzelf opgeheven zodra je weer lid wordt of de rol terugkrijgt.",
     "DISABLED_ACCOUNT_INSPECTED": "Dit account is door een beheerder <strong>uitgeschakeld</strong> en ontvangt geen meldingen.",
@@ -1782,6 +1783,7 @@
   },
   "TEST_ALERT": {
     "SUCCESS": "Testmelding verzonden! Controleer je DMs.",
+    "SUCCESS_DESTINATION": "Testmelding verzonden. Hij verschijnt in {{name}}.",
     "ERROR_RATE_LIMIT": "Te veel testmeldingen. Wacht even.",
     "ERROR_NOT_FOUND": "Alarm niet gevonden — het is mogelijk verwijderd.",
     "RATE_LIMITED": "Te veel testmeldingen. Wacht even.",

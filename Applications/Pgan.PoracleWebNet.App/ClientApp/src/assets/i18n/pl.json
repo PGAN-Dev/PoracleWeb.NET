@@ -45,6 +45,7 @@
   },
   "BANNER": {
     "VIEWING_AS": "Przeglądasz jako {{name}}. Wprowadzane zmiany zapisują się w alarmach użytkownika {{name}}.",
+    "MANAGING_KIND": "Zarządzasz: {{kind}} {{name}}. Wprowadzane zmiany zapisują się w alarmach tego miejsca docelowego.",
     "EXIT_IMPERSONATION": "Powrót do swojego konta",
     "DISABLED_ACCOUNT": "Twoje konto zostało <strong>wyłączone</strong> i Wznów go nie włączy. Dzieje się tak, gdy opuścisz serwer Discord albo stracisz wymaganą rolę, a blokada znika sama, gdy wrócisz na serwer lub odzyskasz rolę.",
     "DISABLED_ACCOUNT_INSPECTED": "To konto zostało <strong>wyłączone</strong> przez administratora i nie otrzymuje powiadomień.",
@@ -1856,6 +1857,7 @@
   },
   "TEST_ALERT": {
     "SUCCESS": "Testowy alert wysłany! Sprawdź swoje DM.",
+    "SUCCESS_DESTINATION": "Testowy alert wysłany. Pojawi się w {{name}}.",
     "ERROR_RATE_LIMIT": "Zbyt wiele testowych alertów. Poczekaj chwilę.",
     "ERROR_NOT_FOUND": "Alarm nie znaleziony — mógł zostać usunięty.",
     "RATE_LIMITED": "Zbyt wiele alertów testowych. Poczekaj chwilę.",

@@ -45,6 +45,7 @@
   },
   "BANNER": {
     "VIEWING_AS": "Vu en tant que {{name}}. Les modifications que tu fais sont enregistrées dans les alarmes de {{name}}.",
+    "MANAGING_KIND": "Gestion de {{kind}} {{name}}. Les modifications que tu fais sont enregistrées dans ses alarmes.",
     "EXIT_IMPERSONATION": "Retour à ton compte",
     "DISABLED_ACCOUNT": "Ton compte a été <strong>désactivé</strong> et Reprendre ne le réactive pas. Cela arrive si tu quittes le serveur Discord ou perds un rôle requis, et c'est levé automatiquement quand tu le rejoins ou récupères le rôle.",
     "DISABLED_ACCOUNT_INSPECTED": "Ce compte a été <strong>désactivé</strong> par un administrateur et ne reçoit aucune notification.",
@@ -1782,6 +1783,7 @@
   },
   "TEST_ALERT": {
     "SUCCESS": "Alerte test envoyée ! Vérifie tes DMs.",
+    "SUCCESS_DESTINATION": "Alerte de test envoyée. Elle est publiée dans {{name}}.",
     "ERROR_RATE_LIMIT": "Trop d'alertes test. Attends un moment.",
     "ERROR_NOT_FOUND": "Alarme introuvable — elle a peut-être été supprimée.",
     "RATE_LIMITED": "Trop d'alertes de test. Patientez un instant.",

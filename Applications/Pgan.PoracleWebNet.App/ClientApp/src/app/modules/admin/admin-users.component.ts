@@ -159,7 +159,7 @@ export class AdminUsersComponent implements OnInit {
       .subscribe({
         error: err => this.showFailure(err, 'ADMIN.SNACK_FAILED_IMPERSONATE'),
         next: res => {
-          this.auth.impersonate(res.token);
+          this.auth.impersonate(res.token, '/admin/users');
         },
       });
   }

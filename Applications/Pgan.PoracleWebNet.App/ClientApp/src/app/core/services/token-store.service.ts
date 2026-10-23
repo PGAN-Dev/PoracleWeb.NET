@@ -9,6 +9,9 @@ const REFRESH_KEY = 'poracle_refresh_token';
 const EXPIRES_KEY = 'poracle_token_expires_at';
 // Owned by AuthService, cleared here so the 401 path can end a session without constructing it.
 const ADMIN_TOKEN_KEY = 'poracle_admin_token';
+// Where an impersonation session started, so leaving it goes back there.
+const RETURN_KEY = 'poracle_impersonation_return';
+const DEFAULT_RETURN = '/admin';
 
 /** Refresh proactively this many ms before the access token's `exp`. */
 const EXPIRY_SKEW_MS = 60_000;
@@ -49,6 +52,7 @@ export class TokenStoreService {
   clear(): void {
     localStorage.removeItem(REFRESH_KEY);
     localStorage.removeItem(EXPIRES_KEY);
+    localStorage.removeItem(RETURN_KEY);
   }
 
   /**
@@ -168,6 +172,11 @@ export class TokenStoreService {
     });
   }
 
+  /** Records the page an impersonation session was started from. */
+  setImpersonationReturn(route: string): void {
+    localStorage.setItem(RETURN_KEY, route);
+  }
+
   /** Persists the JWT, the opaque refresh token (when present), and the computed expiry. */
   storeTokens(token: string, refreshToken: string | null, expiresInSeconds?: number): void {
     localStorage.setItem(TOKEN_KEY, token);
@@ -187,6 +196,18 @@ export class TokenStoreService {
     if (expiresAt) {
       localStorage.setItem(EXPIRES_KEY, String(expiresAt));
     }
+  }
+
+  /**
+   * The page the impersonation session started from, or `/admin` when none was recorded. Reading it
+   * forgets it, so the next session starts clean.
+   */
+  /* Every exit used to go to /admin. A delegate cannot open /admin, so a delegate whose session ended
+   * was sent there and bounced on to /dashboard, two hops from My Webhooks. See #1025. */
+  takeImpersonationReturn(): string {
+    const route = localStorage.getItem(RETURN_KEY);
+    localStorage.removeItem(RETURN_KEY);
+    return route || DEFAULT_RETURN;
   }
 
   /**

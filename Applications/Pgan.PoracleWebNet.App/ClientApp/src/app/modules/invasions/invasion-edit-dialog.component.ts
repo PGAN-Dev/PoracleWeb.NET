@@ -25,6 +25,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
 import { createFailureText } from '../../shared/utils/add-outcome';
 import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-flags';
+import { mentionCapable } from '../../shared/utils/human-kind';
 import { swapToFallbackIcon } from '../../shared/utils/icon-fallback';
 
 @Component({
@@ -50,6 +51,7 @@ import { swapToFallbackIcon } from '../../shared/utils/icon-fallback';
   templateUrl: './invasion-edit-dialog.component.html',
 })
 export class InvasionEditDialogComponent {
+  private readonly auth = inject(AuthService);
   private readonly fb = inject(FormBuilder);
   private readonly i18n = inject(I18nService);
   private readonly icons = inject(IconService);
@@ -73,16 +75,16 @@ export class InvasionEditDialogComponent {
   readonly hideGender = isGenderFixed(this.data.gruntType);
 
   readonly isEvent = isEventType(this.data.gruntType);
-  readonly isWebhook = inject(AuthService).isImpersonating();
-
   /** False while the scope picker holds a radius it won't accept, which keeps Save off. */
   readonly radiusValid = signal(true);
-  saving = signal(false);
 
+  saving = signal(false);
   /** The alarm's current scope, read back into the shared picker. */
   readonly scope = signal<AlarmScope>(scopeOf(this.data.overrideLocationLabel, this.data.overrideAreas, this.data.distance));
 
   readonly selectedGender = toSignal(this.form.controls.gender.valueChanges, { initialValue: this.data.gender });
+
+  readonly showMention = this.auth.isImpersonating() && mentionCapable(this.auth.user()?.type);
   /** The radius as stored, which an edit may keep even outside the picker's range. */
   readonly storedRadiusKm = metresToKm(this.data.distance);
 

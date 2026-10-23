@@ -45,6 +45,7 @@
   },
   "BANNER": {
     "VIEWING_AS": "Viser som {{name}}. Ændringer, du laver, gemmes i alarmerne for {{name}}.",
+    "MANAGING_KIND": "Administrerer {{kind}} {{name}}. Ændringer, du laver, gemmes i dens alarmer.",
     "EXIT_IMPERSONATION": "Tilbage til din konto",
     "DISABLED_ACCOUNT": "Din konto er blevet <strong>deaktiveret</strong>, og Genoptag slår den ikke til igen. Det sker, når du forlader Discord-serveren eller mister en påkrævet rolle, og det ophæves automatisk, når du melder dig ind igen eller får rollen tilbage.",
     "DISABLED_ACCOUNT_INSPECTED": "Denne konto er blevet <strong>deaktiveret</strong> af en administrator og modtager ikke notifikationer.",
@@ -1782,6 +1783,7 @@
   },
   "TEST_ALERT": {
     "SUCCESS": "Testalarm sendt! Tjek dine DMs.",
+    "SUCCESS_DESTINATION": "Testalarm sendt. Den sendes i {{name}}.",
     "ERROR_RATE_LIMIT": "For mange testalarmer. Vent venligst et øjeblik.",
     "ERROR_NOT_FOUND": "Alarm ikke fundet — den kan være blevet slettet.",
     "RATE_LIMITED": "For mange testbeskeder. Vent et øjeblik.",
