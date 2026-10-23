@@ -1,4 +1,4 @@
-<h2 mat-dialog-title>{{ 'ADMIN.MANAGE_DELEGATES_TITLE' | translate }} — {{ data.webhook.name || data.webhook.id }}</h2>
+<h2 mat-dialog-title>{{ 'ADMIN.MANAGE_DELEGATES_TITLE' | translate }} — {{ webhookName }}</h2>
 <mat-dialog-content>
   <p class="hint">{{ 'ADMIN.DELEGATES_HINT' | translate }}</p>
   @if (loading()) {

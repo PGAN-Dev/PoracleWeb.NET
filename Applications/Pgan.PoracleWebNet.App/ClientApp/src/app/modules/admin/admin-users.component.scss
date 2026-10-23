@@ -110,12 +110,16 @@
 }
 
 .destinations-note {
-  margin: 0 0 12px;
+  margin: -8px 0 4px;
   font-size: 13px;
   line-height: 1.5;
 
   // The app's inline-link look (the dashboard's tip actions), not the browser's default blue.
+  // Padding, not a bigger font, takes the link to a 40px touch target.
   a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
     color: var(--mat-sys-primary);
     font-weight: 600;
     text-decoration: none;

@@ -98,10 +98,12 @@
           <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'ADMIN.COLUMN_ID' | translate }}</th>
           <td mat-cell *matCellDef="let row">
             <span class="id-cell">
-              <!-- A webhook id is a URL with a secret token in it: shortened on screen, whole in the tooltip and the copy. -->
-              <span class="row-id" [matTooltip]="row.id" matTooltipClass="url-tooltip">{{
-                isWebhook(row) ? truncateUrl(row.id) : row.id
-              }}</span>
+              <!-- A webhook id is a URL with a secret token in it: host and hook number on screen, the token only in the copy. -->
+              @if (isWebhook(row)) {
+                <span class="row-id">{{ truncateUrl(row.id) }}</span>
+              } @else {
+                <span class="row-id" [matTooltip]="row.id">{{ row.id }}</span>
+              }
               <button
                 mat-icon-button
                 type="button"
@@ -109,7 +111,7 @@
                 data-test="copy-id"
                 (click)="copyId(row.id)"
                 [matTooltip]="'ADMIN.COPY_ID' | translate"
-                [attr.aria-label]="'ADMIN.COPY_ID_FOR' | translate: { name: row.name || row.id }">
+                [attr.aria-label]="'ADMIN.COPY_ID_FOR' | translate: { name: rowName(row) }">
                 <mat-icon>content_copy</mat-icon>
               </button>
             </span>
@@ -181,76 +183,59 @@
           <th mat-header-cell *matHeaderCellDef>{{ 'ADMIN.COLUMN_ACTIONS' | translate }}</th>
           <td mat-cell *matCellDef="let row">
             <div class="action-buttons">
-              @if (row.adminDisable !== 1) {
-                <button
-                  mat-icon-button
-                  color="warn"
-                  (click)="toggleBlock(row, false)"
-                  [matTooltip]="blockTooltipKey(row) | translate"
-                  [attr.aria-label]="'ADMIN.BLOCK_DESTINATION' | translate">
-                  <mat-icon>block</mat-icon>
-                </button>
-              } @else {
-                <button
-                  mat-icon-button
-                  color="primary"
-                  (click)="toggleBlock(row, true)"
-                  [matTooltip]="'ADMIN.UNBLOCK_DESTINATION' | translate"
-                  [attr.aria-label]="'ADMIN.UNBLOCK_DESTINATION' | translate">
-                  <mat-icon>check_circle</mat-icon>
-                </button>
-              }
-              @if (row.enabled === 0) {
-                <button
-                  mat-icon-button
-                  color="primary"
-                  (click)="resumeWebhook(row)"
-                  [matTooltip]="'ADMIN.START_ALERTS' | translate"
-                  [attr.aria-label]="'ADMIN.START_ALERTS' | translate">
-                  <mat-icon>play_arrow</mat-icon>
-                </button>
-              } @else {
-                <button
-                  mat-icon-button
-                  (click)="pauseWebhook(row)"
-                  [matTooltip]="'ADMIN.STOP_ALERTS' | translate"
-                  [attr.aria-label]="'ADMIN.STOP_ALERTS' | translate">
-                  <mat-icon>pause</mat-icon>
-                </button>
-              }
-              <button
-                mat-icon-button
-                (click)="manageAlarms(row)"
-                [matTooltip]="'ADMIN.MANAGE_ALARMS' | translate"
-                [attr.aria-label]="'ADMIN.MANAGE_ALARMS' | translate">
+              <!-- Opening the destination's alarms is the common action, so it stays on the row; the rest are named in a menu. -->
+              <button mat-button type="button" data-test="manage-alarms" (click)="manageAlarms(row)">
                 <mat-icon>tune</mat-icon>
+                {{ 'ADMIN.MANAGE_ALARMS' | translate }}
               </button>
-              @if (isWebhook(row)) {
-                <button
-                  mat-icon-button
-                  data-test="manage-delegates"
-                  (click)="openDelegatesDialog(row)"
-                  [matTooltip]="'ADMIN.MANAGE_DELEGATES' | translate"
-                  [attr.aria-label]="'ADMIN.MANAGE_DELEGATES' | translate">
-                  <mat-icon>group_add</mat-icon>
+              <button
+                mat-icon-button
+                type="button"
+                data-test="row-menu"
+                [matMenuTriggerFor]="rowMenu"
+                [matTooltip]="'COMMON.MORE_ACTIONS' | translate"
+                [attr.aria-label]="'ADMIN.MORE_ACTIONS_FOR' | translate: { name: rowName(row) }">
+                <mat-icon>more_vert</mat-icon>
+              </button>
+              <mat-menu #rowMenu="matMenu" xPosition="before">
+                @if (row.adminDisable !== 1) {
+                  <button mat-menu-item type="button" data-test="block" (click)="toggleBlock(row, false)">
+                    <mat-icon>block</mat-icon>
+                    <span>{{ 'ADMIN.BLOCK_DESTINATION' | translate }}</span>
+                  </button>
+                } @else {
+                  <button mat-menu-item type="button" data-test="unblock" (click)="toggleBlock(row, true)">
+                    <mat-icon>check_circle</mat-icon>
+                    <span>{{ 'ADMIN.UNBLOCK_DESTINATION' | translate }}</span>
+                  </button>
+                }
+                @if (row.enabled === 0) {
+                  <button mat-menu-item type="button" (click)="resumeWebhook(row)">
+                    <mat-icon>play_arrow</mat-icon>
+                    <span>{{ 'ADMIN.START_ALERTS' | translate }}</span>
+                  </button>
+                } @else {
+                  <button mat-menu-item type="button" (click)="pauseWebhook(row)">
+                    <mat-icon>pause</mat-icon>
+                    <span>{{ 'ADMIN.STOP_ALERTS' | translate }}</span>
+                  </button>
+                }
+                @if (isWebhook(row)) {
+                  <button mat-menu-item type="button" data-test="manage-delegates" (click)="openDelegatesDialog(row)">
+                    <mat-icon>group_add</mat-icon>
+                    <span>{{ 'ADMIN.MANAGE_DELEGATES' | translate }}</span>
+                  </button>
+                }
+                <mat-divider></mat-divider>
+                <button mat-menu-item type="button" class="menu-item-destructive" (click)="deleteAlarms(row)">
+                  <mat-icon>delete_sweep</mat-icon>
+                  <span>{{ 'ADMIN.DELETE_ALL_ALARMS' | translate }}</span>
                 </button>
-              }
-              <button
-                mat-icon-button
-                color="warn"
-                (click)="deleteAlarms(row)"
-                [matTooltip]="'ADMIN.DELETE_ALL_ALARMS' | translate"
-                [attr.aria-label]="'ADMIN.DELETE_ALL_ALARMS' | translate">
-                <mat-icon>delete_sweep</mat-icon>
-              </button>
-              <button
-                mat-icon-button
-                color="warn"
-                (click)="deleteDestination(row)"
-                [matTooltip]="'ADMIN.DELETE_DESTINATION' | translate"
-                [attr.aria-label]="'ADMIN.DELETE_DESTINATION' | translate">
-                <mat-icon>delete_forever</mat-icon>
-              </button>
+                <button mat-menu-item type="button" class="menu-item-destructive" (click)="deleteDestination(row)">
+                  <mat-icon>delete_forever</mat-icon>
+                  <span>{{ 'ADMIN.DELETE_DESTINATION' | translate }}</span>
+                </button>
+              </mat-menu>
             </div>
           </td>
         </ng-container>
