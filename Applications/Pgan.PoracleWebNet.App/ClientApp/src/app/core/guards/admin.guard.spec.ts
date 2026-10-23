@@ -21,7 +21,7 @@ describe('adminGuard', () => {
     avatarUrl: null,
     enabled: true,
     isAdmin: false,
-    managedWebhooks: [],
+    managedDestinations: [],
     profileName: 'Default',
     profileNo: 1,
     type: 'discord:user',

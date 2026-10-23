@@ -38,6 +38,7 @@ export class AuthService {
    * travels here rather than through the normal settings fetch because that read is signed-in only
    * (`SettingsController.UserVisibleKeys`), and the one person who needs it here is not. See #911.
    */
+  private readonly _destinationRefused = signal(false);
   private readonly _disabledAccountInfo = signal<{ supportUrl: string | null } | null>(null);
   private readonly _isImpersonating = signal(!!localStorage.getItem(ADMIN_TOKEN_KEY));
   private readonly _profileResynced = signal(false);
@@ -51,11 +52,11 @@ export class AuthService {
   private readonly tokenStore = inject(TokenStoreService);
   private readonly userLoaded$ = new ReplaySubject<UserInfo | null>(1);
 
-  readonly hasManagedWebhooks = computed(() => (this.currentUser()?.managedWebhooks?.length ?? 0) > 0);
+  readonly hasManagedDestinations = computed(() => (this.currentUser()?.managedDestinations?.length ?? 0) > 0);
   readonly isAdmin = computed(() => this.currentUser()?.isAdmin ?? false);
   readonly isImpersonating = this._isImpersonating.asReadonly();
   readonly isLoggedIn = computed(() => !!this.currentUser());
-  readonly managedWebhooks = computed(() => this.currentUser()?.managedWebhooks ?? []);
+  readonly managedDestinations = computed(() => this.currentUser()?.managedDestinations ?? []);
   readonly profileResynced = this._profileResynced.asReadonly();
   readonly user = this.currentUser.asReadonly();
 
@@ -139,6 +140,14 @@ export class AuthService {
       return;
     }
 
+    // A channel or webhook row is not a person. The API refuses it with its own code, so the login page
+    // can say why rather than leave a dead token to 401 on the dashboard. See #1025.
+    if (this._destinationRefused()) {
+      this.clearSession();
+      window.location.href = '/login#error=destination_account';
+      return;
+    }
+
     // Load site settings now that we have a valid token — the initial loadOnce()
     // in App.ngOnInit() fires before the token is stored, so settings (including
     // custom_title) fail silently and never reload.
@@ -150,8 +159,12 @@ export class AuthService {
     this.router.navigate(['/dashboard']);
   }
 
-  /** Switch to impersonated user token, saving the admin token for later. */
-  impersonate(token: string): void {
+  /**
+   * Switch to impersonated user token, saving the admin token for later. `returnTo` is the page leaving
+   * the session goes back to.
+   */
+  impersonate(token: string, returnTo: string): void {
+    this.tokenStore.setImpersonationReturn(returnTo);
     const adminToken = localStorage.getItem(TOKEN_KEY);
     if (adminToken) {
       localStorage.setItem(ADMIN_TOKEN_KEY, adminToken);
@@ -185,6 +198,7 @@ export class AuthService {
             // that fallback had just restored, one line after it was written. See #706, #616.
             this.currentUser.set(null);
             this._disabledAccountInfo.set(err.error?.code === 'account_disabled' ? { supportUrl: err.error?.supportUrl ?? null } : null);
+            this._destinationRefused.set(err.error?.code === 'destination_account');
           }
           this.userLoaded$.next(null);
           resolve(null);
@@ -275,7 +289,7 @@ export class AuthService {
     localStorage.removeItem(ADMIN_TOKEN_KEY);
     this._isImpersonating.set(false);
     await this.loadCurrentUser();
-    this.router.navigate(['/admin'], { state: ADMIN_RETURN_STATE });
+    this.router.navigate([this.tokenStore.takeImpersonationReturn()], { state: ADMIN_RETURN_STATE });
     return true;
   }
 

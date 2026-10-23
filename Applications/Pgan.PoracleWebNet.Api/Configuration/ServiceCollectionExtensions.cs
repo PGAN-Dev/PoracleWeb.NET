@@ -216,6 +216,7 @@ public static class ServiceCollectionExtensions
         // Admin status and delegated webhooks, resolved live rather than trusted from a claim minted
         // at login. See #624 and #626.
         services.AddScoped<Services.IUserRoleResolver, Services.UserRoleResolver>();
+        services.AddScoped<Services.IDestinationDirectory, Services.DestinationDirectory>();
 
         // Re-asks, on every request an impersonation token makes, whether whoever started it still may.
         // Wired into JwtBearer's OnTokenValidated in Program.cs.

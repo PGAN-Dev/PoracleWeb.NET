@@ -215,3 +215,21 @@ describe('icon hosts', () => {
     expect(offenders).toEqual([]);
   });
 });
+
+/**
+ * The opt-in that lets PoracleNG's channel admins manage those channels here. It sits with the other access
+ * settings, and is a switch: the server reads it with GetBoolAsync, absent meaning off. See #1025.
+ */
+describe('delegation_poracle_channels', () => {
+  it('is a switch in the Administration group', () => {
+    const administration = SETTING_GROUPS.find(g => g.labelKey === 'ADMIN_SETTINGS.GROUP_ADMINISTRATION')!;
+    const setting = administration.settings.find(s => s.key === 'delegation_poracle_channels');
+
+    expect(setting).toEqual({
+      descriptionKey: 'ADMIN_SETTINGS.DELEGATION_PORACLE_CHANNELS_DESC',
+      key: 'delegation_poracle_channels',
+      labelKey: 'ADMIN_SETTINGS.DELEGATION_PORACLE_CHANNELS_LABEL',
+      type: 'boolean',
+    });
+  });
+});

@@ -8,6 +8,10 @@ This line is unofficial and unsupported by PoracleWeb.NET releases. Report probl
 
 ## [Unreleased]
 
+### Changed
+
+- **Rebased onto PoracleWeb.NET 3.1.0.** It separates people from destinations: Admin > Webhooks becomes Admin > Destinations and also lists and creates Discord channels and threads and Telegram channels, groups and topics, Admin > Users lists people only, a channel or webhook can no longer sign in, delegates can be granted any destination and manage them from My Destinations, and Mention shows only on webhooks and Discord destinations (#1025). The PoracleNG this line needs is unchanged. See [CHANGELOG.md](CHANGELOG.md) for details.
+
 ## [3.0.1-shiny.1] - 2026-10-23
 
 Based on PoracleWeb.NET 3.0.1. Needs the same PoracleNG as 3.0.0-shiny.1: `feat/personal-shiny` ([jfberry/PoracleNG#255](https://github.com/jfberry/PoracleNG/pull/255)) rebased on 5.4.0, tested against the `ghcr.io/jfberry/poracleng:feat-personal-shiny` image built on 22 October 2026 from `3104d18d` (`sha256:ae21dba6d697b820399a143510cb801a6ab42f1251143cc42101d0299d187d5d`). Earlier `feat/personal-shiny` builds, and PoracleNG `main`, are not supported.

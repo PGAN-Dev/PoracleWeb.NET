@@ -28,6 +28,7 @@ import { createFailureText } from '../../shared/utils/add-outcome';
 import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, EDIT, isAutoDelete } from '../../shared/utils/clean-flags';
 import { ANY_COSTUME, costumeHintKey } from '../../shared/utils/costumes';
+import { mentionCapable } from '../../shared/utils/human-kind';
 
 export interface RaidEditDialogData {
   item: Raid | Egg;
@@ -61,6 +62,7 @@ export interface RaidEditDialogData {
   templateUrl: './raid-edit-dialog.component.html',
 })
 export class RaidEditDialogComponent {
+  private readonly auth = inject(AuthService);
   private readonly eggService = inject(EggService);
   private readonly fb = inject(FormBuilder);
   private readonly i18n = inject(I18nService);
@@ -84,8 +86,6 @@ export class RaidEditDialogComponent {
     template: [this.data.item.template ?? ''],
   });
 
-  readonly isWebhook = inject(AuthService).isImpersonating();
-
   /** False while the scope picker holds a radius it won't accept, which keeps Save off. */
   readonly radiusValid = signal(true);
 
@@ -95,6 +95,8 @@ export class RaidEditDialogComponent {
   readonly scope = signal<AlarmScope>(scopeOf(this.data.item.overrideLocationLabel, this.data.item.overrideAreas, this.data.item.distance));
 
   selectedGymId = signal<string | null>(this.data.item.gymId);
+
+  readonly showMention = this.auth.isImpersonating() && mentionCapable(this.auth.user()?.type);
 
   /** The radius as stored, which an edit may keep even outside the picker's range. */
   readonly storedRadiusKm = metresToKm(this.data.item.distance);

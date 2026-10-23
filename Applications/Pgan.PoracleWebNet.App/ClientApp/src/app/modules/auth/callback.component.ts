@@ -37,6 +37,7 @@ export class CallbackComponent implements OnInit {
         oidc_no_identity: 'AUTH.ERR_OIDC_NO_IDENTITY',
         oidc_token_exchange_failed: 'AUTH.ERR_OIDC_TOKEN_EXCHANGE',
         oidc_userinfo_failed: 'AUTH.ERR_OIDC_USERINFO',
+        destination_account: 'AUTH.ERR_DESTINATION_ACCOUNT',
         discord_user_fetch_failed: 'AUTH.ERR_DISCORD_FETCH',
         missing_code: 'AUTH.ERR_MISSING_CODE',
         token_exchange_failed: 'AUTH.ERR_TOKEN_EXCHANGE',

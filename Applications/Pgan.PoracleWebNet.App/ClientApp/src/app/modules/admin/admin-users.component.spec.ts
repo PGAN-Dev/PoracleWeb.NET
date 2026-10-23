@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import { of, throwError } from 'rxjs';
 
@@ -10,6 +11,7 @@ import { AdminUsersComponent } from './admin-users.component';
 import { AdminUser, PoracleServerConfig } from '../../core/models';
 import { AdminService } from '../../core/services/admin.service';
 import { AuthService } from '../../core/services/auth.service';
+import { I18nService } from '../../core/services/i18n.service';
 import { PoracleConfigService } from '../../core/services/poracle-config.service';
 import { GameAccountsDialogComponent } from '../../shared/components/game-accounts-dialog/game-accounts-dialog.component';
 
@@ -22,6 +24,7 @@ function row(id: string, overrides: Partial<AdminUser> = {}): AdminUser {
     currentProfileNo: 1,
     disabledDate: null,
     enabled: 1,
+    kind: 'person',
     language: null,
     lastChecked: null,
     notes: null,
@@ -48,6 +51,7 @@ describe('AdminUsersComponent', () => {
 
     TestBed.configureTestingModule({
       providers: [
+        provideRouter([]),
         provideTranslateService(),
         { provide: AdminService, useValue: adminService },
         { provide: AuthService, useValue: { impersonate: jest.fn(), user: signal({ id: 'admin1', isAdmin: true }) } },
@@ -133,6 +137,45 @@ describe('AdminUsersComponent', () => {
     (row.querySelector('[data-test="view-as"]') as HTMLButtonElement).click();
 
     expect(spy).toHaveBeenCalledWith(member);
+  });
+
+  // A legacy OIDC or Telegram row can carry no type at all, and it is still a person.
+  it('lists people only, including a null type', () => {
+    const { adminService, component, fixture } = setup();
+    adminService.getUsers.mockReturnValue(
+      of([
+        me,
+        row('legacy', { type: null }),
+        row('https://hook/a', { kind: 'destination', type: 'webhook' }),
+        row('-1001234567890', { kind: 'destination', type: 'telegram:group' }),
+        row('999', { kind: 'destination', type: 'x:unknown' }),
+      ]),
+    );
+    component.loadUsers();
+    fixture.detectChanges();
+
+    expect(component.filteredUsers().map(u => u.id)).toEqual(['admin1', 'legacy']);
+    expect((fixture.nativeElement as HTMLElement).querySelectorAll('tr.mat-mdc-row')).toHaveLength(2);
+  });
+
+  it('points at Destinations from its description', () => {
+    const { fixture } = setup();
+
+    const link = (fixture.nativeElement as HTMLElement).querySelector('[data-test="destinations-link"]');
+    expect(link?.getAttribute('href')).toBe('/admin/destinations');
+    expect(link?.textContent).toContain('ADMIN.USERS_DESTINATIONS_LINK');
+    // Phones hide .page-description, so the link must not live inside it.
+    expect(link?.closest('.page-description')).toBeNull();
+  });
+
+  // "2mo ago" in English on a German page (#1025 QA).
+  it('says how long ago an account was disabled in the display language', () => {
+    const { component } = setup();
+    TestBed.inject(I18nService).currentLang.set('de');
+
+    const sixtyDaysAgo = new Date(Date.now() - 60 * 86400000).toISOString();
+    expect(component.getRelativeDate(sixtyDaysAgo)).toBe('vor 60 Tagen');
+    expect(component.getRelativeDate('not a date')).toBe('—');
   });
 
   it('shows profile 0 as 0, not 1', () => {

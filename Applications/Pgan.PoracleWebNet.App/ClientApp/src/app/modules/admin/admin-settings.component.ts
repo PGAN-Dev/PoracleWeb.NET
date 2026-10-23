@@ -415,6 +415,12 @@ export const SETTING_GROUPS: SettingGroup[] = [
         showWhen: 'enable_roles',
         type: 'text',
       },
+      {
+        descriptionKey: 'ADMIN_SETTINGS.DELEGATION_PORACLE_CHANNELS_DESC',
+        key: 'delegation_poracle_channels',
+        labelKey: 'ADMIN_SETTINGS.DELEGATION_PORACLE_CHANNELS_LABEL',
+        type: 'boolean',
+      },
     ],
   },
   {

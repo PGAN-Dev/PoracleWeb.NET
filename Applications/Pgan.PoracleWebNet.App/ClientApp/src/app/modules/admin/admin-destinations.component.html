@@ -1,0 +1,278 @@
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>{{ 'ADMIN.DESTINATIONS_TITLE' | translate }}</h1>
+    <p class="page-description">{{ 'ADMIN.DESTINATIONS_DESC' | translate }}</p>
+  </div>
+  <button mat-flat-button color="primary" (click)="openAddDialog()">
+    <mat-icon>add</mat-icon> {{ 'ADMIN.ADD_DESTINATION' | translate }}
+  </button>
+</div>
+
+<div class="page-content">
+  <!-- Not a page description: phones hide those, and this is what explains an empty Delegates column. -->
+  <p class="admins-note" data-test="admins-note">{{ 'ADMIN.DESTINATIONS_ADMINS_NOTE' | translate }}</p>
+  <div class="toolbar">
+    <mat-form-field appearance="outline" class="search-field">
+      <mat-label>{{ 'ADMIN.SEARCH_DESTINATIONS' | translate }}</mat-label>
+      <mat-icon matPrefix>search</mat-icon>
+      <input
+        matInput
+        [ngModel]="list.searchTerm()"
+        (ngModelChange)="onSearchChange($event)"
+        [placeholder]="'ADMIN.FILTER_DESTINATION_PLACEHOLDER' | translate" />
+      @if (list.searchTerm()) {
+        <button matSuffix mat-icon-button (click)="onSearchChange('')" [attr.aria-label]="'COMMON.CLEAR_SEARCH' | translate">
+          <mat-icon>clear</mat-icon>
+        </button>
+      }
+    </mat-form-field>
+    <mat-form-field appearance="outline" class="status-filter">
+      <mat-label>{{ 'ADMIN.STATUS_LABEL' | translate }}</mat-label>
+      <mat-select [ngModel]="list.statusFilter()" (ngModelChange)="onStatusFilterChange($event)">
+        <mat-option value="all">{{ 'ADMIN.STATUS_ALL' | translate }}</mat-option>
+        <mat-option value="active">{{ 'ADMIN.DESTINATION_STATUS_ACTIVE' | translate }}</mat-option>
+        <mat-option value="stopped">{{ 'ADMIN.DESTINATION_STATUS_STOPPED' | translate }}</mat-option>
+        <mat-option value="blocked">{{ 'ADMIN.DESTINATION_STATUS_BLOCKED' | translate }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <button mat-stroked-button (click)="loadUsers()"><mat-icon>refresh</mat-icon> {{ 'ADMIN.REFRESH' | translate }}</button>
+  </div>
+
+  <!-- One chip per type somebody actually has; a single type has nothing to choose between. -->
+  @if (!usersLoading() && list.typesPresent().length > 1) {
+    <mat-chip-listbox
+      class="type-chips"
+      data-test="type-chips"
+      [attr.aria-label]="'ADMIN.FILTER_BY_TYPE' | translate"
+      [value]="list.activeType()"
+      (change)="onTypeFilterChange($event.value)">
+      <mat-chip-option value="all"
+        ><span data-test="chip-label">{{ 'ADMIN.TYPE_ALL' | translate }}</span></mat-chip-option
+      >
+      @for (type of list.typesPresent(); track type) {
+        <mat-chip-option [value]="type">
+          <mat-icon matChipAvatar>{{ kindIcon(type) }}</mat-icon>
+          <span data-test="chip-label">{{ isKnownKind(type) ? (kindLabelKey(type) | translate) : type }}</span>
+        </mat-chip-option>
+      }
+    </mat-chip-listbox>
+  }
+
+  @if (usersLoading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+  } @else {
+    <div class="table-container">
+      <table mat-table matSort (matSortChange)="onSortChange($event)" [dataSource]="list.page()" class="users-table">
+        <ng-container matColumnDef="name">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'ADMIN.COLUMN_NAME' | translate }}</th>
+          <td mat-cell *matCellDef="let row">
+            <div class="name-cell">
+              <span>{{ row.name || ('ADMIN.UNNAMED' | translate) }}</span>
+              <!-- Poracle writes "Guild / Category" here for a channel, which is how two #raids tell apart. -->
+              @let notes = notesLabel(row.notes);
+              @if (notes) {
+                <span class="row-notes" [matTooltip]="notes">{{ notes }}</span>
+              }
+            </div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="type">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'ADMIN.COLUMN_TYPE' | translate }}</th>
+          <td mat-cell *matCellDef="let row">
+            @let icon = kindIcon(row.type);
+            @let known = isKnownKind(row.type);
+            <!-- An unknown type shows its raw string, so an operator's typo is visible rather than filed as "Other". -->
+            <span [class]="'kind kind-' + icon" [matTooltip]="known ? '' : ('ADMIN.TYPE_OTHER' | translate)">
+              <span class="kind-glyph" aria-hidden="true"
+                ><mat-icon>{{ icon }}</mat-icon></span
+              >
+              <span class="kind-label">{{ known ? (kindLabelKey(row.type) | translate) : row.type }}</span>
+            </span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="id">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'ADMIN.COLUMN_ID' | translate }}</th>
+          <td mat-cell *matCellDef="let row">
+            <span class="id-cell">
+              <!-- A webhook id is a URL with a secret token in it: host and hook number on screen, the token only in the copy. -->
+              @if (isWebhook(row)) {
+                <span class="row-id">{{ truncateUrl(row.id) }}</span>
+              } @else {
+                <span class="row-id" [matTooltip]="row.id">{{ row.id }}</span>
+              }
+              <button
+                mat-icon-button
+                type="button"
+                class="copy-button"
+                data-test="copy-id"
+                (click)="copyId(row.id)"
+                [matTooltip]="'ADMIN.COPY_ID' | translate"
+                [attr.aria-label]="'ADMIN.COPY_ID_FOR' | translate: { name: rowName(row) }">
+                <mat-icon>content_copy</mat-icon>
+              </button>
+            </span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="enabled">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'ADMIN.COLUMN_STATUS' | translate }}</th>
+          <td mat-cell *matCellDef="let row">
+            @if (row.adminDisable === 1) {
+              <span class="status-chip status-disabled">{{ 'ADMIN.DESTINATION_STATUS_BLOCKED' | translate }}</span>
+            } @else if (row.enabled === 0) {
+              <span class="status-chip status-paused">{{ 'ADMIN.DESTINATION_STATUS_STOPPED' | translate }}</span>
+            } @else {
+              <span class="status-chip status-active">{{ 'ADMIN.DESTINATION_STATUS_ACTIVE' | translate }}</span>
+            }
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="disabledSince">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'ADMIN.COLUMN_DISABLED_SINCE' | translate }}</th>
+          <td mat-cell *matCellDef="let row">
+            @if (row.disabledDate) {
+              <span [matTooltip]="formatDate(row.disabledDate)">{{ relativeDate(row.disabledDate) }}</span>
+            } @else {
+              <span class="text-muted">—</span>
+            }
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="delegates">
+          <th mat-header-cell *matHeaderCellDef>{{ 'ADMIN.COLUMN_DELEGATES' | translate }}</th>
+          <td mat-cell *matCellDef="let row">
+            <div class="delegate-avatars">
+              @for (uid of getDelegateUserIds(row.id); track uid) {
+                <div
+                  class="delegate-avatar-wrap"
+                  [matTooltip]="
+                    getDelegateName(uid) +
+                    (isPoracleAdmin(uid)
+                      ? ' (' + ('ADMIN.GLOBAL_ADMIN' | translate) + ')'
+                      : isPorocleDelegateForWebhook(row.id, uid)
+                        ? ' (' + ('ADMIN.CONFIG_DELEGATE' | translate) + ')'
+                        : '')
+                  ">
+                  @if (getDelegateAvatarUrl(uid)) {
+                    <img class="delegate-avatar" [src]="getDelegateAvatarUrl(uid)!" alt="" />
+                  } @else {
+                    <div class="delegate-avatar delegate-avatar-fallback">
+                      <mat-icon>account_circle</mat-icon>
+                    </div>
+                  }
+                  @if (isLockedDelegate(row.id, uid)) {
+                    <mat-icon class="delegate-lock">lock</mat-icon>
+                  }
+                </div>
+              } @empty {
+                @if (takesDelegates(row.type)) {
+                  <span class="text-muted no-delegates" data-test="no-delegates">{{ 'ADMIN.NO_DELEGATE_GRANTS' | translate }}</span>
+                } @else {
+                  <span
+                    class="text-muted no-delegates"
+                    data-test="cannot-delegate"
+                    [attr.aria-label]="'ADMIN.CANT_TAKE_DELEGATES' | translate"
+                    >&mdash;</span
+                  >
+                }
+              }
+            </div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef>{{ 'ADMIN.COLUMN_ACTIONS' | translate }}</th>
+          <td mat-cell *matCellDef="let row">
+            <div class="action-buttons">
+              <!-- Opening the destination's alarms is the common action, so it stays on the row; the rest are named in a menu. -->
+              <button mat-button type="button" data-test="manage-alarms" (click)="manageAlarms(row)">
+                <mat-icon>tune</mat-icon>
+                {{ 'ADMIN.MANAGE_ALARMS' | translate }}
+              </button>
+              <button
+                mat-icon-button
+                type="button"
+                data-test="row-menu"
+                [matMenuTriggerFor]="rowMenu"
+                [matTooltip]="'COMMON.MORE_ACTIONS' | translate"
+                [attr.aria-label]="'ADMIN.MORE_ACTIONS_FOR' | translate: { name: rowName(row) }">
+                <mat-icon>more_vert</mat-icon>
+              </button>
+              <mat-menu #rowMenu="matMenu" xPosition="before">
+                @if (row.adminDisable !== 1) {
+                  <button mat-menu-item type="button" data-test="block" (click)="toggleBlock(row, false)">
+                    <mat-icon>block</mat-icon>
+                    <span>{{ 'ADMIN.BLOCK_DESTINATION' | translate }}</span>
+                  </button>
+                } @else {
+                  <button mat-menu-item type="button" data-test="unblock" (click)="toggleBlock(row, true)">
+                    <mat-icon>check_circle</mat-icon>
+                    <span>{{ 'ADMIN.UNBLOCK_DESTINATION' | translate }}</span>
+                  </button>
+                }
+                @if (row.enabled === 0) {
+                  <button mat-menu-item type="button" (click)="resumeWebhook(row)">
+                    <mat-icon>play_arrow</mat-icon>
+                    <span>{{ 'ADMIN.START_ALERTS' | translate }}</span>
+                  </button>
+                } @else {
+                  <button mat-menu-item type="button" (click)="pauseWebhook(row)">
+                    <mat-icon>pause</mat-icon>
+                    <span>{{ 'ADMIN.STOP_ALERTS' | translate }}</span>
+                  </button>
+                }
+                <!-- Only the six kinds a grant can name: the server refuses one on an unknown type. -->
+                @if (takesDelegates(row.type)) {
+                  <button mat-menu-item type="button" data-test="manage-delegates" (click)="openDelegatesDialog(row)">
+                    <mat-icon>group_add</mat-icon>
+                    <span>{{ 'ADMIN.MANAGE_DELEGATES' | translate }}</span>
+                  </button>
+                }
+                <mat-divider></mat-divider>
+                <button mat-menu-item type="button" class="menu-item-destructive" (click)="deleteAlarms(row)">
+                  <mat-icon>delete_sweep</mat-icon>
+                  <span>{{ 'ADMIN.DELETE_ALL_ALARMS' | translate }}</span>
+                </button>
+                <button mat-menu-item type="button" class="menu-item-destructive" (click)="deleteDestination(row)">
+                  <mat-icon>delete_forever</mat-icon>
+                  <span>{{ 'ADMIN.DELETE_DESTINATION' | translate }}</span>
+                </button>
+              </mat-menu>
+            </div>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="columns"></tr>
+        <tr mat-row *matRowDef="let row; columns: columns" [class.just-added]="row.id === justAdded()"></tr>
+      </table>
+    </div>
+
+    @if (list.filtered().length === 0) {
+      <div class="empty-state">
+        <mat-icon class="empty-icon">campaign</mat-icon>
+        <h2>{{ 'ADMIN.NO_DESTINATIONS' | translate }}</h2>
+        <p>
+          {{
+            list.searchTerm() || list.statusFilter() !== 'all' || list.activeType() !== 'all'
+              ? ('ADMIN.TRY_ADJUSTING_FILTERS' | translate)
+              : ('ADMIN.NO_DESTINATIONS_YET' | translate)
+          }}
+        </p>
+      </div>
+    }
+
+    @if (list.filtered().length > 0) {
+      <mat-paginator
+        [length]="list.filtered().length"
+        [pageSize]="list.pageSize()"
+        [pageIndex]="list.pageIndex()"
+        [pageSizeOptions]="[10, 25, 50]"
+        (page)="onPageChange($event)"
+        showFirstLastButtons></mat-paginator>
+    }
+  }
+</div>

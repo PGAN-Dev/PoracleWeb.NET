@@ -22,7 +22,12 @@ public class UserInfo
     {
         get; set;
     }
-    public string[]? ManagedWebhooks
+    /// <summary>The destinations a delegate may manage: webhooks, channels, threads, groups and topics.</summary>
+    /// <remarks>
+    /// Sent as <c>managedDestinations</c>. The JWT claim carrying the same list keeps its old
+    /// <c>managedWebhooks</c> name, so a token minted before the rename still reads.
+    /// </remarks>
+    public string[]? ManagedDestinations
     {
         get; set;
     }

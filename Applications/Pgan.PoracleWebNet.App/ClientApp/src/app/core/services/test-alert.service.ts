@@ -4,12 +4,15 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslateService } from '@ngx-translate/core';
 import { EMPTY, catchError, finalize, tap } from 'rxjs';
 
+import { AuthService } from './auth.service';
 import { ConfigService } from './config.service';
+import { isPersonType } from '../../shared/utils/human-kind';
 
 const COOLDOWN_MS = 15_000;
 
 @Injectable({ providedIn: 'root' })
 export class TestAlertService {
+  private readonly auth = inject(AuthService);
   private readonly config = inject(ConfigService);
   /** Map of "type:uid" → timestamp when cooldown expires */
   private readonly cooldowns = signal<Map<string, number>>(new Map());
@@ -48,7 +51,7 @@ export class TestAlertService {
       .post<{ status: string; message: string }>(`${this.config.apiHost}/api/test-alert/${type}/${uid}`, {})
       .pipe(
         tap(() => {
-          this.snackBar.open(this.translate.instant('TEST_ALERT.SUCCESS'), 'OK', { duration: 4000 });
+          this.snackBar.open(this.successMessage(), 'OK', { duration: 4000 });
           this.startCooldown(key);
         }),
         catchError(err => {
@@ -105,5 +108,14 @@ export class TestAlertService {
       current.delete(key);
       this.cooldowns.set(current);
     }, COOLDOWN_MS);
+  }
+
+  /** A destination's alert posts where the destination is, so "Check your DMs" would point the wrong way. */
+  private successMessage(): string {
+    const user = this.auth.user();
+    if (this.auth.isImpersonating() && user && !isPersonType(user.type)) {
+      return this.translate.instant('TEST_ALERT.SUCCESS_DESTINATION', { name: user.username });
+    }
+    return this.translate.instant('TEST_ALERT.SUCCESS');
   }
 }

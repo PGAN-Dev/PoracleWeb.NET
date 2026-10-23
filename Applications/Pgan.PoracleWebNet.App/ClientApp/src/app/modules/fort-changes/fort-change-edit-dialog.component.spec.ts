@@ -25,6 +25,7 @@ import { SettingsService } from '../../core/services/settings.service';
  */
 describe('FortChangeEditDialogComponent', () => {
   let webhookSession = false;
+  let sessionType = 'webhook';
   let component: FortChangeEditDialogComponent;
   let fortChangeService: { update: jest.Mock };
 
@@ -53,7 +54,7 @@ describe('FortChangeEditDialogComponent', () => {
         { provide: MatDialogRef, useValue: { close: jest.fn() } },
         { provide: FortChangeService, useValue: fortChangeService },
         { provide: I18nService, useValue: { instant: (k: string) => k, plural: (k: string) => k } },
-        { provide: AuthService, useValue: { isImpersonating: () => webhookSession, user: () => ({ type: 'discord:user' }) } },
+        { provide: AuthService, useValue: { isImpersonating: () => webhookSession, user: () => ({ type: sessionType }) } },
       ],
       imports: [FortChangeEditDialogComponent],
     });
@@ -111,14 +112,30 @@ describe('FortChangeEditDialogComponent', () => {
     // always stores a ping, so there is no server-config dependency left to consult.
     it('is offered on a webhook alarm', () => {
       webhookSession = true;
+      sessionType = 'webhook';
       setup({ changeTypes: ['name'] });
-      expect(TestBed.createComponent(FortChangeEditDialogComponent).componentInstance.isWebhook).toBe(true);
+      expect(TestBed.createComponent(FortChangeEditDialogComponent).componentInstance.showMention).toBe(true);
+    });
+
+    it('is offered while managing a Discord channel', () => {
+      webhookSession = true;
+      sessionType = 'discord:channel';
+      setup({ changeTypes: ['name'] });
+      expect(TestBed.createComponent(FortChangeEditDialogComponent).componentInstance.showMention).toBe(true);
+    });
+
+    it('is hidden while managing a Telegram group', () => {
+      webhookSession = true;
+      sessionType = 'telegram:group';
+      setup({ changeTypes: ['name'] });
+      expect(TestBed.createComponent(FortChangeEditDialogComponent).componentInstance.showMention).toBe(false);
     });
 
     it('is hidden on a personal alarm', () => {
       webhookSession = false;
+      sessionType = 'discord:user';
       setup({ changeTypes: ['name'] });
-      expect(TestBed.createComponent(FortChangeEditDialogComponent).componentInstance.isWebhook).toBe(false);
+      expect(TestBed.createComponent(FortChangeEditDialogComponent).componentInstance.showMention).toBe(false);
     });
   });
 });
@@ -153,7 +170,10 @@ describe('FortChangeEditDialogComponent message settings heading', () => {
         { provide: MatDialogRef, useValue: { close: jest.fn() } },
         { provide: FortChangeService, useValue: { update: jest.fn() } },
         { provide: I18nService, useValue: { instant: (k: string) => k, plural: (k: string) => k } },
-        { provide: AuthService, useValue: { isImpersonating: () => webhook, user: () => ({ type: 'discord:user' }) } },
+        {
+          provide: AuthService,
+          useValue: { isImpersonating: () => webhook, user: () => ({ type: webhook ? 'webhook' : 'discord:user' }) },
+        },
         {
           provide: SettingsService,
           useValue: {
