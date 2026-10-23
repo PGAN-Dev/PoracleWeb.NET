@@ -902,7 +902,7 @@ public partial class AuthController(
         // correct profile and alarms don't land on the wrong profile.
         if (dbProfileNo != this.ProfileNo)
         {
-            LogProfileResync(this._logger, this.UserId, this.ProfileNo, dbProfileNo);
+            LogProfileResync(this._logger, LogSafe.Id(this.UserId), this.ProfileNo, dbProfileNo);
             // GenerateToken builds from UserInfo, which has no impersonatedBy field, so an admin
             // impersonation session lost the only server-side record of what it was -- on precisely the
             // out-of-band profile changes this branch exists to absorb. Replace the profile on the
@@ -1086,7 +1086,7 @@ public partial class AuthController(
             if (!response.IsSuccessStatusCode)
             {
                 var errorBody = await response.Content.ReadAsStringAsync();
-                LogGuildMemberFetchFailed(this._logger, discordId, response.StatusCode, errorBody);
+                LogGuildMemberFetchFailed(this._logger, LogSafe.Id(discordId), response.StatusCode, errorBody);
                 // 404 = not in guild, 403 = bot doesn't have access
                 return response.StatusCode == System.Net.HttpStatusCode.NotFound
                     ? "not_in_guild"
@@ -1110,7 +1110,7 @@ public partial class AuthController(
             if (this._logger.IsEnabled(LogLevel.Information))
             {
 #pragma warning disable CA1873 // args are only evaluated inside IsEnabled guard
-                LogRoleCheck(this._logger, discordId, string.Join(", ", allowedRoles), string.Join(", ", userRoles));
+                LogRoleCheck(this._logger, LogSafe.Id(discordId), string.Join(", ", allowedRoles), string.Join(", ", userRoles));
 #pragma warning restore CA1873
             }
 
@@ -1119,12 +1119,12 @@ public partial class AuthController(
                 return null;
             }
 
-            LogRoleDenied(this._logger, discordId);
+            LogRoleDenied(this._logger, LogSafe.Id(discordId));
             return "missing_required_role";
         }
         catch (Exception ex)
         {
-            LogRoleCheckFailed(this._logger, ex, discordId);
+            LogRoleCheckFailed(this._logger, ex, LogSafe.Id(discordId));
             return "role_check_failed";
         }
     }

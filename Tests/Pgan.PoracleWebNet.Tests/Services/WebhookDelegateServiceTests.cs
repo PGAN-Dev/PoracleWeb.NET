@@ -3,6 +3,7 @@ using Moq;
 using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Core.Services;
+using Pgan.PoracleWebNet.Tests.Helpers;
 
 namespace Pgan.PoracleWebNet.Tests.Services;
 
@@ -12,6 +13,23 @@ public class WebhookDelegateServiceTests
     private readonly WebhookDelegateService _sut;
 
     public WebhookDelegateServiceTests() => this._sut = new WebhookDelegateService(this._repository.Object, Mock.Of<ILogger<WebhookDelegateService>>());
+
+    [Fact]
+    public async Task GrantingAndRevokingLogTheWebhookWithoutItsToken()
+    {
+        // A webhook's id is its URL, and the token in it lets anyone post to the channel. See #1038.
+        const string webhook = "https://discord.com/api/webhooks/123456/secret-token";
+        this._repository.Setup(r => r.GetByWebhookIdAsync(webhook)).ReturnsAsync([]);
+        var logger = new CapturingLogger<WebhookDelegateService>();
+        var sut = new WebhookDelegateService(this._repository.Object, logger);
+
+        await sut.AddDelegateAsync(webhook, "u1");
+        await sut.RemoveDelegateAsync(webhook, "u1");
+
+        Assert.Equal(2, logger.Messages.Count);
+        Assert.All(logger.Messages, m => Assert.Contains("https://discord.com/api/webhooks/123456/***", m, StringComparison.Ordinal));
+        Assert.DoesNotContain("secret-token", logger.All, StringComparison.Ordinal);
+    }
 
     [Fact]
     public async Task GetAllGroupedAsyncGroupsByWebhookId()

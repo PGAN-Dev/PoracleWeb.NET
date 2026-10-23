@@ -351,8 +351,9 @@ The local delegate table stores ids. `UserRoleResolver` therefore canonicalises 
 `humans.id` against **`IDestinationDirectory`** (every destination of the six types, one PoracleNG list call
 per type, cached a minute, never cached on a failed read) and drops what names nothing: a grant that
 matches no row could never match one downstream, and carrying it drew a nav item onto an empty page. Ids
-match any of the six; names match only `HumanKind.NameAddressable` types, a webhook winning a shared name
-and a name shared by two non-webhooks dropped as ambiguous; channel ids from Poracle's channel lists are
+match any of the six; names match only `HumanKind.NameAddressable` types, a webhook winning a name it
+shares with other types, and a name shared by two or more webhooks, or by two or more non-webhooks with no
+webhook, dropped as ambiguous (#1038); channel ids from Poracle's channel lists are
 matched by id only. Consumers may assume `ManagedDestinations` holds ids. See #797, #1025.
 
 An impersonation session resolves the managed list live, like every other surface, because `this.UserId`
@@ -378,6 +379,11 @@ claim too and resolving one live without the other puts the UI and the API into 
 
 Deleting a human purges grants in both directions (`RemoveAllForIdAsync` matches `WebhookId` **or**
 `UserId`), so a recreated webhook URL does not adopt the old delegates. See #510-#512.
+
+**Never log a human id raw.** A webhook's id carries its token. Route every logged user, admin, target, grant
+or delegate id through `LogSafe.Id` (`Core.Models/LogSafe.cs`); `LoggedHumanIdsAreMaskedTests` fails the build
+otherwise, and `appsettings.json` keeps `System.Net.Http.HttpClient` at Warning because its request lines
+print the encoded webhook path (#1038).
 
 User-facing documentation: `docs/features/webhooks.md`.
 

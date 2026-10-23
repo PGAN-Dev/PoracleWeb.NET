@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Api.Services;
 
@@ -74,7 +75,7 @@ public sealed partial class ImpersonationAuthority(
             : await this._roleResolver.ResolveAsync(impersonatedBy);
         if (!roles.Resolved)
         {
-            LogUnresolved(this._logger, impersonatedBy, target);
+            LogUnresolved(this._logger, LogSafe.Id(impersonatedBy), LogSafe.Id(target));
             return true;
         }
 
@@ -84,7 +85,7 @@ public sealed partial class ImpersonationAuthority(
             return true;
         }
 
-        LogAuthorityGone(this._logger, impersonatedBy, target);
+        LogAuthorityGone(this._logger, LogSafe.Id(impersonatedBy), LogSafe.Id(target));
         return false;
     }
 

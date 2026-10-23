@@ -314,7 +314,7 @@ public partial class PoracleHumanProxy(
             // not loaded or a stale entry. The caller decides what that means for the save. Debug, not
             // warning: production holds dead names (30 users, 69 names on 2026-10-21) that come back
             // here on every save and toggle.
-            LogTrustedAreasRejected(this._logger, userId, string.Join(", ", rejected));
+            LogTrustedAreasRejected(this._logger, LogSafe.Id(userId), string.Join(", ", rejected));
         }
 
         return rejected;
@@ -448,7 +448,7 @@ public partial class PoracleHumanProxy(
             .ToList();
         if (refused.Count > 0)
         {
-            LogProfileAreasRefused(this._logger, userId, profileNo, string.Join(", ", refused));
+            LogProfileAreasRefused(this._logger, LogSafe.Id(userId), profileNo, string.Join(", ", refused));
         }
 
         var locationResponse = await this.SendV2Async(

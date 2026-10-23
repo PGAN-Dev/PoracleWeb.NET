@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Pgan.PoracleWebNet.Api.Services;
+using Pgan.PoracleWebNet.Tests.Helpers;
 
 namespace Pgan.PoracleWebNet.Tests.Services;
 
@@ -33,6 +34,31 @@ public class ImpersonationAuthorityTests
 
     private void Roles(string userId, UserRoles roles) =>
         this._resolver.Setup(r => r.ResolveAsync(userId)).ReturnsAsync(roles);
+
+    [Fact]
+    public async Task RefusingASessionLogsTheWebhookWithoutItsToken()
+    {
+        // The target of a delegate's session is a webhook URL, token and all. See #1038.
+        this.Roles(Delegate, new UserRoles(false, null));
+        var logger = new CapturingLogger<ImpersonationAuthority>();
+
+        await new ImpersonationAuthority(this._resolver.Object, logger).StillHoldsAsync(Session(Webhook, Delegate));
+
+        Assert.Contains("https://discordapp.com/api/webhooks/1/***", logger.All, StringComparison.Ordinal);
+        Assert.DoesNotContain("/token", logger.All, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task AnUnresolvedSessionLogsTheWebhookWithoutItsToken()
+    {
+        this.Roles(Delegate, new UserRoles(false, null, Resolved: false));
+        var logger = new CapturingLogger<ImpersonationAuthority>();
+
+        await new ImpersonationAuthority(this._resolver.Object, logger).StillHoldsAsync(Session(Webhook, Delegate));
+
+        Assert.Contains("https://discordapp.com/api/webhooks/1/***", logger.All, StringComparison.Ordinal);
+        Assert.DoesNotContain("/token", logger.All, StringComparison.Ordinal);
+    }
 
     [Fact]
     public async Task AnOrdinarySessionIsNeverAskedAbout()

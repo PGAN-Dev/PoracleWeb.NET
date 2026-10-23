@@ -448,7 +448,7 @@ public partial class AdminController(
             // answers go too: a grant naming this id was dropped as matching no row, and that answer is cached.
             this._destinationDirectory.Invalidate();
             this._roleResolver.InvalidateAll();
-            LogDestinationCreated(this._logger, this.UserId, human.Type, human.Id);
+            LogDestinationCreated(this._logger, LogSafe.Id(this.UserId), human.Type, LogSafe.Id(human.Id));
             return this.Ok(created);
         }
         catch (HttpRequestException)
@@ -841,7 +841,7 @@ public partial class AdminController(
         };
 
         var jwt = this._jwtService.GenerateImpersonationToken(userInfo, this.UserId);
-        LogAdminImpersonating(this._logger, this.UserId, request.UserId);
+        LogAdminImpersonating(this._logger, LogSafe.Id(this.UserId), LogSafe.Id(request.UserId));
         return this.Ok(new
         {
             token = jwt
@@ -883,7 +883,7 @@ public partial class AdminController(
         this._roleResolver.InvalidateAll();
         this._destinationDirectory.Invalidate();
 
-        LogUserDeleted(this._logger, this.UserId, id);
+        LogUserDeleted(this._logger, LogSafe.Id(this.UserId), LogSafe.Id(id));
         return this.NoContent();
     }
 
@@ -916,7 +916,7 @@ public partial class AdminController(
 
         var jwt = this._jwtService.GenerateImpersonationToken(userInfo, this.UserId);
 
-        LogAdminImpersonatingUser(this._logger, this.UserId, id);
+        LogAdminImpersonatingUser(this._logger, LogSafe.Id(this.UserId), LogSafe.Id(id));
 
         return this.Ok(new
         {
