@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Pgan.PoracleWebNet.Api.Services;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
@@ -15,9 +16,10 @@ namespace Pgan.PoracleWebNet.Api.Controllers;
 /// enabled feature unreachable. Authentication is unchanged: BaseApiController is [Authorize]. See #479.
 /// </remarks>
 [Route("api/location/language")]
-public class NotificationLanguageController(IHumanService humanService) : BaseApiController
+public class NotificationLanguageController(IHumanService humanService, IPairedHumanWriter pairWriter) : BaseApiController
 {
     private readonly IHumanService _humanService = humanService;
+    private readonly IPairedHumanWriter _pairWriter = pairWriter;
 
     [HttpGet]
     public async Task<IActionResult> GetLanguage()
@@ -49,7 +51,7 @@ public class NotificationLanguageController(IHumanService humanService) : BaseAp
             return this.BadRequest(new { error = "Language must be 255 characters or fewer." });
         }
 
-        await this._humanService.SetLanguageAsync(this.UserId, request.Language);
+        var written = await this._pairWriter.WriteAsync(this.UserId, id => this._humanService.SetLanguageAsync(id, request.Language));
 
         // Read back rather than echo. PoracleNG lowercases and trims what it stores -- "pt-BR" becomes
         // "pt-br" -- and an endpoint that reported the request instead of the row would leave the SPA
@@ -66,10 +68,10 @@ public class NotificationLanguageController(IHumanService humanService) : BaseAp
             storedLanguage = null;
         }
 
-        return this.Ok(new
+        return this.Ok(this.Paired(new
         {
             language = storedLanguage ?? request.Language
-        });
+        }, written.Warning));
     }
 
     public class LanguageUpdateRequest

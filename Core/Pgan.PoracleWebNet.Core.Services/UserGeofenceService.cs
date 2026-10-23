@@ -16,6 +16,8 @@ public partial class UserGeofenceService(
     IPoracleHumanProxy humanProxy,
     IHumanService humanService,
     IUserAreaWriter userAreaWriter,
+    ILinkedAccount linkedAccount,
+    IPairedHumanWriter pairWriter,
     IDiscordNotificationService discordNotificationService,
     IFeatureGate featureGate,
     IConfiguration configuration,
@@ -29,6 +31,8 @@ public partial class UserGeofenceService(
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly IHumanService _humanService = humanService;
     private readonly IUserAreaWriter _userAreaWriter = userAreaWriter;
+    private readonly ILinkedAccount _linkedAccount = linkedAccount;
+    private readonly IPairedHumanWriter _pairWriter = pairWriter;
     private readonly IDiscordNotificationService _discordNotificationService = discordNotificationService;
     private readonly IFeatureGate _featureGate = featureGate;
     private readonly IConfiguration _configuration = configuration;
@@ -36,7 +40,12 @@ public partial class UserGeofenceService(
 
     public async Task<List<UserGeofence>> GetByUserAsync(string humanId)
     {
-        var geofences = await this._repository.GetByHumanIdAsync(humanId);
+        // A linked pair shares its drawn fences: either id lists them all.
+        var geofences = new List<UserGeofence>();
+        foreach (var id in await this.PairIdsAsync(humanId))
+        {
+            geofences.AddRange(await this._repository.GetByHumanIdAsync(id));
+        }
 
         foreach (var g in geofences)
         {
@@ -66,7 +75,13 @@ public partial class UserGeofenceService(
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.UserGeofences);
 
         // Check count limit via local DB
-        var count = await this._repository.GetCountByHumanIdAsync(humanId);
+        // The cap counts across both ids of a linked pair.
+        var count = 0;
+        foreach (var id in await this.PairIdsAsync(humanId))
+        {
+            count += await this._repository.GetCountByHumanIdAsync(id);
+        }
+
         if (count >= MaxGeofencesPerUser)
         {
             throw new InvalidOperationException($"Maximum of {MaxGeofencesPerUser} custom geofences per user reached.");
@@ -154,8 +169,9 @@ public partial class UserGeofenceService(
             // The fence is kept either way. When it could not be switched on the caller is told
             // (ActivationFailed) so the user can retry with the toggle; nothing is written around
             // PoracleNG. The user owns this fence (just created above), which authorises the name.
-            var activated = fenceKnownToPoracle && await this.TryAddToActiveProfileAsync(humanId, kojiName);
+            var (activated, warning) = fenceKnownToPoracle ? await this.TryAddToActiveProfileAsync(humanId, kojiName) : (false, null);
             geofence.ActivationFailed = !activated;
+            geofence.PairWarning = warning;
         }
 
         // Set polygon on result from input
@@ -213,7 +229,7 @@ public partial class UserGeofenceService(
         var geofence = await this._repository.GetByIdAsync(id)
             ?? throw new GeofenceNotFoundException(id);
 
-        if (!string.Equals(geofence.HumanId, humanId, StringComparison.OrdinalIgnoreCase))
+        if (!await this.OwnsAsync(geofence, humanId))
         {
             throw new UnauthorizedAccessException("Geofence does not belong to this user.");
         }
@@ -270,6 +286,8 @@ public partial class UserGeofenceService(
         geofence.ParentId = parentId is > 0 ? parentId.Value : geofence.ParentId;
         var updated = await this._repository.UpdateAsync(geofence);
 
+        PairWarning? renameWarning = null;
+
         // Every profile that was subscribed stays subscribed, under the new name. This is the whole
         // point of renaming in place rather than delete-then-recreate. See #543.
         // Reload first: PoracleNG refuses a rename to a name it has not loaded, and the feed only serves
@@ -280,8 +298,13 @@ public partial class UserGeofenceService(
         // have landed, and restoring the row then would strand the subscriptions under the new name.
         if (!string.Equals(CleanName(oldKojiName), CleanName(newKojiName), StringComparison.Ordinal))
         {
-            var renamed = await this.ReloadGeofencesSafeAsync()
-                && await this._userAreaWriter.RenameEverywhereAsync(humanId, oldKojiName, newKojiName);
+            // A linked pair's other human holds the same name, so it is renamed there too.
+            var renamed = false;
+            if (await this.ReloadGeofencesSafeAsync())
+            {
+                (renamed, renameWarning) = await this.RenameAcrossPairAsync(humanId, oldKojiName, newKojiName);
+            }
+
             if (!renamed)
             {
                 geofence.DisplayName = previousDisplayName;
@@ -304,8 +327,90 @@ public partial class UserGeofenceService(
         // points until a reload. Carry both across, exactly as the listing does. See #559, #566.
         updated.Polygon = geofence.Polygon ?? ParsePolygonSafe(updated.PolygonJson, updated.KojiName);
         updated.PointCount = updated.Polygon?.Length ?? 0;
+        updated.PairWarning = renameWarning;
         return updated;
     }
+
+    /// <summary>
+    /// Renames an area on the signed-in human and, for a linked pair, the other existing human. Renamed is the
+    /// signed-in side's answer; the warning is set when the other side threw or refused.
+    /// </summary>
+    private async Task<(bool Renamed, PairWarning? Warning)> RenameAcrossPairAsync(string userId, string from, string to)
+    {
+        string? refusedOn = null;
+        var signedInRenamed = false;
+        var written = await this._pairWriter.WriteAsync(userId, async id =>
+        {
+            var isSignedIn = string.Equals(id, userId, StringComparison.Ordinal);
+            if (!isSignedIn && !signedInRenamed)
+            {
+                // The signed-in side refused, so the caller is about to put the row back. Renaming the other
+                // human's areas now would strand them under a name nothing serves.
+                return false;
+            }
+
+            var renamed = await this._userAreaWriter.RenameEverywhereAsync(id, from, to);
+            if (isSignedIn)
+            {
+                signedInRenamed = renamed;
+            }
+            else if (!renamed)
+            {
+                refusedOn = id;
+            }
+
+            return renamed;
+        });
+
+        var warning = written.Warning;
+        if (warning is null && refusedOn is not null)
+        {
+            warning = new PairWarning(await this._pairWriter.SideOfAsync(userId, refusedOn) ?? LinkSide.Telegram, "PoracleNG refused the rename");
+        }
+
+        return (written.Primary, warning);
+    }
+
+    /// <summary>Removes an area name everywhere on the signed-in human and the other existing human of a linked pair.</summary>
+    private async Task<PairWarning?> RemoveAcrossPairAsync(string userId, string name, bool deleteWidenedAlarms) =>
+        (await this._pairWriter.WriteAsync(userId, id => this._userAreaWriter.RemoveEverywhereAsync(id, name, deleteWidenedAlarms))).Warning;
+
+    /// <summary>
+    /// The alarms that would widen on a delete, summed across a linked pair. The first human's failure
+    /// propagates; the other's is logged and left out, since a preview should not fail on it.
+    /// </summary>
+    private async Task<AreaDeleteImpact> PreviewAcrossPairAsync(string userId, string name)
+    {
+        var ids = await this.PairIdsAsync(userId);
+        var first = await this._userAreaWriter.PreviewRemovalAsync(ids[0], name);
+        if (ids.Count == 1)
+        {
+            return first;
+        }
+
+        var byType = new Dictionary<string, int>(first.WidenedByType);
+        foreach (var id in ids.Skip(1))
+        {
+            try
+            {
+                var other = await this._userAreaWriter.PreviewRemovalAsync(id, name);
+                foreach (var (type, count) in other.WidenedByType)
+                {
+                    byType[type] = byType.GetValueOrDefault(type) + count;
+                }
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                LogPreviewOtherSideFailed(this._logger, ex, id);
+            }
+        }
+
+        return new AreaDeleteImpact(byType, byType.Values.Sum());
+    }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Could not preview the area removal for the linked account {HumanId}; its alarms are not in the count")]
+    private static partial void LogPreviewOtherSideFailed(ILogger logger, Exception ex, string humanId);
+
     /// <summary>Parses a stored polygon, returning null rather than throwing on a malformed one.</summary>
     private double[][]? ParsePolygonSafe(string? polygonJson, string kojiName)
     {
@@ -330,12 +435,12 @@ public partial class UserGeofenceService(
         var geofence = await this._repository.GetByIdAsync(id)
             ?? throw new GeofenceNotFoundException(id);
 
-        if (!string.Equals(geofence.HumanId, humanId, StringComparison.OrdinalIgnoreCase))
+        if (!await this.OwnsAsync(geofence, humanId))
         {
             throw new UnauthorizedAccessException("Geofence does not belong to this user.");
         }
 
-        return await this._userAreaWriter.PreviewRemovalAsync(humanId, PublicAreaName(geofence).ToLowerInvariant());
+        return await this.PreviewAcrossPairAsync(humanId, PublicAreaName(geofence).ToLowerInvariant());
     }
 
     public async Task<AreaDeleteImpact> AdminGetDeleteImpactAsync(int id)
@@ -343,15 +448,15 @@ public partial class UserGeofenceService(
         var geofence = await this._repository.GetByIdAsync(id)
             ?? throw new GeofenceNotFoundException(id);
 
-        return await this._userAreaWriter.PreviewRemovalAsync(geofence.HumanId, PublicAreaName(geofence).ToLowerInvariant());
+        return await this.PreviewAcrossPairAsync(geofence.HumanId, PublicAreaName(geofence).ToLowerInvariant());
     }
 
-    public async Task DeleteAsync(string humanId, int profileNo, int id, bool deleteWidenedAlarms)
+    public async Task<PairWarning?> DeleteAsync(string humanId, int profileNo, int id, bool deleteWidenedAlarms)
     {
         var geofence = await this._repository.GetByIdAsync(id)
             ?? throw new GeofenceNotFoundException(id);
 
-        if (!string.Equals(geofence.HumanId, humanId, StringComparison.OrdinalIgnoreCase))
+        if (!await this.OwnsAsync(geofence, humanId))
         {
             throw new UnauthorizedAccessException("Geofence does not belong to this user.");
         }
@@ -364,7 +469,8 @@ public partial class UserGeofenceService(
         // promoted name when there is one: that is what the owner is subscribed to after an approval, and
         // what GetDeleteImpactAsync previewed. It goes first: if it throws, Koji, the row and the
         // subscriptions are all left as they were, so the delete can simply be retried.
-        await this._userAreaWriter.RemoveEverywhereAsync(humanId, PublicAreaName(geofence).ToLowerInvariant(), deleteWidenedAlarms);
+        // A linked pair holds the name on both humans: the signed-in side's failure keeps the row, the other's is a warning.
+        var warning = await this.RemoveAcrossPairAsync(humanId, PublicAreaName(geofence).ToLowerInvariant(), deleteWidenedAlarms);
 
         // Same orphan risk as the admin path: if this fence was ever promoted it exists in Koji under the
         // public name, and deleting only the local row leaves it there forever. See #409.
@@ -377,6 +483,7 @@ public partial class UserGeofenceService(
         await this.ReloadGeofencesSafeAsync();
 
         LogGeofenceDeleted(this._logger, geofence.KojiName, id, humanId);
+        return warning;
     }
 
     public async Task<List<UserGeofence>> GetAllAsync() => await this._repository.GetAllAsync();
@@ -450,7 +557,7 @@ public partial class UserGeofenceService(
         }
     }
 
-    public async Task AdminDeleteAsync(string adminId, int id, bool deleteWidenedAlarms)
+    public async Task<PairWarning?> AdminDeleteAsync(string adminId, int id, bool deleteWidenedAlarms)
     {
         var geofence = await this._repository.GetByIdAsync(id)
             ?? throw new GeofenceNotFoundException(id);
@@ -459,15 +566,21 @@ public partial class UserGeofenceService(
         // logged and the row deleted anyway, stranding the name in the owner's lists; now it stops the delete
         // before Koji or the row is touched. An owner PoracleNG no longer has holds no areas, so that one case
         // goes ahead.
-        try
+        // Each human of the owner's pair is cleaned on its own: one gone from PoracleNG holds no areas, and
+        // must not stop the other from being cleaned.
+        var areaName = PublicAreaName(geofence).ToLowerInvariant();
+        var removed = await this._pairWriter.WriteAsync(geofence.HumanId, async id =>
         {
-            await this._userAreaWriter.RemoveEverywhereAsync(
-                geofence.HumanId, PublicAreaName(geofence).ToLowerInvariant(), deleteWidenedAlarms);
-        }
-        catch (AccountGoneException)
-        {
-            LogAreaOwnerGone(this._logger, geofence.KojiName, geofence.HumanId);
-        }
+            try
+            {
+                await this._userAreaWriter.RemoveEverywhereAsync(id, areaName, deleteWidenedAlarms);
+            }
+            catch (AccountGoneException)
+            {
+                LogAreaOwnerGone(this._logger, geofence.KojiName, id);
+            }
+        });
+        var warning = removed.Warning;
 
         await this.RemoveFromKojiIfPromotedAsync(geofence);
 
@@ -475,6 +588,7 @@ public partial class UserGeofenceService(
         await this.ReloadGeofencesSafeAsync();
 
         LogAdminDeletedGeofence(this._logger, adminId, geofence.KojiName, id, geofence.Status);
+        return warning;
     }
 
     public async Task RemoveFencesOfDeletedAccountAsync(string humanId)
@@ -524,7 +638,7 @@ public partial class UserGeofenceService(
         var geofence = await this._repository.GetByKojiNameAsync(kojiName)
             ?? throw new GeofenceNotFoundException(kojiName);
 
-        if (!string.Equals(geofence.HumanId, humanId, StringComparison.OrdinalIgnoreCase))
+        if (!await this.OwnsAsync(geofence, humanId))
         {
             throw new UnauthorizedAccessException("Geofence does not belong to this user.");
         }
@@ -790,6 +904,7 @@ public partial class UserGeofenceService(
         // above just made stale). Everything after the Koji save is best effort: the fence is public by
         // now, so the approval stands and the response says whether the owner's areas followed.
         bool? ownerAreasRenamed = null;
+        PairWarning? approvalWarning = null;
         if (!string.Equals(CleanName(targetName), CleanName(geofence.KojiName), StringComparison.Ordinal))
         {
             // One retry: the first reload can lose a race with Koji, and a second attempt is cheap next to
@@ -799,8 +914,15 @@ public partial class UserGeofenceService(
             {
                 try
                 {
-                    ownerAreasRenamed = await this.ReloadGeofencesSafeAsync()
-                        && await this._userAreaWriter.RenameEverywhereAsync(geofence.HumanId, geofence.KojiName, targetName);
+                    if (await this.ReloadGeofencesSafeAsync())
+                    {
+                        (var renamedNow, approvalWarning) = await this.RenameAcrossPairAsync(geofence.HumanId, geofence.KojiName, targetName);
+                        ownerAreasRenamed = renamedNow;
+                    }
+                    else
+                    {
+                        ownerAreasRenamed = false;
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -843,6 +965,7 @@ public partial class UserGeofenceService(
 
         await this.EnrichWithDetailsAsync([updated]);
         updated.OwnerAreasRenamed = ownerAreasRenamed;
+        updated.PairWarning = approvalWarning;
         return updated;
     }
 
@@ -890,7 +1013,7 @@ public partial class UserGeofenceService(
         return updated;
     }
 
-    public async Task AddToProfileAsync(string humanId, int profileNo, int geofenceId)
+    public async Task<PairWarning?> AddToProfileAsync(string humanId, int profileNo, int geofenceId)
     {
         // Activating or deactivating writes an area subscription, so it must answer to
         // disable_areas as well as disable_user_geofences. Enforced here rather than as a second
@@ -902,7 +1025,7 @@ public partial class UserGeofenceService(
         var geofence = await this._repository.GetByIdAsync(geofenceId)
             ?? throw new GeofenceNotFoundException(geofenceId);
 
-        if (!string.Equals(geofence.HumanId, humanId, StringComparison.OrdinalIgnoreCase))
+        if (!await this.OwnsAsync(geofence, humanId))
         {
             throw new UnauthorizedAccessException("Geofence does not belong to this user.");
         }
@@ -912,23 +1035,30 @@ public partial class UserGeofenceService(
         // for the second (PoracleNG may not have loaded the fence), then tell the two apart by reading
         // the list: a name that is there is a successful, idempotent activate; one that is not is a
         // failure the caller must see rather than a silent 204.
-        if (!await this._userAreaWriter.AddToActiveProfileAsync(humanId, geofence.KojiName))
+        //
+        // A linked pair switches the fence on for both humans' active profiles. Each human authorises the name
+        // through the policy, which counts the pair's drawn fences as the human's own.
+        var written = await this._pairWriter.WriteAsync(humanId, async id =>
         {
-            await this.ReloadGeofencesSafeAsync();
-            if (!await this._userAreaWriter.AddToActiveProfileAsync(humanId, geofence.KojiName))
+            if (!await this._userAreaWriter.AddToActiveProfileAsync(id, geofence.KojiName))
             {
-                var held = await this._humanProxy.GetAreaListAsync(humanId);
-                if (!held.Contains(geofence.KojiName, StringComparer.OrdinalIgnoreCase))
+                await this.ReloadGeofencesSafeAsync();
+                if (!await this._userAreaWriter.AddToActiveProfileAsync(id, geofence.KojiName))
                 {
-                    throw new GeofenceActivationFailedException(geofence.KojiName);
+                    var held = await this._humanProxy.GetAreaListAsync(id);
+                    if (!held.Contains(geofence.KojiName, StringComparer.OrdinalIgnoreCase))
+                    {
+                        throw new GeofenceActivationFailedException(geofence.KojiName);
+                    }
                 }
             }
-        }
+        });
 
         await this.ReloadGeofencesSafeAsync();
+        return written.Warning;
     }
 
-    public async Task RemoveFromProfileAsync(string humanId, int profileNo, int geofenceId)
+    public async Task<PairWarning?> RemoveFromProfileAsync(string humanId, int profileNo, int geofenceId)
     {
         // Activating or deactivating writes an area subscription, so it must answer to
         // disable_areas as well as disable_user_geofences. Enforced here rather than as a second
@@ -940,16 +1070,29 @@ public partial class UserGeofenceService(
         var geofence = await this._repository.GetByIdAsync(geofenceId)
             ?? throw new GeofenceNotFoundException(geofenceId);
 
-        if (!string.Equals(geofence.HumanId, humanId, StringComparison.OrdinalIgnoreCase))
+        if (!await this.OwnsAsync(geofence, humanId))
         {
             throw new UnauthorizedAccessException("Geofence does not belong to this user.");
         }
 
         // The user owns the fence (checked above), which authorises the name. False means it was
         // not on the profile, which is the state the caller asked for.
-        _ = await this._userAreaWriter.RemoveFromActiveProfileAsync(humanId, geofence.KojiName);
+        var written = await this._pairWriter.WriteAsync(humanId, id => this._userAreaWriter.RemoveFromActiveProfileAsync(id, geofence.KojiName));
         await this.ReloadGeofencesSafeAsync();
+        return written.Warning;
     }
+
+    /// <summary>The caller's human id and, for a linked pair, the other existing human's: the ids whose drawn fences count as the caller's.</summary>
+    private async Task<IReadOnlyList<string>> PairIdsAsync(string humanId)
+    {
+        var pair = await this._linkedAccount.ResolveAsync(humanId);
+        return pair.ExistingHumanIds.Contains(humanId, StringComparer.Ordinal)
+            ? pair.ExistingHumanIds
+            : [humanId, .. pair.ExistingHumanIds];
+    }
+
+    private async Task<bool> OwnsAsync(UserGeofence geofence, string humanId) =>
+        (await this.PairIdsAsync(humanId)).Contains(geofence.HumanId, StringComparer.OrdinalIgnoreCase);
 
     public async Task<List<GeofenceRegion>> GetRegionsAsync() => await this._kojiService.GetRegionsAsync();
 
@@ -978,17 +1121,21 @@ public partial class UserGeofenceService(
     private static string PublicAreaName(UserGeofence geofence) =>
         string.IsNullOrEmpty(geofence.PromotedName) ? geofence.KojiName : geofence.PromotedName;
 
-    /// <summary>True when the name is now on the active profile; false when PoracleNG rejected it or it was already there.</summary>
-    private async Task<bool> TryAddToActiveProfileAsync(string humanId, string name)
+    /// <summary>
+    /// Activated is true when the name is now on the signed-in human's active profile; false when PoracleNG
+    /// rejected it or it was already there. The warning is set when a linked pair's other human did not take it.
+    /// </summary>
+    private async Task<(bool Activated, PairWarning? Warning)> TryAddToActiveProfileAsync(string humanId, string name)
     {
         try
         {
-            return await this._userAreaWriter.AddToActiveProfileAsync(humanId, name);
+            var written = await this._pairWriter.WriteAsync(humanId, id => this._userAreaWriter.AddToActiveProfileAsync(id, name));
+            return (written.Primary, written.Warning);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             LogGeofenceActivationFailed(this._logger, ex, name);
-            return false;
+            return (false, null);
         }
     }
 

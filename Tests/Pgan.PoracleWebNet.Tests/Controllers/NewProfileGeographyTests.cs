@@ -1,3 +1,4 @@
+using Pgan.PoracleWebNet.Tests.Helpers;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -211,6 +212,7 @@ public class NewProfileGeographyTests : ControllerTestBase
                 new UserAreaWriter(
                     proxy, this._userGeofences.Object, Mock.Of<IPoracleTrackingProxy>(), NullLogger<UserAreaWriter>.Instance,
                     new UserAreaPolicy(proxy, this._userGeofences.Object)),
+                PairTestSupport.UnlinkedWriter(),
                 NullLogger<ProfileController>.Instance);
             SetupUser(controller, UserId);
 
@@ -231,6 +233,7 @@ public class NewProfileGeographyTests : ControllerTestBase
 
         var overview = new ProfileOverviewController(
             this._overview.Object, this._profileService.Object, proxy,
+            PairTestSupport.UnlinkedWriter(), PairTestSupport.Unlinked().Object,
             this._jwtService.Object, this._roleResolver.Object, NullLogger<ProfileOverviewController>.Instance);
         SetupUser(overview, UserId);
 

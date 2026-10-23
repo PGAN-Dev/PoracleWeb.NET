@@ -1,3 +1,4 @@
+using Pgan.PoracleWebNet.Tests.Helpers;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
@@ -35,6 +36,7 @@ public class AuthControllerMeTests : ControllerTestBase
             this._humanService.Object, this._profileService.Object,
             new Mock<IPoracleApiProxy>().Object,
             new Mock<IPoracleHumanProxy>().Object,
+            PairTestSupport.UnlinkedWriter(),
             this._siteSettingService.Object,
             new Mock<IWebhookDelegateService>().Object,
             this._jwtService.Object,

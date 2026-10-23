@@ -28,7 +28,7 @@ public interface IUserGeofenceService
     /// rather than left matching across the profile's areas. If PoracleNG cannot remove the name, the fence
     /// is not deleted.
     /// </summary>
-    public Task DeleteAsync(string humanId, int profileNo, int id, bool deleteWidenedAlarms);
+    public Task<PairWarning?> DeleteAsync(string humanId, int profileNo, int id, bool deleteWidenedAlarms);
     public Task<UserGeofence> SubmitForReviewAsync(string humanId, string kojiName);
     public Task<List<UserGeofence>> GetAllAsync();
     public Task<List<UserGeofence>> GetAllWithDetailsAsync();
@@ -40,7 +40,7 @@ public interface IUserGeofenceService
     /// <see cref="DeleteAsync"/> for any owner. An owner PoracleNG no longer knows has no areas to clean,
     /// so the fence is deleted anyway.
     /// </summary>
-    public Task AdminDeleteAsync(string adminId, int id, bool deleteWidenedAlarms);
+    public Task<PairWarning?> AdminDeleteAsync(string adminId, int id, bool deleteWidenedAlarms);
 
     /// <summary>
     /// For an account that has just been deleted: removes every fence it still owns from Koji (if promoted)
@@ -50,7 +50,7 @@ public interface IUserGeofenceService
     public Task RemoveFencesOfDeletedAccountAsync(string humanId);
     public Task<UserGeofence> ApproveSubmissionAsync(string adminId, int id, string? promotedName, int? parentId = null, string? groupName = null);
     public Task<UserGeofence> RejectSubmissionAsync(string adminId, int id, string reviewNotes);
-    public Task AddToProfileAsync(string humanId, int profileNo, int geofenceId);
-    public Task RemoveFromProfileAsync(string humanId, int profileNo, int geofenceId);
+    public Task<PairWarning?> AddToProfileAsync(string humanId, int profileNo, int geofenceId);
+    public Task<PairWarning?> RemoveFromProfileAsync(string humanId, int profileNo, int geofenceId);
     public Task<List<GeofenceRegion>> GetRegionsAsync();
 }

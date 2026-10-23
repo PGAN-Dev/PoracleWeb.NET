@@ -1,3 +1,4 @@
+using Pgan.PoracleWebNet.Tests.Helpers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
@@ -103,6 +104,7 @@ public class AuthControllerLoginOriginTests
             new Mock<IProfileService>().Object,
             new Mock<IPoracleApiProxy>().Object,
             new Mock<IPoracleHumanProxy>().Object,
+            PairTestSupport.UnlinkedWriter(),
             new Mock<ISiteSettingService>().Object,
             new Mock<IWebhookDelegateService>().Object,
             new Mock<IJwtService>().Object,

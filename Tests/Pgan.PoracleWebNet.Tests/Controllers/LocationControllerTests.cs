@@ -1,3 +1,4 @@
+using Pgan.PoracleWebNet.Tests.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Pgan.PoracleWebNet.Api.Controllers;
@@ -21,7 +22,8 @@ public class LocationControllerTests : ControllerTestBase
             this._humanService.Object,
             this._profileService.Object,
             this._humanProxy.Object,
-            this._proxy.Object);
+            this._proxy.Object,
+            PairTestSupport.UnlinkedWriter());
         SetupUser(this._sut);
     }
 
@@ -485,7 +487,7 @@ public class LocationControllerTests : ControllerTestBase
     /// <summary>Language moved to its own controller so disable_location stops blocking it (#479).</summary>
     private NotificationLanguageController LanguageSut()
     {
-        var c = new NotificationLanguageController(this._humanService.Object);
+        var c = new NotificationLanguageController(this._humanService.Object, PairTestSupport.UnlinkedWriter());
         SetupUser(c);
         return c;
     }

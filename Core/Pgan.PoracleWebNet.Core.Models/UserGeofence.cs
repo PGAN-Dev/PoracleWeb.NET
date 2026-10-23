@@ -89,6 +89,17 @@ public class UserGeofence
     }
 
     /// <summary>
+    /// Set by create, rename and approval when a linked pair's other human did not take the write. Never
+    /// serialised: the controller lifts it into the <c>X-Pair-Warning</c> response header, so the body is the
+    /// same with or without it.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public PairWarning? PairWarning
+    {
+        get; set;
+    }
+
+    /// <summary>
     /// Set on approval only: whether the owner's subscriptions were moved to the promoted name. Null when
     /// no rename was needed. False means Koji has the fence but the owner still holds the old name.
     /// </summary>

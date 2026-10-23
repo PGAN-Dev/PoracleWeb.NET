@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Pgan.PoracleWebNet.Api.Filters;
+using Pgan.PoracleWebNet.Api.Services;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
@@ -50,7 +51,7 @@ public partial class UserGeofenceController(
         {
             var updated = await this._userGeofenceService.RenameAsync(
                 this.UserId, id, request.DisplayName, request.GroupName, request.ParentId);
-            return this.Ok(updated);
+            return this.Ok(this.Paired(updated, updated.PairWarning));
         }
         catch (GeofenceNotFoundException)
         {
@@ -86,7 +87,7 @@ public partial class UserGeofenceController(
         try
         {
             var result = await this._userGeofenceService.CreateAsync(this.UserId, this.ProfileNo, model);
-            return this.CreatedAtAction(nameof(GetCustomGeofences), result);
+            return this.CreatedAtAction(nameof(GetCustomGeofences), this.Paired(result, result.PairWarning));
         }
         catch (InvalidOperationException ex)
         {
@@ -133,8 +134,8 @@ public partial class UserGeofenceController(
 
         try
         {
-            await this._userGeofenceService.DeleteAsync(this.UserId, this.ProfileNo, id, deleteWidened);
-            return this.NoContent();
+            var warning = await this._userGeofenceService.DeleteAsync(this.UserId, this.ProfileNo, id, deleteWidened);
+            return this.NoContentPaired(warning);
         }
         catch (InvalidOperationException ex)
         {
@@ -233,8 +234,8 @@ public partial class UserGeofenceController(
     {
         try
         {
-            await this._userGeofenceService.AddToProfileAsync(this.UserId, this.ProfileNo, id);
-            return this.NoContent();
+            var warning = await this._userGeofenceService.AddToProfileAsync(this.UserId, this.ProfileNo, id);
+            return this.NoContentPaired(warning);
         }
         catch (GeofenceActivationFailedException ex)
         {
@@ -267,8 +268,8 @@ public partial class UserGeofenceController(
     {
         try
         {
-            await this._userGeofenceService.RemoveFromProfileAsync(this.UserId, this.ProfileNo, id);
-            return this.NoContent();
+            var warning = await this._userGeofenceService.RemoveFromProfileAsync(this.UserId, this.ProfileNo, id);
+            return this.NoContentPaired(warning);
         }
         catch (InvalidOperationException ex)
         {
