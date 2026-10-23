@@ -201,7 +201,7 @@ describe('AdminDestinationsComponent add', () => {
 
       expect(scrolled).toHaveLength(1);
       expect(scrolled[0].row.textContent).toContain('New raids');
-      expect(scrolled[0].options).toEqual({ behavior: 'smooth', block: 'nearest' });
+      expect(scrolled[0].options).toEqual({ behavior: 'smooth', block: 'center' });
     });
 
     it('jumps rather than glides when the viewer asks for reduced motion', () => {
@@ -210,7 +210,7 @@ describe('AdminDestinationsComponent add', () => {
       fixture.detectChanges();
 
       expect(scrolled).toHaveLength(1);
-      expect(scrolled[0].options).toEqual({ behavior: 'auto', block: 'nearest' });
+      expect(scrolled[0].options).toEqual({ behavior: 'auto', block: 'center' });
     });
 
     it('scrolls nothing when the dialog is cancelled', () => {

@@ -734,7 +734,8 @@ export class AdminDestinationsComponent implements OnInit {
       () => {
         const row = this.host.nativeElement.querySelector('tr.just-added');
         const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-        row?.scrollIntoView?.({ behavior: reduce ? 'auto' : 'smooth', block: 'nearest' });
+        // Centred, not nearest: at the bottom edge the snackbar announcing it sits on top of the row.
+        row?.scrollIntoView?.({ behavior: reduce ? 'auto' : 'smooth', block: 'center' });
       },
       { injector: this.injector },
     );
