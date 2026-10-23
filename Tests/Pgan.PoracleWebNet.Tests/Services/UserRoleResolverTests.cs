@@ -20,15 +20,21 @@ public class UserRoleResolverTests
     private readonly Mock<IPoracleApiProxy> _poracleApiProxy = new();
     private readonly Mock<IPoracleHumanProxy> _poracleHumanProxy = new();
     private readonly Mock<IWebhookDelegateService> _webhookDelegateService = new();
-    private readonly Mock<IHumanService> _humanService = new();
+    private readonly Mock<IDestinationDirectory> _directory = new();
+    private readonly Mock<ISiteSettingService> _siteSettings = new();
 
     private const string TeamHarmonyRares = "https://discordapp.com/api/webhooks/863186716952100874/token";
+    private const string RaidChannel = "1100000000000000001";
+    private const string UnregisteredChannel = "1100000000000000099";
+    private const string RaidThread = "1100000000000000002";
+    private const string TelegramChannel = "-1001234567890";
 
     private UserRoleResolver CreateSut(string adminIds = "", IMemoryCache? cache = null) => new(
         this._poracleApiProxy.Object,
         this._poracleHumanProxy.Object,
         this._webhookDelegateService.Object,
-        this._humanService.Object,
+        this._directory.Object,
+        this._siteSettings.Object,
         Options.Create(new PoracleSettings { AdminIds = adminIds }),
         cache ?? new MemoryCache(new MemoryCacheOptions()),
         NullLogger<UserRoleResolver>.Instance);
@@ -152,7 +158,7 @@ public class UserRoleResolverTests
 
         var roles = await this.CreateSut().ResolveAsync("u1");
 
-        Assert.Equal([TeamHarmonyRares], roles.ManagedWebhooks);
+        Assert.Equal([TeamHarmonyRares], roles.ManagedDestinations);
         Assert.True(roles.Resolved);
     }
 
@@ -168,7 +174,7 @@ public class UserRoleResolverTests
 
         var roles = await this.CreateSut().ResolveAsync("u1");
 
-        Assert.Equal([TeamHarmonyRares], roles.ManagedWebhooks);
+        Assert.Equal([TeamHarmonyRares], roles.ManagedDestinations);
     }
 
     [Fact]
@@ -178,7 +184,7 @@ public class UserRoleResolverTests
 
         var roles = await this.CreateSut().ResolveAsync("u1");
 
-        Assert.Equal([TeamHarmonyRares], roles.ManagedWebhooks);
+        Assert.Equal([TeamHarmonyRares], roles.ManagedDestinations);
     }
 
     /// <summary>
@@ -193,7 +199,7 @@ public class UserRoleResolverTests
 
         var roles = await this.CreateSut().ResolveAsync("u1");
 
-        Assert.Null(roles.ManagedWebhooks);
+        Assert.Null(roles.ManagedDestinations);
         Assert.True(roles.Resolved);
     }
 
@@ -206,11 +212,11 @@ public class UserRoleResolverTests
     public async Task AFailedWebhookLookupKeepsTheGrantsAndReportsUnresolved()
     {
         this.ArrangeDelegate(["teamharmonyrares"]);
-        this._humanService.Setup(h => h.GetWebhooksAsync()).ThrowsAsync(new InvalidOperationException("db down"));
+        this._directory.Setup(d => d.GetAsync()).ThrowsAsync(new HttpRequestException("down"));
 
         var roles = await this.CreateSut().ResolveAsync("u1");
 
-        Assert.Equal(["teamharmonyrares"], roles.ManagedWebhooks);
+        Assert.Equal(["teamharmonyrares"], roles.ManagedDestinations);
         Assert.False(roles.Resolved);
     }
 
@@ -226,12 +232,12 @@ public class UserRoleResolverTests
         var cache = new MemoryCache(new MemoryCacheOptions());
         this.ArrangeLocalDelegate([]);
         var delegatesRequest = this.CreateSut(cache: cache);
-        Assert.Null((await delegatesRequest.ResolveAsync("u1")).ManagedWebhooks);
+        Assert.Null((await delegatesRequest.ResolveAsync("u1")).ManagedDestinations);
 
         this.ArrangeLocalDelegate([TeamHarmonyRares]);
         this.CreateSut(cache: cache).Invalidate("u1");
 
-        Assert.Equal([TeamHarmonyRares], (await this.CreateSut(cache: cache).ResolveAsync("u1")).ManagedWebhooks);
+        Assert.Equal([TeamHarmonyRares], (await this.CreateSut(cache: cache).ResolveAsync("u1")).ManagedDestinations);
     }
 
     [Fact]
@@ -241,12 +247,12 @@ public class UserRoleResolverTests
         // grant came from PoracleJS by name and so appear in no table this site can enumerate.
         var cache = new MemoryCache(new MemoryCacheOptions());
         this.ArrangeLocalDelegate([TeamHarmonyRares]);
-        Assert.NotNull((await this.CreateSut(cache: cache).ResolveAsync("u1")).ManagedWebhooks);
+        Assert.NotNull((await this.CreateSut(cache: cache).ResolveAsync("u1")).ManagedDestinations);
 
         this.ArrangeLocalDelegate([]);
         this.CreateSut(cache: cache).InvalidateAll();
 
-        Assert.Null((await this.CreateSut(cache: cache).ResolveAsync("u1")).ManagedWebhooks);
+        Assert.Null((await this.CreateSut(cache: cache).ResolveAsync("u1")).ManagedDestinations);
     }
 
     [Fact]
@@ -270,27 +276,191 @@ public class UserRoleResolverTests
         this._poracleApiProxy.Setup(p => p.GetConfigAsync()).ReturnsAsync((PoracleConfig?)null!);
         this._poracleHumanProxy.Setup(p => p.GetAdminRolesAsync(It.IsAny<string>())).ReturnsAsync("{}");
         this._webhookDelegateService.Setup(s => s.GetManagedWebhookIdsAsync(It.IsAny<string>())).ReturnsAsync(webhookIds);
-        this._humanService.Setup(h => h.GetWebhooksAsync()).ReturnsAsync(
-        [
-            new Human { Id = TeamHarmonyRares, Name = "teamharmonyrares", Type = "webhook" },
-        ]);
+        this.ArrangeDirectory();
     }
 
-    private void ArrangeDelegate(string[] grants)
+    private void ArrangeDelegate(
+        string[] grants,
+        string[]? channels = null,
+        string[]? telegramChannels = null,
+        string[]? localGrants = null,
+        bool users = false)
     {
         var payload = JsonSerializer.Serialize(new
         {
-            admin = new { discord = new { channels = Array.Empty<string>(), webhooks = grants, users = false } },
+            admin = new
+            {
+                discord = new { channels = channels ?? [], webhooks = grants, users },
+                telegram = new { channels = telegramChannels ?? [], users },
+            },
             status = "ok",
         });
 
         this._poracleApiProxy.Setup(p => p.GetConfigAsync()).ReturnsAsync((PoracleConfig?)null!);
         this._poracleHumanProxy.Setup(p => p.GetAdminRolesAsync(It.IsAny<string>())).ReturnsAsync(payload);
-        this._webhookDelegateService.Setup(s => s.GetManagedWebhookIdsAsync(It.IsAny<string>())).ReturnsAsync([]);
-        this._humanService.Setup(h => h.GetWebhooksAsync()).ReturnsAsync(
+        this._webhookDelegateService.Setup(s => s.GetManagedWebhookIdsAsync(It.IsAny<string>())).ReturnsAsync(localGrants ?? []);
+        this.ArrangeDirectory();
+    }
+
+    /// <summary>
+    /// The directory as PoracleNG would list it: two webhooks, a channel, a thread whose name collides with
+    /// a grant, and a Telegram channel.
+    /// </summary>
+    private void ArrangeDirectory() =>
+        this._directory.Setup(d => d.GetAsync()).ReturnsAsync(
         [
-            new Human { Id = TeamHarmonyRares, Name = "teamharmonyrares", Type = "webhook" },
-            new Human { Id = "https://discordapp.com/api/webhooks/863186778525925396/other", Name = "100iv", Type = "webhook" },
+            new Human { Id = TeamHarmonyRares, Name = "teamharmonyrares", Type = HumanKind.Webhook },
+            new Human { Id = "https://discordapp.com/api/webhooks/863186778525925396/other", Name = "100iv", Type = HumanKind.Webhook },
+            new Human { Id = RaidChannel, Name = "raid-alerts", Type = HumanKind.DiscordChannel },
+            new Human { Id = RaidThread, Name = "thread-only", Type = HumanKind.DiscordThread },
+            new Human { Id = TelegramChannel, Name = "tg-rares", Type = HumanKind.TelegramChannel },
         ]);
+
+    private void SettingIs(bool on) =>
+        this._siteSettings.Setup(s => s.GetBoolAsync(UserRoleResolver.PoracleChannelsSettingKey)).ReturnsAsync(on);
+
+    // --- Part 6 of #1025: delegation over every destination ---
+
+    /// <summary>
+    /// Review Focus 4. All six production grants are webhook grants written before the directory replaced
+    /// <c>GetWebhooksAsync</c>; by name and by id they must resolve exactly as they did.
+    /// </summary>
+    [Fact]
+    public async Task AnExistingWebhookGrantStillResolves()
+    {
+        this.ArrangeDelegate(["teamharmonyrares"], localGrants: [TeamHarmonyRares]);
+
+        var roles = await this.CreateSut().ResolveAsync("u1");
+
+        Assert.Equal([TeamHarmonyRares], roles.ManagedDestinations);
+        Assert.True(roles.Resolved);
+    }
+
+    [Fact]
+    public async Task ALocalGrantOnAChannelResolves()
+    {
+        this.ArrangeDelegate([], localGrants: [RaidChannel]);
+
+        var roles = await this.CreateSut().ResolveAsync("u1");
+
+        Assert.Equal([RaidChannel], roles.ManagedDestinations);
+        Assert.True(roles.Resolved);
+    }
+
+    /// <summary>
+    /// Upstream resolves a <c>webhook_admins</c> target by name over webhooks, channels and Telegram
+    /// channels and groups alike, so a name that belongs to a channel is a grant on that channel.
+    /// </summary>
+    [Fact]
+    public async Task AWebhookAdminsNameThatMatchesAChannelResolves()
+    {
+        this.ArrangeDelegate(["raid-alerts", "tg-rares"]);
+
+        var roles = await this.CreateSut().ResolveAsync("u1");
+
+        Assert.Equal(
+            new[] { RaidChannel, TelegramChannel }.Order(StringComparer.Ordinal),
+            roles.ManagedDestinations!.Order(StringComparer.Ordinal));
+    }
+
+    /// <summary>
+    /// <c>admin.discord.channels</c> lists every channel the user may admin in Discord itself, which is not
+    /// the same thing as having been handed it on this site. It counts only when the operator says so.
+    /// </summary>
+    [Fact]
+    public async Task PoraclesChannelListsAreIgnoredWhileTheSettingIsOff()
+    {
+        this.ArrangeDelegate([], channels: [RaidChannel], telegramChannels: [TelegramChannel]);
+        this.SettingIs(false);
+
+        var roles = await this.CreateSut().ResolveAsync("u1");
+
+        Assert.Null(roles.ManagedDestinations);
+        Assert.True(roles.Resolved);
+    }
+
+    [Fact]
+    public async Task PoraclesChannelListsCountOnceTheSettingIsOn()
+    {
+        // users:true says the person may admin Discord users; it grants nothing here.
+        this.ArrangeDelegate([], channels: [RaidChannel, UnregisteredChannel, RaidChannel], users: true);
+        this.SettingIs(true);
+
+        var roles = await this.CreateSut().ResolveAsync("u1");
+
+        Assert.Equal([RaidChannel], roles.ManagedDestinations);
+        Assert.True(roles.Resolved);
+    }
+
+    [Fact]
+    public async Task TelegramChannelListsCountOnceTheSettingIsOn()
+    {
+        this.ArrangeDelegate([], telegramChannels: [TelegramChannel]);
+        this.SettingIs(true);
+
+        var roles = await this.CreateSut().ResolveAsync("u1");
+
+        Assert.Equal([TelegramChannel], roles.ManagedDestinations);
+    }
+
+    /// <summary>
+    /// The channel lists hold ids. A list entry that happens to equal a destination's name must not grant
+    /// it, or naming a channel after another one would hand that one over.
+    /// </summary>
+    [Fact]
+    public async Task PoraclesChannelListsMatchByIdOnly()
+    {
+        this.ArrangeDelegate([], channels: ["raid-alerts"]);
+        this.SettingIs(true);
+
+        var roles = await this.CreateSut().ResolveAsync("u1");
+
+        Assert.Null(roles.ManagedDestinations);
+    }
+
+    /// <summary>
+    /// Upstream resolves names over webhooks, channels and Telegram channels and groups, never threads or
+    /// topics, so a thread whose name equals a grant is not what the grant meant.
+    /// </summary>
+    [Fact]
+    public async Task ANameNeverResolvesToAThread()
+    {
+        this.ArrangeDelegate(["thread-only"]);
+
+        var roles = await this.CreateSut().ResolveAsync("u1");
+
+        Assert.Null(roles.ManagedDestinations);
+        Assert.True(roles.Resolved);
+    }
+
+    [Fact]
+    public async Task ADegradedDirectoryIsNotCached()
+    {
+        this.ArrangeDelegate(["teamharmonyrares"]);
+        this._directory.Setup(d => d.GetAsync()).ThrowsAsync(new HttpRequestException("down"));
+        var sut = this.CreateSut();
+
+        Assert.False((await sut.ResolveAsync("u1")).Resolved);
+        await sut.ResolveAsync("u1");
+
+        this._directory.Verify(d => d.GetAsync(), Times.Exactly(2));
+    }
+
+    /// <summary>
+    /// The setting is an opt-in, so an unreadable one is the default, off: it must neither widen the grant
+    /// nor mark the answer unresolved, which would hold every delegate on the claim during a settings blip.
+    /// </summary>
+    [Fact]
+    public async Task TheSettingFailingToReadCountsAsOff()
+    {
+        this.ArrangeDelegate([], channels: [RaidChannel], localGrants: [TeamHarmonyRares]);
+        this._siteSettings
+            .Setup(s => s.GetBoolAsync(UserRoleResolver.PoracleChannelsSettingKey))
+            .ThrowsAsync(new InvalidOperationException("db down"));
+
+        var roles = await this.CreateSut().ResolveAsync("u1");
+
+        Assert.Equal([TeamHarmonyRares], roles.ManagedDestinations);
+        Assert.True(roles.Resolved);
     }
 }

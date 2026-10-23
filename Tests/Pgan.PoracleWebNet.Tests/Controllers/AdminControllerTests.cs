@@ -583,7 +583,7 @@ public class AdminControllerTests : ControllerTestBase
         Assert.IsType<ForbidResult>(await this._sut.ImpersonateById(new AdminController.ImpersonateRequest("u1")));
     }
 
-    // --- GetManagedWebhooks (#797) ---
+    // --- GetManagedDestinations (#797) ---
 
     /// <summary>
     /// The grant PoracleNG reports is the webhook's NAME, and this page matches on humans.id. The
@@ -591,7 +591,7 @@ public class AdminControllerTests : ControllerTestBase
     /// used to get the nav item and an empty table. See #797.
     /// </summary>
     [Fact]
-    public async Task GetManagedWebhooksListsTheWebhookADelegateWasGrantedByName()
+    public async Task GetManagedDestinationsListsTheWebhookADelegateWasGrantedByName()
     {
         SetupUser(this._sut, isAdmin: false);
         this._roleResolver.Setup(r => r.ResolveAsync("123456789"))
@@ -602,20 +602,20 @@ public class AdminControllerTests : ControllerTestBase
             new Human { Id = "http://wh.example/b", Name = "100iv", Type = "webhook" },
         ]);
 
-        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetManagedWebhooks());
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetManagedDestinations());
 
         var rows = Assert.IsAssignableFrom<IEnumerable<object>>(ok.Value);
         Assert.Single(rows);
     }
 
     [Fact]
-    public async Task GetManagedWebhooksReturnsNothingWhenTheCallerHasNoGrants()
+    public async Task GetManagedDestinationsReturnsNothingWhenTheCallerHasNoGrants()
     {
         SetupUser(this._sut, isAdmin: false);
         this._roleResolver.Setup(r => r.ResolveAsync("123456789"))
             .ReturnsAsync(new Pgan.PoracleWebNet.Api.Services.UserRoles(false, null));
 
-        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetManagedWebhooks());
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetManagedDestinations());
 
         Assert.Empty(Assert.IsAssignableFrom<IEnumerable<object>>(ok.Value));
         this._humanService.Verify(s => s.GetAllAsync(), Times.Never);

@@ -250,7 +250,7 @@ public partial class AuthController(
             Enabled = human.Enabled == 1 && human.AdminDisable == 0,
             ProfileNo = human.CurrentProfileNo,
             AvatarUrl = avatarUrl,
-            ManagedWebhooks = managedWebhooks
+            ManagedDestinations = managedWebhooks
         };
 
         // Cache avatar for admin panel use
@@ -649,7 +649,7 @@ public partial class AuthController(
             Enabled = human.Enabled == 1 && human.AdminDisable == 0,
             ProfileNo = human.CurrentProfileNo,
             AvatarUrl = photoUrl,
-            ManagedWebhooks = managedWebhooks
+            ManagedDestinations = managedWebhooks
         };
 
         var jwt = this._jwtService.GenerateToken(userInfo);
@@ -851,7 +851,7 @@ public partial class AuthController(
         var adminDisable = human.AdminDisable == 1;
         var enabled = human.Enabled == 1 && human.AdminDisable == 0;
         var dbProfileNo = human.CurrentProfileNo;
-        var managedWebhooks = await this.ResolveManagedWebhooksAsync();
+        var managedWebhooks = await this.ResolveManagedDestinationsAsync();
 
         var userInfo = new UserInfo
         {
@@ -863,7 +863,7 @@ public partial class AuthController(
             Enabled = enabled,
             ProfileNo = dbProfileNo,
             AvatarUrl = this.User.FindFirstValue("avatarUrl"),
-            ManagedWebhooks = managedWebhooks,
+            ManagedDestinations = managedWebhooks,
             ProfileName = await this.ActiveProfileNameAsync(dbProfileNo),
         };
 
@@ -969,12 +969,12 @@ public partial class AuthController(
     /// Both real checks (the list and the impersonation grant) resolve live and fail closed.
     /// </para>
     /// </remarks>
-    private async Task<string[]?> ResolveManagedWebhooksAsync()
+    private async Task<string[]?> ResolveManagedDestinationsAsync()
     {
-        var claimed = this.ManagedWebhooks;
+        var claimed = this.ManagedDestinations;
 
         var roles = await this._roleResolver.ResolveAsync(this.UserId);
-        var resolved = roles.ManagedWebhooks ?? [];
+        var resolved = roles.ManagedDestinations ?? [];
 
         if (roles.Resolved)
         {
@@ -999,7 +999,7 @@ public partial class AuthController(
     private async Task<(bool isAdmin, string[]? managedWebhooks)> GetRolesAsync(string userId)
     {
         var roles = await this._roleResolver.ResolveAsync(userId);
-        return (roles.IsAdmin, roles.ManagedWebhooks);
+        return (roles.IsAdmin, roles.ManagedDestinations);
     }
 
     /// <summary>
@@ -1250,7 +1250,7 @@ public partial class AuthController(
             Enabled = human.Enabled == 1 && human.AdminDisable == 0,
             ProfileNo = human.CurrentProfileNo,
             AvatarUrl = avatarUrl,
-            ManagedWebhooks = managedWebhooks
+            ManagedDestinations = managedWebhooks
         };
 
         return (userInfo, null);

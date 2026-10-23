@@ -80,7 +80,7 @@ public partial class AdminController(
     /// table and a failure toast. Scoped to the caller's own grants instead. See #564.
     /// </remarks>
     [HttpGet("my-webhooks")]
-    public async Task<IActionResult> GetManagedWebhooks()
+    public async Task<IActionResult> GetManagedDestinations()
     {
         // Resolved live rather than read from the JWT claim. The claim is minted at login and lives 24
         // hours, so revoking a delegate left them managing the webhook until they happened to sign in
@@ -93,7 +93,7 @@ public partial class AdminController(
         // in [[discord.webhook_admins]], and upstream that key is the webhook's NAME. Matched case-
         // insensitively for the same reason the resolver's set is: nothing guarantees an operator typed the
         // URL in the case the humans row stores it. See #797.
-        var managed = (await this._roleResolver.ResolveAsync(this.UserId)).ManagedWebhooks ?? [];
+        var managed = (await this._roleResolver.ResolveAsync(this.UserId)).ManagedDestinations ?? [];
         if (managed.Length == 0)
         {
             return this.Ok(Array.Empty<object>());
@@ -683,7 +683,7 @@ public partial class AdminController(
         }
 
         var isDelegate = !this.IsAdmin
-            && ((await this._roleResolver.ResolveAsync(this.UserId)).ManagedWebhooks ?? [])
+            && ((await this._roleResolver.ResolveAsync(this.UserId)).ManagedDestinations ?? [])
                 .Contains(request.UserId, StringComparer.OrdinalIgnoreCase);
         if (!this.IsAdmin && !isDelegate)
         {
