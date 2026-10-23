@@ -16,11 +16,13 @@ import { firstValueFrom } from 'rxjs';
 
 import { PokemonAddDialogComponent } from './pokemon-add-dialog.component';
 import { PokemonEditDialogComponent } from './pokemon-edit-dialog.component';
-import { Monster } from '../../core/models';
+import { Monster, LinkSide } from '../../core/models';
+import { AlarmMoveService, summariseMoves } from '../../core/services/alarm-move.service';
 import { AreaNameService } from '../../core/services/area-name.service';
 import { AreaService } from '../../core/services/area.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
+import { LinkedAccountService } from '../../core/services/linked-account.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MonsterService } from '../../core/services/monster.service';
 import { TestAlertService } from '../../core/services/test-alert.service';
@@ -35,7 +37,7 @@ import { WhereChipComponent } from '../../shared/components/where-chip/where-chi
 import { WhereSheetComponent, WhereSheetData, whereSheetConfig } from '../../shared/components/where-sheet/where-sheet.component';
 import { addOnArrival } from '../../shared/utils/add-on-arrival';
 import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
-import { matchesSearch, visibleSelection } from '../../shared/utils/alarm-list-query';
+import { byDestination, DestinationFilter, matchesSearch, visibleSelection } from '../../shared/utils/alarm-list-query';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { isAutoDelete as cleanIsAutoDelete, isEdit as cleanIsEdit } from '../../shared/utils/clean-flags';
 import { readableChip } from '../../shared/utils/contrast';
@@ -84,18 +86,20 @@ export class PokemonListComponent implements OnInit {
   private readonly iconService = inject(IconService);
   private readonly masterData = inject(MasterDataService);
   private readonly monsterService = inject(MonsterService);
+  private readonly moves = inject(AlarmMoveService);
   private readonly snackBar = inject(MatSnackBar);
   /** `?add=1` from the dashboard or onboarding opens the add dialog once. */
   private readonly takeAddRequest = addOnArrival();
   private readonly translate = inject(TranslateService);
-  readonly activeFilter = signal<string | null>(null);
 
+  readonly activeFilter = signal<string | null>(null);
   readonly activeGen = signal<{ label: string; min: number; max: number } | null>(null);
+  /** A linked person can filter by the app each alarm is delivered to. */
+  readonly destinationFilter = signal<DestinationFilter>('all');
   readonly monsters = signal<Monster[]>([]);
   // Search & quick filters
   readonly search = signal('');
   readonly sortBy = signal<string>('name');
-
   readonly filteredMonsters = computed(() => {
     const gen = this.activeGen();
     const sort = this.sortBy();
@@ -124,6 +128,8 @@ export class PokemonListComponent implements OnInit {
     } else if (filter === 'distance') {
       list = list.filter(m => m.distance > 0);
     }
+
+    list = byDestination(list, this.destinationFilter());
 
     // Separate "All Pokemon" (id=0) alarms to keep at the top
     const allPokemon = list.filter(m => m.pokemonId === 0);
@@ -162,6 +168,9 @@ export class PokemonListComponent implements OnInit {
       this.filteredMonsters().map(item => item.uid),
     ),
   );
+
+  /** True for a linked person, who gets the delivery filter, the card glyph and the bulk move. */
+  readonly canChooseDestination = inject(LinkedAccountService).canChoose;
 
   readonly generations = [
     { color: '#4CAF50', label: '1', max: 151, min: 1 },
@@ -223,6 +232,23 @@ export class PokemonListComponent implements OnInit {
         duration: 3000,
       });
     }
+  }
+
+  /** Moves the selected alarms to the other app, then reports every outcome in one line. */
+  async bulkMove(destination: LinkSide): Promise<void> {
+    const uids = this.actionIds();
+    try {
+      const response = await firstValueFrom(this.moves.moveMany('pokemon', uids, destination));
+      this.snackBar.open(summariseMoves(response.results, destination, this.i18n), this.i18n.instant('COMMON.OK'), { duration: 8000 });
+    } catch (err) {
+      this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.MOVE_FAILED_ALL'), this.i18n.instant('COMMON.OK'), {
+        duration: 6000,
+      });
+    }
+    // Some of a long selection may have moved before a later request failed, so the list always reloads.
+    this.selectedIds.set(new Set());
+    this.selectMode.set(false);
+    this.loadMonsters();
   }
 
   async bulkUpdateDistance(): Promise<void> {

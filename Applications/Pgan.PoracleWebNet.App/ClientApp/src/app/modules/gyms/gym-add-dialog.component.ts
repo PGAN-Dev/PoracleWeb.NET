@@ -14,12 +14,14 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { TranslatePipe } from '@ngx-translate/core';
 import { forkJoin } from 'rxjs';
 
+import { LinkSide } from '../../core/models';
 import { AlertDefaultsService } from '../../core/services/alert-defaults.service';
 import { AuthService } from '../../core/services/auth.service';
 import { GymService } from '../../core/services/gym.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { AddRefusalComponent } from '../../shared/components/add-refusal/add-refusal.component';
+import { DeliverToFieldComponent } from '../../shared/components/deliver-to/deliver-to-field.component';
 import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
@@ -27,6 +29,7 @@ import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
 import { AddDialogData, AddRefusal, editExistingResult, ExistingRule, finishAdd, settle } from '../../shared/utils/add-outcome';
 import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 import { compose } from '../../shared/utils/clean-flags';
+import { injectDeliverTo } from '../../shared/utils/deliver-to';
 
 interface TeamOption {
   color: string;
@@ -36,6 +39,7 @@ interface TeamOption {
 
 @Component({
   imports: [
+    DeliverToFieldComponent,
     AddRefusalComponent,
     ReactiveFormsModule,
     MatDialogModule,
@@ -70,10 +74,13 @@ export class GymAddDialogComponent {
   private readonly i18n = inject(I18nService);
   private readonly icons = inject(IconService);
   private readonly snackBar = inject(MatSnackBar);
+  readonly deliver = injectDeliverTo();
   readonly dialogRef = inject(MatDialogRef<GymAddDialogComponent>);
+
   form = this.fb.group({
     battleChanges: [false],
     clean: [false],
+    destination: [null as LinkSide | null],
     slotChanges: [false],
     template: [''],
   });
@@ -129,6 +136,7 @@ export class GymAddDialogComponent {
     const scope = scopeToFields(this.scope());
     const creates = this.selectedTeamIds().map(team =>
       this.gymService.create({
+        ...this.deliver.createFields(this.form.controls.destination.value),
         overrideAreas: scope.overrideAreas,
         overrideLocationLabel: scope.overrideLocationLabel,
         battleChanges: v.battleChanges ? 1 : 0,

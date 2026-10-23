@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
+import { AlarmMoveService, MoveEdit } from './alarm-move.service';
 import { ConfigService } from './config.service';
 import { DistanceUpdateResult } from '../../shared/utils/distance-update';
 import { Invasion, InvasionCreate, InvasionUpdate } from '../models';
@@ -10,6 +11,7 @@ import { Invasion, InvasionCreate, InvasionUpdate } from '../models';
 export class InvasionService {
   private readonly config = inject(ConfigService);
   private readonly http = inject(HttpClient);
+  private readonly moves = inject(AlarmMoveService);
 
   create(invasion: InvasionCreate): Observable<Invasion> {
     return this.http.post<Invasion>(`${this.config.apiHost}/api/invasions`, invasion);
@@ -27,8 +29,8 @@ export class InvasionService {
     return this.http.get<Invasion[]>(`${this.config.apiHost}/api/invasions`);
   }
 
-  update(uid: number, invasion: InvasionUpdate): Observable<void> {
-    return this.http.put<void>(`${this.config.apiHost}/api/invasions/${uid}`, invasion);
+  update(uid: number, invasion: InvasionUpdate): Observable<MoveEdit | void> {
+    return this.moves.put('invasions', uid, invasion, () => this.http.put<void>(`${this.config.apiHost}/api/invasions/${uid}`, invasion));
   }
 
   updateBulkDistance(uids: number[], distance: number): Observable<DistanceUpdateResult> {

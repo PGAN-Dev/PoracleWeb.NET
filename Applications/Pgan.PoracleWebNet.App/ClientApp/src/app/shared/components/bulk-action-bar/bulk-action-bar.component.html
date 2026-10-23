@@ -14,6 +14,20 @@
   </div>
 
   <div class="bulk-actions">
+    @if (canMove()) {
+      <button matButton="tonal" type="button" class="bulk-deliver" [matMenuTriggerFor]="deliverMenu" [disabled]="count() === 0">
+        <mat-icon>swap_horiz</mat-icon>
+        {{ 'ALARM.DELIVER_TO_MENU' | translate }}
+      </button>
+      <mat-menu #deliverMenu="matMenu">
+        <button mat-menu-item type="button" class="bulk-deliver-item" data-app="discord" (click)="moveSelected.emit('discord')">
+          {{ 'DELIVER_TO.DISCORD' | translate }}
+        </button>
+        <button mat-menu-item type="button" class="bulk-deliver-item" data-app="telegram" (click)="moveSelected.emit('telegram')">
+          {{ 'DELIVER_TO.TELEGRAM' | translate }}
+        </button>
+      </mat-menu>
+    }
     <button matButton="tonal" type="button" (click)="changeRadius.emit()" [disabled]="count() === 0">
       <mat-icon>straighten</mat-icon>
       {{ 'ALARM.UPDATE_DISTANCE' | translate }}

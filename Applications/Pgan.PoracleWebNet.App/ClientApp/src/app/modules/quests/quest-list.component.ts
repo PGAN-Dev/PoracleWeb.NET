@@ -12,11 +12,13 @@ import { firstValueFrom } from 'rxjs';
 import { QuestAddDialogComponent } from './quest-add-dialog.component';
 import { QuestEditDialogComponent } from './quest-edit-dialog.component';
 import { SummaryScheduleDialogComponent, SummaryScheduleDialogData } from './summary-schedule-dialog/summary-schedule-dialog.component';
-import { Quest } from '../../core/models';
+import { Quest, LinkSide } from '../../core/models';
+import { AlarmMoveService, summariseMoves } from '../../core/services/alarm-move.service';
 import { AreaNameService } from '../../core/services/area-name.service';
 import { AreaService } from '../../core/services/area.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
+import { LinkedAccountService } from '../../core/services/linked-account.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { QuestService } from '../../core/services/quest.service';
 import { SummaryScheduleService } from '../../core/services/summary-schedule.service';
@@ -31,7 +33,7 @@ import { WhereChipComponent } from '../../shared/components/where-chip/where-chi
 import { WhereSheetComponent, WhereSheetData, whereSheetConfig } from '../../shared/components/where-sheet/where-sheet.component';
 import { addOnArrival } from '../../shared/utils/add-on-arrival';
 import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
-import { byNumber, byText, queryAlarms, visibleSelection } from '../../shared/utils/alarm-list-query';
+import { byDestination, byNumber, byText, DestinationFilter, queryAlarms, visibleSelection } from '../../shared/utils/alarm-list-query';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
@@ -74,12 +76,15 @@ export class QuestListComponent implements OnInit {
   private readonly i18n = inject(I18nService);
   private readonly iconService = inject(IconService);
   private readonly masterData = inject(MasterDataService);
+  private readonly moves = inject(AlarmMoveService);
   private readonly questService = inject(QuestService);
   private readonly snackBar = inject(MatSnackBar);
   /** `?add=1` from the dashboard or onboarding opens the add dialog once. */
   private readonly takeAddRequest = addOnArrival();
   private readonly translate = inject(TranslateService);
   readonly selectedIds = signal(new Set<number>());
+  /** A linked person can filter by the app each alarm is delivered to. */
+  readonly destinationFilter = signal<DestinationFilter>('all');
   readonly quests = signal<Quest[]>([]);
   readonly search = signal('');
   /** "default" keeps the stable order the list loads in (see orderAlarms), so nothing moves once names load. */
@@ -92,7 +97,7 @@ export class QuestListComponent implements OnInit {
       reward: byNumber(q => q.rewardType),
     };
     return queryAlarms(
-      this.quests(),
+      byDestination(this.quests(), this.destinationFilter()),
       this.search(),
       q => [this.getQuestTitle(q), this.getRewardTypeLabel(q.rewardType)],
       sorts[this.sortBy()] ?? null,
@@ -106,6 +111,9 @@ export class QuestListComponent implements OnInit {
       this.visibleQuests().map(item => item.uid),
     ),
   );
+
+  /** True for a linked person, who gets the delivery filter, the card glyph and the bulk move. */
+  readonly canChooseDestination = inject(LinkedAccountService).canChoose;
 
   readonly loading = signal(true);
   /** Only used to word the inherited scope honestly; empty produces the more cautious wording. */
@@ -156,6 +164,23 @@ export class QuestListComponent implements OnInit {
         duration: 3000,
       });
     }
+  }
+
+  /** Moves the selected alarms to the other app, then reports every outcome in one line. */
+  async bulkMove(destination: LinkSide): Promise<void> {
+    const uids = this.actionIds();
+    try {
+      const response = await firstValueFrom(this.moves.moveMany('quest', uids, destination));
+      this.snackBar.open(summariseMoves(response.results, destination, this.i18n), this.i18n.instant('COMMON.OK'), { duration: 8000 });
+    } catch (err) {
+      this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.MOVE_FAILED_ALL'), this.i18n.instant('COMMON.OK'), {
+        duration: 6000,
+      });
+    }
+    // Some of a long selection may have moved before a later request failed, so the list always reloads.
+    this.selectedIds.set(new Set());
+    this.selectMode.set(false);
+    this.loadQuests();
   }
 
   async bulkUpdateDistance(): Promise<void> {

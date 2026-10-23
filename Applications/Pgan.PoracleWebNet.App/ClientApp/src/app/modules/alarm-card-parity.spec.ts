@@ -41,6 +41,19 @@ describe('every alarm list uses the shared rule card and toolbar', () => {
     expect(html).toContain('(selectModeToggle)="toggleSelectMode()"');
   });
 
+  /** A linked person filters by app, sees the app on each card, and moves a selection from the bulk bar. */
+  it.each(LISTS)('%s wires the delivery filter, the card glyph and the bulk move', (template, grids) => {
+    const html = read(template);
+    const ts = read(template.replace('.html', '.ts'));
+
+    expect(html).toContain('[(destinationFilter)]="destinationFilter"');
+    expect(html).toContain('[canFilterDestination]="canChooseDestination()"');
+    expect(html.split('[destination]=').length - 1).toBe(grids.length);
+    expect(html).toContain('[canMove]="canChooseDestination()"');
+    expect(html).toContain('(moveSelected)="bulkMove($event)"');
+    expect(ts).toContain('byDestination(');
+  });
+
   /**
    * Colour is data or nothing: team on gym and raid cards, the tier on egg cards, the primary type on
    * a single-species Pokémon card, and no edge anywhere else.

@@ -8,6 +8,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { TranslatePluralPipe } from '../../pipes/translate-plural.pipe';
+import { DestinationFilter } from '../../utils/alarm-list-query';
 
 /** One entry in a list's sort menu: the value the list sorts on, and the i18n key naming it. */
 export interface AlarmSortOption {
@@ -44,8 +45,20 @@ export interface AlarmSortOption {
   templateUrl: './alarm-list-toolbar.component.html',
 })
 export class AlarmListToolbarComponent {
+  /** True for a linked person, who can filter the list by the app each alarm is delivered to. */
+  readonly canFilterDestination = input(false);
+
   /** Emitted by "Clear search" when nothing matches; the list clears any filters of its own too. */
   readonly cleared = output<void>();
+
+  /** All, or one app. Two-way bound to the list, which hides the rows of the other side. */
+  readonly destinationFilter = model<DestinationFilter>('all');
+
+  readonly destinationOptions: { label: string; value: DestinationFilter }[] = [
+    { label: 'ALARM.FILTER_ALL', value: 'all' },
+    { label: 'DELIVER_TO.DISCORD', value: 'discord' },
+    { label: 'DELIVER_TO.TELEGRAM', value: 'telegram' },
+  ];
 
   /** True when the list has filters besides the search, so the way back clears those as well. */
   readonly hasFilters = input(false);
@@ -71,6 +84,7 @@ export class AlarmListToolbarComponent {
 
   clear(): void {
     this.search.set('');
+    this.destinationFilter.set('all');
     this.cleared.emit();
   }
 

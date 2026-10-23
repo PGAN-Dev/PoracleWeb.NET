@@ -6,6 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
 
+import { LinkSide } from '../../../core/models';
 import { AlertLanguageService } from '../../../core/services/alert-language.service';
 import { I18nService } from '../../../core/services/i18n.service';
 import { RuleEdge } from '../../utils/rule-colours';
@@ -46,6 +47,9 @@ export class AlarmCardComponent {
   readonly summary = input<null | string | undefined>(null);
 
   readonly cleanedSummary = computed(() => cleanRuleSummary(this.summary()));
+
+  /** The app this rule is delivered to; set only for a linked person, who then sees it beside the scope chip. */
+  readonly destination = input<LinkSide | null | undefined>(null);
 
   readonly detailsId = `rule-details-${nextId++}`;
 

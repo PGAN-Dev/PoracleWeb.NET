@@ -13,15 +13,17 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { TranslatePipe } from '@ngx-translate/core';
 
-import { FortChange, FortChangeUpdate } from '../../core/models';
+import { FortChange, FortChangeUpdate, LinkSide } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { FortChangeService } from '../../core/services/fort-change.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { SettingsService } from '../../core/services/settings.service';
+import { DeliverToFieldComponent } from '../../shared/components/deliver-to/deliver-to-field.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { createFailureText } from '../../shared/utils/add-outcome';
 import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
+import { injectDeliverTo, moveEditMessage } from '../../shared/utils/deliver-to';
 import { mentionCapable } from '../../shared/utils/human-kind';
 
 /** The change types this dialog has a checkbox for. Anything else is carried through untouched. */
@@ -29,6 +31,7 @@ const KNOWN_CHANGE_TYPES = new Set(['name', 'location', 'image_url', 'removal', 
 
 @Component({
   imports: [
+    DeliverToFieldComponent,
     ReactiveFormsModule,
     MatButtonModule,
     MatCheckboxModule,
@@ -58,6 +61,8 @@ export class FortChangeEditDialogComponent {
   private readonly settings = inject(SettingsService);
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<FortChange>(MAT_DIALOG_DATA);
+  readonly deliver = injectDeliverTo();
+
   readonly dialogRef = inject(MatDialogRef<FortChangeEditDialogComponent>);
 
   form = this.fb.group({
@@ -67,6 +72,7 @@ export class FortChangeEditDialogComponent {
     changeTypeName: [this.data.changeTypes?.includes('name') ?? false],
     changeTypeNew: [this.data.changeTypes?.includes('new') ?? false],
     changeTypeRemoval: [this.data.changeTypes?.includes('removal') ?? false],
+    destination: [(this.data.destination ?? null) as LinkSide | null],
     fortType: [this.data.fortType ?? 'everything'],
     includeEmpty: [this.data.includeEmpty === 1],
     // Always present even when the Mention control is hidden (not a webhook alarm) -- so a mention
@@ -115,6 +121,7 @@ export class FortChangeEditDialogComponent {
 
     this.fortChangeService
       .update(this.data.uid, {
+        ...this.deliver.moveFields(this.data.destination, this.form.controls.destination.value),
         overrideAreas: scope.overrideAreas,
         overrideLocationLabel: scope.overrideLocationLabel,
         changeTypes,
@@ -133,8 +140,12 @@ export class FortChangeEditDialogComponent {
           });
           this.saving.set(false);
         },
-        next: () => {
-          this.snackBar.open(this.i18n.instant('FORT_CHANGES.UPDATE_SUCCESS'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
+        next: moved => {
+          this.snackBar.open(
+            moveEditMessage(moved, this.i18n) ?? this.i18n.instant('FORT_CHANGES.UPDATE_SUCCESS'),
+            this.i18n.instant('COMMON.OK'),
+            { duration: 3000 },
+          );
           this.dialogRef.close(true);
         },
       });

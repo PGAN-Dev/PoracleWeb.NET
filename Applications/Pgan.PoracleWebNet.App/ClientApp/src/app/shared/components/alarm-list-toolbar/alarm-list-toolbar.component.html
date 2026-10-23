@@ -17,6 +17,21 @@
 
   <ng-content />
 
+  @if (canFilterDestination()) {
+    <div class="destination-filter" role="group" [attr.aria-label]="'DELIVER_TO.LABEL' | translate">
+      @for (option of destinationOptions; track option.value) {
+        <button
+          mat-stroked-button
+          type="button"
+          [class.active]="destinationFilter() === option.value"
+          [attr.aria-pressed]="destinationFilter() === option.value"
+          (click)="destinationFilter.set(option.value)">
+          {{ option.label | translate }}
+        </button>
+      }
+    </div>
+  }
+
   <div class="toolbar-meta">
     <span class="result-count" role="status">
       @if (shown() === total()) {
@@ -52,7 +67,7 @@
   <div class="no-matches">
     <p>{{ 'ALARM.NO_MATCHES' | translate }}</p>
     <button mat-stroked-button type="button" (click)="clear()">
-      {{ (hasFilters() ? 'ALARM.CLEAR_FILTERS' : 'COMMON.CLEAR_SEARCH') | translate }}
+      {{ (hasFilters() || destinationFilter() !== 'all' ? 'ALARM.CLEAR_FILTERS' : 'COMMON.CLEAR_SEARCH') | translate }}
     </button>
   </div>
 }

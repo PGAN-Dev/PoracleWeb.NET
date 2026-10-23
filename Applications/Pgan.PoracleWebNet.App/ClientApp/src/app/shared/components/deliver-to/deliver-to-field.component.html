@@ -1,0 +1,14 @@
+@if (visible()) {
+  <div class="deliver-to">
+    <span class="deliver-label" [id]="labelId">{{ 'DELIVER_TO.LABEL' | translate }}</span>
+    <mat-radio-group class="deliver-options" [formControl]="control()" [attr.aria-labelledby]="labelId">
+      <mat-radio-button value="discord">{{ 'DELIVER_TO.DISCORD' | translate }}</mat-radio-button>
+      <mat-radio-button value="telegram">{{ 'DELIVER_TO.TELEGRAM' | translate }}</mat-radio-button>
+    </mat-radio-group>
+    @if (pausedApp(); as app) {
+      <p class="deliver-paused" role="status">
+        {{ 'DELIVER_TO.PAUSED' | translate: { app: (app === 'telegram' ? 'DELIVER_TO.TELEGRAM' : 'DELIVER_TO.DISCORD') | translate } }}
+      </p>
+    }
+  </div>
+}

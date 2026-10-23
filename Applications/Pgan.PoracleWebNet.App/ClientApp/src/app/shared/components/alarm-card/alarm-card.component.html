@@ -25,7 +25,30 @@
   <ng-content />
 
   <div class="rule-foot">
-    <div class="rule-scope"><ng-content select="[ruleScope]" /></div>
+    <div class="rule-scope">
+      <ng-content select="[ruleScope]" />
+      @if (destination(); as app) {
+        <span
+          class="rule-destination"
+          role="img"
+          [attr.data-app]="app"
+          [attr.aria-label]="(app === 'telegram' ? 'DELIVER_TO.TELEGRAM' : 'DELIVER_TO.DISCORD') | translate"
+          [matTooltip]="(app === 'telegram' ? 'DELIVER_TO.TELEGRAM' : 'DELIVER_TO.DISCORD') | translate">
+          @if (app === 'telegram') {
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path
+                d="M21.2 3.4 2.9 10.5c-1.2.5-1.2 1.2-.2 1.5l4.6 1.4 1.8 5.4c.2.6.1.8.8.8.5 0 .7-.2 1-.5l2.2-2.2 4.6 3.4c.8.5 1.500.2 1.700-.8l3-14.500c.3-1.200-.5-1.700-1.200-1.400zM8.600 13l8.800-5.500c.4-.3.8-.1.500.2l-7.200 6.600-.3 3.400z" />
+            </svg>
+          } @else {
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path
+                fill-rule="evenodd"
+                d="M5.500 5.500c2-1 4-1.500 6.500-1.500s4.500.5 6.500 1.500c1.500 3 2.300 6 2.200 10.500-1.600 1.200-3 1.800-4.500 2.200l-1-1.700c-1.100.3-2.100.4-3.200.4s-2.100-.1-3.200-.4l-1 1.700c-1.500-.4-2.900-1-4.500-2.200-.1-4.500.7-7.500 2.200-10.500zM9 10.500a1.600 1.600 0 1 0 0 3.200 1.600 1.600 0 0 0 0-3.200zm6 0a1.600 1.600 0 1 0 0 3.200 1.600 1.600 0 0 0 0-3.200z" />
+            </svg>
+          }
+        </span>
+      }
+    </div>
     <div class="rule-actions">
       <ng-content select="[ruleActions]" />
       @if (hasDetails()) {

@@ -417,7 +417,18 @@
     "FAILED_DISTANCE": "Kan de straal niet wijzigen. Laad de pagina opnieuw en probeer het nog eens.",
     "REFUSAL_COVERED_BY": "Al gedekt door: {{summary}}",
     "REFUSAL_EDIT_EXISTING": "Die bewerken",
-    "CLEAN_TAG": "opschonen"
+    "CLEAN_TAG": "opschonen",
+    "DELIVER_TO_MENU": "Bezorgen via…",
+    "FILTER_ALL": "Alle",
+    "MOVED_SOURCE_REMAINS": "Verplaatst naar {{app}}, maar de kopie in {{from}} staat er nog. Verwijder die uit de lijst.",
+    "MOVED_TO": "Verplaatst naar {{app}}.",
+    "MOVE_CONFLICT": "{{count}} niet verplaatst: {{app}} heeft al zo’n melding.",
+    "MOVE_DONE": "{{count}} verplaatst naar {{app}}.",
+    "MOVE_FAILED": "{{count}} zijn mogelijk bij {{app}} aangekomen. Controleer beide apps voordat je het opnieuw probeert.",
+    "MOVE_FAILED_ALL": "De meldingen konden niet worden verplaatst. Probeer het zo nog eens.",
+    "MOVE_REFUSED": "{{count}} niet verplaatst: {{reason}}",
+    "MOVE_REFUSED_NO_REASON": "De verplaatsing is geweigerd.",
+    "MOVE_SOURCE_REMAINS": "{{count}} verplaatst naar {{app}}, maar de kopie in {{from}} staat er nog. Verwijder die uit de lijst."
   },
   "RAIDS": {
     "RSVP_LABEL": "RSVP-meldingen",
@@ -2415,5 +2426,11 @@
     "ERR_LINK_CANCELLED": "Je hebt het koppelen geannuleerd. Er is niets gewijzigd.",
     "LOAD_FAILED": "Je gekoppelde accounts konden niet worden geladen.",
     "RETRY": "Opnieuw proberen"
+  },
+  "DELIVER_TO": {
+    "DISCORD": "Discord",
+    "LABEL": "Bezorgen via",
+    "PAUSED": "Meldingen naar {{app}} staan uit, dus daar komt voorlopig niets aan.",
+    "TELEGRAM": "Telegram"
   }
 }

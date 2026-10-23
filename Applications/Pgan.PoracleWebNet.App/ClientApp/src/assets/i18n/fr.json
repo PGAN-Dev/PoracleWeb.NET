@@ -417,7 +417,18 @@
     "FAILED_DELETE_ALL": "Impossible de supprimer les alarmes. Rechargez la page et réessayez.",
     "FAILED_DISTANCE": "Impossible de modifier le rayon. Rechargez la page et réessayez.",
     "REFUSAL_COVERED_BY": "Déjà couvert par : {{summary}}",
-    "REFUSAL_EDIT_EXISTING": "Modifier celle-ci"
+    "REFUSAL_EDIT_EXISTING": "Modifier celle-ci",
+    "DELIVER_TO_MENU": "Envoyer vers…",
+    "FILTER_ALL": "Toutes",
+    "MOVED_SOURCE_REMAINS": "Déplacée vers {{app}}, mais la copie {{from}} est toujours là. Supprimez-la dans la liste.",
+    "MOVED_TO": "Déplacée vers {{app}}.",
+    "MOVE_CONFLICT": "{{count}} non déplacée(s) : {{app}} a déjà une alerte semblable.",
+    "MOVE_DONE": "{{count}} déplacée(s) vers {{app}}.",
+    "MOVE_FAILED": "{{count}} ont peut-être atteint {{app}}. Vérifiez les deux applis avant de réessayer.",
+    "MOVE_FAILED_ALL": "Impossible de déplacer les alertes. Réessayez dans un instant.",
+    "MOVE_REFUSED": "{{count}} non déplacée(s) : {{reason}}",
+    "MOVE_REFUSED_NO_REASON": "Le déplacement a été refusé.",
+    "MOVE_SOURCE_REMAINS": "{{count}} déplacée(s) vers {{app}}, mais la copie {{from}} est toujours là. Supprimez-la dans la liste."
   },
   "RAIDS": {
     "RSVP_LABEL": "Notifications RSVP",
@@ -2415,5 +2426,11 @@
     "ERR_LINK_CANCELLED": "Vous avez annulé la liaison. Rien n’a été modifié.",
     "LOAD_FAILED": "Impossible de charger vos comptes liés.",
     "RETRY": "Réessayer"
+  },
+  "DELIVER_TO": {
+    "DISCORD": "Discord",
+    "LABEL": "Envoyer vers",
+    "PAUSED": "Les alertes vers {{app}} sont désactivées, rien ne partira donc encore vers cette appli.",
+    "TELEGRAM": "Telegram"
   }
 }

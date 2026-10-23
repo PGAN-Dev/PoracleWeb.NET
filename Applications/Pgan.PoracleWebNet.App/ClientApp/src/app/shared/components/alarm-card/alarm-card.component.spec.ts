@@ -20,6 +20,7 @@ const LIVE_POKEMON =
       [selected]="selected()"
       selectLabel="Select Bulbasaur"
       [summary]="summary()"
+      [destination]="destination()"
       (selectedToggle)="toggles = toggles + 1">
       <img ruleMedia class="rule-sprite" alt="" />
       <span ruleTitle>Bulbasaur</span>
@@ -32,6 +33,7 @@ const LIVE_POKEMON =
   `,
 })
 class HostComponent {
+  readonly destination = signal<'discord' | 'telegram' | undefined>(undefined);
   readonly edge = signal<null | RuleEdge>(null);
   readonly selectable = signal(false);
   readonly selected = signal(false);
@@ -76,6 +78,24 @@ describe('AlarmCardComponent', () => {
     expect(el.querySelector('.rule-status .rule-tag')?.textContent).toBe('Clean');
     expect(el.querySelector('.rule-foot .rule-scope .scope')).not.toBeNull();
     expect(el.querySelector('.rule-foot .rule-actions .edit')).not.toBeNull();
+  });
+
+  it('shows no delivery glyph when the alarm has no destination', () => {
+    const el = create();
+
+    expect(el.querySelector('.rule-destination')).toBeNull();
+  });
+
+  it('shows an uncoloured glyph naming the app beside the scope chip', () => {
+    const el = create();
+    host.destination.set('telegram');
+    fixture.detectChanges();
+
+    const glyph = el.querySelector('.rule-scope .rule-destination') as HTMLElement;
+    expect(glyph).not.toBeNull();
+    expect(glyph.getAttribute('data-app')).toBe('telegram');
+    expect(glyph.getAttribute('aria-label')).toBe('DELIVER_TO.TELEGRAM');
+    expect(glyph.getAttribute('style') ?? '').not.toContain('color');
   });
 
   it('draws no edge unless it is given one', () => {

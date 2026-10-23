@@ -167,6 +167,37 @@ describe('BulkActionBarComponent', () => {
     expect(calls).toEqual(['select', 'deselect', 'radius', 'delete']);
   });
 
+  describe('Deliver to menu', () => {
+    it('is absent for a person with no link', () => {
+      render(2);
+
+      expect(el().querySelector('.bulk-deliver')).toBeNull();
+    });
+
+    it('offers the two apps when linked, disabled with nothing selected', () => {
+      fixture.componentRef.setInput('canMove', true);
+      render(0);
+      const trigger = el().querySelector<HTMLButtonElement>('.bulk-deliver')!;
+
+      expect(trigger).not.toBeNull();
+      expect(trigger.disabled).toBe(true);
+    });
+
+    it('reports the chosen side', () => {
+      fixture.componentRef.setInput('canMove', true);
+      render(2);
+      const chosen: string[] = [];
+      fixture.componentInstance.moveSelected.subscribe(s => chosen.push(s));
+
+      el().querySelector<HTMLButtonElement>('.bulk-deliver')!.click();
+      fixture.detectChanges();
+      const items = Array.from(document.querySelectorAll<HTMLButtonElement>('.bulk-deliver-item'));
+      items.find(i => i.dataset['app'] === 'telegram')!.click();
+
+      expect(chosen).toEqual(['telegram']);
+    });
+  });
+
   /** Shape 2: one bulk bar, on all ten lists, counting the selected cards still on screen. */
   it.each([
     'pokemon/pokemon',

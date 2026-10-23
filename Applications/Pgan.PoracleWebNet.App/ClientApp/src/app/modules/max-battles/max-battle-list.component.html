@@ -16,6 +16,8 @@
     searchPlaceholder="MAX_BATTLES.SEARCH_PLACEHOLDER"
     [(search)]="search"
     [(sort)]="sortBy"
+    [(destinationFilter)]="destinationFilter"
+    [canFilterDestination]="canChooseDestination()"
     [sortOptions]="sortOptions"
     [total]="maxBattles().length"
     [shown]="visibleMaxBattles().length"
@@ -30,6 +32,8 @@
     (selectAll)="selectAll()"
     (deselectAll)="deselectAll()"
     (changeRadius)="bulkUpdateDistance()"
+    [canMove]="canChooseDestination()"
+    (moveSelected)="bulkMove($event)"
     (deleteSelected)="bulkDelete()" />
 }
 
@@ -57,6 +61,7 @@
   <div class="alarm-grid">
     @for (mb of visibleMaxBattles(); track mb.uid) {
       <app-alarm-card
+        [destination]="mb.destination"
         [summary]="mb.description"
         [selectable]="selectMode()"
         [selected]="selectedIds().has(mb.uid)"

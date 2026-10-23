@@ -417,7 +417,18 @@
     "FAILED_DELETE_ALL": "Couldn't delete the alarms. Reload the page and try again.",
     "FAILED_DISTANCE": "Couldn't change the radius. Reload the page and try again.",
     "REFUSAL_COVERED_BY": "Already covered by: {{summary}}",
-    "REFUSAL_EDIT_EXISTING": "Edit that one"
+    "REFUSAL_EDIT_EXISTING": "Edit that one",
+    "DELIVER_TO_MENU": "Deliver to…",
+    "FILTER_ALL": "All",
+    "MOVED_SOURCE_REMAINS": "Moved to {{app}}, but the {{from}} copy is still there. Delete it from the list.",
+    "MOVED_TO": "Moved to {{app}}.",
+    "MOVE_CONFLICT": "{{count}} not moved: {{app}} already has an alert like it.",
+    "MOVE_DONE": "{{count}} moved to {{app}}.",
+    "MOVE_FAILED": "{{count}} may or may not have reached {{app}}. Check both apps before trying again.",
+    "MOVE_FAILED_ALL": "Couldn't move the alerts. Try again in a moment.",
+    "MOVE_REFUSED": "{{count}} not moved: {{reason}}",
+    "MOVE_REFUSED_NO_REASON": "The move was refused.",
+    "MOVE_SOURCE_REMAINS": "{{count}} moved to {{app}}, but the {{from}} copy is still there. Delete it from the list."
   },
   "RAIDS": {
     "RSVP_LABEL": "RSVP notifications",
@@ -2415,5 +2426,11 @@
     "ERR_LINK_CANCELLED": "You cancelled the link. Nothing was changed.",
     "LOAD_FAILED": "Couldn't load your linked accounts.",
     "RETRY": "Try again"
+  },
+  "DELIVER_TO": {
+    "DISCORD": "Discord",
+    "LABEL": "Deliver to",
+    "PAUSED": "Alerts to {{app}} are off, so nothing will arrive there yet.",
+    "TELEGRAM": "Telegram"
   }
 }

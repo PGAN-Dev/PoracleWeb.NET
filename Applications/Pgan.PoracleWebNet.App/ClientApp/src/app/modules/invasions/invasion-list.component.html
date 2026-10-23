@@ -16,6 +16,8 @@
     searchPlaceholder="INVASIONS.SEARCH_PLACEHOLDER"
     [(search)]="search"
     [(sort)]="sortBy"
+    [(destinationFilter)]="destinationFilter"
+    [canFilterDestination]="canChooseDestination()"
     [sortOptions]="sortOptions"
     [total]="invasions().length"
     [shown]="visibleInvasions().length"
@@ -30,6 +32,8 @@
     (selectAll)="selectAll()"
     (deselectAll)="deselectAll()"
     (changeRadius)="bulkUpdateDistance()"
+    [canMove]="canChooseDestination()"
+    (moveSelected)="bulkMove($event)"
     (deleteSelected)="bulkDelete()" />
 }
 
@@ -42,6 +46,7 @@
   <div class="alarm-grid">
     @for (invasion of visibleInvasions(); track invasion.uid) {
       <app-alarm-card
+        [destination]="invasion.destination"
         [summary]="invasion.description"
         [selectable]="selectMode()"
         [selected]="selectedIds().has(invasion.uid)"

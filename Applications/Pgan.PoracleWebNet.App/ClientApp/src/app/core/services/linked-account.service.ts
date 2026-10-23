@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { DestroyRef, Injectable, effect, inject, signal, untracked } from '@angular/core';
+import { DestroyRef, Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
 import { AuthService } from './auth.service';
@@ -27,6 +27,16 @@ export class LinkedAccountService {
   private readonly settings = inject(SettingsService);
   private readonly statusSignal = signal<LinkStatus | null>(null);
   private readonly tokenStore = inject(TokenStoreService);
+
+  /**
+   * Whether an alarm dialog may ask where to deliver: linked, and both sides have an account to deliver to.
+   * Anyone else sees no "Deliver to" anywhere, and the API is called exactly as before.
+   */
+  readonly canChoose = computed(() => {
+    const status = this.statusSignal();
+    const sides = status?.sides ?? [];
+    return !!status?.linked && sides.length === 2 && sides.every(s => s.exists);
+  });
 
   /** Null until the first read, and again after sign-out. `{ linked: false }` is a read that found no link. */
   readonly status = this.statusSignal.asReadonly();

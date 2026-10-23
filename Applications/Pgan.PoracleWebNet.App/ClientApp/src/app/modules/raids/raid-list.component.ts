@@ -11,13 +11,15 @@ import { firstValueFrom, forkJoin } from 'rxjs';
 
 import { RaidAddDialogComponent } from './raid-add-dialog.component';
 import { RaidEditDialogComponent, RaidEditDialogData } from './raid-edit-dialog.component';
-import { Raid, Egg } from '../../core/models';
+import { Raid, Egg, LinkSide } from '../../core/models';
 import { resolveLevel } from '../../core/models/raid-level.models';
+import { AlarmMoveService, MoveOutcome, summariseMoves } from '../../core/services/alarm-move.service';
 import { AreaNameService } from '../../core/services/area-name.service';
 import { AreaService } from '../../core/services/area.service';
 import { EggService } from '../../core/services/egg.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
+import { LinkedAccountService } from '../../core/services/linked-account.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { RaidLevelService } from '../../core/services/raid-level.service';
 import { RaidService } from '../../core/services/raid.service';
@@ -36,7 +38,7 @@ import { WhereSheetComponent, WhereSheetData, whereSheetConfig } from '../../sha
 import { LevelLabelPipe } from '../../shared/pipes/level-label.pipe';
 import { addOnArrival } from '../../shared/utils/add-on-arrival';
 import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
-import { byNumber, byText, queryAlarms, visibleSelection } from '../../shared/utils/alarm-list-query';
+import { byDestination, byNumber, byText, DestinationFilter, queryAlarms, visibleSelection } from '../../shared/utils/alarm-list-query';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { NO_COSTUME } from '../../shared/utils/costumes';
@@ -79,6 +81,7 @@ export class RaidListComponent implements OnInit {
   private readonly i18n = inject(I18nService);
   private readonly iconService = inject(IconService);
   private readonly masterData = inject(MasterDataService);
+  private readonly moves = inject(AlarmMoveService);
   private readonly raidLevelService = inject(RaidLevelService);
   private readonly raidService = inject(RaidService);
   private readonly scannerService = inject(ScannerService);
@@ -86,18 +89,19 @@ export class RaidListComponent implements OnInit {
   /** `?add=1` from the dashboard or onboarding opens the add dialog once. */
   private readonly takeAddRequest = addOnArrival();
   private readonly translate = inject(TranslateService);
+
   /** Which tab is in front: 0 raids, 1 eggs. Bulk actions are scoped to it. See #642. */
   readonly activeTab = signal(0);
-
   // Keyed "raid:12" / "egg:12", not by the bare uid. Raid and egg uids come from separate
   // auto-increment sequences and do collide; with one set of integers covering both grids, ticking
   // one card ticked the other, and the bulk actions sent both to the raid endpoint -- deleting or
   // resizing the raid twice and leaving the egg alone. See #540.
   readonly selectedIds = signal(new Set<string>());
+  /** A linked person can filter by the app each alarm is delivered to. */
+  readonly destinationFilter = signal<DestinationFilter>('all');
   readonly eggs = signal<Egg[]>([]);
   readonly gymNames = signal<Record<string, string>>({});
   readonly search = signal('');
-
   /** "default" keeps the stable order the list loads in (see orderAlarms), so nothing moves once names load. */
   readonly sortBy = signal('default');
 
@@ -109,7 +113,7 @@ export class RaidListComponent implements OnInit {
       tier: byNumber(e => e.level),
     };
     return queryAlarms(
-      this.eggs(),
+      byDestination(this.eggs(), this.destinationFilter()),
       this.search(),
       e => [`${this.getRaidLevelName(e.level)} ${this.i18n.instant('RAIDS.EGG_SUFFIX')}`, this.gymNames()[e.gymId ?? '']],
       sorts[this.sortBy()] ?? null,
@@ -126,7 +130,7 @@ export class RaidListComponent implements OnInit {
       tier: byNumber(r => r.level),
     };
     return queryAlarms(
-      this.raids(),
+      byDestination(this.raids(), this.destinationFilter()),
       this.search(),
       r => [this.getRaidTitle(r), r.level === 9000 ? null : this.getRaidLevelName(r.level), this.gymNames()[r.gymId ?? '']],
       sorts[this.sortBy()] ?? null,
@@ -144,6 +148,9 @@ export class RaidListComponent implements OnInit {
         : this.visibleEggs().map(e => this.selectionKey('egg', e.uid)),
     ),
   );
+
+  /** True for a linked person, who gets the delivery filter, the card glyph and the bulk move. */
+  readonly canChooseDestination = inject(LinkedAccountService).canChoose;
 
   readonly loading = signal(true);
   /** Only used to word the inherited scope honestly; empty produces the more cautious wording. */
@@ -202,6 +209,30 @@ export class RaidListComponent implements OnInit {
         duration: 3000,
       });
     }
+  }
+
+  /** Moves the selected raids and eggs to the other app (two types, so two requests), then reports every outcome in one line. */
+  async bulkMove(destination: LinkSide): Promise<void> {
+    const keys = this.actionIds();
+    try {
+      const results: MoveOutcome[] = [];
+      for (const [type, kind] of [
+        ['raid', 'raid'],
+        ['egg', 'egg'],
+      ] as const) {
+        const uids = this.uidsOfKind(keys, kind);
+        if (uids.length > 0) results.push(...(await firstValueFrom(this.moves.moveMany(type, uids, destination))).results);
+      }
+      this.snackBar.open(summariseMoves(results, destination, this.i18n), this.i18n.instant('COMMON.OK'), { duration: 8000 });
+    } catch (err) {
+      this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.MOVE_FAILED_ALL'), this.i18n.instant('COMMON.OK'), {
+        duration: 6000,
+      });
+    }
+    // Part of the selection may have moved before a later request failed, so the list always reloads.
+    this.selectedIds.set(new Set());
+    this.selectMode.set(false);
+    this.loadData();
   }
 
   async bulkUpdateDistance(): Promise<void> {

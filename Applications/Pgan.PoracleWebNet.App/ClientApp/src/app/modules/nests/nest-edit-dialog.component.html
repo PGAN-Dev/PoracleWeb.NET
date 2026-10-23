@@ -32,6 +32,7 @@
         <span class="tab-label">{{ 'ALARM.TAB_DELIVERY' | translate }}</span>
       </ng-template>
       <div class="tab-content">
+        <app-deliver-to-field [control]="form.controls.destination" />
         <app-scope-picker [(scope)]="scope" [(radiusValid)]="radiusValid" [storedRadiusKm]="storedRadiusKm" />
 
         <h4>{{ 'ALARM.MESSAGE_SETTINGS' | translate }}</h4>

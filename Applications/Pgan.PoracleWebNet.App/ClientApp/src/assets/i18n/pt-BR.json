@@ -417,7 +417,18 @@
     "FAILED_DELETE_ALL": "Não foi possível excluir os alarmes. Recarregue a página e tente novamente.",
     "FAILED_DISTANCE": "Não foi possível alterar o raio. Recarregue a página e tente novamente.",
     "REFUSAL_COVERED_BY": "Já coberto por: {{summary}}",
-    "REFUSAL_EDIT_EXISTING": "Editar esse"
+    "REFUSAL_EDIT_EXISTING": "Editar esse",
+    "DELIVER_TO_MENU": "Entregar em…",
+    "FILTER_ALL": "Todos",
+    "MOVED_SOURCE_REMAINS": "Movido para {{app}}, mas a cópia em {{from}} ainda está lá. Exclua-a da lista.",
+    "MOVED_TO": "Movido para {{app}}.",
+    "MOVE_CONFLICT": "{{count}} não movidos: {{app}} já tem um alerta igual.",
+    "MOVE_DONE": "{{count}} movidos para {{app}}.",
+    "MOVE_FAILED": "{{count}} podem ter chegado a {{app}}. Confira os dois apps antes de tentar de novo.",
+    "MOVE_FAILED_ALL": "Não foi possível mover os alertas. Tente de novo daqui a pouco.",
+    "MOVE_REFUSED": "{{count}} não movidos: {{reason}}",
+    "MOVE_REFUSED_NO_REASON": "A mudança foi recusada.",
+    "MOVE_SOURCE_REMAINS": "{{count}} movidos para {{app}}, mas a cópia em {{from}} ainda está lá. Exclua-a da lista."
   },
   "RAIDS": {
     "RSVP_LABEL": "Notificações RSVP",
@@ -2415,5 +2426,11 @@
     "ERR_LINK_CANCELLED": "Você cancelou a vinculação. Nada foi alterado.",
     "LOAD_FAILED": "Não foi possível carregar suas contas vinculadas.",
     "RETRY": "Tentar de novo"
+  },
+  "DELIVER_TO": {
+    "DISCORD": "Discord",
+    "LABEL": "Entregar em",
+    "PAUSED": "Os alertas para {{app}} estão desativados, então ainda não vai chegar nada lá.",
+    "TELEGRAM": "Telegram"
   }
 }

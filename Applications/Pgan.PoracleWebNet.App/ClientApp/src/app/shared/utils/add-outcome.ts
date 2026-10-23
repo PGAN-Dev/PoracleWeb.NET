@@ -5,8 +5,11 @@ import { TranslateService } from '@ngx-translate/core';
 import { catchError, Observable, of } from 'rxjs';
 
 import { describeScope, scopeOf } from './alarm-scope';
+import { pausedCreateMessage } from './deliver-to';
+import { isMoveFailure } from './move-failure';
 import { serverReason } from './server-reason';
 import { reportedByInterceptor } from '../../core/interceptors/error.interceptor';
+import { LinkSide } from '../../core/models';
 import { I18nService } from '../../core/services/i18n.service';
 
 /** A create the API refused, kept beside the ones that landed so one refusal cannot hide the rest (#577). */
@@ -14,8 +17,15 @@ export interface FailedCreate {
   failed: unknown;
 }
 
+/** A created alarm as the API answers: its uid, and which app it went to when the person is linked. */
+export interface CreatedAlarm {
+  destination?: LinkSide;
+  pausedDestination?: boolean;
+  uid?: number;
+}
+
 /** One create, settled: the alarm the API answered with (uid 0 when it was already tracked), or the refusal. */
-export type SettledCreate = FailedCreate | { uid?: number };
+export type SettledCreate = CreatedAlarm | FailedCreate;
 
 /** A refused single Add, as the dialog shows it above its actions. */
 export interface AddRefusal {
@@ -114,7 +124,12 @@ export function validationReason(err: unknown): string | null {
  */
 export function createFailureText(err: unknown, i18n: I18nService, fallbackKey: string): string {
   const status = (err as { status?: unknown } | null | undefined)?.status;
-  return serverReason(err) ?? validationReason(err) ?? i18n.instant(status === 429 ? 'ALARM.FAILED_TOO_MANY' : fallbackKey);
+  // A move that failed after the copy was taken answers 502 with what to check; that sentence is the message.
+  return (
+    serverReason(err, isMoveFailure(err) ? { allow5xx: [502] } : undefined) ??
+    validationReason(err) ??
+    i18n.instant(status === 429 ? 'ALARM.FAILED_TOO_MANY' : fallbackKey)
+  );
 }
 
 /**
@@ -166,7 +181,8 @@ export function finishAdd(results: SettledCreate[], options: FinishAddOptions): 
   }
 
   // Three outcomes, not two: refused, already tracked (200 with uid 0, see #495) and created.
-  const landed = results.filter((r): r is { uid?: number } => !isFailed(r));
+  const landed = results.filter((r): r is CreatedAlarm => !isFailed(r));
+  const paused = landed.find(r => r.pausedDestination);
   const created = landed.filter(r => (r.uid ?? 0) > 0).length;
   const duplicates = landed.length - created;
 
@@ -178,7 +194,7 @@ export function finishAdd(results: SettledCreate[], options: FinishAddOptions): 
       snackBar.open(createFailureText(unreported.failed, i18n, failedKey), i18n.instant('COMMON.OK'), { duration: 6000 });
     }
   } else {
-    reportCreated(created, duplicates, i18n, snackBar);
+    reportCreated(created, duplicates, i18n, snackBar, paused ? pausedCreateMessage(paused.destination, i18n) : null);
   }
 
   dialogRef.close(true);
@@ -189,16 +205,27 @@ export function finishAdd(results: SettledCreate[], options: FinishAddOptions): 
  * 2 already tracked", or, for a single Add PoracleNG found stored exactly, that nothing was changed.
  * Lures, fort changes and Pokéstop events each used to word it their own way.
  */
-export function reportCreated(created: number, duplicates: number, i18n: I18nService, snackBar: MatSnackBar): void {
+export function reportCreated(
+  created: number,
+  duplicates: number,
+  i18n: I18nService,
+  snackBar: MatSnackBar,
+  pausedNote?: null | string,
+): void {
   if (created === 0 && duplicates === 1) {
     // PoracleNG left the stored rule exactly as it was. "0 created, 1 already tracked" read as success
     // while a setting the user changed (Clean mode, say) was dropped.
-    snackBar.open(i18n.instant('ALARM.ALREADY_TRACKED_ONE'), i18n.instant('COMMON.OK'), { duration: 6000 });
+    snackBar.open(withNote(i18n.instant('ALARM.ALREADY_TRACKED_ONE'), pausedNote), i18n.instant('COMMON.OK'), { duration: 6000 });
     return;
   }
   const message =
     duplicates > 0
       ? i18n.instant('ALARM.SNACK_CREATED_WITH_DUPLICATES', { count: created, duplicates })
       : i18n.plural('ALARM.SNACK_CREATED', created);
-  snackBar.open(message, i18n.instant('COMMON.OK'), { duration: 4000 });
+  snackBar.open(withNote(message, pausedNote), i18n.instant('COMMON.OK'), { duration: pausedNote ? 7000 : 4000 });
+}
+
+/** One line after the snack's own message, so a paused side is said in the same toast and not a second one. */
+function withNote(message: string, note?: null | string): string {
+  return note ? `${message} ${note}` : message;
 }
