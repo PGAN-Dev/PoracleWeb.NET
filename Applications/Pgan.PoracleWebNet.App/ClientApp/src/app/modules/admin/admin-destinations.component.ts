@@ -442,7 +442,7 @@ export class AdminDestinationsComponent implements OnInit {
       .subscribe({
         error: () => {
           this.usersLoading.set(false);
-          this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_LOAD_WEBHOOKS'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_LOAD_DESTINATIONS'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
         },
         next: ({ delegates, poracleAdmins, porocleDelegates, users }) => {
           this.allUsers.set(users);
@@ -460,9 +460,13 @@ export class AdminDestinationsComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         error: err =>
-          this.snackBar.open(serverReason(err) ?? this.i18n.instant('ADMIN.SNACK_FAILED_SWITCH_WEBHOOK'), this.i18n.instant('TOAST.OK'), {
-            duration: 4000,
-          }),
+          this.snackBar.open(
+            serverReason(err) ?? this.i18n.instant('ADMIN.SNACK_FAILED_SWITCH_DESTINATION'),
+            this.i18n.instant('TOAST.OK'),
+            {
+              duration: 4000,
+            },
+          ),
         next: res => this.auth.impersonate(res.token, '/admin/destinations'),
       });
   }

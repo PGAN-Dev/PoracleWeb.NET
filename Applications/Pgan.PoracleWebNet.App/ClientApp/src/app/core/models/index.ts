@@ -342,7 +342,7 @@ export interface UserInfo {
   enabled: boolean;
   id: string;
   isAdmin: boolean;
-  managedWebhooks?: string[] | null;
+  managedDestinations?: string[] | null;
   profileName: string | null;
   profileNo: number;
   token?: string | null;

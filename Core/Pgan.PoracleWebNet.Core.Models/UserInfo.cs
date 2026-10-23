@@ -1,5 +1,3 @@
-using System.Text.Json.Serialization;
-
 namespace Pgan.PoracleWebNet.Core.Models;
 
 public class UserInfo
@@ -26,10 +24,9 @@ public class UserInfo
     }
     /// <summary>The destinations a delegate may manage: webhooks, channels, threads, groups and topics.</summary>
     /// <remarks>
-    /// Still sent as <c>managedWebhooks</c> because the SPA reads that name. Task 6.5 of #1025 renames the
-    /// SPA's field and removes this attribute in the same change.
+    /// Sent as <c>managedDestinations</c>. The JWT claim carrying the same list keeps its old
+    /// <c>managedWebhooks</c> name, so a token minted before the rename still reads.
     /// </remarks>
-    [JsonPropertyName("managedWebhooks")]
     public string[]? ManagedDestinations
     {
         get; set;

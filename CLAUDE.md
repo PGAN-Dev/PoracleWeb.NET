@@ -104,16 +104,18 @@ empty, whitespace or ends `:user` (case-insensitive); everything else is a desti
 and three sets.
 
 `HumanKind.Destinations` is exactly `webhook`, `discord:channel`, `discord:thread`, `telegram:channel`,
-`telegram:group`, `telegram:topic`. It is the allowlist that create, grant targets and delegate impersonation will check
-as the later parts of #1025 land; **nothing reads it yet** (only `IsPerson` and `KindOf` are used), and the grant target is
-still webhook-only. An unknown non-user type is listed as a destination and will be on none of those powers. `MentionCapable` (webhook, Discord channel,
-Discord thread) says where a `ping` makes sense; `NameAddressable` says which types PoracleNG resolves by name.
+`telegram:group`, `telegram:topic`, and it is the only list that grants power: destination create
+(`AdminController`), grant targets (the delegate grant) and delegate impersonation all check
+`HumanKind.IsKnownDestination`, and `DestinationDirectory` lists exactly those six types. An unknown non-user type is
+listed as a destination and has none of those powers: it can't be created, granted or opened by a delegate (admins can
+still open any account). `MentionCapable` (webhook, Discord channel, Discord thread) says where a `ping` makes sense;
+`NameAddressable` says which types PoracleNG resolves by name.
 
 `GET /api/admin/users` stamps `kind` on every row. Admin > Users shows the people, Admin > Destinations the rest, split
 client-side on that field (`shared/utils/human-kind.ts`); the two pages share their list state in `admin-list-state.ts`.
-The delegate grant refuses a grantee that isn't a person (400). Once delegation widens beyond webhooks, the
-`webhook_delegates.webhook_id` column will hold a destination id, a channel or group id rather than a URL; today it
-holds webhook URLs only, and the column name predates the change.
+The delegate grant refuses a grantee that isn't a person (400) and a target that isn't one of the six. The
+`webhook_delegates.webhook_id` column holds any destination's id (a webhook URL, a channel or group id, a
+`chat:topic` pair); the column name predates #1025.
 
 ### Repository Layer
 - Repositories remain for **non-alarm** data only: all PoracleWeb-owned tables (`SiteSettingRepository`, `WebhookDelegateRepository`, `UserGeofenceRepository`, `QuickPickDefinitionRepository`, `QuickPickAppliedStateRepository`). There is no human or profile repository: every human and profile read and write, admin bulk included, goes through `IPoracleHumanProxy` (5.4.0's `/api/v2`).
@@ -289,18 +291,25 @@ Two upstream behaviours PoracleWeb.NET still has to know about. Both verified di
 
 **Alarm writes never send `profile_no`.** PoracleNG takes a submitted `profile_no` at face value for the pokemon type -- `profile_no: 9` creates a row on a profile that does not exist -- while scoping every read to `current_profile_no`. Since the JWT claim can be stale (see "JWT profile resync"), stamping it onto writes stranded alarms that were invisible and undeletable. `PoracleJsonHelper.SerializeToElement` strips it, so PoracleNG files each alarm under the live active profile. See #411.
 
-### Webhook Delegation Resolves Live, From Three Sources
+### Destination Delegation Resolves Live, From Three Sources
 
-A webhook is a Poracle human whose id is a Discord webhook URL. A **delegate** is a non-admin allowed
-to manage one, which they do by impersonating it — so "who may manage what" is an authorisation
-question asked on three surfaces: the `/my-webhooks` list, `POST /api/admin/impersonate`, and
-`/api/auth/me`, which decides whether the nav item renders at all.
+A destination is a Poracle human alerts are posted into: any of the six types in `HumanKind.Destinations`
+(see "People vs destinations"). A **delegate** is a non-admin allowed to manage one, which they do by
+impersonating it, so "who may manage what" is an authorisation question asked on three surfaces: the
+My Destinations list (`GET /api/admin/my-destinations`; `my-webhooks` stays as a route alias, and the SPA
+redirects `/my-webhooks` to `/my-destinations`), `POST /api/admin/impersonate`, and `/api/auth/me`, which
+decides whether the nav item renders at all.
 
 `IUserRoleResolver.ResolveAsync` is the single answer, unioning:
 
 1. PoracleNG's `getAdministrationRoles` → `admin.discord.webhooks` (covers `discord.webhook_admins`
-   **and** guild-role delegation),
-2. `poracle_web.webhook_delegates` (what the admin dialog writes),
+   **and** guild-role delegation), plus `admin.discord.channels` and `admin.telegram.channels` **only when
+   the `delegation_poracle_channels` site setting is on** (absent = off). Those lists come from
+   `[[discord.delegated_admins]]`/`[[telegram.delegated_admins]]`, which say who may administer a channel in
+   the bot; an operator may not mean that as "may manage its alarms here", so it is opt-in. A guild-wide entry
+   reaches only channels registered as destinations, because every grant is canonicalised against the
+   directory below.
+2. `poracle_web.webhook_delegates` (what the admin dialog writes, now for any of the six types),
 3. admins from `Poracle:AdminIds` or Poracle's config, who short-circuit before any network call.
 
 Cached one minute per user; a degraded answer is never cached. Writes do not wait out the minute:
@@ -311,14 +320,15 @@ cache keys carry a generation number held in the shared `IMemoryCache`, since th
 
 This is also what re-authorises impersonation sessions on every request (see "JWT Generation"), so a
 stale entry here is a minute of access an admin has just taken away. Any new writer of a grant must
-invalidate too.
+invalidate too, and so must a write of `delegation_poracle_channels`, which is why saving that setting takes
+effect at once rather than after the minute.
 
 **All three surfaces must resolve live, and the same union.** This has now broken four separate ways,
 each time because one surface disagreed with another:
 
 | Fix | What it broke |
 |---|---|
-| #564 | `/my-webhooks` loaded from the admin user list, which 403s non-admins — the only people who could see the page |
+| #564 | `/my-webhooks` (now `/my-destinations`) loaded from the admin user list, which 403s non-admins — the only people who could see the page |
 | #601 | reading the claim let a revoked delegate keep access for 24 hours |
 | #626 | resolving from the local table alone refused a PoracleJS-configured delegate the nav item had just offered |
 | #786 | `/api/auth/me` still read the claim, so a *new* delegate could not find a page that would have let them in |
@@ -334,22 +344,32 @@ ever fire — both API versions build it from the same `adminRolesResult` (`chan
 `users`), and v2's schema is `additionalProperties:false`. They are deleted; do not re-add a promotion
 path from a field upstream does not send.
 
-**A grant names a webhook; it is not necessarily its id.** PoracleNG returns whatever key the operator
-wrote in `[[discord.webhook_admins]] target`, and upstream that key is the webhook's **name** — the bot
-resolves it with `LookupWebhookByName` and authorises with `CanAdminWebhook(cfg, userID, nameOverride)`.
+**A grant names a destination; it is not necessarily its id.** PoracleNG returns whatever key the
+operator wrote in `[[discord.webhook_admins]] target`, and upstream that key is the webhook's **name**: the
+bot resolves it with `LookupWebhookByName` and authorises with `CanAdminWebhook(cfg, userID, nameOverride)`.
 The local delegate table stores ids. `UserRoleResolver` therefore canonicalises every grant to a
-`humans.id` (id first, then name, case-insensitively) before returning it, and drops what names neither:
-a grant that matches no row could never match one downstream, and carrying it drew a nav item onto an
-empty page. Consumers may assume `ManagedWebhooks` holds ids. See #797.
+`humans.id` against **`IDestinationDirectory`** (every destination of the six types, one PoracleNG list call
+per type, cached a minute, never cached on a failed read) and drops what names nothing: a grant that
+matches no row could never match one downstream, and carrying it drew a nav item onto an empty page. Ids
+match any of the six; names match only `HumanKind.NameAddressable` types, a webhook winning a shared name
+and a name shared by two non-webhooks dropped as ambiguous; channel ids from Poracle's channel lists are
+matched by id only. Consumers may assume `ManagedDestinations` holds ids. See #797, #1025.
 
-An impersonation session resolves `managedWebhooks` live, like every other surface, because `this.UserId`
-is the account the whole session is acting as — the same account `my-webhooks` and `POST impersonate`
+An impersonation session resolves the managed list live, like every other surface, because `this.UserId`
+is the account the whole session is acting as, the same account `my-destinations` and `POST impersonate`
 already answer for. `IsAdmin` is the carve-out, not this. Chaining a second impersonation is refused
-server-side: the SPA holds one `poracle_admin_token`, so a second hop overwrites the way back out.
+server-side: the SPA holds one `poracle_admin_token`, so a second hop overwrites the way back out. A
+delegate's impersonation also checks the target's live type with `HumanKind.IsKnownDestination`, so a grant
+whose id belongs to a person or an unknown type opens nothing.
 
-The `managedWebhooks` JWT claim is now a **cold fallback only**, used when a resolve is degraded so an
-outage does not strip a delegate mid-session. Nothing authorises off it. Do not reintroduce it as a
-source of truth.
+**The names differ by layer, deliberately.** C# says `ManagedDestinations` (`UserInfo`, `UserRoles`,
+`BaseApiController`), the `/api/auth/me` body says `managedDestinations`, and the SPA says
+`managedDestinations`/`hasManagedDestinations`. The **JWT claim is still named `managedWebhooks`**
+(`JwtService`, `BaseApiController`): renaming it would make every token minted before the rename read as
+"manages nothing" until it expired. Leave the claim name alone.
+
+That claim is now a **cold fallback only**, used when a resolve is degraded so an outage does not strip a
+delegate mid-session. Nothing authorises off it. Do not reintroduce it as a source of truth.
 
 Two carve-outs worth keeping: an impersonation session resolves nothing (`this.UserId` is the
 impersonated account, so its own delegations answer a different question — the shape of #663), and

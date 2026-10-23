@@ -972,6 +972,23 @@ public class AdminControllerTests : ControllerTestBase
         Assert.IsType<ForbidResult>(await this._sut.ImpersonateById(new AdminController.ImpersonateRequest("u1")));
     }
 
+    /// <summary>
+    /// The page moved to /my-destinations. /my-webhooks stays as an alias so a SPA still cached from
+    /// before the rename keeps loading its rows until the next reload.
+    /// </summary>
+    [Fact]
+    public void GetManagedDestinationsAnswersOnBothRoutes()
+    {
+        var templates = typeof(AdminController).GetMethod(nameof(AdminController.GetManagedDestinations))!
+            .GetCustomAttributes(typeof(HttpGetAttribute), false)
+            .Cast<HttpGetAttribute>()
+            .Select(a => a.Template)
+            .ToArray();
+
+        Assert.Contains("my-destinations", templates);
+        Assert.Contains("my-webhooks", templates);
+    }
+
     // --- GetManagedDestinations (#797) ---
 
     /// <summary>

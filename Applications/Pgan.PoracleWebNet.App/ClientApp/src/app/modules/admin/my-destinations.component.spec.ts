@@ -7,22 +7,29 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideTranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
 
-import { MyWebhooksComponent } from './my-webhooks.component';
+import { MyDestinationsComponent } from './my-destinations.component';
 import { AdminUser } from '../../core/models';
 import { AdminService } from '../../core/services/admin.service';
 import { AuthService } from '../../core/services/auth.service';
 
-describe('MyWebhooksComponent', () => {
+describe('MyDestinationsComponent', () => {
   const rows: AdminUser[] = [
     { id: 'http://wh.example/a', name: 'teamharmonyrares', adminDisable: 0, currentProfileNo: 1, enabled: 1, type: 'webhook' },
   ] as AdminUser[];
 
-  function setup(options: { impersonating?: boolean; managedWebhooks?: string[]; webhooks?: AdminUser[] } = {}) {
-    const adminService = { getManagedWebhooks: jest.fn(() => of(options.webhooks ?? rows)), impersonateById: jest.fn() };
+  const mixed: AdminUser[] = [
+    { id: 'http://wh.example/a', name: 'teamharmonyrares', adminDisable: 0, currentProfileNo: 1, enabled: 1, type: 'webhook' },
+    { id: '1100000000000000001', name: 'raids-north', adminDisable: 0, currentProfileNo: 1, enabled: 1, type: 'discord:channel' },
+    { id: '-1001234567890', name: 'hundos', adminDisable: 0, currentProfileNo: 1, enabled: 1, type: 'telegram:group' },
+    { id: '-1009876543210', name: 'typo', adminDisable: 0, currentProfileNo: 1, enabled: 1, type: 'telegram:chanel' },
+  ] as AdminUser[];
+
+  function setup(options: { destinations?: AdminUser[]; impersonating?: boolean; managedDestinations?: string[] } = {}) {
+    const adminService = { getManagedDestinations: jest.fn(() => of(options.destinations ?? rows)), impersonateById: jest.fn() };
     const auth = {
       impersonate: jest.fn(),
       isImpersonating: signal(options.impersonating ?? false),
-      managedWebhooks: signal(options.managedWebhooks ?? []),
+      managedDestinations: signal(options.managedDestinations ?? []),
     };
 
     TestBed.configureTestingModule({
@@ -34,10 +41,10 @@ describe('MyWebhooksComponent', () => {
         { provide: AuthService, useValue: auth },
         { provide: MatSnackBar, useValue: { open: jest.fn() } },
       ],
-      imports: [MyWebhooksComponent, NoopAnimationsModule],
+      imports: [MyDestinationsComponent, NoopAnimationsModule],
     });
 
-    const fixture = TestBed.createComponent(MyWebhooksComponent);
+    const fixture = TestBed.createComponent(MyDestinationsComponent);
     fixture.detectChanges();
     return { adminService, auth, component: fixture.componentInstance, fixture };
   }
@@ -50,25 +57,41 @@ describe('MyWebhooksComponent', () => {
    * side: a nav item, a page, and nothing on it. The server already scopes the rows to the caller.
    */
   it('renders the rows the server returned without re-filtering them', () => {
-    const { component } = setup({ managedWebhooks: ['teamharmonyrares'] });
+    const { component } = setup({ managedDestinations: ['teamharmonyrares'] });
 
-    expect(component.webhooks()).toEqual(rows);
+    expect(component.destinations()).toEqual(rows);
   });
 
-  it('records My Webhooks as the way back out of the session', () => {
+  it('lists each delegated destination with its kind', () => {
+    const { fixture } = setup({ destinations: mixed });
+    const cells = Array.from(fixture.nativeElement.querySelectorAll('td.mat-column-type') as NodeListOf<HTMLElement>).map(td => ({
+      icon: td.querySelector('mat-icon')?.textContent?.trim(),
+      label: td.querySelector('.kind-label')?.textContent?.trim(),
+    }));
+
+    expect(cells).toEqual([
+      { icon: 'webhook', label: 'ADMIN.TYPE_WEBHOOK' },
+      { icon: 'tag', label: 'ADMIN.TYPE_DISCORD_CHANNEL' },
+      { icon: 'send', label: 'ADMIN.TYPE_TELEGRAM_GROUP' },
+      // An unknown type shows its raw string, as it does on Destinations, so a typo stays visible.
+      { icon: 'help_outline', label: 'telegram:chanel' },
+    ]);
+  });
+
+  it('records My Destinations as the way back out of the session', () => {
     // A delegate has no /admin; the session's exit has to come back here.
     const { adminService, auth, component } = setup();
     adminService.impersonateById.mockReturnValue(of({ token: 'webhook-jwt' }));
 
     component.manageAlarms(rows[0]);
 
-    expect(auth.impersonate).toHaveBeenCalledWith('webhook-jwt', '/my-webhooks');
+    expect(auth.impersonate).toHaveBeenCalledWith('webhook-jwt', '/my-destinations');
   });
 
   it('asks for the rows even when the client has no copy of the grant list', () => {
-    const { adminService } = setup({ managedWebhooks: [] });
+    const { adminService } = setup({ managedDestinations: [] });
 
-    expect(adminService.getManagedWebhooks).toHaveBeenCalled();
+    expect(adminService.getManagedDestinations).toHaveBeenCalled();
   });
 
   /**

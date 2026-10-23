@@ -986,7 +986,7 @@ public partial class AuthController(
     /// </para>
     /// <para>
     /// An impersonation session resolves live like any other. <c>this.UserId</c> names the impersonated
-    /// account, which is exactly what <c>GET /api/admin/my-webhooks</c> and <c>POST /api/admin/impersonate</c>
+    /// account, which is exactly what <c>GET /api/admin/my-destinations</c> and <c>POST /api/admin/impersonate</c>
     /// already answer for, so short-circuiting to a claim the impersonation token never carries hid a nav
     /// item whose page would have worked. This is not the #663 trap: that one re-elevated ADMIN rights the
     /// impersonation token deliberately drops, and <c>isAdmin</c> still comes from the claim. Chaining a

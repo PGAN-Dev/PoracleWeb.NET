@@ -52,11 +52,11 @@ export class AuthService {
   private readonly tokenStore = inject(TokenStoreService);
   private readonly userLoaded$ = new ReplaySubject<UserInfo | null>(1);
 
-  readonly hasManagedWebhooks = computed(() => (this.currentUser()?.managedWebhooks?.length ?? 0) > 0);
+  readonly hasManagedDestinations = computed(() => (this.currentUser()?.managedDestinations?.length ?? 0) > 0);
   readonly isAdmin = computed(() => this.currentUser()?.isAdmin ?? false);
   readonly isImpersonating = this._isImpersonating.asReadonly();
   readonly isLoggedIn = computed(() => !!this.currentUser());
-  readonly managedWebhooks = computed(() => this.currentUser()?.managedWebhooks ?? []);
+  readonly managedDestinations = computed(() => this.currentUser()?.managedDestinations ?? []);
   readonly profileResynced = this._profileResynced.asReadonly();
   readonly user = this.currentUser.asReadonly();
 

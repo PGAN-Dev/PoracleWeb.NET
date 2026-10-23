@@ -74,14 +74,17 @@ public partial class AdminController(
     }
 
     /// <summary>
-    /// The webhooks a delegate manages.
+    /// The destinations a delegate manages: webhooks, channels, threads, groups and topics.
     /// </summary>
     /// <remarks>
-    /// /my-webhooks renders only when the session carries managedWebhooks, which happens only for
+    /// Served on /my-destinations, and still on /my-webhooks so a SPA cached from before the page was
+    /// renamed keeps loading until it reloads.
+    /// The page renders only when the session carries managedDestinations, which happens only for
     /// NON-admins -- and it loaded its rows from the admin user list, which rejects exactly those people.
     /// The only users who could see the page were the only users the endpoint refused: a 403, an empty
     /// table and a failure toast. Scoped to the caller's own grants instead. See #564.
     /// </remarks>
+    [HttpGet("my-destinations")]
     [HttpGet("my-webhooks")]
     public async Task<IActionResult> GetManagedDestinations()
     {
@@ -781,7 +784,7 @@ public partial class AdminController(
         // Allow admins or delegates who manage this specific webhook. Resolved live rather than read from
         // the JWT claim: the claim is minted at login and lives 24 hours, so a revoked delegate could keep
         // impersonating the webhook until they next signed in. See #601.
-        // Same union as the claim and as my-webhooks, so a PoracleJS-configured delegate is not refused
+        // Same union as the claim and as my-destinations, so a PoracleJS-configured delegate is not refused
         // by an endpoint the nav item just offered them. See #626.
         // No hop from inside an impersonation session. The SPA stashes the caller's own token in a single
         // poracle_admin_token slot, so a second hop overwrites it with the first impersonated one and

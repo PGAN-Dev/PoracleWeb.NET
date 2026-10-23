@@ -12,4 +12,17 @@ describe('app routes', () => {
     expect(page?.title).toBe('NAV.DESTINATIONS');
     expect(page?.canActivate?.length).toBe(2);
   });
+
+  it('redirects /my-webhooks', () => {
+    // A delegate's bookmark, and the exit route an impersonation session started before the rename recorded.
+    const old = routes.find(r => r.path === 'my-webhooks');
+    expect(old?.redirectTo).toBe('my-destinations');
+    expect(old?.pathMatch).toBe('full');
+  });
+
+  it('serves My Destinations to any signed-in user', () => {
+    const page = routes.find(r => r.path === 'my-destinations');
+    expect(page?.title).toBe('NAV.MY_DESTINATIONS');
+    expect(page?.canActivate?.length).toBe(1);
+  });
 });

@@ -140,9 +140,9 @@ describe('TokenStoreService', () => {
 
   describe('impersonation return route', () => {
     it('hands back the recorded route once', () => {
-      service.setImpersonationReturn('/my-webhooks');
+      service.setImpersonationReturn('/my-destinations');
 
-      expect(service.takeImpersonationReturn()).toBe('/my-webhooks');
+      expect(service.takeImpersonationReturn()).toBe('/my-destinations');
       expect(service.takeImpersonationReturn()).toBe('/admin');
     });
 
