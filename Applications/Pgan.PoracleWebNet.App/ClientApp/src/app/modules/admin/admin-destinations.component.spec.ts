@@ -331,7 +331,7 @@ describe('AdminDestinationsComponent list', () => {
     // fails. A topic is one of the six and keeps it, as does a type stored in another case.
     const topic = human('-1001234567890:42', { name: 'Topic row', type: 'telegram:topic' });
     const shouty = human('1100000000000000002', { name: 'Shouty row', type: 'Discord:Thread' });
-    const { menuOf, rowFor } = setup([hook, channel, group, odd, topic, shouty]);
+    const { menuOf } = setup([hook, channel, group, odd, topic, shouty]);
 
     const manage = (name: string) => menuOf(name).tests.includes('manage-delegates');
     expect(manage('Typo row')).toBe(false);

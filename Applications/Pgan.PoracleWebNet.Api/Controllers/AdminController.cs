@@ -427,8 +427,9 @@ public partial class AdminController(
             {
                 existing = await this._humanService.GetByIdAsync(human.Id);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                LogConflictDetailReadFailed(this._logger, ex);
             }
 
             return this.Conflict(new
@@ -943,4 +944,7 @@ public partial class AdminController(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Admin {AdminId} impersonating user {UserId}")]
     private static partial void LogAdminImpersonatingUser(ILogger logger, string adminId, string userId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Could not read the existing row to name it in a 409; answering without the detail.")]
+    private static partial void LogConflictDetailReadFailed(ILogger logger, Exception ex);
 }
