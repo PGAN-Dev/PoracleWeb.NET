@@ -351,8 +351,8 @@ public class AdminControllerTests : ControllerTestBase
     public async Task CreateWebhookStillAnswers502WhenTheCleanupCannotReachPoracle()
     {
         SetupUser(this._sut, isAdmin: true);
-        this._humanService.SetupSequence(s => s.ExistsAsync("http://test"))
-            .ReturnsAsync(false)
+        this._humanService.Setup(s => s.ExistsAsync("http://test")).ReturnsAsync(false);
+        this._humanService.Setup(s => s.GetByIdAsync("http://test"))
             .ThrowsAsync(new HttpRequestException("503", null, System.Net.HttpStatusCode.ServiceUnavailable));
         this._humanService.Setup(s => s.CreateAsync(It.IsAny<Human>())).ThrowsAsync(new HttpRequestException("boom"));
 
@@ -365,6 +365,7 @@ public class AdminControllerTests : ControllerTestBase
             objectResult.Value?.GetType().GetProperty("error")?.GetValue(objectResult.Value) as string ?? string.Empty,
             StringComparison.Ordinal);
         this._humanService.Verify(s => s.DeleteUserAsync(It.IsAny<string>()), Times.Never);
+        this._userPurgeService.Verify(p => p.PurgeAsync(It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
@@ -372,15 +373,210 @@ public class AdminControllerTests : ControllerTestBase
     {
         // The legitimate case beside the one above: Poracle answers, the row is there, so it goes. See #482.
         SetupUser(this._sut, isAdmin: true);
-        this._humanService.SetupSequence(s => s.ExistsAsync("http://test"))
-            .ReturnsAsync(false)
-            .ReturnsAsync(true);
+        this._humanService.Setup(s => s.ExistsAsync("http://test")).ReturnsAsync(false);
+        this._humanService.Setup(s => s.GetByIdAsync("http://test"))
+            .ReturnsAsync(new Human { Id = "http://test", Name = "Test", Type = "webhook" });
+        this._userPurgeService.Setup(p => p.PurgeAsync("http://test")).ReturnsAsync(true);
         this._humanService.Setup(s => s.CreateAsync(It.IsAny<Human>())).ThrowsAsync(new HttpRequestException("boom"));
 
         var result = await this._sut.CreateWebhook(new AdminController.CreateWebhookRequest("Test", "http://test"));
 
         Assert.Equal(Microsoft.AspNetCore.Http.StatusCodes.Status502BadGateway, Assert.IsType<ObjectResult>(result).StatusCode);
-        this._humanService.Verify(s => s.DeleteUserAsync("http://test"), Times.Once);
+        this._userPurgeService.Verify(p => p.PurgeAsync("http://test"), Times.Once);
+    }
+
+    /// <summary>
+    /// A create that fails while another request wrote the same id must leave that row alone. The rollback
+    /// used to delete whatever it found at the id (#1028).
+    /// </summary>
+    [Fact]
+    public async Task CreateWebhookLeavesARowAnotherRequestWrote()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this._humanService.SetupSequence(s => s.ExistsAsync("http://test")).ReturnsAsync(false).ReturnsAsync(true);
+        this._humanService.Setup(s => s.GetByIdAsync("http://test"))
+            .ReturnsAsync(new Human { Id = "http://test", Name = "Someone else", Type = "webhook" });
+        this._humanService.Setup(s => s.CreateAsync(It.IsAny<Human>())).ThrowsAsync(new HttpRequestException("boom"));
+
+        var result = await this._sut.CreateWebhook(new AdminController.CreateWebhookRequest("Test", "http://test"));
+
+        Assert.Equal(Microsoft.AspNetCore.Http.StatusCodes.Status502BadGateway, Assert.IsType<ObjectResult>(result).StatusCode);
+        this._userPurgeService.Verify(p => p.PurgeAsync(It.IsAny<string>()), Times.Never);
+        this._humanService.Verify(s => s.DeleteUserAsync(It.IsAny<string>()), Times.Never);
+    }
+
+    // --- CreateDestination (#1025) ---
+
+    private static string? ErrorOf(object? value) =>
+        value?.GetType().GetProperty("error")?.GetValue(value) as string;
+
+    [Fact]
+    public async Task CreateDestinationCreatesADiscordChannel()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this._humanService.Setup(s => s.ExistsAsync("123456789012345678")).ReturnsAsync(false);
+        Human? sent = null;
+        this._humanService.Setup(s => s.CreateAsync(It.IsAny<Human>()))
+            .Callback<Human>(h => sent = h)
+            .ReturnsAsync((Human h) => h);
+
+        var result = await this._sut.CreateDestination(
+            new AdminController.CreateDestinationRequest("discord:channel", " 123456789012345678 ", " raids ", "Avoca raids"));
+
+        Assert.IsType<OkObjectResult>(result);
+        Assert.NotNull(sent);
+        Assert.Equal("discord:channel", sent!.Type);
+        Assert.Equal("123456789012345678", sent.Id);
+        Assert.Equal("raids", sent.Name);
+        Assert.Equal("Avoca raids", sent.Notes);
+        Assert.Equal(1, sent.Enabled);
+        Assert.Equal(0, sent.AdminDisable);
+    }
+
+    /// <summary>A supergroup id (<c>-100…</c>) and a legacy basic-group id must both be accepted.</summary>
+    [Theory]
+    [InlineData("telegram:group", "-1001234567890")]
+    [InlineData("telegram:group", "-1234567890")]
+    [InlineData("telegram:channel", "-1001234567890")]
+    [InlineData("telegram:topic", "-1001234567890:42")]
+    [InlineData("discord:thread", "123456789012345678")]
+    public async Task CreateDestinationAcceptsEveryKindsRealId(string type, string id)
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this._humanService.Setup(s => s.ExistsAsync(id)).ReturnsAsync(false);
+        this._humanService.Setup(s => s.CreateAsync(It.IsAny<Human>())).ReturnsAsync((Human h) => h);
+
+        var result = await this._sut.CreateDestination(new AdminController.CreateDestinationRequest(type, id, "Name", null));
+
+        Assert.IsType<OkObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task CreateDestinationRefusesAPersonType()
+    {
+        SetupUser(this._sut, isAdmin: true);
+
+        var result = await this._sut.CreateDestination(
+            new AdminController.CreateDestinationRequest("discord:user", "123456789012345678", "Someone", null));
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        this._humanService.Verify(s => s.CreateAsync(It.IsAny<Human>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateDestinationRefusesAnUnknownType()
+    {
+        SetupUser(this._sut, isAdmin: true);
+
+        var result = await this._sut.CreateDestination(
+            new AdminController.CreateDestinationRequest("x:unknown", "123456789012345678", "Typo", null));
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        this._humanService.Verify(s => s.CreateAsync(It.IsAny<Human>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData("telegram:group", "1234", "Group")]
+    [InlineData("discord:channel", "123456789012345678", " ")]
+    [InlineData("discord:channel", "123456789012345678", "raids\u0007")]
+    [InlineData("discord:channel", " ", "raids")]
+    public async Task CreateDestinationRefusesAnImpossibleIdOrName(string type, string id, string name)
+    {
+        SetupUser(this._sut, isAdmin: true);
+
+        var result = await this._sut.CreateDestination(new AdminController.CreateDestinationRequest(type, id, name, null));
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        this._humanService.Verify(s => s.CreateAsync(It.IsAny<Human>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateDestinationRefusesANonAdmin()
+    {
+        SetupUser(this._sut, isAdmin: false);
+
+        Assert.IsType<ForbidResult>(await this._sut.CreateDestination(
+            new AdminController.CreateDestinationRequest("discord:channel", "123456789012345678", "raids", null)));
+    }
+
+    [Fact]
+    public async Task CreateDestinationRefusesWhileImpersonating()
+    {
+        SetupImpersonatingUser(this._sut, isAdmin: true);
+
+        Assert.IsType<ForbidResult>(await this._sut.CreateDestination(
+            new AdminController.CreateDestinationRequest("discord:channel", "123456789012345678", "raids", null)));
+        this._humanService.Verify(s => s.CreateAsync(It.IsAny<Human>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateDestinationNamesTheRowAlreadyThere()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this._humanService.Setup(s => s.ExistsAsync("123456789012345678")).ReturnsAsync(true);
+        this._humanService.Setup(s => s.GetByIdAsync("123456789012345678"))
+            .ReturnsAsync(new Human { Id = "123456789012345678", Name = "old-raids", Type = "discord:thread" });
+
+        var result = await this._sut.CreateDestination(
+            new AdminController.CreateDestinationRequest("discord:channel", "123456789012345678", "raids", null));
+
+        var conflict = Assert.IsType<ConflictObjectResult>(result);
+        var body = conflict.Value!;
+        Assert.False(string.IsNullOrWhiteSpace(ErrorOf(body)));
+        Assert.Equal("discord:thread", body.GetType().GetProperty("type")?.GetValue(body));
+        Assert.Equal("old-raids", body.GetType().GetProperty("name")?.GetValue(body));
+        this._humanService.Verify(s => s.CreateAsync(It.IsAny<Human>()), Times.Never);
+    }
+
+    /// <summary>
+    /// The #1028 shape through this endpoint: a failed create undoes only a row with this request's type
+    /// and name, never one another request wrote at the same id.
+    /// </summary>
+    [Theory]
+    [InlineData("discord:channel", "raids", true)]
+    [InlineData("discord:channel", "someone else's", false)]
+    [InlineData("discord:thread", "raids", false)]
+    public async Task CreateDestinationRollsBackOnlyItsOwnRow(string foundType, string foundName, bool expectPurge)
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this._humanService.Setup(s => s.ExistsAsync("123456789012345678")).ReturnsAsync(false);
+        this._humanService.Setup(s => s.GetByIdAsync("123456789012345678"))
+            .ReturnsAsync(new Human { Id = "123456789012345678", Name = foundName, Type = foundType });
+        this._humanService.Setup(s => s.CreateAsync(It.IsAny<Human>())).ThrowsAsync(new HttpRequestException("boom"));
+        this._userPurgeService.Setup(p => p.PurgeAsync("123456789012345678")).ReturnsAsync(true);
+
+        var result = await this._sut.CreateDestination(
+            new AdminController.CreateDestinationRequest("discord:channel", "123456789012345678", "raids", null));
+
+        var objectResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(Microsoft.AspNetCore.Http.StatusCodes.Status502BadGateway, objectResult.StatusCode);
+        Assert.DoesNotContain("webhook", ErrorOf(objectResult.Value) ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+        this._userPurgeService.Verify(p => p.PurgeAsync("123456789012345678"), expectPurge ? Times.Once() : Times.Never());
+    }
+
+    /// <summary>
+    /// <c>POST /webhooks</c> now goes through the destination path, which refuses an id that is not a URL.
+    /// The legitimate case: an http URL with a port, the shape CLAUDE.md gives for webhook ids.
+    /// </summary>
+    [Theory]
+    [InlineData("not a url", false)]
+    [InlineData("http://host:8080/path", true)]
+    public async Task CreateWebhookChecksTheUrl(string url, bool expectOk)
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this._humanService.Setup(s => s.ExistsAsync(url)).ReturnsAsync(false);
+        this._humanService.Setup(s => s.CreateAsync(It.IsAny<Human>())).ReturnsAsync((Human h) => h);
+
+        var result = await this._sut.CreateWebhook(new AdminController.CreateWebhookRequest("Test", url));
+
+        if (expectOk)
+        {
+            Assert.IsType<OkObjectResult>(result);
+        }
+        else
+        {
+            Assert.IsType<BadRequestObjectResult>(result);
+        }
     }
 
     /// <summary>

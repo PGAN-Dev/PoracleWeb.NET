@@ -33,12 +33,30 @@ The Destinations page has a search box and a filter by type (the chips appear on
 type is present), plus the usual status filter. Each row has a button that copies its id, which for a
 webhook is the whole URL even though the page shows it shortened.
 
-## Creating a webhook
+## Adding a destination
 
-**Admin → Destinations → Add destination**, with a display name and the Discord webhook URL. The URL is the
-account id, so it must be unique; an existing one is refused rather than merged. If Poracle rejects
-the account, the half-written record is removed, so a failure means nothing was created and a retry
-is safe.
+**Admin → Destinations → Add destination.** The dialog asks what kind of destination it is first,
+then for a name, the id that kind is addressed by, and an optional note. Poracle can post alerts into
+six kinds:
+
+| Kind | What to paste as the id | Where to find it |
+|---|---|---|
+| Webhook | The webhook URL, starting `http://` or `https://` | Discord: channel settings → Integrations → Webhooks → Copy Webhook URL |
+| Discord channel | The channel's id, digits only (up to 20) | Turn on Developer Mode (User Settings → Advanced), then right-click the channel → Copy Channel ID |
+| Discord thread | The thread's id, digits only (up to 20) | With Developer Mode on, right-click the thread and copy its ID |
+| Telegram channel | The chat id, a negative number such as `-1001234567890` | Channels and supergroups start with `-100`. A bot added to the chat sees the id in every update it receives |
+| Telegram group | The chat id, a negative number | A supergroup's id starts with `-100`; an older basic group's is shorter, such as `-1234567890`. Both are accepted |
+| Telegram topic | Two fields: the group's chat id and the topic number, saved as `chat:topic` (`-1001234567890:42`) | Copy a link to any message in the topic. In `t.me/c/1234567890/42/100` the chat id is `-1001234567890` and the topic number is `42` |
+
+The dialog refuses only an id that can't be real: letters in a Discord id, a positive Telegram chat
+id, a topic number of zero. Nothing checks that the channel or chat exists, so paste the id rather
+than typing it. Alerts sent to a wrong id go nowhere. For a Discord channel or thread, or any
+Telegram kind, Poracle's own bot also has to be in that channel or chat and allowed to post there.
+
+The id must be unique. If it's already in Poracle, the add is refused and names the account holding
+it, for example: This ID is already in Poracle as "raids" (Discord channel). That way you can tell a
+mistyped id from a destination you added before. If Poracle rejects the account, the half-written
+record is removed, so a failure means nothing was created and a retry is safe.
 
 The same page can pause, resume, block, delete the account's alarms, delete the account outright, and
 open its alarms directly (see [what a delegate can do](#what-a-delegate-can-do)).
