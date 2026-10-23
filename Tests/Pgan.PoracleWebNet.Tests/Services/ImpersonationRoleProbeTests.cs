@@ -123,7 +123,7 @@ public class ImpersonationRoleProbeTests
         {
             for (var i = 1; i <= ChecksPerImpersonator; i++)
             {
-                Assert.Equal([$"answer-{i}"], (await probe.ResolveAsync(id)).ManagedWebhooks!);
+                Assert.Equal([$"answer-{i}"], (await probe.ResolveAsync(id)).ManagedDestinations!);
             }
         });
     }
@@ -141,11 +141,11 @@ public class ImpersonationRoleProbeTests
             for (var i = 0; i < ChecksPerImpersonator / 2; i++)
             {
                 granted[id] = true;
-                Assert.Contains("webhook-1", (await probe.ResolveAsync(id)).ManagedWebhooks!);
+                Assert.Contains("webhook-1", (await probe.ResolveAsync(id)).ManagedDestinations!);
 
                 // The admin revokes the grant; the session's very next request must see it.
                 granted[id] = false;
-                Assert.DoesNotContain("webhook-1", (await probe.ResolveAsync(id)).ManagedWebhooks!);
+                Assert.DoesNotContain("webhook-1", (await probe.ResolveAsync(id)).ManagedDestinations!);
             }
         });
     }
