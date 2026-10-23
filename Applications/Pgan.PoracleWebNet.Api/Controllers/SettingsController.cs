@@ -22,6 +22,7 @@ public partial class SettingsController(
     IConfiguration configuration,
     IPoracleApiProxy poracleApiProxy,
     IMemoryCache cache,
+    Services.IUserRoleResolver roleResolver,
     ILogger<SettingsController> logger) : BaseApiController
 {
     /// <summary>
@@ -121,6 +122,7 @@ public partial class SettingsController(
     private readonly IUpstreamFeatureFlagService _upstreamFlags = upstreamFlags;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
     private readonly IMemoryCache _cache = cache;
+    private readonly Services.IUserRoleResolver _roleResolver = roleResolver;
     private readonly ILogger<SettingsController> _logger = logger;
 
     [HttpGet]
@@ -348,6 +350,14 @@ public partial class SettingsController(
         };
 
         var result = await this._siteSettingService.CreateOrUpdateAsync(setting);
+
+        // The channel opt-in changes who manages what, and role answers are cached a minute. Turning it off
+        // must take channel admins' access away now, not when their cached answer ages out. See #1025.
+        if (string.Equals(key, Services.UserRoleResolver.PoracleChannelsSettingKey, StringComparison.OrdinalIgnoreCase))
+        {
+            this._roleResolver.InvalidateAll();
+        }
+
         return this.Ok(result);
     }
 

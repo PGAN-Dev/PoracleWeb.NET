@@ -29,14 +29,6 @@ public class HumanServiceTests
     }
 
     [Fact]
-    public async Task GetWebhooksAsyncAsksTheProxyForWebhooks()
-    {
-        this._humanProxy.Setup(p => p.ListHumansAsync("webhook", null)).ReturnsAsync([new() { Id = "w1" }]);
-
-        Assert.Single(await this._sut.GetWebhooksAsync());
-    }
-
-    [Fact]
     public async Task GetByIdsAsyncAsksTheProxyForThoseIds()
     {
         this._humanProxy.Setup(p => p.ListHumansAsync(null, It.Is<IReadOnlyCollection<string>>(c => c.SequenceEqual(new[] { "u1", "u2" }))))
@@ -59,7 +51,6 @@ public class HumanServiceTests
             .ThrowsAsync(new HttpRequestException("fail"));
 
         await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.GetAllAsync());
-        await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.GetWebhooksAsync());
         await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.GetByIdsAsync(["u1"]));
     }
 
@@ -151,6 +142,32 @@ public class HumanServiceTests
         Assert.NotEqual(JsonValueKind.Number, sent.GetProperty("admin_disable").ValueKind);
         Assert.Equal(expectedEnabled, sent.GetProperty("enabled").GetBoolean());
         Assert.Equal(expectedAdminDisable, sent.GetProperty("admin_disable").GetBoolean());
+    }
+
+    /// <summary>
+    /// <c>V2CreateHumanBody</c> declares <c>notes</c> on 5.4.0, so a destination's notes go out with the
+    /// create. A human with no notes sends no key, leaving PoracleNG's default in place. See #1025.
+    /// </summary>
+    [Theory]
+    [InlineData("Raid channel for Avoca", true)]
+    [InlineData(null, false)]
+    public async Task CreateAsyncSendsNotes(string? notes, bool expectSent)
+    {
+        var human = new Human { Id = "123456789012345678", Name = "raids", Type = "discord:channel", Enabled = 1, Notes = notes };
+
+        JsonElement sent = default;
+        this._humanProxy.Setup(p => p.CreateHumanAsync(It.IsAny<JsonElement>()))
+            .Callback<JsonElement>(b => sent = b.Clone())
+            .Returns(Task.CompletedTask);
+        this._humanProxy.Setup(p => p.GetHumanAsync(human.Id)).ReturnsAsync(CreateHumanJson(human.Id, "raids"));
+
+        await this._sut.CreateAsync(human);
+
+        Assert.Equal(expectSent, sent.TryGetProperty("notes", out var sentNotes));
+        if (expectSent)
+        {
+            Assert.Equal(notes, sentNotes.GetString());
+        }
     }
 
     [Fact]

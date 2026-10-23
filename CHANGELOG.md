@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.0] - 2026-10-23
+
+### Added
+
+- **Admin > Destinations creates webhooks, Discord channels and threads, and Telegram channels, groups and topics.** Add destination asks what kind it is first, then for the id that kind uses: a URL for a webhook, the channel or thread id for Discord, the negative chat id for Telegram, and for a topic the chat id and topic number, saved as `-1001234567890:42`. An id that can't be real (letters in a Discord id, a positive Telegram chat id) is refused before it's sent, and an optional note can go with it. An id already in Poracle is refused with the name and kind of the account holding it. Nothing checks that the channel exists, so paste the id rather than typing it. [Adding a destination](docs/features/webhooks.md#adding-a-destination) lists where to find each kind's id (#1025).
+- **Any destination can have delegates, not only webhooks.** Admin > Destinations offers Manage delegates on Discord channels and threads and on Telegram channels, groups and topics too, and a delegate manages them the same way they manage a webhook. Grants written before this change keep working unchanged. A row whose type PoracleWeb.NET doesn't recognise still can't take delegates (#1025).
+- **Admin > Settings > Administration has "Follow Poracle's channel admins".** Off by default. Turned on, anyone PoracleNG lists as admin of a Discord or Telegram channel can manage that channel here too, as long as the channel is registered on this site. Saving it takes effect straight away rather than after the one-minute role cache (#1025).
+
+### Changed
+
+- **Admin > Webhooks is now Admin > Destinations, and lists Discord channels and threads and Telegram channels, groups and topics with their type.** These accounts are where alerts are posted rather than people who sign in, so they have their own page, with search and a filter by type. Admin > Users links across to it. Webhooks work as before, including delegates (#1025).
+- **My Webhooks is now My Destinations.** A delegate's page lists every destination they manage with its kind (webhook, Discord channel or thread, Telegram channel, group or topic), under a Destinations heading in the sidebar. `/my-webhooks` redirects to `/my-destinations`, so bookmarks still work. Help and the delegation docs describe delegation to any destination and the new channel-admin setting, in all eleven languages (#1025).
+- **Mention shows only on webhooks and Discord destinations.** A role or user mention can't reach a person's DMs or a Telegram chat, so the field is gone from those edit dialogs (#1025).
+- **Managing a destination says what it is, and leaving returns you to the page you started from.** The banner reads "Managing Discord channel #raid-alerts" instead of "Viewing as", and a destination's test alert says where it posts instead of "Check your DMs". Exit goes back to Admin > Users, Admin > Destinations or My Destinations, whichever the session began on. A delegate whose session ended on its own used to land on Admin, which they can't open, and then on the dashboard (#1025).
+
+### Fixed
+
+- **A failed webhook create no longer deletes a row another request wrote.** When PoracleNG rejected a create, the rollback removed whatever sat at that id. If a second request had created the same webhook in the meantime, its row was deleted. The rollback now removes the row only when its type and name match what this request tried to write, and goes through the full purge so delegate grants are cleaned up too. Otherwise it answers 502 and changes nothing (#1028).
+- **Channels and groups are no longer listed as users.** A Discord channel or Telegram group in Poracle's table showed up under Admin > Users, where it could be blocked or opened as if it were a person. The Users page now lists people only, and delegates can only be granted to people (#1025).
+
+### Security
+
+- **A channel or webhook can no longer sign in as a person, and the login page says why.** A Poracle row whose type isn't a person's (a Discord channel or thread, a Telegram group, channel or topic, a webhook) is refused at Discord, OIDC and Telegram sign-in and on `/api/auth/me`, so a Telegram group id or a channel id can't open a session. The login page shows "This sign-in belongs to a channel or webhook in Poracle, not a person. Sign in with your own account." in all eleven languages. People whose type is blank or `discord:user` and `telegram:user` still sign in (#1025).
+- **A delegate can manage destinations only.** Opening an account as a delegate now checks the account's live type, so a grant whose id belongs to a person, or to a type PoracleWeb.NET doesn't know, is refused instead of opening that account. Admins can still open any account. The Destinations page offers Manage delegates only on the six kinds a grant can name (#1025).
+- **Test alerts are limited per person, not per account managed.** A delegate opening several destinations used to get five test alerts a minute on each; they now share one allowance with the delegate's own session (#1025).
+
 ## [3.0.1] - 2026-10-23
 
 ### Fixed
@@ -1381,7 +1407,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.0.1...HEAD
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.1.0...HEAD
+[3.1.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.0.1...v3.1.0
 [3.0.1]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.0.0...v3.0.1
 [3.0.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.21.0...v3.0.0
 [2.21.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.20.2...v2.21.0

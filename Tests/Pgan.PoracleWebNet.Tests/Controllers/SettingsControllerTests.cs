@@ -16,6 +16,7 @@ public class SettingsControllerTests : ControllerTestBase
     private readonly Mock<ISiteSettingService> _siteService = new();
     private readonly Mock<IUpstreamFeatureFlagService> _upstreamFlags = new();
     private readonly Mock<IPoracleApiProxy> _poracleApi = new();
+    private readonly Mock<Pgan.PoracleWebNet.Api.Services.IUserRoleResolver> _roleResolver = new();
     private readonly SettingsController _sut;
 
     public SettingsControllerTests()
@@ -36,6 +37,7 @@ public class SettingsControllerTests : ControllerTestBase
         new ConfigurationBuilder().Build(),
         this._poracleApi.Object,
         new MemoryCache(new MemoryCacheOptions()),
+        this._roleResolver.Object,
         NullLogger<SettingsController>.Instance);
 
     [Fact]
@@ -426,6 +428,40 @@ public class SettingsControllerTests : ControllerTestBase
 
         this._siteService.Verify(s => s.CreateOrUpdateAsync(It.Is<SiteSetting>(ss =>
             ss.ValueType == "boolean" && ss.Category == "admin")), Times.Once);
+    }
+
+    /// <summary>
+    /// The channel opt-in changes what every cached role answer should hold. Without dropping them, turning
+    /// it off left Poracle's channel admins managing those channels for up to the cache minute, and turning
+    /// it on did nothing visible for as long. See #1025.
+    /// </summary>
+    [Theory]
+    [InlineData("delegation_poracle_channels")]
+    [InlineData("DELEGATION_PORACLE_CHANNELS")]
+    public async Task SavingTheChannelSettingDropsCachedRoles(string key)
+    {
+        SetupUser(this._sut, isAdmin: true);
+        var order = new List<string>();
+        this._siteService.Setup(s => s.CreateOrUpdateAsync(It.IsAny<SiteSetting>()))
+            .Callback(() => order.Add("write"))
+            .ReturnsAsync((SiteSetting s) => s);
+        this._roleResolver.Setup(r => r.InvalidateAll()).Callback(() => order.Add("invalidate"));
+
+        var result = await this._sut.Upsert(key, new SettingsController.SiteSettingRequest { Value = "False", ValueType = "boolean" });
+
+        Assert.IsType<OkObjectResult>(result);
+        Assert.Equal(["write", "invalidate"], order);
+    }
+
+    [Fact]
+    public async Task SavingAnyOtherSettingKeepsCachedRoles()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this._siteService.Setup(s => s.CreateOrUpdateAsync(It.IsAny<SiteSetting>())).ReturnsAsync((SiteSetting s) => s);
+
+        await this._sut.Upsert("enable_roles", new SettingsController.SiteSettingRequest { Value = "True" });
+
+        this._roleResolver.Verify(r => r.InvalidateAll(), Times.Never);
     }
 
     [Fact]

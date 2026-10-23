@@ -138,6 +138,28 @@ describe('TokenStoreService', () => {
     });
   });
 
+  describe('impersonation return route', () => {
+    it('hands back the recorded route once', () => {
+      service.setImpersonationReturn('/my-destinations');
+
+      expect(service.takeImpersonationReturn()).toBe('/my-destinations');
+      expect(service.takeImpersonationReturn()).toBe('/admin');
+    });
+
+    it('falls back to /admin when nothing was recorded', () => {
+      expect(service.takeImpersonationReturn()).toBe('/admin');
+    });
+
+    it('forgets the return route when the session is cleared', () => {
+      service.setImpersonationReturn('/admin/destinations');
+
+      service.clear();
+
+      expect(localStorage.getItem('poracle_impersonation_return')).toBeNull();
+      expect(service.takeImpersonationReturn()).toBe('/admin');
+    });
+  });
+
   describe('tryRestoreAdminSession', () => {
     it('installs the stashed admin token and announces the end of the inspection', () => {
       localStorage.setItem('poracle_token', 'impersonation-jwt');

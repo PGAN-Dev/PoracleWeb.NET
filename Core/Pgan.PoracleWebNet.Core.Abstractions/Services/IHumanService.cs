@@ -6,9 +6,6 @@ public interface IHumanService
 {
     public Task<IEnumerable<Human>> GetAllAsync();
 
-    /// <summary>The webhook humans, id and name. Used to resolve a delegated webhook named by name.</summary>
-    public Task<IEnumerable<Human>> GetWebhooksAsync();
-
     /// <summary>A batch of humans by id, skipping any id that does not exist. Used to resolve owner and
     /// reviewer names for a list of geofences in one round trip rather than one per name.</summary>
     public Task<IEnumerable<Human>> GetByIdsAsync(IEnumerable<string> ids);

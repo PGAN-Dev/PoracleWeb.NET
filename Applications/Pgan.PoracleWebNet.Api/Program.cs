@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Pgan.PoracleWebNet.Api.Configuration;
+using static RateLimitPartitionKeys;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -267,7 +268,7 @@ builder.Services.AddRateLimiter(options =>
             }));
     options.AddPolicy("test-alert", httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
-            UserOrIpPartitionKey(httpContext),
+            TestAlertPartitionKey(httpContext),
             _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = 5,
@@ -566,21 +567,6 @@ app.MapFallback("api/{**path}", ApiFallback.Handle);
 
 app.Run();
 
-// Rate-limit partition key for anonymous endpoints (login, callback): per-IP only.
-static string IpPartitionKey(HttpContext ctx) =>
-    "ip:" + (ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown");
-
-// Rate-limit partition key for endpoints that require auth: prefer userId when present
-// (so shared-NAT / corporate proxies don't force multiple users into one bucket), fall
-// back to IP for unauthenticated callers or requests where the claim is missing.
-static string UserOrIpPartitionKey(HttpContext ctx)
-{
-    var userId = ctx.User?.FindFirst("userId")?.Value;
-    return !string.IsNullOrEmpty(userId)
-        ? "user:" + userId
-        : IpPartitionKey(ctx);
-}
-
 // Maps a short env var name to .NET's __ convention if the target is not already set.
 /// <summary>Splits a comma-separated config value, ignoring blanks.</summary>
 static string[] SplitConfigList(string? value) =>
@@ -672,4 +658,37 @@ internal static class LegacyPoracleDbSettings
     internal static bool AreSet(IConfiguration configuration) =>
         Variables.Any(v => !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(v)))
         || !string.IsNullOrWhiteSpace(configuration.GetConnectionString(ConnectionName));
+}
+
+/// <summary>
+/// The keys the rate-limit policies partition on. A class rather than local functions so the rules can be
+/// tested; Program.cs imports it statically, so the policies read as they did.
+/// </summary>
+internal static class RateLimitPartitionKeys
+{
+    // Rate-limit partition key for anonymous endpoints (login, callback): per-IP only.
+    internal static string IpPartitionKey(HttpContext ctx) =>
+        "ip:" + (ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown");
+
+    // Rate-limit partition key for endpoints that require auth: prefer userId when present
+    // (so shared-NAT / corporate proxies don't force multiple users into one bucket), fall
+    // back to IP for unauthenticated callers or requests where the claim is missing.
+    internal static string UserOrIpPartitionKey(HttpContext ctx)
+    {
+        var userId = ctx.User?.FindFirst("userId")?.Value;
+        return !string.IsNullOrEmpty(userId)
+            ? "user:" + userId
+            : IpPartitionKey(ctx);
+    }
+
+    // Test alerts are limited per person. An impersonation token's userId is the account being managed, so
+    // keying on it gave a delegate a fresh bucket for every destination they manage. impersonatedBy names
+    // the person, and keying on it also puts their own session in that same bucket. See #1025.
+    internal static string TestAlertPartitionKey(HttpContext ctx)
+    {
+        var impersonatedBy = ctx.User?.FindFirst("impersonatedBy")?.Value;
+        return !string.IsNullOrEmpty(impersonatedBy)
+            ? "user:" + impersonatedBy
+            : UserOrIpPartitionKey(ctx);
+    }
 }
