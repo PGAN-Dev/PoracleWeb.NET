@@ -258,3 +258,24 @@
   font-size: 13px;
   line-height: 1.5;
 }
+
+// The row just added fades in from the selection tint, so it can be found after the table reloads.
+tr.just-added {
+  animation: just-added 3s ease-out;
+}
+
+@keyframes just-added {
+  from {
+    background: var(--mat-sys-secondary-container);
+  }
+  to {
+    background: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  tr.just-added {
+    animation: none;
+    background: var(--mat-sys-secondary-container);
+  }
+}

@@ -1,15 +1,133 @@
-.webhook-form {
+.destination-form {
   display: flex;
   flex-direction: column;
   gap: 8px;
   padding-top: 8px;
   min-width: 400px;
 }
+
 .full-width {
   width: 100%;
 }
+
+// The kind picker: one row per platform, so Discord's two and Telegram's three read as siblings.
+.kind-picker {
+  border: 0;
+  margin: 0 0 8px;
+  padding: 0;
+
+  legend {
+    font: var(--mat-sys-title-small);
+    margin-bottom: 8px;
+    padding: 0;
+  }
+}
+
+.kind-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.kind-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.kind-option {
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 8px;
+  padding-right: 12px;
+  transition: border-color 120ms ease;
+
+  &.selected {
+    background: var(--mat-sys-secondary-container);
+    border-color: var(--mat-sys-primary);
+  }
+}
+
+.kind-label {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+
+  mat-icon {
+    font-size: 18px;
+    height: 18px;
+    width: 18px;
+  }
+}
+
+.topic-row {
+  align-items: flex-start;
+  display: flex;
+  gap: 8px;
+}
+
+.chat-field {
+  flex: 3 1 0;
+  min-width: 0;
+}
+
+// Wide enough that the "Topic number" label is not clipped beside the chat field.
+.topic-field {
+  flex: 2 1 0;
+  min-width: 0;
+}
+
+.topic-colon {
+  font: var(--mat-sys-title-medium);
+  padding-top: 16px;
+}
+
+.saving-spinner {
+  display: inline-block;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.unchecked-note {
+  align-items: flex-start;
+  color: var(--mat-sys-on-surface-variant);
+  display: flex;
+  font: var(--mat-sys-body-small);
+  gap: 6px;
+  margin: 0 0 4px;
+
+  mat-icon {
+    flex: none;
+    font-size: 16px;
+    height: 16px;
+    width: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kind-option {
+    transition: none;
+  }
+}
+
 @media (max-width: 599px) {
-  mat-dialog-content {
+  .destination-form {
     min-width: 0;
+  }
+
+  // Side by side, a phone leaves the topic field too narrow for its label. Stacked, each gets the full width.
+  .topic-row {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .chat-field,
+  .topic-field {
+    flex: none;
+    width: 100%;
+  }
+
+  .topic-colon {
+    display: none;
   }
 }

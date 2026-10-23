@@ -1,6 +1,17 @@
-import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal, computed } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  DestroyRef,
+  ElementRef,
+  Injector,
+  afterNextRender,
+  inject,
+  signal,
+  computed,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, FormsModule, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -13,6 +24,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatRadioModule } from '@angular/material/radio';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSortModule, Sort } from '@angular/material/sort';
@@ -23,11 +35,11 @@ import { forkJoin } from 'rxjs';
 
 import { AdminListState, StatusFilter, notesLabel } from './admin-list-state';
 import { AdminUser } from '../../core/models';
-import { AdminService } from '../../core/services/admin.service';
+import { AdminService, CreateDestinationRequest } from '../../core/services/admin.service';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
-import { isKnownKind, kindIcon, kindLabelKey } from '../../shared/utils/human-kind';
+import { DESTINATION_KINDS, isKnownKind, isPersonType, kindIcon, kindLabelKey } from '../../shared/utils/human-kind';
 import { relativeTime } from '../../shared/utils/relative-time';
 import { serverReason } from '../../shared/utils/server-reason';
 
@@ -60,26 +72,162 @@ export function destinationName(row: AdminUser): string {
 
 // ─── Add Destination Dialog ───────────────────────────────────────────────────────
 
+// The id rules mirror HumanKind.ValidateNewId on the server, so a typo is caught here rather than as a 400.
+// They refuse only what cannot be real: nothing checks that the channel or chat exists.
+const WEBHOOK_URL = /^https?:\/\/\P{Cc}+$/iu;
+const DISCORD_ID = /^[0-9]{1,20}$/;
+const TELEGRAM_CHAT_ID = /^-[0-9]{1,19}$/;
+const TELEGRAM_TOPIC_NUMBER = /^[1-9][0-9]{0,9}$/;
+
+/** A pattern checked against the trimmed value, answering `{ [error]: true }` on a miss. Empty is `required`'s. */
+function trimmedPattern(pattern: RegExp, error: string): ValidatorFn {
+  return (control: AbstractControl): ValidationErrors | null => {
+    const value = String(control.value ?? '').trim();
+    return !value || pattern.test(value) ? null : { [error]: true };
+  };
+}
+
+const ID_VALIDATORS: ReadonlyMap<string, ValidatorFn> = new Map([
+  ['discord:channel', trimmedPattern(DISCORD_ID, 'digits')],
+  ['discord:thread', trimmedPattern(DISCORD_ID, 'digits')],
+  ['telegram:channel', trimmedPattern(TELEGRAM_CHAT_ID, 'negativeChat')],
+  ['telegram:group', trimmedPattern(TELEGRAM_CHAT_ID, 'negativeChat')],
+  ['webhook', trimmedPattern(WEBHOOK_URL, 'url')],
+]);
+
+/** The kind picker, one row per platform. */
+const KIND_GROUPS: readonly (readonly string[])[] = [
+  DESTINATION_KINDS.filter(k => k === 'webhook'),
+  DESTINATION_KINDS.filter(k => k.startsWith('discord:')),
+  DESTINATION_KINDS.filter(k => k.startsWith('telegram:')),
+];
+
+/**
+ * Asks what kind of destination first, then for the id that kind is addressed by: a URL for a webhook, a
+ * snowflake for a Discord channel or thread, a negative chat id for Telegram, and for a topic the chat id
+ * and the topic number, joined as `chat:topic`. Saves the destination itself and closes with the request
+ * only once the server has accepted it: a refusal keeps everything typed and shows the reason on the id
+ * field (the chat field for a topic), where it can be corrected. See #1025.
+ */
 @Component({
-  imports: [ReactiveFormsModule, MatDialogModule, MatButtonModule, MatFormFieldModule, MatInputModule, MatIconModule, TranslatePipe],
+  imports: [
+    ReactiveFormsModule,
+    MatDialogModule,
+    MatButtonModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    MatRadioModule,
+    TranslatePipe,
+  ],
   selector: 'app-add-destination-dialog',
   standalone: true,
   styleUrl: './add-destination-dialog.component.scss',
   templateUrl: './add-destination-dialog.component.html',
 })
 export class AddDestinationDialogComponent {
+  private readonly adminService = inject(AdminService);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly fb = inject(FormBuilder);
+  private readonly i18n = inject(I18nService);
   readonly dialogRef = inject(MatDialogRef<AddDestinationDialogComponent>);
 
-  readonly form = this.fb.group({
+  readonly form = this.fb.nonNullable.group({
+    id: [{ disabled: true, value: '' }, Validators.required],
     name: ['', Validators.required],
-    url: ['', [Validators.required, Validators.pattern(/^https?:\/\/.+/)]],
+    chatId: [{ disabled: true, value: '' }, [Validators.required, trimmedPattern(TELEGRAM_CHAT_ID, 'negativeChat')]],
+    kind: ['', Validators.required],
+    notes: [''],
+    topicId: [{ disabled: true, value: '' }, [Validators.required, trimmedPattern(TELEGRAM_TOPIC_NUMBER, 'topicPositive')]],
   });
 
+  readonly kind = signal('');
+  readonly kindGroups = KIND_GROUPS;
+  readonly kindIcon = kindIcon;
+  readonly kindLabelKey = kindLabelKey;
+  readonly saving = signal(false);
+
+  constructor() {
+    const { chatId, kind, topicId } = this.form.controls;
+    kind.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(k => this.onKindChange(k));
+    // A topic's refusal sits on the chat field but is about the pair, so editing the topic number lifts it too.
+    topicId.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      if (chatId.hasError('server')) chatId.updateValueAndValidity();
+    });
+  }
+
+  /** The request the dialog closes with, or null while the form is incomplete. */
+  request(): CreateDestinationRequest | null {
+    if (this.form.invalid) return null;
+    const v = this.form.getRawValue();
+    const id = v.kind === 'telegram:topic' ? `${v.chatId.trim()}:${v.topicId.trim()}` : v.id.trim();
+    const notes = v.notes.trim();
+    return { id, name: v.name.trim(), type: v.kind, ...(notes ? { notes } : {}) };
+  }
+
   submit(): void {
-    if (this.form.valid) {
-      this.dialogRef.close(this.form.value);
+    if (this.saving()) return;
+    const req = this.request();
+    if (!req) return;
+
+    this.saving.set(true);
+    this.dialogRef.disableClose = true;
+    this.adminService
+      .createDestination(req)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        error: err => {
+          this.saving.set(false);
+          this.dialogRef.disableClose = false;
+          // Any edit re-runs the field's validators, which drops this error, so a corrected id can be sent.
+          const field = req.type === 'telegram:topic' ? this.form.controls.chatId : this.form.controls.id;
+          field.setErrors({ ...field.errors, server: this.failureMessage(err) });
+          field.markAsTouched();
+        },
+        next: () => this.dialogRef.close(req),
+      });
+  }
+
+  /**
+   * What to tell the admin when a create fails. A 409 names the row already holding the id, so an admin who
+   * pasted the wrong channel can tell it from one they added earlier; the server leaves the name and type
+   * out when it could not read that row, and then its own sentence is shown. A person holding the id is
+   * labelled as one, not as "Other". 502 is the #482 half-write
+   * answer ("Check the destination list before trying again"), which must reach the admin: a retry on the
+   * generic message can create a second row.
+   */
+  private failureMessage(err: unknown): string {
+    const failure = err as { error?: { name?: unknown; type?: unknown }; status?: unknown } | null | undefined;
+    const holder = failure?.error;
+    // The name is the signal that the server read the holder; a person's type can legitimately be null.
+    if (failure?.status === 409 && typeof holder?.name === 'string' && (typeof holder.type === 'string' || holder.type == null)) {
+      const type = typeof holder.type === 'string' ? holder.type : null;
+      const typeKey = isPersonType(type) ? 'ADMIN.TYPE_PERSON' : kindLabelKey(type);
+      return this.i18n.instant('ADMIN.DESTINATION_EXISTS', { name: holder.name, type: this.i18n.instant(typeKey) });
     }
+    return serverReason(err, { allow5xx: [502] }) ?? this.i18n.instant('ADMIN.SNACK_FAILED_ADD_DESTINATION');
+  }
+
+  /** The name is kept; every id field is cleared, since an id for one kind is never right for another. */
+  private onKindChange(kind: string): void {
+    this.kind.set(kind);
+    const { id, chatId, topicId } = this.form.controls;
+    for (const control of [chatId, id, topicId]) {
+      control.reset('', { emitEvent: false });
+      control.disable({ emitEvent: false });
+    }
+
+    const idValidator = ID_VALIDATORS.get(kind);
+    if (kind === 'telegram:topic') {
+      chatId.enable({ emitEvent: false });
+      topicId.enable({ emitEvent: false });
+    } else if (idValidator) {
+      id.setValidators([Validators.required, idValidator]);
+      id.enable({ emitEvent: false });
+    }
+
+    this.form.updateValueAndValidity();
   }
 }
 
@@ -246,8 +394,10 @@ export class AdminDestinationsComponent implements OnInit {
   private readonly destinations = computed(() => this.allUsers().filter(u => u.kind === 'destination'));
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   private readonly i18n = inject(I18nService);
+  private readonly injector = inject(Injector);
   private readonly poracleAdmins = signal<string[]>([]);
   private readonly porocleDelegates = signal<Record<string, string[]>>({});
   private readonly snackBar = inject(MatSnackBar);
@@ -256,6 +406,8 @@ export class AdminDestinationsComponent implements OnInit {
   readonly columns = ['name', 'type', 'id', 'enabled', 'disabledSince', 'delegates', 'actions'];
 
   readonly isKnownKind = isKnownKind;
+  /** The id of the destination just added, so the table can turn to its page and mark it. */
+  readonly justAdded = signal<string | null>(null);
   readonly kindIcon = kindIcon;
   readonly kindLabelKey = kindLabelKey;
 
@@ -399,6 +551,7 @@ export class AdminDestinationsComponent implements OnInit {
           this.poracleAdmins.set(poracleAdmins);
           this.porocleDelegates.set(porocleDelegates);
           this.usersLoading.set(false);
+          this.revealJustAdded();
         },
       });
   }
@@ -450,28 +603,18 @@ export class AdminDestinationsComponent implements OnInit {
     this.list.resetPage();
   }
 
+  /** The dialog saves the destination itself and closes with it only once the server has accepted it. */
   openAddDialog(): void {
-    const ref = this.dialog.open(AddDestinationDialogComponent, { width: '480px' });
-    ref.afterClosed().subscribe(result => {
-      if (result) {
-        this.adminService
-          .createWebhook(result.name, result.url)
-          .pipe(takeUntilDestroyed(this.destroyRef))
-          .subscribe({
-            error: err => {
-              // 502 is the #482 half-write answer ("Check the webhook list before trying again"), which must
-              // reach the admin: a retry on the generic message can create a second row.
-              const msg = serverReason(err, { allow5xx: [502] }) ?? this.i18n.instant('ADMIN.SNACK_FAILED_ADD_DESTINATION');
-              this.snackBar.open(msg, this.i18n.instant('TOAST.OK'), { duration: 4000 });
-            },
-            next: () => {
-              this.snackBar.open(this.i18n.instant('ADMIN.SNACK_DESTINATION_ADDED', { name: result.name }), this.i18n.instant('TOAST.OK'), {
-                duration: 3000,
-              });
-              this.loadUsers();
-            },
-          });
-      }
+    const ref = this.dialog.open<AddDestinationDialogComponent, unknown, CreateDestinationRequest | null>(AddDestinationDialogComponent, {
+      width: '520px',
+    });
+    ref.afterClosed().subscribe(created => {
+      if (!created) return;
+      this.justAdded.set(created.id);
+      this.snackBar.open(this.i18n.instant('ADMIN.SNACK_DESTINATION_ADDED', { name: created.name }), this.i18n.instant('TOAST.OK'), {
+        duration: 3000,
+      });
+      this.loadUsers();
     });
   }
 
@@ -575,6 +718,27 @@ export class AdminDestinationsComponent implements OnInit {
       default:
         return '';
     }
+  }
+
+  /**
+   * Turns to the page holding the destination just added and scrolls its row into view, since a full page
+   * runs past the fold. A search or filter that hides it is left alone. No glide for reduced motion.
+   */
+  private revealJustAdded(): void {
+    const added = this.justAdded();
+    if (!added) return;
+    const index = this.list.filtered().findIndex(row => row.id === added);
+    if (index < 0) return;
+    this.list.setPage(Math.floor(index / this.list.pageSize()), this.list.pageSize());
+    afterNextRender(
+      () => {
+        const row = this.host.nativeElement.querySelector('tr.just-added');
+        const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+        // Centred, not nearest: at the bottom edge the snackbar announcing it sits on top of the row.
+        row?.scrollIntoView?.({ behavior: reduce ? 'auto' : 'smooth', block: 'center' });
+      },
+      { injector: this.injector },
+    );
   }
 
   /** The server's own reason when it gave one, else the generic message. */

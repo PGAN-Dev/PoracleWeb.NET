@@ -37,4 +37,28 @@ public class HumanKindTests
         Assert.True(HumanKind.MentionCapable.Contains("discord:thread"));
         Assert.False(HumanKind.MentionCapable.Contains("telegram:group"));
     }
+
+    [Theory]
+    [InlineData("discord:channel", "123456789012345678")]
+    [InlineData("discord:thread", "123456789012345678")]
+    [InlineData("telegram:channel", "-1001234567890")]
+    [InlineData("telegram:group", "-1234567890")]
+    [InlineData("telegram:topic", "-1001234567890:42")]
+    [InlineData("webhook", "https://discord.com/api/webhooks/1/abc")]
+    [InlineData("webhook", "http://host:8080/path")]
+    public void AcceptsEachKindsRealId(string type, string id) => Assert.Null(HumanKind.ValidateNewId(type, id));
+
+    [Theory]
+    [InlineData("discord:channel", "12a")]
+    [InlineData("discord:channel", "123456789012345678901")]
+    [InlineData("telegram:group", "1234")]
+    [InlineData("telegram:topic", "-100:0")]
+    [InlineData("telegram:topic", "-100")]
+    [InlineData("telegram:topic", "100:5")]
+    [InlineData("discord:channel", "123\u0007")]
+    [InlineData("webhook", "discord.com/api/webhooks/1/abc")]
+    [InlineData("webhook", "https://host/a\u0007")]
+    [InlineData("webhook", " ")]
+    [InlineData("x:unknown", "123")]
+    public void RefusesTheImpossible(string type, string id) => Assert.NotNull(HumanKind.ValidateNewId(type, id));
 }

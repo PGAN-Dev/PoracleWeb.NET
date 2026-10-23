@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 namespace Pgan.PoracleWebNet.Core.Models;
 
 /// <summary>
@@ -6,7 +8,7 @@ namespace Pgan.PoracleWebNet.Core.Models;
 /// <c>type LIKE '%:user'</c> as a person and everything else as a destination, so an operator's typo or a
 /// type added later lands on the destinations side rather than on neither page. See #1025.
 /// </summary>
-public static class HumanKind
+public static partial class HumanKind
 {
     /// <summary>A Discord webhook.</summary>
     public const string Webhook = "webhook";
@@ -57,4 +59,53 @@ public static class HumanKind
 
     /// <summary>Returns <c>"person"</c> or <c>"destination"</c>.</summary>
     public static string KindOf(string? type) => IsPerson(type) ? "person" : "destination";
+
+    /// <summary>
+    /// Checks the id an admin gives for a new destination of <paramref name="type"/>, answering a sentence
+    /// to show them, or null when the id could be real. Refuses only what cannot be: Discord snowflakes are
+    /// digits, Telegram chats are negative (a supergroup's <c>-100…</c> and a legacy group's shorter id
+    /// alike), a topic is its chat id and a positive thread id, and a webhook is an http(s) URL.
+    /// </summary>
+    public static string? ValidateNewId(string type, string id)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            return "An id is required.";
+        }
+
+        if (id.Any(char.IsControl))
+        {
+            return "The id cannot contain control characters.";
+        }
+
+        switch (type?.ToLowerInvariant())
+        {
+            case Webhook:
+                return id.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+                    || id.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
+                    ? null
+                    : "A webhook must be an http:// or https:// URL.";
+            case DiscordChannel:
+            case DiscordThread:
+                return DiscordId().IsMatch(id) ? null : "A Discord channel or thread id is a number of up to 20 digits.";
+            case TelegramChannel:
+            case TelegramGroup:
+                return TelegramChatId().IsMatch(id) ? null : "A Telegram chat id is a negative number, such as -1001234567890.";
+            case TelegramTopic:
+                return TelegramTopicId().IsMatch(id)
+                    ? null
+                    : "A Telegram topic id is the chat id, a colon and the topic number, such as -1001234567890:42.";
+            default:
+                return "This type cannot be created as a destination.";
+        }
+    }
+
+    [GeneratedRegex("^[0-9]{1,20}$", RegexOptions.CultureInvariant)]
+    private static partial Regex DiscordId();
+
+    [GeneratedRegex("^-[0-9]{1,19}$", RegexOptions.CultureInvariant)]
+    private static partial Regex TelegramChatId();
+
+    [GeneratedRegex("^(-[0-9]{1,19}):([1-9][0-9]{0,9})$", RegexOptions.CultureInvariant)]
+    private static partial Regex TelegramTopicId();
 }

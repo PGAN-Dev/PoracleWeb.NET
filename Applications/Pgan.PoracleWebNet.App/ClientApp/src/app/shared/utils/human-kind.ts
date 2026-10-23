@@ -3,6 +3,16 @@
  * server's call (`AdminUser.kind`, from `HumanKind.IsPerson`); nothing here decides it or grants anything.
  */
 
+/** The six types an admin can create from Destinations, in the order the Add dialog offers them. */
+export const DESTINATION_KINDS: readonly string[] = [
+  'webhook',
+  'discord:channel',
+  'discord:thread',
+  'telegram:channel',
+  'telegram:group',
+  'telegram:topic',
+];
+
 /** The destination types a role or user mention reaches. Telegram has no equivalent. */
 export const MENTION_CAPABLE: ReadonlySet<string> = new Set(['webhook', 'discord:channel', 'discord:thread']);
 
@@ -28,6 +38,15 @@ export function mentionCapable(type: string | null | undefined): boolean {
 /** Whether this is one of the six destination types the app knows by name. */
 export function isKnownKind(type: string | null | undefined): boolean {
   return LABEL_KEYS.has(normalise(type));
+}
+
+/**
+ * Mirrors the server's `HumanKind.IsPerson` (no type, or one ending `:user`) for labelling only: a 409 can name
+ * a person already holding the id, and "Other" would misdescribe them. Never use it to grant anything.
+ */
+export function isPersonType(type: string | null | undefined): boolean {
+  const t = normalise(type);
+  return t === '' || t.endsWith(':user');
 }
 
 /** The translation key naming a known type; anything else is `ADMIN.TYPE_OTHER`. */
