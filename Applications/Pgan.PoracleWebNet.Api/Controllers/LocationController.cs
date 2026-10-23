@@ -363,10 +363,18 @@ public class LocationController(
     /// </summary>
     [EnableRateLimiting("tracking-usage")]
     [HttpGet("pin-usage")]
-    public async Task<IActionResult> GetPinUsage([FromServices] IPoracleTrackingProxy trackingProxy)
+    public async Task<IActionResult> GetPinUsage(
+        [FromServices] IPoracleTrackingProxy trackingProxy, [FromServices] ILinkedAccount linked)
     {
-        var snapshot = await trackingProxy.GetAllTrackingAsync(this.UserId);
-        return this.Ok(new { alarms = PlaceUsage.CountMeasuredFromPin(snapshot) });
+        // Both humans of a linked pair: clearing the pin is person-level, so the count has to cover them all.
+        var pair = await linked.ResolveAsync(this.UserId);
+        var alarms = 0;
+        foreach (var humanId in pair.ExistingHumanIds)
+        {
+            alarms += PlaceUsage.CountMeasuredFromPin(await trackingProxy.GetAllTrackingAsync(humanId));
+        }
+
+        return this.Ok(new { alarms });
     }
 
     /// <summary>
@@ -377,15 +385,23 @@ public class LocationController(
     [EnableRateLimiting("tracking-usage")]
     [HttpGet("place-usage")]
     public async Task<IActionResult> GetPlaceUsage(
-        [FromQuery] string? label, [FromServices] IPoracleTrackingProxy trackingProxy)
+        [FromQuery] string? label, [FromServices] IPoracleTrackingProxy trackingProxy, [FromServices] ILinkedAccount linked)
     {
         if (string.IsNullOrWhiteSpace(label))
         {
             return this.BadRequest(new { error = "Name the place to check." });
         }
 
-        var snapshot = await trackingProxy.GetAllTrackingWithDescriptionsAsync(this.UserId);
-        var rules = PlaceUsage.RulesAimedAt(snapshot, label);
+        var pair = await linked.ResolveAsync(this.UserId);
+        var rules = new List<PlaceUsageRule>();
+        foreach (var humanId in pair.ExistingHumanIds)
+        {
+            var snapshot = await trackingProxy.GetAllTrackingWithDescriptionsAsync(humanId);
+            var side = pair.SideOf(humanId);
+            rules.AddRange(PlaceUsage.RulesAimedAt(snapshot, label)
+                .Select(r => side is { } s ? r with { Destination = AccountLinkKeys.Wire(s) } : r));
+        }
+
         return this.Ok(new { alarms = rules.Count, rules });
     }
 

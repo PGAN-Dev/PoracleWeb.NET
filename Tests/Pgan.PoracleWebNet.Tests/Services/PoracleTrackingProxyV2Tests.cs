@@ -1005,6 +1005,9 @@ public class PoracleTrackingProxyV2Tests
             Mock.Of<IMaxBattleService>(),
             Mock.Of<IMasterDataService>(),
             Mock.Of<IFeatureGate>(),
+            Pgan.PoracleWebNet.Tests.Helpers.LinkedTestKit.Unlinked(),
+            Pgan.PoracleWebNet.Tests.Helpers.LinkedTestKit.Router(Pgan.PoracleWebNet.Tests.Helpers.LinkedTestKit.Unlinked()),
+            Moq.Mock.Of<Pgan.PoracleWebNet.Core.Abstractions.Services.IHumanService>(),
             Mock.Of<ILogger<QuickPickService>>());
 
         Assert.True(await quickPicks.RemoveAsync("user1", 2, "pick"));

@@ -12,7 +12,8 @@ public class ProfileOverviewService(
     IPoracleTrackingProxy trackingProxy,
     IPoracleHumanProxy humanProxy,
     IFeatureGate featureGate,
-    IPoracleIncidentProxy incidentProxy) : IProfileOverviewService
+    IPoracleIncidentProxy incidentProxy,
+    ILinkedAccount linked) : IProfileOverviewService
 {
     private static readonly string[] AlarmTypes =
         ["pokemon", "raid", "egg", "quest", "invasion", "lure", "nest", "gym", "maxbattle", "fort"];
@@ -21,6 +22,7 @@ public class ProfileOverviewService(
     private readonly IPoracleTrackingProxy _trackingProxy = trackingProxy;
     private readonly IFeatureGate _featureGate = featureGate;
     private readonly IPoracleIncidentProxy _incidentProxy = incidentProxy;
+    private readonly ILinkedAccount _linked = linked;
 
     public async Task<int> DuplicateProfileAsync(string userId, int sourceProfileNo, int newProfileNo)
     {
@@ -274,7 +276,73 @@ public class ProfileOverviewService(
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
         NumberHandling = JsonNumberHandling.AllowReadingFromString,
     };
-    public async Task<JsonElement> GetAllProfilesOverviewAsync(string userId) => await this._trackingProxy.GetAllTrackingAllProfilesAsync(userId);
+    public async Task<JsonElement> GetAllProfilesOverviewAsync(string userId)
+    {
+        var pair = await this._linked.ResolveAsync(userId);
+        if (!pair.IsLinked)
+        {
+            return await this._trackingProxy.GetAllTrackingAllProfilesAsync(userId);
+        }
+
+        // A linked person sees both humans' rules in one snapshot, each row stamped with the side it lives
+        // on. The caller's own snapshot is the base, so any member that is not a list of rules stays theirs.
+        JsonObject? merged = null;
+        foreach (var humanId in pair.ExistingHumanIds)
+        {
+            var snapshot = await this._trackingProxy.GetAllTrackingAllProfilesAsync(humanId);
+            if (JsonNode.Parse(snapshot.GetRawText()) is not JsonObject obj)
+            {
+                continue;
+            }
+
+            var side = pair.SideOf(humanId);
+            foreach (var (_, value) in obj)
+            {
+                if (value is JsonArray rows)
+                {
+                    foreach (var row in rows.OfType<JsonObject>())
+                    {
+                        if (side is { } s)
+                        {
+                            row["destination"] = AccountLinkKeys.Wire(s);
+                        }
+                    }
+                }
+            }
+
+            if (merged is null)
+            {
+                merged = obj;
+                continue;
+            }
+
+            foreach (var (key, value) in obj.ToList())
+            {
+                if (value is not JsonArray rows)
+                {
+                    continue;
+                }
+
+                if (merged[key] is JsonArray existing)
+                {
+                    foreach (var row in rows.ToList())
+                    {
+                        rows.Remove(row);
+                        existing.Add(row);
+                    }
+                }
+                else
+                {
+                    obj.Remove(key);
+                    merged[key] = rows;
+                }
+            }
+        }
+
+        return merged is null
+            ? await this._trackingProxy.GetAllTrackingAllProfilesAsync(userId)
+            : JsonSerializer.SerializeToElement(merged);
+    }
 
     /// <summary>
     /// Throws <see cref="FeatureDisabledException"/> on the first alarm-type bucket that has at

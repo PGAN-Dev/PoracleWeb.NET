@@ -43,6 +43,7 @@ public class TestAlertServiceTests
             this._trackingProxy.Object,
             this._humanProxy.Object,
             builders,
+            Pgan.PoracleWebNet.Tests.Helpers.LinkedTestKit.Unlinked(),
             this._logger.Object);
     }
 
