@@ -162,7 +162,6 @@ public sealed class ImpersonationPipelineTests : IDisposable
             ArgumentNullException.ThrowIfNull(builder);
 
             builder.UseEnvironment(Environments.Production);
-            builder.UseSetting("ConnectionStrings:PoracleDb", DeadDb);
             builder.UseSetting("ConnectionStrings:PoracleWebDb", DeadDb);
             builder.UseSetting("Jwt:Secret", Jwt.Secret);
             builder.UseSetting("Jwt:Issuer", Jwt.Issuer);

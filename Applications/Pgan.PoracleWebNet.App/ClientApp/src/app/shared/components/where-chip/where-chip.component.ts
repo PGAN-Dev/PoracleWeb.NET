@@ -3,6 +3,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateService } from '@ngx-translate/core';
 
+import { AreaNameService } from '../../../core/services/area-name.service';
 import { AlarmScope, describeScope, scopeOf } from '../../utils/alarm-scope';
 
 /**
@@ -22,6 +23,7 @@ import { AlarmScope, describeScope, scopeOf } from '../../utils/alarm-scope';
   templateUrl: './where-chip.component.html',
 })
 export class WhereChipComponent {
+  private readonly areaNames = inject(AreaNameService);
   private readonly translate = inject(TranslateService);
 
   /** The alarm's radius in metres, as PoracleNG stores it. */
@@ -55,5 +57,5 @@ export class WhereChipComponent {
   /** Areas the profile subscribes to, used only to describe the inherited case. */
   readonly profileAreas = input<string[]>([]);
 
-  readonly label = computed(() => describeScope(this.scope(), this.profileAreas(), this.translate));
+  readonly label = computed(() => describeScope(this.scope(), this.profileAreas(), this.translate, area => this.areaNames.label(area)));
 }

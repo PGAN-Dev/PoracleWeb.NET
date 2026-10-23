@@ -6,8 +6,6 @@
 </div>
 
 <div class="page-content">
-  <app-server-profile-card />
-
   @if (personalNeedsRateFeed()) {
     <div class="personal-warning" role="alert">
       <mat-icon>warning</mat-icon>
@@ -44,11 +42,23 @@
       }
     </div>
 
+    @if (searchHasNoMatch()) {
+      <p class="search-no-match" role="status" data-test="search-no-match">
+        {{ 'ADMIN_SETTINGS.SEARCH_NO_MATCH' | translate: { query: searchQuery().trim() } }}
+      </p>
+    }
+  }
+
+  <!-- Versions and rule repair, one line until the admin asks for the details. Outside the loading
+       branch so the cards it holds stay mounted, and a scan keeps reporting, while settings reload. -->
+  <app-settings-status-strip />
+
+  @if (!settingsLoading()) {
     <!-- Authentication mode: Local (Discord/Telegram) vs external SSO (OIDC) -->
     @if (authSectionVisible()) {
       <section class="settings-section">
-        <div class="section-header" style="border-left: 4px solid #7c4dff">
-          <mat-icon class="section-icon" style="color: #7c4dff">vpn_key</mat-icon>
+        <div class="section-header">
+          <mat-icon class="section-icon" aria-hidden="true">vpn_key</mat-icon>
           <span class="section-label">{{ 'ADMIN_SETTINGS.GROUP_AUTH' | translate }}</span>
         </div>
 
@@ -208,19 +218,17 @@
     }
     <div class="section-gap"></div>
 
-    @for (group of visibleGroups(); track group.labelKey; let last = $last; let i = $index) {
-      <section class="settings-section fade-in-up" [style.animation-delay]="(i > 6 ? 6 : i) * 40 + 'ms'">
+    @for (group of visibleGroups(); track group.labelKey; let last = $last) {
+      <section class="settings-section">
         <button
           type="button"
           class="section-header section-header-toggle"
-          [style.borderLeftColor]="group.color"
-          [style.background]="'linear-gradient(90deg, ' + group.color + '0f 0%, transparent 70%)'"
           (click)="toggleGroup(group.labelKey)"
           [attr.aria-expanded]="!isCollapsed(group.labelKey)"
           [attr.aria-label]="
             (isCollapsed(group.labelKey) ? 'ADMIN_SETTINGS.EXPAND_SECTION' : 'ADMIN_SETTINGS.COLLAPSE_SECTION') | translate
           ">
-          <mat-icon class="section-icon" [style.color]="group.color">{{ group.icon }}</mat-icon>
+          <mat-icon class="section-icon" aria-hidden="true">{{ group.icon }}</mat-icon>
           <span class="section-label">{{ group.labelKey | translate }}</span>
           @if (groupSummary(group)) {
             <span class="section-summary">{{ groupSummary(group) }}</span>
@@ -237,6 +245,11 @@
             @for (meta of group.settings; track meta.key; let rowLast = $last) {
               @if (getSettingValue(meta.key) !== null && isSettingVisible(meta)) {
                 <div class="setting-row" [class.modified]="modifiedSettings().has(meta.key)">
+                  @if (alarmTypeStyle(meta.key); as typeStyle) {
+                    <mat-icon class="setting-type-icon" aria-hidden="true" [style.color]="typeStyle.color" data-test="alarm-type-icon">{{
+                      typeStyle.icon
+                    }}</mat-icon>
+                  }
                   <div class="setting-info">
                     <span class="setting-label" [innerHTML]="highlight(meta.labelKey)"></span>
                     <span class="setting-desc" [innerHTML]="highlight(meta.descriptionKey)"></span>
@@ -488,8 +501,8 @@
     @if (!searchQuery()) {
       <div class="section-gap"></div>
       <section class="settings-section">
-        <div class="section-header" style="border-left: 4px solid #2e7d32">
-          <mat-icon class="section-icon" style="color: #2e7d32">image</mat-icon>
+        <div class="section-header">
+          <mat-icon class="section-icon" aria-hidden="true">image</mat-icon>
           <span class="section-label">{{ 'ADMIN_SETTINGS.GROUP_ICON_REPO' | translate }}</span>
         </div>
         <p class="section-hint">{{ 'ADMIN_SETTINGS.ICON_REPO_HINT' | translate }}</p>
@@ -579,7 +592,7 @@
       <div class="section-gap"></div>
       <section class="settings-section">
         <div class="section-header">
-          <mat-icon class="section-icon">help_outline</mat-icon>
+          <mat-icon class="section-icon" aria-hidden="true">help_outline</mat-icon>
           <span class="section-label">{{ 'ADMIN_SETTINGS.GROUP_OTHER' | translate }}</span>
         </div>
         <div class="section-rows">
@@ -614,7 +627,7 @@
           <mat-icon>undo</mat-icon>
           {{ 'ADMIN_SETTINGS.DISCARD_CHANGES' | translate }}
         </button>
-        <button mat-raised-button color="primary" type="button" (click)="saveAllModified()" [disabled]="bulkSaving()">
+        <button mat-flat-button color="primary" type="button" (click)="saveAllModified()" [disabled]="bulkSaving()">
           @if (bulkSaving()) {
             <mat-spinner diameter="18" class="inline-spinner"></mat-spinner>
           } @else {

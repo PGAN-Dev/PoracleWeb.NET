@@ -31,7 +31,7 @@ const NO_ALARMS: DashboardCounts = {
 };
 
 /**
- * The dashboard's quick actions and tips predate the `disable_*` switches and linked to whatever they
+ * The dashboard's add actions and tips predate the `disable_*` switches and linked to whatever they
  * liked: an Add Pokemon button on an instance without Pokemon alarms, a "Set up areas" tip with Areas
  * switched off, and an address lookup that 403s with `disable_nominatim` on. Each now follows the same
  * key the sidebar item carries.
@@ -83,36 +83,50 @@ describe('DashboardComponent feature gating', () => {
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
     return {
-      actions: () =>
-        [...el.querySelectorAll('.quick-actions .action-btn')].map(b =>
-          [...b.classList].find(c => c.startsWith('action-') && c !== 'action-btn'),
-        ),
       component: fixture.componentInstance,
+      el,
       location,
+      newAlarm: () => fixture.componentInstance.newAlarmTypes().map(c => c.key),
       tips: () => fixture.componentInstance.tips().map(t => t.id),
     };
   };
 
   afterEach(() => localStorage.removeItem('poracle-onboarding-complete'));
 
-  it('offers every quick action and tip while nothing is disabled', () => {
-    const { actions, tips } = setup([]);
+  it('offers every alarm type and tip while nothing is disabled', () => {
+    const { el, newAlarm, tips } = setup([]);
 
-    expect(actions()).toEqual(['action-pokemon', 'action-raids', 'action-quests', 'action-areas', 'action-cleaning']);
+    expect(newAlarm()).toEqual([
+      'pokemon',
+      'raids',
+      'maxBattles',
+      'quests',
+      'invasions',
+      'pokestopEvents',
+      'lures',
+      'nests',
+      'gyms',
+      'fortChanges',
+    ]);
+    expect(el.querySelector('.action-cleaning')).not.toBeNull();
     expect(tips()).toEqual(['no-location', 'no-areas', 'no-alarms']);
   });
 
-  it('drops the add button for each disabled alarm type', () => {
-    expect(setup(['disable_mons']).actions()).not.toContain('action-pokemon');
-    expect(setup(['disable_raids']).actions()).not.toContain('action-raids');
-    expect(setup(['disable_quests']).actions()).not.toContain('action-quests');
+  it('drops the New alarm entry for each disabled alarm type', () => {
+    expect(setup(['disable_mons']).newAlarm()).not.toContain('pokemon');
+    expect(setup(['disable_raids']).newAlarm()).not.toContain('raids');
+    expect(setup(['disable_quests']).newAlarm()).not.toContain('quests');
   });
 
-  it('drops Manage Areas and the areas tip when areas are disabled', () => {
-    const { actions, tips } = setup(['disable_areas']);
+  it('drops the areas item and the areas tip when areas are disabled', () => {
+    const { el, tips } = setup(['disable_areas']);
 
-    expect(actions()).not.toContain('action-areas');
+    expect(el.querySelector('.strip-areas')).toBeNull();
     expect(tips()).not.toContain('no-areas');
+  });
+
+  it('drops the pin item when location is disabled', () => {
+    expect(setup(['disable_location']).el.querySelector('.strip-pin')).toBeNull();
   });
 
   it('drops the set-location tip when location is disabled', () => {

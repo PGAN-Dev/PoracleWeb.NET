@@ -1,14 +1,14 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { NO_ERRORS_SCHEMA, signal } from '@angular/core';
-import { TestBed } from '@angular/core/testing';
-import { MatDialogRef } from '@angular/material/dialog';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTabGroup } from '@angular/material/tabs';
 import { By } from '@angular/platform-browser';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideTranslateService } from '@ngx-translate/core';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 
 import { PokemonAddDialogComponent } from './pokemon-add-dialog.component';
 import { Monster, MonsterCreate, PlayerAccount } from '../../core/models';
@@ -20,7 +20,6 @@ import { MasterDataService } from '../../core/services/masterdata.service';
 import { MonsterService } from '../../core/services/monster.service';
 import { PlayerAccountService } from '../../core/services/player-account.service';
 import { PoracleConfigService } from '../../core/services/poracle-config.service';
-import { SettingsService } from '../../core/services/settings.service';
 import { PersonalFilterPanelComponent } from '../../shared/components/personal-filter-panel/personal-filter-panel.component';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
@@ -31,17 +30,26 @@ describe('PokemonAddDialogComponent', () => {
   let dialogRef: { close: jest.Mock };
   let monsterService: { create: jest.Mock; editSupported: jest.Mock };
   let snackBar: { open: jest.Mock };
-  let masterData: { costumesAvailable: jest.Mock; getCostumeName: jest.Mock; getCostumes: jest.Mock; getFormsForPokemon: jest.Mock };
+  let masterData: {
+    costumesAvailable: jest.Mock;
+    getAllPokemon$: jest.Mock;
+    getAllTypes: jest.Mock;
+    getTypeLabel: jest.Mock;
+    getCostumeName: jest.Mock;
+    getCostumes: jest.Mock;
+    getFormsForPokemon: jest.Mock;
+  };
 
   /** Meowth (52) with two non-Normal forms: Alolan + Galarian. */
   const MEOWTH = 52;
   const ALOLAN = 78;
   const GALARIAN = 79;
 
+  let fixture: ComponentFixture<PokemonAddDialogComponent>;
   let accountsSignal: ReturnType<typeof signal<null | PlayerAccount[]>>;
   let playerAccounts: { accounts: typeof accountsSignal; load: jest.Mock };
 
-  function setup(costumeSupported = true, personalSupported = false, accounts: null | PlayerAccount[] = []) {
+  function setup(data: unknown = null, personalSupported = false, accounts: null | PlayerAccount[] = []) {
     accountsSignal = signal<null | PlayerAccount[]>(accounts);
     playerAccounts = { accounts: accountsSignal, load: jest.fn().mockReturnValue(of(accounts)) };
     dialogRef = { close: jest.fn() };
@@ -55,12 +63,15 @@ describe('PokemonAddDialogComponent', () => {
     snackBar = { open: jest.fn() };
     masterData = {
       costumesAvailable: jest.fn().mockReturnValue(true),
+      getAllPokemon$: jest.fn().mockReturnValue(of([])),
+      getAllTypes: jest.fn().mockReturnValue([]),
       getCostumeName: jest.fn().mockReturnValue('Halloween 2025'),
       getCostumes: jest.fn().mockReturnValue([{ id: 85, name: 'Halloween 2025' }]),
       getFormsForPokemon: jest.fn().mockReturnValue([
         { id: ALOLAN, name: 'Alolan' },
         { id: GALARIAN, name: 'Galarian' },
       ]),
+      getTypeLabel: jest.fn().mockImplementation((t: string) => t),
     };
 
     TestBed.resetTestingModule();
@@ -72,10 +83,10 @@ describe('PokemonAddDialogComponent', () => {
         provideHttpClientTesting(),
         { provide: ConfigService, useValue: { apiHost: 'http://test-api' } },
         { provide: MatDialogRef, useValue: dialogRef },
+        { provide: MAT_DIALOG_DATA, useValue: data },
         { provide: MonsterService, useValue: monsterService },
         { provide: MasterDataService, useValue: masterData },
-        { provide: I18nService, useValue: { instant: (k: string) => k } },
-        { provide: SettingsService, useValue: { supportsCostume: () => costumeSupported, supportUrl: () => null } },
+        { provide: I18nService, useValue: { instant: (k: string) => k, plural: (k: string) => k } },
         {
           provide: AlertDefaultsService,
           useValue: { defaultDistanceKm: () => 1, defaultMode: () => 'areas', defaultPlaceLabel: () => '' },
@@ -85,7 +96,7 @@ describe('PokemonAddDialogComponent', () => {
           useValue: { load: () => of({ defaultPvpCap: 0 }), serverConfig: () => ({ personalSupported, pvpCaps: [] }) },
         },
         { provide: PlayerAccountService, useValue: playerAccounts },
-        { provide: AuthService, useValue: { isAdmin: () => false, isImpersonating: () => false } },
+        { provide: AuthService, useValue: { isImpersonating: () => false, user: () => ({ type: 'discord:user' }) } },
       ],
       imports: [PokemonAddDialogComponent],
     });
@@ -101,7 +112,7 @@ describe('PokemonAddDialogComponent', () => {
 
     // No detectChanges(): we exercise save() logic directly and skip rendering the heavy
     // app-pokemon-selector child. Computed signals (availableForms) evaluate lazily on read.
-    const fixture = TestBed.createComponent(PokemonAddDialogComponent);
+    fixture = TestBed.createComponent(PokemonAddDialogComponent);
     component = fixture.componentInstance;
   }
 
@@ -110,6 +121,18 @@ describe('PokemonAddDialogComponent', () => {
   }
 
   beforeEach(() => setup());
+
+  // PoracleNG 5.4.0 stores a costume on every rule, so the control renders with the standard mocks and
+  // nothing telling the dialog the server supports it.
+  it('renders the costume filter on the Filters tab without any server capability', async () => {
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelectorAll('.mat-mdc-tab')[1] as HTMLElement).click();
+    fixture.detectChanges();
+    await new Promise(resolve => setTimeout(resolve, 400));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('POKEMON.LABEL_COSTUME');
+  });
 
   it('defaults the multi-select forms control to empty', () => {
     expect(component.filtersForm.controls.forms.value).toEqual([]);
@@ -225,7 +248,7 @@ describe('PokemonAddDialogComponent', () => {
     component.filtersForm.controls.forms.setValue([ALOLAN, GALARIAN]);
     component.save();
 
-    expect(snackBar.open).toHaveBeenCalledWith('POKEMON.SNACK_CREATED', 'COMMON.OK', expect.objectContaining({ duration: 4000 }));
+    expect(snackBar.open).toHaveBeenCalledWith('ALARM.SNACK_CREATED', 'COMMON.OK', expect.objectContaining({ duration: 4000 }));
   });
 
   // Counting the submissions claimed every selected Pokemon was added while the list grew by fewer, or
@@ -237,7 +260,7 @@ describe('PokemonAddDialogComponent', () => {
     component.save();
 
     expect(snackBar.open).toHaveBeenCalledWith(
-      'POKEMON.SNACK_CREATED_WITH_DUPLICATES',
+      'ALARM.SNACK_CREATED_WITH_DUPLICATES',
       'COMMON.OK',
       expect.objectContaining({ duration: 4000 }),
     );
@@ -328,27 +351,6 @@ describe('PokemonAddDialogComponent', () => {
     expect(monsterService.create).not.toHaveBeenCalled();
   });
 
-  /**
-   * The gate. A Poracle without the monsters.costume column takes the field, answers 200 and drops it, so an
-   * offered control produces a rule that reads "Halloween 2025" and matches every spawn. The rest of
-   * the dialog is untouched -- only this one control goes.
-   */
-  describe('server capability', () => {
-    it('offers the costume filter when Poracle has the column', () => {
-      expect(component.showCostume()).toBe(true);
-    });
-
-    it('hides the costume filter when Poracle does not', () => {
-      setup(false);
-
-      expect(component.showCostume()).toBe(false);
-      // The wildcard still goes out, which is what an old Poracle stores for an absent key anyway.
-      component.selectedPokemonIds.set([25]);
-      component.save();
-      expect((monsterService.create.mock.calls[0][0] as MonsterCreate).costume).toBe(9000);
-    });
-  });
-
   // jfberry/PoracleNG#246: edit-in-place for pokemon, composed onto clean bit 2.
   describe('edit-in-place (clean bit 2)', () => {
     it('sends clean=0 when neither toggle is set', () => {
@@ -376,6 +378,93 @@ describe('PokemonAddDialogComponent', () => {
     });
   });
 
+  // A single Add PoracleNG refuses created nothing: the dialog keeps the user's work and says why inline.
+  // A multi-select keeps its old behaviour, because whatever landed is real and the list must reload.
+  describe('a refused Add', () => {
+    const takeover = {
+      error: { existingUid: 77, error: 'Another alarm of this type already uses those settings.', trackingType: 'pokemon' },
+    };
+
+    it('keeps a single Add open with the reason inline and the selection intact', () => {
+      monsterService.create.mockReturnValue(throwError(() => takeover));
+      component.selectedPokemonIds.set([MEOWTH]);
+      component.filtersForm.controls.forms.setValue([ALOLAN]);
+      component.filtersForm.controls.minIv.setValue(90);
+      component.save();
+
+      expect(dialogRef.close).not.toHaveBeenCalled();
+      expect(snackBar.open).not.toHaveBeenCalled();
+      expect(component.refusal()?.message).toBe('Another alarm of this type already uses those settings.');
+      expect(component.saving()).toBe(false);
+      expect(component.selectedPokemonIds()).toEqual([MEOWTH]);
+      expect(component.filtersForm.controls.minIv.value).toBe(90);
+    });
+
+    it('names the clashing rule when the list can describe it, and Edit that one hands it back', () => {
+      const lookup = jest.fn().mockReturnValue('Snorlax · Within 2 km of my pin');
+      setup({ existingRule: lookup });
+      monsterService.create.mockReturnValue(throwError(() => takeover));
+      component.selectedPokemonIds.set([MEOWTH]);
+      component.filtersForm.controls.forms.setValue([ALOLAN]);
+      component.save();
+
+      expect(lookup).toHaveBeenCalledWith(77, 'pokemon');
+      const existing = component.refusal()!.existing!;
+      expect(existing.summary).toBe('Snorlax · Within 2 km of my pin');
+
+      component.editExisting(existing);
+      expect(dialogRef.close).toHaveBeenCalledWith({ editExisting: { uid: 77, trackingType: 'pokemon' } });
+    });
+
+    it('renders the refusal above the actions', () => {
+      setup({ existingRule: () => 'Snorlax · Within 2 km of my pin' });
+      monsterService.create.mockReturnValue(throwError(() => takeover));
+      component.selectedPokemonIds.set([MEOWTH]);
+      component.filtersForm.controls.forms.setValue([ALOLAN]);
+      component.save();
+      fixture.detectChanges();
+
+      const alert = (fixture.nativeElement as HTMLElement).querySelector('[role="alert"]');
+      expect(alert?.textContent).toContain('Another alarm of this type already uses those settings.');
+      expect(alert?.textContent).toContain('ALARM.REFUSAL_COVERED_BY');
+      expect(alert?.querySelector('button')?.textContent).toContain('ALARM.REFUSAL_EDIT_EXISTING');
+    });
+
+    it('closes on success after a refusal, and clears it', () => {
+      monsterService.create.mockReturnValueOnce(throwError(() => takeover)).mockReturnValueOnce(of({ uid: 501 } as Monster));
+      component.selectedPokemonIds.set([MEOWTH]);
+      component.filtersForm.controls.forms.setValue([ALOLAN]);
+      component.save();
+      expect(dialogRef.close).not.toHaveBeenCalled();
+
+      component.save();
+      expect(component.refusal()).toBeNull();
+      expect(dialogRef.close).toHaveBeenCalledWith(true);
+      expect(snackBar.open).toHaveBeenCalledWith('ALARM.SNACK_CREATED', 'COMMON.OK', expect.anything());
+    });
+
+    it('still closes a multi-select batch with one refusal, toasting the reason', () => {
+      monsterService.create.mockReturnValueOnce(of({ uid: 501 } as Monster)).mockReturnValueOnce(throwError(() => takeover));
+      component.selectedPokemonIds.set([MEOWTH]);
+      component.filtersForm.controls.forms.setValue([ALOLAN, GALARIAN]);
+      component.save();
+
+      expect(component.refusal()).toBeNull();
+      expect(snackBar.open).toHaveBeenCalledWith('Another alarm of this type already uses those settings.', 'COMMON.OK', expect.anything());
+      expect(dialogRef.close).toHaveBeenCalledWith(true);
+    });
+
+    it('says a single Add already tracked exactly was left as it is', () => {
+      monsterService.create.mockReturnValue(of({ uid: 0 } as Monster));
+      component.selectedPokemonIds.set([MEOWTH]);
+      component.filtersForm.controls.forms.setValue([ALOLAN]);
+      component.save();
+
+      expect(snackBar.open).toHaveBeenCalledWith('ALARM.ALREADY_TRACKED_ONE', 'COMMON.OK', expect.anything());
+      expect(dialogRef.close).toHaveBeenCalledWith(true);
+    });
+  });
+
   describe('personal shiny toggles (personal bitmask)', () => {
     const sentPersonal = (): number | undefined => (monsterService.create.mock.calls[0][0] as MonsterCreate).personal;
 
@@ -390,7 +479,7 @@ describe('PokemonAddDialogComponent', () => {
     }
 
     it('hides the personal toggles without server support but keeps the controls', () => {
-      setup(true, false);
+      setup(null, false);
       const el = renderFilters();
 
       expect(el.textContent).not.toContain('POKEMON.PERSONAL_SHINY');
@@ -402,7 +491,7 @@ describe('PokemonAddDialogComponent', () => {
     });
 
     it('shows the personal toggles when the server supports them', () => {
-      setup(true, true);
+      setup(null, true);
       const el = renderFilters();
 
       expect(el.textContent).toContain('POKEMON.PERSONAL_SHINY');
@@ -410,7 +499,7 @@ describe('PokemonAddDialogComponent', () => {
     });
 
     it('sends personal 3 when both are on', () => {
-      setup(true, true);
+      setup(null, true);
       component.filtersForm.controls.personalShiny.setValue(true);
       component.filtersForm.controls.personalBackground.setValue(true);
       component.selectedPokemonIds.set([MEOWTH]);
@@ -420,13 +509,13 @@ describe('PokemonAddDialogComponent', () => {
     });
 
     it('sends personal 1 for shiny alone and 2 for the background alone', () => {
-      setup(true, true);
+      setup(null, true);
       component.filtersForm.controls.personalShiny.setValue(true);
       component.selectedPokemonIds.set([MEOWTH]);
       component.save();
       expect(sentPersonal()).toBe(1);
 
-      setup(true, true);
+      setup(null, true);
       component.filtersForm.controls.personalBackground.setValue(true);
       component.selectedPokemonIds.set([MEOWTH]);
       component.save();
@@ -435,7 +524,7 @@ describe('PokemonAddDialogComponent', () => {
 
     it('puts the personal panel first in the Filters tab, bound to the controls the dialog owns', () => {
       // The panel owns the account status; the dialog owns the controls, so a stored bit round-trips.
-      setup(true, true, []);
+      setup(null, true, []);
       const fixture = TestBed.createComponent(PokemonAddDialogComponent);
       component = fixture.componentInstance;
       fixture.debugElement.query(By.directive(MatTabGroup)).componentInstance.selectedIndex = 1;

@@ -26,35 +26,68 @@ public interface IPoracleIncidentProxy
     public Task<IReadOnlyList<PokestopEvent>> GetByUserAsync(string userId);
 
     /// <summary>
-    /// Creates or updates rules. PoracleNG diffs on the rule's identity — its <c>display_type</c> —
-    /// so a submission naming an event the user already tracks <em>updates</em> that rule and re-keys
-    /// it to a new uid rather than adding a second one. An identical resubmission is reported as
-    /// unchanged with uid 0.
+    /// Creates or updates rules. PoracleNG diffs each rule against the stored ones like any invasion row:
+    /// identical is <c>unchanged</c> (uid 0), one updatable field away <em>updates</em> that stored rule
+    /// (a takeover), anything else is <c>created</c>. With <paramref name="dryRun"/> nothing is written and
+    /// the answer says which of the three each rule would be.
     /// </summary>
-    public Task<PokestopEventWriteResult> CreateAsync(string userId, IEnumerable<PokestopEvent> rules);
+    /// <remarks>
+    /// Override areas are authorised through <see cref="IUserAreaPolicy"/> first and the write is then sent
+    /// <c>trusted</c>, because PoracleNG's own check allows only <c>userSelectable</c> areas and a user's
+    /// own drawn fence is not one.
+    /// </remarks>
+    public Task<PokestopEventWriteResult> CreateAsync(string userId, IEnumerable<PokestopEvent> rules, bool dryRun = false);
+
+    /// <summary>
+    /// <see cref="CreateAsync(string, IEnumerable{PokestopEvent}, bool)"/> on profile <paramref name="profileNo"/>
+    /// (<c>?profile=N</c>) rather than the active one. Only profile import uses it.
+    /// </summary>
+    public Task<PokestopEventWriteResult> CreateAsync(string userId, IEnumerable<PokestopEvent> rules, int profileNo, bool dryRun);
 
     /// <summary>
     /// Full-replaces one rule. The engine is delete-then-insert, so on 5.2.x the replacement gets a NEW uid.
     /// Since jfberry/PoracleNG #303 the uid is kept, but a failed reassignment still returns a new one, so
-    /// the result is always read.
+    /// the result is always read. PoracleNG answers 409 when the replacement would duplicate another rule.
+    /// Override areas are authorised as on a create, allowing the ones this rule already holds.
     /// </summary>
     public Task<PokestopEventWriteResult> ReplaceAsync(string userId, int uid, PokestopEvent rule);
+
+    /// <summary>
+    /// <see cref="ReplaceAsync(string, int, PokestopEvent)"/> on profile <paramref name="profileNo"/>: v2 finds a
+    /// uid on the addressed profile only, so a rule on a profile other than the active one is reached this way.
+    /// </summary>
+    public Task<PokestopEventWriteResult> ReplaceAsync(string userId, int uid, PokestopEvent rule, int profileNo);
 
     /// <summary>Deletes one rule by uid.</summary>
     public Task DeleteByUidAsync(string userId, int uid);
 
-    /// <summary>Deletes several rules by uid. Returns how many PoracleNG actually removed.</summary>
+    /// <summary>
+    /// Deletes several rules by uid, named in the request body (<c>{"uids":[...]}</c>, PoracleNG 5.4.0).
+    /// Returns how many PoracleNG actually removed.
+    /// </summary>
     public Task<int> BulkDeleteByUidsAsync(string userId, IEnumerable<int> uids);
+
+    /// <summary>
+    /// Applies the same settings to several rules through <c>PATCH .../tracking/incident?silent=true</c> with
+    /// <c>{"uids":[...],"set":{...}}</c>, the contract <see cref="IPoracleTrackingProxy.PatchAsync"/> speaks for
+    /// the other types. Each rule keeps its uid; an empty <paramref name="uids"/> sends nothing.
+    /// </summary>
+    public Task<TrackingPatchResult> PatchAsync(string userId, IReadOnlyList<int> uids, TrackingPatchSet settings);
 }
 
 /// <summary>
 /// PoracleNG's answer to a v2 incident write: what it inserted, what it rewrote, and what it found
 /// already present.
 /// </summary>
+/// <param name="Previous">
+/// What each <see cref="Updated"/> rule held before this write, index for index, as PoracleNG reports it
+/// under <c>previous</c>. An entry is null where PoracleNG reported no previous state for that rule.
+/// </param>
 public sealed record PokestopEventWriteResult(
     IReadOnlyList<PokestopEvent> Created,
     IReadOnlyList<PokestopEvent> Updated,
-    IReadOnlyList<PokestopEvent> Unchanged)
+    IReadOnlyList<PokestopEvent> Unchanged,
+    IReadOnlyList<PokestopEvent?>? Previous = null)
 {
     /// <summary>
     /// The uid the rule now lives under, or null when PoracleNG named none.

@@ -30,15 +30,23 @@ mat-dialog-content {
   display: block;
   font-size: 12px;
   font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
   color: var(--text-secondary, rgba(0, 0, 0, 0.54));
   margin-bottom: 10px;
 }
 
+// "Send summary now" sits with the schedule it sends, so the action row keeps to three buttons.
+.send-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-top: 14px;
+}
+
 // Sets expectations for "Send summary now": it flushes only what PoracleNG has buffered.
 .send-hint {
-  margin: 14px 0 0;
+  flex: 1 1 200px;
+  margin: 0;
   font-size: 12px;
   line-height: 1.5;
   color: var(--text-hint, rgba(0, 0, 0, 0.38));
@@ -109,30 +117,12 @@ mat-dialog-content {
   white-space: nowrap;
   background: #fef3c7;
   color: #92400e;
-  opacity: 0;
-  transform: translateY(6px);
-  animation: pill-fade-in 0.26s ease forwards;
 
   .pill-icon {
     font-size: 14px;
     width: 14px;
     height: 14px;
     color: #d97706;
-  }
-}
-
-@keyframes pill-fade-in {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .pill {
-    animation: none;
-    opacity: 1;
-    transform: none;
   }
 }
 

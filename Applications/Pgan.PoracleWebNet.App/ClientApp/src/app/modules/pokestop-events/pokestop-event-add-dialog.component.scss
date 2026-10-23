@@ -20,9 +20,8 @@ mat-dialog-content {
 h4 {
   margin: 16px 0 8px;
   color: var(--text-muted, rgba(0, 0, 0, 0.64));
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-size: 14px;
+  font-weight: 600;
 }
 mat-slide-toggle {
   margin: 16px 0;
@@ -33,8 +32,10 @@ mat-slide-toggle {
   gap: 8px;
   margin-bottom: 16px;
 }
-.include-empty-toggle {
-  margin-top: 8px;
+.already-tracked {
+  margin-left: 8px;
+  font-size: 12px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
 }
 .distance-radio-group {
   display: flex;

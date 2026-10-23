@@ -46,8 +46,11 @@ public static class ProfileNameRules
     /// "every format character": emoji sequences are joined with U+200D, which is one, so refusing the
     /// whole category would refuse a family emoji.
     /// </para>
+    /// <para>
+    /// Public because place labels (<see cref="PlaceLabelRules"/>) are refused on exactly the same characters.
+    /// </para>
     /// </remarks>
-    private static bool IsRefused(char c) =>
+    public static bool IsRefused(char c) =>
         char.IsControl(c)
         || c is '\u2028' or '\u2029'
         || c is '\u061C' or '\u200E' or '\u200F'

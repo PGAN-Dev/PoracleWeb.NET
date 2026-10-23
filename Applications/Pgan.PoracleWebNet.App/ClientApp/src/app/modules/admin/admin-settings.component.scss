@@ -1,29 +1,3 @@
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 24px;
-  gap: 16px;
-  background: linear-gradient(135deg, rgba(69, 90, 100, 0.06) 0%, rgba(0, 137, 123, 0.04) 100%);
-  border-radius: 12px;
-  margin-bottom: 16px;
-}
-.page-header-text {
-  flex: 1;
-  min-width: 0;
-}
-.page-header h1 {
-  margin: 0;
-  font-size: 24px;
-  font-weight: 400;
-}
-.page-description {
-  margin: 4px 0 0;
-  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
-  font-size: 13px;
-  border-left: 3px solid #1976d2;
-  padding-left: 12px;
-}
 .page-content {
   padding: 0 24px 80px;
   max-width: 860px;
@@ -68,14 +42,11 @@
   font-size: 18px;
   width: 18px;
   height: 18px;
-  opacity: 0.85;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.6));
 }
 .section-label {
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  color: var(--text-secondary, rgba(0, 0, 0, 0.6));
+  font-size: 15px;
+  font-weight: 500;
 }
 .section-gap {
   height: 16px;
@@ -95,6 +66,12 @@
 .setting-row.modified {
   background: rgba(25, 118, 210, 0.08);
   border-left: 3px solid rgba(25, 118, 210, 0.4);
+}
+.setting-type-icon {
+  flex-shrink: 0;
+  font-size: 22px;
+  width: 22px;
+  height: 22px;
 }
 .setting-info {
   flex: 1;
@@ -201,7 +178,6 @@
   color: var(--text-hint, rgba(0, 0, 0, 0.5));
   font-size: 10px;
   font-weight: 400;
-  text-transform: uppercase;
   letter-spacing: 0.4px;
 }
 .repo-list-actions {
@@ -294,11 +270,16 @@
     font-size: 12px;
   }
 
+  // #e65100 read 3.39:1 here (light) and 4.34:1 (dark); see warning-text-contrast.spec.ts.
   &.warning {
     background-color: rgba(255, 152, 0, 0.08);
-    color: #e65100;
+    color: #a33b00;
     border: 1px solid rgba(255, 152, 0, 0.2);
   }
+}
+
+:host-context(.dark-theme) .config-hint.warning {
+  color: #ffb74d;
 }
 
 // ─── Server Config (read-only) ──────────────────────────────────────────────
@@ -322,20 +303,20 @@
 .server-config-title {
   font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
   color: var(--text-hint, rgba(0, 0, 0, 0.45));
 }
 .server-config-badge {
   font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
   padding: 2px 8px;
   border-radius: 10px;
   background: rgba(88, 101, 242, 0.1);
-  color: #5865f2;
+  // #5865f2 read 3.35-4.07:1 here at 10px; see warning-text-contrast.spec.ts.
+  color: #4752c4;
   cursor: help;
+}
+:host-context(.dark-theme) .server-config-badge {
+  color: #a5adff;
 }
 .server-config-rows {
   display: flex;
@@ -463,6 +444,11 @@
   border: 1px solid var(--card-border, rgba(0, 0, 0, 0.12));
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
+.search-no-match {
+  margin: 8px 4px 24px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.6));
+  font-size: 14px;
+}
 .search-leading {
   flex-shrink: 0;
   font-size: 20px;
@@ -492,8 +478,8 @@
 // ─── Collapsible section header ─────────────────────────────────────────────
 .section-header-toggle {
   width: 100%;
+  color: inherit;
   border: none;
-  border-left: 4px solid transparent;
   text-align: left;
   cursor: pointer;
   font: inherit;
@@ -568,23 +554,8 @@
 }
 
 // ─── Staggered section entrance ─────────────────────────────────────────────
-.fade-in-up {
-  animation: fade-in-up 0.3s ease-out both;
-}
-
-@keyframes fade-in-up {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
 
 @media (prefers-reduced-motion: reduce) {
-  .fade-in-up,
   .settings-actionbar {
     animation: none;
   }

@@ -4,10 +4,16 @@
 
 > Companion to [`poracleng-enhancement-requests.md`](poracleng-enhancement-requests.md). That doc tracks v1-era workaround gaps; this doc evaluated whether v2 closes them and what we would still have to ask for.
 
+!!! note "Area writes: updated 2026-10-21"
+    Row 1 ("NOT closed") and every other claim below about user-fence area writes predate sub-project 2.
+    Area writes now go through PoracleNG 5.4.0's v2 routes (trusted `setAreas`, rename and remove with
+    `all_profiles`), with no direct database write behind them. This page is a historical review.
+
 !!! warning "Historical record, written 2026-08 against an open pull request"
     This review was written against PoracleNG PR #139 (branch `huma-api-migration`) while it was still
     open. Every "source-verified" claim in it is a claim about that branch, not about a release. v2 has
-    since shipped in **PoracleNG 5.2.0**, and PGAN production runs 5.2.1.
+    since shipped in **PoracleNG 5.2.0**, and the fixes it asked for shipped in **5.4.0**, which PoracleWeb.NET
+    now requires. `Poracle:TrackingApiVersion` no longer exists.
 
     Read it for the reasoning, not for the current state. Three of its recommendations were overtaken:
 
@@ -21,8 +27,8 @@
       `RuleSummaryComponent` renders.
 
     Appendix A's asks were later filed as jfberry/PoracleNG#208 through #216 and fixed in
-    [PR #217](https://github.com/jfberry/PoracleNG/pull/217), merged 2026-08-31 -- onto `develop`, so no
-    released build carries any of it. Where each ask now stands is tracked in
+    [PR #217](https://github.com/jfberry/PoracleNG/pull/217), merged 2026-08-31 and released in 5.4.0.
+    Where each ask now stands is tracked in
     [the enhancement requests](poracleng-enhancement-requests.md), which is the document kept current.
 
     Two of that batch were built against a running `develop` on 2026-09-16 and **do not close the rows
@@ -92,9 +98,9 @@ Net consequence: **without three explicit asks to jfberry, the keystone deletion
 - **No wrappers.** Typed bodies directly — deletes the `{human:{...}}` / `{profile:[...]}` / `{type:[...]}` / `{status:ok}` unwrap branches in `PoracleHumanProxy`/`PoracleTrackingProxy` and the `DeserializeHuman`/`DeserializeProfiles` hand-parsers.
 - **Strict types, no coercion.** Game-master ids as ints, fixed categories as string enums, flags as bools. Lets us drop the defensive `JsonValueKind` switches (and the IDE0072 suppressions) and the `PropertyNameCaseInsensitive` tolerance.
 - **`clean` split into independent booleans (`clean`/`edit`/`summary`).** Genuinely better than the 3-bit bitmask we compose client-side — we want it, provided bot-set bits survive partial writes.
-- **POST-array create keeps the `{created,updated,unchanged}` diff** — matches today's `TrackingCreateResult` flow; we depend on the created UID round-tripping for the optimistic UI.
-- **RFC 9457 problem+json** — a structured error contract we can map to typed exceptions, directly addressing the class of failure that motivated the proxy migration.
-- **No `uid:0` sentinel** — explicit POST(create)/PUT(replace)/DELETE removes the `StripUidZero` magic.
+- POST-array create keeps the `{created,updated,unchanged}` diff. Matches today's `TrackingCreateResult` flow; we depend on the created UID round-tripping for the optimistic UI.
+- RFC 9457 problem+json. A structured error contract we can map to typed exceptions, directly addressing the class of failure that motivated the proxy migration.
+- No `uid:0` sentinel. Explicit POST(create)/PUT(replace)/DELETE removes the `StripUidZero` magic.
 - **Saved-locations editor** (`PUT /{label}`) and **typed `active_hours`** are net-new capabilities we can surface.
 
 ---
@@ -121,23 +127,23 @@ Net consequence: **without three explicit asks to jfberry, the keystone deletion
 
 ## Answering the maintainer's 6 open questions
 
-- **Q1 (collection scoping):** Keep the **human-scoped sub-resource** `/api/v2/humans/{id}/tracking[/{type}][/{uid}]?profile={n}`. PoracleWeb is always single-human-scoped; a flat `?user=&profile=` collection would force `user` into every query and lose the ownership boundary. We do **not** need a `/users/{id}/` alias.
-- **Q2 (create response):** **Keep `{created,updated,unchanged}`** — we depend on the created UID round-tripping. **Enhancement:** return the *full resulting rule objects* in each bucket (with applied defaults), not just UIDs, so we can hydrate cards without a follow-up GET.
-- **Q3 (int/enum split):** **Correct as-is.** Keep `team`/`gender`/`rsvp_changes`/`fort_type` as string enums, game ids as ints, flags as bools. The `clean`→3-booleans split is good; confirm all three are independently settable and bot-set bits survive partial writes.
-- **Q4 (invasion two-axis + incident):** Two-axis fits our UI (we already carry `typeId`). **Caveat:** moving from `grunt_type` *string* to integer `type_id`/`grunt_id` requires a **published id dictionary** so our Angular table doesn't drift. Confirm `incident.display_type` is a *different* dictionary than invasion `type_id`, and that read-back returns the same axis we wrote.
-- **Q5 (discrete action endpoints + typed active_hours):** Discrete endpoints suit us. Typed `active_hours` is good — but **day numbering flips from our 1-7 Mon-Sun to v2's 0-6 Sun=0**, and v2 forbids cross-midnight ranges. Document `day=0=Sunday` and `step`/`end_hours`/`end_mins` semantics authoritatively.
-- **Q6 (v1 dependencies missing in v2):** Yes — admin list-all-humans, admin full-purge delete, and batch human resolve. These are hard blockers to a DB-free PoracleWeb.
+- Q1 (collection scoping). Keep the **human-scoped sub-resource** `/api/v2/humans/{id}/tracking[/{type}][/{uid}]?profile={n}`. PoracleWeb.NET is always single-human-scoped; a flat `?user=&profile=` collection would force `user` into every query and lose the ownership boundary. We do **not** need a `/users/{id}/` alias.
+- Q2 (create response). **Keep `{created,updated,unchanged}`** — we depend on the created UID round-tripping. **Enhancement:** return the *full resulting rule objects* in each bucket (with applied defaults), not just UIDs, so we can hydrate cards without a follow-up GET.
+- Q3 (int/enum split). **Correct as-is.** Keep `team`/`gender`/`rsvp_changes`/`fort_type` as string enums, game ids as ints, flags as bools. The `clean`→3-booleans split is good; confirm all three are independently settable and bot-set bits survive partial writes.
+- Q4 (invasion two-axis + incident). Two-axis fits our UI (we already carry `typeId`). **Caveat:** moving from `grunt_type` *string* to integer `type_id`/`grunt_id` requires a **published id dictionary** so our Angular table doesn't drift. Confirm `incident.display_type` is a *different* dictionary than invasion `type_id`, and that read-back returns the same axis we wrote.
+- Q5 (discrete action endpoints + typed active_hours). Discrete endpoints suit us. Typed `active_hours` is good — but **day numbering flips from our 1-7 Mon-Sun to v2's 0-6 Sun=0**, and v2 forbids cross-midnight ranges. Document `day=0=Sunday` and `step`/`end_hours`/`end_mins` semantics authoritatively.
+- Q6 (v1 dependencies missing in v2). Yes — admin list-all-humans, admin full-purge delete, and batch human resolve. These are hard blockers to a DB-free PoracleWeb.NET.
 
 ---
 
 ## New Capabilities to Build (unblocked by v2)
 
-- **`incident` alarm type** *(shipped)* — genuinely new (facade over invasion, `display_type` int). Full four-layer wiring per CLAUDE.md (model + `IncidentCreate/Update`, controller with `[RequireFeatureEnabled]`, `DisableFeatureKeys` entry, Angular module/route/guard/nav). **Do not under-scope as "another invasion"** — `display_type` is a different dictionary. Effort: L.
-- **`fort` type** — we already have `FortChange` model/UI; reconcile `include_empty` default (v2 = TRUE, ours = 0) and convert int flags to bools. Effort: S–M.
-- **`maxbattle`** — model/UI exist; add `gmax` bool + `move` int coverage. Effort: S.
+- `incident` alarm type *(shipped)*. Genuinely new (facade over invasion, `display_type` int). Full four-layer wiring per CLAUDE.md (model + `IncidentCreate/Update`, controller with `[RequireFeatureEnabled]`, `DisableFeatureKeys` entry, Angular module/route/guard/nav). **Do not under-scope as "another invasion". `display_type` is a different dictionary. Effort: L.
+- `fort` type. We already have `FortChange` model/UI; reconcile `include_empty` default (v2 = TRUE, ours = 0) and convert int flags to bools. Effort: S–M.
+- `maxbattle`. Model/UI exist; add `gmax` bool + `move` int coverage. Effort: S.
 - **`pokemon.pvp_ranking_evolution`** (int 0/2/3) — additive field on `MonsterCreate/Update`. Effort: S.
-- **Saved-locations editor** — v2 `PUT /{id}/locations/{label}` enables in-place edit of saved locations. Effort: S.
-- **`blocked_alerts`** — read-only per-user authz signal (derived from Discord roles). Consume from the snapshot to hide/disable alarm-type nav + add-dialogs per user (distinct from global `disable_*` gates). Map `monster`→`pokemon`. Effort: M.
+- Saved-locations editor. The v2 `PUT /{id}/locations/{label}` enables in-place edit of saved locations. Effort: S.
+- `blocked_alerts`. Read-only per-user authz signal (derived from Discord roles). Consume from the snapshot to hide/disable alarm-type nav + add-dialogs per user (distinct from global `disable_*` gates). Map `monster`→`pokemon`. Effort: M.
 
 ---
 
@@ -234,7 +240,7 @@ false` fence with a 400, "the single most important blocker" — **did not repro
 read against an open pull request, and it has never been confirmed by calling a server. It has now been
 tested against two, and both accept.
 
-**Method.** A real user-drawn geofence was inserted into the dev `poracle_web` database so PoracleWeb's
+**Method.** A real user-drawn geofence was inserted into the dev `poracle_web` database so PoracleWeb.NET's
 feed served it with `userSelectable: false` and `displayInMatches: false` — the same shape a user's own
 geofence takes. Both PoracleNG instances read that one feed, so both saw it after a reload. A human with
 no admin role and no area restriction was created on each. This matters: the earlier probe used a fence

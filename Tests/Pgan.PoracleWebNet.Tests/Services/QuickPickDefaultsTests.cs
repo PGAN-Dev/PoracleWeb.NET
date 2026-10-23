@@ -10,12 +10,13 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 public class QuickPickDefaultsTests
 {
     // Valid PoracleNG grunt_type values from processor/internal/gamedata/grunts.go (TypeNameFromTemplate).
-    // "mixed" is the untyped CHARACTER_GRUNT_MALE/FEMALE — it is NOT the leader trio.
+    // "mixed" is the untyped CHARACTER_GRUNT_MALE/FEMALE — it is NOT the leader trio. Steel is "steel":
+    // "metal" is the legacy name InvasionGruntTypes.Normalise rewrites, and v2 refuses it.
     private static readonly HashSet<string> ValidGruntTypes =
     [
-        "", "mixed", "cliff", "arlo", "sierra", "giovanni", "decoy",
+        "", "mixed", "darkness", "cliff", "arlo", "sierra", "giovanni", "decoy",
         "bug", "dark", "dragon", "electric", "fairy", "fighting", "fire", "flying",
-        "ghost", "grass", "ground", "ice", "metal", "normal", "poison", "psychic", "rock", "water",
+        "ghost", "grass", "ground", "ice", "steel", "normal", "poison", "psychic", "rock", "water",
     ];
 
     private readonly QuickPickService _sut = BuildSut();

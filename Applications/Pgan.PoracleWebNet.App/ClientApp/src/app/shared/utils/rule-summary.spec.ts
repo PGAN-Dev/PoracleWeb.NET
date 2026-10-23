@@ -1,4 +1,4 @@
-import { cleanRuleSummary, ruleSummaryNeedsExpanding } from './rule-summary';
+import { cleanRuleSummary } from './rule-summary';
 
 describe('cleanRuleSummary', () => {
   // Every input below is a string a live PoracleNG returned, not one invented to suit the function.
@@ -54,20 +54,5 @@ describe('cleanRuleSummary', () => {
     expect(cleanRuleSummary(null)).toBe('');
     expect(cleanRuleSummary('   ')).toBe('');
     expect(cleanRuleSummary('  |  ')).toBe('');
-  });
-});
-
-describe('ruleSummaryNeedsExpanding', () => {
-  it('offers the control on a real Pokemon description, which overflows two lines', () => {
-    const live = cleanRuleSummary(
-      '**Bulbasaur**  | distance: 5000m | iv: 90%-100% | cp: 1200-4000 | level: 20-35 | stats: 0/0/0 - 15/15/15 | pvp ranking: greatpvp top100 (@0+) | size: XXS-XXL ',
-    );
-
-    expect(ruleSummaryNeedsExpanding(live)).toBe(true);
-  });
-
-  it('does not offer it on a short one, where there is nothing to expand', () => {
-    expect(ruleSummaryNeedsExpanding(cleanRuleSummary('Reward: **Pikachu** | distance: 500m '))).toBe(false);
-    expect(ruleSummaryNeedsExpanding(cleanRuleSummary('**Level 5 raids**  without rsvp updates'))).toBe(false);
   });
 });

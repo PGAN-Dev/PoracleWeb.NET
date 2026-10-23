@@ -1,42 +1,3 @@
-<div class="gen-filter">
-  <span class="gen-label">{{ 'POKEMON_SELECTOR.GEN' | translate }}</span>
-  @for (gen of generations; track gen.label) {
-    <button class="gen-chip" [class.gen-active]="activeGen() === gen" (click)="toggleGen(gen)">G{{ gen.label }}</button>
-  }
-</div>
-
-@if (availableTypes().length > 0) {
-  <div class="gen-filter type-filter">
-    <span class="gen-label">{{ 'POKEMON_SELECTOR.TYPE' | translate }}</span>
-    @for (type of availableTypes(); track type) {
-      <button class="gen-chip type-chip" [class.gen-active]="activeType() === type" (click)="toggleType(type)">
-        <img [src]="getTypeIcon(type)" [alt]="typeLabel(type)" class="type-icon" (error)="onImageError($event)" />{{ typeLabel(type) }}
-      </button>
-    }
-  </div>
-}
-
-@if (showAvailability()) {
-  <div class="gen-filter spawning-filter">
-    <span class="gen-label">{{ 'POKEMON_SELECTOR.LIVE' | translate }}</span>
-    <button class="gen-chip spawning-chip" [class.gen-active]="filterSpawning()" (click)="toggleSpawning()">
-      <span class="spawning-dot" [class.dot-active]="filterSpawning()"></span>{{ 'POKEMON_SELECTOR.SPAWNING' | translate }}
-    </button>
-    @if (availability.getAvailableCount() > 0) {
-      <span class="spawning-count">{{ 'POKEMON_SELECTOR.SPECIES_ACTIVE' | translate: { count: availability.getAvailableCount() } }}</span>
-    }
-  </div>
-}
-
-@if (multi()) {
-  <div class="bulk-toggle-row">
-    <button type="button" class="bulk-toggle" (click)="toggleBulkMode()">
-      <mat-icon>{{ bulkMode() ? 'search' : 'playlist_add' }}</mat-icon>
-      {{ (bulkMode() ? 'POKEMON_SELECTOR.BULK_BACK_TO_SEARCH' : 'POKEMON_SELECTOR.BULK_TOGGLE') | translate }}
-    </button>
-  </div>
-}
-
 @if (bulkMode()) {
   <mat-form-field class="full-width" appearance="outline">
     <mat-label>{{ 'POKEMON_SELECTOR.BULK_LABEL' | translate }}</mat-label>
@@ -114,6 +75,60 @@
   </mat-form-field>
 }
 
+<div class="picker-links">
+  <button
+    type="button"
+    class="picker-link bulk-pickers-toggle"
+    [attr.aria-expanded]="pickersOpen()"
+    [attr.aria-controls]="pickersId"
+    (click)="togglePickers()">
+    <mat-icon>{{ pickersOpen() ? 'expand_less' : 'expand_more' }}</mat-icon>
+    {{ 'POKEMON_SELECTOR.ADD_BY_TYPE_OR_GEN' | translate }}
+  </button>
+  @if (multi()) {
+    <button type="button" class="picker-link bulk-toggle" (click)="toggleBulkMode()">
+      <mat-icon>{{ bulkMode() ? 'search' : 'playlist_add' }}</mat-icon>
+      {{ (bulkMode() ? 'POKEMON_SELECTOR.BULK_BACK_TO_SEARCH' : 'POKEMON_SELECTOR.BULK_TOGGLE') | translate }}
+    </button>
+  }
+</div>
+
+@if (pickersOpen()) {
+  <div class="bulk-pickers" [id]="pickersId">
+    <div class="gen-filter">
+      <span class="gen-label">{{ 'POKEMON_SELECTOR.GEN' | translate }}</span>
+      @for (gen of generations; track gen.label) {
+        <button class="gen-chip" [class.gen-active]="activeGen() === gen" (click)="toggleGen(gen)">G{{ gen.label }}</button>
+      }
+    </div>
+
+    @if (availableTypes().length > 0) {
+      <div class="gen-filter type-filter">
+        <span class="gen-label">{{ 'POKEMON_SELECTOR.TYPE' | translate }}</span>
+        @for (type of availableTypes(); track type) {
+          <button class="gen-chip type-chip" [class.gen-active]="activeType() === type" (click)="toggleType(type)">
+            <img [src]="getTypeIcon(type)" [alt]="typeLabel(type)" class="type-icon" (error)="onImageError($event)" />{{ typeLabel(type) }}
+          </button>
+        }
+      </div>
+    }
+
+    @if (showAvailability()) {
+      <div class="gen-filter spawning-filter">
+        <span class="gen-label">{{ 'POKEMON_SELECTOR.LIVE' | translate }}</span>
+        <button class="gen-chip spawning-chip" [class.gen-active]="filterSpawning()" (click)="toggleSpawning()">
+          <span class="spawning-dot" [class.dot-active]="filterSpawning()"></span>{{ 'POKEMON_SELECTOR.SPAWNING' | translate }}
+        </button>
+        @if (availability.getAvailableCount() > 0) {
+          <span class="spawning-count">{{
+            'POKEMON_SELECTOR.SPECIES_ACTIVE' | translate: { count: availability.getAvailableCount() }
+          }}</span>
+        }
+      </div>
+    }
+  </div>
+}
+
 @if (showTileGrid()) {
   <div class="tile-grid">
     @for (pokemon of filteredPokemon(); track pokemon.id) {
@@ -144,7 +159,7 @@
           <img matChipAvatar [src]="getPokemonImage(pokemon.id)" [alt]="pokemon.name" class="chip-avatar" (error)="onImageError($event)" />
         }
         {{ formatPokemonName(pokemon) }}
-        <button matChipRemove>
+        <button matChipRemove [attr.aria-label]="'COMMON.REMOVE_NAMED' | translate: { name: formatPokemonName(pokemon) }">
           <mat-icon>cancel</mat-icon>
         </button>
       </mat-chip>

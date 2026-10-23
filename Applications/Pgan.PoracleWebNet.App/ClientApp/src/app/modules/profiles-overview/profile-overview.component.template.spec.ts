@@ -194,6 +194,29 @@ describe('ProfileOverviewComponent rendered duplicates', () => {
     expect(text(filterChip()?.querySelector('.type-count'))).toBe('2');
   });
 
+  /** PoracleNG's wildcards are stored values, not things to show: level 9000 is every tier, team 4 any team. */
+  it("shows a raid rule's team by name and leaves the any-tier and any-team wildcards off the card", async () => {
+    await render({
+      raid: [
+        { ...raid(1, 1), pokemon_id: 150, level: 9000, team: 4 },
+        { ...raid(2, 1), level: 5, team: 1 },
+      ],
+      profile: [HOME],
+    });
+
+    const pills = (Array.from(fixture.nativeElement.querySelectorAll('.alarm-card .filter-pill')) as HTMLElement[]).map(text);
+    expect(pills).not.toContain('L9000');
+    expect(pills.some(p => p.includes('PROFILES.TEAM_NUM'))).toBe(false);
+    expect(pills).toContain('L5');
+    expect(pills).toContain('RAIDS.TEAM_MYSTIC');
+  });
+
+  it('says Clean on an auto-delete rule, the word the alarm cards use', async () => {
+    await render({ pokemon: [{ ...monster(1, 1, 25), clean: 1 }], profile: [HOME] });
+
+    expect(text(fixture.nativeElement.querySelector('.clean-tag'))).toBe('ALARM.STATUS_CLEAN');
+  });
+
   it('draws no duplicates chip at all when nothing is duplicated', async () => {
     await render({ pokemon: [monster(1, 1, 25), monster(2, 2, 150)], profile: [HOME, WORK] });
 

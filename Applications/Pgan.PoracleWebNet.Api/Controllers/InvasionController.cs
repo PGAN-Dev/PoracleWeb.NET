@@ -8,6 +8,7 @@ namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/invasions")]
 [RequireFeatureEnabled(DisableFeatureKeys.Invasions)]
+[TypeFilter(typeof(PoracleUnreachableExceptionFilter))]
 public class InvasionController(IInvasionService invasionService) : BaseApiController
 {
     private readonly IInvasionService _invasionService = invasionService;

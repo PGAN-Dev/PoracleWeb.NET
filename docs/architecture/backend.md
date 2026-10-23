@@ -22,20 +22,52 @@ private static readonly JsonSerializerOptions SnakeCaseOptions = new()
 
 ### Update pattern
 
-PoracleNG's tracking POST endpoint handles both creates and updates. When the request body includes a `uid` field, it updates the existing alarm. Services use the same `CreateAsync` proxy method for both operations.
+Creates and edits both go to PoracleNG's `/api/v2` and nowhere else. There is no v1 fallback: a route that answers gin's plaintext `404 page not found` raises `PoracleUnsupportedException`, and a row the translator can't express is refused with "PoracleNG can't store this alarm as it is: ... Nothing was changed." rather than sent through the older surface. Bulk distance and the cleaning toggle are the exception to the full replace: each is one `PATCH /api/v2/humans/{id}/tracking/{type}` naming the uids and the one setting, so nothing else a rule holds is re-sent.
 
-An edit therefore sends the whole row, and the body is built by serializing the typed model — so every column PoracleWeb has no property for arrives absent and PoracleNG stores the default over what the user had. `TrackingFieldPreserver.PreserveStoredFieldsAsync` runs first on every update: it re-reads the stored row and copies across any property the submitted body lacks. Before it existed, editing an alarm on the web reset `override_location_label`, `override_areas` and `pvp_ranking_evolution` set from the bot (#730). A read failure returns the body untouched rather than failing the edit.
+An edit is `PUT /api/v2/humans/{id}/tracking/{type}/{uid}`, a **full replace**: a field left out of the body is reset to its default. The body is built by serializing the typed model, so every column PoracleWeb.NET has no property for would arrive absent. `TrackingFieldPreserver.PreserveStoredFieldsAsync` runs first on every update: it re-reads the stored row and copies across any property the submitted body lacks. Before it existed, editing an alarm on the web reset `override_location_label`, `override_areas` and `pvp_ranking_evolution` set from the bot (#730). A read failure returns the body untouched rather than failing the edit.
 
-On PoracleNG 5.2.0 and later an edit to any of nine types takes a different route: `PUT /api/v2/humans/{id}/tracking/{type}/{uid}`, which is a **full replace**. A field left out of the body is reset to its default rather than left alone, so the same merge that fixed #730 is what stops a v2 edit wiping a stored `min_iv`. The PUT is also delete-then-insert, so on 5.2.x the uid rotates on edit (since jfberry/PoracleNG #303 it is kept unless the server's reassignment fails, so the response is always read) and `ITrackedUidRemapper` moves quick-pick applied state to the new one whenever it does change. Invasion, the tenth, joins them only when the server's own `/openapi.json` declares `grunt_type` on the invasion rule (jfberry/PoracleNG#217) and its grunt masterdata lists the name, so on 5.2.1 and 5.1.0 it stays on v1. A row carrying something else v2 cannot express, such as an egg with no level, falls back to v1 rather than failing. A non-empty `ping` is different: on a server without jfberry/PoracleNG#249 the edit is refused with an `AlarmValidationException`, because both surfaces blank the mention. See [The v2 write path](poracleng-proxy.md#the-v2-write-path).
+PoracleNG answers 409 for an edit that would duplicate another rule or change exactly one updatable field of it, and the proxy turns that into the takeover message. Services keep no copy of PoracleNG's diff any more. The PUT keeps the rule's uid on 5.4.0 (jfberry/PoracleNG #303) unless the server's reassignment fails, so the response is always read, and `ITrackedUidRemapper` moves quick-pick applied state to the new uid whenever it does change. See [The v2 write path](poracleng-proxy.md#the-v2-write-path).
 
-The merge runs *before* the collision guards, because `TrackingUpdateReconciler.CountUpdatableDifferences` only compares properties present in the submission — an unmodelled property could not tell two alarms apart, so the guard refused edits PoracleNG would have accepted. See [PoracleNG API Proxy](poracleng-proxy.md#insert-update-or-duplicate) for what the guards are mirroring.
+```mermaid
+sequenceDiagram
+    participant SPA
+    participant API as PoracleWeb.NET
+    participant NG as PoracleNG
+    SPA->>API: PUT /api/{type}/{uid}
+    API->>NG: GET .../tracking/{type}
+    alt uid not on the active profile
+        API-->>SPA: 404
+    end
+    alt the edit changes nothing
+        API-->>SPA: 200, nothing sent to PoracleNG
+    end
+    API->>API: ApplyUpdate, nulls skipped
+    alt a min above its max (range validator)
+        API-->>SPA: 400 naming the field
+    end
+    API->>API: TrackingFieldPreserver carries stored fields across
+    API->>API: translate to a V2 rule
+    API->>NG: PUT .../tracking/{type}/{uid}?silent=true, trusted if override areas allowed
+    alt 409
+        API-->>SPA: 409 takeover message, nothing changed
+    else 422
+        API-->>SPA: 400 with PoracleNG's reason
+    else 200 with uid
+        opt uid changed
+            API->>API: ITrackedUidRemapper moves quick-pick state
+        end
+        API-->>SPA: 200
+    end
+```
+
+The `...` is `/api/v2/humans/{id}`. `TrackingFieldPreserver` reads the same list again rather than trusting the first read. `trusted=true` is added only when the rule names override areas that `IUserAreaPolicy` allowed.
 
 ## Repository layer (non-alarm entities)
 
-`HumanRepository` covers what PoracleNG's API has no endpoint for: the admin user list (`GetAllAsync`), the webhook list (`GetWebhooksAsync`), the batch read that resolves geofence owners' names (`GetByIdsAsync`), account deletion (`DeleteUserAsync`), and the existence check `UserPurgeService` runs first — that last one reads the database on purpose, since the proxy cannot tell an absent account from an unreachable Poracle. Everything else about a single human goes through `IPoracleHumanProxy`. `ProfileRepository` holds the two profile writes the API cannot serve: `RenameAsync`, and `UpdateAsync` for the area and coordinates `addProfile` ignores. `poracle_web`-owned entities (`SiteSettingRepository`, `WebhookDelegateRepository`, `QuickPickDefinitionRepository`, `QuickPickAppliedStateRepository`) use their own dedicated repository classes.
+There is no repository for humans, profiles or alarms. Every human and profile read and write, the admin user list, the webhook list, the batch read that resolves geofence owners' names and account deletion go through `IPoracleHumanProxy` and PoracleNG's `/api/v2` routes. The `poracle_web` tables have one repository each: `OidcSessionRepository`, `QuickPickAppliedStateRepository`, `QuickPickDefinitionRepository`, `SiteSettingRepository`, `UserGeofenceRepository` and `WebhookDelegateRepository`.
 
 !!! note "`BaseRepository` removed"
-    The generic `BaseRepository<TEntity, TModel>` and all alarm repository classes have been removed. `EnsureNotNullDefaults()` is no longer needed -- PoracleNG handles NULL defaults for alarm writes, and the remaining repositories handle null normalization as needed.
+    The generic `BaseRepository<TEntity, TModel>` and all alarm repository classes have been removed. `EnsureNotNullDefaults()` went with them; the remaining repositories normalise nulls where they need to.
 
 ## Mapping extensions
 
@@ -43,7 +75,7 @@ Mapping is done with static extension methods in `Core.Mappings/`. There is no A
 
 `AlarmMappingExtensions` covers the alarm DTOs: `To*()` builds a model from a `*Create` DTO (`create.ToMonster()`), and `ApplyUpdate()` merges a `*Update` DTO onto an existing model (`update.ApplyUpdate(existing)`).
 
-`EntityMappingExtensions` covers `Human`, `Profile`, and the `poracle_web`-owned entities (user geofences, site settings, webhook delegates, quick picks) with `ToModel()`, `ToEntity()`, and `ApplyTo()`.
+`EntityMappingExtensions` covers the `poracle_web` entities (user geofences, site settings, webhook delegates, quick-pick definitions and applied state) with `ToModel()`, `ToEntity()`, and `ApplyTo()`.
 
 All `*Update` models use **nullable** properties so partial updates don't zero out unset fields. `ApplyUpdate` skips nulls explicitly:
 
@@ -56,22 +88,28 @@ public static void ApplyUpdate(this MonsterUpdate src, Monster dest)
 }
 ```
 
-## Alarm field defaults
+## Monster filter defaults
 
-PoracleNG's `cleanRow()` function applies field defaults on every create/update. PoracleWeb.NET no longer needs to manage alarm defaults directly. However, the frontend still sends sensible initial values to avoid confusing the user when the add dialog opens:
+PoracleNG fills a field only when it's **absent** from the write. A non-nullable `int` on a `*Create` model is never absent: it serialises as whatever it defaults to, and that value is stored. So every default on a `*Create` model is authoritative, and getting one wrong writes it into every rule. Believing PoracleNG would supply them is how 15,383 production rules ended up with `pvp_ranking_best = 0` (#895).
 
-| Property | Frontend default | Notes |
+A bound's "no filter" value is the column's default, which isn't always zero:
+
+| Property | Default | Notes |
 |---|---|---|
 | `max_iv` | 100 | |
 | `max_cp` | 9000 | |
 | `max_level` | 55 | |
-| `size` | -1 | Means "any size" |
-| `team` (Raid/Egg/Gym) | 4 | Means "any team" |
-| `move` (Raid) | 9000 | Means "any move" |
-| `evolution` (Raid) | 9000 | Means "any evolution" |
+| `max_weight` | 9000000 | |
+| `max_atk`, `max_def`, `max_sta` | 15 | |
+| `pvp_ranking_best` | 1 | Ranks are 1-based. `[Range]` still admits 0 so stored legacy rules stay editable |
+| `pvp_ranking_worst` | 4096 | |
+| `costume` | 9000 | Any costume. 0 means no costume |
+| `size` | -1 | Any size |
+| `max_size` | 5 | |
+| `team` (Raid, Egg, Gym) | 4 | Any team |
+| `move`, `evolution` (Raid) | 9000 | Any |
 
-!!! info "Defaults are now enforced server-side"
-    Even if the frontend sends incomplete data, PoracleNG's `cleanRow()` fills in proper defaults. This eliminates the class of bugs where missing C# model defaults caused silent filter breakage.
+When adding a field, ask what the column stores for "no filter", and check its pair: the bug in #895 was one half of a `best`/`worst` pair left without an initializer. Every write goes through `TrackingV2Translator`, which turns the v1-shaped row into a `V2*Rule` body. A rule read back with a legacy zero (`pvp_ranking_best 0`, `size 0`) shows the default, and the next write saves it.
 
 ## Raid level service
 
@@ -85,13 +123,15 @@ PoracleNG accepts any positive integer as a raid/egg level, so the picker's `+ A
 
 ## Fort change and Max Battle services
 
-`FortChangeService` and `MaxBattleService` follow the same `IPoracleTrackingProxy` pattern as all other alarm services. They proxy CRUD operations through PoracleNG's tracking endpoints with no direct database access. Each has the standard three distance endpoints (`PUT /{uid}`, `PUT /distance`, `PUT /distance/bulk`).
+`FortChangeService` and `MaxBattleService` follow the same `IPoracleTrackingProxy` pattern as all other alarm services. They proxy CRUD operations through PoracleNG's tracking endpoints. Each has the standard three distance endpoints (`PUT /{uid}`, `PUT /distance`, `PUT /distance/bulk`).
 
 ## Invasion service
 
-### GruntType case normalization
+### Grunt type checks
 
-`InvasionService.CreateAsync()` and `BulkCreateAsync()` call `ToLowerInvariant()` on the `GruntType` field before saving. This matches Poracle's case-sensitive matching behavior — grunt types must be lowercase for notifications to fire correctly.
+`InvasionService` runs `RequireGruntType` before every create and edit. It rewrites the legacy `metal` to `steel` (`InvasionGruntTypes.Normalise`), because PoracleNG's game data has no `metal` and v2 refuses it. It then refuses a blank value, control characters, or anything longer than the 255-character column. It deliberately doesn't check against a list: production holds grunt types this code doesn't model (`blanche`, `candela`, `spark`, `npc 0` to `npc 10`, `player team leader`), and those must stay editable. Case is left as sent, and PoracleNG normalises a spaced name such as `player team leader` to `player_team_leader` on write.
+
+A Pokéstop event grunt (Kecleon, Gold Stop, Showcase) picked on the invasion page is saved as a Pokéstop event rule instead, through `IPoracleIncidentProxy`.
 
 ## Bulk operations
 
@@ -103,57 +143,63 @@ Each alarm controller has three distance endpoints:
 | `PUT /distance` | Update ALL alarms' distance for the current user/profile |
 | `PUT /distance/bulk` | Update distance for specific UIDs: `{ uids: number[], distance: number }` |
 
-All three endpoints go through the PoracleNG API proxy. Bulk distance updates fetch all alarms via `GET`, modify the distance field in memory, then POST the updated alarms back. This is a workaround until PoracleNG adds dedicated bulk distance endpoints (see [enhancement requests](../poracleng-enhancement-requests.md)).
+The two distance endpoints send one `PATCH /api/v2/humans/{id}/tracking/{type}?silent=true&trusted=true` with `{"uids": [...], "set": {"distance": n}}`, so nothing else a rule holds is re-sent and each rule keeps its uid. `DistanceRewrite.Plan` first sets aside the rules a radius can't apply to: one limited to areas can't take a radius above zero, and one measured from a saved place can't take zero. PoracleNG answers per uid, and `DistanceRewrite.Report` turns that into `{ updated, skippedAreaScoped, skippedPlaceScoped, skippedConflict }`. A rule PoracleNG refuses because it would clash with another is reported as a conflict, and the rest still go through. The cleaning toggle is the same `PATCH` with `{"set": {"clean": n}}`.
+
+```mermaid
+flowchart TD
+    A["PUT /api/{type}/distance/bulk<br/>uids, distance"] --> P["DistanceRewrite.Plan"]
+    P -->|"limited to areas, distance above 0"| SA["skippedAreaScoped"]
+    P -->|"measured from a place, distance 0"| SP["skippedPlaceScoped"]
+    P -->|"the rest"| W["PATCH /api/v2/humans/{id}/tracking/{type}<br/>silent, trusted"]
+    W --> R{"answer per uid"}
+    R -->|"updated or unchanged"| U["updated, uid kept"]
+    R -->|"conflict, or invalid for another reason"| C["skippedConflict"]
+    R -->|"not_found"| L["logged only"]
+```
 
 ## Poracle API proxies
 
 ### IPoracleTrackingProxy (alarm tracking)
 
-Proxies alarm CRUD to PoracleNG's `/api/tracking/*` endpoints, and single-rule edits for nine of the ten v1 types to `PUT /api/v2/humans/{id}/tracking/{type}/{uid}` where the server carries it. Authenticated via the `X-Poracle-Secret` header. See [PoracleNG API Proxy](poracleng-proxy.md) for full details.
+Proxies alarm reads, creates, edits and deletes to PoracleNG's `/api/v2/humans/{id}/tracking/*` routes. Authenticated via the `X-Poracle-Secret` header. No v1 tracking route is called. See [PoracleNG API Proxy](poracleng-proxy.md) for full details.
 
-- Registered as the concrete `PoracleTrackingProxy`, then decorated — what the container resolves for `IPoracleTrackingProxy` is `UserOwnedOverrideAreaProxy` wrapping it
-- Used by: all alarm services, `DashboardService`, `CleaningService`, each of which therefore gets the decorated instance
-
-```csharp
-services.AddHttpClient<PoracleTrackingProxy>();
-services.AddScoped<IPoracleTrackingProxy>(sp => new UserOwnedOverrideAreaProxy(
-    sp.GetRequiredService<PoracleTrackingProxy>(),
-    sp.GetRequiredService<IUserGeofenceRepository>(),
-    sp.GetRequiredService<IUserAreaDualWriter>(),
-    sp.GetRequiredService<ILogger<UserOwnedOverrideAreaProxy>>()));
-```
-
-The decorator only touches `CreateAsync`; everything else forwards untouched. See [Per-alarm areas](#per-alarm-areas).
+- Registered as `AddHttpClient<IPoracleTrackingProxy, PoracleTrackingProxy>()`; there is no decorator
+- Used by: all alarm services, `DashboardService`, `CleaningService`, `ProfileOverviewService`, `TestAlertService`, `RuleRepairJob`, `UserAreaWriter`
 
 ### IPoracleHumanProxy (human/profile management)
 
-Proxies single-user human and profile operations to PoracleNG's `/api/humans/*` and `/api/profiles/*` endpoints. Handles user reads, creation, location setting, area updates, profile switching, and profile CRUD.
+Proxies human and profile operations to PoracleNG's `/api/v2/humans/...` routes: user reads and creation, location, areas, profile switching and profile CRUD, plus the admin user list and delete and the admin-roles read.
 
 - Registered via `AddHttpClient<IPoracleHumanProxy, PoracleHumanProxy>()`
-- Used by: `HumanService`, `LocationController`, `AreaController`, `ProfileController`, `UserGeofenceService`
+- Used by: `HumanService`, `ProfileService`, `ProfileOverviewService`, `UserGeofenceService`, `UserAreaPolicy`, `UserAreaWriter`, `UserRoleResolver`, `TestAlertService`, `RuleRepairJob`, and the `Admin`, `Area`, `Auth`, `Location`, `Profile` and `ProfileOverview` controllers
 - URL-encodes user IDs with `Uri.EscapeDataString()` -- critical for webhook IDs that contain slashes
 
 ### IPoracleApiProxy (config, areas, templates)
 
 Wraps HttpClient calls for non-tracking Poracle API operations.
 
-- Used for: fetching config, areas/geofences, templates, sending commands
+- Used for: config and config values, templates, masterdata (grunts, localized monsters), geofence maps and hashes, asking PoracleNG to reload geofences, test alerts (`POST /api/test`) and geocoding (`/api/geocode/forward` and `/reverse`)
 - Registered via `AddHttpClient<IPoracleApiProxy, PoracleApiProxy>()`
 
 ### IPoracleMuteProxy (quiet periods)
 
-Proxies the mute store at `/api/v2/humans/{id}/mutes`. **v2 only** — there is no v1 equivalent, so
-`MuteCapabilityService` gates every call and `MuteController` answers the capability alongside the list
-rather than from a separate endpoint.
+Proxies the mute store at `/api/v2/humans/{id}/mutes`. **v2 only**, with no v1 equivalent and no capability
+check: every supported PoracleNG has the routes. `MuteController` answers `{ mutes }`, and all three actions
+answer 503 through `PoracleUnreachableExceptionFilter` when PoracleNG cannot be reached.
 
 ### IPoracleIncidentProxy (Pokéstop Events)
 
-Proxies Pokéstop-event alarm CRUD at `/api/v2/humans/{id}/tracking/incident`, again v2 only. It is
-deliberately separate from `IPoracleTrackingProxy`: the v2 wire shape is a different contract (named
-envelopes, the clean bitmask split into three booleans, a strict rule object rather than a stored row),
-and bending the v1 proxy to serve both would mean a second shape inside every one of its methods.
+Proxies Pokéstop-event alarm CRUD at `/api/v2/humans/{id}/tracking/incident`. Both proxies now speak
+v2, but `IPoracleTrackingProxy` hands its callers the v1 row shape every service is built on, and
+Pokéstop events never had one, so the incident proxy keeps its own model rather than adding a second
+shape to every tracking method. The tracking proxy folds event rules into the invasion list for the
+reads that show them there.
 
-That makes five Poracle proxies in total: tracking, human, api, mute and incident.
+### IPoracleSummaryProxy (quest summary delivery)
+
+Reads and writes the quest summary schedule for `SummaryScheduleController`. See [Quest Summary Delivery](../features/quest-summary-schedules.md).
+
+That makes six Poracle proxies in total: tracking, incident, human, mute, summary and api.
 
 ### Config parsing
 
@@ -161,27 +207,28 @@ That makes five Poracle proxies in total: tracking, human, api, mute and inciden
 
 ## Server capability probe
 
-`IPoracleServerProfileService` / `PoracleServerProfileService` asks the PoracleNG instance what it is and
-what it can store. PoracleWeb previously assumed 5.1.0 and never checked, so on an older server the
-per-alarm scope, the PVP mega picker and the minimum-time filter wrote fields nothing stored and failed
-without a word.
+`IPoracleServerProfileService` / `PoracleServerProfileService` asks the PoracleNG instance what it is.
+One read: `GET {Poracle:ApiAddress}/health`, which carries the release number and PoracleNG's own
+capability map. It is unauthenticated, so the probe carries no secret and still works when the API key
+is wrong, which is itself worth knowing: "reachable but every write 401s" and "not running" look
+identical otherwise. The map is read key-by-key rather than into a fixed type, because it is upstream's
+and it grows. It covers bot and template-editor features and says nothing about alarms.
 
-Two reads, answering different questions:
+There used to be a second read, `schema_migrations` and `information_schema` straight out of PoracleNG's
+database, for the costume columns and the lure and invasion unique keys. Every supported release answers
+those the same way, so it went when 5.2.1 became the minimum, and `Poracle:TrackingApiVersion` went with
+5.4.0.
 
-- `GET {Poracle:ApiAddress}/health` — the release number and PoracleNG's own capability map. It is
-  unauthenticated, so the probe carries no secret and still works when the API key is wrong, which is
-  itself worth knowing: "reachable but every write 401s" and "not running" look identical otherwise. The
-  map is read key-by-key rather than into a fixed type, because it is upstream's and it grows.
-- `SELECT version FROM schema_migrations` on `PoracleContext`, via `PoracleSchemaVersionReader`. The
-  capability map covers bot and template-editor features and says nothing about alarm columns; the
-  applied migration number is what answers "can this server store that filter". 5.1.0 sits at migration
-  5. A missing table or a permission error reports an unknown schema, which unlocks nothing.
+`PoracleServerProfile.MinimumSupported` is **5.4.0**. `IsBelowMinimum` is true only when the server is
+*known* to be older: unreachable, unparseable, or the `0.0.0` a locally built binary reports are all
+unknown rather than too old, so the banner is not shown on a guess. `IsSupported` is the rule every
+version-decided feature shares: reachable and not known to be older, so a local build counts as current
+and an unreachable server does not. `Supports(capability)` defaults a missing key to false, per
+PoracleNG's map contract.
 
-`PoracleServerProfile.MinimumSupported` is **5.1.0** — where `override_location_label`, `override_areas`
-and `pvp_ranking_evolution` arrive. `IsBelowMinimum` is true only when the server is *known* to be older:
-unreachable, unparseable, or the `0.0.0` a locally built binary reports are all unknown rather than too
-old, so the banner is not shown on a guess. `Supports(capability)` defaults a missing key to false, per
-PoracleNG's map contract; `HasSchema(n)` answers false on an unknown schema.
+Against a server below the minimum PoracleWeb.NET keeps running. `PoracleCompatibilityStartupService`
+logs an error at startup naming what breaks, and the Versions card on the admin settings page shows the
+same thing. Refusing to start would take the whole site down over something an operator can fix.
 
 The profile is cached in `IMemoryCache` for five minutes and the HttpClient's timeout is five seconds, so
 an unreachable server answers "unknown" quickly instead of stalling the admin page.
@@ -190,77 +237,74 @@ GitHub update check first.
 
 ### Per-feature capability services
 
-Four services sit over the profile and answer one question each: `MuteCapabilityService`,
-`QuestPokecoinCapabilityService`, `PlaceUpdateCapabilityService` and `CostumeCapabilityService`. All the
-same shape — one method, fail closed, no cache of their own, since `IPoracleServerProfileService`
-already caches for five minutes and exposes `Invalidate()`. Each picks the narrowest signal that
-predicts its feature: `CostumeCapabilityService` reads the migration number (`monsters.costume` at 6,
-`raid.costume` at 7), while the other three read the version and all three compare against **5.2.0** —
-the release that added the features, not the 5.2.1 production happens to run.
+Two services answer a question from Poracle's own configuration: `SummaryCapabilityService` reads
+`tracking.quest_summary_enabled` and `PokemonEditCapabilityService` reads `tracking.pokemon_edit`, both
+from `GET /api/config/values`, caching for five minutes. They exist because both are deployment settings
+an operator can switch off on a server that supports the feature, not because of the server's version.
 
-`SummaryCapabilityService` answers the same shape of question from a different place. Quest summary
-delivery is a deployment setting rather than a server capability, so it reads
-`tracking.quest_summary_enabled` from `GET /api/config/values` and caches that itself for five minutes.
+The services that used to answer "is this server new enough" (`QuestPokecoinCapabilityService`,
+`PlaceUpdateCapabilityService`, `CostumeCapabilityService`, `MuteCapabilityService`) are gone with the
+fallbacks they guarded: every supported release has the feature, so its control is always shown and the
+endpoints that only reported them (`GET /api/settings/costume-capability`, `GET /api/quests/capability`)
+no longer exist.
 
 There is deliberately no central registry. A user-facing control cannot ask the admin-only
-`GET /api/admin/server-profile`, so ordinary authenticated endpoints answer instead:
-`GET /api/settings/costume-capability`, `GET /api/quests/capability` and
-`GET /api/summary-schedules/capability` answer on their own, while `GET /api/mutes` and
-`GET /api/location/places` fold the capability into the list response, because their callers need the
-list anyway.
+`GET /api/admin/server-profile`, so an ordinary authenticated endpoint answers instead, like
+`GET /api/summary-schedules/capability`.
 
 See [Version compatibility](poracleng-compatibility.md) for how to choose a signal and what each
 feature needs.
 
 ## Areas
 
-User areas are managed through `IPoracleHumanProxy.SetAreasAsync()`, and PoracleNG handles the dual-write
-to both `humans.area` and `profiles.area` — **for admin areas**.
+Every area write goes to PoracleNG's `/api/v2` area routes, and PoracleNG keeps `humans.area` and
+`profiles.area` in step. PoracleWeb.NET writes neither table.
 
-User-drawn geofences are the exception. PoracleWeb serves them with `userSelectable=false` to keep them
-off the bot's area picker, and PoracleNG's `HandleSetAreas` silently strips any name whose fence is not
-user-selectable. On a PoracleNG new enough to carry jfberry/PoracleNG#230's `trusted` fix and confirmed
-to have `area_security` switched off (see `IAreaSecurityPolicyService` — no self-reported signal tells a
-pre-#230 server from a post-#230 one otherwise), three of the six mutations — adding or removing one area
-from the active profile, and the bulk-add used to restore an owner's own geofences — go through v2's
-trusted `setAreas` instead, which PoracleNG itself commits atomically to both tables. Everywhere else,
-every user-geofence area mutation still goes through `IUserAreaDualWriter`, which writes both tables
-directly in a single `SaveChangesAsync`, and `AreaController.UpdateAreas` calls
-`PreserveOwnedAreasInHumanAsync` after `SetAreasAsync` to re-add what was stripped. Every such direct-DB
-site is tagged `HACK: trusted-set-areas` — `grep -rn "HACK: trusted-set-areas" --include="*.cs"` lists
-them, migrated or not; see [#838](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/838) for what moved
-and what is still blocked.
+User-drawn geofences are why there is more than a plain `SetAreasAsync`. PoracleWeb.NET serves them with
+`userSelectable=false` to keep them off the bot's area picker, and PoracleNG's `setAreas` drops any name
+whose fence is not user-selectable. `IUserAreaWriter` gets round that with the v2 `trusted` flag (PoracleNG
+5.4.0) and does its own authorising first, because `trusted` skips PoracleNG's check. A name is allowed when
+it is in the union of:
+
+- the names PoracleNG lists as `userSelectable` for this user;
+- the user's own drawn geofences;
+- the names already on the profile being written.
+
+| Operation | What it does |
+|---|---|
+| `SaveSelectionAsync` (Areas page) | One trusted `POST /api/v2/humans/{id}/areas`. A name outside the union answers 400 `{ error, areas }` before anything is sent. Names PoracleNG has no fence for are dropped by PoracleNG and reported back, not treated as an error. |
+| `FilterAllowedAsync` (new profile) | The same union, but a disallowed name is dropped with a warning instead of refused. Used by profile create only. Both duplicates copy the caller's own source profile's list trusted and unfiltered (the source may be a non-active profile); import writes no areas. |
+| `AddToActiveProfileAsync` / `RemoveFromActiveProfileAsync` | The geofence toggle, and create. Read the active profile's list, change it, post it trusted. |
+| `PreviewRemovalAsync` / `RemoveEverywhereAsync` | Delete. A dry run reports the alarms that would widen; the real call removes the name from every profile. |
+| `RenameEverywhereAsync` | Rename and approval. PoracleNG's geofences are reloaded first, because the new name has to be loaded. |
+
+The geofence service orders these so a failure leaves something retryable. Create reloads PoracleNG's
+fences before it adds the name, and if the add fails the fence is kept and flagged `activationFailed`.
+Delete removes the name from the profiles first and deletes the row last, so a failed removal keeps the
+fence. A user rename that PoracleNG refuses puts the old name back.
 
 Geofence polygons come from the Poracle API (via the unified feed), not the database.
 
 ### Per-alarm areas
 
-An alarm can confine itself to named areas of its own, stored in the row's `override_areas` column. That
-is the same `userSelectable` problem one layer down, and it fails harder: PoracleNG's tracking write
-validates every entry against `GetAvailableAreas` and answers **400 "area not permitted"**, failing the
-whole request, where `setAreas` merely strips silently.
+An alarm can confine itself to named areas of its own, stored in the row's `override_areas`. That is the
+`userSelectable` problem one layer down: PoracleNG's tracking write checks every entry against its
+allowed areas and answers **400 "area not permitted"** for a user-drawn fence, failing the whole request.
 
-Matching never consults `userSelectable` — `resolveOverride` hands the rule's areas to `areaOverlap`,
-a name comparison against the fences the spawn fell in — so a name written straight into the column
-matches exactly like a permitted one. `UserOwnedOverrideAreaProxy`, the decorator over
-`IPoracleTrackingProxy`, does that:
+`PoracleTrackingProxy` handles it in three steps, with no write to PoracleNG's database:
 
-1. `EnsureScopeIsCoherent` refuses an incoherent scope before anything is written. A row cannot carry
-   both a place and a set of areas; areas cannot coexist with a radius; a place needs one. PoracleNG
-   enforces the same three rules, but only on the body it is sent, and it never sees the stripped names.
-2. Any of the user's own geofence names are removed from `override_areas` for the POST. A list left
-   empty drops the property entirely, so PoracleNG sees no override rather than an empty one.
-3. The full list is written into the row by `IUserAreaDualWriter.SetAlarmOverrideAreasAsync`, a raw
-   `UPDATE` scoped by both `id` and `uid`. An empty list stores NULL, not `[]` — `parseOverrideAreas`
-   reads `""` back as no override, while `[]` would be a list matching nothing.
-4. `ReloadStateAsync` is called afterwards, because a direct column write is not a PoracleNG mutation
-   and would otherwise wait for the periodic reload.
+1. `OverrideScope` refuses an incoherent scope before anything is sent. A row cannot carry both a place
+   and a set of areas; areas cannot coexist with a radius; a place needs one.
+2. `IUserAreaPolicy` authorises each name: selectable for the user, one of the user's own drawn
+   geofences, on the active profile, or already on the rule being edited. A name that passes none of
+   those is refused.
+3. The write is sent with `?trusted=true`, so PoracleNG stores the list as given.
 
-Writes that name no override at all skip all of this. Tagged `HACK: trusted-set-areas` like the rest.
+The Pokéstop event proxy (`PoracleIncidentProxy`) does the same for its own routes. A write that names no override area sends no `trusted` flag.
 
 ## Location
 
-`LocationController` uses `IPoracleHumanProxy.SetLocationAsync()` to set the user's location. No direct DB access or transactions are needed -- PoracleNG handles the write and state reload atomically.
+`LocationController` uses `IPoracleHumanProxy.SetLocationAsync()` to set the user's location. PoracleNG handles the write and state reload atomically, so there's no transaction to manage here.
 
 ### Saved places
 
@@ -286,7 +330,7 @@ A label is what an alarm's `override_location_label` refers to. The whole contro
 | `UpstreamFeatureFlagService` | Scoped | Resolves Poracle's own per-type disable flags into `disable_*` keys, cached 5 min; fails open |
 
 !!! info "DashboardService uses the proxy"
-    `DashboardService` calls `IPoracleTrackingProxy.GetAllTrackingAsync()` to fetch all alarm types in a single API call, then counts each type from the response. No direct DB queries.
+    `DashboardService` calls `IPoracleTrackingProxy.GetAllTrackingAsync()` to fetch all alarm types in a single API call, then counts each type from the response.
 
 ## Profiles
 
@@ -415,7 +459,7 @@ Sensitive endpoints use **partitioned** rate limiting, never one global bucket:
 | `auth-read` | 120 requests | 60 seconds | Current user, profile switch |
 | `test-alert` | 5 requests | 60 seconds | Test-alert sends |
 | `mutes` | 60 requests | 60 seconds | Quiet-period reads and writes |
-| `geojson-import` | 5 requests | 60 seconds | Admin GeoJSON import |
+| `geojson-import` | 5 requests | 60 seconds | A user's own GeoJSON import |
 | `scanner-search` | 60 requests | 60 seconds | Scanner gym search / lookup |
 | `geofence-feed-refresh` | 20 requests | 60 seconds | The anonymous feed-refresh POST |
 

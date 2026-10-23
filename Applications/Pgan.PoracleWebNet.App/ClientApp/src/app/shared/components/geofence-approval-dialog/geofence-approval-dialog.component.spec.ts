@@ -46,6 +46,7 @@ describe('GeofenceApprovalDialogComponent', () => {
     const fixture = TestBed.createComponent(GeofenceApprovalDialogComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
+    return fixture;
   }
 
   beforeEach(() => setup());
@@ -56,6 +57,16 @@ describe('GeofenceApprovalDialogComponent', () => {
 
   it('should default to approve mode', () => {
     expect(component.mode).toBe('approve');
+  });
+
+  it('opens on reject when the queue’s Reject button opened it', () => {
+    setup({ mode: 'reject' });
+    expect(component.mode).toBe('reject');
+  });
+
+  it('shows "No region" for a submission without one, rather than a blank', () => {
+    const fixture = setup({ geofence: { ...mockGeofence, groupName: '' } });
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('ADMIN.NO_REGION');
   });
 
   it('should initialize promotedName from geofence displayName', () => {

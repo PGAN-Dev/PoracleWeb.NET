@@ -45,6 +45,28 @@ export function readableChip(background: string): ChipColors {
 /** The light card surface coloured text sits on (M3 surface-container in the light theme). */
 export const LIGHT_CARD_SURFACE = '#f4f3f6';
 
+/** The dark card surface (M3 surface-container in the dark theme). */
+export const DARK_CARD_SURFACE = '#211f26';
+
+/** WCAG 1.4.11: a graphical object that carries meaning needs 3:1 against what it sits on. */
+const GRAPHIC_TARGET = 3.1;
+
+/**
+ * A data colour drawn as a shape (a card's edge stripe) on `surface`, moved only as far as it takes to
+ * reach 3:1: darkened on a light surface, lightened on a dark one, so the hue stays recognisable.
+ */
+export function readableGraphicOn(colour: string, surface: string): string {
+  const fg = parseHex(colour);
+  const bg = parseHex(surface);
+  if (!fg || !bg || ratio(fg, bg) >= GRAPHIC_TARGET) return colour;
+  const lighten = luminance(bg) < 0.5;
+  for (let t = 0.02; t <= 1; t += 0.02) {
+    const moved = fg.map(v => Math.round(lighten ? v + (255 - v) * t : v * (1 - t))) as Rgb;
+    if (ratio(moved, bg) >= GRAPHIC_TARGET) return toHex(moved);
+  }
+  return lighten ? '#ffffff' : '#000000';
+}
+
 /**
  * A data colour used as text on the light card surface, darkened only as far as it takes to read at
  * 4.5:1. Orange (#ff9800) text managed 1.9:1. The dark theme can keep the original, bright colour.

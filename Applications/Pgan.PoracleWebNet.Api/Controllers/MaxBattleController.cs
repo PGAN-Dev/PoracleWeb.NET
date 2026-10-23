@@ -8,6 +8,7 @@ namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/maxbattles")]
 [RequireFeatureEnabled(DisableFeatureKeys.MaxBattles)]
+[TypeFilter(typeof(PoracleUnreachableExceptionFilter))]
 public class MaxBattleController(IMaxBattleService maxBattleService) : BaseApiController
 {
     private readonly IMaxBattleService _maxBattleService = maxBattleService;

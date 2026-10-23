@@ -1,4 +1,5 @@
 /* eslint-disable @angular-eslint/component-class-suffix */
+import { A11yModule } from '@angular/cdk/a11y';
 import { Component, inject, signal, computed, effect, HostListener, OnInit } from '@angular/core';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatButtonModule } from '@angular/material/button';
@@ -21,7 +22,7 @@ import { BuildInfoService } from './core/services/build-info.service';
 import { DashboardService } from './core/services/dashboard.service';
 import { I18nService } from './core/services/i18n.service';
 import { PoracleConfigService } from './core/services/poracle-config.service';
-import { SettingsService } from './core/services/settings.service';
+import { DEFAULT_SITE_TITLE, SettingsService } from './core/services/settings.service';
 import { AlertDefaultsDialogComponent } from './shared/components/alert-defaults-dialog/alert-defaults-dialog.component';
 import { GameAccountsDialogComponent } from './shared/components/game-accounts-dialog/game-accounts-dialog.component';
 
@@ -29,7 +30,7 @@ interface NavItem {
   adminOnly?: boolean;
   countKey?: keyof DashboardCounts;
   delegateOnly?: boolean;
-  /** pweb_settings key that disables this item when set to 'True' */
+  /** Site setting key that disables this item when set to 'True' */
   disableKey?: string;
   group: 'alarms' | 'settings' | 'admin' | 'webhooks' | 'support';
   icon: string;
@@ -40,6 +41,7 @@ interface NavItem {
 
 @Component({
   imports: [
+    A11yModule,
     RouterOutlet,
     RouterLink,
     RouterLinkActive,
@@ -95,15 +97,9 @@ export class App implements OnInit {
 
   private readonly snackBar = inject(MatSnackBar);
 
-  protected readonly siteTitle = computed(() => this.settingsService.siteSettings()['custom_title'] || 'DM Alerts');
-
-  private readonly titleEffect = effect(() => {
-    document.title = this.siteTitle();
-  });
-
   protected readonly accentTheme = signal(localStorage.getItem('poracle-accent') || '');
-  protected readonly auth = inject(AuthService);
 
+  protected readonly auth = inject(AuthService);
   protected readonly navItems: NavItem[] = [
     { group: 'alarms', icon: 'dashboard', iconColor: '#1976d2', label: 'NAV.DASHBOARD', route: '/dashboard' },
     { group: 'alarms', icon: 'bolt', iconColor: '#ff6f00', label: 'NAV.QUICK_PICKS', route: '/quick-picks' },
@@ -276,11 +272,16 @@ export class App implements OnInit {
   protected readonly darkMode = signal(localStorage.getItem('poracle-theme') === 'dark');
 
   protected readonly headerLogoUrl = computed(() => this.settingsService.siteSettings()['header_logo_url'] || '');
-  protected readonly hideHeaderLogo = computed(() => this.settingsService.isDisabled('hide_header_logo'));
 
+  protected readonly hideHeaderLogo = computed(() => this.settingsService.isDisabled('hide_header_logo'));
   protected readonly i18n = inject(I18nService);
 
-  protected readonly isMobile = signal(window.innerWidth < 768);
+  /**
+   * True when the sidenav slides over the page (`mode="over"`) and the toolbar's hamburger is the only nav
+   * control. Phones and tablets up to {@link OVERLAY_NAV_MAX_WIDTH}: a tablet in portrait kept the
+   * permanent sidenav and was left one narrow column of cards beside it.
+   */
+  protected readonly overlayNav = signal(usesOverlayNav(window.innerWidth));
 
   protected readonly settingsNavItems = computed(() =>
     this.navItems.filter(
@@ -295,7 +296,10 @@ export class App implements OnInit {
 
   protected readonly sidenavCollapsed = signal(localStorage.getItem('poracle-sidenav-collapsed') === 'true');
 
-  protected readonly sidenavOpened = signal(!this.isMobile());
+  protected readonly sidenavOpened = signal(!this.overlayNav());
+
+  // document.title is PageTitleStrategy's: "<page> · <site title>".
+  protected readonly siteTitle = computed(() => this.settingsService.siteSettings()['custom_title'] || DEFAULT_SITE_TITLE);
 
   /** Whether the active SSO provider supports single logout ("Sign out everywhere"). */
   protected readonly ssoLogoutAvailable = signal(false);
@@ -398,7 +402,10 @@ export class App implements OnInit {
 
     // Determine whether the active SSO provider supports single logout (end-session),
     // which gates the "Sign out everywhere" menu item.
+    // A failure (a 429 under load, say) leaves "Sign out everywhere" off; without an error handler it
+    // surfaced as an uncaught error in the console.
     this.auth.getProviders().subscribe({
+      error: () => this.ssoLogoutAvailable.set(false),
       next: providers => this.ssoLogoutAvailable.set(providers.oidc?.endSession === true),
     });
   }
@@ -428,18 +435,18 @@ export class App implements OnInit {
       case 'Escape':
         if (this.showShortcutHelp()) {
           this.showShortcutHelp.set(false);
-        } else if (this.isMobile() && this.sidenavOpened()) {
+        } else if (this.overlayNav() && this.sidenavOpened()) {
           this.sidenavOpened.set(false);
         }
         break;
       case '[':
-        if (!this.isMobile()) {
+        if (!this.overlayNav()) {
           this.sidenavCollapsed.set(true);
           localStorage.setItem('poracle-sidenav-collapsed', 'true');
         }
         break;
       case ']':
-        if (!this.isMobile()) {
+        if (!this.overlayNav()) {
           this.sidenavCollapsed.set(false);
           localStorage.setItem('poracle-sidenav-collapsed', 'false');
         }
@@ -448,16 +455,16 @@ export class App implements OnInit {
   }
 
   onNavClick(): void {
-    if (this.isMobile()) {
+    if (this.overlayNav()) {
       this.sidenavOpened.set(false);
     }
   }
 
   @HostListener('window:resize')
   onResize(): void {
-    const mobile = window.innerWidth < 768;
-    this.isMobile.set(mobile);
-    if (mobile) {
+    const overlay = usesOverlayNav(window.innerWidth);
+    this.overlayNav.set(overlay);
+    if (overlay) {
       this.sidenavOpened.set(false);
     }
   }
@@ -474,6 +481,15 @@ export class App implements OnInit {
     this.accentTheme.set(theme);
     localStorage.setItem('poracle-accent', theme);
     this.applyAccentTheme();
+  }
+
+  /**
+   * The skip link's target. An in-page `#main-content` href resolves against `<base href="/">`, so the
+   * browser would load the site root; focus moves here instead and the URL is left alone.
+   */
+  skipToContent(event: Event): void {
+    event.preventDefault();
+    document.getElementById('main-content')?.focus();
   }
 
   async stopImpersonating(): Promise<void> {
@@ -529,4 +545,11 @@ export class App implements OnInit {
     document.body.classList.toggle('light-theme', !this.darkMode());
     localStorage.setItem('poracle-theme', scheme);
   }
+}
+
+/** Widest viewport, in CSS pixels, that gets the overlay sidenav. 1024 covers tablets in portrait. */
+export const OVERLAY_NAV_MAX_WIDTH = 1024;
+
+function usesOverlayNav(width: number): boolean {
+  return width <= OVERLAY_NAV_MAX_WIDTH;
 }

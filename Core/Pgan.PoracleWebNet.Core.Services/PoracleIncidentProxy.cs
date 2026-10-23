@@ -15,11 +15,15 @@ namespace Pgan.PoracleWebNet.Core.Services;
 public sealed partial class PoracleIncidentProxy(
     HttpClient httpClient,
     IConfiguration configuration,
+    IUserAreaPolicy areaPolicy,
     ILogger<PoracleIncidentProxy> logger) : IPoracleIncidentProxy
 {
+    private const string RequiredVersion = "PoracleNG 5.4.0";
+
     private readonly HttpClient _httpClient = httpClient;
     private readonly string _apiAddress = configuration["Poracle:ApiAddress"] ?? string.Empty;
     private readonly string _apiSecret = configuration["Poracle:ApiSecret"] ?? string.Empty;
+    private readonly IUserAreaPolicy _areaPolicy = areaPolicy;
     private readonly ILogger<PoracleIncidentProxy> _logger = logger;
 
     public async Task<IReadOnlyList<PokestopEvent>> GetByUserAsync(string userId)
@@ -29,17 +33,42 @@ public sealed partial class PoracleIncidentProxy(
         return ReadRules(root, "rules");
     }
 
-    public async Task<PokestopEventWriteResult> CreateAsync(string userId, IEnumerable<PokestopEvent> rules)
+    public Task<PokestopEventWriteResult> CreateAsync(string userId, IEnumerable<PokestopEvent> rules, bool dryRun = false) =>
+        this.CreateCoreAsync(userId, rules, profileNo: null, dryRun);
+
+    public Task<PokestopEventWriteResult> CreateAsync(string userId, IEnumerable<PokestopEvent> rules, int profileNo, bool dryRun) =>
+        this.CreateCoreAsync(userId, rules, profileNo, dryRun);
+
+    public Task<PokestopEventWriteResult> ReplaceAsync(string userId, int uid, PokestopEvent rule) =>
+        this.ReplaceCoreAsync(userId, uid, rule, profileNo: null);
+
+    public Task<PokestopEventWriteResult> ReplaceAsync(string userId, int uid, PokestopEvent rule, int profileNo) =>
+        this.ReplaceCoreAsync(userId, uid, rule, profileNo);
+
+    private async Task<PokestopEventWriteResult> CreateCoreAsync(
+        string userId, IEnumerable<PokestopEvent> rules, int? profileNo, bool dryRun)
     {
-        var payload = "[" + string.Join(",", rules.Select(RuleJson)) + "]";
-        var response = await this.SendAsync(HttpMethod.Post, this.Route(userId) + "?silent=true", payload);
+        var list = rules.ToList();
+        var trusted = await this.AuthoriseOverrideAreasAsync(userId, list, storedOnRule: null);
+        var payload = "[" + string.Join(",", list.Select(RuleJson)) + "]";
+        var url = $"{this.Route(userId)}?silent=true{ProfileQuery(profileNo)}{TrustedQuery(trusted)}"
+            + (dryRun ? "&dry_run=true" : string.Empty);
+        var response = await this.SendAsync(HttpMethod.Post, url, payload, writeFeature: "saving alarms");
         return await ReadWriteResultAsync(response);
     }
 
-    public async Task<PokestopEventWriteResult> ReplaceAsync(string userId, int uid, PokestopEvent rule)
+    private async Task<PokestopEventWriteResult> ReplaceCoreAsync(string userId, int uid, PokestopEvent rule, int? profileNo)
     {
+        // uid 0 is an insert, which v2's uid-addressed PUT cannot express.
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(uid);
+
+        var trusted = await this.AuthoriseOverrideAreasAsync(
+            userId, [rule], () => this.StoredOverrideAreasAsync(userId, uid, profileNo));
         var response = await this.SendAsync(
-            HttpMethod.Put, $"{this.Route(userId)}/{uid}?silent=true", RuleJson(rule));
+            HttpMethod.Put,
+            $"{this.Route(userId)}/{uid}?silent=true{ProfileQuery(profileNo)}{TrustedQuery(trusted)}",
+            RuleJson(rule),
+            writeFeature: "saving alarms");
         return await ReadWriteResultAsync(response);
     }
 
@@ -64,12 +93,69 @@ public sealed partial class PoracleIncidentProxy(
             return 0;
         }
 
-        var query = string.Join(",", list);
+        // 5.4.0 takes the uids in the body, as the tracking proxy's deletes send them; ?uid= is the older form.
         var response = await this.SendAsync(
-            HttpMethod.Delete, $"{this.Route(userId)}?uid={query}&silent=true", body: null);
+            HttpMethod.Delete,
+            $"{this.Route(userId)}?silent=true",
+            JsonSerializer.Serialize(new { uids = list }),
+            writeFeature: "deleting alarms");
         var root = await ReadRootAsync(response);
         return ReadRules(root, "deleted").Count;
     }
+
+    /// <inheritdoc />
+    public async Task<TrackingPatchResult> PatchAsync(string userId, IReadOnlyList<int> uids, TrackingPatchSet settings)
+    {
+        if (uids.Count == 0)
+        {
+            return TrackingPatchResult.None;
+        }
+
+        // Always trusted, for the reason the tracking proxy's PatchAsync gives: PoracleNG re-validates the stored
+        // rule's areas, untrusted it refuses a user's own drawn fence, and a PATCH set cannot name a new area.
+        var response = await this.SendAsync(
+            HttpMethod.Patch,
+            $"{this.Route(userId)}?silent=true{TrustedQuery(trusted: true)}",
+            TrackingPatchWire.Body(uids, settings),
+            writeFeature: "saving alarms");
+        return TrackingPatchWire.Parse(await response.Content.ReadAsStringAsync());
+    }
+
+    /// <summary>Authorises every override area the rules name, through the one area policy.</summary>
+    /// <returns>
+    /// True when any rule names one, so the write is sent <c>trusted</c>: PoracleNG's own check allows only
+    /// <c>userSelectable</c> areas, which a user's own drawn fence is not.
+    /// </returns>
+    private async Task<bool> AuthoriseOverrideAreasAsync(
+        string userId, IReadOnlyList<PokestopEvent> rules, Func<Task<IReadOnlyCollection<string>>>? storedOnRule)
+    {
+        var requested = rules
+            .SelectMany(r => r.OverrideAreas ?? [])
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+        if (requested.Count == 0)
+        {
+            return false;
+        }
+
+        await this._areaPolicy.EnsureOverrideAreasAllowedAsync(userId, requested, storedOnRule);
+        return true;
+    }
+
+    /// <summary>The override areas the stored rule holds, read through v2's single-rule route.</summary>
+    private async Task<IReadOnlyCollection<string>> StoredOverrideAreasAsync(string userId, int uid, int? profileNo)
+    {
+        var query = profileNo is { } no ? $"?profile={no}" : string.Empty;
+        var response = await this.SendAsync(HttpMethod.Get, $"{this.Route(userId)}/{uid}{query}", body: null);
+        var root = await ReadRootAsync(response);
+        return [.. ReadRules(root, "rules").SelectMany(r => r.OverrideAreas ?? [])];
+    }
+
+    private static string TrustedQuery(bool trusted) => trusted ? "&trusted=true" : string.Empty;
+
+    private static string ProfileQuery(int? profileNo) => profileNo is { } no ? $"&profile={no}" : string.Empty;
 
     private string Route(string userId) =>
         $"{this._apiAddress}/api/v2/humans/{Uri.EscapeDataString(userId)}/tracking/incident";
@@ -99,17 +185,31 @@ public sealed partial class PoracleIncidentProxy(
             writer.WriteStartArray();
             foreach (var area in rule.OverrideAreas ?? [])
             {
+                // A blank name names no fence and is never put to the area policy, so it does not ride a
+                // trusted write either.
+                if (string.IsNullOrWhiteSpace(area))
+                {
+                    continue;
+                }
+
                 writer.WriteStringValue(area);
             }
 
             writer.WriteEndArray();
+
+            // v2's replace is a full replace, so a mention left out is a mention erased.
+            if (!string.IsNullOrEmpty(rule.Ping))
+            {
+                writer.WriteString("ping", rule.Ping);
+            }
+
             writer.WriteEndObject();
         }
 
         return Encoding.UTF8.GetString(stream.ToArray());
     }
 
-    private static IReadOnlyList<PokestopEvent> ReadRules(JsonElement root, string property)
+    private static List<PokestopEvent> ReadRules(JsonElement root, string property)
     {
         if (root.ValueKind != JsonValueKind.Object
             || !root.TryGetProperty(property, out var array)
@@ -137,6 +237,7 @@ public sealed partial class PoracleIncidentProxy(
             Bool(element, "clean"), Bool(element, "edit"), Bool(element, "summary")),
         OverrideLocationLabel = Str(element, "override_location_label"),
         OverrideAreas = Areas(element),
+        Ping = Str(element, "ping"),
     };
 
     // v2 nulls every field sitting at its wildcard, so every read has to be null-tolerant by design.
@@ -165,7 +266,43 @@ public sealed partial class PoracleIncidentProxy(
         return new PokestopEventWriteResult(
             ReadRules(root, "created"),
             ReadRules(root, "updated"),
-            ReadRules(root, "unchanged"));
+            ReadRules(root, "unchanged"),
+            ReadPrevious(root));
+    }
+
+    /// <summary>What each <c>updated</c> rule held before the write, index for index; null where none was reported.</summary>
+    private static List<PokestopEvent?>? ReadPrevious(JsonElement root)
+    {
+        if (root.ValueKind != JsonValueKind.Object
+            || !root.TryGetProperty("updated", out var array)
+            || array.ValueKind != JsonValueKind.Array)
+        {
+            return null;
+        }
+
+        var list = new List<PokestopEvent?>(array.GetArrayLength());
+        foreach (var element in array.EnumerateArray())
+        {
+            if (element.ValueKind == JsonValueKind.Object
+                && element.TryGetProperty("previous", out var previous)
+                && previous.ValueKind == JsonValueKind.Object)
+            {
+                var rule = ReadRule(previous);
+                if (rule.Uid <= 0)
+                {
+                    // The previous state is the same rule, so it lives under the updated rule's uid.
+                    rule.Uid = Int(element, "uid");
+                }
+
+                list.Add(rule);
+            }
+            else
+            {
+                list.Add(null);
+            }
+        }
+
+        return list;
     }
 
     private static async Task<JsonElement> ReadRootAsync(HttpResponseMessage response)
@@ -180,8 +317,12 @@ public sealed partial class PoracleIncidentProxy(
         return doc.RootElement.Clone();
     }
 
+    /// <param name="writeFeature">
+    /// What a write is for, in the user's words. Set on writes, where gin's plaintext 404 means the route is
+    /// absent and the server too old, rather than the account being gone.
+    /// </param>
     private async Task<HttpResponseMessage> SendAsync(
-        HttpMethod method, string url, string? body, bool allowNotFound = false)
+        HttpMethod method, string url, string? body, bool allowNotFound = false, string? writeFeature = null)
     {
         var request = new HttpRequestMessage(method, url);
         if (!string.IsNullOrEmpty(this._apiSecret))
@@ -201,24 +342,51 @@ public sealed partial class PoracleIncidentProxy(
         // into a 500 telling the user the server broke. See #539 for the same fix on the v1 proxy.
         if (response.StatusCode is HttpStatusCode.UnprocessableEntity or HttpStatusCode.BadRequest)
         {
-            throw new AlarmValidationException(await ExtractDetailAsync(response));
+            var refusal = await response.Content.ReadAsStringAsync();
+            if (writeFeature is not null
+                && method == HttpMethod.Delete
+                && response.StatusCode == HttpStatusCode.UnprocessableEntity
+                && refusal.Contains("\"query.uid\"", StringComparison.Ordinal))
+            {
+                // Before 5.4.0 the bulk route required ?uid and had no body form, so it refuses the body by
+                // naming the missing query parameter. That is a server too old, not a bad request.
+                throw new PoracleUnsupportedException(writeFeature, RequiredVersion);
+            }
+
+            throw new AlarmValidationException(ExtractDetail(refusal));
         }
 
         if (response.StatusCode == HttpStatusCode.Conflict)
         {
-            throw new TrackingConflictException("incident", await ExtractDetailAsync(response));
+            // v2 refuses a replacement that would duplicate another rule, exactly or one updatable field away.
+            // To the user that is the same thing as a takeover: another alarm already holds those settings.
+            throw new TrackingConflictException("incident", PoracleTrackingProxy.TakeoverMessage);
         }
 
         if (response.StatusCode == HttpStatusCode.NotFound)
         {
+            var notFound = await response.Content.ReadAsStringAsync();
+            var problem = PoracleProblemDetails.IsProblemJson(notFound);
+
+            if (writeFeature is not null && !problem)
+            {
+                // gin's plaintext "404 page not found": the route is absent, so this is not 5.4.0.
+                throw new PoracleUnsupportedException(writeFeature, RequiredVersion);
+            }
+
             if (allowNotFound)
             {
                 return response;
             }
 
-            // The route itself 404s on a PoracleNG older than 5.2.0, but the feature gate is meant to
-            // have kept us off it entirely by then, so a 404 here means the human is gone -- the same
-            // dead-session case the v1 proxy maps. See #595.
+            // A problem+json 404 that is not about the human is about the rule: an edit racing a delete, or a
+            // scheduler profile switch moving the rule out of view. Signing the user out for that was wrong.
+            if (problem && !notFound.Contains("human not found", StringComparison.Ordinal))
+            {
+                throw new TrackingRuleNotFoundException("incident", PoracleProblemDetails.Describe(notFound));
+            }
+
+            // The human is gone: the same dead-session case the tracking proxy maps. See #595.
             throw new AccountGoneException();
         }
 
@@ -227,10 +395,8 @@ public sealed partial class PoracleIncidentProxy(
     }
 
     /// <summary>Pulls the message out of an RFC7807 body: huma puts it in <c>detail</c>.</summary>
-    private static async Task<string> ExtractDetailAsync(HttpResponseMessage response)
+    private static string ExtractDetail(string body)
     {
-        var body = await response.Content.ReadAsStringAsync();
-
         try
         {
             var root = JsonDocument.Parse(body).RootElement;

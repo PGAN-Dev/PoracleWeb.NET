@@ -67,7 +67,7 @@ The geofence keeps working for the user the whole time it's under review — sub
 
 ### Step 2 — Admin reviews
 
-You (the admin) see the submission in the admin **Geofence Submissions** screen. You can look at the shape on a map, see who submitted it, and decide. See [Admin operations](admin-operations.md) for the screen details.
+You (the admin) see the submission on the admin **User geofences** screen. You can look at the shape on a map, see who submitted it, and decide. See [Admin operations](admin-operations.md) for the screen details.
 
 ### Step 3a — Approve (the actual promotion)
 

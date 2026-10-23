@@ -2,11 +2,9 @@ namespace Pgan.PoracleWebNet.Core.Abstractions.Services;
 
 public interface ISettingsMigrationService
 {
-    Task MigrateAsync();
-
     /// <summary>
-    /// Ensures default site settings exist. Does not overwrite existing values.
-    /// Called on every startup (after migration) so fresh installs get sensible defaults.
+    /// Ensures default site settings exist and repairs stored ones. Does not overwrite existing values,
+    /// and reads nothing from Poracle's database. Called on every startup.
     /// </summary>
     Task SeedDefaultsAsync();
 }

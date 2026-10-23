@@ -64,10 +64,7 @@ Choose **Edit schedule** to open the schedule editor -- the same editor used for
 
 ![Quest summary delivery schedule editor with a weekday 9 AM rule and a weekly preview grid](../screenshots/quest-summary-schedule.png)
 
-1. **Select days** with the circular day buttons (**M T W T F S S**). Quick presets are available:
-    - **Weekdays** -- Monday through Friday
-    - **Weekends** -- Saturday and Sunday
-    - **Every day** -- all seven days
+1. **Select days** with the circular day buttons (**M T W T F S S**), or the **Weekdays**, **Weekends** and **Every day** presets.
 2. **Choose a time** with the hour and minute dropdowns.
 3. Optionally turn on **Repeat until a later time** to deliver more than once, picking an end time
    and a repeat interval. A rule from 9:00 AM to 5:00 PM repeating every 2 hours delivers at 9, 11,
@@ -83,7 +80,7 @@ Saved delivery times appear as **amber pills** in the dialog (for example, "Mon-
     profile has **0,0 coordinates** (no location set), PoracleNG falls back to **UTC** and the
     summary will arrive at the wrong local time. A red warning appears in the dialog when a
     schedule is set but no pin is saved -- set your pin on the **Dashboard** or the
-    **Areas & Places** page to fix it.
+    **Areas & places** page to fix it.
 
 ### Validation rules
 

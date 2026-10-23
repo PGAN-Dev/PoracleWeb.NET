@@ -244,6 +244,22 @@ public sealed class GeofenceFeedPipelineTests : IDisposable
         Assert.False(user.GetProperty("displayInMatches").GetBoolean());
     }
 
+    /// <summary>
+    /// The wire spelling, through the real serializer. PoracleNG matches the key exactly
+    /// (<c>json:"exemptFromAreaSecurity"</c>) and silently ignores anything else, so a casing slip here
+    /// would leave every user fence subject to area_security with nothing failing anywhere.
+    /// </summary>
+    [Fact]
+    public async Task AUserFenceCarriesExemptFromAreaSecurityOnTheWire()
+    {
+        using var client = this._factory.CreateClient();
+
+        using var response = await client.GetAsync("/api/geofence-feed");
+        var raw = await response.Content.ReadAsStringAsync();
+
+        Assert.Contains("\"exemptFromAreaSecurity\":true", raw, StringComparison.Ordinal);
+    }
+
     /// <summary>The feed keeps working after a refresh, rather than being left in a broken state.</summary>
     [Fact]
     public async Task TheFeedStillServesAfterARefresh()
@@ -570,7 +586,7 @@ public sealed class GeofenceFeedPipelineTests : IDisposable
     /// </summary>
     private sealed class PipelineFactory(string? configuredSecret) : WebApplicationFactory<Program>
     {
-        // Port 1 refuses instantly, so the startup ALTER TABLE and MigrateAsync fail fast into their
+        // Port 1 refuses instantly, so the startup MigrateAsync fails fast into its
         // existing try/catch instead of waiting out a connect timeout. Nothing under test touches a DB.
         private const string DeadDb = "Server=127.0.0.1;Port=1;Database=none;User=none;Password=none";
 
@@ -604,7 +620,6 @@ public sealed class GeofenceFeedPipelineTests : IDisposable
             builder.UseContentRoot(this._contentRoot);
             builder.UseWebRoot(Path.Combine(this._contentRoot, "wwwroot"));
 
-            builder.UseSetting("ConnectionStrings:PoracleDb", DeadDb);
             builder.UseSetting("ConnectionStrings:PoracleWebDb", DeadDb);
             builder.UseSetting("Jwt:Secret", "integration-test-jwt-secret-at-least-32-chars");
             builder.UseSetting("Jwt:Issuer", "PoracleWeb");

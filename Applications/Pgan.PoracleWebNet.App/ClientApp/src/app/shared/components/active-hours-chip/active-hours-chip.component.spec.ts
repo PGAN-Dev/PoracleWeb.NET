@@ -125,7 +125,7 @@ describe('ActiveHoursChipComponent', () => {
       fixture.detectChanges();
 
       expect(fixture.nativeElement.querySelector('.chip-active').textContent).toContain('ogni ora');
-      expect(component.pills()[0].label).toBe('Mon 9:00 AM–5:00 PM, ogni ora');
+      expect(component.pills()[0].label).toBe('Mon 9:00–17:00, ogni ora');
     });
 
     it('should leave a single fire label untouched', () => {

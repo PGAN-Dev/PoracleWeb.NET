@@ -12,16 +12,11 @@ public class MuteControllerTests : ControllerTestBase
     private const string UserId = "123456789";
 
     private readonly Mock<IPoracleMuteProxy> _proxy = new();
-    private readonly Mock<IMuteCapabilityService> _capability = new();
     private readonly MuteController _sut;
 
     public MuteControllerTests()
     {
-        this._capability
-            .Setup(c => c.IsMuteApiAvailableAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
-
-        this._sut = new MuteController(this._proxy.Object, this._capability.Object);
+        this._sut = new MuteController(this._proxy.Object);
         SetupUser(this._sut, userId: UserId);
     }
 
@@ -41,7 +36,7 @@ public class MuteControllerTests : ControllerTestBase
     // ──────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task GetReturnsCapableAndTheListForACapableServer()
+    public async Task GetReturnsTheListWithoutACapabilityFlag()
     {
         this._proxy
             .Setup(p => p.ListAsync(UserId, It.IsAny<CancellationToken>()))
@@ -49,25 +44,44 @@ public class MuteControllerTests : ControllerTestBase
 
         var ok = Assert.IsType<OkObjectResult>(await this._sut.GetMutes(default));
 
-        Assert.True(Read<bool>(ok.Value, "capable"));
+        Assert.Null(ok.Value!.GetType().GetProperty("capable"));
         Assert.Single(Read<IReadOnlyList<Mute>>(ok.Value, "mutes")!);
     }
 
     /// <summary>
-    /// On a server too old for the endpoint the SPA must be told so plainly, and no call may go out —
-    /// the route does not exist there and would 404 on every alarm page load.
+    /// The 503 mapping lives in PoracleUnreachableExceptionFilter (tested in its own class, and its
+    /// presence on this controller is pinned there), shared by GET, POST and DELETE. The actions must let
+    /// the exception reach it rather than answer 500 themselves.
     /// </summary>
     [Fact]
-    public async Task GetReportsIncapableWithoutCallingUpstream()
+    public async Task GetLetsAnUnreachableProxyExceptionReachTheFilter()
     {
-        this._capability
-            .Setup(c => c.IsMuteApiAvailableAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
+        this._proxy
+            .Setup(p => p.ListAsync(UserId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("connection refused"));
 
-        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetMutes(default));
+        await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.GetMutes(default));
+    }
 
-        Assert.False(Read<bool>(ok.Value, "capable"));
-        this._proxy.Verify(p => p.ListAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    [Fact]
+    public async Task CreateLetsAnUnreachableProxyExceptionReachTheFilter()
+    {
+        this._proxy
+            .Setup(p => p.CreateAsync(UserId, MuteScopes.Gym, "abc123", 60, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("connection refused"));
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.CreateMute(
+            new MuteCreateRequest { Scope = MuteScopes.Gym, Value = "abc123" }, default));
+    }
+
+    [Fact]
+    public async Task DeleteLetsAnUnreachableProxyExceptionReachTheFilter()
+    {
+        this._proxy
+            .Setup(p => p.DeleteAsync(UserId, MuteScopes.Gym, "abc123", null, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("connection refused"));
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.DeleteMute(MuteScopes.Gym, "abc123", null, default));
     }
 
     /// <summary>
@@ -188,23 +202,6 @@ public class MuteControllerTests : ControllerTestBase
             new MuteCreateRequest { Scope = MuteScopes.Gym, Value = "abc123", DurationMinutes = minutes }, default));
 
     [Fact]
-    public async Task AWriteToAServerWithoutTheEndpointIs501()
-    {
-        this._capability
-            .Setup(c => c.IsMuteApiAvailableAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
-
-        var result = Assert.IsType<ObjectResult>(await this._sut.CreateMute(
-            new MuteCreateRequest { Scope = MuteScopes.Gym, Value = "abc123" }, default));
-
-        Assert.Equal(StatusCodes.Status501NotImplemented, result.StatusCode);
-    }
-
-    /// <summary>
-    /// UserId names the INSPECTED account during impersonation, so an unguarded write would silence
-    /// somebody else's alerts. The #663 shape.
-    /// </summary>
-    [Fact]
     public async Task AWriteWhileImpersonatingIs403AndNeverReachesUpstream()
     {
         SetupImpersonatingUser(this._sut, userId: UserId);
@@ -240,11 +237,11 @@ public class MuteControllerTests : ControllerTestBase
     public async Task DeletingOneQuietPeriodPassesScopeAndValueThrough()
     {
         this._proxy
-            .Setup(p => p.DeleteAsync(UserId, MuteScopes.Area, "Aberdeen", It.IsAny<CancellationToken>()))
+            .Setup(p => p.DeleteAsync(UserId, MuteScopes.Area, "Aberdeen", null, It.IsAny<CancellationToken>()))
             .ReturnsAsync([AMute(MuteScopes.Area, "Aberdeen")]);
 
         var ok = Assert.IsType<OkObjectResult>(
-            await this._sut.DeleteMute(MuteScopes.Area, "Aberdeen", default));
+            await this._sut.DeleteMute(MuteScopes.Area, "Aberdeen", null, default));
 
         Assert.Single(Read<IReadOnlyList<Mute>>(ok.Value, "deleted")!);
     }
@@ -259,10 +256,97 @@ public class MuteControllerTests : ControllerTestBase
     public async Task ScopesThisAppCannotCreateCanStillBeLifted(string scope, string value)
     {
         this._proxy
-            .Setup(p => p.DeleteAsync(UserId, scope, value, It.IsAny<CancellationToken>()))
+            .Setup(p => p.DeleteAsync(UserId, scope, value, null, It.IsAny<CancellationToken>()))
             .ReturnsAsync([AMute(scope, value)]);
 
-        Assert.IsType<OkObjectResult>(await this._sut.DeleteMute(scope, value, default));
+        Assert.IsType<OkObjectResult>(await this._sut.DeleteMute(scope, value, null, default));
+    }
+
+    // ── Typed tracking mutes (jfberry/PoracleNG#328 §6) ──────────────────────────
+    // This app never creates a tracking mute, but it lists and lifts the ones the bot made. From 5.3.0
+    // the list names each one's rule type and the delete has to send it back.
+
+    [Fact]
+    public async Task LiftingATypedTrackingMuteSendsItsTypeBack()
+    {
+        this._proxy
+            .Setup(p => p.DeleteAsync(UserId, MuteScopes.Tracking, "60", "raid", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([AMute(MuteScopes.Tracking, "60")]);
+
+        Assert.IsType<OkObjectResult>(await this._sut.DeleteMute(MuteScopes.Tracking, "60", "raid", default));
+
+        this._proxy.Verify(
+            p => p.DeleteAsync(UserId, MuteScopes.Tracking, "60", "raid", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    /// <summary>What every released server holds: a tracking mute with no type, lifted without one.</summary>
+    [Fact]
+    public async Task LiftingAnUntypedTrackingMuteSendsNoType()
+    {
+        this._proxy
+            .Setup(p => p.DeleteAsync(UserId, MuteScopes.Tracking, "42", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([AMute(MuteScopes.Tracking, "42")]);
+
+        Assert.IsType<OkObjectResult>(await this._sut.DeleteMute(MuteScopes.Tracking, "42", null, default));
+
+        this._proxy.Verify(
+            p => p.DeleteAsync(UserId, MuteScopes.Tracking, "42", null, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    /// <summary>A blank type is no type, so it must not reach upstream as an empty parameter.</summary>
+    [Fact]
+    public async Task ABlankTrackingTypeIsTreatedAsNone()
+    {
+        this._proxy
+            .Setup(p => p.DeleteAsync(UserId, MuteScopes.Tracking, "42", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+
+        Assert.IsType<OkObjectResult>(await this._sut.DeleteMute(MuteScopes.Tracking, "42", "  ", default));
+
+        this._proxy.Verify(
+            p => p.DeleteAsync(UserId, MuteScopes.Tracking, "42", null, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    /// <summary>
+    /// Upstream rejects a tracking type on any other scope, so a stray one is refused here rather than
+    /// forwarded into a 422.
+    /// </summary>
+    [Theory]
+    [InlineData(MuteScopes.Gym, "abc123")]
+    [InlineData(MuteScopes.Area, "Aberdeen")]
+    [InlineData(MuteScopes.Everything, null)]
+    public async Task ATrackingTypeOnAnotherScopeIsRefused(string scope, string? value)
+    {
+        Assert.IsType<BadRequestObjectResult>(await this._sut.DeleteMute(scope, value, "raid", default));
+
+        this._proxy.Verify(
+            p => p.DeleteAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task ATrackingTypeWithoutAScopeIsRefusedRatherThanLiftingEverything()
+    {
+        Assert.IsType<BadRequestObjectResult>(await this._sut.DeleteMute(null, null, "raid", default));
+
+        this._proxy.Verify(p => p.DeleteAllAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    /// <summary>
+    /// An upstream refusal on a lift is passed through as 422 with its sentence. Before typed tracking
+    /// mutes a delete never 422'd, so this threw through as a 500.
+    /// </summary>
+    [Fact]
+    public async Task AnUpstreamRefusalOfALiftIs422CarryingItsReason()
+    {
+        this._proxy
+            .Setup(p => p.DeleteAsync(UserId, MuteScopes.Tracking, "60", null, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new MuteRejectedException("tracking_type is required"));
+
+        var result = Assert.IsType<UnprocessableEntityObjectResult>(
+            await this._sut.DeleteMute(MuteScopes.Tracking, "60", null, default));
+
+        Assert.Equal("tracking_type is required", Read<string>(result.Value, "error"));
     }
 
     /// <summary>'everything' is the one scope with no value, and sending one would 422 upstream.</summary>
@@ -270,13 +354,13 @@ public class MuteControllerTests : ControllerTestBase
     public async Task LiftingAnEverythingMuteSendsNoValue()
     {
         this._proxy
-            .Setup(p => p.DeleteAsync(UserId, MuteScopes.Everything, null, It.IsAny<CancellationToken>()))
+            .Setup(p => p.DeleteAsync(UserId, MuteScopes.Everything, null, null, It.IsAny<CancellationToken>()))
             .ReturnsAsync([AMute(MuteScopes.Everything, null)]);
 
-        Assert.IsType<OkObjectResult>(await this._sut.DeleteMute(MuteScopes.Everything, null, default));
+        Assert.IsType<OkObjectResult>(await this._sut.DeleteMute(MuteScopes.Everything, null, null, default));
 
         this._proxy.Verify(
-            p => p.DeleteAsync(UserId, MuteScopes.Everything, null, It.IsAny<CancellationToken>()), Times.Once);
+            p => p.DeleteAsync(UserId, MuteScopes.Everything, null, null, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -286,7 +370,7 @@ public class MuteControllerTests : ControllerTestBase
             .Setup(p => p.DeleteAllAsync(UserId, It.IsAny<CancellationToken>()))
             .ReturnsAsync([AMute(), AMute(MuteScopes.Area, "Aberdeen")]);
 
-        var ok = Assert.IsType<OkObjectResult>(await this._sut.DeleteMute(null, null, default));
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.DeleteMute(null, null, null, default));
 
         Assert.Equal(2, Read<IReadOnlyList<Mute>>(ok.Value, "deleted")!.Count);
     }
@@ -299,10 +383,10 @@ public class MuteControllerTests : ControllerTestBase
     public async Task LiftingAnAlreadyLapsedQuietPeriodSucceedsWithNothingRemoved()
     {
         this._proxy
-            .Setup(p => p.DeleteAsync(UserId, MuteScopes.Gym, "abc123", It.IsAny<CancellationToken>()))
+            .Setup(p => p.DeleteAsync(UserId, MuteScopes.Gym, "abc123", null, It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
 
-        var ok = Assert.IsType<OkObjectResult>(await this._sut.DeleteMute(MuteScopes.Gym, "abc123", default));
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.DeleteMute(MuteScopes.Gym, "abc123", null, default));
 
         Assert.Empty(Read<IReadOnlyList<Mute>>(ok.Value, "deleted")!);
     }
@@ -310,41 +394,29 @@ public class MuteControllerTests : ControllerTestBase
     [Fact]
     public async Task AValueWithoutAScopeIsRefusedRatherThanLiftingEverything()
     {
-        Assert.IsType<BadRequestObjectResult>(await this._sut.DeleteMute(null, "abc123", default));
+        Assert.IsType<BadRequestObjectResult>(await this._sut.DeleteMute(null, "abc123", null, default));
 
         this._proxy.Verify(p => p.DeleteAllAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
     public async Task DeletingAnUnknownScopeIsRefused() =>
-        Assert.IsType<BadRequestObjectResult>(await this._sut.DeleteMute("bogus", "x", default));
+        Assert.IsType<BadRequestObjectResult>(await this._sut.DeleteMute("bogus", "x", null, default));
 
     [Fact]
     public async Task DeletingAValuedScopeWithNoValueIsRefused() =>
-        Assert.IsType<BadRequestObjectResult>(await this._sut.DeleteMute(MuteScopes.Gym, null, default));
+        Assert.IsType<BadRequestObjectResult>(await this._sut.DeleteMute(MuteScopes.Gym, null, null, default));
 
     [Fact]
     public async Task ADeleteWhileImpersonatingIs403()
     {
         SetupImpersonatingUser(this._sut, userId: UserId);
 
-        var result = Assert.IsType<ObjectResult>(await this._sut.DeleteMute(MuteScopes.Gym, "abc123", default));
+        var result = Assert.IsType<ObjectResult>(await this._sut.DeleteMute(MuteScopes.Gym, "abc123", null, default));
 
         Assert.Equal(StatusCodes.Status403Forbidden, result.StatusCode);
         this._proxy.Verify(
-            p => p.DeleteAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            p => p.DeleteAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
-    }
-
-    [Fact]
-    public async Task ADeleteAgainstAServerWithoutTheEndpointIs501()
-    {
-        this._capability
-            .Setup(c => c.IsMuteApiAvailableAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
-
-        var result = Assert.IsType<ObjectResult>(await this._sut.DeleteMute(MuteScopes.Gym, "abc123", default));
-
-        Assert.Equal(StatusCodes.Status501NotImplemented, result.StatusCode);
     }
 }

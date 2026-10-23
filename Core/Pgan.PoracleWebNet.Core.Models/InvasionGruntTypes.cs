@@ -25,11 +25,23 @@ namespace Pgan.PoracleWebNet.Core.Models;
 public static class InvasionGruntTypes
 {
     /// <summary>The eighteen elemental grunt types.</summary>
+    /// <remarks>
+    /// Steel is <c>steel</c>, the name in PoracleNG's grunt game data. This list said <c>metal</c>, which
+    /// matched no invasion on v1 and which v2 refuses; rules saved that way are repaired to <c>steel</c>
+    /// when they are next written (<see cref="Normalise"/>).
+    /// </remarks>
     public static IReadOnlyList<string> Elemental { get; } =
     [
         "bug", "dark", "dragon", "electric", "fairy", "fighting", "fire", "flying", "ghost",
-        "grass", "ground", "ice", "metal", "normal", "poison", "psychic", "rock", "water"
+        "grass", "ground", "ice", "normal", "poison", "psychic", "rock", "steel", "water"
     ];
+
+    /// <summary>
+    /// The name to store for <paramref name="gruntType"/>: <c>steel</c> for the legacy <c>metal</c>, which
+    /// PoracleNG's game data does not have, and the value unchanged otherwise.
+    /// </summary>
+    public static string? Normalise(string? gruntType) =>
+        string.Equals(gruntType, "metal", StringComparison.OrdinalIgnoreCase) ? "steel" : gruntType;
 
     /// <summary>Grunts that are not tied to a single element.</summary>
     public static IReadOnlyList<string> Special { get; } = ["mixed", "darkness", "decoy"];

@@ -4,44 +4,32 @@
     <p class="page-description">{{ 'LURES.PAGE_DESC' | translate }}</p>
   </div>
   <div class="header-actions">
-    <button mat-fab (click)="openAddDialog()" [attr.aria-label]="'LURES.ADD_LURE' | translate" style="background: #e91e63; color: #fff">
+    <button mat-flat-button class="page-primary-action" (click)="openAddDialog()">
       <mat-icon>add</mat-icon>
+      {{ 'ALARM.NEW_ALARM' | translate }}
     </button>
   </div>
 </div>
 @if (!loading() && lures().length > 0) {
-  <div class="filter-bar">
-    <span class="result-count">{{ 'ALARM.ALARMS_COUNT' | translate: { count: lures().length } }}</span>
-    <div class="bulk-spacer"></div>
-    <button
-      mat-icon-button
-      (click)="toggleSelectMode()"
-      [class.select-mode-active]="selectMode()"
-      matTooltip="{{ selectMode() ? ('ALARM.EXIT_SELECT_MODE' | translate) : ('ALARM.SELECT_MULTIPLE' | translate) }}"
-      [attr.aria-label]="selectMode() ? ('ALARM.EXIT_SELECT_MODE' | translate) : ('ALARM.SELECT_MULTIPLE' | translate)">
-      <mat-icon>{{ selectMode() ? 'close' : 'checklist' }}</mat-icon>
-    </button>
-  </div>
+  <app-alarm-list-toolbar
+    searchPlaceholder="LURES.SEARCH_PLACEHOLDER"
+    [(search)]="search"
+    [(sort)]="sortBy"
+    [sortOptions]="sortOptions"
+    [total]="lures().length"
+    [shown]="visibleLures().length"
+    [selectMode]="selectMode()"
+    (selectModeToggle)="toggleSelectMode()" />
 }
 
 @if (selectMode()) {
-  <div class="bulk-toolbar">
-    @if (selectedIds().size > 0) {
-      <span class="bulk-count">{{ 'ALARM.SELECTED_COUNT' | translate: { count: selectedIds().size } }}</span>
-    }
-    <button mat-stroked-button (click)="selectAll()"><mat-icon>select_all</mat-icon> {{ 'ALARM.SELECT_ALL' | translate }}</button>
-    @if (selectedIds().size > 0) {
-      <button mat-stroked-button (click)="deselectAll()">{{ 'ALARM.DESELECT_ALL' | translate }}</button>
-    }
-    <div class="bulk-spacer"></div>
-    <button mat-stroked-button (click)="bulkUpdateDistance()" [disabled]="selectedIds().size === 0">
-      <mat-icon>straighten</mat-icon> {{ 'ALARM.UPDATE_DISTANCE' | translate }}
-    </button>
-
-    <button mat-flat-button color="warn" (click)="bulkDelete()" [disabled]="selectedIds().size === 0">
-      <mat-icon>delete</mat-icon> {{ 'ALARM.DELETE' | translate }}
-    </button>
-  </div>
+  <app-bulk-action-bar
+    [count]="actionIds().length"
+    [anySelected]="selectedIds().size > 0"
+    (selectAll)="selectAll()"
+    (deselectAll)="deselectAll()"
+    (changeRadius)="bulkUpdateDistance()"
+    (deleteSelected)="bulkDelete()" />
 }
 
 @if (loading()) {
@@ -51,62 +39,41 @@
   </div>
 } @else {
   <div class="alarm-grid">
-    @for (lure of lures(); track lure.uid) {
-      <mat-card class="alarm-card" [class.card-selected]="selectMode() && selectedIds().has(lure.uid)">
-        @if (selectMode()) {
-          <mat-checkbox
-            [checked]="selectedIds().has(lure.uid)"
-            (change)="toggleSelect(lure.uid)"
-            (click)="$event.stopPropagation()"
-            class="card-checkbox"></mat-checkbox>
-        }
-        <div class="card-top" [style.border-top-color]="getLureColor(lure.lureId)">
-          <img [src]="getLureIcon(lure.lureId)" class="lure-img" alt="" (error)="$any($event.target).style.display = 'none'" />
-          <div class="item-info">
-            <h3>{{ getLureName(lure.lureId) }} {{ 'LURES.LURE_SUFFIX' | translate }}</h3>
-          </div>
-          <div class="card-top-actions">
-            @if (isAutoDelete(lure.clean)) {
-              <span class="clean-tag" matTooltip="{{ 'ALARM.CLEAN_HINT_LURE' | translate }}">{{ 'ALARM.CLEAN_TAG' | translate }}</span>
-            }
-            @if (isEdit(lure.clean)) {
-              <span class="edit-tag" matTooltip="{{ 'LURES.EDIT_HINT' | translate }}">{{ 'LURES.EDIT_BADGE' | translate }}</span>
-            }
-          </div>
-        </div>
-        <mat-card-content>
-          <div class="stat-grid">
-            <div class="stat">
-              <span class="stat-label">{{ 'LURES.LURE_TYPES' | translate }}</span
-              ><span
-                class="stat-value lure-name"
-                [style.--lure-color]="getLureColor(lure.lureId)"
-                [style.--lure-ink]="getLureInk(lure.lureId)"
-                >{{ getLureName(lure.lureId) }}</span
-              >
-            </div>
-          </div>
-          <div class="distance-chip-row">
-            <app-where-chip
-              [distance]="lure.distance"
-              [overrideAreas]="lure.overrideAreas"
-              [overrideLocationLabel]="lure.overrideLocationLabel"
-              [profileAreas]="profileAreas()"
-              (click)="editScope(lure); $event.stopPropagation()" />
-          </div>
-          <app-rule-summary [text]="lure.description" />
-        </mat-card-content>
-        <mat-card-actions align="end">
+    @for (lure of visibleLures(); track lure.uid) {
+      <app-alarm-card
+        [summary]="lure.description"
+        [selectable]="selectMode()"
+        [selected]="selectedIds().has(lure.uid)"
+        [selectLabel]="'ALARM.SELECT_ONE' | translate: { name: getLureName(lure.lureId) }"
+        (selectedToggle)="toggleSelect(lure.uid)">
+        <img ruleMedia class="rule-sprite" [src]="getLureIcon(lure.lureId)" alt="" (error)="$any($event.target).style.display = 'none'" />
+        <span ruleTitle>{{ getLureName(lure.lureId) }} {{ 'LURES.LURE_SUFFIX' | translate }}</span>
+        <ng-container ruleStatus>
+          @if (isAutoDelete(lure.clean)) {
+            <span class="rule-tag" [matTooltip]="'ALARM.CLEAN_HINT_LURE' | translate"
+              ><mat-icon>auto_delete</mat-icon>{{ 'ALARM.STATUS_CLEAN' | translate }}</span
+            >
+          }
+          @if (isEdit(lure.clean)) {
+            <span class="rule-tag" [matTooltip]="'LURES.EDIT_HINT' | translate"
+              ><mat-icon>edit_note</mat-icon>{{ 'ALARM.STATUS_EDIT' | translate }}</span
+            >
+          }
+        </ng-container>
+        <app-where-chip
+          ruleScope
+          [distance]="lure.distance"
+          [overrideAreas]="lure.overrideAreas"
+          [overrideLocationLabel]="lure.overrideLocationLabel"
+          [profileAreas]="profileAreas()"
+          (click)="editScope(lure); $event.stopPropagation()" />
+        <ng-container ruleActions>
           <button
             mat-icon-button
             (click)="sendTestAlert(lure)"
             [disabled]="testAlertService.isSending('lure', lure.uid) || testAlertService.isCoolingDown('lure', lure.uid)"
-            [matTooltip]="
-              testAlertService.isCoolingDown('lure', lure.uid) ? ('ALARM.TEST_COOLDOWN' | translate) : ('ALARM.TEST_SEND' | translate)
-            "
-            [attr.aria-label]="
-              testAlertService.isCoolingDown('lure', lure.uid) ? ('ALARM.TEST_COOLDOWN' | translate) : ('ALARM.TEST_SEND' | translate)
-            "
+            [matTooltip]="(testAlertService.isCoolingDown('lure', lure.uid) ? 'ALARM.TEST_COOLDOWN' : 'ALARM.TEST_SEND') | translate"
+            [attr.aria-label]="(testAlertService.isCoolingDown('lure', lure.uid) ? 'ALARM.TEST_COOLDOWN' : 'ALARM.TEST_SEND') | translate"
             class="test-alert-btn">
             @if (testAlertService.isSending('lure', lure.uid)) {
               <mat-icon class="spin">sync</mat-icon>
@@ -114,7 +81,6 @@
               <mat-icon>send</mat-icon>
             }
           </button>
-
           <button
             mat-icon-button
             (click)="editLure(lure)"
@@ -122,7 +88,6 @@
             [attr.aria-label]="'COMMON.EDIT' | translate">
             <mat-icon>edit</mat-icon>
           </button>
-
           <button
             mat-icon-button
             (click)="deleteLure(lure)"
@@ -131,25 +96,12 @@
             color="warn">
             <mat-icon>delete</mat-icon>
           </button>
-        </mat-card-actions>
-      </mat-card>
+        </ng-container>
+      </app-alarm-card>
     } @empty {
-      <div class="empty-state">
-        <svg viewBox="0 0 80 100" width="58" height="72" class="empty-icon">
-          <rect x="32" y="8" width="16" height="50" rx="4" fill="#e91e63" opacity="0.15" stroke="#e91e63" stroke-width="3" />
-          <circle cx="40" cy="18" r="4" fill="#e91e63" opacity="0.4" />
-          <line x1="40" y1="58" x2="40" y2="80" stroke="#e91e63" stroke-width="3" stroke-linecap="round" />
-          <circle cx="40" cy="85" r="5" fill="#e91e63" opacity="0.3" stroke="#e91e63" stroke-width="2" />
-          <line x1="22" y1="30" x2="32" y2="34" stroke="#e91e63" stroke-width="2" opacity="0.4" />
-          <line x1="58" y1="26" x2="48" y2="30" stroke="#e91e63" stroke-width="2" opacity="0.4" />
-          <line x1="20" y1="44" x2="32" y2="42" stroke="#e91e63" stroke-width="2" opacity="0.3" />
-        </svg>
-        <h2 class="empty-title">{{ 'LURES.EMPTY_TITLE' | translate }}</h2>
-        <p class="empty-subtitle">{{ 'LURES.EMPTY_SUBTITLE' | translate }}</p>
-        <button mat-flat-button (click)="openAddDialog()" style="background: #e01d5f; color: #fff">
-          <mat-icon>add</mat-icon> {{ 'LURES.ADD_LURE' | translate }}
-        </button>
-      </div>
+      @if (lures().length === 0) {
+        <app-alarm-empty-state icon="place" titleKey="LURES.EMPTY_TITLE" bodyKey="LURES.EMPTY_SUBTITLE" (add)="openAddDialog()" />
+      }
     }
   </div>
 }

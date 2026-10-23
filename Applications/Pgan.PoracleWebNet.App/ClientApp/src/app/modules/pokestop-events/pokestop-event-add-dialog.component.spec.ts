@@ -34,7 +34,7 @@ describe('PokestopEventAddDialogComponent', () => {
 
   const defaults = { defaultDistanceKm: () => 1, defaultMode: () => 'areas', defaultPlaceLabel: () => '' };
 
-  function setup(existing: PokestopEvent[] = [], alertDefaults: unknown = defaults): void {
+  function setup(existing: PokestopEvent[] = [], alertDefaults: unknown = defaults, profileAreas: string[] = []): void {
     dialogRef = { close: jest.fn() };
     snackBar = { open: jest.fn() };
     pokestopEventService = { create: jest.fn().mockReturnValue(of({} as PokestopEvent)) };
@@ -47,8 +47,8 @@ describe('PokestopEventAddDialogComponent', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: ConfigService, useValue: { apiHost: 'http://test-api' } },
-        { provide: I18nService, useValue: { instant: (k: string) => k } },
-        { provide: MAT_DIALOG_DATA, useValue: existing },
+        { provide: I18nService, useValue: { instant: (k: string) => k, plural: (k: string) => k } },
+        { provide: MAT_DIALOG_DATA, useValue: { events: existing, profileAreas: () => profileAreas } },
         { provide: MatDialogRef, useValue: dialogRef },
         { provide: AlertDefaultsService, useValue: alertDefaults },
         { provide: PokestopEventService, useValue: pokestopEventService },
@@ -289,6 +289,91 @@ describe('PokestopEventAddDialogComponent', () => {
 
       expect(component.options.map(o => o.alreadyTracked)).toEqual([false, false, false]);
     });
+
+    // PoracleNG stores the same event under another scope as its own rule, so a rule elsewhere must
+    // not block this one (alarms D15).
+    describe('only in the scope chosen', () => {
+      const kecleonNearHome: PokestopEvent = {
+        id: 'u1',
+        overrideAreas: [],
+        overrideLocationLabel: 'Home',
+        uid: 5,
+        clean: 0,
+        displayType: KECLEON,
+        distance: 700,
+        eventName: 'kecleon',
+        profileNo: 0,
+        template: null,
+      };
+
+      it('leaves an event pickable when its stored rule has another scope', () => {
+        setup([kecleonNearHome]);
+
+        expect(component.options.map(o => o.alreadyTracked)).toEqual([false, false, false]);
+        expect(component.form.controls.eventKecleon.disabled).toBe(false);
+      });
+
+      it('posts the event in the new scope', async () => {
+        setup([kecleonNearHome]);
+        component.form.controls.eventKecleon.setValue(true);
+
+        await component.save();
+
+        expect(created()).toEqual([expect.objectContaining({ overrideLocationLabel: '', displayType: KECLEON, distance: 0 })]);
+      });
+
+      it('blocks the event once the scope chosen is the stored one, and frees it again after', () => {
+        setup([kecleonNearHome]);
+
+        component.scope.set({ distanceKm: 0.7, mode: 'place', placeLabel: 'Home' });
+        fixture.detectChanges();
+        expect(component.options[1].alreadyTracked).toBe(true);
+        expect(component.form.controls.eventKecleon.disabled).toBe(true);
+
+        component.scope.set({ mode: 'profile' });
+        fixture.detectChanges();
+        expect(component.options[1].alreadyTracked).toBe(false);
+        expect(component.form.controls.eventKecleon.disabled).toBe(false);
+      });
+
+      it('reads a stored null override as no override', () => {
+        setup([{ ...tracked, overrideAreas: null, overrideLocationLabel: null }]);
+
+        expect(component.options[0].alreadyTracked).toBe(true);
+      });
+
+      it('compares area names without regard to case', () => {
+        setup([{ ...tracked, overrideAreas: ['Downtown'] }]);
+        component.scope.set({ areas: ['downtown'], mode: 'areas' });
+        fixture.detectChanges();
+
+        expect(component.options[0].alreadyTracked).toBe(true);
+      });
+    });
+  });
+
+  describe('the create snack', () => {
+    it('counts what was created in the shape every add dialog uses', async () => {
+      setup();
+      pokestopEventService.create.mockReturnValue(of({ uid: 5 } as PokestopEvent));
+      component.form.controls.eventShowcase.setValue(true);
+      component.form.controls.eventKecleon.setValue(true);
+
+      await component.save();
+
+      expect(snackBar.open).toHaveBeenCalledWith('ALARM.SNACK_CREATED', 'COMMON.OK', expect.anything());
+    });
+
+    it('says how many were already tracked beside the ones created', async () => {
+      setup();
+      pokestopEventService.create.mockReturnValueOnce(of({ uid: 5 } as PokestopEvent)).mockReturnValueOnce(of({ uid: 0 } as PokestopEvent));
+      component.form.controls.eventShowcase.setValue(true);
+      component.form.controls.eventKecleon.setValue(true);
+
+      await component.save();
+
+      expect(snackBar.open).toHaveBeenCalledWith('ALARM.SNACK_CREATED_WITH_DUPLICATES', 'COMMON.OK', expect.anything());
+    });
   });
 
   describe('partial failure', () => {
@@ -310,10 +395,25 @@ describe('PokestopEventAddDialogComponent', () => {
       expect(component.saving()).toBe(false);
     });
 
-    it('closes with false when the very first write failed', async () => {
+    it('leaves the interceptor toast as the one message when a later write fails on a 503', async () => {
+      setup();
+      pokestopEventService.create
+        .mockReturnValueOnce(of({ uid: 5 } as PokestopEvent))
+        .mockReturnValueOnce(throwError(() => ({ error: { error: 'PoracleNG could not be reached.' }, status: 503 })));
+      component.form.controls.eventShowcase.setValue(true);
+      component.form.controls.eventKecleon.setValue(true);
+
+      await component.save();
+
+      expect(snackBar.open).not.toHaveBeenCalled();
+      expect(dialogRef.close).toHaveBeenCalledWith(true);
+    });
+
+    it('closes with false when the very first write of several failed', async () => {
       setup();
       pokestopEventService.create.mockReturnValue(throwError(() => ({ error: { error: 'nope' } })));
       component.form.controls.eventShowcase.setValue(true);
+      component.form.controls.eventKecleon.setValue(true);
 
       await component.save();
 
@@ -324,10 +424,123 @@ describe('PokestopEventAddDialogComponent', () => {
       setup();
       pokestopEventService.create.mockReturnValue(throwError(() => new Error('network')));
       component.form.controls.eventShowcase.setValue(true);
+      component.form.controls.eventKecleon.setValue(true);
 
       await component.save();
 
-      expect(snackBar.open).toHaveBeenCalledWith('POKESTOP_EVENTS.CREATE_FAILED', 'COMMON.OK', expect.anything());
+      expect(snackBar.open).toHaveBeenCalledWith('ALARM.FAILED_CREATE', 'COMMON.OK', expect.anything());
+    });
+  });
+
+  describe('a single event refused', () => {
+    const stored: PokestopEvent = {
+      id: 'u1',
+      overrideAreas: null,
+      overrideLocationLabel: null,
+      uid: 732,
+      clean: 0,
+      displayType: SHOWCASE,
+      distance: 2000,
+      profileNo: 0,
+      template: null,
+    } as PokestopEvent;
+
+    it('stays open with the reason inline, and keeps what the user picked', async () => {
+      setup();
+      pokestopEventService.create.mockReturnValue(throwError(() => ({ error: { error: 'Another alarm already uses those settings.' } })));
+      component.form.controls.eventKecleon.setValue(true);
+
+      await component.save();
+      fixture.detectChanges();
+
+      expect(dialogRef.close).not.toHaveBeenCalled();
+      expect(snackBar.open).not.toHaveBeenCalled();
+      expect(component.refusal()?.message).toBe('Another alarm already uses those settings.');
+      expect(component.form.controls.eventKecleon.value).toBe(true);
+      expect(component.saving()).toBe(false);
+      expect((fixture.nativeElement as HTMLElement).querySelector('[role="alert"]')?.textContent).toContain(
+        'Another alarm already uses those settings.',
+      );
+    });
+
+    it('falls back to its own message inline when the server gave no reason', async () => {
+      setup();
+      pokestopEventService.create.mockReturnValue(throwError(() => new Error('network')));
+      component.form.controls.eventShowcase.setValue(true);
+
+      await component.save();
+
+      expect(component.refusal()?.message).toBe('ALARM.FAILED_CREATE');
+      expect(dialogRef.close).not.toHaveBeenCalled();
+    });
+
+    it('names the stored rule the server reported, and Edit that one hands it to the list', async () => {
+      // Kecleon stays pickable beside a tracked Showcase; the refusal names the Showcase rule in the way.
+      setup([stored]);
+      pokestopEventService.create.mockReturnValue(
+        throwError(() => ({ error: { existingUid: 732, error: 'taken', trackingType: 'incident' } })),
+      );
+      component.form.controls.eventKecleon.setValue(true);
+
+      await component.save();
+
+      const existing = component.refusal()?.existing;
+      expect(existing?.uid).toBe(732);
+      expect(existing?.summary).toContain('INVASIONS.EVENT_TYPES.SHOWCASE');
+      component.editExisting(existing!);
+      expect(dialogRef.close).toHaveBeenCalledWith({ editExisting: { uid: 732, trackingType: 'incident' } });
+    });
+
+    it("summarises an inherited rule by the profile's areas, as the other lists do", async () => {
+      setup([{ ...stored, distance: 0 }], defaults, ['downtown orlando']);
+      pokestopEventService.create.mockReturnValue(
+        throwError(() => ({ error: { existingUid: 732, error: 'taken', trackingType: 'incident' } })),
+      );
+      component.form.controls.eventKecleon.setValue(true);
+
+      await component.save();
+
+      expect(component.refusal()?.existing?.summary).toContain('WHERE.PROFILE_AREAS');
+    });
+
+    it('offers no edit when the reported rule is not one the list holds', async () => {
+      setup();
+      pokestopEventService.create.mockReturnValue(
+        throwError(() => ({ error: { existingUid: 999, error: 'taken', trackingType: 'incident' } })),
+      );
+      component.form.controls.eventShowcase.setValue(true);
+
+      await component.save();
+
+      expect(component.refusal()?.message).toBe('taken');
+      expect(component.refusal()?.existing).toBeNull();
+    });
+
+    it('clears the refusal and closes when the next save succeeds', async () => {
+      setup();
+      pokestopEventService.create
+        .mockReturnValueOnce(throwError(() => ({ error: { error: 'taken' } })))
+        .mockReturnValueOnce(of({ uid: 801 } as PokestopEvent));
+      component.form.controls.eventShowcase.setValue(true);
+
+      await component.save();
+      expect(dialogRef.close).not.toHaveBeenCalled();
+
+      await component.save();
+      expect(component.refusal()).toBeNull();
+      expect(snackBar.open).toHaveBeenCalledWith('ALARM.SNACK_CREATED', 'COMMON.OK', expect.anything());
+      expect(dialogRef.close).toHaveBeenCalledWith(true);
+    });
+
+    it('says the stored rule was left as it was when the single event was already tracked exactly', async () => {
+      setup();
+      pokestopEventService.create.mockReturnValue(of({ uid: 0 } as PokestopEvent));
+      component.form.controls.eventShowcase.setValue(true);
+
+      await component.save();
+
+      expect(snackBar.open).toHaveBeenCalledWith('ALARM.ALREADY_TRACKED_ONE', 'COMMON.OK', expect.anything());
+      expect(dialogRef.close).toHaveBeenCalledWith(true);
     });
   });
 });

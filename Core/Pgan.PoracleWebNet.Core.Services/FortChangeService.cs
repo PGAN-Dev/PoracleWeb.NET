@@ -31,19 +31,6 @@ public class FortChangeService(IPoracleTrackingProxy proxy, IFeatureGate feature
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.FortChanges);
         model.Id = userId;
 
-        // An Add that PoracleNG resolves into an update of an existing alarm takes that alarm over:
-        // 201 Created, and the user quietly loses the one they had. See #561 and #502, which is the same
-        // takeover reached by changing only the radius.
-        //
-        // This type used to carry a second, hand-written check on (fort_type, include_empty, change_types)
-        // as well. It refused three Adds PoracleNG stores as separate rules -- verified on 5.2.1: one
-        // beside an area-scoped twin (override_areas is an identity field), one differing by radius AND
-        // template (two updatable differences insert), and one listing the same change types in another
-        // order (change_types is compared as stored text). The shared guard mirrors the real diff, so it
-        // is the only one.
-        await TrackingUpdateReconciler.EnsureNoMergeIntoAnotherAlarmAsync(
-            this._proxy, TrackingType, userId, 0, SerializeToElement(model));
-
         var body = SerializeToElement(model);
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
 
@@ -65,26 +52,8 @@ public class FortChangeService(IPoracleTrackingProxy proxy, IFeatureGate feature
         body = await TrackingFieldPreserver.PreserveStoredFieldsAsync(
             this._proxy, TrackingType, userId, model.Uid, body);
 
-        // Refuse before writing: PoracleNG would satisfy this by merging into the other alarm and
-        // the reconciler would then delete this one, losing a row the user never touched. See #531.
-        await TrackingUpdateReconciler.EnsureNoMergeIntoAnotherAlarmAsync(
-            this._proxy, TrackingType, userId, oldUid, body);
-
-        // /api/v2 replaces the rule in place, addressed by its uid, and answers 409 itself when the
-        // replacement would duplicate another rule. None of the v1 repair below applies to it.
-        if (await TrackingV2Replacement.TryApplyAsync(
-                this._proxy, TrackingType, userId, oldUid, body, this._uidRemapper) is { } v2Uid)
-        {
-            model.Uid = v2Uid;
-            return model;
-        }
-
-        var result = await this._proxy.CreateAsync(TrackingType, userId, body);
-
-        // PoracleNG inserts instead of upserting when the edit changes a dedup-key field,
-        // leaving the pre-edit row behind as a duplicate. Drop it and report the surviving uid.
-        model.Uid = await TrackingUpdateReconciler.ReconcileAsync(
-            this._proxy, TrackingType, userId, oldUid, result, this._logger, body, this._uidRemapper);
+        model.Uid = await TrackingV2Replacement.ApplyAsync(
+            this._proxy, TrackingType, userId, oldUid, body, this._uidRemapper);
 
         return model;
     }
@@ -113,71 +82,25 @@ public class FortChangeService(IPoracleTrackingProxy proxy, IFeatureGate feature
     public async Task<DistanceUpdateResult> UpdateDistanceByUserAsync(string userId, int profileNo, int distance)
     {
         var json = await this._proxy.GetByUserAsync(TrackingType, userId);
-        // The stored rows are rewritten in place rather than round-tripped through the typed model,
-        // so fields PoracleWeb does not model survive the write-back. See #730.
-        var (body, skipped) = DistanceRewrite.Build(json, _ => true, distance);
-        var count = body.GetArrayLength();
 
-        if (count == 0)
-        {
-            return skipped;
-        }
-        // Two selected rows that differed only by radius become the same alarm once both are set to
-        // the same one, and PoracleNG resolves that inside the batch -- fewer alarms than selected,
-        // one left at its old radius, and a response claiming all were updated. See #580.
-        TrackingUpdateReconciler.EnsureBatchDoesNotCollapse(body, TrackingType);
-
-        // And against the rows NOT selected: at the new radius a selected row can differ from an
-        // unselected sibling by exactly one updatable field, and PoracleNG then rewrites the SIBLING
-        // -- an alarm the user never touched -- while the selected one keeps its old radius and the
-        // response claims it was updated. See #598.
-        await TrackingUpdateReconciler.EnsureBatchDoesNotTakeOverOthersAsync(
-            this._proxy, TrackingType, userId, body);
-
-        await this._proxy.CreateAsync(TrackingType, userId, body);
-        // PoracleNG rewrites every row, so the uids change. Follow any quick-pick that
-        // tracks them, pairing on content because the batch response is reordered. See #443.
-        await BulkUidRemap.ApplyAsync(
-            this._proxy, TrackingType, userId, body, this._uidRemapper, this._logger);
-
-        return skipped with { Updated = count };
+        // One v2 PATCH naming the uids and the radius: nothing else a rule holds is re-sent (#730), each keeps
+        // its uid, and PoracleNG refuses a rule that would collide with another rather than merging it.
+        return await DistanceRewrite.ApplyAsync(this._proxy, TrackingType, userId, json, _ => true, distance, this._logger);
     }
 
     public async Task<DistanceUpdateResult> UpdateDistanceByUidsAsync(List<int> uids, string userId, int distance)
     {
         var json = await this._proxy.GetByUserAsync(TrackingType, userId);
-        // The stored rows are rewritten in place rather than round-tripped through the typed model,
-        // so fields PoracleWeb does not model survive the write-back. See #730.
         var selected = new HashSet<int>(uids);
-        var (body, skipped) = DistanceRewrite.Build(
+
+        return await DistanceRewrite.ApplyAsync(
+            this._proxy,
+            TrackingType,
+            userId,
             json,
             row => PoracleJsonHelper.UidOf(row) is int rowUid && selected.Contains(rowUid),
-            distance);
-        var count = body.GetArrayLength();
-
-        if (count == 0)
-        {
-            return skipped;
-        }
-        // Two selected rows that differed only by radius become the same alarm once both are set to
-        // the same one, and PoracleNG resolves that inside the batch -- fewer alarms than selected,
-        // one left at its old radius, and a response claiming all were updated. See #580.
-        TrackingUpdateReconciler.EnsureBatchDoesNotCollapse(body, TrackingType);
-
-        // And against the rows NOT selected: at the new radius a selected row can differ from an
-        // unselected sibling by exactly one updatable field, and PoracleNG then rewrites the SIBLING
-        // -- an alarm the user never touched -- while the selected one keeps its old radius and the
-        // response claims it was updated. See #598.
-        await TrackingUpdateReconciler.EnsureBatchDoesNotTakeOverOthersAsync(
-            this._proxy, TrackingType, userId, body);
-
-        await this._proxy.CreateAsync(TrackingType, userId, body);
-        // PoracleNG rewrites every row, so the uids change. Follow any quick-pick that
-        // tracks them, pairing on content because the batch response is reordered. See #443.
-        await BulkUidRemap.ApplyAsync(
-            this._proxy, TrackingType, userId, body, this._uidRemapper, this._logger);
-
-        return skipped with { Updated = count };
+            distance,
+            this._logger);
     }
 
     public async Task<int> CountByUserAsync(string userId, int profileNo)
@@ -200,9 +123,9 @@ public class FortChangeService(IPoracleTrackingProxy proxy, IFeatureGate feature
         var body = SerializeToElement(modelList);
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
 
-        for (var i = 0; i < modelList.Count && i < result.NewUids.Count; i++)
+        for (var i = 0; i < modelList.Count && i < result.RowUids.Count; i++)
         {
-            modelList[i].Uid = (int)result.NewUids[i];
+            modelList[i].Uid = result.RowUids[i];
         }
 
         return modelList;

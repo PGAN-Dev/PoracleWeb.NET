@@ -69,35 +69,35 @@ describe('PokemonListComponent personal badges', () => {
 
   it('draws a shiny-for-me rule with the shiny sprite, and an ordinary rule without it', () => {
     let el = render(1);
-    expect((el.querySelector('img.pokemon-img') as HTMLImageElement).src).toMatch(/\/25_s\.png$/);
+    expect((el.querySelector('img.rule-sprite') as HTMLImageElement).src).toMatch(/\/25_s\.png$/);
 
     el = render(2);
-    expect((el.querySelector('img.pokemon-img') as HTMLImageElement).src).toMatch(/\/25\.png$/);
+    expect((el.querySelector('img.rule-sprite') as HTMLImageElement).src).toMatch(/\/25\.png$/);
   });
 
   it('falls back from a missing shiny sprite to the ordinary one before giving up', () => {
     // An icon pack without shiny art 404s the _s file; the rule must still show its Pokemon.
     const el = render(1);
-    const img = el.querySelector('img.pokemon-img') as HTMLImageElement;
+    const img = el.querySelector('img.rule-sprite') as HTMLImageElement;
 
     img.dispatchEvent(new Event('error'));
     expect(img.src).toMatch(/\/25\.png$/);
     expect(img.style.display).not.toBe('none');
   });
 
-  it('puts the personal badges with the name, not in the crowded top-right row', () => {
-    // Auto-delete, edit and both personal flags in one row ran the last badge off the card.
+  it('puts the personal badges in the shared card status chips, beside auto-delete and edit', () => {
+    // The redesigned app-alarm-card has one wrapping status area; the badges are neutral chips there,
+    // like every other state the rule holds, not coloured pills of their own.
     const el = render(3);
 
-    expect(el.querySelector('.pokemon-info .personal-shiny-tag')).not.toBeNull();
-    expect(el.querySelector('.pokemon-info .personal-background-tag')).not.toBeNull();
-    expect(el.querySelector('.card-top-actions .personal-tag')).toBeNull();
+    expect(el.querySelector('.rule-status .personal-shiny-tag.rule-tag')).not.toBeNull();
+    expect(el.querySelector('.rule-status .personal-background-tag.rule-tag')).not.toBeNull();
   });
 
   it('shows no personal badge for a rule without the field', () => {
     const el = render(undefined);
 
-    expect(el.querySelector('.alarm-card')).not.toBeNull();
+    expect(el.querySelector('app-alarm-card')).not.toBeNull();
     expect(el.querySelector('.personal-shiny-tag')).toBeNull();
   });
 });

@@ -192,6 +192,14 @@ public partial class GeofenceFeedController(
                     path = polygon,
                     userSelectable = false,
                     displayInMatches = false,
+                    // A user's own fence is in no community's allowed_areas, so under PoracleNG's
+                    // area_security the community filter can only refuse it and the reconcile prune can
+                    // only delete it. This takes it out of the community system (jfberry/PoracleNG#243,
+                    // #254). It does not make it selectable (userSelectable stays false, so writes still
+                    // need trusted) and it does not touch strict_locations. A server without #243 ignores
+                    // the unknown key. Never set on the Koji half above: those are the community system's
+                    // own areas, and approved user fences are served from there, unmarked.
+                    exemptFromAreaSecurity = true,
                 };
             })
             .Where(g => g != null);

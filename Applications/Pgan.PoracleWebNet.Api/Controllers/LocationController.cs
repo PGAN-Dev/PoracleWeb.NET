@@ -1,27 +1,30 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Pgan.PoracleWebNet.Api.Filters;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 
 using Pgan.PoracleWebNet.Core.Models;
+using Pgan.PoracleWebNet.Core.Models.Helpers;
+using Pgan.PoracleWebNet.Core.Services;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/location")]
 [RequireFeatureEnabled(DisableFeatureKeys.Location)]
+// Assumes every outbound HTTP call here is PoracleNG (static map catches its own errors; geocode lets a PoracleNG below 5.4.0 through as PoracleUnsupportedException); a non-PoracleNG call would need its own handling.
+[TypeFilter(typeof(PoracleUnreachableExceptionFilter))]
 public class LocationController(
     IHumanService humanService,
     IProfileService profileService,
     IPoracleHumanProxy humanProxy,
     IPoracleApiProxy poracleApiProxy,
-    IPlaceUpdateCapabilityService placeUpdateCapability,
     IScannerService? scannerService = null) : BaseApiController
 {
     private readonly IHumanService _humanService = humanService;
     private readonly IProfileService _profileService = profileService;
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
-    private readonly IPlaceUpdateCapabilityService _placeUpdateCapability = placeUpdateCapability;
     private readonly IScannerService? _scannerService = scannerService;
 
     [HttpGet]
@@ -262,20 +265,16 @@ public class LocationController(
     /// The user's saved places, plus the profile pin every alarm falls back to.
     /// </summary>
     /// <remarks>
-    /// <c>canEdit</c> rides along rather than sitting on its own endpoint, matching
-    /// <c>MuteController</c>: the list is read on every visit to the Areas page, and a second call for
-    /// one boolean would double that for no gain.
+    /// There is no <c>canEdit</c> flag: moving a place works on every supported PoracleNG (5.4.0 and up).
     /// </remarks>
     [HttpGet("places")]
-    public async Task<IActionResult> GetPlaces(CancellationToken cancellationToken) =>
-        this.Ok(await this.PlacesWithCapabilityAsync(cancellationToken));
+    public async Task<IActionResult> GetPlaces() =>
+        this.Ok(await this.PlacesAsync());
 
     /// <summary>
-    /// The place list in the one shape every caller gets, capability included. The PUT answers it too:
-    /// a reply missing canEdit would clear the flag the SPA is holding and hide the control the user
-    /// just used.
+    /// The place list in the one shape every caller gets; the PUT and POST answer it too.
     /// </summary>
-    private async Task<object> PlacesWithCapabilityAsync(CancellationToken cancellationToken)
+    private async Task<object> PlacesAsync()
     {
         var places = await this._humanProxy.GetPlacesAsync(this.UserId);
 
@@ -283,7 +282,6 @@ public class LocationController(
         {
             places.Default,
             places.Named,
-            canEdit = await this._placeUpdateCapability.IsPlaceUpdateAvailableAsync(cancellationToken),
         };
     }
 
@@ -293,11 +291,12 @@ public class LocationController(
     /// <remarks>
     /// New on PoracleNG 5.2.0. Before it, a place an alarm referenced could not be moved at all: the
     /// delete answers 409 while anything still points at it, so the only route was to repoint every
-    /// alarm, delete, re-add and repoint back. An older server answers 501 and the SPA hides the control.
+    /// alarm, delete, re-add and repoint back. A server older than 5.4.0 raises
+    /// <see cref="PoracleUnsupportedException"/>, which the exception filter reports.
     /// </remarks>
     [HttpPut("places/{label}")]
     public async Task<IActionResult> UpdatePlace(
-        string label, [FromBody] PlaceMoveRequest request, CancellationToken cancellationToken = default)
+        string label, [FromBody] PlaceMoveRequest request)
     {
         if (request.Latitude is not { } latitude || request.Longitude is not { } longitude)
         {
@@ -309,14 +308,9 @@ public class LocationController(
             return this.BadRequest(new { error = "Latitude must be -90 to 90 and longitude -180 to 180." });
         }
 
-        var moved = await this._humanProxy.UpdatePlaceAsync(this.UserId, label, latitude, longitude);
+        await this._humanProxy.UpdatePlaceAsync(this.UserId, label, latitude, longitude);
 
-        return moved
-            ? this.Ok(await this.PlacesWithCapabilityAsync(cancellationToken))
-            : this.StatusCode(StatusCodes.Status501NotImplemented, new
-            {
-                error = "This Poracle server cannot move a saved place. Delete it and add it again.",
-            });
+        return this.Ok(await this.PlacesAsync());
     }
 
     /// <summary>New coordinates for a saved place. The label is the path segment and does not change.</summary>
@@ -339,21 +333,60 @@ public class LocationController(
     /// Saves a place an alarm can be anchored to.
     /// </summary>
     /// <remarks>
-    /// PoracleNG reports a rejected label inside a 200 because its endpoint answers per row, so the
-    /// refusal is unwrapped here and returned as a 400 the SPA can show against the field.
+    /// A refusal, ours or PoracleNG's, is returned as a 400 <c>{ error }</c> the SPA can show as it is.
+    /// The label rule (<see cref="PlaceLabelRules"/>) runs here rather than as model attributes, because an
+    /// attribute's refusal arrives as a validation-problem body the SPA could not read, and it judges this new
+    /// label only: moving and deleting address the stored label, so a place saved before the rule stays usable.
     /// </remarks>
     [HttpPost("places")]
     public async Task<IActionResult> AddPlace(
-        [FromBody] SavedPlace place, CancellationToken cancellationToken = default)
+        [FromBody] SavedPlace place)
     {
+        if (PlaceLabelRules.Validate(place.Label) is { } invalid)
+        {
+            return this.BadRequest(new { error = invalid });
+        }
+
+        place.Label = place.Label.Trim();
         var refusal = await this._humanProxy.AddPlaceAsync(this.UserId, place);
 
-        // Answers the same shape as the GET and the PUT. The SPA replaces its whole places signal
-        // from this reply, so a body without canEdit cleared the flag and took the edit control off
-        // every card until the next reload -- the hazard already noted on the PUT, one path along.
+        // Answers the same shape as the GET and the PUT; the SPA replaces its places signal from it.
         return refusal is null
-            ? this.Ok(await this.PlacesWithCapabilityAsync(cancellationToken))
+            ? this.Ok(await this.PlacesAsync())
             : this.BadRequest(new { error = refusal });
+    }
+
+    /// <summary>
+    /// How many of the active profile's alarms measure their radius from the profile pin: a radius above
+    /// zero and no saved place. Clearing the pin stops every one of them matching, so the SPA names the
+    /// count before it asks to clear. A rule aimed at a saved place keeps its anchor and is not counted.
+    /// </summary>
+    [EnableRateLimiting("tracking-usage")]
+    [HttpGet("pin-usage")]
+    public async Task<IActionResult> GetPinUsage([FromServices] IPoracleTrackingProxy trackingProxy)
+    {
+        var snapshot = await trackingProxy.GetAllTrackingAsync(this.UserId);
+        return this.Ok(new { alarms = PlaceUsage.CountMeasuredFromPin(snapshot) });
+    }
+
+    /// <summary>
+    /// The active profile's alarms aimed at a saved place, every type included (Pokéstop events too).
+    /// PoracleNG refuses to delete a place while any exist, so the SPA reads this before it offers Delete
+    /// and lists them instead. The delete's own 409 still covers a rule added in between.
+    /// </summary>
+    [EnableRateLimiting("tracking-usage")]
+    [HttpGet("place-usage")]
+    public async Task<IActionResult> GetPlaceUsage(
+        [FromQuery] string? label, [FromServices] IPoracleTrackingProxy trackingProxy)
+    {
+        if (string.IsNullOrWhiteSpace(label))
+        {
+            return this.BadRequest(new { error = "Name the place to check." });
+        }
+
+        var snapshot = await trackingProxy.GetAllTrackingWithDescriptionsAsync(this.UserId);
+        var rules = PlaceUsage.RulesAimedAt(snapshot, label);
+        return this.Ok(new { alarms = rules.Count, rules });
     }
 
     /// <summary>

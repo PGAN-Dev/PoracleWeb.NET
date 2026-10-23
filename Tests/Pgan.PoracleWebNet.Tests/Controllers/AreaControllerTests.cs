@@ -13,6 +13,7 @@ public class AreaControllerTests : ControllerTestBase
     private readonly Mock<IPoracleHumanProxy> _humanProxy = new();
     private readonly Mock<IPoracleApiProxy> _proxy = new();
     private readonly Mock<IUserGeofenceService> _userGeofenceService = new();
+    private readonly Mock<IUserAreaWriter> _areaWriter = new();
     private readonly Mock<ILogger<AreaController>> _logger = new();
     private readonly AreaController _sut;
     private static readonly string[] AreasArray = ["west", "east"];
@@ -23,11 +24,12 @@ public class AreaControllerTests : ControllerTestBase
             this._humanProxy.Object,
             this._proxy.Object,
             this._userGeofenceService.Object,
+            this._areaWriter.Object,
             this._logger.Object);
-        // Default: no user geofences to preserve
-        this._userGeofenceService
-            .Setup(s => s.PreserveOwnedAreasInHumanAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>()))
-            .ReturnsAsync([]);
+        // Default: the writer keeps everything it is given.
+        this._areaWriter
+            .Setup(w => w.SaveSelectionAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>()))
+            .ReturnsAsync((string _, IReadOnlyCollection<string> r) => new AreaSaveResult([.. r], []));
         SetupUser(this._sut);
     }
 
@@ -166,70 +168,54 @@ public class AreaControllerTests : ControllerTestBase
     // --- UpdateAreas ---
 
     [Fact]
-    public async Task UpdateAreasCallsProxyWithNormalizedAreas()
+    public async Task UpdateAreasSavesTheLowercasedListThroughTheWriterOnly()
     {
         var result = await this._sut.UpdateAreas(new AreaController.UpdateAreasRequest { Areas = ["West", "EAST"] });
 
-        this._humanProxy.Verify(p => p.SetAreasAsync("123456789", AreasArray), Times.Once);
+        this._areaWriter.Verify(w => w.SaveSelectionAsync("123456789",
+            It.Is<IReadOnlyCollection<string>>(c => c.SequenceEqual(AreasArray))), Times.Once);
+        // The old two-step write is gone: no untrusted setAreas, no patch-up (the proxy no longer has one).
         var ok = Assert.IsType<OkObjectResult>(result);
-        var areas = Assert.IsType<string[]>(ok.Value);
-        Assert.Equal(["west", "east"], areas);
+        Assert.Equal(["west", "east"], Assert.IsType<string[]>(ok.Value));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task UpdateAreasSavesAnEmptyListWhenAreasAreNullOrEmpty(bool isNull)
+    {
+        await this._sut.UpdateAreas(new AreaController.UpdateAreasRequest { Areas = isNull ? null : [] });
+
+        this._areaWriter.Verify(w => w.SaveSelectionAsync("123456789",
+            It.Is<IReadOnlyCollection<string>>(c => c.Count == 0)), Times.Once);
     }
 
     [Fact]
-    public async Task UpdateAreasCallsProxyWithEmptyArrayWhenAreasNull()
+    public async Task UpdateAreasLetsARefusalReachTheExceptionFilter()
     {
-        await this._sut.UpdateAreas(new AreaController.UpdateAreasRequest { Areas = null });
+        this._areaWriter
+            .Setup(w => w.SaveSelectionAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>()))
+            .ThrowsAsync(new AreaNotPermittedException(["other fence"]));
 
-        this._humanProxy.Verify(p => p.SetAreasAsync("123456789", Array.Empty<string>()), Times.Once);
+        var ex = await Assert.ThrowsAsync<AreaNotPermittedException>(
+            () => this._sut.UpdateAreas(new AreaController.UpdateAreasRequest { Areas = ["other fence"] }));
+
+        Assert.Equal(["other fence"], ex.Names);
     }
 
     [Fact]
-    public async Task UpdateAreasCallsProxyWithEmptyArrayWhenAreasEmpty()
+    public async Task UpdateAreasEchoesWhatWasStoredWhenAPoracleDroppedName()
     {
-        await this._sut.UpdateAreas(new AreaController.UpdateAreasRequest { Areas = [] });
+        // No read-back available: the fallback is what the writer reports PoracleNG kept, not the request.
+        this._areaWriter
+            .Setup(w => w.SaveSelectionAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>()))
+            .ReturnsAsync(new AreaSaveResult(["west"], ["old & gone"]));
+        this._humanProxy.Setup(p => p.GetAreasAsync("123456789"))
+            .ThrowsAsync(new HttpRequestException("503", null, System.Net.HttpStatusCode.ServiceUnavailable));
 
-        this._humanProxy.Verify(p => p.SetAreasAsync("123456789", Array.Empty<string>()), Times.Once);
-    }
+        var result = await this._sut.UpdateAreas(new AreaController.UpdateAreasRequest { Areas = ["west", "old & gone"] });
 
-    [Fact]
-    public async Task UpdateAreasPreservesUserOwnedGeofencesAfterProxyCall()
-    {
-        // Regression guard: PoracleNG's setAreas silently strips user geofences (served
-        // with userSelectable=false). The controller must re-add them via direct DB so
-        // saving on the Areas page doesn't nuke the user's custom geofence activations.
-        this._userGeofenceService
-            .Setup(s => s.PreserveOwnedAreasInHumanAsync("123456789", It.Is<IReadOnlyCollection<string>>(c =>
-                c.Contains("downtown") && c.Contains("my park"))))
-            .ReturnsAsync(["my park"]);
-
-        var result = await this._sut.UpdateAreas(new AreaController.UpdateAreasRequest
-        {
-            Areas = ["Downtown", "My Park"],
-        });
-
-        // Proxy was called first with normalized (lowercase) areas
-        this._humanProxy.Verify(p => p.SetAreasAsync("123456789",
-            It.Is<string[]>(a => a.Contains("downtown") && a.Contains("my park"))), Times.Once);
-        // Merge step was called after the proxy
-        this._userGeofenceService.Verify(s => s.PreserveOwnedAreasInHumanAsync("123456789",
-            It.IsAny<IReadOnlyCollection<string>>()), Times.Once);
-
-        var ok = Assert.IsType<OkObjectResult>(result);
-        var effective = Assert.IsType<string[]>(ok.Value);
-        Assert.Contains("downtown", effective);
-        Assert.Contains("my park", effective);
-    }
-
-    [Fact]
-    public async Task UpdateAreasReturnsNormalizedAreasWhenNothingToPreserve()
-    {
-        // Default mock returns []. Response should equal the normalized input.
-        var result = await this._sut.UpdateAreas(new AreaController.UpdateAreasRequest { Areas = ["West", "EAST"] });
-
-        var ok = Assert.IsType<OkObjectResult>(result);
-        var areas = Assert.IsType<string[]>(ok.Value);
-        Assert.Equal(["west", "east"], areas);
+        Assert.Equal(["west"], Assert.IsType<string[]>(Assert.IsType<OkObjectResult>(result).Value));
     }
 
     [Theory]
@@ -247,6 +233,21 @@ public class AreaControllerTests : ControllerTestBase
         Assert.Equal(["west"], Assert.IsType<string[]>(ok.Value));
     }
 
+    [Fact]
+    public async Task UpdateAreasThatLandedIsNotReportedAsAFailureWhenTheReadBackFails()
+    {
+        // The save has succeeded by the time this read runs. It throws on a failed answer since #994;
+        // a 500 here would tell the user a save that took effect did not. The submitted list is the
+        // fallback it always was.
+        this._humanProxy.Setup(p => p.GetAreasAsync("123456789"))
+            .ThrowsAsync(new HttpRequestException("503", null, System.Net.HttpStatusCode.ServiceUnavailable));
+
+        var result = await this._sut.UpdateAreas(new AreaController.UpdateAreasRequest { Areas = ["West", "EAST"] });
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.Equal(["west", "east"], Assert.IsType<string[]>(ok.Value));
+    }
+
     // --- GetGeofencePolygons ---
 
     [Fact]
@@ -254,6 +255,41 @@ public class AreaControllerTests : ControllerTestBase
     {
         this._proxy.Setup(p => p.GetAllGeofenceDataAsync()).ReturnsAsync(/*lang=json,strict*/ "{\"geofence\":[]}");
         Assert.IsType<ContentResult>(await this._sut.GetGeofencePolygons());
+    }
+
+    /// <summary>
+    /// A drawn fence is stored under its key ("lake eola loop 2", the collision suffix included), and the
+    /// dashboard and Areas chips showed that key beside "Downtown Orlando". The caller's own fences carry
+    /// the name they gave them; nobody else's fence gains one.
+    /// </summary>
+    [Fact]
+    public async Task GetGeofencePolygonsNamesTheCallersOwnFences()
+    {
+        this._proxy.Setup(p => p.GetAllGeofenceDataAsync()).ReturnsAsync(
+            /*lang=json,strict*/
+            "{\"status\":\"ok\",\"geofence\":[{\"id\":1,\"name\":\"lake eola loop 2\",\"path\":[]},{\"id\":2,\"name\":\"Downtown Orlando\",\"path\":[]},{\"id\":3,\"name\":\"someone elses home\",\"path\":[]}]}");
+        this._userGeofenceService.Setup(s => s.GetByUserAsync("123456789"))
+            .ReturnsAsync([new UserGeofence { Id = 7, HumanId = "123456789", KojiName = "lake eola loop 2", DisplayName = "Lake Eola Loop" }]);
+
+        var result = Assert.IsType<ContentResult>(await this._sut.GetGeofencePolygons());
+
+        var fences = JsonDocument.Parse(result.Content!).RootElement.GetProperty("geofence").EnumerateArray().ToList();
+        Assert.Equal("Lake Eola Loop", fences[0].GetProperty("displayName").GetString());
+        Assert.Equal("lake eola loop 2", fences[0].GetProperty("name").GetString());
+        Assert.False(fences[1].TryGetProperty("displayName", out _));
+        Assert.False(fences[2].TryGetProperty("displayName", out _));
+    }
+
+    [Fact]
+    public async Task GetGeofencePolygonsPassesThePayloadThroughWhenTheOwnFencesCannotBeRead()
+    {
+        const string Payload = /*lang=json,strict*/ "{\"status\":\"ok\",\"geofence\":[{\"id\":1,\"name\":\"a\",\"path\":[]}]}";
+        this._proxy.Setup(p => p.GetAllGeofenceDataAsync()).ReturnsAsync(Payload);
+        this._userGeofenceService.Setup(s => s.GetByUserAsync("123456789")).ThrowsAsync(new InvalidOperationException());
+
+        var result = Assert.IsType<ContentResult>(await this._sut.GetGeofencePolygons());
+
+        Assert.Equal(Payload, result.Content);
     }
 
     [Fact]
@@ -302,7 +338,7 @@ public class AreaControllerTests : ControllerTestBase
         var result = await this._sut.UpdateAreas(new AreaController.UpdateAreasRequest { Areas = ["west", null!] });
 
         Assert.IsType<BadRequestObjectResult>(result);
-        this._humanProxy.Verify(p => p.SetAreasAsync(It.IsAny<string>(), It.IsAny<string[]>()), Times.Never);
+        this._areaWriter.Verify(w => w.SaveSelectionAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>()), Times.Never);
     }
 
 }

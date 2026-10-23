@@ -1,0 +1,22 @@
+<h2 mat-dialog-title id="geofence-delete-dialog-title" class="warn-title">
+  <mat-icon class="warn-icon">warning</mat-icon>
+  {{ 'GEOFENCES.DELETE_WIDEN_TITLE' | translate: { name: data.name } }}
+</h2>
+<mat-dialog-content>
+  <p id="geofence-delete-dialog-body">{{ bodyKey() | translate: { count: data.count, owner: data.owner } }}</p>
+  <mat-radio-group
+    class="choice-group"
+    [value]="choice()"
+    (change)="choice.set($event.value)"
+    [attr.aria-label]="'GEOFENCES.DELETE_WIDEN_TITLE' | translate: { name: data.name }">
+    <mat-radio-button value="delete">{{ 'GEOFENCES.DELETE_WIDEN_DELETE' | translate }}</mat-radio-button>
+    <mat-radio-button value="keep">{{ keepKey() | translate }}</mat-radio-button>
+  </mat-radio-group>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cancel()">{{ 'DIALOG.CANCEL' | translate }}</button>
+  <button mat-flat-button color="warn" (click)="confirm()">
+    <mat-icon>delete</mat-icon>
+    {{ 'COMMON.DELETE' | translate }}
+  </button>
+</mat-dialog-actions>

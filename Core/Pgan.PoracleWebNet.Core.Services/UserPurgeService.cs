@@ -6,7 +6,6 @@ namespace Pgan.PoracleWebNet.Core.Services;
 
 /// <inheritdoc cref="IUserPurgeService"/>
 public partial class UserPurgeService(
-    IHumanRepository humanRepository,
     IUserGeofenceRepository geofenceRepository,
     IUserGeofenceService geofenceService,
     IWebhookDelegateRepository webhookDelegateRepository,
@@ -15,7 +14,6 @@ public partial class UserPurgeService(
     IHumanService humanService,
     ILogger<UserPurgeService> logger) : IUserPurgeService
 {
-    private readonly IHumanRepository _humanRepository = humanRepository;
     private readonly IUserGeofenceRepository _geofenceRepository = geofenceRepository;
     private readonly IUserGeofenceService _geofenceService = geofenceService;
     private readonly IWebhookDelegateRepository _webhookDelegateRepository = webhookDelegateRepository;
@@ -26,12 +24,11 @@ public partial class UserPurgeService(
 
     public async Task<bool> PurgeAsync(string userId)
     {
-        // Deliberately the DATABASE, not IHumanService.ExistsAsync, which is otherwise identical and
-        // already injected here. That one reads through the proxy, and the proxy answers null for any
-        // non-success -- so a Poracle that is merely unreachable is indistinguishable from an account
-        // that does not exist, and this method would answer false. The caller turns false into 404, so
-        // an outage would tell an admin the account they are deleting is already gone.
-        if (!await this._humanRepository.ExistsAsync(userId))
+        // False only when PoracleNG answers 404 for this id. Anything else it fails to answer throws, and so
+        // does this: the caller turns false into 404, and an outage must not tell an admin the account they
+        // are deleting is already gone. This read went to Poracle's humans table directly until the proxy
+        // could tell the two apart. See #994.
+        if (!await this._humanService.ExistsAsync(userId))
         {
             return false;
         }
@@ -44,7 +41,13 @@ public partial class UserPurgeService(
         await this.TryAsync("webhook delegates", () => this._webhookDelegateRepository.RemoveAllForIdAsync(userId));
         await this.TryAsync("quick picks", () => this.PurgeQuickPicksAsync(userId));
 
-        return await this._humanService.DeleteUserAsync(userId);
+        var deleted = await this._humanService.DeleteUserAsync(userId);
+        if (deleted)
+        {
+            await this.TryAsync("leftover geofences", () => this._geofenceService.RemoveFencesOfDeletedAccountAsync(userId));
+        }
+
+        return deleted;
     }
 
     /// <summary>
@@ -52,11 +55,21 @@ public partial class UserPurgeService(
     /// the shared Koji project, and so Poracle re-reads the feed. Otherwise a deleted user's polygons keep
     /// being served to PoracleJS. See #511.
     /// </summary>
+    /// <remarks>
+    /// Alarms limited to a fence are deleted with it: the account is going, so there is nothing to keep them
+    /// for (and the alarm step has normally removed them already). One fence that cannot be cleaned does not
+    /// stop the rest. Its row and any Koji copy are kept, as any fence delete keeps them when PoracleNG fails,
+    /// and <see cref="IUserGeofenceService.RemoveFencesOfDeletedAccountAsync"/> sweeps both once the account
+    /// is gone: its area lists went with it, and a row left behind would keep serving the polygon in the
+    /// geofence feed.
+    /// </remarks>
     private async Task PurgeGeofencesAsync(string userId)
     {
         foreach (var geofence in await this._geofenceRepository.GetByHumanIdAsync(userId))
         {
-            await this._geofenceService.AdminDeleteAsync(userId, geofence.Id);
+            await this.TryAsync(
+                $"geofence {geofence.Id}",
+                () => this._geofenceService.AdminDeleteAsync(userId, geofence.Id, deleteWidenedAlarms: true));
         }
     }
 

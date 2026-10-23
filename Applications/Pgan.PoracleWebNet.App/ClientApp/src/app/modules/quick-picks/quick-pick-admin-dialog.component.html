@@ -2,24 +2,27 @@
 
 <mat-dialog-content>
   <form [formGroup]="mainForm">
-    <mat-form-field class="full-width">
+    <mat-form-field appearance="outline" class="full-width">
       <mat-label>{{ 'QUICK_PICKS.FIELD_NAME' | translate }}</mat-label>
       <input matInput formControlName="name" />
     </mat-form-field>
 
-    <mat-form-field class="full-width">
+    <mat-form-field appearance="outline" class="full-width">
       <mat-label>{{ 'QUICK_PICKS.FIELD_DESCRIPTION' | translate }}</mat-label>
       <input matInput formControlName="description" />
     </mat-form-field>
 
     <div class="form-row">
-      <mat-form-field>
-        <mat-label>{{ 'QUICK_PICKS.FIELD_ICON' | translate }}</mat-label>
-        <input matInput formControlName="icon" />
-        <mat-icon matSuffix>{{ mainForm.controls.icon.value }}</mat-icon>
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'QUICK_PICKS.FIELD_ALARM_TYPE' | translate }}</mat-label>
+        <mat-select formControlName="alarmType">
+          @for (type of alarmTypes; track type) {
+            <mat-option [value]="type">{{ alarmTypeLabel(type) }}</mat-option>
+          }
+        </mat-select>
       </mat-form-field>
 
-      <mat-form-field>
+      <mat-form-field appearance="outline">
         <mat-label>{{ 'QUICK_PICKS.FIELD_CATEGORY' | translate }}</mat-label>
         <mat-select formControlName="category">
           @for (cat of categories; track cat) {
@@ -29,208 +32,262 @@
       </mat-form-field>
     </div>
 
-    <div class="form-row">
-      <mat-form-field>
-        <mat-label>{{ 'QUICK_PICKS.FIELD_ALARM_TYPE' | translate }}</mat-label>
-        <mat-select formControlName="alarmType">
-          @for (type of alarmTypes; track type) {
-            <mat-option [value]="type">{{ type }}</mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
+    <!-- A picker, not a text box: the stored value is a Material icon name nobody should have to type. -->
+    <fieldset class="icon-picker">
+      <legend>{{ 'QUICK_PICKS.FIELD_ICON' | translate }}</legend>
+      <div class="icon-grid" role="radiogroup" [attr.aria-label]="'QUICK_PICKS.FIELD_ICON' | translate">
+        @for (icon of iconChoices(); track icon) {
+          <button
+            type="button"
+            class="icon-choice"
+            role="radio"
+            data-test="icon-choice"
+            [class.selected]="mainForm.controls.icon.value === icon"
+            [attr.aria-checked]="mainForm.controls.icon.value === icon"
+            [attr.aria-label]="icon"
+            [matTooltip]="icon"
+            (click)="pickIcon(icon)">
+            <mat-icon aria-hidden="true">{{ icon }}</mat-icon>
+          </button>
+        }
+      </div>
+    </fieldset>
 
-      <mat-form-field>
+    <div class="form-row align-center">
+      <mat-form-field appearance="outline" class="sort-field">
         <mat-label>{{ 'QUICK_PICKS.FIELD_SORT_ORDER' | translate }}</mat-label>
         <input matInput type="number" formControlName="sortOrder" />
       </mat-form-field>
+      <mat-slide-toggle formControlName="enabled">{{ 'COMMON.ENABLED' | translate }}</mat-slide-toggle>
     </div>
-
-    <mat-slide-toggle formControlName="enabled">{{ 'COMMON.ENABLED' | translate }}</mat-slide-toggle>
   </form>
 
   <div class="filter-section">
     <h3>{{ 'QUICK_PICKS.FILTER_SETTINGS' | translate }}</h3>
 
+    <!-- The same species picker players get in the add dialogs. One species, or any. -->
+    @if (pokemonControl()) {
+      <div class="pokemon-pick" data-test="pokemon-pick" [attr.data-control]="currentAlarmType === 'quest' ? 'reward' : 'pokemonId'">
+        @for (k of [selectorKey()]; track k) {
+          <app-pokemon-selector
+            [initialIds]="pokemonInitialIds()"
+            [ivFilters]="currentAlarmType === 'monster'"
+            (selectionChange)="onPokemonPicked($event)" />
+        }
+        @if (pokemonInitialIds().length > 0) {
+          <button mat-button type="button" data-test="any-pokemon" (click)="resetPokemon()">
+            <mat-icon>close</mat-icon>
+            {{ 'QUICK_PICKS.ANY_POKEMON' | translate }}
+          </button>
+        } @else {
+          <p class="field-hint">{{ 'QUICK_PICKS.ANY_POKEMON_HINT' | translate }}</p>
+        }
+      </div>
+    }
+
     @switch (currentAlarmType) {
       @case ('monster') {
         <form [formGroup]="monsterForm">
+          <h4>{{ 'POKEMON.FILTER_IV_RANGE' | translate }}</h4>
           <div class="form-row">
-            <mat-form-field>
-              <mat-label>{{ 'QUICK_PICKS.FIELD_POKEMON_ID' | translate }}</mat-label>
-              <input matInput type="number" formControlName="pokemonId" />
-            </mat-form-field>
-            <mat-form-field>
-              <mat-label>{{ 'POKEMON.LABEL_FORM' | translate }}</mat-label>
-              <input matInput type="number" formControlName="form" />
-            </mat-form-field>
-          </div>
-
-          <div class="form-row">
-            <mat-form-field>
+            <mat-form-field appearance="outline">
               <mat-label>{{ 'POKEMON.LABEL_MIN_IV' | translate }}</mat-label>
               <input matInput type="number" formControlName="minIv" />
+              <span matTextSuffix>%</span>
             </mat-form-field>
-            <mat-form-field>
+            <mat-form-field appearance="outline">
               <mat-label>{{ 'POKEMON.LABEL_MAX_IV' | translate }}</mat-label>
               <input matInput type="number" formControlName="maxIv" />
+              <span matTextSuffix>%</span>
             </mat-form-field>
           </div>
 
+          <h4>{{ 'POKEMON.FILTER_CP_LEVEL' | translate }}</h4>
           <div class="form-row">
-            <mat-form-field>
+            <mat-form-field appearance="outline">
               <mat-label>{{ 'POKEMON.LABEL_MIN_CP' | translate }}</mat-label>
               <input matInput type="number" formControlName="minCp" />
             </mat-form-field>
-            <mat-form-field>
+            <mat-form-field appearance="outline">
               <mat-label>{{ 'POKEMON.LABEL_MAX_CP' | translate }}</mat-label>
               <input matInput type="number" formControlName="maxCp" />
             </mat-form-field>
           </div>
-
           <div class="form-row">
-            <mat-form-field>
+            <mat-form-field appearance="outline">
               <mat-label>{{ 'POKEMON.LABEL_MIN_LEVEL' | translate }}</mat-label>
               <input matInput type="number" formControlName="minLevel" />
             </mat-form-field>
-            <mat-form-field>
+            <mat-form-field appearance="outline">
               <mat-label>{{ 'POKEMON.LABEL_MAX_LEVEL' | translate }}</mat-label>
               <input matInput type="number" formControlName="maxLevel" />
             </mat-form-field>
           </div>
 
-          <div class="form-row">
-            <mat-form-field>
-              <mat-label>{{ 'POKEMON.LABEL_MIN_WEIGHT' | translate }}</mat-label>
-              <input matInput type="number" formControlName="minWeight" />
-            </mat-form-field>
-            <mat-form-field>
-              <mat-label>{{ 'POKEMON.LABEL_MAX_WEIGHT' | translate }}</mat-label>
-              <input matInput type="number" formControlName="maxWeight" />
-            </mat-form-field>
-          </div>
-
-          <div class="form-row">
-            <mat-form-field>
-              <mat-label>{{ 'POKEMON.LABEL_GENDER' | translate }}</mat-label>
-              <input matInput type="number" formControlName="gender" />
-            </mat-form-field>
-            <mat-form-field>
-              <mat-label>{{ 'POKEMON.LABEL_MIN_SIZE' | translate }}</mat-label>
-              <input matInput type="number" formControlName="size" />
-            </mat-form-field>
-            <mat-form-field>
-              <mat-label>{{ 'POKEMON.LABEL_MAX_SIZE' | translate }}</mat-label>
-              <input matInput type="number" formControlName="maxSize" />
-            </mat-form-field>
-          </div>
-
-          <div class="form-row">
-            <mat-form-field>
-              <mat-label>{{ 'POKEMON.PVP_LEAGUE' | translate }}</mat-label>
-              <input matInput type="number" formControlName="pvpRankingLeague" />
-            </mat-form-field>
-            <mat-form-field>
-              <mat-label>{{ 'POKEMON.PVP_BEST_RANK' | translate }}</mat-label>
-              <input matInput type="number" formControlName="pvpRankingBest" />
-            </mat-form-field>
-            <mat-form-field>
-              <mat-label>{{ 'POKEMON.PVP_WORST_RANK' | translate }}</mat-label>
-              <input matInput type="number" formControlName="pvpRankingWorst" />
-            </mat-form-field>
-          </div>
-
-          <mat-form-field>
-            <mat-label>{{ 'POKEMON.PVP_MIN_CP' | translate }}</mat-label>
-            <input matInput type="number" formControlName="pvpRankingMinCp" />
+          <h4>{{ 'POKEMON.TAB_PVP' | translate }}</h4>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'POKEMON.PVP_LEAGUE' | translate }}</mat-label>
+            <mat-select formControlName="pvpRankingLeague" data-test="pvp-league">
+              <mat-option [value]="0">{{ 'POKEMON.PVP_NONE' | translate }}</mat-option>
+              <mat-option [value]="500">{{ 'POKEMON.PVP_LITTLE_CUP' | translate }}</mat-option>
+              <mat-option [value]="1500">{{ 'POKEMON.PVP_GREAT_LEAGUE' | translate }}</mat-option>
+              <mat-option [value]="2500">{{ 'POKEMON.PVP_ULTRA_LEAGUE' | translate }}</mat-option>
+            </mat-select>
           </mat-form-field>
+          @if (monsterForm.controls.pvpRankingLeague.value !== 0) {
+            <div class="form-row" data-test="pvp-ranks">
+              <mat-form-field appearance="outline">
+                <mat-label>{{ 'POKEMON.PVP_BEST_RANK' | translate }}</mat-label>
+                <input matInput type="number" formControlName="pvpRankingBest" />
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>{{ 'POKEMON.PVP_WORST_RANK' | translate }}</mat-label>
+                <input matInput type="number" formControlName="pvpRankingWorst" />
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>{{ 'POKEMON.PVP_MIN_CP' | translate }}</mat-label>
+                <input matInput type="number" formControlName="pvpRankingMinCp" />
+              </mat-form-field>
+            </div>
+          }
+
+          <mat-expansion-panel class="more-filters">
+            <mat-expansion-panel-header>
+              <mat-panel-title>{{ 'POKEMON.MORE_FILTERS' | translate }}</mat-panel-title>
+            </mat-expansion-panel-header>
+            <div class="form-row">
+              <mat-form-field appearance="outline">
+                <mat-label>{{ 'POKEMON.LABEL_GENDER' | translate }}</mat-label>
+                <mat-select formControlName="gender">
+                  <mat-option [value]="0">{{ 'POKEMON.GENDER_ALL' | translate }}</mat-option>
+                  <mat-option [value]="1">&male; {{ 'POKEMON.GENDER_MALE' | translate }}</mat-option>
+                  <mat-option [value]="2">&female; {{ 'POKEMON.GENDER_FEMALE' | translate }}</mat-option>
+                  <mat-option [value]="3">{{ 'POKEMON.GENDER_GENDERLESS' | translate }}</mat-option>
+                </mat-select>
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>{{ 'POKEMON.LABEL_FORM' | translate }}</mat-label>
+                <input matInput type="number" formControlName="form" />
+              </mat-form-field>
+            </div>
+            <div class="form-row">
+              <mat-form-field appearance="outline">
+                <mat-label>{{ 'POKEMON.LABEL_MIN_SIZE' | translate }}</mat-label>
+                <mat-select formControlName="size">
+                  <mat-option [value]="-1">{{ 'POKEMON.SIZE_ANY' | translate }}</mat-option>
+                  <mat-option [value]="1">{{ 'POKEMON.SIZE_TINY' | translate }}</mat-option>
+                  <mat-option [value]="2">{{ 'POKEMON.SIZE_SMALL' | translate }}</mat-option>
+                  <mat-option [value]="3">{{ 'POKEMON.SIZE_NORMAL' | translate }}</mat-option>
+                  <mat-option [value]="4">{{ 'POKEMON.SIZE_LARGE' | translate }}</mat-option>
+                  <mat-option [value]="5">{{ 'POKEMON.SIZE_BIG' | translate }}</mat-option>
+                </mat-select>
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>{{ 'POKEMON.LABEL_MAX_SIZE' | translate }}</mat-label>
+                <mat-select formControlName="maxSize">
+                  <mat-option [value]="5">{{ 'POKEMON.SIZE_ANY' | translate }}</mat-option>
+                  <mat-option [value]="1">{{ 'POKEMON.SIZE_TINY' | translate }}</mat-option>
+                  <mat-option [value]="2">{{ 'POKEMON.SIZE_SMALL' | translate }}</mat-option>
+                  <mat-option [value]="3">{{ 'POKEMON.SIZE_NORMAL' | translate }}</mat-option>
+                  <mat-option [value]="4">{{ 'POKEMON.SIZE_LARGE' | translate }}</mat-option>
+                </mat-select>
+              </mat-form-field>
+            </div>
+            <div class="form-row">
+              <mat-form-field appearance="outline">
+                <mat-label>{{ 'POKEMON.LABEL_MIN_WEIGHT' | translate }}</mat-label>
+                <input matInput type="number" formControlName="minWeight" />
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>{{ 'POKEMON.LABEL_MAX_WEIGHT' | translate }}</mat-label>
+                <input matInput type="number" formControlName="maxWeight" />
+              </mat-form-field>
+            </div>
+          </mat-expansion-panel>
         </form>
       }
 
       @case ('raid') {
         <form [formGroup]="raidForm">
           <div class="form-row">
-            <mat-form-field>
-              <mat-label>{{ 'QUICK_PICKS.FIELD_POKEMON_ID' | translate }}</mat-label>
-              <input matInput type="number" formControlName="pokemonId" />
-            </mat-form-field>
-            <mat-form-field>
+            <mat-form-field appearance="outline">
               <mat-label>{{ 'RAIDS.RAID_LEVEL_LABEL' | translate }}</mat-label>
               <input matInput type="number" formControlName="level" />
             </mat-form-field>
-          </div>
-
-          <div class="form-row">
-            <mat-form-field>
-              <mat-label>{{ 'RAIDS.TEAM_LABEL' | translate }}</mat-label>
-              <input matInput type="number" formControlName="team" />
-            </mat-form-field>
-            <mat-form-field>
-              <mat-label>{{ 'QUICK_PICKS.FIELD_EXCLUSIVE' | translate }}</mat-label>
-              <input matInput type="number" formControlName="exclusive" />
-            </mat-form-field>
-            <mat-form-field>
+            <mat-form-field appearance="outline">
               <mat-label>{{ 'POKEMON.LABEL_FORM' | translate }}</mat-label>
               <input matInput type="number" formControlName="form" />
             </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'RAIDS.TEAM_LABEL' | translate }}</mat-label>
+              <input matInput type="number" formControlName="team" />
+            </mat-form-field>
           </div>
+          <mat-slide-toggle
+            data-control="exclusive"
+            [checked]="isOn(raidForm, 'exclusive')"
+            (change)="setOn(raidForm, 'exclusive', $event.checked)">
+            {{ 'QUICK_PICKS.FIELD_EXCLUSIVE' | translate }}
+          </mat-slide-toggle>
         </form>
       }
 
       @case ('egg') {
         <form [formGroup]="eggForm">
           <div class="form-row">
-            <mat-form-field>
+            <mat-form-field appearance="outline">
               <mat-label>{{ 'RAIDS.RAID_LEVEL_LABEL' | translate }}</mat-label>
               <input matInput type="number" formControlName="level" />
             </mat-form-field>
-            <mat-form-field>
+            <mat-form-field appearance="outline">
               <mat-label>{{ 'RAIDS.TEAM_LABEL' | translate }}</mat-label>
               <input matInput type="number" formControlName="team" />
             </mat-form-field>
-            <mat-form-field>
-              <mat-label>{{ 'QUICK_PICKS.FIELD_EXCLUSIVE' | translate }}</mat-label>
-              <input matInput type="number" formControlName="exclusive" />
-            </mat-form-field>
           </div>
+          <mat-slide-toggle
+            data-control="exclusive"
+            [checked]="isOn(eggForm, 'exclusive')"
+            (change)="setOn(eggForm, 'exclusive', $event.checked)">
+            {{ 'QUICK_PICKS.FIELD_EXCLUSIVE' | translate }}
+          </mat-slide-toggle>
         </form>
       }
 
       @case ('quest') {
         <form [formGroup]="questForm">
           <div class="form-row">
-            <mat-form-field>
+            <mat-form-field appearance="outline">
               <mat-label>{{ 'QUICK_PICKS.FIELD_REWARD_TYPE' | translate }}</mat-label>
               <input matInput type="number" formControlName="rewardType" />
             </mat-form-field>
-            <mat-form-field>
-              <mat-label>{{ 'QUICK_PICKS.FIELD_REWARD' | translate }}</mat-label>
-              <input matInput type="number" formControlName="reward" />
-            </mat-form-field>
+            <!-- An encounter's reward is a species, picked above with the Pokémon picker. -->
+            @if (pokemonControl() === null) {
+              <mat-form-field appearance="outline">
+                <mat-label>{{ 'QUICK_PICKS.FIELD_REWARD' | translate }}</mat-label>
+                <input matInput type="number" formControlName="reward" />
+              </mat-form-field>
+            }
           </div>
-
-          <div class="form-row">
-            <mat-form-field>
-              <mat-label>{{ 'QUICK_PICKS.FIELD_POKEMON_ID' | translate }}</mat-label>
-              <input matInput type="number" formControlName="pokemonId" />
-            </mat-form-field>
-            <mat-form-field>
-              <mat-label>{{ 'QUICK_PICKS.FIELD_SHINY' | translate }}</mat-label>
-              <input matInput type="number" formControlName="shiny" />
-            </mat-form-field>
-          </div>
+          <mat-slide-toggle data-control="shiny" [checked]="isOn(questForm, 'shiny')" (change)="setOn(questForm, 'shiny', $event.checked)">
+            {{ 'QUICK_PICKS.FIELD_SHINY' | translate }}
+          </mat-slide-toggle>
         </form>
       }
 
       @case ('invasion') {
         <form [formGroup]="invasionForm">
           <div class="form-row">
-            <mat-form-field>
+            <mat-form-field appearance="outline">
               <mat-label>{{ 'QUICK_PICKS.FIELD_GRUNT_TYPE' | translate }}</mat-label>
               <input matInput formControlName="gruntType" />
             </mat-form-field>
-            <mat-form-field>
+            <mat-form-field appearance="outline">
               <mat-label>{{ 'POKEMON.LABEL_GENDER' | translate }}</mat-label>
-              <input matInput type="number" formControlName="gender" />
+              <mat-select formControlName="gender">
+                <mat-option [value]="0">{{ 'POKEMON.GENDER_ALL' | translate }}</mat-option>
+                <mat-option [value]="1">&male; {{ 'POKEMON.GENDER_MALE' | translate }}</mat-option>
+                <mat-option [value]="2">&female; {{ 'POKEMON.GENDER_FEMALE' | translate }}</mat-option>
+              </mat-select>
             </mat-form-field>
           </div>
         </form>
@@ -238,7 +295,7 @@
 
       @case ('lure') {
         <form [formGroup]="lureForm">
-          <mat-form-field>
+          <mat-form-field appearance="outline">
             <mat-label>{{ 'QUICK_PICKS.FIELD_LURE_ID' | translate }}</mat-label>
             <input matInput type="number" formControlName="lureId" />
           </mat-form-field>
@@ -247,34 +304,32 @@
 
       @case ('nest') {
         <form [formGroup]="nestForm">
-          <div class="form-row">
-            <mat-form-field>
-              <mat-label>{{ 'QUICK_PICKS.FIELD_POKEMON_ID' | translate }}</mat-label>
-              <input matInput type="number" formControlName="pokemonId" />
-            </mat-form-field>
-            <mat-form-field>
-              <mat-label>{{ 'NESTS.MIN_SPAWNS_HR' | translate }}</mat-label>
-              <input matInput type="number" formControlName="minSpawnAvg" />
-            </mat-form-field>
-          </div>
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'NESTS.MIN_SPAWNS_HR' | translate }}</mat-label>
+            <input matInput type="number" formControlName="minSpawnAvg" />
+          </mat-form-field>
         </form>
       }
 
       @case ('gym') {
         <form [formGroup]="gymForm">
-          <div class="form-row">
-            <mat-form-field>
-              <mat-label>{{ 'RAIDS.TEAM_LABEL' | translate }}</mat-label>
-              <input matInput type="number" formControlName="team" />
-            </mat-form-field>
-            <mat-form-field>
-              <mat-label>{{ 'GYMS.TRACK_SLOT_CHANGES' | translate }}</mat-label>
-              <input matInput type="number" formControlName="slotChanges" />
-            </mat-form-field>
-            <mat-form-field>
-              <mat-label>{{ 'GYMS.TRACK_BATTLE_CHANGES' | translate }}</mat-label>
-              <input matInput type="number" formControlName="battleChanges" />
-            </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'RAIDS.TEAM_LABEL' | translate }}</mat-label>
+            <input matInput type="number" formControlName="team" />
+          </mat-form-field>
+          <div class="toggle-stack">
+            <mat-slide-toggle
+              data-control="slotChanges"
+              [checked]="isOn(gymForm, 'slotChanges')"
+              (change)="setOn(gymForm, 'slotChanges', $event.checked)">
+              {{ 'GYMS.TRACK_SLOT_CHANGES' | translate }}
+            </mat-slide-toggle>
+            <mat-slide-toggle
+              data-control="battleChanges"
+              [checked]="isOn(gymForm, 'battleChanges')"
+              (change)="setOn(gymForm, 'battleChanges', $event.checked)">
+              {{ 'GYMS.TRACK_BATTLE_CHANGES' | translate }}
+            </mat-slide-toggle>
           </div>
         </form>
       }
@@ -282,37 +337,31 @@
       @case ('maxbattle') {
         <form [formGroup]="maxBattleForm">
           <div class="form-row">
-            <mat-form-field>
-              <mat-label>{{ 'QUICK_PICKS.FIELD_POKEMON_ID' | translate }}</mat-label>
-              <input matInput type="number" formControlName="pokemonId" />
-            </mat-form-field>
-            <mat-form-field>
+            <mat-form-field appearance="outline">
               <mat-label>{{ 'MAX_BATTLES.BATTLE_LEVEL' | translate }}</mat-label>
               <input matInput type="number" formControlName="level" />
             </mat-form-field>
-          </div>
-
-          <div class="form-row">
-            <mat-form-field>
-              <mat-label>{{ 'MAX_BATTLES.GIGANTAMAX_ONLY' | translate }}</mat-label>
-              <input matInput type="number" formControlName="gmax" />
-            </mat-form-field>
-            <mat-form-field>
+            <mat-form-field appearance="outline">
               <mat-label>{{ 'POKEMON.LABEL_FORM' | translate }}</mat-label>
               <input matInput type="number" formControlName="form" />
             </mat-form-field>
           </div>
-
           <div class="form-row">
-            <mat-form-field>
+            <mat-form-field appearance="outline">
               <mat-label>{{ 'QUICK_PICKS.FIELD_MOVE' | translate }}</mat-label>
               <input matInput type="number" formControlName="move" />
             </mat-form-field>
-            <mat-form-field>
+            <mat-form-field appearance="outline">
               <mat-label>{{ 'QUICK_PICKS.FIELD_EVOLUTION' | translate }}</mat-label>
               <input matInput type="number" formControlName="evolution" />
             </mat-form-field>
           </div>
+          <mat-slide-toggle
+            data-control="gmax"
+            [checked]="isOn(maxBattleForm, 'gmax')"
+            (change)="setOn(maxBattleForm, 'gmax', $event.checked)">
+            {{ 'MAX_BATTLES.GIGANTAMAX_ONLY' | translate }}
+          </mat-slide-toggle>
         </form>
       }
     }

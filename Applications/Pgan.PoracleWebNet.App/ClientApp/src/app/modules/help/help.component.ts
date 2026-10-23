@@ -8,6 +8,7 @@ import { MatInputModule } from '@angular/material/input';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { HELP_SECTIONS, HelpSection } from './help-sections';
+import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { PoracleConfigService } from '../../core/services/poracle-config.service';
 import { SettingsService } from '../../core/services/settings.service';
@@ -21,10 +22,11 @@ import { ImageViewerDialogComponent } from '../../shared/components/image-viewer
   templateUrl: './help.component.html',
 })
 export class HelpComponent {
+  private readonly auth = inject(AuthService);
+
   private readonly contentHosts = viewChildren<ElementRef<HTMLElement>>('sectionContent');
 
   private readonly dialog = inject(MatDialog);
-
   private readonly poracleConfig = inject(PoracleConfigService);
   /**
    * The bot's command prefix, so the FAQ can name the real command. Clearing test DMs is something
@@ -33,14 +35,16 @@ export class HelpComponent {
    */
   readonly botPrefix = computed(() => this.poracleConfig.serverConfig().prefix || '!');
   protected readonly i18n = inject(I18nService);
+
   protected readonly searchQuery = signal('');
 
-  protected readonly sections = HELP_SECTIONS;
+  /** The sections this reader may see: the admin guide is left out for everyone but admins. */
+  protected readonly sections = computed(() => HELP_SECTIONS.filter(s => !s.adminOnly || this.auth.isAdmin()));
 
   protected readonly filteredSections = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
-    if (!query) return this.sections;
-    return this.sections.filter(s => {
+    if (!query) return this.sections();
+    return this.sections().filter(s => {
       const title = this.i18n.instant(s.titleKey).toLowerCase();
       const subtitle = this.i18n.instant(s.subtitleKey).toLowerCase();
       const content = this.stripHtml(this.i18n.instant(s.contentKey)).toLowerCase();

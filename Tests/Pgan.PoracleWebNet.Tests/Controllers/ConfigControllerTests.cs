@@ -200,46 +200,17 @@ public class ConfigControllerTests : ControllerTestBase
         Assert.Equal(1234, projected.MaxDistance);
     }
 
-    // --- GetConfig: PingSupported (jfberry/PoracleNG#249) ---
+    // --- GetConfig: no PingSupported (ping is always supported on PoracleNG 5.4.0) ---
 
     [Fact]
-    public async Task GetConfigReadsPingSupportedFromTheV2Schema()
+    public async Task GetConfigCarriesNoPingSupportedFlag()
     {
         this._proxy.Setup(p => p.GetConfigAsync()).ReturnsAsync(new PoracleConfig { Locale = "en" });
-        this._v2Schema.Setup(s => s.GetAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new PoracleV2Capabilities { Read = true, TrackingPing = true });
 
-        var result = await this._sut.GetConfig();
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetConfig());
 
-        var ok = Assert.IsType<OkObjectResult>(result);
-        Assert.True(Assert.IsType<PublicPoracleConfig>(ok.Value).PingSupported);
-    }
-
-    [Fact]
-    public async Task GetConfigDefaultsPingSupportedToFalse()
-    {
-        // The mock default from the constructor: PoracleV2Capabilities.None, same as every released server.
-        this._proxy.Setup(p => p.GetConfigAsync()).ReturnsAsync(new PoracleConfig { Locale = "en" });
-
-        var result = await this._sut.GetConfig();
-
-        var ok = Assert.IsType<OkObjectResult>(result);
-        Assert.False(Assert.IsType<PublicPoracleConfig>(ok.Value).PingSupported);
-    }
-
-    [Fact]
-    public async Task GetConfigStillReadsPingSupportedOnTheFallbackPath()
-    {
-        // A failed Poracle config read must not also hide whether v2 carries #249 -- the two sources are
-        // independent, and the fallback branch builds its own PublicPoracleConfig.
-        this._proxy.Setup(p => p.GetConfigAsync()).ThrowsAsync(new InvalidOperationException("fail"));
-        this._v2Schema.Setup(s => s.GetAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new PoracleV2Capabilities { Read = true, TrackingPing = true });
-
-        var result = await this._sut.GetConfig();
-
-        var ok = Assert.IsType<OkObjectResult>(result);
-        Assert.True(Assert.IsType<PublicPoracleConfig>(ok.Value).PingSupported);
+        Assert.Null(typeof(PublicPoracleConfig).GetProperty("PingSupported"));
+        Assert.DoesNotContain("pingSupported", System.Text.Json.JsonSerializer.Serialize(ok.Value), StringComparison.OrdinalIgnoreCase);
     }
 
     // --- GetConfig: personal shiny (PoracleNG PR #255) ---

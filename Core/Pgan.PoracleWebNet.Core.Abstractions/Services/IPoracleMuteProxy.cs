@@ -7,8 +7,8 @@ namespace Pgan.PoracleWebNet.Core.Abstractions.Services;
 /// </summary>
 /// <remarks>
 /// The first /api/v2 call in PoracleWeb.NET. v2 is huma-generated: its error envelope is
-/// <c>{title,status,detail}</c>, not v1's <c>{error}</c>, and it exists only from PoracleNG 5.2.0 --
-/// callers must ask <see cref="IMuteCapabilityService"/> first.
+/// <c>{title,status,detail}</c>, not v1's <c>{error}</c>, and every supported PoracleNG (5.4.0 and
+/// later) serves it, so there is no capability check.
 /// </remarks>
 public interface IPoracleMuteProxy
 {
@@ -25,11 +25,13 @@ public interface IPoracleMuteProxy
         string userId, string scope, string? value, int durationMinutes, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Removes one mute, addressed by scope and value. An already-lapsed mute (404 upstream) returns an
-    /// empty list rather than throwing: the caller asked for it to be gone and it is.
+    /// Removes one mute, addressed by scope and value, plus the rule type for a typed <c>tracking</c> mute
+    /// (<see cref="Mute.TrackingType"/>, sent only when non-empty). An already-lapsed mute (404 upstream)
+    /// returns an empty list rather than throwing: the caller asked for it to be gone and it is.
     /// </summary>
+    /// <exception cref="MuteRejectedException">Upstream refused the delete (422).</exception>
     Task<IReadOnlyList<Mute>> DeleteAsync(
-        string userId, string scope, string? value, CancellationToken cancellationToken = default);
+        string userId, string scope, string? value, string? trackingType, CancellationToken cancellationToken = default);
 
     /// <summary>Removes every mute the human has. Returns what was removed.</summary>
     Task<IReadOnlyList<Mute>> DeleteAllAsync(string userId, CancellationToken cancellationToken = default);

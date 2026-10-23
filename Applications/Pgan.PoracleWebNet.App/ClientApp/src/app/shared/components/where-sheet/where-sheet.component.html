@@ -1,10 +1,16 @@
 <h2 mat-dialog-title>{{ 'WHERE.SHEET_TITLE' | translate }}</h2>
 
 <mat-dialog-content class="where-sheet">
-  <app-scope-picker [(scope)]="scope" [profileAreas]="data.profileAreas" [hideHeading]="true" />
+  <app-scope-picker
+    [(scope)]="scope"
+    [(radiusValid)]="radiusValid"
+    [storedRadiusKm]="storedRadiusKm"
+    [profileAreas]="data.profileAreas"
+    [hideHeading]="true"
+    [preview]="false" />
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
   <button mat-button mat-dialog-close>{{ 'COMMON.CANCEL' | translate }}</button>
-  <button mat-flat-button (click)="save()">{{ 'WHERE.SAVE' | translate }}</button>
+  <button mat-flat-button [disabled]="!radiusValid()" (click)="save()">{{ 'WHERE.SAVE' | translate }}</button>
 </mat-dialog-actions>

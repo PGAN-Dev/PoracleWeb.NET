@@ -20,6 +20,28 @@ public class CleaningControllerTests : ControllerTestBase
         SetupUser(this._sut);
     }
 
+    [Fact]
+    public async Task GetStatusKeepsTheAllCleanFlagsAndAddsCounts()
+    {
+        // Alarms D10. The booleans stay as they were (on only when every rule is clean); the counts are
+        // added beside them so the page can say a type is partly clean.
+        this._service.Setup(s => s.GetCleanCountsAsync("123456789", 1)).ReturnsAsync(new Dictionary<string, CleanCount>
+        {
+            ["monsters"] = new(1, 3),
+            ["raids"] = new(2, 2),
+            ["eggs"] = new(0, 0),
+        });
+
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetStatus());
+        var body = Assert.IsType<Dictionary<string, object>>(ok.Value);
+
+        Assert.Equal(false, body["monsters"]);
+        Assert.Equal(true, body["raids"]);
+        Assert.Equal(false, body["eggs"]);
+        var counts = Assert.IsType<Dictionary<string, CleanCount>>(body["counts"]);
+        Assert.Equal(new CleanCount(1, 3), counts["monsters"]);
+    }
+
     [Theory]
     [InlineData("monsters")]
     [InlineData("raids")]

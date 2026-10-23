@@ -37,4 +37,14 @@ public sealed class TrackingConflictException : Exception
     {
         get;
     }
+
+    /// <summary>
+    /// The uid of the stored rule the write collided with, when PoracleNG named it (a create's dry run
+    /// reports the rule it would have taken over). The add dialog uses it to say which alarm is in the way
+    /// and to open that one for editing. Null when the refusal names no stored rule.
+    /// </summary>
+    public int? ExistingUid
+    {
+        get; init;
+    }
 }

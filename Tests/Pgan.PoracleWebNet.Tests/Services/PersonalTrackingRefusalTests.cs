@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
@@ -32,6 +33,12 @@ public class PersonalTrackingRefusalTests
         this._proxy
             .Setup(p => p.UpdateByUidAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingUpdateResult(1, false));
+
+        // Import writes one v2 create per type onto the target profile; count every row as inserted.
+        this._proxy
+            .Setup(p => p.CreateOnProfileAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>(), It.IsAny<int>()))
+            .ReturnsAsync((string _, string _, JsonElement body, int _) =>
+                new TrackingCreateResult([], 0, 0, body.ValueKind == JsonValueKind.Array ? body.GetArrayLength() : 1));
     }
 
     // --- MonsterService -----------------------------------------------------------------------------
@@ -108,8 +115,7 @@ public class PersonalTrackingRefusalTests
 
         Assert.Contains(Refusal, ex.Message);
 
-        // Before any state moves: no profile switch, no alarm written.
-        this._humanProxy.Verify(h => h.SwitchProfileAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+        // Before any state moves: no alarm written.
         this.VerifyNothingWritten();
     }
 
@@ -151,7 +157,7 @@ public class PersonalTrackingRefusalTests
     {
         // A caller that predates the schema dependency gets no capabilities, which fails closed.
         var monsters = new MonsterService(this._proxy.Object, this._featureGate.Object, this._remapper.Object,
-            CostumeCapabilityDoubles.Supported());
+            NullLogger<MonsterService>.Instance);
 
         var ex = await Assert.ThrowsAsync<AlarmValidationException>(
             () => monsters.CreateAsync("u1", new Monster { PokemonId = 25, Personal = 1 }));
@@ -163,65 +169,21 @@ public class PersonalTrackingRefusalTests
             p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Once);
     }
 
-    // --- The merge guard ----------------------------------------------------------------------------
-    //
-    // `personal` is untagged upstream, so it is identity: a plain rule and its shiny twin are two rules.
-    // The guard needed no change, and these pin that it stays that way.
-
-    [Fact]
-    public async Task APlainRuleAndItsShinyTwinCoexist()
-    {
-        this.Store("""{"uid":50,"pokemon_id":25,"form":0,"min_iv":0,"distance":0,"personal":0}""");
-
-        await TrackingUpdateReconciler.EnsureNoMergeIntoAnotherAlarmAsync(
-            this._proxy.Object, "pokemon", "u1", 0,
-            Json("""{"pokemon_id":25,"form":0,"min_iv":0,"distance":0,"personal":1}"""));
-    }
-
-    [Fact]
-    public async Task AShinyRuleDifferingOnlyInDistanceIsStillATakeover()
-    {
-        this.Store("""{"uid":50,"pokemon_id":25,"form":0,"min_iv":0,"distance":0,"personal":1}""");
-
-        await Assert.ThrowsAsync<TrackingConflictException>(
-            () => TrackingUpdateReconciler.EnsureNoMergeIntoAnotherAlarmAsync(
-                this._proxy.Object, "pokemon", "u1", 0,
-                Json("""{"pokemon_id":25,"form":0,"min_iv":0,"distance":500,"personal":1}""")));
-    }
-
-    [Fact]
-    public async Task AStoredRowWithoutPersonalIsNotADifference()
-    {
-        // A stock PoracleNG row has no `personal` key. A submission carrying 0 must compare as it did
-        // before the field existed: identical is a duplicate (no refusal), and one updatable field
-        // apart is still the takeover it always was, which proves the missing key was skipped rather
-        // than counted as an identity difference.
-        this.Store("""{"uid":50,"pokemon_id":25,"form":0,"min_iv":0,"distance":0}""");
-
-        await TrackingUpdateReconciler.EnsureNoMergeIntoAnotherAlarmAsync(
-            this._proxy.Object, "pokemon", "u1", 0,
-            Json("""{"pokemon_id":25,"form":0,"min_iv":0,"distance":0,"personal":0}"""));
-
-        await Assert.ThrowsAsync<TrackingConflictException>(
-            () => TrackingUpdateReconciler.EnsureNoMergeIntoAnotherAlarmAsync(
-                this._proxy.Object, "pokemon", "u1", 0,
-                Json("""{"pokemon_id":25,"form":0,"min_iv":0,"distance":500,"personal":0}""")));
-    }
+    // The client-side merge guard (TrackingUpdateReconciler) that pinned `personal` as identity is gone
+    // upstream: 5.4.0 classifies a create with a dry run and PoracleNG decides. Its three tests went with it.
 
     // --- helpers ------------------------------------------------------------------------------------
 
     private MonsterService Monsters(bool supported) =>
         new(this._proxy.Object, this._featureGate.Object, this._remapper.Object,
-            CostumeCapabilityDoubles.Supported(), Schema(supported));
+            NullLogger<MonsterService>.Instance, Schema(supported));
 
     private ProfileOverviewService Overview(bool supported) =>
-        new(this._proxy.Object, this._humanProxy.Object, this._featureGate.Object, Schema(supported));
+        new(this._proxy.Object, this._humanProxy.Object, this._featureGate.Object,
+            Mock.Of<IPoracleIncidentProxy>(), Schema(supported));
 
     private static IPoracleV2SchemaService Schema(bool personalTracking) =>
         PoracleTrackingProxyTests.V2Schema(new PoracleV2Capabilities { PersonalTracking = personalTracking });
-
-    private void Store(string row) =>
-        this._proxy.Setup(p => p.GetByUserAsync("pokemon", "u1")).ReturnsAsync(Json($"[{row}]"));
 
     private void VerifyNothingWritten()
     {
@@ -229,6 +191,9 @@ public class PersonalTrackingRefusalTests
             p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
         this._proxy.Verify(
             p => p.UpdateByUidAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<JsonElement>()),
+            Times.Never);
+        this._proxy.Verify(
+            p => p.CreateOnProfileAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>(), It.IsAny<int>()),
             Times.Never);
     }
 

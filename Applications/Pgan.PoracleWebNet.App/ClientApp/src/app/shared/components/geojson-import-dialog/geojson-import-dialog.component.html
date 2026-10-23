@@ -41,10 +41,26 @@
         </div>
       </div>
 
+      @if (skippedCount() > 0) {
+        <div class="warning-banner skipped-banner">
+          <mat-icon>info</mat-icon>
+          <span>{{ 'GEOJSON_IMPORT.SKIPPED_NOT_POLYGON' | translatePlural: skippedCount() }}</span>
+        </div>
+      }
+
+      @if (overLimitCount() > 0) {
+        <div class="warning-banner over-limit-banner">
+          <mat-icon>info</mat-icon>
+          <span>{{ 'GEOJSON_IMPORT.SKIPPED_OVER_LIMIT' | translatePlural: overLimitCount() }}</span>
+        </div>
+      }
+
       @if (wouldExceedLimit) {
         <div class="warning-banner">
           <mat-icon>warning</mat-icon>
-          <span>{{ 'GEOJSON_IMPORT.SLOTS_WARNING' | translate: { remaining: remainingSlots, max: data.maxGeofences } }}</span>
+          <span>{{
+            'GEOJSON_IMPORT.SLOTS_WARNING' | translatePlural: remainingSlots : { remaining: remainingSlots, max: data.maxGeofences }
+          }}</span>
         </div>
       }
 
@@ -82,7 +98,7 @@
                   </mat-form-field>
                 </div>
                 <span class="feature-meta">
-                  {{ feature.geometryType }} &middot; {{ 'GEOJSON_IMPORT.POINTS_COUNT' | translate: { count: feature.pointCount } }}
+                  {{ feature.geometryType }} &middot; {{ 'GEOJSON_IMPORT.POINTS_COUNT' | translatePlural: feature.pointCount }}
                   @if (getNameError(feature); as nameErr) {
                     <span class="feature-warning">{{ nameErr }}</span>
                   }
@@ -94,7 +110,7 @@
                 <span class="feature-name">{{ feature.name }}</span>
                 <span class="feature-meta">
                   @if (feature.geometryType) {
-                    {{ feature.geometryType }} &middot; {{ 'GEOJSON_IMPORT.POINTS_COUNT' | translate: { count: feature.pointCount } }}
+                    {{ feature.geometryType }} &middot; {{ 'GEOJSON_IMPORT.POINTS_COUNT' | translatePlural: feature.pointCount }}
                   }
                   @if (feature.warning) {
                     <span class="feature-warning">{{ feature.warning }}</span>
@@ -125,7 +141,20 @@
       @if (importResult()?.created?.length) {
         <div class="result-row success">
           <mat-icon>check_circle</mat-icon>
-          <span>{{ 'GEOJSON_IMPORT.RESULT_IMPORTED' | translate: { count: importResult()!.created.length } }}</span>
+          <span>{{ 'GEOJSON_IMPORT.RESULT_IMPORTED' | translatePlural: importResult()!.created.length }}</span>
+        </div>
+      }
+      @if (notActivated().length) {
+        <div class="result-row not-activated">
+          <mat-icon>toggle_off</mat-icon>
+          <span>{{ 'GEOJSON_IMPORT.RESULT_NOT_ACTIVE' | translatePlural: notActivated().length }}</span>
+        </div>
+        <div class="error-list">
+          @for (fence of notActivated(); track fence.id) {
+            <div class="error-item">
+              <span class="error-feature-name">{{ fence.displayName }}</span>
+            </div>
+          }
         </div>
       }
       @if (importResult()?.errors?.length) {
@@ -158,12 +187,12 @@
   }
   @if (step() === 'preview') {
     <button mat-button (click)="goBack()" [disabled]="importing()">{{ 'GEOJSON_IMPORT.BACK' | translate }}</button>
-    <button mat-raised-button color="primary" (click)="startImport()" [disabled]="importing() || selectedValidCount() === 0 || hasErrors">
+    <button mat-flat-button color="primary" (click)="startImport()" [disabled]="importing() || selectedValidCount() === 0 || hasErrors">
       <mat-icon>upload</mat-icon>
-      {{ 'GEOJSON_IMPORT.IMPORT_BTN' | translate: { count: selectedValidCount() } }}
+      {{ 'GEOJSON_IMPORT.IMPORT_BTN' | translatePlural: selectedValidCount() }}
     </button>
   }
   @if (step() === 'results') {
-    <button mat-raised-button color="primary" (click)="closeWithResult()">{{ 'GEOJSON_IMPORT.DONE' | translate }}</button>
+    <button mat-flat-button color="primary" (click)="closeWithResult()">{{ 'GEOJSON_IMPORT.DONE' | translate }}</button>
   }
 </mat-dialog-actions>

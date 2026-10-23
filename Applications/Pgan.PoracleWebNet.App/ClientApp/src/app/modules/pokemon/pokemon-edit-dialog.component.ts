@@ -22,11 +22,11 @@ import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MonsterService } from '../../core/services/monster.service';
 import { PoracleConfigService } from '../../core/services/poracle-config.service';
-import { SettingsService } from '../../core/services/settings.service';
 import { PersonalFilterPanelComponent } from '../../shared/components/personal-filter-panel/personal-filter-panel.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
-import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
+import { createFailureText } from '../../shared/utils/add-outcome';
+import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, EDIT, compose, isAutoDelete, isEdit, preserve } from '../../shared/utils/clean-flags';
 import { ANY_COSTUME, costumeHintKey } from '../../shared/utils/costumes';
 import { minTimeLabel, minTimeOptions } from '../../shared/utils/min-time';
@@ -65,7 +65,6 @@ export class PokemonEditDialogComponent implements OnInit {
   private readonly masterData = inject(MasterDataService);
   private readonly monsterService = inject(MonsterService);
   private readonly poracleConfig = inject(PoracleConfigService);
-  private readonly settings = inject(SettingsService);
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<Monster>(MAT_DIALOG_DATA);
   readonly availableForms = computed(() => {
@@ -106,7 +105,7 @@ export class PokemonEditDialogComponent implements OnInit {
     // Always present, even when the toggles are hidden, so a bit set elsewhere round-trips through a save.
     personalBackground: [isBackground(this.data.personal ?? 0)],
     personalShiny: [isShiny(this.data.personal ?? 0)],
-    // Always present, even when the control is hidden -- see pingSupported above -- so a mention set
+    // Always present, even when the Mention control is hidden (not a webhook alarm) -- so a mention set
     // by the bot, or by a web edit on a server that supports it, round-trips unchanged through a save
     // this dialog makes for an unrelated field.
     ping: [this.data.ping ?? '', [Validators.maxLength(255)]],
@@ -130,18 +129,12 @@ export class PokemonEditDialogComponent implements OnInit {
   /** Whether the connected PoracleNG stores personal shiny rules at all. */
   readonly personalSupported = computed(() => this.poracleConfig.serverConfig().personalSupported);
 
-  /**
-   * Whether to show the Mention control at all. Gated on both halves: a webhook alarm is the only
-   * place a mention does anything (a personal DM has nobody else to notify), and the connected
-   * PoracleNG must genuinely store it rather than blank it (jfberry/PoracleNG#249) -- offering the
-   * control on an older server would be a control nobody could use. See CLAUDE.md's "Clean Field
-   * Bitmask" / ping section for why a v1 write can never carry a changed mention safely either way.
-   */
-  readonly pingSupported = computed(() => this.poracleConfig.serverConfig().pingSupported);
-
   pokemonName = this.data.pokemonId === 0 ? this.i18n.instant('POKEMON.ALL_POKEMON') : this.masterData.getPokemonName(this.data.pokemonId);
 
   readonly pvpCaps = computed(() => this.poracleConfig.serverConfig().pvpCaps);
+
+  /** False while the scope picker holds a radius it won't accept, which keeps Save off. */
+  readonly radiusValid = signal(true);
 
   saving = signal(false);
 
@@ -152,6 +145,9 @@ export class PokemonEditDialogComponent implements OnInit {
 
   /** Minior's stats are rerolled on catch, so its IV, CP and level filters never match. See `utils/minior.ts`. */
   readonly showMiniorNote = this.data.pokemonId === MINIOR_POKEMON_ID;
+
+  /** The radius as stored, which an edit may keep even outside the picker's range. */
+  readonly storedRadiusKm = metresToKm(this.data.distance);
 
   /** The hint under the costume select, which changes with the selection. */
   costumeHint(): string {
@@ -246,8 +242,8 @@ export class PokemonEditDialogComponent implements OnInit {
       // The server explains exactly what is wrong with a filter it refuses -- which min/max pair is
       // inverted, say. That message never reached anyone: this handler showed a fixed string, so a
       // transposed pair produced "failed" with no clue which field to fix. See #496.
-      error: (err: { error?: { error?: string } }) => {
-        const message = err?.error?.error ?? this.i18n.instant('POKEMON.SNACK_FAILED_UPDATE');
+      error: (err: unknown) => {
+        const message = createFailureText(err, this.i18n, 'ALARM.FAILED_UPDATE');
         this.snackBar.open(message, this.i18n.instant('COMMON.OK'), { duration: 6000 });
         this.saving.set(false);
       },
@@ -256,14 +252,5 @@ export class PokemonEditDialogComponent implements OnInit {
         this.dialogRef.close(true);
       },
     });
-  }
-
-  /**
-   * Whether to offer the costume filter at all. False on a Poracle without the monsters.costume column: it
-   * takes the field, answers 200 and drops it, so the control would produce a rule that reads
-   * "Halloween 2025" and matches every spawn. Unknown counts as absent.
-   */
-  showCostume(): boolean {
-    return this.settings.supportsCostume('pokemon');
   }
 }

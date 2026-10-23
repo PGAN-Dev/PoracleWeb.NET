@@ -4,48 +4,32 @@
     <p class="page-description">{{ 'POKESTOP_EVENTS.PAGE_DESC' | translate }}</p>
   </div>
   <div class="header-actions">
-    <button
-      mat-fab
-      (click)="openAddDialog()"
-      [attr.aria-label]="'POKESTOP_EVENTS.ADD_EVENT' | translate"
-      style="background: #03aeb6; color: #fff">
+    <button mat-flat-button class="page-primary-action" (click)="openAddDialog()">
       <mat-icon>add</mat-icon>
+      {{ 'ALARM.NEW_ALARM' | translate }}
     </button>
   </div>
 </div>
 @if (!loading() && events().length > 0) {
-  <div class="filter-bar">
-    <span class="result-count">{{ 'ALARM.ALARMS_COUNT' | translate: { count: events().length } }}</span>
-    <div class="bulk-spacer"></div>
-    <button
-      mat-icon-button
-      (click)="toggleSelectMode()"
-      [class.select-mode-active]="selectMode()"
-      [matTooltip]="(selectMode() ? 'ALARM.EXIT_SELECT_MODE' : 'ALARM.SELECT_MULTIPLE') | translate"
-      [attr.aria-label]="(selectMode() ? 'ALARM.EXIT_SELECT_MODE' : 'ALARM.SELECT_MULTIPLE') | translate">
-      <mat-icon>{{ selectMode() ? 'close' : 'checklist' }}</mat-icon>
-    </button>
-  </div>
+  <app-alarm-list-toolbar
+    searchPlaceholder="POKESTOP_EVENTS.SEARCH_PLACEHOLDER"
+    [(search)]="search"
+    [(sort)]="sortBy"
+    [sortOptions]="sortOptions"
+    [total]="events().length"
+    [shown]="visibleEvents().length"
+    [selectMode]="selectMode()"
+    (selectModeToggle)="toggleSelectMode()" />
 }
 
 @if (selectMode()) {
-  <div class="bulk-toolbar">
-    @if (selectedIds().size > 0) {
-      <span class="bulk-count">{{ 'ALARM.SELECTED_COUNT' | translate: { count: selectedIds().size } }}</span>
-    }
-    <button mat-stroked-button (click)="selectAll()"><mat-icon>select_all</mat-icon> {{ 'ALARM.SELECT_ALL' | translate }}</button>
-    @if (selectedIds().size > 0) {
-      <button mat-stroked-button (click)="deselectAll()">{{ 'ALARM.DESELECT_ALL' | translate }}</button>
-    }
-    <div class="bulk-spacer"></div>
-    <button mat-stroked-button (click)="bulkUpdateDistance()" [disabled]="selectedIds().size === 0">
-      <mat-icon>straighten</mat-icon> {{ 'ALARM.UPDATE_DISTANCE' | translate }}
-    </button>
-
-    <button mat-flat-button color="warn" (click)="bulkDelete()" [disabled]="selectedIds().size === 0">
-      <mat-icon>delete</mat-icon> {{ 'ALARM.DELETE' | translate }}
-    </button>
-  </div>
+  <app-bulk-action-bar
+    [count]="actionIds().length"
+    [anySelected]="selectedIds().size > 0"
+    (selectAll)="selectAll()"
+    (deselectAll)="deselectAll()"
+    (changeRadius)="bulkUpdateDistance()"
+    (deleteSelected)="bulkDelete()" />
 }
 
 @if (loading()) {
@@ -55,44 +39,35 @@
   </div>
 } @else {
   <div class="alarm-grid">
-    @for (item of events(); track item.uid) {
-      <mat-card class="alarm-card" [class.card-selected]="selectMode() && selectedIds().has(item.uid)">
-        @if (selectMode()) {
-          <mat-checkbox
-            [checked]="selectedIds().has(item.uid)"
-            (change)="toggleSelect(item.uid)"
-            (click)="$event.stopPropagation()"
-            class="card-checkbox"></mat-checkbox>
+    @for (item of visibleEvents(); track item.uid) {
+      <app-alarm-card
+        [selectable]="selectMode()"
+        [selected]="selectedIds().has(item.uid)"
+        [selectLabel]="'ALARM.SELECT_ONE' | translate: { name: eventLabel(item) }"
+        (selectedToggle)="toggleSelect(item.uid)">
+        @if (eventImage(item)) {
+          <img ruleMedia class="rule-sprite" [src]="eventImage(item)" [alt]="eventLabel(item)" />
+        } @else {
+          <div ruleMedia class="rule-icon">
+            <mat-icon [style.color]="eventColor(item)">{{ eventIcon(item) }}</mat-icon>
+          </div>
         }
-        <div class="card-top" [style.border-top-color]="eventColor(item)">
-          <div class="event-icon-wrap" [style.background]="eventColor(item) + '1f'">
-            @if (eventImage(item)) {
-              <img class="event-img" [src]="eventImage(item)" [alt]="eventLabel(item)" />
-            } @else {
-              <mat-icon class="event-icon" [style.color]="eventColor(item)">{{ eventIcon(item) }}</mat-icon>
-            }
-          </div>
-          <div class="item-info">
-            <h3>{{ eventLabel(item) }}</h3>
-            <span class="event-subtitle">{{ 'POKESTOP_EVENTS.TRACKING_SUBTITLE' | translate }}</span>
-          </div>
-          <div class="card-top-actions">
-            @if (isAutoDelete(item.clean)) {
-              <span class="event-tag" [matTooltip]="'ALARM.CLEAN_HINT_INVASION' | translate">{{ 'ALARM.CLEAN_MODE' | translate }}</span>
-            }
-          </div>
-        </div>
-        <mat-card-content>
-          <div class="distance-chip-row">
-            <app-where-chip
-              [distance]="item.distance"
-              [overrideAreas]="item.overrideAreas"
-              [overrideLocationLabel]="item.overrideLocationLabel"
-              [profileAreas]="profileAreas()"
-              (click)="editScope(item); $event.stopPropagation()" />
-          </div>
-        </mat-card-content>
-        <mat-card-actions align="end">
+        <span ruleTitle>{{ eventLabel(item) }}</span>
+        <ng-container ruleStatus>
+          @if (isAutoDelete(item.clean)) {
+            <span class="rule-tag" [matTooltip]="'ALARM.CLEAN_HINT_POKESTOP_EVENT' | translate"
+              ><mat-icon>auto_delete</mat-icon>{{ 'ALARM.STATUS_CLEAN' | translate }}</span
+            >
+          }
+        </ng-container>
+        <app-where-chip
+          ruleScope
+          [distance]="item.distance"
+          [overrideAreas]="item.overrideAreas"
+          [overrideLocationLabel]="item.overrideLocationLabel"
+          [profileAreas]="profileAreas()"
+          (click)="editScope(item); $event.stopPropagation()" />
+        <ng-container ruleActions>
           <button
             mat-icon-button
             (click)="editItem(item)"
@@ -100,7 +75,6 @@
             [attr.aria-label]="'COMMON.EDIT' | translate">
             <mat-icon>edit</mat-icon>
           </button>
-
           <button
             mat-icon-button
             (click)="deleteItem(item)"
@@ -109,17 +83,16 @@
             color="warn">
             <mat-icon>delete</mat-icon>
           </button>
-        </mat-card-actions>
-      </mat-card>
+        </ng-container>
+      </app-alarm-card>
     } @empty {
-      <div class="empty-state">
-        <mat-icon class="empty-icon-large">celebration</mat-icon>
-        <h2 class="empty-title">{{ 'POKESTOP_EVENTS.EMPTY_TITLE' | translate }}</h2>
-        <p class="empty-subtitle">{{ 'POKESTOP_EVENTS.EMPTY_SUBTITLE' | translate }}</p>
-        <button mat-flat-button (click)="openAddDialog()" style="background: #028187; color: #fff">
-          <mat-icon>add</mat-icon> {{ 'POKESTOP_EVENTS.ADD_EVENT' | translate }}
-        </button>
-      </div>
+      @if (events().length === 0) {
+        <app-alarm-empty-state
+          icon="celebration"
+          titleKey="POKESTOP_EVENTS.EMPTY_TITLE"
+          bodyKey="POKESTOP_EVENTS.EMPTY_SUBTITLE"
+          (add)="openAddDialog()" />
+      }
     }
   </div>
 }

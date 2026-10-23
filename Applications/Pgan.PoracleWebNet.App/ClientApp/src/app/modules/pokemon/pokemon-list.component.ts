@@ -1,10 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal, computed } from '@angular/core';
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
-import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
-import { MatCardModule } from '@angular/material/card';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -14,24 +11,31 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 
 import { PokemonAddDialogComponent } from './pokemon-add-dialog.component';
 import { PokemonEditDialogComponent } from './pokemon-edit-dialog.component';
 import { Monster } from '../../core/models';
+import { AreaNameService } from '../../core/services/area-name.service';
 import { AreaService } from '../../core/services/area.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MonsterService } from '../../core/services/monster.service';
 import { TestAlertService } from '../../core/services/test-alert.service';
+import { AlarmCardComponent } from '../../shared/components/alarm-card/alarm-card.component';
+import { AlarmEmptyStateComponent } from '../../shared/components/alarm-empty-state/alarm-empty-state.component';
+import { AlarmListToolbarComponent, AlarmSortOption } from '../../shared/components/alarm-list-toolbar/alarm-list-toolbar.component';
+import { BulkActionBarComponent } from '../../shared/components/bulk-action-bar/bulk-action-bar.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
 import { QuietChipComponent } from '../../shared/components/quiet-chip/quiet-chip.component';
-import { RuleSummaryComponent } from '../../shared/components/rule-summary/rule-summary.component';
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
-import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
+import { WhereSheetComponent, WhereSheetData, whereSheetConfig } from '../../shared/components/where-sheet/where-sheet.component';
+import { addOnArrival } from '../../shared/utils/add-on-arrival';
+import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
+import { matchesSearch, visibleSelection } from '../../shared/utils/alarm-list-query';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { isAutoDelete as cleanIsAutoDelete, isEdit as cleanIsEdit } from '../../shared/utils/clean-flags';
 import { readableChip } from '../../shared/utils/contrast';
@@ -40,16 +44,19 @@ import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../s
 import { minTimePillLabel } from '../../shared/utils/min-time';
 import { isBackground as personalIsBackground, isShiny as personalIsShiny } from '../../shared/utils/personal-flags';
 import { hasLevelFilter } from '../../shared/utils/pokemon-level';
+import { RuleEdge, speciesEdge } from '../../shared/utils/rule-colours';
+import { serverReason } from '../../shared/utils/server-reason';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    AlarmEmptyStateComponent,
+    AlarmCardComponent,
+    AlarmListToolbarComponent,
+    BulkActionBarComponent,
     QuietChipComponent,
-    ReactiveFormsModule,
-    MatCardModule,
     MatButtonModule,
     MatButtonToggleModule,
-    MatCheckboxModule,
     MatIconModule,
     MatMenuModule,
     MatDialogModule,
@@ -59,7 +66,6 @@ import { hasLevelFilter } from '../../shared/utils/pokemon-level';
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
-    RuleSummaryComponent,
     TranslatePipe,
     WhereChipComponent,
   ],
@@ -69,6 +75,7 @@ import { hasLevelFilter } from '../../shared/utils/pokemon-level';
   templateUrl: './pokemon-list.component.html',
 })
 export class PokemonListComponent implements OnInit {
+  private readonly areaNames = inject(AreaNameService);
   private readonly areaService = inject(AreaService);
 
   private readonly destroyRef = inject(DestroyRef);
@@ -78,20 +85,22 @@ export class PokemonListComponent implements OnInit {
   private readonly iconService = inject(IconService);
   private readonly masterData = inject(MasterDataService);
   private readonly monsterService = inject(MonsterService);
-  // Search & quick filters
-  readonly searchControl = new FormControl('');
-  private readonly searchValue = toSignal(this.searchControl.valueChanges, { initialValue: '' });
   private readonly snackBar = inject(MatSnackBar);
+  /** `?add=1` from the dashboard or onboarding opens the add dialog once. */
+  private readonly takeAddRequest = addOnArrival();
+  private readonly translate = inject(TranslateService);
   readonly activeFilter = signal<string | null>(null);
 
   readonly activeGen = signal<{ label: string; min: number; max: number } | null>(null);
   readonly monsters = signal<Monster[]>([]);
-  readonly sortBy = signal<'name' | 'id' | 'evolution' | 'generation'>('name');
+  // Search & quick filters
+  readonly search = signal('');
+  readonly sortBy = signal<string>('name');
 
   readonly filteredMonsters = computed(() => {
     const gen = this.activeGen();
     const sort = this.sortBy();
-    const search = (this.searchValue() ?? '').toLowerCase();
+    const search = this.search();
     const filter = this.activeFilter();
     let list = this.monsters();
 
@@ -104,12 +113,8 @@ export class PokemonListComponent implements OnInit {
     }
 
     // Search filter
-    if (search) {
-      list = list.filter(m => {
-        const name = this.getPokemonName(m.pokemonId).toLowerCase();
-        const id = String(m.pokemonId);
-        return name.includes(search) || id.includes(search);
-      });
+    if (search.trim()) {
+      list = list.filter(m => matchesSearch(search, this.getPokemonName(m.pokemonId), m.pokemonId));
     }
 
     // Quick filters
@@ -149,6 +154,16 @@ export class PokemonListComponent implements OnInit {
     return [...allPokemon, ...specific];
   });
 
+  readonly selectedIds = signal(new Set<number>());
+
+  /** The selected rules still on screen: bulk Delete and Change radius never reach a card the search has hidden. */
+  readonly actionIds = computed(() =>
+    visibleSelection(
+      this.selectedIds(),
+      this.filteredMonsters().map(item => item.uid),
+    ),
+  );
+
   readonly generations = [
     { color: '#4CAF50', label: '1', max: 151, min: 1 },
     { color: '#FFD600', label: '2', max: 251, min: 152 },
@@ -165,26 +180,31 @@ export class PokemonListComponent implements OnInit {
 
   readonly profileAreas = signal<string[]>([]);
 
-  readonly selectedIds = signal(new Set<number>());
-
   // Bulk operations
   readonly selectMode = signal(false);
 
   readonly skeletonCards = Array.from({ length: 8 });
 
+  readonly sortOptions: AlarmSortOption[] = [
+    { label: 'POKEMON.SORT_NAME', value: 'name' },
+    { label: 'POKEMON.SORT_ID', value: 'id' },
+    { label: 'POKEMON.SORT_GENERATION', value: 'generation' },
+    { label: 'POKEMON.SORT_EVOLUTION', value: 'evolution' },
+  ];
+
   readonly testAlertService = inject(TestAlertService);
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        confirmText: this.i18n.instant('COMMON.DELETE_ALL'),
-        message: this.i18n.instant('POKEMON.CONFIRM_BULK_DELETE_MSG', { count: this.selectedIds().size }),
-        title: this.i18n.instant('POKEMON.CONFIRM_BULK_DELETE_TITLE'),
+        confirmText: this.i18n.instant('ALARM.DELETE_SELECTED', { count: this.actionIds().length }),
+        message: this.i18n.instant('ALARM.CONFIRM_BULK_DELETE_BODY'),
+        title: this.i18n.plural('ALARM.CONFIRM_BULK_DELETE_TITLE', this.actionIds().length),
         warn: true,
       } as ConfirmDialogData,
     });
     const result = await firstValueFrom(ref.afterClosed());
     if (result) {
-      const ids = [...this.selectedIds()];
+      const ids = this.actionIds();
       // Settled one at a time. A stale uid -- the row re-keyed by an edit, or removed in another tab --
       // threw out of the loop, so the deletes that had already happened went unreported and the list
       // never reloaded: the user saw nothing at all. See #603.
@@ -200,17 +220,17 @@ export class PokemonListComponent implements OnInit {
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadMonsters();
-      this.snackBar.open(this.i18n.instant('POKEMON.SNACK_BULK_DELETED', { count: deleted }), this.i18n.instant('COMMON.OK'), {
+      this.snackBar.open(this.i18n.plural('ALARM.SNACK_BULK_DELETED', deleted), this.i18n.instant('COMMON.OK'), {
         duration: 3000,
       });
     }
   }
 
   async bulkUpdateDistance(): Promise<void> {
-    const ref = this.dialog.open(DistanceDialogComponent, { width: '440px' });
+    const ref = this.dialog.open(DistanceDialogComponent, { width: '440px', data: { count: this.actionIds().length } });
     const distance = await firstValueFrom(ref.afterClosed());
     if (distance !== null && distance !== undefined) {
-      const uids = [...this.selectedIds()];
+      const uids = this.actionIds();
       // The server refuses a radius that would take over an alarm the user did not select, and names
       // the one in the way. Unguarded, that rejection cleared nothing, reloaded nothing and showed
       // nothing -- indistinguishable from a successful no-op. See #641.
@@ -218,8 +238,7 @@ export class PokemonListComponent implements OnInit {
       try {
         result = await firstValueFrom(this.monsterService.updateBulkDistance(uids, distance));
       } catch (err) {
-        const message = (err as { error?: { error?: string } })?.error?.error;
-        this.snackBar.open(message ?? this.i18n.instant('POKEMON.SNACK_FAILED_DISTANCE'), this.i18n.instant('TOAST.OK'), {
+        this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.FAILED_DISTANCE'), this.i18n.instant('TOAST.OK'), {
           duration: 5000,
         });
         return;
@@ -228,17 +247,19 @@ export class PokemonListComponent implements OnInit {
       this.selectMode.set(false);
       this.loadMonsters();
       this.snackBar.open(
-        distanceUpdateMessage(
-          result,
-          this.i18n.instant('POKEMON.SNACK_BULK_DISTANCE', { count: result?.updated ?? uids.length }),
-          this.i18n,
-        ),
+        distanceUpdateMessage(result, this.i18n.plural('ALARM.SNACK_BULK_DISTANCE', result?.updated ?? uids.length), this.i18n),
         this.i18n.instant('COMMON.OK'),
         {
           duration: skippedAny(result) ? 6000 : 3000,
         },
       );
     }
+  }
+
+  /** The toolbar's way back from a search or filter that left nothing on screen. */
+  clearFilters(): void {
+    this.activeFilter.set(null);
+    this.activeGen.set(null);
   }
 
   deleteAll(): void {
@@ -253,8 +274,8 @@ export class PokemonListComponent implements OnInit {
     ref.afterClosed().subscribe(confirmed => {
       if (confirmed) {
         this.monsterService.deleteAll().subscribe({
-          error: () => {
-            this.snackBar.open(this.i18n.instant('POKEMON.SNACK_FAILED_DELETE_ALL'), this.i18n.instant('COMMON.OK'), {
+          error: (err: unknown) => {
+            this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.FAILED_DELETE_ALL'), this.i18n.instant('COMMON.OK'), {
               duration: 3000,
             });
           },
@@ -281,8 +302,10 @@ export class PokemonListComponent implements OnInit {
     ref.afterClosed().subscribe(confirmed => {
       if (confirmed) {
         this.monsterService.delete(monster.uid).subscribe({
-          error: () => {
-            this.snackBar.open(this.i18n.instant('POKEMON.SNACK_FAILED_DELETE'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
+          error: (err: unknown) => {
+            this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.FAILED_DELETE'), this.i18n.instant('COMMON.OK'), {
+              duration: 3000,
+            });
           },
           next: () => {
             this.snackBar.open(this.i18n.instant('POKEMON.SNACK_DELETED'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
@@ -297,9 +320,18 @@ export class PokemonListComponent implements OnInit {
     this.selectedIds.set(new Set());
   }
 
+  /**
+   * A single-species rule takes the species' primary type colour (the base form's: a regional form with
+   * another type keeps the base colour); "all Pokémon" has none.
+   */
+  edgeFor(monster: Monster): null | RuleEdge {
+    return monster.pokemonId > 0 ? speciesEdge(this.masterData.getPokemonTypes(monster.pokemonId)) : null;
+  }
+
   editMonster(monster: Monster): void {
     const ref = this.dialog.open(PokemonEditDialogComponent, {
       width: '600px',
+      autoFocus: 'first-heading',
       data: monster,
       maxHeight: '90vh',
     });
@@ -316,7 +348,7 @@ export class PokemonListComponent implements OnInit {
     };
 
     this.dialog
-      .open(WhereSheetComponent, { width: '520px', autoFocus: false, data })
+      .open(WhereSheetComponent, whereSheetConfig(data))
       .afterClosed()
       .subscribe((scope?: AlarmScope) => {
         if (!scope) return;
@@ -352,6 +384,13 @@ export class PokemonListComponent implements OnInit {
     }
   }
 
+  /** The gender pill: the sign for male and female, the word for genderless. */
+  getGenderPillText(gender: number): string {
+    if (gender === 1) return '\u2642';
+    if (gender === 2) return '\u2640';
+    return this.i18n.instant('POKEMON.GENDER_GENDERLESS');
+  }
+
   getIvDisplay(minIv: number, maxIv: number): string {
     if (minIv === -1) return this.i18n.instant('POKEMON.NO_IV_FILTER');
     return `${minIv}-${maxIv}%`;
@@ -366,7 +405,7 @@ export class PokemonListComponent implements OnInit {
       case 2500:
         return this.i18n.instant('POKEMON.LEAGUE_ULTRA');
       default:
-        return `${league}`;
+        return this.i18n.instant('POKEMON.LEAGUE_CUSTOM', { cp: league });
     }
   }
 
@@ -402,20 +441,6 @@ export class PokemonListComponent implements OnInit {
       return this.getSizeLabel(monster.size);
     }
     return `${this.getSizeLabel(monster.size)}-${this.getSizeLabel(monster.maxSize)}`;
-  }
-
-  getTypeColor(pokemonId: number): string {
-    // Color by generation range
-    if (pokemonId === 0) return '#9E9E9E';
-    if (pokemonId <= 151) return '#4CAF50'; // Gen 1
-    if (pokemonId <= 251) return '#FFD600'; // Gen 2
-    if (pokemonId <= 386) return '#2196F3'; // Gen 3
-    if (pokemonId <= 493) return '#9C27B0'; // Gen 4
-    if (pokemonId <= 649) return '#FF5722'; // Gen 5
-    if (pokemonId <= 721) return '#E91E63'; // Gen 6
-    if (pokemonId <= 809) return '#00BCD4'; // Gen 7
-    if (pokemonId <= 905) return '#795548'; // Gen 8
-    return '#607D8B'; // Gen 9+
   }
 
   /** True when the auto-delete bit (clean bit 1) is set, ignoring the edit-in-place / summary bits. */
@@ -492,6 +517,7 @@ export class PokemonListComponent implements OnInit {
       .getSelected()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({ error: () => undefined, next: areas => this.profileAreas.set(areas) });
+    if (this.takeAddRequest()) this.openAddDialog();
   }
 
   onImageError(event: Event, pokemonId: number): void {
@@ -512,16 +538,19 @@ export class PokemonListComponent implements OnInit {
   openAddDialog(): void {
     const ref = this.dialog.open(PokemonAddDialogComponent, {
       width: '600px',
+      autoFocus: 'first-heading',
+      data: { existingRule: (uid, type) => this.describeExisting(uid, type) } satisfies AddDialogData,
       maxHeight: '90vh',
     });
     ref.afterClosed().subscribe(result => {
-      if (result) this.loadMonsters();
+      if (isEditExisting(result)) this.openExisting(result.editExisting.uid, result.editExisting.trackingType);
+      else if (result) this.loadMonsters();
     });
   }
 
   selectAll(): void {
-    const ids = new Set(this.filteredMonsters().map(m => m.uid));
-    this.selectedIds.set(ids);
+    // Adds the cards on screen; a tick the search or a filter is hiding stays, as on the other nine lists.
+    this.selectedIds.set(new Set([...this.selectedIds(), ...this.filteredMonsters().map(m => m.uid)]));
   }
 
   sendTestAlert(monster: Monster): void {
@@ -554,12 +583,26 @@ export class PokemonListComponent implements OnInit {
     const fields = scopeToFields(scope);
 
     this.monsterService.update(monster.uid, fields).subscribe({
-      error: () => this.snackBar.open(this.i18n.instant('WHERE.SCOPE_SAVE_ERROR'), this.i18n.instant('COMMON.OK'), { duration: 4000 }),
+      error: (err: unknown) =>
+        this.snackBar.open(serverReason(err) ?? this.i18n.instant('WHERE.SCOPE_SAVE_ERROR'), this.i18n.instant('COMMON.OK'), {
+          duration: 4000,
+        }),
       next: () => {
         this.snackBar.open(this.i18n.instant('WHERE.SCOPE_SAVED'), this.i18n.instant('COMMON.OK'), { duration: 2500 });
         this.loadMonsters();
       },
     });
+  }
+
+  /** Names one of this list's rules for an add dialog's refusal, or null when the list holds no such rule. */
+  private describeExisting(uid: number, trackingType: null | string): null | string {
+    if (trackingType !== null && trackingType !== 'pokemon') return null;
+    const monster = this.monsters().find(m => m.uid === uid);
+    return monster
+      ? ruleSummary(this.getPokemonName(monster.pokemonId), monster, this.profileAreas(), this.translate, area =>
+          this.areaNames.label(area),
+        )
+      : null;
   }
 
   private getBaseEvolution(id: number): number {
@@ -571,5 +614,11 @@ export class PokemonListComponent implements OnInit {
       if (id >= gen.min && id <= gen.max) return +gen.label;
     }
     return 10;
+  }
+
+  /** An add dialog was refused because of this rule and the user chose to edit it instead. */
+  private openExisting(uid: number, _trackingType: null | string): void {
+    const monster = this.monsters().find(m => m.uid === uid);
+    if (monster) this.editMonster(monster);
   }
 }

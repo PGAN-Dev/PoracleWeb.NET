@@ -2,7 +2,7 @@
   display: block;
 }
 
-// Section block: uppercase header (legend) + control + hint, like the dialog's other sections.
+// Section block: sentence-case header (legend) + control + hint, like the dialog's other sections.
 .rsvp-field {
   margin-top: 16px;
 }
@@ -11,9 +11,8 @@
   margin: 0 0 6px;
   padding: 0;
   color: var(--text-muted, rgba(0, 0, 0, 0.64));
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 // Full-width segmented control with equal-width options.

@@ -4,8 +4,8 @@
     <!-- Tab 1: Settings -->
     <mat-tab>
       <ng-template mat-tab-label>
-        <mat-icon>tune</mat-icon>
-        <span class="tab-label">{{ 'RAIDS.TAB_SETTINGS' | translate }}</span>
+        <mat-icon>domain</mat-icon>
+        <span class="tab-label">{{ 'NAV.FORT_CHANGES' | translate }}</span>
       </ng-template>
       <div class="tab-content">
         <mat-form-field appearance="outline" class="full-width">
@@ -39,12 +39,14 @@
     <mat-tab>
       <ng-template mat-tab-label>
         <mat-icon>notifications</mat-icon>
-        <span class="tab-label">{{ 'RAIDS.TAB_DELIVERY' | translate }}</span>
+        <span class="tab-label">{{ 'ALARM.TAB_DELIVERY' | translate }}</span>
       </ng-template>
       <div class="tab-content">
-        <app-scope-picker [(scope)]="scope" />
+        <app-scope-picker [(scope)]="scope" [(radiusValid)]="radiusValid" [storedRadiusKm]="storedRadiusKm" />
 
-        <h4>{{ 'ALARM.MESSAGE_SETTINGS' | translate }}</h4>
+        @if (templatesEnabled() || isWebhook) {
+          <h4>{{ 'ALARM.MESSAGE_SETTINGS' | translate }}</h4>
+        }
 
         <app-template-selector
           [alarmType]="'fort-update'"
@@ -52,7 +54,7 @@
           (valueChange)="form.controls.template.setValue($event)">
         </app-template-selector>
 
-        @if (isWebhook && pingSupported()) {
+        @if (isWebhook) {
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>{{ 'ALARM.MENTION_LABEL' | translate }}</mat-label>
             <input matInput [formControl]="form.controls.ping" maxlength="255" />
@@ -66,7 +68,7 @@
 
 <mat-dialog-actions align="end">
   <button mat-button (click)="dialogRef.close(false)">{{ 'ALARM.CANCEL' | translate }}</button>
-  <button mat-raised-button color="primary" (click)="save()" [disabled]="saving()">
+  <button mat-flat-button color="primary" (click)="save()" [disabled]="saving() || !radiusValid()">
     {{ saving() ? ('ALARM.SAVING' | translate) : ('ALARM.SAVE' | translate) }}
   </button>
 </mat-dialog-actions>

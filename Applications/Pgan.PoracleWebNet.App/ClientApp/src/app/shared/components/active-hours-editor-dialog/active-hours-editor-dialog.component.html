@@ -161,11 +161,9 @@
           </div>
         }
         <div class="preview-axis">
-          <span>{{ 'PROFILES.ACTIVE_HOURS_AXIS_MIDNIGHT' | translate }}</span>
-          <span>{{ 'PROFILES.ACTIVE_HOURS_AXIS_6AM' | translate }}</span>
-          <span>{{ 'PROFILES.ACTIVE_HOURS_AXIS_NOON' | translate }}</span>
-          <span>{{ 'PROFILES.ACTIVE_HOURS_AXIS_6PM' | translate }}</span>
-          <span>{{ 'PROFILES.ACTIVE_HOURS_AXIS_MIDNIGHT' | translate }}</span>
+          @for (label of axisLabels(); track $index) {
+            <span>{{ label }}</span>
+          }
         </div>
       </div>
     </section>

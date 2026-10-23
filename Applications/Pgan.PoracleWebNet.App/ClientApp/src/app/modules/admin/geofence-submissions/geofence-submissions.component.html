@@ -6,38 +6,12 @@
 </div>
 
 <div class="page-content">
-  <!-- Toolbar: Status filter tabs + view toggle -->
-  <div class="toolbar">
-    <mat-button-toggle-group [value]="activeFilter()" (change)="activeFilter.set($event.value)" class="filter-tabs">
-      <mat-button-toggle value="all">{{ 'ADMIN.STATUS_ALL' | translate }} ({{ statusCounts().all }})</mat-button-toggle>
-      <mat-button-toggle value="pending_review"
-        >{{ 'ADMIN.GEO_STATUS_PENDING' | translate }} ({{ statusCounts().pending_review }})</mat-button-toggle
-      >
-      <mat-button-toggle value="active">{{ 'ADMIN.STATUS_ACTIVE' | translate }} ({{ statusCounts().active }})</mat-button-toggle>
-      <mat-button-toggle value="approved">{{ 'ADMIN.GEO_STATUS_APPROVED' | translate }} ({{ statusCounts().approved }})</mat-button-toggle>
-      <mat-button-toggle value="rejected">{{ 'ADMIN.GEO_STATUS_REJECTED' | translate }} ({{ statusCounts().rejected }})</mat-button-toggle>
-    </mat-button-toggle-group>
-
-    <mat-button-toggle-group [value]="viewMode()" (change)="viewMode.set($event.value)" class="view-toggle">
-      <mat-button-toggle value="card" [matTooltip]="'ADMIN.VIEW_CARD' | translate" [aria-label]="'ADMIN.VIEW_CARD' | translate">
-        <mat-icon aria-hidden="true">grid_view</mat-icon>
-      </mat-button-toggle>
-      <mat-button-toggle value="list" [matTooltip]="'ADMIN.VIEW_LIST' | translate" [aria-label]="'ADMIN.VIEW_LIST' | translate">
-        <mat-icon aria-hidden="true">view_list</mat-icon>
-      </mat-button-toggle>
-      <mat-button-toggle value="table" [matTooltip]="'ADMIN.VIEW_TABLE' | translate" [aria-label]="'ADMIN.VIEW_TABLE' | translate">
-        <mat-icon aria-hidden="true">table_chart</mat-icon>
-      </mat-button-toggle>
-    </mat-button-toggle-group>
-  </div>
-
-  <!-- Loading skeleton -->
   @if (loading()) {
-    <div class="submissions-grid">
-      @for (i of [1, 2, 3]; track i) {
-        <div class="submission-card skeleton-card">
-          <div class="skeleton-map-placeholder shimmer"></div>
-          <div class="submission-card-body">
+    <div class="queue">
+      @for (i of [1, 2]; track i) {
+        <div class="triage-row skeleton-row">
+          <div class="triage-map skeleton-map-placeholder shimmer"></div>
+          <div class="triage-body">
             <div class="skeleton-line skeleton-title shimmer"></div>
             <div class="skeleton-line skeleton-subtitle shimmer"></div>
             <div class="skeleton-line skeleton-meta shimmer"></div>
@@ -45,10 +19,139 @@
         </div>
       }
     </div>
+  } @else if (statusCounts().all === 0) {
+    <div class="empty-state">
+      <mat-icon class="empty-icon" aria-hidden="true">pentagon</mat-icon>
+      <h2>{{ 'ADMIN.NO_GEOFENCES' | translate }}</h2>
+      <p>{{ 'ADMIN.NO_GEOFENCES_YET' | translate }}</p>
+    </div>
   } @else {
-    @if (filteredGeofences().length > 0) {
-      <!-- Table view (flat, ungrouped) -->
-      @if (viewMode() === 'table') {
+    <!-- The review queue: the reason this page exists, so it comes first and gets the space. -->
+    <section class="queue" aria-labelledby="geo-queue-title" data-test="review-queue">
+      <h2 id="geo-queue-title" class="section-title">
+        {{ 'ADMIN.GEO_QUEUE_TITLE' | translate }}
+        <span class="section-count">{{ statusCounts().pending_review }}</span>
+      </h2>
+
+      @for (geofence of pendingGeofences(); track geofence.id) {
+        <article class="triage-row" data-test="triage-row">
+          <div
+            class="map-thumbnail triage-map"
+            role="button"
+            tabindex="0"
+            [attr.data-geofence-id]="geofence.id"
+            [attr.aria-label]="'ADMIN.VIEW_GEOFENCE_DETAILS' | translate"
+            (click)="openDetailDialog(geofence)"
+            (keydown.enter)="openDetailDialog(geofence)"
+            (keydown.space)="$event.preventDefault(); openDetailDialog(geofence)">
+            @if (!geofence.polygon?.length) {
+              <div class="map-thumbnail-empty">
+                <mat-icon aria-hidden="true">pentagon</mat-icon>
+                <span>{{ 'ADMIN.NO_POLYGON_DATA' | translate }}</span>
+              </div>
+            }
+            <div class="map-thumbnail-expand" aria-hidden="true">
+              <mat-icon>open_in_full</mat-icon>
+            </div>
+          </div>
+
+          <div class="triage-body">
+            <h3 class="triage-name">{{ geofence.displayName }}</h3>
+            <div class="triage-owner">
+              @if (geofence.ownerAvatarUrl) {
+                <img [src]="geofence.ownerAvatarUrl" alt="" class="avatar avatar-sm" />
+              } @else {
+                <div class="avatar avatar-sm avatar-fallback" aria-hidden="true">
+                  <mat-icon>person</mat-icon>
+                </div>
+              }
+              <span class="triage-owner-name" [matTooltip]="geofence.humanId">{{
+                'ADMIN.GEO_BY_OWNER' | translate: { owner: geofence.ownerName ?? geofence.humanId }
+              }}</span>
+            </div>
+
+            <dl class="triage-facts">
+              <div>
+                <dt>{{ 'ADMIN.COLUMN_POINTS' | translate }}</dt>
+                <dd class="num">{{ getPointCount(geofence) }}</dd>
+              </div>
+              @if (areaSqKm(geofence); as area) {
+                <div>
+                  <dt>{{ 'ADMIN.GEO_AREA' | translate }}</dt>
+                  <dd class="num">{{ area | number: '1.0-2' }} km²</dd>
+                </div>
+              }
+              <div>
+                <dt>{{ 'ADMIN.COLUMN_REGION' | translate }}</dt>
+                <dd>{{ geofence.groupName || ('ADMIN.NO_REGION' | translate) }}</dd>
+              </div>
+              @if (geofence.submittedAt) {
+                <div>
+                  <dt>{{ 'ADMIN.SUBMITTED' | translate }}</dt>
+                  <dd>{{ geofence.submittedAt | date: 'mediumDate' }}</dd>
+                </div>
+              }
+            </dl>
+
+            @if (overlaps().get(geofence.id); as overlap) {
+              <p class="triage-overlap" data-test="overlap">
+                <mat-icon aria-hidden="true">layers</mat-icon>
+                {{ 'ADMIN.GEO_OVERLAPS' | translate: { name: overlap } }}
+              </p>
+            }
+
+            <div class="triage-actions">
+              <button mat-button type="button" (click)="openDetailDialog(geofence)">
+                {{ 'ADMIN.VIEW_DETAILS' | translate }}
+              </button>
+              <button
+                mat-icon-button
+                type="button"
+                color="warn"
+                (click)="adminDelete(geofence)"
+                [matTooltip]="'ADMIN.DELETE_GEOFENCE' | translate"
+                [attr.aria-label]="'ADMIN.DELETE_GEOFENCE' | translate">
+                <mat-icon>delete</mat-icon>
+              </button>
+              <span class="triage-actions-spacer"></span>
+              <button mat-stroked-button type="button" data-test="reject" (click)="openReviewDialog(geofence, 'reject')">
+                {{ 'ADMIN.GEO_REJECT_ACTION' | translate }}
+              </button>
+              <button mat-flat-button type="button" color="primary" data-test="approve" (click)="openReviewDialog(geofence, 'approve')">
+                {{ 'ADMIN.APPROVAL_APPROVE' | translate }}
+              </button>
+            </div>
+          </div>
+        </article>
+      } @empty {
+        <p class="queue-empty" data-test="queue-empty">{{ 'ADMIN.NO_PENDING_SUBMISSIONS' | translate }}</p>
+      }
+    </section>
+
+    <!-- Everything already decided, or never submitted: a compact table. -->
+    <section class="others" aria-labelledby="geo-others-title" data-test="other-fences">
+      <div class="others-header">
+        <h2 id="geo-others-title" class="section-title">
+          {{ 'ADMIN.GEO_OTHERS_TITLE' | translate }}
+          <span class="section-count">{{ statusCounts().others }}</span>
+        </h2>
+        <mat-button-toggle-group
+          [value]="activeFilter()"
+          (change)="activeFilter.set($event.value)"
+          class="filter-tabs"
+          [attr.aria-label]="'ADMIN.COLUMN_STATUS' | translate">
+          <mat-button-toggle value="all">{{ 'ADMIN.STATUS_ALL' | translate }} ({{ statusCounts().others }})</mat-button-toggle>
+          <mat-button-toggle value="active">{{ 'ADMIN.STATUS_ACTIVE' | translate }} ({{ statusCounts().active }})</mat-button-toggle>
+          <mat-button-toggle value="approved"
+            >{{ 'ADMIN.GEO_STATUS_APPROVED' | translate }} ({{ statusCounts().approved }})</mat-button-toggle
+          >
+          <mat-button-toggle value="rejected"
+            >{{ 'ADMIN.GEO_STATUS_REJECTED' | translate }} ({{ statusCounts().rejected }})</mat-button-toggle
+          >
+        </mat-button-toggle-group>
+      </div>
+
+      @if (filteredGeofences().length > 0) {
         <div class="list-table-wrapper">
           <table class="list-table sortable-table">
             <thead>
@@ -100,18 +203,20 @@
               </tr>
             </thead>
             <tbody>
-              @for (geofence of filteredGeofences(); track geofence.id; let idx = $index) {
-                <tr class="list-row" [style.animation-delay.ms]="idx * 20">
+              @for (geofence of filteredGeofences(); track geofence.id) {
+                <tr class="list-row">
                   <td class="col-name">
-                    <div class="list-name-cell">
-                      <mat-icon class="list-geofence-icon">pentagon</mat-icon>
-                      <span class="list-name-text" [matTooltip]="geofence.displayName">{{ geofence.displayName }}</span>
-                    </div>
+                    <span class="list-name-text" [matTooltip]="geofence.displayName">{{ geofence.displayName }}</span>
+                    @if (geofence.promotedName) {
+                      <span class="list-sub">{{ 'ADMIN.PROMOTED_AS' | translate }} {{ geofence.promotedName }}</span>
+                    }
+                    @if (geofence.reviewNotes) {
+                      <span class="list-sub list-notes" [matTooltip]="geofence.reviewNotes">{{ geofence.reviewNotes }}</span>
+                    }
                   </td>
                   <td class="col-status">
                     <span
                       class="status-chip"
-                      [class.status-pending]="canReview(geofence)"
                       [class.status-active]="geofence.status === 'active'"
                       [class.status-approved]="geofence.status === 'approved'"
                       [class.status-rejected]="geofence.status === 'rejected'">
@@ -123,33 +228,40 @@
                       @if (geofence.ownerAvatarUrl) {
                         <img [src]="geofence.ownerAvatarUrl" alt="" class="avatar avatar-sm" />
                       } @else {
-                        <div class="avatar avatar-sm avatar-fallback">
+                        <div class="avatar avatar-sm avatar-fallback" aria-hidden="true">
                           <mat-icon>person</mat-icon>
                         </div>
                       }
-                      <span [matTooltip]="geofence.humanId">{{ geofence.ownerName ?? geofence.humanId }}</span>
+                      <span class="list-owner-name" [matTooltip]="geofence.humanId">{{ geofence.ownerName ?? geofence.humanId }}</span>
                     </div>
                   </td>
-                  <td class="col-region">{{ geofence.groupName || '---' }}</td>
-                  <td class="col-points">{{ getPointCount(geofence) }}</td>
+                  <td class="col-region">{{ geofence.groupName || ('ADMIN.NO_REGION' | translate) }}</td>
+                  <td class="col-points num">{{ getPointCount(geofence) }}</td>
                   <td class="col-created">{{ geofence.createdAt | date: 'mediumDate' }}</td>
-                  <td class="col-submitted">{{ geofence.submittedAt ? (geofence.submittedAt | date: 'mediumDate') : '---' }}</td>
+                  <td class="col-submitted">
+                    @if (geofence.submittedAt) {
+                      {{ geofence.submittedAt | date: 'mediumDate' }}
+                    } @else {
+                      <span class="text-muted">—</span>
+                    }
+                  </td>
                   <td class="col-reviewed">
                     @if (geofence.reviewedByName || geofence.reviewedBy) {
                       <div class="list-owner-cell">
                         @if (geofence.reviewedByAvatarUrl) {
                           <img [src]="geofence.reviewedByAvatarUrl" alt="" class="avatar avatar-xs" />
                         }
-                        <span>{{ geofence.reviewedByName ?? geofence.reviewedBy }}</span>
+                        <span class="list-reviewer-name">{{ geofence.reviewedByName ?? geofence.reviewedBy }}</span>
                       </div>
                     } @else {
-                      ---
+                      <span class="text-muted">—</span>
                     }
                   </td>
                   <td class="col-actions">
                     <div class="list-actions">
                       <button
                         mat-icon-button
+                        type="button"
                         (click)="openDetailDialog(geofence)"
                         [matTooltip]="'ADMIN.VIEW_DETAILS' | translate"
                         [attr.aria-label]="'ADMIN.VIEW_DETAILS' | translate">
@@ -158,7 +270,8 @@
                       @if (canReview(geofence)) {
                         <button
                           mat-icon-button
-                          color="primary"
+                          type="button"
+                          data-test="review"
                           (click)="openReviewDialog(geofence)"
                           [matTooltip]="'ADMIN.REVIEW' | translate"
                           [attr.aria-label]="'ADMIN.REVIEW' | translate">
@@ -167,6 +280,7 @@
                       }
                       <button
                         mat-icon-button
+                        type="button"
                         color="warn"
                         (click)="adminDelete(geofence)"
                         [matTooltip]="'COMMON.DELETE' | translate"
@@ -180,252 +294,9 @@
             </tbody>
           </table>
         </div>
+      } @else {
+        <p class="queue-empty" data-test="others-empty">{{ 'ADMIN.NO_GEOFENCES_STATUS' | translate }}</p>
       }
-
-      <!-- Region-grouped views (card + list) -->
-      @if (viewMode() === 'card' || viewMode() === 'list') {
-        @for (group of regionGroups(); track group.name) {
-          <mat-expansion-panel class="region-panel" [expanded]="true">
-            <mat-expansion-panel-header>
-              <mat-panel-title>
-                <mat-icon class="region-icon">map</mat-icon>
-                <span class="region-name">{{ group.name }}</span>
-                <span class="region-count">{{ group.count }}</span>
-              </mat-panel-title>
-            </mat-expansion-panel-header>
-
-            <!-- Card view -->
-            @if (viewMode() === 'card') {
-              <div class="submissions-grid">
-                @for (geofence of group.geofences; track geofence.id; let idx = $index) {
-                  <div class="submission-card" [style.animation-delay.ms]="idx * 30">
-                    <div class="map-thumbnail" [attr.data-geofence-id]="geofence.id" (click)="openDetailDialog(geofence)">
-                      @if (!geofence.polygon?.length) {
-                        <div class="map-thumbnail-empty">
-                          <mat-icon>pentagon</mat-icon>
-                          <span>{{ 'ADMIN.NO_POLYGON_DATA' | translate }}</span>
-                        </div>
-                      }
-                      <div class="map-thumbnail-expand">
-                        <mat-icon>open_in_full</mat-icon>
-                      </div>
-                    </div>
-                    <div
-                      class="submission-card-accent"
-                      [class.accent-pending]="canReview(geofence)"
-                      [class.accent-active]="geofence.status === 'active'"
-                      [class.accent-approved]="geofence.status === 'approved'"
-                      [class.accent-rejected]="geofence.status === 'rejected'"></div>
-                    <div class="submission-card-body">
-                      <div class="submission-card-header">
-                        <mat-icon class="submission-card-icon">pentagon</mat-icon>
-                        <div class="submission-card-info">
-                          <span class="submission-card-name">{{ geofence.displayName }}</span>
-                          @if (geofence.groupName) {
-                            <span class="submission-card-group">{{ geofence.groupName }}</span>
-                          }
-                          <div class="owner-line">
-                            @if (geofence.ownerAvatarUrl) {
-                              <img [src]="geofence.ownerAvatarUrl" alt="" class="avatar avatar-sm" />
-                            } @else {
-                              <div class="avatar avatar-sm avatar-fallback">
-                                <mat-icon>person</mat-icon>
-                              </div>
-                            }
-                            <span class="submission-card-owner">{{ geofence.ownerName ?? geofence.humanId }}</span>
-                          </div>
-                        </div>
-                        @switch (geofence.status) {
-                          @case ('pending_review') {
-                            <span class="status-chip status-pending">{{ 'ADMIN.GEO_STATUS_PENDING' | translate }}</span>
-                          }
-                          @case ('active') {
-                            <span class="status-chip status-active">{{ 'ADMIN.STATUS_ACTIVE' | translate }}</span>
-                          }
-                          @case ('approved') {
-                            <span class="status-chip status-approved">{{ 'ADMIN.GEO_STATUS_APPROVED' | translate }}</span>
-                          }
-                          @case ('rejected') {
-                            <span class="status-chip status-rejected">{{ 'ADMIN.GEO_STATUS_REJECTED' | translate }}</span>
-                          }
-                        }
-                      </div>
-                      <div class="submission-card-meta">
-                        <div class="meta-item">
-                          <mat-icon>timeline</mat-icon>
-                          <span>{{ getPointCount(geofence) }} {{ 'ADMIN.POINTS' | translate }}</span>
-                        </div>
-                        <div class="meta-item">
-                          <mat-icon>schedule</mat-icon>
-                          <span>{{ 'ADMIN.CREATED' | translate }} {{ geofence.createdAt | date: 'mediumDate' }}</span>
-                        </div>
-                        @if (geofence.submittedAt) {
-                          <div class="meta-item">
-                            <mat-icon>send</mat-icon>
-                            <span>{{ 'ADMIN.SUBMITTED' | translate }} {{ geofence.submittedAt | date: 'mediumDate' }}</span>
-                          </div>
-                        }
-                        @if (geofence.reviewedBy || geofence.reviewedByName) {
-                          <div class="meta-item">
-                            @if (geofence.reviewedByAvatarUrl) {
-                              <img [src]="geofence.reviewedByAvatarUrl" alt="" class="avatar avatar-xs" />
-                            } @else {
-                              <mat-icon>person</mat-icon>
-                            }
-                            <span>{{ 'ADMIN.REVIEWED_BY' | translate }} {{ geofence.reviewedByName ?? geofence.reviewedBy }}</span>
-                          </div>
-                        }
-                        @if (geofence.reviewNotes) {
-                          <div class="meta-item">
-                            <mat-icon>notes</mat-icon>
-                            <span>{{ geofence.reviewNotes }}</span>
-                          </div>
-                        }
-                        @if (geofence.promotedName) {
-                          <div class="meta-item">
-                            <mat-icon>published_with_changes</mat-icon>
-                            <span>{{ 'ADMIN.PROMOTED_AS' | translate }} {{ geofence.promotedName }}</span>
-                          </div>
-                        }
-                      </div>
-                      <div class="submission-card-actions">
-                        <button
-                          mat-icon-button
-                          (click)="openDetailDialog(geofence)"
-                          [matTooltip]="'ADMIN.VIEW_GEOFENCE_DETAILS' | translate"
-                          [attr.aria-label]="'ADMIN.VIEW_GEOFENCE_DETAILS' | translate">
-                          <mat-icon>visibility</mat-icon>
-                        </button>
-                        @if (canReview(geofence)) {
-                          <button
-                            mat-raised-button
-                            color="primary"
-                            (click)="openReviewDialog(geofence)"
-                            [matTooltip]="'ADMIN.REVIEW_SUBMISSION' | translate">
-                            <mat-icon>rate_review</mat-icon>
-                            {{ 'ADMIN.REVIEW' | translate }}
-                          </button>
-                        }
-                        <button
-                          mat-icon-button
-                          color="warn"
-                          (click)="adminDelete(geofence)"
-                          [matTooltip]="'ADMIN.DELETE_GEOFENCE' | translate"
-                          [attr.aria-label]="'ADMIN.DELETE_GEOFENCE' | translate">
-                          <mat-icon>delete</mat-icon>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                }
-              </div>
-            }
-
-            <!-- List view -->
-            @if (viewMode() === 'list') {
-              <div class="list-table-wrapper">
-                <table class="list-table">
-                  <thead>
-                    <tr>
-                      <th class="col-name">{{ 'ADMIN.COLUMN_NAME' | translate }}</th>
-                      <th class="col-status">{{ 'ADMIN.COLUMN_STATUS' | translate }}</th>
-                      <th class="col-owner">{{ 'ADMIN.COLUMN_OWNER' | translate }}</th>
-                      <th class="col-region">{{ 'ADMIN.COLUMN_REGION' | translate }}</th>
-                      <th class="col-points">{{ 'ADMIN.COLUMN_POINTS' | translate }}</th>
-                      <th class="col-created">{{ 'ADMIN.COLUMN_CREATED' | translate }}</th>
-                      <th class="col-actions">{{ 'ADMIN.COLUMN_ACTIONS' | translate }}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    @for (geofence of group.geofences; track geofence.id; let idx = $index) {
-                      <tr class="list-row" [style.animation-delay.ms]="idx * 30">
-                        <td class="col-name">
-                          <div class="list-name-cell">
-                            <mat-icon class="list-geofence-icon">pentagon</mat-icon>
-                            <span class="list-name-text">{{ geofence.displayName }}</span>
-                          </div>
-                        </td>
-                        <td class="col-status">
-                          <span
-                            class="status-chip"
-                            [class.status-pending]="canReview(geofence)"
-                            [class.status-active]="geofence.status === 'active'"
-                            [class.status-approved]="geofence.status === 'approved'"
-                            [class.status-rejected]="geofence.status === 'rejected'">
-                            {{ getStatusLabel(geofence.status) }}
-                          </span>
-                        </td>
-                        <td class="col-owner">
-                          <div class="list-owner-cell">
-                            @if (geofence.ownerAvatarUrl) {
-                              <img [src]="geofence.ownerAvatarUrl" alt="" class="avatar avatar-sm" />
-                            } @else {
-                              <div class="avatar avatar-sm avatar-fallback">
-                                <mat-icon>person</mat-icon>
-                              </div>
-                            }
-                            <span>{{ geofence.ownerName ?? geofence.humanId }}</span>
-                          </div>
-                        </td>
-                        <td class="col-region">{{ geofence.groupName || '---' }}</td>
-                        <td class="col-points">{{ getPointCount(geofence) }}</td>
-                        <td class="col-created">{{ geofence.createdAt | date: 'mediumDate' }}</td>
-                        <td class="col-actions">
-                          <div class="list-actions">
-                            <button
-                              mat-icon-button
-                              (click)="openDetailDialog(geofence)"
-                              [matTooltip]="'ADMIN.VIEW_DETAILS' | translate"
-                              [attr.aria-label]="'ADMIN.VIEW_DETAILS' | translate">
-                              <mat-icon>visibility</mat-icon>
-                            </button>
-                            @if (canReview(geofence)) {
-                              <button
-                                mat-icon-button
-                                color="primary"
-                                (click)="openReviewDialog(geofence)"
-                                [matTooltip]="'ADMIN.REVIEW' | translate"
-                                [attr.aria-label]="'ADMIN.REVIEW' | translate">
-                                <mat-icon>rate_review</mat-icon>
-                              </button>
-                            }
-                            <button
-                              mat-icon-button
-                              color="warn"
-                              (click)="adminDelete(geofence)"
-                              [matTooltip]="'COMMON.DELETE' | translate"
-                              [attr.aria-label]="'COMMON.DELETE' | translate">
-                              <mat-icon>delete</mat-icon>
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    }
-                  </tbody>
-                </table>
-              </div>
-            }
-          </mat-expansion-panel>
-        }
-      }
-    } @else {
-      <div class="empty-state">
-        <mat-icon class="empty-icon">{{ activeFilter() === 'pending_review' ? 'rate_review' : 'pentagon' }}</mat-icon>
-        <h2>{{ 'ADMIN.NO_GEOFENCES' | translate }}</h2>
-        <p>
-          @switch (activeFilter()) {
-            @case ('pending_review') {
-              {{ 'ADMIN.NO_PENDING_SUBMISSIONS' | translate }}
-            }
-            @case ('all') {
-              {{ 'ADMIN.NO_GEOFENCES_YET' | translate }}
-            }
-            @default {
-              {{ 'ADMIN.NO_GEOFENCES_STATUS' | translate }}
-            }
-          }
-        </p>
-      </div>
-    }
+    </section>
   }
 </div>

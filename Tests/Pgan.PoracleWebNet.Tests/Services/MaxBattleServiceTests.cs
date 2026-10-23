@@ -80,76 +80,56 @@ public class MaxBattleServiceTests
     [Fact]
     public async Task CreateAsyncRefusesAnExactDuplicate()
     {
-        this._proxy.Setup(p => p.GetByUserAsync("maxbattle", "user1")).ReturnsAsync(CreateJsonArray(new
-        {
-            uid = 5,
-            id = "user1",
-            pokemon_id = 150,
-            distance = 500,
-            level = 3,
-        }));
+        // PoracleNG 5.4.0 answers an exact repeat as alreadyPresent and writes nothing.
+        this._proxy.Setup(p => p.CreateAsync("maxbattle", "user1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([], 1, 0, 0) { RowUids = [0] });
 
-        await Assert.ThrowsAsync<TrackingConflictException>(
+        var ex = await Assert.ThrowsAsync<TrackingConflictException>(
             () => this._sut.CreateAsync("user1", new MaxBattle { PokemonId = 150, Distance = 500, Level = 3 }));
 
-        this._proxy.Verify(
-            p => p.CreateAsync("maxbattle", "user1", It.IsAny<JsonElement>()), Times.Never);
+        Assert.Equal("You already have an identical max battle alarm.", ex.Message);
     }
 
     /// <summary>
-    /// Upstream has no key that would merge two alarms differing by radius, so refusing those would block
-    /// something that genuinely works.
+    /// The refusal names the stored rule PoracleNG matched, so the add dialog can offer "Edit that one" as
+    /// it does for every other type.
     /// </summary>
     [Fact]
-    public async Task CreateAsyncStillAllowsTheSameBossAtADifferentRadius()
+    public async Task CreateAsyncNamesTheIdenticalRuleItRefused()
     {
-        this._proxy.Setup(p => p.GetByUserAsync("maxbattle", "user1")).ReturnsAsync(CreateJsonArray(new
-        {
-            uid = 5,
-            id = "user1",
-            pokemon_id = 150,
-            distance = 500,
-            level = 3,
-        }));
+        this._proxy.Setup(p => p.CreateAsync("maxbattle", "user1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([], 1, 0, 0) { RowUids = [0], ExistingUid = 42 });
+
+        var ex = await Assert.ThrowsAsync<TrackingConflictException>(
+            () => this._sut.CreateAsync("user1", new MaxBattle { PokemonId = 150, Distance = 500, Level = 3 }));
+
+        Assert.Equal(42, ex.ExistingUid);
+        Assert.Equal("maxbattle", ex.TrackingType);
+    }
+
+    /// <summary>
+    /// The service reads no siblings: PoracleNG decides what is a duplicate, and a create it reports as new
+    /// (the same boss at another radius, for one) comes back with its uid rather than being refused.
+    /// </summary>
+    [Fact]
+    public async Task CreateAsyncReturnsTheUidOfARuleCreatedBesideAnother()
+    {
         this._proxy.Setup(p => p.CreateAsync("maxbattle", "user1", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([6], 0, 0, 1));
 
         var result = await this._sut.CreateAsync("user1", new MaxBattle { PokemonId = 150, Distance = 900, Level = 3 });
 
         Assert.Equal(6, result.Uid);
+        this._proxy.Verify(p => p.GetByUserAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
     /// <summary>
-    /// The dialog sends no override as <c>[]</c> and <c>""</c>; PoracleNG reads it back as null and "".
-    /// Pressing Add twice from the UI is still a duplicate.
+    /// An explicitly empty scope is sent as it is, and PoracleNG's insert (it stores an unscoped max battle
+    /// beside an area-scoped twin as two rules, verified on 5.2.1) is taken at its word.
     /// </summary>
     [Fact]
-    public async Task CreateAsyncRefusesAnExactDuplicateSentTheWayTheDialogSendsIt()
+    public async Task CreateAsyncWithAnEmptyScopeReturnsTheUidPoracleNgCreated()
     {
-        this._proxy.Setup(p => p.GetByUserAsync("maxbattle", "user1")).ReturnsAsync(JsonDocument.Parse(
-            """[{"uid":5,"id":"user1","pokemon_id":150,"distance":500,"level":9000,"override_areas":null,"override_location_label":""}]""")
-            .RootElement.Clone());
-
-        await Assert.ThrowsAsync<TrackingConflictException>(() => this._sut.CreateAsync("user1", new MaxBattle
-        {
-            PokemonId = 150,
-            Distance = 500,
-            Level = 3,
-            OverrideAreas = [],
-            OverrideLocationLabel = "",
-        }));
-    }
-
-    /// <summary>
-    /// PoracleNG stores an unscoped max battle beside an area-scoped one with the same boss as two rules
-    /// (verified on 5.2.1: uids 166 and 167), so the duplicate check must not call them the same alarm.
-    /// </summary>
-    [Fact]
-    public async Task CreateAsyncAllowsTheSameBossBesideAnAreaScopedTwin()
-    {
-        this._proxy.Setup(p => p.GetByUserAsync("maxbattle", "user1")).ReturnsAsync(JsonDocument.Parse(
-            """[{"uid":5,"id":"user1","pokemon_id":150,"distance":0,"level":9000,"override_areas":["aberdeen"],"override_location_label":""}]""")
-            .RootElement.Clone());
         this._proxy.Setup(p => p.CreateAsync("maxbattle", "user1", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([6], 0, 0, 1));
 
@@ -169,36 +149,12 @@ public class MaxBattleServiceTests
     public async Task CreateAsyncSetsUserId()
     {
         var maxBattle = new MaxBattle { PokemonId = 9000, Gmax = 1, StationId = "station123", Level = 3 };
-        this._proxy.Setup(p => p.GetByUserAsync("maxbattle", "user1")).ReturnsAsync(CreateJsonArray());
         this._proxy.Setup(p => p.CreateAsync("maxbattle", "user1", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([1], 0, 0, 1));
 
         var result = await this._sut.CreateAsync("user1", maxBattle);
 
         Assert.Equal("user1", result.Id);
-    }
-
-    [Fact]
-    public async Task UpdateAsyncUsesDeleteThenCreate()
-    {
-        this._proxy.Setup(p => p.GetByUserAsync("maxbattle", "user1")).ReturnsAsync(CreateJsonArray());
-        var maxBattle = new MaxBattle { Uid = 1, PokemonId = 9000, Gmax = 1 };
-        var callOrder = new List<string>();
-
-        this._proxy.Setup(p => p.DeleteByUidAsync("maxbattle", "user1", 1))
-            .Callback(() => callOrder.Add("delete"))
-            .Returns(Task.CompletedTask);
-        this._proxy.Setup(p => p.CreateAsync("maxbattle", "user1", It.IsAny<JsonElement>()))
-            .Callback(() => callOrder.Add("create"))
-            .ReturnsAsync(new TrackingCreateResult([2], 0, 0, 1));
-
-        await this._sut.UpdateAsync("user1", maxBattle);
-
-        this._proxy.Verify(p => p.DeleteByUidAsync("maxbattle", "user1", 1), Times.Once);
-        this._proxy.Verify(p => p.CreateAsync("maxbattle", "user1", It.IsAny<JsonElement>()), Times.Once);
-        Assert.Equal(2, callOrder.Count);
-        Assert.Equal("delete", callOrder[0]);
-        Assert.Equal("create", callOrder[1]);
     }
 
     [Fact]
@@ -265,8 +221,8 @@ public class MaxBattleServiceTests
         this._proxy.Setup(p => p.GetByUserAsync("maxbattle", "u")).ReturnsAsync(json);
         this._proxy.Setup(p => p.BulkDeleteByUidsAsync("maxbattle", "u", It.IsAny<IEnumerable<int>>()))
             .Returns(Task.CompletedTask);
-        this._proxy.Setup(p => p.CreateAsync("maxbattle", "u", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([], 0, 0, 2));
+        this._proxy.Setup(p => p.PatchAsync("maxbattle", "u", It.IsAny<IReadOnlyList<int>>(), It.IsAny<TrackingPatchSet>()))
+            .ReturnsAsync((string _, string _, IReadOnlyList<int> uids, TrackingPatchSet _) => new TrackingPatchResult([.. uids], [], []));
 
         Assert.Equal(2, (await this._sut.UpdateDistanceByUserAsync("u", 1, 100)).Updated);
     }
@@ -299,8 +255,8 @@ public class MaxBattleServiceTests
         this._proxy.Setup(p => p.GetByUserAsync("maxbattle", "u")).ReturnsAsync(json);
         this._proxy.Setup(p => p.BulkDeleteByUidsAsync("maxbattle", "u", It.IsAny<IEnumerable<int>>()))
             .Returns(Task.CompletedTask);
-        this._proxy.Setup(p => p.CreateAsync("maxbattle", "u", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([], 0, 0, 2));
+        this._proxy.Setup(p => p.PatchAsync("maxbattle", "u", It.IsAny<IReadOnlyList<int>>(), It.IsAny<TrackingPatchSet>()))
+            .ReturnsAsync((string _, string _, IReadOnlyList<int> uids, TrackingPatchSet _) => new TrackingPatchResult([.. uids], [], []));
 
         Assert.Equal(2, (await this._sut.UpdateDistanceByUidsAsync([1, 3], "u", 100)).Updated);
     }
@@ -358,7 +314,7 @@ public class MaxBattleServiceTests
             new() { PokemonId = 9001, Gmax = 0 },
         };
         this._proxy.Setup(p => p.CreateAsync("maxbattle", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([10, 11], 0, 0, 2));
+            .ReturnsAsync(new TrackingCreateResult([10, 11], 0, 0, 2) { RowUids = [10, 11] });
 
         var result = (await this._sut.BulkCreateAsync("user1", models)).ToList();
 
@@ -423,16 +379,14 @@ public class MaxBattleServiceTests
         return doc.RootElement.Clone();
     }
 
-    // On the v1 path (no v2 route, so a server older than 5.2.0) MaxBattle is insert-only upstream, so an
-    // edit is delete-then-create and rotates the uid, which orphans any quick pick that created the
-    // alarm. A v2-routed edit keeps the uid since jfberry/PoracleNG #303. See #403.
+    // An edit is one v2 PUT. A server that still rotates the uid on a PUT (before jfberry/PoracleNG #303)
+    // reports the new one, and any quick pick that created the alarm follows it. See #403.
     [Fact]
     public async Task UpdateAsyncRepointsQuickPickTrackedUidAtTheReplacementRow()
     {
         this._proxy.Setup(p => p.GetByUserAsync("maxbattle", "user1")).ReturnsAsync(CreateJsonArray());
-        this._proxy.Setup(p => p.DeleteByUidAsync("maxbattle", "user1", 82)).Returns(Task.CompletedTask);
-        this._proxy.Setup(p => p.CreateAsync("maxbattle", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([83], 0, 0, 1));
+        this._proxy.Setup(p => p.UpdateByUidAsync("maxbattle", "user1", 82, It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingUpdateResult(83, true));
 
         var result = await this._sut.UpdateAsync("user1", new MaxBattle { Uid = 82 });
 

@@ -6,212 +6,150 @@
   <div class="page-header-text">
     <h1>{{ 'DASHBOARD.TITLE' | translate }}</h1>
     <p class="dashboard-subtitle">{{ 'DASHBOARD.WELCOME' | translate: { username: username() } }}</p>
-    <p class="page-description">{{ 'DASHBOARD.DESCRIPTION' | translate }}</p>
   </div>
+  <!-- The page's one primary action. A menu, because "new" needs a type before it can be anything. -->
+  @if (newAlarmTypes().length > 0) {
+    <button mat-flat-button class="page-primary-action new-alarm-btn" [matMenuTriggerFor]="newAlarmMenu">
+      <mat-icon>add</mat-icon>
+      {{ 'DASHBOARD.NEW_ALARM' | translate }}
+      <mat-icon iconPositionEnd>arrow_drop_down</mat-icon>
+    </button>
+    <mat-menu #newAlarmMenu="matMenu" xPosition="before">
+      @for (card of newAlarmTypes(); track card.key) {
+        <button mat-menu-item class="new-alarm-item" [class]="'new-alarm-' + card.key" (click)="startNewAlarm(card)">
+          <mat-icon>{{ card.icon }}</mat-icon>
+          <span>{{ card.label | translate }}</span>
+        </button>
+      }
+    </mat-menu>
+  }
 </div>
 
 <div class="dashboard-content">
-  <!-- Status Overview Row -->
-  <div class="status-row">
-    @if (locationEnabled()) {
-      <!-- Location Card -->
-      <mat-card class="status-card location-card-full" (click)="openLocationDialog()">
-        @if (locationMapUrl()) {
-          <img [src]="locationMapUrl()" class="location-map-thumb" [alt]="'DASHBOARD.LOCATION' | translate" loading="lazy" />
-        }
-        <div class="location-card-body">
-          <div class="status-icon-wrap location-icon">
-            <mat-icon>my_location</mat-icon>
-          </div>
-          <div class="status-info">
-            <span class="status-label">{{ 'DASHBOARD.LOCATION' | translate }}</span>
-            @if (location(); as loc) {
-              @if (locationAddress()) {
-                <span class="status-value status-address" [title]="loc.latitude.toFixed(4) + ', ' + loc.longitude.toFixed(4)">{{
-                  locationAddress()
-                }}</span>
-              } @else {
-                <span class="status-value">{{ loc.latitude.toFixed(4) }}, {{ loc.longitude.toFixed(4) }}</span>
-              }
-            } @else {
-              <span class="status-value not-set">{{ 'DASHBOARD.LOCATION_NOT_SET' | translate }}</span>
+  <!--
+    What will reach me right now, in one place: which profile, whether alerts are on, anything quiet,
+    where distances are measured from and which areas count. It replaces four equal cards that took a
+    phone's whole first screen to say four things.
+  -->
+  <section class="status-strip" [attr.aria-label]="'DASHBOARD.STATUS_LABEL' | translate">
+    <div class="strip-row">
+      @if (profilesEnabled()) {
+        @if (profiles().length > 1) {
+          <button type="button" class="strip-item strip-profile" [matMenuTriggerFor]="profileMenu">
+            <mat-icon class="strip-icon">person</mat-icon>
+            <span class="strip-label">{{ 'DASHBOARD.PROFILE' | translate }}</span>
+            <span class="strip-value">{{ profileName() }}</span>
+            <mat-icon class="strip-trail">expand_more</mat-icon>
+          </button>
+          <mat-menu #profileMenu="matMenu">
+            @for (profile of profiles(); track profile.profileNo) {
+              <button mat-menu-item [class.active-profile]="profile.active" (click)="switchProfile(profile)">
+                <mat-icon>{{ profile.active ? 'radio_button_checked' : 'radio_button_unchecked' }}</mat-icon>
+                <span>{{ profile.name }}</span>
+              </button>
             }
-          </div>
-          <mat-icon class="status-arrow">chevron_right</mat-icon>
-        </div>
-      </mat-card>
-    }
-
-    @if (areasEnabled()) {
-      <!-- Areas Card -->
-      <mat-card class="status-card areas-card" (click)="navigate('/areas')">
-        <div class="status-icon-wrap areas-icon">
-          <mat-icon>map</mat-icon>
-        </div>
-        <div class="status-info">
-          <span class="status-label">{{ 'DASHBOARD.ACTIVE_AREAS' | translate }}</span>
-          @if (selectedAreas().length > 0) {
-            <span class="status-value">{{ 'DASHBOARD.AREAS_COUNT' | translate: { count: selectedAreas().length } }}</span>
-          } @else {
-            <span class="status-value not-set">{{ 'DASHBOARD.NO_AREAS' | translate }}</span>
-          }
-        </div>
-        <mat-icon class="status-arrow">chevron_right</mat-icon>
-      </mat-card>
-    }
-
-    <!--
-      Quiet card. Present only when something is quiet, never as a permanent empty box -- and the only
-      place a mute set from the Discord bot (an 'everything' or 'pokestop' scope PoracleWeb.NET cannot
-      create) can be seen and lifted.
-    -->
-    @if (mutes.capable() && mutes.hasMutes()) {
-      <mat-card class="status-card quiet-card" (click)="openQuietList()">
-        <div class="status-icon-wrap quiet-icon">
-          <mat-icon>notifications_paused</mat-icon>
-        </div>
-        <div class="status-info">
-          <span class="status-label">{{ 'QUIET.CARD_LABEL' | translate }}</span>
-          <span class="status-value">{{ quietSummary() }}</span>
-        </div>
-        <mat-icon class="status-arrow">chevron_right</mat-icon>
-      </mat-card>
-    }
-
-    <!-- Profile Card -->
-    @if (profilesEnabled() && profiles().length > 1) {
-      <mat-card class="status-card profile-card" [matMenuTriggerFor]="profileMenu">
-        <div class="status-icon-wrap profile-icon">
-          <mat-icon>person</mat-icon>
-        </div>
-        <div class="status-info">
-          <span class="status-label">{{ 'DASHBOARD.PROFILE' | translate }}</span>
-          <span class="status-value">{{ profileName() }}</span>
-        </div>
-        <mat-icon class="status-arrow">expand_more</mat-icon>
-      </mat-card>
-      <mat-menu #profileMenu="matMenu">
-        @for (profile of profiles(); track profile.profileNo) {
-          <button mat-menu-item [class.active-profile]="profile.active" (click)="switchProfile(profile)">
-            <mat-icon>{{ profile.active ? 'radio_button_checked' : 'radio_button_unchecked' }}</mat-icon>
-            <span>{{ profile.name }}</span>
+            <button mat-menu-item (click)="navigate('/profiles')">
+              <mat-icon>settings</mat-icon>
+              <span>{{ 'DASHBOARD.MANAGE_PROFILES' | translate }}</span>
+            </button>
+          </mat-menu>
+        } @else {
+          <button type="button" class="strip-item strip-profile" (click)="navigate('/profiles')">
+            <mat-icon class="strip-icon">person</mat-icon>
+            <span class="strip-label">{{ 'DASHBOARD.PROFILE' | translate }}</span>
+            <span class="strip-value">{{ profileName() }}</span>
+            <mat-icon class="strip-trail">chevron_right</mat-icon>
           </button>
         }
-        <button mat-menu-item (click)="navigate('/profiles')">
-          <mat-icon>settings</mat-icon>
-          <span>{{ 'DASHBOARD.MANAGE_PROFILES' | translate }}</span>
+      }
+
+      <!-- State, not a control: the shell's banner carries Resume while alerts are paused. -->
+      <span class="strip-item strip-alerts" [class.paused]="alertsPaused()">
+        <span class="alerts-dot" aria-hidden="true"></span>
+        {{ (alertsPaused() ? 'DASHBOARD.ALERTS_PAUSED' : 'DASHBOARD.ALERTS_ON') | translate }}
+      </span>
+
+      <!--
+        Present only while something is quiet, and the one place a mute set from the Discord bot (an
+        'everything' or 'pokestop' scope PoracleWeb.NET cannot create) can be seen and lifted.
+      -->
+      @if (mutes.hasMutes()) {
+        <button type="button" class="strip-item strip-quiet" (click)="openQuietList()">
+          <mat-icon class="strip-icon">notifications_paused</mat-icon>
+          <span class="strip-label">{{ 'QUIET.CARD_LABEL' | translate }}</span>
+          <span class="strip-value">{{ quietSummary() }}</span>
+          <mat-icon class="strip-trail">chevron_right</mat-icon>
         </button>
-      </mat-menu>
-    } @else {
-      <mat-card class="status-card profile-card" (click)="navigate('/profiles')">
-        <div class="status-icon-wrap profile-icon">
-          <mat-icon>person</mat-icon>
-        </div>
-        <div class="status-info">
-          <span class="status-label">{{ 'DASHBOARD.PROFILE' | translate }}</span>
-          <span class="status-value">{{ profileName() }}</span>
-        </div>
-        <mat-icon class="status-arrow">chevron_right</mat-icon>
-      </mat-card>
-    }
-    <!-- Weather Card -->
-    @if (userLocation()) {
-      <mat-card class="status-card weather-card">
-        @if (weatherLoading()) {
-          <div class="status-icon-wrap weather-icon skeleton-icon">
-            <div class="skeleton-circle"></div>
-          </div>
-          <div class="status-info">
-            <span class="status-label">{{ 'DASHBOARD.WEATHER' | translate }}</span>
-            <div class="skeleton-line-sm"></div>
-          </div>
-        } @else if (weather(); as w) {
-          <div class="status-icon-wrap weather-icon" [class.weather-warning]="w.hasWarning">
-            <mat-icon>{{ w.icon }}</mat-icon>
-            @if (w.hasWarning) {
-              <mat-icon class="weather-warn-badge" [matTooltip]="'DASHBOARD.WEATHER_WARNING' | translate">crisis_alert</mat-icon>
+      }
+    </div>
+
+    <div class="strip-row">
+      @if (locationEnabled()) {
+        <button type="button" class="strip-item strip-pin" (click)="openLocationDialog()">
+          <mat-icon class="strip-icon">my_location</mat-icon>
+          <span class="strip-label">{{ 'DASHBOARD.PIN' | translate }}</span>
+          <!-- 0,0 is Poracle's "not set", not a point off the coast of Africa. -->
+          @if (userLocation() && location(); as loc) {
+            @if (locationAddress()) {
+              <span class="strip-value" [title]="loc.latitude.toFixed(4) + ', ' + loc.longitude.toFixed(4)">{{ locationAddress() }}</span>
+            } @else {
+              <span class="strip-value figures">{{ loc.latitude.toFixed(4) }}, {{ loc.longitude.toFixed(4) }}</span>
             }
-          </div>
-          <div class="status-info">
-            <span class="status-label">
-              {{ 'DASHBOARD.WEATHER' | translate }}
-              @if (weatherUpdatedAgo()) {
-                <span class="weather-updated">· {{ weatherUpdatedAgo() }}</span>
+          } @else {
+            <span class="strip-value strip-ask">{{ 'DASHBOARD.LOCATION_NOT_SET' | translate }}</span>
+          }
+          <mat-icon class="strip-trail">chevron_right</mat-icon>
+        </button>
+      }
+
+      @if (areasEnabled()) {
+        <button type="button" class="strip-item strip-areas" (click)="navigate('/areas')">
+          <mat-icon class="strip-icon">map</mat-icon>
+          <span class="strip-label">{{ 'DASHBOARD.AREAS' | translate }}</span>
+          @if (selectedAreas().length > 0) {
+            <span class="strip-value">
+              {{ areaPreview() }}
+              @if (areaMore() > 0) {
+                <span class="strip-more">{{ 'DASHBOARD.MORE' | translate: { count: areaMore() } }}</span>
               }
             </span>
-            <span class="status-value">{{ w.conditionName }}</span>
-            @if (w.boostedTypes.length > 0) {
-              <div class="boosted-types">
-                @for (type of w.boostedTypes; track type) {
-                  <span
-                    class="type-chip"
-                    [style.background]="getTypeColor(type) + '1A'"
-                    [style.color]="getTypeColor(type)"
-                    [style.border-color]="getTypeColor(type) + '40'">
-                    {{ type }}
-                  </span>
-                }
-              </div>
-            }
-          </div>
-        } @else {
-          <div class="status-icon-wrap weather-icon weather-icon-empty">
-            <mat-icon>cloud_off</mat-icon>
-          </div>
-          <div class="status-info">
-            <span class="status-label">{{ 'DASHBOARD.WEATHER' | translate }}</span>
-            <span class="status-value not-set">{{ 'DASHBOARD.NO_WEATHER_DATA' | translate }}</span>
-          </div>
-        }
-      </mat-card>
-    }
-  </div>
-
-  <!-- Areas Chips -->
-  @if (selectedAreas().length > 0) {
-    <mat-card class="areas-detail-card">
-      <mat-card-content>
-        <div class="areas-header">
-          <mat-icon>place</mat-icon>
-          <span>{{ 'DASHBOARD.TRACKING_AREAS' | translate }}</span>
-        </div>
-        <mat-chip-set class="area-chips">
-          @for (area of selectedAreas(); track area) {
-            <mat-chip highlighted color="primary">
-              <span class="area-dot"></span>{{ area }}
-              @if (getAreaWeatherData(area); as aw) {
-                <mat-icon
-                  class="area-weather-icon"
-                  [matTooltip]="aw.conditionName + ' — ' + aw.boostedTypes.join(', ') + ' ' + ('DASHBOARD.BOOSTED_SUFFIX' | translate)"
-                  >{{ aw.icon }}</mat-icon
-                >
-              }
-            </mat-chip>
+          } @else {
+            <span class="strip-value strip-ask">{{ 'DASHBOARD.AREAS_CHOOSE' | translate }}</span>
           }
-        </mat-chip-set>
-      </mat-card-content>
-    </mat-card>
-  }
-
-  <!-- Area Overview Map -->
-  @if (selectedAreas().length > 0 && geofencePolygons().length > 0) {
-    <mat-card class="area-overview-card" (click)="navigate('/areas')">
-      <div class="area-overview-header">
-        <mat-icon>map</mat-icon>
-        <span>{{ 'DASHBOARD.AREA_COVERAGE' | translate }}</span>
-        <span class="area-overview-count">{{ 'DASHBOARD.AREAS_COUNT' | translate: { count: selectedAreas().length } }}</span>
-        <mat-icon class="status-arrow">chevron_right</mat-icon>
-      </div>
-      @defer (on viewport) {
-        <app-area-overview-map [geofence]="geofencePolygons()" [selectedAreas]="selectedAreas()" />
-      } @placeholder {
-        <div class="map-placeholder">
-          <mat-icon>map</mat-icon>
-          <span>{{ 'DASHBOARD.LOADING_MAP' | translate }}</span>
-        </div>
+          <mat-icon class="strip-trail">chevron_right</mat-icon>
+        </button>
       }
-    </mat-card>
-  }
+
+      <!-- Only once there is weather: "No data" took a quarter of the row and said nothing. -->
+      @if (showWeather() && weather(); as w) {
+        <span class="strip-item strip-weather">
+          <span class="weather-icon-wrap" [class.weather-warning]="w.hasWarning">
+            <mat-icon class="strip-icon">{{ w.icon }}</mat-icon>
+            @if (w.hasWarning) {
+              <mat-icon
+                class="weather-warn-badge"
+                aria-hidden="false"
+                [matTooltip]="'DASHBOARD.WEATHER_WARNING' | translate"
+                [attr.aria-label]="'DASHBOARD.WEATHER_WARNING' | translate"
+                >crisis_alert</mat-icon
+              >
+            }
+          </span>
+          <span class="strip-label">{{ 'DASHBOARD.WEATHER' | translate }}</span>
+          <span class="strip-value">{{ weatherConditionLabel(w) }}</span>
+          @for (type of w.boostedTypes; track type) {
+            @let edge = boostedTypeEdge(type);
+            <span class="type-chip" [style.--type-color-light]="edge.light" [style.--type-color-dark]="edge.dark">{{
+              boostedTypeLabel(type)
+            }}</span>
+          }
+          @if (weatherUpdatedAgo()) {
+            <span class="weather-updated">{{ weatherUpdatedAgo() }}</span>
+          }
+        </span>
+      }
+    </div>
+  </section>
 
   <!-- Tips Section -->
   @if (tips().length > 0) {
@@ -222,9 +160,9 @@
           <div class="tip-content">
             <span>{{ tip.message }}</span>
             @if (tip.route) {
-              <a [routerLink]="tip.route" class="tip-action">{{ tip.action }}</a>
+              <a [routerLink]="tip.route" [queryParams]="tip.queryParams ?? null" class="tip-action">{{ tip.action }}</a>
             } @else {
-              <a class="tip-action" (click)="handleTipAction(tip); $event.stopPropagation()">{{ tip.action }}</a>
+              <button type="button" class="tip-action" (click)="handleTipAction(tip)">{{ tip.action }}</button>
             }
           </div>
           <button mat-icon-button (click)="dismissTip(tip)" [attr.aria-label]="'COMMON.CLOSE' | translate">
@@ -235,53 +173,100 @@
     </div>
   }
 
-  <!-- Quick Actions -->
-  <div class="section-header">
-    <h2>{{ 'DASHBOARD.QUICK_ACTIONS' | translate }}</h2>
-  </div>
-  <div class="quick-actions">
-    @for (action of quickActions(); track action.route) {
-      <button mat-flat-button (click)="navigate(action.route)" class="action-btn" [class]="action.cssClass">
-        <mat-icon>{{ action.icon }}</mat-icon> {{ action.label | translate }}
-      </button>
-    }
-  </div>
-
-  <!-- Alarm Counts Section -->
-  <div class="section-header">
-    <h2>{{ 'DASHBOARD.ACTIVE_FILTERS' | translate }}</h2>
-    <span class="total-count">{{ 'DASHBOARD.TOTAL_ALARMS' | translate: { count: totalAlarms() } }}</span>
-  </div>
-
-  <div class="dashboard-grid">
-    @if (counts(); as c) {
-      @for (card of visibleCards(); track card.key) {
-        <mat-card class="dashboard-card" [class]="card.colorClass" [class.muted]="c[card.key] === 0" (click)="navigate(card.route)">
-          <div class="card-header-row">
-            <div class="card-icon-wrap" [class.muted-icon]="c[card.key] === 0">
-              <mat-icon>{{ card.icon }}</mat-icon>
+  <!-- Area coverage: the map of what counts, with every area named under it. -->
+  @if (selectedAreas().length > 0) {
+    <section class="coverage" [attr.aria-label]="'DASHBOARD.AREA_COVERAGE' | translate">
+      @if (geofencePolygons().length > 0) {
+        <a class="coverage-map" routerLink="/areas" [attr.aria-label]="'DASHBOARD.AREA_COVERAGE' | translate">
+          @defer (on viewport) {
+            <app-area-overview-map [geofence]="geofencePolygons()" [selectedAreas]="selectedAreas()" />
+          } @placeholder {
+            <div class="map-placeholder">
+              <mat-icon>map</mat-icon>
+              <span>{{ 'DASHBOARD.LOADING_MAP' | translate }}</span>
             </div>
-          </div>
-          <mat-card-content>
-            <span class="count" [class.count-zero]="c[card.key] === 0">{{ c[card.key] }}</span>
-            <span class="label">{{ card.label | translate }}</span>
-            <span class="subtitle">{{ card.subtitle | translate }}</span>
-          </mat-card-content>
-          <div class="card-view-all">
-            <span>{{ 'DASHBOARD.VIEW_ALL' | translate }}</span>
-            <mat-icon>arrow_forward</mat-icon>
-          </div>
-        </mat-card>
+          }
+        </a>
+      }
+      <ul class="area-chips">
+        @for (area of selectedAreas(); track area) {
+          <li class="area-chip">
+            <span>{{ areaLabel(area) }}</span>
+            @if (getAreaWeatherData(area); as aw) {
+              <mat-icon
+                class="area-weather-icon"
+                [matTooltip]="
+                  weatherConditionLabel(aw) + ' — ' + boostedTypeLabels(aw.boostedTypes) + ' ' + ('DASHBOARD.BOOSTED_SUFFIX' | translate)
+                "
+                aria-hidden="false"
+                [attr.aria-label]="weatherConditionLabel(aw)"
+                >{{ aw.icon }}</mat-icon
+              >
+            }
+            @if (areaQuietCountdown(area); as left) {
+              <span class="area-quiet" [matTooltip]="'QUIET.TOOLTIP_QUIET' | translate: { subject: areaLabel(area), countdown: left }">
+                <mat-icon aria-hidden="true">notifications_paused</mat-icon>{{ left }}
+              </span>
+            }
+          </li>
+        }
+      </ul>
+    </section>
+  } @else if (locationMapUrl()) {
+    <!-- No areas to draw: the pin's own map is the next best answer to "where". -->
+    <button type="button" class="coverage-pin" (click)="openLocationDialog()" [attr.aria-label]="'DASHBOARD.PIN' | translate">
+      <img [src]="locationMapUrl()" alt="" loading="lazy" />
+    </button>
+  }
+
+  <!-- Your alarms: the types that have alarms, and one line for the rest. -->
+  <section class="alarms">
+    <div class="section-header">
+      <h2>{{ 'DASHBOARD.YOUR_ALARMS' | translate }}</h2>
+      @if (counts()) {
+        <span class="total-count">{{ 'DASHBOARD.TOTAL_ALARMS' | translatePlural: totalAlarms() }}</span>
+      }
+      <button mat-button class="action-cleaning" (click)="navigate('/cleaning')">
+        <mat-icon>cleaning_services</mat-icon>
+        {{ 'DASHBOARD.CLEANING_ACTION' | translate }}
+      </button>
+    </div>
+
+    @if (counts()) {
+      @if (activeTypes().length > 0) {
+        <ul class="type-counts">
+          @for (t of activeTypes(); track t.card.key) {
+            <li>
+              <a class="type-count" [routerLink]="t.card.route">
+                <mat-icon aria-hidden="true">{{ t.card.icon }}</mat-icon>
+                <span class="type-label">{{ t.card.label | translate }}</span>
+                <span class="type-number">{{ t.count }}</span>
+              </a>
+            </li>
+          }
+        </ul>
+      }
+      @if (idleTypes().length > 0) {
+        <p class="not-tracking">
+          <span>{{ 'DASHBOARD.NOT_TRACKING' | translate: { types: idleNames() } }}</span>
+          @if (idleTypes().length > idlePreviewSize) {
+            <button type="button" class="not-tracking-more" [attr.aria-expanded]="showAllIdle()" (click)="toggleIdle()">
+              @if (showAllIdle()) {
+                {{ 'DASHBOARD.SHOW_FEWER' | translate }}
+              } @else {
+                {{ 'DASHBOARD.MORE' | translate: { count: idleHidden() } }}
+                <span class="visually-hidden">{{ 'DASHBOARD.SHOW_ALL_TYPES' | translate }}</span>
+              }
+            </button>
+          }
+        </p>
       }
     } @else {
-      @for (i of skeletonItems; track i) {
-        <mat-card class="dashboard-card skeleton">
-          <mat-card-content>
-            <div class="skeleton-line"></div>
-            <div class="skeleton-count"></div>
-          </mat-card-content>
-        </mat-card>
-      }
+      <div class="type-counts skeleton" aria-hidden="true">
+        @for (i of skeletonItems; track i) {
+          <span class="skeleton-pill"></span>
+        }
+      </div>
     }
-  </div>
+  </section>
 </div>

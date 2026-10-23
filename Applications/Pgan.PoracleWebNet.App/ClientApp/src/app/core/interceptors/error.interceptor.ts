@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
 import { catchError, throwError } from 'rxjs';
 
+import { ADMIN_RETURN_STATE } from '../guards/admin-return';
 import { ToastService } from '../services/toast.service';
 import { TokenStoreService } from '../services/token-store.service';
 
@@ -15,6 +16,9 @@ const SILENT_URL_PATTERNS = [
   '/api/auth/providers',
   '/api/admin/users/avatars',
   '/api/settings',
+  // RuleRepairService turns the expected 409 (a run is already going) into the status it carries, and the
+  // card words every other failure itself.
+  '/api/admin/rule-repair',
   // MuteService owns its own messaging, including the benign 404 from resuming a quiet period that
   // had already lapsed -- the store expires entries itself, so that is the ordinary case.
   '/api/mutes',
@@ -28,6 +32,20 @@ const SILENT_URL_PATTERNS = [
   '/api/admin/accounts',
   // BuildInfoService treats a failed version check as "no label"; it is cosmetic and runs on every page load.
   '/api/version',
+  // Polygons only shade the map in an alarm dialog's Delivery tab (and the dashboard's overview); every
+  // reader falls back to drawing nothing, so a failure is not worth a "server error" over an unsaved form.
+  '/api/areas/geofence',
+  // The display-name read behind every scope chip (UserGeofenceService.getCustomGeofenceNames). Chips fall
+  // back to the stored name; the geofence page's own read of this path stays loud.
+  '/api/geofences/custom?names=1',
+  // Pre-checks before a destructive action (clearing the pin, deleting a place). Their callers fall back
+  // to a plainer confirm when the read fails, so a toast would report a failure nobody needs to act on.
+  '/api/location/pin-usage',
+  '/api/location/place-usage',
+  // The pin card's static map and the weather row. Both callers draw nothing when the read fails, and a
+  // 404 on the first read after a restart toasted "not found" over an Areas page that worked.
+  '/api/location/staticmap',
+  '/api/location/weather',
 ];
 
 /** The token a request carried, from the header authInterceptor (or the refresh retry) attached. */
@@ -38,6 +56,19 @@ function bearerOf(header: string | null): string | null {
 
 function shouldSilence(url: string): boolean {
   return SILENT_URL_PATTERNS.some(pattern => url.includes(pattern));
+}
+
+/** The statuses the interceptor toasts on its own (outside the 401 path), whatever the caller does next. */
+const TOASTED_STATUSES = new Set([0, 403, 404, 500, 502, 503, 504]);
+
+/**
+ * True when the interceptor has already told the user about this failure. A caller that would word the
+ * same failure again (an add dialog's inline note, say) checks this so the user reads one message, not two.
+ */
+export function reportedByInterceptor(err: unknown): boolean {
+  const failure = err as { status?: unknown; url?: unknown } | null | undefined;
+  if (typeof failure?.status !== 'number' || !TOASTED_STATUSES.has(failure.status)) return false;
+  return typeof failure.url !== 'string' || !shouldSilence(failure.url);
 }
 
 /** Routes where 401s should NOT trigger a redirect to /login (e.g. OAuth callback, login page itself). */
@@ -92,7 +123,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         // navigation the admin can see happen.
         if (tokenStore.tryRestoreAdminSession()) {
           sayTranslated('HTTP_ERROR.INSPECTION_ENDED');
-          router.navigate(['/admin']);
+          router.navigate(['/admin'], { state: ADMIN_RETURN_STATE });
           return throwError(() => error);
         }
 
@@ -116,7 +147,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       // every locale. This interceptor used a parallel ERROR.* table carrying verbatim English in all
       // ten locales, so a German user saw an English toast for the same status. See #425.
       // Don't show toasts for silent endpoints
-      if (!silent) {
+      if (!silent && TOASTED_STATUSES.has(error.status)) {
         switch (error.status) {
           case 403:
             // The backend tags "feature disabled" 403s by including a `disableKey` in the body

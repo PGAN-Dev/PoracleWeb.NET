@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, signal, untracked } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
@@ -54,7 +55,8 @@ export class QuietListSheetComponent {
   readonly rows = computed<QuietRow[]>(() =>
     this.mutes.mutes().map(mute => ({
       countdown: this.mutes.countdownLabel(Math.max(0, mute.expiresAt - Math.floor(Date.now() / 1000))),
-      key: `${mute.scope}:${mute.value ?? ''}`,
+      // The type is part of the identity: raid rule 60 and pokemon rule 60 are two rows.
+      key: `${mute.scope}:${mute.trackingType ?? ''}:${mute.value ?? ''}`,
       mute,
       scopeLabel: this.translate.instant(`QUIET.SCOPE_${mute.scope.toUpperCase()}`),
       subject: this.subjectFor(mute),
@@ -70,10 +72,17 @@ export class QuietListSheetComponent {
       untracked(() => this.resolveGymNames(mutes));
     });
     this.mutes.refresh(true);
+    // Species names come from the masterfile, which the alarm pages load and the dashboard does not.
+    // Without this a Pokemon quiet opened from the dashboard read "Pokemon #25". getPokemonName reads a
+    // signal, so the rows recompute when the load lands.
+    this.masterData
+      .loadData()
+      .pipe(takeUntilDestroyed(inject(DestroyRef)))
+      .subscribe();
   }
 
   resume(row: QuietRow): void {
-    this.mutes.resume(row.mute.scope, row.mute.value).subscribe({ error: () => undefined });
+    this.mutes.resume(row.mute.scope, row.mute.value, row.mute.trackingType ?? null).subscribe({ error: () => undefined });
   }
 
   resumeAll(): void {
@@ -104,6 +113,11 @@ export class QuietListSheetComponent {
 
     if (mute.scope === 'pokemon') {
       return this.masterData.getPokemonName(Number(mute.value));
+    }
+
+    // A bot-made rule mute. The uid alone is ambiguous once a server reports the rule's type, so show it.
+    if (mute.scope === 'tracking' && mute.trackingType) {
+      return `${mute.trackingType} ${mute.value}`;
     }
 
     return this.resolvedNames()[mute.value] ?? mute.value;

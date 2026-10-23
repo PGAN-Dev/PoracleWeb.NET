@@ -2,24 +2,17 @@
 
 This page is the day-to-day admin reference: where to review submissions, how to approve/reject/delete, the optional Discord forum integration, and the limits that protect your deployment.
 
-## The Geofence Submissions screen
+## The User geofences screen
 
-Admins get a **Geofence Submissions** screen (under the admin area). It lists every user geofence with its status, owner, region, point count, and timestamps. Three view modes:
+Admins get a **User geofences** screen in the admin section of the sidebar. It opens on the review queue: every submission waiting for review, oldest first, one wide row each. The map takes the left of the row (click it for the full detail view), and the right says who submitted it, how many points and how many km² it covers, its region ("No region" when it has none), when it was submitted, and the public area its centre already falls inside, if any. **Reject…** and **Approve** open the review on that side.
 
-| View | Best for |
-|---|---|
-| **Card** | Visual review — each card shows a small map thumbnail, grouped by region. |
-| **List** | A compact, region-grouped table. |
-| **Table** | A flat, sortable table with every column (sort by name, status, owner, region, points, dates). |
-
-Geofences with no region land in a **"No Region"** group, so nothing is hidden just because it lacks a region. Use the **status filter tabs** to focus — most of the time you'll filter to **pending_review** to see what's waiting on you.
+Below the queue, every other geofence (active, approved and rejected) is in one sortable table: name, status, owner, region, points, created and submitted dates, and reviewer. Filter it by status. A rejected geofence keeps a Review button there, so a mistaken rejection can be reconsidered.
 
 ## Reviewing a submission
 
-Open a submission to see its shape on a map, who submitted it, and how many points it has. Then choose:
+The queue row already shows the shape, the owner and the point count. **Approve** promotes it to a public Koji area, with a cleaner public name and optionally a region; [Private geofences & promotion](private-and-promotion.md#step-3a-approve-the-actual-promotion) has the full effect. **Reject** declines it with a short reason, and the geofence stays private for its owner.
 
-- **Approve** — promotes it to a public Koji area. You can set a cleaner public name and (optionally) a region. See the full effect in [Private geofences & promotion](private-and-promotion.md#step-3a-approve-the-actual-promotion).
-- **Reject** — declines the request with a short reason. The geofence stays private for its owner.
+![The review dialog for a pending geofence, in Approve mode, with the public name and region fields](../../screenshots/admin-geofence-review.png)
 
 ```mermaid
 flowchart TD
@@ -31,19 +24,17 @@ flowchart TD
 
 ### Choosing a region at approval time
 
-If your Koji project has regions, the approval dialog shows a region picker, pre-filled with whatever region the submission already had. You can:
-
-- **Keep it** — leave it as-is.
-- **Change it** — file the area under a different region.
-- **Clear it** — promote it as an ungrouped public area.
+If your Koji project has regions, the approval dialog shows a region picker, pre-filled with whatever region the submission already had. Keep it, pick a different region to file the area under, or clear it to promote the area ungrouped.
 
 If your project has **no regions**, the picker simply doesn't appear, and the area is promoted ungrouped. You can always organize it in Koji afterward.
+
+With `[area_security]` on in PoracleNG, the promoted name must also be in the owner's community `allowed_areas`. If it isn't, PoracleNG refuses to move the owner's subscription to the new name, and you see the "areas weren't moved" warning after approving. The approval stands; the owner picks the area on the Areas page.
 
 ## Deleting geofences
 
 Admins can delete any geofence from the admin screen:
 
-- If it's a **private** geofence, it's removed from PoracleWeb.NET and from every profile that had it switched on.
+- If it's a **private** geofence, it's removed from PoracleWeb.NET and from every profile that had it switched on. If the owner has alarms limited to it, the dialog names the owner and asks whether to delete those alarms too (the default) or keep them on the owner's profile areas. If PoracleNG can't take the name off the owner's profiles, nothing is deleted and you can retry.
 - If it was **ever promoted to Koji**, PoracleWeb.NET also removes it from the Koji project so it stops being a selectable public area. The test is "was this published?", not the current status — a geofence approved and later rejected still has to be pulled out of the shared project.
 
 !!! warning "Project removal vs. full deletion"
@@ -56,7 +47,7 @@ You can have PoracleWeb.NET open a **Discord forum thread** for each submission,
 | Config | What it does |
 |---|---|
 | `Discord:GeofenceForumChannelId` | The Discord **forum channel** where submission threads are created. Leave unset to disable. |
-| `Site:PublicUrl` | Optional. The public URL of your site, no trailing slash. Makes the review card's title a link straight to the Geofence Submissions screen. The link is omitted when unset. |
+| `Site:PublicUrl` | Optional. The public URL of your site, no trailing slash. Makes the review card's title a link straight to the User Geofences screen. The link is omitted when unset. |
 
 ### The review card
 
@@ -99,12 +90,14 @@ Duplicate names are handled automatically — if a user picks a name that's take
 Separate from anything users draw: **Admin → Areas** lists every area Koji serves and lets you hide
 one without deleting it — staging fences, test polygons, a region you cover but do not advertise.
 
-A hidden area leaves **Areas & Places**, the per-alarm delivery scope picker and the bot's own area
+![Admin → Areas filtered by a search, one area switched to hidden and the save bar showing](../../screenshots/admin-areas.png)
+
+A hidden area leaves **Areas & places**, the per-alarm delivery scope picker and the bot's own area
 list together, because all three read the same flag. It does **not** unsubscribe anyone who already
-selected it; see
-[Hiding an area from your users](koji-and-regions.md#hiding-an-area-from-your-users) for exactly when
-it does go away, and [Troubleshooting](../../troubleshooting.md) for the two symptoms that bring people
-to ask.
+selected it, and their later saves keep it; see
+[Hiding an area from your users](koji-and-regions.md#hiding-an-area-from-your-users), and
+[Troubleshooting](../../troubleshooting.md#an-area-i-hid-is-still-sending-alerts) for the symptom that
+brings people to ask.
 
 ## Turning the whole feature off
 

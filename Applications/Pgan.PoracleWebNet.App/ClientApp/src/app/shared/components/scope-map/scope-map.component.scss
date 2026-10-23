@@ -1,0 +1,27 @@
+:host {
+  display: block;
+}
+
+.scope-map {
+  height: 180px;
+  margin: 4px 0 8px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--mat-sys-outline-variant, rgba(0, 0, 0, 0.12));
+  // Leaflet's own grey shows while tiles load; the surface colour reads as part of the dialog in both themes.
+  background: var(--mat-sys-surface-container, #eee);
+  cursor: default;
+}
+
+@media (max-width: 599px) {
+  .scope-map {
+    height: 150px;
+  }
+}
+
+// One mid blue in both themes, not the theme's primary: the tiles stay light in dark mode, where the dark
+// theme's pale primary all but vanished against them, and a mid blue still reads on a dark basemap.
+:host ::ng-deep .scope-map-shape {
+  stroke: #1e88e5;
+  fill: #1e88e5;
+}

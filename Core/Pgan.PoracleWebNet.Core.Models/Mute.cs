@@ -24,6 +24,18 @@ public sealed class Mute
         get; init;
     }
 
+    /// <summary>
+    /// For a <c>tracking</c> mute, the type of the rule it silences (<c>raid</c>, <c>pokemon</c>, ...):
+    /// rule uids are numbered per table, so <c>60</c> alone does not say which rule. Null for every other
+    /// scope, and for every mute on a server older than jfberry/PoracleNG#328 §6, which stores none.
+    /// When present, a delete must send it back (<c>?tracking_type=</c>) or the server cannot tell which
+    /// mute is meant; when absent it must not be sent, since an older server does not know the parameter.
+    /// </summary>
+    public string? TrackingType
+    {
+        get; init;
+    }
+
     /// <summary>Unix seconds at which the mute lapses.</summary>
     public long ExpiresAt
     {

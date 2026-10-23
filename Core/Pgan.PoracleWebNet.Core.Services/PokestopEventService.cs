@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
@@ -8,24 +9,26 @@ namespace Pgan.PoracleWebNet.Core.Services;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Collisions are refused here rather than left to upstream. PoracleNG's create diffs the rule against
-/// the stored ones like any invasion row, so a create one updatable field away from a rule the user
-/// already has silently rewrites that rule and re-keys it, answering as though something new had been
-/// made. Its replace does not diff at all, so an edit could land a rule that close beside another, a
-/// state no create can produce. Both are refused before the write, naming the event. What is not
-/// refused is a second rule for the same event that PoracleNG itself stores as one: limited to other
-/// areas, measured from a place, or two updatable fields away (see <see cref="RefuseIfEventTaken"/>).
+/// PoracleNG's create diffs the rule against the stored ones like any invasion row: <c>display_type</c>,
+/// the override areas and the place label identify a rule, and <c>distance</c>, <c>template</c> and
+/// <c>clean</c> are updatable. So a create one updatable field away from a rule the user already has would
+/// silently rewrite that rule and re-key it. Creates therefore go through the same dry-run protocol as every
+/// other tracking type (<see cref="IncidentCreateProtocol"/>): PoracleNG says what the write would do, and a
+/// takeover is refused before anything is written. A second rule for the same event that PoracleNG stores as
+/// one (limited to other areas, measured from a place, two updatable fields away) is created as before. An
+/// edit is one v2 replace, which PoracleNG refuses with a 409 when it would duplicate another rule.
 /// </para>
 /// <para>
 /// Every successful write re-keys the row: a create-as-update moved uid 732 to 733, a replace moved
 /// 733 to 735. Callers must refetch rather than patch a list in place.
 /// </para>
 /// </remarks>
-public class PokestopEventService(IPoracleIncidentProxy proxy, IFeatureGate featureGate, INaturalKeyCapabilityService naturalKeys) : IPokestopEventService
+public class PokestopEventService(
+    IPoracleIncidentProxy proxy, IFeatureGate featureGate, ILogger<PokestopEventService> logger) : IPokestopEventService
 {
     private readonly IPoracleIncidentProxy _proxy = proxy;
     private readonly IFeatureGate _featureGate = featureGate;
-    private readonly INaturalKeyCapabilityService _naturalKeys = naturalKeys;
+    private readonly ILogger<PokestopEventService> _logger = logger;
 
     public async Task<IEnumerable<PokestopEvent>> GetByUserAsync(string userId, int profileNo) =>
         await this._proxy.GetByUserAsync(userId);
@@ -41,12 +44,8 @@ public class PokestopEventService(IPoracleIncidentProxy proxy, IFeatureGate feat
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.PokestopEvents);
         model.Id = userId;
 
-        var keyEnforced = await this._naturalKeys.IsEnforcedAsync(TrackingTypeName);
-        var existing = await this._proxy.GetByUserAsync(userId);
-        RefuseIfEventTaken(existing, model, ignoreUid: 0, keyEnforced);
-
-        var result = await this._proxy.CreateAsync(userId, [model]);
-        model.Uid = result.PrimaryUid ?? 0;
+        var uids = await IncidentCreateProtocol.CreateAsync(this._proxy, userId, [model], single: true);
+        model.Uid = uids[0];
         return model;
     }
 
@@ -59,12 +58,9 @@ public class PokestopEventService(IPoracleIncidentProxy proxy, IFeatureGate feat
             return list;
         }
 
-        var keyEnforced = await this._naturalKeys.IsEnforcedAsync(TrackingTypeName);
-        var existing = await this._proxy.GetByUserAsync(userId);
         foreach (var model in list)
         {
             model.Id = userId;
-            RefuseIfEventTaken(existing, model, ignoreUid: 0, keyEnforced);
         }
 
         // Two boxes ticked for the same event would collapse into one rule upstream and the caller
@@ -77,15 +73,10 @@ public class PokestopEventService(IPoracleIncidentProxy proxy, IFeatureGate feat
                 $"'{NameOf(duplicate.Key)}' is named twice in the same request.");
         }
 
-        var result = await this._proxy.CreateAsync(userId, list);
-        var written = result.Created.Concat(result.Updated).ToList();
-        foreach (var model in list)
+        var uids = await IncidentCreateProtocol.CreateAsync(this._proxy, userId, list, single: false);
+        for (var i = 0; i < list.Count; i++)
         {
-            var match = written.FirstOrDefault(x => x.DisplayType == model.DisplayType);
-            if (match is not null)
-            {
-                model.Uid = match.Uid;
-            }
+            list[i].Uid = uids[i];
         }
 
         return list;
@@ -94,10 +85,6 @@ public class PokestopEventService(IPoracleIncidentProxy proxy, IFeatureGate feat
     public async Task<PokestopEvent> UpdateAsync(string userId, PokestopEvent model)
     {
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.PokestopEvents);
-
-        var keyEnforced = await this._naturalKeys.IsEnforcedAsync(TrackingTypeName);
-        var existing = await this._proxy.GetByUserAsync(userId);
-        RefuseIfEventTaken(existing, model, ignoreUid: model.Uid, keyEnforced);
 
         var result = await this._proxy.ReplaceAsync(userId, model.Uid, model);
 
@@ -144,121 +131,30 @@ public class PokestopEventService(IPoracleIncidentProxy proxy, IFeatureGate feat
     }
 
     /// <summary>
-    /// Re-sends the whole rule with a new radius rather than a patch, so template, clean bits and
-    /// override scope survive.
+    /// One v2 PATCH naming the uids and the radius, so template, clean bits and override scope stay as stored
+    /// and each rule keeps its uid.
     /// </summary>
-    /// <remarks>
-    /// Safe to send as one batch, unlike the v1 types: each rule's identity is its own event, so no
-    /// two rows in the set can collapse into each other at the new radius — the #580/#598 failure has
-    /// nothing to bite on here.
-    /// </remarks>
     private async Task<DistanceUpdateResult> RewriteDistanceAsync(string userId, IReadOnlyList<PokestopEvent> items, int distance)
     {
         // A radius cannot apply to a rule limited to areas, and a rule measured from a place needs one.
-        // PoracleNG refuses both, so one such rule in the batch failed all of them; skip and report it.
-        var conflicts = items
-            .Select(item => (item, conflict: DistanceRewrite.ConflictOf(
+        // PoracleNG refuses both; skip and report them rather than sending them.
+        var plan = DistanceRewrite.Plan(
+            items.Select(item => new DistanceRewrite.RowScope(
+                item.Uid,
                 item.OverrideAreas is { Count: > 0 },
-                !string.IsNullOrWhiteSpace(item.OverrideLocationLabel),
-                distance)))
-            .ToList();
-        var writable = conflicts.Where(c => c.conflict == DistanceRewrite.ScopeConflict.None).Select(c => c.item).ToList();
-        var skipped = new DistanceUpdateResult(
-            0,
-            [.. conflicts.Where(c => c.conflict == DistanceRewrite.ScopeConflict.AreaScoped).Select(c => c.item.Uid)],
-            [.. conflicts.Where(c => c.conflict == DistanceRewrite.ScopeConflict.PlaceScoped).Select(c => c.item.Uid)]);
+                !string.IsNullOrWhiteSpace(item.OverrideLocationLabel))),
+            distance);
 
-        if (writable.Count == 0)
+        if (plan.Writable.Count == 0)
         {
-            return skipped;
+            return DistanceRewrite.Report(plan, TrackingTypeName, [], this._logger);
         }
 
-        foreach (var item in writable)
-        {
-            item.Distance = distance;
-        }
-
-        await this._proxy.CreateAsync(userId, writable);
-        return skipped with { Updated = writable.Count };
+        var result = await this._proxy.PatchAsync(userId, plan.WritableUids, new TrackingPatchSet(Distance: distance));
+        return DistanceRewrite.Report(plan, TrackingTypeName, [result], this._logger);
     }
 
     private const string TrackingTypeName = "incident";
-
-    /// <summary>
-    /// Refuses a write PoracleNG would resolve into a rule the user already has, or that its database
-    /// would refuse outright.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// Where the <c>invasion</c> table still carries its unique key (a server before migration 8), any second
-    /// rule for the same event is a duplicate-key 500, so the event alone decides.
-    /// </para>
-    /// <para>
-    /// Past migration 8 the rows are diffed like any invasion: <c>display_type</c> (stored as the event's
-    /// name), the override areas and the place label identify a rule, and <c>distance</c>, <c>template</c> and
-    /// <c>clean</c> are updatable. Verified by posting straight to <c>/api/v2/.../tracking/incident</c> on
-    /// 5.2.1 and 5.3.0: beside an area-scoped twin, a different area list, a place label or two updatable
-    /// differences it creates a second rule; an exact duplicate is <c>unchanged</c> and one updatable
-    /// difference rewrites the stored rule. Only those last two are refused.
-    /// </para>
-    /// </remarks>
-    private static void RefuseIfEventTaken(
-        IReadOnlyList<PokestopEvent> existing, PokestopEvent submitted, int ignoreUid, bool keyEnforced)
-    {
-        // Any other rule within one updatable field refuses. On a create PoracleNG would find the first
-        // such rule unchanged or take it over; on an edit the replace does not diff, and would leave two
-        // rules that close together, a state no create can produce.
-        var decisive = keyEnforced
-            ? existing.FirstOrDefault(x => x.DisplayType == submitted.DisplayType && x.Uid != ignoreUid)
-            : existing.FirstOrDefault(x => x.Uid != ignoreUid && UpdatableDifferences(x, submitted) is <= 1);
-
-        if (decisive is not null)
-        {
-            throw new TrackingConflictException(
-                TrackingTypeName,
-                keyEnforced
-                    ? $"You already have an alarm for {NameOf(submitted.DisplayType)}. Edit that one instead."
-                    : $"You already have an alarm for {NameOf(submitted.DisplayType)} with those settings. Edit that one instead.");
-        }
-    }
-
-    /// <summary>
-    /// How many of PoracleNG's updatable fields differ, or null when an identity field does and the two
-    /// are unrelated rules.
-    /// </summary>
-    private static int? UpdatableDifferences(PokestopEvent stored, PokestopEvent submitted)
-    {
-        if (stored.DisplayType != submitted.DisplayType
-            || !AreasOf(stored).SequenceEqual(AreasOf(submitted), StringComparer.Ordinal)
-            || !string.Equals(stored.OverrideLocationLabel ?? string.Empty, submitted.OverrideLocationLabel ?? string.Empty, StringComparison.Ordinal))
-        {
-            return null;
-        }
-
-        var differences = 0;
-        if (stored.Distance != submitted.Distance)
-        {
-            differences++;
-        }
-
-        // v2 stores a blank template as "" and reads it back as null.
-        if (!string.Equals(stored.Template ?? string.Empty, submitted.Template ?? string.Empty, StringComparison.Ordinal))
-        {
-            differences++;
-        }
-
-        // v2 carries only the three clean bits.
-        if ((stored.Clean & 7) != (submitted.Clean & 7))
-        {
-            differences++;
-        }
-
-        return differences;
-    }
-
-    /// <summary>Area names as PoracleNG stores them: lowercased, in order, none meaning empty.</summary>
-    private static IEnumerable<string> AreasOf(PokestopEvent rule) =>
-        (rule.OverrideAreas ?? []).Select(a => a.ToLowerInvariant());
 
     /// <summary>
     /// The event's name for a message. Falls back to the raw id for an event this build has no name

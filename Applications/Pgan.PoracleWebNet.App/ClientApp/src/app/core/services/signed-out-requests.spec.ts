@@ -55,7 +55,7 @@ describe('background requests after sign-out', () => {
 
       window.dispatchEvent(new Event('focus'));
 
-      httpMock.expectOne(`${API}/api/mutes`).flush({ capable: true, mutes: [] });
+      httpMock.expectOne(`${API}/api/mutes`).flush({ mutes: [] });
     });
 
     it('sends nothing once signed out, and forgets the last user’s list', () => {
@@ -63,7 +63,6 @@ describe('background requests after sign-out', () => {
       const mutes = TestBed.inject(MuteService);
       mutes.refresh(true);
       httpMock.expectOne(`${API}/api/mutes`).flush({
-        capable: true,
         mutes: [{ expiresAt: Math.floor(Date.now() / 1000) + 600, remainingSecs: 600, scope: 'gym', value: 'g1' }],
       });
       expect(mutes.hasMutes()).toBe(true);

@@ -8,6 +8,7 @@ namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/eggs")]
 [RequireFeatureEnabled(DisableFeatureKeys.Raids)]
+[TypeFilter(typeof(PoracleUnreachableExceptionFilter))]
 public class EggController(IEggService eggService) : BaseApiController
 {
     private readonly IEggService _eggService = eggService;

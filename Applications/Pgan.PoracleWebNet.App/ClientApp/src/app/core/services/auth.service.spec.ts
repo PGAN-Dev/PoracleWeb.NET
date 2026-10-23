@@ -145,7 +145,6 @@ describe('AuthService', () => {
       // getAll() also asks which disable_* keys Poracle forces off upstream (#769), and whether
       // Poracle can store a costume filter (#804).
       httpMock.expectOne(`${API}/api/settings/upstream-disabled`).flush([]);
-      httpMock.expectOne(`${API}/api/settings/costume-capability`).flush({ raid: true, pokemon: true });
       // The alert language is reconciled here too: App.ngOnInit skips it while signed out (#775), so a
       // login completed inside one page session would otherwise never pick up humans.language.
       httpMock.expectOne(`${API}/api/location/language`).flush({ language: 'de' });
@@ -208,7 +207,6 @@ describe('AuthService', () => {
       const settingsReq = httpMock.expectOne(`${API}/api/settings`);
       settingsReq.flush([]);
       httpMock.expectOne(`${API}/api/settings/upstream-disabled`).flush([]);
-      httpMock.expectOne(`${API}/api/settings/costume-capability`).flush({ raid: true, pokemon: true });
       httpMock.expectOne(`${API}/api/location/language`).flush({ language: 'de' });
 
       expect(router.navigate).toHaveBeenCalledWith(['/dashboard']);
@@ -413,7 +411,7 @@ describe('AuthService', () => {
       expect(localStorage.getItem('poracle_token')).toBe('admin-jwt');
       expect(localStorage.getItem('poracle_admin_token')).toBeNull();
       expect(service.isImpersonating()).toBe(false);
-      expect(router.navigate).toHaveBeenCalledWith(['/admin']);
+      expect(router.navigate).toHaveBeenCalledWith(['/admin'], { state: { adminReturn: true } });
     });
 
     it('logs out when there is no admin token to go back to', async () => {
@@ -555,7 +553,7 @@ describe('AuthService', () => {
 
       expect(await promise).toBe(true);
       expect(service.user()?.username).toBe('AdminUser');
-      expect(router.navigate).toHaveBeenCalledWith(['/admin']);
+      expect(router.navigate).toHaveBeenCalledWith(['/admin'], { state: { adminReturn: true } });
     });
 
     it('keeps the signed-in shell while "Sign out everywhere" leaves for the provider', () => {

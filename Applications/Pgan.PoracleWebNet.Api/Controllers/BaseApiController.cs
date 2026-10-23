@@ -46,8 +46,9 @@ public abstract class BaseApiController : ControllerBase
 
     /// <summary>
     /// The answer to a bulk "Update Distance". <c>updated</c> keeps its meaning for existing callers;
-    /// the two skip lists name the selected alarms a radius could not apply to, so the SPA can say why
-    /// they did not change. See <see cref="DistanceUpdateResult"/>.
+    /// the two scope skip lists name the selected alarms a radius could not apply to, and
+    /// <c>skippedConflict</c> the ones PoracleNG left alone because they would collide with another alarm,
+    /// so the SPA can say why they did not change. See <see cref="DistanceUpdateResult"/>.
     /// </summary>
     protected IActionResult DistanceUpdated(DistanceUpdateResult result) =>
         this.Ok(new
@@ -55,6 +56,7 @@ public abstract class BaseApiController : ControllerBase
             updated = result.Updated,
             skippedAreaScoped = result.SkippedAreaScoped,
             skippedPlaceScoped = result.SkippedPlaceScoped,
+            skippedConflict = result.SkippedConflict,
         });
 
     /// <summary>

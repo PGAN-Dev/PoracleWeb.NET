@@ -3,7 +3,7 @@
 All configuration can be provided via environment variables or `appsettings.json`. The same `.env` file works for both Docker and standalone mode.
 
 !!! tip "Short env var names"
-    The `.env` file uses friendly short names (`DB_HOST`, `JWT_SECRET`, `DISCORD_CLIENT_ID`, etc.). The app automatically translates these to .NET's configuration format at startup. You can use either the short names or the `__`-delimited names shown in the table below.
+    The `.env` file uses friendly short names (`WEB_DB_HOST`, `JWT_SECRET`, `DISCORD_CLIENT_ID`, etc.). The app automatically translates these to .NET's configuration format at startup. You can use either the short names or the `__`-delimited names shown in the table below.
 
 ## Server
 
@@ -16,19 +16,13 @@ All configuration can be provided via environment variables or `appsettings.json
 
 | Setting | `.env` name | `.NET` env variable | Description |
 |---|---|---|---|
-| Database | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | `ConnectionStrings__PoracleDb` | MySQL connection to Poracle database. Short vars are auto-composed into a connection string. |
+| Database | `WEB_DB_HOST`, `WEB_DB_PORT`, `WEB_DB_NAME`, `WEB_DB_USER`, `WEB_DB_PASSWORD` | `ConnectionStrings__PoracleWebDb` | MySQL connection to PoracleWeb.NET's own database. See [Databases](#databases). |
 | JWT Secret | `JWT_SECRET` | `Jwt__Secret` | JWT signing key (minimum 32 characters) |
 | Discord Client ID | `DISCORD_CLIENT_ID` | `Discord__ClientId` | Discord OAuth2 application client ID |
 | Discord Client Secret | `DISCORD_CLIENT_SECRET` | `Discord__ClientSecret` | Discord OAuth2 application client secret |
 | Poracle API Address | `PORACLE_API_ADDRESS` | `Poracle__ApiAddress` | PoracleNG API base URL. **Critical** -- all alarm tracking, human/profile management, location, and area operations are proxied through this endpoint. |
 | Poracle API Secret | `PORACLE_API_SECRET` | `Poracle__ApiSecret` | PoracleNG API shared secret. Sent as the `X-Poracle-Secret` header on every request. |
 | Admin IDs | `PORACLE_ADMIN_IDS` | `Poracle__AdminIds` | Comma-separated Discord admin user IDs |
-
-### PoracleNG API surface
-
-| Setting | `.env` name | `.NET` env variable | Default | Description |
-|---|---|---|---|---|
-| Tracking API version | `PORACLE_TRACKING_API_VERSION` | `Poracle__TrackingApiVersion` | `auto` | Which PoracleNG tracking surface single-rule edits are written through: `auto`, `v1` or `v2`. `auto` uses the strict `/api/v2` surface on PoracleNG 5.2.0 and later and v1 below that. Set `v1` to stay on the old surface, or `v2` for a fork that carries the routes without reporting a version that says so. It covers nine types -- Pokemon, raids, eggs, quests, gyms, max battles, nests, lures and fort changes. Invasion edits, every read, every create and both distance endpoints stay on v1 whatever this is set to, and Pokéstop Events are v2-only and unaffected. See [The v2 write path](../architecture/poracleng-proxy.md#the-v2-write-path). |
 
 ## Optional settings
 
@@ -42,7 +36,7 @@ All configuration can be provided via environment variables or `appsettings.json
 | Discord Bot Token | `DISCORD_BOT_TOKEN` | `Discord__BotToken` | — | Enables Discord avatar display |
 | Discord Guild ID | `DISCORD_GUILD_ID` | `Discord__GuildId` | — | Discord server ID |
 | Discord Geofence Forum | `DISCORD_GEOFENCE_FORUM_CHANNEL_ID` | `Discord__GeofenceForumChannelId` | — | Forum channel for geofence submission threads |
-| Public site URL | `PUBLIC_URL` | `Site__PublicUrl` | — | Public URL users reach this site at, no trailing slash (e.g. `https://alerts.example.com`). Used to link geofence review threads to the admin review page; the link is omitted when unset. |
+| Discord Frontend URL | — | `Discord__FrontendUrl` | `http://localhost:4200` | Unused. The setting class still declares it, but sign-in redirects come from `PUBLIC_URL` or the request; setting it changes nothing. |
 | Telegram Enabled | `TELEGRAM_ENABLED` | `Telegram__Enabled` | `false` | Enable Telegram authentication |
 | Telegram Bot Token | `TELEGRAM_BOT_TOKEN` | `Telegram__BotToken` | — | Telegram bot token |
 | Telegram Bot Username | `TELEGRAM_BOT_USERNAME` | `Telegram__BotUsername` | — | Telegram bot username |
@@ -79,12 +73,14 @@ Optional, opt-in. Enables silent server-side session renewal and provider-side r
 |---|---|---|---|---|
 | Use Refresh Tokens | `OIDC_USE_REFRESH_TOKENS` | `Oidc__UseRefreshTokens` | `false` | Master opt-in for brokering the provider's refresh token (silent renewal + revocation propagation). Requires the provider to issue a refresh token. |
 | Access Token Minutes | `OIDC_ACCESS_TOKEN_MINUTES` | `Oidc__AccessTokenMinutes` | `30` | Internal JWT lifetime (minutes) for refresh-backed OIDC sessions only. Other logins keep `Jwt__ExpirationMinutes`. |
-| Refresh Token Lifetime (days) | `OIDC_REFRESH_TOKEN_LIFETIME_DAYS` | `Oidc__RefreshTokenLifetimeDays` | `30` | PoracleWeb-side absolute cap (days) on a refresh session before a real re-login is forced. |
+| Refresh Token Lifetime (days) | `OIDC_REFRESH_TOKEN_LIFETIME_DAYS` | `Oidc__RefreshTokenLifetimeDays` | `30` | PoracleWeb.NET-side absolute cap (days) on a refresh session before a real re-login is forced. |
 | Revoked Retention (days) | `OIDC_SESSION_REVOKED_RETENTION_DAYS` | `Oidc__RevokedRetentionDays` | `2` | How long (days) revoked/rotated session rows are retained for replay detection before cleanup deletes them. |
 | Offline Access Scope | `OIDC_OFFLINE_ACCESS_SCOPE` | `Oidc__OfflineAccessScope` | `offline_access` | Scope appended to the authorize request so a compliant provider issues a refresh token. Set empty for providers that issue refresh tokens unconditionally or use a non-standard mechanism (e.g. Google's `access_type=offline`). |
 | Token Auth Method | `OIDC_TOKEN_AUTH_METHOD` | `Oidc__TokenEndpointAuthMethod` | `client_secret_post` | How client credentials are presented at the token endpoint: `client_secret_post` (form body) or `client_secret_basic` (HTTP Basic header). |
 
 ### Databases
+
+PoracleWeb.NET connects to one database of its own. It doesn't connect to Poracle's database at all; everything Poracle owns goes through PoracleNG's API. Older installs can delete `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` and `DB_PASSWORD` from `.env`: they're ignored, and the app logs a one-line notice at startup while any of them is set.
 
 | Setting | `.env` name | `.NET` env variable | Description |
 |---|---|---|---|
@@ -121,7 +117,9 @@ Required for the custom geofences feature.
 
 | Setting | `.env` name | `.NET` env variable | Description |
 |---|---|---|---|
-| Public URL | `PUBLIC_URL` | `PublicUrl` | The origin users reach this instance on (e.g. `https://poracle.example.com`). Sets the Discord and OIDC callback URLs directly instead of deriving them from each request. Origin only — a path, query or invalid URL stops the app at startup. Optional; unset follows the incoming request. |
+| Public URL | `PUBLIC_URL` | `PublicUrl` and `Site__PublicUrl` | The origin users reach this instance on (e.g. `https://poracle.example.com`). Optional; unset follows the incoming request. |
+
+One `PUBLIC_URL` sets both .NET keys. `PublicUrl` sets the Discord and OIDC callback URLs directly instead of deriving them from each request; a path, query or invalid URL stops the app at startup. `Site:PublicUrl` makes the title of a geofence review card in Discord link to the admin review page; without it the card has no link. If you set the `__`-delimited names yourself, set both to the same value.
 
 ### Paths
 
@@ -137,6 +135,16 @@ compose file, which is what the shipped example does.
 | Poracle config directory | `PORACLE_CONFIG_DIR` | `./data` | Host path that the shipped compose file mounts read-only at `/poracle-config`, which is what `DTS_SOURCE_DIR` points at. Standalone deployments do not use it. |
 
 With `DATA_DIR` unset the three consumers disagree: DataProtection falls back to `./data`, while `AvatarCacheService` and `DtsCacheService` fall back to the working directory itself, so `avatar-cache.json` and `dts-cache.json` land beside the binary and the keys land a directory deeper. Set it explicitly for any standalone run you intend to keep.
+
+### Build information
+
+The Docker image bakes these in at build time from `docker-publish.yml`; the Versions card and `GET /api/version` report them. A standalone build has none, and shows `unknown`.
+
+| Setting | Env variable | Default | Description |
+|---|---|---|---|
+| Version | `BUILD_VERSION` | `unknown` | The release or `beta` tag the image was built as |
+| Revision | `BUILD_REVISION` | `unknown` | The git commit |
+| Build date | `BUILD_DATE` | `unknown` | When the image was built |
 
 ### Reverse proxy
 
@@ -155,13 +163,13 @@ Required if anything terminates TLS in front of PoracleWeb.NET. See [Behind a re
 | `appsettings.json` | Default values. You rarely need to edit this. |
 | `appsettings.Development.json` | Local development overrides (gitignored) |
 | `docker-compose.yml` | Local copy of `docker-compose.yml.example` (gitignored). Uses `env_file: .env` to load all configuration — no per-key `environment:` entries are needed. Edit only to change ports, volumes, or image tags. |
-| `poracle_web.site_settings` table | Runtime admin-configurable settings (migrated from deprecated `pweb_settings`) |
+| `poracle_web.site_settings` table | Runtime admin-configurable settings (PoracleWeb.NET's own settings store) |
 
 !!! warning "PoracleNG must be reachable"
     `Poracle:ApiAddress` must point to a running PoracleNG instance that is reachable from the PoracleWeb.NET container. All alarm tracking, human/profile management, location, area operations, and active hours management are proxied through this API. If PoracleNG is unreachable, alarm operations fail entirely and user management (registration, login, location, areas, profile switch, active hours) also fails. The `Poracle:ApiSecret` must match the `server.apiSecret` value in PoracleNG's config.
 
-!!! info "Minimum PoracleNG is 5.1.0; some features need 5.2.0"
-    Below 5.1.0 the app logs an error at startup and three filters write columns that do not exist. Pokéstop Events, quiet periods and Pokécoin quest rewards need **5.2.0** or newer and hide themselves on anything older. See [Version compatibility](../architecture/poracleng-compatibility.md).
+!!! info "Minimum PoracleNG is 5.4.0"
+    Against anything older the app still starts, but logs an error at startup and flags the version on **Admin → Server settings**, and calls that need a 5.4.0 route fail with a message naming the version. Upgrade PoracleNG before upgrading PoracleWeb.NET. A leftover `PORACLE_TRACKING_API_VERSION` is ignored. See [Version compatibility](../architecture/poracleng-compatibility.md).
 
 !!! note "Secrets"
     `appsettings.Development.json` is gitignored and holds all connection strings, JWT secret, Discord/Telegram credentials, and Poracle API address/secret. Never commit secrets to the repository.

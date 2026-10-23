@@ -42,16 +42,9 @@ Open `.env` in any editor and fill in the values below. Lines starting with `#` 
 # Port — the port you'll access PoracleWeb.NET on (http://your-server:8082)
 PORT=8082
 
-# Database — your existing Poracle MySQL/MariaDB instance
-DB_HOST=localhost           # IP or hostname of your database server
-DB_PORT=3306                # MySQL port
-DB_NAME=poracle             # Your Poracle database name
-DB_USER=root
-DB_PASSWORD=your_db_password
-
-# PoracleWeb.NET database — a separate database for PoracleWeb.NET's own data
+# PoracleWeb.NET database — PoracleWeb.NET's own data, and the only database it connects to
 # Create this database first (see step 3 below), tables are auto-created
-WEB_DB_HOST=localhost
+WEB_DB_HOST=localhost           # IP or hostname of your database server
 WEB_DB_PORT=3306
 WEB_DB_NAME=poracle_web
 WEB_DB_USER=root
@@ -81,8 +74,8 @@ PORACLE_ADMIN_IDS=your_discord_user_id        # Comma-separated Discord user IDs
 CORS_ORIGIN=http://localhost:8082
 ```
 
-!!! warning "PoracleNG 5.1.0 or newer"
-    Point `PORACLE_API_ADDRESS` at PoracleNG 5.1.0 or later. Older servers have no column for per-alarm delivery scope, the PVP mega evolution filter or the minimum time-left filter, so those three controls save without an error and change nothing. PoracleWeb logs an error at startup and shows the detected version on **Admin → Settings**.
+!!! warning "PoracleNG 5.4.0 or newer"
+    Point `PORACLE_API_ADDRESS` at PoracleNG 5.4.0 or later. Against an older server PoracleWeb.NET still starts, but it logs an error at startup, shows the detected version on **Admin → Server settings**, and anything that needs a 5.4.0 route fails with a message saying so. Upgrade PoracleNG first.
 
 ### Optional settings
 
@@ -118,7 +111,7 @@ See the [Configuration Reference](../configuration/reference.md) for the full li
 PUBLIC_URL=https://alerts.example.com
 ```
 
-Leave it unset if the container is exposed directly, or if people reach it on several hostnames and you want the callback to follow whichever one they used. It is also the base for the links PoracleWeb puts in geofence review threads, so set it if you use the Discord submission forum.
+Leave it unset if the container is exposed directly, or if people reach it on several hostnames and you want the callback to follow whichever one they used. It is also the base for the links PoracleWeb.NET puts in geofence review threads, so set it if you use the Discord submission forum.
 
 If anything terminates TLS in front of the container — nginx, Caddy, Traefik, a Cloudflare Tunnel — also name it. `X-Forwarded-For` and `X-Forwarded-Proto` are believed only from declared addresses, because a header trusted from anyone lets a caller invent a new address per request and hand itself a fresh rate-limit allowance on the sign-in endpoints.
 
@@ -132,7 +125,7 @@ With neither set, the app falls back to the connection address. That is safe but
 
 ### Version checking
 
-The Versions card under **Admin → Settings** compares your PoracleWeb and PoracleNG versions against the latest releases. Opening that page makes two anonymous GETs, to `api.github.com` and `raw.githubusercontent.com`, with no identifiers sent. There is no scheduler behind it: the result is cached for six hours, so an instance whose admins never open the page never calls GitHub at all. If your egress policy blocks it, or you'd rather it didn't happen, switch on **Do not check for updates** (`disable_update_check`) under **Admin → Settings**.
+The Versions card under **Admin → Server settings** compares your PoracleWeb.NET and PoracleNG versions against the latest releases. Opening that page makes two anonymous GETs, to `api.github.com` and `raw.githubusercontent.com`, with no identifiers sent. There is no scheduler behind it: the result is cached for six hours, so an instance whose admins never open the page never calls GitHub at all. If your egress policy blocks it, or you'd rather it didn't happen, switch off **Check for updates** (stored as `disable_update_check`) under **Admin → Server settings**.
 
 ## 3. Create the PoracleWeb.NET database
 
@@ -151,7 +144,7 @@ CREATE DATABASE poracle_web CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 ```
 
 !!! note
-    This database is separate from your Poracle database. PoracleWeb.NET never modifies the Poracle DB schema.
+    PoracleWeb.NET doesn't connect to Poracle's database. It reaches Poracle only through PoracleNG's API.
 
 ## 4. Start
 
@@ -253,7 +246,7 @@ The app will now be available at `http://your-server:9090`. Remember to update y
 : A tile provider is refusing the request and drawing the refusal into the image — it still returns success, so nothing appears in the logs. A fresh install needs no map configuration at all; if you have set one, see [Maps](../configuration/site-settings.md#maps) and [Troubleshooting](../troubleshooting.md#maps-are-watermarked-blocked-blank-or-ignoring-the-setting).
 
 **Can't connect to database**
-: If your database is on the host machine (not in Docker), set `DB_HOST=host.docker.internal` in `.env`. The default in `.env.example` is `localhost` (for standalone use); Docker users connecting to the host must change this.
+: If your database is on the host machine (not in Docker), set `WEB_DB_HOST=host.docker.internal` in `.env`. The default in `.env.example` is `localhost` (for standalone use); Docker users connecting to the host must change this.
 
 **Poracle API errors / alarms don't save**
 : `PORACLE_API_ADDRESS` must be reachable from inside the container. If Poracle runs on the host, use `http://host.docker.internal:3030`. If it's on another machine, use that machine's IP.

@@ -1,20 +1,19 @@
-import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 
 import { QuestAddDialogComponent } from './quest-add-dialog.component';
 import { QuestEditDialogComponent } from './quest-edit-dialog.component';
 import { SummaryScheduleDialogComponent, SummaryScheduleDialogData } from './summary-schedule-dialog/summary-schedule-dialog.component';
 import { Quest } from '../../core/models';
+import { AreaNameService } from '../../core/services/area-name.service';
 import { AreaService } from '../../core/services/area.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
@@ -22,30 +21,38 @@ import { MasterDataService } from '../../core/services/masterdata.service';
 import { QuestService } from '../../core/services/quest.service';
 import { SummaryScheduleService } from '../../core/services/summary-schedule.service';
 import { TestAlertService } from '../../core/services/test-alert.service';
-import { AlarmInfoComponent } from '../../shared/components/alarm-info/alarm-info.component';
+import { AlarmCardComponent } from '../../shared/components/alarm-card/alarm-card.component';
+import { AlarmEmptyStateComponent } from '../../shared/components/alarm-empty-state/alarm-empty-state.component';
+import { AlarmListToolbarComponent, AlarmSortOption } from '../../shared/components/alarm-list-toolbar/alarm-list-toolbar.component';
+import { BulkActionBarComponent } from '../../shared/components/bulk-action-bar/bulk-action-bar.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
-import { RuleSummaryComponent } from '../../shared/components/rule-summary/rule-summary.component';
-import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
+import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
+import { WhereSheetComponent, WhereSheetData, whereSheetConfig } from '../../shared/components/where-sheet/where-sheet.component';
+import { addOnArrival } from '../../shared/utils/add-on-arrival';
+import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
+import { byNumber, byText, queryAlarms, visibleSelection } from '../../shared/utils/alarm-list-query';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
-import { ChipColors, readableChip } from '../../shared/utils/contrast';
 import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
+import { questRewardIcon } from '../../shared/utils/quest-reward-icon';
+import { serverReason } from '../../shared/utils/server-reason';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    MatCardModule,
+    AlarmEmptyStateComponent,
+    WhereChipComponent,
+    AlarmListToolbarComponent,
+    BulkActionBarComponent,
+    AlarmCardComponent,
     MatButtonModule,
-    MatCheckboxModule,
     MatIconModule,
     MatMenuModule,
     MatDialogModule,
     MatTooltipModule,
     MatSnackBarModule,
-    RuleSummaryComponent,
     TranslatePipe,
-    AlarmInfoComponent,
   ],
   selector: 'app-quest-list',
   standalone: true,
@@ -56,6 +63,7 @@ export class QuestListComponent implements OnInit {
   private static readonly FALLBACK =
     "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23999'%3E%3Cpath d='M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z'/%3E%3C/svg%3E";
 
+  private readonly areaNames = inject(AreaNameService);
   private readonly areaService = inject(AreaService);
 
   /** True while this alarm type is switched off: the page reads and deletes, but cannot create or edit. */
@@ -68,14 +76,51 @@ export class QuestListComponent implements OnInit {
   private readonly masterData = inject(MasterDataService);
   private readonly questService = inject(QuestService);
   private readonly snackBar = inject(MatSnackBar);
+  /** `?add=1` from the dashboard or onboarding opens the add dialog once. */
+  private readonly takeAddRequest = addOnArrival();
+  private readonly translate = inject(TranslateService);
+  readonly selectedIds = signal(new Set<number>());
+  readonly quests = signal<Quest[]>([]);
+  readonly search = signal('');
+  /** "default" keeps the stable order the list loads in (see orderAlarms), so nothing moves once names load. */
+  readonly sortBy = signal('default');
+  /** The rules the search leaves, in the chosen order; ties keep their stable order. See alarm-list-query. */
+  readonly visibleQuests = computed(() => {
+    const sorts: Record<string, (q: Quest, b: Quest) => number> = {
+      name: byText(q => this.getQuestTitle(q)),
+      newest: byNumber(q => -q.uid),
+      reward: byNumber(q => q.rewardType),
+    };
+    return queryAlarms(
+      this.quests(),
+      this.search(),
+      q => [this.getQuestTitle(q), this.getRewardTypeLabel(q.rewardType)],
+      sorts[this.sortBy()] ?? null,
+    );
+  });
+
+  /** The selected rules still on screen: bulk Delete and Change radius never reach a card the search has hidden. */
+  readonly actionIds = computed(() =>
+    visibleSelection(
+      this.selectedIds(),
+      this.visibleQuests().map(item => item.uid),
+    ),
+  );
+
   readonly loading = signal(true);
   /** Only used to word the inherited scope honestly; empty produces the more cautious wording. */
   readonly profileAreas = signal<string[]>([]);
-  readonly quests = signal<Quest[]>([]);
-  readonly selectedIds = signal(new Set<number>());
   readonly selectMode = signal(false);
 
   readonly skeletonCards = Array.from({ length: 6 });
+
+  readonly sortOptions: AlarmSortOption[] = [
+    { label: 'ALARM.SORT_DEFAULT', value: 'default' },
+    { label: 'ALARM.SORT_NAME', value: 'name' },
+    { label: 'ALARM.SORT_REWARD_TYPE', value: 'reward' },
+    { label: 'ALARM.SORT_NEWEST', value: 'newest' },
+  ];
+
   readonly summaryService = inject(SummaryScheduleService);
 
   readonly testAlertService = inject(TestAlertService);
@@ -83,15 +128,15 @@ export class QuestListComponent implements OnInit {
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        confirmText: this.i18n.instant('QUESTS.CONFIRM_DELETE_SELECTED'),
-        message: this.i18n.instant('QUESTS.CONFIRM_BULK_DELETE_MSG', { count: this.selectedIds().size }),
-        title: this.i18n.instant('QUESTS.CONFIRM_BULK_DELETE_TITLE'),
+        confirmText: this.i18n.instant('ALARM.DELETE_SELECTED', { count: this.actionIds().length }),
+        message: this.i18n.instant('ALARM.CONFIRM_BULK_DELETE_BODY'),
+        title: this.i18n.plural('ALARM.CONFIRM_BULK_DELETE_TITLE', this.actionIds().length),
         warn: true,
       } as ConfirmDialogData,
     });
     const result = await firstValueFrom(ref.afterClosed());
     if (result) {
-      const ids = [...this.selectedIds()];
+      const ids = this.actionIds();
       // Settled one at a time: a stale uid -- the row re-keyed by an edit, or removed in another tab --
       // threw out of the loop, so deletes that had already happened went unreported and the list never
       // reloaded. See #603.
@@ -107,17 +152,17 @@ export class QuestListComponent implements OnInit {
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadQuests();
-      this.snackBar.open(this.i18n.instant('QUESTS.SNACK_BULK_DELETED', { count: deleted }), this.i18n.instant('TOAST.OK'), {
+      this.snackBar.open(this.i18n.plural('ALARM.SNACK_BULK_DELETED', deleted), this.i18n.instant('TOAST.OK'), {
         duration: 3000,
       });
     }
   }
 
   async bulkUpdateDistance(): Promise<void> {
-    const ref = this.dialog.open(DistanceDialogComponent, { width: '440px' });
+    const ref = this.dialog.open(DistanceDialogComponent, { width: '440px', data: { count: this.actionIds().length } });
     const distance = await firstValueFrom(ref.afterClosed());
     if (distance !== null && distance !== undefined) {
-      const uids = [...this.selectedIds()];
+      const uids = this.actionIds();
       // The server refuses a radius that would take over an alarm the user did not select, and names
       // the one in the way. Unguarded, that rejection cleared nothing, reloaded nothing and showed
       // nothing -- indistinguishable from a successful no-op. See #641.
@@ -125,8 +170,7 @@ export class QuestListComponent implements OnInit {
       try {
         result = await firstValueFrom(this.questService.updateBulkDistance(uids, distance));
       } catch (err) {
-        const message = (err as { error?: { error?: string } })?.error?.error;
-        this.snackBar.open(message ?? this.i18n.instant('QUESTS.SNACK_FAILED_DISTANCE'), this.i18n.instant('TOAST.OK'), {
+        this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.FAILED_DISTANCE'), this.i18n.instant('TOAST.OK'), {
           duration: 5000,
         });
         return;
@@ -135,11 +179,7 @@ export class QuestListComponent implements OnInit {
       this.selectMode.set(false);
       this.loadQuests();
       this.snackBar.open(
-        distanceUpdateMessage(
-          result,
-          this.i18n.instant('QUESTS.SNACK_BULK_DISTANCE', { count: result?.updated ?? uids.length }),
-          this.i18n,
-        ),
+        distanceUpdateMessage(result, this.i18n.plural('ALARM.SNACK_BULK_DISTANCE', result?.updated ?? uids.length), this.i18n),
         this.i18n.instant('TOAST.OK'),
         {
           duration: skippedAny(result) ? 6000 : 3000,
@@ -160,8 +200,10 @@ export class QuestListComponent implements OnInit {
     ref.afterClosed().subscribe(confirmed => {
       if (confirmed) {
         this.questService.deleteAll().subscribe({
-          error: () => {
-            this.snackBar.open(this.i18n.instant('QUESTS.SNACK_FAILED_DELETE_ALL'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+          error: (err: unknown) => {
+            this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.FAILED_DELETE_ALL'), this.i18n.instant('TOAST.OK'), {
+              duration: 3000,
+            });
           },
           next: () => {
             this.snackBar.open(this.i18n.instant('QUESTS.SNACK_DELETED_ALL'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
@@ -184,8 +226,10 @@ export class QuestListComponent implements OnInit {
     ref.afterClosed().subscribe(confirmed => {
       if (confirmed) {
         this.questService.delete(quest.uid).subscribe({
-          error: () => {
-            this.snackBar.open(this.i18n.instant('QUESTS.SNACK_FAILED_DELETE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+          error: (err: unknown) => {
+            this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.FAILED_DELETE'), this.i18n.instant('TOAST.OK'), {
+              duration: 3000,
+            });
           },
           next: () => {
             this.snackBar.open(this.i18n.instant('QUESTS.SNACK_DELETED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
@@ -201,11 +245,7 @@ export class QuestListComponent implements OnInit {
   }
 
   editQuest(quest: Quest): void {
-    const ref = this.dialog.open(QuestEditDialogComponent, {
-      width: '600px',
-      data: quest,
-      maxHeight: '90vh',
-    });
+    const ref = this.dialog.open(QuestEditDialogComponent, { width: '600px', autoFocus: 'first-heading', data: quest, maxHeight: '90vh' });
     ref.afterClosed().subscribe(result => {
       if (result) this.loadQuests();
     });
@@ -219,13 +259,16 @@ export class QuestListComponent implements OnInit {
     };
 
     this.dialog
-      .open(WhereSheetComponent, { width: '520px', autoFocus: false, data })
+      .open(WhereSheetComponent, whereSheetConfig(data))
       .afterClosed()
       .subscribe((scope?: AlarmScope) => {
         if (!scope) return;
 
         this.questService.update(item.uid, scopeToFields(scope)).subscribe({
-          error: () => this.snackBar.open(this.i18n.instant('WHERE.SCOPE_SAVE_ERROR'), this.i18n.instant('COMMON.OK'), { duration: 4000 }),
+          error: (err: unknown) =>
+            this.snackBar.open(serverReason(err) ?? this.i18n.instant('WHERE.SCOPE_SAVE_ERROR'), this.i18n.instant('COMMON.OK'), {
+              duration: 4000,
+            }),
           next: () => {
             this.snackBar.open(this.i18n.instant('WHERE.SCOPE_SAVED'), this.i18n.instant('COMMON.OK'), { duration: 2500 });
             this.loadQuests();
@@ -242,23 +285,7 @@ export class QuestListComponent implements OnInit {
   }
 
   getQuestImage(quest: Quest): string {
-    // Pokemon encounter: ID may be in pokemonId or reward field
-    const pokemonId = quest.pokemonId > 0 ? quest.pokemonId : quest.reward;
-    if ((quest.rewardType === 7 || quest.rewardType === 12 || quest.rewardType === 4) && pokemonId > 0) {
-      return this.iconService.getPokemonUrl(pokemonId);
-    }
-    if (quest.rewardType === 7 && pokemonId === 0) {
-      return ''; // fallback icon in template
-    }
-    // Item reward — show the item icon
-    if (quest.rewardType === 2 && quest.reward > 0) {
-      return this.iconService.getItemUrl(quest.reward);
-    }
-    // Stardust
-    if (quest.rewardType === 3) {
-      return this.iconService.getRewardUrl('stardust', quest.reward || 0);
-    }
-    return this.iconService.getRewardUrl('quest', quest.rewardType);
+    return questRewardIcon(quest, this.iconService);
   }
 
   getQuestTitle(quest: Quest): string {
@@ -267,33 +294,6 @@ export class QuestListComponent implements OnInit {
     // The minimum only applies to the rewards that come in quantities, and saying "1x" for a rule that
     // asks for one of something is noise.
     return quest.amount > 1 ? this.i18n.instant('QUESTS.AMOUNT_PREFIX', { count: quest.amount, reward }) : reward;
-  }
-
-  /** The reward colour as a filled badge whose label stays readable. See readableChip. */
-  getRewardChip(rewardType: number): ChipColors {
-    return readableChip(this.getRewardColor(rewardType));
-  }
-
-  getRewardColor(rewardType: number): string {
-    switch (rewardType) {
-      case 7:
-        return '#4CAF50';
-      case 2:
-        return '#2196F3';
-      case 12:
-        return '#9C27B0';
-      case 4:
-        return '#FF9800';
-      // Stardust used to fall through to the grey "unknown reward" colour, which is what every other
-      // type it does not recognise gets.
-      case 3:
-        return '#FBC02D';
-      // Pokecoins get their own gold rather than the grey fallback, for the same reason stardust did.
-      case 8:
-        return '#FFB300';
-      default:
-        return '#9E9E9E';
-    }
   }
 
   getRewardTypeLabel(rewardType: number): string {
@@ -344,13 +344,13 @@ export class QuestListComponent implements OnInit {
   ngOnInit(): void {
     this.loadProfileAreas();
     this.summaryService.loadCapability();
-    this.questService.loadPokecoinCapability();
     this.masterData
       .loadData()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
         this.loadQuests();
       });
+    if (this.takeAddRequest()) this.openAddDialog();
   }
 
   onImageError(event: Event): void {
@@ -364,10 +364,13 @@ export class QuestListComponent implements OnInit {
   openAddDialog(): void {
     const ref = this.dialog.open(QuestAddDialogComponent, {
       width: '600px',
+      autoFocus: 'first-heading',
+      data: { existingRule: (uid, type) => this.describeExisting(uid, type) } satisfies AddDialogData,
       maxHeight: '90vh',
     });
     ref.afterClosed().subscribe(result => {
-      if (result) this.loadQuests();
+      if (isEditExisting(result)) this.openExisting(result.editExisting.uid, result.editExisting.trackingType);
+      else if (result) this.loadQuests();
     });
   }
 
@@ -381,8 +384,9 @@ export class QuestListComponent implements OnInit {
   }
 
   selectAll(): void {
-    const ids = new Set(this.quests().map(i => i.uid));
-    this.selectedIds.set(ids);
+    // Adds what is on screen: a search that hides a rule also keeps it out of Select All (#642), and a tick
+    // the search is hiding stays, so clearing the search brings it back.
+    this.selectedIds.set(new Set([...this.selectedIds(), ...this.visibleQuests().map(i => i.uid)]));
   }
 
   sendTestAlert(quest: Quest): void {
@@ -398,6 +402,15 @@ export class QuestListComponent implements OnInit {
   toggleSelectMode(): void {
     this.selectMode.update(v => !v);
     if (!this.selectMode()) this.selectedIds.set(new Set());
+  }
+
+  /** Names one of this list's rules for an add dialog's refusal, or null when the list holds no such rule. */
+  private describeExisting(uid: number, trackingType: null | string): null | string {
+    if (trackingType !== null && trackingType !== 'quest') return null;
+    const quest = this.quests().find(q => q.uid === uid);
+    return quest
+      ? ruleSummary(this.getQuestTitle(quest), quest, this.profileAreas(), this.translate, area => this.areaNames.label(area))
+      : null;
   }
 
   private describeReward(quest: Quest): string {
@@ -437,5 +450,11 @@ export class QuestListComponent implements OnInit {
 
   private loadProfileAreas(): void {
     this.areaService.getSelected().subscribe({ error: () => undefined, next: areas => this.profileAreas.set(areas) });
+  }
+
+  /** An add dialog was refused because of this rule and the user chose to edit it instead. */
+  private openExisting(uid: number, _trackingType: null | string): void {
+    const quest = this.quests().find(q => q.uid === uid);
+    if (quest) this.editQuest(quest);
   }
 }

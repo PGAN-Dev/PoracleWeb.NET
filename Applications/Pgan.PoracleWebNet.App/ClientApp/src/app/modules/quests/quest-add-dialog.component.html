@@ -5,7 +5,7 @@
     <mat-tab>
       <ng-template mat-tab-label>
         <mat-icon>explore</mat-icon>
-        <span class="tab-label">{{ 'QUESTS.TAB_REWARDS' | translate }}</span>
+        <span class="tab-label">{{ 'NAV.QUESTS' | translate }}</span>
       </ng-template>
       <div class="tab-content">
         <!-- One control rather than a strip of six: a nested tab strip could not fit six labels at
@@ -15,9 +15,7 @@
           <mat-label>{{ 'QUESTS.REWARD_TYPE' | translate }}</mat-label>
           <mat-select [(value)]="rewardKind">
             @for (kind of rewardKinds; track kind.value) {
-              @if (kind.value !== 5 || supportsPokecoins()) {
-                <mat-option [value]="kind.value">{{ kind.label | translate }}</mat-option>
-              }
+              <mat-option [value]="kind.value">{{ kind.label | translate }}</mat-option>
             }
           </mat-select>
         </mat-form-field>
@@ -95,32 +93,37 @@
         <span class="tab-label">{{ 'ALARM.TAB_DELIVERY' | translate }}</span>
       </ng-template>
       <div class="tab-content">
-        <app-scope-picker [(scope)]="scope" />
+        <app-scope-picker [(scope)]="scope" [(radiusValid)]="radiusValid" />
 
-        <h4>{{ 'ALARM.COMMON_SETTINGS' | translate }}</h4>
+        <h4>{{ 'ALARM.MESSAGE_SETTINGS' | translate }}</h4>
 
         <app-template-selector
           [alarmType]="'quest'"
           [value]="commonForm.controls.template.value ?? ''"
           (valueChange)="commonForm.controls.template.setValue($event)">
         </app-template-selector>
-
-        <mat-slide-toggle [formControl]="commonForm.controls.clean"> {{ 'ALARM.CLEAN_MODE' | translate }} </mat-slide-toggle>
-        <p class="clean-hint">{{ 'ALARM.CLEAN_HINT_QUEST' | translate }}</p>
-
-        <mat-slide-toggle [formControl]="commonForm.controls.summary"> {{ 'QUESTS.SUMMARY_MODE' | translate }} </mat-slide-toggle>
-        <p class="clean-hint">{{ 'QUESTS.SUMMARY_HINT' | translate }}</p>
-        @if (!summaryService.enabled()) {
-          <p class="clean-hint">{{ 'QUESTS.SUMMARY_DISABLED_HINT' | translate }}</p>
-        }
+        <div class="message-row">
+          <div class="message-option">
+            <mat-slide-toggle [formControl]="commonForm.controls.clean"> {{ 'ALARM.CLEAN_MODE' | translate }} </mat-slide-toggle>
+            <p class="clean-hint">{{ 'ALARM.CLEAN_HINT_QUEST' | translate }}</p>
+          </div>
+          <div class="message-option">
+            <mat-slide-toggle [formControl]="commonForm.controls.summary"> {{ 'QUESTS.SUMMARY_MODE' | translate }} </mat-slide-toggle>
+            <p class="clean-hint">{{ 'QUESTS.SUMMARY_HINT' | translate }}</p>
+            @if (!summaryService.enabled()) {
+              <p class="clean-hint">{{ 'QUESTS.SUMMARY_DISABLED_HINT' | translate }}</p>
+            }
+          </div>
+        </div>
       </div>
     </mat-tab>
   </mat-tab-group>
 </mat-dialog-content>
 
+<app-add-refusal [refusal]="refusal()" (editExisting)="editExisting($event)" />
 <mat-dialog-actions align="end">
   <button mat-button (click)="dialogRef.close(false)">{{ 'ALARM.CANCEL' | translate }}</button>
-  <button mat-raised-button color="primary" (click)="save()" [disabled]="saving() || !canSave()">
+  <button mat-flat-button color="primary" (click)="save()" [disabled]="saving() || !canSave() || !radiusValid()">
     {{ saving() ? ('ALARM.SAVING' | translate) : ('ALARM.SAVE' | translate) }}
   </button>
 </mat-dialog-actions>

@@ -95,6 +95,50 @@ internal static class V2SchemaBounds
     }
 
     /// <summary>
+    /// Every property name each <c>V2*Rule</c> declares, keyed by tracking type. Empty for anything it cannot
+    /// read, so a failed fetch carries nothing through that the field tables do not already model.
+    /// </summary>
+    internal static IReadOnlyDictionary<string, IReadOnlySet<string>> ParseDeclared(string? openApiJson)
+    {
+        var byType = new Dictionary<string, IReadOnlySet<string>>(StringComparer.Ordinal);
+
+        if (string.IsNullOrWhiteSpace(openApiJson))
+        {
+            return byType;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(openApiJson);
+
+            if (!document.RootElement.TryGetProperty("components", out var components)
+                || !components.TryGetProperty("schemas", out var schemas)
+                || schemas.ValueKind != JsonValueKind.Object)
+            {
+                return byType;
+            }
+
+            foreach (var schema in schemas.EnumerateObject())
+            {
+                if (TypeNameOf(schema.Name) is not { } type
+                    || !schema.Value.TryGetProperty("properties", out var properties)
+                    || properties.ValueKind != JsonValueKind.Object)
+                {
+                    continue;
+                }
+
+                byType[type] = properties.EnumerateObject().Select(p => p.Name).ToHashSet(StringComparer.Ordinal);
+            }
+
+            return byType;
+        }
+        catch (JsonException)
+        {
+            return new Dictionary<string, IReadOnlySet<string>>(StringComparer.Ordinal);
+        }
+    }
+
+    /// <summary>
     /// <c>V2PokemonRule</c> becomes <c>pokemon</c>. Anything else, including the
     /// <c>V2CreateOutputV2PokemonRuleBody</c> envelopes that wrap these same schemas, is not a rule.
     /// </summary>

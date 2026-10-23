@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { signal, WritableSignal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
@@ -5,6 +8,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideTranslateService, TranslateService } from '@ngx-translate/core';
 
 import { HelpComponent } from './help.component';
+import { AuthService } from '../../core/services/auth.service';
 import { SettingsService } from '../../core/services/settings.service';
 import { ImageViewerDialogComponent } from '../../shared/components/image-viewer-dialog/image-viewer-dialog.component';
 
@@ -23,6 +27,7 @@ describe('HelpComponent screenshots', () => {
         provideTranslateService(),
         { provide: MatDialog, useValue: dialog },
         { provide: SettingsService, useValue: { supportUrl: signal(null) } },
+        { provide: AuthService, useValue: { isAdmin: signal(false) } },
       ],
       imports: [HelpComponent, NoopAnimationsModule],
     });
@@ -96,6 +101,7 @@ describe('HelpComponent footer', () => {
         provideTranslateService(),
         { provide: MatDialog, useValue: { open: jest.fn() } },
         { provide: SettingsService, useValue: { supportUrl } },
+        { provide: AuthService, useValue: { isAdmin: signal(false) } },
       ],
       imports: [HelpComponent, NoopAnimationsModule],
     });
@@ -129,5 +135,95 @@ describe('HelpComponent footer', () => {
     expect(footer().querySelector('a')).toBeNull();
     expect(footer().textContent).toContain('Contact the team that runs this site.');
     expect(footer().textContent).not.toMatch(/admin/i);
+  });
+});
+
+/**
+ * The admin guide describes pages a member cannot open, so it is listed (and searchable) for admins only.
+ * Every other section, the webhook one included, stays visible to everyone.
+ */
+describe('HelpComponent admin section', () => {
+  let isAdmin: WritableSignal<boolean>;
+  let fixture: ComponentFixture<HelpComponent>;
+
+  beforeEach(() => {
+    isAdmin = signal(false);
+
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        provideTranslateService(),
+        { provide: MatDialog, useValue: { open: jest.fn() } },
+        { provide: SettingsService, useValue: { supportUrl: signal(null) } },
+        { provide: AuthService, useValue: { isAdmin } },
+      ],
+      imports: [HelpComponent, NoopAnimationsModule],
+    });
+
+    const translate = TestBed.inject(TranslateService);
+    translate.setTranslation(
+      'en',
+      { HELP: { SECTION_ADMIN: 'For Admins', SECTION_FAQ: 'Frequently Asked Questions', SECTION_WEBHOOKS: 'Webhooks You Manage' } },
+      true,
+    );
+    translate.use('en');
+
+    fixture = TestBed.createComponent(HelpComponent);
+  });
+
+  const tocTitles = () =>
+    Array.from(fixture.nativeElement.querySelectorAll('.toc-item span') as NodeListOf<HTMLElement>).map(el => el.textContent?.trim());
+
+  it('leaves the admin guide out for a member but keeps the webhook and FAQ sections', () => {
+    fixture.detectChanges();
+
+    expect(tocTitles()).not.toContain('For Admins');
+    expect(tocTitles()).toContain('Webhooks You Manage');
+    expect(tocTitles()).toContain('Frequently Asked Questions');
+    expect(fixture.nativeElement.querySelector('#section-admin')).toBeNull();
+  });
+
+  // Colour is data or nothing: a section's icon names it, and a per-section hue said nothing while the
+  // darker ones fell to about 2:1 on the dark panel.
+  it('draws every section and contents icon in the neutral icon colour', () => {
+    fixture.detectChanges();
+    const icons = Array.from(
+      fixture.nativeElement.querySelectorAll('.section-icon, .section-icon mat-icon, .toc-item mat-icon') as NodeListOf<HTMLElement>,
+    );
+
+    expect(icons.length).toBeGreaterThan(0);
+    for (const icon of icons) expect(icon.style.color).toBe('');
+  });
+
+  it('lists the admin guide for an admin', () => {
+    isAdmin.set(true);
+    fixture.detectChanges();
+
+    expect(tocTitles()).toContain('For Admins');
+    expect(fixture.nativeElement.querySelector('#section-admin')).not.toBeNull();
+  });
+});
+
+/**
+ * The Help page's sample filter pills arrive through [innerHTML], and Angular's sanitizer strips their
+ * inline `style`, so the class has to draw the pill itself. Without a background they read as bold text,
+ * not as the grey pills on the alarm cards they explain.
+ */
+describe('HelpComponent pill samples', () => {
+  const css = (file: string): string => readFileSync(join(__dirname, file), 'utf8');
+  const rule = (source: string, selector: string): string => {
+    const start = source.indexOf(`${selector} {`);
+    if (start < 0) throw new Error(`no ${selector} rule`);
+    return source.slice(start, source.indexOf('}', start));
+  };
+
+  it('draws the pill with the alarm card pill’s own background and text colour', () => {
+    const sample = rule(css('help.component.scss'), '.pill-sample');
+    const card = rule(css('../../shared/components/alarm-card/alarm-card.component.scss'), '.rule-pill');
+    const declared = (block: string, prop: string): string | undefined =>
+      new RegExp(String.raw`(?:^|\n)\s*${prop}:\s*([^;]+);`).exec(block)?.[1];
+
+    expect(declared(sample, 'background')).toBe(declared(card, 'background'));
+    expect(declared(sample, 'color')).toBe(declared(card, 'color'));
   });
 });

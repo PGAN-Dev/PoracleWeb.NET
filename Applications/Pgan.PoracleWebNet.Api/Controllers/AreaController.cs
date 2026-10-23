@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Mvc;
 using Pgan.PoracleWebNet.Api.Filters;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
@@ -15,16 +16,20 @@ namespace Pgan.PoracleWebNet.Api.Controllers;
 // user to the dashboard. Turning off area editing took the separately-toggled geofence page with it.
 // disable_areas means area subscriptions cannot be CHANGED; it never meant they cannot be seen.
 // See #506, #515, #516.
+// Every outbound HTTP call here is PoracleNG (the human and API proxies); the geofence lookup is the local database.
+[TypeFilter(typeof(PoracleUnreachableExceptionFilter))]
 [Route("api/areas")]
 public partial class AreaController(
     IPoracleHumanProxy humanProxy,
     IPoracleApiProxy poracleApiProxy,
     IUserGeofenceService userGeofenceService,
+    IUserAreaWriter areaWriter,
     ILogger<AreaController> logger) : BaseApiController
 {
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
     private readonly IUserGeofenceService _userGeofenceService = userGeofenceService;
+    private readonly IUserAreaWriter _areaWriter = areaWriter;
     private readonly ILogger<AreaController> _logger = logger;
 
     [HttpGet]
@@ -110,6 +115,50 @@ public partial class AreaController(
         return JsonSerializer.Serialize(kept);
     }
 
+    /// <summary>
+    /// Adds <c>displayName</c> to each of the caller's own drawn fences in the polygon payload.
+    /// </summary>
+    /// <remarks>
+    /// A drawn fence is stored and served under its key, lowercased with any collision suffix
+    /// ("lake eola loop 2"), and the dashboard and Areas chips printed that key. The name the user gave
+    /// it lives only in <c>user_geofences</c>. Anything that can't be read or parsed is passed through
+    /// unchanged: the polygons matter more than the label.
+    /// </remarks>
+    private async Task<string> NameCallersOwnFencesAsync(string json)
+    {
+        try
+        {
+            var names = (await this._userGeofenceService.GetByUserAsync(this.UserId) ?? [])
+                .Where(g => !string.IsNullOrEmpty(g.KojiName) && !string.IsNullOrWhiteSpace(g.DisplayName))
+                .GroupBy(g => g.KojiName, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.First().DisplayName, StringComparer.OrdinalIgnoreCase);
+            if (names.Count == 0 || JsonNode.Parse(json) is not JsonObject root
+                || root["geofence"] is not JsonArray fences)
+            {
+                return json;
+            }
+
+            var named = false;
+            foreach (var fence in fences.OfType<JsonObject>())
+            {
+                if (fence["name"] is JsonValue value
+                    && value.TryGetValue<string>(out var name)
+                    && names.TryGetValue(name, out var displayName))
+                {
+                    fence["displayName"] = displayName;
+                    named = true;
+                }
+            }
+
+            return named ? root.ToJsonString() : json;
+        }
+        catch (Exception ex)
+        {
+            LogNameOwnFencesFailed(this._logger, ex, this.UserId);
+            return json;
+        }
+    }
+
     private static bool IsSelectable(JsonElement area) =>
         area.ValueKind != JsonValueKind.Object
         || !area.TryGetProperty("userSelectable", out var selectable)
@@ -138,34 +187,32 @@ public partial class AreaController(
             ? request.Areas.Select(a => a.ToLowerInvariant()).ToArray()
             : [];
 
-        // PoracleNG handles the dual-write to humans.area + profiles.area atomically.
-        // It also silently filters out any area name whose fence has userSelectable=false,
-        // which includes every user-drawn custom geofence (PoracleWeb's feed serves them
-        // as userSelectable=false to hide them from the Poracle bot's area picker).
-        await this._humanProxy.SetAreasAsync(this.UserId, normalizedAreas);
-
-        // HACK: trusted-set-areas (see docs/poracleng-enhancement-requests.md)
-        // Re-add any user-owned custom geofences that were in the submitted list by writing
-        // directly to humans.area + active profiles.area — bypassing the setAreas filter.
-        // Without this merge, saving on the Areas page would strip every user geofence the
-        // user has activated via the Geofences page. Remove this call once PoracleNG ships
-        // a trusted setAreas variant that skips the userSelectable intersection.
-        //
-        // The returned list is always a subset of `normalizedAreas` (it's filtered down to the
-        // user-owned subset), so the effective response is just `normalizedAreas` — no Union
-        // needed. The discard is intentional.
-        _ = await this._userGeofenceService.PreserveOwnedAreasInHumanAsync(this.UserId, normalizedAreas);
+        // One trusted write for the whole list. PoracleWeb.NET authorises the names first (a trusted write
+        // skips PoracleNG's own filter), so a fence the user may not have is refused with a 400 naming it
+        // by AreaNotPermittedExceptionFilter, and a name PoracleNG has no fence for is dropped, not an error.
+        var saved = await this._areaWriter.SaveSelectionAsync(this.UserId, normalizedAreas);
 
         // Read back rather than echo. PoracleNG silently drops any name whose fence is not
         // userSelectable, so returning the submitted list asserted subscriptions the user does not have
         // - a typo or a stale area name looked accepted until the next page load. See #476.
-        var stored = await this._humanProxy.GetAreasAsync(this.UserId);
+        // The read throws on a failed answer since #994; the save has landed, so it falls back to the echo
+        // a null always fell back to rather than reporting a save that took effect as a 500.
+        JsonElement? stored;
+        try
+        {
+            stored = await this._humanProxy.GetAreasAsync(this.UserId);
+        }
+        catch (HttpRequestException)
+        {
+            stored = null;
+        }
+
         if (stored is not null && stored.Value.TryGetProperty("area", out _))
         {
             return this.Ok(ParseAreaJson(PoracleAreaJson.ReadAreaListJson(stored.Value)));
         }
 
-        return this.Ok(normalizedAreas);
+        return this.Ok(saved.Stored.ToArray());
     }
 
     [HttpGet("geofence")]
@@ -176,7 +223,7 @@ public partial class AreaController(
             var json = await this._poracleApiProxy.GetAllGeofenceDataAsync();
             if (json != null)
             {
-                return this.Content(json, "application/json");
+                return this.Content(await this.NameCallersOwnFencesAsync(json), "application/json");
             }
         }
         catch (Exception ex)
@@ -243,6 +290,9 @@ public partial class AreaController(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch geofence data from Poracle API")]
     private static partial void LogFetchGeofenceDataFailed(ILogger logger, Exception ex);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Could not name user {UserId}'s own geofences in the polygon list; served it unnamed")]
+    private static partial void LogNameOwnFencesFailed(ILogger logger, Exception ex, string userId);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch map URL for area {AreaName} from Poracle API")]
     private static partial void LogFetchAreaMapFailed(ILogger logger, Exception ex, string areaName);

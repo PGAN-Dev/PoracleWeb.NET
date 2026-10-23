@@ -39,7 +39,7 @@ Or manually: `cd Applications/Pgan.PoracleWebNet.App/ClientApp && npm install`
     cp .env.example .env
     ```
 
-    The same `.env` format works for development, Docker, and standalone mode. `Program.cs` loads `.env` from the current working directory and auto-translates short variable names (`DB_HOST`, `JWT_SECRET`, `DISCORD_CLIENT_ID`, etc.) into .NET's configuration format — no need to write full connection strings or edit `appsettings` manually. `./scripts/dev.sh api` (and `start`) export the root `.env` before launching `dotnet run`, so values are picked up regardless of which directory `dotnet run` resolves to.
+    The same `.env` format works for development, Docker, and standalone mode. `Program.cs` loads `.env` from the current working directory and auto-translates short variable names (`WEB_DB_HOST`, `JWT_SECRET`, `DISCORD_CLIENT_ID`, etc.) into .NET's configuration format — no need to write full connection strings or edit `appsettings` manually. `./scripts/dev.sh api` (and `start`) export the root `.env` before launching `dotnet run`, so values are picked up regardless of which directory `dotnet run` resolves to.
 
 === "appsettings.Development.json"
 
@@ -48,7 +48,6 @@ Or manually: `cd Applications/Pgan.PoracleWebNet.App/ClientApp && npm install`
     ```json
     {
       "ConnectionStrings": {
-        "PoracleDb": "Server=localhost;Port=3306;Database=poracle;User=root;Password=your_password;AllowZeroDateTime=true;ConvertZeroDateTime=true",
         "PoracleWebDb": "Server=localhost;Port=3306;Database=poracle_web;User=root;Password=your_password;AllowZeroDateTime=true;ConvertZeroDateTime=true",
         "ScannerDb": ""
       },
@@ -83,7 +82,7 @@ Or manually: `cd Applications/Pgan.PoracleWebNet.App/ClientApp && npm install`
     ```
 
 !!! warning "PoracleNG must be running"
-    `Poracle:ApiAddress` must point to a running PoracleNG instance. All alarm tracking writes are proxied through this API. `Poracle:ApiSecret` must match PoracleNG's `server.apiSecret` config value.
+    `Poracle:ApiAddress` must point to a running PoracleNG 5.4.0 or newer instance. All alarm tracking writes are proxied through this API. `Poracle:ApiSecret` must match PoracleNG's `server.apiSecret` config value.
 
 ## 3. Run the application
 
