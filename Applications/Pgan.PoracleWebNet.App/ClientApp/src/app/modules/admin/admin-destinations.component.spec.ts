@@ -306,6 +306,7 @@ describe('AdminDestinationsComponent list', () => {
     expect(menuOf('North group').labels).toEqual([
       'ADMIN.BLOCK_DESTINATION',
       'ADMIN.STOP_ALERTS',
+      'ADMIN.MANAGE_DELEGATES',
       'ADMIN.DELETE_ALL_ALARMS',
       'ADMIN.DELETE_DESTINATION',
     ]);
@@ -335,6 +336,7 @@ describe('AdminDestinationsComponent list', () => {
     expect(menuOf('Quiet group').labels).toEqual([
       'ADMIN.UNBLOCK_DESTINATION',
       'ADMIN.START_ALERTS',
+      'ADMIN.MANAGE_DELEGATES',
       'ADMIN.DELETE_ALL_ALARMS',
       'ADMIN.DELETE_DESTINATION',
     ]);
