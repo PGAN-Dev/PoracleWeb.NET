@@ -164,7 +164,8 @@ Three sources, unioned on every check:
 
 Every grant is checked against the list of destinations Poracle holds, read once a minute. A grant
 naming a webhook however the operator wrote it in `webhook_admins` (by the webhook's name, or by its
-URL) is resolved to the webhook it names, so both work. A channel grant from Poracle is matched by id
+URL) is resolved to the webhook it names, so both work. A name two webhooks share names neither of
+them, so give webhooks distinct names before granting one by name. A channel grant from Poracle is matched by id
 only. A grant naming nothing Poracle holds is ignored: it grants access to nothing, and counting it
 would put **My Destinations** in the sidebar over an empty page.
 

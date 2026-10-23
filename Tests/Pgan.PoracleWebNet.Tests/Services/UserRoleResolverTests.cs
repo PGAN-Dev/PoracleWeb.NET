@@ -485,6 +485,66 @@ public class UserRoleResolverTests
         Assert.True(roles.Resolved);
     }
 
+    private const string OtherWebhook = "https://discordapp.com/api/webhooks/863186778525925396/other";
+
+    /// <summary>
+    /// Two webhooks sharing a name used to resolve to whichever PoracleNG listed first, handing a delegate a
+    /// webhook nobody chose. Like two channels, the name now names neither. Production held no duplicate
+    /// webhook name when this changed (#1038).
+    /// </summary>
+    [Fact]
+    public async Task ANameSharedByTwoWebhooksResolvesToNeither()
+    {
+        this.ArrangeDelegate(["shared"]);
+        this.ArrangeDirectory(
+            new Human { Id = TeamHarmonyRares, Name = "shared", Type = HumanKind.Webhook },
+            new Human { Id = OtherWebhook, Name = "Shared", Type = HumanKind.Webhook });
+        var logger = new CapturingLogger<UserRoleResolver>();
+
+        var roles = await this.CreateSut(logger: logger).ResolveAsync("u1");
+
+        Assert.Null(roles.ManagedDestinations);
+        Assert.True(roles.Resolved);
+        Assert.Contains(logger.Messages, m => m.Contains("ambiguous", StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// A channel does not break the tie: the grant meant a webhook, and there are two of them.
+    /// </summary>
+    [Fact]
+    public async Task ANameSharedByTwoWebhooksAndAChannelResolvesToNone()
+    {
+        this.ArrangeDelegate(["shared"]);
+        this.ArrangeDirectory(
+            new Human { Id = TeamHarmonyRares, Name = "shared", Type = HumanKind.Webhook },
+            new Human { Id = RaidChannel, Name = "shared", Type = HumanKind.DiscordChannel },
+            new Human { Id = OtherWebhook, Name = "shared", Type = HumanKind.Webhook });
+
+        var roles = await this.CreateSut().ResolveAsync("u1");
+
+        Assert.Null(roles.ManagedDestinations);
+    }
+
+    /// <summary>
+    /// The legitimate cases beside it: a uniquely named webhook still resolves by name, and either of the
+    /// two sharing a name still resolves by its id.
+    /// </summary>
+    [Fact]
+    public async Task ADuplicateNameLeavesUniqueNamesAndIdsAlone()
+    {
+        this.ArrangeDelegate(["unique", OtherWebhook]);
+        this.ArrangeDirectory(
+            new Human { Id = TeamHarmonyRares, Name = "shared", Type = HumanKind.Webhook },
+            new Human { Id = OtherWebhook, Name = "shared", Type = HumanKind.Webhook },
+            new Human { Id = "https://discordapp.com/api/webhooks/1/unique", Name = "unique", Type = HumanKind.Webhook });
+
+        var roles = await this.CreateSut().ResolveAsync("u1");
+
+        Assert.Equal(
+            new[] { OtherWebhook, "https://discordapp.com/api/webhooks/1/unique" }.Order(StringComparer.Ordinal),
+            (roles.ManagedDestinations ?? []).Order(StringComparer.Ordinal));
+    }
+
     /// <summary>
     /// The directory asks for destination types only, but a server that ignores <c>?type=</c> would hand
     /// back people too. A person is never a delegation target, whatever a grant says.

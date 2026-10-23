@@ -267,7 +267,8 @@ public sealed partial class UserRoleResolver(
     /// Ids match any destination in the directory. Names match only the types upstream resolves by name
     /// (<see cref="HumanKind.NameAddressable"/>), so a thread or topic that shares a name with a webhook
     /// is never what the grant meant. A name shared across types goes to the webhook; shared by two or more
-    /// other destinations and no webhook, it is dropped as ambiguous. Grants in <paramref name="byIdOnly"/>
+    /// webhooks, or by two or more other destinations and no webhook, it is dropped as ambiguous (#1038).
+    /// Grants in <paramref name="byIdOnly"/>
     /// came from a list of ids and are never read as names. Rows that are not one of the six destination
     /// types are ignored outright. See #1025.
     /// </para>
@@ -292,9 +293,10 @@ public sealed partial class UserRoleResolver(
         }
 
         // Upstream's name lookup has no ORDER BY, so which row a shared name lands on there is arbitrary.
-        // Here it is fixed: a webhook wins, since every grant written before #1025 meant one. Without a
-        // webhook, a name shared by two or more other destinations names none of them.
-        var webhookByName = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        // Here it is fixed: a webhook wins, since every grant written before #1025 meant one. A name shared
+        // by two or more webhooks, or by two or more other destinations and no webhook, names none of them:
+        // picking one would hand over whichever row PoracleNG happened to list first (#1038).
+        var webhookByName = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
         var otherByName = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
         var byId = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
@@ -308,28 +310,27 @@ public sealed partial class UserRoleResolver(
                 continue;
             }
 
-            if (string.Equals(destination.Type, HumanKind.Webhook, StringComparison.OrdinalIgnoreCase))
-            {
-                webhookByName.TryAdd(destination.Name, destination.Id);
-            }
-            else if (otherByName.TryGetValue(destination.Name, out var ids))
+            var byName = string.Equals(destination.Type, HumanKind.Webhook, StringComparison.OrdinalIgnoreCase)
+                ? webhookByName
+                : otherByName;
+            if (byName.TryGetValue(destination.Name, out var ids))
             {
                 ids.Add(destination.Id);
             }
             else
             {
-                otherByName[destination.Name] = [destination.Id];
+                byName[destination.Name] = [destination.Id];
             }
         }
 
         var canonical = new HashSet<string>(StringComparer.Ordinal);
         foreach (var grant in managed)
         {
-            if (byId.TryGetValue(grant, out var id) || webhookByName.TryGetValue(grant, out id))
+            if (byId.TryGetValue(grant, out var id))
             {
                 canonical.Add(id);
             }
-            else if (otherByName.TryGetValue(grant, out var named))
+            else if (webhookByName.TryGetValue(grant, out var named) || otherByName.TryGetValue(grant, out named))
             {
                 if (named.Count == 1)
                 {
@@ -418,6 +419,6 @@ public sealed partial class UserRoleResolver(
     private static partial void LogUnresolvedGrant(ILogger logger, string grant);
 
     [LoggerMessage(Level = LogLevel.Information,
-        Message = "Delegated grant {Grant} names {Count} destinations and no webhook; ignoring it as ambiguous.")]
+        Message = "Delegated grant {Grant} names {Count} destinations with nothing to choose between them; ignoring it as ambiguous.")]
     private static partial void LogAmbiguousGrant(ILogger logger, string grant, int count);
 }

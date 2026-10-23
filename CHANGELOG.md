@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **An admin or delegate can open a blocked destination again.** Under impersonation the block check read the destination being managed rather than the person managing it, so every call against a blocked webhook or channel answered 403 and it could not be unblocked or cleaned up from its own page. The check now reads the impersonator: a blocked admin or delegate is refused, and a blocked destination can still be managed. Ordinary sign-ins are checked as before (#1038).
+- **A delegate grant naming two webhooks that share a name now grants neither.** It used to grant whichever of the two Poracle listed first, which nobody chose. A grant by URL, or by a name only one webhook carries, works as before, and a webhook still wins a name it shares with a channel. Production held no duplicate webhook name when this changed; the grant is logged as ambiguous if one appears (#1038).
 
 ### Security
 
