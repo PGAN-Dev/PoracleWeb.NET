@@ -44,7 +44,7 @@ describe('add and edit dialogs offer the same fields', () => {
   /**
    * Shared reasoning for `ping` (jfberry/PoracleNG#249): v1's create/upsert handler blanks it
    * unconditionally regardless of what is sent -- verified live, both create and update, against a
-   * stock jfberry/PoracleNG `develop` build and the private fork running the same commit -- and no
+   * stock jfberry/PoracleNG `develop` build and a second build of the same commit -- and no
    * alarm type's create path ever uses v2. Offering the control on an add dialog would be a control
    * that silently does nothing on every server that exists, which is exactly the shape this parity
    * test is built to catch for every *other* field. The edit path is different: edits already go
