@@ -8,6 +8,10 @@ This line is unofficial and unsupported by PoracleWeb.NET releases. Report probl
 
 ## [Unreleased]
 
+## [3.0.0-shiny.1] - 2026-10-22
+
+Based on PoracleWeb.NET 3.0.0. Needs PoracleNG `feat/personal-shiny` ([jfberry/PoracleNG#255](https://github.com/jfberry/PoracleNG/pull/255)) rebased on 5.4.0, tested against the `ghcr.io/jfberry/poracleng:feat-personal-shiny` image built on 22 October 2026. Earlier `feat/personal-shiny` builds, and PoracleNG `main`, are not supported.
+
 ### Changed
 
 - **Rebased onto PoracleWeb.NET 3.0.0.** That release needs PoracleNG 5.4.0 and talks to it only through `/api/v2`, so this line now needs `feat/personal-shiny` rebased on 5.4.0: PoracleNG `develop` at `34421b82` or later, image `ghcr.io/jfberry/poracleng:feat-personal-shiny`. It also brings 3.0.0's redesigned alarm cards and add and edit dialogs; the "Shiny for me" and "Background for me" badges are now status chips on the shared card, and the "For my game accounts" block still opens the Filters tab. See [CHANGELOG.md](CHANGELOG.md) for the rest.
