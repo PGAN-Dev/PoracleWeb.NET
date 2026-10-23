@@ -197,6 +197,29 @@ describe('DestinationDelegatesDialogComponent chips', () => {
     expect(root.textContent).not.toContain('Ada Admin');
     expect(root.querySelectorAll('[data-test="remove-delegate"]')).toHaveLength(1);
   });
+
+  it('marks each avatar decorative, since the name beside it already says who it is', () => {
+    TestBed.overrideProvider(MAT_DIALOG_DATA, {
+      useValue: {
+        allUsers: [
+          webhook,
+          { ...user('222', 'Sam'), avatarUrl: 'https://cdn.example/sam.png' },
+          { ...user('333', 'Riley'), avatarUrl: 'https://cdn.example/riley.png' },
+        ],
+        porocleDelegates: ['333'],
+        webhook,
+      },
+    });
+    const { root } = setup();
+
+    const avatars = Array.from(root.querySelectorAll('mat-chip-row img'));
+    expect(avatars).toHaveLength(2);
+    for (const img of avatars) {
+      // Material's matChipAvatar sets role="img", which axe refuses on an empty alt (aria-allowed-role).
+      expect(img.getAttribute('alt')).toBe('');
+      expect(img.getAttribute('role')).toBe('presentation');
+    }
+  });
 });
 
 describe('AddDestinationDialogComponent', () => {
