@@ -136,6 +136,22 @@ public class LinkedSurfacesTests
     }
 
     [Fact]
+    public async Task ProfileOverview_Linked_LeavesTheProfileListAndStatusAlone()
+    {
+        var proxy = new Mock<IPoracleTrackingProxy>();
+        proxy.Setup(p => p.GetAllTrackingAllProfilesAsync(Discord)).ReturnsAsync(Json("""{"pokemon":[],"profile":[{"profile_no":1,"name":"Home"}],"status":"ok"}"""));
+        proxy.Setup(p => p.GetAllTrackingAllProfilesAsync(Telegram)).ReturnsAsync(Json("""{"pokemon":[],"profile":[{"profile_no":1,"name":"Other"}],"status":"ok"}"""));
+
+        var overview = await Overview(proxy, Linked()).GetAllProfilesOverviewAsync(Discord);
+
+        var profiles = overview.GetProperty("profile").EnumerateArray().ToList();
+        Assert.Single(profiles);
+        Assert.Equal("Home", profiles[0].GetProperty("name").GetString());
+        Assert.False(profiles[0].TryGetProperty("destination", out _));
+        Assert.Equal("ok", overview.GetProperty("status").GetString());
+    }
+
+    [Fact]
     public async Task ProfileOverview_Unlinked_PassesThroughUntouched()
     {
         var proxy = new Mock<IPoracleTrackingProxy>();
@@ -181,6 +197,17 @@ public class LinkedSurfacesTests
         var (sut, _, tracking, humans) = TestAlert(Linked());
         tracking.Setup(t => t.GetByUserAsync("pokemon", It.IsAny<string>())).ReturnsAsync(Json("[]"));
         humans.Setup(h => h.GetHumanAsync(It.IsAny<string>())).ReturnsAsync(Json("""{"type":"discord:user"}"""));
+
+        await Assert.ThrowsAsync<KeyNotFoundException>(() => sut.SendTestAlertAsync(Discord, "pokemon", 7));
+    }
+
+    [Fact]
+    public async Task TestAlert_NeitherHasTheUid_NotFoundEvenWhenTheLastHumanRecordIsMissing()
+    {
+        var (sut, _, tracking, humans) = TestAlert(Linked());
+        tracking.Setup(t => t.GetByUserAsync("pokemon", It.IsAny<string>())).ReturnsAsync(Json("[]"));
+        humans.Setup(h => h.GetHumanAsync(Discord)).ReturnsAsync(Json("{}"));
+        humans.Setup(h => h.GetHumanAsync(Telegram)).ReturnsAsync((JsonElement?)null);
 
         await Assert.ThrowsAsync<KeyNotFoundException>(() => sut.SendTestAlertAsync(Discord, "pokemon", 7));
     }
@@ -256,7 +283,8 @@ public class LinkedSurfacesTests
     [Fact]
     public async Task QuickPickApply_Unlinked_CallerAndTokenProfile()
     {
-        var kit = QuickPickKit.Create(Unlinked(), Mock.Of<IHumanService>());
+        var humans = new Mock<IHumanService>(MockBehavior.Strict);
+        var kit = QuickPickKit.Create(Unlinked(), humans.Object);
         kit.Lures.SetupSequence(l => l.GetByUserAsync("u1", 2)).ReturnsAsync([]).ReturnsAsync([new Lure { Uid = 9 }]);
         kit.Lures.Setup(l => l.CreateAsync("u1", It.IsAny<Lure>())).ReturnsAsync(new Lure { Uid = 9 });
 
@@ -264,6 +292,7 @@ public class LinkedSurfacesTests
 
         Assert.Equal("u1", state.UserId);
         Assert.Equal(2, state.ProfileNo);
+        humans.VerifyNoOtherCalls();
     }
 
     [Fact]
@@ -325,5 +354,33 @@ public class LinkedSurfacesTests
 
         kit.Lures.Verify(l => l.DeleteAsync(Discord, It.IsAny<int>()), Times.Never);
         kit.Lures.Verify(l => l.DeleteAsync(Telegram, 5), Times.Once);
+    }
+
+    [Fact]
+    public async Task QuickPickReapply_ChangedTypeHeldOnTheOtherHuman_RefusesBeforeDeleting()
+    {
+        var kit = QuickPickKit.Create(Linked(), Humans(discordProfile: 1, telegramProfile: 3));
+        kit.Applied.Setup(a => a.GetAsync(Telegram, 3, "lure-pick")).ReturnsAsync(
+            new QuickPickAppliedState { UserId = Telegram, ProfileNo = 3, QuickPickId = "lure-pick", AlarmType = "raid", TrackedUids = [5] });
+
+        await Assert.ThrowsAsync<AlarmValidationException>(() => kit.Sut.ReapplyAsync(Discord, 1, "lure-pick", new QuickPickApplyRequest()));
+
+        kit.Lures.Verify(l => l.DeleteAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+        kit.Applied.Verify(a => a.DeleteAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task QuickPickReapply_SameTypeHeldOnTheOtherHuman_Reapplies()
+    {
+        var kit = QuickPickKit.Create(Linked(), Humans(discordProfile: 1, telegramProfile: 3));
+        kit.Applied.Setup(a => a.GetAsync(Telegram, 3, "lure-pick")).ReturnsAsync(
+            new QuickPickAppliedState { UserId = Telegram, ProfileNo = 3, QuickPickId = "lure-pick", AlarmType = "lure", TrackedUids = [5] });
+        kit.Lures.SetupSequence(l => l.GetByUserAsync(Discord, 1)).ReturnsAsync([]).ReturnsAsync([new Lure { Uid = 9 }]);
+        kit.Lures.Setup(l => l.CreateAsync(Discord, It.IsAny<Lure>())).ReturnsAsync(new Lure { Uid = 9 });
+
+        var state = await kit.Sut.ReapplyAsync(Discord, 1, "lure-pick", new QuickPickApplyRequest());
+
+        kit.Lures.Verify(l => l.DeleteAsync(Telegram, 5), Times.Once);
+        Assert.Equal([9], state.TrackedUids);
     }
 }

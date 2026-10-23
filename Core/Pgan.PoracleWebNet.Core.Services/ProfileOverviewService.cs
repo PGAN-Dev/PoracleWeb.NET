@@ -285,7 +285,8 @@ public class ProfileOverviewService(
         }
 
         // A linked person sees both humans' rules in one snapshot, each row stamped with the side it lives
-        // on. The caller's own snapshot is the base, so any member that is not a list of rules stays theirs.
+        // on. The caller's own snapshot is the base, so any member that is not a list of rules (the profile
+        // list, status) stays theirs.
         JsonObject? merged = null;
         foreach (var humanId in pair.ExistingHumanIds)
         {
@@ -296,9 +297,11 @@ public class ProfileOverviewService(
             }
 
             var side = pair.SideOf(humanId);
-            foreach (var (_, value) in obj)
+            foreach (var (key, value) in obj)
             {
-                if (value is JsonArray rows)
+                // Only the tracking types hold rules. The snapshot's "profile" array is the profile list,
+                // which is not an alarm and numbers its entries per human, so it is left as it came.
+                if (AlarmTypes.Contains(key) && value is JsonArray rows)
                 {
                     foreach (var row in rows.OfType<JsonObject>())
                     {
@@ -318,7 +321,7 @@ public class ProfileOverviewService(
 
             foreach (var (key, value) in obj.ToList())
             {
-                if (value is not JsonArray rows)
+                if (!AlarmTypes.Contains(key) || value is not JsonArray rows)
                 {
                     continue;
                 }

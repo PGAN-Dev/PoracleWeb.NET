@@ -52,9 +52,15 @@ public partial class TestAlertService(
             await Task.WhenAll(alarmTask, humanTask);
 
             alarm = FindAlarmByUid(alarmTask.Result, uid);
-            if (alarm is null && i < candidates.Count - 1)
+            if (alarm is null && candidates.Count > 1)
             {
-                continue;
+                // A linked pair: a uid on neither human is a 404, whatever the last human's record says.
+                if (i < candidates.Count - 1)
+                {
+                    continue;
+                }
+
+                throw new KeyNotFoundException($"Alarm with uid {uid} not found");
             }
 
             human = humanTask.Result

@@ -140,6 +140,7 @@ public partial class QuickPickService(
         (await this._humanService.GetByIdAsync(humanId))?.CurrentProfileNo ?? fallback;
 
     /// <summary>One state for the pick: the only one, or the sum of both humans' with the tracked uids joined.</summary>
+    // The combined state's UserId and ProfileNo come from one side and are not authoritative; only the uids and type are.
     private static QuickPickAppliedState? Combine(List<QuickPickAppliedState> held)
     {
         if (held.Count <= 1)
@@ -565,13 +566,17 @@ public partial class QuickPickService(
         // so a pick whose type changed since it was applied lost its alarms AND its applied state before
         // the refusal ever fired -- the deletes are committed and the error reads as "nothing happened".
         // See #579.
-        var applied = await this._appliedStateRepository.GetAsync(userId, profileNo, quickPickId);
-        if (applied is not null
-            && applied.TrackedUids.Count > 0
-            && !string.Equals(applied.AlarmType, definition.AlarmType, StringComparison.OrdinalIgnoreCase))
+        // Checked for each human of a linked pair, on that human's own profile: Remove runs over all of them.
+        foreach (var (humanId, humanProfile) in await this.HumansAsync(userId, profileNo))
         {
-            throw new AlarmValidationException(
-                "This quick pick still owns alarms of a different type. Remove it first, then apply it again.");
+            var applied = await this._appliedStateRepository.GetAsync(humanId, humanProfile, quickPickId);
+            if (applied is not null
+                && applied.TrackedUids.Count > 0
+                && !string.Equals(applied.AlarmType, definition.AlarmType, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new AlarmValidationException(
+                    "This quick pick still owns alarms of a different type. Remove it first, then apply it again.");
+            }
         }
 
         // Building throws for a filter the alarm model refuses. Nothing is sent anywhere.
