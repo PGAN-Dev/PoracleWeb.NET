@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Quiet controls are hidden while you view another account or manage a destination.** The server refuses quiet-period changes there, so pressing Quiet or Resume only ever produced an error. A running quiet period still shows its countdown on cards, area chips and the Dashboard list, read-only, so an admin can still see why alerts have stopped (#1038).
 - **Help says where a destination's test alert goes.** Destinations you manage now states that a test alert posts into the destination, not to your DMs, in all eleven languages (#1038).
 - **Admin > Users and Admin > Destinations share one fetch of the account list.** Each page loaded all of Poracle's accounts (about 2,700 rows on a large site) every time it opened. The first page to open now fetches the list and the other reuses it. Creating, deleting, blocking, unblocking, pausing or resuming an account fetches it again, as does Refresh, and signing out or viewing as someone else drops it (#1038).
+- **The Admin > Destinations screenshot in the docs shows the current page.** It was taken before "None granted here" kept to one line and before Manage alarms moved onto the row (#1038).
 
 ## [3.1.0] - 2026-10-23
 
