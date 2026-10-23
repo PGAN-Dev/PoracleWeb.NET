@@ -26,6 +26,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DiscordAvatarComponent } from '../../shared/components/discord-avatar/discord-avatar.component';
+import { relativeTime } from '../../shared/utils/relative-time';
 import { serverReason } from '../../shared/utils/server-reason';
 
 @Component({
@@ -141,15 +142,10 @@ export class AdminUsersComponent implements OnInit {
     return isNaN(d.getTime()) ? '' : d.toLocaleString();
   }
 
+  /** In the display language, as Destinations does; this used to build "2mo ago" in English on every page. */
   getRelativeDate(dateStr: string): string {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return '—';
-    const days = Math.floor((Date.now() - d.getTime()) / 86400000);
-    if (days === 0) return 'Today';
-    if (days === 1) return 'Yesterday';
-    if (days < 30) return `${days}d ago`;
-    if (days < 365) return `${Math.floor(days / 30)}mo ago`;
-    return `${Math.floor(days / 365)}y ago`;
+    const then = new Date(dateStr).getTime();
+    return isNaN(then) ? '—' : relativeTime(then, Date.now(), this.i18n.currentLang());
   }
 
   impersonate(user: AdminUser): void {

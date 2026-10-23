@@ -170,7 +170,8 @@ describe('AdminDestinationsComponent add', () => {
 });
 
 describe('AdminDestinationsComponent list', () => {
-  const hook = human('https://discord.com/api/webhooks/1/abcdefghijklmnopqrstuvwxyz', { name: 'Raid hook', type: 'webhook' });
+  const token = 'abcdefghijklmnopqrstuvwxyz';
+  const hook = human(`https://discord.com/api/webhooks/1234567890/${token}`, { name: 'Raid hook', type: 'webhook' });
   const channel = human('1100000000000000001', { name: 'raids', notes: '"PGAN / Raids"', type: 'discord:channel' });
   const group = human('-1001234567890', { name: 'North group', type: 'telegram:group' });
   const odd = human('42', { name: 'Typo row', type: 'x:unknown' });
@@ -180,6 +181,8 @@ describe('AdminDestinationsComponent list', () => {
   function setup(users: AdminUser[] = [hook, channel, group, odd, sam, legacy]) {
     const dialog = { open: jest.fn(() => ({ afterClosed: () => of(false) })) };
     const adminService = {
+      disableUser: jest.fn((id: string) => of(human(id, { adminDisable: 1 }))),
+      enableUser: jest.fn((id: string) => of(human(id, { adminDisable: 0 }))),
       getAllWebhookDelegates: jest.fn(() => of({ [hook.id]: ['222'] })),
       getPoracleAdmins: jest.fn(() => of([] as string[])),
       getPorocleDelegates: jest.fn(() => of({})),
@@ -199,7 +202,19 @@ describe('AdminDestinationsComponent list', () => {
     fixture.detectChanges();
     const root = fixture.nativeElement as HTMLElement;
     const rowFor = (name: string) => Array.from(root.querySelectorAll('tr.mat-mdc-row')).find(r => r.textContent?.includes(name))!;
-    return { component: fixture.componentInstance, dialog, fixture, root, rowFor };
+    /** Opens the row's menu and reads what it offers, by visible label and by test hook. */
+    const menuOf = (name: string) => {
+      (rowFor(name).querySelector('[data-test="row-menu"]') as HTMLButtonElement).click();
+      fixture.detectChanges();
+      const items = Array.from(document.querySelectorAll('.mat-mdc-menu-panel [mat-menu-item]'));
+      const result = {
+        labels: items.map(b => b.querySelector('.mat-mdc-menu-item-text')?.textContent?.trim() ?? ''),
+        tests: items.map(b => b.getAttribute('data-test')),
+      };
+      document.querySelector('.cdk-overlay-container')?.replaceChildren();
+      return result;
+    };
+    return { adminService, component: fixture.componentInstance, dialog, fixture, menuOf, root, rowFor };
   }
 
   beforeEach(() => sessionStorage.clear());
@@ -248,16 +263,111 @@ describe('AdminDestinationsComponent list', () => {
   });
 
   it('shows managers only on webhook rows', () => {
-    const { rowFor } = setup();
+    const { menuOf, rowFor } = setup();
 
-    const manage = (name: string) => rowFor(name).querySelector('[data-test="manage-delegates"]');
     const managers = (name: string) => rowFor(name).querySelector('.delegate-avatars');
-    expect(manage('Raid hook')).toBeTruthy();
+    expect(menuOf('Raid hook').tests).toContain('manage-delegates');
     expect(managers('Raid hook')).toBeTruthy();
     for (const name of ['raids', 'North group', 'Typo row']) {
-      expect(manage(name)).toBeNull();
+      expect(menuOf(name).tests).not.toContain('manage-delegates');
       expect(managers(name)).toBeNull();
     }
+  });
+
+  // Seven icon buttons ran 220px past the container at 1440 with no scroll cue (#1025 QA).
+  it('keeps Manage alarms on the row and names every other action in the row menu', () => {
+    const { component, menuOf, rowFor } = setup();
+
+    const row = rowFor('Raid hook');
+    const inline = Array.from(row.querySelectorAll('.action-buttons > button')).map(b => b.getAttribute('data-test'));
+    expect(inline).toEqual(['manage-alarms', 'row-menu']);
+    expect(row.querySelector('[data-test="manage-alarms"]')?.textContent).toContain('ADMIN.MANAGE_ALARMS');
+    expect(row.querySelector('[data-test="row-menu"]')?.getAttribute('aria-label')).toBe('ADMIN.MORE_ACTIONS_FOR');
+
+    expect(menuOf('Raid hook').labels).toEqual([
+      'ADMIN.BLOCK_DESTINATION',
+      'ADMIN.STOP_ALERTS',
+      'ADMIN.MANAGE_DELEGATES',
+      'ADMIN.DELETE_ALL_ALARMS',
+      'ADMIN.DELETE_DESTINATION',
+    ]);
+    expect(menuOf('North group').labels).toEqual([
+      'ADMIN.BLOCK_DESTINATION',
+      'ADMIN.STOP_ALERTS',
+      'ADMIN.DELETE_ALL_ALARMS',
+      'ADMIN.DELETE_DESTINATION',
+    ]);
+
+    const manage = jest.spyOn(component, 'manageAlarms').mockImplementation(() => undefined);
+    (row.querySelector('[data-test="manage-alarms"]') as HTMLButtonElement).click();
+    expect(manage).toHaveBeenCalledWith(hook);
+  });
+
+  // Polish needs the neuter for "miejsce docelowe", so the badges cannot share Users' masculine keys.
+  it('labels status with its own keys, not the ones Users shares', () => {
+    const { rowFor } = setup([
+      human('-1', { name: 'On group', type: 'telegram:group' }),
+      human('-2', { name: 'Paused group', enabled: 0, type: 'telegram:group' }),
+      human('-3', { name: 'Shut group', adminDisable: 1, type: 'telegram:group' }),
+    ]);
+
+    const status = (name: string) => rowFor(name).querySelector('.mat-column-enabled')?.textContent?.trim();
+    expect(status('On group')).toBe('ADMIN.DESTINATION_STATUS_ACTIVE');
+    expect(status('Paused group')).toBe('ADMIN.DESTINATION_STATUS_STOPPED');
+    expect(status('Shut group')).toBe('ADMIN.DESTINATION_STATUS_BLOCKED');
+  });
+
+  it('offers Unblock and Start alerts where they apply', () => {
+    const { menuOf } = setup([human('-100', { name: 'Quiet group', adminDisable: 1, enabled: 0, type: 'telegram:group' })]);
+
+    expect(menuOf('Quiet group').labels).toEqual([
+      'ADMIN.UNBLOCK_DESTINATION',
+      'ADMIN.START_ALERTS',
+      'ADMIN.DELETE_ALL_ALARMS',
+      'ADMIN.DELETE_DESTINATION',
+    ]);
+  });
+
+  it('names the destination it blocked or unblocked, not a user', () => {
+    const { component } = setup();
+    const translate = TestBed.inject(TranslateService);
+    translate.setTranslation('en', {
+      ADMIN: { SNACK_DESTINATION_BLOCKED: '"{{name}}" blocked', SNACK_DESTINATION_UNBLOCKED: '"{{name}}" unblocked' },
+    });
+    translate.use('en');
+    const snack = TestBed.inject(MatSnackBar) as unknown as { open: jest.Mock };
+
+    component.toggleBlock(group, false);
+    expect(snack.open.mock.calls.at(-1)?.[0]).toBe('"North group" blocked');
+    component.toggleBlock(group, true);
+    expect(snack.open.mock.calls.at(-1)?.[0]).toBe('"North group" unblocked');
+  });
+
+  it('never shows a webhook token, in the ID cell or anywhere else in the row', () => {
+    const { rowFor } = setup();
+
+    const cell = rowFor('Raid hook').querySelector('.mat-column-id')!;
+    expect(cell.textContent).toContain('discord.com/api/webhooks/1234567890');
+    expect(rowFor('Raid hook').innerHTML).not.toContain(token);
+  });
+
+  it('shortens any webhook URL to its host and webhook number, dropping what follows', () => {
+    const { component } = setup();
+
+    expect(component.truncateUrl('https://discord.com/api/webhooks/1234567890/secret-token')).toBe('discord.com/api/webhooks/1234567890…');
+    expect(component.truncateUrl('https://discordapp.com/api/webhooks/42/secret-token?wait=true')).toBe('discordapp.com/api/webhooks/42…');
+    expect(component.truncateUrl('http://10.0.0.5:4000/hooks/secret-token')).toBe('10.0.0.5:4000/…');
+    expect(component.truncateUrl('discord.com/api/webhooks/7/secret-token')).toBe('discord.com/api/webhooks/7…');
+    expect(component.truncateUrl('not a url secret-token')).not.toContain('secret');
+  });
+
+  it('never names a nameless webhook by its URL', () => {
+    const { component } = setup();
+    const nameless = human('https://discord.com/api/webhooks/9/secret-token', { name: '', type: 'webhook' });
+
+    expect(component.rowName(nameless)).not.toContain('secret');
+    expect(component.rowName(group)).toBe('North group');
+    expect(component.rowName(human('-5', { name: '', type: 'telegram:group' }))).toBe('-5');
   });
 
   it('shortens a webhook URL, shows any other id whole, and copies either', () => {
@@ -270,6 +380,8 @@ describe('AdminDestinationsComponent list', () => {
     const copy = jest.spyOn(component, 'copyId').mockImplementation(() => undefined);
     (rowFor('North group').querySelector('[data-test="copy-id"]') as HTMLButtonElement).click();
     expect(copy).toHaveBeenCalledWith(group.id);
+    (rowFor('Raid hook').querySelector('[data-test="copy-id"]') as HTMLButtonElement).click();
+    expect(copy).toHaveBeenCalledWith(hook.id);
     expect(rowFor('North group').querySelector('[data-test="copy-id"]')?.getAttribute('aria-label')).toBe('ADMIN.COPY_ID_FOR');
   });
 
@@ -311,10 +423,35 @@ describe('AdminDestinationsComponent list', () => {
     const message = () => ((dialog.open.mock.calls.at(-1) as unknown[])[1] as { data: { message: string } }).data.message;
 
     component.deleteDestination(group);
-    expect(message()).toContain('ADMIN.DELETE_DESTINATION_NOTE');
+    expect(message()).toContain('ADMIN.DELETE_DESTINATION_KIND_NOTE');
 
     component.deleteDestination(hook);
-    expect(message()).not.toContain('ADMIN.DELETE_DESTINATION_NOTE');
+    expect(message()).not.toContain('NOTE');
+  });
+
+  it('names the kind it leaves alone, translated, and falls back to the generic note for an unknown type', () => {
+    const { component, dialog } = setup();
+    const translate = TestBed.inject(TranslateService);
+    translate.setTranslation('en', {
+      ADMIN: {
+        DELETE_DESTINATION_KIND_NOTE: 'The {{kind}} itself isn’t touched.',
+        DELETE_DESTINATION_NOTE: 'The Discord or Telegram channel itself isn’t touched.',
+        TYPE_DISCORD_CHANNEL: 'Discord channel',
+        TYPE_TELEGRAM_GROUP: 'Telegram group',
+      },
+    });
+    translate.use('en');
+    const message = () => ((dialog.open.mock.calls.at(-1) as unknown[])[1] as { data: { message: string } }).data.message;
+
+    component.deleteDestination(group);
+    expect(message()).toContain('The Telegram group itself isn’t touched.');
+    expect(message()).not.toContain('Discord');
+
+    component.deleteDestination(channel);
+    expect(message()).toContain('The Discord channel itself isn’t touched.');
+
+    component.deleteDestination(odd);
+    expect(message()).toContain('The Discord or Telegram channel itself isn’t touched.');
   });
 
   it('explains on a channel that Poracle blocks one it can no longer find', () => {
