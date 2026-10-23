@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Time.Testing;
@@ -86,6 +87,61 @@ public class ImpersonationRoleProbeTests
         this.Answers(() => Task.FromResult(new UserRoles(false, null)));
 
         Assert.Null((await probe.ResolveAsync(Delegate)).ManagedWebhooks);
+    }
+
+    /// <summary>
+    /// Runs <paramref name="checks"/> for many impersonators at once, each making its own checks in order.
+    /// </summary>
+    /// <remarks>
+    /// The defect these guard against is a race: a resolver that answers at once let the probe's resolve
+    /// finish on the thread pool before the caller had stored it as in flight, and the finished entry was
+    /// then never removed, so every later check reused it. One impersonator checking in a loop on an idle
+    /// pool almost never lost it; many at once on a busy pool lost it several times in every run.
+    /// </remarks>
+    private static Task RaceAsync(Func<string, Task> checks) =>
+        Task.WhenAll(Enumerable.Range(0, Math.Max(16, Environment.ProcessorCount * 2))
+            .Select(i => Task.Run(() => checks($"impersonator-{i}"))))
+            .WaitAsync(Patience * 3);
+
+    private const int ChecksPerImpersonator = 1000;
+
+    [Fact]
+    public async Task ASecondCheckAfterTheFirstFinishesAsksAgain()
+    {
+        var probe = this.Probe(budget: TimeSpan.FromSeconds(5));
+        var asked = new ConcurrentDictionary<string, int>(StringComparer.Ordinal);
+        this._resolver.Setup(r => r.ResolveAsync(It.IsAny<string>())).Returns((string id) =>
+            Task.FromResult(new UserRoles(false, [$"answer-{asked.AddOrUpdate(id, 1, (_, n) => n + 1)}"])));
+
+        await RaceAsync(async id =>
+        {
+            for (var i = 1; i <= ChecksPerImpersonator; i++)
+            {
+                Assert.Equal([$"answer-{i}"], (await probe.ResolveAsync(id)).ManagedWebhooks!);
+            }
+        });
+    }
+
+    [Fact]
+    public async Task ARevokedGrantIsSeenOnTheNextCheck()
+    {
+        var probe = this.Probe(budget: TimeSpan.FromSeconds(5));
+        var granted = new ConcurrentDictionary<string, bool>(StringComparer.Ordinal);
+        this._resolver.Setup(r => r.ResolveAsync(It.IsAny<string>())).Returns((string id) =>
+            Task.FromResult(new UserRoles(false, granted[id] ? ["webhook-1"] : [])));
+
+        await RaceAsync(async id =>
+        {
+            for (var i = 0; i < ChecksPerImpersonator / 2; i++)
+            {
+                granted[id] = true;
+                Assert.Contains("webhook-1", (await probe.ResolveAsync(id)).ManagedWebhooks!);
+
+                // The admin revokes the grant; the session's very next request must see it.
+                granted[id] = false;
+                Assert.DoesNotContain("webhook-1", (await probe.ResolveAsync(id)).ManagedWebhooks!);
+            }
+        });
     }
 
     [Fact]
