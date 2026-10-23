@@ -63,7 +63,6 @@ export class GeofenceApprovalDialogComponent {
   readonly regionOptions: RegionOption[] = this.data.regions.map(r => ({
     id: r.id,
     label: r.displayName,
-    shortLabel: r.displayName,
   }));
 
   // Hide the region picker when Koji defines no regions (flat project) — there is nothing to choose
