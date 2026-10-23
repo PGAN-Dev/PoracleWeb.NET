@@ -5,7 +5,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
-import { of } from 'rxjs';
+import { of, Subject } from 'rxjs';
 
 import { AdminDestinationsComponent } from './admin-destinations.component';
 import { AdminUsersComponent } from './admin-users.component';
@@ -32,9 +32,9 @@ function row(id: string, overrides: Partial<AdminUser> = {}): AdminUser {
 }
 
 /**
- * Admin > Users and Admin > Destinations filter one list of about 2,700 rows. Each page fetched it on
- * every visit; now the first fetch serves both until a row changes, Refresh is pressed, or the
- * signed-in account changes. See #1038.
+ * Admin > Users and Admin > Destinations filter one list of about 2,700 rows. Each page waited for its own
+ * fetch on every visit; now the second page shows the first page's rows at once and checks them in the
+ * background. A row change and Refresh fetch again, and a change of account drops the list. See #1038.
  */
 describe('Admin Users and Destinations share one list', () => {
   const sam = row('sam');
@@ -77,18 +77,19 @@ describe('Admin Users and Destinations share one list', () => {
 
   afterEach(() => TestBed.resetTestingModule());
 
-  it('fetches once for Users and serves Destinations from it', () => {
+  it('shows Destinations its rows from the Users fetch without waiting for its own', () => {
     const adminService = setup();
 
     const users = TestBed.createComponent(AdminUsersComponent);
     users.detectChanges();
     users.destroy();
+    adminService.getUsers.mockReturnValue(new Subject<AdminUser[]>());
     const destinations = TestBed.createComponent(AdminDestinationsComponent);
     destinations.detectChanges();
 
-    expect(adminService.getUsers).toHaveBeenCalledTimes(1);
-    expect(users.componentInstance.filteredUsers().map(u => u.id)).toEqual(['sam']);
+    expect(destinations.componentInstance.usersLoading()).toBe(false);
     expect(destinations.componentInstance.list.filtered().map(u => u.id)).toEqual([hook.id]);
+    expect(adminService.getUsers).toHaveBeenCalledTimes(2);
   });
 
   it('refetches once after a row changes, and the other page sees the change', () => {
@@ -102,9 +103,10 @@ describe('Admin Users and Destinations share one list', () => {
     adminService.getUsers.mockReturnValue(of([{ ...sam, adminDisable: 1 }, hook]));
     const users = TestBed.createComponent(AdminUsersComponent);
     users.detectChanges();
+    const beforeBlock = adminService.getUsers.mock.calls.length;
     users.componentInstance.toggleUser(sam, false);
 
-    expect(adminService.getUsers).toHaveBeenCalledTimes(3);
+    expect(adminService.getUsers).toHaveBeenCalledTimes(beforeBlock + 1);
     expect(users.componentInstance.filteredUsers()[0].adminDisable).toBe(1);
   });
 

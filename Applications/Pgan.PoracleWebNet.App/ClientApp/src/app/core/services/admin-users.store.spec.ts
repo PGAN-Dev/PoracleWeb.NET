@@ -47,12 +47,81 @@ describe('AdminUsersStore', () => {
     store = TestBed.inject(AdminUsersStore);
   });
 
-  it('fetches once and serves the second page from the cache', () => {
+  /**
+   * The second page shows rows at once from the cache and checks them in the background, so a change made
+   * outside this tab (the bot, another admin) shows up without pressing Refresh.
+   */
+  it('serves the cached list at once and revalidates it in the background', () => {
+    store.load().subscribe();
+    const fresh = new Subject<AdminUser[]>();
+    getUsers.mockReturnValue(fresh);
+    const seen: string[][] = [];
+
+    store.load().subscribe(users => seen.push(users.map(u => u.id)));
+
+    expect(seen).toEqual([['a', 'b']]);
+    expect(getUsers).toHaveBeenCalledTimes(2);
+
+    fresh.next([row('a'), row('b'), row('c')]);
+    fresh.complete();
+    expect(store.users().map(u => u.id)).toEqual(['a', 'b', 'c']);
+  });
+
+  it('sends one background check at a time, however many pages open', () => {
+    store.load().subscribe();
+    getUsers.mockReturnValue(new Subject<AdminUser[]>());
+
     store.load().subscribe();
     store.load().subscribe();
 
-    expect(getUsers).toHaveBeenCalledTimes(1);
-    expect(store.users().map(u => u.id)).toEqual(['a', 'b']);
+    expect(getUsers).toHaveBeenCalledTimes(2);
+  });
+
+  /**
+   * "View as" and back used to land on the list from before, so a change made while viewing (alerts
+   * paused on that account, a profile switched) did not show. See the #1038 review.
+   */
+  it('drops the list when impersonation starts, so returning fetches it again', () => {
+    store.load().subscribe();
+
+    impersonating.set(true);
+    TestBed.flushEffects();
+    impersonating.set(false);
+    TestBed.flushEffects();
+
+    expect(store.users()).toEqual([]);
+    store.load().subscribe();
+    expect(getUsers).toHaveBeenCalledTimes(2);
+  });
+
+  /** Two writes a second apart refetch twice; the older answer must not land on top of the newer one. */
+  it('never lets an older refetch overwrite a newer one', () => {
+    store.load().subscribe();
+    const first = new Subject<AdminUser[]>();
+    const second = new Subject<AdminUser[]>();
+    getUsers.mockReturnValueOnce(first).mockReturnValueOnce(second);
+
+    store.invalidate();
+    store.invalidate();
+    second.next([row('a', { adminDisable: 1 }), row('b', { enabled: 0 })]);
+    second.complete();
+    first.next([row('a', { adminDisable: 1 }), row('b')]);
+    first.complete();
+
+    expect(store.users().find(u => u.id === 'b')?.enabled).toBe(0);
+  });
+
+  it('keeps a row change when an older refetch answers after it', () => {
+    store.load().subscribe();
+    const first = new Subject<AdminUser[]>();
+    getUsers.mockReturnValueOnce(first).mockReturnValue(new Subject<AdminUser[]>());
+
+    store.invalidate();
+    store.patch('b', { enabled: 0 });
+    store.invalidate();
+    first.next([row('a'), row('b')]);
+
+    expect(store.users().find(u => u.id === 'b')?.enabled).toBe(0);
   });
 
   it('shares one request between two pages that ask before it answers', () => {
