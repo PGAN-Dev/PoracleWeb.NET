@@ -281,12 +281,12 @@ export class App implements OnInit {
   protected readonly hideHeaderLogo = computed(() => this.settingsService.isDisabled('hide_header_logo'));
   protected readonly i18n = inject(I18nService);
   /**
-   * While managing a destination, the translation key naming its kind. Null for a person and for a type the
+   * While managing a destination, the banner sentence key for its kind (a whole sentence per kind, so grammar can differ by language). Null for a person and for a type the
    * app cannot name, so the banner says "Viewing as" rather than "Managing Other".
    */
   protected readonly managedKindKey = computed(() => {
     const type = this.auth.user()?.type;
-    return isKnownKind(type) ? kindLabelKey(type ?? null) : null;
+    return isKnownKind(type) ? kindLabelKey(type ?? null).replace('ADMIN.TYPE_', 'BANNER.MANAGING_') : null;
   });
 
   /**

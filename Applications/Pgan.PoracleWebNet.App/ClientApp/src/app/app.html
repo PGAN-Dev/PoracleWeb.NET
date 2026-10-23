@@ -4,15 +4,16 @@
 }
 @if (auth.isImpersonating()) {
   <div class="impersonation-banner">
-    <mat-icon>visibility</mat-icon>
+    <mat-icon class="banner-icon">visibility</mat-icon>
     @if (managedKindKey(); as kindKey) {
-      <span>{{ 'BANNER.MANAGING_KIND' | translate: { kind: (kindKey | translate), name: auth.user()?.username } }}</span>
+      <span class="banner-text">{{ kindKey | translate: { name: auth.user()?.username } }}</span>
     } @else {
-      <span>{{ 'BANNER.VIEWING_AS' | translate: { name: auth.user()?.username } }}</span>
+      <span class="banner-text">{{ 'BANNER.VIEWING_AS' | translate: { name: auth.user()?.username } }}</span>
     }
-    <button mat-raised-button (click)="stopImpersonating()">
+    <button mat-raised-button class="banner-exit" (click)="stopImpersonating()">
       <mat-icon>arrow_back</mat-icon>
-      {{ 'BANNER.EXIT_IMPERSONATION' | translate }}
+      <span class="exit-full">{{ 'BANNER.EXIT_IMPERSONATION' | translate }}</span>
+      <span class="exit-short">{{ 'BANNER.EXIT_SHORT' | translate }}</span>
     </button>
   </div>
 }

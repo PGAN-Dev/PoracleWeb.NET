@@ -379,9 +379,10 @@ describe('App impersonation banner', () => {
   };
 
   it('names a Discord channel in the banner', () => {
-    expect(setup('discord:channel')).toBe('ADMIN.TYPE_DISCORD_CHANNEL');
+    expect(setup('discord:channel')).toBe('BANNER.MANAGING_DISCORD_CHANNEL');
     const html = fs.readFileSync(path.join(__dirname, 'app.html'), 'utf8');
-    expect(html).toContain("'BANNER.MANAGING_KIND' | translate");
+    expect(html).toContain("'BANNER.EXIT_SHORT' | translate");
+    expect(html).not.toContain('BANNER.MANAGING_KIND');
   });
 
   it('falls back to "Viewing as" for a type it cannot name, rather than calling it Other', () => {
@@ -389,8 +390,8 @@ describe('App impersonation banner', () => {
   });
 
   it('still names every known kind', () => {
-    expect(setup('webhook')).toBe('ADMIN.TYPE_WEBHOOK');
-    expect(setup('telegram:topic')).toBe('ADMIN.TYPE_TELEGRAM_TOPIC');
+    expect(setup('webhook')).toBe('BANNER.MANAGING_WEBHOOK');
+    expect(setup('telegram:topic')).toBe('BANNER.MANAGING_TELEGRAM_TOPIC');
   });
 
   it('keeps "Viewing as" for a person, including one with no type at all', () => {
