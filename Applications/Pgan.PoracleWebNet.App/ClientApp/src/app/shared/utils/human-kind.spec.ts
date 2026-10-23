@@ -1,4 +1,4 @@
-import { MENTION_CAPABLE, kindIcon, kindLabelKey, mentionCapable } from './human-kind';
+import { MENTION_CAPABLE, isPersonType, kindIcon, kindLabelKey, mentionCapable } from './human-kind';
 
 describe('human-kind', () => {
   it('labels every known type and falls back to Other', () => {
@@ -36,5 +36,14 @@ describe('human-kind', () => {
     expect(mentionCapable('x:unknown')).toBe(false);
     expect(mentionCapable(null)).toBe(false);
     expect(mentionCapable(undefined)).toBe(false);
+  });
+
+  it('recognises a person the way the server does: no type, or one ending :user', () => {
+    for (const type of [null, undefined, '', '  ', 'discord:user', 'telegram:user', 'Discord:User']) {
+      expect(isPersonType(type)).toBe(true);
+    }
+    for (const type of ['webhook', 'discord:channel', 'telegram:group', 'x:unknown']) {
+      expect(isPersonType(type)).toBe(false);
+    }
   });
 });

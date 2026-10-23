@@ -40,6 +40,15 @@ export function isKnownKind(type: string | null | undefined): boolean {
   return LABEL_KEYS.has(normalise(type));
 }
 
+/**
+ * Mirrors the server's `HumanKind.IsPerson` (no type, or one ending `:user`) for labelling only: a 409 can name
+ * a person already holding the id, and "Other" would misdescribe them. Never use it to grant anything.
+ */
+export function isPersonType(type: string | null | undefined): boolean {
+  const t = normalise(type);
+  return t === '' || t.endsWith(':user');
+}
+
 /** The translation key naming a known type; anything else is `ADMIN.TYPE_OTHER`. */
 export function kindLabelKey(type: string | null): string {
   return LABEL_KEYS.get(normalise(type)) ?? 'ADMIN.TYPE_OTHER';

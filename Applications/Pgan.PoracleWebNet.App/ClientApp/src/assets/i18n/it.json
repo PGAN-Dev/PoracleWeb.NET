@@ -1583,6 +1583,7 @@
     "TYPE_TELEGRAM_GROUP": "Gruppo Telegram",
     "TYPE_TELEGRAM_TOPIC": "Argomento Telegram",
     "TYPE_OTHER": "Altro",
+    "TYPE_PERSON": "account di una persona",
     "TYPE_ALL": "Tutti i tipi",
     "COLUMN_TYPE": "Tipo",
     "FILTER_BY_TYPE": "Filtra per tipo",

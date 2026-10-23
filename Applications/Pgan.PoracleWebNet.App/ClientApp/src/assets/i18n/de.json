@@ -1582,6 +1582,7 @@
     "TYPE_TELEGRAM_GROUP": "Telegram-Gruppe",
     "TYPE_TELEGRAM_TOPIC": "Telegram-Thema",
     "TYPE_OTHER": "Sonstiges",
+    "TYPE_PERSON": "Konto einer Person",
     "TYPE_ALL": "Alle Typen",
     "COLUMN_TYPE": "Typ",
     "FILTER_BY_TYPE": "Nach Typ filtern",

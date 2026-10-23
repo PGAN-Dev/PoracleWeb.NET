@@ -26,7 +26,7 @@ import { AdminService, CreateDestinationRequest } from '../../core/services/admi
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
-import { DESTINATION_KINDS, isKnownKind, kindIcon, kindLabelKey } from '../../shared/utils/human-kind';
+import { DESTINATION_KINDS, isKnownKind, isPersonType, kindIcon, kindLabelKey } from '../../shared/utils/human-kind';
 import { relativeTime } from '../../shared/utils/relative-time';
 import { serverReason } from '../../shared/utils/server-reason';
 
@@ -610,15 +610,19 @@ export class AdminDestinationsComponent implements OnInit {
   /**
    * What to tell the admin when a create fails. A 409 names the row already holding the id, so an admin who
    * pasted the wrong channel can tell it from one they added earlier; the server leaves the name and type
-   * out when it could not read that row, and then its own sentence is shown. 502 is the #482 half-write
+   * out when it could not read that row, and then its own sentence is shown. A person holding the id is
+   * labelled as one, not as "Other". 502 is the #482 half-write
    * answer ("Check the destination list before trying again"), which must reach the admin: a retry on the
    * generic message can create a second row.
    */
   private addFailureMessage(err: unknown): string {
     const failure = err as { error?: { name?: unknown; type?: unknown }; status?: unknown } | null | undefined;
     const holder = failure?.error;
-    if (failure?.status === 409 && typeof holder?.name === 'string' && typeof holder.type === 'string') {
-      return this.i18n.instant('ADMIN.DESTINATION_EXISTS', { name: holder.name, type: this.i18n.instant(kindLabelKey(holder.type)) });
+    // The name is the signal that the server read the holder; a person's type can legitimately be null.
+    if (failure?.status === 409 && typeof holder?.name === 'string' && (typeof holder.type === 'string' || holder.type == null)) {
+      const type = typeof holder.type === 'string' ? holder.type : null;
+      const typeKey = isPersonType(type) ? 'ADMIN.TYPE_PERSON' : kindLabelKey(type);
+      return this.i18n.instant('ADMIN.DESTINATION_EXISTS', { name: holder.name, type: this.i18n.instant(typeKey) });
     }
     return serverReason(err, { allow5xx: [502] }) ?? this.i18n.instant('ADMIN.SNACK_FAILED_ADD_DESTINATION');
   }

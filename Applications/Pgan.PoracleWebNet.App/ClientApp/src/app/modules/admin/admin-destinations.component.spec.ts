@@ -170,6 +170,24 @@ describe('AdminDestinationsComponent add failure', () => {
     expect(snack.open).toHaveBeenCalledWith('Already in Poracle as "raids" (Discord channel).', 'TOAST.OK', { duration: 4000 });
   });
 
+  it.each([['discord:user'], ['telegram:user'], [null], ['']])('calls a %p holder a person’s account on a 409', type => {
+    const snack = setup(
+      { error: { name: 'Sam', error: 'A destination with this id already exists.', type }, status: 409 },
+      { ADMIN: { DESTINATION_EXISTS: 'Already in Poracle as "{{name}}" ({{type}}).', TYPE_PERSON: 'a person’s account' } },
+    );
+
+    expect(snack.open).toHaveBeenCalledWith('Already in Poracle as "Sam" (a person’s account).', 'TOAST.OK', { duration: 4000 });
+  });
+
+  it('still calls an unknown non-person type Other on a 409', () => {
+    const snack = setup(
+      { error: { name: 'Typo row', error: 'A destination with this id already exists.', type: 'x:unknown' }, status: 409 },
+      { ADMIN: { DESTINATION_EXISTS: 'Already in Poracle as "{{name}}" ({{type}}).', TYPE_OTHER: 'Other' } },
+    );
+
+    expect(snack.open).toHaveBeenCalledWith('Already in Poracle as "Typo row" (Other).', 'TOAST.OK', { duration: 4000 });
+  });
+
   it('falls back to the server’s sentence on a 409 that could not name the holder', () => {
     const snack = setup({ error: { name: null, error: 'A destination with this id already exists.', type: null }, status: 409 });
 
