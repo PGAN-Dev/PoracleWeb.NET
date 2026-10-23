@@ -149,10 +149,11 @@ export const routes: Routes = [
   {
     canActivate: [authGuard, adminGuard],
     data: { adminPage: true },
-    loadComponent: () => import('./modules/admin/admin-webhooks.component').then(m => m.AdminWebhooksComponent),
-    path: 'admin/webhooks',
-    title: 'NAV.WEBHOOKS',
+    loadComponent: () => import('./modules/admin/admin-destinations.component').then(m => m.AdminDestinationsComponent),
+    path: 'admin/destinations',
+    title: 'NAV.DESTINATIONS',
   },
+  { path: 'admin/webhooks', pathMatch: 'full', redirectTo: 'admin/destinations' },
   {
     canActivate: [authGuard, adminGuard],
     canDeactivate: [unsavedChangesGuard],

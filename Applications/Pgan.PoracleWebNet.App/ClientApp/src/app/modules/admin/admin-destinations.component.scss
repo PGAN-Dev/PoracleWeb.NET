@@ -30,30 +30,84 @@
 .users-table tr.mat-mdc-row:hover {
   background: rgba(0, 0, 0, 0.04);
 }
-.webhook-url {
+.name-cell {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.row-notes {
+  font-size: 12px;
+  color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.6));
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+// The type is the one thing this page has that Users does not, so it gets the only colour in the row:
+// a tinted disc per platform. Both hues hold about 4:1 against the light and dark surfaces.
+.kind {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
+  white-space: nowrap;
+  --kind-hue: var(--mat-sys-primary, #1976d2);
+}
+.kind-tag {
+  --kind-hue: #5865f2;
+}
+.kind-send {
+  --kind-hue: #2481cc;
+}
+.kind-help_outline {
+  --kind-hue: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.6));
+}
+.kind-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  color: var(--kind-hue);
+  background: color-mix(in srgb, var(--kind-hue) 14%, transparent);
+}
+.kind-glyph mat-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+}
+// Unknown is the odd one out on purpose: no fill, a dashed ring, and the raw type string beside it.
+.kind-help_outline .kind-glyph {
+  background: transparent;
+  border: 1px dashed var(--kind-hue);
+}
+.kind-help_outline .kind-label {
   font-family: monospace;
   font-size: 12px;
-  color: var(--text-secondary, rgba(0, 0, 0, 0.6));
-  cursor: pointer;
-  padding: 2px 6px;
-  border-radius: 4px;
-  transition: background 0.15s;
 }
-.webhook-url:hover {
-  background: rgba(25, 118, 210, 0.08);
-  color: #1976d2;
+.id-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
 }
-.copy-icon {
-  font-size: 14px;
-  width: 14px;
-  height: 14px;
-  opacity: 0.5;
+.row-id {
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.6));
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.webhook-url:hover .copy-icon {
-  opacity: 1;
+.copy-button mat-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+}
+.type-chips {
+  display: block;
+  margin: -4px 0 16px;
 }
 .status-chip {
   display: inline-block;
@@ -153,7 +207,7 @@
     -webkit-overflow-scrolling: touch;
   }
   table {
-    min-width: 700px;
+    min-width: 960px;
   }
 }
 .text-muted {

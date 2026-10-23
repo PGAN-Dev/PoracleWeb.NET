@@ -23,7 +23,7 @@ describe('English labels are sentence case', () => {
     ['RAIDS.BY_LEVEL', 'By level'],
     ['RAIDS.BY_BOSS', 'By boss'],
     ['RAIDS.TEAM_ANY', 'Any team'],
-    ['ADMIN.ADD_WEBHOOK', 'Add webhook'],
+    ['ADMIN.ADD_DESTINATION', 'Add destination'],
     ['ADMIN.GEOFENCES_TITLE', 'User geofences'],
     ['ADMIN.APPROVAL_DIALOG_TITLE', 'Review geofence'],
     ['ADMIN_SETTINGS.DISABLE_FORT_CHANGES_LABEL', 'Fort changes'],

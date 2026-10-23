@@ -57,6 +57,7 @@ public partial class AdminController(
             h.Id,
             h.Name,
             h.Type,
+            Kind = HumanKind.KindOf(h.Type),
             h.Enabled,
             h.AdminDisable,
             h.LastChecked,
@@ -108,6 +109,7 @@ public partial class AdminController(
                 h.Id,
                 h.Name,
                 h.Type,
+                Kind = HumanKind.KindOf(h.Type),
                 h.Enabled,
                 h.AdminDisable,
                 h.LastChecked,
@@ -633,9 +635,18 @@ public partial class AdminController(
             return this.BadRequest(new { error = "webhookId does not name an existing webhook." });
         }
 
-        if (!await this._humanService.ExistsAsync(request.UserId))
+        var grantee = await this._humanService.GetByIdAsync(request.UserId);
+        if (grantee is null)
         {
             return this.BadRequest(new { error = "userId does not name an existing user." });
+        }
+
+        // A delegate impersonates a webhook by being signed in as themselves, so the grantee has to be a
+        // person. A channel or group row can never sign in, and a grant to one would sit in the table as
+        // authority nobody holds. See #1025.
+        if (!HumanKind.IsPerson(grantee.Type))
+        {
+            return this.BadRequest(new { error = "userId does not name a person." });
         }
 
         var delegates = await this._webhookDelegateService.AddDelegateAsync(request.WebhookId, request.UserId);

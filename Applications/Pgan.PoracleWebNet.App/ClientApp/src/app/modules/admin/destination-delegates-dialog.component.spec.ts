@@ -5,7 +5,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideTranslateService } from '@ngx-translate/core';
 import { of, throwError } from 'rxjs';
 
-import { AddWebhookDialogComponent, WebhookDelegatesDialogComponent } from './admin-webhooks.component';
+import { AddDestinationDialogComponent, DestinationDelegatesDialogComponent } from './admin-destinations.component';
 import { AdminUser } from '../../core/models';
 import { AdminService } from '../../core/services/admin.service';
 
@@ -18,6 +18,7 @@ function user(id: string, name: string, type = 'discord:user'): AdminUser {
     currentProfileNo: 1,
     disabledDate: null,
     enabled: 1,
+    kind: type === 'discord:user' ? 'person' : 'destination',
     language: null,
     lastChecked: null,
     notes: null,
@@ -25,11 +26,11 @@ function user(id: string, name: string, type = 'discord:user'): AdminUser {
   };
 }
 
-describe('WebhookDelegatesDialogComponent', () => {
+describe('DestinationDelegatesDialogComponent', () => {
   const webhook = user('https://example.com/hook', 'Hook', 'webhook');
   const sam = user('222', 'Sam');
 
-  function setup() {
+  function setup(allUsers: AdminUser[] = [webhook, sam]) {
     const adminService = {
       addWebhookDelegate: jest.fn(() => of(['222'])),
       getWebhookDelegates: jest.fn(() => of([] as string[])),
@@ -42,18 +43,34 @@ describe('WebhookDelegatesDialogComponent', () => {
         provideTranslateService(),
         { provide: AdminService, useValue: adminService },
         { provide: MatDialogRef, useValue: { close: jest.fn() } },
-        { provide: MAT_DIALOG_DATA, useValue: { allUsers: [webhook, sam], poracleAdmins: [], porocleDelegates: [], webhook } },
+        { provide: MAT_DIALOG_DATA, useValue: { allUsers, poracleAdmins: [], porocleDelegates: [], webhook } },
       ],
-      imports: [WebhookDelegatesDialogComponent, NoopAnimationsModule],
+      imports: [DestinationDelegatesDialogComponent, NoopAnimationsModule],
     });
     TestBed.overrideProvider(MatSnackBar, { useValue: snackBar });
 
-    const fixture = TestBed.createComponent(WebhookDelegatesDialogComponent);
+    const fixture = TestBed.createComponent(DestinationDelegatesDialogComponent);
     fixture.detectChanges();
     return { adminService, component: fixture.componentInstance, fixture, snackBar };
   }
 
   afterEach(() => TestBed.resetTestingModule());
+
+  // A channel or an unknown type is not somebody who can sign in, so granting it a destination grants nobody.
+  it('offers only people as delegates', () => {
+    const { component } = setup([
+      webhook,
+      sam,
+      user('-1001234567890', 'Sam group', 'telegram:group'),
+      user('333', 'Sam channel', 'discord:channel'),
+      user('444', 'Sam odd', 'x:unknown'),
+      { ...user('555', 'Sam legacy'), type: null },
+    ]);
+
+    component.onSearchChange('sam');
+
+    expect(component.filteredUsers().map(u => u.id)).toEqual(['222', '555']);
+  });
 
   /** "Sam" was sent as a user id and refused with a 400 behind a generic toast. */
   it('does not send free text as a user id', () => {
@@ -123,13 +140,13 @@ describe('WebhookDelegatesDialogComponent', () => {
   });
 });
 
-describe('AddWebhookDialogComponent', () => {
+describe('AddDestinationDialogComponent', () => {
   function setup() {
     TestBed.configureTestingModule({
       providers: [provideTranslateService(), { provide: MatDialogRef, useValue: { close: jest.fn() } }],
-      imports: [AddWebhookDialogComponent, NoopAnimationsModule],
+      imports: [AddDestinationDialogComponent, NoopAnimationsModule],
     });
-    return TestBed.createComponent(AddWebhookDialogComponent).componentInstance;
+    return TestBed.createComponent(AddDestinationDialogComponent).componentInstance;
   }
 
   afterEach(() => TestBed.resetTestingModule());

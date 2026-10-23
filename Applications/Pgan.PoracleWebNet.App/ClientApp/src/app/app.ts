@@ -210,7 +210,7 @@ export class App implements OnInit {
     { group: 'settings', icon: 'cleaning_services', iconColor: '#795548', label: 'NAV.CLEANING', route: '/cleaning' },
     { group: 'support', icon: 'help', iconColor: '#673ab7', label: 'NAV.HELP', route: '/help' },
     { adminOnly: true, group: 'admin', icon: 'people', iconColor: '#455a64', label: 'NAV.USERS', route: '/admin/users' },
-    { adminOnly: true, group: 'admin', icon: 'webhook', iconColor: '#00897b', label: 'NAV.WEBHOOKS', route: '/admin/webhooks' },
+    { adminOnly: true, group: 'admin', icon: 'campaign', iconColor: '#00897b', label: 'NAV.DESTINATIONS', route: '/admin/destinations' },
     { adminOnly: true, group: 'admin', icon: 'layers', iconColor: '#ef6c00', label: 'NAV.ADMIN_AREAS', route: '/admin/areas' },
     { adminOnly: true, group: 'admin', icon: 'settings', iconColor: '#546e7a', label: 'NAV.SETTINGS', route: '/admin/settings' },
     {
@@ -222,7 +222,7 @@ export class App implements OnInit {
       label: 'NAV.USER_GEOFENCES',
       route: '/admin/geofence-submissions',
     },
-    { delegateOnly: true, group: 'webhooks', icon: 'webhook', iconColor: '#00897b', label: 'NAV.MY_WEBHOOKS', route: '/my-webhooks' },
+    { delegateOnly: true, group: 'webhooks', icon: 'campaign', iconColor: '#00897b', label: 'NAV.MY_WEBHOOKS', route: '/my-webhooks' },
   ];
 
   protected readonly adminNavItems = computed(() =>

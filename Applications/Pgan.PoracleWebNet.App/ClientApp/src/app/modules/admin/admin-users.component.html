@@ -7,6 +7,10 @@
 </div>
 
 <div class="page-content">
+  <!-- Not inside the page description: phones hide those, and this is the only way to a destination from here. -->
+  <p class="destinations-note">
+    <a routerLink="/admin/destinations" data-test="destinations-link">{{ 'ADMIN.USERS_DESTINATIONS_LINK' | translate }}</a>
+  </p>
   <div class="toolbar">
     <mat-form-field appearance="outline" class="search-field">
       <mat-label>{{ 'ADMIN.SEARCH_USERS' | translate }}</mat-label>

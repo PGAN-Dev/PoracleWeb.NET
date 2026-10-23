@@ -1,11 +1,11 @@
-<h2 mat-dialog-title>{{ 'ADMIN.ADD_WEBHOOK' | translate }}</h2>
+<h2 mat-dialog-title>{{ 'ADMIN.ADD_DESTINATION' | translate }}</h2>
 <mat-dialog-content>
   <form [formGroup]="form" class="webhook-form">
     <mat-form-field appearance="outline" class="full-width">
-      <mat-label>{{ 'ADMIN.WEBHOOK_NAME' | translate }}</mat-label>
-      <input matInput formControlName="name" [placeholder]="'ADMIN.WEBHOOK_NAME_PLACEHOLDER' | translate" />
+      <mat-label>{{ 'ADMIN.DESTINATION_NAME' | translate }}</mat-label>
+      <input matInput formControlName="name" [placeholder]="'ADMIN.DESTINATION_NAME_PLACEHOLDER' | translate" />
       @if (form.get('name')?.hasError('required') && form.get('name')?.touched) {
-        <mat-error>{{ 'ADMIN.WEBHOOK_NAME_REQUIRED' | translate }}</mat-error>
+        <mat-error>{{ 'ADMIN.DESTINATION_NAME_REQUIRED' | translate }}</mat-error>
       }
     </mat-form-field>
     <mat-form-field appearance="outline" class="full-width">
@@ -23,6 +23,6 @@
 <mat-dialog-actions align="end">
   <button mat-button (click)="dialogRef.close(null)">{{ 'COMMON.CANCEL' | translate }}</button>
   <button mat-flat-button color="primary" [disabled]="form.invalid" (click)="submit()">
-    <mat-icon>add</mat-icon> {{ 'ADMIN.ADD_WEBHOOK' | translate }}
+    <mat-icon>add</mat-icon> {{ 'ADMIN.ADD_DESTINATION' | translate }}
   </button>
 </mat-dialog-actions>
