@@ -1584,6 +1584,7 @@
     "TYPE_TELEGRAM_GROUP": "Telegram-grupp",
     "TYPE_TELEGRAM_TOPIC": "Telegram-ämne",
     "TYPE_OTHER": "Övrigt",
+    "TYPE_PERSON": "en persons konto",
     "TYPE_ALL": "Alla typer",
     "COLUMN_TYPE": "Typ",
     "FILTER_BY_TYPE": "Filtrera efter typ",

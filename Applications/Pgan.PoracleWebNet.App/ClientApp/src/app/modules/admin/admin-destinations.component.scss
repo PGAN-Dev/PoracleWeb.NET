@@ -213,6 +213,10 @@
 .text-muted {
   color: var(--text-hint, rgba(0, 0, 0, 0.6));
 }
+// One line, not three: the table scrolls sideways on a phone, so the cell can take the width it needs.
+.no-delegates {
+  white-space: nowrap;
+}
 
 .admins-note {
   margin: 0 0 12px;

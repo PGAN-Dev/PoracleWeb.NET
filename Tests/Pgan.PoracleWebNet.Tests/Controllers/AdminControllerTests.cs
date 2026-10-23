@@ -596,6 +596,29 @@ public class AdminControllerTests : ControllerTestBase
     }
 
     /// <summary>
+    /// The detail read is a courtesy. A timeout there (TaskCanceledException, not HttpRequestException) still
+    /// answers the 409, just without naming the row, rather than a 500.
+    /// </summary>
+    [Fact]
+    public async Task CreateDestinationStillAnswers409WhenTheDetailReadTimesOut()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this._humanService.Setup(s => s.ExistsAsync("123456789012345678")).ReturnsAsync(true);
+        this._humanService.Setup(s => s.GetByIdAsync("123456789012345678"))
+            .ThrowsAsync(new TaskCanceledException("timed out"));
+
+        var result = await this._sut.CreateDestination(
+            new AdminController.CreateDestinationRequest("discord:channel", "123456789012345678", "raids", null));
+
+        var conflict = Assert.IsType<ConflictObjectResult>(result);
+        var body = conflict.Value!;
+        Assert.False(string.IsNullOrWhiteSpace(ErrorOf(body)));
+        Assert.Null(body.GetType().GetProperty("type")?.GetValue(body));
+        Assert.Null(body.GetType().GetProperty("name")?.GetValue(body));
+        this._humanService.Verify(s => s.CreateAsync(It.IsAny<Human>()), Times.Never);
+    }
+
+    /// <summary>
     /// The #1028 shape through this endpoint: a failed create undoes only a row with this request's type
     /// and name, never one another request wrote at the same id.
     /// </summary>
@@ -1203,6 +1226,21 @@ public class AdminControllerTests : ControllerTestBase
         var result = await this._sut.AddWebhookDelegate(new AdminController.WebhookDelegateRequest("wh1", "u2"));
 
         Assert.IsType<OkObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task AddWebhookDelegateAcceptsAGranteeWithNoTypeAsAPerson()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this.GivenWebhookAndUserExist();
+        this._humanService.Setup(s => s.GetByIdAsync("u2"))
+            .ReturnsAsync(new Human { Id = "u2", Type = null });
+        this._webhookDelegateService.Setup(s => s.AddDelegateAsync("wh1", "u2")).ReturnsAsync(["u2"]);
+
+        var result = await this._sut.AddWebhookDelegate(new AdminController.WebhookDelegateRequest("wh1", "u2"));
+
+        Assert.IsType<OkObjectResult>(result);
+        this._webhookDelegateService.Verify(s => s.AddDelegateAsync("wh1", "u2"), Times.Once);
     }
 
     [Fact]

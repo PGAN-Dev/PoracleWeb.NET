@@ -1584,6 +1584,7 @@
     "TYPE_TELEGRAM_GROUP": "Telegram-groep",
     "TYPE_TELEGRAM_TOPIC": "Telegram-onderwerp",
     "TYPE_OTHER": "Overig",
+    "TYPE_PERSON": "account van een persoon",
     "TYPE_ALL": "Alle typen",
     "COLUMN_TYPE": "Type",
     "FILTER_BY_TYPE": "Filteren op type",

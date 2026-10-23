@@ -1584,6 +1584,7 @@
     "TYPE_TELEGRAM_GROUP": "Telegram-gruppe",
     "TYPE_TELEGRAM_TOPIC": "Telegram-emne",
     "TYPE_OTHER": "Andet",
+    "TYPE_PERSON": "en persons konto",
     "TYPE_ALL": "Alle typer",
     "COLUMN_TYPE": "Type",
     "FILTER_BY_TYPE": "Filtrer efter type",
