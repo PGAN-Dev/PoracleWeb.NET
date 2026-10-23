@@ -105,4 +105,24 @@ describe('MyDestinationsComponent', () => {
   it('withdraws Manage Alarms inside an impersonation session', () => {
     expect(setup({ impersonating: true }).component.isImpersonating()).toBe(true);
   });
+
+  it('says how to get access when there are no destinations', () => {
+    const { fixture } = setup({ destinations: [] });
+    expect(fixture.nativeElement.querySelector('.empty-state')).not.toBeNull();
+  });
+
+  it('explains the managed session instead of the empty state, with a way back', () => {
+    const { auth, fixture } = setup({ destinations: [], impersonating: true });
+    (auth as unknown as { stopImpersonating: jest.Mock }).stopImpersonating = jest.fn();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('h2')).toBeNull();
+    expect(el.querySelector('[data-test="managing-note"]')).not.toBeNull();
+    (el.querySelector('[data-test="exit-managing"]') as HTMLButtonElement).click();
+    expect((auth as unknown as { stopImpersonating: jest.Mock }).stopImpersonating).toHaveBeenCalled();
+  });
+
+  it('marks the ID column so it can drop away on a phone', () => {
+    const { fixture } = setup();
+    expect(fixture.nativeElement.querySelector('td.col-id')).not.toBeNull();
+  });
 });

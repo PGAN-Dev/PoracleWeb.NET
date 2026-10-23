@@ -167,7 +167,16 @@
                   }
                 </div>
               } @empty {
-                <span class="text-muted no-delegates" data-test="no-delegates">{{ 'ADMIN.NO_DELEGATE_GRANTS' | translate }}</span>
+                @if (takesDelegates(row.type)) {
+                  <span class="text-muted no-delegates" data-test="no-delegates">{{ 'ADMIN.NO_DELEGATE_GRANTS' | translate }}</span>
+                } @else {
+                  <span
+                    class="text-muted no-delegates"
+                    data-test="cannot-delegate"
+                    [attr.aria-label]="'ADMIN.CANT_TAKE_DELEGATES' | translate"
+                    >&mdash;</span
+                  >
+                }
               }
             </div>
           </td>

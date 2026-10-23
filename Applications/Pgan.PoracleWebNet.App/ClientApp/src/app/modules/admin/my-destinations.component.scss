@@ -97,3 +97,32 @@
 .empty-state p {
   color: var(--text-secondary, rgba(0, 0, 0, 0.54));
 }
+
+.exit-btn,
+.manage-btn {
+  min-height: 40px;
+}
+// A phone has no room for the ID column; the name, kind, status and the one action stay.
+@media (max-width: 600px) {
+  .page-content {
+    padding: 0 16px 24px;
+  }
+  .col-id {
+    display: none;
+  }
+  .destinations-table th.mat-mdc-header-cell,
+  .destinations-table td.mat-mdc-cell {
+    padding: 0 8px;
+  }
+  .destinations-table td.mat-mdc-cell:first-child,
+  .destinations-table th.mat-mdc-header-cell:first-child {
+    padding-left: 0;
+  }
+  .destinations-table td.mat-mdc-cell:last-child,
+  .destinations-table th.mat-mdc-header-cell:last-child {
+    padding-right: 0;
+  }
+  .destinations-table .mat-mdc-cell:nth-child(1) {
+    word-break: break-word;
+  }
+}

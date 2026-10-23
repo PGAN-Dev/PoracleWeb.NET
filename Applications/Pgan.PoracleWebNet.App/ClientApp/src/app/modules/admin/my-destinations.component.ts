@@ -49,6 +49,10 @@ export class MyDestinationsComponent implements OnInit {
   readonly kindLabelKey = kindLabelKey;
   readonly loading = signal(true);
 
+  exitManaging(): void {
+    void this.auth.stopImpersonating();
+  }
+
   manageAlarms(destination: AdminUser): void {
     this.adminService
       .impersonateById(destination.id)
