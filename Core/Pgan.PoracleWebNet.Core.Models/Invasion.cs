@@ -88,4 +88,10 @@ public class Invasion : IHasDestination
     {
         get; set;
     }
+
+    [JsonIgnore]
+    public int? ExistingUid
+    {
+        get; set;
+    }
 }

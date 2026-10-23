@@ -109,4 +109,10 @@ public class Quest : IHasDestination
     {
         get; set;
     }
+
+    [JsonIgnore]
+    public int? ExistingUid
+    {
+        get; set;
+    }
 }

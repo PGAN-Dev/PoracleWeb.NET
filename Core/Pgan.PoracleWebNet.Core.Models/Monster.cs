@@ -182,4 +182,10 @@ public class Monster : IHasDestination
     {
         get; set;
     }
+
+    [JsonIgnore]
+    public int? ExistingUid
+    {
+        get; set;
+    }
 }

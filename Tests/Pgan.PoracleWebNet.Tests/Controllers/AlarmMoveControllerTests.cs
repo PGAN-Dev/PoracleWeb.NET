@@ -103,18 +103,35 @@ public class AlarmMoveControllerTests : ControllerTestBase
     }
 
     [Fact]
-    public async Task Put_NamingTheOtherSide_Moves()
+    public async Task Put_NamingTheOtherSide_Moves_AnswersTheAlarmOnTheTarget()
     {
-        var existing = new Raid { Uid = 1, ProfileNo = 1 };
+        var sut = this.RaidController();
+        var existing = new Raid { Uid = 1, ProfileNo = 0, Destination = "discord" };
         this._raids.Setup(r => r.GetByUidAsync(Discord, 1)).ReturnsAsync(existing);
         this._raids.Setup(r => r.CreateAsync(Telegram, It.IsAny<Raid>())).ReturnsAsync(new Raid { Uid = 50 });
         this._raids.Setup(r => r.DeleteAsync(Discord, 1)).ReturnsAsync(true);
 
-        var result = await this.RaidController().Update(1, new RaidUpdate { Destination = "telegram" });
+        var result = await sut.Update(1, new RaidUpdate { Destination = "telegram" });
 
-        var outcome = Assert.IsType<MoveOutcome>(Assert.IsType<OkObjectResult>(result).Value);
-        Assert.Equal(MoveStatus.Moved, outcome.Status);
+        var raid = Assert.IsType<Raid>(Assert.IsType<OkObjectResult>(result).Value);
+        Assert.Equal(50, raid.Uid);
+        Assert.Equal("telegram", raid.Destination);
+        Assert.Equal("moved", sut.Response.Headers["X-Move-Status"].ToString());
         this._raids.Verify(r => r.UpdateAsync(It.IsAny<string>(), It.IsAny<Raid>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Put_MoveWhoseSourceCannotBeDeleted_Is200WithSourceRemainsHeader()
+    {
+        var sut = this.RaidController();
+        this._raids.Setup(r => r.GetByUidAsync(Discord, 1)).ReturnsAsync(new Raid { Uid = 1 });
+        this._raids.Setup(r => r.CreateAsync(Telegram, It.IsAny<Raid>())).ReturnsAsync(new Raid { Uid = 50 });
+        this._raids.Setup(r => r.DeleteAsync(Discord, 1)).ThrowsAsync(new HttpRequestException("down"));
+
+        var result = await sut.Update(1, new RaidUpdate { Destination = "telegram" });
+
+        Assert.IsType<OkObjectResult>(result);
+        Assert.Equal("source_remains", sut.Response.Headers["X-Move-Status"].ToString());
     }
 
     [Fact]
@@ -132,13 +149,68 @@ public class AlarmMoveControllerTests : ControllerTestBase
     }
 
     [Fact]
-    public async Task Put_MoveConflict_Is409()
+    public async Task Put_MoveConflict_ReachesTheGlobalFilterAsTheTrackingConflict()
     {
-        this._raids.Setup(r => r.GetByUidAsync(Discord, 1)).ReturnsAsync(new Raid { Uid = 1, ProfileNo = 1 });
+        this._raids.Setup(r => r.GetByUidAsync(Discord, 1)).ReturnsAsync(new Raid { Uid = 1 });
         this._raids.Setup(r => r.CreateAsync(Telegram, It.IsAny<Raid>())).ThrowsAsync(new TrackingConflictException("raid", "x") { ExistingUid = 9 });
+
+        var ex = await Assert.ThrowsAsync<TrackingConflictException>(() =>
+            this.RaidController().Update(1, new RaidUpdate { Destination = "telegram" }));
+
+        Assert.Equal(9, ex.ExistingUid);
+    }
+
+    [Fact]
+    public async Task Put_MoveRefusedInPreflight_Is409WithError()
+    {
+        this._humans.Setup(h => h.GetByIdAsync(Telegram)).ReturnsAsync(new Human { Id = Telegram, CurrentProfileNo = 2 });
+        this._raids.Setup(r => r.GetByUidAsync(Discord, 1)).ReturnsAsync(new Raid { Uid = 1 });
 
         var result = await this.RaidController().Update(1, new RaidUpdate { Destination = "telegram" });
 
-        Assert.Equal(409, Assert.IsType<ObjectResult>(result).StatusCode);
+        var obj = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(409, obj.StatusCode);
+        Assert.Contains("different profiles", obj.Value!.ToString());
+        this._raids.Verify(r => r.CreateAsync(It.IsAny<string>(), It.IsAny<Raid>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Put_MonsterWithInvertedIvWindowAndOtherDestination_Is400AndMovesNothing()
+    {
+        var monsters = new Mock<IMonsterService>();
+        var sut = new MonsterController(monsters.Object, Mock.Of<IPokemonEditCapabilityService>(), new LinkedAlarmRouter(this._linked.Object, this._mover));
+        SetupUser(sut, Discord);
+        monsters.Setup(m => m.GetByUidAsync(Discord, 1)).ReturnsAsync(new Monster { Uid = 1 });
+
+        var result = await sut.Update(1, new MonsterUpdate { MinIv = 90, MaxIv = 10, Destination = "telegram" });
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        monsters.Verify(m => m.CreateAsync(It.IsAny<string>(), It.IsAny<Monster>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Put_MonsterWithValidWindowAndOtherDestination_Moves()
+    {
+        var monsters = new Mock<IMonsterService>();
+        var sut = new MonsterController(monsters.Object, Mock.Of<IPokemonEditCapabilityService>(), new LinkedAlarmRouter(this._linked.Object, this._mover));
+        SetupUser(sut, Discord);
+        monsters.Setup(m => m.GetByUidAsync(Discord, 1)).ReturnsAsync(new Monster { Uid = 1 });
+        monsters.Setup(m => m.CreateAsync(Telegram, It.IsAny<Monster>())).ReturnsAsync(new Monster { Uid = 50 });
+        monsters.Setup(m => m.DeleteAsync(Discord, 1)).ReturnsAsync(true);
+
+        var result = await sut.Update(1, new MonsterUpdate { MinIv = 10, MaxIv = 90, Destination = "telegram" });
+
+        Assert.IsType<OkObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task Post_TooManyUids_FailsModelValidation()
+    {
+        var request = new AlarmMoveRequest { Type = "raid", Uids = [.. Enumerable.Range(1, 501)], Destination = "telegram" };
+        var results = new List<System.ComponentModel.DataAnnotations.ValidationResult>();
+
+        Assert.False(System.ComponentModel.DataAnnotations.Validator.TryValidateObject(
+            request, new System.ComponentModel.DataAnnotations.ValidationContext(request), results, true));
+        await Task.CompletedTask;
     }
 }

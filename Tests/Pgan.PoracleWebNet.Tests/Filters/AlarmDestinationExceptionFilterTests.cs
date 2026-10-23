@@ -59,7 +59,7 @@ public class AlarmDestinationExceptionFilterTests : ControllerTestBase
             new PairSide(LinkSide.Telegram, Telegram, true, PauseReason.Stopped)));
         var service = new Mock<IRaidService>();
         service.Setup(s => s.CreateAsync(Telegram, It.IsAny<Raid>())).ReturnsAsync(new Raid { Uid = 5, Id = Telegram });
-        var sut = new RaidController(service.Object, new LinkedAlarmRouter(linked.Object));
+        var sut = new RaidController(service.Object, new LinkedAlarmRouter(linked.Object, Pgan.PoracleWebNet.Tests.Controllers.ControllerTestBase.InertMover(linked.Object)));
         SetupUser(sut, Discord);
 
         var result = await sut.Create(new RaidCreate { Destination = "telegram" });

@@ -14,7 +14,7 @@ public class LinkedAlarmRouterTests
     private readonly Mock<IMonsterService> _svc = new();
     private readonly LinkedAlarmRouter _sut;
 
-    public LinkedAlarmRouterTests() => this._sut = new LinkedAlarmRouter(this._linked.Object);
+    public LinkedAlarmRouterTests() => this._sut = new LinkedAlarmRouter(this._linked.Object, Controllers.ControllerTestBase.InertMover(this._linked.Object));
 
     private static AccountLink Link(LinkSide def = LinkSide.Discord) => new(1, Discord, Telegram, def, null, null, DateTime.UtcNow);
 

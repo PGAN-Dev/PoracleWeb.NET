@@ -92,7 +92,13 @@ public class MonsterController(IMonsterService monsterService, IPokemonEditCapab
         if (await this._router.MoveTargetAsync(this.UserId, model.Destination, ownerId) is { } moveTo)
         {
             model.ApplyUpdate(existing);
-            return this.MoveResult(await this._router.MoveAsync(this._monsterService, "pokemon", this.UserId, existing, ownerId, moveTo));
+            var invertedMove = MonsterRangeValidator.Validate(existing);
+            if (invertedMove != null)
+            {
+                return this.BadRequest(new { error = invertedMove });
+            }
+
+            return this.MovedResponse(await this._router.MoveAsync(this._monsterService, "pokemon", this.UserId, existing, ownerId, moveTo));
         }
 
         // Nothing to write means nothing to send: see LeavesAlarmUnchanged.

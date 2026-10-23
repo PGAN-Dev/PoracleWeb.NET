@@ -11,7 +11,7 @@ public interface IHasDestination
     /// <summary>PoracleNG's id for the rule; lets the router map a uid to its owner from one list read.</summary>
     public int Uid
     {
-        get;
+        get; set;
     }
 
     /// <summary>"discord" or "telegram". Stamped on reads only when the caller is linked.</summary>
@@ -42,5 +42,14 @@ public interface IHasDestination
     public List<string>? OverrideAreas
     {
         get;
+    }
+
+    /// <summary>
+    /// Set by a create that wrote nothing because an identical rule already exists: that rule's uid. Never serialised;
+    /// a move reads it to map the source alarm onto the rule that is already there.
+    /// </summary>
+    public int? ExistingUid
+    {
+        get; set;
     }
 }

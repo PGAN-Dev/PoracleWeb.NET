@@ -9,10 +9,10 @@ namespace Pgan.PoracleWebNet.Core.Services;
 /// humans' alarms as one list, and a write goes to whichever human owns the alarm.
 /// </summary>
 /// <remarks>Scoped: it remembers the pair it resolved so <see cref="IsPaused"/> needs no second read.</remarks>
-public class LinkedAlarmRouter(ILinkedAccount linked, AlarmMover? mover = null)
+public class LinkedAlarmRouter(ILinkedAccount linked, AlarmMover mover)
 {
     private readonly ILinkedAccount _linked = linked;
-    private readonly AlarmMover? _mover = mover;
+    private readonly AlarmMover _mover = mover;
     private LinkedPair? _pair;
 
     public async Task<IReadOnlyList<TModel>> ListAsync<TModel>(IAlarmService<TModel> svc, string userId, int profileNo)
@@ -194,11 +194,18 @@ public class LinkedAlarmRouter(ILinkedAccount linked, AlarmMover? mover = null)
     }
 
     /// <summary>Moves an updated alarm to the other human of the pair. See <see cref="AlarmMover"/>.</summary>
-    public Task<MoveOutcome> MoveAsync<TModel>(
+    public async Task<MoveResult<TModel>> MoveAsync<TModel>(
         IAlarmService<TModel> svc, string trackingType, string userId, TModel model, string ownerId, LinkSide target)
-        where TModel : class, IHasDestination =>
-        (this._mover ?? throw new InvalidOperationException("No AlarmMover is registered."))
-            .MoveAsync(svc, trackingType, userId, model, ownerId, target);
+        where TModel : class, IHasDestination
+    {
+        var result = await this._mover.MoveAsync(svc, trackingType, userId, model, ownerId, target);
+        if (result.Created is not null && this._pair?.HumanIdFor(target) is { } targetId)
+        {
+            this.Stamp(result.Created, targetId);
+        }
+
+        return result;
+    }
 
     /// <summary>True when the human is one side of the resolved pair and that side is paused. Always false when unlinked.</summary>
     public bool IsPaused(string humanId)

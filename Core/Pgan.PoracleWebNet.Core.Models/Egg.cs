@@ -97,4 +97,10 @@ public class Egg : IHasDestination
     {
         get; set;
     }
+
+    [JsonIgnore]
+    public int? ExistingUid
+    {
+        get; set;
+    }
 }

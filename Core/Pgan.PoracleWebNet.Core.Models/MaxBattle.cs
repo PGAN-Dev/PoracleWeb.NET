@@ -96,4 +96,10 @@ public class MaxBattle : IHasDestination
     {
         get; set;
     }
+
+    [JsonIgnore]
+    public int? ExistingUid
+    {
+        get; set;
+    }
 }

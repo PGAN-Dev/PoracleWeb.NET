@@ -96,6 +96,12 @@ public class FortChange : IHasDestination
     {
         get; set;
     }
+
+    [JsonIgnore]
+    public int? ExistingUid
+    {
+        get; set;
+    }
 }
 
 /// <summary>

@@ -73,6 +73,22 @@ public class QuickPickUidTransferTests
     }
 
     [Fact]
+    public async Task TargetRowIsWrittenBeforeTheSourceRow()
+    {
+        var source = State(Discord, "lure-glacial", "lure", 10);
+        var target = State(Telegram, "lure-glacial", "lure", 99);
+        this._repo.Setup(r => r.GetByUserAndProfileAsync(Discord, 1)).ReturnsAsync([source]);
+        this._repo.Setup(r => r.GetAsync(Telegram, 1, "lure-glacial")).ReturnsAsync(target);
+        var seq = new MockSequence();
+        this._repo.InSequence(seq).Setup(r => r.CreateOrUpdateAsync(target)).Returns(Task.CompletedTask);
+        this._repo.InSequence(seq).Setup(r => r.CreateOrUpdateAsync(source)).Returns(Task.CompletedTask);
+
+        await this._sut.TransferAsync(Discord, Telegram, 1, "lure", 10, 500);
+
+        this._repo.Verify(r => r.CreateOrUpdateAsync(It.IsAny<QuickPickAppliedState>()), Times.Exactly(2));
+    }
+
+    [Fact]
     public async Task AUidInNoPickIsANoOp()
     {
         this._repo.Setup(r => r.GetByUserAndProfileAsync(Discord, 1)).ReturnsAsync([State(Discord, "p", "lure", 11)]);

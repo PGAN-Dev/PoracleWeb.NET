@@ -72,7 +72,7 @@ public class RaidController(IRaidService raidService, LinkedAlarmRouter router) 
         if (await this._router.MoveTargetAsync(this.UserId, model.Destination, ownerId) is { } moveTo)
         {
             model.ApplyUpdate(existing);
-            return this.MoveResult(await this._router.MoveAsync(this._raidService, "raid", this.UserId, existing, ownerId, moveTo));
+            return this.MovedResponse(await this._router.MoveAsync(this._raidService, "raid", this.UserId, existing, ownerId, moveTo));
         }
 
         // Nothing to write means nothing to send: see LeavesAlarmUnchanged.

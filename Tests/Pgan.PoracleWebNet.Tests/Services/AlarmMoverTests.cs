@@ -25,10 +25,8 @@ public class AlarmMoverTests
         this._linked.Setup(l => l.ResolveAsync(It.IsAny<string>())).ReturnsAsync(Pair());
         this._humans.Setup(h => h.GetByIdAsync(Telegram)).ReturnsAsync(new Human { Id = Telegram, CurrentProfileNo = 1 });
         this._humans.Setup(h => h.GetByIdAsync(Discord)).ReturnsAsync(new Human { Id = Discord, CurrentProfileNo = 1 });
-        this._proxy.Setup(p => p.GetPlacesAsync(It.IsAny<string>())).ReturnsAsync(new SavedPlaces
-        {
-            Named = [new SavedPlace { Label = "Home" }]
-        });
+        this._proxy.Setup(p => p.GetPlacesAsync(Telegram)).ReturnsAsync(new SavedPlaces { Named = [new SavedPlace { Label = "Home" }] });
+        this._proxy.Setup(p => p.GetPlacesAsync(Discord)).ReturnsAsync(new SavedPlaces { Named = [new SavedPlace { Label = "Work" }] });
         this._repo.Setup(r => r.GetByUserAndProfileAsync(It.IsAny<string>(), It.IsAny<int>())).ReturnsAsync([]);
         this._sut = new AlarmMover(
             this._linked.Object,
@@ -45,10 +43,11 @@ public class AlarmMoverTests
         new PairSide(LinkSide.Discord, Discord, true, PauseReason.None),
         new PairSide(LinkSide.Telegram, Telegram, true, PauseReason.None));
 
-    private static Monster Model(int uid = 5) => new() { Uid = uid, ProfileNo = 1, Destination = "discord" };
+    // ProfileNo stays 0: a v2 read never stamps it, so the mover must not rely on it.
+    private static Monster Model(int uid = 5) => new() { Uid = uid, Destination = "discord" };
 
-    private Task<MoveOutcome> Move(Monster m) =>
-        this._sut.MoveAsync<Monster>(this._svc.Object, "pokemon", Discord, m, Discord, LinkSide.Telegram);
+    private async Task<MoveOutcome> Move(Monster m) =>
+        (await this._sut.MoveAsync<Monster>(this._svc.Object, "pokemon", Discord, m, Discord, LinkSide.Telegram)).Outcome;
 
     [Fact]
     public async Task Move_HappyPath_CreatesThenDeletes()
@@ -60,6 +59,7 @@ public class AlarmMoverTests
         var outcome = await this.Move(Model());
 
         Assert.Equal(new MoveOutcome(5, MoveStatus.Moved, 77), outcome);
+        this._svc.Verify(s => s.DeleteAsync(Discord, 5), Times.Once);
     }
 
     [Fact]
@@ -78,10 +78,10 @@ public class AlarmMoverTests
     public async Task Move_TargetOnTheSameProfile_StillMoves()
     {
         this._humans.Setup(h => h.GetByIdAsync(Telegram)).ReturnsAsync(new Human { Id = Telegram, CurrentProfileNo = 3 });
+        this._humans.Setup(h => h.GetByIdAsync(Discord)).ReturnsAsync(new Human { Id = Discord, CurrentProfileNo = 3 });
         this._svc.Setup(s => s.CreateAsync(Telegram, It.IsAny<Monster>())).ReturnsAsync(new Monster { Uid = 77 });
         this._svc.Setup(s => s.DeleteAsync(Discord, 5)).ReturnsAsync(true);
         var m = Model();
-        m.ProfileNo = 3;
 
         Assert.Equal(MoveStatus.Moved, (await this.Move(m)).Status);
     }
@@ -138,16 +138,101 @@ public class AlarmMoverTests
     }
 
     [Fact]
-    public async Task Move_IdenticalOnTarget_StillDeletesSource()
+    public async Task Move_IdenticalOnTarget_StillDeletesSource_AndMapsOntoTheExistingRule()
+    {
+        // Services hand back the model they were given when nothing was written, so a leftover source uid would read as created.
+        this._svc.Setup(s => s.CreateAsync(Telegram, It.Is<Monster>(m => m.Uid == 0)))
+            .ReturnsAsync((string _, Monster m) => { m.ExistingUid = 42; return m; });
+        this._svc.Setup(s => s.DeleteAsync(Discord, 5)).ReturnsAsync(true);
+        this._repo.Setup(r => r.GetByUserAndProfileAsync(Discord, 1)).ReturnsAsync(
+            [new QuickPickAppliedState { UserId = Discord, ProfileNo = 1, QuickPickId = "p", AlarmType = "monster", TrackedUids = [5] }]);
+
+        var result = await this._sut.MoveAsync<Monster>(this._svc.Object, "pokemon", Discord, Model(), Discord, LinkSide.Telegram);
+
+        Assert.Equal(new MoveOutcome(5, MoveStatus.Moved, 42), result.Outcome);
+        Assert.Equal(42, result.Created!.Uid);
+        this._svc.Verify(s => s.DeleteAsync(Discord, 5), Times.Once);
+        this._repo.Verify(r => r.CreateOrUpdateAsync(It.Is<QuickPickAppliedState>(s => s.UserId == Telegram && s.TrackedUids.Contains(42))), Times.Once);
+    }
+
+    [Fact]
+    public async Task Move_IdenticalReportedAsIdenticalConflict_IsTreatedAsMoved()
+    {
+        this._svc.Setup(s => s.CreateAsync(Telegram, It.IsAny<Monster>()))
+            .ThrowsAsync(new TrackingConflictException("maxbattle", "You already have an identical max battle alarm.") { ExistingUid = 42, IsIdentical = true });
+        this._svc.Setup(s => s.DeleteAsync(Discord, 5)).ReturnsAsync(true);
+
+        var outcome = await this.Move(Model());
+
+        Assert.Equal(new MoveOutcome(5, MoveStatus.Moved, 42), outcome);
+    }
+
+    [Fact]
+    public async Task Move_IdenticalWithNoNamedRule_StillDeletesSource()
     {
         this._svc.Setup(s => s.CreateAsync(Telegram, It.IsAny<Monster>())).ReturnsAsync(new Monster { Uid = 0 });
         this._svc.Setup(s => s.DeleteAsync(Discord, 5)).ReturnsAsync(true);
 
         var outcome = await this.Move(Model());
 
-        Assert.Equal(MoveStatus.Moved, outcome.Status);
-        Assert.Null(outcome.NewUid);
-        this._svc.Verify(s => s.DeleteAsync(Discord, 5), Times.Once);
+        Assert.Equal(new MoveOutcome(5, MoveStatus.Moved), outcome);
+    }
+
+    [Fact]
+    public async Task Move_CreateRefusedByPoracleNG_IsRefusedWithItsDetail()
+    {
+        this._svc.Setup(s => s.CreateAsync(Telegram, It.IsAny<Monster>())).ThrowsAsync(new PoracleRequestRefusedException("distance too large", 422));
+
+        var outcome = await this.Move(Model());
+
+        Assert.Equal(MoveStatus.Refused, outcome.Status);
+        Assert.Equal("distance too large", outcome.Reason);
+        this._svc.Verify(s => s.DeleteAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Move_CreateThrowsUnexpectedly_IsFailedWithFixedText()
+    {
+        this._svc.Setup(s => s.CreateAsync(Telegram, It.IsAny<Monster>())).ThrowsAsync(new InvalidOperationException("secret internals"));
+
+        var outcome = await this.Move(Model());
+
+        Assert.Equal(MoveStatus.Failed, outcome.Status);
+        Assert.DoesNotContain("secret", outcome.Reason);
+        this._svc.Verify(s => s.DeleteAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Move_PoracleUnreachableOnCreate_Propagates()
+    {
+        this._svc.Setup(s => s.CreateAsync(Telegram, It.IsAny<Monster>())).ThrowsAsync(new HttpRequestException("down"));
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => this.Move(Model()));
+    }
+
+    [Fact]
+    public async Task MoveMany_PoracleUnreachable_PropagatesInsteadOfNRefusedRows()
+    {
+        this._svc.Setup(s => s.GetByUserAsync(Discord, 1)).ReturnsAsync([Model(5), Model(6)]);
+        this._svc.Setup(s => s.GetByUserAsync(Telegram, 1)).ReturnsAsync([]);
+        this._svc.Setup(s => s.CreateAsync(Telegram, It.IsAny<Monster>())).ThrowsAsync(new HttpRequestException("down"));
+
+        await Assert.ThrowsAsync<HttpRequestException>(() =>
+            this._sut.MoveManyAsync<Monster>(this._svc.Object, "pokemon", Discord, 1, [5, 6], LinkSide.Telegram));
+    }
+
+    [Fact]
+    public async Task MoveMany_OneUnexpectedFailure_IsFailedAndTheRestStillReport()
+    {
+        this._svc.Setup(s => s.GetByUserAsync(Discord, 1)).ReturnsAsync([Model(5), Model(6)]);
+        this._svc.Setup(s => s.GetByUserAsync(Telegram, 1)).ReturnsAsync([]);
+        this._svc.SetupSequence(s => s.CreateAsync(Telegram, It.IsAny<Monster>()))
+            .ThrowsAsync(new InvalidOperationException("x")).ReturnsAsync(new Monster { Uid = 77 });
+        this._svc.Setup(s => s.DeleteAsync(Discord, 6)).ReturnsAsync(true);
+
+        var results = await this._sut.MoveManyAsync<Monster>(this._svc.Object, "pokemon", Discord, 1, [5, 6], LinkSide.Telegram);
+
+        Assert.Equal([MoveStatus.Failed, MoveStatus.Moved], results.Select(r => r.Status));
     }
 
     [Fact]
@@ -172,6 +257,51 @@ public class AlarmMoverTests
         var outcome = await this.Move(Model());
 
         Assert.Equal(MoveStatus.Moved, outcome.Status);
+    }
+
+    [Fact]
+    public async Task Move_ModelProfileZero_BothHumansOnProfile1_MovesAndTransfersOnProfile1()
+    {
+        this._svc.Setup(s => s.CreateAsync(Telegram, It.IsAny<Monster>())).ReturnsAsync(new Monster { Uid = 77 });
+        this._svc.Setup(s => s.DeleteAsync(Discord, 5)).ReturnsAsync(true);
+        this._repo.Setup(r => r.GetByUserAndProfileAsync(Discord, 1)).ReturnsAsync(
+            [new QuickPickAppliedState { UserId = Discord, ProfileNo = 1, QuickPickId = "p", AlarmType = "monster", TrackedUids = [5] }]);
+
+        var outcome = await this.Move(Model());
+
+        Assert.Equal(MoveStatus.Moved, outcome.Status);
+        this._repo.Verify(r => r.CreateOrUpdateAsync(It.Is<QuickPickAppliedState>(s => s.UserId == Telegram && s.ProfileNo == 1 && s.TrackedUids.Contains(77))), Times.Once);
+        this._repo.Verify(r => r.GetByUserAndProfileAsync(It.IsAny<string>(), 0), Times.Never);
+    }
+
+    [Fact]
+    public async Task Move_SourceAndTargetOnProfile2_MovesAndTransfersOnProfile2()
+    {
+        this._humans.Setup(h => h.GetByIdAsync(Telegram)).ReturnsAsync(new Human { Id = Telegram, CurrentProfileNo = 2 });
+        this._humans.Setup(h => h.GetByIdAsync(Discord)).ReturnsAsync(new Human { Id = Discord, CurrentProfileNo = 2 });
+        this._svc.Setup(s => s.CreateAsync(Telegram, It.IsAny<Monster>())).ReturnsAsync(new Monster { Uid = 77 });
+        this._svc.Setup(s => s.DeleteAsync(Discord, 5)).ReturnsAsync(true);
+
+        Assert.Equal(MoveStatus.Moved, (await this.Move(Model())).Status);
+        this._repo.Verify(r => r.GetByUserAndProfileAsync(Discord, 2), Times.Once);
+    }
+
+    [Fact]
+    public async Task Move_DeleteReportsNotFound_CountsAsGone()
+    {
+        this._svc.Setup(s => s.CreateAsync(Telegram, It.IsAny<Monster>())).ReturnsAsync(new Monster { Uid = 77 });
+        this._svc.Setup(s => s.DeleteAsync(Discord, 5)).ReturnsAsync(false);
+
+        Assert.Equal(MoveStatus.Moved, (await this.Move(Model())).Status);
+    }
+
+    [Fact]
+    public async Task Move_NullTargetHuman_RefusedNothingWritten()
+    {
+        this._humans.Setup(h => h.GetByIdAsync(Telegram)).ReturnsAsync((Human?)null);
+
+        Assert.Equal(MoveStatus.Refused, (await this.Move(Model())).Status);
+        this._svc.VerifyNoOtherCalls();
     }
 
     [Fact]
