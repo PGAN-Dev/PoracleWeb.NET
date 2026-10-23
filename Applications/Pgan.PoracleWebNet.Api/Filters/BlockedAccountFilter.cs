@@ -18,7 +18,13 @@ namespace Pgan.PoracleWebNet.Api.Filters;
 /// add a round trip to every single request. Auth endpoints are exempt so signing out and reading
 /// <c>/api/auth/me</c> still work — that is how the SPA learns it has been blocked.
 /// </para>
-/// See #609.
+/// <para>
+/// Under impersonation the block checked is the impersonator's, not the target's. The <c>userId</c> claim
+/// then names the destination being managed, and refusing on its block meant an admin or delegate could
+/// not open a blocked destination to unblock or clean it up, while a blocked impersonator was never checked
+/// at all. This matches <c>/api/auth/me</c>, which already exempts an impersonated disabled account (#706).
+/// </para>
+/// See #609 and #1038.
 /// </remarks>
 public sealed class BlockedAccountFilter(IHumanService humanService, IMemoryCache cache) : IAsyncActionFilter
 {
@@ -32,7 +38,9 @@ public sealed class BlockedAccountFilter(IHumanService humanService, IMemoryCach
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(next);
 
-        var userId = context.HttpContext.User.FindFirst("userId")?.Value;
+        var user = context.HttpContext.User;
+        var impersonatedBy = user.FindFirst("impersonatedBy")?.Value;
+        var userId = string.IsNullOrEmpty(impersonatedBy) ? user.FindFirst("userId")?.Value : impersonatedBy;
         var path = context.HttpContext.Request.Path.Value ?? string.Empty;
 
         if (string.IsNullOrEmpty(userId)
