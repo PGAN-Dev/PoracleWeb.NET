@@ -1586,6 +1586,7 @@
     "COLUMN_TYPE": "Type",
     "FILTER_BY_TYPE": "Filteren op type",
     "COPY_ID": "ID kopiëren",
+    "COPY_ID_FOR": "ID van {{name}} kopiëren",
     "BLOCKED_CHANNEL_TOOLTIP": "Bestemming blokkeren. Poracle blokkeert een kanaal of groep ook zelf als het die niet meer kan vinden.",
     "DELETE_DESTINATION_NOTE": "Het Discord- of Telegram-kanaal zelf blijft onaangeroerd.",
     "USERS_DESTINATIONS_LINK": "Kanalen, groepen en webhooks staan onder Bestemmingen.",

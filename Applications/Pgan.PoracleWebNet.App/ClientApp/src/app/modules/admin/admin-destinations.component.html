@@ -109,7 +109,7 @@
                 data-test="copy-id"
                 (click)="copyId(row.id)"
                 [matTooltip]="'ADMIN.COPY_ID' | translate"
-                [attr.aria-label]="'ADMIN.COPY_ID' | translate">
+                [attr.aria-label]="'ADMIN.COPY_ID_FOR' | translate: { name: row.name || row.id }">
                 <mat-icon>content_copy</mat-icon>
               </button>
             </span>

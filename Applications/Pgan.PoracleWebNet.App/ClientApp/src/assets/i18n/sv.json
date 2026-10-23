@@ -1586,6 +1586,7 @@
     "COLUMN_TYPE": "Typ",
     "FILTER_BY_TYPE": "Filtrera efter typ",
     "COPY_ID": "Kopiera ID",
+    "COPY_ID_FOR": "Kopiera ID för {{name}}",
     "BLOCKED_CHANNEL_TOOLTIP": "Blockera destination. Poracle blockerar också själv en kanal eller grupp som den inte längre hittar.",
     "DELETE_DESTINATION_NOTE": "Själva Discord- eller Telegram-kanalen påverkas inte.",
     "USERS_DESTINATIONS_LINK": "Kanaler, grupper och webhooks finns under Destinationer.",

@@ -1587,6 +1587,7 @@
     "COLUMN_TYPE": "Tipo",
     "FILTER_BY_TYPE": "Filtra per tipo",
     "COPY_ID": "Copia ID",
+    "COPY_ID_FOR": "Copia l'ID di {{name}}",
     "BLOCKED_CHANNEL_TOOLTIP": "Blocca destinazione. Poracle blocca anche da solo un canale o un gruppo che non riesce più a trovare.",
     "DELETE_DESTINATION_NOTE": "Il canale Discord o Telegram in sé non viene toccato.",
     "USERS_DESTINATIONS_LINK": "Canali, gruppi e webhook si trovano in Destinazioni.",
