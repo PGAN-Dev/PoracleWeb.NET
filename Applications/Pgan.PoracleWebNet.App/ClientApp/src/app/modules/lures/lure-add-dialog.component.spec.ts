@@ -4,7 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import { MatDialogRef } from '@angular/material/dialog';
 import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 
 import { LureAddDialogComponent } from './lure-add-dialog.component';
 import { Lure, LureCreate } from '../../core/models';
@@ -100,5 +100,30 @@ describe('LureAddDialogComponent', () => {
     component.form.controls.editInPlace.setValue(true);
     component.save();
     expect(lureService.create).not.toHaveBeenCalled();
+  });
+
+  describe('a refused Add', () => {
+    const takeover = { error: { existingUid: 12, error: 'Another alarm of this type already uses those settings.', trackingType: 'lure' } };
+
+    it('keeps a single lure open with the reason inline', () => {
+      lureService.create.mockReturnValue(throwError(() => takeover));
+      component.selectedLureIds.set([503]);
+      component.form.controls.clean.setValue(true);
+      component.save();
+
+      expect(dialogRef.close).not.toHaveBeenCalled();
+      expect(component.refusal()?.message).toBe('Another alarm of this type already uses those settings.');
+      expect(component.selectedLureIds()).toEqual([503]);
+      expect(component.form.controls.clean.value).toBe(true);
+    });
+
+    it('closes a two-lure batch with one refusal, as before', () => {
+      lureService.create.mockReturnValueOnce(of({ uid: 40 } as Lure)).mockReturnValueOnce(throwError(() => takeover));
+      component.selectedLureIds.set([501, 503]);
+      component.save();
+
+      expect(component.refusal()).toBeNull();
+      expect(dialogRef.close).toHaveBeenCalledWith(true);
+    });
   });
 });

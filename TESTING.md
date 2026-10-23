@@ -12,13 +12,7 @@ Image registry: [`ghcr.io/pgan-dev/poracleweb.net`](https://github.com/PGAN-Dev/
 
 ## What `:beta` now expects of PoracleNG
 
-The minimum is still PoracleNG 5.1.0, but three features on the beta channel need **5.2.0 or newer**:
-Pokéstop Events, quiet periods (the mute chip on alarm cards), and Pokécoin quest rewards.
-
-On an older PoracleNG they are simply not there — no page, no chip, no Pokécoins tab, no error and no
-explanation. That is deliberate: the capability checks fail closed, and there is nothing a user can do
-about their operator's version. So if you are testing against 5.1.0 and one of those three is missing,
-that is the expected behaviour and not worth an issue. **Admin → Settings** shows the version the
+The minimum is PoracleNG **5.4.0**. Against anything older the app still starts, logs an error and shows the mismatch on the Versions card, but calls that need a newer PoracleNG fail with a message naming the version they need. If you are testing against an older PoracleNG and a page fails that way, that is the expected behaviour and not worth an issue. **Admin → Settings** shows the version the
 deployment is talking to.
 
 ---

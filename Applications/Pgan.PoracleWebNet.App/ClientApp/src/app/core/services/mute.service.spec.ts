@@ -42,23 +42,21 @@ describe('MuteService', () => {
   afterEach(() => httpMock.verify());
 
   /** Loads a list into the service and returns once the signal holds it. */
-  const seed = (mutes: Mute[], capable = true) => {
+  const seed = (mutes: Mute[]) => {
     service.load().subscribe();
-    httpMock.expectOne(`${API}/api/mutes`).flush({ capable, mutes });
+    httpMock.expectOne(`${API}/api/mutes`).flush({ mutes });
   };
 
-  it('reads capability and the list from one call', () => {
+  it('reads the list from one call, with no capability flag', () => {
     seed([aMute()]);
 
-    expect(service.capable()).toBe(true);
     expect(service.mutes()).toHaveLength(1);
     expect(service.hasMutes()).toBe(true);
   });
 
-  it('reports nothing quiet on a server that cannot do it', () => {
-    seed([], false);
+  it('reports nothing quiet for an empty list', () => {
+    seed([]);
 
-    expect(service.capable()).toBe(false);
     expect(service.hasMutes()).toBe(false);
   });
 
@@ -88,6 +86,18 @@ describe('MuteService', () => {
     seed([aMute({ scope: 'area', value: 'Aberdeen' })]);
 
     expect(service.isQuiet('area', 'aberdeen')).toBe(true);
+  });
+
+  it('matches an area held with underscores to the mute stored under its own name', () => {
+    seed([aMute({ scope: 'area', value: 'West End' })]);
+
+    expect(service.isQuiet('area', 'west_end')).toBe(true);
+  });
+
+  it('keeps underscores significant outside the area scope', () => {
+    seed([aMute({ scope: 'gym', value: 'a_b' })]);
+
+    expect(service.isQuiet('gym', 'a b')).toBe(false);
   });
 
   it('drops a quiet period once its expiry has passed', () => {
@@ -162,6 +172,63 @@ describe('MuteService', () => {
     req.flush({ deleted: [] });
   });
 
+  // ──────────────────────────────────────────────────────────────
+  // Typed tracking mutes (jfberry/PoracleNG#328 §6)
+  // ──────────────────────────────────────────────────────────────
+  // Rule uids are numbered per table, so raid rule 60 and pokemon rule 60 are different rules. A server
+  // carrying §6 reports the type on each tracking mute and needs it back on the delete; a server without
+  // it reports none and must never see the parameter.
+
+  it('sends the tracking type back when lifting a typed tracking mute', () => {
+    seed([aMute({ scope: 'tracking', trackingType: 'raid', value: '60' })]);
+    service.resume('tracking', '60', 'raid').subscribe();
+
+    const req = httpMock.expectOne(r => r.url === `${API}/api/mutes` && r.method === 'DELETE');
+    expect(req.request.params.get('scope')).toBe('tracking');
+    expect(req.request.params.get('value')).toBe('60');
+    expect(req.request.params.get('trackingType')).toBe('raid');
+    req.flush({ deleted: [] });
+  });
+
+  it('sends no tracking type when the server reported none', () => {
+    seed([aMute({ scope: 'tracking', trackingType: null, value: '60' })]);
+    service.resume('tracking', '60', null).subscribe();
+
+    const req = httpMock.expectOne(r => r.url === `${API}/api/mutes` && r.method === 'DELETE');
+    expect(req.request.params.has('trackingType')).toBe(false);
+    req.flush({ deleted: [] });
+  });
+
+  it('sends no tracking type for any other scope', () => {
+    seed([aMute()]);
+    service.resume('gym', 'abc123').subscribe();
+
+    const req = httpMock.expectOne(r => r.url === `${API}/api/mutes` && r.method === 'DELETE');
+    expect(req.request.params.has('trackingType')).toBe(false);
+    req.flush({ deleted: [] });
+  });
+
+  it('lifts only the rule of the type asked for when two types share a uid', () => {
+    seed([
+      aMute({ scope: 'tracking', trackingType: 'raid', value: '60' }),
+      aMute({ scope: 'tracking', trackingType: 'pokemon', value: '60' }),
+    ]);
+    service.resume('tracking', '60', 'pokemon').subscribe();
+    httpMock.expectOne(r => r.url === `${API}/api/mutes` && r.method === 'DELETE').flush({ deleted: [] });
+
+    expect(service.mutes().map(mute => mute.trackingType)).toEqual(['raid']);
+  });
+
+  it('surfaces the server sentence when a lift is refused', () => {
+    seed([aMute({ scope: 'tracking', value: '60' })]);
+    service.resume('tracking', '60').subscribe({ error: () => undefined });
+    httpMock
+      .expectOne(r => r.url === `${API}/api/mutes` && r.method === 'DELETE')
+      .flush({ error: 'tracking_type is required' }, { status: 422, statusText: 'Unprocessable Entity' });
+
+    expect(snackBar.open).toHaveBeenCalledWith('tracking_type is required', 'OK', expect.anything());
+  });
+
   /** The store expires entries itself, so a 404 here means it already lapsed. Not an error. */
   it('treats a 404 on resume as success and says nothing', () => {
     seed([aMute()]);
@@ -188,7 +255,7 @@ describe('MuteService', () => {
 
   it('does not refetch a list it read a moment ago', () => {
     service.refresh();
-    httpMock.expectOne(`${API}/api/mutes`).flush({ capable: true, mutes: [] });
+    httpMock.expectOne(`${API}/api/mutes`).flush({ mutes: [] });
 
     service.refresh();
     httpMock.expectNone(`${API}/api/mutes`);
@@ -196,23 +263,70 @@ describe('MuteService', () => {
 
   it('refetches when forced, because a restart can empty the store between page views', () => {
     service.refresh();
-    httpMock.expectOne(`${API}/api/mutes`).flush({ capable: true, mutes: [aMute()] });
+    httpMock.expectOne(`${API}/api/mutes`).flush({ mutes: [aMute()] });
 
     service.refresh(true);
-    httpMock.expectOne(`${API}/api/mutes`).flush({ capable: true, mutes: [] });
+    httpMock.expectOne(`${API}/api/mutes`).flush({ mutes: [] });
 
     expect(service.mutes()).toEqual([]);
   });
 
-  /** A failed read must not blank a list the user is looking at, nor claim the server cannot do this. */
+  /** A failed read must not blank a list the user is looking at. */
   it('keeps the last known list when a read fails', () => {
     seed([aMute()]);
 
     service.load().subscribe();
     httpMock.expectOne(`${API}/api/mutes`).flush('boom', { status: 500, statusText: 'Server Error' });
 
-    expect(service.capable()).toBe(true);
     expect(service.mutes()).toHaveLength(1);
+  });
+
+  /** /api/mutes is on the error interceptor's silent list, so without this the failure is invisible. */
+  it('toasts when PoracleNG is unreachable (503) instead of failing silently', () => {
+    service.load().subscribe();
+    httpMock.expectOne(`${API}/api/mutes`).flush({ error: 'unreachable' }, { status: 503, statusText: 'Service Unavailable' });
+
+    expect(snackBar.open).toHaveBeenCalledWith('QUIET.TOAST_LOAD_FAILED', 'OK', expect.anything());
+  });
+
+  it('toasts once across consecutive failed loads', () => {
+    for (let i = 0; i < 2; i++) {
+      service.load().subscribe();
+      httpMock.expectOne(`${API}/api/mutes`).flush('down', { status: 503, statusText: 'Service Unavailable' });
+    }
+
+    expect(snackBar.open).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not toast a 429, which is not an unreachable server', () => {
+    service.load().subscribe();
+    httpMock.expectOne(`${API}/api/mutes`).flush('slow down', { status: 429, statusText: 'Too Many Requests' });
+
+    expect(snackBar.open).not.toHaveBeenCalled();
+  });
+
+  it('toasts a read that got no response at all (status 0)', () => {
+    service.load().subscribe();
+    httpMock.expectOne(`${API}/api/mutes`).error(new ProgressEvent('error'));
+
+    expect(snackBar.open).toHaveBeenCalledTimes(1);
+  });
+
+  it('re-arms the toast after a successful load', () => {
+    service.load().subscribe();
+    httpMock.expectOne(`${API}/api/mutes`).flush('down', { status: 503, statusText: 'Service Unavailable' });
+    service.load().subscribe();
+    httpMock.expectOne(`${API}/api/mutes`).flush({ mutes: [] });
+    service.load().subscribe();
+    httpMock.expectOne(`${API}/api/mutes`).flush('down', { status: 503, statusText: 'Service Unavailable' });
+
+    expect(snackBar.open).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not toast on a successful read', () => {
+    seed([aMute()]);
+
+    expect(snackBar.open).not.toHaveBeenCalled();
   });
 
   // ──────────────────────────────────────────────────────────────

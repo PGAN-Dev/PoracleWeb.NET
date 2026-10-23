@@ -4,13 +4,13 @@ PoracleWeb.NET can log users in through External SSO / OIDC — a generic extern
 provider. Once that login is working, it mints its own short-lived internal session token (a JWT)
 and, by default, **discards** the provider's access and refresh tokens.
 
-This page documents an **opt-in** feature that makes PoracleWeb consume the provider's
+This page documents an **opt-in** feature that makes PoracleWeb.NET consume the provider's
 **refresh token** so it can:
 
 - keep sessions alive without a hard 24-hour re-login (silent renewal in the background),
-- **propagate provider-side revocation** — when an admin disables the user (or they "log out
-  everywhere") at the identity provider, PoracleWeb drops the session at the next refresh, and
-- **re-validate the user on every refresh** — disabling a user takes effect within roughly one
+- propagate provider-side revocation: when an admin disables the user (or they "log out
+  everywhere") at the identity provider, PoracleWeb.NET drops the session at the next refresh, and
+- re-validate the user on every refresh, so disabling a user takes effect within roughly one
   access-token lifetime (~30 minutes).
 
 !!! warning "Default OFF and provider-agnostic"
@@ -38,7 +38,7 @@ Enable it when **all** of the following hold:
 - Your provider **issues refresh tokens**. Most providers only do this when the
   `offline_access` scope is requested (handled automatically — see below). Google uses a
   non-standard `access_type=offline` instead.
-- You want seamless sessions and/or want provider-side disable/logout to terminate PoracleWeb
+- You want sessions that renew in the background and/or want provider-side disable/logout to terminate PoracleWeb.NET
   sessions promptly.
 
 ## When NOT to enable it
@@ -46,7 +46,7 @@ Enable it when **all** of the following hold:
 - You log in with **Discord, Telegram, or local** accounts only — those flows have no provider
   refresh token and this feature does nothing for them (they stay on the existing path).
 - Your provider **cannot issue refresh tokens**. If you turn the flag on but the provider returns
-  no refresh token, PoracleWeb **gracefully falls back** to the normal 24-hour JWT for that login
+  no refresh token, PoracleWeb.NET **gracefully falls back** to the normal 24-hour JWT for that login
   and logs `LogOidcRefreshUnavailable` so you can see why. Nothing breaks — the feature simply
   no-ops.
 
@@ -61,7 +61,7 @@ All variables are optional and default-safe. Add them to your `.env` (or use the
 |---|---|---|---|
 | `OIDC_USE_REFRESH_TOKENS` | `Oidc__UseRefreshTokens` | `false` | **Master opt-in.** When off, the provider's tokens are discarded and the internal JWT lives its full lifetime (24h). When on, refresh-backed OIDC sessions are created (if the provider issues a refresh token). |
 | `OIDC_ACCESS_TOKEN_MINUTES` | `Oidc__AccessTokenMinutes` | `30` | Internal JWT lifetime (minutes) for **refresh-backed OIDC sessions only**. Kept short so a disable/revocation at the provider propagates within ~one access-token lifetime. Other logins are unaffected. |
-| `OIDC_REFRESH_TOKEN_LIFETIME_DAYS` | `Oidc__RefreshTokenLifetimeDays` | `30` | PoracleWeb-side absolute cap (days) on a refresh session/family before a real re-login is forced. Independent of the provider's own refresh-token lifetime; if the provider's token expires first, the refresh call fails and the session is revoked. |
+| `OIDC_REFRESH_TOKEN_LIFETIME_DAYS` | `Oidc__RefreshTokenLifetimeDays` | `30` | PoracleWeb.NET-side absolute cap (days) on a refresh session/family before a real re-login is forced. Independent of the provider's own refresh-token lifetime; if the provider's token expires first, the refresh call fails and the session is revoked. |
 | `OIDC_SESSION_REVOKED_RETENTION_DAYS` | `Oidc__RevokedRetentionDays` | `2` | How long a revoked/rotated `oidc_sessions` row is kept (so a replayed old token is still detected and family-revoked) before the 6-hourly cleanup deletes it. Kept short and separate from the session cap so frequent rotation doesn't accumulate weeks of dead rows. Expired rows are deleted regardless. |
 | `OIDC_OFFLINE_ACCESS_SCOPE` | `Oidc__OfflineAccessScope` | `offline_access` | Scope appended to the authorize request (only when `UseRefreshTokens` is on and the scope isn't already in `OIDC_SCOPES`) so a standards-compliant provider issues a refresh token (this includes PogoAlerts). **Set empty** only for providers that issue refresh tokens unconditionally regardless of scope, or that use a non-standard mechanism (e.g. Google's `access_type=offline`). |
 | `OIDC_TOKEN_AUTH_METHOD` | `Oidc__TokenEndpointAuthMethod` | `client_secret_post` | How client credentials are presented at the token endpoint: `client_secret_post` (credentials in the form body — PogoAlerts, Authentik, Auth0, Google, Azure AD) or `client_secret_basic` (HTTP Basic header — Keycloak, Okta). Applies to **both** the code exchange and the refresh grant. |
@@ -98,7 +98,7 @@ active.
 
 ## Per-login JWT lifetime
 
-PoracleWeb's internal JWT lifetime (`Jwt__ExpirationMinutes`, default **1440** = 24h) is a
+PoracleWeb.NET's internal JWT lifetime (`Jwt__ExpirationMinutes`, default **1440** = 24h) is a
 **global** setting today. This feature introduces a **per-login** lifetime so the two session
 models can coexist:
 
@@ -113,21 +113,21 @@ models can coexist:
 A blanket cut of the global JWT lifetime to 30 minutes would log out Discord/Telegram/local users
 every 30 minutes, because their flows have no way to silently renew. Only refresh-backed OIDC
 sessions can renew in the background, so **only those** get the short lifetime. The short lifetime
-is what makes revocation propagation prompt: a disabled user keeps a valid PoracleWeb session for
+is what makes revocation propagation prompt: a disabled user keeps a valid PoracleWeb.NET session for
 at most one access-token lifetime (~30 min) before the next refresh re-validates them and fails.
 
 ---
 
 ## How it works
 
-PoracleWeb never sends the provider's refresh token to the browser. The browser holds an **opaque
-PoracleWeb-minted token** (in `localStorage` as `poracle_refresh_token`) that keys a server-side
+PoracleWeb.NET never sends the provider's refresh token to the browser. The browser holds an **opaque
+PoracleWeb.NET-minted token** (in `localStorage` as `poracle_refresh_token`) that keys a server-side
 `oidc_sessions` row. That row's `EncryptedRefreshToken` column holds the *real* provider refresh
 token, encrypted at rest via ASP.NET Core DataProtection. One **family** (`FamilyId`) is one login
 session and one rotation chain.
 
 ```
- Browser (localStorage:                 PoracleWeb API                     Provider (IdP)
+ Browser (localStorage:                 PoracleWeb.NET API                 Provider (IdP)
    poracle_token = short JWT            /api/auth/oidc/callback            /token
    poracle_refresh_token = opaque)      /api/auth/oidc/refresh   ───────▶   grant=authorization_code
         │  proactive ~60s before exp    /api/auth/oidc/refresh/revoke      grant=refresh_token
@@ -148,7 +148,7 @@ session and one rotation chain.
 ```mermaid
 sequenceDiagram
   participant B as Browser
-  participant P as PoracleWeb API
+  participant P as PoracleWeb.NET API
   participant I as Provider (IdP)
   B->>P: GET /api/auth/oidc/login
   P->>B: 302 to provider authorize (PKCE, offline_access if enabled)
@@ -178,7 +178,7 @@ never sees an interruption.
 ```mermaid
 sequenceDiagram
   participant B as Browser (interceptor)
-  participant P as PoracleWeb API
+  participant P as PoracleWeb.NET API
   participant I as Provider (IdP)
   Note over B: ~60s before JWT expiry
   B->>P: POST /api/auth/oidc/refresh { refreshToken: OPAQUE }
@@ -201,7 +201,7 @@ retries the original request. Concurrent 401s are coalesced into a single refres
 ```mermaid
 sequenceDiagram
   participant B as Browser (interceptor)
-  participant P as PoracleWeb API
+  participant P as PoracleWeb.NET API
   participant I as Provider (IdP)
   B->>P: GET /api/... (expired JWT)
   P-->>B: 401 Unauthorized
@@ -217,13 +217,13 @@ sequenceDiagram
 ### Revocation propagation
 
 When the provider disables the user (or its refresh token is revoked/expired), the next refresh
-fails and PoracleWeb revokes the family and logs the user out — provider-side revocation reaches
-PoracleWeb within one access-token lifetime.
+fails and PoracleWeb.NET revokes the family and logs the user out — provider-side revocation reaches
+PoracleWeb.NET within one access-token lifetime.
 
 ```mermaid
 sequenceDiagram
   participant B as Browser (interceptor)
-  participant P as PoracleWeb API
+  participant P as PoracleWeb.NET API
   participant I as Provider (IdP)
   Note over I: admin disables user / logout-everywhere
   B->>P: POST /api/auth/oidc/refresh { refreshToken: OPAQUE }
@@ -235,7 +235,7 @@ sequenceDiagram
   B->>B: clear localStorage → logout
 ```
 
-PoracleWeb also re-validates the `human` record (exists + enabled + role gating) on **every**
+PoracleWeb.NET also re-validates the `human` record (exists + enabled + role gating) on **every**
 refresh, so disabling a user *inside Poracle* (not just at the provider) terminates the session
 the same way.
 
@@ -244,7 +244,7 @@ the same way.
 ```mermaid
 sequenceDiagram
   participant B as Browser
-  participant P as PoracleWeb API
+  participant P as PoracleWeb.NET API
   participant I as Provider (IdP)
   B->>P: POST /api/auth/oidc/refresh/revoke { refreshToken }
   P->>P: revoke family server-side (delete stored provider RT path)
@@ -268,11 +268,11 @@ PogoAlerts.** The provider-specific behavior is captured by config plus graceful
 
 ### The three real divergences
 
-| Divergence | How PoracleWeb handles it |
+| Divergence | How PoracleWeb.NET handles it |
 |---|---|
 | **Getting a refresh token at all.** Most providers only issue one when the `offline_access` scope is requested. | `OIDC_OFFLINE_ACCESS_SCOPE` (default `offline_access`) is appended to the authorize request **only** when refresh is enabled and the scope isn't already present. Set it empty for providers that issue refresh tokens unconditionally, or that use a non-standard mechanism. |
 | **Token-endpoint client auth.** Some providers read the secret from the form body; others require HTTP Basic. | `OIDC_TOKEN_AUTH_METHOD` = `client_secret_post` (body) or `client_secret_basic` (HTTP Basic header). Applies to both the code exchange and the refresh grant. |
-| **Refresh-token rotation.** Some providers rotate the refresh token on every refresh; many return none and expect reuse of the original. | PoracleWeb uses `newProviderRt = response.refresh_token ?? currentProviderRt` — when the provider returns no new token it carries the existing one forward, re-encrypted. The **opaque** PoracleWeb token still rotates on every call regardless. |
+| **Refresh-token rotation.** Some providers rotate the refresh token on every refresh; many return none and expect reuse of the original. | PoracleWeb.NET uses `newProviderRt = response.refresh_token ?? currentProviderRt` — when the provider returns no new token it carries the existing one forward, re-encrypted. The **opaque** PoracleWeb.NET token still rotates on every call regardless. |
 
 ### Graceful no-refresh-token fallback
 
@@ -377,14 +377,14 @@ OIDC_IDENTITY_CLAIM=sub
 - **`OIDC_ACCESS_TOKEN_MINUTES`** trades responsiveness of revocation against refresh frequency.
   Shorter (e.g. 15) propagates a disable faster but refreshes more often; longer (e.g. 60) is
   lighter but widens the revocation window. The default 30 minutes is a reasonable middle.
-- **`OIDC_REFRESH_TOKEN_LIFETIME_DAYS`** is a PoracleWeb-side absolute cap that forces a real
+- **`OIDC_REFRESH_TOKEN_LIFETIME_DAYS`** is a PoracleWeb.NET-side absolute cap that forces a real
   re-login periodically. It is independent of the provider's own refresh-token lifetime — if the
   provider's token dies first, the refresh fails and the session is revoked anyway.
 
 ### What is NOT required
 
 No discovery document, `id_token`, or JWKS validation is needed — endpoints are configured
-explicitly, which also supports plain OAuth2 providers without an OIDC discovery doc. PoracleWeb
+explicitly, which also supports plain OAuth2 providers without an OIDC discovery doc. PoracleWeb.NET
 relies solely on `/token` (`grant_type=refresh_token`), `/userinfo`, and `expires_in`.
 
 ---
@@ -393,7 +393,7 @@ relies solely on `/token` (`grant_type=refresh_token`), `/userinfo`, and `expire
 
 | Risk | Mitigation |
 |---|---|
-| **Provider refresh-token theft** | The provider refresh token is **encrypted at rest** via ASP.NET Core DataProtection (purpose `Pgan.PoracleWebNet.OidcRefresh.v1`) and is **never** sent to the browser. The browser only ever holds an opaque PoracleWeb token that is useless without the server-side session row. |
+| **Provider refresh-token theft** | The provider refresh token is **encrypted at rest** via ASP.NET Core DataProtection (purpose `Pgan.PoracleWebNet.OidcRefresh.v1`) and is **never** sent to the browser. The browser only ever holds an opaque PoracleWeb.NET token that is useless without the server-side session row. |
 | **Opaque-token XSS (localStorage)** | Exposure is bounded by the short (~30 min) JWT, rotate-on-use of the opaque token, and family-revoke on replay. **Recommended:** set a Content-Security-Policy (`default-src 'self'`) on your reverse proxy to reduce XSS surface, since the opaque token lives in `localStorage`. |
 | **Replay / reuse** | The opaque token rotates on every refresh (rotate-on-use). Presenting an already-revoked token triggers a **family revoke in the same transaction as the 401**, killing the whole rotation chain. The rotation guard uses an atomic conditional `ExecuteUpdateAsync` (affected-rows classify), no row locks. |
 | **Revocation propagation** | Userinfo is re-fetched and the `human` record re-checked (exists + enabled + roles) on **every** refresh. A provider refresh failure (revoked/disabled) revokes the family and logs the user out. An admin-disable hook (`RevokeAllForUserAsync`) revokes all of a user's sessions immediately, before the ~30 min window. |

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, HostListener, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -11,6 +11,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
 
+import { HasUnsavedChanges } from '../../core/guards/unsaved-changes.guard';
 import { AdminArea, AdminAreaService } from '../../core/services/admin-area.service';
 import { I18nService } from '../../core/services/i18n.service';
 
@@ -49,7 +50,7 @@ interface AreaRow extends AdminArea {
   styleUrl: './admin-areas.component.scss',
   templateUrl: './admin-areas.component.html',
 })
-export class AdminAreasComponent implements OnInit {
+export class AdminAreasComponent implements OnInit, HasUnsavedChanges {
   private readonly destroyRef = inject(DestroyRef);
   /** The hidden set as staged in the UI, which is what a save sends. */
   private readonly hidden = signal<Set<string>>(new Set());
@@ -93,12 +94,24 @@ export class AdminAreasComponent implements OnInit {
     );
   }
 
+  hasUnsavedChanges(): boolean {
+    return this.dirty();
+  }
+
   isHidden(area: AreaRow): boolean {
     return this.hidden().has(area.name);
   }
 
   ngOnInit(): void {
     this.reload();
+  }
+
+  /** A reload or tab close is outside the router, so the route guard cannot ask; the browser can. */
+  @HostListener('window:beforeunload', ['$event'])
+  onBeforeUnload(event: BeforeUnloadEvent | Event): void {
+    if (!this.hasUnsavedChanges()) return;
+    event.preventDefault();
+    (event as BeforeUnloadEvent).returnValue = '';
   }
 
   save(): void {

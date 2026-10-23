@@ -35,10 +35,44 @@ describe('locale parity', () => {
     expect(locales.length).toBeGreaterThan(0);
   });
 
+  /**
+   * Counted messages are split by CLDR plural category (see core/i18n/plural.ts). English needs only
+   * `_ONE` and `_OTHER`; Polish also needs `_FEW` and `_MANY`. Those extra categories are the one way a
+   * locale may differ from English, and only for a base English already counts.
+   */
+  const pluralBases = new Set(
+    Object.keys(english)
+      .filter(k => k.endsWith('_OTHER') && `${k.slice(0, -'_OTHER'.length)}_ONE` in english)
+      .map(k => k.slice(0, -'_OTHER'.length)),
+  );
+  const pluralLocale = (locale: string) => (locale === 'pt' ? 'pt-PT' : locale);
+  /** The categories a language actually uses for whole numbers, so French's million-only "many" is not required. */
+  const categoriesFor = (locale: string) => {
+    const rules = new Intl.PluralRules(pluralLocale(locale));
+    return new Set(Array.from({ length: 201 }, (_, n) => rules.select(n).toUpperCase()));
+  };
+  const isPluralExtra = (key: string, locale: string) => {
+    const match = /^(.*)_(ZERO|TWO|FEW|MANY)$/.exec(key);
+    return match !== null && pluralBases.has(match[1]) && categoriesFor(locale).has(match[2]);
+  };
+
   it.each(locales)('%s has exactly the same keys as en', locale => {
     const keys = load(locale);
-    expect(Object.keys(keys).filter(k => !(k in english))).toEqual([]);
+    expect(Object.keys(keys).filter(k => !(k in english) && !isPluralExtra(k, locale))).toEqual([]);
     expect(Object.keys(english).filter(k => !(k in keys))).toEqual([]);
+  });
+
+  it.each(locales)('%s has every plural form its language uses', locale => {
+    const keys = load(locale);
+    const missing = [...pluralBases].flatMap(base =>
+      [...categoriesFor(locale)].map(category => `${base}_${category}`).filter(k => !(k in keys)),
+    );
+    expect(missing).toEqual([]);
+  });
+
+  it('pl carries few and many forms, so the rule above is not vacuous', () => {
+    expect(categoriesFor('pl')).toEqual(new Set(['ONE', 'FEW', 'MANY']));
+    expect(load('pl')['ALARM.ALARMS_COUNT_FEW']).toBeDefined();
   });
 
   it.each(locales)('%s translates the error toasts the interceptor uses', locale => {
@@ -63,9 +97,11 @@ describe('locale parity', () => {
     const placeholders = (value: string) => [...value.matchAll(/\{\{\s*(\w+)\s*\}\}/g)].map(m => m[1]).sort();
     const keys = load(locale);
 
-    const mismatched = Object.keys(english)
-      .filter(k => k in keys)
-      .map(k => ({ key: k, mine: placeholders(keys[k]), theirs: placeholders(english[k]) }))
+    // A plural extra (pl `_FEW`) is held to its English `_OTHER`.
+    const englishFor = (k: string) => english[k] ?? english[k.replace(/_(ZERO|TWO|FEW|MANY)$/, '_OTHER')];
+    const mismatched = Object.keys(keys)
+      .filter(k => englishFor(k) !== undefined)
+      .map(k => ({ key: k, mine: placeholders(keys[k]), theirs: placeholders(englishFor(k)) }))
       .filter(({ mine, theirs }) => mine.join() !== theirs.join());
 
     expect(mismatched).toEqual([]);

@@ -14,10 +14,10 @@ import { EggService } from '../../core/services/egg.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { RaidService } from '../../core/services/raid.service';
-import { SettingsService } from '../../core/services/settings.service';
 
 /** Costume is offered only where it can mean something: a raid rule with a specific boss. See #804. */
 describe('RaidEditDialogComponent', () => {
+  let webhookSession = false;
   let component: RaidEditDialogComponent;
   let eggService: { update: jest.Mock };
   let raidService: { update: jest.Mock };
@@ -41,7 +41,7 @@ describe('RaidEditDialogComponent', () => {
     template: null,
   };
 
-  function setup(data: Partial<RaidEditDialogData> & { item: Egg | Raid }, costumeSupported = true) {
+  function setup(data: Partial<RaidEditDialogData> & { item: Egg | Raid }) {
     raidService = { update: jest.fn().mockReturnValue(of({})) };
     eggService = { update: jest.fn().mockReturnValue(of({})) };
 
@@ -61,11 +61,11 @@ describe('RaidEditDialogComponent', () => {
           useValue: {
             costumesAvailable: () => true,
             getCostumes: () => [{ id: 85, name: 'Halloween 2025' }],
+            getPokemonName: (id: number) => (id === 150 ? 'Mewtwo' : `Pokemon #${id}`),
           },
         },
-        { provide: I18nService, useValue: { instant: (k: string) => k } },
-        { provide: SettingsService, useValue: { supportsCostume: () => costumeSupported } },
-        { provide: AuthService, useValue: { isImpersonating: () => false } },
+        { provide: I18nService, useValue: { instant: (k: string) => k, plural: (k: string) => k } },
+        { provide: AuthService, useValue: { isImpersonating: () => webhookSession } },
       ],
       imports: [RaidEditDialogComponent],
     });
@@ -80,6 +80,13 @@ describe('RaidEditDialogComponent', () => {
   function sentRaid(): RaidUpdate {
     return raidService.update.mock.calls[0][1] as RaidUpdate;
   }
+
+  // The list names the boss; the dialog header used to say "Raid Boss #150" (UI audit D2).
+  it('titles a boss rule with the boss name, as the list does', () => {
+    setup({ item: BASE_RAID });
+
+    expect(component.getTitle()).toBe('Mewtwo');
+  });
 
   it('offers the costume filter on a rule with a specific boss', () => {
     setup({ item: { ...BASE_RAID, costume: 85 } });
@@ -136,19 +143,16 @@ describe('RaidEditDialogComponent', () => {
     expect(eggService.update.mock.calls[0][1] as EggUpdate).not.toHaveProperty('costume');
   });
 
-  /**
-   * The gate. A Poracle without raid.costume takes the field, answers 200 and drops it, so the rule
-   * would read "Halloween 2025" and match every boss. Omitting the key is safe on any server:
-   * PoracleNG defaults an absent costume to the 9000 wildcard.
-   */
-  it('hides the costume filter on a Poracle without the raid column', () => {
-    setup({ item: { ...BASE_RAID, costume: 9000 } }, false);
+  // PoracleNG 5.4.0 stores a costume on every raid rule, so a boss rule always offers the control and
+  // the settings service is never consulted.
+  it('offers the costume filter on a boss rule without asking the server', () => {
+    setup({ item: { ...BASE_RAID, costume: 9000 } });
 
-    expect(component.showCostume()).toBe(false);
+    expect(component.showCostume()).toBe(true);
 
     component.save();
 
-    expect(sentRaid()).not.toHaveProperty('costume');
+    expect(sentRaid().costume).toBe(9000);
   });
 
   // A raid stored before PoracleNG grew the column reads back undefined; it must widen to "any".
@@ -162,5 +166,21 @@ describe('RaidEditDialogComponent', () => {
     component.save();
 
     expect(sentRaid().costume).toBe(9000);
+  });
+
+  describe('Mention field', () => {
+    // The dialog's only condition for the Mention field is the impersonation snapshot: PoracleNG 5.4.0
+    // always stores a ping, so there is no server-config dependency left to consult.
+    it('is offered on a webhook alarm', () => {
+      webhookSession = true;
+      setup({ item: { ...BASE_RAID } });
+      expect(TestBed.createComponent(RaidEditDialogComponent).componentInstance.isWebhook).toBe(true);
+    });
+
+    it('is hidden on a personal alarm', () => {
+      webhookSession = false;
+      setup({ item: { ...BASE_RAID } });
+      expect(TestBed.createComponent(RaidEditDialogComponent).componentInstance.isWebhook).toBe(false);
+    });
   });
 });

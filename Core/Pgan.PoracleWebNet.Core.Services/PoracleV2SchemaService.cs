@@ -95,18 +95,7 @@ public partial class PoracleV2SchemaService(
             return new PoracleV2Capabilities
             {
                 Read = true,
-                TrustedSetAreas = HasProperty(schemas, "V2SetAreasBody", "trusted"),
-                ProfileRename = HasProperty(schemas, "V2UpdateProfileBody", "name"),
-                ProfileCreateReturnsNumber = CreateReturnsNumber(paths, schemas),
-                // The routes existed from PR #217 on, answering V2HumanSummary with seven fields; #230
-                // added last_checked/disabled_date/notes, which is what the admin grid actually needs.
-                // A server with the routes but not the three fields is not meaningfully different from
-                // one with no route at all, so this checks both rather than just the routes existing.
-                AdminHumanRoutes = HasOperation(paths, "/v2/humans", "get")
-                    && HasOperation(paths, "/v2/humans/{id}", "delete")
-                    && HasProperty(schemas, "V2HumanSummary", "last_checked"),
                 InvasionGruntType = HasProperty(schemas, "V2InvasionRule", "grunt_type"),
-                TrackingPing = HasProperty(schemas, "V2PokemonRule", "ping"),
                 // jfberry/PoracleNG#255. Both fields together, and the list, add and unlink operations
                 // together: personal tracking matches nothing without a linked account, and an account
                 // that cannot be unlinked is one the user cannot take back.
@@ -115,8 +104,6 @@ public partial class PoracleV2SchemaService(
                 PlayerAccounts = HasOperation(paths, "/v2/humans/{id}/accounts", "get")
                     && HasOperation(paths, "/v2/humans/{id}/accounts", "post")
                     && HasOperation(paths, "/v2/humans/{id}/accounts/{player_id}", "delete"),
-                V2LocationLatitudeLongitude = HasProperty(schemas, "V2LocationBody", "latitude")
-                    && HasProperty(schemas, "V2LocationBody", "longitude"),
             };
         }
         catch (JsonException)
@@ -142,37 +129,6 @@ public partial class PoracleV2SchemaService(
     /// <summary>True when the path declares the method.</summary>
     private static bool HasOperation(JsonElement paths, string path, string method) =>
         Property(Property(paths, path), method).ValueKind != JsonValueKind.Undefined;
-
-    /// <summary>
-    /// True when creating a profile answers with the assigned number.
-    /// </summary>
-    /// <remarks>
-    /// Read as "the 200 body has a <c>profile_no</c>", not as "the response is not
-    /// <c>StatusOKOutputBody</c>". Naming the old type would make this a test for one specific shape
-    /// being absent, which a rename upstream would silently turn into a false positive — and a false
-    /// positive here means reading a number out of a body that does not carry one.
-    /// </remarks>
-    private static bool CreateReturnsNumber(JsonElement paths, JsonElement schemas)
-    {
-        var ok = Property(
-            Property(Property(Property(paths, "/v2/humans/{id}/profiles"), "post"), "responses"),
-            "200");
-
-        var refValue = Property(
-            Property(Property(Property(ok, "content"), "application/json"), "schema"),
-            "$ref");
-
-        var reference = refValue.ValueKind == JsonValueKind.String ? refValue.GetString() : null;
-
-        if (string.IsNullOrEmpty(reference))
-        {
-            return false;
-        }
-
-        var name = reference[(reference.LastIndexOf('/') + 1)..];
-
-        return HasProperty(schemas, name, "profile_no");
-    }
 
     private async Task<string?> FetchAsync(CancellationToken cancellationToken)
     {

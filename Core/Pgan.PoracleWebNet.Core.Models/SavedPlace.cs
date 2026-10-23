@@ -11,8 +11,11 @@ namespace Pgan.PoracleWebNet.Core.Models;
 /// </remarks>
 public class SavedPlace
 {
-    [Required]
-    [StringLength(64, MinimumLength = 1)]
+    /// <summary>
+    /// Judged by <see cref="Helpers.PlaceLabelRules"/> in <c>LocationController.AddPlace</c> rather than by
+    /// attributes here: an attribute's refusal came back as a validation-problem body whose reason the SPA
+    /// could not show, so a 300-character name read only "Could not save that place."
+    /// </summary>
     public string Label { get; set; } = string.Empty;
 
     [Range(-90, 90)]

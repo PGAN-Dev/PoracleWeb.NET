@@ -321,6 +321,76 @@ public class AdminControllerTests : ControllerTestBase
         Assert.IsType<OkObjectResult>(result);
     }
 
+    /// <summary>
+    /// The half-write cleanup asks PoracleNG whether the webhook exists. A failed read used to answer
+    /// "no" and now throws (#994); thrown from inside the catch it replaced the 502 with a bare 500. The
+    /// admin still gets the 502 -- and is not told nothing was created, since that could not be checked.
+    /// </summary>
+    [Fact]
+    public async Task CreateWebhookStillAnswers502WhenTheCleanupCannotReachPoracle()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this._humanService.SetupSequence(s => s.ExistsAsync("http://test"))
+            .ReturnsAsync(false)
+            .ThrowsAsync(new HttpRequestException("503", null, System.Net.HttpStatusCode.ServiceUnavailable));
+        this._humanService.Setup(s => s.CreateAsync(It.IsAny<Human>())).ThrowsAsync(new HttpRequestException("boom"));
+
+        var result = await this._sut.CreateWebhook(new AdminController.CreateWebhookRequest("Test", "http://test"));
+
+        var objectResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(Microsoft.AspNetCore.Http.StatusCodes.Status502BadGateway, objectResult.StatusCode);
+        Assert.DoesNotContain(
+            "Nothing was created",
+            objectResult.Value?.GetType().GetProperty("error")?.GetValue(objectResult.Value) as string ?? string.Empty,
+            StringComparison.Ordinal);
+        this._humanService.Verify(s => s.DeleteUserAsync(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateWebhookStillUndoesAHalfWriteItCanSee()
+    {
+        // The legitimate case beside the one above: Poracle answers, the row is there, so it goes. See #482.
+        SetupUser(this._sut, isAdmin: true);
+        this._humanService.SetupSequence(s => s.ExistsAsync("http://test"))
+            .ReturnsAsync(false)
+            .ReturnsAsync(true);
+        this._humanService.Setup(s => s.CreateAsync(It.IsAny<Human>())).ThrowsAsync(new HttpRequestException("boom"));
+
+        var result = await this._sut.CreateWebhook(new AdminController.CreateWebhookRequest("Test", "http://test"));
+
+        Assert.Equal(Microsoft.AspNetCore.Http.StatusCodes.Status502BadGateway, Assert.IsType<ObjectResult>(result).StatusCode);
+        this._humanService.Verify(s => s.DeleteUserAsync("http://test"), Times.Once);
+    }
+
+    /// <summary>
+    /// Enable, disable, pause and resume re-read the account after the write so the admin sees what was
+    /// stored. The write has already landed by then; a failed re-read (which throws since #994) must not
+    /// turn it into a 500. Falling back to the record read before the write is what they always did.
+    /// </summary>
+    [Theory]
+    [InlineData("enable")]
+    [InlineData("disable")]
+    [InlineData("pause")]
+    [InlineData("resume")]
+    public async Task AUserStateChangeThatLandedIsNotReportedAsAFailureWhenTheReReadFails(string action)
+    {
+        SetupUser(this._sut, userId: "admin", isAdmin: true);
+        var before = new Human { Id = "u1" };
+        this._humanService.SetupSequence(s => s.GetByIdAsync("u1"))
+            .ReturnsAsync(before)
+            .ThrowsAsync(new HttpRequestException("503", null, System.Net.HttpStatusCode.ServiceUnavailable));
+
+        var result = action switch
+        {
+            "enable" => await this._sut.EnableUser("u1"),
+            "disable" => await this._sut.DisableUser("u1"),
+            "pause" => await this._sut.PauseUser("u1"),
+            _ => await this._sut.ResumeUser("u1"),
+        };
+
+        Assert.Same(before, Assert.IsType<OkObjectResult>(result).Value);
+    }
+
     // --- DeleteUser ---
 
     [Fact]
@@ -349,6 +419,33 @@ public class AdminControllerTests : ControllerTestBase
         Assert.IsType<NoContentResult>(await this._sut.DeleteUser("u1"));
 
         this._userPurgeService.Verify(s => s.PurgeAsync("u1"), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteUserRefusesToDeleteTheCallersOwnAccount()
+    {
+        // The same shape as #613's self-block: the purge takes the admin's own account, alarms and
+        // grants with it, and nothing on the site can give them back.
+        SetupUser(this._sut, userId: "u1", isAdmin: true);
+
+        var result = await this._sut.DeleteUser("u1");
+
+        var bad = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Contains("own account", System.Text.Json.JsonSerializer.Serialize(bad.Value), StringComparison.Ordinal);
+        this._userPurgeService.Verify(s => s.PurgeAsync(It.IsAny<string>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData("admin2")]
+    [InlineData("u2")]
+    public async Task DeleteUserStillDeletesOtherAdminsAndUsers(string target)
+    {
+        SetupUser(this._sut, userId: "admin1", isAdmin: true);
+        this._userPurgeService.Setup(s => s.PurgeAsync(target)).ReturnsAsync(true);
+
+        Assert.IsType<NoContentResult>(await this._sut.DeleteUser(target));
+
+        this._userPurgeService.Verify(s => s.PurgeAsync(target), Times.Once);
     }
 
     /// <summary>

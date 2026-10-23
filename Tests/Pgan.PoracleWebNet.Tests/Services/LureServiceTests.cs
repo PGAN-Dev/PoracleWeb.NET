@@ -4,7 +4,6 @@ using Moq;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Core.Services;
-using Pgan.PoracleWebNet.Tests.TestDoubles;
 
 namespace Pgan.PoracleWebNet.Tests.Services;
 
@@ -23,8 +22,7 @@ public class LureServiceTests
     public LureServiceTests()
     {
         this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
-        this._sut = new LureService(this._proxy.Object, this._featureGate.Object, NullLogger<LureService>.Instance, this._uidRemapper.Object, NaturalKeyStub.Enforced);
-        // The natural-key replace strategy reads the original row and frees the key first.
+        this._sut = new LureService(this._proxy.Object, this._featureGate.Object, NullLogger<LureService>.Instance, this._uidRemapper.Object);
         this._proxy.Setup(p => p.GetByUserAsync("lure", It.IsAny<string>()))
             .ReturnsAsync(JsonSerializer.SerializeToElement(Array.Empty<object>()));
         this._proxy.Setup(p => p.DeleteByUidAsync("lure", It.IsAny<string>(), It.IsAny<int>()))
@@ -124,8 +122,8 @@ public class LureServiceTests
                 template = "ZZsecond"
             });
         this._proxy.Setup(p => p.GetByUserAsync("lure", "u")).ReturnsAsync(json);
-        this._proxy.Setup(p => p.CreateAsync("lure", "u", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([], 0, 2, 0));
+        this._proxy.Setup(p => p.PatchAsync("lure", "u", It.IsAny<IReadOnlyList<int>>(), It.IsAny<TrackingPatchSet>()))
+            .ReturnsAsync((string _, string _, IReadOnlyList<int> uids, TrackingPatchSet _) => new TrackingPatchResult([.. uids], [], []));
 
         Assert.Equal(2, (await this._sut.UpdateDistanceByUserAsync("u", 1, 300)).Updated);
     }
@@ -193,59 +191,6 @@ public class LureServiceTests
         return doc.RootElement.Clone();
     }
 
-    // --- Duplicate-on-edit ---
-    // PoracleNG dedups lure tracking by a natural key. When an edit changes a field in that key it INSERTS
-    // instead of upserting, leaving the pre-edit row behind as a second live alarm firing the old filter.
-
-
-    // --- Natural-key replace (#401) ---
-    // PoracleNG guards lure with a unique natural key and its create has no upsert path, so editing a field
-    // OUTSIDE that key made it INSERT, collide (Error 1062) and return 500 while discarding the edit.
-
-    [Fact]
-    public async Task UpdateAsyncDeletesTheOldRowBeforeRecreatingIt()
-    {
-        var model = new Lure { Uid = 41, LureId = 501 };
-        this._proxy.Setup(p => p.GetByUserAsync("lure", "user1")).ReturnsAsync(ItemsJson(41));
-        this._proxy.Setup(p => p.DeleteByUidAsync("lure", "user1", 41)).Returns(Task.CompletedTask);
-        this._proxy.Setup(p => p.CreateAsync("lure", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([42], 0, 0, 1));
-
-        var result = await this._sut.UpdateAsync("user1", model);
-
-        this._proxy.Verify(p => p.DeleteByUidAsync("lure", "user1", 41), Times.Once);
-        Assert.Equal(42, result.Uid);
-    }
-
-    [Fact]
-    public async Task UpdateAsyncRestoresTheOriginalWhenRecreatingFails()
-    {
-        var model = new Lure { Uid = 41, LureId = 501 };
-        this._proxy.Setup(p => p.GetByUserAsync("lure", "user1")).ReturnsAsync(ItemsJson(41));
-        this._proxy.Setup(p => p.DeleteByUidAsync("lure", "user1", 41)).Returns(Task.CompletedTask);
-        this._proxy.SetupSequence(p => p.CreateAsync("lure", "user1", It.IsAny<JsonElement>()))
-            .ThrowsAsync(new HttpRequestException("upstream 500"))
-            .ReturnsAsync(new TrackingCreateResult([43], 0, 0, 1));
-
-        await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.UpdateAsync("user1", model));
-
-        // Two creates: the failed edit, then the restore of the original row.
-        this._proxy.Verify(p => p.CreateAsync("lure", "user1", It.IsAny<JsonElement>()), Times.Exactly(2));
-    }
-
-    [Fact]
-    public async Task UpdateAsyncOnANewRecordDoesNotDeleteAnything()
-    {
-        var model = new Lure { Uid = 0, LureId = 501 };
-        this._proxy.Setup(p => p.CreateAsync("lure", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([44], 0, 0, 1));
-
-        var result = await this._sut.UpdateAsync("user1", model);
-
-        this._proxy.Verify(p => p.DeleteByUidAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
-        Assert.Equal(44, result.Uid);
-    }
-
     private static JsonElement ItemsJson(int uid) =>
         JsonSerializer.SerializeToElement(new[] { new { uid, id = "user1" } });
 
@@ -256,9 +201,8 @@ public class LureServiceTests
     {
         this._proxy.Setup(p => p.GetByUserAsync("lure", "user1"))
             .ReturnsAsync(CreateJsonArray(new { uid = 239, id = "user1", lure_id = 501, distance = 500 }));
-        this._proxy.Setup(p => p.DeleteByUidAsync("lure", "user1", 239)).Returns(Task.CompletedTask);
-        this._proxy.Setup(p => p.CreateAsync("lure", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([240], 0, 0, 1));
+        this._proxy.Setup(p => p.UpdateByUidAsync("lure", "user1", 239, It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingUpdateResult(240, true));
 
         var result = await this._sut.UpdateAsync("user1", new Lure { Uid = 239, LureId = 501, Distance = 600 });
 

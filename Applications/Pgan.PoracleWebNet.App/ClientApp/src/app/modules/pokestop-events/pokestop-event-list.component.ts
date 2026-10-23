@@ -1,8 +1,6 @@
-import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
@@ -12,29 +10,39 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 
-import { PokestopEventAddDialogComponent } from './pokestop-event-add-dialog.component';
+import { PokestopEventAddDialogComponent, PokestopEventAddDialogData } from './pokestop-event-add-dialog.component';
 import { PokestopEventEditDialogComponent } from './pokestop-event-edit-dialog.component';
 import { PokestopEvent } from '../../core/models';
 import { AreaService } from '../../core/services/area.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { PokestopEventService } from '../../core/services/pokestop-event.service';
+import { AlarmCardComponent } from '../../shared/components/alarm-card/alarm-card.component';
+import { AlarmEmptyStateComponent } from '../../shared/components/alarm-empty-state/alarm-empty-state.component';
+import { AlarmListToolbarComponent, AlarmSortOption } from '../../shared/components/alarm-list-toolbar/alarm-list-toolbar.component';
+import { BulkActionBarComponent } from '../../shared/components/bulk-action-bar/bulk-action-bar.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
-import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
+import { WhereSheetComponent, WhereSheetData, whereSheetConfig } from '../../shared/components/where-sheet/where-sheet.component';
+import { addOnArrival } from '../../shared/utils/add-on-arrival';
+import { isEditExisting } from '../../shared/utils/add-outcome';
+import { byNumber, byText, queryAlarms, visibleSelection } from '../../shared/utils/alarm-list-query';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { isAutoDelete } from '../../shared/utils/clean-flags';
 import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
 import { pokestopEventInfo } from '../../shared/utils/pokestop-events';
+import { serverReason } from '../../shared/utils/server-reason';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    MatCardModule,
+    AlarmEmptyStateComponent,
+    AlarmListToolbarComponent,
+    BulkActionBarComponent,
+    AlarmCardComponent,
     MatButtonModule,
-    MatCheckboxModule,
     MatIconModule,
     MatMenuModule,
     MatDialogModule,
@@ -57,20 +65,48 @@ export class PokestopEventListComponent implements OnInit {
   private readonly icons = inject(IconService);
   private readonly pokestopEventService = inject(PokestopEventService);
   private readonly snackBar = inject(MatSnackBar);
+  /** `?add=1` from the dashboard or onboarding opens the add dialog once. */
+  private readonly takeAddRequest = addOnArrival();
 
+  readonly selectedIds = signal(new Set<number>());
   readonly events = signal<PokestopEvent[]>([]);
+  readonly search = signal('');
+  /** "default" keeps the stable order the list loads in (see orderAlarms), so nothing moves once names load. */
+  readonly sortBy = signal('default');
+  /** The rules the search leaves, in the chosen order; ties keep their stable order. See alarm-list-query. */
+  readonly visibleEvents = computed(() => {
+    const sorts: Record<string, (e: PokestopEvent, b: PokestopEvent) => number> = {
+      name: byText(e => this.eventLabel(e)),
+      newest: byNumber(e => -e.uid),
+    };
+    return queryAlarms(this.events(), this.search(), e => [this.eventLabel(e)], sorts[this.sortBy()] ?? null);
+  });
+
+  /** The selected rules still on screen: bulk Delete and Change radius never reach a card the search has hidden. */
+  readonly actionIds = computed(() =>
+    visibleSelection(
+      this.selectedIds(),
+      this.visibleEvents().map(item => item.uid),
+    ),
+  );
+
   readonly loading = signal(true);
   /** Only used to word the inherited scope honestly; empty produces the more cautious wording. */
   readonly profileAreas = signal<string[]>([]);
-  readonly selectedIds = signal(new Set<number>());
   readonly selectMode = signal(false);
+
+  readonly sortOptions: AlarmSortOption[] = [
+    { label: 'ALARM.SORT_DEFAULT', value: 'default' },
+    { label: 'ALARM.SORT_NAME', value: 'name' },
+    { label: 'ALARM.SORT_NEWEST', value: 'newest' },
+  ];
 
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        confirmText: this.i18n.instant('COMMON.DELETE'),
-        message: this.i18n.instant('ALARM.SELECTED_COUNT', { count: this.selectedIds().size }),
-        title: this.i18n.instant('POKESTOP_EVENTS.PAGE_TITLE'),
+        confirmText: this.i18n.instant('ALARM.DELETE_SELECTED', { count: this.actionIds().length }),
+        message: this.i18n.instant('ALARM.CONFIRM_BULK_DELETE_BODY'),
+        title: this.i18n.plural('ALARM.CONFIRM_BULK_DELETE_TITLE', this.actionIds().length),
         warn: true,
       } as ConfirmDialogData,
     });
@@ -80,7 +116,7 @@ export class PokestopEventListComponent implements OnInit {
     // Settled one at a time: a stale uid -- and every write here re-keys the row -- must not throw
     // out of the loop and leave deletes that already happened unreported. See #603.
     let deleted = 0;
-    for (const uid of [...this.selectedIds()]) {
+    for (const uid of this.actionIds()) {
       try {
         await firstValueFrom(this.pokestopEventService.delete(uid));
         deleted++;
@@ -91,25 +127,24 @@ export class PokestopEventListComponent implements OnInit {
     this.selectedIds.set(new Set());
     this.selectMode.set(false);
     this.loadItems();
-    this.snackBar.open(this.i18n.instant('POKESTOP_EVENTS.SNACK_BULK_DELETED', { count: deleted }), this.i18n.instant('COMMON.OK'), {
+    this.snackBar.open(this.i18n.plural('ALARM.SNACK_BULK_DELETED', deleted), this.i18n.instant('COMMON.OK'), {
       duration: 3000,
     });
   }
 
   async bulkUpdateDistance(): Promise<void> {
-    const ref = this.dialog.open(DistanceDialogComponent, { width: '440px' });
+    const ref = this.dialog.open(DistanceDialogComponent, { width: '440px', data: { count: this.actionIds().length } });
     const distance = await firstValueFrom(ref.afterClosed());
     if (distance === null || distance === undefined) return;
 
-    const uids = [...this.selectedIds()];
+    const uids = this.actionIds();
     // A rejection that cleared nothing and reloaded nothing is indistinguishable from a successful
     // no-op, so say what the server said. See #641.
     let result: DistanceUpdateResult | undefined;
     try {
       result = await firstValueFrom(this.pokestopEventService.updateBulkDistance(uids, distance));
     } catch (err) {
-      const message = (err as { error?: { error?: string } })?.error?.error;
-      this.snackBar.open(message ?? this.i18n.instant('POKESTOP_EVENTS.SNACK_FAILED_DISTANCE'), this.i18n.instant('TOAST.OK'), {
+      this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.FAILED_DISTANCE'), this.i18n.instant('TOAST.OK'), {
         duration: 5000,
       });
       return;
@@ -118,11 +153,7 @@ export class PokestopEventListComponent implements OnInit {
     this.selectMode.set(false);
     this.loadItems();
     this.snackBar.open(
-      distanceUpdateMessage(
-        result,
-        this.i18n.instant('POKESTOP_EVENTS.SNACK_BULK_DISTANCE', { count: result?.updated ?? uids.length }),
-        this.i18n,
-      ),
+      distanceUpdateMessage(result, this.i18n.plural('ALARM.SNACK_BULK_DISTANCE', result?.updated ?? uids.length), this.i18n),
       this.i18n.instant('COMMON.OK'),
       {
         duration: skippedAny(result) ? 6000 : 3000,
@@ -144,8 +175,8 @@ export class PokestopEventListComponent implements OnInit {
       .subscribe(c => {
         if (c)
           this.pokestopEventService.deleteAll().subscribe({
-            error: () =>
-              this.snackBar.open(this.i18n.instant('POKESTOP_EVENTS.SNACK_FAILED_DELETE'), this.i18n.instant('COMMON.OK'), {
+            error: (err: unknown) =>
+              this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.FAILED_DELETE_ALL'), this.i18n.instant('COMMON.OK'), {
                 duration: 3000,
               }),
             next: () => {
@@ -172,8 +203,8 @@ export class PokestopEventListComponent implements OnInit {
       .subscribe(c => {
         if (c)
           this.pokestopEventService.delete(item.uid).subscribe({
-            error: () =>
-              this.snackBar.open(this.i18n.instant('POKESTOP_EVENTS.SNACK_FAILED_DELETE'), this.i18n.instant('COMMON.OK'), {
+            error: (err: unknown) =>
+              this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.FAILED_DELETE'), this.i18n.instant('COMMON.OK'), {
                 duration: 3000,
               }),
             next: () => {
@@ -190,7 +221,7 @@ export class PokestopEventListComponent implements OnInit {
 
   editItem(item: PokestopEvent): void {
     this.dialog
-      .open(PokestopEventEditDialogComponent, { width: '600px', data: item, maxHeight: '90vh' })
+      .open(PokestopEventEditDialogComponent, { width: '600px', autoFocus: 'first-heading', data: item, maxHeight: '90vh' })
       .afterClosed()
       .subscribe(r => {
         if (r) this.loadItems();
@@ -205,13 +236,16 @@ export class PokestopEventListComponent implements OnInit {
     };
 
     this.dialog
-      .open(WhereSheetComponent, { width: '520px', autoFocus: false, data })
+      .open(WhereSheetComponent, whereSheetConfig(data))
       .afterClosed()
       .subscribe((scope?: AlarmScope) => {
         if (!scope) return;
 
         this.pokestopEventService.update(item.uid, scopeToFields(scope)).subscribe({
-          error: () => this.snackBar.open(this.i18n.instant('WHERE.SCOPE_SAVE_ERROR'), this.i18n.instant('COMMON.OK'), { duration: 4000 }),
+          error: (err: unknown) =>
+            this.snackBar.open(serverReason(err) ?? this.i18n.instant('WHERE.SCOPE_SAVE_ERROR'), this.i18n.instant('COMMON.OK'), {
+              duration: 4000,
+            }),
           next: () => {
             this.snackBar.open(this.i18n.instant('WHERE.SCOPE_SAVED'), this.i18n.instant('COMMON.OK'), { duration: 2500 });
             this.loadItems();
@@ -247,36 +281,51 @@ export class PokestopEventListComponent implements OnInit {
     return isAutoDelete(clean);
   }
 
-  loadItems(): void {
+  /** `then` runs once the list has answered, loaded or not. */
+  loadItems(then?: () => void): void {
     this.loading.set(true);
     this.pokestopEventService
       .getAll()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        error: () => this.loading.set(false),
+        error: () => {
+          this.loading.set(false);
+          then?.();
+        },
         next: items => {
           this.events.set(orderAlarms(items, e => [e.displayType]));
           this.loading.set(false);
+          then?.();
         },
       });
   }
 
   ngOnInit(): void {
     this.loadProfileAreas();
-    this.loadItems();
+    // Unlike the other nine, this dialog is handed the list itself (to mark events already tracked and
+    // name a clash), so on arrival it waits for the list rather than opening on an empty one.
+    this.loadItems(this.takeAddRequest() ? () => this.openAddDialog() : undefined);
   }
 
   openAddDialog(): void {
     this.dialog
-      .open(PokestopEventAddDialogComponent, { width: '600px', data: this.events(), maxHeight: '90vh' })
+      .open(PokestopEventAddDialogComponent, {
+        width: '600px',
+        autoFocus: 'first-heading',
+        data: { events: this.events(), profileAreas: this.profileAreas } satisfies PokestopEventAddDialogData,
+        maxHeight: '90vh',
+      })
       .afterClosed()
       .subscribe(r => {
-        if (r) this.loadItems();
+        if (isEditExisting(r)) this.openExisting(r.editExisting.uid, r.editExisting.trackingType);
+        else if (r) this.loadItems();
       });
   }
 
   selectAll(): void {
-    this.selectedIds.set(new Set(this.events().map(i => i.uid)));
+    // Adds what is on screen: a search that hides a rule also keeps it out of Select All (#642), and a tick
+    // the search is hiding stays, so clearing the search brings it back.
+    this.selectedIds.set(new Set([...this.selectedIds(), ...this.visibleEvents().map(i => i.uid)]));
   }
 
   toggleSelect(uid: number): void {
@@ -292,5 +341,11 @@ export class PokestopEventListComponent implements OnInit {
 
   private loadProfileAreas(): void {
     this.areaService.getSelected().subscribe({ error: () => undefined, next: areas => this.profileAreas.set(areas) });
+  }
+
+  /** An add dialog was refused because of this rule and the user chose to edit it instead. */
+  private openExisting(uid: number, _trackingType: null | string): void {
+    const item = this.events().find(e => e.uid === uid);
+    if (item) this.editItem(item);
   }
 }

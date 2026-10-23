@@ -304,6 +304,92 @@ public class GeofenceFeedControllerTests
         Assert.False(user.GetProperty("displayInMatches").GetBoolean());
     }
 
+    // ── exemptFromAreaSecurity (jfberry/PoracleNG#243, #254) ─────────────────────
+    // A user-drawn fence is in no community's allowed_areas by construction, so under PoracleNG's
+    // area_security the community filter can only refuse it and the reconcile prune can only delete it.
+    // The flag takes it out of the community system. Koji fences are the community system's own areas,
+    // so they must never carry it: marking one exempt would let any user in any community select it.
+
+    [Fact]
+    public async Task AUserDrawnFenceIsExemptFromAreaSecurity()
+    {
+        this.GivenOneAdminAndOneUserFence();
+
+        var feed = FeedOf(await this._sut.GetPoracleFeed());
+
+        var user = feed.Single(f => f.GetProperty("name").GetString() == "user_area");
+        Assert.True(user.GetProperty("exemptFromAreaSecurity").GetBoolean());
+    }
+
+    [Fact]
+    public async Task AKojiFenceIsNeverMarkedExempt()
+    {
+        this.GivenOneAdminAndOneUserFence();
+
+        var feed = FeedOf(await this._sut.GetPoracleFeed());
+
+        // Absent rather than false: PoracleNG reads absent as not exempt, and leaving it off keeps the
+        // admin half byte-identical to what it served before.
+        var admin = feed.Single(f => f.GetProperty("name").GetString() == "Aberdeen");
+        Assert.False(admin.TryGetProperty("exemptFromAreaSecurity", out _));
+    }
+
+    /// <summary>
+    /// The flag does not imply selectability upstream, and must not loosen anything here either: a user
+    /// fence stays hidden from every picker and from alert text.
+    /// </summary>
+    [Fact]
+    public async Task AnExemptUserFenceIsStillNotSelectableAndNotShownInMatches()
+    {
+        this.GivenOneAdminAndOneUserFence();
+
+        var feed = FeedOf(await this._sut.GetPoracleFeed());
+
+        var user = feed.Single(f => f.GetProperty("name").GetString() == "user_area");
+        Assert.False(user.GetProperty("userSelectable").GetBoolean());
+        Assert.False(user.GetProperty("displayInMatches").GetBoolean());
+    }
+
+    [Fact]
+    public async Task UserFencesKeepTheFlagWhenKojiIsDown()
+    {
+        this._kojiService.Setup(k => k.GetAdminGeofencesAsync()).ThrowsAsync(new HttpRequestException("koji down"));
+        this._repository.Setup(r => r.GetAllActiveAsync()).ReturnsAsync(
+        [
+            new() { Id = 1, KojiName = "my_area", PolygonJson = "[[1.0,2.0],[3.0,4.0],[5.0,6.0]]", Status = "active" },
+        ]);
+
+        var feed = FeedOf(await this._sut.GetPoracleFeed());
+
+        Assert.True(Assert.Single(feed).GetProperty("exemptFromAreaSecurity").GetBoolean());
+    }
+
+    [Fact]
+    public async Task KojiFencesStayUnmarkedWhenTheDatabaseIsDown()
+    {
+        this._kojiService.Setup(k => k.GetAdminGeofencesAsync()).ReturnsAsync(
+        [
+            new() { Id = 1, Name = "Aberdeen", Path = [[37.0, -76.0], [37.1, -76.1], [37.2, -76.2]], UserSelectable = true, DisplayInMatches = true },
+        ]);
+        this._repository.Setup(r => r.GetAllActiveAsync()).ThrowsAsync(new InvalidOperationException("db down"));
+
+        var feed = FeedOf(await this._sut.GetPoracleFeed());
+
+        Assert.False(Assert.Single(feed).TryGetProperty("exemptFromAreaSecurity", out _));
+    }
+
+    private void GivenOneAdminAndOneUserFence()
+    {
+        this._kojiService.Setup(k => k.GetAdminGeofencesAsync()).ReturnsAsync(
+        [
+            new() { Id = 1, Name = "Aberdeen", Path = [[37.0, -76.0], [37.1, -76.1], [37.2, -76.2]], UserSelectable = true, DisplayInMatches = true },
+        ]);
+        this._repository.Setup(r => r.GetAllActiveAsync()).ReturnsAsync(
+        [
+            new() { Id = 100, KojiName = "user_area", PolygonJson = "[[1.0,2.0],[3.0,4.0],[5.0,6.0]]", Status = "active" },
+        ]);
+    }
+
     [Fact]
     public async Task GetPoracleFeedStillServesUserGeofencesWhenKojiFails()
     {

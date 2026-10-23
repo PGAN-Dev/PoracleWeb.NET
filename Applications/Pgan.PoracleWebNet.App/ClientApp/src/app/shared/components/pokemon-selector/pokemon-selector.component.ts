@@ -15,6 +15,9 @@ import { PokemonAvailabilityService } from '../../../core/services/pokemon-avail
 import { includesMinior } from '../../utils/minior';
 import { BulkMatchResult, BulkMatchSuggestion, matchPokemonBulkText } from '../../utils/pokemon-bulk-match';
 
+/** Distinct ids for each picker's expander, since a quest dialog holds three selectors at once. */
+let nextPickersId = 0;
+
 interface GenRange {
   label: string;
   max: number;
@@ -119,10 +122,24 @@ export class PokemonSelectorComponent implements OnInit {
   ];
 
   /**
+   * Ids to show as already picked when the selector opens, for an editor that holds a stored choice.
+   * Read once, when the Pokémon list arrives; nothing is emitted for them.
+   */
+  initialIds = input<number[]>([]);
+
+  /**
    * Set by pickers whose alert has IV, CP and level filters (Pokemon alerts). Raid, nest and quest
    * pickers leave it off: those alerts have no such filters, so the Minior note would mean nothing there.
    */
   ivFilters = input(false);
+
+  /**
+   * The generation, type and live chips sit behind "Add by type or generation". Search is what almost
+   * everyone opens the dialog for, and 27 chips used to stand between them and the field.
+   */
+  readonly pickersId = `pokemon-pickers-${nextPickersId++}`;
+
+  readonly pickersOpen = signal(false);
 
   searchControl = new FormControl('');
 
@@ -164,6 +181,7 @@ export class PokemonSelectorComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(pokemon => {
         this.allPokemon.set(pokemon);
+        this.applyInitialSelection(pokemon);
       });
 
     this.searchControl.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(value => {
@@ -230,6 +248,19 @@ export class PokemonSelectorComponent implements OnInit {
     this.searchText.set('');
   }
 
+  /**
+   * Closing the pickers drops whatever they were filtering by. Otherwise the tile grid they produced would
+   * stay on screen with the chips that explain it hidden. What was picked from the tiles stays picked.
+   */
+  togglePickers(): void {
+    if (this.pickersOpen()) {
+      this.activeGen.set(null);
+      this.activeType.set(null);
+      this.filterSpawning.set(false);
+    }
+    this.pickersOpen.update(open => !open);
+  }
+
   toggleSpawning(): void {
     this.filterSpawning.update(v => !v);
     this.searchControl.setValue('');
@@ -257,5 +288,16 @@ export class PokemonSelectorComponent implements OnInit {
    */
   typeLabel(type: string): string {
     return this.masterData.getTypeLabel(type);
+  }
+
+  private applyInitialSelection(pokemon: PokemonEntry[]): void {
+    const ids = this.initialIds();
+    if (!ids.length || this.selectedPokemon().length) return;
+    const picked = ids.map(id => pokemon.find(p => p.id === id)).filter((p): p is PokemonEntry => !!p);
+    if (!picked.length) return;
+    this.selectedPokemon.set(this.multi() ? picked : [picked[0]]);
+    if (!this.multi()) {
+      this.searchControl.setValue(this.formatPokemonName(picked[0]), { emitEvent: false });
+    }
   }
 }

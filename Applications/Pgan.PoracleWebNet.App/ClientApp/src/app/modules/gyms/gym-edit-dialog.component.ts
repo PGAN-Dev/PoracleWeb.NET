@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -16,11 +16,11 @@ import { AuthService } from '../../core/services/auth.service';
 import { GymService } from '../../core/services/gym.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
-import { PoracleConfigService } from '../../core/services/poracle-config.service';
 import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
-import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
+import { createFailureText } from '../../shared/utils/add-outcome';
+import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-flags';
 
 @Component({
@@ -45,12 +45,11 @@ import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-fl
   styleUrl: './gym-edit-dialog.component.scss',
   templateUrl: './gym-edit-dialog.component.html',
 })
-export class GymEditDialogComponent implements OnInit {
+export class GymEditDialogComponent {
   private readonly fb = inject(FormBuilder);
   private readonly gymService = inject(GymService);
   private readonly i18n = inject(I18nService);
   private readonly icons = inject(IconService);
-  private readonly poracleConfig = inject(PoracleConfigService);
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<Gym>(MAT_DIALOG_DATA);
   readonly dialogRef = inject(MatDialogRef<GymEditDialogComponent>);
@@ -58,7 +57,7 @@ export class GymEditDialogComponent implements OnInit {
   form = this.fb.group({
     battleChanges: [this.data.battleChanges === 1],
     clean: [isAutoDelete(this.data.clean)],
-    // Always present even when the control is hidden -- see pingSupported below -- so a mention
+    // Always present even when the Mention control is hidden (not a webhook alarm) -- so a mention
     // round-trips unchanged through a save this dialog makes for an unrelated field.
     ping: [this.data.ping ?? '', [Validators.maxLength(255)]],
     slotChanges: [this.data.slotChanges === 1],
@@ -67,14 +66,17 @@ export class GymEditDialogComponent implements OnInit {
 
   readonly isWebhook = inject(AuthService).isImpersonating();
 
-  /** Whether to show the Mention control at all -- see pokemon-edit-dialog's pingSupported for why. */
-  readonly pingSupported = computed(() => this.poracleConfig.serverConfig().pingSupported);
+  /** False while the scope picker holds a radius it won't accept, which keeps Save off. */
+  readonly radiusValid = signal(true);
 
   saving = signal(false);
 
   /** The alarm's current scope, read back into the shared picker. */
   readonly scope = signal<AlarmScope>(scopeOf(this.data.overrideLocationLabel, this.data.overrideAreas, this.data.distance));
+
   selectedGymId = signal<string | null>(this.data.gymId);
+  /** The radius as stored, which an edit may keep even outside the picker's range. */
+  readonly storedRadiusKm = metresToKm(this.data.distance);
 
   getGymIcon(): string {
     return this.icons.getGymUrl(this.data.team);
@@ -90,13 +92,11 @@ export class GymEditDialogComponent implements OnInit {
         return this.i18n.instant('GYMS.TEAM_VALOR');
       case 3:
         return this.i18n.instant('GYMS.TEAM_INSTINCT');
+      case 4:
+        return this.i18n.instant('RAIDS.TEAM_ANY');
       default:
         return this.i18n.instant('GYMS.TEAM_UNKNOWN', { id: team });
     }
-  }
-
-  ngOnInit(): void {
-    this.poracleConfig.load().subscribe();
   }
 
   save(): void {
@@ -119,8 +119,8 @@ export class GymEditDialogComponent implements OnInit {
       .subscribe({
         // The server names what is wrong -- which alarm already uses these settings, which
         // field a file got wrong. A fixed string threw that away. See #567, #568.
-        error: (err: { error?: { error?: string } }) => {
-          this.snackBar.open(err?.error?.error ?? this.i18n.instant('GYMS.SNACK_FAILED_UPDATE'), this.i18n.instant('COMMON.OK'), {
+        error: (err: unknown) => {
+          this.snackBar.open(createFailureText(err, this.i18n, 'ALARM.FAILED_UPDATE'), this.i18n.instant('COMMON.OK'), {
             duration: 6000,
           });
           this.saving.set(false);

@@ -178,6 +178,34 @@ describe('SummaryScheduleDialogComponent', () => {
     });
   });
 
+  // Alarms D17: with nothing scheduled, "Send summary now" and "Remove schedule" can't apply, and four
+  // buttons in the action row wrapped "Edit schedule" onto a line of its own.
+  describe('actions offered', () => {
+    function texts(root: HTMLElement, selector: string): string[] {
+      return Array.from(root.querySelectorAll(selector)).map(b => (b.textContent ?? '').trim());
+    }
+
+    it('offers neither send-now nor remove when there is no schedule', () => {
+      const fixture = setup({ schedule: null });
+      const el = fixture.nativeElement as HTMLElement;
+
+      expect(el.querySelector('.send-now-btn')).toBeNull();
+      expect(texts(el, 'mat-dialog-actions button')).toEqual(['COMMON.CLOSE', 'edit_calendar QUESTS.SUMMARY_SCHEDULE_EDIT']);
+    });
+
+    it('offers both with a schedule, keeping send-now beside the schedule it sends', () => {
+      const fixture = setup();
+      const el = fixture.nativeElement as HTMLElement;
+
+      expect(el.querySelector('mat-dialog-content .send-now-btn')).not.toBeNull();
+      expect(texts(el, 'mat-dialog-actions button')).toEqual([
+        'QUESTS.SUMMARY_SCHEDULE_CLEAR',
+        'COMMON.CLOSE',
+        'edit_calendar QUESTS.SUMMARY_SCHEDULE_EDIT',
+      ]);
+    });
+  });
+
   describe('send summary now (trigger)', () => {
     it('calls trigger for the injected alert type', () => {
       setup();

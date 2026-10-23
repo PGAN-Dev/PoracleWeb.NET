@@ -6,50 +6,33 @@
     </p>
   </div>
   <div class="header-actions">
-    <button
-      mat-fab
-      (click)="openAddDialog()"
-      [attr.aria-label]="'RAIDS.ADD_DIALOG_TITLE' | translate"
-      [style.background-color]="'#f44336'"
-      [style.color]="'white'">
+    <button mat-flat-button class="page-primary-action" (click)="openAddDialog()">
       <mat-icon>add</mat-icon>
+      {{ 'ALARM.NEW_ALARM' | translate }}
     </button>
   </div>
 </div>
 
 @if (!loading() && (raids().length > 0 || eggs().length > 0)) {
-  <div class="filter-bar">
-    <span class="result-count">{{ 'ALARM.ALARMS_COUNT' | translate: { count: raids().length + eggs().length } }}</span>
-    <div class="bulk-spacer"></div>
-    <button
-      mat-icon-button
-      (click)="toggleSelectMode()"
-      [class.select-mode-active]="selectMode()"
-      [matTooltip]="(selectMode() ? 'ALARM.EXIT_SELECT_MODE' : 'ALARM.SELECT_MULTIPLE') | translate"
-      [attr.aria-label]="(selectMode() ? 'ALARM.EXIT_SELECT_MODE' : 'ALARM.SELECT_MULTIPLE') | translate">
-      <mat-icon>{{ selectMode() ? 'close' : 'checklist' }}</mat-icon>
-    </button>
-  </div>
+  <app-alarm-list-toolbar
+    searchPlaceholder="RAIDS.SEARCH_PLACEHOLDER"
+    [(search)]="search"
+    [(sort)]="sortBy"
+    [sortOptions]="sortOptions"
+    [total]="raids().length + eggs().length"
+    [shown]="visibleRaids().length + visibleEggs().length"
+    [selectMode]="selectMode()"
+    (selectModeToggle)="toggleSelectMode()" />
 }
 
 @if (selectMode()) {
-  <div class="bulk-toolbar">
-    @if (selectedIds().size > 0) {
-      <span class="bulk-count">{{ 'ALARM.SELECTED_COUNT' | translate: { count: selectedIds().size } }}</span>
-    }
-    <button mat-stroked-button (click)="selectAll()"><mat-icon>select_all</mat-icon> {{ 'ALARM.SELECT_ALL' | translate }}</button>
-    @if (selectedIds().size > 0) {
-      <button mat-stroked-button (click)="deselectAll()">{{ 'ALARM.DESELECT_ALL' | translate }}</button>
-    }
-    <div class="bulk-spacer"></div>
-    <button mat-stroked-button (click)="bulkUpdateDistance()" [disabled]="selectedIds().size === 0">
-      <mat-icon>straighten</mat-icon> {{ 'ALARM.UPDATE_DISTANCE' | translate }}
-    </button>
-
-    <button mat-flat-button color="warn" (click)="bulkDelete()" [disabled]="selectedIds().size === 0">
-      <mat-icon>delete</mat-icon> {{ 'ALARM.DELETE' | translate }}
-    </button>
-  </div>
+  <app-bulk-action-bar
+    [count]="actionIds().length"
+    [anySelected]="selectedIds().size > 0"
+    (selectAll)="selectAll()"
+    (deselectAll)="deselectAll()"
+    (changeRadius)="bulkUpdateDistance()"
+    (deleteSelected)="bulkDelete()" />
 }
 
 @if (loading()) {
@@ -78,80 +61,62 @@
     <mat-tab>
       <ng-template mat-tab-label>
         <mat-icon>shield</mat-icon>
-        <span class="tab-label">{{ 'RAIDS.TAB_RAIDS' | translate: { count: raids().length } }}</span>
+        <span class="tab-label">{{ 'RAIDS.TAB_RAIDS' | translate: { count: visibleRaids().length } }}</span>
       </ng-template>
       <div class="alarm-grid">
-        @for (raid of raids(); track raid.uid) {
-          <mat-card class="alarm-card" [class.card-selected]="selectMode() && selectedIds().has(selectionKey('raid', raid.uid))">
-            @if (selectMode()) {
-              <mat-checkbox
-                [checked]="selectedIds().has(selectionKey('raid', raid.uid))"
-                (change)="toggleSelect(selectionKey('raid', raid.uid))"
-                (click)="$event.stopPropagation()"
-                class="card-checkbox">
-              </mat-checkbox>
-            }
-            <div class="card-top" [style.border-top-color]="getLevelColor(raid.level)">
-              <img [src]="getRaidImage(raid)" [alt]="getRaidTitle(raid)" class="item-img" (error)="onImageError($event)" />
-              <div class="item-info">
-                <h3>{{ getRaidTitle(raid) }}</h3>
-                <div class="level-stars">
-                  @if (raid.level === 9000) {
-                    <span class="any-level-label">{{ 'ALARM.ANY_LEVEL' | translate }}</span>
-                  } @else {
+        @for (raid of visibleRaids(); track raid.uid) {
+          <app-alarm-card
+            [edge]="teamEdge(raid.team)"
+            [summary]="raid.description"
+            [selectable]="selectMode()"
+            [selected]="selectedIds().has(selectionKey('raid', raid.uid))"
+            [selectLabel]="'ALARM.SELECT_ONE' | translate: { name: getRaidTitle(raid) }"
+            (selectedToggle)="toggleSelect(selectionKey('raid', raid.uid))">
+            <img ruleMedia class="rule-sprite" [src]="getRaidImage(raid)" [alt]="getRaidTitle(raid)" (error)="onImageError($event)" />
+            <span ruleTitle>{{ getRaidTitle(raid) }}</span>
+            <div ruleSubtitle class="rule-subtitle">
+              @if (raid.level !== 9000) {
+                @if (getLevelStars(raid.level).length > 0) {
+                  <span class="level-stars" aria-hidden="true">
                     @for (s of getLevelStars(raid.level); track s) {
                       <mat-icon class="star-icon">star</mat-icon>
                     }
-                  }
-                </div>
-                @if (raid.gymId && gymNames()[raid.gymId]) {
-                  <span class="gym-target"><mat-icon>place</mat-icon> {{ gymNames()[raid.gymId] }}</span>
+                  </span>
                 }
-              </div>
-              <div class="card-top-actions">
-                @if (isAutoDelete(raid.clean)) {
-                  <span class="clean-tag" [matTooltip]="'RAIDS.CLEAN_TOOLTIP' | translate">{{ 'RAIDS.CLEAN_TAG' | translate }}</span>
-                }
-                <app-rsvp-pill [value]="raid.rsvpChanges" />
-              </div>
+                <span>{{ getRaidLevelName(raid.level) }}</span>
+              }
+              @if (raid.gymId && gymNames()[raid.gymId]) {
+                <span class="rule-subtitle-part"><mat-icon>place</mat-icon>{{ gymNames()[raid.gymId] }}</span>
+              }
             </div>
-            <mat-card-content>
-              <div class="stat-grid">
-                <div class="stat">
-                  <span class="stat-label">{{ 'RAIDS.TEAM_LABEL' | translate }}</span>
-                  <span class="stat-value"
-                    ><img
-                      [src]="getGymIcon(raid.team)"
-                      class="team-icon-inline"
-                      alt=""
-                      (error)="$any($event.target).style.display = 'none'" />
-                    {{ getTeamName(raid.team) }}</span
-                  >
-                </div>
-                @if (raid.costume !== 9000) {
-                  <div class="stat">
-                    <span class="stat-label">{{ 'RAIDS.COSTUME_LABEL' | translate }}</span>
-                    <span class="stat-value">{{ getCostumePillText(raid.costume) }}</span>
-                  </div>
-                }
-              </div>
-              <app-alarm-info
-                [clean]="raid.clean"
-                [distance]="raid.distance"
-                [overrideAreas]="raid.overrideAreas"
-                [overrideLocationLabel]="raid.overrideLocationLabel"
-                [profileAreas]="profileAreas()"
-                [template]="raid.template"
-                [editable]="true"
-                (click)="editScope(raid, 'raid'); $event.stopPropagation()" />
-              <app-rule-summary [text]="raid.description" />
-            </mat-card-content>
-            <mat-card-actions align="end">
+            <ng-container ruleStatus>
+              @if (isAutoDelete(raid.clean)) {
+                <span class="rule-tag" [matTooltip]="'RAIDS.CLEAN_TOOLTIP' | translate"
+                  ><mat-icon>auto_delete</mat-icon>{{ 'ALARM.STATUS_CLEAN' | translate }}</span
+                >
+              }
+              <app-rsvp-pill [value]="raid.rsvpChanges" />
               <!-- The gym, not the raid rule: quieting a gym silences every raid and egg alert there. -->
               @if (raid.gymId; as gymId) {
                 <app-quiet-chip scope="gym" [value]="gymId" [subject]="gymNames()[gymId]" />
               }
-
+            </ng-container>
+            <div ruleFilters class="rule-pills">
+              @if (raid.team >= 1 && raid.team <= 3) {
+                <span class="rule-pill">{{ getTeamName(raid.team) }}</span>
+              }
+              @if (raid.costume !== 9000) {
+                <span class="rule-pill">{{ getCostumePillText(raid.costume) }}</span>
+              }
+            </div>
+            <app-where-chip
+              ruleScope
+              [distance]="raid.distance"
+              [overrideAreas]="raid.overrideAreas"
+              [overrideLocationLabel]="raid.overrideLocationLabel"
+              [profileAreas]="profileAreas()"
+              (click)="editScope(raid, 'raid'); $event.stopPropagation()" />
+            <ng-container ruleActions>
               <button
                 mat-icon-button
                 (click)="sendTestAlert('raid', raid)"
@@ -167,7 +132,6 @@
                   <mat-icon>send</mat-icon>
                 }
               </button>
-
               <button
                 mat-icon-button
                 (click)="editRaid(raid)"
@@ -175,7 +139,6 @@
                 [attr.aria-label]="'COMMON.EDIT' | translate">
                 <mat-icon>edit</mat-icon>
               </button>
-
               <button
                 mat-icon-button
                 (click)="deleteRaid(raid)"
@@ -184,33 +147,19 @@
                 color="warn">
                 <mat-icon>delete</mat-icon>
               </button>
-            </mat-card-actions>
-          </mat-card>
+            </ng-container>
+          </app-alarm-card>
         } @empty {
-          <div class="empty-state">
-            <svg class="empty-illustration" width="120" height="120" viewBox="0 0 120 120" fill="none">
-              <ellipse cx="60" cy="65" rx="38" ry="46" stroke="currentColor" stroke-width="3" opacity="0.15" />
-              <path
-                d="M22 55 Q38 68 60 52 Q82 68 98 55"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="3"
-                stroke-linecap="round"
-                opacity="0.15" />
-              <circle cx="60" cy="38" r="5" fill="currentColor" opacity="0.1" />
-              <circle cx="48" cy="30" r="3" fill="currentColor" opacity="0.08" />
-              <circle cx="72" cy="33" r="4" fill="currentColor" opacity="0.08" />
-              <!-- Radiating lines -->
-              <line x1="60" y1="12" x2="60" y2="4" stroke="currentColor" stroke-width="2" opacity="0.12" />
-              <line x1="78" y1="16" x2="84" y2="10" stroke="currentColor" stroke-width="2" opacity="0.1" />
-              <line x1="42" y1="16" x2="36" y2="10" stroke="currentColor" stroke-width="2" opacity="0.1" />
-            </svg>
-            <h2 class="empty-title">{{ 'RAIDS.EMPTY_RAIDS_TITLE' | translate }}</h2>
-            <p class="empty-subtitle">{{ 'RAIDS.EMPTY_RAIDS_SUBTITLE' | translate }}</p>
-            <button mat-flat-button style="background-color: #d73b30; color: white" (click)="openAddDialog()">
-              <mat-icon>add</mat-icon> {{ 'RAIDS.ADD_RAID' | translate }}
-            </button>
-          </div>
+          @if (raids().length === 0) {
+            <app-alarm-empty-state
+              icon="shield"
+              titleKey="RAIDS.EMPTY_RAIDS_TITLE"
+              bodyKey="RAIDS.EMPTY_RAIDS_SUBTITLE"
+              (add)="openAddDialog()" />
+          } @else if (visibleEggs().length > 0) {
+            <!-- The search matched only the other tab, so the toolbar's own "no matches" line is not shown. -->
+            <p class="tab-no-matches">{{ 'ALARM.NO_MATCHES' | translate }}</p>
+          }
         }
       </div>
     </mat-tab>
@@ -219,77 +168,62 @@
     <mat-tab>
       <ng-template mat-tab-label>
         <mat-icon>egg</mat-icon>
-        <span class="tab-label">{{ 'RAIDS.TAB_EGGS' | translate: { count: eggs().length } }}</span>
+        <span class="tab-label">{{ 'RAIDS.TAB_EGGS' | translate: { count: visibleEggs().length } }}</span>
       </ng-template>
       <div class="alarm-grid">
-        @for (egg of eggs(); track egg.uid) {
-          <mat-card class="alarm-card" [class.card-selected]="selectMode() && selectedIds().has(selectionKey('egg', egg.uid))">
-            @if (selectMode()) {
-              <mat-checkbox
-                [checked]="selectedIds().has(selectionKey('egg', egg.uid))"
-                (change)="toggleSelect(selectionKey('egg', egg.uid))"
-                (click)="$event.stopPropagation()"
-                class="card-checkbox">
-              </mat-checkbox>
-            }
-            <div class="card-top" [style.border-top-color]="getLevelColor(egg.level)">
-              <img
-                [src]="getEggImage(egg.level)"
-                [alt]="(egg.level | levelLabel) + ' ' + ('RAIDS.EGG_SUFFIX' | translate)"
-                class="item-img"
-                (error)="onImageError($event)" />
-              <div class="item-info">
-                <h3>{{ getRaidLevelName(egg.level) }} {{ 'RAIDS.EGG_SUFFIX' | translate }}</h3>
-                <div class="level-stars">
-                  @if (egg.level === 9000) {
-                    <span class="any-level-label">{{ 'ALARM.ANY_LEVEL' | translate }}</span>
-                  } @else {
+        @for (egg of visibleEggs(); track egg.uid) {
+          <app-alarm-card
+            [edge]="tierEdge(egg.level)"
+            [summary]="egg.description"
+            [selectable]="selectMode()"
+            [selected]="selectedIds().has(selectionKey('egg', egg.uid))"
+            [selectLabel]="'ALARM.SELECT_ONE' | translate: { name: getRaidLevelName(egg.level) + ' ' + ('RAIDS.EGG_SUFFIX' | translate) }"
+            (selectedToggle)="toggleSelect(selectionKey('egg', egg.uid))">
+            <img
+              ruleMedia
+              class="rule-sprite"
+              [src]="getEggImage(egg.level)"
+              [alt]="(egg.level | levelLabel) + ' ' + ('RAIDS.EGG_SUFFIX' | translate)"
+              (error)="onImageError($event)" />
+            <span ruleTitle>{{ getRaidLevelName(egg.level) }} {{ 'RAIDS.EGG_SUFFIX' | translate }}</span>
+            @if (getLevelStars(egg.level).length > 0 || (egg.gymId && gymNames()[egg.gymId])) {
+              <div ruleSubtitle class="rule-subtitle">
+                @if (getLevelStars(egg.level).length > 0) {
+                  <span class="level-stars" aria-hidden="true">
                     @for (s of getLevelStars(egg.level); track s) {
                       <mat-icon class="star-icon">star</mat-icon>
                     }
-                  }
-                </div>
+                  </span>
+                }
                 @if (egg.gymId && gymNames()[egg.gymId]) {
-                  <span class="gym-target"><mat-icon>place</mat-icon> {{ gymNames()[egg.gymId] }}</span>
+                  <span class="rule-subtitle-part"><mat-icon>place</mat-icon>{{ gymNames()[egg.gymId] }}</span>
                 }
               </div>
-              <div class="card-top-actions">
-                @if (isAutoDelete(egg.clean)) {
-                  <span class="clean-tag" [matTooltip]="'RAIDS.CLEAN_TOOLTIP' | translate">{{ 'RAIDS.CLEAN_TAG' | translate }}</span>
-                }
-                <app-rsvp-pill [value]="egg.rsvpChanges" />
-              </div>
-            </div>
-            <mat-card-content>
-              <div class="stat-grid">
-                <div class="stat">
-                  <span class="stat-label">{{ 'RAIDS.TEAM_LABEL' | translate }}</span>
-                  <span class="stat-value"
-                    ><img
-                      [src]="getGymIcon(egg.team)"
-                      class="team-icon-inline"
-                      alt=""
-                      (error)="$any($event.target).style.display = 'none'" />
-                    {{ getTeamName(egg.team) }}</span
-                  >
-                </div>
-              </div>
-              <app-alarm-info
-                [clean]="egg.clean"
-                [distance]="egg.distance"
-                [overrideAreas]="egg.overrideAreas"
-                [overrideLocationLabel]="egg.overrideLocationLabel"
-                [profileAreas]="profileAreas()"
-                [template]="egg.template"
-                [editable]="true"
-                (click)="editScope(egg, 'egg'); $event.stopPropagation()" />
-              <app-rule-summary [text]="egg.description" />
-            </mat-card-content>
-            <mat-card-actions align="end">
+            }
+            <ng-container ruleStatus>
+              @if (isAutoDelete(egg.clean)) {
+                <span class="rule-tag" [matTooltip]="'RAIDS.CLEAN_TOOLTIP' | translate"
+                  ><mat-icon>auto_delete</mat-icon>{{ 'ALARM.STATUS_CLEAN' | translate }}</span
+                >
+              }
+              <app-rsvp-pill [value]="egg.rsvpChanges" />
               @if (egg.gymId; as eggGymId) {
                 <app-quiet-chip scope="gym" [value]="eggGymId" [subject]="gymNames()[eggGymId]" />
               }
-
+            </ng-container>
+            <div ruleFilters class="rule-pills">
+              @if (egg.team >= 1 && egg.team <= 3) {
+                <span class="rule-pill">{{ getTeamName(egg.team) }}</span>
+              }
+            </div>
+            <app-where-chip
+              ruleScope
+              [distance]="egg.distance"
+              [overrideAreas]="egg.overrideAreas"
+              [overrideLocationLabel]="egg.overrideLocationLabel"
+              [profileAreas]="profileAreas()"
+              (click)="editScope(egg, 'egg'); $event.stopPropagation()" />
+            <ng-container ruleActions>
               <button
                 mat-icon-button
                 (click)="sendTestAlert('egg', egg)"
@@ -303,7 +237,6 @@
                   <mat-icon>send</mat-icon>
                 }
               </button>
-
               <button
                 mat-icon-button
                 (click)="editEgg(egg)"
@@ -311,7 +244,6 @@
                 [attr.aria-label]="'COMMON.EDIT' | translate">
                 <mat-icon>edit</mat-icon>
               </button>
-
               <button
                 mat-icon-button
                 (click)="deleteEgg(egg)"
@@ -320,32 +252,19 @@
                 color="warn">
                 <mat-icon>delete</mat-icon>
               </button>
-            </mat-card-actions>
-          </mat-card>
+            </ng-container>
+          </app-alarm-card>
         } @empty {
-          <div class="empty-state">
-            <svg class="empty-illustration" width="120" height="120" viewBox="0 0 120 120" fill="none">
-              <ellipse cx="60" cy="65" rx="38" ry="46" stroke="currentColor" stroke-width="3" opacity="0.15" />
-              <path
-                d="M22 55 Q38 68 60 52 Q82 68 98 55"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="3"
-                stroke-linecap="round"
-                opacity="0.15" />
-              <circle cx="60" cy="38" r="5" fill="currentColor" opacity="0.1" />
-              <circle cx="48" cy="30" r="3" fill="currentColor" opacity="0.08" />
-              <circle cx="72" cy="33" r="4" fill="currentColor" opacity="0.08" />
-              <line x1="60" y1="12" x2="60" y2="4" stroke="currentColor" stroke-width="2" opacity="0.12" />
-              <line x1="78" y1="16" x2="84" y2="10" stroke="currentColor" stroke-width="2" opacity="0.1" />
-              <line x1="42" y1="16" x2="36" y2="10" stroke="currentColor" stroke-width="2" opacity="0.1" />
-            </svg>
-            <h2 class="empty-title">{{ 'RAIDS.EMPTY_EGGS_TITLE' | translate }}</h2>
-            <p class="empty-subtitle">{{ 'RAIDS.EMPTY_EGGS_SUBTITLE' | translate }}</p>
-            <button mat-flat-button style="background-color: #d73b30; color: white" (click)="openAddDialog()">
-              <mat-icon>add</mat-icon> {{ 'RAIDS.ADD_EGG' | translate }}
-            </button>
-          </div>
+          @if (eggs().length === 0) {
+            <app-alarm-empty-state
+              icon="egg"
+              titleKey="RAIDS.EMPTY_EGGS_TITLE"
+              bodyKey="RAIDS.EMPTY_EGGS_SUBTITLE"
+              (add)="openAddDialog()" />
+          } @else if (visibleRaids().length > 0) {
+            <!-- The search matched only the other tab, so the toolbar's own "no matches" line is not shown. -->
+            <p class="tab-no-matches">{{ 'ALARM.NO_MATCHES' | translate }}</p>
+          }
         }
       </div>
     </mat-tab>

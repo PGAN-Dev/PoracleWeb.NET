@@ -1,0 +1,323 @@
+using System.Net;
+using System.Text;
+using System.Text.Json;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
+using Pgan.PoracleWebNet.Api.Configuration;
+using Pgan.PoracleWebNet.Api.Controllers;
+using Pgan.PoracleWebNet.Api.Services;
+using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
+using Pgan.PoracleWebNet.Core.Abstractions.Services;
+using Pgan.PoracleWebNet.Core.Models;
+using Pgan.PoracleWebNet.Core.Services;
+using Pgan.PoracleWebNet.Tests.Services;
+
+namespace Pgan.PoracleWebNet.Tests.Controllers;
+
+/// <summary>
+/// The areas and location a new profile is given after create, duplicate and import, driven through each
+/// controller with a real <see cref="PoracleHumanProxy"/> so what is asserted is what reaches PoracleNG.
+/// See #993.
+/// </summary>
+/// <remarks>
+/// <para>
+/// The geography goes to the new profile through PoracleNG's v2 <c>?profile=</c> writes, and a refusal
+/// reaches the caller: there is no direct <c>profiles</c> write behind it any more.
+/// </para>
+/// <para>
+/// The bodies checked are the ones each controller builds, against the schemas in the openapi fixture.
+/// </para>
+/// </remarks>
+public class NewProfileGeographyTests : ControllerTestBase
+{
+    private const string ApiAddress = "http://localhost:3030";
+    private const string UserId = "123456789";
+    private const int NewProfileNo = 4;
+
+    private readonly Mock<IProfileService> _profileService = new();
+    private readonly Mock<IProfileOverviewService> _overview = new();
+    private readonly Mock<IJwtService> _jwtService = new();
+    private readonly Mock<IUserRoleResolver> _roleResolver = new();
+    private readonly Mock<IUserGeofenceRepository> _userGeofences = new();
+
+    private static readonly Profile Source = new()
+    {
+        Id = UserId, ProfileNo = 1, Name = "Work",
+        Area = """["downtown","my fence"]""", Latitude = 37.5, Longitude = -77.4,
+    };
+
+    public NewProfileGeographyTests()
+    {
+        this._jwtService
+            .Setup(j => j.GenerateTokenWithReplacedProfile(
+                It.IsAny<System.Security.Claims.ClaimsPrincipal>(), It.IsAny<int>(), It.IsAny<bool?>()))
+            .Returns("jwt");
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync(UserId, 1)).ReturnsAsync(Source);
+        this._profileService.Setup(s => s.GetByUserAsync(UserId)).ReturnsAsync([Source]);
+        this._userGeofences.Setup(r => r.GetByHumanIdAsync(UserId)).ReturnsAsync([new UserGeofence { KojiName = "my fence" }]);
+        this._overview.Setup(s => s.DuplicateProfileAsync(UserId, 1, NewProfileNo)).ReturnsAsync(2);
+        this._overview.Setup(s => s.ImportAlarmsAsync(UserId, NewProfileNo, It.IsAny<JsonElement>())).ReturnsAsync(1);
+    }
+
+    /// <summary>What each endpoint should write, and the request that makes it do so.</summary>
+    public static TheoryData<string> Endpoints() => ["create", "duplicate", "overview-duplicate", "import"];
+
+    private static (string[] Areas, double Latitude, double Longitude) Expected(string endpoint) => endpoint switch
+    {
+        "create" => (["downtown", "my fence"], 41.65, -83.53),
+        "duplicate" or "overview-duplicate" => (["downtown", "my fence"], 37.5, -77.4),
+        _ => ([], 0, 0),
+    };
+
+    [Theory]
+    [MemberData(nameof(Endpoints))]
+    public async Task WhereTheServerDeclaresItTheGeographyGoesToTheNewProfileThroughV2(string endpoint)
+    {
+        var handler = new Routed();
+        await this.RunAsync(endpoint, handler);
+
+        var expected = Expected(endpoint);
+
+        var areas = Assert.Single(handler.Requests, r => r.Method == HttpMethod.Post && r.Path == "/api/v2/humans/123456789/areas");
+        Assert.Equal($"profile={NewProfileNo}", areas.Query);
+        using var areasBody = JsonDocument.Parse(areas.Body!);
+        AssertDeclares("V2SetAreasBody", areasBody.RootElement);
+        Assert.Equal(expected.Areas, areasBody.RootElement.GetProperty("areas").EnumerateArray().Select(e => e.GetString()).ToArray());
+        Assert.Equal(expected.Areas.Length > 0, areasBody.RootElement.TryGetProperty("trusted", out _));
+
+        var location = Assert.Single(handler.Requests, r => r.Path == "/api/v2/humans/123456789/location");
+        Assert.Equal($"profile={NewProfileNo}", location.Query);
+        using var locationBody = JsonDocument.Parse(location.Body!);
+        AssertDeclares("V2LocationBody", locationBody.RootElement);
+        Assert.Equal(expected.Latitude, locationBody.RootElement.GetProperty("latitude").GetDouble());
+        Assert.Equal(expected.Longitude, locationBody.RootElement.GetProperty("longitude").GetDouble());
+
+    }
+
+    [Theory]
+    [MemberData(nameof(Endpoints))]
+    public async Task AV2RefusalDeletesTheNewProfileAndReachesTheCaller(string endpoint)
+    {
+        var handler = new Routed(refuseGeography: true);
+
+        var ex = await Assert.ThrowsAsync<PoracleRequestRefusedException>(() => this.RunAsync(endpoint, handler));
+
+        Assert.Contains("validation failed", ex.Message, StringComparison.Ordinal);
+        Assert.Contains(handler.Requests, r => r.Path == "/api/v2/humans/123456789/areas");
+        var delete = Assert.Single(handler.Requests, r => r.Method == HttpMethod.Delete);
+        Assert.Equal($"/api/v2/humans/123456789/profiles/{NewProfileNo}", delete.Path);
+    }
+
+    [Theory]
+    [MemberData(nameof(Endpoints))]
+    public async Task AFailedRollbackDoesNotHideTheOriginalError(string endpoint)
+    {
+        var handler = new Routed(refuseGeography: true, failDelete: true);
+
+        var ex = await Assert.ThrowsAsync<PoracleRequestRefusedException>(() => this.RunAsync(endpoint, handler));
+
+        Assert.Contains("validation failed", ex.Message, StringComparison.Ordinal);
+        Assert.Contains(handler.Requests, r => r.Method == HttpMethod.Delete);
+    }
+
+    [Theory]
+    [MemberData(nameof(Endpoints))]
+    public async Task AnAreaPoracleRejectsIsDroppedAndTheLocationIsStillWritten(string endpoint)
+    {
+        // A stale name on the source profile (a fence since removed) must not fail the duplicate.
+        var handler = new Routed(rejected: ["my fence"]);
+
+        await this.RunAsync(endpoint, handler);
+
+        Assert.Contains(handler.Requests, r => r.Path == "/api/v2/humans/123456789/location" && r.Query == $"profile={NewProfileNo}");
+        Assert.DoesNotContain(handler.Requests, r => r.Method == HttpMethod.Delete);
+    }
+
+    [Theory]
+    [MemberData(nameof(Endpoints))]
+    public async Task ANewProfileKeepsTheUsersOwnDrawnFencesWhateverAreaSecurityIs(string endpoint)
+    {
+        // A drawn fence is userSelectable:false, so it only survives a trusted write. There is no longer
+        // any area_security gate in front of that: the proxy sends trusted whenever there is a list.
+        var handler = new Routed();
+
+        await this.RunAsync(endpoint, handler);
+
+        var areas = Assert.Single(handler.Requests, r => r.Method == HttpMethod.Post && r.Path == "/api/v2/humans/123456789/areas");
+        using var body = JsonDocument.Parse(areas.Body!);
+        var sent = body.RootElement.GetProperty("areas").EnumerateArray().Select(e => e.GetString()).ToArray();
+        Assert.Equal(Expected(endpoint).Areas, sent);
+        if (sent.Length > 0)
+        {
+            Assert.Contains("my fence", sent);
+            Assert.True(body.RootElement.GetProperty("trusted").GetBoolean());
+        }
+        else
+        {
+            Assert.False(body.RootElement.TryGetProperty("trusted", out _));
+        }
+
+        Assert.Contains(handler.Requests, r => r.Path == "/api/v2/humans/123456789/location");
+    }
+
+    private static string[] PostedAreas(Routed handler)
+    {
+        var areas = Assert.Single(handler.Requests, r => r.Method == HttpMethod.Post && r.Path == "/api/v2/humans/123456789/areas");
+        using var body = JsonDocument.Parse(areas.Body!);
+        return body.RootElement.GetProperty("areas").EnumerateArray().Select(e => e.GetString()!).ToArray();
+    }
+
+    [Fact]
+    public async Task CreateDropsAreasTheUserMayNotSelectInsteadOfWritingThemTrusted()
+    {
+        // A crafted POST names a fence userSelectable=false (admin-only) and one PoracleNG does not offer
+        // this user at all (another community). The write is trusted, so the filter here is the only gate.
+        var handler = new Routed(
+            available: """[{"name":"downtown","userSelectable":true},{"name":"admin only","userSelectable":false}]""");
+
+        await this.RunAsync("create", handler, createArea: """["downtown","my fence","admin only","Other Community"]""");
+
+        Assert.Equal(["downtown", "my fence"], PostedAreas(handler));
+    }
+
+    [Fact]
+    public async Task CreateKeepsOwnFencesSelectableAreasAndWhatTheActiveProfileHolds()
+    {
+        var handler = new Routed(
+            available: """[{"name":"Downtown","userSelectable":true},{"name":"old_held","userSelectable":false}]""",
+            humanArea: """["old held"]""");
+
+        await this.RunAsync("create", handler, createArea: """["downtown","my fence","old held"]""");
+
+        Assert.Equal(["downtown", "my fence", "old held"], PostedAreas(handler));
+        var areas = Assert.Single(handler.Requests, r => r.Method == HttpMethod.Post && r.Path == "/api/v2/humans/123456789/areas");
+        using var body = JsonDocument.Parse(areas.Body!);
+        Assert.True(body.RootElement.GetProperty("trusted").GetBoolean());
+    }
+
+    private async Task RunAsync(string endpoint, Routed handler, string? createArea = null)
+    {
+        var proxy = CreateProxy(handler);
+
+        IActionResult result;
+        if (endpoint is "create" or "duplicate")
+        {
+            var controller = new ProfileController(
+                this._profileService.Object, Mock.Of<IHumanService>(), proxy,
+                this._jwtService.Object, this._roleResolver.Object,
+                new UserAreaWriter(
+                    proxy, this._userGeofences.Object, Mock.Of<IPoracleTrackingProxy>(), NullLogger<UserAreaWriter>.Instance,
+                    new UserAreaPolicy(proxy, this._userGeofences.Object)),
+                NullLogger<ProfileController>.Instance);
+            SetupUser(controller, UserId);
+
+            result = endpoint == "create"
+                ? await controller.Create(new Profile
+                {
+                    Name = "probe-two",
+                    Area = createArea ?? """["downtown","my fence"]""",
+                    Latitude = 41.65,
+                    Longitude = -83.53,
+                    ActiveHours = """[{"day":1,"hours":8,"mins":0}]""",
+                })
+                : await controller.Duplicate(new DuplicateProfileRequest { FromProfileNo = 1, Name = "Work copy" });
+
+            Assert.IsType<CreatedAtActionResult>(result);
+            return;
+        }
+
+        var overview = new ProfileOverviewController(
+            this._overview.Object, this._profileService.Object, proxy,
+            this._jwtService.Object, this._roleResolver.Object, NullLogger<ProfileOverviewController>.Instance);
+        SetupUser(overview, UserId);
+
+        result = endpoint == "overview-duplicate"
+            ? await overview.DuplicateProfile(1, new ProfileOverviewDuplicateRequest("Work copy"))
+            : await overview.ImportProfile(new ProfileOverviewImportRequest(
+                "Imported", 1, JsonDocument.Parse("""{"pokemon":[{"pokemon_id":1}]}""").RootElement.Clone()));
+
+        Assert.IsType<OkObjectResult>(result);
+    }
+
+    private static PoracleHumanProxy CreateProxy(Routed handler) => new(
+        new HttpClient(handler),
+        new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Poracle:ApiAddress"] = ApiAddress,
+                ["Poracle:ApiSecret"] = "test-secret",
+            })
+            .Build(),
+        PoracleHumanProxyTests.V2Schema(new PoracleV2Capabilities { Read = true }),
+        Mock.Of<ILogger<PoracleHumanProxy>>());
+
+    /// <summary>Every property of the body is one the named schema in the openapi fixture declares.</summary>
+    private static void AssertDeclares(string schema, JsonElement body)
+    {
+        using var doc = JsonDocument.Parse(File.ReadAllText(Fixture()));
+        var declared = doc.RootElement.GetProperty("components").GetProperty("schemas").GetProperty(schema)
+            .GetProperty("properties").EnumerateObject().Select(p => p.Name).ToHashSet();
+
+        foreach (var property in body.EnumerateObject())
+        {
+            Assert.Contains(property.Name, declared);
+        }
+    }
+
+    private static string Fixture([System.Runtime.CompilerServices.CallerFilePath] string? here = null) =>
+        Path.Combine(Path.GetDirectoryName(here)!, "..", "Fixtures", "poracleng-openapi-5.4.0.json");
+
+    private sealed record Sent(HttpMethod Method, string Path, string Query, string? Body);
+
+    /// <summary>
+    /// Answers by route, the way PoracleNG would for these calls. The profile create reports the number
+    /// assigned; the two geography writes answer what a live 5.3.0 answered, or 422 when told to refuse.
+    /// </summary>
+    private sealed class Routed(
+        bool refuseGeography = false,
+        bool failDelete = false,
+        string[]? rejected = null,
+        string available = """[{"name":"downtown","userSelectable":true}]""",
+        string humanArea = "[]") : HttpMessageHandler
+    {
+        public List<Sent> Requests { get; } = [];
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var body = request.Content is null ? null : await request.Content.ReadAsStringAsync(cancellationToken);
+            var uri = request.RequestUri!;
+            this.Requests.Add(new Sent(request.Method, uri.AbsolutePath, uri.Query.TrimStart('?'), body));
+
+            var geography = uri.Query.Contains("profile=", StringComparison.Ordinal);
+            var (status, reply, type) = uri.AbsolutePath switch
+            {
+                _ when geography && refuseGeography =>
+                    (HttpStatusCode.UnprocessableEntity,
+                     """{"title":"Unprocessable Entity","status":422,"detail":"validation failed"}""",
+                     "application/problem+json"),
+                _ when request.Method == HttpMethod.Delete && failDelete =>
+                    (HttpStatusCode.InternalServerError, """{"title":"boom","status":500}""", "application/problem+json"),
+                "/api/v2/humans/123456789/profiles" when request.Method == HttpMethod.Post =>
+                    (HttpStatusCode.OK, $$"""{"profile_no":{{NewProfileNo}}}""", "application/json"),
+                "/api/v2/humans/123456789/areas" when request.Method == HttpMethod.Get =>
+                    (HttpStatusCode.OK, $$$"""{"areas":{{{available}}}}""", "application/json"),
+                "/api/v2/humans/123456789" when request.Method == HttpMethod.Get =>
+                    (HttpStatusCode.OK, $$$"""{"human":{"id":"123456789","area":{{{humanArea}}}}}""", "application/json"),
+                "/api/v2/humans/123456789/areas" =>
+                    (HttpStatusCode.OK, AreasAnswer(body, rejected), "application/json"),
+                _ => (HttpStatusCode.OK, """{"status":"ok"}""", "application/json"),
+            };
+
+            return new HttpResponseMessage(status) { Content = new StringContent(reply, Encoding.UTF8, type) };
+        }
+
+        private static string AreasAnswer(string? body, string[]? rejected)
+        {
+            var areas = JsonDocument.Parse(body!).RootElement.GetProperty("areas").GetRawText();
+            return $$"""{"areas":{{areas}},"rejected":{{JsonSerializer.Serialize(rejected ?? [])}}}""";
+        }
+    }
+}

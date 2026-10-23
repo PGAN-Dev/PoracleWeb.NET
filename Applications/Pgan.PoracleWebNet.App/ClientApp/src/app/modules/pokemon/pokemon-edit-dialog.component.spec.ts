@@ -1,7 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { NO_ERRORS_SCHEMA, signal } from '@angular/core';
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { By } from '@angular/platform-browser';
@@ -18,7 +18,6 @@ import { MasterDataService } from '../../core/services/masterdata.service';
 import { MonsterService } from '../../core/services/monster.service';
 import { PlayerAccountService } from '../../core/services/player-account.service';
 import { PoracleConfigService } from '../../core/services/poracle-config.service';
-import { SettingsService } from '../../core/services/settings.service';
 import { PersonalFilterPanelComponent } from '../../shared/components/personal-filter-panel/personal-filter-panel.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
@@ -29,13 +28,15 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
  * PoracleNG 5.1.0 added, including a time value the bot can set and the presets do not contain.
  */
 describe('PokemonEditDialogComponent', () => {
+  let webhookSession = false;
   let component: PokemonEditDialogComponent;
   let monsterService: { editSupported: jest.Mock; update: jest.Mock };
 
+  let fixture: ComponentFixture<PokemonEditDialogComponent>;
   let accountsSignal: ReturnType<typeof signal<null | PlayerAccount[]>>;
   let playerAccounts: { accounts: typeof accountsSignal; load: jest.Mock };
 
-  function setup(monster: Partial<Monster>, costumeSupported = true, personalSupported = false, accounts: null | PlayerAccount[] = []) {
+  function setup(monster: Partial<Monster>, personalSupported = false, accounts: null | PlayerAccount[] = []) {
     accountsSignal = signal<null | PlayerAccount[]>(accounts);
     playerAccounts = { accounts: accountsSignal, load: jest.fn().mockReturnValue(of(accounts)) };
     monsterService = { editSupported: jest.fn().mockReturnValue(true), update: jest.fn().mockReturnValue(of({})) };
@@ -61,17 +62,13 @@ describe('PokemonEditDialogComponent', () => {
             getPokemonName: () => 'Meowth',
           },
         },
-        { provide: I18nService, useValue: { instant: (k: string) => k } },
-        {
-          provide: SettingsService,
-          useValue: { siteSettings: () => ({}), supportsCostume: () => costumeSupported, supportUrl: () => null },
-        },
+        { provide: I18nService, useValue: { instant: (k: string) => k, plural: (k: string) => k } },
         {
           provide: PoracleConfigService,
           useValue: { load: () => of({ defaultPvpCap: 0 }), serverConfig: () => ({ personalSupported, pvpCaps: [] }) },
         },
         { provide: PlayerAccountService, useValue: playerAccounts },
-        { provide: AuthService, useValue: { isAdmin: () => false, isImpersonating: () => false, user: () => ({ type: 'discord:user' }) } },
+        { provide: AuthService, useValue: { isImpersonating: () => webhookSession, user: () => ({ type: 'discord:user' }) } },
       ],
       imports: [PokemonEditDialogComponent],
     });
@@ -82,7 +79,8 @@ describe('PokemonEditDialogComponent', () => {
       remove: { imports: [ScopePickerComponent, TemplateSelectorComponent] },
     });
 
-    component = TestBed.createComponent(PokemonEditDialogComponent).componentInstance;
+    fixture = TestBed.createComponent(PokemonEditDialogComponent);
+    component = fixture.componentInstance;
   }
 
   function sent(): MonsterUpdate {
@@ -186,26 +184,14 @@ describe('PokemonEditDialogComponent', () => {
     expect(sent().costume).toBe(0);
   });
 
-  /**
-   * The gate. A Poracle without monsters.costume takes the field, answers 200 and drops it, so an
-   * offered control would leave a rule that reads "Halloween 2025" and matches every spawn. Everything
-   * else about the dialog is unchanged, and the wildcard still goes out -- which is what an old
-   * Poracle stores for an absent key anyway.
-   */
-  it('hides the costume filter when Poracle does not have the column', () => {
-    setup({}, false);
-
-    expect(component.showCostume()).toBe(false);
-
-    component.save();
-
-    expect(sent().costume).toBe(9000);
-  });
-
-  it('offers the costume filter when Poracle has the column', () => {
+  // PoracleNG 5.4.0 stores a costume on every rule, so the control renders with the standard mocks and
+  // nothing telling the dialog the server supports it.
+  it('renders the costume filter without any server capability', () => {
     setup({ costume: 85 });
+    component.ngOnInit();
+    fixture.detectChanges();
 
-    expect(component.showCostume()).toBe(true);
+    expect(fixture.nativeElement.textContent).toContain('POKEMON.LABEL_COSTUME');
   });
 
   it('keeps the mega mode of a PVP rule it did not change', () => {
@@ -247,6 +233,22 @@ describe('PokemonEditDialogComponent', () => {
     });
   });
 
+  describe('Mention field', () => {
+    // The dialog's only condition for the Mention field is the impersonation snapshot: PoracleNG 5.4.0
+    // always stores a ping, so there is no server-config dependency left to consult.
+    it('is offered on a webhook alarm', () => {
+      webhookSession = true;
+      setup({ minIv: -1 });
+      expect(TestBed.createComponent(PokemonEditDialogComponent).componentInstance.isWebhook).toBe(true);
+    });
+
+    it('is hidden on a personal alarm', () => {
+      webhookSession = false;
+      setup({ minIv: -1 });
+      expect(TestBed.createComponent(PokemonEditDialogComponent).componentInstance.isWebhook).toBe(false);
+    });
+  });
+
   describe('personal shiny toggles (personal bitmask)', () => {
     function render(): HTMLElement {
       const fixture = TestBed.createComponent(PokemonEditDialogComponent);
@@ -256,7 +258,7 @@ describe('PokemonEditDialogComponent', () => {
     }
 
     it('hides the personal toggles without server support but keeps the controls', () => {
-      setup({ personal: 3 }, true, false);
+      setup({ personal: 3 }, false);
       const el = render();
 
       expect(el.textContent).not.toContain('POKEMON.PERSONAL_SHINY');
@@ -268,7 +270,7 @@ describe('PokemonEditDialogComponent', () => {
     });
 
     it('shows the personal toggles when the server supports them', () => {
-      setup({ personal: 0 }, true, true);
+      setup({ personal: 0 }, true);
       const el = render();
 
       expect(el.textContent).toContain('POKEMON.PERSONAL_SHINY');
@@ -276,14 +278,14 @@ describe('PokemonEditDialogComponent', () => {
     });
 
     it('seeds the toggles from the stored bits', () => {
-      setup({ personal: 2 }, true, true);
+      setup({ personal: 2 }, true);
 
       expect(component.form.controls.personalShiny.value).toBe(false);
       expect(component.form.controls.personalBackground.value).toBe(true);
     });
 
     it('treats a rule without the field as no personal bits', () => {
-      setup({}, true, true);
+      setup({}, true);
       component.save();
 
       expect(sent().personal).toBe(0);
@@ -291,13 +293,13 @@ describe('PokemonEditDialogComponent', () => {
 
     it('preserves reserved personal bits on save', () => {
       // personal 5 = shiny (1) + reserved (4). An untouched save must send 5 back.
-      setup({ personal: 5 }, true, true);
+      setup({ personal: 5 }, true);
       component.save();
       expect(sent().personal).toBe(5);
     });
 
     it('turning shiny off keeps the reserved bit (5 -> 4)', () => {
-      setup({ personal: 5 }, true, true);
+      setup({ personal: 5 }, true);
       component.form.controls.personalShiny.setValue(false);
       component.save();
 
@@ -305,7 +307,7 @@ describe('PokemonEditDialogComponent', () => {
     });
 
     it('turning the background on adds only bit 2 (5 -> 7)', () => {
-      setup({ personal: 5 }, true, true);
+      setup({ personal: 5 }, true);
       component.form.controls.personalBackground.setValue(true);
       component.save();
 
@@ -314,7 +316,7 @@ describe('PokemonEditDialogComponent', () => {
 
     it('puts the personal panel first in the Filters tab, bound to the controls the dialog owns', () => {
       // The panel owns the account status; the dialog owns the controls, so a stored bit round-trips.
-      setup({ personal: 1 }, true, true, []);
+      setup({ personal: 1 }, true, []);
       const fixture = TestBed.createComponent(PokemonEditDialogComponent);
       component = fixture.componentInstance;
       fixture.detectChanges();

@@ -8,6 +8,7 @@ namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/raids")]
 [RequireFeatureEnabled(DisableFeatureKeys.Raids)]
+[TypeFilter(typeof(PoracleUnreachableExceptionFilter))]
 public class RaidController(IRaidService raidService) : BaseApiController
 {
     private readonly IRaidService _raidService = raidService;

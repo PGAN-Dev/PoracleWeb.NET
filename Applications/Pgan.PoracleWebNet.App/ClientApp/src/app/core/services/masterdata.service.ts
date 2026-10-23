@@ -71,7 +71,7 @@ export class MasterDataService {
    * The name maps are signals, not plain Maps, because they are filled long after the first paint.
    * Every reader below runs inside a template or a computed, so a signal read is what makes the
    * alarm cards repaint when the names finally land -- a mutated Map would leave them showing
-   * `Pokemon #1` until something unrelated redrew them. See the late-arrival spec.
+   * `Pokémon #1` until something unrelated redrew them. See the late-arrival spec.
    */
   private readonly costumeMap = signal(new Map<number, string>());
   /** English grunt names, indexed like `gruntMap`, fetched once. See `withEnglishGrunts`. */
@@ -127,7 +127,7 @@ export class MasterDataService {
 
   getAllPokemon(): PokemonEntry[] {
     const types = this.typesMap();
-    const entries: PokemonEntry[] = [{ id: 0, name: 'All Pokemon' }];
+    const entries: PokemonEntry[] = [{ id: 0, name: this.i18n.instant('POKEMON.ALL_POKEMON') }];
     this.pokemonMap().forEach((name, id) => {
       entries.push({ id, name, types: types.get(id) });
     });
@@ -206,8 +206,8 @@ export class MasterDataService {
   }
 
   getPokemonName(id: number): string {
-    if (id === 0) return 'All Pokemon';
-    return this.pokemonMap().get(id) ?? `Pokemon #${id}`;
+    if (id === 0) return this.i18n.instant('POKEMON.ALL_POKEMON');
+    return this.pokemonMap().get(id) ?? `Pokémon #${id}`;
   }
 
   getPokemonTypes(id: number): string[] {

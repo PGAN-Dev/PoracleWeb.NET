@@ -30,17 +30,6 @@ public class UpstreamFeatureFlagServiceTests
         this._proxy.Setup(p => p.GetConfigAsync()).ReturnsAsync(new PoracleConfig { DisabledHooks = [.. hooks] });
 
     /// <summary>
-    /// A 5.2.1-or-later server: it reports <c>availableLanguages</c>, which is how this class tells a
-    /// server that lists <c>fort</c> in <c>disabledHooks</c> from one that does not.
-    /// </summary>
-    private void UpstreamModern(params string[] hooks) =>
-        this._proxy.Setup(p => p.GetConfigAsync()).ReturnsAsync(new PoracleConfig
-        {
-            DisabledHooks = [.. hooks],
-            ReportsAvailableLanguages = true,
-        });
-
-    /// <summary>
     /// What prod serves. An empty array is a positive statement that nothing is disabled upstream,
     /// and must leave every type enabled rather than being read as "no data, assume the worst".
     /// </summary>
@@ -48,21 +37,19 @@ public class UpstreamFeatureFlagServiceTests
     public async Task EmptyDisabledHooksDisablesNothing()
     {
         this.UpstreamHooks();
-        this._proxy.Setup(p => p.GetFortUpdateDisabledAsync()).ReturnsAsync(false);
 
         Assert.Empty(await this.CreateSut().GetDisabledKeysAsync());
     }
 
     /// <summary>
     /// The trap in the mapping table. <c>pokestop</c> reads like the parent hook for lures, invasions
-    /// and quests, but nothing in the PoracleNG 5.1.0 processor consumes <c>DisablePokestop</c>, so
-    /// mapping it would take three working types away for a flag that does nothing upstream.
+    /// and quests, but nothing in the PoracleNG 5.1.0 processor consumed <c>DisablePokestop</c>, and 5.2.1
+    /// deprecated it, so mapping it would take three working types away for a flag that does nothing.
     /// </summary>
     [Fact]
     public async Task PokestopInDisabledHooksDisablesNothing()
     {
         this.UpstreamHooks("pokestop");
-        this._proxy.Setup(p => p.GetFortUpdateDisabledAsync()).ReturnsAsync(false);
 
         Assert.Empty(await this.CreateSut().GetDisabledKeysAsync());
     }
@@ -72,7 +59,6 @@ public class UpstreamFeatureFlagServiceTests
     public async Task WeatherInDisabledHooksDisablesNothing()
     {
         this.UpstreamHooks("weather");
-        this._proxy.Setup(p => p.GetFortUpdateDisabledAsync()).ReturnsAsync(false);
 
         Assert.Empty(await this.CreateSut().GetDisabledKeysAsync());
     }
@@ -89,7 +75,6 @@ public class UpstreamFeatureFlagServiceTests
     public async Task EachMappedHookDisablesExactlyItsOwnKey(string hook, string expectedKey)
     {
         this.UpstreamHooks(hook);
-        this._proxy.Setup(p => p.GetFortUpdateDisabledAsync()).ReturnsAsync(false);
 
         var keys = await this.CreateSut().GetDisabledKeysAsync();
 
@@ -100,42 +85,8 @@ public class UpstreamFeatureFlagServiceTests
     public async Task UnknownHookNamesAreIgnoredRatherThanGuessedAt()
     {
         this.UpstreamHooks("something_new_upstream");
-        this._proxy.Setup(p => p.GetFortUpdateDisabledAsync()).ReturnsAsync(false);
 
         Assert.Empty(await this.CreateSut().GetDisabledKeysAsync());
-    }
-
-    // --- fort changes: enforced upstream, but absent from disabledHooks ---
-
-    [Fact]
-    public async Task FortUpdateDisabledFlagDisablesFortChanges()
-    {
-        this.UpstreamHooks();
-        this._proxy.Setup(p => p.GetFortUpdateDisabledAsync()).ReturnsAsync(true);
-
-        Assert.Equal([DisableFeatureKeys.FortChanges], await this.CreateSut().GetDisabledKeysAsync());
-    }
-
-    [Fact]
-    public async Task UndeterminableFortUpdateFlagDisablesNothing()
-    {
-        this.UpstreamHooks();
-        this._proxy.Setup(p => p.GetFortUpdateDisabledAsync()).ReturnsAsync((bool?)null);
-
-        Assert.Empty(await this.CreateSut().GetDisabledKeysAsync());
-    }
-
-    /// <summary>
-    /// PoracleJS does not serve <c>/api/config/values</c> at all. Losing that read must not discard
-    /// the hook list already in hand.
-    /// </summary>
-    [Fact]
-    public async Task FailedFortUpdateReadKeepsTheHooksAlreadyResolved()
-    {
-        this.UpstreamHooks("lure");
-        this._proxy.Setup(p => p.GetFortUpdateDisabledAsync()).ThrowsAsync(new HttpRequestException("no such route"));
-
-        Assert.Equal([DisableFeatureKeys.Lures], await this.CreateSut().GetDisabledKeysAsync());
     }
 
     // --- fort: reported in disabledHooks from 5.2.1 on ---
@@ -148,49 +99,26 @@ public class UpstreamFeatureFlagServiceTests
     public async Task FortInDisabledHooksDisablesFortChanges()
     {
         this.UpstreamHooks("fort");
-        this._proxy.Setup(p => p.GetFortUpdateDisabledAsync()).ReturnsAsync(false);
 
         Assert.Equal([DisableFeatureKeys.FortChanges], await this.CreateSut().GetDisabledKeysAsync());
     }
 
     /// <summary>
-    /// A server that reports <c>availableLanguages</c> also reports <c>fort</c>, so the second
-    /// <c>/api/config/values</c> round-trip has nothing left to tell us and is not made.
+    /// <c>general.disable_fort_update</c> used to be read from <c>/api/config/values</c> for a server too
+    /// old to put <c>fort</c> in <c>disabledHooks</c> (5.1.0). 5.4.0 is the minimum, so the hook list and
+    /// the showcase flag are the only two reads; a third would be a round-trip on the gate's hot path for
+    /// a server that is not supported.
     /// </summary>
     [Fact]
-    public async Task ServerReportingAvailableLanguagesIsNotAskedForTheFortFlag()
-    {
-        this.UpstreamModern();
-
-        Assert.Empty(await this.CreateSut().GetDisabledKeysAsync());
-        this._proxy.Verify(p => p.GetFortUpdateDisabledAsync(), Times.Never);
-    }
-
-    /// <summary>
-    /// The legitimate case the discriminator exists to protect: 5.1.0 omits <c>fort</c> from the array
-    /// and only <c>general.disable_fort_update</c> knows, so the probe must still be made.
-    /// </summary>
-    [Fact]
-    public async Task ServerWithoutAvailableLanguagesIsStillAskedForTheFortFlag()
+    public async Task OnlyTheHookListAndTheShowcaseFlagAreRead()
     {
         this.UpstreamHooks();
-        this._proxy.Setup(p => p.GetFortUpdateDisabledAsync()).ReturnsAsync(true);
 
-        Assert.Equal([DisableFeatureKeys.FortChanges], await this.CreateSut().GetDisabledKeysAsync());
-        this._proxy.Verify(p => p.GetFortUpdateDisabledAsync(), Times.Once);
-    }
+        Assert.Empty(await this.CreateSut().GetDisabledKeysAsync());
 
-    /// <summary>
-    /// A config read that failed says nothing about the server's age, so the older-server probe is
-    /// still made rather than skipped on an assumption.
-    /// </summary>
-    [Fact]
-    public async Task UnreadableConfigStillAsksForTheFortFlag()
-    {
-        this._proxy.Setup(p => p.GetConfigAsync()).ThrowsAsync(new HttpRequestException("connection refused"));
-        this._proxy.Setup(p => p.GetFortUpdateDisabledAsync()).ReturnsAsync(true);
-
-        Assert.Equal([DisableFeatureKeys.FortChanges], await this.CreateSut().GetDisabledKeysAsync());
+        this._proxy.Verify(p => p.GetConfigAsync(), Times.Once);
+        this._proxy.Verify(p => p.GetShowcaseDisabledAsync(), Times.Once);
+        this._proxy.VerifyNoOtherCalls();
     }
 
     // --- degradation: the site settings must stay in sole charge ---
@@ -202,7 +130,6 @@ public class UpstreamFeatureFlagServiceTests
     public async Task AbsentDisabledHooksFieldDisablesNothing()
     {
         this._proxy.Setup(p => p.GetConfigAsync()).ReturnsAsync(new PoracleConfig());
-        this._proxy.Setup(p => p.GetFortUpdateDisabledAsync()).ReturnsAsync((bool?)null);
 
         Assert.Empty(await this.CreateSut().GetDisabledKeysAsync());
     }
@@ -211,7 +138,6 @@ public class UpstreamFeatureFlagServiceTests
     public async Task NullConfigDisablesNothing()
     {
         this._proxy.Setup(p => p.GetConfigAsync()).ReturnsAsync((PoracleConfig?)null);
-        this._proxy.Setup(p => p.GetFortUpdateDisabledAsync()).ReturnsAsync((bool?)null);
 
         Assert.Empty(await this.CreateSut().GetDisabledKeysAsync());
     }
@@ -224,7 +150,6 @@ public class UpstreamFeatureFlagServiceTests
     public async Task UnreachablePoracleDisablesNothing()
     {
         this._proxy.Setup(p => p.GetConfigAsync()).ThrowsAsync(new HttpRequestException("connection refused"));
-        this._proxy.Setup(p => p.GetFortUpdateDisabledAsync()).ThrowsAsync(new HttpRequestException("connection refused"));
 
         Assert.Empty(await this.CreateSut().GetDisabledKeysAsync());
     }
@@ -233,7 +158,6 @@ public class UpstreamFeatureFlagServiceTests
     public async Task ResultIsCachedSoTheGateDoesNotCallUpstreamPerRequest()
     {
         this.UpstreamHooks("nest");
-        this._proxy.Setup(p => p.GetFortUpdateDisabledAsync()).ReturnsAsync(false);
         var sut = this.CreateSut();
 
         await sut.GetDisabledKeysAsync();
@@ -241,7 +165,6 @@ public class UpstreamFeatureFlagServiceTests
         await sut.GetDisabledKeysAsync();
 
         this._proxy.Verify(p => p.GetConfigAsync(), Times.Once);
-        this._proxy.Verify(p => p.GetFortUpdateDisabledAsync(), Times.Once);
     }
 
     /// <summary>
@@ -252,7 +175,6 @@ public class UpstreamFeatureFlagServiceTests
     public async Task CacheIsSharedAcrossInstances()
     {
         this.UpstreamHooks("gym");
-        this._proxy.Setup(p => p.GetFortUpdateDisabledAsync()).ReturnsAsync(false);
 
         await this.CreateSut().GetDisabledKeysAsync();
         var second = await this.CreateSut().GetDisabledKeysAsync();
@@ -261,17 +183,12 @@ public class UpstreamFeatureFlagServiceTests
         this._proxy.Verify(p => p.GetConfigAsync(), Times.Once);
     }
 
-    // ── disable_showcase: the one probe that fails closed ────────────────────
+    // ── disable_showcase: follows the flag like every other type ─────────────
 
-    /// <summary>
-    /// The legitimate case. A 5.2.x server with the option present and off leaves the page available,
-    /// and does not disable anything else on the way past.
-    /// </summary>
     [Fact]
     public async Task ShowcaseOptionPresentAndOffLeavesPokestopEventsAvailable()
     {
         this.UpstreamHooks();
-        this._proxy.Setup(p => p.GetFortUpdateDisabledAsync()).ReturnsAsync(false);
         this._proxy.Setup(p => p.GetShowcaseDisabledAsync()).ReturnsAsync(false);
 
         Assert.Empty(await this.CreateSut().GetDisabledKeysAsync());
@@ -281,52 +198,39 @@ public class UpstreamFeatureFlagServiceTests
     public async Task ShowcaseOptionOnDisablesPokestopEvents()
     {
         this.UpstreamHooks();
-        this._proxy.Setup(p => p.GetFortUpdateDisabledAsync()).ReturnsAsync(false);
         this._proxy.Setup(p => p.GetShowcaseDisabledAsync()).ReturnsAsync(true);
 
         Assert.Equal([DisableFeatureKeys.PokestopEvents], await this.CreateSut().GetDisabledKeysAsync());
     }
 
     /// <summary>
-    /// An absent option means a PoracleNG below 5.2.0, and every such server 404s the v2 incident
-    /// route the page is built on. Verified: 5.1.0 has neither the option nor the route.
+    /// 5.4.0 is the minimum and always carries the option, so an absent value is no longer evidence of
+    /// an old server. Pokestop Events stay on, like every other type.
     /// </summary>
     [Fact]
-    public async Task AbsentShowcaseOptionDisablesPokestopEvents()
+    public async Task AbsentShowcaseOptionLeavesPokestopEventsAvailable()
     {
         this.UpstreamHooks();
-        this._proxy.Setup(p => p.GetFortUpdateDisabledAsync()).ReturnsAsync(false);
         this._proxy.Setup(p => p.GetShowcaseDisabledAsync()).ReturnsAsync((bool?)null);
 
-        Assert.Equal([DisableFeatureKeys.PokestopEvents], await this.CreateSut().GetDisabledKeysAsync());
+        Assert.Empty(await this.CreateSut().GetDisabledKeysAsync());
     }
 
-    /// <summary>
-    /// The deliberate inversion of this class's fail-open rule. Everywhere else an unreadable config
-    /// leaves the site settings in charge; here it closes the gate, because a server whose config we
-    /// cannot read is not one we can send v2 writes to either — and failing open would produce a page
-    /// whose every call 404s.
-    /// </summary>
+    /// <summary>The class's fail-open rule now holds here too: an unreadable config must not switch a page off.</summary>
     [Fact]
-    public async Task UnreadableShowcaseOptionDisablesPokestopEvents()
+    public async Task UnreadableShowcaseOptionLeavesPokestopEventsAvailable()
     {
         this.UpstreamHooks();
-        this._proxy.Setup(p => p.GetFortUpdateDisabledAsync()).ReturnsAsync(false);
         this._proxy.Setup(p => p.GetShowcaseDisabledAsync()).ThrowsAsync(new HttpRequestException("boom"));
 
-        Assert.Equal([DisableFeatureKeys.PokestopEvents], await this.CreateSut().GetDisabledKeysAsync());
+        Assert.Empty(await this.CreateSut().GetDisabledKeysAsync());
     }
 
-    /// <summary>
-    /// A hook list that could not be read used to abandon the whole probe. That would have skipped the
-    /// showcase question entirely and left the page on for a server that cannot serve it.
-    /// </summary>
     [Fact]
     public async Task FailedHookReadStillAnswersTheShowcaseQuestion()
     {
         this._proxy.Setup(p => p.GetConfigAsync()).ThrowsAsync(new HttpRequestException("boom"));
-        this._proxy.Setup(p => p.GetFortUpdateDisabledAsync()).ReturnsAsync(false);
-        this._proxy.Setup(p => p.GetShowcaseDisabledAsync()).ReturnsAsync((bool?)null);
+        this._proxy.Setup(p => p.GetShowcaseDisabledAsync()).ReturnsAsync(true);
 
         Assert.Equal([DisableFeatureKeys.PokestopEvents], await this.CreateSut().GetDisabledKeysAsync());
     }

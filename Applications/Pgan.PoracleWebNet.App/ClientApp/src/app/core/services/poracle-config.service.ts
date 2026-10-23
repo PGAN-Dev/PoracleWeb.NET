@@ -13,7 +13,6 @@ const FALLBACK: PoracleServerConfig = {
   maxDistance: 10726000,
   personalRatesConfigured: false,
   personalSupported: false,
-  pingSupported: false,
   playerAccountsSelfService: false,
   playerAccountsSupported: false,
   poracleVersion: 'unknown',

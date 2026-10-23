@@ -44,7 +44,11 @@ const ALL_OFF = {
  * neither the header button nor its own toggle should count it.
  */
 describe('CleaningComponent', () => {
-  const setup = (counts: Partial<DashboardCounts>, status: Partial<typeof ALL_OFF>, disabled: string[] = []) => {
+  const setup = (
+    counts: Partial<DashboardCounts>,
+    status: Partial<typeof ALL_OFF> & { counts?: Record<string, { clean: number; total: number }> },
+    disabled: string[] = [],
+  ) => {
     const settings = signal<Record<string, string>>(Object.fromEntries(disabled.map(k => [k, 'true'])));
     const cleaning = {
       getStatus: jest.fn(() => of({ ...ALL_OFF, ...status })),
@@ -97,7 +101,9 @@ describe('CleaningComponent', () => {
   });
 
   it('flips to Disable All after Enable All, without marking empty types on', () => {
-    const { component, row } = setup({ pokemon: 4 }, {});
+    const { cleaning, component, row } = setup({ pokemon: 4 }, {});
+    // The page reads the status back after a toggle, so the server's answer is what the row shows.
+    cleaning.getStatus.mockReturnValue(of({ ...ALL_OFF, monsters: true }));
 
     component.toggleAll(true);
 
@@ -118,6 +124,78 @@ describe('CleaningComponent', () => {
     expect(toggles[0].disabled).toBe(false);
     expect(toggles[1].disabled).toBe(false);
     expect(toggles[2].disabled).toBe(true);
+  });
+
+  // Alarms D10: one clean Pokémon rule among three read as plain "off".
+  describe('a type only partly clean', () => {
+    const partial = { raids: true, counts: { raids: { clean: 2, total: 2 }, monsters: { clean: 1, total: 3 } } };
+
+    it('says how many of its alarms are clean', () => {
+      const { fixture, row } = setup({ raids: 2, pokemon: 3 }, partial);
+
+      expect(row('monsters').enabled()).toBe(false);
+      expect(row('monsters').partial()).toEqual({ clean: 1, total: 3 });
+      const hints = (fixture.nativeElement as HTMLElement).querySelectorAll('.label-partial');
+      expect(hints.length).toBe(1);
+      expect(hints[0].textContent).toContain('CLEANING.PARTIAL');
+    });
+
+    it('marks no row partial when every rule or none is clean', () => {
+      const { row } = setup({ raids: 2, pokemon: 3 }, { counts: { raids: { clean: 2, total: 2 }, monsters: { clean: 0, total: 3 } } });
+
+      expect(row('monsters').partial()).toBeNull();
+      expect(row('raids').partial()).toBeNull();
+    });
+
+    it('reads a server without counts as before', () => {
+      const { row } = setup({ pokemon: 3 }, { monsters: false });
+
+      expect(row('monsters').partial()).toBeNull();
+    });
+
+    const allClean = { raids: true, counts: { raids: { clean: 2, total: 2 }, monsters: { clean: 3, total: 3 } }, monsters: true };
+
+    it('drops the partial note once the type is switched as a whole', () => {
+      const { cleaning, component, row } = setup({ raids: 2, pokemon: 3 }, partial);
+      cleaning.getStatus.mockReturnValue(of({ ...ALL_OFF, ...allClean }));
+
+      component.toggleClean(row('monsters'), true);
+
+      expect(row('monsters').partial()).toBeNull();
+      expect(row('monsters').enabled()).toBe(true);
+    });
+
+    it('drops it after Enable All too', () => {
+      const { cleaning, component, row } = setup({ raids: 2, pokemon: 3 }, partial);
+      cleaning.getStatus.mockReturnValue(of({ ...ALL_OFF, ...allClean }));
+
+      component.toggleAll(true);
+
+      expect(row('monsters').partial()).toBeNull();
+    });
+
+    // PoracleNG can refuse some rules in a toggle; those keep their old setting and are left out of
+    // `updated`. Reading the status back keeps the row honest instead of assuming the whole type moved.
+    it('reads the status back after a toggle and keeps the note when PoracleNG refused some rules', () => {
+      const { cleaning, component, row } = setup({ raids: 2, pokemon: 3 }, partial);
+      cleaning.getStatus.mockReturnValue(of({ ...ALL_OFF, counts: { monsters: { clean: 2, total: 3 } } }));
+
+      component.toggleClean(row('monsters'), true);
+
+      expect(cleaning.getStatus).toHaveBeenCalledTimes(2);
+      expect(row('monsters').enabled()).toBe(false);
+      expect(row('monsters').partial()).toEqual({ clean: 2, total: 3 });
+    });
+
+    it('does the same after Enable All', () => {
+      const { cleaning, component, row } = setup({ raids: 2, pokemon: 3 }, partial);
+      cleaning.getStatus.mockReturnValue(of({ ...ALL_OFF, raids: true, counts: { monsters: { clean: 2, total: 3 } } }));
+
+      component.toggleAll(true);
+
+      expect(cleaning.getStatus).toHaveBeenCalledTimes(2);
+      expect(row('monsters').partial()).toEqual({ clean: 2, total: 3 });
+    });
   });
 });
 

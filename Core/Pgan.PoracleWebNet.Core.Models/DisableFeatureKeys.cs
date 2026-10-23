@@ -12,7 +12,6 @@ namespace Pgan.PoracleWebNet.Core.Models;
 ///      <c>ClientApp/src/app/modules/admin/admin-settings.component.ts</c>.
 ///   2. Add the same key (lowercase) to the nav definitions in
 ///      <c>ClientApp/src/app/app.ts</c>.
-///   3. Add it to <c>SettingsMigrationService.BooleanKeys</c> and <c>CategoryMap</c>.
 /// </summary>
 public static class DisableFeatureKeys
 {
@@ -80,7 +79,7 @@ public static class DisableFeatureKeys
     public const string Geocoding = "disable_nominatim";
 
     /// <summary>
-    /// Tracking-type string (as used in PoracleNG's <c>/api/tracking/{type}</c> URLs and
+    /// Tracking-type string (as used in PoracleNG's <c>/api/v2/humans/{id}/tracking/{type}</c> URLs and
     /// <c>ProfileOverviewService</c>'s alarm-type loop) → matching <c>disable_*</c> key.
     /// Lets <c>ProfileOverviewService</c>, <c>TestAlertController</c>, and any future
     /// proxy-level caller resolve the right gate without each maintaining its own copy.

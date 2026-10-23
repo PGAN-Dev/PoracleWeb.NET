@@ -10,7 +10,7 @@
     </div>
     <div class="summary-row">
       <span class="summary-label">{{ 'ADMIN.APPROVAL_GROUP' | translate }}</span>
-      <span class="summary-value">{{ data.geofence.groupName }}</span>
+      <span class="summary-value">{{ data.geofence.groupName || ('ADMIN.NO_REGION' | translate) }}</span>
     </div>
     @if (data.geofence.submittedAt) {
       <div class="summary-row">
@@ -66,13 +66,13 @@
 <mat-dialog-actions align="end">
   <button mat-button (click)="onCancel()">{{ 'COMMON.CANCEL' | translate }}</button>
   @if (mode === 'approve') {
-    <button mat-raised-button color="primary" [disabled]="!canApprove" (click)="onApprove()">
+    <button mat-flat-button color="primary" [disabled]="!canApprove" (click)="onApprove()">
       <mat-icon>check_circle</mat-icon>
       {{ 'ADMIN.APPROVAL_APPROVE' | translate }}
     </button>
   }
   @if (mode === 'reject') {
-    <button mat-raised-button color="warn" (click)="onReject()" [disabled]="!reviewNotes.trim()">
+    <button mat-flat-button color="warn" (click)="onReject()" [disabled]="!reviewNotes.trim()">
       <mat-icon>cancel</mat-icon>
       {{ 'ADMIN.APPROVAL_REJECT' | translate }}
     </button>

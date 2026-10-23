@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Pgan.PoracleWebNet.Api.Filters;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
@@ -17,43 +18,30 @@ namespace Pgan.PoracleWebNet.Api.Controllers;
 /// memory: a processor restart clears every one of them.
 /// </para>
 /// <para>
-/// GET returns capability and the list together, deliberately unlike
-/// <see cref="SummaryScheduleController"/>'s separate <c>/capability</c> endpoint. The quiet chip is
-/// read on every alarm page, so folding the two halves the roundtrips; the schedule surface is one page
-/// and could afford the extra call.
+/// Every supported PoracleNG (5.4.0 and later) has the mute routes, so there is no capability probe: GET
+/// returns the list. All three actions answer 503 when PoracleNG cannot be reached
+/// (<see cref="PoracleUnreachableExceptionFilter"/>).
 /// </para>
 /// </remarks>
 [Route("api/mutes")]
 [EnableRateLimiting("mutes")]
-public class MuteController(
-    IPoracleMuteProxy muteProxy,
-    IMuteCapabilityService capability) : BaseApiController
+[TypeFilter(typeof(PoracleUnreachableExceptionFilter))]
+public class MuteController(IPoracleMuteProxy muteProxy) : BaseApiController
 {
     private readonly IPoracleMuteProxy _muteProxy = muteProxy;
-    private readonly IMuteCapabilityService _capability = capability;
 
     /// <summary>
-    /// Whether this server can do quiet periods at all, plus the caller's active ones. Reads stay open
-    /// during impersonation so an admin can answer "why am I getting nothing".
+    /// The caller's active quiet periods. Reads stay open during impersonation so an admin can answer
+    /// "why am I getting nothing". Answers 503 when PoracleNG is unreachable, so the SPA can say so
+    /// rather than show a chip that silently claims nothing is quiet.
     /// </summary>
     [HttpGet]
     public async Task<IActionResult> GetMutes(CancellationToken cancellationToken)
     {
-        var capable = await this._capability.IsMuteApiAvailableAsync(cancellationToken);
-        if (!capable)
-        {
-            return this.Ok(new
-            {
-                capable = false,
-                mutes = Array.Empty<Mute>()
-            });
-        }
-
         var mutes = await this._muteProxy.ListAsync(this.UserId, cancellationToken);
 
         return this.Ok(new
         {
-            capable = true,
             mutes
         });
     }
@@ -62,7 +50,7 @@ public class MuteController(
     [HttpPost]
     public async Task<IActionResult> CreateMute([FromBody] MuteCreateRequest request, CancellationToken cancellationToken)
     {
-        var refusal = await this.RefuseWriteAsync(cancellationToken);
+        var refusal = this.RefuseWrite();
         if (refusal is not null)
         {
             return refusal;
@@ -122,27 +110,37 @@ public class MuteController(
     /// Lifts one quiet period, or every one of them when no scope is given.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <paramref name="value"/> must be the value the LIST returned, not the one that was submitted:
     /// upstream canonicalises area names to the geofence's own casing ("aberdeen" is stored as
     /// "Aberdeen") and matches the delete string exactly.
+    /// </para>
+    /// <para>
+    /// <paramref name="trackingType"/> is the same rule for a <c>tracking</c> mute: send back the
+    /// <see cref="Mute.TrackingType"/> the list returned, or nothing when it returned none. This app never
+    /// creates a tracking mute, but the bot does, and from jfberry/PoracleNG#328 §6 such a mute is
+    /// addressed by type and uid together because uids are numbered per table.
+    /// </para>
     /// </remarks>
     [HttpDelete]
     public async Task<IActionResult> DeleteMute(
-        [FromQuery] string? scope, [FromQuery] string? value, CancellationToken cancellationToken)
+        [FromQuery] string? scope, [FromQuery] string? value, [FromQuery] string? trackingType, CancellationToken cancellationToken)
     {
-        var refusal = await this.RefuseWriteAsync(cancellationToken);
+        var refusal = this.RefuseWrite();
         if (refusal is not null)
         {
             return refusal;
         }
 
+        trackingType = string.IsNullOrWhiteSpace(trackingType) ? null : trackingType;
+
         if (string.IsNullOrWhiteSpace(scope))
         {
-            if (!string.IsNullOrWhiteSpace(value))
+            if (!string.IsNullOrWhiteSpace(value) || trackingType is not null)
             {
                 return this.BadRequest(new
                 {
-                    error = "A value requires a scope."
+                    error = "A value or tracking type requires a scope."
                 });
             }
 
@@ -172,40 +170,49 @@ public class MuteController(
             });
         }
 
-        var deleted = await this._muteProxy.DeleteAsync(
-            this.UserId, scope, scope == MuteScopes.Everything ? null : value, cancellationToken);
-
-        return this.Ok(new
+        // Upstream refuses a tracking type on any other scope, so say so here rather than forward a 422.
+        if (trackingType is not null && scope != MuteScopes.Tracking)
         {
-            deleted
-        });
+            return this.BadRequest(new
+            {
+                error = $"A tracking type only applies to scope '{MuteScopes.Tracking}'."
+            });
+        }
+
+        try
+        {
+            var deleted = await this._muteProxy.DeleteAsync(
+                this.UserId, scope, scope == MuteScopes.Everything ? null : value, trackingType, cancellationToken);
+
+            return this.Ok(new
+            {
+                deleted
+            });
+        }
+        catch (MuteRejectedException ex)
+        {
+            return this.UnprocessableEntity(new
+            {
+                error = ex.Reason
+            });
+        }
     }
 
     /// <summary>
-    /// Refuses a write the caller must not make: one the server cannot honour, and one that would land
-    /// on somebody else's account.
+    /// Refuses a write that would land on somebody else's account.
     /// </summary>
     /// <remarks>
     /// <see cref="BaseApiController.UserId"/> is the INSPECTED account during impersonation, so an
     /// unguarded write would silence the alerts of the person being looked at -- the shape of #663.
     /// Reads are deliberately left open.
     /// </remarks>
-    private async Task<IActionResult?> RefuseWriteAsync(CancellationToken cancellationToken)
+    private IActionResult? RefuseWrite()
     {
         if (this.IsImpersonating)
         {
             return this.StatusCode(StatusCodes.Status403Forbidden, new
             {
                 error = "Quiet periods cannot be changed while viewing another account."
-            });
-        }
-
-        if (!await this._capability.IsMuteApiAvailableAsync(cancellationToken))
-        {
-            return this.StatusCode(StatusCodes.Status501NotImplemented, new
-            {
-                error = "This Poracle server does not support quiet periods.",
-                capable = false
             });
         }
 

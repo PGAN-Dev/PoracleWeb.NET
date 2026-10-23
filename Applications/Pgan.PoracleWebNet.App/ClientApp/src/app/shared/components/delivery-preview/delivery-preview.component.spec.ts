@@ -69,4 +69,14 @@ describe('DeliveryPreviewComponent', () => {
     expect(component.loading()).toBe(false);
     expect(locationService.getDistanceMapUrl).not.toHaveBeenCalled();
   });
+
+  it('title-cases the area names, as the scope picker does', () => {
+    areaService.getSelected.mockReturnValue(of(['downtown orlando', 'kissimmee']));
+    const fixture = TestBed.createComponent(DeliveryPreviewComponent);
+    fixture.componentInstance.ngOnChanges({});
+    fixture.detectChanges();
+
+    const chips = [...(fixture.nativeElement as HTMLElement).querySelectorAll('mat-chip')].map(c => c.textContent?.trim());
+    expect(chips).toEqual(['Downtown Orlando', 'Kissimmee']);
+  });
 });

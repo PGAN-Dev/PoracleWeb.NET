@@ -6,16 +6,6 @@
  * way round is silent: sending 0 for "any" narrows every rule to plain spawns only.
  */
 
-/**
- * Gated on the server's applied migration, not on its version string.
- *
- * The costume columns arrive with PoracleNG migrations 6 (`monsters.costume`) and 7 (`raid.costume`),
- * and a server without them accepts the extra key, answers 200 and drops it -- verified against a live
- * 5.1.0 instance. Nothing breaks; "Halloween 2025" just quietly matches every Pikachu. The four dialog
- * controls therefore ask `SettingsService.supportsCostume()` before rendering, and the alarm services
- * refuse a narrower costume than the wildcard on a server that cannot store it. Both fail closed.
- */
-
 /** Matches every spawn, costumed or not. What PoracleNG stores when the key is absent. */
 export const ANY_COSTUME = 9000;
 

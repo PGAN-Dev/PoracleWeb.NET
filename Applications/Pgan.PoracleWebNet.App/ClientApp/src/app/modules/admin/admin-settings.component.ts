@@ -27,13 +27,15 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { IconRepoDialogComponent, IconRepoDialogData } from './icon-repo-dialog/icon-repo-dialog.component';
-import { DiscordServerConfig, OidcServerConfig, PwebSetting, SiteSetting, TelegramServerConfig } from '../../core/models';
+import { SettingsStatusStripComponent } from './settings-status-strip/settings-status-strip.component';
+import { HasUnsavedChanges } from '../../core/guards/unsaved-changes.guard';
+import { DiscordServerConfig, OidcServerConfig, SiteSetting, TelegramServerConfig } from '../../core/models';
 import { BasemapService } from '../../core/services/basemap.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { PoracleConfigService } from '../../core/services/poracle-config.service';
 import { SettingsService } from '../../core/services/settings.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
-import { ServerProfileCardComponent } from '../../shared/components/server-profile-card/server-profile-card.component';
+import { ALARM_TYPE_STYLE, AlarmTypeStyle } from '../../shared/utils/alarm-type-style';
 import { BUILTIN_BASEMAPS, CUSTOM_BASEMAP_ID, basemapNeedsKey, resolveBasemapProviderId } from '../../shared/utils/basemaps';
 import {
   DEFAULT_ICON_REPOS,
@@ -46,12 +48,10 @@ import {
   serializeIconRepos,
 } from '../../shared/utils/icon-repos';
 
-/** Union type for backward compatibility during migration */
-type AnySettingItem = PwebSetting | SiteSetting;
+type AnySettingItem = SiteSetting;
 
-/** Extract the key from either setting shape */
 function settingKey(item: AnySettingItem): string {
-  return 'key' in item ? item.key : item.setting;
+  return item.key;
 }
 
 interface SettingOption {
@@ -98,7 +98,6 @@ const BASEMAP_PROVIDER_OPTIONS: SettingOption[] = [
 ];
 
 interface SettingGroup {
-  color: string;
   icon: string;
   labelKey: string;
   settings: SettingMeta[];
@@ -127,6 +126,13 @@ export const PROJECTED_KEYS = ['poracle_locale', 'poracle_alert_languages'];
  */
 export const MANAGED_ELSEWHERE_KEYS = ['hidden_areas'];
 
+/**
+ * Switches the server treats as on until a row says otherwise. `AuthController` refuses a Discord or
+ * Telegram sign-in only when the stored value is "false", and a fresh install writes neither row, so
+ * reading absent as off showed both sign-ins disabled on a site where both worked.
+ */
+export const ABSENT_MEANS_ON_KEYS = ['enable_discord', 'enable_telegram'];
+
 const RETIRED_KEYS = [
   // Legacy Poracle keys describing a map picker this app does not have. Removed from the settings UI and
   // from SettingsMigrationService when they were retired, but rows persist in existing databases and were
@@ -145,7 +151,6 @@ const RETIRED_KEYS = [
 
 export const SETTING_GROUPS: SettingGroup[] = [
   {
-    color: '#0088cc',
     icon: 'send',
     labelKey: 'ADMIN_SETTINGS.GROUP_TELEGRAM',
     settings: [
@@ -164,7 +169,6 @@ export const SETTING_GROUPS: SettingGroup[] = [
     ],
   },
   {
-    color: '#5865F2',
     icon: 'forum',
     labelKey: 'ADMIN_SETTINGS.GROUP_DISCORD',
     settings: [
@@ -177,7 +181,6 @@ export const SETTING_GROUPS: SettingGroup[] = [
     ],
   },
   {
-    color: '#1976d2',
     icon: 'palette',
     labelKey: 'ADMIN_SETTINGS.GROUP_BRANDING',
     settings: [
@@ -226,7 +229,6 @@ export const SETTING_GROUPS: SettingGroup[] = [
     ],
   },
   {
-    color: '#ff9800',
     icon: 'notifications',
     labelKey: 'ADMIN_SETTINGS.GROUP_ALARM_TYPES',
     settings: [
@@ -293,7 +295,6 @@ export const SETTING_GROUPS: SettingGroup[] = [
     ],
   },
   {
-    color: '#4caf50',
     icon: 'tune',
     labelKey: 'ADMIN_SETTINGS.GROUP_FEATURES',
     settings: [
@@ -348,7 +349,6 @@ export const SETTING_GROUPS: SettingGroup[] = [
     ],
   },
   {
-    color: '#2e7d32',
     icon: 'map',
     labelKey: 'ADMIN_SETTINGS.GROUP_MAPS',
     settings: [
@@ -399,7 +399,6 @@ export const SETTING_GROUPS: SettingGroup[] = [
     ],
   },
   {
-    color: '#f44336',
     icon: 'admin_panel_settings',
     labelKey: 'ADMIN_SETTINGS.GROUP_ADMINISTRATION',
     settings: [
@@ -419,7 +418,6 @@ export const SETTING_GROUPS: SettingGroup[] = [
     ],
   },
   {
-    color: '#7b1fa2',
     icon: 'bar_chart',
     labelKey: 'ADMIN_SETTINGS.GROUP_ANALYTICS_LINKS',
     settings: [
@@ -461,7 +459,7 @@ export const SETTING_GROUPS: SettingGroup[] = [
     MatSlideToggleModule,
     MatDividerModule,
     MatTooltipModule,
-    ServerProfileCardComponent,
+    SettingsStatusStripComponent,
     TranslatePipe,
   ],
   selector: 'app-admin-settings',
@@ -469,7 +467,7 @@ export const SETTING_GROUPS: SettingGroup[] = [
   styleUrl: './admin-settings.component.scss',
   templateUrl: './admin-settings.component.html',
 })
-export class AdminSettingsComponent implements OnInit {
+export class AdminSettingsComponent implements OnInit, HasUnsavedChanges {
   private static readonly COLLAPSED_STORAGE_KEY = 'poracle-admin-settings-collapsed';
   private readonly allDefinedKeys = new Set([
     ...SETTING_GROUPS.flatMap(g => g.settings.map(s => s.key)),
@@ -631,18 +629,6 @@ export class AdminSettingsComponent implements OnInit {
 
   readonly repoPreviews = ICON_REPO_PREVIEWS;
 
-  @ViewChild('searchInput') searchInput?: ElementRef<HTMLInputElement>;
-  readonly settingsLoading = signal(true);
-
-  readonly telegramConfig = signal<TelegramServerConfig | null>(null);
-
-  readonly unknownSettings = computed(() =>
-    this.settings().filter(s => {
-      const k = settingKey(s);
-      return !this.allDefinedKeys.has(k) && !this.internalPrefixes.some(p => k.startsWith(p));
-    }),
-  );
-
   readonly visibleGroups = computed(() => {
     // In OIDC sign-in mode the local provider sections are moot — hide them; the read-only
     // OIDC config card is shown by the bespoke Authentication section instead.
@@ -666,6 +652,27 @@ export class AdminSettingsComponent implements OnInit {
     if (!query) return base;
     return base.map(g => ({ ...g, settings: g.settings.filter(s => this.settingMatches(s)) })).filter(g => g.settings.length > 0);
   });
+
+  /**
+   * A query that matches nothing left the page ending at the search box, which reads as a page that
+   * failed to load. The icon packs and "Other" sections already hide under any query.
+   */
+  readonly searchHasNoMatch = computed(
+    () => !!this.searchQuery().trim() && !this.authSectionVisible() && this.visibleGroups().length === 0,
+  );
+
+  @ViewChild('searchInput') searchInput?: ElementRef<HTMLInputElement>;
+
+  readonly settingsLoading = signal(true);
+
+  readonly telegramConfig = signal<TelegramServerConfig | null>(null);
+
+  readonly unknownSettings = computed(() =>
+    this.settings().filter(s => {
+      const k = settingKey(s);
+      return !this.allDefinedKeys.has(k) && !this.internalPrefixes.some(p => k.startsWith(p));
+    }),
+  );
 
   private static loadCollapsed(): Set<string> {
     try {
@@ -693,6 +700,11 @@ export class AdminSettingsComponent implements OnInit {
       });
   }
 
+  /** An alarm-type switch wears its nav item's icon and colour; every other row has none. */
+  alarmTypeStyle(key: string): AlarmTypeStyle | null {
+    return ALARM_TYPE_STYLE[key] ?? null;
+  }
+
   discardAllModified(): void {
     this.settings.set(this.originalSnapshot().map(s => ({ ...s })));
     this.modifiedSettings.set(new Map());
@@ -716,7 +728,10 @@ export class AdminSettingsComponent implements OnInit {
   }
 
   getBool(key: string): boolean {
-    return (this.getSettingValue(key) ?? '').toLowerCase() === 'true';
+    const value = (this.getSettingValue(key) ?? '').toLowerCase();
+    // Mirrors the server's read for these keys exactly: anything but "false" is on.
+    if (ABSENT_MEANS_ON_KEYS.includes(key)) return value !== 'false';
+    return value === 'true';
   }
 
   getSettingValue(key: string): string | null | undefined {
@@ -736,6 +751,10 @@ export class AdminSettingsComponent implements OnInit {
     // Poracle-forced type as off, so the header agrees with the switches underneath it.
     const count = disableKeys.reduce((acc, s) => acc + (this.featureEnabled(s) ? 1 : 0), 0);
     return this.i18n.instant('ADMIN_SETTINGS.SUMMARY_ENABLED', { count, total: disableKeys.length });
+  }
+
+  hasUnsavedChanges(): boolean {
+    return this.modifiedSettings().size > 0;
   }
 
   /** Translated label/description with current search matches wrapped in <mark>. */
@@ -817,6 +836,14 @@ export class AdminSettingsComponent implements OnInit {
       .getOidcConfig()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({ next: config => this.oidcConfig.set(config) });
+  }
+
+  /** A reload or tab close is outside the router, so the route guard cannot ask; the browser can. */
+  @HostListener('window:beforeunload', ['$event'])
+  onBeforeUnload(event: BeforeUnloadEvent | Event): void {
+    if (!this.hasUnsavedChanges()) return;
+    event.preventDefault();
+    (event as BeforeUnloadEvent).returnValue = '';
   }
 
   onBoolChange(key: string, value: boolean): void {
@@ -1042,7 +1069,7 @@ export class AdminSettingsComponent implements OnInit {
     }
     const msg =
       errors === 0
-        ? this.i18n.instant('ADMIN_SETTINGS.SAVE_SUCCESS', { count: done })
+        ? this.i18n.plural('ADMIN_SETTINGS.SAVE_SUCCESS', done)
         : errorMessages.length > 0
           ? errorMessages.join(' ')
           : this.i18n.instant('ADMIN_SETTINGS.SAVE_PARTIAL', { done, errors });

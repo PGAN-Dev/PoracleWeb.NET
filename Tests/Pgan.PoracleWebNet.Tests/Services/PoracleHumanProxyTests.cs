@@ -33,17 +33,17 @@ public class PoracleHumanProxyTests
         .Build();
 
     /// <summary>
-    /// A proxy pointed at a PoracleNG with no /api/v2, so every test here exercises the v1 path it has
-    /// always exercised. The v2 paths get their own file; what this one guards is that a self-hoster on
-    /// 5.1.0 still gets byte-identical requests.
+    /// A proxy whose server profile reports no version and whose schema declares nothing, so the profile,
+    /// place and area calls that still have a v1 fallback take it. The single-human calls ignore both and
+    /// go to /api/v2 whatever they say.
     /// </summary>
     private static PoracleHumanProxy CreateSut(
         MockHttpMessageHandler handler, IConfiguration? config = null, string? version = null)
     {
         var client = new HttpClient(handler);
         return new PoracleHumanProxy(
-            client, config ?? CreateConfig(), ServerProfile(version), V2Schema(), AreaSecurityPolicy(),
-            new MemoryCache(new MemoryCacheOptions()), Mock.Of<ILogger<PoracleHumanProxy>>());
+            client, config ?? CreateConfig(), V2Schema(),
+            Mock.Of<ILogger<PoracleHumanProxy>>());
     }
 
     /// <summary>
@@ -58,18 +58,6 @@ public class PoracleHumanProxyTests
             .ReturnsAsync(capabilities ?? PoracleV2Capabilities.None);
 
         return schema.Object;
-    }
-
-    /// <summary>
-    /// An area-security policy answering the given confirmed-disabled state. Defaults to false, matching
-    /// the real service's fail-closed stance -- a test exercising a trusted-area method must opt in
-    /// explicitly rather than inherit a safe-by-accident default.
-    /// </summary>
-    internal static IAreaSecurityPolicyService AreaSecurityPolicy(bool confirmedDisabled = false)
-    {
-        var policy = new Mock<IAreaSecurityPolicyService>();
-        policy.Setup(p => p.IsConfirmedDisabledAsync()).ReturnsAsync(confirmedDisabled);
-        return policy.Object;
     }
 
     /// <summary>A server profile reporting the given version, or an unreachable one when null.</summary>
@@ -105,7 +93,9 @@ public class PoracleHumanProxyTests
     [Fact]
     public async Task GetHumanAsyncReturnsNullOn404()
     {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.NotFound, "{}");
+        // PoracleNG answering "no such human" is problem+json; a bare 404 is a missing route.
+        var handler = new MockHttpMessageHandler(
+            HttpStatusCode.NotFound, /*lang=json,strict*/ """{"title":"Not Found","status":404,"detail":"human not found"}""");
         var sut = CreateSut(handler);
 
         var result = await sut.GetHumanAsync("nonexistent");
@@ -113,15 +103,23 @@ public class PoracleHumanProxyTests
         Assert.Null(result);
     }
 
-    [Fact]
-    public async Task GetHumanAsyncReturnsNullOnOtherErrors()
+    /// <summary>
+    /// Only a 404 says the account is absent. Answering null for every other status made a PoracleNG that
+    /// could not answer look like a deleted account: the purge told an admin the user was already gone,
+    /// and /api/auth/me signed a live user out. See #994.
+    /// </summary>
+    [Theory]
+    [InlineData(HttpStatusCode.InternalServerError)]
+    [InlineData(HttpStatusCode.BadGateway)]
+    [InlineData(HttpStatusCode.ServiceUnavailable)]
+    [InlineData(HttpStatusCode.Unauthorized)]
+    public async Task GetHumanAsyncThrowsWhenPoracleCannotAnswer(HttpStatusCode status)
     {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.InternalServerError, "{}");
+        var handler = new MockHttpMessageHandler(status, "{}");
         var sut = CreateSut(handler);
 
-        var result = await sut.GetHumanAsync("user1");
-
-        Assert.Null(result);
+        var ex = await Assert.ThrowsAsync<HttpRequestException>(() => sut.GetHumanAsync("user1"));
+        Assert.Equal(status, ex.StatusCode);
     }
 
     [Fact]
@@ -134,7 +132,7 @@ public class PoracleHumanProxyTests
 
         Assert.NotNull(handler.LastRequest);
         Assert.Equal(HttpMethod.Get, handler.LastRequest.Method);
-        Assert.Equal($"{ApiAddress}/api/humans/one/user42", handler.LastRequest.RequestUri?.ToString());
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user42", handler.LastRequest.RequestUri?.ToString());
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -152,7 +150,7 @@ public class PoracleHumanProxyTests
 
         Assert.NotNull(handler.LastRequest);
         Assert.Equal(HttpMethod.Post, handler.LastRequest.Method);
-        Assert.Equal($"{ApiAddress}/api/humans", handler.LastRequest.RequestUri?.ToString());
+        Assert.Equal($"{ApiAddress}/api/v2/humans", handler.LastRequest.RequestUri?.ToString());
 
         var sentBody = await handler.LastRequest.Content!.ReadAsStringAsync();
         Assert.Contains("newuser", sentBody);
@@ -184,7 +182,7 @@ public class PoracleHumanProxyTests
 
         Assert.NotNull(handler.LastRequest);
         Assert.Equal(HttpMethod.Post, handler.LastRequest.Method);
-        Assert.Equal($"{ApiAddress}/api/humans/user1/start", handler.LastRequest.RequestUri?.ToString());
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/enable", handler.LastRequest.RequestUri?.ToString());
     }
 
     [Fact]
@@ -206,7 +204,7 @@ public class PoracleHumanProxyTests
 
         Assert.NotNull(handler.LastRequest);
         Assert.Equal(HttpMethod.Post, handler.LastRequest.Method);
-        Assert.Equal($"{ApiAddress}/api/humans/user1/stop", handler.LastRequest.RequestUri?.ToString());
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/disable", handler.LastRequest.RequestUri?.ToString());
     }
 
     [Fact]
@@ -232,11 +230,11 @@ public class PoracleHumanProxyTests
 
         Assert.NotNull(handler.LastRequest);
         Assert.Equal(HttpMethod.Post, handler.LastRequest.Method);
-        Assert.Equal($"{ApiAddress}/api/humans/user1/adminDisabled", handler.LastRequest.RequestUri?.ToString());
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/admin-disable", handler.LastRequest.RequestUri?.ToString());
 
         var sentBody = await handler.LastRequest.Content!.ReadAsStringAsync();
-        Assert.Contains("\"state\":true", sentBody);
-        Assert.DoesNotContain("adminDisable", sentBody);
+        Assert.Contains("\"disabled\":true", sentBody);
+        Assert.DoesNotContain("state", sentBody);
     }
 
     [Fact]
@@ -248,8 +246,8 @@ public class PoracleHumanProxyTests
         await sut.AdminDisabledAsync("user1", false);
 
         var sentBody = await handler.LastRequest!.Content!.ReadAsStringAsync();
-        Assert.Contains("\"state\":false", sentBody);
-        Assert.DoesNotContain("adminDisable", sentBody);
+        Assert.Contains("\"disabled\":false", sentBody);
+        Assert.DoesNotContain("state", sentBody);
     }
 
     [Fact]
@@ -275,7 +273,11 @@ public class PoracleHumanProxyTests
 
         Assert.NotNull(handler.LastRequest);
         Assert.Equal(HttpMethod.Post, handler.LastRequest.Method);
-        Assert.Contains("/api/humans/user1/setLocation/40.7128/-74.006", handler.LastRequest.RequestUri?.ToString());
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/location", handler.LastRequest.RequestUri?.ToString());
+
+        var sentBody = await handler.LastRequest.Content!.ReadAsStringAsync();
+        Assert.Contains("\"latitude\":40.7128", sentBody);
+        Assert.Contains("\"longitude\":-74.006", sentBody);
     }
 
     [Fact]
@@ -285,36 +287,6 @@ public class PoracleHumanProxyTests
         var sut = CreateSut(handler);
 
         await Assert.ThrowsAsync<HttpRequestException>(() => sut.SetLocationAsync("user1", 0, 0));
-    }
-
-    // ──────────────────────────────────────────────────────────────
-    // SetAreasAsync
-    // ──────────────────────────────────────────────────────────────
-
-    [Fact]
-    public async Task SetAreasAsyncSendsAreaArray()
-    {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, "{}");
-        var sut = CreateSut(handler);
-
-        await sut.SetAreasAsync("user1", ["downtown", "west end"]);
-
-        Assert.NotNull(handler.LastRequest);
-        Assert.Equal(HttpMethod.Post, handler.LastRequest.Method);
-        Assert.Equal($"{ApiAddress}/api/humans/user1/setAreas", handler.LastRequest.RequestUri?.ToString());
-
-        var sentBody = await handler.LastRequest.Content!.ReadAsStringAsync();
-        Assert.Contains("downtown", sentBody);
-        Assert.Contains("west end", sentBody);
-    }
-
-    [Fact]
-    public async Task SetAreasAsyncThrowsOnNon2xx()
-    {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.InternalServerError, "{}");
-        var sut = CreateSut(handler);
-
-        await Assert.ThrowsAsync<HttpRequestException>(() => sut.SetAreasAsync("user1", ["area1"]));
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -336,9 +308,10 @@ public class PoracleHumanProxyTests
     }
 
     [Fact]
-    public async Task GetAreasAsyncReturnsNullOnNon2xx()
+    public async Task GetAreasAsyncReturnsNullWhenTheHumanIsMissing()
     {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.NotFound, "{}");
+        var handler = new MockHttpMessageHandler(
+            HttpStatusCode.NotFound, /*lang=json,strict*/ """{"title":"Not Found","status":404,"detail":"human not found"}""");
         var sut = CreateSut(handler);
 
         var result = await sut.GetAreasAsync("user1");
@@ -349,7 +322,7 @@ public class PoracleHumanProxyTests
     [Fact]
     public async Task GetAreasAsyncCallsCorrectUrl()
     {
-        // GetAreasAsync delegates to GetHumanAsync which calls /api/humans/one/{id}
+        // GetAreasAsync delegates to GetHumanAsync which calls /api/v2/humans/{id}
         var handler = new MockHttpMessageHandler(HttpStatusCode.OK, /*lang=json,strict*/ """{"human":{"id":"user1","area":"[]"}}""");
         var sut = CreateSut(handler);
 
@@ -357,7 +330,7 @@ public class PoracleHumanProxyTests
 
         Assert.NotNull(handler.LastRequest);
         Assert.Equal(HttpMethod.Get, handler.LastRequest.Method);
-        Assert.Equal($"{ApiAddress}/api/humans/one/user1", handler.LastRequest.RequestUri?.ToString());
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1", handler.LastRequest.RequestUri?.ToString());
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -374,7 +347,7 @@ public class PoracleHumanProxyTests
 
         Assert.NotNull(handler.LastRequest);
         Assert.Equal(HttpMethod.Post, handler.LastRequest.Method);
-        Assert.Equal($"{ApiAddress}/api/humans/user1/switchProfile/3", handler.LastRequest.RequestUri?.ToString());
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/profile", handler.LastRequest.RequestUri?.ToString());
     }
 
     [Fact]
@@ -393,27 +366,27 @@ public class PoracleHumanProxyTests
     [Fact]
     public async Task GetProfilesAsyncReturnsJsonResponse()
     {
-        var responseBody = /*lang=json,strict*/ """[{"profileNo":1,"name":"default"},{"profileNo":2,"name":"alt"}]""";
+        var responseBody = /*lang=json,strict*/ """{"profiles":[{"profile_no":1,"name":"default"},{"profile_no":2,"name":"alt"}]}""";
         var handler = new MockHttpMessageHandler(HttpStatusCode.OK, responseBody);
         var sut = CreateSut(handler);
 
         var result = await sut.GetProfilesAsync("user1");
 
-        Assert.Equal(JsonValueKind.Array, result.ValueKind);
-        Assert.Equal(2, result.GetArrayLength());
+        // Restated in v1's shape for ProfileService.
+        Assert.Equal(2, result.GetProperty("profile").GetArrayLength());
     }
 
     [Fact]
     public async Task GetProfilesAsyncCallsCorrectUrl()
     {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, "[]");
+        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, """{"profiles":[]}""");
         var sut = CreateSut(handler);
 
         await sut.GetProfilesAsync("user1");
 
         Assert.NotNull(handler.LastRequest);
         Assert.Equal(HttpMethod.Get, handler.LastRequest.Method);
-        Assert.Equal($"{ApiAddress}/api/profiles/user1", handler.LastRequest.RequestUri?.ToString());
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/profiles", handler.LastRequest.RequestUri?.ToString());
     }
 
     [Fact]
@@ -432,15 +405,15 @@ public class PoracleHumanProxyTests
     [Fact]
     public async Task AddProfileAsyncCallsCorrectUrlWithBody()
     {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, "{}");
+        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, """{"profile_no":3}""");
         var sut = CreateSut(handler);
 
         var body = JsonDocument.Parse("""{"name":"new profile"}""").RootElement;
-        await sut.AddProfileAsync("user1", body);
+        Assert.Equal(3, await sut.AddProfileAsync("user1", body));
 
         Assert.NotNull(handler.LastRequest);
         Assert.Equal(HttpMethod.Post, handler.LastRequest.Method);
-        Assert.Equal($"{ApiAddress}/api/profiles/user1/add", handler.LastRequest.RequestUri?.ToString());
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/profiles", handler.LastRequest.RequestUri?.ToString());
 
         var sentBody = await handler.LastRequest.Content!.ReadAsStringAsync();
         Assert.Contains("new profile", sentBody);
@@ -466,12 +439,12 @@ public class PoracleHumanProxyTests
         var handler = new MockHttpMessageHandler(HttpStatusCode.OK, "{}");
         var sut = CreateSut(handler);
 
-        var body = JsonDocument.Parse("""{"profileNo":2,"name":"renamed"}""").RootElement;
+        var body = JsonDocument.Parse("""{"profile_no":2,"name":"renamed"}""").RootElement;
         await sut.UpdateProfileAsync("user1", body);
 
         Assert.NotNull(handler.LastRequest);
-        Assert.Equal(HttpMethod.Post, handler.LastRequest.Method);
-        Assert.Equal($"{ApiAddress}/api/profiles/user1/update", handler.LastRequest.RequestUri?.ToString());
+        Assert.Equal(HttpMethod.Patch, handler.LastRequest.Method);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/profiles/2", handler.LastRequest.RequestUri?.ToString());
     }
 
     [Fact]
@@ -480,7 +453,7 @@ public class PoracleHumanProxyTests
         var handler = new MockHttpMessageHandler(HttpStatusCode.InternalServerError, "{}");
         var sut = CreateSut(handler);
 
-        var body = JsonDocument.Parse("{}").RootElement;
+        var body = JsonDocument.Parse("""{"profile_no":1}""").RootElement;
         await Assert.ThrowsAsync<HttpRequestException>(() => sut.UpdateProfileAsync("user1", body));
     }
 
@@ -498,7 +471,7 @@ public class PoracleHumanProxyTests
 
         Assert.NotNull(handler.LastRequest);
         Assert.Equal(HttpMethod.Delete, handler.LastRequest.Method);
-        Assert.Equal($"{ApiAddress}/api/profiles/user1/byProfileNo/2", handler.LastRequest.RequestUri?.ToString());
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/profiles/2", handler.LastRequest.RequestUri?.ToString());
     }
 
     [Fact]
@@ -546,18 +519,6 @@ public class PoracleHumanProxyTests
         var sut = CreateSut(handler);
 
         await sut.StartAsync("user1");
-
-        Assert.NotNull(handler.LastRequest);
-        Assert.True(handler.LastRequest.Headers.Contains("X-Poracle-Secret"));
-    }
-
-    [Fact]
-    public async Task SetAreasAsyncIncludesPoracleSecretHeader()
-    {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, "{}");
-        var sut = CreateSut(handler);
-
-        await sut.SetAreasAsync("user1", ["area"]);
 
         Assert.NotNull(handler.LastRequest);
         Assert.True(handler.LastRequest.Headers.Contains("X-Poracle-Secret"));

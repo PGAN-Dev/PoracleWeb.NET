@@ -1,8 +1,13 @@
+using Pgan.PoracleWebNet.Core.Models;
+
 namespace Pgan.PoracleWebNet.Core.Abstractions.Services;
 
 public interface ICleaningService
 {
     public Task<Dictionary<string, bool>> GetCleanStatusAsync(string userId, int profileNo);
+
+    /// <summary>Per alarm type, how many rules have auto-delete on and how many there are.</summary>
+    public Task<Dictionary<string, CleanCount>> GetCleanCountsAsync(string userId, int profileNo);
     public Task<int> ToggleCleanMonstersAsync(string userId, int profileNo, int clean);
     public Task<int> ToggleCleanRaidsAsync(string userId, int profileNo, int clean);
     public Task<int> ToggleCleanEggsAsync(string userId, int profileNo, int clean);

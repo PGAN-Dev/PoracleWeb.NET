@@ -37,7 +37,9 @@ import {
 } from '../../shared/components/active-hours-editor-dialog/active-hours-editor-dialog.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { LocationWarningComponent } from '../../shared/components/location-warning/location-warning.component';
+import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
 import { hasLevelFilter } from '../../shared/utils/pokemon-level';
+import { serverReason } from '../../shared/utils/server-reason';
 import { getGruntDisplayName } from '../invasions/invasion.constants';
 import { ProfileAddDialogComponent } from '../profiles/profile-add-dialog.component';
 import { ProfileEditDialogComponent } from '../profiles/profile-edit-dialog.component';
@@ -77,6 +79,7 @@ function duplicateKey(type: string, uid: number): string {
     MatSnackBarModule,
     MatTooltipModule,
     TranslatePipe,
+    TranslatePluralPipe,
     ActiveHoursChipComponent,
     LocationWarningComponent,
   ],
@@ -271,8 +274,10 @@ export class ProfileOverviewComponent implements OnInit {
     ref.afterClosed().subscribe(confirmed => {
       if (confirmed) {
         this.profileService.delete(profile.profileNo).subscribe({
-          error: () =>
-            this.snackBar.open(this.i18n.instant('PROFILES.SNACK_FAILED_DELETE'), this.i18n.instant('TOAST.OK'), { duration: 3000 }),
+          error: (err: unknown) =>
+            this.snackBar.open(serverReason(err) ?? this.i18n.instant('PROFILES.SNACK_FAILED_DELETE'), this.i18n.instant('TOAST.OK'), {
+              duration: 3000,
+            }),
           next: () => {
             this.snackBar.open(this.i18n.instant('PROFILES.SNACK_DELETED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
             // PoracleNG reassigns current_profile_no when the active profile goes, and /api/auth/me is the
@@ -308,20 +313,20 @@ export class ProfileOverviewComponent implements OnInit {
           .duplicateProfile(profile.profile_no, name)
           .pipe(takeUntilDestroyed(this.destroyRef))
           .subscribe({
-            error: () => {
+            error: (err: unknown) => {
               this.switching.set(false);
-              this.snackBar.open(this.i18n.instant('PROFILES.SNACK_FAILED_DUPLICATE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+              this.snackBar.open(serverReason(err) ?? this.i18n.instant('PROFILES.SNACK_FAILED_DUPLICATE'), this.i18n.instant('TOAST.OK'), {
+                duration: 3000,
+              });
             },
             next: res => {
               this.switching.set(false);
               if (res.token) {
                 this.authService.setToken(res.token);
               }
-              this.snackBar.open(
-                this.i18n.instant('PROFILES.SNACK_DUPLICATED', { count: res.alarmsCopied }),
-                this.i18n.instant('TOAST.OK'),
-                { duration: 3000 },
-              );
+              this.snackBar.open(this.i18n.plural('PROFILES.SNACK_DUPLICATED', res.alarmsCopied), this.i18n.instant('TOAST.OK'), {
+                duration: 3000,
+              });
               this.loadAll();
             },
           });
@@ -358,8 +363,8 @@ export class ProfileOverviewComponent implements OnInit {
         this.profileService.updateActiveHours(profile.profile_no, result).subscribe({
           // The server names what is wrong -- which alarm already uses these settings, which
           // field a file got wrong. A fixed string threw that away. See #567, #568.
-          error: (err: { error?: { error?: string } }) => {
-            this.snackBar.open(err?.error?.error ?? this.i18n.instant('PROFILES.SNACK_FAILED_SCHEDULE'), this.i18n.instant('TOAST.OK'), {
+          error: (err: unknown) => {
+            this.snackBar.open(serverReason(err) ?? this.i18n.instant('PROFILES.SNACK_FAILED_SCHEDULE'), this.i18n.instant('TOAST.OK'), {
               duration: 6000,
             });
           },
@@ -481,7 +486,7 @@ export class ProfileOverviewComponent implements OnInit {
       case 'gym': {
         const team = alarm.team ?? 0;
         if (alarm.slot_changes || alarm.battle_changes) return this.i18n.instant('PROFILES.GYM_ACTIVITY');
-        if (team === 0) return this.i18n.instant('PROFILES.ANY_TEAM');
+        if (team === 0 || team === 4) return this.i18n.instant('PROFILES.ANY_TEAM');
         return this.getTeamName(team);
       }
       case 'maxbattle': {
@@ -635,10 +640,10 @@ export class ProfileOverviewComponent implements OnInit {
               .subscribe({
                 // The server names the alarm and the field a file got wrong; a fixed string threw that
                 // away and left the user to guess which of hundreds of alarms was the problem. See #588.
-                error: (err: { error?: { error?: string } }) => {
+                error: (err: unknown) => {
                   this.switching.set(false);
                   this.snackBar.open(
-                    err?.error?.error ?? this.i18n.instant('PROFILES.SNACK_FAILED_IMPORT'),
+                    serverReason(err) ?? this.i18n.instant('PROFILES.SNACK_FAILED_IMPORT'),
                     this.i18n.instant('TOAST.OK'),
                     { duration: 6000 },
                   );
@@ -646,11 +651,9 @@ export class ProfileOverviewComponent implements OnInit {
                 next: res => {
                   this.switching.set(false);
                   if (res.token) this.authService.setToken(res.token);
-                  this.snackBar.open(
-                    this.i18n.instant('PROFILES.SNACK_IMPORTED', { count: res.alarmsCopied }),
-                    this.i18n.instant('TOAST.OK'),
-                    { duration: 3000 },
-                  );
+                  this.snackBar.open(this.i18n.plural('PROFILES.SNACK_IMPORTED', res.alarmsCopied), this.i18n.instant('TOAST.OK'), {
+                    duration: 3000,
+                  });
                   this.loadAll();
                 },
               });
@@ -718,9 +721,11 @@ export class ProfileOverviewComponent implements OnInit {
       .switchProfile(profile.profile_no)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        error: () => {
+        error: (err: unknown) => {
           this.switching.set(false);
-          this.snackBar.open(this.i18n.instant('PROFILES.SNACK_FAILED_SWITCH'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+          this.snackBar.open(serverReason(err) ?? this.i18n.instant('PROFILES.SNACK_FAILED_SWITCH'), this.i18n.instant('TOAST.OK'), {
+            duration: 3000,
+          });
         },
         next: res => {
           this.switching.set(false);
@@ -734,6 +739,11 @@ export class ProfileOverviewComponent implements OnInit {
           this.loadAll();
         },
       });
+  }
+
+  /** A team's name key; null for harmony (0), any team (4) and anything unknown, which carry no filter worth a pill. */
+  teamKey(team: unknown): null | string {
+    return ({ 1: 'RAIDS.TEAM_MYSTIC', 2: 'RAIDS.TEAM_VALOR', 3: 'RAIDS.TEAM_INSTINCT' } as Record<number, string>)[Number(team)] ?? null;
   }
 
   toggleDuplicatesFilter(): void {

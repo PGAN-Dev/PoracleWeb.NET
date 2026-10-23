@@ -21,7 +21,7 @@ invocation, so anything after `--` goes to Jest. Around 127 spec files cover:
 - Pokemon availability (`pokemon-availability.service.spec.ts`)
 - Quiet periods (`quiet-chip.component.spec.ts`, `quiet-sheet.component.spec.ts`, `quiet-list-sheet.component.spec.ts`, and `quiet-surface-parity.spec.ts`, which pins the six list templates that carry the chip and the four that must not)
 - Pokéstop Events (`pokestop-event-add-dialog.component.spec.ts`, `pokestop-event-edit-dialog.component.spec.ts`, `pokestop-event-list.component.spec.ts`)
-- Rule summaries (`rule-summary.component.spec.ts`, `rule-summary.spec.ts`)
+- Alarm cards and list toolbar (`alarm-card.component.spec.ts`, `alarm-card-parity.spec.ts`, which pins all ten lists to the shared card and toolbar, `rule-colours.spec.ts`, `alarm-list-query.spec.ts`, `rule-summary.spec.ts`)
 - Version-gated controls (`quest-add-dialog.pokecoins.spec.ts`)
 
 ## Backend tests (xUnit)
@@ -36,10 +36,10 @@ xUnit with Moq, one project (`Tests/Pgan.PoracleWebNet.Tests`) of around 136 tes
 - Controllers (`UserGeofenceControllerTests`, `AdminGeofenceControllerTests`, `GeofenceFeedControllerTests`, `LocationControllerTests`, `ProfileControllerTests`, `AreaControllerTests`, `AdminControllerTests`, `SettingsControllerTests`, `ScannerControllerTests`, `PokemonAvailabilityControllerTests`, and all alarm controller tests)
 - Alarm services (`MonsterServiceTests`, `RaidServiceTests`, `EggServiceTests`, `QuestServiceTests`, `InvasionServiceTests`, `LureServiceTests`, `NestServiceTests`, `GymServiceTests`) -- these mock `IPoracleTrackingProxy`
 - Proxy classes (`PoracleTrackingProxyTests`, `PoracleHumanProxyTests`, `PoracleMuteProxyTests`) -- verify HTTP request construction, URL encoding, response unwrapping
-- Human/profile services (`HumanServiceTests`, `ProfileServiceTests`) -- mock `IPoracleHumanProxy` for single-user ops, `IHumanRepository` for admin bulk ops
+- Human/profile services (`HumanServiceTests`, `ProfileServiceTests`) -- mock `IPoracleHumanProxy` for every operation, admin bulk included
 - Active hours validation (`ActiveHoursValidationTests`) -- server-side active hours validation rules
 - Other services (`UserGeofenceServiceTests`, `DiscordNotificationServiceTests`, `GeoMathTests`, `CleaningServiceTests`, `DashboardServiceTests`, `SiteSettingServiceTests`, `WebhookDelegateServiceTests`, `SettingsMigrationServiceTests`, `QuickPickServiceSecurityTests`, `PokemonAvailabilityServiceTests`)
-- Version gating (`MuteCapabilityServiceTests`, `QuestPokecoinCapabilityServiceTests`, `QuestPokecoinCapabilityTests`, `PoracleUnsupportedExceptionFilterTests`) -- each capability service fails closed, and a shortfall answers 409 with what the server needs
+- Version and reachability (`PoracleUnsupportedExceptionFilterTests`, `PoracleUnreachableExceptionFilterTests`, `PokemonEditCapabilityServiceTests`, `SummaryCapabilityServiceTests`) -- a route a too-old server doesn't have answers 409 with what the server needs, an unreachable PoracleNG answers 503, and the config-driven capabilities fail closed
 - v2 wire shapes (`PoracleProblemDetailsDescribeTests`, `AlarmDescriptionPassthroughTests`, `MuteControllerTests`)
 - Mapping extensions (`MappingExtensionTests`) -- alarm DTO `To*()` / `ApplyUpdate()` and entity `ToModel()` / `ToEntity()` / `ApplyTo()`
 
@@ -47,7 +47,7 @@ xUnit with Moq, one project (`Tests/Pgan.PoracleWebNet.Tests`) of around 136 tes
     Since alarm services no longer use repositories, their tests mock `IPoracleTrackingProxy` instead of `IRepository`. The mock returns `JsonElement` values matching PoracleNG's snake_case JSON format.
 
 !!! info "Human/profile tests mock IPoracleHumanProxy"
-    `HumanServiceTests` and `ProfileServiceTests` mock `IPoracleHumanProxy` for single-user operations (get, create, exists, location, areas, profile switch, active hours). Admin bulk operations still mock `IHumanRepository`. `LocationControllerTests` and `AreaControllerTests` verify proxy calls with no direct DB interaction. `ProfileControllerTests` and `ProfileServiceTests` include extended coverage for active hours CRUD and validation.
+    `HumanServiceTests` and `ProfileServiceTests` mock `IPoracleHumanProxy` for single-user operations (get, create, exists, location, areas, profile switch, active hours). Admin bulk operations (list, webhook list, delete) mock it the same way, since `HumanRepository` no longer exists. `LocationControllerTests` and `AreaControllerTests` verify proxy calls with no direct DB interaction. `ProfileControllerTests` and `ProfileServiceTests` include extended coverage for active hours CRUD and validation.
 
 ## Tests that fail the build when a pattern comes back
 

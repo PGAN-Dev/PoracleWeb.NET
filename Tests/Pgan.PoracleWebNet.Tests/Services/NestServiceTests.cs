@@ -135,8 +135,8 @@ public class NestServiceTests
                 template = "ZZrow3"
             });
         this._proxy.Setup(p => p.GetByUserAsync("nest", "u")).ReturnsAsync(json);
-        this._proxy.Setup(p => p.CreateAsync("nest", "u", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([], 0, 3, 0));
+        this._proxy.Setup(p => p.PatchAsync("nest", "u", It.IsAny<IReadOnlyList<int>>(), It.IsAny<TrackingPatchSet>()))
+            .ReturnsAsync((string _, string _, IReadOnlyList<int> uids, TrackingPatchSet _) => new TrackingPatchResult([.. uids], [], []));
 
         Assert.Equal(3, (await this._sut.UpdateDistanceByUserAsync("u", 1, 100)).Updated);
     }
@@ -228,63 +228,4 @@ public class NestServiceTests
         using var doc = JsonDocument.Parse(jsonStr);
         return doc.RootElement.Clone();
     }
-
-    // --- Duplicate-on-edit ---
-    // PoracleNG dedups nest tracking by a natural key. When an edit changes a field in that key it INSERTS
-    // instead of upserting, leaving the pre-edit row behind as a second live alarm firing the old filter.
-
-    [Fact]
-    public async Task UpdateAsyncDeletesTheSupersededRowWhenPoracleNgInsertsInsteadOfUpdating()
-    {
-        var model = new Nest { Uid = 41 };
-        this._proxy.Setup(p => p.CreateAsync("nest", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([42], 0, 0, 1));
-        this._proxy.Setup(p => p.DeleteByUidAsync("nest", "user1", 41)).Returns(Task.CompletedTask);
-
-        var result = await this._sut.UpdateAsync("user1", model);
-
-        this._proxy.Verify(p => p.DeleteByUidAsync("nest", "user1", 41), Times.Once);
-        Assert.Equal(42, result.Uid);
-    }
-
-    [Fact]
-    public async Task UpdateAsyncKeepsTheUidAndDeletesNothingWhenPoracleNgUpserts()
-    {
-        var model = new Nest { Uid = 41 };
-        this._proxy.Setup(p => p.CreateAsync("nest", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([], 0, 1, 0));
-
-        var result = await this._sut.UpdateAsync("user1", model);
-
-        this._proxy.Verify(p => p.DeleteByUidAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
-        Assert.Equal(41, result.Uid);
-    }
-
-    [Fact]
-    public async Task UpdateAsyncStillSucceedsWhenDeletingTheSupersededRowFails()
-    {
-        var model = new Nest { Uid = 41 };
-        this._proxy.Setup(p => p.CreateAsync("nest", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([42], 0, 0, 1));
-        this._proxy.Setup(p => p.DeleteByUidAsync("nest", "user1", 41))
-            .ThrowsAsync(new HttpRequestException("boom"));
-
-        // The inserted row already carries the user's settings, so the edit must not fail.
-        var result = await this._sut.UpdateAsync("user1", model);
-
-        Assert.Equal(42, result.Uid);
-    }
-
-    [Fact]
-    public async Task UpdateAsyncOnANewRecordDoesNotAttemptAStaleDelete()
-    {
-        var model = new Nest { Uid = 0 };
-        this._proxy.Setup(p => p.CreateAsync("nest", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([42], 0, 0, 1));
-
-        await this._sut.UpdateAsync("user1", model);
-
-        this._proxy.Verify(p => p.DeleteByUidAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
-    }
-
 }

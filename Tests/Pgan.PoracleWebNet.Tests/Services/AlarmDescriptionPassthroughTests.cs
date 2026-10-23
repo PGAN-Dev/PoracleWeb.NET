@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
@@ -30,7 +31,7 @@ public class AlarmDescriptionPassthroughTests
     public AlarmDescriptionPassthroughTests()
     {
         this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
-        this._monsters = new MonsterService(this._proxy.Object, this._featureGate.Object, this._remapper.Object, CostumeCapabilityDoubles.Supported(), PoracleTrackingProxyTests.V2Schema());
+        this._monsters = new MonsterService(this._proxy.Object, this._featureGate.Object, this._remapper.Object, NullLogger<MonsterService>.Instance);
     }
 
     private static JsonElement StoredRow(int uid, string? description) => JsonSerializer.SerializeToElement(
@@ -161,36 +162,21 @@ public class AlarmDescriptionPassthroughTests
     }
 
     [Fact]
-    public async Task BulkDistanceRewriteDropsTheDescriptionAndKeepsTheRest()
+    public async Task BulkDistanceSendsNoRowSoNoDescriptionCanReachTheWire()
     {
-        this._proxy.Setup(p => p.GetByUserAsync("pokemon", "user1")).ReturnsAsync(StoredRow(7, LiveDescription));
-        var written = this.CaptureWrites();
-
-        await this._monsters.UpdateDistanceByUserAsync("user1", 1, 1234);
-
-        var row = written[0].EnumerateArray().Single();
-        Assert.False(row.TryGetProperty("description", out _));
-        Assert.Equal(25, row.GetProperty("pokemon_id").GetInt32());
-        Assert.Equal(90, row.GetProperty("min_iv").GetInt32());
-        Assert.Equal(1234, row.GetProperty("distance").GetInt32());
-    }
-
-    [Fact]
-    public async Task TheCollisionGuardIsBlindToTheDescription()
-    {
-        // The reconciler compares submitted against stored field by field. A description present on one
-        // side only would read as a difference -- either refusing a legitimate edit (#553) or hiding a
-        // real collision (#561). It is listed in AssignedByPoracle/IgnoredForNoOp; this pins that.
+        // A v2 PATCH names the uids and the radius; the stored row, description and all, is never re-sent.
         this._proxy.Setup(p => p.GetByUserAsync("pokemon", "user1")).ReturnsAsync(StoredRow(7, LiveDescription));
         this._proxy
-            .Setup(p => p.CreateAsync("pokemon", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([], 0, 0, 0));
+            .Setup(p => p.PatchAsync("pokemon", "user1", It.IsAny<IReadOnlyList<int>>(), It.IsAny<TrackingPatchSet>()))
+            .ReturnsAsync(new TrackingPatchResult([7], [], []));
 
-        // Same row, same values: a no-op edit, which must be allowed rather than read as a collision.
-        var exception = await Record.ExceptionAsync(() => this._monsters.UpdateAsync(
-            "user1",
-            new Monster { Uid = 7, Id = "user1", PokemonId = 25, Distance = 5000, MinIv = 90, Template = "1" }));
+        var result = await this._monsters.UpdateDistanceByUserAsync("user1", 1, 1234);
 
-        Assert.Null(exception);
+        Assert.Equal(1, result.Updated);
+        this._proxy.Verify(
+            p => p.PatchAsync("pokemon", "user1", It.Is<IReadOnlyList<int>>(u => u.Count == 1 && u[0] == 7), new TrackingPatchSet(1234, null)),
+            Times.Once);
+        this._proxy.Verify(
+            p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
     }
 }

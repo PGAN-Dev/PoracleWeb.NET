@@ -159,8 +159,8 @@ public class GymServiceTests
                 template = "ZZrow5"
             });
         this._proxy.Setup(p => p.GetByUserAsync("gym", "u")).ReturnsAsync(json);
-        this._proxy.Setup(p => p.CreateAsync("gym", "u", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([], 0, 5, 0));
+        this._proxy.Setup(p => p.PatchAsync("gym", "u", It.IsAny<IReadOnlyList<int>>(), It.IsAny<TrackingPatchSet>()))
+            .ReturnsAsync((string _, string _, IReadOnlyList<int> uids, TrackingPatchSet _) => new TrackingPatchResult([.. uids], [], []));
 
         Assert.Equal(5, (await this._sut.UpdateDistanceByUserAsync("u", 1, 250)).Updated);
     }
@@ -207,63 +207,4 @@ public class GymServiceTests
         using var doc = JsonDocument.Parse(jsonStr);
         return doc.RootElement.Clone();
     }
-
-    // --- Duplicate-on-edit ---
-    // PoracleNG dedups gym tracking by a natural key. When an edit changes a field in that key it INSERTS
-    // instead of upserting, leaving the pre-edit row behind as a second live alarm firing the old filter.
-
-    [Fact]
-    public async Task UpdateAsyncDeletesTheSupersededRowWhenPoracleNgInsertsInsteadOfUpdating()
-    {
-        var model = new Gym { Uid = 41 };
-        this._proxy.Setup(p => p.CreateAsync("gym", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([42], 0, 0, 1));
-        this._proxy.Setup(p => p.DeleteByUidAsync("gym", "user1", 41)).Returns(Task.CompletedTask);
-
-        var result = await this._sut.UpdateAsync("user1", model);
-
-        this._proxy.Verify(p => p.DeleteByUidAsync("gym", "user1", 41), Times.Once);
-        Assert.Equal(42, result.Uid);
-    }
-
-    [Fact]
-    public async Task UpdateAsyncKeepsTheUidAndDeletesNothingWhenPoracleNgUpserts()
-    {
-        var model = new Gym { Uid = 41 };
-        this._proxy.Setup(p => p.CreateAsync("gym", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([], 0, 1, 0));
-
-        var result = await this._sut.UpdateAsync("user1", model);
-
-        this._proxy.Verify(p => p.DeleteByUidAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
-        Assert.Equal(41, result.Uid);
-    }
-
-    [Fact]
-    public async Task UpdateAsyncStillSucceedsWhenDeletingTheSupersededRowFails()
-    {
-        var model = new Gym { Uid = 41 };
-        this._proxy.Setup(p => p.CreateAsync("gym", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([42], 0, 0, 1));
-        this._proxy.Setup(p => p.DeleteByUidAsync("gym", "user1", 41))
-            .ThrowsAsync(new HttpRequestException("boom"));
-
-        // The inserted row already carries the user's settings, so the edit must not fail.
-        var result = await this._sut.UpdateAsync("user1", model);
-
-        Assert.Equal(42, result.Uid);
-    }
-
-    [Fact]
-    public async Task UpdateAsyncOnANewRecordDoesNotAttemptAStaleDelete()
-    {
-        var model = new Gym { Uid = 0 };
-        this._proxy.Setup(p => p.CreateAsync("gym", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([42], 0, 0, 1));
-
-        await this._sut.UpdateAsync("user1", model);
-
-        this._proxy.Verify(p => p.DeleteByUidAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
-    }
-
 }

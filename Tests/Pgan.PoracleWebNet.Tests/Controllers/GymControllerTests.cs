@@ -69,6 +69,7 @@ public class GymControllerTests : ControllerTestBase
     {
         this._service.Setup(s => s.GetByUidAsync("123456789", 999)).ReturnsAsync((Gym?)null);
         Assert.IsType<NotFoundResult>(await this._sut.Delete(999));
+        this._service.Verify(s => s.DeleteAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
     }
     [Fact]
     public async Task DeleteAllOk()

@@ -1,0 +1,93 @@
+:host {
+  display: contents;
+}
+
+.list-toolbar {
+  align-items: center;
+  background: var(--card-bg, #fff);
+  border-bottom: 1px solid var(--divider, rgb(0 0 0 / 8%));
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 12px 24px;
+
+  &.sticky {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+}
+
+.search-field {
+  flex: 1 1 220px;
+  max-width: 360px;
+  min-width: 0;
+}
+
+.toolbar-meta {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.result-count {
+  color: var(--mat-sys-on-surface-variant, rgb(0 0 0 / 64%));
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.sort-field {
+  // Fits the longest sort label in every locale ("Belønningstype", "Neueste zuerst", "Od najnowszych").
+  width: 212px;
+
+  mat-icon {
+    color: var(--mat-sys-on-surface-variant, rgb(0 0 0 / 64%));
+    font-size: 18px;
+    height: 18px;
+    margin-right: 4px;
+    width: 18px;
+  }
+}
+
+.select-mode-active {
+  color: var(--mat-sys-primary, #1976d2);
+}
+
+.no-matches {
+  align-items: center;
+  color: var(--mat-sys-on-surface-variant, rgb(0 0 0 / 64%));
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 24px;
+
+  p {
+    margin: 0;
+  }
+}
+
+@media (max-width: 599px) {
+  .list-toolbar {
+    padding: 8px 16px;
+  }
+
+  .search-field {
+    flex-basis: 100%;
+    max-width: none;
+  }
+
+  .toolbar-meta {
+    flex: 1 1 100%;
+    margin-left: 0;
+  }
+
+  .result-count {
+    margin-right: auto;
+  }
+
+  .sort-field {
+    width: 204px;
+  }
+}

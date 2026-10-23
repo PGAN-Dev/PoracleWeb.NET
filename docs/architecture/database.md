@@ -1,28 +1,16 @@
 # Database
 
-PoracleWeb.NET uses two separate MySQL databases and optionally connects to a third scanner database.
+PoracleWeb.NET owns one MySQL database, `poracle_web`, and optionally reads a second, scanner database. It does not connect to Poracle's database. Everything Poracle stores (users, profiles, alarms, saved places) is reached through PoracleNG's REST API.
 
 ## Database contexts
 
-### PoracleContext
+### Poracle's data (not connected)
 
-The primary EF Core context connecting to the existing **Poracle database** managed by PoracleNG.
+PoracleNG keeps users, profiles and alarms in its own database. PoracleWeb.NET has no connection string for it and no `DbContext` mapping it, so a direct write to an alarm table isn't possible from this application. The older `DB_*` variables are ignored (see [Configuration](../configuration/reference.md#databases)).
 
-- Connection string: `ConnectionStrings:PoracleDb`
-- Contains: `humans` and `profiles` (direct access), ten alarm tables, PoracleNG's `schema_migrations`, and the deprecated `pweb_settings` KV table. `PoracleContext` maps **three** entities — `humans`, `profiles` and `pweb_settings`. There are deliberately no alarm entities: the one place that still reaches an alarm table (`IUserAreaDualWriter.SetAlarmOverrideAreasAsync`) uses raw SQL over a table name from a fixed map, and `schema_migrations` is read the same way. Mapping the tables again would put a direct alarm write one `DbSet` away, which is what the 2.0 migration existed to prevent
-- **Limited direct access** — Alarm tracking is proxied through `IPoracleTrackingProxy`, and single-user human/profile operations go through `IPoracleHumanProxy`. Direct access is confined to:
+The rest of this section describes what PoracleNG stores, because the shapes explain what the API returns. Treat it as a reference to PoracleNG's schema, not as something PoracleWeb.NET reads.
 
-| Direct access | What and why |
-|---|---|
-| Human reads and deletion (fallback) | `GetAllAsync`, `GetWebhooksAsync`, `GetByIdsAsync`, `DeleteUserAsync` fall back here only on a server too old to carry PoracleNG v2's admin routes ([#839](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/839)); `ExistsAsync` reads the database unconditionally so the purge's existence check is not fooled by an unreachable Poracle reporting as an absent account |
-| Profile **rename** | `ProfileRepository.RenameAsync` — PoracleNG's profile update answers `{"status":"ok"}` and silently ignores `name` |
-| Profile geography | `ProfileRepository.UpdateAsync` — `addProfile` ignores `area`, `latitude` and `longitude`, so create, duplicate and import write them afterwards |
-| User-geofence area writes (fallback for three of six) | `IUserAreaDualWriter` on `humans.area` and `profiles.area` — PoracleNG's `setAreas` strips fences that are not user-selectable. Three active-profile methods fall back here only when the server's trusted `setAreas` ([#838](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/838)) can't be confirmed safe; the other three have no v2 form yet and always use this path |
-| Alarm `override_areas` | `IUserAreaDualWriter.SetAlarmOverrideAreasAsync` writes this one column on the ten alarm tables. It is the only alarm-table write PoracleWeb makes; everything else about a row goes through the proxy |
-| `schema_migrations` read | `PoracleSchemaVersionReader` reads the applied migration number for the [server capability probe](backend.md#server-capability-probe) |
-| `pweb_settings` | `PwebSettingRepository` still reads and writes the deprecated KV table, and startup runs one `ALTER TABLE pweb_settings MODIFY COLUMN value LONGTEXT NULL` so the old rows can hold JSON. Both exist only to feed `SettingsMigrationService` |
-
-The user-geofence area writes and the `override_areas` write are tagged `HACK: trusted-set-areas` in code and explained in [Backend](backend.md#areas).
+Area writes for user geofences (Areas save, create, toggle, delete, rename, approval) go through PoracleNG's `/api/v2` area routes. Saved places live in PoracleNG too, keyed by (human, label), and are written only through `IPoracleHumanProxy`.
 
 !!! note "Eleven tracking types, ten alarm tables"
     Ten is the table count and it is right. The eleventh type, Pokéstop Events (`incident`), stores its
@@ -31,15 +19,12 @@ The user-geofence area writes and the `override_areas` write are tagged `HACK: t
     grunt name — the same discriminator PoracleNG's own `isEventGruntType` uses to split its two v2
     endpoints.
 
-    **v1 applies no such filter**, so a Showcase rule created through `/api/v2/.../tracking/incident`
-    comes straight back out of `GET /api/tracking/invasion/{id}`, verified against 5.2.1.
-    `InvasionService` therefore does the partition itself — but only when the Pokéstop Events page
-    exists. Where it does not (an older PoracleNG, or `disable_showcase`), the event rows stay in the
-    invasion list, because filtering them out of the only page that can show them would leave alarms
-    that fire and cannot be deleted.
-
-!!! warning "MySQL provider"
-    This project uses `MySql.EntityFrameworkCore` (Oracle's official provider), **not** Pomelo (`Pomelo.EntityFrameworkCore.MySql`), which is incompatible with EF Core 10. Connection setup uses `options.UseMySQL(connectionString)` (capital SQL).
+    v1's invasion read returned both kinds, and the application was built on that list. The tracking
+    proxy now reads `incident` through v2 and folds those rules into the invasion list itself, and
+    `InvasionService` splits them out again, but only when the Pokéstop Events page exists. Where it
+    doesn't (Poracle reports `disable_showcase = true`, or an admin has switched the page off), the
+    event rules stay in the invasion list, because filtering them out of the only page that can show
+    them would leave alarms that fire and can't be deleted.
 
 #### Notable columns in `profiles`
 
@@ -66,7 +51,7 @@ single fire: `step` (whole hours, 1–23), `end_hours` and `end_mins`. `{"day":1
 [Active hours](backend.md#active-hours) for what is validated.
 
 !!! info "Managed by PoracleNG"
-    The `active_hours` column is part of Poracle's own schema (managed by PoracleNG) — no PoracleWeb.NET migration is needed. PoracleWeb.NET reads and writes this field through the `IPoracleHumanProxy` API, not via direct DB access.
+    The `active_hours` column is part of Poracle's own schema (managed by PoracleNG) — no PoracleWeb.NET migration is needed. PoracleWeb.NET reads and writes this field through the `IPoracleHumanProxy` API.
 
 #### Notable columns on the alarm tables
 
@@ -77,7 +62,7 @@ Per-alarm delivery scope rests on two columns, present on all ten tables (`monst
 | `override_location_label` | string, nullable | Saved-place label the alarm measures its radius from, instead of the profile pin. A label that no longer exists is not an error — PoracleNG falls through to the pin, so deleting a place widens its alarms rather than breaking them. |
 | `override_areas` | JSON array, nullable | Areas the alarm is confined to, lowercase with spaces. Replaces the profile's area list outright rather than intersecting with it. **NULL when unset, never `[]`** — `parseOverrideAreas` reads an empty value back as no override, while `[]` is a list that matches nothing. |
 
-The two are mutually exclusive, areas cannot coexist with a radius, and a place requires one. PoracleNG refuses all three combinations, and so does PoracleWeb before the write (see [Backend](backend.md#per-alarm-areas)).
+The two are mutually exclusive, areas cannot coexist with a radius, and a place requires one. PoracleNG refuses all three combinations, and so does PoracleWeb.NET before the write (see [Backend](backend.md#per-alarm-areas)).
 
 Two more columns on `monsters` alone, also 5.1.0:
 
@@ -86,10 +71,11 @@ Two more columns on `monsters` alone, also 5.1.0:
 | `pvp_ranking_evolution` | int, default 0 | Which form the PVP ranks are read from: 0 base, 1 any mega, 2 Mega X, 3 Mega Y. Only consulted when a league is set. |
 | `min_time` | int, default 0 | Seconds a spawn must still have left when it is found, or the alert is skipped. 0 means any. |
 
-#### Costume, after 5.1.0
+#### Costume
 
-`costume` arrives later and on two tables at different times: `monsters.costume` at PoracleNG database
-migration **6**, `raid.costume` at migration **7**.
+`costume` arrived after 5.1.0 and on two tables at different times: `monsters.costume` at PoracleNG
+database migration **6**, `raid.costume` at migration **7**. Both are in every supported release (5.2.1
+and later).
 
 | Value | Meaning |
 |---|---|
@@ -97,23 +83,25 @@ migration **6**, `raid.costume` at migration **7**.
 | `0` | No costume |
 | _n_ | That costume |
 
-The migration number is what decides whether the filter is offered, not the version string, and
-`IPoracleSchemaVersionReader` reads it straight from `schema_migrations` — no HTTP involved, so a
-server that cherry-picked the migration is judged on what it actually applied. See
-[Version compatibility](poracleng-compatibility.md#prefer-the-migration-number).
+The filter is always offered: every supported PoracleNG stores it. It used to be gated on the applied
+migration number, read straight from `schema_migrations`, and later on a capability endpoint; neither exists
+any more. See [Version compatibility](poracleng-compatibility.md#how-support-is-decided).
 
 #### `user_locations`
 
-Saved places live here, keyed by (human, label), and are written only through `IPoracleHumanProxy` — PoracleWeb makes no direct read or write to this table. See [Backend](backend.md#saved-places).
+PoracleNG stores saved places here, keyed by (human, label). PoracleWeb.NET reads and writes them only through `IPoracleHumanProxy`. See [Backend](backend.md#saved-places).
 
 ### PoracleWebContext
 
 A separate EF Core context for **application-owned data**.
 
+!!! warning "MySQL provider"
+    This project uses `MySql.EntityFrameworkCore` (Oracle's official provider), **not** Pomelo (`Pomelo.EntityFrameworkCore.MySql`), which is incompatible with EF Core 10. Connection setup uses `options.UseMySQL(connectionString)` (capital SQL).
+
 - Connection string: `ConnectionStrings:PoracleWebDb`
 - Database: `poracle_web`
 - Schema managed by **EF Core migrations** (`Database.MigrateAsync()` on startup)
-- Does **not** modify the Poracle DB schema
+- PoracleWeb.NET's only database; Poracle's is never touched
 - Contains:
 
 | Table | Purpose |
@@ -130,11 +118,11 @@ A separate EF Core context for **application-owned data**.
 
 ### ScannerContext (optional)
 
-Connects to a Golbat scanner database for nest, Pokemon, and gym data.
+Connects to a Golbat scanner database. `ScannerService` reads it directly, with no repository in between.
 
 - Connection string: `ConnectionStrings:ScannerDb`
 - If not configured, `IScannerService` is not registered and scanner endpoints return appropriate responses
-- Contains entity mappings for the scanner `gym` table (see [Scanner entities](#scanner-entities) below)
+- Maps four scanner tables: `gym` (the gym picker, see [Scanner entities](#scanner-entities) below), `pokestop` (active quests), `station` (the Pokemon seen in max battles, for the max battle picker) and `weather` (the dashboard weather)
 
 ## EF Core migrations
 
@@ -189,13 +177,6 @@ DTO model in `Core.Models` used by scanner gym search endpoints. Projected from 
 
 ## Entity conventions
 
-### NULL string columns
-
-!!! info "Alarm entities no longer written directly"
-    Alarm tracking writes go through the PoracleNG API proxy, which handles NULL defaults via `cleanRow()`. The generic `BaseRepository` and its `EnsureNotNullDefaults()` method have been removed. Remaining direct-DB repositories (`HumanRepository` for admin ops, `poracle_web`-owned tables) handle null normalization as needed.
-
-Many Poracle DB columns are `NOT NULL` with empty-string defaults, but EF Core maps them as `string?`. For the few remaining direct-DB writes (admin human operations), repositories handle null-to-empty-string normalization as needed.
-
 ### gym_id semantics
 
 The `gym_id` column on alarm entities (`raid`, `egg`, `gym`) uses NULL vs non-NULL to distinguish general alarms from gym-specific alarms:
@@ -203,27 +184,29 @@ The `gym_id` column on alarm entities (`raid`, `egg`, `gym`) uses NULL vs non-NU
 - `gym_id = NULL` — general alarm, matches **all** gyms
 - `gym_id = '<id>'` — gym-specific alarm, matches only the gym with that ID
 
-An empty string (`''`) is **not** a valid value. It would be treated as a specific gym filter that matches nothing, silently breaking the alarm. PoracleNG handles this normalization on its side for alarm writes.
+The column is nullable with a NULL default. PoracleNG's matcher treats any non-NULL value as "only this gym", so a stored empty string (`''`) matches nothing. Writes through the API can't produce one: PoracleNG stores an empty `gym_id` as NULL, and the v2 read reports a general alarm's `gym_id` as null. Rows that hold `''` were written straight to the database by older releases; see [Troubleshooting](../troubleshooting.md#gym-raid-or-egg-alarms-never-fire).
 
 ## Site settings table
 
-The `site_settings` table replaces the deprecated `pweb_settings` key-value store. Settings are typed and categorized:
+The `site_settings` table holds the admin-configurable settings. They're typed and categorized:
 
 | Column | Type | Description |
 |---|---|---|
 | `id` | int (PK) | Auto-increment ID |
-| `category` | varchar(50) | Setting group — `branding`, `features`, `alarms`, `icons`, `admin`, `api`, `discord`, `oidc`, `telegram`, `maps`, `commands`, `analytics`, `debug`, plus `system` for the migration sentinel. `SettingsMigrationService.CategoryMap` is the list |
+| `category` | varchar(50) | Setting group — `branding`, `features`, `alarms`, `icons`, `admin`, `api`, `discord`, `oidc`, `telegram`, `maps`, `commands`, `analytics`, `debug`, plus `system` for a legacy sentinel older versions wrote |
 | `key` | varchar(100) | Unique setting key (e.g., `custom_title`, `disable_mons`) |
 | `value` | text | Setting value |
 | `value_type` | varchar(20) | Type hint: `string`, `boolean`, `url`, `csv` |
 
-### Data migration
+### Defaults
 
-On first startup, `SettingsMigrationStartupService` automatically migrates data from the old `pweb_settings` table (Poracle DB) to the new structured tables. This is idempotent — a `migration_completed` sentinel prevents re-running.
+At startup `SettingsMigrationService.SeedDefaultsAsync` inserts any missing default setting and repoints the retired icon packs. It only adds rows that don't exist, so running it again changes nothing.
+
+The `pweb_settings` table that early versions kept in Poracle's database is no longer read, and the app never alters or drops it. An admin can drop it.
 
 ## Webhook delegates table
 
-Relational table replacing the `webhook_delegates:{id}` key pattern:
+Relational table for webhook delegation:
 
 | Column | Type | Description |
 |---|---|---|
@@ -282,7 +265,12 @@ The `user_geofences` table stores user-drawn polygon geofences:
 | `polygon_json` | text | Array of lat/lng coordinates |
 | `status` | string | `active`, `pending_review`, `approved`, `rejected` |
 | `group_name` | string | Region/group name |
-| `review_notes` | string | Admin notes on approval/rejection |
-| `discord_thread_id` | string | Discord forum thread ID |
+| `parent_id` | int | Koji id of the region the fence was drawn in |
+| `submitted_at` | datetime, nullable | When it was submitted for review |
+| `reviewed_by` | string, nullable | The admin who approved or rejected it |
+| `reviewed_at` | datetime, nullable | When it was reviewed |
+| `review_notes` | string, nullable | Admin notes on approval/rejection |
+| `promoted_name` | string, nullable | The public area name it was promoted to in Koji, once approved |
+| `discord_thread_id` | string, nullable | Discord forum thread ID |
 | `created_at` | datetime | Creation timestamp |
 | `updated_at` | datetime | Last update timestamp |

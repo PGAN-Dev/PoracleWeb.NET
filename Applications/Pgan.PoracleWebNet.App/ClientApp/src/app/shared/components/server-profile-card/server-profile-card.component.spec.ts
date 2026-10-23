@@ -22,11 +22,10 @@ describe('ServerProfileCardComponent', () => {
     belowMinimum: false,
     capabilities: { autocreate: true, buttons: true, snapshots: false },
     checkedAt: '2026-08-19T19:00:00Z',
-    minimumSupported: '5.1.0',
+    minimumSupported: '5.4.0',
     poracleUpdate: upToDate,
     reachable: true,
-    schemaVersion: 5,
-    version: '5.1.0',
+    version: '5.3.0',
     web: { buildDate: '2026-08-19T21:00:00Z', revision: 'fbfc16a17198bb6847914f7e4f0bedd57440ea61', version: '2.16.0' },
     webUpdate: upToDate,
   };
@@ -63,16 +62,22 @@ describe('ServerProfileCardComponent', () => {
     expect(component.enabledCapabilities()).toEqual(['autocreate', 'buttons']);
   });
 
-  it('shows the version and schema once loaded', () => {
+  it('shows the version once loaded', () => {
     const fixture = setup(base);
 
     expect(fixture.componentInstance.serverLoading()).toBe(false);
-    expect(fixture.nativeElement.textContent).toContain('5.1.0');
-    expect(fixture.nativeElement.textContent).toContain('5');
+    expect(fixture.nativeElement.textContent).toContain('5.3.0');
+  });
+
+  it('no longer shows a database schema row', () => {
+    // PoracleWeb.NET stopped reading PoracleNG's schema_migrations when 5.2.1 became the minimum (5.4.0 now).
+    const fixture = setup(base);
+
+    expect(fixture.nativeElement.textContent).not.toContain('ADMIN.SERVER_SCHEMA');
   });
 
   it('warns when the server is older than this build needs', () => {
-    const fixture = setup({ ...base, belowMinimum: true, version: '5.0.4' });
+    const fixture = setup({ ...base, belowMinimum: true, version: '5.1.0' });
 
     expect(fixture.nativeElement.querySelector('.server-alert-error')).not.toBeNull();
   });
@@ -114,7 +119,7 @@ describe('ServerProfileCardComponent', () => {
 
     expect(text).toContain('2.16.0');
     expect(text).toContain('fbfc16a');
-    expect(text).toContain('5.1.0');
+    expect(text).toContain('5.3.0');
   });
 
   it('names the latest release even on a channel it cannot compare', () => {

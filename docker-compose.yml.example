@@ -13,8 +13,8 @@ services:
     ports:
       - "${PORT:-8082}:8080"
     # All user configuration lives in .env — copy .env.example to .env first.
-    # Program.cs bridges short names (JWT_SECRET, DB_HOST, CORS_ORIGIN, ...)
-    # into the .NET config keys the app expects (Jwt__Secret, ConnectionStrings__PoracleDb, ...).
+    # Program.cs bridges short names (JWT_SECRET, WEB_DB_HOST, CORS_ORIGIN, ...)
+    # into the .NET config keys the app expects (Jwt__Secret, ConnectionStrings__PoracleWebDb, ...).
     env_file:
       - .env
     environment:

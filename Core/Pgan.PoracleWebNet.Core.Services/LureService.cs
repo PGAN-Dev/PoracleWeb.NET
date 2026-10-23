@@ -5,14 +5,13 @@ using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
-public class LureService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, ILogger<LureService> logger, ITrackedUidRemapper uidRemapper, INaturalKeyCapabilityService naturalKeys) : ILureService
+public class LureService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, ILogger<LureService> logger, ITrackedUidRemapper uidRemapper) : ILureService
 {
     private const string TrackingType = "lure";
     private readonly IPoracleTrackingProxy _proxy = proxy;
     private readonly IFeatureGate _featureGate = featureGate;
     private readonly ILogger<LureService> _logger = logger;
     private readonly ITrackedUidRemapper _uidRemapper = uidRemapper;
-    private readonly INaturalKeyCapabilityService _naturalKeys = naturalKeys;
 
     public async Task<IEnumerable<Lure>> GetByUserAsync(string userId, int profileNo)
     {
@@ -34,29 +33,6 @@ public class LureService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, 
 
         var body = SerializeToElement(model);
 
-        if (await this._naturalKeys.IsEnforcedAsync(TrackingType))
-        {
-            // Up to PoracleNG 5.1.0 the table carries a unique key on (id, profile_no, lure_id), so adding
-            // a lure type already tracked hit a duplicate-key error and surfaced as a 500 however else the
-            // rule differed. See #562.
-            var siblings = await this.GetByUserAsync(userId, model.ProfileNo);
-            if (siblings.Any(x => x.LureId == model.LureId))
-            {
-                throw new TrackingConflictException(
-                    TrackingType,
-                    "You already have a lure alarm for that lure type. Edit or remove that one instead.");
-            }
-        }
-        else
-        {
-            // Migration 8 (5.2.x) dropped that key, and PoracleNG now stores a second rule for one lure
-            // type beside an area-scoped twin, a place-measured one, or one two updatable fields away.
-            // What it still does is resolve an Add one updatable field away into the existing rule, so
-            // that is the only Add refused here: the guard the other seven types use.
-            await TrackingUpdateReconciler.EnsureNoMergeIntoAnotherAlarmAsync(
-                this._proxy, TrackingType, userId, 0, body);
-        }
-
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
 
         if (result.NewUids.Count > 0)
@@ -71,73 +47,14 @@ public class LureService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, 
     {
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Lures);
         var oldUid = model.Uid;
-        var keyEnforced = await this._naturalKeys.IsEnforcedAsync(TrackingType);
-
-        // Where the table still carries the natural unique key (5.1.0), PoracleNG's create has no upsert
-        // path, so changing a field outside that key collides (Error 1062) and returns 500; the row is
-        // replaced instead, below. Refuse a collision BEFORE the delete: editing one onto a lure_id
-        // another alarm already holds made the replace merge into that alarm - this one deleted, the
-        // other one silently overwritten. See #462.
-        if (keyEnforced && oldUid > 0)
-        {
-            var siblings = await this.GetByUserAsync(userId, model.ProfileNo);
-            if (siblings.Any(x => x.Uid != oldUid && x.LureId == model.LureId))
-            {
-                throw new TrackingConflictException(
-                    TrackingType,
-                    "You already have a lure alarm for that lure type. Edit or remove that one instead.");
-            }
-        }
-
         var body = SerializeToElement(model);
 
         // Carry forward anything the stored row holds that the model does not declare. See #730.
         body = await TrackingFieldPreserver.PreserveStoredFieldsAsync(
             this._proxy, TrackingType, userId, oldUid, body);
 
-        if (!keyEnforced)
-        {
-            // Without the key a lure is an ordinary type: refuse only the edit PoracleNG would merge into
-            // a different rule, as the other seven do. Refusing on lure_id alone would leave a rule with
-            // an area-scoped twin uneditable, the #553 shape.
-            await TrackingUpdateReconciler.EnsureNoMergeIntoAnotherAlarmAsync(
-                this._proxy, TrackingType, userId, oldUid, body);
-        }
-
-        // /api/v2's PUT is addressed by uid and replaces the row rather than inserting beside it, so the
-        // natural key is never in contention and none of the delete-create-restore below is needed --
-        // which is the single biggest reason to move this type. Verified live on 5.2.1: a PUT changing
-        // only the distance of lure 266 replaced it as 267, where the v1 create-carrying-a-uid inserts a
-        // second row and leaves 266 behind.
-        if (await TrackingV2Replacement.TryApplyAsync(
-                this._proxy, TrackingType, userId, oldUid, body, this._uidRemapper) is { } v2Uid)
-        {
-            model.Uid = v2Uid;
-            return model;
-        }
-
-        if (!keyEnforced)
-        {
-            // Nothing to free, so no delete-first and no window in which the alarm exists nowhere: the
-            // create carrying the uid is resolved by PoracleNG's diff like any other type's, and the
-            // reconciler drops the superseded row when one was inserted.
-            var result = await this._proxy.CreateAsync(TrackingType, userId, body);
-            model.Uid = await TrackingUpdateReconciler.ReconcileAsync(
-                this._proxy, TrackingType, userId, oldUid, result, this._logger, body, this._uidRemapper);
-            return model;
-        }
-
-        var original = oldUid > 0 ? await this.GetByUidAsync(userId, oldUid) : null;
-
-        model.Uid = await NaturalKeyTrackingUpdate.ReplaceAsync(
-            this._proxy,
-            TrackingType,
-            userId,
-            oldUid,
-            original is null ? null : SerializeToElement(original),
-            body,
-            this._logger,
-            this._uidRemapper);
+        model.Uid = await TrackingV2Replacement.ApplyAsync(
+            this._proxy, TrackingType, userId, oldUid, body, this._uidRemapper);
 
         return model;
     }
@@ -166,71 +83,25 @@ public class LureService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, 
     public async Task<DistanceUpdateResult> UpdateDistanceByUserAsync(string userId, int profileNo, int distance)
     {
         var json = await this._proxy.GetByUserAsync(TrackingType, userId);
-        // The stored rows are rewritten in place rather than round-tripped through the typed model,
-        // so fields PoracleWeb does not model survive the write-back. See #730.
-        var (body, skipped) = DistanceRewrite.Build(json, _ => true, distance);
-        var count = body.GetArrayLength();
 
-        if (count == 0)
-        {
-            return skipped;
-        }
-        // Two selected rows that differed only by radius become the same alarm once both are set to
-        // the same one, and PoracleNG resolves that inside the batch -- fewer alarms than selected,
-        // one left at its old radius, and a response claiming all were updated. See #580.
-        TrackingUpdateReconciler.EnsureBatchDoesNotCollapse(body, TrackingType);
-
-        // And against the rows NOT selected: at the new radius a selected row can differ from an
-        // unselected sibling by exactly one updatable field, and PoracleNG then rewrites the SIBLING
-        // -- an alarm the user never touched -- while the selected one keeps its old radius and the
-        // response claims it was updated. See #598.
-        await TrackingUpdateReconciler.EnsureBatchDoesNotTakeOverOthersAsync(
-            this._proxy, TrackingType, userId, body);
-
-        await this._proxy.CreateAsync(TrackingType, userId, body);
-        // PoracleNG rewrites every row, so the uids change. Follow any quick-pick that
-        // tracks them, pairing on content because the batch response is reordered. See #443.
-        await BulkUidRemap.ApplyAsync(
-            this._proxy, TrackingType, userId, body, this._uidRemapper, this._logger);
-
-        return skipped with { Updated = count };
+        // One v2 PATCH naming the uids and the radius: nothing else a rule holds is re-sent (#730), each keeps
+        // its uid, and PoracleNG refuses a rule that would collide with another rather than merging it.
+        return await DistanceRewrite.ApplyAsync(this._proxy, TrackingType, userId, json, _ => true, distance, this._logger);
     }
 
     public async Task<DistanceUpdateResult> UpdateDistanceByUidsAsync(List<int> uids, string userId, int distance)
     {
         var json = await this._proxy.GetByUserAsync(TrackingType, userId);
-        // The stored rows are rewritten in place rather than round-tripped through the typed model,
-        // so fields PoracleWeb does not model survive the write-back. See #730.
         var selected = new HashSet<int>(uids);
-        var (body, skipped) = DistanceRewrite.Build(
+
+        return await DistanceRewrite.ApplyAsync(
+            this._proxy,
+            TrackingType,
+            userId,
             json,
             row => PoracleJsonHelper.UidOf(row) is int rowUid && selected.Contains(rowUid),
-            distance);
-        var count = body.GetArrayLength();
-
-        if (count == 0)
-        {
-            return skipped;
-        }
-        // Two selected rows that differed only by radius become the same alarm once both are set to
-        // the same one, and PoracleNG resolves that inside the batch -- fewer alarms than selected,
-        // one left at its old radius, and a response claiming all were updated. See #580.
-        TrackingUpdateReconciler.EnsureBatchDoesNotCollapse(body, TrackingType);
-
-        // And against the rows NOT selected: at the new radius a selected row can differ from an
-        // unselected sibling by exactly one updatable field, and PoracleNG then rewrites the SIBLING
-        // -- an alarm the user never touched -- while the selected one keeps its old radius and the
-        // response claims it was updated. See #598.
-        await TrackingUpdateReconciler.EnsureBatchDoesNotTakeOverOthersAsync(
-            this._proxy, TrackingType, userId, body);
-
-        await this._proxy.CreateAsync(TrackingType, userId, body);
-        // PoracleNG rewrites every row, so the uids change. Follow any quick-pick that
-        // tracks them, pairing on content because the batch response is reordered. See #443.
-        await BulkUidRemap.ApplyAsync(
-            this._proxy, TrackingType, userId, body, this._uidRemapper, this._logger);
-
-        return skipped with { Updated = count };
+            distance,
+            this._logger);
     }
 
     public async Task<int> CountByUserAsync(string userId, int profileNo)
@@ -253,9 +124,9 @@ public class LureService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, 
         var body = SerializeToElement(modelList);
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
 
-        for (var i = 0; i < modelList.Count && i < result.NewUids.Count; i++)
+        for (var i = 0; i < modelList.Count && i < result.RowUids.Count; i++)
         {
-            modelList[i].Uid = (int)result.NewUids[i];
+            modelList[i].Uid = result.RowUids[i];
         }
 
         return modelList;

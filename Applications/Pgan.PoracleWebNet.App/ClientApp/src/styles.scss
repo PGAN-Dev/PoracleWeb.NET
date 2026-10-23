@@ -14,10 +14,84 @@ html {
         primary: mat.$azure-palette,
         tertiary: mat.$cyan-palette,
       ),
-      typography: Roboto,
+      // Body and labels in Atkinson Hyperlegible, drawn for low-vision legibility (which is what sunlight on
+      // a phone screen is); titles and headlines in Plus Jakarta Sans. Roboto stays behind both while the
+      // web fonts load and for any script they don't cover. index.html loads all three.
+      typography: (
+          plain-family: (
+            'Atkinson Hyperlegible Next',
+            Roboto,
+            sans-serif,
+          ),
+          brand-family: (
+            'Plus Jakarta Sans',
+            Roboto,
+            sans-serif,
+          ),
+        ),
       density: 0,
     )
   );
+
+  // Keyboard focus. Material sets `outline: none` on its buttons, list and nav items, tabs, menu items
+  // and chips, so the global `*:focus-visible` outline below never reached them and all that was left
+  // was a ~12% state layer, the same grey as hover. Strong focus indicators are Material's own fix: a
+  // 3px ring drawn by each component's `.mat-focus-indicator` on `:focus-visible`.
+  @include mat.strong-focus-indicators(
+    (
+      border-color: var(--mat-sys-primary),
+    )
+  );
+}
+
+// `color="warn"`. `mat.theme` emits system tokens only and ignores the `color` input, so every
+// destructive button rendered like a primary or neutral one. Material's documented answer is
+// `mat.color-variants-backwards-compatibility`, but that restores `mat-accent` and `mat-primary` too,
+// and checkboxes, radios, list options and FABs carry `mat-accent` by default: every one of them would
+// have turned cyan. So this applies the same per-component colour mixins for the warn variant only,
+// mapped to the error role. `use-system-variables` makes them emit `var(--mat-sys-error)` rather than
+// light-theme hex, so dark mode follows. M3 has no warn FAB, and none of ours asks for one.
+$_warn-variant-theme: mat.define-theme(
+  (
+    color: (
+      primary: mat.$azure-palette,
+      tertiary: mat.$cyan-palette,
+      use-system-variables: true,
+    ),
+  )
+);
+
+.mat-warn {
+  &.mat-mdc-button-base {
+    @include mat.button-color($_warn-variant-theme, $color-variant: error);
+    @include mat.icon-button-color($_warn-variant-theme, $color-variant: error);
+  }
+
+  &.mat-mdc-standard-chip {
+    @include mat.chips-color($_warn-variant-theme, $color-variant: error);
+  }
+
+  &.mat-mdc-slide-toggle {
+    @include mat.slide-toggle-color($_warn-variant-theme, $color-variant: error);
+  }
+
+  &.mat-mdc-checkbox {
+    @include mat.checkbox-color($_warn-variant-theme, $color-variant: error);
+  }
+
+  &.mat-icon {
+    @include mat.icon-color($_warn-variant-theme, $color-variant: error);
+  }
+}
+
+// On the toolbar the ring sits on the accent gradient, where primary blue disappears. White there, and
+// near-black when the gradient is light enough that the toolbar switches to dark ink.
+.app-toolbar {
+  --mat-focus-indicator-border-color: #fff;
+
+  &.toolbar-dark-ink {
+    --mat-focus-indicator-border-color: #212121;
+  }
 }
 
 // ─── Heading typography ─────────────────────────────────────────────
@@ -42,21 +116,25 @@ body {
   background-color: var(--mat-sys-surface);
   color: var(--mat-sys-on-surface);
   font: var(--mat-sys-body-medium);
+  // Every figure in tabular widths, so a column of IV, CP, level and counts lines up. After `font`, which
+  // resets it. Atkinson Hyperlegible Next as Google Fonts serves it carries `tnum` (measured: "111", "888"
+  // and "000" are all 30.34px at 16px with this on, 19.5/29.5/31.1px without); the Roboto subset it falls
+  // back to does not, which matters only while the web font loads.
+  font-variant-numeric: tabular-nums;
 
   margin: 0;
   height: 100%;
 }
 
-// ─── Dark mode overrides ────────────────────────────────────────────
-
-body.dark-theme::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(13, 71, 161, 0.04) 0%, transparent 50%);
-  pointer-events: none;
-  z-index: 0;
+// Form controls don't inherit font settings from body.
+button,
+input,
+select,
+textarea {
+  font-variant-numeric: tabular-nums;
 }
+
+// ─── Dark mode overrides ────────────────────────────────────────────
 
 body.dark-theme {
   // Cards & surfaces
@@ -117,51 +195,10 @@ body:not(.dark-theme) {
   outline-offset: 2px;
 }
 
-// ─── Pokeball loading spinner ──────────────────────────────────────
-
-.pokeball-spinner {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: linear-gradient(180deg, #f44336 0%, #f44336 47%, #333 47%, #333 53%, #fff 53%, #fff 100%);
-  border: 3px solid #333;
-  position: relative;
-  animation: pokespin 1s linear infinite;
-  box-sizing: border-box;
-
-  &::after {
-    content: '';
-    position: absolute;
-    width: 14px;
-    height: 14px;
-    background: #fff;
-    border: 3px solid #333;
-    border-radius: 50%;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    box-sizing: border-box;
-  }
-}
-
-.pokeball-spinner-lg {
-  @extend .pokeball-spinner;
-  width: 48px;
-  height: 48px;
-
-  &::after {
-    width: 16px;
-    height: 16px;
-  }
-}
-
-@keyframes pokespin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+// A dialog title takes focus only as the place a tabbed dialog starts (autoFocus: 'first-heading'). It
+// isn't a control, so it draws no ring; Tab moves on to the first one.
+.mat-mdc-dialog-title:focus-visible {
+  outline: none;
 }
 
 // ─── Global utility classes ─────────────────────────────────────────
@@ -211,24 +248,6 @@ body:not(.dark-theme) {
   color: #fff !important;
 }
 
-.toast-success .mdc-snackbar__surface::before {
-  content: '';
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 24px;
-  height: 24px;
-  opacity: 0.15;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='46' fill='none' stroke='%23fff' stroke-width='6'/%3E%3Cpath d='M4 50 H36' stroke='%23fff' stroke-width='6'/%3E%3Cpath d='M64 50 H96' stroke='%23fff' stroke-width='6'/%3E%3Cpath d='M4 50 A46 46 0 0 1 96 50' fill='%23fff'/%3E%3Ccircle cx='50' cy='50' r='14' fill='none' stroke='%23fff' stroke-width='6'/%3E%3Ccircle cx='50' cy='50' r='7' fill='%23fff'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-size: contain;
-}
-
-.mdc-snackbar__surface {
-  position: relative;
-}
-
 // ─── Scrollbar styling ──────────────────────────────────────────────
 
 ::-webkit-scrollbar {
@@ -265,19 +284,67 @@ router-outlet + * {
   }
 }
 
-// ─── Card hover effects ────────────────────────────────────────────
-
-.mat-mdc-card {
-  transition:
-    transform 0.15s ease,
-    box-shadow 0.15s ease;
-}
-.mat-mdc-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
-}
-
 // Dark mode toolbar default is handled by toolbarGradient computed signal in app.ts
+
+// ─── Page header ────────────────────────────────────────────────────
+// One header on every page: the title, one line saying what the page is for, and on the right the page's
+// one primary action, labelled ("New alarm", "New profile"), filled, and always last. Secondary actions
+// sit before it, stroked or as icons. No tinted wash, no coloured rule, no watermark. Pages do not
+// restyle it (design-foundations.spec.ts).
+
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px 16px;
+  padding: 24px 24px 8px;
+  box-sizing: border-box;
+}
+
+.page-header-text {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.page-header h1 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.page-description {
+  margin: 4px 0 0;
+  max-width: 72ch;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.page-primary-action {
+  min-height: 44px;
+}
+
+@media (max-width: 599px) {
+  .page-header {
+    padding: 16px 16px 4px;
+  }
+
+  .page-header h1 {
+    font-size: 24px;
+  }
+}
 
 // ─── Responsive helpers ─────────────────────────────────────────────
 
@@ -351,9 +418,20 @@ router-outlet + * {
     flex: 1 1 100% !important;
   }
 
-  // Tabs: icon-only labels on mobile
-  .tab-label {
+  // Tabs keep their words on a phone and drop the icon instead: a bare shield and bell said nothing about
+  // what was behind them. Tighter padding lets the Pokémon dialog's four tabs fit 390px without paging.
+  .mat-mdc-tab .mdc-tab__text-label > mat-icon {
     display: none !important;
+  }
+
+  .tab-label {
+    margin-left: 0 !important;
+  }
+
+  .mat-mdc-tab-group .mat-mdc-tab {
+    min-width: 0;
+    padding-left: 12px;
+    padding-right: 12px;
   }
 
   // Constrain tabs
@@ -397,6 +475,63 @@ router-outlet + * {
   }
 }
 
+// ─── Phone bottom sheet ───────────────────────────────────────────
+// A dialog opened with the `phone-bottom-sheet` panel class (the "where" sheet) is a few rows tall, so on
+// a phone it rises from the bottom at its own height instead of taking the whole screen, and the card it
+// changes stays in view above it. Overrides the fullscreen rules above, which every other dialog keeps.
+// The confirm dialog takes the same shape wherever it is opened from: a two-line question with its
+// buttons a screen away read as a page, not a question. It is keyed on the component, not a panel class,
+// so none of its fifty-odd callers has to remember one.
+
+@media (max-width: 599px) {
+  .cdk-global-overlay-wrapper:has(> .phone-bottom-sheet),
+  .cdk-global-overlay-wrapper:has(> .cdk-overlay-pane app-confirm-dialog) {
+    align-items: flex-end !important;
+  }
+
+  .cdk-overlay-pane.phone-bottom-sheet,
+  .cdk-overlay-pane:has(app-confirm-dialog) {
+    height: auto !important;
+    max-height: 90dvh !important;
+  }
+
+  .phone-bottom-sheet mat-dialog-container .mat-mdc-dialog-surface,
+  .phone-bottom-sheet mat-dialog-container .mdc-dialog__container,
+  .phone-bottom-sheet mat-dialog-container .mdc-dialog__surface,
+  .cdk-overlay-pane:has(app-confirm-dialog) mat-dialog-container .mat-mdc-dialog-surface,
+  .cdk-overlay-pane:has(app-confirm-dialog) mat-dialog-container .mdc-dialog__container,
+  .cdk-overlay-pane:has(app-confirm-dialog) mat-dialog-container .mdc-dialog__surface {
+    height: auto !important;
+    max-height: 90dvh !important;
+  }
+
+  .phone-bottom-sheet mat-dialog-container .mat-mdc-dialog-surface,
+  .cdk-overlay-pane:has(app-confirm-dialog) mat-dialog-container .mat-mdc-dialog-surface {
+    border-radius: 28px 28px 0 0 !important;
+  }
+
+  .phone-bottom-sheet .mat-mdc-dialog-content,
+  .cdk-overlay-pane:has(app-confirm-dialog) .mat-mdc-dialog-content {
+    flex: 0 1 auto !important;
+  }
+
+  // It starts at the bottom, so the title needs no room for the status bar.
+  .phone-bottom-sheet .mat-mdc-dialog-title,
+  .cdk-overlay-pane:has(app-confirm-dialog) .mat-mdc-dialog-title {
+    padding-top: 20px !important;
+  }
+}
+
+// ─── Bulk bar clearance ───────────────────────────────────────────
+// On a phone the bulk bar is pinned to the bottom of the screen (bulk-action-bar.component.scss), so the
+// page gets room below its last card while the bar is showing.
+
+@media (max-width: 599px) {
+  .app-content main:has(app-bulk-action-bar) {
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 128px);
+  }
+}
+
 // ─── Fullscreen map ───────────────────────────────────────────────
 .map-container:fullscreen {
   background: var(--mat-sys-surface, #fff);
@@ -426,6 +561,20 @@ router-outlet + * {
   line-height: 1.4;
 }
 
+// Delivery tab: the message toggles (clean, edit in place, daily summary) side by side, each with the
+// line that says what it does, instead of a stack of full-width rows.
+.message-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px 24px;
+  margin: 8px 0 12px;
+}
+
+.message-row .message-option mat-slide-toggle {
+  display: block;
+  margin: 0;
+}
+
 // ─── Standardized dialog sizes ─────────────────────────────────────
 
 .dialog-sm .mat-mdc-dialog-surface {
@@ -441,6 +590,19 @@ router-outlet + * {
 // Ensure consistent padding
 .mat-mdc-dialog-content {
   padding: 16px 24px !important;
+}
+
+// Alarm dialog tabs bleed to the dialog's edges. Material caps a tab group at max-width: 100%, so
+// pulling it out by the content's 24px padding on each side left the header 48px short of the
+// right edge; lift the cap by the same amount. The phone rules above override all three.
+.alarm-tabs.mat-mdc-tab-group {
+  margin-left: -24px;
+  margin-right: -24px;
+  max-width: calc(100% + 48px);
+}
+
+.alarm-tabs .mat-mdc-tab-body-wrapper {
+  padding: 0 24px;
 }
 
 // Help screenshot viewer: the image is the dialog, so drop the surface chrome around it
@@ -469,43 +631,6 @@ router-outlet + * {
     margin: 0;
     padding: 0;
     overflow: hidden;
-  }
-}
-
-.card-entering {
-  animation: cardEnter 0.3s ease;
-}
-@keyframes cardEnter {
-  from {
-    transform: translateY(-8px) scale(0.98);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0) scale(1);
-    opacity: 1;
-  }
-}
-
-// ─── Staggered grid load animation ─────────────────────────────────
-
-.alarm-grid > * {
-  animation: fadeSlideIn 0.25s ease both;
-}
-
-@for $i from 1 through 12 {
-  .alarm-grid > *:nth-child(#{$i}) {
-    animation-delay: #{$i * 30}ms;
-  }
-}
-
-@keyframes fadeSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
   }
 }
 
@@ -584,10 +709,8 @@ router-outlet + * {
 
 .basemap-control__title {
   color: var(--text-muted, rgba(0, 0, 0, 0.5));
-  font-size: 11px;
-  letter-spacing: 0.04em;
+  font-size: 12px;
   margin: 4px 12px;
-  text-transform: uppercase;
 }
 
 .basemap-control__option {
@@ -608,6 +731,33 @@ router-outlet + * {
   &.is-active {
     color: var(--accent-primary, #1976d2);
     font-weight: 600;
+  }
+}
+
+// Touch screens get 44px map controls (WCAG 2.5.5, UI audit cross D10); a mouse keeps Leaflet's 30px.
+// Only the zoom control: leaflet-draw's toolbar is a .leaflet-bar too, drawn from a 30px sprite sheet.
+// The attribution stays small text, but each link is a 24px block with room either side.
+@media (pointer: coarse) {
+  .leaflet-touch .leaflet-control-zoom a {
+    width: 44px;
+    height: 44px;
+    line-height: 44px;
+  }
+
+  .basemap-control__toggle {
+    width: 44px;
+    height: 44px;
+  }
+
+  .basemap-control__option {
+    min-height: 44px;
+  }
+
+  .leaflet-control-attribution a {
+    display: inline-block;
+    min-height: 24px;
+    line-height: 24px;
+    padding: 0 4px;
   }
 }
 
@@ -634,6 +784,10 @@ body.dark-theme .basemap-control__warning {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    // Nothing staggers any more, but a delay anywhere would still hold an item back; `!important` here
+    // beats a non-important inline style.
+    animation-delay: 0s !important;
+    transition-delay: 0s !important;
   }
 }
 

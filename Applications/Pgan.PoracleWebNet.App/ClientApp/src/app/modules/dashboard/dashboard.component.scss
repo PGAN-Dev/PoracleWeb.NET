@@ -1,737 +1,445 @@
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: 24px;
-  gap: 16px;
-  margin: 0 24px;
-  background: linear-gradient(135deg, rgba(21, 101, 192, 0.06) 0%, rgba(0, 188, 212, 0.04) 100%);
-  border-radius: 12px;
-}
-.page-header-text {
-  flex: 1;
-  min-width: 0;
-}
-.page-header h1 {
-  margin: 0;
-  font-size: 24px;
-  font-weight: 400;
-}
+// The dashboard answers "what will reach me right now". Colour is data or nothing: the strip, the
+// counts and the chips are neutral surfaces on Material's system tokens, so dark mode follows without a
+// second palette. The only colours are state (alerts paused is error red) and Pokémon types.
+
 .dashboard-subtitle {
   margin: 4px 0 0;
-  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  color: var(--mat-sys-on-surface-variant);
   font-size: 14px;
-}
-.page-description {
-  margin: 4px 0 0;
-  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
-  font-size: 13px;
-  line-height: 1.5;
-  border-left: 3px solid #1976d2;
-  padding-left: 12px;
 }
 
 .dashboard-content {
-  padding: 24px 24px 24px;
   max-width: 1200px;
+  padding: 8px 24px 24px;
+  box-sizing: border-box;
 }
 
-/* Status Row */
-.status-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 16px;
-  margin-bottom: 20px;
-}
-.status-card {
-  display: flex;
-  align-items: center;
-  padding: 16px 20px;
-  cursor: pointer;
-  transition:
-    transform 0.15s,
-    box-shadow 0.15s;
-  gap: 16px;
-}
-.status-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-}
-.status-icon-wrap {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.location-icon {
-  background: #e3f2fd;
-  color: #1565c0;
-}
-.areas-icon {
-  background: #e8f5e9;
-  color: #2e7d32;
-}
+/* ─── Status strip ─────────────────────────────────────────────── */
 
-// The same amber the active-hours chip uses for "scheduled, and temporary".
-.quiet-icon {
-  background: #fef3c7;
-  color: #92400e;
-}
-.profile-icon {
-  background: #f3e5f5;
-  color: #7b1fa2;
-}
-.location-card-full,
-.location-card-full .location-card-body {
-  background: rgba(21, 101, 192, 0.04);
-}
-.location-card-full {
-  border-left: 4px solid #1565c0;
-}
-.areas-card {
-  border-left: 4px solid #2e7d32;
-  background: rgba(46, 125, 50, 0.04) !important;
-}
-.profile-card {
-  border-left: 4px solid #7b1fa2;
-  background: rgba(123, 31, 162, 0.04) !important;
-}
-.active-profile {
-  font-weight: 500;
-  color: #7b1fa2;
-}
-.status-info {
-  flex: 1;
+.status-strip {
   display: flex;
   flex-direction: column;
+  margin-bottom: 16px;
+  padding: 6px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 16px;
+  background: var(--mat-sys-surface-container-low);
 }
-.status-label {
-  font-size: 12px;
-  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+.strip-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 8px;
 }
-.status-value {
-  font-size: 16px;
-  font-weight: 500;
-  margin-top: 2px;
+.strip-row:empty {
+  display: none;
 }
-.status-value.not-set {
-  color: var(--text-hint, rgba(0, 0, 0, 0.38));
-  font-style: italic;
+.strip-row + .strip-row:not(:empty) {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+}
+
+.strip-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--mat-sys-on-surface);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+}
+button.strip-item {
+  cursor: pointer;
+}
+button.strip-item:hover {
+  background: var(--mat-sys-surface-container-high);
+}
+button.strip-item:focus-visible {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: 2px;
+}
+.strip-icon,
+.strip-trail {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  font-size: 20px;
+  color: var(--mat-sys-on-surface-variant);
+}
+.strip-label {
+  flex-shrink: 0;
+  color: var(--mat-sys-on-surface-variant);
+}
+.strip-value {
+  min-width: 0;
+  max-width: 32ch;
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.strip-ask {
+  color: var(--mat-sys-primary);
+}
+.strip-more {
+  margin-left: 2px;
+  color: var(--mat-sys-on-surface-variant);
   font-weight: 400;
 }
-.status-value.status-address {
-  font-size: 13px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 200px;
-  cursor: help;
-}
-.status-arrow {
-  color: var(--text-hint, rgba(0, 0, 0, 0.24));
+.figures {
+  font-variant-numeric: tabular-nums;
 }
 
-.location-card-full {
-  padding: 0 !important;
-  overflow: hidden;
-  cursor: pointer;
-  transition:
-    transform 0.15s,
-    box-shadow 0.15s;
+// Alerts on/paused sits at the right of the first row on a wide screen, as the sketch has it.
+.strip-alerts {
+  margin-left: auto;
+  font-weight: 600;
 }
-.location-card-full:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+.alerts-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--mat-sys-primary);
 }
-.location-map-thumb {
-  width: 100%;
-  height: 120px;
-  object-fit: cover;
-  display: block;
+.strip-alerts.paused {
+  color: var(--mat-sys-error);
 }
-.location-card-body {
-  display: flex;
-  align-items: center;
-  padding: 12px 16px;
-  gap: 16px;
+.strip-alerts.paused .alerts-dot {
+  background: var(--mat-sys-error);
 }
 
-/* Weather Card */
-.weather-card {
-  border-left: 4px solid #f57c00;
-  background: rgba(245, 124, 0, 0.04) !important;
-  cursor: default;
+.strip-weather {
+  flex-wrap: wrap;
+  row-gap: 4px;
+  padding-block: 6px;
 }
-.weather-card:hover {
-  transform: none;
-  box-shadow: none;
-}
-.weather-icon {
-  background: #fff3e0;
-  color: #f57c00;
+.weather-icon-wrap {
   position: relative;
+  display: inline-flex;
 }
-.weather-icon.weather-warning {
-  background: #fbe9e7;
-  color: #d84315;
+.weather-icon-wrap.weather-warning .strip-icon {
+  color: var(--mat-sys-error);
 }
-.weather-icon-empty {
-  background: var(--skeleton-bg, rgba(0, 0, 0, 0.06));
-  color: var(--text-hint, rgba(0, 0, 0, 0.38));
+// The badge hangs 8px past the icon's right edge, which put it over the "Weather" label beside it. The
+// wrap keeps that much room so the badge sits in the gap instead.
+.weather-icon-wrap.weather-warning {
+  margin-right: 8px;
 }
 .weather-warn-badge {
   position: absolute;
-  top: -4px;
-  right: -4px;
-  font-size: 14px;
+  top: -6px;
+  right: -8px;
   width: 14px;
   height: 14px;
-  color: #d32f2f;
-  animation: pulse 2s infinite;
+  font-size: 14px;
+  color: var(--mat-sys-error);
 }
-.weather-updated {
-  font-weight: 400;
-  text-transform: none;
-  letter-spacing: 0;
-  color: var(--text-hint, rgba(0, 0, 0, 0.38));
-}
-.boosted-types {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 4px;
-}
+// The type's own colour is the dot; the text stays on-surface so Dark and Rock read in dark mode.
 .type-chip {
-  display: inline-block;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-  padding: 1px 6px;
-  border-radius: 4px;
-  border: 1px solid;
-  line-height: 1.5;
-  text-transform: uppercase;
-}
-.skeleton-icon {
-  background: var(--skeleton-bg, rgba(0, 0, 0, 0.06));
-}
-.skeleton-circle {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: var(--skeleton-bg, rgba(0, 0, 0, 0.1));
-  animation: pulse 1.5s infinite;
-}
-.skeleton-line-sm {
-  height: 16px;
-  width: 80px;
-  background: var(--skeleton-bg, rgba(0, 0, 0, 0.08));
-  border-radius: 4px;
-  margin-top: 4px;
-  animation: pulse 1.5s infinite;
-}
-
-/* Areas Detail */
-.areas-detail-card {
-  margin-bottom: 20px;
-}
-.areas-header {
-  display: flex;
+  --type-color: var(--type-color-light);
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-.areas-header mat-icon {
-  font-size: 18px;
-  width: 18px;
-  height: 18px;
-}
-.area-chips {
-  display: flex;
-  flex-wrap: wrap;
   gap: 4px;
+  padding: 1px 6px;
+  border: 1px solid var(--type-color);
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.5;
 }
-.area-dot {
-  display: inline-block;
+:host-context(.dark-theme) .type-chip {
+  --type-color: var(--type-color-dark);
+}
+.type-chip::before {
+  content: '';
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #2e7d32;
-  margin-right: 6px;
-  vertical-align: middle;
+  background: var(--type-color);
 }
-.area-weather-icon {
-  font-size: 14px;
-  width: 14px;
-  height: 14px;
-  margin-left: 4px;
-  opacity: 0.7;
-  vertical-align: middle;
-}
-
-/* Area Overview Map */
-.area-overview-card {
-  margin-bottom: 20px;
-  cursor: pointer;
-  overflow: hidden;
-  transition:
-    transform 0.15s,
-    box-shadow 0.15s;
-  border-left: 4px solid #2e7d32;
-  background: rgba(46, 125, 50, 0.04) !important;
-}
-.area-overview-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-}
-.area-overview-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px 8px;
-  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-.area-overview-header mat-icon:first-child {
-  font-size: 18px;
-  width: 18px;
-  height: 18px;
-  color: #2e7d32;
-}
-.area-overview-count {
-  margin-left: auto;
+.weather-updated {
+  color: var(--mat-sys-on-surface-variant);
   font-size: 12px;
-  font-weight: 500;
-  color: var(--text-hint, rgba(0, 0, 0, 0.38));
-  text-transform: none;
-  letter-spacing: 0;
-}
-.area-overview-header .status-arrow {
-  color: var(--text-hint, rgba(0, 0, 0, 0.24));
-}
-.map-placeholder {
-  height: 200px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  color: var(--text-hint, rgba(0, 0, 0, 0.38));
-}
-.map-placeholder mat-icon {
-  font-size: 32px;
-  width: 32px;
-  height: 32px;
-  opacity: 0.5;
 }
 
-/* Section Header */
-.section-header,
-.areas-header {
-  position: relative;
-  overflow: hidden;
-}
-.section-header::before,
-.areas-header::before {
-  content: '';
-  position: absolute;
-  right: -10px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 40px;
-  height: 40px;
-  opacity: 0.06;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='46' fill='none' stroke='%23000' stroke-width='6'/%3E%3Cpath d='M4 50 H36' stroke='%23000' stroke-width='6'/%3E%3Cpath d='M64 50 H96' stroke='%23000' stroke-width='6'/%3E%3Cpath d='M4 50 A46 46 0 0 1 96 50' fill='%23000'/%3E%3Ccircle cx='50' cy='50' r='14' fill='none' stroke='%23000' stroke-width='6'/%3E%3Ccircle cx='50' cy='50' r='7' fill='%23000'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-size: contain;
-}
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 12px;
-}
-.section-header h2 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 500;
-}
-.total-count {
-  font-size: 13px;
-  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
-}
+/* ─── Tips ─────────────────────────────────────────────────────── */
 
-/* Alarm Grid */
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 16px;
-  margin-bottom: 28px;
-}
-.dashboard-card {
-  cursor: pointer;
-  transition:
-    transform 0.2s,
-    box-shadow 0.2s;
-  border-top: none;
-  border-left: 8px solid var(--mat-sys-primary, #1976d2);
-  position: relative;
-  overflow: hidden;
-}
-.dashboard-card::after {
-  content: '';
-  position: absolute;
-  right: -15px;
-  bottom: -15px;
-  width: 60px;
-  height: 60px;
-  opacity: 0.03;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='46' fill='none' stroke='%23000' stroke-width='5'/%3E%3Cpath d='M4 50 H36' stroke='%23000' stroke-width='5'/%3E%3Cpath d='M64 50 H96' stroke='%23000' stroke-width='5'/%3E%3Cpath d='M4 50 A46 46 0 0 1 96 50' fill='%23000'/%3E%3Ccircle cx='50' cy='50' r='14' fill='none' stroke='%23000' stroke-width='5'/%3E%3Ccircle cx='50' cy='50' r='7' fill='%23000'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-size: contain;
-  pointer-events: none;
-}
-.dashboard-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
-}
-.dashboard-card.muted {
-  opacity: 0.55;
-  border-left-color: var(--text-hint, rgba(0, 0, 0, 0.2)) !important;
-  background: transparent !important;
-}
-.dashboard-card.muted:hover {
-  opacity: 0.75;
-}
-.card-pokemon {
-  border-left-color: #4caf50;
-  background: rgba(76, 175, 80, 0.04) !important;
-}
-.card-raids {
-  border-left-color: #f44336;
-  background: rgba(244, 67, 54, 0.04) !important;
-}
-.card-eggs {
-  border-left-color: #ff9800;
-  background: rgba(255, 152, 0, 0.04) !important;
-}
-.card-quests {
-  border-left-color: #9c27b0;
-  background: rgba(156, 39, 176, 0.04) !important;
-}
-.card-invasions {
-  border-left-color: #607d8b;
-  background: rgba(96, 125, 139, 0.04) !important;
-}
-.card-lures {
-  border-left-color: #e91e63;
-  background: rgba(233, 30, 99, 0.04) !important;
-}
-.card-nests {
-  border-left-color: #8bc34a;
-  background: rgba(139, 195, 74, 0.04) !important;
-}
-.card-gyms {
-  border-left-color: #00bcd4;
-  background: rgba(0, 188, 212, 0.04) !important;
-}
-.card-pokemon .card-icon-wrap {
-  background: rgba(76, 175, 80, 0.12);
-  color: #4caf50;
-}
-.card-raids .card-icon-wrap {
-  background: rgba(244, 67, 54, 0.12);
-  color: #f44336;
-}
-.card-eggs .card-icon-wrap {
-  background: rgba(255, 152, 0, 0.12);
-  color: #ff9800;
-}
-.card-quests .card-icon-wrap {
-  background: rgba(156, 39, 176, 0.12);
-  color: #9c27b0;
-}
-.card-invasions .card-icon-wrap {
-  background: rgba(96, 125, 139, 0.12);
-  color: #607d8b;
-}
-.card-lures .card-icon-wrap {
-  background: rgba(233, 30, 99, 0.12);
-  color: #e91e63;
-}
-.card-nests .card-icon-wrap {
-  background: rgba(139, 195, 74, 0.12);
-  color: #8bc34a;
-}
-.card-gyms .card-icon-wrap {
-  background: rgba(0, 188, 212, 0.12);
-  color: #00bcd4;
-}
-.card-pokestop-events {
-  border-left-color: #03aeb6;
-  background: rgba(3, 174, 182, 0.04) !important;
-}
-.card-pokestop-events .card-icon-wrap {
-  background: rgba(3, 174, 182, 0.12);
-  color: #03aeb6;
-}
-.card-fort-changes {
-  border-left-color: #795548;
-  background: rgba(121, 85, 72, 0.04) !important;
-}
-.card-fort-changes .card-icon-wrap {
-  background: rgba(121, 85, 72, 0.12);
-  color: #795548;
-}
-.card-maxbattles {
-  border-left-color: #d500f9;
-  background: rgba(213, 0, 249, 0.04) !important;
-}
-.card-maxbattles .card-icon-wrap {
-  background: rgba(213, 0, 249, 0.12);
-  color: #d500f9;
-}
-
-.card-header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: 12px 12px 0;
-}
-.card-icon-wrap {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--mat-sys-primary-container, rgba(25, 118, 210, 0.12));
-  color: var(--mat-sys-on-primary-container, #1976d2);
-}
-.card-icon-wrap.muted-icon {
-  background: var(--skeleton-bg, rgba(0, 0, 0, 0.06));
-  color: var(--text-hint, rgba(0, 0, 0, 0.38));
-}
-.card-icon-wrap mat-icon {
-  font-size: 32px;
-  width: 32px;
-  height: 32px;
-}
-
-.count {
-  display: block;
-  font-size: 48px;
-  font-weight: 700;
-  text-align: center;
-  margin: 8px 0 2px;
-  line-height: 1.1;
-}
-.count-zero {
-  color: var(--text-hint, rgba(0, 0, 0, 0.3));
-}
-.label {
-  display: block;
-  text-align: center;
-  font-size: 14px;
-  font-weight: 500;
-  margin-bottom: 1px;
-}
-.subtitle {
-  display: block;
-  text-align: center;
-  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
-  font-size: 11px;
-  margin-bottom: 8px;
-}
-
-/* Tips Section */
 .tips-section {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 .tip-card {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
+  padding: 4px 4px 4px 16px;
+  border: 1px solid var(--mat-sys-outline-variant);
   border-radius: 12px;
-  border: 1px solid;
+  background: var(--mat-sys-surface-container-low);
+  color: var(--mat-sys-on-surface);
 }
-.tip-warning {
-  background: rgba(255, 152, 0, 0.08);
-  border-color: rgba(255, 152, 0, 0.3);
-  color: #e65100;
+.tip-info > mat-icon {
+  color: var(--mat-sys-primary);
 }
-.tip-info {
-  background: rgba(33, 150, 243, 0.08);
-  border-color: rgba(33, 150, 243, 0.3);
-  color: #1565c0;
+.tip-warning > mat-icon {
+  color: #8a5300;
+}
+:host-context(.dark-theme) .tip-warning > mat-icon {
+  color: #ffb951;
 }
 .tip-content {
   flex: 1;
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 12px;
   align-items: center;
+  gap: 0 12px;
   font-size: 14px;
 }
 .tip-action {
-  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--mat-sys-primary);
+  font: inherit;
+  font-weight: 600;
   text-decoration: none;
   white-space: nowrap;
   cursor: pointer;
 }
-.tip-warning .tip-action {
-  color: #e65100;
-}
-.tip-info .tip-action {
-  color: #1565c0;
+.tip-action:focus-visible {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: 2px;
 }
 
-/* Card View All Link */
-.card-view-all {
+/* ─── Area coverage ────────────────────────────────────────────── */
+
+.coverage {
+  margin-bottom: 20px;
+  overflow: hidden;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 16px;
+  background: var(--mat-sys-surface-container-low);
+}
+.coverage-map {
+  display: block;
+}
+.coverage-map:focus-visible {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: -2px;
+}
+.map-placeholder {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 6px 12px;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
-  opacity: 0;
-  transition: opacity 0.2s;
+  gap: 8px;
+  height: 200px;
+  color: var(--mat-sys-on-surface-variant);
 }
-.card-view-all mat-icon {
-  font-size: 14px;
-  width: 14px;
-  height: 14px;
-}
-.dashboard-card:hover .card-view-all {
-  opacity: 1;
-}
-
-/* Quick Actions */
-.quick-actions {
+.area-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 28px;
+  gap: 6px;
+  margin: 0;
+  padding: 12px;
+  list-style: none;
 }
-.action-btn {
-  text-transform: none;
-  font-weight: 500;
+.area-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 8px;
+  background: var(--mat-sys-surface);
+  font-size: 13px;
 }
-.action-btn mat-icon {
+.area-weather-icon {
+  width: 16px;
+  height: 16px;
+  font-size: 16px;
+  color: var(--mat-sys-on-surface-variant);
+}
+.area-quiet {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--mat-sys-on-surface-variant);
+  font-variant-numeric: tabular-nums;
+}
+.area-quiet mat-icon {
+  width: 16px;
+  height: 16px;
+  font-size: 16px;
+}
+.coverage-pin {
+  display: block;
+  width: 100%;
+  margin-bottom: 20px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 16px;
+  background: none;
+  cursor: pointer;
+}
+.coverage-pin img {
+  display: block;
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+}
+.coverage-pin:focus-visible {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: 2px;
+}
+
+/* ─── Your alarms ──────────────────────────────────────────────── */
+
+.section-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin-bottom: 8px;
+}
+.section-header h2 {
+  margin: 0;
   font-size: 18px;
-  width: 18px;
-  height: 18px;
-  margin-right: 4px;
 }
-.action-pokemon {
-  --mdc-filled-button-container-color: rgba(76, 175, 80, 0.12) !important;
-  --mdc-filled-button-label-text-color: #2e7d32 !important;
-}
-.action-raids {
-  --mdc-filled-button-container-color: rgba(244, 67, 54, 0.12) !important;
-  --mdc-filled-button-label-text-color: #c62828 !important;
-}
-.action-quests {
-  --mdc-filled-button-container-color: rgba(156, 39, 176, 0.12) !important;
-  --mdc-filled-button-label-text-color: #7b1fa2 !important;
-}
-.action-areas {
-  --mdc-filled-button-container-color: rgba(21, 101, 192, 0.12) !important;
-  --mdc-filled-button-label-text-color: #1565c0 !important;
+.total-count {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
 }
 .action-cleaning {
-  --mdc-filled-button-container-color: rgba(255, 152, 0, 0.12) !important;
-  --mdc-filled-button-label-text-color: #e65100 !important;
+  min-height: 44px;
+  margin-left: auto;
 }
 
-/* Skeleton */
-.skeleton mat-card-content {
-  padding: 16px;
+.type-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
 }
-.skeleton-line {
+.type-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 14px;
+  box-sizing: border-box;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 12px;
+  background: var(--mat-sys-surface-container-low);
+  color: var(--mat-sys-on-surface);
+  font-size: 14px;
+  text-decoration: none;
+}
+.type-count:hover {
+  background: var(--mat-sys-surface-container-high);
+}
+.type-count:focus-visible {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: 2px;
+}
+.type-count mat-icon {
+  width: 20px;
   height: 20px;
-  background: var(--skeleton-bg, #e0e0e0);
-  border-radius: 4px;
-  margin-bottom: 16px;
-  animation: pulse 1.5s infinite;
+  font-size: 20px;
+  color: var(--mat-sys-on-surface-variant);
 }
-.skeleton-count {
-  height: 40px;
-  width: 60px;
-  margin: 0 auto;
-  background: var(--skeleton-bg, #e0e0e0);
-  border-radius: 4px;
-  animation: pulse 1.5s infinite;
+.type-number {
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
+
+.not-tracking {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 8px;
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 14px;
 }
+.not-tracking-more {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--mat-sys-primary);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.not-tracking-more:focus-visible {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: 2px;
+}
+
+// Loading: three static pills where the counts will be, so the row does not jump in.
+.skeleton-pill {
+  width: 120px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--skeleton-bg, rgba(0, 0, 0, 0.08));
+}
+
+/* ─── Phone ────────────────────────────────────────────────────── */
 
 @media (max-width: 599px) {
-  .page-header {
-    margin: 0 12px;
-    padding: 16px;
-  }
   .dashboard-content {
-    padding: 16px 12px;
+    padding: 8px 16px 16px;
   }
-  .status-row {
-    grid-template-columns: 1fr;
-    gap: 8px;
+  // One row per fact, each a full-width 44px target, like a settings list.
+  .strip-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
   }
-  .status-card.areas-card,
-  .status-card.profile-card {
-    padding: 10px 16px;
-    gap: 12px;
+  .strip-item {
+    width: 100%;
   }
-  .areas-card .status-icon-wrap,
-  .profile-card .status-icon-wrap {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
+  .strip-value {
+    flex: 0 1 auto;
+    max-width: none;
   }
-  .areas-card .status-icon-wrap mat-icon,
-  .profile-card .status-icon-wrap mat-icon {
-    font-size: 20px;
-    width: 20px;
-    height: 20px;
+  .strip-trail {
+    margin-left: auto;
   }
-  .areas-card .status-label,
-  .profile-card .status-label {
-    font-size: 11px;
+  .strip-alerts {
+    margin-left: 0;
   }
-  .areas-card .status-value,
-  .profile-card .status-value {
-    font-size: 14px;
-  }
-  .location-map-thumb {
-    height: 90px;
-  }
-  .dashboard-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
+  .type-count {
+    flex: 1 1 auto;
   }
 }

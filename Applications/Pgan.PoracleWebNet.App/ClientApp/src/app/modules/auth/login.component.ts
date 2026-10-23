@@ -206,7 +206,8 @@ export class LoginComponent implements OnInit {
         token_exchange_failed: 'AUTH.ERR_TOKEN_EXCHANGE',
         user_not_registered: 'AUTH.ERR_NOT_REGISTERED',
       };
-      this.error.set(errorKeys[errorCode] || errorCode);
+      // An unknown code is shown as a sentence, never as itself: "weird_code" told the reader nothing.
+      this.error.set(Object.hasOwn(errorKeys, errorCode) ? errorKeys[errorCode] : 'AUTH.ERR_UNKNOWN');
       // Clear any stale token without navigating (logout() would redirect away)
       localStorage.removeItem('poracle_token');
       localStorage.removeItem('poracle_admin_token');

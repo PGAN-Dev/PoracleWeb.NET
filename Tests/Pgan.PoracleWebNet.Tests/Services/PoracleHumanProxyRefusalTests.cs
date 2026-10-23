@@ -36,12 +36,7 @@ public class PoracleHumanProxyRefusalTests
                 ["Poracle:ApiSecret"] = "test-secret",
             })
             .Build(),
-            // No version, so no /api/v2: every refusal here is v1's, which is what a 5.1.0 self-hoster
-            // still gets.
-            PoracleHumanProxyTests.ServerProfile(null),
             PoracleHumanProxyTests.V2Schema(),
-            PoracleHumanProxyTests.AreaSecurityPolicy(),
-            new MemoryCache(new MemoryCacheOptions()),
             Mock.Of<ILogger<PoracleHumanProxy>>());
 
     private static PoracleHumanProxy Refusing(HttpStatusCode status, string body) =>
@@ -81,13 +76,13 @@ public class PoracleHumanProxyRefusalTests
     [Fact]
     public async Task SetAreasPassesPoracleWordingThroughOn400()
     {
-        // Live: POST /api/humans/{id}/setAreas with an object instead of an array.
+        // The v2 schema failure, in problem+json.
         var sut = Refusing(
-            HttpStatusCode.BadRequest,
-            """{"message":"json: cannot unmarshal object into Go value of type []string","status":"error"}""");
+            HttpStatusCode.UnprocessableEntity,
+            """{"title":"Unprocessable Entity","status":422,"detail":"cannot unmarshal object"}""");
 
         var ex = await Assert.ThrowsAsync<PoracleRequestRefusedException>(
-            () => sut.SetAreasAsync("user1", ["area1"]));
+            () => sut.SetAreasTrustedAsync("user1", ["area1"]));
 
         Assert.Contains("cannot unmarshal object", ex.Message, StringComparison.Ordinal);
     }
@@ -109,7 +104,7 @@ public class PoracleHumanProxyRefusalTests
         var sut = Refusing(HttpStatusCode.BadRequest, """{"message":"profile_no must be specified","status":"error"}""");
 
         var ex = await Assert.ThrowsAsync<PoracleRequestRefusedException>(
-            () => sut.UpdateProfileAsync("user1", Body("""{"bad":1}""")));
+            () => sut.UpdateProfileAsync("user1", Body("""{"profile_no":1}""")));
 
         Assert.Equal("profile_no must be specified", ex.Message);
     }
@@ -209,7 +204,7 @@ public class PoracleHumanProxyRefusalTests
         var sut = Refusing(HttpStatusCode.BadRequest, "{}");
 
         var ex = await Assert.ThrowsAsync<PoracleRequestRefusedException>(
-            () => sut.UpdateProfileAsync("user1", Body("{}")));
+            () => sut.UpdateProfileAsync("user1", Body("""{"profile_no":1}""")));
 
         Assert.DoesNotContain("alarm", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.NotEmpty(ex.Message);
@@ -222,9 +217,9 @@ public class PoracleHumanProxyRefusalTests
     [Fact]
     public async Task AMissingAccountIsStillAccountGone()
     {
-        // The SPA signs out only on 401, and AccountGoneExceptionFilter is what produces it. Live wording
-        // from both 5.1.0 and 5.2.1.
-        var sut = Refusing(HttpStatusCode.NotFound, """{"message":"User not found","status":"error"}""");
+        // The SPA signs out only on 401, and AccountGoneExceptionFilter is what produces it. The v2
+        // surface's wording; a bare 404 would be a missing route, not a missing account.
+        var sut = Refusing(HttpStatusCode.NotFound, """{"title":"Not Found","status":404,"detail":"human not found"}""");
 
         await Assert.ThrowsAsync<AccountGoneException>(() => sut.StartAsync("deleted-user"));
     }
@@ -235,12 +230,13 @@ public class PoracleHumanProxyRefusalTests
     [InlineData("/profiles")]
     public async Task EveryWritePathStillReportsAMissingAccountAsGone(string path)
     {
-        var sut = Refusing(HttpStatusCode.NotFound, """{"message":"User not found","status":"error"}""");
+        // Every call is v2 only, so a missing account is always problem+json.
+        var sut = Refusing(HttpStatusCode.NotFound, """{"title":"Not Found","status":404,"detail":"human not found"}""");
 
         Task Call() => path switch
         {
             "/stop" => sut.StopAsync("deleted-user"),
-            "/setAreas" => sut.SetAreasAsync("deleted-user", ["area1"]),
+            "/setAreas" => sut.SetAreasTrustedAsync("deleted-user", ["area1"]),
             _ => sut.GetProfilesAsync("deleted-user"),
         };
 
@@ -258,10 +254,10 @@ public class PoracleHumanProxyRefusalTests
     [Fact]
     public async Task AMissingProfileIsNotAMissingAccount()
     {
-        // Live: POST /api/humans/{id}/switchProfile/99 answers 404 "Profile not found" on both servers.
+        // Live: POST /api/v2/humans/{id}/profile with a number that is not there answers a problem+json 404.
         // Calling that account-gone signed the user out of a working session -- and inside
         // ProfileOverviewService's restore-the-profile finally, it did so while hiding the real failure.
-        var sut = Refusing(HttpStatusCode.NotFound, """{"message":"Profile not found","status":"error"}""");
+        var sut = Refusing(HttpStatusCode.NotFound, """{"title":"Not Found","status":404,"detail":"Profile not found"}""");
 
         var ex = await Assert.ThrowsAsync<PoracleRequestRefusedException>(
             () => sut.SwitchProfileAsync("user1", 99));
@@ -274,14 +270,13 @@ public class PoracleHumanProxyRefusalTests
     public async Task ARouteThisBuildDoesNotHaveIsNotAMissingAccount()
     {
         // gin answers a plaintext body for an absent route. Signing the user out over it told them their
-        // account was deleted when the truth was an older PoracleNG.
+        // account was deleted when the truth was an older PoracleNG, which is now said as such.
         var sut = Refusing(HttpStatusCode.NotFound, "404 page not found");
 
-        var ex = await Assert.ThrowsAsync<PoracleRequestRefusedException>(
+        var ex = await Assert.ThrowsAsync<PoracleUnsupportedException>(
             () => sut.CopyProfileAsync("user1", 1, 2));
 
-        Assert.Equal(404, ex.StatusCode);
-        Assert.Contains("404 page not found", ex.Message, StringComparison.Ordinal);
+        Assert.Equal("PoracleNG 5.4.0", ex.Requires);
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -355,7 +350,7 @@ public class PoracleHumanProxyRefusalTests
         // 500, 502 and the rest are not the caller's problem and must not be dressed up as a 400.
         var sut = Refusing(HttpStatusCode.InternalServerError, "{}");
 
-        await Assert.ThrowsAsync<HttpRequestException>(() => sut.SetAreasAsync("user1", ["area1"]));
+        await Assert.ThrowsAsync<HttpRequestException>(() => sut.SetAreasTrustedAsync("user1", ["area1"]));
     }
 
     [Fact]
@@ -378,7 +373,7 @@ public class PoracleHumanProxyRefusalTests
     [Fact]
     public async Task A200StillSucceedsOnEveryPathThisTouches()
     {
-        var handler = new MockHandler(HttpStatusCode.OK, """{"status":"ok"}""");
+        var handler = new MockHandler(HttpStatusCode.OK, """{"status":"ok","profile_no":2}""");
         var sut = CreateSut(handler);
 
         await sut.CreateHumanAsync(Body("""{"id":"u1","name":"n"}"""));
@@ -386,7 +381,7 @@ public class PoracleHumanProxyRefusalTests
         await sut.StopAsync("user1");
         await sut.AdminDisabledAsync("user1", true);
         await sut.SetLocationAsync("user1", 1, 2);
-        await sut.SetAreasAsync("user1", ["area1"]);
+        await sut.SetAreasTrustedAsync("user1", ["area1"]);
         await sut.SwitchProfileAsync("user1", 1);
         await sut.AddProfileAsync("user1", Body("""{"name":"p"}"""));
         await sut.UpdateProfileAsync("user1", Body("""{"profile_no":1}"""));
@@ -398,25 +393,19 @@ public class PoracleHumanProxyRefusalTests
     }
 
     [Fact]
-    public async Task AddPlaceStillReportsTheRefusalHiddenInsideA200()
+    public async Task HumanReadsAnswerNullOnlyWhenTheAccountIsMissing()
     {
-        // PoracleNG answers per row so a batch can partly succeed. This is not a status-code refusal and
-        // must not turn into one.
-        var handler = new MockHandler(HttpStatusCode.OK, """{"results":[{"error":"label already used"}]}""");
-        var sut = CreateSut(handler);
+        // This used to assert null for any failure, on the grounds that callers branch on null. They do,
+        // and every branch reads null as "no such account" -- so a refusal or an outage was reported as a
+        // deleted user (the purge's 404, /api/auth/me's sign-out). The callers that genuinely need to
+        // carry on through a failed read catch it themselves now. See #994.
+        var missing = Refusing(HttpStatusCode.NotFound, """{"title":"Not Found","status":404,"detail":"human not found"}""");
+        Assert.Null(await missing.GetHumanAsync("user1"));
+        Assert.Null(await missing.GetAreasAsync("user1"));
 
-        Assert.Equal("label already used", await sut.AddPlaceAsync("user1", new SavedPlace { Label = "home" }));
-    }
-
-    [Fact]
-    public async Task ReadsThatAnswerNullOnFailureStillAnswerNull()
-    {
-        // GetHumanAsync and GetAreasAsync are read paths whose callers branch on null. Turning their
-        // failures into throws would break HumanService, ProfileService and TestAlertService at once.
-        var sut = Refusing(HttpStatusCode.BadRequest, """{"message":"invalid latitude","status":"error"}""");
-
-        Assert.Null(await sut.GetHumanAsync("user1"));
-        Assert.Null(await sut.GetAreasAsync("user1"));
+        var refused = Refusing(HttpStatusCode.BadRequest, """{"message":"missing id parameter","status":"error"}""");
+        await Assert.ThrowsAsync<HttpRequestException>(() => refused.GetHumanAsync("user1"));
+        await Assert.ThrowsAsync<HttpRequestException>(() => refused.GetAreasAsync("user1"));
     }
 
     private sealed class MockHandler(HttpStatusCode statusCode, string responseBody) : HttpMessageHandler

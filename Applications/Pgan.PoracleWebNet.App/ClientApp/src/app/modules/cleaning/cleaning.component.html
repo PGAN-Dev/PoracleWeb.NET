@@ -5,7 +5,8 @@
   </div>
   <div class="header-actions">
     <button
-      mat-stroked-button
+      mat-flat-button
+      class="page-primary-action"
       [disabled]="loading() || toggling() || !hasApplicable()"
       (click)="toggleAll(!allEnabled())"
       [matTooltip]="(allEnabled() ? 'CLEANING.DISABLE_TOOLTIP' : 'CLEANING.ENABLE_TOOLTIP') | translate">
@@ -33,7 +34,7 @@
     @for (item of visibleItems(); track item.type) {
       <div class="cleaning-row" [class.disabled-row]="!item.hasAlarms()">
         <div class="cleaning-label">
-          <div class="icon-wrap" [style.background-color]="item.color">
+          <div class="icon-wrap" [style.color]="item.color">
             <mat-icon>{{ item.icon }}</mat-icon>
           </div>
           <div class="label-text">
@@ -41,6 +42,9 @@
             <span class="label-description">{{ item.descriptionKey | translate }}</span>
             @if (!item.hasAlarms()) {
               <span class="label-hint">{{ 'CLEANING.NO_ALARMS_HINT' | translate }}</span>
+            }
+            @if (item.partial(); as partial) {
+              <span class="label-partial">{{ 'CLEANING.PARTIAL' | translatePlural: partial.total : { clean: partial.clean } }}</span>
             }
           </div>
         </div>

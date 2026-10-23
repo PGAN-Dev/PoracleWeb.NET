@@ -76,6 +76,7 @@ public class PoracleMuteProxyTests
         // value is present-but-null for 'everything'. Reading it as an empty string would make the
         // delete path send ?value= and get a 422.
         Assert.Null(mutes[1].Value);
+        Assert.Null(mutes[0].TrackingType);
     }
 
     [Fact]
@@ -111,12 +112,85 @@ public class PoracleMuteProxyTests
         var handler = new RecordingHandler(HttpStatusCode.OK, /*lang=json,strict*/
             """{"deleted":[{"scope":"gym","value":"abc123","expires_at":1787575463,"remaining_secs":1799}]}""");
 
-        var deleted = await CreateSut(handler).DeleteAsync("user1", MuteScopes.Gym, "abc123");
+        var deleted = await CreateSut(handler).DeleteAsync("user1", MuteScopes.Gym, "abc123", null);
 
         var mute = Assert.Single(deleted);
         Assert.Equal("abc123", mute.Value);
         Assert.Contains("scope=gym", handler.LastUri?.Query, StringComparison.Ordinal);
         Assert.Contains("value=abc123", handler.LastUri?.Query, StringComparison.Ordinal);
+        Assert.DoesNotContain("tracking_type", handler.LastUri?.Query, StringComparison.Ordinal);
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Typed tracking mutes (jfberry/PoracleNG#328 §6)
+    // ──────────────────────────────────────────────────────────────
+    // Rule uids are per table, so raid rule 60 and pokemon rule 60 are different rules. From 5.3.0 a
+    // tracking mute carries tracking_type on GET, and DELETE must name it. Released servers send no such
+    // field and must never see the parameter.
+
+    [Fact]
+    public async Task ListReadsTheTrackingTypeOfATypedTrackingMute()
+    {
+        var handler = new RecordingHandler(HttpStatusCode.OK, /*lang=json,strict*/
+            """{"mutes":[{"scope":"tracking","tracking_type":"raid","value":"60","expires_at":1787575463,"remaining_secs":1800}]}""");
+
+        var mute = Assert.Single(await CreateSut(handler).ListAsync("user1"));
+
+        Assert.Equal(MuteScopes.Tracking, mute.Scope);
+        Assert.Equal("60", mute.Value);
+        Assert.Equal("raid", mute.TrackingType);
+    }
+
+    /// <summary>What 5.2.1 sends today: no tracking_type anywhere.</summary>
+    [Fact]
+    public async Task ListLeavesTheTrackingTypeNullWhenTheServerSendsNone()
+    {
+        var handler = new RecordingHandler(HttpStatusCode.OK, /*lang=json,strict*/
+            """{"mutes":[{"scope":"tracking","value":"60","expires_at":1787575463,"remaining_secs":1800}]}""");
+
+        Assert.Null(Assert.Single(await CreateSut(handler).ListAsync("user1")).TrackingType);
+    }
+
+    [Fact]
+    public async Task DeleteNamesTheTrackingTypeWhenGivenOne()
+    {
+        var handler = new RecordingHandler(HttpStatusCode.OK, """{"deleted":[]}""");
+
+        await CreateSut(handler).DeleteAsync("user1", MuteScopes.Tracking, "60", "raid");
+
+        var query = handler.LastUri?.Query;
+        Assert.Contains("scope=tracking", query, StringComparison.Ordinal);
+        Assert.Contains("value=60", query, StringComparison.Ordinal);
+        Assert.Contains("tracking_type=raid", query, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public async Task DeleteSendsNoTrackingTypeWhenThereIsNone(string? trackingType)
+    {
+        var handler = new RecordingHandler(HttpStatusCode.OK, """{"deleted":[]}""");
+
+        await CreateSut(handler).DeleteAsync("user1", MuteScopes.Tracking, "60", trackingType);
+
+        Assert.DoesNotContain("tracking_type", handler.LastUri?.Query, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A refused delete must reach the user as a reason, not a 500. The 5.3.0 refusal of an untyped
+    /// tracking delete is the case that motivates it; unlike the other bodies in this file, this one is
+    /// written from the #328 design rather than captured, since no server carrying it exists yet.
+    /// </summary>
+    [Fact]
+    public async Task DeleteSurfacesHumasDetailOn422()
+    {
+        var handler = new RecordingHandler(HttpStatusCode.UnprocessableEntity,
+            """{"title":"Unprocessable Entity","status":422,"detail":"tracking_type is required for scope tracking"}""");
+
+        var ex = await Assert.ThrowsAsync<MuteRejectedException>(
+            () => CreateSut(handler).DeleteAsync("user1", MuteScopes.Tracking, "60", null));
+
+        Assert.Equal("tracking_type is required for scope tracking", ex.Reason);
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -175,7 +249,7 @@ public class PoracleMuteProxyTests
         var handler = new RecordingHandler(HttpStatusCode.NotFound,
             """{"title":"Not Found","status":404,"detail":"mute not found"}""");
 
-        var deleted = await CreateSut(handler).DeleteAsync("user1", MuteScopes.Area, "Aberdeen");
+        var deleted = await CreateSut(handler).DeleteAsync("user1", MuteScopes.Area, "Aberdeen", null);
 
         Assert.Empty(deleted);
     }

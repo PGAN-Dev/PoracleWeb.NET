@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, of, throwError } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { catchError, map } from 'rxjs/operators';
 
 import { ConfigService } from './config.service';
 import { SettingsService } from './settings.service';
@@ -64,6 +64,18 @@ export class LocationService {
   getLocation(): Observable<Location> {
     if (this.locationDisabled()) return throwError(() => new LocationFeatureDisabledError('disable_location'));
     return this.http.get<Location>(`${this.config.apiHost}/api/location`);
+  }
+
+  /**
+   * How many alarms on the active profile measure their radius from the pin, or null when that cannot be
+   * read. Asked before clearing the pin, which stops every one of them matching.
+   */
+  getPinUsage(): Observable<null | number> {
+    if (this.locationDisabled()) return of(null);
+    return this.http.get<{ alarms: number }>(`${this.config.apiHost}/api/location/pin-usage`).pipe(
+      map(r => (typeof r?.alarms === 'number' ? r.alarms : null)),
+      catchError(() => of(null)),
+    );
   }
 
   getStaticMapUrl(lat: number, lon: number): Observable<{ url: string } | null> {

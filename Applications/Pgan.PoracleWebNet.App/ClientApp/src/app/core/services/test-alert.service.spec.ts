@@ -111,6 +111,28 @@ describe('TestAlertService', () => {
     expect(snackBar.open).toHaveBeenCalledWith('TEST_ALERT.UNSUPPORTED', 'OK', { duration: 4000 });
   });
 
+  // PoracleNG said why delivery failed (alarms D16): "try again later" is wrong when the cause is configuration.
+  it("should pass on PoracleNG's reason when it refused the test (502)", () => {
+    service.sendTestAlert('pokemon', 14);
+
+    const req = httpMock.expectOne(`${API}/api/test-alert/pokemon/14`);
+    req.flush({ error: 'message delivery not configured' }, { status: 502, statusText: 'Bad Gateway' });
+
+    expect(snackBar.open).toHaveBeenCalledWith('TEST_ALERT.REFUSED', 'OK', { duration: 8000 });
+    expect(TestBed.inject(TranslateService).instant).toHaveBeenCalledWith('TEST_ALERT.REFUSED', {
+      reason: 'message delivery not configured',
+    });
+  });
+
+  it('should keep the generic message for a 502 that carries no reason', () => {
+    service.sendTestAlert('pokemon', 15);
+
+    const req = httpMock.expectOne(`${API}/api/test-alert/pokemon/15`);
+    req.flush(null, { status: 502, statusText: 'Bad Gateway' });
+
+    expect(snackBar.open).toHaveBeenCalledWith('TEST_ALERT.FAILED', 'OK', { duration: 4000 });
+  });
+
   it('should track sending state', () => {
     expect(service.isSending('pokemon', 10)).toBe(false);
 

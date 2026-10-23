@@ -68,9 +68,8 @@ public partial class ConfigController(
     [HttpGet]
     public async Task<IActionResult> GetConfig()
     {
-        // Degrades to false on any fault, same as every other v2 schema capability -- an operator cannot
-        // preserve a mention through an edit until this answers true, so treating "could not ask" as "no"
-        // is the only safe direction here.
+        // Degrades to all-false on any fault, same as every other v2 schema capability: treating "could
+        // not ask" as "no" is the safe direction for a feature the server has to store.
         var capabilities = await this._v2Schema.GetAsync();
 
         // Both the schema read and the config read fail closed (false, false) rather than throw.
@@ -82,7 +81,6 @@ public partial class ConfigController(
             if (config != null)
             {
                 var publicConfig = PublicPoracleConfig.From(config);
-                publicConfig.PingSupported = capabilities.TrackingPing;
                 publicConfig.PersonalSupported = capabilities.PersonalTracking;
                 publicConfig.PlayerAccountsSupported = capabilities.PlayerAccounts;
                 publicConfig.PersonalRatesConfigured = personal.RatesFeedConfigured;
@@ -107,7 +105,6 @@ public partial class ConfigController(
             DefaultTemplateName = "default",
             EverythingFlagPermissions = "",
             MaxDistance = 10726000,
-            PingSupported = capabilities.TrackingPing,
             PersonalSupported = capabilities.PersonalTracking,
             PlayerAccountsSupported = capabilities.PlayerAccounts,
             PersonalRatesConfigured = personal.RatesFeedConfigured,

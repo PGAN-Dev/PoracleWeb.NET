@@ -8,22 +8,12 @@ public interface IPoracleApiProxy
     Task<bool?> GetQuestSummaryEnabledAsync();
 
     /// <summary>
-    /// Reads <c>general.disable_fort_update</c> from PoracleNG's config-values endpoint. PoracleNG
-    /// honours this flag in the processor and the bot but leaves it out of the <c>disabledHooks</c>
-    /// array on <c>/api/config/poracleWeb</c>, so fort changes have to be asked about separately.
-    /// Returns <c>null</c> when the value cannot be determined (older Poracle, PoracleJS, endpoint
-    /// shape changed) so the caller can leave the site setting in sole charge.
-    /// </summary>
-    Task<bool?> GetFortUpdateDisabledAsync();
-
-    /// <summary>
-    /// Reads <c>general.disable_showcase</c> from PoracleNG's config-values endpoint. Like
-    /// <c>disable_fort_update</c> it is enforced upstream but omitted from <c>disabledHooks</c>.
+    /// Reads <c>general.disable_showcase</c> from PoracleNG's config-values endpoint. It is enforced
+    /// upstream but omitted from <c>disabledHooks</c>.
     /// </summary>
     /// <remarks>
-    /// <c>null</c> here means more than "cannot determine": the key is absent on every PoracleNG below
-    /// 5.2.0, which is exactly the set of servers with no <c>/api/v2/.../tracking/incident</c> route
-    /// to call. Verified: 5.1.0 has neither, 5.2.1 has both.
+    /// <c>null</c> here means PoracleNG could not be read, or did not report the key. Every supported
+    /// PoracleNG (5.4.0 and later) has the <c>/api/v2/.../tracking/incident</c> route.
     /// </remarks>
     Task<bool?> GetShowcaseDisabledAsync();
 
@@ -86,18 +76,18 @@ public interface IPoracleApiProxy
     /// Forward geocode through PoracleNG's own <c>/api/geocode/forward</c>, which resolves via whichever
     /// provider the operator configured (Nominatim, Photon or Google) and answers in one shape regardless
     /// -- so this app never parses a provider's payload itself. Returns the raw JSON array PoracleNG
-    /// answers with (empty when nothing matched), or <c>null</c> when PoracleNG answers non-success and
-    /// no provider is reachable at all: 503 when none is configured, the request timed out, or a
-    /// PoracleNG too old for the route (gin's plaintext 404) falls back to calling its configured
-    /// provider directly -- as this app did before the route existed -- and that also fails. See #845.
+    /// answers with (empty when nothing matched), or <c>null</c> when PoracleNG answers non-success:
+    /// 503 when no provider is configured, or the request timed out. A plaintext 404 (a PoracleNG below
+    /// 5.4.0, which has no such route) throws <see cref="PoracleUnsupportedException"/> rather than
+    /// reaching for a provider directly. See #845.
     /// </summary>
     Task<string?> GetGeocodeForwardAsync(string query, string? language = null);
 
     /// <summary>
     /// Reverse geocode through PoracleNG's own <c>/api/geocode/reverse</c>. Returns the raw JSON object,
     /// or <c>null</c> on the same conditions as <see cref="GetGeocodeForwardAsync"/> -- including a
-    /// problem+json 404 (a real "nothing at this coordinate", which does not fall back, unlike the
-    /// plaintext one a missing route answers with).
+    /// problem+json 404 (a real "nothing at this coordinate"; the plaintext 404 a missing route answers
+    /// with throws <see cref="PoracleUnsupportedException"/> instead).
     /// </summary>
     Task<string?> GetGeocodeReverseAsync(double lat, double lon, string? language = null);
 }

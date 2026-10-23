@@ -41,11 +41,8 @@ public class DeadIconPackRepointTests
     }
 
     private SettingsMigrationService CreateSut() => new(
-        new Mock<IPwebSettingService>().Object,
         this._settings.Object,
-        new Mock<IWebhookDelegateService>().Object,
         new Mock<IQuickPickDefinitionRepository>().Object,
-        new Mock<IQuickPickAppliedStateRepository>().Object,
         new Mock<ILogger<SettingsMigrationService>>().Object);
 
     private void Row(string key, string value) =>

@@ -19,7 +19,7 @@
 </mat-dialog-content>
 <mat-dialog-actions align="end">
   <button mat-button (click)="dialogRef.close()">{{ 'COMMON.CANCEL' | translate }}</button>
-  <button mat-raised-button color="primary" (click)="duplicate()" [disabled]="duplicating() || !profileName.trim()">
+  <button mat-flat-button color="primary" (click)="duplicate()" [disabled]="duplicating() || !profileName.trim()">
     <mat-icon>content_copy</mat-icon> {{ 'PROFILES.DUPLICATE' | translate }}
   </button>
 </mat-dialog-actions>

@@ -76,8 +76,12 @@ export class IconService {
     };
   }
 
+  /**
+   * Team 4 is "any team" (the API's default for a gym rule, and what `!gym everything` stores). Icon packs
+   * have no gym/4.png, so it draws the neutral gym rather than a broken image.
+   */
   getGymUrl(team: number): string {
-    return `${this.gymBase()}/${team}.png`;
+    return `${this.gymBase()}/${team === 4 ? 0 : team}.png`;
   }
 
   getInvasionUrl(id: number): string {

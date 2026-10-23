@@ -1,5 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -11,11 +10,14 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
+import { ReplaySubject } from 'rxjs';
 
 import { GeoJsonImportResult, GeofenceRegion } from '../../../core/models';
 import { I18nService } from '../../../core/services/i18n.service';
 import { UserGeofenceService } from '../../../core/services/user-geofence.service';
 import { detectRegion } from '../../../shared/utils/geo.utils';
+import { TranslatePluralPipe } from '../../pipes/translate-plural.pipe';
+import { GEOFENCE_NAME_PATTERN } from '../../utils/geofence.utils';
 
 export interface GeoJsonImportDialogData {
   currentGeofenceCount: number;
@@ -38,6 +40,9 @@ interface PreviewFeature {
 
 type DialogStep = 'upload' | 'preview' | 'results';
 
+/** The most features one import reads; the rest of the file is left out and the preview says how many. */
+const MAX_FEATURES = 50;
+
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
@@ -52,6 +57,7 @@ type DialogStep = 'upload' | 'preview' | 'results';
     MatSelectModule,
     MatTooltipModule,
     TranslatePipe,
+    TranslatePluralPipe,
   ],
   selector: 'app-geojson-import-dialog',
   standalone: true,
@@ -59,7 +65,6 @@ type DialogStep = 'upload' | 'preview' | 'results';
   templateUrl: './geojson-import-dialog.component.html',
 })
 export class GeoJsonImportDialogComponent {
-  private readonly destroyRef = inject(DestroyRef);
   private readonly i18n = inject(I18nService);
   private readonly userGeofenceService = inject(UserGeofenceService);
   readonly previewFeatures = signal<PreviewFeature[]>([]);
@@ -74,6 +79,10 @@ export class GeoJsonImportDialogComponent {
   readonly fileError = signal<string | null>(null);
   readonly importing = signal(false);
   readonly importResult = signal<GeoJsonImportResult | null>(null);
+  /** Fences saved by the import that PoracleNG couldn't switch on yet; the toggle on each retries. */
+  readonly notActivated = computed(() => (this.importResult()?.created ?? []).filter(g => g.activationFailed));
+  /** Features past the first MAX_FEATURES in the file, which the preview never read. */
+  readonly overLimitCount = signal(0);
   readonly parseError = signal<string | null>(null);
   readonly selectedFeatures = computed(() => this.previewFeatures().filter(f => f.selected));
 
@@ -81,6 +90,15 @@ export class GeoJsonImportDialogComponent {
   readonly selectedValidCount = computed(
     () => this.selectedFeatures().filter(f => !f.warning && !this.getNameError(f) && f.regionId !== null).length,
   );
+
+  /**
+   * The import request's outcome (null when it failed). The request isn't tied to the dialog's life: the
+   * fences are created whether or not the dialog is still open, so the page can refresh when it settles.
+   */
+  readonly settled = new ReplaySubject<GeoJsonImportResult | null>(1);
+
+  /** Features in the file that aren't polygons (points, lines), which can't become a geofence. */
+  readonly skippedCount = signal(0);
 
   readonly step = signal<DialogStep>('upload');
 
@@ -122,7 +140,7 @@ export class GeoJsonImportDialogComponent {
     const name = feature.editedName.trim();
     if (!name) return this.i18n.instant('GEOJSON_IMPORT.ERR_NAME_REQUIRED');
     if (name.length > 50) return this.i18n.instant('GEOJSON_IMPORT.ERR_NAME_MAX_LENGTH');
-    if (!/^[a-zA-Z0-9 \-'.()&]+$/.test(name)) return this.i18n.instant('GEOJSON_IMPORT.ERR_NAME_INVALID_CHARS');
+    if (!GEOFENCE_NAME_PATTERN.test(name)) return this.i18n.instant('GEOJSON_IMPORT.ERR_NAME_INVALID_CHARS');
     const lowerName = name.toLowerCase();
     if (this.data.existingNames.some(n => n.toLowerCase() === lowerName)) return this.i18n.instant('GEOJSON_IMPORT.ERR_NAME_EXISTS');
     const others = this.previewFeatures().filter(f => f !== feature && f.selected);
@@ -134,6 +152,8 @@ export class GeoJsonImportDialogComponent {
     this.step.set('upload');
     this.selectedFile.set(null);
     this.previewFeatures.set([]);
+    this.skippedCount.set(0);
+    this.overLimitCount.set(0);
     this.parseError.set(null);
     this.fileError.set(null);
   }
@@ -191,20 +211,19 @@ export class GeoJsonImportDialogComponent {
     const file = new File([blob], 'import.geojson', { type: 'application/geo+json' });
 
     this.importing.set(true);
-    this.userGeofenceService
-      .importGeoJson(file)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        error: err => {
-          this.importing.set(false);
-          this.parseError.set(err?.error?.error ?? this.i18n.instant('GEOJSON_IMPORT.ERR_IMPORT_FAILED'));
-        },
-        next: result => {
-          this.importing.set(false);
-          this.importResult.set(result);
-          this.step.set('results');
-        },
-      });
+    this.userGeofenceService.importGeoJson(file).subscribe({
+      error: err => {
+        this.importing.set(false);
+        this.parseError.set(err?.error?.error ?? this.i18n.instant('GEOJSON_IMPORT.ERR_IMPORT_FAILED'));
+        this.settled.next(null);
+      },
+      next: result => {
+        this.importing.set(false);
+        this.importResult.set(result);
+        this.step.set('results');
+        this.settled.next(result);
+      },
+    });
   }
 
   toggleAll(checked: boolean): void {
@@ -223,7 +242,8 @@ export class GeoJsonImportDialogComponent {
     this.previewFeatures.update(features => features.map((f, i) => (i === index ? { ...f, regionId } : f)));
   }
 
-  private parseGeoJson(json: Record<string, unknown>): void {
+  /** Builds the preview, or sets the error and answers false so the dialog stays on the upload step. */
+  private parseGeoJson(json: Record<string, unknown>): boolean {
     let features: Record<string, unknown>[] = [];
 
     if (json['type'] === 'FeatureCollection' && Array.isArray(json['features'])) {
@@ -233,7 +253,7 @@ export class GeoJsonImportDialogComponent {
     } else {
       this.parseError.set(this.i18n.instant('GEOJSON_IMPORT.ERR_INVALID_GEOJSON'));
       this.selectedFile.set(null);
-      return;
+      return false;
     }
 
     // Build region detection data from regions with polygons
@@ -243,13 +263,15 @@ export class GeoJsonImportDialogComponent {
 
     const previews: PreviewFeature[] = [];
     let autoNameIndex = 1;
+    let skipped = 0;
 
-    for (const feature of features.slice(0, 50)) {
-      const geometry = feature['geometry'] as Record<string, unknown> | undefined;
-      if (!geometry) continue;
-
-      const geomType = geometry['type'] as string;
-      if (geomType !== 'Polygon' && geomType !== 'MultiPolygon') continue;
+    for (const feature of features.slice(0, MAX_FEATURES)) {
+      const geometry = feature?.['geometry'] as Record<string, unknown> | undefined;
+      const geomType = geometry?.['type'] as string | undefined;
+      if (!geometry || (geomType !== 'Polygon' && geomType !== 'MultiPolygon')) {
+        skipped++;
+        continue;
+      }
 
       const props = (feature['properties'] as Record<string, unknown>) ?? {};
       const name =
@@ -315,10 +337,13 @@ export class GeoJsonImportDialogComponent {
     if (previews.length === 0) {
       this.parseError.set(this.i18n.instant('GEOJSON_IMPORT.ERR_NO_POLYGONS'));
       this.selectedFile.set(null);
-      return;
+      return false;
     }
 
     this.previewFeatures.set(previews);
+    this.skippedCount.set(skipped);
+    this.overLimitCount.set(Math.max(0, features.length - MAX_FEATURES));
+    return true;
   }
 
   private processFile(file: File): void {
@@ -343,8 +368,9 @@ export class GeoJsonImportDialogComponent {
     reader.onload = () => {
       try {
         const json = JSON.parse(reader.result as string);
-        this.parseGeoJson(json);
-        this.step.set('preview');
+        // A file that parses but isn't usable GeoJSON used to move on to the preview step anyway, showing
+        // "0 B" with the error underneath.
+        if (this.parseGeoJson(json)) this.step.set('preview');
       } catch {
         this.parseError.set(this.i18n.instant('GEOJSON_IMPORT.ERR_INVALID_JSON'));
         this.selectedFile.set(null);

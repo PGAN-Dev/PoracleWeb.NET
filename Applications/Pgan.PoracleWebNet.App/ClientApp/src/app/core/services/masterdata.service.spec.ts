@@ -34,11 +34,12 @@ describe('MasterDataService', () => {
     });
 
     it('should return fallback for unknown pokemon ID', () => {
-      expect(service.getPokemonName(9999)).toBe('Pokemon #9999');
+      expect(service.getPokemonName(9999)).toBe('Pokémon #9999');
     });
 
-    it('should return "All Pokemon" for ID 0', () => {
-      expect(service.getPokemonName(0)).toBe('All Pokemon');
+    // Translated, like the Pokémon list's own "All Pokémon" (the Nests card read "All Pokemon").
+    it('names ID 0 through POKEMON.ALL_POKEMON', () => {
+      expect(service.getPokemonName(0)).toBe('POKEMON.ALL_POKEMON');
     });
 
     it('should return fallback for unknown item ID', () => {
@@ -124,7 +125,7 @@ describe('MasterDataService', () => {
   });
 
   describe('getAllPokemon', () => {
-    it('should return sorted list with "All Pokemon" entry at start', () => {
+    it('should return sorted list with the "All Pokémon" entry at start', () => {
       service.loadData().subscribe();
 
       httpMock.expectOne(`${API}/api/masterdata/pokemon`).flush({
@@ -139,7 +140,7 @@ describe('MasterDataService', () => {
       httpMock.expectOne(req => req.url === `${API}/api/masterdata/monsters`).flush({});
 
       const pokemon = service.getAllPokemon();
-      expect(pokemon[0]).toEqual({ id: 0, name: 'All Pokemon' });
+      expect(pokemon[0]).toEqual({ id: 0, name: 'POKEMON.ALL_POKEMON' });
       expect(pokemon[1]).toEqual({ id: 1, name: 'Bulbasaur' });
       expect(pokemon[2]).toEqual({ id: 25, name: 'Pikachu' });
       expect(pokemon[3]).toEqual({ id: 150, name: 'Mewtwo' });

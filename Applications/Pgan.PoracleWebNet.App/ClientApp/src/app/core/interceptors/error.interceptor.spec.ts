@@ -77,7 +77,7 @@ describe('errorInterceptor', () => {
 
     expect(localStorage.getItem('poracle_token')).toBe('admin-token');
     expect(localStorage.getItem('poracle_admin_token')).toBeNull();
-    expect(router.navigate).toHaveBeenCalledWith(['/admin']);
+    expect(router.navigate).toHaveBeenCalledWith(['/admin'], { state: { adminReturn: true } });
     expect(toast.error).toHaveBeenCalledWith('HTTP_ERROR.INSPECTION_ENDED');
     expect(toast.error).not.toHaveBeenCalledWith('HTTP_ERROR.UNAUTHORIZED');
   });
@@ -176,6 +176,40 @@ describe('errorInterceptor', () => {
   });
 
   describe('silent endpoints', () => {
+    it('does not toast a failed area polygon read over an unsaved alarm dialog', () => {
+      http.get('/api/areas/geofence').subscribe({ error: () => {} });
+
+      httpMock.expectOne('/api/areas/geofence').flush(null, { status: 503, statusText: 'Unavailable' });
+
+      expect(toast.error).not.toHaveBeenCalled();
+    });
+
+    // The pin card's static map and the weather row: both callers fall back to drawing nothing, and a
+    // 404 on the first read after a restart toasted "not found" over an Areas page that worked.
+    it.each(['/api/location/staticmap?lat=1&lon=2', '/api/location/weather'])('does not toast a failed %s', url => {
+      http.get(url).subscribe({ error: () => {} });
+
+      httpMock.expectOne(url).flush(null, { status: 404, statusText: 'Not Found' });
+
+      expect(toast.error).not.toHaveBeenCalled();
+    });
+
+    it('still toasts a failed location write', () => {
+      http.put('/api/location', {}).subscribe({ error: () => {} });
+
+      httpMock.expectOne('/api/location').flush(null, { status: 500, statusText: 'Server Error' });
+
+      expect(toast.error).toHaveBeenCalledTimes(1);
+    });
+
+    it('still toasts a failed read of the area list itself', () => {
+      http.get('/api/areas').subscribe({ error: () => {} });
+
+      httpMock.expectOne('/api/areas').flush(null, { status: 503, statusText: 'Unavailable' });
+
+      expect(toast.error).toHaveBeenCalledTimes(1);
+    });
+
     it('should NOT show toast for /api/config errors', () => {
       http.get('/api/config/templates').subscribe({ error: () => {} });
 

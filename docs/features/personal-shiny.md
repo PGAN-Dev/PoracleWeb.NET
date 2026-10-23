@@ -30,7 +30,11 @@ Two images, and both have to be the experimental ones.
 | Component | Image |
 |---|---|
 | PoracleWeb.NET | `ghcr.io/pgan-dev/poracleweb.net-experimental:shiny`, or a fixed version such as `:2.20.2-shiny.1` |
-| PoracleNG | `ghcr.io/jfberry/poracleng:<short sha>`, such as `:37cc7a3` |
+| PoracleNG | `ghcr.io/jfberry/poracleng:feat-personal-shiny`, or a pinned `:<short sha>` |
+
+From 3.0.0-shiny on, PoracleWeb.NET talks to PoracleNG only through `/api/v2` and needs 5.4.0, so the
+PoracleNG build must be `feat/personal-shiny` rebased on 5.4.0 (`develop` at `34421b82` or later). An
+older `feat/personal-shiny` build, such as `:37cc7a3`, only works with the 2.x prereleases.
 
 `:shiny` follows the newest `-shiny.N` prerelease. There is no `latest` tag on the experimental
 repository, so pulling the default can't land you here by accident. Every push to the branch also

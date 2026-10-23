@@ -1,17 +1,19 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { ConfigService } from './config.service';
-import { UserGeofence } from '../models';
+import { GeofenceAlarmsChoice, GeofenceDeleteImpact, UserGeofence } from '../models';
 
 @Injectable({ providedIn: 'root' })
 export class AdminGeofenceService {
   private readonly config = inject(ConfigService);
   private readonly http = inject(HttpClient);
 
-  adminDelete(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.config.apiHost}/api/admin/geofences/${id}`);
+  /** `alarms` decides what happens to the owner's alarms limited to this fence alone. The server requires it and answers 400 without one. */
+  adminDelete(id: number, alarms: GeofenceAlarmsChoice): Observable<void> {
+    const params = new HttpParams().set('alarms', alarms);
+    return this.http.delete<void>(`${this.config.apiHost}/api/admin/geofences/${id}`, { params });
   }
 
   approveSubmission(id: number, data: { groupName?: string; parentId?: number; promotedName?: string }): Observable<UserGeofence> {
@@ -20,6 +22,11 @@ export class AdminGeofenceService {
 
   getAll(): Observable<UserGeofence[]> {
     return this.http.get<UserGeofence[]>(`${this.config.apiHost}/api/admin/geofences/all`);
+  }
+
+  /** How many of the owner's alarms would widen if this fence were deleted. Writes nothing. */
+  getDeleteImpact(id: number): Observable<GeofenceDeleteImpact> {
+    return this.http.get<GeofenceDeleteImpact>(`${this.config.apiHost}/api/admin/geofences/${id}/delete-impact`);
   }
 
   getSubmissions(): Observable<UserGeofence[]> {

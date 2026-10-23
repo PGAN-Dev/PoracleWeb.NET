@@ -8,6 +8,11 @@ This line is unofficial and unsupported by PoracleWeb.NET releases. Report probl
 
 ## [Unreleased]
 
+### Changed
+
+- **Rebased onto PoracleWeb.NET 3.0.0.** That release needs PoracleNG 5.4.0 and talks to it only through `/api/v2`, so this line now needs `feat/personal-shiny` rebased on 5.4.0: PoracleNG `develop` at `34421b82` or later, image `ghcr.io/jfberry/poracleng:feat-personal-shiny`. It also brings 3.0.0's redesigned alarm cards and add and edit dialogs; the "Shiny for me" and "Background for me" badges are now status chips on the shared card, and the "For my game accounts" block still opens the Filters tab. See [CHANGELOG.md](CHANGELOG.md) for the rest.
+- **Personal shiny reads and writes go through v2.** A v2 read's `personal_shiny` and `personal_background` fold into the rule's `personal` bitmask, and an edit or create sends them back as the two booleans when the server's `/openapi.json` declares both. There is no v1 fallback any more: a personal bit on a server that doesn't declare the fields, or a reserved bit (4 or 8), is refused with "PoracleNG can't store this alarm as it is" instead of being written through v1.
+
 ## [2.21.0-shiny.1] - 2026-10-20
 
 Based on PoracleWeb.NET 2.21.0. The experimental additions are unchanged from 2.20.2-shiny.1, so it needs the same PoracleNG: `feat/personal-shiny` ([jfberry/PoracleNG#255](https://github.com/jfberry/PoracleNG/pull/255)), last tested at `37cc7a3`.

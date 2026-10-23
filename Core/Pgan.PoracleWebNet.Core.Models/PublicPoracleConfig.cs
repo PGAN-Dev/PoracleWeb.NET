@@ -39,14 +39,6 @@ public class PublicPoracleConfig
     public string Prefix { get; set; } = string.Empty;
 
     /// <summary>
-    /// Whether this server's <c>/api/v2</c> genuinely stores <c>ping</c> rather than blanking it --
-    /// <see cref="PoracleV2Capabilities.TrackingPing"/>, read from the v2 schema document rather than
-    /// from Poracle's own config. Not set by <see cref="From"/>: the two have different sources and
-    /// <c>ConfigController</c> fills this in separately.
-    /// </summary>
-    public bool PingSupported { get; set; }
-
-    /// <summary>
     /// Whether this server stores personal shiny rules --
     /// <see cref="PoracleV2Capabilities.PersonalTracking"/>, read from the v2 schema document. Set by
     /// <c>ConfigController</c>, not <see cref="From"/>.
