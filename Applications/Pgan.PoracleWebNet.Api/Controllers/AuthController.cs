@@ -220,6 +220,12 @@ public partial class AuthController(
             return this.Redirect($"{frontendUrl}/login#error=user_not_registered");
         }
 
+        if (!HumanKind.IsPerson(human.Type))
+        {
+            LogDestinationLoginRefused(this._logger, "Discord");
+            return this.Redirect($"{frontendUrl}/login#error=destination_account");
+        }
+
         // Role-based access: check Discord guild roles if enabled
         var (isAdmin, managedWebhooks) = await this.GetRolesAsync(discordId);
         if (!isAdmin)
@@ -622,6 +628,16 @@ public partial class AuthController(
             });
         }
 
+        if (!HumanKind.IsPerson(human.Type))
+        {
+            LogDestinationLoginRefused(this._logger, "Telegram");
+            return this.StatusCode(403, new
+            {
+                error = "This id is a channel or webhook in Poracle, not a person.",
+                code = "destination_account",
+            });
+        }
+
         var (isAdmin, managedWebhooks) = await this.GetRolesAsync(telegramId);
 
         // Enforce enable_telegram site setting for non-admin users.
@@ -815,6 +831,19 @@ public partial class AuthController(
         if (human is null)
         {
             return this.Unauthorized(new { error = "This account no longer exists." });
+        }
+
+        // A token for a channel or webhook row cannot be a person's session. Not while impersonating:
+        // this 401 would end the admin's own session, and inspecting a destination is what impersonation
+        // is for. See #1025.
+        if (!this.IsImpersonating && !HumanKind.IsPerson(human.Type))
+        {
+            LogDestinationLoginRefused(this._logger, "Session");
+            return this.Unauthorized(new
+            {
+                error = "This id is a channel or webhook in Poracle, not a person.",
+                code = "destination_account",
+            });
         }
 
         // Blocking a user stopped Poracle delivering to them and did nothing else: no filter, controller or
@@ -1220,6 +1249,12 @@ public partial class AuthController(
             return (null, "user_not_registered");
         }
 
+        if (!HumanKind.IsPerson(human.Type))
+        {
+            LogDestinationLoginRefused(this._logger, "OIDC");
+            return (null, "destination_account");
+        }
+
         var (isAdmin, managedWebhooks) = await this.GetRolesAsync(identity);
         if (!isAdmin)
         {
@@ -1345,6 +1380,9 @@ public partial class AuthController(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Auth attempt blocked: {Method} login is disabled by site setting.")]
     private static partial void LogAuthMethodDisabled(ILogger logger, string method);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Auth attempt refused: {Method} identity is a channel or webhook row, not a person.")]
+    private static partial void LogDestinationLoginRefused(ILogger logger, string method);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Profile resync for {UserId}: JWT had profile {JwtProfileNo}, DB has {DbProfileNo}. Issuing refreshed token.")]
     private static partial void LogProfileResync(ILogger logger, string userId, int jwtProfileNo, int dbProfileNo);
