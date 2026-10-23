@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
-- **Revoking a delegate now ends their impersonation session on its next request, and a new delegate is let in.** The check that re-authorises an impersonation session on every request could keep one answer for good when the role lookup answered quickly, so a delegate whose grant had been revoked kept managing the webhook, and a delegate granted afterwards was refused, until the app restarted. Each check now asks again.
+- **A revoked delegate loses their impersonation session promptly, and a newly granted one keeps theirs.** The check that re-authorises an impersonation session on every request could hold on to one answer for good when the role lookup answered quickly, so a delegate whose grant had been revoked kept managing the webhook, and a delegate granted afterwards was refused, until the app restarted. Each check now asks again: a grant removed in the admin dialog takes effect on the next request, and one removed from PoracleJS's config within the role lookup's one-minute cache.
 
 ## [3.0.0] - 2026-10-22
 

@@ -93,10 +93,16 @@ public class ImpersonationRoleProbeTests
     /// Runs <paramref name="checks"/> for many impersonators at once, each making its own checks in order.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// The defect these guard against is a race: a resolver that answers at once let the probe's resolve
     /// finish on the thread pool before the caller had stored it as in flight, and the finished entry was
     /// then never removed, so every later check reused it. One impersonator checking in a loop on an idle
     /// pool almost never lost it; many at once on a busy pool lost it several times in every run.
+    /// </para>
+    /// <para>
+    /// So the two tests that use this are a probabilistic regression guard: they surface the old race under
+    /// load rather than force it. On the fixed probe nothing in them depends on timing, so they cannot flake.
+    /// </para>
     /// </remarks>
     private static Task RaceAsync(Func<string, Task> checks) =>
         Task.WhenAll(Enumerable.Range(0, Math.Max(16, Environment.ProcessorCount * 2))

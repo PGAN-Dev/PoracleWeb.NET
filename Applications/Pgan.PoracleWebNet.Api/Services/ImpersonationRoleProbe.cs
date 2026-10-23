@@ -68,7 +68,18 @@ public sealed partial class ImpersonationRoleProbe(
         var resolve = this._inFlight.GetOrAdd(userId, attempt.Task);
         if (resolve == attempt.Task)
         {
-            this.StartResolve(userId, attempt);
+            try
+            {
+                this.StartResolve(userId, attempt);
+            }
+            catch (Exception ex)
+            {
+                // Nothing will ever complete this entry, so back it out rather than leave every concurrent
+                // and later check waiting on it; this check, and any sharing it, read the failure as unresolved.
+                LogResolveFailed(this._logger, ex, userId);
+                this._inFlight.TryRemove(new KeyValuePair<string, Task<UserRoles>>(userId, attempt.Task));
+                attempt.TrySetResult(Unresolved);
+            }
         }
 
         using var budget = new CancellationTokenSource();
@@ -118,7 +129,7 @@ public sealed partial class ImpersonationRoleProbe(
             // this one. Removing by value as well as key means a resolve that finishes late cannot take out
             // the entry of one started after it.
             this._inFlight.TryRemove(new KeyValuePair<string, Task<UserRoles>>(userId, attempt.Task));
-            attempt.SetResult(roles);
+            attempt.TrySetResult(roles);
         }
     });
 
