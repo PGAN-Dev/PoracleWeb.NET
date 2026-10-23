@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.1] - 2026-10-23
+
 ### Fixed
 
 - **Rule repair no longer lists editable rules as "cannot edit".** The scan judged each rule without the fields PoracleNG's own schema declares, so a rule carrying a field PoracleWeb.NET doesn't model, such as a personal shiny flag on a PoracleNG that has them, was reported as one that needs fixing by hand. Editing those rules always worked. The scan and the repair now check against what the server declares; a field it doesn't declare is still reported.
@@ -1379,7 +1381,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.0.0...HEAD
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.0.1...HEAD
+[3.0.1]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.0.0...v3.0.1
 [3.0.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.21.0...v3.0.0
 [2.21.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.20.2...v2.21.0
 [2.20.2]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.20.1...v2.20.2
