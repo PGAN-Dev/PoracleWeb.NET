@@ -95,6 +95,26 @@ Pgan.PoracleWebNet.slnx
 - **ProfileService is proxy-first**: Single-user reads (`GetByUserAsync`, `GetByUserAndProfileNoAsync`) and all CRUD go through `IPoracleHumanProxy`. No DB fallback -- proxy errors propagate.
 - **PoracleNG handles**: field defaults (template, PVP, size, etc.), dedup detection, immediate state reload on every mutation, grunt_type normalization, saving the active profile's areas on a profile switch.
 
+### People vs destinations
+
+`humans` holds people and destinations in one table, told apart by `type`. **A person is a type that is null,
+empty, whitespace or ends `:user` (case-insensitive); everything else is a destination.** That is upstream's
+`!broadcast` split, so an operator's typo or a type added later lands on Destinations rather than on neither page.
+`HumanKind` (`Core.Models/HumanKind.cs`) is the one classifier: `IsPerson`, `KindOf` (`"person"` or `"destination"`),
+and three sets.
+
+`HumanKind.Destinations` is exactly `webhook`, `discord:channel`, `discord:thread`, `telegram:channel`,
+`telegram:group`, `telegram:topic`. It is the allowlist that create, grant targets and delegate impersonation will check
+as the later parts of #1025 land; **nothing reads it yet** (only `IsPerson` and `KindOf` are used), and the grant target is
+still webhook-only. An unknown non-user type is listed as a destination and will be on none of those powers. `MentionCapable` (webhook, Discord channel,
+Discord thread) says where a `ping` makes sense; `NameAddressable` says which types PoracleNG resolves by name.
+
+`GET /api/admin/users` stamps `kind` on every row. Admin > Users shows the people, Admin > Destinations the rest, split
+client-side on that field (`shared/utils/human-kind.ts`); the two pages share their list state in `admin-list-state.ts`.
+The delegate grant refuses a grantee that isn't a person (400). Once delegation widens beyond webhooks, the
+`webhook_delegates.webhook_id` column will hold a destination id, a channel or group id rather than a URL; today it
+holds webhook URLs only, and the column name predates the change.
+
 ### Repository Layer
 - Repositories remain for **non-alarm** data only: all PoracleWeb-owned tables (`SiteSettingRepository`, `WebhookDelegateRepository`, `UserGeofenceRepository`, `QuickPickDefinitionRepository`, `QuickPickAppliedStateRepository`). There is no human or profile repository: every human and profile read and write, admin bulk included, goes through `IPoracleHumanProxy` (5.4.0's `/api/v2`).
 - **Removed**: `HumanRepository` and `ProfileRepository` (5.4.0), 8 alarm repository classes (MonsterRepository, RaidRepository, etc.), `BaseRepository<TEntity, TModel>`, `PoracleUnitOfWork`, `IUnitOfWork`, and all alarm repository interfaces. `PoracleContext` itself is gone: PoracleWeb.NET has no connection to Poracle's database, so a direct alarm write is not one `DbSet` away. Nothing writes an alarm table: per-alarm `override_areas` go through PoracleNG's trusted tracking write. `EnsureNotNullDefaults()` is no longer needed for alarm writes (PoracleNG handles NULL defaults).
@@ -487,7 +507,7 @@ next step, and those call sites **opt in by exact status**, never by range:
 
 | Call site | Status | Why the sentence matters |
 |---|---|---|
-| Admin > Webhooks, add | 502 | #482 half-write: "Check the webhook list before trying again." A retry on the generic message can create a second row |
+| Admin > Destinations, add | 502 | #482 half-write: "Check the webhook list before trying again." A retry on the generic message can create a second row |
 | User geofences, approve / reject / delete | 502 | Koji refused; "the region may no longer exist" says what to reload |
 | `TestAlertService` | 502, 501 | reads `err.error.error` itself (silent URL), PoracleNG's reason for not delivering |
 

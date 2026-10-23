@@ -99,7 +99,7 @@ nav:
       - Quiet Periods: features/quiet-periods.md
       - Profiles: features/profiles.md
       - Quest Summary Delivery: features/quest-summary-schedules.md
-      - Webhooks & Delegates: features/webhooks.md
+      - Destinations & Delegates: features/webhooks.md
       - Custom Geofences:
           - Overview: features/custom-geofences/index.md
           - Key Concepts: features/custom-geofences/key-concepts.md

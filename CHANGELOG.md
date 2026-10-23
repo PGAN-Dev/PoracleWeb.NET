@@ -9,11 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Admin > Webhooks is now Admin > Destinations, and lists Discord channels and threads and Telegram channels, groups and topics with their type.** These accounts are where alerts are posted rather than people who sign in, so they have their own page, with search and a filter by type. Admin > Users links across to it. Webhooks work as before, including delegates.
 - **Mention shows only on webhooks and Discord destinations.** A role or user mention can't reach a person's DMs or a Telegram chat, so the field is gone from those edit dialogs.
 - **Managing a destination says what it is, and leaving returns you to the page you started from.** The banner reads "Managing Discord channel #raid-alerts" instead of "Viewing as", and a destination's test alert says where it posts instead of "Check your DMs". Exit goes back to Admin > Users, Admin > Destinations or My Webhooks, whichever the session began on. A delegate whose session ended on its own used to land on Admin, which they can't open, and then on the dashboard.
 
 ### Fixed
 
+- **Channels and groups are no longer listed as users.** A Discord channel or Telegram group in Poracle's table showed up under Admin > Users, where it could be blocked or opened as if it were a person. The Users page now lists people only, and delegates can only be granted to people. (#1025)
 - **Rule repair no longer lists editable rules as "cannot edit".** The scan judged each rule without the fields PoracleNG's own schema declares, so a rule carrying a field PoracleWeb.NET doesn't model, such as a personal shiny flag on a PoracleNG that has them, was reported as one that needs fixing by hand. Editing those rules always worked. The scan and the repair now check against what the server declares; a field it doesn't declare is still reported.
 
 ## [3.0.0] - 2026-10-22

@@ -160,6 +160,8 @@ describe('AdminUsersComponent', () => {
     const link = (fixture.nativeElement as HTMLElement).querySelector('[data-test="destinations-link"]');
     expect(link?.getAttribute('href')).toBe('/admin/destinations');
     expect(link?.textContent).toContain('ADMIN.USERS_DESTINATIONS_LINK');
+    // Phones hide .page-description, so the link must not live inside it.
+    expect(link?.closest('.page-description')).toBeNull();
   });
 
   it('shows profile 0 as 0, not 1', () => {
