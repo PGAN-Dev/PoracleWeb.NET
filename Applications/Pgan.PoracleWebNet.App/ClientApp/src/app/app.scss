@@ -25,9 +25,47 @@
     height: 20px;
   }
 
+  .banner-text {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
   button {
     margin-left: auto;
     font-size: 12px;
+    flex-shrink: 0;
+    white-space: nowrap;
+    min-height: 40px;
+  }
+
+  .exit-short {
+    display: none;
+  }
+
+  // Phones: the sentence takes the first row, the button the second; the label is the short one and the
+  // eye icon goes, since it was being squashed beside a three-line label.
+  @media (max-width: 600px) {
+    flex-wrap: wrap;
+
+    .banner-icon {
+      display: none;
+    }
+
+    .banner-text {
+      flex: 1 1 100%;
+    }
+
+    button {
+      margin-left: 0;
+    }
+
+    .exit-full {
+      display: none;
+    }
+
+    .exit-short {
+      display: inline;
+    }
   }
 }
 
