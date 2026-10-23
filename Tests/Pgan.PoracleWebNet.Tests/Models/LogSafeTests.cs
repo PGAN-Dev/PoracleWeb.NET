@@ -1,0 +1,61 @@
+using Pgan.PoracleWebNet.Core.Models;
+
+namespace Pgan.PoracleWebNet.Tests.Models;
+
+/// <summary>
+/// A webhook's human id is its URL, token included, so any log line naming one leaked a credential that
+/// lets anyone post to the channel. <see cref="LogSafe.Id"/> keeps enough to tell rows apart. See #1038.
+/// </summary>
+public class LogSafeTests
+{
+    [Theory]
+    [InlineData("https://discord.com/api/webhooks/123456/abcDEF-token_value", "https://discord.com/api/webhooks/123456/***")]
+    [InlineData("https://discord.com/api/webhooks/123456/abcDEF-token_value/slack", "https://discord.com/api/webhooks/123456/***")]
+    [InlineData("https://discord.com/api/webhooks/123456/token?wait=true&thread_id=9", "https://discord.com/api/webhooks/123456/***")]
+    [InlineData("https://discordapp.com/api/webhooks/123456/token", "https://discordapp.com/api/webhooks/123456/***")]
+    [InlineData("https://canary.discord.com/api/v10/webhooks/123456/token", "https://canary.discord.com/api/v10/webhooks/123456/***")]
+    [InlineData("HTTPS://Discord.com/API/Webhooks/123456/token", "https://discord.com/API/Webhooks/123456/***")]
+    public void DiscordWebhookTokenIsMasked(string id, string expected)
+    {
+        Assert.Equal(expected, LogSafe.Id(id));
+    }
+
+    [Theory]
+    [InlineData("http://hooks.example.net:8080/services/T000/B000/XXXXSECRET", "http://hooks.example.net:8080/services/***")]
+    [InlineData("https://hooks.slack.com/services/T000/B000/XXXXSECRET", "https://hooks.slack.com/services/***")]
+    [InlineData("https://example.net/secret-in-the-only-segment", "https://example.net/***")]
+    [InlineData("https://example.net/hook?token=secret", "https://example.net/***")]
+    [InlineData("https://user:pass@example.net/hook/secret", "https://example.net/hook/***")]
+    [InlineData("https://example.net", "https://example.net/***")]
+    public void OtherUrlsKeepHostAndAnyFirstSegmentThatIsNotTheLast(string id, string expected)
+    {
+        Assert.Equal(expected, LogSafe.Id(id));
+    }
+
+    [Theory]
+    [InlineData("https://discord.com/api/webhooks/123456/supersecret")]
+    [InlineData("https://hooks.example.net/services/T000/B000/supersecret")]
+    [InlineData("https://example.net/a?supersecret")]
+    [InlineData("https://example.net/a#supersecret")]
+    public void TokenNeverSurvives(string id)
+    {
+        Assert.DoesNotContain("supersecret", LogSafe.Id(id), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("123456789012345678")]
+    [InlineData("-1001234567890")]
+    [InlineData("-1001234567890:42")]
+    [InlineData("some-name")]
+    [InlineData("")]
+    public void NonUrlIdsAreUnchanged(string id)
+    {
+        Assert.Equal(id, LogSafe.Id(id));
+    }
+
+    [Fact]
+    public void NullIsNamed()
+    {
+        Assert.Equal("(none)", LogSafe.Id(null));
+    }
+}

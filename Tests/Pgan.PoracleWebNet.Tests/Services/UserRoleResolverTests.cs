@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -7,6 +8,7 @@ using Pgan.PoracleWebNet.Api.Configuration;
 using Pgan.PoracleWebNet.Api.Services;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
+using Pgan.PoracleWebNet.Tests.Helpers;
 
 namespace Pgan.PoracleWebNet.Tests.Services;
 
@@ -29,7 +31,7 @@ public class UserRoleResolverTests
     private const string RaidThread = "1100000000000000002";
     private const string TelegramChannel = "-1001234567890";
 
-    private UserRoleResolver CreateSut(string adminIds = "", IMemoryCache? cache = null) => new(
+    private UserRoleResolver CreateSut(string adminIds = "", IMemoryCache? cache = null, ILogger<UserRoleResolver>? logger = null) => new(
         this._poracleApiProxy.Object,
         this._poracleHumanProxy.Object,
         this._webhookDelegateService.Object,
@@ -37,7 +39,7 @@ public class UserRoleResolverTests
         this._siteSettings.Object,
         Options.Create(new PoracleSettings { AdminIds = adminIds }),
         cache ?? new MemoryCache(new MemoryCacheOptions()),
-        NullLogger<UserRoleResolver>.Instance);
+        logger ?? NullLogger<UserRoleResolver>.Instance);
 
     [Fact]
     public async Task AnUnreachablePoracleIsReportedAsUnresolvedRatherThanAsNotAnAdmin()
@@ -201,6 +203,21 @@ public class UserRoleResolverTests
 
         Assert.Null(roles.ManagedDestinations);
         Assert.True(roles.Resolved);
+    }
+
+    /// <summary>
+    /// The grant is a webhook URL, token and all, and logging it raw put a credential in the log. See #1038.
+    /// </summary>
+    [Fact]
+    public async Task AnUnresolvedGrantIsLoggedWithoutItsWebhookToken()
+    {
+        this.ArrangeDelegate(["https://discordapp.com/api/webhooks/863186716952100874/to_ken"]);
+        var logger = new CapturingLogger<UserRoleResolver>();
+
+        await this.CreateSut(logger: logger).ResolveAsync("u1");
+
+        Assert.Contains("https://discordapp.com/api/webhooks/863186716952100874/***", logger.All, StringComparison.Ordinal);
+        Assert.DoesNotContain("to_ken", logger.All, StringComparison.Ordinal);
     }
 
     /// <summary>

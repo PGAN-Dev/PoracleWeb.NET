@@ -324,7 +324,7 @@ public sealed partial class RuleRepairJob(IServiceScopeFactory scopes, ILogger<R
         }
         catch (Exception ex) when (SkipReason(ex) is { } reason)
         {
-            LogHumanSkipped(this._logger, humanId, reason);
+            LogHumanSkipped(this._logger, LogSafe.Id(humanId), reason);
             return new HumanScan([], [], new RuleRepairSkip(humanId, reason));
         }
     }
@@ -417,7 +417,7 @@ public sealed partial class RuleRepairJob(IServiceScopeFactory scopes, ILogger<R
         }
         catch (Exception ex) when (!abort.IsCancellationRequested && IsItemFailure(ex))
         {
-            LogRereadFailed(this._logger, humanId, ex.Message);
+            LogRereadFailed(this._logger, LogSafe.Id(humanId), ex.Message);
             tally.Failed.AddRange(items.Select(i => i with { Reason = ex.Message }));
             return tally;
         }
@@ -444,7 +444,7 @@ public sealed partial class RuleRepairJob(IServiceScopeFactory scopes, ILogger<R
                 if (outcome == StoredRuleReplaceOutcome.Updated)
                 {
                     // 5.4.0 keeps the uid; nothing in PoracleWeb.NET tracks these rules by uid if it ever does not.
-                    LogRepairWriting(this._logger, humanId, item.Type, item.ProfileNo, item.Uid, item.Kind, rule.Rule);
+                    LogRepairWriting(this._logger, LogSafe.Id(humanId), item.Type, item.ProfileNo, item.Uid, item.Kind, rule.Rule);
                     outcome = await this.CallAsync(
                         () => tracking.ReplaceStoredRuleAsync(item.Type, humanId, item.Uid, item.ProfileNo, row, dryRun: false), abort);
                     if (outcome == StoredRuleReplaceOutcome.Updated)
@@ -473,7 +473,7 @@ public sealed partial class RuleRepairJob(IServiceScopeFactory scopes, ILogger<R
             }
             catch (Exception ex) when (!abort.IsCancellationRequested && IsItemFailure(ex))
             {
-                LogRepairFailed(this._logger, item.Type, item.Uid, humanId, ex.Message);
+                LogRepairFailed(this._logger, item.Type, item.Uid, LogSafe.Id(humanId), ex.Message);
                 tally.Failed.Add(item with { Reason = ex.Message });
             }
         }

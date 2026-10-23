@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Api.Services;
 
@@ -76,7 +77,7 @@ public sealed partial class ImpersonationRoleProbe(
             {
                 // Nothing will ever complete this entry, so back it out rather than leave every concurrent
                 // and later check waiting on it; this check, and any sharing it, read the failure as unresolved.
-                LogResolveFailed(this._logger, ex, userId);
+                LogResolveFailed(this._logger, ex, LogSafe.Id(userId));
                 this._inFlight.TryRemove(new KeyValuePair<string, Task<UserRoles>>(userId, attempt.Task));
                 attempt.TrySetResult(Unresolved);
             }
@@ -86,7 +87,7 @@ public sealed partial class ImpersonationRoleProbe(
         var finished = await Task.WhenAny(resolve, Task.Delay(this.Budget, this._time, budget.Token));
         if (finished != resolve)
         {
-            LogOverBudget(this._logger, userId, this.Budget.TotalSeconds);
+            LogOverBudget(this._logger, LogSafe.Id(userId), this.Budget.TotalSeconds);
             this.Quiet(userId);
             return Unresolved;
         }
@@ -121,7 +122,7 @@ public sealed partial class ImpersonationRoleProbe(
         {
             // The resolver catches its own sources; this is the scope or the container failing, which is
             // no more a "no" than a source that did not answer.
-            LogResolveFailed(this._logger, ex, userId);
+            LogResolveFailed(this._logger, ex, LogSafe.Id(userId));
         }
         finally
         {

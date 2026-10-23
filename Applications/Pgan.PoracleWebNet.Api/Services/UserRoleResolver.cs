@@ -176,7 +176,7 @@ public sealed partial class UserRoleResolver(
         }
         catch (Exception ex)
         {
-            LogPoracleConfigFetchFailed(this._logger, ex, userId);
+            LogPoracleConfigFetchFailed(this._logger, ex, LogSafe.Id(userId));
             configReadable = false;
         }
 
@@ -221,7 +221,7 @@ public sealed partial class UserRoleResolver(
         }
         catch (Exception ex)
         {
-            LogAdminRolesFetchFailed(this._logger, ex, userId);
+            LogAdminRolesFetchFailed(this._logger, ex, LogSafe.Id(userId));
             rolesReadable = false;
         }
 
@@ -239,7 +239,7 @@ public sealed partial class UserRoleResolver(
             // The third source, and it was left out of the Resolved flag: a poracle_web blip returned a
             // confident answer with an incomplete webhook list, which then got cached for the full
             // minute and denied a legitimate delegate the whole time. See #667.
-            LogPwebDelegatesFetchFailed(this._logger, ex, userId);
+            LogPwebDelegatesFetchFailed(this._logger, ex, LogSafe.Id(userId));
             delegatesReadable = false;
         }
 
@@ -337,12 +337,12 @@ public sealed partial class UserRoleResolver(
                 }
                 else
                 {
-                    LogAmbiguousGrant(this._logger, grant, named.Count);
+                    LogAmbiguousGrant(this._logger, LogSafe.Id(grant), named.Count);
                 }
             }
             else
             {
-                LogUnresolvedGrant(this._logger, grant);
+                LogUnresolvedGrant(this._logger, LogSafe.Id(grant));
             }
         }
 
@@ -354,7 +354,7 @@ public sealed partial class UserRoleResolver(
             }
             else
             {
-                LogUnresolvedGrant(this._logger, grant);
+                LogUnresolvedGrant(this._logger, LogSafe.Id(grant));
             }
         }
 
