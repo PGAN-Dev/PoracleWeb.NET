@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Admin > Destinations creates webhooks, Discord channels and threads, and Telegram channels, groups and topics.** Add destination asks what kind it is first, then for the id that kind uses: a URL for a webhook, the channel or thread id for Discord, the negative chat id for Telegram, and for a topic the chat id and topic number, saved as `-1001234567890:42`. An id that can't be real (letters in a Discord id, a positive Telegram chat id) is refused before it's sent, and an optional note can go with it. An id already in Poracle is refused with the name and kind of the account holding it. Nothing checks that the channel exists, so paste the id rather than typing it. [Adding a destination](docs/features/webhooks.md#adding-a-destination) lists where to find each kind's id (#1025).
+
 ### Fixed
 
 - **A failed webhook create no longer deletes a row another request wrote.** When PoracleNG rejected a create, the rollback removed whatever sat at that id. If a second request had created the same webhook in the meantime, its row was deleted. The rollback now removes the row only when its type and name match what this request tried to write, and goes through the full purge so delegate grants are cleaned up too. Otherwise it answers 502 and changes nothing (#1028).

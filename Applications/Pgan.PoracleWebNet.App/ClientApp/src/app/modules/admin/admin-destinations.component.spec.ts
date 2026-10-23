@@ -3,7 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { provideTranslateService } from '@ngx-translate/core';
+import { provideTranslateService, TranslateService } from '@ngx-translate/core';
 import { of, throwError } from 'rxjs';
 
 import { AdminDestinationsComponent } from './admin-destinations.component';
@@ -105,10 +105,10 @@ describe('AdminDestinationsComponent delegates column', () => {
  * That sentence has to reach the admin, not "Check the URL and try again".
  */
 describe('AdminDestinationsComponent add failure', () => {
-  function setup(error: unknown) {
+  function setup(error: unknown, translations?: Record<string, unknown>) {
     const snack = { open: jest.fn() };
     const adminService = {
-      createWebhook: jest.fn(() => throwError(() => error)),
+      createDestination: jest.fn(() => throwError(() => error)),
       getAllWebhookDelegates: jest.fn(() => of({})),
       getPoracleAdmins: jest.fn(() => of([])),
       getPorocleDelegates: jest.fn(() => of({})),
@@ -124,8 +124,15 @@ describe('AdminDestinationsComponent add failure', () => {
     });
     TestBed.overrideProvider(MatSnackBar, { useValue: snack });
     TestBed.overrideProvider(MatDialog, {
-      useValue: { open: jest.fn(() => ({ afterClosed: () => of({ name: 'Hook', url: 'https://discord.com/api/webhooks/1/x' }) })) },
+      useValue: {
+        open: jest.fn(() => ({ afterClosed: () => of({ id: 'https://discord.com/api/webhooks/1/x', name: 'Hook', type: 'webhook' }) })),
+      },
     });
+    if (translations) {
+      const translate = TestBed.inject(TranslateService);
+      translate.setTranslation('en', translations);
+      translate.use('en');
+    }
     const fixture = TestBed.createComponent(AdminDestinationsComponent);
     fixture.detectChanges();
     fixture.componentInstance.openAddDialog();
@@ -152,6 +159,21 @@ describe('AdminDestinationsComponent add failure', () => {
     const snack = setup({ error: { error: 'An unexpected error occurred.' }, status: 500 });
 
     expect(snack.open).toHaveBeenCalledWith('ADMIN.SNACK_FAILED_ADD_DESTINATION', 'TOAST.OK', { duration: 4000 });
+  });
+
+  it('shows who already holds the id on a 409', () => {
+    const snack = setup(
+      { error: { name: 'raids', error: 'A destination with this id already exists.', type: 'discord:channel' }, status: 409 },
+      { ADMIN: { DESTINATION_EXISTS: 'Already in Poracle as "{{name}}" ({{type}}).', TYPE_DISCORD_CHANNEL: 'Discord channel' } },
+    );
+
+    expect(snack.open).toHaveBeenCalledWith('Already in Poracle as "raids" (Discord channel).', 'TOAST.OK', { duration: 4000 });
+  });
+
+  it('falls back to the server’s sentence on a 409 that could not name the holder', () => {
+    const snack = setup({ error: { name: null, error: 'A destination with this id already exists.', type: null }, status: 409 });
+
+    expect(snack.open).toHaveBeenCalledWith('A destination with this id already exists.', 'TOAST.OK', { duration: 4000 });
   });
 });
 

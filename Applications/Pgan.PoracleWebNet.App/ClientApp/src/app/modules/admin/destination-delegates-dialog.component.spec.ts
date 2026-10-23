@@ -142,27 +142,122 @@ describe('DestinationDelegatesDialogComponent', () => {
 
 describe('AddDestinationDialogComponent', () => {
   function setup() {
+    const dialogRef = { close: jest.fn() };
     TestBed.configureTestingModule({
-      providers: [provideTranslateService(), { provide: MatDialogRef, useValue: { close: jest.fn() } }],
+      providers: [provideTranslateService(), { provide: MatDialogRef, useValue: dialogRef }],
       imports: [AddDestinationDialogComponent, NoopAnimationsModule],
     });
-    return TestBed.createComponent(AddDestinationDialogComponent).componentInstance;
+    const fixture = TestBed.createComponent(AddDestinationDialogComponent);
+    fixture.detectChanges();
+    return { component: fixture.componentInstance, dialogRef, fixture };
+  }
+
+  function pick(component: AddDestinationDialogComponent, kind: string): void {
+    component.form.controls.kind.setValue(kind);
   }
 
   afterEach(() => TestBed.resetTestingModule());
 
-  /** The server accepts both, and existing webhooks use http; the message now says so. */
-  it.each(['https://discord.com/api/webhooks/1/abc', 'http://10.0.0.5:8080/hook'])('accepts %s', url => {
-    const component = setup();
-    component.form.setValue({ name: 'Hook', url });
+  it('asks for a URL for a webhook and an id for a Discord channel', () => {
+    const { component, fixture } = setup();
+    const root = fixture.nativeElement as HTMLElement;
+    const idLabel = () => root.querySelector('[data-test="id-field"] mat-label')?.textContent?.trim();
+
+    pick(component, 'webhook');
+    fixture.detectChanges();
+    expect(idLabel()).toBe('ADMIN.WEBHOOK_URL');
+    component.form.controls.id.setValue('1100000000000000001');
+    expect(component.form.controls.id.hasError('url')).toBe(true);
+
+    pick(component, 'discord:channel');
+    fixture.detectChanges();
+    expect(idLabel()).toBe('ADMIN.ID_DISCORD');
+    component.form.controls.id.setValue('https://discord.com/api/webhooks/1/abc');
+    expect(component.form.controls.id.hasError('digits')).toBe(true);
+    component.form.controls.id.setValue('1100000000000000001');
+    expect(component.form.controls.id.valid).toBe(true);
+  });
+
+  /** The server accepts both, and existing webhooks use http. */
+  it.each(['https://discord.com/api/webhooks/1/abc', 'http://10.0.0.5:8080/hook'])('accepts the webhook URL %s', url => {
+    const { component } = setup();
+    pick(component, 'webhook');
+    component.form.patchValue({ id: url, name: 'Hook' });
 
     expect(component.form.valid).toBe(true);
   });
 
-  it('refuses a URL without a scheme', () => {
-    const component = setup();
-    component.form.setValue({ name: 'Hook', url: 'example.com/hook' });
+  it('joins a Telegram topic\u2019s chat and topic ids', () => {
+    const { component, dialogRef } = setup();
+    pick(component, 'telegram:topic');
+    component.form.patchValue({ name: 'Raids topic', chatId: '-1001234567890', topicId: '42' });
 
-    expect(component.form.get('url')?.hasError('pattern')).toBe(true);
+    component.submit();
+
+    expect(dialogRef.close).toHaveBeenCalledWith({ id: '-1001234567890:42', name: 'Raids topic', type: 'telegram:topic' });
+  });
+
+  it('refuses a positive Telegram chat id', () => {
+    const { component } = setup();
+    pick(component, 'telegram:group');
+    component.form.patchValue({ id: '1001234567890', name: 'Group' });
+
+    expect(component.form.controls.id.hasError('negativeChat')).toBe(true);
+    expect(component.form.valid).toBe(false);
+  });
+
+  /** A supergroup's -100... id and a legacy basic group's shorter one are both real. */
+  it.each(['-1001234567890', '-1234567890'])('accepts the Telegram chat id %s', id => {
+    const { component } = setup();
+    pick(component, 'telegram:group');
+    component.form.patchValue({ id, name: 'Group' });
+
+    expect(component.form.valid).toBe(true);
+  });
+
+  it('refuses a topic number of zero', () => {
+    const { component } = setup();
+    pick(component, 'telegram:topic');
+    component.form.patchValue({ name: 'Topic', chatId: '-1001234567890', topicId: '0' });
+
+    expect(component.form.controls.topicId.hasError('topicPositive')).toBe(true);
+  });
+
+  it('keeps the name and clears the id when the kind changes', () => {
+    const { component } = setup();
+    pick(component, 'discord:channel');
+    component.form.patchValue({ id: '1100000000000000001', name: 'raids' });
+
+    pick(component, 'telegram:channel');
+
+    expect(component.form.controls.name.value).toBe('raids');
+    expect(component.form.controls.id.value).toBe('');
+  });
+
+  it('sends a note only when one was written, trimmed', () => {
+    const { component, dialogRef } = setup();
+    pick(component, 'discord:thread');
+    component.form.patchValue({ id: ' 1100000000000000002 ', name: ' raid chat ', notes: '  ' });
+    component.submit();
+    expect(dialogRef.close).toHaveBeenLastCalledWith({ id: '1100000000000000002', name: 'raid chat', type: 'discord:thread' });
+
+    component.form.patchValue({ notes: ' PGAN / Raids ' });
+    component.submit();
+    expect(dialogRef.close).toHaveBeenLastCalledWith({
+      id: '1100000000000000002',
+      name: 'raid chat',
+      notes: 'PGAN / Raids',
+      type: 'discord:thread',
+    });
+  });
+
+  it('stays open until a kind is chosen', () => {
+    const { component, dialogRef } = setup();
+    component.form.patchValue({ name: 'Hook' });
+
+    component.submit();
+
+    expect(component.form.valid).toBe(false);
+    expect(dialogRef.close).not.toHaveBeenCalled();
   });
 });

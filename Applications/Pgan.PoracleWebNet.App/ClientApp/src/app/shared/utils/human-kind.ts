@@ -3,6 +3,16 @@
  * server's call (`AdminUser.kind`, from `HumanKind.IsPerson`); nothing here decides it or grants anything.
  */
 
+/** The six types an admin can create from Destinations, in the order the Add dialog offers them. */
+export const DESTINATION_KINDS: readonly string[] = [
+  'webhook',
+  'discord:channel',
+  'discord:thread',
+  'telegram:channel',
+  'telegram:group',
+  'telegram:topic',
+];
+
 /** The destination types a role or user mention reaches. Telegram has no equivalent. */
 export const MENTION_CAPABLE: ReadonlySet<string> = new Set(['webhook', 'discord:channel', 'discord:thread']);
 
