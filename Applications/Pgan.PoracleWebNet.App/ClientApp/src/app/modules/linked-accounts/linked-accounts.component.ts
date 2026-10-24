@@ -16,6 +16,7 @@ import { I18nService } from '../../core/services/i18n.service';
 import { LinkedAccountService } from '../../core/services/linked-account.service';
 import { SettingsService } from '../../core/services/settings.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
+import { clearTelegramReturn, readTelegramReturn } from '../../shared/utils/telegram-return';
 import { TelegramLoginButtonComponent } from '../../shared/components/telegram-login-button/telegram-login-button.component';
 
 /** What a side's card says about it. `this-account` and `not-linked` only occur while nothing is linked. */
@@ -103,6 +104,9 @@ export class LinkedAccountsComponent implements OnInit {
 
   protected readonly supportUrl = this.settings.supportUrl;
 
+  /** Where Telegram sends the browser back to after a sign-in. */
+  protected readonly telegramAuthUrl = `${window.location.origin}/linked-accounts`;
+
   protected readonly telegramBot = signal('');
 
   protected readonly telegramAvailable = computed(() => this.telegramBot() !== '');
@@ -118,7 +122,12 @@ export class LinkedAccountsComponent implements OnInit {
 
   ngOnInit(): void {
     this.readFragment();
-    void this.linked.refresh().then(() => this.loaded.set(true));
+    const telegramReturn = this.takeTelegramReturn();
+    void this.linked.refresh().then(async () => {
+      this.loaded.set(true);
+      // Not while viewing as someone else, nor once linked: the actions the page offers are the ones it allows.
+      if (telegramReturn && !this.readOnly() && !this.isLinked()) await this.onTelegramReturn(telegramReturn);
+    });
 
     this.auth
       .getProviders()
@@ -134,7 +143,7 @@ export class LinkedAccountsComponent implements OnInit {
       });
   }
 
-  protected async onTelegramWidget(data: Record<string, string>): Promise<void> {
+  protected async onTelegramReturn(data: Record<string, string>): Promise<void> {
     await this.run(async () => {
       await this.linked.linkTelegram(data);
       this.snackBar.open(this.i18n.instant('LINKED.SNACK_LINKED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
@@ -183,6 +192,16 @@ export class LinkedAccountsComponent implements OnInit {
     } else {
       this.snackBar.open(this.i18n.instant('LINKED.SNACK_LINKED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
     }
+  }
+
+  /**
+   * Telegram's redirect sign-in returns here with the signed fields in the query. The query is dropped at
+   * once so the hash is not left in the address bar or history.
+   */
+  private takeTelegramReturn(): Record<string, string> | null {
+    const data = readTelegramReturn(new URLSearchParams(window.location.search));
+    if (data) clearTelegramReturn();
+    return data;
   }
 
   /** Runs one action with the buttons held, and turns a coded refusal into the page's message. */

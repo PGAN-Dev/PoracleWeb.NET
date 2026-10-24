@@ -73,7 +73,7 @@
                 </button>
               } @else {
                 <p class="hint">{{ 'LINKED.LINK_TELEGRAM_HINT' | translate }}</p>
-                <app-telegram-login-button [botUsername]="telegramBot()" (authenticated)="onTelegramWidget($event)" />
+                <app-telegram-login-button [authUrl]="telegramAuthUrl" [botUsername]="telegramBot()" />
               }
             }
           </mat-card-content>

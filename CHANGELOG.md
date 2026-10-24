@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Linked accounts: one alert list, and a Deliver to choice on every alert.** A linked person sees the alerts from both accounts in one list, each marked with the app it goes to, and can filter the list by app. Every add and edit dialog has **Deliver to: Discord / Telegram**, preselected with the account's default for new alerts. Changing it on an edit, or choosing **Deliver to...** for a selection, moves the alert: it's created on the other account before it's removed from the first, so a move never loses one, and if the original can't be removed the list says so and shows both. Location, areas, profiles, saved places, language, quiet periods and summary schedules saved here go to both accounts. People without a linked account see no change. [Linked accounts](docs/features/linked-accounts.md) covers it.
 - **Linked accounts show and fix differences between the two sides.** When a linked person's Discord and Telegram accounts differ in location, areas, profiles, saved places or current profile, a banner under the toolbar names each difference and offers **Keep Discord** or **Keep Telegram**; nothing is resolved without that choice, and a profile or place the other side still has alerts on is never deleted. A save that reaches only one account says "Saved for Discord. Telegram didn't take it: ..." once. [Linked accounts](docs/features/linked-accounts.md) covers it.
 
+### Fixed
+
+- **The Telegram sign-in button appears again.** Telegram's widget needs `eval` to call back into the page, which this site's security policy refuses, so the button never drew. It now uses Telegram's redirect sign-in instead, on both the login page and Linked accounts.
+
 ## [3.1.0] - 2026-10-23
 
 ### Added

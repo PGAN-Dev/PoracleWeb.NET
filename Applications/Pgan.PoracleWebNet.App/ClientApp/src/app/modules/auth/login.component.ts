@@ -11,6 +11,7 @@ import { catchError, forkJoin, of, timeout } from 'rxjs';
 import { AuthProviders } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { SettingsService } from '../../core/services/settings.service';
+import { clearTelegramReturn, readTelegramReturn } from '../../shared/utils/telegram-return';
 import { TelegramLoginButtonComponent } from '../../shared/components/telegram-login-button/telegram-login-button.component';
 
 /** Timeout for provider config and public settings fetches on the login page. */
@@ -95,6 +96,9 @@ export class LoginComponent implements OnInit {
   /** Computed: can the user actually use Telegram login without admin rejection? */
   protected readonly telegramActive = computed(() => this.telegramConfigured() && this.telegramEnabledByAdmin());
 
+  /** Where Telegram sends the browser back to after a sign-in. */
+  protected readonly telegramAuthUrl = `${window.location.origin}/login`;
+
   /** The bot the login widget is built for. Set before `telegramConfigured`, so the widget never renders without it. */
   protected readonly telegramBotUsername = signal('');
 
@@ -131,6 +135,13 @@ export class LoginComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // Telegram's redirect sign-in returns here with the signed fields in the query.
+    const telegramReturn = readTelegramReturn(new URLSearchParams(window.location.search));
+    if (telegramReturn) {
+      clearTelegramReturn();
+      this.handleTelegramAuth(telegramReturn);
+    }
+
     // Parse any auth error from the URL fragment (e.g. /login#error=missing_required_role)
     // up front, so the provider-config handler below can decide whether to auto-redirect
     // to an external OIDC provider.

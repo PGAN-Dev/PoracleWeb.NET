@@ -61,6 +61,34 @@ describe('LinkedAccountsComponent', () => {
   });
   afterEach(() => TestBed.resetTestingModule());
 
+  describe('returning from Telegram', () => {
+    const ret = '?id=200000001&first_name=A&auth_date=1700000000&hash=abc';
+    const flush = () => new Promise(resolve => setTimeout(resolve));
+
+    it('links from the return and clears the query', async () => {
+      window.history.replaceState(null, '', '/linked-accounts' + ret);
+      setup({ type: 'discord:user' });
+      await flush();
+      expect(linkedAccounts.linkTelegram).toHaveBeenCalledWith({ auth_date: '1700000000', first_name: 'A', hash: 'abc', id: '200000001' });
+      expect(window.location.search).toBe('');
+      expect(window.location.pathname).toBe('/linked-accounts');
+    });
+
+    it('does nothing without a return', async () => {
+      setup({ type: 'discord:user' });
+      await flush();
+      expect(linkedAccounts.linkTelegram).not.toHaveBeenCalled();
+    });
+
+    it('does not link while impersonating, but still clears the query', async () => {
+      window.history.replaceState(null, '', '/linked-accounts' + ret);
+      setup({ impersonating: true, type: 'discord:user' });
+      await flush();
+      expect(linkedAccounts.linkTelegram).not.toHaveBeenCalled();
+      expect(window.location.search).toBe('');
+    });
+  });
+
   it('offers Link Discord to a Telegram session when Discord is configured', () => {
     const { fixture } = setup({ type: 'telegram:user' });
     expect(q(fixture, '[data-test="link-discord"]')).toBeTruthy();

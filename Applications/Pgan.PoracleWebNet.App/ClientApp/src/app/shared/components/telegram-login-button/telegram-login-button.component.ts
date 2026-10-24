@@ -1,16 +1,11 @@
-import { AfterViewInit, Component, ElementRef, NgZone, OnDestroy, inject, input, output, viewChild } from '@angular/core';
-
-declare global {
-  interface Window {
-    onTelegramAuth: (user: Record<string, string>) => void;
-  }
-}
+import { AfterViewInit, Component, ElementRef, inject, input, viewChild } from '@angular/core';
 
 /**
- * Telegram's login widget for one bot. It emits the fields Telegram signs; what to do with them is the
- * caller's: the login page verifies them as a sign-in, the linked accounts page as a link.
+ * Telegram's login widget for one bot, in redirect mode: on success Telegram navigates the page to
+ * `authUrl` with the signed fields as query parameters (read them with `readTelegramReturn`).
  *
- * Telegram's script calls a global by name, so only one of these can be live at a time.
+ * Redirect mode because the callback mode (`data-onauth`) makes the widget `eval` the attribute, which
+ * the site's CSP refuses (no 'unsafe-eval'), so the button never drew.
  */
 @Component({
   selector: 'app-telegram-login-button',
@@ -26,33 +21,26 @@ declare global {
   ],
   template: '<div #container class="telegram-widget"></div>',
 })
-export class TelegramLoginButtonComponent implements AfterViewInit, OnDestroy {
-  private readonly callback = (user: Record<string, string>): void => this.ngZone.run(() => this.authenticated.emit(user));
+export class TelegramLoginButtonComponent implements AfterViewInit {
   private readonly container = viewChild.required<ElementRef<HTMLDivElement>>('container');
-  private readonly ngZone = inject(NgZone);
 
-  readonly authenticated = output<Record<string, string>>();
+  /** Absolute URL Telegram sends the browser back to. */
+  readonly authUrl = input.required<string>();
   readonly botUsername = input.required<string>();
 
   ngAfterViewInit(): void {
     const bot = this.botUsername();
     if (!bot) return;
 
-    window.onTelegramAuth = this.callback;
-
     const script = document.createElement('script');
     script.src = 'https://telegram.org/js/telegram-widget.js?22';
     script.setAttribute('data-telegram-login', bot);
     script.setAttribute('data-size', 'large');
-    script.setAttribute('data-onauth', 'onTelegramAuth(user)');
+    script.setAttribute('data-auth-url', this.authUrl());
     script.setAttribute('data-request-access', 'write');
+    // Keeps Cloudflare Rocket Loader from deferring or rewriting the widget script.
+    script.setAttribute('data-cfasync', 'false');
     script.async = true;
     this.container().nativeElement.appendChild(script);
-  }
-
-  ngOnDestroy(): void {
-    if (window.onTelegramAuth === this.callback) {
-      delete (window as Partial<Window>).onTelegramAuth;
-    }
   }
 }
