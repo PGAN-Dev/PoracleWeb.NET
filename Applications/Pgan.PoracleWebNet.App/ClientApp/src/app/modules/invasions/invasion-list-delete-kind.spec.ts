@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -27,8 +30,8 @@ describe('InvasionListComponent deletes', () => {
   let dialog: { open: jest.Mock };
   let invasionService: { delete: jest.Mock; getAll: jest.Mock };
 
-  const grunt = { gruntType: 'water', uid: 7 } as Invasion;
-  const event = { gruntType: 'kecleon', uid: 7 } as Invasion;
+  const grunt = { uid: 7, gruntType: 'water' } as Invasion;
+  const event = { uid: 7, gruntType: 'kecleon' } as Invasion;
 
   function setup(items: Invasion[]): void {
     dialog = { open: jest.fn().mockReturnValue({ afterClosed: () => of(true) }) };
@@ -84,8 +87,8 @@ describe('InvasionListComponent deletes', () => {
   });
 
   it('deletes each selected card on the route of its own kind', async () => {
-    setup([grunt, event, { gruntType: 'fire', uid: 9 } as Invasion]);
-    component.selectedIds.set(new Set([7, 9]));
+    setup([grunt, event, { uid: 9, gruntType: 'fire' } as Invasion]);
+    component.selectAll();
 
     await component.bulkDelete();
 
@@ -97,5 +100,38 @@ describe('InvasionListComponent deletes', () => {
       ]),
     );
     expect(invasionService.delete).toHaveBeenCalledTimes(3);
+  });
+
+  describe('selection', () => {
+    it('marks only the card that was toggled when an invasion and an event share a uid', () => {
+      setup([grunt, event]);
+      component.toggleSelect(event);
+      expect(component.isSelected(event)).toBe(true);
+      expect(component.isSelected(grunt)).toBe(false);
+      expect(component.actionCards().map(c => c.uid)).toEqual([7]);
+    });
+
+    it('bulk delete removes only the selected card', async () => {
+      setup([grunt, event]);
+      component.toggleSelect(event);
+
+      await component.bulkDelete();
+
+      expect(invasionService.delete.mock.calls).toEqual([[7, 'event']]);
+    });
+
+    it('select all selects both cards', () => {
+      setup([grunt, event]);
+      component.selectAll();
+      expect(component.isSelected(grunt)).toBe(true);
+      expect(component.isSelected(event)).toBe(true);
+      expect(component.actionIds()).toHaveLength(2);
+    });
+
+    it('leaves the Pok�mon list keyed by uid', () => {
+      const read = (f: string): string => readFileSync(join(__dirname, f), 'utf8');
+      expect(read('../pokemon/pokemon-list.component.html')).toContain('selectedIds().has(');
+      expect(read('../pokemon/pokemon-list.component.html')).not.toContain('cardKey');
+    });
   });
 });

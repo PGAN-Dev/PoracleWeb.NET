@@ -57,6 +57,11 @@ import { swapToFallbackIcon } from '../../shared/utils/icon-fallback';
 import { invasionKind } from '../../shared/utils/pokestop-events';
 import { serverReason } from '../../shared/utils/server-reason';
 
+/** A card's identity: invasion and event rules are numbered separately, so the uid alone is not unique on this page. */
+function cardKey(item: Invasion): string {
+  return `${invasionKind(item.gruntType) ?? 'invasion'}:${item.uid}`;
+}
+
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
@@ -95,7 +100,11 @@ export class InvasionListComponent implements OnInit {
   /** `?add=1` from the dashboard or onboarding opens the add dialog once. */
   private readonly takeAddRequest = addOnArrival();
   private readonly translate = inject(TranslateService);
-  readonly selectedIds = signal(new Set<number>());
+  /**
+   * Selected cards by `cardKey`, not by uid: an invasion and a Pok�stop event can share a number, and a uid-keyed
+   * selection ticked both and acted on both. See #1062.
+   */
+  readonly selectedIds = signal(new Set<string>());
   /** A linked person can filter by the app each alarm is delivered to. */
   readonly destinationFilter = signal<DestinationFilter>('all');
   readonly invasions = signal<Invasion[]>([]);
@@ -117,22 +126,26 @@ export class InvasionListComponent implements OnInit {
   });
 
   /** The selected rules still on screen: bulk Delete and Change radius never reach a card the search has hidden. */
-  readonly actionIds = computed(() =>
-    visibleSelection(
-      this.selectedIds(),
-      this.visibleInvasions().map(item => item.uid),
-    ),
-  );
+  readonly actionIds = computed(() => visibleSelection(this.selectedIds(), this.visibleInvasions().map(cardKey)));
+
+  /** The selected cards still on screen. */
+  readonly actionCards = computed(() => {
+    const keys = new Set(this.actionIds());
+    return this.visibleInvasions().filter(item => keys.has(cardKey(item)));
+  });
 
   /** True for a linked person, who gets the delivery filter, the card glyph and the bulk move. */
   readonly canChooseDestination = inject(LinkedAccountService).canChoose;
 
-  readonly loading = signal(true);
+  /** For the template's `track`. */
+  readonly cardKey = cardKey;
 
+  readonly loading = signal(true);
   /** Only used to word the inherited scope honestly; empty produces the more cautious wording. */
   readonly profileAreas = signal<string[]>([]);
   /** The app every selected alarm on screen is already on, which the bulk Deliver to menu offers disabled. */
-  readonly selectionApp = computed(() => sharedDestination(this.visibleInvasions(), item => item.uid, this.actionIds()));
+  readonly selectionApp = computed(() => sharedDestination(this.visibleInvasions(), cardKey, this.actionIds()));
+
   readonly selectMode = signal(false);
 
   readonly sortOptions: AlarmSortOption[] = [
@@ -156,7 +169,7 @@ export class InvasionListComponent implements OnInit {
     if (result) {
       // Each selected card goes on the route of its own kind: an invasion and an event can share a uid, and a
       // delete that names only the uid would take whichever the server finds first. See #1062.
-      const targets = this.visibleInvasions().filter(item => this.selectedIds().has(item.uid));
+      const targets = this.actionCards();
       // Settled one at a time: a stale uid -- the row re-keyed by an edit, or removed in another tab --
       // threw out of the loop, so deletes that had already happened went unreported and the list never
       // reloaded. See #603.
@@ -182,7 +195,7 @@ export class InvasionListComponent implements OnInit {
   async bulkMove(destination: LinkSide): Promise<void> {
     await runBulkMove(
       { i18n: this.i18n, moves: this.moves, snackBar: this.snackBar },
-      [{ uids: this.actionIds(), type: 'invasion' }],
+      [{ uids: this.actionCards().map(item => item.uid), type: 'invasion' }],
       destination,
       () => {
         this.selectedIds.set(new Set());
@@ -196,7 +209,7 @@ export class InvasionListComponent implements OnInit {
     const ref = this.dialog.open(DistanceDialogComponent, { width: '440px', data: { count: this.actionIds().length } });
     const distance = await firstValueFrom(ref.afterClosed());
     if (distance !== null && distance !== undefined) {
-      const uids = this.actionIds();
+      const uids = this.actionCards().map(item => item.uid);
       // The server refuses a radius that would take over an alarm the user did not select, and names
       // the one in the way. Unguarded, that rejection cleared nothing, reloaded nothing and showed
       // nothing -- indistinguishable from a successful no-op. See #641.
@@ -365,6 +378,10 @@ export class InvasionListComponent implements OnInit {
     return checkEventType(gruntType);
   }
 
+  isSelected(item: Invasion): boolean {
+    return this.selectedIds().has(cardKey(item));
+  }
+
   loadInvasions(): void {
     this.loading.set(true);
     this.invasionService
@@ -411,16 +428,17 @@ export class InvasionListComponent implements OnInit {
   selectAll(): void {
     // Adds what is on screen: a search that hides a rule also keeps it out of Select All (#642), and a tick
     // the search is hiding stays, so clearing the search brings it back.
-    this.selectedIds.set(new Set([...this.selectedIds(), ...this.visibleInvasions().map(i => i.uid)]));
+    this.selectedIds.set(new Set([...this.selectedIds(), ...this.visibleInvasions().map(cardKey)]));
   }
 
   sendTestAlert(invasion: Invasion): void {
     this.testAlertService.sendTestAlert('invasion', invasion.uid);
   }
 
-  toggleSelect(uid: number): void {
+  toggleSelect(item: Invasion): void {
+    const key = cardKey(item);
     const current = new Set(this.selectedIds());
-    current.has(uid) ? current.delete(uid) : current.add(uid);
+    current.has(key) ? current.delete(key) : current.add(key);
     this.selectedIds.set(current);
   }
 

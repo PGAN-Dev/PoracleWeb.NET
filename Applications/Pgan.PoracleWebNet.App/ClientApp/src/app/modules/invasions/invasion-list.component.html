@@ -46,14 +46,14 @@
   </div>
 } @else {
   <div class="alarm-grid">
-    @for (invasion of visibleInvasions(); track invasion.uid) {
+    @for (invasion of visibleInvasions(); track cardKey(invasion)) {
       <app-alarm-card
         [destination]="invasion.destination"
         [summary]="invasion.description"
         [selectable]="selectMode()"
-        [selected]="selectedIds().has(invasion.uid)"
+        [selected]="isSelected(invasion)"
         [selectLabel]="'ALARM.SELECT_ONE' | translate: { name: getDisplayName(invasion.gruntType, invasion.gender) }"
-        (selectedToggle)="toggleSelect(invasion.uid)">
+        (selectedToggle)="toggleSelect(invasion)">
         @if (isEventType(invasion.gruntType) && getEventImgUrl(invasion.gruntType)) {
           <img ruleMedia class="rule-sprite" [src]="getEventImgUrl(invasion.gruntType)" alt="" />
         } @else if (isEventType(invasion.gruntType)) {
