@@ -1,8 +1,10 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 import { TranslatePipe } from '@ngx-translate/core';
 
+import { LinkSide } from '../../../core/models';
 import { TranslatePluralPipe } from '../../pipes/translate-plural.pipe';
 
 /** How long the count has to hold still before it is read aloud. */
@@ -29,7 +31,7 @@ export const BULK_COUNT_REANNOUNCE_MS = 100;
  */
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatButtonModule, MatIconModule, TranslatePipe, TranslatePluralPipe],
+  imports: [MatButtonModule, MatIconModule, MatMenuModule, TranslatePipe, TranslatePluralPipe],
   selector: 'app-bulk-action-bar',
   standalone: true,
   styleUrl: './bulk-action-bar.component.scss',
@@ -44,12 +46,17 @@ export class BulkActionBarComponent {
   protected readonly announced = signal<null | number>(null);
   /** True while anything is ticked, on screen or not, so the way to clear a hidden tick stays offered. */
   readonly anySelected = input(false);
+  /** True for a linked person: the bar then offers "Deliver to…" to move the selection to the other app. */
+  readonly canMove = input(false);
   readonly changeRadius = output<void>();
   /** Selected cards the actions would act on. */
   readonly count = input.required<number>();
   readonly deleteSelected = output<void>();
 
   readonly deselectAll = output<void>();
+
+  /** The app the person chose to move the selected alarms to. */
+  readonly moveSelected = output<LinkSide>();
 
   readonly selectAll = output<void>();
 

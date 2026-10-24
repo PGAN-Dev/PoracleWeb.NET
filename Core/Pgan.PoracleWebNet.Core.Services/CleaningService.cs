@@ -12,11 +12,13 @@ public partial class CleaningService(
     IPoracleTrackingProxy trackingProxy,
     IFeatureGate featureGate,
     IPoracleIncidentProxy incidentProxy,
+    ILinkedAccount linked,
     ILogger<CleaningService> logger) : ICleaningService
 {
     private readonly IPoracleTrackingProxy _trackingProxy = trackingProxy;
     private readonly IFeatureGate _featureGate = featureGate;
     private readonly IPoracleIncidentProxy _incidentProxy = incidentProxy;
+    private readonly ILinkedAccount _linked = linked;
     private readonly ILogger<CleaningService> _logger = logger;
 
     public async Task<Dictionary<string, bool>> GetCleanStatusAsync(string userId, int profileNo)
@@ -27,21 +29,42 @@ public partial class CleaningService(
 
     public async Task<Dictionary<string, CleanCount>> GetCleanCountsAsync(string userId, int profileNo)
     {
-        var allTracking = await this._trackingProxy.GetAllTrackingAsync(userId);
-
-        return new Dictionary<string, CleanCount>
+        // A linked person's counts are both humans' added together, so a type reads clean only when every
+        // rule on both sides is. An unlinked caller has one id and makes the one call they always made.
+        var pair = await this._linked.ResolveAsync(userId);
+        var isOwnInvasion = await this.OwnRowPredicateAsync("invasion");
+        var totals = new Dictionary<string, CleanCount>
         {
-            ["monsters"] = CountClean(allTracking, "pokemon"),
-            ["raids"] = CountClean(allTracking, "raid"),
-            ["eggs"] = CountClean(allTracking, "egg"),
-            ["quests"] = CountClean(allTracking, "quest"),
-            ["invasions"] = CountClean(allTracking, "invasion", await this.OwnRowPredicateAsync("invasion")),
-            ["lures"] = CountClean(allTracking, "lure"),
-            ["nests"] = CountClean(allTracking, "nest"),
-            ["gyms"] = CountClean(allTracking, "gym"),
-            ["maxbattles"] = CountClean(allTracking, "maxbattle"),
+            ["monsters"] = new(0, 0),
+            ["raids"] = new(0, 0),
+            ["eggs"] = new(0, 0),
+            ["quests"] = new(0, 0),
+            ["invasions"] = new(0, 0),
+            ["lures"] = new(0, 0),
+            ["nests"] = new(0, 0),
+            ["gyms"] = new(0, 0),
+            ["maxbattles"] = new(0, 0),
         };
+
+        foreach (var humanId in pair.ExistingHumanIds)
+        {
+            var allTracking = await this._trackingProxy.GetAllTrackingAsync(humanId);
+            Add(totals, "monsters", CountClean(allTracking, "pokemon"));
+            Add(totals, "raids", CountClean(allTracking, "raid"));
+            Add(totals, "eggs", CountClean(allTracking, "egg"));
+            Add(totals, "quests", CountClean(allTracking, "quest"));
+            Add(totals, "invasions", CountClean(allTracking, "invasion", isOwnInvasion));
+            Add(totals, "lures", CountClean(allTracking, "lure"));
+            Add(totals, "nests", CountClean(allTracking, "nest"));
+            Add(totals, "gyms", CountClean(allTracking, "gym"));
+            Add(totals, "maxbattles", CountClean(allTracking, "maxbattle"));
+        }
+
+        return totals;
     }
+
+    private static void Add(Dictionary<string, CleanCount> totals, string key, CleanCount more) =>
+        totals[key] = new CleanCount(totals[key].Clean + more.Clean, totals[key].Total + more.Total);
 
     public async Task<int> ToggleCleanMonstersAsync(string userId, int profileNo, int clean) =>
         await this.ToggleCleanAsync("pokemon", userId, clean);
@@ -117,6 +140,18 @@ public partial class CleaningService(
             await this._featureGate.EnsureEnabledAsync(disableKey);
         }
 
+        var pair = await this._linked.ResolveAsync(userId);
+        var updated = 0;
+        foreach (var humanId in pair.ExistingHumanIds)
+        {
+            updated += await this.ToggleCleanForAsync(type, humanId, clean);
+        }
+
+        return updated;
+    }
+
+    private async Task<int> ToggleCleanForAsync(string type, string userId, int clean)
+    {
         var trackingJson = await this._trackingProxy.GetByUserAsync(type, userId);
 
         if (trackingJson.ValueKind != JsonValueKind.Array || trackingJson.GetArrayLength() == 0)

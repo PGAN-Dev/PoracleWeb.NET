@@ -13,7 +13,7 @@ public class NestControllerTests : ControllerTestBase
 
     public NestControllerTests()
     {
-        this._sut = new NestController(this._service.Object);
+        this._sut = new NestController(this._service.Object, UnlinkedRouter());
         SetupUser(this._sut);
     }
 

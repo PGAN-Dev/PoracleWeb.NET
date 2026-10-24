@@ -70,6 +70,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMaxBattleService, MaxBattleService>();
         services.AddScoped<IHumanService, HumanService>();
         services.AddScoped<ILinkedAccount, LinkedAccount>();
+        services.AddScoped<LinkedAlarmRouter>();
+        services.AddScoped<QuickPickUidTransfer>();
+        services.AddScoped<AlarmMover>();
+        services.AddScoped<AlarmMoveDispatcher>();
         services.AddScoped<ILinkedHumanProvisioner, LinkedHumanProvisioner>();
         services.AddScoped<IAccountLinkService, AccountLinkService>();
         services.AddScoped<IPairedHumanWriter, PairedHumanWriter>();

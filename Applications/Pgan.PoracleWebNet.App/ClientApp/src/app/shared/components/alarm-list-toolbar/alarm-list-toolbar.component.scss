@@ -91,3 +91,13 @@
     width: 204px;
   }
 }
+
+.destination-filter {
+  display: flex;
+  gap: 4px;
+
+  .active {
+    background: var(--mat-sys-secondary-container, rgb(0 0 0 / 8%));
+    color: var(--mat-sys-on-secondary-container, inherit);
+  }
+}

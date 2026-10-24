@@ -34,7 +34,7 @@ public class InvasionEventGruntTests : ControllerTestBase
 
     public InvasionEventGruntTests()
     {
-        this._sut = new InvasionController(this._service.Object);
+        this._sut = new InvasionController(this._service.Object, UnlinkedRouter());
         SetupUser(this._sut);
         this._service.Setup(s => s.BelongsToPokestopEventsAsync(It.Is<string?>(g => g == "kecleon" || g == "Showcase"))).ReturnsAsync(true);
     }

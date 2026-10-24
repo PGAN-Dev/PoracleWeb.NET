@@ -10,6 +10,7 @@ public partial class TestAlertService(
     IPoracleTrackingProxy trackingProxy,
     IPoracleHumanProxy humanProxy,
     IEnumerable<ITestPayloadBuilder> payloadBuilders,
+    ILinkedAccount linked,
     ILogger<TestAlertService> logger) : ITestAlertService
 {
     // NYC fallback when the user's profile has no coordinates set (0,0 is not a valid spawn site).
@@ -22,6 +23,7 @@ public partial class TestAlertService(
 
     private readonly IPoracleApiProxy _apiProxy = apiProxy;
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
+    private readonly ILinkedAccount _linked = linked;
     private readonly ILogger<TestAlertService> _logger = logger;
     private readonly IPoracleTrackingProxy _trackingProxy = trackingProxy;
     private readonly IReadOnlyList<ITestPayloadBuilder> _payloadBuilders = [.. payloadBuilders];
@@ -33,22 +35,45 @@ public partial class TestAlertService(
             throw new ArgumentException($"Invalid alarm type: {alarmType}", nameof(alarmType));
         }
 
-        // Fetch alarm data and human data in parallel — both trips to PoracleNG.
-        var alarmTask = this._trackingProxy.GetByUserAsync(alarmType, userId);
-        var humanTask = this._humanProxy.GetHumanAsync(userId);
-        await Task.WhenAll(alarmTask, humanTask);
+        // The alarm may live on either human of a linked pair; the alert is sent as the human that owns it,
+        // so a rule on Telegram goes to Telegram. An unlinked caller has one id and makes one lookup.
+        var pair = await this._linked.ResolveAsync(userId);
+        var candidates = pair.ExistingHumanIds;
+        string ownerId = userId;
+        JsonElement human = default;
+        JsonElement? alarm = null;
+        for (var i = 0; i < candidates.Count; i++)
+        {
+            ownerId = candidates[i];
 
-        var allAlarms = alarmTask.Result;
-        var human = humanTask.Result
-            ?? throw new InvalidOperationException("User not found");
+            // Fetch alarm data and human data in parallel — both trips to PoracleNG.
+            var alarmTask = this._trackingProxy.GetByUserAsync(alarmType, ownerId);
+            var humanTask = this._humanProxy.GetHumanAsync(ownerId);
+            await Task.WhenAll(alarmTask, humanTask);
 
-        var alarm = FindAlarmByUid(allAlarms, uid)
-            ?? throw new KeyNotFoundException($"Alarm with uid {uid} not found");
+            alarm = FindAlarmByUid(alarmTask.Result, uid);
+            if (alarm is null && candidates.Count > 1)
+            {
+                // A linked pair: a uid on neither human is a 404, whatever the last human's record says.
+                if (i < candidates.Count - 1)
+                {
+                    continue;
+                }
 
-        var target = BuildTarget(userId, human);
+                throw new KeyNotFoundException($"Alarm with uid {uid} not found");
+            }
+
+            human = humanTask.Result
+                ?? throw new InvalidOperationException("User not found");
+            break;
+        }
+
+        var found = alarm ?? throw new KeyNotFoundException($"Alarm with uid {uid} not found");
+
+        var target = BuildTarget(ownerId, human);
         // The alarm's DTS template id lives at the envelope level — PoracleNG picks the DTS
         // entry by matching (target.template, alarmType). Some alarm rows store it as an int.
-        if (alarm.TryGetProperty("template", out var tmpl))
+        if (found.TryGetProperty("template", out var tmpl))
         {
 #pragma warning disable IDE0072
             target.Template = tmpl.ValueKind switch
@@ -71,7 +96,7 @@ public partial class TestAlertService(
         var longitude = Math.Abs(target.Longitude) > CoordinateEpsilon ? target.Longitude : FallbackLongitude;
 
         var build = await builder.BuildAsync(new TestPayloadContext(
-            alarmType, alarm, latitude, longitude, DateTimeOffset.UtcNow));
+            alarmType, found, latitude, longitude, DateTimeOffset.UtcNow));
 
         var request = new TestAlertRequest
         {
@@ -80,7 +105,7 @@ public partial class TestAlertService(
             Webhook = build.Webhook,
         };
 
-        LogSendingTestAlert(this._logger, alarmType, build.WireType, uid, userId);
+        LogSendingTestAlert(this._logger, alarmType, build.WireType, uid, ownerId);
         await this._apiProxy.SendTestAlertAsync(request);
     }
 

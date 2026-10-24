@@ -13,7 +13,7 @@ public class QuestControllerTests : ControllerTestBase
 
     public QuestControllerTests()
     {
-        this._sut = new QuestController(this._service.Object);
+        this._sut = new QuestController(this._service.Object, UnlinkedRouter());
         SetupUser(this._sut);
     }
 

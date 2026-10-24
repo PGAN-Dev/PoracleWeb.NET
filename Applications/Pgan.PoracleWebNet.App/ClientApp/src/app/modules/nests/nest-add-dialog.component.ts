@@ -13,19 +13,23 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { TranslatePipe } from '@ngx-translate/core';
 import { forkJoin } from 'rxjs';
 
+import { LinkSide } from '../../core/models';
 import { AlertDefaultsService } from '../../core/services/alert-defaults.service';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { NestService } from '../../core/services/nest.service';
 import { AddRefusalComponent } from '../../shared/components/add-refusal/add-refusal.component';
+import { DeliverToFieldComponent } from '../../shared/components/deliver-to/deliver-to-field.component';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { AddDialogData, AddRefusal, editExistingResult, ExistingRule, finishAdd, settle } from '../../shared/utils/add-outcome';
 import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
+import { injectDeliverTo } from '../../shared/utils/deliver-to';
 
 @Component({
   imports: [
+    DeliverToFieldComponent,
     AddRefusalComponent,
     ReactiveFormsModule,
     MatDialogModule,
@@ -57,9 +61,12 @@ export class NestAddDialogComponent {
   private readonly i18n = inject(I18nService);
   private readonly nestService = inject(NestService);
   private readonly snackBar = inject(MatSnackBar);
+  readonly deliver = injectDeliverTo();
   readonly dialogRef = inject(MatDialogRef<NestAddDialogComponent>);
+
   form = this.fb.group({
     clean: [false],
+    destination: [null as LinkSide | null],
     minSpawnAvg: [0],
     template: [''],
   });
@@ -107,6 +114,7 @@ export class NestAddDialogComponent {
     const scope = scopeToFields(this.scope());
     const creates = this.selectedPokemonIds().map(pokemonId =>
       this.nestService.create({
+        ...this.deliver.createFields(this.form.controls.destination.value),
         overrideAreas: scope.overrideAreas,
         overrideLocationLabel: scope.overrideLocationLabel,
         clean: v.clean ? 1 : 0,

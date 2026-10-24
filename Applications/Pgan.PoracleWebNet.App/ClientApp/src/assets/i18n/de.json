@@ -417,7 +417,18 @@
     "FAILED_DISTANCE": "Der Radius konnte nicht geändert werden. Lade die Seite neu und versuche es erneut.",
     "REFUSAL_COVERED_BY": "Bereits abgedeckt durch: {{summary}}",
     "REFUSAL_EDIT_EXISTING": "Diesen bearbeiten",
-    "CLEAN_TAG": "aufräumen"
+    "CLEAN_TAG": "aufräumen",
+    "DELIVER_TO_MENU": "Zustellen an…",
+    "FILTER_ALL": "Alle",
+    "MOVED_SOURCE_REMAINS": "Nach {{app}} verschoben, aber die Kopie in {{from}} ist noch da. Lösche sie in der Liste.",
+    "MOVED_TO": "Nach {{app}} verschoben.",
+    "MOVE_CONFLICT": "{{count}} nicht verschoben: {{app}} hat bereits eine ähnliche Meldung.",
+    "MOVE_DONE": "{{count}} nach {{app}} verschoben.",
+    "MOVE_FAILED": "{{count}} sind möglicherweise bei {{app}} angekommen. Prüfe beide Apps, bevor du es erneut versuchst.",
+    "MOVE_FAILED_ALL": "Die Meldungen konnten nicht verschoben werden. Versuche es gleich noch einmal.",
+    "MOVE_REFUSED": "{{count}} nicht verschoben: {{reason}}",
+    "MOVE_REFUSED_NO_REASON": "Das Verschieben wurde abgelehnt.",
+    "MOVE_SOURCE_REMAINS": "{{count}} nach {{app}} verschoben, aber die Kopie in {{from}} ist noch da. Lösche sie in der Liste."
   },
   "RAIDS": {
     "RSVP_LABEL": "RSVP-Benachrichtigungen",
@@ -2415,5 +2426,11 @@
     "ERR_LINK_CANCELLED": "Du hast die Verknüpfung abgebrochen. Es wurde nichts geändert.",
     "LOAD_FAILED": "Deine verknüpften Konten konnten nicht geladen werden.",
     "RETRY": "Erneut versuchen"
+  },
+  "DELIVER_TO": {
+    "DISCORD": "Discord",
+    "LABEL": "Zustellen an",
+    "PAUSED": "Meldungen an {{app}} sind ausgeschaltet, deshalb kommt dort vorerst nichts an.",
+    "TELEGRAM": "Telegram"
   }
 }

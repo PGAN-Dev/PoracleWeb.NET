@@ -27,6 +27,8 @@
     searchPlaceholder="QUESTS.SEARCH_PLACEHOLDER"
     [(search)]="search"
     [(sort)]="sortBy"
+    [(destinationFilter)]="destinationFilter"
+    [canFilterDestination]="canChooseDestination()"
     [sortOptions]="sortOptions"
     [total]="quests().length"
     [shown]="visibleQuests().length"
@@ -41,6 +43,8 @@
     (selectAll)="selectAll()"
     (deselectAll)="deselectAll()"
     (changeRadius)="bulkUpdateDistance()"
+    [canMove]="canChooseDestination()"
+    (moveSelected)="bulkMove($event)"
     (deleteSelected)="bulkDelete()" />
 }
 
@@ -65,6 +69,7 @@
   <div class="alarm-grid">
     @for (quest of visibleQuests(); track quest.uid) {
       <app-alarm-card
+        [destination]="quest.destination"
         [summary]="quest.description"
         [selectable]="selectMode()"
         [selected]="selectedIds().has(quest.uid)"

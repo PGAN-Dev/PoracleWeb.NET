@@ -83,7 +83,7 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
 
         if (AsPokestopEvent(model) is { } pokestopEvent)
         {
-            var uids = await IncidentCreateProtocol.CreateAsync(this._incidentProxy, userId, [pokestopEvent], single: true);
+            var uids = await IncidentCreateProtocol.CreateAsync(this._incidentProxy, userId, [pokestopEvent], single: true, onExisting: uid => model.ExistingUid = uid);
             model.Uid = uids[0];
             return model;
         }
@@ -91,6 +91,8 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
         var body = SerializeToElement(model);
 
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
+
+        model.ExistingUid = result.ExistingUid;
 
         if (result.NewUids.Count > 0)
         {

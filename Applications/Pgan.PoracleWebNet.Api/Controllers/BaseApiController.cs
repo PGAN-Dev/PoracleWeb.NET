@@ -78,4 +78,34 @@ public abstract class BaseApiController : ControllerBase
 
     /// <summary>Checks that <paramref name="ownerId"/> matches the authenticated user. Returns true when NOT owned (i.e. should return 404).</summary>
     protected bool NotOwnedByCurrentUser(string? ownerId) => !string.Equals(ownerId, this.UserId, StringComparison.Ordinal);
+
+
+    /// <summary>
+    /// The answer to an update that asked to move its alarm to the other side of a linked pair. It keeps PUT's
+    /// normal shape: the alarm as it now stands on the target, with <c>X-Move-Status</c> saying whether the
+    /// original is gone (<c>moved</c>) or still there (<c>source_remains</c>). A collision is rethrown so the
+    /// global filter answers it as it answers any other edit (409 with <c>existingUid</c>); a refused preflight
+    /// is 409 <c>{ error }</c>, and a create PoracleNG did not explain is 502.
+    /// </summary>
+    protected IActionResult MovedResponse<TModel>(MoveResult<TModel> result) where TModel : class
+    {
+        switch (result.Outcome.Status)
+        {
+            case MoveStatus.Conflict:
+                throw result.Conflict!;
+            case MoveStatus.Refused:
+                return this.StatusCode(StatusCodes.Status409Conflict, new
+                {
+                    error = result.Outcome.Reason
+                });
+            case MoveStatus.Failed:
+                return this.StatusCode(StatusCodes.Status502BadGateway, new
+                {
+                    error = result.Outcome.Reason
+                });
+            default:
+                this.Response.Headers["X-Move-Status"] = result.Outcome.Status == MoveStatus.Moved ? "moved" : "source_remains";
+                return this.Ok(result.Created);
+        }
+    }
 }

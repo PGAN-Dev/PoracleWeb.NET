@@ -18,6 +18,8 @@
     searchPlaceholder="RAIDS.SEARCH_PLACEHOLDER"
     [(search)]="search"
     [(sort)]="sortBy"
+    [(destinationFilter)]="destinationFilter"
+    [canFilterDestination]="canChooseDestination()"
     [sortOptions]="sortOptions"
     [total]="raids().length + eggs().length"
     [shown]="visibleRaids().length + visibleEggs().length"
@@ -32,6 +34,8 @@
     (selectAll)="selectAll()"
     (deselectAll)="deselectAll()"
     (changeRadius)="bulkUpdateDistance()"
+    [canMove]="canChooseDestination()"
+    (moveSelected)="bulkMove($event)"
     (deleteSelected)="bulkDelete()" />
 }
 
@@ -66,6 +70,7 @@
       <div class="alarm-grid">
         @for (raid of visibleRaids(); track raid.uid) {
           <app-alarm-card
+            [destination]="raid.destination"
             [edge]="teamEdge(raid.team)"
             [summary]="raid.description"
             [selectable]="selectMode()"
@@ -173,6 +178,7 @@
       <div class="alarm-grid">
         @for (egg of visibleEggs(); track egg.uid) {
           <app-alarm-card
+            [destination]="egg.destination"
             [edge]="tierEdge(egg.level)"
             [summary]="egg.description"
             [selectable]="selectMode()"

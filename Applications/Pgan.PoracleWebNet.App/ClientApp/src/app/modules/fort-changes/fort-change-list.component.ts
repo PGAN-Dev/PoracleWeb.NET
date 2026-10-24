@@ -12,11 +12,13 @@ import { firstValueFrom } from 'rxjs';
 
 import { FortChangeAddDialogComponent } from './fort-change-add-dialog.component';
 import { FortChangeEditDialogComponent } from './fort-change-edit-dialog.component';
-import { FortChange } from '../../core/models';
+import { FortChange, LinkSide } from '../../core/models';
+import { AlarmMoveService, summariseMoves } from '../../core/services/alarm-move.service';
 import { AreaNameService } from '../../core/services/area-name.service';
 import { AreaService } from '../../core/services/area.service';
 import { FortChangeService } from '../../core/services/fort-change.service';
 import { I18nService } from '../../core/services/i18n.service';
+import { LinkedAccountService } from '../../core/services/linked-account.service';
 import { AlarmCardComponent } from '../../shared/components/alarm-card/alarm-card.component';
 import { AlarmEmptyStateComponent } from '../../shared/components/alarm-empty-state/alarm-empty-state.component';
 import { AlarmListToolbarComponent, AlarmSortOption } from '../../shared/components/alarm-list-toolbar/alarm-list-toolbar.component';
@@ -27,7 +29,7 @@ import { WhereChipComponent } from '../../shared/components/where-chip/where-chi
 import { WhereSheetComponent, WhereSheetData, whereSheetConfig } from '../../shared/components/where-sheet/where-sheet.component';
 import { addOnArrival } from '../../shared/utils/add-on-arrival';
 import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
-import { byNumber, byText, queryAlarms, visibleSelection } from '../../shared/utils/alarm-list-query';
+import { byDestination, byNumber, byText, DestinationFilter, queryAlarms, visibleSelection } from '../../shared/utils/alarm-list-query';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
@@ -64,16 +66,18 @@ export class FortChangeListComponent implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly fortChangeService = inject(FortChangeService);
   private readonly i18n = inject(I18nService);
+  private readonly moves = inject(AlarmMoveService);
   private readonly snackBar = inject(MatSnackBar);
   /** `?add=1` from the dashboard or onboarding opens the add dialog once. */
   private readonly takeAddRequest = addOnArrival();
   private readonly translate = inject(TranslateService);
   readonly selectedIds = signal(new Set<number>());
+  /** A linked person can filter by the app each alarm is delivered to. */
+  readonly destinationFilter = signal<DestinationFilter>('all');
   readonly fortChanges = signal<FortChange[]>([]);
   readonly search = signal('');
   /** "default" keeps the stable order the list loads in (see orderAlarms), so nothing moves once names load. */
   readonly sortBy = signal('default');
-
   /** The rules the search leaves, in the chosen order; ties keep their stable order. See alarm-list-query. */
   readonly visibleFortChanges = computed(() => {
     const sorts: Record<string, (f: FortChange, b: FortChange) => number> = {
@@ -81,7 +85,7 @@ export class FortChangeListComponent implements OnInit {
       newest: byNumber(f => -f.uid),
     };
     return queryAlarms(
-      this.fortChanges(),
+      byDestination(this.fortChanges(), this.destinationFilter()),
       this.search(),
       f => [this.formatFortType(f.fortType), ...this.changeTypeLabels(f.changeTypes)],
       sorts[this.sortBy()] ?? null,
@@ -95,6 +99,9 @@ export class FortChangeListComponent implements OnInit {
       this.visibleFortChanges().map(item => item.uid),
     ),
   );
+
+  /** True for a linked person, who gets the delivery filter, the card glyph and the bulk move. */
+  readonly canChooseDestination = inject(LinkedAccountService).canChoose;
 
   readonly loading = signal(true);
   /** Only used to word the inherited scope honestly; empty produces the more cautious wording. */
@@ -138,6 +145,24 @@ export class FortChangeListComponent implements OnInit {
         duration: 3000,
       });
     }
+  }
+
+  /** Moves the selected alarms to the other app, then reports every outcome in one line. */
+  async bulkMove(destination: LinkSide): Promise<void> {
+    const uids = this.actionIds();
+    try {
+      const response = await firstValueFrom(this.moves.moveMany('fort', uids, destination));
+      const text = summariseMoves(response.results, destination, this.i18n);
+      if (text) this.snackBar.open(text, this.i18n.instant('COMMON.OK'), { duration: 8000 });
+    } catch (err) {
+      this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.MOVE_FAILED_ALL'), this.i18n.instant('COMMON.OK'), {
+        duration: 6000,
+      });
+    }
+    // Some of a long selection may have moved before a later request failed, so the list always reloads.
+    this.selectedIds.set(new Set());
+    this.selectMode.set(false);
+    this.loadItems();
   }
 
   async bulkUpdateDistance(): Promise<void> {

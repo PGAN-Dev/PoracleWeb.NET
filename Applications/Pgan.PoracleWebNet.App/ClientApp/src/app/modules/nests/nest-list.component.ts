@@ -12,11 +12,13 @@ import { firstValueFrom } from 'rxjs';
 
 import { NestAddDialogComponent } from './nest-add-dialog.component';
 import { NestEditDialogComponent } from './nest-edit-dialog.component';
-import { Nest } from '../../core/models';
+import { Nest, LinkSide } from '../../core/models';
+import { AlarmMoveService, summariseMoves } from '../../core/services/alarm-move.service';
 import { AreaNameService } from '../../core/services/area-name.service';
 import { AreaService } from '../../core/services/area.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
+import { LinkedAccountService } from '../../core/services/linked-account.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { NestService } from '../../core/services/nest.service';
 import { TestAlertService } from '../../core/services/test-alert.service';
@@ -32,7 +34,7 @@ import { WhereSheetComponent, WhereSheetData, whereSheetConfig } from '../../sha
 import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
 import { addOnArrival } from '../../shared/utils/add-on-arrival';
 import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
-import { byNumber, byText, queryAlarms, visibleSelection } from '../../shared/utils/alarm-list-query';
+import { byDestination, byNumber, byText, DestinationFilter, queryAlarms, visibleSelection } from '../../shared/utils/alarm-list-query';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { isAutoDelete as cleanIsAutoDelete } from '../../shared/utils/clean-flags';
@@ -73,12 +75,15 @@ export class NestListComponent implements OnInit {
   private readonly i18n = inject(I18nService);
   private readonly iconService = inject(IconService);
   private readonly masterData = inject(MasterDataService);
+  private readonly moves = inject(AlarmMoveService);
   private readonly nestService = inject(NestService);
   private readonly snackBar = inject(MatSnackBar);
   /** `?add=1` from the dashboard or onboarding opens the add dialog once. */
   private readonly takeAddRequest = addOnArrival();
   private readonly translate = inject(TranslateService);
   readonly selectedIds = signal(new Set<number>());
+  /** A linked person can filter by the app each alarm is delivered to. */
+  readonly destinationFilter = signal<DestinationFilter>('all');
   readonly nests = signal<Nest[]>([]);
   readonly search = signal('');
   /** "default" keeps the stable order the list loads in (see orderAlarms), so nothing moves once names load. */
@@ -90,7 +95,12 @@ export class NestListComponent implements OnInit {
       name: byText(n => this.getPokemonName(n.pokemonId)),
       newest: byNumber(n => -n.uid),
     };
-    return queryAlarms(this.nests(), this.search(), n => [this.getPokemonName(n.pokemonId), n.pokemonId], sorts[this.sortBy()] ?? null);
+    return queryAlarms(
+      byDestination(this.nests(), this.destinationFilter()),
+      this.search(),
+      n => [this.getPokemonName(n.pokemonId), n.pokemonId],
+      sorts[this.sortBy()] ?? null,
+    );
   });
 
   /** The selected rules still on screen: bulk Delete and Change radius never reach a card the search has hidden. */
@@ -100,6 +110,9 @@ export class NestListComponent implements OnInit {
       this.visibleNests().map(item => item.uid),
     ),
   );
+
+  /** True for a linked person, who gets the delivery filter, the card glyph and the bulk move. */
+  readonly canChooseDestination = inject(LinkedAccountService).canChoose;
 
   readonly loading = signal(true);
   /** Only used to word the inherited scope honestly; empty produces the more cautious wording. */
@@ -146,6 +159,24 @@ export class NestListComponent implements OnInit {
         duration: 3000,
       });
     }
+  }
+
+  /** Moves the selected alarms to the other app, then reports every outcome in one line. */
+  async bulkMove(destination: LinkSide): Promise<void> {
+    const uids = this.actionIds();
+    try {
+      const response = await firstValueFrom(this.moves.moveMany('nest', uids, destination));
+      const text = summariseMoves(response.results, destination, this.i18n);
+      if (text) this.snackBar.open(text, this.i18n.instant('COMMON.OK'), { duration: 8000 });
+    } catch (err) {
+      this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.MOVE_FAILED_ALL'), this.i18n.instant('COMMON.OK'), {
+        duration: 6000,
+      });
+    }
+    // Some of a long selection may have moved before a later request failed, so the list always reloads.
+    this.selectedIds.set(new Set());
+    this.selectMode.set(false);
+    this.loadNests();
   }
 
   async bulkUpdateDistance(): Promise<void> {

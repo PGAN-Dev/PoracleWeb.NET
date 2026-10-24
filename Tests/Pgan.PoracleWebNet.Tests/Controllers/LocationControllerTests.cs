@@ -182,7 +182,7 @@ public class LocationControllerTests : ControllerTestBase
         var tracking = new Mock<IPoracleTrackingProxy>();
         tracking.Setup(t => t.GetAllTrackingAsync("123456789")).ReturnsAsync(snapshot);
 
-        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetPinUsage(tracking.Object));
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetPinUsage(tracking.Object, Pgan.PoracleWebNet.Tests.Helpers.LinkedTestKit.Unlinked()));
 
         Assert.Equal(2, ok.Value?.GetType().GetProperty("alarms")?.GetValue(ok.Value));
     }
@@ -212,7 +212,7 @@ public class LocationControllerTests : ControllerTestBase
         var tracking = new Mock<IPoracleTrackingProxy>();
         tracking.Setup(t => t.GetAllTrackingWithDescriptionsAsync("123456789")).ReturnsAsync(snapshot);
 
-        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetPlaceUsage("Work", tracking.Object));
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetPlaceUsage("Work", tracking.Object, Pgan.PoracleWebNet.Tests.Helpers.LinkedTestKit.Unlinked()));
 
         Assert.Equal(3, ok.Value?.GetType().GetProperty("alarms")?.GetValue(ok.Value));
         var rules = Assert.IsAssignableFrom<IReadOnlyList<PlaceUsageRule>>(ok.Value?.GetType().GetProperty("rules")?.GetValue(ok.Value));
@@ -228,7 +228,7 @@ public class LocationControllerTests : ControllerTestBase
         var tracking = new Mock<IPoracleTrackingProxy>();
         tracking.Setup(t => t.GetAllTrackingWithDescriptionsAsync("123456789")).ReturnsAsync(snapshot);
 
-        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetPlaceUsage("Work", tracking.Object));
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetPlaceUsage("Work", tracking.Object, Pgan.PoracleWebNet.Tests.Helpers.LinkedTestKit.Unlinked()));
 
         Assert.Equal(0, ok.Value?.GetType().GetProperty("alarms")?.GetValue(ok.Value));
     }
@@ -240,7 +240,7 @@ public class LocationControllerTests : ControllerTestBase
     {
         var tracking = new Mock<IPoracleTrackingProxy>();
 
-        Assert.IsType<BadRequestObjectResult>(await this._sut.GetPlaceUsage(label, tracking.Object));
+        Assert.IsType<BadRequestObjectResult>(await this._sut.GetPlaceUsage(label, tracking.Object, Pgan.PoracleWebNet.Tests.Helpers.LinkedTestKit.Unlinked()));
         tracking.VerifyNoOtherCalls();
     }
 
@@ -490,5 +490,51 @@ public class LocationControllerTests : ControllerTestBase
         var c = new NotificationLanguageController(this._humanService.Object, PairTestSupport.UnlinkedWriter());
         SetupUser(c);
         return c;
+    }
+
+    // --- Linked pair ---
+
+    [Fact]
+    public async Task PinUsage_Linked_AddsBothHumans()
+    {
+        var tracking = new Mock<IPoracleTrackingProxy>();
+        tracking.Setup(t => t.GetAllTrackingAsync(Pgan.PoracleWebNet.Tests.Helpers.LinkedTestKit.Discord))
+            .ReturnsAsync(System.Text.Json.JsonDocument.Parse("""{ "pokemon": [ { "uid": 1, "distance": 500 } ] }""").RootElement);
+        tracking.Setup(t => t.GetAllTrackingAsync(Pgan.PoracleWebNet.Tests.Helpers.LinkedTestKit.Telegram))
+            .ReturnsAsync(System.Text.Json.JsonDocument.Parse("""{ "raid": [ { "uid": 2, "distance": 900 }, { "uid": 3, "distance": 0 } ] }""").RootElement);
+
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetPinUsage(tracking.Object, Pgan.PoracleWebNet.Tests.Helpers.LinkedTestKit.Linked()));
+
+        Assert.Equal(2, ok.Value?.GetType().GetProperty("alarms")?.GetValue(ok.Value));
+    }
+
+    [Fact]
+    public async Task PlaceUsage_Linked_UnionsRules()
+    {
+        var tracking = new Mock<IPoracleTrackingProxy>();
+        tracking.Setup(t => t.GetAllTrackingWithDescriptionsAsync(Pgan.PoracleWebNet.Tests.Helpers.LinkedTestKit.Discord))
+            .ReturnsAsync(System.Text.Json.JsonDocument.Parse("""{ "pokemon": [ { "uid": 1, "override_location_label": "Work" } ] }""").RootElement);
+        tracking.Setup(t => t.GetAllTrackingWithDescriptionsAsync(Pgan.PoracleWebNet.Tests.Helpers.LinkedTestKit.Telegram))
+            .ReturnsAsync(System.Text.Json.JsonDocument.Parse("""{ "raid": [ { "uid": 2, "override_location_label": "Work" } ] }""").RootElement);
+
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetPlaceUsage("Work", tracking.Object, Pgan.PoracleWebNet.Tests.Helpers.LinkedTestKit.Linked()));
+
+        Assert.Equal(2, ok.Value?.GetType().GetProperty("alarms")?.GetValue(ok.Value));
+        var rules = Assert.IsAssignableFrom<IReadOnlyList<PlaceUsageRule>>(ok.Value?.GetType().GetProperty("rules")?.GetValue(ok.Value));
+        Assert.Equal(["discord", "telegram"], rules.Select(r => r.Destination));
+    }
+
+    [Fact]
+    public async Task PlaceUsage_Unlinked_RulesCarryNoDestination()
+    {
+        var tracking = new Mock<IPoracleTrackingProxy>();
+        tracking.Setup(t => t.GetAllTrackingWithDescriptionsAsync("123456789"))
+            .ReturnsAsync(System.Text.Json.JsonDocument.Parse("""{ "pokemon": [ { "uid": 1, "override_location_label": "Work" } ] }""").RootElement);
+
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetPlaceUsage("Work", tracking.Object, Pgan.PoracleWebNet.Tests.Helpers.LinkedTestKit.Unlinked()));
+
+        var rules = Assert.IsAssignableFrom<IReadOnlyList<PlaceUsageRule>>(ok.Value?.GetType().GetProperty("rules")?.GetValue(ok.Value));
+        Assert.Null(rules[0].Destination);
+        Assert.DoesNotContain("destination", System.Text.Json.JsonSerializer.Serialize(rules));
     }
 }

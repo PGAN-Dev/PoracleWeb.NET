@@ -195,6 +195,7 @@ builder.Services.AddControllers(options =>
     options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.PoracleRequestRefusedExceptionFilter>();
     options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.TrackingRuleNotFoundExceptionFilter>();
     options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.AccountGoneExceptionFilter>();
+    options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.AlarmDestinationExceptionFilter>();
     options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.PoracleUnsupportedExceptionFilter>();
     options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.BlockedAccountFilter>();
 });
@@ -369,22 +370,7 @@ if (!Pgan.PoracleWebNet.Api.Configuration.PublicOrigin.TryNormalize(configuredPu
     throw new InvalidOperationException($"Configuration 'PUBLIC_URL' is invalid: {publicUrlError}");
 }
 
-builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
-    {
-        if (allowedOrigins is { Length: > 0 })
-        {
-            policy.WithOrigins(allowedOrigins);
-        }
-        else
-        {
-            // Development only — never runs in production due to startup check above
-            policy.SetIsOriginAllowed(_ => true);
-        }
-
-        policy.AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
-    }));
+builder.Services.AddCors(options => options.AddDefaultPolicy(policy => Pgan.PoracleWebNet.Api.Configuration.CorsPolicySetup.Apply(policy, allowedOrigins)));
 
 // OpenAPI
 builder.Services.AddOpenApi();

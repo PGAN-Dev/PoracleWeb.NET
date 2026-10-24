@@ -54,7 +54,7 @@ public class PokestopEventConsumerTests
     {
         var proxy = CreateProxy(new Handler().Get("/tracking", Snapshot));
 
-        var counts = await new DashboardService(proxy, this._gate.Object).GetCountsAsync("u1", 1);
+        var counts = await new DashboardService(proxy, this._gate.Object, Pgan.PoracleWebNet.Tests.Helpers.LinkedTestKit.Unlinked()).GetCountsAsync("u1", 1);
 
         Assert.Equal(1, counts.Invasions);
         Assert.Equal(2, counts.PokestopEvents);
@@ -66,7 +66,7 @@ public class PokestopEventConsumerTests
         this.EventsPageOff();
         var proxy = CreateProxy(new Handler().Get("/tracking", Snapshot));
 
-        var counts = await new DashboardService(proxy, this._gate.Object).GetCountsAsync("u1", 1);
+        var counts = await new DashboardService(proxy, this._gate.Object, Pgan.PoracleWebNet.Tests.Helpers.LinkedTestKit.Unlinked()).GetCountsAsync("u1", 1);
 
         Assert.Equal(3, counts.Invasions);
         Assert.Equal(0, counts.PokestopEvents);
@@ -257,7 +257,7 @@ public class PokestopEventConsumerTests
         new(CreateProxy(handler), this._gate.Object, NullLogger<InvasionService>.Instance, Mock.Of<ITrackedUidRemapper>(), CreateIncidentProxy(handler));
 
     private CleaningService CreateCleaning(Handler handler) =>
-        new(CreateProxy(handler), this._gate.Object, CreateIncidentProxy(handler), NullLogger<CleaningService>.Instance);
+        new(CreateProxy(handler), this._gate.Object, CreateIncidentProxy(handler), Pgan.PoracleWebNet.Tests.Helpers.LinkedTestKit.Unlinked(), NullLogger<CleaningService>.Instance);
 
     /// <summary>A PATCH answer reporting every named uid as updated.</summary>
     private static string PatchedUids(params int[] uids) =>

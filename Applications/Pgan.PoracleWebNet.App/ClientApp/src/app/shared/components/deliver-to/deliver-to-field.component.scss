@@ -1,0 +1,21 @@
+.deliver-to {
+  margin-bottom: 16px;
+}
+
+.deliver-label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.deliver-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 16px;
+}
+
+.deliver-paused {
+  color: var(--mat-sys-on-surface-variant, inherit);
+  font-size: 0.875rem;
+  margin: 4px 0 0;
+}

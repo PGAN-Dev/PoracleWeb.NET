@@ -437,7 +437,18 @@
     "FAILED_DELETE_ALL": "Nie udało się usunąć alarmów. Odśwież stronę i spróbuj ponownie.",
     "FAILED_DISTANCE": "Nie udało się zmienić promienia. Odśwież stronę i spróbuj ponownie.",
     "REFUSAL_COVERED_BY": "Już objęte przez: {{summary}}",
-    "REFUSAL_EDIT_EXISTING": "Edytuj ten"
+    "REFUSAL_EDIT_EXISTING": "Edytuj ten",
+    "DELIVER_TO_MENU": "Dostarczaj do…",
+    "FILTER_ALL": "Wszystkie",
+    "MOVED_SOURCE_REMAINS": "Przeniesiono do {{app}}, ale kopia w {{from}} nadal istnieje. Usuń ją z listy.",
+    "MOVED_TO": "Przeniesiono do {{app}}.",
+    "MOVE_CONFLICT": "Nie przeniesiono: {{count}}. {{app}} ma już podobny alert.",
+    "MOVE_DONE": "Przeniesiono do {{app}}: {{count}}.",
+    "MOVE_FAILED": "Alerty ({{count}}) mogły dotrzeć do {{app}}. Sprawdź obie aplikacje, zanim spróbujesz ponownie.",
+    "MOVE_FAILED_ALL": "Nie udało się przenieść alertów. Spróbuj za chwilę.",
+    "MOVE_REFUSED": "Nie przeniesiono: {{count}}. {{reason}}",
+    "MOVE_REFUSED_NO_REASON": "Przeniesienie zostało odrzucone.",
+    "MOVE_SOURCE_REMAINS": "Przeniesiono do {{app}}: {{count}}, ale kopia w {{from}} nadal istnieje. Usuń ją z listy."
   },
   "RAIDS": {
     "RSVP_LABEL": "Powiadomienia RSVP",
@@ -2519,5 +2530,11 @@
     "ERR_LINK_CANCELLED": "Anulowano łączenie. Nic nie zostało zmienione.",
     "LOAD_FAILED": "Nie udało się wczytać połączonych kont.",
     "RETRY": "Spróbuj ponownie"
+  },
+  "DELIVER_TO": {
+    "DISCORD": "Discord",
+    "LABEL": "Dostarczaj do",
+    "PAUSED": "Alerty do {{app}} są wyłączone, więc nic tam jeszcze nie dotrze.",
+    "TELEGRAM": "Telegram"
   }
 }

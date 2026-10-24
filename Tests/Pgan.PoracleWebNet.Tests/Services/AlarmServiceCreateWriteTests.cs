@@ -200,6 +200,9 @@ public class AlarmServiceCreateWriteTests
             Mock.Of<IMaxBattleService>(),
             Mock.Of<IMasterDataService>(),
             featureGate.Object,
+            Pgan.PoracleWebNet.Tests.Helpers.LinkedTestKit.Unlinked(),
+            Pgan.PoracleWebNet.Tests.Helpers.LinkedTestKit.Router(Pgan.PoracleWebNet.Tests.Helpers.LinkedTestKit.Unlinked()),
+            Moq.Mock.Of<Pgan.PoracleWebNet.Core.Abstractions.Services.IHumanService>(),
             Mock.Of<ILogger<QuickPickService>>());
     }
 

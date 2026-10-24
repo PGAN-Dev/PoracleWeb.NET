@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
+import { AlarmMoveService, MoveEdit } from './alarm-move.service';
 import { ConfigService } from './config.service';
 import { DistanceUpdateResult } from '../../shared/utils/distance-update';
 import { Egg, EggCreate, EggUpdate } from '../models';
@@ -10,6 +11,7 @@ import { Egg, EggCreate, EggUpdate } from '../models';
 export class EggService {
   private readonly config = inject(ConfigService);
   private readonly http = inject(HttpClient);
+  private readonly moves = inject(AlarmMoveService);
 
   create(egg: EggCreate): Observable<Egg> {
     return this.http.post<Egg>(`${this.config.apiHost}/api/eggs`, egg);
@@ -27,8 +29,8 @@ export class EggService {
     return this.http.get<Egg[]>(`${this.config.apiHost}/api/eggs`);
   }
 
-  update(uid: number, egg: EggUpdate): Observable<void> {
-    return this.http.put<void>(`${this.config.apiHost}/api/eggs/${uid}`, egg);
+  update(uid: number, egg: EggUpdate): Observable<MoveEdit | void> {
+    return this.moves.put('eggs', uid, egg, () => this.http.put<void>(`${this.config.apiHost}/api/eggs/${uid}`, egg));
   }
 
   updateBulkDistance(uids: number[], distance: number): Observable<DistanceUpdateResult> {

@@ -21,6 +21,9 @@ public partial class QuickPickService(
     IMaxBattleService maxBattleService,
     IMasterDataService masterDataService,
     IFeatureGate featureGate,
+    ILinkedAccount linked,
+    LinkedAlarmRouter router,
+    IHumanService humanService,
     ILogger<QuickPickService> logger) : IQuickPickService
 {
     private readonly IQuickPickDefinitionRepository _definitionRepository = definitionRepository;
@@ -36,6 +39,9 @@ public partial class QuickPickService(
     private readonly IGymService _gymService = gymService;
     private readonly IMaxBattleService _maxBattleService = maxBattleService;
     private readonly IMasterDataService _masterDataService = masterDataService;
+    private readonly ILinkedAccount _linked = linked;
+    private readonly LinkedAlarmRouter _router = router;
+    private readonly IHumanService _humanService = humanService;
     private readonly ILogger<QuickPickService> _logger = logger;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -67,9 +73,29 @@ public partial class QuickPickService(
 
         var summaries = new List<QuickPickSummary>();
 
+        var humans = await this.HumansAsync(userId, profileNo);
+
         foreach (var definition in allDefinitions)
         {
-            var appliedState = await this._appliedStateRepository.GetAsync(userId, profileNo, definition.Id);
+            // Applied state is kept per human and profile. A linked person has up to two humans, each on
+            // its own active profile, and a pick counts as applied when either holds it.
+            var held = new List<QuickPickAppliedState>();
+            foreach (var (humanId, humanProfile) in humans)
+            {
+                var state = await this._appliedStateRepository.GetAsync(humanId, humanProfile, definition.Id);
+                if (state is null)
+                {
+                    continue;
+                }
+
+                state = await this.VerifyTrackedAsync(humanId, humanProfile, definition, state);
+                if (state is not null)
+                {
+                    held.Add(state);
+                }
+            }
+
+            var appliedState = Combine(held);
 
             // A disabled pick used to be skipped before the applied state was even looked up, so a pick
             // the caller had already applied vanished from the list the moment it was disabled -- while
@@ -82,34 +108,6 @@ public partial class QuickPickService(
                 continue;
             }
 
-            // Verify tracked alarms still exist — if all deleted manually, clear applied state
-            if (appliedState?.TrackedUids is { Count: > 0 })
-            {
-                // Against the type the alarms were CREATED as, not the definition's current one. Editing
-                // an applied pick's alarm type -- a plain dropdown in the edit dialog -- made this look
-                // the monster uids up among the raids, find none, conclude the user had deleted them all
-                // and drop the applied state. The alarms stayed behind with nothing owning them and no
-                // Remove button, because the card then read as never applied. RemoveAsync already keys
-                // off the stored type for exactly this reason. See #541.
-                var trackedType = string.IsNullOrEmpty(appliedState.AlarmType)
-                    ? definition.AlarmType
-                    : appliedState.AlarmType;
-
-                var remaining = await this.CountRemainingUidsAsync(userId, trackedType, appliedState.TrackedUids);
-                if (remaining == 0)
-                {
-                    // All alarms were deleted manually — clean up stale applied state
-                    await this._appliedStateRepository.DeleteAsync(userId, profileNo, definition.Id);
-                    appliedState = null;
-                }
-                else if (remaining < appliedState.TrackedUids.Count)
-                {
-                    // Some alarms were deleted — update the tracked UIDs to only valid ones
-                    appliedState.TrackedUids = await this.GetValidUidsAsync(userId, trackedType, appliedState.TrackedUids);
-                    await this._appliedStateRepository.CreateOrUpdateAsync(appliedState);
-                }
-            }
-
             summaries.Add(new QuickPickSummary
             {
                 Definition = definition,
@@ -118,6 +116,84 @@ public partial class QuickPickService(
         }
 
         return summaries.OrderBy(s => s.Definition.SortOrder).ThenBy(s => s.Definition.Name);
+    }
+
+    /// <summary>
+    /// The humans a quick pick reads and removes across, each with the profile it is on. An unlinked caller
+    /// is one human on the profile their token names, with no read of PoracleNG. A linked person's humans
+    /// each use their own <c>current_profile_no</c>: the two sides are on profiles of their own, and an
+    /// alarm model does not carry a profile number a v2 read can be trusted for.
+    /// </summary>
+    private async Task<List<(string HumanId, int ProfileNo)>> HumansAsync(string userId, int profileNo)
+    {
+        var pair = await this._linked.ResolveAsync(userId);
+        var humans = new List<(string, int)>();
+        foreach (var humanId in pair.ExistingHumanIds)
+        {
+            humans.Add((humanId, humanId == userId ? profileNo : await this.ProfileOfAsync(humanId, profileNo)));
+        }
+
+        return humans;
+    }
+
+    private async Task<int> ProfileOfAsync(string humanId, int fallback) =>
+        (await this._humanService.GetByIdAsync(humanId))?.CurrentProfileNo ?? fallback;
+
+    /// <summary>One state for the pick: the only one, or the sum of both humans' with the tracked uids joined.</summary>
+    // The combined state's UserId and ProfileNo come from one side and are not authoritative; only the uids and type are.
+    private static QuickPickAppliedState? Combine(List<QuickPickAppliedState> held)
+    {
+        if (held.Count <= 1)
+        {
+            return held.FirstOrDefault();
+        }
+
+        var first = held[0];
+        return new QuickPickAppliedState
+        {
+            UserId = first.UserId,
+            ProfileNo = first.ProfileNo,
+            QuickPickId = first.QuickPickId,
+            AlarmType = first.AlarmType,
+            AppliedAt = held.Max(h => h.AppliedAt),
+            ExcludePokemonIds = [.. held.SelectMany(h => h.ExcludePokemonIds).Distinct()],
+            TrackedUids = [.. held.SelectMany(h => h.TrackedUids)],
+        };
+    }
+
+    /// <summary>Drops tracked uids the human no longer holds, and the state itself when none are left.</summary>
+    private async Task<QuickPickAppliedState?> VerifyTrackedAsync(
+        string userId, int profileNo, QuickPickDefinition definition, QuickPickAppliedState? appliedState)
+    {
+        // Verify tracked alarms still exist — if all deleted manually, clear applied state
+        if (appliedState.TrackedUids is { Count: > 0 })
+        {
+            // Against the type the alarms were CREATED as, not the definition's current one. Editing
+            // an applied pick's alarm type -- a plain dropdown in the edit dialog -- made this look
+            // the monster uids up among the raids, find none, conclude the user had deleted them all
+            // and drop the applied state. The alarms stayed behind with nothing owning them and no
+            // Remove button, because the card then read as never applied. RemoveAsync already keys
+            // off the stored type for exactly this reason. See #541.
+            var trackedType = string.IsNullOrEmpty(appliedState.AlarmType)
+                ? definition.AlarmType
+                : appliedState.AlarmType;
+
+            var remaining = await this.CountRemainingUidsAsync(userId, trackedType, appliedState.TrackedUids);
+            if (remaining == 0)
+            {
+                // All alarms were deleted manually — clean up stale applied state
+                await this._appliedStateRepository.DeleteAsync(userId, profileNo, definition.Id);
+                appliedState = null;
+            }
+            else if (remaining < appliedState.TrackedUids.Count)
+            {
+                // Some alarms were deleted — update the tracked UIDs to only valid ones
+                appliedState.TrackedUids = await this.GetValidUidsAsync(userId, trackedType, appliedState.TrackedUids);
+                await this._appliedStateRepository.CreateOrUpdateAsync(appliedState);
+            }
+        }
+
+        return appliedState;
     }
 
     public async Task<QuickPickDefinition?> GetByIdAsync(string id) => await this._definitionRepository.GetByIdAsync(id);
@@ -328,6 +404,16 @@ public partial class QuickPickService(
     public async Task<QuickPickAppliedState> ApplyAsync(
         string userId, int profileNo, string quickPickId, QuickPickApplyRequest request)
     {
+        // A linked person's pick is created on the side they chose as their default, and tracked against
+        // that human's own profile. Unlinked, the target is the caller on the profile their token names.
+        var humanId = await this._router.CreateTargetAsync(userId, null);
+        var humanProfile = humanId == userId ? profileNo : await this.ProfileOfAsync(humanId, profileNo);
+        return await this.ApplyToAsync(userId, humanId, humanProfile, quickPickId, request);
+    }
+
+    private async Task<QuickPickAppliedState> ApplyToAsync(
+        string userId, string humanId, int profileNo, string quickPickId, QuickPickApplyRequest request)
+    {
         var definition = await this.LoadDefinitionAsync(userId, quickPickId) ?? throw new InvalidOperationException($"Quick pick '{quickPickId}' not found.");
 
         // A disabled pick now stays listed while it still owns alarms, so that Remove remains reachable
@@ -341,7 +427,7 @@ public partial class QuickPickService(
         // under the old type: the new applied state records the new type, and Remove -- which keys off
         // the stored type -- can never reach them again. Refuse rather than strand, and say what to do.
         // Re-apply is the supported way through, because it removes the old alarms first. See #557.
-        var existingState = await this._appliedStateRepository.GetAsync(userId, profileNo, quickPickId);
+        var existingState = await this._appliedStateRepository.GetAsync(humanId, profileNo, quickPickId);
         if (existingState is not null
             && existingState.TrackedUids.Count > 0
             && !string.Equals(existingState.AlarmType, definition.AlarmType, StringComparison.OrdinalIgnoreCase))
@@ -356,23 +442,23 @@ public partial class QuickPickService(
         // Remove then deleted it. It also reports no uid at all for an exact duplicate, which
         // recorded a tracked uid of 0 that no lookup could resolve, so the applied state was wiped
         // on the next page load. Diffing sidesteps both. See #468, #469.
-        var existingUids = await this.ExistingUidsAsync(userId, profileNo, definition.AlarmType);
+        var existingUids = await this.ExistingUidsAsync(humanId, profileNo, definition.AlarmType);
 
         var reportedUids = definition.AlarmType switch
         {
-            "monster" => await this.ApplyMonsterAsync(userId, profileNo, definition, request),
-            "raid" => await this.ApplyRaidAsync(userId, profileNo, definition, request),
-            "egg" => await this.ApplyEggAsync(userId, profileNo, definition, request),
-            "quest" => await this.ApplyQuestAsync(userId, profileNo, definition, request),
-            "invasion" => await this.ApplyInvasionAsync(userId, profileNo, definition, request),
-            "lure" => await this.ApplyLureAsync(userId, profileNo, definition, request),
-            "nest" => await this.ApplyNestAsync(userId, profileNo, definition, request),
-            "gym" => await this.ApplyGymAsync(userId, profileNo, definition, request),
-            "maxbattle" => await this.ApplyMaxBattleAsync(userId, profileNo, definition, request),
+            "monster" => await this.ApplyMonsterAsync(humanId, profileNo, definition, request),
+            "raid" => await this.ApplyRaidAsync(humanId, profileNo, definition, request),
+            "egg" => await this.ApplyEggAsync(humanId, profileNo, definition, request),
+            "quest" => await this.ApplyQuestAsync(humanId, profileNo, definition, request),
+            "invasion" => await this.ApplyInvasionAsync(humanId, profileNo, definition, request),
+            "lure" => await this.ApplyLureAsync(humanId, profileNo, definition, request),
+            "nest" => await this.ApplyNestAsync(humanId, profileNo, definition, request),
+            "gym" => await this.ApplyGymAsync(humanId, profileNo, definition, request),
+            "maxbattle" => await this.ApplyMaxBattleAsync(humanId, profileNo, definition, request),
             _ => throw new InvalidOperationException($"Unknown alarm type '{definition.AlarmType}'."),
         };
 
-        var afterUids = await this.ExistingUidsAsync(userId, profileNo, definition.AlarmType);
+        var afterUids = await this.ExistingUidsAsync(humanId, profileNo, definition.AlarmType);
         var addedUids = afterUids.Except(existingUids).ToList();
         var displacedUids = existingUids.Except(afterUids).ToList();
 
@@ -395,12 +481,12 @@ public partial class QuickPickService(
         // still there. Remove then answered 204 and deleted nothing, and the alarms were left with no
         // way to attribute them. Keep what the pick already owned and add whatever this run created.
         // See #542.
-        var previouslyTracked = await this._appliedStateRepository.GetAsync(userId, profileNo, quickPickId);
+        var previouslyTracked = await this._appliedStateRepository.GetAsync(humanId, profileNo, quickPickId);
         var stillOwned = previouslyTracked?.TrackedUids?.Where(afterUids.Contains) ?? [];
 
         var appliedState = new QuickPickAppliedState
         {
-            UserId = userId,
+            UserId = humanId,
             ProfileNo = profileNo,
             QuickPickId = quickPickId,
             AlarmType = definition.AlarmType,
@@ -411,7 +497,7 @@ public partial class QuickPickService(
 
         await this._appliedStateRepository.CreateOrUpdateAsync(appliedState);
 
-        LogQuickPickApplied(this._logger, quickPickId, userId, profileNo, trackedUids.Count);
+        LogQuickPickApplied(this._logger, quickPickId, humanId, profileNo, trackedUids.Count);
 
         return appliedState;
     }
@@ -480,13 +566,17 @@ public partial class QuickPickService(
         // so a pick whose type changed since it was applied lost its alarms AND its applied state before
         // the refusal ever fired -- the deletes are committed and the error reads as "nothing happened".
         // See #579.
-        var applied = await this._appliedStateRepository.GetAsync(userId, profileNo, quickPickId);
-        if (applied is not null
-            && applied.TrackedUids.Count > 0
-            && !string.Equals(applied.AlarmType, definition.AlarmType, StringComparison.OrdinalIgnoreCase))
+        // Checked for each human of a linked pair, on that human's own profile: Remove runs over all of them.
+        foreach (var (humanId, humanProfile) in await this.HumansAsync(userId, profileNo))
         {
-            throw new AlarmValidationException(
-                "This quick pick still owns alarms of a different type. Remove it first, then apply it again.");
+            var applied = await this._appliedStateRepository.GetAsync(humanId, humanProfile, quickPickId);
+            if (applied is not null
+                && applied.TrackedUids.Count > 0
+                && !string.Equals(applied.AlarmType, definition.AlarmType, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new AlarmValidationException(
+                    "This quick pick still owns alarms of a different type. Remove it first, then apply it again.");
+            }
         }
 
         // Building throws for a filter the alarm model refuses. Nothing is sent anywhere.
@@ -547,6 +637,18 @@ public partial class QuickPickService(
     }
 
     public async Task<bool> RemoveAsync(string userId, int profileNo, string quickPickId)
+    {
+        // Run for each human of a linked pair that holds the pick; the one that does not is left alone.
+        var removed = false;
+        foreach (var (humanId, humanProfile) in await this.HumansAsync(userId, profileNo))
+        {
+            removed |= await this.RemoveForAsync(humanId, humanProfile, quickPickId);
+        }
+
+        return removed;
+    }
+
+    private async Task<bool> RemoveForAsync(string userId, int profileNo, string quickPickId)
     {
         var appliedState = await this._appliedStateRepository.GetAsync(userId, profileNo, quickPickId);
 

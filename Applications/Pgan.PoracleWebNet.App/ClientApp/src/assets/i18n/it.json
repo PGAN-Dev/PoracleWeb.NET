@@ -417,7 +417,18 @@
     "FAILED_DELETE_ALL": "Impossibile eliminare gli allarmi. Ricarica la pagina e riprova.",
     "FAILED_DISTANCE": "Impossibile cambiare il raggio. Ricarica la pagina e riprova.",
     "REFUSAL_COVERED_BY": "Già coperto da: {{summary}}",
-    "REFUSAL_EDIT_EXISTING": "Modifica quello"
+    "REFUSAL_EDIT_EXISTING": "Modifica quello",
+    "DELIVER_TO_MENU": "Consegna su…",
+    "FILTER_ALL": "Tutti",
+    "MOVED_SOURCE_REMAINS": "Spostato su {{app}}, ma la copia su {{from}} c’è ancora. Eliminala dall’elenco.",
+    "MOVED_TO": "Spostato su {{app}}.",
+    "MOVE_CONFLICT": "{{count}} non spostati: {{app}} ha già un avviso simile.",
+    "MOVE_DONE": "{{count}} spostati su {{app}}.",
+    "MOVE_FAILED": "{{count}} potrebbero essere arrivati su {{app}}. Controlla entrambe le app prima di riprovare.",
+    "MOVE_FAILED_ALL": "Impossibile spostare gli avvisi. Riprova tra un attimo.",
+    "MOVE_REFUSED": "{{count}} non spostati: {{reason}}",
+    "MOVE_REFUSED_NO_REASON": "Lo spostamento è stato rifiutato.",
+    "MOVE_SOURCE_REMAINS": "{{count}} spostati su {{app}}, ma la copia su {{from}} c’è ancora. Eliminala dall’elenco."
   },
   "RAIDS": {
     "RSVP_LABEL": "Notifiche RSVP",
@@ -2415,5 +2426,11 @@
     "ERR_LINK_CANCELLED": "Hai annullato il collegamento. Non è stato modificato nulla.",
     "LOAD_FAILED": "Impossibile caricare i tuoi account collegati.",
     "RETRY": "Riprova"
+  },
+  "DELIVER_TO": {
+    "DISCORD": "Discord",
+    "LABEL": "Consegna su",
+    "PAUSED": "Gli avvisi verso {{app}} sono disattivati, quindi per ora lì non arriverà nulla.",
+    "TELEGRAM": "Telegram"
   }
 }

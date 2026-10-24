@@ -71,6 +71,9 @@ internal static class PoracleJsonHelper
     /// </remarks>
     private static bool ShouldStrip(JsonProperty prop) =>
         prop.NameEquals("profile_no") ||
+        // PoracleWeb.NET's own annotations for a linked pair; no tracking table has either.
+        prop.NameEquals("destination") ||
+        prop.NameEquals("paused_destination") ||
         prop.NameEquals("description") ||
         (prop.NameEquals("uid") && prop.Value.ValueKind == JsonValueKind.Number && prop.Value.GetInt32() == 0);
 

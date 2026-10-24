@@ -1,4 +1,4 @@
-import { HttpInterceptorFn } from '@angular/common/http';
+import { HttpContextToken, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
@@ -7,6 +7,13 @@ import { catchError, throwError } from 'rxjs';
 import { ADMIN_RETURN_STATE } from '../guards/admin-return';
 import { ToastService } from '../services/toast.service';
 import { TokenStoreService } from '../services/token-store.service';
+
+/**
+ * Set on a request whose caller words a 502 itself. Moving an alarm to the other app answers 502 when the
+ * copy may or may not exist, with a sentence saying what to check; the generic toast would be a second,
+ * vaguer message beside it. Only a 502 is hushed, so the rest still report as usual.
+ */
+export const WORDS_OWN_502 = new HttpContextToken<boolean>(() => false);
 
 /** Endpoints where errors should be silently swallowed (no user-facing toast). */
 const SILENT_URL_PATTERNS = [
@@ -25,6 +32,8 @@ const SILENT_URL_PATTERNS = [
   // LinkedAccountService and its page word every outcome themselves, and a refusal carries a code the
   // page translates. The admin list is read quietly: a failed read only leaves the Users chips off.
   '/api/account-link',
+  // A bulk move answers per alert, and the list words every outcome (and a refused request) itself.
+  '/api/alarm-move',
   '/api/admin/account-links',
   // TestAlertService words every outcome itself (429, 404, 501's server reason, feature disabled). With
   // the interceptor also toasting, the two snackbars raced and a failed test read "An unexpected server
@@ -96,7 +105,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(req).pipe(
     catchError(error => {
-      const silent = shouldSilence(req.url);
+      const silent = shouldSilence(req.url) || (error.status === 502 && req.context.get(WORDS_OWN_502));
 
       // On 401, clear token and redirect — but NOT during OAuth callback flow or login page
       if (error.status === 401 && !isAuthCallbackRoute()) {

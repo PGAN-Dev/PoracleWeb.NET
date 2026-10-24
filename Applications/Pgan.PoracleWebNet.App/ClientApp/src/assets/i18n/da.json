@@ -417,7 +417,18 @@
     "FAILED_DELETE_ALL": "Kunne ikke slette alarmerne. Genindlæs siden, og prøv igen.",
     "FAILED_DISTANCE": "Kunne ikke ændre radius. Genindlæs siden, og prøv igen.",
     "REFUSAL_COVERED_BY": "Allerede dækket af: {{summary}}",
-    "REFUSAL_EDIT_EXISTING": "Rediger den"
+    "REFUSAL_EDIT_EXISTING": "Rediger den",
+    "DELIVER_TO_MENU": "Leverer til…",
+    "FILTER_ALL": "Alle",
+    "MOVED_SOURCE_REMAINS": "Flyttet til {{app}}, men kopien i {{from}} er der stadig. Slet den fra listen.",
+    "MOVED_TO": "Flyttet til {{app}}.",
+    "MOVE_CONFLICT": "{{count}} ikke flyttet: {{app}} har allerede en lignende besked.",
+    "MOVE_DONE": "{{count}} flyttet til {{app}}.",
+    "MOVE_FAILED": "{{count}} er måske nået frem til {{app}}. Tjek begge apps, før du prøver igen.",
+    "MOVE_FAILED_ALL": "Beskederne kunne ikke flyttes. Prøv igen om lidt.",
+    "MOVE_REFUSED": "{{count}} ikke flyttet: {{reason}}",
+    "MOVE_REFUSED_NO_REASON": "Flytningen blev afvist.",
+    "MOVE_SOURCE_REMAINS": "{{count}} flyttet til {{app}}, men kopien i {{from}} er der stadig. Slet den fra listen."
   },
   "RAIDS": {
     "RSVP_LABEL": "RSVP-notifikationer",
@@ -2415,5 +2426,11 @@
     "ERR_LINK_CANCELLED": "Du annullerede sammenkædningen. Intet blev ændret.",
     "LOAD_FAILED": "Dine sammenkædede konti kunne ikke indlæses.",
     "RETRY": "Prøv igen"
+  },
+  "DELIVER_TO": {
+    "DISCORD": "Discord",
+    "LABEL": "Leverer til",
+    "PAUSED": "Beskeder til {{app}} er slået fra, så der kommer ikke noget frem endnu.",
+    "TELEGRAM": "Telegram"
   }
 }

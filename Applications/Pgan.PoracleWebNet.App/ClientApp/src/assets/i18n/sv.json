@@ -417,7 +417,18 @@
     "FAILED_DELETE_ALL": "Det gick inte att ta bort larmen. Ladda om sidan och försök igen.",
     "FAILED_DISTANCE": "Det gick inte att ändra radien. Ladda om sidan och försök igen.",
     "REFUSAL_COVERED_BY": "Täcks redan av: {{summary}}",
-    "REFUSAL_EDIT_EXISTING": "Redigera det"
+    "REFUSAL_EDIT_EXISTING": "Redigera det",
+    "DELIVER_TO_MENU": "Leverera till…",
+    "FILTER_ALL": "Alla",
+    "MOVED_SOURCE_REMAINS": "Flyttad till {{app}}, men kopian i {{from}} finns kvar. Ta bort den från listan.",
+    "MOVED_TO": "Flyttad till {{app}}.",
+    "MOVE_CONFLICT": "{{count}} flyttades inte: {{app}} har redan en liknande avisering.",
+    "MOVE_DONE": "{{count}} flyttade till {{app}}.",
+    "MOVE_FAILED": "{{count}} kan ha nått {{app}}. Kontrollera båda apparna innan du försöker igen.",
+    "MOVE_FAILED_ALL": "Det gick inte att flytta aviseringarna. Försök igen strax.",
+    "MOVE_REFUSED": "{{count}} flyttades inte: {{reason}}",
+    "MOVE_REFUSED_NO_REASON": "Flytten nekades.",
+    "MOVE_SOURCE_REMAINS": "{{count}} flyttade till {{app}}, men kopian i {{from}} finns kvar. Ta bort den från listan."
   },
   "RAIDS": {
     "RSVP_LABEL": "RSVP-aviseringar",
@@ -2415,5 +2426,11 @@
     "ERR_LINK_CANCELLED": "Du avbröt länkningen. Inget ändrades.",
     "LOAD_FAILED": "Dina länkade konton kunde inte läsas in.",
     "RETRY": "Försök igen"
+  },
+  "DELIVER_TO": {
+    "DISCORD": "Discord",
+    "LABEL": "Leverera till",
+    "PAUSED": "Aviseringar till {{app}} är avstängda, så inget når fram dit än.",
+    "TELEGRAM": "Telegram"
   }
 }

@@ -38,6 +38,7 @@ public class CleaningServiceTests
             this._proxy.Object,
             this._featureGate.Object,
             this._incident.Object,
+            Pgan.PoracleWebNet.Tests.Helpers.LinkedTestKit.Unlinked(),
             Microsoft.Extensions.Logging.Abstractions.NullLogger<CleaningService>.Instance);
     }
 
@@ -293,7 +294,7 @@ public class CleaningServiceTests
             .ReturnsAsync(new TrackingPatchResult(
                 [1], [], [new PatchRefusal(3, PatchRefusalReasons.Invalid, "area not allowed", null)]));
         var logger = new CapturingLogger();
-        var sut = new CleaningService(this._proxy.Object, this._featureGate.Object, this._incident.Object, logger);
+        var sut = new CleaningService(this._proxy.Object, this._featureGate.Object, this._incident.Object, Pgan.PoracleWebNet.Tests.Helpers.LinkedTestKit.Unlinked(), logger);
 
         Assert.Equal(1, await sut.ToggleCleanRaidsAsync("u1", 1, 1));
 

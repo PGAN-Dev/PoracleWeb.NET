@@ -12,12 +12,14 @@ import { firstValueFrom, forkJoin } from 'rxjs';
 
 import { GymAddDialogComponent } from './gym-add-dialog.component';
 import { GymEditDialogComponent } from './gym-edit-dialog.component';
-import { Gym } from '../../core/models';
+import { Gym, LinkSide } from '../../core/models';
+import { AlarmMoveService, summariseMoves } from '../../core/services/alarm-move.service';
 import { AreaNameService } from '../../core/services/area-name.service';
 import { AreaService } from '../../core/services/area.service';
 import { GymService } from '../../core/services/gym.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
+import { LinkedAccountService } from '../../core/services/linked-account.service';
 import { ScannerService } from '../../core/services/scanner.service';
 import { TestAlertService } from '../../core/services/test-alert.service';
 import { AlarmCardComponent } from '../../shared/components/alarm-card/alarm-card.component';
@@ -31,7 +33,7 @@ import { WhereChipComponent } from '../../shared/components/where-chip/where-chi
 import { WhereSheetComponent, WhereSheetData, whereSheetConfig } from '../../shared/components/where-sheet/where-sheet.component';
 import { addOnArrival } from '../../shared/utils/add-on-arrival';
 import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
-import { byNumber, byText, queryAlarms, visibleSelection } from '../../shared/utils/alarm-list-query';
+import { byDestination, byNumber, byText, DestinationFilter, queryAlarms, visibleSelection } from '../../shared/utils/alarm-list-query';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
@@ -71,12 +73,15 @@ export class GymListComponent implements OnInit {
   private readonly gymService = inject(GymService);
   private readonly i18n = inject(I18nService);
   private readonly icons = inject(IconService);
+  private readonly moves = inject(AlarmMoveService);
   private readonly scannerService = inject(ScannerService);
   private readonly snackBar = inject(MatSnackBar);
   /** `?add=1` from the dashboard or onboarding opens the add dialog once. */
   private readonly takeAddRequest = addOnArrival();
   private readonly translate = inject(TranslateService);
   readonly selectedIds = signal(new Set<number>());
+  /** A linked person can filter by the app each alarm is delivered to. */
+  readonly destinationFilter = signal<DestinationFilter>('all');
   readonly gymNames = signal<Record<string, string>>({});
   readonly gyms = signal<Gym[]>([]);
   readonly search = signal('');
@@ -89,7 +94,7 @@ export class GymListComponent implements OnInit {
       newest: byNumber(g => -g.uid),
     };
     return queryAlarms(
-      this.gyms(),
+      byDestination(this.gyms(), this.destinationFilter()),
       this.search(),
       g => [this.getTeamName(g.team), this.gymNames()[g.gymId ?? '']],
       sorts[this.sortBy()] ?? null,
@@ -103,6 +108,9 @@ export class GymListComponent implements OnInit {
       this.visibleGyms().map(item => item.uid),
     ),
   );
+
+  /** True for a linked person, who gets the delivery filter, the card glyph and the bulk move. */
+  readonly canChooseDestination = inject(LinkedAccountService).canChoose;
 
   readonly loading = signal(true);
   /** Only used to word the inherited scope honestly; empty produces the more cautious wording. */
@@ -151,6 +159,24 @@ export class GymListComponent implements OnInit {
         duration: 3000,
       });
     }
+  }
+
+  /** Moves the selected alarms to the other app, then reports every outcome in one line. */
+  async bulkMove(destination: LinkSide): Promise<void> {
+    const uids = this.actionIds();
+    try {
+      const response = await firstValueFrom(this.moves.moveMany('gym', uids, destination));
+      const text = summariseMoves(response.results, destination, this.i18n);
+      if (text) this.snackBar.open(text, this.i18n.instant('COMMON.OK'), { duration: 8000 });
+    } catch (err) {
+      this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.MOVE_FAILED_ALL'), this.i18n.instant('COMMON.OK'), {
+        duration: 6000,
+      });
+    }
+    // Some of a long selection may have moved before a later request failed, so the list always reloads.
+    this.selectedIds.set(new Set());
+    this.selectMode.set(false);
+    this.loadGyms();
   }
 
   async bulkUpdateDistance(): Promise<void> {
