@@ -524,7 +524,11 @@ refuse destination rows, and linking refuses them with a code the page translate
   default change and purge. A side whose live row's `type` doesn't match its column is treated as absent. With
   `disable_account_linking` on it answers the caller's own human alone, so every person acts as one account and
   link rows are kept. A paused side (admin disabled, stopped, not registered) is reported and **never
-  re-enabled** by PoracleWeb.NET.
+  re-enabled** by PoracleWeb.NET. **It fails open**: a failed `account_links` read (the `poracle_web` database
+  down) or a row it can't read (`AccountLinkUnreadableException`, an unknown `default_destination`) answers
+  `LinkedPair.Single`, logs a warning and is not cached, so an outage never stops an unlinked person's writes.
+  A limit that must hold while a side is missing (the drawn-fence cap) counts `LinkedHumanIds`, every id the
+  link names, not `ExistingHumanIds`.
 - **`LinkedAlarmRouter`** is the only place alarm controllers learn which human(s) to read or write. Unlinked, it
   makes exactly today's PoracleNG calls and the alarm JSON is byte-identical (`destination` is omitted when
   null). Linked, a read concatenates both humans and stamps `destination`; a uid lookup finds the other side;
@@ -537,7 +541,7 @@ refuse destination rows, and linking refuses them with a code the page translate
   periods, alerts on/off, summary schedules): the signed-in human first, then the other. The first failing is
   today's error and the second isn't tried. The second failing still answers success, with the header
   **`X-Pair-Warning`** (`{"side":"telegram","reason":"..."}`, the side that did not take it). The warning
-  never changes a body or a status, and both headers are CORS-exposed (`CorsPolicySetup.ExposedHeaders`; an
+  never changes a body or a status (the Cleaning toggles carry it too, through `CleanToggleResult`), and both headers are CORS-exposed (`CorsPolicySetup.ExposedHeaders`; an
   unexposed header reads as absent and a half-done move looks clean). The SPA's `pairWarningInterceptor` is the
   one reader: "Saved for Discord. Telegram didn't take it: {reason}." once per response, naming the side the
   warning is not about.

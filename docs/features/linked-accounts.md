@@ -66,7 +66,8 @@ kept. Nothing is ever resolved for you.
   and nothing is overwritten.
 - A profile that holds alerts on the other account isn't deleted. The message names it and says "Nothing was
   changed." Move or delete those alerts first.
-- A saved place that alerts on the other account are still aimed at is not deleted either.
+- A saved place that alerts on the other account are still aimed at, on any of its profiles, is not deleted
+  either.
 - If a resolve fails part way, the banner says so and shows what still differs.
 
 Some older accounts have a profile 0. PoracleNG never gives a new profile that number, so the other account
@@ -78,7 +79,8 @@ alerts stay on the account that has it. The Linked accounts page says which acco
 ### "Saved for Discord. Telegram didn't take it"
 
 When a save reaches one account and the other refuses it, you see this once, naming the account that saved and
-the reason the other gave. Nothing is rolled back. The banner then shows the difference, and you pick the side
+the reason the other gave. Nothing is rolled back. The auto-delete switches on **Cleaning** work the same way:
+the count you see is the alerts the first account changed. The banner then shows the difference, and you pick the side
 to keep.
 
 ## Where new alerts go
