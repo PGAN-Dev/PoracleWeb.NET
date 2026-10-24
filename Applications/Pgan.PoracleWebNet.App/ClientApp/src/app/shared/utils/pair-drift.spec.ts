@@ -121,6 +121,32 @@ describe('describeDrift', () => {
       expect(line.consequence.telegram).toContain('DRIFT.CONSEQ_SWITCH {"name":"Home","other":"Discord"}');
     });
 
+    it("names the changed app's own profile at that number, not the kept side's spelling", () => {
+      const renamed: DriftItem = {
+        details: {
+          discord: { name: 'Home', otherHas: true, otherName: 'Work' },
+          telegram: { name: 'Work', otherHas: true, otherName: 'Home' },
+        },
+        discord: 2,
+        field: 'current_profile',
+        fingerprint: 'f',
+        telegram: 2,
+      };
+      const line = describeDrift(renamed, ctx());
+
+      expect(line.consequence.telegram).toContain('DRIFT.CONSEQ_SWITCH {"name":"Home","other":"Discord"}');
+      expect(line.consequence.discord).toContain('DRIFT.CONSEQ_SWITCH {"name":"Work","other":"Telegram"}');
+    });
+
+    it('keeps the kept side name when the changed app has no row to name', () => {
+      const line = describeDrift(
+        { ...item, details: { ...item.details, telegram: { name: 'Home', otherHas: true, otherName: null } } },
+        ctx(),
+      );
+
+      expect(line.consequence.telegram).toContain('DRIFT.CONSEQ_SWITCH {"name":"Home","other":"Discord"}');
+    });
+
     it('falls back to the number without details, and blocks nothing it cannot judge', () => {
       const line = describeDrift({ discord: 2, field: 'current_profile', fingerprint: 'f', telegram: 1 }, ctx());
 
@@ -159,6 +185,8 @@ describe('describeDrift', () => {
       expect(line.text).toContain('DRIFT.DIFF_NAME');
       expect(line.text).toContain('DRIFT.DIFF_SCHEDULE');
       expect(line.text).toContain('DRIFT.DIFF_AREAS');
+      // The qualifier is one list, joined the way the language joins lists.
+      expect(line.text).toContain('DRIFT.DIFF_NAME, DRIFT.DIFF_SCHEDULE');
       expect(line.text).not.toContain('Home');
     });
 

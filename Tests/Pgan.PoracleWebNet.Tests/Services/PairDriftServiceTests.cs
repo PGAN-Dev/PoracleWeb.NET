@@ -654,6 +654,8 @@ public class PairDriftServiceTests
         Assert.False(details.GetProperty("discord").GetProperty("otherHas").GetBoolean());
         Assert.Equal("Home", details.GetProperty("telegram").GetProperty("name").GetString());
         Assert.True(details.GetProperty("telegram").GetProperty("otherHas").GetBoolean());
+        Assert.Equal("Home", details.GetProperty("telegram").GetProperty("otherName").GetString());
+        Assert.Equal(JsonValueKind.Null, details.GetProperty("discord").GetProperty("otherName").ValueKind);
     }
 
     [Fact]

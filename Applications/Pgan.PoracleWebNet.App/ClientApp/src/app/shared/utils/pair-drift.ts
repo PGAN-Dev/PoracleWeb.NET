@@ -139,6 +139,15 @@ function join(names: string[]): string {
   return names.join(', ');
 }
 
+/** A list read the way the language reads one ("name, schedule and areas"). */
+function joinList(items: string[], lang: string): string {
+  try {
+    return new Intl.ListFormat(lang === 'pt' ? 'pt-PT' : lang || 'en', { style: 'long', type: 'conjunction' }).format(items);
+  } catch {
+    return items.join(', ');
+  }
+}
+
 function bySides<T>(make: (side: LinkSide) => T): Record<LinkSide, T> {
   return { discord: make('discord'), telegram: make('telegram') };
 }
@@ -198,7 +207,9 @@ function describeAreas(item: DriftItem, ctx: DriftDescribeContext): Pick<DriftLi
 }
 
 function describeCurrentProfile(item: DriftItem, ctx: DriftDescribeContext): Pick<DriftLine, 'blocked' | 'consequence' | 'text'> {
-  const details = (item.details ?? {}) as Partial<Record<LinkSide, { name?: null | string; otherHas?: boolean }>>;
+  const details = (item.details ?? {}) as Partial<
+    Record<LinkSide, { name?: null | string; otherHas?: boolean; otherName?: null | string }>
+  >;
   const nameOf = (side: LinkSide): null | string => {
     const named = details[side]?.name;
     if (typeof named === 'string' && named.trim()) return named;
@@ -213,7 +224,9 @@ function describeCurrentProfile(item: DriftItem, ctx: DriftDescribeContext): Pic
   const blocked = bySides(side => details[side]?.otherHas === false);
   const consequence = bySides(keep => {
     const other = otherSide(keep);
-    const name = nameOf(keep) ?? '';
+    // The app being changed switches to its own profile at that number, so that is the name it will show.
+    const own = details[keep]?.otherName;
+    const name = (typeof own === 'string' && own.trim() ? own : nameOf(keep)) ?? '';
     return blocked[keep]
       ? ctx.t('DRIFT.CONSEQ_PROFILE_MISSING', { name, other: ctx.side(other) })
       : ctx.t('DRIFT.CONSEQ_SWITCH', { name, other: ctx.side(other) });
@@ -287,7 +300,7 @@ function describeProfiles(item: DriftItem, ctx: DriftDescribeContext): Pick<Drif
             telegram: ctx.side('telegram'),
             telegramName: nameOf(t),
           });
-    changed.push(ctx.t('DRIFT.PROFILE_CHANGED_ONE', { name, what: what.join(', ') }));
+    changed.push(ctx.t('DRIFT.PROFILE_CHANGED_ONE', { name, what: joinList(what, ctx.lang) }));
   }
 
   const text = sentences([

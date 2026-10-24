@@ -144,13 +144,14 @@ public sealed class PairDriftService(IPoracleHumanProxy human, IPoracleTrackingP
         return items;
     }
 
-    /// <summary>Each side's active profile by name, and whether the other side has a profile at that number to switch to.</summary>
+    /// <summary>Each side's active profile by name, what the other side calls the profile at that number, and whether it has one to switch to.</summary>
     private static JsonElement CurrentProfileDetails(Snapshot discord, Snapshot telegram)
     {
         static object Side(Snapshot self, Snapshot other) => new
         {
             name = self.Profiles.FirstOrDefault(p => p.No == self.Current)?.Name,
             otherHas = other.Profiles.Any(p => p.No == self.Current),
+            otherName = other.Profiles.FirstOrDefault(p => p.No == self.Current)?.Name,
         };
 
         return JsonSerializer.SerializeToElement(new { discord = Side(discord, telegram), telegram = Side(telegram, discord) });
