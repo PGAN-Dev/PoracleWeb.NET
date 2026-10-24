@@ -69,7 +69,7 @@ describe('LinkedAccountsComponent', () => {
       window.history.replaceState(null, '', '/linked-accounts' + ret);
       setup({ type: 'discord:user' });
       await flush();
-      expect(linkedAccounts.linkTelegram).toHaveBeenCalledWith({ auth_date: '1700000000', first_name: 'A', hash: 'abc', id: '200000001' });
+      expect(linkedAccounts.linkTelegram).toHaveBeenCalledWith({ first_name: 'A', id: '200000001', auth_date: '1700000000', hash: 'abc' });
       expect(window.location.search).toBe('');
       expect(window.location.pathname).toBe('/linked-accounts');
     });

@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, ElementRef, inject, input, viewChild } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, input, viewChild } from '@angular/core';
 
 /**
  * Telegram's login widget for one bot, in redirect mode: on success Telegram navigates the page to

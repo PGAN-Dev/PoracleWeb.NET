@@ -347,7 +347,7 @@ describe('LoginComponent', () => {
       setup();
       (TestBed.inject(AuthService).loginWithTelegram as jest.Mock).mockReturnValue(of({}));
       fixture.detectChanges();
-      expect(TestBed.inject(AuthService).loginWithTelegram).toHaveBeenCalledWith({ auth_date: '2', hash: 'h', id: '1' });
+      expect(TestBed.inject(AuthService).loginWithTelegram).toHaveBeenCalledWith({ id: '1', auth_date: '2', hash: 'h' });
       expect(window.location.search).toBe('');
       window.history.replaceState(null, '', '/');
     });

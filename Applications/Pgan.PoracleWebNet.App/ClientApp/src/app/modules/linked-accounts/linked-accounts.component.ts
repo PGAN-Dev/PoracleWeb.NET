@@ -16,8 +16,8 @@ import { I18nService } from '../../core/services/i18n.service';
 import { LinkedAccountService } from '../../core/services/linked-account.service';
 import { SettingsService } from '../../core/services/settings.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
-import { clearTelegramReturn, readTelegramReturn } from '../../shared/utils/telegram-return';
 import { TelegramLoginButtonComponent } from '../../shared/components/telegram-login-button/telegram-login-button.component';
+import { clearTelegramReturn, readTelegramReturn } from '../../shared/utils/telegram-return';
 
 /** What a side's card says about it. `this-account` and `not-linked` only occur while nothing is linked. */
 export type SideState = 'active' | 'not-linked' | 'paused-admin' | 'stopped' | 'this-account' | 'waiting';
@@ -194,16 +194,6 @@ export class LinkedAccountsComponent implements OnInit {
     }
   }
 
-  /**
-   * Telegram's redirect sign-in returns here with the signed fields in the query. The query is dropped at
-   * once so the hash is not left in the address bar or history.
-   */
-  private takeTelegramReturn(): Record<string, string> | null {
-    const data = readTelegramReturn(new URLSearchParams(window.location.search));
-    if (data) clearTelegramReturn();
-    return data;
-  }
-
   /** Runs one action with the buttons held, and turns a coded refusal into the page's message. */
   private async run(action: () => Promise<void>): Promise<void> {
     this.busy.set(true);
@@ -225,5 +215,15 @@ export class LinkedAccountsComponent implements OnInit {
     if (found.pause === 'admin_disabled') return 'paused-admin';
     if (found.pause === 'stopped') return 'stopped';
     return 'active';
+  }
+
+  /**
+   * Telegram's redirect sign-in returns here with the signed fields in the query. The query is dropped at
+   * once so the hash is not left in the address bar or history.
+   */
+  private takeTelegramReturn(): Record<string, string> | null {
+    const data = readTelegramReturn(new URLSearchParams(window.location.search));
+    if (data) clearTelegramReturn();
+    return data;
   }
 }

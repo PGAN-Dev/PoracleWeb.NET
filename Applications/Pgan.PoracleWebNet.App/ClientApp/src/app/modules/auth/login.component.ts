@@ -11,8 +11,8 @@ import { catchError, forkJoin, of, timeout } from 'rxjs';
 import { AuthProviders } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { SettingsService } from '../../core/services/settings.service';
-import { clearTelegramReturn, readTelegramReturn } from '../../shared/utils/telegram-return';
 import { TelegramLoginButtonComponent } from '../../shared/components/telegram-login-button/telegram-login-button.component';
+import { clearTelegramReturn, readTelegramReturn } from '../../shared/utils/telegram-return';
 
 /** Timeout for provider config and public settings fetches on the login page. */
 const LOGIN_FETCH_TIMEOUT_MS = 10_000;
