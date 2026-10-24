@@ -69,23 +69,42 @@ public class QuickPickUidTransferTests
 
         Assert.Empty(source.TrackedUids);
         Assert.Equal([10], other.TrackedUids);
+        this._repo.Verify(r => r.DeleteAsync(Discord, 1, "great-league"), Times.Once);
         this._repo.Verify(r => r.CreateOrUpdateAsync(It.Is<QuickPickAppliedState>(s => s.UserId == Telegram && s.AlarmType == "monster")), Times.Once);
     }
 
     [Fact]
     public async Task TargetRowIsWrittenBeforeTheSourceRow()
     {
-        var source = State(Discord, "lure-glacial", "lure", 10);
+        var source = State(Discord, "lure-glacial", "lure", 10, 11);
         var target = State(Telegram, "lure-glacial", "lure", 99);
         this._repo.Setup(r => r.GetByUserAndProfileAsync(Discord, 1)).ReturnsAsync([source]);
         this._repo.Setup(r => r.GetAsync(Telegram, 1, "lure-glacial")).ReturnsAsync(target);
-        var seq = new MockSequence();
-        this._repo.InSequence(seq).Setup(r => r.CreateOrUpdateAsync(target)).Returns(Task.CompletedTask);
-        this._repo.InSequence(seq).Setup(r => r.CreateOrUpdateAsync(source)).Returns(Task.CompletedTask);
+        var order = new List<string>();
+        this._repo.Setup(r => r.CreateOrUpdateAsync(It.IsAny<QuickPickAppliedState>()))
+            .Callback((QuickPickAppliedState s) => order.Add(s.UserId)).Returns(Task.CompletedTask);
 
         await this._sut.TransferAsync(Discord, Telegram, 1, "lure", 10, 500);
 
-        this._repo.Verify(r => r.CreateOrUpdateAsync(It.IsAny<QuickPickAppliedState>()), Times.Exactly(2));
+        Assert.Equal([Telegram, Discord], order);
+    }
+
+    [Fact]
+    public async Task TargetRowIsWrittenBeforeTheEmptiedSourceRowIsDeleted()
+    {
+        var source = State(Discord, "lure-glacial", "lure", 10);
+        this._repo.Setup(r => r.GetByUserAndProfileAsync(Discord, 1)).ReturnsAsync([source]);
+        this._repo.Setup(r => r.GetAsync(Telegram, 1, "lure-glacial")).ReturnsAsync((QuickPickAppliedState?)null);
+        var order = new List<string>();
+        this._repo.Setup(r => r.CreateOrUpdateAsync(It.IsAny<QuickPickAppliedState>()))
+            .Callback((QuickPickAppliedState s) => order.Add("write " + s.UserId)).Returns(Task.CompletedTask);
+        this._repo.Setup(r => r.DeleteAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>()))
+            .Callback((string user, int _, string _) => order.Add("delete " + user)).Returns(Task.CompletedTask);
+
+        await this._sut.TransferAsync(Discord, Telegram, 1, "lure", 10, 500);
+
+        Assert.Equal(["write " + Telegram, "delete " + Discord], order);
+        this._repo.Verify(r => r.CreateOrUpdateAsync(source), Times.Never);
     }
 
     [Fact]

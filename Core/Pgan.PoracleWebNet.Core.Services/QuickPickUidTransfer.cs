@@ -54,8 +54,17 @@ public partial class QuickPickUidTransfer(
 
             await this._appliedStates.CreateOrUpdateAsync(target);
 
+            // A row tracking nothing would still list the pick as applied, so the last uid out takes the row with it.
             source.TrackedUids.RemoveAll(u => u == oldUid);
-            await this._appliedStates.CreateOrUpdateAsync(source);
+            if (source.TrackedUids.Count == 0)
+            {
+                await this._appliedStates.DeleteAsync(source.UserId, source.ProfileNo, source.QuickPickId);
+            }
+            else
+            {
+                await this._appliedStates.CreateOrUpdateAsync(source);
+            }
+
             LogTransferred(this._logger, source.QuickPickId, trackingType, oldUid, newUid);
         }
     }
