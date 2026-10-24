@@ -6,7 +6,7 @@ using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
-public class LinkedAccount(
+public partial class LinkedAccount(
     IAccountLinkRepository links,
     IHumanService humans,
     IFeatureGate featureGate,
@@ -80,12 +80,12 @@ public class LinkedAccount(
         }
         catch (AccountLinkUnreadableException ex)
         {
-            this._logger.LogWarning(ex, "Account link {LinkId} for {HumanId} can't be read; treating the account as unlinked", ex.LinkId, LogSafe.Id(userId));
+            LogUnreadableLink(this._logger, ex, ex.LinkId, LogSafe.Id(userId));
             return null;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            this._logger.LogWarning(ex, "Reading the account link for {HumanId} failed; treating the account as unlinked for this request", LogSafe.Id(userId));
+            LogLinkReadFailed(this._logger, ex, LogSafe.Id(userId));
             return null;
         }
 
@@ -102,9 +102,7 @@ public class LinkedAccount(
             this._cache.Set(key, entry, _ttl);
             if (entry.Human is { } fresh && !string.Equals(fresh.Type, expectedType, StringComparison.Ordinal))
             {
-                this._logger.LogWarning(
-                    "Linked {Side} id {HumanId} is a {ActualType} human, not {ExpectedType}; treating that side as absent",
-                    side, LogSafe.Id(humanId), fresh.Type, expectedType);
+                LogRetypedSide(this._logger, side, LogSafe.Id(humanId), fresh.Type, expectedType);
             }
         }
 
@@ -119,4 +117,13 @@ public class LinkedAccount(
             : PauseReason.None;
         return new PairSide(side, humanId, true, pause);
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Account link {LinkId} for {HumanId} can't be read; treating the account as unlinked")]
+    private static partial void LogUnreadableLink(ILogger logger, Exception ex, int linkId, string humanId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Reading the account link for {HumanId} failed; treating the account as unlinked for this request")]
+    private static partial void LogLinkReadFailed(ILogger logger, Exception ex, string humanId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Linked {Side} id {HumanId} is a {ActualType} human, not {ExpectedType}; treating that side as absent")]
+    private static partial void LogRetypedSide(ILogger logger, LinkSide side, string humanId, string? actualType, string expectedType);
 }

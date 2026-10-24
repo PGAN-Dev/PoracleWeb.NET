@@ -95,7 +95,7 @@ public partial class AccountLinkService(
         catch (AccountLinkUnreadableException ex)
         {
             // A row nothing can read is still one the person or an admin must be able to cut.
-            this._logger.LogWarning(ex, "Removing unreadable account link {LinkId}", ex.LinkId);
+            LogRemovingUnreadable(this._logger, ex, ex.LinkId);
             var dropped = await this._links.RemoveByHumanIdAsync(humanId);
             this._linkedAccount.Invalidate(humanId);
             return dropped > 0;
@@ -167,6 +167,9 @@ public partial class AccountLinkService(
             LogRollbackFailed(this._logger, ex);
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Removing unreadable account link {LinkId}")]
+    private static partial void LogRemovingUnreadable(ILogger logger, Exception ex, int linkId);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Could not remove the human created for a link that was then refused; it may be left behind")]
     private static partial void LogRollbackFailed(ILogger logger, Exception ex);
