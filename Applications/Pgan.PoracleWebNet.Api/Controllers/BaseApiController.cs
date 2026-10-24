@@ -87,6 +87,20 @@ public abstract class BaseApiController : ControllerBase
     /// global filter answers it as it answers any other edit (409 with <c>existingUid</c>); a refused preflight
     /// is 409 <c>{ error }</c>, and a create PoracleNG did not explain is 502.
     /// </summary>
+    /// <summary>The refusal both move paths give while another account is being inspected.</summary>
+    internal const string MoveWhileImpersonatingMessage = "Alerts can't be moved while inspecting another account.";
+
+    /// <summary>
+    /// A move writes the other human's alarms, so it is never available while someone else's account is being inspected. 
+    /// Null when the caller may move. <c>POST /api/alarm-move</c> and a <c>PUT /{uid}</c> naming the other destination share it.
+    /// </summary>
+    protected IActionResult? RefuseMoveWhileImpersonating() => this.IsImpersonating
+        ? this.StatusCode(StatusCodes.Status403Forbidden, new
+        {
+            error = MoveWhileImpersonatingMessage
+        })
+        : null;
+
     protected IActionResult MovedResponse<TModel>(MoveResult<TModel> result) where TModel : class
     {
         switch (result.Outcome.Status)

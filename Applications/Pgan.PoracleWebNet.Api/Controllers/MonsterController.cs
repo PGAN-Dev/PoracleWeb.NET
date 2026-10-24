@@ -91,6 +91,11 @@ public class MonsterController(IMonsterService monsterService, IPokemonEditCapab
 
         if (await this._router.MoveTargetAsync(this.UserId, model.Destination, ownerId) is { } moveTo)
         {
+            if (this.RefuseMoveWhileImpersonating() is { } refused)
+            {
+                return refused;
+            }
+
             model.ApplyUpdate(existing);
             var invertedMove = MonsterRangeValidator.Validate(existing);
             if (invertedMove != null)

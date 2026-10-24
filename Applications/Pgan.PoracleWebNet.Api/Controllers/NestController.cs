@@ -71,6 +71,11 @@ public class NestController(INestService nestService, LinkedAlarmRouter router) 
 
         if (await this._router.MoveTargetAsync(this.UserId, model.Destination, ownerId) is { } moveTo)
         {
+            if (this.RefuseMoveWhileImpersonating() is { } refused)
+            {
+                return refused;
+            }
+
             model.ApplyUpdate(existing);
             return this.MovedResponse(await this._router.MoveAsync(this._nestService, "nest", this.UserId, existing, ownerId, moveTo));
         }

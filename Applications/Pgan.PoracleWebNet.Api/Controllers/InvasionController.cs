@@ -75,6 +75,11 @@ public class InvasionController(IInvasionService invasionService, LinkedAlarmRou
 
         if (await this._router.MoveTargetAsync(this.UserId, model.Destination, ownerId) is { } moveTo)
         {
+            if (this.RefuseMoveWhileImpersonating() is { } impersonationRefused)
+            {
+                return impersonationRefused;
+            }
+
             model.ApplyUpdate(existing);
             if (await this.EventElsewhereAsync(existing.GruntType) is { } movedRefused)
             {

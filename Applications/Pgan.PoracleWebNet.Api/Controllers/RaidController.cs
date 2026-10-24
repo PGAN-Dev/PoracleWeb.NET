@@ -71,6 +71,11 @@ public class RaidController(IRaidService raidService, LinkedAlarmRouter router) 
 
         if (await this._router.MoveTargetAsync(this.UserId, model.Destination, ownerId) is { } moveTo)
         {
+            if (this.RefuseMoveWhileImpersonating() is { } refused)
+            {
+                return refused;
+            }
+
             model.ApplyUpdate(existing);
             return this.MovedResponse(await this._router.MoveAsync(this._raidService, "raid", this.UserId, existing, ownerId, moveTo));
         }

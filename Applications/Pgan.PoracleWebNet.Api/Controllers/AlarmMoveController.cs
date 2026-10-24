@@ -22,12 +22,9 @@ public class AlarmMoveController(IFeatureGate featureGate, ILinkedAccount linked
     public async Task<IActionResult> Move([FromBody] AlarmMoveRequest request)
     {
         // A move writes the target human's alarms, so it is never available while someone else's account is being inspected.
-        if (this.IsImpersonating)
+        if (this.RefuseMoveWhileImpersonating() is { } refused)
         {
-            return this.StatusCode(StatusCodes.Status403Forbidden, new
-            {
-                error = "Alerts can't be moved while inspecting another account."
-            });
+            return refused;
         }
 
         if (!this._dispatcher.Supports(request.Type))

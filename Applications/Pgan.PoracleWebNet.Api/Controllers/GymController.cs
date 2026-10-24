@@ -71,6 +71,11 @@ public class GymController(IGymService gymService, LinkedAlarmRouter router) : B
 
         if (await this._router.MoveTargetAsync(this.UserId, model.Destination, ownerId) is { } moveTo)
         {
+            if (this.RefuseMoveWhileImpersonating() is { } refused)
+            {
+                return refused;
+            }
+
             model.ApplyUpdate(existing);
             return this.MovedResponse(await this._router.MoveAsync(this._gymService, "gym", this.UserId, existing, ownerId, moveTo));
         }
