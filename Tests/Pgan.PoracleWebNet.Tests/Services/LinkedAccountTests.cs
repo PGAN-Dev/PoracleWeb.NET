@@ -192,4 +192,74 @@ public class LinkedAccountTests
         this._humans.Verify(h => h.GetByIdAsync(Discord), Times.Exactly(2));
         this._humans.Verify(h => h.GetByIdAsync(Telegram), Times.Exactly(2));
     }
+
+    [Fact]
+    public async Task Resolve_LinkReadThrows_AnswersCallerAloneAndDoesNotCacheIt()
+    {
+        this._links.SetupSequence(r => r.GetByHumanIdAsync(Discord))
+            .ThrowsAsync(new InvalidOperationException("poracle_web is down"))
+            .ReturnsAsync(Link());
+        this.WithHuman(Discord, AccountLinkKeys.DiscordUserType);
+        this.WithHuman(Telegram, AccountLinkKeys.TelegramUserType);
+
+        var during = await this._sut.ResolveAsync(Discord);
+        var after = await this._sut.ResolveAsync(Discord);
+
+        Assert.False(during.IsLinked);
+        Assert.Equal([Discord], during.ExistingHumanIds);
+        Assert.True(after.IsLinked);
+        this._links.Verify(r => r.GetByHumanIdAsync(Discord), Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task Resolve_LinkReadSucceeds_StillCachedAfterTheFailOpenChange()
+    {
+        this.WithLink();
+        this.WithHuman(Discord, AccountLinkKeys.DiscordUserType);
+        this.WithHuman(Telegram, AccountLinkKeys.TelegramUserType);
+
+        var pair = await this._sut.ResolveAsync(Discord);
+        await this._sut.ResolveAsync(Discord);
+
+        Assert.True(pair.IsLinked);
+        this._links.Verify(r => r.GetByHumanIdAsync(Discord), Times.Once);
+    }
+
+    [Fact]
+    public async Task Resolve_UnreadableRow_AnswersCallerAlone()
+    {
+        this._links.Setup(r => r.GetByHumanIdAsync(Discord)).ThrowsAsync(new AccountLinkUnreadableException(1, "unknown default destination"));
+
+        var pair = await this._sut.ResolveAsync(Discord);
+
+        Assert.False(pair.IsLinked);
+        this._humans.Verify(h => h.GetByIdAsync(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Resolve_Cancelled_Propagates()
+    {
+        this._links.Setup(r => r.GetByHumanIdAsync(Discord)).ThrowsAsync(new OperationCanceledException());
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() => this._sut.ResolveAsync(Discord));
+    }
+
+    [Fact]
+    public async Task Invalidate_LinkNotCached_DropsTheGivenIdOnly()
+    {
+        this.WithLink();
+        this.WithHuman(Discord, AccountLinkKeys.DiscordUserType);
+        this.WithHuman(Telegram, AccountLinkKeys.TelegramUserType);
+        await this._sut.ResolveAsync(Telegram);
+
+        // Discord's link was never read, so Invalidate(Discord) can't learn the other id and must not throw.
+        this._sut.Invalidate(Discord);
+        await this._sut.ResolveAsync(Telegram);
+        await this._sut.ResolveAsync(Discord);
+
+        this._links.Verify(r => r.GetByHumanIdAsync(Telegram), Times.Once);
+        this._links.Verify(r => r.GetByHumanIdAsync(Discord), Times.Once);
+        this._humans.Verify(h => h.GetByIdAsync(Discord), Times.Exactly(2));
+        this._humans.Verify(h => h.GetByIdAsync(Telegram), Times.Once);
+    }
 }

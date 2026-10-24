@@ -116,7 +116,10 @@ public static class EntityMappingExtensions
         e.Id,
         e.DiscordId,
         e.TelegramId,
-        AccountLinkKeys.TryParse(e.DefaultDestination, out var side) ? side : LinkSide.Discord,
+        // An unknown value used to read as Discord, which quietly re-routed the person's new alerts.
+        AccountLinkKeys.TryParse(e.DefaultDestination, out var side)
+            ? side
+            : throw new AccountLinkUnreadableException(e.Id, $"Account link {e.Id} has an unknown default destination."),
         e.DiscordVerifiedAt,
         e.TelegramVerifiedAt,
         e.CreatedAt);

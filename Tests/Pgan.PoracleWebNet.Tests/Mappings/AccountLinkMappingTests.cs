@@ -129,4 +129,31 @@ public class AccountLinkMappingTests
         Assert.Null(pair.SideOf("999"));
         Assert.Null(LinkedPair.Single(DiscordId).SideOf("999"));
     }
+
+    [Theory]
+    [InlineData("webhook")]
+    [InlineData("")]
+    public void ToModel_UnknownDefaultDestination_Throws(string value)
+    {
+        var entity = SampleLink().ToEntity();
+        entity.Id = 7;
+        entity.DefaultDestination = value;
+
+        var ex = Assert.Throws<AccountLinkUnreadableException>(() => entity.ToModel());
+        Assert.Equal(7, ex.LinkId);
+    }
+
+    [Fact]
+    public void Entity_DefaultsToDiscordWireValue() =>
+        Assert.Equal(AccountLinkKeys.Wire(LinkSide.Discord), new AccountLinkEntity().DefaultDestination);
+
+    [Fact]
+    public void ExistingHumanIds_CallersOwnSideMissing_ListsTheOtherSideOnly()
+    {
+        // Pair() signs in as Telegram; here Telegram's human is gone and Discord's exists.
+        var ids = Pair(true, false).ExistingHumanIds;
+
+        Assert.Equal(new[] { DiscordId }, ids);
+        Assert.DoesNotContain(TelegramId, ids);
+    }
 }

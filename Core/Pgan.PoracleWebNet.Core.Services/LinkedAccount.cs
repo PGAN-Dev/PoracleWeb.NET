@@ -71,7 +71,24 @@ public class LinkedAccount(
             return cached.Link;
         }
 
-        var link = await this._links.GetByHumanIdAsync(userId);
+        // The link is resolved before every person-level write, so a poracle_web outage must not stop an
+        // unlinked person saving anything. Neither failure is cached: the next request asks again.
+        AccountLink? link;
+        try
+        {
+            link = await this._links.GetByHumanIdAsync(userId);
+        }
+        catch (AccountLinkUnreadableException ex)
+        {
+            this._logger.LogWarning(ex, "Account link {LinkId} for {HumanId} can't be read; treating the account as unlinked", ex.LinkId, LogSafe.Id(userId));
+            return null;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            this._logger.LogWarning(ex, "Reading the account link for {HumanId} failed; treating the account as unlinked for this request", LogSafe.Id(userId));
+            return null;
+        }
+
         this._cache.Set(LinkKey(userId), new LinkEntry(link), _ttl);
         return link;
     }

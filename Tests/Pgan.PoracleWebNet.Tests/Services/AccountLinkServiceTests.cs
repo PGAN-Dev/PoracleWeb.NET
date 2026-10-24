@@ -326,4 +326,16 @@ public class AccountLinkServiceTests
         this._linked.Verify(l => l.Invalidate(Discord), Times.Once);
         this._linked.Verify(l => l.Invalidate(Telegram), Times.Once);
     }
+
+    [Fact]
+    public async Task Unlink_UnreadableRow_IsStillRemoved()
+    {
+        this._links.Setup(r => r.GetByHumanIdAsync(Telegram)).ThrowsAsync(new AccountLinkUnreadableException(3, "unknown default destination"));
+        this._links.Setup(r => r.RemoveByHumanIdAsync(Telegram)).ReturnsAsync(1);
+
+        Assert.True(await this._sut.UnlinkAsync(Telegram));
+
+        this._links.Verify(r => r.RemoveByHumanIdAsync(Telegram), Times.Once);
+        this._linked.Verify(l => l.Invalidate(Telegram), Times.Once);
+    }
 }

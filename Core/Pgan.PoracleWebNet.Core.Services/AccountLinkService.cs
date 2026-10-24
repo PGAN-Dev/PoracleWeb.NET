@@ -87,7 +87,20 @@ public partial class AccountLinkService(
 
     public async Task<bool> UnlinkAsync(string humanId)
     {
-        var link = await this._links.GetByHumanIdAsync(humanId);
+        AccountLink? link;
+        try
+        {
+            link = await this._links.GetByHumanIdAsync(humanId);
+        }
+        catch (AccountLinkUnreadableException ex)
+        {
+            // A row nothing can read is still one the person or an admin must be able to cut.
+            this._logger.LogWarning(ex, "Removing unreadable account link {LinkId}", ex.LinkId);
+            var dropped = await this._links.RemoveByHumanIdAsync(humanId);
+            this._linkedAccount.Invalidate(humanId);
+            return dropped > 0;
+        }
+
         if (link is null)
         {
             return false;

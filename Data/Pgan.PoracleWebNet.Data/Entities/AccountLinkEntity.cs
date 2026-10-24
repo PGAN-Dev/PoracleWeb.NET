@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Data.Entities;
 
@@ -24,7 +25,7 @@ public class AccountLinkEntity
 
     [Column("default_destination")]
     [Required]
-    public string DefaultDestination { get; set; } = "discord";
+    public string DefaultDestination { get; set; } = AccountLinkKeys.Wire(LinkSide.Discord);
 
     [Column("discord_verified_at")]
     public DateTime? DiscordVerifiedAt
