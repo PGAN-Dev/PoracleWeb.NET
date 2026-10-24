@@ -129,9 +129,9 @@ public sealed class PairDriftService(IPoracleHumanProxy human, IPoracleTrackingP
 
         // Profiles come before the active profile: switching to a profile the other side lacks needs the profiles
         // settled first, and the list reads in the order it can be worked through.
-        // The profile both sides are on is compared through the humans' location and areas, which have lines of their own.
-        var shared = discord.Current == telegram.Current ? discord.Current : -1;
-        Add(items, DriftField.Profiles, ProfilesOf(discord, shared), ProfilesOf(telegram, shared));
+        // Each side's active profile is compared through the humans' location and areas, which have lines of their own.
+        var live = new HashSet<int> { discord.Current, telegram.Current };
+        Add(items, DriftField.Profiles, ProfilesOf(discord, live), ProfilesOf(telegram, live), ProfileDetails(discord, telegram));
 
         // Profile 0 is outside the pair: PoracleNG never numbers a new profile 0, so the other side could not be switched to it.
         if (discord.Current != 0 && telegram.Current != 0)
@@ -155,6 +155,10 @@ public sealed class PairDriftService(IPoracleHumanProxy human, IPoracleTrackingP
 
         return JsonSerializer.SerializeToElement(new { discord = Side(discord, telegram), telegram = Side(telegram, discord) });
     }
+
+    /// <summary>Each side's active profile, so the panel can say when keeping one side's profiles moves the other app.</summary>
+    private static JsonElement ProfileDetails(Snapshot discord, Snapshot telegram) =>
+        JsonSerializer.SerializeToElement(new { discord = new { current = discord.Current }, telegram = new { current = telegram.Current } });
 
     /// <summary>The labels as the person typed them, keyed by the lowercase form the comparison uses; Discord's spelling first.</summary>
     private static JsonElement PlaceDetails(Snapshot discord, Snapshot telegram)
@@ -195,19 +199,20 @@ public sealed class PairDriftService(IPoracleHumanProxy human, IPoracleTrackingP
     private static string[] AreaKeys(string? json) => Keys(AreaListJson.Parse(json));
 
     /// <summary>
-    /// The profiles as compared. The areas and location of <paramref name="shared"/>, the profile both sides are on, are
-    /// left out: each human holds the live copy, which the location and areas lines already compare, and comparing them
-    /// twice reported one cause on two lines. -1 when the sides are on different profiles.
+    /// The profiles as compared. The areas and location of <paramref name="live"/>, the profiles either side is on, are
+    /// left out: each human holds that profile's live copy, which the location and areas lines already compare, and
+    /// comparing them again reported one cause on two lines. Once both sides are on the same profile, its geography is
+    /// what those lines compare; a profile neither side is on is compared here.
     /// </summary>
-    private static JsonElement ProfilesOf(Snapshot s, int shared) => JsonSerializer.SerializeToElement(
+    private static JsonElement ProfilesOf(Snapshot s, IReadOnlySet<int> live) => JsonSerializer.SerializeToElement(
         s.Profiles.OrderBy(p => p.No).Select(p => new
         {
             no = p.No,
             name = p.Name ?? string.Empty,
             active_hours = Hours(p.ActiveHours),
-            areas = p.No == shared ? null : AreaKeys(p.Area),
-            lat = p.No == shared ? (double?)null : Round(p.Latitude),
-            lon = p.No == shared ? (double?)null : Round(p.Longitude),
+            areas = live.Contains(p.No) ? null : AreaKeys(p.Area),
+            lat = live.Contains(p.No) ? (double?)null : Round(p.Latitude),
+            lon = live.Contains(p.No) ? (double?)null : Round(p.Longitude),
         }).ToArray());
 
     private static JsonElement PlacesOf(Snapshot s) => JsonSerializer.SerializeToElement(
@@ -399,10 +404,10 @@ public sealed class PairDriftService(IPoracleHumanProxy human, IPoracleTrackingP
                 }));
             }
 
-            // The profile both sides are on is compared through the humans' own location and areas, which have lines
-            // of their own; writing its geography here would change them behind the person's back.
-            var sharedActive = row.No == kept.Current && row.No == other.Current;
-            if (!sharedActive
+            // A profile either side is on is compared through the humans' own location and areas, which have lines of
+            // their own; writing its geography here would change them behind the person's back.
+            var live = row.No == kept.Current || row.No == other.Current;
+            if (!live
                 && (!AreaKeys(row.Area).SequenceEqual(AreaKeys(existing.Area))
                     || Round(row.Latitude) != Round(existing.Latitude) || Round(row.Longitude) != Round(existing.Longitude)))
             {

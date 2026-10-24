@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
@@ -10,9 +13,9 @@ import { ToastService } from '../services/toast.service';
 const STRINGS: Record<string, string> = {
   'DRIFT.PAIR_WARNING': 'Saved for {{saved}}, but not for {{failed}}: {{reason}}. Review the difference on Linked accounts.',
   'DRIFT.WARN_OUT_OF_STEP': "its profiles don't line up with {{saved}}'s",
-  'DRIFT.WARN_REFUSED': 'Poracle refused it',
-  'DRIFT.WARN_RENAME_REFUSED': 'Poracle refused the new name',
-  'DRIFT.WARN_UNREACHABLE': "Poracle couldn't be reached",
+  'DRIFT.WARN_REFUSED': "the change wasn't accepted",
+  'DRIFT.WARN_RENAME_REFUSED': "the new name wasn't accepted",
+  'DRIFT.WARN_UNREACHABLE': "the alert service didn't answer. Try again in a minute",
   'LINKED.SIDE_DISCORD': 'Discord',
   'LINKED.SIDE_TELEGRAM': 'Telegram',
 };
@@ -62,7 +65,7 @@ describe('pairWarningInterceptor', () => {
     expect(body).toEqual({ ok: true });
     expect(toast.pairWarning).toHaveBeenCalledTimes(1);
     expect(toast.pairWarning).toHaveBeenCalledWith(
-      "Saved for Discord, but not for Telegram: Poracle couldn't be reached. Review the difference on Linked accounts.",
+      "Saved for Discord, but not for Telegram: the alert service didn't answer. Try again in a minute. Review the difference on Linked accounts.",
     );
   });
 
@@ -90,11 +93,21 @@ describe('pairWarningInterceptor', () => {
     );
   });
 
-  it('says Poracle refused when a refusal carries no sentence', () => {
+  it('says the change was not accepted when a refusal carries no sentence', () => {
     http.put('/api/areas', {}).subscribe();
     httpMock.expectOne('/api/areas').flush({}, header({ side: 'telegram', code: 'refused', reason: '' }));
 
-    expect(toast.pairWarning.mock.calls[0][0]).toContain('Poracle refused it.');
+    expect(toast.pairWarning.mock.calls[0][0]).toContain("the change wasn't accepted.");
+  });
+
+  it("words every reason in the interface's own terms, and gives the unreachable case a next step", () => {
+    const en = JSON.parse(readFileSync(join(__dirname, '../../../assets/i18n/en.json'), 'utf8')) as {
+      DRIFT: Record<string, string>;
+    };
+    for (const key of ['WARN_UNREACHABLE', 'WARN_RENAME_REFUSED', 'WARN_REFUSED', 'WARN_OUT_OF_STEP']) {
+      expect(en.DRIFT[key]).not.toMatch(/poracle/i);
+    }
+    expect(en.DRIFT['WARN_UNREACHABLE']).toContain('Try again in a minute');
   });
 
   it('says nothing when there is no header', () => {

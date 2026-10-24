@@ -148,7 +148,14 @@ describe('describeDrift', () => {
       const line = describeDrift(item, ctx());
 
       expect(line.text).toContain('DRIFT.PROFILES_EXTRA {"names":"Weekend","side":"Discord"}');
-      expect(line.text).toContain('Work / Office');
+      // A renamed profile says which name is on which app, rather than "Work / Office".
+      const pair = (key: string, p?: Record<string, unknown>) =>
+        key === 'DRIFT.PROFILE_PAIR'
+          ? `${p?.['discordName']} on ${p?.['discord']}, ${p?.['telegramName']} on ${p?.['telegram']}`
+          : t(key, p);
+      const labelled = describeDrift(item, ctx({ t: pair }));
+      expect(labelled.text).toContain('Work on Discord, Office on Telegram');
+      expect(labelled.text).not.toContain('Work / Office');
       expect(line.text).toContain('DRIFT.DIFF_NAME');
       expect(line.text).toContain('DRIFT.DIFF_SCHEDULE');
       expect(line.text).toContain('DRIFT.DIFF_AREAS');
@@ -162,7 +169,32 @@ describe('describeDrift', () => {
       expect(line.removes.discord).toEqual([]);
       expect(line.consequence.telegram).toContain('DRIFT.CONSEQ_DELETES {"names":"Weekend","other":"Discord"}');
       expect(line.consequence.discord).toContain('DRIFT.CONSEQ_GETS {"names":"Weekend","other":"Telegram"}');
-      expect(line.consequence.discord).toContain('DRIFT.CONSEQ_PROFILES_MATCH {"names":"Work","other":"Telegram"}');
+      // Named as the app being changed calls it now: Telegram's profile 2 is Office, not Work.
+      expect(line.consequence.discord).toContain('DRIFT.CONSEQ_PROFILES_MATCH {"names":"Office","other":"Telegram"}');
+      expect(line.consequence.telegram).toContain('DRIFT.CONSEQ_PROFILES_MATCH {"names":"Work","other":"Discord"}');
+    });
+
+    it('says the other app switches profile, and so changes areas and location, when its active profile is deleted', () => {
+      const withCurrent: DriftItem = {
+        ...item,
+        details: { discord: { current: 1 }, telegram: { current: 2 } },
+        discord: [{ name: 'Daily', active_hours: [], areas: null, lat: null, lon: null, no: 1 }],
+        telegram: [
+          { name: 'Daily', active_hours: [], areas: null, lat: null, lon: null, no: 1 },
+          { name: 'Weekend', active_hours: [], areas: null, lat: null, lon: null, no: 2 },
+        ],
+      };
+      const line = describeDrift(withCurrent, ctx());
+
+      expect(line.consequence.discord).toContain('DRIFT.CONSEQ_PROFILES_SWITCH {"name":"Daily","other":"Telegram"}');
+      // Keeping Telegram's deletes nothing Discord is on, so Discord stays where it is.
+      expect(line.consequence.telegram).not.toContain('CONSEQ_PROFILES_SWITCH');
+    });
+
+    it('says nothing about switching when the active profile survives, or the status carries no active profiles', () => {
+      expect(describeDrift(item, ctx()).consequence.discord).not.toContain('CONSEQ_PROFILES_SWITCH');
+      const kept = describeDrift({ ...item, details: { discord: { current: 1 }, telegram: { current: 1 } } }, ctx());
+      expect(kept.consequence.discord).not.toContain('CONSEQ_PROFILES_SWITCH');
     });
   });
 
@@ -188,6 +220,7 @@ describe('describeDrift', () => {
       expect(line.text).toContain('"names":"Mum\'s","side":"Discord"');
       expect(line.text).toContain('"names":"ACLT Gym","side":"Telegram"');
       expect(line.text).toContain('DRIFT.PLACES_MOVED {"names":"Home"}');
+      expect(line.consequence.discord).toContain('DRIFT.CONSEQ_PLACES_MOVED {"names":"Home","other":"Telegram"}');
     });
 
     it('lists the places keeping a side deletes on the other app', () => {

@@ -2472,10 +2472,12 @@
     "TELEGRAM": "Telegram",
     "PAUSED_NEXT": "Se hvorfor under Linkede konti.",
     "DELIVERED_TO": "Leveres til {{app}}",
-    "DELIVERED_TO_PAUSED": "Leveres til {{app}}, som ikke modtager beskeder"
+    "DELIVERED_TO_PAUSED": "Leveres til {{app}}, som ikke modtager beskeder",
+    "PAUSED_SHORT": "beskeder slået fra"
   },
   "DRIFT": {
     "TITLE": "Discord og Telegram har forskellige indstillinger",
+    "TITLE_NEUTRAL": "Indstillinger i begge apps",
     "BANNER": "Discord og Telegram har forskellige indstillinger.",
     "REVIEW": "Gennemse",
     "REVIEW_ARIA": "Gennemse forskellene under Sammenkædede konti",
@@ -2500,6 +2502,7 @@
     "PROFILES_EXTRA": "Kun {{side}} har {{names}}.",
     "PROFILES_CHANGED": "Sat forskelligt op: {{names}}.",
     "PROFILE_CHANGED_ONE": "{{name}} ({{what}})",
+    "PROFILE_PAIR": "{{discordName}} i {{discord}}, {{telegramName}} i {{telegram}}",
     "DIFF_NAME": "navn",
     "DIFF_SCHEDULE": "tidsplan",
     "DIFF_AREAS": "områder eller placering",
@@ -2509,6 +2512,7 @@
     "PLACES_MOVED": "Forskellige steder: {{names}}.",
     "PLACES_DIFFER": "Nogle gemte steder ligger forskellige steder.",
     "KEEP": "Brug {{side}}",
+    "KEEP_ARIA": "{{label}}: Brug {{side}}",
     "DISMISS": "Luk",
     "CONSEQ_LOCATION": "{{other}} får placeringen fra {{kept}}.",
     "CONSEQ_GETS": "{{other}} får {{names}}.",
@@ -2516,11 +2520,14 @@
     "CONSEQ_AREAS": "{{other}} får områderne fra {{kept}}.",
     "CONSEQ_SWITCH": "{{other}} skifter til {{name}}.",
     "CONSEQ_PROFILE_MISSING": "{{other}} har endnu ingen profil {{name}}. Gør profilerne ens først.",
-    "CONSEQ_PROFILES_MATCH": "{{names}} i {{other}} ændres, så de passer.",
-    "CONSEQ_PLACES_MOVED": "{{names}} i {{other}} flyttes, så de passer.",
+    "CONSEQ_PROFILES_MATCH": "{{other}} opdaterer {{names}}, så de passer.",
+    "CONSEQ_PROFILES_SWITCH": "{{other}} skifter til {{name}}, så dens områder og placering ændres også.",
+    "CONSEQ_PLACES_MOVED": "{{other}} flytter {{names}}, så de passer.",
     "CONSEQ_DELETES": "{{other}} mister {{names}}.",
     "CONFIRM_TITLE": "Slet fra {{other}}?",
     "CONFIRM_MESSAGE": "Hvis du bruger indstillingerne fra {{kept}}, slettes dette fra {{other}}:",
+    "CONFIRM_DELETE_NAMED": "Slet {{name}} fra {{other}}",
+    "CONFIRM_DELETE": "Slet fra {{other}}",
     "RESOLVED_LOCATION": "{{other}} har nu placeringen fra {{kept}}.",
     "RESOLVED_AREAS": "{{other}} har nu områderne fra {{kept}}.",
     "RESOLVED_PROFILES": "{{other}} har nu profilerne fra {{kept}}.",
@@ -2533,9 +2540,9 @@
     "ERR_PLACE_IN_USE": "Alarmer i {{side}} bruger stadig det gemte sted {{name}}, så det kan ikke slettes. Ret dem i {{side}} først, eller brug de gemte steder fra {{side}}. Intet blev ændret.",
     "ERR_PROFILE_MISSING": "{{side}} har endnu ingen profil {{name}}. Gør først profilerne ens og derefter den aktive profil. Intet blev ændret.",
     "PAIR_WARNING": "Gemt for {{saved}}, men ikke for {{failed}}: {{reason}}. Gennemse forskellen under Sammenkædede konti.",
-    "WARN_UNREACHABLE": "Poracle kunne ikke nås",
+    "WARN_UNREACHABLE": "beskedtjenesten svarede ikke. Prøv igen om et minut",
     "WARN_OUT_OF_STEP": "dens profiler passer ikke med profilerne i {{saved}}",
-    "WARN_RENAME_REFUSED": "Poracle afviste det nye navn",
-    "WARN_REFUSED": "Poracle afviste det"
+    "WARN_RENAME_REFUSED": "det nye navn blev ikke godkendt",
+    "WARN_REFUSED": "ændringen blev ikke godkendt"
   }
 }

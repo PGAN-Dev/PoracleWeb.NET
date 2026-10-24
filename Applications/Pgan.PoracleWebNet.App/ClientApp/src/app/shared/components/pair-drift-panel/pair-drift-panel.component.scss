@@ -70,13 +70,12 @@
   overflow-wrap: anywhere;
 }
 
-.drift-status,
 .drift-error {
-  margin: 0;
+  margin: 8px 0 0;
+}
 
-  &:not(:empty) {
-    margin-top: 12px;
-  }
+.drift-error-top {
+  margin: 0 0 8px;
 }
 
 .drift-error {

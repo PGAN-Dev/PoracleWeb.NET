@@ -66,15 +66,16 @@ names what differs:
   lookup the location dialog uses; without it you get the distance alone, never raw coordinates.
 - **Areas:** the areas only one app has, spelled the way Poracle spells them.
 - **Profiles:** the profiles only one app has, and for the ones both have, what differs: name, schedule, or areas
-  and location. The profile you're on isn't reported here for its areas or location; those are the Location and
-  Areas lines.
+  and location, with each app's name for a renamed one ("Daily on Discord, Default on Telegram"). The profile either
+  app is on isn't reported here for its areas or location; those are the Location and Areas lines.
 - **Active profile:** the profiles each app is using, by name.
 - **Saved places:** the places only one app has, and the ones in different spots, by name.
 
 Each line has **Use Discord's** and **Use Telegram's**, and under each button what it does to the other app ("Telegram
 gets Aberdeen.", "Discord loses Weekend."). Pressing one makes the other app match. Nothing is ever resolved for
-you. A choice that deletes a profile or saved place on the other app asks first and names what goes. Afterwards the
-page says what changed and moves to the next difference.
+you. A choice that deletes a profile or saved place on the other app asks first and names what goes. If it deletes
+the profile the other app is on, the line says that app switches profile, and so its areas and location change
+too. Afterwards a message at the top of the screen says what changed, and the page moves to the next difference.
 
 - If the apps changed again since the list was drawn, you're told so, nothing is overwritten, and the list shows
   what differs now.

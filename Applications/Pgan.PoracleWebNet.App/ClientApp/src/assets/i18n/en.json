@@ -2014,7 +2014,7 @@
     "FORCED_BY_PORACLE": "Disabled in Poracle's own config. Poracle drops these webhooks and its bot refuses the command, so this cannot be enabled here.",
     "FORCED_BY_PORACLE_TOOLTIP": "Controlled by Poracle's config, not by this page.",
     "CUSTOM_PAGE_NAME_LABEL": "Nav link label",
-    "CUSTOM_PAGE_NAME_DESC": "Label for the custom navigation link (e.g. \"Back To Map\").",
+    "CUSTOM_PAGE_NAME_DESC": "Label for the custom navigation link (e.g. \"Back to map\").",
     "CUSTOM_PAGE_URL_LABEL": "Nav link URL",
     "CUSTOM_PAGE_URL_DESC": "URL the custom nav link points to.",
     "CUSTOM_PAGE_ICON_LABEL": "Nav link icon",
@@ -2472,10 +2472,12 @@
     "TELEGRAM": "Telegram",
     "PAUSED_NEXT": "See why on Linked accounts.",
     "DELIVERED_TO": "Delivered to {{app}}",
-    "DELIVERED_TO_PAUSED": "Delivered to {{app}}, which isn't receiving alerts"
+    "DELIVERED_TO_PAUSED": "Delivered to {{app}}, which isn't receiving alerts",
+    "PAUSED_SHORT": "alerts off"
   },
   "DRIFT": {
     "TITLE": "Discord and Telegram have different settings",
+    "TITLE_NEUTRAL": "Settings on both apps",
     "BANNER": "Discord and Telegram have different settings.",
     "REVIEW": "Review",
     "REVIEW_ARIA": "Review the differences on Linked accounts",
@@ -2500,6 +2502,7 @@
     "PROFILES_EXTRA": "Only {{side}} has {{names}}.",
     "PROFILES_CHANGED": "Set up differently: {{names}}.",
     "PROFILE_CHANGED_ONE": "{{name}} ({{what}})",
+    "PROFILE_PAIR": "{{discordName}} on {{discord}}, {{telegramName}} on {{telegram}}",
     "DIFF_NAME": "name",
     "DIFF_SCHEDULE": "schedule",
     "DIFF_AREAS": "areas or location",
@@ -2509,6 +2512,7 @@
     "PLACES_MOVED": "In different spots: {{names}}.",
     "PLACES_DIFFER": "Some saved places are in different spots.",
     "KEEP": "Use {{side}}'s",
+    "KEEP_ARIA": "{{label}}: Use {{side}}'s",
     "DISMISS": "Dismiss",
     "CONSEQ_LOCATION": "{{other}} moves to {{kept}}'s location.",
     "CONSEQ_GETS": "{{other}} gets {{names}}.",
@@ -2516,11 +2520,14 @@
     "CONSEQ_AREAS": "{{other}} gets {{kept}}'s areas.",
     "CONSEQ_SWITCH": "{{other}} switches to {{name}}.",
     "CONSEQ_PROFILE_MISSING": "{{other}} has no profile {{name}} yet. Match the profiles first.",
-    "CONSEQ_PROFILES_MATCH": "{{names}} on {{other}} change to match.",
-    "CONSEQ_PLACES_MOVED": "{{names}} on {{other}} move to match.",
+    "CONSEQ_PROFILES_MATCH": "{{other}} updates {{names}} to match.",
+    "CONSEQ_PROFILES_SWITCH": "{{other}} switches to {{name}}, so its areas and location change too.",
+    "CONSEQ_PLACES_MOVED": "{{other}} moves {{names}} to match.",
     "CONSEQ_DELETES": "{{other}} loses {{names}}.",
     "CONFIRM_TITLE": "Delete from {{other}}?",
     "CONFIRM_MESSAGE": "Using {{kept}}'s settings deletes these from {{other}}:",
+    "CONFIRM_DELETE_NAMED": "Delete {{name}} from {{other}}",
+    "CONFIRM_DELETE": "Delete from {{other}}",
     "RESOLVED_LOCATION": "{{other}} now has {{kept}}'s location.",
     "RESOLVED_AREAS": "{{other}} now has {{kept}}'s areas.",
     "RESOLVED_PROFILES": "{{other}} now has {{kept}}'s profiles.",
@@ -2533,9 +2540,9 @@
     "ERR_PLACE_IN_USE": "Alarms in {{side}} still use the saved place {{name}}, so it can't be deleted. Change them in {{side}} first, or use {{side}}'s saved places. Nothing was changed.",
     "ERR_PROFILE_MISSING": "{{side}} has no profile {{name}} yet. Match the profiles first, then the active profile. Nothing was changed.",
     "PAIR_WARNING": "Saved for {{saved}}, but not for {{failed}}: {{reason}}. Review the difference on Linked accounts.",
-    "WARN_UNREACHABLE": "Poracle couldn't be reached",
+    "WARN_UNREACHABLE": "the alert service didn't answer. Try again in a minute",
     "WARN_OUT_OF_STEP": "its profiles don't line up with {{saved}}'s",
-    "WARN_RENAME_REFUSED": "Poracle refused the new name",
-    "WARN_REFUSED": "Poracle refused it"
+    "WARN_RENAME_REFUSED": "the new name wasn't accepted",
+    "WARN_REFUSED": "the change wasn't accepted"
   }
 }

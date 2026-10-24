@@ -1,6 +1,14 @@
 @if (linked.canChoose()) {
   <section class="drift-panel" aria-labelledby="drift-panel-heading" data-test="drift-panel">
-    <h2 id="drift-panel-heading" class="drift-heading" tabindex="-1">{{ 'DRIFT.TITLE' | translate }}</h2>
+    <!-- "Different settings" only above a list of differences; otherwise the heading can't contradict the line under it. -->
+    <h2 id="drift-panel-heading" class="drift-heading" tabindex="-1">
+      {{ (lines().length > 0 && !linked.driftUnknown() ? 'DRIFT.TITLE' : 'DRIFT.TITLE_NEUTRAL') | translate }}
+    </h2>
+
+    <!-- A failure whose line has gone (it changed meanwhile) is said under the heading, which is where focus lands. -->
+    @if (error() && !hasLine(errorField())) {
+      <p class="drift-error drift-error-top" role="alert" data-test="drift-error">{{ error() }}</p>
+    }
 
     @if (linked.driftUnknown()) {
       <p class="hint" data-test="drift-unknown">{{ 'DRIFT.UNKNOWN' | translate }}</p>
@@ -20,6 +28,7 @@
                     mat-stroked-button
                     type="button"
                     [attr.data-keep]="line.item.field + '-' + side"
+                    [attr.aria-label]="'DRIFT.KEEP_ARIA' | translate: { label: line.labelKey | translate, side: sideName(side) }"
                     [attr.aria-describedby]="consequenceId(line, side)"
                     [disabled]="busy() !== null || line.blocked[side]"
                     (click)="keep(line, side)">
@@ -29,12 +38,12 @@
                 </div>
               }
             </div>
+            @if (error() && errorField() === line.item.field) {
+              <p class="drift-error" role="alert" data-test="drift-error">{{ error() }}</p>
+            }
           </li>
         }
       </ul>
     }
-
-    <p class="drift-status" role="status" data-test="drift-status">{{ message() }}</p>
-    <p class="drift-error" role="alert" data-test="drift-error">{{ error() }}</p>
   </section>
 }

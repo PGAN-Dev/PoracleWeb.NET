@@ -22,6 +22,7 @@ import { I18nService } from '../../../core/services/i18n.service';
 import { LinkedAccountService } from '../../../core/services/linked-account.service';
 import { LocationService } from '../../../core/services/location.service';
 import { SettingsService } from '../../../core/services/settings.service';
+import { ToastService } from '../../../core/services/toast.service';
 import {
   DRIFT_SIDES,
   DriftLine,
@@ -51,8 +52,9 @@ const ERROR_KEYS: Record<string, string> = {
  *
  * Nothing is resolved without the person choosing, and a choice that deletes a profile or saved place on the
  * other app asks first, naming them. The server answers a choice only against the fingerprint of what was shown.
- * After a choice the outcome is announced, the list is read again, and focus moves to the next difference (or
- * the heading when none are left), since the button that was pressed may be gone.
+ * After a choice the outcome is said in a toast, which is seen wherever the page is scrolled to (the panel's own foot
+ * was off screen on a phone), the list is read again, and focus moves to the next difference (or the heading when
+ * none are left), since the button that was pressed may be gone. A failure is said beside the button pressed.
  */
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -73,10 +75,13 @@ export class PairDriftPanelComponent {
   private readonly i18n = inject(I18nService);
   private readonly injector = inject(Injector);
   private readonly requested = new Set<string>();
+  private readonly toast = inject(ToastService);
   private readonly translate = inject(TranslateService);
 
   protected readonly busy = signal<null | string>(null);
   protected readonly error = signal('');
+  /** The line the failure belongs to, so it is said beside the button that was pressed. */
+  protected readonly errorField = signal<null | string>(null);
   protected readonly linked = inject(LinkedAccountService);
   protected readonly lines = computed<DriftLine[]>(() => {
     const lang = this.i18n.currentLang(); // composed sentences follow the display language
@@ -93,7 +98,6 @@ export class PairDriftPanelComponent {
     );
   });
 
-  protected readonly message = signal('');
   protected readonly sides = DRIFT_SIDES;
 
   constructor() {
@@ -112,6 +116,10 @@ export class PairDriftPanelComponent {
     return `drift-consequence-${line.item.field}-${side}`;
   }
 
+  protected hasLine(field: null | string): boolean {
+    return field !== null && this.lines().some(l => l.item.field === field);
+  }
+
   protected async keep(line: DriftLine, side: LinkSide): Promise<void> {
     if (this.busy() || line.blocked[side]) return;
     const removes = line.removes[side];
@@ -119,18 +127,19 @@ export class PairDriftPanelComponent {
 
     const index = this.lines().findIndex(l => l.item.field === line.item.field);
     this.busy.set(line.item.field + side);
-    this.message.set('');
     this.error.set('');
+    this.errorField.set(null);
     let succeeded = false;
     try {
       await this.linked.resolve(line.item.field, side, line.item.fingerprint);
       succeeded = true;
-      this.message.set(
+      this.toast.success(
         this.translate.instant(RESOLVED_KEYS[line.item.field], { kept: this.sideName(side), other: this.sideName(otherSide(side)) }),
       );
     } catch (err) {
       // The service has already read the status again, so a stale line has gone or changed by now.
       this.error.set(this.errorText(err));
+      this.errorField.set(line.item.field);
     } finally {
       this.busy.set(null);
     }
@@ -145,7 +154,11 @@ export class PairDriftPanelComponent {
     const other = this.sideName(otherSide(side));
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        confirmText: this.translate.instant('DRIFT.KEEP', { side: this.sideName(side) }),
+        // The button says what it deletes, not which app's settings lead to it.
+        confirmText:
+          names.length === 1
+            ? this.translate.instant('DRIFT.CONFIRM_DELETE_NAMED', { name: names[0], other })
+            : this.translate.instant('DRIFT.CONFIRM_DELETE', { other }),
         items: names,
         message: this.translate.instant('DRIFT.CONFIRM_MESSAGE', { kept: this.sideName(side), other }),
         title: this.translate.instant('DRIFT.CONFIRM_TITLE', { other }),

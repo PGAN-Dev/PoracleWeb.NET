@@ -1,5 +1,8 @@
 import { DriftField, DriftItem, LinkSide, ReverseGeocodingResult } from '../../core/models';
 
+/** Navigation state saying Linked accounts was opened to review the differences, so it takes focus on arrival. */
+export const DRIFT_REVIEW_STATE = 'driftReview';
+
 export const DRIFT_SIDES: readonly LinkSide[] = ['discord', 'telegram'];
 
 export interface DriftPoint {
@@ -275,7 +278,15 @@ function describeProfiles(item: DriftItem, ctx: DriftDescribeContext): Pick<Drif
     if (JSON.stringify([d.areas, d.lat, d.lon]) !== JSON.stringify([t.areas, t.lat, t.lon])) what.push(ctx.t('DRIFT.DIFF_AREAS'));
     if (!what.length) continue;
     changedNos.add(d.no);
-    const name = (d.name ?? '') === (t.name ?? '') ? nameOf(d) : `${nameOf(d)} / ${nameOf(t)}`;
+    const name =
+      (d.name ?? '') === (t.name ?? '')
+        ? nameOf(d)
+        : ctx.t('DRIFT.PROFILE_PAIR', {
+            discord: ctx.side('discord'),
+            discordName: nameOf(d),
+            telegram: ctx.side('telegram'),
+            telegramName: nameOf(t),
+          });
     changed.push(ctx.t('DRIFT.PROFILE_CHANGED_ONE', { name, what: what.join(', ') }));
   }
 
@@ -283,16 +294,38 @@ function describeProfiles(item: DriftItem, ctx: DriftDescribeContext): Pick<Drif
     ...DRIFT_SIDES.filter(s => only[s].length > 0).map(s => ctx.t('DRIFT.PROFILES_EXTRA', { names: join(only[s]), side: ctx.side(s) })),
     changed.length ? ctx.t('DRIFT.PROFILES_CHANGED', { names: changed.join('; ') }) : '',
   ]);
+  const current = (item.details ?? {}) as Partial<Record<LinkSide, { current?: unknown }>>;
   const consequence = bySides(keep => {
     const other = otherSide(keep);
-    // Named as the kept side calls them, since that is what the other app will call them afterwards.
-    const matched = rows[keep].filter(r => changedNos.has(r.no)).map(nameOf);
+    // Named as the app being changed calls them now, since that is where the person will look for them.
+    const matched = rows[other].filter(r => changedNos.has(r.no)).map(nameOf);
+    const switchTo = switchTarget(rows, current, keep);
     return sentences([
       only[keep].length ? ctx.t('DRIFT.CONSEQ_GETS', { names: join(only[keep]), other: ctx.side(other) }) : '',
       matched.length ? ctx.t('DRIFT.CONSEQ_PROFILES_MATCH', { names: join(matched), other: ctx.side(other) }) : '',
       only[other].length ? ctx.t('DRIFT.CONSEQ_DELETES', { names: join(only[other]), other: ctx.side(other) }) : '',
+      switchTo ? ctx.t('DRIFT.CONSEQ_PROFILES_SWITCH', { name: nameOf(switchTo), other: ctx.side(other) }) : '',
     ]);
   });
   const removes = bySides(keep => only[otherSide(keep)]);
   return { consequence, removes, text: text || ctx.t('DRIFT.PROFILES_DIFFER') };
+}
+
+/**
+ * The profile the other app is moved onto when keeping `keep` deletes the profile it is on, mirroring the server:
+ * the kept side's active profile, or its lowest when that is profile 0. Null when nothing moves, or when the status
+ * does not say which profiles are active.
+ */
+function switchTarget(
+  rows: Record<LinkSide, ProfileRow[]>,
+  current: Partial<Record<LinkSide, { current?: unknown }>>,
+  keep: LinkSide,
+): null | ProfileRow {
+  const other = otherSide(keep);
+  const otherCurrent = current[other]?.current;
+  const keptCurrent = current[keep]?.current;
+  if (typeof otherCurrent !== 'number' || typeof keptCurrent !== 'number') return null;
+  if (rows[keep].some(r => r.no === otherCurrent)) return null;
+  const target = keptCurrent !== 0 ? keptCurrent : Math.min(...rows[keep].map(r => r.no));
+  return rows[keep].find(r => r.no === target) ?? null;
 }

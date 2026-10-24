@@ -2472,10 +2472,12 @@
     "TELEGRAM": "Telegram",
     "PAUSED_NEXT": "Bekijk waarom bij Gekoppelde accounts.",
     "DELIVERED_TO": "Bezorgd via {{app}}",
-    "DELIVERED_TO_PAUSED": "Bezorgd via {{app}}, dat geen meldingen ontvangt"
+    "DELIVERED_TO_PAUSED": "Bezorgd via {{app}}, dat geen meldingen ontvangt",
+    "PAUSED_SHORT": "meldingen uit"
   },
   "DRIFT": {
     "TITLE": "Discord en Telegram hebben verschillende instellingen",
+    "TITLE_NEUTRAL": "Instellingen in beide apps",
     "BANNER": "Discord en Telegram hebben verschillende instellingen.",
     "REVIEW": "Bekijken",
     "REVIEW_ARIA": "De verschillen bekijken bij Gekoppelde accounts",
@@ -2500,6 +2502,7 @@
     "PROFILES_EXTRA": "Alleen {{side}} heeft {{names}}.",
     "PROFILES_CHANGED": "Anders ingesteld: {{names}}.",
     "PROFILE_CHANGED_ONE": "{{name}} ({{what}})",
+    "PROFILE_PAIR": "{{discordName}} in {{discord}}, {{telegramName}} in {{telegram}}",
     "DIFF_NAME": "naam",
     "DIFF_SCHEDULE": "schema",
     "DIFF_AREAS": "gebieden of locatie",
@@ -2509,6 +2512,7 @@
     "PLACES_MOVED": "Op verschillende plekken: {{names}}.",
     "PLACES_DIFFER": "Sommige opgeslagen plekken liggen op verschillende plekken.",
     "KEEP": "{{side}} gebruiken",
+    "KEEP_ARIA": "{{label}}: {{side}} gebruiken",
     "DISMISS": "Sluiten",
     "CONSEQ_LOCATION": "{{other}} krijgt de locatie van {{kept}}.",
     "CONSEQ_GETS": "{{other}} krijgt {{names}}.",
@@ -2516,11 +2520,14 @@
     "CONSEQ_AREAS": "{{other}} krijgt de gebieden van {{kept}}.",
     "CONSEQ_SWITCH": "{{other}} schakelt over naar {{name}}.",
     "CONSEQ_PROFILE_MISSING": "{{other}} heeft nog geen profiel {{name}}. Maak eerst de profielen gelijk.",
-    "CONSEQ_PROFILES_MATCH": "{{names}} in {{other}} wordt gelijkgemaakt.",
-    "CONSEQ_PLACES_MOVED": "{{names}} in {{other}} wordt naar dezelfde plek verplaatst.",
+    "CONSEQ_PROFILES_MATCH": "{{other}} past {{names}} aan.",
+    "CONSEQ_PROFILES_SWITCH": "{{other}} schakelt over naar {{name}}, dus ook de gebieden en locatie veranderen.",
+    "CONSEQ_PLACES_MOVED": "{{other}} verplaatst {{names}} naar dezelfde plek.",
     "CONSEQ_DELETES": "{{other}} verliest {{names}}.",
     "CONFIRM_TITLE": "Verwijderen uit {{other}}?",
     "CONFIRM_MESSAGE": "Als je de instellingen van {{kept}} gebruikt, wordt dit uit {{other}} verwijderd:",
+    "CONFIRM_DELETE_NAMED": "{{name}} verwijderen uit {{other}}",
+    "CONFIRM_DELETE": "Verwijderen uit {{other}}",
     "RESOLVED_LOCATION": "{{other}} heeft nu de locatie van {{kept}}.",
     "RESOLVED_AREAS": "{{other}} heeft nu de gebieden van {{kept}}.",
     "RESOLVED_PROFILES": "{{other}} heeft nu de profielen van {{kept}}.",
@@ -2533,9 +2540,9 @@
     "ERR_PLACE_IN_USE": "Alarmen in {{side}} gebruiken de opgeslagen plek {{name}} nog, dus die kan niet worden verwijderd. Pas ze eerst aan in {{side}}, of gebruik de opgeslagen plekken van {{side}}. Er is niets gewijzigd.",
     "ERR_PROFILE_MISSING": "{{side}} heeft nog geen profiel {{name}}. Maak eerst de profielen gelijk en daarna het actieve profiel. Er is niets gewijzigd.",
     "PAIR_WARNING": "Opgeslagen voor {{saved}}, maar niet voor {{failed}}: {{reason}}. Bekijk het verschil bij Gekoppelde accounts.",
-    "WARN_UNREACHABLE": "Poracle was niet bereikbaar",
+    "WARN_UNREACHABLE": "de meldingendienst gaf geen antwoord. Probeer het over een minuut opnieuw",
     "WARN_OUT_OF_STEP": "de profielen komen niet overeen met die van {{saved}}",
-    "WARN_RENAME_REFUSED": "Poracle weigerde de nieuwe naam",
-    "WARN_REFUSED": "Poracle weigerde het"
+    "WARN_RENAME_REFUSED": "de nieuwe naam werd niet geaccepteerd",
+    "WARN_REFUSED": "de wijziging werd niet geaccepteerd"
   }
 }

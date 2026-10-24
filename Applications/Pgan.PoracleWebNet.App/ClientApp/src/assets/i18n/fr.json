@@ -2472,10 +2472,12 @@
     "TELEGRAM": "Telegram",
     "PAUSED_NEXT": "Voir pourquoi dans Comptes liés.",
     "DELIVERED_TO": "Envoyée vers {{app}}",
-    "DELIVERED_TO_PAUSED": "Envoyée vers {{app}}, qui ne reçoit pas d'alertes"
+    "DELIVERED_TO_PAUSED": "Envoyée vers {{app}}, qui ne reçoit pas d'alertes",
+    "PAUSED_SHORT": "alertes désactivées"
   },
   "DRIFT": {
     "TITLE": "Discord et Telegram ont des réglages différents",
+    "TITLE_NEUTRAL": "Réglages dans les deux applis",
     "BANNER": "Discord et Telegram ont des réglages différents.",
     "REVIEW": "Voir",
     "REVIEW_ARIA": "Voir les différences dans Comptes liés",
@@ -2500,6 +2502,7 @@
     "PROFILES_EXTRA": "Seul {{side}} a {{names}}.",
     "PROFILES_CHANGED": "Réglés différemment : {{names}}.",
     "PROFILE_CHANGED_ONE": "{{name}} ({{what}})",
+    "PROFILE_PAIR": "{{discordName}} sur {{discord}}, {{telegramName}} sur {{telegram}}",
     "DIFF_NAME": "nom",
     "DIFF_SCHEDULE": "horaire",
     "DIFF_AREAS": "zones ou position",
@@ -2509,6 +2512,7 @@
     "PLACES_MOVED": "À des endroits différents : {{names}}.",
     "PLACES_DIFFER": "Certains lieux enregistrés ne sont pas au même endroit.",
     "KEEP": "Utiliser {{side}}",
+    "KEEP_ARIA": "{{label}} : Utiliser {{side}}",
     "DISMISS": "Fermer",
     "CONSEQ_LOCATION": "{{other}} prend la position de {{kept}}.",
     "CONSEQ_GETS": "{{other}} reçoit {{names}}.",
@@ -2516,11 +2520,14 @@
     "CONSEQ_AREAS": "{{other}} prend les zones de {{kept}}.",
     "CONSEQ_SWITCH": "{{other}} passe à {{name}}.",
     "CONSEQ_PROFILE_MISSING": "{{other}} n'a pas encore de profil {{name}}. Alignez d'abord les profils.",
-    "CONSEQ_PROFILES_MATCH": "{{names}} sur {{other}} est modifié pour correspondre.",
-    "CONSEQ_PLACES_MOVED": "{{names}} sur {{other}} est déplacé pour correspondre.",
+    "CONSEQ_PROFILES_MATCH": "{{other}} met à jour {{names}} pour correspondre.",
+    "CONSEQ_PROFILES_SWITCH": "{{other}} passe à {{name}}, ses zones et sa position changent donc aussi.",
+    "CONSEQ_PLACES_MOVED": "{{other}} déplace {{names}} pour correspondre.",
     "CONSEQ_DELETES": "{{other}} perd {{names}}.",
     "CONFIRM_TITLE": "Supprimer de {{other}} ?",
     "CONFIRM_MESSAGE": "Utiliser les réglages de {{kept}} supprime ceci de {{other}} :",
+    "CONFIRM_DELETE_NAMED": "Supprimer {{name}} de {{other}}",
+    "CONFIRM_DELETE": "Supprimer de {{other}}",
     "RESOLVED_LOCATION": "{{other}} a maintenant la position de {{kept}}.",
     "RESOLVED_AREAS": "{{other}} a maintenant les zones de {{kept}}.",
     "RESOLVED_PROFILES": "{{other}} a maintenant les profils de {{kept}}.",
@@ -2533,9 +2540,9 @@
     "ERR_PLACE_IN_USE": "Des alarmes de {{side}} utilisent encore le lieu enregistré {{name}}, il ne peut donc pas être supprimé. Modifiez-les d'abord dans {{side}}, ou utilisez les lieux enregistrés de {{side}}. Rien n'a été modifié.",
     "ERR_PROFILE_MISSING": "{{side}} n'a pas encore de profil {{name}}. Alignez d'abord les profils, puis le profil actif. Rien n'a été modifié.",
     "PAIR_WARNING": "Enregistré pour {{saved}}, mais pas pour {{failed}} : {{reason}}. Voyez la différence dans Comptes liés.",
-    "WARN_UNREACHABLE": "Poracle n'a pas pu être joint",
+    "WARN_UNREACHABLE": "le service d'alertes n'a pas répondu. Réessayez dans une minute",
     "WARN_OUT_OF_STEP": "ses profils ne correspondent pas à ceux de {{saved}}",
-    "WARN_RENAME_REFUSED": "Poracle a refusé le nouveau nom",
-    "WARN_REFUSED": "Poracle l'a refusé"
+    "WARN_RENAME_REFUSED": "le nouveau nom n'a pas été accepté",
+    "WARN_REFUSED": "la modification n'a pas été acceptée"
   }
 }

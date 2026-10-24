@@ -2472,10 +2472,12 @@
     "TELEGRAM": "Telegram",
     "PAUSED_NEXT": "Se varför under Länkade konton.",
     "DELIVERED_TO": "Levereras till {{app}}",
-    "DELIVERED_TO_PAUSED": "Levereras till {{app}}, som inte tar emot aviseringar"
+    "DELIVERED_TO_PAUSED": "Levereras till {{app}}, som inte tar emot aviseringar",
+    "PAUSED_SHORT": "aviseringar av"
   },
   "DRIFT": {
     "TITLE": "Discord och Telegram har olika inställningar",
+    "TITLE_NEUTRAL": "Inställningar i båda apparna",
     "BANNER": "Discord och Telegram har olika inställningar.",
     "REVIEW": "Granska",
     "REVIEW_ARIA": "Granska skillnaderna under Länkade konton",
@@ -2500,6 +2502,7 @@
     "PROFILES_EXTRA": "Bara {{side}} har {{names}}.",
     "PROFILES_CHANGED": "Inställda olika: {{names}}.",
     "PROFILE_CHANGED_ONE": "{{name}} ({{what}})",
+    "PROFILE_PAIR": "{{discordName}} i {{discord}}, {{telegramName}} i {{telegram}}",
     "DIFF_NAME": "namn",
     "DIFF_SCHEDULE": "schema",
     "DIFF_AREAS": "områden eller plats",
@@ -2509,6 +2512,7 @@
     "PLACES_MOVED": "På olika ställen: {{names}}.",
     "PLACES_DIFFER": "Vissa sparade platser ligger på olika ställen.",
     "KEEP": "Använd {{side}}",
+    "KEEP_ARIA": "{{label}}: Använd {{side}}",
     "DISMISS": "Stäng",
     "CONSEQ_LOCATION": "{{other}} får platsen från {{kept}}.",
     "CONSEQ_GETS": "{{other}} får {{names}}.",
@@ -2516,11 +2520,14 @@
     "CONSEQ_AREAS": "{{other}} får områdena från {{kept}}.",
     "CONSEQ_SWITCH": "{{other}} byter till {{name}}.",
     "CONSEQ_PROFILE_MISSING": "{{other}} har ingen profil {{name}} än. Gör profilerna lika först.",
-    "CONSEQ_PROFILES_MATCH": "{{names}} i {{other}} ändras så att de matchar.",
-    "CONSEQ_PLACES_MOVED": "{{names}} i {{other}} flyttas så att de matchar.",
+    "CONSEQ_PROFILES_MATCH": "{{other}} uppdaterar {{names}} så att de matchar.",
+    "CONSEQ_PROFILES_SWITCH": "{{other}} byter till {{name}}, så områden och plats ändras också.",
+    "CONSEQ_PLACES_MOVED": "{{other}} flyttar {{names}} så att de matchar.",
     "CONSEQ_DELETES": "{{other}} förlorar {{names}}.",
     "CONFIRM_TITLE": "Ta bort från {{other}}?",
     "CONFIRM_MESSAGE": "Om du använder inställningarna från {{kept}} tas detta bort från {{other}}:",
+    "CONFIRM_DELETE_NAMED": "Ta bort {{name}} från {{other}}",
+    "CONFIRM_DELETE": "Ta bort från {{other}}",
     "RESOLVED_LOCATION": "{{other}} har nu platsen från {{kept}}.",
     "RESOLVED_AREAS": "{{other}} har nu områdena från {{kept}}.",
     "RESOLVED_PROFILES": "{{other}} har nu profilerna från {{kept}}.",
@@ -2533,9 +2540,9 @@
     "ERR_PLACE_IN_USE": "Larm i {{side}} använder fortfarande den sparade platsen {{name}}, så den kan inte tas bort. Ändra dem i {{side}} först, eller använd de sparade platserna från {{side}}. Inget ändrades.",
     "ERR_PROFILE_MISSING": "{{side}} har ingen profil {{name}} än. Gör först profilerna lika och sedan den aktiva profilen. Inget ändrades.",
     "PAIR_WARNING": "Sparat för {{saved}}, men inte för {{failed}}: {{reason}}. Granska skillnaden under Länkade konton.",
-    "WARN_UNREACHABLE": "Poracle gick inte att nå",
+    "WARN_UNREACHABLE": "aviseringstjänsten svarade inte. Försök igen om en minut",
     "WARN_OUT_OF_STEP": "dess profiler stämmer inte med profilerna i {{saved}}",
-    "WARN_RENAME_REFUSED": "Poracle nekade det nya namnet",
-    "WARN_REFUSED": "Poracle nekade det"
+    "WARN_RENAME_REFUSED": "det nya namnet godtogs inte",
+    "WARN_REFUSED": "ändringen godtogs inte"
   }
 }

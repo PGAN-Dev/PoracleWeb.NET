@@ -564,15 +564,18 @@ refuse destination rows, and linking refuses them with a code the page translate
   and the list puts it first), and `partially_applied`. The SPA words the code; `error` is English fallback.
   Items carry `details` outside the fingerprint (active-profile names and whether the other app has that number;
   place labels as typed), so a line names things without a rename staling an unrelated fingerprint. **The profile
-  both sides are on is compared without its areas and location**: the humans hold the live copy, which the location
-  and areas lines compare, and comparing both reported one cause twice; resolving profiles leaves that profile's
-  geography alone for the same reason. **Two surfaces.** The banner (`PairDriftBannerComponent`, under the toolbar in
+  either side is on is compared without its areas and location**: the humans hold its live copy, which the location
+  and areas lines compare, and comparing both reported one cause twice (with the sides on different profiles too);
+  resolving profiles leaves that geography alone for the same reason. The profiles item's `details` carry each side's
+  `current`, so the panel says when keeping one side's profiles deletes the profile the other app is on and so
+  switches it, which changes that app's areas and location as well. **Two surfaces.** The banner (`PairDriftBannerComponent`, under the toolbar in
   `app.html`, hidden while impersonating and on Linked accounts) is one line and a Review link; it appears only with
   the first status read or at a navigation, never mid-page, and dismisses per fingerprint into `sessionStorage`
   inside try/catch. The list (`PairDriftPanelComponent`, on Linked accounts) always shows every difference,
   dismissed or not: a label per line, what differs by name, what each choice does to the other app (as the
-  button's description), a confirm naming what a choice deletes, the outcome in a `role="status"` line, and focus
-  to the next difference or the heading. Locations are named at the same reverse-geocode level on both sides
+  button's description), a confirm naming what a choice deletes (its button says "Delete Weekend from Telegram"), the outcome
+  as a `ToastService.success` toast (a `role="status"` line at the panel's foot was below the fold on a phone), and
+  focus to the next difference or the heading. Its heading claims a difference only above a list of them. Locations are named at the same reverse-geocode level on both sides
   (`sameLevelNames`) with the distance between them, never as coordinates; area names come from
   `/api/areas/available` in PoracleNG's spelling, asked only when an areas line exists and `disable_areas` is off.
   **Profile 0 is outside the pair**: PoracleNG never numbers a new profile 0, so the drift, resolve and
@@ -581,7 +584,7 @@ refuse destination rows, and linking refuses them with a code the page translate
   side that has one the other lacks as `legacyProfileZero` for a one-line note on the page.
 - **`/api/account-link` is in the error interceptor's silent list**, so `LinkedAccountService` callers word
   every outcome; the list words a resolve refusal inline (`role="alert"`, never a toast, which covered the heading
-  on phones) and the service refreshes status after any resolve, success or not.
+  on phones), beside the button pressed, or under the heading when that line has gone and the service refreshes status after any resolve, success or not.
 - **Don't compare what drifts on its own.** Language, summary schedules and quiet periods are written to both
   but not compared (quiet periods live in PoracleNG's memory and vanish on restart).
 
