@@ -106,6 +106,31 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
         RequireGruntType(model);
         var oldUid = model.Uid;
 
+        // Invasion and incident rules have separate uid sequences, so the uid names a rule only within its own
+        // kind. A kind change is a create of the new rule and then removal of the old one, never a write
+        // addressed by the old uid, which would replace an unrelated rule of the other kind. See #1062.
+        if (await this.IsKindChangeAsync(userId, oldUid, model))
+        {
+            model.Uid = 0;
+            var created = await this.CreateAsync(userId, model);
+            if (AsPokestopEvent(model) is not null)
+            {
+                await this._proxy.DeleteByUidAsync(TrackingType, userId, oldUid);
+            }
+            else
+            {
+                await this._incidentProxy.DeleteByUidAsync(userId, oldUid);
+            }
+
+            model.Uid = created.Uid;
+            if (model.Uid > 0)
+            {
+                await this._uidRemapper.RemapAsync(userId, TrackingType, oldUid, model.Uid);
+            }
+
+            return model;
+        }
+
         if (AsPokestopEvent(model) is { } pokestopEvent)
         {
             var replaced = await this._incidentProxy.ReplaceAsync(userId, oldUid, pokestopEvent);
@@ -129,6 +154,57 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
             this._proxy, TrackingType, userId, oldUid, body, this._uidRemapper);
 
         return model;
+    }
+
+    /// <summary>
+    /// Whether this edit moves the rule between the invasion and incident routes, judged from the stored rules
+    /// that carry the uid. Reads nothing when the uid is not held, so an unknown uid takes the old path.
+    /// </summary>
+    private async Task<bool> IsKindChangeAsync(string userId, int uid, Invasion model)
+    {
+        if (uid <= 0)
+        {
+            return false;
+        }
+
+        JsonElement rows;
+        try
+        {
+            rows = await this._proxy.GetByUserAsync(TrackingType, userId);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            return false;
+        }
+
+        if (rows.ValueKind != JsonValueKind.Array)
+        {
+            return false;
+        }
+
+        bool hasPlain = false, hasEvent = false;
+        foreach (var row in rows.EnumerateArray())
+        {
+            if (PoracleJsonHelper.UidOf(row) != uid)
+            {
+                continue;
+            }
+
+            var isEvent = row.TryGetProperty("grunt_type", out var grunt)
+                && grunt.ValueKind == JsonValueKind.String
+                && PokestopEventTypes.IsEventName(grunt.GetString());
+            hasEvent |= isEvent;
+            hasPlain |= !isEvent;
+        }
+
+        if (AsPokestopEvent(model) is not null)
+        {
+            // An invasion edited into an event. When both kinds hold the number and this page also lists events,
+            // the page cannot say which one was meant, so the edit stays in place as before.
+            return hasPlain && (!hasEvent || await this.EventsLiveElsewhereAsync());
+        }
+
+        return hasEvent && !hasPlain;
     }
 
     public async Task<bool> DeleteAsync(string userId, int uid)
