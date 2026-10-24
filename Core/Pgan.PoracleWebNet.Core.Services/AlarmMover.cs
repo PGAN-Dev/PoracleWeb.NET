@@ -19,7 +19,7 @@ public partial class AlarmMover(
     QuickPickUidTransfer uidTransfer,
     ILogger<AlarmMover> logger)
 {
-    internal const string DifferentProfiles = "Your Discord and Telegram sides are on different profiles. Resolve the banner first.";
+    internal const string DifferentProfiles = "Discord and Telegram are on different profiles. Switch one to match, then try again.";
 
     private readonly IUserAreaPolicy _areaPolicy = areaPolicy;
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;

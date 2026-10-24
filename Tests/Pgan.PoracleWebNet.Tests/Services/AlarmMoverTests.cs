@@ -71,7 +71,7 @@ public class AlarmMoverTests
         var outcome = await this.Move(Model());
 
         Assert.Equal(MoveStatus.Refused, outcome.Status);
-        Assert.Equal("Your Discord and Telegram sides are on different profiles. Resolve the banner first.", outcome.Reason);
+        Assert.Equal("Discord and Telegram are on different profiles. Switch one to match, then try again.", outcome.Reason);
         this._svc.VerifyNoOtherCalls();
     }
 
