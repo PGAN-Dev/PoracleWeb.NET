@@ -355,4 +355,69 @@ public class AlarmMoverTests
         Assert.Equal([MoveStatus.Moved, MoveStatus.Refused], results.Select(r => r.Status));
         this._svc.Verify(s => s.GetByUserAsync(It.IsAny<string>(), 1), Times.Exactly(2));
     }
+
+    [Fact]
+    public async Task Move_TypeSwitchedOffOnCreate_ReachesItsOwnFilter()
+    {
+        this._svc.Setup(s => s.CreateAsync(Telegram, It.IsAny<Monster>())).ThrowsAsync(new FeatureDisabledException(DisableFeatureKeys.Pokemon));
+
+        await Assert.ThrowsAsync<FeatureDisabledException>(() => this.Move(Model()));
+        this._svc.Verify(s => s.DeleteAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Move_PoracleTooOldOnCreate_ReachesItsOwnFilter()
+    {
+        this._svc.Setup(s => s.CreateAsync(Telegram, It.IsAny<Monster>())).ThrowsAsync(new PoracleUnsupportedException("saving alarms", "PoracleNG 5.4.0"));
+
+        await Assert.ThrowsAsync<PoracleUnsupportedException>(() => this.Move(Model()));
+        this._svc.Verify(s => s.DeleteAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Move_NullSourceHuman_NamesTheSourceSide()
+    {
+        this._humans.Setup(h => h.GetByIdAsync(Discord)).ReturnsAsync((Human?)null);
+
+        var outcome = await this.Move(Model());
+
+        Assert.Equal(MoveStatus.Refused, outcome.Status);
+        Assert.Equal("Discord isn't set up yet.", outcome.Reason);
+        this._svc.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task Move_NullTargetHuman_NamesTheTargetSide()
+    {
+        this._humans.Setup(h => h.GetByIdAsync(Telegram)).ReturnsAsync((Human?)null);
+
+        Assert.Equal("Telegram isn't set up yet.", (await this.Move(Model())).Reason);
+    }
+
+    [Fact]
+    public async Task Move_DeleteThrowsSomethingADeleteNeverDoes_Propagates()
+    {
+        this._svc.Setup(s => s.CreateAsync(Telegram, It.IsAny<Monster>())).ReturnsAsync(new Monster { Uid = 77 });
+        // The strict mock has no DeleteAsync setup, so the call throws Moq's own MockException. Swallowing it
+        // would report "source remains" and hide a test that never set the delete up.
+
+        await Assert.ThrowsAnyAsync<MockException>(() => this.Move(Model()));
+    }
+
+    [Theory]
+    [MemberData(nameof(DeleteFailures))]
+    public async Task Move_DeleteRefusedByPoracle_SourceRemains(Exception failure)
+    {
+        this._svc.Setup(s => s.CreateAsync(Telegram, It.IsAny<Monster>())).ReturnsAsync(new Monster { Uid = 77 });
+        this._svc.Setup(s => s.DeleteAsync(Discord, 5)).ThrowsAsync(failure);
+
+        Assert.Equal(MoveStatus.SourceRemains, (await this.Move(Model())).Status);
+    }
+
+    public static TheoryData<Exception> DeleteFailures() => new()
+    {
+        new PoracleRequestRefusedException("refused", 422),
+        new PoracleAmbiguousAnswerException(),
+        new PoracleUnsupportedException("Deleting alarms", "PoracleNG 5.4.0"),
+    };
 }

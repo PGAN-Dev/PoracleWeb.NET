@@ -76,7 +76,7 @@ public partial class AlarmMover(
 
         var targetId = targetSide.HumanId;
 
-        var preflight = await this.PreflightAsync(session, model, sourceOwnerId, targetId, target);
+        var preflight = await this.PreflightAsync(session, model, sourceOwnerId, sourceSide, targetId, target);
         if (preflight.Refusal is not null)
         {
             return Refused<TModel>(uid, preflight.Refusal);
@@ -117,7 +117,10 @@ public partial class AlarmMover(
         {
             return Refused<TModel>(uid, ex.Message);
         }
-        catch (Exception ex) when (ex is not (HttpRequestException or OperationCanceledException))
+        // A switched-off type and a too-old PoracleNG have their own filters (403, 409); they say nothing about
+        // whether a copy landed, because they refuse before anything is written.
+        catch (Exception ex) when (ex is not (HttpRequestException or OperationCanceledException
+            or FeatureDisabledException or PoracleUnsupportedException))
         {
             LogCreateFailed(this._logger, ex, trackingType, uid);
             return new MoveResult<TModel>(new MoveOutcome(uid, MoveStatus.Failed,
@@ -196,14 +199,20 @@ public partial class AlarmMover(
 
     private sealed record Preflight(string? Refusal, int ProfileNo);
 
-    private async Task<Preflight> PreflightAsync(Session session, IHasDestination model, string sourceId, string targetId, LinkSide target)
+    private async Task<Preflight> PreflightAsync(
+        Session session, IHasDestination model, string sourceId, LinkSide source, string targetId, LinkSide target)
     {
-        var side = target == LinkSide.Discord ? "Discord" : "Telegram";
+        var side = SideName(target);
         var targetHuman = await session.HumanAsync(targetId);
-        var sourceHuman = await session.HumanAsync(sourceId);
-        if (targetHuman is null || sourceHuman is null)
+        if (targetHuman is null)
         {
             return new Preflight($"{side} isn't set up yet.", 0);
+        }
+
+        var sourceHuman = await session.HumanAsync(sourceId);
+        if (sourceHuman is null)
+        {
+            return new Preflight($"{SideName(source)} isn't set up yet.", 0);
         }
 
         if (targetHuman.CurrentProfileNo != sourceHuman.CurrentProfileNo)
@@ -316,6 +325,8 @@ public partial class AlarmMover(
         }
     }
 
+    private static string SideName(LinkSide side) => side == LinkSide.Discord ? "Discord" : "Telegram";
+
     private async Task<string?> DeleteSourceAsync<TModel>(IAlarmService<TModel> svc, string sourceOwnerId, int uid)
     {
         string? last = null;
@@ -326,7 +337,10 @@ public partial class AlarmMover(
                 await svc.DeleteAsync(sourceOwnerId, uid);
                 return null;
             }
-            catch (Exception ex) when (ex is not OperationCanceledException)
+            // What a delete throws when PoracleNG did not remove the rule. Anything else is a bug and propagates.
+            catch (Exception ex) when (ex is HttpRequestException or PoracleRequestRefusedException
+                or PoracleUnsupportedException or PoracleAmbiguousAnswerException or AccountGoneException
+                or JsonException)
             {
                 last = ex.Message;
             }
