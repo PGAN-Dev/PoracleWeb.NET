@@ -13,6 +13,7 @@
 
 @if (!loading() && invasions().length > 0) {
   <app-alarm-list-toolbar
+    alarmsLabel="INVASIONS.PAGE_TITLE"
     searchPlaceholder="INVASIONS.SEARCH_PLACEHOLDER"
     [(search)]="search"
     [(sort)]="sortBy"
@@ -33,6 +34,7 @@
     (deselectAll)="deselectAll()"
     (changeRadius)="bulkUpdateDistance()"
     [canMove]="canChooseDestination()"
+    [allOn]="selectionApp()"
     (moveSelected)="bulkMove($event)"
     (deleteSelected)="bulkDelete()" />
 }

@@ -37,7 +37,7 @@ import { WhereChipComponent } from '../../shared/components/where-chip/where-chi
 import { WhereSheetComponent, WhereSheetData, whereSheetConfig } from '../../shared/components/where-sheet/where-sheet.component';
 import { addOnArrival } from '../../shared/utils/add-on-arrival';
 import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
-import { byDestination, DestinationFilter, matchesSearch, visibleSelection } from '../../shared/utils/alarm-list-query';
+import { byDestination, DestinationFilter, matchesSearch, sharedDestination, visibleSelection } from '../../shared/utils/alarm-list-query';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { runBulkMove } from '../../shared/utils/bulk-move';
 import { isAutoDelete as cleanIsAutoDelete, isEdit as cleanIsEdit } from '../../shared/utils/clean-flags';
@@ -188,6 +188,9 @@ export class PokemonListComponent implements OnInit {
   readonly loading = signal(true);
 
   readonly profileAreas = signal<string[]>([]);
+
+  /** The app every selected alarm on screen is already on, which the bulk Deliver to menu offers disabled. */
+  readonly selectionApp = computed(() => sharedDestination(this.filteredMonsters(), item => item.uid, this.actionIds()));
 
   // Bulk operations
   readonly selectMode = signal(false);

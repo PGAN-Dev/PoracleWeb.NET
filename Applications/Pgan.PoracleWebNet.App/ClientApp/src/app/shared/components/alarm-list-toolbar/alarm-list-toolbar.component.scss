@@ -92,12 +92,37 @@
   }
 }
 
+// Set apart from the list's own chips by a gap, a visible label and a different control: a segmented group.
 .destination-filter {
+  align-items: center;
   display: flex;
-  gap: 4px;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin-inline-start: 8px;
 
-  .active {
-    background: var(--mat-sys-secondary-container, rgb(0 0 0 / 8%));
-    color: var(--mat-sys-on-secondary-container, inherit);
+  mat-button-toggle-group {
+    --mat-button-toggle-height: 36px;
+  }
+}
+
+.destination-filter-label {
+  color: var(--mat-sys-on-surface-variant, rgb(0 0 0 / 64%));
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+.destination-option {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+
+  app-app-glyph {
+    --app-glyph-size: 16px;
+  }
+}
+
+@media (max-width: 599px) {
+  .destination-filter {
+    margin-inline-start: 0;
   }
 }

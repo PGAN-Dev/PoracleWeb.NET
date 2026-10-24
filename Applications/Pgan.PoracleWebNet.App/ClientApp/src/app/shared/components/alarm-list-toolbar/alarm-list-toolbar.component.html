@@ -18,17 +18,25 @@
   <ng-content />
 
   @if (canFilterDestination()) {
-    <div class="destination-filter" role="group" [attr.aria-label]="'DELIVER_TO.LABEL' | translate">
-      @for (option of destinationOptions; track option.value) {
-        <button
-          mat-stroked-button
-          type="button"
-          [class.active]="destinationFilter() === option.value"
-          [attr.aria-pressed]="destinationFilter() === option.value"
-          (click)="destinationFilter.set(option.value)">
-          {{ option.label | translate }}
-        </button>
-      }
+    <!-- A labelled segmented control, set apart from the list's own filter chips: it narrows by app, not by rule. -->
+    <div class="destination-filter">
+      <span class="destination-filter-label" aria-hidden="true">{{ 'ALARM.FILTER_DELIVERED_TO_LABEL' | translate }}</span>
+      <mat-button-toggle-group
+        hideSingleSelectionIndicator
+        [value]="destinationFilter()"
+        (change)="destinationFilter.set($event.value)"
+        [attr.aria-label]="'ALARM.FILTER_DELIVERED_TO' | translate">
+        @for (option of destinationOptions; track option.value) {
+          <mat-button-toggle [value]="option.value">
+            <span class="destination-option">
+              @if (option.value !== 'all') {
+                <app-app-glyph [app]="option.value" />
+              }
+              {{ option.label | translate }}
+            </span>
+          </mat-button-toggle>
+        }
+      </mat-button-toggle-group>
     </div>
   }
 
@@ -65,7 +73,11 @@
 
 @if (total() > 0 && shown() === 0) {
   <div class="no-matches">
-    <p>{{ 'ALARM.NO_MATCHES' | translate }}</p>
+    @if (onlyDestinationFilter(); as app) {
+      <p>{{ 'ALARM.NO_MATCHES_DESTINATION' | translate: { alarms: alarmsLabel() | translate, app: appKey(app) | translate } }}</p>
+    } @else {
+      <p>{{ 'ALARM.NO_MATCHES' | translate }}</p>
+    }
     <button mat-stroked-button type="button" (click)="clear()">
       {{ (hasFilters() || destinationFilter() !== 'all' ? 'ALARM.CLEAR_FILTERS' : 'COMMON.CLEAR_SEARCH') | translate }}
     </button>

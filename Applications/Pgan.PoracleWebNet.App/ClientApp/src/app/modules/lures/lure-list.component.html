@@ -12,6 +12,7 @@
 </div>
 @if (!loading() && lures().length > 0) {
   <app-alarm-list-toolbar
+    alarmsLabel="LURES.PAGE_TITLE"
     searchPlaceholder="LURES.SEARCH_PLACEHOLDER"
     [(search)]="search"
     [(sort)]="sortBy"
@@ -32,6 +33,7 @@
     (deselectAll)="deselectAll()"
     (changeRadius)="bulkUpdateDistance()"
     [canMove]="canChooseDestination()"
+    [allOn]="selectionApp()"
     (moveSelected)="bulkMove($event)"
     (deleteSelected)="bulkDelete()" />
 }

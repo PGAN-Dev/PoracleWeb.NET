@@ -36,6 +36,8 @@ interface NavItem {
   icon: string;
   iconColor?: string;
   label: string;
+  /** Shown only when the Linked accounts page has something to offer (see `showLinkedAccountsItem`). */
+  linkedAccounts?: boolean;
   route: string;
 }
 
@@ -213,6 +215,15 @@ export class App implements OnInit {
       route: '/geofences',
     },
     { group: 'settings', icon: 'cleaning_services', iconColor: '#795548', label: 'NAV.CLEANING', route: '/cleaning' },
+    {
+      disableKey: 'disable_account_linking',
+      group: 'settings',
+      icon: 'link',
+      iconColor: '#607d8b',
+      label: 'MENU.LINKED_ACCOUNTS',
+      linkedAccounts: true,
+      route: '/linked-accounts',
+    },
     { group: 'support', icon: 'help', iconColor: '#673ab7', label: 'NAV.HELP', route: '/help' },
     { adminOnly: true, group: 'admin', icon: 'people', iconColor: '#455a64', label: 'NAV.USERS', route: '/admin/users' },
     { adminOnly: true, group: 'admin', icon: 'campaign', iconColor: '#00897b', label: 'NAV.DESTINATIONS', route: '/admin/destinations' },
@@ -308,12 +319,6 @@ export class App implements OnInit {
   /** What each platform's sign-in offers, read once from the anonymous providers endpoint. Null until it answers. */
   protected readonly providers = signal<AuthProviders | null>(null);
 
-  protected readonly settingsNavItems = computed(() =>
-    this.navItems.filter(
-      item => item.group === 'settings' && (!item.adminOnly || this.auth.isAdmin()) && !this.isFeatureDisabled(item.disableKey),
-    ),
-  );
-
   /**
    * The user-menu entry. Linking is refused while viewing as someone else, so it is not offered then either.
    * Beyond that it appears when there is something to do on the page: the other platform's sign-in is
@@ -331,6 +336,16 @@ export class App implements OnInit {
     if (type.startsWith('telegram')) return providers.discord.configured && providers.discord.enabledByAdmin;
     return false;
   });
+
+  protected readonly settingsNavItems = computed(() =>
+    this.navItems.filter(
+      item =>
+        item.group === 'settings' &&
+        (!item.adminOnly || this.auth.isAdmin()) &&
+        !this.isFeatureDisabled(item.disableKey) &&
+        (!item.linkedAccounts || this.showLinkedAccountsItem()),
+    ),
+  );
 
   protected readonly showShortcutHelp = signal(false);
 

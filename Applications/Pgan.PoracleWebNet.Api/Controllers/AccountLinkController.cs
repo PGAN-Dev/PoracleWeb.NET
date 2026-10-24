@@ -53,7 +53,7 @@ public partial class AccountLinkController(
     {
         if (this.IsImpersonating)
         {
-            return this.Forbid();
+            return RefusedWhileImpersonating();
         }
 
         if (string.IsNullOrEmpty(this._discordSettings.ClientId) || await this._siteSettings.IsSwitchedOffAsync("enable_discord"))
@@ -78,7 +78,7 @@ public partial class AccountLinkController(
     {
         if (this.IsImpersonating)
         {
-            return this.Forbid();
+            return RefusedWhileImpersonating();
         }
 
         if (!this._telegramSettings.Enabled || await this._siteSettings.IsSwitchedOffAsync("enable_telegram"))
@@ -105,7 +105,7 @@ public partial class AccountLinkController(
     {
         if (this.IsImpersonating)
         {
-            return this.Forbid();
+            return RefusedWhileImpersonating();
         }
 
         await this._links.UnlinkAsync(this.UserId);
@@ -117,7 +117,7 @@ public partial class AccountLinkController(
     {
         if (this.IsImpersonating)
         {
-            return this.Forbid();
+            return RefusedWhileImpersonating();
         }
 
         if (!AccountLinkKeys.TryParse(request?.Destination, out var side))
@@ -146,6 +146,7 @@ public partial class AccountLinkController(
                 side = AccountLinkKeys.Wire(s!.Side),
                 exists = s.Exists,
                 pause = PauseWire(s.Pause),
+                name = s.Name,
             })
             .ToArray();
 
@@ -192,7 +193,7 @@ public partial class AccountLinkController(
     {
         if (this.IsImpersonating)
         {
-            return this.Forbid();
+            return RefusedWhileImpersonating();
         }
 
         if (!DriftFields.TryParse(request?.Field, out var field) || !AccountLinkKeys.TryParse(request?.Keep, out var keep)
@@ -222,6 +223,15 @@ public partial class AccountLinkController(
         PauseReason.Stopped => "stopped",
         _ => throw new ArgumentOutOfRangeException(nameof(reason)),
     };
+
+    /// <summary>The refusal every write gives while an admin is viewing the site as somebody else.</summary>
+    internal const string ImpersonatingMessage = "Linked accounts are managed by the account holder, so they can't be changed while viewing another account.";
+
+    internal static ObjectResult RefusedWhileImpersonating() =>
+        new(new { error = ImpersonatingMessage })
+        {
+            StatusCode = StatusCodes.Status403Forbidden,
+        };
 
     private static ObjectResult Refused(LinkRefusalCode code, string message) =>
         new(new { error = message, code = LinkRefusalException.Wire(code) })

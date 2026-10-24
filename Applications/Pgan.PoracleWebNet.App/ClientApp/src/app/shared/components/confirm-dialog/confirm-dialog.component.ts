@@ -14,6 +14,11 @@ import { hasRefusedNameCharacter } from '../../utils/place-label';
 export interface ConfirmDialogData {
   cancelText?: string;
   confirmText?: string;
+  /**
+   * A Material icon for a confirm that is not a warning, shown beside the title and on the confirm button.
+   * Ignored when `warn` is set, which keeps its warning triangle and trash can.
+   */
+  icon?: string;
   /** One button (`confirmText`, else Close) that closes with false: the dialog explains, it asks nothing. */
   infoOnly?: boolean;
   itemDescription?: string;

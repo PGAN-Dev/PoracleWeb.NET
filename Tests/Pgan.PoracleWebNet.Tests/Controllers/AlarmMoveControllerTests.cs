@@ -67,7 +67,8 @@ public class AlarmMoveControllerTests : ControllerTestBase
 
         var result = await this.Controller().Move(new AlarmMoveRequest { Type = "raid", Uids = [1], Destination = "telegram" });
 
-        Assert.IsType<BadRequestObjectResult>(result);
+        var bad = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Contains("code = not_linked", bad.Value!.ToString());
     }
 
     [Fact]
@@ -171,6 +172,7 @@ public class AlarmMoveControllerTests : ControllerTestBase
         var obj = Assert.IsType<ObjectResult>(result);
         Assert.Equal(409, obj.StatusCode);
         Assert.Contains("different profiles", obj.Value!.ToString());
+        Assert.Contains("code = different_profiles", obj.Value!.ToString());
         this._raids.Verify(r => r.CreateAsync(It.IsAny<string>(), It.IsAny<Raid>()), Times.Never);
     }
 

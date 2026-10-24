@@ -33,6 +33,8 @@ describe('LinkedAccountsComponent', () => {
     unlink: jest.fn(() => Promise.resolve()),
   };
   const snackBar = { open: jest.fn() };
+  const dialogOpen = jest.fn(() => ({ afterClosed: () => of(true) }));
+  const flush = () => new Promise(resolve => setTimeout(resolve));
 
   function setup(
     options: {
@@ -47,7 +49,7 @@ describe('LinkedAccountsComponent', () => {
     const auth = {
       getProviders: jest.fn(() => of(providers(options.discord ?? true, options.telegram ?? true))),
       isImpersonating: signal(options.impersonating ?? false),
-      user: signal({ id: '100000000000000001', type: options.type ?? 'telegram:user' }),
+      user: signal({ id: '100000000000000001', username: 'Riverside', type: options.type ?? 'telegram:user' }),
     };
     TestBed.configureTestingModule({
       providers: [
@@ -63,7 +65,7 @@ describe('LinkedAccountsComponent', () => {
     });
     // The component imports both modules, which provide their own copies at component level.
     TestBed.overrideProvider(MatSnackBar, { useValue: snackBar });
-    TestBed.overrideProvider(MatDialog, { useValue: { open: jest.fn(() => ({ afterClosed: () => of(true) })) } });
+    TestBed.overrideProvider(MatDialog, { useValue: { open: dialogOpen } });
     const fixture = TestBed.createComponent(LinkedAccountsComponent);
     fixture.detectChanges();
     return { component: fixture.componentInstance, fixture };
@@ -81,7 +83,6 @@ describe('LinkedAccountsComponent', () => {
 
   describe('returning from Telegram', () => {
     const ret = '?id=200000001&first_name=A&auth_date=1700000000&hash=abc';
-    const flush = () => new Promise(resolve => setTimeout(resolve));
 
     it('links from the return and clears the query', async () => {
       window.history.replaceState(null, '', '/linked-accounts' + ret);
@@ -143,12 +144,57 @@ describe('LinkedAccountsComponent', () => {
     expect(q(fixture, '[data-test="link-error"]')?.textContent).toContain('LINKED.ERR_LINK_FAILED');
   });
 
-  it('confirms #linked=discord, refreshes and clears the fragment', () => {
+  it('confirms #linked=discord once the status says linked, and clears the fragment', async () => {
     window.history.replaceState(null, '', '/linked-accounts#linked=discord');
+    status.set({ sides: [], defaultDestination: 'discord', linked: true });
     setup();
-    expect(snackBar.open).toHaveBeenCalled();
+    await flush();
     expect(linkedAccounts.refresh).toHaveBeenCalled();
+    expect(snackBar.open).toHaveBeenCalledWith('LINKED.SNACK_LINKED', 'TOAST.OK', { duration: 3000 });
     expect(window.location.hash).toBe('');
+  });
+
+  it('does not say linked after #linked=discord when the status says not linked, and shows the refusal', async () => {
+    window.history.replaceState(null, '', '/linked-accounts#linked=discord');
+    const { fixture } = setup();
+    await flush();
+    fixture.detectChanges();
+    expect(snackBar.open).not.toHaveBeenCalled();
+    expect(q(fixture, '[data-test="link-error"]')?.textContent).toContain('LINKED.ERR_LINK_FAILED');
+  });
+
+  it('dismisses a refusal and moves focus to the heading', async () => {
+    window.history.replaceState(null, '', '/linked-accounts#link_error=link_taken');
+    const { fixture } = setup();
+    (q(fixture, '[data-test="dismiss-error"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    await flush();
+    expect(q(fixture, '[data-test="link-error"]')).toBeNull();
+    expect(document.activeElement).toBe(q(fixture, 'h1'));
+  });
+
+  it('announces a refusal and labels its dismiss button', () => {
+    window.history.replaceState(null, '', '/linked-accounts#link_error=link_taken');
+    const { fixture } = setup();
+    expect(q(fixture, '[data-test="link-error"]')?.getAttribute('role')).toBe('alert');
+    expect(q(fixture, '[data-test="dismiss-error"]')?.getAttribute('aria-label')).toBe('LINKED.DISMISS');
+  });
+
+  it('draws outlined cards', () => {
+    const { fixture } = setup();
+    expect(q(fixture, '[data-test="card-discord"]')?.classList).toContain('mat-mdc-card-outlined');
+  });
+
+  it('names the account signed in with on its card while nothing is linked', () => {
+    const { fixture } = setup({ type: 'discord:user' });
+    expect(q(fixture, '[data-test="name-discord"]')?.textContent).toContain('Riverside');
+    expect(q(fixture, '[data-test="name-telegram"]')).toBeNull();
+  });
+
+  it('passes the Telegram frame its name', () => {
+    const { fixture } = setup({ type: 'discord:user' });
+    const widget = fixture.debugElement.query(el => el.name === 'app-telegram-login-button');
+    expect(widget.componentInstance.frameTitle()).toBe('LINKED.LINK_TELEGRAM');
   });
 
   it('shows a load-failed state with Retry, not Link, when the status could not be read', async () => {
@@ -172,14 +218,19 @@ describe('LinkedAccountsComponent', () => {
     expect(q(fixture, '[data-test="retry"]')).toBeNull();
   });
 
-  it('says nothing about the viewer own link while impersonating, not an error', async () => {
+  it('says the page belongs to the account being viewed while impersonating, not an error and not a blank page', async () => {
     status.set(null);
     canRead.set(false);
     const { fixture } = setup({ impersonating: true, type: 'telegram:user' });
     await fixture.whenStable();
     fixture.detectChanges();
+    expect(q(fixture, '[data-test="impersonating"]')?.textContent).toContain('LINKED.IMPERSONATING');
     expect(q(fixture, '[data-test="load-failed"]')).toBeNull();
     expect(q(fixture, '[data-test="retry"]')).toBeNull();
+  });
+
+  it('shows no impersonation note to the account holder', () => {
+    expect(q(setup().fixture, '[data-test="impersonating"]')).toBeNull();
   });
 
   it('offers no Link while impersonating', () => {
@@ -204,6 +255,26 @@ describe('LinkedAccountsComponent', () => {
       expect(q(fixture, '[data-test="default-destination"]')).toBeNull();
     });
 
+    const active: LinkStatus = {
+      ...both,
+      sides: [
+        { name: 'Riverside', side: 'discord', exists: true, pause: 'none' },
+        { name: 'Riverside Probe', side: 'telegram', exists: true, pause: 'none' },
+      ],
+    };
+
+    it('names the linked account on each card', () => {
+      status.set(active);
+      const { fixture } = setup();
+      expect(q(fixture, '[data-test="name-discord"]')?.textContent).toContain('Riverside');
+      expect(q(fixture, '[data-test="name-telegram"]')?.textContent).toContain('Riverside Probe');
+    });
+
+    it('shows no name line for a side with none', () => {
+      status.set(both);
+      expect(q(setup().fixture, '[data-test="name-telegram"]')).toBeNull();
+    });
+
     it('shows each side and its state', () => {
       status.set(both);
       const { fixture } = setup();
@@ -224,7 +295,8 @@ describe('LinkedAccountsComponent', () => {
       const link = q(fixture, '[data-test="telegram-group-link"]') as HTMLAnchorElement;
       expect(link.getAttribute('href')).toBe('https://t.me/+abc123');
       expect(link.getAttribute('target')).toBe('_blank');
-      expect(link.getAttribute('rel')).toContain('noopener');
+      expect(link.getAttribute('rel')).toBe('noopener noreferrer');
+      expect(link.textContent).toContain('LINKED.OPENS_NEW_TAB');
     });
 
     it('shows no group button without the setting', () => {
@@ -246,16 +318,58 @@ describe('LinkedAccountsComponent', () => {
       expect(q(fixture, '[data-test="support-link"]')).toBeNull();
     });
 
-    it('changing the default radio calls setDefault', () => {
-      status.set(both);
+    it('changing the default radio calls setDefault and confirms it', async () => {
+      status.set(active);
       const { fixture } = setup();
       (q(fixture, 'input[type="radio"][value="telegram"]') as HTMLInputElement).click();
+      await flush();
       expect(linkedAccounts.setDefault).toHaveBeenCalledWith('telegram');
+      expect(snackBar.open).toHaveBeenCalledWith('LINKED.SNACK_DEFAULT', 'TOAST.OK', { duration: 3000 });
     });
 
-    it('hides the default choice while one side does not exist yet', () => {
+    it('marks a side that is not receiving alerts and does not offer it as a new default', () => {
+      status.set(both);
+      const { fixture } = setup();
+      expect(q(fixture, '[data-test="default-telegram"]')?.textContent).toContain('LINKED.DEFAULT_OPTION_PAUSED');
+      expect((q(fixture, 'input[type="radio"][value="telegram"]') as HTMLInputElement).disabled).toBe(true);
+      expect((q(fixture, 'input[type="radio"][value="discord"]') as HTMLInputElement).disabled).toBe(false);
+      expect(q(fixture, '[data-test="default-paused-warning"]')).toBeNull();
+    });
+
+    it('warns when the current default is a side that is not receiving alerts, and leaves the way off it open', () => {
+      status.set({ ...both, defaultDestination: 'telegram' });
+      const { fixture } = setup();
+      expect(q(fixture, '[data-test="default-paused-warning"]')?.textContent).toContain('LINKED.DEFAULT_PAUSED_WARNING');
+      expect((q(fixture, 'input[type="radio"][value="discord"]') as HTMLInputElement).disabled).toBe(false);
+    });
+
+    it('offers both sides with no warning when both are receiving alerts', () => {
+      status.set(active);
+      const { fixture } = setup();
+      expect((q(fixture, 'input[type="radio"][value="telegram"]') as HTMLInputElement).disabled).toBe(false);
+      expect(q(fixture, '[data-test="default-paused-warning"]')).toBeNull();
+      expect(q(fixture, '[data-test="default-telegram"]')?.textContent).not.toContain('LINKED.DEFAULT_OPTION_PAUSED');
+    });
+
+    it('gives a paused-by-admin side the support link as its next step', () => {
+      status.set({ ...both, sides: [both.sides![0], { side: 'telegram', exists: true, pause: 'admin_disabled' }] });
+      const { fixture } = setup({ support: 'https://help.example/old-town' });
+      const link = q(fixture, '[data-test="paused-support-link"]') as HTMLAnchorElement;
+      expect(link.getAttribute('href')).toBe('https://help.example/old-town');
+      expect(link.getAttribute('rel')).toBe('noopener noreferrer');
+      expect(link.textContent).toContain('LINKED.OPENS_NEW_TAB');
+    });
+
+    it('hides the default choice while one side does not exist yet, and says when it arrives', () => {
       status.set({ ...both, sides: [both.sides![0], { side: 'telegram', exists: false, pause: 'not_registered' }] });
-      expect(q(setup().fixture, '[data-test="default-destination"]')).toBeNull();
+      const { fixture } = setup();
+      expect(q(fixture, '[data-test="default-destination"]')).toBeNull();
+      expect(q(fixture, '[data-test="default-waiting"]')).toBeTruthy();
+    });
+
+    it('does not say the choice is waiting once it is offered', () => {
+      status.set(active);
+      expect(q(setup().fixture, '[data-test="default-waiting"]')).toBeNull();
     });
 
     it('shows one line about a legacy profile 0 when the server names a side', () => {
@@ -272,12 +386,15 @@ describe('LinkedAccountsComponent', () => {
       expect(q(setup().fixture, '[data-test="legacy-profile-zero"]')).toBeNull();
     });
 
-    it('unlinks after confirmation', async () => {
+    it('unlinks after a neutral confirmation', async () => {
       status.set(both);
       const { fixture } = setup();
       (q(fixture, '[data-test="unlink"]') as HTMLButtonElement).click();
       await Promise.resolve();
       expect(linkedAccounts.unlink).toHaveBeenCalled();
+      const config = dialogOpen.mock.calls[0] as unknown as [unknown, { data: { icon?: string; warn?: boolean } }];
+      expect(config[1].data.icon).toBe('link_off');
+      expect(config[1].data.warn).toBeFalsy();
     });
   });
 });

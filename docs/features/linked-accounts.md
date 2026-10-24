@@ -8,36 +8,39 @@ Nothing is copied or moved by linking, and unlinking deletes nothing. Both accou
 
 ## Linking
 
-Open **Linked accounts** in the user menu. What the page offers depends on how you signed in:
+Open **Linked accounts** in the user menu or under **Settings** in the sidebar. Each card names the account
+on that side. What the page offers depends on how you signed in:
 
 - **Signed in with Telegram.** Press **Link Discord**. You go to Discord to approve the sign-in and come back
   to the page with the link made.
 - **Signed in with Discord.** Use the Telegram button on the page and approve it in Telegram.
 
 A platform is offered only when its sign-in is set up on the site and switched on. An account can be in one
-link at a time. Linking and unlinking are refused while an admin is viewing the site as that person.
+link at a time. Linking and unlinking are refused while an admin is viewing the site as that person, and the
+page says so instead of showing the person's link.
 
 ### If a link is refused
 
-The page says why, in your language. The reasons:
+The page says why, in your language, and what to try next. Dismiss the message with its close button. The
+reasons:
 
-| Message | What happened |
+| Message starts | What happened |
 |---|---|
-| Only a personal account can be linked | The account isn't a personal Discord or Telegram account, or both sides are the same platform |
-| The account's id isn't valid | The id Discord or Telegram sent can't be an account id |
-| The account already exists as something else | That id is registered here as a channel, group or similar, not a person |
-| Already linked to another account | Unlink it from the other account first |
-| The sign-in took too long | A Telegram login is good for ten minutes after you approve it, and a Discord link for ten minutes after you press Link Discord. Start again |
-| Not allowed to sign in | The account fails this site's own sign-in rules, such as a required Discord role |
+| You can only link a Discord account to a Telegram account | The account isn't a personal Discord or Telegram account, or both sides are the same app |
+| That account couldn't be read | The id Discord or Telegram sent can't be an account id |
+| That account is already used here as a channel or group | That id is registered here as a channel, group or similar, not a person |
+| That account is already linked to someone else | Unlink it from the other account first |
+| That sign-in took too long | A Telegram login is good for ten minutes after you approve it, and a Discord link for ten minutes after you press Link Discord. Start again |
+| That account can't sign in to this site | The account fails this site's own sign-in rules, such as a required Discord role |
 | You cancelled the link | You backed out of the Discord approval. Nothing was changed |
-| Couldn't link the accounts | Something went wrong that none of the above covers, or the link was lost part way. Nothing was changed; try again |
-| Couldn't set up the other account | The site tried to create the other account and couldn't. Nothing was linked |
+| The accounts couldn't be linked | Something went wrong that none of the above covers, or the link was lost part way. Nothing was changed; try again |
+| Your other account couldn't be set up | The site tried to create the other account and couldn't. Nothing was linked |
 
 ## Each side's state
 
 | State | Meaning |
 |---|---|
-| Active | The account exists and is receiving alerts |
+| Receiving alerts | The account exists and is receiving alerts |
 | Waiting to register | The account isn't registered with Poracle yet. Alerts on that side start once it is |
 | Alerts stopped | The person stopped alerts on that account. PoracleWeb.NET never turns them back on |
 | Paused by an admin | An admin blocked the account |
@@ -97,29 +100,47 @@ rather than replaced by it. Nothing is rolled back. The auto-delete switches on 
 the count you see is the alarms the first app changed. The Linked accounts list then shows the difference, and you
 pick the app to use. Every save reads the differences again, so the banner and the list are never out of date.
 
-## Where new alerts go
+## Where new alarms go
 
-When both sides exist, **New alerts go to** picks the default for alerts you add. It is a default for new
-alerts only; existing alerts stay where they are.
+When both sides exist, **New alarms go to** picks the app for alarms you add. It is a default for new
+alarms only; existing alarms stay where they are. A side that isn't receiving alerts (stopped, or paused by an
+admin) is marked and can't be picked; if it is already the default, the page says nothing will arrive there
+and suggests the other app. While one side is still waiting to register, the page says the choice comes once
+both are registered.
 
 Quick picks you saved yourself belong to the person, not to one account: a pick saved while signed in
 with Discord shows, edits and deletes the same way when you sign in with Telegram. Applying one creates its
 alerts on the default side.
 
+## Alarms on both apps
+
+Every alarm list shows the alarms of both accounts together. Each card names the app it goes to under the
+alarm's name, with a pause mark when that app isn't receiving alerts, and **Delivered to: All / Discord /
+Telegram** above the list filters by app.
+
+Every add and edit dialog asks **Which app gets this alarm?** above its tabs, so the answer is in view
+whichever tab is open. A new alarm starts on the default from Linked accounts. Picking the other app on an
+edit moves the alarm there.
+
+To move several at once, tick them in select mode and choose **Deliver to...** (on a phone it's under
+**More**). The app every ticked alarm is already on is greyed out. A move creates the alarm on the other
+account before removing it from the first, so it is never lost. The result counts what moved, what was
+already on that app, and what wasn't moved and why.
+
 ## Unlinking
 
-Press **Unlink** on the page. Both accounts and all their alerts stay. Admins can do the same from
-**Admin > Users**: a linked account shows a "Linked to Telegram" or "Linked to Discord" chip, and its row menu
-has **Unlink accounts**.
+Press **Unlink** on the page. Both accounts and all their alarms stay. Admins can do the same from
+**Admin > Users**: a linked account shows a chip with a link icon and the other app's name, and its row menu
+has **Unlink accounts**. The confirm names both accounts.
 
 ## Admin settings
 
-The settings are under **Admin > Settings > Features**, and described in
+The settings are under **Admin > Settings > Linked accounts**, and described in
 [Site settings](../configuration/site-settings.md).
 
 - **Linked accounts** (`disable_account_linking`) switches the whole feature on or off. Switched off, the page
-  and every link route are gone and each person acts as their single account. Existing links are kept for when
-  it is switched back on.
+  and every route a person links through are gone and each person acts as their single account. Existing links
+  are kept for when it is switched back on, and **Admin > Users** still shows them and can unlink them.
 - **Register the other account when linking** (`link_register_missing`) is off by default. Off, linking an
   account that isn't registered on the other platform saves the link and that side waits for the person to
   register. On, the site creates the person's account on the other platform instead of waiting for them to
@@ -139,5 +160,5 @@ set; with Poracle's defaults the account stays.
 
 Sam signs in with Telegram and has two alerts for Old Town. Sam presses **Link Discord**, approves the
 sign-in, and returns to the page. With `link_register_missing` off, the Discord side reads "Waiting to
-register" until Sam registers there. Once it reads "Active", Sam picks Discord under **New alerts go to**, and
+register" until Sam registers there. Once it reads "Receiving alerts", Sam picks Discord under **New alarms go to**, and
 the next alert added for Riverside is delivered on Discord. The two Old Town alerts keep arriving on Telegram.

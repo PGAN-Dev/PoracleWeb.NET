@@ -115,7 +115,7 @@ public partial class LinkedAccount(
         var pause = human.AdminDisable == 1 ? PauseReason.AdminDisabled
             : human.Enabled == 0 ? PauseReason.Stopped
             : PauseReason.None;
-        return new PairSide(side, humanId, true, pause);
+        return new PairSide(side, humanId, true, pause, string.IsNullOrWhiteSpace(human.Name) ? null : human.Name.Trim());
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Account link {LinkId} for {HumanId} can't be read; treating the account as unlinked")]

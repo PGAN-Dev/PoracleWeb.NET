@@ -13,6 +13,7 @@ public class MoveStatusSerializationTests
     [InlineData(MoveStatus.SourceRemains, "sourceRemains")]
     [InlineData(MoveStatus.Refused, "refused")]
     [InlineData(MoveStatus.Failed, "failed")]
+    [InlineData(MoveStatus.AlreadyThere, "alreadyThere")]
     public void StatusIsCamelCaseOnTheWire(MoveStatus status, string wire)
     {
         var json = JsonSerializer.Serialize(new MoveOutcome(7, status), Web);

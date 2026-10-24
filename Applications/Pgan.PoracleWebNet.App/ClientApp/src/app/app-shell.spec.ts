@@ -53,6 +53,33 @@ describe('App shell landmarks', () => {
 });
 
 /**
+ * At 360px the toolbar ran 13px past the screen on every route and clipped the account button, the only way into
+ * the user menu. The site title is the one item that can give way, so it shrinks and ellipsises instead.
+ */
+describe('Toolbar at narrow widths', () => {
+  const styles = fs.readFileSync(path.join(__dirname, 'app.scss'), 'utf8');
+  const rule = (selector: string): string => {
+    const at = styles.indexOf(`\n${selector} {`);
+    expect(at).toBeGreaterThanOrEqual(0);
+    return styles.slice(at, styles.indexOf('}', at));
+  };
+
+  it('lets the title block shrink below its text width', () => {
+    expect(rule('.app-title-block')).toMatch(/min-width:\s*0/);
+  });
+
+  it('cuts a long site title with an ellipsis rather than pushing the buttons off screen', () => {
+    const title = rule('.app-title');
+    expect(title).toMatch(/overflow:\s*hidden/);
+    expect(title).toMatch(/text-overflow:\s*ellipsis/);
+  });
+
+  it('never shrinks the account button', () => {
+    expect(rule('.user-menu-trigger')).toMatch(/flex-shrink:\s*0/);
+  });
+});
+
+/**
  * A 429 on the shell's own bootstrap requests logged an uncaught `ERROR` (cross audit, rate-limit note).
  * A failed provider read only means "Sign out everywhere" is not offered.
  */

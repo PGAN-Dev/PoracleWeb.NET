@@ -51,7 +51,8 @@ public class AlarmMoveController(IFeatureGate featureGate, ILinkedAccount linked
         {
             return this.BadRequest(new
             {
-                error = "Your accounts aren't linked."
+                error = "Your accounts aren't linked.",
+                code = MoveReasonCodes.NotLinked,
             });
         }
 
