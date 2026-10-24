@@ -111,6 +111,16 @@ describe('AdminUsersStore', () => {
     expect(store.users().find(u => u.id === 'b')?.enabled).toBe(0);
   });
 
+  it('invalidateIfLoaded refetches a loaded list and asks for nothing when none was ever loaded', () => {
+    store.invalidateIfLoaded();
+    expect(getUsers).not.toHaveBeenCalled();
+
+    store.load().subscribe();
+    getUsers.mockClear();
+    store.invalidateIfLoaded();
+    expect(getUsers).toHaveBeenCalledTimes(1);
+  });
+
   it('keeps a row change when an older refetch answers after it', () => {
     store.load().subscribe();
     const first = new Subject<AdminUser[]>();

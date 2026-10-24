@@ -301,6 +301,7 @@ export class AdminUsersComponent implements OnInit {
           .subscribe({
             error: err => this.showFailure(err, 'ADMIN.SNACK_FAILED_UNLINK'),
             next: () => {
+              this.store.invalidate();
               this.loadLinks();
               this.snackBar.open(this.i18n.instant('ADMIN.SNACK_UNLINKED', { name }), this.i18n.instant('TOAST.OK'), { duration: 3000 });
             },

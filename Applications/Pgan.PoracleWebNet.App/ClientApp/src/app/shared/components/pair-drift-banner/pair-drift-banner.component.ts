@@ -31,6 +31,16 @@ function isPoint(value: unknown): value is Point {
   return typeof p?.lat === 'number' && typeof p?.lon === 'number';
 }
 
+/** The server's area comparison key (PoracleNG's NormalizeAreaKey): lowercase, trimmed, `_` equal to space. */
+function areaKey(name: string): string {
+  return name.trim().toLowerCase().replace(/_/g, ' ');
+}
+
+/** A profile number as the text to print; anything that is not a number or a string has none. */
+function profileText(value: unknown): null | string {
+  return typeof value === 'number' || typeof value === 'string' ? String(value) : null;
+}
+
 function readDismissed(): Set<string> {
   try {
     const parsed: unknown = JSON.parse(sessionStorage.getItem(DISMISSED_KEY) ?? '[]');
@@ -123,16 +133,29 @@ export class PairDriftBannerComponent {
     const list = <T>(side: LinkSide): T[] => (Array.isArray(item[side]) ? (item[side] as T[]) : []);
 
     switch (item.field) {
-      case 'areas':
-        return sentences(
-          side =>
-            list<string>(side)
-              .filter(a => !list<string>(otherOf(side)).includes(a))
-              .map(a => this.areaNames.label(a)),
-          'DRIFT.AREAS_EXTRA',
-        ).join(' ');
-      case 'current_profile':
-        return t('DRIFT.PROFILE_CURRENT', { discord: String(item.discord), telegram: String(item.telegram) });
+      case 'areas': {
+        const found = sentences(side => {
+          const theirs = new Set(list<unknown>(otherOf(side)).map(a => (typeof a === 'string' ? areaKey(a) : '')));
+          const seen = new Set<string>();
+          return list<unknown>(side)
+            .filter((a): a is string => typeof a === 'string')
+            .filter(a => {
+              const key = areaKey(a);
+              if (theirs.has(key) || seen.has(key)) return false;
+              seen.add(key);
+              return true;
+            })
+            .map(a => this.areaNames.label(a));
+        }, 'DRIFT.AREAS_EXTRA');
+        return found.length ? found.join(' ') : t('DRIFT.AREAS_DIFFER');
+      }
+      case 'current_profile': {
+        const discord = profileText(item.discord);
+        const telegram = profileText(item.telegram);
+        return discord !== null && telegram !== null
+          ? t('DRIFT.PROFILE_CURRENT', { discord, telegram })
+          : t('DRIFT.PROFILE_CURRENT_DIFFER');
+      }
       case 'location': {
         const place = (v: unknown) => (isPoint(v) ? (names.get(pointKey(v)) ?? `${v.lat}, ${v.lon}`) : '');
         return t('DRIFT.LOCATION', { discord: place(item.discord), telegram: place(item.telegram) });

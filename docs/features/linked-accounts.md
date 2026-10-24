@@ -74,7 +74,7 @@ Some older accounts have a profile 0. PoracleNG never gives a new profile that n
 can't have one, and the pair leaves profile 0 out: it isn't compared, copied, renamed or deleted, and its
 alerts stay on the account that has it. The Linked accounts page says which account has one.
 
-**Dismiss** hides the banner for the rest of the browser session. A difference that appears later shows again.
+**Dismiss** hides the banner for the rest of this browser session (closing the tab or window brings it back). A new or changed difference shows it again, even after you dismissed it.
 
 ### "Saved for Discord. Telegram didn't take it"
 

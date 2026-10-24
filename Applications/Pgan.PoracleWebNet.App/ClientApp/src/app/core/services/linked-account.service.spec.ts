@@ -3,6 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
+import { AdminUsersStore } from './admin-users.store';
 import { AuthService } from './auth.service';
 import { ConfigService } from './config.service';
 import { LinkedAccountService } from './linked-account.service';
@@ -22,6 +23,7 @@ describe('LinkedAccountService', () => {
   let impersonating: ReturnType<typeof signal<boolean>>;
   let token: string | null;
   let now: number;
+  const invalidateIfLoaded = jest.fn();
 
   const linked: LinkStatus = {
     sides: [
@@ -43,6 +45,7 @@ describe('LinkedAccountService', () => {
     impersonating = signal(false);
     token = 'jwt';
     now = 1_000_000;
+    invalidateIfLoaded.mockClear();
     jest.spyOn(Date, 'now').mockImplementation(() => now);
     TestBed.configureTestingModule({
       providers: [
@@ -59,6 +62,7 @@ describe('LinkedAccountService', () => {
           },
         },
         { provide: TokenStoreService, useValue: { getAccessToken: () => token } },
+        { provide: AdminUsersStore, useValue: { invalidateIfLoaded } },
       ],
     });
     http = TestBed.inject(HttpTestingController);
@@ -132,6 +136,32 @@ describe('LinkedAccountService', () => {
     http.expectOne(STATUS).flush(linked);
   });
 
+  it('does not fetch the status again when an unrelated settings save re-sets the signal', async () => {
+    user.set({ id: '200000001' });
+    TestBed.tick();
+    http.expectOne(STATUS).flush(linked);
+    await settle();
+
+    now += 120_000;
+    siteSettings.set({ custom_title: 'Elsewhere' });
+    TestBed.tick();
+    http.expectNone(STATUS);
+  });
+
+  it('sends no status request after a failed settings load, and one once a later load succeeds', () => {
+    settingsLoaded.set(false);
+    user.set({ id: '200000001' });
+    TestBed.tick();
+    window.dispatchEvent(new Event('focus'));
+    http.expectNone(STATUS);
+    expect(service.canRead()).toBe(false);
+
+    settingsLoaded.set(true);
+    TestBed.tick();
+    expect(service.canRead()).toBe(true);
+    http.expectOne(STATUS).flush(linked);
+  });
+
   it('asks nothing while impersonating', () => {
     impersonating.set(true);
     user.set({ id: '200000001' });
@@ -194,6 +224,22 @@ describe('LinkedAccountService', () => {
     http.expectOne(STATUS).flush(linked);
     await done;
     expect(service.status()?.linked).toBe(true);
+  });
+
+  it('drops the shared admin user list after a Telegram link, which may have created the other account', async () => {
+    const done = service.linkTelegram({ id: '200000001' });
+    http.expectOne(`${API}/api/account-link/telegram`).flush({});
+    await settle();
+    expect(invalidateIfLoaded).toHaveBeenCalledTimes(1);
+    http.expectOne(STATUS).flush(linked);
+    await done;
+  });
+
+  it('leaves the admin list alone when the Telegram link is refused', async () => {
+    const done = service.linkTelegram({ id: '1' });
+    http.expectOne(`${API}/api/account-link/telegram`).flush({ code: 'link_taken' }, { status: 409, statusText: 'Conflict' });
+    await expect(done).rejects.toBeDefined();
+    expect(invalidateIfLoaded).not.toHaveBeenCalled();
   });
 
   it('lets a refused Telegram link reach the caller with its code', async () => {

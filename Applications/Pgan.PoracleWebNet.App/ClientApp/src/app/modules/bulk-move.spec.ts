@@ -1,3 +1,6 @@
+import * as fs from 'fs';
+import * as path from 'path';
+
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { Type, signal } from '@angular/core';
@@ -107,5 +110,22 @@ describe('bulk move', () => {
     expect(text).toContain('ALARM.MOVE_DONE');
     expect(text).toContain('ALARM.MOVE_FAILED');
     expect(moves.moveMany).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('bulk move parity', () => {
+  // The ten lists share one helper so the siblings can't drift; a list that grows its own copy fails here.
+  it('every alarm list moves through runBulkMove and carries no copy of it', () => {
+    const lists = fs
+      .readdirSync(__dirname, { encoding: 'utf8', recursive: true })
+      .filter(f => f.endsWith('-list.component.ts') && !f.startsWith('areas') && !f.startsWith('geofences'))
+      .map(f => ({ file: f, source: fs.readFileSync(path.join(__dirname, f), 'utf8') }))
+      .filter(({ source }) => source.includes('async bulkMove('));
+
+    expect(lists.length).toBe(10);
+    for (const { file, source } of lists) {
+      expect([file, source.includes('runBulkMove(')]).toEqual([file, true]);
+      expect([file, source.includes('summariseMoves')]).toEqual([file, false]);
+    }
   });
 });
