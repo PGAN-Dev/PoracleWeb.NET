@@ -142,8 +142,12 @@ public class LinkedAlarmRouter(ILinkedAccount linked, AlarmMover mover)
         return Merge(results);
     }
 
-    /// <summary>The human id a create belongs to. Unlinked callers always get their own, whatever they asked for.</summary>
-    /// <exception cref="AlarmDestinationException">The side asked for (or the default) has no human yet.</exception>
+    /// <summary>
+    /// The human id a create belongs to. Unlinked callers always get their own, whatever they asked for. With no
+    /// destination named, the pair's default side is used, and the default is ignored while that side has no
+    /// human yet: the alarm belongs to the caller.
+    /// </summary>
+    /// <exception cref="AlarmDestinationException">A side named by the caller has no human yet.</exception>
     public async Task<string> CreateTargetAsync(string userId, string? destination)
     {
         var pair = await this.ResolveAsync(userId);
@@ -156,6 +160,10 @@ public class LinkedAlarmRouter(ILinkedAccount linked, AlarmMover mover)
         if (destination is null)
         {
             side = pair.Link!.DefaultDestination;
+            if ((side == LinkSide.Discord ? pair.Discord : pair.Telegram) is not { Exists: true })
+            {
+                return userId;
+            }
         }
         else if (!AccountLinkKeys.TryParse(destination, out side))
         {

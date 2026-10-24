@@ -190,6 +190,14 @@ public class LinkedAlarmRouterTests
     }
 
     [Fact]
+    public async Task CreateTarget_Null_DefaultSideMissing_FallsBackToTheCaller()
+    {
+        this.Linked(telegramExists: false, def: LinkSide.Telegram);
+
+        Assert.Equal(Discord, await this._sut.CreateTargetAsync(Discord, null));
+    }
+
+    [Fact]
     public async Task CreateTarget_NamedSide_WinsOverDefault()
     {
         this.Linked(def: LinkSide.Telegram);

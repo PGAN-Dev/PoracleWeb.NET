@@ -233,7 +233,7 @@ public class NewProfileGeographyTests : ControllerTestBase
 
         var overview = new ProfileOverviewController(
             this._overview.Object, this._profileService.Object, proxy,
-            PairTestSupport.UnlinkedWriter(), PairTestSupport.Unlinked().Object,
+            PairTestSupport.UnlinkedWriter(), LinkedTestKit.Router(PairTestSupport.Unlinked().Object),
             this._jwtService.Object, this._roleResolver.Object, NullLogger<ProfileOverviewController>.Instance);
         SetupUser(overview, UserId);
 

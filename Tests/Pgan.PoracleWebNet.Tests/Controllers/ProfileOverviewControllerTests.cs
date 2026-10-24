@@ -29,7 +29,7 @@ public class ProfileOverviewControllerTests : ControllerTestBase
             this._profileService.Object,
             this._humanProxy.Object,
             PairTestSupport.UnlinkedWriter(),
-            PairTestSupport.Unlinked().Object,
+            LinkedTestKit.Router(PairTestSupport.Unlinked().Object),
             this._jwtService.Object,
             this._roleResolver.Object,
             Microsoft.Extensions.Logging.Abstractions.NullLogger<ProfileOverviewController>.Instance);

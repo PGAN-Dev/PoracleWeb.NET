@@ -232,7 +232,7 @@ public class LinkedFixRoundTests : ControllerTestBase
     {
         var sut = new ProfileOverviewController(
             this._overview.Object, this._profileService.Object, this._humanProxy.Object,
-            PairTestSupport.Writer(PairTestSupport.Linked(pair)), PairTestSupport.Linked(pair).Object,
+            PairTestSupport.Writer(PairTestSupport.Linked(pair)), LinkedTestKit.Router(PairTestSupport.Linked(pair).Object),
             Mock.Of<IJwtService>(), Mock.Of<IUserRoleResolver>(), NullLogger<ProfileOverviewController>.Instance);
         SetupUser(sut, Discord);
         this._profileService.Setup(s => s.GetByUserAsync(Discord)).ReturnsAsync([]);

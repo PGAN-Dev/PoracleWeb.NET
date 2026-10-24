@@ -8,6 +8,7 @@ using Pgan.PoracleWebNet.Core.Abstractions.Services;
 
 using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Core.Models.Helpers;
+using Pgan.PoracleWebNet.Core.Services;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
@@ -18,7 +19,7 @@ public partial class ProfileOverviewController(
     IProfileService profileService,
     IPoracleHumanProxy humanProxy,
     IPairedHumanWriter pairWriter,
-    ILinkedAccount linkedAccount,
+    LinkedAlarmRouter router,
     IJwtService jwtService,
     IUserRoleResolver roleResolver,
     ILogger<ProfileOverviewController> logger) : BaseApiController
@@ -26,7 +27,7 @@ public partial class ProfileOverviewController(
     private readonly IProfileOverviewService _profileOverviewService = profileOverviewService;
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly IPairedHumanWriter _pairWriter = pairWriter;
-    private readonly ILinkedAccount _linkedAccount = linkedAccount;
+    private readonly LinkedAlarmRouter _router = router;
     private readonly IJwtService _jwtService = jwtService;
     private readonly IUserRoleResolver _roleResolver = roleResolver;
     private readonly IProfileService _profileService = profileService;
@@ -171,7 +172,9 @@ public partial class ProfileOverviewController(
             created.Remove(stray.HumanId);
         }
 
-        var alarmHuman = await this.AlarmCreationHumanAsync();
+        // The same rule an Add and a quick-pick apply use: the default side's human, or the caller while that
+        // side has no human yet.
+        var alarmHuman = await this._router.CreateTargetAsync(this.UserId, null);
         if (!created.ContainsKey(alarmHuman))
         {
             alarmHuman = this.UserId;
@@ -284,23 +287,6 @@ public partial class ProfileOverviewController(
             newProfileNo,
             token = newToken
         }, warning));
-    }
-
-    /// <summary>
-    /// The human a profile import creates its alarms on. Unlinked, or with the default side not registered,
-    /// the signed-in human; otherwise the default destination's human. Kept on its own so it can fold into
-    /// the alarm router.
-    /// </summary>
-    private async Task<string> AlarmCreationHumanAsync()
-    {
-        var pair = await this._linkedAccount.ResolveAsync(this.UserId);
-        if (pair.Link is null)
-        {
-            return this.UserId;
-        }
-
-        var side = pair.Link.DefaultDestination == LinkSide.Discord ? pair.Discord : pair.Telegram;
-        return side is { Exists: true } ? side.HumanId : this.UserId;
     }
 
     /// <summary>Removes the shell profiles a failed import created, on every human that got one.</summary>

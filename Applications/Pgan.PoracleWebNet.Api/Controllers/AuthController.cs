@@ -123,7 +123,7 @@ public partial class AuthController(
 
     [AllowAnonymous]
     [HttpGet("discord/callback")]
-    public async Task<IActionResult> DiscordCallback([FromQuery] string code, [FromQuery] string? state)
+    public async Task<IActionResult> DiscordCallback([FromQuery] string? code, [FromQuery] string? state)
     {
         // Derive frontend URL from the request
         var frontendUrl = this.GetFrontendUrl();
