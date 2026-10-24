@@ -1,14 +1,15 @@
 using Microsoft.AspNetCore.Mvc;
-using Pgan.PoracleWebNet.Api.Filters;
 using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
-/// <summary>Admin view of every link, and the way to cut one.</summary>
+/// <summary>
+/// Admin view of every link, and the way to cut one. Deliberately not gated on <c>disable_account_linking</c>:
+/// switched off, links are kept, and an admin must still be able to see and cut a stuck pair.
+/// </summary>
 [Route("api/admin/account-links")]
-[RequireFeatureEnabled(DisableFeatureKeys.AccountLinking)]
 public class AdminAccountLinkController(IAccountLinkRepository links, IAccountLinkService linkService) : BaseApiController
 {
     private readonly IAccountLinkRepository _links = links;
@@ -17,7 +18,12 @@ public class AdminAccountLinkController(IAccountLinkRepository links, IAccountLi
     [HttpGet]
     public async Task<IActionResult> List()
     {
-        if (!this.IsAdmin || this.IsImpersonating)
+        if (this.IsImpersonating)
+        {
+            return AccountLinkController.RefusedWhileImpersonating();
+        }
+
+        if (!this.IsAdmin)
         {
             return this.Forbid();
         }
@@ -30,7 +36,12 @@ public class AdminAccountLinkController(IAccountLinkRepository links, IAccountLi
     public async Task<IActionResult> Unlink(string humanId)
     {
         // Impersonating, UserId is somebody else; an admin's rights are the caller's own, not that account's.
-        if (!this.IsAdmin || this.IsImpersonating)
+        if (this.IsImpersonating)
+        {
+            return AccountLinkController.RefusedWhileImpersonating();
+        }
+
+        if (!this.IsAdmin)
         {
             return this.Forbid();
         }

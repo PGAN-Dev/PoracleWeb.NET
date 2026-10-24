@@ -79,6 +79,14 @@ public class AccountLinkControllerTests
 
     private static object? Prop(object? value, string name) => value!.GetType().GetProperty(name)!.GetValue(value);
 
+    /// <summary>A 403 that says why, so the SPA has a sentence to show rather than an empty body.</summary>
+    private static void AssertImpersonationRefusal(IActionResult result)
+    {
+        var obj = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(403, obj.StatusCode);
+        Assert.False(string.IsNullOrWhiteSpace(Prop(obj.Value, "error") as string));
+    }
+
     [Fact]
     public async Task DiscordStart_SetsStateAndLinkCookies_AndUrlCarriesTheSameState()
     {
@@ -163,10 +171,10 @@ public class AccountLinkControllerTests
     {
         var sut = this.Create(impersonating: true);
 
-        Assert.IsType<ForbidResult>(await sut.DiscordStart());
-        Assert.IsType<ForbidResult>(await sut.TelegramLink(Widget(DateTimeOffset.UtcNow)));
-        Assert.IsType<ForbidResult>(await sut.Unlink());
-        Assert.IsType<ForbidResult>(await sut.SetDefault(new DefaultDestinationRequest("telegram")));
+        AssertImpersonationRefusal(await sut.DiscordStart());
+        AssertImpersonationRefusal(await sut.TelegramLink(Widget(DateTimeOffset.UtcNow)));
+        AssertImpersonationRefusal(await sut.Unlink());
+        AssertImpersonationRefusal(await sut.SetDefault(new DefaultDestinationRequest("telegram")));
         this._service.VerifyNoOtherCalls();
     }
 
@@ -232,6 +240,29 @@ public class AccountLinkControllerTests
         Assert.Contains("\"side\":\"telegram\"", json, StringComparison.Ordinal);
         Assert.Contains("\"pause\":\"not_registered\"", json, StringComparison.Ordinal);
         Assert.Contains("\"exists\":false", json, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Status_Linked_NamesEachSideFromItsHumanRow_AndNullForAMissingSide()
+    {
+        var pair = new LinkedPair(DiscordId, Link,
+            new PairSide(LinkSide.Discord, DiscordId, true, PauseReason.None, "Riverside"),
+            new PairSide(LinkSide.Telegram, TelegramId, false, PauseReason.NotRegistered));
+        this._linked.Setup(l => l.ResolveAsync(DiscordId)).ReturnsAsync(pair);
+
+        var ok = Assert.IsType<OkObjectResult>(await this.Create().Status());
+
+        var json = System.Text.Json.JsonSerializer.Serialize(ok.Value, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
+        Assert.Contains("\"side\":\"discord\",\"exists\":true,\"pause\":\"none\",\"name\":\"Riverside\"", json, StringComparison.Ordinal);
+        Assert.Contains("\"side\":\"telegram\",\"exists\":false,\"pause\":\"not_registered\",\"name\":null", json, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Admin_Routes_StayOpenWithLinkingOff_SoAStuckPairCanBeCut()
+    {
+        Assert.Empty(typeof(AdminAccountLinkController).GetCustomAttributes(typeof(RequireFeatureEnabledAttribute), true));
+        // The person's own routes are still gated: switched off, nobody links or unlinks themselves.
+        Assert.NotEmpty(typeof(AccountLinkController).GetCustomAttributes(typeof(RequireFeatureEnabledAttribute), true));
     }
 
     [Theory]
@@ -336,7 +367,7 @@ public class AccountLinkControllerTests
     {
         var result = await this.Create(impersonating: true).Resolve(new ResolveDriftRequest("location", "telegram", "abc"));
 
-        Assert.IsType<ForbidResult>(result);
+        AssertImpersonationRefusal(result);
         this._drift.VerifyNoOtherCalls();
     }
 
@@ -473,7 +504,7 @@ public class AccountLinkControllerTests
     {
         var result = await this.CreateAdmin(admin: true, impersonating: true).Unlink(DiscordId);
 
-        Assert.IsType<ForbidResult>(result);
+        AssertImpersonationRefusal(result);
         this._service.VerifyNoOtherCalls();
     }
 

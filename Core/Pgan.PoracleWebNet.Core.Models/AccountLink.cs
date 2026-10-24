@@ -24,8 +24,11 @@ public enum PauseReason
     Stopped,
 }
 
-/// <summary>One half of a link as resolved now: its human id, whether that human exists, and why it is paused.</summary>
-public sealed record PairSide(LinkSide Side, string HumanId, bool Exists, PauseReason Pause);
+/// <summary>
+/// One half of a link as resolved now: its human id, whether that human exists, why it is paused, and the
+/// name on its human row (null when the side does not exist or has no name).
+/// </summary>
+public sealed record PairSide(LinkSide Side, string HumanId, bool Exists, PauseReason Pause, string? Name = null);
 
 /// <summary>A caller's link resolved against PoracleNG. <see cref="Single"/> is the unlinked answer.</summary>
 public sealed record LinkedPair(string CallerId, AccountLink? Link, PairSide? Discord, PairSide? Telegram)

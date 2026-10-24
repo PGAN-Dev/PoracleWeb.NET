@@ -61,6 +61,19 @@ public class LinkedAccountTests
     }
 
     [Fact]
+    public async Task Resolve_CarriesEachSidesNameFromItsHumanRow()
+    {
+        this.WithLink();
+        this._humans.Setup(h => h.GetByIdAsync(Discord)).ReturnsAsync(new Human { Id = Discord, Type = AccountLinkKeys.DiscordUserType, Enabled = 1, Name = "Riverside" });
+        this._humans.Setup(h => h.GetByIdAsync(Telegram)).ReturnsAsync(new Human { Id = Telegram, Type = AccountLinkKeys.TelegramUserType, Enabled = 1, Name = "  " });
+
+        var pair = await this._sut.ResolveAsync(Discord);
+
+        Assert.Equal("Riverside", pair.Discord!.Name);
+        Assert.Null(pair.Telegram!.Name);
+    }
+
+    [Fact]
     public async Task Resolve_OtherSideNotRegistered_IsPausedNotRegistered()
     {
         this.WithLink();

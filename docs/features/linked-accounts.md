@@ -104,8 +104,8 @@ The settings are under **Admin > Settings > Features**, and described in
 [Site settings](../configuration/site-settings.md).
 
 - **Linked accounts** (`disable_account_linking`) switches the whole feature on or off. Switched off, the page
-  and every link route are gone and each person acts as their single account. Existing links are kept for when
-  it is switched back on.
+  and every route a person links through are gone and each person acts as their single account. Existing links
+  are kept for when it is switched back on, and **Admin > Users** still shows them and can unlink them.
 - **Register the other account when linking** (`link_register_missing`) is off by default. Off, linking an
   account that isn't registered on the other platform saves the link and that side waits for the person to
   register. On, the site creates the person's account on the other platform instead of waiting for them to
