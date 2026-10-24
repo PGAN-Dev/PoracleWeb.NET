@@ -53,11 +53,14 @@ describe('PairDriftBannerComponent', () => {
     const translate = TestBed.inject(TranslateService);
     translate.setTranslation('en', {
       DRIFT: {
+        AREAS_DIFFER: 'Some areas differ.',
         AREAS_EXTRA: '{{side}} also has {{names}}.',
         DISMISS: 'Dismiss',
         KEEP: 'Keep {{side}}',
         KEEP_ARIA: 'Keep {{side}}. {{line}}',
         LOCATION: 'Location: Discord has {{discord}}, Telegram has {{telegram}}.',
+        PROFILE_CURRENT: 'Current profile: Discord is on {{discord}}, Telegram is on {{telegram}}.',
+        PROFILE_CURRENT_DIFFER: 'The accounts are on different profiles.',
         RESOLVE_FAILED: 'Could not resolve that.',
         TITLE: 'Your linked accounts differ',
       },
@@ -117,6 +120,35 @@ describe('PairDriftBannerComponent', () => {
     expect(text).toContain('Telegram also has Riverside.');
     expect(text).not.toContain('Discord also has');
     expect(text).not.toContain('Old Town');
+  });
+
+  it('compares areas the way the server does: case, padding and underscores are not differences', () => {
+    mount([
+      { discord: ['Old_Town ', 'lake eola'], field: 'areas', fingerprint: 'fp-a2', telegram: [' old town', 'LAKE_EOLA', 'riverside'] },
+    ]);
+
+    const text = rows()[0].textContent ?? '';
+    expect(text).toContain('Telegram also has Riverside.');
+    expect(text).not.toContain('Old');
+    expect(text).not.toContain('Lake');
+  });
+
+  it('says the areas differ when the difference cannot be named, never an empty line', () => {
+    mount([{ discord: ['Old_Town'], field: 'areas', fingerprint: 'fp-a3', telegram: ['old town'] }]);
+    expect((rows()[0].textContent ?? '').trim()).toContain('Some areas differ.');
+
+    mount([{ discord: 'unexpected', field: 'areas', fingerprint: 'fp-a4', telegram: null }]);
+    expect((rows()[0].textContent ?? '').trim()).toContain('Some areas differ.');
+  });
+
+  it('prints a profile number, and never [object Object] for an unexpected shape', () => {
+    mount([{ discord: 2, field: 'current_profile', fingerprint: 'fp-p', telegram: '0' }]);
+    expect(rows()[0].textContent).toContain('Discord is on 2, Telegram is on 0.');
+
+    mount([{ discord: { no: 2 }, field: 'current_profile', fingerprint: 'fp-p2', telegram: 1 }]);
+    const text = rows()[0].textContent ?? '';
+    expect(text).not.toContain('[object Object]');
+    expect(text).toContain('The accounts are on different profiles.');
   });
 
   it('sends the choice with the item fingerprint', async () => {

@@ -2445,8 +2445,10 @@
   "DRIFT": {
     "TITLE": "Your linked accounts have drifted apart",
     "LOCATION": "Location: Discord has {{discord}}, Telegram has {{telegram}}.",
+    "AREAS_DIFFER": "Some areas differ.",
     "AREAS_EXTRA": "{{side}} also has {{names}}.",
     "PROFILE_CURRENT": "Current profile: Discord is on {{discord}}, Telegram is on {{telegram}}.",
+    "PROFILE_CURRENT_DIFFER": "The accounts are on different profiles.",
     "PROFILES_EXTRA": "{{side}} also has the profile {{names}}.",
     "PROFILES_DIFFER": "Some profiles differ in name, schedule or areas.",
     "PROFILE_NAMELESS": "profile {{no}}",

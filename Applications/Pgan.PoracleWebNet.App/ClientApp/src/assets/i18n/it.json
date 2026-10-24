@@ -2445,8 +2445,10 @@
   "DRIFT": {
     "TITLE": "I tuoi account collegati non sono più allineati",
     "LOCATION": "Posizione: Discord ha {{discord}}, Telegram ha {{telegram}}.",
+    "AREAS_DIFFER": "Alcune aree sono diverse.",
     "AREAS_EXTRA": "{{side}} ha anche {{names}}.",
     "PROFILE_CURRENT": "Profilo attuale: Discord è su {{discord}}, Telegram è su {{telegram}}.",
+    "PROFILE_CURRENT_DIFFER": "Gli account sono su profili diversi.",
     "PROFILES_EXTRA": "{{side}} ha anche il profilo {{names}}.",
     "PROFILES_DIFFER": "Alcuni profili differiscono per nome, orario o aree.",
     "PROFILE_NAMELESS": "profilo {{no}}",

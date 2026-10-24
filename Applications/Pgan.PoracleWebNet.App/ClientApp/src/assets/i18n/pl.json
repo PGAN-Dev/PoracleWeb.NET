@@ -2559,8 +2559,10 @@
   "DRIFT": {
     "TITLE": "Połączone konta przestały się zgadzać",
     "LOCATION": "Lokalizacja: Discord ma {{discord}}, Telegram ma {{telegram}}.",
+    "AREAS_DIFFER": "Niektóre obszary się różnią.",
     "AREAS_EXTRA": "{{side}} ma też {{names}}.",
     "PROFILE_CURRENT": "Bieżący profil: Discord jest na {{discord}}, Telegram na {{telegram}}.",
+    "PROFILE_CURRENT_DIFFER": "Konta są na różnych profilach.",
     "PROFILES_EXTRA": "{{side}} ma też profil {{names}}.",
     "PROFILES_DIFFER": "Niektóre profile różnią się nazwą, harmonogramem lub obszarami.",
     "PROFILE_NAMELESS": "profil {{no}}",

@@ -2445,8 +2445,10 @@
   "DRIFT": {
     "TITLE": "Tus cuentas vinculadas ya no coinciden",
     "LOCATION": "Ubicación: Discord tiene {{discord}}, Telegram tiene {{telegram}}.",
+    "AREAS_DIFFER": "Algunas áreas son distintas.",
     "AREAS_EXTRA": "{{side}} también tiene {{names}}.",
     "PROFILE_CURRENT": "Perfil actual: Discord está en {{discord}}, Telegram está en {{telegram}}.",
+    "PROFILE_CURRENT_DIFFER": "Las cuentas están en perfiles distintos.",
     "PROFILES_EXTRA": "{{side}} también tiene el perfil {{names}}.",
     "PROFILES_DIFFER": "Algunos perfiles difieren en nombre, horario o zonas.",
     "PROFILE_NAMELESS": "perfil {{no}}",

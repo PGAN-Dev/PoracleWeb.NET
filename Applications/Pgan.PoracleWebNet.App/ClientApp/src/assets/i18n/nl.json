@@ -2445,8 +2445,10 @@
   "DRIFT": {
     "TITLE": "Je gekoppelde accounts lopen niet meer gelijk",
     "LOCATION": "Locatie: Discord heeft {{discord}}, Telegram heeft {{telegram}}.",
+    "AREAS_DIFFER": "Sommige gebieden verschillen.",
     "AREAS_EXTRA": "{{side}} heeft ook {{names}}.",
     "PROFILE_CURRENT": "Huidig profiel: Discord staat op {{discord}}, Telegram op {{telegram}}.",
+    "PROFILE_CURRENT_DIFFER": "De accounts staan op verschillende profielen.",
     "PROFILES_EXTRA": "{{side}} heeft ook het profiel {{names}}.",
     "PROFILES_DIFFER": "Sommige profielen verschillen in naam, schema of gebieden.",
     "PROFILE_NAMELESS": "profiel {{no}}",

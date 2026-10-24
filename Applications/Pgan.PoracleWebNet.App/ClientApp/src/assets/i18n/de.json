@@ -2445,8 +2445,10 @@
   "DRIFT": {
     "TITLE": "Deine verknüpften Konten weichen voneinander ab",
     "LOCATION": "Standort: Discord hat {{discord}}, Telegram hat {{telegram}}.",
+    "AREAS_DIFFER": "Einige Gebiete unterscheiden sich.",
     "AREAS_EXTRA": "{{side}} hat außerdem {{names}}.",
     "PROFILE_CURRENT": "Aktuelles Profil: Discord ist auf {{discord}}, Telegram auf {{telegram}}.",
+    "PROFILE_CURRENT_DIFFER": "Die Konten sind auf unterschiedlichen Profilen.",
     "PROFILES_EXTRA": "{{side}} hat außerdem das Profil {{names}}.",
     "PROFILES_DIFFER": "Einige Profile unterscheiden sich in Name, Zeitplan oder Gebieten.",
     "PROFILE_NAMELESS": "Profil {{no}}",

@@ -2445,8 +2445,10 @@
   "DRIFT": {
     "TITLE": "Dine sammenkædede konti afviger fra hinanden",
     "LOCATION": "Placering: Discord har {{discord}}, Telegram har {{telegram}}.",
+    "AREAS_DIFFER": "Nogle områder er forskellige.",
     "AREAS_EXTRA": "{{side}} har også {{names}}.",
     "PROFILE_CURRENT": "Aktuel profil: Discord står på {{discord}}, Telegram på {{telegram}}.",
+    "PROFILE_CURRENT_DIFFER": "Kontiene er på forskellige profiler.",
     "PROFILES_EXTRA": "{{side}} har også profilen {{names}}.",
     "PROFILES_DIFFER": "Nogle profiler afviger i navn, tidsplan eller områder.",
     "PROFILE_NAMELESS": "profil {{no}}",

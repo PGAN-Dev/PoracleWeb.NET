@@ -2445,8 +2445,10 @@
   "DRIFT": {
     "TITLE": "Dina länkade konton skiljer sig åt",
     "LOCATION": "Plats: Discord har {{discord}}, Telegram har {{telegram}}.",
+    "AREAS_DIFFER": "Vissa områden skiljer sig åt.",
     "AREAS_EXTRA": "{{side}} har också {{names}}.",
     "PROFILE_CURRENT": "Aktuell profil: Discord står på {{discord}}, Telegram på {{telegram}}.",
+    "PROFILE_CURRENT_DIFFER": "Kontona använder olika profiler.",
     "PROFILES_EXTRA": "{{side}} har också profilen {{names}}.",
     "PROFILES_DIFFER": "Vissa profiler skiljer sig i namn, schema eller områden.",
     "PROFILE_NAMELESS": "profil {{no}}",
