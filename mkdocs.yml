@@ -95,6 +95,7 @@ nav:
       - Backend Patterns: architecture/backend.md
       - Frontend Patterns: architecture/frontend.md
       - Database: architecture/database.md
+      - Linked Accounts: architecture/linked-accounts.md
   - Features:
       - Alarm Management: features/alarms.md
       - Discord & Telegram: features/discord-and-telegram.md
