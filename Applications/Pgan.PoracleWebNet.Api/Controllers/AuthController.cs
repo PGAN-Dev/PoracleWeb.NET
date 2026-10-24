@@ -100,20 +100,6 @@ public partial class AuthController(
         // No early gate here — admins must be able to log in even when Discord is disabled.
         // The enable_discord check is enforced in DiscordCallback() after we know whether the user is an admin.
 
-        // Generate a random state value for CSRF protection
-        var state = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
-
-        var isHttps = string.Equals(this.Request.Scheme, "https", StringComparison.OrdinalIgnoreCase);
-        var cookieOptions = new CookieOptions
-        {
-            HttpOnly = true,
-            Secure = isHttps,
-            SameSite = SameSiteMode.Lax,
-            MaxAge = TimeSpan.FromMinutes(10)
-        };
-
-        this.Response.Cookies.Append("oauth_state", state, cookieOptions);
-
         // Save the frontend origin so we know where to redirect after the callback.
         // Validate against configured CORS origins to prevent open redirect token theft.
         var selfOrigin = this.SelfOrigin();
@@ -131,6 +117,26 @@ public partial class AuthController(
             }
         }
 
+        // Discord is optional: a Telegram-only or OIDC-only site has no Discord application, and an
+        // authorize URL with an empty client_id only earns the user Discord's own error page.
+        if (!SignInConfiguration.DiscordConfigured(this._discordSettings))
+        {
+            return this.Redirect($"{origin.TrimEnd('/')}/login#error=discord_not_configured");
+        }
+
+        // Generate a random state value for CSRF protection
+        var state = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+
+        var isHttps = string.Equals(this.Request.Scheme, "https", StringComparison.OrdinalIgnoreCase);
+        var cookieOptions = new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = isHttps,
+            SameSite = SameSiteMode.Lax,
+            MaxAge = TimeSpan.FromMinutes(10)
+        };
+
+        this.Response.Cookies.Append("oauth_state", state, cookieOptions);
         this.Response.Cookies.Append("oauth_origin", origin, cookieOptions);
 
         // Redirect URI points to the API itself, not the Angular app
@@ -153,6 +159,12 @@ public partial class AuthController(
     {
         // Derive frontend URL from the request
         var frontendUrl = this.GetFrontendUrl();
+
+        // Never send Discord a token request carrying an empty client_id (see DiscordLogin).
+        if (!SignInConfiguration.DiscordConfigured(this._discordSettings))
+        {
+            return this.Redirect($"{frontendUrl}/login#error=discord_not_configured");
+        }
 
         // Validate OAuth state parameter for CSRF protection
         var savedState = this.Request.Cookies["oauth_state"];
@@ -727,9 +739,9 @@ public partial class AuthController(
     [HttpGet("providers")]
     public async Task<IActionResult> Providers()
     {
-        // Discord is "configured" if the server has ClientId and ClientSecret (validated at startup).
-        var discordConfigured = !string.IsNullOrEmpty(this._discordSettings.ClientId)
-                                && !string.IsNullOrEmpty(this._discordSettings.ClientSecret);
+        // Discord is "configured" if the server has both ClientId and ClientSecret. It is optional:
+        // a site may sign people in through Telegram or OIDC alone.
+        var discordConfigured = SignInConfiguration.DiscordConfigured(this._discordSettings);
 
         // Telegram is "configured" if Telegram:Enabled is true in .env/appsettings
         // (auto-inferred by Program.cs when bot credentials are present).
@@ -1193,12 +1205,7 @@ public partial class AuthController(
     /// The external OIDC provider is "configured" only when enabled and the full set of
     /// endpoints plus a client id is present. Mirrors the Discord "configured" check.
     /// </summary>
-    private bool OidcConfigured() =>
-        this._oidcSettings.Enabled
-        && !string.IsNullOrWhiteSpace(this._oidcSettings.AuthorizationUrl)
-        && !string.IsNullOrWhiteSpace(this._oidcSettings.TokenUrl)
-        && !string.IsNullOrWhiteSpace(this._oidcSettings.UserInfoUrl)
-        && !string.IsNullOrWhiteSpace(this._oidcSettings.ClientId);
+    private bool OidcConfigured() => SignInConfiguration.OidcConfigured(this._oidcSettings);
 
     /// <summary>
     /// Builds the authorization-request scope, appending the configured offline-access scope
