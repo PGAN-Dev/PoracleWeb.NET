@@ -197,7 +197,7 @@ public class ProfileController(
         var theirs = await this._profileService.GetByUserAndProfileNoAsync(humanId, profileNo);
         if (theirs is null || !string.Equals(theirs.Name?.Trim(), expectedName?.Trim(), StringComparison.OrdinalIgnoreCase))
         {
-            throw new PairWriteRefusedException(PairedNewProfile.OutOfStepReason);
+            throw new PairWriteRefusedException(PairedNewProfile.OutOfStepReason, PairWarningCodes.OutOfStep);
         }
     }
 

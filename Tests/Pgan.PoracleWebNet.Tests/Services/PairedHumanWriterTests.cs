@@ -77,8 +77,10 @@ public class PairedHumanWriterTests
         Assert.True(result.Primary);
         Assert.NotNull(result.Warning);
         Assert.Equal(LinkSide.Telegram, result.Warning!.Side);
-        Assert.Equal("Couldn't reach Poracle for telegram.", result.Warning.Reason);
+        Assert.Equal("Poracle couldn't be reached.", result.Warning.Reason);
+        Assert.Equal(PairWarningCodes.Unreachable, result.Warning.Code);
         Assert.Equal("telegram", result.Warning.ToBody().Side);
+        Assert.Equal("unreachable", result.Warning.ToBody().Code);
     }
 
     [Fact]
@@ -133,7 +135,7 @@ public class PairedHumanWriterTests
         var result = await sut.WriteAsync(PairTestSupport.DiscordId, id =>
             id == PairTestSupport.TelegramId ? throw new HttpRequestException("connect to 192.0.2.10:3030 refused") : Task.CompletedTask);
 
-        Assert.Equal("Couldn't reach Poracle for telegram.", result.Warning!.Reason);
+        Assert.Equal("Poracle couldn't be reached.", result.Warning!.Reason);
     }
 
     [Fact]
@@ -145,5 +147,18 @@ public class PairedHumanWriterTests
             id == PairTestSupport.TelegramId ? throw new PoracleRequestRefusedException("no such place") : Task.CompletedTask);
 
         Assert.Equal("no such place", result.Warning!.Reason);
+        Assert.Equal(PairWarningCodes.Refused, result.Warning.Code);
+    }
+
+    [Fact]
+    public async Task SecondRefusedOnPurpose_CarriesItsOwnCode()
+    {
+        var sut = PairTestSupport.Writer(PairTestSupport.Linked(PairTestSupport.Pair(PairTestSupport.DiscordId)));
+
+        var result = await sut.WriteAsync(PairTestSupport.DiscordId, id =>
+            id == PairTestSupport.TelegramId ? throw new PairWriteRefusedException("drifted", PairWarningCodes.OutOfStep) : Task.CompletedTask);
+
+        Assert.Equal(PairWarningCodes.OutOfStep, result.Warning!.Code);
+        Assert.Equal("drifted", result.Warning.Reason);
     }
 }

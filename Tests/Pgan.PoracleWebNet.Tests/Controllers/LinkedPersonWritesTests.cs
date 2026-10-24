@@ -62,7 +62,7 @@ public class LinkedPersonWritesTests : ControllerTestBase
         Assert.False(body.TryGetProperty("pairWarning", out _));
         var header = JsonDocument.Parse(this._sutResponseHeader!).RootElement;
         Assert.Equal("telegram", header.GetProperty("side").GetString());
-        Assert.Equal("Couldn't reach Poracle for telegram.", header.GetProperty("reason").GetString());
+        Assert.Equal("Poracle couldn't be reached.", header.GetProperty("reason").GetString());
     }
 
     [Fact]
@@ -99,7 +99,7 @@ public class LinkedPersonWritesTests : ControllerTestBase
 
         var created = Assert.IsType<CreatedAtActionResult>(result);
         Assert.False(JsonDocument.Parse(JsonSerializer.Serialize(created.Value)).RootElement.TryGetProperty("pairWarning", out _));
-        Assert.Contains("profiles out of step", sut.Response.Headers["X-Pair-Warning"].ToString());
+        Assert.Contains("\"code\":\"out_of_step\"", sut.Response.Headers["X-Pair-Warning"].ToString());
         this._humanProxy.Verify(p => p.DeleteProfileAsync(Telegram, 2), Times.Once);
         this._humanProxy.Verify(p => p.DeleteProfileAsync(Discord, It.IsAny<int>()), Times.Never);
     }

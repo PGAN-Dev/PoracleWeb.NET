@@ -31,7 +31,7 @@ public sealed partial class PairedHumanWriter(ILinkedAccount linkedAccount, ILog
         {
             var side = pair.SideOf(other) ?? LinkSide.Telegram;
             LogOtherSideFailed(this._logger, ex, LogSafe.Id(other), side);
-            return new PairWriteResult<T>(primary, default, new PairWarning(side, ReasonFor(ex, side)));
+            return new PairWriteResult<T>(primary, default, WarningFor(ex, side));
         }
     }
 
@@ -44,13 +44,15 @@ public sealed partial class PairedHumanWriter(ILinkedAccount linkedAccount, ILog
 
     /// <summary>
     /// What the client may be told. Only a refusal that carries a sentence written for people is passed on
-    /// (PoracleNG's own detail, or one of ours); anything else, an <see cref="HttpRequestException"/> naming a
-    /// host and port included, becomes a fixed line, and the exception goes to the log.
+    /// (PoracleNG's own detail, or one of ours, with its code); anything else, an <see cref="HttpRequestException"/>
+    /// naming a host and port included, becomes the unreachable code, and the exception goes to the log.
     /// </summary>
-    internal static string ReasonFor(Exception ex, LinkSide side) =>
-        ex is PoracleRequestRefusedException or PairWriteRefusedException && !string.IsNullOrWhiteSpace(ex.Message)
-            ? ex.Message
-            : $"Couldn't reach Poracle for {AccountLinkKeys.Wire(side)}.";
+    internal static PairWarning WarningFor(Exception ex, LinkSide side) => ex switch
+    {
+        PairWriteRefusedException refused when !string.IsNullOrWhiteSpace(refused.Message) => new PairWarning(side, refused.Message, refused.Code),
+        PoracleRequestRefusedException when !string.IsNullOrWhiteSpace(ex.Message) => new PairWarning(side, ex.Message, PairWarningCodes.Refused),
+        _ => new PairWarning(side, "Poracle couldn't be reached.", PairWarningCodes.Unreachable),
+    };
 
     public async Task<PairSide?> FindSideAsync(string userId, string humanId)
     {

@@ -77,6 +77,7 @@ public sealed class PairDriftService(IPoracleHumanProxy human, IPoracleTrackingP
         var kept = keep == LinkSide.Discord ? discord : telegram;
         var other = keep == LinkSide.Discord ? telegram : discord;
         var otherId = keep == LinkSide.Discord ? pair.Telegram!.HumanId : pair.Discord!.HumanId;
+        var otherSide = keep == LinkSide.Discord ? LinkSide.Telegram : LinkSide.Discord;
 
         var progress = new Progress();
         try
@@ -92,13 +93,20 @@ public sealed class PairDriftService(IPoracleHumanProxy human, IPoracleTrackingP
                     await this._areas.SaveSelectionAsync(otherId, kept.Areas);
                     break;
                 case DriftField.CurrentProfile:
+                    // Switching never creates a profile: one the other side lacks is the profiles line's to settle,
+                    // and saying so beats PoracleNG's bare "profile not found".
+                    if (!other.Profiles.Any(p => p.No == kept.Current))
+                    {
+                        throw new DriftProfileMissingException(otherSide, kept.Current, kept.Profiles.FirstOrDefault(p => p.No == kept.Current)?.Name);
+                    }
+
                     await this._human.SwitchProfileAsync(otherId, kept.Current);
                     break;
                 case DriftField.Profiles:
-                    await this.ResolveProfilesAsync(otherId, kept, other, progress);
+                    await this.ResolveProfilesAsync(otherId, otherSide, kept, other, progress);
                     break;
                 case DriftField.Places:
-                    await this.ResolvePlacesAsync(otherId, kept, other, progress);
+                    await this.ResolvePlacesAsync(otherId, otherSide, kept, other, progress);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(field));
@@ -119,18 +127,48 @@ public sealed class PairDriftService(IPoracleHumanProxy human, IPoracleTrackingP
         Add(items, DriftField.Location, LocationOf(discord), LocationOf(telegram));
         Add(items, DriftField.Areas, AreasOf(discord.Areas), AreasOf(telegram.Areas));
 
+        // Profiles come before the active profile: switching to a profile the other side lacks needs the profiles
+        // settled first, and the list reads in the order it can be worked through.
+        // The profile both sides are on is compared through the humans' location and areas, which have lines of their own.
+        var shared = discord.Current == telegram.Current ? discord.Current : -1;
+        Add(items, DriftField.Profiles, ProfilesOf(discord, shared), ProfilesOf(telegram, shared));
+
         // Profile 0 is outside the pair: PoracleNG never numbers a new profile 0, so the other side could not be switched to it.
         if (discord.Current != 0 && telegram.Current != 0)
         {
-            Add(items, DriftField.CurrentProfile, JsonSerializer.SerializeToElement(discord.Current), JsonSerializer.SerializeToElement(telegram.Current));
+            Add(items, DriftField.CurrentProfile, JsonSerializer.SerializeToElement(discord.Current), JsonSerializer.SerializeToElement(telegram.Current),
+                CurrentProfileDetails(discord, telegram));
         }
 
-        Add(items, DriftField.Profiles, ProfilesOf(discord), ProfilesOf(telegram));
-        Add(items, DriftField.Places, PlacesOf(discord), PlacesOf(telegram));
+        Add(items, DriftField.Places, PlacesOf(discord), PlacesOf(telegram), PlaceDetails(discord, telegram));
         return items;
     }
 
-    private static void Add(List<DriftItem> items, DriftField field, JsonElement discord, JsonElement telegram)
+    /// <summary>Each side's active profile by name, and whether the other side has a profile at that number to switch to.</summary>
+    private static JsonElement CurrentProfileDetails(Snapshot discord, Snapshot telegram)
+    {
+        static object Side(Snapshot self, Snapshot other) => new
+        {
+            name = self.Profiles.FirstOrDefault(p => p.No == self.Current)?.Name,
+            otherHas = other.Profiles.Any(p => p.No == self.Current),
+        };
+
+        return JsonSerializer.SerializeToElement(new { discord = Side(discord, telegram), telegram = Side(telegram, discord) });
+    }
+
+    /// <summary>The labels as the person typed them, keyed by the lowercase form the comparison uses; Discord's spelling first.</summary>
+    private static JsonElement PlaceDetails(Snapshot discord, Snapshot telegram)
+    {
+        var labels = new SortedDictionary<string, string>(StringComparer.Ordinal);
+        foreach (var place in discord.Places.Concat(telegram.Places))
+        {
+            labels.TryAdd(place.Label.ToLowerInvariant(), place.Label);
+        }
+
+        return JsonSerializer.SerializeToElement(new { labels });
+    }
+
+    private static void Add(List<DriftItem> items, DriftField field, JsonElement discord, JsonElement telegram, JsonElement? details = null)
     {
         var d = discord.GetRawText();
         var t = telegram.GetRawText();
@@ -140,7 +178,7 @@ public sealed class PairDriftService(IPoracleHumanProxy human, IPoracleTrackingP
         }
 
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes(d + "\n" + t));
-        items.Add(new DriftItem(field, discord, telegram, Convert.ToHexStringLower(hash)));
+        items.Add(new DriftItem(field, discord, telegram, Convert.ToHexStringLower(hash), details));
     }
 
     private static double Round(double value) => Math.Round(value, 5, MidpointRounding.AwayFromZero);
@@ -156,15 +194,20 @@ public sealed class PairDriftService(IPoracleHumanProxy human, IPoracleTrackingP
 
     private static string[] AreaKeys(string? json) => Keys(AreaListJson.Parse(json));
 
-    private static JsonElement ProfilesOf(Snapshot s) => JsonSerializer.SerializeToElement(
+    /// <summary>
+    /// The profiles as compared. The areas and location of <paramref name="shared"/>, the profile both sides are on, are
+    /// left out: each human holds the live copy, which the location and areas lines already compare, and comparing them
+    /// twice reported one cause on two lines. -1 when the sides are on different profiles.
+    /// </summary>
+    private static JsonElement ProfilesOf(Snapshot s, int shared) => JsonSerializer.SerializeToElement(
         s.Profiles.OrderBy(p => p.No).Select(p => new
         {
             no = p.No,
             name = p.Name ?? string.Empty,
             active_hours = Hours(p.ActiveHours),
-            areas = AreaKeys(p.Area),
-            lat = Round(p.Latitude),
-            lon = Round(p.Longitude),
+            areas = p.No == shared ? null : AreaKeys(p.Area),
+            lat = p.No == shared ? (double?)null : Round(p.Latitude),
+            lon = p.No == shared ? (double?)null : Round(p.Longitude),
         }).ToArray());
 
     private static JsonElement PlacesOf(Snapshot s) => JsonSerializer.SerializeToElement(
@@ -264,7 +307,7 @@ public sealed class PairDriftService(IPoracleHumanProxy human, IPoracleTrackingP
         public bool Wrote { get; set; }
     }
 
-    private async Task ResolveProfilesAsync(string otherId, Snapshot kept, Snapshot other, Progress progress)
+    private async Task ResolveProfilesAsync(string otherId, LinkSide otherSide, Snapshot kept, Snapshot other, Progress progress)
     {
         var otherByNo = other.Profiles.ToDictionary(p => p.No);
         var keptNumbers = kept.Profiles.Select(p => p.No).ToHashSet();
@@ -280,7 +323,7 @@ public sealed class PairDriftService(IPoracleHumanProxy human, IPoracleTrackingP
             {
                 if (counts.TryGetValue(extra.No, out var count) && count > 0)
                 {
-                    throw new DriftProfileHoldsAlarmsException(extra.No, extra.Name, count);
+                    throw new DriftProfileHoldsAlarmsException(otherSide, extra.No, extra.Name, count);
                 }
             }
         }
@@ -320,7 +363,7 @@ public sealed class PairDriftService(IPoracleHumanProxy human, IPoracleTrackingP
                     await this.TryDeleteAsync(otherId, assigned);
                     throw new PoracleRequestRefusedException(
                         $"The other account's next profile would be numbered {assigned}, not {no}. "
-                        + (progress.Wrote ? "Some changes were made before this failed. Check the banner." : "Nothing was changed."),
+                        + (progress.Wrote ? "Some changes were made before this failed. Look at the differences on Linked accounts again." : "Nothing was changed."),
                         409);
                 }
 
@@ -356,8 +399,12 @@ public sealed class PairDriftService(IPoracleHumanProxy human, IPoracleTrackingP
                 }));
             }
 
-            if (!AreaKeys(row.Area).SequenceEqual(AreaKeys(existing.Area))
-                || Round(row.Latitude) != Round(existing.Latitude) || Round(row.Longitude) != Round(existing.Longitude))
+            // The profile both sides are on is compared through the humans' own location and areas, which have lines
+            // of their own; writing its geography here would change them behind the person's back.
+            var sharedActive = row.No == kept.Current && row.No == other.Current;
+            if (!sharedActive
+                && (!AreaKeys(row.Area).SequenceEqual(AreaKeys(existing.Area))
+                    || Round(row.Latitude) != Round(existing.Latitude) || Round(row.Longitude) != Round(existing.Longitude)))
             {
                 progress.Wrote = true;
                 await this._human.SetProfileGeographyAsync(otherId, row.No, await this._areas.FilterAllowedAsync(otherId, AreaListJson.Parse(row.Area)), row.Latitude, row.Longitude);
@@ -431,7 +478,7 @@ public sealed class PairDriftService(IPoracleHumanProxy human, IPoracleTrackingP
         }
     }
 
-    private async Task ResolvePlacesAsync(string otherId, Snapshot kept, Snapshot other, Progress progress)
+    private async Task ResolvePlacesAsync(string otherId, LinkSide otherSide, Snapshot kept, Snapshot other, Progress progress)
     {
         // PoracleNG's label is unique per human and the stored labels are compared the way AlarmMover
         // compares them, ignoring case; an update or delete uses the other side's own spelling.
@@ -452,7 +499,7 @@ public sealed class PairDriftService(IPoracleHumanProxy human, IPoracleTrackingP
                     && string.Equals(r.Rule.GetProperty("override_location_label").GetString(), extra.Label, StringComparison.Ordinal));
                 if (inUse > 0)
                 {
-                    throw new DriftPlaceInUseException(extra.Label, inUse);
+                    throw new DriftPlaceInUseException(otherSide, extra.Label, inUse);
                 }
             }
         }
@@ -485,7 +532,7 @@ public sealed class PairDriftService(IPoracleHumanProxy human, IPoracleTrackingP
             }
             catch (PlaceInUseException ex)
             {
-                throw new DriftPlaceInUseException(place.Label, ex.ReferencingRules.Count);
+                throw new DriftPlaceInUseException(otherSide, place.Label, ex.ReferencingRules.Count);
             }
         }
     }

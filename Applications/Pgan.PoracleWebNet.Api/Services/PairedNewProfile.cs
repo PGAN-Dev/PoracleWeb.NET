@@ -13,7 +13,7 @@ public sealed record NewProfileOn(string HumanId, int No);
 /// </summary>
 public static class PairedNewProfile
 {
-    public const string OutOfStepReason = "profiles out of step";
+    public const string OutOfStepReason = "The two accounts' profiles don't line up.";
 
     /// <summary>
     /// The signed-in human's number, and a warning if the other human's profile took another number: that
@@ -33,6 +33,6 @@ public static class PairedNewProfile
 
         await NewProfileGeography.RollBackAsync(humanProxy, logger, other.HumanId, other.No);
         var side = await writer.SideOfAsync(userId, other.HumanId) ?? LinkSide.Telegram;
-        return (written.Primary.No, new PairWarning(side, OutOfStepReason));
+        return (written.Primary.No, new PairWarning(side, OutOfStepReason, PairWarningCodes.OutOfStep));
     }
 }

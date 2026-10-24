@@ -161,7 +161,7 @@ public partial class CleaningService(
             {
                 var side = pair.SideOf(ids[i]) ?? LinkSide.Telegram;
                 LogOtherSideCleanFailed(this._logger, ex, type, LogSafe.Id(ids[i]), side);
-                return new CleanToggleResult(updated, new PairWarning(side, PairedHumanWriter.ReasonFor(ex, side)));
+                return new CleanToggleResult(updated, PairedHumanWriter.WarningFor(ex, side));
             }
         }
 

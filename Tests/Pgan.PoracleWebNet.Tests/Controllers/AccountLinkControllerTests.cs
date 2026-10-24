@@ -274,7 +274,7 @@ public class AccountLinkControllerTests
         var ok = Assert.IsType<OkObjectResult>(await this.Create().Status());
 
         var json = System.Text.Json.JsonSerializer.Serialize(ok.Value, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
-        Assert.Contains("\"drift\":[{\"field\":\"current_profile\",\"discord\":1,\"telegram\":2,\"fingerprint\":\"abc\"}]", json, StringComparison.Ordinal);
+        Assert.Contains("\"drift\":[{\"field\":\"current_profile\",\"discord\":1,\"telegram\":2,\"fingerprint\":\"abc\",\"details\":null}]", json, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -380,30 +380,66 @@ public class AccountLinkControllerTests
     public void DriftFilter_PartialAndPlaceInUse_AreAlso409WithTheirText()
     {
         var partial = ContextFor(new DriftPartiallyAppliedException(new InvalidOperationException("inner")));
-        var inUse = ContextFor(new DriftPlaceInUseException("home", 2));
+        var inUse = ContextFor(new DriftPlaceInUseException(LinkSide.Telegram, "home", 2));
 
         new PairDriftExceptionFilter().OnActionExecuted(partial);
         new PairDriftExceptionFilter().OnActionExecuted(inUse);
 
         Assert.Equal(409, Assert.IsType<ObjectResult>(partial.Result).StatusCode);
-        Assert.Equal("Some changes were made before this failed. Check the banner.", Prop(((ObjectResult)partial.Result!).Value, "error"));
+        Assert.Equal("partially_applied", Prop(((ObjectResult)partial.Result!).Value, "code"));
+        Assert.Contains("Linked accounts", (string)Prop(((ObjectResult)partial.Result!).Value, "error")!, StringComparison.Ordinal);
         Assert.Equal(409, Assert.IsType<ObjectResult>(inUse.Result).StatusCode);
-        Assert.Contains("\"home\"", (string)Prop(((ObjectResult)inUse.Result!).Value, "error")!, StringComparison.Ordinal);
-        Assert.Contains("2 alert(s)", (string)Prop(((ObjectResult)inUse.Result!).Value, "error")!, StringComparison.Ordinal);
+        var body = ((ObjectResult)inUse.Result!).Value;
+        Assert.Equal("place_in_use", Prop(body, "code"));
+        Assert.Equal("telegram", Prop(body, "side"));
+        Assert.Equal("home", Prop(body, "name"));
+        Assert.Equal(2, Prop(body, "count"));
+        Assert.Contains("Telegram's saved place \"home\"", (string)Prop(body, "error")!, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DriftFilter_ProfileMissing_NamesTheAppAndTheProfile()
+    {
+        var missing = ContextFor(new DriftProfileMissingException(LinkSide.Discord, 2, "Weekend"));
+
+        new PairDriftExceptionFilter().OnActionExecuted(missing);
+
+        var body = ((ObjectResult)missing.Result!).Value;
+        Assert.Equal(409, ((ObjectResult)missing.Result!).StatusCode);
+        Assert.Equal("profile_missing", Prop(body, "code"));
+        Assert.Equal("discord", Prop(body, "side"));
+        Assert.Equal("Weekend", Prop(body, "name"));
+        Assert.DoesNotContain("not found", (string)Prop(body, "error")!, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void DriftFilter_LeavesOtherExceptionsAlone()
+    {
+        var other = ContextFor(new InvalidOperationException("x"));
+
+        new PairDriftExceptionFilter().OnActionExecuted(other);
+
+        Assert.Null(other.Result);
+        Assert.False(other.ExceptionHandled);
     }
 
     [Fact]
     public void DriftFilter_ChangedAndHoldsAlarms_CarryTheirTextInTheBody()
     {
         var changed = ContextFor(new DriftChangedException());
-        var holds = ContextFor(new DriftProfileHoldsAlarmsException(2, "Spare", 3));
+        var holds = ContextFor(new DriftProfileHoldsAlarmsException(LinkSide.Telegram, 2, "Spare", 3));
 
         new PairDriftExceptionFilter().OnActionExecuted(changed);
         new PairDriftExceptionFilter().OnActionExecuted(holds);
 
-        Assert.Equal("That changed again. Check the banner.", Prop(((ObjectResult)changed.Result!).Value, "error"));
-        Assert.Contains("Spare", (string)Prop(((ObjectResult)holds.Result!).Value, "error")!, StringComparison.Ordinal);
-        Assert.Contains("3 alert(s)", (string)Prop(((ObjectResult)holds.Result!).Value, "error")!, StringComparison.Ordinal);
+        Assert.Equal("drift_changed", Prop(((ObjectResult)changed.Result!).Value, "code"));
+        var body = ((ObjectResult)holds.Result!).Value;
+        Assert.Equal("profile_holds_alarms", Prop(body, "code"));
+        Assert.Equal("telegram", Prop(body, "side"));
+        Assert.Equal("Spare", Prop(body, "name"));
+        Assert.Equal(3, Prop(body, "count"));
+        // Names the app, not "the other account".
+        Assert.Contains("Telegram's profile Spare has 3 alarm(s)", (string)Prop(body, "error")!, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -422,7 +458,7 @@ public class AccountLinkControllerTests
     [Fact]
     public void DriftFilter_MapsBothExceptionsTo409()
     {
-        foreach (Exception ex in new Exception[] { new DriftChangedException(), new DriftProfileHoldsAlarmsException(2, "Spare", 3) })
+        foreach (Exception ex in new Exception[] { new DriftChangedException(), new DriftProfileHoldsAlarmsException(LinkSide.Telegram, 2, "Spare", 3) })
         {
             var ctx = new Microsoft.AspNetCore.Mvc.Filters.ActionExecutedContext(
                 new ActionContext(new DefaultHttpContext(), new Microsoft.AspNetCore.Routing.RouteData(), new Microsoft.AspNetCore.Mvc.Abstractions.ActionDescriptor()),

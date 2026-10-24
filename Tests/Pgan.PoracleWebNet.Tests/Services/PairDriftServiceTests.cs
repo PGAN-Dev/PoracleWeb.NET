@@ -248,7 +248,7 @@ public class PairDriftServiceTests
 
         var ex = await Assert.ThrowsAsync<DriftPartiallyAppliedException>(() => this._sut.ResolveAsync(Pair(), DriftField.Profiles, LinkSide.Discord, fp));
 
-        Assert.Equal("Some changes were made before this failed. Check the banner.", ex.Message);
+        Assert.Equal("Some changes were made before this failed. Look at the differences on Linked accounts again.", ex.Message);
         this._human.Verify(p => p.DeleteProfileAsync(Telegram, 4), Times.Once);
         this._human.Verify(p => p.DeleteProfileAsync(Telegram, 2), Times.Once);
     }
@@ -307,7 +307,7 @@ public class PairDriftServiceTests
 
         var ex = await Assert.ThrowsAsync<DriftPartiallyAppliedException>(() => this._sut.ResolveAsync(Pair(), DriftField.Profiles, LinkSide.Discord, fp));
 
-        Assert.Equal("Some changes were made before this failed. Check the banner.", ex.Message);
+        Assert.Equal("Some changes were made before this failed. Look at the differences on Linked accounts again.", ex.Message);
         Assert.DoesNotContain("Nothing was changed", ex.Message, StringComparison.Ordinal);
     }
 
@@ -579,6 +579,135 @@ public class PairDriftServiceTests
         this._human.Invocations.Clear();
         Assert.Null(await this._sut.GetLegacyProfileZeroAsync(LinkedPair.Single(Discord)));
         this._human.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task LocationDiffers_ActiveProfileMirrorsIt_OnlyTheLocationLine()
+    {
+        // PoracleNG keeps the active profile's row in step with the human, so one move shows in both places.
+        this._data[Telegram].Lat = 51.6;
+        this._data[Telegram].Profiles = [new ProfileData(1, "Home", Lat: 51.6)];
+
+        var item = Assert.Single(await this._sut.GetAsync(Pair()));
+
+        Assert.Equal(DriftField.Location, item.Field);
+    }
+
+    [Fact]
+    public async Task AreasDiffer_ActiveProfileMirrorsThem_OnlyTheAreasLine()
+    {
+        this._data[Telegram].Areas = ["riverside"];
+        this._data[Telegram].Profiles = [new ProfileData(1, "Home", Area: "[\"riverside\"]")];
+
+        var item = Assert.Single(await this._sut.GetAsync(Pair()));
+
+        Assert.Equal(DriftField.Areas, item.Field);
+    }
+
+    [Fact]
+    public async Task AnotherProfilesAreasDiffer_StillAProfilesLine()
+    {
+        this._data[Discord].Profiles = [new ProfileData(1, "Home"), new ProfileData(2, "Work", Area: "[\"old town\"]")];
+        this._data[Telegram].Profiles = [new ProfileData(1, "Home"), new ProfileData(2, "Work", Area: "[\"riverside\"]")];
+
+        var item = Assert.Single(await this._sut.GetAsync(Pair()));
+
+        Assert.Equal(DriftField.Profiles, item.Field);
+    }
+
+    [Fact]
+    public async Task ResolveProfiles_LeavesTheSharedActiveProfilesGeographyToItsOwnLines()
+    {
+        this._data[Discord].Profiles = [new ProfileData(1, "Home", Area: "[\"old town\"]"), new ProfileData(2, "Work")];
+        this._data[Telegram].Profiles = [new ProfileData(1, "Home", Area: "[\"riverside\"]"), new ProfileData(2, "Office")];
+        var fp = await this.FingerprintOf(DriftField.Profiles);
+
+        await this._sut.ResolveAsync(Pair(), DriftField.Profiles, LinkSide.Discord, fp);
+
+        this._human.Verify(p => p.UpdateProfileAsync(Telegram, It.IsAny<JsonElement>()), Times.Once);
+        this._human.Verify(p => p.SetProfileGeographyAsync(Telegram, 1, It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<double>(), It.IsAny<double>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ProfilesLineComesBeforeTheActiveProfileLine()
+    {
+        this._data[Discord].Profiles = [new ProfileData(1, "Home"), new ProfileData(2, "Work")];
+        this._data[Telegram].Profiles = [new ProfileData(1, "Home")];
+        this._data[Discord].Current = 2;
+
+        var fields = (await this._sut.GetAsync(Pair())).Select(i => i.Field).ToList();
+
+        Assert.Equal([DriftField.Profiles, DriftField.CurrentProfile], fields);
+    }
+
+    [Fact]
+    public async Task ActiveProfileLine_CarriesNamesAndWhetherTheOtherSideHasIt()
+    {
+        this._data[Discord].Profiles = [new ProfileData(1, "Home"), new ProfileData(2, "Weekend")];
+        this._data[Telegram].Profiles = [new ProfileData(1, "Home")];
+        this._data[Discord].Current = 2;
+
+        var item = (await this._sut.GetAsync(Pair())).Single(i => i.Field == DriftField.CurrentProfile);
+
+        var details = item.Details!.Value;
+        Assert.Equal("Weekend", details.GetProperty("discord").GetProperty("name").GetString());
+        Assert.False(details.GetProperty("discord").GetProperty("otherHas").GetBoolean());
+        Assert.Equal("Home", details.GetProperty("telegram").GetProperty("name").GetString());
+        Assert.True(details.GetProperty("telegram").GetProperty("otherHas").GetBoolean());
+    }
+
+    [Fact]
+    public async Task ActiveProfileDetails_AreOutsideTheFingerprint()
+    {
+        this._data[Discord].Profiles = [new ProfileData(1, "Home"), new ProfileData(2, "Work")];
+        this._data[Telegram].Profiles = [new ProfileData(1, "Home"), new ProfileData(2, "Work")];
+        this._data[Discord].Current = 2;
+        var before = await this.FingerprintOf(DriftField.CurrentProfile);
+
+        this._data[Discord].Profiles = [new ProfileData(1, "Home"), new ProfileData(2, "Office")];
+
+        Assert.Equal(before, await this.FingerprintOf(DriftField.CurrentProfile));
+    }
+
+    [Fact]
+    public async Task ResolveCurrentProfile_OtherSideLacksTheProfile_RefusesNamingItAndSwitchesNothing()
+    {
+        this._data[Discord].Profiles = [new ProfileData(1, "Home"), new ProfileData(2, "Weekend")];
+        this._data[Telegram].Profiles = [new ProfileData(1, "Home")];
+        this._data[Discord].Current = 2;
+        var fp = await this.FingerprintOf(DriftField.CurrentProfile);
+
+        var ex = await Assert.ThrowsAsync<DriftProfileMissingException>(() => this._sut.ResolveAsync(Pair(), DriftField.CurrentProfile, LinkSide.Discord, fp));
+
+        Assert.Equal(LinkSide.Telegram, ex.Side);
+        Assert.Equal("Weekend", ex.Name);
+        this._human.Verify(p => p.SwitchProfileAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ResolveCurrentProfile_KeepingTheSideWhoseProfileBothHave_StillSwitches()
+    {
+        this._data[Discord].Profiles = [new ProfileData(1, "Home"), new ProfileData(2, "Weekend")];
+        this._data[Telegram].Profiles = [new ProfileData(1, "Home")];
+        this._data[Discord].Current = 2;
+        var fp = await this.FingerprintOf(DriftField.CurrentProfile);
+
+        await this._sut.ResolveAsync(Pair(), DriftField.CurrentProfile, LinkSide.Telegram, fp);
+
+        this._human.Verify(p => p.SwitchProfileAsync(Discord, 1), Times.Once);
+    }
+
+    [Fact]
+    public async Task PlacesLine_CarriesTheLabelsAsTyped()
+    {
+        this._data[Discord].Places = [new SavedPlace { Label = "Mum's House", Latitude = 51.4, Longitude = -0.3 }];
+        this._data[Telegram].Places = [new SavedPlace { Label = "ACLT Gym", Latitude = 51.2, Longitude = -0.1 }];
+
+        var item = Assert.Single(await this._sut.GetAsync(Pair()));
+
+        var labels = item.Details!.Value.GetProperty("labels");
+        Assert.Equal("Mum's House", labels.GetProperty("mum's house").GetString());
+        Assert.Equal("ACLT Gym", labels.GetProperty("aclt gym").GetString());
     }
 
     private sealed record ProfileData(int No, string Name, string Hours = "[]", string Area = "[]", double Lat = 51.5, double Lon = -0.12);

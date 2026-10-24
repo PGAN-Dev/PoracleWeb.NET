@@ -528,7 +528,7 @@ public class LinkedSurfacesTests
 
         Assert.Equal(2, result.Updated);
         Assert.Equal(LinkSide.Telegram, result.Warning!.Side);
-        Assert.Equal("Couldn't reach Poracle for telegram.", result.Warning.Reason);
+        Assert.Equal("Poracle couldn't be reached.", result.Warning.Reason);
     }
 
     [Fact]

@@ -366,7 +366,7 @@ public partial class UserGeofenceService(
         var warning = written.Warning;
         if (warning is null && refusedOn is not null)
         {
-            warning = new PairWarning(await this._pairWriter.SideOfAsync(userId, refusedOn) ?? LinkSide.Telegram, "PoracleNG refused the rename");
+            warning = new PairWarning(await this._pairWriter.SideOfAsync(userId, refusedOn) ?? LinkSide.Telegram, "PoracleNG refused the rename.", PairWarningCodes.RenameRefused);
         }
 
         return (written.Primary, warning);

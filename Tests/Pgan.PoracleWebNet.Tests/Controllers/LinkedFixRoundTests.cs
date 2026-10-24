@@ -74,7 +74,7 @@ public class LinkedFixRoundTests : ControllerTestBase
         var header = Header(sut)!;
         Assert.DoesNotContain("192.0.2.10", header);
         Assert.DoesNotContain("3030", header);
-        Assert.Equal("Couldn't reach Poracle for telegram.", JsonDocument.Parse(header).RootElement.GetProperty("reason").GetString());
+        Assert.Equal("Poracle couldn't be reached.", JsonDocument.Parse(header).RootElement.GetProperty("reason").GetString());
     }
 
     [Fact]
@@ -179,7 +179,7 @@ public class LinkedFixRoundTests : ControllerTestBase
         Assert.IsType<NoContentResult>(result);
         this._humanProxy.Verify(p => p.DeleteProfileAsync(Discord, 2), Times.Once);
         this._humanProxy.Verify(p => p.DeleteProfileAsync(Telegram, It.IsAny<int>()), Times.Never);
-        Assert.Contains("profiles out of step", Header(sut));
+        Assert.Contains("\"code\":\"out_of_step\"", Header(sut));
     }
 
     [Fact]
@@ -204,12 +204,12 @@ public class LinkedFixRoundTests : ControllerTestBase
 
         this._humanProxy.Verify(p => p.UpdateProfileAsync(Discord, It.IsAny<JsonElement>()), Times.Once);
         this._humanProxy.Verify(p => p.UpdateProfileAsync(Telegram, It.IsAny<JsonElement>()), Times.Never);
-        Assert.Contains("profiles out of step", Header(sut));
+        Assert.Contains("\"code\":\"out_of_step\"", Header(sut));
 
         this._profileService.Setup(s => s.GetByUserAndProfileNoAsync(Telegram, 2)).ReturnsAsync((Profile?)null);
         var missing = this.Profiles(PairTestSupport.Linked(PairTestSupport.Pair(Discord)));
         await missing.Update(2, new Profile { Name = "Office" });
-        Assert.Contains("profiles out of step", Header(missing));
+        Assert.Contains("\"code\":\"out_of_step\"", Header(missing));
     }
 
     [Fact]

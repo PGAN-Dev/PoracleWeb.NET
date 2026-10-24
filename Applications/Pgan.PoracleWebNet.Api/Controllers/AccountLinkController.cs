@@ -154,7 +154,7 @@ public partial class AccountLinkController(
         try
         {
             drift = (await this._drift.GetAsync(pair))
-                .Select(d => new { field = DriftFields.Wire(d.Field), discord = d.Discord, telegram = d.Telegram, fingerprint = d.Fingerprint })
+                .Select(d => new { field = DriftFields.Wire(d.Field), discord = d.Discord, telegram = d.Telegram, fingerprint = d.Fingerprint, details = d.Details })
                 .ToArray();
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
