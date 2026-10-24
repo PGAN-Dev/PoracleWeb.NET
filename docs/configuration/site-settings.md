@@ -108,7 +108,7 @@ The switch for [Linked accounts](../features/linked-accounts.md) and the two set
 | Key | Label | Type | Description |
 |---|---|---|---|
 | `disable_account_linking` | Linked accounts | boolean | Hides the [Linked accounts](../features/linked-accounts.md) page and 403s every route a person links or unlinks through. Admin > Users keeps the "Linked" chip and **Unlink accounts**, so an admin can still cut a pair while the feature is off. Existing links are kept, and each person is treated as their single account again until it is switched back on. Reads the positive way round like every `disable_` key: **Linked accounts** on (key absent or `False`) lets people link. |
-| `link_register_missing` | Register the other account when linking | boolean | Off by default. Creates the person's account on the other platform when they link, instead of waiting for them to register through the server's usual route (a Discord role, or a Telegram registration group), and copies their location, areas, profiles and saved places. Alerts are not copied. Poracle removes an account it doesn't think should exist only if the server runs Poracle's role check with a removal mode set; with Poracle's defaults the account stays. With this off the link is saved and the other side waits until the person registers. |
+| `link_register_missing` | Register the other account when linking | boolean | Off by default. Creates the person's account on the other platform when they link, instead of waiting for them to register through the server's usual route (a Discord role, or a Telegram registration group), and copies their language, location, areas, profiles (on the same numbers) and saved places. Alarms are not copied. Poracle removes an account it doesn't think should exist only if the server runs Poracle's role check with a removal mode set; with Poracle's defaults the account stays. With this off the link is saved and the other side waits until the person registers. |
 | `telegram_registration_url` | Telegram registration group link | url | Empty by default. The invite link to the Telegram group people join to register (for example `https://t.me/+abc123`). Must be an `https://` link on `t.me` or `telegram.me`: the field says so as you type and Save waits, and the server refuses anything else too. Empty clears it. Linked accounts shows a **Join the Telegram group** button with it while someone's Telegram account is waiting to register. Served to every signed-in user. |
 
 ## Maps
@@ -297,7 +297,7 @@ Access control.
 
 ## Telegram
 
-Configure Telegram authentication alongside or instead of Discord.
+Configure Telegram authentication alongside or instead of Discord. The full setup, from @BotFather to the registration group, is in [Telegram](telegram.md).
 
 | Key | Label | Type | Description |
 |---|---|---|---|

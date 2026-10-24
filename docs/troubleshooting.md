@@ -685,10 +685,90 @@ Destinations* item in the sidebar.
    Poracle-side grant *does* work here, but not the other way round.
 
 5. **Expecting a PoracleNG channel admin?** Someone PoracleNG lists in `[[discord.delegated_admins]]` or
-   `[[telegram.delegated_admins]]` appears only when **Admin → Settings → Administration → Follow
-   Poracle's channel admins** (`delegation_poracle_channels`) is on, and only for channels registered as
+   `[[telegram.delegated_admins]]` appears only when **Admin → Settings → Administration → Let
+   Poracle's channel admins manage here** (`delegation_poracle_channels`) is on, and only for channels registered as
    destinations on this site. It is off by default.
 
 **Note**: before v2.17 the item came from a claim stamped into the sign-in token, so a new delegate
 waited up to 24 hours or had to sign out and back in. If you are running an older build, that is the
 explanation — see [Destinations & Delegates](features/webhooks.md).
+
+---
+
+## Telegram and linked accounts
+
+Setup is in [Telegram](configuration/telegram.md) and behaviour in [Linked accounts](features/linked-accounts.md).
+
+### The Telegram button doesn't appear
+
+**Symptom**: No Telegram button on the login page, or none on the Telegram card of Linked accounts.
+
+**Cause**: The button is drawn only when `TELEGRAM_ENABLED=true`, a bot username is known (`TELEGRAM_BOT_USERNAME`,
+or the `telegram_bot` setting when that's empty), and **Enable Telegram login** isn't switched off. A button that
+appears but says "Bot domain invalid" means the bot's domain in @BotFather isn't this site's.
+
+**Fix**: Set the three values and restart after `.env` changes. In @BotFather, `/setdomain` with the exact hostname
+people use. The widget works on one domain only.
+
+### Telegram says the account isn't registered
+
+**Symptom**: Telegram sign-in answers "Your account is not registered", or a linked Telegram card reads
+"Waiting to register".
+
+**Cause**: PoracleNG has no `telegram:user` for that id. It registers only members of a registration group
+(`[telegram] channels`, or each community's `telegram.channels` with area security).
+
+**Fix**: Join the registration group and send `/poracle` there. Set `telegram_registration_url` so the Linked
+accounts page shows a **Join the Telegram group** button. Or switch on `link_register_missing` so linking creates
+the account.
+
+### /start does nothing
+
+**Cause**: `register_on_start = true` and the person isn't in any registration group. PoracleNG doesn't reply in that
+case (jfberry/PoracleNG#335). With `register_on_start` off it answers "You are not registered. Please register first."
+
+**Fix**: Join the group and send `/poracle` there.
+
+### Registered on Telegram but no alerts arrive
+
+**Cause**: Telegram lets a bot DM only someone who has started a chat with it.
+
+**Fix**: Press **Start** in the bot's chat. Allowing the bot to message you in the site's login widget also counts.
+
+### Discord and Telegram show different settings
+
+**Cause**: A bot command (`!location`, `/profile`, `/area add`) changed one account only, or a save reached one app
+and not the other.
+
+**Fix**: Open Linked accounts and pick **Use Discord's** or **Use Telegram's** on each line. The site never picks for
+the person.
+
+### A difference won't go away
+
+**Checks**:
+
+1. **Profile 0.** An older account may have a profile 0, which the other app can't have. It's left out of the
+   comparison on purpose, and the page says which account has one. That note isn't a difference to fix.
+2. **"That changed in the meantime".** Something changed one app while the list was open. Choose again from the
+   refreshed list.
+3. **A profile or place in use.** A profile that still holds alarms on the other app, or a place alarms there still
+   use, isn't deleted. Move or change those alarms, or keep that app's side instead.
+4. **Active profile.** It can only be matched once the other app has that profile. Fix the Profiles line first.
+
+### An alarm can't be moved to the other app
+
+| Message | Fix |
+|---|---|
+| Discord and Telegram are on different profiles | Match the active profile on Linked accounts, then move again |
+| The place isn't saved on the other app | Match saved places, or save that place on the other app |
+| It's limited to an area the other app can't use | Change the alarm's areas |
+| Alerts can't be moved while inspecting another account | Admins viewing as someone can't move their alarms. The person has to do it |
+| "…but the Discord copy is still there" | The move worked and the delete didn't. Delete the leftover copy from the list |
+
+### People are never removed after leaving the group
+
+**Cause**: `[general] role_check_mode` is `ignore`, PoracleNG's default, or `[telegram] check_role` is off. The
+check never creates anyone, only disables or deletes.
+
+**Fix**: Set `role_check_mode = "disable-user"` (or `"delete"`) and `check_role = true`. See
+[Removing people who leave](configuration/telegram.md#removing-people-who-leave).
