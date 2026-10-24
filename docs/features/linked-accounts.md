@@ -50,38 +50,52 @@ the way the site's admins ask; if they've set a support link, the page shows it.
 ## When the two accounts differ
 
 Settings that belong to the person, such as location, areas, profiles and saved places, are saved to both
-accounts. If the accounts have drifted apart (you changed your location with `!location` in the Telegram bot,
-say, or added a profile on one side only), a banner under the toolbar says so with one line per difference:
+accounts. They can still come apart (you changed your location with `!location` in the Telegram bot, say, or
+added a profile on one side only). When they do, a one-line banner under the toolbar says "Discord and Telegram
+have different settings." with a **Review** link to the Linked accounts page. The banner only appears when a page
+opens, so nothing you're reading jumps down under you.
 
-- **Location:** "Location: Discord has Old Town, Telegram has Northside." The place name comes from the same
-  address lookup the location dialog uses, and falls back to coordinates when that is switched off or finds
-  nothing.
-- **Areas:** only what one side has and the other lacks, such as "Telegram also has Riverside."
-- **Profiles, saved places and the current profile:** the same way, naming what is on one side only.
+The **Linked accounts** page lists every difference, whether or not you dismissed the banner. Each has a label and
+names what differs:
 
-Each line has **Keep Discord** and **Keep Telegram**. Pressing one makes the other account match the side you
-kept. Nothing is ever resolved for you.
+- **Location:** both places at the same level of detail (two towns, or two countries) and the distance between
+  them, such as "Discord's is in Richmond, Telegram's is in Glasgow, 555 km apart." The names come from the address
+  lookup the location dialog uses; without it you get the distance alone, never raw coordinates.
+- **Areas:** the areas only one app has, spelled the way Poracle spells them.
+- **Profiles:** the profiles only one app has, and for the ones both have, what differs: name, schedule, or areas
+  and location. The profile you're on isn't reported here for its areas or location; those are the Location and
+  Areas lines.
+- **Active profile:** the profiles each app is using, by name.
+- **Saved places:** the places only one app has, and the ones in different spots, by name.
 
-- If the accounts changed again since the banner was drawn, you're told "That changed again. Check the banner."
-  and nothing is overwritten.
-- A profile that holds alerts on the other account isn't deleted. The message names it and says "Nothing was
-  changed." Move or delete those alerts first.
-- A saved place that alerts on the other account are still aimed at, on any of its profiles, is not deleted
-  either.
-- If a resolve fails part way, the banner says so and shows what still differs.
+Each line has **Use Discord's** and **Use Telegram's**, and under each button what it does to the other app ("Telegram
+gets Aberdeen.", "Discord loses Weekend."). Pressing one makes the other app match. Nothing is ever resolved for
+you. A choice that deletes a profile or saved place on the other app asks first and names what goes. Afterwards the
+page says what changed and moves to the next difference.
+
+- If the apps changed again since the list was drawn, you're told so, nothing is overwritten, and the list shows
+  what differs now.
+- A profile that still has alarms on the other app isn't deleted. The message names the app and the profile; move
+  or delete those alarms in that app first, or use that app's profiles.
+- A saved place that alarms on the other app still use, on any of its profiles, isn't deleted either.
+- The active profile can only be matched once the other app has that profile. The line says so, and Profiles comes
+  first in the list.
+- If a choice fails part way, the page says so and the list shows what still differs.
 
 Some older accounts have a profile 0. PoracleNG never gives a new profile that number, so the other account
 can't have one, and the pair leaves profile 0 out: it isn't compared, copied, renamed or deleted, and its
 alerts stay on the account that has it. The Linked accounts page says which account has one.
 
-**Dismiss** hides the banner for the rest of this browser session (closing the tab or window brings it back). A new or changed difference shows it again, even after you dismissed it.
+**Dismiss** hides the banner for the rest of this browser session (closing the tab or window brings it back). A new
+or changed difference shows it again. The list on Linked accounts is always there.
 
-### "Saved for Discord. Telegram didn't take it"
+### "Saved for Discord, but not for Telegram"
 
-When a save reaches one account and the other refuses it, you see this once, naming the account that saved and
-the reason the other gave. Nothing is rolled back. The auto-delete switches on **Cleaning** work the same way:
-the count you see is the alerts the first account changed. The banner then shows the difference, and you pick the side
-to keep.
+When a save reaches one app and the other refuses it, you see this once, naming the app that saved and why the
+other didn't, with a **Review** button that opens Linked accounts. It's added to the page's own "Saved" message
+rather than replaced by it. Nothing is rolled back. The auto-delete switches on **Cleaning** work the same way:
+the count you see is the alarms the first app changed. The Linked accounts list then shows the difference, and you
+pick the app to use. Every save reads the differences again, so the banner and the list are never out of date.
 
 ## Where new alerts go
 
