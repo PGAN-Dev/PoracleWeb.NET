@@ -7,6 +7,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { filter } from 'rxjs';
 
 import { LinkedAccountService } from '../../../core/services/linked-account.service';
+import { DRIFT_REVIEW_STATE } from '../../utils/pair-drift';
 
 const DISMISSED_KEY = 'poracle-drift-dismissed';
 export const LINKED_ACCOUNTS_URL = '/linked-accounts';
@@ -51,6 +52,7 @@ export class PairDriftBannerComponent {
   private readonly url = signal(this.router.url);
 
   protected readonly linkedAccountsUrl = LINKED_ACCOUNTS_URL;
+  protected readonly reviewState = { [DRIFT_REVIEW_STATE]: true };
 
   /** Hidden on Linked accounts, which lists the differences itself. */
   protected readonly visible = computed(() => this.armed() && this.pending() && !onLinkedAccounts(this.url()));
@@ -90,7 +92,15 @@ export class PairDriftBannerComponent {
     } catch {
       // The banner stays hidden for this page load without it.
     }
-    // The button that had focus is gone; the page is the sensible next place.
-    document.getElementById('main-content')?.focus();
+    // The button that had focus is gone. The page's heading is the next thing below it, and focusing it rather than
+    // the whole main region lets the next Tab carry on through the page.
+    const main = document.getElementById('main-content');
+    const heading = main?.querySelector<HTMLElement>('h1');
+    if (heading) {
+      heading.setAttribute('tabindex', '-1');
+      heading.focus();
+    } else {
+      main?.focus();
+    }
   }
 }

@@ -7,6 +7,7 @@ import { Subject } from 'rxjs';
 import { PairDriftBannerComponent } from './pair-drift-banner.component';
 import { DriftItem, LinkStatus } from '../../../core/models';
 import { LinkedAccountService } from '../../../core/services/linked-account.service';
+import { DRIFT_REVIEW_STATE } from '../../utils/pair-drift';
 
 const areas: DriftItem = { discord: ['old town'], field: 'areas', fingerprint: 'fp-areas', telegram: ['old town', 'riverside'] };
 const location: DriftItem = { discord: { lat: 1, lon: 2 }, field: 'location', fingerprint: 'fp-loc', telegram: { lat: 3, lon: 4 } };
@@ -110,7 +111,30 @@ describe('PairDriftBannerComponent', () => {
     expect(banner()).toBeNull();
   });
 
-  it('hides on dismiss for the session, moves focus to the page, and comes back for a difference it has not seen', () => {
+  it('hides on dismiss for the session, moves focus to the page heading, and comes back for a difference it has not seen', () => {
+    const main = document.createElement('main');
+    main.id = 'main-content';
+    main.tabIndex = -1;
+    const heading = document.createElement('h1');
+    main.appendChild(heading);
+    document.body.appendChild(main);
+    mount([areas]);
+
+    (el().querySelector('.drift-dismiss') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(banner()).toBeNull();
+    // The page's own heading, not the whole main region, so the next Tab goes on through the page.
+    expect(document.activeElement).toBe(heading);
+    expect(heading.getAttribute('tabindex')).toBe('-1');
+    expect(sessionStorage.getItem('poracle-drift-dismissed')).toContain('fp-areas');
+
+    drift.set([areas, location]);
+    navigate('/raids');
+    expect(banner()).not.toBeNull();
+    main.remove();
+  });
+
+  it('falls back to the main region on a page with no heading', () => {
     const main = document.createElement('main');
     main.id = 'main-content';
     main.tabIndex = -1;
@@ -118,15 +142,20 @@ describe('PairDriftBannerComponent', () => {
     mount([areas]);
 
     (el().querySelector('.drift-dismiss') as HTMLButtonElement).click();
-    fixture.detectChanges();
-    expect(banner()).toBeNull();
     expect(document.activeElement).toBe(main);
-    expect(sessionStorage.getItem('poracle-drift-dismissed')).toContain('fp-areas');
-
-    drift.set([areas, location]);
-    navigate('/raids');
-    expect(banner()).not.toBeNull();
     main.remove();
+  });
+
+  it('tells Linked accounts it was opened to review, so the page can take focus', () => {
+    mount([areas]);
+    const router = TestBed.inject(Router);
+    const spy = jest.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+
+    (el().querySelector('a.drift-review') as HTMLAnchorElement).click();
+
+    expect(spy).toHaveBeenCalled();
+    const extras = spy.mock.calls[0][1] as { state?: Record<string, unknown> } | undefined;
+    expect(extras?.state?.[DRIFT_REVIEW_STATE]).toBe(true);
   });
 
   it('stays hidden after a reload in the same session', () => {

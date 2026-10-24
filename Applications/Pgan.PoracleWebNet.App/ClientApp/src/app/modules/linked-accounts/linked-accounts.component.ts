@@ -7,6 +7,7 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatRadioChange, MatRadioModule } from '@angular/material/radio';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { Router } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { catchError, of } from 'rxjs';
 
@@ -18,6 +19,7 @@ import { SettingsService } from '../../core/services/settings.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { PairDriftPanelComponent } from '../../shared/components/pair-drift-panel/pair-drift-panel.component';
 import { TelegramLoginButtonComponent } from '../../shared/components/telegram-login-button/telegram-login-button.component';
+import { DRIFT_REVIEW_STATE } from '../../shared/utils/pair-drift';
 import { clearTelegramReturn, readTelegramReturn } from '../../shared/utils/telegram-return';
 
 /** What a side's card says about it. `this-account` and `not-linked` only occur while nothing is linked. */
@@ -74,6 +76,8 @@ const SIDE_LABEL: Record<LinkSide, string> = { discord: 'LINKED.SIDE_DISCORD', t
   templateUrl: './linked-accounts.component.html',
 })
 export class LinkedAccountsComponent implements OnInit {
+  /** Opened from a Review link (the banner or a pair warning): focus starts at the heading, not left on the page. */
+  private readonly arrivedToReview = inject(Router).currentNavigation()?.extras.state?.[DRIFT_REVIEW_STATE] === true;
   private readonly auth = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
@@ -106,14 +110,15 @@ export class LinkedAccountsComponent implements OnInit {
   /**
    * The two choices for new alarms. A side that isn't receiving alerts can't be newly chosen, since nothing sent
    * there would arrive. It stays enabled while it is already the default, so the current choice still reads as
-   * selected and the warning under it says what to do.
+   * selected and the warning under it says what to do. They are not held while a choice saves: disabling the radio
+   * that has focus dropped focus to the page, and the next arrow key did nothing.
    */
   protected readonly defaultOptions = computed<DefaultOption[]>(() => {
     const sides = this.linked.status()?.sides ?? [];
     const current = this.defaultDestination();
     return SIDES.map(side => {
       const paused = (sides.find(s => s.side === side)?.pause ?? 'none') !== 'none';
-      return { side, disabled: this.busy() || (paused && side !== current), paused };
+      return { side, disabled: paused && side !== current, paused };
     });
   });
 
@@ -183,6 +188,7 @@ export class LinkedAccountsComponent implements OnInit {
         { duration: 3000 },
       );
     });
+    this.keepRadioFocus(side);
   }
 
   /** Closes the refusal. Its Dismiss button goes with it, so focus moves to the page heading. */
@@ -194,6 +200,7 @@ export class LinkedAccountsComponent implements OnInit {
   ngOnInit(): void {
     const discordReturned = this.readFragment();
     const telegramReturn = this.takeTelegramReturn();
+    if (this.arrivedToReview) this.focusHeading();
     void this.linked.refresh().then(async () => {
       this.loaded.set(true);
       if (discordReturned) this.confirmDiscordLink();
@@ -275,6 +282,15 @@ export class LinkedAccountsComponent implements OnInit {
       if (!heading) return;
       heading.setAttribute('tabindex', '-1');
       heading.focus();
+    });
+  }
+
+  /** After a save, focus stays on the chosen radio, so arrow keys keep working in the group. Only if it went nowhere. */
+  private keepRadioFocus(side: LinkSide): void {
+    setTimeout(() => {
+      const active = document.activeElement;
+      if (active && active !== document.body) return;
+      this.host.nativeElement.querySelector<HTMLInputElement>(`[data-test="default-${side}"] input[type="radio"]`)?.focus();
     });
   }
 

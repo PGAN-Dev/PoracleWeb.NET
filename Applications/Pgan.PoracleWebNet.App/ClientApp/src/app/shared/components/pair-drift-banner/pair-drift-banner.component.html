@@ -2,7 +2,12 @@
   <div class="drift-banner" role="region" [attr.aria-label]="'DRIFT.TITLE' | translate">
     <mat-icon class="drift-icon" aria-hidden="true">sync_problem</mat-icon>
     <p class="drift-text">{{ 'DRIFT.BANNER' | translate }}</p>
-    <a mat-button class="drift-review" [routerLink]="linkedAccountsUrl" [attr.aria-label]="'DRIFT.REVIEW_ARIA' | translate">
+    <a
+      mat-button
+      class="drift-review"
+      [routerLink]="linkedAccountsUrl"
+      [state]="reviewState"
+      [attr.aria-label]="'DRIFT.REVIEW_ARIA' | translate">
       {{ 'DRIFT.REVIEW' | translate }}
     </a>
     <button mat-icon-button class="drift-dismiss" type="button" [attr.aria-label]="'DRIFT.DISMISS' | translate" (click)="dismiss()">

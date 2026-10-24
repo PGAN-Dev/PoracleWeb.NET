@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { Router } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
 
@@ -11,6 +12,7 @@ import { AuthProviders, LinkStatus } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { LinkedAccountService } from '../../core/services/linked-account.service';
 import { SettingsService } from '../../core/services/settings.service';
+import { DRIFT_REVIEW_STATE } from '../../shared/utils/pair-drift';
 
 const providers = (discord: boolean, telegram: boolean): AuthProviders => ({
   discord: { configured: discord, enabledByAdmin: true },
@@ -40,6 +42,7 @@ describe('LinkedAccountsComponent', () => {
     options: {
       discord?: boolean;
       impersonating?: boolean;
+      review?: boolean;
       support?: string | null;
       telegram?: boolean;
       telegramGroup?: string | null;
@@ -66,6 +69,10 @@ describe('LinkedAccountsComponent', () => {
     // The component imports both modules, which provide their own copies at component level.
     TestBed.overrideProvider(MatSnackBar, { useValue: snackBar });
     TestBed.overrideProvider(MatDialog, { useValue: { open: dialogOpen } });
+    if (options.review) {
+      const router = TestBed.inject(Router);
+      Object.defineProperty(router, 'currentNavigation', { value: () => ({ extras: { state: { [DRIFT_REVIEW_STATE]: true } } }) });
+    }
     const fixture = TestBed.createComponent(LinkedAccountsComponent);
     fixture.detectChanges();
     return { component: fixture.componentInstance, fixture };
@@ -171,6 +178,22 @@ describe('LinkedAccountsComponent', () => {
     await flush();
     expect(q(fixture, '[data-test="link-error"]')).toBeNull();
     expect(document.activeElement).toBe(q(fixture, 'h1'));
+  });
+
+  it('takes focus on its heading when opened from a Review link, so the reader starts at the top of the page', async () => {
+    const { fixture } = setup({ review: true });
+    document.body.appendChild(fixture.nativeElement);
+    await flush();
+    expect(document.activeElement).toBe(q(fixture, 'h1'));
+    fixture.nativeElement.remove();
+  });
+
+  it('leaves focus alone on an ordinary visit', async () => {
+    const { fixture } = setup();
+    document.body.appendChild(fixture.nativeElement);
+    await flush();
+    expect(document.activeElement).not.toBe(q(fixture, 'h1'));
+    fixture.nativeElement.remove();
   });
 
   it('announces a refusal and labels its dismiss button', () => {
@@ -325,6 +348,54 @@ describe('LinkedAccountsComponent', () => {
       await flush();
       expect(linkedAccounts.setDefault).toHaveBeenCalledWith('telegram');
       expect(snackBar.open).toHaveBeenCalledWith('LINKED.SNACK_DEFAULT', 'TOAST.OK', { duration: 3000 });
+    });
+
+    it('keeps the radios usable while a choice saves, so focus and arrow keys stay in the group', async () => {
+      status.set(active);
+      let finish: () => void = () => undefined;
+      linkedAccounts.setDefault.mockImplementationOnce(
+        () =>
+          new Promise<void>(resolve => {
+            finish = () => {
+              status.set({ ...active, defaultDestination: 'telegram' });
+              resolve();
+            };
+          }),
+      );
+      const { fixture } = setup();
+      document.body.appendChild(fixture.nativeElement);
+      const telegram = () => q(fixture, 'input[type="radio"][value="telegram"]') as HTMLInputElement;
+      telegram().focus();
+      telegram().click();
+      fixture.detectChanges();
+
+      // Disabling the focused radio while saving dropped focus to the page, and the next arrow key did nothing.
+      expect(telegram().disabled).toBe(false);
+      expect(q(fixture, 'input[type="radio"][value="discord"]')?.hasAttribute('disabled')).toBe(false);
+
+      finish();
+      await flush();
+      fixture.detectChanges();
+      await flush();
+
+      expect(document.activeElement).toBe(telegram());
+      expect(telegram().checked).toBe(true);
+      fixture.nativeElement.remove();
+    });
+
+    it('puts focus back on the chosen radio when a save leaves it nowhere', async () => {
+      status.set(active);
+      const { fixture } = setup();
+      document.body.appendChild(fixture.nativeElement);
+      const telegram = q(fixture, 'input[type="radio"][value="telegram"]') as HTMLInputElement;
+      telegram.click();
+      (document.activeElement as HTMLElement | null)?.blur();
+      await flush();
+      fixture.detectChanges();
+      await flush();
+
+      expect(document.activeElement).toBe(telegram);
+      fixture.nativeElement.remove();
     });
 
     it('marks a side that is not receiving alerts and does not offer it as a new default', () => {

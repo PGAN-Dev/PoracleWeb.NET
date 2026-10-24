@@ -3,6 +3,7 @@ import { MatSnackBar, MatSnackBarRef } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 
 import { I18nService } from './i18n.service';
+import { DRIFT_REVIEW_STATE } from '../../shared/utils/pair-drift';
 
 /** Longer than an error toast (5 s): a pair warning carries a reason sentence the person has to read. */
 export const PAIR_WARNING_TOAST_MS = 8000;
@@ -115,7 +116,9 @@ export class ToastService {
       panelClass: ['toast-info'],
       verticalPosition: 'top',
     });
-    ref?.onAction().subscribe(() => void this.injector.get(Router).navigateByUrl('/linked-accounts'));
+    ref
+      ?.onAction()
+      .subscribe(() => void this.injector.get(Router).navigateByUrl('/linked-accounts', { state: { [DRIFT_REVIEW_STATE]: true } }));
     return ref;
   }
 

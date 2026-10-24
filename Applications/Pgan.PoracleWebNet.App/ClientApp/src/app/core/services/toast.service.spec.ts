@@ -44,7 +44,8 @@ describe('ToastService', () => {
       jest.advanceTimersByTime(PAIR_WARNING_DEFER_MS);
 
       expect(snackBar.open).toHaveBeenCalledWith('Saved for Discord, but not for Telegram.', 'DRIFT.REVIEW', pairConfig);
-      expect(go).toHaveBeenCalledWith('/linked-accounts');
+      // It says why the page opened, so Linked accounts puts focus on its heading.
+      expect(go).toHaveBeenCalledWith('/linked-accounts', { state: { driftReview: true } });
     });
 
     it("is carried by the page's own success toast instead of being replaced by it, and shown once", () => {
