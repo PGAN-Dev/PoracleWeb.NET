@@ -1,5 +1,6 @@
 using System.Reflection;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Mappings;
 using Pgan.PoracleWebNet.Core.Models;
@@ -8,12 +9,13 @@ using Pgan.PoracleWebNet.Data.Entities;
 
 namespace Pgan.PoracleWebNet.Core.Repositories;
 
-public class AccountLinkRepository(PoracleWebContext context) : IAccountLinkRepository
+public partial class AccountLinkRepository(PoracleWebContext context, ILogger<AccountLinkRepository> logger) : IAccountLinkRepository
 {
     private const int SqliteConstraint = 19;
     private const int MySqlDuplicateEntry = 1062;
 
     private readonly PoracleWebContext _context = context;
+    private readonly ILogger<AccountLinkRepository> _logger = logger;
 
     public async Task<AccountLink?> GetByHumanIdAsync(string humanId)
     {
@@ -26,8 +28,22 @@ public class AccountLinkRepository(PoracleWebContext context) : IAccountLinkRepo
 
     public async Task<IReadOnlyList<AccountLink>> GetAllAsync()
     {
+        // One hand-edited row must not take down the admin list: it is skipped and named in the log.
         var entities = await this._context.AccountLinks.AsNoTracking().OrderBy(l => l.Id).ToListAsync();
-        return entities.Select(e => e.ToModel()).ToList();
+        var links = new List<AccountLink>(entities.Count);
+        foreach (var entity in entities)
+        {
+            try
+            {
+                links.Add(entity.ToModel());
+            }
+            catch (AccountLinkUnreadableException ex)
+            {
+                LogUnreadableSkipped(this._logger, ex, ex.LinkId);
+            }
+        }
+
+        return links;
     }
 
     public async Task<AccountLink> AddAsync(AccountLink link)
@@ -124,6 +140,9 @@ public class AccountLinkRepository(PoracleWebContext context) : IAccountLinkRepo
         var telegram = message.Contains("telegram", StringComparison.OrdinalIgnoreCase);
         return discord == telegram ? null : discord ? LinkSide.Discord : LinkSide.Telegram;
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Account link {LinkId} can't be read and is left out of the list")]
+    private static partial void LogUnreadableSkipped(ILogger logger, Exception ex, int linkId);
 
     private static int? ReadInt(object target, string property) =>
         target.GetType().GetProperty(property, BindingFlags.Public | BindingFlags.Instance)?.GetValue(target) as int?;

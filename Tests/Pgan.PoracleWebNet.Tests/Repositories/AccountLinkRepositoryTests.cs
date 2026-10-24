@@ -1,5 +1,6 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Core.Repositories;
 using Pgan.PoracleWebNet.Data;
@@ -19,7 +20,7 @@ public sealed class AccountLinkRepositoryTests : IDisposable
         var options = new DbContextOptionsBuilder<PoracleWebContext>().UseSqlite(this._connection).Options;
         this._context = new PoracleWebContext(options);
         this._context.Database.EnsureCreated();
-        this._repo = new AccountLinkRepository(this._context);
+        this._repo = new AccountLinkRepository(this._context, NullLogger<AccountLinkRepository>.Instance);
     }
 
     public void Dispose()
@@ -134,5 +135,18 @@ public sealed class AccountLinkRepositoryTests : IDisposable
         Assert.True(next.Id > 0);
         Assert.True(await this._repo.SetDefaultAsync(next.Id, LinkSide.Telegram));
         Assert.Equal(2, (await this._repo.GetAllAsync()).Count);
+    }
+
+    [Fact]
+    public async Task GetAll_AnUnreadableRow_IsSkippedAndTheGoodOneReturned()
+    {
+        await this._repo.AddAsync(NewLink("100000000000000001", "200000001"));
+        var bad = await this._repo.AddAsync(NewLink("100000000000000002", "200000002"));
+        await this._context.Database.ExecuteSqlRawAsync("UPDATE account_links SET default_destination = 'webhook' WHERE id = {0}", bad.Id);
+
+        var all = await this._repo.GetAllAsync();
+
+        var only = Assert.Single(all);
+        Assert.Equal("100000000000000001", only.DiscordId);
     }
 }
