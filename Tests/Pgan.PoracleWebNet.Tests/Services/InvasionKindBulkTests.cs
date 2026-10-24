@@ -84,6 +84,16 @@ public class InvasionKindBulkTests
     }
 
     [Fact]
+    public async Task DistanceWithoutAKindAndASharedUidDoesNotThrow()
+    {
+        // A client that does not know the kinds, and a uid held by both: it used to die on a duplicate key.
+        var result = await this._service.UpdateDistanceByUidsAsync([1], "u1", 500);
+
+        Assert.True(result.Updated >= 1);
+        this._incident.Verify(p => p.PatchAsync("u1", It.Is<IReadOnlyList<int>>(u => u.SequenceEqual(new[] { 1 })), It.IsAny<TrackingPatchSet>()), Times.Once);
+    }
+
+    [Fact]
     public async Task RouterFindsTheOwnerOfTheKindOnTheOtherAccount()
     {
         var linked = new Mock<ILinkedAccount>();
