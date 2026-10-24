@@ -13,12 +13,14 @@ namespace Pgan.PoracleWebNet.Core.Services;
 public partial class LinkedHumanProvisioner(
     IPoracleHumanProxy humanProxy,
     IHumanService humans,
+    IUserAreaWriter areaWriter,
     ILogger<LinkedHumanProvisioner> logger) : ILinkedHumanProvisioner
 {
     private const string Refused = "Nothing was linked.";
     private const string PlaceholderName = "placeholder";
 
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
+    private readonly IUserAreaWriter _areaWriter = areaWriter;
     private readonly IHumanService _humans = humans;
     private readonly ILogger<LinkedHumanProvisioner> _logger = logger;
 
@@ -86,6 +88,33 @@ public partial class LinkedHumanProvisioner(
     /// with a placeholder that is deleted once the real profiles exist. Any number other than the expected
     /// one is a failure, since later moves and drift checks compare profile numbers.
     /// </summary>
+    /// <summary>
+    /// The copied areas the person may hold, the check profile create applies: the geography write is trusted, so
+    /// without it a name Poracle would refuse (another user's fence, a community the new account is outside)
+    /// would land on the new account. The new human is not linked yet, so its own allowed set cannot see the
+    /// person's drawn fences, which belong to the source id; a name either of the two accounts may select is kept.
+    /// </summary>
+    private async Task<List<string>> AllowedAreasAsync(string sourceId, string newId, List<string> names)
+    {
+        var requested = names.Where(n => !string.IsNullOrWhiteSpace(n)).ToList();
+        if (requested.Count == 0)
+        {
+            return [];
+        }
+
+        var keep = (await this._areaWriter.FilterAllowedAsync(newId, requested))
+            .Concat(await this._areaWriter.FilterAllowedAsync(sourceId, requested))
+            .Select(UserAreaPolicy.Key)
+            .ToHashSet(StringComparer.Ordinal);
+        var kept = requested.Where(n => keep.Contains(UserAreaPolicy.Key(n))).ToList();
+        if (kept.Count < requested.Count)
+        {
+            LogAreasDropped(this._logger, string.Join(", ", requested.Except(kept)));
+        }
+
+        return kept;
+    }
+
     private async Task CopyProfilesAndPlacesAsync(Human source, string newId, List<ProfileRow> sourceProfiles)
     {
         var created = await this.ReadProfilesAsync(newId);
@@ -102,7 +131,7 @@ public partial class LinkedHumanProvisioner(
         if (byNo.Count == 0)
         {
             // No profile rows to copy: the human's own fields describe its one profile.
-            await this._humanProxy.SetProfileGeographyAsync(newId, 1, AreaListJson.Parse(source.Area), source.Latitude, source.Longitude);
+            await this._humanProxy.SetProfileGeographyAsync(newId, 1, await this.AllowedAreasAsync(source.Id, newId, AreaListJson.Parse(source.Area)), source.Latitude, source.Longitude);
         }
 
         for (var n = 1; n <= highest; n++)
@@ -143,7 +172,7 @@ public partial class LinkedHumanProvisioner(
                 }
             }
 
-            await this._humanProxy.SetProfileGeographyAsync(newId, n, AreaListJson.Parse(row!.Area), row.Latitude, row.Longitude);
+            await this._humanProxy.SetProfileGeographyAsync(newId, n, await this.AllowedAreasAsync(source.Id, newId, AreaListJson.Parse(row!.Area)), row.Latitude, row.Longitude);
         }
 
         if (byNo.Count > 0)
@@ -242,6 +271,9 @@ public partial class LinkedHumanProvisioner(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Left a human alone during link rollback: its type or name is not what this link created")]
     private static partial void LogRollbackSkipped(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Areas {Names} were not copied to the linked account: not selectable by it or by the person's own account")]
+    private static partial void LogAreasDropped(ILogger logger, string names);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Saved place {Label} was not copied to the linked account: {Reason}")]
     private static partial void LogPlaceSkipped(ILogger logger, string label, string reason);

@@ -20,6 +20,7 @@ public class LinkedHumanProvisionerTests
 
     private readonly Mock<IPoracleHumanProxy> _proxy = new();
     private readonly Mock<IHumanService> _humans = new();
+    private readonly Mock<IUserAreaWriter> _areas = new();
     private readonly LinkedHumanProvisioner _sut;
     private JsonElement? _createBody;
     private List<int> _added = [];
@@ -33,8 +34,30 @@ public class LinkedHumanProvisionerTests
         });
         this._proxy.Setup(p => p.CreateHumanAsync(It.IsAny<JsonElement>()))
             .Callback((JsonElement b) => this._createBody = b.Clone()).Returns(Task.CompletedTask);
+        // By default every name is allowed, so the tests below see the copy itself; the filter has its own test.
+        this._areas.Setup(a => a.FilterAllowedAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>()))
+            .ReturnsAsync((string _, IReadOnlyCollection<string> names) => [.. names]);
         this._added = this.UseSource(1, (1, "Home"), (2, "Work"));
-        this._sut = new LinkedHumanProvisioner(this._proxy.Object, this._humans.Object, NullLogger<LinkedHumanProvisioner>.Instance);
+        this._sut = new LinkedHumanProvisioner(this._proxy.Object, this._humans.Object, this._areas.Object, NullLogger<LinkedHumanProvisioner>.Instance);
+    }
+
+    [Fact]
+    public async Task CreateMirror_DropsAnAreaTheNewAccountMayNotSelect_AndKeepsAllowedAndDrawnFences()
+    {
+        this._humans.Setup(h => h.GetByIdAsync(Discord)).ReturnsAsync(new Human
+        {
+            Id = Discord, Type = AccountLinkKeys.DiscordUserType, Name = "Old Town", Language = "en",
+            Latitude = 51.5, Longitude = -0.12, Area = "[\"old town\",\"my drawn fence\",\"someone elses\"]", CurrentProfileNo = 1,
+        });
+        this._proxy.Setup(p => p.GetProfilesAsync(Discord)).ReturnsAsync(Json("{\"profile\":[]}"));
+        // The new account is not linked yet, so only the person's own id knows their drawn fence.
+        this._areas.Setup(a => a.FilterAllowedAsync(Telegram, It.IsAny<IReadOnlyCollection<string>>())).ReturnsAsync(["old town"]);
+        this._areas.Setup(a => a.FilterAllowedAsync(Discord, It.IsAny<IReadOnlyCollection<string>>())).ReturnsAsync(["old town", "my drawn fence"]);
+
+        await this._sut.CreateMirrorAsync(Discord, LinkSide.Telegram, Telegram, "Old Town");
+
+        this._proxy.Verify(p => p.SetProfileGeographyAsync(Telegram, 1,
+            It.Is<IReadOnlyCollection<string>>(a => a.SequenceEqual(new[] { "old town", "my drawn fence" })), 51.5, -0.12), Times.Once);
     }
 
     private static JsonElement Json(string s) => JsonDocument.Parse(s).RootElement.Clone();
