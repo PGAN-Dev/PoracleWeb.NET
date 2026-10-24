@@ -216,6 +216,23 @@ describe('App nav filtering (#236)', () => {
       impersonatingSignal.set(true);
       expect(shown(app)).toBe(false);
     });
+
+    it('has a sidebar entry under Settings exactly when the menu item shows', () => {
+      const offered = withProviders(setup({}, false), providers(false, true), 'discord:user');
+      expect(settingsRoutes(offered)).toContain('/linked-accounts');
+
+      const notOffered = withProviders(setup({}, false), providers(true, false), 'discord:user');
+      expect(settingsRoutes(notOffered)).not.toContain('/linked-accounts');
+    });
+
+    it('drops the sidebar entry with linking off, and while impersonating', () => {
+      expect(settingsRoutes(withProviders(setup({ disable_account_linking: 'True' }, false), providers(true, true)))).not.toContain(
+        '/linked-accounts',
+      );
+      const app = withProviders(setup({}, false), providers(true, true));
+      impersonatingSignal.set(true);
+      expect(settingsRoutes(app)).not.toContain('/linked-accounts');
+    });
   });
 
   it('shows the Destinations group only to a delegate with grants', () => {
