@@ -75,9 +75,10 @@ public partial class UserGeofenceService(
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.UserGeofences);
 
         // Check count limit via local DB
-        // The cap counts across both ids of a linked pair.
+        // The cap counts across both ids of a linked pair, including a side whose human is missing or
+        // retyped right now, so the pair can't draw past it while one side is away.
         var count = 0;
-        foreach (var id in await this.PairIdsAsync(humanId))
+        foreach (var id in (await this._linkedAccount.ResolveAsync(humanId)).LinkedHumanIds)
         {
             count += await this._repository.GetCountByHumanIdAsync(id);
         }

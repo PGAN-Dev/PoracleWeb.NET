@@ -114,6 +114,45 @@ public class LinkedGeofenceOwnershipTests
     }
 
     [Fact]
+    public async Task Create_OtherSideMissing_ItsFencesStillCountTowardTheCap()
+    {
+        this._repository.Setup(r => r.GetCountByHumanIdAsync(Discord)).ReturnsAsync(3);
+        this._repository.Setup(r => r.GetCountByHumanIdAsync(Telegram)).ReturnsAsync(7);
+        var model = new UserGeofenceCreate { DisplayName = "Old Town", Polygon = [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]] };
+        var linked = PairTestSupport.Linked(PairTestSupport.Pair(Discord, telegramExists: false));
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => this.Sut(linked).CreateAsync(Discord, 1, model));
+
+        Assert.Contains("Maximum of 10", ex.Message);
+    }
+
+    [Fact]
+    public async Task Create_SignedInSideMissing_StillCountsBothIds()
+    {
+        this._repository.Setup(r => r.GetCountByHumanIdAsync(Discord)).ReturnsAsync(8);
+        this._repository.Setup(r => r.GetCountByHumanIdAsync(Telegram)).ReturnsAsync(2);
+        var model = new UserGeofenceCreate { DisplayName = "Old Town", Polygon = [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]] };
+        var linked = PairTestSupport.Linked(PairTestSupport.Pair(Discord, discordExists: false));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => this.Sut(linked).CreateAsync(Discord, 1, model));
+    }
+
+    [Fact]
+    public async Task Create_OtherSideMissing_UnderTheCapIsStillAllowed()
+    {
+        this._repository.Setup(r => r.GetCountByHumanIdAsync(Discord)).ReturnsAsync(3);
+        this._repository.Setup(r => r.GetCountByHumanIdAsync(Telegram)).ReturnsAsync(6);
+        this._repository.Setup(r => r.GetAllAsync()).ReturnsAsync([]);
+        this._repository.Setup(r => r.CreateAsync(It.IsAny<UserGeofence>())).ReturnsAsync((UserGeofence g) => g);
+        var model = new UserGeofenceCreate { DisplayName = "Old Town", Polygon = [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]] };
+        var linked = PairTestSupport.Linked(PairTestSupport.Pair(Discord, telegramExists: false));
+
+        var created = await this.Sut(linked).CreateAsync(Discord, 1, model);
+
+        Assert.Equal("old town", created.KojiName);
+    }
+
+    [Fact]
     public async Task Create_Unlinked_CapStaysTenOnOneId()
     {
         this._repository.Setup(r => r.GetCountByHumanIdAsync(Discord)).ReturnsAsync(10);

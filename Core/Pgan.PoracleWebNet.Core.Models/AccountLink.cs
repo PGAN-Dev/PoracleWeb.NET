@@ -62,6 +62,14 @@ public sealed record LinkedPair(string CallerId, AccountLink? Link, PairSide? Di
         }
     }
 
+    /// <summary>
+    /// Every human id the link names, whether or not that human exists now, the caller's own first. For a
+    /// limit that must hold while one side is missing or retyped, such as the drawn-fence cap.
+    /// </summary>
+    public IReadOnlyList<string> LinkedHumanIds => this.Link is null
+        ? [this.CallerId]
+        : new[] { this.CallerId, this.Link.DiscordId, this.Link.TelegramId }.Distinct(StringComparer.Ordinal).ToList();
+
     public string? HumanIdFor(LinkSide side) => this.Link is null
         ? null
         : side == LinkSide.Discord ? this.Link.DiscordId : this.Link.TelegramId;
