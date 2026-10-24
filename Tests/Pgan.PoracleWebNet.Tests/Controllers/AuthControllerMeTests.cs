@@ -1,4 +1,3 @@
-using Pgan.PoracleWebNet.Tests.Helpers;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
@@ -9,6 +8,7 @@ using Pgan.PoracleWebNet.Api.Configuration;
 using Pgan.PoracleWebNet.Api.Controllers;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
+using Pgan.PoracleWebNet.Tests.Helpers;
 
 namespace Pgan.PoracleWebNet.Tests.Controllers;
 

@@ -1,4 +1,3 @@
-using Pgan.PoracleWebNet.Tests.Helpers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
@@ -9,6 +8,7 @@ using Pgan.PoracleWebNet.Api.Configuration;
 using Pgan.PoracleWebNet.Api.Controllers;
 using Pgan.PoracleWebNet.Api.Services.Oidc;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
+using Pgan.PoracleWebNet.Tests.Helpers;
 
 namespace Pgan.PoracleWebNet.Tests.Controllers;
 
