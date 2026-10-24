@@ -955,6 +955,8 @@ export interface AccountLink {
 
 export interface LinkSideStatus {
   exists: boolean;
+  /** The name on that side's account. Null when the side doesn't exist or has none; absent on an older server. */
+  name?: null | string;
   pause: LinkPause;
   side: LinkSide;
 }

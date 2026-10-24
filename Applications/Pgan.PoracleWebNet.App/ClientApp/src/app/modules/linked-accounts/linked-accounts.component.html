@@ -7,18 +7,36 @@
 
 <div class="page-content">
   @if (refusal(); as key) {
-    <p class="link-error" role="alert" data-test="link-error">
+    <div class="link-error" role="alert" data-test="link-error">
       <mat-icon aria-hidden="true">error_outline</mat-icon>
-      <span>{{ key | translate }}</span>
-    </p>
+      <span class="link-error-text">{{ key | translate }}</span>
+      <button
+        mat-icon-button
+        type="button"
+        class="link-error-dismiss"
+        data-test="dismiss-error"
+        [attr.aria-label]="'LINKED.DISMISS' | translate"
+        (click)="dismissRefusal()">
+        <mat-icon aria-hidden="true">close</mat-icon>
+      </button>
+    </div>
   }
 
-  @if (linked.status()) {
+  @if (readOnly()) {
+    <!-- Viewing as someone else: their link is theirs to manage, and the page says so rather than going blank. -->
+    <p class="viewing-other" data-test="impersonating">
+      <mat-icon aria-hidden="true">visibility</mat-icon>
+      <span>{{ 'LINKED.IMPERSONATING' | translate }}</span>
+    </p>
+  } @else if (linked.status()) {
     <div class="side-grid">
       @for (card of cards(); track card.side) {
-        <mat-card class="side-card" [attr.data-test]="'card-' + card.side">
+        <mat-card appearance="outlined" class="side-card" [attr.data-test]="'card-' + card.side">
           <mat-card-header>
-            <mat-card-title>{{ (card.side === 'discord' ? 'LINKED.SIDE_DISCORD' : 'LINKED.SIDE_TELEGRAM') | translate }}</mat-card-title>
+            <mat-card-title>{{ sideLabel[card.side] | translate }}</mat-card-title>
+            @if (card.name) {
+              <mat-card-subtitle class="side-name" [attr.data-test]="'name-' + card.side">{{ card.name }}</mat-card-subtitle>
+            }
           </mat-card-header>
           <mat-card-content>
             <p class="state state-{{ card.state }}" [attr.data-test]="'state-' + card.side">
@@ -49,18 +67,21 @@
                 {{ 'LINKED.HINT_TELEGRAM' | translate }}
               </p>
               @if (telegramRegistrationUrl(); as url) {
-                <a mat-stroked-button [href]="url" target="_blank" rel="noopener" data-test="telegram-group-link">{{
-                  'LINKED.TELEGRAM_GROUP_LINK' | translate
-                }}</a>
+                <a mat-stroked-button [href]="url" target="_blank" rel="noopener noreferrer" data-test="telegram-group-link">
+                  {{ 'LINKED.TELEGRAM_GROUP_LINK' | translate }}
+                  <mat-icon iconPositionEnd aria-hidden="true">open_in_new</mat-icon>
+                  <span class="visually-hidden">{{ 'LINKED.OPENS_NEW_TAB' | translate }}</span>
+                </a>
               }
             }
             @if (card.state === 'waiting' && card.side === 'discord') {
               <p class="hint" data-test="hint-discord">
                 {{ 'LINKED.HINT_DISCORD' | translate }}
                 @if (supportUrl(); as url) {
-                  <a [href]="url" target="_blank" rel="noopener noreferrer" data-test="support-link">{{
-                    'LINKED.SUPPORT_LINK' | translate
-                  }}</a>
+                  <a class="new-tab-link" [href]="url" target="_blank" rel="noopener noreferrer" data-test="support-link"
+                    >{{ 'LINKED.SUPPORT_LINK' | translate }}<mat-icon class="new-tab-icon" aria-hidden="true">open_in_new</mat-icon
+                    ><span class="visually-hidden">{{ 'LINKED.OPENS_NEW_TAB' | translate }}</span></a
+                  >
                 }
               </p>
             }
@@ -68,7 +89,15 @@
               <p class="hint">{{ 'LINKED.HINT_STOPPED' | translate }}</p>
             }
             @if (card.state === 'paused-admin') {
-              <p class="hint">{{ 'LINKED.HINT_PAUSED_ADMIN' | translate }}</p>
+              <p class="hint" data-test="hint-paused-admin">
+                {{ 'LINKED.HINT_PAUSED_ADMIN' | translate }}
+                @if (supportUrl(); as url) {
+                  <a class="new-tab-link" [href]="url" target="_blank" rel="noopener noreferrer" data-test="paused-support-link"
+                    >{{ 'LINKED.SUPPORT_LINK' | translate }}<mat-icon class="new-tab-icon" aria-hidden="true">open_in_new</mat-icon
+                    ><span class="visually-hidden">{{ 'LINKED.OPENS_NEW_TAB' | translate }}</span></a
+                  >
+                }
+              </p>
             }
 
             @if (canLink(card.side)) {
@@ -78,7 +107,10 @@
                 </button>
               } @else {
                 <p class="hint">{{ 'LINKED.LINK_TELEGRAM_HINT' | translate }}</p>
-                <app-telegram-login-button [authUrl]="telegramAuthUrl" [botUsername]="telegramBot()" />
+                <app-telegram-login-button
+                  [authUrl]="telegramAuthUrl"
+                  [botUsername]="telegramBot()"
+                  [frameTitle]="'LINKED.LINK_TELEGRAM' | translate" />
               }
             }
           </mat-card-content>
@@ -86,8 +118,10 @@
       }
     </div>
 
+    <!-- pair-drift-panel -->
+
     @if (legacyProfileZero(); as zero) {
-      <p class="hint" data-test="legacy-profile-zero">
+      <p class="hint section" data-test="legacy-profile-zero">
         {{ 'LINKED.LEGACY_PROFILE_ZERO' | translate: { app: zero.app | translate, other: zero.other | translate } }}
       </p>
     }
@@ -96,22 +130,40 @@
       <section class="default-destination" data-test="default-destination">
         <h2 id="default-heading">{{ 'LINKED.NEW_ALERTS_GO_TO' | translate }}</h2>
         <mat-radio-group aria-labelledby="default-heading" [value]="defaultDestination()" (change)="chooseDefault($event)">
-          <mat-radio-button value="discord" [disabled]="busy()">{{ 'LINKED.SIDE_DISCORD' | translate }}</mat-radio-button>
-          <mat-radio-button value="telegram" [disabled]="busy()">{{ 'LINKED.SIDE_TELEGRAM' | translate }}</mat-radio-button>
+          @for (option of defaultOptions(); track option.side) {
+            <mat-radio-button [value]="option.side" [disabled]="option.disabled" [attr.data-test]="'default-' + option.side">
+              @if (option.paused) {
+                {{ 'LINKED.DEFAULT_OPTION_PAUSED' | translate: { app: sideLabel[option.side] | translate } }}
+              } @else {
+                {{ sideLabel[option.side] | translate }}
+              }
+            </mat-radio-button>
+          }
         </mat-radio-group>
+        @if (defaultPausedWarning(); as warning) {
+          <p class="default-warning" data-test="default-paused-warning">
+            <mat-icon aria-hidden="true">info</mat-icon>
+            <span>{{
+              'LINKED.DEFAULT_PAUSED_WARNING' | translate: { app: warning.app | translate, other: warning.other | translate }
+            }}</span>
+          </p>
+        }
         <p class="hint">{{ 'LINKED.DEFAULT_HINT' | translate }}</p>
       </section>
+    } @else if (showDefaultWaiting()) {
+      <p class="hint section" data-test="default-waiting">{{ 'LINKED.DEFAULT_WAITING' | translate }}</p>
     }
 
-    @if (isLinked() && !readOnly()) {
+    @if (isLinked()) {
       <div class="unlink-row">
         <button mat-stroked-button type="button" data-test="unlink" [disabled]="busy()" (click)="unlink()">
+          <mat-icon aria-hidden="true">link_off</mat-icon>
           {{ 'LINKED.UNLINK' | translate }}
         </button>
         <p class="hint">{{ 'LINKED.UNLINK_HINT' | translate }}</p>
       </div>
     }
-  } @else if (loaded() && !readOnly()) {
+  } @else if (loaded()) {
     <div class="load-failed" data-test="load-failed">
       <p>{{ 'LINKED.LOAD_FAILED' | translate }}</p>
       @if (linked.canRead()) {

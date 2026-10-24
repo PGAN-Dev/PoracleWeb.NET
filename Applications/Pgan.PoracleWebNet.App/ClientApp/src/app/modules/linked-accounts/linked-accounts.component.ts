@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -23,8 +23,18 @@ import { clearTelegramReturn, readTelegramReturn } from '../../shared/utils/tele
 export type SideState = 'active' | 'not-linked' | 'paused-admin' | 'stopped' | 'this-account' | 'waiting';
 
 export interface SideCard {
+  /** The name on that account, where the site knows it. */
+  name: null | string;
   side: LinkSide;
   state: SideState;
+}
+
+/** One choice under "New alarms go to". */
+export interface DefaultOption {
+  disabled: boolean;
+  /** The side exists but isn't receiving alerts (stopped, or paused by an admin). */
+  paused: boolean;
+  side: LinkSide;
 }
 
 /** The refusal codes the API and the Discord callback use. Anything else reads as the generic failure. */
@@ -41,6 +51,8 @@ const REFUSAL_KEYS: Record<string, string> = {
 };
 
 const SIDES: LinkSide[] = ['discord', 'telegram'];
+
+const SIDE_LABEL: Record<LinkSide, string> = { discord: 'LINKED.SIDE_DISCORD', telegram: 'LINKED.SIDE_TELEGRAM' };
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -63,6 +75,7 @@ export class LinkedAccountsComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly i18n = inject(I18nService);
   /** The side the person signed in with. Null for a type that is neither, which cannot link. */
   private readonly ownSide = computed<LinkSide | null>(() => {
@@ -79,15 +92,40 @@ export class LinkedAccountsComponent implements OnInit {
   protected readonly linked = inject(LinkedAccountService);
   protected readonly cards = computed<SideCard[]>(() => {
     const status = this.linked.status();
-    return SIDES.map(side => ({ side, state: this.stateOf(side, status?.linked ? (status.sides ?? []) : null) }));
+    const sides = status?.linked ? (status.sides ?? []) : null;
+    return SIDES.map(side => {
+      const state = this.stateOf(side, sides);
+      return { name: this.nameOf(side, state, sides), side, state };
+    });
   });
 
   protected readonly defaultDestination = computed(() => this.linked.status()?.defaultDestination ?? null);
 
+  /**
+   * The two choices for new alarms. A side that isn't receiving alerts can't be newly chosen, since nothing sent
+   * there would arrive. It stays enabled while it is already the default, so the current choice still reads as
+   * selected and the warning under it says what to do.
+   */
+  protected readonly defaultOptions = computed<DefaultOption[]>(() => {
+    const sides = this.linked.status()?.sides ?? [];
+    const current = this.defaultDestination();
+    return SIDES.map(side => {
+      const paused = (sides.find(s => s.side === side)?.pause ?? 'none') !== 'none';
+      return { side, disabled: this.busy() || (paused && side !== current), paused };
+    });
+  });
+
+  /** Set when the default points at a side that isn't receiving alerts. */
+  protected readonly defaultPausedWarning = computed<{ app: string; other: string } | null>(() => {
+    const current = this.defaultDestination();
+    if (!current || !this.defaultOptions().find(o => o.side === current)?.paused) return null;
+    const other: LinkSide = current === 'discord' ? 'telegram' : 'discord';
+    return { app: SIDE_LABEL[current], other: SIDE_LABEL[other] };
+  });
+
   protected readonly discordAvailable = signal(false);
   protected readonly isLinked = computed(() => this.linked.status()?.linked === true);
 
-  /** True once the first status read has finished, so a read that failed is told apart from one still going. */
   protected readonly legacyProfileZero = computed<{ app: string; other: string } | null>(() => {
     const side = this.linked.status()?.legacyProfileZero;
     if (side !== 'discord' && side !== 'telegram') {
@@ -97,6 +135,8 @@ export class LinkedAccountsComponent implements OnInit {
       ? { app: 'LINKED.SIDE_DISCORD', other: 'LINKED.SIDE_TELEGRAM' }
       : { app: 'LINKED.SIDE_TELEGRAM', other: 'LINKED.SIDE_DISCORD' };
   });
+
+  /** True once the first status read has finished, so a read that failed is told apart from one still going. */
   protected readonly loaded = signal(false);
 
   /** Linking, unlinking and the default are refused while viewing as someone else, so they are not offered. */
@@ -105,15 +145,18 @@ export class LinkedAccountsComponent implements OnInit {
   /** The translation key of the refusal to show, from a failed link or the Discord callback's fragment. */
   protected readonly refusal = signal<null | string>(null);
 
-  /** Offering where new alerts go only makes sense once there are two places to send them. */
+  /** Offering where new alarms go only makes sense once there are two places to send them. */
   protected readonly showDefault = computed(() => {
     const sides = this.linked.status()?.sides ?? [];
     return this.isLinked() && !this.readOnly() && sides.length === 2 && sides.every(s => s.exists);
   });
 
-  protected readonly supportUrl = this.settings.supportUrl;
-  protected readonly telegramRegistrationUrl = this.settings.telegramRegistrationUrl;
+  /** Linked, but one side isn't registered yet: say when the choice arrives rather than leaving a gap. */
+  protected readonly showDefaultWaiting = computed(() => this.isLinked() && !this.readOnly() && !this.showDefault());
 
+  protected readonly sideLabel = SIDE_LABEL;
+
+  protected readonly supportUrl = this.settings.supportUrl;
   /** Where Telegram sends the browser back to after a sign-in. */
   protected readonly telegramAuthUrl = `${window.location.origin}/linked-accounts`;
 
@@ -121,20 +164,37 @@ export class LinkedAccountsComponent implements OnInit {
 
   protected readonly telegramAvailable = computed(() => this.telegramBot() !== '');
 
+  protected readonly telegramRegistrationUrl = this.settings.telegramRegistrationUrl;
+
   protected canLink(side: LinkSide): boolean {
     if (this.readOnly() || this.isLinked() || side === this.ownSide()) return false;
     return side === 'discord' ? this.discordAvailable() : this.telegramAvailable();
   }
 
   protected async chooseDefault(change: MatRadioChange): Promise<void> {
-    await this.run(() => this.linked.setDefault(change.value as LinkSide));
+    const side = change.value as LinkSide;
+    await this.run(async () => {
+      await this.linked.setDefault(side);
+      this.snackBar.open(
+        this.i18n.instant('LINKED.SNACK_DEFAULT', { app: this.i18n.instant(SIDE_LABEL[side]) }),
+        this.i18n.instant('TOAST.OK'),
+        { duration: 3000 },
+      );
+    });
+  }
+
+  /** Closes the refusal. Its Dismiss button goes with it, so focus moves to the page heading. */
+  protected dismissRefusal(): void {
+    this.refusal.set(null);
+    this.focusHeading();
   }
 
   ngOnInit(): void {
-    this.readFragment();
+    const discordReturned = this.readFragment();
     const telegramReturn = this.takeTelegramReturn();
     void this.linked.refresh().then(async () => {
       this.loaded.set(true);
+      if (discordReturned) this.confirmDiscordLink();
       // Not while viewing as someone else, nor once linked: the actions the page offers are the ones it allows.
       if (telegramReturn && !this.readOnly() && !this.isLinked()) await this.onTelegramReturn(telegramReturn);
     });
@@ -169,12 +229,13 @@ export class LinkedAccountsComponent implements OnInit {
   }
 
   protected unlink(): void {
+    // Unlinking deletes nothing, so the confirm is neutral: no warning triangle and no trash can.
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
         confirmText: this.i18n.instant('LINKED.UNLINK'),
+        icon: 'link_off',
         message: this.i18n.instant('LINKED.UNLINK_CONFIRM'),
         title: this.i18n.instant('LINKED.UNLINK_TITLE'),
-        warn: true,
       } as ConfirmDialogData,
     });
     ref.afterClosed().subscribe(confirmed => {
@@ -182,26 +243,62 @@ export class LinkedAccountsComponent implements OnInit {
       void this.run(async () => {
         await this.linked.unlink();
         this.snackBar.open(this.i18n.instant('LINKED.SNACK_UNLINKED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+        // The Unlink button that had focus is gone now.
+        this.focusHeading();
       });
     });
   }
 
   /**
-   * The Discord callback ends on `/linked-accounts#linked=discord` or `#link_error=<code>`. Read once, then
-   * dropped so a reload or a back button does not replay the message.
+   * `#linked=discord` only says the callback finished; the status read after it decides what the person is told.
+   * Linked, the toast. Read but not linked, the generic refusal, because "Accounts linked" above "Not linked" is
+   * wrong. A read that failed says nothing here: the page shows its own load failure.
    */
-  private readFragment(): void {
+  private confirmDiscordLink(): void {
+    const status = this.linked.status();
+    if (status?.linked) {
+      this.snackBar.open(this.i18n.instant('LINKED.SNACK_LINKED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+    } else if (status) {
+      this.refusal.set(REFUSAL_KEYS['link_failed']);
+    }
+  }
+
+  /**
+   * Where focus goes when the control that had it disappears (a dismissed message, the Unlink button). After
+   * the change renders, so the old control is gone. The heading takes focus without joining the tab order.
+   */
+  private focusHeading(): void {
+    setTimeout(() => {
+      const heading = this.host.nativeElement.querySelector<HTMLElement>('h1');
+      if (!heading) return;
+      heading.setAttribute('tabindex', '-1');
+      heading.focus();
+    });
+  }
+
+  private nameOf(side: LinkSide, state: SideState, sides: LinkSideStatus[] | null): null | string {
+    if (state === 'this-account') return this.auth.user()?.username || null;
+    if (state === 'not-linked' || state === 'waiting') return null;
+    return sides?.find(s => s.side === side)?.name || null;
+  }
+
+  /**
+   * The Discord callback ends on `/linked-accounts#linked=discord` or `#link_error=<code>`. Read once, then
+   * dropped so a reload or a back button does not replay the message. True when the callback says it linked,
+   * which the status read then confirms or refutes.
+   */
+  private readFragment(): boolean {
     const params = new URLSearchParams(window.location.hash.replace(/^#/, ''));
     const failed = params.get('link_error');
     const done = params.get('linked');
-    if (failed === null && done === null) return;
+    if (failed === null && done === null) return false;
 
     window.history.replaceState(null, '', window.location.pathname + window.location.search);
     if (failed !== null) {
       this.refusal.set(Object.hasOwn(REFUSAL_KEYS, failed) ? REFUSAL_KEYS[failed] : REFUSAL_KEYS['link_failed']);
-    } else {
-      this.snackBar.open(this.i18n.instant('LINKED.SNACK_LINKED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+      return false;
     }
+    return true;
   }
 
   /** Runs one action with the buttons held, and turns a coded refusal into the page's message. */
