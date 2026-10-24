@@ -1,10 +1,10 @@
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { firstValueFrom } from 'rxjs';
 
+import { serverReason } from './server-reason';
+import { LinkSide } from '../../core/models';
 import { AlarmMoveService, failedOutcomes, MoveOutcome, MoveType, summariseMoves } from '../../core/services/alarm-move.service';
 import { I18nService } from '../../core/services/i18n.service';
-import { LinkSide } from '../../core/models';
-import { serverReason } from './server-reason';
 
 /** What a list hands over: the three things a move needs besides what to move. */
 export interface BulkMoveDeps {
@@ -34,7 +34,7 @@ export async function runBulkMove(
   const { i18n, moves, snackBar } = deps;
   try {
     const results: MoveOutcome[] = [];
-    for (const { type, uids } of groups) {
+    for (const { uids, type } of groups) {
       if (uids.length === 0) continue;
       try {
         results.push(...(await firstValueFrom(moves.moveMany(type, uids, destination))).results);

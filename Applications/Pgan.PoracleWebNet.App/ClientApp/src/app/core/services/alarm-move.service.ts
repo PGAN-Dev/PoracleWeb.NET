@@ -66,9 +66,9 @@ export function failedOutcomes(uids: readonly number[], err: unknown): MoveOutco
   const status = (err as { status?: unknown } | null)?.status;
   if (typeof status === 'number' && status < 500 && status > 0) {
     const reason = serverReason(err);
-    return uids.map(uid => ({ reason, status: 'refused' as const, uid }));
+    return uids.map(uid => ({ uid, reason, status: 'refused' as const }));
   }
-  return uids.map(uid => ({ status: 'failed' as const, uid }));
+  return uids.map(uid => ({ uid, status: 'failed' as const }));
 }
 
 /**

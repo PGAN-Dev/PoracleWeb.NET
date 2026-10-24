@@ -41,9 +41,6 @@ export class LinkedAccountService {
     return !!status?.linked && sides.length === 2 && sides.every(s => s.exists);
   });
 
-  /** What the two accounts disagree on. Empty when linked and in step, and when the server couldn't compare them. */
-  readonly drift = computed<DriftItem[]>(() => this.statusSignal()?.drift ?? []);
-
   /**
    * Whether a status read can run at all: settings are in, linking is on, and nobody is being viewed as.
    * The page offers Retry only while this is true, since a retry does nothing otherwise.
@@ -51,6 +48,9 @@ export class LinkedAccountService {
   readonly canRead = computed(
     () => this.settings.settingsLoaded() && !this.settings.isDisabled('disable_account_linking') && !this.auth.isImpersonating(),
   );
+
+  /** What the two accounts disagree on. Empty when linked and in step, and when the server couldn't compare them. */
+  readonly drift = computed<DriftItem[]>(() => this.statusSignal()?.drift ?? []);
 
   /** Null until the first read, and again after sign-out. `{ linked: false }` is a read that found no link. */
   readonly status = this.statusSignal.asReadonly();
