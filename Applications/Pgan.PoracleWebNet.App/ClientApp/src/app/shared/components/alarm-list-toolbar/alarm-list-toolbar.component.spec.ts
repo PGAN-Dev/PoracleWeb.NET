@@ -45,6 +45,17 @@ describe('AlarmListToolbarComponent delivery filter', () => {
     expect(fixture.componentInstance.destinationFilter()).toBe('telegram');
   });
 
+  it('goes back to All when the filter stops being offered (the pair was unlinked)', () => {
+    fixture.componentRef.setInput('canFilterDestination', true);
+    fixture.componentInstance.destinationFilter.set('telegram');
+    fixture.detectChanges();
+
+    fixture.componentRef.setInput('canFilterDestination', false);
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.destinationFilter()).toBe('all');
+  });
+
   it('Clear filters puts the delivery filter back on All', () => {
     fixture.componentRef.setInput('canFilterDestination', true);
     fixture.componentInstance.destinationFilter.set('discord');

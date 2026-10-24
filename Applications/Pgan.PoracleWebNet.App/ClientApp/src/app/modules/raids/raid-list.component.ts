@@ -13,7 +13,7 @@ import { RaidAddDialogComponent } from './raid-add-dialog.component';
 import { RaidEditDialogComponent, RaidEditDialogData } from './raid-edit-dialog.component';
 import { Raid, Egg, LinkSide } from '../../core/models';
 import { resolveLevel } from '../../core/models/raid-level.models';
-import { AlarmMoveService, MoveOutcome, summariseMoves } from '../../core/services/alarm-move.service';
+import { AlarmMoveService, failedOutcomes, MoveOutcome, summariseMoves } from '../../core/services/alarm-move.service';
 import { AreaNameService } from '../../core/services/area-name.service';
 import { AreaService } from '../../core/services/area.service';
 import { EggService } from '../../core/services/egg.service';
@@ -221,9 +221,16 @@ export class RaidListComponent implements OnInit {
         ['egg', 'egg'],
       ] as const) {
         const uids = this.uidsOfKind(keys, kind);
-        if (uids.length > 0) results.push(...(await firstValueFrom(this.moves.moveMany(type, uids, destination))).results);
+        if (uids.length === 0) continue;
+        // One type failing must not hide what the other already did.
+        try {
+          results.push(...(await firstValueFrom(this.moves.moveMany(type, uids, destination))).results);
+        } catch (err) {
+          results.push(...failedOutcomes(uids, err));
+        }
       }
-      this.snackBar.open(summariseMoves(results, destination, this.i18n), this.i18n.instant('COMMON.OK'), { duration: 8000 });
+      const text = summariseMoves(results, destination, this.i18n);
+      if (text) this.snackBar.open(text, this.i18n.instant('COMMON.OK'), { duration: 8000 });
     } catch (err) {
       this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.MOVE_FAILED_ALL'), this.i18n.instant('COMMON.OK'), {
         duration: 6000,

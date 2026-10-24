@@ -1,10 +1,11 @@
 import { HttpClient, HttpContext } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { catchError, concatMap, from, map, Observable, reduce, throwError } from 'rxjs';
+import { catchError, concatMap, from, map, Observable, of, reduce, throwError } from 'rxjs';
 
 import { ConfigService } from './config.service';
 import { I18nService } from './i18n.service';
 import { markMoveFailure } from '../../shared/utils/move-failure';
+import { serverReason } from '../../shared/utils/server-reason';
 import { WORDS_OWN_502 } from '../interceptors/error.interceptor';
 import { LinkSide } from '../models';
 
@@ -54,6 +55,16 @@ function statusOf(raw: unknown): MoveStatus {
     default:
       return 'failed';
   }
+}
+
+/**
+ * What a request that failed outright means for each uid it carried: a refusal (4xx) changed nothing and
+ * says why; anything else may or may not have written, so it is reported as failed, not as not moved.
+ */
+export function failedOutcomes(uids: readonly number[], err: unknown): MoveOutcome[] {
+  const status = (err as { status?: unknown } | null)?.status;
+  const reason = typeof status === 'number' && status < 500 && status > 0 ? serverReason(err) : null;
+  return uids.map(uid => (reason ? { uid, reason, status: 'refused' as const } : { uid, status: 'failed' as const }));
 }
 
 /**
@@ -125,7 +136,12 @@ export class AlarmMoveService {
     const chunks: number[][] = [];
     for (let i = 0; i < uids.length; i += MAX_MOVE_UIDS) chunks.push(uids.slice(i, i + MAX_MOVE_UIDS));
     return from(chunks).pipe(
-      concatMap(chunk => this.http.post<AlarmMoveResponse>(`${this.config.apiHost}/api/alarm-move`, { uids: chunk, destination, type })),
+      // A chunk that fails must not take the results of the chunks before it down with it: those moves happened.
+      concatMap(chunk =>
+        this.http
+          .post<AlarmMoveResponse>(`${this.config.apiHost}/api/alarm-move`, { uids: chunk, destination, type })
+          .pipe(catchError((err: unknown) => of<AlarmMoveResponse>({ results: failedOutcomes(chunk, err) }))),
+      ),
       reduce<AlarmMoveResponse, AlarmMoveResponse>((all, part) => ({ results: [...all.results, ...(part.results ?? [])] }), {
         results: [],
       }),

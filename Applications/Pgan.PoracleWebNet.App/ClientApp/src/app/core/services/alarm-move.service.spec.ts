@@ -86,8 +86,54 @@ describe('AlarmMoveService', () => {
   });
 });
 
+describe('moveMany keeps what it already knows', () => {
+  let http: HttpTestingController;
+  let service: AlarmMoveService;
+
+  beforeEach(() => {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [provideHttpClient(), provideHttpClientTesting(), { provide: ConfigService, useValue: { apiHost: API } }],
+    });
+    http = TestBed.inject(HttpTestingController);
+    service = TestBed.inject(AlarmMoveService);
+  });
+
+  it("a later chunk that fails comes back as failed for its uids, beside the earlier chunk's results", async () => {
+    const uids = Array.from({ length: 501 }, (_, i) => i + 1);
+    const result = firstValueFrom(service.moveMany('pokemon', uids, 'discord'));
+
+    http.expectOne(`${API}/api/alarm-move`).flush({ results: [{ uid: 1, status: 'moved' }] });
+    await tick();
+    http.expectOne(`${API}/api/alarm-move`).flush({ error: 'down' }, { status: 502, statusText: 'Bad Gateway' });
+
+    const { results } = await result;
+    expect(results).toEqual([
+      { uid: 1, status: 'moved' },
+      { uid: 501, status: 'failed' },
+    ]);
+  });
+
+  it('a refused request (4xx) is refused with the server reason, not "may or may not have arrived"', async () => {
+    const result = firstValueFrom(service.moveMany('pokemon', [4], 'discord'));
+    http.expectOne(`${API}/api/alarm-move`).flush({ error: "Your accounts aren't linked." }, { status: 400, statusText: 'Bad Request' });
+
+    expect((await result).results).toEqual([{ uid: 4, reason: "Your accounts aren't linked.", status: 'refused' }]);
+  });
+});
+
 describe('summariseMoves', () => {
   const t = i18n as unknown as I18nService;
+
+  it('says nothing for no results, so no empty snackbar opens', () => {
+    expect(summariseMoves([], 'telegram', t)).toBe('');
+  });
+
+  it('reads the enum in either casing', () => {
+    const text = summariseMoves([{ uid: 2, status: 'SourceRemains' as never }], 'telegram', t);
+
+    expect(text).toContain('ALARM.MOVE_SOURCE_REMAINS');
+  });
 
   it('says all moved in one line', () => {
     const text = summariseMoves(

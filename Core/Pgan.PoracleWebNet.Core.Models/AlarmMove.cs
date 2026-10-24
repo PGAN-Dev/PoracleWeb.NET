@@ -1,7 +1,7 @@
 namespace Pgan.PoracleWebNet.Core.Models;
 
 /// <summary>How one move ended. A move never loses an alert: it creates on the target first, deletes the source second.</summary>
-[System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<MoveStatus>))]
+[System.Text.Json.Serialization.JsonConverter(typeof(MoveStatusConverter))]
 public enum MoveStatus
 {
     /// <summary>The target has the alert and the source no longer does.</summary>
@@ -22,6 +22,9 @@ public enum MoveStatus
     /// </summary>
     Failed,
 }
+
+/// <summary>Writes a status as <c>moved</c>, <c>sourceRemains</c> and so on, whatever the host's serializer options say.</summary>
+public sealed class MoveStatusConverter() : System.Text.Json.Serialization.JsonStringEnumConverter<MoveStatus>(System.Text.Json.JsonNamingPolicy.CamelCase);
 
 /// <param name="Uid">The alarm's uid on the side it came from.</param>
 /// <param name="Status">How the move ended.</param>

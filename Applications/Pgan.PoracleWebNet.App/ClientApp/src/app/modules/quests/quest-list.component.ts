@@ -171,7 +171,8 @@ export class QuestListComponent implements OnInit {
     const uids = this.actionIds();
     try {
       const response = await firstValueFrom(this.moves.moveMany('quest', uids, destination));
-      this.snackBar.open(summariseMoves(response.results, destination, this.i18n), this.i18n.instant('COMMON.OK'), { duration: 8000 });
+      const text = summariseMoves(response.results, destination, this.i18n);
+      if (text) this.snackBar.open(text, this.i18n.instant('COMMON.OK'), { duration: 8000 });
     } catch (err) {
       this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.MOVE_FAILED_ALL'), this.i18n.instant('COMMON.OK'), {
         duration: 6000,

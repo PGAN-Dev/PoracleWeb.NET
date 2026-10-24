@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, input, model, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, input, model, output, untracked } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -81,6 +81,13 @@ export class AlarmListToolbarComponent {
 
   /** How many rules the list holds. */
   readonly total = input(0);
+
+  constructor() {
+    // An unlinked pair has no filter to show, and a filter left on Telegram would hide every row for good.
+    effect(() => {
+      if (!this.canFilterDestination()) untracked(() => this.destinationFilter.set('all'));
+    });
+  }
 
   clear(): void {
     this.search.set('');
