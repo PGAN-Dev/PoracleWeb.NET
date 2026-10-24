@@ -23,9 +23,10 @@ export function moveEditMessage(edit: MoveEdit | null | undefined | void, i18n: 
   return i18n.instant('ALARM.MOVED_SOURCE_REMAINS', { app, from: i18n.instant(appKey(otherSide(edit.destination))) });
 }
 
-/** The sentence an add shows when the side it created on is paused. */
+/** What an add says when the side it created on is paused: nothing will arrive, and where to find out why. */
 export function pausedCreateMessage(side: LinkSide | null | undefined, i18n: I18nService): string {
-  return i18n.instant('DELIVER_TO.PAUSED', { app: i18n.instant(appKey(side ?? 'discord')) });
+  const paused = i18n.instant('DELIVER_TO.PAUSED', { app: i18n.instant(appKey(side ?? 'discord')) });
+  return `${paused} ${i18n.instant('DELIVER_TO.PAUSED_NEXT')}`;
 }
 
 /**
