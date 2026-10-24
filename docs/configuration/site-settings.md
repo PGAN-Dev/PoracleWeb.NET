@@ -276,7 +276,7 @@ Access control.
 
 | Key | Label | Type | Description |
 |---|---|---|---|
-| `enable_discord` | Enable Discord Login | boolean | Allow Discord sign-in. Requires `Discord:ClientId` and `Discord:ClientSecret` in [appsettings](reference.md). Nothing here affects PoracleNG's bot delivery — it only controls the login button. |
+| `enable_discord` | Enable Discord Login | boolean | Allow Discord sign-in. Requires `Discord:ClientId` and `Discord:ClientSecret` in [appsettings](reference.md); without them Discord sign-in is off whatever this says, and the admin page says so. Nothing here affects PoracleNG's bot delivery — it only controls the login button. |
 
 !!! note "Admins are exempt"
     The check runs only for non-admins, and only when the value is explicitly `"false"`. An absent key

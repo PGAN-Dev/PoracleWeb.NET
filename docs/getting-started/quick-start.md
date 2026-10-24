@@ -54,6 +54,8 @@ WEB_DB_PASSWORD=your_db_password
 # Generate one: openssl rand -base64 48
 JWT_SECRET=generate-a-long-random-secret-key-at-least-32-chars
 
+# Sign-in: configure at least one of Discord, Telegram (below) or an OIDC provider.
+# Discord is optional: delete both lines below for a Telegram-only or SSO-only site.
 # Discord OAuth2 — create an app at https://discord.com/developers/applications
 # Set the OAuth2 redirect URI to: http://your-server:8082/api/auth/discord/callback
 DISCORD_CLIENT_ID=your_discord_client_id
@@ -67,7 +69,7 @@ DISCORD_BOT_TOKEN=your_discord_bot_token
 # This is how PoracleWeb.NET talks to Poracle. It must be reachable from the container.
 PORACLE_API_ADDRESS=http://host.docker.internal:3030
 PORACLE_API_SECRET=your_poracle_api_secret    # Must match PoracleNG's server.apiSecret
-PORACLE_ADMIN_IDS=your_discord_user_id        # Comma-separated Discord user IDs for admin access
+PORACLE_ADMIN_IDS=your_user_id               # Comma-separated Discord or Telegram user IDs for admin access
 
 # CORS origin — the URL you'll access PoracleWeb.NET from.
 # Required in production (the container exits on startup if missing).
@@ -95,8 +97,7 @@ DISCORD_GEOFENCE_FORUM_CHANNEL_ID=
 # Scanner DB for gym picker in raid/egg dialogs (optional)
 # SCANNER_DB_CONNECTION=Server=host.docker.internal;Port=3306;Database=golbat;User=root;Password=your_password
 
-# Telegram authentication (optional)
-TELEGRAM_ENABLED=false
+# Telegram sign-in (optional). Setting the token and username turns it on by itself.
 TELEGRAM_BOT_TOKEN=
 TELEGRAM_BOT_USERNAME=
 ```
@@ -188,6 +189,8 @@ docker compose logs -f
 ```
 
 ## 5. Set up Discord OAuth2
+
+Skip this step if your site doesn't offer Discord sign-in. Telegram or an [OIDC provider](../configuration/external-sso.md) on its own is enough; see [Sign-in methods](../configuration/reference.md#sign-in-methods).
 
 1. Go to your [Discord Developer Portal](https://discord.com/developers/applications) and select your app
 2. Under **OAuth2**, add a redirect URI: `http://your-server:PORT/api/auth/discord/callback`
