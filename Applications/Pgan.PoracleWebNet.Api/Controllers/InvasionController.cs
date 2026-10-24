@@ -15,6 +15,9 @@ public class InvasionController(IInvasionService invasionService, LinkedAlarmRou
     private readonly IInvasionService _invasionService = invasionService;
     private readonly LinkedAlarmRouter _router = router;
 
+    internal const string MoveWithKindChangeMessage =
+        "Change where this alarm is delivered or change it between an invasion and a Pokéstop event, not both at once.";
+
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
@@ -86,7 +89,19 @@ public class InvasionController(IInvasionService invasionService, LinkedAlarmRou
                 return impersonationRefused;
             }
 
+            // A move and a kind change in one edit would be a create on the target and a delete on the source, each
+            // of a different kind; the source delete could then reach an unrelated rule sharing the uid. Refused
+            // before anything is written, so the person does one, then the other.
+            var openedEvent = PokestopEventTypes.IsEventName(existing.GruntType);
             model.ApplyUpdate(existing);
+            if (PokestopEventTypes.IsEventName(existing.GruntType) != openedEvent)
+            {
+                return this.BadRequest(new
+                {
+                    error = MoveWithKindChangeMessage,
+                });
+            }
+
             if (await this.EventElsewhereAsync(existing.GruntType) is { } movedRefused)
             {
                 return movedRefused;

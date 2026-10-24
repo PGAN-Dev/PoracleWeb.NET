@@ -4,12 +4,14 @@ import { TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
+import { signal } from '@angular/core';
 import { of } from 'rxjs';
 
 import { InvasionEditDialogComponent } from './invasion-edit-dialog.component';
 import { AuthService } from '../../core/services/auth.service';
 import { ConfigService } from '../../core/services/config.service';
 import { InvasionService } from '../../core/services/invasion.service';
+import { LinkedAccountService } from '../../core/services/linked-account.service';
 
 describe('InvasionEditDialogComponent', () => {
   let webhookSession = false;
@@ -17,10 +19,13 @@ describe('InvasionEditDialogComponent', () => {
 
   const update = jest.fn(() => of(undefined));
 
-  function setup(gruntType = 'mixed'): void {
+  let linked: null | { canChoose: () => boolean; status: () => unknown } = null;
+
+  function setup(gruntType = 'mixed', destination?: 'discord' | 'telegram'): void {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
+        ...(linked ? [{ provide: LinkedAccountService, useValue: linked }] : []),
         provideRouter([]),
         provideTranslateService(),
         provideHttpClient(),
@@ -36,6 +41,7 @@ describe('InvasionEditDialogComponent', () => {
             clean: 0,
             distance: 0,
             gender: 0,
+            destination,
             gruntType,
             ping: null,
             profileNo: 1,
@@ -69,6 +75,33 @@ describe('InvasionEditDialogComponent', () => {
 
       expect(update).toHaveBeenCalledTimes(1);
       expect((update.mock.calls[0] as unknown[])[2]).toBe(kind);
+    });
+  });
+
+  describe('Deliver to with the kind', () => {
+    beforeEach(() => update.mockClear());
+    afterEach(() => (linked = null));
+
+    it.each([
+      ['water', 'invasion'],
+      ['kecleon', 'event'],
+    ])('a move of a %s rule sends the other app and the kind %s in one save', (gruntType, kind) => {
+      linked = {
+        canChoose: () => true,
+        status: signal({ defaultDestination: 'discord', linked: true, sides: [] }),
+      };
+      setup(gruntType, 'discord');
+      const fixture = TestBed.createComponent(InvasionEditDialogComponent);
+      fixture.detectChanges();
+      fixture.componentInstance.form.controls.destination.setValue('telegram');
+
+      fixture.componentInstance.save();
+
+      expect(update).toHaveBeenCalledTimes(1);
+      const [uid, body, sentKind] = update.mock.calls[0] as unknown[];
+      expect(uid).toBe(1);
+      expect((body as { destination?: string }).destination).toBe('telegram');
+      expect(sentKind).toBe(kind);
     });
   });
 

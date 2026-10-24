@@ -89,6 +89,9 @@ public partial class AlarmMover(
 
         await this.CarryUnmodelledAsync(session, trackingType, sourceOwnerId, model);
 
+        // Read before the model is cleared for the create: the source is deleted as the kind it is.
+        var sourceKind = InvasionKind(model);
+
         // A stamp from a linked read is ours, not the rule's. The uid is cleared because a service hands back the
         // model it was given when nothing was written, and a leftover source uid would read as a new rule.
         model.Destination = null;
@@ -139,7 +142,7 @@ public partial class AlarmMover(
             created.Uid = mapped;
         }
 
-        var deleteError = await this.DeleteSourceAsync(svc, sourceOwnerId, uid);
+        var deleteError = await this.DeleteSourceAsync(svc, sourceOwnerId, uid, sourceKind);
         if (deleteError is not null)
         {
             LogSourceRemains(this._logger, trackingType, uid, deleteError);
@@ -186,7 +189,13 @@ public partial class AlarmMover(
         {
             foreach (var model in await svc.GetByUserAsync(humanId, profileNo))
             {
-                found.TryAdd(model.Uid, (model, humanId));
+                // A bulk move names uids, not kinds. Where an invasion and a Pokestop event share a uid the plain
+                // invasion is the one meant, as on the invasion list's other uid-only calls (#1058).
+                if (!found.TryAdd(model.Uid, (model, humanId))
+                    && InvasionKind(found[model.Uid].Model) == "event" && InvasionKind(model) == "invasion")
+                {
+                    found[model.Uid] = (model, humanId);
+                }
             }
         }
 
@@ -335,14 +344,30 @@ public partial class AlarmMover(
 
     private static string WireName(LinkSide side) => side == LinkSide.Discord ? "discord" : "telegram";
 
-    private async Task<string?> DeleteSourceAsync<TModel>(IAlarmService<TModel> svc, string sourceOwnerId, int uid)
+    /// <summary>
+    /// "event" or "invasion" for an alarm of the invasion list, which folds Pokestop events in under their own uid
+    /// sequence; null for every other type.
+    /// </summary>
+    private static string? InvasionKind(object model) =>
+        model is Invasion invasion ? (PokestopEventTypes.IsEventName(invasion.GruntType) ? "event" : "invasion") : null;
+
+    private async Task<string?> DeleteSourceAsync<TModel>(IAlarmService<TModel> svc, string sourceOwnerId, int uid, string? kind)
     {
         string? last = null;
         for (var attempt = 0; attempt < 2; attempt++)
         {
             try
             {
-                await svc.DeleteAsync(sourceOwnerId, uid);
+                // An invasion and an event can share a uid, so the invasion list's delete is told which one it is. See #1058.
+                if (kind is not null && svc is IInvasionService invasions)
+                {
+                    await invasions.DeleteAsync(sourceOwnerId, uid, kind);
+                }
+                else
+                {
+                    await svc.DeleteAsync(sourceOwnerId, uid);
+                }
+
                 return null;
             }
             // What a delete throws when PoracleNG did not remove the rule. Anything else is a bug and propagates.

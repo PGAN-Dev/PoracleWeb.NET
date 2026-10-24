@@ -15,6 +15,13 @@ public interface IInvasionService : IAlarmService<Invasion>
     public Task<Invasion> UpdateAsync(string userId, Invasion model, string? storedKind);
 
     /// <summary>
+    /// Deletes the rule with this uid of the stated kind ("event" or "invasion"). An event goes straight to the
+    /// incident route, so an invasion sharing the number is never touched; any other kind deletes as
+    /// <see cref="IAlarmService{TModel}.DeleteAsync(string, int)"/> does.
+    /// </summary>
+    public Task<bool> DeleteAsync(string userId, int uid, string? kind);
+
+    /// <summary>
     /// True when <paramref name="gruntType"/> names a Pokestop event (kecleon, gold-stop, showcase) and this
     /// server has a Pokestop Events page for it, so a rule written here would never show on the invasion list.
     /// </summary>

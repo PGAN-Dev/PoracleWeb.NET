@@ -99,6 +99,16 @@ describe('InvasionService', () => {
     req.flush(null);
   });
 
+  it('sends the kind on a move too, so the move opens the same rule a plain edit would', () => {
+    service.update(7, { destination: 'telegram', distance: 100 }, 'event').subscribe();
+
+    const req = httpMock.expectOne(r => r.url === API + '/api/invasions/7');
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.params.get('kind')).toBe('event');
+    expect(req.request.body.destination).toBe('telegram');
+    req.flush(null);
+  });
+
   it('sends no kind query when none is given, as before', () => {
     service.update(7, { distance: 100 }).subscribe();
 

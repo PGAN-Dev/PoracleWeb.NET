@@ -182,12 +182,12 @@ export class AlarmMoveService {
    * caller (the interceptor stays quiet), and the error is marked so `createFailureText` lets its sentence
    * through.
    */
-  edit(path: string, uid: number, body: object, destination: LinkSide): Observable<MoveEdit> {
+  edit(path: string, uid: number, body: object, destination: LinkSide, params?: Record<string, string>): Observable<MoveEdit> {
     return this.http
       .put(
         `${this.config.apiHost}/api/${path}/${uid}`,
         { ...body, destination },
-        { context: new HttpContext().set(WORDS_OWN_502, true), observe: 'response' },
+        { context: new HttpContext().set(WORDS_OWN_502, true), observe: 'response', ...(params ? { params } : {}) },
       )
       .pipe(
         map(response => ({
@@ -218,8 +218,15 @@ export class AlarmMoveService {
   /**
    * What every alarm service's `update` goes through. A body naming a `destination` is a move, answered with
    * how it ended; any other body is the service's own plain PUT, which answers nothing, exactly as before.
+   * `params` go on the move's query string too, so a move names the same rule the plain PUT would.
    */
-  put(path: string, uid: number, body: { destination?: LinkSide }, plain: () => Observable<void>): Observable<MoveEdit | void> {
-    return body.destination ? this.edit(path, uid, body, body.destination) : plain();
+  put(
+    path: string,
+    uid: number,
+    body: { destination?: LinkSide },
+    plain: () => Observable<void>,
+    params?: Record<string, string>,
+  ): Observable<MoveEdit | void> {
+    return body.destination ? this.edit(path, uid, body, body.destination, params) : plain();
   }
 }

@@ -31,11 +31,17 @@ export class InvasionService {
 
   /**
    * `kind` is the kind of the card the person opened. Invasions and Pokéstop events are numbered separately, so the
-   * server needs it to know which rule the uid names. Leave it out for an older server's behaviour. See #1062.
+   * server needs it to know which rule the uid names, on a plain edit and on a move alike. Leave it out for an older
+   * server's behaviour. See #1062.
    */
   update(uid: number, invasion: InvasionUpdate, kind?: 'event' | 'invasion'): Observable<MoveEdit | void> {
-    return this.moves.put('invasions', uid, invasion, () =>
-      this.http.put<void>(`${this.config.apiHost}/api/invasions/${uid}`, invasion, kind ? { params: { kind } } : undefined),
+    const params = kind ? { kind } : undefined;
+    return this.moves.put(
+      'invasions',
+      uid,
+      invasion,
+      () => this.http.put<void>(`${this.config.apiHost}/api/invasions/${uid}`, invasion, params ? { params } : undefined),
+      params,
     );
   }
 

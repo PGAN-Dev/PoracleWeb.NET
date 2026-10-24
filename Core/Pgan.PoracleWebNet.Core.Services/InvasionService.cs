@@ -183,6 +183,19 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
         return true;
     }
 
+    public async Task<bool> DeleteAsync(string userId, int uid, string? kind)
+    {
+        // An event addressed by kind goes to its own route: the invasion route would take a grunt rule that
+        // happens to share the number before ever reaching the event. See #1058.
+        if (kind == "event")
+        {
+            await this._incidentProxy.DeleteByUidAsync(userId, uid);
+            return true;
+        }
+
+        return await this.DeleteAsync(userId, uid);
+    }
+
     public async Task<int> DeleteAllByUserAsync(string userId, int profileNo)
     {
         var items = await this.ReadOwnRowsAsync(userId);
