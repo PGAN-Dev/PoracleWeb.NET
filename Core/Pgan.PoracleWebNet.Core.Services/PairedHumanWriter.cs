@@ -30,7 +30,7 @@ public sealed partial class PairedHumanWriter(ILinkedAccount linkedAccount, ILog
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             var side = pair.SideOf(other) ?? LinkSide.Telegram;
-            LogOtherSideFailed(this._logger, ex, other, side);
+            LogOtherSideFailed(this._logger, ex, LogSafe.Id(other), side);
             return new PairWriteResult<T>(primary, default, new PairWarning(side, ReasonFor(ex, side)));
         }
     }

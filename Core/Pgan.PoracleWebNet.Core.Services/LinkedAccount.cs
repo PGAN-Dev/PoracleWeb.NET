@@ -87,7 +87,7 @@ public class LinkedAccount(
             {
                 this._logger.LogWarning(
                     "Linked {Side} id {HumanId} is a {ActualType} human, not {ExpectedType}; treating that side as absent",
-                    side, humanId, fresh.Type, expectedType);
+                    side, LogSafe.Id(humanId), fresh.Type, expectedType);
             }
         }
 

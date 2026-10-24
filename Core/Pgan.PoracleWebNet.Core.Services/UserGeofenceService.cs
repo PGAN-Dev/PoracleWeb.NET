@@ -401,7 +401,7 @@ public partial class UserGeofenceService(
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                LogPreviewOtherSideFailed(this._logger, ex, id);
+                LogPreviewOtherSideFailed(this._logger, ex, LogSafe.Id(id));
             }
         }
 
