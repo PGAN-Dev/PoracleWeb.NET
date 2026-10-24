@@ -178,7 +178,7 @@ The settings are under **Admin > Server settings > Linked accounts** and in
 | Setting | Key | Default | What it does |
 |---|---|---|---|
 | Linked accounts | `disable_account_linking` | On | Off hides the page and refuses every link route. Each person acts as their single account again. Links are kept for when it's switched back on, and Admin > Users can still unlink them |
-| Register the other account when linking | `link_register_missing` | Off | On, linking creates the missing account straight away, copying language, location, areas, profiles (on the same numbers) and saved places. Alarms are never copied. If creating it fails, nothing is linked and nothing is left behind |
+| Register the other account when linking | `link_register_missing` | Off | On, linking creates the missing account straight away, copying language, location, the areas the person may select, profiles (on the same numbers) and saved places. Alarms are never copied. If creating it fails, nothing is linked and nothing is left behind |
 | Telegram registration group link | `telegram_registration_url` | Empty | The invite link people use to register on Telegram, such as `https://t.me/+abc123`. Must be `https://` on `t.me` or `telegram.me`. Shown as **Join the Telegram group** while a Telegram side is waiting |
 
 A created account skips that app's registration rules but not its later checks. Poracle removes an account

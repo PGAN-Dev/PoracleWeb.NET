@@ -258,7 +258,10 @@ copying the caller's. Alarms are never copied.
    number, so each `POST .../profiles` must come back with the expected number or the whole create fails.
    A gap in the caller's numbering is filled with a placeholder profile, deleted at the end.
 4. Write each profile's areas and location with `POST .../areas?profile=N` and `.../location?profile=N`,
-   and copy its `active_hours`.
+   and copy its `active_hours`. The areas pass through `IUserAreaWriter.FilterAllowedAsync` first, the same
+   check profile create uses. The new human isn't linked yet, so its own allowed set can't see the person's
+   drawn fences: a name is kept when either the new account or the caller's may select it, and a dropped
+   name is logged at debug.
 5. Switch to the caller's active profile, delete the placeholders, then copy saved places. A place
    PoracleNG refuses is logged and skipped.
 
@@ -281,6 +284,7 @@ Every refusal carries `{ error, code }`. The SPA words the code; `error` is the 
 | `link_taken` | 409 | One of the ids is already in a link |
 | `link_expired` | 400 | The Telegram payload or the Discord ticket is past its 10 minutes |
 | `link_not_permitted` | 403 | That app's sign-in is off, the account fails the site's sign-in rules, or (for a default change) that side isn't registered |
+| `link_disabled` | 403 | `disable_account_linking` is on. Checked when the link completes, so a Discord or Telegram sign-in started before an admin switched linking off can't finish. Unlinking still works |
 | `link_provision_failed` | 502 | Registering the missing side failed and was rolled back |
 | `link_failed` | redirect | The Discord exchange or user read failed |
 | `link_cancelled` | redirect | The person backed out of Discord's approval |
