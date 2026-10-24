@@ -863,6 +863,7 @@
     "SAVE": "Save",
     "CANCEL_CHANGES": "Cancel",
     "SNACK_UPDATED": "Areas updated",
+    "DEAD_AREAS": "No longer available: {{names}}. They’ll be removed the next time you save.",
     "SNACK_SAVED_DROPPED": "Saved. Left out, because Poracle has no such area: {{names}}",
     "SNACK_FAILED": "Couldn't save your areas. Try again in a moment.",
     "SNACK_NOT_PERMITTED": "Not saved. These areas aren't available to you: {{names}}",

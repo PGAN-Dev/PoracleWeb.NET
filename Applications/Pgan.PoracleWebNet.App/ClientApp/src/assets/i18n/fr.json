@@ -862,6 +862,7 @@
     "SAVE": "Enregistrer",
     "CANCEL_CHANGES": "Annuler",
     "SNACK_UPDATED": "Zones mises à jour",
+    "DEAD_AREAS": "Plus disponibles : {{names}}. Elles seront retirées à votre prochain enregistrement.",
     "SNACK_SAVED_DROPPED": "Enregistré. Laissé de côté, car Poracle n’a pas cette zone : {{names}}",
     "SNACK_FAILED": "Impossible d'enregistrer vos zones. Réessayez dans un instant.",
     "SNACK_NOT_PERMITTED": "Non enregistré. Ces zones ne te sont pas accessibles : {{names}}",

@@ -15,6 +15,12 @@
     the pin and places, which the map already draws as markers, are managed in a panel below.
   -->
   <div class="areas-page">
+    @if (deadAreas().length > 0) {
+      <p class="dead-areas" role="status">
+        {{ 'AREAS.DEAD_AREAS' | translate: { names: deadAreaNames() } }}
+      </p>
+    }
+
     <!--
       The selected areas as chips. Under the map in Map view; above the checklist in List view, so they
       stay near the top instead of after a long list.
