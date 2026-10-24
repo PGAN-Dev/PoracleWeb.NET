@@ -2432,5 +2432,21 @@
     "LABEL": "Leverer til",
     "PAUSED": "Beskeder til {{app}} er slået fra, så der kommer ikke noget frem endnu.",
     "TELEGRAM": "Telegram"
+  },
+  "DRIFT": {
+    "TITLE": "Dine sammenkædede konti afviger fra hinanden",
+    "LOCATION": "Placering: Discord har {{discord}}, Telegram har {{telegram}}.",
+    "AREAS_EXTRA": "{{side}} har også {{names}}.",
+    "PROFILE_CURRENT": "Aktuel profil: Discord står på {{discord}}, Telegram på {{telegram}}.",
+    "PROFILES_EXTRA": "{{side}} har også profilen {{names}}.",
+    "PROFILES_DIFFER": "Nogle profiler afviger i navn, tidsplan eller områder.",
+    "PROFILE_NAMELESS": "profil {{no}}",
+    "PLACES_EXTRA": "{{side}} har også det gemte sted {{names}}.",
+    "PLACES_DIFFER": "Nogle gemte steder ligger forskellige steder.",
+    "KEEP": "Behold {{side}}",
+    "KEEP_ARIA": "Behold {{side}}. {{line}}",
+    "DISMISS": "Luk",
+    "PAIR_WARNING": "Gemt for {{saved}}. {{failed}} tog ikke imod det: {{reason}}.",
+    "RESOLVE_FAILED": "Det kunne ikke løses. Se banneret."
   }
 }

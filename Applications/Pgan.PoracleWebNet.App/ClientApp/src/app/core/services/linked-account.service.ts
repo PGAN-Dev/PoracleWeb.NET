@@ -6,7 +6,7 @@ import { AuthService } from './auth.service';
 import { ConfigService } from './config.service';
 import { SettingsService } from './settings.service';
 import { TokenStoreService } from './token-store.service';
-import { LinkSide, LinkStatus } from '../models';
+import { DriftField, DriftItem, LinkSide, LinkStatus } from '../models';
 
 /** A focus refresh is skipped when the last read is newer than this. */
 const FOCUS_REFRESH_MIN_GAP_MS = 60_000;
@@ -37,6 +37,9 @@ export class LinkedAccountService {
     const sides = status?.sides ?? [];
     return !!status?.linked && sides.length === 2 && sides.every(s => s.exists);
   });
+
+  /** What the two accounts disagree on. Empty when linked and in step, and when the server couldn't compare them. */
+  readonly drift = computed<DriftItem[]>(() => this.statusSignal()?.drift ?? []);
 
   /** Null until the first read, and again after sign-out. `{ linked: false }` is a read that found no link. */
   readonly status = this.statusSignal.asReadonly();
@@ -86,6 +89,19 @@ export class LinkedAccountService {
       this.statusSignal.set(await firstValueFrom(this.http.get<LinkStatus>(`${this.config.apiHost}/api/account-link/status`)));
     } catch {
       // Silent on purpose; the next focus tries again.
+    }
+  }
+
+  /**
+   * Makes the other account match the one the person keeps. `expected` is the item's fingerprint, so a pair
+   * that changed since the banner was drawn answers 409 instead of being overwritten. Either way the status
+   * is read again, which is what makes a stale banner go away.
+   */
+  async resolve(field: DriftField, keep: LinkSide, expected: string): Promise<void> {
+    try {
+      await firstValueFrom(this.http.post<void>(`${this.config.apiHost}/api/account-link/resolve`, { expected, field, keep }));
+    } finally {
+      await this.refresh();
     }
   }
 

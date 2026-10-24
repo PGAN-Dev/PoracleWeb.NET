@@ -506,6 +506,52 @@ so an admin can diagnose "why am I getting nothing".
 `quiet-surface-parity.spec.ts` pins the six surfaces that carry the chip and the four list components that
 must not, so a future alarm type cannot quietly miss it.
 
+### Linked Accounts (Discord and Telegram)
+
+A person who uses the site from both platforms has two Poracle humans, `discord:user` and `telegram:user`.
+`poracle_web.account_links` pairs them (one link per account, `default_destination` per pair); the user-facing
+reference is `docs/features/linked-accounts.md`. **A link pairs `discord:user` with `telegram:user` and nothing
+else**: never a destination type (webhook, channel), never another `:user` string. All four sign-in paths already
+refuse destination rows, and linking refuses them with a code the page translates.
+
+- **`ILinkedAccount` resolves live**, for the current `UserId`, cached one minute and dropped on link, unlink,
+  default change and purge. A side whose live row's `type` doesn't match its column is treated as absent. With
+  `disable_account_linking` on it answers the caller's own human alone, so every person acts as one account and
+  link rows are kept. A paused side (admin disabled, stopped, not registered) is reported and **never
+  re-enabled** by PoracleWeb.NET.
+- **`LinkedAlarmRouter`** is the only place alarm controllers learn which human(s) to read or write. Unlinked, it
+  makes exactly today's PoracleNG calls and the alarm JSON is byte-identical (`destination` is omitted when
+  null). Linked, a read concatenates both humans and stamps `destination`; a uid lookup finds the other side;
+  bulk work groups per owner.
+- **`AlarmMover` creates before it deletes**, so a move never loses an alert. A refused preflight or create
+  changes nothing; a delete that fails twice answers 200 with `sourceRemains` and the list shows both copies,
+  tagged. Quick-pick applied state follows the uid. The answer carries `X-Move-Status` (`moved` or
+  `source_remains`), and the SPA reads it from the header because the body is the alarm as it now stands.
+- **`PairedHumanWriter` carries every person-level write** (location, places, areas, profiles, language, quiet
+  periods, alerts on/off, summary schedules): the signed-in human first, then the other. The first failing is
+  today's error and the second isn't tried. The second failing still answers success, with the header
+  **`X-Pair-Warning`** (`{"side":"telegram","reason":"..."}`, the side that did not take it). The warning
+  never changes a body or a status, and both headers are CORS-exposed (`CorsPolicySetup.ExposedHeaders`; an
+  unexposed header reads as absent and a half-done move looks clean). The SPA's `pairWarningInterceptor` is the
+  one reader: "Saved for Discord. Telegram didn't take it: {reason}." once per response, naming the side the
+  warning is not about.
+- **Drift is never resolved silently.** `IPairDriftService` compares location (5 decimal places), the active
+  profile's areas (PoracleNG's `NormalizeAreaKey`, order ignored), current profile, profiles and saved places,
+  and `GET /api/account-link/status` carries the items as `drift` (`null` when the read failed, which the SPA
+  treats as "no banner" and never retries in a loop). Each item has a `fingerprint` over both sides' values;
+  `POST /api/account-link/resolve { field, keep, expected }` re-reads, answers 409 "That changed again" when
+  the fingerprint no longer matches, and otherwise applies the kept side to the other. A profile or place the
+  other side still holds alerts on is refused, naming it, with "Nothing was changed." A failure after some
+  writes landed says so ("Some changes were made before this failed"). The banner (`PairDriftBannerComponent`,
+  under the toolbar in `app.html`, hidden while impersonating) shows one line per item, names a location
+  through `LocationService.reverseGeocode` (so `disable_nominatim` and `disable_location` are honoured and the
+  fallback is coordinates), and dismisses per fingerprint into `sessionStorage` inside try/catch.
+- **`/api/account-link` is in the error interceptor's silent list**, so `LinkedAccountService` callers word
+  every outcome; the banner shows `serverReason(err)` once and the service refreshes status after any resolve,
+  success or not.
+- **Don't compare what drifts on its own.** Language, summary schedules and quiet periods are written to both
+  but not compared (quiet periods live in PoracleNG's memory and vanish on restart).
+
 ### Test Alerts
 - `POST /api/test-alert/{type}/{uid}` triggers a test notification for a specific alarm. Supported types: `pokemon`, `raid`, `egg`, `quest`, `invasion`, `lure`, `nest`, `gym`.
 - **Parallel data fetch**: `TestAlertService` uses `Task.WhenAll` to fetch the alarm (via `IPoracleTrackingProxy`) and the human record (via `IPoracleHumanProxy`) concurrently.

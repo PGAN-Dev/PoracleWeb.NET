@@ -959,9 +959,26 @@ export interface LinkSideStatus {
   side: LinkSide;
 }
 
+/** The settings a linked pair can disagree on, as the API names them. */
+export type DriftField = 'areas' | 'current_profile' | 'location' | 'places' | 'profiles';
+
+/**
+ * One setting the two accounts disagree on. Each side's value is its comparable form: `{ lat, lon }`,
+ * area keys, a profile number, `{ no, name, ... }` rows or `{ label, lat, lon }` rows by field. The
+ * fingerprint goes back on a resolve so the server can tell the person chose against what they saw.
+ */
+export interface DriftItem {
+  discord: unknown;
+  field: DriftField;
+  fingerprint: string;
+  telegram: unknown;
+}
+
 /** `GET /api/account-link/status`. Unlinked, the server answers `{ linked: false }` and nothing else. */
 export interface LinkStatus {
   defaultDestination?: LinkSide | null;
+  /** One item per setting the two accounts disagree on; null when the server couldn't compare them, absent when unlinked. */
+  drift?: DriftItem[] | null;
   link?: AccountLink;
   linked: boolean;
   sides?: LinkSideStatus[];

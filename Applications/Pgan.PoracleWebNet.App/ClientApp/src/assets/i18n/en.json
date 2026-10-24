@@ -2432,5 +2432,21 @@
     "LABEL": "Deliver to",
     "PAUSED": "Alerts to {{app}} are off, so nothing will arrive there yet.",
     "TELEGRAM": "Telegram"
+  },
+  "DRIFT": {
+    "TITLE": "Your linked accounts have drifted apart",
+    "LOCATION": "Location: Discord has {{discord}}, Telegram has {{telegram}}.",
+    "AREAS_EXTRA": "{{side}} also has {{names}}.",
+    "PROFILE_CURRENT": "Current profile: Discord is on {{discord}}, Telegram is on {{telegram}}.",
+    "PROFILES_EXTRA": "{{side}} also has the profile {{names}}.",
+    "PROFILES_DIFFER": "Some profiles differ in name, schedule or areas.",
+    "PROFILE_NAMELESS": "profile {{no}}",
+    "PLACES_EXTRA": "{{side}} also has the saved place {{names}}.",
+    "PLACES_DIFFER": "Some saved places are in different spots.",
+    "KEEP": "Keep {{side}}",
+    "KEEP_ARIA": "Keep {{side}}. {{line}}",
+    "DISMISS": "Dismiss",
+    "PAIR_WARNING": "Saved for {{saved}}. {{failed}} didn't take it: {{reason}}.",
+    "RESOLVE_FAILED": "Couldn't resolve that. Check the banner."
   }
 }

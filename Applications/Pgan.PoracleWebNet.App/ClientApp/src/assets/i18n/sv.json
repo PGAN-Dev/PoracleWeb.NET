@@ -2432,5 +2432,21 @@
     "LABEL": "Leverera till",
     "PAUSED": "Aviseringar till {{app}} är avstängda, så inget når fram dit än.",
     "TELEGRAM": "Telegram"
+  },
+  "DRIFT": {
+    "TITLE": "Dina länkade konton skiljer sig åt",
+    "LOCATION": "Plats: Discord har {{discord}}, Telegram har {{telegram}}.",
+    "AREAS_EXTRA": "{{side}} har också {{names}}.",
+    "PROFILE_CURRENT": "Aktuell profil: Discord står på {{discord}}, Telegram på {{telegram}}.",
+    "PROFILES_EXTRA": "{{side}} har också profilen {{names}}.",
+    "PROFILES_DIFFER": "Vissa profiler skiljer sig i namn, schema eller områden.",
+    "PROFILE_NAMELESS": "profil {{no}}",
+    "PLACES_EXTRA": "{{side}} har också den sparade platsen {{names}}.",
+    "PLACES_DIFFER": "Vissa sparade platser ligger på olika ställen.",
+    "KEEP": "Behåll {{side}}",
+    "KEEP_ARIA": "Behåll {{side}}. {{line}}",
+    "DISMISS": "Stäng",
+    "PAIR_WARNING": "Sparat för {{saved}}. {{failed}} tog inte emot det: {{reason}}.",
+    "RESOLVE_FAILED": "Det gick inte att lösa. Kolla bannern."
   }
 }

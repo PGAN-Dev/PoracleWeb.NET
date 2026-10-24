@@ -45,6 +45,36 @@ The page says why, in your language. The reasons:
 For a Telegram side that is waiting, press Start in the bot (the page names it). For a Discord side, register
 the way the site's admins ask; if they've set a support link, the page shows it.
 
+## When the two accounts differ
+
+Settings that belong to the person, such as location, areas, profiles and saved places, are saved to both
+accounts. If the accounts have drifted apart (you changed your location with `!location` in the Telegram bot,
+say, or added a profile on one side only), a banner under the toolbar says so with one line per difference:
+
+- **Location:** "Location: Discord has Old Town, Telegram has Northside." The place name comes from the same
+  address lookup the location dialog uses, and falls back to coordinates when that is switched off or finds
+  nothing.
+- **Areas:** only what one side has and the other lacks, such as "Telegram also has Riverside."
+- **Profiles, saved places and the current profile:** the same way, naming what is on one side only.
+
+Each line has **Keep Discord** and **Keep Telegram**. Pressing one makes the other account match the side you
+kept. Nothing is ever resolved for you.
+
+- If the accounts changed again since the banner was drawn, you're told "That changed again. Check the banner."
+  and nothing is overwritten.
+- A profile that holds alerts on the other account isn't deleted. The message names it and says "Nothing was
+  changed." Move or delete those alerts first.
+- A saved place that alerts on the other account are still aimed at is not deleted either.
+- If a resolve fails part way, the banner says so and shows what still differs.
+
+**Dismiss** hides the banner for the rest of the browser session. A difference that appears later shows again.
+
+### "Saved for Discord. Telegram didn't take it"
+
+When a save reaches one account and the other refuses it, you see this once, naming the account that saved and
+the reason the other gave. Nothing is rolled back. The banner then shows the difference, and you pick the side
+to keep.
+
 ## Where new alerts go
 
 When both sides exist, **New alerts go to** picks the default for alerts you add. It is a default for new

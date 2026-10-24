@@ -221,6 +221,9 @@
       </mat-menu>
     </mat-toolbar>
   </header>
+  @if (!auth.isImpersonating()) {
+    <app-pair-drift-banner />
+  }
 
   <mat-sidenav-container class="app-sidenav-container">
     <mat-sidenav

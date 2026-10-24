@@ -2432,5 +2432,21 @@
     "LABEL": "Envoyer vers",
     "PAUSED": "Les alertes vers {{app}} sont désactivées, rien ne partira donc encore vers cette appli.",
     "TELEGRAM": "Telegram"
+  },
+  "DRIFT": {
+    "TITLE": "Vos comptes liés ne sont plus alignés",
+    "LOCATION": "Position : Discord a {{discord}}, Telegram a {{telegram}}.",
+    "AREAS_EXTRA": "{{side}} a aussi {{names}}.",
+    "PROFILE_CURRENT": "Profil actuel : Discord est sur {{discord}}, Telegram est sur {{telegram}}.",
+    "PROFILES_EXTRA": "{{side}} a aussi le profil {{names}}.",
+    "PROFILES_DIFFER": "Certains profils diffèrent par le nom, l'horaire ou les zones.",
+    "PROFILE_NAMELESS": "profil {{no}}",
+    "PLACES_EXTRA": "{{side}} a aussi le lieu enregistré {{names}}.",
+    "PLACES_DIFFER": "Certains lieux enregistrés ne sont pas au même endroit.",
+    "KEEP": "Garder {{side}}",
+    "KEEP_ARIA": "Garder {{side}}. {{line}}",
+    "DISMISS": "Fermer",
+    "PAIR_WARNING": "Enregistré pour {{saved}}. {{failed}} ne l'a pas pris en compte : {{reason}}.",
+    "RESOLVE_FAILED": "Impossible de régler cela. Regardez le bandeau."
   }
 }

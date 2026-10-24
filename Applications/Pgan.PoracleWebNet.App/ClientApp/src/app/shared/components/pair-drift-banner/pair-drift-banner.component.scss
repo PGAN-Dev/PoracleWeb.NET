@@ -1,0 +1,63 @@
+:host {
+  display: block;
+}
+
+.drift-banner {
+  background: var(--mat-sys-surface-container-high, #f0f0f0);
+  border-bottom: 1px solid var(--mat-sys-outline-variant, rgb(0 0 0 / 12%));
+  color: var(--mat-sys-on-surface, inherit);
+  font-size: 14px;
+  padding: 10px 16px;
+}
+
+.drift-head {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.drift-icon {
+  flex: none;
+}
+
+.drift-title {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.drift-list {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+}
+
+.drift-item {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  justify-content: space-between;
+  padding: 6px 0;
+}
+
+.drift-text {
+  flex: 1 1 280px;
+}
+
+.drift-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+@media (max-width: 599px) {
+  .drift-actions {
+    width: 100%;
+
+    button {
+      flex: 1;
+    }
+  }
+}

@@ -2432,5 +2432,21 @@
     "LABEL": "Entregar em",
     "PAUSED": "Os alertas para {{app}} estão desativados, então ainda não vai chegar nada lá.",
     "TELEGRAM": "Telegram"
+  },
+  "DRIFT": {
+    "TITLE": "Suas contas vinculadas deixaram de coincidir",
+    "LOCATION": "Localização: o Discord tem {{discord}}, o Telegram tem {{telegram}}.",
+    "AREAS_EXTRA": "{{side}} também tem {{names}}.",
+    "PROFILE_CURRENT": "Perfil atual: o Discord está em {{discord}}, o Telegram está em {{telegram}}.",
+    "PROFILES_EXTRA": "{{side}} também tem o perfil {{names}}.",
+    "PROFILES_DIFFER": "Alguns perfis diferem no nome, horário ou áreas.",
+    "PROFILE_NAMELESS": "perfil {{no}}",
+    "PLACES_EXTRA": "{{side}} também tem o local salvo {{names}}.",
+    "PLACES_DIFFER": "Alguns locais salvos estão em lugares diferentes.",
+    "KEEP": "Manter {{side}}",
+    "KEEP_ARIA": "Manter {{side}}. {{line}}",
+    "DISMISS": "Dispensar",
+    "PAIR_WARNING": "Salvo para {{saved}}. {{failed}} não aplicou: {{reason}}.",
+    "RESOLVE_FAILED": "Não foi possível resolver. Veja o aviso."
   }
 }

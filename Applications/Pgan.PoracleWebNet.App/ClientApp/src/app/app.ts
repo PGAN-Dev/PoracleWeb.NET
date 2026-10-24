@@ -23,6 +23,7 @@ import { I18nService } from './core/services/i18n.service';
 import { LinkedAccountService } from './core/services/linked-account.service';
 import { DEFAULT_SITE_TITLE, SettingsService } from './core/services/settings.service';
 import { AlertDefaultsDialogComponent } from './shared/components/alert-defaults-dialog/alert-defaults-dialog.component';
+import { PairDriftBannerComponent } from './shared/components/pair-drift-banner/pair-drift-banner.component';
 import { isKnownKind, kindLabelKey } from './shared/utils/human-kind';
 
 interface NavItem {
@@ -53,6 +54,7 @@ interface NavItem {
     MatDividerModule,
     MatBadgeModule,
     MatTooltipModule,
+    PairDriftBannerComponent,
     TranslatePipe,
   ],
   selector: 'app-root',

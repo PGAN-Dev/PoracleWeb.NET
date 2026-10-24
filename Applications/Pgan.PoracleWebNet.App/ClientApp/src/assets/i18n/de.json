@@ -2432,5 +2432,21 @@
     "LABEL": "Zustellen an",
     "PAUSED": "Meldungen an {{app}} sind ausgeschaltet, deshalb kommt dort vorerst nichts an.",
     "TELEGRAM": "Telegram"
+  },
+  "DRIFT": {
+    "TITLE": "Deine verknüpften Konten weichen voneinander ab",
+    "LOCATION": "Standort: Discord hat {{discord}}, Telegram hat {{telegram}}.",
+    "AREAS_EXTRA": "{{side}} hat außerdem {{names}}.",
+    "PROFILE_CURRENT": "Aktuelles Profil: Discord ist auf {{discord}}, Telegram auf {{telegram}}.",
+    "PROFILES_EXTRA": "{{side}} hat außerdem das Profil {{names}}.",
+    "PROFILES_DIFFER": "Einige Profile unterscheiden sich in Name, Zeitplan oder Gebieten.",
+    "PROFILE_NAMELESS": "Profil {{no}}",
+    "PLACES_EXTRA": "{{side}} hat außerdem den gespeicherten Ort {{names}}.",
+    "PLACES_DIFFER": "Einige gespeicherte Orte liegen an verschiedenen Stellen.",
+    "KEEP": "{{side}} behalten",
+    "KEEP_ARIA": "{{side}} behalten. {{line}}",
+    "DISMISS": "Schließen",
+    "PAIR_WARNING": "Für {{saved}} gespeichert. {{failed}} hat es nicht übernommen: {{reason}}.",
+    "RESOLVE_FAILED": "Das ließ sich nicht klären. Sieh dir das Banner an."
   }
 }

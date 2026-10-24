@@ -1,0 +1,30 @@
+@if (visible()) {
+  <section class="drift-banner" role="region" [attr.aria-label]="'DRIFT.TITLE' | translate">
+    <div class="drift-head">
+      <mat-icon class="drift-icon" aria-hidden="true">sync_problem</mat-icon>
+      <h2 class="drift-title">{{ 'DRIFT.TITLE' | translate }}</h2>
+      <button mat-icon-button class="drift-dismiss" type="button" [attr.aria-label]="'DRIFT.DISMISS' | translate" (click)="dismiss()">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+    <ul class="drift-list">
+      @for (line of lines(); track line.item.fingerprint) {
+        <li class="drift-item">
+          <span class="drift-text">{{ line.text }}</span>
+          <span class="drift-actions">
+            @for (side of sides; track side) {
+              <button
+                mat-stroked-button
+                type="button"
+                [attr.aria-label]="keepAria(line, side)"
+                [disabled]="busy() !== null"
+                (click)="keep(line.item, side)">
+                {{ 'DRIFT.KEEP' | translate: { side: sideName(side) } }}
+              </button>
+            }
+          </span>
+        </li>
+      }
+    </ul>
+  </section>
+}

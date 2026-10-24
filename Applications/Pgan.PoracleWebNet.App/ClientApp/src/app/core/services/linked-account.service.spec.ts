@@ -180,6 +180,41 @@ describe('LinkedAccountService', () => {
     expect(service.status()).toEqual({ linked: false });
   });
 
+  it('exposes the drift items, and none when the server could not compare', async () => {
+    const item = { discord: { lat: 1, lon: 2 }, field: 'location' as const, fingerprint: 'abc', telegram: { lat: 3, lon: 4 } };
+    let done = service.refresh();
+    http.expectOne(STATUS).flush({ ...linked, drift: [item] });
+    await done;
+    expect(service.drift()).toEqual([item]);
+
+    done = service.refresh();
+    http.expectOne(STATUS).flush({ ...linked, drift: null });
+    await done;
+    expect(service.drift()).toEqual([]);
+  });
+
+  it('posts the choice with the fingerprint and reads the status again', async () => {
+    const done = service.resolve('location', 'telegram', 'abc');
+    const req = http.expectOne(`${API}/api/account-link/resolve`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ expected: 'abc', field: 'location', keep: 'telegram' });
+    req.flush(null, { status: 204, statusText: 'No Content' });
+    await settle();
+    http.expectOne(STATUS).flush(linked);
+    await done;
+  });
+
+  it('reads the status again after a refused resolve and lets the refusal through', async () => {
+    const done = service.resolve('areas', 'discord', 'abc');
+    http
+      .expectOne(`${API}/api/account-link/resolve`)
+      .flush({ error: 'That changed again. Check the banner.' }, { status: 409, statusText: 'Conflict' });
+    const failed = expect(done).rejects.toMatchObject({ error: { error: 'That changed again. Check the banner.' }, status: 409 });
+    await settle();
+    http.expectOne(STATUS).flush(linked);
+    await failed;
+  });
+
   it('sets the default destination and refreshes', async () => {
     const done = service.setDefault('telegram');
     const req = http.expectOne(`${API}/api/account-link/default`);

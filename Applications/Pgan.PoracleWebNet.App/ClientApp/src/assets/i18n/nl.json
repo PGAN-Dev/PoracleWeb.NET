@@ -2432,5 +2432,21 @@
     "LABEL": "Bezorgen via",
     "PAUSED": "Meldingen naar {{app}} staan uit, dus daar komt voorlopig niets aan.",
     "TELEGRAM": "Telegram"
+  },
+  "DRIFT": {
+    "TITLE": "Je gekoppelde accounts lopen niet meer gelijk",
+    "LOCATION": "Locatie: Discord heeft {{discord}}, Telegram heeft {{telegram}}.",
+    "AREAS_EXTRA": "{{side}} heeft ook {{names}}.",
+    "PROFILE_CURRENT": "Huidig profiel: Discord staat op {{discord}}, Telegram op {{telegram}}.",
+    "PROFILES_EXTRA": "{{side}} heeft ook het profiel {{names}}.",
+    "PROFILES_DIFFER": "Sommige profielen verschillen in naam, schema of gebieden.",
+    "PROFILE_NAMELESS": "profiel {{no}}",
+    "PLACES_EXTRA": "{{side}} heeft ook de opgeslagen plek {{names}}.",
+    "PLACES_DIFFER": "Sommige opgeslagen plekken liggen op een andere plek.",
+    "KEEP": "{{side}} behouden",
+    "KEEP_ARIA": "{{side}} behouden. {{line}}",
+    "DISMISS": "Sluiten",
+    "PAIR_WARNING": "Opgeslagen voor {{saved}}. {{failed}} heeft het niet overgenomen: {{reason}}.",
+    "RESOLVE_FAILED": "Dat kon niet worden opgelost. Bekijk de banner."
   }
 }

@@ -2432,5 +2432,21 @@
     "LABEL": "Consegna su",
     "PAUSED": "Gli avvisi verso {{app}} sono disattivati, quindi per ora lì non arriverà nulla.",
     "TELEGRAM": "Telegram"
+  },
+  "DRIFT": {
+    "TITLE": "I tuoi account collegati non sono più allineati",
+    "LOCATION": "Posizione: Discord ha {{discord}}, Telegram ha {{telegram}}.",
+    "AREAS_EXTRA": "{{side}} ha anche {{names}}.",
+    "PROFILE_CURRENT": "Profilo attuale: Discord è su {{discord}}, Telegram è su {{telegram}}.",
+    "PROFILES_EXTRA": "{{side}} ha anche il profilo {{names}}.",
+    "PROFILES_DIFFER": "Alcuni profili differiscono per nome, orario o aree.",
+    "PROFILE_NAMELESS": "profilo {{no}}",
+    "PLACES_EXTRA": "{{side}} ha anche il luogo salvato {{names}}.",
+    "PLACES_DIFFER": "Alcuni luoghi salvati si trovano in punti diversi.",
+    "KEEP": "Mantieni {{side}}",
+    "KEEP_ARIA": "Mantieni {{side}}. {{line}}",
+    "DISMISS": "Chiudi",
+    "PAIR_WARNING": "Salvato per {{saved}}. {{failed}} non l'ha applicato: {{reason}}.",
+    "RESOLVE_FAILED": "Impossibile risolvere. Controlla il banner."
   }
 }

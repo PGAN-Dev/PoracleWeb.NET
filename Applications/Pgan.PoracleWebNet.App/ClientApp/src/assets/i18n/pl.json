@@ -2536,5 +2536,21 @@
     "LABEL": "Dostarczaj do",
     "PAUSED": "Alerty do {{app}} są wyłączone, więc nic tam jeszcze nie dotrze.",
     "TELEGRAM": "Telegram"
+  },
+  "DRIFT": {
+    "TITLE": "Połączone konta przestały się zgadzać",
+    "LOCATION": "Lokalizacja: Discord ma {{discord}}, Telegram ma {{telegram}}.",
+    "AREAS_EXTRA": "{{side}} ma też {{names}}.",
+    "PROFILE_CURRENT": "Bieżący profil: Discord jest na {{discord}}, Telegram na {{telegram}}.",
+    "PROFILES_EXTRA": "{{side}} ma też profil {{names}}.",
+    "PROFILES_DIFFER": "Niektóre profile różnią się nazwą, harmonogramem lub obszarami.",
+    "PROFILE_NAMELESS": "profil {{no}}",
+    "PLACES_EXTRA": "{{side}} ma też zapisane miejsce {{names}}.",
+    "PLACES_DIFFER": "Niektóre zapisane miejsca leżą w różnych punktach.",
+    "KEEP": "Zachowaj {{side}}",
+    "KEEP_ARIA": "Zachowaj {{side}}. {{line}}",
+    "DISMISS": "Zamknij",
+    "PAIR_WARNING": "Zapisano dla {{saved}}. {{failed}} tego nie przyjął: {{reason}}.",
+    "RESOLVE_FAILED": "Nie udało się tego rozwiązać. Sprawdź baner."
   }
 }
