@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
@@ -13,6 +14,7 @@ public partial class AlarmMover(
     ILinkedAccount linked,
     IHumanService humans,
     IPoracleHumanProxy humanProxy,
+    IPoracleTrackingProxy tracking,
     IUserAreaPolicy areaPolicy,
     QuickPickUidTransfer uidTransfer,
     ILogger<AlarmMover> logger)
@@ -24,6 +26,7 @@ public partial class AlarmMover(
     private readonly IHumanService _humans = humans;
     private readonly ILinkedAccount _linked = linked;
     private readonly ILogger<AlarmMover> _logger = logger;
+    private readonly IPoracleTrackingProxy _tracking = tracking;
     private readonly QuickPickUidTransfer _uidTransfer = uidTransfer;
 
     /// <summary>
@@ -40,8 +43,16 @@ public partial class AlarmMover(
         IAlarmService<TModel> svc, string trackingType, string userId, TModel model, string sourceOwnerId, LinkSide target)
         where TModel : class, IHasDestination
     {
+        var session = new Session(this, await this._linked.ResolveAsync(userId));
+        return await this.MoveCoreAsync(session, svc, trackingType, model, sourceOwnerId, target);
+    }
+
+    private async Task<MoveResult<TModel>> MoveCoreAsync<TModel>(
+        Session session, IAlarmService<TModel> svc, string trackingType, TModel model, string sourceOwnerId, LinkSide target)
+        where TModel : class, IHasDestination
+    {
         var uid = model.Uid;
-        var pair = await this._linked.ResolveAsync(userId);
+        var pair = session.Pair;
         if (!pair.IsLinked)
         {
             return Refused<TModel>(uid, "Your accounts aren't linked.");
@@ -65,13 +76,15 @@ public partial class AlarmMover(
 
         var targetId = targetSide.HumanId;
 
-        var preflight = await this.PreflightAsync(model, sourceOwnerId, targetId, target);
+        var preflight = await this.PreflightAsync(session, model, sourceOwnerId, targetId, target);
         if (preflight.Refusal is not null)
         {
             return Refused<TModel>(uid, preflight.Refusal);
         }
 
         var profileNo = preflight.ProfileNo;
+
+        await this.CarryUnmodelledAsync(session, trackingType, sourceOwnerId, model);
 
         // A stamp from a linked read is ours, not the rule's. The uid is cleared because a service hands back the
         // model it was given when nothing was written, and a leftover source uid would read as a new rule.
@@ -168,11 +181,13 @@ public partial class AlarmMover(
             }
         }
 
+        // The pair, both humans, the target's places and the source rows are read once for the request.
+        var session = new Session(this, pair);
         var results = new List<MoveOutcome>(uids.Count);
         foreach (var uid in uids)
         {
             results.Add(found.TryGetValue(uid, out var hit)
-                ? (await this.MoveAsync(svc, trackingType, userId, hit.Model, hit.Owner, target)).Outcome
+                ? (await this.MoveCoreAsync(session, svc, trackingType, hit.Model, hit.Owner, target)).Outcome
                 : Refused<TModel>(uid, "That alert wasn't found.").Outcome);
         }
 
@@ -181,11 +196,11 @@ public partial class AlarmMover(
 
     private sealed record Preflight(string? Refusal, int ProfileNo);
 
-    private async Task<Preflight> PreflightAsync(IHasDestination model, string sourceId, string targetId, LinkSide target)
+    private async Task<Preflight> PreflightAsync(Session session, IHasDestination model, string sourceId, string targetId, LinkSide target)
     {
         var side = target == LinkSide.Discord ? "Discord" : "Telegram";
-        var targetHuman = await this._humans.GetByIdAsync(targetId);
-        var sourceHuman = await this._humans.GetByIdAsync(sourceId);
+        var targetHuman = await session.HumanAsync(targetId);
+        var sourceHuman = await session.HumanAsync(sourceId);
         if (targetHuman is null || sourceHuman is null)
         {
             return new Preflight($"{side} isn't set up yet.", 0);
@@ -199,7 +214,7 @@ public partial class AlarmMover(
         var label = model.OverrideLocationLabel;
         if (!string.IsNullOrEmpty(label))
         {
-            var places = await this._humanProxy.GetPlacesAsync(targetId);
+            var places = await session.PlacesAsync(targetId);
             if (!places.Named.Any(p => string.Equals(p.Label, label, StringComparison.OrdinalIgnoreCase)))
             {
                 return new Preflight($"The place \"{label}\" isn't saved on {side}. Save it there first.", 0);
@@ -219,6 +234,86 @@ public partial class AlarmMover(
         }
 
         return new Preflight(null, sourceHuman.CurrentProfileNo);
+    }
+
+    /// <summary>
+    /// Attaches the source row's properties the typed model has no field for, so the create keeps them the way an edit
+    /// does (<see cref="TrackingFieldPreserver"/>). The row's own uid and id stay behind: the create is a new rule on
+    /// another human. Pokéstop events have no untyped path to carry anything through, on edit either.
+    /// </summary>
+    private async Task CarryUnmodelledAsync<TModel>(Session session, string trackingType, string sourceOwnerId, TModel model)
+        where TModel : class, IHasDestination
+    {
+        if (trackingType == "incident" || await session.RowsAsync(trackingType, sourceOwnerId) is not { } rows)
+        {
+            return;
+        }
+
+        var body = PoracleJsonHelper.SerializeToElement(model);
+        var merged = TrackingFieldPreserver.PreserveStoredFields(rows, model.Uid, body);
+        var extras = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+        foreach (var prop in merged.EnumerateObject())
+        {
+            if (!body.TryGetProperty(prop.Name, out _) && prop.Name is not ("uid" or "id"))
+            {
+                extras[prop.Name] = prop.Value;
+            }
+        }
+
+        if (extras.Count > 0)
+        {
+            CarriedFields.Attach(model, JsonSerializer.SerializeToElement(extras));
+        }
+    }
+
+    /// <summary>What one request has already read, so a bulk move asks PoracleNG once per human rather than once per alarm.</summary>
+    private sealed class Session(AlarmMover owner, LinkedPair pair)
+    {
+        private readonly Dictionary<string, Human?> _humans = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, SavedPlaces> _places = new(StringComparer.Ordinal);
+        private readonly Dictionary<(string Type, string Owner), JsonElement?> _rows = [];
+
+        public LinkedPair Pair { get; } = pair;
+
+        public async Task<Human?> HumanAsync(string id)
+        {
+            if (!this._humans.TryGetValue(id, out var human))
+            {
+                this._humans[id] = human = await owner._humans.GetByIdAsync(id);
+            }
+
+            return human;
+        }
+
+        public async Task<SavedPlaces> PlacesAsync(string id)
+        {
+            if (!this._places.TryGetValue(id, out var places))
+            {
+                this._places[id] = places = await owner._humanProxy.GetPlacesAsync(id);
+            }
+
+            return places;
+        }
+
+        /// <summary>The owner's stored rows of a type, or null when they could not be read (the move then goes ahead on the model alone).</summary>
+        public async Task<JsonElement?> RowsAsync(string type, string ownerId)
+        {
+            if (!this._rows.TryGetValue((type, ownerId), out var rows))
+            {
+                try
+                {
+                    rows = await owner._tracking.GetByUserAsync(type, ownerId);
+                }
+                catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+                {
+                    rows = null;
+                }
+
+                this._rows[(type, ownerId)] = rows;
+            }
+
+            return rows;
+        }
     }
 
     private async Task<string?> DeleteSourceAsync<TModel>(IAlarmService<TModel> svc, string sourceOwnerId, int uid)

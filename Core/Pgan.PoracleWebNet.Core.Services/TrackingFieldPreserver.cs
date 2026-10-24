@@ -60,7 +60,15 @@ internal static class TrackingFieldPreserver
             return body;
         }
 
-        if (rows.ValueKind != JsonValueKind.Array)
+        return PreserveStoredFields(rows, uid, body);
+    }
+
+    /// <summary>
+    /// The same merge over rows the caller has already read, for a caller that merges many bodies from one read.
+    /// </summary>
+    public static JsonElement PreserveStoredFields(JsonElement rows, int uid, JsonElement body)
+    {
+        if (uid <= 0 || body.ValueKind != JsonValueKind.Object || rows.ValueKind != JsonValueKind.Array)
         {
             return body;
         }

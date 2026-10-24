@@ -28,7 +28,7 @@ public class AlarmMoveControllerTests : ControllerTestBase
         this._humans.Setup(h => h.GetByIdAsync(It.IsAny<string>())).ReturnsAsync((string id) => new Human { Id = id, CurrentProfileNo = 1 });
         this._repo.Setup(r => r.GetByUserAndProfileAsync(It.IsAny<string>(), It.IsAny<int>())).ReturnsAsync([]);
         this._mover = new AlarmMover(
-            this._linked.Object, this._humans.Object, this._proxy.Object, Mock.Of<IUserAreaPolicy>(),
+            this._linked.Object, this._humans.Object, this._proxy.Object, Mock.Of<IPoracleTrackingProxy>(), Mock.Of<IUserAreaPolicy>(),
             new QuickPickUidTransfer(this._repo.Object, NullLogger<QuickPickUidTransfer>.Instance),
             NullLogger<AlarmMover>.Instance);
     }

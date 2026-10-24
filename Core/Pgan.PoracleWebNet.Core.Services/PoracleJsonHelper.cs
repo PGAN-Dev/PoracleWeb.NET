@@ -56,7 +56,12 @@ internal static class PoracleJsonHelper
 
         if (root.ValueKind == JsonValueKind.Object)
         {
-            return StripAlarmMetadata(root);
+            var body = StripAlarmMetadata(root);
+
+            // A move attaches the stored properties its typed model has no field for.
+            return value is not null && CarriedFields.TryGet(value, out var carried)
+                ? PreserveUnmodelled(carried, body)
+                : body;
         }
 
         return root.Clone();

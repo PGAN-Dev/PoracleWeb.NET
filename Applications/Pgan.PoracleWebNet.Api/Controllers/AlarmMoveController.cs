@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Pgan.PoracleWebNet.Api.Filters;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
@@ -8,6 +9,7 @@ namespace Pgan.PoracleWebNet.Api.Controllers;
 
 /// <summary>Moves alarms between the Discord and Telegram humans of a linked pair, creating on the target before deleting the source.</summary>
 [Route("api/alarm-move")]
+[EnableRateLimiting("alarm-move")]
 [RequireFeatureEnabled(DisableFeatureKeys.AccountLinking)]
 [TypeFilter(typeof(PoracleUnreachableExceptionFilter))]
 public class AlarmMoveController(IFeatureGate featureGate, ILinkedAccount linked, AlarmMoveDispatcher dispatcher) : BaseApiController

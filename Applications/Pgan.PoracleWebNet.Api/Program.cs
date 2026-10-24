@@ -326,6 +326,18 @@ builder.Services.AddRateLimiter(options =>
                 QueueLimit = 0,
                 AutoReplenishment = true,
             }));
+    // A move reads both humans of a linked pair and writes once per alarm, and one request carries a whole
+    // selection. Ten requests a minute per person is several full selections moved, and a loop is stopped.
+    options.AddPolicy("alarm-move", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            UserOrIpPartitionKey(httpContext),
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromSeconds(60),
+                QueueLimit = 0,
+                AutoReplenishment = true,
+            }));
     options.AddPolicy("geofence-feed-refresh", httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
             IpPartitionKey(httpContext),

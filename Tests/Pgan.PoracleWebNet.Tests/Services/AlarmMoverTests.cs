@@ -32,6 +32,7 @@ public class AlarmMoverTests
             this._linked.Object,
             this._humans.Object,
             this._proxy.Object,
+            Mock.Of<IPoracleTrackingProxy>(),
             this._policy.Object,
             new QuickPickUidTransfer(this._repo.Object, NullLogger<QuickPickUidTransfer>.Instance),
             NullLogger<AlarmMover>.Instance);
@@ -233,6 +234,30 @@ public class AlarmMoverTests
         var results = await this._sut.MoveManyAsync<Monster>(this._svc.Object, "pokemon", Discord, 1, [5, 6], LinkSide.Telegram);
 
         Assert.Equal([MoveStatus.Failed, MoveStatus.Moved], results.Select(r => r.Status));
+    }
+
+    [Fact]
+    public async Task MoveMany_ThreeUids_ResolvesThePairAndReadsEachHumanAndPlacesOnce()
+    {
+        Monster WithPlace(int uid)
+        {
+            var m = Model(uid);
+            m.OverrideLocationLabel = "Home";
+            return m;
+        }
+
+        this._svc.Setup(s => s.GetByUserAsync(Discord, 1)).ReturnsAsync([WithPlace(5), WithPlace(6), WithPlace(7)]);
+        this._svc.Setup(s => s.GetByUserAsync(Telegram, 1)).ReturnsAsync([]);
+        this._svc.Setup(s => s.CreateAsync(Telegram, It.IsAny<Monster>())).ReturnsAsync(new Monster { Uid = 77 });
+        this._svc.Setup(s => s.DeleteAsync(Discord, It.IsAny<int>())).ReturnsAsync(true);
+
+        var results = await this._sut.MoveManyAsync<Monster>(this._svc.Object, "pokemon", Discord, 1, [5, 6, 7], LinkSide.Telegram);
+
+        Assert.All(results, r => Assert.Equal(MoveStatus.Moved, r.Status));
+        this._linked.Verify(l => l.ResolveAsync(It.IsAny<string>()), Times.Once);
+        this._humans.Verify(h => h.GetByIdAsync(Discord), Times.Once);
+        this._humans.Verify(h => h.GetByIdAsync(Telegram), Times.Once);
+        this._proxy.Verify(p => p.GetPlacesAsync(Telegram), Times.Once);
     }
 
     [Fact]

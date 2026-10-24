@@ -20,6 +20,7 @@ public abstract class ControllerTestBase
         linked,
         Moq.Mock.Of<Pgan.PoracleWebNet.Core.Abstractions.Services.IHumanService>(),
         Moq.Mock.Of<Pgan.PoracleWebNet.Core.Abstractions.Services.IPoracleHumanProxy>(),
+        Moq.Mock.Of<Pgan.PoracleWebNet.Core.Abstractions.Services.IPoracleTrackingProxy>(),
         Moq.Mock.Of<Pgan.PoracleWebNet.Core.Abstractions.Services.IUserAreaPolicy>(),
         new Pgan.PoracleWebNet.Core.Services.QuickPickUidTransfer(
             Moq.Mock.Of<Pgan.PoracleWebNet.Core.Abstractions.Repositories.IQuickPickAppliedStateRepository>(),
