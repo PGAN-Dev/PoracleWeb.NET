@@ -863,6 +863,7 @@
     "CANCEL_CHANGES": "Abbrechen",
     "SNACK_UPDATED": "Gebiete aktualisiert",
     "DEAD_AREAS": "Nicht mehr verfügbar: {{names}}. Sie werden beim nächsten Speichern entfernt.",
+    "DEAD_AREAS_REMOVE": "Entfernen",
     "SNACK_SAVED_DROPPED": "Gespeichert. Weggelassen, weil Poracle kein solches Gebiet kennt: {{names}}",
     "SNACK_FAILED": "Gebiete konnten nicht aktualisiert werden. Versuche es gleich noch einmal.",
     "SNACK_NOT_PERMITTED": "Nicht gespeichert. Diese Gebiete stehen dir nicht zur Verfügung: {{names}}",

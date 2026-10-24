@@ -17,7 +17,10 @@
   <div class="areas-page">
     @if (deadAreas().length > 0) {
       <p class="dead-areas" role="status">
-        {{ 'AREAS.DEAD_AREAS' | translate: { names: deadAreaNames() } }}
+        <span class="dead-areas-text">{{ 'AREAS.DEAD_AREAS' | translate: { names: deadAreaNames() } }}</span>
+        <button mat-button type="button" (click)="removeDeadAreas()" [disabled]="saving() || hasChanges()">
+          {{ 'AREAS.DEAD_AREAS_REMOVE' | translate }}
+        </button>
       </p>
     }
 

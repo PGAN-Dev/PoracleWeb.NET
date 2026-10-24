@@ -393,6 +393,11 @@ export class AreaListComponent implements OnInit {
     }
   }
 
+  /** Saves the live selection now, which drops the dead names. The button is off while other edits are unsaved. */
+  removeDeadAreas(): void {
+    this.saveAreas();
+  }
+
   saveAreas(): void {
     this.saving.set(true);
     const areaListNames = new Set(this.areas().map(a => areaKey(a.name)));
@@ -457,7 +462,7 @@ export class AreaListComponent implements OnInit {
   }
 
   private buildAreaList(): void {
-    this.partitionDeadAreas(this.polygonKeys);
+    this.classifyDeadAreas();
     // DB stores lowercase area names, API may return mixed case
     const selectedSet = new Set(this.selectedAreas().map(a => areaKey(a)));
     const available = this.availableAreas();
@@ -470,6 +475,26 @@ export class AreaListComponent implements OnInit {
         }))
         .sort((a, b) => a.name.localeCompare(b.name)),
     );
+  }
+
+  /**
+   * Splits the held names into live and dead. Runs when the polygon feed arrives and when the page has built
+   * its list, so the page never waits on the feed.
+   *
+   * AreaService.getGeofencePolygons turns a failed read into an empty list and the API answers 200 with an
+   * empty list when PoracleNG's reads fail, so an empty set means "could not tell", not "no fences": nothing is
+   * called dead unless both sets hold something. If PoracleNG really has no fence, the save still drops the
+   * name server-side, as it always did.
+   */
+  private classifyDeadAreas(): void {
+    const available = this.knownAreaKeys;
+    const polygons = this.polygonKeys;
+    if (this.selectionUnknown() || !available || !polygons || available.size === 0 || polygons.size === 0) return;
+    const dead = this.selectedAreas().filter(a => !available.has(areaKey(a)) && !polygons.has(areaKey(a)));
+    if (dead.length === 0) return;
+    const deadKeys = new Set(dead.map(areaKey));
+    this.deadAreas.set([...this.deadAreas(), ...dead]);
+    this.selectedAreas.set(this.selectedAreas().filter(a => !deadKeys.has(areaKey(a))));
   }
 
   private clearPin(): void {
@@ -501,7 +526,7 @@ export class AreaListComponent implements OnInit {
     let loaded = 0;
     const check = () => {
       loaded++;
-      if (loaded >= 4) {
+      if (loaded >= 3) {
         this.buildAreaList();
         this.loading.set(false);
       }
@@ -553,11 +578,11 @@ export class AreaListComponent implements OnInit {
       .getGeofencePolygons()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        error: () => check(),
+        error: () => {},
         next: data => {
           this.polygonKeys = new Set(data.map(g => areaKey(g.name)));
           this.rawGeofenceData.set(data);
-          check();
+          this.classifyDeadAreas();
         },
       });
   }
@@ -594,17 +619,6 @@ export class AreaListComponent implements OnInit {
       .subscribe(result => {
         if (result?.displayName) this.locationAddress.set(result.displayName);
       });
-  }
-
-  /** Splits the held names into live and dead, once every list needed to tell them apart has been read. */
-  private partitionDeadAreas(polygons: null | Set<string>): void {
-    const available = this.knownAreaKeys;
-    if (this.selectionUnknown() || !available || !polygons) return;
-    const dead = this.selectedAreas().filter(a => !available.has(areaKey(a)) && !polygons.has(areaKey(a)));
-    if (dead.length === 0) return;
-    const deadKeys = new Set(dead.map(areaKey));
-    this.deadAreas.set(dead);
-    this.selectedAreas.set(this.selectedAreas().filter(a => !deadKeys.has(areaKey(a))));
   }
 
   /**

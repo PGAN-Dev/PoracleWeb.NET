@@ -863,6 +863,7 @@
     "CANCEL_CHANGES": "Avbryt",
     "SNACK_UPDATED": "Områden uppdaterade",
     "DEAD_AREAS": "Inte längre tillgängliga: {{names}}. De tas bort nästa gång du sparar.",
+    "DEAD_AREAS_REMOVE": "Ta bort dem",
     "SNACK_SAVED_DROPPED": "Sparat. Utelämnat eftersom Poracle inte har något sådant område: {{names}}",
     "SNACK_FAILED": "Kunde inte uppdatera områden. Försök igen om en stund.",
     "SNACK_NOT_PERMITTED": "Inte sparat. De här områdena är inte tillgängliga för dig: {{names}}",
