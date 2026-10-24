@@ -16,6 +16,7 @@ import { I18nService } from '../../core/services/i18n.service';
 import { LinkedAccountService } from '../../core/services/linked-account.service';
 import { SettingsService } from '../../core/services/settings.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
+import { PairDriftPanelComponent } from '../../shared/components/pair-drift-panel/pair-drift-panel.component';
 import { TelegramLoginButtonComponent } from '../../shared/components/telegram-login-button/telegram-login-button.component';
 import { clearTelegramReturn, readTelegramReturn } from '../../shared/utils/telegram-return';
 
@@ -51,6 +52,7 @@ const SIDES: LinkSide[] = ['discord', 'telegram'];
     MatIconModule,
     MatRadioModule,
     MatSnackBarModule,
+    PairDriftPanelComponent,
     TelegramLoginButtonComponent,
     TranslatePipe,
   ],

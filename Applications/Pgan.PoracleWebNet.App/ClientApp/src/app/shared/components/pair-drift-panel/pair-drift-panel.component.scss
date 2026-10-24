@@ -1,0 +1,94 @@
+:host {
+  display: block;
+}
+
+// Outlined, as the cards above it and on Profiles. No colour: nothing here is data that colour would carry.
+.drift-panel {
+  border: 1px solid var(--mat-sys-outline-variant, rgb(0 0 0 / 12%));
+  border-radius: 12px;
+  margin-top: 24px;
+  max-width: 800px;
+  padding: 16px;
+}
+
+.drift-heading {
+  font-size: 1rem;
+  font-weight: 500;
+  margin: 0 0 4px;
+}
+
+.hint {
+  color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.6));
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.drift-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+
+.drift-line {
+  border-top: 1px solid var(--mat-sys-outline-variant, rgb(0 0 0 / 12%));
+  padding: 12px 0;
+
+  &:last-child {
+    padding-bottom: 0;
+  }
+}
+
+.drift-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin: 0 0 2px;
+}
+
+.drift-text {
+  margin: 0 0 8px;
+  overflow-wrap: anywhere;
+}
+
+.drift-choices {
+  display: grid;
+  gap: 8px 16px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.drift-choice {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.drift-consequence {
+  color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.6));
+  font-size: 0.8125rem;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.drift-status,
+.drift-error {
+  margin: 0;
+
+  &:not(:empty) {
+    margin-top: 12px;
+  }
+}
+
+.drift-error {
+  color: var(--mat-sys-error, #b3261e);
+}
+
+@media (max-width: 599px) {
+  .drift-panel {
+    padding: 12px;
+  }
+
+  .drift-choice button {
+    width: 100%;
+  }
+}

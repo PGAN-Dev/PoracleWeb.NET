@@ -968,6 +968,11 @@ export type DriftField = 'areas' | 'current_profile' | 'location' | 'places' | '
  * fingerprint goes back on a resolve so the server can tell the person chose against what they saw.
  */
 export interface DriftItem {
+  /**
+   * What the line needs to read well but the comparison leaves out, outside the fingerprint: for `current_profile`
+   * `{ discord: { name, otherHas }, telegram: {...} }`, for `places` `{ labels: { key: "As typed" } }`. Absent otherwise.
+   */
+  details?: unknown;
   discord: unknown;
   field: DriftField;
   fingerprint: string;

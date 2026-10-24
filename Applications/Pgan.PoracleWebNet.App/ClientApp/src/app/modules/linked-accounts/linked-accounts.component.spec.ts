@@ -21,7 +21,10 @@ describe('LinkedAccountsComponent', () => {
   const status = signal<LinkStatus | null>({ linked: false });
   const canRead = signal(true);
   const linkedAccounts = {
+    canChoose: signal(false),
     canRead,
+    drift: signal([]),
+    driftUnknown: signal(false),
     linkTelegram: jest.fn(() => Promise.resolve()),
     refresh: jest.fn(() => Promise.resolve()),
     setDefault: jest.fn(() => Promise.resolve()),

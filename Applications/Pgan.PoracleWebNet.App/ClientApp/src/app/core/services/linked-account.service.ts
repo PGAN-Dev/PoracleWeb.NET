@@ -12,6 +12,9 @@ import { DriftField, DriftItem, LinkSide, LinkStatus } from '../models';
 /** A focus refresh is skipped when the last read is newer than this. */
 const FOCUS_REFRESH_MIN_GAP_MS = 60_000;
 
+/** After a write, how long to wait for the next one: a page often sends a few together (save, then reload). */
+export const WRITE_REFRESH_DELAY_MS = 400;
+
 /**
  * The signed-in person's link between their Discord and Telegram accounts, held as a signal.
  *
@@ -26,6 +29,7 @@ export class LinkedAccountService {
   private readonly config = inject(ConfigService);
   private readonly http = inject(HttpClient);
   private lastRefreshAt = 0;
+  private refreshTimer: null | ReturnType<typeof setTimeout> = null;
   private readonly settings = inject(SettingsService);
   private readonly signedIn = computed(() => !!this.auth.user());
   private readonly statusSignal = signal<LinkStatus | null>(null);
@@ -51,6 +55,9 @@ export class LinkedAccountService {
 
   /** What the two accounts disagree on. Empty when linked and in step, and when the server couldn't compare them. */
   readonly drift = computed<DriftItem[]>(() => this.statusSignal()?.drift ?? []);
+
+  /** True when linked but the server couldn't compare the two accounts (`drift: null`), so "no differences" is unknown. */
+  readonly driftUnknown = computed(() => !!this.statusSignal()?.linked && this.statusSignal()?.drift === null);
 
   /** Null until the first read, and again after sign-out. `{ linked: false }` is a read that found no link. */
   readonly status = this.statusSignal.asReadonly();
@@ -112,6 +119,19 @@ export class LinkedAccountService {
     } catch {
       // Silent on purpose; the next focus tries again.
     }
+  }
+
+  /**
+   * Reads the status again shortly after a write, so the banner and the Linked accounts list never offer to undo
+   * what the person just did. Writes in quick succession share one read. Unlinked, nothing is read.
+   */
+  refreshSoon(): void {
+    if (!this.statusSignal()?.linked) return;
+    if (this.refreshTimer !== null) clearTimeout(this.refreshTimer);
+    this.refreshTimer = setTimeout(() => {
+      this.refreshTimer = null;
+      void this.refresh();
+    }, WRITE_REFRESH_DELAY_MS);
   }
 
   /**

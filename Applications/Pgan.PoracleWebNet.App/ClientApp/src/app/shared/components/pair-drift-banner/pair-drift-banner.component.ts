@@ -1,45 +1,15 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, signal, untracked } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { NavigationEnd, Router, RouterLink } from '@angular/router';
+import { TranslatePipe } from '@ngx-translate/core';
+import { filter } from 'rxjs';
 
-import { DriftItem, LinkSide } from '../../../core/models';
-import { AreaNameService } from '../../../core/services/area-name.service';
 import { LinkedAccountService } from '../../../core/services/linked-account.service';
-import { LocationService } from '../../../core/services/location.service';
-import { ToastService } from '../../../core/services/toast.service';
-import { serverReason } from '../../utils/server-reason';
 
 const DISMISSED_KEY = 'poracle-drift-dismissed';
-
-interface Point {
-  lat: number;
-  lon: number;
-}
-
-interface DriftLine {
-  item: DriftItem;
-  text: string;
-}
-
-function pointKey(p: Point): string {
-  return `${p.lat},${p.lon}`;
-}
-
-function isPoint(value: unknown): value is Point {
-  const p = value as null | Point;
-  return typeof p?.lat === 'number' && typeof p?.lon === 'number';
-}
-
-/** The server's area comparison key (PoracleNG's NormalizeAreaKey): lowercase, trimmed, `_` equal to space. */
-function areaKey(name: string): string {
-  return name.trim().toLowerCase().replace(/_/g, ' ');
-}
-
-/** A profile number as the text to print; anything that is not a number or a string has none. */
-function profileText(value: unknown): null | string {
-  return typeof value === 'number' || typeof value === 'string' ? String(value) : null;
-}
+export const LINKED_ACCOUNTS_URL = '/linked-accounts';
 
 function readDismissed(): Set<string> {
   try {
@@ -50,47 +20,65 @@ function readDismissed(): Set<string> {
   }
 }
 
+function onLinkedAccounts(url: string): boolean {
+  const path = url.split(/[?#]/)[0];
+  return path === LINKED_ACCOUNTS_URL || path.startsWith(`${LINKED_ACCOUNTS_URL}/`);
+}
+
 /**
- * One line for each setting a linked pair disagrees on, and a button per side to keep. Nothing is ever
- * resolved without the person choosing: the server answers a choice only against the fingerprint of what
- * was shown here. Dismissing hides what has been seen for the rest of the session; a difference that
- * appears later is a new fingerprint and shows again.
+ * One line under the toolbar while a linked pair's apps disagree, pointing at Linked accounts, where every
+ * difference is listed with its choices. Dismissing hides what has been seen for the rest of the session; a
+ * difference that appears later is a new fingerprint and shows again. The list itself never hides.
+ *
+ * It only appears at a moment the page is changing anyway: the first status read after sign-in (the page is still
+ * loading) or a navigation. Drift found by a focus refresh or after a write waits for the next navigation, so
+ * nothing the person is reading moves down under them. It goes away at once, which only follows their own action.
  */
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatButtonModule, MatIconModule, TranslatePipe],
+  imports: [MatButtonModule, MatIconModule, RouterLink, TranslatePipe],
   selector: 'app-pair-drift-banner',
   styleUrl: './pair-drift-banner.component.scss',
   templateUrl: './pair-drift-banner.component.html',
 })
 export class PairDriftBannerComponent {
-  private readonly areaNames = inject(AreaNameService);
+  /** Something undismissed differs, as of the last moment the banner was allowed to appear. */
+  private readonly armed = signal(false);
   private readonly dismissed = signal<Set<string>>(readDismissed());
   private readonly linked = inject(LinkedAccountService);
-  private readonly locations = inject(LocationService);
-  private readonly names = signal<Map<string, string>>(new Map());
-  private readonly requested = new Set<string>();
-  private readonly toast = inject(ToastService);
-  private readonly translate = inject(TranslateService);
+  private readonly pending = computed(() => this.linked.drift().some(i => !this.dismissed().has(i.fingerprint)));
+  private readonly router = inject(Router);
+  private readonly url = signal(this.router.url);
 
-  /** The item and side being resolved, so its buttons can't be pressed twice. */
-  protected readonly busy = signal<null | string>(null);
+  protected readonly linkedAccountsUrl = LINKED_ACCOUNTS_URL;
 
-  protected readonly lines = computed<DriftLine[]>(() => {
-    this.translate.currentLang(); // composed sentences follow the display language
-    const names = this.names();
-    return this.linked.drift().map(item => ({ item, text: this.describe(item, names) }));
-  });
-
-  protected readonly sides: LinkSide[] = ['discord', 'telegram'];
-
-  protected readonly visible = computed(() => this.linked.drift().some(i => !this.dismissed().has(i.fingerprint)));
+  /** Hidden on Linked accounts, which lists the differences itself. */
+  protected readonly visible = computed(() => this.armed() && this.pending() && !onLinkedAccounts(this.url()));
 
   constructor() {
+    let firstRead = true;
     effect(() => {
-      const items = this.linked.drift();
-      untracked(() => this.lookUpPlaces(items));
+      const status = this.linked.status();
+      untracked(() => {
+        if (status === null) {
+          firstRead = true;
+          this.armed.set(false);
+        } else if (firstRead) {
+          firstRead = false;
+          this.armed.set(this.pending());
+        }
+      });
     });
+
+    this.router.events
+      .pipe(
+        filter((e): e is NavigationEnd => e instanceof NavigationEnd),
+        takeUntilDestroyed(inject(DestroyRef)),
+      )
+      .subscribe(e => {
+        this.url.set(e.urlAfterRedirects);
+        this.armed.set(this.pending());
+      });
   }
 
   protected dismiss(): void {
@@ -102,105 +90,7 @@ export class PairDriftBannerComponent {
     } catch {
       // The banner stays hidden for this page load without it.
     }
-  }
-
-  protected async keep(item: DriftItem, side: LinkSide): Promise<void> {
-    if (this.busy()) return;
-    this.busy.set(item.fingerprint + side);
-    try {
-      await this.linked.resolve(item.field, side, item.fingerprint);
-    } catch (err) {
-      // The service has already read the status again, so a stale line goes away by itself.
-      this.toast.error(serverReason(err) ?? this.translate.instant('DRIFT.RESOLVE_FAILED'));
-    } finally {
-      this.busy.set(null);
-    }
-  }
-
-  protected keepAria(line: DriftLine, side: LinkSide): string {
-    return this.translate.instant('DRIFT.KEEP_ARIA', { side: this.sideName(side), line: line.text });
-  }
-
-  protected sideName(side: LinkSide): string {
-    return this.translate.instant(side === 'discord' ? 'LINKED.SIDE_DISCORD' : 'LINKED.SIDE_TELEGRAM');
-  }
-
-  private describe(item: DriftItem, names: Map<string, string>): string {
-    const t = (key: string, params?: Record<string, unknown>) => this.translate.instant(key, params);
-    const otherOf = (side: LinkSide): LinkSide => (side === 'discord' ? 'telegram' : 'discord');
-    const sentences = (extra: (side: LinkSide) => string[], key: string): string[] =>
-      this.sides.filter(s => extra(s).length > 0).map(s => t(key, { names: extra(s).join(', '), side: this.sideName(s) }));
-    const list = <T>(side: LinkSide): T[] => (Array.isArray(item[side]) ? (item[side] as T[]) : []);
-
-    switch (item.field) {
-      case 'areas': {
-        const found = sentences(side => {
-          const theirs = new Set(list<unknown>(otherOf(side)).map(a => (typeof a === 'string' ? areaKey(a) : '')));
-          const seen = new Set<string>();
-          return list<unknown>(side)
-            .filter((a): a is string => typeof a === 'string')
-            .filter(a => {
-              const key = areaKey(a);
-              if (theirs.has(key) || seen.has(key)) return false;
-              seen.add(key);
-              return true;
-            })
-            .map(a => this.areaNames.label(a));
-        }, 'DRIFT.AREAS_EXTRA');
-        return found.length ? found.join(' ') : t('DRIFT.AREAS_DIFFER');
-      }
-      case 'current_profile': {
-        const discord = profileText(item.discord);
-        const telegram = profileText(item.telegram);
-        return discord !== null && telegram !== null
-          ? t('DRIFT.PROFILE_CURRENT', { discord, telegram })
-          : t('DRIFT.PROFILE_CURRENT_DIFFER');
-      }
-      case 'location': {
-        const place = (v: unknown) => (isPoint(v) ? (names.get(pointKey(v)) ?? `${v.lat}, ${v.lon}`) : '');
-        return t('DRIFT.LOCATION', { discord: place(item.discord), telegram: place(item.telegram) });
-      }
-      case 'places': {
-        const found = sentences(
-          side =>
-            list<{ label: string }>(side)
-              .filter(r => !list<{ label: string }>(otherOf(side)).some(o => o.label === r.label))
-              .map(r => this.areaNames.label(r.label)),
-          'DRIFT.PLACES_EXTRA',
-        );
-        return found.length ? found.join(' ') : t('DRIFT.PLACES_DIFFER');
-      }
-      case 'profiles': {
-        const found = sentences(
-          side =>
-            list<{ name?: string; no: number }>(side)
-              .filter(r => !list<{ no: number }>(otherOf(side)).some(o => o.no === r.no))
-              .map(r => r.name || t('DRIFT.PROFILE_NAMELESS', { no: r.no })),
-          'DRIFT.PROFILES_EXTRA',
-        );
-        return found.length ? found.join(' ') : t('DRIFT.PROFILES_DIFFER');
-      }
-      default:
-        return '';
-    }
-  }
-
-  /** A place name for each side of a location difference, through the same lookup the location dialog uses. */
-  private lookUpPlaces(items: DriftItem[]): void {
-    if (this.locations.geocodingDisabled()) return;
-    for (const item of items) {
-      if (item.field !== 'location') continue;
-      for (const point of [item.discord, item.telegram]) {
-        if (!isPoint(point)) continue;
-        const key = pointKey(point);
-        if (this.requested.has(key)) continue;
-        this.requested.add(key);
-        this.locations.reverseGeocode(point.lat, point.lon).subscribe(result => {
-          const name = result?.city || result?.neighbourhood || result?.displayName;
-          if (!name) return;
-          this.names.update(m => new Map(m).set(key, name));
-        });
-      }
-    }
+    // The button that had focus is gone; the page is the sensible next place.
+    document.getElementById('main-content')?.focus();
   }
 }

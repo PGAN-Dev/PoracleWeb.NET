@@ -6,7 +6,7 @@ import { TestBed } from '@angular/core/testing';
 import { AdminUsersStore } from './admin-users.store';
 import { AuthService } from './auth.service';
 import { ConfigService } from './config.service';
-import { LinkedAccountService } from './linked-account.service';
+import { LinkedAccountService, WRITE_REFRESH_DELAY_MS } from './linked-account.service';
 import { SettingsService } from './settings.service';
 import { TokenStoreService } from './token-store.service';
 import { LinkStatus } from '../models';
@@ -268,10 +268,45 @@ describe('LinkedAccountService', () => {
     await done;
     expect(service.drift()).toEqual([item]);
 
+    expect(service.driftUnknown()).toBe(false);
+
     done = service.refresh();
     http.expectOne(STATUS).flush({ ...linked, drift: null });
     await done;
     expect(service.drift()).toEqual([]);
+    expect(service.driftUnknown()).toBe(true);
+  });
+
+  it('reads the status once shortly after a burst of writes, however many there were', async () => {
+    jest.useFakeTimers();
+    try {
+      const done = service.refresh();
+      http.expectOne(STATUS).flush(linked);
+      await done;
+
+      service.refreshSoon();
+      service.refreshSoon();
+      http.expectNone(STATUS);
+      jest.advanceTimersByTime(WRITE_REFRESH_DELAY_MS);
+      http.expectOne(STATUS).flush(linked);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('reads nothing after a write when nothing is linked', async () => {
+    jest.useFakeTimers();
+    try {
+      const done = service.refresh();
+      http.expectOne(STATUS).flush({ linked: false });
+      await done;
+
+      service.refreshSoon();
+      jest.advanceTimersByTime(WRITE_REFRESH_DELAY_MS);
+      http.expectNone(STATUS);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('posts the choice with the fingerprint and reads the status again', async () => {

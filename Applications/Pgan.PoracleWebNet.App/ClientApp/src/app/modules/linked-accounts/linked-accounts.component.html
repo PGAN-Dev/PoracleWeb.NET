@@ -86,6 +86,8 @@
       }
     </div>
 
+    <app-pair-drift-panel />
+
     @if (legacyProfileZero(); as zero) {
       <p class="hint" data-test="legacy-profile-zero">
         {{ 'LINKED.LEGACY_PROFILE_ZERO' | translate: { app: zero.app | translate, other: zero.other | translate } }}

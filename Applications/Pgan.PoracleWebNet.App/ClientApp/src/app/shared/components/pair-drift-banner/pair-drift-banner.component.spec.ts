@@ -1,72 +1,55 @@
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { NavigationEnd, Router, provideRouter } from '@angular/router';
 import { provideTranslateService, TranslateService } from '@ngx-translate/core';
-import { of } from 'rxjs';
+import { Subject } from 'rxjs';
 
 import { PairDriftBannerComponent } from './pair-drift-banner.component';
-import { DriftItem } from '../../../core/models';
-import { AreaNameService } from '../../../core/services/area-name.service';
+import { DriftItem, LinkStatus } from '../../../core/models';
 import { LinkedAccountService } from '../../../core/services/linked-account.service';
-import { LocationService } from '../../../core/services/location.service';
-import { ToastService } from '../../../core/services/toast.service';
 
-const location: DriftItem = {
-  discord: { lat: 1.5, lon: 2.5 },
-  field: 'location',
-  fingerprint: 'fp-loc',
-  telegram: { lat: 3.5, lon: 4.5 },
-};
 const areas: DriftItem = { discord: ['old town'], field: 'areas', fingerprint: 'fp-areas', telegram: ['old town', 'riverside'] };
+const location: DriftItem = { discord: { lat: 1, lon: 2 }, field: 'location', fingerprint: 'fp-loc', telegram: { lat: 3, lon: 4 } };
 
 describe('PairDriftBannerComponent', () => {
   let fixture: ComponentFixture<PairDriftBannerComponent>;
   let drift: ReturnType<typeof signal<DriftItem[]>>;
-  let resolve: jest.Mock;
-  let toast: { error: jest.Mock };
-  let reverse: jest.Mock;
-  let geocodingDisabled: boolean;
+  let status: ReturnType<typeof signal<LinkStatus | null>>;
+  let events: Subject<unknown>;
+  let url: string;
 
   const el = () => fixture.nativeElement as HTMLElement;
-  const rows = () => Array.from(el().querySelectorAll('.drift-item'));
-  const settle = async () => {
-    for (let i = 0; i < 5; i++) await Promise.resolve();
+  const banner = () => el().querySelector('.drift-banner');
+  const navigate = (to: string) => {
+    url = to;
+    events.next(new NavigationEnd(1, to, to));
     fixture.detectChanges();
   };
 
-  function mount(items: DriftItem[]): void {
+  /** Mounts with the status already read, as when the banner arrives with the first read. */
+  function mount(items: DriftItem[], at = '/dashboard'): void {
     drift = signal(items);
-    resolve = jest.fn().mockResolvedValue(undefined);
-    toast = { error: jest.fn() };
-    geocodingDisabled = false;
-    reverse = jest.fn((lat: number) => of({ city: lat === 1.5 ? 'Old Town' : 'Northside', displayName: 'x' }));
+    status = signal<LinkStatus | null>({ drift: items, linked: true });
+    events = new Subject();
+    url = at;
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      providers: [
-        provideTranslateService(),
-        { provide: LinkedAccountService, useValue: { drift, resolve } },
-        { provide: LocationService, useValue: { geocodingDisabled: () => geocodingDisabled, reverseGeocode: reverse } },
-        { provide: AreaNameService, useValue: { label: (a: string) => a.replace(/\b\w/g, c => c.toUpperCase()) } },
-        { provide: ToastService, useValue: toast },
-      ],
+      providers: [provideRouter([]), provideTranslateService(), { provide: LinkedAccountService, useValue: { drift, status } }],
       imports: [PairDriftBannerComponent],
     });
-    const translate = TestBed.inject(TranslateService);
-    translate.setTranslation('en', {
+    const router = TestBed.inject(Router);
+    Object.defineProperty(router, 'events', { value: events });
+    Object.defineProperty(router, 'url', { get: () => url });
+    TestBed.inject(TranslateService).setTranslation('en', {
       DRIFT: {
-        AREAS_DIFFER: 'Some areas differ.',
-        AREAS_EXTRA: '{{side}} also has {{names}}.',
+        BANNER: 'Discord and Telegram have different settings.',
         DISMISS: 'Dismiss',
-        KEEP: 'Keep {{side}}',
-        KEEP_ARIA: 'Keep {{side}}. {{line}}',
-        LOCATION: 'Location: Discord has {{discord}}, Telegram has {{telegram}}.',
-        PROFILE_CURRENT: 'Current profile: Discord is on {{discord}}, Telegram is on {{telegram}}.',
-        PROFILE_CURRENT_DIFFER: 'The accounts are on different profiles.',
-        RESOLVE_FAILED: 'Could not resolve that.',
-        TITLE: 'Your linked accounts differ',
+        REVIEW: 'Review',
+        REVIEW_ARIA: 'Review the differences on Linked accounts',
+        TITLE: 'Discord and Telegram have different settings',
       },
-      LINKED: { SIDE_DISCORD: 'Discord', SIDE_TELEGRAM: 'Telegram' },
     });
-    translate.use('en');
+    TestBed.inject(TranslateService).use('en');
     fixture = TestBed.createComponent(PairDriftBannerComponent);
     fixture.detectChanges();
   }
@@ -75,141 +58,80 @@ describe('PairDriftBannerComponent', () => {
 
   it('renders nothing when there is no drift', () => {
     mount([]);
-    expect(el().querySelector('.drift-banner')).toBeNull();
+    expect(banner()).toBeNull();
   });
 
-  it('names both places for a location difference and offers two buttons', async () => {
-    mount([location]);
-    await settle();
+  it('is one line that points at Linked accounts, however many differences there are', () => {
+    mount([areas, location]);
 
-    expect(rows()).toHaveLength(1);
-    expect(rows()[0].textContent).toContain('Old Town');
-    expect(rows()[0].textContent).toContain('Northside');
-    const keeps = Array.from(rows()[0].querySelectorAll('button')).map(b => b.textContent?.trim());
-    expect(keeps).toEqual(['Keep Discord', 'Keep Telegram']);
+    expect(banner()).not.toBeNull();
+    expect(el().querySelectorAll('.drift-banner p')).toHaveLength(1);
+    expect(el().querySelector('.drift-text')?.textContent?.trim()).toBe('Discord and Telegram have different settings.');
+    const review = el().querySelector('a.drift-review') as HTMLAnchorElement;
+    expect(review.getAttribute('href')).toBe('/linked-accounts');
+    expect(review.getAttribute('aria-label')).toBe('Review the differences on Linked accounts');
+    // No per-difference buttons: those live on Linked accounts.
+    expect(el().querySelectorAll('button')).toHaveLength(1);
   });
 
-  it('falls back to coordinates when the lookup finds nothing', async () => {
-    mount([location]);
-    reverse.mockReturnValue(of(null));
-    fixture.destroy();
-    fixture = TestBed.createComponent(PairDriftBannerComponent);
+  it('is not shown on Linked accounts, which lists the differences itself', () => {
+    mount([areas], '/linked-accounts');
+    expect(banner()).toBeNull();
+
+    navigate('/dashboard');
+    expect(banner()).not.toBeNull();
+  });
+
+  it('waits for a navigation before appearing for drift found mid-page, so nothing moves under the reader', () => {
+    mount([]);
+    drift.set([areas]);
     fixture.detectChanges();
-    await settle();
+    expect(banner()).toBeNull();
 
-    expect(rows()[0].textContent).toContain('1.5, 2.5');
+    navigate('/pokemon');
+    expect(banner()).not.toBeNull();
   });
 
-  it('asks nothing and shows coordinates when geocoding is switched off', async () => {
-    mount([location]);
-    geocodingDisabled = true;
-    reverse.mockClear();
-    fixture.destroy();
-    fixture = TestBed.createComponent(PairDriftBannerComponent);
+  it('shows at once for drift found by the first read after sign-in', () => {
+    mount([]);
+    status.set(null);
     fixture.detectChanges();
-    await settle();
 
-    expect(reverse).not.toHaveBeenCalled();
-    expect(rows()[0].textContent).toContain('3.5, 4.5');
+    drift.set([areas]);
+    status.set({ drift: [areas], linked: true });
+    fixture.detectChanges();
+    expect(banner()).not.toBeNull();
   });
 
-  it('shows only the difference for areas', () => {
+  it('goes away at once when the differences are settled', () => {
+    mount([areas]);
+    drift.set([]);
+    fixture.detectChanges();
+    expect(banner()).toBeNull();
+  });
+
+  it('hides on dismiss for the session, moves focus to the page, and comes back for a difference it has not seen', () => {
+    const main = document.createElement('main');
+    main.id = 'main-content';
+    main.tabIndex = -1;
+    document.body.appendChild(main);
     mount([areas]);
 
-    const text = rows()[0].textContent ?? '';
-    expect(text).toContain('Telegram also has Riverside.');
-    expect(text).not.toContain('Discord also has');
-    expect(text).not.toContain('Old Town');
-  });
-
-  it('compares areas the way the server does: case, padding and underscores are not differences', () => {
-    mount([
-      { discord: ['Old_Town ', 'lake eola'], field: 'areas', fingerprint: 'fp-a2', telegram: [' old town', 'LAKE_EOLA', 'riverside'] },
-    ]);
-
-    const text = rows()[0].textContent ?? '';
-    expect(text).toContain('Telegram also has Riverside.');
-    expect(text).not.toContain('Old');
-    expect(text).not.toContain('Lake');
-  });
-
-  it('says the areas differ when the difference cannot be named, never an empty line', () => {
-    mount([{ discord: ['Old_Town'], field: 'areas', fingerprint: 'fp-a3', telegram: ['old town'] }]);
-    expect((rows()[0].textContent ?? '').trim()).toContain('Some areas differ.');
-
-    mount([{ discord: 'unexpected', field: 'areas', fingerprint: 'fp-a4', telegram: null }]);
-    expect((rows()[0].textContent ?? '').trim()).toContain('Some areas differ.');
-  });
-
-  it('prints a profile number, and never [object Object] for an unexpected shape', () => {
-    mount([{ discord: 2, field: 'current_profile', fingerprint: 'fp-p', telegram: '0' }]);
-    expect(rows()[0].textContent).toContain('Discord is on 2, Telegram is on 0.');
-
-    mount([{ discord: { no: 2 }, field: 'current_profile', fingerprint: 'fp-p2', telegram: 1 }]);
-    const text = rows()[0].textContent ?? '';
-    expect(text).not.toContain('[object Object]');
-    expect(text).toContain('The accounts are on different profiles.');
-  });
-
-  it('sends the choice with the item fingerprint', async () => {
-    mount([areas]);
-    (rows()[0].querySelectorAll('button')[1] as HTMLButtonElement).click();
-    await settle();
-
-    expect(resolve).toHaveBeenCalledWith('areas', 'telegram', 'fp-areas');
-    expect(toast.error).not.toHaveBeenCalled();
-  });
-
-  it('shows the server sentence once when a resolve is refused', async () => {
-    mount([areas]);
-    resolve.mockRejectedValue({ error: { error: 'That changed again. Check the banner.' }, status: 409 });
-    (rows()[0].querySelectorAll('button')[0] as HTMLButtonElement).click();
-    await settle();
-
-    expect(toast.error).toHaveBeenCalledTimes(1);
-    expect(toast.error).toHaveBeenCalledWith('That changed again. Check the banner.');
-  });
-
-  it('uses its own sentence when the failure carries none', async () => {
-    mount([areas]);
-    resolve.mockRejectedValue({ status: 503 });
-    (rows()[0].querySelectorAll('button')[0] as HTMLButtonElement).click();
-    await settle();
-
-    expect(toast.error).toHaveBeenCalledWith('Could not resolve that.');
-  });
-
-  it('hides on dismiss for the session, and comes back for a difference it has not seen', () => {
-    mount([areas]);
     (el().querySelector('.drift-dismiss') as HTMLButtonElement).click();
     fixture.detectChanges();
-    expect(el().querySelector('.drift-banner')).toBeNull();
+    expect(banner()).toBeNull();
+    expect(document.activeElement).toBe(main);
     expect(sessionStorage.getItem('poracle-drift-dismissed')).toContain('fp-areas');
 
     drift.set([areas, location]);
-    fixture.detectChanges();
-    expect(el().querySelector('.drift-banner')).not.toBeNull();
-    expect(rows()).toHaveLength(2);
+    navigate('/raids');
+    expect(banner()).not.toBeNull();
+    main.remove();
   });
 
   it('stays hidden after a reload in the same session', () => {
     sessionStorage.setItem('poracle-drift-dismissed', JSON.stringify(['fp-areas']));
     mount([areas]);
-    expect(el().querySelector('.drift-banner')).toBeNull();
-  });
-
-  it('still works when session storage throws', () => {
-    jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
-      throw new Error('blocked');
-    });
-    jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
-      throw new Error('blocked');
-    });
-    mount([areas]);
-    expect(el().querySelector('.drift-banner')).not.toBeNull();
-    (el().querySelector('.drift-dismiss') as HTMLButtonElement).click();
-    fixture.detectChanges();
-    expect(el().querySelector('.drift-banner')).toBeNull();
-    jest.restoreAllMocks();
+    expect(banner()).toBeNull();
   });
 });
