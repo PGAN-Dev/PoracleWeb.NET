@@ -18,7 +18,8 @@ and what it offers depends on how you signed in:
   the page with the link made.
 - **Signed in with Discord.** Use the Telegram button on the Telegram card and approve it in Telegram.
 
-An app is offered only when its sign-in is set up on the site and switched on. An account can be in one link
+An app is offered only when its sign-in is set up on the site and switched on. When it isn't, its card says
+this site doesn't offer that app's sign-in, so it can't be linked here. An account can be in one link
 at a time, and only personal accounts link: a channel, group, thread or webhook never does. While an admin is
 viewing the site as you, the page says the link is yours to manage and offers nothing.
 
@@ -34,6 +35,7 @@ The page says why, and what to try next. Dismiss the message with its close butt
 | That account is already used here as a channel or group | That id is registered here as a destination, not a person |
 | That account is already linked to someone else | Unlink it from the other account first |
 | That sign-in took too long | A Telegram login is good for ten minutes after you approve it, and a Discord link for ten minutes after you press **Link Discord**. Start again |
+| This site doesn't offer sign-in with that app | That app's sign-in isn't set up on this site, or an admin switched it off. Ask the site team if you expected it |
 | That account can't sign in to this site | The account fails this site's own sign-in rules, such as a required Discord role |
 | You cancelled the link | You backed out of the Discord approval. Nothing was changed |
 | The accounts couldn't be linked | Something none of the above covers, or the link was lost part way. Nothing was changed; try again |
@@ -171,6 +173,11 @@ account has an older profile 0 that Telegram can't have. Its alarms stay on Disc
 Press **Unlink** on the page and confirm. Both accounts and all their alarms stay; they just stop being
 treated as one person. Admins can do the same from **Admin > Users**, where a linked account has a chip naming
 the other app and its row menu has **Unlink accounts**.
+
+On a site that offers only one app's sign-in, unlinking is one way. You can't link the other app again or
+reach its alarms from this site afterwards, so the confirm says so: move any alarms you want to keep to the
+app you're signed in with first. **Admin > Server settings > Linked accounts** names an app people can't link
+and why (not set up in `.env`, or its **Enable … login** switch is off).
 
 ## Settings
 

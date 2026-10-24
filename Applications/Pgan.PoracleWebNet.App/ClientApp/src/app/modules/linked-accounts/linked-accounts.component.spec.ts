@@ -5,7 +5,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Router } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 
 import { LinkedAccountsComponent } from './linked-accounts.component';
 import { AuthProviders, LinkStatus } from '../../core/models';
@@ -14,8 +14,8 @@ import { LinkedAccountService } from '../../core/services/linked-account.service
 import { SettingsService } from '../../core/services/settings.service';
 import { DRIFT_REVIEW_STATE } from '../../shared/utils/pair-drift';
 
-const providers = (discord: boolean, telegram: boolean): AuthProviders => ({
-  discord: { configured: discord, enabledByAdmin: true },
+const providers = (discord: boolean, telegram: boolean, discordSwitchedOff = false): AuthProviders => ({
+  discord: { configured: discord, enabledByAdmin: !discordSwitchedOff },
   telegram: { botUsername: telegram ? 'old_town_bot' : '', configured: telegram, enabledByAdmin: true },
 });
 
@@ -41,7 +41,9 @@ describe('LinkedAccountsComponent', () => {
   function setup(
     options: {
       discord?: boolean;
+      discordSwitchedOff?: boolean;
       impersonating?: boolean;
+      providersFail?: boolean;
       review?: boolean;
       support?: string | null;
       telegram?: boolean;
@@ -50,7 +52,11 @@ describe('LinkedAccountsComponent', () => {
     } = {},
   ) {
     const auth = {
-      getProviders: jest.fn(() => of(providers(options.discord ?? true, options.telegram ?? true))),
+      getProviders: jest.fn(() =>
+        options.providersFail
+          ? throwError(() => new Error('offline'))
+          : of(providers(options.discord ?? true, options.telegram ?? true, options.discordSwitchedOff ?? false)),
+      ),
       isImpersonating: signal(options.impersonating ?? false),
       user: signal({ id: '100000000000000001', username: 'Riverside', type: options.type ?? 'telegram:user' }),
     };
@@ -143,6 +149,49 @@ describe('LinkedAccountsComponent', () => {
     const { fixture } = setup();
     expect(q(fixture, '[data-test="link-error"]')?.textContent).toContain('LINKED.ERR_LINK_TAKEN');
     expect(window.location.hash).toBe('');
+  });
+
+  it('says the app is unavailable here for #link_error=link_app_unavailable, not that the account was refused', () => {
+    window.history.replaceState(null, '', '/linked-accounts#link_error=link_app_unavailable');
+    const { fixture } = setup();
+    const text = q(fixture, '[data-test="link-error"]')?.textContent;
+    expect(text).toContain('LINKED.ERR_LINK_APP_UNAVAILABLE');
+    expect(text).not.toContain('LINKED.ERR_LINK_NOT_PERMITTED');
+  });
+
+  it('keeps link_not_permitted for an account the site refuses', () => {
+    window.history.replaceState(null, '', '/linked-accounts#link_error=link_not_permitted');
+    const { fixture } = setup();
+    expect(q(fixture, '[data-test="link-error"]')?.textContent).toContain('LINKED.ERR_LINK_NOT_PERMITTED');
+  });
+
+  describe('on a site that offers one app only', () => {
+    it('says on the Telegram card that this site cannot link Telegram, for a Discord session', () => {
+      const { fixture } = setup({ telegram: false, type: 'discord:user' });
+      expect(q(fixture, '[data-test="unavailable-telegram"]')?.textContent).toContain('LINKED.APP_UNAVAILABLE_HINT');
+      expect(q(fixture, '[data-test="unavailable-discord"]')).toBeNull();
+    });
+
+    it('says the same on the Discord card when Discord sign-in is switched off, for a Telegram session', () => {
+      const { fixture } = setup({ discordSwitchedOff: true, type: 'telegram:user' });
+      expect(q(fixture, '[data-test="unavailable-discord"]')).toBeTruthy();
+      expect(q(fixture, '[data-test="link-discord"]')).toBeNull();
+    });
+
+    it('says nothing about availability when both apps can be linked', () => {
+      const { fixture } = setup({ type: 'discord:user' });
+      expect(q(fixture, '[data-test^="unavailable-"]')).toBeNull();
+    });
+
+    it('says nothing about availability when the providers could not be read', () => {
+      const { fixture } = setup({ providersFail: true, type: 'discord:user' });
+      expect(q(fixture, '[data-test^="unavailable-"]')).toBeNull();
+    });
+
+    it('says nothing about availability while impersonating', () => {
+      const { fixture } = setup({ impersonating: true, telegram: false, type: 'discord:user' });
+      expect(q(fixture, '[data-test^="unavailable-"]')).toBeNull();
+    });
   });
 
   it('reads an unknown link_error as the generic sentence, never as itself', () => {
@@ -466,6 +515,33 @@ describe('LinkedAccountsComponent', () => {
       const config = dialogOpen.mock.calls[0] as unknown as [unknown, { data: { icon?: string; warn?: boolean } }];
       expect(config[1].data.icon).toBe('link_off');
       expect(config[1].data.warn).toBeFalsy();
+    });
+
+    it('keeps the plain confirm when both apps can be linked here', () => {
+      status.set(both);
+      const { fixture } = setup({ type: 'discord:user' });
+      (q(fixture, '[data-test="unlink"]') as HTMLButtonElement).click();
+      const config = dialogOpen.mock.calls[0] as unknown as [unknown, { data: { confirmText: string; message: string } }];
+      expect(config[1].data.message).toBe('LINKED.UNLINK_CONFIRM');
+      expect(config[1].data.confirmText).toBe('LINKED.UNLINK');
+    });
+
+    it('warns that the other app cannot be linked again here when this site does not offer it', () => {
+      status.set(both);
+      const { fixture } = setup({ telegram: false, type: 'discord:user' });
+      (q(fixture, '[data-test="unlink"]') as HTMLButtonElement).click();
+      const config = dialogOpen.mock.calls[0] as unknown as [unknown, { data: { confirmText: string; message: string } }];
+      expect(config[1].data.message).toBe('LINKED.UNLINK_CONFIRM_STRANDED');
+      expect(config[1].data.confirmText).toBe('LINKED.UNLINK');
+    });
+
+    it('names the app signed in with and the one left behind in the stranded confirm', () => {
+      status.set(both);
+      const { component, fixture } = setup({ discordSwitchedOff: true, type: 'telegram:user' });
+      const i18n = (component as unknown as { i18n: { instant: (k: string, p?: object) => string } }).i18n;
+      const instant = jest.spyOn(i18n, 'instant');
+      (q(fixture, '[data-test="unlink"]') as HTMLButtonElement).click();
+      expect(instant).toHaveBeenCalledWith('LINKED.UNLINK_CONFIRM_STRANDED', { app: 'LINKED.SIDE_TELEGRAM', other: 'LINKED.SIDE_DISCORD' });
     });
   });
 });

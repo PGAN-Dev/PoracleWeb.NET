@@ -2181,7 +2181,9 @@
     "DISABLE_ACCOUNT_LINKING_DESC": "Permite associar contas de Discord e Telegram. Desligado esconde a página. As associações existentes mantêm-se, e podes ainda desassociá-las em Utilizadores.",
     "LINK_REGISTER_MISSING_LABEL": "Registar a outra conta ao associar",
     "LINK_REGISTER_MISSING_DESC": "Ao associar, cria logo a conta da pessoa na outra app em vez de esperar que ela se registe lá. A conta fica, a não ser que a verificação de cargos do Poracle no teu servidor esteja configurada para remover contas.",
-    "LINKING_OFF_HINT": "Liga Contas associadas para alterar isto."
+    "LINKING_OFF_HINT": "Liga Contas associadas para alterar isto.",
+    "LINKING_APP_NOT_SET_UP": "O início de sessão com {{app}} não está configurado no .env, por isso ninguém pode associar uma conta {{app}}.",
+    "LINKING_APP_SWITCHED_OFF": "«{{switch}}» está desligado, por isso ninguém pode associar uma conta {{app}}."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Nome",
@@ -2434,6 +2436,7 @@
     "STATE_PAUSED_ADMIN": "Em pausa por um administrador",
     "STATE_THIS_ACCOUNT": "Iniciaste sessão com esta conta",
     "STATE_NOT_LINKED": "Não associada",
+    "APP_UNAVAILABLE_HINT": "Este site não oferece início de sessão com {{app}}, por isso {{app}} não pode ser associado aqui.",
     "HINT_TELEGRAM": "Os alertas no Telegram começam quando entras no grupo de registo do Telegram deste servidor e envias /poracle lá.",
     "HINT_DISCORD": "Os alertas no Discord começam quando te registares lá. Se não sabes como, pergunta a quem gere este site.",
     "TELEGRAM_GROUP_LINK": "Entrar no grupo do Telegram",
@@ -2452,6 +2455,7 @@
     "UNLINK_HINT": "As duas contas e todos os seus alarmes ficam. Apenas deixam de ser tratadas como uma só pessoa.",
     "UNLINK_TITLE": "Desassociar contas",
     "UNLINK_CONFIRM": "Desassociar estas contas? Ambas mantêm os seus alarmes. Nada é movido nem apagado.",
+    "UNLINK_CONFIRM_STRANDED": "Desassociar estas contas? Este site não oferece início de sessão com {{other}}, por isso não vais poder associar {{other}} outra vez aqui nem gerir os seus alarmes a partir deste site. Primeiro move para {{app}} os alarmes de {{other}} que queres manter.",
     "SNACK_LINKED": "Contas associadas",
     "SNACK_UNLINKED": "Contas desassociadas",
     "SNACK_DEFAULT": "Os novos alarmes vão para {{app}}",
@@ -2461,6 +2465,7 @@
     "ERR_LINK_TAKEN": "Essa conta já está associada a outra pessoa. Desassocia-a lá primeiro e depois tenta de novo.",
     "ERR_LINK_EXPIRED": "Esse início de sessão demorou demasiado. Tenta associar de novo.",
     "ERR_LINK_NOT_PERMITTED": "Essa conta não pode iniciar sessão neste site, por isso não pode ser associada. Pede à equipa do site para a verificar.",
+    "ERR_LINK_APP_UNAVAILABLE": "Este site não oferece início de sessão com essa app, por isso não pode ser associada aqui. Pergunta à equipa do site se contavas com isso.",
     "ERR_LINK_PROVISION_FAILED": "Não foi possível configurar a tua outra conta. Nada foi associado. Tenta de novo daqui a um minuto, ou pergunta à equipa do site.",
     "ERR_LINK_FAILED": "Não foi possível associar as contas. Nada foi alterado. Tenta de novo.",
     "ERR_LINK_CANCELLED": "Cancelaste a associação. Nada foi alterado. Carrega em Associar quando estiveres pronto.",

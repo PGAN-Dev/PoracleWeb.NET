@@ -43,6 +43,7 @@ export interface DefaultOption {
 /** The refusal codes the API and the Discord callback use. Anything else reads as the generic failure. */
 const REFUSAL_KEYS: Record<string, string> = {
   link_bad_id: 'LINKED.ERR_LINK_BAD_ID',
+  link_app_unavailable: 'LINKED.ERR_LINK_APP_UNAVAILABLE',
   link_cancelled: 'LINKED.ERR_LINK_CANCELLED',
   link_disabled: 'LINKED.ERR_LINK_DISABLED',
   link_expired: 'LINKED.ERR_LINK_EXPIRED',
@@ -132,8 +133,8 @@ export class LinkedAccountsComponent implements OnInit {
   });
 
   protected readonly discordAvailable = signal(false);
-  protected readonly isLinked = computed(() => this.linked.status()?.linked === true);
 
+  protected readonly isLinked = computed(() => this.linked.status()?.linked === true);
   protected readonly legacyProfileZero = computed<{ app: string; other: string } | null>(() => {
     const side = this.linked.status()?.legacyProfileZero;
     if (side !== 'discord' && side !== 'telegram') {
@@ -146,6 +147,9 @@ export class LinkedAccountsComponent implements OnInit {
 
   /** True once the first status read has finished, so a read that failed is told apart from one still going. */
   protected readonly loaded = signal(false);
+
+  /** True once `/api/auth/providers` has answered, so a failed read never claims an app is unavailable. */
+  protected readonly providersKnown = signal(false);
 
   /** Linking, unlinking and the default are refused while viewing as someone else, so they are not offered. */
   protected readonly readOnly = this.auth.isImpersonating;
@@ -216,6 +220,7 @@ export class LinkedAccountsComponent implements OnInit {
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe(providers => {
+        this.providersKnown.set(!!providers);
         this.discordAvailable.set(!!providers && providers.discord.configured && providers.discord.enabledByAdmin);
         if (providers && providers.telegram.configured && providers.telegram.enabledByAdmin) {
           this.telegramBot.set(providers.telegram.botUsername ?? '');
@@ -238,13 +243,32 @@ export class LinkedAccountsComponent implements OnInit {
     return this.run(() => this.linked.startDiscordLink());
   }
 
+  /**
+   * True when this site doesn't offer that app's sign-in (not set up, or switched off), so the app can't be linked
+   * here. Never for the app the person signed in with, and never before the providers answered.
+   */
+  protected unavailableHere(side: LinkSide): boolean {
+    if (!this.providersKnown() || side === this.ownSide()) return false;
+    return side === 'discord' ? !this.discordAvailable() : !this.telegramAvailable();
+  }
+
   protected unlink(): void {
-    // Unlinking deletes nothing, so the confirm is neutral: no warning triangle and no trash can.
+    // Unlinking deletes nothing, so the confirm is neutral: no warning triangle and no trash can. On a site that
+    // can't link the other app again, it says so: that app's alarms are out of reach from here once unlinked.
+    const own = this.ownSide();
+    const other: LinkSide | null = own === 'discord' ? 'telegram' : own === 'telegram' ? 'discord' : null;
+    const message =
+      own && other && this.unavailableHere(other)
+        ? this.i18n.instant('LINKED.UNLINK_CONFIRM_STRANDED', {
+            app: this.i18n.instant(SIDE_LABEL[own]),
+            other: this.i18n.instant(SIDE_LABEL[other]),
+          })
+        : this.i18n.instant('LINKED.UNLINK_CONFIRM');
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
         confirmText: this.i18n.instant('LINKED.UNLINK'),
         icon: 'link_off',
-        message: this.i18n.instant('LINKED.UNLINK_CONFIRM'),
+        message,
         title: this.i18n.instant('LINKED.UNLINK_TITLE'),
       } as ConfirmDialogData,
     });

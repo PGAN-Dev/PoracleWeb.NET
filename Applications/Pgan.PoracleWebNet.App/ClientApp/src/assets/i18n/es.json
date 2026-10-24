@@ -2181,7 +2181,9 @@
     "DISABLE_ACCOUNT_LINKING_DESC": "Permite vincular cuentas de Discord y Telegram. Desactivado oculta la página. Los vínculos existentes se conservan y aún puedes deshacerlos en Usuarios.",
     "LINK_REGISTER_MISSING_LABEL": "Registrar la otra cuenta al vincular",
     "LINK_REGISTER_MISSING_DESC": "Al vincular, crea al momento la cuenta de la persona en la otra app en lugar de esperar a que se registre allí. La cuenta se queda salvo que la comprobación de roles de Poracle de tu servidor esté configurada para eliminar cuentas.",
-    "LINKING_OFF_HINT": "Activa Cuentas vinculadas para cambiar esto."
+    "LINKING_OFF_HINT": "Activa Cuentas vinculadas para cambiar esto.",
+    "LINKING_APP_NOT_SET_UP": "El inicio de sesión con {{app}} no está configurado en .env, así que nadie puede vincular una cuenta de {{app}}.",
+    "LINKING_APP_SWITCHED_OFF": "«{{switch}}» está desactivado, así que nadie puede vincular una cuenta de {{app}}."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Nombre",
@@ -2434,6 +2436,7 @@
     "STATE_PAUSED_ADMIN": "Pausada por un administrador",
     "STATE_THIS_ACCOUNT": "Has iniciado sesión con esta cuenta",
     "STATE_NOT_LINKED": "Sin vincular",
+    "APP_UNAVAILABLE_HINT": "Este sitio no ofrece inicio de sesión con {{app}}, así que {{app}} no se puede vincular aquí.",
     "HINT_TELEGRAM": "Las alertas en Telegram empiezan cuando te unes al grupo de registro de Telegram de este servidor y envías /poracle allí.",
     "HINT_DISCORD": "Las alertas en Discord empiezan cuando te has registrado allí. Si no sabes cómo, pregunta a quienes gestionan este sitio.",
     "TELEGRAM_GROUP_LINK": "Unirse al grupo de Telegram",
@@ -2452,6 +2455,7 @@
     "UNLINK_HINT": "Ambas cuentas y todas sus alarmas se conservan. Solo dejan de tratarse como una sola persona.",
     "UNLINK_TITLE": "Desvincular cuentas",
     "UNLINK_CONFIRM": "¿Desvincular estas cuentas? Ambas conservan sus alarmas. No se mueve ni se borra nada.",
+    "UNLINK_CONFIRM_STRANDED": "¿Desvincular estas cuentas? Este sitio no ofrece inicio de sesión con {{other}}, así que no podrás volver a vincular {{other}} aquí ni gestionar sus alarmas desde este sitio. Antes, mueve a {{app}} las alarmas de {{other}} que quieras conservar.",
     "SNACK_LINKED": "Cuentas vinculadas",
     "SNACK_UNLINKED": "Cuentas desvinculadas",
     "SNACK_DEFAULT": "Las alarmas nuevas van a {{app}}",
@@ -2461,6 +2465,7 @@
     "ERR_LINK_TAKEN": "Esa cuenta ya está vinculada con otra persona. Desvincúlala allí primero y vuelve a intentarlo.",
     "ERR_LINK_EXPIRED": "Ese inicio de sesión tardó demasiado. Intenta vincular de nuevo.",
     "ERR_LINK_NOT_PERMITTED": "Esa cuenta no puede iniciar sesión en este sitio, así que no se puede vincular. Pide al equipo del sitio que la revise.",
+    "ERR_LINK_APP_UNAVAILABLE": "Este sitio no ofrece inicio de sesión con esa app, así que no se puede vincular aquí. Pregunta al equipo del sitio si esperabas poder hacerlo.",
     "ERR_LINK_PROVISION_FAILED": "No se pudo configurar tu otra cuenta. No se vinculó nada. Vuelve a intentarlo en un minuto o pregunta al equipo del sitio.",
     "ERR_LINK_FAILED": "No se pudieron vincular las cuentas. No se cambió nada. Vuelve a intentarlo.",
     "ERR_LINK_CANCELLED": "Cancelaste la vinculación. No se cambió nada. Pulsa Vincular cuando quieras.",

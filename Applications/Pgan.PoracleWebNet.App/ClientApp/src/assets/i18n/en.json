@@ -2181,7 +2181,9 @@
     "DISABLE_ACCOUNT_LINKING_DESC": "Let people link their Discord and Telegram accounts. Off hides the page. Existing links are kept, and you can still unlink them under Users.",
     "LINK_REGISTER_MISSING_LABEL": "Register the other account when linking",
     "LINK_REGISTER_MISSING_DESC": "When someone links, create their account on the other app straight away instead of waiting for them to register there. The account stays unless your server's Poracle role check is set to remove accounts.",
-    "LINKING_OFF_HINT": "Turn on Linked accounts to change this."
+    "LINKING_OFF_HINT": "Turn on Linked accounts to change this.",
+    "LINKING_APP_NOT_SET_UP": "{{app}} sign-in isn't set up in .env, so nobody can link a {{app}} account.",
+    "LINKING_APP_SWITCHED_OFF": "“{{switch}}” is off, so nobody can link a {{app}} account."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Name",
@@ -2434,6 +2436,7 @@
     "STATE_PAUSED_ADMIN": "Paused by an admin",
     "STATE_THIS_ACCOUNT": "You're signed in with this account",
     "STATE_NOT_LINKED": "Not linked",
+    "APP_UNAVAILABLE_HINT": "This site doesn't offer {{app}} sign-in, so {{app}} can't be linked here.",
     "HINT_TELEGRAM": "Alerts on Telegram start once you join this server's Telegram registration group and send /poracle there.",
     "HINT_DISCORD": "Alerts on Discord start once you've registered there. If you're not sure how, ask the people who run this site.",
     "TELEGRAM_GROUP_LINK": "Join the Telegram group",
@@ -2452,6 +2455,7 @@
     "UNLINK_HINT": "Both accounts and all their alarms stay. They just stop being treated as one person.",
     "UNLINK_TITLE": "Unlink accounts",
     "UNLINK_CONFIRM": "Unlink these accounts? Both keep their alarms. Nothing is moved or deleted.",
+    "UNLINK_CONFIRM_STRANDED": "Unlink these accounts? This site doesn't offer {{other}} sign-in, so you can't link {{other}} again here or manage its alarms from this site. Move any {{other}} alarms you want to keep to {{app}} first.",
     "SNACK_LINKED": "Accounts linked",
     "SNACK_UNLINKED": "Accounts unlinked",
     "SNACK_DEFAULT": "New alarms go to {{app}}",
@@ -2461,6 +2465,7 @@
     "ERR_LINK_TAKEN": "That account is already linked to someone else. Unlink it there first, then try again.",
     "ERR_LINK_EXPIRED": "That sign-in took too long. Try linking again.",
     "ERR_LINK_NOT_PERMITTED": "That account can't sign in to this site, so it can't be linked. Ask the site team to check it.",
+    "ERR_LINK_APP_UNAVAILABLE": "This site doesn't offer sign-in with that app, so it can't be linked here. Ask the site team if you expected it.",
     "ERR_LINK_PROVISION_FAILED": "Your other account couldn't be set up. Nothing was linked. Try again in a minute, or ask the site team.",
     "ERR_LINK_FAILED": "The accounts couldn't be linked. Nothing was changed. Try again.",
     "ERR_LINK_CANCELLED": "You cancelled the link. Nothing was changed. Press Link when you're ready.",

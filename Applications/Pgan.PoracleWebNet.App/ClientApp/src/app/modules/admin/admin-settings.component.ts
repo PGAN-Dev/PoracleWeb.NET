@@ -30,7 +30,8 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { IconRepoDialogComponent, IconRepoDialogData } from './icon-repo-dialog/icon-repo-dialog.component';
 import { SettingsStatusStripComponent } from './settings-status-strip/settings-status-strip.component';
 import { HasUnsavedChanges } from '../../core/guards/unsaved-changes.guard';
-import { DiscordServerConfig, OidcServerConfig, SiteSetting, TelegramServerConfig } from '../../core/models';
+import { AuthProviders, DiscordServerConfig, OidcServerConfig, SiteSetting, TelegramServerConfig } from '../../core/models';
+import { AuthService } from '../../core/services/auth.service';
 import { BasemapService } from '../../core/services/basemap.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { SettingsService } from '../../core/services/settings.service';
@@ -575,6 +576,8 @@ export class AdminSettingsComponent implements OnInit, HasUnsavedChanges {
     ...MANAGED_ELSEWHERE_KEYS,
   ]);
 
+  private readonly auth = inject(AuthService);
+
   /** The pack root the Pokemon base implies, which is what `isRepoActive` compares against. */
   private readonly configuredRepoBase = computed(() => {
     const pkmn = (this.getSettingValue('uicons_pkmn') ?? '').trim().replace(/\/+$/, '');
@@ -683,6 +686,39 @@ export class AdminSettingsComponent implements OnInit, HasUnsavedChanges {
   readonly hasInvalidChanges = computed(() => {
     const metas = new Map(SETTING_GROUPS.flatMap(g => g.settings).map(meta => [meta.key, meta]));
     return [...this.modifiedSettings().entries()].some(([key, value]) => !!metas.get(key)?.validate?.(value));
+  });
+
+  readonly providers = signal<AuthProviders | null>(null);
+
+  /**
+   * The apps people can't link on this site, and why: not set up in .env (from `/api/auth/providers`), or its
+   * "Enable … login" switch off (as staged on this page). Empty until the providers answer, so a failed read
+   * never claims linking is broken.
+   */
+  readonly linkingAppGaps = computed<{ appKey: string; reasonKey: string; switchKey: string }[]>(() => {
+    const providers = this.providers();
+    if (!providers) return [];
+    const sides = [
+      {
+        appKey: 'LINKED.SIDE_DISCORD',
+        configured: providers.discord.configured,
+        key: 'enable_discord',
+        switchKey: 'ADMIN_SETTINGS.ENABLE_DISCORD_LABEL',
+      },
+      {
+        appKey: 'LINKED.SIDE_TELEGRAM',
+        configured: providers.telegram.configured,
+        key: 'enable_telegram',
+        switchKey: 'ADMIN_SETTINGS.ENABLE_TELEGRAM_LABEL',
+      },
+    ];
+    return sides
+      .filter(side => !side.configured || !this.getBool(side.key))
+      .map(side => ({
+        appKey: side.appKey,
+        reasonKey: side.configured ? 'ADMIN_SETTINGS.LINKING_APP_SWITCHED_OFF' : 'ADMIN_SETTINGS.LINKING_APP_NOT_SET_UP',
+        switchKey: side.switchKey,
+      }));
   });
 
   readonly oidcConfig = signal<OidcServerConfig | null>(null);
@@ -914,6 +950,11 @@ export class AdminSettingsComponent implements OnInit, HasUnsavedChanges {
       .getTelegramConfig()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({ next: config => this.telegramConfig.set(config) });
+
+    this.auth
+      .getProviders()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({ error: () => this.providers.set(null), next: providers => this.providers.set(providers) });
 
     this.settingsService
       .getOidcConfig()

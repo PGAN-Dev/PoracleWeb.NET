@@ -2181,7 +2181,9 @@
     "DISABLE_ACCOUNT_LINKING_DESC": "Lad folk kæde deres Discord- og Telegram-konti sammen. Slået fra skjules siden. Eksisterende sammenkædninger bevares, og du kan stadig fjerne dem under Brugere.",
     "LINK_REGISTER_MISSING_LABEL": "Registrér den anden konto ved sammenkædning",
     "LINK_REGISTER_MISSING_DESC": "Når nogen kæder sammen, oprettes deres konto i den anden app med det samme i stedet for at vente på, at de registrerer sig dér. Kontoen bliver, medmindre din servers Poracle-rolletjek er sat til at fjerne konti.",
-    "LINKING_OFF_HINT": "Slå Sammenkædede konti til for at ændre dette."
+    "LINKING_OFF_HINT": "Slå Sammenkædede konti til for at ændre dette.",
+    "LINKING_APP_NOT_SET_UP": "Login med {{app}} er ikke sat op i .env, så ingen kan kæde en {{app}}-konto sammen.",
+    "LINKING_APP_SWITCHED_OFF": "„{{switch}}“ er slået fra, så ingen kan kæde en {{app}}-konto sammen."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Navn",
@@ -2434,6 +2436,7 @@
     "STATE_PAUSED_ADMIN": "Sat på pause af en admin",
     "STATE_THIS_ACCOUNT": "Du er logget ind med denne konto",
     "STATE_NOT_LINKED": "Ikke sammenkædet",
+    "APP_UNAVAILABLE_HINT": "Denne side tilbyder ikke login med {{app}}, så {{app}} kan ikke kædes sammen her.",
     "HINT_TELEGRAM": "Alarmer på Telegram starter, når du melder dig ind i serverens Telegram-registreringsgruppe og sender /poracle der.",
     "HINT_DISCORD": "Alarmer på Discord starter, når du har registreret dig dér. Hvis du ikke ved hvordan, så spørg dem, der driver siden.",
     "TELEGRAM_GROUP_LINK": "Tilmeld dig Telegram-gruppen",
@@ -2452,6 +2455,7 @@
     "UNLINK_HINT": "Begge konti og alle deres alarmer består. De behandles bare ikke længere som én person.",
     "UNLINK_TITLE": "Fjern sammenkædning af konti",
     "UNLINK_CONFIRM": "Fjern sammenkædningen af disse konti? Begge beholder deres alarmer. Intet flyttes eller slettes.",
+    "UNLINK_CONFIRM_STRANDED": "Fjern sammenkædningen af disse konti? Denne side tilbyder ikke login med {{other}}, så du kan ikke kæde {{other}} sammen igen her eller administrere dens alarmer fra denne side. Flyt først de {{other}}-alarmer, du vil beholde, til {{app}}.",
     "SNACK_LINKED": "Konti sammenkædet",
     "SNACK_UNLINKED": "Sammenkædning fjernet",
     "SNACK_DEFAULT": "Nye alarmer går til {{app}}",
@@ -2461,6 +2465,7 @@
     "ERR_LINK_TAKEN": "Kontoen er allerede kædet sammen med en anden. Fjern sammenkædningen dér først, og prøv så igen.",
     "ERR_LINK_EXPIRED": "Det login tog for lang tid. Prøv at kæde sammen igen.",
     "ERR_LINK_NOT_PERMITTED": "Kontoen kan ikke logge ind på denne side og kan derfor ikke kædes sammen. Bed sidens team om at tjekke den.",
+    "ERR_LINK_APP_UNAVAILABLE": "Denne side tilbyder ikke login med den app, så den kan ikke kædes sammen her. Spørg sidens team, hvis du havde forventet det.",
     "ERR_LINK_PROVISION_FAILED": "Din anden konto kunne ikke oprettes. Intet blev kædet sammen. Prøv igen om et minut, eller spørg sidens team.",
     "ERR_LINK_FAILED": "Kontiene kunne ikke kædes sammen. Intet blev ændret. Prøv igen.",
     "ERR_LINK_CANCELLED": "Du annullerede sammenkædningen. Intet blev ændret. Tryk på Kæd sammen, når du er klar.",

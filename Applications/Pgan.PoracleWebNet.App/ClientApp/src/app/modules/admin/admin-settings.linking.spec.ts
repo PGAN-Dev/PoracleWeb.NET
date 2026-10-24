@@ -3,10 +3,17 @@ import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideTranslateService } from '@ngx-translate/core';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 
 import { AdminSettingsComponent, SETTING_GROUPS, telegramRegistrationUrlProblem } from './admin-settings.component';
+import { AuthProviders } from '../../core/models';
+import { AuthService } from '../../core/services/auth.service';
 import { SettingsService } from '../../core/services/settings.service';
+
+const BOTH_APPS: AuthProviders = {
+  discord: { configured: true, enabledByAdmin: true },
+  telegram: { botUsername: 'old_town_bot', configured: true, enabledByAdmin: true },
+};
 
 const LINKING_KEYS = ['disable_account_linking', 'link_register_missing', 'telegram_registration_url'];
 
@@ -41,13 +48,17 @@ describe('telegramRegistrationUrlProblem', () => {
 });
 
 describe('AdminSettingsComponent linked accounts settings', () => {
-  const create = (values: Record<string, string>) => {
+  const create = (values: Record<string, string>, providers: AuthProviders | null = BOTH_APPS) => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
         provideTranslateService(),
+        {
+          provide: AuthService,
+          useValue: { getProviders: () => (providers ? of(providers) : throwError(() => new Error('offline'))) },
+        },
         {
           provide: SettingsService,
           useValue: {
@@ -128,5 +139,36 @@ describe('AdminSettingsComponent linked accounts settings', () => {
     expect(urlInput(el).disabled).toBe(false);
     expect(row(el, 'link_register_missing').querySelector('mat-slide-toggle button')?.hasAttribute('disabled')).toBe(false);
     expect(row(el, 'link_register_missing').textContent).not.toContain('ADMIN_SETTINGS.LINKING_OFF_HINT');
+  });
+
+  describe('when one app cannot be linked here', () => {
+    const notes = (el: HTMLElement) =>
+      Array.from(el.querySelectorAll('[data-test="linking-app-gap"]')).map(n => n.querySelector('span')?.textContent?.trim());
+
+    it('shows no note when both apps can sign in', () => {
+      const fixture = create({ disable_account_linking: 'False' });
+      expect(notes(fixture.nativeElement)).toEqual([]);
+    });
+
+    it('names an app that is not set up in .env', () => {
+      const fixture = create({ disable_account_linking: 'False' }, { ...BOTH_APPS, discord: { configured: false, enabledByAdmin: true } });
+      expect(notes(fixture.nativeElement)).toEqual(['ADMIN_SETTINGS.LINKING_APP_NOT_SET_UP']);
+    });
+
+    it('names an app whose sign-in switch is off', () => {
+      const fixture = create({ disable_account_linking: 'False', enable_telegram: 'false' });
+      expect(notes(fixture.nativeElement)).toEqual(['ADMIN_SETTINGS.LINKING_APP_SWITCHED_OFF']);
+    });
+
+    it('puts the note in the Linked accounts group', () => {
+      const fixture = create({ disable_account_linking: 'False', enable_telegram: 'false' });
+      const note = (fixture.nativeElement as HTMLElement).querySelector('[data-test="linking-app-gap"]')!;
+      expect(note.closest('.settings-section')?.textContent).toContain('ADMIN_SETTINGS.DISABLE_ACCOUNT_LINKING_LABEL');
+    });
+
+    it('says nothing while linking is off, nor when the providers could not be read', () => {
+      expect(notes(create({ disable_account_linking: 'True', enable_telegram: 'false' }).nativeElement)).toEqual([]);
+      expect(notes(create({ disable_account_linking: 'False', enable_telegram: 'false' }, null).nativeElement)).toEqual([]);
+    });
   });
 });

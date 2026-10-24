@@ -100,6 +100,12 @@
               </p>
             }
 
+            @if (card.state === 'not-linked' && !readOnly() && unavailableHere(card.side)) {
+              <p class="hint" [attr.data-test]="'unavailable-' + card.side">
+                {{ 'LINKED.APP_UNAVAILABLE_HINT' | translate: { app: sideLabel[card.side] | translate } }}
+              </p>
+            }
+
             @if (canLink(card.side)) {
               @if (card.side === 'discord') {
                 <button mat-stroked-button type="button" data-test="link-discord" [disabled]="busy()" (click)="startDiscord()">

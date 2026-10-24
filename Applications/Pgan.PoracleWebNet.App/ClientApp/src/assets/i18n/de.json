@@ -2181,7 +2181,9 @@
     "DISABLE_ACCOUNT_LINKING_DESC": "Erlaubt es, Discord- und Telegram-Konten zu verknüpfen. Ausgeschaltet blendet es die Seite aus. Bestehende Verknüpfungen bleiben erhalten, und unter Benutzer kannst du sie weiterhin aufheben.",
     "LINK_REGISTER_MISSING_LABEL": "Anderes Konto beim Verknüpfen registrieren",
     "LINK_REGISTER_MISSING_DESC": "Legt beim Verknüpfen das Konto der Person in der anderen App sofort an, statt zu warten, bis sie sich dort registriert. Das Konto bleibt, außer die Poracle-Rollenprüfung deines Servers ist so eingestellt, dass sie Konten entfernt.",
-    "LINKING_OFF_HINT": "Schalte Verknüpfte Konten ein, um das zu ändern."
+    "LINKING_OFF_HINT": "Schalte Verknüpfte Konten ein, um das zu ändern.",
+    "LINKING_APP_NOT_SET_UP": "Die Anmeldung mit {{app}} ist in der .env nicht eingerichtet, daher kann niemand ein {{app}}-Konto verknüpfen.",
+    "LINKING_APP_SWITCHED_OFF": "„{{switch}}“ ist aus, daher kann niemand ein {{app}}-Konto verknüpfen."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Name",
@@ -2434,6 +2436,7 @@
     "STATE_PAUSED_ADMIN": "Von einem Admin pausiert",
     "STATE_THIS_ACCOUNT": "Mit diesem Konto bist du angemeldet",
     "STATE_NOT_LINKED": "Nicht verknüpft",
+    "APP_UNAVAILABLE_HINT": "Diese Seite bietet keine Anmeldung mit {{app}} an, daher kann {{app}} hier nicht verknüpft werden.",
     "HINT_TELEGRAM": "Alarme auf Telegram starten, sobald du der Telegram-Registrierungsgruppe dieses Servers beitrittst und dort /poracle sendest.",
     "HINT_DISCORD": "Alarme auf Discord starten, sobald du dich dort registriert hast. Wenn du nicht weißt, wie, frag die Betreiber dieser Seite.",
     "TELEGRAM_GROUP_LINK": "Der Telegram-Gruppe beitreten",
@@ -2452,6 +2455,7 @@
     "UNLINK_HINT": "Beide Konten und alle ihre Alarme bleiben bestehen. Sie gelten nur nicht mehr als eine Person.",
     "UNLINK_TITLE": "Verknüpfung aufheben",
     "UNLINK_CONFIRM": "Verknüpfung dieser Konten aufheben? Beide behalten ihre Alarme. Nichts wird verschoben oder gelöscht.",
+    "UNLINK_CONFIRM_STRANDED": "Verknüpfung dieser Konten aufheben? Diese Seite bietet keine Anmeldung mit {{other}} an, daher kannst du {{other}} hier nicht erneut verknüpfen und seine Alarme nicht über diese Seite verwalten. Verschiebe zuerst alle {{other}}-Alarme, die du behalten willst, zu {{app}}.",
     "SNACK_LINKED": "Konten verknüpft",
     "SNACK_UNLINKED": "Verknüpfung aufgehoben",
     "SNACK_DEFAULT": "Neue Alarme gehen an {{app}}",
@@ -2461,6 +2465,7 @@
     "ERR_LINK_TAKEN": "Dieses Konto ist bereits mit jemand anderem verknüpft. Hebe die Verknüpfung dort zuerst auf und versuche es dann erneut.",
     "ERR_LINK_EXPIRED": "Die Anmeldung hat zu lange gedauert. Versuche die Verknüpfung erneut.",
     "ERR_LINK_NOT_PERMITTED": "Dieses Konto kann sich auf dieser Seite nicht anmelden und daher nicht verknüpft werden. Bitte das Team der Seite, es zu prüfen.",
+    "ERR_LINK_APP_UNAVAILABLE": "Diese Seite bietet keine Anmeldung mit dieser App an, daher kann sie hier nicht verknüpft werden. Frag das Team der Seite, falls du das erwartet hast.",
     "ERR_LINK_PROVISION_FAILED": "Dein anderes Konto konnte nicht eingerichtet werden. Es wurde nichts verknüpft. Versuche es in einer Minute erneut oder frag das Team der Seite.",
     "ERR_LINK_FAILED": "Die Konten konnten nicht verknüpft werden. Es wurde nichts geändert. Versuche es erneut.",
     "ERR_LINK_CANCELLED": "Du hast die Verknüpfung abgebrochen. Es wurde nichts geändert. Tippe auf Verknüpfen, wenn du bereit bist.",

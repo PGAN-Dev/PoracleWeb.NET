@@ -2181,7 +2181,9 @@
     "DISABLE_ACCOUNT_LINKING_DESC": "Permet de lier des comptes Discord et Telegram. Désactivé, la page est masquée. Les liaisons existantes sont conservées, et vous pouvez toujours les délier dans Utilisateurs.",
     "LINK_REGISTER_MISSING_LABEL": "Inscrire l’autre compte lors de la liaison",
     "LINK_REGISTER_MISSING_DESC": "Lors d’une liaison, crée tout de suite le compte de la personne dans l’autre app au lieu d’attendre qu’elle s’y inscrive. Le compte reste, sauf si la vérification des rôles de Poracle sur votre serveur est réglée pour supprimer des comptes.",
-    "LINKING_OFF_HINT": "Activez Comptes liés pour modifier ceci."
+    "LINKING_OFF_HINT": "Activez Comptes liés pour modifier ceci.",
+    "LINKING_APP_NOT_SET_UP": "La connexion avec {{app}} n’est pas configurée dans .env, personne ne peut donc lier de compte {{app}}.",
+    "LINKING_APP_SWITCHED_OFF": "« {{switch}} » est désactivé, personne ne peut donc lier de compte {{app}}."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Nom",
@@ -2434,6 +2436,7 @@
     "STATE_PAUSED_ADMIN": "Suspendu par un administrateur",
     "STATE_THIS_ACCOUNT": "Vous êtes connecté avec ce compte",
     "STATE_NOT_LINKED": "Non lié",
+    "APP_UNAVAILABLE_HINT": "Ce site ne propose pas la connexion avec {{app}}, {{app}} ne peut donc pas être lié ici.",
     "HINT_TELEGRAM": "Les alertes sur Telegram démarrent dès que vous rejoignez le groupe d’inscription Telegram de ce serveur et que vous y envoyez /poracle.",
     "HINT_DISCORD": "Les alertes sur Discord démarrent dès que vous vous y êtes inscrit. Si vous ne savez pas comment faire, demandez à l’équipe de ce site.",
     "TELEGRAM_GROUP_LINK": "Rejoindre le groupe Telegram",
@@ -2452,6 +2455,7 @@
     "UNLINK_HINT": "Les deux comptes et toutes leurs alarmes sont conservés. Ils ne sont simplement plus traités comme une seule personne.",
     "UNLINK_TITLE": "Délier les comptes",
     "UNLINK_CONFIRM": "Délier ces comptes ? Les deux gardent leurs alarmes. Rien n’est déplacé ni supprimé.",
+    "UNLINK_CONFIRM_STRANDED": "Délier ces comptes ? Ce site ne propose pas la connexion avec {{other}} : vous ne pourrez plus lier {{other}} ici ni gérer ses alarmes depuis ce site. Déplacez d’abord vers {{app}} les alarmes {{other}} que vous voulez garder.",
     "SNACK_LINKED": "Comptes liés",
     "SNACK_UNLINKED": "Comptes déliés",
     "SNACK_DEFAULT": "Les nouvelles alarmes vont sur {{app}}",
@@ -2461,6 +2465,7 @@
     "ERR_LINK_TAKEN": "Ce compte est déjà lié à quelqu’un d’autre. Déliez-le là-bas d’abord, puis réessayez.",
     "ERR_LINK_EXPIRED": "Cette connexion a pris trop de temps. Réessayez de lier.",
     "ERR_LINK_NOT_PERMITTED": "Ce compte ne peut pas se connecter à ce site, il ne peut donc pas être lié. Demandez à l’équipe du site de le vérifier.",
+    "ERR_LINK_APP_UNAVAILABLE": "Ce site ne propose pas la connexion avec cette app, elle ne peut donc pas être liée ici. Demandez à l’équipe du site si vous vous y attendiez.",
     "ERR_LINK_PROVISION_FAILED": "Votre autre compte n’a pas pu être créé. Rien n’a été lié. Réessayez dans une minute, ou demandez à l’équipe du site.",
     "ERR_LINK_FAILED": "Les comptes n’ont pas pu être liés. Rien n’a été modifié. Réessayez.",
     "ERR_LINK_CANCELLED": "Vous avez annulé la liaison. Rien n’a été modifié. Appuyez sur Lier quand vous êtes prêt.",

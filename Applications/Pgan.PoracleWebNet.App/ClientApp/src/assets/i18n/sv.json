@@ -2181,7 +2181,9 @@
     "DISABLE_ACCOUNT_LINKING_DESC": "Låter folk länka sina Discord- och Telegram-konton. Av döljer sidan. Befintliga länkar behålls, och du kan fortfarande avlänka dem under Användare.",
     "LINK_REGISTER_MISSING_LABEL": "Registrera det andra kontot vid länkning",
     "LINK_REGISTER_MISSING_DESC": "Skapar personens konto i den andra appen direkt vid länkning, i stället för att vänta på att de registrerar sig där. Kontot finns kvar om inte din servers Poracle-rollkontroll är inställd på att ta bort konton.",
-    "LINKING_OFF_HINT": "Slå på Länkade konton för att ändra det här."
+    "LINKING_OFF_HINT": "Slå på Länkade konton för att ändra det här.",
+    "LINKING_APP_NOT_SET_UP": "Inloggning med {{app}} är inte konfigurerad i .env, så ingen kan länka ett {{app}}-konto.",
+    "LINKING_APP_SWITCHED_OFF": "”{{switch}}” är avstängt, så ingen kan länka ett {{app}}-konto."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Namn",
@@ -2434,6 +2436,7 @@
     "STATE_PAUSED_ADMIN": "Pausad av en admin",
     "STATE_THIS_ACCOUNT": "Du är inloggad med det här kontot",
     "STATE_NOT_LINKED": "Inte länkat",
+    "APP_UNAVAILABLE_HINT": "Den här sajten erbjuder inte inloggning med {{app}}, så {{app}} kan inte länkas här.",
     "HINT_TELEGRAM": "Aviseringar på Telegram startar när du går med i serverns Telegram-registreringsgrupp och skickar /poracle där.",
     "HINT_DISCORD": "Aviseringar på Discord startar när du har registrerat dig där. Om du inte vet hur, fråga dem som driver sajten.",
     "TELEGRAM_GROUP_LINK": "Gå med i Telegram-gruppen",
@@ -2452,6 +2455,7 @@
     "UNLINK_HINT": "Båda kontona och alla deras larm finns kvar. De behandlas bara inte längre som en person.",
     "UNLINK_TITLE": "Avlänka konton",
     "UNLINK_CONFIRM": "Avlänka de här kontona? Båda behåller sina larm. Inget flyttas eller tas bort.",
+    "UNLINK_CONFIRM_STRANDED": "Avlänka de här kontona? Den här sajten erbjuder inte inloggning med {{other}}, så du kan inte länka {{other}} igen här eller hantera dess larm från den här sajten. Flytta först de {{other}}-larm du vill behålla till {{app}}.",
     "SNACK_LINKED": "Konton länkade",
     "SNACK_UNLINKED": "Konton avlänkade",
     "SNACK_DEFAULT": "Nya larm går till {{app}}",
@@ -2461,6 +2465,7 @@
     "ERR_LINK_TAKEN": "Kontot är redan länkat till någon annan. Avlänka det där först och försök sedan igen.",
     "ERR_LINK_EXPIRED": "Den inloggningen tog för lång tid. Försök länka igen.",
     "ERR_LINK_NOT_PERMITTED": "Kontot kan inte logga in på den här sajten och kan därför inte länkas. Be sajtens team att kontrollera det.",
+    "ERR_LINK_APP_UNAVAILABLE": "Den här sajten erbjuder inte inloggning med den appen, så den kan inte länkas här. Fråga sajtens team om du väntade dig det.",
     "ERR_LINK_PROVISION_FAILED": "Ditt andra konto kunde inte skapas. Inget länkades. Försök igen om en minut, eller fråga sajtens team.",
     "ERR_LINK_FAILED": "Kontona kunde inte länkas. Inget ändrades. Försök igen.",
     "ERR_LINK_CANCELLED": "Du avbröt länkningen. Inget ändrades. Tryck på Länka när du är redo.",

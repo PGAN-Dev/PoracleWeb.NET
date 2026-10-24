@@ -2181,7 +2181,9 @@
     "DISABLE_ACCOUNT_LINKING_DESC": "Permette di collegare account Discord e Telegram. Disattivato nasconde la pagina. I collegamenti esistenti restano, e puoi ancora scollegarli in Utenti.",
     "LINK_REGISTER_MISSING_LABEL": "Registra l’altro account al collegamento",
     "LINK_REGISTER_MISSING_DESC": "Quando qualcuno collega, crea subito il suo account nell’altra app invece di aspettare che si registri lì. L’account resta, a meno che il controllo dei ruoli di Poracle del tuo server sia impostato per rimuovere account.",
-    "LINKING_OFF_HINT": "Attiva Account collegati per modificarlo."
+    "LINKING_OFF_HINT": "Attiva Account collegati per modificarlo.",
+    "LINKING_APP_NOT_SET_UP": "L’accesso con {{app}} non è configurato in .env, quindi nessuno può collegare un account {{app}}.",
+    "LINKING_APP_SWITCHED_OFF": "«{{switch}}» è disattivato, quindi nessuno può collegare un account {{app}}."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Nome",
@@ -2434,6 +2436,7 @@
     "STATE_PAUSED_ADMIN": "In pausa per un amministratore",
     "STATE_THIS_ACCOUNT": "Hai effettuato l’accesso con questo account",
     "STATE_NOT_LINKED": "Non collegato",
+    "APP_UNAVAILABLE_HINT": "Questo sito non offre l’accesso con {{app}}, quindi {{app}} non può essere collegato qui.",
     "HINT_TELEGRAM": "Gli avvisi su Telegram partono quando entri nel gruppo di registrazione Telegram di questo server e vi invii /poracle.",
     "HINT_DISCORD": "Gli avvisi su Discord partono quando ti sei registrato lì. Se non sai come fare, chiedi a chi gestisce questo sito.",
     "TELEGRAM_GROUP_LINK": "Unisciti al gruppo Telegram",
@@ -2452,6 +2455,7 @@
     "UNLINK_HINT": "Entrambi gli account e tutti i loro allarmi restano. Smettono solo di essere trattati come una sola persona.",
     "UNLINK_TITLE": "Scollega gli account",
     "UNLINK_CONFIRM": "Scollegare questi account? Entrambi mantengono i loro allarmi. Niente viene spostato o eliminato.",
+    "UNLINK_CONFIRM_STRANDED": "Scollegare questi account? Questo sito non offre l’accesso con {{other}}, quindi non potrai ricollegare {{other}} qui né gestire i suoi allarmi da questo sito. Prima sposta su {{app}} gli allarmi {{other}} che vuoi tenere.",
     "SNACK_LINKED": "Account collegati",
     "SNACK_UNLINKED": "Account scollegati",
     "SNACK_DEFAULT": "I nuovi allarmi vanno su {{app}}",
@@ -2461,6 +2465,7 @@
     "ERR_LINK_TAKEN": "Quell’account è già collegato a qualcun altro. Scollegalo lì prima, poi riprova.",
     "ERR_LINK_EXPIRED": "Quell’accesso ha richiesto troppo tempo. Riprova a collegare.",
     "ERR_LINK_NOT_PERMITTED": "Quell’account non può accedere a questo sito, quindi non può essere collegato. Chiedi allo staff del sito di controllarlo.",
+    "ERR_LINK_APP_UNAVAILABLE": "Questo sito non offre l’accesso con quell’app, quindi non può essere collegata qui. Chiedi allo staff del sito se te lo aspettavi.",
     "ERR_LINK_PROVISION_FAILED": "Non è stato possibile configurare il tuo altro account. Non è stato collegato niente. Riprova tra un minuto, o chiedi allo staff del sito.",
     "ERR_LINK_FAILED": "Non è stato possibile collegare gli account. Non è cambiato niente. Riprova.",
     "ERR_LINK_CANCELLED": "Hai annullato il collegamento. Non è cambiato niente. Premi Collega quando sei pronto.",

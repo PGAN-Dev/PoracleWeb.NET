@@ -359,6 +359,15 @@
             </div>
           }
 
+          @if (group.labelKey === 'ADMIN_SETTINGS.GROUP_LINKED_ACCOUNTS' && !getBool('disable_account_linking')) {
+            @for (gap of linkingAppGaps(); track gap.appKey) {
+              <div class="config-hint warning linking-app-gap" data-test="linking-app-gap">
+                <mat-icon>info_outline</mat-icon>
+                <span>{{ gap.reasonKey | translate: { app: gap.appKey | translate, switch: gap.switchKey | translate } }}</span>
+              </div>
+            }
+          }
+
           @if (group.labelKey === 'ADMIN_SETTINGS.GROUP_TELEGRAM' && telegramConfig()) {
             @if (!telegramConfig()!.enabled) {
               <div class="config-hint warning">

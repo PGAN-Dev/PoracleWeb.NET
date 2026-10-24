@@ -2269,7 +2269,9 @@
     "DISABLE_ACCOUNT_LINKING_DESC": "Pozwala łączyć konta Discord i Telegram. Wyłączone ukrywa stronę. Istniejące połączenia zostają, a w Użytkownikach nadal możesz je rozłączyć.",
     "LINK_REGISTER_MISSING_LABEL": "Rejestruj drugie konto przy łączeniu",
     "LINK_REGISTER_MISSING_DESC": "Przy łączeniu od razu tworzy konto osoby w drugiej aplikacji, zamiast czekać, aż się tam zarejestruje. Konto zostaje, chyba że sprawdzanie ról Poracle na twoim serwerze jest ustawione na usuwanie kont.",
-    "LINKING_OFF_HINT": "Włącz Połączone konta, aby to zmienić."
+    "LINKING_OFF_HINT": "Włącz Połączone konta, aby to zmienić.",
+    "LINKING_APP_NOT_SET_UP": "Logowanie przez {{app}} nie jest skonfigurowane w .env, więc nikt nie może połączyć konta {{app}}.",
+    "LINKING_APP_SWITCHED_OFF": "„{{switch}}” jest wyłączone, więc nikt nie może połączyć konta {{app}}."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Nazwa",
@@ -2550,6 +2552,7 @@
     "STATE_PAUSED_ADMIN": "Wstrzymane przez admina",
     "STATE_THIS_ACCOUNT": "Jesteś zalogowany tym kontem",
     "STATE_NOT_LINKED": "Niepołączone",
+    "APP_UNAVAILABLE_HINT": "Ta strona nie oferuje logowania przez {{app}}, więc nie można tu połączyć {{app}}.",
     "HINT_TELEGRAM": "Alerty na Telegramie ruszą, gdy dołączysz do grupy rejestracyjnej Telegrama tego serwera i wyślesz tam /poracle.",
     "HINT_DISCORD": "Alerty na Discordzie ruszą, gdy tam się zarejestrujesz. Jeśli nie wiesz jak, zapytaj osoby prowadzące tę stronę.",
     "TELEGRAM_GROUP_LINK": "Dołącz do grupy na Telegramie",
@@ -2568,6 +2571,7 @@
     "UNLINK_HINT": "Oba konta i wszystkie ich alarmy zostają. Przestają być tylko traktowane jak jedna osoba.",
     "UNLINK_TITLE": "Rozłącz konta",
     "UNLINK_CONFIRM": "Rozłączyć te konta? Oba zachowują swoje alarmy. Nic nie zostanie przeniesione ani usunięte.",
+    "UNLINK_CONFIRM_STRANDED": "Rozłączyć te konta? Ta strona nie oferuje logowania przez {{other}}, więc nie połączysz tu ponownie {{other}} ani nie będziesz zarządzać jego alarmami z tej strony. Najpierw przenieś do {{app}} alarmy z {{other}}, które chcesz zachować.",
     "SNACK_LINKED": "Konta połączone",
     "SNACK_UNLINKED": "Konta rozłączone",
     "SNACK_DEFAULT": "Nowe alarmy trafiają na {{app}}",
@@ -2577,6 +2581,7 @@
     "ERR_LINK_TAKEN": "To konto jest już połączone z kimś innym. Najpierw rozłącz je tam, a potem spróbuj ponownie.",
     "ERR_LINK_EXPIRED": "To logowanie trwało zbyt długo. Spróbuj połączyć ponownie.",
     "ERR_LINK_NOT_PERMITTED": "To konto nie może logować się na tej stronie, więc nie można go połączyć. Poproś zespół strony o sprawdzenie go.",
+    "ERR_LINK_APP_UNAVAILABLE": "Ta strona nie oferuje logowania przez tę aplikację, więc nie można jej tu połączyć. Zapytaj zespół strony, jeśli się tego spodziewałeś.",
     "ERR_LINK_PROVISION_FAILED": "Nie udało się utworzyć twojego drugiego konta. Nic nie połączono. Spróbuj ponownie za minutę albo zapytaj zespół strony.",
     "ERR_LINK_FAILED": "Nie udało się połączyć kont. Nic nie zmieniono. Spróbuj ponownie.",
     "ERR_LINK_CANCELLED": "Anulowałeś łączenie. Nic nie zmieniono. Naciśnij Połącz, gdy będziesz gotowy.",

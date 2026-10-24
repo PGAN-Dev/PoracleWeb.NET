@@ -2181,7 +2181,9 @@
     "DISABLE_ACCOUNT_LINKING_DESC": "Laat mensen hun Discord- en Telegram-accounts koppelen. Uit verbergt de pagina. Bestaande koppelingen blijven bewaard, en je kunt ze nog steeds ontkoppelen onder Gebruikers.",
     "LINK_REGISTER_MISSING_LABEL": "Het andere account registreren bij koppelen",
     "LINK_REGISTER_MISSING_DESC": "Maakt bij het koppelen meteen het account van de persoon in de andere app aan, in plaats van te wachten tot die zich daar registreert. Het account blijft, tenzij de Poracle-rolcontrole van je server is ingesteld om accounts te verwijderen.",
-    "LINKING_OFF_HINT": "Zet Gekoppelde accounts aan om dit te wijzigen."
+    "LINKING_OFF_HINT": "Zet Gekoppelde accounts aan om dit te wijzigen.",
+    "LINKING_APP_NOT_SET_UP": "Inloggen met {{app}} is niet ingesteld in .env, dus niemand kan een {{app}}-account koppelen.",
+    "LINKING_APP_SWITCHED_OFF": "‘{{switch}}’ staat uit, dus niemand kan een {{app}}-account koppelen."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Naam",
@@ -2434,6 +2436,7 @@
     "STATE_PAUSED_ADMIN": "Gepauzeerd door een beheerder",
     "STATE_THIS_ACCOUNT": "Je bent ingelogd met dit account",
     "STATE_NOT_LINKED": "Niet gekoppeld",
+    "APP_UNAVAILABLE_HINT": "Deze site biedt geen inloggen met {{app}}, dus {{app}} kan hier niet worden gekoppeld.",
     "HINT_TELEGRAM": "Meldingen op Telegram starten zodra je lid wordt van de Telegram-registratiegroep van deze server en daar /poracle stuurt.",
     "HINT_DISCORD": "Meldingen op Discord starten zodra je je daar hebt geregistreerd. Weet je niet hoe, vraag het dan aan de beheerders van deze site.",
     "TELEGRAM_GROUP_LINK": "Word lid van de Telegram-groep",
@@ -2452,6 +2455,7 @@
     "UNLINK_HINT": "Beide accounts en al hun alarmen blijven bestaan. Ze tellen alleen niet meer als één persoon.",
     "UNLINK_TITLE": "Accounts ontkoppelen",
     "UNLINK_CONFIRM": "Deze accounts ontkoppelen? Beide houden hun alarmen. Er wordt niets verplaatst of verwijderd.",
+    "UNLINK_CONFIRM_STRANDED": "Deze accounts ontkoppelen? Deze site biedt geen inloggen met {{other}}, dus je kunt {{other}} hier niet opnieuw koppelen en de alarmen ervan niet vanaf deze site beheren. Verplaats eerst de {{other}}-alarmen die je wilt houden naar {{app}}.",
     "SNACK_LINKED": "Accounts gekoppeld",
     "SNACK_UNLINKED": "Accounts ontkoppeld",
     "SNACK_DEFAULT": "Nieuwe alarmen gaan naar {{app}}",
@@ -2461,6 +2465,7 @@
     "ERR_LINK_TAKEN": "Dat account is al aan iemand anders gekoppeld. Ontkoppel het daar eerst en probeer het dan opnieuw.",
     "ERR_LINK_EXPIRED": "Die login duurde te lang. Probeer opnieuw te koppelen.",
     "ERR_LINK_NOT_PERMITTED": "Dat account kan niet inloggen op deze site en kan dus niet worden gekoppeld. Vraag het team van de site om het te controleren.",
+    "ERR_LINK_APP_UNAVAILABLE": "Deze site biedt geen inloggen met die app, dus die kan hier niet worden gekoppeld. Vraag het team van de site als je dat wel verwachtte.",
     "ERR_LINK_PROVISION_FAILED": "Je andere account kon niet worden aangemaakt. Er is niets gekoppeld. Probeer het over een minuut opnieuw, of vraag het team van de site.",
     "ERR_LINK_FAILED": "De accounts konden niet worden gekoppeld. Er is niets gewijzigd. Probeer het opnieuw.",
     "ERR_LINK_CANCELLED": "Je hebt het koppelen geannuleerd. Er is niets gewijzigd. Druk op Koppelen wanneer je klaar bent.",
