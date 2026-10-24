@@ -1,6 +1,7 @@
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormControl } from '@angular/forms';
+import { provideRouter } from '@angular/router';
 import { provideTranslateService, TranslateService } from '@ngx-translate/core';
 
 import { DeliverToFieldComponent } from './deliver-to-field.component';
@@ -28,15 +29,16 @@ describe('DeliverToFieldComponent', () => {
     control = new FormControl<LinkSide | null>(value);
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      providers: [provideTranslateService(), { provide: LinkedAccountService, useValue: new StubLinked(status) }],
+      providers: [provideTranslateService(), provideRouter([]), { provide: LinkedAccountService, useValue: new StubLinked(status) }],
       imports: [DeliverToFieldComponent],
     });
     const translate = TestBed.inject(TranslateService);
     translate.setTranslation('en', {
       DELIVER_TO: {
         DISCORD: 'Discord',
-        LABEL: 'Deliver to',
-        PAUSED: 'Alerts to {{app}} are off, so nothing will arrive yet.',
+        LABEL: 'Which app gets this alarm?',
+        PAUSED: "{{app}} isn't receiving alerts, so nothing will arrive there for now.",
+        PAUSED_NEXT: 'See why on Linked accounts.',
         TELEGRAM: 'Telegram',
       },
     });
@@ -68,7 +70,7 @@ describe('DeliverToFieldComponent', () => {
     mount(both);
 
     expect(el().querySelectorAll('mat-radio-button').length).toBe(2);
-    expect(el().textContent).toContain('Deliver to');
+    expect(el().textContent).toContain('Which app gets this alarm?');
   });
 
   it('an add dialog starts on the default destination', () => {
@@ -88,8 +90,23 @@ describe('DeliverToFieldComponent', () => {
 
     const notes = el().querySelectorAll('.deliver-paused');
     expect(notes.length).toBe(1);
-    expect(notes[0].textContent).toContain('Alerts to Discord are off');
+    expect(notes[0].textContent).toContain("Discord isn't receiving alerts");
     expect((el().querySelector('mat-radio-button[value="discord"] input') as HTMLInputElement).disabled).toBe(false);
+  });
+
+  it('gives the paused warning a next step: a link to Linked accounts', () => {
+    mount({ ...both, sides: [{ side: 'discord', exists: true, pause: 'admin_disabled' }, both.sides![1]] }, 'discord');
+
+    const link = el().querySelector<HTMLAnchorElement>('.deliver-paused a');
+    expect(link?.textContent?.trim()).toBe('See why on Linked accounts.');
+    expect(link?.getAttribute('href')).toBe('/linked-accounts');
+  });
+
+  it('names each app beside its glyph', () => {
+    mount(both);
+
+    const glyphs = Array.from(el().querySelectorAll('mat-radio-button app-app-glyph')).map(g => g.getAttribute('data-app'));
+    expect(glyphs).toEqual(['discord', 'telegram']);
   });
 
   it('shows no warning when the chosen side is running', () => {

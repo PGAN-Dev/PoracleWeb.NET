@@ -108,6 +108,20 @@ describe('add and edit dialogs offer the same fields', () => {
 
       expect(template).toMatch(/<app-deliver-to-field\s+\[control\]="[\w.]*controls\.destination"/);
     });
+
+    /**
+     * The chosen app is visible without opening a tab: the field sits above the dialog's tabs, not on the
+     * Delivery tab where it used to wait unseen while an add quietly defaulted it.
+     */
+    it.each(ALARM_TYPES)('%s asks which app before the tabs, not inside one', (_name, stem) => {
+      const template = readFileSync(join(__dirname, `${stem}-${kind}-dialog.component.html`), 'utf8');
+      const field = template.indexOf('<app-deliver-to-field');
+      const tabs = template.indexOf('<mat-tab-group');
+
+      expect(field).toBeGreaterThan(-1);
+      expect(tabs).toBeGreaterThan(-1);
+      expect(field).toBeLessThan(tabs);
+    });
   });
 
   it('excuses nothing about deliver-to', () => {

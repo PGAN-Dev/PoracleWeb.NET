@@ -10,6 +10,7 @@ import { isMoveFailure } from './move-failure';
 import { serverReason } from './server-reason';
 import { reportedByInterceptor } from '../../core/interceptors/error.interceptor';
 import { LinkSide } from '../../core/models';
+import { moveRefusalText } from '../../core/services/alarm-move.service';
 import { I18nService } from '../../core/services/i18n.service';
 
 /** A create the API refused, kept beside the ones that landed so one refusal cannot hide the rest (#577). */
@@ -124,8 +125,10 @@ export function validationReason(err: unknown): string | null {
  */
 export function createFailureText(err: unknown, i18n: I18nService, fallbackKey: string): string {
   const status = (err as { status?: unknown } | null | undefined)?.status;
-  // A move that failed after the copy was taken answers 502 with what to check; that sentence is the message.
+  // A refused move carries a code, worded here in the display language rather than the server's English. A move
+  // that failed after the copy was taken answers 502 with what to check; that sentence is the message.
   return (
+    moveRefusalText(err, i18n) ??
     serverReason(err, isMoveFailure(err) ? { allow5xx: [502] } : undefined) ??
     validationReason(err) ??
     i18n.instant(status === 429 ? 'ALARM.FAILED_TOO_MANY' : fallbackKey)

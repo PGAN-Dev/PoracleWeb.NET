@@ -15,6 +15,7 @@
 
 @if (!loading() && (raids().length > 0 || eggs().length > 0)) {
   <app-alarm-list-toolbar
+    alarmsLabel="RAIDS.PAGE_TITLE"
     searchPlaceholder="RAIDS.SEARCH_PLACEHOLDER"
     [(search)]="search"
     [(sort)]="sortBy"
@@ -35,6 +36,7 @@
     (deselectAll)="deselectAll()"
     (changeRadius)="bulkUpdateDistance()"
     [canMove]="canChooseDestination()"
+    [allOn]="selectionApp()"
     (moveSelected)="bulkMove($event)"
     (deleteSelected)="bulkDelete()" />
 }

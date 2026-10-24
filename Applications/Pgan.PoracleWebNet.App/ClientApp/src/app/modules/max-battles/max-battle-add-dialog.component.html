@@ -1,5 +1,6 @@
 <h2 mat-dialog-title>{{ 'MAX_BATTLES.ADD_DIALOG_TITLE' | translate }}</h2>
 <mat-dialog-content>
+  <app-deliver-to-field [control]="commonForm.controls.destination" />
   <mat-tab-group animationDuration="200ms" class="alarm-tabs">
     <!-- Tab 1: Selection -->
     <mat-tab>
@@ -62,7 +63,6 @@
         <span class="tab-label">{{ 'ALARM.TAB_DELIVERY' | translate }}</span>
       </ng-template>
       <div class="tab-content">
-        <app-deliver-to-field [control]="commonForm.controls.destination" />
         <app-scope-picker [(scope)]="scope" [(radiusValid)]="radiusValid" />
 
         <h4>{{ 'ALARM.MESSAGE_SETTINGS' | translate }}</h4>

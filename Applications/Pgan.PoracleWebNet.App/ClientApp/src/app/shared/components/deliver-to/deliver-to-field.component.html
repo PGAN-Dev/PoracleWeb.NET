@@ -2,12 +2,17 @@
   <div class="deliver-to">
     <span class="deliver-label" [id]="labelId">{{ 'DELIVER_TO.LABEL' | translate }}</span>
     <mat-radio-group class="deliver-options" [formControl]="control()" [attr.aria-labelledby]="labelId">
-      <mat-radio-button value="discord">{{ 'DELIVER_TO.DISCORD' | translate }}</mat-radio-button>
-      <mat-radio-button value="telegram">{{ 'DELIVER_TO.TELEGRAM' | translate }}</mat-radio-button>
+      <mat-radio-button value="discord">
+        <span class="deliver-app"><app-app-glyph app="discord" />{{ 'DELIVER_TO.DISCORD' | translate }}</span>
+      </mat-radio-button>
+      <mat-radio-button value="telegram">
+        <span class="deliver-app"><app-app-glyph app="telegram" />{{ 'DELIVER_TO.TELEGRAM' | translate }}</span>
+      </mat-radio-button>
     </mat-radio-group>
     @if (pausedApp(); as app) {
       <p class="deliver-paused" role="status">
         {{ 'DELIVER_TO.PAUSED' | translate: { app: (app === 'telegram' ? 'DELIVER_TO.TELEGRAM' : 'DELIVER_TO.DISCORD') | translate } }}
+        <a routerLink="/linked-accounts">{{ 'DELIVER_TO.PAUSED_NEXT' | translate }}</a>
       </p>
     }
   </div>

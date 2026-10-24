@@ -106,15 +106,23 @@ public abstract class BaseApiController : ControllerBase
         {
             case MoveStatus.Conflict:
                 throw result.Conflict!;
+            // An edit only moves to the side the alarm is not on, so AlreadyThere can't arrive here; were it to, it is
+            // refused rather than answered as a move that never happened.
             case MoveStatus.Refused:
+            case MoveStatus.AlreadyThere:
                 return this.StatusCode(StatusCodes.Status409Conflict, new
                 {
-                    error = result.Outcome.Reason
+                    error = result.Outcome.Reason,
+                    code = result.Outcome.ReasonCode,
+                    app = result.Outcome.ReasonApp,
+                    place = result.Outcome.ReasonPlace,
                 });
             case MoveStatus.Failed:
                 return this.StatusCode(StatusCodes.Status502BadGateway, new
                 {
-                    error = result.Outcome.Reason
+                    error = result.Outcome.Reason,
+                    code = result.Outcome.ReasonCode,
+                    app = result.Outcome.ReasonApp,
                 });
             default:
                 this.Response.Headers["X-Move-Status"] = result.Outcome.Status == MoveStatus.Moved ? "moved" : "source_remains";

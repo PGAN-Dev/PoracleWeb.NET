@@ -1,4 +1,4 @@
-import { moveEditMessage, moveTargetFor } from './deliver-to';
+import { moveEditMessage, moveTargetFor, pausedCreateMessage } from './deliver-to';
 
 const t = {
   instant: (key: string, params?: Record<string, unknown>) => `${key}${params ? ' ' + JSON.stringify(params) : ''}`,
@@ -34,5 +34,15 @@ describe('moveEditMessage', () => {
     expect(text).toContain('ALARM.MOVED_SOURCE_REMAINS');
     expect(text).toContain('DELIVER_TO.TELEGRAM');
     expect(text).toContain('DELIVER_TO.DISCORD');
+  });
+});
+
+describe('pausedCreateMessage', () => {
+  it('says nothing will arrive and where to find out why', () => {
+    const text = pausedCreateMessage('telegram', t);
+
+    expect(text).toContain('DELIVER_TO.PAUSED');
+    expect(text).toContain('DELIVER_TO.TELEGRAM');
+    expect(text).toContain('DELIVER_TO.PAUSED_NEXT');
   });
 });

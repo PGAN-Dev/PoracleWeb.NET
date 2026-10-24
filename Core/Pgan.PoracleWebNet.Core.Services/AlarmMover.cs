@@ -55,23 +55,25 @@ public partial class AlarmMover(
         var pair = session.Pair;
         if (!pair.IsLinked)
         {
-            return Refused<TModel>(uid, "Your accounts aren't linked.");
+            return Refused<TModel>(uid, "Your accounts aren't linked.", MoveReasonCodes.NotLinked);
         }
 
         if (pair.SideOf(sourceOwnerId) is not { } sourceSide)
         {
-            return Refused<TModel>(uid, "That alert doesn't belong to your linked accounts.");
+            return Refused<TModel>(uid, "That alarm doesn't belong to your linked accounts.", MoveReasonCodes.NotYours);
         }
 
         if (sourceSide == target)
         {
-            return Refused<TModel>(uid, "That alert is already there.");
+            // Already where it was asked to go: what the person wanted is true, so it is reported as done, not refused.
+            return new MoveResult<TModel>(new MoveOutcome(uid, MoveStatus.AlreadyThere, Reason: "That alarm is already there.",
+                ReasonCode: MoveReasonCodes.AlreadyThere, ReasonApp: WireName(target)));
         }
 
         var targetSide = target == LinkSide.Discord ? pair.Discord : pair.Telegram;
         if (targetSide is not { Exists: true })
         {
-            return Refused<TModel>(uid, target == LinkSide.Discord ? "Discord isn't set up yet." : "Telegram isn't set up yet.");
+            return Refused<TModel>(uid, $"{SideName(target)} isn't set up yet.", MoveReasonCodes.NotSetUp, target);
         }
 
         var targetId = targetSide.HumanId;
@@ -79,7 +81,8 @@ public partial class AlarmMover(
         var preflight = await this.PreflightAsync(session, model, sourceOwnerId, sourceSide, targetId, target);
         if (preflight.Refusal is not null)
         {
-            return Refused<TModel>(uid, preflight.Refusal);
+            return new MoveResult<TModel>(new MoveOutcome(uid, MoveStatus.Refused, Reason: preflight.Refusal,
+                ReasonCode: preflight.Code, ReasonApp: preflight.App is { } app ? WireName(app) : null, ReasonPlace: preflight.Place));
         }
 
         var profileNo = preflight.ProfileNo;
@@ -107,15 +110,16 @@ public partial class AlarmMover(
         catch (TrackingConflictException ex)
         {
             return new MoveResult<TModel>(
-                new MoveOutcome(uid, MoveStatus.Conflict, ExistingUid: ex.ExistingUid, Reason: ex.Message), Conflict: ex);
+                new MoveOutcome(uid, MoveStatus.Conflict, ExistingUid: ex.ExistingUid, Reason: ex.Message,
+                    ReasonCode: MoveReasonCodes.Conflict, ReasonApp: WireName(target)), Conflict: ex);
         }
         catch (AlarmValidationException ex)
         {
-            return Refused<TModel>(uid, ex.Message);
+            return Refused<TModel>(uid, ex.Message, MoveReasonCodes.Invalid, target);
         }
         catch (PoracleRequestRefusedException ex)
         {
-            return Refused<TModel>(uid, ex.Message);
+            return Refused<TModel>(uid, ex.Message, MoveReasonCodes.Invalid, target);
         }
         // A switched-off type and a too-old PoracleNG have their own filters (403, 409); they say nothing about
         // whether a copy landed, because they refuse before anything is written.
@@ -124,7 +128,8 @@ public partial class AlarmMover(
         {
             LogCreateFailed(this._logger, ex, trackingType, uid);
             return new MoveResult<TModel>(new MoveOutcome(uid, MoveStatus.Failed,
-                Reason: "That alert may or may not have been copied. Look at both sides before trying again."));
+                Reason: "That alarm may or may not have been copied. Look at both sides before trying again.",
+                ReasonCode: MoveReasonCodes.Failed, ReasonApp: WireName(target)));
         }
 
         // Uid 0 means an identical rule was already on the target; map the source onto that rule when PoracleNG named it.
@@ -140,7 +145,8 @@ public partial class AlarmMover(
             LogSourceRemains(this._logger, trackingType, uid, deleteError);
             return new MoveResult<TModel>(
                 new MoveOutcome(uid, MoveStatus.SourceRemains, newUid,
-                    Reason: "It was copied, but the original couldn't be removed. Delete it from the side it came from."),
+                    Reason: "It was copied, but the original couldn't be removed. Delete it from the side it came from.",
+                    ReasonCode: MoveReasonCodes.SourceRemains, ReasonApp: WireName(target)),
                 created);
         }
 
@@ -172,7 +178,7 @@ public partial class AlarmMover(
         var pair = await this._linked.ResolveAsync(userId);
         if (!pair.IsLinked)
         {
-            return [.. uids.Select(u => Refused<TModel>(u, "Your accounts aren't linked.").Outcome)];
+            return [.. uids.Select(u => Refused<TModel>(u, "Your accounts aren't linked.", MoveReasonCodes.NotLinked).Outcome)];
         }
 
         var found = new Dictionary<int, (TModel Model, string Owner)>();
@@ -191,13 +197,13 @@ public partial class AlarmMover(
         {
             results.Add(found.TryGetValue(uid, out var hit)
                 ? (await this.MoveCoreAsync(session, svc, trackingType, hit.Model, hit.Owner, target)).Outcome
-                : Refused<TModel>(uid, "That alert wasn't found.").Outcome);
+                : Refused<TModel>(uid, "That alarm wasn't found.", MoveReasonCodes.NotFound).Outcome);
         }
 
         return results;
     }
 
-    private sealed record Preflight(string? Refusal, int ProfileNo);
+    private sealed record Preflight(string? Refusal, int ProfileNo, string? Code = null, LinkSide? App = null, string? Place = null);
 
     private async Task<Preflight> PreflightAsync(
         Session session, IHasDestination model, string sourceId, LinkSide source, string targetId, LinkSide target)
@@ -206,18 +212,18 @@ public partial class AlarmMover(
         var targetHuman = await session.HumanAsync(targetId);
         if (targetHuman is null)
         {
-            return new Preflight($"{side} isn't set up yet.", 0);
+            return new Preflight($"{side} isn't set up yet.", 0, MoveReasonCodes.NotSetUp, target);
         }
 
         var sourceHuman = await session.HumanAsync(sourceId);
         if (sourceHuman is null)
         {
-            return new Preflight($"{SideName(source)} isn't set up yet.", 0);
+            return new Preflight($"{SideName(source)} isn't set up yet.", 0, MoveReasonCodes.NotSetUp, source);
         }
 
         if (targetHuman.CurrentProfileNo != sourceHuman.CurrentProfileNo)
         {
-            return new Preflight(DifferentProfiles, 0);
+            return new Preflight(DifferentProfiles, 0, MoveReasonCodes.DifferentProfiles);
         }
 
         var label = model.OverrideLocationLabel;
@@ -226,7 +232,7 @@ public partial class AlarmMover(
             var places = await session.PlacesAsync(targetId);
             if (!places.Named.Any(p => string.Equals(p.Label, label, StringComparison.OrdinalIgnoreCase)))
             {
-                return new Preflight($"The place \"{label}\" isn't saved on {side}. Save it there first.", 0);
+                return new Preflight($"The place \"{label}\" isn't saved on {side}. Save it there first.", 0, MoveReasonCodes.PlaceMissing, target, label);
             }
         }
 
@@ -238,7 +244,7 @@ public partial class AlarmMover(
             }
             catch (AlarmValidationException ex)
             {
-                return new Preflight(ex.Message, 0);
+                return new Preflight(ex.Message, 0, MoveReasonCodes.AreaNotAllowed, target);
             }
         }
 
@@ -327,6 +333,8 @@ public partial class AlarmMover(
 
     private static string SideName(LinkSide side) => side == LinkSide.Discord ? "Discord" : "Telegram";
 
+    private static string WireName(LinkSide side) => side == LinkSide.Discord ? "discord" : "telegram";
+
     private async Task<string?> DeleteSourceAsync<TModel>(IAlarmService<TModel> svc, string sourceOwnerId, int uid)
     {
         string? last = null;
@@ -349,9 +357,9 @@ public partial class AlarmMover(
         return last;
     }
 
-    private static MoveResult<TModel> Refused<TModel>(int uid, string reason)
+    private static MoveResult<TModel> Refused<TModel>(int uid, string reason, string code, LinkSide? app = null)
         where TModel : class =>
-        new(new MoveOutcome(uid, MoveStatus.Refused, Reason: reason));
+        new(new MoveOutcome(uid, MoveStatus.Refused, Reason: reason, ReasonCode: code, ReasonApp: app is { } side ? WireName(side) : null));
 
     [LoggerMessage(Level = LogLevel.Warning,
         Message = "Moved {TrackingType} alarm {Uid} was created on the target but the source could not be deleted: {Error}")]

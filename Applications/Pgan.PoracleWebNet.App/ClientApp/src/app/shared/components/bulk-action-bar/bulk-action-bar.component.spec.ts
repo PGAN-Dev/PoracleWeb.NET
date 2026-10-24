@@ -26,15 +26,21 @@ describe('BulkActionBarComponent', () => {
     const translate = TestBed.inject(TranslateService);
     translate.setTranslation('en', {
       ALARM: {
+        BULK_MORE: 'More',
+        BULK_MORE_LABEL: 'More actions for the selected alarms',
         DELETE: 'Delete',
         DELETE_SELECTED: 'Delete {{count}}',
         DELETE_SELECTED_LABEL_ONE: 'Delete {{count}} alarm',
         DELETE_SELECTED_LABEL_OTHER: 'Delete {{count}} alarms',
+        DELIVER_ALREADY_THERE: 'All already there',
+        DELIVER_TO_APP: 'Deliver to {{app}}',
+        DELIVER_TO_MENU: 'Deliver to…',
         DESELECT_ALL: 'Deselect all',
         SELECT_ALL: 'Select all',
         SELECTED_COUNT: '{{count}} selected',
         UPDATE_DISTANCE: 'Change radius',
       },
+      DELIVER_TO: { DISCORD: 'Discord', TELEGRAM: 'Telegram' },
     });
     translate.use('en');
     fixture = TestBed.createComponent(BulkActionBarComponent);
@@ -198,6 +204,105 @@ describe('BulkActionBarComponent', () => {
     });
   });
 
+  describe('Deliver to menu marks the app every selected alarm is already on', () => {
+    const openDeliver = () => {
+      el().querySelector<HTMLButtonElement>('.bulk-deliver')!.click();
+      fixture.detectChanges();
+      return Array.from(document.querySelectorAll<HTMLButtonElement>('.bulk-deliver-item'));
+    };
+
+    afterEach(() => document.querySelectorAll('.cdk-overlay-container').forEach(c => (c.innerHTML = '')));
+
+    it('draws each app with its glyph', () => {
+      fixture.componentRef.setInput('canMove', true);
+      render(2);
+
+      const items = openDeliver();
+      expect(items.map(i => i.querySelector('app-app-glyph')?.getAttribute('data-app'))).toEqual(['discord', 'telegram']);
+    });
+
+    it('disables the app they are all on and says so, leaving the other one open', () => {
+      fixture.componentRef.setInput('canMove', true);
+      fixture.componentRef.setInput('allOn', 'telegram');
+      render(2);
+
+      const items = openDeliver();
+      const telegram = items.find(i => i.dataset['app'] === 'telegram')!;
+      const discord = items.find(i => i.dataset['app'] === 'discord')!;
+      expect(telegram.disabled).toBe(true);
+      expect(telegram.textContent).toContain('All already there');
+      expect(discord.disabled).toBe(false);
+      expect(discord.textContent).not.toContain('All already there');
+    });
+
+    it('leaves both open for a mixed selection', () => {
+      fixture.componentRef.setInput('canMove', true);
+      fixture.componentRef.setInput('allOn', null);
+      render(2);
+
+      expect(openDeliver().every(i => !i.disabled)).toBe(true);
+    });
+  });
+
+  describe('on a phone', () => {
+    const scss = readFileSync(join(__dirname, 'bulk-action-bar.component.scss'), 'utf8');
+    const phone = scss.slice(scss.indexOf('@media (max-width: 599px)'));
+
+    afterEach(() => document.querySelectorAll('.cdk-overlay-container').forEach(c => (c.innerHTML = '')));
+
+    it('folds Deliver to and Change radius into More for a linked person, so the row holds More and Delete', () => {
+      fixture.componentRef.setInput('canMove', true);
+      render(2);
+
+      expect(el().querySelector('.bulk-toolbar')?.classList).toContain('bulk-can-move');
+      const more = el().querySelector<HTMLButtonElement>('.bulk-more')!;
+      expect(more.textContent).toContain('More');
+      expect(more.getAttribute('aria-label')).toBe('More actions for the selected alarms');
+      expect(phone).toMatch(/\.bulk-can-move\s+\.bulk-deliver,\s*\.bulk-can-move\s+\.bulk-radius\s*\{\s*display:\s*none/);
+      expect(phone).toMatch(/\.bulk-can-move\s+\.bulk-more\s*\{\s*display:\s*inline-flex/);
+      // Off the phone, More stays hidden and the three actions stand on their own.
+      expect(scss.slice(0, scss.indexOf('@media (max-width: 599px)'))).toMatch(/\.bulk-more\s*\{\s*display:\s*none/);
+    });
+
+    it('offers both apps and Change radius from More, and reports each', () => {
+      fixture.componentRef.setInput('canMove', true);
+      fixture.componentRef.setInput('allOn', 'discord');
+      render(2);
+      const calls: string[] = [];
+      fixture.componentInstance.moveSelected.subscribe(s => calls.push(s));
+      fixture.componentInstance.changeRadius.subscribe(() => calls.push('radius'));
+
+      el().querySelector<HTMLButtonElement>('.bulk-more')!.click();
+      fixture.detectChanges();
+      const items = Array.from(document.querySelectorAll<HTMLButtonElement>('.bulk-more-item'));
+      expect(items.map(i => i.textContent?.trim())).toEqual([
+        expect.stringContaining('Deliver to Discord'),
+        expect.stringContaining('Deliver to Telegram'),
+        expect.stringContaining('Change radius'),
+      ]);
+      expect(items[0].disabled).toBe(true);
+      items[1].click();
+      items[2].click();
+
+      expect(calls).toEqual(['telegram', 'radius']);
+    });
+
+    it('keeps the unlinked bar as it was: no More, and Change radius beside Delete', () => {
+      render(2);
+
+      expect(el().querySelector('.bulk-more')).toBeNull();
+      expect(el().querySelector('.bulk-toolbar')?.classList).not.toContain('bulk-can-move');
+      expect(byText('Change radius')).toBeDefined();
+    });
+
+    it('never lets a label wrap or push Delete off the edge', () => {
+      expect(phone).toMatch(/flex:\s*1 1 0/);
+      expect(phone).toMatch(/min-width:\s*0/);
+      expect(phone).toMatch(/white-space:\s*nowrap/);
+      expect(phone).toMatch(/text-overflow:\s*ellipsis/);
+    });
+  });
+
   /** Shape 2: one bulk bar, on all ten lists, counting the selected cards still on screen. */
   it.each([
     'pokemon/pokemon',
@@ -219,6 +324,7 @@ describe('BulkActionBarComponent', () => {
     expect(html).toContain('[anySelected]="selectedIds().size > 0"');
     expect(html).toContain('(changeRadius)="bulkUpdateDistance()"');
     expect(html).toContain('(deleteSelected)="bulkDelete()"');
+    expect(html).toContain('[allOn]="selectionApp()"');
     expect(html).not.toContain('class="bulk-toolbar"');
     expect(scss).not.toContain('.bulk-toolbar');
   });

@@ -38,7 +38,15 @@ import { WhereSheetComponent, WhereSheetData, whereSheetConfig } from '../../sha
 import { LevelLabelPipe } from '../../shared/pipes/level-label.pipe';
 import { addOnArrival } from '../../shared/utils/add-on-arrival';
 import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
-import { byDestination, byNumber, byText, DestinationFilter, queryAlarms, visibleSelection } from '../../shared/utils/alarm-list-query';
+import {
+  byDestination,
+  byNumber,
+  byText,
+  DestinationFilter,
+  queryAlarms,
+  sharedDestination,
+  visibleSelection,
+} from '../../shared/utils/alarm-list-query';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { runBulkMove } from '../../shared/utils/bulk-move';
@@ -154,8 +162,15 @@ export class RaidListComponent implements OnInit {
   readonly canChooseDestination = inject(LinkedAccountService).canChoose;
 
   readonly loading = signal(true);
+
   /** Only used to word the inherited scope honestly; empty produces the more cautious wording. */
   readonly profileAreas = signal<string[]>([]);
+  /** The app every selected rule on the tab in front is already on, which the bulk Deliver to menu offers disabled. */
+  readonly selectionApp = computed(() =>
+    this.activeTab() === 0
+      ? sharedDestination(this.visibleRaids(), r => this.selectionKey('raid', r.uid), this.actionIds())
+      : sharedDestination(this.visibleEggs(), e => this.selectionKey('egg', e.uid), this.actionIds()),
+  );
 
   readonly selectMode = signal(false);
 

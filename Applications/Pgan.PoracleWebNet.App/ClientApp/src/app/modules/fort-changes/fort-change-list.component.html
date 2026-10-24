@@ -12,6 +12,7 @@
 </div>
 @if (!loading() && fortChanges().length > 0) {
   <app-alarm-list-toolbar
+    alarmsLabel="FORT_CHANGES.PAGE_TITLE"
     searchPlaceholder="FORT_CHANGES.SEARCH_PLACEHOLDER"
     [(search)]="search"
     [(sort)]="sortBy"
@@ -32,6 +33,7 @@
     (deselectAll)="deselectAll()"
     (changeRadius)="bulkUpdateDistance()"
     [canMove]="canChooseDestination()"
+    [allOn]="selectionApp()"
     (moveSelected)="bulkMove($event)"
     (deleteSelected)="bulkDelete()" />
 }
