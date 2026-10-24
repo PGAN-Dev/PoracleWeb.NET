@@ -189,7 +189,7 @@ deletes an account created this way unless the person also joins a registration 
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| No Telegram button on the login page or on Linked accounts | `TELEGRAM_ENABLED` isn't `true`, `enable_telegram` is off, or no bot username is set | Set all three, then restart for `.env` changes |
+| No Telegram button on the login page or on Linked accounts | `TELEGRAM_ENABLED` is `false`, the bot token or username is missing, or `enable_telegram` is off | Set the token and username (sign-in turns on when both are set), switch `enable_telegram` on, and restart for `.env` changes |
 | The button says "Bot domain invalid" | The bot's domain doesn't match the site | `/setdomain` in @BotFather with the exact hostname people use |
 | Telegram sign-in says the account isn't registered | The person never registered with PoracleNG | Join the registration group and send `/poracle` there |
 | `/poracle` answers "wrong channel" | That group's id isn't in `channels` (or the community's `telegram.channels`) | `/identify` in the group and add the id; re-check after a supergroup upgrade |

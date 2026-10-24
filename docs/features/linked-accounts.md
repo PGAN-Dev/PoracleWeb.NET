@@ -4,7 +4,8 @@ Someone who gets alerts on both Discord and Telegram has two PoracleNG accounts,
 two people. Linking pairs one Discord account with one Telegram account so that PoracleWeb.NET treats them as
 one person: one list of alarms, the app chosen per alarm, and personal settings saved to both.
 
-Linking copies nothing and moves nothing on its own, and unlinking deletes nothing. For how the two apps
+Linking never copies or moves alarms, and unlinking deletes nothing. Settings are copied only when the site
+creates your other account for you (see the settings below). For how the two apps
 differ and how people register on each, see [Discord and Telegram](discord-and-telegram.md). For how the pair
 is stored and resolved, see the [technical page](../architecture/linked-accounts.md).
 
@@ -27,8 +28,9 @@ The page says why, and what to try next. Dismiss the message with its close butt
 
 | Message starts | What happened |
 |---|---|
+| Linking accounts has been switched off on this site | An admin turned linking off while you were linking. Nothing was changed |
 | You can only link a Discord account to a Telegram account | The account isn't a personal Discord or Telegram account, or both sides are the same app |
-| That account couldn't be read | The id Discord or Telegram sent can't be an account id |
+| That account couldn't be read | The id Discord or Telegram sent can't be an account id, or the Telegram login didn't verify |
 | That account is already used here as a channel or group | That id is registered here as a destination, not a person |
 | That account is already linked to someone else | Unlink it from the other account first |
 | That sign-in took too long | A Telegram login is good for ten minutes after you approve it, and a Discord link for ten minutes after you press **Link Discord**. Start again |
@@ -67,8 +69,8 @@ that isn't receiving alerts is marked "(not receiving alerts)" and can't be pick
 default, the page says nothing sent there will arrive and suggests the other app. While one side is still
 waiting to register, the page says the choice comes once both are registered.
 
-Quick picks you saved yourself belong to the person, not to one account, and applying one creates its alarms
-on the default app.
+Applying any quick pick creates its alarms on the default app, or on the account you're signed in with while
+the default app isn't registered.
 
 ## Alarms on both apps
 
@@ -96,7 +98,7 @@ A move is refused, with nothing changed, when:
 | Discord and Telegram are on different profiles | Switch one app's active profile to match, then move again. The Linked accounts page offers this as a difference to fix |
 | The place "Home" isn't saved on Telegram | Save that place on the other app first, or match saved places on Linked accounts |
 | It's limited to an area Telegram can't use | Change the alarm's areas, then move it |
-| Telegram already has an alarm like it | Nothing to move; delete the duplicate if you don't need it |
+| Telegram already has an alarm like it | Telegram has an alarm that differs from this one only in its radius, template or clean setting. Edit or delete one of them, then move again. An identical alarm isn't refused: the move counts it as done and removes this copy |
 | Telegram isn't set up yet | The other side is still waiting to register |
 | Alerts can't be moved while inspecting another account | An admin viewing as you can't move your alarms |
 

@@ -344,7 +344,7 @@ tells PoracleNG two humans belong together. Each call goes to one human at a tim
 |---|---|
 | Resolve the pair | `GET /v2/humans/{id}` per side, cached a minute, for its type and pause state |
 | Merged alarm list, owner lookup, bulk distance | The usual `GET .../tracking/{type}` and `PATCH .../tracking/{type}`, once per human |
-| Move an alarm | On the target: `POST .../tracking/{type}?dry_run=true`, then the create. On the source: `DELETE .../tracking/{type}/{uid}`, tried twice. Preflight reads both humans and the target's `GET .../locations` |
+| Move an alarm | On the target: `POST .../tracking/{type}?dry_run=true`, then the create. On the source: `DELETE .../tracking/{type}/{uid}`, tried twice. Preflight reads both humans, the target's `GET .../locations` and, except for Pokéstop events, the source's `GET .../tracking/{type}` to carry fields the typed model doesn't hold |
 | Person-level writes | The same location, place, area, profile, language, mute, summary and enable/disable calls, sent to the signed-in human and then the other |
 | Drift read | `GET /v2/humans/{id}`, `GET .../areas`, `GET .../profiles`, `GET .../locations` for both humans in parallel |
 | Drift resolve | `GET .../tracking?all_profiles=true` before deleting a profile or place, then the writes for the one field: `POST .../location`, `POST .../areas` (through `IUserAreaWriter`), `POST .../profile`, `POST`/`PATCH`/`DELETE .../profiles`, `POST .../areas?profile=N` and `.../location?profile=N`, `POST`/`PUT`/`DELETE .../locations` |

@@ -159,6 +159,8 @@ account alone until the read succeeds.
 `IAccountLinkService.LinkAsync(callerHumanId, newSide, newId, newName)` is the one place a verified
 identity becomes a link. Its checks, in order:
 
+0. `disable_account_linking` must be off (`link_disabled`, 403). Checked here rather than only on the
+   routes, so a Discord or Telegram sign-in started before an admin switched linking off can't complete.
 1. The caller's human must be `discord:user` or `telegram:user`, and the new side must be the other app
    (`link_wrong_type`).
 2. The new id must be digits only, 1 to 20 characters, no leading zero, and fit a `long` for Telegram
@@ -325,7 +327,7 @@ the merged list.
 ## Moves
 
 An alarm changes app in two ways: `PUT /api/{type}/{uid}` with a `destination` naming the other app (an
-edit that moves), and `POST /api/alarm-move { type, uids, destination }` for a selection of up to 500. Both
+edit that moves), and `POST /api/alarm-move { type, uids, destination, kind? }` for a selection of up to 500. Both
 call `AlarmMover`, and both are refused with 403 while an admin is viewing as someone else, because a move
 writes the other human's rules. `alarm-move` is rate limited to 10 requests a minute per person and is
 gated on `disable_account_linking` and on the type's own `disable_*` key.
@@ -517,7 +519,8 @@ offers to undo what the person just did.
 
 `POST /api/account-link/resolve { field, keep, expected }` makes the other human match the kept one for
 one field. It writes the other human only, never through `PairedHumanWriter`, which would rewrite the side
-being kept. Everything that can refuse is checked before the first write.
+being kept. `kind` (`event` or `invasion`) applies to the invasion list only, where a Pokéstop event and an
+invasion can share a uid. Everything that can refuse is checked before the first write.
 
 ```mermaid
 flowchart TD
@@ -525,7 +528,9 @@ flowchart TD
     B -->|yes| R403["403"]
     B -->|no| C{"field, keep,<br/>expected valid?"}
     C -->|no| R400["400"]
-    C -->|yes| D{"Linked, both<br/>sides exist?"}
+    C -->|yes| L{"Linked?"}
+    L -->|no| R400L["400 no linked account"]
+    L -->|yes| D{"Both sides<br/>exist?"}
     D -->|no| CH["409 drift_changed"]
     D -->|yes| E["Fresh read of both humans"]
     E --> F{"Fingerprint<br/>still matches?"}

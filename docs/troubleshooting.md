@@ -703,7 +703,8 @@ Setup is in [Telegram](configuration/telegram.md) and behaviour in [Linked accou
 
 **Symptom**: No Telegram button on the login page, or none on the Telegram card of Linked accounts.
 
-**Cause**: The button is drawn only when `TELEGRAM_ENABLED=true`, a bot username is known (`TELEGRAM_BOT_USERNAME`,
+**Cause**: The button is drawn only when Telegram sign-in is enabled (set automatically when `TELEGRAM_BOT_TOKEN` and
+`TELEGRAM_BOT_USERNAME` are both set, unless `TELEGRAM_ENABLED=false`), a bot username is known (`TELEGRAM_BOT_USERNAME`,
 or the `telegram_bot` setting when that's empty), and **Enable Telegram login** isn't switched off. A button that
 appears but says "Bot domain invalid" means the bot's domain in @BotFather isn't this site's.
 
