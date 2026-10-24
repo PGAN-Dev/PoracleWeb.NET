@@ -95,6 +95,18 @@ describe('InvasionService', () => {
     without.flush(null);
   });
 
+  it('adds the kind to a bulk radius change only when one is given', () => {
+    service.updateBulkDistance([7], 500, 'event').subscribe();
+    const withKind = httpMock.expectOne(`${API}/api/invasions/distance/bulk`);
+    expect(withKind.request.body).toEqual({ uids: [7], distance: 500, kind: 'event' });
+    withKind.flush({ updated: 1 });
+
+    service.updateBulkDistance([7], 500).subscribe();
+    const plain = httpMock.expectOne(`${API}/api/invasions/distance/bulk`);
+    expect('kind' in plain.request.body).toBe(false);
+    plain.flush({ updated: 1 });
+  });
+
   it('should delete all invasions', () => {
     service.deleteAll().subscribe();
 

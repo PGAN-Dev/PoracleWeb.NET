@@ -50,6 +50,20 @@ describe('AlarmMoveService', () => {
     expect(isMoveFailure(err)).toBe(true);
   });
 
+  it('adds the kind to a bulk move only when one is given', async () => {
+    const withKind = firstValueFrom(service.moveMany('invasion', [7], 'discord', 'event'));
+    const req = http.expectOne(`${API}/api/alarm-move`);
+    expect(req.request.body).toEqual({ uids: [7], destination: 'discord', type: 'invasion', kind: 'event' });
+    req.flush({ results: [] });
+    await withKind;
+
+    const without = firstValueFrom(service.moveMany('pokemon', [1], 'discord'));
+    const plain = http.expectOne(`${API}/api/alarm-move`);
+    expect('kind' in plain.request.body).toBe(false);
+    plain.flush({ results: [] });
+    await without;
+  });
+
   it('posts a bulk move with the type, the uids and the side', async () => {
     const result = firstValueFrom(service.moveMany('pokemon', [1, 2], 'discord'));
     const req = http.expectOne(`${API}/api/alarm-move`);

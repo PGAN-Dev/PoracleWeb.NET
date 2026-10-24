@@ -104,4 +104,11 @@ public sealed class AlarmMoveRequest
     public List<int> Uids { get; set; } = [];
 
     public string Destination { get; set; } = string.Empty;
+
+    /// <summary>
+    /// For <c>invasion</c> only: "event" or "invasion", the kind of the cards being moved. Invasion and Pokestop
+    /// event rules are numbered separately, so a uid alone can name either. Absent or unknown keeps the old
+    /// uid-only behaviour.
+    /// </summary>
+    public string? Kind { get; set; }
 }

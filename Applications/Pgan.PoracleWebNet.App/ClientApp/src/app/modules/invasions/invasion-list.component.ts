@@ -52,7 +52,7 @@ import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { runBulkMove } from '../../shared/utils/bulk-move';
 import { isAutoDelete as cleanIsAutoDelete } from '../../shared/utils/clean-flags';
-import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
+import { combineDistanceResults, distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
 import { swapToFallbackIcon } from '../../shared/utils/icon-fallback';
 import { invasionKind } from '../../shared/utils/pokestop-events';
 import { serverReason } from '../../shared/utils/server-reason';
@@ -195,7 +195,7 @@ export class InvasionListComponent implements OnInit {
   async bulkMove(destination: LinkSide): Promise<void> {
     await runBulkMove(
       { i18n: this.i18n, moves: this.moves, snackBar: this.snackBar },
-      [{ uids: this.actionCards().map(item => item.uid), type: 'invasion' }],
+      this.selectedByKind().map(({ uids, kind }) => ({ uids, kind, type: 'invasion' as const })),
       destination,
       () => {
         this.selectedIds.set(new Set());
@@ -210,12 +210,18 @@ export class InvasionListComponent implements OnInit {
     const distance = await firstValueFrom(ref.afterClosed());
     if (distance !== null && distance !== undefined) {
       const uids = this.actionCards().map(item => item.uid);
+      const groups = this.selectedByKind();
       // The server refuses a radius that would take over an alarm the user did not select, and names
       // the one in the way. Unguarded, that rejection cleared nothing, reloaded nothing and showed
       // nothing -- indistinguishable from a successful no-op. See #641.
       let result: DistanceUpdateResult | undefined;
       try {
-        result = await firstValueFrom(this.invasionService.updateBulkDistance(uids, distance));
+        // One request per kind: an invasion and an event can share a uid, and the server needs the kind to know which.
+        const parts: DistanceUpdateResult[] = [];
+        for (const { uids: group, kind } of groups) {
+          parts.push(await firstValueFrom(this.invasionService.updateBulkDistance(group, distance, kind)));
+        }
+        result = combineDistanceResults(...parts);
       } catch (err) {
         this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.FAILED_DISTANCE'), this.i18n.instant('TOAST.OK'), {
           duration: 5000,
@@ -467,5 +473,17 @@ export class InvasionListComponent implements OnInit {
   private openExisting(uid: number, _trackingType: null | string): void {
     const invasion = this.invasions().find(i => i.uid === uid);
     if (invasion) this.editInvasion(invasion);
+  }
+
+  /** The selected cards' uids, one group per kind present, so every bulk call names the kind it acts on. */
+  private selectedByKind(): { kind: 'event' | 'invasion'; uids: number[] }[] {
+    const groups: { kind: 'event' | 'invasion'; uids: number[] }[] = [];
+    for (const item of this.actionCards()) {
+      const kind = invasionKind(item.gruntType) ?? 'invasion';
+      const group = groups.find(g => g.kind === kind);
+      if (group) group.uids.push(item.uid);
+      else groups.push({ uids: [item.uid], kind });
+    }
+    return groups;
   }
 }

@@ -46,10 +46,12 @@ export class InvasionService {
     );
   }
 
-  updateBulkDistance(uids: number[], distance: number): Observable<DistanceUpdateResult> {
+  /** `kind` limits the change to the cards of that kind, since an invasion and an event can share a uid. See #1062. */
+  updateBulkDistance(uids: number[], distance: number, kind?: 'event' | 'invasion'): Observable<DistanceUpdateResult> {
     return this.http.put<DistanceUpdateResult>(`${this.config.apiHost}/api/invasions/distance/bulk`, {
       uids,
       distance,
+      ...(kind ? { kind } : {}),
     });
   }
 }

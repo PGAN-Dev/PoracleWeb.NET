@@ -175,10 +175,11 @@ public partial class AlarmMover(
     /// outage propagates (the caller answers 503) rather than becoming a row per alert.
     /// </summary>
     public async Task<IReadOnlyList<MoveOutcome>> MoveManyAsync<TModel>(
-        IAlarmService<TModel> svc, string trackingType, string userId, int profileNo, IReadOnlyList<int> uids, LinkSide target)
+        IAlarmService<TModel> svc, string trackingType, string userId, int profileNo, IReadOnlyList<int> uids, LinkSide target, string? kind = null)
         where TModel : class, IHasDestination
     {
         var pair = await this._linked.ResolveAsync(userId);
+        kind = kind is "event" or "invasion" ? kind : null;
         if (!pair.IsLinked)
         {
             return [.. uids.Select(u => Refused<TModel>(u, "Your accounts aren't linked.", MoveReasonCodes.NotLinked).Outcome)];
@@ -189,6 +190,12 @@ public partial class AlarmMover(
         {
             foreach (var model in await svc.GetByUserAsync(humanId, profileNo))
             {
+                // The invasion list names the kind of the cards it moves, so a uid shared with the other kind is not theirs.
+                if (kind is not null && InvasionKind(model) != kind)
+                {
+                    continue;
+                }
+
                 // A bulk move names uids, not kinds. Where an invasion and a Pokestop event share a uid the plain
                 // invasion is the one meant, as on the invasion list's other uid-only calls (#1058).
                 if (!found.TryAdd(model.Uid, (model, humanId))

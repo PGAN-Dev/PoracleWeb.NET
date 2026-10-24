@@ -22,6 +22,13 @@ public interface IInvasionService : IAlarmService<Invasion>
     public Task<bool> DeleteAsync(string userId, int uid, string? kind);
 
     /// <summary>
+    /// <see cref="IAlarmService{TModel}.UpdateDistanceByUidsAsync"/> for the rules of one kind ("event" or
+    /// "invasion") only, so a uid shared with the other kind is left alone. Any other kind behaves as the
+    /// uid-only call.
+    /// </summary>
+    public Task<DistanceUpdateResult> UpdateDistanceByUidsAsync(List<int> uids, string userId, int distance, string? kind);
+
+    /// <summary>
     /// True when <paramref name="gruntType"/> names a Pokestop event (kecleon, gold-stop, showcase) and this
     /// server has a Pokestop Events page for it, so a rule written here would never show on the invasion list.
     /// </summary>

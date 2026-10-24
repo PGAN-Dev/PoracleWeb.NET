@@ -199,14 +199,14 @@ export class AlarmMoveService {
   }
 
   /** Moves a selection. More than 500 uids go out in consecutive requests of at most 500, results joined. */
-  moveMany(type: MoveType, uids: readonly number[], destination: LinkSide): Observable<AlarmMoveResponse> {
+  moveMany(type: MoveType, uids: readonly number[], destination: LinkSide, kind?: 'event' | 'invasion'): Observable<AlarmMoveResponse> {
     const chunks: number[][] = [];
     for (let i = 0; i < uids.length; i += MAX_MOVE_UIDS) chunks.push(uids.slice(i, i + MAX_MOVE_UIDS));
     return from(chunks).pipe(
       // A chunk that fails must not take the results of the chunks before it down with it: those moves happened.
       concatMap(chunk =>
         this.http
-          .post<AlarmMoveResponse>(`${this.config.apiHost}/api/alarm-move`, { uids: chunk, destination, type })
+          .post<AlarmMoveResponse>(`${this.config.apiHost}/api/alarm-move`, { uids: chunk, destination, type, ...(kind ? { kind } : {}) })
           .pipe(catchError((err: unknown) => of<AlarmMoveResponse>({ results: failedOutcomes(chunk, err) }))),
       ),
       reduce<AlarmMoveResponse, AlarmMoveResponse>((all, part) => ({ results: [...all.results, ...(part.results ?? [])] }), {

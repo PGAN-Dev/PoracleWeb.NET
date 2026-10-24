@@ -56,7 +56,7 @@ public class AlarmMoveController(IFeatureGate featureGate, ILinkedAccount linked
             });
         }
 
-        var results = await this._dispatcher.MoveAsync(request.Type, this.UserId, this.ProfileNo, request.Uids, target);
+        var results = await this._dispatcher.MoveAsync(request.Type, this.UserId, this.ProfileNo, request.Uids, target, request.Type == "invasion" ? request.Kind : null);
         return this.Ok(new
         {
             results

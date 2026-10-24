@@ -27,15 +27,23 @@ import { TestAlertService } from '../../core/services/test-alert.service';
  */
 describe('InvasionListComponent deletes', () => {
   let component: InvasionListComponent;
+  let distanceChoice = 500;
   let dialog: { open: jest.Mock };
-  let invasionService: { delete: jest.Mock; getAll: jest.Mock };
+  let invasionService: { delete: jest.Mock; getAll: jest.Mock; updateBulkDistance: jest.Mock };
+  let moves: { moveMany: jest.Mock };
 
   const grunt = { uid: 7, gruntType: 'water' } as Invasion;
   const event = { uid: 7, gruntType: 'kecleon' } as Invasion;
 
   function setup(items: Invasion[]): void {
     dialog = { open: jest.fn().mockReturnValue({ afterClosed: () => of(true) }) };
-    invasionService = { delete: jest.fn().mockReturnValue(of(void 0)), getAll: jest.fn().mockReturnValue(of(items)) };
+    distanceChoice = 500;
+    invasionService = {
+      delete: jest.fn().mockReturnValue(of(void 0)),
+      getAll: jest.fn().mockReturnValue(of(items)),
+      updateBulkDistance: jest.fn().mockReturnValue(of({ updated: 1 })),
+    };
+    moves = { moveMany: jest.fn().mockReturnValue(of({ results: [] })) };
 
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
@@ -50,7 +58,7 @@ describe('InvasionListComponent deletes', () => {
           provide: MasterDataService,
           useValue: { getGruntName: () => '', isGruntNameUntranslated: () => false, loadData: () => of(void 0) },
         },
-        { provide: AlarmMoveService, useValue: {} },
+        { provide: AlarmMoveService, useValue: moves },
         { provide: LinkedAccountService, useValue: { canChoose: signal(false) } },
         { provide: TestAlertService, useValue: {} },
       ],
@@ -132,6 +140,62 @@ describe('InvasionListComponent deletes', () => {
       const read = (f: string): string => readFileSync(join(__dirname, f), 'utf8');
       expect(read('../pokemon/pokemon-list.component.html')).toContain('selectedIds().has(');
       expect(read('../pokemon/pokemon-list.component.html')).not.toContain('cardKey');
+    });
+  });
+
+  describe('bulk Deliver to and bulk radius', () => {
+    function pickDialogAnswer(): void {
+      dialog.open.mockReturnValue({ afterClosed: () => of(distanceChoice) });
+    }
+
+    it('moves only the event when only the event is selected', async () => {
+      setup([grunt, event]);
+      component.toggleSelect(event);
+
+      await component.bulkMove('telegram');
+
+      expect(moves.moveMany.mock.calls).toEqual([['invasion', [7], 'telegram', 'event']]);
+    });
+
+    it('moves a mixed selection once per kind', async () => {
+      setup([grunt, event]);
+      component.selectAll();
+
+      await component.bulkMove('telegram');
+
+      expect(moves.moveMany.mock.calls).toEqual(
+        expect.arrayContaining([
+          ['invasion', [7], 'telegram', 'event'],
+          ['invasion', [7], 'telegram', 'invasion'],
+        ]),
+      );
+      expect(moves.moveMany).toHaveBeenCalledTimes(2);
+    });
+
+    it('changes the radius of only the invasion when only the invasion is selected', async () => {
+      setup([grunt, event]);
+      component.toggleSelect(grunt);
+      pickDialogAnswer();
+
+      await component.bulkUpdateDistance();
+
+      expect(invasionService.updateBulkDistance.mock.calls).toEqual([[[7], 500, 'invasion']]);
+    });
+
+    it('changes the radius once per kind for a mixed selection', async () => {
+      setup([grunt, event]);
+      component.selectAll();
+      pickDialogAnswer();
+
+      await component.bulkUpdateDistance();
+
+      expect(invasionService.updateBulkDistance.mock.calls).toEqual(
+        expect.arrayContaining([
+          [[7], 500, 'event'],
+          [[7], 500, 'invasion'],
+        ]),
+      );
+      expect(invasionService.updateBulkDistance).toHaveBeenCalledTimes(2);
     });
   });
 });

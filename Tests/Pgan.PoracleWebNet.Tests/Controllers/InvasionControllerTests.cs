@@ -155,4 +155,27 @@ public class InvasionControllerTests : ControllerTestBase
         this._service.Verify(s => s.DeleteAsync("123456789", 7), Times.Once);
         this._service.Verify(s => s.DeleteAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string?>()), Times.Never);
     }
+
+    [Theory]
+    [InlineData("event")]
+    [InlineData("invasion")]
+    public async Task BulkDistanceWithAKindPassesItToTheService(string kind)
+    {
+        this._service.Setup(s => s.UpdateDistanceByUidsAsync(It.IsAny<List<int>>(), "123456789", 500, kind)).ReturnsAsync(new DistanceUpdateResult(1, [], []));
+
+        Assert.IsType<OkObjectResult>(await this._sut.UpdateBulkDistance(new BulkDistanceRequest { Uids = [7], Distance = 500, Kind = kind }));
+
+        this._service.Verify(s => s.UpdateDistanceByUidsAsync(It.Is<List<int>>(l => l.SequenceEqual(new[] { 7 })), "123456789", 500, kind), Times.Once);
+        this._service.Verify(s => s.UpdateDistanceByUidsAsync(It.IsAny<List<int>>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task BulkDistanceWithoutAKindKeepsTheUidOnlyCall()
+    {
+        this._service.Setup(s => s.UpdateDistanceByUidsAsync(It.IsAny<List<int>>(), "123456789", 500)).ReturnsAsync(new DistanceUpdateResult(1, [], []));
+
+        Assert.IsType<OkObjectResult>(await this._sut.UpdateBulkDistance(new BulkDistanceRequest { Uids = [7], Distance = 500 }));
+
+        this._service.Verify(s => s.UpdateDistanceByUidsAsync(It.IsAny<List<int>>(), "123456789", 500), Times.Once);
+    }
 }

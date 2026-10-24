@@ -229,6 +229,24 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
             distance);
     }
 
+    public async Task<DistanceUpdateResult> UpdateDistanceByUidsAsync(List<int> uids, string userId, int distance, string? kind)
+    {
+        if (kind is not ("event" or "invasion"))
+        {
+            return await this.UpdateDistanceByUidsAsync(uids, userId, distance);
+        }
+
+        var json = await this._proxy.GetByUserAsync(TrackingType, userId);
+        var selected = new HashSet<int>(uids);
+        var isOurs = await this.OwnRowPredicateAsync();
+
+        return await this.PatchDistanceAsync(
+            userId,
+            json,
+            row => isOurs(row) && (IsEventRow(row) == (kind == "event")) && PoracleJsonHelper.UidOf(row) is int rowUid && selected.Contains(rowUid),
+            distance);
+    }
+
     /// <summary>
     /// One v2 PATCH per route: the invasion rules to <c>invasion</c>, and any Pokestop event rules this list
     /// holds (only where there is no Pokestop Events page, see <see cref="OwnRowPredicateAsync"/>) to

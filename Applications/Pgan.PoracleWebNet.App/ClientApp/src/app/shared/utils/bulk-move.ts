@@ -15,6 +15,8 @@ export interface BulkMoveDeps {
 
 /** The selected uids of one tracking type. A list with one type passes one group; raids pass raid and egg. */
 export interface BulkMoveGroup {
+  /** For the invasion list: the kind of the cards, so a uid shared with the other kind is not moved with them. */
+  kind?: 'event' | 'invasion';
   type: MoveType;
   uids: readonly number[];
 }
@@ -34,10 +36,10 @@ export async function runBulkMove(
   const { i18n, moves, snackBar } = deps;
   try {
     const results: MoveOutcome[] = [];
-    for (const { uids, type } of groups) {
+    for (const { uids, kind, type } of groups) {
       if (uids.length === 0) continue;
       try {
-        results.push(...(await firstValueFrom(moves.moveMany(type, uids, destination))).results);
+        results.push(...(await firstValueFrom(moves.moveMany(type, uids, destination, kind))).results);
       } catch (err) {
         results.push(...failedOutcomes(uids, err));
       }

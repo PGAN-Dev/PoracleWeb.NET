@@ -151,6 +151,58 @@ public class LinkedAlarmRouter(ILinkedAccount linked, AlarmMover mover)
     }
 
     /// <summary>
+    /// The invasion list's bulk radius change for the cards of one kind. An invasion and a Pokestop event can share
+    /// a uid, so the owner of each uid is looked up among the rows of that kind only, and the service patches only
+    /// rows of that kind. With no kind it is the uid-only call.
+    /// </summary>
+    public async Task<DistanceUpdateResult> UpdateDistanceByUidsAsync(
+        IInvasionService svc, string userId, int profileNo, List<int> uids, int distance, string? kind)
+    {
+        if (kind is not ("event" or "invasion"))
+        {
+            return await this.UpdateDistanceByUidsAsync<Invasion>(svc, userId, profileNo, uids, distance);
+        }
+
+        var pair = await this.ResolveAsync(userId);
+        if (!pair.IsLinked)
+        {
+            return await svc.UpdateDistanceByUidsAsync(uids, userId, distance, kind);
+        }
+
+        var ownerOf = new Dictionary<int, string>();
+        foreach (var humanId in pair.ExistingHumanIds)
+        {
+            foreach (var model in await svc.GetByUserAsync(humanId, profileNo))
+            {
+                if (PokestopEventTypes.IsEventName(model.GruntType) == (kind == "event"))
+                {
+                    ownerOf.TryAdd(model.Uid, humanId);
+                }
+            }
+        }
+
+        var byOwner = new Dictionary<string, List<int>>(StringComparer.Ordinal);
+        foreach (var uid in uids)
+        {
+            var owner = ownerOf.GetValueOrDefault(uid, userId);
+            if (!byOwner.TryGetValue(owner, out var group))
+            {
+                byOwner[owner] = group = [];
+            }
+
+            group.Add(uid);
+        }
+
+        var results = new List<DistanceUpdateResult>();
+        foreach (var (owner, group) in byOwner)
+        {
+            results.Add(await svc.UpdateDistanceByUidsAsync(group, owner, distance, kind));
+        }
+
+        return Merge(results);
+    }
+
+    /// <summary>
     /// The human id a create belongs to. Unlinked callers always get their own, whatever they asked for. With no
     /// destination named, the pair's default side is used, and the default is ignored while that side has no
     /// human yet: the alarm belongs to the caller.
