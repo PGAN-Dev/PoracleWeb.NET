@@ -17,8 +17,9 @@ export class InvasionService {
     return this.http.post<Invasion>(`${this.config.apiHost}/api/invasions`, invasion);
   }
 
-  delete(uid: number): Observable<void> {
-    return this.http.delete<void>(`${this.config.apiHost}/api/invasions/${uid}`);
+  /** `kind` names the card being deleted, so a uid shared with the other kind's rule never takes it down. See #1062. */
+  delete(uid: number, kind?: 'event' | 'invasion'): Observable<void> {
+    return this.http.delete<void>(`${this.config.apiHost}/api/invasions/${uid}`, kind ? { params: { kind } } : undefined);
   }
 
   deleteAll(): Observable<void> {

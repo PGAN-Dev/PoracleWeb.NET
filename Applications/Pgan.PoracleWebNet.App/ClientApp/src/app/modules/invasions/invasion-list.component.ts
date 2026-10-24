@@ -154,14 +154,16 @@ export class InvasionListComponent implements OnInit {
     });
     const result = await firstValueFrom(ref.afterClosed());
     if (result) {
-      const ids = this.actionIds();
+      // Each selected card goes on the route of its own kind: an invasion and an event can share a uid, and a
+      // delete that names only the uid would take whichever the server finds first. See #1062.
+      const targets = this.visibleInvasions().filter(item => this.selectedIds().has(item.uid));
       // Settled one at a time: a stale uid -- the row re-keyed by an edit, or removed in another tab --
       // threw out of the loop, so deletes that had already happened went unreported and the list never
       // reloaded. See #603.
       let deleted = 0;
-      for (const uid of ids) {
+      for (const item of targets) {
         try {
-          await firstValueFrom(this.invasionService.delete(uid));
+          await firstValueFrom(this.invasionService.delete(item.uid, invasionKind(item.gruntType)));
           deleted++;
         } catch {
           // Already gone, which is what the user asked for.
@@ -267,7 +269,7 @@ export class InvasionListComponent implements OnInit {
       .afterClosed()
       .subscribe(c => {
         if (c)
-          this.invasionService.delete(invasion.uid).subscribe({
+          this.invasionService.delete(invasion.uid, invasionKind(invasion.gruntType)).subscribe({
             error: (err: unknown) =>
               this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.FAILED_DELETE'), this.i18n.instant('TOAST.OK'), {
                 duration: 3000,

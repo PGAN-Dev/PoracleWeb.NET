@@ -82,6 +82,19 @@ describe('InvasionService', () => {
     req.flush(null);
   });
 
+  it('sends the kind of the deleted card, and none when it is not given', () => {
+    service.delete(7, 'event').subscribe();
+    const withKind = httpMock.expectOne(r => r.url === API + '/api/invasions/7');
+    expect(withKind.request.method).toBe('DELETE');
+    expect(withKind.request.params.get('kind')).toBe('event');
+    withKind.flush(null);
+
+    service.delete(7).subscribe();
+    const without = httpMock.expectOne(API + '/api/invasions/7');
+    expect(without.request.params.has('kind')).toBe(false);
+    without.flush(null);
+  });
+
   it('should delete all invasions', () => {
     service.deleteAll().subscribe();
 

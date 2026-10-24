@@ -134,9 +134,14 @@ public class InvasionController(IInvasionService invasionService, LinkedAlarmRou
     }
 
     [HttpDelete("{uid:int}")]
-    public async Task<IActionResult> Delete(int uid)
+    public async Task<IActionResult> Delete(int uid, [FromQuery] string? kind = null)
     {
-        var found = await this._router.FindAsync(this._invasionService, this.UserId, uid);
+        // The kind of the card being deleted. Invasion and event rules are numbered separately, so a uid alone can
+        // name either; absent or unknown keeps the first match, as older clients expect. See #1062.
+        kind = kind is "event" or "invasion" ? kind : null;
+        var found = kind is null
+            ? await this._router.FindAsync(this._invasionService, this.UserId, uid)
+            : await this._router.FindAsync(this.UserId, humanId => this._invasionService.GetByUidAsync(humanId, uid, kind));
         if (found is null)
         {
             return this.NotFound();
@@ -144,7 +149,15 @@ public class InvasionController(IInvasionService invasionService, LinkedAlarmRou
 
         var ownerId = found.Value.OwnerId;
 
-        await this._invasionService.DeleteAsync(ownerId, uid);
+        if (kind is null)
+        {
+            await this._invasionService.DeleteAsync(ownerId, uid);
+        }
+        else
+        {
+            await this._invasionService.DeleteAsync(ownerId, uid, kind);
+        }
+
         return this.NoContent();
     }
 
