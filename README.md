@@ -63,6 +63,7 @@ See the [Quick Start guide](https://pgan-dev.github.io/PoracleWeb.NET/getting-st
 | Dark and light mode | Theme toggle with accent colours; maps on the site default switch to a dark basemap in dark mode |
 | 11 UI languages | The interface, plus Pokemon names, types and forms, which follow the display language. What Poracle writes in your DMs is a separate choice, **Alert language**, beside **Display language** in the user menu |
 | Single sign-on | Discord and Telegram login, plus any OIDC provider, with optional silent refresh and single logout |
+| Linked accounts | One person on both Discord and Telegram: one list of alarms, the app chosen per alarm, personal settings saved to both, and the differences bot commands leave shown for the person to settle |
 | Admin panel | Users, webhooks, site settings, geofence review, hidden areas, a status line on the settings page that opens a Versions card showing the running PoracleWeb.NET and PoracleNG builds, and a Rule repair card for rules PoracleNG 5.4.0 reads differently. The Versions card runs an anonymous GitHub check, cached six hours, which the `disable_update_check` site setting switches off |
 
 ## Documentation

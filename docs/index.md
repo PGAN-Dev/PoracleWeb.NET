@@ -49,7 +49,8 @@ A web application for managing Pokemon GO notification alarms through the [Porac
 | [Destinations & delegates](features/webhooks.md) | Webhooks, Discord channels and threads, and Telegram channels, groups and topics, listed apart from people and managed as their own accounts, with named people allowed to manage one without being made an administrator |
 | Test alerts | Send a sample notification from an alarm card to see what the alert looks like (all types except Fort Changes, Max Battles and Pokéstop Events) |
 | Weather | Current in-game weather at your pin and across your areas, on the dashboard (needs the scanner database) |
-| [Linked accounts](features/linked-accounts.md) | One person on both Discord and Telegram: link the two accounts, see each side's state, and choose where new alerts go |
+| [Discord and Telegram](features/discord-and-telegram.md) | Sign in and get alerts through either app, with Telegram registration and sign-in set up as described in [Telegram](configuration/telegram.md) |
+| [Linked accounts](features/linked-accounts.md) | One person on both Discord and Telegram: one list of alarms with the app chosen per alarm, moves between apps, personal settings saved to both, and the differences bot commands leave shown for the person to settle |
 | [Quiet periods](features/quiet-periods.md) | Silence one gym, area, species or Power Spot for a set time without touching the alarms themselves |
 | Pokéstop events | Track Showcases, Kecleon sightings and Gold Stops. The page is there unless Poracle's own `general.disable_showcase` is `true` (or an admin switches it off) |
 | Fort changes | Get a DM when a Pokéstop or gym is added, removed, renamed, moved, re-described or given a new image |
