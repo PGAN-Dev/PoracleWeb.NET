@@ -399,6 +399,12 @@
           }
 
           @if (group.labelKey === 'ADMIN_SETTINGS.GROUP_DISCORD' && discordConfig()) {
+            @if (!discordConfig()!.clientId || !discordConfig()!.clientSecret) {
+              <div class="config-hint warning" data-test="discord-not-configured">
+                <mat-icon>info_outline</mat-icon>
+                <span [innerHTML]="'ADMIN_SETTINGS.DISCORD_HINT' | translate"></span>
+              </div>
+            }
             <div class="server-config-block">
               <div class="server-config-header">
                 <mat-icon class="server-config-icon">dns</mat-icon>

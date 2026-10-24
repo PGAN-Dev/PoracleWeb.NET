@@ -198,6 +198,7 @@ export class LoginComponent implements OnInit {
         oidc_userinfo_failed: 'AUTH.ERR_OIDC_USERINFO',
         destination_account: 'AUTH.ERR_DESTINATION_ACCOUNT',
         discord_disabled: 'AUTH.ERR_DISCORD_DISABLED',
+        discord_not_configured: 'AUTH.ERR_DISCORD_NOT_CONFIGURED',
         discord_user_fetch_failed: 'AUTH.ERR_DISCORD_FETCH',
         missing_code: 'AUTH.ERR_MISSING_CODE',
         missing_required_role: 'AUTH.ERR_MISSING_ROLE',
