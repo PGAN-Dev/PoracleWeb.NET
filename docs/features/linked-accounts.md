@@ -86,6 +86,10 @@ to keep.
 When both sides exist, **New alerts go to** picks the default for alerts you add. It is a default for new
 alerts only; existing alerts stay where they are.
 
+Quick picks you saved yourself belong to the person, not to one account: a pick saved while signed in
+with Discord shows, edits and deletes the same way when you sign in with Telegram. Applying one creates its
+alerts on the default side.
+
 ## Unlinking
 
 Press **Unlink** on the page. Both accounts and all their alerts stay. Admins can do the same from

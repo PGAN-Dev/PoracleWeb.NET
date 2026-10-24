@@ -65,7 +65,12 @@ public partial class QuickPickService(
     public async Task<IEnumerable<QuickPickSummary>> GetAllAsync(string userId, int profileNo)
     {
         var globalPicks = await this._definitionRepository.GetAllGlobalAsync();
-        var userPicks = await this._definitionRepository.GetByOwnerAsync(userId);
+        // A linked person's personal picks are the ones either of their humans saved. See #1059.
+        var userPicks = new List<QuickPickDefinition>();
+        foreach (var owner in await this.PickOwnersAsync(userId))
+        {
+            userPicks.AddRange(await this._definitionRepository.GetByOwnerAsync(owner));
+        }
 
         var allDefinitions = new List<QuickPickDefinition>(globalPicks.Count + userPicks.Count);
         allDefinitions.AddRange(globalPicks);
@@ -134,6 +139,24 @@ public partial class QuickPickService(
         }
 
         return humans;
+    }
+
+    /// <summary>
+    /// The ids whose personal quick picks the caller may see, edit and delete: the caller's own, then the
+    /// other side of a link. Unlinked, the caller alone, so every repository call is the one it always was.
+    /// </summary>
+    private async Task<List<string>> PickOwnersAsync(string userId)
+    {
+        var owners = new List<string> { userId };
+        foreach (var id in (await this._linked.ResolveAsync(userId)).ExistingHumanIds)
+        {
+            if (!owners.Contains(id, StringComparer.Ordinal))
+            {
+                owners.Add(id);
+            }
+        }
+
+        return owners;
     }
 
     private async Task<int> ProfileOfAsync(string humanId, int fallback) =>
@@ -347,19 +370,24 @@ public partial class QuickPickService(
         // check a user could post a global pick's well-known Id (hundo, nundo, raid-5star, ...) and the
         // upsert would rewrite that row -- flipping it to scope=user under their ownership and removing it
         // from every other user's list. The same applies to another user's private pick.
+        // A pick the other side of a link saved is the person's own too, and keeps its owner when edited;
+        // a new pick is saved under the signed-in id. See #1059.
+        var owner = userId;
         if (!string.IsNullOrEmpty(definition.Id))
         {
             var existing = await this._definitionRepository.GetByIdAsync(definition.Id);
-            if (existing != null && !IsOwnedBy(existing, userId))
+            if (existing != null)
             {
-                throw new UnauthorizedAccessException(
-                    $"Quick pick '{definition.Id}' already exists and is not yours.");
+                var owners = await this.PickOwnersAsync(userId);
+                owner = owners.FirstOrDefault(o => IsOwnedBy(existing, o))
+                    ?? throw new UnauthorizedAccessException(
+                        $"Quick pick '{definition.Id}' already exists and is not yours.");
             }
         }
 
         definition.Id = await this.EnsureIdAsync(definition);
         definition.Scope = "user";
-        definition.OwnerUserId = userId;
+        definition.OwnerUserId = owner;
 
         await this._definitionRepository.CreateOrUpdateAsync(definition);
 
@@ -388,16 +416,31 @@ public partial class QuickPickService(
 
     public async Task<bool> DeleteUserPickAsync(string userId, string id)
     {
-        var existing = await this._definitionRepository.GetByIdAndOwnerAsync(id, userId);
-        if (existing == null)
+        var owners = await this.PickOwnersAsync(userId);
+        string? owner = null;
+        foreach (var candidate in owners)
+        {
+            if (await this._definitionRepository.GetByIdAndOwnerAsync(id, candidate) is not null)
+            {
+                owner = candidate;
+                break;
+            }
+        }
+
+        if (owner is null)
         {
             return false;
         }
 
-        await this._definitionRepository.DeleteByIdAndOwnerAsync(id, userId);
+        await this._definitionRepository.DeleteByIdAndOwnerAsync(id, owner);
 
         // Only the owner can apply a user-scoped pick, so only their state exists to clear. See #470.
-        await this._appliedStateRepository.DeleteByQuickPickIdAsync(id, userId);
+        // A linked person may have applied it from either human, so both are cleared. See #1059.
+        foreach (var humanId in owners)
+        {
+            await this._appliedStateRepository.DeleteByQuickPickIdAsync(id, humanId);
+        }
+
         return true;
     }
 
@@ -746,8 +789,17 @@ public partial class QuickPickService(
             return definition;
         }
 
-        // Otherwise it must be the caller's own pick.
-        return await this._definitionRepository.GetByIdAndOwnerAsync(quickPickId, userId);
+        // Otherwise it must be the caller's own pick, or one the other side of their link saved. See #1059.
+        foreach (var owner in await this.PickOwnersAsync(userId))
+        {
+            var owned = await this._definitionRepository.GetByIdAndOwnerAsync(quickPickId, owner);
+            if (owned is not null)
+            {
+                return owned;
+            }
+        }
+
+        return null;
     }
 
     // --- Pokemon ID expansion ---

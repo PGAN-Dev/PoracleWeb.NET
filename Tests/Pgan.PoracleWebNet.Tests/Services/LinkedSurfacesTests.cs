@@ -383,4 +383,133 @@ public class LinkedSurfacesTests
         kit.Lures.Verify(l => l.DeleteAsync(Telegram, 5), Times.Once);
         Assert.Equal([9], state.TrackedUids);
     }
+
+    // ---- Personal quick picks follow the pair (#1059) ----
+
+    private static QuickPickDefinition Personal(string id, string owner) => new()
+    {
+        Id = id,
+        Name = id,
+        Scope = "user",
+        OwnerUserId = owner,
+        AlarmType = "lure",
+        Enabled = true,
+        Filters = [],
+    };
+
+    private static QuickPickKit PersonalKit(ILinkedAccount linked)
+    {
+        var kit = QuickPickKit.Create(linked, Humans());
+        var picks = new[] { Personal("tg-pick", Telegram), Personal("stranger-pick", "300000003") };
+        kit.Definitions.Setup(d => d.GetByIdAsync(It.IsIn("tg-pick", "stranger-pick")))
+            .ReturnsAsync((string id) => picks.Single(p => p.Id == id));
+        kit.Definitions.Setup(d => d.GetByIdAndOwnerAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync((string id, string owner) => picks.SingleOrDefault(p => p.Id == id && p.OwnerUserId == owner));
+        kit.Definitions.Setup(d => d.GetByOwnerAsync(Telegram)).ReturnsAsync([Personal("tg-pick", Telegram)]);
+        return kit;
+    }
+
+    [Fact]
+    public async Task PersonalPicks_Linked_ListedFromTheOtherSignIn()
+    {
+        var kit = PersonalKit(Linked());
+
+        var all = await kit.Sut.GetAllAsync(Discord, 1);
+
+        Assert.Contains(all, s => s.Definition.Id == "tg-pick");
+        kit.Definitions.Verify(d => d.GetByOwnerAsync(Discord), Times.Once);
+        kit.Definitions.Verify(d => d.GetByOwnerAsync(Telegram), Times.Once);
+    }
+
+    [Fact]
+    public async Task PersonalPicks_Unlinked_ReadsTheCallerAlone()
+    {
+        var kit = PersonalKit(Unlinked());
+
+        var all = await kit.Sut.GetAllAsync(Discord, 1);
+
+        Assert.DoesNotContain(all, s => s.Definition.Id == "tg-pick");
+        kit.Definitions.Verify(d => d.GetByOwnerAsync(Discord), Times.Once);
+        kit.Definitions.Verify(d => d.GetByOwnerAsync(Telegram), Times.Never);
+    }
+
+    [Fact]
+    public async Task PersonalPicks_Linked_VisibleByIdFromTheOtherSignIn()
+    {
+        var kit = PersonalKit(Linked());
+
+        Assert.NotNull(await kit.Sut.GetVisibleByIdAsync(Discord, "tg-pick"));
+        Assert.Null(await kit.Sut.GetVisibleByIdAsync(Discord, "stranger-pick"));
+    }
+
+    [Fact]
+    public async Task PersonalPicks_Unlinked_OtherIdsPickStaysHidden()
+    {
+        var kit = PersonalKit(Unlinked());
+
+        Assert.Null(await kit.Sut.GetVisibleByIdAsync(Discord, "tg-pick"));
+    }
+
+    [Fact]
+    public async Task PersonalPicks_Linked_EditKeepsTheOwningSide()
+    {
+        var kit = PersonalKit(Linked());
+
+        var saved = await kit.Sut.SaveUserPickAsync(Discord, new QuickPickDefinition { Id = "tg-pick", Name = "Renamed", AlarmType = "lure" });
+
+        Assert.Equal(Telegram, saved.OwnerUserId);
+        kit.Definitions.Verify(d => d.CreateOrUpdateAsync(It.Is<QuickPickDefinition>(q => q.Id == "tg-pick" && q.OwnerUserId == Telegram)), Times.Once);
+    }
+
+    [Fact]
+    public async Task PersonalPicks_Linked_NewPickIsSavedUnderTheSignedInId()
+    {
+        var kit = PersonalKit(Linked());
+
+        var saved = await kit.Sut.SaveUserPickAsync(Telegram, new QuickPickDefinition { Id = "fresh", Name = "Fresh", AlarmType = "lure" });
+
+        Assert.Equal(Telegram, saved.OwnerUserId);
+    }
+
+    [Fact]
+    public async Task PersonalPicks_Linked_StrangersPickIsStillRefused()
+    {
+        var kit = PersonalKit(Linked());
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            kit.Sut.SaveUserPickAsync(Discord, new QuickPickDefinition { Id = "stranger-pick", AlarmType = "lure" }));
+        Assert.False(await kit.Sut.DeleteUserPickAsync(Discord, "stranger-pick"));
+        kit.Definitions.Verify(d => d.CreateOrUpdateAsync(It.IsAny<QuickPickDefinition>()), Times.Never);
+        kit.Definitions.Verify(d => d.DeleteByIdAndOwnerAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task PersonalPicks_Unlinked_EditOfAnotherIdsPickIsRefused()
+    {
+        var kit = PersonalKit(Unlinked());
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            kit.Sut.SaveUserPickAsync(Discord, new QuickPickDefinition { Id = "tg-pick", AlarmType = "lure" }));
+    }
+
+    [Fact]
+    public async Task PersonalPicks_Linked_DeleteFromTheOtherSignInClearsBothHumans()
+    {
+        var kit = PersonalKit(Linked());
+
+        Assert.True(await kit.Sut.DeleteUserPickAsync(Discord, "tg-pick"));
+
+        kit.Definitions.Verify(d => d.DeleteByIdAndOwnerAsync("tg-pick", Telegram), Times.Once);
+        kit.Applied.Verify(a => a.DeleteByQuickPickIdAsync("tg-pick", Discord), Times.Once);
+        kit.Applied.Verify(a => a.DeleteByQuickPickIdAsync("tg-pick", Telegram), Times.Once);
+    }
+
+    [Fact]
+    public async Task PersonalPicks_Unlinked_DeleteOfAnotherIdsPickIsRefused()
+    {
+        var kit = PersonalKit(Unlinked());
+
+        Assert.False(await kit.Sut.DeleteUserPickAsync(Discord, "tg-pick"));
+        kit.Definitions.Verify(d => d.DeleteByIdAndOwnerAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
 }
