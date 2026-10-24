@@ -113,4 +113,26 @@ public sealed class AccountLinkRepositoryTests : IDisposable
         Assert.Equal(at, row.TelegramVerifiedAt);
         Assert.Null(row.DiscordVerifiedAt);
     }
+
+    [Fact]
+    public async Task Add_ANonUniqueFailure_PropagatesAsDbUpdateException()
+    {
+        // NOT NULL is a constraint violation too (SQLite code 19), but not a uniqueness one: it must not read as "already linked".
+        var ex = await Assert.ThrowsAsync<DbUpdateException>(() => this._repo.AddAsync(NewLink(null!, "200000001")));
+
+        Assert.IsNotType<AccountLinkConflictException>(ex);
+    }
+
+    [Fact]
+    public async Task Add_AfterAConflict_TheContextStillSaves()
+    {
+        await this._repo.AddAsync(NewLink("100000000000000001", "200000001"));
+        await Assert.ThrowsAsync<AccountLinkConflictException>(() => this._repo.AddAsync(NewLink("100000000000000002", "200000001")));
+
+        var next = await this._repo.AddAsync(NewLink("100000000000000003", "200000003"));
+
+        Assert.True(next.Id > 0);
+        Assert.True(await this._repo.SetDefaultAsync(next.Id, LinkSide.Telegram));
+        Assert.Equal(2, (await this._repo.GetAllAsync()).Count);
+    }
 }

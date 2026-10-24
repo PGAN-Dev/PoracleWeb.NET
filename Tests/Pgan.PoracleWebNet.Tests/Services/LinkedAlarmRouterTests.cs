@@ -272,4 +272,29 @@ public class LinkedAlarmRouterTests
         Assert.Null(model.Destination);
         Assert.Null(model.PausedDestination);
     }
+
+    [Fact]
+    public async Task UpdateDistanceByUids_Unlinked_ReadsNoListAndSendsTheCallersUids()
+    {
+        this.Unlinked();
+        this._svc.Setup(s => s.UpdateDistanceByUidsAsync(It.IsAny<List<int>>(), Discord, 500)).ReturnsAsync(new DistanceUpdateResult(2, [], [], []));
+
+        var result = await this._sut.UpdateDistanceByUidsAsync(this._svc.Object, Discord, 1, [1, 2], 500);
+
+        Assert.Equal(2, result.Updated);
+        this._svc.Verify(s => s.GetByUserAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+        this._svc.Verify(s => s.UpdateDistanceByUidsAsync(It.Is<List<int>>(l => l.SequenceEqual(new[] { 1, 2 })), Discord, 500), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateDistanceAll_Unlinked_ReadsNoList()
+    {
+        this.Unlinked();
+        this._svc.Setup(s => s.UpdateDistanceByUserAsync(Discord, 1, 500)).ReturnsAsync(new DistanceUpdateResult(3, [], [], []));
+
+        await this._sut.UpdateDistanceAllAsync(this._svc.Object, Discord, 1, 500);
+
+        this._svc.Verify(s => s.GetByUserAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+        this._svc.Verify(s => s.UpdateDistanceByUserAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()), Times.Once);
+    }
 }

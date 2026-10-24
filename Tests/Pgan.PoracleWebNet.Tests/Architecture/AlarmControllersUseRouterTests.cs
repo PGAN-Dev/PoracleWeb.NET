@@ -16,6 +16,27 @@ public sealed class AlarmControllersUseRouterTests
     // A service call whose arguments (up to the end of the statement) name this.UserId.
     private static readonly Regex Direct = new(@"_\w+Service\s*\.\s*\w+Async\([^;]*?this\.UserId", RegexOptions.Compiled | RegexOptions.Singleline);
 
+    // A local that holds the caller's id: "var userId = this.UserId;" passed on later is the same bypass.
+    private static readonly Regex Alias = new(@"\b(?:var|string)\s+(\w+)\s*=\s*this\.UserId\s*;", RegexOptions.Compiled);
+
+    /// <summary>Every service call in <paramref name="text"/> that passes the caller's id, directly or through a local alias.</summary>
+    private static IEnumerable<string> Offenders(string text)
+    {
+        foreach (Match m in Direct.Matches(text))
+        {
+            yield return m.Value;
+        }
+
+        foreach (var name in Alias.Matches(text).Select(m => m.Groups[1].Value).Distinct())
+        {
+            var viaAlias = new Regex(@"_\w+Service\s*\.\s*\w+Async\([^;]*?\b" + Regex.Escape(name) + @"\b", RegexOptions.Singleline);
+            foreach (Match m in viaAlias.Matches(text))
+            {
+                yield return m.Value;
+            }
+        }
+    }
+
     [Fact]
     public void NoAlarmControllerCallsItsServiceWithTheCallersId()
     {
@@ -26,7 +47,7 @@ public sealed class AlarmControllersUseRouterTests
             var path = Path.Combine(root, "Applications", "Pgan.PoracleWebNet.Api", "Controllers", name + "Controller.cs");
             Assert.True(File.Exists(path), $"{path} is missing, so this test would pass by scanning nothing.");
             var text = File.ReadAllText(path);
-            offenders.AddRange(Direct.Matches(text).Select(m => $"{name}Controller: {m.Value.ReplaceLineEndings(" ").Trim()}"));
+            offenders.AddRange(Offenders(text).Select(m => $"{name}Controller: {m.ReplaceLineEndings(" ").Trim()}"));
             Assert.Contains("LinkedAlarmRouter", text);
         }
 
@@ -39,6 +60,15 @@ public sealed class AlarmControllersUseRouterTests
         Assert.Matches(Direct, "await this._raidService.GetByUidAsync(this.UserId, uid);");
         Assert.Matches(Direct, "await this._x.UpdateDistanceByUidsAsync(\r\n  request.Uids, this.UserId, 5);".Replace("_x", "_xService"));
         Assert.DoesNotMatch(Direct, "await this._router.FindAsync(this._raidService, this.UserId, uid);");
+    }
+
+    [Fact]
+    public void TheScanFlagsTheCallersIdPassedThroughALocal()
+    {
+        Assert.NotEmpty(Offenders("var me = this.UserId;\nawait this._raidService.DeleteAsync(me, uid);"));
+        Assert.NotEmpty(Offenders("string caller = this.UserId;\nawait this._gymService.UpdateDistanceByUidsAsync(\r\n  uids, caller, 5);"));
+        Assert.Empty(Offenders("var me = this.UserId;\nawait this._router.FindAsync(this._raidService, me, uid);"));
+        Assert.Empty(Offenders("var me = this.UserId;\nawait this._raidService.DeleteAsync(ownerId, uid);"));
     }
 
     private static string FindSolutionRoot()

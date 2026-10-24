@@ -321,4 +321,139 @@ public class LinkedFixRoundTests : ControllerTestBase
         // The signed-in side is the first write, so its failure is the import's failure, as before.
         await Assert.ThrowsAsync<HttpRequestException>(() => sut.ImportProfile(Import()));
     }
+
+    // ---- alerts on/off and places, both humans through the writer
+
+    [Fact]
+    public async Task ToggleOff_OtherSideFailing_StillAnswersWithAWarning()
+    {
+        this._humanService.Setup(h => h.GetByIdAsync(Discord)).ReturnsAsync(new Human { Id = Discord, Enabled = 1 });
+        this._humanProxy.Setup(p => p.StopAsync(Telegram)).ThrowsAsync(new HttpRequestException("down"));
+        var sut = this.Auth(PairTestSupport.Linked(PairTestSupport.Pair(Discord)));
+
+        var result = await sut.ToggleAlerts();
+
+        Assert.Equal("""{"enabled":false}""", Body(result));
+        Assert.Contains("telegram", Header(sut));
+    }
+
+    [Fact]
+    public async Task Toggle_Unlinked_TouchesOnlyTheCaller()
+    {
+        this._humanService.Setup(h => h.GetByIdAsync(Discord)).ReturnsAsync(new Human { Id = Discord, Enabled = 0 });
+
+        await this.Auth(PairTestSupport.Unlinked()).ToggleAlerts();
+
+        this._humanProxy.Verify(p => p.StartAsync(Discord), Times.Once);
+        this._humanProxy.Verify(p => p.StartAsync(Telegram), Times.Never);
+        this._humanProxy.Verify(p => p.StopAsync(It.IsAny<string>()), Times.Never);
+    }
+
+    private LocationController Places(Mock<ILinkedAccount> linked)
+    {
+        this._humanProxy.Setup(p => p.GetPlacesAsync(It.IsAny<string>())).ReturnsAsync(new SavedPlaces());
+        return this.Location(linked);
+    }
+
+    [Fact]
+    public async Task AddPlace_Linked_SavesItForBothHumansCallerFirst()
+    {
+        var calls = new List<string>();
+        this._humanProxy.Setup(p => p.AddPlaceAsync(It.IsAny<string>(), It.IsAny<SavedPlace>()))
+            .Callback((string id, SavedPlace _) => calls.Add(id)).ReturnsAsync((string?)null);
+        var sut = this.Places(PairTestSupport.Linked(PairTestSupport.Pair(Discord)));
+
+        var result = await sut.AddPlace(new SavedPlace { Label = " Home ", Latitude = 51.5, Longitude = -0.12 });
+
+        Assert.IsType<OkObjectResult>(result);
+        Assert.Equal([Discord, Telegram], calls);
+        this._humanProxy.Verify(p => p.AddPlaceAsync(Telegram, It.Is<SavedPlace>(s => s.Label == "Home")), Times.Once);
+        Assert.Null(Header(sut));
+    }
+
+    [Fact]
+    public async Task AddPlace_OtherSideRefusing_IsOkWithTheHeader()
+    {
+        this._humanProxy.Setup(p => p.AddPlaceAsync(Discord, It.IsAny<SavedPlace>())).ReturnsAsync((string?)null);
+        this._humanProxy.Setup(p => p.AddPlaceAsync(Telegram, It.IsAny<SavedPlace>())).ReturnsAsync("That name is taken.");
+        var sut = this.Places(PairTestSupport.Linked(PairTestSupport.Pair(Discord)));
+
+        var result = await sut.AddPlace(new SavedPlace { Label = "Home", Latitude = 51.5, Longitude = -0.12 });
+
+        Assert.IsType<OkObjectResult>(result);
+        Assert.Contains("telegram", Header(sut));
+    }
+
+    [Fact]
+    public async Task AddPlace_SignedInSideRefusing_Is400AndTheOtherIsNotTried()
+    {
+        this._humanProxy.Setup(p => p.AddPlaceAsync(Discord, It.IsAny<SavedPlace>())).ReturnsAsync("That name is taken.");
+        var sut = this.Places(PairTestSupport.Linked(PairTestSupport.Pair(Discord)));
+
+        var result = await sut.AddPlace(new SavedPlace { Label = "Home", Latitude = 51.5, Longitude = -0.12 });
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        this._humanProxy.Verify(p => p.AddPlaceAsync(Telegram, It.IsAny<SavedPlace>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task MovePlace_Linked_MovesItForBothHumans()
+    {
+        var sut = this.Places(PairTestSupport.Linked(PairTestSupport.Pair(Discord)));
+
+        var result = await sut.UpdatePlace("Home", new LocationController.PlaceMoveRequest { Latitude = 51.6, Longitude = -0.2 });
+
+        Assert.IsType<OkObjectResult>(result);
+        this._humanProxy.Verify(p => p.UpdatePlaceAsync(Discord, "Home", 51.6, -0.2), Times.Once);
+        this._humanProxy.Verify(p => p.UpdatePlaceAsync(Telegram, "Home", 51.6, -0.2), Times.Once);
+    }
+
+    [Fact]
+    public async Task MovePlace_OtherSideFailing_IsOkWithTheHeader()
+    {
+        this._humanProxy.Setup(p => p.UpdatePlaceAsync(Telegram, "Home", It.IsAny<double>(), It.IsAny<double>()))
+            .ThrowsAsync(new PoracleRequestRefusedException("no such place"));
+        var sut = this.Places(PairTestSupport.Linked(PairTestSupport.Pair(Discord)));
+
+        Assert.IsType<OkObjectResult>(await sut.UpdatePlace("Home", new LocationController.PlaceMoveRequest { Latitude = 51.6, Longitude = -0.2 }));
+        Assert.Contains("no such place", Header(sut));
+    }
+
+    [Fact]
+    public async Task DeletePlace_Linked_DeletesItForBothHumans()
+    {
+        var sut = this.Places(PairTestSupport.Linked(PairTestSupport.Pair(Discord)));
+
+        Assert.IsType<NoContentResult>(await sut.DeletePlace("Home"));
+
+        this._humanProxy.Verify(p => p.DeletePlaceAsync(Discord, "Home"), Times.Once);
+        this._humanProxy.Verify(p => p.DeletePlaceAsync(Telegram, "Home"), Times.Once);
+        Assert.Null(Header(sut));
+    }
+
+    [Fact]
+    public async Task DeletePlace_SignedInSideInUse_Is409AndTheOtherIsNotTried()
+    {
+        this._humanProxy.Setup(p => p.DeletePlaceAsync(Discord, "Home")).ThrowsAsync(new PlaceInUseException(["a"]));
+        var sut = this.Places(PairTestSupport.Linked(PairTestSupport.Pair(Discord)));
+
+        Assert.IsType<ConflictObjectResult>(await sut.DeletePlace("Home"));
+        this._humanProxy.Verify(p => p.DeletePlaceAsync(Telegram, It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Places_Unlinked_OneHumanEach()
+    {
+        this._humanProxy.Setup(p => p.AddPlaceAsync(It.IsAny<string>(), It.IsAny<SavedPlace>())).ReturnsAsync((string?)null);
+        var sut = this.Places(PairTestSupport.Unlinked());
+
+        await sut.AddPlace(new SavedPlace { Label = "Home", Latitude = 1, Longitude = 2 });
+        await sut.UpdatePlace("Home", new LocationController.PlaceMoveRequest { Latitude = 3, Longitude = 4 });
+        await sut.DeletePlace("Home");
+
+        this._humanProxy.Verify(p => p.AddPlaceAsync(Telegram, It.IsAny<SavedPlace>()), Times.Never);
+        this._humanProxy.Verify(p => p.UpdatePlaceAsync(Telegram, It.IsAny<string>(), It.IsAny<double>(), It.IsAny<double>()), Times.Never);
+        this._humanProxy.Verify(p => p.DeletePlaceAsync(Telegram, It.IsAny<string>()), Times.Never);
+        this._humanProxy.Verify(p => p.DeletePlaceAsync(Discord, "Home"), Times.Once);
+    }
 }
