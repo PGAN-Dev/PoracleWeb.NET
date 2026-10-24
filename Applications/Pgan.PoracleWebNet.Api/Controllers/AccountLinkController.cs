@@ -58,7 +58,7 @@ public partial class AccountLinkController(
 
         if (string.IsNullOrEmpty(this._discordSettings.ClientId) || await this._siteSettings.IsSwitchedOffAsync("enable_discord"))
         {
-            return Refused(LinkRefusalCode.NotPermitted, "Discord sign-in is not available on this site.");
+            return Refused(LinkRefusalCode.AppUnavailable, "Discord sign-in is not available on this site.");
         }
 
         var selfOrigin = this._publicOrigin ?? $"{this.Request.Scheme}://{this.Request.Host}";
@@ -83,7 +83,7 @@ public partial class AccountLinkController(
 
         if (!this._telegramSettings.Enabled || await this._siteSettings.IsSwitchedOffAsync("enable_telegram"))
         {
-            return Refused(LinkRefusalCode.NotPermitted, "Telegram sign-in is not available on this site.");
+            return Refused(LinkRefusalCode.AppUnavailable, "Telegram sign-in is not available on this site.");
         }
 
         var verified = TelegramWidgetVerifier.Verify(

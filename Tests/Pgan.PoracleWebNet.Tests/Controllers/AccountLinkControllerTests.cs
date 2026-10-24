@@ -34,14 +34,14 @@ public class AccountLinkControllerTests
     public AccountLinkControllerTests() =>
         this._drift.Setup(d => d.GetAsync(It.IsAny<LinkedPair>())).ReturnsAsync([]);
 
-    private AccountLinkController Create(string userId = DiscordId, bool impersonating = false, bool telegramEnabled = true)
+    private AccountLinkController Create(string userId = DiscordId, bool impersonating = false, bool telegramEnabled = true, string discordClientId = "test-id")
     {
         var sut = new AccountLinkController(
             this._service.Object,
             this._linked.Object,
             this._settings.Object,
             this._protection,
-            Options.Create(new DiscordSettings { ClientId = "test-id", ClientSecret = "test-secret" }),
+            Options.Create(new DiscordSettings { ClientId = discordClientId, ClientSecret = "test-secret" }),
             Options.Create(new TelegramSettings { Enabled = telegramEnabled, BotToken = BotToken }),
             new ConfigurationBuilder().Build(),
             this._drift.Object,
@@ -111,13 +111,35 @@ public class AccountLinkControllerTests
     }
 
     [Fact]
-    public async Task DiscordStart_DiscordSignInDisabledBySetting_IsNotPermitted()
+    public async Task DiscordStart_DiscordSignInDisabledBySetting_IsAppUnavailable()
     {
         this._settings.Setup(s => s.GetValueAsync("enable_discord")).ReturnsAsync("false");
 
         var result = await this.Create().DiscordStart();
 
-        Assert.Equal(403, Assert.IsType<ObjectResult>(result).StatusCode);
+        var obj = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(403, obj.StatusCode);
+        Assert.Equal("link_app_unavailable", Prop(obj.Value, "code"));
+    }
+
+    [Fact]
+    public async Task DiscordStart_DiscordNotConfigured_IsAppUnavailable()
+    {
+        var result = await this.Create(discordClientId: "").DiscordStart();
+
+        var obj = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(403, obj.StatusCode);
+        Assert.Equal("link_app_unavailable", Prop(obj.Value, "code"));
+    }
+
+    [Fact]
+    public async Task DiscordStart_ConfiguredAndSwitchedOn_StillStarts()
+    {
+        this._settings.Setup(s => s.GetValueAsync("enable_discord")).ReturnsAsync("true");
+
+        var result = await this.Create().DiscordStart();
+
+        Assert.IsType<OkObjectResult>(result);
     }
 
     [Fact]
@@ -155,7 +177,7 @@ public class AccountLinkControllerTests
     }
 
     [Fact]
-    public async Task TelegramLink_TelegramSignInDisabledBySetting_IsNotPermitted()
+    public async Task TelegramLink_TelegramSignInDisabledBySetting_IsAppUnavailable()
     {
         this._settings.Setup(s => s.GetValueAsync("enable_telegram")).ReturnsAsync("false");
 
@@ -163,7 +185,30 @@ public class AccountLinkControllerTests
 
         var obj = Assert.IsType<ObjectResult>(result);
         Assert.Equal(403, obj.StatusCode);
-        Assert.Equal("link_not_permitted", Prop(obj.Value, "code"));
+        Assert.Equal("link_app_unavailable", Prop(obj.Value, "code"));
+    }
+
+    [Fact]
+    public async Task TelegramLink_TelegramNotConfigured_IsAppUnavailable()
+    {
+        var result = await this.Create(telegramEnabled: false).TelegramLink(Widget(DateTimeOffset.UtcNow));
+
+        var obj = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(403, obj.StatusCode);
+        Assert.Equal("link_app_unavailable", Prop(obj.Value, "code"));
+        this._service.Verify(s => s.LinkAsync(It.IsAny<string>(), It.IsAny<LinkSide>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task TelegramLink_ConfiguredAndSwitchedOn_StillLinks()
+    {
+        this._settings.Setup(s => s.GetValueAsync("enable_telegram")).ReturnsAsync("true");
+        this._service.Setup(s => s.LinkAsync(DiscordId, LinkSide.Telegram, TelegramId, "Riverside")).ReturnsAsync(Link);
+
+        var result = await this.Create().TelegramLink(Widget(DateTimeOffset.UtcNow));
+
+        Assert.IsType<OkObjectResult>(result);
+        this._service.Verify(s => s.LinkAsync(DiscordId, LinkSide.Telegram, TelegramId, "Riverside"), Times.Once);
     }
 
     [Fact]
@@ -269,6 +314,7 @@ public class AccountLinkControllerTests
     [InlineData(LinkRefusalCode.Taken, 409)]
     [InlineData(LinkRefusalCode.ProvisionFailed, 502)]
     [InlineData(LinkRefusalCode.NotPermitted, 403)]
+    [InlineData(LinkRefusalCode.AppUnavailable, 403)]
     [InlineData(LinkRefusalCode.WrongType, 400)]
     [InlineData(LinkRefusalCode.Expired, 400)]
     public void RefusalFilter_MapsCodesToStatuses(LinkRefusalCode code, int status)

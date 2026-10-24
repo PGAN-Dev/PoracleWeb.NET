@@ -208,7 +208,8 @@ sequenceDiagram
 ```
 
 The callback deletes the `oauth_link` cookie whatever happens. A ticket that is tampered with or expired
-ends on `#link_error=link_expired`. A ticket whose `state` doesn't match the callback's is ignored, so an
+ends on `#link_error=link_expired`. Discord sign-in switched off by the time the callback runs is
+`link_app_unavailable`; an account that fails the role check is `link_not_permitted`. A ticket whose `state` doesn't match the callback's is ignored, so an
 abandoned link can't turn a later ordinary sign-in into a link, and that request continues as a sign-in.
 The link branch never looks up a human for sign-in and never issues a token. A cancelled approval is
 `link_cancelled`, and a failed token exchange or user read is `link_failed`. The sign-in start deletes any
@@ -285,7 +286,8 @@ Every refusal carries `{ error, code }`. The SPA words the code; `error` is the 
 | `link_type_mismatch` | 400 | That id is a PoracleNG human of another type, such as a channel or group |
 | `link_taken` | 409 | One of the ids is already in a link |
 | `link_expired` | 400 | The Telegram payload or the Discord ticket is past its 10 minutes |
-| `link_not_permitted` | 403 | That app's sign-in is off, the account fails the site's sign-in rules, or (for a default change) that side isn't registered |
+| `link_app_unavailable` | 403 | That app's sign-in isn't available on this site: not configured in `.env`, or `enable_discord` / `enable_telegram` is off. Sent by the Discord start, the Telegram link and the Discord callback's link branch |
+| `link_not_permitted` | 403 | The account fails the site's sign-in rules (a required Discord role), or (for a default change) that side isn't registered |
 | `link_disabled` | 403 | `disable_account_linking` is on. Checked when the link completes, so a Discord or Telegram sign-in started before an admin switched linking off can't finish. Unlinking still works |
 | `link_provision_failed` | 502 | Registering the missing side failed and was rolled back |
 | `link_failed` | redirect | The Discord exchange or user read failed |

@@ -203,14 +203,25 @@ public class AuthControllerLinkCallbackTests
     }
 
     [Fact]
-    public async Task DiscordCallback_DiscordSignInDisabled_RedirectsNotPermitted()
+    public async Task DiscordCallback_DiscordSignInDisabled_RedirectsAppUnavailable()
     {
         this._settings.Setup(s => s.GetValueAsync("enable_discord")).ReturnsAsync("false");
 
         var url = Location(await this.Create(null).CompleteLinkAsync(Frontend, TelegramId, DiscordId, "x"));
 
-        Assert.Equal($"{Frontend}/linked-accounts#link_error=link_not_permitted", url);
+        Assert.Equal($"{Frontend}/linked-accounts#link_error=link_app_unavailable", url);
         this._links.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task DiscordCallback_DiscordSwitchedOn_StillLinks()
+    {
+        this._settings.Setup(s => s.GetValueAsync("enable_discord")).ReturnsAsync("true");
+
+        var url = Location(await this.Create(null).CompleteLinkAsync(Frontend, TelegramId, DiscordId, "x"));
+
+        Assert.Equal($"{Frontend}/linked-accounts#linked=discord", url);
+        this._links.Verify(l => l.LinkAsync(TelegramId, LinkSide.Discord, DiscordId, "x"), Times.Once);
     }
 
     [Fact]

@@ -287,8 +287,13 @@ public partial class AuthController(
     /// </summary>
     internal async Task<IActionResult> CompleteLinkAsync(string frontendUrl, string callerHumanId, string discordId, string username)
     {
-        if (await this._siteSettingService.IsSwitchedOffAsync(EnableDiscordKey)
-            || await this.CheckRoleAccessAsync(discordId) is not null)
+        // Discord sign-in switched off is the site's choice, not the account's fault: its own code.
+        if (await this._siteSettingService.IsSwitchedOffAsync(EnableDiscordKey))
+        {
+            return this.Redirect(LinkErrorUrl(frontendUrl, LinkRefusalCode.AppUnavailable));
+        }
+
+        if (await this.CheckRoleAccessAsync(discordId) is not null)
         {
             return this.Redirect(LinkErrorUrl(frontendUrl, LinkRefusalCode.NotPermitted));
         }

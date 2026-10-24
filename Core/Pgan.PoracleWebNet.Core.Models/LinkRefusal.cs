@@ -12,6 +12,9 @@ public enum LinkRefusalCode
     LinkFailed,
     LinkCancelled,
     LinkDisabled,
+
+    /// <summary>That app's sign-in isn't available on this site: not configured, or its <c>enable_*</c> switch is off.</summary>
+    AppUnavailable,
 }
 
 /// <summary>A link was refused. <see cref="WireCode"/> is the machine-readable code the SPA reads.</summary>
@@ -33,6 +36,7 @@ public class LinkRefusalException(LinkRefusalCode code, string message, Exceptio
         LinkRefusalCode.LinkFailed => "link_failed",
         LinkRefusalCode.LinkCancelled => "link_cancelled",
         LinkRefusalCode.LinkDisabled => "link_disabled",
+        LinkRefusalCode.AppUnavailable => "link_app_unavailable",
         _ => throw new ArgumentOutOfRangeException(nameof(code)),
     };
 }

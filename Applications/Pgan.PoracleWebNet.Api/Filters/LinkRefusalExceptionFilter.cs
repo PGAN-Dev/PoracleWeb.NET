@@ -31,6 +31,7 @@ public sealed class LinkRefusalExceptionFilter : IActionFilter
         LinkRefusalCode.ProvisionFailed => StatusCodes.Status502BadGateway,
         LinkRefusalCode.NotPermitted => StatusCodes.Status403Forbidden,
         LinkRefusalCode.LinkDisabled => StatusCodes.Status403Forbidden,
+        LinkRefusalCode.AppUnavailable => StatusCodes.Status403Forbidden,
         _ => StatusCodes.Status400BadRequest,
     };
 }
