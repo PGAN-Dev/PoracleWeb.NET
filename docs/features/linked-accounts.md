@@ -42,7 +42,9 @@ The page says why, in your language. The reasons:
 | Alerts stopped | The person stopped alerts on that account. PoracleWeb.NET never turns them back on |
 | Paused by an admin | An admin blocked the account |
 
-For a Telegram side that is waiting, press Start in the bot (the page names it). For a Discord side, register
+For a Telegram side that is waiting, join the server's Telegram registration group and send `/poracle` there.
+If the admins set a registration group link (`telegram_registration_url`), the page shows a **Join the
+Telegram group** button under the waiting text. For a Discord side, register
 the way the site's admins ask; if they've set a support link, the page shows it.
 
 ## When the two accounts differ
@@ -88,7 +90,7 @@ has **Unlink accounts**.
 
 ## Admin settings
 
-Both settings are under **Admin > Settings > Features**, and described in
+The settings are under **Admin > Settings > Features**, and described in
 [Site settings](../configuration/site-settings.md).
 
 - **Linked accounts** (`disable_account_linking`) switches the whole feature on or off. Switched off, the page
@@ -96,13 +98,18 @@ Both settings are under **Admin > Settings > Features**, and described in
   it is switched back on.
 - **Register the other account when linking** (`link_register_missing`) is off by default. Off, linking an
   account that isn't registered on the other platform saves the link and that side waits for the person to
-  register. On, the site creates the account and copies the first account's location, areas, profiles, saved
-  places and current profile, so alerts can be delivered at once. If creating it fails, nothing is linked and
-  nothing is left behind.
+  register. On, the site creates the person's account on the other platform instead of waiting for them to
+  register through the server's usual route (a Discord role, or a Telegram registration group), and copies
+  the first account's location, areas, profiles, saved places and current profile, so alerts can be delivered
+  at once. If creating it fails, nothing is linked and nothing is left behind.
+- **Telegram registration group link** (`telegram_registration_url`) is empty by default. Set it to the
+  invite link of the group people join to register (for example `https://t.me/+abc123`). It must be an
+  `https://` link on `t.me` or `telegram.me`; anything else is refused. While someone's Telegram side is
+  waiting to register, Linked accounts shows a **Join the Telegram group** button that opens it.
 
-Registering the account here does not exempt it from that platform's own registration rules. If the site
-requires, say, a Discord role to be registered, an account made by linking still has to meet it, or Poracle
-turns it off at its next sync.
+Registering the account here does not exempt it from that platform's own registration rules. Poracle removes
+an account it doesn't think should exist only if the server runs Poracle's role check with a removal mode
+set; with Poracle's defaults the account stays.
 
 ## Example
 

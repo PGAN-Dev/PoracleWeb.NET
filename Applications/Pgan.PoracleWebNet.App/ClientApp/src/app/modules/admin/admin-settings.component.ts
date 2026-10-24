@@ -310,6 +310,12 @@ export const SETTING_GROUPS: SettingGroup[] = [
         type: 'boolean',
       },
       {
+        descriptionKey: 'ADMIN_SETTINGS.TELEGRAM_REGISTRATION_URL_DESC',
+        key: 'telegram_registration_url',
+        labelKey: 'ADMIN_SETTINGS.TELEGRAM_REGISTRATION_URL_LABEL',
+        type: 'url',
+      },
+      {
         descriptionKey: 'ADMIN_SETTINGS.DISABLE_AREAS_DESC',
         key: 'disable_areas',
         labelKey: 'ADMIN_SETTINGS.DISABLE_AREAS_LABEL',

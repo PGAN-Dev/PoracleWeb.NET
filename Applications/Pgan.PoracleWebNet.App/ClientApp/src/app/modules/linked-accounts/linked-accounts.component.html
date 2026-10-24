@@ -46,8 +46,13 @@
 
             @if (card.state === 'waiting' && card.side === 'telegram') {
               <p class="hint" data-test="hint-telegram">
-                {{ (telegramBot() ? 'LINKED.HINT_TELEGRAM_BOT' : 'LINKED.HINT_TELEGRAM') | translate: { bot: telegramBot() } }}
+                {{ 'LINKED.HINT_TELEGRAM' | translate }}
               </p>
+              @if (telegramRegistrationUrl(); as url) {
+                <a mat-stroked-button [href]="url" target="_blank" rel="noopener" data-test="telegram-group-link">{{
+                  'LINKED.TELEGRAM_GROUP_LINK' | translate
+                }}</a>
+              }
             }
             @if (card.state === 'waiting' && card.side === 'discord') {
               <p class="hint" data-test="hint-discord">

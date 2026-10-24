@@ -26,6 +26,9 @@ export class SettingsService {
    */
   readonly supportUrl = computed(() => this.siteSettings()['support_url']?.trim() || null);
 
+  /** Invite link to the Telegram group people join to register, or null when the operator set none. */
+  readonly telegramRegistrationUrl = computed(() => this.siteSettings()['telegram_registration_url']?.trim() || null);
+
   /**
    * The `disable_*` keys the upstream Poracle deployment forces off in its own config, regardless of
    * what the site settings say. Poracle's processor drops those webhooks and its bot refuses the

@@ -103,6 +103,7 @@ export class LinkedAccountsComponent implements OnInit {
   });
 
   protected readonly supportUrl = this.settings.supportUrl;
+  protected readonly telegramRegistrationUrl = this.settings.telegramRegistrationUrl;
 
   /** Where Telegram sends the browser back to after a sign-in. */
   protected readonly telegramAuthUrl = `${window.location.origin}/linked-accounts`;

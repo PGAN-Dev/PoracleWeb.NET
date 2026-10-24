@@ -29,7 +29,16 @@ describe('LinkedAccountsComponent', () => {
   };
   const snackBar = { open: jest.fn() };
 
-  function setup(options: { discord?: boolean; impersonating?: boolean; support?: string | null; telegram?: boolean; type?: string } = {}) {
+  function setup(
+    options: {
+      discord?: boolean;
+      impersonating?: boolean;
+      support?: string | null;
+      telegram?: boolean;
+      telegramGroup?: string | null;
+      type?: string;
+    } = {},
+  ) {
     const auth = {
       getProviders: jest.fn(() => of(providers(options.discord ?? true, options.telegram ?? true))),
       isImpersonating: signal(options.impersonating ?? false),
@@ -40,7 +49,10 @@ describe('LinkedAccountsComponent', () => {
         provideTranslateService(),
         { provide: AuthService, useValue: auth },
         { provide: LinkedAccountService, useValue: linkedAccounts },
-        { provide: SettingsService, useValue: { supportUrl: signal(options.support ?? null) } },
+        {
+          provide: SettingsService,
+          useValue: { supportUrl: signal(options.support ?? null), telegramRegistrationUrl: signal(options.telegramGroup ?? null) },
+        },
       ],
       imports: [LinkedAccountsComponent, NoopAnimationsModule],
     });
@@ -178,6 +190,25 @@ describe('LinkedAccountsComponent', () => {
       const { fixture } = setup();
       expect(q(fixture, '[data-test="state-telegram"]')?.textContent).toContain('LINKED.STATE_WAITING');
       expect(q(fixture, '[data-test="hint-telegram"]')).toBeTruthy();
+    });
+
+    it('offers the Telegram registration group while that side waits and the setting is set', () => {
+      status.set({ ...both, sides: [both.sides![0], { side: 'telegram', exists: false, pause: 'not_registered' }] });
+      const { fixture } = setup({ telegramGroup: 'https://t.me/+abc123' });
+      const link = q(fixture, '[data-test="telegram-group-link"]') as HTMLAnchorElement;
+      expect(link.getAttribute('href')).toBe('https://t.me/+abc123');
+      expect(link.getAttribute('target')).toBe('_blank');
+      expect(link.getAttribute('rel')).toContain('noopener');
+    });
+
+    it('shows no group button without the setting', () => {
+      status.set({ ...both, sides: [both.sides![0], { side: 'telegram', exists: false, pause: 'not_registered' }] });
+      expect(q(setup().fixture, '[data-test="telegram-group-link"]')).toBeNull();
+    });
+
+    it('shows no group button once the Telegram side is active', () => {
+      status.set(both);
+      expect(q(setup({ telegramGroup: 'https://t.me/+abc123' }).fixture, '[data-test="telegram-group-link"]')).toBeNull();
     });
 
     it('names the support link in the Discord hint only when one is set', () => {
