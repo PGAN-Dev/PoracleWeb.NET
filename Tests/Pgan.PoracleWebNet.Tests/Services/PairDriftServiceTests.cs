@@ -31,9 +31,11 @@ public class PairDriftServiceTests
         this._human.Setup(p => p.GetProfilesAsync(It.IsAny<string>())).ReturnsAsync((string id) => Json(this._data[id].ProfilesJson()));
         this._human.Setup(p => p.GetPlacesAsync(It.IsAny<string>())).ReturnsAsync((string id) => new SavedPlaces { Named = this._data[id].Places });
         this._tracking.Setup(t => t.GetStoredRulesAsync(It.IsAny<string>()))
-            .ReturnsAsync((string id) => (IReadOnlyList<StoredRule>)this._data[id].Rules.Select(n => new StoredRule("monster", n, 1, default)).ToList());
-        this._tracking.Setup(t => t.GetAllTrackingWithDescriptionsAsync(It.IsAny<string>()))
-            .ReturnsAsync((string id) => Json(JsonSerializer.Serialize(new { pokemon = this._data[id].PlaceRefs.Select(l => new { uid = 1, override_location_label = l }), status = "ok" })));
+            .ReturnsAsync((string id) => (IReadOnlyList<StoredRule>)[
+                .. this._data[id].Rules.Select(n => new StoredRule("monster", n, 1, default)),
+                .. this._data[id].PlaceRefs.Select(l => new StoredRule("pokemon", 1, 1, Json(JsonSerializer.Serialize(new { override_location_label = l })))),
+                .. this._data[id].OtherProfilePlaceRefs.Select(l => new StoredRule("raid", 2, 7, Json(JsonSerializer.Serialize(new { override_location_label = l })))),
+            ]);
         this._areas.Setup(a => a.FilterAllowedAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>()))
             .ReturnsAsync((string _, IReadOnlyCollection<string> names) => (IReadOnlyList<string>)names.ToList());
         this._areas.Setup(a => a.SaveSelectionAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>()))
@@ -222,11 +224,11 @@ public class PairDriftServiceTests
     }
 
     [Fact]
-    public async Task ResolveProfiles_ImpossibleNumber_DeletesStrayAndFillerAndRefuses409()
+    public async Task ResolveProfiles_ImpossibleNumber_DeletesStrayAndRefuses409()
     {
-        this._data[Discord].Profiles = [new ProfileData(1, "Home"), new ProfileData(3, "Work")];
+        this._data[Discord].Profiles = [new ProfileData(1, "Home"), new ProfileData(2, "Work")];
         this._data[Telegram].Profiles = [new ProfileData(1, "Home")];
-        this._human.SetupSequence(p => p.AddProfileAsync(Telegram, It.IsAny<JsonElement>())).ReturnsAsync(2).ReturnsAsync(4);
+        this._human.Setup(p => p.AddProfileAsync(Telegram, It.IsAny<JsonElement>())).ReturnsAsync(4);
         var fp = await this.FingerprintOf(DriftField.Profiles);
 
         var ex = await Assert.ThrowsAsync<PoracleRequestRefusedException>(() => this._sut.ResolveAsync(Pair(), DriftField.Profiles, LinkSide.Discord, fp));
@@ -234,7 +236,63 @@ public class PairDriftServiceTests
         Assert.Equal(409, ex.StatusCode);
         Assert.Contains("Nothing was changed", ex.Message, StringComparison.Ordinal);
         this._human.Verify(p => p.DeleteProfileAsync(Telegram, 4), Times.Once);
+    }
+
+    [Fact]
+    public async Task ResolveProfiles_ImpossibleNumberAfterAFiller_SaysSomeChangesWereMadeAndDeletesTheFiller()
+    {
+        this._data[Discord].Profiles = [new ProfileData(1, "Home"), new ProfileData(3, "Work")];
+        this._data[Telegram].Profiles = [new ProfileData(1, "Home")];
+        this._human.SetupSequence(p => p.AddProfileAsync(Telegram, It.IsAny<JsonElement>())).ReturnsAsync(2).ReturnsAsync(4);
+        var fp = await this.FingerprintOf(DriftField.Profiles);
+
+        var ex = await Assert.ThrowsAsync<DriftPartiallyAppliedException>(() => this._sut.ResolveAsync(Pair(), DriftField.Profiles, LinkSide.Discord, fp));
+
+        Assert.Equal("Some changes were made before this failed. Check the banner.", ex.Message);
+        this._human.Verify(p => p.DeleteProfileAsync(Telegram, 4), Times.Once);
         this._human.Verify(p => p.DeleteProfileAsync(Telegram, 2), Times.Once);
+    }
+
+    [Fact]
+    public async Task ResolveProfiles_FailureAfterAFiller_StillDeletesTheFiller()
+    {
+        this._data[Discord].Profiles = [new ProfileData(1, "Home"), new ProfileData(3, "Work")];
+        this._data[Telegram].Profiles = [new ProfileData(1, "Home")];
+        this._human.SetupSequence(p => p.AddProfileAsync(Telegram, It.IsAny<JsonElement>())).ReturnsAsync(2).ReturnsAsync(3);
+        this._human.Setup(p => p.SetProfileGeographyAsync(Telegram, 3, It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<double>(), It.IsAny<double>()))
+            .ThrowsAsync(new HttpRequestException("down"));
+        var fp = await this.FingerprintOf(DriftField.Profiles);
+
+        await Assert.ThrowsAsync<DriftPartiallyAppliedException>(() => this._sut.ResolveAsync(Pair(), DriftField.Profiles, LinkSide.Discord, fp));
+
+        this._human.Verify(p => p.DeleteProfileAsync(Telegram, 2), Times.Once);
+    }
+
+    [Fact]
+    public async Task ResolvePlaces_PlaceUsedOnlyOnAnotherProfile_RefusedUpFront()
+    {
+        this._data[Discord].Places = [];
+        this._data[Telegram].Places = [new SavedPlace { Label = "extra", Latitude = 1, Longitude = 1 }];
+        this._data[Telegram].OtherProfilePlaceRefs = ["extra"];
+        var fp = await this.FingerprintOf(DriftField.Places);
+
+        var ex = await Assert.ThrowsAsync<DriftPlaceInUseException>(() => this._sut.ResolveAsync(Pair(), DriftField.Places, LinkSide.Discord, fp));
+
+        Assert.Equal("extra", ex.Label);
+        this._human.Verify(p => p.DeletePlaceAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ResolvePlaces_OtherPlaceReferenced_UnusedOneIsStillDeleted()
+    {
+        this._data[Discord].Places = [new SavedPlace { Label = "park", Latitude = 51.4, Longitude = -0.3 }];
+        this._data[Telegram].Places = [new SavedPlace { Label = "park", Latitude = 51.4, Longitude = -0.3 }, new SavedPlace { Label = "extra", Latitude = 1, Longitude = 1 }];
+        this._data[Telegram].OtherProfilePlaceRefs = ["park"];
+        var fp = await this.FingerprintOf(DriftField.Places);
+
+        await this._sut.ResolveAsync(Pair(), DriftField.Places, LinkSide.Discord, fp);
+
+        this._human.Verify(p => p.DeletePlaceAsync(Telegram, "extra"), Times.Once);
     }
 
     [Fact]
@@ -534,6 +592,7 @@ public class PairDriftServiceTests
         public List<SavedPlace> Places { get; set; } = [];
         public List<int> Rules { get; set; } = [];
         public List<string> PlaceRefs { get; set; } = [];
+        public List<string> OtherProfilePlaceRefs { get; set; } = [];
         public List<ProfileData> Profiles { get; set; } = [new ProfileData(1, "Home")];
 
         public string ProfilesJson() => JsonSerializer.Serialize(new

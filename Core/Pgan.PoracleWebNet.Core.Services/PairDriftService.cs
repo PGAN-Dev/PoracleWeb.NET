@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Runtime.ExceptionServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -301,41 +302,43 @@ public sealed class PairDriftService(IPoracleHumanProxy human, IPoracleTrackingP
             plan.Add((row.No, row));
         }
 
+        // Fillers are deleted whatever happens, in the finally. Making one is a write: if deleting it fails it is
+        // still there, so a later failure must not claim nothing changed.
         var fillers = new List<int>();
-        foreach (var (no, row) in plan)
+        var planDone = false;
+        try
         {
-            var assigned = await this._human.AddProfileAsync(otherId, JsonSerializer.SerializeToElement(new
+            foreach (var (no, row) in plan)
             {
-                name = row?.Name ?? FillerName,
-                active_hours = string.IsNullOrWhiteSpace(row?.ActiveHours) ? NoSchedule : row!.ActiveHours,
-            }));
-            if (assigned != no)
-            {
-                await this.TryDeleteAsync(otherId, assigned);
-                foreach (var made in fillers)
+                var assigned = await this._human.AddProfileAsync(otherId, JsonSerializer.SerializeToElement(new
                 {
-                    await this.TryDeleteAsync(otherId, made);
+                    name = row?.Name ?? FillerName,
+                    active_hours = string.IsNullOrWhiteSpace(row?.ActiveHours) ? NoSchedule : row!.ActiveHours,
+                }));
+                if (assigned != no)
+                {
+                    await this.TryDeleteAsync(otherId, assigned);
+                    throw new PoracleRequestRefusedException(
+                        $"The other account's next profile would be numbered {assigned}, not {no}. "
+                        + (progress.Wrote ? "Some changes were made before this failed. Check the banner." : "Nothing was changed."),
+                        409);
                 }
 
-                throw new PoracleRequestRefusedException(
-                    $"The other account's next profile would be numbered {assigned}, not {no}. "
-                    + (progress.Wrote ? "Some changes were made before this failed. Check the banner." : "Nothing was changed."),
-                    409);
+                progress.Wrote = true;
+                if (row is null)
+                {
+                    fillers.Add(no);
+                    continue;
+                }
+
+                await this._human.SetProfileGeographyAsync(otherId, row.No, await this._areas.FilterAllowedAsync(otherId, AreaListJson.Parse(row.Area)), row.Latitude, row.Longitude);
             }
 
-            if (row is null)
-            {
-                fillers.Add(no);
-                continue;
-            }
-
-            progress.Wrote = true;
-            await this._human.SetProfileGeographyAsync(otherId, row.No, await this._areas.FilterAllowedAsync(otherId, AreaListJson.Parse(row.Area)), row.Latitude, row.Longitude);
+            planDone = true;
         }
-
-        foreach (var made in fillers)
+        finally
         {
-            await this._human.DeleteProfileAsync(otherId, made);
+            await this.DeleteFillersAsync(otherId, fillers, rethrow: planDone);
         }
 
         foreach (var row in kept.Profiles.Where(p => otherByNo.ContainsKey(p.No)))
@@ -391,6 +394,31 @@ public sealed class PairDriftService(IPoracleHumanProxy human, IPoracleTrackingP
         return n;
     }
 
+    /// <summary>
+    /// Deletes every filler, carrying on past a failure. After a failure elsewhere the original error is the answer,
+    /// so a failed delete is dropped; on the success path the first one is thrown once all have been tried.
+    /// </summary>
+    private async Task DeleteFillersAsync(string humanId, List<int> fillers, bool rethrow)
+    {
+        Exception? first = null;
+        foreach (var made in fillers)
+        {
+            try
+            {
+                await this._human.DeleteProfileAsync(humanId, made);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                first ??= ex;
+            }
+        }
+
+        if (rethrow && first is not null)
+        {
+            ExceptionDispatchInfo.Throw(first);
+        }
+    }
+
     private async Task TryDeleteAsync(string humanId, int profileNo)
     {
         try
@@ -412,13 +440,16 @@ public sealed class PairDriftService(IPoracleHumanProxy human, IPoracleTrackingP
         var keptLabels = kept.Places.Select(p => p.Label).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var extras = other.Places.Where(p => !keptLabels.Contains(p.Label)).ToList();
 
-        // PoracleNG refuses to delete a place alerts still point at; find out before anything is written.
+        // PoracleNG refuses to delete a place alerts still point at; find out before anything is written. Every
+        // profile's rules count: a place is the human's, not one profile's, and the active profile alone missed
+        // rules on the others until the delete refused them halfway through.
         if (extras.Count > 0)
         {
-            var snapshot = await this._tracking.GetAllTrackingWithDescriptionsAsync(otherId);
+            var rules = await this._tracking.GetStoredRulesAsync(otherId);
             foreach (var extra in extras)
             {
-                var inUse = PlaceUsage.RulesAimedAt(snapshot, extra.Label).Count;
+                var inUse = rules.Count(r => PlaceUsage.HasPlace(r.Rule)
+                    && string.Equals(r.Rule.GetProperty("override_location_label").GetString(), extra.Label, StringComparison.Ordinal));
                 if (inUse > 0)
                 {
                     throw new DriftPlaceInUseException(extra.Label, inUse);
