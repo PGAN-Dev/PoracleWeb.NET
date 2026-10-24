@@ -179,6 +179,13 @@ describe('AdminUsersComponent', () => {
       expect(adminService.unlinkAccounts).toHaveBeenCalledWith('u2');
     });
 
+    it('refetches the shared user list after an unlink', () => {
+      const { adminService, component } = setup(true, { links: [link('u2', '200000001')] });
+      const before = adminService.getUsers.mock.calls.length;
+      component.unlinkAccounts(member);
+      expect(adminService.getUsers.mock.calls.length).toBe(before + 1);
+    });
+
     it('does not ask for links while account linking is switched off', () => {
       const { adminService } = setup(true, { linkingDisabled: true });
       expect(adminService.getAccountLinks).not.toHaveBeenCalled();

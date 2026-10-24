@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { DestroyRef, Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
+import { AdminUsersStore } from './admin-users.store';
 import { AuthService } from './auth.service';
 import { ConfigService } from './config.service';
 import { SettingsService } from './settings.service';
@@ -20,11 +21,13 @@ const FOCUS_REFRESH_MIN_GAP_MS = 60_000;
  */
 @Injectable({ providedIn: 'root' })
 export class LinkedAccountService {
+  private readonly adminUsers = inject(AdminUsersStore);
   private readonly auth = inject(AuthService);
   private readonly config = inject(ConfigService);
   private readonly http = inject(HttpClient);
   private lastRefreshAt = 0;
   private readonly settings = inject(SettingsService);
+  private readonly signedIn = computed(() => !!this.auth.user());
   private readonly statusSignal = signal<LinkStatus | null>(null);
   private readonly tokenStore = inject(TokenStoreService);
 
@@ -41,6 +44,14 @@ export class LinkedAccountService {
   /** What the two accounts disagree on. Empty when linked and in step, and when the server couldn't compare them. */
   readonly drift = computed<DriftItem[]>(() => this.statusSignal()?.drift ?? []);
 
+  /**
+   * Whether a status read can run at all: settings are in, linking is on, and nobody is being viewed as.
+   * The page offers Retry only while this is true, since a retry does nothing otherwise.
+   */
+  readonly canRead = computed(
+    () => this.settings.settingsLoaded() && !this.settings.isDisabled('disable_account_linking') && !this.auth.isImpersonating(),
+  );
+
   /** Null until the first read, and again after sign-out. `{ linked: false }` is a read that found no link. */
   readonly status = this.statusSignal.asReadonly();
 
@@ -48,9 +59,11 @@ export class LinkedAccountService {
     // Reads the settings signals too: on a reload the user arrives while settings are still loading, and
     // `disable_account_linking` would read as off. Nothing is asked until they are in, and a later change
     // to the switch is picked up.
+    // Reads computeds, not the settings signals: an unrelated settings save re-sets `siteSettings` but leaves
+    // these values alone, so it doesn't fetch the status and the focus throttle holds.
     effect(() => {
-      const user = this.auth.user();
-      const allowed = this.allowed();
+      const user = this.signedIn();
+      const allowed = this.canRead();
       const impersonating = this.auth.isImpersonating();
       untracked(() => {
         // While viewing as someone else, the status read was the admin's own link: the dialogs, card glyphs and
@@ -65,7 +78,7 @@ export class LinkedAccountService {
     });
 
     const onFocus = (): void => {
-      if (!this.tokenStore.getAccessToken() || !this.allowed()) return;
+      if (!this.tokenStore.getAccessToken() || !this.canRead()) return;
       if (Date.now() - this.lastRefreshAt < FOCUS_REFRESH_MIN_GAP_MS) return;
       void this.refresh();
     };
@@ -77,6 +90,8 @@ export class LinkedAccountService {
 
   async linkTelegram(data: Record<string, string>): Promise<void> {
     await firstValueFrom(this.http.post(`${this.config.apiHost}/api/account-link/telegram`, data));
+    // The link may have registered the other account, which an admin's cached user list doesn't hold yet.
+    this.adminUsers.invalidateIfLoaded();
     await this.refresh();
   }
 
@@ -87,7 +102,7 @@ export class LinkedAccountService {
 
   /** Reads the status. A failed read keeps what is shown: the page words its own errors. */
   async refresh(): Promise<void> {
-    if (!this.allowed()) return;
+    if (!this.canRead()) return;
     this.lastRefreshAt = Date.now();
     try {
       const status = await firstValueFrom(this.http.get<LinkStatus>(`${this.config.apiHost}/api/account-link/status`));
@@ -128,10 +143,5 @@ export class LinkedAccountService {
   async unlink(): Promise<void> {
     await firstValueFrom(this.http.delete<void>(`${this.config.apiHost}/api/account-link`));
     await this.refresh();
-  }
-
-  /** Settings are in, linking is on, and nobody is being viewed as. Anything else would be a request the server refuses. */
-  private allowed(): boolean {
-    return this.settings.settingsLoaded() && !this.settings.isDisabled('disable_account_linking') && !this.auth.isImpersonating();
   }
 }

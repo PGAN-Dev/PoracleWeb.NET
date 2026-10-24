@@ -111,10 +111,12 @@
         <p class="hint">{{ 'LINKED.UNLINK_HINT' | translate }}</p>
       </div>
     }
-  } @else if (loaded()) {
+  } @else if (loaded() && !readOnly()) {
     <div class="load-failed" data-test="load-failed">
       <p>{{ 'LINKED.LOAD_FAILED' | translate }}</p>
-      <button mat-stroked-button type="button" data-test="retry" (click)="retry()">{{ 'LINKED.RETRY' | translate }}</button>
+      @if (linked.canRead()) {
+        <button mat-stroked-button type="button" data-test="retry" (click)="retry()">{{ 'LINKED.RETRY' | translate }}</button>
+      }
     </div>
   }
 </div>

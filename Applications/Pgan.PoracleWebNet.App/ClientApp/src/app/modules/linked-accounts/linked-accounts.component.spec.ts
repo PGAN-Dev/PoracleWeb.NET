@@ -19,7 +19,9 @@ const providers = (discord: boolean, telegram: boolean): AuthProviders => ({
 
 describe('LinkedAccountsComponent', () => {
   const status = signal<LinkStatus | null>({ linked: false });
+  const canRead = signal(true);
   const linkedAccounts = {
+    canRead,
     linkTelegram: jest.fn(() => Promise.resolve()),
     refresh: jest.fn(() => Promise.resolve()),
     setDefault: jest.fn(() => Promise.resolve()),
@@ -68,6 +70,7 @@ describe('LinkedAccountsComponent', () => {
 
   beforeEach(() => {
     status.set({ linked: false });
+    canRead.set(true);
     jest.clearAllMocks();
     window.history.replaceState(null, '', '/linked-accounts');
   });
@@ -154,6 +157,26 @@ describe('LinkedAccountsComponent', () => {
     expect(q(fixture, '[data-test="link-discord"]')).toBeNull();
     (q(fixture, '[data-test="retry"]') as HTMLButtonElement).click();
     expect(linkedAccounts.refresh).toHaveBeenCalledTimes(2);
+  });
+
+  it('shows the load-failed message without Retry when a retry could not run (settings failed to load)', async () => {
+    status.set(null);
+    canRead.set(false);
+    const { fixture } = setup({ type: 'telegram:user' });
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(q(fixture, '[data-test="load-failed"]')).toBeTruthy();
+    expect(q(fixture, '[data-test="retry"]')).toBeNull();
+  });
+
+  it('says nothing about the viewer own link while impersonating, not an error', async () => {
+    status.set(null);
+    canRead.set(false);
+    const { fixture } = setup({ impersonating: true, type: 'telegram:user' });
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(q(fixture, '[data-test="load-failed"]')).toBeNull();
+    expect(q(fixture, '[data-test="retry"]')).toBeNull();
   });
 
   it('offers no Link while impersonating', () => {
