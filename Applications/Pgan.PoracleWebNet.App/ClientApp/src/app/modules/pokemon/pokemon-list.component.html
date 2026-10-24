@@ -15,6 +15,7 @@
 
 @if (!loading() && monsters().length > 0) {
   <app-alarm-list-toolbar
+    alarmsLabel="POKEMON.PAGE_TITLE"
     searchPlaceholder="POKEMON.SEARCH_PLACEHOLDER"
     [(search)]="search"
     [(sort)]="sortBy"
@@ -66,6 +67,7 @@
       (deselectAll)="deselectAll()"
       (changeRadius)="bulkUpdateDistance()"
       [canMove]="canChooseDestination()"
+      [allOn]="selectionApp()"
       (moveSelected)="bulkMove($event)"
       (deleteSelected)="bulkDelete()" />
   }

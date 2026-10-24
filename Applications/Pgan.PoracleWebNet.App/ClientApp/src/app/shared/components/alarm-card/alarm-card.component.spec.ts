@@ -3,8 +3,10 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideTranslateService } from '@ngx-translate/core';
 
 import { AlarmCardComponent } from './alarm-card.component';
+import { LinkStatus } from '../../../core/models';
 import { AlertLanguageService } from '../../../core/services/alert-language.service';
 import { I18nService } from '../../../core/services/i18n.service';
+import { LinkedAccountService } from '../../../core/services/linked-account.service';
 import { RuleEdge, teamEdge } from '../../utils/rule-colours';
 
 const LIVE_POKEMON =
@@ -46,16 +48,19 @@ describe('AlarmCardComponent', () => {
   let host: HostComponent;
   let displayLang: WritableSignal<string>;
   let alertLang: WritableSignal<null | string>;
+  let linkStatus: WritableSignal<LinkStatus | null>;
 
   function create(display = 'en', alert: null | string = 'en'): HTMLElement {
     displayLang = signal(display);
     alertLang = signal<null | string>(alert);
+    linkStatus = signal<LinkStatus | null>(null);
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
         provideTranslateService(),
         { provide: I18nService, useValue: { currentLang: displayLang } },
         { provide: AlertLanguageService, useValue: { resolved: alertLang } },
+        { provide: LinkedAccountService, useValue: { status: linkStatus } },
       ],
       imports: [HostComponent],
     });
@@ -86,16 +91,72 @@ describe('AlarmCardComponent', () => {
     expect(el.querySelector('.rule-destination')).toBeNull();
   });
 
-  it('shows an uncoloured glyph naming the app beside the scope chip', () => {
+  it('names the app under the title, in words beside an uncoloured glyph, away from the scope chip and actions', () => {
     const el = create();
     host.destination.set('telegram');
     fixture.detectChanges();
 
-    const glyph = el.querySelector('.rule-scope .rule-destination') as HTMLElement;
-    expect(glyph).not.toBeNull();
-    expect(glyph.getAttribute('data-app')).toBe('telegram');
-    expect(glyph.getAttribute('aria-label')).toBe('DELIVER_TO.TELEGRAM');
-    expect(glyph.getAttribute('style') ?? '').not.toContain('color');
+    const named = el.querySelector('.rule-subject .rule-destination') as HTMLElement;
+    expect(named).not.toBeNull();
+    expect(named.getAttribute('data-app')).toBe('telegram');
+    expect(named.querySelector('app-app-glyph')).not.toBeNull();
+    expect(named.querySelector('.rule-destination-name')?.textContent?.trim()).toBe('DELIVER_TO.TELEGRAM');
+    expect(named.getAttribute('style') ?? '').not.toContain('color');
+    expect(el.querySelector('.rule-foot .rule-destination')).toBeNull();
+  });
+
+  it("puts the app in the card's accessible name", () => {
+    const el = create();
+    host.destination.set('discord');
+    fixture.detectChanges();
+
+    expect(card(el).getAttribute('role')).toBe('group');
+    const ids = (card(el).getAttribute('aria-labelledby') ?? '').split(' ');
+    expect(ids).toHaveLength(2);
+    expect(el.querySelector(`#${ids[0]}`)?.textContent?.trim()).toBe('Bulbasaur');
+    expect(el.querySelector(`#${ids[1]}`)?.textContent?.trim()).toBe('DELIVER_TO.DELIVERED_TO');
+  });
+
+  it('leaves an unlinked card without a group role or a changed name', () => {
+    const el = create();
+
+    expect(card(el).getAttribute('role')).toBeNull();
+    expect(card(el).getAttribute('aria-labelledby')).toBeNull();
+  });
+
+  it('marks an alarm whose app is not receiving alerts, in its name and its tooltip', () => {
+    const el = create();
+    linkStatus.set({
+      sides: [
+        { side: 'discord', exists: true, pause: 'none' },
+        { side: 'telegram', exists: true, pause: 'stopped' },
+      ],
+      linked: true,
+    });
+    host.destination.set('telegram');
+    fixture.detectChanges();
+
+    const named = el.querySelector('.rule-destination') as HTMLElement;
+    expect(named.classList).toContain('rule-destination-paused');
+    expect(named.querySelector('mat-icon')?.textContent?.trim()).toBe('pause_circle');
+    const ids = (card(el).getAttribute('aria-labelledby') ?? '').split(' ');
+    expect(el.querySelector(`#${ids[1]}`)?.textContent?.trim()).toBe('DELIVER_TO.DELIVERED_TO_PAUSED');
+  });
+
+  it('leaves an alarm on a running app unmarked', () => {
+    const el = create();
+    linkStatus.set({
+      sides: [
+        { side: 'discord', exists: true, pause: 'none' },
+        { side: 'telegram', exists: true, pause: 'stopped' },
+      ],
+      linked: true,
+    });
+    host.destination.set('discord');
+    fixture.detectChanges();
+
+    expect(el.querySelector('.rule-destination')?.classList).not.toContain('rule-destination-paused');
+    expect(el.querySelector('.rule-destination mat-icon')).toBeNull();
   });
 
   it('draws no edge unless it is given one', () => {

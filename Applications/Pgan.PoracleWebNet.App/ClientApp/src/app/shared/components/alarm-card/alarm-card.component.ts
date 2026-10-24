@@ -7,18 +7,28 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { LinkSide } from '../../../core/models';
+import { appKey } from '../../../core/services/alarm-move.service';
 import { AlertLanguageService } from '../../../core/services/alert-language.service';
 import { I18nService } from '../../../core/services/i18n.service';
+import { LinkedAccountService } from '../../../core/services/linked-account.service';
 import { RuleEdge } from '../../utils/rule-colours';
 import { cleanRuleSummary } from '../../utils/rule-summary';
+import { AppGlyphComponent } from '../app-glyph/app-glyph.component';
 
 let nextId = 0;
+
+/** One number per card for every id it hands out, so the ids never depend on the order of the class fields. */
+function cardIds(): { destination: string; details: string; title: string } {
+  const n = nextId++;
+  return { destination: `rule-destination-${n}`, details: `rule-details-${n}`, title: `rule-title-${n}` };
+}
 
 /**
  * One alarm rule, the same shape on all ten alarm lists.
  *
  * The subject (sprite or icon, then its name) reads first and largest, with the rule's status on the
- * right: quiet, clean, edit in place. Below it one line of filters with no eyebrow labels, then the
+ * right: quiet, clean, edit in place. For a linked person the app the rule is delivered to is named under
+ * the subject, in words beside its glyph, and is part of the card's accessible name. Below it one line of filters with no eyebrow labels, then the
  * scope chip and the actions on one row. PoracleNG's own sentence for the rule sits behind "Details",
  * where it can stay as verbose as it likes without doubling the height of every card.
  *
@@ -33,7 +43,7 @@ let nextId = 0;
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'alarm-card' },
-  imports: [MatButtonModule, MatCardModule, MatCheckboxModule, MatIconModule, MatTooltipModule, TranslatePipe],
+  imports: [AppGlyphComponent, MatButtonModule, MatCardModule, MatCheckboxModule, MatIconModule, MatTooltipModule, TranslatePipe],
   selector: 'app-alarm-card',
   standalone: true,
   styleUrl: './alarm-card.component.scss',
@@ -42,16 +52,32 @@ let nextId = 0;
 export class AlarmCardComponent {
   private readonly alertLanguage = inject(AlertLanguageService);
   private readonly i18n = inject(I18nService);
+  private readonly ids = cardIds();
+  private readonly linked = inject(LinkedAccountService);
+
+  protected readonly appKey = appKey;
 
   /** The raw `description` PoracleNG returned for the rule. */
   readonly summary = input<null | string | undefined>(null);
 
   readonly cleanedSummary = computed(() => cleanRuleSummary(this.summary()));
 
-  /** The app this rule is delivered to; set only for a linked person, who then sees it beside the scope chip. */
+  /** The app this rule is delivered to; set only for a linked person, who then sees it named under the subject. */
   readonly destination = input<LinkSide | null | undefined>(null);
 
-  readonly detailsId = `rule-details-${nextId++}`;
+  readonly destinationId = this.ids.destination;
+
+  /** True when the app this rule goes to isn't receiving alerts (stopped, disabled, not registered). */
+  readonly destinationPaused = computed(() => {
+    const app = this.destination();
+    const side = app ? this.linked.status()?.sides?.find(s => s.side === app) : undefined;
+    return !!side && side.pause !== 'none';
+  });
+
+  /** "Delivered to Telegram", or that it is delivered to an app which isn't receiving alerts. */
+  readonly destinationSentence = computed(() => (this.destinationPaused() ? 'DELIVER_TO.DELIVERED_TO_PAUSED' : 'DELIVER_TO.DELIVERED_TO'));
+
+  readonly detailsId = this.ids.details;
 
   readonly detailsOpen = signal(false);
 
@@ -82,6 +108,8 @@ export class AlarmCardComponent {
 
   /** The checkbox's accessible name, normally "Select <subject>". */
   readonly selectLabel = input('');
+
+  readonly titleId = this.ids.title;
 
   toggleDetails(): void {
     this.detailsOpen.update(open => !open);

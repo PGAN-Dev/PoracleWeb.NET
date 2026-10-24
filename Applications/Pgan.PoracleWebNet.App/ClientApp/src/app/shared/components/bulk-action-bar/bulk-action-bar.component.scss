@@ -31,6 +31,23 @@
   margin-left: auto;
 }
 
+// Shown only on a phone, and only for a linked person (see below).
+.bulk-more {
+  display: none;
+}
+
+// A menu entry: the app's glyph, its name, and a note when every selected alarm is already there.
+.bulk-app {
+  align-items: center;
+  display: inline-flex;
+  gap: 12px;
+}
+
+.bulk-app-note {
+  color: var(--mat-sys-on-surface-variant, rgb(0 0 0 / 64%));
+  font-size: 0.75rem;
+}
+
 // On a phone the bar leaves the flow and sits at the bottom of the screen, so it stays in reach while
 // the player scrolls through the cards they are ticking. The page makes room for it (styles.scss), so
 // the last card is never hidden underneath.
@@ -59,7 +76,26 @@
     button {
       flex: 1 1 0;
       min-width: 0;
+      padding-inline: 12px;
     }
+  }
+
+  // A label never wraps or breaks mid-word; at worst it is cut with an ellipsis inside its own button.
+  .bulk-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  // Three equal buttons did not fit at 360px (German "Zustellen an..." wrapped, and Delete ended past the edge),
+  // so a linked person's Deliver to and Change radius fold into More. The unlinked bar has two buttons and keeps them.
+  .bulk-can-move .bulk-deliver,
+  .bulk-can-move .bulk-radius {
+    display: none;
+  }
+
+  .bulk-can-move .bulk-more {
+    display: inline-flex;
   }
 }
 
