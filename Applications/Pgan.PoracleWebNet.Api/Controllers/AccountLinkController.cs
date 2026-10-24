@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Pgan.PoracleWebNet.Api.Configuration;
 using Pgan.PoracleWebNet.Api.Filters;
@@ -25,7 +26,7 @@ public sealed record ResolveDriftRequest(string? Field, string? Keep, string? Ex
 [Route("api/account-link")]
 [RequireFeatureEnabled(DisableFeatureKeys.AccountLinking)]
 [EnableRateLimiting("auth-read")]
-public class AccountLinkController(
+public partial class AccountLinkController(
     IAccountLinkService links,
     ILinkedAccount linkedAccount,
     ISiteSettingService siteSettings,
@@ -33,12 +34,14 @@ public class AccountLinkController(
     IOptions<DiscordSettings> discordSettings,
     IOptions<TelegramSettings> telegramSettings,
     IConfiguration configuration,
-    IPairDriftService drift) : BaseApiController
+    IPairDriftService drift,
+    ILogger<AccountLinkController> logger) : BaseApiController
 {
     private readonly string[] _allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
     private readonly IDataProtectionProvider _dataProtection = dataProtection;
     private readonly DiscordSettings _discordSettings = discordSettings.Value;
     private readonly IPairDriftService _drift = drift;
+    private readonly ILogger<AccountLinkController> _logger = logger;
     private readonly ILinkedAccount _linkedAccount = linkedAccount;
     private readonly IAccountLinkService _links = links;
     private readonly string? _publicOrigin = PublicOrigin.NormalizeOrNull(configuration["PublicUrl"]);
@@ -146,9 +149,19 @@ public class AccountLinkController(
             })
             .ToArray();
 
-        var drift = (await this._drift.GetAsync(pair))
-            .Select(d => new { field = DriftFields.Wire(d.Field), discord = d.Discord, telegram = d.Telegram, fingerprint = d.Fingerprint })
-            .ToArray();
+        // A drift read that fails must not take the rest of the status with it: the banner is the optional part.
+        object? drift;
+        try
+        {
+            drift = (await this._drift.GetAsync(pair))
+                .Select(d => new { field = DriftFields.Wire(d.Field), discord = d.Discord, telegram = d.Telegram, fingerprint = d.Fingerprint })
+                .ToArray();
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            LogDriftReadFailed(this._logger, ex);
+            drift = null;
+        }
 
         return this.Ok(new
         {
@@ -184,6 +197,9 @@ public class AccountLinkController(
         await this._drift.ResolveAsync(pair, field, keep, request.Expected);
         return this.NoContent();
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Could not read drift between linked accounts; status is answered without it")]
+    private static partial void LogDriftReadFailed(ILogger logger, Exception ex);
 
     private static string PauseWire(PauseReason reason) => reason switch
     {

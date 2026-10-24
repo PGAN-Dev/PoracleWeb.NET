@@ -13,7 +13,7 @@ public sealed class PairDriftExceptionFilter : IActionFilter
 
     public void OnActionExecuted(ActionExecutedContext context)
     {
-        if (context.Exception is not (DriftChangedException or DriftProfileHoldsAlarmsException))
+        if (context.Exception is not (DriftChangedException or DriftProfileHoldsAlarmsException or DriftPlaceInUseException or DriftPartiallyAppliedException))
         {
             return;
         }

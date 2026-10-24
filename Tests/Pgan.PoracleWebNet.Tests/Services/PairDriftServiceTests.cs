@@ -29,8 +29,10 @@ public class PairDriftServiceTests
         this._human.Setup(p => p.GetAreaListAsync(It.IsAny<string>())).ReturnsAsync((string id) => (IReadOnlyList<string>)this._data[id].Areas);
         this._human.Setup(p => p.GetProfilesAsync(It.IsAny<string>())).ReturnsAsync((string id) => Json(this._data[id].ProfilesJson()));
         this._human.Setup(p => p.GetPlacesAsync(It.IsAny<string>())).ReturnsAsync((string id) => new SavedPlaces { Named = this._data[id].Places });
-        this._tracking.Setup(t => t.GetAllTrackingAllProfilesAsync(It.IsAny<string>()))
-            .ReturnsAsync((string id) => Json(JsonSerializer.Serialize(new { pokemon = this._data[id].Rules.Select(n => new { uid = 1, profile_no = n }), raid = Array.Empty<object>(), status = "ok" })));
+        this._tracking.Setup(t => t.GetStoredRulesAsync(It.IsAny<string>()))
+            .ReturnsAsync((string id) => (IReadOnlyList<StoredRule>)this._data[id].Rules.Select(n => new StoredRule("monster", n, 1, default)).ToList());
+        this._tracking.Setup(t => t.GetAllTrackingWithDescriptionsAsync(It.IsAny<string>()))
+            .ReturnsAsync((string id) => Json(JsonSerializer.Serialize(new { pokemon = this._data[id].PlaceRefs.Select(l => new { uid = 1, override_location_label = l }), status = "ok" })));
         this._sut = new PairDriftService(this._human.Object, this._tracking.Object);
     }
 
@@ -166,16 +168,159 @@ public class PairDriftServiceTests
     }
 
     [Fact]
-    public async Task ResolveProfiles_NumberMismatch_DeletesStrayAndRefuses()
+    public async Task ResolveProfiles_GapInNumbering_CreatesFillerThenDeletesIt()
+    {
+        this._data[Discord].Profiles = [new ProfileData(1, "Home"), new ProfileData(3, "Work", Area: "[\"old town\"]", Lat: 51.7, Lon: -0.2)];
+        this._data[Telegram].Profiles = [new ProfileData(1, "Home")];
+        this._human.SetupSequence(p => p.AddProfileAsync(Telegram, It.IsAny<JsonElement>())).ReturnsAsync(2).ReturnsAsync(3);
+        var fp = await this.FingerprintOf(DriftField.Profiles);
+
+        await this._sut.ResolveAsync(Pair(), DriftField.Profiles, LinkSide.Discord, fp);
+
+        this._human.Verify(p => p.AddProfileAsync(Telegram, It.IsAny<JsonElement>()), Times.Exactly(2));
+        this._human.Verify(p => p.AddProfileAsync(Telegram, It.Is<JsonElement>(b => b.GetProperty("name").GetString() == "Work")), Times.Once);
+        this._human.Verify(p => p.SetProfileGeographyAsync(Telegram, 3, It.IsAny<IReadOnlyCollection<string>>(), 51.7, -0.2), Times.Once);
+        this._human.Verify(p => p.DeleteProfileAsync(Telegram, 2), Times.Once);
+        this._human.Verify(p => p.DeleteProfileAsync(Telegram, 3), Times.Never);
+    }
+
+    [Fact]
+    public async Task ResolveProfiles_ImpossibleNumber_DeletesStrayAndFillerAndRefuses409()
     {
         this._data[Discord].Profiles = [new ProfileData(1, "Home"), new ProfileData(3, "Work")];
         this._data[Telegram].Profiles = [new ProfileData(1, "Home")];
-        this._human.Setup(p => p.AddProfileAsync(Telegram, It.IsAny<JsonElement>())).ReturnsAsync(2);
+        this._human.SetupSequence(p => p.AddProfileAsync(Telegram, It.IsAny<JsonElement>())).ReturnsAsync(2).ReturnsAsync(4);
         var fp = await this.FingerprintOf(DriftField.Profiles);
 
-        await Assert.ThrowsAsync<PoracleRequestRefusedException>(() => this._sut.ResolveAsync(Pair(), DriftField.Profiles, LinkSide.Discord, fp));
+        var ex = await Assert.ThrowsAsync<PoracleRequestRefusedException>(() => this._sut.ResolveAsync(Pair(), DriftField.Profiles, LinkSide.Discord, fp));
 
+        Assert.Equal(409, ex.StatusCode);
+        Assert.Contains("Nothing was changed", ex.Message, StringComparison.Ordinal);
+        this._human.Verify(p => p.DeleteProfileAsync(Telegram, 4), Times.Once);
         this._human.Verify(p => p.DeleteProfileAsync(Telegram, 2), Times.Once);
+    }
+
+    [Fact]
+    public async Task ResolveProfiles_FailureAfterAWrite_SaysSomeChangesWereMade()
+    {
+        this._data[Discord].Profiles = [new ProfileData(1, "Home"), new ProfileData(2, "Work")];
+        this._data[Telegram].Profiles = [new ProfileData(1, "Home")];
+        this._human.Setup(p => p.AddProfileAsync(Telegram, It.IsAny<JsonElement>())).ReturnsAsync(2);
+        this._human.Setup(p => p.SetProfileGeographyAsync(Telegram, 2, It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<double>(), It.IsAny<double>()))
+            .ThrowsAsync(new InvalidOperationException("boom"));
+        var fp = await this.FingerprintOf(DriftField.Profiles);
+
+        var ex = await Assert.ThrowsAsync<DriftPartiallyAppliedException>(() => this._sut.ResolveAsync(Pair(), DriftField.Profiles, LinkSide.Discord, fp));
+
+        Assert.Equal("Some changes were made before this failed. Check the banner.", ex.Message);
+        Assert.DoesNotContain("Nothing was changed", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ResolveProfiles_RefusableDeleteAlongsideCreate_WritesNothing()
+    {
+        this._data[Discord].Profiles = [new ProfileData(1, "Home"), new ProfileData(2, "Work")];
+        this._data[Telegram].Profiles = [new ProfileData(1, "Home"), new ProfileData(3, "Spare")];
+        this._data[Telegram].Rules = [3];
+        var fp = await this.FingerprintOf(DriftField.Profiles);
+
+        var ex = await Assert.ThrowsAsync<DriftProfileHoldsAlarmsException>(() => this._sut.ResolveAsync(Pair(), DriftField.Profiles, LinkSide.Discord, fp));
+
+        Assert.Contains("Nothing was changed", ex.Message, StringComparison.Ordinal);
+        this._human.Verify(p => p.AddProfileAsync(It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ResolveProfiles_DeletingTheOtherSidesCurrentProfile_SwitchesFirst()
+    {
+        this._data[Discord].Profiles = [new ProfileData(1, "Home")];
+        this._data[Telegram].Profiles = [new ProfileData(1, "Home"), new ProfileData(2, "Spare")];
+        this._data[Telegram].Current = 2;
+        var order = new List<string>();
+        this._human.Setup(p => p.SwitchProfileAsync(Telegram, 1)).Callback(() => order.Add("switch")).Returns(Task.CompletedTask);
+        this._human.Setup(p => p.DeleteProfileAsync(Telegram, 2)).Callback(() => order.Add("delete")).Returns(Task.CompletedTask);
+        var fp = await this.FingerprintOf(DriftField.Profiles);
+
+        await this._sut.ResolveAsync(Pair(), DriftField.Profiles, LinkSide.Discord, fp);
+
+        Assert.Equal(["switch", "delete"], order);
+    }
+
+    [Fact]
+    public async Task ResolvePlaces_DeleteOfPlaceInUse_RefusedUpFront_NothingWritten()
+    {
+        this._data[Discord].Places = [new SavedPlace { Label = "park", Latitude = 51.4, Longitude = -0.3 }];
+        this._data[Telegram].Places = [new SavedPlace { Label = "extra", Latitude = 1, Longitude = 1 }];
+        this._data[Telegram].PlaceRefs = ["extra", "extra"];
+        var fp = await this.FingerprintOf(DriftField.Places);
+
+        var ex = await Assert.ThrowsAsync<DriftPlaceInUseException>(() => this._sut.ResolveAsync(Pair(), DriftField.Places, LinkSide.Discord, fp));
+
+        Assert.Equal(2, ex.Count);
+        Assert.Contains("extra", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("Nothing was changed", ex.Message, StringComparison.Ordinal);
+        this._human.Verify(p => p.AddPlaceAsync(It.IsAny<string>(), It.IsAny<SavedPlace>()), Times.Never);
+        this._human.Verify(p => p.DeletePlaceAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ResolvePlaces_InUseAppearsMidRun_BecomesDriftRefusalWhenNothingWritten()
+    {
+        this._data[Discord].Places = [];
+        this._data[Telegram].Places = [new SavedPlace { Label = "extra", Latitude = 1, Longitude = 1 }];
+        this._human.Setup(p => p.DeletePlaceAsync(Telegram, "extra")).ThrowsAsync(new PlaceInUseException(["a", "b", "c"]));
+        var fp = await this.FingerprintOf(DriftField.Places);
+
+        var ex = await Assert.ThrowsAsync<DriftPlaceInUseException>(() => this._sut.ResolveAsync(Pair(), DriftField.Places, LinkSide.Discord, fp));
+
+        Assert.Equal(3, ex.Count);
+    }
+
+    [Fact]
+    public async Task ResolvePlaces_InUseAppearsAfterAWrite_SaysSomeChangesWereMade()
+    {
+        this._data[Discord].Places = [new SavedPlace { Label = "park", Latitude = 51.4, Longitude = -0.3 }];
+        this._data[Telegram].Places = [new SavedPlace { Label = "extra", Latitude = 1, Longitude = 1 }];
+        this._human.Setup(p => p.DeletePlaceAsync(Telegram, "extra")).ThrowsAsync(new PlaceInUseException(["a"]));
+        var fp = await this.FingerprintOf(DriftField.Places);
+
+        await Assert.ThrowsAsync<DriftPartiallyAppliedException>(() => this._sut.ResolveAsync(Pair(), DriftField.Places, LinkSide.Discord, fp));
+    }
+
+    [Fact]
+    public async Task ResolvePlaces_RefusedAdd_Is400WithItsReason()
+    {
+        this._data[Discord].Places = [new SavedPlace { Label = "park", Latitude = 51.4, Longitude = -0.3 }];
+        this._data[Telegram].Places = [];
+        this._human.Setup(p => p.AddPlaceAsync(Telegram, It.IsAny<SavedPlace>())).ReturnsAsync("label already used");
+        var fp = await this.FingerprintOf(DriftField.Places);
+
+        var ex = await Assert.ThrowsAsync<PoracleRequestRefusedException>(() => this._sut.ResolveAsync(Pair(), DriftField.Places, LinkSide.Discord, fp));
+
+        Assert.Equal(400, ex.StatusCode);
+        Assert.Equal("label already used", ex.Message);
+    }
+
+    [Fact]
+    public async Task PlaceLabelsDifferingOnlyByCase_AreTheSamePlace()
+    {
+        this._data[Discord].Places = [new SavedPlace { Label = "Gym", Latitude = 51.5, Longitude = -0.1 }];
+        this._data[Telegram].Places = [new SavedPlace { Label = "gym", Latitude = 51.5, Longitude = -0.1 }];
+
+        Assert.Empty(await this._sut.GetAsync(Pair()));
+    }
+
+    [Fact]
+    public async Task ResolvePlaces_CaseDifferentLabel_UpdatesUnderTheOtherSidesStoredLabel()
+    {
+        this._data[Discord].Places = [new SavedPlace { Label = "Gym", Latitude = 51.5, Longitude = -0.1 }];
+        this._data[Telegram].Places = [new SavedPlace { Label = "gym", Latitude = 51.9, Longitude = -0.1 }];
+        var fp = await this.FingerprintOf(DriftField.Places);
+
+        await this._sut.ResolveAsync(Pair(), DriftField.Places, LinkSide.Discord, fp);
+
+        this._human.Verify(p => p.UpdatePlaceAsync(Telegram, "gym", 51.5, -0.1), Times.Once);
+        this._human.Verify(p => p.AddPlaceAsync(It.IsAny<string>(), It.IsAny<SavedPlace>()), Times.Never);
     }
 
     [Fact]
@@ -251,6 +396,7 @@ public class PairDriftServiceTests
         public List<string> Areas { get; set; } = ["old town"];
         public List<SavedPlace> Places { get; set; } = [];
         public List<int> Rules { get; set; } = [];
+        public List<string> PlaceRefs { get; set; } = [];
         public List<ProfileData> Profiles { get; set; } = [new ProfileData(1, "Home")];
 
         public string ProfilesJson() => JsonSerializer.Serialize(new

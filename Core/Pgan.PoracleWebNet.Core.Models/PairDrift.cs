@@ -50,7 +50,7 @@ public sealed class DriftChangedException() : Exception("That changed again. Che
 
 /// <summary>A profile the kept side lacks still holds alerts on the other side, so it is not deleted.</summary>
 public sealed class DriftProfileHoldsAlarmsException(int profileNo, string? name, int count)
-    : Exception($"Profile {(string.IsNullOrWhiteSpace(name) ? profileNo.ToString(System.Globalization.CultureInfo.InvariantCulture) : name)} on the other account holds {count} alert(s). Move or delete them there first; nothing was changed.")
+    : Exception($"Profile {(string.IsNullOrWhiteSpace(name) ? profileNo.ToString(System.Globalization.CultureInfo.InvariantCulture) : name)} on the other account holds {count} alert(s). Move or delete them there first. Nothing was changed.")
 {
     public int ProfileNo { get; } = profileNo;
 
@@ -58,3 +58,16 @@ public sealed class DriftProfileHoldsAlarmsException(int profileNo, string? name
 
     public int Count { get; } = count;
 }
+
+/// <summary>A saved place the kept side lacks is still aimed at by alerts on the other side, so it is not deleted.</summary>
+public sealed class DriftPlaceInUseException(string label, int count)
+    : Exception($"The place \"{label}\" on the other account is used by {count} alert(s). Change those alerts first. Nothing was changed.")
+{
+    public string Label { get; } = label;
+
+    public int Count { get; } = count;
+}
+
+/// <summary>A resolve failed after some of its writes had landed; the person must look again.</summary>
+public sealed class DriftPartiallyAppliedException(Exception inner)
+    : Exception("Some changes were made before this failed. Check the banner.", inner);

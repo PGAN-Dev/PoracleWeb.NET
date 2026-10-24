@@ -15,6 +15,7 @@ namespace Pgan.PoracleWebNet.Core.Services;
 /// </summary>
 public sealed class PairDriftService(IPoracleHumanProxy human, IPoracleTrackingProxy tracking) : IPairDriftService
 {
+    private const string FillerName = "placeholder";
     private const string NoSchedule = "[]";
 
     private readonly IPoracleHumanProxy _human = human;
@@ -27,8 +28,11 @@ public sealed class PairDriftService(IPoracleHumanProxy human, IPoracleTrackingP
             return [];
         }
 
-        var discord = await this.ReadAsync(pair.Discord!.HumanId);
-        var telegram = await this.ReadAsync(pair.Telegram!.HumanId);
+        var discordRead = this.ReadAsync(pair.Discord!.HumanId);
+        var telegramRead = this.ReadAsync(pair.Telegram!.HumanId);
+        await Task.WhenAll(discordRead, telegramRead);
+        var discord = discordRead.Result;
+        var telegram = telegramRead.Result;
         return Compare(discord, telegram);
     }
 
@@ -39,8 +43,11 @@ public sealed class PairDriftService(IPoracleHumanProxy human, IPoracleTrackingP
             throw new DriftChangedException();
         }
 
-        var discord = await this.ReadAsync(pair.Discord!.HumanId);
-        var telegram = await this.ReadAsync(pair.Telegram!.HumanId);
+        var discordRead = this.ReadAsync(pair.Discord!.HumanId);
+        var telegramRead = this.ReadAsync(pair.Telegram!.HumanId);
+        await Task.WhenAll(discordRead, telegramRead);
+        var discord = discordRead.Result;
+        var telegram = telegramRead.Result;
 
         // Judged on a fresh read: the banner may be minutes old and a bot command may have moved things since.
         var item = Compare(discord, telegram).FirstOrDefault(i => i.Field == field);
@@ -53,25 +60,33 @@ public sealed class PairDriftService(IPoracleHumanProxy human, IPoracleTrackingP
         var other = keep == LinkSide.Discord ? telegram : discord;
         var otherId = keep == LinkSide.Discord ? pair.Telegram!.HumanId : pair.Discord!.HumanId;
 
-        switch (field)
+        var progress = new Progress();
+        try
         {
-            case DriftField.Location:
-                await this._human.SetLocationAsync(otherId, kept.Lat, kept.Lon);
-                break;
-            case DriftField.Areas:
-                await this._human.SetAreasTrustedAsync(otherId, kept.Areas);
-                break;
-            case DriftField.CurrentProfile:
-                await this._human.SwitchProfileAsync(otherId, kept.Current);
-                break;
-            case DriftField.Profiles:
-                await this.ResolveProfilesAsync(otherId, kept, other);
-                break;
-            case DriftField.Places:
-                await this.ResolvePlacesAsync(otherId, kept, other);
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(field));
+            switch (field)
+            {
+                case DriftField.Location:
+                    await this._human.SetLocationAsync(otherId, kept.Lat, kept.Lon);
+                    break;
+                case DriftField.Areas:
+                    await this._human.SetAreasTrustedAsync(otherId, kept.Areas);
+                    break;
+                case DriftField.CurrentProfile:
+                    await this._human.SwitchProfileAsync(otherId, kept.Current);
+                    break;
+                case DriftField.Profiles:
+                    await this.ResolveProfilesAsync(otherId, kept, other, progress);
+                    break;
+                case DriftField.Places:
+                    await this.ResolvePlacesAsync(otherId, kept, other, progress);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(field));
+            }
+        }
+        catch (Exception ex) when (progress.Wrote && ex is not OperationCanceledException)
+        {
+            throw new DriftPartiallyAppliedException(ex);
         }
     }
 
@@ -127,8 +142,8 @@ public sealed class PairDriftService(IPoracleHumanProxy human, IPoracleTrackingP
         }).ToArray());
 
     private static JsonElement PlacesOf(Snapshot s) => JsonSerializer.SerializeToElement(
-        s.Places.OrderBy(p => p.Label, StringComparer.Ordinal)
-            .Select(p => new { label = p.Label, lat = Round(p.Latitude), lon = Round(p.Longitude) }).ToArray());
+        s.Places.OrderBy(p => p.Label.ToLowerInvariant(), StringComparer.Ordinal)
+            .Select(p => new { label = p.Label.ToLowerInvariant(), lat = Round(p.Latitude), lon = Round(p.Longitude) }).ToArray());
 
     /// <summary>PoracleNG stores hours and mins as numbers or as strings; both read as ints, sorted.</summary>
     private static object[] Hours(string? json)
@@ -209,16 +224,24 @@ public sealed class PairDriftService(IPoracleHumanProxy human, IPoracleTrackingP
             [.. areas], profiles, places.Named);
     }
 
-    private async Task ResolveProfilesAsync(string otherId, Snapshot kept, Snapshot other)
+    /// <summary>Whether a real write has landed, which decides what a failure may say to the person.</summary>
+    private sealed class Progress
+    {
+        public bool Wrote { get; set; }
+    }
+
+    private async Task ResolveProfilesAsync(string otherId, Snapshot kept, Snapshot other, Progress progress)
     {
         var otherByNo = other.Profiles.ToDictionary(p => p.No);
         var keptNumbers = kept.Profiles.Select(p => p.No).ToHashSet();
-
-        // Refuse before changing anything: a profile that holds alerts is never deleted for the sake of a match.
         var extras = other.Profiles.Where(p => !keptNumbers.Contains(p.No)).OrderBy(p => p.No).ToList();
+
+        // Everything refusable is checked before the first write: a profile that holds alerts is never
+        // deleted for the sake of a match, and a refusal here changes nothing.
         if (extras.Count > 0)
         {
-            var counts = await this.CountRulesAsync(otherId);
+            var counts = (await this._tracking.GetStoredRulesAsync(otherId))
+                .GroupBy(r => r.ProfileNo).ToDictionary(g => g.Key, g => g.Count());
             foreach (var extra in extras)
             {
                 if (counts.TryGetValue(extra.No, out var count) && count > 0)
@@ -228,22 +251,58 @@ public sealed class PairDriftService(IPoracleHumanProxy human, IPoracleTrackingP
             }
         }
 
-        // Create before delete, ascending, so each new profile is checked against the number it must land on.
+        // PoracleNG gives a new profile the lowest free number, so a gap in the kept numbering is
+        // reached by creating filler profiles up to it and deleting them afterwards.
+        var plan = new List<(int No, ProfileRow? Row)>();
+        var occupied = otherByNo.Keys.ToHashSet();
         foreach (var row in kept.Profiles.Where(p => !otherByNo.ContainsKey(p.No)).OrderBy(p => p.No))
+        {
+            while (LowestFree(occupied) < row.No)
+            {
+                var filler = LowestFree(occupied);
+                occupied.Add(filler);
+                plan.Add((filler, null));
+            }
+
+            occupied.Add(row.No);
+            plan.Add((row.No, row));
+        }
+
+        var fillers = new List<int>();
+        foreach (var (no, row) in plan)
         {
             var assigned = await this._human.AddProfileAsync(otherId, JsonSerializer.SerializeToElement(new
             {
-                name = row.Name,
-                active_hours = string.IsNullOrWhiteSpace(row.ActiveHours) ? NoSchedule : row.ActiveHours,
+                name = row?.Name ?? FillerName,
+                active_hours = string.IsNullOrWhiteSpace(row?.ActiveHours) ? NoSchedule : row!.ActiveHours,
             }));
-            if (assigned != row.No)
+            if (assigned != no)
             {
-                await this._human.DeleteProfileAsync(otherId, assigned);
+                await this.TryDeleteAsync(otherId, assigned);
+                foreach (var made in fillers)
+                {
+                    await this.TryDeleteAsync(otherId, made);
+                }
+
                 throw new PoracleRequestRefusedException(
-                    $"The other account's profile would be numbered {assigned}, not {row.No}. Nothing was changed.");
+                    $"The other account's next profile would be numbered {assigned}, not {no}. "
+                    + (progress.Wrote ? "Some changes were made before this failed. Check the banner." : "Nothing was changed."),
+                    409);
             }
 
+            if (row is null)
+            {
+                fillers.Add(no);
+                continue;
+            }
+
+            progress.Wrote = true;
             await this._human.SetProfileGeographyAsync(otherId, row.No, AreaListJson.Parse(row.Area), row.Latitude, row.Longitude);
+        }
+
+        foreach (var made in fillers)
+        {
+            await this._human.DeleteProfileAsync(otherId, made);
         }
 
         foreach (var row in kept.Profiles.Where(p => otherByNo.ContainsKey(p.No)))
@@ -252,6 +311,7 @@ public sealed class PairDriftService(IPoracleHumanProxy human, IPoracleTrackingP
             if (!string.Equals(row.Name ?? string.Empty, existing.Name ?? string.Empty, StringComparison.Ordinal)
                 || !SameSchedule(row.ActiveHours, existing.ActiveHours))
             {
+                progress.Wrote = true;
                 await this._human.UpdateProfileAsync(otherId, JsonSerializer.SerializeToElement(new
                 {
                     profile_no = row.No,
@@ -263,20 +323,70 @@ public sealed class PairDriftService(IPoracleHumanProxy human, IPoracleTrackingP
             if (!AreaKeys(row.Area).SequenceEqual(AreaKeys(existing.Area))
                 || Round(row.Latitude) != Round(existing.Latitude) || Round(row.Longitude) != Round(existing.Longitude))
             {
+                progress.Wrote = true;
                 await this._human.SetProfileGeographyAsync(otherId, row.No, AreaListJson.Parse(row.Area), row.Latitude, row.Longitude);
             }
         }
 
+        // Deleting the profile the other side is on would leave PoracleNG to pick where it lands.
+        if (extras.Any(e => e.No == other.Current))
+        {
+            progress.Wrote = true;
+            await this._human.SwitchProfileAsync(otherId, kept.Current);
+        }
+
         foreach (var extra in extras)
         {
+            progress.Wrote = true;
             await this._human.DeleteProfileAsync(otherId, extra.No);
         }
     }
 
-    private async Task ResolvePlacesAsync(string otherId, Snapshot kept, Snapshot other)
+    private static int LowestFree(HashSet<int> occupied)
     {
-        var otherByLabel = other.Places.ToDictionary(p => p.Label, StringComparer.Ordinal);
-        var keptLabels = kept.Places.Select(p => p.Label).ToHashSet(StringComparer.Ordinal);
+        var n = 1;
+        while (occupied.Contains(n))
+        {
+            n++;
+        }
+
+        return n;
+    }
+
+    private async Task TryDeleteAsync(string humanId, int profileNo)
+    {
+        try
+        {
+            await this._human.DeleteProfileAsync(humanId, profileNo);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // Best effort: the refusal being raised is the answer the person needs.
+        }
+    }
+
+    private async Task ResolvePlacesAsync(string otherId, Snapshot kept, Snapshot other, Progress progress)
+    {
+        // PoracleNG's label is unique per human and the stored labels are compared the way AlarmMover
+        // compares them, ignoring case; an update or delete uses the other side's own spelling.
+        var otherByLabel = other.Places.GroupBy(p => p.Label, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+        var keptLabels = kept.Places.Select(p => p.Label).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var extras = other.Places.Where(p => !keptLabels.Contains(p.Label)).ToList();
+
+        // PoracleNG refuses to delete a place alerts still point at; find out before anything is written.
+        if (extras.Count > 0)
+        {
+            var snapshot = await this._tracking.GetAllTrackingWithDescriptionsAsync(otherId);
+            foreach (var extra in extras)
+            {
+                var inUse = PlaceUsage.RulesAimedAt(snapshot, extra.Label).Count;
+                if (inUse > 0)
+                {
+                    throw new DriftPlaceInUseException(extra.Label, inUse);
+                }
+            }
+        }
 
         foreach (var place in kept.Places)
         {
@@ -287,41 +397,28 @@ public sealed class PairDriftService(IPoracleHumanProxy human, IPoracleTrackingP
                 {
                     throw new PoracleRequestRefusedException(refusal);
                 }
+
+                progress.Wrote = true;
             }
             else if (Round(existing.Latitude) != Round(place.Latitude) || Round(existing.Longitude) != Round(place.Longitude))
             {
-                await this._human.UpdatePlaceAsync(otherId, place.Label, place.Latitude, place.Longitude);
+                progress.Wrote = true;
+                await this._human.UpdatePlaceAsync(otherId, existing.Label, place.Latitude, place.Longitude);
             }
         }
 
-        foreach (var place in other.Places.Where(p => !keptLabels.Contains(p.Label)))
+        foreach (var place in extras)
         {
-            await this._human.DeletePlaceAsync(otherId, place.Label);
-        }
-    }
-
-    /// <summary>Rules per profile number, across every alarm type in the all-profiles read.</summary>
-    private async Task<Dictionary<int, int>> CountRulesAsync(string humanId)
-    {
-        var all = await this._tracking.GetAllTrackingAllProfilesAsync(humanId);
-        var counts = new Dictionary<int, int>();
-        if (all.ValueKind != JsonValueKind.Object)
-        {
-            return counts;
-        }
-
-        foreach (var type in all.EnumerateObject().Where(t => t.Value.ValueKind == JsonValueKind.Array && t.Name != "profile"))
-        {
-            foreach (var rule in type.Value.EnumerateArray())
+            try
             {
-                if (rule.ValueKind == JsonValueKind.Object && rule.TryGetProperty("profile_no", out var no) && no.TryGetInt32(out var n))
-                {
-                    counts[n] = counts.GetValueOrDefault(n) + 1;
-                }
+                await this._human.DeletePlaceAsync(otherId, place.Label);
+                progress.Wrote = true;
+            }
+            catch (PlaceInUseException ex)
+            {
+                throw new DriftPlaceInUseException(place.Label, ex.ReferencingRules.Count);
             }
         }
-
-        return counts;
     }
 
     private sealed record ProfileRow(int No, string? Name, string? Area, double Latitude, double Longitude, string? ActiveHours);

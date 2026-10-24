@@ -44,7 +44,8 @@ public class AccountLinkControllerTests
             Options.Create(new DiscordSettings { ClientId = "test-id", ClientSecret = "test-secret" }),
             Options.Create(new TelegramSettings { Enabled = telegramEnabled, BotToken = BotToken }),
             new ConfigurationBuilder().Build(),
-            this._drift.Object);
+            this._drift.Object,
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<AccountLinkController>.Instance);
         var http = new DefaultHttpContext();
         http.Request.Scheme = "https";
         http.Request.Host = new HostString("alerts.example.net");
@@ -321,6 +322,74 @@ public class AccountLinkControllerTests
     }
 
     [Fact]
+    public async Task Status_DriftReadFails_AnswersTheRestWithDriftNull()
+    {
+        var pair = new LinkedPair(DiscordId, Link,
+            new PairSide(LinkSide.Discord, DiscordId, true, PauseReason.None),
+            new PairSide(LinkSide.Telegram, TelegramId, true, PauseReason.None));
+        this._linked.Setup(l => l.ResolveAsync(DiscordId)).ReturnsAsync(pair);
+        this._drift.Setup(d => d.GetAsync(pair)).ThrowsAsync(new HttpRequestException("poracle is down"));
+
+        var ok = Assert.IsType<OkObjectResult>(await this.Create().Status());
+
+        var json = System.Text.Json.JsonSerializer.Serialize(ok.Value, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
+        Assert.Contains("\"linked\":true", json, StringComparison.Ordinal);
+        Assert.Contains("\"drift\":null", json, StringComparison.Ordinal);
+        Assert.Contains("\"side\":\"discord\"", json, StringComparison.Ordinal);
+    }
+
+    private static Microsoft.AspNetCore.Mvc.Filters.ActionExecutedContext ContextFor(Exception ex) => new(
+        new ActionContext(new DefaultHttpContext(), new Microsoft.AspNetCore.Routing.RouteData(), new Microsoft.AspNetCore.Mvc.Abstractions.ActionDescriptor()),
+        [],
+        new object())
+    {
+        Exception = ex,
+    };
+
+    [Fact]
+    public void DriftFilter_PartialAndPlaceInUse_AreAlso409WithTheirText()
+    {
+        var partial = ContextFor(new DriftPartiallyAppliedException(new InvalidOperationException("inner")));
+        var inUse = ContextFor(new DriftPlaceInUseException("home", 2));
+
+        new PairDriftExceptionFilter().OnActionExecuted(partial);
+        new PairDriftExceptionFilter().OnActionExecuted(inUse);
+
+        Assert.Equal(409, Assert.IsType<ObjectResult>(partial.Result).StatusCode);
+        Assert.Equal("Some changes were made before this failed. Check the banner.", Prop(((ObjectResult)partial.Result!).Value, "error"));
+        Assert.Equal(409, Assert.IsType<ObjectResult>(inUse.Result).StatusCode);
+        Assert.Contains("\"home\"", (string)Prop(((ObjectResult)inUse.Result!).Value, "error")!, StringComparison.Ordinal);
+        Assert.Contains("2 alert(s)", (string)Prop(((ObjectResult)inUse.Result!).Value, "error")!, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DriftFilter_ChangedAndHoldsAlarms_CarryTheirTextInTheBody()
+    {
+        var changed = ContextFor(new DriftChangedException());
+        var holds = ContextFor(new DriftProfileHoldsAlarmsException(2, "Spare", 3));
+
+        new PairDriftExceptionFilter().OnActionExecuted(changed);
+        new PairDriftExceptionFilter().OnActionExecuted(holds);
+
+        Assert.Equal("That changed again. Check the banner.", Prop(((ObjectResult)changed.Result!).Value, "error"));
+        Assert.Contains("Spare", (string)Prop(((ObjectResult)holds.Result!).Value, "error")!, StringComparison.Ordinal);
+        Assert.Contains("3 alert(s)", (string)Prop(((ObjectResult)holds.Result!).Value, "error")!, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(409)]
+    [InlineData(400)]
+    public void RefusedFilter_PassesTheResolveRefusalStatusThrough(int status)
+    {
+        var ctx = ContextFor(new PoracleRequestRefusedException("reason", status) { StatusCode = status });
+
+        new PoracleRequestRefusedExceptionFilter().OnActionExecuted(ctx);
+
+        Assert.Equal(status, Assert.IsType<ObjectResult>(ctx.Result).StatusCode);
+        Assert.Equal("reason", Prop(((ObjectResult)ctx.Result!).Value, "error"));
+    }
+
+    [Fact]
     public void DriftFilter_MapsBothExceptionsTo409()
     {
         foreach (Exception ex in new Exception[] { new DriftChangedException(), new DriftProfileHoldsAlarmsException(2, "Spare", 3) })
@@ -336,6 +405,7 @@ public class AccountLinkControllerTests
             new PairDriftExceptionFilter().OnActionExecuted(ctx);
 
             Assert.Equal(409, Assert.IsType<ObjectResult>(ctx.Result).StatusCode);
+            Assert.Equal(ex.Message, Prop(((ObjectResult)ctx.Result!).Value, "error"));
             Assert.True(ctx.ExceptionHandled);
         }
     }
