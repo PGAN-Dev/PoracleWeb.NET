@@ -119,11 +119,46 @@ public class LinkedPersonWritesTests : ControllerTestBase
         this._humanProxy.Verify(p => p.AddProfileAsync(Telegram, It.IsAny<JsonElement>()), Times.Once);
     }
 
-    private ProfileController ProfileController(Mock<ILinkedAccount> linked)
+    [Fact]
+    public async Task ProfileCreate_Linked_OtherSidesAreasAreFilteredForThatHuman()
+    {
+        var areas = new Mock<IUserAreaWriter>();
+        areas.Setup(a => a.FilterAllowedAsync(Discord, It.IsAny<IReadOnlyCollection<string>>()))
+            .ReturnsAsync((string _, IReadOnlyCollection<string> n) => n.ToList());
+        // "my fence" is the caller's own drawn fence; the other human may only select "old town".
+        areas.Setup(a => a.FilterAllowedAsync(Telegram, It.IsAny<IReadOnlyCollection<string>>()))
+            .ReturnsAsync(["old town"]);
+        var sut = this.ProfileController(PairTestSupport.Linked(PairTestSupport.Pair(Discord)), areas.Object);
+        this._humanProxy.Setup(p => p.AddProfileAsync(It.IsAny<string>(), It.IsAny<JsonElement>())).ReturnsAsync(3);
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync(Discord, 3)).ReturnsAsync(new Profile { Id = Discord, ProfileNo = 3, Name = "Work" });
+
+        await sut.Create(new Profile { Name = "Work", Area = "[\"old town\",\"my fence\"]" });
+
+        areas.Verify(a => a.FilterAllowedAsync(Telegram, It.Is<IReadOnlyCollection<string>>(n => n.SequenceEqual(new[] { "old town", "my fence" }))), Times.Once);
+        this._humanProxy.Verify(p => p.SetProfileGeographyAsync(Discord, 3, It.Is<IReadOnlyCollection<string>>(l => l.SequenceEqual(new[] { "old town", "my fence" })), It.IsAny<double>(), It.IsAny<double>()), Times.Once);
+        this._humanProxy.Verify(p => p.SetProfileGeographyAsync(Telegram, 3, It.Is<IReadOnlyCollection<string>>(l => l.SequenceEqual(new[] { "old town" })), It.IsAny<double>(), It.IsAny<double>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ProfileCreate_Unlinked_FiltersOnceForTheCaller()
+    {
+        var areas = new Mock<IUserAreaWriter>();
+        areas.Setup(a => a.FilterAllowedAsync(Discord, It.IsAny<IReadOnlyCollection<string>>()))
+            .ReturnsAsync((string _, IReadOnlyCollection<string> n) => n.ToList());
+        var sut = this.ProfileController(PairTestSupport.Unlinked(), areas.Object);
+        this._humanProxy.Setup(p => p.AddProfileAsync(Discord, It.IsAny<JsonElement>())).ReturnsAsync(3);
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync(Discord, 3)).ReturnsAsync(new Profile { Id = Discord, ProfileNo = 3, Name = "Work" });
+
+        await sut.Create(new Profile { Name = "Work", Area = "[\"old town\"]" });
+
+        areas.Verify(a => a.FilterAllowedAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>()), Times.Once);
+    }
+
+    private ProfileController ProfileController(Mock<ILinkedAccount> linked, IUserAreaWriter? areas = null)
     {
         var sut = new ProfileController(
             this._profileService.Object, this._humanService.Object, this._humanProxy.Object, Mock.Of<IJwtService>(),
-            Mock.Of<Pgan.PoracleWebNet.Api.Services.IUserRoleResolver>(), Mock.Of<IUserAreaWriter>(),
+            Mock.Of<Pgan.PoracleWebNet.Api.Services.IUserRoleResolver>(), areas ?? Mock.Of<IUserAreaWriter>(),
             PairTestSupport.Writer(linked), NullLogger<ProfileController>.Instance);
         SetupUser(sut, Discord);
         return sut;

@@ -87,6 +87,13 @@ public class ProfileController(
         return JsonSerializer.Serialize(allowed);
     }
 
+    /// <summary>An already-filtered area list narrowed again to what <paramref name="humanId"/> may select.</summary>
+    private async Task<string> AreasAllowedForAsync(string humanId, string areaJson)
+    {
+        var names = JsonSerializer.Deserialize<List<string>>(areaJson) ?? [];
+        return names.Count == 0 ? "[]" : JsonSerializer.Serialize(await this._areaWriter.FilterAllowedAsync(humanId, names));
+    }
+
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] Profile profile)
     {
@@ -158,12 +165,15 @@ public class ProfileController(
         // ?profile= writes (#993).
         //
         // A linked pair creates it on both humans. Each human's profile is created and given its geography
-        // (or rolled back) on its own, then the numbers are compared.
+        // (or rolled back) on its own, then the numbers are compared. The write is trusted, so the other
+        // human's areas pass the same allowed-name rule for that human before its profile is made: the
+        // caller's own drawn fences and selectable areas are not necessarily the other side's.
         var written = await this._pairWriter.WriteAsync(this.UserId, async id =>
         {
+            var areas = id == this.UserId ? requestedAreas : await this.AreasAllowedForAsync(id, requestedAreas);
             var no = await this._humanProxy.AddProfileAsync(id, body);
             await NewProfileGeography.WriteOrRollBackAsync(
-                this._humanProxy, this._logger, id, no, requestedAreas, profile.Latitude, profile.Longitude);
+                this._humanProxy, this._logger, id, no, areas, profile.Latitude, profile.Longitude);
             return new NewProfileOn(id, no);
         });
         var (createdNo, warning) = await PairedNewProfile.ReconcileAsync(
