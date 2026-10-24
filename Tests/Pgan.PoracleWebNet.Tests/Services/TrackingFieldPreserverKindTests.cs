@@ -39,16 +39,8 @@ public class TrackingFieldPreserverKindTests
         Assert.Equal("from-invasion", body.GetProperty("costume_note").GetString());
     }
 
-    [Fact]
-    public async Task AnEventEditCarriesFieldsFromTheEventRowNotTheInvasionThatSharesItsUid()
-    {
-        var proxy = ProxyReading(Rows);
-
-        var body = await TrackingFieldPreserver.PreserveStoredFieldsAsync(
-            proxy.Object, "invasion", "u1", 7, Body("""{"uid":7,"id":"u1","grunt_type":"kecleon"}"""));
-
-        Assert.Equal("from-event", body.GetProperty("costume_note").GetString());
-    }
+    // No event-edit case: InvasionService sends an event-named model to the incident proxy before the preserver
+    // runs, so the preserver only ever sees invasion bodies. The row filter still ignores event rows for them.
 
     [Fact]
     public async Task APlainInvasionEditStillPreservesWhenNoEventSharesTheUid()
