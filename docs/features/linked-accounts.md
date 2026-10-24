@@ -92,6 +92,21 @@ Quick picks you saved yourself belong to the person, not to one account: a pick 
 with Discord shows, edits and deletes the same way when you sign in with Telegram. Applying one creates its
 alerts on the default side.
 
+## Alarms on both apps
+
+Every alarm list shows the alarms of both accounts together. Each card names the app it goes to under the
+alarm's name, with a pause mark when that app isn't receiving alerts, and **Delivered to: All / Discord /
+Telegram** above the list filters by app.
+
+Every add and edit dialog asks **Which app gets this alarm?** above its tabs, so the answer is in view
+whichever tab is open. A new alarm starts on the default from Linked accounts. Picking the other app on an
+edit moves the alarm there.
+
+To move several at once, tick them in select mode and choose **Deliver to...** (on a phone it's under
+**More**). The app every ticked alarm is already on is greyed out. A move creates the alarm on the other
+account before removing it from the first, so it is never lost. The result counts what moved, what was
+already on that app, and what wasn't moved and why.
+
 ## Unlinking
 
 Press **Unlink** on the page. Both accounts and all their alerts stay. Admins can do the same from
