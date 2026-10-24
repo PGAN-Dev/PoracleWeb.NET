@@ -11,7 +11,7 @@ import { firstValueFrom } from 'rxjs';
 import { MaxBattleAddDialogComponent } from './max-battle-add-dialog.component';
 import { MaxBattleEditDialogComponent, MaxBattleEditDialogData } from './max-battle-edit-dialog.component';
 import { MaxBattle, LinkSide } from '../../core/models';
-import { AlarmMoveService, summariseMoves } from '../../core/services/alarm-move.service';
+import { AlarmMoveService } from '../../core/services/alarm-move.service';
 import { AreaNameService } from '../../core/services/area-name.service';
 import { AreaService } from '../../core/services/area.service';
 import { I18nService } from '../../core/services/i18n.service';
@@ -33,6 +33,7 @@ import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/a
 import { byDestination, byNumber, byText, DestinationFilter, queryAlarms, visibleSelection } from '../../shared/utils/alarm-list-query';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
+import { runBulkMove } from '../../shared/utils/bulk-move';
 import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
 import { serverReason } from '../../shared/utils/server-reason';
 
@@ -156,20 +157,16 @@ export class MaxBattleListComponent implements OnInit {
 
   /** Moves the selected alarms to the other app, then reports every outcome in one line. */
   async bulkMove(destination: LinkSide): Promise<void> {
-    const uids = this.actionIds();
-    try {
-      const response = await firstValueFrom(this.moves.moveMany('maxbattle', uids, destination));
-      const text = summariseMoves(response.results, destination, this.i18n);
-      if (text) this.snackBar.open(text, this.i18n.instant('COMMON.OK'), { duration: 8000 });
-    } catch (err) {
-      this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.MOVE_FAILED_ALL'), this.i18n.instant('COMMON.OK'), {
-        duration: 6000,
-      });
-    }
-    // Some of a long selection may have moved before a later request failed, so the list always reloads.
-    this.selectedIds.set(new Set());
-    this.selectMode.set(false);
-    this.loadData();
+    await runBulkMove(
+      { i18n: this.i18n, moves: this.moves, snackBar: this.snackBar },
+      [{ uids: this.actionIds(), type: 'maxbattle' }],
+      destination,
+      () => {
+        this.selectedIds.set(new Set());
+        this.selectMode.set(false);
+        this.loadData();
+      },
+    );
   }
 
   async bulkUpdateDistance(): Promise<void> {

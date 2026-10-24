@@ -3,7 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
 
-import { AlarmMoveService, summariseMoves } from './alarm-move.service';
+import { AlarmMoveService, failedOutcomes, summariseMoves } from './alarm-move.service';
 import { ConfigService } from './config.service';
 import { I18nService } from './i18n.service';
 import { isMoveFailure } from '../../shared/utils/move-failure';
@@ -122,6 +122,23 @@ describe('moveMany keeps what it already knows', () => {
   });
 });
 
+describe('a refused request with no text', () => {
+  it('is refused, not failed, so it never reads as "may or may not have been moved"', () => {
+    expect(failedOutcomes([4], { status: 403 })).toEqual([{ reason: null, status: 'refused', uid: 4 }]);
+    expect(failedOutcomes([4], { error: {}, status: 404 })).toEqual([{ reason: null, status: 'refused', uid: 4 }]);
+  });
+
+  it('still reports a server error or no response as failed', () => {
+    expect(failedOutcomes([4], { status: 500 })).toEqual([{ status: 'failed', uid: 4 }]);
+    expect(failedOutcomes([4], { status: 0 })).toEqual([{ status: 'failed', uid: 4 }]);
+  });
+
+  it('is worded with the generic refusal', () => {
+    const text = summariseMoves(failedOutcomes([4], { status: 403 }), 'telegram', i18n as unknown as I18nService);
+    expect(text).toContain('ALARM.MOVE_REFUSED:1');
+  });
+});
+
 describe('summariseMoves', () => {
   const t = i18n as unknown as I18nService;
 
@@ -145,8 +162,7 @@ describe('summariseMoves', () => {
       t,
     );
 
-    expect(text).toContain('ALARM.MOVE_DONE');
-    expect(text).toContain('"count":2');
+    expect(text).toContain('ALARM.MOVE_DONE:2');
   });
 
   it('names the leftovers per outcome, including the copy that is still there', () => {

@@ -58,13 +58,17 @@ function statusOf(raw: unknown): MoveStatus {
 }
 
 /**
- * What a request that failed outright means for each uid it carried: a refusal (4xx) changed nothing and
- * says why; anything else may or may not have written, so it is reported as failed, not as not moved.
+ * What a request that failed outright means for each uid it carried: a refusal (4xx) changed nothing, so
+ * it is reported as refused with the server's reason when it sent one and the generic refusal otherwise;
+ * anything else may or may not have written, so it is reported as failed, not as not moved.
  */
 export function failedOutcomes(uids: readonly number[], err: unknown): MoveOutcome[] {
   const status = (err as { status?: unknown } | null)?.status;
-  const reason = typeof status === 'number' && status < 500 && status > 0 ? serverReason(err) : null;
-  return uids.map(uid => (reason ? { uid, reason, status: 'refused' as const } : { uid, status: 'failed' as const }));
+  if (typeof status === 'number' && status < 500 && status > 0) {
+    const reason = serverReason(err);
+    return uids.map(uid => ({ reason, status: 'refused' as const, uid }));
+  }
+  return uids.map(uid => ({ status: 'failed' as const, uid }));
 }
 
 /**
@@ -79,18 +83,18 @@ export function summariseMoves(results: readonly MoveOutcome[], target: LinkSide
   const parts: string[] = [];
 
   const moved = count('moved');
-  if (moved > 0) parts.push(i18n.instant('ALARM.MOVE_DONE', { app, count: moved }));
+  if (moved > 0) parts.push(i18n.plural('ALARM.MOVE_DONE', moved, { app }));
   const remains = count('sourceRemains');
-  if (remains > 0) parts.push(i18n.instant('ALARM.MOVE_SOURCE_REMAINS', { app, count: remains, from: fromApp }));
+  if (remains > 0) parts.push(i18n.plural('ALARM.MOVE_SOURCE_REMAINS', remains, { app, from: fromApp }));
   const conflicts = count('conflict');
-  if (conflicts > 0) parts.push(i18n.instant('ALARM.MOVE_CONFLICT', { app, count: conflicts }));
+  if (conflicts > 0) parts.push(i18n.plural('ALARM.MOVE_CONFLICT', conflicts, { app }));
   const refused = results.filter(r => statusOf(r.status) === 'refused');
   if (refused.length > 0) {
     const reason = refused.find(r => r.reason)?.reason ?? i18n.instant('ALARM.MOVE_REFUSED_NO_REASON');
-    parts.push(i18n.instant('ALARM.MOVE_REFUSED', { count: refused.length, reason }));
+    parts.push(i18n.plural('ALARM.MOVE_REFUSED', refused.length, { reason }));
   }
   const failed = count('failed');
-  if (failed > 0) parts.push(i18n.instant('ALARM.MOVE_FAILED', { app, count: failed }));
+  if (failed > 0) parts.push(i18n.plural('ALARM.MOVE_FAILED', failed, { app }));
 
   return parts.join(' ');
 }

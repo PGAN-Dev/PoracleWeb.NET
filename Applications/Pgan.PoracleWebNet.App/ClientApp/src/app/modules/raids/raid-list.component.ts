@@ -13,7 +13,7 @@ import { RaidAddDialogComponent } from './raid-add-dialog.component';
 import { RaidEditDialogComponent, RaidEditDialogData } from './raid-edit-dialog.component';
 import { Raid, Egg, LinkSide } from '../../core/models';
 import { resolveLevel } from '../../core/models/raid-level.models';
-import { AlarmMoveService, failedOutcomes, MoveOutcome, summariseMoves } from '../../core/services/alarm-move.service';
+import { AlarmMoveService } from '../../core/services/alarm-move.service';
 import { AreaNameService } from '../../core/services/area-name.service';
 import { AreaService } from '../../core/services/area.service';
 import { EggService } from '../../core/services/egg.service';
@@ -41,6 +41,7 @@ import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/a
 import { byDestination, byNumber, byText, DestinationFilter, queryAlarms, visibleSelection } from '../../shared/utils/alarm-list-query';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
+import { runBulkMove } from '../../shared/utils/bulk-move';
 import { NO_COSTUME } from '../../shared/utils/costumes';
 import { combineDistanceResults, distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
 import { teamEdge, tierEdge } from '../../shared/utils/rule-colours';
@@ -214,32 +215,19 @@ export class RaidListComponent implements OnInit {
   /** Moves the selected raids and eggs to the other app (two types, so two requests), then reports every outcome in one line. */
   async bulkMove(destination: LinkSide): Promise<void> {
     const keys = this.actionIds();
-    try {
-      const results: MoveOutcome[] = [];
-      for (const [type, kind] of [
-        ['raid', 'raid'],
-        ['egg', 'egg'],
-      ] as const) {
-        const uids = this.uidsOfKind(keys, kind);
-        if (uids.length === 0) continue;
-        // One type failing must not hide what the other already did.
-        try {
-          results.push(...(await firstValueFrom(this.moves.moveMany(type, uids, destination))).results);
-        } catch (err) {
-          results.push(...failedOutcomes(uids, err));
-        }
-      }
-      const text = summariseMoves(results, destination, this.i18n);
-      if (text) this.snackBar.open(text, this.i18n.instant('COMMON.OK'), { duration: 8000 });
-    } catch (err) {
-      this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.MOVE_FAILED_ALL'), this.i18n.instant('COMMON.OK'), {
-        duration: 6000,
-      });
-    }
-    // Part of the selection may have moved before a later request failed, so the list always reloads.
-    this.selectedIds.set(new Set());
-    this.selectMode.set(false);
-    this.loadData();
+    await runBulkMove(
+      { i18n: this.i18n, moves: this.moves, snackBar: this.snackBar },
+      [
+        { uids: this.uidsOfKind(keys, 'raid'), type: 'raid' },
+        { uids: this.uidsOfKind(keys, 'egg'), type: 'egg' },
+      ],
+      destination,
+      () => {
+        this.selectedIds.set(new Set());
+        this.selectMode.set(false);
+        this.loadData();
+      },
+    );
   }
 
   async bulkUpdateDistance(): Promise<void> {

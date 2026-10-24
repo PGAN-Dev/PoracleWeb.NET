@@ -422,13 +422,18 @@
     "FILTER_ALL": "Alle",
     "MOVED_SOURCE_REMAINS": "Flyttet til {{app}}, men kopien i {{from}} er der stadig. Slet den fra listen.",
     "MOVED_TO": "Flyttet til {{app}}.",
-    "MOVE_CONFLICT": "{{count}} ikke flyttet: {{app}} har allerede en lignende besked.",
-    "MOVE_DONE": "{{count}} flyttet til {{app}}.",
-    "MOVE_FAILED": "{{count}} er måske nået frem til {{app}}. Tjek begge apps, før du prøver igen.",
+    "MOVE_CONFLICT_ONE": "{{count}} ikke flyttet: {{app}} har allerede en lignende besked.",
+    "MOVE_CONFLICT_OTHER": "{{count}} ikke flyttet: {{app}} har allerede en lignende besked.",
+    "MOVE_DONE_ONE": "{{count}} flyttet til {{app}}.",
+    "MOVE_DONE_OTHER": "{{count}} flyttet til {{app}}.",
+    "MOVE_FAILED_ONE": "{{count}} er måske nået frem til {{app}}. Tjek begge apps, før du prøver igen.",
+    "MOVE_FAILED_OTHER": "{{count}} er måske nået frem til {{app}}. Tjek begge apps, før du prøver igen.",
     "MOVE_FAILED_ALL": "Beskederne kunne ikke flyttes. Prøv igen om lidt.",
-    "MOVE_REFUSED": "{{count}} ikke flyttet: {{reason}}",
+    "MOVE_REFUSED_ONE": "{{count}} ikke flyttet: {{reason}}",
+    "MOVE_REFUSED_OTHER": "{{count}} ikke flyttet: {{reason}}",
     "MOVE_REFUSED_NO_REASON": "Flytningen blev afvist.",
-    "MOVE_SOURCE_REMAINS": "{{count}} flyttet til {{app}}, men kopien i {{from}} er der stadig. Slet den fra listen."
+    "MOVE_SOURCE_REMAINS_ONE": "{{count}} flyttet til {{app}}, men kopien i {{from}} er der stadig. Slet den fra listen.",
+    "MOVE_SOURCE_REMAINS_OTHER": "{{count}} flyttet til {{app}}, men kopien i {{from}} er der stadig. Slet den fra listen."
   },
   "RAIDS": {
     "RSVP_LABEL": "RSVP-notifikationer",

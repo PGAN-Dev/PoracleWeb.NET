@@ -13,7 +13,7 @@ import { firstValueFrom } from 'rxjs';
 import { PokestopEventAddDialogComponent, PokestopEventAddDialogData } from './pokestop-event-add-dialog.component';
 import { PokestopEventEditDialogComponent } from './pokestop-event-edit-dialog.component';
 import { PokestopEvent, LinkSide } from '../../core/models';
-import { AlarmMoveService, summariseMoves } from '../../core/services/alarm-move.service';
+import { AlarmMoveService } from '../../core/services/alarm-move.service';
 import { AreaService } from '../../core/services/area.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
@@ -32,6 +32,7 @@ import { isEditExisting } from '../../shared/utils/add-outcome';
 import { byDestination, byNumber, byText, DestinationFilter, queryAlarms, visibleSelection } from '../../shared/utils/alarm-list-query';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
+import { runBulkMove } from '../../shared/utils/bulk-move';
 import { isAutoDelete } from '../../shared/utils/clean-flags';
 import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
 import { pokestopEventInfo } from '../../shared/utils/pokestop-events';
@@ -147,20 +148,16 @@ export class PokestopEventListComponent implements OnInit {
 
   /** Moves the selected alarms to the other app, then reports every outcome in one line. */
   async bulkMove(destination: LinkSide): Promise<void> {
-    const uids = this.actionIds();
-    try {
-      const response = await firstValueFrom(this.moves.moveMany('incident', uids, destination));
-      const text = summariseMoves(response.results, destination, this.i18n);
-      if (text) this.snackBar.open(text, this.i18n.instant('COMMON.OK'), { duration: 8000 });
-    } catch (err) {
-      this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.MOVE_FAILED_ALL'), this.i18n.instant('COMMON.OK'), {
-        duration: 6000,
-      });
-    }
-    // Some of a long selection may have moved before a later request failed, so the list always reloads.
-    this.selectedIds.set(new Set());
-    this.selectMode.set(false);
-    this.loadItems();
+    await runBulkMove(
+      { i18n: this.i18n, moves: this.moves, snackBar: this.snackBar },
+      [{ uids: this.actionIds(), type: 'incident' }],
+      destination,
+      () => {
+        this.selectedIds.set(new Set());
+        this.selectMode.set(false);
+        this.loadItems();
+      },
+    );
   }
 
   async bulkUpdateDistance(): Promise<void> {
