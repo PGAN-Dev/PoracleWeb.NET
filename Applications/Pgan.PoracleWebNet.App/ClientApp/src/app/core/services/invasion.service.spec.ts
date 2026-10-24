@@ -89,4 +89,21 @@ describe('InvasionService', () => {
     expect(req.request.method).toBe('DELETE');
     req.flush(null);
   });
+
+  it('sends the kind of the opened card when it is given', () => {
+    service.update(7, { distance: 100 }, 'event').subscribe();
+
+    const req = httpMock.expectOne(r => r.url === API + '/api/invasions/7');
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.params.get('kind')).toBe('event');
+    req.flush(null);
+  });
+
+  it('sends no kind query when none is given, as before', () => {
+    service.update(7, { distance: 100 }).subscribe();
+
+    const req = httpMock.expectOne(API + '/api/invasions/7');
+    expect(req.request.params.has('kind')).toBe(false);
+    req.flush(null);
+  });
 });

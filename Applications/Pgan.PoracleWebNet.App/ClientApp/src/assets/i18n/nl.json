@@ -897,6 +897,8 @@
     "SAVE": "Opslaan",
     "CANCEL_CHANGES": "Annuleren",
     "SNACK_UPDATED": "Gebieden bijgewerkt",
+    "DEAD_AREAS": "Niet meer beschikbaar: {{names}}. Ze worden verwijderd bij je volgende keer opslaan.",
+    "DEAD_AREAS_REMOVE": "Verwijderen",
     "SNACK_SAVED_DROPPED": "Opgeslagen. Weggelaten, omdat Poracle zo'n gebied niet kent: {{names}}",
     "SNACK_FAILED": "Kan je gebieden niet opslaan. Probeer het zo opnieuw.",
     "SNACK_NOT_PERMITTED": "Niet opgeslagen. Deze gebieden zijn niet voor jou beschikbaar: {{names}}",

@@ -115,6 +115,7 @@ public class PokestopEventConsumerTests
     {
         this.EventsPageOff();
         var handler = new Handler().Get("/tracking/invasion", InvasionRules).Get("/tracking/incident", IncidentRules)
+            .Get("all_profiles=true", Snapshot)
             .Delete("/tracking/invasion", """{"deleted":[{"uid":1}]}""")
             .Delete("/tracking/incident", """{"deleted":[{"uid":289},{"uid":290}]}""");
 
@@ -132,6 +133,7 @@ public class PokestopEventConsumerTests
         // Quick-pick Remove and the invasion page both call this for a uid they read from the list.
         this.EventsPageOff();
         var handler = new Handler()
+            .Get("all_profiles=true", Snapshot)
             .Delete("/tracking/invasion/289", """{"title":"Not Found","status":404,"detail":"rule not found"}""", HttpStatusCode.NotFound, "application/problem+json")
             .Delete("/tracking/incident/289", """{"deleted":[{"uid":289}]}""");
 

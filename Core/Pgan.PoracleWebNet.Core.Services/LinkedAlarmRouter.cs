@@ -38,13 +38,21 @@ public class LinkedAlarmRouter(ILinkedAccount linked, AlarmMover mover)
     }
 
     /// <summary>The alarm and the human id that owns it, or null when neither human of the pair has that uid.</summary>
-    public async Task<(TModel Model, string OwnerId)?> FindAsync<TModel>(IAlarmService<TModel> svc, string userId, int uid)
+    public Task<(TModel Model, string OwnerId)?> FindAsync<TModel>(IAlarmService<TModel> svc, string userId, int uid)
+        where TModel : class, IHasDestination =>
+        this.FindAsync(userId, humanId => svc.GetByUidAsync(humanId, uid));
+
+    /// <summary>
+    /// The alarm <paramref name="lookup"/> finds on either human of the pair, and the human id that owns it. For a
+    /// lookup narrower than a uid, such as an invasion uid of a stated kind.
+    /// </summary>
+    public async Task<(TModel Model, string OwnerId)?> FindAsync<TModel>(string userId, Func<string, Task<TModel?>> lookup)
         where TModel : class, IHasDestination
     {
         var pair = await this.ResolveAsync(userId);
         foreach (var humanId in pair.ExistingHumanIds)
         {
-            var model = await svc.GetByUidAsync(humanId, uid);
+            var model = await lookup(humanId);
             if (model is not null)
             {
                 Stamp(pair, model, humanId);

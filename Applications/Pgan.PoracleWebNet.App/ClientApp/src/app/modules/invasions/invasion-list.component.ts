@@ -54,6 +54,7 @@ import { runBulkMove } from '../../shared/utils/bulk-move';
 import { isAutoDelete as cleanIsAutoDelete } from '../../shared/utils/clean-flags';
 import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
 import { swapToFallbackIcon } from '../../shared/utils/icon-fallback';
+import { invasionKind } from '../../shared/utils/pokestop-events';
 import { serverReason } from '../../shared/utils/server-reason';
 
 @Component({
@@ -305,7 +306,7 @@ export class InvasionListComponent implements OnInit {
       .subscribe((scope?: AlarmScope) => {
         if (!scope) return;
 
-        this.invasionService.update(item.uid, scopeToFields(scope)).subscribe({
+        this.invasionService.update(item.uid, scopeToFields(scope), invasionKind(item.gruntType)).subscribe({
           error: (err: unknown) =>
             this.snackBar.open(serverReason(err) ?? this.i18n.instant('WHERE.SCOPE_SAVE_ERROR'), this.i18n.instant('COMMON.OK'), {
               duration: 4000,

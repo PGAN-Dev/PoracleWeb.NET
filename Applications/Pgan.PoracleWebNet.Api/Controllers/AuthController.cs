@@ -427,7 +427,7 @@ public partial class AuthController(
 
     [AllowAnonymous]
     [HttpGet("oidc/callback")]
-    public async Task<IActionResult> OidcCallback([FromQuery] string code, [FromQuery] string? state)
+    public async Task<IActionResult> OidcCallback([FromQuery] string? code, [FromQuery] string? state)
     {
         var frontendUrl = this.GetFrontendUrl();
 

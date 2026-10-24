@@ -75,6 +75,12 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
         return items.FirstOrDefault(x => x.Uid == uid);
     }
 
+    public async Task<Invasion?> GetByUidAsync(string userId, int uid, string? kind)
+    {
+        var items = await this.ReadOwnRowsAsync(userId);
+        return items.FirstOrDefault(x => x.Uid == uid && KindMatches(x.GruntType, kind));
+    }
+
     public async Task<Invasion> CreateAsync(string userId, Invasion model)
     {
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Invasions);
@@ -102,11 +108,40 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
         return model;
     }
 
-    public async Task<Invasion> UpdateAsync(string userId, Invasion model)
+    public Task<Invasion> UpdateAsync(string userId, Invasion model) => this.UpdateAsync(userId, model, storedKind: null);
+
+    public async Task<Invasion> UpdateAsync(string userId, Invasion model, string? storedKind)
     {
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Invasions);
         RequireGruntType(model);
         var oldUid = model.Uid;
+
+        // Invasion and incident rules have separate uid sequences, so the uid names a rule only within its own
+        // kind. The caller says which kind the rule it opened was (the request carries it; nothing here can
+        // guess it from the uid). A kind change is a create of the new rule and then removal of the old one,
+        // never a write addressed by the old uid, which would replace an unrelated rule of the other kind.
+        // No stated kind keeps the old in-place behaviour for older clients. See #1062.
+        if (storedKind is not null && oldUid > 0 && KindMatches(model.GruntType, storedKind) is false)
+        {
+            model.Uid = 0;
+            var created = await this.CreateAsync(userId, model);
+            if (AsPokestopEvent(model) is not null)
+            {
+                await this._proxy.DeleteByUidAsync(TrackingType, userId, oldUid);
+            }
+            else
+            {
+                await this._incidentProxy.DeleteByUidAsync(userId, oldUid);
+            }
+
+            model.Uid = created.Uid;
+            if (model.Uid > 0)
+            {
+                await this._uidRemapper.RemapAsync(userId, TrackingType, oldUid, model.Uid);
+            }
+
+            return model;
+        }
 
         if (AsPokestopEvent(model) is { } pokestopEvent)
         {
@@ -132,6 +167,15 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
 
         return model;
     }
+
+    /// <summary>Whether a grunt type is of the stated kind ("event" or "invasion"); any other kind matches everything.</summary>
+    private static bool KindMatches(string? gruntType, string? kind) =>
+        kind switch
+        {
+            "event" => PokestopEventTypes.IsEventName(gruntType),
+            "invasion" => !PokestopEventTypes.IsEventName(gruntType),
+            _ => true,
+        };
 
     public async Task<bool> DeleteAsync(string userId, int uid)
     {

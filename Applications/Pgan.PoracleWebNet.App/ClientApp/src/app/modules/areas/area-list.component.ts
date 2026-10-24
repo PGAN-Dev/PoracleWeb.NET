@@ -95,7 +95,9 @@ export class AreaListComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
   private readonly i18n = inject(I18nService);
+  private knownAreaKeys: null | Set<string> = null;
   private readonly locationService = inject(LocationService);
+
   private readonly rawGeofenceData = signal<GeofenceData[]>([]);
 
   /** The caller's own drawn fences, by stored key, to the name they gave them. They're not in `availableAreas`. */
@@ -106,6 +108,9 @@ export class AreaListComponent implements OnInit {
   private readonly pinPanel = viewChild('pinPanel', { read: ElementRef });
 
   private pinPanelScroll?: ReturnType<typeof setTimeout>;
+
+  /** Every fence PoracleNG published for this user, selectable or not, by key. Null until it was read. */
+  private polygonKeys: null | Set<string> = null;
   /**
    * What PoracleNG holds for the active profile, as last read or saved. The Areas card and the quiet chips
    * speak about this, not about the ticks: an area ticked and not yet saved is not active, and has no
@@ -143,6 +148,15 @@ export class AreaListComponent implements OnInit {
   /** True from the Clear click until its confirm closes, so a double click opens one dialog. */
   readonly clearingPin = signal(false);
 
+  /**
+   * Names the person holds that PoracleNG has no fence for (a renamed or removed fence). They are left out of
+   * `selectedAreas`, so they are never sent, and listed once in a note until the next save drops them.
+   * Empty whenever the fence lists could not be read: a name is only dead when both lists were seen. See #1060.
+   */
+  readonly deadAreas = signal<string[]>([]);
+
+  readonly deadAreaNames = computed(() => this.deadAreas().join(', '));
+
   /** Street addresses for the pin. Off with `disable_nominatim`, and with location itself. */
   readonly geocodingEnabled = computed(
     () => !this.settingsService.isDisabled('disable_location') && !this.settingsService.isDisabled('disable_nominatim'),
@@ -178,7 +192,7 @@ export class AreaListComponent implements OnInit {
   readonly hasChanges = computed(() => {
     // Compared by PoracleNG's key, so `west_end` held and `West End` ticked are one area, not a change.
     const current = this.selectedAreas().map(areaKey).sort();
-    const saved = this.savedAreas().map(areaKey).sort();
+    const saved = this.liveSavedAreas().map(areaKey).sort();
     if (current.length !== saved.length) return true;
     return current.some((v, i) => v !== saved[i]);
   });
@@ -263,7 +277,7 @@ export class AreaListComponent implements OnInit {
     for (const a of this.areas()) {
       a.selected = savedSet.has(areaKey(a.name));
     }
-    this.selectedAreas.set([...this.savedAreas()]);
+    this.selectedAreas.set(this.liveSavedAreas());
   }
 
   clearAllAreas(): void {
@@ -379,6 +393,11 @@ export class AreaListComponent implements OnInit {
     }
   }
 
+  /** Saves the live selection now, which drops the dead names. The button is off while other edits are unsaved. */
+  removeDeadAreas(): void {
+    this.saveAreas();
+  }
+
   saveAreas(): void {
     this.saving.set(true);
     const areaListNames = new Set(this.areas().map(a => areaKey(a.name)));
@@ -428,6 +447,7 @@ export class AreaListComponent implements OnInit {
     for (const a of this.areas()) a.selected = keptKeys.has(areaKey(a.name));
     this.savedAreas.set([...kept]);
     this.selectedAreas.set([...kept]);
+    this.deadAreas.set([]);
     this.saving.set(false);
 
     if (dropped.length > 0) {
@@ -442,6 +462,7 @@ export class AreaListComponent implements OnInit {
   }
 
   private buildAreaList(): void {
+    this.classifyDeadAreas();
     // DB stores lowercase area names, API may return mixed case
     const selectedSet = new Set(this.selectedAreas().map(a => areaKey(a)));
     const available = this.availableAreas();
@@ -454,6 +475,26 @@ export class AreaListComponent implements OnInit {
         }))
         .sort((a, b) => a.name.localeCompare(b.name)),
     );
+  }
+
+  /**
+   * Splits the held names into live and dead. Runs when the polygon feed arrives and when the page has built
+   * its list, so the page never waits on the feed.
+   *
+   * AreaService.getGeofencePolygons turns a failed read into an empty list and the API answers 200 with an
+   * empty list when PoracleNG's reads fail, so an empty set means "could not tell", not "no fences": nothing is
+   * called dead unless both sets hold something. If PoracleNG really has no fence, the save still drops the
+   * name server-side, as it always did.
+   */
+  private classifyDeadAreas(): void {
+    const available = this.knownAreaKeys;
+    const polygons = this.polygonKeys;
+    if (this.selectionUnknown() || !available || !polygons || available.size === 0 || polygons.size === 0) return;
+    const dead = this.selectedAreas().filter(a => !available.has(areaKey(a)) && !polygons.has(areaKey(a)));
+    if (dead.length === 0) return;
+    const deadKeys = new Set(dead.map(areaKey));
+    this.deadAreas.set([...this.deadAreas(), ...dead]);
+    this.selectedAreas.set(this.selectedAreas().filter(a => !deadKeys.has(areaKey(a))));
   }
 
   private clearPin(): void {
@@ -472,6 +513,12 @@ export class AreaListComponent implements OnInit {
           this.snackBar.open(this.i18n.instant('AREAS.SNACK_LOCATION_CLEARED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
         },
       });
+  }
+
+  /** What is held and not dead: what the page can show, compare and send. */
+  private liveSavedAreas(): string[] {
+    const dead = new Set(this.deadAreas().map(areaKey));
+    return this.savedAreas().filter(a => !dead.has(areaKey(a)));
   }
 
   private loadData(): void {
@@ -514,6 +561,7 @@ export class AreaListComponent implements OnInit {
       .subscribe({
         error: () => check(),
         next: areas => {
+          this.knownAreaKeys = new Set(areas.map(a => areaKey(a.name)));
           this.availableAreas.set(areas.filter(a => a.userSelectable !== false));
           check();
         },
@@ -531,7 +579,11 @@ export class AreaListComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         error: () => {},
-        next: data => this.rawGeofenceData.set(data),
+        next: data => {
+          this.polygonKeys = new Set(data.map(g => areaKey(g.name)));
+          this.rawGeofenceData.set(data);
+          this.classifyDeadAreas();
+        },
       });
   }
 

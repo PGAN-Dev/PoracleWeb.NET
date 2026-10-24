@@ -83,4 +83,33 @@ public class InvasionControllerTests : ControllerTestBase
         this._service.Setup(s => s.UpdateDistanceByUserAsync("123456789", 1, 100)).ReturnsAsync(DistanceUpdateResult.None with { Updated = 2 });
         Assert.IsType<OkObjectResult>(await this._sut.UpdateAllDistance(100));
     }
+
+    [Theory]
+    [InlineData("event")]
+    [InlineData("invasion")]
+    public async Task UpdateOpensTheRuleOfTheStatedKindAndPassesTheKindOn(string kind)
+    {
+        var existing = new Invasion { Uid = 7, GruntType = kind == "event" ? "kecleon" : "water" };
+        this._service.Setup(s => s.GetByUidAsync("123456789", 7, kind)).ReturnsAsync(existing);
+        this._service.Setup(s => s.UpdateAsync("123456789", existing, kind)).ReturnsAsync(existing);
+
+        Assert.IsType<OkObjectResult>(await this._sut.Update(7, new InvasionUpdate { Distance = 500 }, kind));
+
+        this._service.Verify(s => s.UpdateAsync("123456789", existing, kind), Times.Once);
+        this._service.Verify(s => s.GetByUidAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("bogus")]
+    public async Task UpdateWithoutAKnownKindKeepsTheOldLookup(string? kind)
+    {
+        var existing = new Invasion { Uid = 7, GruntType = "water" };
+        this._service.Setup(s => s.GetByUidAsync("123456789", 7)).ReturnsAsync(existing);
+        this._service.Setup(s => s.UpdateAsync("123456789", existing)).ReturnsAsync(existing);
+
+        Assert.IsType<OkObjectResult>(await this._sut.Update(7, new InvasionUpdate { Distance = 500 }, kind));
+
+        this._service.Verify(s => s.UpdateAsync("123456789", existing), Times.Once);
+    }
 }

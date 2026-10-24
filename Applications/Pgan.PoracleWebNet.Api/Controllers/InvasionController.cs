@@ -63,9 +63,15 @@ public class InvasionController(IInvasionService invasionService, LinkedAlarmRou
     }
 
     [HttpPut("{uid:int}")]
-    public async Task<IActionResult> Update(int uid, [FromBody] InvasionUpdate model)
+    public async Task<IActionResult> Update(int uid, [FromBody] InvasionUpdate model, [FromQuery] string? kind = null)
     {
-        var found = await this._router.FindAsync(this._invasionService, this.UserId, uid);
+        // The kind of the rule the person opened. Invasion and event rules are numbered separately, so a uid
+        // alone can name either; absent or unknown keeps the first match, as older clients expect. See #1062.
+        // With a linked pair the row of that kind is looked for on both humans, so it is found on its owner.
+        kind = kind is "event" or "invasion" ? kind : null;
+        var found = kind is null
+            ? await this._router.FindAsync(this._invasionService, this.UserId, uid)
+            : await this._router.FindAsync(this.UserId, humanId => this._invasionService.GetByUidAsync(humanId, uid, kind));
         if (found is null)
         {
             return this.NotFound();
@@ -104,7 +110,10 @@ public class InvasionController(IInvasionService invasionService, LinkedAlarmRou
             return refused;
         }
 
-        var result = await this._invasionService.UpdateAsync(ownerId, existing);
+        // A kind change stays on the human that owns the rule: the new rule is created there and the old one removed.
+        var result = kind is null
+            ? await this._invasionService.UpdateAsync(ownerId, existing)
+            : await this._invasionService.UpdateAsync(ownerId, existing, kind);
         this._router.Stamp(result, ownerId);
         return this.Ok(result);
     }

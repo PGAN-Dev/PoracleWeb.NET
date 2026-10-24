@@ -265,7 +265,7 @@ public partial class AlarmMover(
         }
 
         var body = PoracleJsonHelper.SerializeToElement(model);
-        var merged = TrackingFieldPreserver.PreserveStoredFields(rows, model.Uid, body);
+        var merged = TrackingFieldPreserver.PreserveStoredFields(trackingType, rows, model.Uid, body);
         var extras = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
         foreach (var prop in merged.EnumerateObject())
         {

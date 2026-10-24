@@ -77,12 +77,20 @@ public partial class PoracleTrackingProxy(
             return;
         }
 
-        if (type == InvasionType && await this.DeleteOneV2Async(IncidentType, userId, uid, profileNo: null))
+        // Invasion and incident keep separate uid sequences, so the same number can name a grunt rule and an
+        // unrelated event. The retry as incident happens only for a uid the stored rules show is an event.
+        JsonElement? snapshot = null;
+        if (type == InvasionType)
         {
-            return;
+            snapshot = await this.GetAllTrackingAllProfilesAsync(userId);
+            if (EventOnlyUids(snapshot.Value, [uid]).Contains(uid)
+                && await this.DeleteOneV2Async(IncidentType, userId, uid, profileNo: null))
+            {
+                return;
+            }
         }
 
-        if ((await this.DeleteOnOtherProfilesAsync(type, userId, [uid], singleRoute: true)).Count > 0)
+        if ((await this.DeleteOnOtherProfilesAsync(type, userId, [uid], singleRoute: true, snapshot)).Count > 0)
         {
             LogDeleteAlreadyGone(this._logger, type, uid);
         }
@@ -105,14 +113,21 @@ public partial class PoracleTrackingProxy(
 
         var remaining = requested.Except(await this.DeleteManyV2Async(type, userId, requested, profileNo: null)).ToList();
 
+        JsonElement? snapshot = null;
         if (type == InvasionType && remaining.Count > 0)
         {
-            remaining = remaining.Except(await this.DeleteManyV2Async(IncidentType, userId, remaining, profileNo: null)).ToList();
+            // Only uids the stored rules show are events go to incident; see DeleteByUidAsync.
+            snapshot = await this.GetAllTrackingAllProfilesAsync(userId);
+            var events = EventOnlyUids(snapshot.Value, remaining);
+            if (events.Count > 0)
+            {
+                remaining = remaining.Except(await this.DeleteManyV2Async(IncidentType, userId, events, profileNo: null)).ToList();
+            }
         }
 
         if (remaining.Count > 0)
         {
-            remaining = await this.DeleteOnOtherProfilesAsync(type, userId, remaining, singleRoute: false);
+            remaining = await this.DeleteOnOtherProfilesAsync(type, userId, remaining, singleRoute: false, snapshot);
         }
 
         if (remaining.Count > 0)
@@ -128,9 +143,10 @@ public partial class PoracleTrackingProxy(
     /// </summary>
     /// <param name="singleRoute">Re-issue on the single-rule route, as the caller's own delete was.</param>
     /// <returns>The uids no profile holds.</returns>
-    private async Task<List<int>> DeleteOnOtherProfilesAsync(string type, string userId, List<int> uids, bool singleRoute)
+    private async Task<List<int>> DeleteOnOtherProfilesAsync(
+        string type, string userId, List<int> uids, bool singleRoute, JsonElement? snapshot = null)
     {
-        var all = await this.GetAllTrackingAllProfilesAsync(userId);
+        var all = snapshot ?? await this.GetAllTrackingAllProfilesAsync(userId);
         var snapshotKey = type == IncidentType ? InvasionType : type;
         var wanted = uids.ToHashSet();
         var placed = new Dictionary<(string Type, int Profile), List<int>>();
@@ -139,24 +155,27 @@ public partial class PoracleTrackingProxy(
             && all.TryGetProperty(snapshotKey, out var rows)
             && rows.ValueKind == JsonValueKind.Array)
         {
+            var plainUids = snapshotKey == InvasionType
+                ? rows.EnumerateArray().Where(r => !IsEventRow(r)).Select(UidOf).ToHashSet()
+                : [];
+
             foreach (var row in rows.EnumerateArray())
             {
                 var uid = UidOf(row);
-                if (!wanted.Remove(uid)
-                    || !row.TryGetProperty("profile_no", out var no)
-                    || no.ValueKind != JsonValueKind.Number)
+                var isEvent = snapshotKey == InvasionType && IsEventRow(row);
+
+                // The snapshot folds events into invasion, so a plain grunt rule sharing an incident
+                // uid is not the rule the caller named. The reverse holds too: an invasion delete whose
+                // uid names a grunt rule never takes an event that shares the number. The kind is judged
+                // before the uid is claimed, so a row of the wrong kind cannot consume it.
+                if ((type == IncidentType && !isEvent) || (type == InvasionType && isEvent && plainUids.Contains(uid)))
                 {
                     continue;
                 }
 
-                var isEvent = snapshotKey == InvasionType
-                    && row.TryGetProperty("grunt_type", out var grunt)
-                    && grunt.ValueKind == JsonValueKind.String
-                    && PokestopEventTypes.IsEventName(grunt.GetString());
-
-                // The snapshot folds events into invasion, so a plain grunt rule sharing an incident
-                // uid is not the rule the caller named.
-                if (type == IncidentType && !isEvent)
+                if (!wanted.Remove(uid)
+                    || !row.TryGetProperty("profile_no", out var no)
+                    || no.ValueKind != JsonValueKind.Number)
                 {
                     continue;
                 }
@@ -191,6 +210,32 @@ public partial class PoracleTrackingProxy(
         }
 
         return remaining;
+    }
+
+    /// <summary>Whether a row of the folded invasion read is a Pokestop event, by the marker the read uses.</summary>
+    private static bool IsEventRow(JsonElement row) =>
+        row.TryGetProperty("grunt_type", out var grunt)
+        && grunt.ValueKind == JsonValueKind.String
+        && PokestopEventTypes.IsEventName(grunt.GetString());
+
+    /// <summary>The uids whose every row in the folded invasion read is an event, and at least one is.</summary>
+    private static List<int> EventOnlyUids(JsonElement all, IEnumerable<int> uids)
+    {
+        if (all.ValueKind != JsonValueKind.Object
+            || !all.TryGetProperty(InvasionType, out var rows)
+            || rows.ValueKind != JsonValueKind.Array)
+        {
+            return [];
+        }
+
+        var events = new HashSet<int>();
+        var plain = new HashSet<int>();
+        foreach (var row in rows.EnumerateArray())
+        {
+            (IsEventRow(row) ? events : plain).Add(UidOf(row));
+        }
+
+        return uids.Where(u => events.Contains(u) && !plain.Contains(u)).ToList();
     }
 
     private static string ProfileQuery(int? profileNo) => profileNo is { } no ? $"&profile={no}" : string.Empty;

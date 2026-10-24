@@ -897,6 +897,8 @@
     "SAVE": "Salvar",
     "CANCEL_CHANGES": "Cancelar",
     "SNACK_UPDATED": "Áreas atualizadas",
+    "DEAD_AREAS": "Não estão mais disponíveis: {{names}}. Serão removidas na próxima vez que você salvar.",
+    "DEAD_AREAS_REMOVE": "Remover",
     "SNACK_SAVED_DROPPED": "Salvo. Ficou de fora porque o Poracle não tem essa área: {{names}}",
     "SNACK_FAILED": "Não foi possível atualizar áreas. Tente novamente em instantes.",
     "SNACK_NOT_PERMITTED": "Não salvo. Estas áreas não estão disponíveis para você: {{names}}",
