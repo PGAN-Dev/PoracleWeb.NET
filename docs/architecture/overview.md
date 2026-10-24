@@ -21,8 +21,9 @@ Pgan.PoracleWebNet.slnx
 │   │                               Tracking, Incident, Human, Mute, Summary, Api)
 │   ├── Core.Models/                DTOs passed between layers
 │   ├── Core.Mappings/              Mapping extension methods (alarm DTOs, poracle_web tables)
-│   ├── Core.Repositories/          poracle_web data access (OidcSession, QuickPickAppliedState,
-│   │                               QuickPickDefinition, SiteSetting, UserGeofence, WebhookDelegate)
+│   ├── Core.Repositories/          poracle_web data access (AccountLink, OidcSession,
+│   │                               QuickPickAppliedState, QuickPickDefinition, SiteSetting,
+│   │                               UserGeofence, WebhookDelegate)
 │   └── Core.Services/              Business logic + PoracleNG API proxies
 ├── Data/
 │   ├── Data/                       PoracleWebContext, entities, configurations, migrations
@@ -38,10 +39,11 @@ flowchart LR
     Browser["Browser<br/>Angular SPA"]
     subgraph PW["PoracleWeb.NET API"]
         API["Controllers<br/>JWT, rate limits, disable_* gates"]
+        Linked["Linked accounts<br/>pair resolution, router,<br/>paired writer, moves, drift"]
         Proxies["PoracleNG proxies<br/>Tracking, Incident, Human,<br/>Mute, Summary, Api"]
         Feed["GET /api/geofence-feed"]
     end
-    WebDB[("poracle_web DB<br/>settings, geofences,<br/>delegates, quick picks,<br/>OIDC sessions")]
+    WebDB[("poracle_web DB<br/>settings, geofences,<br/>delegates, quick picks,<br/>OIDC sessions, account links")]
     Scanner[("Scanner DB, optional<br/>gyms, Pokéstops,<br/>stations, weather")]
     NG["PoracleNG 5.4.0+<br/>/api/v2, X-Poracle-Secret"]
     NGDB[("Poracle's DB<br/>owned by PoracleNG")]
@@ -50,6 +52,9 @@ flowchart LR
     Golbat["Golbat API, optional"]
     Browser -->|"HTTPS + JWT"| API
     API --> Proxies
+    API --> Linked
+    Linked -->|"one call per human"| Proxies
+    Linked -->|"account_links"| WebDB
     Proxies -->|"humans, profiles, areas,<br/>alarms, mutes, test alerts, geocode"| NG
     NG --- NGDB
     API --> WebDB
@@ -75,6 +80,9 @@ All alarm tracking writes (create, update, delete) and single-user human/profile
 
 ### Separate databases
 PoracleWeb.NET doesn't connect to Poracle's database, which PoracleNG manages. Application-owned data (user geofences, site settings, webhook delegates, quick pick definitions) lives in a separate `poracle_web` database managed by EF Core migrations.
+
+### Linked accounts on top of PoracleNG
+A person who uses both Discord and Telegram has two PoracleNG humans. PoracleWeb.NET pairs them in its own `account_links` table and changes nothing in PoracleNG. `ILinkedAccount` resolves the pair live on each request (cached a minute), `LinkedAlarmRouter` merges both humans' alarms and sends each write to the human that owns it, `PairedHumanWriter` sends every person-level write to both, `AlarmMover` moves an alarm between them by creating before it deletes, and `PairDriftService` reports where bot commands have made the two differ. For an unlinked person every one of these makes exactly the calls it made before. See [Linked Accounts](linked-accounts.md).
 
 ### Unified geofence feed
 PoracleWeb.NET acts as the single geofence source for PoracleNG. It fetches admin geofences from Koji, merges them with user-drawn geofences, and serves everything via one endpoint (`GET /api/geofence-feed`). No custom code needed in PoracleNG or Koji. User geofences support GeoJSON import/export for interoperability with external mapping tools.

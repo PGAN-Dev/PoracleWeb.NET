@@ -94,6 +94,7 @@ nav:
       - Backend Patterns: architecture/backend.md
       - Frontend Patterns: architecture/frontend.md
       - Database: architecture/database.md
+      - Linked Accounts: architecture/linked-accounts.md
   - Features:
       - Alarm Management: features/alarms.md
       - Linked Accounts: features/linked-accounts.md
