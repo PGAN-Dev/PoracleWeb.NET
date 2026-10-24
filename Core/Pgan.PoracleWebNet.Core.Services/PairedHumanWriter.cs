@@ -47,7 +47,7 @@ public sealed partial class PairedHumanWriter(ILinkedAccount linkedAccount, ILog
     /// (PoracleNG's own detail, or one of ours); anything else, an <see cref="HttpRequestException"/> naming a
     /// host and port included, becomes a fixed line, and the exception goes to the log.
     /// </summary>
-    private static string ReasonFor(Exception ex, LinkSide side) =>
+    internal static string ReasonFor(Exception ex, LinkSide side) =>
         ex is PoracleRequestRefusedException or PairWriteRefusedException && !string.IsNullOrWhiteSpace(ex.Message)
             ? ex.Message
             : $"Couldn't reach Poracle for {AccountLinkKeys.Wire(side)}.";

@@ -8,13 +8,13 @@ public interface ICleaningService
 
     /// <summary>Per alarm type, how many rules have auto-delete on and how many there are.</summary>
     public Task<Dictionary<string, CleanCount>> GetCleanCountsAsync(string userId, int profileNo);
-    public Task<int> ToggleCleanMonstersAsync(string userId, int profileNo, int clean);
-    public Task<int> ToggleCleanRaidsAsync(string userId, int profileNo, int clean);
-    public Task<int> ToggleCleanEggsAsync(string userId, int profileNo, int clean);
-    public Task<int> ToggleCleanQuestsAsync(string userId, int profileNo, int clean);
-    public Task<int> ToggleCleanInvasionsAsync(string userId, int profileNo, int clean);
-    public Task<int> ToggleCleanLuresAsync(string userId, int profileNo, int clean);
-    public Task<int> ToggleCleanNestsAsync(string userId, int profileNo, int clean);
-    public Task<int> ToggleCleanGymsAsync(string userId, int profileNo, int clean);
-    public Task<int> ToggleCleanMaxBattlesAsync(string userId, int profileNo, int clean);
+    public Task<CleanToggleResult> ToggleCleanMonstersAsync(string userId, int profileNo, int clean);
+    public Task<CleanToggleResult> ToggleCleanRaidsAsync(string userId, int profileNo, int clean);
+    public Task<CleanToggleResult> ToggleCleanEggsAsync(string userId, int profileNo, int clean);
+    public Task<CleanToggleResult> ToggleCleanQuestsAsync(string userId, int profileNo, int clean);
+    public Task<CleanToggleResult> ToggleCleanInvasionsAsync(string userId, int profileNo, int clean);
+    public Task<CleanToggleResult> ToggleCleanLuresAsync(string userId, int profileNo, int clean);
+    public Task<CleanToggleResult> ToggleCleanNestsAsync(string userId, int profileNo, int clean);
+    public Task<CleanToggleResult> ToggleCleanGymsAsync(string userId, int profileNo, int clean);
+    public Task<CleanToggleResult> ToggleCleanMaxBattlesAsync(string userId, int profileNo, int clean);
 }

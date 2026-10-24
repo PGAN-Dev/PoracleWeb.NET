@@ -219,7 +219,7 @@ public class PokestopEventConsumerTests
         var handler = new Handler().Get("/tracking/invasion", InvasionRules).Get("/tracking/incident", IncidentRules)
             .Patch("/tracking/invasion?", PatchedUids(1));
 
-        var count = await this.CreateCleaning(handler).ToggleCleanInvasionsAsync("u1", 1, 1);
+        var count = (await this.CreateCleaning(handler).ToggleCleanInvasionsAsync("u1", 1, 1)).Updated;
 
         Assert.Equal(1, count);
         var patch = Assert.Single(handler.Requests, r => r.Method == HttpMethod.Patch);
@@ -234,7 +234,7 @@ public class PokestopEventConsumerTests
             .Patch("/tracking/invasion?", PatchedUids(1))
             .Patch("/tracking/incident?", PatchedUids(289, 290));
 
-        var count = await this.CreateCleaning(handler).ToggleCleanInvasionsAsync("u1", 1, 1);
+        var count = (await this.CreateCleaning(handler).ToggleCleanInvasionsAsync("u1", 1, 1)).Updated;
 
         Assert.Equal(3, count);
         var patches = handler.Requests.Where(r => r.Method == HttpMethod.Patch).ToList();

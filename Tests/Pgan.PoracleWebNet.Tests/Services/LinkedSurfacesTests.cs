@@ -67,7 +67,7 @@ public class LinkedSurfacesTests
         proxy.Setup(p => p.PatchAsync("raid", It.IsAny<string>(), It.IsAny<IReadOnlyList<int>>(), It.IsAny<TrackingPatchSet>()))
             .ReturnsAsync((string _, string _, IReadOnlyList<int> uids, TrackingPatchSet _) => new TrackingPatchResult([.. uids], [], []));
 
-        var updated = await sut.ToggleCleanRaidsAsync(Discord, 1, 1);
+        var updated = (await sut.ToggleCleanRaidsAsync(Discord, 1, 1)).Updated;
 
         Assert.Equal(2, updated);
         proxy.Verify(p => p.PatchAsync("raid", Discord, It.Is<IReadOnlyList<int>>(u => u.SequenceEqual(new[] { 1 })), It.IsAny<TrackingPatchSet>()), Times.Once);
@@ -511,5 +511,33 @@ public class LinkedSurfacesTests
 
         Assert.False(await kit.Sut.DeleteUserPickAsync(Discord, "tg-pick"));
         kit.Definitions.Verify(d => d.DeleteByIdAndOwnerAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    // ---- Cleaning: the other side failing keeps the first side's count (#1055 review) ----
+
+    [Fact]
+    public async Task Cleaning_Linked_OtherSideFailing_KeepsTheCountAndWarns()
+    {
+        var (sut, proxy) = Cleaning(Linked());
+        proxy.Setup(p => p.GetByUserAsync("raid", Discord)).ReturnsAsync(Json("""[{"uid":1},{"uid":3}]"""));
+        proxy.Setup(p => p.GetByUserAsync("raid", Telegram)).ThrowsAsync(new HttpRequestException("down"));
+        proxy.Setup(p => p.PatchAsync("raid", Discord, It.IsAny<IReadOnlyList<int>>(), It.IsAny<TrackingPatchSet>()))
+            .ReturnsAsync((string _, string _, IReadOnlyList<int> uids, TrackingPatchSet _) => new TrackingPatchResult([.. uids], [], []));
+
+        var result = await sut.ToggleCleanRaidsAsync(Discord, 1, 1);
+
+        Assert.Equal(2, result.Updated);
+        Assert.Equal(LinkSide.Telegram, result.Warning!.Side);
+        Assert.Equal("Couldn't reach Poracle for telegram.", result.Warning.Reason);
+    }
+
+    [Fact]
+    public async Task Cleaning_Linked_SignedInSideFailing_Propagates()
+    {
+        var (sut, proxy) = Cleaning(Linked());
+        proxy.Setup(p => p.GetByUserAsync("raid", Discord)).ThrowsAsync(new HttpRequestException("down"));
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => sut.ToggleCleanRaidsAsync(Discord, 1, 1));
+        proxy.Verify(p => p.GetByUserAsync("raid", Telegram), Times.Never);
     }
 }

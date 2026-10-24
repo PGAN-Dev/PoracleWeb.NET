@@ -73,7 +73,7 @@ public class CleaningServiceTests
             });
         this._proxy.Setup(p => p.GetByUserAsync("pokemon", "u1")).ReturnsAsync(json);
 
-        Assert.Equal(5, await this._sut.ToggleCleanMonstersAsync("u1", 1, 1));
+        Assert.Equal(5, (await this._sut.ToggleCleanMonstersAsync("u1", 1, 1)).Updated);
     }
 
     [Fact]
@@ -97,7 +97,7 @@ public class CleaningServiceTests
             });
         this._proxy.Setup(p => p.GetByUserAsync("raid", "u1")).ReturnsAsync(json);
 
-        Assert.Equal(3, await this._sut.ToggleCleanRaidsAsync("u1", 1, 0));
+        Assert.Equal(3, (await this._sut.ToggleCleanRaidsAsync("u1", 1, 0)).Updated);
     }
 
     [Fact]
@@ -114,7 +114,7 @@ public class CleaningServiceTests
         });
         this._proxy.Setup(p => p.GetByUserAsync("egg", "u1")).ReturnsAsync(json);
 
-        Assert.Equal(2, await this._sut.ToggleCleanEggsAsync("u1", 1, 1));
+        Assert.Equal(2, (await this._sut.ToggleCleanEggsAsync("u1", 1, 1)).Updated);
     }
 
     [Fact]
@@ -143,7 +143,7 @@ public class CleaningServiceTests
             });
         this._proxy.Setup(p => p.GetByUserAsync("quest", "u1")).ReturnsAsync(json);
 
-        Assert.Equal(4, await this._sut.ToggleCleanQuestsAsync("u1", 1, 1));
+        Assert.Equal(4, (await this._sut.ToggleCleanQuestsAsync("u1", 1, 1)).Updated);
     }
 
     [Fact]
@@ -182,7 +182,7 @@ public class CleaningServiceTests
             });
         this._proxy.Setup(p => p.GetByUserAsync("invasion", "u1")).ReturnsAsync(json);
 
-        Assert.Equal(6, await this._sut.ToggleCleanInvasionsAsync("u1", 1, 0));
+        Assert.Equal(6, (await this._sut.ToggleCleanInvasionsAsync("u1", 1, 0)).Updated);
     }
 
     [Fact]
@@ -195,7 +195,7 @@ public class CleaningServiceTests
         });
         this._proxy.Setup(p => p.GetByUserAsync("lure", "u1")).ReturnsAsync(json);
 
-        Assert.Equal(1, await this._sut.ToggleCleanLuresAsync("u1", 1, 1));
+        Assert.Equal(1, (await this._sut.ToggleCleanLuresAsync("u1", 1, 1)).Updated);
     }
 
     [Fact]
@@ -204,7 +204,7 @@ public class CleaningServiceTests
         var json = CreateJsonArray([.. Enumerable.Range(1, 8).Select(i => (object)new { uid = i, clean = 0 })]);
         this._proxy.Setup(p => p.GetByUserAsync("nest", "u1")).ReturnsAsync(json);
 
-        Assert.Equal(8, await this._sut.ToggleCleanNestsAsync("u1", 1, 1));
+        Assert.Equal(8, (await this._sut.ToggleCleanNestsAsync("u1", 1, 1)).Updated);
     }
 
     [Fact]
@@ -213,7 +213,7 @@ public class CleaningServiceTests
         var json = CreateJsonArray([.. Enumerable.Range(1, 9).Select(i => (object)new { uid = i, clean = 1 })]);
         this._proxy.Setup(p => p.GetByUserAsync("gym", "u1")).ReturnsAsync(json);
 
-        Assert.Equal(9, await this._sut.ToggleCleanGymsAsync("u1", 1, 0));
+        Assert.Equal(9, (await this._sut.ToggleCleanGymsAsync("u1", 1, 0)).Updated);
     }
 
     [Fact]
@@ -237,7 +237,7 @@ public class CleaningServiceTests
             });
         this._proxy.Setup(p => p.GetByUserAsync("maxbattle", "u1")).ReturnsAsync(json);
 
-        Assert.Equal(3, await this._sut.ToggleCleanMaxBattlesAsync("u1", 1, 1));
+        Assert.Equal(3, (await this._sut.ToggleCleanMaxBattlesAsync("u1", 1, 1)).Updated);
     }
 
     [Theory]
@@ -252,7 +252,7 @@ public class CleaningServiceTests
             new { uid = 1, clean = 5 },
             new { uid = 2, clean = 2 }));
 
-        Assert.Equal(2, await this._sut.ToggleCleanMonstersAsync("u1", 1, clean));
+        Assert.Equal(2, (await this._sut.ToggleCleanMonstersAsync("u1", 1, clean)).Updated);
 
         var (type, uids, set) = Assert.Single(this._patched);
         Assert.Equal("pokemon", type);
@@ -278,7 +278,7 @@ public class CleaningServiceTests
             .ReturnsAsync(new TrackingPatchResult(
                 [1], [2], [new PatchRefusal(3, PatchRefusalReasons.Conflict, "duplicate", 1)]));
 
-        Assert.Equal(2, await this._sut.ToggleCleanRaidsAsync("u1", 1, 1));
+        Assert.Equal(2, (await this._sut.ToggleCleanRaidsAsync("u1", 1, 1)).Updated);
     }
 
     [Fact]
@@ -296,7 +296,7 @@ public class CleaningServiceTests
         var logger = new CapturingLogger();
         var sut = new CleaningService(this._proxy.Object, this._featureGate.Object, this._incident.Object, Pgan.PoracleWebNet.Tests.Helpers.LinkedTestKit.Unlinked(), logger);
 
-        Assert.Equal(1, await sut.ToggleCleanRaidsAsync("u1", 1, 1));
+        Assert.Equal(1, (await sut.ToggleCleanRaidsAsync("u1", 1, 1)).Updated);
 
         var warning = Assert.Single(logger.Entries, e => e.Level == LogLevel.Warning);
         Assert.Contains("uid=3", warning.Message, StringComparison.Ordinal);
@@ -379,7 +379,7 @@ public class CleaningServiceTests
         var json = CreateJsonArray();
         this._proxy.Setup(p => p.GetByUserAsync("pokemon", "u1")).ReturnsAsync(json);
 
-        Assert.Equal(0, await this._sut.ToggleCleanMonstersAsync("u1", 1, 1));
+        Assert.Equal(0, (await this._sut.ToggleCleanMonstersAsync("u1", 1, 1)).Updated);
         Assert.Empty(this._patched);
     }
 
@@ -500,7 +500,7 @@ public class CleaningServiceTests
         });
         this._proxy.Setup(p => p.GetByUserAsync("maxbattle", "u1")).ReturnsAsync(json);
 
-        var count = await this._sut.ToggleCleanMaxBattlesAsync("u1", 1, 1);
+        var count = (await this._sut.ToggleCleanMaxBattlesAsync("u1", 1, 1)).Updated;
 
         Assert.Equal(2, count);
         Assert.Equal([82, 83], Assert.Single(this._patched).Uids);
@@ -546,7 +546,7 @@ public class CleaningServiceTests
             new { uid = 2, clean = 0, grunt_type = "kecleon" },
             new { uid = 3, clean = 0, grunt_type = "showcase" }));
 
-        Assert.Equal(1, await this._sut.ToggleCleanInvasionsAsync("u1", 1, 1));
+        Assert.Equal(1, (await this._sut.ToggleCleanInvasionsAsync("u1", 1, 1)).Updated);
         Assert.Equal([1], Assert.Single(this._patched).Uids);
         Assert.Empty(this._incidentPatched);
     }
@@ -564,7 +564,7 @@ public class CleaningServiceTests
             new { uid = 2, clean = 0, grunt_type = "kecleon" }));
 
         // v2's invasion route does not hold the event rules, so they go to incident.
-        Assert.Equal(2, await this._sut.ToggleCleanInvasionsAsync("u1", 1, 1));
+        Assert.Equal(2, (await this._sut.ToggleCleanInvasionsAsync("u1", 1, 1)).Updated);
         var (type, uids, set) = Assert.Single(this._patched);
         Assert.Equal("invasion", type);
         Assert.Equal([1], uids);
@@ -581,7 +581,7 @@ public class CleaningServiceTests
         this._proxy.Setup(p => p.GetByUserAsync("invasion", "u1")).ReturnsAsync(CreateJsonArray(
             new { uid = 2, clean = 0, grunt_type = "kecleon" }));
 
-        Assert.Equal(0, await this._sut.ToggleCleanInvasionsAsync("u1", 1, 1));
+        Assert.Equal(0, (await this._sut.ToggleCleanInvasionsAsync("u1", 1, 1)).Updated);
         Assert.Empty(this._patched);
         Assert.Empty(this._incidentPatched);
     }

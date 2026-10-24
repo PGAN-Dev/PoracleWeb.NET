@@ -66,31 +66,31 @@ public partial class CleaningService(
     private static void Add(Dictionary<string, CleanCount> totals, string key, CleanCount more) =>
         totals[key] = new CleanCount(totals[key].Clean + more.Clean, totals[key].Total + more.Total);
 
-    public async Task<int> ToggleCleanMonstersAsync(string userId, int profileNo, int clean) =>
+    public async Task<CleanToggleResult> ToggleCleanMonstersAsync(string userId, int profileNo, int clean) =>
         await this.ToggleCleanAsync("pokemon", userId, clean);
 
-    public async Task<int> ToggleCleanRaidsAsync(string userId, int profileNo, int clean) =>
+    public async Task<CleanToggleResult> ToggleCleanRaidsAsync(string userId, int profileNo, int clean) =>
         await this.ToggleCleanAsync("raid", userId, clean);
 
-    public async Task<int> ToggleCleanEggsAsync(string userId, int profileNo, int clean) =>
+    public async Task<CleanToggleResult> ToggleCleanEggsAsync(string userId, int profileNo, int clean) =>
         await this.ToggleCleanAsync("egg", userId, clean);
 
-    public async Task<int> ToggleCleanQuestsAsync(string userId, int profileNo, int clean) =>
+    public async Task<CleanToggleResult> ToggleCleanQuestsAsync(string userId, int profileNo, int clean) =>
         await this.ToggleCleanAsync("quest", userId, clean);
 
-    public async Task<int> ToggleCleanInvasionsAsync(string userId, int profileNo, int clean) =>
+    public async Task<CleanToggleResult> ToggleCleanInvasionsAsync(string userId, int profileNo, int clean) =>
         await this.ToggleCleanAsync("invasion", userId, clean);
 
-    public async Task<int> ToggleCleanLuresAsync(string userId, int profileNo, int clean) =>
+    public async Task<CleanToggleResult> ToggleCleanLuresAsync(string userId, int profileNo, int clean) =>
         await this.ToggleCleanAsync("lure", userId, clean);
 
-    public async Task<int> ToggleCleanNestsAsync(string userId, int profileNo, int clean) =>
+    public async Task<CleanToggleResult> ToggleCleanNestsAsync(string userId, int profileNo, int clean) =>
         await this.ToggleCleanAsync("nest", userId, clean);
 
-    public async Task<int> ToggleCleanGymsAsync(string userId, int profileNo, int clean) =>
+    public async Task<CleanToggleResult> ToggleCleanGymsAsync(string userId, int profileNo, int clean) =>
         await this.ToggleCleanAsync("gym", userId, clean);
 
-    public async Task<int> ToggleCleanMaxBattlesAsync(string userId, int profileNo, int clean) =>
+    public async Task<CleanToggleResult> ToggleCleanMaxBattlesAsync(string userId, int profileNo, int clean) =>
         await this.ToggleCleanAsync("maxbattle", userId, clean);
 
 
@@ -130,7 +130,7 @@ public partial class CleaningService(
     /// <c>clean</c> and nothing else, so the edit-in-place and summary bits stay as stored (#292) and each rule
     /// keeps its uid. Returns how many rules PoracleNG updated or found already set.
     /// </summary>
-    private async Task<int> ToggleCleanAsync(string type, string userId, int clean)
+    private async Task<CleanToggleResult> ToggleCleanAsync(string type, string userId, int clean)
     {
         // Cleaning writes through the proxy directly, bypassing the per-type alarm services and their
         // feature gates. Without this guard a user could toggle the clean flag on an alarm type the admin
@@ -140,14 +140,32 @@ public partial class CleaningService(
             await this._featureGate.EnsureEnabledAsync(disableKey);
         }
 
+        // A linked pair is toggled on both humans, the signed-in one first. Its failure is the answer; the other
+        // failing keeps the first side's count and says so, the way PairedHumanWriter reports a partial write.
         var pair = await this._linked.ResolveAsync(userId);
+        var ids = pair.ExistingHumanIds;
         var updated = 0;
-        foreach (var humanId in pair.ExistingHumanIds)
+        for (var i = 0; i < ids.Count; i++)
         {
-            updated += await this.ToggleCleanForAsync(type, humanId, clean);
+            if (i == 0)
+            {
+                updated += await this.ToggleCleanForAsync(type, ids[i], clean);
+                continue;
+            }
+
+            try
+            {
+                updated += await this.ToggleCleanForAsync(type, ids[i], clean);
+            }
+            catch (Exception ex) when (ex is not (OperationCanceledException or FeatureDisabledException))
+            {
+                var side = pair.SideOf(ids[i]) ?? LinkSide.Telegram;
+                LogOtherSideCleanFailed(this._logger, ex, type, LogSafe.Id(ids[i]), side);
+                return new CleanToggleResult(updated, new PairWarning(side, PairedHumanWriter.ReasonFor(ex, side)));
+            }
         }
 
-        return updated;
+        return new CleanToggleResult(updated);
     }
 
     private async Task<int> ToggleCleanForAsync(string type, string userId, int clean)
@@ -236,6 +254,9 @@ public partial class CleaningService(
 
     // Warning: the count the user sees already leaves this rule out, so nothing on screen says it kept its old
     // setting. This line is the only place that does.
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Clean toggle {Type}: the linked account {HumanId} ({Side}) did not take it")]
+    private static partial void LogOtherSideCleanFailed(ILogger logger, Exception ex, string type, string humanId, LinkSide side);
+
     [LoggerMessage(
         Level = LogLevel.Warning,
         Message = "Clean toggle {Type}: PoracleNG refused uid={Uid} ({Reason}: {Detail}); it keeps its old setting.")]
