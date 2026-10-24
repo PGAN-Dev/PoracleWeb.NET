@@ -75,6 +75,12 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
         return items.FirstOrDefault(x => x.Uid == uid);
     }
 
+    public async Task<Invasion?> GetByUidAsync(string userId, int uid, string? kind)
+    {
+        var items = await this.ReadOwnRowsAsync(userId);
+        return items.FirstOrDefault(x => x.Uid == uid && KindMatches(x.GruntType, kind));
+    }
+
     public async Task<Invasion> CreateAsync(string userId, Invasion model)
     {
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Invasions);
@@ -100,16 +106,20 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
         return model;
     }
 
-    public async Task<Invasion> UpdateAsync(string userId, Invasion model)
+    public Task<Invasion> UpdateAsync(string userId, Invasion model) => this.UpdateAsync(userId, model, storedKind: null);
+
+    public async Task<Invasion> UpdateAsync(string userId, Invasion model, string? storedKind)
     {
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Invasions);
         RequireGruntType(model);
         var oldUid = model.Uid;
 
         // Invasion and incident rules have separate uid sequences, so the uid names a rule only within its own
-        // kind. A kind change is a create of the new rule and then removal of the old one, never a write
-        // addressed by the old uid, which would replace an unrelated rule of the other kind. See #1062.
-        if (await this.IsKindChangeAsync(userId, oldUid, model))
+        // kind. The caller says which kind the rule it opened was (the request carries it; nothing here can
+        // guess it from the uid). A kind change is a create of the new rule and then removal of the old one,
+        // never a write addressed by the old uid, which would replace an unrelated rule of the other kind.
+        // No stated kind keeps the old in-place behaviour for older clients. See #1062.
+        if (storedKind is not null && oldUid > 0 && KindMatches(model.GruntType, storedKind) is false)
         {
             model.Uid = 0;
             var created = await this.CreateAsync(userId, model);
@@ -156,56 +166,14 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
         return model;
     }
 
-    /// <summary>
-    /// Whether this edit moves the rule between the invasion and incident routes, judged from the stored rules
-    /// that carry the uid. Reads nothing when the uid is not held, so an unknown uid takes the old path.
-    /// </summary>
-    private async Task<bool> IsKindChangeAsync(string userId, int uid, Invasion model)
-    {
-        if (uid <= 0)
+    /// <summary>Whether a grunt type is of the stated kind ("event" or "invasion"); any other kind matches everything.</summary>
+    private static bool KindMatches(string? gruntType, string? kind) =>
+        kind switch
         {
-            return false;
-        }
-
-        JsonElement rows;
-        try
-        {
-            rows = await this._proxy.GetByUserAsync(TrackingType, userId);
-        }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
-        {
-            return false;
-        }
-
-        if (rows.ValueKind != JsonValueKind.Array)
-        {
-            return false;
-        }
-
-        bool hasPlain = false, hasEvent = false;
-        foreach (var row in rows.EnumerateArray())
-        {
-            if (PoracleJsonHelper.UidOf(row) != uid)
-            {
-                continue;
-            }
-
-            var isEvent = row.TryGetProperty("grunt_type", out var grunt)
-                && grunt.ValueKind == JsonValueKind.String
-                && PokestopEventTypes.IsEventName(grunt.GetString());
-            hasEvent |= isEvent;
-            hasPlain |= !isEvent;
-        }
-
-        if (AsPokestopEvent(model) is not null)
-        {
-            // An invasion edited into an event. When both kinds hold the number and this page also lists events,
-            // the page cannot say which one was meant, so the edit stays in place as before.
-            return hasPlain && (!hasEvent || await this.EventsLiveElsewhereAsync());
-        }
-
-        return hasEvent && !hasPlain;
-    }
+            "event" => PokestopEventTypes.IsEventName(gruntType),
+            "invasion" => !PokestopEventTypes.IsEventName(gruntType),
+            _ => true,
+        };
 
     public async Task<bool> DeleteAsync(string userId, int uid)
     {

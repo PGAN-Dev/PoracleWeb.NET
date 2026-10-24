@@ -59,9 +59,14 @@ public class InvasionController(IInvasionService invasionService) : BaseApiContr
     }
 
     [HttpPut("{uid:int}")]
-    public async Task<IActionResult> Update(int uid, [FromBody] InvasionUpdate model)
+    public async Task<IActionResult> Update(int uid, [FromBody] InvasionUpdate model, [FromQuery] string? kind = null)
     {
-        var existing = await this._invasionService.GetByUidAsync(this.UserId, uid);
+        // The kind of the rule the person opened. Invasion and event rules are numbered separately, so a uid
+        // alone can name either; absent or unknown keeps the first match, as older clients expect. See #1062.
+        kind = kind is "event" or "invasion" ? kind : null;
+        var existing = kind is null
+            ? await this._invasionService.GetByUidAsync(this.UserId, uid)
+            : await this._invasionService.GetByUidAsync(this.UserId, uid, kind);
         if (existing == null)
         {
             return this.NotFound();
@@ -82,7 +87,9 @@ public class InvasionController(IInvasionService invasionService) : BaseApiContr
             return refused;
         }
 
-        var result = await this._invasionService.UpdateAsync(this.UserId, existing);
+        var result = kind is null
+            ? await this._invasionService.UpdateAsync(this.UserId, existing)
+            : await this._invasionService.UpdateAsync(this.UserId, existing, kind);
         return this.Ok(result);
     }
 

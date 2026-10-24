@@ -27,6 +27,7 @@ import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/uti
 import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-flags';
 import { mentionCapable } from '../../shared/utils/human-kind';
 import { swapToFallbackIcon } from '../../shared/utils/icon-fallback';
+import { invasionKind } from '../../shared/utils/pokestop-events';
 
 @Component({
   imports: [
@@ -136,19 +137,23 @@ export class InvasionEditDialogComponent {
     const v = this.form.getRawValue();
     const scope = scopeToFields(this.scope());
     this.invasionService
-      .update(this.data.uid, {
-        overrideAreas: scope.overrideAreas,
-        overrideLocationLabel: scope.overrideLocationLabel,
-        clean: preserve(this.data.clean, AUTO_DELETE, v.clean ? 1 : 0),
-        distance: scope.distance,
-        // Preserve the stored gender when the dropdown is hidden — a Mixed Male alarm
-        // (gender=1) must stay at 1 across edits; zeroing it would widen the filter to
-        // also match female Mixed grunts.
-        gender: this.hideGender ? (this.data.gender ?? 0) : (v.gender ?? 0),
-        gruntType: this.data.gruntType ?? '',
-        ping: v.ping ?? '',
-        template: v.template || '',
-      } as InvasionUpdate)
+      .update(
+        this.data.uid,
+        {
+          overrideAreas: scope.overrideAreas,
+          overrideLocationLabel: scope.overrideLocationLabel,
+          clean: preserve(this.data.clean, AUTO_DELETE, v.clean ? 1 : 0),
+          distance: scope.distance,
+          // Preserve the stored gender when the dropdown is hidden — a Mixed Male alarm
+          // (gender=1) must stay at 1 across edits; zeroing it would widen the filter to
+          // also match female Mixed grunts.
+          gender: this.hideGender ? (this.data.gender ?? 0) : (v.gender ?? 0),
+          gruntType: this.data.gruntType ?? '',
+          ping: v.ping ?? '',
+          template: v.template || '',
+        } as InvasionUpdate,
+        invasionKind(this.data.gruntType),
+      )
       .subscribe({
         // The server names what is wrong -- which alarm already uses these settings, which
         // field a file got wrong. A fixed string threw that away. See #567, #568.
