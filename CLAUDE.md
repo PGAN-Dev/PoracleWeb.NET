@@ -546,6 +546,10 @@ refuse destination rows, and linking refuses them with a code the page translate
   under the toolbar in `app.html`, hidden while impersonating) shows one line per item, names a location
   through `LocationService.reverseGeocode` (so `disable_nominatim` and `disable_location` are honoured and the
   fallback is coordinates), and dismisses per fingerprint into `sessionStorage` inside try/catch.
+  **Profile 0 is outside the pair**: PoracleNG never numbers a new profile 0, so the drift, resolve and
+  register-missing code never compares, copies, creates, renames, switches to or deletes it (a current profile
+  of 0 on either side skips that comparison), its alerts stay on the account that has it, and `status` names the
+  side that has one the other lacks as `legacyProfileZero` for a one-line note on the page.
 - **`/api/account-link` is in the error interceptor's silent list**, so `LinkedAccountService` callers word
   every outcome; the banner shows `serverReason(err)` once and the service refreshes status after any resolve,
   success or not.

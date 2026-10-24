@@ -979,6 +979,8 @@ export interface LinkStatus {
   defaultDestination?: LinkSide | null;
   /** One item per setting the two accounts disagree on; null when the server couldn't compare them, absent when unlinked. */
   drift?: DriftItem[] | null;
+  /** The side that has an older profile 0 the other lacks; null when neither or both do. Absent when unlinked or on an older server. */
+  legacyProfileZero?: LinkSide | null;
   link?: AccountLink;
   linked: boolean;
   sides?: LinkSideStatus[];

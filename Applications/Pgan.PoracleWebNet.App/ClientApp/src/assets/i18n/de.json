@@ -2394,6 +2394,7 @@
     "TITLE": "Verknüpfte Konten",
     "DESC": "Verbinde dein Discord- und dein Telegram-Konto, damit eine Person Alarme auf beiden erhalten kann.",
     "SIDE_DISCORD": "Discord",
+    "LEGACY_PROFILE_ZERO": "Dein {{app}}-Konto hat ein älteres Profil 0, das {{other}} nicht haben kann. Seine Alarme bleiben bei {{app}}.",
     "SIDE_TELEGRAM": "Telegram",
     "STATE_ACTIVE": "Aktiv",
     "STATE_WAITING": "Wartet auf Registrierung",

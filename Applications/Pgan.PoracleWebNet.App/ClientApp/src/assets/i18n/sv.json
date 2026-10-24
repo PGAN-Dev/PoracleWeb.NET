@@ -2394,6 +2394,7 @@
     "TITLE": "Länkade konton",
     "DESC": "Koppla ihop ditt Discord- och ditt Telegram-konto så att en person kan få aviseringar på båda.",
     "SIDE_DISCORD": "Discord",
+    "LEGACY_PROFILE_ZERO": "Ditt {{app}}-konto har en äldre profil 0 som {{other}} inte kan ha. Dess aviseringar stannar på {{app}}.",
     "SIDE_TELEGRAM": "Telegram",
     "STATE_ACTIVE": "Aktiv",
     "STATE_WAITING": "Väntar på registrering",

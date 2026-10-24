@@ -69,6 +69,10 @@ kept. Nothing is ever resolved for you.
 - A saved place that alerts on the other account are still aimed at is not deleted either.
 - If a resolve fails part way, the banner says so and shows what still differs.
 
+Some older accounts have a profile 0. PoracleNG never gives a new profile that number, so the other account
+can't have one, and the pair leaves profile 0 out: it isn't compared, copied, renamed or deleted, and its
+alerts stay on the account that has it. The Linked accounts page says which account has one.
+
 **Dismiss** hides the banner for the rest of the browser session. A difference that appears later shows again.
 
 ### "Saved for Discord. Telegram didn't take it"

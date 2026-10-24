@@ -185,6 +185,12 @@ public partial class LinkedHumanProvisioner(
 
         foreach (var item in array.EnumerateArray())
         {
+            // A legacy profile 0 stays on the source: PoracleNG never numbers a new profile 0, so it cannot be mirrored.
+            if (item.GetIntProp("profile_no") == 0)
+            {
+                continue;
+            }
+
             rows.Add(new ProfileRow(
                 item.GetIntProp("profile_no"),
                 item.GetStringPropOrNull("name"),

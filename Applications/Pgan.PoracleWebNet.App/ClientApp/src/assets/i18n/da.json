@@ -2394,6 +2394,7 @@
     "TITLE": "Sammenkædede konti",
     "DESC": "Forbind din Discord- og din Telegram-konto, så én person kan få alarmer på begge.",
     "SIDE_DISCORD": "Discord",
+    "LEGACY_PROFILE_ZERO": "Din {{app}}-konto har en ældre profil 0, som {{other}} ikke kan have. Dens alarmer bliver på {{app}}.",
     "SIDE_TELEGRAM": "Telegram",
     "STATE_ACTIVE": "Aktiv",
     "STATE_WAITING": "Venter på registrering",

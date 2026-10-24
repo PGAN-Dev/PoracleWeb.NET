@@ -2394,6 +2394,7 @@
     "TITLE": "Gekoppelde accounts",
     "DESC": "Koppel je Discord- en Telegram-account zodat één persoon meldingen op beide kan krijgen.",
     "SIDE_DISCORD": "Discord",
+    "LEGACY_PROFILE_ZERO": "Je {{app}}-account heeft een ouder profiel 0 dat {{other}} niet kan hebben. De meldingen ervan blijven op {{app}}.",
     "SIDE_TELEGRAM": "Telegram",
     "STATE_ACTIVE": "Actief",
     "STATE_WAITING": "Wacht op registratie",

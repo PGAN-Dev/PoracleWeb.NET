@@ -232,6 +232,20 @@ describe('LinkedAccountsComponent', () => {
       expect(q(setup().fixture, '[data-test="default-destination"]')).toBeNull();
     });
 
+    it('shows one line about a legacy profile 0 when the server names a side', () => {
+      status.set({ ...both, legacyProfileZero: 'discord' });
+      const { fixture } = setup();
+      expect(q(fixture, '[data-test="legacy-profile-zero"]')?.textContent).toContain('LINKED.LEGACY_PROFILE_ZERO');
+    });
+
+    it('hides the legacy profile 0 line when the server says null or says nothing', () => {
+      status.set({ ...both, legacyProfileZero: null });
+      expect(q(setup().fixture, '[data-test="legacy-profile-zero"]')).toBeNull();
+      TestBed.resetTestingModule();
+      status.set(both);
+      expect(q(setup().fixture, '[data-test="legacy-profile-zero"]')).toBeNull();
+    });
+
     it('unlinks after confirmation', async () => {
       status.set(both);
       const { fixture } = setup();

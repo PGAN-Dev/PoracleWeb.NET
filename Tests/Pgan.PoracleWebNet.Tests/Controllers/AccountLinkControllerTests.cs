@@ -278,6 +278,36 @@ public class AccountLinkControllerTests
     }
 
     [Fact]
+    public async Task Status_Linked_CarriesLegacyProfileZeroSide()
+    {
+        var pair = new LinkedPair(DiscordId, Link,
+            new PairSide(LinkSide.Discord, DiscordId, true, PauseReason.None),
+            new PairSide(LinkSide.Telegram, TelegramId, true, PauseReason.None));
+        this._linked.Setup(l => l.ResolveAsync(DiscordId)).ReturnsAsync(pair);
+        this._drift.Setup(d => d.GetLegacyProfileZeroAsync(pair)).ReturnsAsync(LinkSide.Discord);
+
+        var ok = Assert.IsType<OkObjectResult>(await this.Create().Status());
+
+        var json = System.Text.Json.JsonSerializer.Serialize(ok.Value, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
+        Assert.Contains("\"legacyProfileZero\":\"discord\"", json, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Status_Linked_LegacyProfileZeroNullWhenTheReadFails()
+    {
+        var pair = new LinkedPair(DiscordId, Link,
+            new PairSide(LinkSide.Discord, DiscordId, true, PauseReason.None),
+            new PairSide(LinkSide.Telegram, TelegramId, true, PauseReason.None));
+        this._linked.Setup(l => l.ResolveAsync(DiscordId)).ReturnsAsync(pair);
+        this._drift.Setup(d => d.GetLegacyProfileZeroAsync(pair)).ThrowsAsync(new HttpRequestException("down"));
+
+        var ok = Assert.IsType<OkObjectResult>(await this.Create().Status());
+
+        var json = System.Text.Json.JsonSerializer.Serialize(ok.Value, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
+        Assert.Contains("\"legacyProfileZero\":null", json, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Status_Unlinked_DoesNotAskForDrift()
     {
         this._linked.Setup(l => l.ResolveAsync(DiscordId)).ReturnsAsync(LinkedPair.Single(DiscordId));

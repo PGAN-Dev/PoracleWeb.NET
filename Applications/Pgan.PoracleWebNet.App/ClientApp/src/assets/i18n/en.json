@@ -2394,6 +2394,7 @@
     "TITLE": "Linked accounts",
     "DESC": "Connect your Discord and Telegram accounts so one person can get alerts on both.",
     "SIDE_DISCORD": "Discord",
+    "LEGACY_PROFILE_ZERO": "Your {{app}} account has an older profile 0 that {{other}} can't have. Its alerts stay on {{app}}.",
     "SIDE_TELEGRAM": "Telegram",
     "STATE_ACTIVE": "Active",
     "STATE_WAITING": "Waiting to register",

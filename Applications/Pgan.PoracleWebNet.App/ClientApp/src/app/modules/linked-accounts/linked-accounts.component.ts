@@ -88,6 +88,15 @@ export class LinkedAccountsComponent implements OnInit {
   protected readonly isLinked = computed(() => this.linked.status()?.linked === true);
 
   /** True once the first status read has finished, so a read that failed is told apart from one still going. */
+  protected readonly legacyProfileZero = computed<{ app: string; other: string } | null>(() => {
+    const side = this.linked.status()?.legacyProfileZero;
+    if (side !== 'discord' && side !== 'telegram') {
+      return null;
+    }
+    return side === 'discord'
+      ? { app: 'LINKED.SIDE_DISCORD', other: 'LINKED.SIDE_TELEGRAM' }
+      : { app: 'LINKED.SIDE_TELEGRAM', other: 'LINKED.SIDE_DISCORD' };
+  });
   protected readonly loaded = signal(false);
 
   /** Linking, unlinking and the default are refused while viewing as someone else, so they are not offered. */

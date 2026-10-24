@@ -2498,6 +2498,7 @@
     "TITLE": "Połączone konta",
     "DESC": "Połącz swoje konta Discord i Telegram, aby jedna osoba mogła dostawać alerty na obu.",
     "SIDE_DISCORD": "Discord",
+    "LEGACY_PROFILE_ZERO": "Twoje konto {{app}} ma starszy profil 0, którego {{other}} nie może mieć. Jego alerty zostają w {{app}}.",
     "SIDE_TELEGRAM": "Telegram",
     "STATE_ACTIVE": "Aktywne",
     "STATE_WAITING": "Czeka na rejestrację",

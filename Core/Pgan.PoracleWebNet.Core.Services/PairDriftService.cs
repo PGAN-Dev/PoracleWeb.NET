@@ -38,6 +38,21 @@ public sealed class PairDriftService(IPoracleHumanProxy human, IPoracleTrackingP
         return Compare(discord, telegram);
     }
 
+    public async Task<LinkSide?> GetLegacyProfileZeroAsync(LinkedPair pair)
+    {
+        if (!BothExist(pair))
+        {
+            return null;
+        }
+
+        var discordRead = this.ReadAsync(pair.Discord!.HumanId);
+        var telegramRead = this.ReadAsync(pair.Telegram!.HumanId);
+        await Task.WhenAll(discordRead, telegramRead);
+        var discord = discordRead.Result.HasProfileZero;
+        var telegram = telegramRead.Result.HasProfileZero;
+        return discord == telegram ? null : discord ? LinkSide.Discord : LinkSide.Telegram;
+    }
+
     public async Task ResolveAsync(LinkedPair pair, DriftField field, LinkSide keep, string expected)
     {
         if (!BothExist(pair))
@@ -102,7 +117,13 @@ public sealed class PairDriftService(IPoracleHumanProxy human, IPoracleTrackingP
         var items = new List<DriftItem>();
         Add(items, DriftField.Location, LocationOf(discord), LocationOf(telegram));
         Add(items, DriftField.Areas, AreasOf(discord.Areas), AreasOf(telegram.Areas));
-        Add(items, DriftField.CurrentProfile, JsonSerializer.SerializeToElement(discord.Current), JsonSerializer.SerializeToElement(telegram.Current));
+
+        // Profile 0 is outside the pair: PoracleNG never numbers a new profile 0, so the other side could not be switched to it.
+        if (discord.Current != 0 && telegram.Current != 0)
+        {
+            Add(items, DriftField.CurrentProfile, JsonSerializer.SerializeToElement(discord.Current), JsonSerializer.SerializeToElement(telegram.Current));
+        }
+
         Add(items, DriftField.Profiles, ProfilesOf(discord), ProfilesOf(telegram));
         Add(items, DriftField.Places, PlacesOf(discord), PlacesOf(telegram));
         return items;
@@ -209,10 +230,18 @@ public sealed class PairDriftService(IPoracleHumanProxy human, IPoracleTrackingP
             : profilesJson.ValueKind == JsonValueKind.Object && profilesJson.TryGetProperty("profile", out var p) ? p
             : default;
         var profiles = new List<ProfileRow>();
+        var hasProfileZero = false;
         if (array.ValueKind == JsonValueKind.Array)
         {
             foreach (var item in array.EnumerateArray())
             {
+                // Profile 0 is a legacy profile outside the pair: never compared, copied, renamed, switched to or deleted.
+                if (item.GetIntProp("profile_no") == 0)
+                {
+                    hasProfileZero = true;
+                    continue;
+                }
+
                 profiles.Add(new ProfileRow(
                     item.GetIntProp("profile_no"),
                     item.GetStringPropOrNull("name"),
@@ -225,7 +254,7 @@ public sealed class PairDriftService(IPoracleHumanProxy human, IPoracleTrackingP
 
         return new Snapshot(
             json.GetDoubleProp("latitude"), json.GetDoubleProp("longitude"), json.GetIntProp("current_profile_no"),
-            [.. areas], profiles, places.Named);
+            [.. areas], profiles, places.Named, hasProfileZero);
     }
 
     /// <summary>Whether a real write has landed, which decides what a failure may say to the person.</summary>
@@ -333,10 +362,15 @@ public sealed class PairDriftService(IPoracleHumanProxy human, IPoracleTrackingP
         }
 
         // Deleting the profile the other side is on would leave PoracleNG to pick where it lands.
+        // The kept side may itself be on profile 0, which the other side cannot be switched to: use its lowest real one.
         if (extras.Any(e => e.No == other.Current))
         {
-            progress.Wrote = true;
-            await this._human.SwitchProfileAsync(otherId, kept.Current);
+            var target = kept.Current != 0 ? kept.Current : kept.Profiles.Count > 0 ? kept.Profiles.Min(p => p.No) : 0;
+            if (target != 0)
+            {
+                progress.Wrote = true;
+                await this._human.SwitchProfileAsync(otherId, target);
+            }
         }
 
         foreach (var extra in extras)
@@ -428,5 +462,5 @@ public sealed class PairDriftService(IPoracleHumanProxy human, IPoracleTrackingP
     private sealed record ProfileRow(int No, string? Name, string? Area, double Latitude, double Longitude, string? ActiveHours);
 
     private sealed record Snapshot(
-        double Lat, double Lon, int Current, List<string> Areas, List<ProfileRow> Profiles, List<SavedPlace> Places);
+        double Lat, double Lon, int Current, List<string> Areas, List<ProfileRow> Profiles, List<SavedPlace> Places, bool HasProfileZero);
 }

@@ -163,6 +163,18 @@ public partial class AccountLinkController(
             drift = null;
         }
 
+        // Optional like the banner: a failed read answers null rather than taking the status down.
+        string? legacyProfileZero = null;
+        try
+        {
+            var legacy = await this._drift.GetLegacyProfileZeroAsync(pair);
+            legacyProfileZero = legacy is { } side ? AccountLinkKeys.Wire(side) : null;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            LogDriftReadFailed(this._logger, ex);
+        }
+
         return this.Ok(new
         {
             linked = true,
@@ -170,6 +182,7 @@ public partial class AccountLinkController(
             sides,
             defaultDestination = AccountLinkKeys.Wire(pair.Link!.DefaultDestination),
             drift,
+            legacyProfileZero,
         });
     }
 

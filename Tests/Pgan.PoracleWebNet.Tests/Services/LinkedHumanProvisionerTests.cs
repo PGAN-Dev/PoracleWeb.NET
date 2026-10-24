@@ -164,6 +164,44 @@ public class LinkedHumanProvisionerTests
     }
 
     [Fact]
+    public async Task SourceWithProfileZero_SkipsItAndMirrorsTheRest()
+    {
+        var added = this.UseSource(0, (0, "Old"), (1, "Home"));
+
+        await this._sut.CreateMirrorAsync(Discord, LinkSide.Telegram, Telegram, "Riverside");
+
+        Assert.Empty(added);
+        this._proxy.Verify(p => p.SetProfileGeographyAsync(Telegram, 1, It.Is<IReadOnlyCollection<string>>(a => a.Single() == "area1"), 52, -1), Times.Once);
+        this._proxy.Verify(p => p.SetProfileGeographyAsync(Telegram, 0, It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<double>(), It.IsAny<double>()), Times.Never);
+        this._proxy.Verify(p => p.SwitchProfileAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+        this._proxy.Verify(p => p.DeleteProfileAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SourceWithProfileZeroAndAGap_KeepsTheFillerLogic()
+    {
+        var added = this.UseSource(1, (0, "Old"), (1, "Home"), (3, "Night"));
+
+        await this._sut.CreateMirrorAsync(Discord, LinkSide.Telegram, Telegram, "Riverside");
+
+        Assert.Equal([2, 3], added);
+        this._proxy.Verify(p => p.SetProfileGeographyAsync(Telegram, 3, It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<double>(), It.IsAny<double>()), Times.Once);
+        this._proxy.Verify(p => p.DeleteProfileAsync(Telegram, 2), Times.Once);
+        this._proxy.Verify(p => p.SetProfileGeographyAsync(Telegram, 0, It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<double>(), It.IsAny<double>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SourceCurrentProfileZero_SwitchesTheMirrorToItsLowestRealProfile()
+    {
+        this.UseSource(0, (0, "Old"), (2, "Work"), (3, "Night"));
+
+        await this._sut.CreateMirrorAsync(Discord, LinkSide.Telegram, Telegram, "Riverside");
+
+        this._proxy.Verify(p => p.SwitchProfileAsync(Telegram, 2), Times.Once);
+        this._proxy.Verify(p => p.SwitchProfileAsync(It.IsAny<string>(), 0), Times.Never);
+    }
+
+    [Fact]
     public async Task NoSourceProfileRows_WritesHumanGeographyToTheDefaultProfile()
     {
         this.UseSource(1);

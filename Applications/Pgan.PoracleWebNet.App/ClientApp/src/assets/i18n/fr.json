@@ -2394,6 +2394,7 @@
     "TITLE": "Comptes liés",
     "DESC": "Reliez vos comptes Discord et Telegram pour qu’une même personne reçoive des alertes sur les deux.",
     "SIDE_DISCORD": "Discord",
+    "LEGACY_PROFILE_ZERO": "Votre compte {{app}} a un ancien profil 0 que {{other}} ne peut pas avoir. Ses alertes restent sur {{app}}.",
     "SIDE_TELEGRAM": "Telegram",
     "STATE_ACTIVE": "Actif",
     "STATE_WAITING": "En attente d’inscription",

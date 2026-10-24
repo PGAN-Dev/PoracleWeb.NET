@@ -423,6 +423,106 @@ public class PairDriftServiceTests
         this._human.Verify(p => p.DeletePlaceAsync(Telegram, "extra"), Times.Once);
     }
 
+    [Fact]
+    public async Task ProfileZeroOnOneSide_IdenticalProfileOne_NoProfilesDrift()
+    {
+        this._data[Discord].Profiles = [new ProfileData(0, "Old"), new ProfileData(1, "Home")];
+        this._data[Telegram].Profiles = [new ProfileData(1, "Home")];
+
+        Assert.Empty(await this._sut.GetAsync(Pair()));
+    }
+
+    [Fact]
+    public async Task ProfileZeroOnOneSide_DifferentProfileOne_StillDrifts_AndResolveRenamesOnlyProfileOne()
+    {
+        this._data[Discord].Profiles = [new ProfileData(0, "Old"), new ProfileData(1, "Home")];
+        this._data[Telegram].Profiles = [new ProfileData(1, "Casa")];
+        var fp = await this.FingerprintOf(DriftField.Profiles);
+
+        await this._sut.ResolveAsync(Pair(), DriftField.Profiles, LinkSide.Discord, fp);
+
+        this._human.Verify(p => p.UpdateProfileAsync(Telegram, It.Is<JsonElement>(b => b.GetProperty("profile_no").GetInt32() == 1 && b.GetProperty("name").GetString() == "Home")), Times.Once);
+        this._human.Verify(p => p.UpdateProfileAsync(It.IsAny<string>(), It.Is<JsonElement>(b => b.GetProperty("profile_no").GetInt32() == 0)), Times.Never);
+        this._human.Verify(p => p.AddProfileAsync(It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+        this._human.Verify(p => p.DeleteProfileAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ProfileZeroOnTheOtherSide_IsNeverDeleted()
+    {
+        this._data[Discord].Profiles = [new ProfileData(1, "Home")];
+        this._data[Telegram].Profiles = [new ProfileData(0, "Old"), new ProfileData(1, "Casa")];
+        this._data[Telegram].Rules = [0];
+        var fp = await this.FingerprintOf(DriftField.Profiles);
+
+        await this._sut.ResolveAsync(Pair(), DriftField.Profiles, LinkSide.Discord, fp);
+
+        this._human.Verify(p => p.DeleteProfileAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CurrentProfileZeroOnOneSide_NoCurrentProfileDrift()
+    {
+        this._data[Telegram].Profiles = [new ProfileData(0, "Old"), new ProfileData(1, "Home")];
+        this._data[Telegram].Current = 0;
+
+        Assert.Empty(await this._sut.GetAsync(Pair()));
+    }
+
+    [Fact]
+    public async Task ResolveProfiles_KeptSideOnProfileZero_SwitchesTheOtherToItsLowestRealProfile()
+    {
+        this._data[Discord].Profiles = [new ProfileData(0, "Old"), new ProfileData(1, "Home")];
+        this._data[Discord].Current = 0;
+        this._data[Telegram].Profiles = [new ProfileData(1, "Home"), new ProfileData(2, "Spare")];
+        this._data[Telegram].Current = 2;
+        var fp = await this.FingerprintOf(DriftField.Profiles);
+
+        await this._sut.ResolveAsync(Pair(), DriftField.Profiles, LinkSide.Discord, fp);
+
+        this._human.Verify(p => p.SwitchProfileAsync(Telegram, 1), Times.Once);
+        this._human.Verify(p => p.SwitchProfileAsync(It.IsAny<string>(), 0), Times.Never);
+    }
+
+    [Fact]
+    public async Task ResolveProfiles_LegitimateGap_StillCreatesProfileTwo()
+    {
+        this._data[Discord].Profiles = [new ProfileData(1, "Home"), new ProfileData(2, "Work")];
+        this._data[Telegram].Profiles = [new ProfileData(1, "Home")];
+        this._human.Setup(p => p.AddProfileAsync(Telegram, It.IsAny<JsonElement>())).ReturnsAsync(2);
+
+        var item = Assert.Single(await this._sut.GetAsync(Pair()));
+        await this._sut.ResolveAsync(Pair(), DriftField.Profiles, LinkSide.Discord, item.Fingerprint);
+
+        Assert.Equal(DriftField.Profiles, item.Field);
+        this._human.Verify(p => p.AddProfileAsync(Telegram, It.Is<JsonElement>(b => b.GetProperty("name").GetString() == "Work")), Times.Once);
+    }
+
+    [Fact]
+    public async Task LegacyProfileZero_NamesTheSideThatHasItAlone()
+    {
+        this._data[Discord].Profiles = [new ProfileData(0, "Old"), new ProfileData(1, "Home")];
+        Assert.Equal(LinkSide.Discord, await this._sut.GetLegacyProfileZeroAsync(Pair()));
+
+        this._data[Discord].Profiles = [new ProfileData(1, "Home")];
+        this._data[Telegram].Profiles = [new ProfileData(0, "Old"), new ProfileData(1, "Home")];
+        Assert.Equal(LinkSide.Telegram, await this._sut.GetLegacyProfileZeroAsync(Pair()));
+    }
+
+    [Fact]
+    public async Task LegacyProfileZero_NullWhenNeitherBothOrUnlinked()
+    {
+        Assert.Null(await this._sut.GetLegacyProfileZeroAsync(Pair()));
+
+        this._data[Discord].Profiles = [new ProfileData(0, "Old"), new ProfileData(1, "Home")];
+        this._data[Telegram].Profiles = [new ProfileData(0, "Old"), new ProfileData(1, "Home")];
+        Assert.Null(await this._sut.GetLegacyProfileZeroAsync(Pair()));
+
+        this._human.Invocations.Clear();
+        Assert.Null(await this._sut.GetLegacyProfileZeroAsync(LinkedPair.Single(Discord)));
+        this._human.VerifyNoOtherCalls();
+    }
+
     private sealed record ProfileData(int No, string Name, string Hours = "[]", string Area = "[]", double Lat = 51.5, double Lon = -0.12);
 
     private sealed class SideData
