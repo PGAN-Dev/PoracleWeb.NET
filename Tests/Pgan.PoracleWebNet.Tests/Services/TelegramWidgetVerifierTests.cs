@@ -10,7 +10,9 @@ public class TelegramWidgetVerifierTests
     private const string Token = "123456:test-token";
     private static readonly DateTimeOffset Now = new(2026, 10, 23, 12, 0, 0, TimeSpan.Zero);
 
-    private static Dictionary<string, string> Signed(TimeSpan age, Action<Dictionary<string, string>>? tamper = null, bool omitHash = false)
+    /// <summary>A payload signed with <see cref="Token"/>. <paramref name="shape"/> runs before signing, <paramref name="tamper"/> after.</summary>
+    private static Dictionary<string, string> Signed(
+        TimeSpan age, Action<Dictionary<string, string>>? tamper = null, bool omitHash = false, Action<Dictionary<string, string>>? shape = null)
     {
         var data = new Dictionary<string, string>
         {
@@ -20,6 +22,7 @@ public class TelegramWidgetVerifierTests
             ["username"] = "riverside_rider",
             ["auth_date"] = (Now - age).ToUnixTimeSeconds().ToString(),
         };
+        shape?.Invoke(data);
         var check = string.Join("\n", data.OrderBy(k => k.Key, StringComparer.Ordinal).Select(k => $"{k.Key}={k.Value}"));
         using var hmac = new HMACSHA256(SHA256.HashData(Encoding.UTF8.GetBytes(Token)));
         if (!omitHash)
@@ -43,13 +46,11 @@ public class TelegramWidgetVerifierTests
     [Fact]
     public void NameFallsBackToUsername()
     {
-        var data = Signed(TimeSpan.Zero);
-        data.Remove("first_name");
-        data.Remove("last_name");
-        // re-sign without the names
-        var check = string.Join("\n", data.Where(k => k.Key != "hash").OrderBy(k => k.Key, StringComparer.Ordinal).Select(k => $"{k.Key}={k.Value}"));
-        using var hmac = new HMACSHA256(SHA256.HashData(Encoding.UTF8.GetBytes(Token)));
-        data["hash"] = Convert.ToHexStringLower(hmac.ComputeHash(Encoding.UTF8.GetBytes(check)));
+        var data = Signed(TimeSpan.Zero, shape: d =>
+        {
+            d.Remove("first_name");
+            d.Remove("last_name");
+        });
         var r = TelegramWidgetVerifier.Verify(data, Token, TelegramWidgetVerifier.SignInMaxAge, Now);
         Assert.True(r.Valid);
         Assert.Equal("riverside_rider", r.Name);
@@ -76,5 +77,36 @@ public class TelegramWidgetVerifierTests
     {
         var r = TelegramWidgetVerifier.Verify(Signed(TimeSpan.Zero, omitHash: true), Token, TelegramWidgetVerifier.SignInMaxAge, Now);
         Assert.Equal("missing_fields", r.Failure);
+    }
+
+    [Fact]
+    public void NonNumericIdFailsBadId()
+    {
+        var r = TelegramWidgetVerifier.Verify(Signed(TimeSpan.Zero, shape: d => d["id"] = "abc"), Token, TelegramWidgetVerifier.SignInMaxAge, Now);
+        Assert.False(r.Valid);
+        Assert.Equal("bad_id", r.Failure);
+    }
+
+    [Fact]
+    public void NonNumericAuthDateFailsBadAuthDate()
+    {
+        var r = TelegramWidgetVerifier.Verify(Signed(TimeSpan.Zero, shape: d => d["auth_date"] = "yesterday"), Token, TelegramWidgetVerifier.SignInMaxAge, Now);
+        Assert.False(r.Valid);
+        Assert.Equal("bad_auth_date", r.Failure);
+    }
+
+    [Fact]
+    public void AuthDateWellInTheFutureFailsBadAuthDate()
+    {
+        var r = TelegramWidgetVerifier.Verify(Signed(-TimeSpan.FromHours(1)), Token, TelegramWidgetVerifier.LinkMaxAge, Now);
+        Assert.False(r.Valid);
+        Assert.Equal("bad_auth_date", r.Failure);
+    }
+
+    [Fact]
+    public void AuthDateAMinuteAheadIsClockDriftAndPasses()
+    {
+        var r = TelegramWidgetVerifier.Verify(Signed(-TimeSpan.FromMinutes(1)), Token, TelegramWidgetVerifier.LinkMaxAge, Now);
+        Assert.True(r.Valid);
     }
 }

@@ -589,7 +589,7 @@ public partial class AuthController(
     [HttpPost("telegram/verify")]
     public async Task<IActionResult> TelegramVerify([FromBody] Dictionary<string, string> telegramData)
     {
-        if (telegramData == null || !telegramData.TryGetValue("id", out var telegramId) || !telegramData.TryGetValue("hash", out var hash))
+        if (telegramData == null || !telegramData.TryGetValue("id", out var telegramId) || !telegramData.ContainsKey("hash"))
         {
             return this.BadRequest(new
             {
@@ -616,6 +616,14 @@ public partial class AuthController(
             return widget.Failure switch
             {
                 "missing_fields" => this.BadRequest(new
+                {
+                    error = "Invalid Telegram login data."
+                }),
+                "bad_id" => this.BadRequest(new
+                {
+                    error = "Invalid Telegram user id."
+                }),
+                "bad_auth_date" => this.BadRequest(new
                 {
                     error = "Missing or invalid auth_date."
                 }),

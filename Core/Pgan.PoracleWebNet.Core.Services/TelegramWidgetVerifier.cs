@@ -3,7 +3,10 @@ using System.Text;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
-/// <summary>Outcome of checking a Telegram login-widget payload. <c>Failure</c> is bad_hash, expired or missing_fields.</summary>
+/// <summary>
+/// Outcome of checking a Telegram login-widget payload. <c>Failure</c> is missing_fields (no id or hash), bad_id (an id
+/// that is not a number), bad_auth_date (missing, not a number, or in the future), expired or bad_hash.
+/// </summary>
 public sealed record TelegramWidgetResult(bool Valid, string? Failure, long UserId, string Name);
 
 /// <summary>
@@ -14,17 +17,36 @@ public static class TelegramWidgetVerifier
     public static readonly TimeSpan SignInMaxAge = TimeSpan.FromHours(24);
     public static readonly TimeSpan LinkMaxAge = TimeSpan.FromMinutes(10);
 
+    /// <summary>How far ahead of this server's clock an auth_date may be before it is refused, for clock drift.</summary>
+    public static readonly TimeSpan FutureSkew = TimeSpan.FromMinutes(5);
+
     public static TelegramWidgetResult Verify(IReadOnlyDictionary<string, string> data, string botToken, TimeSpan maxAge, DateTimeOffset now)
     {
-        if (!data.TryGetValue("id", out var idText) || !long.TryParse(idText, out var userId) ||
-            !data.TryGetValue("hash", out var hash) ||
-            !data.TryGetValue("auth_date", out var authDateText) || !long.TryParse(authDateText, out var authDateUnix))
+        if (!data.TryGetValue("id", out var idText) || !data.TryGetValue("hash", out var hash))
         {
             return Fail("missing_fields");
         }
 
-        // Expiry is judged before the hash, as sign-in always did.
-        if (now - DateTimeOffset.FromUnixTimeSeconds(authDateUnix) > maxAge)
+        if (!long.TryParse(idText, out var userId))
+        {
+            return Fail("bad_id");
+        }
+
+        if (!data.TryGetValue("auth_date", out var authDateText) || !long.TryParse(authDateText, out var authDateUnix)
+            || authDateUnix < 0 || authDateUnix > DateTimeOffset.MaxValue.ToUnixTimeSeconds())
+        {
+            return Fail("bad_auth_date");
+        }
+
+        // Expiry is judged before the hash, as sign-in always did. A date ahead of the clock by more than drift
+        // explains would otherwise stay valid for as long again as it is early.
+        var age = now - DateTimeOffset.FromUnixTimeSeconds(authDateUnix);
+        if (age < -FutureSkew)
+        {
+            return Fail("bad_auth_date");
+        }
+
+        if (age > maxAge)
         {
             return Fail("expired");
         }
