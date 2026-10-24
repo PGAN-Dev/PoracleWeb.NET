@@ -59,9 +59,9 @@ export class ToastService {
     this.error(message);
   }
 
-  info(message: string): void {
+  info(message: string, duration = 3000): void {
     this.snackBar.open(message, this.i18n.instant('TOAST.OK'), {
-      duration: 3000,
+      duration,
       panelClass: ['toast-info'],
       verticalPosition: 'top',
     });

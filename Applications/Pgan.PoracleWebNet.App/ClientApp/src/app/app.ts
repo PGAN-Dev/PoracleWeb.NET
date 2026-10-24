@@ -15,7 +15,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 
-import { DashboardCounts } from './core/models';
+import { AuthProviders, DashboardCounts } from './core/models';
 import { AlertLanguageService } from './core/services/alert-language.service';
 import { AuthService } from './core/services/auth.service';
 import { DashboardService } from './core/services/dashboard.service';
@@ -305,16 +305,32 @@ export class App implements OnInit {
    */
   protected readonly overlayNav = signal(usesOverlayNav(window.innerWidth));
 
+  /** What each platform's sign-in offers, read once from the anonymous providers endpoint. Null until it answers. */
+  protected readonly providers = signal<AuthProviders | null>(null);
+
   protected readonly settingsNavItems = computed(() =>
     this.navItems.filter(
       item => item.group === 'settings' && (!item.adminOnly || this.auth.isAdmin()) && !this.isFeatureDisabled(item.disableKey),
     ),
   );
 
-  /** The user-menu entry. Linking is refused while viewing as someone else, so it is not offered then either. */
-  protected readonly showLinkedAccountsItem = computed(
-    () => !this.settingsService.isDisabled('disable_account_linking') && !this.auth.isImpersonating(),
-  );
+  /**
+   * The user-menu entry. Linking is refused while viewing as someone else, so it is not offered then either.
+   * Beyond that it appears when there is something to do on the page: the other platform's sign-in is
+   * configured (the page's own test for offering Link), or the person is already linked and still needs the
+   * page to unlink or change the default.
+   */
+  protected readonly showLinkedAccountsItem = computed(() => {
+    if (this.settingsService.isDisabled('disable_account_linking') || this.auth.isImpersonating()) return false;
+    if (this.linkedAccounts.status()?.linked === true) return true;
+    const type = this.auth.user()?.type ?? '';
+    const providers = this.providers();
+    if (!providers) return false;
+    if (type.startsWith('discord'))
+      return providers.telegram.configured && providers.telegram.enabledByAdmin && !!providers.telegram.botUsername;
+    if (type.startsWith('telegram')) return providers.discord.configured && providers.discord.enabledByAdmin;
+    return false;
+  });
 
   protected readonly showShortcutHelp = signal(false);
 
@@ -417,7 +433,10 @@ export class App implements OnInit {
     // surfaced as an uncaught error in the console.
     this.auth.getProviders().subscribe({
       error: () => this.ssoLogoutAvailable.set(false),
-      next: providers => this.ssoLogoutAvailable.set(providers.oidc?.endSession === true),
+      next: providers => {
+        this.providers.set(providers);
+        this.ssoLogoutAvailable.set(providers.oidc?.endSession === true);
+      },
     });
   }
 

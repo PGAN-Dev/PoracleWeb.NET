@@ -51,8 +51,12 @@ export class LinkedAccountService {
     effect(() => {
       const user = this.auth.user();
       const allowed = this.allowed();
+      const impersonating = this.auth.isImpersonating();
       untracked(() => {
-        if (!user) {
+        // While viewing as someone else, the status read was the admin's own link: the dialogs, card glyphs and
+        // default would describe it against the account being viewed. It is dropped, and read again when the
+        // session ends.
+        if (!user || impersonating) {
           this.statusSignal.set(null);
         } else if (allowed) {
           void this.refresh();
@@ -86,7 +90,10 @@ export class LinkedAccountService {
     if (!this.allowed()) return;
     this.lastRefreshAt = Date.now();
     try {
-      this.statusSignal.set(await firstValueFrom(this.http.get<LinkStatus>(`${this.config.apiHost}/api/account-link/status`)));
+      const status = await firstValueFrom(this.http.get<LinkStatus>(`${this.config.apiHost}/api/account-link/status`));
+      // A read begun before viewing as someone else started must not land after it did.
+      if (this.auth.isImpersonating()) return;
+      this.statusSignal.set(status);
     } catch {
       // Silent on purpose; the next focus tries again.
     }

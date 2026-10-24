@@ -41,6 +41,18 @@ describe('ToastService', () => {
     });
   });
 
+  describe('info with a duration', () => {
+    it('uses the one it is given', () => {
+      service.info('A sentence with a reason', 8000);
+
+      expect(snackBar.open).toHaveBeenCalledWith('A sentence with a reason', 'TOAST.OK', {
+        duration: 8000,
+        panelClass: ['toast-info'],
+        verticalPosition: 'top',
+      });
+    });
+  });
+
   describe('info', () => {
     it('should show info toast', () => {
       service.info('FYI');

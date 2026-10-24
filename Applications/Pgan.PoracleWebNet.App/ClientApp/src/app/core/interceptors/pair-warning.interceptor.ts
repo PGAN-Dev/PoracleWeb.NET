@@ -6,6 +6,9 @@ import { I18nService } from '../services/i18n.service';
 import { ToastService } from '../services/toast.service';
 
 const HEADER = 'X-Pair-Warning';
+
+/** Longer than an error toast (5 s): the message carries a reason sentence the person has to read. */
+export const PAIR_WARNING_TOAST_MS = 8000;
 const SIDES = ['discord', 'telegram'] as const;
 
 /**
@@ -38,6 +41,7 @@ export const pairWarningInterceptor: HttpInterceptorFn = (req, next) => {
           reason: typeof parsed.reason === 'string' ? parsed.reason : '',
           saved: name(saved),
         }),
+        PAIR_WARNING_TOAST_MS,
       );
     }),
   );

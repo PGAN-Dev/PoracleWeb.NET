@@ -139,6 +139,41 @@ describe('LinkedAccountService', () => {
     http.expectNone(STATUS);
   });
 
+  it("forgets the admin's own link the moment viewing as someone else starts, and reads again when it stops", async () => {
+    user.set({ id: '100000000000000001' });
+    TestBed.tick();
+    http.expectOne(STATUS).flush({ ...linked, sides: [linked.sides![0], { side: 'telegram', exists: true, pause: 'none' }] });
+    await settle();
+    expect(service.canChoose()).toBe(true);
+
+    impersonating.set(true);
+    TestBed.tick();
+
+    expect(service.status()).toBeNull();
+    expect(service.canChoose()).toBe(false);
+    expect(service.drift()).toEqual([]);
+    http.expectNone(STATUS);
+
+    impersonating.set(false);
+    TestBed.tick();
+    http.expectOne(STATUS).flush(linked);
+    await settle();
+    expect(service.status()).toEqual(linked);
+  });
+
+  it('does not store a read that was already in flight when viewing as someone else began', async () => {
+    user.set({ id: '100000000000000001' });
+    TestBed.tick();
+    const req = http.expectOne(STATUS);
+
+    impersonating.set(true);
+    TestBed.tick();
+    req.flush(linked);
+    await settle();
+
+    expect(service.status()).toBeNull();
+  });
+
   it('starts a Discord link with cookies and navigates to the returned URL', async () => {
     const go = jest.spyOn(service as unknown as { navigate: (url: string) => void }, 'navigate').mockImplementation(() => undefined);
     const done = service.startDiscordLink();
