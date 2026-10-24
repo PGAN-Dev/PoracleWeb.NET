@@ -2461,6 +2461,7 @@
     "ERR_LINK_PROVISION_FAILED": "Votre autre compte n’a pas pu être créé. Rien n’a été lié. Réessayez dans une minute, ou demandez à l’équipe du site.",
     "ERR_LINK_FAILED": "Les comptes n’ont pas pu être liés. Rien n’a été modifié. Réessayez.",
     "ERR_LINK_CANCELLED": "Vous avez annulé la liaison. Rien n’a été modifié. Appuyez sur Lier quand vous êtes prêt.",
+    "ERR_LINK_DISABLED": "La liaison de comptes a été désactivée sur ce site, le lien n'a donc pas été créé. Rien n'a été modifié.",
     "LOAD_FAILED": "Impossible de charger vos comptes liés.",
     "RETRY": "Réessayer",
     "IMPERSONATING": "Vous consultez la page d’un autre compte. Ses comptes liés sont gérés par cette personne.",

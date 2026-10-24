@@ -2461,6 +2461,7 @@
     "ERR_LINK_PROVISION_FAILED": "Não foi possível configurar a tua outra conta. Nada foi associado. Tenta de novo daqui a um minuto, ou pergunta à equipa do site.",
     "ERR_LINK_FAILED": "Não foi possível associar as contas. Nada foi alterado. Tenta de novo.",
     "ERR_LINK_CANCELLED": "Cancelaste a associação. Nada foi alterado. Carrega em Associar quando estiveres pronto.",
+    "ERR_LINK_DISABLED": "A ligação de contas foi desativada neste site, por isso a ligação não foi criada. Nada foi alterado.",
     "LOAD_FAILED": "Não foi possível carregar as tuas contas associadas.",
     "RETRY": "Tentar de novo",
     "IMPERSONATING": "Estás a ver a página de outra conta. As contas associadas são geridas por essa pessoa.",

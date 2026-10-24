@@ -2461,6 +2461,7 @@
     "ERR_LINK_PROVISION_FAILED": "Je andere account kon niet worden aangemaakt. Er is niets gekoppeld. Probeer het over een minuut opnieuw, of vraag het team van de site.",
     "ERR_LINK_FAILED": "De accounts konden niet worden gekoppeld. Er is niets gewijzigd. Probeer het opnieuw.",
     "ERR_LINK_CANCELLED": "Je hebt het koppelen geannuleerd. Er is niets gewijzigd. Druk op Koppelen wanneer je klaar bent.",
+    "ERR_LINK_DISABLED": "Het koppelen van accounts is op deze site uitgezet, dus de koppeling is niet gemaakt. Er is niets gewijzigd.",
     "LOAD_FAILED": "Je gekoppelde accounts konden niet worden geladen.",
     "RETRY": "Opnieuw proberen",
     "IMPERSONATING": "Je bekijkt de pagina van een ander account. Gekoppelde accounts worden door die persoon beheerd.",

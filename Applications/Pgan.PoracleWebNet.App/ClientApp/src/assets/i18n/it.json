@@ -2461,6 +2461,7 @@
     "ERR_LINK_PROVISION_FAILED": "Non è stato possibile configurare il tuo altro account. Non è stato collegato niente. Riprova tra un minuto, o chiedi allo staff del sito.",
     "ERR_LINK_FAILED": "Non è stato possibile collegare gli account. Non è cambiato niente. Riprova.",
     "ERR_LINK_CANCELLED": "Hai annullato il collegamento. Non è cambiato niente. Premi Collega quando sei pronto.",
+    "ERR_LINK_DISABLED": "Il collegamento degli account è stato disattivato su questo sito, quindi il collegamento non è stato creato. Non è cambiato nulla.",
     "LOAD_FAILED": "Impossibile caricare i tuoi account collegati.",
     "RETRY": "Riprova",
     "IMPERSONATING": "Stai guardando la pagina di un altro account. Gli account collegati li gestisce quella persona.",

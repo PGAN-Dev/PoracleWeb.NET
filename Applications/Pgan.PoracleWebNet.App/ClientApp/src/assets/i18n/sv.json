@@ -2461,6 +2461,7 @@
     "ERR_LINK_PROVISION_FAILED": "Ditt andra konto kunde inte skapas. Inget länkades. Försök igen om en minut, eller fråga sajtens team.",
     "ERR_LINK_FAILED": "Kontona kunde inte länkas. Inget ändrades. Försök igen.",
     "ERR_LINK_CANCELLED": "Du avbröt länkningen. Inget ändrades. Tryck på Länka när du är redo.",
+    "ERR_LINK_DISABLED": "Kontosammanlänkning har stängts av på den här webbplatsen, så länken skapades inte. Inget har ändrats.",
     "LOAD_FAILED": "Dina länkade konton kunde inte läsas in.",
     "RETRY": "Försök igen",
     "IMPERSONATING": "Du tittar på ett annat kontos sida. Länkade konton hanteras av den personen.",

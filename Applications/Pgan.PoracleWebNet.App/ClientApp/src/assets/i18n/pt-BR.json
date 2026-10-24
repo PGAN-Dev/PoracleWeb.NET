@@ -2461,6 +2461,7 @@
     "ERR_LINK_PROVISION_FAILED": "Não foi possível configurar sua outra conta. Nada foi vinculado. Tente de novo em um minuto, ou pergunte à equipe do site.",
     "ERR_LINK_FAILED": "Não foi possível vincular as contas. Nada foi alterado. Tente de novo.",
     "ERR_LINK_CANCELLED": "Você cancelou a vinculação. Nada foi alterado. Toque em Vincular quando estiver pronto.",
+    "ERR_LINK_DISABLED": "A vinculação de contas foi desativada neste site, então o vínculo não foi criado. Nada foi alterado.",
     "LOAD_FAILED": "Não foi possível carregar suas contas vinculadas.",
     "RETRY": "Tentar de novo",
     "IMPERSONATING": "Você está vendo a página de outra conta. As contas vinculadas são gerenciadas por essa pessoa.",

@@ -44,6 +44,7 @@ export interface DefaultOption {
 const REFUSAL_KEYS: Record<string, string> = {
   link_bad_id: 'LINKED.ERR_LINK_BAD_ID',
   link_cancelled: 'LINKED.ERR_LINK_CANCELLED',
+  link_disabled: 'LINKED.ERR_LINK_DISABLED',
   link_expired: 'LINKED.ERR_LINK_EXPIRED',
   link_failed: 'LINKED.ERR_LINK_FAILED',
   link_not_permitted: 'LINKED.ERR_LINK_NOT_PERMITTED',

@@ -2461,6 +2461,7 @@
     "ERR_LINK_PROVISION_FAILED": "Dein anderes Konto konnte nicht eingerichtet werden. Es wurde nichts verknüpft. Versuche es in einer Minute erneut oder frag das Team der Seite.",
     "ERR_LINK_FAILED": "Die Konten konnten nicht verknüpft werden. Es wurde nichts geändert. Versuche es erneut.",
     "ERR_LINK_CANCELLED": "Du hast die Verknüpfung abgebrochen. Es wurde nichts geändert. Tippe auf Verknüpfen, wenn du bereit bist.",
+    "ERR_LINK_DISABLED": "Das Verknüpfen von Konten wurde auf dieser Seite ausgeschaltet, deshalb wurde die Verknüpfung nicht erstellt. Es wurde nichts geändert.",
     "LOAD_FAILED": "Deine verknüpften Konten konnten nicht geladen werden.",
     "RETRY": "Erneut versuchen",
     "IMPERSONATING": "Du siehst die Seite eines anderen Kontos. Verknüpfte Konten verwaltet diese Person selbst.",

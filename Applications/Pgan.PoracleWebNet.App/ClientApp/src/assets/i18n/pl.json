@@ -2577,6 +2577,7 @@
     "ERR_LINK_PROVISION_FAILED": "Nie udało się utworzyć twojego drugiego konta. Nic nie połączono. Spróbuj ponownie za minutę albo zapytaj zespół strony.",
     "ERR_LINK_FAILED": "Nie udało się połączyć kont. Nic nie zmieniono. Spróbuj ponownie.",
     "ERR_LINK_CANCELLED": "Anulowałeś łączenie. Nic nie zmieniono. Naciśnij Połącz, gdy będziesz gotowy.",
+    "ERR_LINK_DISABLED": "Łączenie kont zostało wyłączone na tej stronie, więc połączenie nie zostało utworzone. Nic nie zostało zmienione.",
     "LOAD_FAILED": "Nie udało się wczytać połączonych kont.",
     "RETRY": "Spróbuj ponownie",
     "IMPERSONATING": "Oglądasz stronę innego konta. Połączonymi kontami zarządza ta osoba.",

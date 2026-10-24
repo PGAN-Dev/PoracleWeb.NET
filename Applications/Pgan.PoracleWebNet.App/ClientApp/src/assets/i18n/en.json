@@ -2461,6 +2461,7 @@
     "ERR_LINK_PROVISION_FAILED": "Your other account couldn't be set up. Nothing was linked. Try again in a minute, or ask the site team.",
     "ERR_LINK_FAILED": "The accounts couldn't be linked. Nothing was changed. Try again.",
     "ERR_LINK_CANCELLED": "You cancelled the link. Nothing was changed. Press Link when you're ready.",
+    "ERR_LINK_DISABLED": "Linking accounts has been switched off on this site, so this link wasn't made. Nothing was changed.",
     "LOAD_FAILED": "Couldn't load your linked accounts.",
     "RETRY": "Try again",
     "IMPERSONATING": "You're viewing another account's page. Linked accounts are managed by that person.",

@@ -2461,6 +2461,7 @@
     "ERR_LINK_PROVISION_FAILED": "Din anden konto kunne ikke oprettes. Intet blev kædet sammen. Prøv igen om et minut, eller spørg sidens team.",
     "ERR_LINK_FAILED": "Kontiene kunne ikke kædes sammen. Intet blev ændret. Prøv igen.",
     "ERR_LINK_CANCELLED": "Du annullerede sammenkædningen. Intet blev ændret. Tryk på Kæd sammen, når du er klar.",
+    "ERR_LINK_DISABLED": "Sammenkobling af konti er slået fra på dette websted, så forbindelsen blev ikke oprettet. Der er ikke ændret noget.",
     "LOAD_FAILED": "Dine sammenkædede konti kunne ikke indlæses.",
     "RETRY": "Prøv igen",
     "IMPERSONATING": "Du ser en anden kontos side. Sammenkædede konti styres af den person.",

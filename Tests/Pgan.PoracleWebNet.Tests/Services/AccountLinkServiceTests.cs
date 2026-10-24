@@ -36,6 +36,32 @@ public class AccountLinkServiceTests
     private static async Task<LinkRefusalException> Refused(Task task) => await Assert.ThrowsAsync<LinkRefusalException>(() => task);
 
     [Fact]
+    public async Task Link_WhileLinkingIsSwitchedOff_IsRefusedAndWritesNothing()
+    {
+        // A link started before an admin switched linking off must not complete.
+        this._settings.Setup(s => s.GetBoolAsync(DisableFeatureKeys.AccountLinking)).ReturnsAsync(true);
+        this.Human(Discord, AccountLinkKeys.DiscordUserType);
+        this.Human(Telegram, AccountLinkKeys.TelegramUserType);
+
+        var refusal = await Refused(this._sut.LinkAsync(Discord, LinkSide.Telegram, Telegram, "Old Town"));
+
+        Assert.Equal(LinkRefusalCode.LinkDisabled, refusal.Code);
+        Assert.Equal("link_disabled", refusal.WireCode);
+        this._links.Verify(r => r.AddAsync(It.IsAny<AccountLink>()), Times.Never);
+        this._provisioner.Verify(p => p.CreateMirrorAsync(It.IsAny<string>(), It.IsAny<LinkSide>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Unlink_WhileLinkingIsSwitchedOff_StillWorks()
+    {
+        this._settings.Setup(s => s.GetBoolAsync(DisableFeatureKeys.AccountLinking)).ReturnsAsync(true);
+        this._links.Setup(r => r.GetByHumanIdAsync(Discord)).ReturnsAsync(new AccountLink(9, Discord, Telegram, LinkSide.Discord, null, null, DateTime.UtcNow));
+        this._links.Setup(r => r.RemoveByHumanIdAsync(Discord)).ReturnsAsync(1);
+
+        Assert.True(await this._sut.UnlinkAsync(Discord));
+    }
+
+    [Fact]
     public async Task Link_DiscordCallerAddsTelegram_StoresDefaultDiscord()
     {
         this.Human(Discord, AccountLinkKeys.DiscordUserType);

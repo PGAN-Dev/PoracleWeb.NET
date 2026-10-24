@@ -23,6 +23,13 @@ public partial class AccountLinkService(
 
     public async Task<AccountLink> LinkAsync(string callerHumanId, LinkSide newSide, string newId, string newName)
     {
+        // Checked here, not only on the endpoints: the Discord callback's link branch and a Telegram widget that
+        // was started before an admin switched linking off both arrive after the switch. Unlinking stays open.
+        if (await this._settings.GetBoolAsync(DisableFeatureKeys.AccountLinking))
+        {
+            throw new LinkRefusalException(LinkRefusalCode.LinkDisabled, "Linking accounts is switched off on this site.");
+        }
+
         var caller = await this._humans.GetByIdAsync(callerHumanId);
         var callerSide = SideOfType(caller?.Type);
         if (callerSide is null || callerSide == newSide)
