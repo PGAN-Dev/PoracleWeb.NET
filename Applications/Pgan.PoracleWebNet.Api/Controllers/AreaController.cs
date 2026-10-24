@@ -74,7 +74,7 @@ public partial class AreaController(
         }
         catch (Exception ex)
         {
-            LogFetchAvailableAreasFailed(this._logger, ex, this.UserId);
+            LogFetchAvailableAreasFailed(this._logger, ex, LogSafe.Id(this.UserId));
         }
 
         return this.Ok(Array.Empty<object>());
@@ -157,7 +157,7 @@ public partial class AreaController(
         }
         catch (Exception ex)
         {
-            LogNameOwnFencesFailed(this._logger, ex, this.UserId);
+            LogNameOwnFencesFailed(this._logger, ex, LogSafe.Id(this.UserId));
             return json;
         }
     }

@@ -177,7 +177,7 @@ public partial class UserGeofenceService(
         // Set polygon on result from input
         geofence.Polygon = model.Polygon;
 
-        LogGeofenceCreated(this._logger, kojiName, humanId);
+        LogGeofenceCreated(this._logger, kojiName, LogSafe.Id(humanId));
 
         return geofence;
     }
@@ -482,7 +482,7 @@ public partial class UserGeofenceService(
         // Reload Poracle geofences
         await this.ReloadGeofencesSafeAsync();
 
-        LogGeofenceDeleted(this._logger, geofence.KojiName, id, humanId);
+        LogGeofenceDeleted(this._logger, geofence.KojiName, id, LogSafe.Id(humanId));
         return warning;
     }
 
@@ -577,7 +577,7 @@ public partial class UserGeofenceService(
             }
             catch (AccountGoneException)
             {
-                LogAreaOwnerGone(this._logger, geofence.KojiName, id);
+                LogAreaOwnerGone(this._logger, geofence.KojiName, LogSafe.Id(id));
             }
         });
         var warning = removed.Warning;
@@ -587,7 +587,7 @@ public partial class UserGeofenceService(
         await this._repository.DeleteAsync(id);
         await this.ReloadGeofencesSafeAsync();
 
-        LogAdminDeletedGeofence(this._logger, adminId, geofence.KojiName, id, geofence.Status);
+        LogAdminDeletedGeofence(this._logger, LogSafe.Id(adminId), geofence.KojiName, id, geofence.Status);
         return warning;
     }
 
@@ -670,7 +670,7 @@ public partial class UserGeofenceService(
             LogDiscordForumPostCreationFailed(this._logger, ex, kojiName);
         }
 
-        LogGeofenceSubmittedForReview(this._logger, humanId, kojiName);
+        LogGeofenceSubmittedForReview(this._logger, LogSafe.Id(humanId), kojiName);
 
         return updated;
     }
@@ -692,7 +692,7 @@ public partial class UserGeofenceService(
         }
         catch (Exception ex)
         {
-            LogOwnerNameLookupFailed(this._logger, ex, geofence.HumanId);
+            LogOwnerNameLookupFailed(this._logger, ex, LogSafe.Id(geofence.HumanId));
         }
 
         double[][]? polygon = null;
@@ -961,7 +961,7 @@ public partial class UserGeofenceService(
             }
         }
 
-        LogGeofenceApproved(this._logger, adminId, geofence.KojiName, id, promotedName);
+        LogGeofenceApproved(this._logger, LogSafe.Id(adminId), geofence.KojiName, id, promotedName);
 
         await this.EnrichWithDetailsAsync([updated]);
         updated.OwnerAreasRenamed = ownerAreasRenamed;
@@ -1007,7 +1007,7 @@ public partial class UserGeofenceService(
             }
         }
 
-        LogGeofenceRejected(this._logger, adminId, geofence.KojiName, id);
+        LogGeofenceRejected(this._logger, LogSafe.Id(adminId), geofence.KojiName, id);
 
         await this.EnrichWithDetailsAsync([updated]);
         return updated;

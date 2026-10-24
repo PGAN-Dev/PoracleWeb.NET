@@ -227,3 +227,24 @@ describe('HelpComponent pill samples', () => {
     expect(declared(sample, 'color')).toBe(declared(card, 'color'));
   });
 });
+
+/**
+ * A delegate pressing the paper plane on a destination's alarm expects the sample in their own DMs,
+ * and it lands in the destination instead. The section says so in every language. See #1038.
+ */
+describe('Help: destinations you manage', () => {
+  const locales = ['da', 'de', 'en', 'es', 'fr', 'it', 'nl', 'pl', 'pt', 'pt-BR', 'sv'];
+  const content = (locale: string): string =>
+    JSON.parse(readFileSync(join(__dirname, `../../../assets/i18n/${locale}.json`), 'utf8')).HELP.CONTENT_WEBHOOKS;
+
+  it('says a test alert posts into the destination', () => {
+    expect(content('en')).toContain('A test alert posts into the destination, not to your DMs.');
+  });
+
+  /** The managing paragraph gained a sentence; a locale left at two sentences was not translated. */
+  it.each(locales)('%s carries the extra sentence in the managing paragraph', locale => {
+    const managing = content(locale).match(/<p>(.*?)<\/p>/g)?.[2] ?? '';
+
+    expect(managing.split(/(?<=[.!?])\s+/)).toHaveLength(3);
+  });
+});

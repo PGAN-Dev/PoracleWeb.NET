@@ -1,4 +1,17 @@
-@if (appearance() === 'icon' && !isQuiet()) {
+@if (readOnly()) {
+  <!-- Impersonating: the server refuses quiet writes, so a quiet subject shows its countdown and nothing more. -->
+  @if (isQuiet()) {
+    <span
+      class="quiet-chip quiet-chip-on quiet-chip-readonly"
+      [class.quiet-chip-trailing]="appearance() === 'trailing'"
+      [matTooltip]="tooltip()"
+      tabindex="0"
+      (click)="$event.stopPropagation()">
+      <mat-icon class="quiet-chip-icon">notifications_paused</mat-icon>
+      <span class="quiet-chip-label">{{ label() }}</span>
+    </span>
+  }
+} @else if (appearance() === 'icon' && !isQuiet()) {
   <button mat-icon-button [matTooltip]="tooltip()" [attr.aria-label]="tooltip()" (click)="open($event)">
     <mat-icon>notifications_paused</mat-icon>
   </button>

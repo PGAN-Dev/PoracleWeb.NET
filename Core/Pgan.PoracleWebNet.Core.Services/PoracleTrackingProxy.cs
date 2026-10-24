@@ -117,7 +117,7 @@ public partial class PoracleTrackingProxy(
 
         if (remaining.Count > 0)
         {
-            LogBulkDeleteLeftUids(this._logger, type, userId, new UidList(remaining));
+            LogBulkDeleteLeftUids(this._logger, type, LogSafe.Id(userId), new UidList(remaining));
         }
     }
 

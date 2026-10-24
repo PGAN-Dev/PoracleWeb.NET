@@ -56,7 +56,10 @@ describe('AdminUsersComponent', () => {
         provideTranslateService(),
         { provide: AdminService, useValue: adminService },
         { provide: SettingsService, useValue: { isDisabled: () => options.linkingDisabled ?? false } },
-        { provide: AuthService, useValue: { impersonate: jest.fn(), user: signal({ id: 'admin1', isAdmin: true }) } },
+        {
+          provide: AuthService,
+          useValue: { impersonate: jest.fn(), isImpersonating: signal(false), user: signal({ id: 'admin1', isAdmin: true }) },
+        },
       ],
       imports: [AdminUsersComponent, NoopAnimationsModule],
     });

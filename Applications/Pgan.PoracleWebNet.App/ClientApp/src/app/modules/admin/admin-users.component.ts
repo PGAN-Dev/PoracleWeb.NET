@@ -21,6 +21,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 
 import { AdminListState, StatusFilter, notesLabel } from './admin-list-state';
 import { AccountLink, AdminUser } from '../../core/models';
+import { AdminUsersStore } from '../../core/services/admin-users.store';
 import { AdminService } from '../../core/services/admin.service';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
@@ -60,7 +61,9 @@ import { serverReason } from '../../shared/utils/server-reason';
 })
 export class AdminUsersComponent implements OnInit {
   private readonly adminService = inject(AdminService);
-  private readonly allUsers = signal<AdminUser[]>([]);
+  /** Shared with Destinations, which filters the same list. See #1038. */
+  private readonly store = inject(AdminUsersStore);
+  private readonly allUsers = this.store.users;
   private readonly auth = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
@@ -132,7 +135,8 @@ export class AdminUsersComponent implements OnInit {
         this.adminService.deleteUser(user.id).subscribe({
           error: err => this.showFailure(err, 'ADMIN.SNACK_FAILED_DELETE'),
           next: () => {
-            this.allUsers.update(users => users.filter(u => u.id !== user.id));
+            this.store.remove(user.id);
+            this.store.invalidate();
             this.snackBar.open(this.i18n.instant('ADMIN.SNACK_DELETED', { name }), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           },
         });
@@ -181,26 +185,24 @@ export class AdminUsersComponent implements OnInit {
     return null;
   }
 
-  loadUsers(): void {
+  /** Refresh passes nothing and refetches; opening the page takes the shared list when there is one. */
+  loadUsers(force = true): void {
     this.loadLinks();
     this.usersLoading.set(true);
-    this.adminService
-      .getUsers()
+    this.store
+      .load(force)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         error: () => {
           this.usersLoading.set(false);
           this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_LOAD_USERS'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
         },
-        next: users => {
-          this.allUsers.set(users);
-          this.usersLoading.set(false);
-        },
+        next: () => this.usersLoading.set(false),
       });
   }
 
   ngOnInit(): void {
-    this.loadUsers();
+    this.loadUsers(false);
   }
 
   notesLabel(notes: string | null): string | null {
@@ -234,7 +236,8 @@ export class AdminUsersComponent implements OnInit {
       .subscribe({
         error: err => this.showFailure(err, 'ADMIN.SNACK_FAILED_STOP'),
         next: updated => {
-          this.allUsers.update(users => users.map(u => (u.id === user.id ? { ...u, enabled: updated.enabled } : u)));
+          this.store.patch(user.id, { enabled: updated.enabled });
+          this.store.invalidate();
           this.snackBar.open(this.i18n.instant('ADMIN.SNACK_STOPPED', { name: user.name || user.id }), this.i18n.instant('TOAST.OK'), {
             duration: 3000,
           });
@@ -249,7 +252,8 @@ export class AdminUsersComponent implements OnInit {
       .subscribe({
         error: err => this.showFailure(err, 'ADMIN.SNACK_FAILED_START'),
         next: updated => {
-          this.allUsers.update(users => users.map(u => (u.id === user.id ? { ...u, enabled: updated.enabled } : u)));
+          this.store.patch(user.id, { enabled: updated.enabled });
+          this.store.invalidate();
           this.snackBar.open(this.i18n.instant('ADMIN.SNACK_STARTED', { name: user.name || user.id }), this.i18n.instant('TOAST.OK'), {
             duration: 3000,
           });
@@ -263,7 +267,8 @@ export class AdminUsersComponent implements OnInit {
     action$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       error: err => this.showFailure(err, 'ADMIN.SNACK_FAILED_BLOCK'),
       next: updated => {
-        this.allUsers.update(users => users.map(u => (u.id === user.id ? { ...u, adminDisable: updated.adminDisable } : u)));
+        this.store.patch(user.id, { adminDisable: updated.adminDisable });
+        this.store.invalidate();
         const name = user.name || user.id;
         this.snackBar.open(
           this.i18n.instant(enable ? 'ADMIN.SNACK_UNBLOCKED' : 'ADMIN.SNACK_BLOCKED', { name }),

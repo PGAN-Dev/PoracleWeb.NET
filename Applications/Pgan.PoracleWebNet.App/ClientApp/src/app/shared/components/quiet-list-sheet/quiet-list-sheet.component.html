@@ -7,15 +7,23 @@
         <span class="quiet-row-subject">{{ row.subject }}</span>
         <span class="quiet-row-meta">{{ row.scopeLabel }} &middot; {{ row.countdown }}</span>
       </div>
-      <button mat-button (click)="resume(row)">{{ 'QUIET.RESUME' | translate }}</button>
+      @if (!readOnly()) {
+        <button mat-button (click)="resume(row)">{{ 'QUIET.RESUME' | translate }}</button>
+      }
     </div>
   } @empty {
     <!-- An empty screen is an invitation, and the second line says where to go. -->
     <div class="quiet-empty">
       <mat-icon>notifications_active</mat-icon>
       <p class="quiet-empty-title">{{ 'QUIET.EMPTY_TITLE' | translate }}</p>
-      <p class="quiet-empty-hint">{{ 'QUIET.EMPTY_HINT' | translate }}</p>
+      @if (!readOnly()) {
+        <p class="quiet-empty-hint">{{ 'QUIET.EMPTY_HINT' | translate }}</p>
+      }
     </div>
+  }
+
+  @if (rows().length > 0 && readOnly()) {
+    <p class="quiet-volatility">{{ 'QUIET.READ_ONLY_IMPERSONATING' | translate }}</p>
   }
 
   @if (rows().length > 0) {
@@ -24,7 +32,7 @@
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  @if (rows().length > 1) {
+  @if (rows().length > 1 && !readOnly()) {
     <button mat-button (click)="resumeAll()">{{ 'QUIET.RESUME_ALL' | translate }}</button>
   }
   <button mat-flat-button mat-dialog-close>{{ 'COMMON.CLOSE' | translate }}</button>

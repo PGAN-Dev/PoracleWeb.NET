@@ -497,7 +497,7 @@ public partial class QuickPickService(
 
         await this._appliedStateRepository.CreateOrUpdateAsync(appliedState);
 
-        LogQuickPickApplied(this._logger, quickPickId, humanId, profileNo, trackedUids.Count);
+        LogQuickPickApplied(this._logger, quickPickId, LogSafe.Id(humanId), profileNo, trackedUids.Count);
 
         return appliedState;
     }
@@ -700,7 +700,7 @@ public partial class QuickPickService(
         // Delete the applied state
         await this._appliedStateRepository.DeleteAsync(userId, profileNo, quickPickId);
 
-        LogQuickPickRemoved(this._logger, quickPickId, userId, profileNo, appliedState.TrackedUids.Count);
+        LogQuickPickRemoved(this._logger, quickPickId, LogSafe.Id(userId), profileNo, appliedState.TrackedUids.Count);
 
         return true;
     }
