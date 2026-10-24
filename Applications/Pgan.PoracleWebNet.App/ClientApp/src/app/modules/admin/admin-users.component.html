@@ -137,6 +137,7 @@
                 mat-icon-button
                 type="button"
                 data-test="row-menu"
+                [attr.data-user]="user.id"
                 [matMenuTriggerFor]="rowMenu"
                 [matTooltip]="'COMMON.MORE_ACTIONS' | translate"
                 [attr.aria-label]="'ADMIN.MORE_ACTIONS_FOR' | translate: { name: user.name || user.id }">

@@ -194,6 +194,20 @@ describe('AdminUsersComponent', () => {
       expect(instant).toHaveBeenCalledWith('ADMIN.CONFIRM_UNLINK', { discord: 'Sam', telegram: 'Riley' });
     });
 
+    it("returns focus to the row's actions button when the confirm closes, not to the page", () => {
+      const { component, dialog, fixture } = setup(true, { links: [link('u2', '200000001')] });
+      const trigger = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('[data-test="row-menu"]')).find(
+        b => b.dataset['user'] === 'u2',
+      );
+      expect(trigger).toBeTruthy();
+
+      component.unlinkAccounts(member);
+
+      // The menu item that opened the dialog is gone by the time it closes, so it can't take focus back.
+      const config = (dialog.open.mock.calls[0] as unknown as [unknown, { restoreFocus?: unknown }])[1];
+      expect(config.restoreFocus).toBe(trigger);
+    });
+
     it('falls back to the id for a side the user list does not hold', () => {
       const { component } = setup(true, { links: [link('u2', '200000001')] });
       const instant = jest.spyOn(TestBed.inject(I18nService), 'instant');

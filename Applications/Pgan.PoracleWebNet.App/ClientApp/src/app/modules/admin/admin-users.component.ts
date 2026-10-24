@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal, computed } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, ElementRef, inject, signal, computed } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -66,6 +66,7 @@ export class AdminUsersComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly i18n = inject(I18nService);
   private readonly links = signal<AccountLink[]>([]);
   // Everyone who is a person, so this tab and the Destinations tab together account for every
@@ -294,6 +295,8 @@ export class AdminUsersComponent implements OnInit {
         }),
         title: this.i18n.instant('ADMIN.UNLINK_ACCOUNTS'),
       } as ConfirmDialogData,
+      // The menu item that opened it is gone once the menu closes, so focus goes back to the row's actions button.
+      restoreFocus: this.rowMenuTrigger(user) ?? true,
     });
     ref
       .afterClosed()
@@ -340,6 +343,13 @@ export class AdminUsersComponent implements OnInit {
       .getAccountLinks()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({ error: () => this.links.set([]), next: links => this.links.set(links) });
+  }
+
+  /** The row's actions button, matched by data attribute because a webhook id is a URL and no CSS selector holds it. */
+  private rowMenuTrigger(user: AdminUser): HTMLElement | undefined {
+    return Array.from(this.host.nativeElement.querySelectorAll<HTMLElement>('[data-test="row-menu"]')).find(
+      b => b.dataset['user'] === user.id,
+    );
   }
 
   /** The server's own reason when it gave one ("You cannot block your own account."), else the generic message. */

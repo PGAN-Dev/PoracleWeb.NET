@@ -168,6 +168,21 @@ export const MANAGED_ELSEWHERE_KEYS = ['hidden_areas'];
  */
 export const ABSENT_MEANS_ON_KEYS = ['enable_discord', 'enable_telegram'];
 
+/** A switch's value as the server reads it: see `getBool`. Null for anything that is not a switch value. */
+function switchValue(key: string, value: null | string | undefined): boolean | null {
+  const v = (value ?? '').trim().toLowerCase();
+  if (v !== '' && v !== 'true' && v !== 'false') return null;
+  return ABSENT_MEANS_ON_KEYS.includes(key) ? v !== 'false' : v === 'true';
+}
+
+/** Whether a staged value means the same as the saved one: switches compared as the server reads them, text exactly. */
+function sameSettingValue(key: string, saved: null | string | undefined, staged: string): boolean {
+  const before = switchValue(key, saved);
+  const after = switchValue(key, staged);
+  if (before !== null && after !== null && staged.trim() !== '') return before === after;
+  return (saved ?? '') === staged;
+}
+
 const RETIRED_KEYS = [
   // Legacy Poracle keys describing a map picker this app does not have. Removed from the settings UI and
   // from SettingsMigrationService when they were retired, but rows persist in existing databases and were
@@ -808,12 +823,13 @@ export class AdminSettingsComponent implements OnInit, HasUnsavedChanges {
   }
 
   groupSummary(group: SettingGroup): string {
-    const disableKeys = group.settings.filter(s => s.key.startsWith('disable_'));
-    if (disableKeys.length === 0) return '';
-    // Positive framing: report how many features are enabled (i.e. NOT disabled). Counts a
-    // Poracle-forced type as off, so the header agrees with the switches underneath it.
-    const count = disableKeys.reduce((acc, s) => acc + (this.featureEnabled(s) ? 1 : 0), 0);
-    return this.i18n.instant('ADMIN_SETTINGS.SUMMARY_ENABLED', { count, total: disableKeys.length });
+    if (!group.settings.some(s => s.key.startsWith('disable_'))) return '';
+    // Positive framing: report how many of the switches the group shows are on. Every shown switch counts, not
+    // only the `disable_*` ones, so a group of two never reads "1 of 1". A Poracle-forced type counts as off, so
+    // the header agrees with the switches underneath it.
+    const switches = group.settings.filter(s => s.type === 'boolean' && this.isSettingVisible(s));
+    const count = switches.reduce((acc, s) => acc + (this.featureEnabled(s) ? 1 : 0), 0);
+    return this.i18n.instant('ADMIN_SETTINGS.SUMMARY_ENABLED', { count, total: switches.length });
   }
 
   hasUnsavedChanges(): boolean {
@@ -1126,15 +1142,21 @@ export class AdminSettingsComponent implements OnInit, HasUnsavedChanges {
     }
   }
 
+  /**
+   * Stages a value. One that means what the saved row already means is not a change: a switch turned off and back
+   * on writes "False" where the row said "false", and counting that left "2 unsaved" on an untouched page.
+   */
   private applyChange(key: string, value: string): void {
     this.settings.update(list => {
       const exists = list.some(s => settingKey(s) === key);
       if (exists) return list.map(s => (settingKey(s) === key ? { ...s, value } : s));
       return [...list, { key, value } as unknown as AnySettingItem];
     });
+    const saved = this.originalSnapshot().find(s => settingKey(s) === key)?.value;
     this.modifiedSettings.update(map => {
       const m = new Map(map);
-      m.set(key, value);
+      if (sameSettingValue(key, saved, value)) m.delete(key);
+      else m.set(key, value);
       return m;
     });
   }
