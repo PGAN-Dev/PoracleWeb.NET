@@ -14,6 +14,9 @@ namespace Pgan.PoracleWebNet.Api.Controllers;
 /// <summary>Body of <c>PUT api/account-link/default</c>.</summary>
 public sealed record DefaultDestinationRequest(string? Destination);
 
+/// <summary>Body of <c>POST api/account-link/resolve</c>: which setting, which side to keep, and the fingerprint the banner showed.</summary>
+public sealed record ResolveDriftRequest(string? Field, string? Keep, string? Expected);
+
 /// <summary>
 /// Pairs the signed-in Discord or Telegram account with the other platform's. The Telegram half is one
 /// request carrying the login-widget fields; the Discord half is OAuth, started here and finished in
@@ -29,11 +32,13 @@ public class AccountLinkController(
     IDataProtectionProvider dataProtection,
     IOptions<DiscordSettings> discordSettings,
     IOptions<TelegramSettings> telegramSettings,
-    IConfiguration configuration) : BaseApiController
+    IConfiguration configuration,
+    IPairDriftService drift) : BaseApiController
 {
     private readonly string[] _allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
     private readonly IDataProtectionProvider _dataProtection = dataProtection;
     private readonly DiscordSettings _discordSettings = discordSettings.Value;
+    private readonly IPairDriftService _drift = drift;
     private readonly ILinkedAccount _linkedAccount = linkedAccount;
     private readonly IAccountLinkService _links = links;
     private readonly string? _publicOrigin = PublicOrigin.NormalizeOrNull(configuration["PublicUrl"]);
@@ -141,13 +146,43 @@ public class AccountLinkController(
             })
             .ToArray();
 
+        var drift = (await this._drift.GetAsync(pair))
+            .Select(d => new { field = DriftFields.Wire(d.Field), discord = d.Discord, telegram = d.Telegram, fingerprint = d.Fingerprint })
+            .ToArray();
+
         return this.Ok(new
         {
             linked = true,
             link = AccountLinkView.From(pair.Link!),
             sides,
             defaultDestination = AccountLinkKeys.Wire(pair.Link!.DefaultDestination),
+            drift,
         });
+    }
+
+    /// <summary>Makes the other side match the kept one, for one setting the person chose.</summary>
+    [HttpPost("resolve")]
+    public async Task<IActionResult> Resolve([FromBody] ResolveDriftRequest request)
+    {
+        if (this.IsImpersonating)
+        {
+            return this.Forbid();
+        }
+
+        if (!DriftFields.TryParse(request?.Field, out var field) || !AccountLinkKeys.TryParse(request?.Keep, out var keep)
+            || string.IsNullOrEmpty(request?.Expected))
+        {
+            return this.BadRequest(new { error = "field, keep and expected are required." });
+        }
+
+        var pair = await this._linkedAccount.ResolveAsync(this.UserId);
+        if (!pair.IsLinked)
+        {
+            return this.BadRequest(new { error = "There is no linked account." });
+        }
+
+        await this._drift.ResolveAsync(pair, field, keep, request.Expected);
+        return this.NoContent();
     }
 
     private static string PauseWire(PauseReason reason) => reason switch

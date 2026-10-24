@@ -192,6 +192,7 @@ builder.Services.AddControllers(options =>
     options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.AlarmValidationExceptionFilter>();
     options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.AreaNotPermittedExceptionFilter>();
     options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.LinkRefusalExceptionFilter>();
+    options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.PairDriftExceptionFilter>();
     options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.PoracleRequestRefusedExceptionFilter>();
     options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.TrackingRuleNotFoundExceptionFilter>();
     options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.AccountGoneExceptionFilter>();

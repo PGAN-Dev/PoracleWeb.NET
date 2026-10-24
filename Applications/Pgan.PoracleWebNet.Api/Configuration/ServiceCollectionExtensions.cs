@@ -77,6 +77,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ILinkedHumanProvisioner, LinkedHumanProvisioner>();
         services.AddScoped<IAccountLinkService, AccountLinkService>();
         services.AddScoped<IPairedHumanWriter, PairedHumanWriter>();
+        services.AddScoped<IPairDriftService, PairDriftService>();
         // Lets UserAreaPolicy ask for the link without a construction cycle (see UserAreaPolicy.OwnerIdsAsync).
         services.AddScoped(sp => new Lazy<ILinkedAccount>(() => sp.GetRequiredService<ILinkedAccount>()));
         services.AddScoped<IUserPurgeService, UserPurgeService>();

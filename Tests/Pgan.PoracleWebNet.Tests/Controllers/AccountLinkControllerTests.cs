@@ -26,9 +26,13 @@ public class AccountLinkControllerTests
 
     private readonly Mock<IAccountLinkService> _service = new();
     private readonly Mock<ILinkedAccount> _linked = new();
+    private readonly Mock<IPairDriftService> _drift = new();
     private readonly Mock<ISiteSettingService> _settings = new();
     private readonly Mock<IAccountLinkRepository> _repo = new();
     private readonly EphemeralDataProtectionProvider _protection = new();
+
+    public AccountLinkControllerTests() =>
+        this._drift.Setup(d => d.GetAsync(It.IsAny<LinkedPair>())).ReturnsAsync([]);
 
     private AccountLinkController Create(string userId = DiscordId, bool impersonating = false, bool telegramEnabled = true)
     {
@@ -39,7 +43,8 @@ public class AccountLinkControllerTests
             this._protection,
             Options.Create(new DiscordSettings { ClientId = "test-id", ClientSecret = "test-secret" }),
             Options.Create(new TelegramSettings { Enabled = telegramEnabled, BotToken = BotToken }),
-            new ConfigurationBuilder().Build());
+            new ConfigurationBuilder().Build(),
+            this._drift.Object);
         var http = new DefaultHttpContext();
         http.Request.Scheme = "https";
         http.Request.Host = new HostString("alerts.example.net");
@@ -250,6 +255,89 @@ public class AccountLinkControllerTests
         Assert.Equal(status, obj.StatusCode);
         Assert.True(ctx.ExceptionHandled);
         Assert.Equal(LinkRefusalException.Wire(code), Prop(obj.Value, "code"));
+    }
+
+    [Fact]
+    public async Task Status_Linked_CarriesDriftItems()
+    {
+        var pair = new LinkedPair(DiscordId, Link,
+            new PairSide(LinkSide.Discord, DiscordId, true, PauseReason.None),
+            new PairSide(LinkSide.Telegram, TelegramId, true, PauseReason.None));
+        this._linked.Setup(l => l.ResolveAsync(DiscordId)).ReturnsAsync(pair);
+        this._drift.Setup(d => d.GetAsync(pair)).ReturnsAsync([new DriftItem(
+            DriftField.CurrentProfile,
+            System.Text.Json.JsonSerializer.SerializeToElement(1),
+            System.Text.Json.JsonSerializer.SerializeToElement(2),
+            "abc")]);
+
+        var ok = Assert.IsType<OkObjectResult>(await this.Create().Status());
+
+        var json = System.Text.Json.JsonSerializer.Serialize(ok.Value, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
+        Assert.Contains("\"drift\":[{\"field\":\"current_profile\",\"discord\":1,\"telegram\":2,\"fingerprint\":\"abc\"}]", json, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Status_Unlinked_DoesNotAskForDrift()
+    {
+        this._linked.Setup(l => l.ResolveAsync(DiscordId)).ReturnsAsync(LinkedPair.Single(DiscordId));
+
+        await this.Create().Status();
+
+        this._drift.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task Resolve_Valid_Answers204()
+    {
+        var pair = new LinkedPair(DiscordId, Link,
+            new PairSide(LinkSide.Discord, DiscordId, true, PauseReason.None),
+            new PairSide(LinkSide.Telegram, TelegramId, true, PauseReason.None));
+        this._linked.Setup(l => l.ResolveAsync(DiscordId)).ReturnsAsync(pair);
+
+        var result = await this.Create().Resolve(new ResolveDriftRequest("location", "telegram", "abc"));
+
+        Assert.IsType<NoContentResult>(result);
+        this._drift.Verify(d => d.ResolveAsync(pair, DriftField.Location, LinkSide.Telegram, "abc"), Times.Once);
+    }
+
+    [Fact]
+    public async Task Resolve_WhileImpersonating_IsForbidden()
+    {
+        var result = await this.Create(impersonating: true).Resolve(new ResolveDriftRequest("location", "telegram", "abc"));
+
+        Assert.IsType<ForbidResult>(result);
+        this._drift.VerifyNoOtherCalls();
+    }
+
+    [Theory]
+    [InlineData("nonsense", "telegram", "abc")]
+    [InlineData("location", "nonsense", "abc")]
+    [InlineData("location", "telegram", "")]
+    public async Task Resolve_BadBody_Answers400(string field, string keep, string expected)
+    {
+        var result = await this.Create().Resolve(new ResolveDriftRequest(field, keep, expected));
+
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public void DriftFilter_MapsBothExceptionsTo409()
+    {
+        foreach (Exception ex in new Exception[] { new DriftChangedException(), new DriftProfileHoldsAlarmsException(2, "Spare", 3) })
+        {
+            var ctx = new Microsoft.AspNetCore.Mvc.Filters.ActionExecutedContext(
+                new ActionContext(new DefaultHttpContext(), new Microsoft.AspNetCore.Routing.RouteData(), new Microsoft.AspNetCore.Mvc.Abstractions.ActionDescriptor()),
+                [],
+                new object())
+            {
+                Exception = ex,
+            };
+
+            new PairDriftExceptionFilter().OnActionExecuted(ctx);
+
+            Assert.Equal(409, Assert.IsType<ObjectResult>(ctx.Result).StatusCode);
+            Assert.True(ctx.ExceptionHandled);
+        }
     }
 
     [Fact]
