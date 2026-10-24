@@ -16,6 +16,16 @@
   gap: 4px;
 }
 
+.bulk-select-icon {
+  display: none;
+}
+
+// Material widens a text button that holds an icon; this one's icon only shows on a phone, so keep the plain padding.
+.bulk-selection .bulk-select-all,
+.bulk-selection .bulk-deselect-all {
+  padding-inline: var(--mat-button-text-horizontal-padding, 12px);
+}
+
 .bulk-count {
   color: var(--mat-sys-on-surface, #1c1b1f);
   font-size: 14px;
@@ -36,11 +46,17 @@
   display: none;
 }
 
-// A menu entry: the app's glyph, its name, and a note when every selected alarm is already there.
+// A menu entry: the app's glyph, its name, and under it a note when every selected alarm is already there.
 .bulk-app {
   align-items: center;
   display: inline-flex;
   gap: 12px;
+}
+
+.bulk-app-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
 }
 
 .bulk-app-note {
@@ -68,6 +84,27 @@
     position: fixed;
     right: 0;
     z-index: 20;
+  }
+
+  // The count and both selection buttons on one row: the buttons give up their words for icons, which keep
+  // their names through aria-label. German's two labels took a row each, and the bar covered the first card.
+  .bulk-selection {
+    flex-wrap: nowrap;
+  }
+
+  .bulk-select-label {
+    display: none;
+  }
+
+  .bulk-selection .bulk-select-icon {
+    display: inline-block;
+    margin: 0;
+  }
+
+  .bulk-selection .bulk-select-all,
+  .bulk-selection .bulk-deselect-all {
+    min-width: 48px;
+    padding-inline: 12px;
   }
 
   .bulk-actions {

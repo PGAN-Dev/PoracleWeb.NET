@@ -139,6 +139,8 @@ describe('AlarmCardComponent', () => {
     const named = el.querySelector('.rule-destination') as HTMLElement;
     expect(named.classList).toContain('rule-destination-paused');
     expect(named.querySelector('mat-icon')?.textContent?.trim()).toBe('pause_circle');
+    // Said in visible words too: a tooltip alone never reaches a touch screen.
+    expect(named.querySelector('.rule-destination-paused-text')?.textContent?.trim()).toBe('DELIVER_TO.PAUSED_SHORT');
     const ids = (card(el).getAttribute('aria-labelledby') ?? '').split(' ');
     expect(el.querySelector(`#${ids[1]}`)?.textContent?.trim()).toBe('DELIVER_TO.DELIVERED_TO_PAUSED');
   });
@@ -157,6 +159,7 @@ describe('AlarmCardComponent', () => {
 
     expect(el.querySelector('.rule-destination')?.classList).not.toContain('rule-destination-paused');
     expect(el.querySelector('.rule-destination mat-icon')).toBeNull();
+    expect(el.querySelector('.rule-destination-paused-text')).toBeNull();
   });
 
   it('draws no edge unless it is given one', () => {

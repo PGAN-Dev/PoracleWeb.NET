@@ -295,6 +295,41 @@ describe('BulkActionBarComponent', () => {
       expect(byText('Change radius')).toBeDefined();
     });
 
+    it('keeps the count, Select all and Deselect all on one row, as icons that keep their names', () => {
+      render(1);
+
+      const select = el().querySelector<HTMLButtonElement>('.bulk-select-all')!;
+      const deselect = el().querySelector<HTMLButtonElement>('.bulk-deselect-all')!;
+      expect(select.getAttribute('aria-label')).toBe('Select all');
+      expect(deselect.getAttribute('aria-label')).toBe('Deselect all');
+      expect(select.querySelector('mat-icon')?.textContent?.trim()).toBe('select_all');
+      expect(deselect.querySelector('mat-icon')?.textContent?.trim()).toBe('deselect');
+      // German "Alle auswählen" and "Alle abwählen" took a row each, and the bar covered the first card.
+      expect(phone).toMatch(/\.bulk-selection\s*\{[^}]*flex-wrap:\s*nowrap/);
+      expect(phone).toMatch(/\.bulk-select-label\s*\{\s*display:\s*none/);
+      expect(phone).toMatch(/\.bulk-select-icon\s*\{[^}]*display:\s*inline-block/);
+      // Off the phone the words stay, and the icons stay out of the way.
+      const wide = scss.slice(0, scss.indexOf('@media (max-width: 599px)'));
+      expect(wide).toMatch(/\.bulk-select-icon\s*\{\s*display:\s*none/);
+      expect(select.querySelector('.bulk-select-label')?.textContent?.trim()).toBe('Select all');
+    });
+
+    it('puts "All already there" under the app name, not squeezed beside it', () => {
+      fixture.componentRef.setInput('canMove', true);
+      fixture.componentRef.setInput('allOn', 'telegram');
+      render(2);
+
+      el().querySelector<HTMLButtonElement>('.bulk-more')!.click();
+      fixture.detectChanges();
+      const telegram = Array.from(document.querySelectorAll<HTMLButtonElement>('.bulk-more-item')).find(
+        i => i.dataset['app'] === 'telegram',
+      )!;
+      const text = telegram.querySelector('.bulk-app-text')!;
+      expect(text.children[0].textContent?.trim()).toBe('Deliver to Telegram');
+      expect(text.children[1].classList).toContain('bulk-app-note');
+      expect(scss).toMatch(/\.bulk-app-text\s*\{[^}]*flex-direction:\s*column/);
+    });
+
     it('never lets a label wrap or push Delete off the edge', () => {
       expect(phone).toMatch(/flex:\s*1 1 0/);
       expect(phone).toMatch(/min-width:\s*0/);

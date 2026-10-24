@@ -7,9 +7,21 @@
         {{ 'ALARM.SELECTED_COUNT' | translate: { count: announced() } }}
       }
     </span>
-    <button mat-button type="button" (click)="selectAll.emit()">{{ 'ALARM.SELECT_ALL' | translate }}</button>
+    <!-- Words on a wide screen; on a phone, icons named by aria-label, so the count and both fit on one row. -->
+    <button mat-button type="button" class="bulk-select-all" [attr.aria-label]="'ALARM.SELECT_ALL' | translate" (click)="selectAll.emit()">
+      <mat-icon class="bulk-select-icon" aria-hidden="true">select_all</mat-icon>
+      <span class="bulk-select-label">{{ 'ALARM.SELECT_ALL' | translate }}</span>
+    </button>
     @if (anySelected()) {
-      <button mat-button type="button" (click)="deselectAll.emit()">{{ 'ALARM.DESELECT_ALL' | translate }}</button>
+      <button
+        mat-button
+        type="button"
+        class="bulk-deselect-all"
+        [attr.aria-label]="'ALARM.DESELECT_ALL' | translate"
+        (click)="deselectAll.emit()">
+        <mat-icon class="bulk-select-icon" aria-hidden="true">deselect</mat-icon>
+        <span class="bulk-select-label">{{ 'ALARM.DESELECT_ALL' | translate }}</span>
+      </button>
     }
   </div>
 
@@ -30,10 +42,12 @@
             (click)="moveSelected.emit(app)">
             <span class="bulk-app">
               <app-app-glyph [app]="app" />
-              <span>{{ appKey(app) | translate }}</span>
-              @if (allOn() === app) {
-                <span class="bulk-app-note">{{ 'ALARM.DELIVER_ALREADY_THERE' | translate }}</span>
-              }
+              <span class="bulk-app-text">
+                <span>{{ appKey(app) | translate }}</span>
+                @if (allOn() === app) {
+                  <span class="bulk-app-note">{{ 'ALARM.DELIVER_ALREADY_THERE' | translate }}</span>
+                }
+              </span>
             </span>
           </button>
         }
@@ -61,10 +75,12 @@
             (click)="moveSelected.emit(app)">
             <span class="bulk-app">
               <app-app-glyph [app]="app" />
-              <span>{{ 'ALARM.DELIVER_TO_APP' | translate: { app: appKey(app) | translate } }}</span>
-              @if (allOn() === app) {
-                <span class="bulk-app-note">{{ 'ALARM.DELIVER_ALREADY_THERE' | translate }}</span>
-              }
+              <span class="bulk-app-text">
+                <span>{{ 'ALARM.DELIVER_TO_APP' | translate: { app: appKey(app) | translate } }}</span>
+                @if (allOn() === app) {
+                  <span class="bulk-app-note">{{ 'ALARM.DELIVER_ALREADY_THERE' | translate }}</span>
+                }
+              </span>
             </span>
           </button>
         }

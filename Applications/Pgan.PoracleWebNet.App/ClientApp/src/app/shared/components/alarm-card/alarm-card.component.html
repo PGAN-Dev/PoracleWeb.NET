@@ -31,6 +31,8 @@
           <span class="rule-destination-name">{{ appKey(app) | translate }}</span>
           @if (destinationPaused()) {
             <mat-icon class="rule-destination-pause" aria-hidden="true">pause_circle</mat-icon>
+            <!-- Visible words for touch, where the tooltip never shows. The hidden sentence below already says it. -->
+            <span class="rule-destination-paused-text" aria-hidden="true">{{ 'DELIVER_TO.PAUSED_SHORT' | translate }}</span>
           }
           <span class="visually-hidden" [id]="destinationId">{{
             destinationSentence() | translate: { app: appKey(app) | translate }
