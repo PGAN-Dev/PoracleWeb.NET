@@ -27,8 +27,12 @@ export class InvasionService {
     return this.http.get<Invasion[]>(`${this.config.apiHost}/api/invasions`);
   }
 
-  update(uid: number, invasion: InvasionUpdate): Observable<void> {
-    return this.http.put<void>(`${this.config.apiHost}/api/invasions/${uid}`, invasion);
+  /**
+   * `kind` is the kind of the card the person opened. Invasions and Pokéstop events are numbered separately, so the
+   * server needs it to know which rule the uid names. Leave it out for an older server's behaviour. See #1062.
+   */
+  update(uid: number, invasion: InvasionUpdate, kind?: 'event' | 'invasion'): Observable<void> {
+    return this.http.put<void>(`${this.config.apiHost}/api/invasions/${uid}`, invasion, kind ? { params: { kind } } : undefined);
   }
 
   updateBulkDistance(uids: number[], distance: number): Observable<DistanceUpdateResult> {

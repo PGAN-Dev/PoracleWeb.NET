@@ -863,6 +863,8 @@
     "SAVE": "Guardar",
     "CANCEL_CHANGES": "Cancelar",
     "SNACK_UPDATED": "Zonas actualizadas",
+    "DEAD_AREAS": "Ya no disponibles: {{names}}. Se quitarán la próxima vez que guardes.",
+    "DEAD_AREAS_REMOVE": "Quitarlas",
     "SNACK_SAVED_DROPPED": "Guardado. Se omitió porque Poracle no tiene esa zona: {{names}}",
     "SNACK_FAILED": "No se pudieron actualizar las zonas. Inténtalo de nuevo en un momento.",
     "SNACK_NOT_PERMITTED": "No se ha guardado. Estas zonas no están disponibles para ti: {{names}}",

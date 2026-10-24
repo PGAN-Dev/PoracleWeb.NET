@@ -862,6 +862,8 @@
     "SAVE": "Gem",
     "CANCEL_CHANGES": "Annuller",
     "SNACK_UPDATED": "Områder opdateret",
+    "DEAD_AREAS": "Ikke længere tilgængelige: {{names}}. De fjernes, næste gang du gemmer.",
+    "DEAD_AREAS_REMOVE": "Fjern dem",
     "SNACK_SAVED_DROPPED": "Gemt. Udeladt, fordi Poracle ikke har sådan et område: {{names}}",
     "SNACK_FAILED": "Kunne ikke opdatere områder. Prøv igen om lidt.",
     "SNACK_NOT_PERMITTED": "Ikke gemt. Disse områder er ikke tilgængelige for dig: {{names}}",

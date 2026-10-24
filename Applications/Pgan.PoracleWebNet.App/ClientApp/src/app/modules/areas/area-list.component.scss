@@ -11,6 +11,12 @@
   padding: 0 24px 24px;
 }
 
+.dead-areas {
+  margin: 0;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  font-size: 14px;
+}
+
 // ─── Pin and places panel ─────────────────────────────
 // Below the map and the chips: the map already draws the pin and the places, so managing them is the
 // secondary job on this page and starts closed.

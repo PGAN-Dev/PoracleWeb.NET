@@ -898,6 +898,8 @@
     "SAVE": "Zapisz",
     "CANCEL_CHANGES": "Anuluj",
     "SNACK_UPDATED": "Obszary zaktualizowane",
+    "DEAD_AREAS": "Już niedostępne: {{names}}. Zostaną usunięte przy następnym zapisie.",
+    "DEAD_AREAS_REMOVE": "Usuń je",
     "SNACK_SAVED_DROPPED": "Zapisano. Pominięto, bo Poracle nie ma takiego obszaru: {{names}}",
     "SNACK_FAILED": "Nie udało się zaktualizować obszarów. Spróbuj ponownie za chwilę.",
     "SNACK_NOT_PERMITTED": "Nie zapisano. Te obszary nie są dla Ciebie dostępne: {{names}}",
