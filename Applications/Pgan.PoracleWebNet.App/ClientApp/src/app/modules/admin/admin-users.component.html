@@ -65,9 +65,16 @@
               <div class="user-name-text">
                 <span>{{ user.name || ('ADMIN.UNNAMED' | translate) }}</span>
                 @if (linkedTo(user); as other) {
-                  <span class="link-chip" data-test="linked-chip">{{
-                    (other === 'telegram' ? 'ADMIN.LINKED_TO_TELEGRAM' : 'ADMIN.LINKED_TO_DISCORD') | translate
-                  }}</span>
+                  <!-- Icon and app name only, so it stays one line at 360px in every language; the full wording is read out. -->
+                  <span class="link-chip" data-test="linked-chip">
+                    <mat-icon aria-hidden="true">link</mat-icon>
+                    <span aria-hidden="true">{{
+                      (other === 'telegram' ? 'LINKED.SIDE_TELEGRAM' : 'LINKED.SIDE_DISCORD') | translate
+                    }}</span>
+                    <span class="visually-hidden">{{
+                      (other === 'telegram' ? 'ADMIN.LINKED_TO_TELEGRAM' : 'ADMIN.LINKED_TO_DISCORD') | translate
+                    }}</span>
+                  </span>
                 }
                 @let notes = notesLabel(user.notes);
                 @if (notes) {

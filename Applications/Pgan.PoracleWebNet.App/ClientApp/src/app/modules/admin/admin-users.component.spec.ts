@@ -179,6 +179,36 @@ describe('AdminUsersComponent', () => {
       expect(adminService.unlinkAccounts).toHaveBeenCalledWith('u2');
     });
 
+    it('asks with a neutral confirm that names both accounts', () => {
+      const telegramMember = row('200000001', { name: 'Riley', type: 'telegram:user' });
+      const { adminService, component, dialog, fixture } = setup(true, { links: [link('u2', '200000001')] });
+      adminService.getUsers.mockReturnValue(of([me, member, telegramMember]));
+      component.loadUsers();
+      fixture.detectChanges();
+      const instant = jest.spyOn(TestBed.inject(I18nService), 'instant');
+      component.unlinkAccounts(member);
+      const data = (dialog.open.mock.calls[0] as unknown as [unknown, { data: { icon?: string; message: string; warn?: boolean } }])[1]
+        .data;
+      expect(data.icon).toBe('link_off');
+      expect(data.warn).toBeFalsy();
+      expect(instant).toHaveBeenCalledWith('ADMIN.CONFIRM_UNLINK', { discord: 'Sam', telegram: 'Riley' });
+    });
+
+    it('falls back to the id for a side the user list does not hold', () => {
+      const { component } = setup(true, { links: [link('u2', '200000001')] });
+      const instant = jest.spyOn(TestBed.inject(I18nService), 'instant');
+      component.unlinkAccounts(member);
+      expect(instant).toHaveBeenCalledWith('ADMIN.CONFIRM_UNLINK', { discord: 'Sam', telegram: '200000001' });
+    });
+
+    it('shows a short chip with an icon, and keeps the full wording for screen readers', () => {
+      const { fixture } = setup(true, { links: [link('u2', '200000001')] });
+      const chip = (fixture.nativeElement as HTMLElement).querySelectorAll('tr.mat-mdc-row')[2].querySelector('[data-test="linked-chip"]')!;
+      expect(chip.querySelector('mat-icon')?.textContent).toContain('link');
+      expect(chip.querySelector('.visually-hidden')?.textContent).toContain('ADMIN.LINKED_TO_TELEGRAM');
+      expect(chip.querySelector('[aria-hidden="true"]:not(mat-icon)')?.textContent).toContain('LINKED.SIDE_TELEGRAM');
+    });
+
     it('refetches the shared user list after an unlink', () => {
       const { adminService, component } = setup(true, { links: [link('u2', '200000001')] });
       const before = adminService.getUsers.mock.calls.length;
@@ -186,9 +216,10 @@ describe('AdminUsersComponent', () => {
       expect(adminService.getUsers.mock.calls.length).toBe(before + 1);
     });
 
-    it('does not ask for links while account linking is switched off', () => {
-      const { adminService } = setup(true, { linkingDisabled: true });
-      expect(adminService.getAccountLinks).not.toHaveBeenCalled();
+    it('still reads links while account linking is switched off, so a stuck pair can be cut', () => {
+      const { adminService, fixture } = setup(true, { linkingDisabled: true, links: [link('u2', '200000001')] });
+      expect(adminService.getAccountLinks).toHaveBeenCalled();
+      expect(actionLabels(fixture, 2)).toContain('ADMIN.UNLINK_ACCOUNTS');
     });
   });
 

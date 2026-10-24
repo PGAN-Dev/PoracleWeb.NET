@@ -14,6 +14,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { ErrorStateMatcher } from '@angular/material/core';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -63,10 +64,19 @@ interface SettingOption {
 
 interface SettingMeta {
   descriptionKey: string;
+  /**
+   * Dims the control while the current values say the setting has no effect, with `lockedHintKey` beside it.
+   * Reads other settings through `get`, which answers '' for anything unset.
+   */
+  disabledIf?: (get: (key: string) => string) => boolean;
   key: string;
   labelKey: string;
+  /** Shown under a control that `disabledIf` has dimmed: how to make it changeable again. */
+  lockedHintKey?: string;
   /** Required by, and only meaningful for, type 'select'. */
   options?: SettingOption[];
+  /** Placeholder for a text or url field: the shape of a valid value. */
+  placeholder?: string;
   /**
    * Only show this setting when the current values say it applies. Reads other settings through
    * `get`, which answers '' for anything unset. For conditions a single boolean cannot express --
@@ -76,7 +86,33 @@ interface SettingMeta {
   /** Only show this setting when another boolean setting is True */
   showWhen?: string;
   type: 'text' | 'url' | 'boolean' | 'select';
+  /**
+   * Checks a text or url value before it is saved, mirroring the server's rule. Answers the translation key of
+   * what is wrong, or null. A value it refuses marks the field invalid and holds Save.
+   */
+  validate?: (value: string) => null | string;
 }
+
+/**
+ * The client half of `SettingsController.TryValidateTelegramRegistrationUrl`: empty clears the setting, and
+ * anything else must be an absolute https link on t.me or telegram.me. The server still refuses on its own;
+ * this only says so beside the field, in words, before a save is tried.
+ */
+export function telegramRegistrationUrlProblem(value: string): null | string {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  try {
+    const url = new URL(trimmed);
+    const host = url.hostname.toLowerCase();
+    if (url.protocol === 'https:' && (host === 't.me' || host === 'telegram.me')) return null;
+  } catch {
+    // Not a URL at all; refused below.
+  }
+  return 'ADMIN_SETTINGS.TELEGRAM_REGISTRATION_URL_INVALID';
+}
+
+/** The settings that only matter while people can link: dimmed while linking is off. */
+const whileLinkingOff = (get: (key: string) => string) => get('disable_account_linking').toLowerCase() === 'true';
 
 /**
  * Basemaps an admin can nominate as the site default. Built from the catalogue rather than typed out
@@ -298,24 +334,6 @@ export const SETTING_GROUPS: SettingGroup[] = [
     labelKey: 'ADMIN_SETTINGS.GROUP_FEATURES',
     settings: [
       {
-        descriptionKey: 'ADMIN_SETTINGS.DISABLE_ACCOUNT_LINKING_DESC',
-        key: 'disable_account_linking',
-        labelKey: 'ADMIN_SETTINGS.DISABLE_ACCOUNT_LINKING_LABEL',
-        type: 'boolean',
-      },
-      {
-        descriptionKey: 'ADMIN_SETTINGS.LINK_REGISTER_MISSING_DESC',
-        key: 'link_register_missing',
-        labelKey: 'ADMIN_SETTINGS.LINK_REGISTER_MISSING_LABEL',
-        type: 'boolean',
-      },
-      {
-        descriptionKey: 'ADMIN_SETTINGS.TELEGRAM_REGISTRATION_URL_DESC',
-        key: 'telegram_registration_url',
-        labelKey: 'ADMIN_SETTINGS.TELEGRAM_REGISTRATION_URL_LABEL',
-        type: 'url',
-      },
-      {
         descriptionKey: 'ADMIN_SETTINGS.DISABLE_AREAS_DESC',
         key: 'disable_areas',
         labelKey: 'ADMIN_SETTINGS.DISABLE_AREAS_LABEL',
@@ -362,6 +380,37 @@ export const SETTING_GROUPS: SettingGroup[] = [
         key: 'allowed_languages',
         labelKey: 'ADMIN_SETTINGS.ALLOWED_LANGUAGES_LABEL',
         type: 'text',
+      },
+    ],
+  },
+  {
+    // Together, so the two settings that only matter while people can link sit under the switch for it.
+    icon: 'link',
+    labelKey: 'ADMIN_SETTINGS.GROUP_LINKED_ACCOUNTS',
+    settings: [
+      {
+        descriptionKey: 'ADMIN_SETTINGS.DISABLE_ACCOUNT_LINKING_DESC',
+        key: 'disable_account_linking',
+        labelKey: 'ADMIN_SETTINGS.DISABLE_ACCOUNT_LINKING_LABEL',
+        type: 'boolean',
+      },
+      {
+        descriptionKey: 'ADMIN_SETTINGS.LINK_REGISTER_MISSING_DESC',
+        disabledIf: whileLinkingOff,
+        key: 'link_register_missing',
+        labelKey: 'ADMIN_SETTINGS.LINK_REGISTER_MISSING_LABEL',
+        lockedHintKey: 'ADMIN_SETTINGS.LINKING_OFF_HINT',
+        type: 'boolean',
+      },
+      {
+        validate: telegramRegistrationUrlProblem,
+        descriptionKey: 'ADMIN_SETTINGS.TELEGRAM_REGISTRATION_URL_DESC',
+        disabledIf: whileLinkingOff,
+        key: 'telegram_registration_url',
+        labelKey: 'ADMIN_SETTINGS.TELEGRAM_REGISTRATION_URL_LABEL',
+        lockedHintKey: 'ADMIN_SETTINGS.LINKING_OFF_HINT',
+        placeholder: 'https://t.me/+…',
+        type: 'url',
       },
     ],
   },
@@ -521,6 +570,8 @@ export class AdminSettingsComponent implements OnInit, HasUnsavedChanges {
 
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
+  /** One matcher per setting, so the input's binding stays stable across change detection. */
+  private readonly errorMatchers = new Map<string, ErrorStateMatcher>();
 
   private readonly i18n = inject(I18nService);
 
@@ -612,6 +663,12 @@ export class AdminSettingsComponent implements OnInit, HasUnsavedChanges {
   });
 
   readonly modifiedSettings = signal<Map<string, string>>(new Map());
+
+  /** True while a staged value fails its own setting's check: Save is held until it is fixed or discarded. */
+  readonly hasInvalidChanges = computed(() => {
+    const metas = new Map(SETTING_GROUPS.flatMap(g => g.settings).map(meta => [meta.key, meta]));
+    return [...this.modifiedSettings().entries()].some(([key, value]) => !!metas.get(key)?.validate?.(value));
+  });
 
   readonly oidcConfig = signal<OidcServerConfig | null>(null);
 
@@ -800,6 +857,11 @@ export class AdminSettingsComponent implements OnInit, HasUnsavedChanges {
     return !!configured && configured.toLowerCase() === repo.base.toLowerCase();
   }
 
+  /** Whether the current values make this setting moot, so its control is dimmed. */
+  isSettingLocked(meta: SettingMeta): boolean {
+    return !!meta.disabledIf?.(key => this.getSettingValue(key) ?? '');
+  }
+
   isSettingVisible(meta: SettingMeta): boolean {
     if (meta.showIf && !meta.showIf(key => this.getSettingValue(key) ?? '')) return false;
     if (!meta.showWhen) return true;
@@ -936,6 +998,7 @@ export class AdminSettingsComponent implements OnInit, HasUnsavedChanges {
   }
 
   saveAllModified(): void {
+    if (this.hasInvalidChanges()) return;
     // Enables first. The anti-lockout guard on the server reads the *other* login key from the
     // database, so turning Discord off and Telegram on in one batch failed on whichever request landed
     // first: the Discord PUT still saw enable_telegram false and answered 400, leaving a partial save
@@ -1031,6 +1094,24 @@ export class AdminSettingsComponent implements OnInit, HasUnsavedChanges {
     }
 
     this.applyChange('enable_oidc', 'False');
+  }
+
+  /**
+   * Marks a field invalid the moment its value is, rather than after it loses focus, so the message sits beside
+   * the field and never surfaces later as a snackbar naming the raw setting key.
+   */
+  settingErrorMatcher(meta: SettingMeta): ErrorStateMatcher {
+    let matcher = this.errorMatchers.get(meta.key);
+    if (!matcher) {
+      matcher = { isErrorState: () => this.settingProblem(meta) !== null };
+      this.errorMatchers.set(meta.key, matcher);
+    }
+    return matcher;
+  }
+
+  /** The translation key of what is wrong with this setting's current value, or null. */
+  settingProblem(meta: SettingMeta): null | string {
+    return meta.validate?.(this.getSettingValue(meta.key) ?? '') ?? null;
   }
 
   toggleGroup(labelKey: string): void {
