@@ -51,7 +51,7 @@ public class LinkedFixRoundTests : ControllerTestBase
         var cleanResult = await clean.UpdateLocation(request);
 
         this._humanProxy.Setup(p => p.SetLocationAsync(Telegram, It.IsAny<double>(), It.IsAny<double>()))
-            .ThrowsAsync(new HttpRequestException("connect ECONNREFUSED 10.100.3.178:3030"));
+            .ThrowsAsync(new HttpRequestException("connect ECONNREFUSED 192.0.2.10:3030"));
         var warned = this.Location(PairTestSupport.Linked(PairTestSupport.Pair(Discord)));
         var warnedResult = await warned.UpdateLocation(request);
 
@@ -66,13 +66,13 @@ public class LinkedFixRoundTests : ControllerTestBase
     public async Task Header_NeverCarriesTheHostOrPortOfAnHttpFailure()
     {
         this._humanProxy.Setup(p => p.SetLocationAsync(Telegram, It.IsAny<double>(), It.IsAny<double>()))
-            .ThrowsAsync(new HttpRequestException("No connection could be made to 10.100.3.178:3030"));
+            .ThrowsAsync(new HttpRequestException("No connection could be made to 192.0.2.10:3030"));
         var sut = this.Location(PairTestSupport.Linked(PairTestSupport.Pair(Discord)));
 
         await sut.UpdateLocation(new LocationController.LocationUpdateRequest { Latitude = 1, Longitude = 2 });
 
         var header = Header(sut)!;
-        Assert.DoesNotContain("10.100.3.178", header);
+        Assert.DoesNotContain("192.0.2.10", header);
         Assert.DoesNotContain("3030", header);
         Assert.Equal("Couldn't reach Poracle for telegram.", JsonDocument.Parse(header).RootElement.GetProperty("reason").GetString());
     }

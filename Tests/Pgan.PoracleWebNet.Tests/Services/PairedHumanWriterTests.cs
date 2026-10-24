@@ -131,7 +131,7 @@ public class PairedHumanWriterTests
         var sut = PairTestSupport.Writer(PairTestSupport.Linked(PairTestSupport.Pair(PairTestSupport.DiscordId)));
 
         var result = await sut.WriteAsync(PairTestSupport.DiscordId, id =>
-            id == PairTestSupport.TelegramId ? throw new HttpRequestException("connect to 10.100.3.178:3030 refused") : Task.CompletedTask);
+            id == PairTestSupport.TelegramId ? throw new HttpRequestException("connect to 192.0.2.10:3030 refused") : Task.CompletedTask);
 
         Assert.Equal("Couldn't reach Poracle for telegram.", result.Warning!.Reason);
     }
