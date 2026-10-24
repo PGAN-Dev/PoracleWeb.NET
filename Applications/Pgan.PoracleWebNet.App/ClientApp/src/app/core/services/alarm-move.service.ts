@@ -12,14 +12,69 @@ import { LinkSide } from '../models';
 /** The API refuses more than this many uids in one `POST /api/alarm-move`. */
 export const MAX_MOVE_UIDS = 500;
 
-export type MoveStatus = 'conflict' | 'failed' | 'moved' | 'refused' | 'sourceRemains';
+export type MoveStatus = 'alreadyThere' | 'conflict' | 'failed' | 'moved' | 'refused' | 'sourceRemains';
 
 export interface MoveOutcome {
   existingUid?: null | number;
   newUid?: null | number;
+  /** The server's English sentence, kept for logs. Nothing on screen shows it: `reasonCode` is translated instead. */
   reason?: null | string;
+  /** The app a reason is about, when it names one. */
+  reasonApp?: null | string;
+  /** Why it did not move, as `AlarmMover`'s `MoveReasonCodes` names it (`place_missing`, `different_profiles`, ...). */
+  reasonCode?: null | string;
+  /** The saved place a `place_missing` refusal names. */
+  reasonPlace?: null | string;
   status: MoveStatus;
   uid: number;
+}
+
+/** The refusal codes the SPA has words for; anything else is worded with the generic refusal. */
+const REASON_KEYS: Record<string, string> = {
+  invalid: 'ALARM.MOVE_REASON_INVALID',
+  area_not_allowed: 'ALARM.MOVE_REASON_AREA_NOT_ALLOWED',
+  different_profiles: 'ALARM.MOVE_REASON_DIFFERENT_PROFILES',
+  failed: 'ALARM.MOVE_REASON_FAILED',
+  not_found: 'ALARM.MOVE_REASON_NOT_FOUND',
+  not_linked: 'ALARM.MOVE_REASON_NOT_LINKED',
+  not_set_up: 'ALARM.MOVE_REASON_NOT_SET_UP',
+  not_yours: 'ALARM.MOVE_REASON_NOT_YOURS',
+  place_missing: 'ALARM.MOVE_REASON_PLACE_MISSING',
+};
+
+interface ReasonParts {
+  reasonApp?: null | string;
+  reasonCode?: null | string;
+  reasonPlace?: null | string;
+}
+
+/**
+ * The translated sentence for a refusal code, or the generic refusal for a code this build doesn't know.
+ * `fallbackApp` names the app when the server didn't (a refusal is almost always about the target).
+ */
+function reasonText(parts: ReasonParts, fallbackApp: LinkSide, i18n: I18nService): string {
+  const key = parts.reasonCode ? REASON_KEYS[parts.reasonCode] : undefined;
+  if (!key) return i18n.instant('ALARM.MOVE_REFUSED_NO_REASON');
+  const side: LinkSide = parts.reasonApp === 'discord' || parts.reasonApp === 'telegram' ? parts.reasonApp : fallbackApp;
+  return i18n.instant(key, { app: i18n.instant(appKey(side)), place: parts.reasonPlace ?? '' });
+}
+
+/**
+ * What an edit dialog shows when the API refused to move its alarm: the translated sentence for the body's
+ * `code`, or null when the error carries none (validation, an outage), so the caller words it as before.
+ */
+export function moveRefusalText(err: unknown, i18n: I18nService, target: LinkSide = 'discord'): null | string {
+  const body = (err as { error?: { app?: unknown; code?: unknown; place?: unknown } } | null | undefined)?.error;
+  if (!body || typeof body.code !== 'string' || !REASON_KEYS[body.code]) return null;
+  return reasonText(
+    {
+      reasonApp: typeof body.app === 'string' ? body.app : null,
+      reasonCode: body.code,
+      reasonPlace: typeof body.place === 'string' ? body.place : null,
+    },
+    target,
+    i18n,
+  );
 }
 
 export interface AlarmMoveResponse {
@@ -52,6 +107,8 @@ function statusOf(raw: unknown): MoveStatus {
       return 'sourceRemains';
     case 'refused':
       return 'refused';
+    case 'alreadythere':
+      return 'alreadyThere';
     default:
       return 'failed';
   }
@@ -59,22 +116,24 @@ function statusOf(raw: unknown): MoveStatus {
 
 /**
  * What a request that failed outright means for each uid it carried: a refusal (4xx) changed nothing, so
- * it is reported as refused with the server's reason when it sent one and the generic refusal otherwise;
+ * it is reported as refused, carrying the body's `code` when it sent one (worded by that code, or generically);
  * anything else may or may not have written, so it is reported as failed, not as not moved.
  */
 export function failedOutcomes(uids: readonly number[], err: unknown): MoveOutcome[] {
   const status = (err as { status?: unknown } | null)?.status;
   if (typeof status === 'number' && status < 500 && status > 0) {
     const reason = serverReason(err);
-    return uids.map(uid => ({ uid, reason, status: 'refused' as const }));
+    const code = (err as { error?: { code?: unknown } } | null)?.error?.code;
+    return uids.map(uid => ({ uid, reason, ...(typeof code === 'string' ? { reasonCode: code } : {}), status: 'refused' as const }));
   }
   return uids.map(uid => ({ uid, status: 'failed' as const }));
 }
 
 /**
- * One summary for a bulk move, per outcome: how many moved, then what did not and why. The copy for a move
- * whose source could not be deleted names both apps, because the alert now exists on each and the person
- * has to remove one by hand.
+ * One summary for a bulk move, per outcome: how many moved and how many were already there (both are what the
+ * person asked for), then what did not and why. The copy for a move whose source could not be deleted names both
+ * apps, because the alarm now exists on each and the person has to remove one by hand. A refusal is worded from
+ * its code, one line per code; the server's English sentence never reaches the screen.
  */
 export function summariseMoves(results: readonly MoveOutcome[], target: LinkSide, i18n: I18nService): string {
   const app = i18n.instant(appKey(target));
@@ -84,15 +143,19 @@ export function summariseMoves(results: readonly MoveOutcome[], target: LinkSide
 
   const moved = count('moved');
   if (moved > 0) parts.push(i18n.plural('ALARM.MOVE_DONE', moved, { app }));
+  const alreadyThere = count('alreadyThere');
+  if (alreadyThere > 0) parts.push(i18n.plural('ALARM.MOVE_ALREADY_THERE', alreadyThere, { app }));
   const remains = count('sourceRemains');
   if (remains > 0) parts.push(i18n.plural('ALARM.MOVE_SOURCE_REMAINS', remains, { app, from: fromApp }));
   const conflicts = count('conflict');
   if (conflicts > 0) parts.push(i18n.plural('ALARM.MOVE_CONFLICT', conflicts, { app }));
-  const refused = results.filter(r => statusOf(r.status) === 'refused');
-  if (refused.length > 0) {
-    const reason = refused.find(r => r.reason)?.reason ?? i18n.instant('ALARM.MOVE_REFUSED_NO_REASON');
-    parts.push(i18n.plural('ALARM.MOVE_REFUSED', refused.length, { reason }));
+  const refusedByReason = new Map<string, number>();
+  for (const r of results) {
+    if (statusOf(r.status) !== 'refused') continue;
+    const reason = reasonText(r, target, i18n);
+    refusedByReason.set(reason, (refusedByReason.get(reason) ?? 0) + 1);
   }
+  for (const [reason, n] of refusedByReason) parts.push(i18n.plural('ALARM.MOVE_REFUSED', n, { reason }));
   const failed = count('failed');
   if (failed > 0) parts.push(i18n.plural('ALARM.MOVE_FAILED', failed, { app }));
 

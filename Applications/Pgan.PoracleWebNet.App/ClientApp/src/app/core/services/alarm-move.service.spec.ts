@@ -3,7 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
 
-import { AlarmMoveService, failedOutcomes, summariseMoves } from './alarm-move.service';
+import { AlarmMoveService, failedOutcomes, moveRefusalText, summariseMoves } from './alarm-move.service';
 import { ConfigService } from './config.service';
 import { I18nService } from './i18n.service';
 import { isMoveFailure } from '../../shared/utils/move-failure';
@@ -11,7 +11,8 @@ import { isMoveFailure } from '../../shared/utils/move-failure';
 const API = 'http://test-api';
 const i18n = {
   instant: (key: string, params?: Record<string, unknown>) => (params ? `${key} ${JSON.stringify(params)}` : key),
-  plural: (key: string, count: number) => `${key}:${count}`,
+  plural: (key: string, count: number, params?: Record<string, unknown>) =>
+    params ? `${key}:${count} ${JSON.stringify(params)}` : `${key}:${count}`,
 };
 
 const tick = async () => {
@@ -124,13 +125,13 @@ describe('moveMany keeps what it already knows', () => {
 
 describe('a refused request with no text', () => {
   it('is refused, not failed, so it never reads as "may or may not have been moved"', () => {
-    expect(failedOutcomes([4], { status: 403 })).toEqual([{ reason: null, status: 'refused', uid: 4 }]);
-    expect(failedOutcomes([4], { error: {}, status: 404 })).toEqual([{ reason: null, status: 'refused', uid: 4 }]);
+    expect(failedOutcomes([4], { status: 403 })).toEqual([{ uid: 4, reason: null, status: 'refused' }]);
+    expect(failedOutcomes([4], { error: {}, status: 404 })).toEqual([{ uid: 4, reason: null, status: 'refused' }]);
   });
 
   it('still reports a server error or no response as failed', () => {
-    expect(failedOutcomes([4], { status: 500 })).toEqual([{ status: 'failed', uid: 4 }]);
-    expect(failedOutcomes([4], { status: 0 })).toEqual([{ status: 'failed', uid: 4 }]);
+    expect(failedOutcomes([4], { status: 500 })).toEqual([{ uid: 4, status: 'failed' }]);
+    expect(failedOutcomes([4], { status: 0 })).toEqual([{ uid: 4, status: 'failed' }]);
   });
 
   it('is worded with the generic refusal', () => {
@@ -182,5 +183,95 @@ describe('summariseMoves', () => {
     expect(text).toContain('ALARM.MOVE_CONFLICT');
     expect(text).toContain('ALARM.MOVE_REFUSED');
     expect(text).toContain('ALARM.MOVE_FAILED');
+  });
+});
+
+describe('summariseMoves reads reason codes, never the server sentence', () => {
+  const t = i18n as unknown as I18nService;
+
+  it('counts an alarm already on the target as done, not as not moved', () => {
+    const text = summariseMoves(
+      [
+        { uid: 1, status: 'moved' },
+        { uid: 2, reason: 'That alarm is already there.', reasonCode: 'already_there', status: 'alreadyThere' },
+      ],
+      'telegram',
+      t,
+    );
+
+    expect(text).toContain('ALARM.MOVE_DONE:1');
+    expect(text).toContain('ALARM.MOVE_ALREADY_THERE:1');
+    expect(text).not.toContain('MOVE_REFUSED');
+    expect(text).not.toContain('That alarm is already there.');
+  });
+
+  it('reads alreadyThere in either casing', () => {
+    expect(summariseMoves([{ uid: 2, status: 'AlreadyThere' as never }], 'discord', t)).toContain('ALARM.MOVE_ALREADY_THERE:1');
+  });
+
+  it('translates a refusal by its code and drops the English sentence', () => {
+    const text = summariseMoves(
+      [
+        {
+          uid: 4,
+          reason: "The place 'Work' isn't saved on Telegram.",
+          reasonApp: 'telegram',
+          reasonCode: 'place_missing',
+          reasonPlace: 'Work',
+          status: 'refused',
+        },
+      ],
+      'telegram',
+      t,
+    );
+
+    expect(text).toContain('ALARM.MOVE_REASON_PLACE_MISSING');
+    expect(text).toContain('Work');
+    expect(text).not.toContain("isn't saved");
+  });
+
+  it('gives one line per refusal code', () => {
+    const text = summariseMoves(
+      [
+        { uid: 4, reasonCode: 'different_profiles', status: 'refused' },
+        { uid: 5, reasonCode: 'different_profiles', status: 'refused' },
+        { uid: 6, reasonApp: 'telegram', reasonCode: 'invalid', status: 'refused' },
+      ],
+      'telegram',
+      t,
+    );
+
+    expect(text).toContain('ALARM.MOVE_REFUSED:2');
+    expect(text).toContain('ALARM.MOVE_REASON_DIFFERENT_PROFILES');
+    expect(text).toContain('ALARM.MOVE_REFUSED:1');
+    expect(text).toContain('ALARM.MOVE_REASON_INVALID');
+  });
+
+  it('words a refusal with an unknown code or only an English reason generically', () => {
+    const text = summariseMoves([{ uid: 4, reason: 'Some server English.', reasonCode: 'brand_new', status: 'refused' }], 'telegram', t);
+
+    expect(text).toContain('ALARM.MOVE_REFUSED_NO_REASON');
+    expect(text).not.toContain('Some server English.');
+  });
+
+  it('carries the code of a refused request into each uid', () => {
+    expect(failedOutcomes([4], { error: { code: 'not_linked', error: "Your accounts aren't linked." }, status: 400 })).toEqual([
+      { uid: 4, reason: "Your accounts aren't linked.", reasonCode: 'not_linked', status: 'refused' },
+    ]);
+  });
+});
+
+describe('moveRefusalText', () => {
+  const t = i18n as unknown as I18nService;
+
+  it('translates a single edit refused with a code', () => {
+    expect(moveRefusalText({ error: { code: 'different_profiles', error: 'English.' }, status: 409 }, t)).toContain(
+      'ALARM.MOVE_REASON_DIFFERENT_PROFILES',
+    );
+  });
+
+  it('answers null for an error that carries no move code, so the caller words it as before', () => {
+    expect(moveRefusalText({ error: { error: 'Range' }, status: 400 }, t)).toBeNull();
+    expect(moveRefusalText(null, t)).toBeNull();
   });
 });
