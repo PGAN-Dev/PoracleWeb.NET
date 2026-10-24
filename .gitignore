@@ -20,9 +20,10 @@ appsettings.*.local.json
 
 ## Claude Code
 # Contents ignored rather than the directory itself: git cannot re-include anything beneath an
-# excluded directory, and the shared slash commands below need re-including.
+# excluded directory, and the shared slash commands and path-scoped rules below need re-including.
 .claude/*
 !.claude/commands/
+!.claude/rules/
 
 ## IDE
 .idea/
