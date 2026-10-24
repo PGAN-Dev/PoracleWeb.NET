@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Diagrams on the documentation site draw again. Every one showed a syntax error, because two Mermaid loaders rendered the same block; the site now uses Material for MkDocs' own.
 - **A link started before an admin switched linking off can no longer complete.** The Discord callback and the Telegram link both refuse once **Linked accounts** is off, with a message saying so in all eleven languages; unlinking stays available.
 - **Registering the missing account copies only the areas the person may hold.** The profiles copied to the new account went through no allowed-name check; they now get the one profile create applies, and the person's own drawn fences are kept.
 - **A bulk radius change no longer fails when an invasion and a Pokéstop event share a number and the request names no kind.**
