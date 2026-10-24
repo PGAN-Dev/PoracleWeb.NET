@@ -10,16 +10,18 @@ namespace Pgan.PoracleWebNet.Core.Services;
 
 /// <summary>
 /// Compares the two humans of a linked pair and, when the person picks a side, makes the other one match.
-/// Resolve writes the kept value to the other human only, straight through the proxy: the paired writer
-/// would write both and so re-write the side being kept.
+/// Resolve writes the kept value to the other human only: the paired writer would write both and so re-write
+/// the side being kept. Area names go through <see cref="IUserAreaWriter"/> so they are authorised for the
+/// human they are written to.
 /// </summary>
-public sealed class PairDriftService(IPoracleHumanProxy human, IPoracleTrackingProxy tracking) : IPairDriftService
+public sealed class PairDriftService(IPoracleHumanProxy human, IPoracleTrackingProxy tracking, IUserAreaWriter areas) : IPairDriftService
 {
     private const string FillerName = "placeholder";
     private const string NoSchedule = "[]";
 
     private readonly IPoracleHumanProxy _human = human;
     private readonly IPoracleTrackingProxy _tracking = tracking;
+    private readonly IUserAreaWriter _areas = areas;
 
     public async Task<IReadOnlyList<DriftItem>> GetAsync(LinkedPair pair)
     {
@@ -69,7 +71,9 @@ public sealed class PairDriftService(IPoracleHumanProxy human, IPoracleTrackingP
                     await this._human.SetLocationAsync(otherId, kept.Lat, kept.Lon);
                     break;
                 case DriftField.Areas:
-                    await this._human.SetAreasTrustedAsync(otherId, kept.Areas);
+                    // Through the writer, not the raw trusted route: a trusted write skips PoracleNG's own area check, so
+                    // PoracleWeb.NET authorises the names for the human they are written to.
+                    await this._areas.SaveSelectionAsync(otherId, kept.Areas);
                     break;
                 case DriftField.CurrentProfile:
                     await this._human.SwitchProfileAsync(otherId, kept.Current);
@@ -297,7 +301,7 @@ public sealed class PairDriftService(IPoracleHumanProxy human, IPoracleTrackingP
             }
 
             progress.Wrote = true;
-            await this._human.SetProfileGeographyAsync(otherId, row.No, AreaListJson.Parse(row.Area), row.Latitude, row.Longitude);
+            await this._human.SetProfileGeographyAsync(otherId, row.No, await this._areas.FilterAllowedAsync(otherId, AreaListJson.Parse(row.Area)), row.Latitude, row.Longitude);
         }
 
         foreach (var made in fillers)
@@ -324,7 +328,7 @@ public sealed class PairDriftService(IPoracleHumanProxy human, IPoracleTrackingP
                 || Round(row.Latitude) != Round(existing.Latitude) || Round(row.Longitude) != Round(existing.Longitude))
             {
                 progress.Wrote = true;
-                await this._human.SetProfileGeographyAsync(otherId, row.No, AreaListJson.Parse(row.Area), row.Latitude, row.Longitude);
+                await this._human.SetProfileGeographyAsync(otherId, row.No, await this._areas.FilterAllowedAsync(otherId, AreaListJson.Parse(row.Area)), row.Latitude, row.Longitude);
             }
         }
 

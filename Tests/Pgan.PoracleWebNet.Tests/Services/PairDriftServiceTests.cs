@@ -15,6 +15,7 @@ public class PairDriftServiceTests
 
     private readonly Mock<IPoracleHumanProxy> _human = new();
     private readonly Mock<IPoracleTrackingProxy> _tracking = new();
+    private readonly Mock<IUserAreaWriter> _areas = new();
     private readonly PairDriftService _sut;
     private readonly Dictionary<string, SideData> _data = new()
     {
@@ -33,7 +34,11 @@ public class PairDriftServiceTests
             .ReturnsAsync((string id) => (IReadOnlyList<StoredRule>)this._data[id].Rules.Select(n => new StoredRule("monster", n, 1, default)).ToList());
         this._tracking.Setup(t => t.GetAllTrackingWithDescriptionsAsync(It.IsAny<string>()))
             .ReturnsAsync((string id) => Json(JsonSerializer.Serialize(new { pokemon = this._data[id].PlaceRefs.Select(l => new { uid = 1, override_location_label = l }), status = "ok" })));
-        this._sut = new PairDriftService(this._human.Object, this._tracking.Object);
+        this._areas.Setup(a => a.FilterAllowedAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>()))
+            .ReturnsAsync((string _, IReadOnlyCollection<string> names) => (IReadOnlyList<string>)names.ToList());
+        this._areas.Setup(a => a.SaveSelectionAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>()))
+            .ReturnsAsync((string _, IReadOnlyCollection<string> names) => new AreaSaveResult(names.ToList(), []));
+        this._sut = new PairDriftService(this._human.Object, this._tracking.Object, this._areas.Object);
     }
 
     private static JsonElement Json(string s) => JsonDocument.Parse(s).RootElement.Clone();
@@ -133,8 +138,40 @@ public class PairDriftServiceTests
 
         await this._sut.ResolveAsync(Pair(), DriftField.Areas, LinkSide.Discord, fp);
 
-        this._human.Verify(p => p.SetAreasTrustedAsync(Telegram, It.Is<IReadOnlyCollection<string>>(a => a.SequenceEqual(new[] { "old town", "northside" }))), Times.Once);
-        this._human.Verify(p => p.SetAreasTrustedAsync(Discord, It.IsAny<IReadOnlyCollection<string>>()), Times.Never);
+        // Authorised by PoracleWeb.NET's own policy, never written straight through the trusted proxy route.
+        this._areas.Verify(a => a.SaveSelectionAsync(Telegram, It.Is<IReadOnlyCollection<string>>(n => n.SequenceEqual(new[] { "old town", "northside" }))), Times.Once);
+        this._areas.Verify(a => a.SaveSelectionAsync(Discord, It.IsAny<IReadOnlyCollection<string>>()), Times.Never);
+        this._human.Verify(p => p.SetAreasTrustedAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ResolveAreas_ANameTheOtherSideMayNotHold_IsRefusedAndNothingIsPosted()
+    {
+        this._data[Discord].Areas = ["old town", "northside"];
+        this._data[Telegram].Areas = ["riverside"];
+        this._areas.Setup(a => a.SaveSelectionAsync(Telegram, It.IsAny<IReadOnlyCollection<string>>()))
+            .ThrowsAsync(new AreaNotPermittedException(["northside"]));
+        var fp = await this.FingerprintOf(DriftField.Areas);
+
+        await Assert.ThrowsAsync<AreaNotPermittedException>(() => this._sut.ResolveAsync(Pair(), DriftField.Areas, LinkSide.Discord, fp));
+
+        this._human.Verify(p => p.SetAreasTrustedAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ResolveProfiles_ProfileAreasAreFilteredThroughTheWriterBeforeTheyAreWritten()
+    {
+        this._data[Discord].Profiles = [new ProfileData(1, "Home"), new ProfileData(2, "Work", Area: "[\"old town\",\"northside\"]", Lat: 51.7, Lon: -0.2)];
+        this._data[Telegram].Profiles = [new ProfileData(1, "Home")];
+        this._human.Setup(p => p.AddProfileAsync(Telegram, It.IsAny<JsonElement>())).ReturnsAsync(2);
+        this._areas.Setup(a => a.FilterAllowedAsync(Telegram, It.IsAny<IReadOnlyCollection<string>>()))
+            .ReturnsAsync(["old town"]);
+        var fp = await this.FingerprintOf(DriftField.Profiles);
+
+        await this._sut.ResolveAsync(Pair(), DriftField.Profiles, LinkSide.Discord, fp);
+
+        this._areas.Verify(a => a.FilterAllowedAsync(Telegram, It.Is<IReadOnlyCollection<string>>(n => n.SequenceEqual(new[] { "old town", "northside" }))), Times.Once);
+        this._human.Verify(p => p.SetProfileGeographyAsync(Telegram, 2, It.Is<IReadOnlyCollection<string>>(a => a.SequenceEqual(new[] { "old town" })), 51.7, -0.2), Times.Once);
     }
 
     [Fact]
