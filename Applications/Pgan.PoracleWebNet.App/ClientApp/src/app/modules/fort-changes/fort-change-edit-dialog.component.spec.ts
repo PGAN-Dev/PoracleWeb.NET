@@ -178,6 +178,7 @@ describe('FortChangeEditDialogComponent message settings heading', () => {
           provide: SettingsService,
           useValue: {
             isDisabled: () => false,
+            settingsLoaded: () => false,
             siteSettings: signal<Record<string, string>>(templates ? { enable_templates: 'true' } : {}),
           },
         },

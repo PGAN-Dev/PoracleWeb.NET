@@ -112,6 +112,7 @@ A separate EF Core context for **application-owned data**.
 | `quick_pick_definitions` | Quick pick alarm presets (global and user-scoped) |
 | `quick_pick_applied_states` | Tracks which quick picks users have applied per profile |
 | `oidc_sessions` | Refresh-token families for OIDC silent refresh, with rotation and replay detection |
+| `account_links` | Pairs one person's Discord and Telegram humans |
 
 !!! info "MariaDB compatibility"
     `MySql.EntityFrameworkCore`'s `MigrateAsync()` uses `GET_LOCK(-1)` which returns NULL on MariaDB. The `MariaDbHistoryRepository` class overrides the lock to use `GET_LOCK(3600)` instead. This is registered via `ReplaceService<IHistoryRepository, MariaDbHistoryRepository>()` on `PoracleWebContext`.
@@ -216,6 +217,22 @@ Relational table for webhook delegation:
 | `created_at` | datetime | When the delegation was created |
 
 Unique composite index on `(webhook_id, user_id)`. Additional index on `user_id` for login-flow lookups.
+
+## Account links table
+
+Pairs a `discord:user` human with a `telegram:user` human. See [Linked Accounts](linked-accounts.md#data-model).
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | int (PK) | Auto-increment ID |
+| `discord_id` | varchar(64) | The Discord human's id. Unique |
+| `telegram_id` | varchar(64) | The Telegram human's id. Unique |
+| `default_destination` | varchar(16) | `discord` or `telegram`: where a new alarm goes when no app is named |
+| `discord_verified_at` | datetime, nullable | When the Discord identity was last proven |
+| `telegram_verified_at` | datetime, nullable | When the Telegram identity was last proven |
+| `created_at` | datetime | When the link was made |
+
+The unique index on each id column is what limits an account to one link. Rows join to PoracleNG by id only, and nothing about the link is written to PoracleNG. A side that isn't registered yet, a paused side and the differences between the two are all computed from PoracleNG on each request, never stored. Deleting a user removes their link, and unlinking deletes only the row.
 
 ## Quick pick tables
 

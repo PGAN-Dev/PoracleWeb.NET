@@ -54,3 +54,13 @@ export const POKESTOP_EVENTS: readonly PokestopEventInfo[] = [
 export function pokestopEventInfo(displayType: number | null | undefined): PokestopEventInfo | undefined {
   return POKESTOP_EVENTS.find(e => e.displayType === displayType);
 }
+
+/**
+ * Which route a stored invasion-table rule lives on: Pokéstop events (kecleon, gold-stop, showcase) are kept apart
+ * from invasions and numbered separately, so a uid alone can name either. Undefined when there is no grunt type.
+ */
+export function invasionKind(gruntType: string | null | undefined): 'event' | 'invasion' | undefined {
+  if (!gruntType) return undefined;
+  const name = gruntType.trim().toLowerCase();
+  return POKESTOP_EVENTS.some(e => e.name === name) ? 'event' : 'invasion';
+}

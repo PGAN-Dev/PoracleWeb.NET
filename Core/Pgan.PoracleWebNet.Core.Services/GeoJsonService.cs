@@ -38,7 +38,7 @@ public partial class GeoJsonService(
             }
         }
 
-        LogExportComplete(this._logger, userId, collection.Features.Count);
+        LogExportComplete(this._logger, LogSafe.Id(userId), collection.Features.Count);
         return collection;
     }
 
@@ -234,7 +234,7 @@ public partial class GeoJsonService(
             }
         }
 
-        LogImportComplete(this._logger, userId, result.Created.Count, result.Errors.Count);
+        LogImportComplete(this._logger, LogSafe.Id(userId), result.Created.Count, result.Errors.Count);
         return result;
     }
 

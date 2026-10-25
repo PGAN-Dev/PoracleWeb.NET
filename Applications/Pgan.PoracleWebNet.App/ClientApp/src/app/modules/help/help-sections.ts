@@ -136,6 +136,20 @@ export const HELP_SECTIONS: HelpSection[] = [
     titleKey: 'HELP.SECTION_QUIET',
   },
   {
+    id: 'discord-telegram',
+    contentKey: 'HELP.CONTENT_APPS',
+    icon: 'forum',
+    subtitleKey: 'HELP.SECTION_APPS_SUB',
+    titleKey: 'HELP.SECTION_APPS',
+  },
+  {
+    id: 'linked-accounts',
+    contentKey: 'HELP.CONTENT_LINKED',
+    icon: 'link',
+    subtitleKey: 'HELP.SECTION_LINKED_SUB',
+    titleKey: 'HELP.SECTION_LINKED',
+  },
+  {
     id: 'webhooks',
     contentKey: 'HELP.CONTENT_WEBHOOKS',
     icon: 'webhook',

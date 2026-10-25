@@ -2,16 +2,6 @@ using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Abstractions.Services;
 
-public interface IRaidService
+public interface IRaidService : IAlarmService<Raid>
 {
-    public Task<IEnumerable<Raid>> GetByUserAsync(string userId, int profileNo);
-    public Task<Raid?> GetByUidAsync(string userId, int uid);
-    public Task<Raid> CreateAsync(string userId, Raid model);
-    public Task<Raid> UpdateAsync(string userId, Raid model);
-    public Task<bool> DeleteAsync(string userId, int uid);
-    public Task<int> DeleteAllByUserAsync(string userId, int profileNo);
-    public Task<DistanceUpdateResult> UpdateDistanceByUserAsync(string userId, int profileNo, int distance);
-    public Task<DistanceUpdateResult> UpdateDistanceByUidsAsync(List<int> uids, string userId, int distance);
-    public Task<int> CountByUserAsync(string userId, int profileNo);
-    public Task<IEnumerable<Raid>> BulkCreateAsync(string userId, IEnumerable<Raid> models);
 }

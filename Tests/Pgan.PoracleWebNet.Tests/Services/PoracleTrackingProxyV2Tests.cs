@@ -658,14 +658,15 @@ public class PoracleTrackingProxyV2Tests
     {
         var handler = new ScriptedHandler(
             new Reply(HttpStatusCode.NotFound, InvasionRuleNotFound, "application/problem+json"),
+            new Reply(HttpStatusCode.OK, AllProfiles("""{"incident":[{"uid":412,"profile_no":1,"display_type":8}]}""")),
             new Reply(HttpStatusCode.OK, """{"deleted":[{"uid":412,"display_type":8}]}"""));
         var sut = CreateSut(handler);
 
         await sut.DeleteByUidAsync("invasion", "user1", 412);
 
-        Assert.Equal(2, handler.Requests.Count);
-        Assert.Equal(HttpMethod.Delete, handler.Requests[1].Method);
-        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/tracking/incident/412?silent=true", handler.Requests[1].Url);
+        Assert.Equal(3, handler.Requests.Count);
+        Assert.Equal(HttpMethod.Delete, handler.Requests[2].Method);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/tracking/incident/412?silent=true", handler.Requests[2].Url);
     }
 
     [Fact]
@@ -673,17 +674,14 @@ public class PoracleTrackingProxyV2Tests
     {
         var handler = new ScriptedHandler(
             new Reply(HttpStatusCode.NotFound, InvasionRuleNotFound, "application/problem+json"),
-            new Reply(
-                HttpStatusCode.NotFound,
-                """{"title":"Not Found","status":404,"detail":"incident rule 412 not found for this human"}""",
-                "application/problem+json"),
             new Reply(HttpStatusCode.OK, AllProfiles()));
         var sut = CreateSut(handler);
 
         await sut.DeleteByUidAsync("invasion", "user1", 412);
 
-        Assert.Equal(3, handler.Requests.Count);
-        Assert.True(IsAllProfilesRead(handler.Requests[2]));
+        // One read both rules out an event and places nothing: no incident delete is attempted.
+        Assert.Equal(2, handler.Requests.Count);
+        Assert.True(IsAllProfilesRead(handler.Requests[1]));
     }
 
     [Fact]
@@ -854,18 +852,19 @@ public class PoracleTrackingProxyV2Tests
     {
         var handler = new ScriptedHandler(
             new Reply(HttpStatusCode.OK, """{"deleted":[{"uid":10},{"uid":12}]}"""),
+            new Reply(HttpStatusCode.OK, AllProfiles("""{"incident":[{"uid":11,"profile_no":1,"display_type":8},{"uid":13,"profile_no":1,"display_type":8}]}""")),
             new Reply(HttpStatusCode.OK, """{"deleted":[{"uid":11},{"uid":13}]}"""));
         var logger = new CapturingLogger();
         var sut = CreateSut(handler, logger: logger);
 
         await sut.BulkDeleteByUidsAsync("invasion", "user1", [10, 11, 12, 13]);
 
-        Assert.Equal(2, handler.Requests.Count);
+        Assert.Equal(3, handler.Requests.Count);
         Assert.Equal($"{ApiAddress}/api/v2/humans/user1/tracking/invasion?silent=true", handler.Requests[0].Url);
         Assert.Equal("""{"uids":[10,11,12,13]}""", handler.Requests[0].Body);
-        Assert.Equal(HttpMethod.Delete, handler.Requests[1].Method);
-        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/tracking/incident?silent=true", handler.Requests[1].Url);
-        Assert.Equal("""{"uids":[11,13]}""", handler.Requests[1].Body);
+        Assert.Equal(HttpMethod.Delete, handler.Requests[2].Method);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/tracking/incident?silent=true", handler.Requests[2].Url);
+        Assert.Equal("""{"uids":[11,13]}""", handler.Requests[2].Body);
         Assert.DoesNotContain(logger.Entries, e => e.Level >= LogLevel.Information);
     }
 
@@ -874,12 +873,13 @@ public class PoracleTrackingProxyV2Tests
     {
         var handler = new ScriptedHandler(
             new Reply(HttpStatusCode.OK, """{"deleted":null}"""),
+            new Reply(HttpStatusCode.OK, AllProfiles("""{"incident":[{"uid":11,"profile_no":1,"display_type":8}]}""")),
             new Reply(HttpStatusCode.OK, """{"deleted":[{"uid":11}]}"""));
         var sut = CreateSut(handler);
 
         await sut.BulkDeleteByUidsAsync("invasion", "user1", [11]);
 
-        Assert.Equal("""{"uids":[11]}""", handler.Requests[1].Body);
+        Assert.Equal("""{"uids":[11]}""", handler.Requests[2].Body);
     }
 
     [Fact]
@@ -927,11 +927,11 @@ public class PoracleTrackingProxyV2Tests
         // The all-profiles read folds incident into invasion; the row's grunt_type says it is an event.
         var handler = new ScriptedHandler(
             new Reply(HttpStatusCode.NotFound, InvasionRuleNotFound, "application/problem+json"),
+            new Reply(HttpStatusCode.OK, AllProfiles("""{"incident":[{"uid":412,"profile_no":3,"display_type":8}]}""")),
             new Reply(
                 HttpStatusCode.NotFound,
                 """{"title":"Not Found","status":404,"detail":"incident rule 412 not found for this human"}""",
                 "application/problem+json"),
-            new Reply(HttpStatusCode.OK, AllProfiles("""{"incident":[{"uid":412,"profile_no":3,"display_type":8}]}""")),
             new Reply(HttpStatusCode.OK, """{"deleted":[{"uid":412}]}"""));
         var sut = CreateSut(handler);
 
@@ -1062,6 +1062,9 @@ public class PoracleTrackingProxyV2Tests
             Mock.Of<IMaxBattleService>(),
             Mock.Of<IMasterDataService>(),
             Mock.Of<IFeatureGate>(),
+            Pgan.PoracleWebNet.Tests.Helpers.LinkedTestKit.Unlinked(),
+            Pgan.PoracleWebNet.Tests.Helpers.LinkedTestKit.Router(Pgan.PoracleWebNet.Tests.Helpers.LinkedTestKit.Unlinked()),
+            Moq.Mock.Of<Pgan.PoracleWebNet.Core.Abstractions.Services.IHumanService>(),
             Mock.Of<ILogger<QuickPickService>>());
 
         Assert.True(await quickPicks.RemoveAsync("user1", 2, "pick"));
@@ -1093,6 +1096,80 @@ public class PoracleTrackingProxyV2Tests
 
         var ex = await Assert.ThrowsAsync<PoracleRequestRefusedException>(() => sut.BulkDeleteByUidsAsync("pokemon", "user1", [1]));
         Assert.Equal(422, ex.StatusCode);
+    }
+
+    // ---- the kind of a rule decides its route; a shared uid never crosses kinds (#1058) ----------------
+
+    private const string SharedUidSnapshot = """
+        {"invasion":[{"uid":7,"profile_no":2,"grunt_type":"water"}],
+         "incident":[{"uid":7,"profile_no":1,"display_type":8}]}
+        """;
+
+    [Fact]
+    public async Task AnInvasionDeleteOfAGruntOnAnotherProfileNeverDeletesTheEventThatSharesItsUid()
+    {
+        // Grunt rule 7 sits on profile 2; the active profile holds an unrelated event whose incident uid is
+        // also 7. The invasion route misses on the active profile, and the retry must not hit the event.
+        var handler = new ScriptedHandler
+        {
+            RouteReply = request =>
+                request.Method == HttpMethod.Delete && request.Url.Contains("profile=2", StringComparison.Ordinal)
+                    ? new Reply(HttpStatusCode.OK, """{"deleted":[{"uid":7}]}""")
+                    : request.Method == HttpMethod.Delete
+                        ? new Reply(HttpStatusCode.NotFound, InvasionRuleNotFound, "application/problem+json")
+                        : new Reply(HttpStatusCode.OK, AllProfiles(SharedUidSnapshot)),
+        };
+        var sut = CreateSut(handler);
+
+        await sut.DeleteByUidAsync("invasion", "user1", 7);
+
+        Assert.DoesNotContain(handler.Requests, r => r.Method == HttpMethod.Delete && r.Url.Contains("/incident", StringComparison.Ordinal));
+        Assert.Contains(handler.Requests, r => r.Method == HttpMethod.Delete
+            && r.Url == $"{ApiAddress}/api/v2/humans/user1/tracking/invasion/7?silent=true&profile=2");
+    }
+
+    [Fact]
+    public async Task AnInvasionBulkDeleteOfAGruntOnAnotherProfileNeverDeletesTheEventThatSharesItsUid()
+    {
+        var handler = new ScriptedHandler
+        {
+            RouteReply = request =>
+                request.Method == HttpMethod.Delete && request.Url.Contains("profile=2", StringComparison.Ordinal)
+                    ? new Reply(HttpStatusCode.OK, """{"deleted":[{"uid":7}]}""")
+                    : request.Method == HttpMethod.Delete
+                        ? new Reply(HttpStatusCode.OK, """{"deleted":[]}""")
+                        : new Reply(HttpStatusCode.OK, AllProfiles(SharedUidSnapshot)),
+        };
+        var sut = CreateSut(handler);
+
+        await sut.BulkDeleteByUidsAsync("invasion", "user1", [7]);
+
+        Assert.DoesNotContain(handler.Requests, r => r.Method == HttpMethod.Delete && r.Url.Contains("/incident", StringComparison.Ordinal));
+        Assert.Contains(handler.Requests, r => r.Method == HttpMethod.Delete && r.Url.EndsWith("/tracking/invasion?silent=true&profile=2", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task AnIncidentDeleteFindsTheEventEvenWhenAGruntRuleWithTheSameUidIsListedFirst()
+    {
+        // The plain row used to claim the uid before the kind check, so the real event was skipped and the
+        // uid reported lost.
+        var handler = new ScriptedHandler(
+            new Reply(
+                HttpStatusCode.NotFound,
+                """{"title":"Not Found","status":404,"detail":"incident rule 7 not found for this human"}""",
+                "application/problem+json"),
+            new Reply(HttpStatusCode.OK, AllProfiles("""
+                {"invasion":[{"uid":7,"profile_no":2,"grunt_type":"water"}],
+                 "incident":[{"uid":7,"profile_no":3,"display_type":8}]}
+                """)),
+            new Reply(HttpStatusCode.OK, """{"deleted":[{"uid":7}]}"""));
+        var sut = CreateSut(handler);
+
+        await sut.DeleteByUidAsync("incident", "user1", 7);
+
+        Assert.Equal(
+            $"{ApiAddress}/api/v2/humans/user1/tracking/incident/7?silent=true&profile=3",
+            handler.Requests[^1].Url);
     }
 
     [Fact]
@@ -1127,6 +1204,11 @@ public class PoracleTrackingProxyV2Tests
                 var path = request.Url;
                 if (request.Method == HttpMethod.Get)
                 {
+                    if (path.Contains("all_profiles=true", StringComparison.Ordinal))
+                    {
+                        return AllProfiles("""{"invasion":[{"uid":10,"profile_no":1,"grunt_type":"water"}],"incident":[{"uid":11,"profile_no":1,"display_type":8}]}""");
+                    }
+
                     if (path.Contains("/tracking/invasion?", StringComparison.Ordinal))
                     {
                         return """{"rules":[{"uid":10,"grunt_type":"water","gender":null,"distance":0,"clean":false}]}""";

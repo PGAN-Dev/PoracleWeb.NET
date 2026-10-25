@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -7,6 +8,7 @@ using Pgan.PoracleWebNet.Api.Configuration;
 using Pgan.PoracleWebNet.Api.Services;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
+using Pgan.PoracleWebNet.Tests.Helpers;
 
 namespace Pgan.PoracleWebNet.Tests.Services;
 
@@ -29,7 +31,7 @@ public class UserRoleResolverTests
     private const string RaidThread = "1100000000000000002";
     private const string TelegramChannel = "-1001234567890";
 
-    private UserRoleResolver CreateSut(string adminIds = "", IMemoryCache? cache = null) => new(
+    private UserRoleResolver CreateSut(string adminIds = "", IMemoryCache? cache = null, ILogger<UserRoleResolver>? logger = null) => new(
         this._poracleApiProxy.Object,
         this._poracleHumanProxy.Object,
         this._webhookDelegateService.Object,
@@ -37,7 +39,7 @@ public class UserRoleResolverTests
         this._siteSettings.Object,
         Options.Create(new PoracleSettings { AdminIds = adminIds }),
         cache ?? new MemoryCache(new MemoryCacheOptions()),
-        NullLogger<UserRoleResolver>.Instance);
+        logger ?? NullLogger<UserRoleResolver>.Instance);
 
     [Fact]
     public async Task AnUnreachablePoracleIsReportedAsUnresolvedRatherThanAsNotAnAdmin()
@@ -201,6 +203,21 @@ public class UserRoleResolverTests
 
         Assert.Null(roles.ManagedDestinations);
         Assert.True(roles.Resolved);
+    }
+
+    /// <summary>
+    /// The grant is a webhook URL, token and all, and logging it raw put a credential in the log. See #1038.
+    /// </summary>
+    [Fact]
+    public async Task AnUnresolvedGrantIsLoggedWithoutItsWebhookToken()
+    {
+        this.ArrangeDelegate(["https://discordapp.com/api/webhooks/863186716952100874/to_ken"]);
+        var logger = new CapturingLogger<UserRoleResolver>();
+
+        await this.CreateSut(logger: logger).ResolveAsync("u1");
+
+        Assert.Contains("https://discordapp.com/api/webhooks/863186716952100874/***", logger.All, StringComparison.Ordinal);
+        Assert.DoesNotContain("to_ken", logger.All, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -466,6 +483,85 @@ public class UserRoleResolverTests
 
         Assert.Null(roles.ManagedDestinations);
         Assert.True(roles.Resolved);
+    }
+
+    private const string OtherWebhook = "https://discordapp.com/api/webhooks/863186778525925396/other";
+
+    /// <summary>
+    /// Two webhooks sharing a name used to resolve to whichever PoracleNG listed first, handing a delegate a
+    /// webhook nobody chose. Like two channels, the name now names neither. Production held no duplicate
+    /// webhook name when this changed (#1038).
+    /// </summary>
+    [Fact]
+    public async Task ANameSharedByTwoWebhooksResolvesToNeither()
+    {
+        this.ArrangeDelegate(["shared"]);
+        this.ArrangeDirectory(
+            new Human { Id = TeamHarmonyRares, Name = "shared", Type = HumanKind.Webhook },
+            new Human { Id = OtherWebhook, Name = "Shared", Type = HumanKind.Webhook });
+        var logger = new CapturingLogger<UserRoleResolver>();
+
+        var roles = await this.CreateSut(logger: logger).ResolveAsync("u1");
+
+        Assert.Null(roles.ManagedDestinations);
+        Assert.True(roles.Resolved);
+        Assert.Contains(logger.Messages, m => m.Contains("ambiguous", StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// The directory joins six per-type list calls, so a server that ignores <c>?type=</c> repeats every row
+    /// six times. The same webhook listed again is still one webhook, and its name must still resolve.
+    /// </summary>
+    [Fact]
+    public async Task AWebhookListedRepeatedlyStillResolvesByName()
+    {
+        this.ArrangeDelegate(["teamharmonyrares", "raid-alerts"]);
+        var webhook = new Human { Id = TeamHarmonyRares, Name = "teamharmonyrares", Type = HumanKind.Webhook };
+        var channel = new Human { Id = RaidChannel, Name = "raid-alerts", Type = HumanKind.DiscordChannel };
+        this.ArrangeDirectory([.. Enumerable.Repeat(webhook, 6), .. Enumerable.Repeat(channel, 6)]);
+
+        var roles = await this.CreateSut().ResolveAsync("u1");
+
+        Assert.Equal(
+            new[] { RaidChannel, TeamHarmonyRares }.Order(StringComparer.Ordinal),
+            (roles.ManagedDestinations ?? []).Order(StringComparer.Ordinal));
+    }
+
+    /// <summary>
+    /// A channel does not break the tie: the grant meant a webhook, and there are two of them.
+    /// </summary>
+    [Fact]
+    public async Task ANameSharedByTwoWebhooksAndAChannelResolvesToNone()
+    {
+        this.ArrangeDelegate(["shared"]);
+        this.ArrangeDirectory(
+            new Human { Id = TeamHarmonyRares, Name = "shared", Type = HumanKind.Webhook },
+            new Human { Id = RaidChannel, Name = "shared", Type = HumanKind.DiscordChannel },
+            new Human { Id = OtherWebhook, Name = "shared", Type = HumanKind.Webhook });
+
+        var roles = await this.CreateSut().ResolveAsync("u1");
+
+        Assert.Null(roles.ManagedDestinations);
+    }
+
+    /// <summary>
+    /// The legitimate cases beside it: a uniquely named webhook still resolves by name, and either of the
+    /// two sharing a name still resolves by its id.
+    /// </summary>
+    [Fact]
+    public async Task ADuplicateNameLeavesUniqueNamesAndIdsAlone()
+    {
+        this.ArrangeDelegate(["unique", OtherWebhook]);
+        this.ArrangeDirectory(
+            new Human { Id = TeamHarmonyRares, Name = "shared", Type = HumanKind.Webhook },
+            new Human { Id = OtherWebhook, Name = "shared", Type = HumanKind.Webhook },
+            new Human { Id = "https://discordapp.com/api/webhooks/1/unique", Name = "unique", Type = HumanKind.Webhook });
+
+        var roles = await this.CreateSut().ResolveAsync("u1");
+
+        Assert.Equal(
+            new[] { OtherWebhook, "https://discordapp.com/api/webhooks/1/unique" }.Order(StringComparer.Ordinal),
+            (roles.ManagedDestinations ?? []).Order(StringComparer.Ordinal));
     }
 
     /// <summary>

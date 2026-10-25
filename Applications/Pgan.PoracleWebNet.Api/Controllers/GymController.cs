@@ -3,27 +3,29 @@ using Pgan.PoracleWebNet.Api.Filters;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Mappings;
 using Pgan.PoracleWebNet.Core.Models;
+using Pgan.PoracleWebNet.Core.Services;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/gyms")]
 [RequireFeatureEnabled(DisableFeatureKeys.Gyms)]
 [TypeFilter(typeof(PoracleUnreachableExceptionFilter))]
-public class GymController(IGymService gymService) : BaseApiController
+public class GymController(IGymService gymService, LinkedAlarmRouter router) : BaseApiController
 {
     private readonly IGymService _gymService = gymService;
+    private readonly LinkedAlarmRouter _router = router;
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var gyms = await this._gymService.GetByUserAsync(this.UserId, this.ProfileNo);
+        var gyms = await this._router.ListAsync(this._gymService, this.UserId, this.ProfileNo);
         return this.Ok(gyms);
     }
 
     [HttpGet("{uid:int}")]
     public async Task<IActionResult> GetByUid(int uid)
     {
-        var gym = await this._gymService.GetByUidAsync(this.UserId, uid);
+        var gym = (await this._router.FindAsync(this._gymService, this.UserId, uid))?.Model;
         if (gym == null)
         {
             return this.NotFound();
@@ -39,7 +41,9 @@ public class GymController(IGymService gymService) : BaseApiController
         // Deliberately not stamped from the JWT claim: writes no longer carry profile_no, so
         // PoracleNG files the alarm under the live current_profile_no. Echoing a possibly-stale
         // claim back would assert a profile the row was never written to. See #411.
-        var result = await this._gymService.CreateAsync(this.UserId, gym);
+        var target = await this._router.CreateTargetAsync(this.UserId, model.Destination);
+        var result = await this._gymService.CreateAsync(target, gym);
+        this._router.StampCreated(result, target);
 
         // PoracleNG assigns no uid when the submission duplicates an alarm the user already has, so
         // nothing was created. Answering 201 with a Location of /0 advertised a resource that 404s.
@@ -57,10 +61,23 @@ public class GymController(IGymService gymService) : BaseApiController
     [HttpPut("{uid:int}")]
     public async Task<IActionResult> Update(int uid, [FromBody] GymUpdate model)
     {
-        var existing = await this._gymService.GetByUidAsync(this.UserId, uid);
-        if (existing == null)
+        var found = await this._router.FindAsync(this._gymService, this.UserId, uid);
+        if (found is null)
         {
             return this.NotFound();
+        }
+
+        var (existing, ownerId) = found.Value;
+
+        if (await this._router.MoveTargetAsync(this.UserId, model.Destination, ownerId) is { } moveTo)
+        {
+            if (this.RefuseMoveWhileImpersonating() is { } refused)
+            {
+                return refused;
+            }
+
+            model.ApplyUpdate(existing);
+            return this.MovedResponse(await this._router.MoveAsync(this._gymService, "gym", this.UserId, existing, ownerId, moveTo));
         }
 
         // Nothing to write means nothing to send: see LeavesAlarmUnchanged.
@@ -73,27 +90,30 @@ public class GymController(IGymService gymService) : BaseApiController
             return this.Ok(existing);
         }
 
-        var result = await this._gymService.UpdateAsync(this.UserId, existing);
+        var result = await this._gymService.UpdateAsync(ownerId, existing);
+        this._router.Stamp(result, ownerId);
         return this.Ok(result);
     }
 
     [HttpDelete("{uid:int}")]
     public async Task<IActionResult> Delete(int uid)
     {
-        var existing = await this._gymService.GetByUidAsync(this.UserId, uid);
-        if (existing == null)
+        var found = await this._router.FindAsync(this._gymService, this.UserId, uid);
+        if (found is null)
         {
             return this.NotFound();
         }
 
-        await this._gymService.DeleteAsync(this.UserId, uid);
+        var ownerId = found.Value.OwnerId;
+
+        await this._gymService.DeleteAsync(ownerId, uid);
         return this.NoContent();
     }
 
     [HttpDelete]
     public async Task<IActionResult> DeleteAll()
     {
-        var count = await this._gymService.DeleteAllByUserAsync(this.UserId, this.ProfileNo);
+        var count = await this._router.DeleteAllAsync(this._gymService, this.UserId, this.ProfileNo);
         return this.Ok(new
         {
             deleted = count
@@ -103,7 +123,7 @@ public class GymController(IGymService gymService) : BaseApiController
     [HttpPut("distance/bulk")]
     public async Task<IActionResult> UpdateBulkDistance([FromBody] BulkDistanceRequest request)
     {
-        var result = await this._gymService.UpdateDistanceByUidsAsync(request.Uids, this.UserId, request.Distance);
+        var result = await this._router.UpdateDistanceByUidsAsync(this._gymService, this.UserId, this.ProfileNo, request.Uids, request.Distance);
         return this.DistanceUpdated(result);
     }
 
@@ -116,7 +136,7 @@ public class GymController(IGymService gymService) : BaseApiController
             return invalid;
         }
 
-        var result = await this._gymService.UpdateDistanceByUserAsync(this.UserId, this.ProfileNo, distance);
+        var result = await this._router.UpdateDistanceAllAsync(this._gymService, this.UserId, this.ProfileNo, distance);
         return this.DistanceUpdated(result);
     }
 }

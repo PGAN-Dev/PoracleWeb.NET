@@ -8,6 +8,10 @@ This line is unofficial and unsupported by PoracleWeb.NET releases. Report probl
 
 ## [Unreleased]
 
+### Changed
+
+- **Rebased onto PoracleWeb.NET 3.2.0.** It adds linked accounts: someone who uses both Discord and Telegram can link the two, see one alarm list, choose which app gets each alarm and move an alarm between them. A move keeps the alarm's "Shiny for me" and "Background for me" settings. Sign-in no longer needs Discord, and the login page hides methods a site has switched off. The PoracleNG this line needs is unchanged. See [CHANGELOG.md](CHANGELOG.md) for details.
+
 ## [3.1.0-shiny.1] - 2026-10-23
 
 Based on PoracleWeb.NET 3.1.0. Needs the same PoracleNG as 3.0.0-shiny.1: `feat/personal-shiny` ([jfberry/PoracleNG#255](https://github.com/jfberry/PoracleNG/pull/255)) rebased on 5.4.0, tested against the `ghcr.io/jfberry/poracleng:feat-personal-shiny` image built on 22 October 2026 from `3104d18d` (`sha256:ae21dba6d697b820399a143510cb801a6ab42f1251143cc42101d0299d187d5d`). Earlier `feat/personal-shiny` builds, and PoracleNG `main`, are not supported.

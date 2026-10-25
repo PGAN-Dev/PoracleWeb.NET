@@ -11,6 +11,7 @@ import { provideTranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
 
 import { App } from './app';
+import { AuthProviders } from './core/models';
 import { AlertLanguageService } from './core/services/alert-language.service';
 import { AuthService } from './core/services/auth.service';
 import { DashboardService } from './core/services/dashboard.service';
@@ -40,11 +41,15 @@ describe('App nav filtering (#236)', () => {
   let settingsSignal: WritableSignal<Record<string, string>>;
   let isAdminSignal: WritableSignal<boolean>;
   let delegateSignal: WritableSignal<boolean>;
+  let impersonatingSignal: WritableSignal<boolean>;
+  let userSignal: WritableSignal<{ type: string } | null>;
 
   const setup = (siteSettings: Record<string, string>, isAdmin: boolean, delegate = false) => {
     settingsSignal = signal(siteSettings);
     isAdminSignal = signal(isAdmin);
     delegateSignal = signal(delegate);
+    impersonatingSignal = signal(false);
+    userSignal = signal<{ type: string } | null>(null);
 
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
@@ -67,10 +72,12 @@ describe('App nav filtering (#236)', () => {
           useValue: {
             hasManagedDestinations: () => delegateSignal(),
             isAdmin: () => isAdminSignal(),
+            isImpersonating: impersonatingSignal,
             loadCurrentUser: jest.fn(),
             logout: jest.fn(),
             stopImpersonating: jest.fn(),
             toggleAlerts: () => of(null),
+            user: userSignal,
           },
         },
         {
@@ -161,6 +168,72 @@ describe('App nav filtering (#236)', () => {
   it('treats setting value "false" as enabled', () => {
     const app = setup({ disable_areas: 'false' }, false);
     expect(settingsRoutes(app)).toContain('/areas');
+  });
+
+  describe('Linked accounts user-menu item', () => {
+    const shown = (app: App): boolean => (app as unknown as { showLinkedAccountsItem: () => boolean }).showLinkedAccountsItem();
+    const providers = (discord: boolean, telegram: boolean): AuthProviders => ({
+      discord: { configured: discord, enabledByAdmin: true },
+      telegram: { botUsername: telegram ? 'old_town_bot' : '', configured: telegram, enabledByAdmin: true },
+    });
+    const withProviders = (app: App, value: AuthProviders | null, type = 'discord:user'): App => {
+      (app as unknown as { providers: WritableSignal<AuthProviders | null> }).providers.set(value);
+      userSignal.set({ type });
+      return app;
+    };
+
+    it('shows when linking is on, nobody is being impersonated and the other platform can sign in', () => {
+      expect(shown(withProviders(setup({}, false), providers(false, true), 'discord:user'))).toBe(true);
+      expect(shown(withProviders(setup({}, false), providers(true, false), 'telegram:user'))).toBe(true);
+    });
+
+    it('stays hidden when the other platform is not configured, whatever the own one is', () => {
+      expect(shown(withProviders(setup({}, false), providers(true, false), 'discord:user'))).toBe(false);
+      expect(shown(withProviders(setup({}, false), providers(false, true), 'telegram:user'))).toBe(false);
+    });
+
+    it('stays hidden for a Telegram widget without a bot name, as the page offers no widget then either', () => {
+      const noBot: AuthProviders = { ...providers(false, true), telegram: { botUsername: '', configured: true, enabledByAdmin: true } };
+      expect(shown(withProviders(setup({}, false), noBot, 'discord:user'))).toBe(false);
+    });
+
+    it('stays hidden until the providers have been read, and for a session that is neither platform', () => {
+      expect(shown(withProviders(setup({}, false), null, 'discord:user'))).toBe(false);
+      expect(shown(withProviders(setup({}, false), providers(true, true), 'oidc:user'))).toBe(false);
+    });
+
+    it('stays for someone already linked, who still needs the page to unlink even if the other sign-in was switched off', () => {
+      const app = withProviders(setup({}, false), providers(false, false), 'discord:user');
+      (app as unknown as { linkedAccounts: { statusSignal: WritableSignal<unknown> } }).linkedAccounts.statusSignal.set({ linked: true });
+      expect(shown(app)).toBe(true);
+    });
+
+    it('disappears when disable_account_linking is True', () => {
+      expect(shown(withProviders(setup({ disable_account_linking: 'True' }, false), providers(true, true)))).toBe(false);
+    });
+
+    it('disappears while impersonating', () => {
+      const app = withProviders(setup({}, false), providers(true, true));
+      impersonatingSignal.set(true);
+      expect(shown(app)).toBe(false);
+    });
+
+    it('has a sidebar entry under Settings exactly when the menu item shows', () => {
+      const offered = withProviders(setup({}, false), providers(false, true), 'discord:user');
+      expect(settingsRoutes(offered)).toContain('/linked-accounts');
+
+      const notOffered = withProviders(setup({}, false), providers(true, false), 'discord:user');
+      expect(settingsRoutes(notOffered)).not.toContain('/linked-accounts');
+    });
+
+    it('drops the sidebar entry with linking off, and while impersonating', () => {
+      expect(settingsRoutes(withProviders(setup({ disable_account_linking: 'True' }, false), providers(true, true)))).not.toContain(
+        '/linked-accounts',
+      );
+      const app = withProviders(setup({}, false), providers(true, true));
+      impersonatingSignal.set(true);
+      expect(settingsRoutes(app)).not.toContain('/linked-accounts');
+    });
   });
 
   it('shows the Destinations group only to a delegate with grants', () => {

@@ -6,6 +6,7 @@ using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Core.Services;
+using Pgan.PoracleWebNet.Tests.Helpers;
 
 namespace Pgan.PoracleWebNet.Tests.Services;
 
@@ -38,6 +39,8 @@ public class UserGeofenceServiceTests
             this._humanProxy.Object,
             this._humanService.Object,
             this._userAreaWriter.Object,
+            PairTestSupport.Unlinked().Object,
+            PairTestSupport.UnlinkedWriter(),
             this._discordNotificationService.Object,
             this._featureGate.Object,
             this._configuration,

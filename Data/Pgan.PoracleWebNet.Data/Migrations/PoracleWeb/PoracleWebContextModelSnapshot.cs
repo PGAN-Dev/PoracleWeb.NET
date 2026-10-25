@@ -19,6 +19,54 @@ namespace Pgan.PoracleWebNet.Data.Migrations.PoracleWeb
                 .HasAnnotation("ProductVersion", "10.0.8")
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
+            modelBuilder.Entity("Pgan.PoracleWebNet.Data.Entities.AccountLinkEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("DefaultDestination")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("varchar(16)")
+                        .HasColumnName("default_destination");
+
+                    b.Property<string>("DiscordId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("discord_id");
+
+                    b.Property<DateTime?>("DiscordVerifiedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("discord_verified_at");
+
+                    b.Property<string>("TelegramId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("telegram_id");
+
+                    b.Property<DateTime?>("TelegramVerifiedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("telegram_verified_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DiscordId")
+                        .IsUnique();
+
+                    b.HasIndex("TelegramId")
+                        .IsUnique();
+
+                    b.ToTable("account_links");
+                });
+
             modelBuilder.Entity("Pgan.PoracleWebNet.Data.Entities.OidcSessionEntity", b =>
                 {
                     b.Property<int>("Id")

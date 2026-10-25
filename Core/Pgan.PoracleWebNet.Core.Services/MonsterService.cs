@@ -47,6 +47,8 @@ public class MonsterService(
         var body = SerializeToElement(model);
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
 
+        model.ExistingUid = result.ExistingUid;
+
         if (result.NewUids.Count > 0)
         {
             model.Uid = (int)result.NewUids[0];

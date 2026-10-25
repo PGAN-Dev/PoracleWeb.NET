@@ -56,7 +56,12 @@ internal static class PoracleJsonHelper
 
         if (root.ValueKind == JsonValueKind.Object)
         {
-            return StripAlarmMetadata(root);
+            var body = StripAlarmMetadata(root);
+
+            // A move attaches the stored properties its typed model has no field for.
+            return value is not null && CarriedFields.TryGet(value, out var carried)
+                ? PreserveUnmodelled(carried, body)
+                : body;
         }
 
         return root.Clone();
@@ -71,6 +76,9 @@ internal static class PoracleJsonHelper
     /// </remarks>
     private static bool ShouldStrip(JsonProperty prop) =>
         prop.NameEquals("profile_no") ||
+        // PoracleWeb.NET's own annotations for a linked pair; no tracking table has either.
+        prop.NameEquals("destination") ||
+        prop.NameEquals("paused_destination") ||
         prop.NameEquals("description") ||
         (prop.NameEquals("uid") && prop.Value.ValueKind == JsonValueKind.Number && prop.Value.GetInt32() == 0);
 

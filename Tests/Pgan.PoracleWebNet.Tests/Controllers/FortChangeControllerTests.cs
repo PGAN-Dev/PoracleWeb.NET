@@ -13,7 +13,7 @@ public class FortChangeControllerTests : ControllerTestBase
 
     public FortChangeControllerTests()
     {
-        this._sut = new FortChangeController(this._service.Object);
+        this._sut = new FortChangeController(this._service.Object, UnlinkedRouter());
         SetupUser(this._sut);
     }
 

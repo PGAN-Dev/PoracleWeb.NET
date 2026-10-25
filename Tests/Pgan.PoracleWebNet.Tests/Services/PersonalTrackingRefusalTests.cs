@@ -180,7 +180,7 @@ public class PersonalTrackingRefusalTests
 
     private ProfileOverviewService Overview(bool supported) =>
         new(this._proxy.Object, this._humanProxy.Object, this._featureGate.Object,
-            Mock.Of<IPoracleIncidentProxy>(), Schema(supported));
+            Mock.Of<IPoracleIncidentProxy>(), Pgan.PoracleWebNet.Tests.Helpers.LinkedTestKit.Unlinked(), Schema(supported));
 
     private static IPoracleV2SchemaService Schema(bool personalTracking) =>
         PoracleTrackingProxyTests.V2Schema(new PoracleV2Capabilities { PersonalTracking = personalTracking });

@@ -12,6 +12,7 @@ using Pgan.PoracleWebNet.Api.Controllers;
 using Pgan.PoracleWebNet.Api.Services;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
+using Pgan.PoracleWebNet.Tests.Helpers;
 
 namespace Pgan.PoracleWebNet.Tests.Controllers;
 
@@ -106,6 +107,7 @@ public class DelegationParityTests : ControllerTestBase
             new Mock<IProfileService>().Object,
             this._poracleApi.Object,
             this._humanProxy.Object,
+            PairTestSupport.UnlinkedWriter(),
             this._siteSettings.Object,
             this._delegates.Object,
             this._jwt.Object,
@@ -117,6 +119,9 @@ public class DelegationParityTests : ControllerTestBase
             Options.Create(new OidcSettings()),
             Options.Create(new PoracleSettings()),
             new ConfigurationBuilder().Build(),
+            new Mock<IAccountLinkService>().Object,
+            new Microsoft.AspNetCore.DataProtection.EphemeralDataProtectionProvider(),
+            new Mock<IHttpClientFactory>().Object,
             new Mock<ILogger<AuthController>>().Object);
         SetupUser(sut, userId: Delegate);
         return sut;

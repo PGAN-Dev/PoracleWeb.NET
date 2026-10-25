@@ -13,6 +13,7 @@ public class ProfileOverviewService(
     IPoracleHumanProxy humanProxy,
     IFeatureGate featureGate,
     IPoracleIncidentProxy incidentProxy,
+    ILinkedAccount linked,
     IPoracleV2SchemaService? v2Schema = null) : IProfileOverviewService
 {
     private static readonly string[] AlarmTypes =
@@ -23,6 +24,7 @@ public class ProfileOverviewService(
     private readonly IFeatureGate _featureGate = featureGate;
     private readonly IPoracleIncidentProxy _incidentProxy = incidentProxy;
     private readonly IPoracleV2SchemaService? _v2Schema = v2Schema;
+    private readonly ILinkedAccount _linked = linked;
 
     public async Task<int> DuplicateProfileAsync(string userId, int sourceProfileNo, int newProfileNo)
     {
@@ -290,7 +292,76 @@ public class ProfileOverviewService(
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
         NumberHandling = JsonNumberHandling.AllowReadingFromString,
     };
-    public async Task<JsonElement> GetAllProfilesOverviewAsync(string userId) => await this._trackingProxy.GetAllTrackingAllProfilesAsync(userId);
+    public async Task<JsonElement> GetAllProfilesOverviewAsync(string userId)
+    {
+        var pair = await this._linked.ResolveAsync(userId);
+        if (!pair.IsLinked)
+        {
+            return await this._trackingProxy.GetAllTrackingAllProfilesAsync(userId);
+        }
+
+        // A linked person sees both humans' rules in one snapshot, each row stamped with the side it lives
+        // on. The caller's own snapshot is the base, so any member that is not a list of rules (the profile
+        // list, status) stays theirs.
+        JsonObject? merged = null;
+        foreach (var humanId in pair.ExistingHumanIds)
+        {
+            var snapshot = await this._trackingProxy.GetAllTrackingAllProfilesAsync(humanId);
+            if (JsonNode.Parse(snapshot.GetRawText()) is not JsonObject obj)
+            {
+                continue;
+            }
+
+            var side = pair.SideOf(humanId);
+            foreach (var (key, value) in obj)
+            {
+                // Only the tracking types hold rules. The snapshot's "profile" array is the profile list,
+                // which is not an alarm and numbers its entries per human, so it is left as it came.
+                if (AlarmTypes.Contains(key) && value is JsonArray rows)
+                {
+                    foreach (var row in rows.OfType<JsonObject>())
+                    {
+                        if (side is { } s)
+                        {
+                            row["destination"] = AccountLinkKeys.Wire(s);
+                        }
+                    }
+                }
+            }
+
+            if (merged is null)
+            {
+                merged = obj;
+                continue;
+            }
+
+            foreach (var (key, value) in obj.ToList())
+            {
+                if (!AlarmTypes.Contains(key) || value is not JsonArray rows)
+                {
+                    continue;
+                }
+
+                if (merged[key] is JsonArray existing)
+                {
+                    foreach (var row in rows.ToList())
+                    {
+                        rows.Remove(row);
+                        existing.Add(row);
+                    }
+                }
+                else
+                {
+                    obj.Remove(key);
+                    merged[key] = rows;
+                }
+            }
+        }
+
+        return merged is null
+            ? await this._trackingProxy.GetAllTrackingAllProfilesAsync(userId)
+            : JsonSerializer.SerializeToElement(merged);
+    }
 
     /// <summary>
     /// Throws <see cref="FeatureDisabledException"/> on the first alarm-type bucket that has at

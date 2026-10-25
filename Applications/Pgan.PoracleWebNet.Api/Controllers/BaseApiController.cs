@@ -78,4 +78,55 @@ public abstract class BaseApiController : ControllerBase
 
     /// <summary>Checks that <paramref name="ownerId"/> matches the authenticated user. Returns true when NOT owned (i.e. should return 404).</summary>
     protected bool NotOwnedByCurrentUser(string? ownerId) => !string.Equals(ownerId, this.UserId, StringComparison.Ordinal);
+
+    /// <summary>The refusal both move paths give while another account is being inspected.</summary>
+    internal const string MoveWhileImpersonatingMessage = "Alerts can't be moved while inspecting another account.";
+
+    /// <summary>
+    /// A move writes the other human's alarms, so it is never available while someone else's account is being inspected.
+    /// Null when the caller may move. <c>POST /api/alarm-move</c> and a <c>PUT /{uid}</c> naming the other destination share it.
+    /// </summary>
+    protected IActionResult? RefuseMoveWhileImpersonating() => this.IsImpersonating
+        ? this.StatusCode(StatusCodes.Status403Forbidden, new
+        {
+            error = MoveWhileImpersonatingMessage
+        })
+        : null;
+
+    /// <summary>
+    /// The answer to an update that asked to move its alarm to the other side of a linked pair. It keeps PUT's
+    /// normal shape: the alarm as it now stands on the target, with <c>X-Move-Status</c> saying whether the
+    /// original is gone (<c>moved</c>) or still there (<c>source_remains</c>). A collision is rethrown so the
+    /// global filter answers it as it answers any other edit (409 with <c>existingUid</c>); a refused preflight
+    /// is 409 <c>{ error }</c>, and a create PoracleNG did not explain is 502.
+    /// </summary>
+    protected IActionResult MovedResponse<TModel>(MoveResult<TModel> result) where TModel : class
+    {
+        switch (result.Outcome.Status)
+        {
+            case MoveStatus.Conflict:
+                throw result.Conflict!;
+            // An edit only moves to the side the alarm is not on, so AlreadyThere can't arrive here; were it to, it is
+            // refused rather than answered as a move that never happened.
+            case MoveStatus.Refused:
+            case MoveStatus.AlreadyThere:
+                return this.StatusCode(StatusCodes.Status409Conflict, new
+                {
+                    error = result.Outcome.Reason,
+                    code = result.Outcome.ReasonCode,
+                    app = result.Outcome.ReasonApp,
+                    place = result.Outcome.ReasonPlace,
+                });
+            case MoveStatus.Failed:
+                return this.StatusCode(StatusCodes.Status502BadGateway, new
+                {
+                    error = result.Outcome.Reason,
+                    code = result.Outcome.ReasonCode,
+                    app = result.Outcome.ReasonApp,
+                });
+            default:
+                this.Response.Headers["X-Move-Status"] = result.Outcome.Status == MoveStatus.Moved ? "moved" : "source_remains";
+                return this.Ok(result.Created);
+        }
+    }
 }

@@ -246,3 +246,44 @@
     transform: rotate(360deg);
   }
 }
+
+/* The app a rule is delivered to: a plain glyph and the app's name in the muted text colour, never a brand
+   colour. Its own line under the subject, so it never takes width from the scope chip or crowds the actions. */
+.rule-destination {
+  align-items: center;
+  color: var(--mat-sys-on-surface-variant, rgb(0 0 0 / 64%));
+  display: flex;
+  font-size: 0.8125rem;
+  gap: 4px;
+  line-height: 1.4;
+  margin: 2px 0 0;
+  min-width: 0;
+  width: fit-content;
+}
+
+.rule-destination-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.rule-destination-pause {
+  flex: none;
+  font-size: 16px;
+  height: 16px;
+  width: 16px;
+}
+
+.rule-destination-paused-text {
+  white-space: nowrap;
+}
+
+.visually-hidden {
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}

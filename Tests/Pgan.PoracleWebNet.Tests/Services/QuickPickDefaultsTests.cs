@@ -39,6 +39,9 @@ public class QuickPickDefaultsTests
             new Mock<IMaxBattleService>().Object,
             new Mock<IMasterDataService>().Object,
             FeatureGateAlwaysOn(),
+            Pgan.PoracleWebNet.Tests.Helpers.LinkedTestKit.Unlinked(),
+            Pgan.PoracleWebNet.Tests.Helpers.LinkedTestKit.Router(Pgan.PoracleWebNet.Tests.Helpers.LinkedTestKit.Unlinked()),
+            new Mock<IHumanService>().Object,
             new Mock<ILogger<QuickPickService>>().Object);
 
     /// <summary>A gate with every feature on, so these tests exercise the pick logic itself.</summary>

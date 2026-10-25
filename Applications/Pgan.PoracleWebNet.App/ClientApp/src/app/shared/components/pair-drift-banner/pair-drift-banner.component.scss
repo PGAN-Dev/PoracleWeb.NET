@@ -1,0 +1,44 @@
+:host {
+  display: block;
+}
+
+// One line in the page's gutter (24px, 16px under 600px). It sits in the flow under the toolbar, so it never
+// covers content, and it is never more than a line and a button tall.
+.drift-banner {
+  align-items: center;
+  background: var(--mat-sys-surface-container-high, #f0f0f0);
+  border-bottom: 1px solid var(--mat-sys-outline-variant, rgb(0 0 0 / 12%));
+  color: var(--mat-sys-on-surface, inherit);
+  display: flex;
+  font-size: 14px;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 12px 0 24px;
+}
+
+.drift-icon {
+  flex: none;
+}
+
+.drift-text {
+  flex: 1 1 auto;
+  margin: 0;
+  min-width: 0;
+}
+
+.drift-review,
+.drift-dismiss {
+  flex: none;
+}
+
+@media (max-width: 599px) {
+  .drift-banner {
+    font-size: 13px;
+    gap: 4px;
+    padding: 0 4px 0 16px;
+  }
+
+  .drift-icon {
+    display: none;
+  }
+}

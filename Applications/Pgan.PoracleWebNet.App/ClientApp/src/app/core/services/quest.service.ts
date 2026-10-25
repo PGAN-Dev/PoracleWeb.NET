@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
+import { AlarmMoveService, MoveEdit } from './alarm-move.service';
 import { ConfigService } from './config.service';
 import { DistanceUpdateResult } from '../../shared/utils/distance-update';
 import { Quest, QuestCreate, QuestUpdate } from '../models';
@@ -11,6 +12,7 @@ export class QuestService {
   private readonly config = inject(ConfigService);
 
   private readonly http = inject(HttpClient);
+  private readonly moves = inject(AlarmMoveService);
 
   create(quest: QuestCreate): Observable<Quest> {
     return this.http.post<Quest>(`${this.config.apiHost}/api/quests`, quest);
@@ -28,8 +30,8 @@ export class QuestService {
     return this.http.get<Quest[]>(`${this.config.apiHost}/api/quests`);
   }
 
-  update(uid: number, quest: QuestUpdate): Observable<void> {
-    return this.http.put<void>(`${this.config.apiHost}/api/quests/${uid}`, quest);
+  update(uid: number, quest: QuestUpdate): Observable<MoveEdit | void> {
+    return this.moves.put('quests', uid, quest, () => this.http.put<void>(`${this.config.apiHost}/api/quests/${uid}`, quest));
   }
 
   updateBulkDistance(uids: number[], distance: number): Observable<DistanceUpdateResult> {

@@ -47,6 +47,8 @@ public partial class SettingsController(
         // Where trainers link a game account for personal shiny alerts (the map that pushes accounts into
         // PoracleNG). Read by the Game accounts dialog and the Pokemon dialogs, so it is for everyone.
         "game_accounts_link_url",
+        // Where someone waiting to register on Telegram is sent to join the registration group.
+        "telegram_registration_url",
         // Poracle's own locale and its alert-language allow-list, synthesized rather than stored --
         // see GetPoracleProjectionsAsync.
         PoracleLocaleKey, PoracleAlertLanguagesKey,
@@ -104,6 +106,7 @@ public partial class SettingsController(
     /// the <c>uicons_*</c> rows that every image on the site is built from.
     /// </remarks>
     internal const string IconReposKey = "icon_repos";
+    internal const string TelegramRegistrationUrlKey = "telegram_registration_url";
 
     /// <summary>Generous. The list is a menu, not a catalogue.</summary>
     private const int MaxIconRepos = 25;
@@ -313,6 +316,15 @@ public partial class SettingsController(
             });
         }
 
+        if (string.Equals(key, TelegramRegistrationUrlKey, StringComparison.OrdinalIgnoreCase)
+            && !TryValidateTelegramRegistrationUrl(request.Value, out var telegramUrlError))
+        {
+            return this.BadRequest(new
+            {
+                error = telegramUrlError
+            });
+        }
+
         // Prevent lockout: at least one login method must remain enabled.
         // Uses GetValueAsync so absent/null = enabled (safe default). Only blocks when
         // both are explicitly "False".
@@ -509,6 +521,30 @@ public partial class SettingsController(
     /// <c>&lt;img src&gt;</c> on the site is built from. Angular's sanitizer would drop a
     /// <c>javascript:</c> base rather than run it, so this is the second lock, not the only one.
     /// </remarks>
+    /// <summary>
+    /// Refuses only the impossible: a non-empty value that is not an absolute https link on Telegram's own
+    /// hosts. Any path or query is allowed, since invite links come in several shapes. Empty clears it.
+    /// </summary>
+    internal static bool TryValidateTelegramRegistrationUrl(string? value, out string error)
+    {
+        error = string.Empty;
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return true;
+        }
+
+        if (Uri.TryCreate(value.Trim(), UriKind.Absolute, out var uri)
+            && uri.Scheme == Uri.UriSchemeHttps
+            && (string.Equals(uri.Host, "t.me", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(uri.Host, "telegram.me", StringComparison.OrdinalIgnoreCase)))
+        {
+            return true;
+        }
+
+        error = $"{TelegramRegistrationUrlKey} must be an https link on t.me or telegram.me.";
+        return false;
+    }
+
     internal static bool TryValidateIconRepos(string? value, out string error)
     {
         error = string.Empty;

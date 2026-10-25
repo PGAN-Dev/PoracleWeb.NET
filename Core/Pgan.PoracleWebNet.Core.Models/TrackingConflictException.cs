@@ -47,4 +47,13 @@ public sealed class TrackingConflictException : Exception
     {
         get; init;
     }
+
+    /// <summary>
+    /// The collision is an exact repeat, not a takeover: the stored rule <see cref="ExistingUid"/> already is what
+    /// was asked for. A move treats it as done; an add still refuses it.
+    /// </summary>
+    public bool IsIdentical
+    {
+        get; init;
+    }
 }

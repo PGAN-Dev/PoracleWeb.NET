@@ -17,7 +17,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { forkJoin } from 'rxjs';
 
 import { syncUnscanned } from './include-unscanned';
-import { MonsterCreate } from '../../core/models';
+import { MonsterCreate, LinkSide } from '../../core/models';
 import { AlertDefaultsService } from '../../core/services/alert-defaults.service';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
@@ -25,6 +25,7 @@ import { MasterDataService } from '../../core/services/masterdata.service';
 import { MonsterService } from '../../core/services/monster.service';
 import { PoracleConfigService } from '../../core/services/poracle-config.service';
 import { AddRefusalComponent } from '../../shared/components/add-refusal/add-refusal.component';
+import { DeliverToFieldComponent } from '../../shared/components/deliver-to/deliver-to-field.component';
 import { PersonalFilterPanelComponent } from '../../shared/components/personal-filter-panel/personal-filter-panel.component';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
@@ -33,11 +34,13 @@ import { AddDialogData, AddRefusal, editExistingResult, ExistingRule, finishAdd,
 import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 import { compose } from '../../shared/utils/clean-flags';
 import { ANY_COSTUME, costumeHintKey } from '../../shared/utils/costumes';
+import { injectDeliverTo } from '../../shared/utils/deliver-to';
 import { minTimeLabel, minTimeOptions } from '../../shared/utils/min-time';
 import { compose as composePersonal } from '../../shared/utils/personal-flags';
 
 @Component({
   imports: [
+    DeliverToFieldComponent,
     AddRefusalComponent,
     ReactiveFormsModule,
     MatDialogModule,
@@ -85,7 +88,9 @@ export class PokemonAddDialogComponent implements OnInit {
 
   /** Tracks whether the user has manually changed the cap since the default was applied. */
   readonly capTouched = signal(false);
+  readonly deliver = injectDeliverTo();
   readonly dialogRef = inject(MatDialogRef<PokemonAddDialogComponent>);
+
   /** Whether to show the edit-in-place toggle at all -- see MonsterService.editSupported. */
   readonly editSupported = this.monsterService.editSupported;
 
@@ -124,6 +129,7 @@ export class PokemonAddDialogComponent implements OnInit {
 
   notifForm = this.fb.group({
     clean: [false],
+    destination: [null as LinkSide | null],
     editInPlace: [false],
     // Empty means the profile pin, which is what "set a distance" has always meant. A label points the
     // radius at a saved place instead.
@@ -246,6 +252,7 @@ export class PokemonAddDialogComponent implements OnInit {
     const creates = this.selectedPokemonIds().flatMap(pokemonId =>
       formIds.map(form => {
         const monster: MonsterCreate = {
+          ...this.deliver.createFields(this.notifForm.controls.destination.value),
           overrideAreas: scope.overrideAreas,
           overrideLocationLabel: scope.overrideLocationLabel,
           atk: filters.atk ?? 0,

@@ -19,6 +19,7 @@ public class ProfileController(
     IJwtService jwtService,
     IUserRoleResolver roleResolver,
     IUserAreaWriter areaWriter,
+    IPairedHumanWriter pairWriter,
     ILogger<ProfileController> logger) : BaseApiController
 {
     private readonly IProfileService _profileService = profileService;
@@ -27,6 +28,7 @@ public class ProfileController(
     private readonly IJwtService _jwtService = jwtService;
     private readonly IUserRoleResolver _roleResolver = roleResolver;
     private readonly IUserAreaWriter _areaWriter = areaWriter;
+    private readonly IPairedHumanWriter _pairWriter = pairWriter;
     private readonly ILogger<ProfileController> _logger = logger;
 
     [HttpGet]
@@ -83,6 +85,13 @@ public class ProfileController(
             this.UserId, requested.Where(name => !string.IsNullOrWhiteSpace(name)).ToList());
 
         return JsonSerializer.Serialize(allowed);
+    }
+
+    /// <summary>An already-filtered area list narrowed again to what <paramref name="humanId"/> may select.</summary>
+    private async Task<string> AreasAllowedForAsync(string humanId, string areaJson)
+    {
+        var names = JsonSerializer.Deserialize<List<string>>(areaJson) ?? [];
+        return names.Count == 0 ? "[]" : JsonSerializer.Serialize(await this._areaWriter.FilterAllowedAsync(humanId, names));
     }
 
     [HttpPost]
@@ -148,18 +157,48 @@ public class ProfileController(
 
         // PoracleNG assigns the lowest free number, not max+1, and reports it; AddProfileAsync throws when
         // it does not. See #407.
-        var createdNo = await this._humanProxy.AddProfileAsync(this.UserId, body);
-
+        //
         // addProfile ignores area, latitude and longitude, so a new profile came up carrying whatever the
         // ACTIVE profile had -- every area subscription the user held, and a location that also drives the
         // active-hours timezone. Duplicate and import already write the geography after creating; create
         // needs the same. Empty unless the request asked for something. See #563. Through PoracleNG's v2
         // ?profile= writes (#993).
-        await NewProfileGeography.WriteOrRollBackAsync(
-            this._humanProxy, this._logger, this.UserId, createdNo, requestedAreas, profile.Latitude, profile.Longitude);
+        //
+        // A linked pair creates it on both humans. Each human's profile is created and given its geography
+        // (or rolled back) on its own, then the numbers are compared. The write is trusted, so the other
+        // human's areas pass the same allowed-name rule for that human before its profile is made: the
+        // caller's own drawn fences and selectable areas are not necessarily the other side's.
+        var written = await this._pairWriter.WriteAsync(this.UserId, async id =>
+        {
+            var areas = id == this.UserId ? requestedAreas : await this.AreasAllowedForAsync(id, requestedAreas);
+            var no = await this._humanProxy.AddProfileAsync(id, body);
+            await NewProfileGeography.WriteOrRollBackAsync(
+                this._humanProxy, this._logger, id, no, areas, profile.Latitude, profile.Longitude);
+            return new NewProfileOn(id, no);
+        });
+        var (createdNo, warning) = await PairedNewProfile.ReconcileAsync(
+            this._pairWriter, this._humanProxy, this._logger, this.UserId, written);
 
         var result = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, createdNo);
-        return this.CreatedAtAction(nameof(GetAll), result);
+        return this.CreatedAtAction(nameof(GetAll), this.Paired(result, warning));
+    }
+
+    /// <summary>
+    /// Profile numbers are per human, so the other human's profile at this number is the same profile only if it
+    /// has the caller's profile's name (read before the edit). A drifted pair is left alone, and said so.
+    /// </summary>
+    private async Task EnsureSameProfileAsync(string humanId, int profileNo, string? expectedName)
+    {
+        if (string.Equals(humanId, this.UserId, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        var theirs = await this._profileService.GetByUserAndProfileNoAsync(humanId, profileNo);
+        if (theirs is null || !string.Equals(theirs.Name?.Trim(), expectedName?.Trim(), StringComparison.OrdinalIgnoreCase))
+        {
+            throw new PairWriteRefusedException(PairedNewProfile.OutOfStepReason, PairWarningCodes.OutOfStep);
+        }
     }
 
     [HttpPut("{profileNo:int}")]
@@ -203,10 +242,14 @@ public class ProfileController(
             name = newName ?? existing.Name,
             active_hours = profile.ActiveHours
         });
-        await this._humanProxy.UpdateProfileAsync(this.UserId, body);
+        var written = await this._pairWriter.WriteAsync(this.UserId, async id =>
+        {
+            await this.EnsureSameProfileAsync(id, profileNo, existing.Name);
+            await this._humanProxy.UpdateProfileAsync(id, body);
+        });
 
         var result = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, profileNo);
-        return this.Ok(result);
+        return this.Ok(this.Paired(result, written.Warning));
     }
 
     [HttpPut("switch/{profileNo:int}")]
@@ -221,7 +264,8 @@ public class ProfileController(
         // PoracleNG handles the area save/load dual-write atomically:
         // saves current humans.area → old profiles.area, loads new profiles.area → humans.area,
         // and updates humans.current_profile_no + lat/lon in a single operation.
-        await this._humanProxy.SwitchProfileAsync(this.UserId, profileNo);
+        // A linked pair switches both humans to the same number.
+        var written = await this._pairWriter.WriteAsync(this.UserId, id => this._humanProxy.SwitchProfileAsync(id, profileNo));
 
         // Issue a new JWT with the updated profileNo so all subsequent API calls use it
         // Resolved fresh, not copied from the old token: a profile switch was the way a de-admined
@@ -237,11 +281,11 @@ public class ProfileController(
             : null;
         var newToken = this._jwtService.GenerateTokenWithReplacedProfile(this.User, profileNo, resolvedAdmin);
 
-        return this.Ok(new
+        return this.Ok(this.Paired(new
         {
             profile,
             token = newToken
-        });
+        }, written.Warning));
     }
 
     [HttpPost("duplicate")]
@@ -271,31 +315,40 @@ public class ProfileController(
         });
         // See #407: PoracleNG picks the number and reports it. Copying to a predicted max+1 wrote the
         // alarms to a profile_no with no profile row.
-        var newProfileNo = await this._humanProxy.AddProfileAsync(this.UserId, body);
-
+        //
         // PoracleNG's addProfile ignores area, latitude and longitude while honouring active_hours
         // from the same payload, so a duplicate silently inherited the ACTIVE profile's geography
         // instead of the source's: the right alarms over the wrong map, and a location that also
         // feeds the active-hours timezone. See #466. Through PoracleNG's v2 ?profile= writes (#993).
         // Geography and the alarm copy share one rollback: a failure of either removes the new profile.
-        try
+        //
+        // A linked pair duplicates on both humans, each copying its own alarms.
+        var written = await this._pairWriter.WriteAsync(this.UserId, async id =>
         {
-            await NewProfileGeography.WriteAsync(
-                this._humanProxy, this.UserId, newProfileNo, sourceProfile.Area ?? "[]",
-                sourceProfile.Latitude, sourceProfile.Longitude);
+            var no = await this._humanProxy.AddProfileAsync(id, body);
+            try
+            {
+                await NewProfileGeography.WriteAsync(
+                    this._humanProxy, id, no, sourceProfile.Area ?? "[]",
+                    sourceProfile.Latitude, sourceProfile.Longitude);
 
-            // Copy all alarms from source to new profile
-            await this._profileService.CopyAsync(this.UserId, request.FromProfileNo, newProfileNo);
-        }
-        catch
-        {
-            // Roll back the empty profile so the user doesn't end up with a shell
-            await NewProfileGeography.RollBackAsync(this._humanProxy, this._logger, this.UserId, newProfileNo);
-            throw;
-        }
+                // Copy all alarms from source to new profile
+                await this._profileService.CopyAsync(id, request.FromProfileNo, no);
+            }
+            catch
+            {
+                // Roll back the empty profile so the user doesn't end up with a shell
+                await NewProfileGeography.RollBackAsync(this._humanProxy, this._logger, id, no);
+                throw;
+            }
+
+            return new NewProfileOn(id, no);
+        });
+        var (newProfileNo, warning) = await PairedNewProfile.ReconcileAsync(
+            this._pairWriter, this._humanProxy, this._logger, this.UserId, written);
 
         var result = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, newProfileNo);
-        return this.CreatedAtAction(nameof(GetAll), result);
+        return this.CreatedAtAction(nameof(GetAll), this.Paired(result, warning));
     }
 
     [HttpDelete("{profileNo:int}")]
@@ -309,9 +362,13 @@ public class ProfileController(
 
         // PoracleNG cascade-deletes alarms scoped to (id, profile_no) and
         // reassigns humans.current_profile_no if the active profile is deleted.
-        await this._humanProxy.DeleteProfileAsync(this.UserId, profileNo);
+        var written = await this._pairWriter.WriteAsync(this.UserId, async id =>
+        {
+            await this.EnsureSameProfileAsync(id, profileNo, existing.Name);
+            await this._humanProxy.DeleteProfileAsync(id, profileNo);
+        });
 
-        return this.NoContent();
+        return this.NoContentPaired(written.Warning);
     }
 }
 
