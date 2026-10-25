@@ -4,7 +4,7 @@ template: home.html
 
 # PoracleWeb.NET
 
-A web application for managing Pokemon GO notification alarms through the [PoracleNG](https://github.com/jfberry/PoracleNG) bot. Users authenticate via Discord OAuth2 or Telegram and configure personalized alert filters (Pokemon, Raids and Eggs, Max Battles, Quests, Invasions, Pokéstop Events, Lures, Nests, Gyms, Fort Changes) through a browser-based UI.
+A web application for managing Pokemon GO notification alarms through the [PoracleNG](https://github.com/jfberry/PoracleNG) bot. Users sign in with Discord, Telegram or an OIDC provider and configure personalized alert filters (Pokemon, Raids and Eggs, Max Battles, Quests, Invasions, Pokéstop Events, Lures, Nests, Gyms, Fort Changes) through a browser-based UI.
 
 !!! warning "PoracleNG is required"
     All alarm management, profile handling, and user operations are proxied through PoracleNG's REST API. [PoracleJS](https://github.com/KartulUdus/PoracleJS) is not a tested or supported configuration — some operations that rely on PoracleNG-specific endpoints will not work.

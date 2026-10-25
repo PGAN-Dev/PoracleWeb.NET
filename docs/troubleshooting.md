@@ -71,6 +71,26 @@ Older releases required Discord and stopped with `Configuration 'Discord:ClientI
 
 ---
 
+## Login says "Discord sign-in isn't set up on this site"
+
+**Problem**: Signing in lands on the login page with that message (the error code in the address is `discord_not_configured`).
+
+**Cause**: The request went to the Discord sign-in route, but the server has no `DISCORD_CLIENT_ID` and `DISCORD_CLIENT_SECRET`. Usually it's a stale bookmark or an old tab from before the site dropped Discord. The login page itself draws no Discord button on such a site.
+
+**Fix**: Sign in with one of the buttons the page does show. If you run the site and want Discord back, set both values and restart. See [Sign-in methods](configuration/reference.md#sign-in-methods).
+
+---
+
+## Login says the account has been blocked
+
+**Problem**: Right after signing in you land on the login page with a block explaining that an administrator blocked the account (the error code is `account_disabled`).
+
+**Cause**: Admin > Users has **Block** on for that account. The sign-in itself worked, but `/api/auth/me` answers 401 with that code for a blocked account, and the login page shows the explanation and the site's `support_url` link, if one is set.
+
+**Fix**: An admin lifts it from the account's row menu on Admin > Users. Admins can't block or delete their own account, so a blocked admin needs another admin.
+
+---
+
 ## PoracleNG unreachable (alarm operations fail)
 
 **Problem**: Every alarm page shows "The server is temporarily unavailable" instead of its list, and adds, edits and deletes fail the same way. The API answers 503 with `{"error": "PoracleNG could not be reached. Try again shortly."}`. Logs show `HttpRequestException` or `TaskCanceledException` when calling the PoracleNG API.
