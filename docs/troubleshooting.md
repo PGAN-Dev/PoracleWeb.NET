@@ -58,6 +58,19 @@ Then recreate the container: `docker compose up -d --force-recreate`. For revers
 
 ---
 
+## Container exits on startup: `No sign-in method is configured` or `Discord sign-in is half configured`
+
+**Problem**: The app stops at startup with one of these `InvalidOperationException` messages.
+
+**Solution**: PoracleWeb.NET needs at least one sign-in method and runs with any one of them; Discord is optional.
+
+- *Half configured*: you set `DISCORD_CLIENT_ID` or `DISCORD_CLIENT_SECRET` but not both. Set the other one to offer Discord sign-in, or remove the one you set to run without Discord.
+- *No sign-in method*: set up Discord (both values), Telegram (`TELEGRAM_BOT_TOKEN` and `TELEGRAM_BOT_USERNAME`, and don't set `TELEGRAM_ENABLED=false`), or an OIDC provider. See [Sign-in methods](configuration/reference.md#sign-in-methods).
+
+Older releases required Discord and stopped with `Configuration 'Discord:ClientId' is required`. That requirement is gone.
+
+---
+
 ## PoracleNG unreachable (alarm operations fail)
 
 **Problem**: Every alarm page shows "The server is temporarily unavailable" instead of its list, and adds, edits and deletes fail the same way. The API answers 503 with `{"error": "PoracleNG could not be reached. Try again shortly."}`. Logs show `HttpRequestException` or `TaskCanceledException` when calling the PoracleNG API.

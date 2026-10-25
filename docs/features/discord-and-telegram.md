@@ -13,7 +13,7 @@ setup itself is in [Telegram](../configuration/telegram.md).
 | | Discord | Telegram |
 |---|---|---|
 | Sign in to PoracleWeb.NET | Discord OAuth2 (see [Discord OAuth2](../getting-started/discord-oauth.md)) | Telegram's login widget, on the one domain set with `/setdomain` |
-| Turn sign-in on | `DISCORD_CLIENT_ID` and secret (required to start, even on a Telegram-only site), plus the `enable_discord` site setting | `TELEGRAM_ENABLED`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`, plus the `enable_telegram` site setting |
+| Turn sign-in on | `DISCORD_CLIENT_ID` and secret (optional: leave both unset on a Telegram-only site), plus the `enable_discord` site setting | `TELEGRAM_ENABLED`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`, plus the `enable_telegram` site setting |
 | PoracleNG account type | `discord:user` | `telegram:user` |
 | How a person registers | A registration channel (`!poracle`), or a role listed in `user_role` that grants access without registering | Sending `/poracle` in a registration group the bot is in; optionally `/start` in a DM with `register_on_start` |
 | Bot commands | Prefix `!` by default (`!location`, `!profile`) | Prefix `/` (`/location`, `/profile`) |

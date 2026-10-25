@@ -45,25 +45,63 @@ export class LoginComponent implements OnInit {
 
   /**
    * Whether Discord login is enabled by the admin (site setting `enable_discord`).
-   * When false but configured, the button still renders but the backend will reject
-   * non-admin users after authentication.
+   * When false the backend refuses non-admins after they authenticate, so the button is
+   * hidden (see `discordVisible`); admins still reach it through "show every method".
    */
   protected readonly discordEnabledByAdmin = signal(true);
 
   /** Computed: can the user actually click the Discord button? Configured + admin-enabled. */
   protected readonly discordActive = computed(() => this.discordConfigured() && this.discordEnabledByAdmin());
 
-  /** Computed: should the Discord button be shown at all? Only if configured in .env. */
-  protected readonly discordVisible = computed(() => this.discordConfigured());
-
-  protected readonly error = signal<string | null>(null);
-  protected readonly loading = signal(false);
-
   /** Whether a generic external OIDC provider is configured in the server's .env / appsettings. */
   protected readonly oidcConfigured = signal(false);
 
   /** Whether OIDC login is enabled by the admin (site setting `enable_oidc`). */
   protected readonly oidcEnabledByAdmin = signal(true);
+  /** Set by "show every method" or `/login?all=1`: admins are exempt from the site switches. */
+  protected readonly showAllMethods = signal(false);
+
+  /** Whether Telegram is configured in the server's .env / appsettings. */
+  protected readonly telegramConfigured = signal(false);
+
+  /**
+   * Whether Telegram login is enabled by the admin (site setting `enable_telegram`).
+   * When false the widget is hidden like the Discord button (see `telegramVisible`).
+   */
+  protected readonly telegramEnabledByAdmin = signal(true);
+
+  /**
+   * Shows switched-off methods too. Asked for explicitly, or forced when every configured method is
+   * switched off, since hiding them all would leave an admin nothing to sign in with.
+   */
+  protected readonly revealAll = computed(
+    () =>
+      this.showAllMethods() ||
+      !(
+        (this.discordConfigured() && this.discordEnabledByAdmin()) ||
+        (this.telegramConfigured() && this.telegramEnabledByAdmin()) ||
+        (this.oidcConfigured() && this.oidcEnabledByAdmin())
+      ),
+  );
+
+  /** Computed: should the Discord button be shown? Configured, and either switched on or revealed. */
+  protected readonly discordVisible = computed(() => this.discordConfigured() && (this.discordEnabledByAdmin() || this.revealAll()));
+
+  protected readonly error = signal<string | null>(null);
+
+  /**
+   * True when a configured method is hidden because the site switched it off for non-admins.
+   * Only then is the "show every method" link offered.
+   */
+  protected readonly hasHiddenMethods = computed(
+    () =>
+      !this.revealAll() &&
+      ((this.discordConfigured() && !this.discordEnabledByAdmin()) ||
+        (this.telegramConfigured() && !this.telegramEnabledByAdmin()) ||
+        (this.oidcConfigured() && !this.oidcEnabledByAdmin())),
+  );
+
+  protected readonly loading = signal(false);
 
   /** Computed: can the user actually use OIDC login without admin rejection? */
   protected readonly oidcActive = computed(() => this.oidcConfigured() && this.oidcEnabledByAdmin());
@@ -71,8 +109,8 @@ export class LoginComponent implements OnInit {
   /** Display name of the configured OIDC provider, shown on the button. */
   protected readonly oidcProviderName = signal('');
 
-  /** Computed: should the OIDC button be shown at all? Only if configured in .env. */
-  protected readonly oidcVisible = computed(() => this.oidcConfigured());
+  /** Computed: should the OIDC button be shown? Configured, and either switched on or revealed. */
+  protected readonly oidcVisible = computed(() => this.oidcConfigured() && (this.oidcEnabledByAdmin() || this.revealAll()));
 
   /** True when arriving via logout (?loggedout=1): show the signed-out panel, no auto-redirect. */
   protected readonly signedOut = signal(false);
@@ -83,16 +121,6 @@ export class LoginComponent implements OnInit {
 
   protected readonly siteTitle = computed(() => this.settingsService.siteSettings()['custom_title'] || '');
 
-  /** Whether Telegram is configured in the server's .env / appsettings. */
-  protected readonly telegramConfigured = signal(false);
-
-  /**
-   * Whether Telegram login is enabled by the admin (site setting `enable_telegram`).
-   * When false but configured, the widget still renders but the backend will reject
-   * non-admin users after authentication.
-   */
-  protected readonly telegramEnabledByAdmin = signal(true);
-
   /** Computed: can the user actually use Telegram login without admin rejection? */
   protected readonly telegramActive = computed(() => this.telegramConfigured() && this.telegramEnabledByAdmin());
 
@@ -102,8 +130,8 @@ export class LoginComponent implements OnInit {
   /** The bot the login widget is built for. Set before `telegramConfigured`, so the widget never renders without it. */
   protected readonly telegramBotUsername = signal('');
 
-  /** Computed: should the Telegram section be shown at all? Only if configured in .env. */
-  protected readonly telegramVisible = computed(() => this.telegramConfigured());
+  /** Computed: should the Telegram section be shown? Configured, and either switched on or revealed. */
+  protected readonly telegramVisible = computed(() => this.telegramConfigured() && (this.telegramEnabledByAdmin() || this.revealAll()));
 
   protected handleTelegramAuth(telegramData: Record<string, string>): void {
     this.loading.set(true);
@@ -154,6 +182,7 @@ export class LoginComponent implements OnInit {
     // into the provider and silently re-logged in.
     const loggedOut = this.route.snapshot.queryParamMap.get('loggedout') === '1';
     this.signedOut.set(loggedOut);
+    this.showAllMethods.set(this.route.snapshot.queryParamMap.get('all') === '1');
 
     // Load public site settings (custom_title, signup_url) and provider config in parallel.
     // Both calls use a 10s timeout and fallback to defaults on error so the login page
@@ -206,6 +235,7 @@ export class LoginComponent implements OnInit {
         oidc_userinfo_failed: 'AUTH.ERR_OIDC_USERINFO',
         destination_account: 'AUTH.ERR_DESTINATION_ACCOUNT',
         discord_disabled: 'AUTH.ERR_DISCORD_DISABLED',
+        discord_not_configured: 'AUTH.ERR_DISCORD_NOT_CONFIGURED',
         discord_user_fetch_failed: 'AUTH.ERR_DISCORD_FETCH',
         missing_code: 'AUTH.ERR_MISSING_CODE',
         missing_required_role: 'AUTH.ERR_MISSING_ROLE',

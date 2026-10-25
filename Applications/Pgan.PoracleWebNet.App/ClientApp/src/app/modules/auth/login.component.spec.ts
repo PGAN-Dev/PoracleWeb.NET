@@ -25,7 +25,7 @@ describe('LoginComponent', () => {
     telegram: { botUsername: '', configured: false, enabledByAdmin: true },
   };
 
-  const setup = (opts?: { providers?: AuthProviders; providersError?: boolean; loggedOut?: boolean }) => {
+  const setup = (opts?: { all?: boolean; providers?: AuthProviders; providersError?: boolean; loggedOut?: boolean }) => {
     settingsSignal = signal<Record<string, string>>({});
 
     const providers = opts?.providers ?? defaultProviders;
@@ -60,7 +60,9 @@ describe('LoginComponent', () => {
           useValue: {
             snapshot: {
               fragment: '',
-              queryParamMap: { get: (k: string) => (k === 'loggedout' && opts?.loggedOut ? '1' : null) },
+              queryParamMap: {
+                get: (k: string) => ((k === 'loggedout' && opts?.loggedOut) || (k === 'all' && opts?.all) ? '1' : null),
+              },
             },
           },
         },
@@ -130,12 +132,13 @@ describe('LoginComponent', () => {
       expect(widget).toBeTruthy();
     });
 
-    it('should show Telegram widget with hint when configured but admin-disabled', () => {
+    it('should show Telegram widget with hint when admin-disabled and every method is asked for', () => {
       setup({
         providers: {
           discord: { configured: true, enabledByAdmin: true },
           telegram: { botUsername: 'testbot', configured: true, enabledByAdmin: false },
         },
+        all: true,
       });
       fixture.detectChanges();
       const widget = fixture.nativeElement.querySelector('.telegram-widget');
@@ -237,6 +240,118 @@ describe('LoginComponent', () => {
     });
   });
 
+  describe('methods switched off for non-admins', () => {
+    const discordOff: AuthProviders = {
+      discord: { configured: true, enabledByAdmin: false },
+      telegram: { botUsername: 'testbot', configured: true, enabledByAdmin: true },
+    };
+
+    it('hides a switched-off Discord while Telegram is on, and offers the link', () => {
+      setup({ providers: discordOff });
+      fixture.detectChanges();
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.querySelector('.discord-btn')).toBeNull();
+      expect(el.querySelector('.telegram-widget')).toBeTruthy();
+      expect(el.querySelector('.divider')).toBeNull();
+      expect(el.querySelector('.provider-disabled-hint')).toBeNull();
+      expect(el.querySelector('.show-all-methods')).toBeTruthy();
+    });
+
+    it('shows the switched-off Discord, with its hint, once the link is pressed', () => {
+      setup({ providers: discordOff });
+      fixture.detectChanges();
+      const el: HTMLElement = fixture.nativeElement;
+      (el.querySelector('.show-all-methods') as HTMLButtonElement).click();
+      fixture.detectChanges();
+      expect(el.querySelector('.discord-btn')).toBeTruthy();
+      expect(el.querySelector('.provider-disabled-hint')).toBeTruthy();
+      expect(el.querySelector('.show-all-methods')).toBeNull();
+    });
+
+    it('shows every method straight away for /login?all=1', () => {
+      setup({ providers: discordOff, all: true });
+      fixture.detectChanges();
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.querySelector('.discord-btn')).toBeTruthy();
+      expect(el.querySelector('.show-all-methods')).toBeNull();
+    });
+
+    it('still shows switched-off methods when every configured method is off, so an admin can sign in', () => {
+      setup({
+        providers: {
+          discord: { configured: true, enabledByAdmin: false },
+          telegram: { botUsername: 'testbot', configured: true, enabledByAdmin: false },
+        },
+      });
+      fixture.detectChanges();
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.querySelector('.discord-btn')).toBeTruthy();
+      expect(el.querySelector('.telegram-widget')).toBeTruthy();
+      expect(el.querySelector('.no-methods-message')).toBeNull();
+      expect(el.querySelector('.show-all-methods')).toBeNull();
+    });
+
+    it('offers no link when nothing is switched off', () => {
+      setup({
+        providers: {
+          discord: { configured: true, enabledByAdmin: true },
+          telegram: { botUsername: 'testbot', configured: true, enabledByAdmin: true },
+        },
+      });
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('.show-all-methods')).toBeNull();
+    });
+  });
+
+  describe('sites without Discord', () => {
+    it('shows only Telegram on a Telegram-only site', () => {
+      setup({
+        providers: {
+          oidc: { providerName: '', configured: false, enabledByAdmin: false },
+          discord: { configured: false, enabledByAdmin: true },
+          telegram: { botUsername: 'testbot', configured: true, enabledByAdmin: true },
+        },
+      });
+      fixture.detectChanges();
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.querySelector('.telegram-widget')).toBeTruthy();
+      expect(el.querySelector('.discord-btn')).toBeNull();
+      expect(el.querySelector('.divider')).toBeNull();
+      expect(el.querySelector('.no-methods-message')).toBeNull();
+    });
+
+    it('says sign-in is not set up when no provider is configured, OIDC included', () => {
+      setup({
+        providers: {
+          oidc: { providerName: '', configured: false, enabledByAdmin: false },
+          discord: { configured: false, enabledByAdmin: true },
+          telegram: { botUsername: '', configured: false, enabledByAdmin: true },
+        },
+      });
+      fixture.detectChanges();
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.querySelector('.no-methods-message')).toBeTruthy();
+      expect(el.querySelector('.discord-btn')).toBeNull();
+      expect(el.querySelector('.telegram-widget')).toBeNull();
+      expect(el.querySelector('.oidc-btn')).toBeNull();
+    });
+
+    it('leaves a Discord-configured site unchanged', () => {
+      setup({
+        providers: {
+          oidc: { providerName: '', configured: false, enabledByAdmin: false },
+          discord: { configured: true, enabledByAdmin: true },
+          telegram: { botUsername: 'testbot', configured: true, enabledByAdmin: true },
+        },
+      });
+      fixture.detectChanges();
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.querySelector('.discord-btn')).toBeTruthy();
+      expect(el.querySelector('.telegram-widget')).toBeTruthy();
+      expect(el.querySelector('.no-methods-message')).toBeNull();
+    });
+  });
+
   describe('no-methods message', () => {
     it('should show no-methods message when neither provider is configured', () => {
       setup({
@@ -324,6 +439,18 @@ describe('LoginComponent', () => {
       setup();
       fixture.detectChanges();
       expect(component['error']()).toBe('AUTH.ERR_DISCORD_DISABLED');
+    });
+
+    it('should display discord_not_configured error from URL fragment', () => {
+      window.location.hash = '#error=discord_not_configured';
+      setup({
+        providers: {
+          discord: { configured: false, enabledByAdmin: true },
+          telegram: { botUsername: 'testbot', configured: true, enabledByAdmin: true },
+        },
+      });
+      fixture.detectChanges();
+      expect(component['error']()).toBe('AUTH.ERR_DISCORD_NOT_CONFIGURED');
     });
 
     it('should display telegram_disabled error from URL fragment', () => {

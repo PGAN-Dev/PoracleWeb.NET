@@ -56,7 +56,7 @@ public partial class AccountLinkController(
             return RefusedWhileImpersonating();
         }
 
-        if (string.IsNullOrEmpty(this._discordSettings.ClientId) || await this._siteSettings.IsSwitchedOffAsync("enable_discord"))
+        if (!SignInConfiguration.DiscordConfigured(this._discordSettings) || await this._siteSettings.IsSwitchedOffAsync("enable_discord"))
         {
             return Refused(LinkRefusalCode.AppUnavailable, "Discord sign-in is not available on this site.");
         }

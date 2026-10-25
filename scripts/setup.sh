@@ -30,9 +30,17 @@ ask() {
   echo "$value"
 }
 
-# Update a key=value in the .env file
+# Update a key=value in the .env file. A commented-out "# KEY=" line (how .env.example ships the
+# optional ones) is uncommented in place rather than duplicated at the end.
 set_env() {
   local key="$1" value="$2"
+  if ! grep -q "^${key}=" "$ENV_FILE" 2>/dev/null && grep -q "^# ${key}=" "$ENV_FILE" 2>/dev/null; then
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+      sed -i '' "s|^# ${key}=|${key}=|" "$ENV_FILE"
+    else
+      sed -i "s|^# ${key}=|${key}=|" "$ENV_FILE"
+    fi
+  fi
   if grep -q "^${key}=" "$ENV_FILE" 2>/dev/null; then
     # Escape special chars for sed replacement
     local escaped_value
@@ -44,6 +52,18 @@ set_env() {
     fi
   else
     echo "${key}=${value}" >> "$ENV_FILE"
+  fi
+}
+
+# Comment out a key=value line so it reads as "not configured" rather than as an empty value
+unset_env() {
+  local key="$1"
+  if grep -q "^${key}=" "$ENV_FILE" 2>/dev/null; then
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+      sed -i '' "s|^${key}=|# ${key}=|" "$ENV_FILE"
+    else
+      sed -i "s|^${key}=|# ${key}=|" "$ENV_FILE"
+    fi
   fi
 }
 
@@ -112,16 +132,63 @@ set_env "WEB_DB_NAME" "$WEB_DB_NAME"
 set_env "WEB_DB_USER" "$WEB_DB_USER"
 set_env "WEB_DB_PASSWORD" "$WEB_DB_PASSWORD"
 
-# Step 5: Discord
-header "5. Discord OAuth2"
-info "  Create an app at https://discord.com/developers/applications"
-info "  Set redirect URI: http://your-host:${PORT}/api/auth/discord/callback"
-DISCORD_CLIENT_ID=$(ask DISCORD_CLIENT_ID "Client ID" "")
-DISCORD_CLIENT_SECRET=$(ask DISCORD_CLIENT_SECRET "Client Secret" "")
+# Step 5: Sign-in methods
+header "5. Sign-in methods"
+info "  People sign in with Discord, Telegram, or your own SSO (OIDC) provider."
+info "  Discord is optional. Pick at least one; SSO is configured by hand in .env (OIDC_*)."
+
+SIGN_IN_METHODS=0
+
+echo -n "  Offer Discord sign-in? [Y/n]: "
+read -r USE_DISCORD
+if [[ ! "$USE_DISCORD" =~ ^[Nn] ]]; then
+  info "  Create an app at https://discord.com/developers/applications"
+  info "  Set redirect URI: http://your-host:${PORT}/api/auth/discord/callback"
+  DISCORD_CLIENT_ID=$(ask DISCORD_CLIENT_ID "Client ID" "")
+  DISCORD_CLIENT_SECRET=$(ask DISCORD_CLIENT_SECRET "Client Secret" "")
+  if [ -n "$DISCORD_CLIENT_ID" ] && [ -n "$DISCORD_CLIENT_SECRET" ]; then
+    set_env "DISCORD_CLIENT_ID" "$DISCORD_CLIENT_ID"
+    set_env "DISCORD_CLIENT_SECRET" "$DISCORD_CLIENT_SECRET"
+    SIGN_IN_METHODS=$((SIGN_IN_METHODS + 1))
+  else
+    warn "  Discord needs both a client ID and a secret. Skipping Discord sign-in."
+    USE_DISCORD=n
+  fi
+fi
+if [[ "$USE_DISCORD" =~ ^[Nn] ]]; then
+  unset_env "DISCORD_CLIENT_ID"
+  unset_env "DISCORD_CLIENT_SECRET"
+fi
+
+echo -n "  Offer Telegram sign-in? [y/N]: "
+read -r USE_TELEGRAM
+if [[ "$USE_TELEGRAM" =~ ^[Yy] ]]; then
+  info "  Use the bot your PoracleNG already runs; its domain must be set with @BotFather (/setdomain)."
+  TELEGRAM_BOT_TOKEN=$(ask TELEGRAM_BOT_TOKEN "Bot token" "")
+  TELEGRAM_BOT_USERNAME=$(ask TELEGRAM_BOT_USERNAME "Bot username (without @)" "")
+  if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_BOT_USERNAME" ]; then
+    set_env "TELEGRAM_ENABLED" "true"
+    set_env "TELEGRAM_BOT_TOKEN" "$TELEGRAM_BOT_TOKEN"
+    set_env "TELEGRAM_BOT_USERNAME" "${TELEGRAM_BOT_USERNAME#@}"
+    SIGN_IN_METHODS=$((SIGN_IN_METHODS + 1))
+  else
+    warn "  Telegram needs both a bot token and a username. Skipping Telegram sign-in."
+  fi
+fi
+
+if [ "$SIGN_IN_METHODS" -eq 0 ]; then
+  warn "  No sign-in method chosen. Set up an SSO provider (OIDC_* in .env) before starting,"
+  warn "  or PoracleWeb.NET will refuse to start because nobody could sign in."
+fi
+
+# The bot token is separate from sign-in: geofence review posts and Discord role checks. Optional.
+info "  Discord bot token (optional): posts geofence submissions to a Discord forum."
 DISCORD_BOT_TOKEN=$(ask DISCORD_BOT_TOKEN "Bot Token" "")
-set_env "DISCORD_CLIENT_ID" "$DISCORD_CLIENT_ID"
-set_env "DISCORD_CLIENT_SECRET" "$DISCORD_CLIENT_SECRET"
-set_env "DISCORD_BOT_TOKEN" "$DISCORD_BOT_TOKEN"
+if [ -n "$DISCORD_BOT_TOKEN" ]; then
+  set_env "DISCORD_BOT_TOKEN" "$DISCORD_BOT_TOKEN"
+else
+  unset_env "DISCORD_BOT_TOKEN"
+fi
 
 # Step 5b: CORS origin (required in non-Development)
 header "5b. CORS origin"
@@ -135,7 +202,7 @@ header "6. Poracle API"
 info "  Your running PoracleNG instance."
 PORACLE_API_ADDRESS=$(ask PORACLE_API_ADDRESS "API address" "http://localhost:3030")
 PORACLE_API_SECRET=$(ask PORACLE_API_SECRET "API secret (must match PoracleNG server.apiSecret)" "")
-PORACLE_ADMIN_IDS=$(ask PORACLE_ADMIN_IDS "Admin Discord user ID(s), comma-separated" "")
+PORACLE_ADMIN_IDS=$(ask PORACLE_ADMIN_IDS "Admin user ID(s), Discord or Telegram, comma-separated" "")
 set_env "PORACLE_API_ADDRESS" "$PORACLE_API_ADDRESS"
 set_env "PORACLE_API_SECRET" "$PORACLE_API_SECRET"
 set_env "PORACLE_ADMIN_IDS" "$PORACLE_ADMIN_IDS"
@@ -169,6 +236,8 @@ echo "    Docker:     ./scripts/docker.sh build && ./scripts/docker.sh start"
 echo "    Standalone: dotnet Pgan.PoracleWebNet.Api.dll"
 echo "    Dev:        ./scripts/dev.sh start"
 echo ""
-echo "  Don't forget to set your Discord OAuth2 redirect URI to:"
-echo "    http://your-host:${PORT}/api/auth/discord/callback"
-echo ""
+if [[ ! "$USE_DISCORD" =~ ^[Nn] ]]; then
+  echo "  Don't forget to set your Discord OAuth2 redirect URI to:"
+  echo "    http://your-host:${PORT}/api/auth/discord/callback"
+  echo ""
+fi

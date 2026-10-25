@@ -89,7 +89,7 @@ On a phone the sidebar becomes a menu and each add dialog fills the screen, with
 |---|---|---|
 | MySQL or MariaDB | Whatever your Poracle installation runs | A `poracle_web` database this application creates its own tables in. PoracleWeb.NET doesn't connect to Poracle's database |
 | Poracle | [PoracleNG](https://github.com/jfberry/PoracleNG) 5.4.0 or newer | Running instance with REST API enabled. All alarm, profile, and user operations are proxied through PoracleNG's REST API. PoracleJS is not a tested configuration. |
-| Discord App | — | OAuth2 application for user authentication |
+| A sign-in method | — | A Discord OAuth2 application, a Telegram bot, or an OIDC provider. Any one is enough; Discord is optional ([sign-in methods](configuration/reference.md#sign-in-methods)) |
 | Koji | — | Geofence server. Supplies the admin areas in the unified geofence feed and receives user geofences an admin approves. Drawing a private geofence still works while Koji is unreachable |
 | .NET SDK | 10.0 | Backend development (not needed for Docker) |
 | Node.js | 22+ | Frontend development (not needed for Docker) |
