@@ -29,9 +29,10 @@ internal static class IncidentCreateProtocol
     /// <summary>Creates <paramref name="rules"/>.</summary>
     /// <param name="single">One rule the user asked for: a takeover is refused rather than skipped.</param>
     /// <param name="profileNo">The profile to write to (<c>?profile=N</c>); null for the active one.</param>
+    /// <param name="onExisting">Told the stored rule's uid when a single rule was an exact repeat and PoracleNG named it.</param>
     /// <returns>The uid each rule was created under, index for index; 0 where nothing was written.</returns>
     public static async Task<int[]> CreateAsync(
-        IPoracleIncidentProxy proxy, string userId, IReadOnlyList<PokestopEvent> rules, bool single, int? profileNo = null)
+        IPoracleIncidentProxy proxy, string userId, IReadOnlyList<PokestopEvent> rules, bool single, int? profileNo = null, Action<int>? onExisting = null)
     {
         Task<PokestopEventWriteResult> Post(IEnumerable<PokestopEvent> batch, bool dryRun) =>
             profileNo is { } no ? proxy.CreateAsync(userId, batch, no, dryRun) : proxy.CreateAsync(userId, batch, dryRun);
@@ -63,6 +64,11 @@ internal static class IncidentCreateProtocol
             }
 
             // An identical rule is already stored; nothing is written.
+            if (dry.Unchanged[0].Uid > 0)
+            {
+                onExisting?.Invoke(dry.Unchanged[0].Uid);
+            }
+
             return uids;
         }
         else if (dry.Created.Count == 0)

@@ -3,27 +3,29 @@ using Pgan.PoracleWebNet.Api.Filters;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Mappings;
 using Pgan.PoracleWebNet.Core.Models;
+using Pgan.PoracleWebNet.Core.Services;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/eggs")]
 [RequireFeatureEnabled(DisableFeatureKeys.Raids)]
 [TypeFilter(typeof(PoracleUnreachableExceptionFilter))]
-public class EggController(IEggService eggService) : BaseApiController
+public class EggController(IEggService eggService, LinkedAlarmRouter router) : BaseApiController
 {
     private readonly IEggService _eggService = eggService;
+    private readonly LinkedAlarmRouter _router = router;
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var eggs = await this._eggService.GetByUserAsync(this.UserId, this.ProfileNo);
+        var eggs = await this._router.ListAsync(this._eggService, this.UserId, this.ProfileNo);
         return this.Ok(eggs);
     }
 
     [HttpGet("{uid:int}")]
     public async Task<IActionResult> GetByUid(int uid)
     {
-        var egg = await this._eggService.GetByUidAsync(this.UserId, uid);
+        var egg = (await this._router.FindAsync(this._eggService, this.UserId, uid))?.Model;
         if (egg == null)
         {
             return this.NotFound();
@@ -39,7 +41,9 @@ public class EggController(IEggService eggService) : BaseApiController
         // Deliberately not stamped from the JWT claim: writes no longer carry profile_no, so
         // PoracleNG files the alarm under the live current_profile_no. Echoing a possibly-stale
         // claim back would assert a profile the row was never written to. See #411.
-        var result = await this._eggService.CreateAsync(this.UserId, egg);
+        var target = await this._router.CreateTargetAsync(this.UserId, model.Destination);
+        var result = await this._eggService.CreateAsync(target, egg);
+        this._router.StampCreated(result, target);
 
         // PoracleNG assigns no uid when the submission duplicates an alarm the user already has, so
         // nothing was created. Answering 201 with a Location of /0 advertised a resource that 404s.
@@ -57,10 +61,23 @@ public class EggController(IEggService eggService) : BaseApiController
     [HttpPut("{uid:int}")]
     public async Task<IActionResult> Update(int uid, [FromBody] EggUpdate model)
     {
-        var existing = await this._eggService.GetByUidAsync(this.UserId, uid);
-        if (existing == null)
+        var found = await this._router.FindAsync(this._eggService, this.UserId, uid);
+        if (found is null)
         {
             return this.NotFound();
+        }
+
+        var (existing, ownerId) = found.Value;
+
+        if (await this._router.MoveTargetAsync(this.UserId, model.Destination, ownerId) is { } moveTo)
+        {
+            if (this.RefuseMoveWhileImpersonating() is { } refused)
+            {
+                return refused;
+            }
+
+            model.ApplyUpdate(existing);
+            return this.MovedResponse(await this._router.MoveAsync(this._eggService, "egg", this.UserId, existing, ownerId, moveTo));
         }
 
         // Nothing to write means nothing to send: see LeavesAlarmUnchanged.
@@ -73,27 +90,30 @@ public class EggController(IEggService eggService) : BaseApiController
             return this.Ok(existing);
         }
 
-        var result = await this._eggService.UpdateAsync(this.UserId, existing);
+        var result = await this._eggService.UpdateAsync(ownerId, existing);
+        this._router.Stamp(result, ownerId);
         return this.Ok(result);
     }
 
     [HttpDelete("{uid:int}")]
     public async Task<IActionResult> Delete(int uid)
     {
-        var existing = await this._eggService.GetByUidAsync(this.UserId, uid);
-        if (existing == null)
+        var found = await this._router.FindAsync(this._eggService, this.UserId, uid);
+        if (found is null)
         {
             return this.NotFound();
         }
 
-        await this._eggService.DeleteAsync(this.UserId, uid);
+        var ownerId = found.Value.OwnerId;
+
+        await this._eggService.DeleteAsync(ownerId, uid);
         return this.NoContent();
     }
 
     [HttpDelete]
     public async Task<IActionResult> DeleteAll()
     {
-        var count = await this._eggService.DeleteAllByUserAsync(this.UserId, this.ProfileNo);
+        var count = await this._router.DeleteAllAsync(this._eggService, this.UserId, this.ProfileNo);
         return this.Ok(new
         {
             deleted = count
@@ -103,7 +123,7 @@ public class EggController(IEggService eggService) : BaseApiController
     [HttpPut("distance/bulk")]
     public async Task<IActionResult> UpdateBulkDistance([FromBody] BulkDistanceRequest request)
     {
-        var result = await this._eggService.UpdateDistanceByUidsAsync(request.Uids, this.UserId, request.Distance);
+        var result = await this._router.UpdateDistanceByUidsAsync(this._eggService, this.UserId, this.ProfileNo, request.Uids, request.Distance);
         return this.DistanceUpdated(result);
     }
 
@@ -116,7 +136,7 @@ public class EggController(IEggService eggService) : BaseApiController
             return invalid;
         }
 
-        var result = await this._eggService.UpdateDistanceByUserAsync(this.UserId, this.ProfileNo, distance);
+        var result = await this._router.UpdateDistanceAllAsync(this._eggService, this.UserId, this.ProfileNo, distance);
         return this.DistanceUpdated(result);
     }
 }

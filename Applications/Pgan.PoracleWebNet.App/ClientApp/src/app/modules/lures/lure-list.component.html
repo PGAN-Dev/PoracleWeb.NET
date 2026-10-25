@@ -12,9 +12,12 @@
 </div>
 @if (!loading() && lures().length > 0) {
   <app-alarm-list-toolbar
+    alarmsLabel="LURES.PAGE_TITLE"
     searchPlaceholder="LURES.SEARCH_PLACEHOLDER"
     [(search)]="search"
     [(sort)]="sortBy"
+    [(destinationFilter)]="destinationFilter"
+    [canFilterDestination]="canChooseDestination()"
     [sortOptions]="sortOptions"
     [total]="lures().length"
     [shown]="visibleLures().length"
@@ -29,6 +32,9 @@
     (selectAll)="selectAll()"
     (deselectAll)="deselectAll()"
     (changeRadius)="bulkUpdateDistance()"
+    [canMove]="canChooseDestination()"
+    [allOn]="selectionApp()"
+    (moveSelected)="bulkMove($event)"
     (deleteSelected)="bulkDelete()" />
 }
 
@@ -41,6 +47,7 @@
   <div class="alarm-grid">
     @for (lure of visibleLures(); track lure.uid) {
       <app-alarm-card
+        [destination]="lure.destination"
         [summary]="lure.description"
         [selectable]="selectMode()"
         [selected]="selectedIds().has(lure.uid)"

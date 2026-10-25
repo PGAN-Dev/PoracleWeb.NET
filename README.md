@@ -1,6 +1,6 @@
 # PoracleWeb.NET
 
-A web application for managing Pokemon GO notification alarms through the [PoracleNG](https://github.com/jfberry/PoracleNG) bot. Users authenticate via Discord OAuth2 or Telegram and configure personalized alert filters (Pokemon, Raids and Eggs, Max Battles, Quests, Invasions, Pokéstop Events, Lures, Nests, Gyms, Fort Changes) through a browser-based UI.
+A web application for managing Pokemon GO notification alarms through the [PoracleNG](https://github.com/jfberry/PoracleNG) bot. Users sign in with Discord, Telegram or an OIDC provider and configure personalized alert filters (Pokemon, Raids and Eggs, Max Battles, Quests, Invasions, Pokéstop Events, Lures, Nests, Gyms, Fort Changes) through a browser-based UI.
 
 > **PoracleNG 5.4.0 or newer is required.** All alarm management, profile handling, and user operations are proxied through PoracleNG's REST API. PoracleWeb.NET still starts against an older PoracleNG, but it logs an error at startup and shows the mismatch on the Versions card under Admin > Server settings, and the calls that need a 5.4.0 route fail. Upgrade PoracleNG first. Why 5.4.0, and what it replaced, is in [PoracleNG Version Compatibility](https://pgan-dev.github.io/PoracleWeb.NET/architecture/poracleng-compatibility/).
 >
@@ -20,7 +20,7 @@ A web application for managing Pokemon GO notification alarms through the [Porac
 
 ## Community & Support
 
-There is **no Discord server** for PoracleWeb.NET at this time. Support happens on GitHub: report bugs and request features in [Issues](https://github.com/PGAN-Dev/PoracleWeb.NET/issues), ask questions in [Discussions](https://github.com/PGAN-Dev/PoracleWeb.NET/discussions), and send contributions as [Pull Requests](https://github.com/PGAN-Dev/PoracleWeb.NET/pulls).
+Questions and chat happen in the PoracleWeb.NET channels on the [Poracle Discord server](https://discord.gg/MHVPAXDFr6). Report bugs and request features in [Issues](https://github.com/PGAN-Dev/PoracleWeb.NET/issues), so they don't get lost in chat, and send contributions as [Pull Requests](https://github.com/PGAN-Dev/PoracleWeb.NET/pulls). [Discussions](https://github.com/PGAN-Dev/PoracleWeb.NET/discussions) are open too, for anything that suits a thread better than a chat.
 
 ## Quick Start (Docker)
 
@@ -28,7 +28,7 @@ There is **no Discord server** for PoracleWeb.NET at this time. Support happens 
 # 1. Copy the templates
 cp .env.example .env
 cp docker-compose.yml.example docker-compose.yml
-# Edit .env with your database, Discord, and Poracle settings.
+# Edit .env with your database, Poracle and sign-in settings.
 # docker-compose.yml rarely needs changes — all config flows through .env.
 
 # 2. Create the data directory, owned by the user the container runs as (uid 999)
@@ -48,7 +48,8 @@ See the [Quick Start guide](https://pgan-dev.github.io/PoracleWeb.NET/getting-st
 | Feature | What it does |
 |---|---|
 | Alarm management | Pokemon, Raids and Eggs, Max Battles, Quests, Invasions, Pokéstop Events, Lures, Nests, Gyms, Fort Changes |
-| Gym picker | Search for a gym by name and aim a gym, raid or egg alarm at it |
+| Gym picker | Search for a gym by name and aim a gym, raid or egg alarm at it (needs the scanner database) |
+| Pokemon availability | See which species are spawning now while you pick Pokemon for an alarm (needs Golbat) |
 | Bulk operations | Select several alarms to delete them or change their radius in one go; on a phone the bar stays pinned to the bottom of the screen |
 | Per-alarm delivery scope | Aim each alert anywhere in your areas, at only specific areas, or within a radius of your pin or a saved place |
 | Saved places | Name the points your alerts measure from, so an alarm doesn't have to follow your profile pin |
@@ -56,6 +57,7 @@ See the [Quick Start guide](https://pgan-dev.github.io/PoracleWeb.NET/getting-st
 | Quiet periods | Silence one gym, area, species or Power Spot for a set time, without touching the alarms themselves |
 | Alert defaults | Choose where new alerts default to reaching you: your areas, or a radius from your pin or a saved place |
 | Custom geofences | Draw polygons, served to the Poracle bot through a unified feed |
+| Hidden areas | Take a staging or test area off the area lists and the bot's area list without deleting it |
 | Geofence review | Admins approve or reject submitted geofences, with a Discord forum thread for each |
 | Quick picks | One-click alarm templates |
 | Profiles | Several alarm profiles per user, with active hours that switch between them by day and time |
@@ -63,7 +65,10 @@ See the [Quick Start guide](https://pgan-dev.github.io/PoracleWeb.NET/getting-st
 | Dark and light mode | Theme toggle with accent colours; maps on the site default switch to a dark basemap in dark mode |
 | 11 UI languages | The interface, plus Pokemon names, types and forms, which follow the display language. What Poracle writes in your DMs is a separate choice, **Alert language**, beside **Display language** in the user menu |
 | Single sign-on | Discord and Telegram login, plus any OIDC provider, with optional silent refresh and single logout |
-| Admin panel | Users, webhooks, site settings, geofence review, hidden areas, a status line on the settings page that opens a Versions card showing the running PoracleWeb.NET and PoracleNG builds, and a Rule repair card for rules PoracleNG 5.4.0 reads differently. The Versions card runs an anonymous GitHub check, cached six hours, which the `disable_update_check` site setting switches off |
+| Destinations and delegates | Webhooks, Discord channels and threads, and Telegram channels, groups and topics, managed as their own accounts, with named people allowed to manage one without being made an admin |
+| Weather | Current in-game weather at your pin and across your areas, on the dashboard (needs the scanner database) |
+| Linked accounts | One person on both Discord and Telegram: one list of alarms, the app chosen per alarm, personal settings saved to both, and the differences bot commands leave shown for the person to settle |
+| Admin panel | Users, destinations, site settings, geofence review, hidden areas, a status line on the settings page that opens a Versions card showing the running PoracleWeb.NET and PoracleNG builds, and a Rule repair card for rules PoracleNG 5.4.0 reads differently. The Versions card runs an anonymous GitHub check, cached six hours, which the `disable_update_check` site setting switches off |
 
 ## Documentation
 
@@ -178,3 +183,8 @@ PoracleWeb.NET stands on the shoulders of these projects and their authors:
 | [PoracleJS](https://github.com/KartulUdus/PoracleJS) | KartulUdus | The original Poracle bot |
 | [PoracleNG](https://github.com/jfberry/PoracleNG) | jfberry | Next-generation Poracle whose REST API powers all alarm tracking |
 | [Kōji](https://github.com/TurtIeSocks/Koji) | TurtIeSocks | Geofence management platform used for admin areas, region detection and public geofence promotion |
+| [Golbat](https://github.com/UnownHash/Golbat) | Unown# team | Scanner whose API shows which Pokemon are spawning in the species picker; its database backs the gym picker and the weather card |
+| [Masterfile Generator](https://github.com/WatWowMap/Masterfile-Generator) | WatWowMap | Game data: raid levels, and the English names used when Poracle can't supply translated ones |
+| UICONS icon packs | [nileplumb](https://github.com/nileplumb/PkmnHomeIcons), [jms412](https://github.com/jms412/PkmnHomeIcons) | Pokemon, item and raid icons; jms412's Home icons are the default |
+| [Leaflet](https://leafletjs.com/) | Leaflet contributors | Every map on the site |
+| Map tiles | [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, CARTO, Esri | The basemaps an admin or viewer can choose |

@@ -82,11 +82,63 @@ describe('InvasionService', () => {
     req.flush(null);
   });
 
+  it('sends the kind of the deleted card, and none when it is not given', () => {
+    service.delete(7, 'event').subscribe();
+    const withKind = httpMock.expectOne(r => r.url === API + '/api/invasions/7');
+    expect(withKind.request.method).toBe('DELETE');
+    expect(withKind.request.params.get('kind')).toBe('event');
+    withKind.flush(null);
+
+    service.delete(7).subscribe();
+    const without = httpMock.expectOne(API + '/api/invasions/7');
+    expect(without.request.params.has('kind')).toBe(false);
+    without.flush(null);
+  });
+
+  it('adds the kind to a bulk radius change only when one is given', () => {
+    service.updateBulkDistance([7], 500, 'event').subscribe();
+    const withKind = httpMock.expectOne(`${API}/api/invasions/distance/bulk`);
+    expect(withKind.request.body).toEqual({ uids: [7], distance: 500, kind: 'event' });
+    withKind.flush({ updated: 1 });
+
+    service.updateBulkDistance([7], 500).subscribe();
+    const plain = httpMock.expectOne(`${API}/api/invasions/distance/bulk`);
+    expect('kind' in plain.request.body).toBe(false);
+    plain.flush({ updated: 1 });
+  });
+
   it('should delete all invasions', () => {
     service.deleteAll().subscribe();
 
     const req = httpMock.expectOne(`${API}/api/invasions`);
     expect(req.request.method).toBe('DELETE');
+    req.flush(null);
+  });
+
+  it('sends the kind of the opened card when it is given', () => {
+    service.update(7, { distance: 100 }, 'event').subscribe();
+
+    const req = httpMock.expectOne(r => r.url === API + '/api/invasions/7');
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.params.get('kind')).toBe('event');
+    req.flush(null);
+  });
+
+  it('sends the kind on a move too, so the move opens the same rule a plain edit would', () => {
+    service.update(7, { destination: 'telegram', distance: 100 }, 'event').subscribe();
+
+    const req = httpMock.expectOne(r => r.url === API + '/api/invasions/7');
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.params.get('kind')).toBe('event');
+    expect(req.request.body.destination).toBe('telegram');
+    req.flush(null);
+  });
+
+  it('sends no kind query when none is given, as before', () => {
+    service.update(7, { distance: 100 }).subscribe();
+
+    const req = httpMock.expectOne(API + '/api/invasions/7');
+    expect(req.request.params.has('kind')).toBe(false);
     req.flush(null);
   });
 });

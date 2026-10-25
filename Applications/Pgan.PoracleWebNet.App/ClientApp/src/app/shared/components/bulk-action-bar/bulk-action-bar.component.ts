@@ -1,9 +1,13 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 import { TranslatePipe } from '@ngx-translate/core';
 
+import { LinkSide } from '../../../core/models';
+import { appKey } from '../../../core/services/alarm-move.service';
 import { TranslatePluralPipe } from '../../pipes/translate-plural.pipe';
+import { AppGlyphComponent } from '../app-glyph/app-glyph.component';
 
 /** How long the count has to hold still before it is read aloud. */
 export const BULK_COUNT_SETTLE_MS = 700;
@@ -24,12 +28,18 @@ export const BULK_COUNT_REANNOUNCE_MS = 100;
  * how many it deletes. On a phone the bar is pinned to the bottom of the screen, where the thumb is
  * while ticking cards.
  *
+ * A linked person also gets "Deliver to…", which moves the selection to the other app. On a phone that and
+ * Change radius fold into "More", so the pinned row holds two buttons that fit at 360px in every locale
+ * instead of three whose labels wrapped and pushed Delete past the edge; an unlinked person keeps Change
+ * radius and Delete side by side as before. `allOn` names the app every selected alarm is already on, and
+ * that app is offered disabled, saying so, rather than as a move that would do nothing.
+ *
  * The list owns the selection and decides what counts: `count` is the selected cards still on screen
  * (`actionIds`), so a search that hides a ticked card takes it out of the count and out of the action.
  */
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatButtonModule, MatIconModule, TranslatePipe, TranslatePluralPipe],
+  imports: [AppGlyphComponent, MatButtonModule, MatIconModule, MatMenuModule, TranslatePipe, TranslatePluralPipe],
   selector: 'app-bulk-action-bar',
   standalone: true,
   styleUrl: './bulk-action-bar.component.scss',
@@ -37,6 +47,8 @@ export const BULK_COUNT_REANNOUNCE_MS = 100;
 })
 export class BulkActionBarComponent {
   private timer: null | ReturnType<typeof setTimeout> = null;
+  /** The app every selected alarm is already on, or null for a mixed selection (or none). */
+  readonly allOn = input<LinkSide | null>(null);
   /**
    * The count a screen reader hears: set once the count has not moved for {@link BULK_COUNT_SETTLE_MS}, so
    * ticking five cards in a row is one announcement, not five. Null until the first change settles.
@@ -44,12 +56,19 @@ export class BulkActionBarComponent {
   protected readonly announced = signal<null | number>(null);
   /** True while anything is ticked, on screen or not, so the way to clear a hidden tick stays offered. */
   readonly anySelected = input(false);
+  protected readonly appKey = appKey;
+  protected readonly apps: readonly LinkSide[] = ['discord', 'telegram'];
+  /** True for a linked person: the bar then offers "Deliver to…" to move the selection to the other app. */
+  readonly canMove = input(false);
   readonly changeRadius = output<void>();
   /** Selected cards the actions would act on. */
   readonly count = input.required<number>();
   readonly deleteSelected = output<void>();
 
   readonly deselectAll = output<void>();
+
+  /** The app the person chose to move the selected alarms to. */
+  readonly moveSelected = output<LinkSide>();
 
   readonly selectAll = output<void>();
 

@@ -11,6 +11,7 @@ import { TranslatedPaginatorIntl } from './core/i18n/translated-paginator-intl';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { errorInterceptor } from './core/interceptors/error.interceptor';
 import { oidcRefreshInterceptor } from './core/interceptors/oidc-refresh.interceptor';
+import { pairWarningInterceptor } from './core/interceptors/pair-warning.interceptor';
 import { PageTitleStrategy } from './core/services/page-title.strategy';
 
 export const appConfig: ApplicationConfig = {
@@ -24,7 +25,7 @@ export const appConfig: ApplicationConfig = {
     { provide: TitleStrategy, useClass: PageTitleStrategy },
     // oidcRefreshInterceptor sits closest to the backend so it catches a 401 (and can silently
     // refresh + retry) before errorInterceptor redirects to the login page.
-    provideHttpClient(withInterceptors([authInterceptor, errorInterceptor, oidcRefreshInterceptor])),
+    provideHttpClient(withInterceptors([authInterceptor, errorInterceptor, oidcRefreshInterceptor, pairWarningInterceptor])),
     provideAnimationsAsync(),
     // No `fallbackLang` here on purpose. ngx-translate v18 loads the fallback language eagerly
     // from inside the TranslateService constructor, which resolves TranslateLoader while the

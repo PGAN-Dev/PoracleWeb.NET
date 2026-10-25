@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
+import { AlarmMoveService, MoveEdit } from './alarm-move.service';
 import { ConfigService } from './config.service';
 import { DistanceUpdateResult } from '../../shared/utils/distance-update';
 import { Gym, GymCreate, GymUpdate } from '../models';
@@ -10,6 +11,7 @@ import { Gym, GymCreate, GymUpdate } from '../models';
 export class GymService {
   private readonly config = inject(ConfigService);
   private readonly http = inject(HttpClient);
+  private readonly moves = inject(AlarmMoveService);
 
   create(gym: GymCreate): Observable<Gym> {
     return this.http.post<Gym>(`${this.config.apiHost}/api/gyms`, gym);
@@ -27,8 +29,8 @@ export class GymService {
     return this.http.get<Gym[]>(`${this.config.apiHost}/api/gyms`);
   }
 
-  update(uid: number, gym: GymUpdate): Observable<void> {
-    return this.http.put<void>(`${this.config.apiHost}/api/gyms/${uid}`, gym);
+  update(uid: number, gym: GymUpdate): Observable<MoveEdit | void> {
+    return this.moves.put('gyms', uid, gym, () => this.http.put<void>(`${this.config.apiHost}/api/gyms/${uid}`, gym));
   }
 
   updateBulkDistance(uids: number[], distance: number): Observable<DistanceUpdateResult> {

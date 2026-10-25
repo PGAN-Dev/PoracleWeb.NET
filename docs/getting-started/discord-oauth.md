@@ -1,6 +1,8 @@
 # Discord OAuth2 Setup
 
-PoracleWeb.NET uses Discord OAuth2 for user authentication. This page walks through creating and configuring a Discord application.
+PoracleWeb.NET can sign people in with Discord OAuth2. This page walks through creating and configuring a Discord application.
+
+Discord is optional. A site can sign people in with Telegram or an [OIDC provider](../configuration/external-sso.md) instead, and then needs no Discord application: leave `DISCORD_CLIENT_ID` and `DISCORD_CLIENT_SECRET` unset and the login page shows no Discord button. Set both or neither; one without the other stops PoracleWeb.NET at startup. See [Sign-in methods](../configuration/reference.md#sign-in-methods).
 
 ## Create a Discord application
 

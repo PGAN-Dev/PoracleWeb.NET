@@ -97,6 +97,37 @@ describe('add and edit dialogs offer the same fields', () => {
     expect(unexplained).toEqual([]);
   });
 
+  /**
+   * "Deliver to" is asked wherever an alarm is made or changed. It is a component rather than a form
+   * control in the template (it renders only for a linked person), so it is looked for by its tag, and it
+   * must be in both dialogs of every pair with nothing excused in EDIT_ONLY or ADD_ONLY.
+   */
+  describe.each(['add', 'edit'] as const)('%s dialog', kind => {
+    it.each(ALARM_TYPES)('%s carries the Deliver to field bound to its destination control', (_name, stem) => {
+      const template = readFileSync(join(__dirname, `${stem}-${kind}-dialog.component.html`), 'utf8');
+
+      expect(template).toMatch(/<app-deliver-to-field\s+\[control\]="[\w.]*controls\.destination"/);
+    });
+
+    /**
+     * The chosen app is visible without opening a tab: the field sits above the dialog's tabs, not on the
+     * Delivery tab where it used to wait unseen while an add quietly defaulted it.
+     */
+    it.each(ALARM_TYPES)('%s asks which app before the tabs, not inside one', (_name, stem) => {
+      const template = readFileSync(join(__dirname, `${stem}-${kind}-dialog.component.html`), 'utf8');
+      const field = template.indexOf('<app-deliver-to-field');
+      const tabs = template.indexOf('<mat-tab-group');
+
+      expect(field).toBeGreaterThan(-1);
+      expect(tabs).toBeGreaterThan(-1);
+      expect(field).toBeLessThan(tabs);
+    });
+  });
+
+  it('excuses nothing about deliver-to', () => {
+    expect(Object.keys({ ...ADD_ONLY, ...EDIT_ONLY }).filter(k => k.endsWith('.destination'))).toEqual([]);
+  });
+
   it('has no stale exceptions', () => {
     // An exception left behind after the difference is resolved reads as a decision that was made, so
     // the next person keeps it. These must describe a difference that is really there.

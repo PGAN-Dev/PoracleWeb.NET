@@ -161,11 +161,11 @@ sequenceDiagram
   I-->>P: { identity claim, username, ... }
   P->>P: validate human exists + enabled + roles
   alt UseRefreshTokens AND refresh_token present
-    P->>P: encrypt(refresh_token); INSERT oidc_sessions (new family)
+    P->>P: encrypt(refresh_token), INSERT oidc_sessions (new family)
     P->>P: mint JWT (OIDC_ACCESS_TOKEN_MINUTES ≈ 30m)
     P->>B: 302 /auth/oidc/callback#token=JWT&refresh_token=OPAQUE
   else flag off OR no refresh_token returned
-    P->>P: mint JWT (24h) %% graceful fallback; logs if flag on but no RT
+    P->>P: mint JWT (24h), graceful fallback, logs if flag on but no RT
     P->>B: 302 /auth/oidc/callback#token=JWT
   end
 ```
@@ -182,13 +182,13 @@ sequenceDiagram
   participant I as Provider (IdP)
   Note over B: ~60s before JWT expiry
   B->>P: POST /api/auth/oidc/refresh { refreshToken: OPAQUE }
-  P->>P: hash; load session (active, not expired, not past cap)
+  P->>P: hash, load session (active, not expired, not past cap)
   P->>P: atomic rotate guard (ExecuteUpdateAsync)
   P->>I: POST /token (grant=refresh_token, client_secret)
   I-->>P: { access_token, refresh_token', expires_in }
   P->>I: GET /userinfo
   P->>P: re-validate human enabled + roles
-  P->>P: encrypt(refresh_token'); INSERT successor row (same family)
+  P->>P: encrypt(refresh_token'), INSERT successor row (same family)
   P->>P: mint fresh JWT (≈30m)
   P-->>B: 200 { token, refreshToken: OPAQUE', expiresIn }
 ```

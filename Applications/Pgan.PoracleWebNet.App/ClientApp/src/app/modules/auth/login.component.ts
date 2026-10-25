@@ -1,4 +1,4 @@
-import { Component, computed, DestroyRef, ElementRef, inject, NgZone, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -11,19 +11,14 @@ import { catchError, forkJoin, of, timeout } from 'rxjs';
 import { AuthProviders } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { SettingsService } from '../../core/services/settings.service';
+import { TelegramLoginButtonComponent } from '../../shared/components/telegram-login-button/telegram-login-button.component';
+import { clearTelegramReturn, readTelegramReturn } from '../../shared/utils/telegram-return';
 
 /** Timeout for provider config and public settings fetches on the login page. */
 const LOGIN_FETCH_TIMEOUT_MS = 10_000;
 
-// Extend Window to allow the Telegram callback
-declare global {
-  interface Window {
-    onTelegramAuth: (user: Record<string, string>) => void;
-  }
-}
-
 @Component({
-  imports: [MatButtonModule, MatCardModule, MatIconModule, MatProgressSpinnerModule, TranslatePipe],
+  imports: [MatButtonModule, MatCardModule, MatIconModule, MatProgressSpinnerModule, TelegramLoginButtonComponent, TranslatePipe],
   selector: 'app-login',
   standalone: true,
   styleUrl: './login.component.scss',
@@ -32,13 +27,9 @@ declare global {
 export class LoginComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
-  private readonly ngZone = inject(NgZone);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly settingsService = inject(SettingsService);
-
-  private telegramBotUsername = '';
-  private telegramWidgetLoaded = false;
 
   /** Replaces the generic one-line error message with the richer disabled-account block. */
   protected readonly accountDisabled = signal(false);
@@ -54,25 +45,63 @@ export class LoginComponent implements OnInit {
 
   /**
    * Whether Discord login is enabled by the admin (site setting `enable_discord`).
-   * When false but configured, the button still renders but the backend will reject
-   * non-admin users after authentication.
+   * When false the backend refuses non-admins after they authenticate, so the button is
+   * hidden (see `discordVisible`); admins still reach it through "show every method".
    */
   protected readonly discordEnabledByAdmin = signal(true);
 
   /** Computed: can the user actually click the Discord button? Configured + admin-enabled. */
   protected readonly discordActive = computed(() => this.discordConfigured() && this.discordEnabledByAdmin());
 
-  /** Computed: should the Discord button be shown at all? Only if configured in .env. */
-  protected readonly discordVisible = computed(() => this.discordConfigured());
-
-  protected readonly error = signal<string | null>(null);
-  protected readonly loading = signal(false);
-
   /** Whether a generic external OIDC provider is configured in the server's .env / appsettings. */
   protected readonly oidcConfigured = signal(false);
 
   /** Whether OIDC login is enabled by the admin (site setting `enable_oidc`). */
   protected readonly oidcEnabledByAdmin = signal(true);
+  /** Set by "show every method" or `/login?all=1`: admins are exempt from the site switches. */
+  protected readonly showAllMethods = signal(false);
+
+  /** Whether Telegram is configured in the server's .env / appsettings. */
+  protected readonly telegramConfigured = signal(false);
+
+  /**
+   * Whether Telegram login is enabled by the admin (site setting `enable_telegram`).
+   * When false the widget is hidden like the Discord button (see `telegramVisible`).
+   */
+  protected readonly telegramEnabledByAdmin = signal(true);
+
+  /**
+   * Shows switched-off methods too. Asked for explicitly, or forced when every configured method is
+   * switched off, since hiding them all would leave an admin nothing to sign in with.
+   */
+  protected readonly revealAll = computed(
+    () =>
+      this.showAllMethods() ||
+      !(
+        (this.discordConfigured() && this.discordEnabledByAdmin()) ||
+        (this.telegramConfigured() && this.telegramEnabledByAdmin()) ||
+        (this.oidcConfigured() && this.oidcEnabledByAdmin())
+      ),
+  );
+
+  /** Computed: should the Discord button be shown? Configured, and either switched on or revealed. */
+  protected readonly discordVisible = computed(() => this.discordConfigured() && (this.discordEnabledByAdmin() || this.revealAll()));
+
+  protected readonly error = signal<string | null>(null);
+
+  /**
+   * True when a configured method is hidden because the site switched it off for non-admins.
+   * Only then is the "show every method" link offered.
+   */
+  protected readonly hasHiddenMethods = computed(
+    () =>
+      !this.revealAll() &&
+      ((this.discordConfigured() && !this.discordEnabledByAdmin()) ||
+        (this.telegramConfigured() && !this.telegramEnabledByAdmin()) ||
+        (this.oidcConfigured() && !this.oidcEnabledByAdmin())),
+  );
+
+  protected readonly loading = signal(false);
 
   /** Computed: can the user actually use OIDC login without admin rejection? */
   protected readonly oidcActive = computed(() => this.oidcConfigured() && this.oidcEnabledByAdmin());
@@ -80,8 +109,8 @@ export class LoginComponent implements OnInit {
   /** Display name of the configured OIDC provider, shown on the button. */
   protected readonly oidcProviderName = signal('');
 
-  /** Computed: should the OIDC button be shown at all? Only if configured in .env. */
-  protected readonly oidcVisible = computed(() => this.oidcConfigured());
+  /** Computed: should the OIDC button be shown? Configured, and either switched on or revealed. */
+  protected readonly oidcVisible = computed(() => this.oidcConfigured() && (this.oidcEnabledByAdmin() || this.revealAll()));
 
   /** True when arriving via logout (?loggedout=1): show the signed-out panel, no auto-redirect. */
   protected readonly signedOut = signal(false);
@@ -92,32 +121,32 @@ export class LoginComponent implements OnInit {
 
   protected readonly siteTitle = computed(() => this.settingsService.siteSettings()['custom_title'] || '');
 
-  /** Whether Telegram is configured in the server's .env / appsettings. */
-  protected readonly telegramConfigured = signal(false);
-
-  /**
-   * Whether Telegram login is enabled by the admin (site setting `enable_telegram`).
-   * When false but configured, the widget still renders but the backend will reject
-   * non-admin users after authentication.
-   */
-  protected readonly telegramEnabledByAdmin = signal(true);
-
   /** Computed: can the user actually use Telegram login without admin rejection? */
   protected readonly telegramActive = computed(() => this.telegramConfigured() && this.telegramEnabledByAdmin());
 
-  /** Computed: should the Telegram section be shown at all? Only if configured in .env. */
-  protected readonly telegramVisible = computed(() => this.telegramConfigured());
+  /** Where Telegram sends the browser back to after a sign-in. */
+  protected readonly telegramAuthUrl = `${window.location.origin}/login`;
 
-  /**
-   * ViewChild setter — fires automatically when the #telegramContainer element enters
-   * the DOM (i.e., after Angular renders the @if (telegramVisible()) block). This avoids
-   * the unreliable setTimeout + detectChanges pattern for elements inside @if blocks.
-   */
-  @ViewChild('telegramContainer') set telegramContainerRef(el: ElementRef<HTMLDivElement> | undefined) {
-    if (el && this.telegramBotUsername && !this.telegramWidgetLoaded) {
-      this.telegramWidgetLoaded = true;
-      this.loadTelegramWidget(el.nativeElement);
-    }
+  /** The bot the login widget is built for. Set before `telegramConfigured`, so the widget never renders without it. */
+  protected readonly telegramBotUsername = signal('');
+
+  /** Computed: should the Telegram section be shown? Configured, and either switched on or revealed. */
+  protected readonly telegramVisible = computed(() => this.telegramConfigured() && (this.telegramEnabledByAdmin() || this.revealAll()));
+
+  protected handleTelegramAuth(telegramData: Record<string, string>): void {
+    this.loading.set(true);
+    this.error.set(null);
+
+    this.auth
+      .loginWithTelegram(telegramData)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        error: err => {
+          this.loading.set(false);
+          this.error.set(err?.error?.code === 'destination_account' ? 'AUTH.ERR_DESTINATION_ACCOUNT' : 'AUTH.ERR_TELEGRAM_FAILED');
+        },
+        next: () => this.router.navigate(['/dashboard']),
+      });
   }
 
   loginWithDiscord(): void {
@@ -134,6 +163,13 @@ export class LoginComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // Telegram's redirect sign-in returns here with the signed fields in the query.
+    const telegramReturn = readTelegramReturn(new URLSearchParams(window.location.search));
+    if (telegramReturn) {
+      clearTelegramReturn();
+      this.handleTelegramAuth(telegramReturn);
+    }
+
     // Parse any auth error from the URL fragment (e.g. /login#error=missing_required_role)
     // up front, so the provider-config handler below can decide whether to auto-redirect
     // to an external OIDC provider.
@@ -146,6 +182,7 @@ export class LoginComponent implements OnInit {
     // into the provider and silently re-logged in.
     const loggedOut = this.route.snapshot.queryParamMap.get('loggedout') === '1';
     this.signedOut.set(loggedOut);
+    this.showAllMethods.set(this.route.snapshot.queryParamMap.get('all') === '1');
 
     // Load public site settings (custom_title, signup_url) and provider config in parallel.
     // Both calls use a 10s timeout and fallback to defaults on error so the login page
@@ -198,6 +235,7 @@ export class LoginComponent implements OnInit {
         oidc_userinfo_failed: 'AUTH.ERR_OIDC_USERINFO',
         destination_account: 'AUTH.ERR_DESTINATION_ACCOUNT',
         discord_disabled: 'AUTH.ERR_DISCORD_DISABLED',
+        discord_not_configured: 'AUTH.ERR_DISCORD_NOT_CONFIGURED',
         discord_user_fetch_failed: 'AUTH.ERR_DISCORD_FETCH',
         missing_code: 'AUTH.ERR_MISSING_CODE',
         missing_required_role: 'AUTH.ERR_MISSING_ROLE',
@@ -242,7 +280,7 @@ export class LoginComponent implements OnInit {
 
     // Telegram — set botUsername before signals so the ViewChild setter has it
     // when Angular renders the @if block and triggers the setter.
-    this.telegramBotUsername = providers.telegram.botUsername;
+    this.telegramBotUsername.set(providers.telegram.botUsername);
     this.telegramConfigured.set(providers.telegram.configured);
     this.telegramEnabledByAdmin.set(providers.telegram.enabledByAdmin);
 
@@ -252,40 +290,5 @@ export class LoginComponent implements OnInit {
       this.oidcEnabledByAdmin.set(providers.oidc.enabledByAdmin);
       this.oidcProviderName.set(providers.oidc.providerName);
     }
-  }
-
-  private handleTelegramAuth(telegramData: Record<string, string>): void {
-    this.loading.set(true);
-    this.error.set(null);
-
-    this.auth
-      .loginWithTelegram(telegramData)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        error: err => {
-          this.loading.set(false);
-          this.error.set(err?.error?.code === 'destination_account' ? 'AUTH.ERR_DESTINATION_ACCOUNT' : 'AUTH.ERR_TELEGRAM_FAILED');
-        },
-        next: () => this.router.navigate(['/dashboard']),
-      });
-  }
-
-  private loadTelegramWidget(container: HTMLDivElement): void {
-    if (!this.telegramBotUsername) return;
-
-    // Set up global callback for Telegram widget
-    window.onTelegramAuth = (user: Record<string, string>) => {
-      this.ngZone.run(() => this.handleTelegramAuth(user));
-    };
-
-    const script = document.createElement('script');
-    script.src = 'https://telegram.org/js/telegram-widget.js?22';
-    script.setAttribute('data-telegram-login', this.telegramBotUsername);
-    script.setAttribute('data-size', 'large');
-    script.setAttribute('data-onauth', 'onTelegramAuth(user)');
-    script.setAttribute('data-request-access', 'write');
-    script.async = true;
-
-    container.appendChild(script);
   }
 }

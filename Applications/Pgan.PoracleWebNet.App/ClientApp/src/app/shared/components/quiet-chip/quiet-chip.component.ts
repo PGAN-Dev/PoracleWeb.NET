@@ -5,6 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateService } from '@ngx-translate/core';
 
+import { AuthService } from '../../../core/services/auth.service';
 import { MuteScope, MuteService } from '../../../core/services/mute.service';
 import { QuietSheetComponent, QuietSheetData, QuietSheetResult } from '../quiet-sheet/quiet-sheet.component';
 
@@ -16,8 +17,10 @@ import { QuietSheetComponent, QuietSheetData, QuietSheetResult } from '../quiet-
  * chip around it. Whichever form, when the subject is quiet it carries a live countdown, and pressing
  * it opens the same sheet.
  *
- * Always renders its button or chip, quiet or not. It asks no capability question: the mute routes exist on
- * every supported PoracleNG (5.4.0 and up).
+ * Always renders its button or chip, quiet or not, except while impersonating: MuteController refuses
+ * writes then, because the account in view is somebody else's. There the control is withheld and a quiet
+ * subject shows its countdown as a plain read-only pill, so an admin can still see why alerts are quiet.
+ * It asks no capability question: the mute routes exist on every supported PoracleNG (5.4.0 and up).
  */
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -28,6 +31,7 @@ import { QuietSheetComponent, QuietSheetData, QuietSheetResult } from '../quiet-
   templateUrl: './quiet-chip.component.html',
 })
 export class QuietChipComponent {
+  private readonly auth = inject(AuthService);
   private readonly dialog = inject(MatDialog);
   private readonly translate = inject(TranslateService);
   /** 'chip' on a list row, 'icon' in a card's action row, 'trailing' inside a mat-chip. */
@@ -55,6 +59,9 @@ export class QuietChipComponent {
       : this.translate.instant('QUIET.CHIP_ACTION'),
   );
 
+  /** True while impersonating, when quiet periods can be seen but not changed. */
+  readonly readOnly = computed(() => this.auth.isImpersonating());
+
   /**
    * The subject in the user's words, for the sheet title and the tooltip. When a surface has no name to
    * give (a station id nothing resolves, a gym the scanner DB does not know), this falls back to a
@@ -81,6 +88,7 @@ export class QuietChipComponent {
 
   open(event?: Event): void {
     event?.stopPropagation();
+    if (this.readOnly()) return;
 
     const data: QuietSheetData = {
       isQuiet: this.isQuiet(),

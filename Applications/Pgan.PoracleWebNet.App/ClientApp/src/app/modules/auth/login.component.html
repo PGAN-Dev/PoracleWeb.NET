@@ -60,7 +60,7 @@
             }
 
             @if (telegramVisible()) {
-              <div #telegramContainer class="telegram-widget"></div>
+              <app-telegram-login-button [authUrl]="telegramAuthUrl" [botUsername]="telegramBotUsername()" />
               @if (!telegramActive()) {
                 <p class="provider-disabled-hint">{{ 'AUTH.PROVIDER_DISABLED_HINT' | translate }}</p>
               }
@@ -80,6 +80,12 @@
               @if (!oidcActive()) {
                 <p class="provider-disabled-hint">{{ 'AUTH.PROVIDER_DISABLED_HINT' | translate }}</p>
               }
+            }
+
+            @if (hasHiddenMethods()) {
+              <button mat-button type="button" class="show-all-methods" (click)="showAllMethods.set(true)">
+                {{ 'AUTH.SHOW_ALL_METHODS' | translate }}
+              </button>
             }
 
             @if (!discordVisible() && !telegramVisible() && !oidcVisible()) {

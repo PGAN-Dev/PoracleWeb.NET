@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
+import { AlarmMoveService, MoveEdit } from './alarm-move.service';
 import { ConfigService } from './config.service';
 import { DistanceUpdateResult } from '../../shared/utils/distance-update';
 import { Invasion, InvasionCreate, InvasionUpdate } from '../models';
@@ -10,13 +11,15 @@ import { Invasion, InvasionCreate, InvasionUpdate } from '../models';
 export class InvasionService {
   private readonly config = inject(ConfigService);
   private readonly http = inject(HttpClient);
+  private readonly moves = inject(AlarmMoveService);
 
   create(invasion: InvasionCreate): Observable<Invasion> {
     return this.http.post<Invasion>(`${this.config.apiHost}/api/invasions`, invasion);
   }
 
-  delete(uid: number): Observable<void> {
-    return this.http.delete<void>(`${this.config.apiHost}/api/invasions/${uid}`);
+  /** `kind` names the card being deleted, so a uid shared with the other kind's rule never takes it down. See #1062. */
+  delete(uid: number, kind?: 'event' | 'invasion'): Observable<void> {
+    return this.http.delete<void>(`${this.config.apiHost}/api/invasions/${uid}`, kind ? { params: { kind } } : undefined);
   }
 
   deleteAll(): Observable<void> {
@@ -27,14 +30,28 @@ export class InvasionService {
     return this.http.get<Invasion[]>(`${this.config.apiHost}/api/invasions`);
   }
 
-  update(uid: number, invasion: InvasionUpdate): Observable<void> {
-    return this.http.put<void>(`${this.config.apiHost}/api/invasions/${uid}`, invasion);
+  /**
+   * `kind` is the kind of the card the person opened. Invasions and Pokéstop events are numbered separately, so the
+   * server needs it to know which rule the uid names, on a plain edit and on a move alike. Leave it out for an older
+   * server's behaviour. See #1062.
+   */
+  update(uid: number, invasion: InvasionUpdate, kind?: 'event' | 'invasion'): Observable<MoveEdit | void> {
+    const params = kind ? { kind } : undefined;
+    return this.moves.put(
+      'invasions',
+      uid,
+      invasion,
+      () => this.http.put<void>(`${this.config.apiHost}/api/invasions/${uid}`, invasion, params ? { params } : undefined),
+      params,
+    );
   }
 
-  updateBulkDistance(uids: number[], distance: number): Observable<DistanceUpdateResult> {
+  /** `kind` limits the change to the cards of that kind, since an invasion and an event can share a uid. See #1062. */
+  updateBulkDistance(uids: number[], distance: number, kind?: 'event' | 'invasion'): Observable<DistanceUpdateResult> {
     return this.http.put<DistanceUpdateResult>(`${this.config.apiHost}/api/invasions/distance/bulk`, {
       uids,
       distance,
+      ...(kind ? { kind } : {}),
     });
   }
 }

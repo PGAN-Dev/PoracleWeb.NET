@@ -185,5 +185,11 @@ export const routes: Routes = [
     title: 'NAV.MY_DESTINATIONS',
   },
   { path: 'my-webhooks', pathMatch: 'full', redirectTo: 'my-destinations' },
+  {
+    canActivate: [authGuard, disabledFeatureGuard('disable_account_linking')],
+    loadComponent: () => import('./modules/linked-accounts/linked-accounts.component').then(m => m.LinkedAccountsComponent),
+    path: 'linked-accounts',
+    title: 'LINKED.TITLE',
+  },
   { path: '**', redirectTo: 'dashboard' },
 ];

@@ -127,7 +127,7 @@ public class AdminGeofenceControllerTests : ControllerTestBase
     [Fact]
     public async Task AdminDeleteReturnsNoContent()
     {
-        this._service.Setup(s => s.AdminDeleteAsync("123456789", 1, true)).Returns(Task.CompletedTask);
+        this._service.Setup(s => s.AdminDeleteAsync("123456789", 1, true)).ReturnsAsync((Pgan.PoracleWebNet.Core.Models.PairWarning?)null);
 
         var result = await this._sut.AdminDelete(1, "delete");
 

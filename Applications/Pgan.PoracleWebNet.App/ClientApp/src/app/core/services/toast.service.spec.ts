@@ -1,8 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { Router, provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
+import { EMPTY, Observable, Subject, of } from 'rxjs';
 
-import { ToastService } from './toast.service';
+import { PAIR_WARNING_DEFER_MS, PAIR_WARNING_TOAST_MS, ToastService } from './toast.service';
 
 describe('ToastService', () => {
   let service: ToastService;
@@ -11,10 +13,113 @@ describe('ToastService', () => {
   beforeEach(() => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      providers: [provideTranslateService(), { provide: MatSnackBar, useValue: { open: jest.fn() } }],
+      providers: [
+        provideRouter([]),
+        provideTranslateService(),
+        { provide: MatSnackBar, useValue: { open: jest.fn(() => ({ onAction: () => EMPTY })) } },
+      ],
     });
     service = TestBed.inject(ToastService);
     snackBar = TestBed.inject(MatSnackBar) as jest.Mocked<MatSnackBar>;
+  });
+
+  describe('pairWarning', () => {
+    const pairConfig = { duration: PAIR_WARNING_TOAST_MS, panelClass: ['toast-info'], verticalPosition: 'top' };
+    let dismissed: Subject<{ dismissedByAction: boolean }>;
+
+    /** A snack bar ref whose closing the test controls. */
+    const ref = (action = EMPTY as Observable<void>) => {
+      dismissed = new Subject();
+      return { afterDismissed: () => dismissed, onAction: () => action };
+    };
+
+    beforeEach(() => jest.useFakeTimers());
+    afterEach(() => jest.useRealTimers());
+
+    it('stays up long enough to read, with an action that opens Linked accounts', () => {
+      const go = jest.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
+      (snackBar.open as jest.Mock).mockReturnValueOnce(ref(of(undefined)));
+
+      service.pairWarning('Saved for Discord, but not for Telegram.');
+      jest.advanceTimersByTime(PAIR_WARNING_DEFER_MS);
+
+      expect(snackBar.open).toHaveBeenCalledWith('Saved for Discord, but not for Telegram.', 'DRIFT.REVIEW', pairConfig);
+      // It says why the page opened, so Linked accounts puts focus on its heading.
+      expect(go).toHaveBeenCalledWith('/linked-accounts', { state: { driftReview: true } });
+    });
+
+    it("is carried by the page's own success toast instead of being replaced by it, and shown once", () => {
+      service.pairWarning('Not saved for Telegram.');
+      service.success('Profile renamed.');
+      jest.advanceTimersByTime(PAIR_WARNING_DEFER_MS + PAIR_WARNING_TOAST_MS);
+
+      expect(snackBar.open).toHaveBeenCalledTimes(1);
+      expect(snackBar.open).toHaveBeenCalledWith('Profile renamed. Not saved for Telegram.', 'DRIFT.REVIEW', pairConfig);
+    });
+
+    it('is carried by an info toast that comes after it is up, once', () => {
+      (snackBar.open as jest.Mock).mockReturnValueOnce(ref());
+      service.pairWarning('Not saved for Telegram.');
+      jest.advanceTimersByTime(PAIR_WARNING_DEFER_MS);
+      service.info('Areas saved.');
+      dismissed.next({ dismissedByAction: false }); // replaced by the combined toast
+      service.info('Something else.');
+
+      expect(snackBar.open).toHaveBeenNthCalledWith(2, 'Areas saved. Not saved for Telegram.', 'DRIFT.REVIEW', pairConfig);
+      expect(snackBar.open).toHaveBeenLastCalledWith('Something else.', 'TOAST.OK', expect.objectContaining({ duration: 3000 }));
+      expect(snackBar.open).toHaveBeenCalledTimes(3);
+    });
+
+    it("waits for a page's own snack bar to close, then shows the warning after it", () => {
+      const pageToast = new Subject<void>();
+      Object.assign(snackBar, { _openedSnackBarRef: { afterDismissed: () => pageToast } });
+
+      service.pairWarning('Not saved for Telegram.');
+      jest.advanceTimersByTime(PAIR_WARNING_DEFER_MS);
+      expect(snackBar.open).not.toHaveBeenCalled();
+
+      Object.assign(snackBar, { _openedSnackBarRef: null });
+      pageToast.next();
+      expect(snackBar.open).toHaveBeenCalledWith('Not saved for Telegram.', 'DRIFT.REVIEW', pairConfig);
+    });
+
+    it('comes back once when another toast replaces it before it could be read', () => {
+      (snackBar.open as jest.Mock).mockReturnValueOnce(ref());
+      service.pairWarning('Not saved for Telegram.');
+      jest.advanceTimersByTime(PAIR_WARNING_DEFER_MS + 500);
+
+      const first = dismissed;
+      (snackBar.open as jest.Mock).mockReturnValueOnce(ref());
+      first.next({ dismissedByAction: false });
+      expect(snackBar.open).toHaveBeenCalledTimes(2);
+
+      // Replaced again: not a third time.
+      dismissed.next({ dismissedByAction: false });
+      expect(snackBar.open).toHaveBeenCalledTimes(2);
+    });
+
+    it('is not shown again after it ran its course, or after Review was pressed', () => {
+      (snackBar.open as jest.Mock).mockReturnValueOnce(ref());
+      service.pairWarning('Not saved for Telegram.');
+      jest.advanceTimersByTime(PAIR_WARNING_DEFER_MS + PAIR_WARNING_TOAST_MS);
+      dismissed.next({ dismissedByAction: false });
+      expect(snackBar.open).toHaveBeenCalledTimes(1);
+
+      (snackBar.open as jest.Mock).mockReturnValueOnce(ref());
+      service.pairWarning('Again.');
+      jest.advanceTimersByTime(PAIR_WARNING_DEFER_MS);
+      dismissed.next({ dismissedByAction: true });
+      expect(snackBar.open).toHaveBeenCalledTimes(2);
+    });
+
+    it('is not carried by a success long after it has gone', () => {
+      (snackBar.open as jest.Mock).mockReturnValueOnce(ref());
+      service.pairWarning('Not saved for Telegram.');
+      jest.advanceTimersByTime(PAIR_WARNING_DEFER_MS + PAIR_WARNING_TOAST_MS + 1);
+      service.success('Saved.');
+
+      expect(snackBar.open).toHaveBeenLastCalledWith('Saved.', 'TOAST.OK', expect.objectContaining({ panelClass: ['toast-success'] }));
+    });
   });
 
   describe('success', () => {
@@ -36,6 +141,18 @@ describe('ToastService', () => {
       expect(snackBar.open).toHaveBeenCalledWith('Something failed', 'TOAST.DISMISS', {
         duration: 5000,
         panelClass: ['toast-error'],
+        verticalPosition: 'top',
+      });
+    });
+  });
+
+  describe('info with a duration', () => {
+    it('uses the one it is given', () => {
+      service.info('A sentence with a reason', 8000);
+
+      expect(snackBar.open).toHaveBeenCalledWith('A sentence with a reason', 'TOAST.OK', {
+        duration: 8000,
+        panelClass: ['toast-info'],
         verticalPosition: 'top',
       });
     });

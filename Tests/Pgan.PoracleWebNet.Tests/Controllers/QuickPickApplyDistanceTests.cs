@@ -146,6 +146,9 @@ public class QuickPickApplyDistanceTests : ControllerTestBase
             lures.Object, nests.Object, gyms.Object, maxBattles.Object,
             new Mock<IMasterDataService>().Object,
             gate.Object,
+            Pgan.PoracleWebNet.Tests.Helpers.LinkedTestKit.Unlinked(),
+            Pgan.PoracleWebNet.Tests.Helpers.LinkedTestKit.Router(Pgan.PoracleWebNet.Tests.Helpers.LinkedTestKit.Unlinked()),
+            Moq.Mock.Of<Pgan.PoracleWebNet.Core.Abstractions.Services.IHumanService>(),
             new Mock<ILogger<QuickPickService>>().Object);
 
         return (service, created);

@@ -123,12 +123,6 @@
   font-size: 13px;
 }
 
-.telegram-widget {
-  display: flex;
-  justify-content: center;
-  min-height: 40px;
-}
-
 .loading {
   display: flex;
   align-items: center;
@@ -208,6 +202,12 @@
     opacity: 0.5;
     cursor: not-allowed;
   }
+}
+
+.show-all-methods {
+  align-self: center;
+  font-size: 13px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
 }
 
 .no-methods-message {

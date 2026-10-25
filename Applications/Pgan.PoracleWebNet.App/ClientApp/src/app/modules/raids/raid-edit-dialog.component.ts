@@ -12,13 +12,14 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { TranslatePipe } from '@ngx-translate/core';
 
-import { Raid, Egg, RaidUpdate, EggUpdate } from '../../core/models';
+import { Raid, Egg, RaidUpdate, EggUpdate, LinkSide } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { EggService } from '../../core/services/egg.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { RaidService } from '../../core/services/raid.service';
+import { DeliverToFieldComponent } from '../../shared/components/deliver-to/deliver-to-field.component';
 import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
 import { RsvpToggleComponent } from '../../shared/components/rsvp-toggle/rsvp-toggle.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
@@ -28,6 +29,7 @@ import { createFailureText } from '../../shared/utils/add-outcome';
 import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, EDIT, isAutoDelete } from '../../shared/utils/clean-flags';
 import { ANY_COSTUME, costumeHintKey } from '../../shared/utils/costumes';
+import { injectDeliverTo, moveEditMessage } from '../../shared/utils/deliver-to';
 import { mentionCapable } from '../../shared/utils/human-kind';
 
 export interface RaidEditDialogData {
@@ -38,6 +40,7 @@ export interface RaidEditDialogData {
 @Component({
   providers: [LevelLabelPipe],
   imports: [
+    DeliverToFieldComponent,
     ReactiveFormsModule,
     MatDialogModule,
     MatButtonModule,
@@ -72,12 +75,15 @@ export class RaidEditDialogComponent {
   private readonly raidService = inject(RaidService);
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<RaidEditDialogData>(MAT_DIALOG_DATA);
+  readonly deliver = injectDeliverTo();
   readonly dialogRef = inject(MatDialogRef<RaidEditDialogComponent>);
+
   form = this.fb.group({
     clean: [isAutoDelete(this.data.item.clean)],
     // Eggs have no costume column, and a rule stored before PoracleNG had one reads back undefined.
     // Both widen to "any" rather than falling to 0, which is the real "no costume" filter.
     costume: [this.data.type === 'raid' ? ((this.data.item as Raid).costume ?? ANY_COSTUME) : ANY_COSTUME],
+    destination: [(this.data.item.destination ?? null) as LinkSide | null],
     // Always present even when the Mention control is hidden (not a webhook alarm) -- so a mention
     // round-trips unchanged through a save this dialog makes for an unrelated field.
     ping: [this.data.item.ping ?? '', [Validators.maxLength(255)]],
@@ -160,6 +166,7 @@ export class RaidEditDialogComponent {
     if (this.data.type === 'raid') {
       const raid = this.data.item as Raid;
       const update: RaidUpdate = {
+        ...this.deliver.moveFields(this.data.item.destination, this.form.controls.destination.value),
         overrideAreas: scope.overrideAreas,
         overrideLocationLabel: scope.overrideLocationLabel,
         clean,
@@ -186,14 +193,17 @@ export class RaidEditDialogComponent {
           });
           this.saving.set(false);
         },
-        next: () => {
-          this.snackBar.open(this.i18n.instant('RAIDS.SNACK_UPDATED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+        next: moved => {
+          this.snackBar.open(moveEditMessage(moved, this.i18n) ?? this.i18n.instant('RAIDS.SNACK_UPDATED'), this.i18n.instant('TOAST.OK'), {
+            duration: 3000,
+          });
           this.dialogRef.close(true);
         },
       });
     } else {
       const egg = this.data.item as Egg;
       const update: EggUpdate = {
+        ...this.deliver.moveFields(this.data.item.destination, this.form.controls.destination.value),
         overrideAreas: scope.overrideAreas,
         overrideLocationLabel: scope.overrideLocationLabel,
         clean,
@@ -215,8 +225,12 @@ export class RaidEditDialogComponent {
           });
           this.saving.set(false);
         },
-        next: () => {
-          this.snackBar.open(this.i18n.instant('RAIDS.SNACK_EGG_UPDATED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+        next: moved => {
+          this.snackBar.open(
+            moveEditMessage(moved, this.i18n) ?? this.i18n.instant('RAIDS.SNACK_EGG_UPDATED'),
+            this.i18n.instant('TOAST.OK'),
+            { duration: 3000 },
+          );
           this.dialogRef.close(true);
         },
       });

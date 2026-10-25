@@ -2,18 +2,31 @@ using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Abstractions.Services;
 
-public interface IInvasionService
+public interface IInvasionService : IAlarmService<Invasion>
 {
-    public Task<IEnumerable<Invasion>> GetByUserAsync(string userId, int profileNo);
-    public Task<Invasion?> GetByUidAsync(string userId, int uid);
-    public Task<Invasion> CreateAsync(string userId, Invasion model);
-    public Task<Invasion> UpdateAsync(string userId, Invasion model);
-    public Task<bool> DeleteAsync(string userId, int uid);
-    public Task<int> DeleteAllByUserAsync(string userId, int profileNo);
-    public Task<DistanceUpdateResult> UpdateDistanceByUserAsync(string userId, int profileNo, int distance);
-    public Task<DistanceUpdateResult> UpdateDistanceByUidsAsync(List<int> uids, string userId, int distance);
-    public Task<int> CountByUserAsync(string userId, int profileNo);
-    public Task<IEnumerable<Invasion>> BulkCreateAsync(string userId, IEnumerable<Invasion> models);
+    /// <summary>The rule with this uid of the stated kind ("event" or "invasion"); another kind matches any.</summary>
+    public Task<Invasion?> GetByUidAsync(string userId, int uid, string? kind);
+
+    /// <summary>
+    /// <paramref name="storedKind"/> is the kind ("event" or "invasion") of the rule the caller opened. When the
+    /// model's grunt is of the other kind, the rule is created as the new kind and the old one removed, instead of
+    /// a write addressed by the old uid. Null keeps <see cref="IAlarmService{TModel}.UpdateAsync(string, TModel)"/>.
+    /// </summary>
+    public Task<Invasion> UpdateAsync(string userId, Invasion model, string? storedKind);
+
+    /// <summary>
+    /// Deletes the rule with this uid of the stated kind ("event" or "invasion"). An event goes straight to the
+    /// incident route, so an invasion sharing the number is never touched; any other kind deletes as
+    /// <see cref="IAlarmService{TModel}.DeleteAsync(string, int)"/> does.
+    /// </summary>
+    public Task<bool> DeleteAsync(string userId, int uid, string? kind);
+
+    /// <summary>
+    /// <see cref="IAlarmService{TModel}.UpdateDistanceByUidsAsync"/> for the rules of one kind ("event" or
+    /// "invasion") only, so a uid shared with the other kind is left alone. Any other kind behaves as the
+    /// uid-only call.
+    /// </summary>
+    public Task<DistanceUpdateResult> UpdateDistanceByUidsAsync(List<int> uids, string userId, int distance, string? kind);
 
     /// <summary>
     /// True when <paramref name="gruntType"/> names a Pokestop event (kecleon, gold-stop, showcase) and this

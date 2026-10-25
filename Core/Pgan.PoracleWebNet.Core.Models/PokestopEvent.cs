@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Pgan.PoracleWebNet.Core.Models;
 
 /// <summary>
@@ -8,7 +10,7 @@ namespace Pgan.PoracleWebNet.Core.Models;
 /// word appears in the UI or in a route the browser calls — they live inside
 /// <c>IPoracleIncidentProxy</c> and nowhere else.
 /// </remarks>
-public class PokestopEvent
+public class PokestopEvent : IHasDestination
 {
     public int Uid
     {
@@ -64,6 +66,24 @@ public class PokestopEvent
     /// is a full replace on v2, does not blank a mention set elsewhere.
     /// </summary>
     public string? Ping
+    {
+        get; set;
+    }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Destination
+    {
+        get; set;
+    }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? PausedDestination
+    {
+        get; set;
+    }
+
+    [JsonIgnore]
+    public int? ExistingUid
     {
         get; set;
     }

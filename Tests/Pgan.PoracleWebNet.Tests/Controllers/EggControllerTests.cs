@@ -13,7 +13,7 @@ public class EggControllerTests : ControllerTestBase
 
     public EggControllerTests()
     {
-        this._sut = new EggController(this._service.Object);
+        this._sut = new EggController(this._service.Object, UnlinkedRouter());
         SetupUser(this._sut);
     }
 

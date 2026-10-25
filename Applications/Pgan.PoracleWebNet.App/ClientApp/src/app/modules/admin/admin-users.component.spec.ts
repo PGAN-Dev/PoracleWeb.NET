@@ -8,10 +8,11 @@ import { provideTranslateService } from '@ngx-translate/core';
 import { of, throwError } from 'rxjs';
 
 import { AdminUsersComponent } from './admin-users.component';
-import { AdminUser } from '../../core/models';
+import { AccountLink, AdminUser } from '../../core/models';
 import { AdminService } from '../../core/services/admin.service';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
+import { SettingsService } from '../../core/services/settings.service';
 
 function row(id: string, overrides: Partial<AdminUser> = {}): AdminUser {
   return {
@@ -36,13 +37,15 @@ describe('AdminUsersComponent', () => {
   const otherAdmin = row('admin2', { name: 'Other Admin' });
   const member = row('u2', { name: 'Sam', currentProfileNo: 0 });
 
-  function setup(confirm = true) {
+  function setup(confirm = true, options: { links?: AccountLink[]; linkingDisabled?: boolean } = {}) {
     const adminService = {
       deleteUser: jest.fn(() => of(undefined)),
       deleteUserAlarms: jest.fn(() => of({ deleted: 0 })),
       disableUser: jest.fn(() => of({ ...member, adminDisable: 1 })),
       enableUser: jest.fn(() => of(member)),
+      getAccountLinks: jest.fn(() => of(options.links ?? [])),
       getUsers: jest.fn(() => of([me, otherAdmin, member])),
+      unlinkAccounts: jest.fn(() => of(undefined)),
     };
     const snackBar = { open: jest.fn() };
     const dialog = { open: jest.fn(() => ({ afterClosed: () => of(confirm) })) };
@@ -52,7 +55,11 @@ describe('AdminUsersComponent', () => {
         provideRouter([]),
         provideTranslateService(),
         { provide: AdminService, useValue: adminService },
-        { provide: AuthService, useValue: { impersonate: jest.fn(), user: signal({ id: 'admin1', isAdmin: true }) } },
+        { provide: SettingsService, useValue: { isDisabled: () => options.linkingDisabled ?? false } },
+        {
+          provide: AuthService,
+          useValue: { impersonate: jest.fn(), isImpersonating: signal(false), user: signal({ id: 'admin1', isAdmin: true }) },
+        },
       ],
       imports: [AdminUsersComponent, NoopAnimationsModule],
     });
@@ -134,6 +141,100 @@ describe('AdminUsersComponent', () => {
     (row.querySelector('[data-test="view-as"]') as HTMLButtonElement).click();
 
     expect(spy).toHaveBeenCalledWith(member);
+  });
+
+  describe('linked accounts', () => {
+    const link = (discordId: string, telegramId: string): AccountLink => ({
+      id: 1,
+      createdAt: '2026-10-01T00:00:00Z',
+      defaultDestination: 'discord',
+      discordId,
+      discordVerifiedAt: null,
+      telegramId,
+      telegramVerifiedAt: null,
+    });
+    const text = (fixture: ReturnType<typeof setup>['fixture'], i: number) =>
+      (fixture.nativeElement as HTMLElement).querySelectorAll('tr.mat-mdc-row')[i].textContent ?? '';
+
+    it('shows the chip on linked rows only, naming the other platform', () => {
+      const telegramMember = row('200000001', { name: 'Riley', type: 'telegram:user' });
+      const { adminService, fixture } = setup(true, { links: [link('u2', '200000001')] });
+      adminService.getUsers.mockReturnValue(of([me, member, telegramMember]));
+      fixture.componentInstance.loadUsers();
+      fixture.detectChanges();
+      expect(text(fixture, 0)).not.toContain('ADMIN.LINKED_TO_');
+      expect(text(fixture, 1)).toContain('ADMIN.LINKED_TO_TELEGRAM');
+      expect(text(fixture, 2)).toContain('ADMIN.LINKED_TO_DISCORD');
+    });
+
+    it('offers Unlink accounts on a linked row and not on an unlinked one', () => {
+      const { fixture } = setup(true, { links: [link('u2', '200000001')] });
+      expect(actionLabels(fixture, 2)).toContain('ADMIN.UNLINK_ACCOUNTS');
+      expect(actionLabels(fixture, 0)).not.toContain('ADMIN.UNLINK_ACCOUNTS');
+    });
+
+    it('unlinks by the row id after confirmation', () => {
+      const { adminService, component } = setup(true, { links: [link('u2', '200000001')] });
+      component.unlinkAccounts(member);
+      expect(adminService.unlinkAccounts).toHaveBeenCalledWith('u2');
+    });
+
+    it('asks with a neutral confirm that names both accounts', () => {
+      const telegramMember = row('200000001', { name: 'Riley', type: 'telegram:user' });
+      const { adminService, component, dialog, fixture } = setup(true, { links: [link('u2', '200000001')] });
+      adminService.getUsers.mockReturnValue(of([me, member, telegramMember]));
+      component.loadUsers();
+      fixture.detectChanges();
+      const instant = jest.spyOn(TestBed.inject(I18nService), 'instant');
+      component.unlinkAccounts(member);
+      const data = (dialog.open.mock.calls[0] as unknown as [unknown, { data: { icon?: string; message: string; warn?: boolean } }])[1]
+        .data;
+      expect(data.icon).toBe('link_off');
+      expect(data.warn).toBeFalsy();
+      expect(instant).toHaveBeenCalledWith('ADMIN.CONFIRM_UNLINK', { discord: 'Sam', telegram: 'Riley' });
+    });
+
+    it("returns focus to the row's actions button when the confirm closes, not to the page", () => {
+      const { component, dialog, fixture } = setup(true, { links: [link('u2', '200000001')] });
+      const trigger = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('[data-test="row-menu"]')).find(
+        b => b.dataset['user'] === 'u2',
+      );
+      expect(trigger).toBeTruthy();
+
+      component.unlinkAccounts(member);
+
+      // The menu item that opened the dialog is gone by the time it closes, so it can't take focus back.
+      const config = (dialog.open.mock.calls[0] as unknown as [unknown, { restoreFocus?: unknown }])[1];
+      expect(config.restoreFocus).toBe(trigger);
+    });
+
+    it('falls back to the id for a side the user list does not hold', () => {
+      const { component } = setup(true, { links: [link('u2', '200000001')] });
+      const instant = jest.spyOn(TestBed.inject(I18nService), 'instant');
+      component.unlinkAccounts(member);
+      expect(instant).toHaveBeenCalledWith('ADMIN.CONFIRM_UNLINK', { discord: 'Sam', telegram: '200000001' });
+    });
+
+    it('shows a short chip with an icon, and keeps the full wording for screen readers', () => {
+      const { fixture } = setup(true, { links: [link('u2', '200000001')] });
+      const chip = (fixture.nativeElement as HTMLElement).querySelectorAll('tr.mat-mdc-row')[2].querySelector('[data-test="linked-chip"]')!;
+      expect(chip.querySelector('mat-icon')?.textContent).toContain('link');
+      expect(chip.querySelector('.visually-hidden')?.textContent).toContain('ADMIN.LINKED_TO_TELEGRAM');
+      expect(chip.querySelector('[aria-hidden="true"]:not(mat-icon)')?.textContent).toContain('LINKED.SIDE_TELEGRAM');
+    });
+
+    it('refetches the shared user list after an unlink', () => {
+      const { adminService, component } = setup(true, { links: [link('u2', '200000001')] });
+      const before = adminService.getUsers.mock.calls.length;
+      component.unlinkAccounts(member);
+      expect(adminService.getUsers.mock.calls.length).toBe(before + 1);
+    });
+
+    it('still reads links while account linking is switched off, so a stuck pair can be cut', () => {
+      const { adminService, fixture } = setup(true, { linkingDisabled: true, links: [link('u2', '200000001')] });
+      expect(adminService.getAccountLinks).toHaveBeenCalled();
+      expect(actionLabels(fixture, 2)).toContain('ADMIN.UNLINK_ACCOUNTS');
+    });
   });
 
   // A legacy OIDC or Telegram row can carry no type at all, and it is still a person.

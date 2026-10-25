@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
+using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
@@ -60,14 +61,26 @@ internal static class TrackingFieldPreserver
             return body;
         }
 
-        if (rows.ValueKind != JsonValueKind.Array)
+        return PreserveStoredFields(trackingType, rows, uid, body);
+    }
+
+    /// <summary>
+    /// The same merge over rows the caller has already read, for a caller that merges many bodies from one read.
+    /// </summary>
+    public static JsonElement PreserveStoredFields(string trackingType, JsonElement rows, int uid, JsonElement body)
+    {
+        if (uid <= 0 || body.ValueKind != JsonValueKind.Object || rows.ValueKind != JsonValueKind.Array)
         {
             return body;
         }
 
+        // The invasion read folds Pokestop events in under their own uid sequence, so an invasion and an event
+        // can share a uid. Match the kind as well. See #1058.
+        var isEvent = IsPokestopEvent(trackingType, body);
+
         foreach (var row in rows.EnumerateArray())
         {
-            if (PoracleJsonHelper.UidOf(row) == uid)
+            if (PoracleJsonHelper.UidOf(row) == uid && IsPokestopEvent(trackingType, row) == isEvent)
             {
                 return PoracleJsonHelper.PreserveUnmodelled(row, body);
             }
@@ -75,4 +88,15 @@ internal static class TrackingFieldPreserver
 
         return body;
     }
+
+    /// <summary>
+    /// Whether the row is a Pokestop event folded into the invasion read, told apart by the marker the
+    /// proxy uses: a <c>grunt_type</c> that names an event.
+    /// </summary>
+    private static bool IsPokestopEvent(string trackingType, JsonElement row) =>
+        trackingType == "invasion"
+        && row.ValueKind == JsonValueKind.Object
+        && row.TryGetProperty("grunt_type", out var grunt)
+        && grunt.ValueKind == JsonValueKind.String
+        && PokestopEventTypes.IsEventName(grunt.GetString());
 }

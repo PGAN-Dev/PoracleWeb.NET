@@ -4,6 +4,7 @@ using Moq;
 using Pgan.PoracleWebNet.Api.Controllers;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
+using Pgan.PoracleWebNet.Tests.Helpers;
 
 namespace Pgan.PoracleWebNet.Tests.Controllers;
 
@@ -16,7 +17,7 @@ public class MuteControllerTests : ControllerTestBase
 
     public MuteControllerTests()
     {
-        this._sut = new MuteController(this._proxy.Object);
+        this._sut = new MuteController(this._proxy.Object, PairTestSupport.UnlinkedWriter());
         SetupUser(this._sut, userId: UserId);
     }
 

@@ -1,0 +1,49 @@
+@if (linked.canChoose()) {
+  <section class="drift-panel" aria-labelledby="drift-panel-heading" data-test="drift-panel">
+    <!-- "Different settings" only above a list of differences; otherwise the heading can't contradict the line under it. -->
+    <h2 id="drift-panel-heading" class="drift-heading" tabindex="-1">
+      {{ (lines().length > 0 && !linked.driftUnknown() ? 'DRIFT.TITLE' : 'DRIFT.TITLE_NEUTRAL') | translate }}
+    </h2>
+
+    <!-- A failure whose line has gone (it changed meanwhile) is said under the heading, which is where focus lands. -->
+    @if (error() && !hasLine(errorField())) {
+      <p class="drift-error drift-error-top" role="alert" data-test="drift-error">{{ error() }}</p>
+    }
+
+    @if (linked.driftUnknown()) {
+      <p class="hint" data-test="drift-unknown">{{ 'DRIFT.UNKNOWN' | translate }}</p>
+    } @else if (lines().length === 0) {
+      <p class="hint" data-test="drift-none">{{ 'DRIFT.NONE' | translate }}</p>
+    } @else {
+      <p class="hint" data-test="drift-explain">{{ 'DRIFT.EXPLAIN' | translate }}</p>
+      <ul class="drift-list">
+        @for (line of lines(); track line.item.field) {
+          <li class="drift-line" [attr.data-field]="line.item.field">
+            <h3 class="drift-label" [id]="'drift-label-' + line.item.field" tabindex="-1">{{ line.labelKey | translate }}</h3>
+            <p class="drift-text">{{ line.text }}</p>
+            <div class="drift-choices">
+              @for (side of sides; track side) {
+                <div class="drift-choice">
+                  <button
+                    mat-stroked-button
+                    type="button"
+                    [attr.data-keep]="line.item.field + '-' + side"
+                    [attr.aria-label]="'DRIFT.KEEP_ARIA' | translate: { label: line.labelKey | translate, side: sideName(side) }"
+                    [attr.aria-describedby]="consequenceId(line, side)"
+                    [disabled]="busy() !== null || line.blocked[side]"
+                    (click)="keep(line, side)">
+                    {{ 'DRIFT.KEEP' | translate: { side: sideName(side) } }}
+                  </button>
+                  <p class="drift-consequence" [id]="consequenceId(line, side)">{{ line.consequence[side] }}</p>
+                </div>
+              }
+            </div>
+            @if (error() && errorField() === line.item.field) {
+              <p class="drift-error" role="alert" data-test="drift-error">{{ error() }}</p>
+            }
+          </li>
+        }
+      </ul>
+    }
+  </section>
+}

@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Pgan.PoracleWebNet.Api.Filters;
+using Pgan.PoracleWebNet.Api.Services;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 
 using Pgan.PoracleWebNet.Core.Models;
@@ -19,12 +20,14 @@ public class LocationController(
     IProfileService profileService,
     IPoracleHumanProxy humanProxy,
     IPoracleApiProxy poracleApiProxy,
+    IPairedHumanWriter pairWriter,
     IScannerService? scannerService = null) : BaseApiController
 {
     private readonly IHumanService _humanService = humanService;
     private readonly IProfileService _profileService = profileService;
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
+    private readonly IPairedHumanWriter _pairWriter = pairWriter;
     private readonly IScannerService? _scannerService = scannerService;
 
     [HttpGet]
@@ -69,13 +72,14 @@ public class LocationController(
         var longitude = request.Longitude!.Value;
 
         // Single atomic call — PoracleNG handles writing to both humans and profiles tables
-        await this._humanProxy.SetLocationAsync(this.UserId, latitude, longitude);
+        // A linked pair gets the same write on both of its humans.
+        var written = await this._pairWriter.WriteAsync(this.UserId, id => this._humanProxy.SetLocationAsync(id, latitude, longitude));
 
-        return this.Ok(new
+        return this.Ok(this.Paired(new
         {
             latitude,
             longitude
-        });
+        }, written.Warning));
     }
 
     /// <summary>
@@ -308,9 +312,9 @@ public class LocationController(
             return this.BadRequest(new { error = "Latitude must be -90 to 90 and longitude -180 to 180." });
         }
 
-        await this._humanProxy.UpdatePlaceAsync(this.UserId, label, latitude, longitude);
+        var written = await this._pairWriter.WriteAsync(this.UserId, id => this._humanProxy.UpdatePlaceAsync(id, label, latitude, longitude));
 
-        return this.Ok(await this.PlacesAsync());
+        return this.Ok(this.Paired(await this.PlacesAsync(), written.Warning));
     }
 
     /// <summary>New coordinates for a saved place. The label is the path segment and does not change.</summary>
@@ -348,13 +352,30 @@ public class LocationController(
         }
 
         place.Label = place.Label.Trim();
-        var refusal = await this._humanProxy.AddPlaceAsync(this.UserId, place);
+
+        // A refusal on the signed-in side is today's 400 and stops there; on the other side it is a warning.
+        PairWriteResult<bool> written;
+        try
+        {
+            written = await this._pairWriter.WriteAsync(this.UserId, async id =>
+            {
+                var refusal = await this._humanProxy.AddPlaceAsync(id, place);
+                if (refusal is not null)
+                {
+                    throw new PlaceRefusedException(refusal);
+                }
+            });
+        }
+        catch (PlaceRefusedException ex)
+        {
+            return this.BadRequest(new { error = ex.Message });
+        }
 
         // Answers the same shape as the GET and the PUT; the SPA replaces its places signal from it.
-        return refusal is null
-            ? this.Ok(await this.PlacesAsync())
-            : this.BadRequest(new { error = refusal });
+        return this.Ok(this.Paired(await this.PlacesAsync(), written.Warning));
     }
+
+    private sealed class PlaceRefusedException(string reason) : Exception(reason);
 
     /// <summary>
     /// How many of the active profile's alarms measure their radius from the profile pin: a radius above
@@ -363,10 +384,18 @@ public class LocationController(
     /// </summary>
     [EnableRateLimiting("tracking-usage")]
     [HttpGet("pin-usage")]
-    public async Task<IActionResult> GetPinUsage([FromServices] IPoracleTrackingProxy trackingProxy)
+    public async Task<IActionResult> GetPinUsage(
+        [FromServices] IPoracleTrackingProxy trackingProxy, [FromServices] ILinkedAccount linked)
     {
-        var snapshot = await trackingProxy.GetAllTrackingAsync(this.UserId);
-        return this.Ok(new { alarms = PlaceUsage.CountMeasuredFromPin(snapshot) });
+        // Both humans of a linked pair: clearing the pin is person-level, so the count has to cover them all.
+        var pair = await linked.ResolveAsync(this.UserId);
+        var alarms = 0;
+        foreach (var humanId in pair.ExistingHumanIds)
+        {
+            alarms += PlaceUsage.CountMeasuredFromPin(await trackingProxy.GetAllTrackingAsync(humanId));
+        }
+
+        return this.Ok(new { alarms });
     }
 
     /// <summary>
@@ -377,15 +406,23 @@ public class LocationController(
     [EnableRateLimiting("tracking-usage")]
     [HttpGet("place-usage")]
     public async Task<IActionResult> GetPlaceUsage(
-        [FromQuery] string? label, [FromServices] IPoracleTrackingProxy trackingProxy)
+        [FromQuery] string? label, [FromServices] IPoracleTrackingProxy trackingProxy, [FromServices] ILinkedAccount linked)
     {
         if (string.IsNullOrWhiteSpace(label))
         {
             return this.BadRequest(new { error = "Name the place to check." });
         }
 
-        var snapshot = await trackingProxy.GetAllTrackingWithDescriptionsAsync(this.UserId);
-        var rules = PlaceUsage.RulesAimedAt(snapshot, label);
+        var pair = await linked.ResolveAsync(this.UserId);
+        var rules = new List<PlaceUsageRule>();
+        foreach (var humanId in pair.ExistingHumanIds)
+        {
+            var snapshot = await trackingProxy.GetAllTrackingWithDescriptionsAsync(humanId);
+            var side = pair.SideOf(humanId);
+            rules.AddRange(PlaceUsage.RulesAimedAt(snapshot, label)
+                .Select(r => side is { } s ? r with { Destination = AccountLinkKeys.Wire(s) } : r));
+        }
+
         return this.Ok(new { alarms = rules.Count, rules });
     }
 
@@ -395,9 +432,10 @@ public class LocationController(
     [HttpDelete("places/{label}")]
     public async Task<IActionResult> DeletePlace(string label)
     {
+        PairWriteResult<bool> written;
         try
         {
-            await this._humanProxy.DeletePlaceAsync(this.UserId, label);
+            written = await this._pairWriter.WriteAsync(this.UserId, id => this._humanProxy.DeletePlaceAsync(id, label));
         }
         catch (PlaceInUseException ex)
         {
@@ -406,6 +444,6 @@ public class LocationController(
             return this.Conflict(new { error = ex.Message, referencingRules = ex.ReferencingRules });
         }
 
-        return this.NoContent();
+        return this.NoContentPaired(written.Warning);
     }
 }

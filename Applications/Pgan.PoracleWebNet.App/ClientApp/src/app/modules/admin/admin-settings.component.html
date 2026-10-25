@@ -237,7 +237,7 @@
           <div class="section-rows">
             @for (meta of group.settings; track meta.key; let rowLast = $last) {
               @if (getSettingValue(meta.key) !== null && isSettingVisible(meta)) {
-                <div class="setting-row" [class.modified]="modifiedSettings().has(meta.key)">
+                <div class="setting-row" [class.modified]="modifiedSettings().has(meta.key)" [attr.data-test]="'setting-' + meta.key">
                   @if (alarmTypeStyle(meta.key); as typeStyle) {
                     <mat-icon class="setting-type-icon" aria-hidden="true" [style.color]="typeStyle.color" data-test="alarm-type-icon">{{
                       typeStyle.icon
@@ -246,13 +246,16 @@
                   <div class="setting-info">
                     <span class="setting-label" [innerHTML]="highlight(meta.labelKey)"></span>
                     <span class="setting-desc" [innerHTML]="highlight(meta.descriptionKey)"></span>
+                    @if (meta.lockedHintKey && isSettingLocked(meta)) {
+                      <span class="setting-locked-hint">{{ meta.lockedHintKey | translate }}</span>
+                    }
                   </div>
                   <div class="setting-control">
                     @if (meta.type === 'boolean') {
                       <mat-slide-toggle
                         [aria-label]="meta.labelKey | translate"
                         [checked]="featureEnabled(meta)"
-                        [disabled]="forcedByPoracle(meta)"
+                        [disabled]="forcedByPoracle(meta) || isSettingLocked(meta)"
                         [matTooltip]="forcedByPoracle(meta) ? ('ADMIN_SETTINGS.FORCED_BY_PORACLE_TOOLTIP' | translate) : ''"
                         (change)="onFeatureToggle(meta, $event.checked)"
                         color="primary"></mat-slide-toggle>
@@ -268,13 +271,24 @@
                         </mat-select>
                       </mat-form-field>
                     } @else {
-                      <mat-form-field appearance="outline" class="setting-field">
+                      <mat-form-field
+                        appearance="outline"
+                        class="setting-field"
+                        [class.setting-field-wide]="meta.type === 'url'"
+                        [class.setting-field-validated]="!!meta.validate"
+                        [subscriptSizing]="meta.validate ? 'dynamic' : 'fixed'">
                         <input
                           matInput
                           type="text"
                           [attr.aria-label]="meta.labelKey | translate"
+                          [placeholder]="meta.placeholder ?? ''"
+                          [disabled]="isSettingLocked(meta)"
+                          [errorStateMatcher]="settingErrorMatcher(meta)"
                           [ngModel]="getSettingValue(meta.key) ?? ''"
                           (ngModelChange)="onTextChange(meta.key, $event)" />
+                        @if (settingProblem(meta); as problem) {
+                          <mat-error>{{ problem | translate }}</mat-error>
+                        }
                       </mat-form-field>
                       @if (meta.key === 'favicon_url') {
                         <div class="favicon-preview" [matTooltip]="'ADMIN_SETTINGS.FAVICON_URL_PREVIEW' | translate">
@@ -345,6 +359,15 @@
             </div>
           }
 
+          @if (group.labelKey === 'ADMIN_SETTINGS.GROUP_LINKED_ACCOUNTS' && !getBool('disable_account_linking')) {
+            @for (gap of linkingAppGaps(); track gap.appKey) {
+              <div class="config-hint warning linking-app-gap" data-test="linking-app-gap">
+                <mat-icon>info_outline</mat-icon>
+                <span>{{ gap.reasonKey | translate: { app: gap.appKey | translate, switch: gap.switchKey | translate } }}</span>
+              </div>
+            }
+          }
+
           @if (group.labelKey === 'ADMIN_SETTINGS.GROUP_TELEGRAM' && telegramConfig()) {
             @if (!telegramConfig()!.enabled) {
               <div class="config-hint warning">
@@ -399,6 +422,12 @@
           }
 
           @if (group.labelKey === 'ADMIN_SETTINGS.GROUP_DISCORD' && discordConfig()) {
+            @if (!discordConfig()!.clientId || !discordConfig()!.clientSecret) {
+              <div class="config-hint warning" data-test="discord-not-configured">
+                <mat-icon>info_outline</mat-icon>
+                <span [innerHTML]="'ADMIN_SETTINGS.DISCORD_HINT' | translate"></span>
+              </div>
+            }
             <div class="server-config-block">
               <div class="server-config-header">
                 <mat-icon class="server-config-icon">dns</mat-icon>
@@ -620,7 +649,7 @@
           <mat-icon>undo</mat-icon>
           {{ 'ADMIN_SETTINGS.DISCARD_CHANGES' | translate }}
         </button>
-        <button mat-flat-button color="primary" type="button" (click)="saveAllModified()" [disabled]="bulkSaving()">
+        <button mat-flat-button color="primary" type="button" (click)="saveAllModified()" [disabled]="bulkSaving() || hasInvalidChanges()">
           @if (bulkSaving()) {
             <mat-spinner diameter="18" class="inline-spinner"></mat-spinner>
           } @else {

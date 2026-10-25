@@ -110,6 +110,30 @@ public static class EntityMappingExtensions
         CreatedAt = m.CreatedAt,
     };
 
+    // ── AccountLink ──────────────────────────────────────────
+
+    public static AccountLink ToModel(this AccountLinkEntity e) => new(
+        e.Id,
+        e.DiscordId,
+        e.TelegramId,
+        // An unknown value used to read as Discord, which quietly re-routed the person's new alerts.
+        AccountLinkKeys.TryParse(e.DefaultDestination, out var side)
+            ? side
+            : throw new AccountLinkUnreadableException(e.Id, $"Account link {e.Id} has an unknown default destination."),
+        e.DiscordVerifiedAt,
+        e.TelegramVerifiedAt,
+        e.CreatedAt);
+
+    public static AccountLinkEntity ToEntity(this AccountLink m) => new()
+    {
+        DiscordId = m.DiscordId,
+        TelegramId = m.TelegramId,
+        DefaultDestination = AccountLinkKeys.Wire(m.DefaultDestination),
+        DiscordVerifiedAt = m.DiscordVerifiedAt,
+        TelegramVerifiedAt = m.TelegramVerifiedAt,
+        CreatedAt = m.CreatedAt,
+    };
+
     // ── QuickPickDefinition ──────────────────────────────────
 
     public static QuickPickDefinition ToModel(this QuickPickDefinitionEntity e) => new()

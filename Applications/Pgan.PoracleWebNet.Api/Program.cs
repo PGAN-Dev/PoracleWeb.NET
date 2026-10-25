@@ -169,16 +169,13 @@ if (string.IsNullOrWhiteSpace(jwtSecret) || jwtSecret.Length < 32)
     throw new InvalidOperationException("Configuration 'Jwt:Secret' is required and must be at least 32 characters.");
 }
 
-var discordClientId = builder.Configuration["Discord:ClientId"];
-if (string.IsNullOrWhiteSpace(discordClientId))
+// Discord is optional: a site may sign people in through Telegram or an OIDC provider alone. Refuse to
+// start only when Discord is half configured or when no sign-in method is configured at all. Read after
+// the Telegram and OIDC Enabled inference above.
+var signInError = SignInConfiguration.Validate(builder.Configuration);
+if (signInError is not null)
 {
-    throw new InvalidOperationException("Configuration 'Discord:ClientId' is required but was not provided.");
-}
-
-var discordClientSecret = builder.Configuration["Discord:ClientSecret"];
-if (string.IsNullOrWhiteSpace(discordClientSecret))
-{
-    throw new InvalidOperationException("Configuration 'Discord:ClientSecret' is required but was not provided.");
+    throw new InvalidOperationException(signInError);
 }
 
 // Add controllers. The global FeatureDisabledExceptionFilter maps any FeatureDisabledException
@@ -191,9 +188,12 @@ builder.Services.AddControllers(options =>
     options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.TrackingConflictExceptionFilter>();
     options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.AlarmValidationExceptionFilter>();
     options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.AreaNotPermittedExceptionFilter>();
+    options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.LinkRefusalExceptionFilter>();
+    options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.PairDriftExceptionFilter>();
     options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.PoracleRequestRefusedExceptionFilter>();
     options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.TrackingRuleNotFoundExceptionFilter>();
     options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.AccountGoneExceptionFilter>();
+    options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.AlarmDestinationExceptionFilter>();
     options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.PoracleUnsupportedExceptionFilter>();
     options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.BlockedAccountFilter>();
 });
@@ -323,6 +323,18 @@ builder.Services.AddRateLimiter(options =>
                 QueueLimit = 0,
                 AutoReplenishment = true,
             }));
+    // A move reads both humans of a linked pair and writes once per alarm, and one request carries a whole
+    // selection. Ten requests a minute per person is several full selections moved, and a loop is stopped.
+    options.AddPolicy("alarm-move", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            UserOrIpPartitionKey(httpContext),
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromSeconds(60),
+                QueueLimit = 0,
+                AutoReplenishment = true,
+            }));
     options.AddPolicy("geofence-feed-refresh", httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
             IpPartitionKey(httpContext),
@@ -368,22 +380,7 @@ if (!Pgan.PoracleWebNet.Api.Configuration.PublicOrigin.TryNormalize(configuredPu
     throw new InvalidOperationException($"Configuration 'PUBLIC_URL' is invalid: {publicUrlError}");
 }
 
-builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
-    {
-        if (allowedOrigins is { Length: > 0 })
-        {
-            policy.WithOrigins(allowedOrigins);
-        }
-        else
-        {
-            // Development only — never runs in production due to startup check above
-            policy.SetIsOriginAllowed(_ => true);
-        }
-
-        policy.AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
-    }));
+builder.Services.AddCors(options => options.AddDefaultPolicy(policy => Pgan.PoracleWebNet.Api.Configuration.CorsPolicySetup.Apply(policy, allowedOrigins)));
 
 // OpenAPI
 builder.Services.AddOpenApi();
