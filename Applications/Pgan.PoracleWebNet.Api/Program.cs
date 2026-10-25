@@ -169,16 +169,13 @@ if (string.IsNullOrWhiteSpace(jwtSecret) || jwtSecret.Length < 32)
     throw new InvalidOperationException("Configuration 'Jwt:Secret' is required and must be at least 32 characters.");
 }
 
-var discordClientId = builder.Configuration["Discord:ClientId"];
-if (string.IsNullOrWhiteSpace(discordClientId))
+// Discord is optional: a site may sign people in through Telegram or an OIDC provider alone. Refuse to
+// start only when Discord is half configured or when no sign-in method is configured at all. Read after
+// the Telegram and OIDC Enabled inference above.
+var signInError = SignInConfiguration.Validate(builder.Configuration);
+if (signInError is not null)
 {
-    throw new InvalidOperationException("Configuration 'Discord:ClientId' is required but was not provided.");
-}
-
-var discordClientSecret = builder.Configuration["Discord:ClientSecret"];
-if (string.IsNullOrWhiteSpace(discordClientSecret))
-{
-    throw new InvalidOperationException("Configuration 'Discord:ClientSecret' is required but was not provided.");
+    throw new InvalidOperationException(signInError);
 }
 
 // Add controllers. The global FeatureDisabledExceptionFilter maps any FeatureDisabledException

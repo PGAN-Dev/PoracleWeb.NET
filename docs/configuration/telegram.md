@@ -163,10 +163,11 @@ Turn it on once your members have registered, not before.
    `TELEGRAM_BOT_USERNAME` is empty; see [Site settings](site-settings.md#telegram).
 
 !!! note "A Telegram-only site"
-    PoracleWeb.NET won't start without a Discord application's `DISCORD_CLIENT_ID` and `DISCORD_CLIENT_SECRET`,
-    even if nobody will sign in with Discord. To run Telegram only, set them anyway and switch **Enable Discord
-    login** (`enable_discord`) off. The login page then offers only Telegram, and Linked accounts doesn't offer
-    to link Discord. Admins can still sign in with Discord, so a site can't lock its admins out.
+    Leave `DISCORD_CLIENT_ID` and `DISCORD_CLIENT_SECRET` unset. The login page then offers only Telegram, and
+    Linked accounts doesn't offer to link Discord. Your admins need their Telegram accounts listed as admins (`PORACLE_ADMIN_IDS` or Poracle's own config),
+    since there's no Discord sign-in to fall back on. If you keep a Discord application for your admins
+    instead, switch **Enable Discord login** (`enable_discord`) off: members see only Telegram, and admins
+    reach the Discord button through "Admin? Show every sign-in method" on the login page.
 
 The widget runs in redirect mode: Telegram sends the browser back to the site with signed fields, and the
 server checks them. It does not use the widget's callback mode, which needs `eval` and is refused by the

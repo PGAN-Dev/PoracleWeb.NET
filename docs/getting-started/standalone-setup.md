@@ -11,7 +11,7 @@ You'll configure everything in a single `.env` file at the project root and run 
 | **.NET 10 Runtime** | [dotnet.microsoft.com/download](https://dotnet.microsoft.com/download/dotnet/10.0) | Like installing Node.js or Go |
 | **MySQL / MariaDB** | Any MySQL or MariaDB server | Holds the `poracle_web` database PoracleWeb.NET creates its tables in |
 | **PoracleNG 5.4.0+** | Already running with REST API enabled | The bot this app talks to |
-| **Discord App** | [discord.com/developers](https://discord.com/developers/applications) | OAuth2 for user login |
+| **A sign-in method** | A [Discord app](https://discord.com/developers/applications), your Telegram bot, or an [OIDC provider](../configuration/external-sso.md) | How people sign in. Any one is enough; Discord is optional |
 
 !!! warning "Why the PoracleNG version matters"
     PoracleWeb.NET is written against PoracleNG 5.4.0 and later and calls its `/api/v2` routes without a fallback. On an older server it still starts and logs an error, but profile, area, place and quiet-period calls fail with a message naming the version they need. The version it found is on **Admin → Server settings**. Upgrade PoracleNG before PoracleWeb.NET.
@@ -96,15 +96,20 @@ WEB_DB_PASSWORD=your_db_password
 # JWT Secret — any random string, at least 32 characters
 JWT_SECRET=generate-a-long-random-secret-key-at-least-32-chars
 
-# Discord OAuth2
+# Sign-in: at least one of Discord, Telegram or OIDC. Discord is optional; set both of its
+# values or neither.
 DISCORD_CLIENT_ID=your_discord_client_id
 DISCORD_CLIENT_SECRET=your_discord_client_secret
+# TELEGRAM_BOT_TOKEN=your_telegram_bot_token
+# TELEGRAM_BOT_USERNAME=your_telegram_bot_username
+
+# Optional: geofence submission posts and Discord role checks
 DISCORD_BOT_TOKEN=your_discord_bot_token
 
 # Poracle API
 PORACLE_API_ADDRESS=http://localhost:3030
 PORACLE_API_SECRET=your_poracle_api_secret
-PORACLE_ADMIN_IDS=your_discord_user_id
+PORACLE_ADMIN_IDS=your_discord_or_telegram_user_id
 
 # CORS origin — required unless ASPNETCORE_ENVIRONMENT=Development. Production is the default
 # when that variable is unset, so a plain `dotnet …` needs this or the app exits at startup.

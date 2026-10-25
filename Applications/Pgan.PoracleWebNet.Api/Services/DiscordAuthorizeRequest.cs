@@ -18,17 +18,14 @@ internal static class DiscordAuthorizeRequest
         MaxAge = TimeSpan.FromMinutes(10),
     };
 
-    /// <summary>Sets <c>oauth_state</c> and <c>oauth_origin</c> and returns the URL to send the browser to.</summary>
-    public static string Build(HttpContext http, DiscordSettings settings, string selfOrigin, string[] allowedOrigins, out string callbackUri, out string state)
+    /// <summary>
+    /// Where to send the browser back to: the Referer's origin when it is one of the configured origins
+    /// (or this site's own when none are configured), otherwise this site. Validated so a forged Referer
+    /// cannot turn the callback into an open redirect.
+    /// </summary>
+    public static string ResolveOrigin(HttpRequest request, string selfOrigin, string[] allowedOrigins)
     {
-        state = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
-        var cookieOptions = CookieOptions(http.Request);
-        http.Response.Cookies.Append("oauth_state", state, cookieOptions);
-
-        // Where to send the browser back to. Validated against the configured origins so a forged
-        // Referer cannot turn the callback into an open redirect.
-        var origin = selfOrigin;
-        var referer = http.Request.Headers.Referer.FirstOrDefault();
+        var referer = request.Headers.Referer.FirstOrDefault();
         if (!string.IsNullOrEmpty(referer) && Uri.TryCreate(referer, UriKind.Absolute, out var refererUri))
         {
             var refererOrigin = $"{refererUri.Scheme}://{refererUri.Authority}";
@@ -36,11 +33,21 @@ internal static class DiscordAuthorizeRequest
                 ? allowedOrigins.Any(o => string.Equals(o, refererOrigin, StringComparison.OrdinalIgnoreCase))
                 : string.Equals(refererOrigin, selfOrigin, StringComparison.OrdinalIgnoreCase))
             {
-                origin = refererOrigin;
+                return refererOrigin;
             }
         }
 
-        http.Response.Cookies.Append("oauth_origin", origin, cookieOptions);
+        return selfOrigin;
+    }
+
+    /// <summary>Sets <c>oauth_state</c> and <c>oauth_origin</c> and returns the URL to send the browser to.</summary>
+    public static string Build(HttpContext http, DiscordSettings settings, string selfOrigin, string[] allowedOrigins, out string callbackUri, out string state)
+    {
+        state = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+        var cookieOptions = CookieOptions(http.Request);
+        http.Response.Cookies.Append("oauth_state", state, cookieOptions);
+
+        http.Response.Cookies.Append("oauth_origin", ResolveOrigin(http.Request, selfOrigin, allowedOrigins), cookieOptions);
 
         callbackUri = $"{selfOrigin}/api/auth/discord/callback";
         return "https://discordapp.com/api/oauth2/authorize" +
