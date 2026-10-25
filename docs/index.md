@@ -142,7 +142,7 @@ On a phone the sidebar becomes a menu and each add dialog fills the screen, with
 
 ## Community & Support
 
-There is **no Discord server** for PoracleWeb.NET at this time. Support happens on GitHub: report bugs and request features in [Issues](https://github.com/PGAN-Dev/PoracleWeb.NET/issues), ask questions in [Discussions](https://github.com/PGAN-Dev/PoracleWeb.NET/discussions), and send contributions as [Pull Requests](https://github.com/PGAN-Dev/PoracleWeb.NET/pulls).
+Questions and chat happen in the PoracleWeb.NET channels on the [Poracle Discord server](https://discord.gg/MHVPAXDFr6). Report bugs and request features in [Issues](https://github.com/PGAN-Dev/PoracleWeb.NET/issues), so they don't get lost in chat, and send contributions as [Pull Requests](https://github.com/PGAN-Dev/PoracleWeb.NET/pulls). [Discussions](https://github.com/PGAN-Dev/PoracleWeb.NET/discussions) are open too, for anything that suits a thread better than a chat.
 
 ## Credits
 
@@ -153,3 +153,8 @@ PoracleWeb.NET stands on the shoulders of these projects and their authors:
 | [PoracleJS](https://github.com/KartulUdus/PoracleJS) | KartulUdus | The original Poracle bot — the notification engine this UI manages |
 | [PoracleNG](https://github.com/jfberry/PoracleNG) | jfberry | Next-generation Poracle whose REST API powers all alarm tracking |
 | [Kōji](https://github.com/TurtIeSocks/Koji) | TurtIeSocks | Geofence management platform used for admin areas, region detection, and public geofence promotion |
+| [Golbat](https://github.com/UnownHash/Golbat) | Unown# team | Scanner whose API shows which Pokemon are spawning in the species picker; its database backs the gym picker and the weather card |
+| [Masterfile Generator](https://github.com/WatWowMap/Masterfile-Generator) | WatWowMap | Game data: raid levels, and the English names used when Poracle can't supply translated ones |
+| UICONS icon packs | [nileplumb](https://github.com/nileplumb/PkmnHomeIcons), [jms412](https://github.com/jms412/PkmnHomeIcons) | Pokemon, item and raid icons; jms412's Home icons are the default |
+| [Leaflet](https://leafletjs.com/) | Leaflet contributors | Every map on the site |
+| Map tiles | [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, CARTO, Esri | The basemaps an admin or viewer can choose |

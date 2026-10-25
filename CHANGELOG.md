@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The README and the docs home page point to the Poracle Discord server for questions.** They used to say PoracleWeb.NET had no Discord server. Bugs and feature requests still belong in GitHub Issues. The README's feature list now matches the docs (destinations, Pokemon availability, weather, hidden areas), and both pages credit Golbat (Unown# team), WatWowMap's Masterfile Generator, the UICONS icon packs, Leaflet and the map tile providers.
 - **Admin > Users and Admin > Destinations share one copy of the account list.** Each page waited for its own fetch of all of Poracle's accounts (about 2,700 rows on a large site) every time it opened. The second page now shows the rows at once and checks them in the background, so a change made elsewhere still appears without Refresh. Creating, deleting, blocking, unblocking, pausing or resuming an account fetches the list again, as does Refresh. Signing out, signing in as someone else, and starting or ending "View as" drop it, so returning from viewing an account shows that account's current state (#1038).
 - **Help says where a destination's test alert goes.** Destinations you manage now states that a test alert posts into the destination, not to your DMs, in all eleven languages (#1038).
 - **The Admin > Destinations screenshot in the docs shows the current page.** It was taken before "None granted here" kept to one line and before Manage alarms moved onto the row (#1038).
