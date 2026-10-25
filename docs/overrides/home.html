@@ -289,6 +289,30 @@
     background: var(--md-code-bg-color);
   }
 
+  /* ─── Community & credits ──────────────────────── */
+  .community {
+    padding: 0 2rem 4rem;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .community__title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 2rem 0 0.75rem;
+  }
+
+  .community__text,
+  .community__credits {
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+
+  .community__credits {
+    margin: 0;
+    padding-left: 1.25rem;
+  }
+
   /* ─── Languages banner ─────────────────────────── */
   .languages {
     padding: 3rem 2rem;
@@ -458,9 +482,10 @@
     <div class="quickstart__step">
       <div class="quickstart__num">1</div>
       <div class="quickstart__text">
-        <h4>Clone & configure</h4>
-        <p><code>git clone https://github.com/PGAN-Dev/PoracleWeb.NET.git</code><br>
-        Copy <code>.env.example</code> to <code>.env</code> and fill in your values</p>
+        <h4>Copy the templates</h4>
+        <p><code>cp .env.example .env</code><br>
+        <code>cp docker-compose.yml.example docker-compose.yml</code><br>
+        Fill in <code>.env</code>: the database, PoracleNG and at least one sign-in method</p>
       </div>
     </div>
     <div class="quickstart__step">
@@ -473,19 +498,43 @@
     <div class="quickstart__step">
       <div class="quickstart__num">3</div>
       <div class="quickstart__text">
-        <h4>Build & run with Docker</h4>
-        <p><code>docker build -t poracleweb.net:latest .</code><br>
-        <code>docker compose up -d</code></p>
+        <h4>Pull & run with Docker</h4>
+        <p><code>mkdir -p data && sudo chown 999:999 data</code><br>
+        <code>docker compose pull && docker compose up -d</code></p>
       </div>
     </div>
     <div class="quickstart__step">
       <div class="quickstart__num">4</div>
       <div class="quickstart__text">
         <h4>Open in browser</h4>
-        <p>Navigate to <code>http://localhost:8082</code> and sign in with Discord</p>
+        <p>Go to <code>http://localhost:8082</code> and sign in with Discord, Telegram or your OIDC provider.
+        The <a href="getting-started/quick-start/">Quick Start guide</a> covers each step in detail</p>
       </div>
     </div>
   </div>
+</section>
+
+<!-- Community & credits. index.md's own body is hidden on this page, so these live here. -->
+<section class="community">
+  <h2 class="community__title">Community & support</h2>
+  <p class="community__text">
+    Questions and chat happen in the PoracleWeb.NET channels on the
+    <a href="https://discord.gg/MHVPAXDFr6">Poracle Discord server</a>.
+    Report bugs and request features in
+    <a href="https://github.com/PGAN-Dev/PoracleWeb.NET/issues">GitHub Issues</a>, so they don't get lost in chat.
+  </p>
+
+  <h2 class="community__title">Credits</h2>
+  <p class="community__text">PoracleWeb.NET stands on the shoulders of these projects and their authors:</p>
+  <ul class="community__credits">
+    <li><a href="https://github.com/KartulUdus/PoracleJS">PoracleJS</a> by KartulUdus: the original Poracle bot</li>
+    <li><a href="https://github.com/jfberry/PoracleNG">PoracleNG</a> by jfberry: the Poracle whose REST API powers all alarm tracking</li>
+    <li><a href="https://github.com/TurtIeSocks/Koji">Kōji</a> by TurtIeSocks: admin areas, region detection and public geofences</li>
+    <li><a href="https://github.com/UnownHash/Golbat">Golbat</a> by the Unown# team: which Pokemon are spawning, gym search and weather</li>
+    <li><a href="https://github.com/WatWowMap/Masterfile-Generator">Masterfile Generator</a> by WatWowMap: raid levels and fallback game data</li>
+    <li>UICONS icon packs by <a href="https://github.com/nileplumb/PkmnHomeIcons">nileplumb</a> and <a href="https://github.com/jms412/PkmnHomeIcons">jms412</a></li>
+    <li><a href="https://leafletjs.com/">Leaflet</a>, with map tiles from <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, CARTO and Esri</li>
+  </ul>
 </section>
 
 {% endblock %}
