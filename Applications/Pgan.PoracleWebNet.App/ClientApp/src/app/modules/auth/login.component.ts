@@ -1,4 +1,4 @@
-import { Component, computed, DestroyRef, ElementRef, inject, NgZone, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -11,19 +11,14 @@ import { catchError, forkJoin, of, timeout } from 'rxjs';
 import { AuthProviders } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { SettingsService } from '../../core/services/settings.service';
+import { TelegramLoginButtonComponent } from '../../shared/components/telegram-login-button/telegram-login-button.component';
+import { clearTelegramReturn, readTelegramReturn } from '../../shared/utils/telegram-return';
 
 /** Timeout for provider config and public settings fetches on the login page. */
 const LOGIN_FETCH_TIMEOUT_MS = 10_000;
 
-// Extend Window to allow the Telegram callback
-declare global {
-  interface Window {
-    onTelegramAuth: (user: Record<string, string>) => void;
-  }
-}
-
 @Component({
-  imports: [MatButtonModule, MatCardModule, MatIconModule, MatProgressSpinnerModule, TranslatePipe],
+  imports: [MatButtonModule, MatCardModule, MatIconModule, MatProgressSpinnerModule, TelegramLoginButtonComponent, TranslatePipe],
   selector: 'app-login',
   standalone: true,
   styleUrl: './login.component.scss',
@@ -32,13 +27,9 @@ declare global {
 export class LoginComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
-  private readonly ngZone = inject(NgZone);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly settingsService = inject(SettingsService);
-
-  private telegramBotUsername = '';
-  private telegramWidgetLoaded = false;
 
   /** Replaces the generic one-line error message with the richer disabled-account block. */
   protected readonly accountDisabled = signal(false);
@@ -133,19 +124,29 @@ export class LoginComponent implements OnInit {
   /** Computed: can the user actually use Telegram login without admin rejection? */
   protected readonly telegramActive = computed(() => this.telegramConfigured() && this.telegramEnabledByAdmin());
 
+  /** Where Telegram sends the browser back to after a sign-in. */
+  protected readonly telegramAuthUrl = `${window.location.origin}/login`;
+
+  /** The bot the login widget is built for. Set before `telegramConfigured`, so the widget never renders without it. */
+  protected readonly telegramBotUsername = signal('');
+
   /** Computed: should the Telegram section be shown? Configured, and either switched on or revealed. */
   protected readonly telegramVisible = computed(() => this.telegramConfigured() && (this.telegramEnabledByAdmin() || this.revealAll()));
 
-  /**
-   * ViewChild setter — fires automatically when the #telegramContainer element enters
-   * the DOM (i.e., after Angular renders the @if (telegramVisible()) block). This avoids
-   * the unreliable setTimeout + detectChanges pattern for elements inside @if blocks.
-   */
-  @ViewChild('telegramContainer') set telegramContainerRef(el: ElementRef<HTMLDivElement> | undefined) {
-    if (el && this.telegramBotUsername && !this.telegramWidgetLoaded) {
-      this.telegramWidgetLoaded = true;
-      this.loadTelegramWidget(el.nativeElement);
-    }
+  protected handleTelegramAuth(telegramData: Record<string, string>): void {
+    this.loading.set(true);
+    this.error.set(null);
+
+    this.auth
+      .loginWithTelegram(telegramData)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        error: err => {
+          this.loading.set(false);
+          this.error.set(err?.error?.code === 'destination_account' ? 'AUTH.ERR_DESTINATION_ACCOUNT' : 'AUTH.ERR_TELEGRAM_FAILED');
+        },
+        next: () => this.router.navigate(['/dashboard']),
+      });
   }
 
   loginWithDiscord(): void {
@@ -162,6 +163,13 @@ export class LoginComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // Telegram's redirect sign-in returns here with the signed fields in the query.
+    const telegramReturn = readTelegramReturn(new URLSearchParams(window.location.search));
+    if (telegramReturn) {
+      clearTelegramReturn();
+      this.handleTelegramAuth(telegramReturn);
+    }
+
     // Parse any auth error from the URL fragment (e.g. /login#error=missing_required_role)
     // up front, so the provider-config handler below can decide whether to auto-redirect
     // to an external OIDC provider.
@@ -272,7 +280,7 @@ export class LoginComponent implements OnInit {
 
     // Telegram — set botUsername before signals so the ViewChild setter has it
     // when Angular renders the @if block and triggers the setter.
-    this.telegramBotUsername = providers.telegram.botUsername;
+    this.telegramBotUsername.set(providers.telegram.botUsername);
     this.telegramConfigured.set(providers.telegram.configured);
     this.telegramEnabledByAdmin.set(providers.telegram.enabledByAdmin);
 
@@ -282,40 +290,5 @@ export class LoginComponent implements OnInit {
       this.oidcEnabledByAdmin.set(providers.oidc.enabledByAdmin);
       this.oidcProviderName.set(providers.oidc.providerName);
     }
-  }
-
-  private handleTelegramAuth(telegramData: Record<string, string>): void {
-    this.loading.set(true);
-    this.error.set(null);
-
-    this.auth
-      .loginWithTelegram(telegramData)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        error: err => {
-          this.loading.set(false);
-          this.error.set(err?.error?.code === 'destination_account' ? 'AUTH.ERR_DESTINATION_ACCOUNT' : 'AUTH.ERR_TELEGRAM_FAILED');
-        },
-        next: () => this.router.navigate(['/dashboard']),
-      });
-  }
-
-  private loadTelegramWidget(container: HTMLDivElement): void {
-    if (!this.telegramBotUsername) return;
-
-    // Set up global callback for Telegram widget
-    window.onTelegramAuth = (user: Record<string, string>) => {
-      this.ngZone.run(() => this.handleTelegramAuth(user));
-    };
-
-    const script = document.createElement('script');
-    script.src = 'https://telegram.org/js/telegram-widget.js?22';
-    script.setAttribute('data-telegram-login', this.telegramBotUsername);
-    script.setAttribute('data-size', 'large');
-    script.setAttribute('data-onauth', 'onTelegramAuth(user)');
-    script.setAttribute('data-request-access', 'write');
-    script.async = true;
-
-    container.appendChild(script);
   }
 }

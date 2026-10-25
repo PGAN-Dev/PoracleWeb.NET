@@ -50,3 +50,32 @@ export function queryAlarms<T>(
 export function visibleSelection<K>(selected: ReadonlySet<K>, visible: Iterable<K>): K[] {
   return [...visible].filter(key => selected.has(key));
 }
+
+/** The delivery filter on a list's toolbar: everything, or only the alarms going to one app. */
+export type DestinationFilter = 'all' | 'discord' | 'telegram';
+
+/** Keeps the alarms delivered to the chosen app. An unlinked person's alarms have none, and never filter. */
+export function byDestination<T extends { destination?: 'discord' | 'telegram' }>(list: T[], filter: DestinationFilter): T[] {
+  return filter === 'all' ? list : list.filter(item => item.destination === filter);
+}
+
+/**
+ * The app every selected alarm is delivered to, or null when they differ, none is selected or the person isn't
+ * linked. The bulk Deliver to menu disables that app, because moving them all to where they already are would do
+ * nothing.
+ */
+export function sharedDestination<T extends { destination?: 'discord' | 'telegram' | null }, K>(
+  list: readonly T[],
+  keyOf: (item: T) => K,
+  selected: readonly K[],
+): 'discord' | 'telegram' | null {
+  const keys = new Set(selected);
+  let shared: 'discord' | 'telegram' | null = null;
+  for (const item of list) {
+    if (!keys.has(keyOf(item))) continue;
+    if (!item.destination) return null;
+    if (shared && shared !== item.destination) return null;
+    shared = item.destination;
+  }
+  return shared;
+}

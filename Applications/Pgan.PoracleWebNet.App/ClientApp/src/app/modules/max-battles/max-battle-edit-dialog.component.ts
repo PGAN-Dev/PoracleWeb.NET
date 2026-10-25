@@ -12,17 +12,19 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { TranslatePipe } from '@ngx-translate/core';
 
-import { MaxBattle, MaxBattleUpdate } from '../../core/models';
+import { MaxBattle, MaxBattleUpdate, LinkSide } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MaxBattleService } from '../../core/services/max-battle.service';
+import { DeliverToFieldComponent } from '../../shared/components/deliver-to/deliver-to-field.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { createFailureText } from '../../shared/utils/add-outcome';
 import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-flags';
+import { injectDeliverTo, moveEditMessage } from '../../shared/utils/deliver-to';
 import { mentionCapable } from '../../shared/utils/human-kind';
 
 export interface MaxBattleEditDialogData {
@@ -49,6 +51,7 @@ const LEVEL_OPTION_KEYS: { gmax: boolean; i18nKey: string; value: number }[] = [
 
 @Component({
   imports: [
+    DeliverToFieldComponent,
     ReactiveFormsModule,
     MatDialogModule,
     MatButtonModule,
@@ -79,10 +82,13 @@ export class MaxBattleEditDialogComponent {
   private readonly snackBar = inject(MatSnackBar);
 
   readonly data = inject<MaxBattleEditDialogData>(MAT_DIALOG_DATA);
+  readonly deliver = injectDeliverTo();
+
   readonly dialogRef = inject(MatDialogRef<MaxBattleEditDialogComponent>);
 
   form = this.fb.group({
     clean: [isAutoDelete(this.data.item.clean)],
+    destination: [(this.data.item.destination ?? null) as LinkSide | null],
     gmax: [this.data.item.gmax === 1],
     level: [this.data.item.level],
     // Always present even when the Mention control is hidden (not a webhook alarm) -- so a mention
@@ -156,6 +162,7 @@ export class MaxBattleEditDialogComponent {
     const gmaxVal = this.isLevelBased ? (levelDef?.gmax ? 1 : 0) : values.gmax ? 1 : 0;
 
     const update: MaxBattleUpdate = {
+      ...this.deliver.moveFields(this.data.item.destination, this.form.controls.destination.value),
       overrideAreas: scope.overrideAreas,
       overrideLocationLabel: scope.overrideLocationLabel,
       clean: preserve(item.clean, AUTO_DELETE, values.clean ? 1 : 0),
@@ -183,8 +190,12 @@ export class MaxBattleEditDialogComponent {
         });
         this.saving.set(false);
       },
-      next: () => {
-        this.snackBar.open(this.i18n.instant('MAX_BATTLES.SNACK_UPDATED'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
+      next: moved => {
+        this.snackBar.open(
+          moveEditMessage(moved, this.i18n) ?? this.i18n.instant('MAX_BATTLES.SNACK_UPDATED'),
+          this.i18n.instant('COMMON.OK'),
+          { duration: 3000 },
+        );
         this.dialogRef.close(true);
       },
     });

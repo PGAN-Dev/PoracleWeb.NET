@@ -15,6 +15,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { forkJoin } from 'rxjs';
 
 import { getGruntDisplayName, isGenderFixed } from './invasion.constants';
+import { LinkSide } from '../../core/models';
 import { AlertDefaultsService } from '../../core/services/alert-defaults.service';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
@@ -23,11 +24,13 @@ import { InvasionService } from '../../core/services/invasion.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { SettingsService } from '../../core/services/settings.service';
 import { AddRefusalComponent } from '../../shared/components/add-refusal/add-refusal.component';
+import { DeliverToFieldComponent } from '../../shared/components/deliver-to/deliver-to-field.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
 import { AddDialogData, AddRefusal, editExistingResult, ExistingRule, finishAdd, settle } from '../../shared/utils/add-outcome';
 import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
+import { injectDeliverTo } from '../../shared/utils/deliver-to';
 import { swapToFallbackIcon } from '../../shared/utils/icon-fallback';
 
 interface GruntOption {
@@ -50,6 +53,7 @@ interface GruntOption {
 
 @Component({
   imports: [
+    DeliverToFieldComponent,
     AddRefusalComponent,
     ReactiveFormsModule,
     MatDialogModule,
@@ -129,13 +133,16 @@ export class InvasionAddDialogComponent implements OnInit {
   private readonly masterData = inject(MasterDataService);
   private readonly settings = inject(SettingsService);
   private readonly snackBar = inject(MatSnackBar);
+  readonly deliver = injectDeliverTo();
   readonly dialogRef = inject(MatDialogRef<InvasionAddDialogComponent>);
+
   gruntOptions = signal<GruntOption[]>([]);
 
   readonly eventGrunts = computed(() => this.gruntOptions().filter(g => g.isEvent));
 
   form = this.fb.group({
     clean: [false],
+    destination: [null as LinkSide | null],
     gender: [0],
     template: [''],
   });
@@ -249,6 +256,7 @@ export class InvasionAddDialogComponent implements OnInit {
     const scope = scopeToFields(this.scope());
     const creates = targets.map(g =>
       this.invasionService.create({
+        ...this.deliver.createFields(this.form.controls.destination.value),
         overrideAreas: scope.overrideAreas,
         overrideLocationLabel: scope.overrideLocationLabel,
         clean: v.clean ? 1 : 0,

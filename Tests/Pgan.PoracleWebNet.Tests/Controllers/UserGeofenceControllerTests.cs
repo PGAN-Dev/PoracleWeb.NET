@@ -116,7 +116,7 @@ public class UserGeofenceControllerTests : ControllerTestBase
     [Fact]
     public async Task DeleteGeofenceReturnsNoContent()
     {
-        this._service.Setup(s => s.DeleteAsync("123456789", 1, 42, true)).Returns(Task.CompletedTask);
+        this._service.Setup(s => s.DeleteAsync("123456789", 1, 42, true)).ReturnsAsync((Pgan.PoracleWebNet.Core.Models.PairWarning?)null);
 
         var result = await this._sut.DeleteGeofence(42, "delete");
 
@@ -223,7 +223,7 @@ public class UserGeofenceControllerTests : ControllerTestBase
     public async Task DeleteGeofenceUsesUserIdAndProfileNoFromClaims()
     {
         SetupUser(this._sut, userId: "777", profileNo: 4);
-        this._service.Setup(s => s.DeleteAsync("777", 4, 10, true)).Returns(Task.CompletedTask);
+        this._service.Setup(s => s.DeleteAsync("777", 4, 10, true)).ReturnsAsync((Pgan.PoracleWebNet.Core.Models.PairWarning?)null);
 
         await this._sut.DeleteGeofence(10, "delete");
 
@@ -271,7 +271,7 @@ public class UserGeofenceControllerTests : ControllerTestBase
     [Fact]
     public async Task ActivateGeofenceReturnsNoContent()
     {
-        this._service.Setup(s => s.AddToProfileAsync("123456789", 1, 42)).Returns(Task.CompletedTask);
+        this._service.Setup(s => s.AddToProfileAsync("123456789", 1, 42)).ReturnsAsync((PairWarning?)null);
 
         var result = await this._sut.ActivateGeofence(42);
 
@@ -315,7 +315,7 @@ public class UserGeofenceControllerTests : ControllerTestBase
     public async Task ActivateGeofenceUsesUserIdAndProfileNoFromClaims()
     {
         SetupUser(this._sut, userId: "555", profileNo: 3);
-        this._service.Setup(s => s.AddToProfileAsync("555", 3, 10)).Returns(Task.CompletedTask);
+        this._service.Setup(s => s.AddToProfileAsync("555", 3, 10)).ReturnsAsync((PairWarning?)null);
 
         await this._sut.ActivateGeofence(10);
 
@@ -327,7 +327,7 @@ public class UserGeofenceControllerTests : ControllerTestBase
     [Fact]
     public async Task DeactivateGeofenceReturnsNoContent()
     {
-        this._service.Setup(s => s.RemoveFromProfileAsync("123456789", 1, 42)).Returns(Task.CompletedTask);
+        this._service.Setup(s => s.RemoveFromProfileAsync("123456789", 1, 42)).ReturnsAsync((PairWarning?)null);
 
         var result = await this._sut.DeactivateGeofence(42);
 

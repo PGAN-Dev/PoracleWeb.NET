@@ -12,18 +12,21 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { TranslatePipe } from '@ngx-translate/core';
 
-import { PokestopEvent, PokestopEventUpdate } from '../../core/models';
+import { PokestopEvent, PokestopEventUpdate, LinkSide } from '../../core/models';
 import { I18nService } from '../../core/services/i18n.service';
 import { PokestopEventService } from '../../core/services/pokestop-event.service';
+import { DeliverToFieldComponent } from '../../shared/components/deliver-to/deliver-to-field.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { createFailureText } from '../../shared/utils/add-outcome';
 import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-flags';
+import { injectDeliverTo, moveEditMessage } from '../../shared/utils/deliver-to';
 import { POKESTOP_EVENTS } from '../../shared/utils/pokestop-events';
 
 @Component({
   imports: [
+    DeliverToFieldComponent,
     ReactiveFormsModule,
     MatButtonModule,
     MatCheckboxModule,
@@ -51,9 +54,12 @@ export class PokestopEventEditDialogComponent {
   private readonly snackBar = inject(MatSnackBar);
 
   readonly data = inject<PokestopEvent>(MAT_DIALOG_DATA);
+  readonly deliver = injectDeliverTo();
   readonly dialogRef = inject(MatDialogRef<PokestopEventEditDialogComponent>);
+
   form = this.fb.group({
     autoDelete: [isAutoDelete(this.data.clean)],
+    destination: [(this.data.destination ?? null) as LinkSide | null],
     displayType: [this.data.displayType],
     template: [this.data.template ?? ''],
   });
@@ -78,6 +84,7 @@ export class PokestopEventEditDialogComponent {
 
     this.pokestopEventService
       .update(this.data.uid, {
+        ...this.deliver.moveFields(this.data.destination, this.form.controls.destination.value),
         overrideAreas: scope.overrideAreas,
         overrideLocationLabel: scope.overrideLocationLabel,
         // Only the auto-delete bit is this dialog's to set; edit-in-place and summary bits set
@@ -96,8 +103,12 @@ export class PokestopEventEditDialogComponent {
           });
           this.saving.set(false);
         },
-        next: () => {
-          this.snackBar.open(this.i18n.instant('POKESTOP_EVENTS.UPDATE_SUCCESS'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
+        next: moved => {
+          this.snackBar.open(
+            moveEditMessage(moved, this.i18n) ?? this.i18n.instant('POKESTOP_EVENTS.UPDATE_SUCCESS'),
+            this.i18n.instant('COMMON.OK'),
+            { duration: 3000 },
+          );
           this.dialogRef.close(true);
         },
       });

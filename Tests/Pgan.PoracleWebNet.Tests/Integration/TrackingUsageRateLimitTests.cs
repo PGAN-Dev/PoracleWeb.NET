@@ -120,6 +120,9 @@ public sealed class TrackingUsageRateLimitTests : IDisposable
                 humans.Setup(h => h.GetByIdAsync(It.IsAny<string>())).ReturnsAsync(new Human { Id = "user" });
                 services.RemoveAll<IHumanService>();
                 services.AddScoped(_ => humans.Object);
+                // These requests never touch a link; the real resolver would read the link table.
+                services.RemoveAll<ILinkedAccount>();
+                services.AddScoped(_ => Pgan.PoracleWebNet.Tests.Helpers.LinkedTestKit.Unlinked());
                 services.RemoveAll<IPoracleTrackingProxy>();
                 services.AddScoped(_ => tracking.Object);
             });

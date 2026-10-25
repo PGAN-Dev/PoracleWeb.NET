@@ -11,6 +11,7 @@ using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Core.Services;
+using Pgan.PoracleWebNet.Tests.Helpers;
 using Pgan.PoracleWebNet.Tests.Services;
 
 namespace Pgan.PoracleWebNet.Tests.Controllers;
@@ -50,6 +51,7 @@ public class AreaSaveThroughV2Tests : ControllerTestBase
             new UserAreaWriter(
                 proxy, fences.Object, Mock.Of<IPoracleTrackingProxy>(), Mock.Of<ILogger<UserAreaWriter>>(),
                 new UserAreaPolicy(proxy, fences.Object)),
+            PairTestSupport.UnlinkedWriter(),
             Mock.Of<ILogger<AreaController>>());
         SetupUser(sut, UserId);
 

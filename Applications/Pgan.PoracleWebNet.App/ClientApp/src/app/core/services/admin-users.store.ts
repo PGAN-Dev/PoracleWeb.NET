@@ -55,6 +55,14 @@ export class AdminUsersStore {
   }
 
   /**
+   * Refetches only if a list has been fetched. For writes made outside the admin pages (a Telegram link
+   * that registered the other account): a non-admin has no list and must not ask for one.
+   */
+  invalidateIfLoaded(): void {
+    if (this.cache()) this.invalidate();
+  }
+
+  /**
    * The list. With a cached copy and no `force`, answers with it at once and checks it in the background,
    * sharing a check already running. Otherwise fetches, sharing a fetch already running unless `force`
    * asks for a new one. A failed fetch keeps nothing, so the next caller tries again.

@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
+import { AlarmMoveService, MoveEdit } from './alarm-move.service';
 import { ConfigService } from './config.service';
 import { DistanceUpdateResult } from '../../shared/utils/distance-update';
 import { Raid, RaidCreate, RaidUpdate } from '../models';
@@ -10,6 +11,7 @@ import { Raid, RaidCreate, RaidUpdate } from '../models';
 export class RaidService {
   private readonly config = inject(ConfigService);
   private readonly http = inject(HttpClient);
+  private readonly moves = inject(AlarmMoveService);
 
   create(raid: RaidCreate): Observable<Raid> {
     return this.http.post<Raid>(`${this.config.apiHost}/api/raids`, raid);
@@ -27,8 +29,8 @@ export class RaidService {
     return this.http.get<Raid[]>(`${this.config.apiHost}/api/raids`);
   }
 
-  update(uid: number, raid: RaidUpdate): Observable<void> {
-    return this.http.put<void>(`${this.config.apiHost}/api/raids/${uid}`, raid);
+  update(uid: number, raid: RaidUpdate): Observable<MoveEdit | void> {
+    return this.moves.put('raids', uid, raid, () => this.http.put<void>(`${this.config.apiHost}/api/raids/${uid}`, raid));
   }
 
   updateBulkDistance(uids: number[], distance: number): Observable<DistanceUpdateResult> {

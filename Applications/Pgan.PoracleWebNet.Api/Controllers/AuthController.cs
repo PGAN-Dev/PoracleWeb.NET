@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
@@ -11,6 +12,7 @@ using Pgan.PoracleWebNet.Api.Services;
 using Pgan.PoracleWebNet.Api.Services.Oidc;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
+using Pgan.PoracleWebNet.Core.Services;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
@@ -21,6 +23,7 @@ public partial class AuthController(
     IProfileService profileService,
     IPoracleApiProxy poracleApiProxy,
     IPoracleHumanProxy humanProxy,
+    IPairedHumanWriter pairWriter,
     ISiteSettingService siteSettingService,
     IWebhookDelegateService webhookDelegateService,
     IJwtService jwtService,
@@ -32,6 +35,9 @@ public partial class AuthController(
     IOptions<OidcSettings> oidcSettings,
     IOptions<PoracleSettings> poracleSettings,
     IConfiguration configuration,
+    IAccountLinkService accountLinkService,
+    IDataProtectionProvider dataProtection,
+    IHttpClientFactory httpClientFactory,
     ILogger<AuthController> logger) : BaseApiController
 {
     private const string EnableDiscordKey = "enable_discord";
@@ -47,6 +53,7 @@ public partial class AuthController(
 
     private readonly IHumanService _humanService = humanService;
     private readonly IProfileService _profileService = profileService;
+    private readonly IPairedHumanWriter _pairWriter = pairWriter;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly ISiteSettingService _siteSettingService = siteSettingService;
@@ -61,6 +68,9 @@ public partial class AuthController(
     private readonly PoracleSettings _poracleSettings = poracleSettings.Value;
     private readonly string[] _allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
     private readonly string? _publicOrigin = PublicOrigin.NormalizeOrNull(configuration["PublicUrl"]);
+    private readonly IAccountLinkService _accountLinkService = accountLinkService;
+    private readonly IDataProtectionProvider _dataProtection = dataProtection;
+    private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
     private readonly ILogger<AuthController> _logger = logger;
 
     /// <summary>
@@ -100,62 +110,28 @@ public partial class AuthController(
         // No early gate here — admins must be able to log in even when Discord is disabled.
         // The enable_discord check is enforced in DiscordCallback() after we know whether the user is an admin.
 
-        // Save the frontend origin so we know where to redirect after the callback.
-        // Validate against configured CORS origins to prevent open redirect token theft.
-        var selfOrigin = this.SelfOrigin();
-        var origin = selfOrigin;
-
-        var referer = this.Request.Headers.Referer.FirstOrDefault();
-        if (!string.IsNullOrEmpty(referer) && Uri.TryCreate(referer, UriKind.Absolute, out var refererUri))
-        {
-            var refererOrigin = $"{refererUri.Scheme}://{refererUri.Authority}";
-            if (this._allowedOrigins.Length > 0
-                ? this._allowedOrigins.Any(o => string.Equals(o, refererOrigin, StringComparison.OrdinalIgnoreCase))
-                : string.Equals(refererOrigin, selfOrigin, StringComparison.OrdinalIgnoreCase))
-            {
-                origin = refererOrigin;
-            }
-        }
-
         // Discord is optional: a Telegram-only or OIDC-only site has no Discord application, and an
         // authorize URL with an empty client_id only earns the user Discord's own error page.
         if (!SignInConfiguration.DiscordConfigured(this._discordSettings))
         {
+            var origin = DiscordAuthorizeRequest.ResolveOrigin(this.Request, this.SelfOrigin(), this._allowedOrigins);
             return this.Redirect($"{origin.TrimEnd('/')}/login#error=discord_not_configured");
         }
 
-        // Generate a random state value for CSRF protection
-        var state = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+        // The URL, state and origin cookies come from one builder shared with account linking.
+        var redirectUrl = DiscordAuthorizeRequest.Build(
+            this.HttpContext, this._discordSettings, this.SelfOrigin(), this._allowedOrigins, out var callbackUri, out _);
 
-        var isHttps = string.Equals(this.Request.Scheme, "https", StringComparison.OrdinalIgnoreCase);
-        var cookieOptions = new CookieOptions
-        {
-            HttpOnly = true,
-            Secure = isHttps,
-            SameSite = SameSiteMode.Lax,
-            MaxAge = TimeSpan.FromMinutes(10)
-        };
-
-        this.Response.Cookies.Append("oauth_state", state, cookieOptions);
-        this.Response.Cookies.Append("oauth_origin", origin, cookieOptions);
-
-        // Redirect URI points to the API itself, not the Angular app
-        var callbackUri = $"{selfOrigin}/api/auth/discord/callback";
+        // A sign-in must never inherit a link ticket left behind by an abandoned link.
+        this.Response.Cookies.Delete(AccountLinkTicket.CookieName);
         this.WarnIfProxySchemeIgnored(callbackUri);
-        var redirectUrl = "https://discordapp.com/api/oauth2/authorize" +
-            $"?client_id={this._discordSettings.ClientId}" +
-            $"&redirect_uri={Uri.EscapeDataString(callbackUri)}" +
-            "&response_type=code" +
-            "&scope=identify" +
-            "&prompt=none" +
-            $"&state={Uri.EscapeDataString(state)}";
 
         return this.Redirect(redirectUrl);
     }
 
     [AllowAnonymous]
     [HttpGet("discord/callback")]
-    public async Task<IActionResult> DiscordCallback([FromQuery] string code, [FromQuery] string? state)
+    public async Task<IActionResult> DiscordCallback([FromQuery] string? code, [FromQuery] string? state)
     {
         // Derive frontend URL from the request
         var frontendUrl = this.GetFrontendUrl();
@@ -170,6 +146,10 @@ public partial class AuthController(
         var savedState = this.Request.Cookies["oauth_state"];
         this.Response.Cookies.Delete("oauth_state");
 
+        // Whatever happens next, the link ticket is spent.
+        var linkCookie = this.Request.Cookies[AccountLinkTicket.CookieName];
+        this.Response.Cookies.Delete(AccountLinkTicket.CookieName);
+
         if (string.IsNullOrEmpty(state) || string.IsNullOrEmpty(savedState) || state != savedState)
         {
             return this.BadRequest(new
@@ -178,12 +158,33 @@ public partial class AuthController(
             });
         }
 
-        if (string.IsNullOrEmpty(code))
+        // A link started from the account page carries a sealed oauth_link cookie bound to the state of
+        // the flow that issued it. A ticket for another flow (an abandoned link) is ignored: this is
+        // an ordinary sign-in and nothing below changes.
+        string? linkingHumanId = null;
+        if (linkCookie is not null)
         {
-            return this.Redirect($"{frontendUrl}/login#error=missing_code");
+            var ticket = AccountLinkTicket.Open(this._dataProtection, linkCookie, DateTimeOffset.UtcNow);
+            if (ticket is null)
+            {
+                return this.Redirect(LinkErrorUrl(frontendUrl, LinkRefusalCode.Expired));
+            }
+
+            if (string.Equals(ticket.State, state, StringComparison.Ordinal))
+            {
+                linkingHumanId = ticket.HumanId;
+            }
         }
 
-        using var httpClient = new HttpClient();
+        if (string.IsNullOrEmpty(code))
+        {
+            // Discord sends ?error=access_denied, with no code, when the person cancels.
+            return linkingHumanId is null
+                ? this.Redirect($"{frontendUrl}/login#error=missing_code")
+                : this.Redirect(LinkErrorUrl(frontendUrl, LinkRefusalCode.LinkCancelled));
+        }
+
+        using var httpClient = this._httpClientFactory.CreateClient();
 
         // Exchange code for access token
         var tokenRequest = new FormUrlEncodedContent(new Dictionary<string, string>
@@ -201,7 +202,9 @@ public partial class AuthController(
         {
             var errorBody = await tokenResponse.Content.ReadAsStringAsync();
             LogDiscordTokenExchangeFailed(this._logger, tokenResponse.StatusCode, errorBody);
-            return this.Redirect($"{frontendUrl}/login#error=token_exchange_failed");
+            return linkingHumanId is null
+                ? this.Redirect($"{frontendUrl}/login#error=token_exchange_failed")
+                : this.Redirect(LinkErrorUrl(frontendUrl, LinkRefusalCode.LinkFailed));
         }
 
         var tokenJson = await tokenResponse.Content.ReadFromJsonAsync<JsonElement>();
@@ -214,7 +217,9 @@ public partial class AuthController(
         var userResponse = await httpClient.GetAsync("https://discordapp.com/api/users/@me");
         if (!userResponse.IsSuccessStatusCode)
         {
-            return this.Redirect($"{frontendUrl}/login#error=discord_user_fetch_failed");
+            return linkingHumanId is null
+                ? this.Redirect($"{frontendUrl}/login#error=discord_user_fetch_failed")
+                : this.Redirect(LinkErrorUrl(frontendUrl, LinkRefusalCode.LinkFailed));
         }
 
         var discordUser = await userResponse.Content.ReadFromJsonAsync<JsonElement>();
@@ -224,6 +229,12 @@ public partial class AuthController(
         var avatarUrl = avatar != null
             ? $"https://cdn.discordapp.com/avatars/{discordId}/{avatar}.png"
             : null;
+
+        if (linkingHumanId is not null)
+        {
+            // Never a sign-in: no human lookup, no token.
+            return await this.CompleteLinkAsync(frontendUrl, linkingHumanId, discordId, username);
+        }
 
         // Look up user in DB
         var human = await this._humanService.GetByIdAsync(discordId);
@@ -283,6 +294,38 @@ public partial class AuthController(
         // Redirect browser to Angular with token in URL fragment to avoid server-side leakage
         return this.Redirect($"{frontendUrl}/auth/discord/callback#token={jwt}");
     }
+
+    /// <summary>
+    /// The link branch of the Discord callback: the identity is verified, so apply the same
+    /// <c>enable_discord</c> and role checks a Discord sign-in would, then link and send the browser back.
+    /// </summary>
+    internal async Task<IActionResult> CompleteLinkAsync(string frontendUrl, string callerHumanId, string discordId, string username)
+    {
+        // Discord sign-in switched off is the site's choice, not the account's fault: its own code.
+        if (await this._siteSettingService.IsSwitchedOffAsync(EnableDiscordKey))
+        {
+            return this.Redirect(LinkErrorUrl(frontendUrl, LinkRefusalCode.AppUnavailable));
+        }
+
+        if (await this.CheckRoleAccessAsync(discordId) is not null)
+        {
+            return this.Redirect(LinkErrorUrl(frontendUrl, LinkRefusalCode.NotPermitted));
+        }
+
+        try
+        {
+            await this._accountLinkService.LinkAsync(callerHumanId, LinkSide.Discord, discordId, username);
+        }
+        catch (LinkRefusalException ex)
+        {
+            return this.Redirect(LinkErrorUrl(frontendUrl, ex.Code));
+        }
+
+        return this.Redirect($"{frontendUrl}/linked-accounts#linked=discord");
+    }
+
+    private static string LinkErrorUrl(string frontendUrl, LinkRefusalCode code) =>
+        $"{frontendUrl}/linked-accounts#link_error={LinkRefusalException.Wire(code)}";
 
     [AllowAnonymous]
     [HttpGet("oidc/login")]
@@ -565,7 +608,7 @@ public partial class AuthController(
     [HttpPost("telegram/verify")]
     public async Task<IActionResult> TelegramVerify([FromBody] Dictionary<string, string> telegramData)
     {
-        if (telegramData == null || !telegramData.TryGetValue("id", out var telegramId) || !telegramData.TryGetValue("hash", out var hash))
+        if (telegramData == null || !telegramData.TryGetValue("id", out var telegramId) || !telegramData.ContainsKey("hash"))
         {
             return this.BadRequest(new
             {
@@ -584,46 +627,34 @@ public partial class AuthController(
         // The enable_telegram site setting (admin runtime toggle) is checked after authentication
         // so that admins can still log in even when Telegram is disabled for regular users.
 
-        // Validate auth_date is not older than 86400 seconds (24 hours)
-        if (telegramData.TryGetValue("auth_date", out var authDateStr) &&
-            long.TryParse(authDateStr, out var authDateUnix))
+        // Same check the account-link endpoint uses, with sign-in's 24-hour window.
+        var widget = TelegramWidgetVerifier.Verify(telegramData, this._telegramSettings.BotToken,
+            TelegramWidgetVerifier.SignInMaxAge, DateTimeOffset.UtcNow);
+        if (!widget.Valid)
         {
-            var authDate = DateTimeOffset.FromUnixTimeSeconds(authDateUnix);
-            if (DateTimeOffset.UtcNow - authDate > TimeSpan.FromSeconds(86400))
+            return widget.Failure switch
             {
-                return this.Unauthorized(new
+                "missing_fields" => this.BadRequest(new
+                {
+                    error = "Invalid Telegram login data."
+                }),
+                "bad_id" => this.BadRequest(new
+                {
+                    error = "Invalid Telegram user id."
+                }),
+                "bad_auth_date" => this.BadRequest(new
+                {
+                    error = "Missing or invalid auth_date."
+                }),
+                "expired" => this.Unauthorized(new
                 {
                     error = "Telegram authentication data has expired."
-                });
-            }
-        }
-        else
-        {
-            return this.BadRequest(new
-            {
-                error = "Missing or invalid auth_date."
-            });
-        }
-
-        // Validate HMAC-SHA256
-        var botToken = this._telegramSettings.BotToken;
-
-        var dataCheckString = string.Join("\n",
-            telegramData
-                .Where(kvp => kvp.Key != "hash")
-                .OrderBy(kvp => kvp.Key)
-                .Select(kvp => $"{kvp.Key}={kvp.Value}"));
-        var secretKey = SHA256.HashData(Encoding.UTF8.GetBytes(botToken));
-
-        using var hmac = new HMACSHA256(secretKey);
-        var computedHash = Convert.ToHexStringLower(hmac.ComputeHash(Encoding.UTF8.GetBytes(dataCheckString)));
-
-        if (computedHash != hash)
-        {
-            return this.Unauthorized(new
-            {
-                error = "Invalid Telegram authentication data."
-            });
+                }),
+                _ => this.Unauthorized(new
+                {
+                    error = "Invalid Telegram authentication data."
+                })
+            };
         }
 
         var username = telegramData.GetValueOrDefault("username",
@@ -956,20 +987,31 @@ public partial class AuthController(
             });
         }
 
+        // The new state follows the signed-in side; a linked pair's other human is set to the same one.
         var newEnabled = human.Enabled != 1;
-        if (newEnabled)
+        // Stop reaches both. Start reaches the other side only when nothing paused it: an operator's block or a
+        // stop the person made there is not PoracleWeb.NET's to undo.
+        var written = await this._pairWriter.WriteAsync(this.UserId, async id =>
         {
-            await this._humanProxy.StartAsync(this.UserId);
-        }
-        else
-        {
-            await this._humanProxy.StopAsync(this.UserId);
-        }
+            if (!newEnabled)
+            {
+                await this._humanProxy.StopAsync(id);
+                return;
+            }
 
-        return this.Ok(new
+            if (!string.Equals(id, this.UserId, StringComparison.Ordinal)
+                && await this._pairWriter.FindSideAsync(this.UserId, id) is { Pause: not PauseReason.None })
+            {
+                return;
+            }
+
+            await this._humanProxy.StartAsync(id);
+        });
+
+        return this.Ok(this.Paired(new
         {
             enabled = newEnabled
-        });
+        }, written.Warning));
     }
 
     [EnableRateLimiting("auth-read")]

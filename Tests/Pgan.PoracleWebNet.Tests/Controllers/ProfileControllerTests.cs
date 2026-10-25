@@ -6,6 +6,7 @@ using Pgan.PoracleWebNet.Api.Controllers;
 using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
+using Pgan.PoracleWebNet.Tests.Helpers;
 
 namespace Pgan.PoracleWebNet.Tests.Controllers;
 
@@ -25,7 +26,7 @@ public class ProfileControllerTests : ControllerTestBase
         this._jwtService.Setup(j => j.GenerateTokenWithReplacedProfile(It.IsAny<System.Security.Claims.ClaimsPrincipal>(), It.IsAny<int>(), It.IsAny<bool?>()))
             .Returns("test-jwt-token");
 
-        this._sut = new ProfileController(this._profileService.Object, this._humanService.Object, this._humanProxy.Object, this._jwtService.Object, this._roleResolver.Object, this._areaWriter.Object, Microsoft.Extensions.Logging.Abstractions.NullLogger<ProfileController>.Instance);
+        this._sut = new ProfileController(this._profileService.Object, this._humanService.Object, this._humanProxy.Object, this._jwtService.Object, this._roleResolver.Object, this._areaWriter.Object, PairTestSupport.UnlinkedWriter(), Microsoft.Extensions.Logging.Abstractions.NullLogger<ProfileController>.Instance);
         SetupUser(this._sut);
     }
 

@@ -14,18 +14,21 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { TranslatePipe } from '@ngx-translate/core';
 import { forkJoin } from 'rxjs';
 
+import { LinkSide } from '../../core/models';
 import { AlertDefaultsService } from '../../core/services/alert-defaults.service';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { LureService } from '../../core/services/lure.service';
 import { AddRefusalComponent } from '../../shared/components/add-refusal/add-refusal.component';
+import { DeliverToFieldComponent } from '../../shared/components/deliver-to/deliver-to-field.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
 import { AddDialogData, AddRefusal, editExistingResult, ExistingRule, finishAdd, settle } from '../../shared/utils/add-outcome';
 import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 import { compose } from '../../shared/utils/clean-flags';
+import { injectDeliverTo } from '../../shared/utils/deliver-to';
 
 interface LureOption {
   color: string;
@@ -35,6 +38,7 @@ interface LureOption {
 
 @Component({
   imports: [
+    DeliverToFieldComponent,
     AddRefusalComponent,
     ReactiveFormsModule,
     MatDialogModule,
@@ -68,9 +72,12 @@ export class LureAddDialogComponent {
   private readonly icons = inject(IconService);
   private readonly lureService = inject(LureService);
   private readonly snackBar = inject(MatSnackBar);
+  readonly deliver = injectDeliverTo();
   readonly dialogRef = inject(MatDialogRef<LureAddDialogComponent>);
+
   form = this.fb.group({
     clean: [false],
+    destination: [null as LinkSide | null],
     editInPlace: [false],
     template: [''],
   });
@@ -127,6 +134,7 @@ export class LureAddDialogComponent {
     const scope = scopeToFields(this.scope());
     const creates = this.selectedLureIds().map(lureId =>
       this.lureService.create({
+        ...this.deliver.createFields(this.form.controls.destination.value),
         overrideAreas: scope.overrideAreas,
         overrideLocationLabel: scope.overrideLocationLabel,
         // New lures have no prior bits, so compose bits 1 (auto-delete) and 2 (edit-in-place) directly.

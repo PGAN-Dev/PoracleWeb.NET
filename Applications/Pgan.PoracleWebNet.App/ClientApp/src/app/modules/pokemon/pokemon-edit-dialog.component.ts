@@ -15,25 +15,28 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { syncUnscanned } from './include-unscanned';
-import { Monster, MonsterUpdate } from '../../core/models';
+import { Monster, MonsterUpdate, LinkSide } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MonsterService } from '../../core/services/monster.service';
 import { PoracleConfigService } from '../../core/services/poracle-config.service';
+import { DeliverToFieldComponent } from '../../shared/components/deliver-to/deliver-to-field.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { createFailureText } from '../../shared/utils/add-outcome';
 import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, EDIT, compose, isAutoDelete, isEdit, preserve } from '../../shared/utils/clean-flags';
 import { ANY_COSTUME, costumeHintKey } from '../../shared/utils/costumes';
+import { injectDeliverTo, moveEditMessage } from '../../shared/utils/deliver-to';
 import { mentionCapable } from '../../shared/utils/human-kind';
 import { minTimeLabel, minTimeOptions } from '../../shared/utils/min-time';
 import { MINIOR_POKEMON_ID } from '../../shared/utils/minior';
 
 @Component({
   imports: [
+    DeliverToFieldComponent,
     ReactiveFormsModule,
     MatDialogModule,
     MatButtonModule,
@@ -70,6 +73,8 @@ export class PokemonEditDialogComponent implements OnInit {
     return this.masterData.getFormsForPokemon(this.data.pokemonId);
   });
 
+  readonly deliver = injectDeliverTo();
+
   readonly dialogRef = inject(MatDialogRef<PokemonEditDialogComponent>);
 
   /** Whether to show the edit-in-place toggle at all -- see MonsterService.editSupported. */
@@ -82,6 +87,7 @@ export class PokemonEditDialogComponent implements OnInit {
     // rather than letting it fall to 0, which would silently narrow the rule on the next save.
     costume: [this.data.costume ?? ANY_COSTUME],
     def: [this.data.def],
+    destination: [(this.data.destination ?? null) as LinkSide | null],
     editInPlace: [isEdit(this.data.clean)],
     form: [this.data.form],
     gender: [this.data.gender],
@@ -196,6 +202,7 @@ export class PokemonEditDialogComponent implements OnInit {
     const scope = scopeToFields(this.scope());
 
     const update: MonsterUpdate = {
+      ...this.deliver.moveFields(this.data.destination, this.form.controls.destination.value),
       overrideAreas: scope.overrideAreas,
       overrideLocationLabel: scope.overrideLocationLabel,
       atk: values.atk ?? 0,
@@ -239,8 +246,12 @@ export class PokemonEditDialogComponent implements OnInit {
         this.snackBar.open(message, this.i18n.instant('COMMON.OK'), { duration: 6000 });
         this.saving.set(false);
       },
-      next: () => {
-        this.snackBar.open(this.i18n.instant('POKEMON.SNACK_UPDATED'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
+      next: moved => {
+        this.snackBar.open(
+          moveEditMessage(moved, this.i18n) ?? this.i18n.instant('POKEMON.SNACK_UPDATED'),
+          this.i18n.instant('COMMON.OK'),
+          { duration: 3000 },
+        );
         this.dialogRef.close(true);
       },
     });

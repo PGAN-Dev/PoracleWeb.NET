@@ -12,9 +12,12 @@
 </div>
 @if (!loading() && nests().length > 0) {
   <app-alarm-list-toolbar
+    alarmsLabel="NESTS.PAGE_TITLE"
     searchPlaceholder="NESTS.SEARCH_PLACEHOLDER"
     [(search)]="search"
     [(sort)]="sortBy"
+    [(destinationFilter)]="destinationFilter"
+    [canFilterDestination]="canChooseDestination()"
     [sortOptions]="sortOptions"
     [total]="nests().length"
     [shown]="visibleNests().length"
@@ -29,6 +32,9 @@
     (selectAll)="selectAll()"
     (deselectAll)="deselectAll()"
     (changeRadius)="bulkUpdateDistance()"
+    [canMove]="canChooseDestination()"
+    [allOn]="selectionApp()"
+    (moveSelected)="bulkMove($event)"
     (deleteSelected)="bulkDelete()" />
 }
 
@@ -41,6 +47,7 @@
   <div class="alarm-grid">
     @for (nest of visibleNests(); track nest.uid) {
       <app-alarm-card
+        [destination]="nest.destination"
         [summary]="nest.description"
         [selectable]="selectMode()"
         [selected]="selectedIds().has(nest.uid)"

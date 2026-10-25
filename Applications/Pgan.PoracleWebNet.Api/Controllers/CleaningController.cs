@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Pgan.PoracleWebNet.Api.Services;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
@@ -44,6 +45,7 @@ public class CleaningController(ICleaningService cleaningService, IFeatureGate f
         // it already written. Skip disabled types instead, and tell the caller which were skipped.
         var total = 0;
         var skipped = new List<string>();
+        PairWarning? warning = null;
 
         foreach (var (disableKey, toggle) in this.BulkToggles())
         {
@@ -53,18 +55,20 @@ public class CleaningController(ICleaningService cleaningService, IFeatureGate f
                 continue;
             }
 
-            total += await toggle(enabled);
+            var result = await toggle(enabled);
+            total += result.Updated;
+            warning ??= result.Warning;
         }
 
-        return this.Ok(new
+        return this.Ok(this.Paired(new
         {
             updated = total,
             skipped,
-        });
+        }, warning));
     }
 
     /// <summary>Every alarm type the bulk toggle covers, paired with the gate that can switch it off.</summary>
-    private IEnumerable<(string DisableKey, Func<int, Task<int>> Toggle)> BulkToggles()
+    private IEnumerable<(string DisableKey, Func<int, Task<CleanToggleResult>> Toggle)> BulkToggles()
     {
         yield return (DisableFeatureKeys.Pokemon, e => this._cleaningService.ToggleCleanMonstersAsync(this.UserId, this.ProfileNo, e));
         yield return (DisableFeatureKeys.Raids, e => this._cleaningService.ToggleCleanRaidsAsync(this.UserId, this.ProfileNo, e));
@@ -90,7 +94,7 @@ public class CleaningController(ICleaningService cleaningService, IFeatureGate f
                 error = "enabled must be 0 or 1."
             });
         }
-        var count = alarmType.ToLowerInvariant() switch
+        CleanToggleResult? count = alarmType.ToLowerInvariant() switch
         {
             "monsters" => await this._cleaningService.ToggleCleanMonstersAsync(this.UserId, this.ProfileNo, enabled),
             "raids" => await this._cleaningService.ToggleCleanRaidsAsync(this.UserId, this.ProfileNo, enabled),
@@ -103,7 +107,7 @@ public class CleaningController(ICleaningService cleaningService, IFeatureGate f
 
             "maxbattles" => await this._cleaningService.ToggleCleanMaxBattlesAsync(this.UserId, this.ProfileNo, enabled),
             // Unknown types are client input, not a fault. "pokemon" is a natural guess for "monsters".
-            _ => (int?)null
+            _ => null
         };
 
         if (count is null)
@@ -114,10 +118,10 @@ public class CleaningController(ICleaningService cleaningService, IFeatureGate f
             });
         }
 
-        return this.Ok(new
+        return this.Ok(this.Paired(new
         {
-            updated = count.Value
-        });
+            updated = count.Value.Updated
+        }, count.Value.Warning));
     }
 
     private static readonly string[] ValidAlarmTypes =
