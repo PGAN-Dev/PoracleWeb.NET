@@ -1454,6 +1454,7 @@
     "SIGNED_OUT_DESC": "Du wurdest von DM Alerts abgemeldet.",
     "PROVIDER_DISABLED_BY_ADMIN": "Diese Anmeldemethode wurde von einem Administrator deaktiviert.",
     "PROVIDER_DISABLED_HINT": "Diese Anmeldemethode ist für Nicht-Administratoren derzeit deaktiviert.",
+    "SHOW_ALL_METHODS": "Administrator? Alle Anmeldemethoden anzeigen",
     "ERR_TELEGRAM_DISABLED": "Die Telegram-Anmeldung ist derzeit deaktiviert.",
     "OR": "oder",
     "NO_METHODS": "Derzeit sind keine Anmeldemethoden aktiviert. Wende dich an das Team, das diese Seite betreibt.",

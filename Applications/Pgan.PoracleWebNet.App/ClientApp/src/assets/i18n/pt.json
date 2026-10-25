@@ -1451,6 +1451,7 @@
     "SIGN_IN_TELEGRAM": "Entrar com Telegram",
     "PROVIDER_DISABLED_BY_ADMIN": "Este método de acesso foi desativado por um administrador.",
     "PROVIDER_DISABLED_HINT": "Este método de acesso está desativado para utilizadores não administradores.",
+    "SHOW_ALL_METHODS": "Administrador? Mostrar todos os métodos de acesso",
     "ERR_TELEGRAM_DISABLED": "O início de sessão com Telegram está desativado.",
     "OR": "ou",
     "NO_METHODS": "Nenhum método de login está atualmente ativado. Contacta a equipa que gere este site.",

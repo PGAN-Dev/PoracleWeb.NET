@@ -283,6 +283,13 @@ Access control.
     allows Discord login. Admins can always sign in with Discord, so switching this off by mistake is
     recoverable from the admin panel rather than a lockout.
 
+!!! tip "Where the button goes when it's off"
+    The login page hides a method its switch has turned off, so members see only what they can use.
+    Admins get it back with the quiet "Admin? Show every sign-in method" link under the buttons, or by
+    opening `/login?all=1`. If every configured method is switched off, the page shows them all anyway
+    (each with "disabled for non-admin users"), since hiding everything would leave an admin no way in.
+    The same applies to `enable_telegram` and `enable_oidc`.
+
 ---
 
 ## Telegram

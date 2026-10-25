@@ -1455,6 +1455,7 @@
     "SIGN_IN_AGAIN": "Accedi di nuovo",
     "PROVIDER_DISABLED_BY_ADMIN": "Questo metodo di accesso è stato disattivato da un amministratore.",
     "PROVIDER_DISABLED_HINT": "Questo metodo di accesso è disattivato per gli utenti non amministratori.",
+    "SHOW_ALL_METHODS": "Amministratore? Mostra tutti i metodi di accesso",
     "ERR_TELEGRAM_DISABLED": "L'accesso con Telegram è attualmente disattivato.",
     "OR": "oppure",
     "NO_METHODS": "Nessun metodo di accesso è attualmente abilitato. Contatta il team che gestisce questo sito.",

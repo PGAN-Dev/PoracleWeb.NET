@@ -1455,6 +1455,7 @@
     "SIGN_IN_AGAIN": "Iniciar sesión de nuevo",
     "PROVIDER_DISABLED_BY_ADMIN": "Un administrador ha desactivado este método de acceso.",
     "PROVIDER_DISABLED_HINT": "Este método de acceso está desactivado para usuarios no administradores.",
+    "SHOW_ALL_METHODS": "¿Eres administrador? Mostrar todos los métodos de acceso",
     "ERR_TELEGRAM_DISABLED": "El inicio de sesión con Telegram está desactivado.",
     "OR": "o",
     "NO_METHODS": "No hay métodos de inicio de sesión habilitados actualmente. Contacta con el equipo que gestiona este sitio.",

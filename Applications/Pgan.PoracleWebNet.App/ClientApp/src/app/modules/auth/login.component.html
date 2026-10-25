@@ -82,6 +82,12 @@
               }
             }
 
+            @if (hasHiddenMethods()) {
+              <button mat-button type="button" class="show-all-methods" (click)="showAllMethods.set(true)">
+                {{ 'AUTH.SHOW_ALL_METHODS' | translate }}
+              </button>
+            }
+
             @if (!discordVisible() && !telegramVisible() && !oidcVisible()) {
               <div class="no-methods-message">
                 <mat-icon>lock_outline</mat-icon>

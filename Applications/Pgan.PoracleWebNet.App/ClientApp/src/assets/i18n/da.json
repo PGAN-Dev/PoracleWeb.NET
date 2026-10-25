@@ -1454,6 +1454,7 @@
     "SIGNED_OUT_DESC": "Du er blevet logget ud af DM Alerts.",
     "PROVIDER_DISABLED_BY_ADMIN": "Denne loginmetode er slået fra af en administrator.",
     "PROVIDER_DISABLED_HINT": "Denne loginmetode er slået fra for ikke-administratorer.",
+    "SHOW_ALL_METHODS": "Administrator? Vis alle loginmetoder",
     "ERR_TELEGRAM_DISABLED": "Login med Telegram er slået fra lige nu.",
     "OR": "eller",
     "NO_METHODS": "Ingen loginmetoder er aktuelt aktiverede. Kontakt holdet, der driver denne side.",

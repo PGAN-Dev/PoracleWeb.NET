@@ -1451,6 +1451,7 @@
     "SIGN_IN_TELEGRAM": "Inloggen met Telegram",
     "PROVIDER_DISABLED_BY_ADMIN": "Deze inlogmethode is uitgeschakeld door een beheerder.",
     "PROVIDER_DISABLED_HINT": "Deze inlogmethode is uitgeschakeld voor niet-beheerders.",
+    "SHOW_ALL_METHODS": "Beheerder? Toon alle inlogmethoden",
     "ERR_TELEGRAM_DISABLED": "Inloggen met Telegram is momenteel uitgeschakeld.",
     "OR": "of",
     "NO_METHODS": "Er zijn momenteel geen inlogmethoden ingeschakeld. Neem contact op met het team achter deze site.",

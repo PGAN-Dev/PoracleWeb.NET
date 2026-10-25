@@ -1455,6 +1455,7 @@
     "SIGN_IN_AGAIN": "Sign in again",
     "PROVIDER_DISABLED_BY_ADMIN": "This login method has been disabled by an administrator.",
     "PROVIDER_DISABLED_HINT": "This login method is currently disabled for non-admin users.",
+    "SHOW_ALL_METHODS": "Admin? Show every sign-in method",
     "ERR_TELEGRAM_DISABLED": "Telegram login is currently disabled.",
     "OR": "or",
     "NO_METHODS": "No login methods are currently enabled. Contact the team that runs this site.",

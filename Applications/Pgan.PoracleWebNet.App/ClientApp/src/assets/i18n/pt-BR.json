@@ -1454,6 +1454,7 @@
     "SIGNED_OUT_DESC": "Você saiu do Alertas DM.",
     "PROVIDER_DISABLED_BY_ADMIN": "Este método de login foi desativado por um administrador.",
     "PROVIDER_DISABLED_HINT": "Este método de login está desativado para usuários não administradores.",
+    "SHOW_ALL_METHODS": "Administrador? Mostrar todos os métodos de login",
     "ERR_TELEGRAM_DISABLED": "O login com Telegram está desativado no momento.",
     "OR": "ou",
     "NO_METHODS": "Nenhum método de login está ativo no momento. Fale com a equipe que administra este site.",

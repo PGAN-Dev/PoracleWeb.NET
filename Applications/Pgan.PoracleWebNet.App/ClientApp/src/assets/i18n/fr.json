@@ -1454,6 +1454,7 @@
     "SIGNED_OUT_DESC": "Tu as été déconnecté de Alertes DM.",
     "PROVIDER_DISABLED_BY_ADMIN": "Cette méthode de connexion a été désactivée par un administrateur.",
     "PROVIDER_DISABLED_HINT": "Cette méthode de connexion est désactivée pour les non-administrateurs.",
+    "SHOW_ALL_METHODS": "Administrateur ? Afficher toutes les méthodes de connexion",
     "ERR_TELEGRAM_DISABLED": "La connexion Telegram est actuellement désactivée.",
     "OR": "ou",
     "NO_METHODS": "Aucune méthode de connexion n'est actuellement activée. Contacte l'équipe qui gère ce site.",

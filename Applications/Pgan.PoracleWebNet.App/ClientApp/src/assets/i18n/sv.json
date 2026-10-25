@@ -1451,6 +1451,7 @@
     "SIGN_IN_TELEGRAM": "Logga in med Telegram",
     "PROVIDER_DISABLED_BY_ADMIN": "Den här inloggningsmetoden har stängts av av en administratör.",
     "PROVIDER_DISABLED_HINT": "Den här inloggningsmetoden är avstängd för icke-administratörer.",
+    "SHOW_ALL_METHODS": "Administratör? Visa alla inloggningsmetoder",
     "ERR_TELEGRAM_DISABLED": "Inloggning med Telegram är för närvarande avstängd.",
     "OR": "eller",
     "NO_METHODS": "Inga inloggningsmetoder är aktiverade just nu. Kontakta teamet som driver den här webbplatsen.",
