@@ -19,12 +19,14 @@ import {
   isEventType as checkEventType,
   isGenderFixed as checkGenderFixed,
 } from './invasion.constants';
-import { Invasion } from '../../core/models';
+import { Invasion, LinkSide } from '../../core/models';
+import { AlarmMoveService } from '../../core/services/alarm-move.service';
 import { AreaNameService } from '../../core/services/area-name.service';
 import { AreaService } from '../../core/services/area.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { InvasionService } from '../../core/services/invasion.service';
+import { LinkedAccountService } from '../../core/services/linked-account.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { TestAlertService } from '../../core/services/test-alert.service';
 import { AlarmCardComponent } from '../../shared/components/alarm-card/alarm-card.component';
@@ -37,14 +39,28 @@ import { WhereChipComponent } from '../../shared/components/where-chip/where-chi
 import { WhereSheetComponent, WhereSheetData, whereSheetConfig } from '../../shared/components/where-sheet/where-sheet.component';
 import { addOnArrival } from '../../shared/utils/add-on-arrival';
 import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
-import { byNumber, byText, queryAlarms, visibleSelection } from '../../shared/utils/alarm-list-query';
+import {
+  byDestination,
+  byNumber,
+  byText,
+  DestinationFilter,
+  queryAlarms,
+  sharedDestination,
+  visibleSelection,
+} from '../../shared/utils/alarm-list-query';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
+import { runBulkMove } from '../../shared/utils/bulk-move';
 import { isAutoDelete as cleanIsAutoDelete } from '../../shared/utils/clean-flags';
-import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
+import { combineDistanceResults, distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
 import { swapToFallbackIcon } from '../../shared/utils/icon-fallback';
 import { invasionKind } from '../../shared/utils/pokestop-events';
 import { serverReason } from '../../shared/utils/server-reason';
+
+/** A card's identity: invasion and event rules are numbered separately, so the uid alone is not unique on this page. */
+function cardKey(item: Invasion): string {
+  return `${invasionKind(item.gruntType) ?? 'invasion'}:${item.uid}`;
+}
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -79,11 +95,18 @@ export class InvasionListComponent implements OnInit {
   private readonly icons = inject(IconService);
   private readonly invasionService = inject(InvasionService);
   private readonly masterData = inject(MasterDataService);
+  private readonly moves = inject(AlarmMoveService);
   private readonly snackBar = inject(MatSnackBar);
   /** `?add=1` from the dashboard or onboarding opens the add dialog once. */
   private readonly takeAddRequest = addOnArrival();
   private readonly translate = inject(TranslateService);
-  readonly selectedIds = signal(new Set<number>());
+  /**
+   * Selected cards by `cardKey`, not by uid: an invasion and a Pok�stop event can share a number, and a uid-keyed
+   * selection ticked both and acted on both. See #1062.
+   */
+  readonly selectedIds = signal(new Set<string>());
+  /** A linked person can filter by the app each alarm is delivered to. */
+  readonly destinationFilter = signal<DestinationFilter>('all');
   readonly invasions = signal<Invasion[]>([]);
   readonly search = signal('');
   /** "default" keeps the stable order the list loads in (see orderAlarms), so nothing moves once names load. */
@@ -95,7 +118,7 @@ export class InvasionListComponent implements OnInit {
       newest: byNumber(i => -i.uid),
     };
     return queryAlarms(
-      this.invasions(),
+      byDestination(this.invasions(), this.destinationFilter()),
       this.search(),
       i => [this.getDisplayName(i.gruntType, i.gender), i.gruntType],
       sorts[this.sortBy()] ?? null,
@@ -103,16 +126,26 @@ export class InvasionListComponent implements OnInit {
   });
 
   /** The selected rules still on screen: bulk Delete and Change radius never reach a card the search has hidden. */
-  readonly actionIds = computed(() =>
-    visibleSelection(
-      this.selectedIds(),
-      this.visibleInvasions().map(item => item.uid),
-    ),
-  );
+  readonly actionIds = computed(() => visibleSelection(this.selectedIds(), this.visibleInvasions().map(cardKey)));
+
+  /** The selected cards still on screen. */
+  readonly actionCards = computed(() => {
+    const keys = new Set(this.actionIds());
+    return this.visibleInvasions().filter(item => keys.has(cardKey(item)));
+  });
+
+  /** True for a linked person, who gets the delivery filter, the card glyph and the bulk move. */
+  readonly canChooseDestination = inject(LinkedAccountService).canChoose;
+
+  /** For the template's `track`. */
+  readonly cardKey = cardKey;
 
   readonly loading = signal(true);
   /** Only used to word the inherited scope honestly; empty produces the more cautious wording. */
   readonly profileAreas = signal<string[]>([]);
+  /** The app every selected alarm on screen is already on, which the bulk Deliver to menu offers disabled. */
+  readonly selectionApp = computed(() => sharedDestination(this.visibleInvasions(), cardKey, this.actionIds()));
+
   readonly selectMode = signal(false);
 
   readonly sortOptions: AlarmSortOption[] = [
@@ -134,14 +167,16 @@ export class InvasionListComponent implements OnInit {
     });
     const result = await firstValueFrom(ref.afterClosed());
     if (result) {
-      const ids = this.actionIds();
+      // Each selected card goes on the route of its own kind: an invasion and an event can share a uid, and a
+      // delete that names only the uid would take whichever the server finds first. See #1062.
+      const targets = this.actionCards();
       // Settled one at a time: a stale uid -- the row re-keyed by an edit, or removed in another tab --
       // threw out of the loop, so deletes that had already happened went unreported and the list never
       // reloaded. See #603.
       let deleted = 0;
-      for (const uid of ids) {
+      for (const item of targets) {
         try {
-          await firstValueFrom(this.invasionService.delete(uid));
+          await firstValueFrom(this.invasionService.delete(item.uid, invasionKind(item.gruntType)));
           deleted++;
         } catch {
           // Already gone, which is what the user asked for.
@@ -156,17 +191,37 @@ export class InvasionListComponent implements OnInit {
     }
   }
 
+  /** Moves the selected alarms to the other app, then reports every outcome in one line. */
+  async bulkMove(destination: LinkSide): Promise<void> {
+    await runBulkMove(
+      { i18n: this.i18n, moves: this.moves, snackBar: this.snackBar },
+      this.selectedByKind().map(({ uids, kind }) => ({ uids, kind, type: 'invasion' as const })),
+      destination,
+      () => {
+        this.selectedIds.set(new Set());
+        this.selectMode.set(false);
+        this.loadInvasions();
+      },
+    );
+  }
+
   async bulkUpdateDistance(): Promise<void> {
     const ref = this.dialog.open(DistanceDialogComponent, { width: '440px', data: { count: this.actionIds().length } });
     const distance = await firstValueFrom(ref.afterClosed());
     if (distance !== null && distance !== undefined) {
-      const uids = this.actionIds();
+      const uids = this.actionCards().map(item => item.uid);
+      const groups = this.selectedByKind();
       // The server refuses a radius that would take over an alarm the user did not select, and names
       // the one in the way. Unguarded, that rejection cleared nothing, reloaded nothing and showed
       // nothing -- indistinguishable from a successful no-op. See #641.
       let result: DistanceUpdateResult | undefined;
       try {
-        result = await firstValueFrom(this.invasionService.updateBulkDistance(uids, distance));
+        // One request per kind: an invasion and an event can share a uid, and the server needs the kind to know which.
+        const parts: DistanceUpdateResult[] = [];
+        for (const { uids: group, kind } of groups) {
+          parts.push(await firstValueFrom(this.invasionService.updateBulkDistance(group, distance, kind)));
+        }
+        result = combineDistanceResults(...parts);
       } catch (err) {
         this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.FAILED_DISTANCE'), this.i18n.instant('TOAST.OK'), {
           duration: 5000,
@@ -233,7 +288,7 @@ export class InvasionListComponent implements OnInit {
       .afterClosed()
       .subscribe(c => {
         if (c)
-          this.invasionService.delete(invasion.uid).subscribe({
+          this.invasionService.delete(invasion.uid, invasionKind(invasion.gruntType)).subscribe({
             error: (err: unknown) =>
               this.snackBar.open(serverReason(err) ?? this.i18n.instant('ALARM.FAILED_DELETE'), this.i18n.instant('TOAST.OK'), {
                 duration: 3000,
@@ -329,6 +384,10 @@ export class InvasionListComponent implements OnInit {
     return checkEventType(gruntType);
   }
 
+  isSelected(item: Invasion): boolean {
+    return this.selectedIds().has(cardKey(item));
+  }
+
   loadInvasions(): void {
     this.loading.set(true);
     this.invasionService
@@ -375,16 +434,17 @@ export class InvasionListComponent implements OnInit {
   selectAll(): void {
     // Adds what is on screen: a search that hides a rule also keeps it out of Select All (#642), and a tick
     // the search is hiding stays, so clearing the search brings it back.
-    this.selectedIds.set(new Set([...this.selectedIds(), ...this.visibleInvasions().map(i => i.uid)]));
+    this.selectedIds.set(new Set([...this.selectedIds(), ...this.visibleInvasions().map(cardKey)]));
   }
 
   sendTestAlert(invasion: Invasion): void {
     this.testAlertService.sendTestAlert('invasion', invasion.uid);
   }
 
-  toggleSelect(uid: number): void {
+  toggleSelect(item: Invasion): void {
+    const key = cardKey(item);
     const current = new Set(this.selectedIds());
-    current.has(uid) ? current.delete(uid) : current.add(uid);
+    current.has(key) ? current.delete(key) : current.add(key);
     this.selectedIds.set(current);
   }
 
@@ -413,5 +473,17 @@ export class InvasionListComponent implements OnInit {
   private openExisting(uid: number, _trackingType: null | string): void {
     const invasion = this.invasions().find(i => i.uid === uid);
     if (invasion) this.editInvasion(invasion);
+  }
+
+  /** The selected cards' uids, one group per kind present, so every bulk call names the kind it acts on. */
+  private selectedByKind(): { kind: 'event' | 'invasion'; uids: number[] }[] {
+    const groups: { kind: 'event' | 'invasion'; uids: number[] }[] = [];
+    for (const item of this.actionCards()) {
+      const kind = invasionKind(item.gruntType) ?? 'invasion';
+      const group = groups.find(g => g.kind === kind);
+      if (group) group.uids.push(item.uid);
+      else groups.push({ uids: [item.uid], kind });
+    }
+    return groups;
   }
 }

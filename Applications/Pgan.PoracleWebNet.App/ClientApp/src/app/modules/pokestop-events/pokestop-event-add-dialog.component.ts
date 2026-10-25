@@ -14,12 +14,13 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 
 import { reportedByInterceptor } from '../../core/interceptors/error.interceptor';
-import { PokestopEvent } from '../../core/models';
+import { PokestopEvent, LinkSide } from '../../core/models';
 import { AlertDefaultsService } from '../../core/services/alert-defaults.service';
 import { AreaNameService } from '../../core/services/area-name.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { PokestopEventService } from '../../core/services/pokestop-event.service';
 import { AddRefusalComponent } from '../../shared/components/add-refusal/add-refusal.component';
+import { DeliverToFieldComponent } from '../../shared/components/deliver-to/deliver-to-field.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import {
@@ -33,6 +34,7 @@ import {
 } from '../../shared/utils/add-outcome';
 import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE } from '../../shared/utils/clean-flags';
+import { injectDeliverTo, pausedCreateMessage } from '../../shared/utils/deliver-to';
 import { POKESTOP_EVENTS } from '../../shared/utils/pokestop-events';
 
 /** What the list passes when it opens the dialog. */
@@ -48,6 +50,7 @@ export interface PokestopEventAddDialogData {
 
 @Component({
   imports: [
+    DeliverToFieldComponent,
     AddRefusalComponent,
     ReactiveFormsModule,
     MatButtonModule,
@@ -114,10 +117,13 @@ export class PokestopEventAddDialogComponent {
 
   private readonly translate = inject(TranslateService);
 
+  readonly deliver = injectDeliverTo();
+
   readonly dialogRef = inject(MatDialogRef<PokestopEventAddDialogComponent>);
 
   form = this.fb.group({
     autoDelete: [false],
+    destination: [null as LinkSide | null],
     // One control per event, named for it, so the parity check pairs them with the edit dialog's
     // single-select.
     eventGoldStop: [false],
@@ -181,10 +187,12 @@ export class PokestopEventAddDialogComponent {
     // so a partial success is possible and each is reported on its own rather than as one verdict.
     let created = 0;
     let unchanged = 0;
+    let pausedSide: LinkSide | null = null;
     for (const displayType of chosen) {
       try {
         const result = await firstValueFrom(
           this.pokestopEventService.create({
+            ...this.deliver.createFields(this.form.controls.destination.value),
             overrideAreas: scope.overrideAreas,
             overrideLocationLabel: scope.overrideLocationLabel,
             clean: v.autoDelete ? AUTO_DELETE : 0,
@@ -193,6 +201,7 @@ export class PokestopEventAddDialogComponent {
             template: v.template || null,
           }),
         );
+        if (result?.pausedDestination) pausedSide = result.destination ?? null;
         if ((result?.uid ?? 0) > 0) created++;
         else unchanged++;
       } catch (err) {
@@ -218,7 +227,7 @@ export class PokestopEventAddDialogComponent {
     }
 
     // A single event PoracleNG found already stored exactly was left as it is; saying "created" hid that.
-    reportCreated(created, unchanged, this.i18n, this.snackBar);
+    reportCreated(created, unchanged, this.i18n, this.snackBar, pausedSide ? pausedCreateMessage(pausedSide, this.i18n) : null);
     this.dialogRef.close(true);
   }
 

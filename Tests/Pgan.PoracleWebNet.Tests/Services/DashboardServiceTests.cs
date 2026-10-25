@@ -15,7 +15,7 @@ public class DashboardServiceTests
     {
         // Default: the Pokestop Events page is available, so event rows are counted under it.
         this._featureGate.Setup(g => g.IsEnabledAsync(It.IsAny<string>())).ReturnsAsync(true);
-        this._sut = new DashboardService(this._proxy.Object, this._featureGate.Object);
+        this._sut = new DashboardService(this._proxy.Object, this._featureGate.Object, Pgan.PoracleWebNet.Tests.Helpers.LinkedTestKit.Unlinked());
     }
 
     [Fact]

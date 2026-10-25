@@ -14,7 +14,7 @@ public class MonsterControllerTests : ControllerTestBase
 
     public MonsterControllerTests()
     {
-        this._sut = new MonsterController(this._service.Object, this._editCapability.Object);
+        this._sut = new MonsterController(this._service.Object, this._editCapability.Object, UnlinkedRouter());
         SetupUser(this._sut);
     }
 

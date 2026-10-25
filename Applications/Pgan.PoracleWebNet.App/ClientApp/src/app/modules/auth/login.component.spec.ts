@@ -342,6 +342,22 @@ describe('LoginComponent', () => {
       expect(fixture.nativeElement.textContent).not.toContain('constructor');
     });
 
+    it('signs in from a Telegram return and clears the query', () => {
+      window.history.replaceState(null, '', '/login?id=1&auth_date=2&hash=h');
+      setup();
+      (TestBed.inject(AuthService).loginWithTelegram as jest.Mock).mockReturnValue(of({}));
+      fixture.detectChanges();
+      expect(TestBed.inject(AuthService).loginWithTelegram).toHaveBeenCalledWith({ id: '1', auth_date: '2', hash: 'h' });
+      expect(window.location.search).toBe('');
+      window.history.replaceState(null, '', '/');
+    });
+
+    it('does not sign in without a Telegram return', () => {
+      setup();
+      fixture.detectChanges();
+      expect(TestBed.inject(AuthService).loginWithTelegram).not.toHaveBeenCalled();
+    });
+
     it('shows the destination refusal from a Telegram 403', () => {
       setup();
       (TestBed.inject(AuthService).loginWithTelegram as jest.Mock).mockReturnValue(

@@ -101,6 +101,16 @@ from Poracle and cannot be set here — see [Values that are not settings](#valu
 
 ---
 
+## Linked accounts
+
+The switch for [Linked accounts](../features/linked-accounts.md) and the two settings that only matter while it is on. With linking off, those two are dimmed.
+
+| Key | Label | Type | Description |
+|---|---|---|---|
+| `disable_account_linking` | Linked accounts | boolean | Hides the [Linked accounts](../features/linked-accounts.md) page and 403s every route a person links or unlinks through. Admin > Users keeps the chip naming the linked app and **Unlink accounts**, so an admin can still cut a pair while the feature is off. Existing links are kept, and each person is treated as their single account again until it is switched back on. Reads the positive way round like every `disable_` key: **Linked accounts** on (key absent or `False`) lets people link. |
+| `link_register_missing` | Register the other account when linking | boolean | Off by default. Creates the person's account on the other platform when they link, instead of waiting for them to register through the server's usual route (a Discord role, or a Telegram registration group), and copies their language, location, the areas they may select, profiles (on the same numbers) and saved places. Alarms are not copied. Poracle removes an account it doesn't think should exist only if the server runs Poracle's role check with a removal mode set; with Poracle's defaults the account stays. With this off the link is saved and the other side waits until the person registers. |
+| `telegram_registration_url` | Telegram registration group link | url | Empty by default. The invite link to the Telegram group people join to register (for example `https://t.me/+abc123`). Must be an `https://` link on `t.me` or `telegram.me`: the field says so as you type and Save waits, and the server refuses anything else too. Empty clears it. Linked accounts shows a **Join the Telegram group** button with it while someone's Telegram account is waiting to register. Served to every signed-in user. |
+
 ## Maps
 
 Which tiles every map on the site draws with: the areas map, the location picker, the geofence
@@ -262,7 +272,7 @@ Access control.
 |---|---|---|---|
 | `enable_roles` | Enable Role-Based Access | boolean | Only allow users with specific Discord roles to log in. Requires `Discord:BotToken` and `Discord:GuildId` in [appsettings](reference.md). |
 | `allowed_role_ids` | Allowed Role IDs | csv | Comma-separated Discord role IDs (e.g., `123456789,987654321`). A user needs **at least one** of these roles to log in. Leave empty to allow all. Only visible when `enable_roles` is enabled. |
-| `delegation_poracle_channels` | Follow Poracle's channel admins | boolean | Off when unset. When on, anyone PoracleNG lists in `[[discord.delegated_admins]]` or `[[telegram.delegated_admins]]` as admin of a channel can manage that channel's alarms here as a delegate, provided the channel is registered as a destination on this site. A guild-wide entry covers only the registered channels. Saving it takes effect straight away rather than after the one-minute role cache. See [Following Poracle's channel admins](../features/webhooks.md#following-poracles-channel-admins). |
+| `delegation_poracle_channels` | Let Poracle's channel admins manage here | boolean | Off when unset. When on, anyone PoracleNG lists in `[[discord.delegated_admins]]` or `[[telegram.delegated_admins]]` as admin of a channel can manage that channel's alarms here as a delegate, provided the channel is registered as a destination on this site. A guild-wide entry covers only the registered channels. Saving it takes effect straight away rather than after the one-minute role cache. See [Letting Poracle's channel admins manage here](../features/webhooks.md#letting-poracles-channel-admins-manage-here). |
 
 !!! warning "Role-based access prerequisites"
     Role-based access requires `Discord:BotToken` and `Discord:GuildId` to be configured in appsettings. Without these, role checks cannot be performed and the setting has no effect.
@@ -287,7 +297,7 @@ Access control.
 
 ## Telegram
 
-Configure Telegram authentication alongside or instead of Discord.
+Configure Telegram authentication alongside or instead of Discord. The full setup, from @BotFather to the registration group, is in [Telegram](telegram.md).
 
 | Key | Label | Type | Description |
 |---|---|---|---|

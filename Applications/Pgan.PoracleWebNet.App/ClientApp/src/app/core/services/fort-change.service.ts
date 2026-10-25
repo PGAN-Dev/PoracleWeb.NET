@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
+import { AlarmMoveService, MoveEdit } from './alarm-move.service';
 import { ConfigService } from './config.service';
 import { DistanceUpdateResult } from '../../shared/utils/distance-update';
 import { FortChange, FortChangeCreate, FortChangeUpdate } from '../models';
@@ -10,6 +11,7 @@ import { FortChange, FortChangeCreate, FortChangeUpdate } from '../models';
 export class FortChangeService {
   private readonly config = inject(ConfigService);
   private readonly http = inject(HttpClient);
+  private readonly moves = inject(AlarmMoveService);
 
   create(fortChange: FortChangeCreate): Observable<FortChange> {
     return this.http.post<FortChange>(`${this.config.apiHost}/api/fort-changes`, fortChange);
@@ -27,8 +29,10 @@ export class FortChangeService {
     return this.http.get<FortChange[]>(`${this.config.apiHost}/api/fort-changes`);
   }
 
-  update(uid: number, fortChange: FortChangeUpdate): Observable<void> {
-    return this.http.put<void>(`${this.config.apiHost}/api/fort-changes/${uid}`, fortChange);
+  update(uid: number, fortChange: FortChangeUpdate): Observable<MoveEdit | void> {
+    return this.moves.put('fort-changes', uid, fortChange, () =>
+      this.http.put<void>(`${this.config.apiHost}/api/fort-changes/${uid}`, fortChange),
+    );
   }
 
   updateBulkDistance(uids: number[], distance: number): Observable<DistanceUpdateResult> {

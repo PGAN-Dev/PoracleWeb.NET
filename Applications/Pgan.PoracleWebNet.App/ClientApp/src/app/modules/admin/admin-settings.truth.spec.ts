@@ -6,6 +6,7 @@ import { provideTranslateService } from '@ngx-translate/core';
 import { Observable, of } from 'rxjs';
 
 import { AdminSettingsComponent, SETTING_GROUPS } from './admin-settings.component';
+import { I18nService } from '../../core/services/i18n.service';
 import { SettingsService } from '../../core/services/settings.service';
 
 const meta = (key: string) => {
@@ -132,6 +133,40 @@ describe('AdminSettingsComponent shows what the server enforces', () => {
       expect(mode.hasUnsavedChanges()).toBe(true);
     });
 
+    it('reports none once a switch is turned off and back on, whatever case the row stored', () => {
+      // The row says "false"; the switch writes "False". The same value both times, so nothing is unsaved.
+      const sut = create({ disable_account_linking: 'false' }).componentInstance;
+      sut.onFeatureToggle(meta('disable_account_linking'), false);
+      expect(sut.hasUnsavedChanges()).toBe(true);
+      sut.onFeatureToggle(meta('disable_account_linking'), true);
+
+      expect(sut.hasUnsavedChanges()).toBe(false);
+      expect(sut.groupModifiedCount(SETTING_GROUPS.find(g => g.labelKey === 'ADMIN_SETTINGS.GROUP_LINKED_ACCOUNTS')!)).toBe(0);
+    });
+
+    it('reports none once a switch with no row goes back to what absent means', () => {
+      const sut = create({}).componentInstance;
+      sut.onFeatureToggle(meta('disable_account_linking'), false);
+      sut.onFeatureToggle(meta('disable_account_linking'), true);
+      expect(sut.hasUnsavedChanges()).toBe(false);
+
+      const signIn = create({}).componentInstance;
+      signIn.onFeatureToggle(meta('enable_discord'), false);
+      signIn.onFeatureToggle(meta('enable_discord'), true);
+      expect(signIn.hasUnsavedChanges()).toBe(false);
+    });
+
+    it('still reports a text edited back to something else, and a switch left changed', () => {
+      const sut = create({ custom_title: 'Mine', disable_account_linking: 'false' }).componentInstance;
+      sut.onTextChange('custom_title', 'mine');
+      expect(sut.hasUnsavedChanges()).toBe(true);
+      sut.onTextChange('custom_title', 'Mine');
+      expect(sut.hasUnsavedChanges()).toBe(false);
+
+      sut.onFeatureToggle(meta('disable_account_linking'), false);
+      expect(sut.hasUnsavedChanges()).toBe(true);
+    });
+
     it('reports none once the change is saved', () => {
       const sut = create({}).componentInstance;
       sut.onTextChange('custom_title', 'Mine');
@@ -160,5 +195,54 @@ describe('AdminSettingsComponent shows what the server enforces', () => {
       sut.onBeforeUnload(dirty);
       expect(dirty.defaultPrevented).toBe(true);
     });
+  });
+});
+
+describe('AdminSettingsComponent group summaries', () => {
+  const create = (values: Record<string, string>) => {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideTranslateService(),
+        {
+          provide: SettingsService,
+          useValue: {
+            getOidcConfig: () => of(null),
+            getAll: () => of(Object.entries(values).map(([key, value]) => ({ key, value }))),
+            getDiscordConfig: () => of(null),
+            getTelegramConfig: () => of(null),
+            isForcedByPoracle: () => false,
+            siteSettings: () => values,
+            update: () => of({}),
+          },
+        },
+      ],
+      imports: [AdminSettingsComponent, NoopAnimationsModule],
+    });
+    const fixture = TestBed.createComponent(AdminSettingsComponent);
+    fixture.detectChanges();
+    const instant = jest.spyOn(TestBed.inject(I18nService), 'instant');
+    return { instant, sut: fixture.componentInstance };
+  };
+  const group = (key: string) => SETTING_GROUPS.find(g => g.labelKey === key)!;
+
+  it('counts every switch the group shows, so two switches never read "1 of 1"', () => {
+    const { instant, sut } = create({ disable_account_linking: 'false', link_register_missing: 'false' });
+    sut.groupSummary(group('ADMIN_SETTINGS.GROUP_LINKED_ACCOUNTS'));
+    expect(instant).toHaveBeenLastCalledWith('ADMIN_SETTINGS.SUMMARY_ENABLED', { count: 1, total: 2 });
+  });
+
+  it('still counts the alarm types as before', () => {
+    const { instant, sut } = create({ disable_raids: 'True' });
+    sut.groupSummary(group('ADMIN_SETTINGS.GROUP_ALARM_TYPES'));
+    const total = group('ADMIN_SETTINGS.GROUP_ALARM_TYPES').settings.length;
+    expect(instant).toHaveBeenLastCalledWith('ADMIN_SETTINGS.SUMMARY_ENABLED', { count: total - 1, total });
+  });
+
+  it('gives no count to a group without feature switches', () => {
+    const { sut } = create({});
+    expect(sut.groupSummary(group('ADMIN_SETTINGS.GROUP_BRANDING'))).toBe('');
   });
 });

@@ -1,4 +1,4 @@
-<div class="bulk-toolbar">
+<div class="bulk-toolbar" [class.bulk-can-move]="canMove()">
   <div class="bulk-selection">
     <span class="bulk-count">{{ 'ALARM.SELECTED_COUNT' | translate: { count: count() } }}</span>
     <!-- Read aloud once the count settles: as a live region itself, the count announced every tick. -->
@@ -7,16 +7,92 @@
         {{ 'ALARM.SELECTED_COUNT' | translate: { count: announced() } }}
       }
     </span>
-    <button mat-button type="button" (click)="selectAll.emit()">{{ 'ALARM.SELECT_ALL' | translate }}</button>
+    <!-- Words on a wide screen; on a phone, icons named by aria-label, so the count and both fit on one row. -->
+    <button mat-button type="button" class="bulk-select-all" [attr.aria-label]="'ALARM.SELECT_ALL' | translate" (click)="selectAll.emit()">
+      <mat-icon class="bulk-select-icon" aria-hidden="true">select_all</mat-icon>
+      <span class="bulk-select-label">{{ 'ALARM.SELECT_ALL' | translate }}</span>
+    </button>
     @if (anySelected()) {
-      <button mat-button type="button" (click)="deselectAll.emit()">{{ 'ALARM.DESELECT_ALL' | translate }}</button>
+      <button
+        mat-button
+        type="button"
+        class="bulk-deselect-all"
+        [attr.aria-label]="'ALARM.DESELECT_ALL' | translate"
+        (click)="deselectAll.emit()">
+        <mat-icon class="bulk-select-icon" aria-hidden="true">deselect</mat-icon>
+        <span class="bulk-select-label">{{ 'ALARM.DESELECT_ALL' | translate }}</span>
+      </button>
     }
   </div>
 
   <div class="bulk-actions">
-    <button matButton="tonal" type="button" (click)="changeRadius.emit()" [disabled]="count() === 0">
+    @if (canMove()) {
+      <button matButton="tonal" type="button" class="bulk-deliver" [matMenuTriggerFor]="deliverMenu" [disabled]="count() === 0">
+        <mat-icon>swap_horiz</mat-icon>
+        <span class="bulk-label">{{ 'ALARM.DELIVER_TO_MENU' | translate }}</span>
+      </button>
+      <mat-menu #deliverMenu="matMenu">
+        @for (app of apps; track app) {
+          <button
+            mat-menu-item
+            type="button"
+            class="bulk-deliver-item"
+            [attr.data-app]="app"
+            [disabled]="allOn() === app"
+            (click)="moveSelected.emit(app)">
+            <span class="bulk-app">
+              <app-app-glyph [app]="app" />
+              <span class="bulk-app-text">
+                <span>{{ appKey(app) | translate }}</span>
+                @if (allOn() === app) {
+                  <span class="bulk-app-note">{{ 'ALARM.DELIVER_ALREADY_THERE' | translate }}</span>
+                }
+              </span>
+            </span>
+          </button>
+        }
+      </mat-menu>
+
+      <!-- On a phone, Deliver to and Change radius fold in here so the row holds two buttons, More and Delete. -->
+      <button
+        matButton="tonal"
+        type="button"
+        class="bulk-more"
+        [matMenuTriggerFor]="moreMenu"
+        [disabled]="count() === 0"
+        [attr.aria-label]="'ALARM.BULK_MORE_LABEL' | translate">
+        <mat-icon>more_horiz</mat-icon>
+        <span class="bulk-label">{{ 'ALARM.BULK_MORE' | translate }}</span>
+      </button>
+      <mat-menu #moreMenu="matMenu">
+        @for (app of apps; track app) {
+          <button
+            mat-menu-item
+            type="button"
+            class="bulk-more-item"
+            [attr.data-app]="app"
+            [disabled]="allOn() === app"
+            (click)="moveSelected.emit(app)">
+            <span class="bulk-app">
+              <app-app-glyph [app]="app" />
+              <span class="bulk-app-text">
+                <span>{{ 'ALARM.DELIVER_TO_APP' | translate: { app: appKey(app) | translate } }}</span>
+                @if (allOn() === app) {
+                  <span class="bulk-app-note">{{ 'ALARM.DELIVER_ALREADY_THERE' | translate }}</span>
+                }
+              </span>
+            </span>
+          </button>
+        }
+        <button mat-menu-item type="button" class="bulk-more-item" (click)="changeRadius.emit()">
+          <mat-icon>straighten</mat-icon>
+          <span>{{ 'ALARM.UPDATE_DISTANCE' | translate }}</span>
+        </button>
+      </mat-menu>
+    }
+    <button matButton="tonal" type="button" class="bulk-radius" (click)="changeRadius.emit()" [disabled]="count() === 0">
       <mat-icon>straighten</mat-icon>
-      {{ 'ALARM.UPDATE_DISTANCE' | translate }}
+      <span class="bulk-label">{{ 'ALARM.UPDATE_DISTANCE' | translate }}</span>
     </button>
     <button
       mat-flat-button
@@ -27,11 +103,13 @@
       [disabled]="count() === 0"
       [attr.aria-label]="count() > 0 ? ('ALARM.DELETE_SELECTED_LABEL' | translatePlural: count()) : null">
       <mat-icon>delete</mat-icon>
-      @if (count() > 0) {
-        {{ 'ALARM.DELETE_SELECTED' | translate: { count: count() } }}
-      } @else {
-        {{ 'ALARM.DELETE' | translate }}
-      }
+      <span class="bulk-label">
+        @if (count() > 0) {
+          {{ 'ALARM.DELETE_SELECTED' | translate: { count: count() } }}
+        } @else {
+          {{ 'ALARM.DELETE' | translate }}
+        }
+      </span>
     </button>
   </div>
 </div>

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Pgan.PoracleWebNet.Api.Filters;
+using Pgan.PoracleWebNet.Api.Services;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
@@ -83,8 +84,8 @@ public partial class AdminGeofenceController(IUserGeofenceService userGeofenceSe
 
         try
         {
-            await this._userGeofenceService.AdminDeleteAsync(this.UserId, id, deleteWidened);
-            return this.NoContent();
+            var warning = await this._userGeofenceService.AdminDeleteAsync(this.UserId, id, deleteWidened);
+            return this.NoContentPaired(warning);
         }
         catch (KojiOperationException ex)
         {
@@ -156,7 +157,7 @@ public partial class AdminGeofenceController(IUserGeofenceService userGeofenceSe
             // The SPA swaps the list row for this response, so it needs the same avatars the list
             // projection adds -- without them the card fell back to raw snowflakes. See #618.
             AddAvatars(result);
-            return this.Ok(result);
+            return this.Ok(this.Paired(result, result.PairWarning));
         }
         catch (KojiOperationException ex)
         {

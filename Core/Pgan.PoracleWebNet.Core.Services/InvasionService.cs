@@ -89,7 +89,7 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
 
         if (AsPokestopEvent(model) is { } pokestopEvent)
         {
-            var uids = await IncidentCreateProtocol.CreateAsync(this._incidentProxy, userId, [pokestopEvent], single: true);
+            var uids = await IncidentCreateProtocol.CreateAsync(this._incidentProxy, userId, [pokestopEvent], single: true, onExisting: uid => model.ExistingUid = uid);
             model.Uid = uids[0];
             return model;
         }
@@ -97,6 +97,8 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
         var body = SerializeToElement(model);
 
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
+
+        model.ExistingUid = result.ExistingUid;
 
         if (result.NewUids.Count > 0)
         {
@@ -181,6 +183,19 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
         return true;
     }
 
+    public async Task<bool> DeleteAsync(string userId, int uid, string? kind)
+    {
+        // An event addressed by kind goes to its own route: the invasion route would take a grunt rule that
+        // happens to share the number before ever reaching the event. See #1058.
+        if (kind == "event")
+        {
+            await this._incidentProxy.DeleteByUidAsync(userId, uid);
+            return true;
+        }
+
+        return await this.DeleteAsync(userId, uid);
+    }
+
     public async Task<int> DeleteAllByUserAsync(string userId, int profileNo)
     {
         var items = await this.ReadOwnRowsAsync(userId);
@@ -211,6 +226,24 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
             userId,
             json,
             row => isOurs(row) && PoracleJsonHelper.UidOf(row) is int rowUid && selected.Contains(rowUid),
+            distance);
+    }
+
+    public async Task<DistanceUpdateResult> UpdateDistanceByUidsAsync(List<int> uids, string userId, int distance, string? kind)
+    {
+        if (kind is not ("event" or "invasion"))
+        {
+            return await this.UpdateDistanceByUidsAsync(uids, userId, distance);
+        }
+
+        var json = await this._proxy.GetByUserAsync(TrackingType, userId);
+        var selected = new HashSet<int>(uids);
+        var isOurs = await this.OwnRowPredicateAsync();
+
+        return await this.PatchDistanceAsync(
+            userId,
+            json,
+            row => isOurs(row) && (IsEventRow(row) == (kind == "event")) && PoracleJsonHelper.UidOf(row) is int rowUid && selected.Contains(rowUid),
             distance);
     }
 

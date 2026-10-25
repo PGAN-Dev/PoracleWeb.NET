@@ -1,0 +1,33 @@
+// One row above the dialog's tabs: the question, then the two apps; it wraps on a narrow screen.
+.deliver-to {
+  align-items: center;
+  border-bottom: 1px solid var(--mat-sys-outline-variant, rgb(0 0 0 / 12%));
+  column-gap: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+}
+
+.deliver-label {
+  font-weight: 500;
+}
+
+.deliver-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 16px;
+}
+
+.deliver-app {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+}
+
+.deliver-paused {
+  flex-basis: 100%;
+  color: var(--mat-sys-on-surface-variant, inherit);
+  font-size: 0.875rem;
+  margin: 4px 0 0;
+}

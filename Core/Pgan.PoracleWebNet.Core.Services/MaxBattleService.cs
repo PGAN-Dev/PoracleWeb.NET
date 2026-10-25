@@ -43,6 +43,7 @@ public partial class MaxBattleService(IPoracleTrackingProxy proxy, IFeatureGate 
                 "You already have an identical max battle alarm.")
             {
                 ExistingUid = result.ExistingUid,
+                IsIdentical = true,
             };
         }
 

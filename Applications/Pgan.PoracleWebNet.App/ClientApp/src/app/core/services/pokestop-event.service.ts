@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
+import { AlarmMoveService, MoveEdit } from './alarm-move.service';
 import { ConfigService } from './config.service';
 import { DistanceUpdateResult } from '../../shared/utils/distance-update';
 import { PokestopEvent, PokestopEventCreate, PokestopEventUpdate } from '../models';
@@ -16,6 +17,7 @@ import { PokestopEvent, PokestopEventCreate, PokestopEventUpdate } from '../mode
 export class PokestopEventService {
   private readonly config = inject(ConfigService);
   private readonly http = inject(HttpClient);
+  private readonly moves = inject(AlarmMoveService);
 
   create(event: PokestopEventCreate): Observable<PokestopEvent> {
     return this.http.post<PokestopEvent>(`${this.config.apiHost}/api/pokestop-events`, event);
@@ -33,8 +35,10 @@ export class PokestopEventService {
     return this.http.get<PokestopEvent[]>(`${this.config.apiHost}/api/pokestop-events`);
   }
 
-  update(uid: number, event: PokestopEventUpdate): Observable<void> {
-    return this.http.put<void>(`${this.config.apiHost}/api/pokestop-events/${uid}`, event);
+  update(uid: number, event: PokestopEventUpdate): Observable<MoveEdit | void> {
+    return this.moves.put('pokestop-events', uid, event, () =>
+      this.http.put<void>(`${this.config.apiHost}/api/pokestop-events/${uid}`, event),
+    );
   }
 
   updateBulkDistance(uids: number[], distance: number): Observable<DistanceUpdateResult> {

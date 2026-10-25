@@ -137,6 +137,7 @@ public class SettingsControllerTests : ControllerTestBase
     [InlineData("hide_header_logo")]
     [InlineData("signup_url")]
     [InlineData("support_url")]
+    [InlineData("telegram_registration_url")]
     [InlineData("site_name")]
     [InlineData("basemap_provider")]
     [InlineData("basemap_url")]
@@ -750,6 +751,40 @@ public class SettingsControllerTests : ControllerTestBase
     {
         Assert.True(SettingsController.TryValidateIconRepos(value, out var error));
         Assert.Equal(string.Empty, error);
+    }
+
+    [Theory]
+    [InlineData("https://t.me/+abc123")]
+    [InlineData("https://t.me/somegroup")]
+    [InlineData("https://telegram.me/somegroup?start=x")]
+    [InlineData("")]
+    [InlineData(null)]
+    public void TelegramRegistrationUrlAcceptsAnInviteLinkOrNothing(string? value)
+    {
+        Assert.True(SettingsController.TryValidateTelegramRegistrationUrl(value, out var error));
+        Assert.Equal(string.Empty, error);
+    }
+
+    [Theory]
+    [InlineData("http://t.me/somegroup")]
+    [InlineData("https://example.com/somegroup")]
+    [InlineData("https://t.me.evil.test/x")]
+    [InlineData("t.me/somegroup")]
+    [InlineData("javascript:alert(1)")]
+    public void TelegramRegistrationUrlRefusesAnythingThatIsNotATelegramLink(string value)
+    {
+        Assert.False(SettingsController.TryValidateTelegramRegistrationUrl(value, out var error));
+        Assert.NotEqual(string.Empty, error);
+    }
+
+    [Fact]
+    public async Task UpsertRefusesABadTelegramRegistrationUrl()
+    {
+        SetupUser(this._sut, isAdmin: true);
+
+        var result = await this._sut.Upsert("telegram_registration_url", new SettingsController.SiteSettingRequest { Value = "https://example.com/x" });
+
+        Assert.IsType<BadRequestObjectResult>(result);
     }
 
     /// <summary>

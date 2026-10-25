@@ -13,7 +13,7 @@ public class InvasionControllerTests : ControllerTestBase
 
     public InvasionControllerTests()
     {
-        this._sut = new InvasionController(this._service.Object);
+        this._sut = new InvasionController(this._service.Object, UnlinkedRouter());
         SetupUser(this._sut);
     }
 
@@ -111,5 +111,71 @@ public class InvasionControllerTests : ControllerTestBase
         Assert.IsType<OkObjectResult>(await this._sut.Update(7, new InvasionUpdate { Distance = 500 }, kind));
 
         this._service.Verify(s => s.UpdateAsync("123456789", existing), Times.Once);
+    }
+
+    [Theory]
+    [InlineData("event", "kecleon")]
+    [InlineData("invasion", "water")]
+    public async Task DeleteWithAKindFindsAndDeletesTheRuleOfThatKindOnly(string kind, string grunt)
+    {
+        // An invasion and an event share uid 7; the stated kind picks which one goes.
+        var row = new Invasion { Uid = 7, GruntType = grunt, Id = "123456789" };
+        this._service.Setup(s => s.GetByUidAsync("123456789", 7, kind)).ReturnsAsync(row);
+        this._service.Setup(s => s.DeleteAsync("123456789", 7, kind)).ReturnsAsync(true);
+
+        Assert.IsType<NoContentResult>(await this._sut.Delete(7, kind));
+
+        this._service.Verify(s => s.DeleteAsync("123456789", 7, kind), Times.Once);
+        this._service.Verify(s => s.DeleteAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+        this._service.Verify(s => s.GetByUidAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task DeleteWithAKindAnswersNotFoundWhenNoRuleOfThatKindHasTheUid()
+    {
+        // Only an invasion holds uid 7, so asking to delete the event must not touch it.
+        this._service.Setup(s => s.GetByUidAsync("123456789", 7, "event")).ReturnsAsync((Invasion?)null);
+
+        Assert.IsType<NotFoundResult>(await this._sut.Delete(7, "event"));
+
+        this._service.Verify(s => s.DeleteAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string?>()), Times.Never);
+        this._service.Verify(s => s.DeleteAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("bogus")]
+    public async Task DeleteWithoutAKnownKindBehavesAsBefore(string? kind)
+    {
+        this._service.Setup(s => s.GetByUidAsync("123456789", 7)).ReturnsAsync(new Invasion { Uid = 7, Id = "123456789" });
+        this._service.Setup(s => s.DeleteAsync("123456789", 7)).ReturnsAsync(true);
+
+        Assert.IsType<NoContentResult>(await this._sut.Delete(7, kind));
+
+        this._service.Verify(s => s.DeleteAsync("123456789", 7), Times.Once);
+        this._service.Verify(s => s.DeleteAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string?>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData("event")]
+    [InlineData("invasion")]
+    public async Task BulkDistanceWithAKindPassesItToTheService(string kind)
+    {
+        this._service.Setup(s => s.UpdateDistanceByUidsAsync(It.IsAny<List<int>>(), "123456789", 500, kind)).ReturnsAsync(new DistanceUpdateResult(1, [], []));
+
+        Assert.IsType<OkObjectResult>(await this._sut.UpdateBulkDistance(new BulkDistanceRequest { Uids = [7], Distance = 500, Kind = kind }));
+
+        this._service.Verify(s => s.UpdateDistanceByUidsAsync(It.Is<List<int>>(l => l.SequenceEqual(new[] { 7 })), "123456789", 500, kind), Times.Once);
+        this._service.Verify(s => s.UpdateDistanceByUidsAsync(It.IsAny<List<int>>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task BulkDistanceWithoutAKindKeepsTheUidOnlyCall()
+    {
+        this._service.Setup(s => s.UpdateDistanceByUidsAsync(It.IsAny<List<int>>(), "123456789", 500)).ReturnsAsync(new DistanceUpdateResult(1, [], []));
+
+        Assert.IsType<OkObjectResult>(await this._sut.UpdateBulkDistance(new BulkDistanceRequest { Uids = [7], Distance = 500 }));
+
+        this._service.Verify(s => s.UpdateDistanceByUidsAsync(It.IsAny<List<int>>(), "123456789", 500), Times.Once);
     }
 }

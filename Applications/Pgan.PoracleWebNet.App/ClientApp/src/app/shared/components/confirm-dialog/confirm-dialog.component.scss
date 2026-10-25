@@ -4,6 +4,11 @@
   gap: 8px;
   color: var(--mat-sys-error);
 }
+.icon-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 .title-icon {
   vertical-align: middle;
 }

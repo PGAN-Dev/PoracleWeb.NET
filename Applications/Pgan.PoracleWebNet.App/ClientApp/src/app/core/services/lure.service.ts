@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
+import { AlarmMoveService, MoveEdit } from './alarm-move.service';
 import { ConfigService } from './config.service';
 import { DistanceUpdateResult } from '../../shared/utils/distance-update';
 import { Lure, LureCreate, LureUpdate } from '../models';
@@ -10,6 +11,7 @@ import { Lure, LureCreate, LureUpdate } from '../models';
 export class LureService {
   private readonly config = inject(ConfigService);
   private readonly http = inject(HttpClient);
+  private readonly moves = inject(AlarmMoveService);
 
   create(lure: LureCreate): Observable<Lure> {
     return this.http.post<Lure>(`${this.config.apiHost}/api/lures`, lure);
@@ -27,8 +29,8 @@ export class LureService {
     return this.http.get<Lure[]>(`${this.config.apiHost}/api/lures`);
   }
 
-  update(uid: number, lure: LureUpdate): Observable<void> {
-    return this.http.put<void>(`${this.config.apiHost}/api/lures/${uid}`, lure);
+  update(uid: number, lure: LureUpdate): Observable<MoveEdit | void> {
+    return this.moves.put('lures', uid, lure, () => this.http.put<void>(`${this.config.apiHost}/api/lures/${uid}`, lure));
   }
 
   updateBulkDistance(uids: number[], distance: number): Observable<DistanceUpdateResult> {

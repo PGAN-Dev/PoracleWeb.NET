@@ -12,10 +12,12 @@ import { firstValueFrom } from 'rxjs';
 
 import { PokestopEventAddDialogComponent, PokestopEventAddDialogData } from './pokestop-event-add-dialog.component';
 import { PokestopEventEditDialogComponent } from './pokestop-event-edit-dialog.component';
-import { PokestopEvent } from '../../core/models';
+import { PokestopEvent, LinkSide } from '../../core/models';
+import { AlarmMoveService } from '../../core/services/alarm-move.service';
 import { AreaService } from '../../core/services/area.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
+import { LinkedAccountService } from '../../core/services/linked-account.service';
 import { PokestopEventService } from '../../core/services/pokestop-event.service';
 import { AlarmCardComponent } from '../../shared/components/alarm-card/alarm-card.component';
 import { AlarmEmptyStateComponent } from '../../shared/components/alarm-empty-state/alarm-empty-state.component';
@@ -27,9 +29,18 @@ import { WhereChipComponent } from '../../shared/components/where-chip/where-chi
 import { WhereSheetComponent, WhereSheetData, whereSheetConfig } from '../../shared/components/where-sheet/where-sheet.component';
 import { addOnArrival } from '../../shared/utils/add-on-arrival';
 import { isEditExisting } from '../../shared/utils/add-outcome';
-import { byNumber, byText, queryAlarms, visibleSelection } from '../../shared/utils/alarm-list-query';
+import {
+  byDestination,
+  byNumber,
+  byText,
+  DestinationFilter,
+  queryAlarms,
+  sharedDestination,
+  visibleSelection,
+} from '../../shared/utils/alarm-list-query';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
+import { runBulkMove } from '../../shared/utils/bulk-move';
 import { isAutoDelete } from '../../shared/utils/clean-flags';
 import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
 import { pokestopEventInfo } from '../../shared/utils/pokestop-events';
@@ -63,12 +74,15 @@ export class PokestopEventListComponent implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly i18n = inject(I18nService);
   private readonly icons = inject(IconService);
+  private readonly moves = inject(AlarmMoveService);
   private readonly pokestopEventService = inject(PokestopEventService);
   private readonly snackBar = inject(MatSnackBar);
+
   /** `?add=1` from the dashboard or onboarding opens the add dialog once. */
   private readonly takeAddRequest = addOnArrival();
-
   readonly selectedIds = signal(new Set<number>());
+  /** A linked person can filter by the app each alarm is delivered to. */
+  readonly destinationFilter = signal<DestinationFilter>('all');
   readonly events = signal<PokestopEvent[]>([]);
   readonly search = signal('');
   /** "default" keeps the stable order the list loads in (see orderAlarms), so nothing moves once names load. */
@@ -79,7 +93,12 @@ export class PokestopEventListComponent implements OnInit {
       name: byText(e => this.eventLabel(e)),
       newest: byNumber(e => -e.uid),
     };
-    return queryAlarms(this.events(), this.search(), e => [this.eventLabel(e)], sorts[this.sortBy()] ?? null);
+    return queryAlarms(
+      byDestination(this.events(), this.destinationFilter()),
+      this.search(),
+      e => [this.eventLabel(e)],
+      sorts[this.sortBy()] ?? null,
+    );
   });
 
   /** The selected rules still on screen: bulk Delete and Change radius never reach a card the search has hidden. */
@@ -90,9 +109,15 @@ export class PokestopEventListComponent implements OnInit {
     ),
   );
 
+  /** True for a linked person, who gets the delivery filter, the card glyph and the bulk move. */
+  readonly canChooseDestination = inject(LinkedAccountService).canChoose;
+
   readonly loading = signal(true);
+
   /** Only used to word the inherited scope honestly; empty produces the more cautious wording. */
   readonly profileAreas = signal<string[]>([]);
+  /** The app every selected alarm on screen is already on, which the bulk Deliver to menu offers disabled. */
+  readonly selectionApp = computed(() => sharedDestination(this.visibleEvents(), item => item.uid, this.actionIds()));
   readonly selectMode = signal(false);
 
   readonly sortOptions: AlarmSortOption[] = [
@@ -130,6 +155,20 @@ export class PokestopEventListComponent implements OnInit {
     this.snackBar.open(this.i18n.plural('ALARM.SNACK_BULK_DELETED', deleted), this.i18n.instant('COMMON.OK'), {
       duration: 3000,
     });
+  }
+
+  /** Moves the selected alarms to the other app, then reports every outcome in one line. */
+  async bulkMove(destination: LinkSide): Promise<void> {
+    await runBulkMove(
+      { i18n: this.i18n, moves: this.moves, snackBar: this.snackBar },
+      [{ uids: this.actionIds(), type: 'incident' }],
+      destination,
+      () => {
+        this.selectedIds.set(new Set());
+        this.selectMode.set(false);
+        this.loadItems();
+      },
+    );
   }
 
   async bulkUpdateDistance(): Promise<void> {

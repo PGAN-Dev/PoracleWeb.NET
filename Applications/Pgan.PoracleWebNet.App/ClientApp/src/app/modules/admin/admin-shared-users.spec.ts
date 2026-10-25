@@ -47,6 +47,7 @@ describe('Admin Users and Destinations share one list', () => {
       deleteUser: jest.fn(() => of(undefined)),
       disableUser: jest.fn(() => of({ ...sam, adminDisable: 1 })),
       enableUser: jest.fn(() => of(sam)),
+      getAccountLinks: jest.fn(() => of([])),
       getAllWebhookDelegates: jest.fn(() => of({})),
       getPoracleAdmins: jest.fn(() => of([])),
       getPorocleDelegates: jest.fn(() => of({})),

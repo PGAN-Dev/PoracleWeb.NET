@@ -1,3 +1,4 @@
+using Pgan.PoracleWebNet.Tests.Helpers;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
@@ -27,6 +28,8 @@ public class ProfileOverviewControllerTests : ControllerTestBase
             this._service.Object,
             this._profileService.Object,
             this._humanProxy.Object,
+            PairTestSupport.UnlinkedWriter(),
+            LinkedTestKit.Router(PairTestSupport.Unlinked().Object),
             this._jwtService.Object,
             this._roleResolver.Object,
             Microsoft.Extensions.Logging.Abstractions.NullLogger<ProfileOverviewController>.Instance);

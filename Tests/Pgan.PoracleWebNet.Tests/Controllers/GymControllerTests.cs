@@ -13,7 +13,7 @@ public class GymControllerTests : ControllerTestBase
 
     public GymControllerTests()
     {
-        this._sut = new GymController(this._service.Object);
+        this._sut = new GymController(this._service.Object, UnlinkedRouter());
         SetupUser(this._sut);
     }
 
