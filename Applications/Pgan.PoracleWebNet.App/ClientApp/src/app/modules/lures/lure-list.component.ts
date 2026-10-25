@@ -12,11 +12,13 @@ import { firstValueFrom } from 'rxjs';
 
 import { LureAddDialogComponent } from './lure-add-dialog.component';
 import { LureEditDialogComponent } from './lure-edit-dialog.component';
-import { Lure } from '../../core/models';
+import { Lure, LinkSide } from '../../core/models';
+import { AlarmMoveService } from '../../core/services/alarm-move.service';
 import { AreaNameService } from '../../core/services/area-name.service';
 import { AreaService } from '../../core/services/area.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
+import { LinkedAccountService } from '../../core/services/linked-account.service';
 import { LureService } from '../../core/services/lure.service';
 import { TestAlertService } from '../../core/services/test-alert.service';
 import { AlarmCardComponent } from '../../shared/components/alarm-card/alarm-card.component';
@@ -29,9 +31,18 @@ import { WhereChipComponent } from '../../shared/components/where-chip/where-chi
 import { WhereSheetComponent, WhereSheetData, whereSheetConfig } from '../../shared/components/where-sheet/where-sheet.component';
 import { addOnArrival } from '../../shared/utils/add-on-arrival';
 import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
-import { byNumber, byText, queryAlarms, visibleSelection } from '../../shared/utils/alarm-list-query';
+import {
+  byDestination,
+  byNumber,
+  byText,
+  DestinationFilter,
+  queryAlarms,
+  sharedDestination,
+  visibleSelection,
+} from '../../shared/utils/alarm-list-query';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
+import { runBulkMove } from '../../shared/utils/bulk-move';
 import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
 import { serverReason } from '../../shared/utils/server-reason';
 
@@ -67,11 +78,14 @@ export class LureListComponent implements OnInit {
   private readonly i18n = inject(I18nService);
   private readonly icons = inject(IconService);
   private readonly lureService = inject(LureService);
+  private readonly moves = inject(AlarmMoveService);
   private readonly snackBar = inject(MatSnackBar);
   /** `?add=1` from the dashboard or onboarding opens the add dialog once. */
   private readonly takeAddRequest = addOnArrival();
   private readonly translate = inject(TranslateService);
   readonly selectedIds = signal(new Set<number>());
+  /** A linked person can filter by the app each alarm is delivered to. */
+  readonly destinationFilter = signal<DestinationFilter>('all');
   readonly lures = signal<Lure[]>([]);
   readonly search = signal('');
   /** "default" keeps the stable order the list loads in (see orderAlarms), so nothing moves once names load. */
@@ -82,7 +96,12 @@ export class LureListComponent implements OnInit {
       name: byText(l => this.getLureName(l.lureId)),
       newest: byNumber(l => -l.uid),
     };
-    return queryAlarms(this.lures(), this.search(), l => [this.getLureName(l.lureId)], sorts[this.sortBy()] ?? null);
+    return queryAlarms(
+      byDestination(this.lures(), this.destinationFilter()),
+      this.search(),
+      l => [this.getLureName(l.lureId)],
+      sorts[this.sortBy()] ?? null,
+    );
   });
 
   /** The selected rules still on screen: bulk Delete and Change radius never reach a card the search has hidden. */
@@ -93,9 +112,15 @@ export class LureListComponent implements OnInit {
     ),
   );
 
+  /** True for a linked person, who gets the delivery filter, the card glyph and the bulk move. */
+  readonly canChooseDestination = inject(LinkedAccountService).canChoose;
+
   readonly loading = signal(true);
+
   /** Only used to word the inherited scope honestly; empty produces the more cautious wording. */
   readonly profileAreas = signal<string[]>([]);
+  /** The app every selected alarm on screen is already on, which the bulk Deliver to menu offers disabled. */
+  readonly selectionApp = computed(() => sharedDestination(this.visibleLures(), item => item.uid, this.actionIds()));
   readonly selectMode = signal(false);
 
   readonly sortOptions: AlarmSortOption[] = [
@@ -137,6 +162,20 @@ export class LureListComponent implements OnInit {
         duration: 3000,
       });
     }
+  }
+
+  /** Moves the selected alarms to the other app, then reports every outcome in one line. */
+  async bulkMove(destination: LinkSide): Promise<void> {
+    await runBulkMove(
+      { i18n: this.i18n, moves: this.moves, snackBar: this.snackBar },
+      [{ uids: this.actionIds(), type: 'lure' }],
+      destination,
+      () => {
+        this.selectedIds.set(new Set());
+        this.selectMode.set(false);
+        this.loadLures();
+      },
+    );
   }
 
   async bulkUpdateDistance(): Promise<void> {

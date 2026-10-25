@@ -171,9 +171,9 @@ them, so give webhooks distinct names before granting one by name. A channel gra
 only. A grant naming nothing Poracle holds is ignored: it grants access to nothing, and counting it
 would put **My Destinations** in the sidebar over an empty page.
 
-### Following Poracle's channel admins
+### Letting Poracle's channel admins manage here
 
-**Admin → Settings → Administration → Follow Poracle's channel admins** (`delegation_poracle_channels`)
+**Admin → Settings → Administration → Let Poracle's channel admins manage here** (`delegation_poracle_channels`)
 is off by default. Poracle's `[[discord.delegated_admins]]` and `[[telegram.delegated_admins]]` say who
 may administer a channel in the bot, which isn't necessarily who should manage its alarms here, so this
 site ignores them until you turn it on. With it on, anyone those entries name gets the channels they

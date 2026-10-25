@@ -177,21 +177,36 @@
   }
 }
 
+// The title is the one toolbar item that gives way on a narrow screen: at 360px it pushed the account
+// button 13px off the edge on every route. It shrinks and ellipsises; the buttons keep their size.
 .app-title-block {
   margin-left: 8px;
   display: flex;
   flex-direction: column;
+  flex: 0 1 auto;
+  min-width: 0;
   line-height: 1.2;
 }
 .app-title {
+  overflow: hidden;
   font-size: 16px;
   font-weight: 500;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 .app-subtitle {
+  overflow: hidden;
   font-size: 11px;
   font-weight: 400;
   opacity: 0.65;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.app-toolbar .mat-mdc-icon-button {
+  flex-shrink: 0;
+}
+.user-menu-trigger {
+  flex-shrink: 0;
 }
 @media (max-width: 599px) {
   .app-subtitle {

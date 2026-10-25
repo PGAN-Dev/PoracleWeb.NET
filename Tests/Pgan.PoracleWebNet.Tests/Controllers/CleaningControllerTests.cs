@@ -53,14 +53,14 @@ public class CleaningControllerTests : ControllerTestBase
     [InlineData("gyms")]
     public async Task ToggleCleanReturnsOkForAllAlarmTypes(string alarmType)
     {
-        this._service.Setup(s => s.ToggleCleanMonstersAsync("123456789", 1, 1)).ReturnsAsync(5);
-        this._service.Setup(s => s.ToggleCleanRaidsAsync("123456789", 1, 1)).ReturnsAsync(5);
-        this._service.Setup(s => s.ToggleCleanEggsAsync("123456789", 1, 1)).ReturnsAsync(5);
-        this._service.Setup(s => s.ToggleCleanQuestsAsync("123456789", 1, 1)).ReturnsAsync(5);
-        this._service.Setup(s => s.ToggleCleanInvasionsAsync("123456789", 1, 1)).ReturnsAsync(5);
-        this._service.Setup(s => s.ToggleCleanLuresAsync("123456789", 1, 1)).ReturnsAsync(5);
-        this._service.Setup(s => s.ToggleCleanNestsAsync("123456789", 1, 1)).ReturnsAsync(5);
-        this._service.Setup(s => s.ToggleCleanGymsAsync("123456789", 1, 1)).ReturnsAsync(5);
+        this._service.Setup(s => s.ToggleCleanMonstersAsync("123456789", 1, 1)).ReturnsAsync(new CleanToggleResult(5));
+        this._service.Setup(s => s.ToggleCleanRaidsAsync("123456789", 1, 1)).ReturnsAsync(new CleanToggleResult(5));
+        this._service.Setup(s => s.ToggleCleanEggsAsync("123456789", 1, 1)).ReturnsAsync(new CleanToggleResult(5));
+        this._service.Setup(s => s.ToggleCleanQuestsAsync("123456789", 1, 1)).ReturnsAsync(new CleanToggleResult(5));
+        this._service.Setup(s => s.ToggleCleanInvasionsAsync("123456789", 1, 1)).ReturnsAsync(new CleanToggleResult(5));
+        this._service.Setup(s => s.ToggleCleanLuresAsync("123456789", 1, 1)).ReturnsAsync(new CleanToggleResult(5));
+        this._service.Setup(s => s.ToggleCleanNestsAsync("123456789", 1, 1)).ReturnsAsync(new CleanToggleResult(5));
+        this._service.Setup(s => s.ToggleCleanGymsAsync("123456789", 1, 1)).ReturnsAsync(new CleanToggleResult(5));
 
         var result = await this._sut.ToggleClean(alarmType, 1);
 
@@ -71,7 +71,7 @@ public class CleaningControllerTests : ControllerTestBase
     [Fact]
     public async Task ToggleCleanIsCaseInsensitive()
     {
-        this._service.Setup(s => s.ToggleCleanMonstersAsync("123456789", 1, 1)).ReturnsAsync(3);
+        this._service.Setup(s => s.ToggleCleanMonstersAsync("123456789", 1, 1)).ReturnsAsync(new CleanToggleResult(3));
 
         var result = await this._sut.ToggleClean("MONSTERS", 1);
 
@@ -102,7 +102,7 @@ public class CleaningControllerTests : ControllerTestBase
         SetupUser(this._sut);
         this._featureGate.Setup(g => g.IsEnabledAsync(It.IsAny<string>())).ReturnsAsync(true);
         this._featureGate.Setup(g => g.IsEnabledAsync(DisableFeatureKeys.Lures)).ReturnsAsync(false);
-        this._service.Setup(s => s.ToggleCleanMonstersAsync(It.IsAny<string>(), It.IsAny<int>(), 1)).ReturnsAsync(3);
+        this._service.Setup(s => s.ToggleCleanMonstersAsync(It.IsAny<string>(), It.IsAny<int>(), 1)).ReturnsAsync(new CleanToggleResult(3));
 
         var result = await this._sut.ToggleAll(1);
 
@@ -156,5 +156,40 @@ public class CleaningControllerTests : ControllerTestBase
         var result = await this._sut.ToggleClean("monsters", enabled);
 
         Assert.IsNotType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task ToggleClean_PairWarning_KeepsTheCountAndSetsTheHeader()
+    {
+        this._service.Setup(s => s.ToggleCleanRaidsAsync("123456789", 1, 1))
+            .ReturnsAsync(new CleanToggleResult(4, new PairWarning(LinkSide.Telegram, "Couldn't reach Poracle for telegram.")));
+
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.ToggleClean("raids", 1));
+
+        Assert.Equal("""{"updated":4}""", System.Text.Json.JsonSerializer.Serialize(ok.Value));
+        Assert.Contains("\"side\":\"telegram\"", this._sut.Response.Headers["X-Pair-Warning"].ToString());
+    }
+
+    [Fact]
+    public async Task ToggleAll_PairWarningOnOneType_KeepsTheTotalAndSetsTheHeader()
+    {
+        this._service.Setup(s => s.ToggleCleanMonstersAsync(It.IsAny<string>(), It.IsAny<int>(), 1))
+            .ReturnsAsync(new CleanToggleResult(3, new PairWarning(LinkSide.Telegram, "Couldn't reach Poracle for telegram.")));
+        this._service.Setup(s => s.ToggleCleanRaidsAsync(It.IsAny<string>(), It.IsAny<int>(), 1)).ReturnsAsync(new CleanToggleResult(2));
+
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.ToggleAll(1));
+
+        Assert.Contains("\"updated\":5", System.Text.Json.JsonSerializer.Serialize(ok.Value));
+        Assert.Contains("telegram", this._sut.Response.Headers["X-Pair-Warning"].ToString());
+    }
+
+    [Fact]
+    public async Task ToggleClean_NoWarning_SetsNoHeader()
+    {
+        this._service.Setup(s => s.ToggleCleanRaidsAsync("123456789", 1, 1)).ReturnsAsync(new CleanToggleResult(4));
+
+        await this._sut.ToggleClean("raids", 1);
+
+        Assert.False(this._sut.Response.Headers.ContainsKey("X-Pair-Warning"));
     }
 }

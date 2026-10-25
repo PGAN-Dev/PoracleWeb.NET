@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal, computed } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, ElementRef, inject, signal, computed } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -20,7 +20,7 @@ import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { AdminListState, StatusFilter, notesLabel } from './admin-list-state';
-import { AdminUser } from '../../core/models';
+import { AccountLink, AdminUser } from '../../core/models';
 import { AdminUsersStore } from '../../core/services/admin-users.store';
 import { AdminService } from '../../core/services/admin.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -66,8 +66,9 @@ export class AdminUsersComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly i18n = inject(I18nService);
-
+  private readonly links = signal<AccountLink[]>([]);
   // Everyone who is a person, so this tab and the Destinations tab together account for every
   // account. A Telegram user is a person too: filtering to discord* once left them in neither list,
   // and every admin action here is list-driven. See #632 and #1025.
@@ -173,8 +174,18 @@ export class AdminUsersComponent implements OnInit {
     return user.id === this.auth.user()?.id;
   }
 
+  /** The other platform of the link this row is in, or null when it is in none. */
+  linkedTo(user: AdminUser): 'discord' | 'telegram' | null {
+    const type = user.type ?? '';
+    const links = this.links();
+    if (type.startsWith('discord') && links.some(l => l.discordId === user.id)) return 'telegram';
+    if (type.startsWith('telegram') && links.some(l => l.telegramId === user.id)) return 'discord';
+    return null;
+  }
+
   /** Refresh passes nothing and refetches; opening the page takes the shared list when there is one. */
   loadUsers(force = true): void {
+    this.loadLinks();
     this.usersLoading.set(true);
     this.store
       .load(force)
@@ -266,6 +277,46 @@ export class AdminUsersComponent implements OnInit {
     });
   }
 
+  /**
+   * Cuts the row's link after a confirm. Both accounts stay, and no alarm moves, so the confirm is neutral and
+   * names the two accounts it separates.
+   */
+  unlinkAccounts(user: AdminUser): void {
+    const name = user.name || user.id;
+    const link = this.links().find(l => l.discordId === user.id || l.telegramId === user.id);
+    const nameOf = (id: string): string => (id === user.id ? name : this.allUsers().find(u => u.id === id)?.name || id);
+    const ref = this.dialog.open(ConfirmDialogComponent, {
+      data: {
+        confirmText: this.i18n.instant('ADMIN.UNLINK_ACCOUNTS'),
+        icon: 'link_off',
+        message: this.i18n.instant('ADMIN.CONFIRM_UNLINK', {
+          discord: link ? nameOf(link.discordId) : name,
+          telegram: link ? nameOf(link.telegramId) : name,
+        }),
+        title: this.i18n.instant('ADMIN.UNLINK_ACCOUNTS'),
+      } as ConfirmDialogData,
+      // The menu item that opened it is gone once the menu closes, so focus goes back to the row's actions button.
+      restoreFocus: this.rowMenuTrigger(user) ?? true,
+    });
+    ref
+      .afterClosed()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(confirmed => {
+        if (!confirmed) return;
+        this.adminService
+          .unlinkAccounts(user.id)
+          .pipe(takeUntilDestroyed(this.destroyRef))
+          .subscribe({
+            error: err => this.showFailure(err, 'ADMIN.SNACK_FAILED_UNLINK'),
+            next: () => {
+              this.store.invalidate();
+              this.loadLinks();
+              this.snackBar.open(this.i18n.instant('ADMIN.SNACK_UNLINKED', { name }), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+            },
+          });
+      });
+  }
+
   private getSortValue(user: AdminUser, column: string): string | number {
     switch (column) {
       case 'id':
@@ -281,6 +332,24 @@ export class AdminUsersComponent implements OnInit {
       default:
         return '';
     }
+  }
+
+  /**
+   * Read with linking switched off too: the links are kept then, and the admin route stays open so a stuck pair can
+   * still be cut. A failed read leaves the chips off rather than the page broken.
+   */
+  private loadLinks(): void {
+    this.adminService
+      .getAccountLinks()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({ error: () => this.links.set([]), next: links => this.links.set(links) });
+  }
+
+  /** The row's actions button, matched by data attribute because a webhook id is a URL and no CSS selector holds it. */
+  private rowMenuTrigger(user: AdminUser): HTMLElement | undefined {
+    return Array.from(this.host.nativeElement.querySelectorAll<HTMLElement>('[data-test="row-menu"]')).find(
+      b => b.dataset['user'] === user.id,
+    );
   }
 
   /** The server's own reason when it gave one ("You cannot block your own account."), else the generic message. */

@@ -11,21 +11,24 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { TranslatePipe } from '@ngx-translate/core';
 
-import { Gym, GymUpdate } from '../../core/models';
+import { Gym, GymUpdate, LinkSide } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { GymService } from '../../core/services/gym.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
+import { DeliverToFieldComponent } from '../../shared/components/deliver-to/deliver-to-field.component';
 import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { createFailureText } from '../../shared/utils/add-outcome';
 import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-flags';
+import { injectDeliverTo, moveEditMessage } from '../../shared/utils/deliver-to';
 import { mentionCapable } from '../../shared/utils/human-kind';
 
 @Component({
   imports: [
+    DeliverToFieldComponent,
     ReactiveFormsModule,
     MatDialogModule,
     MatButtonModule,
@@ -54,11 +57,14 @@ export class GymEditDialogComponent {
   private readonly icons = inject(IconService);
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<Gym>(MAT_DIALOG_DATA);
+  readonly deliver = injectDeliverTo();
+
   readonly dialogRef = inject(MatDialogRef<GymEditDialogComponent>);
 
   form = this.fb.group({
     battleChanges: [this.data.battleChanges === 1],
     clean: [isAutoDelete(this.data.clean)],
+    destination: [(this.data.destination ?? null) as LinkSide | null],
     // Always present even when the Mention control is hidden (not a webhook alarm) -- so a mention
     // round-trips unchanged through a save this dialog makes for an unrelated field.
     ping: [this.data.ping ?? '', [Validators.maxLength(255)]],
@@ -107,6 +113,7 @@ export class GymEditDialogComponent {
     const scope = scopeToFields(this.scope());
     this.gymService
       .update(this.data.uid, {
+        ...this.deliver.moveFields(this.data.destination, this.form.controls.destination.value),
         overrideAreas: scope.overrideAreas,
         overrideLocationLabel: scope.overrideLocationLabel,
         battleChanges: v.battleChanges ? 1 : 0,
@@ -127,8 +134,10 @@ export class GymEditDialogComponent {
           });
           this.saving.set(false);
         },
-        next: () => {
-          this.snackBar.open(this.i18n.instant('GYMS.SNACK_UPDATED'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
+        next: moved => {
+          this.snackBar.open(moveEditMessage(moved, this.i18n) ?? this.i18n.instant('GYMS.SNACK_UPDATED'), this.i18n.instant('COMMON.OK'), {
+            duration: 3000,
+          });
           this.dialogRef.close(true);
         },
       });

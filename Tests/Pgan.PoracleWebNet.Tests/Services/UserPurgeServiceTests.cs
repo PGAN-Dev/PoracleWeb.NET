@@ -25,6 +25,9 @@ public class UserPurgeServiceTests
     private readonly Mock<IQuickPickDefinitionRepository> _quickPicks = new();
     private readonly Mock<IQuickPickAppliedStateRepository> _appliedStates = new();
     private readonly Mock<IHumanService> _humanService = new();
+    private readonly Mock<IAccountLinkRepository> _accountLinks = new();
+    private readonly Mock<ILinkedAccount> _linkedAccount = new();
+    private readonly Mock<IUserAreaWriter> _areas = new();
     private readonly UserPurgeService _sut;
 
     public UserPurgeServiceTests()
@@ -44,7 +47,142 @@ public class UserPurgeServiceTests
         this._quickPicks.Object,
         this._appliedStates.Object,
         humanService,
+        this._accountLinks.Object,
+        this._linkedAccount.Object,
+        this._areas.Object,
         NullLogger<UserPurgeService>.Instance);
+
+    [Theory]
+    [InlineData("100000000000000001")]
+    [InlineData("200000001")]
+    public async Task Purge_LinkedId_RemovesLinkAndInvalidatesBothIds(string purged)
+    {
+        this._humanService.Setup(s => s.ExistsAsync(purged)).ReturnsAsync(true);
+        this._humanService.Setup(s => s.DeleteUserAsync(purged)).ReturnsAsync(true);
+        this._geofences.Setup(r => r.GetByHumanIdAsync(purged)).ReturnsAsync([]);
+        this._quickPicks.Setup(r => r.GetByOwnerAsync(purged)).ReturnsAsync([]);
+        this._accountLinks.Setup(r => r.GetByHumanIdAsync(purged))
+            .ReturnsAsync(new AccountLink(3, "100000000000000001", "200000001", LinkSide.Discord, null, null, DateTime.UtcNow));
+
+        Assert.True(await this._sut.PurgeAsync(purged));
+
+        this._accountLinks.Verify(r => r.RemoveByHumanIdAsync(purged), Times.Once);
+        this._linkedAccount.Verify(l => l.Invalidate("100000000000000001"), Times.Once);
+        this._linkedAccount.Verify(l => l.Invalidate("200000001"), Times.Once);
+    }
+
+    private const string Discord = "100000000000000001";
+    private const string Telegram = "200000001";
+
+    private void LinkedPurge(string purged = Discord, params UserGeofence[] fences)
+    {
+        this._humanService.Setup(s => s.ExistsAsync(purged)).ReturnsAsync(true);
+        this._humanService.Setup(s => s.DeleteUserAsync(purged)).ReturnsAsync(true);
+        this._geofences.Setup(r => r.GetByHumanIdAsync(purged)).ReturnsAsync([.. fences]);
+        this._quickPicks.Setup(r => r.GetByOwnerAsync(purged)).ReturnsAsync([]);
+        this._linkedAccount.Setup(l => l.ResolveAsync(purged)).ReturnsAsync(new LinkedPair(
+            purged,
+            new AccountLink(3, Discord, Telegram, LinkSide.Discord, null, null, DateTime.UtcNow),
+            new PairSide(LinkSide.Discord, Discord, true, PauseReason.None),
+            new PairSide(LinkSide.Telegram, Telegram, true, PauseReason.None)));
+    }
+
+    [Fact]
+    public async Task Purge_LinkedAndThePartnerKeptTheNameBecauseItsCleanupFailed_RemovesItFromThePartner()
+    {
+        this.LinkedPurge(Discord, new UserGeofence { Id = 7, HumanId = Discord, KojiName = "Old-Town-Box" });
+        this._geofenceService.Setup(s => s.AdminDeleteAsync(Discord, 7, true))
+            .ReturnsAsync(new PairWarning(LinkSide.Telegram, "Couldn't reach Poracle for telegram."));
+
+        Assert.True(await this._sut.PurgeAsync(Discord));
+
+        this._areas.Verify(a => a.RemoveEverywhereAsync(Telegram, "old-town-box", true), Times.Once);
+        this._areas.Verify(a => a.RemoveEverywhereAsync(Discord, It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Purge_LinkedAndTheFenceDeleteFailsOutright_StillCleansThePartnerAndPurges()
+    {
+        this.LinkedPurge(Discord, new UserGeofence { Id = 7, HumanId = Discord, KojiName = "zz", PromotedName = "Riverside-Park" });
+        this._geofenceService.Setup(s => s.AdminDeleteAsync(Discord, 7, true)).ThrowsAsync(new HttpRequestException("down"));
+
+        Assert.True(await this._sut.PurgeAsync(Discord));
+
+        // The promoted name is the one in the area lists.
+        this._areas.Verify(a => a.RemoveEverywhereAsync(Telegram, "riverside-park", true), Times.Once);
+    }
+
+    [Fact]
+    public async Task Purge_LinkedAndThePartnerCleanupFails_IsLoggedAndNotFatal()
+    {
+        this.LinkedPurge(Discord, new UserGeofence { Id = 7, HumanId = Discord, KojiName = "zz" });
+        this._geofenceService.Setup(s => s.AdminDeleteAsync(Discord, 7, true))
+            .ReturnsAsync(new PairWarning(LinkSide.Telegram, "refused"));
+        this._areas.Setup(a => a.RemoveEverywhereAsync(Telegram, "zz", true)).ThrowsAsync(new HttpRequestException("down"));
+
+        Assert.True(await this._sut.PurgeAsync(Discord));
+
+        this._humanService.Verify(s => s.DeleteUserAsync(Discord), Times.Once);
+    }
+
+    [Fact]
+    public async Task Purge_LinkedAndTheFenceWasCleanedOnBothSides_DoesNotTouchThePartnerAgain()
+    {
+        this.LinkedPurge(Discord, new UserGeofence { Id = 7, HumanId = Discord, KojiName = "zz" });
+        this._geofenceService.Setup(s => s.AdminDeleteAsync(Discord, 7, true)).ReturnsAsync((PairWarning?)null);
+
+        Assert.True(await this._sut.PurgeAsync(Discord));
+
+        this._areas.Verify(a => a.RemoveEverywhereAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Purge_UnlinkedWithAFailingFenceDelete_NeverTouchesAnotherHumansAreas()
+    {
+        this._geofences.Setup(r => r.GetByHumanIdAsync("u1")).ReturnsAsync([new UserGeofence { Id = 7, HumanId = "u1", KojiName = "zz" }]);
+        this._geofenceService.Setup(s => s.AdminDeleteAsync("u1", 7, true)).ThrowsAsync(new HttpRequestException("down"));
+        this._linkedAccount.Setup(l => l.ResolveAsync("u1")).ReturnsAsync(LinkedPair.Single("u1"));
+
+        Assert.True(await this._sut.PurgeAsync("u1"));
+
+        this._areas.Verify(a => a.RemoveEverywhereAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Purge_HumanDeleteFails_LeavesLinkIntact()
+    {
+        this._humanService.Setup(s => s.DeleteUserAsync("u1")).ReturnsAsync(false);
+        this._accountLinks.Setup(r => r.GetByHumanIdAsync("u1"))
+            .ReturnsAsync(new AccountLink(3, "100000000000000001", "200000001", LinkSide.Discord, null, null, DateTime.UtcNow));
+
+        Assert.False(await this._sut.PurgeAsync("u1"));
+
+        this._accountLinks.Verify(r => r.RemoveByHumanIdAsync(It.IsAny<string>()), Times.Never);
+        this._linkedAccount.Verify(l => l.Invalidate(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Purge_HumanDeleteThrows_LeavesLinkIntact()
+    {
+        this._humanService.Setup(s => s.DeleteUserAsync("u1")).ThrowsAsync(new HttpRequestException("down"));
+        this._accountLinks.Setup(r => r.GetByHumanIdAsync("u1"))
+            .ReturnsAsync(new AccountLink(3, "100000000000000001", "200000001", LinkSide.Discord, null, null, DateTime.UtcNow));
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.PurgeAsync("u1"));
+
+        this._accountLinks.Verify(r => r.RemoveByHumanIdAsync(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Purge_UnlinkedUser_ChangesNoLinkState()
+    {
+        this._accountLinks.Setup(r => r.GetByHumanIdAsync("u1")).ReturnsAsync((AccountLink?)null);
+
+        Assert.True(await this._sut.PurgeAsync("u1"));
+
+        this._accountLinks.Verify(r => r.RemoveByHumanIdAsync(It.IsAny<string>()), Times.Never);
+        this._linkedAccount.Verify(l => l.Invalidate(It.IsAny<string>()), Times.Never);
+    }
 
     [Fact]
     public async Task PurgeRemovesEverythingTheAccountOwns()

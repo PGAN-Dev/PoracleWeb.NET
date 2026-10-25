@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
+import { AlarmMoveService, MoveEdit } from './alarm-move.service';
 import { ConfigService } from './config.service';
 import { DistanceUpdateResult } from '../../shared/utils/distance-update';
 import { Nest, NestCreate, NestUpdate } from '../models';
@@ -10,6 +11,7 @@ import { Nest, NestCreate, NestUpdate } from '../models';
 export class NestService {
   private readonly config = inject(ConfigService);
   private readonly http = inject(HttpClient);
+  private readonly moves = inject(AlarmMoveService);
 
   create(nest: NestCreate): Observable<Nest> {
     return this.http.post<Nest>(`${this.config.apiHost}/api/nests`, nest);
@@ -27,8 +29,8 @@ export class NestService {
     return this.http.get<Nest[]>(`${this.config.apiHost}/api/nests`);
   }
 
-  update(uid: number, nest: NestUpdate): Observable<void> {
-    return this.http.put<void>(`${this.config.apiHost}/api/nests/${uid}`, nest);
+  update(uid: number, nest: NestUpdate): Observable<MoveEdit | void> {
+    return this.moves.put('nests', uid, nest, () => this.http.put<void>(`${this.config.apiHost}/api/nests/${uid}`, nest));
   }
 
   updateBulkDistance(uids: number[], distance: number): Observable<DistanceUpdateResult> {

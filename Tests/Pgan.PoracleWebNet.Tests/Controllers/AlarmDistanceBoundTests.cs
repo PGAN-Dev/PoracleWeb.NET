@@ -86,7 +86,7 @@ public class AlarmDistanceBoundTests : ControllerTestBase
     public async Task UpdateAllRefusesARadiusLargerThanTheEarth()
     {
         var service = new Mock<IMonsterService>();
-        var sut = new MonsterController(service.Object, new Mock<IPokemonEditCapabilityService>().Object);
+        var sut = new MonsterController(service.Object, new Mock<IPokemonEditCapabilityService>().Object, UnlinkedRouter());
         SetupUser(sut);
 
         Assert.IsType<BadRequestObjectResult>(await sut.UpdateAllDistance(JustPastHalfTheEarth));
@@ -99,7 +99,7 @@ public class AlarmDistanceBoundTests : ControllerTestBase
         var service = new Mock<IMonsterService>();
         service.Setup(s => s.UpdateDistanceByUserAsync("123456789", 1, LargestRadiusInProduction))
             .ReturnsAsync(DistanceUpdateResult.None with { Updated = 1 });
-        var sut = new MonsterController(service.Object, new Mock<IPokemonEditCapabilityService>().Object);
+        var sut = new MonsterController(service.Object, new Mock<IPokemonEditCapabilityService>().Object, UnlinkedRouter());
         SetupUser(sut);
 
         Assert.IsType<OkObjectResult>(await sut.UpdateAllDistance(LargestRadiusInProduction));

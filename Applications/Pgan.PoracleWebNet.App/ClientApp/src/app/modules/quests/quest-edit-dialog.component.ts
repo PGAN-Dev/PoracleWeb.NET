@@ -11,18 +11,20 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { TranslatePipe } from '@ngx-translate/core';
 
-import { Quest, QuestUpdate } from '../../core/models';
+import { Quest, QuestUpdate, LinkSide } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { QuestService } from '../../core/services/quest.service';
 import { SummaryScheduleService } from '../../core/services/summary-schedule.service';
+import { DeliverToFieldComponent } from '../../shared/components/deliver-to/deliver-to-field.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { createFailureText } from '../../shared/utils/add-outcome';
 import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, compose, isAutoDelete, isSummary, preserve, SUMMARY } from '../../shared/utils/clean-flags';
+import { injectDeliverTo, moveEditMessage } from '../../shared/utils/deliver-to';
 import { mentionCapable } from '../../shared/utils/human-kind';
 import { questRewardIcon } from '../../shared/utils/quest-reward-icon';
 
@@ -49,6 +51,7 @@ const REWARD_SLOT_TYPES = new Set([STARDUST, POKECOINS]);
 
 @Component({
   imports: [
+    DeliverToFieldComponent,
     ReactiveFormsModule,
     MatDialogModule,
     MatButtonModule,
@@ -80,6 +83,8 @@ export class QuestEditDialogComponent {
   private readonly questService = inject(QuestService);
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<Quest>(MAT_DIALOG_DATA);
+  readonly deliver = injectDeliverTo();
+
   readonly dialogRef = inject(MatDialogRef<QuestEditDialogComponent>);
 
   form = this.fb.group({
@@ -88,6 +93,7 @@ export class QuestEditDialogComponent {
     // changing which reward it is about, so unlike the reward itself they are editable here.
     amount: [this.data.amount ?? 0],
     clean: [isAutoDelete(this.data.clean)],
+    destination: [(this.data.destination ?? null) as LinkSide | null],
     // Always present even when the Mention control is hidden (not a webhook alarm) -- so a mention
     // round-trips unchanged through a save this dialog makes for an unrelated field.
     ping: [this.data.ping ?? '', [Validators.maxLength(255)]],
@@ -190,6 +196,7 @@ export class QuestEditDialogComponent {
     const scope = scopeToFields(this.scope());
 
     const update: QuestUpdate = {
+      ...this.deliver.moveFields(this.data.destination, this.form.controls.destination.value),
       overrideAreas: scope.overrideAreas,
       overrideLocationLabel: scope.overrideLocationLabel,
       amount: this.hasAmount ? (values.amount ?? 0) : this.data.amount,
@@ -212,8 +219,10 @@ export class QuestEditDialogComponent {
         });
         this.saving.set(false);
       },
-      next: () => {
-        this.snackBar.open(this.i18n.instant('QUESTS.SNACK_UPDATED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+      next: moved => {
+        this.snackBar.open(moveEditMessage(moved, this.i18n) ?? this.i18n.instant('QUESTS.SNACK_UPDATED'), this.i18n.instant('TOAST.OK'), {
+          duration: 3000,
+        });
         this.dialogRef.close(true);
       },
     });

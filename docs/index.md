@@ -4,7 +4,7 @@ template: home.html
 
 # PoracleWeb.NET
 
-A web application for managing Pokemon GO notification alarms through the [PoracleNG](https://github.com/jfberry/PoracleNG) bot. Users authenticate via Discord OAuth2 or Telegram and configure personalized alert filters (Pokemon, Raids and Eggs, Max Battles, Quests, Invasions, Pokéstop Events, Lures, Nests, Gyms, Fort Changes) through a browser-based UI.
+A web application for managing Pokemon GO notification alarms through the [PoracleNG](https://github.com/jfberry/PoracleNG) bot. Users sign in with Discord, Telegram or an OIDC provider and configure personalized alert filters (Pokemon, Raids and Eggs, Max Battles, Quests, Invasions, Pokéstop Events, Lures, Nests, Gyms, Fort Changes) through a browser-based UI.
 
 !!! warning "PoracleNG is required"
     All alarm management, profile handling, and user operations are proxied through PoracleNG's REST API. [PoracleJS](https://github.com/KartulUdus/PoracleJS) is not a tested or supported configuration — some operations that rely on PoracleNG-specific endpoints will not work.
@@ -49,6 +49,8 @@ A web application for managing Pokemon GO notification alarms through the [Porac
 | [Destinations & delegates](features/webhooks.md) | Webhooks, Discord channels and threads, and Telegram channels, groups and topics, listed apart from people and managed as their own accounts, with named people allowed to manage one without being made an administrator |
 | Test alerts | Send a sample notification from an alarm card to see what the alert looks like (all types except Fort Changes, Max Battles and Pokéstop Events) |
 | Weather | Current in-game weather at your pin and across your areas, on the dashboard (needs the scanner database) |
+| [Discord and Telegram](features/discord-and-telegram.md) | Sign in and get alerts through either app, with Telegram registration and sign-in set up as described in [Telegram](configuration/telegram.md) |
+| [Linked accounts](features/linked-accounts.md) | One person on both Discord and Telegram: one list of alarms with the app chosen per alarm, moves between apps, personal settings saved to both, and the differences bot commands leave shown for the person to settle |
 | [Quiet periods](features/quiet-periods.md) | Silence one gym, area, species or Power Spot for a set time without touching the alarms themselves |
 | Pokéstop events | Track Showcases, Kecleon sightings and Gold Stops. The page is there unless Poracle's own `general.disable_showcase` is `true` (or an admin switches it off) |
 | Fort changes | Get a DM when a Pokéstop or gym is added, removed, renamed, moved, re-described or given a new image |
@@ -87,7 +89,7 @@ On a phone the sidebar becomes a menu and each add dialog fills the screen, with
 |---|---|---|
 | MySQL or MariaDB | Whatever your Poracle installation runs | A `poracle_web` database this application creates its own tables in. PoracleWeb.NET doesn't connect to Poracle's database |
 | Poracle | [PoracleNG](https://github.com/jfberry/PoracleNG) 5.4.0 or newer | Running instance with REST API enabled. All alarm, profile, and user operations are proxied through PoracleNG's REST API. PoracleJS is not a tested configuration. |
-| Discord App | — | OAuth2 application for user authentication |
+| A sign-in method | — | A Discord OAuth2 application, a Telegram bot, or an OIDC provider. Any one is enough; Discord is optional ([sign-in methods](configuration/reference.md#sign-in-methods)) |
 | Koji | — | Geofence server. Supplies the admin areas in the unified geofence feed and receives user geofences an admin approves. Drawing a private geofence still works while Koji is unreachable |
 | .NET SDK | 10.0 | Backend development (not needed for Docker) |
 | Node.js | 22+ | Frontend development (not needed for Docker) |
@@ -140,7 +142,7 @@ On a phone the sidebar becomes a menu and each add dialog fills the screen, with
 
 ## Community & Support
 
-There is **no Discord server** for PoracleWeb.NET at this time. Support happens on GitHub: report bugs and request features in [Issues](https://github.com/PGAN-Dev/PoracleWeb.NET/issues), ask questions in [Discussions](https://github.com/PGAN-Dev/PoracleWeb.NET/discussions), and send contributions as [Pull Requests](https://github.com/PGAN-Dev/PoracleWeb.NET/pulls).
+Questions and chat happen in the PoracleWeb.NET channels on the [Poracle Discord server](https://discord.gg/MHVPAXDFr6). Report bugs and request features in [Issues](https://github.com/PGAN-Dev/PoracleWeb.NET/issues), so they don't get lost in chat, and send contributions as [Pull Requests](https://github.com/PGAN-Dev/PoracleWeb.NET/pulls). [Discussions](https://github.com/PGAN-Dev/PoracleWeb.NET/discussions) are open too, for anything that suits a thread better than a chat.
 
 ## Credits
 
@@ -151,3 +153,8 @@ PoracleWeb.NET stands on the shoulders of these projects and their authors:
 | [PoracleJS](https://github.com/KartulUdus/PoracleJS) | KartulUdus | The original Poracle bot — the notification engine this UI manages |
 | [PoracleNG](https://github.com/jfberry/PoracleNG) | jfberry | Next-generation Poracle whose REST API powers all alarm tracking |
 | [Kōji](https://github.com/TurtIeSocks/Koji) | TurtIeSocks | Geofence management platform used for admin areas, region detection, and public geofence promotion |
+| [Golbat](https://github.com/UnownHash/Golbat) | Unown# team | Scanner whose API shows which Pokemon are spawning in the species picker; its database backs the gym picker and the weather card |
+| [Masterfile Generator](https://github.com/WatWowMap/Masterfile-Generator) | WatWowMap | Game data: raid levels, and the English names used when Poracle can't supply translated ones |
+| UICONS icon packs | [nileplumb](https://github.com/nileplumb/PkmnHomeIcons), [jms412](https://github.com/jms412/PkmnHomeIcons) | Pokemon, item and raid icons; jms412's Home icons are the default |
+| [Leaflet](https://leafletjs.com/) | Leaflet contributors | Every map on the site |
+| Map tiles | [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, CARTO, Esri | The basemaps an admin or viewer can choose |

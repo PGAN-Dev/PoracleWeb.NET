@@ -12,9 +12,12 @@
 </div>
 @if (!loading() && gyms().length > 0) {
   <app-alarm-list-toolbar
+    alarmsLabel="GYMS.PAGE_TITLE"
     searchPlaceholder="GYMS.SEARCH_PLACEHOLDER"
     [(search)]="search"
     [(sort)]="sortBy"
+    [(destinationFilter)]="destinationFilter"
+    [canFilterDestination]="canChooseDestination()"
     [sortOptions]="sortOptions"
     [total]="gyms().length"
     [shown]="visibleGyms().length"
@@ -29,6 +32,9 @@
     (selectAll)="selectAll()"
     (deselectAll)="deselectAll()"
     (changeRadius)="bulkUpdateDistance()"
+    [canMove]="canChooseDestination()"
+    [allOn]="selectionApp()"
+    (moveSelected)="bulkMove($event)"
     (deleteSelected)="bulkDelete()" />
 }
 
@@ -41,6 +47,7 @@
   <div class="alarm-grid">
     @for (gym of visibleGyms(); track gym.uid) {
       <app-alarm-card
+        [destination]="gym.destination"
         [edge]="teamEdge(gym.team)"
         [summary]="gym.description"
         [selectable]="selectMode()"

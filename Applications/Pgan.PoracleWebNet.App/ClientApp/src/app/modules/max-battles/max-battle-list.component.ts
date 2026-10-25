@@ -10,11 +10,13 @@ import { firstValueFrom } from 'rxjs';
 
 import { MaxBattleAddDialogComponent } from './max-battle-add-dialog.component';
 import { MaxBattleEditDialogComponent, MaxBattleEditDialogData } from './max-battle-edit-dialog.component';
-import { MaxBattle } from '../../core/models';
+import { MaxBattle, LinkSide } from '../../core/models';
+import { AlarmMoveService } from '../../core/services/alarm-move.service';
 import { AreaNameService } from '../../core/services/area-name.service';
 import { AreaService } from '../../core/services/area.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
+import { LinkedAccountService } from '../../core/services/linked-account.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MaxBattleService } from '../../core/services/max-battle.service';
 import { AlarmCardComponent } from '../../shared/components/alarm-card/alarm-card.component';
@@ -28,9 +30,18 @@ import { WhereChipComponent } from '../../shared/components/where-chip/where-chi
 import { WhereSheetComponent, WhereSheetData, whereSheetConfig } from '../../shared/components/where-sheet/where-sheet.component';
 import { addOnArrival } from '../../shared/utils/add-on-arrival';
 import { AddDialogData, isEditExisting, ruleSummary } from '../../shared/utils/add-outcome';
-import { byNumber, byText, queryAlarms, visibleSelection } from '../../shared/utils/alarm-list-query';
+import {
+  byDestination,
+  byNumber,
+  byText,
+  DestinationFilter,
+  queryAlarms,
+  sharedDestination,
+  visibleSelection,
+} from '../../shared/utils/alarm-list-query';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
+import { runBulkMove } from '../../shared/utils/bulk-move';
 import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
 import { serverReason } from '../../shared/utils/server-reason';
 
@@ -66,12 +77,15 @@ export class MaxBattleListComponent implements OnInit {
   private readonly iconService = inject(IconService);
   private readonly masterData = inject(MasterDataService);
   private readonly maxBattleService = inject(MaxBattleService);
+  private readonly moves = inject(AlarmMoveService);
   private readonly snackBar = inject(MatSnackBar);
   /** `?add=1` from the dashboard or onboarding opens the add dialog once. */
   private readonly takeAddRequest = addOnArrival();
-  private readonly translate = inject(TranslateService);
 
+  private readonly translate = inject(TranslateService);
   readonly selectedIds = signal(new Set<number>());
+  /** A linked person can filter by the app each alarm is delivered to. */
+  readonly destinationFilter = signal<DestinationFilter>('all');
   readonly maxBattles = signal<MaxBattle[]>([]);
   readonly search = signal('');
   /** "default" keeps the stable order the list loads in (see orderAlarms), so nothing moves once names load. */
@@ -84,7 +98,7 @@ export class MaxBattleListComponent implements OnInit {
       tier: byNumber(m => m.level),
     };
     return queryAlarms(
-      this.maxBattles(),
+      byDestination(this.maxBattles(), this.destinationFilter()),
       this.search(),
       m => [this.getTitle(m), m.level === 9000 ? null : this.getLevelLabel(m.level), m.move === 9000 ? null : this.getMoveName(m.move)],
       sorts[this.sortBy()] ?? null,
@@ -99,9 +113,15 @@ export class MaxBattleListComponent implements OnInit {
     ),
   );
 
+  /** True for a linked person, who gets the delivery filter, the card glyph and the bulk move. */
+  readonly canChooseDestination = inject(LinkedAccountService).canChoose;
+
   readonly loading = signal(true);
+
   /** Only used to word the inherited scope honestly; empty produces the more cautious wording. */
   readonly profileAreas = signal<string[]>([]);
+  /** The app every selected alarm on screen is already on, which the bulk Deliver to menu offers disabled. */
+  readonly selectionApp = computed(() => sharedDestination(this.visibleMaxBattles(), item => item.uid, this.actionIds()));
   readonly selectMode = signal(false);
 
   readonly skeletonCards = Array.from({ length: 6 });
@@ -144,6 +164,20 @@ export class MaxBattleListComponent implements OnInit {
         duration: 3000,
       });
     }
+  }
+
+  /** Moves the selected alarms to the other app, then reports every outcome in one line. */
+  async bulkMove(destination: LinkSide): Promise<void> {
+    await runBulkMove(
+      { i18n: this.i18n, moves: this.moves, snackBar: this.snackBar },
+      [{ uids: this.actionIds(), type: 'maxbattle' }],
+      destination,
+      () => {
+        this.selectedIds.set(new Set());
+        this.selectMode.set(false);
+        this.loadData();
+      },
+    );
   }
 
   async bulkUpdateDistance(): Promise<void> {

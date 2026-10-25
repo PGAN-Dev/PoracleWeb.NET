@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Pgan.PoracleWebNet.Api.Controllers;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
+using Pgan.PoracleWebNet.Tests.Helpers;
 
 namespace Pgan.PoracleWebNet.Tests.Controllers;
 
@@ -25,6 +26,7 @@ public class AreaControllerTests : ControllerTestBase
             this._proxy.Object,
             this._userGeofenceService.Object,
             this._areaWriter.Object,
+            PairTestSupport.UnlinkedWriter(),
             this._logger.Object);
         // Default: the writer keeps everything it is given.
         this._areaWriter

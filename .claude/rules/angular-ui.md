@@ -22,6 +22,7 @@ next step, and those call sites **opt in by exact status**, never by range:
 | Admin > Destinations, add | 502 | #482 half-write: "Check the webhook list before trying again." A retry on the generic message can create a second row |
 | User geofences, approve / reject / delete | 502 | Koji refused; "the region may no longer exist" says what to reload |
 | `TestAlertService` | 502, 501 | reads `err.error.error` itself (silent URL), PoracleNG's reason for not delivering |
+| Alarm edit dialogs, moving an alarm to the other linked app (`AlarmMoveService.edit`) | 502 | the copy may or may not exist on the target; "look in both apps before trying again". The request carries `WORDS_OWN_502`, so the interceptor stays quiet for that 502 and `createFailureText` (via `markMoveFailure`) shows the one sentence |
 
 `serverReason(err, { allow5xx: [502] })` is the form. A new endpoint that answers a 5xx with guidance must either
 answer a fitting 4xx/409 instead or add its call site here, with a spec that posts the real body; a 500 from the

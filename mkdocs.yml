@@ -46,7 +46,6 @@ theme:
 
 plugins:
   - search
-  - mermaid2
 
 markdown_extensions:
   - admonition
@@ -55,7 +54,7 @@ markdown_extensions:
       custom_fences:
         - name: mermaid
           class: mermaid
-          format: !!python/name:mermaid2.fence_mermaid_custom
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.tabbed:
       alternate_style: true
   - pymdownx.highlight:
@@ -85,6 +84,7 @@ nav:
   - Configuration:
       - Reference: configuration/reference.md
       - Site Settings: configuration/site-settings.md
+      - Telegram: configuration/telegram.md
       - External SSO (OIDC): configuration/external-sso.md
       - OIDC Refresh Tokens: configuration/oidc-refresh-tokens.md
       - Docker Compose: configuration/docker.md
@@ -95,8 +95,11 @@ nav:
       - Backend Patterns: architecture/backend.md
       - Frontend Patterns: architecture/frontend.md
       - Database: architecture/database.md
+      - Linked Accounts: architecture/linked-accounts.md
   - Features:
       - Alarm Management: features/alarms.md
+      - Discord & Telegram: features/discord-and-telegram.md
+      - Linked Accounts: features/linked-accounts.md
       - Quiet Periods: features/quiet-periods.md
       - Profiles: features/profiles.md
       - Quest Summary Delivery: features/quest-summary-schedules.md

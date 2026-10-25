@@ -3,7 +3,7 @@ import { MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslateService } from '@ngx-translate/core';
 
-import { AddRefusal, finishAdd, isEditExisting, refusalOf, ruleSummary, SettledCreate } from './add-outcome';
+import { AddRefusal, createFailureText, finishAdd, isEditExisting, refusalOf, ruleSummary, SettledCreate } from './add-outcome';
 import { I18nService } from '../../core/services/i18n.service';
 
 describe('add-outcome', () => {
@@ -200,5 +200,30 @@ describe('add-outcome', () => {
         'Mossy Lure · WHERE.PROFILE_AREAS',
       );
     });
+  });
+});
+
+describe('createFailureText for a refused move', () => {
+  const i18n = {
+    instant: (k: string, p?: Record<string, unknown>) => (p ? `${k} ${JSON.stringify(p)}` : k),
+  } as unknown as I18nService;
+
+  it("words a move refusal from its code, not the server's English", () => {
+    const err = {
+      error: { app: 'telegram', code: 'place_missing', error: "The place 'Home' isn't saved on Telegram.", place: 'Home' },
+      status: 409,
+    };
+
+    const text = createFailureText(err, i18n, 'ALARM.FAILED_UPDATE');
+
+    expect(text).toContain('ALARM.MOVE_REASON_PLACE_MISSING');
+    expect(text).toContain('Home');
+    expect(text).not.toContain("isn't saved");
+  });
+
+  it('keeps the server reason for an ordinary edit refusal that carries no move code', () => {
+    expect(createFailureText({ error: { error: 'Distance is too large.' }, status: 400 }, i18n, 'ALARM.FAILED_UPDATE')).toBe(
+      'Distance is too large.',
+    );
   });
 });

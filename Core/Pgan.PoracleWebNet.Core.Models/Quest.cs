@@ -1,6 +1,8 @@
+using System.Text.Json.Serialization;
+
 namespace Pgan.PoracleWebNet.Core.Models;
 
-public class Quest
+public class Quest : IHasDestination
 {
     public int Uid
     {
@@ -92,6 +94,24 @@ public class Quest
     /// therefore removes it from every write body. A PoracleNG too old to send it leaves this null.
     /// </remarks>
     public string? Description
+    {
+        get; set;
+    }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Destination
+    {
+        get; set;
+    }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? PausedDestination
+    {
+        get; set;
+    }
+
+    [JsonIgnore]
+    public int? ExistingUid
     {
         get; set;
     }

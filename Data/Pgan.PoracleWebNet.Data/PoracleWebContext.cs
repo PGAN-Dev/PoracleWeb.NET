@@ -35,6 +35,11 @@ public class PoracleWebContext(DbContextOptions<PoracleWebContext> options) : Db
         get; set;
     }
 
+    public DbSet<AccountLinkEntity> AccountLinks
+    {
+        get; set;
+    }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
