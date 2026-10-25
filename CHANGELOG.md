@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.2.0] - 2026-10-25
+
 ### Added
 
 - **Linked accounts: pair a Discord account with a Telegram account.** A new **Linked accounts** page, in the user menu and under Settings in the sidebar, links the account you signed in with to the other app (Link Discord from a Telegram session, the Telegram button from a Discord session), names the account on each side and shows it as receiving alerts, waiting to register, stopped or paused by an admin, unlinks, and sets where new alarms go. A side that isn't receiving alerts can't be picked for new alarms, and a paused side links to the support page. A refused link says why and what to try next in all eleven languages. On a site that offers only one app's sign-in, the other app's card says it can't be linked here, a link refused because that app's sign-in isn't available says so (`link_app_unavailable`) instead of blaming the account, the Unlink confirm warns that the other app can't be linked again here and to move any of its alarms worth keeping first, and the Linked accounts settings group names the app people can't link and why. An admin viewing someone else's account is told the page belongs to that person. On a 360px phone the toolbar no longer pushes the account button, the way into that menu, off the screen; a long site title is cut short instead. Nothing is copied or moved by linking, and unlinking deletes nothing. Admin > Users shows a link chip naming the other app on linked accounts, with an **Unlink accounts** action whose confirm names both accounts; it keeps working with linking switched off, so a stuck pair can still be cut. Three new settings in their own Admin > Settings > Linked accounts group (the two that depend on the switch are dimmed while it is off, and an invalid group link is marked beside the field): **Linked accounts** (`disable_account_linking`) switches the feature off, **Register the other account when linking** (`link_register_missing`, off by default) creates the missing account instead of waiting for the person to register, and **Telegram registration group link** (`telegram_registration_url`) adds a **Join the Telegram group** button to a Telegram side that is waiting to register. A waiting Telegram side now says to join the registration group and send `/poracle` there, not to press Start in the bot. [Linked accounts](docs/features/linked-accounts.md) covers both.
@@ -1446,7 +1448,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.1.0...HEAD
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.2.0...HEAD
+[3.2.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.1.0...v3.2.0
 [3.1.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.0.1...v3.1.0
 [3.0.1]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.0.0...v3.0.1
 [3.0.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.21.0...v3.0.0
