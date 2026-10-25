@@ -2109,6 +2109,7 @@
     "OIDC_CLIENT_ID_LABEL": "Client ID",
     "OIDC_SCOPES_LABEL": "Escopos",
     "OIDC_IDENTITY_CLAIM_LABEL": "Claim de identidade",
+    "OIDC_SECONDARY_IDENTITY_CLAIM_LABEL": "Claim de identidade secundário",
     "OIDC_USE_PKCE_LABEL": "Usar PKCE",
     "PROVIDER_URL_LABEL": "URL dos blocos do mapa",
     "PROVIDER_URL_DESC": "Modelo de URL do provedor de blocos de mapa (usado para mapas estáticos).",

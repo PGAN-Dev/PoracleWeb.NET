@@ -244,6 +244,7 @@ public partial class SettingsController(
             clientSecret = MaskSecret(this._oidcSettings.ClientSecret),
             scopes = this._oidcSettings.Scopes,
             identityClaim = this._oidcSettings.IdentityClaim,
+            secondaryIdentityClaim = this._oidcSettings.SecondaryIdentityClaim,
             usePkce = this._oidcSettings.UsePkce,
             // Refresh-token consumption (server-side config only — controlled by OIDC_USE_REFRESH_TOKENS;
             // there is no runtime admin toggle, as refresh is coupled to the per-login JWT lifetime).

@@ -2109,6 +2109,7 @@
     "OIDC_CLIENT_ID_LABEL": "Client-ID",
     "OIDC_SCOPES_LABEL": "Scopes",
     "OIDC_IDENTITY_CLAIM_LABEL": "Identitäts-Claim",
+    "OIDC_SECONDARY_IDENTITY_CLAIM_LABEL": "Sekundärer Identitäts-Claim",
     "OIDC_USE_PKCE_LABEL": "PKCE verwenden",
     "PROVIDER_URL_LABEL": "Kartenkachel-URL",
     "PROVIDER_URL_DESC": "URL-Vorlage für den Kartenkachel-Anbieter (für statische Karten).",

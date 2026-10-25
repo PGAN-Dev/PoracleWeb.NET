@@ -1998,6 +1998,7 @@
     "OIDC_CLIENT_ID_LABEL": "Client ID",
     "OIDC_SCOPES_LABEL": "Scopes",
     "OIDC_IDENTITY_CLAIM_LABEL": "Claim de identidade",
+    "OIDC_SECONDARY_IDENTITY_CLAIM_LABEL": "Claim de identidade secundário",
     "OIDC_USE_PKCE_LABEL": "Usar PKCE",
     "SIGNUP_URL_LABEL": "URL de registo",
     "SIGNUP_URL_DESC": "URL da página externa de registo. Quando definido, os utilizadores ainda não registados veem um botão de registo na página de início de sessão.",

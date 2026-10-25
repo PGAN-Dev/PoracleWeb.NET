@@ -2109,6 +2109,7 @@
     "OIDC_CLIENT_ID_LABEL": "ID client",
     "OIDC_SCOPES_LABEL": "Scopes",
     "OIDC_IDENTITY_CLAIM_LABEL": "Claim d'identité",
+    "OIDC_SECONDARY_IDENTITY_CLAIM_LABEL": "Claim d'identité secondaire",
     "OIDC_USE_PKCE_LABEL": "Utiliser PKCE",
     "PROVIDER_URL_LABEL": "URL des tuiles de carte",
     "PROVIDER_URL_DESC": "Modèle d'URL du fournisseur de tuiles de carte (utilisé pour les cartes statiques).",

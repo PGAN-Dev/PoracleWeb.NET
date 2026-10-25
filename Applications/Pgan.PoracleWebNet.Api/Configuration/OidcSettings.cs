@@ -46,6 +46,13 @@ public class OidcSettings
     /// </summary>
     public string IdentityClaim { get; set; } = "discord_id";
 
+    /// <summary>
+    /// Optional second identity claim, tried when <see cref="IdentityClaim"/> is absent or names no registered
+    /// Poracle person. Set it to <c>telegram_id</c> so a member whose provider account has only a Telegram login
+    /// signs in as their <c>telegram:user</c> human. Empty (the default) keeps the single-claim behaviour.
+    /// </summary>
+    public string SecondaryIdentityClaim { get; set; } = string.Empty;
+
     /// <summary>UserInfo claim used as the display username.</summary>
     public string UsernameClaim { get; set; } = "preferred_username";
 

@@ -2109,6 +2109,7 @@
     "OIDC_CLIENT_ID_LABEL": "Klient-ID",
     "OIDC_SCOPES_LABEL": "Scopes",
     "OIDC_IDENTITY_CLAIM_LABEL": "Identitetsanspråk",
+    "OIDC_SECONDARY_IDENTITY_CLAIM_LABEL": "Sekundärt identitetsanspråk",
     "OIDC_USE_PKCE_LABEL": "Använd PKCE",
     "PROVIDER_URL_LABEL": "URL för kartrutor",
     "PROVIDER_URL_DESC": "URL-mall för kartrute-leverantören (används för statiska kartor).",
