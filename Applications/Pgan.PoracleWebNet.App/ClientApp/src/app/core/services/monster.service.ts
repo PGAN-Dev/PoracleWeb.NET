@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { Observable, catchError, of } from 'rxjs';
 
+import { AlarmMoveService, MoveEdit } from './alarm-move.service';
 import { ConfigService } from './config.service';
 import { DistanceUpdateResult } from '../../shared/utils/distance-update';
 import { Monster, MonsterCreate, MonsterUpdate } from '../models';
@@ -15,6 +16,7 @@ export class MonsterService {
   private capabilityLoaded = false;
   private readonly config = inject(ConfigService);
   private readonly http = inject(HttpClient);
+  private readonly moves = inject(AlarmMoveService);
 
   /**
    * Whether this deployment's PoracleNG honours the pokemon edit-in-place bit
@@ -54,8 +56,8 @@ export class MonsterService {
       .subscribe(res => this.editSupported.set(res.edit));
   }
 
-  update(uid: number, monster: MonsterUpdate): Observable<void> {
-    return this.http.put<void>(`${this.config.apiHost}/api/monsters/${uid}`, monster);
+  update(uid: number, monster: MonsterUpdate): Observable<MoveEdit | void> {
+    return this.moves.put('monsters', uid, monster, () => this.http.put<void>(`${this.config.apiHost}/api/monsters/${uid}`, monster));
   }
 
   updateBulkDistance(uids: number[], distance: number): Observable<DistanceUpdateResult> {

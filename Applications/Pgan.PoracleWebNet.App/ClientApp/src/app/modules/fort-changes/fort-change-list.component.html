@@ -12,9 +12,12 @@
 </div>
 @if (!loading() && fortChanges().length > 0) {
   <app-alarm-list-toolbar
+    alarmsLabel="FORT_CHANGES.PAGE_TITLE"
     searchPlaceholder="FORT_CHANGES.SEARCH_PLACEHOLDER"
     [(search)]="search"
     [(sort)]="sortBy"
+    [(destinationFilter)]="destinationFilter"
+    [canFilterDestination]="canChooseDestination()"
     [sortOptions]="sortOptions"
     [total]="fortChanges().length"
     [shown]="visibleFortChanges().length"
@@ -29,6 +32,9 @@
     (selectAll)="selectAll()"
     (deselectAll)="deselectAll()"
     (changeRadius)="bulkUpdateDistance()"
+    [canMove]="canChooseDestination()"
+    [allOn]="selectionApp()"
+    (moveSelected)="bulkMove($event)"
     (deleteSelected)="bulkDelete()" />
 }
 
@@ -41,6 +47,7 @@
   <div class="alarm-grid">
     @for (item of visibleFortChanges(); track item.uid) {
       <app-alarm-card
+        [destination]="item.destination"
         [selectable]="selectMode()"
         [selected]="selectedIds().has(item.uid)"
         [selectLabel]="'ALARM.SELECT_ONE' | translate: { name: formatFortType(item.fortType) }"

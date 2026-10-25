@@ -146,6 +146,12 @@
             <span>{{ 'MENU.GAME_ACCOUNTS' | translate }}</span>
           </button>
         }
+        @if (showLinkedAccountsItem()) {
+          <button mat-menu-item routerLink="/linked-accounts">
+            <mat-icon>link</mat-icon>
+            <span>{{ 'MENU.LINKED_ACCOUNTS' | translate }}</span>
+          </button>
+        }
         <button mat-menu-item [matMenuTriggerFor]="accentMenu">
           <mat-icon>palette</mat-icon>
           <span>{{ 'MENU.ACCENT_THEME' | translate }}</span>
@@ -229,6 +235,9 @@
       </mat-menu>
     </mat-toolbar>
   </header>
+  @if (!auth.isImpersonating()) {
+    <app-pair-drift-banner />
+  }
 
   <mat-sidenav-container class="app-sidenav-container">
     <mat-sidenav

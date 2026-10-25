@@ -73,4 +73,11 @@ public class EggUpdate
     {
         get; set;
     }
+
+    /// <summary>The side this alarm should live on. The other side moves it there (create first, then delete); the same side is an ordinary edit.</summary>
+    [StringLength(16)]
+    public string? Destination
+    {
+        get; set;
+    }
 }

@@ -15,16 +15,18 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 
-import { DashboardCounts } from './core/models';
+import { AuthProviders, DashboardCounts } from './core/models';
 import { AlertLanguageService } from './core/services/alert-language.service';
 import { AuthService } from './core/services/auth.service';
 import { BuildInfoService } from './core/services/build-info.service';
 import { DashboardService } from './core/services/dashboard.service';
 import { I18nService } from './core/services/i18n.service';
+import { LinkedAccountService } from './core/services/linked-account.service';
 import { PoracleConfigService } from './core/services/poracle-config.service';
 import { DEFAULT_SITE_TITLE, SettingsService } from './core/services/settings.service';
 import { AlertDefaultsDialogComponent } from './shared/components/alert-defaults-dialog/alert-defaults-dialog.component';
 import { GameAccountsDialogComponent } from './shared/components/game-accounts-dialog/game-accounts-dialog.component';
+import { PairDriftBannerComponent } from './shared/components/pair-drift-banner/pair-drift-banner.component';
 import { isKnownKind, kindLabelKey } from './shared/utils/human-kind';
 
 interface NavItem {
@@ -37,6 +39,8 @@ interface NavItem {
   icon: string;
   iconColor?: string;
   label: string;
+  /** Shown only when the Linked accounts page has something to offer (see `showLinkedAccountsItem`). */
+  linkedAccounts?: boolean;
   route: string;
 }
 
@@ -55,6 +59,7 @@ interface NavItem {
     MatDividerModule,
     MatBadgeModule,
     MatTooltipModule,
+    PairDriftBannerComponent,
     TranslatePipe,
   ],
   selector: 'app-root',
@@ -101,6 +106,7 @@ export class App implements OnInit {
   protected readonly accentTheme = signal(localStorage.getItem('poracle-accent') || '');
 
   protected readonly auth = inject(AuthService);
+
   protected readonly navItems: NavItem[] = [
     { group: 'alarms', icon: 'dashboard', iconColor: '#1976d2', label: 'NAV.DASHBOARD', route: '/dashboard' },
     { group: 'alarms', icon: 'bolt', iconColor: '#ff6f00', label: 'NAV.QUICK_PICKS', route: '/quick-picks' },
@@ -214,6 +220,15 @@ export class App implements OnInit {
       route: '/geofences',
     },
     { group: 'settings', icon: 'cleaning_services', iconColor: '#795548', label: 'NAV.CLEANING', route: '/cleaning' },
+    {
+      disableKey: 'disable_account_linking',
+      group: 'settings',
+      icon: 'link',
+      iconColor: '#607d8b',
+      label: 'MENU.LINKED_ACCOUNTS',
+      linkedAccounts: true,
+      route: '/linked-accounts',
+    },
     { group: 'support', icon: 'help', iconColor: '#673ab7', label: 'NAV.HELP', route: '/help' },
     { adminOnly: true, group: 'admin', icon: 'people', iconColor: '#455a64', label: 'NAV.USERS', route: '/admin/users' },
     { adminOnly: true, group: 'admin', icon: 'campaign', iconColor: '#00897b', label: 'NAV.DESTINATIONS', route: '/admin/destinations' },
@@ -286,7 +301,12 @@ export class App implements OnInit {
   protected readonly headerLogoUrl = computed(() => this.settingsService.siteSettings()['header_logo_url'] || '');
 
   protected readonly hideHeaderLogo = computed(() => this.settingsService.isDisabled('hide_header_logo'));
+
   protected readonly i18n = inject(I18nService);
+
+  /** Held here so it exists from sign-in on: it reads the link status when a user arrives and on window focus. */
+  protected readonly linkedAccounts = inject(LinkedAccountService);
+
   /**
    * While managing a destination, the banner sentence key for its kind (a whole sentence per kind, so grammar can differ by language). Null for a person and for a type the
    * app cannot name, so the banner says "Viewing as" rather than "Managing Other".
@@ -303,9 +323,34 @@ export class App implements OnInit {
    */
   protected readonly overlayNav = signal(usesOverlayNav(window.innerWidth));
 
+  /** What each platform's sign-in offers, read once from the anonymous providers endpoint. Null until it answers. */
+  protected readonly providers = signal<AuthProviders | null>(null);
+
+  /**
+   * The user-menu entry. Linking is refused while viewing as someone else, so it is not offered then either.
+   * Beyond that it appears when there is something to do on the page: the other platform's sign-in is
+   * configured (the page's own test for offering Link), or the person is already linked and still needs the
+   * page to unlink or change the default.
+   */
+  protected readonly showLinkedAccountsItem = computed(() => {
+    if (this.settingsService.isDisabled('disable_account_linking') || this.auth.isImpersonating()) return false;
+    if (this.linkedAccounts.status()?.linked === true) return true;
+    const type = this.auth.user()?.type ?? '';
+    const providers = this.providers();
+    if (!providers) return false;
+    if (type.startsWith('discord'))
+      return providers.telegram.configured && providers.telegram.enabledByAdmin && !!providers.telegram.botUsername;
+    if (type.startsWith('telegram')) return providers.discord.configured && providers.discord.enabledByAdmin;
+    return false;
+  });
+
   protected readonly settingsNavItems = computed(() =>
     this.navItems.filter(
-      item => item.group === 'settings' && (!item.adminOnly || this.auth.isAdmin()) && !this.isFeatureDisabled(item.disableKey),
+      item =>
+        item.group === 'settings' &&
+        (!item.adminOnly || this.auth.isAdmin()) &&
+        !this.isFeatureDisabled(item.disableKey) &&
+        (!item.linkedAccounts || this.showLinkedAccountsItem()),
     ),
   );
 
@@ -422,7 +467,10 @@ export class App implements OnInit {
     // surfaced as an uncaught error in the console.
     this.auth.getProviders().subscribe({
       error: () => this.ssoLogoutAvailable.set(false),
-      next: providers => this.ssoLogoutAvailable.set(providers.oidc?.endSession === true),
+      next: providers => {
+        this.providers.set(providers);
+        this.ssoLogoutAvailable.set(providers.oidc?.endSession === true);
+      },
     });
   }
 

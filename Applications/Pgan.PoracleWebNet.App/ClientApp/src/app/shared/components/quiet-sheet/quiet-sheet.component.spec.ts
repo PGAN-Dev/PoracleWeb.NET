@@ -1,13 +1,16 @@
+import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { provideTranslateService } from '@ngx-translate/core';
 
 import { QuietSheetComponent, QuietSheetData } from './quiet-sheet.component';
+import { AuthService } from '../../../core/services/auth.service';
 import { MuteService, QUIET_DURATIONS } from '../../../core/services/mute.service';
 
 describe('QuietSheetComponent', () => {
   let fixture: ComponentFixture<QuietSheetComponent>;
   const dialogRef = { close: jest.fn() };
+  const impersonating = signal(false);
 
   const build = (data: Partial<QuietSheetData> = {}) => {
     TestBed.resetTestingModule();
@@ -18,6 +21,7 @@ describe('QuietSheetComponent', () => {
           useValue: { isQuiet: false, scope: 'gym', subject: 'Bareena Park', value: 'abc123', ...data },
         },
         { provide: MatDialogRef, useValue: dialogRef },
+        { provide: AuthService, useValue: { isImpersonating: impersonating } },
         { provide: MuteService, useValue: { durationLabel: jest.fn((m: number) => `${m} min`) } },
         provideTranslateService(),
       ],
@@ -28,7 +32,10 @@ describe('QuietSheetComponent', () => {
     return fixture.componentInstance;
   };
 
-  beforeEach(() => dialogRef.close.mockClear());
+  beforeEach(() => {
+    dialogRef.close.mockClear();
+    impersonating.set(false);
+  });
 
   /** 60 is PoracleNG's own default, so the sheet agreeing with it costs the user a decision. */
   it('defaults to one hour', () => {
@@ -78,5 +85,21 @@ describe('QuietSheetComponent', () => {
 
   it('preselects the current duration when re-quieting', () => {
     expect(build({ currentMinutes: 480, isQuiet: true }).minutes()).toBe(480);
+  });
+  it('offers to quiet when signed in as yourself', () => {
+    build({ isQuiet: true });
+
+    expect(fixture.nativeElement.textContent).toContain('QUIET.CONFIRM_EXTEND');
+  });
+
+  /** MuteController refuses writes while impersonating, so the sheet offers none. */
+  it('offers neither quiet nor resume while impersonating', () => {
+    impersonating.set(true);
+    build({ isQuiet: true });
+
+    const text = fixture.nativeElement.textContent;
+    expect(text).not.toContain('QUIET.CONFIRM');
+    expect(text).not.toContain('QUIET.RESUME');
+    expect(fixture.nativeElement.querySelector('mat-chip-option')).toBeNull();
   });
 });

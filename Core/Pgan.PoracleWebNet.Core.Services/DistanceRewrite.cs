@@ -39,7 +39,7 @@ internal static partial class DistanceRewrite
         IReadOnlyList<int> AreaScoped,
         IReadOnlyList<int> PlaceScoped)
     {
-        public IReadOnlyList<int> WritableUids => [.. this.Writable.Select(r => r.Uid)];
+        public IReadOnlyList<int> WritableUids => [.. this.Writable.Select(r => r.Uid).Distinct()];
     }
 
     /// <summary>
@@ -122,7 +122,13 @@ internal static partial class DistanceRewrite
     public static DistanceUpdateResult Report(
         DistancePlan plan, string type, IReadOnlyList<TrackingPatchResult> results, ILogger logger)
     {
-        var scopes = plan.Writable.ToDictionary(r => r.Uid);
+        // Two stored rules can share a uid (an invasion and a Pokestop event are numbered separately), so the first wins.
+        var scopes = new Dictionary<int, RowScope>();
+        foreach (var row in plan.Writable)
+        {
+            scopes.TryAdd(row.Uid, row);
+        }
+
         var areaScoped = plan.AreaScoped.ToList();
         var placeScoped = plan.PlaceScoped.ToList();
         var conflict = new List<int>();

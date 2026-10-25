@@ -2,16 +2,6 @@ using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Abstractions.Services;
 
-public interface IMonsterService
+public interface IMonsterService : IAlarmService<Monster>
 {
-    public Task<IEnumerable<Monster>> GetByUserAsync(string userId, int profileNo);
-    public Task<Monster?> GetByUidAsync(string userId, int uid);
-    public Task<Monster> CreateAsync(string userId, Monster model);
-    public Task<Monster> UpdateAsync(string userId, Monster model);
-    public Task<bool> DeleteAsync(string userId, int uid);
-    public Task<int> DeleteAllByUserAsync(string userId, int profileNo);
-    public Task<DistanceUpdateResult> UpdateDistanceByUserAsync(string userId, int profileNo, int distance);
-    public Task<DistanceUpdateResult> UpdateDistanceByUidsAsync(List<int> uids, string userId, int distance);
-    public Task<int> CountByUserAsync(string userId, int profileNo);
-    public Task<IEnumerable<Monster>> BulkCreateAsync(string userId, IEnumerable<Monster> models);
 }

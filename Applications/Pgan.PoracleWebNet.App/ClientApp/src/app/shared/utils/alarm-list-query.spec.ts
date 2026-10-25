@@ -1,4 +1,4 @@
-import { byText, matchesSearch, queryAlarms, searchKey, visibleSelection } from './alarm-list-query';
+import { byText, matchesSearch, queryAlarms, searchKey, sharedDestination, visibleSelection } from './alarm-list-query';
 
 describe('alarm list search and sort', () => {
   it('matches without case or accents, so "pokestop" finds a Pokéstop event', () => {
@@ -62,5 +62,28 @@ describe('alarm list search and sort', () => {
     expect(visibleSelection(new Set([1, 2, 3, 4]), [4, 2, 9])).toEqual([4, 2]);
     expect(visibleSelection(new Set<number>(), [1, 2])).toEqual([]);
     expect(visibleSelection(new Set(['raid:1', 'egg:1']), ['egg:1'])).toEqual(['egg:1']);
+  });
+});
+
+describe('sharedDestination', () => {
+  const list = [
+    { uid: 1, destination: 'telegram' as const },
+    { uid: 2, destination: 'telegram' as const },
+    { uid: 3, destination: 'discord' as const },
+    { uid: 4 },
+  ];
+  const uid = (a: { uid: number }) => a.uid;
+
+  it('names the app when every selected alarm is on it', () => {
+    expect(sharedDestination(list, uid, [1, 2])).toBe('telegram');
+  });
+
+  it('is null for a mixed selection, so neither app is disabled', () => {
+    expect(sharedDestination(list, uid, [1, 3])).toBeNull();
+  });
+
+  it('is null with nothing selected, or for an alarm with no app (an unlinked person)', () => {
+    expect(sharedDestination(list, uid, [])).toBeNull();
+    expect(sharedDestination(list, uid, [4])).toBeNull();
   });
 });

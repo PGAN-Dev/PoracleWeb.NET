@@ -35,6 +35,7 @@ import { forkJoin } from 'rxjs';
 
 import { AdminListState, StatusFilter, notesLabel } from './admin-list-state';
 import { AdminUser } from '../../core/models';
+import { AdminUsersStore } from '../../core/services/admin-users.store';
 import { AdminService, CreateDestinationRequest } from '../../core/services/admin.service';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
@@ -367,7 +368,9 @@ export class DestinationDelegatesDialogComponent implements OnInit {
 })
 export class AdminDestinationsComponent implements OnInit {
   private readonly adminService = inject(AdminService);
-  private readonly allUsers = signal<AdminUser[]>([]);
+  /** Shared with Users, which filters the same list. See #1038. */
+  private readonly store = inject(AdminUsersStore);
+  private readonly allUsers = this.store.users;
   private readonly auth = inject(AuthService);
   // Every row the server calls a destination, unknown types included, so this page and Users together
   // account for every account. See #1025.
@@ -459,7 +462,8 @@ export class AdminDestinationsComponent implements OnInit {
         this.adminService.deleteUser(user.id).subscribe({
           error: err => this.showFailure(err, 'ADMIN.SNACK_FAILED_DELETE_DESTINATION'),
           next: () => {
-            this.allUsers.update(users => users.filter(u => u.id !== user.id));
+            this.store.remove(user.id);
+            this.store.invalidate();
             this.snackBar.open(this.i18n.instant('ADMIN.SNACK_DESTINATION_DELETED', { name }), this.i18n.instant('TOAST.OK'), {
               duration: 3000,
             });
@@ -512,13 +516,14 @@ export class AdminDestinationsComponent implements OnInit {
     return (row.type ?? '').trim().toLowerCase() === 'webhook';
   }
 
-  loadUsers(): void {
+  /** Refresh and a new destination pass nothing and refetch; opening the page takes the shared list when there is one. */
+  loadUsers(force = true): void {
     this.usersLoading.set(true);
     forkJoin({
       delegates: this.adminService.getAllWebhookDelegates(),
       poracleAdmins: this.adminService.getPoracleAdmins(),
       porocleDelegates: this.adminService.getPorocleDelegates(),
-      users: this.adminService.getUsers(),
+      users: this.store.load(force),
     })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
@@ -526,8 +531,7 @@ export class AdminDestinationsComponent implements OnInit {
           this.usersLoading.set(false);
           this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_LOAD_DESTINATIONS'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
         },
-        next: ({ delegates, poracleAdmins, porocleDelegates, users }) => {
-          this.allUsers.set(users);
+        next: ({ delegates, poracleAdmins, porocleDelegates }) => {
           this.webhookDelegates.set(delegates);
           this.poracleAdmins.set(poracleAdmins);
           this.porocleDelegates.set(porocleDelegates);
@@ -555,7 +559,7 @@ export class AdminDestinationsComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.loadUsers();
+    this.loadUsers(false);
   }
 
   notesLabel(notes: string | null): string | null {
@@ -632,7 +636,8 @@ export class AdminDestinationsComponent implements OnInit {
       .subscribe({
         error: err => this.showFailure(err, 'ADMIN.SNACK_FAILED_STOP'),
         next: updated => {
-          this.allUsers.update(users => users.map(u => (u.id === user.id ? { ...u, enabled: updated.enabled } : u)));
+          this.store.patch(user.id, { enabled: updated.enabled });
+          this.store.invalidate();
           this.snackBar.open(this.i18n.instant('ADMIN.SNACK_STOPPED', { name: this.rowName(user) }), this.i18n.instant('TOAST.OK'), {
             duration: 3000,
           });
@@ -652,7 +657,8 @@ export class AdminDestinationsComponent implements OnInit {
       .subscribe({
         error: err => this.showFailure(err, 'ADMIN.SNACK_FAILED_START'),
         next: updated => {
-          this.allUsers.update(users => users.map(u => (u.id === user.id ? { ...u, enabled: updated.enabled } : u)));
+          this.store.patch(user.id, { enabled: updated.enabled });
+          this.store.invalidate();
           this.snackBar.open(this.i18n.instant('ADMIN.SNACK_STARTED', { name: this.rowName(user) }), this.i18n.instant('TOAST.OK'), {
             duration: 3000,
           });
@@ -671,7 +677,8 @@ export class AdminDestinationsComponent implements OnInit {
     action$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       error: err => this.showFailure(err, 'ADMIN.SNACK_FAILED_BLOCK'),
       next: updated => {
-        this.allUsers.update(users => users.map(u => (u.id === user.id ? { ...u, adminDisable: updated.adminDisable } : u)));
+        this.store.patch(user.id, { adminDisable: updated.adminDisable });
+        this.store.invalidate();
         // Users' "User blocked" named nobody, and a destination is not a user.
         const name = this.rowName(user);
         this.snackBar.open(

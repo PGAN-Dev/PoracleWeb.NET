@@ -44,7 +44,7 @@ public class PokestopEventService(
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.PokestopEvents);
         model.Id = userId;
 
-        var uids = await IncidentCreateProtocol.CreateAsync(this._proxy, userId, [model], single: true);
+        var uids = await IncidentCreateProtocol.CreateAsync(this._proxy, userId, [model], single: true, onExisting: uid => model.ExistingUid = uid);
         model.Uid = uids[0];
         return model;
     }

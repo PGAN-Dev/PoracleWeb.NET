@@ -1,3 +1,4 @@
+using Pgan.PoracleWebNet.Tests.Helpers;
 using System.Reflection;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
@@ -22,7 +23,7 @@ public class SummaryScheduleControllerTests : ControllerTestBase
 
     public SummaryScheduleControllerTests()
     {
-        this._sut = new SummaryScheduleController(this._proxy.Object, this._capability.Object);
+        this._sut = new SummaryScheduleController(this._proxy.Object, this._capability.Object, PairTestSupport.UnlinkedWriter());
         SetupUser(this._sut, userId: UserId);
     }
 

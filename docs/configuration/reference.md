@@ -18,11 +18,25 @@ All configuration can be provided via environment variables or `appsettings.json
 |---|---|---|---|
 | Database | `WEB_DB_HOST`, `WEB_DB_PORT`, `WEB_DB_NAME`, `WEB_DB_USER`, `WEB_DB_PASSWORD` | `ConnectionStrings__PoracleWebDb` | MySQL connection to PoracleWeb.NET's own database. See [Databases](#databases). |
 | JWT Secret | `JWT_SECRET` | `Jwt__Secret` | JWT signing key (minimum 32 characters) |
-| Discord Client ID | `DISCORD_CLIENT_ID` | `Discord__ClientId` | Discord OAuth2 application client ID |
-| Discord Client Secret | `DISCORD_CLIENT_SECRET` | `Discord__ClientSecret` | Discord OAuth2 application client secret |
 | Poracle API Address | `PORACLE_API_ADDRESS` | `Poracle__ApiAddress` | PoracleNG API base URL. **Critical** -- all alarm tracking, human/profile management, location, and area operations are proxied through this endpoint. |
 | Poracle API Secret | `PORACLE_API_SECRET` | `Poracle__ApiSecret` | PoracleNG API shared secret. Sent as the `X-Poracle-Secret` header on every request. |
-| Admin IDs | `PORACLE_ADMIN_IDS` | `Poracle__AdminIds` | Comma-separated Discord admin user IDs |
+| Admin IDs | `PORACLE_ADMIN_IDS` | `Poracle__AdminIds` | Comma-separated admin user IDs, Discord or Telegram. Admins listed in Poracle's own config are recognised too. |
+| A sign-in method | see [Sign-in methods](#sign-in-methods) | | At least one of Discord, Telegram or an OIDC provider |
+
+### Sign-in methods
+
+PoracleWeb.NET needs at least one way for people to sign in, and any one is enough: Discord is optional, so a site can run on Telegram alone or on an OIDC provider alone. It refuses to start in two cases, each with a message naming the variables involved:
+
+- **Discord half configured.** `DISCORD_CLIENT_ID` without `DISCORD_CLIENT_SECRET`, or the other way round. Set both to offer Discord sign-in, or neither to run without it.
+- **No sign-in method at all.** No Discord client id and secret, Telegram not enabled with a bot token, and no OIDC provider: nobody could sign in.
+
+| Method | Configured when |
+|---|---|
+| Discord | `DISCORD_CLIENT_ID` and `DISCORD_CLIENT_SECRET` are both set. See [Discord OAuth2](../getting-started/discord-oauth.md). |
+| Telegram | `TELEGRAM_ENABLED` is true (inferred when `TELEGRAM_BOT_TOKEN` and `TELEGRAM_BOT_USERNAME` are both set) and `TELEGRAM_BOT_TOKEN` is set. |
+| OIDC | `OIDC_CLIENT_ID`, `OIDC_AUTHORIZATION_URL`, `OIDC_TOKEN_URL` and `OIDC_USERINFO_URL` are set. See [External SSO / OIDC](#external-sso-oidc). |
+
+A method that isn't configured gets no button on the login page. Without Discord, the Discord section of **Admin > Server settings** says so, and its switch does nothing. The Discord bot token, guild id and forum channel are separate from sign-in and stay optional either way.
 
 ## Optional settings
 
@@ -33,11 +47,13 @@ All configuration can be provided via environment variables or `appsettings.json
 | JWT Expiration | — | `Jwt__ExpirationMinutes` | `1440` | Token expiry (24 hours) |
 | JWT Issuer | `JWT_ISSUER` | `Jwt__Issuer` | `PoracleWeb` | Issuer claim (`iss`) baked into signed tokens. Override only if validating tokens externally. |
 | JWT Audience | `JWT_AUDIENCE` | `Jwt__Audience` | `PoracleWeb.App` | Audience claim (`aud`) baked into signed tokens. Override only if validating tokens externally. |
-| Discord Bot Token | `DISCORD_BOT_TOKEN` | `Discord__BotToken` | — | Enables Discord avatar display |
+| Discord Client ID | `DISCORD_CLIENT_ID` | `Discord__ClientId` | — | Discord OAuth2 application client ID. Set together with the secret, or not at all. |
+| Discord Client Secret | `DISCORD_CLIENT_SECRET` | `Discord__ClientSecret` | — | Discord OAuth2 application client secret |
+| Discord Bot Token | `DISCORD_BOT_TOKEN` | `Discord__BotToken` | — | Posts geofence submissions to the forum channel and checks guild roles for role-gated Discord sign-in. Not needed for sign-in itself. |
 | Discord Guild ID | `DISCORD_GUILD_ID` | `Discord__GuildId` | — | Discord server ID |
 | Discord Geofence Forum | `DISCORD_GEOFENCE_FORUM_CHANNEL_ID` | `Discord__GeofenceForumChannelId` | — | Forum channel for geofence submission threads |
 | Discord Frontend URL | — | `Discord__FrontendUrl` | `http://localhost:4200` | Unused. The setting class still declares it, but sign-in redirects come from `PUBLIC_URL` or the request; setting it changes nothing. |
-| Telegram Enabled | `TELEGRAM_ENABLED` | `Telegram__Enabled` | `false` | Enable Telegram authentication |
+| Telegram Enabled | `TELEGRAM_ENABLED` | `Telegram__Enabled` | `false` | Enable Telegram authentication. Inferred `true` when the bot token and username are both set and this is left unset. |
 | Telegram Bot Token | `TELEGRAM_BOT_TOKEN` | `Telegram__BotToken` | — | Telegram bot token |
 | Telegram Bot Username | `TELEGRAM_BOT_USERNAME` | `Telegram__BotUsername` | — | Telegram bot username |
 

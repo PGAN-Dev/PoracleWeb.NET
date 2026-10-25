@@ -51,7 +51,10 @@ describe('AdminDestinationsComponent delegates column', () => {
       providers: [
         provideTranslateService(),
         { provide: AdminService, useValue: adminService },
-        { provide: AuthService, useValue: { impersonate: jest.fn(), user: signal({ id: 'admin1', isAdmin: true }) } },
+        {
+          provide: AuthService,
+          useValue: { impersonate: jest.fn(), isImpersonating: signal(false), user: signal({ id: 'admin1', isAdmin: true }) },
+        },
       ],
       imports: [AdminDestinationsComponent, NoopAnimationsModule],
     });
@@ -120,7 +123,10 @@ describe('AdminDestinationsComponent add', () => {
       providers: [
         provideTranslateService(),
         { provide: AdminService, useValue: adminService },
-        { provide: AuthService, useValue: { impersonate: jest.fn(), user: signal({ id: 'admin1', isAdmin: true }) } },
+        {
+          provide: AuthService,
+          useValue: { impersonate: jest.fn(), isImpersonating: signal(false), user: signal({ id: 'admin1', isAdmin: true }) },
+        },
       ],
       imports: [AdminDestinationsComponent, NoopAnimationsModule],
     });
@@ -246,7 +252,10 @@ describe('AdminDestinationsComponent list', () => {
       providers: [
         provideTranslateService(),
         { provide: AdminService, useValue: adminService },
-        { provide: AuthService, useValue: { impersonate: jest.fn(), user: signal({ id: 'admin1', isAdmin: true }) } },
+        {
+          provide: AuthService,
+          useValue: { impersonate: jest.fn(), isImpersonating: signal(false), user: signal({ id: 'admin1', isAdmin: true }) },
+        },
       ],
       imports: [AdminDestinationsComponent, NoopAnimationsModule],
     });

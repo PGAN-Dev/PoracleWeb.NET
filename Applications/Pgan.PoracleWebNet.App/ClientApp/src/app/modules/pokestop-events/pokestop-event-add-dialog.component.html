@@ -1,5 +1,6 @@
 <h2 mat-dialog-title>{{ 'POKESTOP_EVENTS.ADD_DIALOG_TITLE' | translate }}</h2>
 <mat-dialog-content>
+  <app-deliver-to-field [control]="form.controls.destination" />
   <mat-tab-group animationDuration="200ms" class="alarm-tabs">
     <!-- Tab 1: Settings -->
     <mat-tab>

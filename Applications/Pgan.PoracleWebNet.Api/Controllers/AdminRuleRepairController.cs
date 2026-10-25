@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
+using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
@@ -40,7 +41,7 @@ public sealed partial class AdminRuleRepairController(IRuleRepairJob job, ILogge
         }
 
         // A bulk write to every account: say who asked for it.
-        LogStarted(this._logger, run, this.UserId, this.Username);
+        LogStarted(this._logger, run, LogSafe.Id(this.UserId), this.Username);
         return this.Accepted(this._job.GetStatus());
     }
 

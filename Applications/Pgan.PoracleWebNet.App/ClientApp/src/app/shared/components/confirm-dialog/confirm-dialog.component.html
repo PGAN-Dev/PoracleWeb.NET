@@ -1,6 +1,8 @@
-<h2 mat-dialog-title id="confirm-dialog-title" [class.warn-title]="data.warn">
+<h2 mat-dialog-title id="confirm-dialog-title" [class.warn-title]="data.warn" [class.icon-title]="!data.warn && data.icon">
   @if (data.warn) {
     <mat-icon class="title-icon warn-icon">warning</mat-icon>
+  } @else if (data.icon) {
+    <mat-icon class="title-icon" aria-hidden="true">{{ data.icon }}</mat-icon>
   }
   {{ data.title }}
 </h2>
@@ -49,6 +51,8 @@
     <button mat-flat-button [color]="data.warn ? 'warn' : 'primary'" (click)="onConfirm()" [disabled]="promptProblem !== null">
       @if (data.warn) {
         <mat-icon>delete</mat-icon>
+      } @else if (data.icon) {
+        <mat-icon aria-hidden="true">{{ data.icon }}</mat-icon>
       }
       {{ data.confirmText || ('DIALOG.CONFIRM' | translate) }}
     </button>

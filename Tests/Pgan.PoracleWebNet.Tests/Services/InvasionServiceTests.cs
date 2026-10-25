@@ -578,4 +578,147 @@ public class InvasionServiceTests
 
         Assert.Equal("npc_3", body!.Value.GetProperty("grunt_type").GetString());
     }
+
+    // ---- a kind change is a create then a delete, never a write addressed by the old uid (#1062) ----
+    //
+    // These run with the Pokestop Events page off (disable_showcase): with it on, the controller refuses an
+    // invasion edited into an event before the service is reached.
+
+    private void EventsPageOff() => this._featureGate.Setup(g => g.IsEnabledAsync(DisableFeatureKeys.PokestopEvents)).ReturnsAsync(false);
+
+    private void SharedUid7() => this._proxy.Setup(p => p.GetByUserAsync("invasion", "u1")).ReturnsAsync(CreateJsonArray(
+        new { uid = 7, id = "u1", grunt_type = "water" },
+        new { uid = 7, id = "u1", grunt_type = "kecleon" }));
+
+    [Fact]
+    public async Task EditingAnInvasionIntoAnEventLeavesAnUnrelatedEventThatSharesItsUidAlone()
+    {
+        this.EventsPageOff();
+        this.IncidentCreateAnswers(dryRun => dryRun
+            ? new PokestopEventWriteResult([Event(0, PokestopEventTypes.GoldStop)], [], [])
+            : new PokestopEventWriteResult([Event(300, PokestopEventTypes.GoldStop)], [], []));
+
+        var result = await this._sut.UpdateAsync("u1", new Invasion { Uid = 7, GruntType = "gold-stop", Distance = 500 }, "invasion");
+
+        Assert.Equal(300, result.Uid);
+        this._incident.Verify(p => p.ReplaceAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<PokestopEvent>()), Times.Never);
+        this._incident.Verify(p => p.DeleteByUidAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+        this._proxy.Verify(p => p.DeleteByUidAsync("invasion", "u1", 7), Times.Once);
+        this._uidRemapper.Verify(r => r.RemapAsync("u1", "invasion", 7, 300), Times.Once);
+        // Nothing is read for the decision: the request said which kind it opened.
+        this._proxy.Verify(p => p.GetByUserAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task EditingAnEventIntoAGruntLeavesAnUnrelatedGruntThatSharesItsUidAlone()
+    {
+        this.EventsPageOff();
+        this._proxy.Setup(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([12], 0, 0, 1) { RowUids = [12] });
+
+        var result = await this._sut.UpdateAsync("u1", new Invasion { Uid = 7, GruntType = "water" }, "event");
+
+        Assert.Equal(12, result.Uid);
+        this._incident.Verify(p => p.DeleteByUidAsync("u1", 7), Times.Once);
+        this._proxy.Verify(p => p.UpdateByUidAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<JsonElement>()), Times.Never);
+        this._proxy.Verify(p => p.DeleteByUidAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task AKindChangeThatTheCreateRefusesLeavesTheOldRuleInPlace()
+    {
+        this.EventsPageOff();
+        this.IncidentCreateAnswers(_ => throw new TrackingConflictException("incident", "conflict"));
+
+        await Assert.ThrowsAsync<TrackingConflictException>(
+            () => this._sut.UpdateAsync("u1", new Invasion { Uid = 7, GruntType = "kecleon" }, "invasion"));
+
+        this._proxy.Verify(p => p.DeleteByUidAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task AKindChangeWhoseCreateFindsAnIdenticalRuleStillRemovesTheOldOneAndAnswersUidZero()
+    {
+        this.EventsPageOff();
+        this.IncidentCreateAnswers(dryRun => dryRun
+            ? new PokestopEventWriteResult([], [], [Event(0, PokestopEventTypes.Kecleon)])
+            : throw new InvalidOperationException("an unchanged rule is not written"));
+
+        var result = await this._sut.UpdateAsync("u1", new Invasion { Uid = 7, GruntType = "kecleon" }, "invasion");
+
+        Assert.Equal(0, result.Uid);
+        this._proxy.Verify(p => p.DeleteByUidAsync("invasion", "u1", 7), Times.Once);
+        this._uidRemapper.Verify(r => r.RemapAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task AnEventEditedAsAnEventStaysInPlaceOnTheIncidentRoute()
+    {
+        this.EventsPageOff();
+        this._incident.Setup(p => p.ReplaceAsync("u1", 7, It.IsAny<PokestopEvent>()))
+            .ReturnsAsync(new PokestopEventWriteResult([], [Event(7, PokestopEventTypes.Kecleon)], []));
+
+        var result = await this._sut.UpdateAsync("u1", new Invasion { Uid = 7, GruntType = "kecleon" }, "event");
+
+        Assert.Equal(7, result.Uid);
+        this._incident.Verify(p => p.ReplaceAsync("u1", 7, It.IsAny<PokestopEvent>()), Times.Once);
+        this._proxy.Verify(p => p.DeleteByUidAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task APlainInvasionEditStillUpdatesInPlaceWithTheEventsPageOn()
+    {
+        this._proxy.Setup(p => p.UpdateByUidAsync("invasion", "u1", 7, It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingUpdateResult(7, true));
+
+        var result = await this._sut.UpdateAsync("u1", new Invasion { Uid = 7, GruntType = "fire" }, "invasion");
+
+        Assert.Equal(7, result.Uid);
+        this._proxy.Verify(p => p.UpdateByUidAsync("invasion", "u1", 7, It.IsAny<JsonElement>()), Times.Once);
+        this._proxy.Verify(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+        this._proxy.Verify(p => p.DeleteByUidAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task WithoutAStatedKindAnEventEditKeepsTheOldInPlaceBehaviour()
+    {
+        this._incident.Setup(p => p.ReplaceAsync("u1", 7, It.IsAny<PokestopEvent>()))
+            .ReturnsAsync(new PokestopEventWriteResult([], [Event(7, PokestopEventTypes.Kecleon)], []));
+
+        await this._sut.UpdateAsync("u1", new Invasion { Uid = 7, GruntType = "kecleon" });
+
+        this._incident.Verify(p => p.ReplaceAsync("u1", 7, It.IsAny<PokestopEvent>()), Times.Once);
+        this._proxy.Verify(p => p.DeleteByUidAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData("invasion", "water")]
+    [InlineData("event", "kecleon")]
+    public async Task TheLookupPicksTheRowOfTheOpenedKindWhenBothShareAUid(string kind, string expectedGrunt)
+    {
+        this.EventsPageOff();
+        this.SharedUid7();
+
+        var found = await this._sut.GetByUidAsync("u1", 7, kind);
+
+        Assert.Equal(expectedGrunt, found!.GruntType);
+    }
+
+    [Fact]
+    public async Task ALookupWithoutAKindStillTakesTheFirstMatch()
+    {
+        this.EventsPageOff();
+        this.SharedUid7();
+
+        Assert.Equal("water", (await this._sut.GetByUidAsync("u1", 7, null))!.GruntType);
+    }
+
+    [Fact]
+    public async Task AFailedReadDuringTheLookupPropagatesInsteadOfFallingBackToAReplacingWrite()
+    {
+        this._proxy.Setup(p => p.GetByUserAsync("invasion", "u1")).ThrowsAsync(new HttpRequestException("down"));
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.GetByUidAsync("u1", 7, "invasion"));
+        this._incident.Verify(p => p.ReplaceAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<PokestopEvent>()), Times.Never);
+    }
 }

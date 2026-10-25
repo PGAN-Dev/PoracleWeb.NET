@@ -14,6 +14,9 @@ export class SettingsService {
   private readonly http = inject(HttpClient);
 
   private loaded = false;
+
+  /** True once the settings (and Poracle's own flags) have been read, so a `disable_*` check is trustworthy. */
+  readonly settingsLoaded = signal(false);
   /** Cached site settings as key→value map, loaded once at app init */
   readonly siteSettings = signal<Record<string, string>>({});
 
@@ -33,6 +36,9 @@ export class SettingsService {
    * not set one, and the member-facing copy then names no destination rather than a hardcoded one.
    */
   readonly supportUrl = computed(() => this.siteSettings()['support_url']?.trim() || null);
+
+  /** Invite link to the Telegram group people join to register, or null when the operator set none. */
+  readonly telegramRegistrationUrl = computed(() => this.siteSettings()['telegram_registration_url']?.trim() || null);
 
   /**
    * The `disable_*` keys the upstream Poracle deployment forces off in its own config, regardless of
@@ -54,6 +60,7 @@ export class SettingsService {
         this.siteSettings.set(this.normalize(settings));
         this.upstreamDisabled.set(upstream);
         this.loaded = true;
+        this.settingsLoaded.set(true);
       }),
       map(({ settings }) => settings),
     );

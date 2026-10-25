@@ -12,6 +12,8 @@ export interface Monster {
   def: number;
   /** The sentence PoracleNG renders for this rule, in the alert language. Read-only. */
   description?: null | string;
+  /** Which app delivers this alarm. Present only for a linked person. */
+  destination?: LinkSide;
   distance: number;
   form: number;
   gender: number;
@@ -37,6 +39,8 @@ export interface Monster {
    * reserved. Always write through `preserve` in shared/utils/personal-flags.ts so reserved bits survive.
    */
   personal?: number;
+  /** On a create answer: the chosen side is paused, so nothing arrives until it is switched back on. */
+  pausedDestination?: boolean;
   ping?: string | null;
   pokemonId: number;
   profileNo: number;
@@ -52,7 +56,7 @@ export interface Monster {
   uid: number;
 }
 
-export type MonsterCreate = Omit<Monster, 'description' | 'uid' | 'id' | 'profileNo'>;
+export type MonsterCreate = Omit<Monster, 'description' | 'uid' | 'id' | 'profileNo' | 'pausedDestination'>;
 
 export type MonsterUpdate = Partial<MonsterCreate>;
 
@@ -64,6 +68,8 @@ export interface Raid {
   costume: number;
   /** The sentence PoracleNG renders for this rule, in the alert language. Read-only. */
   description?: null | string;
+  /** Which app delivers this alarm. Present only for a linked person. */
+  destination?: LinkSide;
   distance: number;
   evolution: number;
   exclusive: number;
@@ -74,6 +80,8 @@ export interface Raid {
   move: number;
   overrideAreas?: null | string[];
   overrideLocationLabel?: null | string;
+  /** On a create answer: the chosen side is paused, so nothing arrives until it is switched back on. */
+  pausedDestination?: boolean;
   ping?: string | null;
   pokemonId: number;
   profileNo: number;
@@ -83,7 +91,7 @@ export interface Raid {
   uid: number;
 }
 
-export type RaidCreate = Omit<Raid, 'description' | 'uid' | 'id' | 'profileNo'>;
+export type RaidCreate = Omit<Raid, 'description' | 'uid' | 'id' | 'profileNo' | 'pausedDestination'>;
 
 export type RaidUpdate = Partial<RaidCreate>;
 
@@ -93,6 +101,8 @@ export interface MaxBattle {
   clean: number;
   /** The sentence PoracleNG renders for this rule, in the alert language. Read-only. */
   description?: null | string;
+  /** Which app delivers this alarm. Present only for a linked person. */
+  destination?: LinkSide;
   distance: number;
   evolution: number;
   form: number;
@@ -102,6 +112,8 @@ export interface MaxBattle {
   move: number;
   overrideAreas?: null | string[];
   overrideLocationLabel?: null | string;
+  /** On a create answer: the chosen side is paused, so nothing arrives until it is switched back on. */
+  pausedDestination?: boolean;
   ping?: string;
   pokemonId: number;
   profileNo: number;
@@ -110,7 +122,7 @@ export interface MaxBattle {
   uid: number;
 }
 
-export type MaxBattleCreate = Omit<MaxBattle, 'description' | 'uid' | 'id' | 'profileNo'>;
+export type MaxBattleCreate = Omit<MaxBattle, 'description' | 'uid' | 'id' | 'profileNo' | 'pausedDestination'>;
 
 export type MaxBattleUpdate = Partial<MaxBattleCreate>;
 
@@ -120,6 +132,8 @@ export interface Egg {
   clean: number;
   /** The sentence PoracleNG renders for this rule, in the alert language. Read-only. */
   description?: null | string;
+  /** Which app delivers this alarm. Present only for a linked person. */
+  destination?: LinkSide;
   distance: number;
   exclusive: number;
   gymId: string | null;
@@ -127,6 +141,8 @@ export interface Egg {
   level: number;
   overrideAreas?: null | string[];
   overrideLocationLabel?: null | string;
+  /** On a create answer: the chosen side is paused, so nothing arrives until it is switched back on. */
+  pausedDestination?: boolean;
   ping?: string | null;
   profileNo: number;
   rsvpChanges: number;
@@ -135,7 +151,7 @@ export interface Egg {
   uid: number;
 }
 
-export type EggCreate = Omit<Egg, 'description' | 'uid' | 'id' | 'profileNo'>;
+export type EggCreate = Omit<Egg, 'description' | 'uid' | 'id' | 'profileNo' | 'pausedDestination'>;
 
 export type EggUpdate = Partial<EggCreate>;
 
@@ -147,10 +163,14 @@ export interface Quest {
   clean: number;
   /** The sentence PoracleNG renders for this rule, in the alert language. Read-only. */
   description?: null | string;
+  /** Which app delivers this alarm. Present only for a linked person. */
+  destination?: LinkSide;
   distance: number;
   id: string;
   overrideAreas?: null | string[];
   overrideLocationLabel?: null | string;
+  /** On a create answer: the chosen side is paused, so nothing arrives until it is switched back on. */
+  pausedDestination?: boolean;
   ping?: string | null;
   pokemonId: number;
   profileNo: number;
@@ -161,7 +181,7 @@ export interface Quest {
   uid: number;
 }
 
-export type QuestCreate = Omit<Quest, 'description' | 'uid' | 'id' | 'profileNo'>;
+export type QuestCreate = Omit<Quest, 'description' | 'uid' | 'id' | 'profileNo' | 'pausedDestination'>;
 
 export type QuestUpdate = Partial<QuestCreate>;
 
@@ -171,19 +191,23 @@ export interface Invasion {
   clean: number;
   /** The sentence PoracleNG renders for this rule, in the alert language. Read-only. */
   description?: null | string;
+  /** Which app delivers this alarm. Present only for a linked person. */
+  destination?: LinkSide;
   distance: number;
   gender: number;
   gruntType: string | null;
   id: string;
   overrideAreas?: null | string[];
   overrideLocationLabel?: null | string;
+  /** On a create answer: the chosen side is paused, so nothing arrives until it is switched back on. */
+  pausedDestination?: boolean;
   ping?: string | null;
   profileNo: number;
   template: string | null;
   uid: number;
 }
 
-export type InvasionCreate = Omit<Invasion, 'description' | 'uid' | 'id' | 'profileNo'>;
+export type InvasionCreate = Omit<Invasion, 'description' | 'uid' | 'id' | 'profileNo' | 'pausedDestination'>;
 
 export type InvasionUpdate = Partial<InvasionCreate>;
 
@@ -193,18 +217,22 @@ export interface Lure {
   clean: number;
   /** The sentence PoracleNG renders for this rule, in the alert language. Read-only. */
   description?: null | string;
+  /** Which app delivers this alarm. Present only for a linked person. */
+  destination?: LinkSide;
   distance: number;
   id: string;
   lureId: number;
   overrideAreas?: null | string[];
   overrideLocationLabel?: null | string;
+  /** On a create answer: the chosen side is paused, so nothing arrives until it is switched back on. */
+  pausedDestination?: boolean;
   ping?: string | null;
   profileNo: number;
   template: string | null;
   uid: number;
 }
 
-export type LureCreate = Omit<Lure, 'description' | 'uid' | 'id' | 'profileNo'>;
+export type LureCreate = Omit<Lure, 'description' | 'uid' | 'id' | 'profileNo' | 'pausedDestination'>;
 
 export type LureUpdate = Partial<LureCreate>;
 
@@ -214,11 +242,15 @@ export interface Nest {
   clean: number;
   /** The sentence PoracleNG renders for this rule, in the alert language. Read-only. */
   description?: null | string;
+  /** Which app delivers this alarm. Present only for a linked person. */
+  destination?: LinkSide;
   distance: number;
   id: string;
   minSpawnAvg: number;
   overrideAreas?: null | string[];
   overrideLocationLabel?: null | string;
+  /** On a create answer: the chosen side is paused, so nothing arrives until it is switched back on. */
+  pausedDestination?: boolean;
   ping?: string | null;
   pokemonId: number;
   profileNo: number;
@@ -226,7 +258,7 @@ export interface Nest {
   uid: number;
 }
 
-export type NestCreate = Omit<Nest, 'description' | 'uid' | 'id' | 'profileNo'>;
+export type NestCreate = Omit<Nest, 'description' | 'uid' | 'id' | 'profileNo' | 'pausedDestination'>;
 
 export type NestUpdate = Partial<NestCreate>;
 
@@ -236,19 +268,23 @@ export interface FortChange {
   changeTypes: string[];
   /** The sentence PoracleNG renders for this rule, in the alert language. Read-only. */
   description?: null | string;
+  /** Which app delivers this alarm. Present only for a linked person. */
+  destination?: LinkSide;
   distance: number;
   fortType: string | null;
   id: string;
   includeEmpty: number;
   overrideAreas?: null | string[];
   overrideLocationLabel?: null | string;
+  /** On a create answer: the chosen side is paused, so nothing arrives until it is switched back on. */
+  pausedDestination?: boolean;
   ping?: string | null;
   profileNo: number;
   template: string | null;
   uid: number;
 }
 
-export type FortChangeCreate = Omit<FortChange, 'description' | 'uid' | 'id' | 'profileNo'>;
+export type FortChangeCreate = Omit<FortChange, 'description' | 'uid' | 'id' | 'profileNo' | 'pausedDestination'>;
 
 export type FortChangeUpdate = Partial<FortChangeCreate>;
 
@@ -259,11 +295,15 @@ export interface Gym {
   clean: number;
   /** The sentence PoracleNG renders for this rule, in the alert language. Read-only. */
   description?: null | string;
+  /** Which app delivers this alarm. Present only for a linked person. */
+  destination?: LinkSide;
   distance: number;
   gymId: string | null;
   id: string;
   overrideAreas?: null | string[];
   overrideLocationLabel?: null | string;
+  /** On a create answer: the chosen side is paused, so nothing arrives until it is switched back on. */
+  pausedDestination?: boolean;
   ping?: string | null;
   profileNo: number;
   slotChanges: number;
@@ -272,7 +312,7 @@ export interface Gym {
   uid: number;
 }
 
-export type GymCreate = Omit<Gym, 'description' | 'uid' | 'id' | 'profileNo'>;
+export type GymCreate = Omit<Gym, 'description' | 'uid' | 'id' | 'profileNo' | 'pausedDestination'>;
 
 export type GymUpdate = Partial<GymCreate>;
 
@@ -858,6 +898,8 @@ export interface PoracleServerProfile {
 
 export interface PokestopEvent {
   clean: number;
+  /** Which app delivers this alarm. Present only for a linked person. */
+  destination?: LinkSide;
   displayType: number;
   distance: number;
   /** The stored grunt_type for `displayType`, served for display only. */
@@ -865,12 +907,14 @@ export interface PokestopEvent {
   id: string;
   overrideAreas?: null | string[];
   overrideLocationLabel?: null | string;
+  /** On a create answer: the chosen side is paused, so nothing arrives until it is switched back on. */
+  pausedDestination?: boolean;
   profileNo: number;
   template: null | string;
   uid: number;
 }
 
-export type PokestopEventCreate = Omit<PokestopEvent, 'eventName' | 'id' | 'profileNo' | 'uid'>;
+export type PokestopEventCreate = Omit<PokestopEvent, 'eventName' | 'id' | 'pausedDestination' | 'profileNo' | 'uid'>;
 
 export type PokestopEventUpdate = Partial<PokestopEventCreate>;
 
@@ -923,4 +967,61 @@ export interface RuleRepairStatus {
   skipped: RuleRepairSkip[];
   skippedCount: number;
   startedAt: null | string;
+}
+
+// ─── Linked accounts ───────────────────────────────────────────────────────────
+
+export type LinkSide = 'discord' | 'telegram';
+
+/** Why a linked side is not delivering. `not_registered` means the person has not registered with that bot yet. */
+export type LinkPause = 'admin_disabled' | 'none' | 'not_registered' | 'stopped';
+
+export interface AccountLink {
+  createdAt: string;
+  defaultDestination: LinkSide;
+  discordId: string;
+  discordVerifiedAt: null | string;
+  id: number;
+  telegramId: string;
+  telegramVerifiedAt: null | string;
+}
+
+export interface LinkSideStatus {
+  exists: boolean;
+  /** The name on that side's account. Null when the side doesn't exist or has none; absent on an older server. */
+  name?: null | string;
+  pause: LinkPause;
+  side: LinkSide;
+}
+
+/** The settings a linked pair can disagree on, as the API names them. */
+export type DriftField = 'areas' | 'current_profile' | 'location' | 'places' | 'profiles';
+
+/**
+ * One setting the two accounts disagree on. Each side's value is its comparable form: `{ lat, lon }`,
+ * area keys, a profile number, `{ no, name, ... }` rows or `{ label, lat, lon }` rows by field. The
+ * fingerprint goes back on a resolve so the server can tell the person chose against what they saw.
+ */
+export interface DriftItem {
+  /**
+   * What the line needs to read well but the comparison leaves out, outside the fingerprint: for `current_profile`
+   * `{ discord: { name, otherHas }, telegram: {...} }`, for `places` `{ labels: { key: "As typed" } }`. Absent otherwise.
+   */
+  details?: unknown;
+  discord: unknown;
+  field: DriftField;
+  fingerprint: string;
+  telegram: unknown;
+}
+
+/** `GET /api/account-link/status`. Unlinked, the server answers `{ linked: false }` and nothing else. */
+export interface LinkStatus {
+  defaultDestination?: LinkSide | null;
+  /** One item per setting the two accounts disagree on; null when the server couldn't compare them, absent when unlinked. */
+  drift?: DriftItem[] | null;
+  /** The side that has an older profile 0 the other lacks; null when neither or both do. Absent when unlinked or on an older server. */
+  legacyProfileZero?: LinkSide | null;
+  link?: AccountLink;
+  linked: boolean;
+  sides?: LinkSideStatus[];
 }

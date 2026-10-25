@@ -100,6 +100,21 @@
 .setting-field .mat-mdc-form-field-subscript-wrapper {
   display: none;
 }
+// A link is long; at 280px the invite link was cut at about 26 characters.
+.setting-field-wide {
+  width: 360px;
+}
+// A checked field shows its error under itself, so its subscript is not hidden like the others'.
+.setting-field-validated .mat-mdc-form-field-subscript-wrapper {
+  display: block;
+}
+.setting-locked-hint {
+  display: block;
+  margin-top: 4px;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 12px;
+  font-style: italic;
+}
 
 .inline-spinner {
   display: inline-block;
@@ -368,7 +383,8 @@
     align-items: stretch;
     gap: 8px;
   }
-  .setting-field {
+  .setting-field,
+  .setting-field-wide {
     width: 100%;
   }
   .server-config-row {

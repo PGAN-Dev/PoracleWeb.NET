@@ -13,7 +13,7 @@ public class MaxBattleControllerTests : ControllerTestBase
 
     public MaxBattleControllerTests()
     {
-        this._sut = new MaxBattleController(this._service.Object);
+        this._sut = new MaxBattleController(this._service.Object, UnlinkedRouter());
         SetupUser(this._sut);
     }
 

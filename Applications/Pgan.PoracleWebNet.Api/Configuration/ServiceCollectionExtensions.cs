@@ -48,6 +48,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUserGeofenceRepository, UserGeofenceRepository>();
         services.AddScoped<ISiteSettingRepository, SiteSettingRepository>();
         services.AddScoped<IWebhookDelegateRepository, WebhookDelegateRepository>();
+        services.AddScoped<IAccountLinkRepository, AccountLinkRepository>();
         services.AddScoped<IQuickPickDefinitionRepository, QuickPickDefinitionRepository>();
         services.AddScoped<IQuickPickAppliedStateRepository, QuickPickAppliedStateRepository>();
         services.AddScoped<IOidcSessionRepository, OidcSessionRepository>();
@@ -68,6 +69,17 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IFortChangeService, FortChangeService>();
         services.AddScoped<IMaxBattleService, MaxBattleService>();
         services.AddScoped<IHumanService, HumanService>();
+        services.AddScoped<ILinkedAccount, LinkedAccount>();
+        services.AddScoped<LinkedAlarmRouter>();
+        services.AddScoped<QuickPickUidTransfer>();
+        services.AddScoped<AlarmMover>();
+        services.AddScoped<AlarmMoveDispatcher>();
+        services.AddScoped<ILinkedHumanProvisioner, LinkedHumanProvisioner>();
+        services.AddScoped<IAccountLinkService, AccountLinkService>();
+        services.AddScoped<IPairedHumanWriter, PairedHumanWriter>();
+        services.AddScoped<IPairDriftService, PairDriftService>();
+        // Lets UserAreaPolicy ask for the link without a construction cycle (see UserAreaPolicy.OwnerIdsAsync).
+        services.AddScoped(sp => new Lazy<ILinkedAccount>(() => sp.GetRequiredService<ILinkedAccount>()));
         services.AddScoped<IUserPurgeService, UserPurgeService>();
         services.AddScoped<IProfileService, ProfileService>();
         services.AddScoped<IDashboardService, DashboardService>();

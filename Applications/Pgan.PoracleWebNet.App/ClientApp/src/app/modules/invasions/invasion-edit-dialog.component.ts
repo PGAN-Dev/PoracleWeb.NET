@@ -14,22 +14,26 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { EVENT_TYPE_INFO, getGruntDisplayName, getGruntIconPath, isEventType, isGenderFixed } from './invasion.constants';
-import { Invasion, InvasionUpdate } from '../../core/models';
+import { Invasion, InvasionUpdate, LinkSide } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { InvasionService } from '../../core/services/invasion.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
+import { DeliverToFieldComponent } from '../../shared/components/deliver-to/deliver-to-field.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { createFailureText } from '../../shared/utils/add-outcome';
 import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-flags';
+import { injectDeliverTo, moveEditMessage } from '../../shared/utils/deliver-to';
 import { mentionCapable } from '../../shared/utils/human-kind';
 import { swapToFallbackIcon } from '../../shared/utils/icon-fallback';
+import { invasionKind } from '../../shared/utils/pokestop-events';
 
 @Component({
   imports: [
+    DeliverToFieldComponent,
     ReactiveFormsModule,
     MatDialogModule,
     MatButtonModule,
@@ -61,10 +65,13 @@ export class InvasionEditDialogComponent {
 
   readonly data = inject<Invasion>(MAT_DIALOG_DATA);
 
+  readonly deliver = injectDeliverTo();
+
   readonly dialogRef = inject(MatDialogRef<InvasionEditDialogComponent>);
 
   form = this.fb.group({
     clean: [isAutoDelete(this.data.clean)],
+    destination: [(this.data.destination ?? null) as LinkSide | null],
     gender: [this.data.gender],
     // Always present even when the Mention control is hidden (not a webhook alarm) -- so a mention
     // round-trips unchanged through a save this dialog makes for an unrelated field.
@@ -136,19 +143,24 @@ export class InvasionEditDialogComponent {
     const v = this.form.getRawValue();
     const scope = scopeToFields(this.scope());
     this.invasionService
-      .update(this.data.uid, {
-        overrideAreas: scope.overrideAreas,
-        overrideLocationLabel: scope.overrideLocationLabel,
-        clean: preserve(this.data.clean, AUTO_DELETE, v.clean ? 1 : 0),
-        distance: scope.distance,
-        // Preserve the stored gender when the dropdown is hidden — a Mixed Male alarm
-        // (gender=1) must stay at 1 across edits; zeroing it would widen the filter to
-        // also match female Mixed grunts.
-        gender: this.hideGender ? (this.data.gender ?? 0) : (v.gender ?? 0),
-        gruntType: this.data.gruntType ?? '',
-        ping: v.ping ?? '',
-        template: v.template || '',
-      } as InvasionUpdate)
+      .update(
+        this.data.uid,
+        {
+          ...this.deliver.moveFields(this.data.destination, this.form.controls.destination.value),
+          overrideAreas: scope.overrideAreas,
+          overrideLocationLabel: scope.overrideLocationLabel,
+          clean: preserve(this.data.clean, AUTO_DELETE, v.clean ? 1 : 0),
+          distance: scope.distance,
+          // Preserve the stored gender when the dropdown is hidden — a Mixed Male alarm
+          // (gender=1) must stay at 1 across edits; zeroing it would widen the filter to
+          // also match female Mixed grunts.
+          gender: this.hideGender ? (this.data.gender ?? 0) : (v.gender ?? 0),
+          gruntType: this.data.gruntType ?? '',
+          ping: v.ping ?? '',
+          template: v.template || '',
+        } as InvasionUpdate,
+        invasionKind(this.data.gruntType),
+      )
       .subscribe({
         // The server names what is wrong -- which alarm already uses these settings, which
         // field a file got wrong. A fixed string threw that away. See #567, #568.
@@ -158,8 +170,12 @@ export class InvasionEditDialogComponent {
           });
           this.saving.set(false);
         },
-        next: () => {
-          this.snackBar.open(this.i18n.instant('INVASIONS.SNACK_UPDATED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+        next: moved => {
+          this.snackBar.open(
+            moveEditMessage(moved, this.i18n) ?? this.i18n.instant('INVASIONS.SNACK_UPDATED'),
+            this.i18n.instant('TOAST.OK'),
+            { duration: 3000 },
+          );
           this.dialogRef.close(true);
         },
       });

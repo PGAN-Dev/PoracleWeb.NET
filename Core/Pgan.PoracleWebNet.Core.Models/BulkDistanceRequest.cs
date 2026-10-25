@@ -7,6 +7,13 @@ public class BulkDistanceRequest
     public List<int> Uids { get; set; } = [];
 
     /// <summary>
+    /// For the invasion list only: "event" or "invasion", the kind of the cards whose radius changes. Invasion and
+    /// Pokestop event rules are numbered separately, so a uid alone can name either. Absent or unknown keeps the
+    /// uid-only behaviour.
+    /// </summary>
+    public string? Kind { get; set; }
+
+    /// <summary>
     /// Metres. Zero means area-based delivery.
     /// </summary>
     /// <remarks>

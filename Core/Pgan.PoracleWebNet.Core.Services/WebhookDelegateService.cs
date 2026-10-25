@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
+using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
@@ -31,14 +32,14 @@ public partial class WebhookDelegateService(
     public async Task<string[]> AddDelegateAsync(string webhookId, string userId)
     {
         await this._repository.AddAsync(webhookId, userId);
-        LogDelegateAdded(this._logger, userId, webhookId);
+        LogDelegateAdded(this._logger, LogSafe.Id(userId), LogSafe.Id(webhookId));
         return await this.GetDelegatesForWebhookAsync(webhookId);
     }
 
     public async Task<string[]> RemoveDelegateAsync(string webhookId, string userId)
     {
         await this._repository.RemoveAsync(webhookId, userId);
-        LogDelegateRemoved(this._logger, userId, webhookId);
+        LogDelegateRemoved(this._logger, LogSafe.Id(userId), LogSafe.Id(webhookId));
         return await this.GetDelegatesForWebhookAsync(webhookId);
     }
 

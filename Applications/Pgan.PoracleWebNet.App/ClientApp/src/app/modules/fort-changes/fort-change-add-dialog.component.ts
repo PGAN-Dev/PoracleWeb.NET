@@ -13,12 +13,14 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { TranslatePipe } from '@ngx-translate/core';
 
+import { LinkSide } from '../../core/models';
 import { AlertDefaultsService } from '../../core/services/alert-defaults.service';
 import { AuthService } from '../../core/services/auth.service';
 import { FortChangeService } from '../../core/services/fort-change.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { SettingsService } from '../../core/services/settings.service';
 import { AddRefusalComponent } from '../../shared/components/add-refusal/add-refusal.component';
+import { DeliverToFieldComponent } from '../../shared/components/deliver-to/deliver-to-field.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import {
@@ -31,9 +33,11 @@ import {
   reportCreated,
 } from '../../shared/utils/add-outcome';
 import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
+import { injectDeliverTo } from '../../shared/utils/deliver-to';
 
 @Component({
   imports: [
+    DeliverToFieldComponent,
     AddRefusalComponent,
     ReactiveFormsModule,
     MatButtonModule,
@@ -66,7 +70,9 @@ export class FortChangeAddDialogComponent {
   private readonly i18n = inject(I18nService);
   private readonly settings = inject(SettingsService);
   private readonly snackBar = inject(MatSnackBar);
+  readonly deliver = injectDeliverTo();
   readonly dialogRef = inject(MatDialogRef<FortChangeAddDialogComponent>);
+
   form = this.fb.group({
     changeTypeDescription: [false],
     changeTypeImageUrl: [false],
@@ -74,6 +80,7 @@ export class FortChangeAddDialogComponent {
     changeTypeName: [true],
     changeTypeNew: [true],
     changeTypeRemoval: [true],
+    destination: [null as LinkSide | null],
     fortType: ['everything'],
     includeEmpty: [false],
     template: [''],
@@ -128,6 +135,7 @@ export class FortChangeAddDialogComponent {
 
     this.fortChangeService
       .create({
+        ...this.deliver.createFields(this.form.controls.destination.value),
         overrideAreas: scope.overrideAreas,
         overrideLocationLabel: scope.overrideLocationLabel,
         changeTypes,

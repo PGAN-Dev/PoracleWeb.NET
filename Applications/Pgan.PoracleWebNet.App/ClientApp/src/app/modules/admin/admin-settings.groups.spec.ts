@@ -233,3 +233,5 @@ describe('delegation_poracle_channels', () => {
     });
   });
 });
+
+// The linking settings' group is pinned in admin-settings.linking.spec.ts.

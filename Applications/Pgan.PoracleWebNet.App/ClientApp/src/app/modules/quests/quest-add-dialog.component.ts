@@ -13,6 +13,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { TranslatePipe } from '@ngx-translate/core';
 import { forkJoin } from 'rxjs';
 
+import { LinkSide } from '../../core/models';
 import { AlertDefaultsService } from '../../core/services/alert-defaults.service';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
@@ -21,15 +22,18 @@ import { MasterDataService } from '../../core/services/masterdata.service';
 import { QuestService } from '../../core/services/quest.service';
 import { SummaryScheduleService } from '../../core/services/summary-schedule.service';
 import { AddRefusalComponent } from '../../shared/components/add-refusal/add-refusal.component';
+import { DeliverToFieldComponent } from '../../shared/components/deliver-to/deliver-to-field.component';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { AddDialogData, AddRefusal, editExistingResult, ExistingRule, finishAdd, settle } from '../../shared/utils/add-outcome';
 import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 import { compose } from '../../shared/utils/clean-flags';
+import { injectDeliverTo } from '../../shared/utils/deliver-to';
 
 @Component({
   imports: [
+    DeliverToFieldComponent,
     AddRefusalComponent,
     ReactiveFormsModule,
     MatDialogModule,
@@ -72,9 +76,12 @@ export class QuestAddDialogComponent {
 
   commonForm = this.fb.group({
     clean: [false],
+    destination: [null as LinkSide | null],
     summary: [false],
     template: [''],
   });
+
+  readonly deliver = injectDeliverTo();
 
   readonly dialogRef = inject(MatDialogRef<QuestAddDialogComponent>);
   readonly iconService = inject(IconService);
@@ -228,6 +235,7 @@ export class QuestAddDialogComponent {
         for (const pokemonId of this.selectedPokemonIds()) {
           creates.push(
             this.questService.create({
+              ...this.deliver.createFields(this.commonForm.controls.destination.value),
               overrideAreas: scope.overrideAreas,
               overrideLocationLabel: scope.overrideLocationLabel,
               amount: 0,
@@ -245,6 +253,7 @@ export class QuestAddDialogComponent {
       case 1:
         creates.push(
           this.questService.create({
+            ...this.deliver.createFields(this.commonForm.controls.destination.value),
             overrideAreas: scope.overrideAreas,
             overrideLocationLabel: scope.overrideLocationLabel,
             amount: this.itemForm.controls.amount.value ?? 0,
@@ -262,6 +271,7 @@ export class QuestAddDialogComponent {
         for (const pokemonId of this.selectedMegaPokemonIds()) {
           creates.push(
             this.questService.create({
+              ...this.deliver.createFields(this.commonForm.controls.destination.value),
               overrideAreas: scope.overrideAreas,
               overrideLocationLabel: scope.overrideLocationLabel,
               amount: this.megaForm.controls.amount.value ?? 0,
@@ -280,6 +290,7 @@ export class QuestAddDialogComponent {
         for (const pokemonId of this.selectedCandyPokemonIds()) {
           creates.push(
             this.questService.create({
+              ...this.deliver.createFields(this.commonForm.controls.destination.value),
               overrideAreas: scope.overrideAreas,
               overrideLocationLabel: scope.overrideLocationLabel,
               amount: this.candyForm.controls.amount.value ?? 0,
@@ -297,6 +308,7 @@ export class QuestAddDialogComponent {
       case 4:
         creates.push(
           this.questService.create({
+            ...this.deliver.createFields(this.commonForm.controls.destination.value),
             overrideAreas: scope.overrideAreas,
             overrideLocationLabel: scope.overrideLocationLabel,
             amount: 0,
@@ -315,6 +327,7 @@ export class QuestAddDialogComponent {
       case 5:
         creates.push(
           this.questService.create({
+            ...this.deliver.createFields(this.commonForm.controls.destination.value),
             overrideAreas: scope.overrideAreas,
             overrideLocationLabel: scope.overrideLocationLabel,
             amount: 0,

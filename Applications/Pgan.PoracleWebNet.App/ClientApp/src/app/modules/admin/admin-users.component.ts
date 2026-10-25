@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal, computed } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, ElementRef, inject, signal, computed } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -20,7 +20,8 @@ import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { AdminListState, StatusFilter, notesLabel } from './admin-list-state';
-import { AdminUser } from '../../core/models';
+import { AccountLink, AdminUser } from '../../core/models';
+import { AdminUsersStore } from '../../core/services/admin-users.store';
 import { AdminService } from '../../core/services/admin.service';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
@@ -61,17 +62,21 @@ import { serverReason } from '../../shared/utils/server-reason';
 })
 export class AdminUsersComponent implements OnInit {
   private readonly adminService = inject(AdminService);
-  private readonly allUsers = signal<AdminUser[]>([]);
+  /** Shared with Destinations, which filters the same list. See #1038. */
+  private readonly store = inject(AdminUsersStore);
+  private readonly allUsers = this.store.users;
   private readonly auth = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly i18n = inject(I18nService);
+  private readonly links = signal<AccountLink[]>([]);
 
-  private readonly poracleConfig = inject(PoracleConfigService);
   // Everyone who is a person, so this tab and the Destinations tab together account for every
   // account. A Telegram user is a person too: filtering to discord* once left them in neither list,
   // and every admin action here is list-driven. See #632 and #1025.
   private readonly people = computed(() => this.allUsers().filter(u => u.kind === 'person'));
+  private readonly poracleConfig = inject(PoracleConfigService);
 
   private readonly snackBar = inject(MatSnackBar);
 
@@ -80,13 +85,13 @@ export class AdminUsersComponent implements OnInit {
   readonly pageIndex = this.list.pageIndex;
   readonly pageSize = this.list.pageSize;
   readonly paginatedUsers = this.list.page;
+  /** Whether the connected PoracleNG has trainer game accounts; the row button is absent otherwise. */
+  readonly playerAccountsSupported = computed(() => this.poracleConfig.serverConfig().playerAccountsSupported);
   readonly searchTerm = this.list.searchTerm;
   readonly sortActive = this.list.sortActive;
   readonly sortDirection = this.list.sortDirection;
-  readonly statusFilter = this.list.statusFilter;
 
-  /** Whether the connected PoracleNG has trainer game accounts; the row button is absent otherwise. */
-  readonly playerAccountsSupported = computed(() => this.poracleConfig.serverConfig().playerAccountsSupported);
+  readonly statusFilter = this.list.statusFilter;
 
   readonly userColumns = ['name', 'id', 'enabled', 'disabledSince', 'profileNo', 'actions'];
 
@@ -135,7 +140,8 @@ export class AdminUsersComponent implements OnInit {
         this.adminService.deleteUser(user.id).subscribe({
           error: err => this.showFailure(err, 'ADMIN.SNACK_FAILED_DELETE'),
           next: () => {
-            this.allUsers.update(users => users.filter(u => u.id !== user.id));
+            this.store.remove(user.id);
+            this.store.invalidate();
             this.snackBar.open(this.i18n.instant('ADMIN.SNACK_DELETED', { name }), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           },
         });
@@ -175,26 +181,34 @@ export class AdminUsersComponent implements OnInit {
     return user.id === this.auth.user()?.id;
   }
 
-  loadUsers(): void {
+  /** The other platform of the link this row is in, or null when it is in none. */
+  linkedTo(user: AdminUser): 'discord' | 'telegram' | null {
+    const type = user.type ?? '';
+    const links = this.links();
+    if (type.startsWith('discord') && links.some(l => l.discordId === user.id)) return 'telegram';
+    if (type.startsWith('telegram') && links.some(l => l.telegramId === user.id)) return 'discord';
+    return null;
+  }
+
+  /** Refresh passes nothing and refetches; opening the page takes the shared list when there is one. */
+  loadUsers(force = true): void {
+    this.loadLinks();
     this.usersLoading.set(true);
-    this.adminService
-      .getUsers()
+    this.store
+      .load(force)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         error: () => {
           this.usersLoading.set(false);
           this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_LOAD_USERS'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
         },
-        next: users => {
-          this.allUsers.set(users);
-          this.usersLoading.set(false);
-        },
+        next: () => this.usersLoading.set(false),
       });
   }
 
   ngOnInit(): void {
     this.poracleConfig.load().subscribe();
-    this.loadUsers();
+    this.loadUsers(false);
   }
 
   notesLabel(notes: string | null): string | null {
@@ -237,7 +251,8 @@ export class AdminUsersComponent implements OnInit {
       .subscribe({
         error: err => this.showFailure(err, 'ADMIN.SNACK_FAILED_STOP'),
         next: updated => {
-          this.allUsers.update(users => users.map(u => (u.id === user.id ? { ...u, enabled: updated.enabled } : u)));
+          this.store.patch(user.id, { enabled: updated.enabled });
+          this.store.invalidate();
           this.snackBar.open(this.i18n.instant('ADMIN.SNACK_STOPPED', { name: user.name || user.id }), this.i18n.instant('TOAST.OK'), {
             duration: 3000,
           });
@@ -252,7 +267,8 @@ export class AdminUsersComponent implements OnInit {
       .subscribe({
         error: err => this.showFailure(err, 'ADMIN.SNACK_FAILED_START'),
         next: updated => {
-          this.allUsers.update(users => users.map(u => (u.id === user.id ? { ...u, enabled: updated.enabled } : u)));
+          this.store.patch(user.id, { enabled: updated.enabled });
+          this.store.invalidate();
           this.snackBar.open(this.i18n.instant('ADMIN.SNACK_STARTED', { name: user.name || user.id }), this.i18n.instant('TOAST.OK'), {
             duration: 3000,
           });
@@ -266,7 +282,8 @@ export class AdminUsersComponent implements OnInit {
     action$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       error: err => this.showFailure(err, 'ADMIN.SNACK_FAILED_BLOCK'),
       next: updated => {
-        this.allUsers.update(users => users.map(u => (u.id === user.id ? { ...u, adminDisable: updated.adminDisable } : u)));
+        this.store.patch(user.id, { adminDisable: updated.adminDisable });
+        this.store.invalidate();
         const name = user.name || user.id;
         this.snackBar.open(
           this.i18n.instant(enable ? 'ADMIN.SNACK_UNBLOCKED' : 'ADMIN.SNACK_BLOCKED', { name }),
@@ -275,6 +292,46 @@ export class AdminUsersComponent implements OnInit {
         );
       },
     });
+  }
+
+  /**
+   * Cuts the row's link after a confirm. Both accounts stay, and no alarm moves, so the confirm is neutral and
+   * names the two accounts it separates.
+   */
+  unlinkAccounts(user: AdminUser): void {
+    const name = user.name || user.id;
+    const link = this.links().find(l => l.discordId === user.id || l.telegramId === user.id);
+    const nameOf = (id: string): string => (id === user.id ? name : this.allUsers().find(u => u.id === id)?.name || id);
+    const ref = this.dialog.open(ConfirmDialogComponent, {
+      data: {
+        confirmText: this.i18n.instant('ADMIN.UNLINK_ACCOUNTS'),
+        icon: 'link_off',
+        message: this.i18n.instant('ADMIN.CONFIRM_UNLINK', {
+          discord: link ? nameOf(link.discordId) : name,
+          telegram: link ? nameOf(link.telegramId) : name,
+        }),
+        title: this.i18n.instant('ADMIN.UNLINK_ACCOUNTS'),
+      } as ConfirmDialogData,
+      // The menu item that opened it is gone once the menu closes, so focus goes back to the row's actions button.
+      restoreFocus: this.rowMenuTrigger(user) ?? true,
+    });
+    ref
+      .afterClosed()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(confirmed => {
+        if (!confirmed) return;
+        this.adminService
+          .unlinkAccounts(user.id)
+          .pipe(takeUntilDestroyed(this.destroyRef))
+          .subscribe({
+            error: err => this.showFailure(err, 'ADMIN.SNACK_FAILED_UNLINK'),
+            next: () => {
+              this.store.invalidate();
+              this.loadLinks();
+              this.snackBar.open(this.i18n.instant('ADMIN.SNACK_UNLINKED', { name }), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+            },
+          });
+      });
   }
 
   private getSortValue(user: AdminUser, column: string): string | number {
@@ -292,6 +349,24 @@ export class AdminUsersComponent implements OnInit {
       default:
         return '';
     }
+  }
+
+  /**
+   * Read with linking switched off too: the links are kept then, and the admin route stays open so a stuck pair can
+   * still be cut. A failed read leaves the chips off rather than the page broken.
+   */
+  private loadLinks(): void {
+    this.adminService
+      .getAccountLinks()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({ error: () => this.links.set([]), next: links => this.links.set(links) });
+  }
+
+  /** The row's actions button, matched by data attribute because a webhook id is a URL and no CSS selector holds it. */
+  private rowMenuTrigger(user: AdminUser): HTMLElement | undefined {
+    return Array.from(this.host.nativeElement.querySelectorAll<HTMLElement>('[data-test="row-menu"]')).find(
+      b => b.dataset['user'] === user.id,
+    );
   }
 
   /** The server's own reason when it gave one ("You cannot block your own account."), else the generic message. */

@@ -108,7 +108,10 @@ them; availability is entirely a question of which PoracleNG is running.
 ## Impersonation
 
 An admin viewing another account, or a delegate managing a destination, can **read** quiet periods but
-cannot set or lift one. The write endpoints answer 403.
+cannot set or lift one. The write endpoints answer 403, and the site doesn't offer what it would
+refuse: the **Quiet** controls are gone from cards and area chips, a subject that is already quiet
+shows its countdown as a plain pill that opens nothing, and the Dashboard's list has no **Resume**
+buttons.
 
 Reads stay open on purpose: "why is this person getting nothing" is exactly the question an admin
 opens an impersonation session to answer, and a quiet period is one of the answers. Writes are refused

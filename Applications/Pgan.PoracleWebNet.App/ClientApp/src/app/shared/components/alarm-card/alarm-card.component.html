@@ -1,5 +1,7 @@
 <mat-card
   class="rule-card"
+  [attr.role]="destination() ? 'group' : null"
+  [attr.aria-labelledby]="destination() ? titleId + ' ' + destinationId : null"
   [class.rule-card-edged]="edge() !== null"
   [class.rule-card-selected]="selectable() && selected()"
   [style.--rule-edge-light]="edge()?.light"
@@ -15,8 +17,28 @@
     }
     <div class="rule-media"><ng-content select="[ruleMedia]" /></div>
     <div class="rule-subject">
-      <h2 class="rule-title"><ng-content select="[ruleTitle]" /></h2>
+      <h2 class="rule-title" [id]="titleId"><ng-content select="[ruleTitle]" /></h2>
       <ng-content select="[ruleSubtitle]" />
+      @if (destination(); as app) {
+        <!-- Which app gets the alarm, in words: its own line under the subject, never squeezing the scope chip.
+             The tooltip answers a long press on touch; the card's accessible name carries the same sentence. -->
+        <p
+          class="rule-destination"
+          [class.rule-destination-paused]="destinationPaused()"
+          [attr.data-app]="app"
+          [matTooltip]="destinationSentence() | translate: { app: appKey(app) | translate }">
+          <app-app-glyph [app]="app" />
+          <span class="rule-destination-name">{{ appKey(app) | translate }}</span>
+          @if (destinationPaused()) {
+            <mat-icon class="rule-destination-pause" aria-hidden="true">pause_circle</mat-icon>
+            <!-- Visible words for touch, where the tooltip never shows. The hidden sentence below already says it. -->
+            <span class="rule-destination-paused-text" aria-hidden="true">{{ 'DELIVER_TO.PAUSED_SHORT' | translate }}</span>
+          }
+          <span class="visually-hidden" [id]="destinationId">{{
+            destinationSentence() | translate: { app: appKey(app) | translate }
+          }}</span>
+        </p>
+      }
     </div>
     <div class="rule-status"><ng-content select="[ruleStatus]" /></div>
   </div>
@@ -25,7 +47,9 @@
   <ng-content />
 
   <div class="rule-foot">
-    <div class="rule-scope"><ng-content select="[ruleScope]" /></div>
+    <div class="rule-scope">
+      <ng-content select="[ruleScope]" />
+    </div>
     <div class="rule-actions">
       <ng-content select="[ruleActions]" />
       @if (hasDetails()) {

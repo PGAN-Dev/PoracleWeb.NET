@@ -3,15 +3,17 @@ using Pgan.PoracleWebNet.Api.Filters;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Mappings;
 using Pgan.PoracleWebNet.Core.Models;
+using Pgan.PoracleWebNet.Core.Services;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/monsters")]
 [RequireFeatureEnabled(DisableFeatureKeys.Pokemon)]
 [TypeFilter(typeof(PoracleUnreachableExceptionFilter))]
-public class MonsterController(IMonsterService monsterService, IPokemonEditCapabilityService editCapability) : BaseApiController
+public class MonsterController(IMonsterService monsterService, IPokemonEditCapabilityService editCapability, LinkedAlarmRouter router) : BaseApiController
 {
     private readonly IMonsterService _monsterService = monsterService;
+    private readonly LinkedAlarmRouter _router = router;
     private readonly IPokemonEditCapabilityService _editCapability = editCapability;
 
     /// <summary>
@@ -29,14 +31,14 @@ public class MonsterController(IMonsterService monsterService, IPokemonEditCapab
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var monsters = await this._monsterService.GetByUserAsync(this.UserId, this.ProfileNo);
+        var monsters = await this._router.ListAsync(this._monsterService, this.UserId, this.ProfileNo);
         return this.Ok(monsters);
     }
 
     [HttpGet("{uid:int}")]
     public async Task<IActionResult> GetByUid(int uid)
     {
-        var monster = await this._monsterService.GetByUidAsync(this.UserId, uid);
+        var monster = (await this._router.FindAsync(this._monsterService, this.UserId, uid))?.Model;
         if (monster == null)
         {
             return this.NotFound();
@@ -59,7 +61,9 @@ public class MonsterController(IMonsterService monsterService, IPokemonEditCapab
         // Deliberately not stamped from the JWT claim: writes no longer carry profile_no, so
         // PoracleNG files the alarm under the live current_profile_no. Echoing a possibly-stale
         // claim back would assert a profile the row was never written to. See #411.
-        var result = await this._monsterService.CreateAsync(this.UserId, monster);
+        var target = await this._router.CreateTargetAsync(this.UserId, model.Destination);
+        var result = await this._monsterService.CreateAsync(target, monster);
+        this._router.StampCreated(result, target);
 
         // PoracleNG assigns no uid when the submission duplicates an alarm the user already has, so
         // nothing was created. Answering 201 with a Location of /0 advertised a resource that 404s.
@@ -77,10 +81,29 @@ public class MonsterController(IMonsterService monsterService, IPokemonEditCapab
     [HttpPut("{uid:int}")]
     public async Task<IActionResult> Update(int uid, [FromBody] MonsterUpdate model)
     {
-        var existing = await this._monsterService.GetByUidAsync(this.UserId, uid);
-        if (existing == null)
+        var found = await this._router.FindAsync(this._monsterService, this.UserId, uid);
+        if (found is null)
         {
             return this.NotFound();
+        }
+
+        var (existing, ownerId) = found.Value;
+
+        if (await this._router.MoveTargetAsync(this.UserId, model.Destination, ownerId) is { } moveTo)
+        {
+            if (this.RefuseMoveWhileImpersonating() is { } refused)
+            {
+                return refused;
+            }
+
+            model.ApplyUpdate(existing);
+            var invertedMove = MonsterRangeValidator.Validate(existing);
+            if (invertedMove != null)
+            {
+                return this.BadRequest(new { error = invertedMove });
+            }
+
+            return this.MovedResponse(await this._router.MoveAsync(this._monsterService, "pokemon", this.UserId, existing, ownerId, moveTo));
         }
 
         // Nothing to write means nothing to send: see LeavesAlarmUnchanged.
@@ -101,27 +124,30 @@ public class MonsterController(IMonsterService monsterService, IPokemonEditCapab
             return this.BadRequest(new { error = inverted });
         }
 
-        var result = await this._monsterService.UpdateAsync(this.UserId, existing);
+        var result = await this._monsterService.UpdateAsync(ownerId, existing);
+        this._router.Stamp(result, ownerId);
         return this.Ok(result);
     }
 
     [HttpDelete("{uid:int}")]
     public async Task<IActionResult> Delete(int uid)
     {
-        var existing = await this._monsterService.GetByUidAsync(this.UserId, uid);
-        if (existing == null)
+        var found = await this._router.FindAsync(this._monsterService, this.UserId, uid);
+        if (found is null)
         {
             return this.NotFound();
         }
 
-        await this._monsterService.DeleteAsync(this.UserId, uid);
+        var ownerId = found.Value.OwnerId;
+
+        await this._monsterService.DeleteAsync(ownerId, uid);
         return this.NoContent();
     }
 
     [HttpDelete]
     public async Task<IActionResult> DeleteAll()
     {
-        var count = await this._monsterService.DeleteAllByUserAsync(this.UserId, this.ProfileNo);
+        var count = await this._router.DeleteAllAsync(this._monsterService, this.UserId, this.ProfileNo);
         return this.Ok(new
         {
             deleted = count
@@ -131,7 +157,7 @@ public class MonsterController(IMonsterService monsterService, IPokemonEditCapab
     [HttpPut("distance/bulk")]
     public async Task<IActionResult> UpdateBulkDistance([FromBody] BulkDistanceRequest request)
     {
-        var result = await this._monsterService.UpdateDistanceByUidsAsync(request.Uids, this.UserId, request.Distance);
+        var result = await this._router.UpdateDistanceByUidsAsync(this._monsterService, this.UserId, this.ProfileNo, request.Uids, request.Distance);
         return this.DistanceUpdated(result);
     }
 
@@ -144,7 +170,7 @@ public class MonsterController(IMonsterService monsterService, IPokemonEditCapab
             return invalid;
         }
 
-        var result = await this._monsterService.UpdateDistanceByUserAsync(this.UserId, this.ProfileNo, distance);
+        var result = await this._router.UpdateDistanceAllAsync(this._monsterService, this.UserId, this.ProfileNo, distance);
         return this.DistanceUpdated(result);
     }
 }

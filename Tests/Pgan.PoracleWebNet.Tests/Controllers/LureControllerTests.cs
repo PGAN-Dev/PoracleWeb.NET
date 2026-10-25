@@ -13,7 +13,7 @@ public class LureControllerTests : ControllerTestBase
 
     public LureControllerTests()
     {
-        this._sut = new LureController(this._service.Object);
+        this._sut = new LureController(this._service.Object, UnlinkedRouter());
         SetupUser(this._sut);
     }
 

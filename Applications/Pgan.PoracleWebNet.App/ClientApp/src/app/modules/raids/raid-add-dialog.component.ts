@@ -14,7 +14,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { TranslatePipe } from '@ngx-translate/core';
 import { forkJoin, Observable } from 'rxjs';
 
-import { Egg, EggCreate, Raid, RaidCreate } from '../../core/models';
+import { Egg, EggCreate, Raid, RaidCreate, LinkSide } from '../../core/models';
 import { ANY_LEVEL_VALUE } from '../../core/models/raid-level.models';
 import { AlertDefaultsService } from '../../core/services/alert-defaults.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -24,6 +24,7 @@ import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { RaidService } from '../../core/services/raid.service';
 import { AddRefusalComponent } from '../../shared/components/add-refusal/add-refusal.component';
+import { DeliverToFieldComponent } from '../../shared/components/deliver-to/deliver-to-field.component';
 import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
 import { LevelSelectorComponent } from '../../shared/components/level-selector/level-selector.component';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
@@ -34,9 +35,11 @@ import { AddDialogData, AddRefusal, editExistingResult, ExistingRule, finishAdd,
 import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, EDIT } from '../../shared/utils/clean-flags';
 import { ANY_COSTUME, costumeHintKey } from '../../shared/utils/costumes';
+import { injectDeliverTo } from '../../shared/utils/deliver-to';
 
 @Component({
   imports: [
+    DeliverToFieldComponent,
     AddRefusalComponent,
     ReactiveFormsModule,
     MatDialogModule,
@@ -82,10 +85,13 @@ export class RaidAddDialogComponent {
     // PoracleNG stores costume on level rules too, so offering it there would create a rule that is
     // silently narrower than it looks -- the by-level path hardcodes "any" instead.
     costume: [ANY_COSTUME],
+    destination: [null as LinkSide | null],
     rsvpChanges: [0],
     team: [4],
     template: [''],
   });
+
+  readonly deliver = injectDeliverTo();
 
   readonly dialogRef = inject(MatDialogRef<RaidAddDialogComponent>);
   readonly isWebhook = inject(AuthService).isImpersonating();
@@ -177,6 +183,7 @@ export class RaidAddDialogComponent {
       // By Level
       for (const level of this.selectedRaidLevels()) {
         const raid: RaidCreate = {
+          ...this.deliver.createFields(this.commonForm.controls.destination.value),
           overrideAreas: scope.overrideAreas,
           overrideLocationLabel: scope.overrideLocationLabel,
           clean,
@@ -198,6 +205,7 @@ export class RaidAddDialogComponent {
       }
       for (const level of this.selectedEggLevels()) {
         const egg: EggCreate = {
+          ...this.deliver.createFields(this.commonForm.controls.destination.value),
           overrideAreas: scope.overrideAreas,
           overrideLocationLabel: scope.overrideLocationLabel,
           clean,
@@ -217,6 +225,7 @@ export class RaidAddDialogComponent {
       // picker whose value could not survive the request. See #615.
       for (const pokemonId of this.selectedPokemonIds()) {
         const raid: RaidCreate = {
+          ...this.deliver.createFields(this.commonForm.controls.destination.value),
           overrideAreas: scope.overrideAreas,
           overrideLocationLabel: scope.overrideLocationLabel,
           clean,

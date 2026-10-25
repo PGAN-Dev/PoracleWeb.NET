@@ -11,20 +11,23 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { TranslatePipe } from '@ngx-translate/core';
 
-import { Lure, LureUpdate } from '../../core/models';
+import { Lure, LureUpdate, LinkSide } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { LureService } from '../../core/services/lure.service';
+import { DeliverToFieldComponent } from '../../shared/components/deliver-to/deliver-to-field.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { createFailureText } from '../../shared/utils/add-outcome';
 import { AlarmScope, metresToKm, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, compose, EDIT, isAutoDelete, isEdit, preserve } from '../../shared/utils/clean-flags';
+import { injectDeliverTo, moveEditMessage } from '../../shared/utils/deliver-to';
 import { mentionCapable } from '../../shared/utils/human-kind';
 
 @Component({
   imports: [
+    DeliverToFieldComponent,
     ReactiveFormsModule,
     MatDialogModule,
     MatButtonModule,
@@ -52,10 +55,13 @@ export class LureEditDialogComponent {
   private readonly lureService = inject(LureService);
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<Lure>(MAT_DIALOG_DATA);
+  readonly deliver = injectDeliverTo();
+
   readonly dialogRef = inject(MatDialogRef<LureEditDialogComponent>);
 
   form = this.fb.group({
     clean: [isAutoDelete(this.data.clean)],
+    destination: [(this.data.destination ?? null) as LinkSide | null],
     editInPlace: [isEdit(this.data.clean)],
     // Always present even when the Mention control is hidden (not a webhook alarm) -- so a mention
     // round-trips unchanged through a save this dialog makes for an unrelated field.
@@ -105,6 +111,7 @@ export class LureEditDialogComponent {
     const scope = scopeToFields(this.scope());
     this.lureService
       .update(this.data.uid, {
+        ...this.deliver.moveFields(this.data.destination, this.form.controls.destination.value),
         overrideAreas: scope.overrideAreas,
         overrideLocationLabel: scope.overrideLocationLabel,
         // Only bits 1 (auto-delete) and 2 (edit-in-place) are user-editable here; preserve
@@ -124,8 +131,12 @@ export class LureEditDialogComponent {
           });
           this.saving.set(false);
         },
-        next: () => {
-          this.snackBar.open(this.i18n.instant('LURES.SNACK_UPDATED'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
+        next: moved => {
+          this.snackBar.open(
+            moveEditMessage(moved, this.i18n) ?? this.i18n.instant('LURES.SNACK_UPDATED'),
+            this.i18n.instant('COMMON.OK'),
+            { duration: 3000 },
+          );
           this.dialogRef.close(true);
         },
       });

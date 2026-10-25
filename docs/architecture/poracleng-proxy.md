@@ -335,6 +335,24 @@ The profile list restates the v2 answer in v1's shape before `ProfileService` se
 
 A `?profile=N` write for a profile number that does not exist answers 200 and writes nothing, on both routes, so a geography write can't report "no such profile"; callers pass the number PoracleNG has just assigned.
 
+## Calls the linked-accounts feature makes
+
+[Linked accounts](linked-accounts.md) use no route the rest of the site doesn't, and send nothing that
+tells PoracleNG two humans belong together. Each call goes to one human at a time.
+
+| What | Calls |
+|---|---|
+| Resolve the pair | `GET /v2/humans/{id}` per side, cached a minute, for its type and pause state |
+| Merged alarm list, owner lookup, bulk distance | The usual `GET .../tracking/{type}` and `PATCH .../tracking/{type}`, once per human |
+| Move an alarm | On the target: `POST .../tracking/{type}?dry_run=true`, then the create. On the source: `DELETE .../tracking/{type}/{uid}`, tried twice. Preflight reads both humans, the target's `GET .../locations` and, except for Pokéstop events, the source's `GET .../tracking/{type}` to carry fields the typed model doesn't hold |
+| Person-level writes | The same location, place, area, profile, language, mute, summary and enable/disable calls, sent to the signed-in human and then the other |
+| Drift read | `GET /v2/humans/{id}`, `GET .../areas`, `GET .../profiles`, `GET .../locations` for both humans in parallel |
+| Drift resolve | `GET .../tracking?all_profiles=true` before deleting a profile or place, then the writes for the one field: `POST .../location`, `POST .../areas` (through `IUserAreaWriter`), `POST .../profile`, `POST`/`PATCH`/`DELETE .../profiles`, `POST .../areas?profile=N` and `.../location?profile=N`, `POST`/`PUT`/`DELETE .../locations` |
+| Register the missing side | `POST /v2/humans`, then `GET`, `POST`, `PATCH`, `DELETE .../profiles`, `POST .../areas?profile=N`, `POST .../location?profile=N`, `POST .../profile`, `POST .../locations`. A failure deletes the human with `DELETE /v2/humans/{id}`, only if its type and name are still the ones this link created |
+
+PoracleNG's "lowest free number" rule for new profiles is why profile creates on a pair check the number
+each human was given (see [Linked Accounts](linked-accounts.md#paired-writes)).
+
 ## IPoracleTrackingProxy interface
 
 ```csharp

@@ -13,7 +13,7 @@ public class RaidControllerTests : ControllerTestBase
 
     public RaidControllerTests()
     {
-        this._sut = new RaidController(this._service.Object);
+        this._sut = new RaidController(this._service.Object, UnlinkedRouter());
         SetupUser(this._sut);
     }
 

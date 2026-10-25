@@ -11,6 +11,7 @@ using Pgan.PoracleWebNet.Api.Services;
 using Pgan.PoracleWebNet.Api.Services.Oidc;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
+using Pgan.PoracleWebNet.Tests.Helpers;
 
 namespace Pgan.PoracleWebNet.Tests.Controllers;
 
@@ -103,6 +104,7 @@ public class AuthControllerOidcTests : ControllerTestBase
             this._humanService.Object, new Mock<IProfileService>().Object,
             new Mock<IPoracleApiProxy>().Object,
             new Mock<IPoracleHumanProxy>().Object,
+            PairTestSupport.UnlinkedWriter(),
             this._siteSettingService.Object,
             new Mock<IWebhookDelegateService>().Object,
             this._jwtService.Object,
@@ -114,6 +116,9 @@ public class AuthControllerOidcTests : ControllerTestBase
             Options.Create(settings),
             Options.Create(new PoracleSettings()),
             new ConfigurationBuilder().Build(),
+            new Mock<IAccountLinkService>().Object,
+            new Microsoft.AspNetCore.DataProtection.EphemeralDataProtectionProvider(),
+            new Mock<IHttpClientFactory>().Object,
             new Mock<ILogger<AuthController>>().Object)
         {
             ControllerContext = new ControllerContext { HttpContext = http },

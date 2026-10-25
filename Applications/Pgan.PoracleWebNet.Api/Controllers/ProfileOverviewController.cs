@@ -1,3 +1,4 @@
+using System.Runtime.ExceptionServices;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Pgan.PoracleWebNet.Api.Filters;
@@ -7,6 +8,7 @@ using Pgan.PoracleWebNet.Core.Abstractions.Services;
 
 using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Core.Models.Helpers;
+using Pgan.PoracleWebNet.Core.Services;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
@@ -16,12 +18,16 @@ public partial class ProfileOverviewController(
     IProfileOverviewService profileOverviewService,
     IProfileService profileService,
     IPoracleHumanProxy humanProxy,
+    IPairedHumanWriter pairWriter,
+    LinkedAlarmRouter router,
     IJwtService jwtService,
     IUserRoleResolver roleResolver,
     ILogger<ProfileOverviewController> logger) : BaseApiController
 {
     private readonly IProfileOverviewService _profileOverviewService = profileOverviewService;
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
+    private readonly IPairedHumanWriter _pairWriter = pairWriter;
+    private readonly LinkedAlarmRouter _router = router;
     private readonly IJwtService _jwtService = jwtService;
     private readonly IUserRoleResolver _roleResolver = roleResolver;
     private readonly IProfileService _profileService = profileService;
@@ -62,26 +68,39 @@ public partial class ProfileOverviewController(
             active_hours = source.ActiveHours
         });
         // PoracleNG assigns the lowest free number, not max+1, and reports it. See #407.
-        var newProfileNo = await this._humanProxy.AddProfileAsync(this.UserId, body);
-
-        // Copy all alarms from source to new profile; roll back on failure
-        int alarmsCopied;
-        try
+        //
+        // A linked pair duplicates on both humans, each copying its own alarms. The count reported is the
+        // signed-in human's.
+        var alarmsCopied = 0;
+        var written = await this._pairWriter.WriteAsync(this.UserId, async id =>
         {
-            alarmsCopied = await this._profileOverviewService.DuplicateProfileAsync(
-                this.UserId, profileNo, newProfileNo);
+            var no = await this._humanProxy.AddProfileAsync(id, body);
 
-            // PoracleNG's addProfile ignores area, latitude and longitude, so the copy would inherit the
-            // active profile's: the right alarms over the wrong map, and a location that also drives the
-            // active-hours timezone (#466, #503). Written after the alarm copy, and inside the same rollback.
-            await this.WriteGeographyAsync(newProfileNo, source.Area ?? "[]", source.Latitude, source.Longitude);
-        }
-        catch
-        {
-            // A rollback failure is logged, not thrown, so the original error is the one reported
-            await NewProfileGeography.RollBackAsync(this._humanProxy, this._logger, this.UserId, newProfileNo);
-            throw;
-        }
+            // Copy all alarms from source to new profile; roll back on failure
+            try
+            {
+                var copied = await this._profileOverviewService.DuplicateProfileAsync(id, profileNo, no);
+                if (string.Equals(id, this.UserId, StringComparison.Ordinal))
+                {
+                    alarmsCopied = copied;
+                }
+
+                // PoracleNG's addProfile ignores area, latitude and longitude, so the copy would inherit the
+                // active profile's: the right alarms over the wrong map, and a location that also drives the
+                // active-hours timezone (#466, #503). Written after the alarm copy, and inside the same rollback.
+                await NewProfileGeography.WriteAsync(this._humanProxy, id, no, source.Area ?? "[]", source.Latitude, source.Longitude);
+            }
+            catch
+            {
+                // A rollback failure is logged, not thrown, so the original error is the one reported
+                await NewProfileGeography.RollBackAsync(this._humanProxy, this._logger, id, no);
+                throw;
+            }
+
+            return new NewProfileOn(id, no);
+        });
+        var (newProfileNo, warning) = await PairedNewProfile.ReconcileAsync(
+            this._pairWriter, this._humanProxy, this._logger, this.UserId, written);
 
         // Issue a new JWT so the current profile stays correct
         // Resolved fresh, not copied from the old token: a profile switch was the way a de-admined
@@ -97,12 +116,12 @@ public partial class ProfileOverviewController(
             : null;
         var newToken = this._jwtService.GenerateTokenWithReplacedProfile(this.User, this.ProfileNo, resolvedAdmin);
 
-        return this.Ok(new
+        return this.Ok(this.Paired(new
         {
             alarmsCopied,
             newProfileNo,
             token = newToken
-        });
+        }, warning));
     }
 
     [HttpPost("import")]
@@ -137,7 +156,29 @@ public partial class ProfileOverviewController(
             latitude = 0.0,
             longitude = 0.0
         });
-        var newProfileNo = await this._humanProxy.AddProfileAsync(this.UserId, body);
+
+        // The profile goes to both humans of a linked pair; its alarms go to one (below).
+        var created = new Dictionary<string, int>(StringComparer.Ordinal);
+        var written = await this._pairWriter.WriteAsync(this.UserId, async id =>
+        {
+            var no = await this._humanProxy.AddProfileAsync(id, body);
+            created[id] = no;
+            return new NewProfileOn(id, no);
+        });
+        var (newProfileNo, warning) = await PairedNewProfile.ReconcileAsync(
+            this._pairWriter, this._humanProxy, this._logger, this.UserId, written);
+        if (written.Other is { } stray && stray.No != newProfileNo)
+        {
+            created.Remove(stray.HumanId);
+        }
+
+        // The same rule an Add and a quick-pick apply use: the default side's human, or the caller while that
+        // side has no human yet.
+        var alarmHuman = await this._router.CreateTargetAsync(this.UserId, null);
+        if (!created.ContainsKey(alarmHuman))
+        {
+            alarmHuman = this.UserId;
+        }
 
         // A malformed payload -- including "alarms": null, which the SPA's typeof-object guard lets
         // through from the file picker -- used to throw here with the profile row already created,
@@ -146,13 +187,13 @@ public partial class ProfileOverviewController(
         try
         {
             alarmsCopied = await this._profileOverviewService.ImportAlarmsAsync(
-                this.UserId, newProfileNo, request.Alarms);
+                alarmHuman, created[alarmHuman], request.Alarms);
         }
         catch (FeatureDisabledException)
         {
             // Roll back the shell profile, but let this reach the global filter so it still maps to a
             // 403 with a disableKey rather than being flattened into a generic 400. See #236.
-            await this._humanProxy.DeleteProfileAsync(this.UserId, newProfileNo);
+            await this.DeleteCreatedAsync(created);
             throw;
         }
         catch (AlarmValidationException)
@@ -160,12 +201,12 @@ public partial class ProfileOverviewController(
             // Roll back the shell profile, then let it reach the global filter: the message names the
             // alarm and the field, which is a great deal more use than "check that the file is valid".
             // See #548.
-            await this._humanProxy.DeleteProfileAsync(this.UserId, newProfileNo);
+            await this.DeleteCreatedAsync(created);
             throw;
         }
         catch (Exception ex)
         {
-            await this._humanProxy.DeleteProfileAsync(this.UserId, newProfileNo);
+            await this.DeleteCreatedAsync(created);
             LogImportFailed(this._logger, ex, newProfileNo);
             return this.BadRequest(new
             {
@@ -179,11 +220,51 @@ public partial class ProfileOverviewController(
         // never chose for it. Restore what the file actually declared. See #522.
         try
         {
-            await this.WriteGeographyAsync(newProfileNo, "[]", 0.0, 0.0);
+            // The alarms were imported onto the alarm human's profile, so a geography failure THERE fails the
+            // whole import (it is rolled back below) even when that human is the second write and the writer
+            // would have turned it into a warning: reporting success over a profile that still carries the
+            // active profile's map would deliver alerts nobody chose.
+            ExceptionDispatchInfo? alarmHumanFailure = null;
+            var geography = await this._pairWriter.WriteAsync(this.UserId, async id =>
+            {
+                if (!created.TryGetValue(id, out var no))
+                {
+                    return;
+                }
+
+                try
+                {
+                    await NewProfileGeography.WriteAsync(this._humanProxy, id, no, "[]", 0.0, 0.0);
+                }
+                catch (Exception ex)
+                {
+                    if (string.Equals(id, alarmHuman, StringComparison.Ordinal))
+                    {
+                        // Rolled back with the rest by the outer catch.
+                        alarmHumanFailure = ExceptionDispatchInfo.Capture(ex);
+                        throw;
+                    }
+
+                    // The other human's profile alone is rolled back here; a failure on the signed-in side
+                    // reaches the outer catch, which removes every profile this import made.
+                    if (!string.Equals(id, this.UserId, StringComparison.Ordinal))
+                    {
+                        await NewProfileGeography.RollBackAsync(this._humanProxy, this._logger, id, no);
+                    }
+
+                    throw;
+                }
+            });
+            alarmHumanFailure?.Throw();
+            warning ??= geography.Warning;
         }
         catch
         {
-            await NewProfileGeography.RollBackAsync(this._humanProxy, this._logger, this.UserId, newProfileNo);
+            foreach (var (id, no) in created)
+            {
+                await NewProfileGeography.RollBackAsync(this._humanProxy, this._logger, id, no);
+            }
+
             throw;
         }
 
@@ -200,20 +281,22 @@ public partial class ProfileOverviewController(
             : null;
         var newToken = this._jwtService.GenerateTokenWithReplacedProfile(this.User, this.ProfileNo, resolvedAdmin);
 
-        return this.Ok(new
+        return this.Ok(this.Paired(new
         {
             alarmsCopied,
             newProfileNo,
             token = newToken
-        });
+        }, warning));
     }
 
-    /// <summary>
-    /// Sets a new profile's areas and location, which addProfile ignores, through PoracleNG's v2
-    /// <c>?profile=</c> writes. A failure propagates. See <see cref="NewProfileGeography"/> and #993.
-    /// </summary>
-    private Task WriteGeographyAsync(int profileNo, string area, double latitude, double longitude) =>
-        NewProfileGeography.WriteAsync(this._humanProxy, this.UserId, profileNo, area, latitude, longitude);
+    /// <summary>Removes the shell profiles a failed import created, on every human that got one.</summary>
+    private async Task DeleteCreatedAsync(Dictionary<string, int> created)
+    {
+        foreach (var (id, no) in created)
+        {
+            await NewProfileGeography.RollBackAsync(this._humanProxy, this._logger, id, no);
+        }
+    }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Profile import failed for profile {ProfileNo}; the partially created profile was rolled back")]
     private static partial void LogImportFailed(ILogger logger, Exception ex, int profileNo);

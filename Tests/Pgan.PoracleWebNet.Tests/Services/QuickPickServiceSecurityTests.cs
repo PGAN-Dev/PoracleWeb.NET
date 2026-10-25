@@ -43,6 +43,9 @@ public class QuickPickServiceSecurityTests
             this._maxBattleService.Object,
             this._masterDataService.Object,
             this._featureGate.Object,
+            Pgan.PoracleWebNet.Tests.Helpers.LinkedTestKit.Unlinked(),
+            Pgan.PoracleWebNet.Tests.Helpers.LinkedTestKit.Router(Pgan.PoracleWebNet.Tests.Helpers.LinkedTestKit.Unlinked()),
+            Moq.Mock.Of<Pgan.PoracleWebNet.Core.Abstractions.Services.IHumanService>(),
             this._logger.Object);
     }
 

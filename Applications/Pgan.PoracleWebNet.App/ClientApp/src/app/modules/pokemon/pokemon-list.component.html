@@ -15,9 +15,12 @@
 
 @if (!loading() && monsters().length > 0) {
   <app-alarm-list-toolbar
+    alarmsLabel="POKEMON.PAGE_TITLE"
     searchPlaceholder="POKEMON.SEARCH_PLACEHOLDER"
     [(search)]="search"
     [(sort)]="sortBy"
+    [(destinationFilter)]="destinationFilter"
+    [canFilterDestination]="canChooseDestination()"
     [sortOptions]="sortOptions"
     [total]="monsters().length"
     [shown]="filteredMonsters().length"
@@ -63,6 +66,9 @@
       (selectAll)="selectAll()"
       (deselectAll)="deselectAll()"
       (changeRadius)="bulkUpdateDistance()"
+      [canMove]="canChooseDestination()"
+      [allOn]="selectionApp()"
+      (moveSelected)="bulkMove($event)"
       (deleteSelected)="bulkDelete()" />
   }
 }
@@ -92,6 +98,7 @@
   <div class="alarm-grid">
     @for (monster of filteredMonsters(); track monster.uid) {
       <app-alarm-card
+        [destination]="monster.destination"
         [edge]="edgeFor(monster)"
         [summary]="monster.description"
         [selectable]="selectMode()"
