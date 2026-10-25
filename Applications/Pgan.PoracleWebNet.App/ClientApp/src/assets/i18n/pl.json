@@ -2197,6 +2197,7 @@
     "OIDC_CLIENT_ID_LABEL": "Identyfikator klienta",
     "OIDC_SCOPES_LABEL": "Zakresy",
     "OIDC_IDENTITY_CLAIM_LABEL": "Oświadczenie tożsamości",
+    "OIDC_SECONDARY_IDENTITY_CLAIM_LABEL": "Dodatkowe oświadczenie tożsamości",
     "OIDC_USE_PKCE_LABEL": "Użyj PKCE",
     "PROVIDER_URL_LABEL": "URL kafelków mapy",
     "PROVIDER_URL_DESC": "Szablon URL dostawcy kafelków mapy (używany do map statycznych).",

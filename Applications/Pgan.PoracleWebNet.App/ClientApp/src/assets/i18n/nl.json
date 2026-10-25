@@ -2142,6 +2142,7 @@
     "OIDC_CLIENT_ID_LABEL": "Client-ID",
     "OIDC_SCOPES_LABEL": "Scopes",
     "OIDC_IDENTITY_CLAIM_LABEL": "Identiteitsclaim",
+    "OIDC_SECONDARY_IDENTITY_CLAIM_LABEL": "Secundaire identiteitsclaim",
     "OIDC_USE_PKCE_LABEL": "PKCE gebruiken",
     "SEARCH_PLACEHOLDER": "Instellingen zoeken…",
     "SEARCH_CLEAR": "Zoekopdracht wissen",

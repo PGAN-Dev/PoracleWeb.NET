@@ -2102,6 +2102,7 @@
     "OIDC_CLIENT_ID_LABEL": "Client ID",
     "OIDC_SCOPES_LABEL": "Scope",
     "OIDC_IDENTITY_CLAIM_LABEL": "Claim identità",
+    "OIDC_SECONDARY_IDENTITY_CLAIM_LABEL": "Claim identità secondario",
     "OIDC_USE_PKCE_LABEL": "Usa PKCE",
     "PROVIDER_URL_LABEL": "URL tasselli mappa",
     "PROVIDER_URL_DESC": "Modello URL del fornitore di tasselli mappa (usato per mappe statiche).",

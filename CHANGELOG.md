@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **SSO sign-in for Telegram-only accounts.** A new optional setting, `OIDC_SECONDARY_IDENTITY_CLAIM`, names a second userinfo claim holding a Poracle id. It's tried when `OIDC_IDENTITY_CLAIM` is absent or names nobody registered, so with `telegram_id` a member whose provider account has only a Telegram login signs in as their Telegram human instead of getting `user_not_registered`. An SSO session now takes its account type from the Poracle row (`telegram:user` for a Telegram id) and falls back to `OIDC_IDENTITY_TYPE` only for a row that has none, and the Discord guild-role gate applies to Discord ids only, as it already did for the Telegram login widget. Admin > Server settings shows the new claim. Unset, nothing changes. [External SSO](docs/configuration/external-sso.md) covers it.
+
 ## [3.2.0] - 2026-10-25
 
 ### Added

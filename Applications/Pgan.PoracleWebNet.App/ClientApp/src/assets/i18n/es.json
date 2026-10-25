@@ -2102,6 +2102,7 @@
     "OIDC_CLIENT_ID_LABEL": "ID de cliente",
     "OIDC_SCOPES_LABEL": "Ámbitos",
     "OIDC_IDENTITY_CLAIM_LABEL": "Claim de identidad",
+    "OIDC_SECONDARY_IDENTITY_CLAIM_LABEL": "Claim de identidad secundario",
     "OIDC_USE_PKCE_LABEL": "Usar PKCE",
     "PROVIDER_URL_LABEL": "URL de teselas de mapa",
     "PROVIDER_URL_DESC": "Plantilla de URL del proveedor de teselas de mapa (para mapas estáticos).",

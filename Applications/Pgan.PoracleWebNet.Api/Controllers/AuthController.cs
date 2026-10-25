@@ -1280,29 +1280,59 @@ public partial class AuthController(
     /// </summary>
     private async Task<(UserInfo? user, string? error)> BuildOidcUserInfoAsync(JsonElement userInfoJson)
     {
-        // The identity claim maps to the Poracle human id (a Discord/Telegram id).
-        // Fall back to the standard OIDC `sub` claim when the configured claim is absent.
-        var identity = GetClaimString(userInfoJson, this._oidcSettings.IdentityClaim)
-                       ?? GetClaimString(userInfoJson, "sub");
-        if (string.IsNullOrEmpty(identity))
+        // The identity claim maps to the Poracle human id (a Discord/Telegram id). The optional secondary claim
+        // (telegram_id) covers a provider account with no Discord login, and one whose Discord id was never
+        // registered with Poracle. The standard OIDC `sub` claim is the fallback only when neither is present.
+        var candidates = new[]
+            {
+                GetClaimString(userInfoJson, this._oidcSettings.IdentityClaim),
+                string.IsNullOrWhiteSpace(this._oidcSettings.SecondaryIdentityClaim)
+                    ? null
+                    : GetClaimString(userInfoJson, this._oidcSettings.SecondaryIdentityClaim),
+            }
+            .Where(id => !string.IsNullOrEmpty(id))
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        if (candidates.Count == 0 && GetClaimString(userInfoJson, "sub") is { Length: > 0 } sub)
+        {
+            candidates.Add(sub);
+        }
+
+        if (candidates.Count == 0)
         {
             return (null, "oidc_no_identity");
         }
 
-        var username = GetClaimString(userInfoJson, this._oidcSettings.UsernameClaim) ?? identity;
-        var avatarUrl = GetClaimString(userInfoJson, this._oidcSettings.AvatarClaim);
+        string? identity = null;
+        Human? human = null;
+        foreach (var candidate in candidates)
+        {
+            human = await this._humanService.GetByIdAsync(candidate!);
+            if (human != null)
+            {
+                identity = candidate;
+                break;
+            }
+        }
 
-        var human = await this._humanService.GetByIdAsync(identity);
-        if (human == null)
+        if (human == null || identity == null)
         {
             return (null, "user_not_registered");
         }
+
+        var username = GetClaimString(userInfoJson, this._oidcSettings.UsernameClaim) ?? identity;
+        var avatarUrl = GetClaimString(userInfoJson, this._oidcSettings.AvatarClaim);
 
         if (!HumanKind.IsPerson(human.Type))
         {
             LogDestinationLoginRefused(this._logger, "OIDC");
             return (null, "destination_account");
         }
+
+        // The row says which platform the id belongs to; the configured type answers only for a row that doesn't.
+        var type = human.Type is { } rowType && rowType.Trim().EndsWith(":user", StringComparison.OrdinalIgnoreCase)
+            ? rowType.Trim().ToLowerInvariant()
+            : string.IsNullOrEmpty(this._oidcSettings.IdentityType) ? "discord:user" : this._oidcSettings.IdentityType;
 
         var (isAdmin, managedWebhooks) = await this.GetRolesAsync(identity);
         if (!isAdmin)
@@ -1316,11 +1346,15 @@ public partial class AuthController(
                 return (null, "oidc_disabled");
             }
 
-            // Reuse Discord guild role gating when the identity is a Discord id.
-            var roleCheckResult = await this.CheckRoleAccessAsync(identity);
-            if (roleCheckResult != null)
+            // Reuse Discord guild role gating when the identity is a Discord id. A Telegram id is in no guild, and
+            // the Telegram widget sign-in never applied the gate either.
+            if (!string.Equals(type, "telegram:user", StringComparison.Ordinal))
             {
-                return (null, roleCheckResult);
+                var roleCheckResult = await this.CheckRoleAccessAsync(identity);
+                if (roleCheckResult != null)
+                {
+                    return (null, roleCheckResult);
+                }
             }
         }
 
@@ -1328,7 +1362,7 @@ public partial class AuthController(
         {
             Id = identity,
             Username = username,
-            Type = string.IsNullOrEmpty(this._oidcSettings.IdentityType) ? "discord:user" : this._oidcSettings.IdentityType,
+            Type = type,
             IsAdmin = isAdmin,
             AdminDisable = human.AdminDisable == 1,
             Enabled = human.Enabled == 1 && human.AdminDisable == 0,

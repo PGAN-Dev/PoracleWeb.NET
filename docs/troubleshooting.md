@@ -524,7 +524,7 @@ A ready-made `proxy.local.json` is provided for this; start the dev server with 
 
 **Problem**: Login succeeds at the provider but the browser returns to `/login#error=user_not_registered`.
 
-**Solution**: The value carried by the configured identity claim has no matching row in the Poracle `human` table — the SSO user has no Poracle account. PoracleWeb.NET reads `OIDC_IDENTITY_CLAIM` (default `discord_id`, falling back to the standard `sub` claim) and looks that value up as the Poracle human id. To fix:
+**Solution**: The value carried by the configured identity claim has no matching row in the Poracle `human` table — the SSO user has no Poracle account. PoracleWeb.NET reads `OIDC_IDENTITY_CLAIM` (default `discord_id`), then `OIDC_SECONDARY_IDENTITY_CLAIM` when set, falling back to the standard `sub` claim only when neither is present, and looks that value up as the Poracle human id. To fix:
 
 1. Ensure the claim carries the user's Poracle id — a linked Discord or Telegram id, not an internal SSO/email id.
 2. Confirm a matching user actually exists in Poracle (they must have registered with the bot).

@@ -2102,6 +2102,7 @@
     "OIDC_CLIENT_ID_LABEL": "Client ID",
     "OIDC_SCOPES_LABEL": "Scopes",
     "OIDC_IDENTITY_CLAIM_LABEL": "Identity claim",
+    "OIDC_SECONDARY_IDENTITY_CLAIM_LABEL": "Secondary identity claim",
     "OIDC_USE_PKCE_LABEL": "Use PKCE",
     "PROVIDER_URL_LABEL": "Map tile URL",
     "PROVIDER_URL_DESC": "URL template for the map tile provider (used for static maps).",

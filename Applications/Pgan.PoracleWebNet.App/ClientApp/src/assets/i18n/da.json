@@ -2119,6 +2119,7 @@
     "OIDC_CLIENT_ID_LABEL": "Client-ID",
     "OIDC_SCOPES_LABEL": "Scopes",
     "OIDC_IDENTITY_CLAIM_LABEL": "Identitets-claim",
+    "OIDC_SECONDARY_IDENTITY_CLAIM_LABEL": "Sekundært identitets-claim",
     "OIDC_USE_PKCE_LABEL": "Brug PKCE",
     "GANALYTICSID_LABEL": "Google Analytics-id",
     "GANALYTICSID_DESC": "GA4-måle-id (lad stå tomt for at deaktivere).",
