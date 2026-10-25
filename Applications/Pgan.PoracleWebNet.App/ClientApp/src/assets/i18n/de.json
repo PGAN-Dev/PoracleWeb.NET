@@ -1816,7 +1816,7 @@
     "UNLINK_ACCOUNTS": "Verknüpfung aufheben",
     "CONFIRM_UNLINK": "Verknüpfung von {{discord}} auf Discord mit {{telegram}} auf Telegram aufheben? Beide Konten behalten ihre Alarme. Nichts wird verschoben oder gelöscht.",
     "SNACK_UNLINKED": "Verknüpfung von {{name}} aufgehoben",
-    "SNACK_FAILED_UNLINK": "Die Konten konnten nicht getrennt werden"
+    "SNACK_FAILED_UNLINK": "Die Verknüpfung konnte nicht aufgehoben werden"
   },
   "DIALOG": {
     "LOCATION_PICK_TITLE": "Punkt auswählen",
