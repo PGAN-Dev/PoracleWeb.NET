@@ -79,6 +79,11 @@ interface SettingMeta {
   /** Placeholder for a text or url field: the shape of a valid value. */
   placeholder?: string;
   /**
+   * For a 'select' whose stored values predate its options: maps what is stored to the option it means, so the
+   * dropdown never shows blank over a value that still works. Reads '' for an absent setting.
+   */
+  selectValue?: (stored: string) => string;
+  /**
    * Only show this setting when the current values say it applies. Reads other settings through
    * `get`, which answers '' for anything unset. For conditions a single boolean cannot express --
    * the basemap fields, where which ones matter depends on which provider is selected.
@@ -110,6 +115,22 @@ export function telegramRegistrationUrlProblem(value: string): null | string {
     // Not a URL at all; refused below.
   }
   return 'ADMIN_SETTINGS.TELEGRAM_REGISTRATION_URL_INVALID';
+}
+
+/**
+ * `link_register_missing` was a switch before it had three values. "true" still means what it did (always), and
+ * "false" or nothing stored means off. The server reads it the same way (`LinkRegisterModes.Parse`).
+ */
+const LINK_REGISTER_OPTIONS: SettingOption[] = [
+  { labelKey: 'ADMIN_SETTINGS.LINK_REGISTER_OFF', value: 'off' },
+  { labelKey: 'ADMIN_SETTINGS.LINK_REGISTER_WHEN_QUALIFIED', value: 'when-qualified' },
+  { labelKey: 'ADMIN_SETTINGS.LINK_REGISTER_ALWAYS', value: 'always' },
+];
+
+export function linkRegisterSelectValue(stored: string): string {
+  const value = stored.trim().toLowerCase();
+  if (value === 'true' || value === 'always') return 'always';
+  return value === 'when-qualified' ? 'when-qualified' : 'off';
 }
 
 /** The settings that only matter while people can link: dimmed while linking is off. */
@@ -416,7 +437,9 @@ export const SETTING_GROUPS: SettingGroup[] = [
         key: 'link_register_missing',
         labelKey: 'ADMIN_SETTINGS.LINK_REGISTER_MISSING_LABEL',
         lockedHintKey: 'ADMIN_SETTINGS.LINKING_OFF_HINT',
-        type: 'boolean',
+        options: LINK_REGISTER_OPTIONS,
+        selectValue: linkRegisterSelectValue,
+        type: 'select',
       },
       {
         validate: telegramRegistrationUrlProblem,
@@ -1123,6 +1146,12 @@ export class AdminSettingsComponent implements OnInit, HasUnsavedChanges {
       this.i18n.instant('COMMON.OK'),
       { duration: 4000 },
     );
+  }
+
+  /** What a dropdown shows: the stored value, or the option it means when the setting used to be a switch. */
+  selectValue(meta: SettingMeta): string {
+    const stored = this.getSettingValue(meta.key) ?? '';
+    return meta.selectValue ? meta.selectValue(stored) : stored;
   }
 
   /**

@@ -2187,7 +2187,10 @@
     "DISABLE_ACCOUNT_LINKING_LABEL": "Comptes liés",
     "DISABLE_ACCOUNT_LINKING_DESC": "Permet de lier des comptes Discord et Telegram. Désactivé, la page est masquée. Les liaisons existantes sont conservées, et vous pouvez toujours les délier dans Utilisateurs.",
     "LINK_REGISTER_MISSING_LABEL": "Inscrire l’autre compte lors de la liaison",
-    "LINK_REGISTER_MISSING_DESC": "Lors d’une liaison, crée tout de suite le compte de la personne dans l’autre app au lieu d’attendre qu’elle s’y inscrive. Le compte reste, sauf si la vérification des rôles de Poracle sur votre serveur est réglée pour supprimer des comptes.",
+    "LINK_REGISTER_MISSING_DESC": "Ce qui se passe quand quelqu’un lie un compte qui n’est pas encore inscrit chez Poracle. Désactivé : la liaison attend que la personne s’y inscrive elle-même. Si éligible : pour Telegram, PoracleWeb.NET ne crée le compte que si la règle /poracle de Poracle admettrait la personne, c’est-à-dire si elle est dans l’un de ses groupes d’inscription ; sinon il attend. Un compte Discord manquant attend aussi. Toujours : le compte est créé tout de suite. Un compte reste, sauf si la vérification des rôles de Poracle sur votre serveur est réglée pour supprimer des comptes.",
+    "LINK_REGISTER_OFF": "Désactivé",
+    "LINK_REGISTER_WHEN_QUALIFIED": "Si éligible (Telegram)",
+    "LINK_REGISTER_ALWAYS": "Toujours",
     "LINKING_OFF_HINT": "Activez Comptes liés pour modifier ceci.",
     "LINKING_APP_NOT_SET_UP": "La connexion avec {{app}} n’est pas configurée dans .env, personne ne peut donc lier de compte {{app}}.",
     "LINKING_APP_SWITCHED_OFF": "« {{switch}} » est désactivé, personne ne peut donc lier de compte {{app}}."

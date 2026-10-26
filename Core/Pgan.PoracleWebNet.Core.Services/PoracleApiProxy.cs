@@ -248,6 +248,43 @@ public class PoracleApiProxy(
         this.ReadConfigValueBoolAsync("area_security", "enabled");
 
     /// <inheritdoc />
+    public async Task<TelegramRegistrationGroups> GetTelegramRegistrationGroupsAsync()
+    {
+        var request = this.CreateRequest(HttpMethod.Get, $"{this._apiAddress}/api/config/values");
+        var response = await this._httpClient.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var values = doc.RootElement.TryGetProperty("values", out var v) ? v : default;
+
+        static List<string> Strings(JsonElement parent, string name) =>
+            parent.ValueKind == JsonValueKind.Object && parent.TryGetProperty(name, out var list) && list.ValueKind == JsonValueKind.Array
+                ? [.. list.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.String).Select(e => e.GetString()!)]
+                : [];
+
+        var telegram = values.ValueKind == JsonValueKind.Object && values.TryGetProperty("telegram", out var t) ? t : default;
+        var security = values.ValueKind == JsonValueKind.Object && values.TryGetProperty("area_security", out var a) ? a : default;
+        var enabled = security.ValueKind == JsonValueKind.Object
+            && security.TryGetProperty("enabled", out var e) && e.ValueKind == JsonValueKind.True;
+
+        var communities = new List<TelegramCommunityGroups>();
+        if (security.ValueKind == JsonValueKind.Object && security.TryGetProperty("communities", out var rows) && rows.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var row in rows.EnumerateArray())
+            {
+                if (row.ValueKind == JsonValueKind.Object && row.TryGetProperty("name", out var name) && name.ValueKind == JsonValueKind.String
+                    && !string.IsNullOrWhiteSpace(name.GetString()))
+                {
+                    // PoracleNG records community names lowercased (reconcileAreaSecurity).
+                    communities.Add(new TelegramCommunityGroups(name.GetString()!.ToLowerInvariant(), Strings(row, "telegram_channels")));
+                }
+            }
+        }
+
+        return new TelegramRegistrationGroups(enabled, Strings(telegram, "channels"), communities);
+    }
+
+    /// <inheritdoc />
     public Task<bool?> GetPokemonEditEnabledAsync() =>
         this.ReadConfigValueBoolAsync("tracking", "pokemon_edit");
 

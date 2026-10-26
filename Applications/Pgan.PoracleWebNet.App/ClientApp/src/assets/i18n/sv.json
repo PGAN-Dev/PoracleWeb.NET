@@ -2187,7 +2187,10 @@
     "DISABLE_ACCOUNT_LINKING_LABEL": "Länkade konton",
     "DISABLE_ACCOUNT_LINKING_DESC": "Låter folk länka sina Discord- och Telegram-konton. Av döljer sidan. Befintliga länkar behålls, och du kan fortfarande avlänka dem under Användare.",
     "LINK_REGISTER_MISSING_LABEL": "Registrera det andra kontot vid länkning",
-    "LINK_REGISTER_MISSING_DESC": "Skapar personens konto i den andra appen direkt vid länkning, i stället för att vänta på att de registrerar sig där. Kontot finns kvar om inte din servers Poracle-rollkontroll är inställd på att ta bort konton.",
+    "LINK_REGISTER_MISSING_DESC": "Vad som händer när någon länkar ett konto som ännu inte är registrerat hos Poracle. Av: länkningen väntar tills personen registrerar sig där själv. När behörig: för Telegram skapar PoracleWeb.NET kontot bara om Poracles egen /poracle-regel skulle släppa in personen, alltså om de är med i en av registreringsgrupperna; annars väntar den. Ett saknat Discord-konto väntar också. Alltid: kontot skapas direkt. Ett konto finns kvar om inte din servers Poracle-rollkontroll är inställd på att ta bort konton.",
+    "LINK_REGISTER_OFF": "Av",
+    "LINK_REGISTER_WHEN_QUALIFIED": "När behörig (Telegram)",
+    "LINK_REGISTER_ALWAYS": "Alltid",
     "LINKING_OFF_HINT": "Slå på Länkade konton för att ändra det här.",
     "LINKING_APP_NOT_SET_UP": "Inloggning med {{app}} är inte konfigurerad i .env, så ingen kan länka ett {{app}}-konto.",
     "LINKING_APP_SWITCHED_OFF": "”{{switch}}” är avstängt, så ingen kan länka ett {{app}}-konto."

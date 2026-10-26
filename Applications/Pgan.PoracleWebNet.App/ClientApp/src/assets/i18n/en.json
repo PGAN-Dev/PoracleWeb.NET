@@ -2187,7 +2187,10 @@
     "DISABLE_ACCOUNT_LINKING_LABEL": "Linked accounts",
     "DISABLE_ACCOUNT_LINKING_DESC": "Let people link their Discord and Telegram accounts. Off hides the page. Existing links are kept, and you can still unlink them under Users.",
     "LINK_REGISTER_MISSING_LABEL": "Register the other account when linking",
-    "LINK_REGISTER_MISSING_DESC": "When someone links, create their account on the other app straight away instead of waiting for them to register there. The account stays unless your server's Poracle role check is set to remove accounts.",
+    "LINK_REGISTER_MISSING_DESC": "What happens when someone links an account that isn't registered with Poracle yet. Off: the link waits until they register there themselves. When qualified: for Telegram, PoracleWeb.NET creates the account only if Poracle's own /poracle rule would admit them, meaning they're in one of its registration groups; otherwise it waits. A missing Discord account waits too. Always: the account is created straight away. An account stays unless your server's Poracle role check is set to remove accounts.",
+    "LINK_REGISTER_OFF": "Off",
+    "LINK_REGISTER_WHEN_QUALIFIED": "When qualified (Telegram)",
+    "LINK_REGISTER_ALWAYS": "Always",
     "LINKING_OFF_HINT": "Turn on Linked accounts to change this.",
     "LINKING_APP_NOT_SET_UP": "{{app}} sign-in isn't set up in .env, so nobody can link a {{app}} account.",
     "LINKING_APP_SWITCHED_OFF": "“{{switch}}” is off, so nobody can link a {{app}} account."

@@ -753,8 +753,8 @@ people use. The widget works on one domain only.
 (`[telegram] channels`, or each community's `telegram.channels` with area security).
 
 **Fix**: Join the registration group and send `/poracle` there. Set `telegram_registration_url` so the Linked
-accounts page shows a **Join the Telegram group** button. Or switch on `link_register_missing` so linking creates
-the account.
+accounts page shows a **Join the Telegram group** button. Or set `link_register_missing` to `when-qualified` so linking
+creates the account for people who are already in a registration group (the bot must be in the group), or to `always` to skip the group rule.
 
 ### /start does nothing
 
