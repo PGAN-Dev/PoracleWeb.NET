@@ -27,6 +27,14 @@ public interface IPoracleApiProxy
     Task<bool?> GetAreaSecurityEnabledAsync();
 
     /// <summary>
+    /// The Telegram groups PoracleNG registers people from, read from <c>GET /api/config/values</c>:
+    /// <c>telegram.channels</c>, <c>area_security.enabled</c> and each <c>area_security.communities</c> row's
+    /// <c>telegram_channels</c>. Absent sections read as empty. A non-success answer throws, so a caller can tell
+    /// "nobody can register" from "could not read".
+    /// </summary>
+    Task<TelegramRegistrationGroups> GetTelegramRegistrationGroupsAsync();
+
+    /// <summary>
     /// Reads <c>tracking.pokemon_edit</c> from PoracleNG's config-values endpoint. The key only exists
     /// on a PoracleNG built after jfberry/PoracleNG#246 (merged 2026-10-08, not yet in a tagged
     /// release): before that, the processor accepted the pokemon <c>edit</c> bit (commands, v1 and v2)

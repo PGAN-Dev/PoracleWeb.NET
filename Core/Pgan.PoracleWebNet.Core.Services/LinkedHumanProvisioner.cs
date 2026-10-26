@@ -24,7 +24,13 @@ public partial class LinkedHumanProvisioner(
     private readonly IHumanService _humans = humans;
     private readonly ILogger<LinkedHumanProvisioner> _logger = logger;
 
-    public async Task CreateMirrorAsync(string sourceHumanId, LinkSide newSide, string newId, string newName)
+    public Task CreateMirrorAsync(string sourceHumanId, LinkSide newSide, string newId, string newName) =>
+        this.CreateMirrorCoreAsync(sourceHumanId, newSide, newId, newName, null);
+
+    public Task CreateMirrorAsync(string sourceHumanId, LinkSide newSide, string newId, string newName, IReadOnlyList<string> communities) =>
+        this.CreateMirrorCoreAsync(sourceHumanId, newSide, newId, newName, communities);
+
+    private async Task CreateMirrorCoreAsync(string sourceHumanId, LinkSide newSide, string newId, string newName, IReadOnlyList<string>? communities)
     {
         var source = await this._humans.GetByIdAsync(sourceHumanId)
             ?? throw new LinkRefusalException(LinkRefusalCode.ProvisionFailed, Refused);
@@ -38,7 +44,7 @@ public partial class LinkedHumanProvisioner(
             ["type"] = type,
             ["latitude"] = source.Latitude,
             ["longitude"] = source.Longitude,
-            ["community"] = AreaListJson.Parse(source.CommunityMembership),
+            ["community"] = communities ?? AreaListJson.Parse(source.CommunityMembership),
         };
         if (!string.IsNullOrWhiteSpace(source.Language))
         {

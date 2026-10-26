@@ -670,7 +670,8 @@ public partial class AuthController(
         {
             return this.StatusCode(403, new
             {
-                error = "User not registered in Poracle."
+                error = "User not registered in Poracle.",
+                code = "user_not_registered",
             });
         }
 
@@ -681,6 +682,20 @@ public partial class AuthController(
             {
                 error = "This id is a channel or webhook in Poracle, not a person.",
                 code = "destination_account",
+            });
+        }
+
+        // A blocked account is refused here with the code and support link /api/auth/me would give it.
+        // The widget has no callback step to carry that 401 through, so without this it got a token and
+        // landed on a dashboard whose every request 401ed. See #911 and #1027.
+        if (human.AdminDisable == 1)
+        {
+            var supportUrl = await this._siteSettingService.GetValueAsync("support_url");
+            return this.Unauthorized(new
+            {
+                error = "This account has been blocked by an administrator.",
+                code = "account_disabled",
+                supportUrl = string.IsNullOrWhiteSpace(supportUrl) ? null : supportUrl,
             });
         }
 
@@ -696,7 +711,8 @@ public partial class AuthController(
                 LogAuthMethodDisabled(this._logger, "Telegram");
                 return this.BadRequest(new
                 {
-                    error = "Telegram login is disabled for non-admin users."
+                    error = "Telegram login is disabled for non-admin users.",
+                    code = "telegram_disabled",
                 });
             }
         }

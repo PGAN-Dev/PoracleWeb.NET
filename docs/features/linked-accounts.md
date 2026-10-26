@@ -187,7 +187,7 @@ The settings are under **Admin > Server settings > Linked accounts** and in
 | Setting | Key | Default | What it does |
 |---|---|---|---|
 | Linked accounts | `disable_account_linking` | On | Off hides the page and refuses every link route. Each person acts as their single account again. Links are kept for when it's switched back on, and Admin > Users can still unlink them |
-| Register the other account when linking | `link_register_missing` | Off | On, linking creates the missing account straight away, copying language, location, the areas the person may select, profiles (on the same numbers) and saved places. Alarms are never copied. If creating it fails, nothing is linked and nothing is left behind |
+| Register the other account when linking | `link_register_missing` | Off | **Off** saves the link and the missing side waits. **When qualified** creates a missing Telegram account only if Poracle's own `/poracle` rule would admit the person (see below); a missing Discord account still waits. **Always** creates the missing account straight away. A created account gets the person's language, location, the areas they may select, profiles (on the same numbers) and saved places. Alarms are never copied. If creating it fails, nothing is linked and nothing is left behind. Sites that stored the old on/off switch keep their behaviour: on reads as Always, off as Off |
 | Telegram registration group link | `telegram_registration_url` | Empty | The invite link people use to register on Telegram, such as `https://t.me/+abc123`. Must be `https://` on `t.me` or `telegram.me`. Shown as **Join the Telegram group** while a Telegram side is waiting |
 
 A created account skips that app's registration rules but not its later checks. Poracle removes an account
@@ -198,10 +198,29 @@ it doesn't think should exist only when the server runs its role check with `rol
 **Let Poracle's channel admins manage here** (`delegation_poracle_channels`) sits near these settings but is
 about destinations, not linking. See [Destinations & delegates](webhooks.md#letting-poracles-channel-admins-manage-here).
 
+### When qualified
+
+When someone links a Telegram account that has no Poracle account, PoracleWeb.NET asks PoracleNG for its
+registration groups and asks Telegram (`getChatMember`, with the same bot token as Telegram sign-in) whether
+that person is in one. Without area security the groups are `[telegram] channels`. With area security they're
+each community's `telegram.channels`, and the account is created in every community whose group holds the
+person. A member, administrator, creator or restricted user who is still in the chat counts; someone who left
+or was banned doesn't. The account is then created and filled in exactly as under Always.
+
+Anyone else keeps waiting and sees the **Join the Telegram group** button if you set
+`telegram_registration_url`. The check fails closed: if the bot isn't in a group, Telegram or PoracleNG can't be
+reached, or the bot token isn't set, the person waits, and the link itself is never refused for it. The
+bot has to be a member of each registration group for Telegram to answer about the people in it.
+
+This checks the person once, at the moment they link. It doesn't do what `/poracle` also does, which is trigger
+PoracleNG's immediate membership sync, and PoracleNG's periodic check only looks at accounts that already
+exist. Someone who joins the group after linking should send `/poracle` there, as they would without linking.
+The Discord equivalent (guild roles) isn't built yet.
+
 ## Example
 
 Sam signs in with Telegram and has two alarms for Old Town. Sam presses **Link Discord**, approves the sign-in
-and returns to the page. With `link_register_missing` off, the Discord card reads "Waiting to register" until
+and returns to the page. With `link_register_missing` off (the default), the Discord card reads "Waiting to register" until
 Sam gets the community's role. Once it reads "Receiving alerts", Sam picks Discord under **New alarms go to**,
 and the next alarm Sam adds, for Riverside, is delivered on Discord. The two Old Town alarms keep arriving on
 Telegram until Sam moves them with **Deliver to…**.

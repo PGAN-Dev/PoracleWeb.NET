@@ -1,3 +1,47 @@
+<ng-template #tgNodes let-nodes>
+  @for (n of nodes; track $index) {
+    @switch (n.kind) {
+      @case ('text') {
+        <span>{{ n.text }}</span>
+      }
+      @case ('b') {
+        <strong><ng-container [ngTemplateOutlet]="tgNodes" [ngTemplateOutletContext]="{ $implicit: n.children }" /></strong>
+      }
+      @case ('i') {
+        <em><ng-container [ngTemplateOutlet]="tgNodes" [ngTemplateOutletContext]="{ $implicit: n.children }" /></em>
+      }
+      @case ('u') {
+        <u><ng-container [ngTemplateOutlet]="tgNodes" [ngTemplateOutletContext]="{ $implicit: n.children }" /></u>
+      }
+      @case ('s') {
+        <s><ng-container [ngTemplateOutlet]="tgNodes" [ngTemplateOutletContext]="{ $implicit: n.children }" /></s>
+      }
+      @case ('code') {
+        <code><ng-container [ngTemplateOutlet]="tgNodes" [ngTemplateOutletContext]="{ $implicit: n.children }" /></code>
+      }
+      @case ('pre') {
+        <pre><ng-container [ngTemplateOutlet]="tgNodes" [ngTemplateOutletContext]="{ $implicit: n.children }" /></pre>
+      }
+      @case ('spoiler') {
+        <span class="telegram-spoiler"
+          ><ng-container [ngTemplateOutlet]="tgNodes" [ngTemplateOutletContext]="{ $implicit: n.children }"
+        /></span>
+      }
+      @case ('a') {
+        @if (n.href) {
+          <a class="telegram-link" [href]="n.href" target="_blank" rel="noopener noreferrer"
+            ><ng-container [ngTemplateOutlet]="tgNodes" [ngTemplateOutletContext]="{ $implicit: n.children }"
+          /></a>
+        } @else {
+          <span class="telegram-link"
+            ><ng-container [ngTemplateOutlet]="tgNodes" [ngTemplateOutletContext]="{ $implicit: n.children }"
+          /></span>
+        }
+      }
+    }
+  }
+</ng-template>
+
 @if (templatesEnabled()) {
   <mat-form-field appearance="outline" class="full-width">
     <mat-label>{{ 'TEMPLATE_SELECTOR.LABEL' | translate }}</mat-label>
@@ -13,7 +57,7 @@
     <mat-hint>{{ 'TEMPLATE_SELECTOR.HINT' | translate }}</mat-hint>
   </mat-form-field>
 
-  @if (currentEmbed()) {
+  @if (currentEmbed() || telegramSource()) {
     <div class="preview-wrapper">
       <!-- Condition Toggles (collapsible) -->
       @if (conditions().length > 0) {
@@ -35,51 +79,72 @@
       }
 
       <!-- Discord Embed Preview (always visible) -->
-      <div class="discord-embed" [style.border-left-color]="previewColor">
-        @if (renderedEmbed(); as embed) {
-          <div class="embed-body">
-            <div class="embed-content-row">
-              <div class="embed-content-main">
-                @if (embed.title) {
-                  <div class="embed-title" [innerHTML]="md(embed.title)"></div>
-                }
-                @if (embed.description) {
-                  <div class="embed-description" [innerHTML]="md(embed.description)"></div>
+      @if (currentEmbed()) {
+        <div class="discord-embed" [style.border-left-color]="previewColor">
+          @if (renderedEmbed(); as embed) {
+            <div class="embed-body">
+              <div class="embed-content-row">
+                <div class="embed-content-main">
+                  @if (embed.title) {
+                    <div class="embed-title" [innerHTML]="md(embed.title)"></div>
+                  }
+                  @if (embed.description) {
+                    <div class="embed-description" [innerHTML]="md(embed.description)"></div>
+                  }
+                </div>
+                @if (hasThumbnail()) {
+                  <img [src]="iconService.getPokemonUrl(25)" class="embed-thumbnail" [alt]="'TEMPLATE.PREVIEW_THUMBNAIL_ALT' | translate" />
                 }
               </div>
-              @if (hasThumbnail()) {
-                <img [src]="iconService.getPokemonUrl(25)" class="embed-thumbnail" [alt]="'TEMPLATE.PREVIEW_THUMBNAIL_ALT' | translate" />
+              @if (embed.fields?.length) {
+                <div class="embed-fields">
+                  @for (field of embed.fields; track $index) {
+                    @if (fieldHasContent(field)) {
+                      <div class="embed-field" [class.inline]="field.inline">
+                        <div class="field-name" [innerHTML]="md(field.name)"></div>
+                        <div class="field-value" [innerHTML]="md(field.value)"></div>
+                      </div>
+                    }
+                  }
+                </div>
+              }
+              @if (hasImage()) {
+                <div class="embed-image embed-image-placeholder">
+                  <mat-icon>map</mat-icon>
+                  <span>{{ 'TEMPLATE_SELECTOR.MAP_PREVIEW' | translate }}</span>
+                </div>
+              }
+              @if (embed.footer) {
+                <div class="embed-footer">
+                  @if (hasFooterIcon()) {
+                    <img [src]="footerIcon()" class="footer-icon" alt="" />
+                  }
+                  {{ embed.footer.text }}
+                </div>
               }
             </div>
-            @if (embed.fields?.length) {
-              <div class="embed-fields">
-                @for (field of embed.fields; track $index) {
-                  @if (fieldHasContent(field)) {
-                    <div class="embed-field" [class.inline]="field.inline">
-                      <div class="field-name" [innerHTML]="md(field.name)"></div>
-                      <div class="field-value" [innerHTML]="md(field.value)"></div>
-                    </div>
-                  }
-                }
-              </div>
-            }
-            @if (hasImage()) {
-              <div class="embed-image embed-image-placeholder">
-                <mat-icon>map</mat-icon>
-                <span>{{ 'TEMPLATE_SELECTOR.MAP_PREVIEW' | translate }}</span>
-              </div>
-            }
-            @if (embed.footer) {
-              <div class="embed-footer">
-                @if (hasFooterIcon()) {
-                  <img [src]="footerIcon()" class="footer-icon" alt="" />
-                }
-                {{ embed.footer.text }}
-              </div>
-            }
+          }
+        </div>
+      } @else if (renderedTelegram(); as tg) {
+        <!-- Telegram message preview -->
+        <div class="telegram-bubble" role="group" [attr.aria-label]="'TEMPLATE_SELECTOR.TELEGRAM_PREVIEW' | translate">
+          @if (tg.sticker) {
+            <div class="telegram-extra">
+              <mat-icon>emoji_emotions</mat-icon>
+              <span>{{ 'TEMPLATE_SELECTOR.TELEGRAM_STICKER' | translate }}</span>
+            </div>
+          }
+          <div class="telegram-text">
+            <ng-container [ngTemplateOutlet]="tgNodes" [ngTemplateOutletContext]="{ $implicit: tg.nodes }" />
           </div>
-        }
-      </div>
+          @if (tg.location) {
+            <div class="telegram-extra">
+              <mat-icon>location_on</mat-icon>
+              <span>{{ 'TEMPLATE_SELECTOR.TELEGRAM_LOCATION' | translate }}</span>
+            </div>
+          }
+        </div>
+      }
     </div>
   }
 }

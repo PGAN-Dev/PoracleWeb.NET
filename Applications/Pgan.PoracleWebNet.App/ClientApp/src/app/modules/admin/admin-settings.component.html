@@ -274,7 +274,8 @@
                       <mat-form-field appearance="outline" class="setting-field">
                         <mat-select
                           [aria-label]="meta.labelKey | translate"
-                          [ngModel]="getSettingValue(meta.key) ?? ''"
+                          [disabled]="isSettingLocked(meta)"
+                          [ngModel]="selectValue(meta)"
                           (ngModelChange)="onTextChange(meta.key, $event)">
                           @for (option of meta.options ?? []; track option.value) {
                             <mat-option [value]="option.value">{{ optionLabel(option) }}</mat-option>

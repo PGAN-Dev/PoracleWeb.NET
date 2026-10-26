@@ -76,6 +76,12 @@ public static class ServiceCollectionExtensions
         services.AddScoped<AlarmMoveDispatcher>();
         services.AddScoped<ILinkedHumanProvisioner, LinkedHumanProvisioner>();
         services.AddScoped<IAccountLinkService, AccountLinkService>();
+        services.AddScoped<ITelegramRegistrationCheck, TelegramRegistrationCheck>();
+        services.AddHttpClient<ITelegramMembershipClient, TelegramBotApiClient>(client =>
+        {
+            client.BaseAddress = new Uri("https://api.telegram.org/");
+            client.Timeout = TimeSpan.FromSeconds(10);
+        });
         services.AddScoped<IPairedHumanWriter, PairedHumanWriter>();
         services.AddScoped<IPairDriftService, PairDriftService>();
         // Lets UserAreaPolicy ask for the link without a construction cycle (see UserAreaPolicy.OwnerIdsAsync).

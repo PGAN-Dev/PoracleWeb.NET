@@ -43,8 +43,9 @@ can check that. The usual route is to join the group and send `/poracle` there. 
 welcome in the group, and DMs a confirmation, which arrives only once the person has started a chat with the
 bot. [Telegram](../configuration/telegram.md#how-people-register) has every route and what each one says.
 
-The one exception is **Register the other account when linking** (`link_register_missing`). With it on,
-linking creates the missing account on the other app, skipping that app's registration rules.
+The one exception is **Register the other account when linking** (`link_register_missing`). Set to Always,
+linking creates the missing account on the other app, skipping that app's registration rules. Set to When
+qualified, it creates a missing Telegram account only for someone who is in a registration group.
 
 ## From never used Poracle to both apps
 
@@ -62,9 +63,9 @@ flowchart TD
     E --> F[Open Linked accounts and link the other app]
     F --> G{Other app registered?}
     G -->|Yes| H[Both sides: Receiving alerts]
-    G -->|No, link_register_missing on| I[Site creates the account, copying areas, location, profiles and places]
+    G -->|No, always, or when-qualified and in a registration group| I[Site creates the account, copying areas, location, profiles and places]
     I --> H
-    G -->|No, link_register_missing off| J[Other side: Waiting to register]
+    G -->|No, off, or when-qualified and not in a group| J[Other side: Waiting to register]
     J --> K[Register on the other app the usual way]
     K --> H
     H --> L[Choose the default app, then pick the app per alarm]

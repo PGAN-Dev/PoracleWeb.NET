@@ -26,10 +26,18 @@ describe('linked accounts settings group', () => {
     expect(features.settings.filter(s => LINKING_KEYS.includes(s.key))).toEqual([]);
   });
 
-  it.each(['disable_account_linking', 'link_register_missing'])('keeps %s a boolean with a label and description', key => {
-    const setting = group?.settings.find(s => s.key === key);
+  it('keeps disable_account_linking a boolean with a label and description', () => {
+    const setting = group?.settings.find(s => s.key === 'disable_account_linking');
     expect(setting?.type).toBe('boolean');
     expect(setting?.labelKey).toBeTruthy();
+    expect(setting?.descriptionKey).toBeTruthy();
+  });
+
+  it('offers link_register_missing as three values, each with its own label', () => {
+    const setting = group?.settings.find(s => s.key === 'link_register_missing');
+    expect(setting?.type).toBe('select');
+    expect(setting?.options?.map(o => o.value)).toEqual(['off', 'when-qualified', 'always']);
+    expect(setting?.options?.every(o => !!o.labelKey)).toBe(true);
     expect(setting?.descriptionKey).toBeTruthy();
   });
 });
@@ -125,7 +133,7 @@ describe('AdminSettingsComponent linked accounts settings', () => {
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
     expect(urlInput(el).disabled).toBe(true);
-    expect(row(el, 'link_register_missing').querySelector('mat-slide-toggle button')?.hasAttribute('disabled')).toBe(true);
+    expect(row(el, 'link_register_missing').querySelector('mat-select')?.classList).toContain('mat-mdc-select-disabled');
     expect(row(el, 'link_register_missing').textContent).toContain('ADMIN_SETTINGS.LINKING_OFF_HINT');
     // The switch that turns linking back on is never the one dimmed.
     expect(row(el, 'disable_account_linking').querySelector('mat-slide-toggle button')?.hasAttribute('disabled')).toBe(false);
@@ -137,8 +145,28 @@ describe('AdminSettingsComponent linked accounts settings', () => {
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
     expect(urlInput(el).disabled).toBe(false);
-    expect(row(el, 'link_register_missing').querySelector('mat-slide-toggle button')?.hasAttribute('disabled')).toBe(false);
+    expect(row(el, 'link_register_missing').querySelector('mat-select')?.classList).not.toContain('mat-mdc-select-disabled');
     expect(row(el, 'link_register_missing').textContent).not.toContain('ADMIN_SETTINGS.LINKING_OFF_HINT');
+  });
+
+  describe('the registration dropdown reads what is already stored', () => {
+    const shown = (stored: string | undefined) => {
+      const fixture = create(stored === undefined ? {} : { link_register_missing: stored });
+      return fixture.componentInstance.selectValue(group()!.settings.find(s => s.key === 'link_register_missing')!);
+    };
+    const group = () => SETTING_GROUPS.find(g => g.labelKey === 'ADMIN_SETTINGS.GROUP_LINKED_ACCOUNTS');
+
+    it.each([
+      ['True', 'always'],
+      ['true', 'always'],
+      ['always', 'always'],
+      ['when-qualified', 'when-qualified'],
+      ['False', 'off'],
+      ['false', 'off'],
+      ['off', 'off'],
+      ['', 'off'],
+      [undefined, 'off'],
+    ])('shows %p as %p', (stored, expected) => expect(shown(stored)).toBe(expected));
   });
 
   describe('when one app cannot be linked here', () => {

@@ -12,6 +12,7 @@ public partial class AccountLinkService(
     ISiteSettingService settings,
     ILinkedHumanProvisioner provisioner,
     ILinkedAccount linkedAccount,
+    ITelegramRegistrationCheck registration,
     ILogger<AccountLinkService> logger) : IAccountLinkService
 {
     private readonly IHumanService _humans = humans;
@@ -19,6 +20,7 @@ public partial class AccountLinkService(
     private readonly IAccountLinkRepository _links = links;
     private readonly ILogger<AccountLinkService> _logger = logger;
     private readonly ILinkedHumanProvisioner _provisioner = provisioner;
+    private readonly ITelegramRegistrationCheck _registration = registration;
     private readonly ISiteSettingService _settings = settings;
 
     public async Task<AccountLink> LinkAsync(string callerHumanId, LinkSide newSide, string newId, string newName)
@@ -58,10 +60,27 @@ public partial class AccountLinkService(
                 throw new LinkRefusalException(LinkRefusalCode.TypeMismatch, "That id belongs to something other than a person's account.");
             }
         }
-        else if (await this._settings.GetBoolAsync(AccountLinkKeys.RegisterMissing))
+        else
         {
-            await this._provisioner.CreateMirrorAsync(callerHumanId, newSide, newId, newName);
-            created = true;
+            switch (LinkRegisterModes.Parse(await this._settings.GetValueAsync(AccountLinkKeys.RegisterMissing)))
+            {
+                case LinkRegisterMode.Always:
+                    await this._provisioner.CreateMirrorAsync(callerHumanId, newSide, newId, newName);
+                    created = true;
+                    break;
+                case LinkRegisterMode.WhenQualified when newSide == LinkSide.Telegram:
+                    var verdict = await this.CheckQualifiedAsync(newId);
+                    if (verdict.Qualified)
+                    {
+                        await this._provisioner.CreateMirrorAsync(callerHumanId, newSide, newId, newName, verdict.Communities);
+                        created = true;
+                    }
+
+                    break;
+                default:
+                    // Off, or when-qualified for a Discord side, which has no registration rule here yet: the link waits.
+                    break;
+            }
         }
 
         var now = DateTime.UtcNow;
@@ -163,6 +182,20 @@ public partial class AccountLinkService(
         this._linkedAccount.Invalidate(telegramId);
     }
 
+    private async Task<TelegramQualification> CheckQualifiedAsync(string telegramId)
+    {
+        try
+        {
+            return await this._registration.CheckAsync(telegramId);
+        }
+        catch (Exception ex)
+        {
+            // The check does not throw; if it ever does, the person waits rather than the link failing.
+            LogQualificationFailed(this._logger, ex.GetType().Name);
+            return TelegramQualification.No;
+        }
+    }
+
     private async Task TryRollBackAsync(string newId, LinkSide newSide, string newName)
     {
         try
@@ -177,6 +210,9 @@ public partial class AccountLinkService(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Removing unreadable account link {LinkId}")]
     private static partial void LogRemovingUnreadable(ILogger logger, Exception ex, int linkId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Could not check Telegram registration for a link ({ExceptionType}); the link waits for the person to register")]
+    private static partial void LogQualificationFailed(ILogger logger, string exceptionType);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Could not remove the human created for a link that was then refused; it may be left behind")]
     private static partial void LogRollbackFailed(ILogger logger, Exception ex);
