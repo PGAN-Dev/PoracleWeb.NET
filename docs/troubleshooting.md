@@ -85,7 +85,7 @@ Older releases required Discord and stopped with `Configuration 'Discord:ClientI
 
 **Problem**: Right after signing in you land on the login page with a block explaining that an administrator blocked the account (the error code is `account_disabled`).
 
-**Cause**: Admin > Users has **Block** on for that account. The sign-in itself worked, but `/api/auth/me` answers 401 with that code for a blocked account, and the login page shows the explanation and the site's `support_url` link, if one is set.
+**Cause**: Admin > Users has **Block** on for that account. A Discord or SSO sign-in works, and then `/api/auth/me` answers 401 with that code for a blocked account; the Telegram widget refuses at sign-in with the same 401 and code, and the login page shows the explanation and the site's `support_url` link, if one is set.
 
 **Fix**: An admin lifts it from the account's row menu on Admin > Users. Admins can't block or delete their own account, so a blocked admin needs another admin.
 
@@ -524,7 +524,7 @@ A ready-made `proxy.local.json` is provided for this; start the dev server with 
 
 **Problem**: Login succeeds at the provider but the browser returns to `/login#error=user_not_registered`.
 
-**Solution**: The value carried by the configured identity claim has no matching row in the Poracle `human` table — the SSO user has no Poracle account. PoracleWeb.NET reads `OIDC_IDENTITY_CLAIM` (default `discord_id`, falling back to the standard `sub` claim) and looks that value up as the Poracle human id. To fix:
+**Solution**: The value carried by the configured identity claim has no matching row in the Poracle `human` table — the SSO user has no Poracle account. PoracleWeb.NET reads `OIDC_IDENTITY_CLAIM` (default `discord_id`), then `OIDC_SECONDARY_IDENTITY_CLAIM` when set, falling back to the standard `sub` claim only when neither is present, and looks that value up as the Poracle human id. To fix:
 
 1. Ensure the claim carries the user's Poracle id — a linked Discord or Telegram id, not an internal SSO/email id.
 2. Confirm a matching user actually exists in Poracle (they must have registered with the bot).
@@ -739,22 +739,24 @@ Setup is in [Telegram](configuration/telegram.md) and behaviour in [Linked accou
 **Cause**: The button is drawn only when Telegram sign-in is enabled (set automatically when `TELEGRAM_BOT_TOKEN` and
 `TELEGRAM_BOT_USERNAME` are both set, unless `TELEGRAM_ENABLED=false`), a bot username is known (`TELEGRAM_BOT_USERNAME`,
 or the `telegram_bot` setting when that's empty), and **Enable Telegram login** isn't switched off. A button that
-appears but says "Bot domain invalid" means the bot's domain in @BotFather isn't this site's.
+appears but says "Bot domain invalid" means the bot's domain in @BotFather isn't this site's. A sign-in that
+completes in the widget and is then refused with "Telegram login is currently disabled." (`telegram_disabled`) means
+**Enable Telegram login** was switched off while the page was open; admins can still sign in that way.
 
 **Fix**: Set the three values and restart after `.env` changes. In @BotFather, `/setdomain` with the exact hostname
 people use. The widget works on one domain only.
 
 ### Telegram says the account isn't registered
 
-**Symptom**: Telegram sign-in answers "Your account is not registered", or a linked Telegram card reads
+**Symptom**: Telegram sign-in answers "Your account is not registered" (`user_not_registered`), or a linked Telegram card reads
 "Waiting to register".
 
 **Cause**: PoracleNG has no `telegram:user` for that id. It registers only members of a registration group
 (`[telegram] channels`, or each community's `telegram.channels` with area security).
 
 **Fix**: Join the registration group and send `/poracle` there. Set `telegram_registration_url` so the Linked
-accounts page shows a **Join the Telegram group** button. Or switch on `link_register_missing` so linking creates
-the account.
+accounts page shows a **Join the Telegram group** button. Or set `link_register_missing` to `when-qualified` so linking
+creates the account for people who are already in a registration group (the bot must be in the group), or to `always` to skip the group rule.
 
 ### /start does nothing
 

@@ -22,6 +22,10 @@ mode (Discord / Telegram). Turn it on only when you want to point PoracleWeb.NET
     users through your provider. If the claim doesn't match a registered `human`, login fails with
     [`user_not_registered`](#error-codes). Set `OIDC_IDENTITY_CLAIM` to the userinfo claim that
     carries that id (it falls back to the standard `sub` claim when the configured claim is absent).
+    If your provider carries a Telegram id as well, set `OIDC_SECONDARY_IDENTITY_CLAIM` to it: a member
+    with no Discord login, or whose Discord id isn't registered, then signs in as their Telegram human.
+    The Discord guild-role gate (`enable_roles`) applies to Discord ids only, as it does for the
+    Telegram login widget.
 
 Silent session renewal and refresh-token handling are documented separately on the
 **[OIDC Refresh Tokens](oidc-refresh-tokens.md)** page — this page covers the login itself.
@@ -58,11 +62,12 @@ sequenceDiagram
   this URI at your provider. `{your-host}` comes from the incoming request unless `PUBLIC_URL` is
   set, in which case it is that value — worth setting behind a reverse proxy, where the app
   otherwise sees plain HTTP and sends an `http://` redirect URI the provider will refuse.
-- Identity resolution. The configured identity claim (falling back to `sub`) is looked up
-  against the Poracle `human` table. The provider authenticates; Poracle authorizes.
-- JWT type claim. Successful logins mint PoracleWeb.NET's internal JWT with the `type` claim set
-  to `OIDC_IDENTITY_TYPE` (default `discord:user`), so admin/role resolution treats the passed-through
-  Discord id consistently with a direct Discord login.
+- Identity resolution. The identity claim is looked up against Poracle's humans first, then
+  `OIDC_SECONDARY_IDENTITY_CLAIM` when the first is absent or names nobody registered, then `sub`
+  when neither claim is present. The provider authenticates; Poracle authorizes.
+- JWT type claim. Successful logins mint PoracleWeb.NET's internal JWT with the `type` claim taken
+  from the matched Poracle row (`telegram:user` for a Telegram id). `OIDC_IDENTITY_TYPE` (default
+  `discord:user`) is used only for a row that has no type of its own.
 
 ---
 
@@ -113,10 +118,11 @@ effect. The provider secret is **never stored in the database** and is only ever
 | `OIDC_CLIENT_ID` | `Oidc__ClientId` | `""` | OAuth2 client id. |
 | `OIDC_CLIENT_SECRET` | `Oidc__ClientSecret` | `""` | OAuth2 client secret. **Never stored in the database**; returned masked by the admin config endpoint. |
 | `OIDC_SCOPES` | `Oidc__Scopes` | `openid profile email` | Space-delimited OAuth scopes requested at authorization time. |
-| `OIDC_IDENTITY_CLAIM` | `Oidc__IdentityClaim` | `discord_id` | Userinfo claim whose value is the user's Poracle `human` id (a Discord/Telegram id). Falls back to `sub` when the configured claim is absent. **Must resolve to an existing `human`** — see [the inherent constraint](#external-sso-openid-connect-login). |
+| `OIDC_IDENTITY_CLAIM` | `Oidc__IdentityClaim` | `discord_id` | Userinfo claim whose value is the user's Poracle `human` id (a Discord/Telegram id). Falls back to `sub` when neither identity claim is present. **Must resolve to an existing `human`** — see [the inherent constraint](#external-sso-openid-connect-login). |
+| `OIDC_SECONDARY_IDENTITY_CLAIM` | `Oidc__SecondaryIdentityClaim` | `""` | **Optional.** A second userinfo claim holding a Poracle `human` id, tried when `OIDC_IDENTITY_CLAIM` is absent or names nobody registered. Set it to the provider's Telegram id claim (`telegram_id` on PogoAlerts) so a member with only a Telegram login signs in as their `telegram:user` human. |
 | `OIDC_USERNAME_CLAIM` | `Oidc__UsernameClaim` | `preferred_username` | Userinfo claim used as the display username. |
 | `OIDC_AVATAR_CLAIM` | `Oidc__AvatarClaim` | `picture` | Userinfo claim used as the avatar URL. |
-| `OIDC_IDENTITY_TYPE` | `Oidc__IdentityType` | `discord:user` | Value written to the JWT `type` claim for SSO logins. |
+| `OIDC_IDENTITY_TYPE` | `Oidc__IdentityType` | `discord:user` | JWT `type` claim for an SSO login whose Poracle row has no `discord:user`/`telegram:user` type of its own. A row that has one wins. |
 | `OIDC_USE_PKCE` | `Oidc__UsePkce` | `true` | Use PKCE (S256) for the authorization-code exchange. Recommended. |
 | `AUTH_FORCE_LOCAL` | `Auth__ForceLocal` | `false` | **Break-glass.** Forces the local login page regardless of SSO mode — see [Break-glass](#break-glass-auth_force_local). |
 
@@ -205,7 +211,7 @@ message.
 | `oidc_disabled` | OIDC is not configured at all, **or** a non-admin user attempted SSO while `enable_oidc=false`. |
 | `oidc_token_exchange_failed` | The `/token` code exchange failed (bad client secret, wrong redirect URI, expired code, auth-method mismatch). |
 | `oidc_userinfo_failed` | The `/userinfo` call failed or returned no usable body. |
-| `oidc_no_identity` | Neither the configured `OIDC_IDENTITY_CLAIM` nor the fallback `sub` claim was present in userinfo. |
+| `oidc_no_identity` | None of `OIDC_IDENTITY_CLAIM`, `OIDC_SECONDARY_IDENTITY_CLAIM` (when set) or the fallback `sub` claim was present in userinfo. |
 | `user_not_registered` | The identity claim resolved, but no matching Poracle `human` exists. Register the user in Poracle first (the [inherent constraint](#external-sso-openid-connect-login)). |
 | `not_in_guild` | Role gating reused from the Discord path: the (Discord) user isn't in the configured guild. |
 | `missing_required_role` | Role gating: the user has none of the allowed roles. |

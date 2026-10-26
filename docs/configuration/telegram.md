@@ -72,7 +72,7 @@ There are three ways a `telegram:user` comes to exist.
 |---|---|---|
 | `/poracle` in a registration group | Sends `/poracle` in the group | The standard route. PoracleNG creates the account (enabled, default profile, community when area security is on), reacts ✅, posts `group_welcome_text` in the group and DMs `bot_welcome_text` |
 | `/start` in a DM | Presses **Start** in a chat with the bot | Registers only when `register_on_start = true` **and** the person is already in a registration group |
-| Created by an admin | Nothing | PoracleNG's API, the operator's own tools, or PoracleWeb.NET's [`link_register_missing`](#linking-with-a-missing-account). Skips the group rule |
+| Created by an admin | Nothing | PoracleNG's API, the operator's own tools, or PoracleWeb.NET's [`link_register_missing`](#linking-with-a-missing-account) set to `always`. Skips the group rule (`when-qualified` keeps it) |
 
 What `/poracle` and `/start` say when they don't register someone:
 
@@ -187,8 +187,12 @@ settings are under **Admin > Server settings > Linked accounts**.
 
 **Register the other account when linking** (`link_register_missing`) is off by default. Off, someone who
 links a Telegram account PoracleNG doesn't know sees it as "Waiting to register" until they send `/poracle`
-in the group. On, PoracleWeb.NET creates the `telegram:user` straight away and copies areas, location,
-profiles (on the same numbers) and saved places from the Discord account. That skips the group rule. With
+in the group. Always, PoracleWeb.NET creates the `telegram:user` straight away and copies areas, location,
+profiles (on the same numbers) and saved places from the Discord account. That skips the group rule.
+When qualified follows the group rule: PoracleWeb.NET asks Telegram whether the person is in one of the
+registration groups from PoracleNG's config (`[telegram] channels`, or each community's `telegram.channels`
+with area security, recording those communities on the new account) and creates the account only if they are.
+The bot has to be in each group for Telegram to answer. Anyone it doesn't admit keeps waiting. With
 `role_check_mode` set to `disable-user` or `delete` and `check_role` on, the next check switches off or
 deletes an account created this way unless the person also joins a registration group.
 
