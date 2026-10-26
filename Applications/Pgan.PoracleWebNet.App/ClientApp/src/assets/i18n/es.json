@@ -1928,7 +1928,10 @@
     "HINT": "Formato del mensaje de notificación",
     "HIDE_OPTIONS": "Ocultar opciones",
     "PREVIEW_OPTIONS": "Opciones de vista previa",
-    "MAP_PREVIEW": "Vista previa del mapa"
+    "MAP_PREVIEW": "Vista previa del mapa",
+    "TELEGRAM_PREVIEW": "Vista previa del mensaje de Telegram",
+    "TELEGRAM_STICKER": "Se envía un sticker antes del mensaje",
+    "TELEGRAM_LOCATION": "Se envía una ubicación después del mensaje"
   },
   "TEMPLATE": {
     "COND_BOOST_WEATHER": "Potenciado por el clima",

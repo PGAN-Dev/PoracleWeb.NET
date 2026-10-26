@@ -1928,7 +1928,10 @@
     "HINT": "Notifikationsmeddelandeformat",
     "HIDE_OPTIONS": "Dölj alternativ",
     "PREVIEW_OPTIONS": "Förhandsvisningsalternativ",
-    "MAP_PREVIEW": "Kartförhandsvisning"
+    "MAP_PREVIEW": "Kartförhandsvisning",
+    "TELEGRAM_PREVIEW": "Förhandsvisning av Telegram-meddelande",
+    "TELEGRAM_STICKER": "Ett klistermärke skickas före meddelandet",
+    "TELEGRAM_LOCATION": "En platsnål skickas efter meddelandet"
   },
   "TEMPLATE": {
     "COND_BOOST_WEATHER": "Väderboostad",

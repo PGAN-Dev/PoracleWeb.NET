@@ -1928,7 +1928,10 @@
     "HINT": "Notifikationsbeskedformat",
     "HIDE_OPTIONS": "Skjul indstillinger",
     "PREVIEW_OPTIONS": "Forhåndsvisningsindstillinger",
-    "MAP_PREVIEW": "Kort-forhåndsvisning"
+    "MAP_PREVIEW": "Kort-forhåndsvisning",
+    "TELEGRAM_PREVIEW": "Forhåndsvisning af Telegram-besked",
+    "TELEGRAM_STICKER": "Et klistermærke sendes før beskeden",
+    "TELEGRAM_LOCATION": "En placeringsnål sendes efter beskeden"
   },
   "TEMPLATE": {
     "COND_BOOST_WEATHER": "Vejrboostet",

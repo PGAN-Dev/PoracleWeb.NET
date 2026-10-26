@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Component, EventEmitter, Input, OnInit, Output, inject, signal, computed, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -14,6 +15,7 @@ import { ConfigService } from '../../../core/services/config.service';
 import { IconService } from '../../../core/services/icon.service';
 import { SettingsService } from '../../../core/services/settings.service';
 import { TemplateService } from '../../../core/services/template.service';
+import { TgNode, normalizeParseMode, parseTelegram } from '../../utils/telegram-preview';
 
 interface DtsRaw {
   id: number;
@@ -29,6 +31,10 @@ interface DtsRaw {
       footer?: { text: string; icon_url?: string };
     };
     content?: string;
+    location?: boolean;
+    parse_mode?: string;
+    sticker?: string;
+    webpage_preview?: boolean;
   };
   type: string;
 }
@@ -67,6 +73,7 @@ const CONDITION_I18N_KEYS: Record<string, string> = {
     MatSlideToggleModule,
     MatChipsModule,
     MatButtonModule,
+    NgTemplateOutlet,
     TranslatePipe,
   ],
   selector: 'app-template-selector',
@@ -89,20 +96,23 @@ export class TemplateSelectorComponent implements OnInit {
 
   conditionState = signal<Record<string, boolean>>({});
   dtsEntries = signal<DtsRaw[]>([]);
+  platform = computed(() => (this.auth.user()?.type?.startsWith('telegram') ? 'telegram' : 'discord'));
   @Input() value = '';
-  currentEmbed = computed(() => {
+  currentTemplate = computed(() => {
     const entries = this.dtsEntries();
-    const platform = this.auth.user()?.type?.startsWith('telegram') ? 'telegram' : 'discord';
+    const platform = this.platform();
     const id = parseInt(this.value || '1', 10) || 1;
     const match =
       entries.find(e => e.type === this.alarmType && e.platform === platform && e.id === id) ||
       entries.find(e => e.type === this.alarmType && e.platform === platform);
-    return match?.template?.embed || null;
+    return match?.template ?? null;
   });
 
-  footerIcon = computed(() => this.currentEmbed()?.footer?.icon_url || '');
-  hasFooterIcon = computed(() => !!this.currentEmbed()?.footer?.icon_url);
+  currentEmbed = computed(() => this.currentTemplate()?.embed || null);
 
+  footerIcon = computed(() => this.currentEmbed()?.footer?.icon_url || '');
+
+  hasFooterIcon = computed(() => !!this.currentEmbed()?.footer?.icon_url);
   hasImage = computed(() => !!this.currentEmbed()?.image?.url);
 
   hasThumbnail = computed(() => !!this.currentEmbed()?.thumbnail?.url);
@@ -128,6 +138,22 @@ export class TemplateSelectorComponent implements OnInit {
     };
   });
 
+  /** A Telegram template's message text. Discord users never get one, so their preview is unchanged. */
+  telegramSource = computed(() => {
+    const template = this.currentTemplate();
+    if (this.platform() !== 'telegram' || !template || typeof template.content !== 'string' || !template.content.trim()) return null;
+    return template as typeof template & { content: string };
+  });
+
+  renderedTelegram = computed(() => {
+    const source = this.telegramSource();
+    if (!source) return null;
+    const text = this.evalHandlebars(this.sub(source.content), this.conditionState());
+    // A template that renders to nothing is shown as written, so the preview is never an empty bubble.
+    const nodes: TgNode[] = text ? parseTelegram(text, normalizeParseMode(source.parse_mode)) : parseTelegram(source.content, null);
+    return { location: source.location === true, nodes, sticker: !!source.sticker };
+  });
+
   showToggles = signal(false);
   templates = signal<(string | number)[]>([]);
   templatesEnabled = computed(() => this.settings.siteSettings()['enable_templates']?.toLowerCase() === 'true');
@@ -136,13 +162,13 @@ export class TemplateSelectorComponent implements OnInit {
   constructor() {
     // When the embed changes, extract conditions
     effect(() => {
-      const embed = this.currentEmbed();
-      if (!embed) {
+      const source = this.currentEmbed() ?? this.telegramSource()?.content;
+      if (!source) {
         this.conditions.set([]);
         return;
       }
 
-      const raw = JSON.stringify(embed);
+      const raw = JSON.stringify(source);
       const condNames = new Set<string>();
 
       // Extract {{#if condName}} patterns

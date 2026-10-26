@@ -1928,7 +1928,10 @@
     "HINT": "Notification message format",
     "HIDE_OPTIONS": "Hide options",
     "PREVIEW_OPTIONS": "Preview options",
-    "MAP_PREVIEW": "Map preview"
+    "MAP_PREVIEW": "Map preview",
+    "TELEGRAM_PREVIEW": "Telegram message preview",
+    "TELEGRAM_STICKER": "A sticker is sent before the message",
+    "TELEGRAM_LOCATION": "A location pin is sent after the message"
   },
   "TEMPLATE": {
     "COND_BOOST_WEATHER": "Weather boosted",
