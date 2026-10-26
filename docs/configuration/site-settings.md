@@ -270,7 +270,7 @@ Access control.
 
 | Key | Label | Type | Description |
 |---|---|---|---|
-| `enable_roles` | Enable Role-Based Access | boolean | Only allow users with specific Discord roles to log in. Requires `Discord:BotToken` and `Discord:GuildId` in [appsettings](reference.md). |
+| `enable_roles` | Enable Role-Based Access | boolean | Only allow users with specific Discord roles to log in. It applies to Discord sign-in only: Telegram sign-in doesn't check it, and a Telegram user's access follows Poracle's own registration. Requires `Discord:BotToken` and `Discord:GuildId` in [appsettings](reference.md). |
 | `allowed_role_ids` | Allowed Role IDs | csv | Comma-separated Discord role IDs (e.g., `123456789,987654321`). A user needs **at least one** of these roles to log in. Leave empty to allow all. Only visible when `enable_roles` is enabled. |
 | `delegation_poracle_channels` | Let Poracle's channel admins manage here | boolean | Off when unset. When on, anyone PoracleNG lists in `[[discord.delegated_admins]]` or `[[telegram.delegated_admins]]` as admin of a channel can manage that channel's alarms here as a delegate, provided the channel is registered as a destination on this site. A guild-wide entry covers only the registered channels. Saving it takes effect straight away rather than after the one-minute role cache. See [Letting Poracle's channel admins manage here](../features/webhooks.md#letting-poracles-channel-admins-manage-here). |
 
