@@ -8,6 +8,14 @@ This line is unofficial and unsupported by PoracleWeb.NET releases. Report probl
 
 ## [Unreleased]
 
+## [3.3.0-shiny.1] - 2026-10-26
+
+Based on PoracleWeb.NET 3.3.0. Needs the same PoracleNG as 3.2.0-shiny.1: `feat/personal-shiny` ([jfberry/PoracleNG#255](https://github.com/jfberry/PoracleNG/pull/255)) rebased on 5.4.0, tested against the `ghcr.io/jfberry/poracleng:feat-personal-shiny` image built on 24 October 2026 from `30912156` (`sha256:589c1db80a489a894a1aa307d9f6bd35369df9b02007e4ff941f069e743250b9`). The 22 October build from `3104d18d` still works; earlier `feat/personal-shiny` builds, and PoracleNG `main`, are not supported.
+
+### Changed
+
+- **Rebased onto PoracleWeb.NET 3.3.0.** It makes Telegram a full sign-in: SSO for Telegram-only accounts, sign-in refusals that say why, Telegram template previews, Telegram profile photos, and a When qualified (Telegram) choice for creating the missing account when someone links. Nothing in the personal shiny controls changes. See [CHANGELOG.md](CHANGELOG.md) for details.
+
 ## [3.2.0-shiny.1] - 2026-10-25
 
 Based on PoracleWeb.NET 3.2.0. Needs PoracleNG `feat/personal-shiny` ([jfberry/PoracleNG#255](https://github.com/jfberry/PoracleNG/pull/255)) rebased on 5.4.0, tested against the `ghcr.io/jfberry/poracleng:feat-personal-shiny` image built on 24 October 2026 from `30912156` (`sha256:589c1db80a489a894a1aa307d9f6bd35369df9b02007e4ff941f069e743250b9`). The 22 October build from `3104d18d` still works; earlier `feat/personal-shiny` builds, and PoracleNG `main`, are not supported.
