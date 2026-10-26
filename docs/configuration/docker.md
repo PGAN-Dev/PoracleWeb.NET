@@ -62,7 +62,7 @@ Outbound to the internet:
 Mounted at `DATA_DIR` (`/app/data` in the image). It persists:
 
 - DataProtection keys. These encrypt the stored OIDC refresh tokens, so losing them signs every SSO user out on the next container recreate.
-- Cached Discord avatars
+- Cached avatars (Discord, and Telegram profile photos)
 - Cached DTS template files
 
 See [Paths](reference.md#paths) for the environment variables behind these.

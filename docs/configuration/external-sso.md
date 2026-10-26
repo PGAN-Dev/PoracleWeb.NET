@@ -62,11 +62,12 @@ sequenceDiagram
   this URI at your provider. `{your-host}` comes from the incoming request unless `PUBLIC_URL` is
   set, in which case it is that value — worth setting behind a reverse proxy, where the app
   otherwise sees plain HTTP and sends an `http://` redirect URI the provider will refuse.
-- Identity resolution. The configured identity claim (falling back to `sub`) is looked up
-  against the Poracle `human` table. The provider authenticates; Poracle authorizes.
-- JWT type claim. Successful logins mint PoracleWeb.NET's internal JWT with the `type` claim set
-  to `OIDC_IDENTITY_TYPE` (default `discord:user`), so admin/role resolution treats the passed-through
-  Discord id consistently with a direct Discord login.
+- Identity resolution. The identity claim is looked up against Poracle's humans first, then
+  `OIDC_SECONDARY_IDENTITY_CLAIM` when the first is absent or names nobody registered, then `sub`
+  when neither claim is present. The provider authenticates; Poracle authorizes.
+- JWT type claim. Successful logins mint PoracleWeb.NET's internal JWT with the `type` claim taken
+  from the matched Poracle row (`telegram:user` for a Telegram id). `OIDC_IDENTITY_TYPE` (default
+  `discord:user`) is used only for a row that has no type of its own.
 
 ---
 
