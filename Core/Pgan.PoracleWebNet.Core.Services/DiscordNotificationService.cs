@@ -216,7 +216,7 @@ public partial class DiscordNotificationService(
                 applied_tags = TagsFor(post.State),
                 message = new
                 {
-                    content = $"<@{post.UserId}> submitted an area for review.\n\n"
+                    content = $"{SubmitterLabel(post)} submitted an area for review.\n\n"
                         + "Please share any context about it (community day spot, park, popular route, etc.)",
                     embeds = new object[] { BuildEmbed(post, mapImageBytes != null) },
                     attachments = AttachmentsFor(mapImageBytes),
@@ -316,6 +316,15 @@ public partial class DiscordNotificationService(
     /// Builds the review card. Field order is the reading order a reviewer needs: how big, where, what it
     /// would be called. Vertex count is deliberately absent -- it never changes an approve/reject decision.
     /// </summary>
+    /// <summary>
+    /// A Discord submitter is mentioned so the name is clickable. A mention of a Telegram id renders as an
+    /// unknown user, so anyone else is named instead. An unreadable type keeps the mention.
+    /// </summary>
+    private static string SubmitterLabel(GeofenceSubmissionPost post) =>
+        post.UserType is null || post.UserType.StartsWith("discord", StringComparison.OrdinalIgnoreCase)
+            ? $"<@{post.UserId}>"
+            : string.IsNullOrWhiteSpace(post.UserName) ? "A member" : post.UserName;
+
     private static object BuildEmbed(GeofenceSubmissionPost post, bool hasAttachment)
     {
         var fields = new List<object>

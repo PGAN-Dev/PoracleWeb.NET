@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Telegram admins are marked as admins in Admin > Users.** The list read only the Discord admins from Poracle's config. The real admin check already counted Telegram, so this was display only (#1027).
+- **Telegram people show their own photo, and nobody without one gets Discord's artwork.** Telegram sign-in now caches the photo Telegram sends (https only), as the Discord and SSO paths already did. An account with no photo, Telegram or otherwise, draws its initial instead of Discord's default image. The site's image policy already allows https images, so no header change was needed (#1027).
+- **Geofence review posts no longer `@mention` a Telegram submitter.** A Discord mention of a Telegram id renders as an unknown user, so the post names them instead. Discord submitters are still mentioned (#1027).
+
 ### Added
 
 - **SSO sign-in for Telegram-only accounts.** A new optional setting, `OIDC_SECONDARY_IDENTITY_CLAIM`, names a second userinfo claim holding a Poracle id. It's tried when `OIDC_IDENTITY_CLAIM` is absent or names nobody registered, so with `telegram_id` a member whose provider account has only a Telegram login signs in as their Telegram human instead of getting `user_not_registered`. An SSO session now takes its account type from the Poracle row (`telegram:user` for a Telegram id) and falls back to `OIDC_IDENTITY_TYPE` only for a row that has none, and the Discord guild-role gate applies to Discord ids only, as it already did for the Telegram login widget. Admin > Server settings shows the new claim. Unset, nothing changes. [External SSO](docs/configuration/external-sso.md) covers it.

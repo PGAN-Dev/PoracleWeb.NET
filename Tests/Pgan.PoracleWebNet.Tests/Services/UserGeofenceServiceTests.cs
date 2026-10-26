@@ -488,6 +488,22 @@ public class UserGeofenceServiceTests
     }
 
     [Fact]
+    public async Task SubmitForReviewAsyncPassesTheSubmittersTypeToThePost()
+    {
+        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown", Status = "active", PolygonJson = "[[1,2],[3,4],[5,6]]" };
+        this._repository.Setup(r => r.GetByKojiNameAsync("downtown")).ReturnsAsync(geofence);
+        this._repository.Setup(r => r.UpdateAsync(It.IsAny<UserGeofence>())).ReturnsAsync((UserGeofence g) => g);
+        this._humanService.Setup(h => h.GetByIdAsync("u1")).ReturnsAsync(new Human { Id = "u1", Name = "TgUser", Type = "telegram:user" });
+        this._discordNotificationService.Setup(d => d.CreateGeofenceSubmissionPostAsync(
+            It.Is<GeofenceSubmissionPost>(p => p.UserType == "telegram:user" && p.UserName == "TgUser")))
+            .ReturnsAsync("thread_789");
+
+        var result = await this._sut.SubmitForReviewAsync("u1", "downtown");
+
+        Assert.Equal("thread_789", result.DiscordThreadId);
+    }
+
+    [Fact]
     public async Task SubmitForReviewAsyncThrowsWhenNotOwned()
     {
         var geofence = new UserGeofence { Id = 1, HumanId = "other_user", KojiName = "downtown", Status = "active" };

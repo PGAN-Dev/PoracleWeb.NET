@@ -660,6 +660,9 @@ public partial class AuthController(
         var username = telegramData.GetValueOrDefault("username",
             telegramData.GetValueOrDefault("first_name", "Unknown"));
         var photoUrl = telegramData.GetValueOrDefault("photo_url");
+        // The widget's data is HMAC-verified, so the URL is Telegram's own. Cache it (as the Discord and OIDC
+        // paths do) so Admin > Users shows the photo; a value that isn't https is dropped from both places.
+        photoUrl = Services.AvatarCacheService.TryCacheProfilePhoto(telegramId, photoUrl) ? photoUrl : null;
 
         // Look up user in DB
         var human = await this._humanService.GetByIdAsync(telegramId);
