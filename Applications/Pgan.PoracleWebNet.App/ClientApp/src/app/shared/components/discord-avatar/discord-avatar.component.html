@@ -1,1 +1,5 @@
-<img [src]="resolvedUrl" [alt]="alt" class="avatar-img" (error)="onError($event)" loading="lazy" />
+@if (resolvedUrl) {
+  <img [src]="resolvedUrl" [alt]="alt" class="avatar-img" (error)="onError()" loading="lazy" />
+} @else {
+  <span class="avatar-initial" role="img" [attr.aria-label]="alt || null" [attr.aria-hidden]="alt ? null : 'true'">{{ initial }}</span>
+}

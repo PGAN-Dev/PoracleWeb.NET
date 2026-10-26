@@ -58,7 +58,7 @@
             <div class="user-name-cell">
               <app-discord-avatar
                 [userId]="user.id"
-                [defaultUrl]="user.avatarUrl || 'https://cdn.discordapp.com/embed/avatars/0.png'"
+                [defaultUrl]="user.avatarUrl || ''"
                 [userType]="user.type || ''"
                 [alt]="user.name || ('ADMIN.UNNAMED' | translate)">
               </app-discord-avatar>

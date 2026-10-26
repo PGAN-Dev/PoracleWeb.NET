@@ -10,6 +10,12 @@ public sealed record GeofenceSubmissionPost
     public required string UserId { get; init; }
 
     /// <summary>
+    /// The submitter's human type (<c>discord:user</c>, <c>telegram:user</c>), or null when it could not be read.
+    /// Only a Discord submitter can be mentioned; null keeps the mention, as before.
+    /// </summary>
+    public string? UserType { get; init; }
+
+    /// <summary>
     /// Display name of the submitter, shown in the embed author block. Null when it could not be resolved,
     /// in which case the author block is omitted rather than showing a raw Discord ID.
     /// </summary>

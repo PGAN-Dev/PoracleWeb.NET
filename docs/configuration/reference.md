@@ -74,10 +74,11 @@ The provider is enabled automatically when `OIDC_CLIENT_ID` plus all three of `O
 | Client ID | `OIDC_CLIENT_ID` | `Oidc__ClientId` | `""` | OAuth2 client ID. |
 | Client Secret | `OIDC_CLIENT_SECRET` | `Oidc__ClientSecret` | `""` | OAuth2 client secret. Read from config only — never stored in the database. |
 | Scopes | `OIDC_SCOPES` | `Oidc__Scopes` | `openid profile email` | Space-delimited OAuth scopes requested at authorization time. |
-| Identity Claim | `OIDC_IDENTITY_CLAIM` | `Oidc__IdentityClaim` | `discord_id` | UserInfo claim whose value maps to the Poracle human id (a Discord/Telegram id). Falls back to `sub` when the configured claim is absent. |
+| Identity Claim | `OIDC_IDENTITY_CLAIM` | `Oidc__IdentityClaim` | `discord_id` | UserInfo claim whose value maps to the Poracle human id (a Discord/Telegram id). Falls back to `sub` when neither identity claim is present. |
+| Secondary Identity Claim | `OIDC_SECONDARY_IDENTITY_CLAIM` | `Oidc__SecondaryIdentityClaim` | `""` | Optional second claim holding a Poracle human id (e.g. `telegram_id`), tried when the first is absent or names nobody registered. |
 | Username Claim | `OIDC_USERNAME_CLAIM` | `Oidc__UsernameClaim` | `preferred_username` | UserInfo claim used as the display username. |
 | Avatar Claim | `OIDC_AVATAR_CLAIM` | `Oidc__AvatarClaim` | `picture` | UserInfo claim used as the avatar URL. |
-| Identity Type | `OIDC_IDENTITY_TYPE` | `Oidc__IdentityType` | `discord:user` | Value written to the JWT `type` claim for users logging in via this provider. |
+| Identity Type | `OIDC_IDENTITY_TYPE` | `Oidc__IdentityType` | `discord:user` | JWT `type` claim for an SSO login whose Poracle row has no `discord:user`/`telegram:user` type of its own. |
 | Use PKCE | `OIDC_USE_PKCE` | `Oidc__UsePkce` | `true` | Use PKCE (Proof Key for Code Exchange) for the authorization-code flow. |
 | Force Local Login | `AUTH_FORCE_LOCAL` | `Auth__ForceLocal` | `false` | Break-glass override forcing the local login page regardless of the SSO mode. Recovery path when an admin switches to OIDC against a broken/unreachable provider and gets locked out. |
 

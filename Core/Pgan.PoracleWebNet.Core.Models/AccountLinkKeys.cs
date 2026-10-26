@@ -7,7 +7,7 @@ public static class AccountLinkKeys
 
     public const string TelegramUserType = "telegram:user";
 
-    /// <summary>Site setting: create the missing side's human when a link is made. Boolean, absent means false.</summary>
+    /// <summary>Site setting: whether to create the missing side's human when a link is made, as a <see cref="LinkRegisterMode"/> read by <see cref="LinkRegisterModes.Parse"/>. It was a boolean before it had three values: "true" reads as always, "false" or absent as off.</summary>
     public const string RegisterMissing = "link_register_missing";
 
     public static string Wire(LinkSide side) => side == LinkSide.Discord ? "discord" : "telegram";

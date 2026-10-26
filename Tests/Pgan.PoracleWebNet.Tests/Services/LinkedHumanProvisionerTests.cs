@@ -127,6 +127,26 @@ public class LinkedHumanProvisionerTests
     }
 
     [Fact]
+    public async Task CreateMirror_WithCommunities_RecordsThoseNotTheSourcesOwn()
+    {
+        // A qualified Telegram registration records the communities Telegram placed the person in; the Discord
+        // person's own membership (northside, by guild role) says nothing about their Telegram groups.
+        await this._sut.CreateMirrorAsync(Discord, LinkSide.Telegram, Telegram, "Riverside", ["river", "hill"]);
+
+        var body = this._createBody!.Value;
+        Assert.Equal(["river", "hill"], body.GetProperty("community").EnumerateArray().Select(a => a.GetString()).ToArray());
+        Assert.All(body.EnumerateObject().Select(p => p.Name), n => Assert.Contains(n, _declared));
+    }
+
+    [Fact]
+    public async Task CreateMirror_WithNoCommunities_SendsAnEmptyList_NotTheSourcesOwn()
+    {
+        await this._sut.CreateMirrorAsync(Discord, LinkSide.Telegram, Telegram, "Riverside", []);
+
+        Assert.Empty(this._createBody!.Value.GetProperty("community").EnumerateArray());
+    }
+
+    [Fact]
     public async Task ContiguousSource_MirrorsEveryProfileNumber()
     {
         await this._sut.CreateMirrorAsync(Discord, LinkSide.Telegram, Telegram, "Riverside");

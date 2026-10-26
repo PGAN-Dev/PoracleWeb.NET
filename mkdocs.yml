@@ -8,6 +8,7 @@ edit_uri: edit/main/docs/
 # Implementation plans and design specs live beside the docs for history; they aren't user documentation.
 exclude_docs: |
   superpowers/
+  file-locations.md
 
 theme:
   name: material

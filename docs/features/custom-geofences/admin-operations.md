@@ -61,7 +61,7 @@ You can have PoracleWeb.NET open a **Discord forum thread** for each submission,
 | **Location** | Centroid coordinates with a maps link. Matters most when the region wasn't detected. |
 | **Already covered by** | Only shown when the area's centre falls inside an existing public area, naming it, so duplicates are visible without opening a map. It's a centre-point test, not a true overlap measurement — a partial overlap won't trigger it. |
 
-The submitter appears in the card's author line, with a clickable mention in the message above it. The map is uploaded to Discord as an attachment rather than linked, so it doesn't expire when the tile server drops its cached copy.
+The submitter appears in the card's author line, with a clickable mention in the message above it. A Telegram submitter is named in plain text instead, since Discord shows a mention of a Telegram id as an unknown user. The map is uploaded to Discord as an attachment rather than linked, so it doesn't expire when the tile server drops its cached copy.
 
 The colour bar tracks state: **amber** while pending, **green** approved, **red** rejected.
 

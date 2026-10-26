@@ -20,6 +20,9 @@ const SILENT_URL_PATTERNS = [
   '/api/config',
   '/api/masterdata',
   '/api/auth/me',
+  // The login page words every Telegram refusal itself (not registered, switched off, blocked, a channel
+  // id), so a toast on top said it twice. See #1027.
+  '/api/auth/telegram/verify',
   '/api/auth/providers',
   '/api/admin/users/avatars',
   '/api/settings',

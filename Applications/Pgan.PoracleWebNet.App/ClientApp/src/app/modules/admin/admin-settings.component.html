@@ -204,6 +204,17 @@
                 <mat-divider></mat-divider>
                 <div class="server-config-row">
                   <div class="setting-info">
+                    <span class="setting-label">{{ 'ADMIN_SETTINGS.OIDC_SECONDARY_IDENTITY_CLAIM_LABEL' | translate }}</span>
+                  </div>
+                  <div class="server-config-value">
+                    <code [class.empty]="!oidc.secondaryIdentityClaim">{{
+                      oidc.secondaryIdentityClaim || ('ADMIN.NOT_CONFIGURED' | translate)
+                    }}</code>
+                  </div>
+                </div>
+                <mat-divider></mat-divider>
+                <div class="server-config-row">
+                  <div class="setting-info">
                     <span class="setting-label">{{ 'ADMIN_SETTINGS.OIDC_USE_PKCE_LABEL' | translate }}</span>
                   </div>
                   <div class="server-config-value">
@@ -270,7 +281,8 @@
                       <mat-form-field appearance="outline" class="setting-field">
                         <mat-select
                           [aria-label]="meta.labelKey | translate"
-                          [ngModel]="getSettingValue(meta.key) ?? ''"
+                          [disabled]="isSettingLocked(meta)"
+                          [ngModel]="selectValue(meta)"
                           (ngModelChange)="onTextChange(meta.key, $event)">
                           @for (option of meta.options ?? []; track option.value) {
                             <mat-option [value]="option.value">{{ optionLabel(option) }}</mat-option>

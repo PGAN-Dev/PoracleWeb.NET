@@ -495,6 +495,54 @@ describe('LoginComponent', () => {
       expect(component['error']()).toBe('AUTH.ERR_DESTINATION_ACCOUNT');
     });
 
+    it.each([
+      ['user_not_registered', 'AUTH.ERR_NOT_REGISTERED'],
+      ['telegram_disabled', 'AUTH.ERR_TELEGRAM_DISABLED'],
+    ])('names the %s refusal from Telegram sign-in', (code, key) => {
+      setup();
+      (TestBed.inject(AuthService).loginWithTelegram as jest.Mock).mockReturnValue(throwError(() => ({ error: { code }, status: 403 })));
+      fixture.detectChanges();
+      component['handleTelegramAuth']({ id: '1' });
+      expect(component['error']()).toBe(key);
+    });
+
+    it('shows the disabled-account block, with its support link, for a blocked Telegram account', () => {
+      setup();
+      (TestBed.inject(AuthService).loginWithTelegram as jest.Mock).mockReturnValue(
+        throwError(() => ({ error: { code: 'account_disabled', supportUrl: 'https://example.com/support' }, status: 401 })),
+      );
+      fixture.detectChanges();
+      component['handleTelegramAuth']({ id: '1' });
+      fixture.detectChanges();
+      expect(component['accountDisabled']()).toBe(true);
+      expect(component['error']()).toBeNull();
+      expect(fixture.nativeElement.querySelector('.disabled-message .support-link').getAttribute('href')).toBe(
+        'https://example.com/support',
+      );
+    });
+
+    it('shows the disabled-account block with no link when none is set', () => {
+      setup();
+      (TestBed.inject(AuthService).loginWithTelegram as jest.Mock).mockReturnValue(
+        throwError(() => ({ error: { code: 'account_disabled', supportUrl: null }, status: 401 })),
+      );
+      fixture.detectChanges();
+      component['handleTelegramAuth']({ id: '1' });
+      fixture.detectChanges();
+      expect(component['accountDisabled']()).toBe(true);
+      expect(fixture.nativeElement.querySelector('.disabled-message .support-link')).toBeNull();
+    });
+
+    it('sends an enabled Telegram user to the dashboard and shows no disabled block', () => {
+      setup();
+      (TestBed.inject(AuthService).loginWithTelegram as jest.Mock).mockReturnValue(of({}));
+      fixture.detectChanges();
+      component['handleTelegramAuth']({ id: '1' });
+      expect(component['accountDisabled']()).toBe(false);
+      expect(component['error']()).toBeNull();
+      expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(['/dashboard']);
+    });
+
     it('keeps the generic Telegram message for any other failure', () => {
       setup();
       (TestBed.inject(AuthService).loginWithTelegram as jest.Mock).mockReturnValue(

@@ -92,6 +92,94 @@ public class AuthControllerOidcTests : ControllerTestBase
         this._jwtService.Verify(j => j.GenerateToken(It.IsAny<UserInfo>(), It.IsAny<int>()), Times.Never);
     }
 
+    [Fact]
+    public async Task OidcCallbackSignsInATelegramOnlyAccountThroughTheSecondaryClaim()
+    {
+        this.UserInfo("{\"sub\":\"42\",\"telegram_id\":\"555000111\",\"preferred_username\":\"tg\"}");
+        this.SetupHuman("555000111", "telegram:user");
+        var sut = this.Build(Settings(secondary: "telegram_id"), callbackCookies: true);
+
+        var redirect = Assert.IsType<RedirectResult>(await sut.OidcCallback("code", "s"));
+
+        Assert.StartsWith($"{Frontend}/auth/oidc/callback#token=", redirect.Url);
+        this._jwtService.Verify(
+            j => j.GenerateToken(It.Is<UserInfo>(u => u.Id == "555000111" && u.Type == "telegram:user")), Times.Once);
+    }
+
+    [Fact]
+    public async Task OidcCallbackWithoutASecondaryClaimStillFallsBackToSub()
+    {
+        this.UserInfo("{\"sub\":\"42\",\"telegram_id\":\"555000111\"}");
+        this.SetupHuman("555000111", "telegram:user");
+        var sut = this.Build(Settings(secondary: ""), callbackCookies: true);
+
+        var redirect = Assert.IsType<RedirectResult>(await sut.OidcCallback("code", "s"));
+
+        Assert.EndsWith("#error=user_not_registered", redirect.Url);
+        this._humanService.Verify(h => h.GetByIdAsync("42"), Times.Once);
+    }
+
+    [Fact]
+    public async Task OidcCallbackPrefersTheDiscordAccountWhenBothAreRegistered()
+    {
+        this.UserInfo("{\"discord_id\":\"123456789\",\"telegram_id\":\"555000111\"}");
+        this.SetupHuman("123456789", "discord:user");
+        this.SetupHuman("555000111", "telegram:user");
+        var sut = this.Build(Settings(secondary: "telegram_id"), callbackCookies: true);
+
+        await sut.OidcCallback("code", "s");
+
+        this._jwtService.Verify(
+            j => j.GenerateToken(It.Is<UserInfo>(u => u.Id == "123456789" && u.Type == "discord:user")), Times.Once);
+    }
+
+    [Fact]
+    public async Task OidcCallbackUsesTheTelegramAccountWhenTheDiscordOneIsNotRegistered()
+    {
+        // A member who links Discord on the provider but only ever registered with the Telegram bot.
+        this.UserInfo("{\"discord_id\":\"123456789\",\"telegram_id\":\"555000111\"}");
+        this.SetupHuman("555000111", "telegram:user");
+        var sut = this.Build(Settings(secondary: "telegram_id"), callbackCookies: true);
+
+        await sut.OidcCallback("code", "s");
+
+        this._jwtService.Verify(
+            j => j.GenerateToken(It.Is<UserInfo>(u => u.Id == "555000111" && u.Type == "telegram:user")), Times.Once);
+    }
+
+    [Fact]
+    public async Task OidcCallbackDoesNotAskDiscordForATelegramAccountsGuildRoles()
+    {
+        // The Discord role gate cannot find a Telegram id in the guild; the Telegram widget never applied it either.
+        this._siteSettingService.Setup(s => s.GetBoolAsync("enable_roles")).ReturnsAsync(true);
+        // An unusable role list fails closed without a network call, so a Discord id would be refused here.
+        this._siteSettingService.Setup(s => s.GetValueAsync("allowed_role_ids")).ReturnsAsync("not-a-role");
+        this.UserInfo("{\"telegram_id\":\"555000111\"}");
+        this.SetupHuman("555000111", "telegram:user");
+        var sut = this.Build(Settings(secondary: "telegram_id"), callbackCookies: true);
+
+        var redirect = Assert.IsType<RedirectResult>(await sut.OidcCallback("code", "s"));
+
+        Assert.StartsWith($"{Frontend}/auth/oidc/callback#token=", redirect.Url);
+    }
+
+    private static OidcSettings Settings(string secondary) => new()
+    {
+        Enabled = true,
+        AuthorizationUrl = "https://idp.example/authorize",
+        TokenUrl = "https://idp.example/token",
+        UserInfoUrl = "https://idp.example/userinfo",
+        ClientId = "client",
+        SecondaryIdentityClaim = secondary,
+    };
+
+    private void UserInfo(string json) =>
+        this._oidcClient.Setup(c => c.GetUserInfoAsync("access")).ReturnsAsync(JsonDocument.Parse(json).RootElement);
+
+    private void SetupHuman(string id, string type) =>
+        this._humanService.Setup(h => h.GetByIdAsync(id))
+            .ReturnsAsync(new Human { Id = id, Type = type, Enabled = 1, AdminDisable = 0 });
+
     private AuthController Build(OidcSettings settings, bool callbackCookies)
     {
         var http = new DefaultHttpContext();

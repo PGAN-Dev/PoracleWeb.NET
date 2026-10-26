@@ -738,6 +738,7 @@ public partial class UserGeofenceService(
         return new GeofenceSubmissionPost
         {
             UserId = geofence.HumanId,
+            UserType = human?.Type,
             // Never a raw snowflake: with no name the author block is dropped and the mention in the
             // message body carries the identity instead.
             UserName = string.IsNullOrWhiteSpace(human?.Name) ? null : human.Name,

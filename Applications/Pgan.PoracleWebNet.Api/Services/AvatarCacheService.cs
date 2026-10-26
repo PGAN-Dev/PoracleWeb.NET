@@ -22,12 +22,33 @@ public partial class AvatarCacheService(ILogger<AvatarCacheService> logger) : Ba
     /// <summary>Store an avatar URL (e.g. captured at login time).</summary>
     public static void SetAvatar(string userId, string url) => Avatars[userId] = url;
 
-    /// <summary>Generate a Discord CDN default avatar URL from a user ID.</summary>
+    /// <summary>
+    /// Cache a photo URL a sign-in handed us (Telegram's widget sends <c>photo_url</c>). Only an absolute https
+    /// URL is kept, because the value ends up in an <c>img src</c> and in the JWT.
+    /// </summary>
+    public static bool TryCacheProfilePhoto(string userId, string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url)
+            || !Uri.TryCreate(url, UriKind.Absolute, out var uri)
+            || uri.Scheme != Uri.UriSchemeHttps)
+        {
+            return false;
+        }
+
+        SetAvatar(userId, url);
+        return true;
+    }
+
+    /// <summary>
+    /// Default avatar for someone with no cached photo. Discord ids get Discord's own default image. Any other
+    /// platform gets an empty string, which the SPA draws as an initial: Discord's artwork on a Telegram
+    /// account reads as the wrong identity.
+    /// </summary>
     public static string GetDefaultAvatarUrl(string userId, string? type = null)
     {
         if (type != null && !type.StartsWith("discord", StringComparison.Ordinal))
         {
-            return "https://cdn.discordapp.com/embed/avatars/0.png";
+            return string.Empty;
         }
 
         if (long.TryParse(userId, out var id))

@@ -609,6 +609,8 @@ export interface OidcServerConfig {
   identityClaim: string;
   providerName: string;
   scopes: string;
+  /** Optional second identity claim (e.g. telegram_id); empty when not configured. */
+  secondaryIdentityClaim: string;
   tokenUrl: string;
   usePkce: boolean;
   userInfoUrl: string;

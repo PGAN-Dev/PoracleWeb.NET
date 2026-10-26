@@ -17,6 +17,13 @@ import { clearTelegramReturn, readTelegramReturn } from '../../shared/utils/tele
 /** Timeout for provider config and public settings fetches on the login page. */
 const LOGIN_FETCH_TIMEOUT_MS = 10_000;
 
+/** What `POST /api/auth/telegram/verify` answers in `code`, and the message each one gets. */
+const TELEGRAM_ERROR_KEYS: Record<string, string> = {
+  destination_account: 'AUTH.ERR_DESTINATION_ACCOUNT',
+  telegram_disabled: 'AUTH.ERR_TELEGRAM_DISABLED',
+  user_not_registered: 'AUTH.ERR_NOT_REGISTERED',
+};
+
 @Component({
   imports: [MatButtonModule, MatCardModule, MatIconModule, MatProgressSpinnerModule, TelegramLoginButtonComponent, TranslatePipe],
   selector: 'app-login',
@@ -143,7 +150,15 @@ export class LoginComponent implements OnInit {
       .subscribe({
         error: err => {
           this.loading.set(false);
-          this.error.set(err?.error?.code === 'destination_account' ? 'AUTH.ERR_DESTINATION_ACCOUNT' : 'AUTH.ERR_TELEGRAM_FAILED');
+          const code = err?.error?.code;
+          if (code === 'account_disabled') {
+            // The widget answers on this page, so the block the #911 redirect fragment would draw is set
+            // directly: a hash-only navigation to /login#error=... would not re-run ngOnInit. See #1027.
+            this.accountDisabled.set(true);
+            this.disabledSupportUrl.set(err.error?.supportUrl ?? null);
+            return;
+          }
+          this.error.set(TELEGRAM_ERROR_KEYS[code as string] ?? 'AUTH.ERR_TELEGRAM_FAILED');
         },
         next: () => this.router.navigate(['/dashboard']),
       });

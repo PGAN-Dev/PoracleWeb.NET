@@ -74,6 +74,7 @@ MapEnvVar("OIDC_CLIENT_ID", "Oidc__ClientId");
 MapEnvVar("OIDC_CLIENT_SECRET", "Oidc__ClientSecret");
 MapEnvVar("OIDC_SCOPES", "Oidc__Scopes");
 MapEnvVar("OIDC_IDENTITY_CLAIM", "Oidc__IdentityClaim");
+MapEnvVar("OIDC_SECONDARY_IDENTITY_CLAIM", "Oidc__SecondaryIdentityClaim");
 MapEnvVar("OIDC_USERNAME_CLAIM", "Oidc__UsernameClaim");
 MapEnvVar("OIDC_AVATAR_CLAIM", "Oidc__AvatarClaim");
 MapEnvVar("OIDC_IDENTITY_TYPE", "Oidc__IdentityType");

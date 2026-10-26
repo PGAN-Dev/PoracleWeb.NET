@@ -206,6 +206,16 @@ describe('errorInterceptor', () => {
       expect(toast.error).not.toHaveBeenCalled();
     });
 
+    // The login page words every Telegram refusal itself (not registered, switched off, blocked), so a
+    // toast on top said it twice. See #1027.
+    it('does not toast a refused Telegram sign-in', () => {
+      http.post('/api/auth/telegram/verify', {}).subscribe({ error: () => {} });
+
+      httpMock.expectOne('/api/auth/telegram/verify').flush({ code: 'user_not_registered' }, { status: 403, statusText: 'Forbidden' });
+
+      expect(toast.error).not.toHaveBeenCalled();
+    });
+
     it('still toasts a failed location write', () => {
       http.put('/api/location', {}).subscribe({ error: () => {} });
 
