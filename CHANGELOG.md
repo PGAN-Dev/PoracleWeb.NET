@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.3.0] - 2026-10-26
+
 ### Fixed
 
 - **Telegram admins are marked as admins in Admin > Users.** The list read only the Discord admins from Poracle's config. The real admin check already counted Telegram, so this was display only (#1027).
@@ -23,6 +25,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Telegram templates have a preview.** The template picker used to draw only Discord embeds, so a Telegram account saw nothing under it. It now shows the template's `content` as a chat bubble with sample values filled in, rendering bold, italic, underline, strikethrough, code, links and spoilers in the template's `parse_mode` (Markdown, MarkdownV2 or HTML, Markdown when none is set), plus a line when the template also sends a sticker or a location pin. Template text is never inserted as markup, and only http, https and tg links are clickable. A `parse_mode` it can't render, or text that doesn't parse, shows as plain text instead of nothing. Discord previews are unchanged. Part of [#1027](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/1027).
 - **SSO sign-in for Telegram-only accounts.** A new optional setting, `OIDC_SECONDARY_IDENTITY_CLAIM`, names a second userinfo claim holding a Poracle id. It's tried when `OIDC_IDENTITY_CLAIM` is absent or names nobody registered, so with `telegram_id` a member whose provider account has only a Telegram login signs in as their Telegram human instead of getting `user_not_registered`. An SSO session now takes its account type from the Poracle row (`telegram:user` for a Telegram id) and falls back to `OIDC_IDENTITY_TYPE` only for a row that has none, and the Discord guild-role gate applies to Discord ids only, as it already did for the Telegram login widget. Admin > Server settings shows the new claim. Unset, nothing changes. [External SSO](docs/configuration/external-sso.md) covers it.
 - **Linked accounts: create the missing Telegram account only when Poracle would admit the person.** **Register the other account when linking** (`link_register_missing`) is now a dropdown with three values: **Off**, **When qualified (Telegram)** and **Always**. When qualified follows Poracle's own `/poracle` rule: when someone links a Telegram account PoracleNG doesn't know, PoracleWeb.NET reads the registration groups from PoracleNG's config (`telegram.channels`, or each community's `telegram.channels` with area security), asks Telegram whether the person is in one, and creates the account the way Always does only if they are, recording their communities when area security is on. Anyone else keeps waiting and sees the **Join the Telegram group** button. A failed Telegram or PoracleNG lookup counts as not in the group and never fails the link, and a missing Discord account waits as under Off. Sites that stored the old switch keep their behaviour: on reads as Always, off or unset as Off. The bot has to be a member of each registration group. [Linked accounts](docs/features/linked-accounts.md) covers it ([#1056](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/1056)).
+
+### Dependencies
+- Bump @angular/cli ([#1075](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/1075))
+- Bump the dotnet group with 13 updates ([#1076](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/1076))
+- Bump the eslint group ([#1077](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/1077))
+- Drop the unused direct chokidar dependency ([#1083](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/1083))
 
 ## [3.2.0] - 2026-10-25
 
@@ -1465,7 +1473,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.2.0...HEAD
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.3.0...HEAD
+[3.3.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.2.0...v3.3.0
 [3.2.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.1.0...v3.2.0
 [3.1.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.0.1...v3.1.0
 [3.0.1]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.0.0...v3.0.1
