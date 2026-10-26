@@ -2184,7 +2184,10 @@
     "DISABLE_ACCOUNT_LINKING_LABEL": "Gekoppelde accounts",
     "DISABLE_ACCOUNT_LINKING_DESC": "Laat mensen hun Discord- en Telegram-accounts koppelen. Uit verbergt de pagina. Bestaande koppelingen blijven bewaard, en je kunt ze nog steeds ontkoppelen onder Gebruikers.",
     "LINK_REGISTER_MISSING_LABEL": "Het andere account registreren bij koppelen",
-    "LINK_REGISTER_MISSING_DESC": "Maakt bij het koppelen meteen het account van de persoon in de andere app aan, in plaats van te wachten tot die zich daar registreert. Het account blijft, tenzij de Poracle-rolcontrole van je server is ingesteld om accounts te verwijderen.",
+    "LINK_REGISTER_MISSING_DESC": "Wat er gebeurt als iemand een account koppelt dat nog niet bij Poracle is geregistreerd. Uit: de koppeling wacht tot de persoon zich daar zelf registreert. Wanneer gekwalificeerd: voor Telegram maakt PoracleWeb.NET het account alleen aan als Poracles eigen /poracle-regel de persoon zou toelaten, dus als die in een van de registratiegroepen zit; anders wacht het. Een ontbrekend Discord-account wacht ook. Altijd: het account wordt meteen aangemaakt. Een account blijft, tenzij de Poracle-rolcontrole van je server is ingesteld om accounts te verwijderen.",
+    "LINK_REGISTER_OFF": "Uit",
+    "LINK_REGISTER_WHEN_QUALIFIED": "Wanneer gekwalificeerd (Telegram)",
+    "LINK_REGISTER_ALWAYS": "Altijd",
     "LINKING_OFF_HINT": "Zet Gekoppelde accounts aan om dit te wijzigen.",
     "LINKING_APP_NOT_SET_UP": "Inloggen met {{app}} is niet ingesteld in .env, dus niemand kan een {{app}}-account koppelen.",
     "LINKING_APP_SWITCHED_OFF": "‘{{switch}}’ staat uit, dus niemand kan een {{app}}-account koppelen."

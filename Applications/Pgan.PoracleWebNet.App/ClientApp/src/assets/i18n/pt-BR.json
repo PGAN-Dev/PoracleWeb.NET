@@ -2184,7 +2184,10 @@
     "DISABLE_ACCOUNT_LINKING_LABEL": "Contas vinculadas",
     "DISABLE_ACCOUNT_LINKING_DESC": "Permite vincular contas do Discord e do Telegram. Desligado esconde a página. Os vínculos existentes são mantidos, e você ainda pode desfazê-los em Usuários.",
     "LINK_REGISTER_MISSING_LABEL": "Cadastrar a outra conta ao vincular",
-    "LINK_REGISTER_MISSING_DESC": "Ao vincular, cria na hora a conta da pessoa no outro app em vez de esperar que ela se registre lá. A conta fica, a menos que a verificação de cargos do Poracle no seu servidor esteja configurada para remover contas.",
+    "LINK_REGISTER_MISSING_DESC": "O que acontece quando alguém vincula uma conta que ainda não está cadastrada no Poracle. Desligado: o vínculo espera até a pessoa se cadastrar lá. Quando qualificada: no Telegram, o PoracleWeb.NET só cria a conta se a regra /poracle do próprio Poracle admitisse a pessoa, ou seja, se ela estiver em um dos grupos de cadastro; caso contrário espera. Uma conta do Discord que falte também espera. Sempre: a conta é criada na hora. A conta fica, a menos que a verificação de cargos do Poracle no seu servidor esteja configurada para remover contas.",
+    "LINK_REGISTER_OFF": "Desligado",
+    "LINK_REGISTER_WHEN_QUALIFIED": "Quando qualificada (Telegram)",
+    "LINK_REGISTER_ALWAYS": "Sempre",
     "LINKING_OFF_HINT": "Ative Contas vinculadas para alterar isto.",
     "LINKING_APP_NOT_SET_UP": "O login com {{app}} não está configurado no .env, então ninguém pode vincular uma conta do {{app}}.",
     "LINKING_APP_SWITCHED_OFF": "“{{switch}}” está desligado, então ninguém pode vincular uma conta do {{app}}."

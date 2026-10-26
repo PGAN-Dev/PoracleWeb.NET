@@ -228,10 +228,10 @@ describe('AdminSettingsComponent group summaries', () => {
   };
   const group = (key: string) => SETTING_GROUPS.find(g => g.labelKey === key)!;
 
-  it('counts every switch the group shows, so two switches never read "1 of 1"', () => {
-    const { instant, sut } = create({ disable_account_linking: 'false', link_register_missing: 'false' });
+  it('counts the switches a group shows and leaves a dropdown beside them out of the total', () => {
+    const { instant, sut } = create({ disable_account_linking: 'false', link_register_missing: 'always' });
     sut.groupSummary(group('ADMIN_SETTINGS.GROUP_LINKED_ACCOUNTS'));
-    expect(instant).toHaveBeenLastCalledWith('ADMIN_SETTINGS.SUMMARY_ENABLED', { count: 1, total: 2 });
+    expect(instant).toHaveBeenLastCalledWith('ADMIN_SETTINGS.SUMMARY_ENABLED', { count: 1, total: 1 });
   });
 
   it('still counts the alarm types as before', () => {

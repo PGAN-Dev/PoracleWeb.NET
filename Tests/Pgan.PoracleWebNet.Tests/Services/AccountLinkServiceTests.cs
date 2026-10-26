@@ -17,6 +17,7 @@ public class AccountLinkServiceTests
     private readonly Mock<ISiteSettingService> _settings = new();
     private readonly Mock<ILinkedHumanProvisioner> _provisioner = new();
     private readonly Mock<ILinkedAccount> _linked = new();
+    private readonly Mock<ITelegramRegistrationCheck> _registration = new();
     private readonly AccountLinkService _sut;
 
     public AccountLinkServiceTests()
@@ -25,7 +26,7 @@ public class AccountLinkServiceTests
             .ReturnsAsync((AccountLink l) => l with { Id = 9 });
         this._sut = new AccountLinkService(
             this._links.Object, this._humans.Object, this._settings.Object, this._provisioner.Object,
-            this._linked.Object, NullLogger<AccountLinkService>.Instance);
+            this._linked.Object, this._registration.Object, NullLogger<AccountLinkService>.Instance);
     }
 
     private void Human(string id, string type) =>
@@ -182,7 +183,7 @@ public class AccountLinkServiceTests
     {
         this.Human(Discord, AccountLinkKeys.DiscordUserType);
         this.Missing(Telegram);
-        this._settings.Setup(s => s.GetBoolAsync(AccountLinkKeys.RegisterMissing)).ReturnsAsync(true);
+        this._settings.Setup(s => s.GetValueAsync(AccountLinkKeys.RegisterMissing)).ReturnsAsync("true");
         this._links.Setup(r => r.AddAsync(It.IsAny<AccountLink>())).ThrowsAsync(new InvalidOperationException("db down"));
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => this._sut.LinkAsync(Discord, LinkSide.Telegram, Telegram, "Old Town"));
@@ -195,7 +196,7 @@ public class AccountLinkServiceTests
     {
         this.Human(Discord, AccountLinkKeys.DiscordUserType);
         this.Missing(Telegram);
-        this._settings.Setup(s => s.GetBoolAsync(AccountLinkKeys.RegisterMissing)).ReturnsAsync(true);
+        this._settings.Setup(s => s.GetValueAsync(AccountLinkKeys.RegisterMissing)).ReturnsAsync("true");
         this._linked.Setup(l => l.Invalidate(It.IsAny<string>())).Throws(new InvalidOperationException("cache"));
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => this._sut.LinkAsync(Discord, LinkSide.Telegram, Telegram, "Old Town"));
@@ -220,7 +221,7 @@ public class AccountLinkServiceTests
     {
         this.Human(Discord, AccountLinkKeys.DiscordUserType);
         this.Missing(Telegram);
-        this._settings.Setup(s => s.GetBoolAsync(AccountLinkKeys.RegisterMissing)).ReturnsAsync(true);
+        this._settings.Setup(s => s.GetValueAsync(AccountLinkKeys.RegisterMissing)).ReturnsAsync("true");
         this._links.Setup(r => r.GetByHumanIdAsync(Telegram))
             .ReturnsAsync(new AccountLink(1, "100000000000000009", Telegram, LinkSide.Discord, null, null, DateTime.UtcNow));
 
@@ -249,7 +250,7 @@ public class AccountLinkServiceTests
     {
         this.Human(Discord, AccountLinkKeys.DiscordUserType);
         this.Missing(Telegram);
-        this._settings.Setup(s => s.GetBoolAsync(AccountLinkKeys.RegisterMissing)).ReturnsAsync(true);
+        this._settings.Setup(s => s.GetValueAsync(AccountLinkKeys.RegisterMissing)).ReturnsAsync("true");
         this._links.Setup(r => r.AddAsync(It.IsAny<AccountLink>())).ThrowsAsync(new AccountLinkConflictException("dup"));
 
         var ex = await Refused(this._sut.LinkAsync(Discord, LinkSide.Telegram, Telegram, "Old Town"));
@@ -263,7 +264,7 @@ public class AccountLinkServiceTests
     {
         this.Human(Discord, AccountLinkKeys.DiscordUserType);
         this.Missing(Telegram);
-        this._settings.Setup(s => s.GetBoolAsync(AccountLinkKeys.RegisterMissing)).ReturnsAsync(false);
+        this._settings.Setup(s => s.GetValueAsync(AccountLinkKeys.RegisterMissing)).ReturnsAsync("false");
 
         var link = await this._sut.LinkAsync(Discord, LinkSide.Telegram, Telegram, "Old Town");
 
@@ -276,7 +277,7 @@ public class AccountLinkServiceTests
     {
         this.Human(Discord, AccountLinkKeys.DiscordUserType);
         this.Missing(Telegram);
-        this._settings.Setup(s => s.GetBoolAsync(AccountLinkKeys.RegisterMissing)).ReturnsAsync(true);
+        this._settings.Setup(s => s.GetValueAsync(AccountLinkKeys.RegisterMissing)).ReturnsAsync("true");
         var order = new List<string>();
         this._provisioner.Setup(p => p.CreateMirrorAsync(Discord, LinkSide.Telegram, Telegram, "Old Town"))
             .Callback(() => order.Add("create")).Returns(Task.CompletedTask);
@@ -293,7 +294,7 @@ public class AccountLinkServiceTests
     {
         this.Human(Discord, AccountLinkKeys.DiscordUserType);
         this.Missing(Telegram);
-        this._settings.Setup(s => s.GetBoolAsync(AccountLinkKeys.RegisterMissing)).ReturnsAsync(true);
+        this._settings.Setup(s => s.GetValueAsync(AccountLinkKeys.RegisterMissing)).ReturnsAsync("true");
         this._provisioner.Setup(p => p.CreateMirrorAsync(Discord, LinkSide.Telegram, Telegram, "x"))
             .ThrowsAsync(new LinkRefusalException(LinkRefusalCode.ProvisionFailed, "Nothing was linked."));
 
@@ -301,6 +302,131 @@ public class AccountLinkServiceTests
 
         Assert.Equal("link_provision_failed", ex.WireCode);
         this._links.Verify(r => r.AddAsync(It.IsAny<AccountLink>()), Times.Never);
+    }
+
+    private void Mode(string? stored) =>
+        this._settings.Setup(s => s.GetValueAsync(AccountLinkKeys.RegisterMissing)).ReturnsAsync(stored);
+
+    private void Verdict(bool qualified, params string[] communities) =>
+        this._registration.Setup(r => r.CheckAsync(Telegram)).ReturnsAsync(new TelegramQualification(qualified, communities));
+
+    [Fact]
+    public async Task WhenQualified_AMemberOfARegistrationGroup_IsProvisionedThenSaved_WithTheirCommunities()
+    {
+        this.Human(Discord, AccountLinkKeys.DiscordUserType);
+        this.Missing(Telegram);
+        this.Mode("when-qualified");
+        this.Verdict(true, "north");
+        var order = new List<string>();
+        this._provisioner.Setup(p => p.CreateMirrorAsync(Discord, LinkSide.Telegram, Telegram, "Old Town", It.Is<IReadOnlyList<string>>(c => c.SequenceEqual(new[] { "north" }))))
+            .Callback(() => order.Add("create")).Returns(Task.CompletedTask);
+        this._links.Setup(r => r.AddAsync(It.IsAny<AccountLink>()))
+            .Callback(() => order.Add("save")).ReturnsAsync((AccountLink l) => l);
+
+        await this._sut.LinkAsync(Discord, LinkSide.Telegram, Telegram, "Old Town");
+
+        Assert.Equal(["create", "save"], order);
+    }
+
+    [Fact]
+    public async Task WhenQualified_ANonMember_KeepsWaiting_SavesTheLinkAndCreatesNothing()
+    {
+        this.Human(Discord, AccountLinkKeys.DiscordUserType);
+        this.Missing(Telegram);
+        this.Mode("when-qualified");
+        this.Verdict(false);
+
+        var link = await this._sut.LinkAsync(Discord, LinkSide.Telegram, Telegram, "Old Town");
+
+        Assert.Equal(Telegram, link.TelegramId);
+        this._provisioner.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task WhenQualified_TheCheckThrowing_KeepsWaiting_NotAnError()
+    {
+        this.Human(Discord, AccountLinkKeys.DiscordUserType);
+        this.Missing(Telegram);
+        this.Mode("when-qualified");
+        this._registration.Setup(r => r.CheckAsync(Telegram)).ThrowsAsync(new HttpRequestException("telegram down"));
+
+        var link = await this._sut.LinkAsync(Discord, LinkSide.Telegram, Telegram, "Old Town");
+
+        Assert.Equal(Telegram, link.TelegramId);
+        this._provisioner.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task WhenQualified_AnExistingTelegramHuman_IsNeverChecked()
+    {
+        this.Human(Discord, AccountLinkKeys.DiscordUserType);
+        this.Human(Telegram, AccountLinkKeys.TelegramUserType);
+        this.Mode("when-qualified");
+
+        await this._sut.LinkAsync(Discord, LinkSide.Telegram, Telegram, "Old Town");
+
+        this._registration.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task WhenQualified_ADiscordSideMissing_StillWaits_ThatSideHasNoRegistrationRuleHere()
+    {
+        // The Discord equivalent (guild roles) is a follow-up; until then the mode is no more open than off.
+        const string DiscordNew = "100000000000000002";
+        this.Human(Telegram, AccountLinkKeys.TelegramUserType);
+        this.Missing(DiscordNew);
+        this.Mode("when-qualified");
+
+        await this._sut.LinkAsync(Telegram, LinkSide.Discord, DiscordNew, "Northside");
+
+        this._provisioner.VerifyNoOtherCalls();
+        this._registration.VerifyNoOtherCalls();
+    }
+
+    [Theory]
+    [InlineData("always")]
+    [InlineData("True")]
+    public async Task Always_AndTheOldTrue_CreateWithoutAskingTelegram(string stored)
+    {
+        this.Human(Discord, AccountLinkKeys.DiscordUserType);
+        this.Missing(Telegram);
+        this.Mode(stored);
+
+        await this._sut.LinkAsync(Discord, LinkSide.Telegram, Telegram, "Old Town");
+
+        this._provisioner.Verify(p => p.CreateMirrorAsync(Discord, LinkSide.Telegram, Telegram, "Old Town"), Times.Once);
+        this._registration.VerifyNoOtherCalls();
+    }
+
+    [Theory]
+    [InlineData("off")]
+    [InlineData("False")]
+    [InlineData(null)]
+    public async Task Off_AndTheOldFalse_AndAbsent_NeverCreateOrAsk(string? stored)
+    {
+        this.Human(Discord, AccountLinkKeys.DiscordUserType);
+        this.Missing(Telegram);
+        this.Mode(stored);
+
+        await this._sut.LinkAsync(Discord, LinkSide.Telegram, Telegram, "Old Town");
+
+        this._provisioner.VerifyNoOtherCalls();
+        this._registration.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task WhenQualified_RaceAfterProvisioning_RemovesWhatItCreated()
+    {
+        this.Human(Discord, AccountLinkKeys.DiscordUserType);
+        this.Missing(Telegram);
+        this.Mode("when-qualified");
+        this.Verdict(true);
+        this._links.Setup(r => r.AddAsync(It.IsAny<AccountLink>())).ThrowsAsync(new AccountLinkConflictException("dup"));
+
+        var ex = await Refused(this._sut.LinkAsync(Discord, LinkSide.Telegram, Telegram, "Old Town"));
+
+        Assert.Equal(LinkRefusalCode.Taken, ex.Code);
+        this._provisioner.Verify(p => p.RollBackAsync(Telegram, LinkSide.Telegram, "Old Town"), Times.Once);
     }
 
     [Fact]

@@ -169,8 +169,11 @@ identity becomes a link. Its checks, in order:
    link never leaves a provisioned human behind.
 4. If PoracleNG has a human with the new id, it must be the matching person type (`link_type_mismatch`).
    This is what stops a channel, group or webhook being linked.
-5. If it has none and `link_register_missing` is on, the provisioner creates it (below). If it has none
-   and the setting is off, the link is stored anyway and that side waits to register.
+5. If it has none, `LinkRegisterModes.Parse` reads `link_register_missing` (`off`, `when-qualified`,
+   `always`; a stored `true` is `always`, `false` or absent is `off`, anything unrecognised is `off`).
+   `always` has the provisioner create it (below). `when-qualified` does so only for a Telegram side that
+   `ITelegramRegistrationCheck` admits, passing the communities it found. Otherwise, and for a missing Discord
+   side under `when-qualified`, the link is stored anyway and that side waits to register.
 6. The row is inserted with `default_destination` set to the caller's side. An index collision rolls back
    a provisioned human and answers `link_taken`.
 
@@ -251,8 +254,18 @@ The widget asks for write access (`data-request-access="write"`), which lets the
 
 ### Registering the missing side
 
-With `link_register_missing` on, `LinkedHumanProvisioner.CreateMirrorAsync` creates the other human by
-copying the caller's. Alarms are never copied.
+Under `always`, or `when-qualified` with a qualified person, `LinkedHumanProvisioner.CreateMirrorAsync`
+creates the other human by copying the caller's. Alarms are never copied.
+
+`TelegramRegistrationCheck` mirrors PoracleNG's `/poracle` rule (`telegrambot/reconciliation.go`,
+`reconcileNonAreaSecurity` and `reconcileAreaSecurity`). `IPoracleApiProxy.GetTelegramRegistrationGroupsAsync`
+reads `values.telegram.channels`, `values.area_security.enabled` and each `values.area_security.communities[]`
+row's `name` and `telegram_channels` from `GET /api/config/values`. `TelegramBotApiClient` asks Telegram's
+`getChatMember` for each group once. `member`, `administrator`, `creator` and `restricted` count (a restricted
+user whose `is_member` is false doesn't); `left`, `kicked` and every failure don't. Without area security
+one group is enough. With it, every community whose own group holds the person is recorded, lowercased, and
+the create sends them as `community`, which PoracleNG turns into the area restriction. The bot token is part of
+the request path, so the client logs only the failure's type and the group id, never a URL or an exception message.
 
 1. `POST /api/v2/humans` with the new id, name, type, location, community membership and language, and the
    name of the caller's profile 1 as the default profile's name.

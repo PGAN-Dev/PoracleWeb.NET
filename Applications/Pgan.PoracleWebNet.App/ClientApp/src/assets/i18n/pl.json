@@ -2272,7 +2272,10 @@
     "DISABLE_ACCOUNT_LINKING_LABEL": "Połączone konta",
     "DISABLE_ACCOUNT_LINKING_DESC": "Pozwala łączyć konta Discord i Telegram. Wyłączone ukrywa stronę. Istniejące połączenia zostają, a w Użytkownikach nadal możesz je rozłączyć.",
     "LINK_REGISTER_MISSING_LABEL": "Rejestruj drugie konto przy łączeniu",
-    "LINK_REGISTER_MISSING_DESC": "Przy łączeniu od razu tworzy konto osoby w drugiej aplikacji, zamiast czekać, aż się tam zarejestruje. Konto zostaje, chyba że sprawdzanie ról Poracle na twoim serwerze jest ustawione na usuwanie kont.",
+    "LINK_REGISTER_MISSING_DESC": "Co się dzieje, gdy ktoś łączy konto, które nie jest jeszcze zarejestrowane w Poracle. Wyłączone: połączenie czeka, aż osoba sama się tam zarejestruje. Gdy spełnia warunki: dla Telegrama PoracleWeb.NET tworzy konto tylko wtedy, gdy własna reguła /poracle w Poracle by tę osobę wpuściła, czyli gdy jest w jednej z jego grup rejestracyjnych; w przeciwnym razie czeka. Brakujące konto Discord też czeka. Zawsze: konto jest tworzone od razu. Konto zostaje, chyba że sprawdzanie ról Poracle na twoim serwerze jest ustawione na usuwanie kont.",
+    "LINK_REGISTER_OFF": "Wyłączone",
+    "LINK_REGISTER_WHEN_QUALIFIED": "Gdy spełnia warunki (Telegram)",
+    "LINK_REGISTER_ALWAYS": "Zawsze",
     "LINKING_OFF_HINT": "Włącz Połączone konta, aby to zmienić.",
     "LINKING_APP_NOT_SET_UP": "Logowanie przez {{app}} nie jest skonfigurowane w .env, więc nikt nie może połączyć konta {{app}}.",
     "LINKING_APP_SWITCHED_OFF": "„{{switch}}” jest wyłączone, więc nikt nie może połączyć konta {{app}}."

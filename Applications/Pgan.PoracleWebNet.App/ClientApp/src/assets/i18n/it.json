@@ -2184,7 +2184,10 @@
     "DISABLE_ACCOUNT_LINKING_LABEL": "Account collegati",
     "DISABLE_ACCOUNT_LINKING_DESC": "Permette di collegare account Discord e Telegram. Disattivato nasconde la pagina. I collegamenti esistenti restano, e puoi ancora scollegarli in Utenti.",
     "LINK_REGISTER_MISSING_LABEL": "Registra l’altro account al collegamento",
-    "LINK_REGISTER_MISSING_DESC": "Quando qualcuno collega, crea subito il suo account nell’altra app invece di aspettare che si registri lì. L’account resta, a meno che il controllo dei ruoli di Poracle del tuo server sia impostato per rimuovere account.",
+    "LINK_REGISTER_MISSING_DESC": "Cosa succede quando qualcuno collega un account non ancora registrato su Poracle. Disattivato: il collegamento aspetta che la persona si registri lì. Se idoneo: per Telegram, PoracleWeb.NET crea l’account solo se la regola /poracle di Poracle ammetterebbe la persona, cioè se è in uno dei suoi gruppi di registrazione; altrimenti aspetta. Anche un account Discord mancante aspetta. Sempre: l’account viene creato subito. Un account resta, a meno che il controllo dei ruoli di Poracle del tuo server sia impostato per rimuovere account.",
+    "LINK_REGISTER_OFF": "Disattivato",
+    "LINK_REGISTER_WHEN_QUALIFIED": "Se idoneo (Telegram)",
+    "LINK_REGISTER_ALWAYS": "Sempre",
     "LINKING_OFF_HINT": "Attiva Account collegati per modificarlo.",
     "LINKING_APP_NOT_SET_UP": "L’accesso con {{app}} non è configurato in .env, quindi nessuno può collegare un account {{app}}.",
     "LINKING_APP_SWITCHED_OFF": "«{{switch}}» è disattivato, quindi nessuno può collegare un account {{app}}."

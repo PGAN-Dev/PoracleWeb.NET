@@ -2184,7 +2184,10 @@
     "DISABLE_ACCOUNT_LINKING_LABEL": "Sammenkædede konti",
     "DISABLE_ACCOUNT_LINKING_DESC": "Lad folk kæde deres Discord- og Telegram-konti sammen. Slået fra skjules siden. Eksisterende sammenkædninger bevares, og du kan stadig fjerne dem under Brugere.",
     "LINK_REGISTER_MISSING_LABEL": "Registrér den anden konto ved sammenkædning",
-    "LINK_REGISTER_MISSING_DESC": "Når nogen kæder sammen, oprettes deres konto i den anden app med det samme i stedet for at vente på, at de registrerer sig dér. Kontoen bliver, medmindre din servers Poracle-rolletjek er sat til at fjerne konti.",
+    "LINK_REGISTER_MISSING_DESC": "Hvad der sker, når nogen kæder en konto sammen, som endnu ikke er registreret hos Poracle. Fra: sammenkædningen venter, til personen selv registrerer sig dér. Når kvalificeret: for Telegram opretter PoracleWeb.NET kun kontoen, hvis Poracles egen /poracle-regel ville lukke personen ind, altså hvis de er med i en af registreringsgrupperne; ellers venter den. En manglende Discord-konto venter også. Altid: kontoen oprettes med det samme. En konto bliver, medmindre din servers Poracle-rolletjek er sat til at fjerne konti.",
+    "LINK_REGISTER_OFF": "Fra",
+    "LINK_REGISTER_WHEN_QUALIFIED": "Når kvalificeret (Telegram)",
+    "LINK_REGISTER_ALWAYS": "Altid",
     "LINKING_OFF_HINT": "Slå Sammenkædede konti til for at ændre dette.",
     "LINKING_APP_NOT_SET_UP": "Login med {{app}} er ikke sat op i .env, så ingen kan kæde en {{app}}-konto sammen.",
     "LINKING_APP_SWITCHED_OFF": "„{{switch}}“ er slået fra, så ingen kan kæde en {{app}}-konto sammen."

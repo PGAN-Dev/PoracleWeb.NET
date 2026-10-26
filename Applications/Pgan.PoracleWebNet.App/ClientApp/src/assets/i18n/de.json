@@ -2184,7 +2184,10 @@
     "DISABLE_ACCOUNT_LINKING_LABEL": "Verknüpfte Konten",
     "DISABLE_ACCOUNT_LINKING_DESC": "Erlaubt es, Discord- und Telegram-Konten zu verknüpfen. Ausgeschaltet blendet es die Seite aus. Bestehende Verknüpfungen bleiben erhalten, und unter Benutzer kannst du sie weiterhin aufheben.",
     "LINK_REGISTER_MISSING_LABEL": "Anderes Konto beim Verknüpfen registrieren",
-    "LINK_REGISTER_MISSING_DESC": "Legt beim Verknüpfen das Konto der Person in der anderen App sofort an, statt zu warten, bis sie sich dort registriert. Das Konto bleibt, außer die Poracle-Rollenprüfung deines Servers ist so eingestellt, dass sie Konten entfernt.",
+    "LINK_REGISTER_MISSING_DESC": "Was passiert, wenn jemand ein Konto verknüpft, das noch nicht bei Poracle registriert ist. Aus: Die Verknüpfung wartet, bis sich die Person dort selbst registriert. Wenn berechtigt: Für Telegram legt PoracleWeb.NET das Konto nur an, wenn Poracles eigene /poracle-Regel die Person zulassen würde, sie also in einer der Registrierungsgruppen ist; sonst wartet es. Ein fehlendes Discord-Konto wartet ebenfalls. Immer: Das Konto wird sofort angelegt. Ein Konto bleibt, außer die Poracle-Rollenprüfung deines Servers ist so eingestellt, dass sie Konten entfernt.",
+    "LINK_REGISTER_OFF": "Aus",
+    "LINK_REGISTER_WHEN_QUALIFIED": "Wenn berechtigt (Telegram)",
+    "LINK_REGISTER_ALWAYS": "Immer",
     "LINKING_OFF_HINT": "Schalte Verknüpfte Konten ein, um das zu ändern.",
     "LINKING_APP_NOT_SET_UP": "Die Anmeldung mit {{app}} ist in der .env nicht eingerichtet, daher kann niemand ein {{app}}-Konto verknüpfen.",
     "LINKING_APP_SWITCHED_OFF": "„{{switch}}“ ist aus, daher kann niemand ein {{app}}-Konto verknüpfen."
