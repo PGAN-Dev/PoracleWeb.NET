@@ -175,6 +175,43 @@ public class DiscordNotificationServiceTests
     }
 
     [Fact]
+    public async Task ATelegramSubmitterIsNamedNotMentioned()
+    {
+        var discord = new DiscordHandler();
+        var sut = CreateSut(discord, new MapHandler(HttpStatusCode.OK, PngBytes));
+
+        await sut.CreateGeofenceSubmissionPostAsync(Post() with { UserId = "123456", UserType = "telegram:user" });
+
+        var content = Message(discord).GetProperty("content").GetString();
+        Assert.DoesNotContain("<@", content, StringComparison.Ordinal);
+        Assert.StartsWith("Tester submitted an area for review.", content, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ATelegramSubmitterWithNoNameIsStillNotMentioned()
+    {
+        var discord = new DiscordHandler();
+        var sut = CreateSut(discord, new MapHandler(HttpStatusCode.OK, PngBytes));
+
+        await sut.CreateGeofenceSubmissionPostAsync(Post() with { UserId = "123456", UserType = "telegram:user", UserName = null });
+
+        var content = Message(discord).GetProperty("content").GetString();
+        Assert.DoesNotContain("<@", content, StringComparison.Ordinal);
+        Assert.StartsWith("A member submitted an area for review.", content, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ADiscordSubmitterIsStillMentioned()
+    {
+        var discord = new DiscordHandler();
+        var sut = CreateSut(discord, new MapHandler(HttpStatusCode.OK, PngBytes));
+
+        await sut.CreateGeofenceSubmissionPostAsync(Post() with { UserType = "discord:user" });
+
+        Assert.StartsWith("<@user1> submitted an area for review.", Message(discord).GetProperty("content").GetString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task EmbedOmitsTheAuthorBlockRatherThanShowingARawId()
     {
         var discord = new DiscordHandler();

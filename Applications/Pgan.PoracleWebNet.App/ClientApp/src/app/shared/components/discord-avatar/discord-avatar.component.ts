@@ -3,6 +3,8 @@ import { Component, Input, ElementRef, OnInit, OnDestroy, inject, ChangeDetector
 
 import { ConfigService } from '../../../core/services/config.service';
 
+const DISCORD_DEFAULT_AVATAR = 'https://cdn.discordapp.com/embed/avatars/0.png';
+
 @Component({
   selector: 'app-discord-avatar',
   standalone: true,
@@ -25,10 +27,22 @@ export class DiscordAvatarComponent implements OnInit, OnDestroy {
   private observer: IntersectionObserver | null = null;
   /** Text alternative for the image: the person's name. Empty marks it decorative. */
   @Input() alt = '';
-  @Input() defaultUrl = 'https://cdn.discordapp.com/embed/avatars/0.png';
+  /** Image shown until a better one resolves. Empty draws an initial, except for Discord types, which get Discord's default. */
+  @Input() defaultUrl = '';
   resolvedUrl = '';
   @Input() userId = '';
   @Input() userType = '';
+
+  /** First letter of the name, or a question mark when there is none. */
+  get initial(): string {
+    const first = [...this.alt.trim()][0];
+    return first ? first.toUpperCase() : '?';
+  }
+
+  /** A type that is set and isn't Discord: Discord's artwork would misrepresent it. An unset type keeps the old behaviour. */
+  private get isNonDiscord(): boolean {
+    return !!this.userType && !this.userType.startsWith('discord');
+  }
 
   private static flushBatch(): void {
     const ids = [...this.pending.keys()];
@@ -73,7 +87,7 @@ export class DiscordAvatarComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     DiscordAvatarComponent.http = this.httpClient;
     DiscordAvatarComponent.config = this.configSvc;
-    this.resolvedUrl = this.defaultUrl;
+    this.resolvedUrl = this.defaultUrl || (this.isNonDiscord ? '' : DISCORD_DEFAULT_AVATAR);
 
     // Already cached?
     if (DiscordAvatarComponent.cache.has(this.userId)) {
@@ -97,8 +111,10 @@ export class DiscordAvatarComponent implements OnInit, OnDestroy {
     this.observer.observe(this.el.nativeElement);
   }
 
-  onError(event: Event): void {
-    (event.target as HTMLImageElement).src = 'https://cdn.discordapp.com/embed/avatars/0.png';
+  onError(): void {
+    // A broken Telegram photo (or any other platform's) becomes the initial rather than a Discord image.
+    this.resolvedUrl = this.isNonDiscord ? '' : DISCORD_DEFAULT_AVATAR;
+    this.cdr.detectChanges();
   }
 
   private requestAvatar(): void {

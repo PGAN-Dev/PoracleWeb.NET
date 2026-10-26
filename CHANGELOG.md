@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Telegram admins are marked as admins in Admin > Users.** The list read only the Discord admins from Poracle's config. The real admin check already counted Telegram, so this was display only (#1027).
+- **Telegram people show their own photo, and nobody without one gets Discord's artwork.** Telegram sign-in now caches the photo Telegram sends (https only), as the Discord and SSO paths already did. An account with no photo, Telegram or otherwise, draws its initial instead of Discord's default image. The site's image policy already allows https images, so no header change was needed (#1027).
+- **Geofence review posts no longer `@mention` a Telegram submitter.** A Discord mention of a Telegram id renders as an unknown user, so the post names them instead. Discord submitters are still mentioned (#1027).
 - **Telegram sign-in says why it was refused.** The widget used to show "Telegram login failed" for every refusal. It now names the three the server answers on purpose: the account isn't registered in Poracle (with the same Sign Up button Discord users get), Telegram login is switched off for non-admins, and the id is a channel or webhook. A blocked account is now refused at sign-in with the same disabled-account explanation and support link a Discord or SSO sign-in shows, instead of getting a token and landing on a dashboard where every request failed. The login page no longer toasts these refusals on top of its own message. Part of [#1027](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/1027).
 
 ### Changed

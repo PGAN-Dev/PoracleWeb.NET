@@ -573,12 +573,9 @@ public partial class AdminController(
         try
         {
             var config = await this._poracleApiProxy.GetConfigAsync();
-            if (config?.Admins?.Discord != null)
+            foreach (var id in (config?.Admins?.Discord ?? []).Concat(config?.Admins?.Telegram ?? []))
             {
-                foreach (var id in config.Admins.Discord)
-                {
-                    admins.Add(id);
-                }
+                admins.Add(id);
             }
         }
         catch (Exception ex)

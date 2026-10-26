@@ -1350,6 +1350,23 @@ public class AdminControllerTests : ControllerTestBase
     }
 
     [Fact]
+    public async Task GetPoracleAdminsIncludesTelegramAndStillIncludesDiscord()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this._proxy.Setup(p => p.GetConfigAsync()).ReturnsAsync(new PoracleConfig
+        {
+            Admins = new PoracleAdmins { Discord = ["discord_admin"], Telegram = ["-100200", "tg_admin"] }
+        });
+
+        var result = Assert.IsType<OkObjectResult>(await this._sut.GetPoracleAdmins());
+        var admins = Assert.IsAssignableFrom<IEnumerable<string>>(result.Value).ToList();
+
+        Assert.Contains("discord_admin", admins);
+        Assert.Contains("-100200", admins);
+        Assert.Contains("tg_admin", admins);
+    }
+
+    [Fact]
     public async Task GetPoracleAdminsHandlesProxyFailure()
     {
         SetupUser(this._sut, isAdmin: true);

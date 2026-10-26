@@ -6,3 +6,19 @@
   flex-shrink: 0;
   background: #e0e0e0;
 }
+
+.avatar-initial {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--mat-sys-on-surface-variant, #444);
+  background: var(--mat-sys-surface-container-high, #e0e0e0);
+  user-select: none;
+}
