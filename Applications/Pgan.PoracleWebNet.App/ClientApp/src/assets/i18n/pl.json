@@ -2014,7 +2014,10 @@
     "HINT": "Format wiadomości powiadomień",
     "HIDE_OPTIONS": "Ukryj opcje",
     "PREVIEW_OPTIONS": "Podgląd opcji",
-    "MAP_PREVIEW": "Podgląd mapy"
+    "MAP_PREVIEW": "Podgląd mapy",
+    "TELEGRAM_PREVIEW": "Podgląd wiadomości Telegram",
+    "TELEGRAM_STICKER": "Przed wiadomością wysyłana jest naklejka",
+    "TELEGRAM_LOCATION": "Po wiadomości wysyłany jest znacznik lokalizacji"
   },
   "TEMPLATE": {
     "COND_BOOST_WEATHER": "Wzmocniony pogodą",

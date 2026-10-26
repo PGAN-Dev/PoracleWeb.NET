@@ -1928,7 +1928,10 @@
     "HINT": "Berichtformat voor meldingen",
     "HIDE_OPTIONS": "Opties verbergen",
     "PREVIEW_OPTIONS": "Opties bekijken",
-    "MAP_PREVIEW": "Kaartvoorbeeld"
+    "MAP_PREVIEW": "Kaartvoorbeeld",
+    "TELEGRAM_PREVIEW": "Voorbeeld van het Telegram-bericht",
+    "TELEGRAM_STICKER": "Voor het bericht wordt een sticker verstuurd",
+    "TELEGRAM_LOCATION": "Na het bericht wordt een locatiepin verstuurd"
   },
   "TEMPLATE": {
     "COND_BOOST_WEATHER": "Weerboost",
