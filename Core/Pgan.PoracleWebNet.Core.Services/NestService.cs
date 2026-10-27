@@ -112,10 +112,13 @@ public class NestService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, 
         return items.Count;
     }
 
-    public async Task<IEnumerable<Nest>> BulkCreateAsync(string userId, IEnumerable<Nest> models)
+    public async Task<IEnumerable<Nest>> BulkCreateAsync(string userId, IEnumerable<Nest> models) =>
+        (await this.CreateBatchAsync(userId, [.. models])).Alarms;
+
+    public async Task<BatchCreateResult<Nest>> CreateBatchAsync(string userId, IReadOnlyList<Nest> models)
     {
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Nests);
-        var modelList = models.ToList();
+        List<Nest> modelList = [.. models];
 
         foreach (var model in modelList)
         {
@@ -130,7 +133,8 @@ public class NestService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, 
             modelList[i].Uid = result.RowUids[i];
         }
 
-        return modelList;
+        return new BatchCreateResult<Nest>(
+            modelList, result.TakeoversSkipped, result.TakeoversSkipped > 0 ? PoracleTrackingProxy.TakeoverMessage : null);
     }
 
     private static List<Nest> DeserializeItems(JsonElement json) =>
