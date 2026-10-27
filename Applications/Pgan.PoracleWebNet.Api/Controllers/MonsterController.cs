@@ -78,6 +78,23 @@ public class MonsterController(IMonsterService monsterService, IPokemonEditCapab
         }, result);
     }
 
+    /// <summary>Several alarms in one request; see <see cref="BaseApiController.CreateBatchAsync{TModel}"/>.</summary>
+    [HttpPost("batch")]
+    public async Task<IActionResult> CreateBatch([FromBody] List<MonsterCreate> models)
+    {
+        var monsters = models.Select(m => m.ToMonster()).ToList();
+        foreach (var monster in monsters)
+        {
+            var inverted = MonsterRangeValidator.Validate(monster);
+            if (inverted != null)
+            {
+                return this.BadRequest(new { error = inverted });
+            }
+        }
+
+        return await this.CreateBatchAsync(this._router, this._monsterService, [.. models.Select(m => m.Destination)], monsters);
+    }
+
     [HttpPut("{uid:int}")]
     public async Task<IActionResult> Update(int uid, [FromBody] MonsterUpdate model)
     {

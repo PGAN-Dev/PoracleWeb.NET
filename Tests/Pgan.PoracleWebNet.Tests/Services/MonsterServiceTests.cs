@@ -330,6 +330,32 @@ public class MonsterServiceTests
     }
 
     [Fact]
+    public async Task CreateBatchAsyncSaysHowManyRowsWereLeftOutAsTakeovers()
+    {
+        var monsters = new List<Monster> { new() { PokemonId = 25 }, new() { PokemonId = 26 }, new() { PokemonId = 27 } };
+        var createResult = new TrackingCreateResult([10], 1, 0, 1, [10, 0, 0], TakeoversSkipped: 1);
+        this._proxy.Setup(p => p.CreateAsync("pokemon", "user1", It.IsAny<JsonElement>())).ReturnsAsync(createResult);
+
+        var result = await this._sut.CreateBatchAsync("user1", monsters);
+
+        Assert.Equal([10, 0, 0], result.Alarms.Select(m => m.Uid));
+        Assert.Equal(1, result.TakeoversSkipped);
+        Assert.False(string.IsNullOrWhiteSpace(result.TakeoverReason));
+    }
+
+    [Fact]
+    public async Task CreateBatchAsyncWithNoTakeoverGivesNoReason()
+    {
+        var createResult = new TrackingCreateResult([10, 11], 0, 0, 2, [10, 11]);
+        this._proxy.Setup(p => p.CreateAsync("pokemon", "user1", It.IsAny<JsonElement>())).ReturnsAsync(createResult);
+
+        var result = await this._sut.CreateBatchAsync("user1", [new() { PokemonId = 25 }, new() { PokemonId = 26 }]);
+
+        Assert.Equal(0, result.TakeoversSkipped);
+        Assert.Null(result.TakeoverReason);
+    }
+
+    [Fact]
     public async Task UpdateDistanceByUidsAsyncUpdatesMatchingOnly()
     {
         var json = CreateJsonArray(

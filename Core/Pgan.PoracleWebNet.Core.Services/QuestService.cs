@@ -116,10 +116,13 @@ public class QuestService(
         return items.Count;
     }
 
-    public async Task<IEnumerable<Quest>> BulkCreateAsync(string userId, IEnumerable<Quest> models)
+    public async Task<IEnumerable<Quest>> BulkCreateAsync(string userId, IEnumerable<Quest> models) =>
+        (await this.CreateBatchAsync(userId, [.. models])).Alarms;
+
+    public async Task<BatchCreateResult<Quest>> CreateBatchAsync(string userId, IReadOnlyList<Quest> models)
     {
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Quests);
-        var modelList = models.ToList();
+        List<Quest> modelList = [.. models];
 
         foreach (var model in modelList)
         {
@@ -134,7 +137,8 @@ public class QuestService(
             modelList[i].Uid = result.RowUids[i];
         }
 
-        return modelList;
+        return new BatchCreateResult<Quest>(
+            modelList, result.TakeoversSkipped, result.TakeoversSkipped > 0 ? PoracleTrackingProxy.TakeoverMessage : null);
     }
 
     private static List<Quest> DeserializeItems(JsonElement json) =>

@@ -19,7 +19,7 @@ import { PoracleConfigService } from '../../core/services/poracle-config.service
 describe('PokemonAddDialogComponent', () => {
   let component: PokemonAddDialogComponent;
   let dialogRef: { close: jest.Mock };
-  let monsterService: { create: jest.Mock; editSupported: jest.Mock };
+  let monsterService: { create: jest.Mock; createBatch: jest.Mock; editSupported: jest.Mock };
   let snackBar: { open: jest.Mock };
   let masterData: {
     costumesAvailable: jest.Mock;
@@ -45,6 +45,12 @@ describe('PokemonAddDialogComponent', () => {
     let nextUid = 100;
     monsterService = {
       create: jest.fn().mockImplementation(() => of({ uid: nextUid++ } as Monster)),
+      // Several rows go as one request (#1090), answered row for row.
+      createBatch: jest
+        .fn()
+        .mockImplementation((rows: MonsterCreate[]) =>
+          of({ alarms: rows.map(() => ({ uid: nextUid++ }) as Monster), takeoversSkipped: 0 }),
+        ),
       editSupported: jest.fn().mockReturnValue(true),
     };
     snackBar = { open: jest.fn() };
@@ -99,8 +105,16 @@ describe('PokemonAddDialogComponent', () => {
     component = fixture.componentInstance;
   }
 
+  /** Every row sent, whether alone or in a batch. */
+  function sentRows(): MonsterCreate[] {
+    return [
+      ...monsterService.create.mock.calls.map(call => call[0] as MonsterCreate),
+      ...monsterService.createBatch.mock.calls.flatMap(call => call[0] as MonsterCreate[]),
+    ];
+  }
+
   function createdForms(): number[] {
-    return monsterService.create.mock.calls.map(call => (call[0] as MonsterCreate).form);
+    return sentRows().map(row => row.form);
   }
 
   beforeEach(() => setup());
@@ -138,7 +152,7 @@ describe('PokemonAddDialogComponent', () => {
     component.filtersForm.controls.costume.setValue(85);
     component.save();
 
-    expect(monsterService.create.mock.calls.map(c => (c[0] as MonsterCreate).costume)).toEqual([85, 85]);
+    expect(sentRows().map(row => row.costume)).toEqual([85, 85]);
   });
 
   it('sends "no costume" as 0 rather than dropping it', () => {
@@ -193,7 +207,8 @@ describe('PokemonAddDialogComponent', () => {
     component.filtersForm.controls.forms.setValue([ALOLAN, GALARIAN]);
     component.save();
 
-    expect(monsterService.create).toHaveBeenCalledTimes(2);
+    expect(monsterService.create).not.toHaveBeenCalled();
+    expect(monsterService.createBatch).toHaveBeenCalledTimes(1);
     expect(createdForms()).toEqual([ALOLAN, GALARIAN]);
     expect(dialogRef.close).toHaveBeenCalledWith(true);
   });
@@ -213,7 +228,7 @@ describe('PokemonAddDialogComponent', () => {
     // is hidden and an empty selection means "all forms" for each pokemon.
     component.save();
 
-    expect(monsterService.create).toHaveBeenCalledTimes(2);
+    expect(monsterService.createBatch).toHaveBeenCalledTimes(1);
     expect(createdForms()).toEqual([0, 0]);
   });
 
@@ -237,7 +252,7 @@ describe('PokemonAddDialogComponent', () => {
   // Counting the submissions claimed every selected Pokemon was added while the list grew by fewer, or
   // by none at all. See #495.
   it('says how many submissions were already tracked', () => {
-    monsterService.create.mockReturnValueOnce(of({ uid: 0 } as Monster));
+    monsterService.createBatch.mockReturnValueOnce(of({ alarms: [{ uid: 0 }, { uid: 101 }], takeoversSkipped: 0 }));
     component.selectedPokemonIds.set([MEOWTH]);
     component.filtersForm.controls.forms.setValue([ALOLAN, GALARIAN]);
     component.save();
@@ -426,8 +441,10 @@ describe('PokemonAddDialogComponent', () => {
       expect(snackBar.open).toHaveBeenCalledWith('ALARM.SNACK_CREATED', 'COMMON.OK', expect.anything());
     });
 
-    it('still closes a multi-select batch with one refusal, toasting the reason', () => {
-      monsterService.create.mockReturnValueOnce(of({ uid: 501 } as Monster)).mockReturnValueOnce(throwError(() => takeover));
+    it('still closes a multi-select batch with a row left out as a takeover, toasting the reason', () => {
+      monsterService.createBatch.mockReturnValueOnce(
+        of({ alarms: [{ uid: 501 }, { uid: 0 }], takeoverReason: takeover.error.error, takeoversSkipped: 1 }),
+      );
       component.selectedPokemonIds.set([MEOWTH]);
       component.filtersForm.controls.forms.setValue([ALOLAN, GALARIAN]);
       component.save();
@@ -435,6 +452,19 @@ describe('PokemonAddDialogComponent', () => {
       expect(component.refusal()).toBeNull();
       expect(snackBar.open).toHaveBeenCalledWith('Another alarm of this type already uses those settings.', 'COMMON.OK', expect.anything());
       expect(dialogRef.close).toHaveBeenCalledWith(true);
+    });
+
+    it('keeps a multi-select open when the batch itself is refused, since nothing was written', () => {
+      monsterService.createBatch.mockReturnValueOnce(
+        throwError(() => ({ error: { error: 'Max IV must be at least Min IV.' }, status: 400 })),
+      );
+      component.selectedPokemonIds.set([MEOWTH]);
+      component.filtersForm.controls.forms.setValue([ALOLAN, GALARIAN]);
+      component.save();
+
+      expect(dialogRef.close).not.toHaveBeenCalled();
+      expect(component.refusal()?.message).toBe('Max IV must be at least Min IV.');
+      expect(component.saving()).toBe(false);
     });
 
     it('says a single Add already tracked exactly was left as it is', () => {

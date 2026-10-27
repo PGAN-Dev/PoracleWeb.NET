@@ -58,6 +58,11 @@ public class MaxBattleController(IMaxBattleService maxBattleService, LinkedAlarm
         }, result);
     }
 
+    /// <summary>Several alarms in one request; see <see cref="BaseApiController.CreateBatchAsync{TModel}"/>.</summary>
+    [HttpPost("batch")]
+    public async Task<IActionResult> CreateBatch([FromBody] List<MaxBattleCreate> models) =>
+        await this.CreateBatchAsync(this._router, this._maxBattleService, [.. models.Select(m => m.Destination)], [.. models.Select(m => m.ToMaxBattle())]);
+
     [HttpPut("{uid:int}")]
     public async Task<IActionResult> Update(int uid, [FromBody] MaxBattleUpdate model)
     {

@@ -58,6 +58,11 @@ public class NestController(INestService nestService, LinkedAlarmRouter router) 
         }, result);
     }
 
+    /// <summary>Several alarms in one request; see <see cref="BaseApiController.CreateBatchAsync{TModel}"/>.</summary>
+    [HttpPost("batch")]
+    public async Task<IActionResult> CreateBatch([FromBody] List<NestCreate> models) =>
+        await this.CreateBatchAsync(this._router, this._nestService, [.. models.Select(m => m.Destination)], [.. models.Select(m => m.ToNest())]);
+
     [HttpPut("{uid:int}")]
     public async Task<IActionResult> Update(int uid, [FromBody] NestUpdate model)
     {

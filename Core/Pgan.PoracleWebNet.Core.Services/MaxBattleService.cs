@@ -123,10 +123,13 @@ public partial class MaxBattleService(IPoracleTrackingProxy proxy, IFeatureGate 
         return items.Count;
     }
 
-    public async Task<IEnumerable<MaxBattle>> BulkCreateAsync(string userId, IEnumerable<MaxBattle> models)
+    public async Task<IEnumerable<MaxBattle>> BulkCreateAsync(string userId, IEnumerable<MaxBattle> models) =>
+        (await this.CreateBatchAsync(userId, [.. models])).Alarms;
+
+    public async Task<BatchCreateResult<MaxBattle>> CreateBatchAsync(string userId, IReadOnlyList<MaxBattle> models)
     {
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.MaxBattles);
-        var modelList = models.ToList();
+        List<MaxBattle> modelList = [.. models];
 
         foreach (var model in modelList)
         {
@@ -141,7 +144,8 @@ public partial class MaxBattleService(IPoracleTrackingProxy proxy, IFeatureGate 
             modelList[i].Uid = result.RowUids[i];
         }
 
-        return modelList;
+        return new BatchCreateResult<MaxBattle>(
+            modelList, result.TakeoversSkipped, result.TakeoversSkipped > 0 ? PoracleTrackingProxy.TakeoverMessage : null);
     }
 
     private static List<MaxBattle> DeserializeItems(JsonElement json) =>

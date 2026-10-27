@@ -58,6 +58,11 @@ public class RaidController(IRaidService raidService, LinkedAlarmRouter router) 
         }, result);
     }
 
+    /// <summary>Several alarms in one request; see <see cref="BaseApiController.CreateBatchAsync{TModel}"/>.</summary>
+    [HttpPost("batch")]
+    public async Task<IActionResult> CreateBatch([FromBody] List<RaidCreate> models) =>
+        await this.CreateBatchAsync(this._router, this._raidService, [.. models.Select(m => m.Destination)], [.. models.Select(m => m.ToRaid())]);
+
     [HttpPut("{uid:int}")]
     public async Task<IActionResult> Update(int uid, [FromBody] RaidUpdate model)
     {
