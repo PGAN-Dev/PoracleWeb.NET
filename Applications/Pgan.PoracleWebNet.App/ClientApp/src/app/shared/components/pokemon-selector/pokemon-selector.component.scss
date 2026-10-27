@@ -256,6 +256,21 @@
 .picker-link:hover {
   background: color-mix(in srgb, var(--mat-sys-primary, #1976d2) 8%, transparent);
 }
+.picker-link:disabled {
+  color: var(--mat-sys-on-surface-variant, #666);
+  opacity: 0.6;
+  cursor: default;
+}
+.picker-link:disabled:hover {
+  background: transparent;
+}
+.tile-actions,
+.chip-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 4px 0;
+}
 .bulk-pickers {
   margin-bottom: 8px;
 }

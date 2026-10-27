@@ -36,6 +36,11 @@
           }
         </div>
       }
+      @if (result.notAllowed.length > 0) {
+        <p class="bulk-summary bulk-warning">
+          {{ 'POKEMON_SELECTOR.BULK_NOT_ALLOWED' | translate: { names: result.notAllowed.join(', ') } }}
+        </p>
+      }
       @if (result.unrecognized.length > 0) {
         <p class="bulk-summary bulk-warning">
           {{ 'POKEMON_SELECTOR.BULK_UNRECOGNIZED' | translate: { names: result.unrecognized.join(', ') } }}
@@ -130,6 +135,18 @@
 }
 
 @if (showTileGrid()) {
+  <div class="tile-actions">
+    <button type="button" class="picker-link select-all-shown" [disabled]="shownUnselectedCount() === 0" (click)="selectAllShown()">
+      <mat-icon>done_all</mat-icon>
+      {{ 'POKEMON_SELECTOR.SELECT_ALL_SHOWN' | translate: { count: shownUnselectedCount() } }}
+    </button>
+    @if (shownSelectedCount() > 0) {
+      <button type="button" class="picker-link deselect-all-shown" (click)="deselectAllShown()">
+        <mat-icon>remove_done</mat-icon>
+        {{ 'POKEMON_SELECTOR.DESELECT_ALL_SHOWN' | translate: { count: shownSelectedCount() } }}
+      </button>
+    }
+  </div>
   <div class="tile-grid">
     @for (pokemon of filteredPokemon(); track pokemon.id) {
       <button
@@ -151,7 +168,7 @@
 
 @if (multi()) {
   <mat-chip-set class="selected-chips">
-    @for (pokemon of selectedPokemon(); track pokemon.id) {
+    @for (pokemon of visibleChips(); track pokemon.id) {
       <mat-chip (removed)="removePokemon(pokemon.id)" [class.all-pokemon-chip]="pokemon.id === 0">
         @if (pokemon.id === 0) {
           <mat-icon matChipAvatar>select_all</mat-icon>
@@ -165,6 +182,24 @@
       </mat-chip>
     }
   </mat-chip-set>
+  @if (selectedPokemon().length > 1) {
+    <div class="chip-actions">
+      @if (hiddenChipCount() > 0) {
+        <button type="button" class="picker-link" [attr.aria-expanded]="chipsExpanded()" (click)="toggleChips()">
+          <mat-icon>{{ chipsExpanded() ? 'expand_less' : 'expand_more' }}</mat-icon>
+          {{
+            chipsExpanded()
+              ? ('POKEMON_SELECTOR.SHOW_FEWER' | translate)
+              : ('POKEMON_SELECTOR.SHOW_ALL_SELECTED' | translate: { count: selectedPokemon().length })
+          }}
+        </button>
+      }
+      <button type="button" class="picker-link clear-selection" (click)="clearSelection()">
+        <mat-icon>clear_all</mat-icon>
+        {{ 'POKEMON_SELECTOR.CLEAR_ALL' | translate }}
+      </button>
+    </div>
+  }
 }
 
 @if (showMiniorNote()) {

@@ -27,7 +27,7 @@ If PoracleNG doesn't answer, every alarm endpoint answers 503 ("PoracleNG could 
 Each alarm type has a dedicated page accessible from the sidebar navigation. The creation flow:
 
 1. Press **New alarm** at the top right of the list (the Dashboard's **New alarm** menu opens the same dialog for any type)
-2. Pick the target on the first tab, which is named after the type. The Pokemon picker leads with a search box; **Add by type or generation** opens the generation and type buttons, and **Add multiple** takes a pasted list of names
+2. Pick the target on the first tab, which is named after the type. The Pokemon picker leads with a search box; **Add by type or generation** opens the generation and type buttons, and **Add multiple** takes a pasted list of names or Pokédex numbers, ranges such as `1-151` included. With a generation or type picked, **Select all** adds every species the grid shows
 3. Configure filter options (IV range, CP range, level, etc.)
 4. On the **Delivery** tab, answer "Where should this alert reach you?" — see [Where an alert reaches you](#where-an-alert-reaches-you). A small map under the answer draws the radius or the areas you picked
 5. Under **Message** on the same tab, optionally pick a **template**, and set clean mode and the other message switches. Below the picker, a preview shows what the template looks like: a Discord embed for Discord accounts, a chat bubble for Telegram accounts (bold, italic, underline, strikethrough, code, links and spoilers in the template's `parse_mode`, with a line noting a sticker or location pin the template also sends). The preview fills in sample values, so the numbers aren't yours
