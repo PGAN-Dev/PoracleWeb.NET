@@ -13,7 +13,6 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { TranslatePipe } from '@ngx-translate/core';
-import { forkJoin } from 'rxjs';
 
 import { MaxBattleCreate, LinkSide } from '../../core/models';
 import { AlertDefaultsService } from '../../core/services/alert-defaults.service';
@@ -26,7 +25,7 @@ import { DeliverToFieldComponent } from '../../shared/components/deliver-to/deli
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
-import { AddDialogData, AddRefusal, editExistingResult, ExistingRule, finishAdd, settle } from '../../shared/utils/add-outcome';
+import { AddDialogData, AddRefusal, editExistingResult, ExistingRule, finishAdd, settleCreates } from '../../shared/utils/add-outcome';
 import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 import { compose } from '../../shared/utils/clean-flags';
 import { injectDeliverTo } from '../../shared/utils/deliver-to';
@@ -158,7 +157,7 @@ export class MaxBattleAddDialogComponent {
     const common = this.commonForm.getRawValue();
     const scope = scopeToFields(this.scope());
 
-    const creates: ReturnType<typeof this.maxBattleService.create>[] = [];
+    const maxBattles: MaxBattleCreate[] = [];
 
     if (this.tabIndex === 0) {
       // By Level — one alarm per selected level, pokemonId = 9000 (any)
@@ -179,7 +178,7 @@ export class MaxBattleAddDialogComponent {
           stationId: null,
           template: common.template || '',
         };
-        creates.push(this.maxBattleService.create(maxBattle));
+        maxBattles.push(maxBattle);
       }
     } else {
       // By Pokemon — one alarm per selected Pokemon, level = 9000 (any)
@@ -199,13 +198,17 @@ export class MaxBattleAddDialogComponent {
           stationId: null,
           template: common.template || '',
         };
-        creates.push(this.maxBattleService.create(maxBattle));
+        maxBattles.push(maxBattle);
       }
     }
 
-    // Each create settles on its own, so one refusal cannot hide the ones that landed (#577). A single
-    // refused Add keeps the dialog open with the reason inline; see finishAdd.
-    forkJoin(creates.map(c => settle(c))).subscribe(results => {
+    // One row is a single Add, whose refusal keeps the dialog open with the reason inline; several go as one
+    // batch request that PoracleNG answers with one dry run and one commit (#1090). See settleCreates.
+    settleCreates(
+      maxBattles,
+      m => this.maxBattleService.create(m),
+      m => this.maxBattleService.createBatch(m),
+    ).subscribe(results => {
       this.saving.set(false);
       finishAdd(results, {
         dialogRef: this.dialogRef,

@@ -17,11 +17,16 @@ import { QuestService } from '../../core/services/quest.service';
 describe('QuestAddDialogComponent', () => {
   let component: QuestAddDialogComponent;
   let dialogRef: { close: jest.Mock };
-  let questService: { create: jest.Mock };
+  let questService: { create: jest.Mock; createBatch: jest.Mock };
 
   function setup() {
     dialogRef = { close: jest.fn() };
-    questService = { create: jest.fn().mockReturnValue(of({} as Quest)) };
+    questService = {
+      create: jest.fn().mockReturnValue(of({} as Quest)),
+      createBatch: jest
+        .fn()
+        .mockImplementation((rows: QuestCreate[]) => of({ alarms: rows.map(() => ({}) as Quest), takeoversSkipped: 0 })),
+    };
 
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
@@ -103,10 +108,10 @@ describe('QuestAddDialogComponent', () => {
     component.selectedPokemonIds.set([25, 133, 1]);
     component.commonForm.controls.summary.setValue(true);
     component.save();
-    expect(questService.create).toHaveBeenCalledTimes(3);
-    for (const call of questService.create.mock.calls) {
-      expect((call[0] as QuestCreate).clean).toBe(4);
-    }
+    expect(questService.createBatch).toHaveBeenCalledTimes(1);
+    const rows = questService.createBatch.mock.calls[0][0] as QuestCreate[];
+    expect(rows.map(row => row.pokemonId)).toEqual([25, 133, 1]);
+    expect(rows.map(row => row.clean)).toEqual([4, 4, 4]);
     expect(dialogRef.close).toHaveBeenCalledWith(true);
   });
 
@@ -149,10 +154,8 @@ describe('QuestAddDialogComponent', () => {
 
     component.save();
 
-    expect(questService.create).toHaveBeenCalledTimes(2);
-    for (const call of questService.create.mock.calls) {
-      expect((call[0] as QuestCreate).amount).toBe(50);
-    }
+    expect(questService.createBatch).toHaveBeenCalledTimes(1);
+    expect((questService.createBatch.mock.calls[0][0] as QuestCreate[]).map(row => row.amount)).toEqual([50, 50]);
   });
 
   it('sends the minimum amount with a candy rule', () => {

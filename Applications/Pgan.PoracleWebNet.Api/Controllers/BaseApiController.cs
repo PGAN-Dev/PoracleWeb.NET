@@ -3,7 +3,9 @@ using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
+using Pgan.PoracleWebNet.Core.Services;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
@@ -74,6 +76,53 @@ public abstract class BaseApiController : ControllerBase
     {
         var original = JsonSerializer.Serialize(before);
         return JsonSerializer.Serialize(applyUpdate()) == original;
+    }
+
+    /// <summary>The most alarms one batch create takes: every species with a few forms each, with room to spare.</summary>
+    protected const int MaxBatchCreate = 5000;
+
+    /// <summary>
+    /// Creates <paramref name="models"/> in one request to PoracleNG, as an add dialog's multi-select sends them,
+    /// and answers <c>{ alarms, takeoversSkipped, takeoverReason }</c>: every alarm index for index with uid 0
+    /// where nothing was written, and how many of those would have taken another alarm over.
+    /// </summary>
+    /// <remarks>
+    /// The rows of one dialog share one Deliver to choice, so they land on one human. Rows naming different
+    /// destinations are refused rather than split: the dialog never sends them, and splitting would make one
+    /// request two writes that can half succeed.
+    /// </remarks>
+    protected async Task<IActionResult> CreateBatchAsync<TModel>(
+        LinkedAlarmRouter router, IBatchCreateService<TModel> service, IReadOnlyList<string?> destinations, List<TModel> models)
+        where TModel : class, IHasDestination
+    {
+        if (models.Count == 0)
+        {
+            return this.BadRequest(new { error = "There are no alarms to add." });
+        }
+
+        if (models.Count > MaxBatchCreate)
+        {
+            return this.BadRequest(new { error = $"Add at most {MaxBatchCreate} alarms at a time." });
+        }
+
+        if (destinations.Distinct(StringComparer.Ordinal).Skip(1).Any())
+        {
+            return this.BadRequest(new { error = "Every alarm in one request must go to the same place." });
+        }
+
+        var target = await router.CreateTargetAsync(this.UserId, destinations[0]);
+        var result = await service.CreateBatchAsync(target, models);
+        foreach (var alarm in result.Alarms)
+        {
+            router.StampCreated(alarm, target);
+        }
+
+        return this.Ok(new
+        {
+            alarms = result.Alarms,
+            takeoversSkipped = result.TakeoversSkipped,
+            takeoverReason = result.TakeoverReason,
+        });
     }
 
     /// <summary>Checks that <paramref name="ownerId"/> matches the authenticated user. Returns true when NOT owned (i.e. should return 404).</summary>

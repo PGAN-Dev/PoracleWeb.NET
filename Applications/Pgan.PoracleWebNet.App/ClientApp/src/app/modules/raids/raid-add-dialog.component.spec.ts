@@ -23,14 +23,23 @@ import { RaidService } from '../../core/services/raid.service';
  */
 describe('RaidAddDialogComponent', () => {
   let component: RaidAddDialogComponent;
+  let dialogRef: { close: jest.Mock };
+  let snackBar: { open: jest.Mock };
   let eggService: { create: jest.Mock };
-  let raidService: { create: jest.Mock };
+  let raidService: { create: jest.Mock; createBatch: jest.Mock };
 
   let fixture: ComponentFixture<RaidAddDialogComponent>;
 
   function setup() {
     let nextUid = 100;
-    raidService = { create: jest.fn().mockImplementation(() => of({ uid: nextUid++ } as Raid)) };
+    dialogRef = { close: jest.fn() };
+    snackBar = { open: jest.fn() };
+    raidService = {
+      create: jest.fn().mockImplementation(() => of({ uid: nextUid++ } as Raid)),
+      createBatch: jest
+        .fn()
+        .mockImplementation((rows: RaidCreate[]) => of({ alarms: rows.map(() => ({ uid: nextUid++ }) as Raid), takeoversSkipped: 0 })),
+    };
     eggService = { create: jest.fn().mockImplementation(() => of({ uid: nextUid++ })) };
 
     TestBed.resetTestingModule();
@@ -40,7 +49,7 @@ describe('RaidAddDialogComponent', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: ConfigService, useValue: { apiHost: 'http://test-api' } },
-        { provide: MatDialogRef, useValue: { close: jest.fn() } },
+        { provide: MatDialogRef, useValue: dialogRef },
         { provide: RaidService, useValue: raidService },
         { provide: EggService, useValue: eggService },
         {
@@ -64,7 +73,7 @@ describe('RaidAddDialogComponent', () => {
     });
 
     TestBed.overrideComponent(RaidAddDialogComponent, {
-      add: { providers: [{ provide: MatSnackBar, useValue: { open: jest.fn() } }] },
+      add: { providers: [{ provide: MatSnackBar, useValue: snackBar }] },
     });
 
     fixture = TestBed.createComponent(RaidAddDialogComponent);
@@ -115,6 +124,30 @@ describe('RaidAddDialogComponent', () => {
     component.save();
 
     expect(eggService.create.mock.calls[0][0] as EggCreate).not.toHaveProperty('costume');
+  });
+
+  // Several raid levels go as one batch (#1090); eggs have no batch endpoint and still go one by one, and
+  // the snack counts both.
+  it('sends raid levels as one batch beside each egg level, and counts them all', () => {
+    component.tabIndex = 0;
+    component.selectedRaidLevels.set([1, 3, 5]);
+    component.selectedEggLevels.set([5, 6]);
+    component.save();
+
+    expect(raidService.create).not.toHaveBeenCalled();
+    expect((raidService.createBatch.mock.calls[0][0] as RaidCreate[]).map(row => row.level)).toEqual([1, 3, 5]);
+    expect(eggService.create).toHaveBeenCalledTimes(2);
+    expect(snackBar.open).toHaveBeenCalledWith('ALARM.SNACK_CREATED', 'COMMON.OK', expect.anything());
+    expect(dialogRef.close).toHaveBeenCalledWith(true);
+  });
+
+  it('still sends a single raid level alone, so a refusal can stay inline', () => {
+    component.tabIndex = 0;
+    component.selectedRaidLevels.set([5]);
+    component.save();
+
+    expect(raidService.create).toHaveBeenCalledTimes(1);
+    expect(raidService.createBatch).not.toHaveBeenCalled();
   });
 
   it('names the hint after the current selection', () => {

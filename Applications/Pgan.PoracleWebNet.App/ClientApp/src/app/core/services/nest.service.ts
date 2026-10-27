@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 
 import { AlarmMoveService, MoveEdit } from './alarm-move.service';
 import { ConfigService } from './config.service';
+import type { BatchCreateResponse } from '../../shared/utils/add-outcome';
 import { DistanceUpdateResult } from '../../shared/utils/distance-update';
 import { Nest, NestCreate, NestUpdate } from '../models';
 
@@ -15,6 +16,11 @@ export class NestService {
 
   create(nest: NestCreate): Observable<Nest> {
     return this.http.post<Nest>(`${this.config.apiHost}/api/nests`, nest);
+  }
+
+  /** Several alarms in one request: one dry run and one commit upstream instead of a create each (#1090). */
+  createBatch(nests: NestCreate[]): Observable<BatchCreateResponse<Nest>> {
+    return this.http.post<BatchCreateResponse<Nest>>(`${this.config.apiHost}/api/nests/batch`, nests);
   }
 
   delete(uid: number): Observable<void> {

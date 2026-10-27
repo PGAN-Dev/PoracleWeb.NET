@@ -2,8 +2,19 @@ import { signal } from '@angular/core';
 import { MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslateService } from '@ngx-translate/core';
+import { of, throwError } from 'rxjs';
 
-import { AddRefusal, createFailureText, finishAdd, isEditExisting, refusalOf, ruleSummary, SettledCreate } from './add-outcome';
+import {
+  AddRefusal,
+  createFailureText,
+  finishAdd,
+  isEditExisting,
+  isFailed,
+  refusalOf,
+  ruleSummary,
+  SettledCreate,
+  settleCreates,
+} from './add-outcome';
 import { I18nService } from '../../core/services/i18n.service';
 
 describe('add-outcome', () => {
@@ -225,5 +236,59 @@ describe('createFailureText for a refused move', () => {
     expect(createFailureText({ error: { error: 'Distance is too large.' }, status: 400 }, i18n, 'ALARM.FAILED_UPDATE')).toBe(
       'Distance is too large.',
     );
+  });
+  describe('settleCreates', () => {
+    const one = jest.fn((row: number) => of({ uid: row }));
+    const batch = jest.fn((rows: number[]) => of({ alarms: rows.map(uid => ({ uid })), takeoversSkipped: 0 }));
+
+    beforeEach(() => {
+      one.mockClear();
+      batch.mockClear();
+    });
+
+    function settled(rows: number[], b = batch): SettledCreate[] {
+      let out: SettledCreate[] = [];
+      settleCreates(rows, one, b).subscribe(r => (out = r));
+      return out;
+    }
+
+    it('sends one row alone, so its refusal can stay inline', () => {
+      expect(settled([5])).toEqual([{ uid: 5 }]);
+      expect(one).toHaveBeenCalledTimes(1);
+      expect(batch).not.toHaveBeenCalled();
+    });
+
+    it('sends several rows as one batch, answered row for row', () => {
+      expect(settled([5, 0, 7])).toEqual([{ uid: 5 }, { uid: 0 }, { uid: 7 }]);
+      expect(batch).toHaveBeenCalledTimes(1);
+      expect(one).not.toHaveBeenCalled();
+    });
+
+    it('answers nothing for no rows without a request', () => {
+      expect(settled([])).toEqual([]);
+      expect(one).not.toHaveBeenCalled();
+      expect(batch).not.toHaveBeenCalled();
+    });
+
+    it('turns rows left out as takeovers into refusals carrying the reason, and keeps repeats as repeats', () => {
+      const withTakeover = jest.fn(() =>
+        of({ alarms: [{ uid: 9 }, { uid: 0 }, { uid: 0 }], takeoverReason: 'in the way', takeoversSkipped: 1 }),
+      );
+      const results = settled([1, 2, 3], withTakeover);
+
+      expect(results.filter(isFailed)).toHaveLength(1);
+      expect(createFailureText(results.filter(isFailed)[0].failed, i18n, 'ALARM.FAILED_CREATE')).toBe('in the way');
+      expect(results.filter(r => !isFailed(r) && r.uid === 0)).toHaveLength(1);
+    });
+
+    it('settles a refused batch as one refusal, so the dialog stays open', () => {
+      const refused = { error: { error: 'nope' }, status: 400 };
+      const results = settled(
+        [1, 2],
+        jest.fn(() => throwError(() => refused)),
+      );
+
+      expect(results).toEqual([{ failed: refused }]);
+    });
   });
 });

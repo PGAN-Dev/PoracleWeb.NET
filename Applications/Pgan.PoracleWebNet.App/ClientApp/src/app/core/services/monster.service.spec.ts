@@ -166,4 +166,14 @@ describe('MonsterService', () => {
       httpMock.expectNone(`${API}/api/monsters/capability`);
     });
   });
+
+  it('sends several alarms to the batch endpoint as one request (#1090)', () => {
+    const rows = [{ pokemonId: 1 }, { pokemonId: 4 }] as unknown as MonsterCreate[];
+    service.createBatch(rows).subscribe(res => expect(res.alarms.map(a => a.uid)).toEqual([7, 0]));
+
+    const req = httpMock.expectOne(`${API}/api/monsters/batch`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual(rows);
+    req.flush({ alarms: [{ uid: 7 }, { uid: 0 }], takeoversSkipped: 0 });
+  });
 });

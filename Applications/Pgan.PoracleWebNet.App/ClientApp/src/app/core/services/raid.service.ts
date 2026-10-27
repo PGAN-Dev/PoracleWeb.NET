@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 
 import { AlarmMoveService, MoveEdit } from './alarm-move.service';
 import { ConfigService } from './config.service';
+import type { BatchCreateResponse } from '../../shared/utils/add-outcome';
 import { DistanceUpdateResult } from '../../shared/utils/distance-update';
 import { Raid, RaidCreate, RaidUpdate } from '../models';
 
@@ -15,6 +16,11 @@ export class RaidService {
 
   create(raid: RaidCreate): Observable<Raid> {
     return this.http.post<Raid>(`${this.config.apiHost}/api/raids`, raid);
+  }
+
+  /** Several alarms in one request: one dry run and one commit upstream instead of a create each (#1090). */
+  createBatch(raids: RaidCreate[]): Observable<BatchCreateResponse<Raid>> {
+    return this.http.post<BatchCreateResponse<Raid>>(`${this.config.apiHost}/api/raids/batch`, raids);
   }
 
   delete(uid: number): Observable<void> {

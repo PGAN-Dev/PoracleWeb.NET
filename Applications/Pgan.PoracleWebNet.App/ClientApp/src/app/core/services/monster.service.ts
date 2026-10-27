@@ -4,6 +4,7 @@ import { Observable, catchError, of } from 'rxjs';
 
 import { AlarmMoveService, MoveEdit } from './alarm-move.service';
 import { ConfigService } from './config.service';
+import type { BatchCreateResponse } from '../../shared/utils/add-outcome';
 import { DistanceUpdateResult } from '../../shared/utils/distance-update';
 import { Monster, MonsterCreate, MonsterUpdate } from '../models';
 
@@ -31,6 +32,11 @@ export class MonsterService {
 
   create(monster: MonsterCreate): Observable<Monster> {
     return this.http.post<Monster>(`${this.config.apiHost}/api/monsters`, monster);
+  }
+
+  /** Several alarms in one request: one dry run and one commit upstream instead of a create each (#1090). */
+  createBatch(monsters: MonsterCreate[]): Observable<BatchCreateResponse<Monster>> {
+    return this.http.post<BatchCreateResponse<Monster>>(`${this.config.apiHost}/api/monsters/batch`, monsters);
   }
 
   delete(uid: number): Observable<void> {

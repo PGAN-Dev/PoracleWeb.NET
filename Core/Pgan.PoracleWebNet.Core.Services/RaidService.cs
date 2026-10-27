@@ -122,10 +122,13 @@ public class RaidService(
         return items.Count;
     }
 
-    public async Task<IEnumerable<Raid>> BulkCreateAsync(string userId, IEnumerable<Raid> models)
+    public async Task<IEnumerable<Raid>> BulkCreateAsync(string userId, IEnumerable<Raid> models) =>
+        (await this.CreateBatchAsync(userId, [.. models])).Alarms;
+
+    public async Task<BatchCreateResult<Raid>> CreateBatchAsync(string userId, IReadOnlyList<Raid> models)
     {
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Raids);
-        var modelList = models.ToList();
+        List<Raid> modelList = [.. models];
 
         foreach (var model in modelList)
         {
@@ -140,7 +143,8 @@ public class RaidService(
             modelList[i].Uid = result.RowUids[i];
         }
 
-        return modelList;
+        return new BatchCreateResult<Raid>(
+            modelList, result.TakeoversSkipped, result.TakeoversSkipped > 0 ? PoracleTrackingProxy.TakeoverMessage : null);
     }
 
     private static List<Raid> DeserializeItems(JsonElement json) =>
