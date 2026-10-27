@@ -134,10 +134,13 @@ public class MonsterService(
         return monsters.Count;
     }
 
-    public async Task<IEnumerable<Monster>> BulkCreateAsync(string userId, IEnumerable<Monster> models)
+    public async Task<IEnumerable<Monster>> BulkCreateAsync(string userId, IEnumerable<Monster> models) =>
+        (await this.CreateBatchAsync(userId, [.. models])).Alarms;
+
+    public async Task<BatchCreateResult<Monster>> CreateBatchAsync(string userId, IReadOnlyList<Monster> models)
     {
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Pokemon);
-        var modelList = models.ToList();
+        List<Monster> modelList = [.. models];
 
         foreach (var model in modelList)
         {
@@ -152,7 +155,8 @@ public class MonsterService(
             modelList[i].Uid = result.RowUids[i];
         }
 
-        return modelList;
+        return new BatchCreateResult<Monster>(
+            modelList, result.TakeoversSkipped, result.TakeoversSkipped > 0 ? PoracleTrackingProxy.TakeoverMessage : null);
     }
 
     private static List<Monster> DeserializeMonsters(JsonElement json) =>

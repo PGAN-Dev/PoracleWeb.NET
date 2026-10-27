@@ -260,6 +260,42 @@ public class PokestopEventServiceTests
         Assert.Equal(PokestopEventTypes.Kecleon, Assert.Single(Assert.Single(committed)).DisplayType);
     }
 
+    /// <summary>
+    /// A larger mixed batch (a profile import can send one) is halved until each group is one kind rather than
+    /// asking about every rule, and the new rules are still committed with their uids in place.
+    /// </summary>
+    [Fact]
+    public async Task ProtocolMixedLargeBatchHalvesInsteadOfAskingAboutEveryRule()
+    {
+        const int Stored = 3;
+        var dryRuns = 0;
+        var committed = new List<List<PokestopEvent>>();
+        this._proxy.Setup(p => p.CreateAsync("u1", It.IsAny<IEnumerable<PokestopEvent>>(), It.IsAny<bool>()))
+            .ReturnsAsync((string _, IEnumerable<PokestopEvent> sent, bool dryRun) =>
+            {
+                List<PokestopEvent> rules = [.. sent];
+                if (!dryRun)
+                {
+                    committed.Add(rules);
+                    return Created([.. rules.Select(r => Rule(100 + r.DisplayType, r.DisplayType))]);
+                }
+
+                dryRuns++;
+                return new PokestopEventWriteResult(
+                    [.. rules.Where(r => r.DisplayType != Stored)],
+                    [],
+                    [.. rules.Where(r => r.DisplayType == Stored)]);
+            });
+
+        var types = Enumerable.Range(1, 16).ToList();
+        var uids = await IncidentCreateProtocol.CreateAsync(
+            this._proxy.Object, "u1", [.. types.Select(t => Rule(0, t))], single: false);
+
+        Assert.InRange(dryRuns, 1, 10);
+        Assert.Equal(types.Where(t => t != Stored), Assert.Single(committed).Select(r => r.DisplayType));
+        Assert.Equal(types.Select(t => t == Stored ? 0 : 100 + t), uids);
+    }
+
     [Fact]
     public async Task BulkCreateAsyncAllExistingMakesNoPerRowRuns()
     {

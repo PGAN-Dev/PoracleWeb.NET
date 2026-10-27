@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **The Pokémon picker can add everything a generation or type shows.** With a generation, type or Live filter picked, a **Select all N** checkbox above the tile grid picks every species the grid shows (search included) and leaves picks from other filters alone. It shows as mixed while only some are picked, with a count such as "6 of 151 selected", and a second click clears what the grid shows. The grid is no longer cut at 200 tiles, so Select all always reaches everything a filter matches; the search dropdown keeps its 200 cap. It shows its first 24 tiles with **Show all N** below them instead of scrolling in a box of its own inside the scrolling dialog. Past 12 picks the chips fold behind **Show all N**, and **Clear all** empties the selection. The search dropdown now lists species that are already picked, marked with a tick and **Remove**, so one species can be dropped from a pasted thousand by searching for it. The generation and type chips are one Tab stop per group, moved through with the arrow keys, Home and End, so Select all is two Tabs past G1 instead of 25, and each chip says whether it's on. On a phone each group is a single row that scrolls sideways rather than wrapping over most of the first screen ([#1090](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/1090)).
+- **Add multiple takes Pokédex numbers and ranges.** The paste box now reads `25`, `#25`, `1-151` and `650 – 721` (any dash, either way round) alongside names, in any mix of commas, newlines and spaces. A number never gets name suggestions, so `2` no longer offers Porygon2. Names match without their punctuation or accents, so `mime jr`, `mr mime`, `farfetchd`, `flabebe`, `type null` and `ho oh` all work. In a picker that only offers some species, such as a max battle's bosses, a pasted name or number outside them is listed as not offered here instead of being added. Translated in all eleven languages ([#1090](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/1090)).
+- **Batch create endpoints.** `POST api/monsters/batch`, `api/raids/batch`, `api/maxbattles/batch`, `api/nests/batch` and `api/quests/batch` take a list of create rows (up to 5000, all for the same app) and write them in one PoracleNG request. The answer lists the created alarms and how many rows were skipped because they would have taken over a stored alarm, with the reason.
+
+### Changed
+
+- **Adding many Pokémon, raid bosses, max battles, nests or quests is one request.** The add dialogs used to send one create per picked species, so a 151-species pick was 151 requests in a row. They now send one batch, and a row that would take over a stored alarm still shows the same refusal it did before. One pick still goes through the single create. Egg, gym, lure and invasion dialogs are unchanged. Inside the server, a batch that mixes new and stored rows is now sorted by halving it rather than dry-running every row, so a thousand rows with a few stored ones among them costs a few dozen dry runs instead of a thousand ([#1090](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/1090)).
+
 ## [3.3.0] - 2026-10-26
 
 ### Fixed

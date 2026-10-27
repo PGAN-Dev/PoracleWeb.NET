@@ -14,7 +14,6 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { TranslatePipe } from '@ngx-translate/core';
-import { forkJoin } from 'rxjs';
 
 import { syncUnscanned } from './include-unscanned';
 import { MonsterCreate, LinkSide } from '../../core/models';
@@ -29,7 +28,7 @@ import { DeliverToFieldComponent } from '../../shared/components/deliver-to/deli
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
-import { AddDialogData, AddRefusal, editExistingResult, ExistingRule, finishAdd, settle } from '../../shared/utils/add-outcome';
+import { AddDialogData, AddRefusal, editExistingResult, ExistingRule, finishAdd, settleCreates } from '../../shared/utils/add-outcome';
 import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 import { compose } from '../../shared/utils/clean-flags';
 import { ANY_COSTUME, costumeHintKey } from '../../shared/utils/costumes';
@@ -240,7 +239,7 @@ export class PokemonAddDialogComponent implements OnInit {
     const formIds =
       this.availableForms().length > 0 ? (filters.forms && filters.forms.length > 0 ? filters.forms : [0]) : [filters.form ?? 0];
 
-    const creates = this.selectedPokemonIds().flatMap(pokemonId =>
+    const monsters = this.selectedPokemonIds().flatMap(pokemonId =>
       formIds.map(form => {
         const monster: MonsterCreate = {
           ...this.deliver.createFields(this.notifForm.controls.destination.value),
@@ -277,13 +276,17 @@ export class PokemonAddDialogComponent implements OnInit {
           sta: filters.sta ?? 0,
           template: notif.template || null,
         };
-        return this.monsterService.create(monster);
+        return monster;
       }),
     );
 
-    // Each create settles on its own, so one refusal cannot hide the ones that landed (#577). A single
-    // refused Add keeps the dialog open with the reason inline; see finishAdd.
-    forkJoin(creates.map(c => settle(c))).subscribe(results => {
+    // One row is a single Add, whose refusal keeps the dialog open with the reason inline; several go as one
+    // batch request that PoracleNG answers with one dry run and one commit (#1090). See settleCreates.
+    settleCreates(
+      monsters,
+      m => this.monsterService.create(m),
+      m => this.monsterService.createBatch(m),
+    ).subscribe(results => {
       this.saving.set(false);
       finishAdd(results, {
         dialogRef: this.dialogRef,

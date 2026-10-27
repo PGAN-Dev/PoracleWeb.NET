@@ -82,4 +82,104 @@ describe('matchPokemonBulkText', () => {
     const result = matchPokemonBulkText('  charizard ,,  \n\n pikachu  ', pokemon, new Set());
     expect(result.matched.map(p => p.id)).toEqual([6, 25]);
   });
+  describe('dex numbers and ranges (#1090)', () => {
+    const dex: PokemonEntry[] = [
+      { id: 0, name: 'All Pokemon' },
+      ...Array.from({ length: 30 }, (_, i) => ({ id: i + 1, name: `Mon${i + 1}` })),
+      { id: 233, name: 'Porygon2' },
+      { id: 250, name: 'Ho-Oh' },
+    ];
+    const ids = (text: string, selected: number[] = [], allowed?: number[]) =>
+      matchPokemonBulkText(text, dex, new Set(selected), allowed ? new Set(allowed) : null);
+
+    it('adds a species by its dex number, with or without #', () => {
+      expect(ids('25, #3').matched.map(p => p.id)).toEqual([25, 3]);
+    });
+
+    it('never suggests a name for a number', () => {
+      const result = ids('2');
+      expect(result.matched.map(p => p.id)).toEqual([2]);
+      expect(result.suggestions).toEqual([]);
+    });
+
+    it('expands a range, a spaced range, an en dash range and a reversed range', () => {
+      expect(ids('1-3').matched.map(p => p.id)).toEqual([1, 2, 3]);
+      expect(ids('4 - 5').matched.map(p => p.id)).toEqual([4, 5]);
+      expect(ids('6 – 7').matched.map(p => p.id)).toEqual([6, 7]);
+      expect(ids('#9-#8').matched.map(p => p.id)).toEqual([8, 9]);
+    });
+
+    it('mixes numbers, ranges and names in one paste', () => {
+      expect(ids('1-2, Porygon2\n25 ho-oh').matched.map(p => p.id)).toEqual([1, 2, 233, 25, 250]);
+    });
+
+    it('keeps a range to the species that exist and reports one that holds none', () => {
+      expect(ids('29-40').matched.map(p => p.id)).toEqual([29, 30]);
+      const result = ids('500-600');
+      expect(result.matched).toEqual([]);
+      expect(result.unrecognized).toEqual(['500-600']);
+    });
+
+    it('counts 0 and numbers no species has as unrecognized', () => {
+      const result = ids('0, 9999');
+      expect(result.matched).toEqual([]);
+      expect(result.unrecognized).toEqual(['0', '9999']);
+      expect(result.suggestions).toEqual([]);
+    });
+
+    it('reports numbers already picked instead of re-adding them', () => {
+      const result = ids('1-3', [2]);
+      expect(result.matched.map(p => p.id)).toEqual([1, 3]);
+      expect(result.alreadySelected.map(p => p.id)).toEqual([2]);
+    });
+
+    it('adds only the allowed species from a range, and names what the picker does not offer', () => {
+      const result = ids('1-5, 7, Mon9', [], [2, 4]);
+      expect(result.matched.map(p => p.id)).toEqual([2, 4]);
+      expect(result.notAllowed).toEqual(['7', 'Mon9']);
+      expect(result.suggestions).toEqual([]);
+    });
+
+    it('still matches every name when nothing restricts the picker', () => {
+      expect(ids('Mon9', [], []).matched.map(p => p.id)).toEqual([9]);
+    });
+  });
+
+  describe('names typed without their punctuation or accents', () => {
+    const named: PokemonEntry[] = [
+      { id: 29, name: 'Nidoran♀' },
+      { id: 32, name: 'Nidoran♂' },
+      { id: 83, name: "Farfetch'd" },
+      { id: 122, name: 'Mr. Mime' },
+      { id: 233, name: 'Porygon2' },
+      { id: 250, name: 'Ho-Oh' },
+      { id: 439, name: 'Mime Jr.' },
+      { id: 474, name: 'Porygon-Z' },
+      { id: 669, name: 'Flabébé' },
+      { id: 772, name: 'Type: Null' },
+      { id: 782, name: 'Jangmo-o' },
+    ];
+    const matched = (text: string) => matchPokemonBulkText(text, named, new Set()).matched.map(p => p.id);
+
+    it('matches a name typed without its full stop, apostrophe, colon or accent', () => {
+      expect(matched('mime jr, mr mime, farfetchd, type null, flabebe')).toEqual([439, 122, 83, 772, 669]);
+    });
+
+    it('treats a hyphen and a space alike', () => {
+      expect(matched('ho oh, ho-oh, porygon z, jangmo o')).toEqual([250, 474, 782]);
+    });
+
+    it('still matches the names as written', () => {
+      expect(matched("Mime Jr., Mr. Mime, Farfetch'd, Type: Null, Flabébé, Ho-Oh, Porygon2")).toEqual([439, 122, 83, 772, 669, 250, 233]);
+    });
+
+    it('reads Nidoran f and m for the symbols', () => {
+      expect(matched('nidoran f, nidoran m')).toEqual([29, 32]);
+    });
+
+    it('suggests across punctuation too', () => {
+      const result = matchPokemonBulkText('farfetch', named, new Set());
+      expect(result.suggestions[0].candidates.map(p => p.id)).toEqual([83]);
+    });
+  });
 });

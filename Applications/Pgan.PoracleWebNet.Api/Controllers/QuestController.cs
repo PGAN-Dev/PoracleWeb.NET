@@ -58,6 +58,11 @@ public class QuestController(IQuestService questService, LinkedAlarmRouter route
         }, result);
     }
 
+    /// <summary>Several alarms in one request; see <see cref="BaseApiController.CreateBatchAsync{TModel}"/>.</summary>
+    [HttpPost("batch")]
+    public async Task<IActionResult> CreateBatch([FromBody] List<QuestCreate> models) =>
+        await this.CreateBatchAsync(this._router, this._questService, [.. models.Select(m => m.Destination)], [.. models.Select(m => m.ToQuest())]);
+
     [HttpPut("{uid:int}")]
     public async Task<IActionResult> Update(int uid, [FromBody] QuestUpdate model)
     {

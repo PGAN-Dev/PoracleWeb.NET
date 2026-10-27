@@ -93,10 +93,11 @@ public partial class PoracleTrackingProxy
     /// reported as already present. A batch writes the rows that are new and counts the rest.
     /// </para>
     /// <para>
-    /// The answer's buckets carry no index back to the request, so a mixed batch asks about each row alone.
-    /// That is sound because PoracleNG classifies against stored rules only, never between the rows of one
-    /// batch (<c>store.RowDiffPolicy.Classify</c>). Inserts come back in submission order, which is how a
-    /// committed uid is paired with its row.
+    /// The answer's buckets carry no index back to the request, so a mixed batch is told apart by
+    /// <see cref="BatchDryRun"/>, which dry-runs halves until each group is one kind. That is sound because
+    /// PoracleNG classifies against stored rules only, never between the rows of one batch
+    /// (<c>store.RowDiffPolicy.Classify</c>). Inserts come back in submission order, which is how a committed
+    /// uid is paired with its row.
     /// </para>
     /// <para>
     /// Between the dry run and the commit another write can make a new row a takeover after all. The commit
@@ -151,30 +152,15 @@ public partial class PoracleTrackingProxy
         }
         else
         {
-            keep = [];
-            for (var i = 0; i < rows.Count; i++)
-            {
-                // One row's batch answer already is its own classification.
-                var verdict = rows.Count == 1
-                    ? dry.Verdict
-                    : (await this.PostRulesAsync(type, userId, url + DryRunQuery, [translated[i]])).Verdict;
+            var sorted = await BatchDryRun.ClassifyAsync(
+                rows.Count,
+                dry.Counts,
+                async idx => (await this.PostRulesAsync(type, userId, url + DryRunQuery, [.. idx.Select(i => translated[i])])).Counts,
+                row => LogTakeoverSkipped(this._logger, type, LogSafe.Id(userId), row));
 
-                switch (verdict)
-                {
-                    case DryRunVerdict.Unchanged:
-                        alreadyPresent++;
-                        break;
-
-                    case DryRunVerdict.Updated:
-                        takeovers++;
-                        LogTakeoverSkipped(this._logger, type, LogSafe.Id(userId), i);
-                        break;
-
-                    default:
-                        keep.Add(i);
-                        break;
-                }
-            }
+            keep = sorted.Keep;
+            alreadyPresent = sorted.AlreadyPresent;
+            takeovers = sorted.Takeovers;
 
             if (keep.Count == 0)
             {
@@ -358,14 +344,6 @@ public partial class PoracleTrackingProxy
         await this.PutV2Async(type, userId, uid, rule, trusted: true);
     }
 
-    /// <summary>How a v2 dry run classified a single row.</summary>
-    internal enum DryRunVerdict
-    {
-        Created,
-        Updated,
-        Unchanged,
-    }
-
     /// <summary>
     /// The <c>{dry_run, created, updated, unchanged}</c> answer to a v2 tracking create or replace. Each bucket
     /// is a list of rules carrying <c>uid</c> (0 on a dry-run create); an <c>updated</c> rule also carries
@@ -376,14 +354,7 @@ public partial class PoracleTrackingProxy
         IReadOnlyList<JsonElement> Updated,
         IReadOnlyList<JsonElement> Unchanged)
     {
-        /// <summary>
-        /// What a dry run of ONE row says about it. A takeover outranks everything, then an exact duplicate;
-        /// an answer that says nothing is left for the commit, which repairs a takeover it did not foresee.
-        /// </summary>
-        public DryRunVerdict Verdict =>
-            this.Updated.Count > 0 ? DryRunVerdict.Updated
-            : this.Unchanged.Count > 0 && this.Created.Count == 0 ? DryRunVerdict.Unchanged
-            : DryRunVerdict.Created;
+        public BatchDryRun.Counts Counts => new(this.Created.Count, this.Updated.Count, this.Unchanged.Count);
 
         public static WriteEnvelope Parse(string payload)
         {

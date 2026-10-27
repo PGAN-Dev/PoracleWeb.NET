@@ -11,9 +11,8 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { TranslatePipe } from '@ngx-translate/core';
-import { forkJoin } from 'rxjs';
 
-import { LinkSide } from '../../core/models';
+import { LinkSide, QuestCreate } from '../../core/models';
 import { AlertDefaultsService } from '../../core/services/alert-defaults.service';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
@@ -26,7 +25,7 @@ import { DeliverToFieldComponent } from '../../shared/components/deliver-to/deli
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
-import { AddDialogData, AddRefusal, editExistingResult, ExistingRule, finishAdd, settle } from '../../shared/utils/add-outcome';
+import { AddDialogData, AddRefusal, editExistingResult, ExistingRule, finishAdd, settleCreates } from '../../shared/utils/add-outcome';
 import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 import { compose } from '../../shared/utils/clean-flags';
 import { injectDeliverTo } from '../../shared/utils/deliver-to';
@@ -228,125 +227,117 @@ export class QuestAddDialogComponent {
     // New alarms have no prior bits, so compose directly from the two surfaced toggles (edit-in-place unsupported for quests).
     const cleanValue = compose(!!common.clean, false, !!common.summary);
 
-    const creates: ReturnType<typeof this.questService.create>[] = [];
+    const quests: QuestCreate[] = [];
 
     switch (this.rewardKind) {
       case 0:
         for (const pokemonId of this.selectedPokemonIds()) {
-          creates.push(
-            this.questService.create({
-              ...this.deliver.createFields(this.commonForm.controls.destination.value),
-              overrideAreas: scope.overrideAreas,
-              overrideLocationLabel: scope.overrideLocationLabel,
-              amount: 0,
-              clean: cleanValue,
-              distance: scope.distance,
-              pokemonId,
-              reward: pokemonId,
-              rewardType: 7,
-              shiny: 0,
-              template: common.template || null,
-            }),
-          );
-        }
-        break;
-      case 1:
-        creates.push(
-          this.questService.create({
+          quests.push({
             ...this.deliver.createFields(this.commonForm.controls.destination.value),
             overrideAreas: scope.overrideAreas,
             overrideLocationLabel: scope.overrideLocationLabel,
-            amount: this.itemForm.controls.amount.value ?? 0,
+            amount: 0,
             clean: cleanValue,
             distance: scope.distance,
-            pokemonId: 0,
-            reward: this.itemForm.controls.reward.value ?? 0,
-            rewardType: 2,
+            pokemonId,
+            reward: pokemonId,
+            rewardType: 7,
             shiny: 0,
             template: common.template || null,
-          }),
-        );
+          });
+        }
+        break;
+      case 1:
+        quests.push({
+          ...this.deliver.createFields(this.commonForm.controls.destination.value),
+          overrideAreas: scope.overrideAreas,
+          overrideLocationLabel: scope.overrideLocationLabel,
+          amount: this.itemForm.controls.amount.value ?? 0,
+          clean: cleanValue,
+          distance: scope.distance,
+          pokemonId: 0,
+          reward: this.itemForm.controls.reward.value ?? 0,
+          rewardType: 2,
+          shiny: 0,
+          template: common.template || null,
+        });
         break;
       case 2:
         for (const pokemonId of this.selectedMegaPokemonIds()) {
-          creates.push(
-            this.questService.create({
-              ...this.deliver.createFields(this.commonForm.controls.destination.value),
-              overrideAreas: scope.overrideAreas,
-              overrideLocationLabel: scope.overrideLocationLabel,
-              amount: this.megaForm.controls.amount.value ?? 0,
-              clean: cleanValue,
-              distance: scope.distance,
-              pokemonId,
-              reward: pokemonId,
-              rewardType: 12,
-              shiny: 0,
-              template: common.template || null,
-            }),
-          );
+          quests.push({
+            ...this.deliver.createFields(this.commonForm.controls.destination.value),
+            overrideAreas: scope.overrideAreas,
+            overrideLocationLabel: scope.overrideLocationLabel,
+            amount: this.megaForm.controls.amount.value ?? 0,
+            clean: cleanValue,
+            distance: scope.distance,
+            pokemonId,
+            reward: pokemonId,
+            rewardType: 12,
+            shiny: 0,
+            template: common.template || null,
+          });
         }
         break;
       case 3:
         for (const pokemonId of this.selectedCandyPokemonIds()) {
-          creates.push(
-            this.questService.create({
-              ...this.deliver.createFields(this.commonForm.controls.destination.value),
-              overrideAreas: scope.overrideAreas,
-              overrideLocationLabel: scope.overrideLocationLabel,
-              amount: this.candyForm.controls.amount.value ?? 0,
-              clean: cleanValue,
-              distance: scope.distance,
-              pokemonId,
-              reward: pokemonId,
-              rewardType: 4,
-              shiny: 0,
-              template: common.template || null,
-            }),
-          );
+          quests.push({
+            ...this.deliver.createFields(this.commonForm.controls.destination.value),
+            overrideAreas: scope.overrideAreas,
+            overrideLocationLabel: scope.overrideLocationLabel,
+            amount: this.candyForm.controls.amount.value ?? 0,
+            clean: cleanValue,
+            distance: scope.distance,
+            pokemonId,
+            reward: pokemonId,
+            rewardType: 4,
+            shiny: 0,
+            template: common.template || null,
+          });
         }
         break;
       case 4:
-        creates.push(
-          this.questService.create({
-            ...this.deliver.createFields(this.commonForm.controls.destination.value),
-            overrideAreas: scope.overrideAreas,
-            overrideLocationLabel: scope.overrideLocationLabel,
-            amount: 0,
-            clean: cleanValue,
-            distance: scope.distance,
-            pokemonId: 0,
-            // PoracleNG compares the stored reward against the dust the quest pays, so the floor
-            // travels in reward rather than amount for this one type.
-            reward: this.stardustForm.controls.reward.value ?? 0,
-            rewardType: 3,
-            shiny: 0,
-            template: common.template || null,
-          }),
-        );
+        quests.push({
+          ...this.deliver.createFields(this.commonForm.controls.destination.value),
+          overrideAreas: scope.overrideAreas,
+          overrideLocationLabel: scope.overrideLocationLabel,
+          amount: 0,
+          clean: cleanValue,
+          distance: scope.distance,
+          pokemonId: 0,
+          // PoracleNG compares the stored reward against the dust the quest pays, so the floor
+          // travels in reward rather than amount for this one type.
+          reward: this.stardustForm.controls.reward.value ?? 0,
+          rewardType: 3,
+          shiny: 0,
+          template: common.template || null,
+        });
         break;
       case 5:
-        creates.push(
-          this.questService.create({
-            ...this.deliver.createFields(this.commonForm.controls.destination.value),
-            overrideAreas: scope.overrideAreas,
-            overrideLocationLabel: scope.overrideLocationLabel,
-            amount: 0,
-            clean: cleanValue,
-            distance: scope.distance,
-            pokemonId: 0,
-            // Pokecoins carry their floor in reward, the same slot stardust uses.
-            reward: this.pokecoinsForm.controls.reward.value ?? 0,
-            rewardType: 8,
-            shiny: 0,
-            template: common.template || null,
-          }),
-        );
+        quests.push({
+          ...this.deliver.createFields(this.commonForm.controls.destination.value),
+          overrideAreas: scope.overrideAreas,
+          overrideLocationLabel: scope.overrideLocationLabel,
+          amount: 0,
+          clean: cleanValue,
+          distance: scope.distance,
+          pokemonId: 0,
+          // Pokecoins carry their floor in reward, the same slot stardust uses.
+          reward: this.pokecoinsForm.controls.reward.value ?? 0,
+          rewardType: 8,
+          shiny: 0,
+          template: common.template || null,
+        });
         break;
     }
 
-    // Each create settles on its own, so one refusal cannot hide the ones that landed (#577). A single
-    // refused Add keeps the dialog open with the reason inline; see finishAdd.
-    forkJoin(creates.map(c => settle(c))).subscribe(results => {
+    // One row is a single Add, whose refusal keeps the dialog open with the reason inline; several go as one
+    // batch request that PoracleNG answers with one dry run and one commit (#1090). See settleCreates.
+    settleCreates(
+      quests,
+      q => this.questService.create(q),
+      q => this.questService.createBatch(q),
+    ).subscribe(results => {
       this.saving.set(false);
       finishAdd(results, {
         dialogRef: this.dialogRef,

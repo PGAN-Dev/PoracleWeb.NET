@@ -248,6 +248,48 @@ public class TrackingCreateProtocolTests
     }
 
     [Fact]
+    public async Task BatchMixedHalvesInsteadOfAskingAboutEveryRow()
+    {
+        // Selecting every species in the picker and adding them, while already holding one of them and one rule a
+        // new row would take over. Asking about each of the 64 rows alone cost 64 dry runs; halving the mixed
+        // groups finds the two in a few.
+        const int Stored = 120;
+        const int Takeover = 150;
+        var handler = new Handler(sent =>
+        {
+            var ids = PokemonIds(sent);
+            if (!IsDryRun(sent))
+            {
+                return Reply.Ok(Envelope(false, created: Rules(ids, id => 1000 + id)));
+            }
+
+            return Reply.Ok(Envelope(
+                true,
+                created: Rules(ids.Where(id => id is not Stored and not Takeover), _ => 0),
+                updated: ids.Contains(Takeover) ? """[{"uid":40,"pokemon_id":150,"previous":{"uid":40,"pokemon_id":150}}]""" : "null",
+                unchanged: ids.Contains(Stored) ? """[{"uid":41,"pokemon_id":120}]""" : "null"));
+        });
+
+        var species = Enumerable.Range(101, 64).ToList();
+        var result = await this.CreateSut(handler).CreateAsync(
+            "pokemon", "user1", Json(JsonSerializer.Serialize(species.Select(id => new { pokemon_id = id }))));
+
+        var dryRuns = handler.Requests.Count(IsDryRun);
+        Assert.InRange(dryRuns, 1, 25);
+
+        var commit = Assert.Single(handler.Requests, r => !IsDryRun(r));
+        Assert.Equal(species.Where(id => id is not Stored and not Takeover), PokemonIds(commit));
+
+        Assert.Equal(species.Select(id => id is Stored or Takeover ? 0 : 1000 + id), result.RowUids);
+        Assert.Equal(1, result.AlreadyPresent);
+        Assert.Equal(1, result.TakeoversSkipped);
+        Assert.Equal(62, result.Inserts);
+    }
+
+    private static string Rules(IEnumerable<int> ids, Func<int, int> uid) =>
+        JsonSerializer.Serialize(ids.Select(id => new { uid = uid(id), pokemon_id = id }));
+
+    [Fact]
     public async Task BatchNothingNewNoCommit()
     {
         var handler = new Handler(_ => Reply.Ok(Envelope(true, unchanged: """[{"uid":41}]""")));
