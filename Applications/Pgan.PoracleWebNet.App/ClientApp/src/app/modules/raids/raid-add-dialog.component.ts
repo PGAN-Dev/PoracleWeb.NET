@@ -12,9 +12,9 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { TranslatePipe } from '@ngx-translate/core';
-import { forkJoin, Observable } from 'rxjs';
+import { forkJoin, map, Observable } from 'rxjs';
 
-import { Egg, EggCreate, Raid, RaidCreate, LinkSide } from '../../core/models';
+import { Egg, EggCreate, RaidCreate, LinkSide } from '../../core/models';
 import { ANY_LEVEL_VALUE } from '../../core/models/raid-level.models';
 import { AlertDefaultsService } from '../../core/services/alert-defaults.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -31,7 +31,15 @@ import { PokemonSelectorComponent } from '../../shared/components/pokemon-select
 import { RsvpToggleComponent } from '../../shared/components/rsvp-toggle/rsvp-toggle.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
-import { AddDialogData, AddRefusal, editExistingResult, ExistingRule, finishAdd, settle } from '../../shared/utils/add-outcome';
+import {
+  AddDialogData,
+  AddRefusal,
+  editExistingResult,
+  ExistingRule,
+  finishAdd,
+  settle,
+  settleCreates,
+} from '../../shared/utils/add-outcome';
 import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, EDIT } from '../../shared/utils/clean-flags';
 import { ANY_COSTUME, costumeHintKey } from '../../shared/utils/costumes';
@@ -175,9 +183,10 @@ export class RaidAddDialogComponent {
     // New alarms have no prior bits, so there is nothing to preserve here.
     const clean = (common.clean ? AUTO_DELETE : 0) | ((common.rsvpChanges ?? 0) >= 1 ? EDIT : 0);
 
-    // A union of the two return types confuses .pipe(); both are Observable of an alarm, and the batch
-    // only needs to know whether each one landed. See #577.
-    const creates: Observable<Raid | Egg>[] = [];
+    // Raids go as one batch; eggs have no batch endpoint and a dialog adds a handful at most, so each egg
+    // still settles on its own (#577).
+    const raids: RaidCreate[] = [];
+    const eggs: Observable<Egg>[] = [];
 
     if (this.tabIndex === 0) {
       // By Level
@@ -201,7 +210,7 @@ export class RaidAddDialogComponent {
           team: common.team ?? 4,
           template: common.template || null,
         };
-        creates.push(this.raidService.create(raid));
+        raids.push(raid);
       }
       for (const level of this.selectedEggLevels()) {
         const egg: EggCreate = {
@@ -217,7 +226,7 @@ export class RaidAddDialogComponent {
           team: common.team ?? 4,
           template: common.template || null,
         };
-        creates.push(this.eggService.create(egg));
+        eggs.push(this.eggService.create(egg));
       }
     } else {
       // By Boss. The level is always the "any" sentinel, never a chosen one: trackingRaid.go rewrites
@@ -242,13 +251,21 @@ export class RaidAddDialogComponent {
           team: common.team ?? 4,
           template: common.template || null,
         };
-        creates.push(this.raidService.create(raid));
+        raids.push(raid);
       }
     }
 
-    // Each create settles on its own, so one refusal cannot hide the ones that landed (#577). A single
-    // refused Add keeps the dialog open with the reason inline; see finishAdd.
-    forkJoin(creates.map(c => settle(c))).subscribe(results => {
+    // One row is a single Add, whose refusal keeps the dialog open with the reason inline; several go as one
+    // batch request that PoracleNG answers with one dry run and one commit (#1090). See settleCreates.
+    forkJoin([
+      settleCreates(
+        raids,
+        r => this.raidService.create(r),
+        r => this.raidService.createBatch(r),
+      ),
+      ...eggs.map(egg => settle(egg).pipe(map(result => [result]))),
+    ]).subscribe(parts => {
+      const results = parts.flat();
       this.saving.set(false);
       finishAdd(results, {
         dialogRef: this.dialogRef,

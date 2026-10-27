@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 
 import { AlarmMoveService, MoveEdit } from './alarm-move.service';
 import { ConfigService } from './config.service';
+import type { BatchCreateResponse } from '../../shared/utils/add-outcome';
 import { DistanceUpdateResult } from '../../shared/utils/distance-update';
 import { MaxBattle, MaxBattleCreate, MaxBattleUpdate } from '../models';
 
@@ -15,6 +16,11 @@ export class MaxBattleService {
 
   create(maxBattle: MaxBattleCreate): Observable<MaxBattle> {
     return this.http.post<MaxBattle>(`${this.config.apiHost}/api/maxbattles`, maxBattle);
+  }
+
+  /** Several alarms in one request: one dry run and one commit upstream instead of a create each (#1090). */
+  createBatch(maxBattles: MaxBattleCreate[]): Observable<BatchCreateResponse<MaxBattle>> {
+    return this.http.post<BatchCreateResponse<MaxBattle>>(`${this.config.apiHost}/api/maxbattles/batch`, maxBattles);
   }
 
   delete(uid: number): Observable<void> {

@@ -11,9 +11,8 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { TranslatePipe } from '@ngx-translate/core';
-import { forkJoin } from 'rxjs';
 
-import { LinkSide } from '../../core/models';
+import { LinkSide, NestCreate } from '../../core/models';
 import { AlertDefaultsService } from '../../core/services/alert-defaults.service';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
@@ -23,7 +22,7 @@ import { DeliverToFieldComponent } from '../../shared/components/deliver-to/deli
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
-import { AddDialogData, AddRefusal, editExistingResult, ExistingRule, finishAdd, settle } from '../../shared/utils/add-outcome';
+import { AddDialogData, AddRefusal, editExistingResult, ExistingRule, finishAdd, settleCreates } from '../../shared/utils/add-outcome';
 import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 import { injectDeliverTo } from '../../shared/utils/deliver-to';
 
@@ -112,21 +111,23 @@ export class NestAddDialogComponent {
     this.refusal.set(null);
     const v = this.form.getRawValue();
     const scope = scopeToFields(this.scope());
-    const creates = this.selectedPokemonIds().map(pokemonId =>
-      this.nestService.create({
-        ...this.deliver.createFields(this.form.controls.destination.value),
-        overrideAreas: scope.overrideAreas,
-        overrideLocationLabel: scope.overrideLocationLabel,
-        clean: v.clean ? 1 : 0,
-        distance: scope.distance,
-        minSpawnAvg: v.minSpawnAvg ?? 0,
-        pokemonId,
-        template: v.template || null,
-      }),
-    );
-    // Each create settles on its own, so one refusal cannot hide the ones that landed (#577). A single
-    // refused Add keeps the dialog open with the reason inline; see finishAdd.
-    forkJoin(creates.map(c => settle(c))).subscribe(results => {
+    const nests: NestCreate[] = this.selectedPokemonIds().map(pokemonId => ({
+      ...this.deliver.createFields(this.form.controls.destination.value),
+      overrideAreas: scope.overrideAreas,
+      overrideLocationLabel: scope.overrideLocationLabel,
+      clean: v.clean ? 1 : 0,
+      distance: scope.distance,
+      minSpawnAvg: v.minSpawnAvg ?? 0,
+      pokemonId,
+      template: v.template || null,
+    }));
+    // One row is a single Add, whose refusal keeps the dialog open with the reason inline; several go as one
+    // batch request that PoracleNG answers with one dry run and one commit (#1090). See settleCreates.
+    settleCreates(
+      nests,
+      n => this.nestService.create(n),
+      n => this.nestService.createBatch(n),
+    ).subscribe(results => {
       this.saving.set(false);
       finishAdd(results, {
         dialogRef: this.dialogRef,

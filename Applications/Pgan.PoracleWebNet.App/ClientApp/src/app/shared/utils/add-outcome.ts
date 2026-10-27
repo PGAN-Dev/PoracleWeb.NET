@@ -2,7 +2,7 @@ import { WritableSignal } from '@angular/core';
 import { MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslateService } from '@ngx-translate/core';
-import { catchError, Observable, of } from 'rxjs';
+import { catchError, map, Observable, of } from 'rxjs';
 
 import { describeScope, scopeOf } from './alarm-scope';
 import { pausedCreateMessage } from './deliver-to';
@@ -96,6 +96,44 @@ export function editExistingResult(rule: ExistingRule): EditExistingResult {
 /** Lets a create settle on its own instead of failing the whole forkJoin. */
 export function settle<T extends { uid?: number }>(request: Observable<T>): Observable<FailedCreate | T> {
   return request.pipe(catchError((failed: unknown) => of({ failed })));
+}
+
+/** `POST api/{type}/batch`: every row index for index (uid 0 where nothing was written), and the takeovers among them. */
+export interface BatchCreateResponse<T> {
+  alarms: T[];
+  takeoverReason?: null | string;
+  takeoversSkipped: number;
+}
+
+/**
+ * Creates `rows` and settles them as an add dialog reports them. One row goes through `one`, so a refusal keeps
+ * the dialog open with its reason and the stored rule it names. Several go through `batch` as one request,
+ * which PoracleNG answers with one dry run and one commit instead of a create per row (#1090).
+ *
+ * A batch that fails wrote nothing, so it settles as a single refusal and the dialog stays open. A row the
+ * batch left out as a takeover settles as the refusal a single Add would have been, so the dialog toasts it
+ * instead of counting the row as already tracked.
+ */
+export function settleCreates<TRow, T extends CreatedAlarm>(
+  rows: TRow[],
+  one: (row: TRow) => Observable<T>,
+  batch: (rows: TRow[]) => Observable<BatchCreateResponse<T>>,
+): Observable<SettledCreate[]> {
+  if (rows.length === 0) return of([]);
+  if (rows.length === 1) return settle(one(rows[0])).pipe(map(result => [result]));
+
+  return batch(rows).pipe(
+    map(response => {
+      let takeovers = response.takeoversSkipped ?? 0;
+      const refusal: FailedCreate = { failed: { error: { error: response.takeoverReason ?? null }, status: 409 } };
+      return response.alarms.map((alarm): SettledCreate => {
+        if ((alarm.uid ?? 0) > 0 || takeovers === 0) return alarm;
+        takeovers--;
+        return refusal;
+      });
+    }),
+    catchError((failed: unknown) => of([{ failed }])),
+  );
 }
 
 export function isFailed(result: SettledCreate): result is FailedCreate {
