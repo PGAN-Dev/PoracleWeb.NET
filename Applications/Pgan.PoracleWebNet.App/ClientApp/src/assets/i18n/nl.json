@@ -1922,7 +1922,8 @@
     "BULK_UNRECOGNIZED": "Niet herkend: {{names}}",
     "BULK_NOT_ALLOWED": "Hier niet beschikbaar: {{names}}",
     "SELECT_ALL_SHOWN": "Alle {{count}} selecteren",
-    "DESELECT_ALL_SHOWN": "Alle {{count}} deselecteren",
+    "SHOWN_SELECTED": "{{selected}} van {{count}} geselecteerd",
+    "PICKED_REMOVE": "Verwijderen",
     "SHOW_ALL_SELECTED": "Alle {{count}} tonen",
     "SHOW_FEWER": "Minder tonen",
     "CLEAR_ALL": "Alles wissen"

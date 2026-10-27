@@ -253,25 +253,64 @@ describe('PokemonSelectorComponent', () => {
       ).toEqual([3, 6, 9]);
     });
 
-    it('labels the buttons with how many each would change', () => {
-      setup(false, { pokemon: dex(300) });
-      sut().selectedPokemon.set([dex(300)[0]]);
-      showGen1();
+    describe('one select-all control for what the grid shows', () => {
+      const box = () => root().querySelector<HTMLInputElement>('.select-all-shown input[type=checkbox]');
+      const status = () => root().querySelector('.shown-status')?.textContent?.trim() ?? '';
 
-      const text = root().querySelector('.tile-actions')?.textContent ?? '';
-      expect(text).toContain('POKEMON_SELECTOR.SELECT_ALL_SHOWN');
-      expect(text).toContain('POKEMON_SELECTOR.DESELECT_ALL_SHOWN');
-      expect(sut().shownUnselectedCount()).toBe(150);
-      expect(sut().shownSelectedCount()).toBe(1);
+      it('is a checkbox labelled with how many the grid shows, never with a zero', () => {
+        setup(false, { pokemon: dex(300) });
+        showGen1();
+
+        expect(box()?.checked).toBe(false);
+        expect(box()?.indeterminate).toBe(false);
+        expect(sut().shownCount()).toBe(151);
+        expect(root().querySelector('.tile-actions')?.textContent).not.toContain('DESELECT');
+      });
+
+      it('is mixed when some of the shown species are picked, and says how many', () => {
+        setup(false, { pokemon: dex(300) });
+        sut().selectedPokemon.set([dex(300)[0], dex(300)[1]]);
+        showGen1();
+
+        expect(box()?.indeterminate).toBe(true);
+        expect(status()).toContain('POKEMON_SELECTOR.SHOWN_SELECTED');
+      });
+
+      it('checks once every shown species is picked, and a second click clears only those', () => {
+        setup(false, { pokemon: dex(300) });
+        sut().selectedPokemon.set([dex(300)[199]]);
+        showGen1();
+
+        box()!.click();
+        fixture.detectChanges();
+        expect(box()?.checked).toBe(true);
+        expect(sut().selectedPokemon()).toHaveLength(152);
+
+        box()!.click();
+        fixture.detectChanges();
+        expect(box()?.checked).toBe(false);
+        expect(
+          sut()
+            .selectedPokemon()
+            .map(p => p.id),
+        ).toEqual([200]);
+      });
+
+      it('announces the count politely', () => {
+        setup(false, { pokemon: dex(300) });
+        showGen1();
+
+        expect(root().querySelector('.shown-status')?.getAttribute('aria-live')).toBe('polite');
+      });
     });
 
-    it('collapses a long selection to 30 chips with Show all, and Clear all empties it', () => {
+    it('collapses a long selection to 12 chips with Show all, and Clear all empties it', () => {
       setup(false, { pokemon: dex(300) });
       showGen1();
       sut().selectAllShown();
       fixture.detectChanges();
 
-      expect(root().querySelectorAll('mat-chip')).toHaveLength(30);
+      expect(root().querySelectorAll('mat-chip')).toHaveLength(12);
       sut().toggleChips();
       fixture.detectChanges();
       expect(root().querySelectorAll('mat-chip')).toHaveLength(151);
@@ -298,6 +337,40 @@ describe('PokemonSelectorComponent', () => {
       sut().runBulkMatch();
       fixture.detectChanges();
       expect(root().querySelector('.bulk-results')?.textContent).toContain('POKEMON_SELECTOR.BULK_NOT_ALLOWED');
+    });
+
+    describe('finding a picked species again from the search box', () => {
+      it('lists a picked species in the dropdown, marked as picked', () => {
+        setup(false, { pokemon: dex(300) });
+        sut().selectedPokemon.set([dex(300)[24]]);
+        sut().searchText.set('mon25');
+
+        expect(
+          sut()
+            .filteredPokemon()
+            .map(p => p.id),
+        ).toContain(25);
+      });
+
+      it('removes a picked species when it is chosen again, so one of a thousand can be dropped', () => {
+        setup(false, { pokemon: dex(300) });
+        sut().selectionChange.subscribe(ids => emitted.push(ids));
+        sut().selectedPokemon.set(dex(300));
+
+        sut().onSelected({ option: { value: dex(300)[24] } } as never);
+
+        expect(sut().selectedIds().has(25)).toBe(false);
+        expect(sut().selectedPokemon()).toHaveLength(299);
+        expect(emitted.at(-1)).toHaveLength(299);
+      });
+
+      it('still adds a species that is not picked yet', () => {
+        setup(false, { pokemon: dex(300) });
+
+        sut().onSelected({ option: { value: dex(300)[24] } } as never);
+
+        expect(sut().selectedIds().has(25)).toBe(true);
+      });
     });
   });
 });

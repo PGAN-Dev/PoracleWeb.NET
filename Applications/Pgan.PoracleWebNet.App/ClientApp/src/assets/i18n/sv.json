@@ -1922,7 +1922,8 @@
     "BULK_UNRECOGNIZED": "Kändes inte igen: {{names}}",
     "BULK_NOT_ALLOWED": "Finns inte här: {{names}}",
     "SELECT_ALL_SHOWN": "Välj alla {{count}}",
-    "DESELECT_ALL_SHOWN": "Avmarkera alla {{count}}",
+    "SHOWN_SELECTED": "{{selected}} av {{count}} valda",
+    "PICKED_REMOVE": "Ta bort",
     "SHOW_ALL_SELECTED": "Visa alla {{count}}",
     "SHOW_FEWER": "Visa färre",
     "CLEAR_ALL": "Rensa alla"

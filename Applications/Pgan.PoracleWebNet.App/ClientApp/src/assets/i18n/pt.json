@@ -1922,7 +1922,8 @@
     "BULK_UNRECOGNIZED": "Não reconhecido: {{names}}",
     "BULK_NOT_ALLOWED": "Não disponível aqui: {{names}}",
     "SELECT_ALL_SHOWN": "Selecionar todos ({{count}})",
-    "DESELECT_ALL_SHOWN": "Desmarcar todos ({{count}})",
+    "SHOWN_SELECTED": "{{selected}} de {{count}} selecionados",
+    "PICKED_REMOVE": "Remover",
     "SHOW_ALL_SELECTED": "Mostrar todos ({{count}})",
     "SHOW_FEWER": "Mostrar menos",
     "CLEAR_ALL": "Limpar tudo"

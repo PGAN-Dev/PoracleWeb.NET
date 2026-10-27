@@ -1922,7 +1922,8 @@
     "BULK_UNRECOGNIZED": "Not recognized: {{names}}",
     "BULK_NOT_ALLOWED": "Not offered here: {{names}}",
     "SELECT_ALL_SHOWN": "Select all {{count}}",
-    "DESELECT_ALL_SHOWN": "Deselect all {{count}}",
+    "SHOWN_SELECTED": "{{selected}} of {{count}} selected",
+    "PICKED_REMOVE": "Remove",
     "SHOW_ALL_SELECTED": "Show all {{count}}",
     "SHOW_FEWER": "Show fewer",
     "CLEAR_ALL": "Clear all"

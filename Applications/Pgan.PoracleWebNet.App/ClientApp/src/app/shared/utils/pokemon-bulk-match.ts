@@ -27,6 +27,23 @@ const MAX_SUGGESTIONS = 5;
 const DEX_TOKEN = /^#?(\d+)(?:-#?(\d+))?$/;
 
 /**
+ * A name as people type it: no accents, full stops, apostrophes or colons, a hyphen read as a space, and
+ * Nidoran's symbols as f and m. "mime jr", "farfetchd", "flabebe", "type null" and "ho oh" all match.
+ */
+function nameKey(name: string): string {
+  return name
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/♀/g, ' f')
+    .replace(/♂/g, ' m')
+    .replace(/[.'’:]/g, '')
+    .replace(/-/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
  * Parses a pasted/typed block of Pokemon names and dex numbers -- comma, newline, or space separated, in
  * any mixture -- against the known species list. Commas and newlines are trusted segment boundaries;
  * within a segment, names are recovered by greedy longest-run word matching so multi-word species
@@ -49,7 +66,7 @@ export function matchPokemonBulkText(
   let maxId = 0;
   for (const p of pokemon) {
     if (p.id === 0) continue; // "All Pokemon" is a sentinel, not a species name to type
-    byName.set(p.name.toLowerCase(), p);
+    byName.set(nameKey(p.name), p);
     byId.set(p.id, p);
     maxId = Math.max(maxId, p.id);
   }
@@ -115,7 +132,7 @@ export function matchPokemonBulkText(
       let consumed = 0;
       for (let span = Math.min(MAX_SPAN_WORDS, words.length - i); span >= 1; span--) {
         const phrase = words.slice(i, i + span).join(' ');
-        const entry = byName.get(phrase.toLowerCase());
+        const entry = byName.get(nameKey(phrase));
         if (entry) {
           if (isAllowed(entry)) take(entry);
           else notAllowed.push(phrase);
@@ -134,15 +151,15 @@ export function matchPokemonBulkText(
 
   const suggestions: BulkMatchSuggestion[] = [];
   for (const token of unresolvedTokens) {
-    const key = token.toLowerCase();
-    if (seenTokens.has(key)) continue;
+    const key = nameKey(token);
+    if (!key || seenTokens.has(key)) continue;
     seenTokens.add(key);
 
     const startsWith: PokemonEntry[] = [];
     const includes: PokemonEntry[] = [];
     for (const p of pokemon) {
       if (p.id === 0 || !isAllowed(p)) continue;
-      const name = p.name.toLowerCase();
+      const name = nameKey(p.name);
       if (name.startsWith(key)) startsWith.push(p);
       else if (name.includes(key)) includes.push(p);
     }

@@ -144,4 +144,42 @@ describe('matchPokemonBulkText', () => {
       expect(ids('Mon9', [], []).matched.map(p => p.id)).toEqual([9]);
     });
   });
+
+  describe('names typed without their punctuation or accents', () => {
+    const named: PokemonEntry[] = [
+      { id: 29, name: 'Nidoran♀' },
+      { id: 32, name: 'Nidoran♂' },
+      { id: 83, name: "Farfetch'd" },
+      { id: 122, name: 'Mr. Mime' },
+      { id: 233, name: 'Porygon2' },
+      { id: 250, name: 'Ho-Oh' },
+      { id: 439, name: 'Mime Jr.' },
+      { id: 474, name: 'Porygon-Z' },
+      { id: 669, name: 'Flabébé' },
+      { id: 772, name: 'Type: Null' },
+      { id: 782, name: 'Jangmo-o' },
+    ];
+    const matched = (text: string) => matchPokemonBulkText(text, named, new Set()).matched.map(p => p.id);
+
+    it('matches a name typed without its full stop, apostrophe, colon or accent', () => {
+      expect(matched('mime jr, mr mime, farfetchd, type null, flabebe')).toEqual([439, 122, 83, 772, 669]);
+    });
+
+    it('treats a hyphen and a space alike', () => {
+      expect(matched('ho oh, ho-oh, porygon z, jangmo o')).toEqual([250, 474, 782]);
+    });
+
+    it('still matches the names as written', () => {
+      expect(matched("Mime Jr., Mr. Mime, Farfetch'd, Type: Null, Flabébé, Ho-Oh, Porygon2")).toEqual([439, 122, 83, 772, 669, 250, 233]);
+    });
+
+    it('reads Nidoran f and m for the symbols', () => {
+      expect(matched('nidoran f, nidoran m')).toEqual([29, 32]);
+    });
+
+    it('suggests across punctuation too', () => {
+      const result = matchPokemonBulkText('farfetch', named, new Set());
+      expect(result.suggestions[0].candidates.map(p => p.id)).toEqual([83]);
+    });
+  });
 });

@@ -256,20 +256,33 @@
 .picker-link:hover {
   background: color-mix(in srgb, var(--mat-sys-primary, #1976d2) 8%, transparent);
 }
-.picker-link:disabled {
-  color: var(--mat-sys-on-surface-variant, #666);
-  opacity: 0.6;
-  cursor: default;
-}
-.picker-link:disabled:hover {
-  background: transparent;
-}
 .tile-actions,
 .chip-actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 4px 12px;
   margin: 4px 0;
+}
+.shown-status {
+  color: var(--mat-sys-on-surface-variant, #666);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.option-picked {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  color: var(--mat-sys-primary, #1976d2);
+  font-size: 12px;
+  font-weight: 500;
+
+  mat-icon {
+    width: 18px;
+    height: 18px;
+    font-size: 18px;
+  }
 }
 .bulk-pickers {
   margin-bottom: 8px;
@@ -312,6 +325,16 @@
 }
 .bulk-warning {
   color: #b45309;
+}
+// Green 800 and amber on the light dialog, green 300 and orange 200 on the dark one, where the light
+// shades fell under 4.5:1.
+:host-context(.dark-theme) {
+  .bulk-success {
+    color: #81c784;
+  }
+  .bulk-warning {
+    color: #ffcc80;
+  }
 }
 .bulk-suggestions {
   display: flex;

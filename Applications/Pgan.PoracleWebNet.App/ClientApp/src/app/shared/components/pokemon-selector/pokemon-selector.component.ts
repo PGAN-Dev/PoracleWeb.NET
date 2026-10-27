@@ -2,6 +2,7 @@ import { Component, DestroyRef, inject, signal, computed, input, output, OnInit 
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -18,8 +19,8 @@ import { BulkMatchResult, BulkMatchSuggestion, matchPokemonBulkText } from '../.
 /** Distinct ids for each picker's expander, since a quest dialog holds three selectors at once. */
 let nextPickersId = 0;
 
-/** Selected chips shown before the rest fold behind "Show all": a whole generation is 151 of them. */
-const CHIP_LIMIT = 30;
+/** Selected chips shown before the rest fold behind "Show all": about five rows on a phone. */
+const CHIP_LIMIT = 12;
 
 /** The search dropdown's length. The tile grid is not capped: "Select all" must add what it shows. */
 const DROPDOWN_LIMIT = 200;
@@ -31,7 +32,16 @@ interface GenRange {
 }
 
 @Component({
-  imports: [ReactiveFormsModule, MatAutocompleteModule, MatChipsModule, MatFormFieldModule, MatInputModule, MatIconModule, TranslatePipe],
+  imports: [
+    ReactiveFormsModule,
+    MatAutocompleteModule,
+    MatCheckboxModule,
+    MatChipsModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatIconModule,
+    TranslatePipe,
+  ],
   selector: 'app-pokemon-selector',
   standalone: true,
   styleUrl: './pokemon-selector.component.scss',
@@ -49,22 +59,13 @@ export class PokemonSelectorComponent implements OnInit {
   allPokemon = signal<PokemonEntry[]>([]);
   readonly availability = inject(PokemonAvailabilityService);
 
-  availableTypes = computed(() => this.masterData.getAllTypes());
-  bulkControl = new FormControl('');
-  bulkMode = signal(false);
-  bulkResult = signal<BulkMatchResult | null>(null);
-  readonly chipsExpanded = signal(false);
   filterSpawning = signal(false);
-  multi = input(false);
   searchText = signal('');
-  selectedPokemon = signal<PokemonEntry[]>([]);
-  selectedIds = computed(() => new Set(this.selectedPokemon().map(p => p.id)));
   showAvailability = computed(() => this.availability.enabled());
+  multi = input(false);
   showTileGrid = computed(() => this.multi() && (this.activeGen() != null || this.activeType() != null || this.filterSpawning()));
-
   filteredPokemon = computed(() => {
     const search = this.searchText().toLowerCase();
-    const selected = this.selectedIds();
     const gen = this.activeGen();
     const type = this.activeType();
     const spawning = this.filterSpawning();
@@ -79,9 +80,6 @@ export class PokemonSelectorComponent implements OnInit {
       .filter(p => {
         // If allowedIds is set, restrict to those IDs (plus keep ID 0 for "All Pokemon")
         if (allowed && allowed.length > 0 && p.id !== 0 && !allowed.includes(p.id)) return false;
-        // In tile grid mode, keep selected pokemon visible (they show as selected tiles)
-        // In autocomplete mode, hide already-selected from dropdown
-        if (this.multi() && !tileMode && selected.has(p.id)) return false;
         if (p.id === 0) return !tileMode && (hasFilter || !search);
         // Spawning filter
         if (spawning && !this.availability.isAvailable(p.id)) return false;
@@ -116,6 +114,29 @@ export class PokemonSelectorComponent implements OnInit {
 
     return filtered;
   });
+
+  /** The species the tile grid shows for the current filter and search, "All Pokémon" aside. */
+  readonly shownSpecies = computed(() => (this.showTileGrid() ? this.filteredPokemon().filter(p => p.id !== 0) : []));
+  readonly shownCount = computed(() => this.shownSpecies().length);
+  selectedPokemon = signal<PokemonEntry[]>([]);
+  selectedIds = computed(() => new Set(this.selectedPokemon().map(p => p.id)));
+  readonly shownUnselectedCount = computed(() => {
+    const selected = this.selectedIds();
+    return this.shownSpecies().filter(p => !selected.has(p.id)).length;
+  });
+
+  /** Checked once every species the grid shows is picked; mixed while only some are. */
+  readonly allShownSelected = computed(() => this.shownCount() > 0 && this.shownUnselectedCount() === 0);
+
+  availableTypes = computed(() => this.masterData.getAllTypes());
+
+  bulkControl = new FormControl('');
+
+  bulkMode = signal(false);
+
+  bulkResult = signal<BulkMatchResult | null>(null);
+
+  readonly chipsExpanded = signal(false);
 
   readonly generations: GenRange[] = [
     { label: '1', max: 151, min: 1 },
@@ -158,15 +179,7 @@ export class PokemonSelectorComponent implements OnInit {
   /** Shown the moment Minior is picked for an alert with IV filters. See `utils/minior.ts`. */
   showMiniorNote = computed(() => this.ivFilters() && includesMinior(this.selectedIds()));
 
-  /** The species the tile grid shows for the current filter and search, "All Pokémon" aside. */
-  readonly shownSpecies = computed(() => (this.showTileGrid() ? this.filteredPokemon().filter(p => p.id !== 0) : []));
-
-  readonly shownUnselectedCount = computed(() => {
-    const selected = this.selectedIds();
-    return this.shownSpecies().filter(p => !selected.has(p.id)).length;
-  });
-
-  readonly shownSelectedCount = computed(() => this.shownSpecies().length - this.shownUnselectedCount());
+  readonly shownSelectedCount = computed(() => this.shownCount() - this.shownUnselectedCount());
 
   readonly visibleChips = computed(() => (this.chipsExpanded() ? this.selectedPokemon() : this.selectedPokemon().slice(0, CHIP_LIMIT)));
 
@@ -240,7 +253,12 @@ export class PokemonSelectorComponent implements OnInit {
   onSelected(event: MatAutocompleteSelectedEvent): void {
     const pokemon: PokemonEntry = event.option.value;
     if (this.multi()) {
-      this.selectedPokemon.update(list => [...list, pokemon]);
+      // The dropdown lists picked species too, so one of a pasted thousand can be found and dropped.
+      if (this.selectedIds().has(pokemon.id)) {
+        this.selectedPokemon.update(list => list.filter(p => p.id !== pokemon.id));
+      } else {
+        this.selectedPokemon.update(list => [...list, pokemon]);
+      }
       this.searchControl.setValue('');
       this.searchText.set('');
       this.selectionChange.emit(this.selectedPokemon().map(p => p.id));
@@ -280,6 +298,12 @@ export class PokemonSelectorComponent implements OnInit {
     if (!add.length) return;
     this.selectedPokemon.update(list => [...list, ...add]);
     this.emitSelection();
+  }
+
+  /** The select-all checkbox: picks the rest of what the grid shows, or clears it once everything is picked. */
+  toggleAllShown(): void {
+    if (this.allShownSelected()) this.deselectAllShown();
+    else this.selectAllShown();
   }
 
   toggleBulkMode(): void {

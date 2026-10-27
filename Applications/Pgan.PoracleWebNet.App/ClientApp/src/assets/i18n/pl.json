@@ -2008,7 +2008,8 @@
     "BULK_UNRECOGNIZED": "Nierozpoznane: {{names}}",
     "BULK_NOT_ALLOWED": "Niedostępne tutaj: {{names}}",
     "SELECT_ALL_SHOWN": "Zaznacz wszystkie ({{count}})",
-    "DESELECT_ALL_SHOWN": "Odznacz wszystkie ({{count}})",
+    "SHOWN_SELECTED": "Zaznaczono {{selected}} z {{count}}",
+    "PICKED_REMOVE": "Usuń",
     "SHOW_ALL_SELECTED": "Pokaż wszystkie ({{count}})",
     "SHOW_FEWER": "Pokaż mniej",
     "CLEAR_ALL": "Wyczyść wszystko"

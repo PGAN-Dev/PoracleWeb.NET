@@ -1922,7 +1922,8 @@
     "BULK_UNRECOGNIZED": "Ikke genkendt: {{names}}",
     "BULK_NOT_ALLOWED": "Ikke tilgængelig her: {{names}}",
     "SELECT_ALL_SHOWN": "Vælg alle {{count}}",
-    "DESELECT_ALL_SHOWN": "Fravælg alle {{count}}",
+    "SHOWN_SELECTED": "{{selected}} af {{count}} valgt",
+    "PICKED_REMOVE": "Fjern",
     "SHOW_ALL_SELECTED": "Vis alle {{count}}",
     "SHOW_FEWER": "Vis færre",
     "CLEAR_ALL": "Ryd alle"

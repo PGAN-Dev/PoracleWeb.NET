@@ -60,7 +60,7 @@
               @if (pokemon.id === 0) {
                 <mat-icon class="all-pokemon-icon">select_all</mat-icon>
               } @else {
-                <img [src]="getPokemonImage(pokemon.id)" [alt]="pokemon.name" class="pokemon-option-img" (error)="onImageError($event)" />
+                <img [src]="getPokemonImage(pokemon.id)" alt="" class="pokemon-option-img" (error)="onImageError($event)" />
               }
               @if (showAvailability() && pokemon.id > 0) {
                 <span
@@ -69,7 +69,9 @@
                   [class.unavailable]="!availability.isAvailable(pokemon.id)"></span>
               }
               <span>{{ formatPokemonName(pokemon) }}</span>
-              @if (pokemon.id > 0) {
+              @if (multi() && selectedIds().has(pokemon.id)) {
+                <span class="option-picked"><mat-icon>check</mat-icon>{{ 'POKEMON_SELECTOR.PICKED_REMOVE' | translate }}</span>
+              } @else if (pokemon.id > 0) {
                 <span class="pokemon-option-id">#{{ padId(pokemon.id) }}</span>
               }
             </div>
@@ -112,7 +114,7 @@
         <span class="gen-label">{{ 'POKEMON_SELECTOR.TYPE' | translate }}</span>
         @for (type of availableTypes(); track type) {
           <button class="gen-chip type-chip" [class.gen-active]="activeType() === type" (click)="toggleType(type)">
-            <img [src]="getTypeIcon(type)" [alt]="typeLabel(type)" class="type-icon" (error)="onImageError($event)" />{{ typeLabel(type) }}
+            <img [src]="getTypeIcon(type)" alt="" class="type-icon" (error)="onImageError($event)" />{{ typeLabel(type) }}
           </button>
         }
       </div>
@@ -136,16 +138,19 @@
 
 @if (showTileGrid()) {
   <div class="tile-actions">
-    <button type="button" class="picker-link select-all-shown" [disabled]="shownUnselectedCount() === 0" (click)="selectAllShown()">
-      <mat-icon>done_all</mat-icon>
-      {{ 'POKEMON_SELECTOR.SELECT_ALL_SHOWN' | translate: { count: shownUnselectedCount() } }}
-    </button>
-    @if (shownSelectedCount() > 0) {
-      <button type="button" class="picker-link deselect-all-shown" (click)="deselectAllShown()">
-        <mat-icon>remove_done</mat-icon>
-        {{ 'POKEMON_SELECTOR.DESELECT_ALL_SHOWN' | translate: { count: shownSelectedCount() } }}
-      </button>
-    }
+    <mat-checkbox
+      class="select-all-shown"
+      [checked]="allShownSelected()"
+      [indeterminate]="shownSelectedCount() > 0 && !allShownSelected()"
+      [disabled]="shownCount() === 0"
+      (change)="toggleAllShown()">
+      {{ 'POKEMON_SELECTOR.SELECT_ALL_SHOWN' | translate: { count: shownCount() } }}
+    </mat-checkbox>
+    <span class="shown-status" aria-live="polite">
+      @if (shownSelectedCount() > 0) {
+        {{ 'POKEMON_SELECTOR.SHOWN_SELECTED' | translate: { selected: shownSelectedCount(), count: shownCount() } }}
+      }
+    </span>
   </div>
   <div class="tile-grid">
     @for (pokemon of filteredPokemon(); track pokemon.id) {
@@ -154,7 +159,7 @@
         [class.tile-selected]="selectedIds().has(pokemon.id)"
         (click)="toggleTile(pokemon)"
         [title]="pokemon.name">
-        <img [src]="getPokemonImage(pokemon.id)" [alt]="pokemon.name" class="tile-img" (error)="onImageError($event)" />
+        <img [src]="getPokemonImage(pokemon.id)" alt="" class="tile-img" (error)="onImageError($event)" />
         @if (showAvailability()) {
           @if (availability.isAvailable(pokemon.id)) {
             <span class="availability-badge" [title]="'POKEMON_SELECTOR.CURRENTLY_SPAWNING' | translate">&#x25CF;</span>
