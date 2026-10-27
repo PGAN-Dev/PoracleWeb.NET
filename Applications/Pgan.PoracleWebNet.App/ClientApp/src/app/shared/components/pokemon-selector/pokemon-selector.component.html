@@ -55,7 +55,7 @@
     <mat-autocomplete #auto="matAutocomplete" (optionSelected)="onSelected($event)">
       @if (!showTileGrid()) {
         @for (pokemon of filteredPokemon(); track pokemon.id) {
-          <mat-option [value]="pokemon" [class.all-pokemon-option]="pokemon.id === 0">
+          <mat-option class="pokemon-option-row" [value]="pokemon" [class.all-pokemon-option]="pokemon.id === 0">
             <div class="pokemon-option">
               @if (pokemon.id === 0) {
                 <mat-icon class="all-pokemon-icon">select_all</mat-icon>
@@ -102,18 +102,38 @@
 
 @if (pickersOpen()) {
   <div class="bulk-pickers" [id]="pickersId">
-    <div class="gen-filter">
-      <span class="gen-label">{{ 'POKEMON_SELECTOR.GEN' | translate }}</span>
+    <div class="gen-filter gen-group" role="toolbar" [attr.aria-labelledby]="pickersId + '-gen'" (keydown)="onChipKeydown($event)">
+      <span class="gen-label" [id]="pickersId + '-gen'">{{ 'POKEMON_SELECTOR.GEN' | translate }}</span>
       @for (gen of generations; track gen.label) {
-        <button class="gen-chip" [class.gen-active]="activeGen() === gen" (click)="toggleGen(gen)">G{{ gen.label }}</button>
+        <button
+          type="button"
+          class="gen-chip"
+          [class.gen-active]="activeGen() === gen"
+          [attr.aria-pressed]="activeGen() === gen"
+          [tabindex]="$index === genStop() ? 0 : -1"
+          (focus)="genStop.set($index)"
+          (click)="genStop.set($index); toggleGen(gen)">
+          G{{ gen.label }}
+        </button>
       }
     </div>
 
     @if (availableTypes().length > 0) {
-      <div class="gen-filter type-filter">
-        <span class="gen-label">{{ 'POKEMON_SELECTOR.TYPE' | translate }}</span>
+      <div
+        class="gen-filter type-filter type-group"
+        role="toolbar"
+        [attr.aria-labelledby]="pickersId + '-type'"
+        (keydown)="onChipKeydown($event)">
+        <span class="gen-label" [id]="pickersId + '-type'">{{ 'POKEMON_SELECTOR.TYPE' | translate }}</span>
         @for (type of availableTypes(); track type) {
-          <button class="gen-chip type-chip" [class.gen-active]="activeType() === type" (click)="toggleType(type)">
+          <button
+            type="button"
+            class="gen-chip type-chip"
+            [class.gen-active]="activeType() === type"
+            [attr.aria-pressed]="activeType() === type"
+            [tabindex]="$index === typeTabStop() ? 0 : -1"
+            (focus)="typeStop.set($index)"
+            (click)="typeStop.set($index); toggleType(type)">
             <img [src]="getTypeIcon(type)" alt="" class="type-icon" (error)="onImageError($event)" />{{ typeLabel(type) }}
           </button>
         }
@@ -123,7 +143,12 @@
     @if (showAvailability()) {
       <div class="gen-filter spawning-filter">
         <span class="gen-label">{{ 'POKEMON_SELECTOR.LIVE' | translate }}</span>
-        <button class="gen-chip spawning-chip" [class.gen-active]="filterSpawning()" (click)="toggleSpawning()">
+        <button
+          type="button"
+          class="gen-chip spawning-chip"
+          [class.gen-active]="filterSpawning()"
+          [attr.aria-pressed]="filterSpawning()"
+          (click)="toggleSpawning()">
           <span class="spawning-dot" [class.dot-active]="filterSpawning()"></span>{{ 'POKEMON_SELECTOR.SPAWNING' | translate }}
         </button>
         @if (availability.getAvailableCount() > 0) {
@@ -153,8 +178,9 @@
     </span>
   </div>
   <div class="tile-grid">
-    @for (pokemon of filteredPokemon(); track pokemon.id) {
+    @for (pokemon of visibleTiles(); track pokemon.id) {
       <button
+        type="button"
         class="pokemon-tile"
         [class.tile-selected]="selectedIds().has(pokemon.id)"
         (click)="toggleTile(pokemon)"
@@ -169,6 +195,16 @@
       </button>
     }
   </div>
+  @if (hiddenTileCount() > 0) {
+    <button type="button" class="picker-link tile-more" [attr.aria-expanded]="tilesExpanded()" (click)="toggleTiles()">
+      <mat-icon>{{ tilesExpanded() ? 'expand_less' : 'expand_more' }}</mat-icon>
+      {{
+        tilesExpanded()
+          ? ('POKEMON_SELECTOR.SHOW_FEWER' | translate)
+          : ('POKEMON_SELECTOR.SHOW_ALL_SELECTED' | translate: { count: shownCount() })
+      }}
+    </button>
+  }
 }
 
 @if (multi()) {

@@ -25,6 +25,15 @@ const CHIP_LIMIT = 12;
 /** The search dropdown's length. The tile grid is not capped: "Select all" must add what it shows. */
 const DROPDOWN_LIMIT = 200;
 
+/**
+ * Tiles shown before the rest fold behind "Show all", three or four rows in a desktop dialog. The grid used
+ * to scroll in a 320px box inside a dialog that scrolls too; folding keeps the fields below it in reach.
+ */
+const TILE_LIMIT = 24;
+
+/** Keys that move along a chip toolbar. Tab leaves it, so each group costs one Tab and not nine or eighteen. */
+const ROVING_KEYS = new Set(['ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'End', 'Home']);
+
 interface GenRange {
   label: string;
   max: number;
@@ -150,7 +159,12 @@ export class PokemonSelectorComponent implements OnInit {
     { label: '9', max: 1025, min: 906 },
   ];
 
+  /** The generation chip that takes Tab: the one last focused, or the first. */
+  readonly genStop = signal(0);
+
   readonly hiddenChipCount = computed(() => Math.max(0, this.selectedPokemon().length - CHIP_LIMIT));
+
+  readonly hiddenTileCount = computed(() => Math.max(0, this.shownCount() - TILE_LIMIT));
 
   /**
    * Ids to show as already picked when the selector opens, for an editor that holds a stored choice.
@@ -181,7 +195,16 @@ export class PokemonSelectorComponent implements OnInit {
 
   readonly shownSelectedCount = computed(() => this.shownCount() - this.shownUnselectedCount());
 
+  readonly tilesExpanded = signal(false);
+
+  readonly typeStop = signal(0);
+
+  /** Clamped, so a stop left past the end of a shorter type list can't drop the group out of the tab order. */
+  readonly typeTabStop = computed(() => Math.min(this.typeStop(), Math.max(0, this.availableTypes().length - 1)));
+
   readonly visibleChips = computed(() => (this.chipsExpanded() ? this.selectedPokemon() : this.selectedPokemon().slice(0, CHIP_LIMIT)));
+
+  readonly visibleTiles = computed(() => (this.tilesExpanded() ? this.shownSpecies() : this.shownSpecies().slice(0, TILE_LIMIT)));
 
   addSuggestion(suggestion: BulkMatchSuggestion, candidate: PokemonEntry): void {
     if (!this.selectedIds().has(candidate.id)) {
@@ -244,6 +267,21 @@ export class PokemonSelectorComponent implements OnInit {
     this.bulkControl.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.bulkResult.set(null);
     });
+  }
+
+  /** Arrow keys, Home and End move focus along a chip toolbar; each chip's focus handler moves the tab stop. */
+  onChipKeydown(event: KeyboardEvent): void {
+    if (!ROVING_KEYS.has(event.key)) return;
+    const chips = Array.from((event.currentTarget as HTMLElement).querySelectorAll<HTMLButtonElement>('button.gen-chip'));
+    const current = chips.indexOf(event.target as HTMLButtonElement);
+    if (current < 0) return;
+    event.preventDefault();
+    const last = chips.length - 1;
+    let next = (current + 1) % chips.length;
+    if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = last;
+    else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') next = current === 0 ? last : current - 1;
+    chips[next].focus();
   }
 
   onImageError(event: Event): void {
@@ -318,6 +356,7 @@ export class PokemonSelectorComponent implements OnInit {
 
   toggleGen(gen: GenRange): void {
     this.activeGen.update(current => (current === gen ? null : gen));
+    this.tilesExpanded.set(false);
     this.searchControl.setValue('');
     this.searchText.set('');
   }
@@ -331,12 +370,14 @@ export class PokemonSelectorComponent implements OnInit {
       this.activeGen.set(null);
       this.activeType.set(null);
       this.filterSpawning.set(false);
+      this.tilesExpanded.set(false);
     }
     this.pickersOpen.update(open => !open);
   }
 
   toggleSpawning(): void {
     this.filterSpawning.update(v => !v);
+    this.tilesExpanded.set(false);
     this.searchControl.setValue('');
     this.searchText.set('');
   }
@@ -350,8 +391,13 @@ export class PokemonSelectorComponent implements OnInit {
     }
   }
 
+  toggleTiles(): void {
+    this.tilesExpanded.update(open => !open);
+  }
+
   toggleType(type: string): void {
     this.activeType.update(current => (current === type ? null : type));
+    this.tilesExpanded.set(false);
     this.searchControl.setValue('');
     this.searchText.set('');
   }

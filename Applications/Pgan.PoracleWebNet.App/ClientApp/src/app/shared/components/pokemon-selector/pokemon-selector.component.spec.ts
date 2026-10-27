@@ -17,7 +17,7 @@ describe('PokemonSelectorComponent', () => {
 
   function setup(
     ivFilters: boolean,
-    opts: { allowedIds?: number[]; initialIds?: number[]; multi?: boolean; pokemon?: PokemonEntry[] } = {},
+    opts: { allowedIds?: number[]; initialIds?: number[]; multi?: boolean; pokemon?: PokemonEntry[]; types?: string[] } = {},
   ) {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
@@ -29,7 +29,7 @@ describe('PokemonSelectorComponent', () => {
           provide: MasterDataService,
           useValue: {
             getAllPokemon$: () => of(opts.pokemon ?? [MEOWTH, MINIOR]),
-            getAllTypes: () => [],
+            getAllTypes: () => opts.types ?? [],
             getPokemonTypes: () => ['Water'],
             getTypeLabel: (t: string) => t,
           },
@@ -188,12 +188,64 @@ describe('PokemonSelectorComponent', () => {
       expect(emitted[0]).toEqual(dex(151).map(p => p.id));
     });
 
-    it('shows every tile a filter matches rather than the first 200', () => {
+    it('shows every tile a filter matches rather than the first 200, once the grid is opened out', () => {
       setup(false, { pokemon: dex(400) });
       sut().toggleType('Water');
       fixture.detectChanges();
+      expect(sut().shownCount()).toBe(400);
+
+      root().querySelector<HTMLButtonElement>('.tile-more')!.click();
+      fixture.detectChanges();
 
       expect(root().querySelectorAll('.pokemon-tile')).toHaveLength(400);
+    });
+
+    describe('a grid that folds instead of scrolling inside the scrolling dialog', () => {
+      it('shows the first 24 tiles with Show all, and has no scroll box of its own', () => {
+        setup(false, { pokemon: dex(300) });
+        showGen1();
+
+        expect(root().querySelectorAll('.pokemon-tile')).toHaveLength(24);
+        const more = root().querySelector<HTMLButtonElement>('.tile-more')!;
+        expect(more.textContent).toContain('POKEMON_SELECTOR.SHOW_ALL_SELECTED');
+        expect(more.getAttribute('aria-expanded')).toBe('false');
+
+        more.click();
+        fixture.detectChanges();
+
+        expect(root().querySelectorAll('.pokemon-tile')).toHaveLength(151);
+        expect(root().querySelector('.tile-more')?.getAttribute('aria-expanded')).toBe('true');
+      });
+
+      it('still selects everything shown while folded', () => {
+        setup(false, { pokemon: dex(300) });
+        showGen1();
+
+        root().querySelector<HTMLInputElement>('.select-all-shown input')!.click();
+        fixture.detectChanges();
+
+        expect(sut().selectedPokemon()).toHaveLength(151);
+      });
+
+      it('folds again when the filter changes', () => {
+        setup(false, { pokemon: dex(300) });
+        showGen1();
+        root().querySelector<HTMLButtonElement>('.tile-more')!.click();
+        fixture.detectChanges();
+
+        sut().toggleGen(sut().generations[1]);
+        fixture.detectChanges();
+
+        expect(root().querySelectorAll('.pokemon-tile')).toHaveLength(24);
+      });
+
+      it('offers no Show all when everything fits', () => {
+        setup(false, { pokemon: dex(20) });
+        showGen1();
+
+        expect(root().querySelectorAll('.pokemon-tile')).toHaveLength(20);
+        expect(root().querySelector('.tile-more')).toBeNull();
+      });
     });
 
     it('still caps the search dropdown, which is not a grid', () => {
@@ -371,6 +423,76 @@ describe('PokemonSelectorComponent', () => {
 
         expect(sut().selectedIds().has(25)).toBe(true);
       });
+    });
+  });
+
+  describe('generation and type chips are one tab stop each', () => {
+    const root = () => fixture.nativeElement as HTMLElement;
+    const TYPES = ['Bug', 'Fire', 'Water'];
+
+    function open(): void {
+      setup(false, { types: TYPES });
+      root().querySelector<HTMLButtonElement>('.bulk-pickers-toggle')!.click();
+      fixture.detectChanges();
+    }
+
+    const group = (cls: string) => root().querySelector<HTMLElement>(`.${cls}[role="toolbar"]`)!;
+    const chips = (cls: string) => Array.from(group(cls).querySelectorAll<HTMLButtonElement>('button.gen-chip'));
+    const stops = (cls: string) => chips(cls).filter(c => c.tabIndex === 0);
+    const key = (el: HTMLElement, k: string) => {
+      el.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: k }));
+      fixture.detectChanges();
+    };
+
+    it('labels each group as a toolbar with a single tab stop', () => {
+      open();
+
+      for (const cls of ['gen-group', 'type-group']) {
+        expect(group(cls).getAttribute('aria-labelledby')).toBeTruthy();
+        expect(stops(cls)).toHaveLength(1);
+      }
+      expect(stops('gen-group')[0].textContent).toContain('G1');
+    });
+
+    it('moves along a group with the arrow keys, wrapping at the ends, and Home and End jump', () => {
+      open();
+      const gens = chips('gen-group');
+      gens[0].focus();
+
+      key(gens[0], 'ArrowRight');
+      expect(document.activeElement).toBe(gens[1]);
+      expect(stops('gen-group')).toEqual([gens[1]]);
+
+      key(gens[1], 'End');
+      expect(document.activeElement).toBe(gens[8]);
+      key(gens[8], 'ArrowRight');
+      expect(document.activeElement).toBe(gens[0]);
+      key(gens[0], 'ArrowLeft');
+      expect(document.activeElement).toBe(gens[8]);
+      key(gens[8], 'Home');
+      expect(document.activeElement).toBe(gens[0]);
+    });
+
+    it('leaves Tab and other keys alone', () => {
+      open();
+      const gens = chips('gen-group');
+      gens[0].focus();
+      const tab = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: 'Tab' });
+      gens[0].dispatchEvent(tab);
+
+      expect(tab.defaultPrevented).toBe(false);
+      expect(document.activeElement).toBe(gens[0]);
+    });
+
+    it('says which chip is on with aria-pressed', () => {
+      open();
+      const types = chips('type-group');
+
+      types[2].click();
+      fixture.detectChanges();
+
+      expect(types.map(c => c.getAttribute('aria-pressed'))).toEqual(['false', 'false', 'true']);
+      expect(stops('type-group')).toEqual([types[2]]);
     });
   });
 });
