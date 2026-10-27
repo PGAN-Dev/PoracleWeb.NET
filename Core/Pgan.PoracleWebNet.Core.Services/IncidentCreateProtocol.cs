@@ -18,8 +18,9 @@ namespace Pgan.PoracleWebNet.Core.Services;
 /// the tracking side, <c>PokestopEventServiceTests</c> this one; a change to one belongs in both.
 /// </para>
 /// <para>
-/// The answer's buckets carry no index back to the request, so a mixed batch asks about each rule alone.
-/// PoracleNG classifies against stored rules only, never between the rules of one batch. A commit that finds
+/// The answer's buckets carry no index back to the request, so a mixed batch is told apart by
+/// <see cref="BatchDryRun"/>, which dry-runs halves until each group is one kind. PoracleNG classifies
+/// against stored rules only, never between the rules of one batch. A commit that finds
 /// a takeover the dry run did not (another write landed in between) puts the rule back from the
 /// <c>previous</c> state PoracleNG reports.
 /// </para>
@@ -78,19 +79,10 @@ internal static class IncidentCreateProtocol
         }
         else
         {
-            keep = [];
-            for (var i = 0; i < rules.Count; i++)
-            {
-                // One rule's batch answer already is its own classification.
-                var verdict = rules.Count == 1
-                    ? VerdictOf(dry)
-                    : VerdictOf(await Post([rules[i]], dryRun: true));
-
-                if (verdict == PoracleTrackingProxy.DryRunVerdict.Created)
-                {
-                    keep.Add(i);
-                }
-            }
+            keep = (await BatchDryRun.ClassifyAsync(
+                rules.Count,
+                CountsOf(dry),
+                async idx => CountsOf(await Post([.. idx.Select(i => rules[i])], dryRun: true)))).Keep;
 
             if (keep.Count == 0)
             {
@@ -145,14 +137,8 @@ internal static class IncidentCreateProtocol
         return uid > 0 ? uid : null;
     }
 
-    /// <summary>
-    /// What a dry run of ONE rule says about it, by the tracking side's rule: a takeover outranks everything,
-    /// then an exact duplicate; an answer that says nothing is left for the commit.
-    /// </summary>
-    internal static PoracleTrackingProxy.DryRunVerdict VerdictOf(PokestopEventWriteResult result) =>
-        result.Updated.Count > 0 ? PoracleTrackingProxy.DryRunVerdict.Updated
-        : result.Unchanged.Count > 0 && result.Created.Count == 0 ? PoracleTrackingProxy.DryRunVerdict.Unchanged
-        : PoracleTrackingProxy.DryRunVerdict.Created;
+    private static BatchDryRun.Counts CountsOf(PokestopEventWriteResult result) =>
+        new(result.Created.Count, result.Updated.Count, result.Unchanged.Count);
 
     private const string TrackingType = "incident";
 }
