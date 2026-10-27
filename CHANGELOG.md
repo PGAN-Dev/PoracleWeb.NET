@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.4.0] - 2026-10-27
+
 ### Added
 
 - **The Pokémon picker can add everything a generation or type shows.** With a generation, type or Live filter picked, a **Select all N** checkbox above the tile grid picks every species the grid shows (search included) and leaves picks from other filters alone. It shows as mixed while only some are picked, with a count such as "6 of 151 selected", and a second click clears what the grid shows. The grid is no longer cut at 200 tiles, so Select all always reaches everything a filter matches; the search dropdown keeps its 200 cap. It shows its first 24 tiles with **Show all N** below them instead of scrolling in a box of its own inside the scrolling dialog. Past 12 picks the chips fold behind **Show all N**, and **Clear all** empties the selection. The search dropdown now lists species that are already picked, marked with a tick and **Remove**, so one species can be dropped from a pasted thousand by searching for it. The generation and type chips are one Tab stop per group, moved through with the arrow keys, Home and End, so Select all is two Tabs past G1 instead of 25, and each chip says whether it's on. On a phone each group is a single row that scrolls sideways rather than wrapping over most of the first screen ([#1090](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/1090)).
@@ -1483,7 +1485,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.3.0...HEAD
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.4.0...HEAD
+[3.4.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.3.0...v3.4.0
 [3.3.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.2.0...v3.3.0
 [3.2.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.1.0...v3.2.0
 [3.1.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.0.1...v3.1.0
