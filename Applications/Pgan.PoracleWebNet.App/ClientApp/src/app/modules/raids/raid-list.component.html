@@ -126,21 +126,6 @@
             <ng-container ruleActions>
               <button
                 mat-icon-button
-                (click)="sendTestAlert('raid', raid)"
-                [disabled]="testAlertService.isSending('raid', raid.uid) || testAlertService.isCoolingDown('raid', raid.uid)"
-                [matTooltip]="(testAlertService.isCoolingDown('raid', raid.uid) ? 'ALARM.TEST_COOLDOWN' : 'ALARM.TEST_SEND') | translate"
-                [attr.aria-label]="
-                  (testAlertService.isCoolingDown('raid', raid.uid) ? 'ALARM.TEST_COOLDOWN' : 'ALARM.TEST_SEND') | translate
-                "
-                class="test-alert-btn">
-                @if (testAlertService.isSending('raid', raid.uid)) {
-                  <mat-icon class="spin">sync</mat-icon>
-                } @else {
-                  <mat-icon>send</mat-icon>
-                }
-              </button>
-              <button
-                mat-icon-button
                 (click)="editRaid(raid)"
                 [matTooltip]="'COMMON.EDIT' | translate"
                 [attr.aria-label]="'COMMON.EDIT' | translate">
@@ -154,6 +139,7 @@
                 color="warn">
                 <mat-icon>delete</mat-icon>
               </button>
+              <app-alarm-more-menu alarmType="raid" [uid]="raid.uid" />
             </ng-container>
           </app-alarm-card>
         } @empty {
@@ -234,19 +220,6 @@
             <ng-container ruleActions>
               <button
                 mat-icon-button
-                (click)="sendTestAlert('egg', egg)"
-                [disabled]="testAlertService.isSending('egg', egg.uid) || testAlertService.isCoolingDown('egg', egg.uid)"
-                [matTooltip]="(testAlertService.isCoolingDown('egg', egg.uid) ? 'ALARM.TEST_COOLDOWN' : 'ALARM.TEST_SEND') | translate"
-                [attr.aria-label]="(testAlertService.isCoolingDown('egg', egg.uid) ? 'ALARM.TEST_COOLDOWN' : 'ALARM.TEST_SEND') | translate"
-                class="test-alert-btn">
-                @if (testAlertService.isSending('egg', egg.uid)) {
-                  <mat-icon class="spin">sync</mat-icon>
-                } @else {
-                  <mat-icon>send</mat-icon>
-                }
-              </button>
-              <button
-                mat-icon-button
                 (click)="editEgg(egg)"
                 [matTooltip]="'COMMON.EDIT' | translate"
                 [attr.aria-label]="'COMMON.EDIT' | translate">
@@ -260,6 +233,7 @@
                 color="warn">
                 <mat-icon>delete</mat-icon>
               </button>
+              <app-alarm-more-menu alarmType="egg" [uid]="egg.uid" />
             </ng-container>
           </app-alarm-card>
         } @empty {

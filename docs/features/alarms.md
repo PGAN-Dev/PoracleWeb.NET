@@ -614,7 +614,7 @@ rules, because then that switch is the only control you have over them.
 
 ### What this type does not do
 
-There's no test alert, because there's no mock payload builder for events, so no card carries the test button.
+There's no test alert, because there's no mock payload builder for events, so no card has the More actions menu.
 
 There's no separate section in the cross-profile overview either. Event rules appear there as invasion
 rows whose grunt is the event name. A profile export folds them into the invasion list the same way, an
@@ -719,16 +719,27 @@ Max Battle-specific defaults:
 
 ## Test Alerts
 
-Most alarm cards include a **test button** (send/paper plane icon) that triggers a sample notification for that alarm. This lets users verify their alarm filters and notification formatting without waiting for a real event to occur.
+Most alarm cards have a **More actions** menu (the three-dot button after Delete) with a **Send test notification** item. It sends a sample notification for that alarm, so you can check your filters and message formatting without waiting for a real event.
+
+The item sits behind a menu on purpose. It used to be a paper plane beside Edit, and people pressed it by accident, then went looking for a spawn that was never there (#1097). The item says so itself: its second line reads "A sample from this alarm, not a live alert".
 
 ![Pokemon alarm list after sending a test alert, with the confirmation snackbar visible](../screenshots/test-alert-sent.png){ loading=lazy }
 
 ### How it works
 
-1. Click the send icon in the alarm card's action area
+1. Open **More actions** on the alarm card and choose **Send test notification**
 2. PoracleWeb.NET builds a **mock webhook payload** using the alarm's actual filter values (e.g., pokemon_id, raid_level, quest_reward) and the user's saved location as the event coordinates
 3. The payload is sent to PoracleNG's `POST /api/test` endpoint, which formats and delivers the notification to the user via their configured webhook
-4. A **snackbar** displays the result: success, error, or cooldown warning
+4. Once PoracleNG has accepted the test, PoracleWeb.NET sends one short plain-text note to the same destination through `POST /api/deliverMessages` (see below)
+5. A **snackbar** displays the result: success, error, or cooldown warning. While the request is out, the More actions button turns into a spinner
+
+### The note that follows a test
+
+A test alert is built from your alarm's filters and your saved location, so it looks like a live one. Right after it, the bot sends this note to the same place (your DMs, or the channel, thread or webhook when you manage a destination):
+
+> Test notification from PoracleWeb.NET: the alert sent with this note is a sample built from your alarm's filters at your saved location. It isn't a live alert, so there's nothing to go and find.
+
+The note is English only, because the backend doesn't localise any message text. It is sent only after PoracleNG accepted the test, so a refused or unreachable test sends none. If the note itself fails, the test still counts as sent: the API logs a warning (the alarm type, the uid and the kind of destination, never the destination's address) and the member sees the usual success message. Because the note goes through PoracleNG's delivery queue, it counts toward PoracleNG's own per-destination delivery limits, so each test counts as two messages.
 
 ### Supported alarm types
 
@@ -744,11 +755,11 @@ Test alerts are available for eight of the eleven alarm types:
 - Gym
 
 **Not** Fort Change, Max Battle or Pokéstop Event — `TestAlertController` rejects all three, and none of
-those modules renders a test button. They have no mock payload builder, so there is nothing to send.
+those modules renders the More actions menu. They have no mock payload builder, so there is nothing to send.
 
 ### Clearing a test notification
 
-A test alert is a real DM sent by the bot. This site never sees it and cannot take it back. The bot
+A test alert, and the note that follows it, are real DMs sent by the bot. This site never sees them and cannot take them back. The bot
 can: send it `poracle-clean` as a direct message, prefixed with your server's command prefix, and it
 deletes its own recent messages from that conversation. That includes real alerts, not only the tests.
 The FAQ on the **Help** page carries the same answer with your own instance's prefix filled in.
@@ -757,7 +768,7 @@ The FAQ on the **Help** page carries the same answer with your own instance's pr
 
 Test alerts are rate limited to prevent abuse:
 
-The server allows 5 test alerts per 60 seconds per user (per IP address only for a request with no token). The browser adds a 15-second cooldown per alarm, and drops a repeat click while a request for that alarm is still in flight.
+The server allows 5 test alerts per 60 seconds per user (per IP address only for a request with no token). The browser adds a 15-second cooldown per alarm: the menu item is dimmed and its second line reads **Cooldown active**. It also drops a repeat click while a request for that alarm is still in flight.
 
 ## Weather Display
 

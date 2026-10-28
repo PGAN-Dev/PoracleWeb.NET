@@ -32,6 +32,61 @@ describe('every alarm list uses the shared rule card and toolbar', () => {
     expect(html).not.toContain('stat-label');
   });
 
+  /**
+   * Sending a sample used to be a paper-plane button beside Edit, and members pressed it by accident and went
+   * looking for a spawn that was never there (#1097). It now lives behind one shared "More actions" menu, placed
+   * after Delete, in the eight types that can send a sample (the raid list holds two: raid and egg cards). The
+   * three that cannot (Pokéstop events, max battles, fort changes) must not grow a menu with nothing in it.
+   */
+  const SAMPLE_MENUS: [string, string[]][] = [
+    ['pokemon/pokemon-list.component.html', ['pokemon']],
+    ['raids/raid-list.component.html', ['raid', 'egg']],
+    ['quests/quest-list.component.html', ['quest']],
+    ['invasions/invasion-list.component.html', ['invasion']],
+    ['lures/lure-list.component.html', ['lure']],
+    ['nests/nest-list.component.html', ['nest']],
+    ['gyms/gym-list.component.html', ['gym']],
+  ];
+  const NO_SAMPLE = [
+    'pokestop-events/pokestop-event-list.component.html',
+    'max-battles/max-battle-list.component.html',
+    'fort-changes/fort-change-list.component.html',
+  ];
+
+  it.each(SAMPLE_MENUS)('%s keeps Edit and Delete on the card and puts the sample behind the shared menu', (template, types) => {
+    const html = read(template);
+    const menus = [...html.matchAll(/<app-alarm-more-menu alarmType="(\w+)" \[uid\]="\w+\.uid" \/>/g)].map(m => m[1]);
+
+    expect(menus).toEqual(types);
+    // Each menu is the last control in its action row: Edit, Delete, then More actions.
+    for (const block of html.split('<ng-container ruleActions>').slice(1)) {
+      const row = block.slice(0, block.indexOf('</ng-container>'));
+      expect(row.indexOf('COMMON.EDIT')).toBeGreaterThan(-1);
+      expect(row.indexOf('COMMON.DELETE')).toBeGreaterThan(row.indexOf('COMMON.EDIT'));
+      expect(row.indexOf('<app-alarm-more-menu')).toBeGreaterThan(row.indexOf('COMMON.DELETE'));
+    }
+    // No paper plane, no copy of the old button or of the service call behind it.
+    expect(html).not.toContain('test-alert-btn');
+    expect(html).not.toContain('sendTestAlert');
+    expect(html).not.toContain('testAlertService');
+    expect(html).not.toMatch(/<mat-icon[^>]*>send<\/mat-icon>/);
+  });
+
+  it.each(SAMPLE_MENUS)('%s no longer carries the sample plumbing in its class', template => {
+    const ts = read(template.replace('.html', '.ts'));
+
+    expect(ts).toContain('AlarmMoreMenuComponent');
+    expect(ts).not.toContain('TestAlertService');
+    expect(ts).not.toContain('sendTestAlert');
+  });
+
+  it.each(NO_SAMPLE)('%s has no sample menu, because there is no sample event to send', template => {
+    const html = read(template);
+
+    expect(html).not.toContain('app-alarm-more-menu');
+    expect(html).not.toMatch(/<mat-icon[^>]*>send<\/mat-icon>/);
+  });
+
   it.each(LISTS)('%s has the shared toolbar with search and sort', template => {
     const html = read(template);
 
