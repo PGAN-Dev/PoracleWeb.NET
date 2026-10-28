@@ -53,7 +53,7 @@ See the [Quick Start guide](https://pgan-dev.github.io/PoracleWeb.NET/getting-st
 | Bulk operations | Select several alarms to delete them or change their radius in one go; on a phone the bar stays pinned to the bottom of the screen |
 | Per-alarm delivery scope | Aim each alert anywhere in your areas, at only specific areas, or within a radius of your pin or a saved place |
 | Saved places | Name the points your alerts measure from, so an alarm doesn't have to follow your profile pin |
-| Test alerts | Send yourself a sample notification for an alarm to check its filters and template (every type except Fort Changes, Max Battles and Pokéstop Events) |
+| Test notifications | Send yourself a sample notification for an alarm to check its filters and template (every type except Fort Changes, Max Battles and Pokéstop Events) |
 | Quiet periods | Silence one gym, area, species or Power Spot for a set time, without touching the alarms themselves |
 | Alert defaults | Choose where new alerts default to reaching you: your areas, or a radius from your pin or a saved place |
 | Custom geofences | Draw polygons, served to the Poracle bot through a unified feed |

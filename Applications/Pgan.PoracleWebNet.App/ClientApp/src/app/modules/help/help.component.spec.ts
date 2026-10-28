@@ -238,7 +238,7 @@ describe('Help: destinations you manage', () => {
     JSON.parse(readFileSync(join(__dirname, `../../../assets/i18n/${locale}.json`), 'utf8')).HELP.CONTENT_WEBHOOKS;
 
   it('says a test alert posts into the destination', () => {
-    expect(content('en')).toContain('A test alert posts into the destination, not to your DMs.');
+    expect(content('en')).toContain('A test notification posts into the destination, not to your DMs.');
   });
 
   /** The managing paragraph gained a sentence; a locale left at two sentences was not translated. */

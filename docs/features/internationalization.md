@@ -131,7 +131,7 @@ Each language file uses namespaced keys organized by feature area:
 | `ADMIN` | Admin pages |
 | `ALARM` | Shared alarm dialog fields |
 | `DIALOG` | Shared dialog components |
-| `TEST_ALERT` | Test alert feedback |
+| `TEST_ALERT` | Test notification feedback |
 | `WHERE` | Per-alarm delivery scope and saved places |
 | `ALERT_DEFAULTS` | Alert defaults dialog |
 | `ALARM_INFO` | Shared alarm summary component |
