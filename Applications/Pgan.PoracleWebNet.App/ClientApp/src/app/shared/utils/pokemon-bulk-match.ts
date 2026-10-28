@@ -51,8 +51,10 @@ function nameKey(name: string): string {
  *
  * A number is a dex number (`25`, `#25`) and two joined by a dash are a range (`1-151`, `650 – 721`,
  * either way round), so a list copied from a spreadsheet or a "Gen 1" post works. A number is never
- * offered name suggestions: "2" used to suggest Porygon2. `allowedIds`, when it holds any, is the
- * picker's own restriction, and a species outside it is reported rather than added.
+ * offered name suggestions: "2" used to suggest Porygon2. The one exception is a name that ends in a digit
+ * and was typed with a space: "porygon 2" is Porygon2, not Porygon and then #2 (see `byDigitName`).
+ * `allowedIds`, when it holds any, is the picker's own restriction, and a species outside it is reported
+ * rather than added.
  */
 export function matchPokemonBulkText(
   text: string,
@@ -63,10 +65,14 @@ export function matchPokemonBulkText(
   const isAllowed = (p: PokemonEntry) => !allowedIds || allowedIds.size === 0 || allowedIds.has(p.id);
   const byName = new Map<string, PokemonEntry>();
   const byId = new Map<number, PokemonEntry>();
+  // Species whose name ends in a digit, keyed with the spaces taken out, so "porygon 2" finds Porygon2.
+  const byDigitName = new Map<string, PokemonEntry>();
   let maxId = 0;
   for (const p of pokemon) {
     if (p.id === 0) continue; // "All Pokemon" is a sentinel, not a species name to type
-    byName.set(nameKey(p.name), p);
+    const key = nameKey(p.name);
+    byName.set(key, p);
+    if (/\d$/.test(key)) byDigitName.set(key.replace(/ /g, ''), p);
     byId.set(p.id, p);
     maxId = Math.max(maxId, p.id);
   }
@@ -130,7 +136,17 @@ export function matchPokemonBulkText(
         continue;
       }
       let consumed = 0;
-      for (let span = Math.min(MAX_SPAN_WORDS, words.length - i); span >= 1; span--) {
+      // A run that ends in a bare number is tried as one name first: "porygon 2" is Porygon2 only if
+      // "porygon2" is a species, and "pikachu 25" falls through because "pikachu25" is not.
+      for (let span = Math.min(MAX_SPAN_WORDS, words.length - i); span >= 2 && consumed === 0; span--) {
+        if (!/^\d+$/.test(words[i + span - 1])) continue;
+        const entry = byDigitName.get(nameKey(words.slice(i, i + span).join(' ')).replace(/ /g, ''));
+        if (!entry) continue;
+        if (isAllowed(entry)) take(entry);
+        else notAllowed.push(words.slice(i, i + span).join(' '));
+        consumed = span;
+      }
+      for (let span = Math.min(MAX_SPAN_WORDS, words.length - i); span >= 1 && consumed === 0; span--) {
         const phrase = words.slice(i, i + span).join(' ');
         const entry = byName.get(nameKey(phrase));
         if (entry) {
