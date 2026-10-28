@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- **Granting the same delegate twice at once can no longer write a webhook's token to the logs.** A webhook's id is its URL, and two simultaneous grants of the same delegate to the same webhook made the second one fail on the database's duplicate-entry check, with the URL in the error text that both Entity Framework and the exception handler log. Granting a delegate, and saving a quick pick's applied state, are now single database statements that treat a duplicate as "already there", so the error never occurs. Nothing changes in what you see. [#1101](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/1101)
 - **Logs show only the host of a webhook that isn't on Discord.** Since 3.2.0 the logs have hidden a webhook's token but kept the first path segment of a non-Discord URL, and some services put the token there. Those URLs now log as scheme and host only, and a Discord URL whose id isn't a number is masked whole. Logs written before this release can still hold the longer form (#1038).
 
 ## [3.4.0] - 2026-10-27

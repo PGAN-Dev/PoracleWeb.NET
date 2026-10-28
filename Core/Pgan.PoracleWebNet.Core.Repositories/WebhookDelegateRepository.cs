@@ -38,24 +38,29 @@ public class WebhookDelegateRepository(PoracleWebContext context) : IWebhookDele
 
     public async Task<WebhookDelegate> AddAsync(string webhookId, string userId)
     {
-        // Check for existing delegate to avoid unique constraint violation
-        var existing = await this._context.WebhookDelegates
-            .FirstOrDefaultAsync(d => d.WebhookId == webhookId && d.UserId == userId);
-
-        if (existing is not null)
+        // One atomic statement instead of check-then-insert. Two grants of the same delegate racing each
+        // other would otherwise both pass the check and the loser would fail the unique index with a
+        // "Duplicate entry '<webhook_id>-<user_id>'" error -- and a webhook's id is its URL, token and all,
+        // which EF Core's own Update error line and the global exception handler would then both print.
+        // A duplicate is a no-op here, so the provider never raises it. See #1101.
+        var now = DateTime.UtcNow;
+        if (this._context.Database.ProviderName?.Contains("Sqlite", StringComparison.OrdinalIgnoreCase) == true)
         {
-            return existing.ToModel();
+            // The tests run on SQLite, which spells the same thing differently.
+            await this._context.Database.ExecuteSqlInterpolatedAsync(
+                $"INSERT INTO webhook_delegates (webhook_id, user_id, created_at) VALUES ({webhookId}, {userId}, {now}) ON CONFLICT (webhook_id, user_id) DO NOTHING");
+        }
+        else
+        {
+            // ON DUPLICATE KEY UPDATE with a self-assignment rather than INSERT IGNORE: IGNORE would also
+            // downgrade other errors (an over-long value) to warnings and store a truncated row.
+            await this._context.Database.ExecuteSqlInterpolatedAsync(
+                $"INSERT INTO webhook_delegates (webhook_id, user_id, created_at) VALUES ({webhookId}, {userId}, {now}) ON DUPLICATE KEY UPDATE id = id");
         }
 
-        var entity = new WebhookDelegateEntity
-        {
-            WebhookId = webhookId,
-            UserId = userId,
-            CreatedAt = DateTime.UtcNow,
-        };
-
-        this._context.WebhookDelegates.Add(entity);
-        await this._context.SaveChangesAsync();
+        var entity = await this._context.WebhookDelegates
+            .AsNoTracking()
+            .FirstAsync(d => d.WebhookId == webhookId && d.UserId == userId);
 
         return entity.ToModel();
     }
