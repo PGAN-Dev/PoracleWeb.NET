@@ -1,7 +1,8 @@
 .where-chip {
   align-items: center;
   background: var(--chip-bg, rgb(0 0 0 / 6%));
-  border-radius: 999px;
+  // Fully round at one line's height, a rounded box when the label wraps to two.
+  border-radius: 0.75rem;
   color: var(--chip-fg, inherit);
   display: inline-flex;
   font-size: 0.75rem;
@@ -27,8 +28,15 @@
   width: 1rem;
 }
 
+// Two lines before the ellipsis: the card's actions leave the chip about 180px, and most locales' "near my
+// pin" runs 40-50 characters, which one line cut to "Im Umkreis von 1,5 km um meinen …". The tooltip
+// still carries the whole label.
 .where-chip-label {
+  -webkit-box-orient: vertical;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: break-word;
 }

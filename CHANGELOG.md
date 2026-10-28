@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The scope chip on alarm cards no longer cuts its text short.** On a card, the chip saying where an alarm applies had one line beside the four action buttons, so German, Polish, Portuguese and the other longer languages showed "Im Umkreis von 1,5 km um meinen …", and English did the same on narrow cards. The label now runs to two lines, and when the card is too narrow for that the chip takes its own row above the buttons. The full text is still in its tooltip.
 - **`porygon 2` in Add multiple adds Porygon2 again.** Since 3.4.0 a lone number was always read as a Pokédex number, so `porygon 2` added Porygon and Ivysaur (#2) instead of Porygon2. A name that ends in a digit now matches when it's typed with a space, before the number is read as a dex id. `pikachu 25` still adds Pikachu and #25, and `porygon #2` still means Porygon and #2 (#1098).
 
 ### Security
