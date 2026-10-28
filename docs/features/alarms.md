@@ -614,7 +614,7 @@ rules, because then that switch is the only control you have over them.
 
 ### What this type does not do
 
-There's no test alert, because there's no mock payload builder for events, so no card has the More actions menu.
+There's no test notification, because there's no mock payload builder for events, so no card has the More actions menu.
 
 There's no separate section in the cross-profile overview either. Event rules appear there as invasion
 rows whose grunt is the event name. A profile export folds them into the invasion list the same way, an
@@ -717,13 +717,13 @@ Max Battle-specific defaults:
 | `move` | `9000` (any move) |
 | `evolution` | `9000` (any — unused placeholder) |
 
-## Test Alerts
+## Test Notifications
 
 Most alarm cards have a **More actions** menu (the three-dot button after Delete) with a **Send test notification** item. It sends a sample notification for that alarm, so you can check your filters and message formatting without waiting for a real event.
 
 The item sits behind a menu on purpose. It used to be a paper plane beside Edit, and people pressed it by accident, then went looking for a spawn that was never there (#1097). The item says so itself: its second line reads "A sample from this alarm, not a live alert".
 
-![Pokemon alarm list after sending a test alert, with the confirmation snackbar visible](../screenshots/test-alert-sent.png){ loading=lazy }
+![Pokemon alarm list after sending a test notification, with the confirmation snackbar visible](../screenshots/test-alert-sent.png){ loading=lazy }
 
 ### How it works
 
@@ -735,7 +735,7 @@ The item sits behind a menu on purpose. It used to be a paper plane beside Edit,
 
 ### The note that follows a test
 
-A test alert is built from your alarm's filters and your saved location, so it looks like a live one. Right after it, the bot sends this note to the same place (your DMs, or the channel, thread or webhook when you manage a destination):
+A test notification is built from your alarm's filters and your saved location, so it looks like a live one. Right after it, the bot sends this note to the same place (your DMs, or the channel, thread or webhook when you manage a destination):
 
 > Test notification from PoracleWeb.NET: the alert sent with this note is a sample built from your alarm's filters at your saved location. It isn't a live alert, so there's nothing to go and find.
 
@@ -743,7 +743,7 @@ The note is English only, because the backend doesn't localise any message text.
 
 ### Supported alarm types
 
-Test alerts are available for eight of the eleven alarm types:
+Test notifications are available for eight of the eleven alarm types:
 
 - Pokemon
 - Raid
@@ -759,16 +759,16 @@ those modules renders the More actions menu. They have no mock payload builder, 
 
 ### Clearing a test notification
 
-A test alert, and the note that follows it, are real DMs sent by the bot. This site never sees them and cannot take them back. The bot
+A test notification, and the note that follows it, are real DMs sent by the bot. This site never sees them and cannot take them back. The bot
 can: send it `poracle-clean` as a direct message, prefixed with your server's command prefix, and it
 deletes its own recent messages from that conversation. That includes real alerts, not only the tests.
 The FAQ on the **Help** page carries the same answer with your own instance's prefix filled in.
 
 ### Rate limiting
 
-Test alerts are rate limited to prevent abuse:
+Test notifications are rate limited to prevent abuse:
 
-The server allows 5 test alerts per 60 seconds per user (per IP address only for a request with no token). The browser adds a 15-second cooldown per alarm: the menu item is dimmed and its second line reads **Cooldown active**. It also drops a repeat click while a request for that alarm is still in flight.
+The server allows 5 test notifications per 60 seconds per user (per IP address only for a request with no token). The browser adds a 15-second cooldown per alarm: the menu item is dimmed and its second line reads **Cooldown active**. It also drops a repeat click while a request for that alarm is still in flight.
 
 ## Weather Display
 
