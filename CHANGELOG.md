@@ -9,11 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **A test notification comes with a short note saying it was a test.** A sample alert is built from your alarm's filters at your saved location, so it looks like a live one, and people went looking for a spawn that was never there. Right after the sample, the bot now sends one plain line to the same place (your DMs, or the channel, thread or webhook of a destination) saying it's a sample and there's nothing to go and find. The note is English only for now. If it fails to send, the test still counts as sent and the API logs a warning. For self-hosters: the note goes through PoracleNG's `POST /api/deliverMessages`, so a test now uses two messages of PoracleNG's delivery rate limit instead of one, and a refused test sends no note (#1097).
+- **A test notification comes with a short note saying it was a test.** A sample alert is built from your alarm's filters at your saved location, so it looks like a live one, and people went looking for a spawn that was never there. Along with the sample, the bot now sends one plain line to the same place (your DMs, or the channel, thread or webhook of a destination) saying it's a sample and there's nothing to go and find. The note is English only for now. If it fails to send, the test still counts as sent and the API logs a warning. For self-hosters: the note goes through PoracleNG's `POST /api/deliverMessages`, so a test now uses two messages of PoracleNG's delivery rate limit instead of one, and a refused test sends no note (#1097).
 
 ### Changed
 
 - **Send test notification moved into a More actions menu.** The paper-plane button sat beside Edit on every alarm card and was easy to press by accident. Cards now end with Edit, Delete and a three-dot **More actions** button, and **Send test notification** is the one item in its menu, with a second line saying the result is a sample and not a live alert. The button shows a spinner while a test is sending, and the item is dimmed and reads **Cooldown active** for the 15 seconds after. The Help page, the docs and the confirmation message ("Test notification sent") follow in all 11 languages (#1097).
+
+### Security
+
+- **Logs show only the host of a webhook that isn't on Discord.** Since 3.2.0 the logs have hidden a webhook's token but kept the first path segment of a non-Discord URL, and some services put the token there. Those URLs now log as scheme and host only, and a Discord URL whose id isn't a number is masked whole. Logs written before this release can still hold the longer form (#1038).
 
 ## [3.4.0] - 2026-10-27
 
