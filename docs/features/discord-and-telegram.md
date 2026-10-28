@@ -23,7 +23,7 @@ setup itself is in [Telegram](../configuration/telegram.md).
 | Periodic access check | `[discord] check_role`: still in a guild and holding a role | `[telegram] check_role`: still in a registration group |
 | Area security communities | `discord = { channels, user_role }` | `telegram = { channels }` |
 
-Test alerts, quiet periods, quest summaries, profiles and clean mode work the same on both. The message
+Test notifications, quiet periods, quest summaries, profiles and clean mode work the same on both. The message
 itself comes from PoracleNG's templates, which can differ per app.
 
 Destinations are covered in [Destinations & delegates](webhooks.md). They are never linked: a Telegram

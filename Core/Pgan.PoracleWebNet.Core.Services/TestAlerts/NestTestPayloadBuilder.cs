@@ -16,5 +16,5 @@ public sealed class NestTestPayloadBuilder : ITestPayloadBuilder
 
     public Task<TestPayloadBuildResult> BuildAsync(TestPayloadContext context) =>
         throw new NotSupportedException(
-            "Nest test alerts aren't supported by PoracleNG's /api/test endpoint. Nest webhooks ingest through a different path with no test surface.");
+            "Nest test notifications aren't supported by PoracleNG's /api/test endpoint. Nest webhooks ingest through a different path with no test surface.");
 }
