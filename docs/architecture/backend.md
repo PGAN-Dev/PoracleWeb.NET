@@ -119,7 +119,7 @@ PoracleNG accepts any positive integer as a raid/egg level, so the picker's `+ A
 
 ## Test alert service
 
-`TestAlertService` lets users trigger a sample notification for an alarm of one of the eight types `TestAlertController.ValidTypes` names: `pokemon`, `raid`, `egg`, `quest`, `invasion`, `lure`, `nest`, `gym`. Fort Changes, Max Battles and Pokéstop Events have no test alert, and the controller answers 400 for any other type. It uses `Task.WhenAll` to fetch the alarm (via `IPoracleTrackingProxy`) and the human record (via `IPoracleHumanProxy`) in parallel. It then constructs a realistic mock webhook payload based on the alarm's filter fields (e.g., `pokemon_id`, `raid_level`, `quest_reward`) using the user's location as the event coordinates. The payload is sent to PoracleNG's `POST /api/test` endpoint, which formats and delivers the notification. Rate-limited at 5 requests per 60s per user (falling back to the IP) via the `test-alert` policy.
+`TestAlertService` lets users trigger a sample notification for an alarm of one of the eight types `TestAlertController.ValidTypes` names: `pokemon`, `raid`, `egg`, `quest`, `invasion`, `lure`, `nest`, `gym`. Fort Changes, Max Battles and Pokéstop Events have no test alert, and the controller answers 400 for any other type. It uses `Task.WhenAll` to fetch the alarm (via `IPoracleTrackingProxy`) and the human record (via `IPoracleHumanProxy`) in parallel. It then constructs a realistic mock webhook payload based on the alarm's filter fields (e.g., `pokemon_id`, `raid_level`, `quest_reward`) using the user's location as the event coordinates. The payload is sent to PoracleNG's `POST /api/test` endpoint, which formats and delivers the notification. Once PoracleNG accepts it (2xx), the service sends one plain-text note (`TestAlertService.TestNote`, English only, because the backend has no message localisation) to the same target, same id and type including webhooks and Telegram, through `IPoracleApiProxy.DeliverTextAsync`, which posts one job to PoracleNG's `POST /api/deliverMessages`. The note says the alert is a sample and not a live one, so a member who pressed the button by accident doesn't go looking for a spawn (#1097). A refused or unreachable `/api/test` sends no note, and a failed note never fails the test: the service logs a warning with the alarm type, the uid and the target type, never the target id (it can be a webhook URL), and still returns success. Rate-limited at 5 requests per 60s per user (falling back to the IP) via the `test-alert` policy.
 
 ## Fort change and Max Battle services
 
@@ -178,7 +178,7 @@ Proxies human and profile operations to PoracleNG's `/api/v2/humans/...` routes:
 
 Wraps HttpClient calls for non-tracking Poracle API operations.
 
-- Used for: config and config values, templates, masterdata (grunts, localized monsters), geofence maps and hashes, asking PoracleNG to reload geofences, test alerts (`POST /api/test`) and geocoding (`/api/geocode/forward` and `/reverse`)
+- Used for: config and config values, templates, masterdata (grunts, localized monsters), geofence maps and hashes, asking PoracleNG to reload geofences, test alerts (`POST /api/test`, then the one-line note after it through `POST /api/deliverMessages`) and geocoding (`/api/geocode/forward` and `/reverse`)
 - Registered via `AddHttpClient<IPoracleApiProxy, PoracleApiProxy>()`
 
 ### IPoracleMuteProxy (quiet periods)

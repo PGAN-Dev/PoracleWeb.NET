@@ -458,7 +458,8 @@ services.AddHttpClient<IPoracleApiProxy, PoracleApiProxy>();
 
 There are six Poracle proxies. Tracking, incident, human and mute speak `/api/v2`. Summary covers the
 quest summary schedule. `IPoracleApiProxy` covers everything else: config and config values, templates,
-masterdata, geofence maps, hashes and reload, test alerts, and geocoding through `/api/geocode`.
+masterdata, geofence maps, hashes and reload, test alerts (`/api/test`, plus the note after one through
+`/api/deliverMessages`), and geocoding through `/api/geocode`.
 
 The `HttpClient` instances are managed by the .NET HTTP client factory, providing connection pooling and DNS rotation.
 
