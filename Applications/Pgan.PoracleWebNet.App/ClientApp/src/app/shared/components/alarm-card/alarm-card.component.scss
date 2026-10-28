@@ -227,24 +227,6 @@
     max-width: 100%;
     min-width: 0;
   }
-
-  .test-alert-btn:disabled {
-    opacity: 0.4;
-  }
-
-  .spin {
-    animation: rule-card-spin 1s linear infinite;
-  }
-}
-
-@keyframes rule-card-spin {
-  from {
-    transform: rotate(0deg);
-  }
-
-  to {
-    transform: rotate(360deg);
-  }
 }
 
 /* The app a rule is delivered to: a plain glyph and the app's name in the muted text colour, never a brand

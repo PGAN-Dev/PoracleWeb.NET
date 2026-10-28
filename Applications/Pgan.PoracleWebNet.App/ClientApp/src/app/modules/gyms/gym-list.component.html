@@ -91,19 +91,6 @@
         <ng-container ruleActions>
           <button
             mat-icon-button
-            (click)="sendTestAlert(gym)"
-            [disabled]="testAlertService.isSending('gym', gym.uid) || testAlertService.isCoolingDown('gym', gym.uid)"
-            [matTooltip]="(testAlertService.isCoolingDown('gym', gym.uid) ? 'ALARM.TEST_COOLDOWN' : 'ALARM.TEST_SEND') | translate"
-            [attr.aria-label]="(testAlertService.isCoolingDown('gym', gym.uid) ? 'ALARM.TEST_COOLDOWN' : 'ALARM.TEST_SEND') | translate"
-            class="test-alert-btn">
-            @if (testAlertService.isSending('gym', gym.uid)) {
-              <mat-icon class="spin">sync</mat-icon>
-            } @else {
-              <mat-icon>send</mat-icon>
-            }
-          </button>
-          <button
-            mat-icon-button
             (click)="editGym(gym)"
             [matTooltip]="'COMMON.EDIT' | translate"
             [attr.aria-label]="'COMMON.EDIT' | translate">
@@ -117,6 +104,7 @@
             color="warn">
             <mat-icon>delete</mat-icon>
           </button>
+          <app-alarm-more-menu alarmType="gym" [uid]="gym.uid" />
         </ng-container>
       </app-alarm-card>
     } @empty {

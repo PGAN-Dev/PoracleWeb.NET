@@ -20,10 +20,10 @@ import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { LinkedAccountService } from '../../core/services/linked-account.service';
 import { LureService } from '../../core/services/lure.service';
-import { TestAlertService } from '../../core/services/test-alert.service';
 import { AlarmCardComponent } from '../../shared/components/alarm-card/alarm-card.component';
 import { AlarmEmptyStateComponent } from '../../shared/components/alarm-empty-state/alarm-empty-state.component';
 import { AlarmListToolbarComponent, AlarmSortOption } from '../../shared/components/alarm-list-toolbar/alarm-list-toolbar.component';
+import { AlarmMoreMenuComponent } from '../../shared/components/alarm-more-menu/alarm-more-menu.component';
 import { BulkActionBarComponent } from '../../shared/components/bulk-action-bar/bulk-action-bar.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
@@ -51,6 +51,7 @@ import { serverReason } from '../../shared/utils/server-reason';
   imports: [
     AlarmEmptyStateComponent,
     AlarmListToolbarComponent,
+    AlarmMoreMenuComponent,
     BulkActionBarComponent,
     AlarmCardComponent,
     MatButtonModule,
@@ -128,8 +129,6 @@ export class LureListComponent implements OnInit {
     { label: 'ALARM.SORT_NAME', value: 'name' },
     { label: 'ALARM.SORT_NEWEST', value: 'newest' },
   ];
-
-  readonly testAlertService = inject(TestAlertService);
 
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
@@ -375,10 +374,6 @@ export class LureListComponent implements OnInit {
     // Adds what is on screen: a search that hides a rule also keeps it out of Select All (#642), and a tick
     // the search is hiding stays, so clearing the search brings it back.
     this.selectedIds.set(new Set([...this.selectedIds(), ...this.visibleLures().map(i => i.uid)]));
-  }
-
-  sendTestAlert(lure: Lure): void {
-    this.testAlertService.sendTestAlert('lure', lure.uid);
   }
 
   toggleSelect(uid: number): void {
