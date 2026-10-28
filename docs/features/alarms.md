@@ -729,17 +729,17 @@ The item sits behind a menu on purpose. It used to be a paper plane beside Edit,
 
 1. Open **More actions** on the alarm card and choose **Send test notification**
 2. PoracleWeb.NET builds a **mock webhook payload** using the alarm's actual filter values (e.g., pokemon_id, raid_level, quest_reward) and the user's saved location as the event coordinates
-3. The payload is sent to PoracleNG's `POST /api/test` endpoint, which formats and delivers the notification to the user via their configured webhook
+3. The payload is sent to PoracleNG's `POST /api/test` endpoint, which formats it with the user's template and delivers it to their DMs, or to the destination when they're managing one
 4. Once PoracleNG has accepted the test, PoracleWeb.NET sends one short plain-text note to the same destination through `POST /api/deliverMessages` (see below)
 5. A **snackbar** displays the result: success, error, or cooldown warning. While the request is out, the More actions button turns into a spinner
 
 ### The note that follows a test
 
-A test notification is built from your alarm's filters and your saved location, so it looks like a live one. Right after it, the bot sends this note to the same place (your DMs, or the channel, thread or webhook when you manage a destination):
+A test notification is built from your alarm's filters and your saved location, so it looks like a live one. The bot also sends this note to the same place (your DMs, or the channel, thread or webhook when you manage a destination):
 
 > Test notification from PoracleWeb.NET: the alert sent with this note is a sample built from your alarm's filters at your saved location. It isn't a live alert, so there's nothing to go and find.
 
-The note is English only, because the backend doesn't localise any message text. It is sent only after PoracleNG accepted the test, so a refused or unreachable test sends none. If the note itself fails, the test still counts as sent: the API logs a warning (the alarm type, the uid and the kind of destination, never the destination's address) and the member sees the usual success message. Because the note goes through PoracleNG's delivery queue, it counts toward PoracleNG's own per-destination delivery limits, so each test counts as two messages.
+The note is English only, because the backend doesn't localise any message text. It can arrive just before the sample as well as just after it: the sample goes through PoracleNG's render queue and the note doesn't, so the note never refers to the alert as "above" or "below". It is sent only after PoracleNG accepted the test, so a refused or unreachable test sends none. If the note itself fails, the test still counts as sent: the API logs a warning (the alarm type, the uid and the kind of destination, never the destination's address) and the member sees the usual success message. Because the note goes through PoracleNG's delivery queue, it counts toward PoracleNG's own per-destination delivery limits, so each test counts as two messages.
 
 ### Supported alarm types
 
