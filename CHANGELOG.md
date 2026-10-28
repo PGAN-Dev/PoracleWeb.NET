@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **A test now guards the id hints in Add destination.** It checks that each hint is linked to its input with `aria-describedby`, so a screen reader reads the hint with the field. Enter-to-submit and the double-submit guard were already covered (#1038).
 - **Help and docs screenshots show the More actions menu.** Every image that still showed the old paper-plane test button on an alarm card is retaken, in the docs and in the in-app Help (#1106).
 - **The failure messages now say "test notification" too.** The menu item and the success message were renamed in #1100, but the rate limit, refusal, unsupported-type and failure messages, the Help section title and the docs still said "test alert", in all eleven languages. One action now has one name through its whole flow. Fixes [#1102](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/1102).
 - **Send test notification moved into a More actions menu.** The paper-plane button sat beside Edit on every alarm card and was easy to press by accident. Cards now end with Edit, Delete and a three-dot **More actions** button, and **Send test notification** is the one item in its menu, with a second line saying the result is a sample and not a live alert. The button shows a spinner while a test is sending, and the item is dimmed and reads **Cooldown active** for the 15 seconds after. The Help page, the docs and the confirmation message ("Test notification sent") follow in all 11 languages (#1097).

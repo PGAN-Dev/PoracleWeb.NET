@@ -388,6 +388,25 @@ describe('AddDestinationDialogComponent', () => {
     expect(add.disabled).toBe(false);
   });
 
+  /** A screen reader reads the hint with the field only when the input points at it. */
+  it.each([
+    ['discord:channel', '[data-test="id-field"]', 'ADMIN.ID_DISCORD_HINT'],
+    ['telegram:group', '[data-test="id-field"]', 'ADMIN.ID_TELEGRAM_CHAT_HINT'],
+    ['telegram:topic', '[data-test="chat-field"]', 'ADMIN.ID_TELEGRAM_TOPIC_HINT'],
+  ])('links the %s id hint to its input', (kind, field, hintKey) => {
+    const { component, fixture } = setup();
+    pick(component, kind);
+    fixture.detectChanges();
+
+    const root = (fixture.nativeElement as HTMLElement).querySelector(field) as HTMLElement;
+    const hint = root.querySelector('mat-hint') as HTMLElement;
+    const input = root.querySelector('input') as HTMLInputElement;
+
+    expect(hint.textContent?.trim()).toBe(hintKey);
+    expect(hint.id).toBeTruthy();
+    expect(input.getAttribute('aria-describedby')?.split(' ')).toContain(hint.id);
+  });
+
   it('saves on a submit of a valid form, and does nothing on an invalid one', () => {
     const { adminService, component, fixture } = setup();
     const form = (fixture.nativeElement as HTMLElement).querySelector('form') as HTMLFormElement;
