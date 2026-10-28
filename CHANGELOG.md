@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- **Logs show only the host of a webhook that isn't on Discord.** Since 3.2.0 the logs have hidden a webhook's token but kept the first path segment of a non-Discord URL, and some services put the token there. Those URLs now log as scheme and host only, and a Discord URL whose id isn't a number is masked whole. Logs written before this release can still hold the longer form (#1038).
+
 ## [3.4.0] - 2026-10-27
 
 ### Added

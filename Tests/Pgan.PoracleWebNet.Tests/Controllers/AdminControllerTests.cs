@@ -8,6 +8,7 @@ using Pgan.PoracleWebNet.Api.Configuration;
 using Pgan.PoracleWebNet.Api.Controllers;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
+using Pgan.PoracleWebNet.Tests.Helpers;
 
 namespace Pgan.PoracleWebNet.Tests.Controllers;
 
@@ -28,25 +29,27 @@ public class AdminControllerTests : ControllerTestBase
 
     public AdminControllerTests()
     {
-        var poracleSettings = Options.Create(new PoracleSettings { AdminIds = "admin1,admin2" });
         this._jwtService.Setup(j => j.GenerateImpersonationToken(It.IsAny<UserInfo>(), It.IsAny<string>()))
             .Returns("test-impersonation-jwt");
-        this._sut = new AdminController(
-            this._humanService.Object,
-            new MemoryCache(new MemoryCacheOptions()),
-            this._userPurgeService.Object,
-            this._webhookDelegateService.Object,
-            this._proxy.Object,
-            this._serverProfile.Object,
-            this._updateCheck.Object,
-            new ConfigurationBuilder().Build(),
-            this._humanProxy.Object,
-            poracleSettings,
-            this._jwtService.Object,
-            this._roleResolver.Object,
-            this._directory.Object,
-            this._logger.Object);
+        this._sut = this.CreateSut(this._logger.Object);
     }
+
+    /// <summary>The controller over the shared mocks, logging to <paramref name="logger"/>.</summary>
+    private AdminController CreateSut(ILogger<AdminController> logger) => new(
+        this._humanService.Object,
+        new MemoryCache(new MemoryCacheOptions()),
+        this._userPurgeService.Object,
+        this._webhookDelegateService.Object,
+        this._proxy.Object,
+        this._serverProfile.Object,
+        this._updateCheck.Object,
+        new ConfigurationBuilder().Build(),
+        this._humanProxy.Object,
+        Options.Create(new PoracleSettings { AdminIds = "admin1,admin2" }),
+        this._jwtService.Object,
+        this._roleResolver.Object,
+        this._directory.Object,
+        logger);
 
     /// <summary>Both ids must name real accounts before a grant is meaningful. See #514.</summary>
     private void GivenWebhookAndUserExist(string webhookId = "wh1", string userId = "u2")
@@ -1325,6 +1328,110 @@ public class AdminControllerTests : ControllerTestBase
 
         Assert.IsType<OkObjectResult>(result);
         this._webhookDelegateService.Verify(s => s.RemoveDelegateAsync("wh1", "u1"), Times.Once);
+    }
+
+    // --- Logged ids (#1038) ---
+
+    private const string WebhookToken = "to_ken-VALUE";
+    private const string WebhookUrl = "https://discord.com/api/webhooks/863186716952100874/" + WebhookToken;
+    private const string MaskedWebhook = "https://discord.com/api/webhooks/863186716952100874/***";
+
+    /// <summary>
+    /// A webhook's id is its URL, and a Discord webhook URL carries the token that lets anyone post to the
+    /// channel. Creating one logged the whole URL.
+    /// </summary>
+    [Fact]
+    public async Task CreatingAWebhookLogsItWithoutItsToken()
+    {
+        var log = new CapturingLogger<AdminController>();
+        var sut = this.CreateSut(log);
+        SetupUser(sut, isAdmin: true);
+        this._humanService.Setup(s => s.ExistsAsync(WebhookUrl)).ReturnsAsync(false);
+        this._humanService.Setup(s => s.CreateAsync(It.IsAny<Human>()))
+            .ReturnsAsync(new Human { Id = WebhookUrl, Name = "Raids", Type = "webhook" });
+
+        Assert.IsType<OkObjectResult>(await sut.CreateWebhook(new AdminController.CreateWebhookRequest("Raids", WebhookUrl)));
+
+        Assert.Contains(MaskedWebhook, log.All, StringComparison.Ordinal);
+        Assert.DoesNotContain(WebhookToken, log.All, StringComparison.Ordinal);
+    }
+
+    /// <summary>The legitimate case beside it: a channel id is logged as it is, so the line still names the channel.</summary>
+    [Fact]
+    public async Task CreatingAChannelStillLogsItsId()
+    {
+        var log = new CapturingLogger<AdminController>();
+        var sut = this.CreateSut(log);
+        SetupUser(sut, userId: "admin-1", isAdmin: true);
+        this._humanService.Setup(s => s.ExistsAsync("123456789012345678")).ReturnsAsync(false);
+        this._humanService.Setup(s => s.CreateAsync(It.IsAny<Human>()))
+            .ReturnsAsync(new Human { Id = "123456789012345678", Name = "raids", Type = "discord:channel" });
+
+        Assert.IsType<OkObjectResult>(await sut.CreateDestination(
+            new AdminController.CreateDestinationRequest("discord:channel", "123456789012345678", "raids", null)));
+
+        Assert.Contains("Admin admin-1 created discord:channel destination 123456789012345678", log.All, StringComparison.Ordinal);
+    }
+
+    /// <summary>A delegate manages a webhook by impersonating it, and the log line named the target in full.</summary>
+    [Fact]
+    public async Task ADelegateImpersonatingAWebhookIsLoggedWithoutItsToken()
+    {
+        var log = new CapturingLogger<AdminController>();
+        var sut = this.CreateSut(log);
+        SetupUser(sut, isAdmin: false);
+        this._roleResolver.Setup(r => r.ResolveAsync("123456789"))
+            .ReturnsAsync(new Pgan.PoracleWebNet.Api.Services.UserRoles(false, [WebhookUrl]));
+        this._humanService.Setup(s => s.GetByIdAsync(WebhookUrl))
+            .ReturnsAsync(new Human { Id = WebhookUrl, Name = "Raids", Type = "webhook", Enabled = 1, CurrentProfileNo = 1 });
+
+        Assert.IsType<OkObjectResult>(await sut.ImpersonateById(new AdminController.ImpersonateRequest(WebhookUrl)));
+
+        Assert.Contains($"impersonating {MaskedWebhook}", log.All, StringComparison.Ordinal);
+        Assert.DoesNotContain(WebhookToken, log.All, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ImpersonatingAPersonStillLogsTheirId()
+    {
+        var log = new CapturingLogger<AdminController>();
+        var sut = this.CreateSut(log);
+        SetupUser(sut, userId: "admin-1", isAdmin: true);
+        this._humanService.Setup(s => s.GetByIdAsync("555"))
+            .ReturnsAsync(new Human { Id = "555", Name = "Someone", Type = "discord:user", Enabled = 1, CurrentProfileNo = 1 });
+
+        Assert.IsType<OkObjectResult>(await sut.ImpersonateById(new AdminController.ImpersonateRequest("555")));
+
+        Assert.Contains("Admin admin-1 impersonating 555", log.All, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task AnAdminOpeningAWebhookFromTheUserListIsLoggedWithoutItsToken()
+    {
+        var log = new CapturingLogger<AdminController>();
+        var sut = this.CreateSut(log);
+        SetupUser(sut, isAdmin: true);
+        this._humanService.Setup(s => s.GetByIdAsync(WebhookUrl))
+            .ReturnsAsync(new Human { Id = WebhookUrl, Name = "Raids", Type = "webhook", Enabled = 1, CurrentProfileNo = 1 });
+
+        Assert.IsType<OkObjectResult>(await sut.ImpersonateUser(WebhookUrl));
+
+        Assert.Contains($"impersonating user {MaskedWebhook}", log.All, StringComparison.Ordinal);
+        Assert.DoesNotContain(WebhookToken, log.All, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task DeletingAWebhookIsLoggedWithoutItsToken()
+    {
+        var log = new CapturingLogger<AdminController>();
+        var sut = this.CreateSut(log);
+        SetupUser(sut, isAdmin: true);
+        this._userPurgeService.Setup(s => s.PurgeAsync(WebhookUrl)).ReturnsAsync(true);
+
+        Assert.IsType<NoContentResult>(await sut.DeleteUser(WebhookUrl));
+
+        Assert.Contains($"deleted user {MaskedWebhook}", log.All, StringComparison.Ordinal);
+        Assert.DoesNotContain(WebhookToken, log.All, StringComparison.Ordinal);
     }
 
     // --- GetPoracleAdmins ---
