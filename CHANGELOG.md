@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The failure messages now say "test notification" too.** The menu item and the success message were renamed in #1100, but the rate limit, refusal, unsupported-type and failure messages, the Help section title and the docs still said "test alert", in all eleven languages. One action now has one name through its whole flow. Fixes [#1102](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/1102).
 - **Send test notification moved into a More actions menu.** The paper-plane button sat beside Edit on every alarm card and was easy to press by accident. Cards now end with Edit, Delete and a three-dot **More actions** button, and **Send test notification** is the one item in its menu, with a second line saying the result is a sample and not a live alert. The button shows a spinner while a test is sending, and the item is dimmed and reads **Cooldown active** for the 15 seconds after. The Help page, the docs and the confirmation message ("Test notification sent") follow in all 11 languages (#1097).
 
+### Fixed
+
+- **`porygon 2` in Add multiple adds Porygon2 again.** Since 3.4.0 a lone number was always read as a Pokédex number, so `porygon 2` added Porygon and Ivysaur (#2) instead of Porygon2. A name that ends in a digit now matches when it's typed with a space, before the number is read as a dex id. `pikachu 25` still adds Pikachu and #25, and `porygon #2` still means Porygon and #2 (#1098).
+
 ### Security
 
 - **Logs show only the host of a webhook that isn't on Discord.** Since 3.2.0 the logs have hidden a webhook's token but kept the first path segment of a non-Discord URL, and some services put the token there. Those URLs now log as scheme and host only, and a Discord URL whose id isn't a number is masked whole. Logs written before this release can still hold the longer form (#1038).

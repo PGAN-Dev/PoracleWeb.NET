@@ -182,4 +182,51 @@ describe('matchPokemonBulkText', () => {
       expect(result.suggestions[0].candidates.map(p => p.id)).toEqual([83]);
     });
   });
+
+  describe('a name with a number in it, typed with a space (#1098)', () => {
+    const list: PokemonEntry[] = [
+      { id: 0, name: 'All Pokemon' },
+      { id: 1, name: 'Bulbasaur' },
+      { id: 2, name: 'Ivysaur' },
+      { id: 3, name: 'Venusaur' },
+      { id: 25, name: 'Pikachu' },
+      { id: 137, name: 'Porygon' },
+      { id: 233, name: 'Porygon2' },
+      { id: 250, name: 'Ho-Oh' },
+      { id: 474, name: 'Porygon-Z' },
+    ];
+    const run = (text: string) => matchPokemonBulkText(text, list, new Set());
+    const ids = (text: string) => run(text).matched.map(p => p.id);
+
+    it('reads "porygon 2" as Porygon2, with no Ivysaur and no suggestion', () => {
+      const result = run('porygon 2');
+      expect(result.matched.map(p => p.id)).toEqual([233]);
+      expect(result.suggestions).toEqual([]);
+      expect(result.unrecognized).toEqual([]);
+    });
+
+    it('reads it in any case, mid-list and across commas', () => {
+      expect(ids('Pikachu, PORYGON 2, ho oh')).toEqual([25, 233, 250]);
+      expect(ids('pikachu porygon 2 ho-oh')).toEqual([25, 233, 250]);
+    });
+
+    it('leaves "porygon2", "Porygon-Z" and "porygon z" as they were', () => {
+      expect(ids('porygon2')).toEqual([233]);
+      expect(ids('Porygon-Z')).toEqual([474]);
+      expect(ids('porygon z')).toEqual([474]);
+      expect(ids('Porygon')).toEqual([137]);
+    });
+
+    it('still reads a number after a name that does not join into one as a dex id', () => {
+      expect(ids('pikachu 25')).toEqual([25]);
+      expect(ids('pikachu 2')).toEqual([25, 2]);
+      expect(ids('porygon, 2')).toEqual([137, 2]);
+      expect(ids('porygon #2')).toEqual([137, 2]);
+    });
+
+    it('keeps bare numbers and ranges as dex ids', () => {
+      expect(ids('1 2 3')).toEqual([1, 2, 3]);
+      expect(ids('1-3, pikachu')).toEqual([1, 2, 3, 25]);
+    });
+  });
 });
