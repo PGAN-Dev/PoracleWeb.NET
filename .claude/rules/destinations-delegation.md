@@ -128,8 +128,11 @@ Deleting a human purges grants in both directions (`RemoveAllForIdAsync` matches
 
 **Never log a human id raw.** A webhook's id carries its token. Route every logged user, admin, target, grant
 or delegate id through `LogSafe.Id` (`Core.Models/LogSafe.cs`); `LoggedHumanIdsAreMaskedTests` fails the build
-otherwise, and `appsettings.json` keeps `System.Net.Http.HttpClient` at Warning because its request lines
-print the encoded webhook path (#1038).
+otherwise. `LogSafe.Id` keeps a Discord webhook's numeric id and nothing else of its path; any other URL is
+reduced to scheme and host, because a token can sit in any segment. `appsettings.json` keeps
+`System.Net.Http.HttpClient` and `Microsoft.AspNetCore` at Warning, because their request lines print the
+encoded webhook path, the admin routes' query strings and route values (`users/by-id?id=`);
+`HttpClientLoggingConfigurationTests` fails if either is loosened (#1038).
 
 User-facing documentation: `docs/features/webhooks.md`.
 
