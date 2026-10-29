@@ -12,4 +12,10 @@ public class GeofenceRegion
     {
         get; set;
     }
+
+    /// <summary>The parts of a multi-part region, one [lat,lon] outer ring each. Set instead of <see cref="Polygon"/>.</summary>
+    public double[][][]? Multipath
+    {
+        get; set;
+    }
 }

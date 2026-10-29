@@ -43,6 +43,8 @@ const NO_ALARMS: DashboardCounts = {
 describe('DashboardComponent status strip and alarm summary', () => {
   interface Options {
     areas?: string[];
+    /** Receives the area weather request, to see which point stands for each area. */
+    areaWeather?: jest.Mock;
     counts?: Partial<DashboardCounts>;
     disabled?: string[];
     enabled?: boolean;
@@ -101,7 +103,7 @@ describe('DashboardComponent status strip and alarm summary', () => {
         {
           provide: LocationService,
           useValue: {
-            getAreaWeather: () => of([]),
+            getAreaWeather: opts.areaWeather ?? (() => of([])),
             getLocation: () => of(opts.location ?? { latitude: 0, longitude: 0 }),
             getStaticMapUrl: () => of(opts.mapUrl ? { url: opts.mapUrl } : null),
             getWeather: () => of(opts.weather ?? null),
@@ -279,6 +281,42 @@ describe('DashboardComponent status strip and alarm summary', () => {
       expect(pin.querySelector('img')!.getAttribute('src')).toBe('https://maps.example/pin.png');
       pin.click();
       expect(open).toHaveBeenCalled();
+    });
+  });
+
+  describe('area weather', () => {
+    it('asks for the weather at the larger part of a multi-part area (#1117)', () => {
+      const areaWeather = jest.fn().mockReturnValue(of([]));
+      const small: [number, number][] = [
+        [0, 0],
+        [0, 0.1],
+        [0.1, 0.1],
+        [0.1, 0],
+      ];
+      const large: [number, number][] = [
+        [40, -80],
+        [40, -78],
+        [42, -78],
+        [42, -80],
+      ];
+
+      setup({ areas: ['islands'], areaWeather, geofences: [{ id: 1, name: 'Islands', multipath: [small, large] }] });
+
+      expect(areaWeather).toHaveBeenCalledWith([{ name: 'islands', lat: 41, lon: -79 }]);
+    });
+
+    it('still asks for the weather at the centre of an ordinary area', () => {
+      const areaWeather = jest.fn().mockReturnValue(of([]));
+      const square: [number, number][] = [
+        [40, -80],
+        [40, -78],
+        [42, -78],
+        [42, -80],
+      ];
+
+      setup({ areas: ['aberdeen'], areaWeather, geofences: [{ id: 1, name: 'Aberdeen', path: square }] });
+
+      expect(areaWeather).toHaveBeenCalledWith([{ name: 'aberdeen', lat: 41, lon: -79 }]);
     });
   });
 
