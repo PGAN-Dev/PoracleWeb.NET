@@ -8,6 +8,10 @@ This line is unofficial and unsupported by PoracleWeb.NET releases. Report probl
 
 ## [Unreleased]
 
+### Fixed
+
+- **Areas made of more than one piece now work.** A Koji area saved as a `MultiPolygon` was dropped from the area feed, so PoracleNG never loaded it and nothing matched it. It's now served in PoracleNG's `multipath` shape and shows as one area on every map, in the area list, on gym names and on the review card's overlap line. A `MultiPolygon` region works for region auto-detection, and taking an area out of the Koji project no longer fails on one or drops a polygon's holes. Taken from `develop` ahead of the next PoracleWeb.NET release; see [#1117](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/1117).
+
 ## [3.5.0-shiny.1] - 2026-10-29
 
 Based on PoracleWeb.NET 3.5.0. Needs PoracleNG `feat/personal-shiny` ([jfberry/PoracleNG#255](https://github.com/jfberry/PoracleNG/pull/255)) rebased on 5.4.0, tested against the `ghcr.io/jfberry/poracleng:feat-personal-shiny` image built on 28 October 2026 from `e9009679` (`sha256:323d381b9e6bf20da4e5818565fd6c5375ebd9e05699c491a1b4bf8f65309f83`). That build only changes which encounters PoracleNG rolls for personal shinies; the API this line uses is unchanged, so the 22 and 24 October builds (`3104d18d`, `30912156`) still work. Earlier `feat/personal-shiny` builds, and PoracleNG `main`, are not supported.
