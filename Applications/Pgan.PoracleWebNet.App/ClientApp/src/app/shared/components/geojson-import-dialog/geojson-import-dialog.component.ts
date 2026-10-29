@@ -15,7 +15,7 @@ import { ReplaySubject } from 'rxjs';
 import { GeoJsonImportResult, GeofenceRegion } from '../../../core/models';
 import { I18nService } from '../../../core/services/i18n.service';
 import { UserGeofenceService } from '../../../core/services/user-geofence.service';
-import { detectRegion } from '../../../shared/utils/geo.utils';
+import { detectRegion, fenceRings } from '../../../shared/utils/geo.utils';
 import { TranslatePluralPipe } from '../../pipes/translate-plural.pipe';
 import { GEOFENCE_NAME_PATTERN } from '../../utils/geofence.utils';
 
@@ -258,8 +258,8 @@ export class GeoJsonImportDialogComponent {
 
     // Build region detection data from regions with polygons
     const regionDetectionData = this.data.regions
-      .filter(r => r.polygon && r.polygon.length > 0)
-      .map(r => ({ id: r.id, name: r.name, displayName: r.displayName, path: r.polygon! }));
+      .map(r => ({ id: r.id, name: r.name, displayName: r.displayName, multipath: r.multipath, path: r.polygon }))
+      .filter(r => fenceRings(r).length > 0);
 
     const previews: PreviewFeature[] = [];
     let autoNameIndex = 1;

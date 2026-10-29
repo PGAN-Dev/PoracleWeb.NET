@@ -29,6 +29,7 @@ import { GeofenceData } from '../../../core/models';
 import { BasemapService } from '../../../core/services/basemap.service';
 import { I18nService } from '../../../core/services/i18n.service';
 import { TranslatePluralPipe } from '../../pipes/translate-plural.pipe';
+import { fenceLatLngs, fenceRings } from '../../utils/geo.utils';
 import { RegionOption, RegionSelectorComponent } from '../region-selector/region-selector.component';
 
 /**
@@ -299,8 +300,8 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
 
     for (const fence of this.geofence) {
       const group = this.groupMapping.get(fence.name) || '';
-      if (groupSet.has(group) && fence.path?.length > 0) {
-        bounds.push(...fence.path.map(c => [c[0], c[1]] as L.LatLngExpression));
+      if (groupSet.has(group)) {
+        bounds.push(...fenceRings(fence).flat());
       }
     }
 
@@ -457,9 +458,8 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     const points: L.LatLngExpression[] = [];
 
     for (const fence of this.geofence) {
-      if (!fence.path || fence.path.length < 3) continue;
       if (!selectedSet.has(fence.name.toLowerCase())) continue;
-      points.push(...fence.path.map(coord => [coord[0], coord[1]] as L.LatLngExpression));
+      points.push(...fenceRings(fence).flat());
     }
 
     // A selection can name geofences the feed does not carry -- user-drawn fences are served with
@@ -488,26 +488,31 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
 
     // Sort geofences by polygon area (largest first) so smaller polygons render
     // on top and are clickable even when nested inside larger ones.
+    // A multi-part area counts the area of all its parts.
     const sortedFences = [...this.geofence].sort((a, b) => {
-      const areaOf = (path: number[][] | undefined): number => {
-        if (!path || path.length < 3) return 0;
-        let area = 0;
-        for (let i = 0, j = path.length - 1; i < path.length; j = i++) {
-          area += (path[j][1] + path[i][1]) * (path[j][0] - path[i][0]);
+      const areaOf = (fence: GeofenceData): number => {
+        let total = 0;
+        for (const ring of fenceRings(fence)) {
+          let area = 0;
+          for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+            area += (ring[j][1] + ring[i][1]) * (ring[j][0] - ring[i][0]);
+          }
+          total += Math.abs(area / 2);
         }
-        return Math.abs(area / 2);
+        return total;
       };
-      return areaOf(b.path) - areaOf(a.path);
+      return areaOf(b) - areaOf(a);
     });
 
     for (const fence of sortedFences) {
-      if (!fence.path || fence.path.length < 3) continue;
+      const rings = fenceRings(fence);
+      if (rings.length === 0) continue;
 
-      const latLngs: L.LatLngExpression[] = fence.path.map(coord => [coord[0], coord[1]] as L.LatLngExpression);
-      allBounds.push(...latLngs);
+      allBounds.push(...rings.flat());
 
       const isSelected = selectedSet.has(fence.name.toLowerCase());
-      const polygon = L.polygon(latLngs, isSelected ? AREA_STYLE_SELECTED : AREA_STYLE_UNSELECTED);
+      // One polygon for every part, so the tooltip, the click and the selected style cover the whole area.
+      const polygon = L.polygon(fenceLatLngs(rings), isSelected ? AREA_STYLE_SELECTED : AREA_STYLE_UNSELECTED);
 
       polygon.bindTooltip(fence.displayName || fence.name, {
         className: 'area-tooltip',
@@ -580,12 +585,12 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     const customBounds: L.LatLngExpression[] = [];
 
     for (const fence of geofences) {
-      if (!fence.path || fence.path.length < 3) continue;
+      const rings = fenceRings(fence);
+      if (rings.length === 0) continue;
 
-      const latLngs: L.LatLngExpression[] = fence.path.map(coord => [coord[0], coord[1]] as L.LatLngExpression);
-      customBounds.push(...latLngs);
+      customBounds.push(...rings.flat());
 
-      const polygon = L.polygon(latLngs, {
+      const polygon = L.polygon(fenceLatLngs(rings), {
         color: '#2196f3',
         fillColor: '#2196f3',
         fillOpacity: 0.2,

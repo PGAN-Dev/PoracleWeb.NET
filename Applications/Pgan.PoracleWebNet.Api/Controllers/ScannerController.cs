@@ -185,6 +185,6 @@ public class ScannerController(
             return false;
         }
 
-        return GeometryHelpers.PointInPolygon(lat, lon, fence.Path);
+        return fence.Rings.Any(ring => GeometryHelpers.PointInPolygon(lat, lon, ring));
     }
 }

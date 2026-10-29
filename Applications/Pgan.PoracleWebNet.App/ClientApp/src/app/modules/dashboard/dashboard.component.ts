@@ -26,7 +26,7 @@ import { OnboardingComponent } from '../../shared/components/onboarding/onboardi
 import { QuietListSheetComponent } from '../../shared/components/quiet-list-sheet/quiet-list-sheet.component';
 import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
 import { ADD_ON_ARRIVAL } from '../../shared/utils/add-on-arrival';
-import { polygonCentroid } from '../../shared/utils/geo.utils';
+import { largestRing, polygonCentroid } from '../../shared/utils/geo.utils';
 import { RuleEdge, typeEdge } from '../../shared/utils/rule-colours';
 import { serverReason } from '../../shared/utils/server-reason';
 
@@ -544,11 +544,13 @@ export class DashboardComponent implements OnInit {
   private loadAreaWeather(areas: string[], geofences: GeofenceData[]): void {
     if (areas.length === 0 || geofences.length === 0) return;
 
-    // Build a map of geofence name (lowercase) → polygon for quick lookup
+    // Build a map of geofence name (lowercase) → polygon for quick lookup. A multi-part area is
+    // represented by its largest part, since the average of every part's points can fall in none of them.
     const geoMap = new Map<string, [number, number][]>();
     for (const g of geofences) {
-      if (g.path?.length >= 3) {
-        geoMap.set(g.name.toLowerCase(), g.path);
+      const ring = largestRing(g);
+      if (ring) {
+        geoMap.set(g.name.toLowerCase(), ring);
       }
     }
 

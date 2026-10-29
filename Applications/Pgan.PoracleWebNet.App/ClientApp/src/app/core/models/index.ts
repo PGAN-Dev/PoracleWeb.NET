@@ -515,8 +515,10 @@ export interface GeofenceData {
   /** The caller's own drawn fence only: the name they gave it. `name` is its stored key ("lake eola loop 2"). */
   displayName?: string;
   id: number;
+  /** One ring per part of a multi-part area, sent instead of `path`. Read both through `fenceRings`. */
+  multipath?: [number, number][][];
   name: string;
-  path: [number, number][];
+  path?: [number, number][];
 }
 
 // ─── Area ──────────────────────────────────────────────────────────────────────
@@ -640,8 +642,10 @@ export interface UserGeofenceCreate {
 export interface GeofenceRegion {
   displayName: string;
   id: number;
+  /** One outer ring per part of a multi-part region, sent instead of `polygon`. */
+  multipath?: [number, number][][] | null;
   name: string;
-  polygon?: [number, number][];
+  polygon?: [number, number][] | null;
 }
 
 // ─── GeoJSON Import ──────────────────────────────────

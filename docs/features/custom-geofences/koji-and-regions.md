@@ -185,7 +185,31 @@ For a **private** user geofence, PoracleWeb.NET never writes any of this to Koji
 |---|---|---|
 | `/api/v1/geofence/reference` | `id`, `name` (internal), `parent` (numeric id) | Listing every geofence and deriving which ones are **regions** (a geofence referenced as another's parent). |
 | `/api/v1/geofence/area/{name}?rt=feature` | `properties.name`, the polygon geometry | The region's **display name** and its outline (used for region auto-detection). |
-| `/api/v1/geofence/poracle/{project}` | name, polygon path, group | The public-area list merged into the combined feed. |
+| `/api/v1/geofence/poracle/{project}` | name, `path` or `multipath`, group | The public-area list merged into the combined feed. |
+
+## Areas in more than one piece
+
+An area can be several separate shapes under one name: an island and the mainland facing it, or two halves of
+a town split by a river. In Koji that's a `MultiPolygon`. You get one by drawing it that way, or by loading a
+fence from your scanner and editing it, which can turn a plain polygon into a `MultiPolygon` without you
+asking for one.
+
+PoracleWeb.NET serves such an area to PoracleNG in PoracleNG's own `multipath` shape, one ring per piece, and
+it's one area everywhere else too: one entry in the area picker, one shape on every map, and one name in
+the Discord review card when a submission falls in any of its pieces. A region can be a `MultiPolygon` as
+well, and region auto-detection checks every piece.
+
+Matching ignores holes. PoracleNG checks only the outer edge of each piece, so a lake cut out of an area still
+counts as inside it. Koji keeps the holes, and PoracleWeb.NET sends them back unchanged whenever it re-saves an
+area, when taking it out of the project for example.
+
+The feed sends a multi-piece area as `multipath` with no `path` key at all. That's the shape PoracleNG's own
+geofence list uses, and PoracleJS needs it, because it looks at `path` first and an empty one would stop it
+there.
+
+Before this was supported, a `MultiPolygon` area was dropped from the feed without a word: it wasn't in the
+area list, PoracleNG never loaded it, and nothing matched it. If you have one that went missing, it comes back
+the next time PoracleNG reloads its geofences after you upgrade.
 
 ## Hiding an area from your users
 
