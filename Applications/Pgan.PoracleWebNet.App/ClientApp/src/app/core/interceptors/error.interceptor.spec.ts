@@ -206,6 +206,29 @@ describe('errorInterceptor', () => {
       expect(toast.error).not.toHaveBeenCalled();
     });
 
+    // The address line under the pin, and the radius map in an alarm dialog's Delivery tab. Reverse
+    // geocoding answers 503 whenever PoracleNG finds no address (always, under [geocoding] forward_only),
+    // which toasted "temporarily unavailable" on every dashboard load while everything worked.
+    it.each([
+      ['/api/location/reverse?lat=1&lon=2', 503],
+      ['/api/location/distancemap?lat=1&lon=2&distance=500', 404],
+    ])('does not toast a failed %s', (url, status) => {
+      http.get(url).subscribe({ error: () => {} });
+
+      httpMock.expectOne(url).flush(null, { status, statusText: 'Failed' });
+
+      expect(toast.error).not.toHaveBeenCalled();
+    });
+
+    // Address search is something the user typed and waits on, so its failure still says so.
+    it('still toasts a failed address search', () => {
+      http.get('/api/location/geocode?q=park').subscribe({ error: () => {} });
+
+      httpMock.expectOne('/api/location/geocode?q=park').flush(null, { status: 503, statusText: 'Unavailable' });
+
+      expect(toast.error).toHaveBeenCalledWith('HTTP_ERROR.UNAVAILABLE');
+    });
+
     // The login page words every Telegram refusal itself (not registered, switched off, blocked), so a
     // toast on top said it twice. See #1027.
     it('does not toast a refused Telegram sign-in', () => {

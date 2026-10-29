@@ -78,6 +78,18 @@ public interface IPoracleApiProxy
     Task<string?> GetDistanceMapUrlAsync(double lat, double lon, int distance);
     Task ReloadGeofencesAsync();
     Task SendTestAlertAsync(TestAlertRequest request);
+
+    /// <summary>
+    /// Posts one plain-text message to a Poracle destination through <c>POST /api/deliverMessages</c>, which
+    /// dispatches a pre-rendered message to any destination type without touching a template. Used to tell a
+    /// member that the alert beside it is a test.
+    /// </summary>
+    /// <param name="targetId">The destination's id: a user or channel id, a topic pair, or a webhook URL.</param>
+    /// <param name="targetType">The destination's type as Poracle stores it (<c>discord:user</c>, <c>webhook</c>,
+    /// <c>telegram:group</c> and so on).</param>
+    /// <param name="content">The text. Written to survive Telegram's default Markdown parse mode.</param>
+    /// <exception cref="HttpRequestException">PoracleNG answered with a non-success status, or could not be reached.</exception>
+    Task DeliverTextAsync(string targetId, string targetType, string content);
     Task<string?> GetGeofencesGeoJsonAsync();
 
     /// <summary>

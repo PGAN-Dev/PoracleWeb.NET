@@ -531,6 +531,28 @@ public class PoracleApiProxy(
         }
     }
 
+    /// <inheritdoc />
+    /// <remarks>
+    /// The body is the array <c>[{"target", "type", "message": {"content"}}]</c> that PoracleNG's
+    /// <c>apiDeliverJob</c> binds. Discord posts <c>content</c> as the message text and Telegram sends it
+    /// as the text step of its default send order. PoracleNG answers <c>{"status":"ok","queued":N}</c>
+    /// once the job is queued, not once it is delivered. The target can be a webhook URL, so it is never
+    /// part of an exception message from here.
+    /// </remarks>
+    public async Task DeliverTextAsync(string targetId, string targetType, string content)
+    {
+        var job = new Dictionary<string, object?>
+        {
+            ["target"] = targetId,
+            ["type"] = targetType,
+            ["message"] = new Dictionary<string, object?> { ["content"] = content },
+        };
+        var httpRequest = this.CreateRequest(HttpMethod.Post, $"{this._apiAddress}/api/deliverMessages");
+        httpRequest.Content = new StringContent(JsonSerializer.Serialize(new[] { job }, JsonOptions), Encoding.UTF8, "application/json");
+        var response = await this._httpClient.SendAsync(httpRequest);
+        response.EnsureSuccessStatusCode();
+    }
+
     public async Task<string?> GetGeofencesGeoJsonAsync()
     {
         var request = this.CreateRequest(HttpMethod.Get, $"{this._apiAddress}/api/geofence/all/geojson");

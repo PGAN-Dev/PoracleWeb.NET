@@ -24,10 +24,10 @@ import { MasterDataService } from '../../core/services/masterdata.service';
 import { RaidLevelService } from '../../core/services/raid-level.service';
 import { RaidService } from '../../core/services/raid.service';
 import { ScannerService } from '../../core/services/scanner.service';
-import { TestAlertService } from '../../core/services/test-alert.service';
 import { AlarmCardComponent } from '../../shared/components/alarm-card/alarm-card.component';
 import { AlarmEmptyStateComponent } from '../../shared/components/alarm-empty-state/alarm-empty-state.component';
 import { AlarmListToolbarComponent, AlarmSortOption } from '../../shared/components/alarm-list-toolbar/alarm-list-toolbar.component';
+import { AlarmMoreMenuComponent } from '../../shared/components/alarm-more-menu/alarm-more-menu.component';
 import { BulkActionBarComponent } from '../../shared/components/bulk-action-bar/bulk-action-bar.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
@@ -61,6 +61,7 @@ import { serverReason } from '../../shared/utils/server-reason';
     AlarmEmptyStateComponent,
     AlarmCardComponent,
     AlarmListToolbarComponent,
+    AlarmMoreMenuComponent,
     BulkActionBarComponent,
     QuietChipComponent,
     MatButtonModule,
@@ -185,7 +186,6 @@ export class RaidListComponent implements OnInit {
 
   /** Raid cards take the team as their edge, egg cards the tier's egg colour. */
   readonly teamEdge = teamEdge;
-  readonly testAlertService = inject(TestAlertService);
 
   readonly tierEdge = tierEdge;
 
@@ -555,10 +555,6 @@ export class RaidListComponent implements OnInit {
 
   selectionKey(kind: 'raid' | 'egg', uid: number): string {
     return `${kind}:${uid}`;
-  }
-
-  sendTestAlert(type: string, alarm: { uid: number }): void {
-    this.testAlertService.sendTestAlert(type, alarm.uid);
   }
 
   toggleSelect(key: string): void {

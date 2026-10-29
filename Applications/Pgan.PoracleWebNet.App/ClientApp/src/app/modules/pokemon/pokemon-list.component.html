@@ -201,21 +201,6 @@
         <ng-container ruleActions>
           <button
             mat-icon-button
-            (click)="sendTestAlert(monster)"
-            [disabled]="testAlertService.isSending('pokemon', monster.uid) || testAlertService.isCoolingDown('pokemon', monster.uid)"
-            [matTooltip]="(testAlertService.isCoolingDown('pokemon', monster.uid) ? 'ALARM.TEST_COOLDOWN' : 'ALARM.TEST_SEND') | translate"
-            [attr.aria-label]="
-              (testAlertService.isCoolingDown('pokemon', monster.uid) ? 'ALARM.TEST_COOLDOWN' : 'ALARM.TEST_SEND') | translate
-            "
-            class="test-alert-btn">
-            @if (testAlertService.isSending('pokemon', monster.uid)) {
-              <mat-icon class="spin">sync</mat-icon>
-            } @else {
-              <mat-icon>send</mat-icon>
-            }
-          </button>
-          <button
-            mat-icon-button
             (click)="editMonster(monster)"
             [matTooltip]="'COMMON.EDIT' | translate"
             [attr.aria-label]="'COMMON.EDIT' | translate">
@@ -229,6 +214,7 @@
             color="warn">
             <mat-icon>delete</mat-icon>
           </button>
+          <app-alarm-more-menu alarmType="pokemon" [uid]="monster.uid" />
         </ng-container>
       </app-alarm-card>
     } @empty {

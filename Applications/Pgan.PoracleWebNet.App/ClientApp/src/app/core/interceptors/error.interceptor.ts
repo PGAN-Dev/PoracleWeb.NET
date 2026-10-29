@@ -62,6 +62,13 @@ const SILENT_URL_PATTERNS = [
   // 404 on the first read after a restart toasted "not found" over an Areas page that worked.
   '/api/location/staticmap',
   '/api/location/weather',
+  // The address line under the pin (dashboard, Areas, the location dialog, linked-account drift) and the
+  // radius map in an alarm dialog's Delivery tab. Reverse answers 503 whenever PoracleNG finds no address,
+  // which is every time under [geocoding] forward_only, so each dashboard load toasted "temporarily
+  // unavailable" while everything worked. Every caller falls back to coordinates or no map. Address
+  // search (/api/location/geocode) stays loud: the user typed it and is waiting on it.
+  '/api/location/reverse',
+  '/api/location/distancemap',
 ];
 
 /** The token a request carried, from the header authInterceptor (or the refresh retry) attached. */
