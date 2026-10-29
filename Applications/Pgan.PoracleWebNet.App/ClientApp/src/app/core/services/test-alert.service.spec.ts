@@ -114,11 +114,11 @@ describe('TestAlertService', () => {
 
     const req = httpMock.expectOne(`${API}/api/test-alert/nest/11`);
     req.flush(
-      { error: "Nest test alerts aren't supported by PoracleNG's /api/test endpoint." },
+      { error: "Nest test notifications aren't supported by PoracleNG's /api/test endpoint." },
       { status: 501, statusText: 'Not Implemented' },
     );
 
-    expect(snackBar.open).toHaveBeenCalledWith("Nest test alerts aren't supported by PoracleNG's /api/test endpoint.", 'OK', {
+    expect(snackBar.open).toHaveBeenCalledWith("Nest test notifications aren't supported by PoracleNG's /api/test endpoint.", 'OK', {
       duration: 4000,
     });
   });

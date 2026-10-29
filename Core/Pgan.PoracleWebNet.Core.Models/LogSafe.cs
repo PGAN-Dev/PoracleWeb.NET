@@ -18,11 +18,11 @@ public static class LogSafe
     /// </summary>
     /// <remarks>
     /// A Discord webhook URL keeps its path up to the webhook's numeric id, which is not a secret and is
-    /// what tells two webhooks apart in a log. Any other http(s) URL keeps its host, and its first path
-    /// segment when more follow, since there is no telling where another service puts its secret. User
-    /// info, query and fragment are always dropped. Surrounding whitespace is ignored, and a scheme-less path
-    /// containing <c>/webhooks/</c> is read as https. Discord and Telegram ids, topic ids (<c>chat:topic</c>)
-    /// and names pass through unchanged.
+    /// what tells two webhooks apart in a log. Any other http(s) URL keeps its scheme and host only: there is
+    /// no telling where another service puts its secret, and some put it first (Telegram's
+    /// <c>/bot&lt;token&gt;/sendMessage</c>). User info, query and fragment are always dropped. Surrounding
+    /// whitespace is ignored, and a scheme-less path containing <c>/webhooks/</c> is read as https. Discord
+    /// and Telegram ids, topic ids (<c>chat:topic</c>) and names pass through unchanged.
     /// </remarks>
     public static string Id(string? id)
     {
@@ -59,14 +59,15 @@ public static class LogSafe
         if (IsDiscordHost(uri.Host))
         {
             var webhooks = Array.FindIndex(segments, s => s.Equals("webhooks", StringComparison.OrdinalIgnoreCase));
-            if (webhooks >= 0 && webhooks + 1 < segments.Length)
+
+            // Only a snowflake is kept. A segment that isn't one is not an id, and may be the token.
+            if (webhooks >= 0 && webhooks + 1 < segments.Length && segments[webhooks + 1].All(char.IsAsciiDigit))
             {
                 return $"{server}/{string.Join('/', segments[..(webhooks + 2)])}/{Mask}";
             }
         }
 
-        // A lone segment may be the secret itself, so it is kept only when something follows it.
-        return segments.Length > 1 ? $"{server}/{segments[0]}/{Mask}" : $"{server}/{Mask}";
+        return $"{server}/{Mask}";
     }
 
     private static bool IsDiscordHost(string host) =>

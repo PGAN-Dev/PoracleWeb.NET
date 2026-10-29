@@ -25,10 +25,10 @@ import { IconService } from '../../core/services/icon.service';
 import { LinkedAccountService } from '../../core/services/linked-account.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MonsterService } from '../../core/services/monster.service';
-import { TestAlertService } from '../../core/services/test-alert.service';
 import { AlarmCardComponent } from '../../shared/components/alarm-card/alarm-card.component';
 import { AlarmEmptyStateComponent } from '../../shared/components/alarm-empty-state/alarm-empty-state.component';
 import { AlarmListToolbarComponent, AlarmSortOption } from '../../shared/components/alarm-list-toolbar/alarm-list-toolbar.component';
+import { AlarmMoreMenuComponent } from '../../shared/components/alarm-more-menu/alarm-more-menu.component';
 import { BulkActionBarComponent } from '../../shared/components/bulk-action-bar/bulk-action-bar.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
@@ -55,6 +55,7 @@ import { serverReason } from '../../shared/utils/server-reason';
     AlarmEmptyStateComponent,
     AlarmCardComponent,
     AlarmListToolbarComponent,
+    AlarmMoreMenuComponent,
     BulkActionBarComponent,
     QuietChipComponent,
     MatButtonModule,
@@ -204,7 +205,6 @@ export class PokemonListComponent implements OnInit {
     { label: 'POKEMON.SORT_EVOLUTION', value: 'evolution' },
   ];
 
-  readonly testAlertService = inject(TestAlertService);
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
@@ -562,10 +562,6 @@ export class PokemonListComponent implements OnInit {
   selectAll(): void {
     // Adds the cards on screen; a tick the search or a filter is hiding stays, as on the other nine lists.
     this.selectedIds.set(new Set([...this.selectedIds(), ...this.filteredMonsters().map(m => m.uid)]));
-  }
-
-  sendTestAlert(monster: Monster): void {
-    this.testAlertService.sendTestAlert('pokemon', monster.uid);
   }
 
   toggleFilter(filter: string): void {

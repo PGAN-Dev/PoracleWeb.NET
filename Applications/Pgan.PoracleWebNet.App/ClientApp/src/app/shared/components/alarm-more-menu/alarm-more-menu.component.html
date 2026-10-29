@@ -1,0 +1,22 @@
+<button
+  mat-icon-button
+  type="button"
+  data-test="alarm-more"
+  [matMenuTriggerFor]="moreMenu"
+  [matTooltip]="'COMMON.MORE_ACTIONS' | translate"
+  [attr.aria-label]="'COMMON.MORE_ACTIONS' | translate"
+  [attr.aria-busy]="sending() ? 'true' : null">
+  <mat-icon [class.spin]="sending()">{{ sending() ? 'sync' : 'more_vert' }}</mat-icon>
+</button>
+<mat-menu #moreMenu="matMenu" xPosition="before">
+  <button mat-menu-item type="button" data-test="send-test" [disabled]="sending() || coolingDown()" (click)="sendTest()">
+    <mat-icon [class.spin]="sending()">{{ sending() ? 'sync' : 'send' }}</mat-icon>
+    <span class="more-item-text">
+      <span class="more-item-label">{{ 'ALARM.TEST_SEND' | translate }}</span>
+      <!-- The quiet second line says what the item does; during the cooldown it says why it is dimmed. -->
+      <span class="more-item-hint" data-test="send-test-hint">{{
+        (coolingDown() ? 'ALARM.TEST_COOLDOWN' : 'ALARM.TEST_SEND_HINT') | translate
+      }}</span>
+    </span>
+  </button>
+</mat-menu>
