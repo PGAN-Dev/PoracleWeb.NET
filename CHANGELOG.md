@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.5.0] - 2026-10-29
+
 ### Added
 
 - **A test notification comes with a short note saying it was a test.** A sample alert is built from your alarm's filters at your saved location, so it looks like a live one, and people went looking for a spawn that was never there. Along with the sample, the bot now sends one plain line to the same place (your DMs, or the channel, thread or webhook of a destination) saying it's a sample and there's nothing to go and find. The note is English only for now. If it fails to send, the test still counts as sent and the API logs a warning. For self-hosters: the note goes through PoracleNG's `POST /api/deliverMessages`, so a test now uses two messages of PoracleNG's delivery rate limit instead of one, and a refused test sends no note (#1097).
@@ -1508,7 +1510,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.4.0...HEAD
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.5.0...HEAD
+[3.5.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.4.0...v3.5.0
 [3.4.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.3.0...v3.4.0
 [3.3.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.2.0...v3.3.0
 [3.2.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.1.0...v3.2.0
