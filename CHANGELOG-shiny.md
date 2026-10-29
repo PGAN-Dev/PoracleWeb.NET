@@ -8,6 +8,14 @@ This line is unofficial and unsupported by PoracleWeb.NET releases. Report probl
 
 ## [Unreleased]
 
+## [3.5.0-shiny.1] - 2026-10-29
+
+Based on PoracleWeb.NET 3.5.0. Needs PoracleNG `feat/personal-shiny` ([jfberry/PoracleNG#255](https://github.com/jfberry/PoracleNG/pull/255)) rebased on 5.4.0, tested against the `ghcr.io/jfberry/poracleng:feat-personal-shiny` image built on 28 October 2026 from `e9009679` (`sha256:323d381b9e6bf20da4e5818565fd6c5375ebd9e05699c491a1b4bf8f65309f83`). That build only changes which encounters PoracleNG rolls for personal shinies; the API this line uses is unchanged, so the 22 and 24 October builds (`3104d18d`, `30912156`) still work. Earlier `feat/personal-shiny` builds, and PoracleNG `main`, are not supported.
+
+### Changed
+
+- **Rebased onto PoracleWeb.NET 3.5.0.** A test notification now comes with a one-line note saying it's a sample, Send test notification sits in a More actions menu on each alarm card, and the Dashboard no longer shows "The server is temporarily unavailable" when PoracleNG finds no address for the location pin, which happens on every load without a geocoder (#1110). Nothing in the personal shiny controls changes. See [CHANGELOG.md](CHANGELOG.md) for details.
+
 ## [3.4.0-shiny.1] - 2026-10-27
 
 Based on PoracleWeb.NET 3.4.0. Needs the same PoracleNG as 3.2.0-shiny.1: `feat/personal-shiny` ([jfberry/PoracleNG#255](https://github.com/jfberry/PoracleNG/pull/255)) rebased on 5.4.0, tested against the `ghcr.io/jfberry/poracleng:feat-personal-shiny` image built on 24 October 2026 from `30912156` (`sha256:589c1db80a489a894a1aa307d9f6bd35369df9b02007e4ff941f069e743250b9`). The 22 October build from `3104d18d` still works; earlier `feat/personal-shiny` builds, and PoracleNG `main`, are not supported.
