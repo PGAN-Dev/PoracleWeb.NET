@@ -9,12 +9,6 @@ public interface IKojiService
     public Task<List<GeofenceRegion>> GetRegionsAsync();
 
     /// <summary>
-    /// Gets the polygon coordinates for a specific geofence from Koji.
-    /// Returns [lat,lon] pairs or null if not found.
-    /// </summary>
-    public Task<double[][]?> GetGeofencePolygonAsync(string geofenceName);
-
-    /// <summary>
     /// Gets admin geofences from Koji in Poracle format with groups resolved from parent chain.
     /// Results are cached in memory with a 5-minute TTL.
     /// </summary>

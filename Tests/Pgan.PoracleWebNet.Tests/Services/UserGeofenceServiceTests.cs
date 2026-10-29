@@ -503,6 +503,83 @@ public class UserGeofenceServiceTests
         Assert.Equal("thread_789", result.DiscordThreadId);
     }
 
+    /// <summary>
+    /// Submits a square centred on (10.5, 20.5) against the given public areas and returns what the review
+    /// card would say the submission sits inside.
+    /// </summary>
+    private async Task<string?> OverlapNamedForSubmissionAsync(params AdminGeofence[] publicAreas)
+    {
+        var geofence = new UserGeofence
+        {
+            Id = 1,
+            HumanId = "u1",
+            KojiName = "downtown",
+            Status = "active",
+            PolygonJson = "[[10,20],[10,21],[11,21],[11,20]]",
+        };
+        this._repository.Setup(r => r.GetByKojiNameAsync("downtown")).ReturnsAsync(geofence);
+        this._repository.Setup(r => r.UpdateAsync(It.IsAny<UserGeofence>())).ReturnsAsync((UserGeofence g) => g);
+        this._humanService.Setup(h => h.GetByIdAsync("u1")).ReturnsAsync(new Human { Id = "u1", Name = "TestUser" });
+        this._kojiService.Setup(k => k.GetAdminGeofencesAsync()).ReturnsAsync([.. publicAreas]);
+        GeofenceSubmissionPost? posted = null;
+        this._discordNotificationService.Setup(d => d.CreateGeofenceSubmissionPostAsync(It.IsAny<GeofenceSubmissionPost>()))
+            .Callback<GeofenceSubmissionPost>(p => posted = p)
+            .ReturnsAsync((string?)null);
+
+        await this._sut.SubmitForReviewAsync("u1", "downtown");
+
+        return Assert.IsType<GeofenceSubmissionPost>(posted).OverlapsArea;
+    }
+
+    [Fact]
+    public async Task ASubmissionInsideTheSecondPartOfAPublicAreaNamesIt()
+    {
+        // A multi-part area has no path at all; its parts are the only geometry it has. See #1117.
+        var split = new AdminGeofence
+        {
+            Name = "split",
+            Multipath = [[[0, 0], [0, 1], [1, 1], [1, 0]], [[9, 19], [9, 22], [12, 22], [12, 19]]],
+            MinLat = 0,
+            MaxLat = 12,
+            MinLon = 0,
+            MaxLon = 22,
+        };
+
+        Assert.Equal("split", await this.OverlapNamedForSubmissionAsync(split));
+    }
+
+    [Fact]
+    public async Task ASubmissionInsideAnOrdinaryPublicAreaStillNamesIt()
+    {
+        var plain = new AdminGeofence
+        {
+            Name = "plain",
+            Path = [[9, 19], [9, 22], [12, 22], [12, 19]],
+            MinLat = 9,
+            MaxLat = 12,
+            MinLon = 19,
+            MaxLon = 22,
+        };
+
+        Assert.Equal("plain", await this.OverlapNamedForSubmissionAsync(plain));
+    }
+
+    [Fact]
+    public async Task ASubmissionBetweenThePartsOfAPublicAreaNamesNothing()
+    {
+        var split = new AdminGeofence
+        {
+            Name = "split",
+            Multipath = [[[0, 0], [0, 1], [1, 1], [1, 0]], [[30, 40], [30, 41], [31, 41], [31, 40]]],
+            MinLat = 0,
+            MaxLat = 31,
+            MinLon = 0,
+            MaxLon = 41,
+        };
+
+        Assert.Null(await this.OverlapNamedForSubmissionAsync(split));
+    }
+
     [Fact]
     public async Task SubmitForReviewAsyncThrowsWhenNotOwned()
     {

@@ -20,6 +20,7 @@ import { AlarmScope, GeofenceData } from '../../../core/models';
 import { AreaService } from '../../../core/services/area.service';
 import { BasemapService } from '../../../core/services/basemap.service';
 import { PlacesService } from '../../../core/services/places.service';
+import { fenceLatLngs, fenceRings } from '../../utils/geo.utils';
 
 /**
  * A small, still map under the scope choice that draws where the alarm reaches you: a circle that grows
@@ -74,7 +75,7 @@ export class ScopeMapComponent {
 
   private readonly shapes = computed(() => {
     const wanted = new Set(this.drawing().areas.map(a => a.toLowerCase()));
-    const fences = wanted.size === 0 ? [] : this.polygons().filter(g => wanted.has(g.name.toLowerCase()) && (g.path?.length ?? 0) >= 3);
+    const fences = wanted.size === 0 ? [] : this.polygons().filter(g => wanted.has(g.name.toLowerCase()) && fenceRings(g).length > 0);
     return { circle: this.drawing().circle, fences };
   });
 
@@ -145,10 +146,13 @@ export class ScopeMapComponent {
     const bounds = L.latLngBounds([]);
 
     for (const fence of fences) {
-      const polygon = L.polygon(
-        fence.path.map(([lat, lon]) => L.latLng(lat, lon)),
-        { className: 'scope-map-shape', color: colour, fillColor: colour, fillOpacity: 0.3, weight: 2 },
-      );
+      const polygon = L.polygon(fenceLatLngs(fenceRings(fence)), {
+        className: 'scope-map-shape',
+        color: colour,
+        fillColor: colour,
+        fillOpacity: 0.3,
+        weight: 2,
+      });
       polygon.addTo(this.layer);
       bounds.extend(polygon.getBounds());
     }

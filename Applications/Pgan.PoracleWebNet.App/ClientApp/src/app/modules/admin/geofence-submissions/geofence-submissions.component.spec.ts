@@ -929,6 +929,16 @@ describe('GeofenceSubmissionsComponent', () => {
 
       expect(component.overlaps().has(1)).toBe(false);
     });
+
+    it('names a multi-part public area whose second part holds the centre (#1117)', () => {
+      setup();
+      areaService.getGeofencePolygons.mockReturnValue(
+        of([{ id: 9, name: 'Split Area', multipath: [square(10, 10, 0.5), square(39.9, -74.2, 0.5)] }]),
+      );
+      component.ngOnInit();
+
+      expect(component.overlaps().get(1)).toBe('Split Area');
+    });
   });
 
   describe('approval and the owner areas', () => {

@@ -697,4 +697,61 @@ public class GeofenceFeedControllerTests
 
         Assert.False(SelectableOf(FeedOf(await this._sut.GetPoracleFeed()), "private"));
     }
+
+    // ── Multi-part areas (#1117) ─────────────────────────────────────────────
+    // PoracleNG reads path and multipath alike, but PoracleJS checks `if (areaObj.path)` first and an empty
+    // array is truthy in JavaScript, so a fence sent with both keys would match nothing there. One key or the
+    // other, the shape PoracleNG's own /api/geofence/all serves.
+
+    [Fact]
+    public async Task AMultiPartAreaIsServedAsMultipathWithNoPath()
+    {
+        this._repository.Setup(r => r.GetAllActiveAsync()).ReturnsAsync([]);
+        this._kojiService.Setup(k => k.GetAdminGeofencesAsync()).ReturnsAsync(
+        [
+            new AdminGeofence
+            {
+                Id = 1,
+                Name = "split",
+                Group = "test",
+                Multipath = [[[0, 0], [0, 1], [1, 1]], [[10, 10], [10, 11], [11, 11]]],
+            },
+        ]);
+
+        var fence = Assert.Single(FeedOf(await this._sut.GetPoracleFeed()));
+
+        Assert.False(fence.TryGetProperty("path", out _));
+        Assert.Equal(2, fence.GetProperty("multipath").GetArrayLength());
+        Assert.Equal(10, fence.GetProperty("multipath")[1][0][0].GetDouble());
+        Assert.True(fence.GetProperty("userSelectable").GetBoolean());
+        Assert.Equal("test", fence.GetProperty("group").GetString());
+    }
+
+    [Fact]
+    public async Task AnOrdinaryAreaIsStillServedAsAPathWithNoMultipath()
+    {
+        this._repository.Setup(r => r.GetAllActiveAsync()).ReturnsAsync([]);
+        this._kojiService.Setup(k => k.GetAdminGeofencesAsync()).ReturnsAsync(
+        [
+            new AdminGeofence { Id = 1, Name = "plain", Group = "test", Path = [[0, 0], [0, 1], [1, 1]] },
+        ]);
+
+        var fence = Assert.Single(FeedOf(await this._sut.GetPoracleFeed()));
+
+        Assert.Equal(3, fence.GetProperty("path").GetArrayLength());
+        Assert.False(fence.TryGetProperty("multipath", out _));
+    }
+
+    [Fact]
+    public async Task AHiddenMultiPartAreaIsServedAsNotSelectable()
+    {
+        this._repository.Setup(r => r.GetAllActiveAsync()).ReturnsAsync([]);
+        this._kojiService.Setup(k => k.GetAdminGeofencesAsync()).ReturnsAsync(
+        [
+            new AdminGeofence { Id = 1, Name = "split", Multipath = [[[0, 0], [0, 1], [1, 1]], [[10, 10], [10, 11], [11, 11]]] },
+        ]);
+        this.GivenHidden("[\"split\"]");
+
+        Assert.False(SelectableOf(FeedOf(await this._sut.GetPoracleFeed()), "split"));
+    }
 }

@@ -25,9 +25,9 @@ describe('ScopeMapComponent', () => {
   let areaService: { getGeofencePolygonsShared: jest.Mock };
   let basemap: { attach: jest.Mock };
 
-  function create(scope: AlarmScope, pin: null | SavedPlace, profileAreas: string[] = []): void {
+  function create(scope: AlarmScope, pin: null | SavedPlace, profileAreas: string[] = [], feed: GeofenceData[] = [ABERDEEN]): void {
     const places = signal<{ default: null | SavedPlace; named: SavedPlace[] }>({ named: [], default: pin });
-    areaService = { getGeofencePolygonsShared: jest.fn().mockReturnValue(of([ABERDEEN])) };
+    areaService = { getGeofencePolygonsShared: jest.fn().mockReturnValue(of(feed)) };
     basemap = { attach: jest.fn() };
 
     TestBed.resetTestingModule();
@@ -83,6 +83,29 @@ describe('ScopeMapComponent', () => {
     create({ areas: ['nowhere'], mode: 'areas' }, null);
 
     expect(map()).toBeNull();
+  });
+
+  it('draws a multi-part area, which the feed sends with parts and no path (#1117)', () => {
+    const islands: GeofenceData = {
+      id: 2,
+      name: 'Islands',
+      multipath: [
+        [
+          [57.1, -2.2],
+          [57.2, -2.2],
+          [57.2, -2.0],
+        ],
+        [
+          [58.1, -3.2],
+          [58.2, -3.2],
+          [58.2, -3.0],
+        ],
+      ],
+    };
+
+    create({ areas: ['islands'], mode: 'areas' }, null, [], [islands]);
+
+    expect(map()).not.toBeNull();
   });
 
   /**
