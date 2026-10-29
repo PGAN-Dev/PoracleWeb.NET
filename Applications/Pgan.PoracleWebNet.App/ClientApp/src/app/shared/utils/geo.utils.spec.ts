@@ -1,4 +1,4 @@
-import { detectRegion, pointInPolygon, polygonCentroid } from './geo.utils';
+import { detectRegion, fenceLatLngs, fenceRings, largestRing, pointInFence, pointInPolygon, polygonCentroid } from './geo.utils';
 
 describe('geo.utils', () => {
   // A simple square polygon: (0,0) -> (0,10) -> (10,10) -> (10,0)
@@ -204,6 +204,107 @@ describe('geo.utils', () => {
         [10, -10],
       ]);
       expect(centroid).toEqual([0, 0]);
+    });
+  });
+
+  // ── Multi-part areas (#1117) ─────────────────────────────────────────────
+  // PoracleNG serves a multi-part area as `multipath` (one ring per part) with no `path`, and matches a fence
+  // on every ring it carries. Reading `path` alone made such an area invisible on every map.
+
+  const farSquare: [number, number][] = [
+    [20, 20],
+    [20, 30],
+    [30, 30],
+    [30, 20],
+  ];
+
+  describe('fenceRings', () => {
+    it('returns the path of an ordinary area', () => {
+      expect(fenceRings({ path: square })).toEqual([square]);
+    });
+
+    it('returns every part of a multi-part area', () => {
+      expect(fenceRings({ multipath: [square, farSquare] })).toEqual([square, farSquare]);
+    });
+
+    it('reads an empty path beside the parts as nothing', () => {
+      expect(fenceRings({ multipath: [square, farSquare], path: [] })).toEqual([square, farSquare]);
+    });
+
+    it('keeps a path and parts together, as PoracleNG matches on both', () => {
+      expect(fenceRings({ multipath: [farSquare], path: square })).toEqual([square, farSquare]);
+    });
+
+    it('drops a ring too small to be a polygon', () => {
+      const line: [number, number][] = [
+        [0, 0],
+        [1, 1],
+      ];
+      expect(fenceRings({ multipath: [line, farSquare] })).toEqual([farSquare]);
+      expect(fenceRings({ path: line })).toEqual([]);
+    });
+
+    it('treats a missing or null shape as no rings', () => {
+      expect(fenceRings({})).toEqual([]);
+      expect(fenceRings({ multipath: null, path: null })).toEqual([]);
+    });
+  });
+
+  describe('pointInFence', () => {
+    it('finds a point inside the second part', () => {
+      expect(pointInFence([25, 25], { multipath: [square, farSquare] })).toBe(true);
+    });
+
+    it('does not find a point between the parts', () => {
+      expect(pointInFence([15, 15], { multipath: [square, farSquare] })).toBe(false);
+    });
+
+    it('still finds a point inside an ordinary area', () => {
+      expect(pointInFence([5, 5], { path: square })).toBe(true);
+    });
+  });
+
+  describe('fenceLatLngs', () => {
+    it('leaves one ring flat, as an ordinary polygon', () => {
+      expect(fenceLatLngs([square])).toEqual(square);
+    });
+
+    it('wraps each part in its own array, so Leaflet does not draw the second part as a hole', () => {
+      expect(fenceLatLngs([square, farSquare])).toEqual([[square], [farSquare]]);
+    });
+  });
+
+  describe('largestRing', () => {
+    it('picks the part with the most area', () => {
+      const small: [number, number][] = [
+        [0, 0],
+        [0, 1],
+        [1, 1],
+        [1, 0],
+      ];
+      expect(largestRing({ multipath: [small, farSquare] })).toEqual(farSquare);
+    });
+
+    it('returns the path of an ordinary area', () => {
+      expect(largestRing({ path: square })).toEqual(square);
+    });
+
+    it('returns null when there is nothing to measure', () => {
+      expect(largestRing({ path: [] })).toBeNull();
+    });
+  });
+
+  describe('detectRegion — multi-part regions', () => {
+    it('detects a region from its second part', () => {
+      const islands = { id: 7, name: 'islands', displayName: 'Islands', multipath: [square, farSquare] };
+      const polygon: [number, number][] = [
+        [24, 24],
+        [24, 26],
+        [26, 26],
+        [26, 24],
+      ];
+
+      expect(detectRegion(polygon, [islands])).toEqual({ id: 7, name: 'islands', displayName: 'Islands' });
     });
   });
 });

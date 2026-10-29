@@ -776,7 +776,7 @@ public partial class UserGeofenceService(
                     continue;
                 }
 
-                if (GeoMath.Contains(fence.Path, lat, lon))
+                if (fence.Rings.Any(ring => GeoMath.Contains(ring, lat, lon)))
                 {
                     return fence.Name;
                 }

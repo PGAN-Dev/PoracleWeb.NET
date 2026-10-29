@@ -124,22 +124,42 @@ public partial class GeofenceFeedController(
         try
         {
             var adminGeofences = await this._kojiService.GetAdminGeofencesAsync();
-            combined.AddRange(adminGeofences.Select(g => new
+            combined.AddRange(adminGeofences.Select(g =>
             {
-                id = g.Id,
-                name = g.Name,
-                group = g.Group,
-                path = g.Path,
                 // Hiding is exactly this flag. Poracle's setAreas intersects a non-admin's submission
                 // against userSelectable=true fences, the bot's area picker filters on it, and this
                 // site's own /api/areas/available drops what is not selectable -- so clearing it here
                 // reaches every picker at once. displayInMatches is deliberately left alone: someone
                 // already subscribed keeps matching this fence (matching never reads userSelectable),
                 // and blanking the name out of their alert would make that worse, not better. See #885.
-                userSelectable = g.UserSelectable && !hidden.Contains(g.Name),
-                displayInMatches = g.DisplayInMatches,
-                description = g.Description,
-                color = g.Color,
+                var userSelectable = g.UserSelectable && !hidden.Contains(g.Name);
+
+                // A multi-part area goes out as `multipath` with no `path` key at all, the shape PoracleNG's
+                // own /api/geofence/all serves. PoracleJS tests `if (areaObj.path)` before multipath, and an
+                // empty array is truthy there, so sending both would leave the area matching nothing. #1117.
+                return g.Multipath is { Length: > 0 }
+                    ? (object)new
+                    {
+                        id = g.Id,
+                        name = g.Name,
+                        group = g.Group,
+                        multipath = g.Multipath,
+                        userSelectable,
+                        displayInMatches = g.DisplayInMatches,
+                        description = g.Description,
+                        color = g.Color,
+                    }
+                    : new
+                    {
+                        id = g.Id,
+                        name = g.Name,
+                        group = g.Group,
+                        path = g.Path,
+                        userSelectable,
+                        displayInMatches = g.DisplayInMatches,
+                        description = g.Description,
+                        color = g.Color,
+                    };
             }));
         }
         catch (Exception ex)

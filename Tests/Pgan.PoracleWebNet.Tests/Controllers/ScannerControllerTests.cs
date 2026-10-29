@@ -353,4 +353,69 @@ public class ScannerControllerTests : ControllerTestBase
         Assert.Empty(Assert.IsType<IEnumerable<object>>(ok.Value, exactMatch: false));
         service.Verify(s => s.SearchGymsAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
     }
+
+    // ── Gym area names on multi-part areas (#1117) ──────────────────────────
+
+    private static Mock<IKojiService> KojiServing(params AdminGeofence[] fences)
+    {
+        var koji = new Mock<IKojiService>();
+        koji.Setup(k => k.GetAdminGeofencesAsync()).ReturnsAsync([.. fences]);
+        return koji;
+    }
+
+    // Two squares far apart, with a bounding box covering both, as KojiService computes it.
+    private static AdminGeofence SplitArea() => new()
+    {
+        Name = "split",
+        Multipath = [[[0, 0], [0, 1], [1, 1], [1, 0]], [[10, 10], [10, 11], [11, 11], [11, 10]]],
+        MinLat = 0,
+        MaxLat = 11,
+        MinLon = 0,
+        MaxLon = 11,
+    };
+
+    [Fact]
+    public async Task AGymInTheSecondPartOfAnAreaIsNamedForIt()
+    {
+        var service = new Mock<IScannerService>();
+        service.Setup(s => s.SearchGymsAsync("abc", It.IsAny<int>()))
+            .ReturnsAsync([new GymSearchResult { Id = "g1", Name = "Far Gym", Lat = 10.5, Lon = 10.5 }]);
+        var sut = new ScannerController(this._logger.Object, service.Object, KojiServing(SplitArea()).Object);
+        SetupUser(sut);
+
+        var result = await sut.SearchGyms("abc");
+
+        var gym = Assert.Single(Assert.IsType<IEnumerable<GymSearchResult>>(Assert.IsType<OkObjectResult>(result).Value, exactMatch: false));
+        Assert.Equal("split", gym.Area);
+    }
+
+    [Fact]
+    public async Task AGymBetweenThePartsOfAnAreaIsNotNamedForIt()
+    {
+        // Inside the bounding box, outside both parts: the box is only a pre-filter.
+        var service = new Mock<IScannerService>();
+        service.Setup(s => s.GetGymByIdAsync("g1"))
+            .ReturnsAsync(new GymSearchResult { Id = "g1", Name = "Between", Lat = 5, Lon = 5 });
+        var sut = new ScannerController(this._logger.Object, service.Object, KojiServing(SplitArea()).Object);
+        SetupUser(sut);
+
+        var gym = Assert.IsType<GymSearchResult>(Assert.IsType<OkObjectResult>(await sut.GetGymById("g1")).Value);
+
+        Assert.Null(gym.Area);
+    }
+
+    [Fact]
+    public async Task AGymInAnOrdinaryAreaIsStillNamedForIt()
+    {
+        var service = new Mock<IScannerService>();
+        service.Setup(s => s.GetGymByIdAsync("g1"))
+            .ReturnsAsync(new GymSearchResult { Id = "g1", Name = "Near Gym", Lat = 0.5, Lon = 0.5 });
+        var plain = new AdminGeofence { Name = "plain", Path = [[0, 0], [0, 1], [1, 1], [1, 0]], MinLat = 0, MaxLat = 1, MinLon = 0, MaxLon = 1 };
+        var sut = new ScannerController(this._logger.Object, service.Object, KojiServing(plain).Object);
+        SetupUser(sut);
+
+        var gym = Assert.IsType<GymSearchResult>(Assert.IsType<OkObjectResult>(await sut.GetGymById("g1")).Value);
+
+        Assert.Equal("plain", gym.Area);
+    }
 }
