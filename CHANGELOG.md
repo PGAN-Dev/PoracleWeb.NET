@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **The dashboard no longer says "The server is temporarily unavailable" while everything works.** The address under your location pin is looked up on every dashboard load, and when PoracleNG finds no address (every time under `[geocoding] forward_only`, or when its geocoder is slow or rate-limited) the API answers 503, which showed the generic outage toast. A missing address now just leaves the coordinates showing, as it was meant to. The same applies on the Areas page, in the location dialog, and to the radius map in an alarm's Delivery tab. A failed address search still says so.
+
 ## [3.4.0] - 2026-10-27
 
 ### Added
