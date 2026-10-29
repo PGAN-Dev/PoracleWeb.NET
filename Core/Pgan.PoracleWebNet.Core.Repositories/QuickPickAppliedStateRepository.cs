@@ -47,31 +47,36 @@ public class QuickPickAppliedStateRepository(PoracleWebContext context) : IQuick
 
     public async Task CreateOrUpdateAsync(QuickPickAppliedState state)
     {
-        var entity = await this._context.QuickPickAppliedStates
-            .FirstOrDefaultAsync(s => s.UserId == state.UserId && s.ProfileNo == state.ProfileNo && s.QuickPickId == state.QuickPickId);
+        // One atomic upsert instead of read-then-insert, so two writers racing on the same
+        // (user, profile, pick) never raise a "Duplicate entry" error. user_id can hold a webhook's id
+        // (its URL) when a webhook is managed, and that error text is logged. The update branch leaves
+        // alarm_type alone, as it always has. See #1101.
+        var appliedAt = DateTime.UtcNow;
+        var excludeJson = JsonSerializer.Serialize(state.ExcludePokemonIds, JsonOptions);
+        var trackedJson = JsonSerializer.Serialize(state.TrackedUids, JsonOptions);
 
-        if (entity is null)
+        if (this._context.Database.ProviderName?.Contains("Sqlite", StringComparison.OrdinalIgnoreCase) == true)
         {
-            entity = new QuickPickAppliedStateEntity
-            {
-                UserId = state.UserId,
-                ProfileNo = state.ProfileNo,
-                QuickPickId = state.QuickPickId,
-                AlarmType = state.AlarmType,
-                AppliedAt = DateTime.UtcNow,
-                ExcludePokemonIdsJson = JsonSerializer.Serialize(state.ExcludePokemonIds, JsonOptions),
-                TrackedUidsJson = JsonSerializer.Serialize(state.TrackedUids, JsonOptions),
-            };
-            this._context.QuickPickAppliedStates.Add(entity);
+            // The tests run on SQLite, which spells the same thing differently.
+            await this._context.Database.ExecuteSqlInterpolatedAsync(
+                $@"INSERT INTO quick_pick_applied_states (user_id, profile_no, quick_pick_id, alarm_type, applied_at, exclude_pokemon_ids_json, tracked_uids_json)
+VALUES ({state.UserId}, {state.ProfileNo}, {state.QuickPickId}, {state.AlarmType}, {appliedAt}, {excludeJson}, {trackedJson})
+ON CONFLICT (user_id, profile_no, quick_pick_id) DO UPDATE SET
+  applied_at = excluded.applied_at,
+  exclude_pokemon_ids_json = excluded.exclude_pokemon_ids_json,
+  tracked_uids_json = excluded.tracked_uids_json");
         }
         else
         {
-            entity.AppliedAt = DateTime.UtcNow;
-            entity.ExcludePokemonIdsJson = JsonSerializer.Serialize(state.ExcludePokemonIds, JsonOptions);
-            entity.TrackedUidsJson = JsonSerializer.Serialize(state.TrackedUids, JsonOptions);
+            // VALUES(col) rather than the row-alias form: MariaDB has no alias syntax. MySQL 8 only warns.
+            await this._context.Database.ExecuteSqlInterpolatedAsync(
+                $@"INSERT INTO quick_pick_applied_states (user_id, profile_no, quick_pick_id, alarm_type, applied_at, exclude_pokemon_ids_json, tracked_uids_json)
+VALUES ({state.UserId}, {state.ProfileNo}, {state.QuickPickId}, {state.AlarmType}, {appliedAt}, {excludeJson}, {trackedJson})
+ON DUPLICATE KEY UPDATE
+  applied_at = VALUES(applied_at),
+  exclude_pokemon_ids_json = VALUES(exclude_pokemon_ids_json),
+  tracked_uids_json = VALUES(tracked_uids_json)");
         }
-
-        await this._context.SaveChangesAsync();
     }
 
     public async Task DeleteAsync(string userId, int profileNo, string quickPickId)

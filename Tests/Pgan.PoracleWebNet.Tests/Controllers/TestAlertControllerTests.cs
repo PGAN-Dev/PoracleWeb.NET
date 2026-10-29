@@ -60,7 +60,7 @@ public class TestAlertControllerTests : ControllerTestBase
         // Nest alarms surface as NotSupportedException from the service — the controller
         // must translate that into HTTP 501 so the frontend can render a clear message.
         this._service.Setup(s => s.SendTestAlertAsync("123456789", "nest", 7))
-            .ThrowsAsync(new NotSupportedException("Nest test alerts aren't supported by PoracleNG's /api/test endpoint."));
+            .ThrowsAsync(new NotSupportedException("Nest test notifications aren't supported by PoracleNG's /api/test endpoint."));
 
         var result = await this._sut.SendTestAlert("nest", 7);
 

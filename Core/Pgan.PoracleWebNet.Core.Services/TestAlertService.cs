@@ -18,6 +18,17 @@ public partial class TestAlertService(
     private const double FallbackLongitude = -74.006;
     private const double CoordinateEpsilon = 1e-6;
 
+    /// <summary>
+    /// Posted to the target after PoracleNG accepts a test, so the DM cannot pass for a live alert (#1097).
+    /// PoracleNG renders the alert through the member's own template, so the alert itself cannot be labelled.
+    /// Render and delivery order is not guaranteed, so it never says "above" or "below". Plain ASCII with no
+    /// Markdown characters: Telegram parses text as Markdown by default. English only, as nothing in the
+    /// backend localises messages.
+    /// </summary>
+    public const string TestNote =
+        "Test notification from PoracleWeb.NET: the alert sent with this note is a sample built from your alarm's filters at your saved location. " +
+        "It isn't a live alert, so there's nothing to go and find.";
+
     private static readonly HashSet<string> ValidTypes =
         ["pokemon", "raid", "egg", "quest", "invasion", "lure", "nest", "gym"];
 
@@ -107,6 +118,26 @@ public partial class TestAlertService(
 
         LogSendingTestAlert(this._logger, alarmType, build.WireType, uid, LogSafe.Id(ownerId));
         await this._apiProxy.SendTestAlertAsync(request);
+
+        // Only reached once PoracleNG accepted the test: a refusal above throws and sends no note.
+        await this.SendTestNoteAsync(alarmType, uid, target);
+    }
+
+    /// <summary>
+    /// Tells the target that the alert delivered with this note is a test. The alert is already on its way and
+    /// the note is only a label for it, so a failure here is logged and swallowed rather than reported as a
+    /// failed test. The target is not logged: for a webhook it is a URL carrying a token.
+    /// </summary>
+    private async Task SendTestNoteAsync(string alarmType, int uid, TestAlertTarget target)
+    {
+        try
+        {
+            await this._apiProxy.DeliverTextAsync(target.Id, target.Type, TestNote);
+        }
+        catch (Exception ex)
+        {
+            LogTestNoteFailed(this._logger, ex, alarmType, uid, target.Type);
+        }
     }
 
     private static TestAlertTarget BuildTarget(string userId, JsonElement human)
@@ -164,4 +195,7 @@ public partial class TestAlertService(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Sending test alert: alarmType={AlarmType}, wireType={WireType}, uid={Uid}, user={UserId}")]
     private static partial void LogSendingTestAlert(ILogger logger, string alarmType, string wireType, int uid, string userId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Test alert was sent but its test note was not: alarmType={AlarmType}, uid={Uid}, targetType={TargetType}")]
+    private static partial void LogTestNoteFailed(ILogger logger, Exception exception, string alarmType, int uid, string targetType);
 }

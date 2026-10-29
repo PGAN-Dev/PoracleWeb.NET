@@ -7,9 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **A test notification comes with a short note saying it was a test.** A sample alert is built from your alarm's filters at your saved location, so it looks like a live one, and people went looking for a spawn that was never there. Along with the sample, the bot now sends one plain line to the same place (your DMs, or the channel, thread or webhook of a destination) saying it's a sample and there's nothing to go and find. The note is English only for now. If it fails to send, the test still counts as sent and the API logs a warning. For self-hosters: the note goes through PoracleNG's `POST /api/deliverMessages`, so a test now uses two messages of PoracleNG's delivery rate limit instead of one, and a refused test sends no note (#1097).
+
+### Changed
+
+- **A test now guards the id hints in Add destination.** It checks that each hint is linked to its input with `aria-describedby`, so a screen reader reads the hint with the field. Enter-to-submit and the double-submit guard were already covered (#1038).
+- **Help and docs screenshots show the More actions menu.** Every image that still showed the old paper-plane test button on an alarm card is retaken, in the docs and in the in-app Help (#1106).
+- **The failure messages now say "test notification" too.** The menu item and the success message were renamed in #1100, but the rate limit, refusal, unsupported-type and failure messages, the Help section title and the docs still said "test alert", in all eleven languages. One action now has one name through its whole flow. Fixes [#1102](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/1102).
+- **Send test notification moved into a More actions menu.** The paper-plane button sat beside Edit on every alarm card and was easy to press by accident. Cards now end with Edit, Delete and a three-dot **More actions** button, and **Send test notification** is the one item in its menu, with a second line saying the result is a sample and not a live alert. The button shows a spinner while a test is sending, and the item is dimmed and reads **Cooldown active** for the 15 seconds after. The Help page, the docs and the confirmation message ("Test notification sent") follow in all 11 languages (#1097).
+
 ### Fixed
 
-- **The dashboard no longer says "The server is temporarily unavailable" while everything works.** The address under your location pin is looked up on every dashboard load, and when PoracleNG finds no address (every time under `[geocoding] forward_only`, or when its geocoder is slow or rate-limited) the API answers 503, which showed the generic outage toast. A missing address now just leaves the coordinates showing, as it was meant to. The same applies on the Areas page, in the location dialog, and to the radius map in an alarm's Delivery tab. A failed address search still says so.
+- **The dashboard no longer says "The server is temporarily unavailable" while everything works.** The address under your location pin is looked up on every dashboard load, and when PoracleNG finds no address (every time under `[geocoding] forward_only`, or when its geocoder is slow or rate-limited) the API answers 503, which showed the generic outage toast. A missing address now just leaves the coordinates showing, as it was meant to. The same applies on the Areas page, in the location dialog, and to the radius map in an alarm's Delivery tab. A failed address search still says so (#1110).
+- **Help and docs no longer promise the test note arrives after the sample.** PoracleNG renders the sample in a queue and sends the note straight away, so the note can land first. The Help page in all 11 languages and the alarms docs now say it comes just before or just after. The docs also said the sample goes "via their configured webhook"; it goes to your DMs, or to the destination you're managing (#1097).
+- **The scope chip on alarm cards no longer cuts its text short.** On a card, the chip saying where an alarm applies had one line beside the four action buttons, so German, Polish, Portuguese and the other longer languages showed "Im Umkreis von 1,5 km um meinen …", and English did the same on narrow cards. The label now runs to two lines, and when the card is too narrow for that the chip takes its own row above the buttons. The full text is still in its tooltip.
+- **`porygon 2` in Add multiple adds Porygon2 again.** Since 3.4.0 a lone number was always read as a Pokédex number, so `porygon 2` added Porygon and Ivysaur (#2) instead of Porygon2. A name that ends in a digit now matches when it's typed with a space, before the number is read as a dex id. `pikachu 25` still adds Pikachu and #25, and `porygon #2` still means Porygon and #2 (#1098).
+
+### Security
+
+- **Granting the same delegate twice at once can no longer write a webhook's token to the logs.** A webhook's id is its URL, and two simultaneous grants of the same delegate to the same webhook made the second one fail on the database's duplicate-entry check, with the URL in the error text that both Entity Framework and the exception handler log. Granting a delegate, and saving a quick pick's applied state, are now single database statements that treat a duplicate as "already there", so the error never occurs. Nothing changes in what you see. [#1101](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/1101)
+- **Logs show only the host of a webhook that isn't on Discord.** Since 3.2.0 the logs have hidden a webhook's token but kept the first path segment of a non-Discord URL, and some services put the token there. Those URLs now log as scheme and host only, and a Discord URL whose id isn't a number is masked whole. Logs written before this release can still hold the longer form (#1038).
 
 ## [3.4.0] - 2026-10-27
 

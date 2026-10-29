@@ -229,7 +229,7 @@ describe('HelpComponent pill samples', () => {
 });
 
 /**
- * A delegate pressing the paper plane on a destination's alarm expects the sample in their own DMs,
+ * A delegate choosing Send test notification on a destination's alarm expects the sample in their own DMs,
  * and it lands in the destination instead. The section says so in every language. See #1038.
  */
 describe('Help: destinations you manage', () => {
@@ -238,7 +238,7 @@ describe('Help: destinations you manage', () => {
     JSON.parse(readFileSync(join(__dirname, `../../../assets/i18n/${locale}.json`), 'utf8')).HELP.CONTENT_WEBHOOKS;
 
   it('says a test alert posts into the destination', () => {
-    expect(content('en')).toContain('A test alert posts into the destination, not to your DMs.');
+    expect(content('en')).toContain('A test notification posts into the destination, not to your DMs.');
   });
 
   /** The managing paragraph gained a sentence; a locale left at two sentences was not translated. */

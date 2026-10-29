@@ -91,13 +91,16 @@
 .rule-foot {
   align-items: center;
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
   margin-top: auto;
 }
 
+// The actions take about 160px. When that leaves the scope chip under 10rem, the chip takes its own row
+// above them instead of being cut to a word or two.
 .rule-scope {
   display: flex;
-  flex: 1 1 auto;
+  flex: 1 1 10rem;
   min-width: 0;
 }
 
@@ -105,6 +108,7 @@
   align-items: center;
   display: flex;
   flex: 0 0 auto;
+  margin-left: auto;
 }
 
 .rule-details[hidden] {
@@ -226,24 +230,6 @@
     display: flex;
     max-width: 100%;
     min-width: 0;
-  }
-
-  .test-alert-btn:disabled {
-    opacity: 0.4;
-  }
-
-  .spin {
-    animation: rule-card-spin 1s linear infinite;
-  }
-}
-
-@keyframes rule-card-spin {
-  from {
-    transform: rotate(0deg);
-  }
-
-  to {
-    transform: rotate(360deg);
   }
 }
 

@@ -21,13 +21,16 @@ public class LogSafeTests
     }
 
     [Theory]
-    [InlineData("http://hooks.example.net:8080/services/T000/B000/XXXXSECRET", "http://hooks.example.net:8080/services/***")]
-    [InlineData("https://hooks.slack.com/services/T000/B000/XXXXSECRET", "https://hooks.slack.com/services/***")]
+    [InlineData("http://hooks.example.net:8080/services/T000/B000/XXXXSECRET", "http://hooks.example.net:8080/***")]
+    [InlineData("https://hooks.slack.com/services/T000/B000/XXXXSECRET", "https://hooks.slack.com/***")]
     [InlineData("https://example.net/secret-in-the-only-segment", "https://example.net/***")]
     [InlineData("https://example.net/hook?token=secret", "https://example.net/***")]
-    [InlineData("https://user:pass@example.net/hook/secret", "https://example.net/hook/***")]
+    [InlineData("https://user:pass@example.net/hook/secret", "https://example.net/***")]
     [InlineData("https://example.net", "https://example.net/***")]
-    public void OtherUrlsKeepHostAndAnyFirstSegmentThatIsNotTheLast(string id, string expected)
+    [InlineData("https://api.telegram.org/bot123456:ABC-secret/sendMessage", "https://api.telegram.org/***")]
+    [InlineData("https://discord.com/api/webhooks/not-a-snowflake/token", "https://discord.com/***")]
+    [InlineData("https://discord.com/api/channels/123456/messages", "https://discord.com/***")]
+    public void OtherUrlsKeepSchemeAndHostOnly(string id, string expected)
     {
         Assert.Equal(expected, LogSafe.Id(id));
     }
@@ -37,6 +40,10 @@ public class LogSafeTests
     [InlineData("https://hooks.example.net/services/T000/B000/supersecret")]
     [InlineData("https://example.net/a?supersecret")]
     [InlineData("https://example.net/a#supersecret")]
+    [InlineData("https://example.net/supersecret/hook")]
+    [InlineData("https://api.telegram.org/bot123456:supersecret/sendMessage")]
+    [InlineData("https://discord.com/api/webhooks/supersecret/other")]
+    [InlineData("https://discord.com/api/webhooks/12ab34/supersecret")]
     public void TokenNeverSurvives(string id)
     {
         Assert.DoesNotContain("supersecret", LogSafe.Id(id), StringComparison.Ordinal);
@@ -44,7 +51,7 @@ public class LogSafeTests
 
     [Theory]
     [InlineData("  https://discord.com/api/webhooks/123456/supersecret  ", "https://discord.com/api/webhooks/123456/***")]
-    [InlineData("	http://example.net/hook/supersecret", "http://example.net/hook/***")]
+    [InlineData("	http://example.net/hook/supersecret", "http://example.net/***")]
     [InlineData("discord.com/api/webhooks/123456/supersecret", "https://discord.com/api/webhooks/123456/***")]
     [InlineData("discordapp.com/api/webhooks/123456/supersecret", "https://discordapp.com/api/webhooks/123456/***")]
     public void PaddedOrSchemelessWebhookUrlsAreStillMasked(string id, string expected)

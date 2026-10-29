@@ -58,7 +58,7 @@ The `GymSearchResult` interface defines the shape: `id`, `name`, `url`, `lat`, `
 
 ### TestAlertService
 
-`TestAlertService` (`core/services/test-alert.service.ts`) manages test alert requests from alarm list cards. It tracks per-UID cooldowns (15-second TTL via a `Map`) and deduplicates in-flight requests to prevent duplicate API calls. After sending, it displays success/error/cooldown feedback via Material snackbar. The test button appears in `mat-card-actions` on eight of the eleven alarm types — Pokemon, Raids, Eggs, Quests, Invasions, Lures, Nests and Gyms. Fort Changes, Max Battles and Pokéstop Events have no test alert: `TestAlertController.ValidTypes` does not carry them, and a request naming one answers 400.
+`TestAlertService` (`core/services/test-alert.service.ts`) manages test alert requests from alarm list cards. It tracks per-UID cooldowns (15-second TTL via a `Map`) and deduplicates in-flight requests to prevent duplicate API calls. After sending, it displays success/error/cooldown feedback via Material snackbar. The seven lists that can send one (the raid list covers both raid and egg cards) put it behind `AlarmMoreMenuComponent`, on eight of the eleven alarm types: Pokemon, Raids, Eggs, Quests, Invasions, Lures, Nests and Gyms. Fort Changes, Max Battles and Pokéstop Events have no test alert: `TestAlertController.ValidTypes` does not carry them, and a request naming one answers 400.
 
 ### MuteService
 
@@ -198,6 +198,8 @@ its bot answers a `!pokemon` command with, behind a Details toggle. It offers no
 description, or when the alert language and the display language disagree, since Poracle localises the
 sentence with the alert language while the card follows the display language. Fort changes (a raw JSON
 array upstream) and Pokéstop events (no description) do not pass one.
+
+`AlarmMoreMenuComponent` (`shared/components/alarm-more-menu/`) is the "More actions" icon button that ends the action row, after Edit and Delete, in the seven lists that can send a sample (`<app-alarm-more-menu alarmType="pokemon" [uid]="monster.uid" />`; the raid list passes `raid` or `egg` by card). Its menu holds one item, Send test notification, with a quiet second line saying the result is a sample. Sending used to be a paper-plane button beside Edit and members pressed it by accident (#1097), so a stray press now only opens a menu. The component reads `isSending` and `isCoolingDown` from `TestAlertService` and owns no state of its own: the button becomes a spinner while a request is out, and the item is dimmed with the existing "Cooldown active" wording for the 15 seconds after. Pokéstop events, max battles and fort changes render no menu, and `alarm-card-parity.spec.ts` pins that.
 
 `AlarmListToolbarComponent` (`shared/components/alarm-list-toolbar/`) is the bar above every list: search,
 count, sort menu and the select-mode toggle, plus a "no matches" line with the way back. Each list decides

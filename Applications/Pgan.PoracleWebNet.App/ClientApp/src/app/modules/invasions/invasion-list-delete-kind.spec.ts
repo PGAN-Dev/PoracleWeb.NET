@@ -18,7 +18,6 @@ import { IconService } from '../../core/services/icon.service';
 import { InvasionService } from '../../core/services/invasion.service';
 import { LinkedAccountService } from '../../core/services/linked-account.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
-import { TestAlertService } from '../../core/services/test-alert.service';
 
 /**
  * Invasion and Pokéstop event rules are numbered separately, and this page lists both when the events page is off.
@@ -60,7 +59,6 @@ describe('InvasionListComponent deletes', () => {
         },
         { provide: AlarmMoveService, useValue: moves },
         { provide: LinkedAccountService, useValue: { canChoose: signal(false) } },
-        { provide: TestAlertService, useValue: {} },
       ],
       imports: [InvasionListComponent],
     });
