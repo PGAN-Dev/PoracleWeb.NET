@@ -77,6 +77,20 @@ public class PoracleConfig
     {
         get; set;
     }
+
+    /// <summary>
+    /// PoracleNG's <c>[tracking] max_areas</c>: the most areas a user may hold on one profile, and the most one
+    /// alarm may be limited to. <c>0</c> is no limit, and so is a PoracleNG that sends no field.
+    /// </summary>
+    /// <remarks>
+    /// PoracleNG lifts the limit for a <c>trusted</c> write, and PoracleWeb.NET sends every area write trusted
+    /// (a user's own drawn fence is never <c>userSelectable</c>), so PoracleWeb.NET's area policy
+    /// (<c>IUserAreaPolicy</c>) enforces it instead. See jfberry/PoracleNG#346.
+    /// </remarks>
+    public int MaxAreas
+    {
+        get; set;
+    }
     /// <summary>
     /// Webhook types the upstream Poracle deployment has switched off, as reported by
     /// <c>GET /api/config/poracleWeb</c> (e.g. <c>["raid", "quest"]</c>).

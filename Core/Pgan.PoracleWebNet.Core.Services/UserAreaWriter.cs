@@ -30,7 +30,13 @@ public partial class UserAreaWriter(
     private readonly IPoracleTrackingProxy _trackingProxy = trackingProxy;
     private readonly ILogger<UserAreaWriter> _logger = logger;
 
-    public async Task<AreaSaveResult> SaveSelectionAsync(string humanId, IReadOnlyCollection<string> requested)
+    public Task<AreaSaveResult> SaveSelectionAsync(string humanId, IReadOnlyCollection<string> requested) =>
+        this.SaveCoreAsync(humanId, requested, limited: true);
+
+    public Task<AreaSaveResult> MirrorSelectionAsync(string humanId, IReadOnlyCollection<string> requested) =>
+        this.SaveCoreAsync(humanId, requested, limited: false);
+
+    private async Task<AreaSaveResult> SaveCoreAsync(string humanId, IReadOnlyCollection<string> requested, bool limited)
     {
         var names = requested
             .Select(Clean)
@@ -44,6 +50,11 @@ public partial class UserAreaWriter(
         if (refused.Count > 0)
         {
             throw new AreaNotPermittedException(refused);
+        }
+
+        if (limited)
+        {
+            await this._policy.EnsureAreaListWithinLimitAsync(humanId, names, async () => await this._humanProxy.GetAreaListAsync(humanId));
         }
 
         var rejected = await this._humanProxy.SetAreasTrustedAsync(humanId, names);
@@ -87,6 +98,8 @@ public partial class UserAreaWriter(
         {
             return false;
         }
+
+        await this._policy.EnsureAreaListWithinLimitAsync(humanId, [.. current, clean], () => Task.FromResult<IReadOnlyCollection<string>>(current));
 
         var rejected = await this._humanProxy.SetAreasTrustedAsync(humanId, [.. current, clean]);
         return !rejected.Any(r => Key(r) == Key(clean));

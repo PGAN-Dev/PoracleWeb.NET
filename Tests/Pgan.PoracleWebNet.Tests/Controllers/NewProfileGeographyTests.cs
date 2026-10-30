@@ -213,7 +213,7 @@ public class NewProfileGeographyTests : ControllerTestBase
                     proxy, this._userGeofences.Object, Mock.Of<IPoracleTrackingProxy>(), NullLogger<UserAreaWriter>.Instance,
                     new UserAreaPolicy(proxy, this._userGeofences.Object)),
                 PairTestSupport.UnlinkedWriter(),
-                NullLogger<ProfileController>.Instance);
+                Mock.Of<Pgan.PoracleWebNet.Core.Abstractions.Services.IUserAreaPolicy>(), NullLogger<ProfileController>.Instance);
             SetupUser(controller, UserId);
 
             result = endpoint == "create"
@@ -234,7 +234,7 @@ public class NewProfileGeographyTests : ControllerTestBase
         var overview = new ProfileOverviewController(
             this._overview.Object, this._profileService.Object, proxy,
             PairTestSupport.UnlinkedWriter(), LinkedTestKit.Router(PairTestSupport.Unlinked().Object),
-            this._jwtService.Object, this._roleResolver.Object, NullLogger<ProfileOverviewController>.Instance);
+            this._jwtService.Object, this._roleResolver.Object, Mock.Of<Pgan.PoracleWebNet.Core.Abstractions.Services.IUserAreaPolicy>(), NullLogger<ProfileOverviewController>.Instance);
         SetupUser(overview, UserId);
 
         result = endpoint == "overview-duplicate"

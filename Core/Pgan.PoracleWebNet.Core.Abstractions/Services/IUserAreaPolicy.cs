@@ -22,4 +22,23 @@ public interface IUserAreaPolicy
         string humanId,
         IReadOnlyCollection<string> requested,
         Func<Task<IReadOnlyCollection<string>>>? storedOnRule);
+
+    /// <summary>
+    /// Throws <see cref="AlarmValidationException"/> when <paramref name="areas"/>, as a profile's area list, would
+    /// break PoracleNG's <c>[tracking] max_areas</c>. <paramref name="previous"/> is the list it replaces: one already
+    /// over the limit may be kept or shrunk, never grown. Null means there is none (a new profile).
+    /// </summary>
+    public Task EnsureAreaListWithinLimitAsync(
+        string humanId,
+        IReadOnlyCollection<string> areas,
+        Func<Task<IReadOnlyCollection<string>>>? previous);
+
+    /// <summary>
+    /// <see cref="EnsureAreaListWithinLimitAsync"/> for one alarm's override areas. <paramref name="storedOnRule"/>
+    /// is the stored rule's list on an edit, and null on a create.
+    /// </summary>
+    public Task EnsureOverrideAreasWithinLimitAsync(
+        string humanId,
+        IReadOnlyCollection<string> areas,
+        Func<Task<IReadOnlyCollection<string>>>? storedOnRule);
 }

@@ -283,6 +283,14 @@ fences before it adds the name, and if the add fails the fence is kept and flagg
 Delete removes the name from the profiles first and deletes the row last, so a failed removal keeps the
 fence. A user rename that PoracleNG refuses puts the old name back.
 
+`trusted` also lifts PoracleNG's `[tracking] max_areas` (jfberry/PoracleNG#346), so `IUserAreaPolicy` applies
+that limit itself, read from `maxAreas` on `/api/config/poracleWeb`. It follows PoracleNG's rule: a new list
+must fit, a list already over the limit can be saved again or made shorter but not longer, and PoracleNG's
+admins and destinations that aren't people (channels, threads, webhooks, groups) are exempt. It covers the
+Areas page, the geofence toggle and create, new profiles, and alarm override areas on create, edit and
+linked-account move. A refusal answers 400 with the limit in the message. Copying a linked account's list
+to fix a difference isn't limited (#1122).
+
 Geofence polygons come from the Poracle API (via the unified feed), not the database.
 
 ### Per-alarm areas

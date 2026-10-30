@@ -257,6 +257,9 @@ public partial class AlarmMover(
             try
             {
                 await this._areaPolicy.EnsureOverrideAreasAllowedAsync(targetId, areas, null);
+
+                // A move creates the rule on the other account, so its list is held to max_areas as a new one.
+                await this._areaPolicy.EnsureOverrideAreasWithinLimitAsync(targetId, areas, storedOnRule: null);
             }
             catch (AlarmValidationException ex)
             {

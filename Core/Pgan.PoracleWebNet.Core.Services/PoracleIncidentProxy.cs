@@ -50,6 +50,15 @@ public sealed partial class PoracleIncidentProxy(
     {
         var list = rules.ToList();
         var trusted = await this.AuthoriseOverrideAreasAsync(userId, list, storedOnRule: null);
+        if (trusted && !dryRun)
+        {
+            // The commit carries only the rules the dry run found new (IncidentCreateProtocol), and each is an insert.
+            foreach (var rule in list.Where(r => r.OverrideAreas is { Count: > 0 }))
+            {
+                await this._areaPolicy.EnsureOverrideAreasWithinLimitAsync(userId, rule.OverrideAreas!, storedOnRule: null);
+            }
+        }
+
         var payload = "[" + string.Join(",", list.Select(RuleJson)) + "]";
         var url = $"{this.Route(userId)}?silent=true{ProfileQuery(profileNo)}{TrustedQuery(trusted)}"
             + (dryRun ? "&dry_run=true" : string.Empty);
@@ -64,6 +73,12 @@ public sealed partial class PoracleIncidentProxy(
 
         var trusted = await this.AuthoriseOverrideAreasAsync(
             userId, [rule], () => this.StoredOverrideAreasAsync(userId, uid, profileNo));
+        if (trusted)
+        {
+            await this._areaPolicy.EnsureOverrideAreasWithinLimitAsync(
+                userId, rule.OverrideAreas!, () => this.StoredOverrideAreasAsync(userId, uid, profileNo));
+        }
+
         var response = await this.SendAsync(
             HttpMethod.Put,
             $"{this.Route(userId)}/{uid}?silent=true{ProfileQuery(profileNo)}{TrustedQuery(trusted)}",
