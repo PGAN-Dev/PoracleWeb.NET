@@ -62,6 +62,12 @@ public partial class PoracleTrackingProxy
             return TrackingPatchResult.None;
         }
 
+        // Trusted lifts PoracleNG's max_distance clamp as well (jfberry/PoracleNG#346), so it is applied here.
+        if (settings.Distance is { } distance)
+        {
+            settings = settings with { Distance = await this._areaPolicy.ClampDistanceAsync(userId, distance) };
+        }
+
         var bodyText = TrackingPatchWire.Body(uids, settings);
         LogPatchRequest(this._logger, type, LogSafe.Id(userId), bodyText);
 

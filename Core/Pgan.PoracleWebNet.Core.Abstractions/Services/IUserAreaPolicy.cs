@@ -41,4 +41,10 @@ public interface IUserAreaPolicy
         string humanId,
         IReadOnlyCollection<string> areas,
         Func<Task<IReadOnlyCollection<string>>>? storedOnRule);
+
+    /// <summary>
+    /// <paramref name="distance"/> capped at PoracleNG's <c>[tracking] max_distance</c> for this human, which
+    /// PoracleNG itself skips on a trusted write. Clamped rather than refused, as PoracleNG does.
+    /// </summary>
+    public Task<int> ClampDistanceAsync(string humanId, int distance);
 }

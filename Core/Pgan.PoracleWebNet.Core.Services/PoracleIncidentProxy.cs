@@ -128,6 +128,12 @@ public sealed partial class PoracleIncidentProxy(
 
         // Always trusted, for the reason the tracking proxy's PatchAsync gives: PoracleNG re-validates the stored
         // rule's areas, untrusted it refuses a user's own drawn fence, and a PATCH set cannot name a new area.
+        // Trusted also lifts its max_distance clamp, so that is applied here.
+        if (settings.Distance is { } distance)
+        {
+            settings = settings with { Distance = await this._areaPolicy.ClampDistanceAsync(userId, distance) };
+        }
+
         var response = await this.SendAsync(
             HttpMethod.Patch,
             $"{this.Route(userId)}?silent=true{TrustedQuery(trusted: true)}",

@@ -104,6 +104,22 @@ public partial class UserAreaPolicy(
         this.EnsureWithinLimitAsync(humanId, areas, storedOnRule, max => $"An alarm can be limited to at most {max} areas.");
 
     /// <summary>
+    /// PoracleNG's <c>clampDistance</c> (jfberry/PoracleNG#346), which it skips for a trusted write. Every v2
+    /// <c>PATCH</c> is sent trusted, so a bulk radius change would otherwise store any radius the request names.
+    /// </summary>
+    public async Task<int> ClampDistanceAsync(string humanId, int distance)
+    {
+        var config = await this.ConfigAsync();
+        var max = config?.MaxDistance ?? 0;
+        if (max <= 0 || distance <= max || await this.IsLimitExemptAsync(humanId, config!))
+        {
+            return distance;
+        }
+
+        return max;
+    }
+
+    /// <summary>
     /// PoracleNG's own <c>AreaLimitBlocks</c> (jfberry/PoracleNG#346), which it skips for the trusted writes this
     /// application sends: over the limit is refused unless every name is already in the list being replaced, or
     /// the human is exempt. Duplicates count once. An unreadable config is no limit, as PoracleNG's own fails open.
@@ -115,23 +131,12 @@ public partial class UserAreaPolicy(
         Func<int, string> message)
     {
         var keys = areas.Select(Key).Where(k => k.Length > 0).ToHashSet(StringComparer.Ordinal);
-        if (keys.Count == 0 || this._poracleApiProxy is null)
+        if (keys.Count == 0)
         {
             return;
         }
 
-        PoracleConfig? config;
-        try
-        {
-            config = await (this._config ??= this._poracleApiProxy.GetConfigAsync());
-        }
-        catch (Exception ex) when (ex is HttpRequestException or JsonException or TaskCanceledException)
-        {
-            this._config = null;
-            LogAreaLimitUnreadable(this._logger, ex);
-            return;
-        }
-
+        var config = await this.ConfigAsync();
         var max = config?.MaxAreas ?? 0;
         if (max <= 0 || keys.Count <= max)
         {
@@ -149,6 +154,26 @@ public partial class UserAreaPolicy(
         }
 
         throw new AlarmValidationException(message(max));
+    }
+
+    /// <summary>PoracleNG's config, read once per request. Null when there is no proxy or it can't be read: no limits.</summary>
+    private async Task<PoracleConfig?> ConfigAsync()
+    {
+        if (this._poracleApiProxy is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            return await (this._config ??= this._poracleApiProxy.GetConfigAsync());
+        }
+        catch (Exception ex) when (ex is HttpRequestException or JsonException or TaskCanceledException)
+        {
+            this._config = null;
+            LogLimitsUnreadable(this._logger, ex);
+            return null;
+        }
     }
 
     /// <summary>
@@ -171,8 +196,8 @@ public partial class UserAreaPolicy(
             && !(type.GetString() ?? string.Empty).EndsWith(":user", StringComparison.Ordinal);
     }
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Could not read PoracleNG's max_areas; the area limit is not checked")]
-    private static partial void LogAreaLimitUnreadable(ILogger logger, Exception ex);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Could not read PoracleNG's max_areas and max_distance; the limits are not applied")]
+    private static partial void LogLimitsUnreadable(ILogger logger, Exception ex);
 
     public static string Clean(string name) => name.Trim().ToLowerInvariant();
 

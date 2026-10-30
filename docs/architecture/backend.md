@@ -289,7 +289,11 @@ must fit, a list already over the limit can be saved again or made shorter but n
 admins and destinations that aren't people (channels, threads, webhooks, groups) are exempt. It covers the
 Areas page, the geofence toggle and create, new profiles, and alarm override areas on create, edit and
 linked-account move. A refusal answers 400 with the limit in the message. Copying a linked account's list
-to fix a difference isn't limited (#1122).
+to fix a difference isn't limited. The same upstream change lifts `[tracking] max_distance` for trusted
+writes, and every v2 `PATCH` is trusted, so both `PatchAsync` methods (tracking and Pokéstop events) pass a
+`distance` through `ClampDistanceAsync` first. It clamps rather than refuses, as PoracleNG does, with the same
+exemptions. Creates and edits don't need it: a trusted one carries override areas, and those can't carry a
+radius (#1122).
 
 Geofence polygons come from the Poracle API (via the unified feed), not the database.
 

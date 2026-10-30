@@ -36,9 +36,9 @@ public class AreaLimitTests
 
     private UserAreaPolicy Sut() => new(this._humans.Object, this._fences.Object, poracleApiProxy: this._config.Object);
 
-    private void Limit(int max, PoracleAdmins? admins = null) =>
+    private void Limit(int max, PoracleAdmins? admins = null, int maxDistance = 0) =>
         this._config.Setup(c => c.GetConfigAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new PoracleConfig { MaxAreas = max, Admins = admins });
+            .ReturnsAsync(new PoracleConfig { MaxAreas = max, Admins = admins, MaxDistance = maxDistance });
 
     private void HumanType(string type) =>
         this._humans.Setup(p => p.GetHumanAsync(Human))
@@ -176,6 +176,53 @@ public class AreaLimitTests
         }
 
         this._config.Verify(c => c.GetConfigAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    // ---- max_distance ------------------------------------------------------------------------------
+
+    [Fact]
+    public async Task RadiusOverMaxDistanceIsClampedNotRefused()
+    {
+        this.Limit(3, maxDistance: 2000);
+
+        Assert.Equal(2000, await this.Sut().ClampDistanceAsync(Human, 5000));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1500)]
+    [InlineData(2000)]
+    public async Task RadiusWithinMaxDistanceIsUnchanged(int distance)
+    {
+        this.Limit(3, maxDistance: 2000);
+
+        Assert.Equal(distance, await this.Sut().ClampDistanceAsync(Human, distance));
+        this._humans.Verify(p => p.GetHumanAsync(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task NoMaxDistanceConfiguredLeavesAnyRadius()
+    {
+        Assert.Equal(50000, await this.Sut().ClampDistanceAsync(Human, 50000));
+    }
+
+    [Fact]
+    public async Task AdminsAndDestinationsKeepTheirRadius()
+    {
+        this.Limit(3, new PoracleAdmins { Telegram = [Human] }, maxDistance: 2000);
+        Assert.Equal(5000, await this.Sut().ClampDistanceAsync(Human, 5000));
+
+        this.Limit(3, maxDistance: 2000);
+        this.HumanType("discord:channel");
+        Assert.Equal(5000, await this.Sut().ClampDistanceAsync(Human, 5000));
+    }
+
+    [Fact]
+    public async Task UnreadableConfigLeavesTheRadius()
+    {
+        this._config.Setup(c => c.GetConfigAsync(It.IsAny<CancellationToken>())).ThrowsAsync(new HttpRequestException("down"));
+
+        Assert.Equal(5000, await this.Sut().ClampDistanceAsync(Human, 5000));
     }
 
     // ---- the area writer ----------------------------------------------------------------------------
