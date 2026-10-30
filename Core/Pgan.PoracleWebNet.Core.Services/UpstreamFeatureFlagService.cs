@@ -31,6 +31,10 @@ namespace Pgan.PoracleWebNet.Core.Services;
 /// <c>disable_showcase</c> is read beside the hook list (<c>general.disable_showcase = true</c> turns
 /// Pokestop Events off) and fails open like the rest.
 /// </para>
+/// <para>
+/// <c>disable_nominatim</c> comes from the same config read: PoracleNG with no geocoder (<c>provider</c>
+/// empty or <c>none</c>) forces address search and reverse lookups off. See #1111.
+/// </para>
 /// </remarks>
 public sealed partial class UpstreamFeatureFlagService(
     IPoracleApiProxy poracleApiProxy,
@@ -68,6 +72,11 @@ public sealed partial class UpstreamFeatureFlagService(
             {
                 keys.Add(key);
             }
+
+            if (HasNoGeocoder(config?.Provider))
+            {
+                keys.Add(DisableFeatureKeys.Geocoding);
+            }
         }
         catch (Exception ex)
         {
@@ -80,6 +89,16 @@ public sealed partial class UpstreamFeatureFlagService(
 
         return keys;
     }
+
+    /// <summary>
+    /// True when PoracleNG reports <c>[geocoding] provider</c> as empty or <c>none</c>: it builds no
+    /// geocoder then, and every address search and reverse lookup answers 503 (#1111). Keyed on the
+    /// known-off values, not on a list of known providers, so a provider PoracleNG adds later is left on.
+    /// Null (PoracleJS, which sends no field) is no opinion.
+    /// </summary>
+    private static bool HasNoGeocoder(string? provider) =>
+        provider is not null
+        && (provider.Trim().Length == 0 || provider.Trim().Equals("none", StringComparison.OrdinalIgnoreCase));
 
     /// <summary>Pokestop Events are off only when Poracle says so; absent or unreadable leaves them on.</summary>
     private async Task ReadShowcaseFlagAsync(HashSet<string> keys)

@@ -864,6 +864,15 @@ export class AdminSettingsComponent implements OnInit, HasUnsavedChanges {
     return this.settingsService.isForcedByPoracle(meta.key);
   }
 
+  /**
+   * Why Poracle forces this row off. An alarm type is off because Poracle drops its webhooks; Geocoding
+   * is off because PoracleNG has no geocoder (`[geocoding] provider` empty or `none`), and saying its
+   * bot refuses a command would send an admin looking in the wrong place (#1111).
+   */
+  forcedByPoracleNote(meta: SettingMeta): string {
+    return meta.key === 'disable_nominatim' ? 'ADMIN_SETTINGS.FORCED_BY_PORACLE_GEOCODING' : 'ADMIN_SETTINGS.FORCED_BY_PORACLE';
+  }
+
   getBool(key: string): boolean {
     const value = (this.getSettingValue(key) ?? '').toLowerCase();
     // Mirrors the server's read for these keys exactly: anything but "false" is on.

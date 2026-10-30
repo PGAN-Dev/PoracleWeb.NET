@@ -147,6 +147,12 @@ public class PoracleApiProxy(
             }
         }
 
+        if (root.TryGetProperty("provider", out var provider) && provider.ValueKind == JsonValueKind.String)
+        {
+            // Verbatim, empty included: empty means "no geocoder", while absent (PoracleJS) stays null.
+            config.Provider = provider.GetString();
+        }
+
         if (root.TryGetProperty("availableLanguages", out var availableLanguages))
         {
             // The value is the restriction. Absent (a PoracleNG older than 5.2.1) and present-and-null
