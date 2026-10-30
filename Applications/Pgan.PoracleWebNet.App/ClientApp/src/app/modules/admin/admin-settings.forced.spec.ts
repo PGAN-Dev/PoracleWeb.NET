@@ -24,9 +24,9 @@ describe('AdminSettingsComponent explains a switch Poracle forces off', () => {
         {
           provide: SettingsService,
           useValue: {
+            getOidcConfig: () => of(null),
             getAll: () => of([]),
             getDiscordConfig: () => of(null),
-            getOidcConfig: () => of(null),
             getTelegramConfig: () => of(null),
             isForcedByPoracle: (key: string) => forced.includes(key),
             siteSettings: () => ({}),

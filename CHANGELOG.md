@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Address search switches itself off when PoracleNG has no geocoder.** With `[geocoding] provider` empty or `none` in PoracleNG's config, every address search and lookup can only fail, and until now the only way to stop them was for an admin to know to switch **Geocoding** off. PoracleWeb.NET now reads the provider from PoracleNG and treats it the way it treats an alarm type PoracleNG disables: the address search box and the address under the pin go away, the API refuses the geocode calls instead of passing them on, and the Geocoding toggle in **Admin → Server settings → Features** shows as forced off, with a note in all 11 languages saying to set a provider in PoracleNG. Your own setting isn't changed, so it's back in charge once a provider is set (within five minutes). PoracleJS, which doesn't report a provider, behaves as before (#1111).
+
 ### Fixed
 
 - **Areas made of more than one piece now work.** A Koji area saved as a `MultiPolygon` (an island and the mainland under one name, or a fence loaded from a scanner and edited, which can turn into one) was dropped from the area feed without a word, so PoracleNG never loaded it, it wasn't in the area list, and nothing matched it. Such an area is now served in PoracleNG's `multipath` shape and appears as one area: one entry to pick, one shape on every map, its name on gyms and on the review card's overlap line whichever piece they fall in. A `MultiPolygon` region now works for region auto-detection instead of breaking it, and taking an area out of the Koji project no longer fails on one, or drops a polygon's holes. Fixes [#1117](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/1117).
