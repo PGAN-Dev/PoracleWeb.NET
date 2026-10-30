@@ -16,6 +16,20 @@ public class PoracleConfig
     [JsonPropertyName("providerURL")]
     public string ProviderUrl { get; set; } = string.Empty;
 
+    /// <summary>
+    /// PoracleNG's <c>[geocoding] provider</c>, verbatim: <c>nominatim</c>, <c>photon</c>, <c>google</c>,
+    /// or empty or <c>none</c> when it has no geocoder, in which case every address search and reverse
+    /// lookup answers 503.
+    /// </summary>
+    /// <remarks>
+    /// Null when the field is absent (PoracleJS sends none), which is no opinion and must not be read as
+    /// "no geocoder". See #1111.
+    /// </remarks>
+    public string? Provider
+    {
+        get; set;
+    }
+
     public string StaticKey { get; set; } = string.Empty;
 
     [JsonPropertyName("version")]

@@ -162,4 +162,32 @@ public class PoracleApiProxyDisableFlagTests
             });
         }
     }
+
+    // --- provider: whether PoracleNG has a geocoder (#1111) ---
+
+    [Theory]
+    [InlineData(/*lang=json,strict*/ """{"provider":"nominatim"}""", "nominatim")]
+    [InlineData(/*lang=json,strict*/ """{"provider":""}""", "")]
+    [InlineData(/*lang=json,strict*/ """{"provider":"none"}""", "none")]
+    public async Task ProviderIsParsedVerbatim(string body, string expected)
+    {
+        var sut = CreateSut(new MockHttpMessageHandler(HttpStatusCode.OK, body));
+
+        Assert.Equal(expected, (await sut.GetConfigAsync())?.Provider);
+    }
+
+    /// <summary>Empty means "no geocoder"; absent (PoracleJS) means "no opinion". They must not collapse.</summary>
+    [Theory]
+    [InlineData(/*lang=json,strict*/ """{"locale":"en"}""")]
+    [InlineData(/*lang=json,strict*/ """{"provider":null}""")]
+    [InlineData(/*lang=json,strict*/ """{"provider":3}""")]
+    public async Task AbsentOrNonStringProviderStaysNull(string body)
+    {
+        var sut = CreateSut(new MockHttpMessageHandler(HttpStatusCode.OK, body));
+
+        var config = await sut.GetConfigAsync();
+
+        Assert.NotNull(config);
+        Assert.Null(config.Provider);
+    }
 }

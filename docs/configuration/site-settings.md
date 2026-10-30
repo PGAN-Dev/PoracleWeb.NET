@@ -87,7 +87,7 @@ Toggle user-facing features on or off.
 | `disable_areas` | Areas | boolean | Prevent users from managing their area subscriptions. |
 | `disable_profiles` | Profiles | boolean | Prevent users from creating and switching alarm profiles. |
 | `disable_location` | Location | boolean | Gates the whole location API, not just the pin. Users cannot set their pin, and saved places, static and distance map images, and the weather lookups on the dashboard all stop with it. Since "Near a place" delivery scope measures from a saved place or the pin, alarms already using it keep working but nothing new can be pointed at a place. |
-| `disable_nominatim` | Geocoding | boolean | Stops address search and reverse lookup. Both go to PoracleNG's `/api/geocode` routes, which call whichever geocoder PoracleNG is configured for; with this on they answer 403 and the location dialog hides its search box. Users can still set a pin by coordinates or on the map. The key keeps its old name, though Nominatim is no longer called directly. |
+| `disable_nominatim` | Geocoding | boolean | Stops address search and reverse lookup. Both go to PoracleNG's `/api/geocode` routes, which call whichever geocoder PoracleNG is configured for; with this on they answer 403 and the location dialog hides its search box. Users can still set a pin by coordinates or on the map. The key keeps its old name, though Nominatim is no longer called directly. PoracleNG forces it off when it has no geocoder (`[geocoding] provider` empty or `none`); the toggle then shows a note saying so, and comes back under your control once a provider is set, within five minutes. |
 | `disable_update_check` | Check for updates | boolean | Controls the version check against `api.github.com` and `raw.githubusercontent.com`, which runs when an admin opens the Versions card and is cached six hours afterwards. Two anonymous GETs, no identifiers and no payload. Like every `disable_` key the switch reads the positive way round: **Check for updates** on (key absent or `False`) runs the check; off (key `True`) stops it, and the Versions card still reports the running versions but can't say whether they're current. |
 | `disable_user_geofences` | Custom Geofences | boolean | Hides the My Geofences page and the admin review queue, and 403s the create, rename, import, submit, activate and deactivate endpoints. Delete is deliberately left open, so a user can still clear out a geofence they no longer want. Geofences that already exist keep being served in the [geofence feed](../features/custom-geofences/index.md) and keep matching. See [Admin operations](../features/custom-geofences/admin-operations.md). |
 | `enable_templates` | Templates | boolean | Allow users to choose notification message templates. |
@@ -484,7 +484,7 @@ value, so a single accidental save would pin the language default permanently an
 tracking Poracle's configuration at all.
 
 There is also `GET /api/settings/upstream-disabled`, which lists the `disable_*` keys Poracle's own
-config is forcing off. Any signed-in user can read it — the nav and the route guards need it — and it
+config is forcing off, `disable_nominatim` included when PoracleNG has no geocoder. Any signed-in user can read it — the nav and the route guards need it — and it
 is empty when Poracle is unreachable.
 
 ---

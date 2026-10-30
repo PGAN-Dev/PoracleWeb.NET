@@ -111,9 +111,9 @@ Older releases required Discord and stopped with `Configuration 'Discord:ClientI
 
 **Problem**: Users see "The server is temporarily unavailable" when they open the Dashboard (and sometimes Areas), but their alarms load and save normally. In the browser's dev tools (F12 → Network), the failing request is `/api/location/reverse` with status 503.
 
-**Cause**: The Dashboard looks up the street address for the user's location pin through PoracleNG's geocoder. When PoracleNG returns no address, the API answers 503, and releases up to 3.4.0 showed that as an outage. With no geocoder configured (`[geocoding] provider = "none"`) or `forward_only = true`, this happens on every load; a slow or rate-limited provider causes it now and then. Fixed in the release after 3.4.0, where a missing address just leaves the coordinates showing (#1110).
+**Cause**: The Dashboard looks up the street address for the user's location pin through PoracleNG's geocoder. When PoracleNG returns no address, the API answers 503, and releases up to 3.5.0 showed that as an outage. With no geocoder configured (`[geocoding] provider = "none"`) or `forward_only = true`, this happens on every load; a slow or rate-limited provider causes it now and then. Fixed in the release after 3.5.0, where a missing address just leaves the coordinates showing (#1110).
 
-**Fix**: If PoracleNG has no geocoder, go to **Admin → Server settings → Features** and switch **Geocoding** off. Address search and lookups can't work without one, and the pin still shows its coordinates. If you do have a geocoder, check PoracleNG's logs for provider errors or rate limits.
+**Fix**: From the release after 3.5.0, a PoracleNG with no geocoder switches **Geocoding** off by itself: the address search and lookups disappear, the toggle in **Admin → Server settings → Features** shows as forced off by Poracle, and the pin still shows its coordinates (#1111). On an older release, switch **Geocoding** off there by hand. `forward_only` isn't reported by PoracleNG, so under it the search stays and the lookups fail quietly. If you do have a geocoder, check PoracleNG's logs for provider errors or rate limits.
 
 If the failing request is anything else, such as `/api/dashboard` or an alarm list, see [PoracleNG unreachable](#poracleng-unreachable-alarm-operations-fail) above.
 
