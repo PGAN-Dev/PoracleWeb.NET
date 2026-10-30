@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Areas made of more than one piece now work.** A Koji area saved as a `MultiPolygon` (an island and the mainland under one name, or a fence loaded from a scanner and edited, which can turn into one) was dropped from the area feed without a word, so PoracleNG never loaded it, it wasn't in the area list, and nothing matched it. Such an area is now served in PoracleNG's `multipath` shape and appears as one area: one entry to pick, one shape on every map, its name on gyms and on the review card's overlap line whichever piece they fall in. A `MultiPolygon` region now works for region auto-detection instead of breaking it, and taking an area out of the Koji project no longer fails on one, or drops a polygon's holes. Fixes [#1117](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/1117).
+- **The dashboard no longer says "The server is temporarily unavailable" while everything works.** The address under your location pin is looked up on every dashboard load, and when PoracleNG finds no address (every time under `[geocoding] forward_only`, or when its geocoder is slow or rate-limited) the API answers 503, which showed the generic outage toast. A missing address now just leaves the coordinates showing, as it was meant to. The same applies on the Areas page, in the location dialog, and to the radius map in an alarm's Delivery tab. A failed address search still says so (#1110).
+
+## [3.5.0] - 2026-10-29
+
 ### Added
 
 - **A test notification comes with a short note saying it was a test.** A sample alert is built from your alarm's filters at your saved location, so it looks like a live one, and people went looking for a spawn that was never there. Along with the sample, the bot now sends one plain line to the same place (your DMs, or the channel, thread or webhook of a destination) saying it's a sample and there's nothing to go and find. The note is English only for now. If it fails to send, the test still counts as sent and the API logs a warning. For self-hosters: the note goes through PoracleNG's `POST /api/deliverMessages`, so a test now uses two messages of PoracleNG's delivery rate limit instead of one, and a refused test sends no note (#1097).
@@ -20,8 +27,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Areas made of more than one piece now work.** A Koji area saved as a `MultiPolygon` (an island and the mainland under one name, or a fence loaded from a scanner and edited, which can turn into one) was dropped from the area feed without a word, so PoracleNG never loaded it, it wasn't in the area list, and nothing matched it. Such an area is now served in PoracleNG's `multipath` shape and appears as one area: one entry to pick, one shape on every map, its name on gyms and on the review card's overlap line whichever piece they fall in. A `MultiPolygon` region now works for region auto-detection instead of breaking it, and taking an area out of the Koji project no longer fails on one, or drops a polygon's holes. Fixes [#1117](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/1117).
-- **The dashboard no longer says "The server is temporarily unavailable" while everything works.** The address under your location pin is looked up on every dashboard load, and when PoracleNG finds no address (every time under `[geocoding] forward_only`, or when its geocoder is slow or rate-limited) the API answers 503, which showed the generic outage toast. A missing address now just leaves the coordinates showing, as it was meant to. The same applies on the Areas page, in the location dialog, and to the radius map in an alarm's Delivery tab. A failed address search still says so (#1110).
 - **Help and docs no longer promise the test note arrives after the sample.** PoracleNG renders the sample in a queue and sends the note straight away, so the note can land first. The Help page in all 11 languages and the alarms docs now say it comes just before or just after. The docs also said the sample goes "via their configured webhook"; it goes to your DMs, or to the destination you're managing (#1097).
 - **The scope chip on alarm cards no longer cuts its text short.** On a card, the chip saying where an alarm applies had one line beside the four action buttons, so German, Polish, Portuguese and the other longer languages showed "Im Umkreis von 1,5 km um meinen …", and English did the same on narrow cards. The label now runs to two lines, and when the card is too narrow for that the chip takes its own row above the buttons. The full text is still in its tooltip.
 - **`porygon 2` in Add multiple adds Porygon2 again.** Since 3.4.0 a lone number was always read as a Pokédex number, so `porygon 2` added Porygon and Ivysaur (#2) instead of Porygon2. A name that ends in a digit now matches when it's typed with a space, before the number is read as a dex id. `pikachu 25` still adds Pikachu and #25, and `porygon #2` still means Porygon and #2 (#1098).
@@ -1509,7 +1514,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.4.0...HEAD
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.5.0...HEAD
+[3.5.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.4.0...v3.5.0
 [3.4.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.3.0...v3.4.0
 [3.3.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.2.0...v3.3.0
 [3.2.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.1.0...v3.2.0
