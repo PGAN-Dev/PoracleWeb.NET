@@ -133,6 +133,11 @@ public class PoracleApiProxy(
             config.MaxDistance = maxDist.GetInt32();
         }
 
+        if (root.TryGetProperty("maxAreas", out var maxAreas) && maxAreas.ValueKind == JsonValueKind.Number)
+        {
+            config.MaxAreas = maxAreas.GetInt32();
+        }
+
         if (root.TryGetProperty("disabledHooks", out var disabledHooks) && disabledHooks.ValueKind == JsonValueKind.Array)
         {
             // Absent (older Poracle, PoracleJS) stays null so callers can tell "upstream has no

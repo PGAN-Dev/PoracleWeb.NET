@@ -159,7 +159,7 @@ public class LinkedPersonWritesTests : ControllerTestBase
         var sut = new ProfileController(
             this._profileService.Object, this._humanService.Object, this._humanProxy.Object, Mock.Of<IJwtService>(),
             Mock.Of<Pgan.PoracleWebNet.Api.Services.IUserRoleResolver>(), areas ?? Mock.Of<IUserAreaWriter>(),
-            PairTestSupport.Writer(linked), NullLogger<ProfileController>.Instance);
+            PairTestSupport.Writer(linked), Mock.Of<Pgan.PoracleWebNet.Core.Abstractions.Services.IUserAreaPolicy>(), NullLogger<ProfileController>.Instance);
         SetupUser(sut, Discord);
         return sut;
     }

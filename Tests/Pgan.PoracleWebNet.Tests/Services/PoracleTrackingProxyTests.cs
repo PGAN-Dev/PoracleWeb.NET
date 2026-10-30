@@ -44,7 +44,13 @@ public class PoracleTrackingProxyTests
     }
 
     /// <summary>An area policy that allows every name, for suites that are not about override areas.</summary>
-    internal static IUserAreaPolicy AnyAreaPolicy() => Mock.Of<IUserAreaPolicy>();
+    internal static IUserAreaPolicy AnyAreaPolicy()
+    {
+        // Allows every area and applies no distance limit: a loose mock would clamp every radius to 0.
+        var policy = new Mock<IUserAreaPolicy>();
+        policy.Setup(p => p.ClampDistanceAsync(It.IsAny<string>(), It.IsAny<int>())).ReturnsAsync((string _, int d) => d);
+        return policy.Object;
+    }
 
     // ──────────────────────────────────────────────────────────────
     // PatchAsync (v2 PATCH; bulk distance and cleaning)
@@ -64,6 +70,25 @@ public class PoracleTrackingProxyTests
         Assert.Equal(HttpMethod.Patch, handler.LastRequest.Method);
         Assert.Equal($"{ApiAddress}/api/v2/humans/user1/tracking/pokemon?silent=true&trusted=true", handler.LastRequest.RequestUri?.ToString());
         Assert.Equal("""{"uids":[1,2],"set":{"distance":500}}""", handler.LastBody);
+    }
+
+    [Fact]
+    public async Task PatchSendsTheRadiusAfterTheMaxDistanceClamp()
+    {
+        // Trusted lifts PoracleNG's own clamp (jfberry/PoracleNG#346), so the policy's answer is what is stored.
+        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, PatchOk);
+        var policy = new Mock<IUserAreaPolicy>();
+        policy.Setup(p => p.ClampDistanceAsync("user1", 5000)).ReturnsAsync(2000);
+        var sut = new PoracleTrackingProxy(
+            new HttpClient(handler),
+            CreateConfig(),
+            policy.Object,
+            new MemoryCache(new MemoryCacheOptions()),
+            Mock.Of<ILogger<PoracleTrackingProxy>>());
+
+        await sut.PatchAsync("pokemon", "user1", [1], new TrackingPatchSet(Distance: 5000));
+
+        Assert.Equal("""{"uids":[1],"set":{"distance":2000}}""", handler.LastBody);
     }
 
     [Fact]
