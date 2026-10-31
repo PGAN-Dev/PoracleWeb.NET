@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.6.0] - 2026-10-31
+
 ### Added
 
 - **PoracleNG's area limit now holds on the web too.** PoracleNG can cap how many areas a user picks and how many areas one alarm is limited to (`[tracking] max_areas`, jfberry/PoracleNG#346). It doesn't apply that cap to the trusted writes PoracleWeb.NET sends for every area change, so a user held to five areas in the bot could pick any number here. PoracleWeb.NET now reads the limit from PoracleNG and applies it itself, the same way PoracleNG does: saving areas, switching on a drawn geofence, creating, duplicating or importing a profile, adding or editing an alarm, and moving an alarm to a linked account all refuse a list over the limit with a message saying what it is. A list saved before the limit was lowered can still be saved again or made shorter, an alarm PoracleNG already holds unchanged isn't refused, and PoracleNG's admins and every destination that isn't a person (channels, threads, webhooks, groups) aren't limited. Fixing a difference between linked accounts copies the same person's list and isn't limited either. A drawn geofence created at the limit is saved but left switched off. The same change in PoracleNG stopped capping the radius on those writes (`[tracking] max_distance`), so a bulk "Change radius" could store any distance. PoracleWeb.NET now cuts it down to the limit, as PoracleNG does, with the same exemptions. Without either setting, or on a PoracleNG that doesn't publish it, nothing changes. The alarms page, PoracleNG compatibility page and troubleshooting guide describe the limits ([#1122](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/1122)).
@@ -1522,7 +1524,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.5.0...HEAD
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.6.0...HEAD
+[3.6.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.5.0...v3.6.0
 [3.5.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.4.0...v3.5.0
 [3.4.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.3.0...v3.4.0
 [3.3.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.2.0...v3.3.0
