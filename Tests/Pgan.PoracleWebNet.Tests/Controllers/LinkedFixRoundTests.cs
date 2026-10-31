@@ -162,7 +162,7 @@ public class LinkedFixRoundTests : ControllerTestBase
         var sut = new ProfileController(
             this._profileService.Object, this._humanService.Object, this._humanProxy.Object, Mock.Of<IJwtService>(),
             Mock.Of<IUserRoleResolver>(), Mock.Of<IUserAreaWriter>(),
-            PairTestSupport.Writer(linked), NullLogger<ProfileController>.Instance);
+            PairTestSupport.Writer(linked), Mock.Of<Pgan.PoracleWebNet.Core.Abstractions.Services.IUserAreaPolicy>(), NullLogger<ProfileController>.Instance);
         SetupUser(sut, Discord);
         this._profileService.Setup(s => s.GetByUserAndProfileNoAsync(Discord, 2)).ReturnsAsync(new Profile { Id = Discord, ProfileNo = 2, Name = "Work" });
         return sut;
@@ -233,7 +233,7 @@ public class LinkedFixRoundTests : ControllerTestBase
         var sut = new ProfileOverviewController(
             this._overview.Object, this._profileService.Object, this._humanProxy.Object,
             PairTestSupport.Writer(PairTestSupport.Linked(pair)), LinkedTestKit.Router(PairTestSupport.Linked(pair).Object),
-            Mock.Of<IJwtService>(), Mock.Of<IUserRoleResolver>(), NullLogger<ProfileOverviewController>.Instance);
+            Mock.Of<IJwtService>(), Mock.Of<IUserRoleResolver>(), Mock.Of<Pgan.PoracleWebNet.Core.Abstractions.Services.IUserAreaPolicy>(), NullLogger<ProfileOverviewController>.Instance);
         SetupUser(sut, Discord);
         this._profileService.Setup(s => s.GetByUserAsync(Discord)).ReturnsAsync([]);
         this._overview.Setup(o => o.ImportAlarmsAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<JsonElement>())).ReturnsAsync(2);

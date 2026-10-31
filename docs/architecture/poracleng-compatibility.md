@@ -61,6 +61,12 @@ distance changes and the cleaning toggle are all v2 (the last two as a PATCH), w
 the ones an alert is limited to, reach PoracleNG through its `/api/v2` routes with the `trusted` flag,
 which 5.4.0 carries; nothing is written straight to PoracleNG's database.
 
+`trusted` also lifts PoracleNG's `[tracking] max_areas` and `max_distance` (jfberry/PoracleNG#346), so
+PoracleWeb.NET reads both from `/api/config/poracleWeb` and applies them itself, following PoracleNG's rules:
+an area list over `max_areas` is refused unless it only keeps or shrinks the list it replaces, a bulk radius
+change is cut to `max_distance`, and PoracleNG's admins and non-person destinations are exempt. A PoracleNG
+without #346 publishes neither value, and then nothing is limited here, which matches what it does itself.
+
 ## How support is decided
 
 Two probes, cached for five minutes. The mechanics are in

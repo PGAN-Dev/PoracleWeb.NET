@@ -89,8 +89,9 @@ public sealed class PairDriftService(IPoracleHumanProxy human, IPoracleTrackingP
                     break;
                 case DriftField.Areas:
                     // Through the writer, not the raw trusted route: a trusted write skips PoracleNG's own area check, so
-                    // PoracleWeb.NET authorises the names for the human they are written to.
-                    await this._areas.SaveSelectionAsync(otherId, kept.Areas);
+                    // PoracleWeb.NET authorises the names for the human they are written to. The area limit is not
+                    // applied: the kept side already holds this list, and the profile copies below aren't limited either.
+                    await this._areas.MirrorSelectionAsync(otherId, kept.Areas);
                     break;
                 case DriftField.CurrentProfile:
                     // Switching never creates a profile: one the other side lacks is the profiles line's to settle,

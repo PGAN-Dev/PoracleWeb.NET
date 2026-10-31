@@ -22,6 +22,7 @@ public partial class ProfileOverviewController(
     LinkedAlarmRouter router,
     IJwtService jwtService,
     IUserRoleResolver roleResolver,
+    IUserAreaPolicy areaPolicy,
     ILogger<ProfileOverviewController> logger) : BaseApiController
 {
     private readonly IProfileOverviewService _profileOverviewService = profileOverviewService;
@@ -31,6 +32,7 @@ public partial class ProfileOverviewController(
     private readonly IJwtService _jwtService = jwtService;
     private readonly IUserRoleResolver _roleResolver = roleResolver;
     private readonly IProfileService _profileService = profileService;
+    private readonly IUserAreaPolicy _areaPolicy = areaPolicy;
     private readonly ILogger<ProfileOverviewController> _logger = logger;
 
     [HttpGet]
@@ -88,7 +90,7 @@ public partial class ProfileOverviewController(
                 // PoracleNG's addProfile ignores area, latitude and longitude, so the copy would inherit the
                 // active profile's: the right alarms over the wrong map, and a location that also drives the
                 // active-hours timezone (#466, #503). Written after the alarm copy, and inside the same rollback.
-                await NewProfileGeography.WriteAsync(this._humanProxy, id, no, source.Area ?? "[]", source.Latitude, source.Longitude);
+                await NewProfileGeography.WriteAsync(this._humanProxy, this._areaPolicy, id, no, source.Area ?? "[]", source.Latitude, source.Longitude);
             }
             catch
             {
@@ -234,7 +236,7 @@ public partial class ProfileOverviewController(
 
                 try
                 {
-                    await NewProfileGeography.WriteAsync(this._humanProxy, id, no, "[]", 0.0, 0.0);
+                    await NewProfileGeography.WriteAsync(this._humanProxy, this._areaPolicy, id, no, "[]", 0.0, 0.0);
                 }
                 catch (Exception ex)
                 {
