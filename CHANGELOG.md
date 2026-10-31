@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **PoracleNG's area limit now holds on the web too.** PoracleNG can cap how many areas a user picks and how many areas one alarm is limited to (`[tracking] max_areas`, jfberry/PoracleNG#346). It doesn't apply that cap to the trusted writes PoracleWeb.NET sends for every area change, so a user held to five areas in the bot could pick any number here. PoracleWeb.NET now reads the limit from PoracleNG and applies it itself, the same way PoracleNG does: saving areas, switching on a drawn geofence, creating, duplicating or importing a profile, adding or editing an alarm, and moving an alarm to a linked account all refuse a list over the limit with a message saying what it is. A list saved before the limit was lowered can still be saved again or made shorter, an alarm PoracleNG already holds unchanged isn't refused, and PoracleNG's admins and every destination that isn't a person (channels, threads, webhooks, groups) aren't limited. Fixing a difference between linked accounts copies the same person's list and isn't limited either. A drawn geofence created at the limit is saved but left switched off. The same change in PoracleNG stopped capping the radius on those writes (`[tracking] max_distance`), so a bulk "Change radius" could store any distance. PoracleWeb.NET now cuts it down to the limit, as PoracleNG does, with the same exemptions. Without either setting, or on a PoracleNG that doesn't publish it, nothing changes. The alarms page, PoracleNG compatibility page and troubleshooting guide describe the limits ([#1122](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/1122)).
+
+### Changed
+
+- **Address search switches itself off when PoracleNG has no geocoder.** With `[geocoding] provider` empty or `none` in PoracleNG's config, every address search and lookup can only fail, and until now the only way to stop them was for an admin to know to switch **Geocoding** off. PoracleWeb.NET now reads the provider from PoracleNG and treats it the way it treats an alarm type PoracleNG disables: the address search box and the address under the pin go away, the API refuses the geocode calls instead of passing them on, and the Geocoding toggle in **Admin → Server settings → Features** shows as forced off, with a note in all 11 languages saying to set a provider in PoracleNG. Your own setting isn't changed, so it's back in charge once a provider is set (within five minutes). PoracleJS, which doesn't report a provider, behaves as before (#1111).
+
+### Fixed
+
+- **Areas made of more than one piece now work.** A Koji area saved as a `MultiPolygon` (an island and the mainland under one name, or a fence loaded from a scanner and edited, which can turn into one) was dropped from the area feed without a word, so PoracleNG never loaded it, it wasn't in the area list, and nothing matched it. Such an area is now served in PoracleNG's `multipath` shape and appears as one area: one entry to pick, one shape on every map, its name on gyms and on the review card's overlap line whichever piece they fall in. A `MultiPolygon` region now works for region auto-detection instead of breaking it, and taking an area out of the Koji project no longer fails on one, or drops a polygon's holes. Fixes [#1117](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/1117).
+
 ## [3.5.0] - 2026-10-29
 
 ### Added

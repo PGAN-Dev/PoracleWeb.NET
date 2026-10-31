@@ -32,7 +32,7 @@ public class ProfileOverviewControllerTests : ControllerTestBase
             LinkedTestKit.Router(PairTestSupport.Unlinked().Object),
             this._jwtService.Object,
             this._roleResolver.Object,
-            Microsoft.Extensions.Logging.Abstractions.NullLogger<ProfileOverviewController>.Instance);
+            Mock.Of<Pgan.PoracleWebNet.Core.Abstractions.Services.IUserAreaPolicy>(), Microsoft.Extensions.Logging.Abstractions.NullLogger<ProfileOverviewController>.Instance);
         SetupUser(this._sut);
     }
 

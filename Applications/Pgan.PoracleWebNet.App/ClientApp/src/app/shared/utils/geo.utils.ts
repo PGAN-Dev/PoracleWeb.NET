@@ -60,18 +60,62 @@ export function polygonAreaSqKm(polygon: [number, number][]): number {
 }
 
 /**
+ * A fence as PoracleNG serves it: one `path`, or for a multi-part area one [lat, lng] ring per part in
+ * `multipath` and no `path` at all.
+ */
+export interface FenceShape {
+  multipath?: [number, number][][] | null;
+  path?: [number, number][] | null;
+}
+
+/**
+ * Every ring of a fence with at least three points: the path, then each part. PoracleNG matches a fence on all
+ * of them, so drawing and containment read the same list. See #1117.
+ */
+export function fenceRings(fence: FenceShape): [number, number][][] {
+  return [fence.path ?? [], ...(fence.multipath ?? [])].filter(ring => ring.length >= 3);
+}
+
+/** Whether a point falls inside any part of a fence. */
+export function pointInFence(point: [number, number], fence: FenceShape): boolean {
+  return fenceRings(fence).some(ring => pointInPolygon(point, ring));
+}
+
+/**
+ * The rings in the shape `L.polygon` wants. Leaflet reads `[ring, ring]` as an outline and a hole in it, so
+ * each part of a multi-part area goes in its own array; one ring stays flat.
+ */
+export function fenceLatLngs(rings: [number, number][][]): [number, number][] | [number, number][][][] {
+  return rings.length === 1 ? rings[0] : rings.map(ring => [ring]);
+}
+
+/** The part of a fence with the most area, where one point has to stand for it, or null with none. */
+export function largestRing(fence: FenceShape): [number, number][] | null {
+  let largest: [number, number][] | null = null;
+  let largestArea = -1;
+  for (const ring of fenceRings(fence)) {
+    const area = polygonAreaSqKm(ring);
+    if (area > largestArea) {
+      largest = ring;
+      largestArea = area;
+    }
+  }
+  return largest;
+}
+
+/**
  * Auto-detect which region contains a polygon's centroid.
  * @param polygon the drawn polygon coordinates
- * @param regions array of region geofences with their polygon paths
+ * @param regions array of region geofences with their path, or their parts for a multi-part region
  * @returns the matching region or null
  */
 export function detectRegion(
   polygon: [number, number][],
-  regions: { id: number; name: string; displayName: string; path: [number, number][] }[],
+  regions: (FenceShape & { displayName: string; id: number; name: string })[],
 ): { id: number; name: string; displayName: string } | null {
   const centroid = polygonCentroid(polygon);
   for (const region of regions) {
-    if (pointInPolygon(centroid, region.path)) {
+    if (pointInFence(centroid, region)) {
       return { id: region.id, name: region.name, displayName: region.displayName };
     }
   }

@@ -41,7 +41,7 @@ import {
   GeofenceDeleteDialogData,
 } from '../../../shared/components/geofence-delete-dialog/geofence-delete-dialog.component';
 import { GeofenceDetailDialogComponent } from '../../../shared/components/geofence-detail-dialog/geofence-detail-dialog.component';
-import { pointInPolygon, polygonAreaSqKm, polygonCentroid } from '../../../shared/utils/geo.utils';
+import { pointInFence, polygonAreaSqKm, polygonCentroid } from '../../../shared/utils/geo.utils';
 import { GEOFENCE_STATUS_COLORS } from '../../../shared/utils/geofence.utils';
 import { serverReason } from '../../../shared/utils/server-reason';
 
@@ -121,7 +121,7 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
       if (!g.polygon?.length) continue;
       const centre = polygonCentroid(g.polygon);
       const own = [g.kojiName, g.promotedName].filter(Boolean).map(n => n!.toLowerCase());
-      const hit = reference.find(r => r.path?.length > 2 && !own.includes(r.name.toLowerCase()) && pointInPolygon(centre, r.path));
+      const hit = reference.find(r => !own.includes(r.name.toLowerCase()) && pointInFence(centre, r));
       if (hit) result.set(g.id, hit.name);
     }
     return result;

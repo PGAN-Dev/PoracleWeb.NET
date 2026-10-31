@@ -40,6 +40,11 @@ public partial class PoracleTrackingProxy
         var translated = await this.TranslateAllAsync(type, [body]);
         var trusted = await this.AuthoriseOverrideAreasAsync(
             userId, [body], () => this.StoredOverrideAreasAsync(type, userId, uid));
+        if (trusted)
+        {
+            await this._areaPolicy.EnsureOverrideAreasWithinLimitAsync(
+                userId, [.. OverrideScope.AreasOf(body)], () => this.StoredOverrideAreasAsync(type, userId, uid));
+        }
 
         return await this.PutV2Async(type, userId, uid, translated[0], trusted);
     }
@@ -55,6 +60,12 @@ public partial class PoracleTrackingProxy
         if (uids.Count == 0)
         {
             return TrackingPatchResult.None;
+        }
+
+        // Trusted lifts PoracleNG's max_distance clamp as well (jfberry/PoracleNG#346), so it is applied here.
+        if (settings.Distance is { } distance)
+        {
+            settings = settings with { Distance = await this._areaPolicy.ClampDistanceAsync(userId, distance) };
         }
 
         var bodyText = TrackingPatchWire.Body(uids, settings);
@@ -167,6 +178,13 @@ public partial class PoracleTrackingProxy
                 LogCreateSummary(this._logger, type, LogSafe.Id(userId), rows.Count, 0, alreadyPresent, takeovers);
                 return new TrackingCreateResult([], alreadyPresent, 0, 0, rowUids, takeovers);
             }
+        }
+
+        // Only the rows about to be inserted: a row PoracleNG already holds unchanged writes nothing, so a list
+        // stored before max_areas was lowered can be re-applied. PoracleNG judges its own untrusted POST the same way.
+        foreach (var areas in keep.Select(i => OverrideScope.AreasOf(rows[i])).Where(a => a.Count > 0))
+        {
+            await this._areaPolicy.EnsureOverrideAreasWithinLimitAsync(userId, areas, storedOnRule: null);
         }
 
         var commit = await this.PostRulesAsync(type, userId, url, [.. keep.Select(i => translated[i])]);

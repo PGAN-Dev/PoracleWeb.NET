@@ -151,4 +151,62 @@ describe('AreaMapComponent initial view', () => {
 
     expect(fitBounds.mock.calls.length).toBe(callsBefore);
   });
+
+  // ── Multi-part areas (#1117) ─────────────────────────────────────────────
+  // PoracleNG serves a multi-part area as `multipath` with no `path`; the map used to skip it entirely.
+
+  /** One part in Sydney and one in London, so a fit that missed a part is easy to see. */
+  const split = (name: string): GeofenceData => ({
+    id: 9,
+    name,
+    multipath: [
+      [
+        [-33.8, 151.2],
+        [-33.8, 151.3],
+        [-33.7, 151.3],
+        [-33.7, 151.2],
+      ],
+      [
+        [51.5, -0.2],
+        [51.5, -0.1],
+        [51.6, -0.1],
+        [51.6, -0.2],
+      ],
+    ],
+  });
+
+  it('opens on every part of a selected multi-part area', () => {
+    component.geofence = [richmond('downtown'), split('islands')];
+    component.selectedAreas = ['islands'];
+    fixture.detectChanges();
+
+    const bounds = lastFitted();
+    expect(bounds.contains(L.latLng(-33.75, 151.25))).toBe(true);
+    expect(bounds.contains(L.latLng(51.55, -0.15))).toBe(true);
+  });
+
+  it('draws a multi-part area as one polygon whose parts are not holes', () => {
+    component.geofence = [split('islands')];
+    component.selectedAreas = [];
+    fixture.detectChanges();
+
+    const polygon = component['polygonByName'].get('islands');
+    expect(polygon).toBeDefined();
+    // A multi-polygon reads back as polygons of rings; [ring, ring] would be an outline and its hole.
+    const parts = polygon!.getLatLngs() as L.LatLng[][][];
+    expect(parts).toHaveLength(2);
+    expect(parts[0]).toHaveLength(1);
+    expect(parts[1]).toHaveLength(1);
+    expect(parts[1][0][0].lat).toBeCloseTo(51.5);
+  });
+
+  it('still draws an ordinary area as one ring', () => {
+    component.geofence = [richmond('downtown')];
+    component.selectedAreas = [];
+    fixture.detectChanges();
+
+    const rings = component['polygonByName'].get('downtown')!.getLatLngs() as L.LatLng[][];
+    expect(rings).toHaveLength(1);
+    expect(rings[0]).toHaveLength(4);
+  });
 });

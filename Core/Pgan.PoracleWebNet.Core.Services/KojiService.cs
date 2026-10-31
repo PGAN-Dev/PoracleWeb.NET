@@ -71,16 +71,14 @@ public partial class KojiService(HttpClient httpClient, IConfiguration configura
 
     public async Task RemoveGeofenceFromProjectAsync(string geofenceName)
     {
-        // Fetch existing polygon from Koji
-        var polygon = await this.GetGeofencePolygonAsync(geofenceName);
-        if (polygon == null || polygon.Length < 3)
+        // The geometry goes back exactly as Koji holds it. Rebuilding a Polygon from the first ring threw
+        // on a MultiPolygon and dropped a polygon's holes. See #1117.
+        var geometry = await this.GetGeofenceGeometryAsync(geofenceName);
+        if (geometry == null)
         {
             LogCannotRemoveGeofence(this._logger, geofenceName);
             return;
         }
-
-        // Convert [lat,lon] back to GeoJSON [lon,lat]
-        var coordinates = polygon.Select(p => new[] { p[1], p[0] }).ToArray();
 
         var body = new
         {
@@ -92,11 +90,7 @@ public partial class KojiService(HttpClient httpClient, IConfiguration configura
                     new
                     {
                         type = "Feature",
-                        geometry = new
-                        {
-                            type = "Polygon",
-                            coordinates = new[] { coordinates }
-                        },
+                        geometry = geometry.Value,
                         properties = new Dictionary<string, object>
                         {
                             ["__name"] = geofenceName,
@@ -156,7 +150,7 @@ public partial class KojiService(HttpClient httpClient, IConfiguration configura
             var fetchTasks = regionEntries.Select(async entry =>
             {
                 var displayName = entry.Name;
-                double[][]? polygon = null;
+                double[][][] rings = [];
                 try
                 {
                     var featureJson = await this._httpClient.GetStringAsync(
@@ -169,18 +163,10 @@ public partial class KojiService(HttpClient httpClient, IConfiguration configura
                         displayName = nameEl.GetString() ?? entry.Name;
                     }
 
-                    // Extract polygon for region detection
-                    if (feature.TryGetProperty("geometry", out var geometry) &&
-                        geometry.TryGetProperty("coordinates", out var coordinates) &&
-                        coordinates.GetArrayLength() > 0)
+                    // Outer rings for region detection: one for a Polygon, one per part of a MultiPolygon.
+                    if (feature.TryGetProperty("geometry", out var geometry))
                     {
-                        var ring = coordinates[0];
-                        polygon = new double[ring.GetArrayLength()][];
-                        for (var i = 0; i < ring.GetArrayLength(); i++)
-                        {
-                            var coord = ring[i];
-                            polygon[i] = [coord[1].GetDouble(), coord[0].GetDouble()];
-                        }
+                        rings = ReadOuterRings(geometry);
                     }
                 }
                 catch
@@ -193,7 +179,8 @@ public partial class KojiService(HttpClient httpClient, IConfiguration configura
                     Id = entry.Id,
                     Name = entry.Name,
                     DisplayName = displayName,
-                    Polygon = polygon
+                    Polygon = rings.Length == 1 ? rings[0] : null,
+                    Multipath = rings.Length > 1 ? rings : null,
                 };
             });
 
@@ -275,12 +262,9 @@ public partial class KojiService(HttpClient httpClient, IConfiguration configura
 
     public async Task PromoteGeofenceAsync(string currentName, string? newName, string displayName, string group, int parentId)
     {
-        // Fetch existing polygon from Koji
-        var polygon = await this.GetGeofencePolygonAsync(currentName)
+        // Sent back as Koji holds it, for the same reason as RemoveGeofenceFromProjectAsync.
+        var geometry = await this.GetGeofenceGeometryAsync(currentName)
             ?? throw new InvalidOperationException($"Geofence '{currentName}' not found in Koji");
-
-        // Convert [lat,lon] back to GeoJSON [lon,lat]
-        var geoJsonCoords = polygon.Select(p => new[] { p[1], p[0] }).ToArray();
 
         var targetName = newName ?? currentName;
 
@@ -294,11 +278,7 @@ public partial class KojiService(HttpClient httpClient, IConfiguration configura
                     new
                     {
                         type = "Feature",
-                        geometry = new
-                        {
-                            type = "Polygon",
-                            coordinates = new[] { geoJsonCoords }
-                        },
+                        geometry,
                         properties = new Dictionary<string, object?>
                         {
                             ["__name"] = targetName,
@@ -332,33 +312,89 @@ public partial class KojiService(HttpClient httpClient, IConfiguration configura
         LogGeofencePromoted(this._logger, currentName, targetName, displayName, group);
     }
 
-    public async Task<double[][]?> GetGeofencePolygonAsync(string geofenceName)
+    /// <summary>
+    /// The area's GeoJSON geometry exactly as Koji holds it, or null when Koji has no such area or holds
+    /// something other than a Polygon or MultiPolygon.
+    /// </summary>
+    private async Task<JsonElement?> GetGeofenceGeometryAsync(string geofenceName)
     {
         try
         {
             var featureJson = await this._httpClient.GetStringAsync(
                 $"{this._apiAddress}/api/v1/geofence/area/{Uri.EscapeDataString(geofenceName)}?rt=feature");
             using var featureDoc = JsonDocument.Parse(featureJson);
-            var feature = featureDoc.RootElement.GetProperty("data");
-            var geometry = feature.GetProperty("geometry");
-            var coordinates = geometry.GetProperty("coordinates");
-            var ring = coordinates[0]; // First ring of polygon
-
-            var polygon = new double[ring.GetArrayLength()][];
-            for (var i = 0; i < ring.GetArrayLength(); i++)
+            if (featureDoc.RootElement.TryGetProperty("data", out var feature)
+                && feature.ValueKind == JsonValueKind.Object
+                && feature.TryGetProperty("geometry", out var geometry)
+                && ReadOuterRings(geometry).Length > 0)
             {
-                var coord = ring[i];
-                // GeoJSON is [lon, lat], convert to [lat, lon]
-                polygon[i] = [coord[1].GetDouble(), coord[0].GetDouble()];
+                return geometry.Clone();
             }
 
-            return polygon;
+            return null;
         }
         catch (HttpRequestException ex)
         {
             LogGeofenceNotFoundInKoji(this._logger, ex, geofenceName);
             return null;
         }
+    }
+
+    /// <summary>
+    /// The outer ring of a GeoJSON Polygon, or of each part of a MultiPolygon, as [lat,lon] rings of three or
+    /// more points. Holes are left out: these rings serve containment and drawing, where a hole was never
+    /// honoured. Anything else (a Point, a malformed coordinate list) yields no rings.
+    /// </summary>
+    private static double[][][] ReadOuterRings(JsonElement geometry)
+    {
+        if (geometry.ValueKind != JsonValueKind.Object
+            || !geometry.TryGetProperty("type", out var typeEl)
+            || typeEl.ValueKind != JsonValueKind.String
+            || !geometry.TryGetProperty("coordinates", out var coordinates)
+            || coordinates.ValueKind != JsonValueKind.Array)
+        {
+            return [];
+        }
+
+        IEnumerable<JsonElement> polygons = typeEl.GetString() switch
+        {
+            "Polygon" => [coordinates],
+            "MultiPolygon" => coordinates.EnumerateArray(),
+            _ => [],
+        };
+
+        return [.. polygons
+            .Where(p => p.ValueKind == JsonValueKind.Array && p.GetArrayLength() > 0)
+            .Select(p => ReadRing(p[0], lonFirst: true))
+            .Where(ring => ring.Length >= 3)];
+    }
+
+    /// <summary>
+    /// Reads a ring of coordinate pairs into [lat,lon] points, skipping any entry that is not a pair of
+    /// numbers. GeoJSON is [lon,lat]; Koji's Poracle export is already [lat,lon].
+    /// </summary>
+    private static double[][] ReadRing(JsonElement ring, bool lonFirst)
+    {
+        if (ring.ValueKind != JsonValueKind.Array)
+        {
+            return [];
+        }
+
+        var points = new List<double[]>(ring.GetArrayLength());
+        foreach (var point in ring.EnumerateArray())
+        {
+            if (point.ValueKind == JsonValueKind.Array
+                && point.GetArrayLength() >= 2
+                && point[0].ValueKind == JsonValueKind.Number
+                && point[1].ValueKind == JsonValueKind.Number
+                && point[0].TryGetDouble(out var first)
+                && point[1].TryGetDouble(out var second))
+            {
+                points.Add(lonFirst ? [second, first] : [first, second]);
+            }
+        }
+
+        return [.. points];
     }
 
     public async Task<List<AdminGeofence>> GetAdminGeofencesAsync()
@@ -501,22 +537,22 @@ public partial class KojiService(HttpClient httpClient, IConfiguration configura
                 continue;
             }
 
-            // Extract path (Koji Poracle format returns path as [[lat,lon],...])
-            double[][] path = [];
-            if (item.TryGetProperty("path", out var pathEl) && pathEl.ValueKind == JsonValueKind.Array)
+            // Koji's Poracle format is [[lat,lon],...] in `path`, or for a MultiPolygon one such ring per part
+            // in `multipath` beside an empty `path`. Every usable ring counts, as PoracleNG's own index does
+            // for a fence carrying both. See #1117.
+            var rings = new List<double[][]>();
+            if (item.TryGetProperty("path", out var pathEl))
             {
-                path = new double[pathEl.GetArrayLength()][];
-                for (var i = 0; i < pathEl.GetArrayLength(); i++)
-                {
-                    var point = pathEl[i];
-                    if (point.ValueKind == JsonValueKind.Array && point.GetArrayLength() >= 2)
-                    {
-                        path[i] = [point[0].GetDouble(), point[1].GetDouble()];
-                    }
-                }
+                rings.Add(ReadRing(pathEl, lonFirst: false));
             }
 
-            if (path.Length < 3)
+            if (item.TryGetProperty("multipath", out var multipathEl) && multipathEl.ValueKind == JsonValueKind.Array)
+            {
+                rings.AddRange(multipathEl.EnumerateArray().Select(ring => ReadRing(ring, lonFirst: false)));
+            }
+
+            rings.RemoveAll(ring => ring.Length < 3);
+            if (rings.Count == 0)
             {
                 continue;
             }
@@ -543,13 +579,16 @@ public partial class KojiService(HttpClient httpClient, IConfiguration configura
             var kojiDisplayInMatches = !item.TryGetProperty("displayInMatches", out var dimEl)
                 || dimEl.ValueKind != JsonValueKind.False;
 
-            var bbox = GeometryHelpers.BoundingBox.FromPolygon(path);
+            // One ring is an ordinary area whatever key it came in; more are parts. Never both keys, because
+            // the feed sends what this holds and PoracleJS reads `path` first even when it is empty.
+            var bbox = GeometryHelpers.BoundingBox.FromPolygon([.. rings.SelectMany(ring => ring)]);
             adminGeofences.Add(new AdminGeofence
             {
                 Id = ++geofenceId,
                 Name = name,
                 Group = group,
-                Path = path,
+                Path = rings.Count == 1 ? rings[0] : [],
+                Multipath = rings.Count > 1 ? [.. rings] : null,
                 UserSelectable = kojiSelectable,
                 DisplayInMatches = kojiDisplayInMatches,
                 Description = description,

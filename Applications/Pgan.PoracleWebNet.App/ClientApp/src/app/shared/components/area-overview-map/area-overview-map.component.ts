@@ -3,6 +3,7 @@ import * as L from 'leaflet';
 
 import { GeofenceData } from '../../../core/models';
 import { BasemapService } from '../../../core/services/basemap.service';
+import { fenceLatLngs, fenceRings } from '../../utils/geo.utils';
 
 const AREA_COLORS = ['#43a047', '#1e88e5', '#e53935', '#fb8c00', '#8e24aa', '#00acc1', '#f4511e', '#3949ab', '#7cb342', '#d81b60'];
 
@@ -74,16 +75,15 @@ export class AreaOverviewMapComponent implements AfterViewInit, OnDestroy {
     this.polygonLayer.clearLayers();
 
     const selected = new Set(this.selectedAreas().map(a => a.toLowerCase()));
-    const matching = this.geofence().filter(g => selected.has(g.name.toLowerCase()) && g.path?.length >= 3);
+    const matching = this.geofence().filter(g => selected.has(g.name.toLowerCase()) && fenceRings(g).length > 0);
 
     if (matching.length === 0) return;
 
     const bounds = L.latLngBounds([]);
 
     matching.forEach((g, i) => {
-      const latlngs = g.path.map(([lat, lon]) => L.latLng(lat, lon));
       const color = AREA_COLORS[i % AREA_COLORS.length];
-      const polygon = L.polygon(latlngs, {
+      const polygon = L.polygon(fenceLatLngs(fenceRings(g)), {
         color,
         fillColor: color,
         fillOpacity: 0.25,

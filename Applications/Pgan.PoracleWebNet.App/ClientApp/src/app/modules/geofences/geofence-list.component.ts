@@ -47,7 +47,7 @@ import {
   GeoJsonImportDialogData,
 } from '../../shared/components/geojson-import-dialog/geojson-import-dialog.component';
 import { RegionOption } from '../../shared/components/region-selector/region-selector.component';
-import { detectRegion } from '../../shared/utils/geo.utils';
+import { detectRegion, fenceRings } from '../../shared/utils/geo.utils';
 import { pinOrNull } from '../../shared/utils/location.utils';
 import { serverReason } from '../../shared/utils/server-reason';
 
@@ -135,8 +135,8 @@ export class GeofenceListComponent implements OnInit {
   /** Build region data for auto-detection from region polygons */
   readonly regionDetectionData = computed(() => {
     return this.geofenceRegions()
-      .filter(r => r.polygon && r.polygon.length > 0)
-      .map(r => ({ id: r.id, name: r.name, displayName: r.displayName, path: r.polygon! }));
+      .map(r => ({ id: r.id, name: r.name, displayName: r.displayName, multipath: r.multipath, path: r.polygon }))
+      .filter(r => fenceRings(r).length > 0);
   });
 
   readonly savingGeofence = signal(false);

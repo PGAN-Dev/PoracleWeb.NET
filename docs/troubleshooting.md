@@ -111,9 +111,9 @@ Older releases required Discord and stopped with `Configuration 'Discord:ClientI
 
 **Problem**: Users see "The server is temporarily unavailable" when they open the Dashboard (and sometimes Areas), but their alarms load and save normally. In the browser's dev tools (F12 → Network), the failing request is `/api/location/reverse` with status 503.
 
-**Cause**: The Dashboard looks up the street address for the user's location pin through PoracleNG's geocoder. When PoracleNG returns no address, the API answers 503, and releases up to 3.4.0 showed that as an outage. With no geocoder configured (`[geocoding] provider = "none"`) or `forward_only = true`, this happens on every load; a slow or rate-limited provider causes it now and then. Fixed in the release after 3.4.0, where a missing address just leaves the coordinates showing (#1110).
+**Cause**: The Dashboard looks up the street address for the user's location pin through PoracleNG's geocoder. When PoracleNG returns no address, the API answers 503, and releases before 3.5.0 showed that as an outage. With no geocoder configured (`[geocoding] provider = "none"`) or `forward_only = true`, this happens on every load; a slow or rate-limited provider causes it now and then. Fixed in 3.5.0, where a missing address just leaves the coordinates showing (#1110).
 
-**Fix**: If PoracleNG has no geocoder, go to **Admin → Server settings → Features** and switch **Geocoding** off. Address search and lookups can't work without one, and the pin still shows its coordinates. If you do have a geocoder, check PoracleNG's logs for provider errors or rate limits.
+**Fix**: From 3.6.0, a PoracleNG with no geocoder switches **Geocoding** off by itself: the address search and lookups disappear, the toggle in **Admin → Server settings → Features** shows as forced off by Poracle, and the pin still shows its coordinates (#1111). On an older release, switch **Geocoding** off there by hand. `forward_only` isn't reported by PoracleNG, so under it the search stays and the lookups fail quietly. If you do have a geocoder, check PoracleNG's logs for provider errors or rate limits.
 
 If the failing request is anything else, such as `/api/dashboard` or an alarm list, see [PoracleNG unreachable](#poracleng-unreachable-alarm-operations-fail) above.
 
@@ -260,11 +260,19 @@ leaves a hidden area only by removing it themselves. If you need people off an a
 
 ---
 
+## "You can select at most N areas"
+
+**Problem**: Saving areas, switching on a geofence, or saving an alarm limited to specific areas answers "You can select at most N areas" or "An alarm can be limited to at most N areas", and a bulk **Change radius** stores less than was asked for.
+
+**Solution**: That's PoracleNG's `[tracking] max_areas` and `max_distance`, which PoracleWeb.NET applies itself because the writes it sends skip PoracleNG's own check. Raise or remove the settings in PoracleNG's config (0 or absent means no limit) and restart PoracleNG; PoracleWeb.NET reads the values on every save, so nothing on its side needs restarting. A list stored before the limit was lowered can still be saved again or made shorter. PoracleNG's admins and destinations that aren't people are not limited. See [PoracleNG compatibility](architecture/poracleng-compatibility.md).
+
+---
+
 ## A geofence saved but not switched on
 
 **Problem**: After drawing a geofence the user sees "Saved, but it couldn't be switched on yet. Use the toggle to retry."
 
-**Solution**: The geofence row is saved and PoracleNG then refused or missed the name on the user's profile, most often because PoracleNG was unreachable or hadn't reloaded its geofences yet. The user flips the toggle on the Geofences page to retry (it reloads PoracleNG's geofences and retries once; a second failure answers a 409). Check that PoracleNG is up and that `geofence.path` points at `/api/geofence-feed`. See also [Custom geofences troubleshooting](features/custom-geofences/troubleshooting.md#a-geofence-saved-but-not-switched-on).
+**Solution**: The geofence row is saved and PoracleNG then refused or missed the name on the user's profile, most often because PoracleNG was unreachable or hadn't reloaded its geofences yet, or because the profile was already at PoracleNG's `max_areas` (see above). The user flips the toggle on the Geofences page to retry (it reloads PoracleNG's geofences and retries once; a second failure answers a 409). Check that PoracleNG is up and that `geofence.path` points at `/api/geofence-feed`. See also [Custom geofences troubleshooting](features/custom-geofences/troubleshooting.md#a-geofence-saved-but-not-switched-on).
 
 ---
 
