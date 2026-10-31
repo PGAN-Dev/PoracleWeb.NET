@@ -45,14 +45,14 @@ sequenceDiagram
     end
 ```
 
-The `...` is `/api/v2/humans/{id}`. PoracleNG's trusted area write refuses a name it hasn't loaded, so the reload has to come first; posting the name first left every new fence inactive (#937). A reload can answer ok while PoracleNG keeps its old list because it couldn't reach the feed, which is why a rejected name is reported rather than assumed away. With `disable_areas` on, the fence is created inactive and nothing is attempted.
+The `...` is `/api/v2/humans/{id}`. PoracleNG's trusted area write refuses a name it hasn't loaded, so the reload has to come first; posting the name first left every new fence inactive (#937). A reload can answer ok while PoracleNG keeps its old list because it couldn't reach the feed, which is why a rejected name is reported rather than assumed away. With `disable_areas` on, the fence is created inactive and nothing is attempted. A user already at PoracleNG's `[tracking] max_areas` gets the same message, because the new fence would be one area too many; their toggle then answers "You can select at most N areas. Remove one before adding another." rather than a conflict.
 
-**Fix:** have the user flip the toggle on the Geofences page. It retries once on its own. If it still fails, it answers a conflict error; check that PoracleNG is up and that it reads the combined feed (see the list above), then try again.
+**Fix:** if the user is at the area limit, have them drop an area or switch another geofence off first. Otherwise have the user flip the toggle on the Geofences page. It retries once on its own. If it still fails, it answers a conflict error; check that PoracleNG is up and that it reads the combined feed (see the list above), then try again.
 
 ## Public (approved) geofences aren't showing up
 
 1. **Wait up to 5 minutes, or force a refresh.** PoracleWeb.NET caches the Koji public list for 5 minutes. An approval clears that cache immediately, but a change made **directly in the Koji UI** won't be picked up until the cache expires — or until you call [`POST /api/geofence-feed/refresh`](koji-and-regions.md#forcing-a-refresh-after-a-change-in-koji).
-2. Check the Koji connection.** Wrong `KOJI_API_ADDRESS`, a bad `KOJI_BEARER_TOKEN`, or the wrong `KOJI_PROJECT_NAME` means PoracleWeb.NET can't read the public list. Remember the token is read **at startup. Restart after changing it.
+2. **Check the Koji connection.** Wrong `KOJI_API_ADDRESS`, a bad `KOJI_BEARER_TOKEN`, or the wrong `KOJI_PROJECT_NAME` means PoracleWeb.NET can't read the public list. Remember the token is read **at startup**. Restart after changing it.
 3. **Is it actually in the project?** A geofence must belong to your `KOJI_PROJECT_ID` to appear. Parent/region geofences are intentionally excluded (they're folders, not selectable areas).
 
 ## Koji is down — what happens?

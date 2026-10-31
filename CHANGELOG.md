@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Help and the docs cover 3.6.0's limits.** In-app Help, in all 11 languages, now says a community can cap how many areas you select and how far a radius reaches, and that a missing address search box can also mean the server has no geocoder. The profiles, drawn geofences and linked accounts pages say how the area limit applies to a new or duplicated profile, a geofence switched on at the cap, and an alarm moved to the other app.
+
 ## [3.6.0] - 2026-10-31
 
 ### Added
