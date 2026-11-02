@@ -188,7 +188,7 @@ public partial class SettingsController(
             clientId = MaskValue(this._discordSettings.ClientId),
             clientSecret = MaskSecret(this._discordSettings.ClientSecret),
             botToken = MaskSecret(this._discordSettings.BotToken),
-            guildId = MaskValue(this._discordSettings.GuildId),
+            guildId = MaskEach(this._discordSettings.GuildId),
             geofenceForumChannelId = MaskValue(this._discordSettings.GeofenceForumChannelId),
             adminIds = MaskValue(this._poracleSettings.AdminIds),
         });
@@ -629,6 +629,15 @@ public partial class SettingsController(
     /// Masks a non-secret value: shows first 4 and last 4 characters.
     /// Returns empty string if not configured.
     /// </summary>
+    /// <summary>
+    /// Masks each entry of a comma-separated list on its own, so several Discord guild IDs still read
+    /// as several. A single value is masked exactly as <see cref="MaskValue"/> does.
+    /// </summary>
+    private static string MaskEach(string? value) =>
+        string.IsNullOrWhiteSpace(value)
+            ? string.Empty
+            : string.Join(", ", value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(MaskValue));
+
     private static string MaskValue(string? value)
     {
         if (string.IsNullOrEmpty(value))

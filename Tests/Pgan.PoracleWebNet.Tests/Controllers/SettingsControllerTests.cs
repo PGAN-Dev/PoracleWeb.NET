@@ -643,6 +643,34 @@ public class SettingsControllerTests : ControllerTestBase
         Assert.DoesNotContain("MTIzNDU2Nzg5.GhijKl.abcdefghijklmnop", json);
     }
 
+    // DISCORD_GUILD_ID can list several guilds. Masking the joined string as one value showed a single
+    // blob, so the card couldn't say how many guilds were configured; each ID is masked on its own.
+    [Fact]
+    public void GetDiscordConfigMasksEachGuildIdSeparately()
+    {
+        var controller = this.CreateController(
+            new DiscordSettings { GuildId = "400000000000000011, 400000000000000012" },
+            new PoracleSettings());
+        SetupUser(controller, isAdmin: true);
+
+        var json = System.Text.Json.JsonSerializer.Serialize(Assert.IsType<OkObjectResult>(controller.GetDiscordConfig()).Value);
+        using var doc = System.Text.Json.JsonDocument.Parse(json);
+
+        Assert.Equal("4000••••••••••0011, 4000••••••••••0012", doc.RootElement.GetProperty("guildId").GetString());
+    }
+
+    [Fact]
+    public void GetDiscordConfigMasksASingleGuildIdAsBefore()
+    {
+        var controller = this.CreateController(new DiscordSettings { GuildId = "400000000000000011" }, new PoracleSettings());
+        SetupUser(controller, isAdmin: true);
+
+        var json = System.Text.Json.JsonSerializer.Serialize(Assert.IsType<OkObjectResult>(controller.GetDiscordConfig()).Value);
+        using var doc = System.Text.Json.JsonDocument.Parse(json);
+
+        Assert.Equal("4000••••••••••0011", doc.RootElement.GetProperty("guildId").GetString());
+    }
+
     [Fact]
     public void GetDiscordConfigReturnsForbidForNonAdmin()
     {
