@@ -197,6 +197,8 @@ This was a v1 problem. PoracleNG's v1 create read `uid=0` as an update target, a
 
 **Fix**: Correct the ID (right-click the server icon > **Copy Server ID** with Developer Mode on), or invite the bot back, then recreate the container so `.env` is reread. With several guilds listed, the others keep working meanwhile.
 
+If everyone is refused with `role_check_failed` instead, and the log says `DISCORD_GUILD_ID is set but contains no usable Discord guild IDs`, the IDs aren't comma-separated (a space or semicolon between them reads as one bad entry) or the value isn't an ID at all. The `Ignoring DISCORD_GUILD_ID entries` warning names each entry that was skipped.
+
 ---
 
 ## Discord API calls failing

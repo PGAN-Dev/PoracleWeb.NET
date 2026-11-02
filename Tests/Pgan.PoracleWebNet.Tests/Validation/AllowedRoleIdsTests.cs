@@ -109,23 +109,34 @@ public class AllowedRoleIdsTests
 
     [Fact]
     public void ParsesSingleGuildId() =>
-        Assert.Equal(["400000000000000011"], AuthController.ParseGuildIds("400000000000000011"));
+        Assert.Equal(["400000000000000011"], AuthController.ParseGuildIds("400000000000000011").GuildIds);
 
     // A community spread over several Discord servers lists them all; a role in any one is enough.
     [Fact]
     public void ParsesSeveralGuildIdsInOrder()
     {
-        var guildIds = AuthController.ParseGuildIds(" 400000000000000012, 400000000000000011 ,\"400000000000000013\"");
+        var (guildIds, invalidEntries) = AuthController.ParseGuildIds(" 400000000000000012, 400000000000000011 ,\"400000000000000013\"");
 
         Assert.Equal(["400000000000000012", "400000000000000011", "400000000000000013"], guildIds);
+        Assert.Empty(invalidEntries);
     }
 
     [Fact]
     public void DropsInvalidAndRepeatedGuildIds()
     {
-        var guildIds = AuthController.ParseGuildIds("123456789,my-server,123456789,,987654321");
+        var (guildIds, _) = AuthController.ParseGuildIds("123456789,my-server,123456789,,987654321");
 
         Assert.Equal(["123456789", "987654321"], guildIds);
+    }
+
+    // A dropped entry is reported so it can be logged: a typo in a list shouldn't vanish without a word.
+    // A repeat is harmless and isn't reported.
+    [Fact]
+    public void ReportsGuildIdEntriesThatAreNotSnowflakes()
+    {
+        var (_, invalidEntries) = AuthController.ParseGuildIds("123456789,my-server,123456789,400000000000000011;400000000000000012");
+
+        Assert.Equal(["my-server", "400000000000000011;400000000000000012"], invalidEntries);
     }
 
     [Theory]
@@ -134,7 +145,7 @@ public class AllowedRoleIdsTests
     [InlineData("  ")]
     [InlineData(",,")]
     public void YieldsNoGuildIdsForEmptyValues(string? value) =>
-        Assert.Empty(AuthController.ParseGuildIds(value));
+        Assert.Empty(AuthController.ParseGuildIds(value).GuildIds);
 
     [Theory]
     [InlineData(false, false, "not_in_guild")]

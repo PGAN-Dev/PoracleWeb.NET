@@ -1144,12 +1144,26 @@ public partial class AuthController(
                 return "role_check_failed";
             }
 
-            // Need bot token and at least one guild ID to check roles
-            var guildIds = ParseGuildIds(this._discordSettings.GuildId);
-            if (string.IsNullOrEmpty(this._discordSettings.BotToken) || guildIds.Count == 0)
+            // Need bot token and a guild ID to check roles
+            if (string.IsNullOrEmpty(this._discordSettings.BotToken) || string.IsNullOrEmpty(this._discordSettings.GuildId))
             {
                 LogRoleMisconfigured(this._logger);
                 return null; // Misconfigured, fail open
+            }
+
+            var (guildIds, invalidGuildEntries) = ParseGuildIds(this._discordSettings.GuildId);
+            if (invalidGuildEntries.Count > 0)
+            {
+                LogGuildIdsIgnored(this._logger, string.Join(", ", invalidGuildEntries));
+            }
+
+            if (guildIds.Count == 0)
+            {
+                // DISCORD_GUILD_ID is set but nothing in it is a guild ID (a space or semicolon where a
+                // comma belongs, a server name, a URL). Fail closed: treating this as "not configured"
+                // would silently disable the gate, as with an unusable allowed_role_ids above.
+                LogGuildIdsUnusable(this._logger);
+                return "role_check_failed";
             }
 
             // Fetch the user's member data in each configured guild via the bot API. One allowed role
@@ -1295,27 +1309,37 @@ public partial class AuthController(
     /// <summary>
     /// Parses <c>Discord:GuildId</c> into the guilds whose roles are checked. It accepts one guild ID
     /// or several, comma-separated, so a community spread over more than one Discord server can gate
-    /// sign-in on a role held in any of them. Order is kept (guilds are asked in that order) and
-    /// entries that are not snowflakes are dropped.
+    /// sign-in on a role held in any of them. Order is kept (guilds are asked in that order), repeats
+    /// are dropped, and entries that are not snowflakes are reported separately so they can be logged.
     /// </summary>
-    internal static List<string> ParseGuildIds(string? value)
+    internal static (List<string> GuildIds, List<string> InvalidEntries) ParseGuildIds(string? value)
     {
         var guildIds = new List<string>();
+        var invalidEntries = new List<string>();
         if (string.IsNullOrWhiteSpace(value))
         {
-            return guildIds;
+            return (guildIds, invalidEntries);
         }
 
         foreach (var entry in value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
         {
             var trimmed = entry.Trim(RoleIdTrimChars);
-            if (trimmed.Length > 0 && trimmed.All(char.IsAsciiDigit) && !guildIds.Contains(trimmed))
+            if (trimmed.Length == 0)
+            {
+                continue;
+            }
+
+            if (!trimmed.All(char.IsAsciiDigit))
+            {
+                invalidEntries.Add(trimmed);
+            }
+            else if (!guildIds.Contains(trimmed))
             {
                 guildIds.Add(trimmed);
             }
         }
 
-        return guildIds;
+        return (guildIds, invalidEntries);
     }
 
     /// <summary>
@@ -1575,6 +1599,12 @@ public partial class AuthController(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "User {UserId} denied: has none of the allowed roles.")]
     private static partial void LogRoleDenied(ILogger logger, string userId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Ignoring DISCORD_GUILD_ID entries that are not Discord guild IDs (separate several with commas): {Entries}")]
+    private static partial void LogGuildIdsIgnored(ILogger logger, string entries);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "DISCORD_GUILD_ID is set but contains no usable Discord guild IDs; denying non-admin logins.")]
+    private static partial void LogGuildIdsUnusable(ILogger logger);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Ignoring allowed_role_ids entries that are not Discord role IDs: {Entries}")]
     private static partial void LogRoleIdsIgnored(ILogger logger, string entries);

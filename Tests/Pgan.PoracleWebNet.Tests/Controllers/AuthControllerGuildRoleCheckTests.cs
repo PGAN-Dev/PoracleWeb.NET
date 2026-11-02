@@ -236,6 +236,47 @@ public class AuthControllerGuildRoleCheckTests
         Assert.Equal("not_in_guild", await this.Create(GuildA, discord).CheckRoleAccessAsync(DiscordId));
     }
 
+    // DISCORD_GUILD_ID is set but nothing in it is a guild ID: a space or semicolon instead of a comma,
+    // a server name, a channel URL. Failing open here would switch the gate off for every non-admin, so
+    // it fails closed without asking Discord, as an unusable allowed_role_ids does.
+    [Theory]
+    [InlineData("my-server")]
+    [InlineData("400000000000000001 400000000000000002")]
+    [InlineData("400000000000000001;400000000000000002")]
+    [InlineData("https://discord.com/channels/400000000000000001")]
+    [InlineData(",,")]
+    public async Task UnusableGuildIdFailsClosed(string guildIds)
+    {
+        var discord = new StubGuilds([]);
+
+        Assert.Equal("role_check_failed", await this.Create(guildIds, discord).CheckRoleAccessAsync(DiscordId));
+        Assert.Empty(discord.Asked);
+        Assert.Contains(this._logger.Entries, e => e.Level >= LogLevel.Warning && e.Message.Contains("DISCORD_GUILD_ID", StringComparison.Ordinal));
+    }
+
+    // Unset is still "not configured", which has always let everyone in.
+    [Fact]
+    public async Task UnsetGuildIdStillFailsOpen()
+    {
+        var discord = new StubGuilds([]);
+
+        Assert.Null(await this.Create(string.Empty, discord).CheckRoleAccessAsync(DiscordId));
+        Assert.Empty(discord.Asked);
+    }
+
+    // In a mixed list the bad entry is named, and the good ones are still checked.
+    [Fact]
+    public async Task BadEntryInAListIsNamedAndTheRestAreChecked()
+    {
+        var discord = new StubGuilds(new() { [GuildB] = Member(AllowedRole) });
+
+        Assert.Null(await this.Create($"my-server,{GuildB}", discord).CheckRoleAccessAsync(DiscordId));
+        Assert.Equal([GuildB], discord.Asked);
+        var warning = Assert.Single(this.Warnings);
+        Assert.Contains("my-server", warning, StringComparison.Ordinal);
+        Assert.Contains("DISCORD_GUILD_ID", warning, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData(UnknownGuild, true)]
     [InlineData(UnknownMember, false)]
