@@ -213,7 +213,7 @@ message.
 | `oidc_userinfo_failed` | The `/userinfo` call failed or returned no usable body. |
 | `oidc_no_identity` | None of `OIDC_IDENTITY_CLAIM`, `OIDC_SECONDARY_IDENTITY_CLAIM` (when set) or the fallback `sub` claim was present in userinfo. |
 | `user_not_registered` | The identity claim resolved, but no matching Poracle `human` exists. Register the user in Poracle first (the [inherent constraint](#external-sso-openid-connect-login)). |
-| `not_in_guild` | Role gating reused from the Discord path: the (Discord) user isn't in the configured guild. |
+| `not_in_guild` | Role gating reused from the Discord path: the (Discord) user isn't in any of the configured guilds. |
 | `missing_required_role` | Role gating: the user has none of the allowed roles. |
 | `role_check_failed` | Role gating: the role check itself errored, or `allowed_role_ids` is set but holds no usable role IDs. |
 

@@ -55,6 +55,13 @@ You're asked for a name, pre-filled as "<source name> (Copy)". Every alarm filte
     geography, so it starts alerting immediately. Change the areas afterwards if that is not what you
     wanted.
 
+!!! note "Area limit"
+    When PoracleNG caps how many areas a user can pick (`[tracking] max_areas`), a new or duplicated profile is
+    held to that cap as a fresh list. One over it is refused with "You can select at most N areas. Remove one
+    before adding another.", and the half-made profile is deleted, so nothing is left behind. A profile already
+    over a lowered cap keeps its areas, but they can't be copied into another one, which is PoracleNG's own rule.
+    Admins and destinations that aren't a person aren't limited. See [Alarms](alarms.md) for the per-alarm cap.
+
 ## Profile Export & Import
 
 ### Export

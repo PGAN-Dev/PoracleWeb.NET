@@ -99,7 +99,7 @@ A move is refused, with nothing changed, when:
 |---|---|
 | Discord and Telegram are on different profiles | Switch one app's active profile to match, then move again. The Linked accounts page offers this as a difference to fix |
 | The place "Home" isn't saved on Telegram | Save that place on the other app first, or match saved places on Linked accounts |
-| It's limited to an area Telegram can't use | Change the alarm's areas, then move it |
+| It's limited to an area Telegram can't use | Change the alarm's areas, then move it. The same message covers an alarm limited to more areas than PoracleNG's `[tracking] max_areas` allows the other account: a moved alarm is a new one there, so it's held to the cap even if this copy was saved before the cap was lowered |
 | Telegram already has an alarm like it | Telegram has an alarm that differs from this one only in its radius, template or clean setting. Edit or delete one of them, then move again. An identical alarm isn't refused: the move counts it as done and removes this copy |
 | Telegram isn't set up yet | The other side is still waiting to register |
 | Alerts can't be moved while inspecting another account | An admin viewing as you can't move your alarms |
