@@ -106,6 +106,8 @@ public class AuthControllerGuildRoleCheckTests
         Assert.Equal("missing_required_role", await this.Create(GuildA, discord).CheckRoleAccessAsync(DiscordId));
     }
 
+    // "Not a member" of one guild is routine with several listed, so it isn't a Warning. The refusal
+    // itself still gets one line at the default level, as the old per-guild Warning gave it.
     [Fact]
     public async Task SingleGuildTheUserIsNotInIsNotInGuild()
     {
@@ -113,6 +115,7 @@ public class AuthControllerGuildRoleCheckTests
 
         Assert.Equal("not_in_guild", await this.Create(GuildA, discord).CheckRoleAccessAsync(DiscordId));
         Assert.Empty(this.Warnings);
+        Assert.Single(this._logger.Entries, e => e.Level == LogLevel.Information && e.Message.Contains("not a member of any", StringComparison.Ordinal));
     }
 
     // The case several guilds exist for: a member only of the second guild is let in through it.

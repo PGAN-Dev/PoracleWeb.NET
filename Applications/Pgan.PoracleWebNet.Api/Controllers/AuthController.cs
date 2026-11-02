@@ -1257,6 +1257,13 @@ public partial class AuthController(
             {
                 LogRoleDenied(this._logger, LogSafe.Id(discordId));
             }
+            else if (denial == "not_in_guild" && this._logger.IsEnabled(LogLevel.Information))
+            {
+                // The per-guild "not a member" line is Debug, so this is the one line explaining the refusal.
+#pragma warning disable CA1873 // args are only evaluated inside IsEnabled guard
+                LogRoleDeniedNotInGuild(this._logger, LogSafe.Id(discordId));
+#pragma warning restore CA1873
+            }
 
             return denial;
         }
@@ -1599,6 +1606,9 @@ public partial class AuthController(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "User {UserId} denied: has none of the allowed roles.")]
     private static partial void LogRoleDenied(ILogger logger, string userId);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "User {UserId} denied: not a member of any guild in DISCORD_GUILD_ID.")]
+    private static partial void LogRoleDeniedNotInGuild(ILogger logger, string userId);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Ignoring DISCORD_GUILD_ID entries that are not Discord guild IDs (separate several with commas): {Entries}")]
     private static partial void LogGuildIdsIgnored(ILogger logger, string entries);
