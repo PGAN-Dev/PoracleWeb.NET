@@ -1,0 +1,3364 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Web application for managing Poracle Pokemon GO notification alarms">
+      
+      
+      
+        <link rel="canonical" href="https://pgan-dev.github.io/PoracleWeb.NET/architecture/linked-accounts/">
+      
+      
+        <link rel="prev" href="../database/">
+      
+      
+        <link rel="next" href="../../features/alarms/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+    
+    
+      
+        <title>Linked Accounts - PoracleWeb.NET</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="cyan">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#linked-accounts" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="PoracleWeb.NET" class="md-header__button md-logo" aria-label="PoracleWeb.NET" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            PoracleWeb.NET
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Linked Accounts
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="cyan"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="blue" data-md-color-accent="cyan"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/PGAN-Dev/PoracleWeb.NET" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    PGAN-Dev/PoracleWeb.NET
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/quick-start/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../configuration/reference/" class="md-tabs__link">
+          
+  
+  
+  Configuration
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../overview/" class="md-tabs__link">
+          
+  
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../features/alarms/" class="md-tabs__link">
+          
+  
+  
+  Features
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../development/testing/" class="md-tabs__link">
+          
+  
+  
+  Development
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../troubleshooting/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Troubleshooting
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../poracleng-enhancement-requests/" class="md-tabs__link">
+          
+  
+  
+  Upstream history
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="PoracleWeb.NET" class="md-nav__button md-logo" aria-label="PoracleWeb.NET" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    PoracleWeb.NET
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/PGAN-Dev/PoracleWeb.NET" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    PGAN-Dev/PoracleWeb.NET
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/quick-start/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start (Docker)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/standalone-setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Standalone Setup (no Docker)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/development-setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/discord-oauth/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Discord OAuth2
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/upgrading-to-poracleng-5-4/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Upgrading to PoracleNG 5.4.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Configuration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/site-settings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Site Settings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/telegram/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Telegram
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/external-sso/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    External SSO (OIDC)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/oidc-refresh-tokens/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OIDC Refresh Tokens
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker Compose
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../poracleng-proxy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PoracleNG API Proxy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../poracleng-compatibility/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PoracleNG Version Compatibility
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../backend/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend Patterns
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../frontend/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Frontend Patterns
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../database/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Linked Accounts
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Linked Accounts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pair-resolution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pair resolution
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#linking-flows" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Linking flows
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Linking flows">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#discord" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Discord
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#telegram" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Telegram
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#registering-the-missing-side" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Registering the missing side
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#refusal-codes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Refusal codes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#alarm-routing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Alarm routing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#moves" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Moves
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#paired-writes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Paired writes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#drift" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Drift
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Drift">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#resolving" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resolving
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#failure-handling-and-invariants" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Failure handling and invariants
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#security" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Security
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#extension-points" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Extension points
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Features
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Features
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/alarms/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Alarm Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/discord-and-telegram/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Discord & Telegram
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/linked-accounts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Linked Accounts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/quiet-periods/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quiet Periods
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/profiles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Profiles
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/quest-summary-schedules/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quest Summary Delivery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/webhooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Destinations & Delegates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_8" id="__nav_5_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Custom Geofences
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Custom Geofences
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/custom-geofences/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/custom-geofences/key-concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Key Concepts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/custom-geofences/koji-and-regions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Koji & Regions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/custom-geofences/private-and-promotion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Private Geofences & Promotion
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/custom-geofences/admin-operations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Admin Operations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/custom-geofences/troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/internationalization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Internationalization (i18n)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/ci-cd/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CI/CD
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/code-style/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code Style
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Upstream history
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Upstream history
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../poracleng-enhancement-requests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PoracleNG Enhancement Requests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../poracleng-v2-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PoracleNG v2 API Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pair-resolution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pair resolution
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#linking-flows" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Linking flows
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Linking flows">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#discord" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Discord
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#telegram" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Telegram
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#registering-the-missing-side" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Registering the missing side
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#refusal-codes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Refusal codes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#alarm-routing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Alarm routing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#moves" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Moves
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#paired-writes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Paired writes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#drift" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Drift
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Drift">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#resolving" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resolving
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#failure-handling-and-invariants" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Failure handling and invariants
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#security" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Security
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#extension-points" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Extension points
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="linked-accounts">Linked Accounts<a class="headerlink" href="#linked-accounts" title="Permanent link">&para;</a></h1>
+<p>A person who uses Poracle from both Discord and Telegram has two PoracleNG humans, one <code>discord:user</code> and
+one <code>telegram:user</code>. PoracleWeb.NET pairs them so the person sees one list of alarms, saves a location or
+an area once, and chooses which app each alarm is delivered to. PoracleNG knows nothing about the pair:
+every call PoracleWeb.NET makes is one it would make for an unlinked person, sent once per human.</p>
+<p>This page is the technical reference. What a person sees is in <a href="../../features/linked-accounts/">Linked Accounts</a>,
+and the operator side of Telegram is in <a href="../../configuration/telegram/">Telegram</a> and
+<a href="../../features/discord-and-telegram/">Discord and Telegram</a>.</p>
+<h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
+<p>PoracleNG owns humans, profiles, areas, saved places and tracking rules, and it delivers alerts through its
+Discord and Telegram bots. PoracleWeb.NET adds one table, <code>poracle_web.account_links</code>, and a layer of
+services that turn "the signed-in human" into "the signed-in person's humans". Nothing in PoracleNG was
+changed for the feature.</p>
+<p>The diagram shows where the pair lives and which side of the line each piece sits on.</p>
+<pre class="mermaid"><code>flowchart LR
+    SPA["Angular SPA&lt;br/&gt;Linked accounts page,&lt;br/&gt;drift banner, Deliver to"]
+    subgraph API["PoracleWeb.NET API"]
+        Ctl["Controllers&lt;br/&gt;alarms, person settings,&lt;br/&gt;account-link, alarm-move"]
+        Link["ILinkedAccount&lt;br/&gt;resolves the pair"]
+        Svc["LinkedAlarmRouter, AlarmMover,&lt;br/&gt;PairedHumanWriter, PairDriftService"]
+        Proxies["PoracleNG proxies"]
+    end
+    Links[("poracle_web.account_links")]
+    NG["PoracleNG /api/v2&lt;br/&gt;two humans, unaware of the pair"]
+    DBot["Discord bot"]
+    TBot["Telegram bot"]
+    SPA --&gt;|"HTTPS + JWT"| Ctl
+    Ctl --&gt; Link
+    Ctl --&gt; Svc
+    Link --&gt;|"link row"| Links
+    Link --&gt;|"human reads"| Proxies
+    Svc --&gt;|"one call per human"| Proxies
+    Proxies --&gt;|"X-Poracle-Secret"| NG
+    NG --&gt;|"alerts for discord:user"| DBot
+    NG --&gt;|"alerts for telegram:user"| TBot
+    DBot -.-&gt;|"bot commands change one human"| NG
+    TBot -.-&gt;|"bot commands change one human"| NG</code></pre>
+<p>The dotted edges are where drift comes from: a bot command writes the one human it was sent from, and
+PoracleWeb.NET finds out on its next read (see <a href="#drift">Drift</a>).</p>
+<h2 id="data-model">Data model<a class="headerlink" href="#data-model" title="Permanent link">&para;</a></h2>
+<p><code>account_links</code> is created by the <code>AddAccountLinks</code> migration.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>int, PK</td>
+<td>Auto-increment</td>
+</tr>
+<tr>
+<td><code>discord_id</code></td>
+<td>varchar(64), required, <strong>unique</strong></td>
+<td>The <code>discord:user</code> human's id</td>
+</tr>
+<tr>
+<td><code>telegram_id</code></td>
+<td>varchar(64), required, <strong>unique</strong></td>
+<td>The <code>telegram:user</code> human's id</td>
+</tr>
+<tr>
+<td><code>default_destination</code></td>
+<td>varchar(16), required</td>
+<td><code>discord</code> or <code>telegram</code>. New alarms go here when the dialog names no app. Set to the side that made the link</td>
+</tr>
+<tr>
+<td><code>discord_verified_at</code></td>
+<td>datetime, nullable</td>
+<td>When that side's identity was last proven</td>
+</tr>
+<tr>
+<td><code>telegram_verified_at</code></td>
+<td>datetime, nullable</td>
+<td>Same, for Telegram</td>
+</tr>
+<tr>
+<td><code>created_at</code></td>
+<td>datetime</td>
+<td>When the link was made</td>
+</tr>
+</tbody>
+</table>
+<p>The two unique indexes are the whole of "one link per account": an id can appear in at most one row, on
+its own side. A concurrent second link trips the index, and the repository turns that into
+<code>AccountLinkConflictException</code>.</p>
+<p>The row joins to PoracleNG by id only. Nothing else about either human is stored here, and nothing about
+the pair is stored in PoracleNG. The type is checked live on every resolve rather than trusted from the
+column.</p>
+<p>What isn't stored is computed per request:</p>
+<ul>
+<li><strong>Pending state.</strong> A side whose human doesn't exist yet ("Waiting to register") is a link row whose id
+  PoracleNG answers 404 for.</li>
+<li><strong>Paused state.</strong> Read from the human's <code>admin_disable</code> and <code>enabled</code>.</li>
+<li><strong>Drift.</strong> Compared from fresh reads of both humans.</li>
+</ul>
+<p><code>LinkedPair</code> (<code>Core.Models/AccountLink.cs</code>) is the resolved form handed to every consumer:</p>
+<table>
+<thead>
+<tr>
+<th>Member</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CallerId</code></td>
+<td>The signed-in (or impersonated) human</td>
+</tr>
+<tr>
+<td><code>Link</code></td>
+<td>The <code>AccountLink</code> row, or null when unlinked</td>
+</tr>
+<tr>
+<td><code>Discord</code>, <code>Telegram</code></td>
+<td>A <code>PairSide</code> each: <code>HumanId</code>, <code>Exists</code>, <code>Pause</code> (<code>None</code>, <code>NotRegistered</code>, <code>AdminDisabled</code>, <code>Stopped</code>), <code>Name</code></td>
+</tr>
+<tr>
+<td><code>IsLinked</code></td>
+<td><code>Link is not null</code></td>
+</tr>
+<tr>
+<td><code>ExistingHumanIds</code></td>
+<td>The sides that exist, the caller's own first. What reads and writes walk</td>
+</tr>
+<tr>
+<td><code>LinkedHumanIds</code></td>
+<td>Every id the link names, existing or not. For limits that must hold while a side is away, such as the drawn-fence cap</td>
+</tr>
+<tr>
+<td><code>SideOf(id)</code>, <code>HumanIdFor(side)</code></td>
+<td>Map between a human id and its side</td>
+</tr>
+</tbody>
+</table>
+<p><code>LinkedPair.Single(callerId)</code> is the unlinked answer, and every consumer treats it as "do exactly what you
+did before linking existed".</p>
+<h2 id="pair-resolution">Pair resolution<a class="headerlink" href="#pair-resolution" title="Permanent link">&para;</a></h2>
+<p><code>ILinkedAccount.ResolveAsync(userId)</code> answers the pair for the current request. The JWT carries nothing
+about the link, so a link made, cut or retargeted in another tab takes effect without a new token.</p>
+<ol>
+<li><strong>Feature gate.</strong> With <code>disable_account_linking</code> on, it returns <code>LinkedPair.Single</code> before reading
+   anything. Rows are kept, so switching the feature back on restores every pair.</li>
+<li><strong>The link row</strong>, cached one minute under <code>account-link:{id}</code>. A cached "no link" is held too, so an
+   unlinked person costs one database read a minute.</li>
+<li><strong>Each side's human</strong>, read through <code>IHumanService.GetByIdAsync</code> (PoracleNG's
+   <code>GET /api/v2/humans/{id}</code>), cached one minute under <code>account-link-human:{id}</code>.</li>
+<li><strong>Type check.</strong> A side whose live <code>type</code> isn't <code>discord:user</code> or <code>telegram:user</code> respectively is
+   treated as absent (<code>Exists: false</code>), and the retype is logged once per cache fill.</li>
+<li><strong>Pause.</strong> <code>admin_disable = 1</code> is <code>AdminDisabled</code>, <code>enabled = 0</code> is <code>Stopped</code>, a missing human is
+   <code>NotRegistered</code>.</li>
+</ol>
+<p>The sequence below is one request from a linked person, with a cold cache.</p>
+<pre class="mermaid"><code>sequenceDiagram
+    participant C as Controller
+    participant L as ILinkedAccount
+    participant G as IFeatureGate
+    participant M as IMemoryCache
+    participant R as AccountLinkRepository
+    participant H as IHumanService
+    participant NG as PoracleNG v2
+    C-&gt;&gt;L: ResolveAsync(userId)
+    L-&gt;&gt;G: disable_account_linking?
+    G--&gt;&gt;L: enabled
+    L-&gt;&gt;M: account-link:{userId}
+    M--&gt;&gt;L: miss
+    L-&gt;&gt;R: GetByHumanIdAsync(userId)
+    R--&gt;&gt;L: AccountLink
+    L-&gt;&gt;M: cache link, 1 min
+    loop each side
+        L-&gt;&gt;M: account-link-human:{id}
+        M--&gt;&gt;L: miss
+        L-&gt;&gt;H: GetByIdAsync(id)
+        H-&gt;&gt;NG: GET /api/v2/humans/{id}
+        NG--&gt;&gt;H: human, or 404
+        H--&gt;&gt;L: Human or null
+        L-&gt;&gt;M: cache human, 1 min
+        L-&gt;&gt;L: check type, read pause
+    end
+    L--&gt;&gt;C: LinkedPair</code></pre>
+<p><strong>Invalidation.</strong> <code>Invalidate(humanId)</code> drops the link and human entries for that id and, when the cached
+link names them, both ids of the pair. Link, unlink, a default change and the account purge call it for
+both ids explicitly, because a partner can only be found through a cached link. The cache is the
+process's <code>IMemoryCache</code>, so a second API instance sees a change within the minute.</p>
+<p><strong>Fails open on <code>poracle_web</code>.</strong> A failed <code>account_links</code> read, or a row the repository can't read
+(<code>AccountLinkUnreadableException</code>, such as an unknown <code>default_destination</code>), answers <code>LinkedPair.Single</code>,
+logs a warning and is not cached. The pair is resolved before every person-level write, so a database
+outage must not stop an unlinked person from saving anything. A linked person acts as their signed-in
+account alone until the read succeeds.</p>
+<p><strong>Doesn't fail open on PoracleNG.</strong> A human read that fails for any reason other than 404 throws, as every
+<code>GetHumanAsync</code> caller does. The alarm and person controllers answer that 503 through
+<code>PoracleUnreachableExceptionFilter</code>.</p>
+<h2 id="linking-flows">Linking flows<a class="headerlink" href="#linking-flows" title="Permanent link">&para;</a></h2>
+<p><code>IAccountLinkService.LinkAsync(callerHumanId, newSide, newId, newName)</code> is the one place a verified
+identity becomes a link. Its checks, in order:</p>
+<ol>
+<li><code>disable_account_linking</code> must be off (<code>link_disabled</code>, 403). Checked here rather than only on the
+   routes, so a Discord or Telegram sign-in started before an admin switched linking off can't complete.</li>
+<li>The caller's human must be <code>discord:user</code> or <code>telegram:user</code>, and the new side must be the other app
+   (<code>link_wrong_type</code>).</li>
+<li>The new id must be digits only, 1 to 20 characters, no leading zero, and fit a <code>long</code> for Telegram
+   (<code>link_bad_id</code>).</li>
+<li>Neither id may already be in a link (<code>link_taken</code>). Checked before anything is created, so a refused
+   link never leaves a provisioned human behind.</li>
+<li>If PoracleNG has a human with the new id, it must be the matching person type (<code>link_type_mismatch</code>).
+   This is what stops a channel, group or webhook being linked.</li>
+<li>If it has none, <code>LinkRegisterModes.Parse</code> reads <code>link_register_missing</code> (<code>off</code>, <code>when-qualified</code>,
+   <code>always</code>; a stored <code>true</code> is <code>always</code>, <code>false</code> or absent is <code>off</code>, anything unrecognised is <code>off</code>).
+   <code>always</code> has the provisioner create it (below). <code>when-qualified</code> does so only for a Telegram side that
+   <code>ITelegramRegistrationCheck</code> admits, passing the communities it found. Otherwise, and for a missing Discord
+   side under <code>when-qualified</code>, the link is stored anyway and that side waits to register.</li>
+<li>The row is inserted with <code>default_destination</code> set to the caller's side. An index collision rolls back
+   a provisioned human and answers <code>link_taken</code>.</li>
+</ol>
+<h3 id="discord">Discord<a class="headerlink" href="#discord" title="Permanent link">&para;</a></h3>
+<p>The Discord half reuses the sign-in OAuth flow and its callback. <code>POST /api/account-link/discord/start</code>
+builds the authorize URL with the same <code>DiscordAuthorizeRequest</code> the sign-in uses, which sets the
+<code>oauth_state</code> cookie, and also sets an <code>oauth_link</code> cookie: an <code>AccountLinkTicket</code> sealed with ASP.NET
+Data Protection (purpose <code>AccountLink.v1</code>) holding the caller's human id, that flow's <code>state</code> and a
+10-minute expiry.</p>
+<p>The sequence follows one link from the Linked accounts page back to it.</p>
+<pre class="mermaid"><code>sequenceDiagram
+    actor U as Person, signed in with Telegram
+    participant SPA
+    participant API as AccountLinkController
+    participant D as Discord
+    participant CB as AuthController callback
+    participant S as IAccountLinkService
+    U-&gt;&gt;SPA: Link Discord
+    SPA-&gt;&gt;API: POST /api/account-link/discord/start
+    API--&gt;&gt;SPA: url, Set-Cookie oauth_state and oauth_link
+    SPA-&gt;&gt;D: authorize, state=S1
+    D-&gt;&gt;CB: GET /api/auth/discord/callback?code&amp;state=S1
+    CB-&gt;&gt;CB: check state against oauth_state
+    CB-&gt;&gt;CB: open oauth_link, ticket.State == S1
+    CB-&gt;&gt;D: exchange code, GET /users/@me
+    D--&gt;&gt;CB: discord id, username
+    CB-&gt;&gt;CB: enable_discord and role checks
+    CB-&gt;&gt;S: LinkAsync(ticket.HumanId, Discord, id, name)
+    S--&gt;&gt;CB: AccountLink
+    CB--&gt;&gt;SPA: 302 /linked-accounts#linked=discord</code></pre>
+<p>The callback deletes the <code>oauth_link</code> cookie whatever happens. A ticket that is tampered with or expired
+ends on <code>#link_error=link_expired</code>. Discord sign-in switched off by the time the callback runs is
+<code>link_app_unavailable</code>; an account that fails the role check is <code>link_not_permitted</code>. A ticket whose <code>state</code> doesn't match the callback's is ignored, so an
+abandoned link can't turn a later ordinary sign-in into a link, and that request continues as a sign-in.
+The link branch never looks up a human for sign-in and never issues a token. A cancelled approval is
+<code>link_cancelled</code>, and a failed token exchange or user read is <code>link_failed</code>. The sign-in start deletes any
+leftover ticket.</p>
+<h3 id="telegram">Telegram<a class="headerlink" href="#telegram" title="Permanent link">&para;</a></h3>
+<p>The Telegram half is the login widget in <strong>redirect mode</strong>. The widget's callback mode (<code>data-onauth</code>)
+makes Telegram's script <code>eval</code> the attribute, which the site's CSP refuses (<code>script-src</code> has no
+<code>unsafe-eval</code>), so the button never drew. In redirect mode (<code>data-auth-url</code>) Telegram navigates the
+browser to the page with the signed fields in the query string, and the page posts them on.</p>
+<pre class="mermaid"><code>sequenceDiagram
+    actor U as Person, signed in with Discord
+    participant SPA as /linked-accounts
+    participant T as Telegram widget
+    participant API as AccountLinkController
+    participant V as TelegramWidgetVerifier
+    participant S as IAccountLinkService
+    U-&gt;&gt;T: approve in Telegram, allow messages
+    T-&gt;&gt;SPA: redirect ?id&amp;first_name&amp;username&amp;auth_date&amp;hash
+    SPA-&gt;&gt;SPA: read fields, clear them from the URL
+    SPA-&gt;&gt;API: POST /api/account-link/telegram {fields}
+    API-&gt;&gt;V: Verify(fields, bot token, 10 min)
+    V--&gt;&gt;API: valid, user id, name
+    API-&gt;&gt;S: LinkAsync(caller, Telegram, id, name)
+    S--&gt;&gt;API: AccountLink
+    API--&gt;&gt;SPA: 200 {linked}</code></pre>
+<p><code>TelegramWidgetVerifier</code> is shared with Telegram sign-in, which allows 24 hours; linking allows 10 minutes.
+It refuses a payload with no <code>id</code> or <code>hash</code>, a non-numeric <code>id</code>, a missing or non-numeric <code>auth_date</code>, one
+more than five minutes in the future (clock drift), and one older than the window, all before the hash.
+The hash is HMAC-SHA256 of the sorted <code>key=value</code> lines, keyed with SHA-256 of the bot token, compared in
+constant time. An expired payload answers <code>link_expired</code>, every other failure <code>link_bad_id</code>.</p>
+<p>The widget asks for write access (<code>data-request-access="write"</code>), which lets the bot DM the person.</p>
+<h3 id="registering-the-missing-side">Registering the missing side<a class="headerlink" href="#registering-the-missing-side" title="Permanent link">&para;</a></h3>
+<p>Under <code>always</code>, or <code>when-qualified</code> with a qualified person, <code>LinkedHumanProvisioner.CreateMirrorAsync</code>
+creates the other human by copying the caller's. Alarms are never copied.</p>
+<p><code>TelegramRegistrationCheck</code> mirrors PoracleNG's <code>/poracle</code> rule (<code>telegrambot/reconciliation.go</code>,
+<code>reconcileNonAreaSecurity</code> and <code>reconcileAreaSecurity</code>). <code>IPoracleApiProxy.GetTelegramRegistrationGroupsAsync</code>
+reads <code>values.telegram.channels</code>, <code>values.area_security.enabled</code> and each <code>values.area_security.communities[]</code>
+row's <code>name</code> and <code>telegram_channels</code> from <code>GET /api/config/values</code>. <code>TelegramBotApiClient</code> asks Telegram's
+<code>getChatMember</code> for each group once. <code>member</code>, <code>administrator</code>, <code>creator</code> and <code>restricted</code> count (a restricted
+user whose <code>is_member</code> is false doesn't); <code>left</code>, <code>kicked</code> and every failure don't. Without area security
+one group is enough. With it, every community whose own group holds the person is recorded, lowercased, and
+the create sends them as <code>community</code>, which PoracleNG turns into the area restriction. The bot token is part of
+the request path, so the client logs only the failure's type and the group id, never a URL or an exception message.</p>
+<ol>
+<li><code>POST /api/v2/humans</code> with the new id, name, type, location, community membership and language, and the
+   name of the caller's profile 1 as the default profile's name.</li>
+<li>Check the new human's default profile is number 1.</li>
+<li>Walk profile numbers from 1 to the caller's highest. PoracleNG gives a new profile the lowest free
+   number, so each <code>POST .../profiles</code> must come back with the expected number or the whole create fails.
+   A gap in the caller's numbering is filled with a placeholder profile, deleted at the end.</li>
+<li>Write each profile's areas and location with <code>POST .../areas?profile=N</code> and <code>.../location?profile=N</code>,
+   and copy its <code>active_hours</code>. The areas pass through <code>IUserAreaWriter.FilterAllowedAsync</code> first, the same
+   check profile create uses. The new human isn't linked yet, so its own allowed set can't see the person's
+   drawn fences: a name is kept when either the new account or the caller's may select it, and a dropped
+   name is logged at debug.</li>
+<li>Switch to the caller's active profile, delete the placeholders, then copy saved places. A place
+   PoracleNG refuses is logged and skipped.</li>
+</ol>
+<p>Profile numbers must agree because moves and drift compare them across the pair. A legacy profile 0 isn't
+copied: PoracleNG never numbers a new profile 0.</p>
+<p>Any failure deletes the human it created, but only if PoracleNG still holds one with this link's type and
+name. Another request may have created that id in between, and that row isn't ours to remove. The caller
+sees <code>link_provision_failed</code> and nothing is linked.</p>
+<h3 id="refusal-codes">Refusal codes<a class="headerlink" href="#refusal-codes" title="Permanent link">&para;</a></h3>
+<p>Every refusal carries <code>{ error, code }</code>. The SPA words the code; <code>error</code> is the English fallback.</p>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Status</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>link_wrong_type</code></td>
+<td>400</td>
+<td>The caller isn't a Discord or Telegram person, or both sides are the same app</td>
+</tr>
+<tr>
+<td><code>link_bad_id</code></td>
+<td>400</td>
+<td>The id isn't a possible account id, or the Telegram payload didn't verify</td>
+</tr>
+<tr>
+<td><code>link_type_mismatch</code></td>
+<td>400</td>
+<td>That id is a PoracleNG human of another type, such as a channel or group</td>
+</tr>
+<tr>
+<td><code>link_taken</code></td>
+<td>409</td>
+<td>One of the ids is already in a link</td>
+</tr>
+<tr>
+<td><code>link_expired</code></td>
+<td>400</td>
+<td>The Telegram payload or the Discord ticket is past its 10 minutes</td>
+</tr>
+<tr>
+<td><code>link_app_unavailable</code></td>
+<td>403</td>
+<td>That app's sign-in isn't available on this site: not configured in <code>.env</code>, or <code>enable_discord</code> / <code>enable_telegram</code> is off. Sent by the Discord start, the Telegram link and the Discord callback's link branch</td>
+</tr>
+<tr>
+<td><code>link_not_permitted</code></td>
+<td>403</td>
+<td>The account fails the site's sign-in rules (a required Discord role), or (for a default change) that side isn't registered</td>
+</tr>
+<tr>
+<td><code>link_disabled</code></td>
+<td>403</td>
+<td><code>disable_account_linking</code> is on. Checked when the link completes, so a Discord or Telegram sign-in started before an admin switched linking off can't finish. Unlinking still works</td>
+</tr>
+<tr>
+<td><code>link_provision_failed</code></td>
+<td>502</td>
+<td>Registering the missing side failed and was rolled back</td>
+</tr>
+<tr>
+<td><code>link_failed</code></td>
+<td>redirect</td>
+<td>The Discord exchange or user read failed</td>
+</tr>
+<tr>
+<td><code>link_cancelled</code></td>
+<td>redirect</td>
+<td>The person backed out of Discord's approval</td>
+</tr>
+</tbody>
+</table>
+<p>The Discord flow can't answer JSON, so it ends on <code>/linked-accounts#link_error=&lt;code&gt;</code>.</p>
+<p>The other routes: <code>DELETE /api/account-link</code> unlinks, <code>PUT /api/account-link/default {destination}</code> sets
+the default app, and <code>GET /api/account-link/status</code> answers <code>{ linked, link, sides, defaultDestination,
+drift, legacyProfileZero }</code>. Admins have <code>GET /api/admin/account-links</code> and
+<code>DELETE /api/admin/account-links/{humanId}</code>, which aren't gated on <code>disable_account_linking</code> so a stuck pair
+can still be cut while the feature is off.</p>
+<h2 id="alarm-routing">Alarm routing<a class="headerlink" href="#alarm-routing" title="Permanent link">&para;</a></h2>
+<p>The eleven alarm controllers reach their services only through <code>LinkedAlarmRouter</code>. Unlinked, each method
+makes the exact call it made before, and the JSON is byte-identical: <code>Destination</code> and <code>PausedDestination</code>
+are omitted when null, and the router only sets them for a linked caller.</p>
+<table>
+<thead>
+<tr>
+<th>Router method</th>
+<th>Linked behaviour</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ListAsync</code></td>
+<td>Reads each existing human's rules for the profile and concatenates them, stamping <code>destination</code></td>
+</tr>
+<tr>
+<td><code>FindAsync(svc, userId, uid)</code></td>
+<td>Looks the uid up on each human in turn; answers the alarm and its owner id</td>
+</tr>
+<tr>
+<td><code>FindAsync(userId, lookup)</code></td>
+<td>Same, for a lookup narrower than a uid. The invasion controller uses it with <code>?kind=event</code> or <code>invasion</code>, because invasion and Pokéstop event rules share one list but number their uids separately</td>
+</tr>
+<tr>
+<td><code>CountAsync</code>, <code>DeleteAllAsync</code>, <code>UpdateDistanceAllAsync</code></td>
+<td>Run once per human; distance results are merged</td>
+</tr>
+<tr>
+<td><code>UpdateDistanceByUidsAsync</code></td>
+<td>One list read per human maps every uid to its owner, then one call per owner. An unknown uid goes to the caller, where the service skips it as it always did</td>
+</tr>
+<tr>
+<td><code>CreateTargetAsync</code></td>
+<td>The human a create belongs to (below)</td>
+</tr>
+<tr>
+<td><code>MoveTargetAsync</code>, <code>MoveAsync</code></td>
+<td>An edit naming the other app becomes a move</td>
+</tr>
+</tbody>
+</table>
+<p>A create with no <code>destination</code> goes to the pair's default app, or to the caller while the default side has
+no human. A create naming a side with no human answers 409 ("Telegram isn't set up yet"), and an unknown
+destination 400, both through <code>AlarmDestinationExceptionFilter</code>. A create that lands on a paused side is
+answered with <code>pausedDestination: true</code> so the dialog can say the alert won't arrive until that app is on
+again.</p>
+<p>Edits, deletes and test alerts go to the owner <code>FindAsync</code> returned, so a uid on either human works from
+the merged list.</p>
+<h2 id="moves">Moves<a class="headerlink" href="#moves" title="Permanent link">&para;</a></h2>
+<p>An alarm changes app in two ways: <code>PUT /api/{type}/{uid}</code> with a <code>destination</code> naming the other app (an
+edit that moves), and <code>POST /api/alarm-move { type, uids, destination, kind? }</code> for a selection of up to 500. Both
+call <code>AlarmMover</code>, and both are refused with 403 while an admin is viewing as someone else, because a move
+writes the other human's rules. <code>alarm-move</code> is rate limited to 10 requests a minute per person and is
+gated on <code>disable_account_linking</code> and on the type's own <code>disable_*</code> key.</p>
+<p>The protocol, for one alarm:</p>
+<pre class="mermaid"><code>sequenceDiagram
+    participant AM as AlarmMover
+    participant NG as PoracleNG v2
+    participant Svc as Type's alarm service
+    participant QP as QuickPickUidTransfer
+    Note over AM: preflight, nothing written yet
+    AM-&gt;&gt;NG: GET both humans
+    AM-&gt;&gt;AM: same current_profile_no?
+    AM-&gt;&gt;NG: GET target's saved places, if the rule names one
+    AM-&gt;&gt;AM: target may use the rule's override areas?
+    AM-&gt;&gt;NG: GET source rows, to carry unmodelled fields
+    Note over AM,Svc: create on the target
+    AM-&gt;&gt;Svc: CreateAsync(targetId, rule)
+    Svc-&gt;&gt;NG: POST tracking?dry_run=true
+    NG--&gt;&gt;Svc: insert, update or unchanged
+    Svc-&gt;&gt;NG: POST tracking, if insert
+    Svc--&gt;&gt;AM: created rule and uid
+    Note over AM,NG: delete the source, at most twice
+    AM-&gt;&gt;Svc: DeleteAsync(sourceId, uid, kind)
+    Svc-&gt;&gt;NG: DELETE tracking/{type}/{uid}
+    Note over AM,QP: follow the uid in quick-pick state
+    AM-&gt;&gt;QP: TransferAsync(source, target, profile, type, old, new)</code></pre>
+<p><strong>Why create, then delete.</strong> The other order has a window where the alert exists nowhere, and a failed
+create in that window loses it. Creating first means the worst case is an alert on both apps, which the
+person can see and fix.</p>
+<p><strong>Preflight</strong> refuses before any write when the target side has no human (<code>not_set_up</code>), the two humans
+are on different active profiles (<code>different_profiles</code>; a rule lives on its human's active profile, and a
+v2 read carries no <code>profile_no</code>), the rule measures from a saved place the target lacks
+(<code>place_missing</code>), or the target may not use one of its override areas (<code>area_not_allowed</code>, through
+<code>IUserAreaPolicy</code>).</p>
+<p><strong>The create</strong> goes through the type's own service, so it gets the same dry-run protection as an Add
+(see <a href="../poracleng-proxy/#insert-update-or-duplicate">PoracleNG API Proxy</a>). The model is cleared of its
+uid and stamps first. Stored fields the typed model has no property for are carried across, as an edit
+does with <code>TrackingFieldPreserver</code> (not for Pokéstop events, which have no untyped path). An identical rule
+already on the target counts as moved onto that rule, using <code>ExistingUid</code>. A would-be takeover is a
+<code>conflict</code> carrying the target rule's <code>existingUid</code>.</p>
+<p><strong>The delete</strong> names the invasion kind, so moving a Pokéstop event never deletes a plain invasion that
+shares its uid. It's tried twice. If it still fails the alarm stays on both apps.</p>
+<p><strong>Quick picks.</strong> A quick pick's applied state is kept per human and profile, so the moved uid is added to
+the same pick's row on the target first and then removed from the source's. A source row left tracking
+nothing is deleted. A failure here is logged and doesn't change the outcome.</p>
+<table>
+<thead>
+<tr>
+<th>Outcome</th>
+<th>Meaning</th>
+<th>Single edit answers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>moved</code></td>
+<td>On the target, gone from the source</td>
+<td>200, the rule as it now stands, <code>X-Move-Status: moved</code></td>
+</tr>
+<tr>
+<td><code>alreadyThere</code></td>
+<td>Already on the requested app; nothing to do</td>
+<td>409 (an edit only asks to move to the other app)</td>
+</tr>
+<tr>
+<td><code>conflict</code></td>
+<td>The target holds a rule this one would take over. Nothing written</td>
+<td>409 with <code>existingUid</code>, through the global filter</td>
+</tr>
+<tr>
+<td><code>sourceRemains</code></td>
+<td>Copied, but the original couldn't be deleted</td>
+<td>200, <code>X-Move-Status: source_remains</code></td>
+</tr>
+<tr>
+<td><code>refused</code></td>
+<td>A check failed before anything was written</td>
+<td>409 <code>{ error, code, app, place }</code></td>
+</tr>
+<tr>
+<td><code>failed</code></td>
+<td>The create failed in a way PoracleNG didn't explain; it may or may not exist on the target. Source untouched</td>
+<td>502</td>
+</tr>
+</tbody>
+</table>
+<p>Bulk moves answer <code>{ results: [{ uid, status, newUid, existingUid, reason, reasonCode, reasonApp,
+reasonPlace }] }</code>, one per uid, plus <code>not_found</code> for a uid neither human has. Reason codes:
+<code>already_there</code>, <code>not_linked</code>, <code>not_yours</code>, <code>not_found</code>, <code>not_set_up</code>, <code>different_profiles</code>,
+<code>place_missing</code>, <code>area_not_allowed</code>, <code>invalid</code>, <code>conflict</code>, <code>failed</code>, <code>source_remains</code>. The SPA translates
+the code and never shows <code>reason</code>.</p>
+<p>The single edit answers in the body PUT always had, the alarm, so whether the original is gone travels as
+<code>X-Move-Status</code>. It and <code>X-Pair-Warning</code> are in <code>CorsPolicySetup.ExposedHeaders</code>; an unexposed header reads
+as absent and a half-done move would look clean.</p>
+<h2 id="paired-writes">Paired writes<a class="headerlink" href="#paired-writes" title="Permanent link">&para;</a></h2>
+<p>Every person-level write goes through <code>IPairedHumanWriter.WriteAsync(userId, write)</code>:</p>
+<ol>
+<li>Resolve the pair.</li>
+<li>Run the write for the signed-in human. If it throws, that's the request's error, and the other human
+   isn't tried.</li>
+<li>Run the write for the other existing human. A paused side is still written; only a side with no human
+   is skipped.</li>
+<li>If the second write fails, the request still succeeds with the first side's result, and the response
+   carries <code>X-Pair-Warning: {"side":"telegram","reason":"...","code":"..."}</code>.</li>
+</ol>
+<p>The warning never changes a body or a status. <code>code</code> is one of <code>unreachable</code> (anything without a sentence
+meant for people, so a host and port never reach the browser), <code>refused</code> (PoracleNG's own sentence, as
+<code>reason</code>), <code>out_of_step</code> and <code>rename_refused</code>. The SPA's <code>pairWarningInterceptor</code> reads it once per
+response and shows "Saved for Discord, but not for Telegram", with an action that opens Linked accounts.</p>
+<p>The sequence shows a location save where the second side is unreachable.</p>
+<pre class="mermaid"><code>sequenceDiagram
+    participant SPA
+    participant LC as LocationController
+    participant W as PairedHumanWriter
+    participant NG as PoracleNG v2
+    SPA-&gt;&gt;LC: PUT location
+    LC-&gt;&gt;W: WriteAsync(userId, SetLocation)
+    W-&gt;&gt;NG: POST /humans/{discord}/location
+    NG--&gt;&gt;W: 200
+    W-&gt;&gt;NG: POST /humans/{telegram}/location
+    NG--xW: connection refused
+    W-&gt;&gt;W: log, warning code unreachable
+    W--&gt;&gt;LC: Primary result plus warning
+    LC--&gt;&gt;SPA: 200, X-Pair-Warning
+    SPA-&gt;&gt;SPA: toast "Saved for Discord, but not for Telegram"</code></pre>
+<p>What goes through it: location, saved places (add, move, delete), area selection, profile create, update,
+switch, delete, duplicate and import, alert language, quiet periods, quest summary schedules, and alerts on
+and off. The cleaning toggle and the geofence services do the same thing in their own code, with the same
+warning shape.</p>
+<p>A few writes need more than "the same call twice":</p>
+<ul>
+<li><strong>Profile numbers.</strong> PoracleNG gives each human its own lowest free number, so a profile created on both
+  can land on different numbers if the pair had drifted. <code>PairedNewProfile.ReconcileAsync</code> keeps the
+  signed-in side's profile, deletes the other side's mismatched one, and warns <code>out_of_step</code>. An edit to
+  profile N reaches the other human only if its profile N has the same name; otherwise it's left alone with
+  the same warning.</li>
+<li><strong>Alerts on.</strong> Stop reaches both humans. Start reaches the other human only if nothing paused it, so an
+  operator's block or a stop the person made in the other app is never undone.</li>
+<li><strong>Areas.</strong> Each human's list goes through <code>IUserAreaWriter</code>, which authorises names for that human.
+  <code>UserAreaPolicy</code> counts the pair's drawn fences as each human's own.</li>
+<li><strong>Quiet periods.</strong> PoracleNG canonicalises an area's casing per human and its delete matches exactly, so
+  lifting one on the other side sends the value that human's own list returned.</li>
+<li><strong>Drawn geofences.</strong> A fence belongs to one human id but is listed, toggled, renamed and deleted across
+  the pair, the ownership check accepts either id, and the 10-fence cap counts <code>LinkedHumanIds</code>, so the
+  pair can't draw past it while one side is away.</li>
+</ul>
+<h2 id="drift">Drift<a class="headerlink" href="#drift" title="Permanent link">&para;</a></h2>
+<p>The two humans drift because PoracleNG's bots write the human a command came from. <code>!location</code> in Discord
+moves the Discord human; <code>/profile</code> in Telegram switches the Telegram human. PoracleWeb.NET never resolves
+a difference on its own. It shows it and waits for the person to choose.</p>
+<p><code>IPairDriftService.GetAsync</code> reads both humans (human, area list, profiles, saved places) in parallel and
+compares five settings. It returns nothing unless both sides exist.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Compared as</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>location</code></td>
+<td>Latitude and longitude rounded to 5 decimal places</td>
+</tr>
+<tr>
+<td><code>areas</code></td>
+<td>The active profile's areas, each through <code>UserAreaPolicy.Key</code> (lowercase, trimmed, <code>_</code> equal to space, PoracleNG's <code>NormalizeAreaKey</code>), de-duplicated and sorted, so order doesn't matter</td>
+</tr>
+<tr>
+<td><code>profiles</code></td>
+<td>Every profile by number: name (exact), <code>active_hours</code> (numbers or numeric strings read as ints, entries sorted by day, hour, minute), and the areas and location of profiles neither side is on</td>
+</tr>
+<tr>
+<td><code>current_profile</code></td>
+<td>The active profile number. Skipped when either side is on profile 0</td>
+</tr>
+<tr>
+<td><code>places</code></td>
+<td>Saved places by lowercase label, with location to 5 decimal places</td>
+</tr>
+</tbody>
+</table>
+<p>The profiles either side is on are compared without their areas and location, because each human holds
+that profile's live copy and the <code>location</code> and <code>areas</code> lines already compare it. Comparing both reported
+one cause twice.</p>
+<p>Not compared, though written to both: alert language, quiet periods (held in PoracleNG's memory and gone
+on restart) and summary schedules. <strong>Profile 0</strong> is outside the pair: PoracleNG never numbers a new profile
+0, so it's never compared, copied, switched to or deleted, and <code>status</code> reports which side has one as
+<code>legacyProfileZero</code> for a note on the page.</p>
+<p>Each item carries both sides' comparable values, a <code>fingerprint</code> (lowercase hex SHA-256 over the Discord
+value, a newline, and the Telegram value) and <code>details</code> outside the fingerprint (profile names, place
+labels as typed) so renaming one profile doesn't stale another line.</p>
+<p>The state diagram follows one difference from a bot command to its resolution.</p>
+<pre class="mermaid"><code>stateDiagram-v2
+    [*] --&gt; InStep
+    InStep --&gt; Drifted: bot command writes one human
+    Drifted --&gt; Shown: status read finds it
+    Shown --&gt; Banner: first read or a navigation
+    Banner --&gt; Dismissed: dismiss, per fingerprint
+    Banner --&gt; Panel: Review
+    Dismissed --&gt; Panel: open Linked accounts
+    Panel --&gt; Resolving: person keeps one side
+    Resolving --&gt; InStep: other side written
+    Resolving --&gt; Panel: refused, drift_changed and others
+    Resolving --&gt; Panel: partially_applied</code></pre>
+<p>The banner sits under the toolbar, appears only with the first status read or at a navigation (never
+mid-page), is hidden while impersonating and on Linked accounts itself, and stores dismissed fingerprints
+in <code>sessionStorage</code>. The panel on Linked accounts always lists every difference, with what each choice
+changes in the other app. A choice that deletes something (a profile or a place) asks first, naming it.
+<code>LinkedAccountService.refreshSoon()</code> re-reads status shortly after any successful write, so the banner never
+offers to undo what the person just did.</p>
+<h3 id="resolving">Resolving<a class="headerlink" href="#resolving" title="Permanent link">&para;</a></h3>
+<p><code>POST /api/account-link/resolve { field, keep, expected }</code> makes the other human match the kept one for
+one field. It writes the other human only, never through <code>PairedHumanWriter</code>, which would rewrite the side
+being kept. <code>kind</code> (<code>event</code> or <code>invasion</code>) applies to the invasion list only, where a Pokéstop event and an
+invasion can share a uid. Everything that can refuse is checked before the first write.</p>
+<pre class="mermaid"><code>flowchart TD
+    A["POST resolve"] --&gt; B{"Impersonating?"}
+    B --&gt;|yes| R403["403"]
+    B --&gt;|no| C{"field, keep,&lt;br/&gt;expected valid?"}
+    C --&gt;|no| R400["400"]
+    C --&gt;|yes| L{"Linked?"}
+    L --&gt;|no| R400L["400 no linked account"]
+    L --&gt;|yes| D{"Both sides&lt;br/&gt;exist?"}
+    D --&gt;|no| CH["409 drift_changed"]
+    D --&gt;|yes| E["Fresh read of both humans"]
+    E --&gt; F{"Fingerprint&lt;br/&gt;still matches?"}
+    F --&gt;|no| CH
+    F --&gt;|yes| G{"Which field?"}
+    G --&gt;|"current_profile"| H{"Other side has&lt;br/&gt;that profile?"}
+    H --&gt;|no| PM["409 profile_missing"]
+    G --&gt;|profiles| I{"A profile to delete&lt;br/&gt;holds alarms?"}
+    I --&gt;|yes| PH["409 profile_holds_alarms"]
+    G --&gt;|places| J{"A place to delete&lt;br/&gt;is used by alarms?"}
+    J --&gt;|yes| PU["409 place_in_use"]
+    H --&gt;|yes| W["Write the other human"]
+    I --&gt;|no| W
+    J --&gt;|no| W
+    G --&gt;|"location, areas"| W
+    W --&gt; K{"Failed after&lt;br/&gt;a write landed?"}
+    K --&gt;|yes| PA["409 partially_applied"]
+    K --&gt;|no| OK["204"]</code></pre>
+<p>Refusals are <code>DriftRefusalException</code>s, answered by <code>PairDriftExceptionFilter</code> as 409
+<code>{ error, code, side, name, count }</code>. Alarm counts for <code>profile_holds_alarms</code> and <code>place_in_use</code> come from
+<code>GET /api/v2/humans/{id}/tracking?all_profiles=true</code>, because a place belongs to the human, not one
+profile.</p>
+<p>The order matters within a field too:</p>
+<ul>
+<li><strong>Profiles before the active profile.</strong> Switching never creates a profile, so the profiles line is
+  listed first and settled first.</li>
+<li><strong>Missing profile numbers</strong> are created in order, with filler profiles to reach a gap, each one checked
+  against the number PoracleNG assigns. Fillers are deleted in a <code>finally</code>.</li>
+<li><strong>Extras are deleted last.</strong> If the other human is on one of them it's switched to the kept side's
+  profile first, so PoracleNG doesn't choose where it lands.</li>
+<li><strong>Areas</strong> go through <code>IUserAreaWriter.SaveSelectionAsync</code> for the other human, so names are authorised
+  for the human they're written to.</li>
+</ul>
+<p>Once any write has landed, a later failure is <code>partially_applied</code> rather than the underlying error, so the
+person is never told nothing changed when something did. The SPA re-reads status after every resolve,
+success or not.</p>
+<h2 id="failure-handling-and-invariants">Failure handling and invariants<a class="headerlink" href="#failure-handling-and-invariants" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Invariant</th>
+<th>How it holds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A move never loses an alert</td>
+<td>Create on the target before deleting the source. A failed delete is <code>sourceRemains</code>, both copies listed and tagged</td>
+</tr>
+<tr>
+<td>A paused side is never re-enabled</td>
+<td>Start skips a paused other side, and no other linked-account path calls enable</td>
+</tr>
+<tr>
+<td>Drift is never resolved without a choice</td>
+<td>Resolve needs a field, a side and the fingerprint the person saw; nothing resolves in the background</td>
+</tr>
+<tr>
+<td>Unlinked people are unaffected</td>
+<td>Every component answers <code>LinkedPair.Single</code> with today's calls; alarm JSON is byte-identical</td>
+</tr>
+<tr>
+<td>PoracleNG is unchanged</td>
+<td>Only existing <code>/api/v2</code> routes, one human at a time</td>
+</tr>
+<tr>
+<td>A refused link leaves nothing behind</td>
+<td><code>link_taken</code> is checked before provisioning; a provisioned human is rolled back if it's still ours</td>
+</tr>
+<tr>
+<td>A second-side failure doesn't fail the request</td>
+<td><code>X-Pair-Warning</code>, never a changed status or body</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>When this is down</th>
+<th>What happens</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>poracle_web</code> database</td>
+<td><code>ILinkedAccount</code> fails open: everyone acts as their signed-in account, writes reach one human, nothing is cached. Linking, unlinking and default changes fail</td>
+</tr>
+<tr>
+<td>PoracleNG</td>
+<td>Human reads throw; alarm, person and move endpoints answer 503. A status read fails and the SPA keeps what it showed. A drift read failing alone answers <code>drift: null</code>, which hides the banner</td>
+</tr>
+<tr>
+<td>PoracleNG for the second human only</td>
+<td>The write lands on the first; <code>X-Pair-Warning</code> with <code>unreachable</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="security">Security<a class="headerlink" href="#security" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Link ticket.</strong> The Discord link's identity is a Data Protection-sealed cookie bound to that flow's OAuth
+  <code>state</code> and good for 10 minutes. A forged or stale cookie opens to null. The state check still guards
+  CSRF as it does for sign-in.</li>
+<li><strong>Telegram HMAC.</strong> Verified server-side against the bot token, with a 10-minute window for linking and a
+  five-minute allowance for clock drift. The SPA never decides whether a payload is valid.</li>
+<li><strong>Impersonation.</strong> Every account-link write, resolve and move is refused with 403 while an admin views
+  as someone else, and the admin link routes refuse too: <code>UserId</code> is then the inspected account. The status
+  read stays open.</li>
+<li><strong>Feature gate.</strong> <code>AccountLinkController</code> and <code>AlarmMoveController</code> carry
+  <code>[RequireFeatureEnabled(disable_account_linking)]</code>, and <code>ILinkedAccount</code> answers single accounts when it's
+  off.</li>
+<li><strong>CSP.</strong> <code>script-src</code> allows <code>https://telegram.org</code> and <code>frame-src</code> allows <code>https://oauth.telegram.org</code>
+  for the widget. No <code>unsafe-eval</code>, which is why redirect mode.</li>
+<li><strong>Logging.</strong> Linked-account log lines pass human ids through <code>LogSafe.Id</code>, which masks URL-shaped ids
+  (webhook tokens). Discord and Telegram user ids are logged unchanged. Bot tokens and widget hashes are
+  never logged.</li>
+<li><strong>Destinations never link.</strong> <code>LinkAsync</code> accepts only a <code>discord:user</code> caller with a <code>telegram:user</code>
+  partner or the reverse, and <code>ILinkedAccount</code> re-checks both types on every resolve. A channel, group or
+  webhook can't join a pair, so no alert ever leaves a person's own DM because of a link.</li>
+</ul>
+<h2 id="testing">Testing<a class="headerlink" href="#testing" title="Permanent link">&para;</a></h2>
+<p>Backend tests are in <code>Tests/Pgan.PoracleWebNet.Tests/</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Tests</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Resolution and linking</td>
+<td><code>LinkedAccountTests</code>, <code>AccountLinkServiceTests</code>, <code>AccountLinkRepositoryTests</code>, <code>AccountLinkMappingTests</code>, <code>AccountLinkControllerTests</code>, <code>AuthControllerLinkCallbackTests</code>, <code>TelegramWidgetVerifierTests</code>, <code>LinkedHumanProvisionerTests</code></td>
+</tr>
+<tr>
+<td>Alarm routing</td>
+<td><code>LinkedAlarmRouterTests</code>, <code>LinkedAlarmOwnerRoutingTests</code>, <code>LinkedCreateFallbackTests</code>, <code>LinkedInvasionKindTests</code>, <code>AlarmDestinationExceptionFilterTests</code></td>
+</tr>
+<tr>
+<td>Moves</td>
+<td><code>AlarmMoverTests</code>, <code>AlarmMoverReasonCodeTests</code>, <code>AlarmMoverCarriesStoredFieldsTests</code>, <code>QuickPickUidTransferTests</code>, <code>AlarmMoveControllerTests</code>, <code>AlarmMoveWhileImpersonatingTests</code>, <code>AlarmMoveRateLimitTests</code>, <code>MoveStatusSerializationTests</code></td>
+</tr>
+<tr>
+<td>Paired writes and drift</td>
+<td><code>PairedHumanWriterTests</code>, <code>LinkedPersonWritesTests</code>, <code>LinkedGeofenceOwnershipTests</code>, <code>LinkedSurfacesTests</code>, <code>PairDriftServiceTests</code></td>
+</tr>
+</tbody>
+</table>
+<p>Three architecture tests in <code>Tests/.../Architecture/</code> fail the build when a rule is broken:</p>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Rule</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>AlarmControllersUseRouterTests</code></td>
+<td>None of the eleven alarm controllers passes <code>this.UserId</code> (directly or through a local) to its service; everything goes through <code>LinkedAlarmRouter</code></td>
+</tr>
+<tr>
+<td><code>PersonWritesUseWriterTests</code></td>
+<td>A person-level write (location, places, areas, profiles, language, quiet periods, alerts on and off, summaries) in the person controllers or <code>UserGeofenceService</code> is made inside <code>IPairedHumanWriter</code></td>
+</tr>
+<tr>
+<td><code>AlarmUpdateMoveGuardTests</code></td>
+<td>Each alarm controller's <code>PUT /{uid}</code> refuses a move while impersonating, before anything is merged or written</td>
+</tr>
+</tbody>
+</table>
+<p>SPA specs cover <code>linked-account.service</code>, <code>alarm-move.service</code>, <code>pair-warning.interceptor</code>, the Linked
+accounts page, <code>pair-drift-panel</code>, <code>pair-drift-banner</code>, <code>deliver-to-field</code> and <code>deliver-to</code>, the
+redirect-mode <code>telegram-login-button</code>, and the admin settings for linking.</p>
+<h2 id="extension-points">Extension points<a class="headerlink" href="#extension-points" title="Permanent link">&para;</a></h2>
+<p><code>IAccountLinkService</code> is the only way to create a link. A caller hands it an identity it has already
+verified, and the service applies the pairing rules, provisioning and invalidation. Another sign-in
+provider could call it the same way the Discord callback and the Telegram endpoint do, without touching
+the router, writer or drift code.</p>
+<p>A new person-level write belongs inside <code>IPairedHumanWriter</code> (and in the list <code>PersonWritesUseWriterTests</code>
+checks). A new alarm type goes through <code>LinkedAlarmRouter</code> in its controller and gets an entry in
+<code>AlarmMoveDispatcher</code>. A new compared setting is a new <code>DriftField</code> with its comparable form, its
+resolution, and its pre-checks ahead of the first write.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/PGAN-Dev/PoracleWeb.NET" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
+      
+    
+  </body>
+</html>
