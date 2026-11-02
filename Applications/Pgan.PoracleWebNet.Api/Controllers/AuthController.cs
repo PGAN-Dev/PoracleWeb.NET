@@ -1229,6 +1229,9 @@ public partial class AuthController(
 #pragma warning restore CA1873
                 }
 
+                // Stopping here is only right because this check answers one yes/no question and nothing
+                // keeps the roles it read. Anything that grants features per role needs the union of the
+                // user's roles across every configured guild, so it must not reuse this early exit.
                 if (HasAllowedRole(allowedRoles, userRoles))
                 {
                     return null;
