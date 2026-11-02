@@ -626,10 +626,6 @@ public partial class SettingsController(
     }
 
     /// <summary>
-    /// Masks a non-secret value: shows first 4 and last 4 characters.
-    /// Returns empty string if not configured.
-    /// </summary>
-    /// <summary>
     /// Masks each entry of a comma-separated list on its own, so several Discord guild IDs still read
     /// as several. A single value is masked exactly as <see cref="MaskValue"/> does.
     /// </summary>
@@ -638,6 +634,10 @@ public partial class SettingsController(
             ? string.Empty
             : string.Join(", ", value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(MaskValue));
 
+    /// <summary>
+    /// Masks a non-secret value: shows first 4 and last 4 characters.
+    /// Returns empty string if not configured.
+    /// </summary>
     private static string MaskValue(string? value)
     {
         if (string.IsNullOrEmpty(value))

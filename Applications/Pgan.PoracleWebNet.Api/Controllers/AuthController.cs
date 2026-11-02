@@ -1350,12 +1350,6 @@ public partial class AuthController(
     }
 
     /// <summary>
-    /// The denial reason once no configured guild granted an allowed role. A lookup that failed for
-    /// any reason other than "not a member" wins, because the role might have been in that guild;
-    /// otherwise a member of at least one guild is missing the role, and a member of none is not in
-    /// the guild. With a single guild this is the same answer the single-guild check always gave.
-    /// </summary>
-    /// <summary>
     /// Whether a Discord error body is <c>10004 Unknown Guild</c>: the guild doesn't exist or the bot
     /// isn't in it. A user who isn't in the guild gets <c>10007 Unknown Member</c> on the same 404.
     /// </summary>
@@ -1376,6 +1370,12 @@ public partial class AuthController(
         }
     }
 
+    /// <summary>
+    /// The denial reason once no configured guild granted an allowed role. A lookup that failed for
+    /// any reason other than "not a member" wins, because the role might have been in that guild;
+    /// otherwise a member of at least one guild is missing the role, and a member of none is not in
+    /// the guild. With a single guild this is the same answer the single-guild check always gave.
+    /// </summary>
     internal static string GuildRoleCheckDenial(bool inAnyGuild, bool anyLookupFailed) =>
         anyLookupFailed ? "role_check_failed"
         : inAnyGuild ? "missing_required_role"
