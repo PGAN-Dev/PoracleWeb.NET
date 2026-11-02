@@ -36,7 +36,9 @@ Discord is optional. A site can sign people in with Telegram or an [OIDC provide
 A bot under the same application does two things. It opens the Discord forum threads for geofence
 submissions, and it reads guild membership so role gating can restrict sign-in to holders of a role.
 Role gating needs three pieces: the `enable_roles` site setting switched on, the role IDs in
-`allowed_role_ids`, and the bot in the guild you name in `DISCORD_GUILD_ID`. With `enable_roles` off
+`allowed_role_ids`, and the bot in the guild you name in `DISCORD_GUILD_ID`. A community spread over
+several servers can list them all, comma-separated; the bot must be in each, and an allowed role in any
+one of them is enough. With `enable_roles` off
 the role IDs are never read, so sign-in stays open to everyone. Role gating covers Discord sign-in only.
 Telegram sign-in doesn't check roles: a Telegram user needs to be registered in Poracle, and that
 registration is what decides who gets in.
