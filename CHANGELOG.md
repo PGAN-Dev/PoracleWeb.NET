@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.7.0] - 2026-11-02
+
 ### Added
 
 - **Role-based access can check more than one Discord server.** `DISCORD_GUILD_ID` took a single guild, so a community whose members are spread across several servers could only gate sign-in on one of them and lock out everyone who wasn't in it. It now takes a comma-separated list: the bot looks the user up in each guild in turn, and an allowed role in any one of them is enough. A guild the bot can't read doesn't lock out someone who qualifies through another. A single guild ID behaves exactly as before, including the `not_in_guild`, `missing_required_role` and `role_check_failed` reasons. A guild ID that's mistyped, or names a server the bot isn't in, now logs a warning naming it. Discord answers 404 for that just as it does for "not a member", so before it was indistinguishable from a user who simply wasn't there. An entry that isn't a guild ID is skipped with a warning naming it, and a value with no usable guild ID left refuses non-admin sign-in with `role_check_failed` instead of switching the check off. The Discord card under Admin > Settings now says "Guild IDs" and masks each ID on its own, so it shows how many are configured.
@@ -14,6 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Help and the docs cover 3.6.0's limits.** In-app Help, in all 11 languages, now says a community can cap how many areas you select and how far a radius reaches, and that a missing address search box can also mean the server has no geocoder. The profiles, drawn geofences and linked accounts pages say how the area limit applies to a new or duplicated profile, a geofence switched on at the cap, and an alarm moved to the other app.
+
+### Dependencies
+- Bump @ngx-translate/core ([#1135](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/1135))
+- Bump @ngx-translate/http-loader ([#1134](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/1134))
+- Bump the angular group ([#1132](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/1132))
+- Bump the eslint group ([#1133](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/1133))
 
 ## [3.6.0] - 2026-10-31
 
@@ -1532,7 +1540,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.6.0...HEAD
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.7.0...HEAD
+[3.7.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.6.0...v3.7.0
 [3.6.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.5.0...v3.6.0
 [3.5.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.4.0...v3.5.0
 [3.4.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.3.0...v3.4.0
