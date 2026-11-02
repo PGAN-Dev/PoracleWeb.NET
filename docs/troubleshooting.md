@@ -189,6 +189,18 @@ This was a v1 problem. PoracleNG's v1 create read `uid=0` as an update target, a
 
 ---
 
+## Members are refused with `not_in_guild`
+
+**Problem**: With **Enable Role-Based Access** on, members who are in your Discord server land back on the login page with `not_in_guild`.
+
+**Cause**: `DISCORD_GUILD_ID` doesn't name a server the bot can see: a typo, an ID copied from a channel or role instead of the server, or a server the bot was removed from. Discord answers those lookups with 404, the same as for someone who isn't a member, so the check can't tell the two apart from the status alone. The log names the bad entry: `Discord guild <id> in DISCORD_GUILD_ID is unknown: it doesn't exist or the bot isn't in it`.
+
+**Fix**: Correct the ID (right-click the server icon > **Copy Server ID** with Developer Mode on), or invite the bot back, then recreate the container so `.env` is reread. With several guilds listed, the others keep working meanwhile.
+
+If everyone is refused with `role_check_failed` instead, and the log says `DISCORD_GUILD_ID is set but contains no usable Discord guild IDs`, the IDs aren't comma-separated (a space or semicolon between them reads as one bad entry) or the value isn't an ID at all. The `Ignoring DISCORD_GUILD_ID entries` warning names each entry that was skipped.
+
+---
+
 ## Discord API calls failing
 
 **Problem**: Discord API calls return errors or time out.
