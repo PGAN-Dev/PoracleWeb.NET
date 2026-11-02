@@ -42,13 +42,15 @@ public class AuthControllerGuildRoleCheckTests
 
         public HashSet<string> Unreachable { get; } = [];
 
+        public Func<Exception> Failure { get; set; } = () => new HttpRequestException("connection reset");
+
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var guild = request.RequestUri!.Segments[^3].TrimEnd('/');
             this.Asked.Add(guild);
             if (this.Unreachable.Contains(guild))
             {
-                throw new HttpRequestException("connection reset");
+                throw this.Failure();
             }
 
             var (status, body) = byGuild[guild];
@@ -194,11 +196,19 @@ public class AuthControllerGuildRoleCheckTests
     }
 
     // A request that fails outright (reset, DNS, timeout) is the same as an unreadable guild: it must
-    // not end the check while another guild could still let the user in.
-    [Fact]
-    public async Task UnreachableGuildDoesNotBlockAGrantFromAnother()
+    // not end the check while another guild could still let the user in. HttpClient reports a timeout
+    // as TaskCanceledException, not HttpRequestException.
+    [Theory]
+    [InlineData(typeof(HttpRequestException))]
+    [InlineData(typeof(TaskCanceledException))]
+    public async Task UnreachableGuildDoesNotBlockAGrantFromAnother(Type failure)
     {
-        var discord = new StubGuilds(new() { [GuildB] = Member(AllowedRole) }) { Unreachable = { GuildA } };
+        Dictionary<string, (HttpStatusCode, string)> guilds = new() { [GuildB] = Member(AllowedRole) };
+        var discord = new StubGuilds(guilds)
+        {
+            Unreachable = { GuildA },
+            Failure = () => (Exception)Activator.CreateInstance(failure)!,
+        };
 
         Assert.Null(await this.Create($"{GuildA},{GuildB}", discord).CheckRoleAccessAsync(DiscordId));
         Assert.Equal([GuildA, GuildB], discord.Asked);
