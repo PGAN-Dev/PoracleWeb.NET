@@ -35,6 +35,9 @@ public class PublicPoracleConfig
     public string EverythingFlagPermissions { get; set; } = string.Empty;
     public int MaxDistance { get; set; }
 
+    /// <summary>PoracleNG's <c>[tracking] max_areas</c>; <c>0</c> is no limit.</summary>
+    public int MaxAreas { get; set; }
+
     /// <summary>The bot command prefix. Not sensitive: it is in every command a user already types.</summary>
     public string Prefix { get; set; } = string.Empty;
 
@@ -75,6 +78,7 @@ public class PublicPoracleConfig
         DefaultTemplateName = source.DefaultTemplateName,
         EverythingFlagPermissions = source.EverythingFlagPermissions,
         MaxDistance = source.MaxDistance,
+        MaxAreas = source.MaxAreas,
         Prefix = source.Prefix,
     };
 }

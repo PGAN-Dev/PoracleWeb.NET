@@ -50,6 +50,15 @@ public sealed partial class PoracleIncidentProxy(
     {
         var list = rules.ToList();
         var trusted = await this.AuthoriseOverrideAreasAsync(userId, list, storedOnRule: null);
+        if (trusted && !dryRun)
+        {
+            // The commit carries only the rules the dry run found new (IncidentCreateProtocol), and each is an insert.
+            foreach (var rule in list.Where(r => r.OverrideAreas is { Count: > 0 }))
+            {
+                await this._areaPolicy.EnsureOverrideAreasWithinLimitAsync(userId, rule.OverrideAreas!, storedOnRule: null);
+            }
+        }
+
         var payload = "[" + string.Join(",", list.Select(RuleJson)) + "]";
         var url = $"{this.Route(userId)}?silent=true{ProfileQuery(profileNo)}{TrustedQuery(trusted)}"
             + (dryRun ? "&dry_run=true" : string.Empty);
@@ -64,6 +73,12 @@ public sealed partial class PoracleIncidentProxy(
 
         var trusted = await this.AuthoriseOverrideAreasAsync(
             userId, [rule], () => this.StoredOverrideAreasAsync(userId, uid, profileNo));
+        if (trusted)
+        {
+            await this._areaPolicy.EnsureOverrideAreasWithinLimitAsync(
+                userId, rule.OverrideAreas!, () => this.StoredOverrideAreasAsync(userId, uid, profileNo));
+        }
+
         var response = await this.SendAsync(
             HttpMethod.Put,
             $"{this.Route(userId)}/{uid}?silent=true{ProfileQuery(profileNo)}{TrustedQuery(trusted)}",
@@ -113,6 +128,12 @@ public sealed partial class PoracleIncidentProxy(
 
         // Always trusted, for the reason the tracking proxy's PatchAsync gives: PoracleNG re-validates the stored
         // rule's areas, untrusted it refuses a user's own drawn fence, and a PATCH set cannot name a new area.
+        // Trusted also lifts its max_distance clamp, so that is applied here.
+        if (settings.Distance is { } distance)
+        {
+            settings = settings with { Distance = await this._areaPolicy.ClampDistanceAsync(userId, distance) };
+        }
+
         var response = await this.SendAsync(
             HttpMethod.Patch,
             $"{this.Route(userId)}?silent=true{TrustedQuery(trusted: true)}",

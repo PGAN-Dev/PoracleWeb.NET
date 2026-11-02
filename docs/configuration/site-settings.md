@@ -87,7 +87,7 @@ Toggle user-facing features on or off.
 | `disable_areas` | Areas | boolean | Prevent users from managing their area subscriptions. |
 | `disable_profiles` | Profiles | boolean | Prevent users from creating and switching alarm profiles. |
 | `disable_location` | Location | boolean | Gates the whole location API, not just the pin. Users cannot set their pin, and saved places, static and distance map images, and the weather lookups on the dashboard all stop with it. Since "Near a place" delivery scope measures from a saved place or the pin, alarms already using it keep working but nothing new can be pointed at a place. |
-| `disable_nominatim` | Geocoding | boolean | Stops address search and reverse lookup. Both go to PoracleNG's `/api/geocode` routes, which call whichever geocoder PoracleNG is configured for; with this on they answer 403 and the location dialog hides its search box. Users can still set a pin by coordinates or on the map. The key keeps its old name, though Nominatim is no longer called directly. |
+| `disable_nominatim` | Geocoding | boolean | Stops address search and reverse lookup. Both go to PoracleNG's `/api/geocode` routes, which call whichever geocoder PoracleNG is configured for; with this on they answer 403 and the location dialog hides its search box. Users can still set a pin by coordinates or on the map. The key keeps its old name, though Nominatim is no longer called directly. PoracleNG forces it off when it has no geocoder (`[geocoding] provider` empty or `none`); the toggle then shows a note saying so, and comes back under your control once a provider is set, within five minutes. |
 | `disable_update_check` | Check for updates | boolean | Controls the version check against `api.github.com` and `raw.githubusercontent.com`, which runs when an admin opens the Versions card and is cached six hours afterwards. Two anonymous GETs, no identifiers and no payload. Like every `disable_` key the switch reads the positive way round: **Check for updates** on (key absent or `False`) runs the check; off (key `True`) stops it, and the Versions card still reports the running versions but can't say whether they're current. |
 | `disable_user_geofences` | Custom Geofences | boolean | Hides the My Geofences page and the admin review queue, and 403s the create, rename, import, submit, activate and deactivate endpoints. Delete is deliberately left open, so a user can still clear out a geofence they no longer want. Geofences that already exist keep being served in the [geofence feed](../features/custom-geofences/index.md) and keep matching. See [Admin operations](../features/custom-geofences/admin-operations.md). |
 | `enable_templates` | Templates | boolean | Allow users to choose notification message templates. |
@@ -271,11 +271,13 @@ Access control.
 | Key | Label | Type | Description |
 |---|---|---|---|
 | `enable_roles` | Enable Role-Based Access | boolean | Only allow users with specific Discord roles to log in. It applies to Discord sign-in only: Telegram sign-in doesn't check it, and a Telegram user's access follows Poracle's own registration. Requires `Discord:BotToken` and `Discord:GuildId` in [appsettings](reference.md). |
-| `allowed_role_ids` | Allowed Role IDs | csv | Comma-separated Discord role IDs (e.g., `123456789,987654321`). A user needs **at least one** of these roles to log in. Leave empty to allow all. Only visible when `enable_roles` is enabled. |
+| `allowed_role_ids` | Allowed Role IDs | csv | Comma-separated Discord role IDs (e.g., `123456789,987654321`). A user needs **at least one** of these roles, in any of the configured guilds, to log in. Leave empty to allow all. Only visible when `enable_roles` is enabled. |
 | `delegation_poracle_channels` | Let Poracle's channel admins manage here | boolean | Off when unset. When on, anyone PoracleNG lists in `[[discord.delegated_admins]]` or `[[telegram.delegated_admins]]` as admin of a channel can manage that channel's alarms here as a delegate, provided the channel is registered as a destination on this site. A guild-wide entry covers only the registered channels. Saving it takes effect straight away rather than after the one-minute role cache. See [Letting Poracle's channel admins manage here](../features/webhooks.md#letting-poracles-channel-admins-manage-here). |
 
 !!! warning "Role-based access prerequisites"
     Role-based access requires `Discord:BotToken` and `Discord:GuildId` to be configured in appsettings. Without these, role checks cannot be performed and the setting has no effect.
+
+    `Discord:GuildId` (`DISCORD_GUILD_ID`) may list several guilds, comma-separated. The bot must be in each one; guilds are checked in order and the first allowed role found lets the user in. A user who is in none of them is denied with `not_in_guild`, and a guild the bot cannot read (anything but "not a member") denies with `role_check_failed` unless another guild already granted access. A guild ID Discord doesn't know, mistyped or naming a server the bot isn't in, is logged as a warning on every check that reaches it (`Discord guild … in DISCORD_GUILD_ID is unknown`) and otherwise counts as "not a member". Separate the IDs with commas: an entry that isn't a guild ID (a space- or semicolon-separated list, a server name, a URL) is skipped with a warning naming it, and if nothing usable is left every non-admin sign-in is refused with `role_check_failed` rather than letting everyone in. Only an empty `DISCORD_GUILD_ID` turns the check off.
 
 !!! note "Formatting `allowed_role_ids`"
     Enter the IDs bare: `123456789,987654321`. Surrounding quotes are stripped, but any entry that is not a numeric Discord role ID is ignored and logged as a warning. If nothing usable is left, non-admin logins are denied with `role_check_failed` rather than silently allowing everyone. Admins can always log in, so a bad value can be corrected from the admin panel.
@@ -484,7 +486,7 @@ value, so a single accidental save would pin the language default permanently an
 tracking Poracle's configuration at all.
 
 There is also `GET /api/settings/upstream-disabled`, which lists the `disable_*` keys Poracle's own
-config is forcing off. Any signed-in user can read it — the nav and the route guards need it — and it
+config is forcing off, `disable_nominatim` included when PoracleNG has no geocoder. Any signed-in user can read it — the nav and the route guards need it — and it
 is empty when Poracle is unreachable.
 
 ---

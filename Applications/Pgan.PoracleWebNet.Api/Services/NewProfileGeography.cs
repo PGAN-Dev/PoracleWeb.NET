@@ -17,18 +17,28 @@ namespace Pgan.PoracleWebNet.Api.Services;
 public static partial class NewProfileGeography
 {
     /// <param name="areaJson">The area list in the column's JSON-encoded form, as the callers hold it.</param>
-    public static Task WriteAsync(
+    /// <remarks>
+    /// The list is held to PoracleNG's <c>[tracking] max_areas</c> as a new list: a profile already over the limit
+    /// keeps its areas, but they can't be copied into another one, which is PoracleNG's own rule.
+    /// </remarks>
+    public static async Task WriteAsync(
         IPoracleHumanProxy humanProxy,
+        IUserAreaPolicy areaPolicy,
         string userId,
         int profileNo,
         string? areaJson,
         double latitude,
-        double longitude) =>
-        humanProxy.SetProfileGeographyAsync(userId, profileNo, AreaListJson.Parse(areaJson), latitude, longitude);
+        double longitude)
+    {
+        var areas = AreaListJson.Parse(areaJson);
+        await areaPolicy.EnsureAreaListWithinLimitAsync(userId, areas, previous: null);
+        await humanProxy.SetProfileGeographyAsync(userId, profileNo, areas, latitude, longitude);
+    }
 
     /// <summary><see cref="WriteAsync"/>, deleting the new profile and rethrowing when it fails.</summary>
     public static async Task WriteOrRollBackAsync(
         IPoracleHumanProxy humanProxy,
+        IUserAreaPolicy areaPolicy,
         ILogger logger,
         string userId,
         int profileNo,
@@ -38,7 +48,7 @@ public static partial class NewProfileGeography
     {
         try
         {
-            await WriteAsync(humanProxy, userId, profileNo, areaJson, latitude, longitude);
+            await WriteAsync(humanProxy, areaPolicy, userId, profileNo, areaJson, latitude, longitude);
         }
         catch
         {

@@ -12,9 +12,16 @@ public interface IUserAreaWriter
     /// Replaces the active profile's list with <paramref name="requested"/> (lowercased, trimmed).
     /// A name is allowed when PoracleNG lists it <c>userSelectable</c> for the human, it is one of the
     /// human's own drawn fences, or the profile already holds it. Throws
-    /// <see cref="AreaNotPermittedException"/> naming the rest, before anything is posted.
+    /// <see cref="AreaNotPermittedException"/> naming the rest, before anything is posted. A list PoracleNG's
+    /// <c>[tracking] max_areas</c> refuses throws <see cref="AlarmValidationException"/>.
     /// </summary>
     public Task<AreaSaveResult> SaveSelectionAsync(string humanId, IReadOnlyCollection<string> requested);
+
+    /// <summary>
+    /// <see cref="SaveSelectionAsync"/> for a list copied from the human's linked account, which is not held to
+    /// <c>max_areas</c>: it is the same person's list, and the other side already holds it.
+    /// </summary>
+    public Task<AreaSaveResult> MirrorSelectionAsync(string humanId, IReadOnlyCollection<string> requested);
 
     /// <summary>
     /// The names in <paramref name="requested"/> the human may subscribe to, by the same rule as

@@ -520,6 +520,70 @@ public class TrackingCreateProtocolTests
         Assert.Empty(handler.Requests);
     }
 
+    // ---- max_areas (jfberry/PoracleNG#346) ----------------------------------------------------------
+
+    [Fact]
+    public async Task NewRowOverTheAreaLimitRefusedAfterTheDryRunNoCommit()
+    {
+        this._policy
+            .Setup(p => p.EnsureOverrideAreasWithinLimitAsync("user1", It.IsAny<IReadOnlyCollection<string>>(), null))
+            .ThrowsAsync(new AlarmValidationException("An alarm can be limited to at most 1 areas."));
+        var handler = new Handler(_ => Reply.Ok(Envelope(true, created: """[{"uid":0,"pokemon_id":25}]""")));
+
+        await Assert.ThrowsAsync<AlarmValidationException>(() => this.CreateSut(handler).CreateAsync(
+            "pokemon", "user1", Json("""{"pokemon_id":25,"distance":0,"override_areas":["a","b"]}""")));
+
+        Assert.All(handler.Requests, r => Assert.True(IsDryRun(r), "nothing may be committed"));
+    }
+
+    [Fact]
+    public async Task RowAlreadyStoredUnchangedIsNotHeldToTheAreaLimit()
+    {
+        // Re-applying an alarm stored before max_areas was lowered writes nothing, so it must not be refused.
+        this._policy
+            .Setup(p => p.EnsureOverrideAreasWithinLimitAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>(), null))
+            .ThrowsAsync(new AlarmValidationException("limit"));
+        var handler = new Handler(_ => Reply.Ok(Envelope(true, unchanged: """[{"uid":0},{"uid":0}]""")));
+
+        var result = await this.CreateSut(handler).CreateAsync(
+            "pokemon", "user1", Json("""[{"pokemon_id":25,"distance":0,"override_areas":["a","b"]},{"pokemon_id":26,"distance":0,"override_areas":["a","b"]}]"""));
+
+        Assert.Equal(2, result.AlreadyPresent);
+    }
+
+    [Fact]
+    public async Task OnlyTheNewRowsOfABatchAreHeldToTheAreaLimit()
+    {
+        var handler = new Handler(sent =>
+        {
+            if (!IsDryRun(sent))
+            {
+                return Reply.Ok(Envelope(false, created: """[{"uid":9,"pokemon_id":26}]"""));
+            }
+
+            var ids = PokemonIds(sent);
+            if (ids.Count == 2)
+            {
+                return Reply.Ok(Envelope(true, created: """[{"uid":0}]""", unchanged: """[{"uid":0}]"""));
+            }
+
+            return ids[0] == 25
+                ? Reply.Ok(Envelope(true, unchanged: """[{"uid":0}]"""))
+                : Reply.Ok(Envelope(true, created: """[{"uid":0}]"""));
+        });
+
+        await this.CreateSut(handler).CreateAsync(
+            "pokemon", "user1", Json("""[{"pokemon_id":25,"distance":0,"override_areas":["a","b","c"]},{"pokemon_id":26,"distance":0,"override_areas":["d"]}]"""));
+
+        this._policy.Verify(
+            p => p.EnsureOverrideAreasWithinLimitAsync("user1", It.Is<IReadOnlyCollection<string>>(a => a.SequenceEqual(new[] { "d" })), null),
+            Times.Once);
+        this._policy.Verify(
+            p => p.EnsureOverrideAreasWithinLimitAsync(
+                It.IsAny<string>(), It.Is<IReadOnlyCollection<string>>(a => a.Contains("a")), It.IsAny<Func<Task<IReadOnlyCollection<string>>>?>()),
+            Times.Never);
+    }
+
     // ---- status mapping -----------------------------------------------------------------------------
 
     [Fact]

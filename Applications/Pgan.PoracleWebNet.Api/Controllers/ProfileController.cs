@@ -20,6 +20,7 @@ public class ProfileController(
     IUserRoleResolver roleResolver,
     IUserAreaWriter areaWriter,
     IPairedHumanWriter pairWriter,
+    IUserAreaPolicy areaPolicy,
     ILogger<ProfileController> logger) : BaseApiController
 {
     private readonly IProfileService _profileService = profileService;
@@ -29,6 +30,7 @@ public class ProfileController(
     private readonly IUserRoleResolver _roleResolver = roleResolver;
     private readonly IUserAreaWriter _areaWriter = areaWriter;
     private readonly IPairedHumanWriter _pairWriter = pairWriter;
+    private readonly IUserAreaPolicy _areaPolicy = areaPolicy;
     private readonly ILogger<ProfileController> _logger = logger;
 
     [HttpGet]
@@ -173,7 +175,7 @@ public class ProfileController(
             var areas = id == this.UserId ? requestedAreas : await this.AreasAllowedForAsync(id, requestedAreas);
             var no = await this._humanProxy.AddProfileAsync(id, body);
             await NewProfileGeography.WriteOrRollBackAsync(
-                this._humanProxy, this._logger, id, no, areas, profile.Latitude, profile.Longitude);
+                this._humanProxy, this._areaPolicy, this._logger, id, no, areas, profile.Latitude, profile.Longitude);
             return new NewProfileOn(id, no);
         });
         var (createdNo, warning) = await PairedNewProfile.ReconcileAsync(
@@ -329,7 +331,7 @@ public class ProfileController(
             try
             {
                 await NewProfileGeography.WriteAsync(
-                    this._humanProxy, id, no, sourceProfile.Area ?? "[]",
+                    this._humanProxy, this._areaPolicy, id, no, sourceProfile.Area ?? "[]",
                     sourceProfile.Latitude, sourceProfile.Longitude);
 
                 // Copy all alarms from source to new profile

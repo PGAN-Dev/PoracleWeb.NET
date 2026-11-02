@@ -234,4 +234,70 @@ public class UpstreamFeatureFlagServiceTests
 
         Assert.Equal([DisableFeatureKeys.PokestopEvents], await this.CreateSut().GetDisabledKeysAsync());
     }
+
+    // ── disable_nominatim: PoracleNG has no geocoder (#1111) ─────────────────
+
+    private void UpstreamProvider(string? provider) =>
+        this._proxy.Setup(p => p.GetConfigAsync()).ReturnsAsync(new PoracleConfig { DisabledHooks = [], Provider = provider });
+
+    /// <summary>
+    /// <c>[geocoding] provider</c> set to <c>"none"</c>, or left empty, builds no geocoder at all, so
+    /// every address search and reverse lookup answers 503. Any casing: upstream's switch only
+    /// recognises the lower-case provider names, so <c>"None"</c> builds no geocoder either.
+    /// </summary>
+    [Theory]
+    [InlineData("")]
+    [InlineData("none")]
+    [InlineData("None")]
+    [InlineData(" none ")]
+    public async Task NoGeocoderDisablesGeocoding(string provider)
+    {
+        this.UpstreamProvider(provider);
+
+        Assert.Equal([DisableFeatureKeys.Geocoding], await this.CreateSut().GetDisabledKeysAsync());
+    }
+
+    /// <summary>Prod and dev both report <c>nominatim</c>; none of the providers may switch geocoding off.</summary>
+    [Theory]
+    [InlineData("nominatim")]
+    [InlineData("photon")]
+    [InlineData("google")]
+    public async Task ConfiguredGeocoderLeavesGeocodingOn(string provider)
+    {
+        this.UpstreamProvider(provider);
+
+        Assert.Empty(await this.CreateSut().GetDisabledKeysAsync());
+    }
+
+    /// <summary>
+    /// A provider this code has never heard of is a provider PoracleNG may have added since. Only a
+    /// known-off answer switches the feature off.
+    /// </summary>
+    [Fact]
+    public async Task UnrecognisedProviderLeavesGeocodingOn()
+    {
+        this.UpstreamProvider("mapbox");
+
+        Assert.Empty(await this.CreateSut().GetDisabledKeysAsync());
+    }
+
+    /// <summary>PoracleJS and older PoracleNG builds send no <c>provider</c> at all. Absent is no opinion.</summary>
+    [Fact]
+    public async Task AbsentProviderLeavesGeocodingOn()
+    {
+        this.UpstreamProvider(null);
+
+        Assert.Empty(await this.CreateSut().GetDisabledKeysAsync());
+    }
+
+    [Fact]
+    public async Task NoGeocoderAddsToTheHookFlagsRatherThanReplacingThem()
+    {
+        this._proxy.Setup(p => p.GetConfigAsync())
+            .ReturnsAsync(new PoracleConfig { DisabledHooks = ["nest"], Provider = "none" });
+
+        Assert.Equal(
+            [DisableFeatureKeys.Nests, DisableFeatureKeys.Geocoding],
+            (await this.CreateSut().GetDisabledKeysAsync()).Order(StringComparer.Ordinal));
+    }
 }

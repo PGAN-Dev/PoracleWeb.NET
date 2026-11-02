@@ -1,3 +1,6 @@
+using System.Text.Json;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
@@ -9,14 +12,21 @@ namespace Pgan.PoracleWebNet.Core.Services;
 /// Depends on the human proxy and the geofence repository only. <see cref="UserAreaWriter"/> needs the
 /// tracking proxy and the tracking proxy needs this policy, so a dependency on it here would be a cycle.
 /// </remarks>
-public class UserAreaPolicy(
+public partial class UserAreaPolicy(
     IPoracleHumanProxy humanProxy,
     IUserGeofenceRepository geofences,
-    Lazy<ILinkedAccount>? linkedAccount = null) : IUserAreaPolicy
+    Lazy<ILinkedAccount>? linkedAccount = null,
+    IPoracleApiProxy? poracleApiProxy = null,
+    ILogger<UserAreaPolicy>? logger = null) : IUserAreaPolicy
 {
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly IUserGeofenceRepository _geofences = geofences;
     private readonly Lazy<ILinkedAccount>? _linkedAccount = linkedAccount;
+    private readonly IPoracleApiProxy? _poracleApiProxy = poracleApiProxy;
+    private readonly ILogger _logger = (ILogger?)logger ?? NullLogger.Instance;
+
+    // Read once per request: a profile import checks every rule it creates.
+    private Task<PoracleConfig?>? _config;
 
     public async Task<IReadOnlySet<string>> AllowedKeysAsync(string humanId)
     {
@@ -80,6 +90,114 @@ public class UserAreaPolicy(
             throw new AlarmValidationException($"These areas can't be used on an alarm: {string.Join(", ", refused)}.");
         }
     }
+
+    public Task EnsureAreaListWithinLimitAsync(
+        string humanId,
+        IReadOnlyCollection<string> areas,
+        Func<Task<IReadOnlyCollection<string>>>? previous) =>
+        this.EnsureWithinLimitAsync(humanId, areas, previous, max => $"You can select at most {max} areas. Remove one before adding another.");
+
+    public Task EnsureOverrideAreasWithinLimitAsync(
+        string humanId,
+        IReadOnlyCollection<string> areas,
+        Func<Task<IReadOnlyCollection<string>>>? storedOnRule) =>
+        this.EnsureWithinLimitAsync(humanId, areas, storedOnRule, max => $"An alarm can be limited to at most {max} areas.");
+
+    /// <summary>
+    /// PoracleNG's <c>clampDistance</c> (jfberry/PoracleNG#346), which it skips for a trusted write. Every v2
+    /// <c>PATCH</c> is sent trusted, so a bulk radius change would otherwise store any radius the request names.
+    /// </summary>
+    public async Task<int> ClampDistanceAsync(string humanId, int distance)
+    {
+        var config = await this.ConfigAsync();
+        var max = config?.MaxDistance ?? 0;
+        if (max <= 0 || distance <= max || await this.IsLimitExemptAsync(humanId, config!))
+        {
+            return distance;
+        }
+
+        return max;
+    }
+
+    /// <summary>
+    /// PoracleNG's own <c>AreaLimitBlocks</c> (jfberry/PoracleNG#346), which it skips for the trusted writes this
+    /// application sends: over the limit is refused unless every name is already in the list being replaced, or
+    /// the human is exempt. Duplicates count once. An unreadable config is no limit, as PoracleNG's own fails open.
+    /// </summary>
+    private async Task EnsureWithinLimitAsync(
+        string humanId,
+        IReadOnlyCollection<string> areas,
+        Func<Task<IReadOnlyCollection<string>>>? previous,
+        Func<int, string> message)
+    {
+        var keys = areas.Select(Key).Where(k => k.Length > 0).ToHashSet(StringComparer.Ordinal);
+        if (keys.Count == 0)
+        {
+            return;
+        }
+
+        var config = await this.ConfigAsync();
+        var max = config?.MaxAreas ?? 0;
+        if (max <= 0 || keys.Count <= max)
+        {
+            return;
+        }
+
+        if (previous is not null && keys.IsSubsetOf((await previous()).Select(Key)))
+        {
+            return;
+        }
+
+        if (await this.IsLimitExemptAsync(humanId, config!))
+        {
+            return;
+        }
+
+        throw new AlarmValidationException(message(max));
+    }
+
+    /// <summary>PoracleNG's config, read once per request. Null when there is no proxy or it can't be read: no limits.</summary>
+    private async Task<PoracleConfig?> ConfigAsync()
+    {
+        if (this._poracleApiProxy is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            return await (this._config ??= this._poracleApiProxy.GetConfigAsync());
+        }
+        catch (Exception ex) when (ex is HttpRequestException or JsonException or TaskCanceledException)
+        {
+            this._config = null;
+            LogLimitsUnreadable(this._logger, ex);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// PoracleNG's <c>LimitExempt</c>: its admins, and every destination that isn't a person (channels, webhooks,
+    /// groups, threads), which only admins and delegated admins configure. Judged on the human written to, as
+    /// PoracleNG does, so an admin managing someone else's account is held to that person's limit.
+    /// </summary>
+    private async Task<bool> IsLimitExemptAsync(string humanId, PoracleConfig config)
+    {
+        if (config.Admins is { } admins
+            && (admins.Discord.Contains(humanId, StringComparer.Ordinal) || admins.Telegram.Contains(humanId, StringComparer.Ordinal)))
+        {
+            return true;
+        }
+
+        var human = await this._humanProxy.GetHumanAsync(humanId);
+        return human is { ValueKind: JsonValueKind.Object } h
+            && h.TryGetProperty("type", out var type)
+            && type.ValueKind == JsonValueKind.String
+            && !(type.GetString() ?? string.Empty).EndsWith(":user", StringComparison.Ordinal);
+    }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Could not read PoracleNG's max_areas and max_distance; the limits are not applied")]
+    private static partial void LogLimitsUnreadable(ILogger logger, Exception ex);
 
     public static string Clean(string name) => name.Trim().ToLowerInvariant();
 

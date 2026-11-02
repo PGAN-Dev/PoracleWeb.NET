@@ -38,7 +38,7 @@ public class PairDriftServiceTests
             ]);
         this._areas.Setup(a => a.FilterAllowedAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>()))
             .ReturnsAsync((string _, IReadOnlyCollection<string> names) => (IReadOnlyList<string>)names.ToList());
-        this._areas.Setup(a => a.SaveSelectionAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>()))
+        this._areas.Setup(a => a.MirrorSelectionAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>()))
             .ReturnsAsync((string _, IReadOnlyCollection<string> names) => new AreaSaveResult(names.ToList(), []));
         this._sut = new PairDriftService(this._human.Object, this._tracking.Object, this._areas.Object);
     }
@@ -141,8 +141,8 @@ public class PairDriftServiceTests
         await this._sut.ResolveAsync(Pair(), DriftField.Areas, LinkSide.Discord, fp);
 
         // Authorised by PoracleWeb.NET's own policy, never written straight through the trusted proxy route.
-        this._areas.Verify(a => a.SaveSelectionAsync(Telegram, It.Is<IReadOnlyCollection<string>>(n => n.SequenceEqual(new[] { "old town", "northside" }))), Times.Once);
-        this._areas.Verify(a => a.SaveSelectionAsync(Discord, It.IsAny<IReadOnlyCollection<string>>()), Times.Never);
+        this._areas.Verify(a => a.MirrorSelectionAsync(Telegram, It.Is<IReadOnlyCollection<string>>(n => n.SequenceEqual(new[] { "old town", "northside" }))), Times.Once);
+        this._areas.Verify(a => a.MirrorSelectionAsync(Discord, It.IsAny<IReadOnlyCollection<string>>()), Times.Never);
         this._human.Verify(p => p.SetAreasTrustedAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>()), Times.Never);
     }
 
@@ -151,7 +151,7 @@ public class PairDriftServiceTests
     {
         this._data[Discord].Areas = ["old town", "northside"];
         this._data[Telegram].Areas = ["riverside"];
-        this._areas.Setup(a => a.SaveSelectionAsync(Telegram, It.IsAny<IReadOnlyCollection<string>>()))
+        this._areas.Setup(a => a.MirrorSelectionAsync(Telegram, It.IsAny<IReadOnlyCollection<string>>()))
             .ThrowsAsync(new AreaNotPermittedException(["northside"]));
         var fp = await this.FingerprintOf(DriftField.Areas);
 

@@ -16,6 +16,20 @@ public class PoracleConfig
     [JsonPropertyName("providerURL")]
     public string ProviderUrl { get; set; } = string.Empty;
 
+    /// <summary>
+    /// PoracleNG's <c>[geocoding] provider</c>, verbatim: <c>nominatim</c>, <c>photon</c>, <c>google</c>,
+    /// or empty or <c>none</c> when it has no geocoder, in which case every address search and reverse
+    /// lookup answers 503.
+    /// </summary>
+    /// <remarks>
+    /// Null when the field is absent (PoracleJS sends none), which is no opinion and must not be read as
+    /// "no geocoder". See #1111.
+    /// </remarks>
+    public string? Provider
+    {
+        get; set;
+    }
+
     public string StaticKey { get; set; } = string.Empty;
 
     [JsonPropertyName("version")]
@@ -60,6 +74,20 @@ public class PoracleConfig
     public string DefaultTemplateName { get; set; } = string.Empty;
     public string EverythingFlagPermissions { get; set; } = string.Empty;
     public int MaxDistance
+    {
+        get; set;
+    }
+
+    /// <summary>
+    /// PoracleNG's <c>[tracking] max_areas</c>: the most areas a user may hold on one profile, and the most one
+    /// alarm may be limited to. <c>0</c> is no limit, and so is a PoracleNG that sends no field.
+    /// </summary>
+    /// <remarks>
+    /// PoracleNG lifts the limit for a <c>trusted</c> write, and PoracleWeb.NET sends every area write trusted
+    /// (a user's own drawn fence is never <c>userSelectable</c>), so PoracleWeb.NET's area policy
+    /// (<c>IUserAreaPolicy</c>) enforces it instead. See jfberry/PoracleNG#346.
+    /// </remarks>
+    public int MaxAreas
     {
         get; set;
     }

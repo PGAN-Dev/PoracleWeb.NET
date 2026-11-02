@@ -29,7 +29,7 @@ public class PoracleIncidentProxyTests
                 ["Poracle:ApiSecret"] = "test-secret",
             })
             .Build(),
-        policy ?? Mock.Of<IUserAreaPolicy>(),
+        policy ?? PoracleTrackingProxyTests.AnyAreaPolicy(),
         NullLogger<PoracleIncidentProxy>.Instance);
 
     private const string CreatedOk = """{"created":[{"uid":740,"display_type":9}],"updated":null,"unchanged":null}""";
@@ -94,6 +94,20 @@ public class PoracleIncidentProxyTests
         Assert.Equal([1], result.Updated);
         Assert.Equal([2], result.Unchanged);
         Assert.Empty(result.Refused);
+    }
+
+    [Fact]
+    public async Task IncidentPatchSendsTheRadiusAfterTheMaxDistanceClamp()
+    {
+        var handler = new Handler(new Reply(
+            HttpStatusCode.OK,
+            """{"dry_run":false,"updated":[{"uid":1,"display_type":9}],"unchanged":null,"refused":null}"""));
+        var policy = new Mock<IUserAreaPolicy>();
+        policy.Setup(p => p.ClampDistanceAsync("u1", 5000)).ReturnsAsync(2000);
+
+        await CreateSut(handler, policy.Object).PatchAsync("u1", [1], new TrackingPatchSet(Distance: 5000));
+
+        Assert.Equal("""{"uids":[1],"set":{"distance":2000}}""", Assert.Single(handler.Requests).Body);
     }
 
     [Fact]

@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.7.0] - 2026-11-02
+
+### Added
+
+- **Role-based access can check more than one Discord server.** `DISCORD_GUILD_ID` took a single guild, so a community whose members are spread across several servers could only gate sign-in on one of them and lock out everyone who wasn't in it. It now takes a comma-separated list: the bot looks the user up in each guild in turn, and an allowed role in any one of them is enough. A guild the bot can't read doesn't lock out someone who qualifies through another. A single guild ID behaves exactly as before, including the `not_in_guild`, `missing_required_role` and `role_check_failed` reasons. A guild ID that's mistyped, or names a server the bot isn't in, now logs a warning naming it. Discord answers 404 for that just as it does for "not a member", so before it was indistinguishable from a user who simply wasn't there. An entry that isn't a guild ID is skipped with a warning naming it, and a value with no usable guild ID left refuses non-admin sign-in with `role_check_failed` instead of switching the check off. The Discord card under Admin > Settings now says "Guild IDs" and masks each ID on its own, so it shows how many are configured.
+
+### Changed
+
+- **Help and the docs cover 3.6.0's limits.** In-app Help, in all 11 languages, now says a community can cap how many areas you select and how far a radius reaches, and that a missing address search box can also mean the server has no geocoder. The profiles, drawn geofences and linked accounts pages say how the area limit applies to a new or duplicated profile, a geofence switched on at the cap, and an alarm moved to the other app.
+
+### Dependencies
+- Bump @ngx-translate/core ([#1135](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/1135))
+- Bump @ngx-translate/http-loader ([#1134](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/1134))
+- Bump the angular group ([#1132](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/1132))
+- Bump the eslint group ([#1133](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/1133))
+
+## [3.6.0] - 2026-10-31
+
+### Added
+
+- **PoracleNG's area limit now holds on the web too.** PoracleNG can cap how many areas a user picks and how many areas one alarm is limited to (`[tracking] max_areas`, jfberry/PoracleNG#346). It doesn't apply that cap to the trusted writes PoracleWeb.NET sends for every area change, so a user held to five areas in the bot could pick any number here. PoracleWeb.NET now reads the limit from PoracleNG and applies it itself, the same way PoracleNG does: saving areas, switching on a drawn geofence, creating, duplicating or importing a profile, adding or editing an alarm, and moving an alarm to a linked account all refuse a list over the limit with a message saying what it is. A list saved before the limit was lowered can still be saved again or made shorter, an alarm PoracleNG already holds unchanged isn't refused, and PoracleNG's admins and every destination that isn't a person (channels, threads, webhooks, groups) aren't limited. Fixing a difference between linked accounts copies the same person's list and isn't limited either. A drawn geofence created at the limit is saved but left switched off. The same change in PoracleNG stopped capping the radius on those writes (`[tracking] max_distance`), so a bulk "Change radius" could store any distance. PoracleWeb.NET now cuts it down to the limit, as PoracleNG does, with the same exemptions. Without either setting, or on a PoracleNG that doesn't publish it, nothing changes. The alarms page, PoracleNG compatibility page and troubleshooting guide describe the limits ([#1122](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/1122)).
+
+### Changed
+
+- **Address search switches itself off when PoracleNG has no geocoder.** With `[geocoding] provider` empty or `none` in PoracleNG's config, every address search and lookup can only fail, and until now the only way to stop them was for an admin to know to switch **Geocoding** off. PoracleWeb.NET now reads the provider from PoracleNG and treats it the way it treats an alarm type PoracleNG disables: the address search box and the address under the pin go away, the API refuses the geocode calls instead of passing them on, and the Geocoding toggle in **Admin → Server settings → Features** shows as forced off, with a note in all 11 languages saying to set a provider in PoracleNG. Your own setting isn't changed, so it's back in charge once a provider is set (within five minutes). PoracleJS, which doesn't report a provider, behaves as before (#1111).
+
+### Fixed
+
+- **Areas made of more than one piece now work.** A Koji area saved as a `MultiPolygon` (an island and the mainland under one name, or a fence loaded from a scanner and edited, which can turn into one) was dropped from the area feed without a word, so PoracleNG never loaded it, it wasn't in the area list, and nothing matched it. Such an area is now served in PoracleNG's `multipath` shape and appears as one area: one entry to pick, one shape on every map, its name on gyms and on the review card's overlap line whichever piece they fall in. A `MultiPolygon` region now works for region auto-detection instead of breaking it, and taking an area out of the Koji project no longer fails on one, or drops a polygon's holes. Fixes [#1117](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/1117).
+
 ## [3.5.0] - 2026-10-29
 
 ### Added
@@ -1510,7 +1540,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.5.0...HEAD
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.7.0...HEAD
+[3.7.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.6.0...v3.7.0
+[3.6.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.5.0...v3.6.0
 [3.5.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.4.0...v3.5.0
 [3.4.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.3.0...v3.4.0
 [3.3.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.2.0...v3.3.0

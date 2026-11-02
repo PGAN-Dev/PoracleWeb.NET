@@ -45,6 +45,8 @@ PoracleWeb.NET never writes a user's area list itself. Creating, switching on or
 
 **Saved, but not switched on.** A new geofence is saved first and switched on second. If the second step fails, the geofence still exists and the user sees "Saved, but it couldn't be switched on yet. Use the toggle to retry." Flipping the toggle on the Geofences page tries again. See [Troubleshooting](troubleshooting.md#a-geofence-saved-but-not-switched-on).
 
+**The area limit counts drawn geofences.** When PoracleNG caps how many areas a user can pick (`[tracking] max_areas`), a switched-on geofence is one of them. A geofence drawn by a user already at the cap is saved but left switched off, with the message above, and switching one on at the cap is refused with "You can select at most N areas. Remove one before adding another." Drop an area on the Areas page, or switch another geofence off, first. Switching off is never limited.
+
 **Deleting.** Deleting a geofence takes its name off every profile of the user. An alarm that was limited to that geofence alone would then have no area left and start matching the whole of the profile's areas, so the delete checks first. If no alarm is affected, it is the usual "are you sure". If some are, the dialog says how many ("3 alarms are limited to this fence.") and asks:
 
 **Delete those alarms too**, the default, deletes the alarms limited to this geofence on every profile, Pokéstop event alarms included. **Keep them, using my profile's areas** leaves them in place, matching the areas on their profile instead.

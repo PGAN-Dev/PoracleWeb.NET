@@ -2,12 +2,13 @@ namespace Pgan.PoracleWebNet.Core.Abstractions.Services;
 
 /// <summary>
 /// Resolves which alarm types the upstream Poracle deployment has switched off in its own config,
-/// expressed as this application's <c>disable_*</c> keys.
+/// expressed as this application's <c>disable_*</c> keys. Geocoding counts too: a PoracleNG with no
+/// geocoder forces <c>disable_nominatim</c> (#1111).
 /// </summary>
 /// <remarks>
 /// These act as a <em>floor</em> under the <c>disable_*</c> site settings rather than a replacement:
 /// a type is off if either source says so. The site settings still gate UI Poracle has no opinion
-/// about (areas, profiles, geocoding), so they cannot simply be swapped out. See #769.
+/// about (areas, profiles), and can still switch geocoding off when Poracle has a geocoder, so they cannot simply be swapped out. See #769.
 /// </remarks>
 public interface IUpstreamFeatureFlagService
 {

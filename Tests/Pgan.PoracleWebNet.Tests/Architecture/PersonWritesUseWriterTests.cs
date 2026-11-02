@@ -29,7 +29,7 @@ public sealed class PersonWritesUseWriterTests
     ];
 
     private static readonly Regex Writes = new(
-        @"_\w+\.(SetLocationAsync|AddPlaceAsync|UpdatePlaceAsync|DeletePlaceAsync|SetProfileGeographyAsync|AddProfileAsync|UpdateProfileAsync|DeleteProfileAsync|SwitchProfileAsync|CopyProfileAsync|SetLanguageAsync|StartAsync|StopAsync|SaveSelectionAsync|AddToActiveProfileAsync|RemoveFromActiveProfileAsync|SetScheduleAsync|DeleteScheduleAsync|CopyAsync|DuplicateProfileAsync|ImportAlarmsAsync)\(" +
+        @"_\w+\.(SetLocationAsync|AddPlaceAsync|UpdatePlaceAsync|DeletePlaceAsync|SetProfileGeographyAsync|AddProfileAsync|UpdateProfileAsync|DeleteProfileAsync|SwitchProfileAsync|CopyProfileAsync|SetLanguageAsync|StartAsync|StopAsync|SaveSelectionAsync|MirrorSelectionAsync|AddToActiveProfileAsync|RemoveFromActiveProfileAsync|SetScheduleAsync|DeleteScheduleAsync|CopyAsync|DuplicateProfileAsync|ImportAlarmsAsync)\(" +
         @"|_muteProxy\.(CreateAsync|DeleteAsync|DeleteAllAsync)\(",
         RegexOptions.Compiled);
 
