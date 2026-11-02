@@ -46,6 +46,9 @@ public partial class AuthController(
     private const string EnableOidcKey = "enable_oidc";
     private const string EnableOidcSloKey = "enable_oidc_slo";
 
+    // Discord's JSON error code for a guild that doesn't exist or doesn't have the bot.
+    private const int DiscordUnknownGuildCode = 10004;
+
     // Quote characters used in the allowed_role_ids example across the translated tooltips --
     // users paste them in along with the IDs.
     private static readonly char[] RoleIdTrimChars =
@@ -1108,7 +1111,7 @@ public partial class AuthController(
     /// Checks if role-based access is enabled and whether the user has an allowed role.
     /// Returns null if access is granted, or an error string if denied.
     /// </summary>
-    private async Task<string?> CheckRoleAccessAsync(string discordId)
+    internal async Task<string?> CheckRoleAccessAsync(string discordId)
     {
         try
         {
@@ -1151,7 +1154,7 @@ public partial class AuthController(
 
             // Fetch the user's member data in each configured guild via the bot API. One allowed role
             // in any of the guilds is enough, so stop at the first guild that grants access.
-            using var httpClient = new HttpClient();
+            using var httpClient = this._httpClientFactory.CreateClient();
             httpClient.DefaultRequestHeaders.Authorization =
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bot", this._discordSettings.BotToken);
 
@@ -1159,16 +1162,41 @@ public partial class AuthController(
             var anyLookupFailed = false;
             foreach (var guildId in guildIds)
             {
-                var response = await httpClient.GetAsync(
-                    $"https://discordapp.com/api/guilds/{guildId}/members/{discordId}");
+                HttpResponseMessage response;
+                try
+                {
+                    response = await httpClient.GetAsync(
+                        $"https://discordapp.com/api/guilds/{guildId}/members/{discordId}");
+                }
+                catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+                {
+                    // One unreachable guild mustn't end the check while another could still grant access.
+                    LogGuildMemberRequestFailed(this._logger, ex, LogSafe.Id(discordId), guildId);
+                    anyLookupFailed = true;
+                    continue;
+                }
+
+                using var _ = response;
 
                 if (!response.IsSuccessStatusCode)
                 {
                     var errorBody = await response.Content.ReadAsStringAsync();
-                    // 404 = not in this guild, which is routine when several are listed; 403 = bot doesn't have access
+                    // 404 = not in this guild, which is routine when several are listed; 403 = bot doesn't have access.
+                    // Discord also answers 404 for a guild that doesn't exist or doesn't have the bot, so a mistyped
+                    // or stale DISCORD_GUILD_ID entry is told apart by its error code and named at Warning. It still
+                    // counts as "not a member", which is the answer a single bad guild ID has always given.
                     if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                     {
-                        LogGuildMemberNotFound(this._logger, LogSafe.Id(discordId), guildId, errorBody);
+                        if (IsUnknownGuildError(errorBody))
+                        {
+                            LogGuildUnknown(this._logger, guildId);
+                        }
+                        else if (this._logger.IsEnabled(LogLevel.Debug))
+                        {
+#pragma warning disable CA1873 // args are only evaluated inside IsEnabled guard
+                            LogGuildMemberNotFound(this._logger, LogSafe.Id(discordId), guildId, errorBody);
+#pragma warning restore CA1873
+                        }
                     }
                     else
                     {
@@ -1293,6 +1321,27 @@ public partial class AuthController(
     /// otherwise a member of at least one guild is missing the role, and a member of none is not in
     /// the guild. With a single guild this is the same answer the single-guild check always gave.
     /// </summary>
+    /// <summary>
+    /// Whether a Discord error body is <c>10004 Unknown Guild</c>: the guild doesn't exist or the bot
+    /// isn't in it. A user who isn't in the guild gets <c>10007 Unknown Member</c> on the same 404.
+    /// </summary>
+    internal static bool IsUnknownGuildError(string body)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(body);
+            return doc.RootElement.ValueKind == JsonValueKind.Object
+                && doc.RootElement.TryGetProperty("code", out var code)
+                && code.ValueKind == JsonValueKind.Number
+                && code.TryGetInt32(out var value)
+                && value == DiscordUnknownGuildCode;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
     internal static string GuildRoleCheckDenial(bool inAnyGuild, bool anyLookupFailed) =>
         anyLookupFailed ? "role_check_failed"
         : inAnyGuild ? "missing_required_role"
@@ -1506,6 +1555,14 @@ public partial class AuthController(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch guild member {UserId} in guild {GuildId}: {Status} {Body}")]
     private static partial void LogGuildMemberFetchFailed(ILogger logger, string userId, string guildId, System.Net.HttpStatusCode status, string body);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Could not reach Discord to look up guild member {UserId} in guild {GuildId}.")]
+    private static partial void LogGuildMemberRequestFailed(ILogger logger, Exception ex, string userId, string guildId);
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Discord guild {GuildId} in DISCORD_GUILD_ID is unknown: it doesn't exist or the bot isn't in it, so no role there can grant access.")]
+    private static partial void LogGuildUnknown(ILogger logger, string guildId);
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "User {UserId} is not a member of guild {GuildId}: {Body}")]
     private static partial void LogGuildMemberNotFound(ILogger logger, string userId, string guildId, string body);

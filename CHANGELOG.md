@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Role-based access can check more than one Discord server.** `DISCORD_GUILD_ID` took a single guild, so a community whose members are spread across several servers could only gate sign-in on one of them and lock out everyone who wasn't in it. It now takes a comma-separated list: the bot looks the user up in each guild in turn, and an allowed role in any one of them is enough. A guild the bot can't read doesn't lock out someone who qualifies through another. A single guild ID behaves exactly as before, including the `not_in_guild`, `missing_required_role` and `role_check_failed` reasons. A guild ID that's mistyped, or names a server the bot isn't in, now logs a warning naming it. Discord answers 404 for that just as it does for "not a member", so before it was indistinguishable from a user who simply wasn't there.
+
 ### Changed
 
 - **Help and the docs cover 3.6.0's limits.** In-app Help, in all 11 languages, now says a community can cap how many areas you select and how far a radius reaches, and that a missing address search box can also mean the server has no geocoder. The profiles, drawn geofences and linked accounts pages say how the area limit applies to a new or duplicated profile, a geofence switched on at the cap, and an alarm moved to the other app.
@@ -457,7 +461,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bump the jest group ([#907](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/907))
 - Bump the test group with 1 update ([#900](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/900))
 - Bump the test group with 2 updates ([#905](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/905))
-- **Role-based access can check more than one Discord server.** `DISCORD_GUILD_ID` took a single guild, so a community whose members are spread across several servers could only gate sign-in on one of them and lock out everyone who was not in it. It now takes a comma-separated list: the bot looks the user up in each guild in turn, and an allowed role in any one of them is enough. A single guild ID behaves exactly as before, including the `not_in_guild`, `missing_required_role` and `role_check_failed` reasons.
 
 ## [2.18.0] - 2026-09-15
 
